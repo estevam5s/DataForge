@@ -356,10 +356,11 @@ pares <span class="o">:=</span> nums <span class="o">>></span> <span class="k">s
     <div class="container">
         <div class="stats-bar">
             <div class="stat-item"><div class="stat-num">180+</div><div class="stat-label">Funções Embutidas</div></div>
-            <div class="stat-item"><div class="stat-num">12</div><div class="stat-label">Módulos Stdlib</div></div>
+            <div class="stat-item"><div class="stat-num">14</div><div class="stat-label">Módulos Stdlib</div></div>
             <div class="stat-item"><div class="stat-num">50+</div><div class="stat-label">Métodos de String</div></div>
             <div class="stat-item"><div class="stat-num">69</div><div class="stat-label">Testes Passando</div></div>
             <div class="stat-item"><div class="stat-num">40+</div><div class="stat-label">Exemplos Prontos</div></div>
+            <div class="stat-item"><div class="stat-num">5</div><div class="stat-label">Templates Projeto</div></div>
         </div>
     </div>
 </div>
@@ -383,6 +384,9 @@ pares <span class="o">:=</span> nums <span class="o">>></span> <span class="k">s
             <div class="feat-card"><span class="feat-icon">⚡</span><h3>Pipelines de Dados</h3><p>Operador &gt;&gt; para encadear sift (filtrar), morph (mapear), distill (reduzir) — direto e expressivo.</p></div>
             <div class="feat-card"><span class="feat-icon">🛡️</span><h3>Tratamento de Erros</h3><p>monitor/handle/ensure, guard, validate, retry/recover, defer, propagate — robusto e completo.</p></div>
             <div class="feat-card"><span class="feat-icon">📝</span><h3>Regex Completo</h3><p>match, search, findall, sub, split, test, count, extract — expressões regulares nativas.</p></div>
+            <div class="feat-card"><span class="feat-icon">🌐</span><h3>Servidor HTTP</h3><p>Crie APIs REST com rotas, middleware, JSON responses e integração com banco de dados — direto em DataForge.</p></div>
+            <div class="feat-card"><span class="feat-icon">🎯</span><h3>SOLID & Patterns</h3><p>Suporte completo a princípios SOLID, Design Patterns (Factory, Observer, Strategy, Builder) e DDD/TDD.</p></div>
+            <div class="feat-card"><span class="feat-icon">🤖</span><h3>Automações & ETL</h3><p>Pipelines ETL, processamento em lote, geração de relatórios, importação CSV/JSON e templates de projeto.</p></div>
         </div>
     </div>
 </section>
@@ -1322,27 +1326,1348 @@ dados <span class="o">:=</span> IO.read_json(<span class="s">"user.json"</span>)
 </section>
 
 <!-- ════════════════════════════════════════════════════════════
+     TEORIA & CONCEITOS
+     ════════════════════════════════════════════════════════════ -->
+<section class="section section-alt" id="teoria">
+    <div class="container">
+        <div class="section-head">
+            <h2>🎓 <span class="gradient">Teoria & Conceitos</span></h2>
+            <p>Fundamentos teóricos completos de Engenharia de Software aplicados ao DataForge.</p>
+        </div>
+
+        <div class="doc-layout">
+            <aside class="sidebar">
+                <h4>Teoria</h4>
+                <ul>
+                    <li><a href="#sec-poo-teoria">POO — Teoria Completa</a></li>
+                    <li><a href="#sec-solid">Princípios SOLID</a></li>
+                    <li><a href="#sec-patterns">Padrões de Projeto</a></li>
+                    <li><a href="#sec-tdd">TDD</a></li>
+                    <li><a href="#sec-ddd">DDD</a></li>
+                    <li><a href="#sec-db-teoria">Banco de Dados — Teoria</a></li>
+                    <li><a href="#sec-automacoes">Automações</a></li>
+                    <li><a href="#sec-http">Servidor HTTP</a></li>
+                    <li><a href="#sec-cli-template">Template de Projeto</a></li>
+                    <li><a href="#sec-metodos-classe">Métodos de Classe</a></li>
+                </ul>
+            </aside>
+
+            <div class="doc-content">
+
+<!-- ═══════════════════════════════════════════════════════════
+     POO — TEORIA COMPLETA
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-poo-teoria">Programação Orientada a Objetos — Teoria Completa</h3>
+
+<p>A <strong>Programação Orientada a Objetos (POO)</strong> é um paradigma de programação que organiza o software em torno de <em>objetos</em> — entidades que combinam dados (atributos) e comportamentos (métodos). A POO é o paradigma dominante no desenvolvimento de software moderno e é fundamental para construir sistemas escaláveis, reutilizáveis e de fácil manutenção.</p>
+
+<p>Em DataForge, a POO é implementada através de <strong>Blueprints</strong> (classes), <strong>spawn</strong> (instanciação), <strong>self</strong> (referência à instância), <strong>extends</strong> (herança), <strong>traits</strong> (interfaces) e <strong>root</strong> (chamada ao pai).</p>
+
+<div class="info-box">
+    <strong>💡 Conceito-chave:</strong> Um <strong>objeto</strong> é uma instância de uma classe. A classe é o "molde" (blueprint) e o objeto é a "construção" feita a partir desse molde. Em DataForge, usamos <code>blueprint</code> para definir o molde e <code>spawn</code> para criar instâncias.
+</div>
+
+<h4 style="margin: 2rem 0 1rem; font-size: 1.15rem; color: var(--accent);">Os 4 Pilares da POO</h4>
+
+<p>A POO se sustenta sobre quatro pilares fundamentais que, juntos, fornecem uma base sólida para o design de software orientado a objetos:</p>
+
+<div class="pillar-grid">
+    <div class="pillar-card">
+        <span class="pillar-icon">🔒</span>
+        <h4>Encapsulamento</h4>
+        <p>Ocultar detalhes internos do objeto, expondo apenas uma interface pública controlada. Protege o estado interno contra modificações indevidas.</p>
+    </div>
+    <div class="pillar-card">
+        <span class="pillar-icon">🧬</span>
+        <h4>Herança</h4>
+        <p>Criar novas classes a partir de classes existentes, reutilizando código e estabelecendo hierarquias "é-um". A subclasse herda atributos e métodos da superclasse.</p>
+    </div>
+    <div class="pillar-card">
+        <span class="pillar-icon">🎭</span>
+        <h4>Polimorfismo</h4>
+        <p>Permitir que objetos de diferentes classes respondam à mesma mensagem de formas diferentes. Um mesmo método pode ter comportamentos distintos dependendo do tipo do objeto.</p>
+    </div>
+    <div class="pillar-card">
+        <span class="pillar-icon">🔮</span>
+        <h4>Abstração</h4>
+        <p>Representar conceitos do mundo real de forma simplificada, focando nos aspectos relevantes e ocultando a complexidade desnecessária.</p>
+    </div>
+</div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">1. Encapsulamento em DataForge</h4>
+
+<p>O <strong>encapsulamento</strong> é o conceito de agrupar dados e os métodos que operam sobre esses dados em uma única unidade (o objeto), restringindo o acesso direto a alguns dos componentes. Isso é fundamental para evitar efeitos colaterais e manter a integridade do estado do objeto.</p>
+
+<p>Em DataForge, o encapsulamento é realizado através de blueprints onde os atributos são acessados e modificados exclusivamente por métodos da própria classe. Convencionalmente, atributos prefixados com <code>_</code> são considerados privados.</p>
+
+<div class="cb"><div class="cb-head"><span>encapsulamento.df</span><span class="cb-tag">.df</span></div><pre><span class="k">blueprint</span> <span class="t">ContaBancaria</span>:
+    <span class="k">action</span> <span class="f">setup</span>(titular, saldo_inicial):
+        <span class="k">self</span>.titular <span class="o">:=</span> titular
+        <span class="k">self</span>._saldo <span class="o">:=</span> saldo_inicial    <span class="c">// _ = convenção de privado</span>
+        <span class="k">self</span>._historico <span class="o">:=</span> []
+
+    <span class="c">// Getter — interface pública para acessar o saldo</span>
+    <span class="k">action</span> <span class="f">get_saldo</span>():
+        <span class="k">yield</span> <span class="k">self</span>._saldo
+
+    <span class="c">// Método com validação — protege o estado interno</span>
+    <span class="k">action</span> <span class="f">depositar</span>(valor):
+        <span class="k">guard</span> valor <span class="k">bigger</span> <span class="n">0</span> <span class="k">otherwise</span>:
+            <span class="k">trigger</span> <span class="s">"Valor deve ser positivo"</span>
+        <span class="k">self</span>._saldo <span class="o">:=</span> <span class="k">self</span>._saldo <span class="o">+</span> valor
+        <span class="b">append</span>(<span class="k">self</span>._historico, <span class="s">"Depósito: +"</span> <span class="o">+</span> <span class="b">str</span>(valor))
+
+    <span class="k">action</span> <span class="f">sacar</span>(valor):
+        <span class="k">guard</span> valor <span class="k">bigger</span> <span class="n">0</span> <span class="k">otherwise</span>:
+            <span class="k">trigger</span> <span class="s">"Valor deve ser positivo"</span>
+        <span class="k">guard</span> valor <span class="k">smaller_eq</span> <span class="k">self</span>._saldo <span class="k">otherwise</span>:
+            <span class="k">trigger</span> <span class="s">"Saldo insuficiente"</span>
+        <span class="k">self</span>._saldo <span class="o">:=</span> <span class="k">self</span>._saldo <span class="o">-</span> valor
+        <span class="b">append</span>(<span class="k">self</span>._historico, <span class="s">"Saque: -"</span> <span class="o">+</span> <span class="b">str</span>(valor))
+
+    <span class="k">action</span> <span class="f">extrato</span>():
+        <span class="k">out</span> <span class="s">"═══ Extrato de "</span> <span class="o">+</span> <span class="k">self</span>.titular <span class="o">+</span> <span class="s">" ═══"</span>
+        <span class="k">cycle</span> mov <span class="k">in</span> <span class="k">self</span>._historico:
+            <span class="k">out</span> <span class="s">"  "</span> <span class="o">+</span> mov
+        <span class="k">out</span> <span class="s">"  Saldo: R$ "</span> <span class="o">+</span> <span class="b">str</span>(<span class="k">self</span>._saldo)
+
+conta <span class="o">:=</span> <span class="k">spawn</span> <span class="t">ContaBancaria</span>(<span class="s">"Ana"</span>, <span class="n">1000</span>)
+conta.depositar(<span class="n">500</span>)
+conta.sacar(<span class="n">200</span>)
+conta.extrato()
+<span class="c">// O _saldo só é modificado através dos métodos controlados</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">2. Herança em DataForge</h4>
+
+<p>A <strong>herança</strong> permite que uma classe (filha) herde atributos e métodos de outra classe (pai). Isso promove a reutilização de código e estabelece relações hierárquicas do tipo "é-um" (is-a). Uma classe <code>Cachorro</code> "é-um" <code>Animal</code>.</p>
+
+<p>Em DataForge, usamos <code>extends</code> para herança e <code>root</code> para acessar métodos da classe pai (equivalente a <code>super</code> em outras linguagens).</p>
+
+<div class="cb"><div class="cb-head"><span>heranca_completa.df</span><span class="cb-tag">.df</span></div><pre><span class="c">// Classe base abstrata</span>
+<span class="k">blueprint</span> <span class="t">Forma</span>:
+    <span class="k">action</span> <span class="f">setup</span>(cor):
+        <span class="k">self</span>.cor <span class="o">:=</span> cor
+
+    <span class="k">action</span> <span class="f">area</span>():
+        <span class="k">trigger</span> <span class="s">"Método abstrato: implemente area() na subclasse"</span>
+
+    <span class="k">action</span> <span class="f">descricao</span>():
+        <span class="k">yield</span> <span class="s">"Forma de cor "</span> <span class="o">+</span> <span class="k">self</span>.cor <span class="o">+</span> <span class="s">" com área "</span> <span class="o">+</span> <span class="b">str</span>(<span class="k">self</span>.area())
+
+<span class="c">// Subclasse Círculo</span>
+<span class="k">blueprint</span> <span class="t">Circulo</span> <span class="k">extends</span> <span class="t">Forma</span>:
+    <span class="k">action</span> <span class="f">setup</span>(raio, cor):
+        <span class="k">self</span>.cor <span class="o">:=</span> cor
+        <span class="k">self</span>.raio <span class="o">:=</span> raio
+
+    <span class="k">action</span> <span class="f">area</span>():
+        <span class="k">yield</span> PI <span class="o">*</span> <span class="k">self</span>.raio <span class="o">**</span> <span class="n">2</span>
+
+<span class="c">// Subclasse Retângulo</span>
+<span class="k">blueprint</span> <span class="t">Retangulo</span> <span class="k">extends</span> <span class="t">Forma</span>:
+    <span class="k">action</span> <span class="f">setup</span>(largura, altura, cor):
+        <span class="k">self</span>.cor <span class="o">:=</span> cor
+        <span class="k">self</span>.largura <span class="o">:=</span> largura
+        <span class="k">self</span>.altura <span class="o">:=</span> altura
+
+    <span class="k">action</span> <span class="f">area</span>():
+        <span class="k">yield</span> <span class="k">self</span>.largura <span class="o">*</span> <span class="k">self</span>.altura
+
+<span class="c">// Subclasse Quadrado herda de Retângulo</span>
+<span class="k">blueprint</span> <span class="t">Quadrado</span> <span class="k">extends</span> <span class="t">Retangulo</span>:
+    <span class="k">action</span> <span class="f">setup</span>(lado, cor):
+        <span class="k">self</span>.cor <span class="o">:=</span> cor
+        <span class="k">self</span>.largura <span class="o">:=</span> lado
+        <span class="k">self</span>.altura <span class="o">:=</span> lado
+
+<span class="c">// Polimorfismo em ação</span>
+formas <span class="o">:=</span> [
+    <span class="k">spawn</span> <span class="t">Circulo</span>(<span class="n">5</span>, <span class="s">"azul"</span>),
+    <span class="k">spawn</span> <span class="t">Retangulo</span>(<span class="n">4</span>, <span class="n">6</span>, <span class="s">"verde"</span>),
+    <span class="k">spawn</span> <span class="t">Quadrado</span>(<span class="n">3</span>, <span class="s">"vermelho"</span>)
+]
+
+<span class="k">cycle</span> forma <span class="k">in</span> formas:
+    <span class="k">out</span> forma.descricao()  <span class="c">// Cada forma calcula sua própria área!</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">3. Polimorfismo em DataForge</h4>
+
+<p>O <strong>polimorfismo</strong> (do grego "muitas formas") permite que objetos de diferentes classes respondam à mesma mensagem de maneiras diferentes. Existem dois tipos principais:</p>
+
+<ul style="padding-left: 2rem; color: var(--text-muted); margin: 1rem 0;">
+    <li><strong>Polimorfismo de subtipo</strong> — Subclasses sobrescrevem métodos da superclasse</li>
+    <li><strong>Polimorfismo paramétrico</strong> — Funções que operam em diferentes tipos</li>
+</ul>
+
+<div class="cb"><div class="cb-head"><span>polimorfismo.df</span><span class="cb-tag">.df</span></div><pre><span class="c">// ─── Polimorfismo de Subtipo ───</span>
+<span class="k">blueprint</span> <span class="t">Notificador</span>:
+    <span class="k">action</span> <span class="f">enviar</span>(msg):
+        <span class="k">trigger</span> <span class="s">"Implemente enviar()"</span>
+
+<span class="k">blueprint</span> <span class="t">EmailNotificador</span> <span class="k">extends</span> <span class="t">Notificador</span>:
+    <span class="k">action</span> <span class="f">enviar</span>(msg):
+        <span class="k">out</span> <span class="s">"📧 Email: "</span> <span class="o">+</span> msg
+
+<span class="k">blueprint</span> <span class="t">SMSNotificador</span> <span class="k">extends</span> <span class="t">Notificador</span>:
+    <span class="k">action</span> <span class="f">enviar</span>(msg):
+        <span class="k">out</span> <span class="s">"📱 SMS: "</span> <span class="o">+</span> msg
+
+<span class="k">blueprint</span> <span class="t">PushNotificador</span> <span class="k">extends</span> <span class="t">Notificador</span>:
+    <span class="k">action</span> <span class="f">enviar</span>(msg):
+        <span class="k">out</span> <span class="s">"🔔 Push: "</span> <span class="o">+</span> msg
+
+<span class="c">// Todos são tratados como "Notificador"</span>
+notificadores <span class="o">:=</span> [
+    <span class="k">spawn</span> <span class="t">EmailNotificador</span>(),
+    <span class="k">spawn</span> <span class="t">SMSNotificador</span>(),
+    <span class="k">spawn</span> <span class="t">PushNotificador</span>()
+]
+
+<span class="k">cycle</span> n <span class="k">in</span> notificadores:
+    n.enviar(<span class="s">"Novo pedido recebido!"</span>)
+<span class="c">// Cada notificador se comporta de forma diferente</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">4. Abstração em DataForge</h4>
+
+<p>A <strong>abstração</strong> é o processo de identificar as características essenciais de um objeto, ignorando os detalhes irrelevantes. Em DataForge, usamos <strong>traits</strong> (interfaces) para definir contratos abstratos que as classes concretas devem implementar.</p>
+
+<div class="cb"><div class="cb-head"><span>abstracao.df</span><span class="cb-tag">.df</span></div><pre><span class="c">// Trait define o contrato (interface)</span>
+<span class="k">trait</span> <span class="t">Persistivel</span>:
+    <span class="k">action</span> <span class="f">salvar</span>()
+    <span class="k">action</span> <span class="f">carregar</span>(id)
+    <span class="k">action</span> <span class="f">deletar</span>(id)
+
+<span class="c">// Implementação concreta — Arquivo</span>
+<span class="k">blueprint</span> <span class="t">ArquivoStorage</span>(<span class="t">Persistivel</span>):
+    <span class="k">action</span> <span class="f">salvar</span>():
+        <span class="k">out</span> <span class="s">"💾 Salvando em arquivo..."</span>
+    <span class="k">action</span> <span class="f">carregar</span>(id):
+        <span class="k">out</span> <span class="s">"📂 Carregando do arquivo: "</span> <span class="o">+</span> <span class="b">str</span>(id)
+    <span class="k">action</span> <span class="f">deletar</span>(id):
+        <span class="k">out</span> <span class="s">"🗑️ Deletando do arquivo: "</span> <span class="o">+</span> <span class="b">str</span>(id)
+
+<span class="c">// Implementação concreta — Banco de Dados</span>
+<span class="k">blueprint</span> <span class="t">DBStorage</span>(<span class="t">Persistivel</span>):
+    <span class="k">action</span> <span class="f">salvar</span>():
+        <span class="k">out</span> <span class="s">"🗄️ Salvando no banco..."</span>
+    <span class="k">action</span> <span class="f">carregar</span>(id):
+        <span class="k">out</span> <span class="s">"🔍 Consultando banco: "</span> <span class="o">+</span> <span class="b">str</span>(id)
+    <span class="k">action</span> <span class="f">deletar</span>(id):
+        <span class="k">out</span> <span class="s">"❌ Deletando do banco: "</span> <span class="o">+</span> <span class="b">str</span>(id)
+
+<span class="c">// A função aceita qualquer Persistivel — abstração!</span>
+<span class="k">action</span> <span class="f">migrar_dados</span>(origem, destino, id):
+    dados <span class="o">:=</span> origem.carregar(id)
+    destino.salvar()</pre></div>
+
+<div class="warn-box">
+    <strong>⚠️ Regra de Ouro da POO:</strong> "Programe para uma interface, não para uma implementação." — Design Patterns: Gang of Four (GoF). Em DataForge, use <code>traits</code> para definir contratos e deixe que as classes concretas implementem os detalhes.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PRINCÍPIOS SOLID
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-solid">Princípios SOLID</h3>
+
+<p>Os princípios <strong>SOLID</strong> são cinco princípios fundamentais do design orientado a objetos, propostos por Robert C. Martin (Uncle Bob). Juntos, eles formam um guia para criar software que é fácil de manter, estender e entender. Cada letra do acrônimo representa um princípio:</p>
+
+<div class="principle-box">
+    <h4><span class="letter">S</span> Single Responsibility Principle (SRP)</h4>
+    <p><strong>Princípio da Responsabilidade Única:</strong> Uma classe deve ter uma, e apenas uma, razão para mudar. Cada classe deve ter uma única responsabilidade bem definida.</p>
+    <p><strong>Por que é importante?</strong> Classes com múltiplas responsabilidades são frágeis — uma mudança em uma responsabilidade pode quebrar a outra. Separar responsabilidades torna o código mais modular e testável.</p>
+</div>
+
+<div class="cb"><div class="cb-head"><span>srp.df</span><span class="cb-tag">SOLID — S</span></div><pre><span class="c">// ❌ ERRADO: Uma classe com múltiplas responsabilidades</span>
+<span class="k">blueprint</span> <span class="t">UsuarioErrado</span>:
+    <span class="k">action</span> <span class="f">salvar_no_banco</span>():
+        <span class="k">out</span> <span class="s">"Salvando..."</span>
+    <span class="k">action</span> <span class="f">enviar_email</span>():
+        <span class="k">out</span> <span class="s">"Enviando email..."</span>
+    <span class="k">action</span> <span class="f">gerar_relatorio</span>():
+        <span class="k">out</span> <span class="s">"Gerando PDF..."</span>
+
+<span class="c">// ✅ CORRETO: Cada classe com uma responsabilidade</span>
+<span class="k">blueprint</span> <span class="t">Usuario</span>:
+    <span class="k">action</span> <span class="f">setup</span>(nome, email):
+        <span class="k">self</span>.nome <span class="o">:=</span> nome
+        <span class="k">self</span>.email <span class="o">:=</span> email
+
+<span class="k">blueprint</span> <span class="t">UsuarioRepository</span>:
+    <span class="k">action</span> <span class="f">salvar</span>(usuario):
+        <span class="k">out</span> <span class="s">"💾 Salvando "</span> <span class="o">+</span> usuario.nome
+
+<span class="k">blueprint</span> <span class="t">EmailService</span>:
+    <span class="k">action</span> <span class="f">enviar</span>(destinatario, msg):
+        <span class="k">out</span> <span class="s">"📧 Enviando para "</span> <span class="o">+</span> destinatario
+
+<span class="k">blueprint</span> <span class="t">RelatorioService</span>:
+    <span class="k">action</span> <span class="f">gerar</span>(dados):
+        <span class="k">out</span> <span class="s">"📊 Relatório gerado"</span></pre></div>
+
+<div class="principle-box">
+    <h4><span class="letter">O</span> Open/Closed Principle (OCP)</h4>
+    <p><strong>Princípio Aberto/Fechado:</strong> Entidades de software devem estar <em>abertas para extensão</em>, mas <em>fechadas para modificação</em>. Você deve poder adicionar novos comportamentos sem alterar o código existente.</p>
+    <p><strong>Como aplicar?</strong> Use herança, polimorfismo e composição. Defina abstrações (traits) e crie novas implementações em vez de modificar classes existentes.</p>
+</div>
+
+<div class="cb"><div class="cb-head"><span>ocp.df</span><span class="cb-tag">SOLID — O</span></div><pre><span class="c">// ✅ Aberto para extensão, fechado para modificação</span>
+<span class="k">trait</span> <span class="t">Desconto</span>:
+    <span class="k">action</span> <span class="f">calcular</span>(preco)
+
+<span class="k">blueprint</span> <span class="t">DescontoNatal</span>(<span class="t">Desconto</span>):
+    <span class="k">action</span> <span class="f">calcular</span>(preco):
+        <span class="k">yield</span> preco <span class="o">*</span> <span class="n">0.25</span>   <span class="c">// 25% de desconto</span>
+
+<span class="k">blueprint</span> <span class="t">DescontoBlackFriday</span>(<span class="t">Desconto</span>):
+    <span class="k">action</span> <span class="f">calcular</span>(preco):
+        <span class="k">yield</span> preco <span class="o">*</span> <span class="n">0.50</span>   <span class="c">// 50% de desconto</span>
+
+<span class="k">blueprint</span> <span class="t">DescontoFidelidade</span>(<span class="t">Desconto</span>):
+    <span class="k">action</span> <span class="f">calcular</span>(preco):
+        <span class="k">yield</span> preco <span class="o">*</span> <span class="n">0.10</span>   <span class="c">// 10% de desconto</span>
+
+<span class="c">// Para adicionar novo desconto, basta criar nova classe!</span>
+<span class="c">// Não precisa modificar nenhum código existente.</span>
+<span class="k">action</span> <span class="f">aplicar_desconto</span>(preco, desconto):
+    <span class="k">yield</span> preco <span class="o">-</span> desconto.calcular(preco)
+
+<span class="k">out</span> <span class="f">aplicar_desconto</span>(<span class="n">100</span>, <span class="k">spawn</span> <span class="t">DescontoNatal</span>())        <span class="c">// 75</span>
+<span class="k">out</span> <span class="f">aplicar_desconto</span>(<span class="n">100</span>, <span class="k">spawn</span> <span class="t">DescontoBlackFriday</span>())  <span class="c">// 50</span></pre></div>
+
+<div class="principle-box">
+    <h4><span class="letter">L</span> Liskov Substitution Principle (LSP)</h4>
+    <p><strong>Princípio da Substituição de Liskov:</strong> Objetos de uma superclasse devem poder ser substituídos por objetos de suas subclasses sem quebrar o programa. Se <code>S</code> é subtipo de <code>T</code>, então objetos de tipo <code>T</code> podem ser substituídos por objetos de tipo <code>S</code>.</p>
+    <p><strong>Violação clássica:</strong> O famoso problema "Quadrado é um Retângulo" — se <code>Quadrado extends Retangulo</code> e alguém altera apenas a largura, o quadrado "quebra" porque a altura não muda junto.</p>
+</div>
+
+<div class="cb"><div class="cb-head"><span>lsp.df</span><span class="cb-tag">SOLID — L</span></div><pre><span class="c">// ✅ LSP: Subclasses mantêm o contrato da superclasse</span>
+<span class="k">blueprint</span> <span class="t">Ave</span>:
+    <span class="k">action</span> <span class="f">setup</span>(nome):
+        <span class="k">self</span>.nome <span class="o">:=</span> nome
+    <span class="k">action</span> <span class="f">mover</span>():
+        <span class="k">yield</span> <span class="k">self</span>.nome <span class="o">+</span> <span class="s">" está se movendo"</span>
+
+<span class="c">// Correto: separar voar de mover</span>
+<span class="k">trait</span> <span class="t">Voavel</span>:
+    <span class="k">action</span> <span class="f">voar</span>()
+
+<span class="k">blueprint</span> <span class="t">Aguia</span> <span class="k">extends</span> <span class="t">Ave</span>:
+    <span class="k">action</span> <span class="f">voar</span>():
+        <span class="k">yield</span> <span class="k">self</span>.nome <span class="o">+</span> <span class="s">" voa alto! 🦅"</span>
+
+<span class="k">blueprint</span> <span class="t">Pinguim</span> <span class="k">extends</span> <span class="t">Ave</span>:
+    <span class="k">action</span> <span class="f">nadar</span>():
+        <span class="k">yield</span> <span class="k">self</span>.nome <span class="o">+</span> <span class="s">" nada rápido! 🐧"</span>
+
+<span class="c">// Ambos podem ser usados como Ave sem quebrar</span>
+<span class="k">action</span> <span class="f">mover_ave</span>(ave):
+    <span class="k">out</span> ave.mover()
+
+<span class="f">mover_ave</span>(<span class="k">spawn</span> <span class="t">Aguia</span>(<span class="s">"Aguia"</span>))     <span class="c">// ✅ Funciona</span>
+<span class="f">mover_ave</span>(<span class="k">spawn</span> <span class="t">Pinguim</span>(<span class="s">"Pingu"</span>))   <span class="c">// ✅ Funciona</span></pre></div>
+
+<div class="principle-box">
+    <h4><span class="letter">I</span> Interface Segregation Principle (ISP)</h4>
+    <p><strong>Princípio da Segregação de Interface:</strong> Clientes não devem ser forçados a depender de interfaces que não utilizam. É melhor ter muitas interfaces pequenas e específicas do que uma interface grande e genérica.</p>
+    <p><strong>Analogia:</strong> Um controle remoto universal com 200 botões é difícil de usar. Melhor ter controles específicos para TV, som e ar-condicionado.</p>
+</div>
+
+<div class="cb"><div class="cb-head"><span>isp.df</span><span class="cb-tag">SOLID — I</span></div><pre><span class="c">// ❌ ERRADO: Interface grande demais</span>
+<span class="c">// trait Trabalhador: comer(), trabalhar(), dormir(), programar()</span>
+
+<span class="c">// ✅ CORRETO: Interfaces segregadas</span>
+<span class="k">trait</span> <span class="t">Trabalhavel</span>:
+    <span class="k">action</span> <span class="f">trabalhar</span>()
+
+<span class="k">trait</span> <span class="t">Alimentavel</span>:
+    <span class="k">action</span> <span class="f">comer</span>()
+
+<span class="k">trait</span> <span class="t">Programavel</span>:
+    <span class="k">action</span> <span class="f">programar</span>()
+
+<span class="c">// Humano implementa todas que precisa</span>
+<span class="k">blueprint</span> <span class="t">Desenvolvedor</span>(<span class="t">Trabalhavel</span>, <span class="t">Alimentavel</span>, <span class="t">Programavel</span>):
+    <span class="k">action</span> <span class="f">trabalhar</span>():
+        <span class="k">out</span> <span class="s">"👨‍💻 Trabalhando..."</span>
+    <span class="k">action</span> <span class="f">comer</span>():
+        <span class="k">out</span> <span class="s">"🍕 Comendo pizza..."</span>
+    <span class="k">action</span> <span class="f">programar</span>():
+        <span class="k">out</span> <span class="s">"⌨️ Programando em DataForge..."</span>
+
+<span class="c">// Robô só implementa o que faz sentido</span>
+<span class="k">blueprint</span> <span class="t">Robo</span>(<span class="t">Trabalhavel</span>):
+    <span class="k">action</span> <span class="f">trabalhar</span>():
+        <span class="k">out</span> <span class="s">"🤖 Robô trabalhando 24/7..."</span></pre></div>
+
+<div class="principle-box">
+    <h4><span class="letter">D</span> Dependency Inversion Principle (DIP)</h4>
+    <p><strong>Princípio da Inversão de Dependência:</strong> Módulos de alto nível não devem depender de módulos de baixo nível. Ambos devem depender de abstrações. Abstrações não devem depender de detalhes; detalhes devem depender de abstrações.</p>
+    <p><strong>Na prática:</strong> Em vez de uma classe instanciar diretamente suas dependências, ela recebe abstrações (traits) por injeção de dependência.</p>
+</div>
+
+<div class="cb"><div class="cb-head"><span>dip.df</span><span class="cb-tag">SOLID — D</span></div><pre><span class="c">// Abstração (trait)</span>
+<span class="k">trait</span> <span class="t">Logger</span>:
+    <span class="k">action</span> <span class="f">log</span>(msg)
+
+<span class="c">// Implementação concreta: Console</span>
+<span class="k">blueprint</span> <span class="t">ConsoleLogger</span>(<span class="t">Logger</span>):
+    <span class="k">action</span> <span class="f">log</span>(msg):
+        <span class="k">out</span> <span class="s">"[LOG] "</span> <span class="o">+</span> msg
+
+<span class="c">// Implementação concreta: Arquivo</span>
+<span class="k">blueprint</span> <span class="t">FileLogger</span>(<span class="t">Logger</span>):
+    <span class="k">action</span> <span class="f">log</span>(msg):
+        <span class="k">out</span> <span class="s">"[FILE] Escrevendo: "</span> <span class="o">+</span> msg
+
+<span class="c">// Módulo de alto nível depende da abstração Logger</span>
+<span class="k">blueprint</span> <span class="t">Aplicacao</span>:
+    <span class="k">action</span> <span class="f">setup</span>(logger):
+        <span class="k">self</span>.logger <span class="o">:=</span> logger   <span class="c">// Injeção de dependência!</span>
+
+    <span class="k">action</span> <span class="f">executar</span>():
+        <span class="k">self</span>.logger.log(<span class="s">"Aplicação iniciada"</span>)
+        <span class="k">out</span> <span class="s">"⚡ Executando lógica..."</span>
+        <span class="k">self</span>.logger.log(<span class="s">"Aplicação finalizada"</span>)
+
+<span class="c">// Fácil trocar a implementação!</span>
+app1 <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Aplicacao</span>(<span class="k">spawn</span> <span class="t">ConsoleLogger</span>())
+app1.executar()
+
+app2 <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Aplicacao</span>(<span class="k">spawn</span> <span class="t">FileLogger</span>())
+app2.executar()</pre></div>
+
+<div class="info-box">
+    <strong>💡 Resumo SOLID:</strong> <strong>S</strong>ingle Responsibility → Uma classe, uma razão para mudar. <strong>O</strong>pen/Closed → Estenda, não modifique. <strong>L</strong>iskov → Subtipos substituíveis. <strong>I</strong>nterface Segregation → Interfaces pequenas e coesas. <strong>D</strong>ependency Inversion → Dependa de abstrações.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PADRÕES DE PROJETO
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-patterns">Padrões de Projeto (Design Patterns)</h3>
+
+<p>Os <strong>Padrões de Projeto</strong> são soluções reutilizáveis para problemas recorrentes no design de software orientado a objetos. Foram catalogados pelo grupo "Gang of Four" (GoF) — Erich Gamma, Richard Helm, Ralph Johnson e John Vlissides — no livro <em>"Design Patterns: Elements of Reusable Object-Oriented Software"</em> (1994). São divididos em 3 categorias:</p>
+
+<div class="pillar-grid">
+    <div class="pillar-card">
+        <span class="pillar-icon">🏭</span>
+        <h4>Criacionais</h4>
+        <p>Controlam como objetos são criados. Factory, Singleton, Builder, Prototype, Abstract Factory.</p>
+    </div>
+    <div class="pillar-card">
+        <span class="pillar-icon">🏗️</span>
+        <h4>Estruturais</h4>
+        <p>Organizam como classes e objetos são compostos. Adapter, Decorator, Facade, Proxy, Composite.</p>
+    </div>
+    <div class="pillar-card">
+        <span class="pillar-icon">🔄</span>
+        <h4>Comportamentais</h4>
+        <p>Gerenciam comunicação e responsabilidades. Observer, Strategy, Command, State, Iterator.</p>
+    </div>
+</div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Singleton — Uma Única Instância</h4>
+<p>Garante que uma classe tenha apenas uma instância e fornece um ponto de acesso global a ela. Útil para gerenciadores de configuração, conexões de banco de dados, caches e loggers.</p>
+
+<div class="cb"><div class="cb-head"><span>singleton.df</span><span class="cb-tag">Criacional</span></div><pre><span class="k">blueprint</span> <span class="t">Config</span>:
+    <span class="k">static</span> _instancia <span class="o">:=</span> <span class="k">void</span>
+    <span class="k">static</span> dados <span class="o">:=</span> {}
+
+    <span class="k">static</span> <span class="k">action</span> <span class="f">getInstance</span>():
+        <span class="k">given</span> Config._instancia <span class="o">==</span> <span class="k">void</span>:
+            Config._instancia <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Config</span>()
+        <span class="k">yield</span> Config._instancia
+
+    <span class="k">action</span> <span class="f">set</span>(chave, valor):
+        Config.dados[chave] <span class="o">:=</span> valor
+
+    <span class="k">action</span> <span class="f">get</span>(chave):
+        <span class="k">yield</span> Config.dados[chave]
+
+<span class="c">// Mesma instância em todo o programa</span>
+cfg1 <span class="o">:=</span> Config.getInstance()
+cfg1.set(<span class="s">"tema"</span>, <span class="s">"escuro"</span>)
+
+cfg2 <span class="o">:=</span> Config.getInstance()
+<span class="k">out</span> cfg2.get(<span class="s">"tema"</span>)   <span class="c">// "escuro" — é a mesma instância!</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Factory Method — Criação Flexível</h4>
+<p>Define uma interface para criar objetos, mas permite que as subclasses decidam qual classe instanciar. Desacopla o código cliente da criação de objetos concretos.</p>
+
+<div class="cb"><div class="cb-head"><span>factory.df</span><span class="cb-tag">Criacional</span></div><pre><span class="k">blueprint</span> <span class="t">Botao</span>:
+    <span class="k">action</span> <span class="f">render</span>():
+        <span class="k">trigger</span> <span class="s">"Implemente render()"</span>
+
+<span class="k">blueprint</span> <span class="t">BotaoWindows</span> <span class="k">extends</span> <span class="t">Botao</span>:
+    <span class="k">action</span> <span class="f">render</span>():
+        <span class="k">out</span> <span class="s">"[====Botão Windows====]"</span>
+
+<span class="k">blueprint</span> <span class="t">BotaoMac</span> <span class="k">extends</span> <span class="t">Botao</span>:
+    <span class="k">action</span> <span class="f">render</span>():
+        <span class="k">out</span> <span class="s">"( Botão macOS )"</span>
+
+<span class="k">blueprint</span> <span class="t">BotaoLinux</span> <span class="k">extends</span> <span class="t">Botao</span>:
+    <span class="k">action</span> <span class="f">render</span>():
+        <span class="k">out</span> <span class="s">"| Botão Linux |"</span>
+
+<span class="c">// Factory — decide o tipo em tempo de execução</span>
+<span class="k">action</span> <span class="f">criar_botao</span>(plataforma):
+    <span class="k">match</span> plataforma:
+        <span class="k">point</span> <span class="s">"windows"</span>:
+            <span class="k">yield</span> <span class="k">spawn</span> <span class="t">BotaoWindows</span>()
+        <span class="k">point</span> <span class="s">"mac"</span>:
+            <span class="k">yield</span> <span class="k">spawn</span> <span class="t">BotaoMac</span>()
+        <span class="k">point</span> <span class="s">"linux"</span>:
+            <span class="k">yield</span> <span class="k">spawn</span> <span class="t">BotaoLinux</span>()
+
+btn <span class="o">:=</span> <span class="f">criar_botao</span>(<span class="s">"mac"</span>)
+btn.render()   <span class="c">// ( Botão macOS )</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Observer — Eventos e Reatividade</h4>
+<p>Define uma dependência um-para-muitos entre objetos: quando o estado de um objeto muda, todos os seus dependentes são notificados automaticamente. É a base de sistemas de eventos, pub/sub e reatividade.</p>
+
+<div class="cb"><div class="cb-head"><span>observer.df</span><span class="cb-tag">Comportamental</span></div><pre><span class="k">blueprint</span> <span class="t">EventEmitter</span>:
+    <span class="k">action</span> <span class="f">setup</span>():
+        <span class="k">self</span>._listeners <span class="o">:=</span> {}
+
+    <span class="k">action</span> <span class="f">on</span>(evento, callback):
+        <span class="k">given</span> <span class="o">not</span> <span class="b">contains</span>(<span class="k">self</span>._listeners, evento):
+            <span class="k">self</span>._listeners[evento] <span class="o">:=</span> []
+        <span class="b">append</span>(<span class="k">self</span>._listeners[evento], callback)
+
+    <span class="k">action</span> <span class="f">emit</span>(evento, dados):
+        <span class="k">given</span> <span class="b">contains</span>(<span class="k">self</span>._listeners, evento):
+            <span class="k">cycle</span> cb <span class="k">in</span> <span class="k">self</span>._listeners[evento]:
+                cb(dados)
+
+<span class="c">// Uso</span>
+bus <span class="o">:=</span> <span class="k">spawn</span> <span class="t">EventEmitter</span>()
+
+<span class="k">action</span> <span class="f">on_pedido</span>(pedido):
+    <span class="k">out</span> <span class="s">"📦 Novo pedido: "</span> <span class="o">+</span> pedido
+
+<span class="k">action</span> <span class="f">on_log</span>(pedido):
+    <span class="k">out</span> <span class="s">"📝 Log: pedido "</span> <span class="o">+</span> pedido
+
+bus.on(<span class="s">"pedido"</span>, on_pedido)
+bus.on(<span class="s">"pedido"</span>, on_log)
+
+bus.emit(<span class="s">"pedido"</span>, <span class="s">"#1234"</span>)
+<span class="c">// 📦 Novo pedido: #1234</span>
+<span class="c">// 📝 Log: pedido #1234</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Strategy — Algoritmos Intercambiáveis</h4>
+<p>Define uma família de algoritmos, encapsula cada um e os torna intercambiáveis. Permite que o algoritmo varie independentemente dos clientes que o utilizam.</p>
+
+<div class="cb"><div class="cb-head"><span>strategy.df</span><span class="cb-tag">Comportamental</span></div><pre><span class="c">// Estratégias de ordenação</span>
+<span class="k">trait</span> <span class="t">SortStrategy</span>:
+    <span class="k">action</span> <span class="f">ordenar</span>(dados)
+
+<span class="k">blueprint</span> <span class="t">BubbleSort</span>(<span class="t">SortStrategy</span>):
+    <span class="k">action</span> <span class="f">ordenar</span>(dados):
+        <span class="k">out</span> <span class="s">"🫧 Bubble Sort (O(n²)) — lento, didático"</span>
+        <span class="k">yield</span> <span class="b">sorted</span>(dados)
+
+<span class="k">blueprint</span> <span class="t">QuickSort</span>(<span class="t">SortStrategy</span>):
+    <span class="k">action</span> <span class="f">ordenar</span>(dados):
+        <span class="k">out</span> <span class="s">"⚡ Quick Sort (O(n log n)) — rápido!"</span>
+        <span class="k">yield</span> <span class="b">sorted</span>(dados)
+
+<span class="c">// Contexto que usa a estratégia</span>
+<span class="k">blueprint</span> <span class="t">Sorter</span>:
+    <span class="k">action</span> <span class="f">setup</span>(strategy):
+        <span class="k">self</span>.strategy <span class="o">:=</span> strategy
+
+    <span class="k">action</span> <span class="f">executar</span>(dados):
+        <span class="k">yield</span> <span class="k">self</span>.strategy.ordenar(dados)
+
+    <span class="k">action</span> <span class="f">set_strategy</span>(nova):
+        <span class="k">self</span>.strategy <span class="o">:=</span> nova
+
+s <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Sorter</span>(<span class="k">spawn</span> <span class="t">BubbleSort</span>())
+<span class="k">out</span> s.executar([<span class="n">3</span>, <span class="n">1</span>, <span class="n">4</span>, <span class="n">1</span>, <span class="n">5</span>])
+
+s.set_strategy(<span class="k">spawn</span> <span class="t">QuickSort</span>())
+<span class="k">out</span> s.executar([<span class="n">3</span>, <span class="n">1</span>, <span class="n">4</span>, <span class="n">1</span>, <span class="n">5</span>])</pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Builder — Construção Passo a Passo</h4>
+<p>Separa a construção de um objeto complexo da sua representação. Útil para objetos com muitos parâmetros opcionais (evita "telescoping constructor").</p>
+
+<div class="cb"><div class="cb-head"><span>builder.df</span><span class="cb-tag">Criacional</span></div><pre><span class="k">blueprint</span> <span class="t">QueryBuilder</span>:
+    <span class="k">action</span> <span class="f">setup</span>(tabela):
+        <span class="k">self</span>._tabela <span class="o">:=</span> tabela
+        <span class="k">self</span>._colunas <span class="o">:=</span> <span class="s">"*"</span>
+        <span class="k">self</span>._condicao <span class="o">:=</span> <span class="s">""</span>
+        <span class="k">self</span>._ordem <span class="o">:=</span> <span class="s">""</span>
+        <span class="k">self</span>._limite <span class="o">:=</span> <span class="s">""</span>
+
+    <span class="k">action</span> <span class="f">select</span>(colunas):
+        <span class="k">self</span>._colunas <span class="o">:=</span> colunas
+        <span class="k">yield</span> <span class="k">self</span>
+
+    <span class="k">action</span> <span class="f">where</span>(condicao):
+        <span class="k">self</span>._condicao <span class="o">:=</span> <span class="s">" WHERE "</span> <span class="o">+</span> condicao
+        <span class="k">yield</span> <span class="k">self</span>
+
+    <span class="k">action</span> <span class="f">order_by</span>(campo):
+        <span class="k">self</span>._ordem <span class="o">:=</span> <span class="s">" ORDER BY "</span> <span class="o">+</span> campo
+        <span class="k">yield</span> <span class="k">self</span>
+
+    <span class="k">action</span> <span class="f">limit</span>(n):
+        <span class="k">self</span>._limite <span class="o">:=</span> <span class="s">" LIMIT "</span> <span class="o">+</span> <span class="b">str</span>(n)
+        <span class="k">yield</span> <span class="k">self</span>
+
+    <span class="k">action</span> <span class="f">build</span>():
+        <span class="k">yield</span> <span class="s">"SELECT "</span> <span class="o">+</span> <span class="k">self</span>._colunas <span class="o">+</span> <span class="s">" FROM "</span> <span class="o">+</span> <span class="k">self</span>._tabela <span class="o">+</span> <span class="k">self</span>._condicao <span class="o">+</span> <span class="k">self</span>._ordem <span class="o">+</span> <span class="k">self</span>._limite
+
+<span class="c">// Construção fluente, passo a passo</span>
+query <span class="o">:=</span> <span class="k">spawn</span> <span class="t">QueryBuilder</span>(<span class="s">"usuarios"</span>)
+sql <span class="o">:=</span> query.select(<span class="s">"nome, email"</span>).where(<span class="s">"idade > 18"</span>).order_by(<span class="s">"nome"</span>).limit(<span class="n">10</span>).build()
+<span class="k">out</span> sql
+<span class="c">// SELECT nome, email FROM usuarios WHERE idade > 18 ORDER BY nome LIMIT 10</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Decorator — Adicionar Comportamento Dinamicamente</h4>
+<p>Anexa responsabilidades adicionais a um objeto de forma flexível, como alternativa à herança. Permite "empilhar" funcionalidades.</p>
+
+<div class="cb"><div class="cb-head"><span>decorator.df</span><span class="cb-tag">Estrutural</span></div><pre><span class="k">blueprint</span> <span class="t">Cafe</span>:
+    <span class="k">action</span> <span class="f">custo</span>():
+        <span class="k">yield</span> <span class="n">5.00</span>
+    <span class="k">action</span> <span class="f">descricao</span>():
+        <span class="k">yield</span> <span class="s">"Café simples"</span>
+
+<span class="k">blueprint</span> <span class="t">ComLeite</span>:
+    <span class="k">action</span> <span class="f">setup</span>(bebida):
+        <span class="k">self</span>.bebida <span class="o">:=</span> bebida
+    <span class="k">action</span> <span class="f">custo</span>():
+        <span class="k">yield</span> <span class="k">self</span>.bebida.custo() <span class="o">+</span> <span class="n">2.00</span>
+    <span class="k">action</span> <span class="f">descricao</span>():
+        <span class="k">yield</span> <span class="k">self</span>.bebida.descricao() <span class="o">+</span> <span class="s">" + Leite"</span>
+
+<span class="k">blueprint</span> <span class="t">ComChocolate</span>:
+    <span class="k">action</span> <span class="f">setup</span>(bebida):
+        <span class="k">self</span>.bebida <span class="o">:=</span> bebida
+    <span class="k">action</span> <span class="f">custo</span>():
+        <span class="k">yield</span> <span class="k">self</span>.bebida.custo() <span class="o">+</span> <span class="n">3.50</span>
+    <span class="k">action</span> <span class="f">descricao</span>():
+        <span class="k">yield</span> <span class="k">self</span>.bebida.descricao() <span class="o">+</span> <span class="s">" + Chocolate"</span>
+
+<span class="c">// Empilhando decorators</span>
+pedido <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Cafe</span>()
+pedido <span class="o">:=</span> <span class="k">spawn</span> <span class="t">ComLeite</span>(pedido)
+pedido <span class="o">:=</span> <span class="k">spawn</span> <span class="t">ComChocolate</span>(pedido)
+
+<span class="k">out</span> pedido.descricao()  <span class="c">// "Café simples + Leite + Chocolate"</span>
+<span class="k">out</span> pedido.custo()      <span class="c">// 10.50</span></pre></div>
+
+<div class="info-box">
+    <strong>💡 Outros padrões importantes:</strong> <strong>Adapter</strong> (adapta interfaces incompatíveis), <strong>Facade</strong> (simplifica subsistemas complexos), <strong>Command</strong> (encapsula requisições como objetos), <strong>State</strong> (altera comportamento baseado no estado interno), <strong>Iterator</strong> (percorre coleções sem expor implementação), <strong>Composite</strong> (trata objetos individuais e composições uniformemente), <strong>Proxy</strong> (controla acesso a um objeto).
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TDD
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-tdd">TDD — Test-Driven Development</h3>
+
+<p>O <strong>TDD (Desenvolvimento Orientado a Testes)</strong> é uma técnica de desenvolvimento de software onde os testes são escritos <em>antes</em> do código de produção. Foi popularizado por Kent Beck e é uma das práticas fundamentais do Extreme Programming (XP).</p>
+
+<p>O ciclo do TDD é composto por três fases, conhecidas como <strong>Red-Green-Refactor</strong>:</p>
+
+<div class="pillar-grid">
+    <div class="pillar-card" style="border-left: 3px solid #ff5f57;">
+        <span class="pillar-icon">🔴</span>
+        <h4>1. Red (Vermelho)</h4>
+        <p>Escreva um teste que falha. O teste descreve o comportamento desejado que ainda não existe. Execute e veja falhar.</p>
+    </div>
+    <div class="pillar-card" style="border-left: 3px solid #28c840;">
+        <span class="pillar-icon">🟢</span>
+        <h4>2. Green (Verde)</h4>
+        <p>Escreva o código mínimo necessário para o teste passar. Não otimize, apenas faça funcionar. O objetivo é ver o teste verde.</p>
+    </div>
+    <div class="pillar-card" style="border-left: 3px solid #58a6ff;">
+        <span class="pillar-icon">🔵</span>
+        <h4>3. Refactor (Refatorar)</h4>
+        <p>Melhore o código sem alterar seu comportamento. Remova duplicações, melhore nomes, extraia métodos. Os testes garantem que nada quebrou.</p>
+    </div>
+</div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Benefícios do TDD</h4>
+<ul style="padding-left: 2rem; color: var(--text-muted); margin: 1rem 0; line-height: 2;">
+    <li><strong>Código mais confiável:</strong> Cada funcionalidade tem um teste que prova que funciona</li>
+    <li><strong>Design melhor:</strong> Pensar nos testes primeiro força um design mais modular e desacoplado</li>
+    <li><strong>Documentação viva:</strong> Os testes servem como documentação executável do comportamento esperado</li>
+    <li><strong>Refatoração segura:</strong> Mudanças são feitas com confiança, pois os testes capturam regressões</li>
+    <li><strong>Menos bugs:</strong> Problemas são encontrados cedo, quando são mais baratos de corrigir</li>
+</ul>
+
+<div class="cb"><div class="cb-head"><span>tdd_exemplo.df</span><span class="cb-tag">TDD</span></div><pre><span class="k">adopt</span> Arcane.Test
+
+<span class="c">// ═══ PASSO 1 — RED: Escreva o teste primeiro ═══</span>
+
+<span class="c">// Queremos uma função que calcule o IMC</span>
+<span class="k">action</span> <span class="f">test_imc_normal</span>():
+    resultado <span class="o">:=</span> <span class="f">calcular_imc</span>(<span class="n">70</span>, <span class="n">1.75</span>)
+    Test.assert_eq(<span class="b">round</span>(resultado, <span class="n">1</span>), <span class="n">22.9</span>, <span class="s">"IMC 70kg 1.75m"</span>)
+
+<span class="k">action</span> <span class="f">test_imc_categoria</span>():
+    Test.assert_eq(<span class="f">categoria_imc</span>(<span class="n">22.0</span>), <span class="s">"Normal"</span>, <span class="s">"IMC Normal"</span>)
+    Test.assert_eq(<span class="f">categoria_imc</span>(<span class="n">17.0</span>), <span class="s">"Abaixo do peso"</span>, <span class="s">"IMC Baixo"</span>)
+    Test.assert_eq(<span class="f">categoria_imc</span>(<span class="n">28.0</span>), <span class="s">"Sobrepeso"</span>, <span class="s">"IMC Sobrepeso"</span>)
+    Test.assert_eq(<span class="f">categoria_imc</span>(<span class="n">32.0</span>), <span class="s">"Obeso"</span>, <span class="s">"IMC Obeso"</span>)
+
+<span class="c">// ═══ PASSO 2 — GREEN: Implemente o mínimo ═══</span>
+
+<span class="k">action</span> <span class="f">calcular_imc</span>(peso, altura):
+    <span class="k">yield</span> peso <span class="o">/</span> (altura <span class="o">*</span> altura)
+
+<span class="k">action</span> <span class="f">categoria_imc</span>(imc):
+    <span class="k">given</span> imc <span class="k">smaller</span> <span class="n">18.5</span>:
+        <span class="k">yield</span> <span class="s">"Abaixo do peso"</span>
+    <span class="k">orif</span> imc <span class="k">smaller</span> <span class="n">25</span>:
+        <span class="k">yield</span> <span class="s">"Normal"</span>
+    <span class="k">orif</span> imc <span class="k">smaller</span> <span class="n">30</span>:
+        <span class="k">yield</span> <span class="s">"Sobrepeso"</span>
+    <span class="k">otherwise</span>:
+        <span class="k">yield</span> <span class="s">"Obeso"</span>
+
+<span class="c">// ═══ PASSO 3 — EXECUTAR TESTES ═══</span>
+Test.describe(<span class="s">"Calculadora IMC"</span>, [
+    [<span class="s">"calcula IMC corretamente"</span>, test_imc_normal],
+    [<span class="s">"categoriza IMC corretamente"</span>, test_imc_categoria]
+])
+
+<span class="c">// ═══ PASSO 4 — REFACTOR: Melhorar sem mudar comportamento ═══</span>
+<span class="c">// (os testes garantem que nada quebrou após refatoração)</span></pre></div>
+
+<div class="warn-box">
+    <strong>⚠️ Regra do TDD:</strong> Nunca escreva código de produção sem antes ter um teste que falha. A proporção ideal é: ~60% do tempo escrevendo testes, ~40% escrevendo código de produção.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DDD
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-ddd">DDD — Domain-Driven Design</h3>
+
+<p>O <strong>DDD (Design Orientado ao Domínio)</strong> é uma abordagem de design de software proposta por Eric Evans no livro <em>"Domain-Driven Design: Tackling Complexity in the Heart of Software"</em> (2003). O DDD foca em modelar o software de acordo com o domínio de negócio, usando uma linguagem ubíqua compartilhada entre desenvolvedores e especialistas do domínio.</p>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Conceitos Fundamentais do DDD</h4>
+
+<table class="ref-table">
+    <thead><tr><th>Conceito</th><th>Descrição</th><th>Em DataForge</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Entity</strong></td><td>Objeto com identidade única que persiste ao longo do tempo</td><td><code>blueprint</code> com campo <code>id</code></td></tr>
+        <tr><td><strong>Value Object</strong></td><td>Objeto definido por seus atributos, sem identidade própria</td><td><code>blueprint</code> imutável (com <code>freeze</code>)</td></tr>
+        <tr><td><strong>Aggregate</strong></td><td>Grupo de entidades tratado como unidade, com uma raiz</td><td><code>blueprint</code> que contém outros blueprints</td></tr>
+        <tr><td><strong>Repository</strong></td><td>Abstração para persistência de Aggregates</td><td><code>blueprint</code> com métodos CRUD</td></tr>
+        <tr><td><strong>Service</strong></td><td>Operações de domínio que não pertencem a nenhuma entidade</td><td><code>blueprint</code> com métodos estáticos</td></tr>
+        <tr><td><strong>Factory</strong></td><td>Criação complexa de Aggregates</td><td>Funções factory ou <code>static action</code></td></tr>
+        <tr><td><strong>Domain Event</strong></td><td>Algo importante que aconteceu no domínio</td><td>EventEmitter ou callback</td></tr>
+        <tr><td><strong>Bounded Context</strong></td><td>Limite explícito dentro do qual um modelo de domínio é definido</td><td>Módulos/namespaces separados</td></tr>
+    </tbody>
+</table>
+
+<div class="cb"><div class="cb-head"><span>ddd_ecommerce.df</span><span class="cb-tag">DDD</span></div><pre><span class="c">// ═══ Value Object — Dinheiro (imutável) ═══</span>
+<span class="k">blueprint</span> <span class="t">Dinheiro</span>:
+    <span class="k">action</span> <span class="f">setup</span>(valor, moeda):
+        <span class="k">self</span>.valor <span class="o">:=</span> valor
+        <span class="k">self</span>.moeda <span class="o">:=</span> moeda
+
+    <span class="k">action</span> <span class="f">add</span>(other):
+        <span class="k">guard</span> <span class="k">self</span>.moeda <span class="o">==</span> other.moeda <span class="k">otherwise</span>:
+            <span class="k">trigger</span> <span class="s">"Moedas diferentes!"</span>
+        <span class="k">yield</span> <span class="k">spawn</span> <span class="t">Dinheiro</span>(<span class="k">self</span>.valor <span class="o">+</span> other.valor, <span class="k">self</span>.moeda)
+
+    <span class="k">action</span> <span class="f">toString</span>():
+        <span class="k">yield</span> <span class="k">self</span>.moeda <span class="o">+</span> <span class="s">" "</span> <span class="o">+</span> <span class="b">str</span>(<span class="k">self</span>.valor)
+
+<span class="c">// ═══ Entity — Produto (tem identidade) ═══</span>
+<span class="k">blueprint</span> <span class="t">Produto</span>:
+    <span class="k">action</span> <span class="f">setup</span>(id, nome, preco):
+        <span class="k">self</span>.id <span class="o">:=</span> id
+        <span class="k">self</span>.nome <span class="o">:=</span> nome
+        <span class="k">self</span>.preco <span class="o">:=</span> preco
+
+<span class="c">// ═══ Aggregate Root — Pedido ═══</span>
+<span class="k">blueprint</span> <span class="t">Pedido</span>:
+    <span class="k">action</span> <span class="f">setup</span>(id, cliente):
+        <span class="k">self</span>.id <span class="o">:=</span> id
+        <span class="k">self</span>.cliente <span class="o">:=</span> cliente
+        <span class="k">self</span>.itens <span class="o">:=</span> []
+        <span class="k">self</span>.status <span class="o">:=</span> <span class="s">"pendente"</span>
+
+    <span class="k">action</span> <span class="f">adicionar_item</span>(produto, qtd):
+        <span class="b">append</span>(<span class="k">self</span>.itens, {<span class="s">"produto"</span>: produto, <span class="s">"qtd"</span>: qtd})
+
+    <span class="k">action</span> <span class="f">total</span>():
+        t <span class="o">:=</span> <span class="n">0</span>
+        <span class="k">cycle</span> item <span class="k">in</span> <span class="k">self</span>.itens:
+            t <span class="o">:=</span> t <span class="o">+</span> (item[<span class="s">"produto"</span>].preco.valor <span class="o">*</span> item[<span class="s">"qtd"</span>])
+        <span class="k">yield</span> t
+
+    <span class="k">action</span> <span class="f">confirmar</span>():
+        <span class="k">guard</span> <span class="b">len</span>(<span class="k">self</span>.itens) <span class="k">bigger</span> <span class="n">0</span> <span class="k">otherwise</span>:
+            <span class="k">trigger</span> <span class="s">"Pedido vazio não pode ser confirmado"</span>
+        <span class="k">self</span>.status <span class="o">:=</span> <span class="s">"confirmado"</span>
+
+<span class="c">// ═══ Repository ═══</span>
+<span class="k">blueprint</span> <span class="t">PedidoRepository</span>:
+    <span class="k">action</span> <span class="f">setup</span>():
+        <span class="k">self</span>._pedidos <span class="o">:=</span> {}
+
+    <span class="k">action</span> <span class="f">salvar</span>(pedido):
+        <span class="k">self</span>._pedidos[pedido.id] <span class="o">:=</span> pedido
+
+    <span class="k">action</span> <span class="f">buscar</span>(id):
+        <span class="k">yield</span> <span class="k">self</span>._pedidos[id]
+
+<span class="c">// ═══ Uso ═══</span>
+preco1 <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Dinheiro</span>(<span class="n">29.90</span>, <span class="s">"BRL"</span>)
+prod1 <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Produto</span>(<span class="n">1</span>, <span class="s">"Camiseta"</span>, preco1)
+
+pedido <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Pedido</span>(<span class="n">100</span>, <span class="s">"João"</span>)
+pedido.adicionar_item(prod1, <span class="n">2</span>)
+pedido.confirmar()
+<span class="k">out</span> <span class="s">"Total: R$ "</span> <span class="o">+</span> <span class="b">str</span>(pedido.total())  <span class="c">// Total: R$ 59.80</span></pre></div>
+
+<div class="info-box">
+    <strong>💡 Linguagem Ubíqua:</strong> No DDD, desenvolvedores e especialistas de domínio devem usar os mesmos termos. Se o negócio fala "Pedido", "Item", "Cliente" — o código também deve usar esses nomes. Em DataForge, os blueprints devem refletir diretamente os conceitos do domínio.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     BANCO DE DADOS — TEORIA COMPLETA
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-db-teoria">Banco de Dados — Teoria Completa</h3>
+
+<p>Um <strong>banco de dados</strong> é uma coleção organizada de dados estruturados, armazenados e acessados eletronicamente. O <strong>Sistema de Gerenciamento de Banco de Dados (SGBD)</strong> é o software que gerencia o banco de dados, proporcionando uma interface entre os dados e os usuários.</p>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Tipos de Banco de Dados</h4>
+
+<div class="pillar-grid">
+    <div class="pillar-card">
+        <span class="pillar-icon">📊</span>
+        <h4>Relacional (SQL)</h4>
+        <p>Dados organizados em tabelas com linhas e colunas. Relacionamentos definidos por chaves. Ex: PostgreSQL, MySQL, SQLite.</p>
+    </div>
+    <div class="pillar-card">
+        <span class="pillar-icon">📄</span>
+        <h4>Documental (NoSQL)</h4>
+        <p>Dados armazenados como documentos (JSON/BSON). Flexível e sem esquema fixo. Ex: MongoDB, CouchDB.</p>
+    </div>
+    <div class="pillar-card">
+        <span class="pillar-icon">🔑</span>
+        <h4>Chave-Valor</h4>
+        <p>Estrutura simples de chave→valor. Extremamente rápido para leituras. Ex: Redis, DynamoDB.</p>
+    </div>
+    <div class="pillar-card">
+        <span class="pillar-icon">🕸️</span>
+        <h4>Grafo</h4>
+        <p>Dados como nós e arestas. Ideal para redes sociais e relacionamentos complexos. Ex: Neo4j, ArangoDB.</p>
+    </div>
+</div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Propriedades ACID</h4>
+
+<p>As propriedades <strong>ACID</strong> garantem a confiabilidade das transações em bancos de dados relacionais:</p>
+
+<table class="ref-table">
+    <thead><tr><th>Propriedade</th><th>Descrição</th><th>Exemplo</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Atomicidade</strong></td><td>Uma transação é tudo ou nada. Se qualquer parte falhar, toda a transação é revertida (rollback).</td><td>Transferência bancária: debita E credita, ou nenhum dos dois.</td></tr>
+        <tr><td><strong>Consistência</strong></td><td>Uma transação leva o banco de um estado válido para outro estado válido. Todas as regras e restrições são respeitadas.</td><td>Saldo nunca fica negativo se a regra proíbe.</td></tr>
+        <tr><td><strong>Isolamento</strong></td><td>Transações concorrentes são executadas como se fossem sequenciais. Uma transação não vê os dados intermediários de outra.</td><td>Duas transferências simultâneas não interferem uma na outra.</td></tr>
+        <tr><td><strong>Durabilidade</strong></td><td>Uma vez que uma transação é confirmada (commit), ela persiste mesmo em caso de falha do sistema.</td><td>Após o commit, os dados sobrevivem a um crash do servidor.</td></tr>
+    </tbody>
+</table>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Normalização de Dados</h4>
+
+<p>A <strong>normalização</strong> é o processo de organizar os dados em um banco de dados para reduzir redundâncias e dependências. Existem várias formas normais:</p>
+
+<table class="ref-table">
+    <thead><tr><th>Forma Normal</th><th>Regra</th></tr></thead>
+    <tbody>
+        <tr><td><strong>1FN</strong></td><td>Elimina grupos repetitivos. Cada coluna contém valores atômicos (não divisíveis). Cada registro é único.</td></tr>
+        <tr><td><strong>2FN</strong></td><td>Está em 1FN + todos os atributos não-chave dependem totalmente da chave primária (sem dependência parcial).</td></tr>
+        <tr><td><strong>3FN</strong></td><td>Está em 2FN + nenhum atributo não-chave depende transitivamente da chave primária.</td></tr>
+        <tr><td><strong>BCNF</strong></td><td>Forma normal de Boyce-Codd. Cada determinante é uma chave candidata.</td></tr>
+    </tbody>
+</table>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">SQL Completo em DataForge</h4>
+
+<div class="cb"><div class="cb-head"><span>database_completo.df</span><span class="cb-tag">.df</span></div><pre><span class="k">adopt</span> Database
+
+db <span class="o">:=</span> Database.connect(<span class="s">"ecommerce.db"</span>)
+
+<span class="c">// ═══ DDL — Data Definition Language ═══</span>
+Database.execute(db, <span class="s">"CREATE TABLE IF NOT EXISTS produtos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    preco REAL NOT NULL CHECK(preco > 0),
+    estoque INTEGER DEFAULT 0,
+    categoria TEXT,
+    criado_em TEXT DEFAULT CURRENT_TIMESTAMP
+)"</span>)
+
+Database.execute(db, <span class="s">"CREATE TABLE IF NOT EXISTS pedidos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente TEXT NOT NULL,
+    total REAL,
+    status TEXT DEFAULT 'pendente'
+)"</span>)
+
+Database.execute(db, <span class="s">"CREATE TABLE IF NOT EXISTS itens_pedido (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pedido_id INTEGER REFERENCES pedidos(id),
+    produto_id INTEGER REFERENCES produtos(id),
+    quantidade INTEGER NOT NULL,
+    preco_unitario REAL NOT NULL
+)"</span>)
+
+<span class="c">// ═══ DML — Data Manipulation Language ═══</span>
+
+<span class="c">// INSERT</span>
+Database.insert(db, <span class="s">"produtos"</span>, {
+    <span class="s">"nome"</span>: <span class="s">"Notebook"</span>, <span class="s">"preco"</span>: <span class="n">3499.90</span>,
+    <span class="s">"estoque"</span>: <span class="n">50</span>, <span class="s">"categoria"</span>: <span class="s">"Eletrônicos"</span>
+})
+
+<span class="c">// SELECT com JOIN</span>
+resultado <span class="o">:=</span> Database.query(db, <span class="s">"
+    SELECT p.nome, ip.quantidade, ip.preco_unitario
+    FROM itens_pedido ip
+    JOIN produtos p ON ip.produto_id = p.id
+    WHERE ip.pedido_id = 1
+"</span>)
+
+<span class="c">// UPDATE com condição</span>
+Database.update(db, <span class="s">"produtos"</span>,
+    {<span class="s">"estoque"</span>: <span class="n">45</span>},
+    {<span class="s">"nome"</span>: <span class="s">"Notebook"</span>}
+)
+
+<span class="c">// DELETE</span>
+Database.delete(db, <span class="s">"pedidos"</span>, {<span class="s">"status"</span>: <span class="s">"cancelado"</span>})
+
+<span class="c">// ═══ Transações ═══</span>
+Database.transaction(db):
+    Database.update(db, <span class="s">"produtos"</span>, {<span class="s">"estoque"</span>: <span class="n">49</span>}, {<span class="s">"id"</span>: <span class="n">1</span>})
+    Database.insert(db, <span class="s">"pedidos"</span>, {<span class="s">"cliente"</span>: <span class="s">"Ana"</span>, <span class="s">"total"</span>: <span class="n">3499.90</span>})
+    <span class="c">// Se qualquer operação falhar, tudo é revertido (ACID)</span>
+
+<span class="c">// ═══ Agregações ═══</span>
+<span class="k">out</span> Database.query(db, <span class="s">"
+    SELECT categoria, COUNT(*) as qtd, AVG(preco) as media
+    FROM produtos
+    GROUP BY categoria
+    HAVING qtd > 5
+    ORDER BY media DESC
+"</span>)
+
+<span class="c">// ═══ Índices ═══</span>
+Database.execute(db, <span class="s">"CREATE INDEX idx_produtos_nome ON produtos(nome)"</span>)
+Database.execute(db, <span class="s">"CREATE INDEX idx_pedidos_status ON pedidos(status)"</span>)
+
+<span class="c">// ═══ Migrações ═══</span>
+Database.migrate(db, <span class="s">"v2"</span>, <span class="s">"ALTER TABLE produtos ADD COLUMN descricao TEXT"</span>)
+
+Database.close(db)</pre></div>
+
+<div class="info-box">
+    <strong>💡 Dica de Performance:</strong> Sempre use <strong>índices</strong> em colunas usadas em <code>WHERE</code>, <code>JOIN</code> e <code>ORDER BY</code>. Use <strong>transações</strong> para operações que devem ser atômicas. Use <strong>Query Builder</strong> para evitar SQL injection.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     AUTOMAÇÕES
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-automacoes">Automações</h3>
+
+<p>DataForge oferece diversas ferramentas para <strong>automação de tarefas</strong> — desde manipulação de arquivos até processamento de dados em lote, web scraping conceitual e agendamento de tarefas.</p>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Processamento de Dados em Lote</h4>
+
+<div class="cb"><div class="cb-head"><span>automacao_dados.df</span><span class="cb-tag">.df</span></div><pre><span class="k">adopt</span> IO
+<span class="k">adopt</span> Analytics
+
+<span class="c">// ═══ Pipeline de ETL (Extract, Transform, Load) ═══</span>
+
+<span class="c">// 1. EXTRACT — Ler dados</span>
+dados_brutos <span class="o">:=</span> IO.read_json(<span class="s">"vendas_2024.json"</span>)
+
+<span class="c">// 2. TRANSFORM — Limpar e transformar</span>
+dados_limpos <span class="o">:=</span> dados_brutos
+    <span class="o">>></span> <span class="k">sift</span> v: v[<span class="s">"valor"</span>] <span class="k">bigger</span> <span class="n">0</span>
+    <span class="o">>></span> <span class="k">morph</span> v: {
+        <span class="s">"produto"</span>: v[<span class="s">"produto"</span>].upper(),
+        <span class="s">"valor"</span>: <span class="b">round</span>(v[<span class="s">"valor"</span>], <span class="n">2</span>),
+        <span class="s">"categoria"</span>: v[<span class="s">"categoria"</span>]
+    }
+
+<span class="c">// 3. ANALYZE — Estatísticas</span>
+valores <span class="o">:=</span> dados_limpos <span class="o">>></span> <span class="k">morph</span> v: v[<span class="s">"valor"</span>]
+<span class="k">out</span> <span class="s">"📊 Média: R$ "</span> <span class="o">+</span> <span class="b">str</span>(Analytics.mean(valores))
+<span class="k">out</span> <span class="s">"📈 Máximo: R$ "</span> <span class="o">+</span> <span class="b">str</span>(<span class="b">max</span>(valores))
+<span class="k">out</span> <span class="s">"📉 Mínimo: R$ "</span> <span class="o">+</span> <span class="b">str</span>(<span class="b">min</span>(valores))
+
+<span class="c">// 4. LOAD — Salvar resultado</span>
+IO.write_json(<span class="s">"vendas_processadas.json"</span>, dados_limpos)
+<span class="k">out</span> <span class="s">"✅ Pipeline ETL concluído!"</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Automação de Arquivos</h4>
+
+<div class="cb"><div class="cb-head"><span>automacao_arquivos.df</span><span class="cb-tag">.df</span></div><pre><span class="k">adopt</span> IO
+
+<span class="c">// ═══ Organizar arquivos por extensão ═══</span>
+<span class="k">action</span> <span class="f">organizar_arquivos</span>(diretorio):
+    arquivos <span class="o">:=</span> IO.list_dir(diretorio)
+    categorias <span class="o">:=</span> {
+        <span class="s">"imagens"</span>: [<span class="s">".png"</span>, <span class="s">".jpg"</span>, <span class="s">".gif"</span>, <span class="s">".svg"</span>],
+        <span class="s">"documentos"</span>: [<span class="s">".pdf"</span>, <span class="s">".doc"</span>, <span class="s">".txt"</span>, <span class="s">".md"</span>],
+        <span class="s">"codigo"</span>: [<span class="s">".df"</span>, <span class="s">".py"</span>, <span class="s">".js"</span>, <span class="s">".html"</span>],
+        <span class="s">"dados"</span>: [<span class="s">".json"</span>, <span class="s">".csv"</span>, <span class="s">".xml"</span>, <span class="s">".db"</span>]
+    }
+
+    <span class="k">cycle</span> arquivo <span class="k">in</span> arquivos:
+        ext <span class="o">:=</span> IO.extension(arquivo)
+        <span class="k">cycle</span> cat <span class="k">in</span> <span class="b">keys</span>(categorias):
+            <span class="k">given</span> <span class="b">contains</span>(categorias[cat], ext):
+                <span class="k">out</span> <span class="s">"📁 "</span> <span class="o">+</span> arquivo <span class="o">+</span> <span class="s">" → "</span> <span class="o">+</span> cat
+
+<span class="f">organizar_arquivos</span>(<span class="s">"."</span>)
+
+<span class="c">// ═══ Gerar relatórios automáticos ═══</span>
+<span class="k">action</span> <span class="f">gerar_relatorio</span>(titulo, dados):
+    linhas <span class="o">:=</span> [<span class="s">"# "</span> <span class="o">+</span> titulo, <span class="s">""</span>, <span class="s">"Data: "</span> <span class="o">+</span> <span class="b">str</span>(<span class="b">timestamp</span>()), <span class="s">""</span>]
+    <span class="k">cycle</span> item <span class="k">in</span> dados:
+        <span class="b">append</span>(linhas, <span class="s">"- "</span> <span class="o">+</span> <span class="b">str</span>(item))
+    IO.write_file(<span class="s">"relatorio.md"</span>, <span class="b">join</span>(<span class="s">"\\n"</span>, linhas))
+    <span class="k">out</span> <span class="s">"📝 Relatório gerado com sucesso!"</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Validação e Processamento de CSV/JSON</h4>
+
+<div class="cb"><div class="cb-head"><span>automacao_csv.df</span><span class="cb-tag">.df</span></div><pre><span class="k">adopt</span> IO
+<span class="k">adopt</span> Database
+
+<span class="c">// ═══ Importar CSV para banco de dados ═══</span>
+<span class="k">action</span> <span class="f">importar_csv_para_db</span>(arquivo_csv, tabela):
+    db <span class="o">:=</span> Database.connect(<span class="s">"dados.db"</span>)
+    dados <span class="o">:=</span> IO.read_csv(arquivo_csv)
+
+    <span class="k">out</span> <span class="s">"📥 Importando "</span> <span class="o">+</span> <span class="b">str</span>(<span class="b">len</span>(dados)) <span class="o">+</span> <span class="s">" registros..."</span>
+
+    contador <span class="o">:=</span> <span class="n">0</span>
+    <span class="k">cycle</span> registro <span class="k">in</span> dados:
+        <span class="k">monitor</span>:
+            Database.insert(db, tabela, registro)
+            contador <span class="o">:=</span> contador <span class="o">+</span> <span class="n">1</span>
+        <span class="k">handle</span> err:
+            <span class="k">out</span> <span class="s">"⚠️ Erro no registro: "</span> <span class="o">+</span> <span class="b">str</span>(err)
+
+    <span class="k">out</span> <span class="s">"✅ "</span> <span class="o">+</span> <span class="b">str</span>(contador) <span class="o">+</span> <span class="s">" registros importados!"</span>
+    Database.close(db)
+
+<span class="f">importar_csv_para_db</span>(<span class="s">"users.csv"</span>, <span class="s">"usuarios"</span>)</pre></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SERVIDOR HTTP
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-http">Servidor HTTP</h3>
+
+<p>DataForge inclui um módulo para criar <strong>servidores HTTP simples</strong>, similar ao Flask/Express. Permite criar APIs REST, servir páginas HTML e lidar com requisições.</p>
+
+<div class="cb"><div class="cb-head"><span>servidor.df</span><span class="cb-tag">.df</span></div><pre><span class="k">adopt</span> Arcane.Http
+
+<span class="c">// ═══ Criar servidor HTTP básico ═══</span>
+app <span class="o">:=</span> Http.create_app()
+
+<span class="c">// Rota GET — página inicial</span>
+Http.get(app, <span class="s">"/"</span>, <span class="k">action</span>(req, res):
+    Http.send(res, <span class="s">"&lt;h1&gt;🔥 DataForge Server&lt;/h1&gt;&lt;p&gt;Funcionando!&lt;/p&gt;"</span>)
+)
+
+<span class="c">// Rota GET — retornar JSON (API)</span>
+Http.get(app, <span class="s">"/api/status"</span>, <span class="k">action</span>(req, res):
+    Http.json(res, {
+        <span class="s">"status"</span>: <span class="s">"online"</span>,
+        <span class="s">"versao"</span>: <span class="s">"1.0.0"</span>,
+        <span class="s">"linguagem"</span>: <span class="s">"DataForge"</span>
+    })
+)
+
+<span class="c">// Rota GET — listar usuários</span>
+Http.get(app, <span class="s">"/api/usuarios"</span>, <span class="k">action</span>(req, res):
+    usuarios <span class="o">:=</span> [
+        {<span class="s">"id"</span>: <span class="n">1</span>, <span class="s">"nome"</span>: <span class="s">"Ana"</span>, <span class="s">"email"</span>: <span class="s">"ana@test.com"</span>},
+        {<span class="s">"id"</span>: <span class="n">2</span>, <span class="s">"nome"</span>: <span class="s">"Carlos"</span>, <span class="s">"email"</span>: <span class="s">"carlos@test.com"</span>}
+    ]
+    Http.json(res, usuarios)
+)
+
+<span class="c">// Rota POST — criar usuário</span>
+Http.post(app, <span class="s">"/api/usuarios"</span>, <span class="k">action</span>(req, res):
+    body <span class="o">:=</span> Http.body(req)
+    <span class="k">out</span> <span class="s">"📥 Novo usuário: "</span> <span class="o">+</span> body[<span class="s">"nome"</span>]
+    Http.json(res, {<span class="s">"msg"</span>: <span class="s">"Criado!"</span>, <span class="s">"dados"</span>: body}, <span class="n">201</span>)
+)
+
+<span class="c">// Rota com parâmetro dinâmico</span>
+Http.get(app, <span class="s">"/api/usuarios/:id"</span>, <span class="k">action</span>(req, res):
+    id <span class="o">:=</span> Http.param(req, <span class="s">"id"</span>)
+    Http.json(res, {<span class="s">"id"</span>: id, <span class="s">"nome"</span>: <span class="s">"Usuário "</span> <span class="o">+</span> id})
+)
+
+<span class="c">// Middleware de logging</span>
+Http.use(app, <span class="k">action</span>(req, res, next):
+    <span class="k">out</span> <span class="s">"[LOG] "</span> <span class="o">+</span> Http.method(req) <span class="o">+</span> <span class="s">" "</span> <span class="o">+</span> Http.path(req)
+    next()
+)
+
+<span class="c">// Iniciar servidor</span>
+Http.listen(app, <span class="n">3000</span>)
+<span class="k">out</span> <span class="s">"🚀 Servidor rodando em http://localhost:3000"</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">API REST com Banco de Dados</h4>
+
+<div class="cb"><div class="cb-head"><span>api_rest.df</span><span class="cb-tag">.df</span></div><pre><span class="k">adopt</span> Arcane.Http
+<span class="k">adopt</span> Database
+
+app <span class="o">:=</span> Http.create_app()
+db <span class="o">:=</span> Database.connect(<span class="s">"api.db"</span>)
+
+<span class="c">// Criar tabela</span>
+Database.create_table(db, <span class="s">"tarefas"</span>, {
+    <span class="s">"id"</span>: <span class="s">"INTEGER PRIMARY KEY AUTOINCREMENT"</span>,
+    <span class="s">"titulo"</span>: <span class="s">"TEXT NOT NULL"</span>,
+    <span class="s">"concluida"</span>: <span class="s">"BOOLEAN DEFAULT 0"</span>
+})
+
+<span class="c">// GET /api/tarefas — Listar todas</span>
+Http.get(app, <span class="s">"/api/tarefas"</span>, <span class="k">action</span>(req, res):
+    tarefas <span class="o">:=</span> Database.select(db, <span class="s">"tarefas"</span>)
+    Http.json(res, tarefas)
+)
+
+<span class="c">// POST /api/tarefas — Criar nova</span>
+Http.post(app, <span class="s">"/api/tarefas"</span>, <span class="k">action</span>(req, res):
+    body <span class="o">:=</span> Http.body(req)
+    Database.insert(db, <span class="s">"tarefas"</span>, {<span class="s">"titulo"</span>: body[<span class="s">"titulo"</span>]})
+    Http.json(res, {<span class="s">"msg"</span>: <span class="s">"Tarefa criada!"</span>}, <span class="n">201</span>)
+)
+
+<span class="c">// PUT /api/tarefas/:id — Atualizar</span>
+Http.put(app, <span class="s">"/api/tarefas/:id"</span>, <span class="k">action</span>(req, res):
+    id <span class="o">:=</span> Http.param(req, <span class="s">"id"</span>)
+    body <span class="o">:=</span> Http.body(req)
+    Database.update(db, <span class="s">"tarefas"</span>, body, {<span class="s">"id"</span>: <span class="b">int</span>(id)})
+    Http.json(res, {<span class="s">"msg"</span>: <span class="s">"Atualizado!"</span>})
+)
+
+<span class="c">// DELETE /api/tarefas/:id — Deletar</span>
+Http.delete(app, <span class="s">"/api/tarefas/:id"</span>, <span class="k">action</span>(req, res):
+    id <span class="o">:=</span> Http.param(req, <span class="s">"id"</span>)
+    Database.delete(db, <span class="s">"tarefas"</span>, {<span class="s">"id"</span>: <span class="b">int</span>(id)})
+    Http.json(res, {<span class="s">"msg"</span>: <span class="s">"Deletado!"</span>})
+)
+
+Http.listen(app, <span class="n">8080</span>)
+<span class="k">out</span> <span class="s">"🚀 API REST rodando em http://localhost:8080"</span></pre></div>
+
+<div class="info-box">
+    <strong>💡 REST (Representational State Transfer):</strong> Uma API REST usa verbos HTTP (<code>GET</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code>) para operar sobre recursos identificados por URLs. Cada recurso deve ter URLs previsíveis e consistentes.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TEMPLATE DE PROJETO CLI
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-cli-template">Template de Projeto (CLI)</h3>
+
+<p>DataForge inclui um comando CLI para <strong>criar templates de projetos</strong> completos com estrutura de pastas, configurações e boilerplate. O comando interativo usa cores no terminal para guiar o desenvolvedor.</p>
+
+<div class="cb"><div class="cb-head"><span>Terminal</span><span class="cb-tag">bash</span></div><pre><span class="c"># Criar novo projeto interativamente</span>
+dataforge new
+
+<span class="c"># Saída colorida no terminal:</span>
+<span style="color:#ff6b35;font-weight:bold">🔥 DataForge — Criar Novo Projeto</span>
+<span style="color:#58a6ff">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+<span style="color:#d2a8ff">? Escolha o tipo de projeto:</span>
+<span style="color:#3fb950">  ❯ 1. API REST</span>              <span style="color:#8b949e">Servidor HTTP com rotas e banco de dados</span>
+    2. Análise de Dados       <span style="color:#8b949e">Pipeline ETL, estatísticas e visualização</span>
+    3. Aplicação CLI           <span style="color:#8b949e">Ferramenta de linha de comando</span>
+    4. Biblioteca             <span style="color:#8b949e">Módulo reutilizável publicável</span>
+    5. Projeto Completo       <span style="color:#8b949e">Full-stack com tudo incluído</span>
+
+<span style="color:#d2a8ff">? Nome do projeto:</span> <span style="color:#e6edf3">minha-api</span>
+<span style="color:#d2a8ff">? Incluir testes?</span> <span style="color:#3fb950">Sim</span>
+<span style="color:#d2a8ff">? Incluir banco de dados?</span> <span style="color:#3fb950">Sim</span>
+
+<span style="color:#3fb950">✅ Projeto criado com sucesso!</span>
+<span style="color:#8b949e">Estrutura:</span>
+<span style="color:#58a6ff">minha-api/</span>
+├── <span style="color:#ff6b35">main.df</span>
+├── <span style="color:#ff6b35">config.df</span>
+├── src/
+│   ├── <span style="color:#ff6b35">routes.df</span>
+│   ├── <span style="color:#ff6b35">models.df</span>
+│   ├── <span style="color:#ff6b35">controllers.df</span>
+│   └── <span style="color:#ff6b35">services.df</span>
+├── tests/
+│   └── <span style="color:#ff6b35">test_routes.df</span>
+└── data/
+    └── <span style="color:#ff6b35">seed.json</span></pre></div>
+
+<div class="cb"><div class="cb-head"><span>Terminal</span><span class="cb-tag">bash</span></div><pre><span class="c"># Criar projeto de análise de dados</span>
+dataforge new --type dados --name analise-vendas
+
+<span style="color:#3fb950">✅ Projeto 'analise-vendas' criado!</span>
+<span style="color:#58a6ff">analise-vendas/</span>
+├── <span style="color:#ff6b35">main.df</span>              <span style="color:#8b949e"># Ponto de entrada</span>
+├── src/
+│   ├── <span style="color:#ff6b35">pipeline.df</span>      <span style="color:#8b949e"># Pipeline ETL</span>
+│   ├── <span style="color:#ff6b35">analytics.df</span>     <span style="color:#8b949e"># Análises estatísticas</span>
+│   └── <span style="color:#ff6b35">visualize.df</span>     <span style="color:#8b949e"># Gráficos e visualizações</span>
+├── data/
+│   ├── <span style="color:#ff6b35">raw/</span>             <span style="color:#8b949e"># Dados brutos</span>
+│   └── <span style="color:#ff6b35">processed/</span>       <span style="color:#8b949e"># Dados processados</span>
+├── tests/
+│   └── <span style="color:#ff6b35">test_pipeline.df</span>
+└── <span style="color:#ff6b35">README.md</span></pre></div>
+
+<div class="cb"><div class="cb-head"><span>Terminal</span><span class="cb-tag">bash</span></div><pre><span class="c"># Executar o projeto criado</span>
+cd minha-api
+dataforge run main.df
+
+<span class="c"># Rodar testes</span>
+dataforge test
+
+<span class="c"># Verificar sintaxe de todos os arquivos</span>
+dataforge check src/</pre></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MÉTODOS DE CLASSE
+     ═══════════════════════════════════════════════════════════ -->
+<h3 id="sec-metodos-classe">Métodos de Classe e Avançados</h3>
+
+<p>DataForge oferece diferentes tipos de métodos dentro de blueprints, cada um com seu propósito e escopo.</p>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Tipos de Métodos</h4>
+
+<table class="ref-table">
+    <thead><tr><th>Tipo</th><th>Acessa <code>self</code></th><th>Acessa via classe</th><th>Descrição</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Método de instância</strong></td><td>✅ Sim</td><td>❌ Não</td><td>Opera sobre uma instância específica. Acessa e modifica <code>self</code>.</td></tr>
+        <tr><td><strong>Método estático</strong></td><td>❌ Não</td><td>✅ Sim</td><td>Pertence à classe, não à instância. Não precisa de <code>spawn</code>.</td></tr>
+        <tr><td><strong>Construtor (setup)</strong></td><td>✅ Sim</td><td>— (automático)</td><td>Inicializa a instância. Chamado automaticamente por <code>spawn</code>.</td></tr>
+        <tr><td><strong>toString</strong></td><td>✅ Sim</td><td>— (automático)</td><td>Representação textual do objeto. Chamado por <code>out</code> e <code>str()</code>.</td></tr>
+    </tbody>
+</table>
+
+<div class="cb"><div class="cb-head"><span>metodos_classe.df</span><span class="cb-tag">.df</span></div><pre><span class="k">blueprint</span> <span class="t">Matematica</span>:
+    <span class="c">// ─── Atributo estático ───</span>
+    <span class="k">static</span> PI <span class="o">:=</span> <span class="n">3.14159265358979</span>
+    <span class="k">static</span> E <span class="o">:=</span> <span class="n">2.71828182845904</span>
+
+    <span class="c">// ─── Método estático (não precisa de instância) ───</span>
+    <span class="k">static</span> <span class="k">action</span> <span class="f">area_circulo</span>(raio):
+        <span class="k">yield</span> Matematica.PI <span class="o">*</span> raio <span class="o">**</span> <span class="n">2</span>
+
+    <span class="k">static</span> <span class="k">action</span> <span class="f">fatorial</span>(n):
+        <span class="k">given</span> n <span class="k">smaller_eq</span> <span class="n">1</span>:
+            <span class="k">yield</span> <span class="n">1</span>
+        <span class="k">yield</span> n <span class="o">*</span> Matematica.fatorial(n <span class="o">-</span> <span class="n">1</span>)
+
+    <span class="k">static</span> <span class="k">action</span> <span class="f">fibonacci</span>(n):
+        <span class="k">given</span> n <span class="k">smaller_eq</span> <span class="n">1</span>:
+            <span class="k">yield</span> n
+        <span class="k">yield</span> Matematica.fibonacci(n <span class="o">-</span> <span class="n">1</span>) <span class="o">+</span> Matematica.fibonacci(n <span class="o">-</span> <span class="n">2</span>)
+
+    <span class="k">static</span> <span class="k">action</span> <span class="f">isPrimo</span>(n):
+        <span class="k">given</span> n <span class="k">smaller</span> <span class="n">2</span>:
+            <span class="k">yield</span> <span class="k">no</span>
+        <span class="k">cycle</span> i <span class="k">from</span> <span class="n">2</span> <span class="k">to</span> <span class="b">int</span>(<span class="b">sqrt</span>(n)):
+            <span class="k">given</span> n <span class="o">%</span> i <span class="o">==</span> <span class="n">0</span>:
+                <span class="k">yield</span> <span class="k">no</span>
+        <span class="k">yield</span> <span class="k">yes</span>
+
+<span class="c">// Usar sem instanciar — acesso direto pela classe</span>
+<span class="k">out</span> Matematica.area_circulo(<span class="n">5</span>)    <span class="c">// 78.5398...</span>
+<span class="k">out</span> Matematica.fatorial(<span class="n">10</span>)      <span class="c">// 3628800</span>
+<span class="k">out</span> Matematica.fibonacci(<span class="n">10</span>)     <span class="c">// 55</span>
+<span class="k">out</span> Matematica.isPrimo(<span class="n">17</span>)       <span class="c">// yes</span>
+<span class="k">out</span> Matematica.PI                 <span class="c">// 3.14159265358979</span></pre></div>
+
+<h4 style="margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--accent2);">Composição vs Herança</h4>
+
+<p>A regra é: <strong>"Prefira composição sobre herança"</strong> (GoF). Use herança quando existe uma relação clara "é-um". Use composição quando um objeto "tem-um" ou "usa-um".</p>
+
+<div class="cb"><div class="cb-head"><span>composicao.df</span><span class="cb-tag">.df</span></div><pre><span class="c">// ─── Composição: Motor é PARTE do Carro ───</span>
+<span class="k">blueprint</span> <span class="t">Motor</span>:
+    <span class="k">action</span> <span class="f">setup</span>(cavalos):
+        <span class="k">self</span>.cavalos <span class="o">:=</span> cavalos
+        <span class="k">self</span>.ligado <span class="o">:=</span> <span class="k">no</span>
+
+    <span class="k">action</span> <span class="f">ligar</span>():
+        <span class="k">self</span>.ligado <span class="o">:=</span> <span class="k">yes</span>
+        <span class="k">out</span> <span class="s">"🔥 Motor "</span> <span class="o">+</span> <span class="b">str</span>(<span class="k">self</span>.cavalos) <span class="o">+</span> <span class="s">"cv ligado!"</span>
+
+    <span class="k">action</span> <span class="f">desligar</span>():
+        <span class="k">self</span>.ligado <span class="o">:=</span> <span class="k">no</span>
+
+<span class="k">blueprint</span> <span class="t">GPS</span>:
+    <span class="k">action</span> <span class="f">navegar</span>(destino):
+        <span class="k">out</span> <span class="s">"📍 Navegando para: "</span> <span class="o">+</span> destino
+
+<span class="k">blueprint</span> <span class="t">Carro</span>:
+    <span class="k">action</span> <span class="f">setup</span>(modelo, cavalos):
+        <span class="k">self</span>.modelo <span class="o">:=</span> modelo
+        <span class="k">self</span>.motor <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Motor</span>(cavalos)     <span class="c">// Composição!</span>
+        <span class="k">self</span>.gps <span class="o">:=</span> <span class="k">spawn</span> <span class="t">GPS</span>()                 <span class="c">// Composição!</span>
+
+    <span class="k">action</span> <span class="f">dirigir</span>(destino):
+        <span class="k">self</span>.motor.ligar()
+        <span class="k">self</span>.gps.navegar(destino)
+        <span class="k">out</span> <span class="s">"🚗 "</span> <span class="o">+</span> <span class="k">self</span>.modelo <span class="o">+</span> <span class="s">" a caminho!"</span>
+
+carro <span class="o">:=</span> <span class="k">spawn</span> <span class="t">Carro</span>(<span class="s">"Tesla"</span>, <span class="n">450</span>)
+carro.dirigir(<span class="s">"Shopping"</span>)
+<span class="c">// 🔥 Motor 450cv ligado!</span>
+<span class="c">// 📍 Navegando para: Shopping</span>
+<span class="c">// 🚗 Tesla a caminho!</span></pre></div>
+
+<div class="info-box">
+    <strong>💡 Quando usar cada abordagem:</strong><br>
+    <strong>Herança:</strong> Cachorro <em>é um</em> Animal, Quadrado <em>é uma</em> Forma.<br>
+    <strong>Composição:</strong> Carro <em>tem um</em> Motor, Pedido <em>tem</em> Itens.<br>
+    <strong>Trait:</strong> Documentos e Relatórios <em>são</em> Imprimíveis.
+</div>
+
+            </div><!-- /doc-content -->
+        </div><!-- /doc-layout -->
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
      BIBLIOTECA PADRÃO
      ════════════════════════════════════════════════════════════ -->
 <section class="section section-alt" id="stdlib">
     <div class="container">
         <div class="section-head">
             <h2>📚 <span class="gradient">Biblioteca Padrão</span></h2>
-            <p>12 módulos prontos para usar com <code>adopt</code>.</p>
+            <p>14 módulos prontos para usar com <code>adopt</code>. Cada módulo é auto-contido e pode ser importado individualmente.</p>
         </div>
         <div class="feat-grid">
-            <div class="feat-card"><span class="feat-icon">📐</span><h3>Arcane.Math</h3><p>Funções matemáticas avançadas: trigonometria, combinatória, matrizes e constantes.</p></div>
-            <div class="feat-card"><span class="feat-icon">📝</span><h3>Arcane.Strings</h3><p>Utilitários estendidos de manipulação de strings.</p></div>
-            <div class="feat-card"><span class="feat-icon">📦</span><h3>Arcane.Collections</h3><p>Estruturas de dados: árvores, filas, pilhas e grafos.</p></div>
-            <div class="feat-card"><span class="feat-icon">📂</span><h3>Arcane.IO</h3><p>Leitura/escrita de arquivos, JSON, paths e diretórios.</p></div>
-            <div class="feat-card"><span class="feat-icon">📊</span><h3>Arcane.Stats</h3><p>Estatísticas descritivas: média, mediana, desvio padrão, percentis.</p></div>
-            <div class="feat-card"><span class="feat-icon">🔍</span><h3>Arcane.Regex</h3><p>Expressões regulares: match, findall, sub, split, test, count.</p></div>
-            <div class="feat-card"><span class="feat-icon">🧪</span><h3>Arcane.Test</h3><p>Framework de testes: assertions, suites, BDD, mocks, benchmarks.</p></div>
-            <div class="feat-card"><span class="feat-icon">λ</span><h3>Arcane.Functional</h3><p>FP: monads (Maybe/Either), lenses, transducers, pattern matching.</p></div>
-            <div class="feat-card"><span class="feat-icon">⚡</span><h3>Arcane.Async</h3><p>Promises, observables, event emitters, signals e schedulers.</p></div>
-            <div class="feat-card"><span class="feat-icon">📄</span><h3>Arcane.Text</h3><p>Templates, case conversion, CSV, INI, diff e análise textual.</p></div>
-            <div class="feat-card"><span class="feat-icon">📊</span><h3>Arcane.Analytics</h3><p>DataFrames, regressão, K‑Means, gráficos texto, séries temporais.</p></div>
-            <div class="feat-card"><span class="feat-icon">🗄️</span><h3>Arcane.Database</h3><p>SQLite: CRUD, Query Builder, migrações, ORM, export/import.</p></div>
+            <div class="feat-card"><span class="feat-icon">📐</span><h3>Arcane.Math</h3><p>Funções matemáticas avançadas: trigonometria, combinatória, matrizes, constantes (PI, E, TAU), raízes, logaritmos, GCD/LCM e aritmética de precisão.</p></div>
+            <div class="feat-card"><span class="feat-icon">📝</span><h3>Arcane.Strings</h3><p>50+ métodos de manipulação: upper, lower, title, pad, trim, repeat, reverse, template, words, lines, camelCase, snake_case, slugify.</p></div>
+            <div class="feat-card"><span class="feat-icon">📦</span><h3>Arcane.Collections</h3><p>Estruturas de dados avançadas: Stack, Queue, LinkedList, Tree, Graph, PriorityQueue, HashMap, Set. Operações de conjunto e iteração.</p></div>
+            <div class="feat-card"><span class="feat-icon">📂</span><h3>Arcane.IO</h3><p>Leitura/escrita de arquivos (texto, JSON, CSV), paths, diretórios, watch de mudanças, streams e manipulação de sistema de arquivos.</p></div>
+            <div class="feat-card"><span class="feat-icon">📊</span><h3>Arcane.Stats</h3><p>Estatísticas descritivas: média, mediana, moda, desvio padrão, variância, percentis, quartis, correlação, covariância e distribuições.</p></div>
+            <div class="feat-card"><span class="feat-icon">🔍</span><h3>Arcane.Regex</h3><p>Expressões regulares completas: match, search, findall, sub, split, test, count, extract, groups e flags.</p></div>
+            <div class="feat-card"><span class="feat-icon">🧪</span><h3>Arcane.Test</h3><p>Framework de testes TDD/BDD: assertions, test suites, describe/it, setup/teardown, mocks, spies, benchmarks e cobertura.</p></div>
+            <div class="feat-card"><span class="feat-icon">λ</span><h3>Arcane.Functional</h3><p>Programação funcional: compose, pipe, curry, partial, memoize, monads (Maybe/Either/IO), lenses, transducers e imutabilidade.</p></div>
+            <div class="feat-card"><span class="feat-icon">⚡</span><h3>Arcane.Async</h3><p>Concorrência: Promises, observables, event emitters, signals, channels, schedulers, timers e execução assíncrona.</p></div>
+            <div class="feat-card"><span class="feat-icon">📄</span><h3>Arcane.Text</h3><p>Processamento de texto: templates, case conversion, CSV parser, INI parser, diff, análise textual, tokenização e formatação.</p></div>
+            <div class="feat-card"><span class="feat-icon">📊</span><h3>Arcane.Analytics</h3><p>Ciência de dados: DataFrames, regressão linear, K‑Means clustering, normalização, séries temporais, sparklines e gráficos texto.</p></div>
+            <div class="feat-card"><span class="feat-icon">🗄️</span><h3>Arcane.Database</h3><p>Banco de dados SQLite: CRUD completo, Query Builder fluente, migrações, ORM, transações, índices, export/import CSV e JSON.</p></div>
+            <div class="feat-card"><span class="feat-icon">🌐</span><h3>Arcane.Http</h3><p>Servidor HTTP: rotas GET/POST/PUT/DELETE, middleware, servir JSON e HTML, parâmetros de rota, body parsing e API REST.</p></div>
+            <div class="feat-card"><span class="feat-icon">🔐</span><h3>Arcane.Crypto</h3><p>Criptografia e hashing: MD5, SHA-256, Base64 encode/decode, UUID, HMAC, hash de senhas e geração de tokens.</p></div>
         </div>
     </div>
 </section>
@@ -1489,7 +2814,10 @@ dados <span class="o">:=</span> IO.read_json(<span class="s">"user.json"</span>)
         Licença: MIT &nbsp;·&nbsp;
         Python 3.10+ &nbsp;·&nbsp;
         180+ Funções &nbsp;·&nbsp;
-        12 Módulos
+        14 Módulos &nbsp;·&nbsp;
+        SOLID &nbsp;·&nbsp;
+        Design Patterns &nbsp;·&nbsp;
+        TDD/DDD
     </p>
     <p style="margin-top: 1.5rem; color: var(--accent);">🔥 Forged for the Future 🔥</p>
 </footer>
