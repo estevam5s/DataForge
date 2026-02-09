@@ -1,6 +1,11 @@
 include LICENSE
 include README.md
+include INSTALL.md
+include INSTALACAO_PT-BR.md
 include DOCUMENTATION.md
 include SPECIFICATION.md
 recursive-include public *.png
 recursive-include examples *.df
+recursive-include doc *.md
+recursive-include tests *.py
+recursive-include dataforge/stdlib *.py
