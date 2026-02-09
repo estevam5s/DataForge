@@ -1008,6 +1008,17 @@ class Interpreter:
             methods.update(parent.methods)
             statics.update(parent.statics)
 
+        # Merge trait methods (with Trait1, Trait2)
+        for tname in getattr(node, 'traits', []):
+            try:
+                trait = env.get(tname)
+                if isinstance(trait, DFBlueprint):
+                    for mname, mval in trait.methods.items():
+                        if mname not in methods:
+                            methods[mname] = mval
+            except NameError_:
+                pass
+
         for stmt in node.body:
             if isinstance(stmt, ast.ActionDeclaration):
                 action = DFAction(
@@ -1275,7 +1286,20 @@ class Interpreter:
         if isinstance(callee, DFBlueprint):
             # Calling a blueprint = spawn
             instance = DFInstance(callee)
-            if 'setup' in callee.methods:
+            if callee.constructor_params:
+                # Inline constructor — assign params to fields + run body
+                for i, pname in enumerate(callee.constructor_params):
+                    val = args[i] if i < len(args) else None
+                    instance.set(pname, val)
+                if callee.constructor_body:
+                    ctor_env = env.child(f"<constructor {callee.name}>")
+                    ctor_env.set_local("self", instance)
+                    ctor_env.set_local("this", instance)
+                    for i, pname in enumerate(callee.constructor_params):
+                        ctor_env.set_local(pname, instance.fields.get(pname))
+                    for stmt in callee.constructor_body:
+                        self.execute(stmt, ctor_env)
+            elif 'setup' in callee.methods:
                 self._call_action(callee.methods['setup'], args, kwargs, node, env, instance=instance)
             elif 'initiate' in callee.methods:
                 self._call_action(callee.methods['initiate'], args, kwargs, node, env, instance=instance)

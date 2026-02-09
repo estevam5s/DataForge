@@ -15,6 +15,7 @@ from .arcane_async import ArcaneAsync
 from .arcane_text import ArcaneText
 from .arcane_analytics import ArcaneAnalytics
 from .arcane_database import ArcaneDatabase
+from .arcane_http import ArcaneHttp
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -42,6 +43,9 @@ _MODULES = {
     "Analytics": ArcaneAnalytics,
     "Database": ArcaneDatabase,
     "DB": ArcaneDatabase,
+    "Arcane.Http": ArcaneHttp,
+    "Http": ArcaneHttp,
+    "Server": ArcaneHttp,
     "Network": ArcaneWeb,
     "UI": {},
 }

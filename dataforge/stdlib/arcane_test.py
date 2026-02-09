@@ -380,10 +380,31 @@ class ArcaneTest:
         return spy_fn
 
     @staticmethod
-    def _describe(name, tests_func):
-        """BDD-style describe block."""
+    def _describe(name, tests):
+        """BDD-style describe block. Accepts name + list of [desc, func] pairs or a callable."""
         print(f"\n  📋 {name}")
-        tests_func()
+        if callable(tests):
+            tests()
+        elif isinstance(tests, list):
+            passed = 0
+            failed = 0
+            for test_info in tests:
+                if isinstance(test_info, (list, tuple)) and len(test_info) >= 2:
+                    desc, func = test_info[0], test_info[1]
+                    try:
+                        if callable(func):
+                            func()
+                        passed += 1
+                        print(f"    \033[1;32m✓\033[0m {desc}")
+                    except Exception as e:
+                        failed += 1
+                        print(f"    \033[1;31m✗\033[0m {desc}")
+                        print(f"      → {e}")
+            total = passed + failed
+            if failed == 0:
+                print(f"  \033[1;32m✓ {total}/{total} passed\033[0m")
+            else:
+                print(f"  \033[1;31m✗ {failed}/{total} failed\033[0m")
 
     @staticmethod
     def _it(description, test_func):
