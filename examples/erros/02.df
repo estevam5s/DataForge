@@ -1,0 +1,58 @@
+adopt Database
+
+// ─── Conectar ───
+db := Database.memory()   // Banco em memória
+// db := Database.connect("app.db")  // Arquivo
+
+// ─── Criar Tabela ───
+Database.create_table(db, "usuarios", {
+    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+    "nome": "TEXT NOT NULL",
+    "email": "TEXT UNIQUE",
+    "idade": "INTEGER"
+})
+
+// ─── Inserir ───
+Database.insert(db, "usuarios", {
+    "nome": "Ana", "email": "ana@test.com", "idade": 25
+})
+Database.insert(db, "usuarios", {
+    "nome": "Carlos", "email": "carlos@test.com", "idade": 30
+})
+
+// ─── Consultar ───
+todos := Database.select(db, "usuarios")
+out todos
+
+// ─── Query Builder (fluente) ───
+jovens := Database.builder(db, "usuarios")
+    .where("idade", "<", 30)
+    .order_by("nome")
+    .get()
+out jovens
+
+// ─── Atualizar / Deletar ───
+Database.update(db, "usuarios", {"idade": 26}, {"nome": "Ana"})
+Database.delete(db, "usuarios", {"nome": "Carlos"})
+
+// ─── Contar / Verificar ───
+out Database.count(db, "usuarios")
+out Database.exists(db, "usuarios", {"nome": "Ana"})
+
+// ─── ORM Simples ───
+User := Database.create_model(db, "users", {
+    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+    "name": "TEXT",
+    "score": "REAL"
+})
+
+User.create({"name": "Maria", "score": 9.5})
+out User.all()
+out User.find(1)
+
+// ─── Export / Import ───
+Database.export_json(db, "usuarios", "users.json")
+Database.export_csv(db, "usuarios", "users.csv")
+
+// ─── Fechar ───
+Database.close(db)

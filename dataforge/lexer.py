@@ -248,6 +248,7 @@ class Lexer:
             if ch == '/' and self.peek(1) == '/':
                 # Check if this is floor division or a comment
                 # Floor division requires: last token ends an expression + next chars look like expression start
+                # Also, if there are 3+ spaces before //, it's almost certainly a trailing comment
                 is_floor_div = False
                 if self.tokens:
                     last_type = self.tokens[-1].type
@@ -257,18 +258,22 @@ class Lexer:
                         TokenType.RBRACE, TokenType.BOOLEAN, TokenType.VOID,
                     }
                     if last_type in expr_end_types:
-                        # Check what follows // (skip whitespace)
-                        look = self.pos + 2
-                        while look < len(self.source) and self.source[look] == ' ':
-                            look += 1
-                        if look < len(self.source):
-                            next_ch = self.source[look]
-                            # Floor div if followed by a digit, (, or - (negative number)
-                            if next_ch.isdigit() or next_ch == '(' or next_ch == '-':
-                                is_floor_div = True
-                            # Also floor div if on same "expression line" and followed by identifier
-                            # that looks like a variable (check if it's a short token followed by operator/newline)
-                            # But to be safe, only treat as floor_div when followed by digit or paren
+                        # Check spacing before // — if 3+ spaces precede it, treat as comment
+                        spaces_before = 0
+                        check_pos = self.pos - 1
+                        while check_pos >= 0 and self.source[check_pos] == ' ':
+                            spaces_before += 1
+                            check_pos -= 1
+                        if spaces_before < 3:
+                            # Check what follows // (skip whitespace)
+                            look = self.pos + 2
+                            while look < len(self.source) and self.source[look] == ' ':
+                                look += 1
+                            if look < len(self.source):
+                                next_ch = self.source[look]
+                                # Floor div if followed by a digit, (, identifier, or - (negative number)
+                                if next_ch.isdigit() or next_ch == '(' or next_ch == '-' or next_ch.isalpha() or next_ch == '_':
+                                    is_floor_div = True
                 if is_floor_div:
                     line, col = self.line, self.column
                     self.advance()

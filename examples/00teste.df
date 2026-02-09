@@ -1,0 +1,42 @@
+// Importar módulo da stdlib
+adopt Arcane.Math
+adopt Arcane.Analytics
+adopt Arcane.Database
+adopt Arcane.Regex
+adopt Arcane.Test
+adopt Arcane.Functional
+adopt Arcane.Async
+adopt Arcane.Text
+adopt Arcane.IO
+
+// Atalhos
+adopt Math            // = Arcane.Math
+adopt DB              // = Arcane.Database
+adopt Analytics       // = Arcane.Analytics
+
+// Importar arquivo .df como módulo
+adopt utils.helpers   // Carrega utils/helpers.df
+
+// Criar seu próprio namespace
+blueprint MeuPacote:
+    static version := "1.0"
+    action utilidade():
+        yield "resultado"
+adopt Arcane.Test
+
+// ─── Assertions simples ───
+Test.assert_eq(2 + 2, 4, "Soma básica")
+Test.assert_true(10 bigger 5, "Comparação")
+Test.assert_type("hello", "string")
+
+// ─── BDD Style ───
+Test.describe("Calculadora"):
+    Test.it("soma corretamente"):
+        Test.expect(2 + 2).to_equal(4)
+    Test.it("multiplica corretamente"):
+        Test.expect(3 * 4).to_equal(12)
+
+// ─── Test Suite ───
+suite := Test.suite("Minha Suite")
+Test.add_test(suite, "teste1", {"expected": 4, "actual": 2 + 2})
+Test.run_suite(suite)

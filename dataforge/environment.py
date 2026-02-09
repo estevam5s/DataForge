@@ -49,8 +49,8 @@ class Environment:
 
     def define_steady(self, name: str, value):
         """Define an immutable constant."""
-        if name in self.variables:
-            raise RuntimeError_(f"Name '{name}' already defined in this scope")
+        if name in self.constants:
+            raise RuntimeError_(f"Cannot reassign steady (constant) '{name}'")
         self.variables[name] = value
         self.constants.add(name)
 

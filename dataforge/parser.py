@@ -838,13 +838,34 @@ class Parser:
 
         if self.match(TokenType.DISTILL):
             name = self.expect(TokenType.IDENTIFIER).value
-            # Check if next is COMMA → inline lambda: distill acc, val: expr
+            # Check if next is COMMA or IDENTIFIER followed by COLON → inline lambda
+            # Supports: distill acc, val: expr [initial]  AND  distill acc val: expr [initial]
             if self.current().type == TokenType.COMMA:
                 self.advance()  # skip comma
                 val = self.expect(TokenType.IDENTIFIER).value
                 self.expect(TokenType.COLON)
                 expression = self.parse_or()
-                return ast.DistillOperation(acc_param=name, val_param=val, expression=expression, line=tok.line, column=tok.column)
+                # Check for optional initial value
+                initial = None
+                if self.pos < len(self.tokens) and self.current().type not in (
+                    TokenType.PIPE, TokenType.NEWLINE, TokenType.EOF,
+                    TokenType.RPAREN, TokenType.RBRACKET, TokenType.RBRACE,
+                ):
+                    initial = self.parse_or()
+                return ast.DistillOperation(acc_param=name, val_param=val, expression=expression, initial=initial, line=tok.line, column=tok.column)
+            if self.current().type == TokenType.IDENTIFIER and self.pos + 1 < len(self.tokens) and self.tokens[self.pos + 1].type == TokenType.COLON:
+                # Space-separated: distill acc val: expr [initial]
+                val = self.advance().value
+                self.advance()  # skip colon
+                expression = self.parse_or()
+                # Check for optional initial value
+                initial = None
+                if self.pos < len(self.tokens) and self.current().type not in (
+                    TokenType.PIPE, TokenType.NEWLINE, TokenType.EOF,
+                    TokenType.RPAREN, TokenType.RBRACKET, TokenType.RBRACE,
+                ):
+                    initial = self.parse_or()
+                return ast.DistillOperation(acc_param=name, val_param=val, expression=expression, initial=initial, line=tok.line, column=tok.column)
             # Otherwise, function reference: distill func_name initial_value
             initial = self.parse_or()
             return ast.DistillOperation(func_ref=name, initial=initial, line=tok.line, column=tok.column)

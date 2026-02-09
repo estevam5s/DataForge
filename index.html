@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataForge v3.0 — Linguagem de Programação</title>
+    <title>DataForge v1.0 — Linguagem de Programação</title>
     <meta name="description" content="DataForge é uma linguagem de programação moderna construída sobre Python com 180+ funções embutidas, 12 módulos, análise de dados e muito mais.">
     <link rel="icon" type="image/png" href="DataForge.png">
     <style>
@@ -155,8 +155,13 @@
 
         /* code-block */
         .cb { background: var(--bg-code); border: 1px solid var(--border); border-radius: var(--radius); margin: 1.5rem 0; overflow: hidden; }
-        .cb-head { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 1.2rem; border-bottom: 1px solid var(--border); font-size: 0.82rem; color: var(--text-muted); }
+        .cb-head { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 1.2rem; border-bottom: 1px solid var(--border); font-size: 0.82rem; color: var(--text-muted); gap: 0.5rem; }
         .cb-tag { background: var(--accent); color: #fff; padding: 2px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: .3px; }
+        .cb-head-right { display: flex; align-items: center; gap: 0.5rem; }
+        .cb-copy { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 3px 10px; border-radius: 6px; font-size: 0.72rem; font-family: var(--font); cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+        .cb-copy:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+        .cb-copy.copied { border-color: var(--accent3); color: var(--accent3); background: rgba(63,185,80,0.1); }
+        .cb-copy svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .cb pre { padding: 1.2rem 1.5rem; margin: 0; overflow-x: auto; font-family: var(--mono); font-size: 0.88rem; line-height: 1.65; }
 
         /* table */
@@ -231,7 +236,7 @@
     <div class="nav-brand">
         <img src="DataForge.png" alt="DataForge Logo">
         <span class="nav-brand-text">DataForge</span>
-        <span class="nav-badge">v3.0</span>
+        <span class="nav-badge">v1.0</span>
     </div>
     <ul class="nav-links" id="navLinks">
         <li><a href="#inicio">Início</a></li>
@@ -337,7 +342,7 @@ pares <span class="o">:=</span> nums <span class="o">>></span> <span class="k">s
         </ul>
 
         <h3 style="margin-bottom:1rem; font-size:1.2rem;">Passo 1 — Clonar o repositório</h3>
-        <div class="cb"><div class="cb-head"><span>Terminal</span><span class="cb-tag">bash</span></div><pre>git clone https://github.com/seu-usuario/DataForge.git
+        <div class="cb"><div class="cb-head"><span>Terminal</span><span class="cb-tag">bash</span></div><pre>git clone https://github.com/estevam5s/DataForge.git
 cd DataForge</pre></div>
 
         <h3 style="margin-bottom:1rem; font-size:1.2rem;">Passo 2 — Instalar</h3>
@@ -345,7 +350,7 @@ cd DataForge</pre></div>
 
         <h3 style="margin-bottom:1rem; font-size:1.2rem;">Passo 3 — Verificar a instalação</h3>
         <div class="cb"><div class="cb-head"><span>Terminal</span><span class="cb-tag">bash</span></div><pre>dataforge version
-<span class="c"># DataForge v3.0.0</span>
+<span class="c"># DataForge v1.0.0</span>
 
 dataforge repl
 <span class="c"># Abre o REPL interativo</span></pre></div>
@@ -592,18 +597,18 @@ dobro <span class="o">:=</span> <span class="f">multiplicador</span>(<span class
                 <!-- 8 Strings -->
                 <h3 id="sec-strings">8. Strings</h3>
                 <p>DataForge tem 50+ métodos de string com notação de ponto.</p>
-                <div class="cb"><div class="cb-head"><span>strings.df</span><span class="cb-tag">.df</span></div><pre>texto <span class="o">:=</span> <span class="s">"DataForge v3.0"</span>
+                <div class="cb"><div class="cb-head"><span>strings.df</span><span class="cb-tag">.df</span></div><pre>texto <span class="o">:=</span> <span class="s">"DataForge v1.0"</span>
 
 <span class="c">// Métodos de ponto</span>
-<span class="k">out</span> texto.upper()          <span class="c">// "DATAFORGE V3.0"</span>
-<span class="k">out</span> texto.lower()          <span class="c">// "dataforge v3.0"</span>
-<span class="k">out</span> texto.title()          <span class="c">// "Dataforge V3.0"</span>
-<span class="k">out</span> texto.split(<span class="s">" "</span>)       <span class="c">// ["DataForge", "v3.0"]</span>
+<span class="k">out</span> texto.upper()          <span class="c">// "DATAFORGE V1.0"</span>
+<span class="k">out</span> texto.lower()          <span class="c">// "dataforge v1.0"</span>
+<span class="k">out</span> texto.title()          <span class="c">// "Dataforge V1.0"</span>
+<span class="k">out</span> texto.split(<span class="s">" "</span>)       <span class="c">// ["DataForge", "v1.0"]</span>
 <span class="k">out</span> texto.contains(<span class="s">"Forge"</span>) <span class="c">// yes</span>
 <span class="k">out</span> texto.replace(<span class="s">"v3"</span>, <span class="s">"v4"</span>)
 <span class="k">out</span> texto.length()         <span class="c">// 14</span>
 <span class="k">out</span> texto.reverse()         <span class="c">// "0.3v egroFataD"</span>
-<span class="k">out</span> texto.repeat(<span class="n">2</span>)        <span class="c">// "DataForge v3.0DataForge v3.0"</span>
+<span class="k">out</span> texto.repeat(<span class="n">2</span>)        <span class="c">// "DataForge v1.0DataForge v1.0"</span>
 <span class="k">out</span> texto.startswith(<span class="s">"Data"</span>) <span class="c">// yes</span>
 <span class="k">out</span> texto.endswith(<span class="s">"3.0"</span>)  <span class="c">// yes</span>
 <span class="k">out</span> texto.trim()            <span class="c">// remove espaços</span>
@@ -1385,7 +1390,7 @@ dados <span class="o">:=</span> IO.read_json(<span class="s">"user.json"</span>)
             <a class="topic-chip" href="#"><div class="topic-num">01-10</div><h4>Fundamentos</h4><p>Hello World, variáveis, tipos, loops, condicionais, funções, strings, listas, dicionários, I/O.</p></a>
             <a class="topic-chip" href="#"><div class="topic-num">11-20</div><h4>Intermediário</h4><p>Blueprints, herança, pipelines, math, closures, decorators, módulos, tratamento de erros.</p></a>
             <a class="topic-chip" href="#"><div class="topic-num">21-30</div><h4>Avançado</h4><p>Fibonacci, sort, design patterns, grafos, state machines, mini aplicações completas.</p></a>
-            <a class="topic-chip" href="#"><div class="topic-num">31-40</div><h4>v3.0 Features</h4><p>50+ strings, regex, error handling, FP, math avançado, collections, reactive, testing, showcase.</p></a>
+            <a class="topic-chip" href="#"><div class="topic-num">31-40</div><h4>v1.0 Features</h4><p>50+ strings, regex, error handling, FP, math avançado, collections, reactive, testing, showcase.</p></a>
         </div>
     </div>
 </section>
@@ -1396,7 +1401,7 @@ dados <span class="o">:=</span> IO.read_json(<span class="s">"user.json"</span>)
 <footer class="footer">
     <div class="footer-brand">
         <img src="DataForge.png" alt="DataForge">
-        <strong style="color: var(--text);">DataForge v3.0.0</strong>
+        <strong style="color: var(--text);">DataForge v1.0.0</strong>
     </div>
     <p>Uma linguagem de programação moderna construída sobre Python.</p>
     <div class="footer-links">
@@ -1465,6 +1470,38 @@ if (sections.length && sideLinks.length) {
 const nav = document.getElementById('navbar');
 window.addEventListener('scroll', () => {
     nav.style.boxShadow = window.scrollY > 10 ? '0 4px 20px rgba(0,0,0,0.3)' : 'none';
+});
+
+// Copy button on all code blocks
+const copyIcon = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const checkIcon = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+document.querySelectorAll('.cb').forEach(block => {
+    const head = block.querySelector('.cb-head');
+    if (!head) return;
+    // Wrap existing tag in a right container with the copy button
+    const tag = head.querySelector('.cb-tag');
+    const rightDiv = document.createElement('div');
+    rightDiv.className = 'cb-head-right';
+    if (tag) rightDiv.appendChild(tag);
+    const btn = document.createElement('button');
+    btn.className = 'cb-copy';
+    btn.innerHTML = copyIcon + ' Copiar';
+    btn.setAttribute('aria-label', 'Copiar código');
+    btn.addEventListener('click', () => {
+        const pre = block.querySelector('pre');
+        if (!pre) return;
+        const text = pre.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            btn.innerHTML = checkIcon + ' Copiado!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.innerHTML = copyIcon + ' Copiar';
+                btn.classList.remove('copied');
+            }, 2000);
+        });
+    });
+    rightDiv.appendChild(btn);
+    head.appendChild(rightDiv);
 });
 </script>
 </body>

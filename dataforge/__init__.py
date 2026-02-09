@@ -1,4 +1,3 @@
-"""
 """DataForge Programming Language v3.0
 A revolutionary language built on Python with unique syntax and keywords.
 """
