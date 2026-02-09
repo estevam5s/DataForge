@@ -1,0 +1,18 @@
+blueprint Base:
+    action greet():
+        yield "Olá da Base"
+
+blueprint Child extends Base:
+    action greet():
+        parent_msg := root.greet()   // Chama o método da classe pai
+        yield parent_msg + " + Child"
+
+c := spawn Child()
+out c.greet()       // "Olá da Base + Child"
+
+// Introspecção
+out get_mro(c)       // ["Child", "Base"]
+out get_parent(c)    // "Base"
+out c.blueprint_name  // "Child"
+out c.methods         // ["greet"]
+out c.fields          // [...]

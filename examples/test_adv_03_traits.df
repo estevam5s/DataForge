@@ -1,0 +1,11 @@
+trait Imprimivel:
+    action imprimir()
+
+blueprint Documento(Imprimivel):
+    action setup(titulo):
+        self.titulo := titulo
+    action imprimir():
+        out "📄 " + self.titulo
+
+doc := spawn Documento("Relatório")
+doc.imprimir()   // 📄 Relatório
