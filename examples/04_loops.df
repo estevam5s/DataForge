@@ -1,0 +1,62 @@
+// ═══════════════════════════════════════════════════════════
+//  DataForge - Loops
+//  cycle (for), persist (while), perform (do-while)
+// ═══════════════════════════════════════════════════════════
+
+// ── cycle from..to (range-based for loop) ──
+out "=== Counting 1 to 5 ==="
+cycle i from 1 to 5:
+    out "  " + i
+
+// ── cycle with step ──
+out "\n=== Even numbers 2 to 10 ==="
+cycle i from 2 to 10 step 2:
+    out "  " + i
+
+// ── cycle in (collection iteration) ──
+out "\n=== Iterating a cluster ==="
+colors := ["red", "green", "blue", "yellow"]
+cycle color in colors:
+    out "  Color: " + color
+
+// ── halt (break) ──
+out "\n=== Finding first number > 5 ==="
+numbers := [2, 4, 6, 8, 10]
+cycle num in numbers:
+    given num bigger 5:
+        out "  Found: " + num
+        halt
+
+// ── skip (continue) ──
+out "\n=== Odd numbers only (skip evens) ==="
+cycle i from 1 to 10:
+    given i % 2 is 0:
+        skip
+    out "  " + i
+
+// ── persist (while loop) ──
+out "\n=== Countdown ==="
+count := 5
+persist count bigger 0:
+    out "  " + count
+    count := count - 1
+out "  Liftoff!"
+
+// ── Nested loops ──
+out "\n=== Multiplication Table (3x3) ==="
+cycle i from 1 to 3:
+    cycle j from 1 to 3:
+        result := i * j
+        out "  " + i + " x " + j + " = " + result
+
+// ── FizzBuzz classic ──
+out "\n=== FizzBuzz (1-20) ==="
+cycle i from 1 to 20:
+    given i % 15 is 0:
+        out "  FizzBuzz"
+    orif i % 3 is 0:
+        out "  Fizz"
+    orif i % 5 is 0:
+        out "  Buzz"
+    otherwise:
+        out "  " + i

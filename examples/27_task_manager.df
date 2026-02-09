@@ -1,0 +1,220 @@
+// ═══════════════════════════════════════════
+// Exemplo 27: Mini Projeto - Task Manager
+// ═══════════════════════════════════════════
+
+out "═══════════════════════════════════════════"
+out "       📋 TASK MANAGER v1.0"
+out "═══════════════════════════════════════════"
+out ""
+
+// --- Prioridade ---
+action prioridade_texto(p):
+    match p:
+        point 1:
+            yield "🔴 URGENTE"
+        point 2:
+            yield "🟡 ALTA"
+        point 3:
+            yield "🔵 MÉDIA"
+        point 4:
+            yield "🟢 BAIXA"
+        default:
+            yield "⚪ SEM PRIORIDADE"
+
+// --- Task ---
+blueprint Task:
+    static id_counter := 0
+
+    action setup(titulo, descricao, prioridade, categoria):
+        Task.id_counter := Task.id_counter + 1
+        self.id := Task.id_counter
+        self.titulo := titulo
+        self.descricao := descricao
+        self.prioridade := prioridade
+        self.categoria := categoria
+        self.concluida := no
+        self.subtasks := []
+
+    action concluir():
+        self.concluida := yes
+
+    action adicionar_subtask(titulo):
+        append(self.subtasks, {"titulo": titulo, "feita": no})
+
+    action concluir_subtask(idx):
+        given idx bigger_eq 0 and idx smaller len(self.subtasks):
+            self.subtasks[idx]["feita"] := yes
+
+    action progresso():
+        given len(self.subtasks) is 0:
+            given self.concluida:
+                yield 100
+            yield 0
+        feitas := 0
+        cycle st in self.subtasks:
+            given st["feita"]:
+                feitas := feitas + 1
+        yield round(feitas * 100 / len(self.subtasks), 0)
+
+    action exibir():
+        status := "☐"
+        given self.concluida:
+            status := "☑"
+        prog := self.progresso()
+        barra := ""
+        cycle i from 1 to 10:
+            given i * 10 smaller_eq prog:
+                barra := barra + "█"
+            otherwise:
+                barra := barra + "░"
+
+        out "  " + status + " [#" + str(self.id) + "] " + self.titulo
+        out "    " + self.descricao
+        out "    " + prioridade_texto(self.prioridade) + " | " + self.categoria
+        out "    Progresso: [" + barra + "] " + str(prog) + "%"
+
+        given len(self.subtasks) bigger 0:
+            cycle i from 0 to len(self.subtasks) - 1:
+                st := self.subtasks[i]
+                st_status := "  ☐"
+                given st["feita"]:
+                    st_status := "  ☑"
+                out "     " + st_status + " " + st["titulo"]
+
+// --- TaskManager ---
+blueprint TaskManager:
+    action setup():
+        self.tasks := []
+
+    action adicionar(task):
+        append(self.tasks, task)
+
+    action por_prioridade():
+        // Ordenar por prioridade (1 = mais urgente)
+        copia := []
+        cycle t in self.tasks:
+            append(copia, t)
+
+        n := len(copia)
+        cycle i from 0 to n - 2:
+            cycle j from 0 to n - 2 - i:
+                given copia[j].prioridade bigger copia[j + 1].prioridade:
+                    temp := copia[j]
+                    copia[j] := copia[j + 1]
+                    copia[j + 1] := temp
+        yield copia
+
+    action por_categoria():
+        categorias := {}
+        cycle t in self.tasks:
+            given not contains(categorias, t.categoria):
+                categorias[t.categoria] := []
+            append(categorias[t.categoria], t)
+        yield categorias
+
+    action pendentes():
+        resultado := []
+        cycle t in self.tasks:
+            given not t.concluida:
+                append(resultado, t)
+        yield resultado
+
+    action concluidas():
+        resultado := []
+        cycle t in self.tasks:
+            given t.concluida:
+                append(resultado, t)
+        yield resultado
+
+    action estatisticas():
+        total := len(self.tasks)
+        done := len(self.concluidas())
+        pending := len(self.pendentes())
+
+        urgentes := 0
+        cycle t in self.pendentes():
+            given t.prioridade is 1:
+                urgentes := urgentes + 1
+
+        out "╔═══════════════════════════════════╗"
+        out "║       📊 ESTATÍSTICAS             ║"
+        out "╠═══════════════════════════════════╣"
+        out "║  Total de tarefas:   " + str(total)
+        out "║  Concluídas:         " + str(done)
+        out "║  Pendentes:          " + str(pending)
+        out "║  Urgentes pendentes: " + str(urgentes)
+        given total bigger 0:
+            out "║  Progresso geral:   " + str(round(done * 100 / total, 0)) + "%"
+        out "╚═══════════════════════════════════╝"
+
+    action dashboard():
+        out "╔═══════════════════════════════════════════╗"
+        out "║           TASK DASHBOARD                  ║"
+        out "╚═══════════════════════════════════════════╝"
+        out ""
+
+        por_cat := self.por_categoria()
+        cycle cat in keys(por_cat):
+            out "📁 " + cat + ":"
+            out "─────────────────────────────────────────"
+            cycle t in por_cat[cat]:
+                t.exibir()
+                out ""
+
+// ═══ Simulação ═══
+
+tm := spawn TaskManager()
+
+// Criar tasks do projeto DataForge
+t1 := spawn Task("Implementar Parser v3", "Adicionar suporte a decorators avançados", 1, "Desenvolvimento")
+t1.adicionar_subtask("Definir gramática")
+t1.adicionar_subtask("Implementar tokenizer")
+t1.adicionar_subtask("Implementar parser")
+t1.adicionar_subtask("Testes unitários")
+t1.concluir_subtask(0)
+t1.concluir_subtask(1)
+tm.adicionar(t1)
+
+t2 := spawn Task("Escrever Documentação", "Documentação completa da linguagem", 2, "Documentação")
+t2.adicionar_subtask("Guia de instalação")
+t2.adicionar_subtask("Tutorial básico")
+t2.adicionar_subtask("Referência da API")
+t2.concluir_subtask(0)
+t2.concluir_subtask(1)
+t2.concluir_subtask(2)
+t2.concluir()
+tm.adicionar(t2)
+
+t3 := spawn Task("Setup CI/CD", "Configurar pipeline de integração", 3, "DevOps")
+t3.adicionar_subtask("GitHub Actions")
+t3.adicionar_subtask("Testes automatizados")
+t3.adicionar_subtask("Deploy automático")
+tm.adicionar(t3)
+
+t4 := spawn Task("Corrigir bug no lexer", "Tab handling incorreto em strings", 1, "Bug Fix")
+t4.concluir()
+tm.adicionar(t4)
+
+t5 := spawn Task("Adicionar exemplos", "Criar 20 novos exemplos", 2, "Documentação")
+t5.adicionar_subtask("Exemplos básicos (5)")
+t5.adicionar_subtask("Exemplos intermediários (5)")
+t5.adicionar_subtask("Exemplos avançados (5)")
+t5.adicionar_subtask("Mini projetos (5)")
+t5.concluir_subtask(0)
+t5.concluir_subtask(1)
+tm.adicionar(t5)
+
+t6 := spawn Task("Otimizar interpreter", "Melhorar performance de loops", 3, "Desenvolvimento")
+tm.adicionar(t6)
+
+// Exibir dashboard
+tm.dashboard()
+tm.estatisticas()
+
+// Tarefas por prioridade
+out ""
+out "🔥 TAREFAS PENDENTES POR PRIORIDADE:"
+out "═══════════════════════════════════════"
+cycle t in tm.por_prioridade():
+    given not t.concluida:
+        out "  " + prioridade_texto(t.prioridade) + " - " + t.titulo + " (" + str(t.progresso()) + "%)"

@@ -1,0 +1,192 @@
+// ═══════════════════════════════════════════
+// Exemplo 28: Mini Projeto - Calculadora Científica
+// ═══════════════════════════════════════════
+
+out "═══════════════════════════════════════════"
+out "       🧮 CALCULADORA CIENTÍFICA v1.0"
+out "═══════════════════════════════════════════"
+out ""
+
+// --- Funções Matemáticas ---
+out "--- 1. Constantes ---"
+out "  π = " + str(PI)
+out "  e = " + str(E)
+out "  τ = " + str(TAU)
+out "  ∞ = " + str(INF)
+
+out ""
+out "--- 2. Potências e Raízes ---"
+out "  2¹⁰ = " + str(2 ** 10)
+out "  √144 = " + str(sqrt(144))
+out "  ∛27 = " + str(round(27 ** (1.0 / 3), 4))
+out "  ⁴√16 = " + str(round(16 ** (1.0 / 4), 4))
+
+out ""
+out "--- 3. Logaritmos ---"
+out "  ln(e) = " + str(log(E))
+out "  ln(1) = " + str(log(1))
+out "  log₂(8) = " + str(round(log(8) / log(2), 4))
+out "  log₁₀(100) = " + str(round(log(100) / log(10), 4))
+
+out ""
+out "--- 4. Trigonometria ---"
+out "  sin(0) = " + str(sin(0))
+out "  sin(π/2) = " + str(round(sin(PI / 2), 4))
+out "  cos(0) = " + str(cos(0))
+out "  cos(π) = " + str(round(cos(PI), 4))
+out "  tan(0) = " + str(tan(0))
+out "  tan(π/4) = " + str(round(tan(PI / 4), 4))
+
+out ""
+out "--- 5. Números Primos ---"
+action eh_primo(n):
+    given n smaller 2:
+        yield no
+    given n is 2:
+        yield yes
+    given n % 2 is 0:
+        yield no
+    i := 3
+    persist i * i smaller_eq n:
+        given n % i is 0:
+            yield no
+        i := i + 2
+    yield yes
+
+action primos_ate(n):
+    resultado := []
+    cycle i from 2 to n:
+        given eh_primo(i):
+            append(resultado, i)
+    yield resultado
+
+out "Primos até 50:", primos_ate(50)
+out "É primo 97?", eh_primo(97)
+out "É primo 100?", eh_primo(100)
+
+out ""
+out "--- 6. Sequência de Collatz ---"
+action collatz(n):
+    seq := [n]
+    persist n isnt 1:
+        given n % 2 is 0:
+            n := n // 2
+        otherwise:
+            n := 3 * n + 1
+        append(seq, n)
+    yield seq
+
+seq27 := collatz(27)
+out "Collatz(27): " + str(len(seq27)) + " passos"
+out "  Início:", slice(seq27, 0, 10)
+out "  Máximo:", max(seq27)
+
+out ""
+out "--- 7. Conversões ---"
+action celsius_para_fahrenheit(c):
+    yield c * 9 / 5 + 32
+
+action fahrenheit_para_celsius(f):
+    yield (f - 32) * 5 / 9
+
+action graus_para_radianos(g):
+    yield g * PI / 180
+
+action radianos_para_graus(r):
+    yield r * 180 / PI
+
+out "  0°C = " + str(celsius_para_fahrenheit(0)) + "°F"
+out "  100°C = " + str(celsius_para_fahrenheit(100)) + "°F"
+out "  32°F = " + str(fahrenheit_para_celsius(32)) + "°C"
+out "  212°F = " + str(fahrenheit_para_celsius(212)) + "°C"
+out ""
+out "  90° = " + str(round(graus_para_radianos(90), 4)) + " rad"
+out "  180° = " + str(round(graus_para_radianos(180), 4)) + " rad"
+out "  π rad = " + str(round(radianos_para_graus(PI), 4)) + "°"
+
+out ""
+out "--- 8. Estatísticas ---"
+action media_lista(dados):
+    yield sum(dados) / len(dados)
+
+action variancia_lista(dados):
+    m := media_lista(dados)
+    soma := 0
+    cycle x in dados:
+        soma := soma + (x - m) ** 2
+    yield soma / len(dados)
+
+action desvio_padrao_lista(dados):
+    yield sqrt(variancia_lista(dados))
+
+action mediana_lista(dados):
+    s := sorted(dados)
+    n := len(s)
+    given n % 2 is 0:
+        yield (s[n // 2 - 1] + s[n // 2]) / 2
+    yield s[n // 2]
+
+action moda_lista(dados):
+    freq := {}
+    cycle x in dados:
+        chave := str(x)
+        given contains(freq, chave):
+            freq[chave] := freq[chave] + 1
+        otherwise:
+            freq[chave] := 1
+    max_freq := 0
+    moda := dados[0]
+    cycle k in keys(freq):
+        given freq[k] bigger max_freq:
+            max_freq := freq[k]
+            moda := k
+    yield moda
+
+dados := [23, 45, 12, 67, 34, 89, 12, 56, 23, 45, 12, 78, 23, 90, 34]
+out "Dados:", dados
+out "  Média:", round(media_lista(dados), 2)
+out "  Mediana:", mediana_lista(dados)
+out "  Moda:", moda_lista(dados)
+out "  Variância:", round(variancia_lista(dados), 2)
+out "  Desvio Padrão:", round(desvio_padrao_lista(dados), 2)
+out "  Min:", min(dados)
+out "  Max:", max(dados)
+out "  Amplitude:", max(dados) - min(dados)
+
+out ""
+out "--- 9. Triângulo de Pascal ---"
+action pascal(linhas):
+    triangulo := [[1]]
+    cycle i from 1 to linhas - 1:
+        anterior := triangulo[i - 1]
+        nova_linha := [1]
+        cycle j from 1 to len(anterior) - 1:
+            append(nova_linha, anterior[j - 1] + anterior[j])
+        append(nova_linha, 1)
+        append(triangulo, nova_linha)
+    yield triangulo
+
+tri := pascal(8)
+out "Triângulo de Pascal (8 linhas):"
+cycle row in tri:
+    // Centralizar
+    espacos := ""
+    cycle s from 1 to 8 - len(row):
+        espacos := espacos + "  "
+    out espacos + str(row)
+
+out ""
+out "--- 10. Números de Fibonacci até N ---"
+action fibonacci_ate(limite):
+    resultado := []
+    a := 0
+    b := 1
+    persist a smaller_eq limite:
+        append(resultado, a)
+        temp := a + b
+        a := b
+        b := temp
+    yield resultado
+
+out "Fibonacci até 1000:", fibonacci_ate(1000)
+out "Fibonacci até 100:", fibonacci_ate(100)

@@ -1,0 +1,148 @@
+// ═══════════════════════════════════════════════════════════
+// Example 39: Modular Programming
+// Modules, namespaces, composition in DataForge v3
+// ═══════════════════════════════════════════════════════════
+
+emit("=== DataForge v3: Modular Programming ===")
+emit("")
+
+// ── Standard Library Imports ────────────────────
+emit("--- Standard Library Modules ---")
+adopt Arcane.Math
+
+// Using Math module
+emit("Math.factorial(10) = " + str(Math.factorial(10)))
+emit("Math.fibonacci(10) = " + str(Math.fibonacci(10)))
+emit("Math.is_prime(17) = " + str(Math.is_prime(17)))
+emit("Math.is_prime(20) = " + str(Math.is_prime(20)))
+emit("")
+
+// ── Module Pattern (Helper Functions) ───────────
+emit("--- Module Pattern ---")
+action is_palindrome(s):
+    reversed_s := ""
+    i := len(s) - 1
+    persist i bigger_eq 0:
+        reversed_s := reversed_s + char_at(s, i)
+        i := i - 1
+    yield s == reversed_s
+
+action truncate_str(s, max_len):
+    given len(s) bigger max_len:
+        yield substring(s, 0, max_len) + "..."
+    yield s
+
+action repeat_str(s, n):
+    result := ""
+    i := 0
+    persist i smaller n:
+        result := result + s
+        i := i + 1
+    yield result
+
+emit("Is 'racecar' palindrome: " + str(is_palindrome("racecar")))
+emit("Is 'hello' palindrome: " + str(is_palindrome("hello")))
+emit("Truncate: " + truncate_str("Hello, DataForge World!", 15))
+emit("Repeat: " + repeat_str("Ha", 3))
+emit("")
+
+// ── Validator Functions ──────────────────────────
+emit("--- Validator Functions ---")
+action is_email(email):
+    yield contains(email, "@") and contains(email, ".")
+
+action is_positive(n):
+    yield n bigger 0
+
+action is_in_range(n, low, high):
+    yield n bigger_eq low and n smaller_eq high
+
+action is_non_empty(s):
+    yield len(s) bigger 0
+
+emit("Validate email: " + str(is_email("user@test.com")))
+emit("Validate positive: " + str(is_positive(-5)))
+emit("Validate range: " + str(is_in_range(42, 1, 100)))
+emit("Validate non-empty: " + str(is_non_empty("hello")))
+emit("")
+
+// ── Namespace Pattern ───────────────────────────
+emit("--- Namespace Pattern ---")
+app_config := {"name": "DataForge App", "version": "3.0", "debug": yes}
+
+action app_log(msg):
+    given app_config["debug"]:
+        emit("[LOG] " + msg)
+
+action app_info():
+    yield app_config["name"] + " v" + app_config["version"]
+
+emit("App: " + app_info())
+app_log("Application started")
+app_log("Loading modules...")
+emit("")
+
+// ── Composition Pattern ─────────────────────────
+emit("--- Composition Pattern ---")
+blueprint Logger:
+    action setup(prefix):
+        self.prefix := prefix
+        self.entries := []
+
+    action log(msg):
+        entry := "[" + self.prefix + "] " + msg
+        self.entries := self.entries + [entry]
+        emit("  " + entry)
+
+    action get_entries():
+        yield self.entries
+
+blueprint Database:
+    action setup(name, logger):
+        self.name := name
+        self.data := {}
+        self.logger := logger
+
+    action put(key, value):
+        self.data[key] := value
+        self.logger.log("SET " + key + " = " + str(value))
+
+    action fetch(key):
+        self.logger.log("GET " + key)
+        yield self.data[key]
+
+// Compose modules
+logger := spawn Logger("DB")
+db := spawn Database("main", logger)
+
+db.put("user:1", {"name": "Alice", "role": "admin"})
+db.put("user:2", {"name": "Bob", "role": "user"})
+result := db.fetch("user:1")
+emit("Retrieved: " + str(result))
+emit("Log entries: " + str(len(logger.get_entries())))
+emit("")
+
+// ── Service Registry ────────────────────────────
+emit("--- Service Registry ---")
+blueprint ServiceRegistry:
+    action setup():
+        self.services := {}
+
+    action register(name, service):
+        self.services[name] := service
+        emit("  Registered service: " + name)
+
+    action lookup(name):
+        yield self.services[name]
+
+    action list_services():
+        yield keys(self.services)
+
+registry := spawn ServiceRegistry()
+registry.register("auth", {"type": "AuthService", "version": "1.0"})
+registry.register("email", {"type": "EmailService", "version": "2.1"})
+registry.register("storage", {"type": "StorageService", "version": "1.5"})
+emit("Available services: " + str(registry.list_services()))
+emit("")
+
+emit("=== Modular programming complete! ===")

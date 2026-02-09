@@ -1,0 +1,235 @@
+// ═══════════════════════════════════════════
+// Exemplo 17: Padrões de Design (Design Patterns)
+// ═══════════════════════════════════════════
+
+out "═══ PADRÕES DE DESIGN ═══"
+out ""
+
+// --- 1. Singleton Pattern ---
+out "--- 1. Singleton ---"
+blueprint Config:
+    static instancia := void
+
+    action setup():
+        self.dados := {}
+
+    action set(chave, valor):
+        self.dados[chave] := valor
+
+    action get_val(chave):
+        given contains(self.dados, chave):
+            yield self.dados[chave]
+        yield void
+
+action get_config():
+    given Config.instancia is void:
+        Config.instancia := spawn Config()
+    yield Config.instancia
+
+cfg1 := get_config()
+cfg1.set("tema", "escuro")
+cfg1.set("idioma", "pt-BR")
+
+cfg2 := get_config()
+out "Tema:", cfg2.get_val("tema")
+out "Idioma:", cfg2.get_val("idioma")
+out "Mesmo objeto?", id(cfg1) is id(cfg2)
+
+out ""
+out "--- 2. Builder Pattern ---"
+blueprint QueryBuilder:
+    action setup():
+        self.tabela := ""
+        self.colunas := "*"
+        self.condicao := ""
+        self.ordem := ""
+        self.limite := 0
+
+    action from_table(tabela):
+        self.tabela := tabela
+        yield self
+
+    action select(colunas):
+        self.colunas := colunas
+        yield self
+
+    action where(condicao):
+        self.condicao := condicao
+        yield self
+
+    action order_by(campo):
+        self.ordem := campo
+        yield self
+
+    action limit(n):
+        self.limite := n
+        yield self
+
+    action build():
+        sql := "SELECT " + self.colunas + " FROM " + self.tabela
+        given len(self.condicao) bigger 0:
+            sql := sql + " WHERE " + self.condicao
+        given len(self.ordem) bigger 0:
+            sql := sql + " ORDER BY " + self.ordem
+        given self.limite bigger 0:
+            sql := sql + " LIMIT " + str(self.limite)
+        yield sql
+
+query := spawn QueryBuilder()
+sql := query.from_table("usuarios").select("nome, email").where("idade > 18").order_by("nome").limit(10).build()
+out "SQL:", sql
+
+query2 := spawn QueryBuilder()
+sql2 := query2.from_table("produtos").select("*").where("preco < 100").build()
+out "SQL:", sql2
+
+out ""
+out "--- 3. Observer Pattern ---"
+blueprint EventEmitter:
+    action setup():
+        self.listeners := {}
+
+    action on(evento, callback):
+        given not contains(self.listeners, evento):
+            self.listeners[evento] := []
+        append(self.listeners[evento], callback)
+
+    action emit_event(evento, dados):
+        given contains(self.listeners, evento):
+            cycle cb in self.listeners[evento]:
+                cb(dados)
+
+emitter := spawn EventEmitter()
+
+action on_login(dados):
+    out "  📧 Notificação: " + dados + " fez login"
+
+action on_login_log(dados):
+    out "  📋 Log: Login de " + dados
+
+emitter.on("login", on_login)
+emitter.on("login", on_login_log)
+emitter.emit_event("login", "usuario@email.com")
+
+out ""
+out "--- 4. Strategy Pattern ---"
+action bubble_strategy(lista):
+    copia := []
+    cycle item in lista:
+        append(copia, item)
+    n := len(copia)
+    cycle i from 0 to n - 2:
+        cycle j from 0 to n - 2 - i:
+            given copia[j] bigger copia[j + 1]:
+                temp := copia[j]
+                copia[j] := copia[j + 1]
+                copia[j + 1] := temp
+    yield copia
+
+action selection_strategy(lista):
+    copia := []
+    cycle item in lista:
+        append(copia, item)
+    n := len(copia)
+    cycle i from 0 to n - 2:
+        min_idx := i
+        cycle j from i + 1 to n - 1:
+            given copia[j] smaller copia[min_idx]:
+                min_idx := j
+        temp := copia[i]
+        copia[i] := copia[min_idx]
+        copia[min_idx] := temp
+    yield copia
+
+blueprint Sorter:
+    action setup(strategy):
+        self.strategy := strategy
+
+    action sort(lista):
+        yield self.strategy(lista)
+
+dados := [64, 25, 12, 22, 11]
+out "Dados:", dados
+
+sorter1 := spawn Sorter(bubble_strategy)
+out "Bubble Sort:", sorter1.sort(dados)
+
+sorter2 := spawn Sorter(selection_strategy)
+out "Selection Sort:", sorter2.sort(dados)
+
+out ""
+out "--- 5. Factory Pattern ---"
+blueprint Carro:
+    action setup(marca):
+        self.tipo := "Carro"
+        self.marca := marca
+    action info():
+        out "  🚗 " + self.tipo + ": " + self.marca
+
+blueprint Moto:
+    action setup(marca):
+        self.tipo := "Moto"
+        self.marca := marca
+    action info():
+        out "  🏍 " + self.tipo + ": " + self.marca
+
+blueprint Caminhao:
+    action setup(marca):
+        self.tipo := "Caminhão"
+        self.marca := marca
+    action info():
+        out "  🚛 " + self.tipo + ": " + self.marca
+
+action criar_veiculo(tipo, marca):
+    match tipo:
+        point "carro":
+            yield spawn Carro(marca)
+        point "moto":
+            yield spawn Moto(marca)
+        point "caminhao":
+            yield spawn Caminhao(marca)
+        default:
+            trigger "Tipo de veículo desconhecido: " + tipo
+
+veiculos := [
+    criar_veiculo("carro", "Toyota"),
+    criar_veiculo("moto", "Honda"),
+    criar_veiculo("caminhao", "Volvo"),
+    criar_veiculo("carro", "BMW")
+]
+
+out "Frota:"
+cycle v in veiculos:
+    v.info()
+
+out ""
+out "--- 6. Iterator Pattern ---"
+blueprint Intervalo:
+    action setup(inicio, fim, passo):
+        self.inicio := inicio
+        self.fim := fim
+        self.passo := passo
+
+    action to_list():
+        resultado := []
+        atual := self.inicio
+        persist atual smaller_eq self.fim:
+            append(resultado, atual)
+            atual := atual + self.passo
+        yield resultado
+
+    action soma():
+        yield sum(self.to_list())
+
+    action media():
+        lista := self.to_list()
+        yield sum(lista) / len(lista)
+
+r := spawn Intervalo(1, 100, 1)
+out "Intervalo 1-100:"
+out "  Soma:", r.soma()
+out "  Média:", r.media()
+out "  Total:", len(r.to_list())
+
+r2 := spawn Intervalo(0, 50, 5)
+out "Intervalo 0-50 (step 5):", r2.to_list()

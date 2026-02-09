@@ -1,0 +1,269 @@
+// ═══════════════════════════════════════════════════════════
+// Example 40: DataForge v3 Complete Showcase
+// All new v3 features demonstrated together
+// ═══════════════════════════════════════════════════════════
+
+emit("╔══════════════════════════════════════════╗")
+emit("║    DataForge v3 - Complete Showcase      ║")
+emit("╚══════════════════════════════════════════╝")
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 1: Enhanced String Processing
+// ══════════════════════════════════════════════
+emit("═══ 1. Enhanced String Processing ═══")
+text := "Hello, DataForge v3!"
+
+// Dot methods
+emit("Upper: " + text.upper())
+emit("Lower: " + text.lower())
+emit("Title: " + text.title())
+emit("Reverse: " + text.reverse())
+emit("Length: " + str(text.length()))
+emit("Contains 'v3': " + str(text.contains("v3")))
+emit("Substring(0,5): " + text.substring(0, 5))
+emit("")
+
+// String functions
+emit("Center: '" + center("DataForge", 30, "=") + "'")
+emit("Pad: '" + pad_start("42", 8, "0") + "'")
+emit("Repeat: " + repeat("*", 5))
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 2: Regex Power
+// ══════════════════════════════════════════════
+emit("═══ 2. Regex Power ═══")
+log := "Error 404: Not Found at 10:23:45, Error 500: Server Error at 11:45:22"
+
+errors := regex_findall("Error \\d+", log)
+emit("Errors found: " + str(errors))
+
+times := regex_findall("\\d{2}:\\d{2}:\\d{2}", log)
+emit("Times found: " + str(times))
+
+cleaned := regex_sub("Error \\d+: ", "", log)
+emit("Messages: " + cleaned)
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 3: Advanced Error Handling
+// ══════════════════════════════════════════════
+emit("═══ 3. Advanced Error Handling ═══")
+
+action safe_divide(a, b):
+    guard b != 0 otherwise:
+        emit("  Guard: Division by zero!")
+        yield 0
+    yield a / b
+
+emit("10 / 3 = " + str(safe_divide(10, 3)))
+emit("10 / 0 = " + str(safe_divide(10, 0)))
+
+// Retry pattern
+attempt := 0
+retry 3:
+    attempt := attempt + 1
+    emit("  Attempt " + str(attempt))
+    given attempt smaller 3:
+        trigger "Not ready"
+recover err:
+    emit("  All attempts failed")
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 4: Functional Programming
+// ══════════════════════════════════════════════
+emit("═══ 4. Functional Programming ═══")
+
+action double(x):
+    yield x * 2
+
+action is_even(x):
+    yield x % 2 == 0
+
+action add(a, b):
+    yield a + b
+
+numbers := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+// Compose
+transform := compose(double, double)
+emit("compose(double, double)(5) = " + str(transform(5)))
+
+// Pipeline
+evens := numbers >> sift x: x % 2 == 0
+doubled_evens := evens >> morph x: x * 2
+emit("Even numbers doubled: " + str(doubled_evens))
+
+// Functional utilities
+emit("every([2,4,6], is_even): " + str(every(is_even, [2, 4, 6])))
+emit("find_first > 5: " + str(find_first(is_even, numbers)))
+
+// Flat map
+action expand(x):
+    yield [x, x * x]
+result := flat_map(expand, [1, 2, 3])
+emit("flat_map: " + str(result))
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 5: Advanced Math & Stats
+// ══════════════════════════════════════════════
+emit("═══ 5. Advanced Math & Statistics ═══")
+
+data := [23, 45, 12, 67, 34, 89, 56, 78, 90, 43, 21, 65]
+emit("Data: " + str(data))
+emit("Mean: " + str(round(mean(data), 2)))
+emit("Median: " + str(median(data)))
+emit("Stdev: " + str(round(stdev(data), 2)))
+emit("Min: " + str(min(data)))
+emit("Max: " + str(max(data)))
+
+// Physics
+emit("")
+emit("--- Quick Physics ---")
+g := 9.81
+height := 100
+fall_time := sqrt(2 * height / g)
+emit("Free fall from " + str(height) + "m: " + str(round(fall_time, 2)) + "s")
+emit("Impact velocity: " + str(round(g * fall_time, 2)) + " m/s")
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 6: Collections Power
+// ══════════════════════════════════════════════
+emit("═══ 6. Collections Power ═══")
+
+items := ["apple", "banana", "cherry", "date", "elderberry"]
+emit("First: " + str(first(items)))
+emit("Last: " + str(last(items)))
+emit("Take 3: " + str(take(items, 3)))
+emit("Chunk(2): " + str(chunk(items, 2)))
+
+// Dict operations
+config := {"app": "DataForge", "version": "3.0"}
+emit("Config keys: " + str(keys(config)))
+emit("Pick: " + str(pick(config, ["app"])))
+
+// Frequencies
+colors := ["red", "blue", "red", "green", "blue", "red"]
+emit("Color freq: " + str(frequencies(colors)))
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 7: Type System
+// ══════════════════════════════════════════════
+emit("═══ 7. Type System ═══")
+
+action describe_type(val):
+    given is_string(val):
+        yield "String: " + val
+    orif is_number(val):
+        yield "Number: " + str(val)
+    orif is_boolean(val):
+        yield "Boolean: " + str(val)
+    orif is_list(val):
+        yield "List[" + str(len(val)) + "]"
+    orif is_dict(val):
+        yield "Dict{" + str(len(keys(val))) + "}"
+    orif is_void(val):
+        yield "Void"
+    otherwise:
+        yield "Unknown"
+
+test_values := ["hello", 42, 3.14, yes, [1, 2], {"a": 1}, void]
+cycle v in test_values:
+    emit("  " + describe_type(v))
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 8: Blueprints & OOP
+// ══════════════════════════════════════════════
+emit("═══ 8. Advanced Blueprints ═══")
+
+blueprint Animal:
+    action setup(name, sound):
+        self.name := name
+        self.sound := sound
+
+    action speak():
+        yield self.name + " says " + self.sound + "!"
+
+blueprint Dog (Animal):
+    action setup(name):
+        self.name := name
+        self.sound := "Woof"
+
+    action fetch(item):
+        yield self.name + " fetches the " + item
+
+dog := spawn Dog("Rex")
+emit(dog.speak())
+emit(dog.fetch("ball"))
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 9: Data Processing Pipeline
+// ══════════════════════════════════════════════
+emit("═══ 9. Data Processing Pipeline ═══")
+
+students := [
+    {"name": "Alice", "grade": 92, "subject": "Math"},
+    {"name": "Bob", "grade": 78, "subject": "Science"},
+    {"name": "Carol", "grade": 95, "subject": "Math"},
+    {"name": "Dave", "grade": 68, "subject": "English"},
+    {"name": "Eve", "grade": 88, "subject": "Science"},
+    {"name": "Frank", "grade": 45, "subject": "Math"},
+    {"name": "Grace", "grade": 91, "subject": "English"}
+]
+
+passing := 0
+failing := 0
+grade_sum := 0
+cycle s in students:
+    grade_sum := grade_sum + s["grade"]
+    given s["grade"] bigger_eq 70:
+        passing := passing + 1
+    otherwise:
+        failing := failing + 1
+
+avg := grade_sum / len(students)
+emit("Students: " + str(len(students)))
+emit("Average grade: " + str(round(avg, 1)))
+emit("Passing: " + str(passing) + " | Failing: " + str(failing))
+
+// Honor roll
+emit("Honor Roll (90+):")
+cycle s in students:
+    given s["grade"] bigger_eq 90:
+        emit("  * " + s["name"] + " - " + str(s["grade"]) + " (" + s["subject"] + ")")
+emit("")
+
+// ══════════════════════════════════════════════
+// SECTION 10: Constants & Utilities
+// ══════════════════════════════════════════════
+emit("═══ 10. Constants & Utilities ═══")
+emit("PI: " + str(PI))
+emit("E: " + str(E))
+emit("INF: " + str(INF))
+emit("UUID: " + uuid())
+emit("Timestamp: " + str(timestamp()))
+emit("")
+
+// ── Final Summary ───────────────────────────────
+emit("╔══════════════════════════════════════════╗")
+emit("║  DataForge v3 Showcase Complete!         ║")
+emit("║                                          ║")
+emit("║  Features demonstrated:                  ║")
+emit("║  - 50+ string methods                    ║")
+emit("║  - Regex & pattern matching              ║")
+emit("║  - guard/retry/validate/defer            ║")
+emit("║  - Functional programming                ║")
+emit("║  - Advanced math & statistics            ║")
+emit("║  - Enhanced collections                  ║")
+emit("║  - Type system & validation              ║")
+emit("║  - OOP with inheritance                  ║")
+emit("║  - Data processing pipelines             ║")
+emit("║  - 10 stdlib modules                     ║")
+emit("╚══════════════════════════════════════════╝")

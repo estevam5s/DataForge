@@ -1,0 +1,187 @@
+// ═══════════════════════════════════════════
+// Exemplo 16: Herança e Polimorfismo
+// ═══════════════════════════════════════════
+
+out "═══ HERANÇA E POLIMORFISMO ═══"
+out ""
+
+// --- Hierarquia de Formas ---
+out "--- 1. Formas Geométricas ---"
+blueprint Forma:
+    action setup(nome):
+        self.nome := nome
+
+    action area():
+        yield 0
+
+    action descricao():
+        out "  " + self.nome + " - Área: " + str(self.area())
+
+blueprint Circulo(Forma):
+    action setup(raio):
+        self.nome := "Círculo"
+        self.raio := raio
+
+    action area():
+        yield PI * self.raio ** 2
+
+    action perimetro():
+        yield 2 * PI * self.raio
+
+blueprint Retangulo(Forma):
+    action setup(largura, altura):
+        self.nome := "Retângulo"
+        self.largura := largura
+        self.altura := altura
+
+    action area():
+        yield self.largura * self.altura
+
+    action perimetro():
+        yield 2 * (self.largura + self.altura)
+
+blueprint Triangulo(Forma):
+    action setup(base, altura):
+        self.nome := "Triângulo"
+        self.base := base
+        self.altura := altura
+
+    action area():
+        yield self.base * self.altura / 2
+
+formas := [
+    spawn Circulo(5),
+    spawn Retangulo(4, 6),
+    spawn Triangulo(3, 8),
+    spawn Circulo(10),
+    spawn Retangulo(7, 3)
+]
+
+cycle f in formas:
+    f.descricao()
+
+out ""
+out "Área total:", sum(formas >> morph f: f.area())
+
+out ""
+out "--- 2. Sistema de Funcionários ---"
+blueprint Funcionario:
+    action setup(nome, salario_base):
+        self.nome := nome
+        self.salario_base := salario_base
+
+    action salario():
+        yield self.salario_base
+
+    action info():
+        out "  " + self.nome + " - R$" + str(self.salario())
+
+blueprint Gerente(Funcionario):
+    action setup(nome, salario_base, bonus):
+        self.nome := nome
+        self.salario_base := salario_base
+        self.bonus := bonus
+
+    action salario():
+        yield self.salario_base + self.bonus
+
+blueprint Desenvolvedor(Funcionario):
+    action setup(nome, salario_base, horas_extra):
+        self.nome := nome
+        self.salario_base := salario_base
+        self.horas_extra := horas_extra
+
+    action salario():
+        yield self.salario_base + (self.horas_extra * 50)
+
+blueprint Estagiario(Funcionario):
+    action setup(nome):
+        self.nome := nome
+        self.salario_base := 1500
+
+equipe := [
+    spawn Gerente("Ana", 8000, 3000),
+    spawn Desenvolvedor("Bruno", 6000, 20),
+    spawn Desenvolvedor("Carlos", 5500, 10),
+    spawn Estagiario("Diana"),
+    spawn Gerente("Eduardo", 9000, 4000)
+]
+
+out "Equipe:"
+cycle func in equipe:
+    func.info()
+
+total_folha := 0
+cycle func in equipe:
+    total_folha := total_folha + func.salario()
+out ""
+out "Total da folha: R$" + str(total_folha)
+
+out ""
+out "--- 3. Blueprint com Herança Múltipla ---"
+
+trait Nadador:
+    action nadar()
+
+trait Voador:
+    action voar()
+
+blueprint Pato(Nadador, Voador):
+    action setup(nome):
+        self.nome := nome
+
+    action nadar():
+        out "  " + self.nome + " está nadando! 🏊"
+
+    action voar():
+        out "  " + self.nome + " está voando! ✈"
+
+    action quack():
+        out "  " + self.nome + " diz: Quack!"
+
+donald := spawn Pato("Donald")
+donald.nadar()
+donald.voar()
+donald.quack()
+
+out ""
+out "--- 4. Blueprint com Encapsulamento ---"
+blueprint ContaBancaria:
+    action setup(titular, saldo_inicial):
+        self.titular := titular
+        self.saldo := saldo_inicial
+        self.historico := []
+
+    action depositar(valor):
+        given valor smaller_eq 0:
+            trigger "Valor de depósito inválido"
+        self.saldo := self.saldo + valor
+        append(self.historico, "+" + str(valor))
+        out "  Depósito: R$" + str(valor)
+
+    action sacar(valor):
+        given valor smaller_eq 0:
+            trigger "Valor de saque inválido"
+        given valor bigger self.saldo:
+            trigger "Saldo insuficiente"
+        self.saldo := self.saldo - valor
+        append(self.historico, "-" + str(valor))
+        out "  Saque: R$" + str(valor)
+
+    action ver_saldo():
+        out "  Saldo de " + self.titular + ": R$" + str(self.saldo)
+
+    action ver_historico():
+        out "  Histórico:", self.historico
+
+conta := spawn ContaBancaria("João", 1000)
+conta.ver_saldo()
+conta.depositar(500)
+conta.sacar(200)
+conta.depositar(1000)
+monitor:
+    conta.sacar(5000)
+handle erro:
+    out "  ⚠ Erro:", erro
+conta.ver_saldo()
+conta.ver_historico()

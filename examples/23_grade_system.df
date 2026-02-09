@@ -1,0 +1,179 @@
+// ═══════════════════════════════════════════
+// Exemplo 23: Mini Projeto - Sistema de Notas
+// ═══════════════════════════════════════════
+
+out "═══ MINI PROJETO: SISTEMA DE NOTAS ═══"
+out ""
+
+// --- Blueprint do Aluno ---
+blueprint Aluno:
+    action setup(nome, matricula):
+        self.nome := nome
+        self.matricula := matricula
+        self.disciplinas := {}
+
+    action adicionar_disciplina(nome):
+        self.disciplinas[nome] := {"notas": [], "faltas": 0}
+
+    action adicionar_nota(disciplina, nota):
+        given not contains(self.disciplinas, disciplina):
+            trigger "Disciplina '" + disciplina + "' não encontrada"
+        given nota smaller 0 or nota bigger 10:
+            trigger "Nota deve estar entre 0 e 10"
+        append(self.disciplinas[disciplina]["notas"], nota)
+
+    action registrar_falta(disciplina):
+        given not contains(self.disciplinas, disciplina):
+            trigger "Disciplina '" + disciplina + "' não encontrada"
+        self.disciplinas[disciplina]["faltas"] := self.disciplinas[disciplina]["faltas"] + 1
+
+    action media_disciplina(disciplina):
+        given not contains(self.disciplinas, disciplina):
+            trigger "Disciplina não encontrada"
+        notas := self.disciplinas[disciplina]["notas"]
+        given len(notas) is 0:
+            yield 0
+        yield sum(notas) / len(notas)
+
+    action situacao_disciplina(disciplina):
+        media := self.media_disciplina(disciplina)
+        faltas := self.disciplinas[disciplina]["faltas"]
+        given faltas bigger 5:
+            yield "REPROVADO POR FALTA"
+        given media bigger_eq 7:
+            yield "APROVADO"
+        given media bigger_eq 5:
+            yield "RECUPERAÇÃO"
+        yield "REPROVADO"
+
+    action boletim():
+        out "╔════════════════════════════════════════╗"
+        out "║  BOLETIM ESCOLAR                       ║"
+        out "╠════════════════════════════════════════╣"
+        out "║  Aluno: " + self.nome
+        out "║  Matrícula: " + self.matricula
+        out "╠════════════════════════════════════════╣"
+
+        cycle disc in keys(self.disciplinas):
+            media := round(self.media_disciplina(disc), 1)
+            faltas := self.disciplinas[disc]["faltas"]
+            situacao := self.situacao_disciplina(disc)
+            notas := self.disciplinas[disc]["notas"]
+            out "║  " + disc
+            out "║    Notas: " + str(notas)
+            out "║    Média: " + str(media) + " | Faltas: " + str(faltas)
+            out "║    Situação: " + situacao
+            out "║"
+
+        out "╚════════════════════════════════════════╝"
+
+// --- Sistema de Turma ---
+blueprint Turma:
+    action setup(nome):
+        self.nome := nome
+        self.alunos := []
+
+    action adicionar_aluno(aluno):
+        append(self.alunos, aluno)
+
+    action ranking():
+        // Calcular média geral de cada aluno
+        medias := []
+        cycle aluno in self.alunos:
+            total := 0
+            n_disc := 0
+            cycle disc in keys(aluno.disciplinas):
+                total := total + aluno.media_disciplina(disc)
+                n_disc := n_disc + 1
+            given n_disc bigger 0:
+                media_geral := total / n_disc
+                append(medias, {"nome": aluno.nome, "media": round(media_geral, 2)})
+
+        // Ordenar (bubble sort por média decrescente)
+        n := len(medias)
+        cycle i from 0 to n - 2:
+            cycle j from 0 to n - 2 - i:
+                given medias[j]["media"] smaller medias[j + 1]["media"]:
+                    temp := medias[j]
+                    medias[j] := medias[j + 1]
+                    medias[j + 1] := temp
+
+        yield medias
+
+    action relatorio():
+        out "╔════════════════════════════════════════╗"
+        out "║  RELATÓRIO DA TURMA: " + self.nome
+        out "╠════════════════════════════════════════╣"
+        ranking := self.ranking()
+        pos := 1
+        cycle r in ranking:
+            medalha := ""
+            given pos is 1:
+                medalha := " 🥇"
+            orif pos is 2:
+                medalha := " 🥈"
+            orif pos is 3:
+                medalha := " 🥉"
+            out "║  " + str(pos) + "º " + r["nome"] + " - Média: " + str(r["media"]) + medalha
+            pos := pos + 1
+        out "╚════════════════════════════════════════╝"
+
+// --- Criar alunos e adicionar dados ---
+aluno1 := spawn Aluno("Maria Silva", "2024001")
+aluno1.adicionar_disciplina("Matemática")
+aluno1.adicionar_disciplina("Português")
+aluno1.adicionar_disciplina("Ciências")
+aluno1.adicionar_nota("Matemática", 8.5)
+aluno1.adicionar_nota("Matemática", 9.0)
+aluno1.adicionar_nota("Matemática", 7.5)
+aluno1.adicionar_nota("Português", 7.0)
+aluno1.adicionar_nota("Português", 8.0)
+aluno1.adicionar_nota("Português", 6.5)
+aluno1.adicionar_nota("Ciências", 9.5)
+aluno1.adicionar_nota("Ciências", 8.0)
+aluno1.adicionar_nota("Ciências", 9.0)
+aluno1.registrar_falta("Português")
+aluno1.registrar_falta("Português")
+
+aluno2 := spawn Aluno("João Santos", "2024002")
+aluno2.adicionar_disciplina("Matemática")
+aluno2.adicionar_disciplina("Português")
+aluno2.adicionar_disciplina("Ciências")
+aluno2.adicionar_nota("Matemática", 6.0)
+aluno2.adicionar_nota("Matemática", 5.5)
+aluno2.adicionar_nota("Matemática", 4.0)
+aluno2.adicionar_nota("Português", 8.0)
+aluno2.adicionar_nota("Português", 7.5)
+aluno2.adicionar_nota("Português", 8.5)
+aluno2.adicionar_nota("Ciências", 7.0)
+aluno2.adicionar_nota("Ciências", 6.5)
+aluno2.adicionar_nota("Ciências", 7.5)
+
+aluno3 := spawn Aluno("Ana Costa", "2024003")
+aluno3.adicionar_disciplina("Matemática")
+aluno3.adicionar_disciplina("Português")
+aluno3.adicionar_disciplina("Ciências")
+aluno3.adicionar_nota("Matemática", 10.0)
+aluno3.adicionar_nota("Matemática", 9.5)
+aluno3.adicionar_nota("Matemática", 9.0)
+aluno3.adicionar_nota("Português", 9.0)
+aluno3.adicionar_nota("Português", 9.5)
+aluno3.adicionar_nota("Português", 10.0)
+aluno3.adicionar_nota("Ciências", 8.5)
+aluno3.adicionar_nota("Ciências", 9.0)
+aluno3.adicionar_nota("Ciências", 8.0)
+
+// --- Exibir boletins ---
+aluno1.boletim()
+out ""
+aluno2.boletim()
+out ""
+aluno3.boletim()
+
+// --- Relatório da turma ---
+out ""
+turma := spawn Turma("3A - Manhã")
+turma.adicionar_aluno(aluno1)
+turma.adicionar_aluno(aluno2)
+turma.adicionar_aluno(aluno3)
+turma.relatorio()

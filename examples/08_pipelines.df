@@ -1,0 +1,74 @@
+// ═══════════════════════════════════════════════════════════
+//  DataForge - Data Pipelines
+//  Using >> (pipe), sift (filter), morph (map), distill (reduce)
+// ═══════════════════════════════════════════════════════════
+
+// ── Pipeline: Filter and Transform ──
+out "=== Data Pipeline Demo ==="
+
+numbers := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+out "Original: " + numbers
+
+// Sift (filter) - keep only even numbers
+evens := numbers >> sift n: n % 2 is 0
+out "Evens: " + evens
+
+// Morph (map) - square each number
+squares := numbers >> morph n: n * n
+out "Squares: " + squares
+
+// Chain operations: filter evens then double them
+result := numbers >> sift n: n % 2 is 0 >> morph n: n * 2
+out "Evens doubled: " + result
+
+// ── Working with collections ──
+out "\n=== Collection Operations ==="
+
+// String operations
+words := ["hello", "world", "dataforge", "is", "amazing"]
+upper_words := words >> morph w: upper(w)
+out "Uppercase: " + upper_words
+
+long_words := words >> sift w: len(w) bigger 4
+out "Long words: " + long_words
+
+// ── Numeric analysis ──
+out "\n=== Numeric Analysis ==="
+
+data := [23, 45, 12, 67, 34, 89, 56, 78, 91, 15]
+out "Data: " + data
+out "Sum: " + sum(data)
+out "Min: " + min(data)
+out "Max: " + max(data)
+out "Sorted: " + sorted(data)
+out "Length: " + len(data)
+
+// Filter high values
+high := data >> sift x: x bigger 50
+out "Values > 50: " + high
+
+// ── Complex data transformations ──
+out "\n=== Student Grades ==="
+
+grades := [85, 92, 78, 95, 88, 76, 91, 83, 97, 72]
+out "All grades: " + grades
+
+passing := grades >> sift g: g bigger_eq 80
+out "Passing (>=80): " + passing
+
+honor_roll := grades >> sift g: g bigger_eq 90
+out "Honor roll (>=90): " + honor_roll
+
+// Curved grades
+curved := grades >> morph g: min(100, g + 5)
+out "Curved (+5): " + curved
+
+out "\n=== Utility Functions ==="
+items := [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
+out "Original: " + items
+out "Unique: " + unique(items)
+out "Sorted unique: " + sorted(unique(items))
+
+nested := [[1, 2], [3, [4, 5]], [6]]
+out "Nested: " + nested
+out "Flattened: " + flatten(nested)

@@ -1,0 +1,186 @@
+// ═══════════════════════════════════════════
+// Exemplo 22: Closures e Funções Avançadas
+// ═══════════════════════════════════════════
+
+out "═══ CLOSURES E FUNÇÕES AVANÇADAS ═══"
+out ""
+
+// --- 1. Closure Básico ---
+out "--- 1. Contador com Closure ---"
+action criar_contador(inicio):
+    contagem := inicio
+    action incrementar():
+        contagem := contagem + 1
+        yield contagem
+    yield incrementar
+
+contador := criar_contador(0)
+out "Contagem:", contador()
+out "Contagem:", contador()
+out "Contagem:", contador()
+
+contador2 := criar_contador(100)
+out "Contagem2:", contador2()
+out "Contagem2:", contador2()
+
+out ""
+out "--- 2. Acumulador ---"
+action criar_acumulador():
+    total := 0
+    action adicionar(valor):
+        total := total + valor
+        yield total
+    yield adicionar
+
+acc := criar_acumulador()
+out "Adicionar 10:", acc(10)
+out "Adicionar 20:", acc(20)
+out "Adicionar 5:", acc(5)
+out "Total:", acc(0)
+
+out ""
+out "--- 3. Função de Potência ---"
+action potencia_de(base):
+    action elevar(expoente):
+        yield base ** expoente
+    yield elevar
+
+quadrado := potencia_de(2)
+cubo := potencia_de(3)
+
+out "2^1:", quadrado(1)
+out "2^5:", quadrado(5)
+out "2^10:", quadrado(10)
+out "3^3:", cubo(3)
+out "3^4:", cubo(4)
+
+out ""
+out "--- 4. Gerador de Saudações ---"
+action saudacao(prefixo):
+    action saudar(nome):
+        yield prefixo + ", " + nome + "!"
+    yield saudar
+
+bom_dia := saudacao("Bom dia")
+boa_noite := saudacao("Boa noite")
+ola := saudacao("Olá")
+
+out bom_dia("Ana")
+out boa_noite("Bruno")
+out ola("Carlos")
+
+out ""
+out "--- 5. Funções Aninhadas ---"
+action operacao_matematica(tipo):
+    action soma(a, b):
+        yield a + b
+    action sub(a, b):
+        yield a - b
+    action mult(a, b):
+        yield a * b
+    action div(a, b):
+        given b is 0:
+            yield 0
+        yield a / b
+
+    match tipo:
+        point "soma":
+            yield soma
+        point "sub":
+            yield sub
+        point "mult":
+            yield mult
+        point "div":
+            yield div
+        default:
+            yield soma
+
+op_soma := operacao_matematica("soma")
+op_mult := operacao_matematica("mult")
+
+out "soma(5, 3) =", op_soma(5, 3)
+out "mult(5, 3) =", op_mult(5, 3)
+
+out ""
+out "--- 6. Decorator Pattern ---"
+action logger(func):
+    action wrapper(args):
+        out "  📋 Chamando função com argumento:", args
+        resultado := func(args)
+        out "  📋 Resultado:", resultado
+        yield resultado
+    yield wrapper
+
+action calcular_quadrado(n):
+    yield n * n
+
+calc_log := logger(calcular_quadrado)
+calc_log(5)
+calc_log(12)
+
+out ""
+out "--- 7. Pipeline Builder ---"
+action criar_pipeline():
+    steps := []
+
+    action add_step(func):
+        append(steps, func)
+
+    action executar(valor):
+        resultado := valor
+        cycle fn in steps:
+            resultado := fn(resultado)
+        yield resultado
+
+    yield {"add": add_step, "run": executar}
+
+action step_dobrar(x):
+    yield x * 2
+
+action step_incrementar(x):
+    yield x + 1
+
+action step_quadrar(x):
+    yield x * x
+
+pipe := criar_pipeline()
+pipe["add"](step_incrementar)
+pipe["add"](step_dobrar)
+pipe["add"](step_quadrar)
+
+out "Pipeline (incrementar → dobrar → quadrar):"
+out "  Input 3:", pipe["run"](3)
+out "  Input 5:", pipe["run"](5)
+out "  Input 10:", pipe["run"](10)
+
+out ""
+out "--- 8. Memoize Genérico ---"
+action criar_cache():
+    cache := {}
+
+    action cached(chave, func):
+        given contains(cache, chave):
+            yield cache[chave]
+        resultado := func()
+        cache[chave] := resultado
+        yield resultado
+
+    action size():
+        yield len(keys(cache))
+
+    yield {"get": cached, "size": size}
+
+mem := criar_cache()
+
+action calcular_pesado():
+    // Simula cálculo pesado
+    resultado := 0
+    cycle i from 1 to 1000:
+        resultado := resultado + i
+    yield resultado
+
+cache_get := mem["get"]
+cache_size := mem["size"]
+out "Primeira chamada (calcula):", cache_get("soma_1000", calcular_pesado)
+out "Segunda chamada (cache):", cache_get("soma_1000", calcular_pesado)
+out "Cache size:", cache_size()

@@ -1,0 +1,128 @@
+// ═══════════════════════════════════════════════════════════
+//  DataForge - Blueprints (Classes) & OOP
+//  Object-Oriented Programming with blueprints
+// ═══════════════════════════════════════════════════════════
+
+// ── Basic Blueprint ──
+blueprint Animal:
+    action setup(name, sound):
+        self.name := name
+        self.sound := sound
+
+    action speak():
+        out self.name + " says: " + self.sound
+
+    action info():
+        out "I am " + self.name
+
+// Spawn instances
+cat := spawn Animal("Cat", "Meow!")
+dog := spawn Animal("Dog", "Woof!")
+
+cat.speak()
+dog.speak()
+cat.info()
+
+// ── Blueprint with statics ──
+blueprint Counter:
+    static total := 0
+
+    action setup(name):
+        self.name := name
+        self.count := 0
+        Counter.total := Counter.total + 1
+
+    action increment():
+        self.count := self.count + 1
+
+    action get_count():
+        yield self.count
+
+c1 := spawn Counter("A")
+c2 := spawn Counter("B")
+c1.increment()
+c1.increment()
+c1.increment()
+c2.increment()
+
+out "Counter A: " + c1.get_count()
+out "Counter B: " + c2.get_count()
+out "Total counters: " + Counter.total
+
+// ── Inheritance ──
+blueprint Shape:
+    action setup(name):
+        self.name := name
+
+    action describe():
+        out "Shape: " + self.name
+
+blueprint Circle (Shape):
+    action setup(radius):
+        self.name := "Circle"
+        self.radius := radius
+
+    action area():
+        yield 3.14159 * self.radius * self.radius
+
+    action describe():
+        out "Circle with radius " + self.radius
+
+blueprint Rectangle (Shape):
+    action setup(width, height):
+        self.name := "Rectangle"
+        self.width := width
+        self.height := height
+
+    action area():
+        yield self.width * self.height
+
+    action perimeter():
+        yield 2 * (self.width + self.height)
+
+// Use
+circle := spawn Circle(5)
+rect := spawn Rectangle(4, 6)
+
+circle.describe()
+out "Circle area: " + circle.area()
+
+rect.describe()
+out "Rectangle area: " + rect.area()
+out "Rectangle perimeter: " + rect.perimeter()
+
+// ── Blueprint with complex methods ──
+blueprint TodoList:
+    action setup(title):
+        self.title := title
+        self.items := []
+        self.done := []
+
+    action add(item):
+        append(self.items, item)
+        out "  + Added: " + item
+
+    action complete(item):
+        given contains(self.items, item):
+            remove(self.items, item)
+            append(self.done, item)
+            out "  ✓ Completed: " + item
+        otherwise:
+            out "  ✗ Not found: " + item
+
+    action show():
+        out "\n── " + self.title + " ──"
+        out "Pending:"
+        cycle item in self.items:
+            out "  [ ] " + item
+        out "Done:"
+        cycle item in self.done:
+            out "  [✓] " + item
+
+// Use TodoList
+todos := spawn TodoList("My Tasks")
+todos.add("Learn DataForge")
+todos.add("Build a project")
+todos.add("Deploy to production")
+todos.complete("Learn DataForge")
+todos.show()

@@ -1,0 +1,138 @@
+// ═══════════════════════════════════════════════════════════
+// Example 37: Reactive Programming & Streams
+// observe, stream, signals, events in DataForge v3
+// ═══════════════════════════════════════════════════════════
+
+emit("=== DataForge v3: Reactive Programming ===")
+emit("")
+
+// ── Observe Blocks ──────────────────────────────
+emit("--- Observe Blocks ---")
+// Observe iterates over a source collection reactively
+items := [10, 20, 30, 40, 50]
+observe item in items:
+    emit("  Observed: " + str(item))
+emit("")
+
+// ── Stream Processing ───────────────────────────
+emit("--- Stream Processing ---")
+// Using pipeline operations as streams
+numbers := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+emit("Source: " + str(numbers))
+
+// Filter > Map > Collect pipeline (DataForge native streams)
+result := numbers >> sift x: x % 2 == 0 >> morph x: x * x
+emit("Even squares: " + str(result))
+
+// Multi-stage pipeline
+grades := [85, 92, 78, 95, 88, 72, 91, 68, 97, 83]
+passing := grades >> sift x: x bigger_eq 80
+boosted := passing >> morph x: x + 5
+emit("Passing grades: " + str(passing))
+emit("Boosted: " + str(boosted))
+emit("")
+
+// ── Event-Driven Pattern ────────────────────────
+emit("--- Event-Driven Pattern ---")
+// Simulating event system with callbacks
+blueprint EventBus:
+    action setup():
+        self.handlers := {}
+        self.log := []
+
+    action on(event, handler):
+        self.handlers[event] := handler
+        self.log := self.log + ["Registered: " + event]
+
+    action emit_event(event, data):
+        given contains(self.handlers, event):
+            handler := self.handlers[event]
+            handler(data)
+            self.log := self.log + ["Emitted: " + event]
+
+bus := spawn EventBus()
+
+// Register handlers
+action on_user_login(data):
+    emit("  [Event] User logged in: " + str(data))
+
+action on_purchase(data):
+    emit("  [Event] Purchase made: $" + str(data))
+
+bus.on("login", on_user_login)
+bus.on("purchase", on_purchase)
+
+// Emit events
+bus.emit_event("login", "Alice")
+bus.emit_event("purchase", 49.99)
+bus.emit_event("login", "Bob")
+emit("Event log: " + str(bus.log))
+emit("")
+
+// ── State Machine ───────────────────────────────
+emit("--- State Machine ---")
+blueprint StateMachine:
+    action setup(initial):
+        self.state := initial
+        self.transitions := {}
+        self.history := [initial]
+
+    action add_transition(from_state, event, to_state):
+        key := from_state + ":" + event
+        self.transitions[key] := to_state
+
+    action send(event):
+        key := self.state + ":" + event
+        given contains(self.transitions, key):
+            self.state := self.transitions[key]
+            self.history := self.history + [self.state]
+            yield yes
+        yield no
+
+    action current():
+        yield self.state
+
+// Traffic light state machine
+light := spawn StateMachine("red")
+light.add_transition("red", "next", "green")
+light.add_transition("green", "next", "yellow")
+light.add_transition("yellow", "next", "red")
+
+emit("Initial: " + light.current())
+light.send("next")
+emit("After next: " + light.current())
+light.send("next")
+emit("After next: " + light.current())
+light.send("next")
+emit("After next: " + light.current())
+emit("History: " + str(light.history))
+emit("")
+
+// ── Reactive Data Pipeline ──────────────────────
+emit("--- Reactive Data Pipeline ---")
+sales := [
+    {"product": "Widget", "qty": 5, "price": 10.00},
+    {"product": "Gadget", "qty": 3, "price": 25.00},
+    {"product": "Widget", "qty": 8, "price": 10.00},
+    {"product": "Tool", "qty": 2, "price": 50.00},
+    {"product": "Gadget", "qty": 6, "price": 25.00}
+]
+
+// Process sales data reactively
+total_revenue := 0
+product_totals := {}
+cycle sale in sales:
+    revenue := sale["qty"] * sale["price"]
+    total_revenue := total_revenue + revenue
+    product := sale["product"]
+    existing := 0
+    given contains(product_totals, product):
+        existing := product_totals[product]
+    product_totals[product] := existing + revenue
+    emit("  Processed: " + product + " -> $" + str(revenue))
+
+emit("Total revenue: $" + str(total_revenue))
+emit("By product: " + str(product_totals))
+emit("")
+
+emit("=== Reactive programming complete! ===")

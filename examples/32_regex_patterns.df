@@ -1,0 +1,78 @@
+// ═══════════════════════════════════════════════════════════
+// Example 32: Regex & Pattern Matching
+// Regular expressions and pattern matching in DataForge v3
+// ═══════════════════════════════════════════════════════════
+
+emit("=== DataForge v3: Regex & Pattern Matching ===")
+emit("")
+
+// ── Basic Regex Operations ──────────────────────
+email := "user@example.com"
+emit("Test email pattern: " + str(regex_test("[\\w.+-]+@[\\w-]+\\.\\w+", email)))
+emit("")
+
+// ── Search & Match ──────────────────────────────
+text := "Today is 2025-01-15 and tomorrow is 2025-01-16"
+date_match := regex_search("\\d{4}-\\d{2}-\\d{2}", text)
+emit("First date found: " + str(date_match))
+
+all_dates := regex_findall("\\d{4}-\\d{2}-\\d{2}", text)
+emit("All dates: " + str(all_dates))
+emit("")
+
+// ── Replace with Regex ──────────────────────────
+messy := "Hello    World     DataForge"
+clean := regex_sub("\\s+", " ", messy)
+emit("Cleaned whitespace: " + clean)
+
+censored := regex_sub("\\d{3}-\\d{4}", "***-****", "Call 555-1234 or 555-5678")
+emit("Censored: " + censored)
+emit("")
+
+// ── Split with Regex ────────────────────────────
+data := "apple;banana,cherry|date"
+parts := regex_split("[;,|]", data)
+emit("Split mixed delimiters: " + str(parts))
+emit("")
+
+// ── Extract Numbers ─────────────────────────────
+report := "We sold 150 items at $25.99 each, total $3898.50"
+numbers := regex_findall("\\d+\\.?\\d*", report)
+emit("Numbers in report: " + str(numbers))
+count := regex_count("\\d+", report)
+emit("Number count: " + str(count))
+emit("")
+
+// ── Pattern Validation ──────────────────────────
+emit("--- Pattern Validation ---")
+emails := ["user@test.com", "bad@", "hello@world.org", "not-email"]
+cycle item in emails:
+    is_email := regex_test("^[\\w.+-]+@[\\w-]+\\.[a-zA-Z]{2,}$", item)
+    status := "valid"
+    given is_email == no:
+        status := "invalid"
+    emit("  " + item + " -> " + status)
+
+emit("")
+
+// ── Word Extraction ─────────────────────────────
+sentence := "The quick123 brown fox42 jumps"
+alpha_words := regex_findall("[a-zA-Z]+", sentence)
+emit("Words only: " + str(alpha_words))
+
+// ── Complex Patterns ────────────────────────────
+emit("")
+emit("--- Complex Patterns ---")
+html_text := "<h1>Title</h1><p>Paragraph with <b>bold</b></p>"
+tags := regex_findall("<(\\w+)>", html_text)
+emit("HTML tags found: " + str(tags))
+
+// Extract key-value pairs
+config := "name=DataForge, version=3, lang=custom"
+keys := regex_findall("(\\w+)=", config)
+values := regex_findall("=(\\w+)", config)
+emit("Config keys: " + str(keys))
+emit("Config values: " + str(values))
+
+emit("")
+emit("=== Regex examples complete! ===")

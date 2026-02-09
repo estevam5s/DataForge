@@ -1,0 +1,94 @@
+// ═══════════════════════════════════════════
+// Exemplo 11: Manipulação de Strings
+// ═══════════════════════════════════════════
+
+out "═══ MANIPULAÇÃO DE STRINGS ═══"
+out ""
+
+// Operações básicas
+texto := "DataForge Programming Language"
+out "Original:", texto
+out "Maiúsculo:", upper(texto)
+out "Minúsculo:", lower(texto)
+out "Comprimento:", len(texto)
+
+out ""
+out "--- Split e Join ---"
+palavras := split(texto, " ")
+out "Palavras:", palavras
+out "Total de palavras:", len(palavras)
+reunido := join(" | ", palavras)
+out "Reunido:", reunido
+
+out ""
+out "--- Busca e Substituição ---"
+frase := "O gato comeu o peixe e o gato dormiu"
+out "Original:", frase
+out "Substituído:", replace(frase, "gato", "cachorro")
+out "Posição de 'peixe':", find(frase, "peixe")
+
+out ""
+out "--- Verificações ---"
+url := "https://dataforge.dev/docs"
+out "URL:", url
+out "Começa com https?", startswith(url, "https")
+out "Termina com .html?", endswith(url, ".html")
+out "Termina com /docs?", endswith(url, "/docs")
+out "Contém 'forge'?", contains(url, "forge")
+
+out ""
+out "--- Formatação ---"
+nome := "DataForge"
+versao := 2
+msg := "Linguagem: " + nome + " v" + str(versao) + ".0"
+out msg
+
+out ""
+out "--- Construtor de Strings ---"
+action construir_tabela(headers, rows):
+    // Calcular largura de cada coluna
+    separador := "+"
+    cycle h in headers:
+        separador := separador + "----------+"
+
+    out separador
+    linha_header := "|"
+    cycle h in headers:
+        espacos := 10 - len(h)
+        linha_header := linha_header + " " + h + "         |"
+    out "| " + join(" | ", headers) + " |"
+    out separador
+
+    cycle row in rows:
+        out "| " + join(" | ", row) + " |"
+
+    out separador
+
+headers := ["Nome", "Idade", "Cidade"]
+rows := [
+    ["Ana", "25", "SP"],
+    ["Bruno", "30", "RJ"],
+    ["Carlos", "28", "MG"]
+]
+construir_tabela(headers, rows)
+
+out ""
+out "--- Cifra de César ---"
+action cifra_cesar(texto, deslocamento):
+    resultado := []
+    cycle c in texto:
+        dado_ascii := find("abcdefghijklmnopqrstuvwxyz", lower(c))
+        given dado_ascii bigger_eq 0:
+            alfabeto := "abcdefghijklmnopqrstuvwxyz"
+            nova_pos := (dado_ascii + deslocamento) % 26
+            append(resultado, alfabeto[nova_pos])
+        otherwise:
+            append(resultado, c)
+    yield join("", resultado)
+
+mensagem := "dataforge"
+cifrado := cifra_cesar(mensagem, 3)
+decifrado := cifra_cesar(cifrado, -3)
+out "Mensagem:", mensagem
+out "Cifrado (+3):", cifrado
+out "Decifrado:", decifrado

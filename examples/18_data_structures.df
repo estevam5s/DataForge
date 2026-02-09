@@ -1,0 +1,269 @@
+// ═══════════════════════════════════════════
+// Exemplo 18: Estruturas de Dados
+// ═══════════════════════════════════════════
+
+out "═══ ESTRUTURAS DE DADOS ═══"
+out ""
+
+// --- 1. Linked List ---
+out "--- 1. Lista Encadeada ---"
+blueprint Node:
+    action setup(valor):
+        self.valor := valor
+        self.proximo := void
+
+blueprint LinkedList:
+    action setup():
+        self.cabeca := void
+        self.tamanho := 0
+
+    action adicionar(valor):
+        novo := spawn Node(valor)
+        given self.cabeca is void:
+            self.cabeca := novo
+        otherwise:
+            atual := self.cabeca
+            persist atual.proximo isnt void:
+                atual := atual.proximo
+            atual.proximo := novo
+        self.tamanho := self.tamanho + 1
+
+    action to_list():
+        resultado := []
+        atual := self.cabeca
+        persist atual isnt void:
+            append(resultado, atual.valor)
+            atual := atual.proximo
+        yield resultado
+
+    action buscar(valor):
+        atual := self.cabeca
+        idx := 0
+        persist atual isnt void:
+            given atual.valor is valor:
+                yield idx
+            atual := atual.proximo
+            idx := idx + 1
+        yield -1
+
+lista := spawn LinkedList()
+lista.adicionar(10)
+lista.adicionar(20)
+lista.adicionar(30)
+lista.adicionar(40)
+lista.adicionar(50)
+
+out "Lista:", lista.to_list()
+out "Tamanho:", lista.tamanho
+out "Buscar 30:", lista.buscar(30)
+out "Buscar 99:", lista.buscar(99)
+
+out ""
+out "--- 2. Stack (Pilha) ---"
+blueprint Stack:
+    action setup():
+        self.items := []
+
+    action push(valor):
+        append(self.items, valor)
+
+    action stack_pop():
+        given len(self.items) is 0:
+            trigger "Stack vazia"
+        yield pop(self.items)
+
+    action peek():
+        given len(self.items) is 0:
+            trigger "Stack vazia"
+        yield self.items[len(self.items) - 1]
+
+    action vazia():
+        yield len(self.items) is 0
+
+    action tamanho():
+        yield len(self.items)
+
+    action mostrar():
+        out "  Stack:", self.items
+
+stack := spawn Stack()
+stack.push(1)
+stack.push(2)
+stack.push(3)
+stack.push(4)
+stack.push(5)
+stack.mostrar()
+out "Topo:", stack.peek()
+out "Pop:", stack.stack_pop()
+out "Pop:", stack.stack_pop()
+stack.mostrar()
+
+// Verificar parênteses balanceados
+out ""
+out "Verificar parênteses:"
+action verificar_parenteses(expressao):
+    s := spawn Stack()
+    cycle ch in expressao:
+        given ch is "(":
+            s.push(ch)
+        orif ch is ")":
+            given s.vazia():
+                yield no
+            s.stack_pop()
+    yield s.vazia()
+
+out "  '(())()' :", verificar_parenteses("(())()")
+out "  '(()'   :", verificar_parenteses("(()")
+out "  ')('    :", verificar_parenteses(")(")
+out "  '(()())' :", verificar_parenteses("(()())")
+
+out ""
+out "--- 3. Queue (Fila) ---"
+blueprint Queue:
+    action setup():
+        self.items := []
+
+    action enqueue(valor):
+        append(self.items, valor)
+
+    action dequeue():
+        given len(self.items) is 0:
+            trigger "Queue vazia"
+        yield pop(self.items, 0)
+
+    action frente():
+        given len(self.items) is 0:
+            trigger "Queue vazia"
+        yield self.items[0]
+
+    action vazia():
+        yield len(self.items) is 0
+
+    action tamanho():
+        yield len(self.items)
+
+    action mostrar():
+        out "  Queue:", self.items
+
+fila := spawn Queue()
+fila.enqueue("Cliente 1")
+fila.enqueue("Cliente 2")
+fila.enqueue("Cliente 3")
+fila.mostrar()
+out "Atendendo:", fila.dequeue()
+out "Atendendo:", fila.dequeue()
+fila.enqueue("Cliente 4")
+fila.mostrar()
+
+out ""
+out "--- 4. Hash Map Simples ---"
+blueprint HashMap:
+    action setup(tamanho):
+        self.tamanho := tamanho
+        self.buckets := []
+        cycle i from 1 to tamanho:
+            append(self.buckets, [])
+
+    action hash_key(chave):
+        yield hash(chave) % self.tamanho
+
+    action put(chave, valor):
+        idx := self.hash_key(chave)
+        bucket := self.buckets[idx]
+        // Verificar se chave já existe
+        cycle i from 0 to len(bucket) - 1:
+            given bucket[i][0] is chave:
+                bucket[i] := [chave, valor]
+                yield void
+        append(bucket, [chave, valor])
+
+    action get_val(chave):
+        idx := self.hash_key(chave)
+        bucket := self.buckets[idx]
+        cycle par in bucket:
+            given par[0] is chave:
+                yield par[1]
+        yield void
+
+    action todas_chaves():
+        resultado := []
+        cycle bucket in self.buckets:
+            cycle par in bucket:
+                append(resultado, par[0])
+        yield resultado
+
+mapa := spawn HashMap(10)
+mapa.put("nome", "DataForge")
+mapa.put("versao", "2.0")
+mapa.put("tipo", "linguagem")
+mapa.put("autor", "Estevam")
+
+out "nome:", mapa.get_val("nome")
+out "versao:", mapa.get_val("versao")
+out "tipo:", mapa.get_val("tipo")
+out "autor:", mapa.get_val("autor")
+out "inexistente:", mapa.get_val("xyz")
+out "Chaves:", mapa.todas_chaves()
+
+out ""
+out "--- 5. Árvore Binária ---"
+blueprint TreeNode:
+    action setup(valor):
+        self.valor := valor
+        self.esquerda := void
+        self.direita := void
+
+blueprint BinaryTree:
+    action setup():
+        self.raiz := void
+
+    action inserir(valor):
+        given self.raiz is void:
+            self.raiz := spawn TreeNode(valor)
+        otherwise:
+            self.inserir_no(self.raiz, valor)
+
+    action inserir_no(node, valor):
+        given valor smaller node.valor:
+            given node.esquerda is void:
+                node.esquerda := spawn TreeNode(valor)
+            otherwise:
+                self.inserir_no(node.esquerda, valor)
+        otherwise:
+            given node.direita is void:
+                node.direita := spawn TreeNode(valor)
+            otherwise:
+                self.inserir_no(node.direita, valor)
+
+    action em_ordem(node, resultado):
+        given node isnt void:
+            self.em_ordem(node.esquerda, resultado)
+            append(resultado, node.valor)
+            self.em_ordem(node.direita, resultado)
+
+    action listar_ordenado():
+        resultado := []
+        self.em_ordem(self.raiz, resultado)
+        yield resultado
+
+    action buscar_no(node, valor):
+        given node is void:
+            yield node
+        given valor is node.valor:
+            yield yes
+        given valor smaller node.valor:
+            yield self.buscar_no(node.esquerda, valor)
+        yield self.buscar_no(node.direita, valor)
+
+    action buscar(valor):
+        yield self.buscar_no(self.raiz, valor)
+
+arvore := spawn BinaryTree()
+valores := [50, 30, 70, 20, 40, 60, 80, 10, 25]
+cycle v in valores:
+    arvore.inserir(v)
+
+out "Inseridos:", valores
+out "Em ordem:", arvore.listar_ordenado()
+out "Buscar 40:", arvore.buscar(40)
+out "Buscar 99:", arvore.buscar(99)

@@ -1,0 +1,111 @@
+// ═══════════════════════════════════════════════════════════
+// Example 33: Advanced Error Handling
+// guard, retry, validate, propagate, defer in DataForge v3
+// ═══════════════════════════════════════════════════════════
+
+emit("=== DataForge v3: Advanced Error Handling ===")
+emit("")
+
+// ── Guard Statement ─────────────────────────────
+emit("--- Guard Statements ---")
+action check_age(age):
+    guard age bigger_eq 0 otherwise:
+        emit("  Guard: Age cannot be negative!")
+    guard age smaller_eq 150 otherwise:
+        emit("  Guard: Age too large!")
+    emit("  Valid age: " + str(age))
+
+check_age(25)
+check_age(-5)
+check_age(200)
+emit("")
+
+// ── Validate Statement ──────────────────────────
+emit("--- Validate Statements ---")
+action process_order(item, qty, price):
+    validate qty bigger 0 otherwise:
+        emit("  Error: Quantity must be positive")
+    validate price bigger_eq 0 otherwise:
+        emit("  Error: Price cannot be negative")
+    total := qty * price
+    emit("  Order: " + str(qty) + "x " + item + " = $" + str(total))
+
+process_order("Widget", 5, 9.99)
+process_order("Gadget", 0, 5.00)
+process_order("Tool", 3, -1.00)
+emit("")
+
+// ── Retry Block ─────────────────────────────────
+emit("--- Retry Block ---")
+attempt_count := 0
+retry 3:
+    attempt_count := attempt_count + 1
+    emit("  Attempt " + str(attempt_count))
+    given attempt_count smaller 3:
+        emit("  Failed, retrying...")
+        trigger "Simulated failure"
+recover err:
+    emit("  All retries failed: " + str(err))
+emit("")
+
+// ── Defer Statement ─────────────────────────────
+emit("--- Defer Statement ---")
+action file_operation():
+    emit("  Opening resource...")
+    defer:
+        emit("  [Defer] Closing resource (cleanup)")
+    emit("  Working with resource...")
+    emit("  Done with resource")
+
+file_operation()
+emit("")
+
+// ── Propagate Statement ─────────────────────────
+emit("--- Propagate Statement ---")
+action inner_action():
+    monitor:
+        trigger "Deep error"
+    handle err:
+        emit("  Inner caught: " + str(err))
+        propagate err
+
+action outer_action():
+    monitor:
+        inner_action()
+    handle err:
+        emit("  Outer caught propagated: " + str(err))
+
+outer_action()
+emit("")
+
+// ── Traditional Monitor/Handle ──────────────────
+emit("--- Combined Error Handling ---")
+action safe_divide(a, b):
+    guard b != 0 otherwise:
+        emit("  Guard: Division by zero!")
+        yield -1
+    yield a / b
+
+result1 := safe_divide(10, 3)
+emit("10 / 3 = " + str(result1))
+result2 := safe_divide(10, 0)
+emit("10 / 0 = " + str(result2))
+emit("")
+
+// ── Nested Error Handling ───────────────────────
+emit("--- Nested Error Handling ---")
+action risky_operation(level):
+    monitor:
+        given level bigger 2:
+            trigger "Level " + str(level) + " is too deep!"
+        emit("  Level " + str(level) + " OK")
+    handle err:
+        emit("  Caught at level " + str(level) + ": " + str(err))
+    ensure:
+        emit("  Cleanup at level " + str(level))
+
+risky_operation(1)
+risky_operation(3)
+emit("")
+
+emit("=== Advanced error handling complete! ===")

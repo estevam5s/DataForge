@@ -1,0 +1,198 @@
+// ═══════════════════════════════════════════
+// Exemplo 24: Jogos e Simulações
+// ═══════════════════════════════════════════
+
+out "═══ JOGOS E SIMULAÇÕES ═══"
+out ""
+
+// --- 1. Jogo da Vida de Conway (Simplificado) ---
+out "--- 1. Game of Life (5 gerações) ---"
+
+action criar_grid(linhas, colunas):
+    grid := []
+    cycle i from 1 to linhas:
+        row := []
+        cycle j from 1 to colunas:
+            append(row, 0)
+        append(grid, row)
+    yield grid
+
+action vizinhos_vivos(grid, r, c, linhas, colunas):
+    contagem := 0
+    cycle dr from -1 to 1:
+        cycle dc from -1 to 1:
+            given dr is 0 and dc is 0:
+                skip
+            nr := r + dr
+            nc := c + dc
+            given nr bigger_eq 0 and nr smaller linhas and nc bigger_eq 0 and nc smaller colunas:
+                contagem := contagem + grid[nr][nc]
+    yield contagem
+
+action proxima_geracao(grid, linhas, colunas):
+    novo := criar_grid(linhas, colunas)
+    cycle r from 0 to linhas - 1:
+        cycle c from 0 to colunas - 1:
+            vivos := vizinhos_vivos(grid, r, c, linhas, colunas)
+            given grid[r][c] is 1:
+                given vivos is 2 or vivos is 3:
+                    novo[r][c] := 1
+            otherwise:
+                given vivos is 3:
+                    novo[r][c] := 1
+    yield novo
+
+action exibir_grid(grid):
+    cycle row in grid:
+        linha := ""
+        cycle cell in row:
+            given cell is 1:
+                linha := linha + "█ "
+            otherwise:
+                linha := linha + "· "
+        out "  " + linha
+
+// Configurar grid 8x8 com glider
+rows := 8
+cols := 8
+grid := criar_grid(rows, cols)
+// Glider pattern
+grid[1][2] := 1
+grid[2][3] := 1
+grid[3][1] := 1
+grid[3][2] := 1
+grid[3][3] := 1
+
+cycle gen from 0 to 4:
+    out "Geração " + str(gen) + ":"
+    exibir_grid(grid)
+    out ""
+    grid := proxima_geracao(grid, rows, cols)
+
+// --- 2. Simulação de Dados ---
+out "--- 2. Simulação de Dados ---"
+action rolar_dado():
+    yield randint(1, 6)
+
+action simular_dados(n_lancamentos):
+    frequencia := {}
+    cycle i from 1 to 6:
+        frequencia[str(i)] := 0
+
+    cycle i from 1 to n_lancamentos:
+        resultado := rolar_dado()
+        chave := str(resultado)
+        frequencia[chave] := frequencia[chave] + 1
+
+    yield frequencia
+
+freq := simular_dados(1000)
+out "1000 lançamentos de dado:"
+cycle face from 1 to 6:
+    qtd := freq[str(face)]
+    percentual := round(qtd * 100.0 / 1000, 1)
+    barra := ""
+    cycle i from 1 to qtd // 20:
+        barra := barra + "▓"
+    out "  Face " + str(face) + ": " + str(qtd) + " (" + str(percentual) + "%) " + barra
+
+// --- 3. Jogo de Pedra Papel Tesoura ---
+out ""
+out "--- 3. Pedra Papel Tesoura (Simulação) ---"
+action resultado_ppt(jogador, computador):
+    given jogador is computador:
+        yield "Empate"
+    given jogador is "pedra" and computador is "tesoura":
+        yield "Jogador vence"
+    given jogador is "papel" and computador is "pedra":
+        yield "Jogador vence"
+    given jogador is "tesoura" and computador is "papel":
+        yield "Jogador vence"
+    yield "Computador vence"
+
+opcoes := ["pedra", "papel", "tesoura"]
+vitorias := 0
+derrotas := 0
+empates := 0
+
+cycle i from 1 to 10:
+    jogador := choice(opcoes)
+    computador := choice(opcoes)
+    res := resultado_ppt(jogador, computador)
+    out "  Round " + str(i) + ": " + jogador + " vs " + computador + " → " + res
+    given res is "Jogador vence":
+        vitorias := vitorias + 1
+    orif res is "Computador vence":
+        derrotas := derrotas + 1
+    otherwise:
+        empates := empates + 1
+
+out ""
+out "Resultado: " + str(vitorias) + "V / " + str(derrotas) + "D / " + str(empates) + "E"
+
+// --- 4. Labirinto ---
+out ""
+out "--- 4. Resolver Labirinto ---"
+// 0 = caminho, 1 = parede, 2 = visitado, 3 = solução
+labirinto := [
+    [0, 1, 0, 0, 0],
+    [0, 1, 0, 1, 0],
+    [0, 0, 0, 1, 0],
+    [0, 1, 1, 0, 0],
+    [0, 0, 0, 0, 0]
+]
+
+action resolver_labirinto(lab, r, c, fim_r, fim_c):
+    given r smaller 0 or r bigger_eq len(lab):
+        yield no
+    given c smaller 0 or c bigger_eq len(lab[0]):
+        yield no
+    given lab[r][c] isnt 0:
+        yield no
+
+    lab[r][c] := 3  // marcar como caminho
+
+    given r is fim_r and c is fim_c:
+        yield yes
+
+    // Tentar direções: direita, baixo, esquerda, cima
+    given resolver_labirinto(lab, r, c + 1, fim_r, fim_c):
+        yield yes
+    given resolver_labirinto(lab, r + 1, c, fim_r, fim_c):
+        yield yes
+    given resolver_labirinto(lab, r, c - 1, fim_r, fim_c):
+        yield yes
+    given resolver_labirinto(lab, r - 1, c, fim_r, fim_c):
+        yield yes
+
+    lab[r][c] := 2  // backtrack
+    yield no
+
+out "Labirinto original:"
+cycle row in labirinto:
+    linha := "  "
+    cycle cell in row:
+        given cell is 1:
+            linha := linha + "██"
+        otherwise:
+            linha := linha + "  "
+    out linha
+
+resolvido := resolver_labirinto(labirinto, 0, 0, 4, 4)
+out ""
+given resolvido:
+    out "Solução encontrada!"
+    cycle row in labirinto:
+        linha := "  "
+        cycle cell in row:
+            given cell is 1:
+                linha := linha + "██"
+            orif cell is 3:
+                linha := linha + "◆ "
+            orif cell is 2:
+                linha := linha + "· "
+            otherwise:
+                linha := linha + "  "
+        out linha
+otherwise:
+    out "Sem solução!"

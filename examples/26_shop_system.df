@@ -1,0 +1,189 @@
+// ═══════════════════════════════════════════
+// Exemplo 26: Mini Projeto - Loja Virtual
+// ═══════════════════════════════════════════
+
+out "═══════════════════════════════════════════"
+out "       🛒 DATAFORGE SHOP v1.0"
+out "═══════════════════════════════════════════"
+out ""
+
+// --- Produto ---
+blueprint Produto:
+    action setup(nome, preco, estoque, categoria):
+        self.nome := nome
+        self.preco := preco
+        self.estoque := estoque
+        self.categoria := categoria
+
+    action disponivel():
+        yield self.estoque bigger 0
+
+    action descricao():
+        status := "✓"
+        given not self.disponivel():
+            status := "✗ ESGOTADO"
+        yield self.nome + " | R$" + str(self.preco) + " | Estoque: " + str(self.estoque) + " " + status
+
+// --- Carrinho ---
+blueprint Carrinho:
+    action setup():
+        self.items := []
+
+    action adicionar(produto, quantidade):
+        given quantidade smaller_eq 0:
+            trigger "Quantidade inválida"
+        given quantidade bigger produto.estoque:
+            trigger "Estoque insuficiente para " + produto.nome
+        append(self.items, {"produto": produto, "qtd": quantidade})
+        out "  ✓ " + produto.nome + " x" + str(quantidade) + " adicionado"
+
+    action remover(indice):
+        given indice smaller 0 or indice bigger_eq len(self.items):
+            trigger "Índice inválido"
+        item := self.items[indice]
+        out "  ✓ " + item["produto"].nome + " removido"
+        delete self.items[indice]
+
+    action subtotal():
+        total := 0
+        cycle item in self.items:
+            total := total + item["produto"].preco * item["qtd"]
+        yield total
+
+    action exibir():
+        given len(self.items) is 0:
+            out "  Carrinho vazio!"
+            yield void
+        out "  ┌───────────────────────────────────┐"
+        out "  │        CARRINHO DE COMPRAS          │"
+        out "  ├───────────────────────────────────┤"
+        idx := 0
+        cycle item in self.items:
+            p := item["produto"]
+            total_item := p.preco * item["qtd"]
+            out "  │ " + str(idx + 1) + ". " + p.nome + " x" + str(item["qtd"]) + " = R$" + str(total_item)
+            idx := idx + 1
+        out "  ├───────────────────────────────────┤"
+        out "  │ SUBTOTAL: R$" + str(self.subtotal())
+        out "  └───────────────────────────────────┘"
+
+    action total_items():
+        yield len(self.items)
+
+// --- Cupom de Desconto ---
+blueprint Cupom:
+    action setup(codigo, percentual, minimo):
+        self.codigo := codigo
+        self.percentual := percentual
+        self.minimo := minimo
+
+    action aplicar(subtotal):
+        given subtotal smaller self.minimo:
+            trigger "Valor mínimo de R$" + str(self.minimo) + " não atingido"
+        desconto := subtotal * self.percentual / 100
+        yield desconto
+
+// --- Pedido ---
+blueprint Pedido:
+    static contador := 0
+
+    action setup(carrinho, cupom):
+        Pedido.contador := Pedido.contador + 1
+        self.numero := Pedido.contador
+        self.items := carrinho.items
+        self.subtotal := carrinho.subtotal()
+        self.desconto := 0
+        self.cupom := cupom
+
+        given cupom isnt void:
+            monitor:
+                self.desconto := cupom.aplicar(self.subtotal)
+            handle erro:
+                out "  ⚠ Cupom:", erro
+
+    action total():
+        yield self.subtotal - self.desconto
+
+    action processar():
+        // Atualizar estoque
+        cycle item in self.items:
+            p := item["produto"]
+            p.estoque := p.estoque - item["qtd"]
+
+    action recibo():
+        out "╔═══════════════════════════════════════╗"
+        out "║          RECIBO DE COMPRA              ║"
+        out "║          Pedido #" + str(self.numero)
+        out "╠═══════════════════════════════════════╣"
+        cycle item in self.items:
+            p := item["produto"]
+            total_item := p.preco * item["qtd"]
+            out "║  " + p.nome + " x" + str(item["qtd"])
+            out "║    R$" + str(p.preco) + " un. = R$" + str(total_item)
+        out "╠═══════════════════════════════════════╣"
+        out "║  Subtotal:  R$" + str(self.subtotal)
+        given self.desconto bigger 0:
+            out "║  Desconto:  -R$" + str(round(self.desconto, 2))
+            out "║  Cupom:     " + self.cupom.codigo
+        out "║  ─────────────────────"
+        out "║  TOTAL:     R$" + str(round(self.total(), 2))
+        out "╚═══════════════════════════════════════╝"
+
+// ═══ Simulação da Loja ═══
+
+// Criar catálogo
+out "📦 CATÁLOGO:"
+out "─────────────────────────────────────"
+produtos := [
+    spawn Produto("MacBook Pro", 12999, 5, "Eletrônicos"),
+    spawn Produto("iPhone 15", 7999, 10, "Eletrônicos"),
+    spawn Produto("AirPods Pro", 1899, 20, "Acessórios"),
+    spawn Produto("iPad Air", 5499, 8, "Eletrônicos"),
+    spawn Produto("Apple Watch", 3299, 15, "Acessórios"),
+    spawn Produto("Magic Mouse", 699, 30, "Acessórios")
+]
+
+idx := 1
+cycle p in produtos:
+    out "  " + str(idx) + ". " + p.descricao()
+    idx := idx + 1
+
+// Criar cupons
+cupom10 := spawn Cupom("FORGE10", 10, 1000)
+cupom20 := spawn Cupom("MEGA20", 20, 5000)
+
+// Compra 1
+out ""
+out "🛒 COMPRA #1:"
+out "─────────────────────────────────────"
+c1 := spawn Carrinho()
+c1.adicionar(produtos[0], 1)     // MacBook
+c1.adicionar(produtos[2], 2)     // AirPods x2
+c1.adicionar(produtos[5], 1)     // Magic Mouse
+c1.exibir()
+
+out ""
+pedido1 := spawn Pedido(c1, cupom20)
+pedido1.processar()
+pedido1.recibo()
+
+// Compra 2
+out ""
+out "🛒 COMPRA #2:"
+out "─────────────────────────────────────"
+c2 := spawn Carrinho()
+c2.adicionar(produtos[1], 1)     // iPhone
+c2.adicionar(produtos[4], 1)     // Apple Watch
+c2.exibir()
+
+out ""
+pedido2 := spawn Pedido(c2, cupom10)
+pedido2.processar()
+pedido2.recibo()
+
+// Estoque atualizado
+out ""
+out "📊 ESTOQUE ATUALIZADO:"
+out "─────────────────────────────────────"
+cycle p in produtos:
+    out "  " + p.descricao()

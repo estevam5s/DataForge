@@ -1,0 +1,131 @@
+// ═══════════════════════════════════════════
+// Exemplo 12: Coleções Avançadas
+// ═══════════════════════════════════════════
+
+out "═══ COLEÇÕES AVANÇADAS ═══"
+out ""
+
+// --- Clusters (Listas) ---
+out "--- Operações com Clusters ---"
+numeros := [5, 3, 8, 1, 9, 2, 7, 4, 6, 10]
+out "Original:", numeros
+out "Ordenado:", sorted(numeros)
+out "Invertido:", reversed(numeros)
+out "Único:", unique([1, 2, 2, 3, 3, 3, 4])
+out "Achatado:", flatten([[1, 2], [3, [4, 5]], [6]])
+out "Min:", min(numeros)
+out "Max:", max(numeros)
+out "Soma:", sum(numeros)
+
+out ""
+out "--- Slice ---"
+letras := ["a", "b", "c", "d", "e", "f", "g"]
+out "Lista:", letras
+out "Fatia [1:4]:", slice(letras, 1, 4)
+out "Fatia [0:3]:", slice(letras, 0, 3)
+out "Fatia [4:]:", slice(letras, 4)
+
+out ""
+out "--- Zip e Enumerate ---"
+nomes := ["Ana", "Bruno", "Carlos"]
+idades := [25, 30, 28]
+combinado := zip(nomes, idades)
+out "Zip:", combinado
+
+enumerado := enumerate(nomes)
+out "Enumerate:", enumerado
+
+out ""
+out "--- Stack (Pilha) ---"
+action criar_pilha():
+    pilha := []
+    yield pilha
+
+action push(pilha, valor):
+    append(pilha, valor)
+
+action stack_pop(pilha):
+    yield pop(pilha)
+
+action stack_peek(pilha):
+    yield pilha[len(pilha) - 1]
+
+action stack_vazia(pilha):
+    yield len(pilha) is 0
+
+pilha := criar_pilha()
+push(pilha, 10)
+push(pilha, 20)
+push(pilha, 30)
+out "Pilha:", pilha
+out "Topo:", stack_peek(pilha)
+topo := stack_pop(pilha)
+out "Pop:", topo
+out "Pilha após pop:", pilha
+
+out ""
+out "--- Fila (Queue) ---"
+fila := []
+// Enqueue
+append(fila, "Primeiro")
+append(fila, "Segundo")
+append(fila, "Terceiro")
+out "Fila:", fila
+// Dequeue
+primeiro := pop(fila, 0)
+out "Dequeue:", primeiro
+out "Fila após dequeue:", fila
+
+out ""
+out "--- Vault (Dicionário) Avançado ---"
+aluno := {
+    "nome": "Maria Silva",
+    "idade": 22,
+    "curso": "Engenharia",
+    "notas": [8.5, 9.0, 7.5, 8.0]
+}
+
+out "Nome:", aluno["nome"]
+out "Curso:", aluno["curso"]
+out "Notas:", aluno["notas"]
+out "Média:", sum(aluno["notas"]) / len(aluno["notas"])
+out "Chaves:", keys(aluno)
+out "Valores:", values(aluno)
+
+out ""
+out "--- Tabela de Frequência ---"
+action frequencia(lista):
+    freq := {}
+    cycle item in lista:
+        chave := str(item)
+        given contains(freq, chave):
+            freq[chave] := freq[chave] + 1
+        otherwise:
+            freq[chave] := 1
+    yield freq
+
+dados := [1, 2, 3, 2, 1, 3, 3, 4, 4, 4, 4, 5]
+out "Dados:", dados
+out "Frequência:", frequencia(dados)
+
+out ""
+out "--- Matriz como Lista de Listas ---"
+action criar_matriz(linhas, colunas, valor):
+    m := []
+    cycle i from 1 to linhas:
+        row := []
+        cycle j from 1 to colunas:
+            append(row, valor)
+        append(m, row)
+    yield m
+
+action exibir_matriz(m):
+    cycle row in m:
+        out "  ", row
+
+m := criar_matriz(3, 3, 0)
+m[0][0] := 1
+m[1][1] := 1
+m[2][2] := 1
+out "Matriz Identidade:"
+exibir_matriz(m)

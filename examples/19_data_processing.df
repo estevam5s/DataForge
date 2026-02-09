@@ -1,0 +1,143 @@
+// ═══════════════════════════════════════════
+// Exemplo 19: Processamento de Dados
+// ═══════════════════════════════════════════
+
+out "═══ PROCESSAMENTO DE DADOS ═══"
+out ""
+
+// --- Dataset de Vendas ---
+out "--- 1. Análise de Vendas ---"
+vendas := [
+    {"produto": "Notebook", "preco": 3500, "qtd": 15, "mes": "Jan"},
+    {"produto": "Mouse", "preco": 80, "qtd": 120, "mes": "Jan"},
+    {"produto": "Teclado", "preco": 150, "qtd": 80, "mes": "Jan"},
+    {"produto": "Notebook", "preco": 3500, "qtd": 22, "mes": "Fev"},
+    {"produto": "Mouse", "preco": 80, "qtd": 95, "mes": "Fev"},
+    {"produto": "Monitor", "preco": 1200, "qtd": 30, "mes": "Fev"},
+    {"produto": "Notebook", "preco": 3500, "qtd": 18, "mes": "Mar"},
+    {"produto": "Teclado", "preco": 150, "qtd": 65, "mes": "Mar"},
+    {"produto": "Monitor", "preco": 1200, "qtd": 25, "mes": "Mar"},
+    {"produto": "Mouse", "preco": 80, "qtd": 110, "mes": "Mar"}
+]
+
+// Calcular receita por venda
+out "Receita por registro:"
+receitas := []
+cycle v in vendas:
+    receita := v["preco"] * v["qtd"]
+    append(receitas, receita)
+    out "  " + v["produto"] + " (" + v["mes"] + "): R$" + str(receita)
+
+out ""
+out "Receita total: R$" + str(sum(receitas))
+out "Receita média: R$" + str(sum(receitas) / len(receitas))
+out "Maior receita: R$" + str(max(receitas))
+out "Menor receita: R$" + str(min(receitas))
+
+// --- Agrupamento ---
+out ""
+out "--- 2. Agrupamento por Produto ---"
+action agrupar_por(lista, campo):
+    grupos := {}
+    cycle item in lista:
+        chave := item[campo]
+        given not contains(grupos, chave):
+            grupos[chave] := []
+        append(grupos[chave], item)
+    yield grupos
+
+por_produto := agrupar_por(vendas, "produto")
+cycle produto in keys(por_produto):
+    total := 0
+    qtd_total := 0
+    cycle v in por_produto[produto]:
+        total := total + v["preco"] * v["qtd"]
+        qtd_total := qtd_total + v["qtd"]
+    out "  " + produto + ": " + str(qtd_total) + " unidades, R$" + str(total)
+
+out ""
+out "--- 3. Top Vendas ---"
+action calcular_receita(v):
+    yield v["preco"] * v["qtd"]
+
+// Bubble sort por receita (decrescente)
+vendas_copy := []
+cycle v in vendas:
+    append(vendas_copy, v)
+
+n := len(vendas_copy)
+cycle i from 0 to n - 2:
+    cycle j from 0 to n - 2 - i:
+        rec_j := calcular_receita(vendas_copy[j])
+        rec_j1 := calcular_receita(vendas_copy[j + 1])
+        given rec_j smaller rec_j1:
+            temp := vendas_copy[j]
+            vendas_copy[j] := vendas_copy[j + 1]
+            vendas_copy[j + 1] := temp
+
+out "Top 5 vendas por receita:"
+cycle i from 0 to 4:
+    v := vendas_copy[i]
+    out "  " + str(i + 1) + ". " + v["produto"] + " (" + v["mes"] + ") - R$" + str(calcular_receita(v))
+
+// --- Estatísticas ---
+out ""
+out "--- 4. Estatísticas ---"
+action media(lista):
+    yield sum(lista) / len(lista)
+
+action variancia(lista):
+    m := media(lista)
+    soma_sq := 0
+    cycle x in lista:
+        soma_sq := soma_sq + (x - m) ** 2
+    yield soma_sq / len(lista)
+
+action desvio_padrao(lista):
+    yield sqrt(variancia(lista))
+
+action mediana(lista):
+    ord := sorted(lista)
+    n := len(ord)
+    given n % 2 is 0:
+        yield (ord[n // 2 - 1] + ord[n // 2]) / 2
+    otherwise:
+        yield ord[n // 2]
+
+out "Estatísticas das receitas:"
+out "  Média: R$" + str(round(media(receitas), 2))
+out "  Mediana: R$" + str(mediana(receitas))
+out "  Variância: R$" + str(round(variancia(receitas), 2))
+out "  Desvio Padrão: R$" + str(round(desvio_padrao(receitas), 2))
+
+// --- Filtragem com Pipeline ---
+out ""
+out "--- 5. Pipeline de Análise ---"
+
+// Quantidades vendidas
+qtds := []
+cycle v in vendas:
+    append(qtds, v["qtd"])
+
+grandes_vendas := qtds >> sift q: q bigger 50
+out "Vendas > 50 unidades:", grandes_vendas
+out "Total dessas vendas:", sum(grandes_vendas)
+
+// --- Projeções ---
+out ""
+out "--- 6. Projeção de Crescimento ---"
+vendas_mensais := [45000, 52000, 48000]
+meses := ["Jan", "Fev", "Mar"]
+taxa_crescimento := 0.05
+
+out "Vendas realizadas:"
+cycle i from 0 to len(meses) - 1:
+    out "  " + meses[i] + ": R$" + str(vendas_mensais[i])
+
+out ""
+out "Projeção (5% crescimento mensal):"
+ultimo := vendas_mensais[len(vendas_mensais) - 1]
+projecao_meses := ["Abr", "Mai", "Jun", "Jul", "Ago", "Set"]
+cycle m in projecao_meses:
+    ultimo := round(ultimo * (1 + taxa_crescimento), 2)
+    out "  " + m + ": R$" + str(ultimo)

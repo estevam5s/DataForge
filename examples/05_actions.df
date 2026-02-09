@@ -1,0 +1,74 @@
+// ═══════════════════════════════════════════════════════════
+//  DataForge - Functions (Actions)
+//  Defining and calling functions
+// ═══════════════════════════════════════════════════════════
+
+// ── Simple action ──
+action greet(name):
+    out "Hello, " + name + "!"
+
+greet("World")
+greet("DataForge")
+
+// ── Action with return value (yield) ──
+action add(a, b):
+    yield a + b
+
+result := add(10, 20)
+out "10 + 20 = " + result
+
+// ── Action with default parameters ──
+action power(base, exponent := 2):
+    yield base ** exponent
+
+out "3^2 = " + power(3)
+out "2^8 = " + power(2, 8)
+
+// ── Recursive action ──
+action factorial(n):
+    given n smaller_eq 1:
+        yield 1
+    yield n * factorial(n - 1)
+
+out "5! = " + factorial(5)
+out "10! = " + factorial(10)
+
+// ── Action as first-class citizen ──
+action apply(func, value):
+    yield func(value)
+
+action double(x):
+    yield x * 2
+
+action square(x):
+    yield x * x
+
+out "double(5) = " + apply(double, 5)
+out "square(5) = " + apply(square, 5)
+
+// ── Fibonacci ──
+action fibonacci(n):
+    given n smaller_eq 0:
+        yield 0
+    given n is 1:
+        yield 1
+    a := 0
+    b := 1
+    cycle i from 2 to n:
+        temp := a + b
+        a := b
+        b := temp
+    yield b
+
+out "fibonacci(10) = " + fibonacci(10)
+out "fibonacci(20) = " + fibonacci(20)
+
+// ── Multiple operations ──
+action math_ops(x, y):
+    out "  Add: " + (x + y)
+    out "  Sub: " + (x - y)
+    out "  Mul: " + (x * y)
+    out "  Div: " + (x / y)
+
+out "\nMath operations on 15 and 4:"
+math_ops(15, 4)

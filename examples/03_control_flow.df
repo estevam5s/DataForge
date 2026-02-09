@@ -1,0 +1,72 @@
+// ═══════════════════════════════════════════════════════════
+//  DataForge - Control Flow
+//  Conditionals, pattern matching, and logic
+// ═══════════════════════════════════════════════════════════
+
+// ── given / orif / otherwise (if/else if/else) ──
+age := 25
+
+given age smaller 13:
+    out "Child"
+orif age smaller 18:
+    out "Teenager"
+orif age smaller 65:
+    out "Adult"
+otherwise:
+    out "Senior"
+
+// ── Comparison operators ──
+x := 10
+y := 20
+
+given x is 10:
+    out "x is exactly 10"
+
+given x isnt y:
+    out "x is not equal to y"
+
+given y bigger x:
+    out "y is bigger than x"
+
+given x smaller y:
+    out "x is smaller than y"
+
+// ── Logical operators ──
+has_ticket := yes
+is_vip := no
+
+given has_ticket and is_vip:
+    out "VIP access granted"
+orif has_ticket and not is_vip:
+    out "Regular access granted"
+otherwise:
+    out "No access"
+
+// ── Pattern matching (match/point/default) ──
+day := "Monday"
+
+match day:
+    point "Monday":
+        out "Start of the work week!"
+    point "Friday":
+        out "Almost weekend!"
+    point "Saturday":
+        out "Weekend vibes!"
+    point "Sunday":
+        out "Rest day"
+    default:
+        out "Regular day: " + day
+
+// ── Nested conditions ──
+score := 85
+
+given score bigger_eq 90:
+    out "Grade: A"
+orif score bigger_eq 80:
+    out "Grade: B"
+    given score bigger_eq 85:
+        out "(High B!)"
+orif score bigger_eq 70:
+    out "Grade: C"
+otherwise:
+    out "Grade: F"

@@ -1,0 +1,144 @@
+// ═══════════════════════════════════════════════════════════
+// Example 38: Testing Framework
+// Using Arcane.Test for assertions and test suites
+// ═══════════════════════════════════════════════════════════
+
+emit("=== DataForge v3: Testing Framework ===")
+emit("")
+
+// ── Basic Assertions ────────────────────────────
+emit("--- Manual Assertions ---")
+
+// Using built-in assert functions
+action test_math():
+    // Basic equality
+    result := 2 + 2
+    given result == 4:
+        emit("  ✓ 2 + 2 = 4")
+    otherwise:
+        emit("  ✗ Math is broken!")
+
+    // Float comparison
+    pi := 3.14159
+    given pi bigger 3.14 and pi smaller 3.15:
+        emit("  ✓ PI is approximately 3.14")
+
+    // Negative test
+    given 10 / 3 != 3:
+        emit("  ✓ 10/3 is not exactly 3")
+
+test_math()
+emit("")
+
+// ── Test Suite Pattern ──────────────────────────
+emit("--- Test Suite Pattern ---")
+blueprint TestRunner:
+    action setup(name):
+        self.name := name
+        self.passed := 0
+        self.failed := 0
+        self.total := 0
+        self.errors := []
+
+    action assert_equal(actual, expected, msg):
+        self.total := self.total + 1
+        given actual == expected:
+            self.passed := self.passed + 1
+            emit("  ✓ " + msg)
+        otherwise:
+            self.failed := self.failed + 1
+            self.errors := self.errors + [msg + " (got " + str(actual) + ", expected " + str(expected) + ")"]
+            emit("  ✗ " + msg + " -> got " + str(actual) + ", expected " + str(expected))
+
+    action assert_true(value, msg):
+        self.total := self.total + 1
+        given value == yes:
+            self.passed := self.passed + 1
+            emit("  ✓ " + msg)
+        otherwise:
+            self.failed := self.failed + 1
+            self.errors := self.errors + [msg]
+            emit("  ✗ " + msg)
+
+    action assert_contains(collection, item, msg):
+        self.total := self.total + 1
+        found := no
+        cycle elem in collection:
+            given elem == item:
+                found := yes
+        given found:
+            self.passed := self.passed + 1
+            emit("  ✓ " + msg)
+        otherwise:
+            self.failed := self.failed + 1
+            self.errors := self.errors + [msg]
+            emit("  ✗ " + msg)
+
+    action summary():
+        emit("")
+        emit("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        emit("  " + self.name + " Results")
+        emit("  Passed: " + str(self.passed) + "/" + str(self.total))
+        given self.failed bigger 0:
+            emit("  Failed: " + str(self.failed))
+            cycle err in self.errors:
+                emit("    → " + err)
+        otherwise:
+            emit("  All tests passed! ✓")
+        emit("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+// ── String Tests ────────────────────────────────
+t := spawn TestRunner("String Tests")
+emit("📋 " + t.name)
+t.assert_equal(upper("hello"), "HELLO", "upper() works")
+t.assert_equal(lower("WORLD"), "world", "lower() works")
+t.assert_equal(title("hello world"), "Hello World", "title() works")
+t.assert_equal(strip("  hi  "), "hi", "strip() works")
+t.assert_equal(len("hello"), 5, "len() works correctly")
+t.assert_equal(replace("abc", "b", "x"), "axc", "replace() works")
+t.assert_true(startswith("hello", "hel"), "startswith() works")
+t.assert_true(endswith("hello", "llo"), "endswith() works")
+t.summary()
+emit("")
+
+// ── Math Tests ──────────────────────────────────
+m := spawn TestRunner("Math Tests")
+emit("📋 " + m.name)
+m.assert_equal(abs(-5), 5, "abs() works")
+m.assert_equal(min(3, 7), 3, "min() works")
+m.assert_equal(max(3, 7), 7, "max() works")
+m.assert_equal(round(3.7), 4, "round() works")
+m.assert_equal(floor(3.7), 3, "floor() works")
+m.assert_equal(ceil(3.2), 4, "ceil() works")
+m.assert_equal(factorial(5), 120, "factorial() works")
+m.assert_equal(gcd(48, 18), 6, "gcd() works")
+m.summary()
+emit("")
+
+// ── Collection Tests ────────────────────────────
+c := spawn TestRunner("Collection Tests")
+emit("📋 " + c.name)
+c.assert_equal(len([1, 2, 3]), 3, "list len() works")
+c.assert_equal(sum([1, 2, 3, 4]), 10, "sum() works")
+c.assert_equal(first([10, 20, 30]), 10, "first() works")
+c.assert_equal(last([10, 20, 30]), 30, "last() works")
+c.assert_contains([1, 2, 3], 2, "list contains element")
+c.assert_equal(len(keys({"a": 1, "b": 2})), 2, "dict keys() length")
+c.summary()
+emit("")
+
+// ── Data Validation Tests ───────────────────────
+d := spawn TestRunner("Data Validation")
+emit("📋 " + d.name)
+d.assert_true(is_string("hello"), "is_string() detects strings")
+d.assert_true(is_number(42), "is_number() detects numbers")
+d.assert_true(is_boolean(yes), "is_boolean() detects booleans")
+d.assert_true(is_list([1, 2]), "is_list() detects lists")
+d.assert_true(is_dict({"a": 1}), "is_dict() detects dicts")
+d.assert_true(is_void(void), "is_void() detects void")
+d.assert_true(is_empty(""), "is_empty() detects empty string")
+d.assert_true(is_empty([]), "is_empty() detects empty list")
+d.summary()
+emit("")
+
+emit("=== Testing framework demo complete! ===")

@@ -1,0 +1,375 @@
+"""
+DataForge Built-in Functions
+Native functions available in every DataForge program.
+"""
+
+import time
+import math
+import random
+
+
+class BuiltinFunction:
+    """Wraps a Python callable as a DataForge built-in."""
+
+    def __init__(self, name: str, func, arity: int = -1):
+        self.name = name
+        self.func = func
+        self.arity = arity  # -1 = variadic
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    def __repr__(self):
+        return f"<builtin action '{self.name}'>"
+
+
+# ── Built-in implementations ────────────────────────────────
+
+def _df_len(obj):
+    """Return length of a collection."""
+    return len(obj)
+
+def _df_type(obj):
+    """Return the DataForge type name."""
+    type_map = {
+        int: "Integer",
+        float: "Float",
+        str: "String",
+        bool: "Boolean",
+        list: "Cluster",
+        dict: "Vault",
+        type(None): "Void",
+    }
+    return type_map.get(type(obj), type(obj).__name__)
+
+def _df_str(obj):
+    """Convert to string."""
+    if obj is None:
+        return "void"
+    if isinstance(obj, bool):
+        return "yes" if obj else "no"
+    return str(obj)
+
+def _df_int(obj):
+    """Convert to integer."""
+    return int(obj)
+
+def _df_float(obj):
+    """Convert to float."""
+    return float(obj)
+
+def _df_bool(obj):
+    """Convert to boolean."""
+    return bool(obj)
+
+def _df_cluster(*args):
+    """Create a cluster (list)."""
+    if len(args) == 1 and hasattr(args[0], '__iter__') and not isinstance(args[0], str):
+        return list(args[0])
+    return list(args)
+
+def _df_vault(*args):
+    """Create a vault (dict)."""
+    if len(args) == 1 and isinstance(args[0], dict):
+        return dict(args[0])
+    return {}
+
+def _df_range(*args):
+    """Range function for cycles."""
+    return list(range(*args))
+
+def _df_abs(x):
+    return abs(x)
+
+def _df_min(*args):
+    if len(args) == 1 and hasattr(args[0], '__iter__'):
+        return min(args[0])
+    return min(args)
+
+def _df_max(*args):
+    if len(args) == 1 and hasattr(args[0], '__iter__'):
+        return max(args[0])
+    return max(args)
+
+def _df_sum(iterable):
+    return sum(iterable)
+
+def _df_sorted(iterable, reverse=False):
+    return sorted(iterable, reverse=reverse)
+
+def _df_reversed(iterable):
+    return list(reversed(iterable))
+
+def _df_enumerate(iterable):
+    return list(enumerate(iterable))
+
+def _df_zip(*iterables):
+    return [list(x) for x in zip(*iterables)]
+
+def _df_append(lst, item):
+    lst.append(item)
+    return lst
+
+def _df_pop(lst, index=-1):
+    return lst.pop(index)
+
+def _df_insert(lst, index, item):
+    lst.insert(index, item)
+    return lst
+
+def _df_remove(lst, item):
+    lst.remove(item)
+    return lst
+
+def _df_keys(d):
+    return list(d.keys())
+
+def _df_values(d):
+    return list(d.values())
+
+def _df_items(d):
+    return [list(pair) for pair in d.items()]
+
+def _df_contains(collection, item):
+    return item in collection
+
+def _df_join(separator, iterable):
+    return separator.join(str(x) for x in iterable)
+
+def _df_split(string, separator=" "):
+    return string.split(separator)
+
+def _df_strip(string):
+    return string.strip()
+
+def _df_upper(string):
+    return string.upper()
+
+def _df_lower(string):
+    return string.lower()
+
+def _df_replace(string, old, new):
+    return string.replace(old, new)
+
+def _df_startswith(string, prefix):
+    return string.startswith(prefix)
+
+def _df_endswith(string, suffix):
+    return string.endswith(suffix)
+
+def _df_find(string, sub):
+    return string.find(sub)
+
+def _df_round(number, digits=0):
+    return round(number, digits)
+
+def _df_floor(number):
+    return math.floor(number)
+
+def _df_ceil(number):
+    return math.ceil(number)
+
+def _df_sqrt(number):
+    return math.sqrt(number)
+
+def _df_pow(base, exp):
+    return math.pow(base, exp)
+
+def _df_log(number, base=math.e):
+    return math.log(number, base)
+
+def _df_sin(x):
+    return math.sin(x)
+
+def _df_cos(x):
+    return math.cos(x)
+
+def _df_tan(x):
+    return math.tan(x)
+
+def _df_random():
+    return random.random()
+
+def _df_randint(a, b):
+    return random.randint(a, b)
+
+def _df_choice(lst):
+    return random.choice(lst)
+
+def _df_shuffle(lst):
+    random.shuffle(lst)
+    return lst
+
+def _df_time():
+    return time.time()
+
+def _df_sleep(seconds):
+    time.sleep(seconds / 1000.0)  # DataForge uses milliseconds
+
+def _df_format(template, *args, **kwargs):
+    return template.format(*args, **kwargs)
+
+def _df_map(func, iterable):
+    return list(map(func, iterable))
+
+def _df_filter(func, iterable):
+    return list(filter(func, iterable))
+
+def _df_reduce(func, iterable, initial=None):
+    from functools import reduce
+    if initial is not None:
+        return reduce(func, iterable, initial)
+    return reduce(func, iterable)
+
+def _df_exists(obj):
+    return obj is not None
+
+def _df_freeze(obj):
+    """Make an object immutable (return a tuple for lists)."""
+    if isinstance(obj, list):
+        return tuple(obj)
+    if isinstance(obj, dict):
+        return tuple(sorted(obj.items()))
+    return obj
+
+def _df_thaw(obj):
+    """Thaw a frozen object back to mutable."""
+    if isinstance(obj, tuple):
+        return list(obj)
+    return obj
+
+def _df_inspect(obj):
+    """Debug inspect - returns detailed string."""
+    return f"<inspect type={type(obj).__name__} value={obj!r}>"
+
+def _df_hash(obj):
+    return hash(str(obj))
+
+def _df_id(obj):
+    return id(obj)
+
+def _df_slice(collection, start=None, end=None, step=None):
+    return collection[start:end:step]
+
+def _df_flatten(lst):
+    """Flatten nested lists."""
+    result = []
+    for item in lst:
+        if isinstance(item, (list, tuple)):
+            result.extend(_df_flatten(item))
+        else:
+            result.append(item)
+    return result
+
+def _df_unique(lst):
+    """Remove duplicates preserving order."""
+    seen = set()
+    result = []
+    for item in lst:
+        key = str(item)
+        if key not in seen:
+            seen.add(key)
+            result.append(item)
+    return result
+
+def _df_count(collection, item=None):
+    if item is not None:
+        return collection.count(item)
+    return len(collection)
+
+def _df_index(collection, item):
+    return collection.index(item)
+
+
+# ── Registry ────────────────────────────────────────────────
+
+def get_builtins() -> dict:
+    """Return all built-in functions as a dictionary."""
+    return {
+        # Type & Conversion
+        "len": BuiltinFunction("len", _df_len, 1),
+        "type": BuiltinFunction("type", _df_type, 1),
+        "str": BuiltinFunction("str", _df_str, 1),
+        "int": BuiltinFunction("int", _df_int, 1),
+        "float": BuiltinFunction("float", _df_float, 1),
+        "bool": BuiltinFunction("bool", _df_bool, 1),
+        "cluster": BuiltinFunction("cluster", _df_cluster),
+        "vault": BuiltinFunction("vault", _df_vault),
+        "range": BuiltinFunction("range", _df_range),
+        "cast": BuiltinFunction("cast", _df_str, 1),
+
+        # Math
+        "abs": BuiltinFunction("abs", _df_abs, 1),
+        "min": BuiltinFunction("min", _df_min),
+        "max": BuiltinFunction("max", _df_max),
+        "sum": BuiltinFunction("sum", _df_sum, 1),
+        "round": BuiltinFunction("round", _df_round),
+        "floor": BuiltinFunction("floor", _df_floor, 1),
+        "ceil": BuiltinFunction("ceil", _df_ceil, 1),
+        "sqrt": BuiltinFunction("sqrt", _df_sqrt, 1),
+        "pow": BuiltinFunction("pow", _df_pow, 2),
+        "log": BuiltinFunction("log", _df_log),
+        "sin": BuiltinFunction("sin", _df_sin, 1),
+        "cos": BuiltinFunction("cos", _df_cos, 1),
+        "tan": BuiltinFunction("tan", _df_tan, 1),
+
+        # Random
+        "random": BuiltinFunction("random", _df_random, 0),
+        "randint": BuiltinFunction("randint", _df_randint, 2),
+        "choice": BuiltinFunction("choice", _df_choice, 1),
+        "shuffle": BuiltinFunction("shuffle", _df_shuffle, 1),
+
+        # Collections
+        "sorted": BuiltinFunction("sorted", _df_sorted),
+        "reversed": BuiltinFunction("reversed", _df_reversed, 1),
+        "enumerate": BuiltinFunction("enumerate", _df_enumerate, 1),
+        "zip": BuiltinFunction("zip", _df_zip),
+        "append": BuiltinFunction("append", _df_append, 2),
+        "pop": BuiltinFunction("pop", _df_pop),
+        "insert": BuiltinFunction("insert", _df_insert, 3),
+        "remove": BuiltinFunction("remove", _df_remove, 2),
+        "keys": BuiltinFunction("keys", _df_keys, 1),
+        "values": BuiltinFunction("values", _df_values, 1),
+        "items": BuiltinFunction("items", _df_items, 1),
+        "contains": BuiltinFunction("contains", _df_contains, 2),
+        "flatten": BuiltinFunction("flatten", _df_flatten, 1),
+        "unique": BuiltinFunction("unique", _df_unique, 1),
+        "count": BuiltinFunction("count", _df_count),
+        "index": BuiltinFunction("index", _df_index, 2),
+        "slice": BuiltinFunction("slice", _df_slice),
+
+        # Strings
+        "join": BuiltinFunction("join", _df_join, 2),
+        "split": BuiltinFunction("split", _df_split),
+        "strip": BuiltinFunction("strip", _df_strip, 1),
+        "upper": BuiltinFunction("upper", _df_upper, 1),
+        "lower": BuiltinFunction("lower", _df_lower, 1),
+        "replace": BuiltinFunction("replace", _df_replace, 3),
+        "startswith": BuiltinFunction("startswith", _df_startswith, 2),
+        "endswith": BuiltinFunction("endswith", _df_endswith, 2),
+        "find": BuiltinFunction("find", _df_find, 2),
+        "format": BuiltinFunction("format", _df_format),
+
+        # Functional
+        "map": BuiltinFunction("map", _df_map, 2),
+        "filter": BuiltinFunction("filter", _df_filter, 2),
+        "reduce": BuiltinFunction("reduce", _df_reduce),
+
+        # Time
+        "time": BuiltinFunction("time", _df_time, 0),
+        "sleep": BuiltinFunction("sleep", _df_sleep, 1),
+
+        # Utility
+        "exists": BuiltinFunction("exists", _df_exists, 1),
+        "freeze": BuiltinFunction("freeze", _df_freeze, 1),
+        "thaw": BuiltinFunction("thaw", _df_thaw, 1),
+        "hash": BuiltinFunction("hash", _df_hash, 1),
+        "id": BuiltinFunction("id", _df_id, 1),
+
+        # Constants
+        "PI": math.pi,
+        "E": math.e,
+        "TAU": math.tau,
+        "INF": math.inf,
+        "NAN": math.nan,
+    }

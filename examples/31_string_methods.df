@@ -1,0 +1,95 @@
+// ═══════════════════════════════════════════════════════════
+// Example 31: Advanced String Methods
+// All comprehensive string operations in DataForge v3
+// ═══════════════════════════════════════════════════════════
+
+emit("=== DataForge v3: Advanced String Methods ===")
+emit("")
+
+// ── Basic String Operations ──────────────────────
+text := "  Hello, DataForge World!  "
+emit("Original: '" + text + "'")
+emit("Trimmed: '" + strip(text) + "'")
+emit("Left trim: '" + lstrip(text) + "'")
+emit("Right trim: '" + rstrip(text) + "'")
+emit("")
+
+// ── Case Conversions ────────────────────────────
+name := "dataForge programming"
+emit("Upper: " + upper(name))
+emit("Lower: " + lower(name))
+emit("Title: " + title(name))
+emit("Capitalize: " + capitalize(name))
+emit("Swapcase: " + swapcase(name))
+emit("")
+
+// ── Padding & Alignment ─────────────────────────
+word := "forge"
+emit("Center(20): '" + center(word, 20, "-") + "'")
+emit("Left(20):   '" + ljust(word, 20, ".") + "'")
+emit("Right(20):  '" + rjust(word, 20, ".") + "'")
+emit("Zfill(10):  '" + zfill("42", 10) + "'")
+emit("")
+
+// ── Search & Find ───────────────────────────────
+sentence := "The quick brown fox jumps over the lazy dog"
+emit("Find 'fox': " + str(find(sentence, "fox")))
+emit("Rfind 'the': " + str(rfind(sentence, "the")))
+emit("Count 'the': " + str(count_str(sentence, "the")))
+emit("Contains 'quick': " + str(includes(sentence, "quick")))
+emit("Starts with 'The': " + str(startswith(sentence, "The")))
+emit("Ends with 'dog': " + str(endswith(sentence, "dog")))
+emit("")
+
+// ── Replace & Transform ─────────────────────────
+msg := "Hello World Hello DataForge"
+emit("Replace: " + replace(msg, "Hello", "Hi"))
+emit("Remove prefix: " + removeprefix("TestRunner", "Test"))
+emit("Remove suffix: " + removesuffix("FileHandler", "Handler"))
+emit("Reverse: " + reverse_str("DataForge"))
+emit("Repeat: " + repeat("Na", 4))
+emit("")
+
+// ── Type Checking ───────────────────────────────
+emit("'abc' isalpha: " + str(isalpha("abc")))
+emit("'123' isdigit: " + str(isdigit("123")))
+emit("'abc123' isalnum: " + str(isalnum("abc123")))
+emit("'   ' isspace: " + str(isspace("   ")))
+emit("'ABC' isupper: " + str(isupper("ABC")))
+emit("'abc' islower: " + str(islower("abc")))
+emit("")
+
+// ── Split & Join ────────────────────────────────
+csv_line := "apple,banana,cherry,date"
+parts := split(csv_line, ",")
+emit("Split CSV: " + str(parts))
+emit("Join with ' | ': " + join(" | ", parts))
+emit("Lines: " + str(splitlines("Line 1\nLine 2\nLine 3")))
+emit("Words: " + str(words("The quick brown fox")))
+emit("")
+
+// ── String Methods via dot notation ─────────────
+greeting := "hello, world"
+emit("Dot upper: " + greeting.upper())
+emit("Dot title: " + greeting.title())
+emit("Dot replace: " + greeting.replace("world", "DataForge"))
+emit("Dot split: " + str(greeting.split(", ")))
+emit("Dot find: " + str(greeting.find("world")))
+emit("Dot contains: " + str(greeting.contains("hello")))
+emit("Dot startswith: " + str(greeting.startswith("hello")))
+emit("Dot endswith: " + str(greeting.endswith("world")))
+emit("Dot length: " + str(greeting.length()))
+emit("Dot reverse: " + greeting.reverse())
+emit("Dot repeat(3): " + greeting.repeat(3))
+emit("Dot trim: '" + "  spaces  ".trim() + "'")
+emit("Dot char_at(0): " + greeting.char_at(0))
+emit("Dot substring(0,5): " + greeting.substring(0, 5))
+emit("")
+
+// ── Encoding & Special ──────────────────────────
+emit("Char code 65: " + char(65))
+emit("Ord of 'A': " + str(ord("A")))
+emit("Template: " + template("Hello {name}!", {name: "World"}))
+emit("")
+
+emit("=== All string methods working! ===")

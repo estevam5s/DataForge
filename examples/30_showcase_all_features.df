@@ -1,0 +1,383 @@
+// ═══════════════════════════════════════════
+// Exemplo 30: Showcase Total - Todas as Features
+// ═══════════════════════════════════════════
+
+out "═══════════════════════════════════════════"
+out "    🏆 SHOWCASE TOTAL - DataForge v2.0"
+out "═══════════════════════════════════════════"
+out ""
+
+// ─── 1. VARIÁVEIS E TIPOS ───
+out "=== 1. VARIÁVEIS E TIPOS ==="
+nome := "DataForge"
+versao := 2.0
+ativo := yes
+nulo := void
+lista := [1, 2, 3, 4, 5]
+dicionario := {"lang": "DataForge", "year": 2025}
+
+out "  String:", nome
+out "  Float:", versao
+out "  Boolean:", ativo
+out "  Null:", nulo
+out "  List:", lista
+out "  Dict:", dicionario
+out ""
+
+// ─── 2. CONSTANTES (STEADY) ───
+out "=== 2. CONSTANTES ==="
+steady MAX_VALUE := 9999
+steady APP_NAME := "ShowcaseApp"
+out "  MAX_VALUE:", MAX_VALUE
+out "  APP_NAME:", APP_NAME
+out ""
+
+// ─── 3. OPERADORES ───
+out "=== 3. OPERADORES ==="
+out "  2 + 3 =", 2 + 3
+out "  10 - 4 =", 10 - 4
+out "  6 * 7 =", 6 * 7
+out "  15 / 4 =", 15 / 4
+out "  15 // 4 =", 15 // 4
+out "  17 % 5 =", 17 % 5
+out "  2 ** 10 =", 2 ** 10
+out "  5 bigger 3:", 5 bigger 3
+out "  5 smaller 3:", 5 smaller 3
+out "  5 is 5:", 5 is 5
+out "  5 isnt 3:", 5 isnt 3
+out "  yes and yes:", yes and yes
+out "  yes or no:", yes or no
+out "  not no:", not no
+out ""
+
+// ─── 4. CONTROLE DE FLUXO ───
+out "=== 4. CONTROLE DE FLUXO ==="
+x := 42
+out "  x =", x
+
+given x bigger 100:
+    out "  → x > 100"
+orif x bigger 50:
+    out "  → x > 50"
+orif x bigger 40:
+    out "  → x > 40"
+otherwise:
+    out "  → x <= 40"
+
+// Match/sift
+sinal := "verde"
+out "  Sinal:", sinal
+match sinal:
+    point "verde":
+        out "  → Pode seguir!"
+    point "amarelo":
+        out "  → Atenção!"
+    point "vermelho":
+        out "  → Pare!"
+    default:
+        out "  → Sinal desconhecido"
+out ""
+
+// ─── 5. LOOPS ───
+out "=== 5. LOOPS ==="
+
+// cycle from...to
+out "  cycle from 1 to 5:"
+cycle i from 1 to 5:
+    out "    i =", i
+
+// cycle in
+out "  cycle in lista:"
+frutas := ["maçã", "banana", "uva"]
+cycle f in frutas:
+    out "   ", f
+
+// persist (while)
+out "  persist (countdown):"
+cnt := 5
+persist cnt bigger 0:
+    out "   ", cnt
+    cnt := cnt - 1
+
+// perform (do-while)
+out "  perform (pelo menos 1x):"
+val := 10
+perform:
+    out "    val =", val
+    val := val + 10
+persist val smaller 10
+
+// skip e halt
+out "  skip e halt:"
+cycle i from 1 to 10:
+    given i is 3:
+        skip
+    given i is 7:
+        halt
+    out "    i =", i
+out ""
+
+// ─── 6. FUNÇÕES (ACTIONS) ───
+out "=== 6. FUNÇÕES ==="
+
+action saudacao(nome, titulo := "Sr."):
+    yield "Olá, " + titulo + " " + nome + "!"
+
+out " ", saudacao("João")
+out " ", saudacao("Maria", "Dra.")
+
+// Recursão
+action fatorial(n):
+    given n smaller_eq 1:
+        yield 1
+    yield n * fatorial(n - 1)
+
+out "  5! =", fatorial(5)
+out "  10! =", fatorial(10)
+
+// Múltiplos retornos via lista
+action min_max(lista):
+    yield [min(lista), max(lista)]
+
+resultado := min_max([3, 1, 4, 1, 5, 9])
+out "  min_max:", resultado
+out ""
+
+// ─── 7. CLOSURES E LAMBDA ───
+out "=== 7. CLOSURES E LAMBDA ==="
+
+action criar_contador(inicio):
+    valor := inicio
+    action incrementar():
+        valor := valor + 1
+        yield valor
+    yield incrementar
+
+cnt := criar_contador(0)
+out "  Contador:", cnt(), cnt(), cnt()
+
+action aplicar(fn, x):
+    yield fn(x)
+
+action dobro(x):
+    yield x * 2
+
+out "  aplicar(dobro, 5):", aplicar(dobro, 5)
+out ""
+
+// ─── 8. BLUEPRINTS (CLASSES) ───
+out "=== 8. BLUEPRINTS ==="
+
+blueprint Animal(nome, som):
+    this.energia := 100
+    
+    action falar():
+        out "    " + this.nome + " diz: " + this.som + "!"
+    
+    action info():
+        yield this.nome + " [Energia: " + str(this.energia) + "]"
+
+dog := forge Animal("Rex", "Au au")
+cat := forge Animal("Mimi", "Miau")
+dog.falar()
+cat.falar()
+out "  Info:", dog.info()
+out ""
+
+// ─── 9. HERANÇA ───
+out "=== 9. HERANÇA ==="
+
+blueprint Forma():
+    this.tipo := "forma"
+    
+    action descricao():
+        yield "Forma: " + this.tipo
+
+blueprint Circulo(raio) extends Forma:
+    this.tipo := "círculo"
+    
+    action area():
+        yield PI * this.raio ** 2
+
+blueprint Retangulo(largura, altura) extends Forma:
+    this.tipo := "retângulo"
+    
+    action area():
+        yield this.largura * this.altura
+
+c := forge Circulo(5)
+r := forge Retangulo(4, 6)
+out " ", c.descricao(), "| Área:", round(c.area(), 2)
+out " ", r.descricao(), "| Área:", r.area()
+out ""
+
+// ─── 10. TRAITS ───
+out "=== 10. TRAITS ==="
+
+trait Serializable:
+    action serializar()
+
+blueprint Config(nome, valor) with Serializable:
+    
+    action serializar():
+        yield "{nome: " + this.nome + ", valor: " + str(this.valor) + "}"
+
+cfg := forge Config("tema", "escuro")
+out "  Serializado:", cfg.serializar()
+out ""
+
+// ─── 11. ERROR HANDLING ───
+out "=== 11. ERROR HANDLING ==="
+
+monitor:
+    out "  Tentando divisão por zero..."
+    resultado := 10 / 0
+handle e:
+    out "  ⚠️ Erro capturado:", e
+ensure:
+    out "  ✅ Bloco ensure executado"
+
+out ""
+
+// ─── 12. PIPELINES ───
+out "=== 12. PIPELINES ==="
+
+numeros := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+action eh_par(x):
+    yield x % 2 is 0
+
+action triplicar(x):
+    yield x * 3
+
+action somar(acc, x):
+    yield acc + x
+
+// Pipeline: filtrar pares, triplicar, somar
+resultado := numeros >> sift eh_par >> morph triplicar >> distill somar 0
+out "  [1..10] >> pares >> *3 >> soma =", resultado
+
+// Outro pipeline
+palavras := ["hello", "WORLD", "DataForge", "test"]
+action eh_longa(s):
+    yield len(s) bigger 4
+
+longas := palavras >> sift eh_longa
+out "  Palavras longas:", longas
+out ""
+
+// ─── 13. BUILT-IN FUNCTIONS ───
+out "=== 13. BUILT-INS ==="
+out "  len([1,2,3]):", len([1, 2, 3])
+out "  type(42):", type(42)
+out "  type('abc'):", type("abc")
+out "  type([]):", type([])
+out "  str(123):", str(123)
+out "  int('42'):", int("42")
+out "  float('3.14'):", float("3.14")
+out "  abs(-10):", abs(-10)
+out "  round(3.7):", round(3.7)
+out "  min(5,2,8):", min(5, 2, 8)
+out "  max(5,2,8):", max(5, 2, 8)
+out "  sum([1,2,3]):", sum([1, 2, 3])
+out "  sorted([3,1,2]):", sorted([3, 1, 2])
+out "  reversed([1,2,3]):", reversed([1, 2, 3])
+out "  upper('hello'):", upper("hello")
+out "  lower('HELLO'):", lower("HELLO")
+out "  replace('abc','b','x'):", replace("abc", "b", "x")
+out "  split('a,b,c', ','):", split("a,b,c", ",")
+out "  join('-', ['x','y']):", join("-", ["x", "y"])
+out "  contains([1,2,3], 2):", contains([1, 2, 3], 2)
+// range is a keyword, use manual list
+range_list := []
+cycle ri from 0 to 4:
+    append(range_list, ri)
+out "  range(0..4):", range_list
+out "  enumerate(['a','b']):", enumerate(["a", "b"])
+out "  zip([1,2],[3,4]):", zip([1, 2], [3, 4])
+out "  typeof(yes):", typeof(yes)
+out ""
+
+// ─── 14. MATH FUNCTIONS ───
+out "=== 14. MATH ==="
+out "  sqrt(25):", sqrt(25)
+out "  pow(2, 8):", pow(2, 8)
+out "  sin(0):", sin(0)
+out "  cos(0):", cos(0)
+out "  tan(0):", tan(0)
+out "  log(E):", log(E)
+out "  log10(100):", round(log(100) / log(10), 4)
+out "  ceil(3.2):", ceil(3.2)
+out "  floor(3.8):", floor(3.8)
+out "  PI:", PI
+out "  E:", E
+out ""
+
+// ─── 15. STRING AVANÇADO ───
+out "=== 15. STRINGS ==="
+texto := "  Hello DataForge  "
+out "  strip:", "'" + strip(texto) + "'"
+out "  startswith:", startswith("DataForge", "Data")
+out "  endswith:", endswith("DataForge", "Forge")
+out "  find:", find("DataForge", "Forge")
+out "  count:", count("banana", "a")
+out "  repeat:", "abc" * 3
+out "  slice:", slice("DataForge", 0, 4)
+out ""
+
+// ─── 16. LISTAS AVANÇADAS ───
+out "=== 16. LISTAS ==="
+nums := [5, 3, 8, 1, 9, 2, 7]
+out "  Original:", nums
+out "  Sorted:", sorted(nums)
+out "  Reversed:", reversed(nums)
+out "  Slice [1:4]:", slice(nums, 1, 4)
+out "  Index of 8:", index(nums, 8)
+out "  Flatten:", flatten([[1, 2], [3, 4], [5]])
+out "  Unique:", unique([1, 2, 2, 3, 3, 3])
+out ""
+
+// ─── 17. DICTS ───
+out "=== 17. DICTS ==="
+dados := {"nome": "DataForge", "versao": 2, "tipo": "linguagem"}
+out "  Dict:", dados
+out "  Keys:", keys(dados)
+out "  Values:", values(dados)
+out "  Has 'nome':", contains(dados, "nome")
+out "  Has 'xyz':", contains(dados, "xyz")
+out ""
+
+// ─── 18. SISTEMA COMPLETO - Lista de Compras ---
+out "=== 18. MINI SISTEMA - Lista de Compras ==="
+
+blueprint ListaCompras(nome):
+    this.itens := []
+    this.total := 0.0
+    
+    action adicionar(item, preco, qtd):
+        append(this.itens, {"item": item, "preco": preco, "qtd": qtd, "subtotal": preco * qtd})
+        this.total := this.total + preco * qtd
+        out "  + " + item + " (x" + str(qtd) + ") = R$" + str(preco * qtd)
+    
+    action resumo():
+        out "  ┌──── Lista: " + this.nome + " ────"
+        cycle it in this.itens:
+            out "  │ " + it["item"] + " x" + str(it["qtd"]) + " = R$" + str(it["subtotal"])
+        out "  ├────────────────"
+        out "  │ TOTAL: R$" + str(round(this.total, 2))
+        out "  └────────────────"
+
+lista_mercado := forge ListaCompras("Mercado Semanal")
+lista_mercado.adicionar("Arroz", 5.99, 2)
+lista_mercado.adicionar("Feijão", 8.50, 1)
+lista_mercado.adicionar("Leite", 4.79, 3)
+lista_mercado.adicionar("Pão", 7.00, 1)
+lista_mercado.adicionar("Ovos", 12.90, 1)
+out ""
+lista_mercado.resumo()
+
+out ""
+out "═══════════════════════════════════════════"
+out "    ✅ SHOWCASE COMPLETO!"
+out "    Todas as features da linguagem testadas"
+out "═══════════════════════════════════════════"

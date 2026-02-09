@@ -1,0 +1,153 @@
+// ═══════════════════════════════════════════════════════════
+//  DataForge - Complete Demo
+//  Showcasing the full power of the language
+// ═══════════════════════════════════════════════════════════
+
+out "╔══════════════════════════════════════════════╗"
+out "║     DataForge Complete Feature Demo          ║"
+out "╚══════════════════════════════════════════════╝"
+
+// ── 1. Traits (Interfaces) ──
+out "\n━━━ 1. Traits & Blueprints ━━━"
+
+trait Printable:
+    action display()
+
+trait Comparable:
+    action compare(other)
+
+blueprint Product (Printable):
+    action setup(name, price, stock):
+        self.name := name
+        self.price := price
+        self.stock := stock
+
+    action display():
+        out "  " + self.name + " - $" + self.price + " (" + self.stock + " in stock)"
+
+    action apply_discount(percent):
+        self.price := self.price * (1 - percent / 100)
+        out "  Discount applied! New price: $" + self.price
+
+    action is_available():
+        yield self.stock bigger 0
+
+// ── 2. Using blueprints ──
+out "\n━━━ 2. Product Catalog ━━━"
+
+laptop := spawn Product("Forge Laptop", 999.99, 50)
+phone := spawn Product("DataPhone", 699.99, 100)
+tablet := spawn Product("ArcaneTab", 449.99, 0)
+
+products := [laptop, phone, tablet]
+
+cycle p in products:
+    p.display()
+
+// ── 3. Business logic ──
+out "\n━━━ 3. Business Logic ━━━"
+
+laptop.apply_discount(10)
+
+cycle p in products:
+    given p.is_available():
+        out "  ✓ " + p.name + " is available"
+    otherwise:
+        out "  ✗ " + p.name + " is OUT OF STOCK"
+
+// ── 4. Error handling in real scenario ──
+out "\n━━━ 4. Safe Operations ━━━"
+
+action process_order(product, quantity):
+    given product.stock smaller quantity:
+        trigger "Insufficient stock for " + product.name
+    product.stock := product.stock - quantity
+    total := product.price * quantity
+    out "  Order: " + quantity + "x " + product.name + " = $" + total
+    yield total
+
+monitor:
+    t1 := process_order(laptop, 2)
+    t2 := process_order(phone, 5)
+    t3 := process_order(tablet, 1)  // This will trigger an error
+handle error:
+    out "  Order failed: " + error
+
+// ── 5. Advanced data processing ──
+out "\n━━━ 5. Data Processing ━━━"
+
+sales := [120, 340, 89, 450, 210, 380, 95, 520, 175, 410]
+out "Monthly sales: " + sales
+out "Total revenue: $" + sum(sales)
+out "Average: $" + (sum(sales) / len(sales))
+out "Best month: $" + max(sales)
+out "Worst month: $" + min(sales)
+
+good_months := sales >> sift s: s bigger 200
+out "Good months (>$200): " + good_months
+out "Good month count: " + len(good_months)
+
+// ── 6. Algorithm: Bubble Sort ──
+out "\n━━━ 6. Algorithms ━━━"
+
+action bubble_sort(arr):
+    n := len(arr)
+    cycle i from 0 to n - 1:
+        cycle j from 0 to n - i - 2:
+            given arr[j] bigger arr[j + 1]:
+                temp := arr[j]
+                arr[j] := arr[j + 1]
+                arr[j + 1] := temp
+    yield arr
+
+unsorted := [64, 34, 25, 12, 22, 11, 90]
+out "Unsorted: " + unsorted
+sorted_arr := bubble_sort(unsorted)
+out "Sorted:   " + sorted_arr
+
+// ── 7. String manipulation ──
+out "\n━━━ 7. String Tools ━━━"
+
+text := "DataForge is the Future of Programming"
+out "Original: " + text
+out "Upper: " + upper(text)
+out "Lower: " + lower(text)
+out "Words: " + split(text)
+out "Word count: " + len(split(text))
+
+// ── 8. Mathematical patterns ──
+out "\n━━━ 8. Mathematical Patterns ━━━"
+
+// Pascal's Triangle
+action pascal(rows):
+    row := [1]
+    cycle i from 0 to rows - 1:
+        out "  " + row
+        new_row := [1]
+        cycle j from 0 to len(row) - 2:
+            append(new_row, row[j] + row[j + 1])
+        append(new_row, 1)
+        row := new_row
+
+out "Pascal's Triangle (6 rows):"
+pascal(6)
+
+// ── 9. Closure-like behavior ──
+out "\n━━━ 9. Action Composition ━━━"
+
+action make_multiplier(factor):
+    action multiply(x):
+        yield x * factor
+    yield multiply
+
+double := make_multiplier(2)
+triple := make_multiplier(3)
+
+out "double(5) = " + double(5)
+out "triple(5) = " + triple(5)
+
+// ── Final message ──
+out "\n╔══════════════════════════════════════════════╗"
+out "║  Demo Complete! DataForge v2.0               ║"
+out "║  A language forged for the future.            ║"
+out "╚══════════════════════════════════════════════╝"

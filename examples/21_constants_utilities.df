@@ -1,0 +1,101 @@
+// ═══════════════════════════════════════════
+// Exemplo 21: Constantes, Delete e Utilitários
+// ═══════════════════════════════════════════
+
+out "═══ CONSTANTES E UTILITÁRIOS ═══"
+out ""
+
+// --- 1. Steady (Constantes) ---
+out "--- 1. Constantes com Steady ---"
+steady NOME_APP := "DataForge"
+steady VERSAO := "2.0.0"
+steady MAX_USUARIOS := 1000
+steady TAXA := 0.15
+
+out "App:", NOME_APP, "v" + VERSAO
+out "Max usuários:", MAX_USUARIOS
+out "Taxa:", TAXA
+
+// Tentar modificar constante gera erro
+monitor:
+    NOME_APP := "Outro"
+handle erro:
+    out "⚠ Não pode modificar constante:", erro
+
+out ""
+out "--- 2. Constantes Matemáticas ---"
+out "PI:", PI
+out "E:", E
+out "TAU:", TAU
+out "Área do círculo (r=5):", PI * 5 ** 2
+out "Circunferência (r=5):", TAU * 5
+
+out ""
+out "--- 3. Delete ---"
+x := 42
+out "x antes:", x
+delete x
+monitor:
+    out x
+handle erro:
+    out "⚠ x foi deletado:", erro
+
+lista := [1, 2, 3, 4, 5]
+out "Lista antes:", lista
+delete lista[2]
+out "Lista depois (sem índice 2):", lista
+
+dicionario := {"a": 1, "b": 2, "c": 3}
+out "Dict antes:", dicionario
+delete dicionario["b"]
+out "Dict depois (sem 'b'):", dicionario
+
+out ""
+out "--- 4. Freeze e Thaw ---"
+numeros := [1, 2, 3, 4, 5]
+out "Lista original:", numeros
+
+congelada := freeze(numeros)
+out "Congelada:", congelada
+out "Tipo congelada:", type(congelada)
+
+descongelada := thaw(congelada)
+out "Descongelada:", descongelada
+out "Tipo descongelada:", type(descongelada)
+
+out ""
+out "--- 5. Typeof ---"
+valores := [42, 3.14, "texto", yes, no, void, [1, 2], {"a": 1}]
+nomes := ["42", "3.14", "texto", "yes", "no", "void", "[1,2]", "{a:1}"]
+
+cycle i from 0 to len(valores) - 1:
+    out "  " + nomes[i] + " → " + typeof valores[i]
+
+out ""
+out "--- 6. Exists ---"
+a := 42
+b := void
+
+out "exists(42):", exists(a)
+out "exists(void):", exists(b)
+out "exists('hello'):", exists("hello")
+out "exists(0):", exists(0)
+
+out ""
+out "--- 7. Hash e ID ---"
+out "hash('DataForge'):", hash("DataForge")
+out "hash(42):", hash(42)
+
+obj1 := [1, 2, 3]
+obj2 := [1, 2, 3]
+out "id(obj1):", id(obj1)
+out "id(obj2):", id(obj2)
+out "Mesmo objeto?", id(obj1) is id(obj2)
+
+out ""
+out "--- 8. Inspect ---"
+inspect 42
+inspect "DataForge"
+inspect [1, 2, 3]
+inspect {"chave": "valor"}
+inspect yes

@@ -1,0 +1,7 @@
+// ═══════════════════════════════════════════════════════════
+//  DataForge - Hello World
+//  The simplest DataForge program
+// ═══════════════════════════════════════════════════════════
+
+out "Hello, World!"
+out "Welcome to DataForge Programming Language!"

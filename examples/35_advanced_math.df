@@ -1,0 +1,119 @@
+// ═══════════════════════════════════════════════════════════
+// Example 35: Advanced Math & Statistics
+// Extended math functions, statistics, and algorithms
+// ═══════════════════════════════════════════════════════════
+
+emit("=== DataForge v3: Advanced Math & Statistics ===")
+emit("")
+
+// ── Extended Math Functions ─────────────────────
+emit("--- Extended Math Functions ---")
+emit("cbrt(27) = " + str(cbrt(27)))
+emit("log2(1024) = " + str(log2(1024)))
+emit("log10(10000) = " + str(log10(10000)))
+emit("exp(1) = " + str(round(exp(1), 5)))
+emit("")
+
+// ── Trigonometry ────────────────────────────────
+emit("--- Trigonometry ---")
+emit("degrees(PI) = " + str(degrees(PI)))
+emit("radians(180) = " + str(round(radians(180), 5)))
+emit("asin(1) = " + str(round(asin(1), 5)))
+emit("acos(0) = " + str(round(acos(0), 5)))
+emit("atan(1) = " + str(round(atan(1), 5)))
+emit("atan2(1, 1) = " + str(round(atan2(1, 1), 5)))
+emit("hypot(3, 4) = " + str(hypot(3, 4)))
+emit("")
+
+// ── Combinatorics ───────────────────────────────
+emit("--- Combinatorics ---")
+emit("factorial(10) = " + str(factorial(10)))
+emit("gcd(48, 18) = " + str(gcd(48, 18)))
+emit("lcm(12, 8) = " + str(lcm(12, 8)))
+emit("comb(10, 3) = " + str(comb(10, 3)))
+emit("perm(5, 3) = " + str(perm(5, 3)))
+emit("")
+
+// ── Utility Math ────────────────────────────────
+emit("--- Utility Math ---")
+emit("clamp(15, 0, 10) = " + str(clamp(15, 0, 10)))
+emit("clamp(-5, 0, 10) = " + str(clamp(-5, 0, 10)))
+emit("lerp(0, 100, 0.75) = " + str(lerp(0, 100, 0.75)))
+emit("sign(-42) = " + str(sign(-42)))
+emit("sign(0) = " + str(sign(0)))
+emit("sign(7) = " + str(sign(7)))
+emit("")
+
+// ── Special Value Checks ────────────────────────
+emit("--- Special Values ---")
+emit("is_finite(42) = " + str(is_finite(42)))
+emit("is_finite(INF) = " + str(is_finite(INF)))
+emit("is_nan(NAN) = " + str(is_nan(NAN)))
+emit("is_inf(INF) = " + str(is_inf(INF)))
+emit("")
+
+// ── Statistics ──────────────────────────────────
+emit("--- Statistics ---")
+data := [23, 45, 12, 67, 34, 89, 56, 78, 90, 43]
+emit("Data: " + str(data))
+emit("Mean: " + str(mean(data)))
+emit("Median: " + str(median(data)))
+emit("Mode: " + str(mode([1, 2, 2, 3, 3, 3, 4])))
+emit("Stdev: " + str(round(stdev(data), 2)))
+emit("Variance: " + str(round(variance(data), 2)))
+emit("")
+
+// ── Practical: Grade Analysis ───────────────────
+emit("--- Grade Analysis ---")
+grades := [85, 92, 78, 95, 88, 72, 91, 68, 97, 83]
+emit("Grades: " + str(grades))
+emit("Average: " + str(round(mean(grades), 1)))
+emit("Median: " + str(median(grades)))
+emit("Highest: " + str(max(grades)))
+emit("Lowest: " + str(min(grades)))
+emit("Range: " + str(max(grades) - min(grades)))
+emit("Std Dev: " + str(round(stdev(grades), 2)))
+
+// Grade distribution
+a_count := 0
+b_count := 0
+c_count := 0
+d_count := 0
+f_count := 0
+cycle g in grades:
+    given g bigger_eq 90:
+        a_count := a_count + 1
+    orif g bigger_eq 80:
+        b_count := b_count + 1
+    orif g bigger_eq 70:
+        c_count := c_count + 1
+    orif g bigger_eq 60:
+        d_count := d_count + 1
+    otherwise:
+        f_count := f_count + 1
+
+emit("Distribution: A=" + str(a_count) + " B=" + str(b_count) + " C=" + str(c_count) + " D=" + str(d_count) + " F=" + str(f_count))
+emit("")
+
+// ── Practical: Physics Calculations ─────────────
+emit("--- Physics: Projectile Motion ---")
+v0 := 50.0
+angle := 45.0
+g := 9.81
+
+angle_rad := radians(angle)
+vx := v0 * cos(angle_rad)
+vy := v0 * sin(angle_rad)
+flight_time := 2 * vy / g
+max_height := (vy * vy) / (2 * g)
+range_val := vx * flight_time
+
+emit("Initial velocity: " + str(v0) + " m/s at " + str(angle) + "°")
+emit("Horizontal velocity: " + str(round(vx, 2)) + " m/s")
+emit("Vertical velocity: " + str(round(vy, 2)) + " m/s")
+emit("Flight time: " + str(round(flight_time, 2)) + " s")
+emit("Max height: " + str(round(max_height, 2)) + " m")
+emit("Range: " + str(round(range_val, 2)) + " m")
+emit("")
+
+emit("=== Advanced math complete! ===")

@@ -1,0 +1,166 @@
+// ═══════════════════════════════════════════
+// Exemplo 25: Sistema de Banco de Dados
+// ═══════════════════════════════════════════
+
+out "═══ MINI BANCO DE DADOS ═══"
+out ""
+
+// --- Database Engine ---
+blueprint Database:
+    action setup(nome):
+        self.nome := nome
+        self.tabelas := {}
+
+    action criar_tabela(nome, colunas):
+        self.tabelas[nome] := {
+            "colunas": colunas,
+            "registros": [],
+            "auto_id": 1
+        }
+        out "  ✓ Tabela '" + nome + "' criada"
+
+    action inserir(tabela, dados):
+        given not contains(self.tabelas, tabela):
+            trigger "Tabela '" + tabela + "' não existe"
+
+        tab := self.tabelas[tabela]
+        dados["id"] := tab["auto_id"]
+        tab["auto_id"] := tab["auto_id"] + 1
+        append(tab["registros"], dados)
+        yield dados["id"]
+
+    action selecionar(tabela, condicao):
+        given not contains(self.tabelas, tabela):
+            trigger "Tabela '" + tabela + "' não existe"
+
+        tab := self.tabelas[tabela]
+        given condicao is void:
+            yield tab["registros"]
+
+        resultados := []
+        cycle reg in tab["registros"]:
+            // Verificar todas as condições
+            match_all := yes
+            cycle chave in keys(condicao):
+                given contains(reg, chave):
+                    given reg[chave] isnt condicao[chave]:
+                        match_all := no
+                otherwise:
+                    match_all := no
+            given match_all:
+                append(resultados, reg)
+        yield resultados
+
+    action atualizar(tabela, condicao, novos_dados):
+        given not contains(self.tabelas, tabela):
+            trigger "Tabela '" + tabela + "' não existe"
+
+        tab := self.tabelas[tabela]
+        count := 0
+        cycle reg in tab["registros"]:
+            match_all := yes
+            cycle chave in keys(condicao):
+                given contains(reg, chave):
+                    given reg[chave] isnt condicao[chave]:
+                        match_all := no
+            given match_all:
+                cycle chave in keys(novos_dados):
+                    reg[chave] := novos_dados[chave]
+                count := count + 1
+        yield count
+
+    action deletar(tabela, condicao):
+        given not contains(self.tabelas, tabela):
+            trigger "Tabela '" + tabela + "' não existe"
+
+        tab := self.tabelas[tabela]
+        novos := []
+        count := 0
+        cycle reg in tab["registros"]:
+            match_all := yes
+            cycle chave in keys(condicao):
+                given contains(reg, chave):
+                    given reg[chave] isnt condicao[chave]:
+                        match_all := no
+            given match_all:
+                count := count + 1
+            otherwise:
+                append(novos, reg)
+        tab["registros"] := novos
+        yield count
+
+    action contar(tabela):
+        given not contains(self.tabelas, tabela):
+            yield 0
+        yield len(self.tabelas[tabela]["registros"])
+
+    action exibir(tabela):
+        given not contains(self.tabelas, tabela):
+            out "  Tabela não encontrada"
+            yield void
+
+        tab := self.tabelas[tabela]
+        out "  ┌─ " + tabela + " (" + str(len(tab["registros"])) + " registros) ─┐"
+        cycle reg in tab["registros"]:
+            campos := []
+            cycle k in keys(reg):
+                append(campos, k + "=" + str(reg[k]))
+            out "  │ " + join(", ", campos)
+        out "  └─────────────────────┘"
+
+// --- Uso do Banco ---
+out "--- Criando Banco de Dados ---"
+db := spawn Database("DataForgeDB")
+
+db.criar_tabela("usuarios", ["nome", "email", "idade"])
+db.criar_tabela("produtos", ["nome", "preco", "estoque"])
+db.criar_tabela("pedidos", ["usuario_id", "produto_id", "quantidade"])
+
+out ""
+out "--- Inserindo Dados ---"
+db.inserir("usuarios", {"nome": "Ana Silva", "email": "ana@email.com", "idade": 28})
+db.inserir("usuarios", {"nome": "Bruno Santos", "email": "bruno@email.com", "idade": 35})
+db.inserir("usuarios", {"nome": "Carlos Lima", "email": "carlos@email.com", "idade": 22})
+db.inserir("usuarios", {"nome": "Diana Costa", "email": "diana@email.com", "idade": 30})
+
+db.inserir("produtos", {"nome": "Notebook", "preco": 3500, "estoque": 10})
+db.inserir("produtos", {"nome": "Mouse", "preco": 80, "estoque": 50})
+db.inserir("produtos", {"nome": "Teclado", "preco": 150, "estoque": 30})
+
+db.inserir("pedidos", {"usuario_id": 1, "produto_id": 1, "quantidade": 1})
+db.inserir("pedidos", {"usuario_id": 2, "produto_id": 2, "quantidade": 3})
+db.inserir("pedidos", {"usuario_id": 1, "produto_id": 3, "quantidade": 2})
+db.inserir("pedidos", {"usuario_id": 3, "produto_id": 1, "quantidade": 1})
+
+out ""
+out "--- Exibindo Tabelas ---"
+db.exibir("usuarios")
+out ""
+db.exibir("produtos")
+out ""
+db.exibir("pedidos")
+
+out ""
+out "--- SELECT com Condição ---"
+out "Usuários com idade 28:"
+resultados := db.selecionar("usuarios", {"idade": 28})
+cycle r in resultados:
+    out "  →", r["nome"], "-", r["email"]
+
+out ""
+out "--- UPDATE ---"
+atualizado := db.atualizar("usuarios", {"nome": "Ana Silva"}, {"idade": 29})
+out "Registros atualizados:", atualizado
+resultados2 := db.selecionar("usuarios", {"nome": "Ana Silva"})
+cycle r in resultados2:
+    out "  Ana agora tem", r["idade"], "anos"
+
+out ""
+out "--- DELETE ---"
+deletado := db.deletar("usuarios", {"nome": "Carlos Lima"})
+out "Registros deletados:", deletado
+out "Total de usuários:", db.contar("usuarios")
+
+out ""
+out "--- Estado Final ---"
+db.exibir("usuarios")

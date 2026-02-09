@@ -1,0 +1,58 @@
+// ═══════════════════════════════════════════════════════════
+//  DataForge - Error Handling
+//  monitor / handle / ensure (try / catch / finally)
+// ═══════════════════════════════════════════════════════════
+
+// ── Basic error handling ──
+out "=== Basic Monitor/Handle ==="
+monitor:
+    out "Attempting risky operation..."
+    result := 10 / 0
+    out "This won't execute"
+handle error:
+    out "Caught error: " + error
+ensure:
+    out "Cleanup always runs!"
+
+// ── Trigger (raise) errors ──
+out "\n=== Custom Triggers ==="
+action validate_age(age):
+    given age smaller 0:
+        trigger "Age cannot be negative"
+    given age bigger 150:
+        trigger "Age seems unrealistic"
+    yield age
+
+monitor:
+    valid := validate_age(25)
+    out "Valid age: " + valid
+    
+    invalid := validate_age(-5)
+    out "This won't print"
+handle error:
+    out "Validation failed: " + error
+
+// ── Nested monitors ──
+out "\n=== Nested Error Handling ==="
+monitor:
+    out "Outer monitor"
+    monitor:
+        out "Inner monitor"
+        trigger "Inner error!"
+    handle error:
+        out "Inner caught: " + error
+    out "Outer continues after inner handle"
+handle error:
+    out "Outer caught: " + error
+ensure:
+    out "Outer ensure"
+
+// ── Error in loops ──
+out "\n=== Error in Loop ==="
+items := [10, 20, 0, 30, 40]
+cycle item in items:
+    monitor:
+        result := 100 / item
+        out "100 / " + item + " = " + result
+    handle error:
+        out "Error with " + item + ": " + error

@@ -1,0 +1,180 @@
+// ═══════════════════════════════════════════
+// Exemplo 23: Matemática e Ciência
+// ═══════════════════════════════════════════
+
+out "═══ MATEMÁTICA E CIÊNCIA ═══"
+out ""
+
+// --- 1. Números Primos ---
+out "--- 1. Números Primos ---"
+action eh_primo(n):
+    given n smaller_eq 1:
+        yield no
+    given n smaller_eq 3:
+        yield yes
+    given n % 2 is 0 or n % 3 is 0:
+        yield no
+    i := 5
+    persist i * i smaller_eq n:
+        given n % i is 0 or n % (i + 2) is 0:
+            yield no
+        i := i + 6
+    yield yes
+
+primos := []
+cycle n from 2 to 100:
+    given eh_primo(n):
+        append(primos, n)
+out "Primos até 100:", primos
+out "Total:", len(primos)
+
+out ""
+out "--- 2. Sequência de Collatz ---"
+action collatz(n):
+    seq := [n]
+    persist n isnt 1:
+        given n % 2 is 0:
+            n := n // 2
+        otherwise:
+            n := 3 * n + 1
+        append(seq, n)
+    yield seq
+
+out "Collatz(27):", collatz(27)
+out "Comprimento:", len(collatz(27))
+
+out ""
+out "--- 3. Triângulo de Pascal ---"
+action pascal(n_rows):
+    triangulo := []
+    cycle i from 0 to n_rows - 1:
+        row := [1]
+        given i bigger 0:
+            prev := triangulo[i - 1]
+            cycle j from 1 to i - 1:
+                append(row, prev[j - 1] + prev[j])
+            append(row, 1)
+        append(triangulo, row)
+    yield triangulo
+
+tri := pascal(8)
+out "Triângulo de Pascal (8 linhas):"
+cycle row in tri:
+    out "  ", row
+
+out ""
+out "--- 4. Estatísticas Completas ---"
+action estatisticas(dados):
+    n := len(dados)
+    ord := sorted(dados)
+
+    // Média
+    med := sum(dados) / n
+
+    // Mediana
+    dado_mediana := 0
+    given n % 2 is 0:
+        dado_mediana := (ord[n // 2 - 1] + ord[n // 2]) / 2
+    otherwise:
+        dado_mediana := ord[n // 2]
+
+    // Variância e desvio padrão
+    soma_sq := 0
+    cycle x in dados:
+        soma_sq := soma_sq + (x - med) ** 2
+    var := soma_sq / n
+    dp := sqrt(var)
+
+    // Moda (mais frequente)
+    freq := {}
+    cycle x in dados:
+        chave := str(x)
+        given contains(freq, chave):
+            freq[chave] := freq[chave] + 1
+        otherwise:
+            freq[chave] := 1
+
+    max_freq := 0
+    moda_val := dados[0]
+    cycle k in keys(freq):
+        given freq[k] bigger max_freq:
+            max_freq := freq[k]
+            moda_val := k
+
+    yield {
+        "n": n,
+        "media": round(med, 4),
+        "mediana": dado_mediana,
+        "moda": moda_val,
+        "min": min(dados),
+        "max": max(dados),
+        "amplitude": max(dados) - min(dados),
+        "variancia": round(var, 4),
+        "desvio_padrao": round(dp, 4)
+    }
+
+dados := [23, 45, 12, 67, 34, 45, 89, 23, 45, 56, 12, 78, 34, 45, 67]
+stats := estatisticas(dados)
+out "Dados:", dados
+out "Estatísticas:"
+cycle k in keys(stats):
+    out "  " + k + ": " + str(stats[k])
+
+out ""
+out "--- 5. Conversões Numéricas ---"
+action dec_para_bin(n):
+    given n is 0:
+        yield "0"
+    resultado := ""
+    persist n bigger 0:
+        resultado := str(n % 2) + resultado
+        n := n // 2
+    yield resultado
+
+action dec_para_hex(n):
+    given n is 0:
+        yield "0"
+    hex_chars := "0123456789ABCDEF"
+    resultado := ""
+    persist n bigger 0:
+        resultado := str(hex_chars[n % 16]) + resultado
+        n := n // 16
+    yield resultado
+
+numeros := [0, 10, 42, 100, 255, 1024]
+out "Conversões:"
+cycle n in numeros:
+    out "  " + str(n) + " → bin: " + dec_para_bin(n) + " | hex: " + dec_para_hex(n)
+
+out ""
+out "--- 6. Séries Matemáticas ---"
+
+// Série harmônica
+action serie_harmonica(n):
+    soma := 0.0
+    cycle i from 1 to n:
+        soma := soma + 1.0 / i
+    yield soma
+
+out "Série Harmônica:"
+termos := [1, 5, 10, 50, 100]
+cycle t in termos:
+    out "  H(" + str(t) + ") = " + str(round(serie_harmonica(t), 6))
+
+out ""
+// Aproximação de PI (Leibniz)
+action pi_leibniz(termos):
+    soma := 0.0
+    cycle i from 0 to termos - 1:
+        given i % 2 is 0:
+            soma := soma + 1.0 / (2 * i + 1)
+        otherwise:
+            soma := soma - 1.0 / (2 * i + 1)
+    yield soma * 4
+
+out "Aproximação de PI (Leibniz):"
+precisoes := [10, 100, 1000, 10000]
+cycle p in precisoes:
+    approx := pi_leibniz(p)
+    erro := abs(approx - PI)
+    out "  " + str(p) + " termos: " + str(round(approx, 8)) + " (erro: " + str(round(erro, 8)) + ")"

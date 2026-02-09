@@ -1,0 +1,200 @@
+// ═══════════════════════════════════════════
+// Exemplo 29: Mini Projeto - Sistema Bancário Completo
+// ═══════════════════════════════════════════
+
+out "═══════════════════════════════════════════"
+out "       🏦 SISTEMA BANCÁRIO v1.0"
+out "═══════════════════════════════════════════"
+out ""
+
+// --- Modelo de Conta Bancária ---
+blueprint ContaBancaria(titular, tipo, saldo_inicial):
+    
+    this.numero := str(randint(10000, 99999))
+    this.saldo := saldo_inicial
+    this.extrato_lista := []
+    this.ativa := yes
+    this.limite := 0.0
+    
+    given tipo is "corrente":
+        this.limite := 500.0
+    
+    action depositar(valor):
+        given not this.ativa:
+            out "  ⚠️ Conta inativa!"
+            yield no
+        given valor smaller_eq 0:
+            out "  ⚠️ Valor inválido!"
+            yield no
+        this.saldo := this.saldo + valor
+        append(this.extrato_lista, {"tipo": "deposito", "valor": valor, "saldo": this.saldo})
+        out "  ✅ Depósito de R$" + str(valor) + " realizado"
+        yield yes
+    
+    action sacar(valor):
+        given not this.ativa:
+            out "  ⚠️ Conta inativa!"
+            yield no
+        given valor smaller_eq 0:
+            out "  ⚠️ Valor inválido!"
+            yield no
+        given this.saldo + this.limite smaller valor:
+            out "  ⚠️ Saldo insuficiente! Disponível: R$" + str(this.saldo + this.limite)
+            yield no
+        this.saldo := this.saldo - valor
+        append(this.extrato_lista, {"tipo": "saque", "valor": valor, "saldo": this.saldo})
+        out "  ✅ Saque de R$" + str(valor) + " realizado"
+        yield yes
+    
+    action transferir(destino, valor):
+        given not this.ativa:
+            out "  ⚠️ Conta origem inativa!"
+            yield no
+        given not destino.ativa:
+            out "  ⚠️ Conta destino inativa!"
+            yield no
+        given this.saldo + this.limite smaller valor:
+            out "  ⚠️ Saldo insuficiente para transferência!"
+            yield no
+        this.saldo := this.saldo - valor
+        destino.saldo := destino.saldo + valor
+        append(this.extrato_lista, {"tipo": "transf_env", "valor": valor, "saldo": this.saldo, "destino": destino.numero})
+        append(destino.extrato_lista, {"tipo": "transf_rec", "valor": valor, "saldo": destino.saldo, "origem": this.numero})
+        out "  ✅ Transferência de R$" + str(valor) + " realizada"
+        yield yes
+    
+    action ver_saldo():
+        out "  Conta: " + this.numero + " | Titular: " + this.titular
+        out "  Saldo: R$" + str(this.saldo)
+        given this.tipo is "corrente":
+            out "  Limite: R$" + str(this.limite)
+            out "  Disponível: R$" + str(this.saldo + this.limite)
+    
+    action ver_extrato():
+        out "  ╔═══════════════════════════════════════╗"
+        out "  ║        EXTRATO BANCÁRIO               ║"
+        out "  ╠═══════════════════════════════════════╣"
+        out "  ║ Conta: " + this.numero + " | " + this.titular
+        out "  ║ Tipo: " + this.tipo
+        out "  ╠═══════════════════════════════════════╣"
+        cycle mov in this.extrato_lista:
+            given mov["tipo"] is "deposito":
+                out "  ║ + DEP  R$" + str(mov["valor"]) + " → Saldo: R$" + str(mov["saldo"])
+            given mov["tipo"] is "saque":
+                out "  ║ - SAQ  R$" + str(mov["valor"]) + " → Saldo: R$" + str(mov["saldo"])
+            given mov["tipo"] is "transf_env":
+                out "  ║ - TRF  R$" + str(mov["valor"]) + " → p/" + str(mov["destino"]) + " Saldo: R$" + str(mov["saldo"])
+            given mov["tipo"] is "transf_rec":
+                out "  ║ + TRF  R$" + str(mov["valor"]) + " ← de/" + str(mov["origem"]) + " Saldo: R$" + str(mov["saldo"])
+        out "  ╠═══════════════════════════════════════╣"
+        out "  ║ SALDO FINAL: R$" + str(this.saldo)
+        out "  ╚═══════════════════════════════════════╝"
+
+// --- Banco ---
+blueprint Banco(nome):
+    this.contas := {}
+    this.total_contas := 0
+    
+    action abrir_conta(titular, tipo, deposito_inicial):
+        conta := forge ContaBancaria(titular, tipo, deposito_inicial)
+        this.contas[conta.numero] := conta
+        this.total_contas := this.total_contas + 1
+        out "  🆕 Conta " + conta.numero + " aberta para " + titular
+        yield conta
+    
+    action buscar_conta(numero):
+        given contains(this.contas, numero):
+            yield this.contas[numero]
+        yield empty
+    
+    action listar_contas():
+        out ""
+        out "  📋 CONTAS DO BANCO " + this.nome
+        out "  ─────────────────────────────────"
+        cycle num in keys(this.contas):
+            c := this.contas[num]
+            status := "✅"
+            given not c.ativa:
+                status := "❌"
+            out "  " + status + " [" + c.numero + "] " + c.titular + " | " + c.tipo + " | R$" + str(c.saldo)
+        out "  ─────────────────────────────────"
+        out "  Total: " + str(this.total_contas) + " contas"
+    
+    action relatorio():
+        saldo_total := 0.0
+        contas_ativas := 0
+        contas_corrente := 0
+        contas_poupanca := 0
+        
+        cycle num in keys(this.contas):
+            c := this.contas[num]
+            saldo_total := saldo_total + c.saldo
+            given c.ativa:
+                contas_ativas := contas_ativas + 1
+            given c.tipo is "corrente":
+                contas_corrente := contas_corrente + 1
+            given c.tipo is "poupanca":
+                contas_poupanca := contas_poupanca + 1
+        
+        out ""
+        out "  📊 RELATÓRIO - " + this.nome
+        out "  ═══════════════════════════════"
+        out "  Total de contas: " + str(this.total_contas)
+        out "  Contas ativas: " + str(contas_ativas)
+        out "  Contas corrente: " + str(contas_corrente)
+        out "  Contas poupança: " + str(contas_poupanca)
+        out "  Saldo total: R$" + str(round(saldo_total, 2))
+        out "  ═══════════════════════════════"
+
+// ─── Simulação ───
+out "=== CRIANDO BANCO ==="
+banco := forge Banco("DataForge Bank")
+
+out ""
+out "=== ABRINDO CONTAS ==="
+conta_joao := banco.abrir_conta("João Silva", "corrente", 1000.0)
+conta_maria := banco.abrir_conta("Maria Santos", "poupanca", 2000.0)
+conta_pedro := banco.abrir_conta("Pedro Costa", "corrente", 500.0)
+conta_ana := banco.abrir_conta("Ana Oliveira", "poupanca", 3000.0)
+
+banco.listar_contas()
+
+out ""
+out "=== OPERAÇÕES ==="
+
+out ""
+out "--- Depósitos ---"
+conta_joao.depositar(500.0)
+conta_maria.depositar(1000.0)
+
+out ""
+out "--- Saques ---"
+conta_joao.sacar(200.0)
+conta_pedro.sacar(100.0)
+
+out ""
+out "--- Transferências ---"
+conta_joao.transferir(conta_maria, 300.0)
+conta_ana.transferir(conta_pedro, 500.0)
+
+out ""
+out "--- Tentativa de saque acima do limite ---"
+conta_pedro.sacar(2000.0)
+
+out ""
+out "=== EXTRATOS ==="
+conta_joao.ver_extrato()
+out ""
+conta_maria.ver_extrato()
+
+out ""
+out "=== SALDOS FINAIS ==="
+conta_joao.ver_saldo()
+out ""
+conta_maria.ver_saldo()
+out ""
+conta_pedro.ver_saldo()
+out ""
+conta_ana.ver_saldo()
+
+banco.relatorio()

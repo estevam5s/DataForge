@@ -1,0 +1,118 @@
+// ═══════════════════════════════════════════════════════════
+// Example 36: Collections & Type Checking
+// Advanced collection methods and type validation
+// ═══════════════════════════════════════════════════════════
+
+emit("=== DataForge v3: Collections & Type Checking ===")
+emit("")
+
+// ── Advanced List Methods ───────────────────────
+emit("--- List Methods ---")
+nums := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+emit("First: " + str(first(nums)))
+emit("Last: " + str(last(nums)))
+emit("Take 3: " + str(take(nums, 3)))
+emit("Drop 7: " + str(drop(nums, 7)))
+emit("Chunk(3): " + str(chunk(nums, 3)))
+emit("")
+
+// ── List Dot Methods ────────────────────────────
+emit("--- List Dot Methods ---")
+fruits := ["apple", "banana", "cherry", "date", "elderberry"]
+emit("Fruits: " + str(fruits))
+emit("First: " + str(fruits.first()))
+emit("Last: " + str(fruits.last()))
+emit("Slice(1,3): " + str(fruits.slice(1, 3)))
+emit("Contains 'cherry': " + str(fruits.contains("cherry")))
+emit("Index of 'date': " + str(fruits.index_of("date")))
+emit("Length: " + str(fruits.length()))
+emit("Reversed: " + str(fruits.reversed()))
+emit("Join: " + fruits.join(", "))
+emit("")
+
+// ── List Transformations ────────────────────────
+emit("--- List Transformations ---")
+data := [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5]
+emit("Original: " + str(data))
+emit("Sorted: " + str(sorted(data)))
+emit("Unique: " + str(unique(data)))
+emit("Reversed: " + str(reversed(data)))
+emit("Flatten: " + str(flatten([[1, 2], [3, 4], [5, 6]])))
+emit("")
+
+// ── Rotate & Interleave ─────────────────────────
+emit("--- Rotate & Interleave ---")
+abc := ["a", "b", "c", "d", "e"]
+emit("Original: " + str(abc))
+emit("Rotate 2: " + str(rotate(abc, 2)))
+emit("Rotate -1: " + str(rotate(abc, -1)))
+
+evens := [2, 4, 6]
+odds := [1, 3, 5]
+emit("Interleave: " + str(interleave(evens, odds)))
+emit("")
+
+// ── Dict Methods ────────────────────────────────
+emit("--- Dict Methods ---")
+person := {"name": "Alice", "age": 30, "city": "Forgeheim", "role": "Developer"}
+emit("Person: " + str(person))
+emit("Keys: " + str(keys(person)))
+emit("Values: " + str(values(person)))
+
+// Dot methods on dicts
+emit("Has 'name': " + str(person.has("name")))
+emit("Has 'email': " + str(person.has("email")))
+emit("Get role: " + str(person.get("role")))
+emit("Keys: " + str(person.keys()))
+emit("Values: " + str(person.values()))
+emit("Length: " + str(person.length()))
+emit("")
+
+// ── Pick & Omit ─────────────────────────────────
+emit("--- Pick & Omit ---")
+emit("Pick [name, city]: " + str(pick(person, ["name", "city"])))
+emit("Omit [age, role]: " + str(omit(person, ["age", "role"])))
+emit("")
+
+// ── Merge Dicts ─────────────────────────────────
+emit("--- Merge Dicts ---")
+defaults := {"theme": "dark", "lang": "en", "font_size": 14}
+user_prefs := {"theme": "light", "font_size": 16}
+merged := merge_dicts(defaults, user_prefs)
+emit("Defaults: " + str(defaults))
+emit("User prefs: " + str(user_prefs))
+emit("Merged: " + str(merged))
+emit("")
+
+// ── Frequencies ─────────────────────────────────
+emit("--- Frequencies ---")
+votes := ["red", "blue", "red", "green", "blue", "red", "blue", "blue"]
+freq := frequencies(votes)
+emit("Votes: " + str(votes))
+emit("Frequency: " + str(freq))
+emit("")
+
+// ── Type Checking ───────────────────────────────
+emit("--- Type Checking ---")
+emit("is_string('hello'): " + str(is_string("hello")))
+emit("is_number(42): " + str(is_number(42)))
+emit("is_integer(42): " + str(is_integer(42)))
+emit("is_float(3.14): " + str(is_float(3.14)))
+emit("is_boolean(yes): " + str(is_boolean(yes)))
+emit("is_list([1,2]): " + str(is_list([1, 2])))
+emit("is_dict({a: 1}): " + str(is_dict({"a": 1})))
+emit("is_void(void): " + str(is_void(void)))
+emit("is_empty(''): " + str(is_empty("")))
+emit("is_empty([]): " + str(is_empty([])))
+emit("is_empty({a: 1}): " + str(is_empty({"a": 1})))
+emit("")
+
+// ── Coalesce & Default ──────────────────────────
+emit("--- Coalesce & Default ---")
+emit("coalesce(void, void, 42) = " + str(coalesce(void, void, 42)))
+emit("default_val(void, 'fallback') = " + str(default_val(void, "fallback")))
+emit("default_val('exists', 'fallback') = " + str(default_val("exists", "fallback")))
+emit("")
+
+emit("=== Collections & type checking complete! ===")

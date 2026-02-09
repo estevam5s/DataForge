@@ -1,0 +1,152 @@
+// ═══════════════════════════════════════════
+// Exemplo 15: Programação Funcional
+// ═══════════════════════════════════════════
+
+out "═══ PROGRAMAÇÃO FUNCIONAL ═══"
+out ""
+
+// --- Funções de Alta Ordem ---
+out "--- 1. Funções como Parâmetros ---"
+action aplicar_a_todos(lista, func):
+    resultado := []
+    cycle item in lista:
+        append(resultado, func(item))
+    yield resultado
+
+action dobro(x):
+    yield x * 2
+
+action quadrado(x):
+    yield x ** 2
+
+action eh_positivo(x):
+    yield x bigger 0
+
+numeros := [1, -2, 3, -4, 5, -6]
+out "Original:", numeros
+out "Dobro:", aplicar_a_todos(numeros, dobro)
+out "Quadrado:", aplicar_a_todos(numeros, quadrado)
+
+out ""
+out "--- 2. Pipelines Complexos ---"
+dados := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+out "Dados:", dados
+
+// Filtrar pares e quadrar
+resultado1 := dados >> sift n: n % 2 is 0 >> morph n: n ** 2
+out "Pares ao quadrado:", resultado1
+
+// Filtrar > 10 e dobrar
+resultado2 := dados >> sift n: n bigger 10 >> morph n: n * 2
+out "Maiores que 10 dobrados:", resultado2
+
+// Soma dos ímpares
+resultado3 := dados >> sift n: n % 2 isnt 0 >> distill acc, n: acc + n
+out "Soma dos ímpares:", resultado3
+
+out ""
+out "--- 3. Composição de Funções ---"
+action compor(f, g):
+    action composta(x):
+        yield f(g(x))
+    yield composta
+
+action incrementar(x):
+    yield x + 1
+
+action triplicar(x):
+    yield x * 3
+
+incrementar_e_triplicar := compor(triplicar, incrementar)
+triplicar_e_incrementar := compor(incrementar, triplicar)
+
+out "incrementar_e_triplicar(5) =", incrementar_e_triplicar(5)
+out "triplicar_e_incrementar(5) =", triplicar_e_incrementar(5)
+
+out ""
+out "--- 4. Currying ---"
+action multiplicador(fator):
+    action multiplicar(x):
+        yield x * fator
+    yield multiplicar
+
+dobrar := multiplicador(2)
+triplicar2 := multiplicador(3)
+decuplicar := multiplicador(10)
+
+out "dobrar(7) =", dobrar(7)
+out "triplicar(7) =", triplicar2(7)
+out "decuplicar(7) =", decuplicar(7)
+
+out ""
+out "--- 5. Pipeline com Processamento de Texto ---"
+textos := ["  Hello World  ", "  DATAFORGE  ", "  Python  ", "  programming  "]
+out "Textos originais:", textos
+
+// Limpar e padronizar
+limpos := []
+cycle t in textos:
+    append(limpos, strip(t))
+out "Sem espaços:", limpos
+
+maiusculos := []
+cycle t in limpos:
+    append(maiusculos, upper(t))
+out "Maiúsculos:", maiusculos
+
+out ""
+out "--- 6. Memoization ---"
+action criar_memo():
+    cache := {}
+    yield cache
+
+memo_cache := criar_memo()
+
+action fib_memo(n, cache):
+    chave := str(n)
+    given contains(cache, chave):
+        yield cache[chave]
+    given n smaller_eq 1:
+        cache[chave] := n
+        yield n
+    resultado := fib_memo(n - 1, cache) + fib_memo(n - 2, cache)
+    cache[chave] := resultado
+    yield resultado
+
+out "Fibonacci com memoization:"
+cycle i from 0 to 15:
+    out "  fib(" + str(i) + ") =", fib_memo(i, memo_cache)
+
+out ""
+out "--- 7. Reduce Avançado ---"
+numeros2 := [3, 5, 2, 8, 1, 9, 4, 7, 6]
+
+action somar(acc, n):
+    yield acc + n
+
+action multiplicar(acc, n):
+    yield acc * n
+
+soma := numeros2 >> distill somar 0
+out "Soma:", soma
+
+produto := numeros2 >> distill multiplicar 1
+out "Produto:", produto
+
+// Usando max/min direto
+out "Máximo:", max(numeros2)
+out "Mínimo:", min(numeros2)
+
+out ""
+out "--- 8. Gerador de Sequência ---"
+action gerar_sequencia(inicio, passo, quantidade):
+    seq := []
+    valor := inicio
+    cycle i from 1 to quantidade:
+        append(seq, valor)
+        valor := valor + passo
+    yield seq
+
+out "Seq(1, 2, 8):", gerar_sequencia(1, 2, 8)
+out "Seq(0, 5, 6):", gerar_sequencia(0, 5, 6)
+out "Seq(100, -10, 5):", gerar_sequencia(100, -10, 5)

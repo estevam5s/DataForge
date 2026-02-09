@@ -1,0 +1,4 @@
+.pytest_cache/
+dataforge/__pycache__
+.env
+env

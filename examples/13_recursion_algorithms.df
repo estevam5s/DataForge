@@ -1,0 +1,131 @@
+// ═══════════════════════════════════════════
+// Exemplo 13: Recursão e Algoritmos
+// ═══════════════════════════════════════════
+
+out "═══ RECURSÃO E ALGORITMOS ═══"
+out ""
+
+// --- Fibonacci ---
+out "--- Fibonacci ---"
+action fibonacci(n):
+    given n smaller_eq 0:
+        yield 0
+    given n is 1:
+        yield 1
+    yield fibonacci(n - 1) + fibonacci(n - 2)
+
+cycle i from 0 to 12:
+    out "fib(" + str(i) + ") =", fibonacci(i)
+
+out ""
+out "--- Fibonacci Iterativo (Otimizado) ---"
+action fib_iterativo(n):
+    given n smaller_eq 0:
+        yield 0
+    given n is 1:
+        yield 1
+    a := 0
+    b := 1
+    cycle i from 2 to n:
+        temp := a + b
+        a := b
+        b := temp
+    yield b
+
+out "fib(20) =", fib_iterativo(20)
+out "fib(30) =", fib_iterativo(30)
+
+out ""
+out "--- Fatorial ---"
+action fatorial(n):
+    given n smaller_eq 1:
+        yield 1
+    yield n * fatorial(n - 1)
+
+cycle i from 0 to 10:
+    out str(i) + "! =", fatorial(i)
+
+out ""
+out "--- Torre de Hanoi ---"
+action hanoi(n, origem, destino, auxiliar):
+    given n is 1:
+        out "  Mover disco 1 de " + origem + " para " + destino
+        yield void
+    hanoi(n - 1, origem, auxiliar, destino)
+    out "  Mover disco " + str(n) + " de " + origem + " para " + destino
+    hanoi(n - 1, auxiliar, destino, origem)
+
+out "Torre de Hanoi (3 discos):"
+hanoi(3, "A", "C", "B")
+
+out ""
+out "--- Busca Binária ---"
+action busca_binaria(lista, alvo):
+    esq := 0
+    dir := len(lista) - 1
+    persist esq smaller_eq dir:
+        meio := (esq + dir) // 2
+        given lista[meio] is alvo:
+            yield meio
+        orif lista[meio] smaller alvo:
+            esq := meio + 1
+        otherwise:
+            dir := meio - 1
+    yield -1
+
+lista_ordenada := [2, 5, 8, 12, 16, 23, 38, 45, 56, 72, 91]
+out "Lista:", lista_ordenada
+out "Busca 23:", busca_binaria(lista_ordenada, 23)
+out "Busca 56:", busca_binaria(lista_ordenada, 56)
+out "Busca 99:", busca_binaria(lista_ordenada, 99)
+
+out ""
+out "--- Bubble Sort ---"
+action bubble_sort(lista):
+    n := len(lista)
+    copia := []
+    cycle item in lista:
+        append(copia, item)
+    cycle i from 0 to n - 2:
+        cycle j from 0 to n - 2 - i:
+            given copia[j] bigger copia[j + 1]:
+                temp := copia[j]
+                copia[j] := copia[j + 1]
+                copia[j + 1] := temp
+    yield copia
+
+desordenada := [64, 34, 25, 12, 22, 11, 90]
+out "Desordenada:", desordenada
+out "Ordenada:", bubble_sort(desordenada)
+
+out ""
+out "--- Quick Sort ---"
+action quick_sort(lista):
+    given len(lista) smaller_eq 1:
+        yield lista
+    pivo := lista[0]
+    menores := lista >> sift n: n smaller pivo
+    iguais := lista >> sift n: n is pivo
+    maiores := lista >> sift n: n bigger pivo
+    yield quick_sort(menores) + iguais + quick_sort(maiores)
+
+desordenada2 := [38, 27, 43, 3, 9, 82, 10]
+out "Desordenada:", desordenada2
+out "Quick Sort:", quick_sort(desordenada2)
+
+out ""
+out "--- Máximo Divisor Comum (Euclides) ---"
+action mdc(a, b):
+    persist b isnt 0:
+        temp := b
+        b := a % b
+        a := temp
+    yield a
+
+action mmc(a, b):
+    yield (a * b) // mdc(a, b)
+
+out "MDC(48, 18) =", mdc(48, 18)
+out "MDC(100, 75) =", mdc(100, 75)
+out "MMC(12, 8) =", mmc(12, 8)
+out "MMC(15, 20) =", mmc(15, 20)

@@ -1,0 +1,46 @@
+// ═══════════════════════════════════════════════════════════
+//  DataForge - Variables & Types
+//  Demonstrates variable assignment and data types
+// ═══════════════════════════════════════════════════════════
+
+// Direct assignment - no let/var/const needed!
+name := "DataForge"
+version := 2
+pi := 3.14159
+is_awesome := yes
+nothing := void
+
+out "Language: " + name
+out "Version: " + version
+out "Pi: " + pi
+out "Awesome? " + is_awesome
+out "Nothing: " + nothing
+
+// Constants (immutable)
+steady MAX_USERS := 1000
+steady APP_NAME := "MyForgeApp"
+out "Max users: " + MAX_USERS
+out "App: " + APP_NAME
+
+// Type checking
+out "Type of name: " + typeof name
+out "Type of version: " + typeof version
+out "Type of pi: " + typeof pi
+out "Type of is_awesome: " + typeof is_awesome
+out "Type of nothing: " + typeof nothing
+
+// Type casting
+num_str := "42"
+num := cast num_str as int
+out "Cast string to int: " + num
+out "Type after cast: " + typeof num
+
+// Clusters (lists)
+fruits := ["apple", "banana", "cherry", "date"]
+out "Fruits: " + fruits
+out "First fruit: " + fruits[0]
+out "Cluster length: " + len(fruits)
+
+// Vaults (dictionaries)
+person := {"name": "Alice", "age": 30, "city": "Forgeheim"}
+out "Person: " + person

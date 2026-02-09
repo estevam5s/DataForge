@@ -1,0 +1,212 @@
+// ═══════════════════════════════════════════
+// Exemplo 20: Match e Controle Avançado
+// ═══════════════════════════════════════════
+
+out "═══ MATCH E CONTROLE AVANÇADO ═══"
+out ""
+
+// --- 1. Match Básico ---
+out "--- 1. Calculadora com Match ---"
+action calcular(op, a, b):
+    match op:
+        point "+":
+            yield a + b
+        point "-":
+            yield a - b
+        point "*":
+            yield a * b
+        point "/":
+            given b is 0:
+                trigger "Divisão por zero"
+            yield a / b
+        point "**":
+            yield a ** b
+        point "%":
+            yield a % b
+        default:
+            trigger "Operação desconhecida: " + op
+
+operacoes := ["+", "-", "*", "/", "**", "%"]
+cycle op in operacoes:
+    out "  10 " + op + " 3 = " + str(calcular(op, 10, 3))
+
+out ""
+out "--- 2. Conversor de Unidades ---"
+action converter(valor, de, para):
+    // Converter tudo para metros primeiro
+    em_metros := 0
+
+    match de:
+        point "km":
+            em_metros := valor * 1000
+        point "m":
+            em_metros := valor
+        point "cm":
+            em_metros := valor / 100
+        point "mm":
+            em_metros := valor / 1000
+        point "mi":
+            em_metros := valor * 1609.34
+        default:
+            trigger "Unidade desconhecida: " + de
+
+    match para:
+        point "km":
+            yield em_metros / 1000
+        point "m":
+            yield em_metros
+        point "cm":
+            yield em_metros * 100
+        point "mm":
+            yield em_metros * 1000
+        point "mi":
+            yield em_metros / 1609.34
+        default:
+            trigger "Unidade desconhecida: " + para
+
+out "  1 km = " + str(converter(1, "km", "m")) + " m"
+out "  100 cm = " + str(converter(100, "cm", "m")) + " m"
+out "  1 mi = " + str(round(converter(1, "mi", "km"), 2)) + " km"
+out "  5000 mm = " + str(converter(5000, "mm", "m")) + " m"
+out "  42.195 km = " + str(round(converter(42.195, "km", "mi"), 2)) + " mi"
+
+out ""
+out "--- 3. Dia da Semana ---"
+action dia_da_semana(num):
+    match num:
+        point 1:
+            yield "Segunda-feira"
+        point 2:
+            yield "Terça-feira"
+        point 3:
+            yield "Quarta-feira"
+        point 4:
+            yield "Quinta-feira"
+        point 5:
+            yield "Sexta-feira"
+        point 6:
+            yield "Sábado"
+        point 7:
+            yield "Domingo"
+        default:
+            yield "Dia inválido"
+
+cycle d from 1 to 7:
+    out "  " + str(d) + " → " + dia_da_semana(d)
+
+out ""
+out "--- 4. Given Complexo ---"
+action classificar_imc(peso, altura):
+    imc := peso / (altura * altura)
+    imc := round(imc, 1)
+
+    categoria := ""
+    given imc smaller 18.5:
+        categoria := "Abaixo do peso"
+    orif imc smaller 25:
+        categoria := "Peso normal"
+    orif imc smaller 30:
+        categoria := "Sobrepeso"
+    orif imc smaller 35:
+        categoria := "Obesidade grau I"
+    orif imc smaller 40:
+        categoria := "Obesidade grau II"
+    otherwise:
+        categoria := "Obesidade grau III"
+
+    yield {"imc": imc, "categoria": categoria}
+
+pacientes := [
+    {"nome": "Ana", "peso": 55, "altura": 1.65},
+    {"nome": "Bruno", "peso": 90, "altura": 1.75},
+    {"nome": "Carlos", "peso": 110, "altura": 1.80},
+    {"nome": "Diana", "peso": 48, "altura": 1.70}
+]
+
+cycle p in pacientes:
+    resultado := classificar_imc(p["peso"], p["altura"])
+    out "  " + p["nome"] + ": IMC " + str(resultado["imc"]) + " - " + resultado["categoria"]
+
+out ""
+out "--- 5. State Machine ---"
+blueprint StateMachine:
+    action setup():
+        self.estado := "idle"
+        self.log := []
+
+    action transicao(evento):
+        novo := ""
+        match self.estado:
+            point "idle":
+                match evento:
+                    point "start":
+                        novo := "running"
+                    point "error":
+                        novo := "error"
+                    default:
+                        novo := self.estado
+            point "running":
+                match evento:
+                    point "pause":
+                        novo := "paused"
+                    point "complete":
+                        novo := "completed"
+                    point "error":
+                        novo := "error"
+                    default:
+                        novo := self.estado
+            point "paused":
+                match evento:
+                    point "resume":
+                        novo := "running"
+                    point "cancel":
+                        novo := "idle"
+                    default:
+                        novo := self.estado
+            point "error":
+                match evento:
+                    point "retry":
+                        novo := "running"
+                    point "reset":
+                        novo := "idle"
+                    default:
+                        novo := self.estado
+            default:
+                novo := self.estado
+
+        append(self.log, self.estado + " → " + novo + " (" + evento + ")")
+        self.estado := novo
+
+    action status():
+        yield self.estado
+
+sm := spawn StateMachine()
+out "Estado inicial:", sm.status()
+
+eventos := ["start", "pause", "resume", "error", "retry", "complete"]
+cycle e in eventos:
+    sm.transicao(e)
+    out "  Evento '" + e + "' → Estado: " + sm.status()
+
+out ""
+out "Histórico de transições:"
+cycle l in sm.log:
+    out "  " + l
+
+out ""
+out "--- 6. Perform (Do-While) ---"
+out "Adivinhe o número (simulado):"
+secreto := 7
+tentativa := 1
+palpite := 0
+perform:
+    // Simular tentativas
+    palpite := tentativa * 2 - 1
+    given palpite smaller secreto:
+        out "  Tentativa " + str(tentativa) + ": " + str(palpite) + " - Muito baixo!"
+    orif palpite bigger secreto:
+        out "  Tentativa " + str(tentativa) + ": " + str(palpite) + " - Muito alto!"
+    otherwise:
+        out "  Tentativa " + str(tentativa) + ": " + str(palpite) + " - Acertou! 🎉"
+    tentativa := tentativa + 1
+persist palpite isnt secreto and tentativa smaller_eq 10

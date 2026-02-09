@@ -1,0 +1,135 @@
+// ═══════════════════════════════════════════
+// Exemplo 14: Tratamento de Erros Avançado
+// ═══════════════════════════════════════════
+
+out "═══ TRATAMENTO DE ERROS AVANÇADO ═══"
+out ""
+
+// --- Monitor/Handle Básico ---
+out "--- 1. Divisão Segura ---"
+action divisao_segura(a, b):
+    monitor:
+        given b is 0:
+            trigger "Divisão por zero"
+        yield a / b
+    handle erro:
+        out "  ⚠ Erro:", erro
+        yield 0
+
+out "10 / 2 =", divisao_segura(10, 2)
+out "10 / 0 =", divisao_segura(10, 0)
+out "15 / 3 =", divisao_segura(15, 3)
+
+out ""
+out "--- 2. Validação de Dados ---"
+action validar_idade(valor):
+    given typeof valor isnt "Integer":
+        trigger "Idade deve ser um número inteiro"
+    given valor smaller 0:
+        trigger "Idade não pode ser negativa"
+    given valor bigger 150:
+        trigger "Idade inválida (muito alta)"
+    yield valor
+
+testes := [25, -5, 200, 0, 42]
+cycle t in testes:
+    monitor:
+        idade := validar_idade(t)
+        out "  ✓ Idade", t, "é válida"
+    handle erro:
+        out "  ✗ Idade", t, "- Erro:", erro
+
+out ""
+out "--- 3. Cadeia de Erros ---"
+action processar_pedido(item, qtd, estoque):
+    given qtd smaller_eq 0:
+        trigger "Quantidade deve ser positiva"
+    given qtd bigger estoque:
+        trigger "Estoque insuficiente (" + str(estoque) + " disponíveis)"
+    yield item + " x" + str(qtd)
+
+pedidos := [
+    ["Notebook", 2, 10],
+    ["Mouse", 5, 3],
+    ["Teclado", -1, 20],
+    ["Monitor", 1, 1]
+]
+
+cycle pedido in pedidos:
+    monitor:
+        resultado := processar_pedido(pedido[0], pedido[1], pedido[2])
+        out "  ✓ Pedido:", resultado
+    handle erro:
+        out "  ✗ Pedido", pedido[0], "falhou:", erro
+
+out ""
+out "--- 4. Ensure (Finally) ---"
+action operacao_com_recurso():
+    out "  Abrindo recurso..."
+    monitor:
+        out "  Processando..."
+        trigger "Erro durante processamento"
+    handle erro:
+        out "  Erro capturado:", erro
+    ensure:
+        out "  Fechando recurso (ensure)"
+
+operacao_com_recurso()
+
+out ""
+out "--- 5. Retry Pattern ---"
+action operacao_instavel(tentativa):
+    given tentativa smaller 3:
+        trigger "Falha na tentativa " + str(tentativa)
+    yield "Sucesso na tentativa " + str(tentativa)
+
+action com_retry(max_tentativas):
+    tentativa := 1
+    persist tentativa smaller_eq max_tentativas:
+        monitor:
+            resultado := operacao_instavel(tentativa)
+            out "  ✓", resultado
+            yield resultado
+        handle erro:
+            out "  ✗ Tentativa", tentativa, "-", erro
+            tentativa := tentativa + 1
+    trigger "Falhou após " + str(max_tentativas) + " tentativas"
+
+monitor:
+    com_retry(5)
+handle erro:
+    out "  Final:", erro
+
+out ""
+out "--- 6. Validador Completo ---"
+action validar_email(email):
+    given len(email) smaller 5:
+        trigger "Email muito curto"
+    given not contains(email, "@"):
+        trigger "Email deve conter @"
+    given not contains(email, "."):
+        trigger "Email deve conter domínio"
+    yield yes
+
+emails := ["user@email.com", "abc", "user@", "a@b.c", "invalido"]
+cycle e in emails:
+    monitor:
+        validar_email(e)
+        out "  ✓", e, "é válido"
+    handle erro:
+        out "  ✗", e, "-", erro
+
+out ""
+out "--- 7. Assert com Mensagens ---"
+action calcular_desconto(preco, percentual):
+    assert preco bigger 0, "Preço deve ser positivo"
+    assert percentual bigger_eq 0, "Percentual não pode ser negativo"
+    assert percentual smaller_eq 100, "Percentual não pode exceder 100"
+    yield preco * (1 - percentual / 100)
+
+monitor:
+    out "  Desconto 10% em 100:", calcular_desconto(100, 10)
+    out "  Desconto 50% em 200:", calcular_desconto(200, 50)
+    out "  Desconto 110% em 100:", calcular_desconto(100, 110)
+handle erro:
+    out "  ✗ Erro de assert:", erro
