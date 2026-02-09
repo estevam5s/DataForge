@@ -1188,8 +1188,11 @@ p <span class="o">:=</span> Async.promise(buscar_dados)
 
 <span class="c">// Event Emitter</span>
 emitter <span class="o">:=</span> Async.event_emitter()
-Async.on(emitter, <span class="s">"msg"</span>, <span class="k">action</span>(data):
-    <span class="k">out</span> <span class="s">"Recebido: "</span> <span class="o">+</span> data)
+
+<span class="k">action</span> <span class="f">on_msg</span>(data):
+    <span class="k">out</span> <span class="s">"Recebido: "</span> <span class="o">+</span> data
+
+Async.on(emitter, <span class="s">"msg"</span>, on_msg)
 Async.emit_event(emitter, <span class="s">"msg"</span>, <span class="s">"Olá!"</span>)
 
 <span class="c">// Channels</span>

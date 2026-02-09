@@ -50,10 +50,17 @@ class ArcaneAsync:
 
             # Event emitter
             "emitter": cls._emitter,
+            "event_emitter": cls._emitter,
             "on": cls._on,
             "off": cls._off,
             "emit": cls._emit,
+            "emit_event": cls._emit,
             "once_event": cls._once_event,
+
+            # Channels
+            "channel": cls._channel,
+            "send": cls._channel_send,
+            "receive": cls._channel_receive,
 
             # Task / Scheduler
             "task": cls._task,
@@ -584,3 +591,24 @@ class ArcaneAsync:
     def _batch(fn):
         """Batch multiple reactive updates."""
         fn()
+
+    # ── Channels ──────────────────────────────────────────
+
+    @staticmethod
+    def _channel(buffer_size=0):
+        """Create a channel for message passing."""
+        import queue
+        return {
+            "__type__": "Channel",
+            "_queue": queue.Queue(maxsize=buffer_size if buffer_size > 0 else 0),
+        }
+
+    @staticmethod
+    def _channel_send(ch, value):
+        """Send a value to a channel."""
+        ch["_queue"].put(value)
+
+    @staticmethod
+    def _channel_receive(ch):
+        """Receive a value from a channel."""
+        return ch["_queue"].get()

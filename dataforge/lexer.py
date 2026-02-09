@@ -186,6 +186,13 @@ class Lexer:
         if self.source[self.pos] == '#':
             return
 
+        # Dot-continuation: if the line starts with '.', it's a method chain
+        # continuation. Remove the preceding NEWLINE and skip indent logic.
+        if self.source[self.pos] == '.':
+            if self.tokens and self.tokens[-1].type == TokenType.NEWLINE:
+                self.tokens.pop()
+            return
+
         current_indent = self.indent_stack[-1]
 
         if spaces > current_indent:

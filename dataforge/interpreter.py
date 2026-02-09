@@ -435,7 +435,10 @@ class Interpreter:
                 return obj.methods[node.member]
             raise NameError_(f"Blueprint '{obj.name}' has no member '{node.member}'")
         elif isinstance(obj, dict):
-            # Check dict methods first
+            # Module namespace dicts: check key access first
+            if "__name__" in obj and node.member in obj:
+                return obj[node.member]
+            # Check dict methods
             dict_methods = {
                 'keys': lambda: list(obj.keys()),
                 'values': lambda: list(obj.values()),

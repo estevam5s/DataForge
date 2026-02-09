@@ -36,6 +36,11 @@ class ArcaneIO:
             "size": cls._size,
             "rename": cls._rename,
             "copy": cls._copy,
+            # Aliases
+            "read_file": cls._read,
+            "write_file": cls._write,
+            "file_exists": cls._exists,
+            "list_dir": cls._listdir,
         }
 
     @staticmethod

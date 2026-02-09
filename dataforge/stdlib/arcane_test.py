@@ -18,6 +18,8 @@ class ArcaneTest:
             # Test suite management
             "suite": cls._create_suite,
             "run": cls._run_suite,
+            "add_test": cls._add_test,
+            "run_suite": cls._run_suite_standalone,
 
             # Assertions
             "assert_eq": cls._assert_eq,
@@ -67,6 +69,61 @@ class ArcaneTest:
             "start_time": 0,
             "end_time": 0,
         }
+
+    @staticmethod
+    def _add_test(suite, name, spec):
+        """Add a test to a suite. spec can be a dict with 'expected'/'actual' or a callable."""
+        suite["tests"].append({"name": name, "spec": spec})
+
+    @staticmethod
+    def _run_suite_standalone(suite):
+        """Run a test suite that has had tests added via add_test."""
+        suite["start_time"] = time.time()
+        suite["passed"] = 0
+        suite["failed"] = 0
+        suite["errors"] = []
+
+        print(f"\n{'='*60}")
+        print(f"  🧪 {suite['name']}")
+        print(f"{'='*60}")
+
+        for test_info in suite.get("tests", []):
+            name = test_info.get("name", "unnamed")
+            spec = test_info.get("spec")
+
+            try:
+                if callable(spec):
+                    spec()
+                elif isinstance(spec, dict) and "expected" in spec and "actual" in spec:
+                    expected = spec["expected"]
+                    actual = spec["actual"]
+                    if expected != actual:
+                        raise AssertionError(f"Expected {expected!r}, got {actual!r}")
+                suite["passed"] += 1
+                print(f"  \033[1;32m✓\033[0m {name}")
+            except AssertionError as e:
+                suite["failed"] += 1
+                suite["errors"].append({"test": name, "error": str(e)})
+                print(f"  \033[1;31m✗\033[0m {name}")
+                print(f"    → {e}")
+            except Exception as e:
+                suite["failed"] += 1
+                suite["errors"].append({"test": name, "error": str(e)})
+                print(f"  \033[1;31m✗\033[0m {name} (error)")
+                print(f"    → {e}")
+
+        suite["end_time"] = time.time()
+        elapsed = (suite["end_time"] - suite["start_time"]) * 1000
+
+        total = suite["passed"] + suite["failed"]
+        print(f"\n{'—'*60}")
+        if suite["failed"] == 0:
+            print(f"  \033[1;32m✓ All {total} tests passed\033[0m ({elapsed:.1f}ms)")
+        else:
+            print(f"  \033[1;31m✗ {suite['failed']}/{total} tests failed\033[0m ({elapsed:.1f}ms)")
+        print(f"{'='*60}\n")
+
+        return suite
 
     @staticmethod
     def _run_suite(suite, tests):
@@ -161,7 +218,7 @@ class ArcaneTest:
             type(None): "Void",
         }
         actual = type_map.get(type(value), type(value).__name__)
-        if actual != expected_type:
+        if actual.lower() != expected_type.lower():
             raise AssertionError(msg or f"Expected type {expected_type}, got {actual}")
 
     @staticmethod

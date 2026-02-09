@@ -55,6 +55,18 @@ class Parser:
         while self.current().type == TokenType.NEWLINE:
             self.advance()
 
+    def expect_member_name(self) -> str:
+        """Expect an identifier or a keyword used as a member name after '.'."""
+        tok = self.current()
+        if tok.type == TokenType.IDENTIFIER:
+            self.advance()
+            return tok.value
+        # Allow keywords as member names (e.g., Database.delete, IO.delete)
+        if tok.value and isinstance(tok.value, str) and tok.value.isidentifier():
+            self.advance()
+            return tok.value
+        self.error(f"Expected member name after '.', got {tok.type.name} ({tok.value!r})")
+
     def at_end(self) -> bool:
         return self.current().type == TokenType.EOF
 
@@ -959,7 +971,7 @@ class Parser:
         while True:
             if self.current().type == TokenType.DOT:
                 self.advance()
-                member = self.expect(TokenType.IDENTIFIER).value
+                member = self.expect_member_name()
 
                 # Check for method call: obj.method(args)
                 if self.current().type == TokenType.LPAREN:
@@ -1032,7 +1044,7 @@ class Parser:
             # Allow self.member
             while self.current().type == TokenType.DOT:
                 self.advance()
-                member = self.expect(TokenType.IDENTIFIER).value
+                member = self.expect_member_name()
                 if self.current().type == TokenType.LPAREN:
                     self.advance()
                     args, kwargs = self._parse_call_args()
@@ -1049,7 +1061,7 @@ class Parser:
             expr = ast.Identifier(name="root", line=tok.line, column=tok.column)
             while self.current().type == TokenType.DOT:
                 self.advance()
-                member = self.expect(TokenType.IDENTIFIER).value
+                member = self.expect_member_name()
                 if self.current().type == TokenType.LPAREN:
                     self.advance()
                     args, kwargs = self._parse_call_args()
