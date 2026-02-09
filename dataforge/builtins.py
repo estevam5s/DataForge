@@ -896,6 +896,62 @@ def _df_validate(value, predicate, message="Validation failed"):
 
 
 # ═══════════════════════════════════════════════════════════
+#  OOP AVANÇADO (Advanced Object-Oriented)
+# ═══════════════════════════════════════════════════════════
+
+def _df_instanceof(instance, blueprint):
+    """Check if instance is of given blueprint or inherits from it."""
+    if hasattr(instance, 'isinstance_of'):
+        return instance.isinstance_of(blueprint)
+    return False
+
+def _df_has_method(instance, name):
+    """Check if instance has a given method."""
+    if hasattr(instance, 'has_method'):
+        return instance.has_method(name)
+    return False
+
+def _df_has_field(instance, name):
+    """Check if instance has a given field."""
+    if hasattr(instance, 'fields'):
+        return name in instance.fields
+    return False
+
+def _df_get_fields(instance):
+    """Get all field names of an instance."""
+    if hasattr(instance, 'fields'):
+        return list(instance.fields.keys())
+    return []
+
+def _df_get_methods(instance):
+    """Get all method names of an instance's blueprint."""
+    if hasattr(instance, 'blueprint'):
+        methods = list(instance.blueprint.methods.keys())
+        for parent in instance.blueprint.parents:
+            methods.extend(k for k in parent.methods.keys() if k not in methods)
+        return methods
+    return []
+
+def _df_get_mro(instance):
+    """Get Method Resolution Order of an instance."""
+    if hasattr(instance, 'get_mro'):
+        return [bp.name for bp in instance.get_mro()]
+    return []
+
+def _df_get_parent(instance):
+    """Get first parent blueprint name."""
+    if hasattr(instance, 'blueprint') and instance.blueprint.parents:
+        return instance.blueprint.parents[0].name
+    return None
+
+def _df_class_name(instance):
+    """Get the class/blueprint name of an instance."""
+    if hasattr(instance, 'blueprint'):
+        return instance.blueprint.name
+    return type(instance).__name__
+
+
+# ═══════════════════════════════════════════════════════════
 #  REGISTRY
 # ═══════════════════════════════════════════════════════════
 
@@ -1130,6 +1186,16 @@ def get_builtins() -> dict:
         "default_val": BuiltinFunction("default_val", _df_default, 2),
         "assert_type": BuiltinFunction("assert_type", _df_assert_type, 2),
         "validate": BuiltinFunction("validate", _df_validate),
+
+        # ── OOP Avançado ──
+        "instanceof": BuiltinFunction("instanceof", _df_instanceof, 2),
+        "has_method": BuiltinFunction("has_method", _df_has_method, 2),
+        "has_field": BuiltinFunction("has_field", _df_has_field, 2),
+        "get_fields": BuiltinFunction("get_fields", _df_get_fields, 1),
+        "get_methods": BuiltinFunction("get_methods", _df_get_methods, 1),
+        "get_mro": BuiltinFunction("get_mro", _df_get_mro, 1),
+        "get_parent": BuiltinFunction("get_parent", _df_get_parent, 1),
+        "class_name": BuiltinFunction("class_name", _df_class_name, 1),
 
         # ── Constants ──
         "PI": math.pi,

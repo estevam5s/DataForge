@@ -121,16 +121,64 @@ class DFInstance:
         # Look in statics
         if name in self.blueprint.statics:
             return self.blueprint.statics[name]
-        # Look in parent blueprints
+        # Look in parent blueprints (MRO: depth-first)
         for parent in self.blueprint.parents:
-            if name in parent.methods:
-                return parent.methods[name]
-            if name in parent.statics:
-                return parent.statics[name]
+            try:
+                return self._resolve_from_blueprint(parent, name)
+            except NameError_:
+                continue
         raise NameError_(f"'{self.blueprint.name}' has no member '{name}'")
+
+    def _resolve_from_blueprint(self, bp, name):
+        """Resolve a name from blueprint chain (supports deep inheritance)."""
+        if name in bp.methods:
+            return bp.methods[name]
+        if name in bp.statics:
+            return bp.statics[name]
+        for parent in bp.parents:
+            try:
+                return self._resolve_from_blueprint(parent, name)
+            except NameError_:
+                continue
+        raise NameError_(f"Not found: '{name}'")
 
     def set(self, name, value):
         self.fields[name] = value
+
+    def isinstance_of(self, blueprint):
+        """Check if this instance is of given blueprint or inherits from it."""
+        if self.blueprint is blueprint or self.blueprint.name == blueprint.name:
+            return True
+        return self._check_parents(self.blueprint, blueprint)
+
+    def _check_parents(self, bp, target):
+        for parent in bp.parents:
+            if parent is target or parent.name == target.name:
+                return True
+            if self._check_parents(parent, target):
+                return True
+        return False
+
+    def get_mro(self):
+        """Get Method Resolution Order (C3 linearization simplified)."""
+        mro = [self.blueprint]
+        visited = {self.blueprint.name}
+        queue = list(self.blueprint.parents)
+        while queue:
+            bp = queue.pop(0)
+            if bp.name not in visited:
+                visited.add(bp.name)
+                mro.append(bp)
+                queue.extend(bp.parents)
+        return mro
+
+    def has_method(self, name):
+        """Check if instance has a given method."""
+        try:
+            val = self.get(name)
+            return isinstance(val, (DFAction, BuiltinFunction)) or callable(val)
+        except NameError_:
+            return False
 
     def __repr__(self):
         return f"<{self.blueprint.name} instance>"
@@ -156,6 +204,26 @@ class DFChannel:
 
     def __repr__(self):
         return f"<channel '{self.name}'>"
+
+
+class _RootProxy:
+    """Proxy for 'root' (super) calls - resolves methods from parent blueprints."""
+    def __init__(self, instance, parent_blueprint, interpreter):
+        self.instance = instance
+        self.parent = parent_blueprint
+        self.interpreter = interpreter
+
+    def get(self, name):
+        if name in self.parent.methods:
+            return self.parent.methods[name]
+        if name in self.parent.statics:
+            return self.parent.statics[name]
+        for p in self.parent.parents:
+            if name in p.methods:
+                return p.methods[name]
+            if name in p.statics:
+                return p.statics[name]
+        raise NameError_(f"Parent has no member '{name}'")
 
 
 # ── Interpreter ────────────────────────────────────────────
@@ -252,12 +320,31 @@ class Interpreter:
     # ═══════════════════════════════════════════════════════
 
     def eval_Identifier(self, node: ast.Identifier, env):
+        # Special: 'root' inside a method = proxy to parent blueprint methods
+        if node.name == 'root':
+            # Find 'self' in scope to get the instance's parent
+            if env.has('self'):
+                instance = env.get('self')
+                if isinstance(instance, DFInstance) and instance.blueprint.parents:
+                    # Return a proxy dict that resolves parent methods
+                    parent = instance.blueprint.parents[0]
+                    return _RootProxy(instance, parent, self)
         return env.get(node.name)
 
     def eval_BinaryOp(self, node: ast.BinaryOp, env):
         left = self.evaluate(node.left, env)
         right = self.evaluate(node.right, env)
         op = node.op
+
+        # ── Operator overloading for blueprint instances ───
+        op_methods = {'+': 'add', '-': 'sub', '*': 'mul', '/': 'div',
+                      '%': 'mod', '**': 'pow', '//': 'floordiv'}
+        if isinstance(left, DFInstance) and op in op_methods:
+            method_name = op_methods[op]
+            if left.has_method(method_name):
+                method = left.get(method_name)
+                return self._call_action(method, [right], {}, node, env, instance=left)
+
         try:
             if op == '+':
                 if isinstance(left, str) or isinstance(right, str):
@@ -328,7 +415,18 @@ class Interpreter:
     def eval_MemberAccess(self, node: ast.MemberAccess, env):
         obj = self.evaluate(node.object, env)
 
+        # Handle root (super) proxy
+        if isinstance(obj, _RootProxy):
+            return obj.get(node.member)
+
         if isinstance(obj, DFInstance):
+            # Instance built-in methods
+            if node.member == 'blueprint_name':
+                return obj.blueprint.name
+            if node.member == 'fields':
+                return dict(obj.fields)
+            if node.member == 'methods':
+                return list(obj.blueprint.methods.keys())
             return obj.get(node.member)
         elif isinstance(obj, DFBlueprint):
             if node.member in obj.statics:
@@ -495,6 +593,14 @@ class Interpreter:
         obj = self.evaluate(node.object, env)
         args = [self.evaluate(arg, env) for arg in node.args]
         kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
+
+        # Handle root (super) proxy calls
+        if isinstance(obj, _RootProxy):
+            method = obj.get(node.method)
+            if isinstance(method, DFAction):
+                return self._call_action(method, args, kwargs, node, env, instance=obj.instance)
+            if callable(method):
+                return method(*args, **kwargs)
 
         if isinstance(obj, DFInstance):
             method = obj.get(node.method)
@@ -1234,6 +1340,11 @@ class Interpreter:
         if isinstance(value, bool):
             return "yes" if value else "no"
         if isinstance(value, DFInstance):
+            # Check if instance has a custom toString method
+            if value.has_method('toString'):
+                method = value.get('toString')
+                if isinstance(method, DFAction):
+                    return str(self._call_action(method, [], {}, type('_N', (), {'line': 0, 'column': 0})(), None, instance=value))
             return f"<{value.blueprint.name} instance>"
         if isinstance(value, DFBlueprint):
             return f"<blueprint {value.name}>"

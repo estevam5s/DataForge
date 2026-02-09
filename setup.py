@@ -7,14 +7,21 @@ from setuptools import setup, find_packages
 
 setup(
     name="dataforge-lang",
-    version="2.0.0",
-    description="DataForge - A revolutionary programming language built on Python",
+    version="3.0.0",
+    description="DataForge v3.0 - A revolutionary programming language built on Python",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     author="DataForge Team",
     license="MIT",
     packages=find_packages(),
     python_requires=">=3.10",
+    include_package_data=True,
+    package_data={
+        "dataforge": ["../public/*.png"],
+    },
+    data_files=[
+        ("share/dataforge", ["public/DataForge.png", "public/DataForgeLanguage.png"]),
+    ],
     entry_points={
         "console_scripts": [
             "dataforge=dataforge.cli:main",

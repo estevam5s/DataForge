@@ -1,0 +1,116 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "DataForge",
+  "scopeName": "source.dataforge",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#constants" },
+    { "include": "#functions" },
+    { "include": "#operators" },
+    { "include": "#variables" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.dataforge",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.dataforge",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "name": "constant.character.escape.dataforge", "match": "\\\\." }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        { "name": "constant.numeric.float.dataforge", "match": "\\b\\d+\\.\\d+\\b" },
+        { "name": "constant.numeric.integer.dataforge", "match": "\\b\\d+\\b" }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.dataforge",
+          "match": "\\b(given|orif|otherwise|match|point|default|cycle|persist|perform|halt|skip|from|to|step|monitor|handle|ensure|trigger|retry|recover|guard|validate|propagate|defer|observe|stream|parallel)\\b"
+        },
+        {
+          "name": "keyword.declaration.dataforge",
+          "match": "\\b(action|blueprint|trait|static|abstract|steady|shadow)\\b"
+        },
+        {
+          "name": "keyword.other.dataforge",
+          "match": "\\b(yield|adopt|relay|spawn|self|root|in|out|emit|using|with|as|extends|wait|inspect|assert|delete|exists|async|await|thread|channel|pulse|mark|claim|release|forge|link|unlink|freeze|thaw|cast|listen|each|frame|cluster|vault|sift|morph|distill|train|predict)\\b"
+        },
+        {
+          "name": "keyword.operator.dataforge",
+          "match": "\\b(and|or|not|is|isnt|bigger|smaller|bigger_eq|smaller_eq)\\b"
+        },
+        {
+          "name": "constant.language.dataforge",
+          "match": "\\b(yes|no|void)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "support.type.dataforge",
+          "match": "\\b(Integer|Float|String|Boolean|Cluster|Vault|Void|Frozen|Action|Blueprint)\\b"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.other.dataforge",
+          "match": "\\b(PI|E|TAU|INF|NAN|NEWLINE|TAB|EMPTY|MAX_INT|MIN_INT)\\b"
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        {
+          "name": "entity.name.function.dataforge",
+          "match": "\\b(action)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.dataforge" },
+            "2": { "name": "entity.name.function.dataforge" }
+          }
+        },
+        {
+          "name": "support.function.dataforge",
+          "match": "\\b(len|type|str|int|float|bool|list|range|sorted|reversed|out|emit|print|abs|round|floor|ceil|sqrt|pow|min|max|sum|mean|median|mode|stdev|variance|join|split|upper|lower|strip|replace|contains|startswith|endswith|find|map|filter|reduce|compose|pipe_fn|partial|curry|memoize|once|every|some|find_first|find_last|flat_map|scan|regex_match|regex_search|regex_findall|regex_sub|regex_test|instanceof|has_method|class_name|get_fields|get_methods)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        { "name": "keyword.operator.assignment.dataforge", "match": ":=" },
+        { "name": "keyword.operator.pipeline.dataforge", "match": ">>" },
+        { "name": "keyword.operator.arithmetic.dataforge", "match": "[+\\-*/%]|\\*\\*|//" },
+        { "name": "keyword.operator.comparison.dataforge", "match": "==|!=" }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "name": "variable.other.dataforge",
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    }
+  }
+}

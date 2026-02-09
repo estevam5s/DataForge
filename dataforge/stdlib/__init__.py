@@ -13,6 +13,8 @@ from .arcane_test import ArcaneTest
 from .arcane_functional import ArcaneFunctional
 from .arcane_async import ArcaneAsync
 from .arcane_text import ArcaneText
+from .arcane_analytics import ArcaneAnalytics
+from .arcane_database import ArcaneDatabase
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -35,6 +37,11 @@ _MODULES = {
     "Functional": ArcaneFunctional,
     "Async": ArcaneAsync,
     "Text": ArcaneText,
+    "Arcane.Analytics": ArcaneAnalytics,
+    "Arcane.Database": ArcaneDatabase,
+    "Analytics": ArcaneAnalytics,
+    "Database": ArcaneDatabase,
+    "DB": ArcaneDatabase,
     "Network": ArcaneWeb,
     "UI": {},
 }
