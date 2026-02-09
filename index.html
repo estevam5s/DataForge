@@ -210,20 +210,82 @@
         .scroll-top:hover { transform: translateY(-3px); }
         .scroll-top.visible { display: flex; }
 
+        /* theory-grid */
+        .theory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+        .theory-card { background: var(--bg-code); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; transition: all .3s; }
+        .theory-card:hover { border-color: var(--accent2); transform: translateY(-3px); box-shadow: var(--shadow); }
+        .theory-card h4 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--accent2); }
+        .theory-card p { color: var(--text-muted); font-size: 0.93rem; line-height: 1.7; }
+        .theory-card .theory-num { font-size: 2rem; font-weight: 900; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem; display: block; }
+
+        /* principle-box */
+        .principle-box { background: var(--bg-code); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.8rem; margin: 1.5rem 0; }
+        .principle-box h4 { font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .principle-box h4 .letter { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: var(--gradient); color: #fff; border-radius: 8px; font-size: 1.2rem; font-weight: 900; }
+        .principle-box p { color: var(--text-muted); font-size: 0.93rem; line-height: 1.7; margin-bottom: 1rem; }
+        .principle-box p:last-child { margin-bottom: 0; }
+
+        /* pattern-card */
+        .pattern-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .pattern-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: all .3s; }
+        .pattern-card:hover { border-color: var(--accent4); transform: translateY(-2px); }
+        .pattern-card .pattern-type { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 3px 10px; border-radius: 20px; display: inline-block; margin-bottom: 0.8rem; }
+        .pattern-type.creational { background: rgba(255,107,53,0.15); color: var(--accent); }
+        .pattern-type.structural { background: rgba(88,166,255,0.15); color: var(--accent2); }
+        .pattern-type.behavioral { background: rgba(63,185,80,0.15); color: var(--accent3); }
+        .pattern-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+        .pattern-card p { color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; }
+
+        /* step-list */
+        .step-list { list-style: none; counter-reset: step-counter; }
+        .step-list li { counter-increment: step-counter; padding: 1rem 1rem 1rem 3.5rem; position: relative; border-left: 2px solid var(--border); margin-bottom: 0.5rem; }
+        .step-list li::before { content: counter(step-counter); position: absolute; left: -15px; top: 1rem; width: 30px; height: 30px; background: var(--gradient); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+        .step-list li strong { color: var(--accent2); }
+        .step-list li p { color: var(--text-muted); font-size: 0.93rem; margin-top: 0.3rem; }
+
+        /* pillar cards */
+        .pillar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin: 1.5rem 0; }
+        .pillar-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; text-align: center; transition: all .3s; }
+        .pillar-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+        .pillar-card .pillar-icon { font-size: 2.5rem; margin-bottom: 0.5rem; display: block; }
+        .pillar-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+        .pillar-card p { color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; }
+
         /* ═══════════════════════════════════════════════════════
            RESPONSIVE
            ═══════════════════════════════════════════════════════ */
         @media (max-width: 960px) {
             .doc-layout { grid-template-columns: 1fr; }
             .sidebar { display: none; }
+            .theory-grid { grid-template-columns: 1fr; }
+            .pattern-grid { grid-template-columns: 1fr; }
         }
         @media (max-width: 768px) {
-            .nav-links { position: fixed; top: var(--nav-h); left: 0; right: 0; background: var(--bg); border-bottom: 1px solid var(--border); flex-direction: column; padding: 1rem 1.5rem; gap: 0.5rem; display: none; z-index: 999; }
+            .nav-links { position: fixed; top: var(--nav-h); left: 0; right: 0; background: var(--bg); border-bottom: 1px solid var(--border); flex-direction: column; padding: 1rem 1.5rem; gap: 0.5rem; display: none; z-index: 999; max-height: calc(100vh - var(--nav-h)); overflow-y: auto; }
             .nav-links.open { display: flex; }
             .nav-toggle { display: block; }
             .hero h1 { font-size: 2.2rem; }
+            .hero-logo { width: 100px; height: 100px; border-radius: 24px; }
             .stats-bar { gap: 1rem; }
             .feat-grid { grid-template-columns: 1fr; }
+            .pillar-grid { grid-template-columns: 1fr 1fr; }
+            .ref-table { font-size: 0.82rem; }
+            .ref-table th, .ref-table td { padding: 0.5rem 0.6rem; }
+            .cb pre { padding: 0.8rem 1rem; font-size: 0.82rem; }
+            .section { padding: 3rem 0; }
+            .section-head h2 { font-size: 1.6rem; }
+        }
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 1.8rem; }
+            .hero-sub { font-size: 0.95rem; }
+            .hero-actions { flex-direction: column; align-items: center; }
+            .btn { padding: 12px 24px; font-size: 0.9rem; width: 100%; justify-content: center; }
+            .pillar-grid { grid-template-columns: 1fr; }
+            .stats-bar { flex-direction: column; gap: 0.5rem; }
+            .stat-num { font-size: 2rem; }
+            .topic-grid { grid-template-columns: 1fr; }
+            .ref-table { display: block; overflow-x: auto; white-space: nowrap; }
+            .container { padding: 0 1rem; }
         }
     </style>
 </head>
