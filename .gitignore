@@ -34,3 +34,11 @@ htmlcov/
 
 # Dumps de páginas (não fazem parte do projeto)
 pagecloner_*/
+
+# Site (Next.js)
+node_modules/
+site/.next/
+site/out/
+site/next-env.d.ts
+.vercel
+site/tsconfig.tsbuildinfo

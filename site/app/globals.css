@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Paleta e tipografia derivadas da captura de referência:
+ *   analysis/color-palette.json  ·  analysis/typography.json
+ *
+ * O tema escuro é o padrão (fundo rgb(8,6,6), como no original). O claro é
+ * derivado por inversão calibrada, preservando o mesmo destaque.
+ */
+
+@layer base {
+  :root,
+  :root[data-theme='dark'] {
+    --base: 8 6 6;
+    --surface: 16 13 14;
+    --raised: 24 20 21;
+    --line: 42 36 38;
+    --strong: 242 239 240;
+    --body: 198 191 192;
+    --muted: 172 168 169;
+    --accent: 242 53 81;
+    --accent-soft: 241 69 95;
+    --shadow: 0 0 0;
+    color-scheme: dark;
+  }
+
+  :root[data-theme='light'] {
+    --base: 255 255 255;
+    --surface: 250 249 249;
+    --raised: 244 242 243;
+    --line: 226 222 223;
+    --strong: 20 17 18;
+    --body: 68 62 64;
+    --muted: 112 106 108;
+    --accent: 214 32 60;
+    --accent-soft: 194 24 51;
+    --shadow: 120 110 112;
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 96px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    @apply bg-base text-body font-sans antialiased;
+    font-size: 15px;
+    line-height: 26px;
+  }
+
+  ::selection {
+    background: rgb(var(--accent) / 0.28);
+    color: rgb(var(--strong));
+  }
+
+  /* Barra de rolagem discreta, como no original */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--line));
+    border-radius: 6px;
+    border: 2px solid rgb(var(--base));
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--muted) / 0.5); }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* ── Rótulo de seção da barra lateral (h3: 13px/700/1.04px na captura) ── */
+  .nav-label {
+    @apply text-micro font-bold uppercase tracking-[1.04px];
+  }
+
+  /* ── Conteúdo em prosa ─────────────────────────────────────────── */
+  .prose-df {
+    @apply text-body;
+  }
+  .prose-df h1 {
+    @apply text-[40px] font-extrabold leading-[1.12] tracking-[-0.9px] text-strong mb-6;
+  }
+  .prose-df h2 {
+    @apply text-[26px] font-bold leading-[1.25] tracking-[-0.4px] text-strong mt-14 mb-4 scroll-mt-24;
+  }
+  .prose-df h3 {
+    @apply text-[18px] font-semibold leading-[25px] tracking-[-0.18px] text-strong mt-10 mb-3 scroll-mt-24;
+  }
+  .prose-df h4 {
+    @apply text-[15px] font-semibold text-strong mt-8 mb-2 scroll-mt-24;
+  }
+  .prose-df p { @apply my-4 leading-[27px]; }
+  .prose-df a {
+    @apply text-accent no-underline transition-colors;
+    text-decoration: underline;
+    text-decoration-color: rgb(var(--accent) / 0.32);
+    text-underline-offset: 3px;
+  }
+  .prose-df a:hover { @apply text-accent-soft; text-decoration-color: rgb(var(--accent-soft)); }
+  .prose-df strong { @apply font-semibold text-strong; }
+  .prose-df ul { @apply my-4 space-y-2 pl-0; }
+  .prose-df ol { @apply my-4 space-y-2 pl-6 list-decimal marker:text-muted; }
+  .prose-df ul > li {
+    @apply relative pl-5;
+    list-style: none;
+  }
+  .prose-df ul > li::before {
+    content: '';
+    @apply absolute left-0 top-[11px] h-[5px] w-[5px] rounded-full bg-accent/70;
+  }
+  .prose-df li > ul, .prose-df li > ol { @apply mt-2 mb-0; }
+
+  /* Código inline */
+  .prose-df :not(pre) > code {
+    @apply font-mono text-[13.5px] rounded px-[6px] py-[2px] whitespace-nowrap;
+    background: rgb(var(--raised));
+    color: rgb(var(--strong));
+    border: 1px solid rgb(var(--line));
+  }
+
+  .prose-df blockquote {
+    @apply my-6 border-l-2 border-accent/60 pl-5 italic text-muted;
+  }
+  .prose-df hr { @apply my-12 border-0 h-px bg-line; }
+
+  /* Tabelas */
+  .prose-df table {
+    @apply my-6 w-full border-collapse text-[14px];
+  }
+  .prose-df thead th {
+    @apply border-b border-line px-3 py-2.5 text-left font-semibold text-strong;
+  }
+  .prose-df tbody td {
+    @apply border-b border-line/60 px-3 py-2.5 align-top;
+  }
+  .prose-df tbody tr:hover { background: rgb(var(--raised) / 0.5); }
+  .prose-df td > code, .prose-df th > code { @apply whitespace-nowrap; }
+
+  /* ── Realce de sintaxe DataForge ──────────────────────────────── */
+  .tk-keyword     { color: rgb(var(--accent)); }
+  .tk-declaration { color: rgb(var(--accent)); font-weight: 600; }
+  .tk-type        { color: #7dd3fc; }
+  .tk-string      { color: #a5d6a7; }
+  .tk-number      { color: #f0b67f; }
+  .tk-comment     { color: rgb(var(--muted) / 0.72); font-style: italic; }
+  .tk-operator    { color: #d4b8ff; }
+  .tk-punct       { color: rgb(var(--muted)); }
+  .tk-function    { color: #ffd479; }
+  .tk-literal     { color: #f78fa7; font-weight: 500; }
+  .tk-property    { color: rgb(var(--body)); }
+
+  :root[data-theme='light'] .tk-type     { color: #0369a1; }
+  :root[data-theme='light'] .tk-string   { color: #15803d; }
+  :root[data-theme='light'] .tk-number   { color: #b45309; }
+  :root[data-theme='light'] .tk-operator { color: #7c3aed; }
+  :root[data-theme='light'] .tk-function { color: #a16207; }
+  :root[data-theme='light'] .tk-literal  { color: #be185d; }
+
+  /* ── Utilitários ──────────────────────────────────────────────── */
+  .surface-card {
+    @apply rounded-xl border border-line bg-surface;
+  }
+  .link-quiet {
+    @apply text-muted transition-colors hover:text-strong;
+  }
+}
+
+/* Fundo com o brilho sutil do topo, como no original */
+.page-glow::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 420px;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 80% 100% at 50% -20%,
+    rgb(var(--accent) / 0.11),
+    transparent 70%
+  );
+}
