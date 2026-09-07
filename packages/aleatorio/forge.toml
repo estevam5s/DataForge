@@ -1,0 +1,14 @@
+[package]
+name = "aleatorio"
+version = "1.0.0"
+description = "Aleatoriedade com semente: sorteio, embaralhar, amostra e distribuições."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["aleatorio", "random", "sorteio"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

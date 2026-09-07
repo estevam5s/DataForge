@@ -1,0 +1,14 @@
+[package]
+name = "estado"
+version = "1.0.0"
+description = "Máquina de estados: transições declaradas, guardas e histórico."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["estado", "maquina", "fluxo"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

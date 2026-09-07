@@ -1,0 +1,176 @@
+// moeda — dinheiro sem erro de ponto flutuante
+//
+//     adopt moeda as M
+//     preco := M.de_reais(19.90)
+//     total := M.multiplicar(preco, 3)
+//     out M.formatar(total)          // R$ 59,70
+//
+// 0.1 + 0.2 não dá 0.3 em ponto flutuante. Com dinheiro isso vira
+// centavo perdido, e centavo perdido vira conferência de fechamento.
+// Aqui tudo é inteiro de centavos; o float só aparece na entrada e na
+// saída, onde é inevitável.
+
+record Dinheiro:
+    centavos: Integer
+    moeda: String
+
+steady SIMBOLOS := {"BRL": "R$", "USD": "$", "EUR": "€", "GBP": "£"}
+
+action meio_acima(x):
+    // Arredondamento meio-para-cima, que é o que a contabilidade usa.
+    //
+    // O `round` embutido faz arredondamento bancário (meio-para-par):
+    // 0.5 vira 0, 2.5 vira 2. É o certo para estatística, porque não
+    // enviesa uma série longa. Para dinheiro é errado: 2,5 centavos
+    // precisam virar 3, sempre, ou o cliente reclama do extrato.
+    inteiro := int(x)
+    resto := x - inteiro
+    given x bigger_eq 0:
+        yield inteiro + 1 given resto bigger_eq 0.5 otherwise inteiro
+    yield inteiro - 1 given resto smaller_eq -0.5 otherwise inteiro
+
+action de_centavos(centavos, simbolo := "BRL"):
+    yield Dinheiro(int(centavos), simbolo)
+
+action de_reais(valor, simbolo := "BRL"):
+    // Arredonda meio-para-cima, que é o que a contabilidade espera.
+    yield Dinheiro(meio_acima(float(valor) * 100), simbolo)
+
+action de_texto(texto, simbolo := "BRL"):
+    // "R$ 1.234,56" e "1234.56" viram o mesmo valor.
+    limpo := ""
+    cycle c in str(texto):
+        given c.isdigit() or c is "," or c is "." or c is "-":
+            limpo += c
+    given limpo is "":
+        yield Dinheiro(0, simbolo)
+
+    // Se há vírgula, ela é o separador decimal (padrão brasileiro)
+    given limpo.contains(","):
+        limpo := limpo.replace(".", "").replace(",", ".")
+    yield de_reais(float(limpo), simbolo)
+
+action em_reais(d):
+    yield d.centavos / 100
+
+action somar(a, b):
+    conferir_moeda(a, b)
+    yield Dinheiro(a.centavos + b.centavos, a.moeda)
+
+action subtrair(a, b):
+    conferir_moeda(a, b)
+    yield Dinheiro(a.centavos - b.centavos, a.moeda)
+
+action multiplicar(d, fator):
+    yield Dinheiro(meio_acima(d.centavos * fator), d.moeda)
+
+action dividir(d, divisor):
+    given divisor is 0:
+        trigger "divisao de dinheiro por zero"
+    yield Dinheiro(meio_acima(d.centavos / divisor), d.moeda)
+
+action conferir_moeda(a, b):
+    given a.moeda isnt b.moeda:
+        trigger $"nao da para operar {a.moeda} com {b.moeda} sem converter"
+    yield yes
+
+action repartir(d, partes):
+    // Divide sem perder centavo: o resto vai para os primeiros.
+    // 10 reais em 3 dá [3.34, 3.33, 3.33], nunca [3.33, 3.33, 3.33].
+    given partes smaller_eq 0:
+        trigger "numero de partes precisa ser positivo"
+    base := d.centavos ~/ partes
+    sobra := d.centavos - base * partes
+    saida := []
+    cycle i from 0 to partes - 1:
+        extra := 1 given i smaller sobra otherwise 0
+        saida.append(Dinheiro(base + extra, d.moeda))
+    yield saida
+
+action repartir_por_peso(d, pesos):
+    // Rateio proporcional, também sem perder centavo.
+    total_peso := 0
+    cycle p in pesos:
+        total_peso += p
+    given total_peso is 0:
+        trigger "a soma dos pesos nao pode ser zero"
+
+    saida := []
+    distribuido := 0
+    cycle i from 0 to len(pesos) - 1:
+        given i is len(pesos) - 1:
+            // o último leva o que sobrou, fechando a conta
+            saida.append(Dinheiro(d.centavos - distribuido, d.moeda))
+        otherwise:
+            parte := int(d.centavos * pesos[i] / total_peso)
+            distribuido += parte
+            saida.append(Dinheiro(parte, d.moeda))
+    yield saida
+
+action percentual(d, taxa):
+    yield Dinheiro(meio_acima(d.centavos * taxa / 100), d.moeda)
+
+action com_desconto(d, taxa):
+    yield subtrair(d, percentual(d, taxa))
+
+action com_acrescimo(d, taxa):
+    yield somar(d, percentual(d, taxa))
+
+action e_zero(d):
+    yield d.centavos is 0
+
+action e_negativo(d):
+    yield d.centavos smaller 0
+
+action comparar(a, b):
+    conferir_moeda(a, b)
+    given a.centavos smaller b.centavos:
+        yield -1
+    given a.centavos bigger b.centavos:
+        yield 1
+    yield 0
+
+action maior(a, b):
+    yield a given comparar(a, b) bigger_eq 0 otherwise b
+
+action total(lista):
+    given len(lista) is 0:
+        yield Dinheiro(0, "BRL")
+    soma := Dinheiro(0, lista[0].moeda)
+    cycle d in lista:
+        soma := somar(soma, d)
+    yield soma
+
+action formatar(d, com_simbolo := yes):
+    // R$ 1.234,56 — ponto no milhar, vírgula no decimal.
+    negativo := d.centavos smaller 0
+    valor := 0 - d.centavos given negativo otherwise d.centavos
+    reais := str(valor ~/ 100)
+    cents := valor % 100
+    centavos := str(cents) given cents bigger_eq 10 otherwise "0" + str(cents)
+
+    // ponto a cada três casas, da direita para a esquerda
+    com_ponto := ""
+    contador := 0
+    i := reais.length() - 1
+    persist i bigger_eq 0:
+        com_ponto := reais.char_at(i) + com_ponto
+        contador += 1
+        given contador % 3 is 0 and i bigger 0:
+            com_ponto := "." + com_ponto
+        i -= 1
+
+    simbolo := SIMBOLOS[d.moeda] ?? d.moeda
+    corpo := com_ponto + "," + centavos
+    sinal := "-" given negativo otherwise ""
+    yield $"{sinal}{simbolo} {corpo}" given com_simbolo otherwise sinal + corpo
+
+action converter(d, para, taxa):
+    // A taxa é quanto vale 1 unidade da moeda de origem na de destino.
+    yield Dinheiro(meio_acima(d.centavos * taxa), para)
+
+relay Dinheiro, SIMBOLOS
+relay meio_acima, de_centavos, de_reais, de_texto, em_reais
+relay somar, subtrair, multiplicar, dividir, conferir_moeda
+relay repartir, repartir_por_peso, percentual, com_desconto, com_acrescimo
+relay e_zero, e_negativo, comparar, maior, total, formatar, converter

@@ -1561,9 +1561,7 @@ class Parser:
             self.advance()
             rhs = self.parse_expression()
             self.match(TokenType.NEWLINE)
-            combined = ast.BinaryOp(left=expr, op=op, right=rhs,
-                                    line=expr.line, column=expr.column)
-            return ast.Assignment(target=expr, value=combined,
+            return ast.Assignment(target=expr, value=rhs, compound_op=op,
                                   line=expr.line, column=expr.column)
 
         self.match(TokenType.NEWLINE)

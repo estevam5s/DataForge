@@ -1,0 +1,97 @@
+adopt Arcane.Test as T
+adopt moeda as M
+
+action test_nao_perde_centavo_no_float():
+    // o caso clássico: 0.1 + 0.2 em float não dá 0.3
+    a := M.de_reais(0.1)
+    b := M.de_reais(0.2)
+    T.assert_eq(M.somar(a, b).centavos, 30)
+    T.assert_eq(M.em_reais(M.somar(a, b)), 0.3)
+
+action test_construtores():
+    T.assert_eq(M.de_reais(19.90).centavos, 1990)
+    T.assert_eq(M.de_centavos(1990).centavos, 1990)
+    T.assert_eq(M.de_reais(0.005).centavos, 1)      // arredonda pra cima
+
+action test_de_texto():
+    T.assert_eq(M.de_texto("R$ 1.234,56").centavos, 123456)
+    T.assert_eq(M.de_texto("1234.56").centavos, 123456)
+    T.assert_eq(M.de_texto("19,90").centavos, 1990)
+    T.assert_eq(M.de_texto("").centavos, 0)
+
+action test_aritmetica():
+    p := M.de_reais(19.90)
+    T.assert_eq(M.multiplicar(p, 3).centavos, 5970)
+    T.assert_eq(M.dividir(M.de_reais(10), 4).centavos, 250)
+    T.assert_eq(M.subtrair(M.de_reais(10), M.de_reais(3)).centavos, 700)
+    T.assert_throws(lambda => M.dividir(p, 0))
+
+action test_moedas_diferentes_nao_somam():
+    real := M.de_reais(10, "BRL")
+    dolar := M.de_reais(10, "USD")
+    T.assert_throws(lambda => M.somar(real, dolar))
+
+action test_repartir_nao_perde_centavo():
+    partes := M.repartir(M.de_reais(10), 3)
+    T.assert_eq(len(partes), 3)
+    T.assert_eq(partes[0].centavos, 334)
+    T.assert_eq(partes[1].centavos, 333)
+    T.assert_eq(partes[2].centavos, 333)
+    T.assert_eq(M.total(partes).centavos, 1000)     // fecha a conta
+
+action test_repartir_por_peso_fecha_a_conta():
+    partes := M.repartir_por_peso(M.de_reais(100), [1, 1, 1])
+    T.assert_eq(M.total(partes).centavos, 10000)
+    proporcional := M.repartir_por_peso(M.de_reais(100), [70, 30])
+    T.assert_eq(proporcional[0].centavos, 7000)
+    T.assert_eq(proporcional[1].centavos, 3000)
+    T.assert_throws(lambda => M.repartir_por_peso(M.de_reais(10), [0]))
+
+action test_percentual():
+    p := M.de_reais(100)
+    T.assert_eq(M.percentual(p, 10).centavos, 1000)
+    T.assert_eq(M.com_desconto(p, 10).centavos, 9000)
+    T.assert_eq(M.com_acrescimo(p, 10).centavos, 11000)
+
+action test_comparar():
+    a := M.de_reais(10)
+    b := M.de_reais(20)
+    T.assert_eq(M.comparar(a, b), -1)
+    T.assert_eq(M.comparar(b, a), 1)
+    T.assert_eq(M.comparar(a, M.de_reais(10)), 0)
+    T.assert_eq(M.maior(a, b).centavos, 2000)
+
+action test_formatar():
+    T.assert_eq(M.formatar(M.de_reais(1234.56)), "R$ 1.234,56")
+    T.assert_eq(M.formatar(M.de_reais(0.05)), "R$ 0,05")
+    T.assert_eq(M.formatar(M.de_reais(1000000)), "R$ 1.000.000,00")
+    T.assert_eq(M.formatar(M.de_centavos(-500)), "-R$ 5,00")
+    T.assert_eq(M.formatar(M.de_reais(9.9), no), "9,90")
+
+action test_total_e_vazio():
+    T.assert_eq(M.total([]).centavos, 0)
+    T.assert_eq(M.total([M.de_reais(1), M.de_reais(2)]).centavos, 300)
+
+action test_converter():
+    real := M.de_reais(100, "BRL")
+    dolar := M.converter(real, "USD", 0.2)
+    T.assert_eq(dolar.centavos, 2000)
+    T.assert_eq(dolar.moeda, "USD")
+
+action test_predicados():
+    T.assert_true(M.e_zero(M.de_centavos(0)))
+    T.assert_true(M.e_negativo(M.de_centavos(-1)))
+    T.assert_false(M.e_negativo(M.de_centavos(1)))
+
+action test_arredondamento_e_meio_para_cima():
+    // O round embutido faz arredondamento bancário: 0.5 vira 0, 2.5 vira 2.
+    // Dinheiro não pode fazer isso — meio centavo sempre sobe.
+    T.assert_eq(M.meio_acima(0.5), 1)
+    T.assert_eq(M.meio_acima(1.5), 2)
+    T.assert_eq(M.meio_acima(2.5), 3)
+    T.assert_eq(M.meio_acima(2.4), 2)
+    T.assert_eq(M.meio_acima(-0.5), -1)
+    T.assert_eq(M.meio_acima(-2.5), -3)
+    // e o efeito prático:
+    T.assert_eq(M.de_reais(0.005).centavos, 1)
+    T.assert_eq(M.de_reais(0.025).centavos, 3)

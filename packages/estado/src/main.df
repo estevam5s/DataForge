@@ -1,0 +1,151 @@
+// estado — máquina de estados
+//
+//     adopt estado as S
+//
+//     m := S.maquina("rascunho")
+//     m.permitir("rascunho", "publicar", "publicado")
+//     m.permitir("publicado", "arquivar", "arquivado")
+//
+//     out m.pode("publicar")      // yes
+//     m.disparar("publicar")
+//     out m.atual                 // publicado
+//
+// A transição só acontece se foi declarada. É isso que distingue uma
+// máquina de estados de um punhado de `given` espalhados: o que não
+// pode acontecer fica impossível, não apenas improvável.
+
+blueprint Maquina:
+    private transicoes: Vault := {}
+    private guardas: Vault := {}
+    private ao_entrar: Vault := {}
+    private ao_sair: Vault := {}
+    private historico: Cluster := []
+
+    action setup(inicial):
+        self.inicial := inicial
+        self.atual := inicial
+        self.transicoes := {}
+        self.guardas := {}
+        self.ao_entrar := {}
+        self.ao_sair := {}
+        self.historico := []
+
+    action permitir(de, evento, para, guarda := void):
+        // Declara uma transição. Com guarda, ela só vale se a guarda
+        // devolver yes no momento do disparo.
+        chave := de + "|" + evento
+        self.transicoes[chave] := para
+        given guarda isnt void:
+            self.guardas[chave] := guarda
+        yield self
+
+    action ao_entrar_em(estado, acao):
+        self.ao_entrar[estado] := acao
+        yield self
+
+    action ao_sair_de(estado, acao):
+        self.ao_sair[estado] := acao
+        yield self
+
+    action pode(evento, dado := void):
+        chave := self.atual + "|" + evento
+        given not self.transicoes.has(chave):
+            yield no
+        given not self.guardas.has(chave):
+            yield yes
+        monitor:
+            resultado := self.guardas[chave](dado)
+            yield typeof(resultado) is "Boolean" and resultado
+        handle e:
+            yield no
+
+    action disparar(evento, dado := void):
+        chave := self.atual + "|" + evento
+        given not self.transicoes.has(chave):
+            possiveis := self.eventos_possiveis()
+            saida := possiveis.join(", ") given len(possiveis) bigger 0 otherwise "nada"
+            trigger $"'{evento}' nao sai de '{self.atual}'. Daqui da para: {saida}"
+        given not self.pode(evento, dado):
+            trigger $"a guarda de '{evento}' recusou a transicao"
+
+        anterior := self.atual
+        destino := self.transicoes[chave]
+
+        given self.ao_sair.has(anterior):
+            self.ao_sair[anterior](dado)
+
+        self.atual := destino
+        self.historico.append({"de": anterior, "evento": evento,
+                               "para": destino})
+
+        given self.ao_entrar.has(destino):
+            self.ao_entrar[destino](dado)
+
+        yield destino
+
+    action tentar(evento, dado := void):
+        // Como disparar, mas devolve no em vez de estourar.
+        given not self.pode(evento, dado):
+            yield no
+        self.disparar(evento, dado)
+        yield yes
+
+    action eventos_possiveis():
+        // O que dá para fazer a partir de onde estamos.
+        saida := []
+        prefixo := self.atual + "|"
+        cycle chave in self.transicoes.keys():
+            given chave.startswith(prefixo):
+                saida.append(chave.substring(prefixo.length()))
+        yield saida
+
+    action estados():
+        vistos := []
+        cycle chave in self.transicoes.keys():
+            origem := chave.split("|")[0]
+            given not (origem in vistos):
+                vistos.append(origem)
+            destino := self.transicoes[chave]
+            given not (destino in vistos):
+                vistos.append(destino)
+        yield vistos
+
+    action e_final():
+        // Um estado do qual não sai nenhuma transição.
+        yield len(self.eventos_possiveis()) is 0
+
+    action reiniciar():
+        self.atual := self.inicial
+        self.historico := []
+        yield self
+
+    get registro():
+        yield self.historico
+
+    get caminho():
+        // A sequência de estados por onde passou.
+        saida := [self.inicial]
+        cycle passo in self.historico:
+            saida.append(passo["para"])
+        yield saida
+
+    action para_dot():
+        // Grafo em DOT, para visualizar com graphviz.
+        linhas := ["digraph maquina {", "  rankdir=LR;"]
+        cycle chave in self.transicoes.keys():
+            partes := chave.split("|")
+            linhas.append($"  \"{partes[0]}\" -> \"{self.transicoes[chave]}\" [label=\"{partes[1]}\"];")
+        linhas.append("}")
+        yield linhas.join("\n")
+
+action maquina(inicial):
+    yield spawn Maquina(inicial)
+
+action de_tabela(inicial, tabela):
+    // Constrói de uma vez: [[de, evento, para], …]
+    m := spawn Maquina(inicial)
+    cycle linha in tabela:
+        m.permitir(linha[0], linha[1], linha[2])
+    yield m
+
+relay Maquina, maquina, de_tabela

@@ -1,0 +1,14 @@
+[package]
+name = "moeda"
+version = "1.0.0"
+description = "Dinheiro sem erro de ponto flutuante: centavos inteiros, câmbio e formatação BRL."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["dinheiro", "moeda", "financeiro"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

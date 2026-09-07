@@ -1,0 +1,113 @@
+adopt Arcane.Test as T
+adopt aleatorio as A
+
+action test_semente_torna_reproduzivel():
+    a := A.gerador(42)
+    b := A.gerador(42)
+    cycle i from 1 to 10:
+        T.assert_eq(a.inteiro(1, 100), b.inteiro(1, 100))
+
+action test_sementes_diferentes_divergem():
+    a := A.gerador(1)
+    b := A.gerador(2)
+    iguais := 0
+    cycle i from 1 to 20:
+        given a.inteiro(1, 1000) is b.inteiro(1, 1000):
+            iguais += 1
+    T.assert_true(iguais smaller 5)
+
+action test_reiniciar_repete_a_sequencia():
+    g := A.gerador(7)
+    primeiros := []
+    cycle i from 1 to 5:
+        primeiros.append(g.inteiro(1, 100))
+    g.reiniciar()
+    cycle i from 0 to 4:
+        T.assert_eq(g.inteiro(1, 100), primeiros[i])
+
+action test_inteiro_respeita_a_faixa():
+    g := A.gerador(99)
+    cycle i from 1 to 200:
+        v := g.inteiro(1, 6)
+        T.assert_true(v bigger_eq 1 and v smaller_eq 6)
+    T.assert_throws(lambda => g.inteiro(10, 1))
+
+action test_inteiro_alcanca_os_extremos():
+    // uma faixa de 2 valores em 100 sorteios tem de ver os dois
+    g := A.gerador(5)
+    viu_min := no
+    viu_max := no
+    cycle i from 1 to 100:
+        v := g.inteiro(0, 1)
+        given v is 0:
+            viu_min := yes
+        given v is 1:
+            viu_max := yes
+    T.assert_true(viu_min)
+    T.assert_true(viu_max)
+
+action test_fracao_fica_entre_zero_e_um():
+    g := A.gerador(3)
+    cycle i from 1 to 100:
+        f := g.fracao()
+        T.assert_true(f bigger_eq 0.0 and f smaller 1.0)
+
+action test_booleano_respeita_a_probabilidade():
+    g := A.gerador(11)
+    verdadeiros := 0
+    cycle i from 1 to 1000:
+        given g.booleano(0.3):
+            verdadeiros += 1
+    T.assert_true(verdadeiros bigger 200 and verdadeiros smaller 400)
+
+action test_escolher():
+    g := A.gerador(1)
+    cycle i from 1 to 20:
+        T.assert_true(g.escolher(["a", "b", "c"]) in ["a", "b", "c"])
+    T.assert_throws(lambda => g.escolher([]))
+
+action test_escolher_com_peso():
+    g := A.gerador(17)
+    contagem := {"raro": 0, "comum": 0}
+    cycle i from 1 to 500:
+        contagem[g.escolher_com_peso(["raro", "comum"], [1, 9])] += 1
+    T.assert_true(contagem["comum"] bigger contagem["raro"] * 3)
+    T.assert_throws(lambda => g.escolher_com_peso(["a"], [1, 2]))
+
+action test_embaralhar_preserva_os_itens():
+    original := [1, 2, 3, 4, 5]
+    e := A.embaralhar(original, A.gerador(8))
+    T.assert_eq(len(e), 5)
+    cycle x in original:
+        T.assert_true(x in e)
+    T.assert_eq(original, [1, 2, 3, 4, 5])     // não mexeu no original
+
+action test_amostra_sem_repeticao():
+    a := A.amostra([1, 2, 3, 4, 5], 3, A.gerador(2))
+    T.assert_eq(len(a), 3)
+    T.assert_eq(len(a), len(a.unique()))
+    T.assert_eq(len(A.amostra([1, 2], 10, A.gerador(2))), 2)
+
+action test_amostra_com_repeticao():
+    a := A.amostra_com_repeticao([1, 2], 10, A.gerador(4))
+    T.assert_eq(len(a), 10)
+
+action test_normal():
+    g := A.gerador(21)
+    soma := 0.0
+    cycle i from 1 to 500:
+        soma += A.normal(10.0, 2.0, g)
+    media := soma / 500
+    T.assert_true(media bigger 9.0 and media smaller 11.0)
+
+action test_uuid():
+    u := A.uuid_simples(A.gerador(6))
+    T.assert_eq(u.length(), 36)
+    T.assert_eq(len(u.split("-")), 5)
+    T.assert_true(A.uuid_simples(A.gerador(1)) isnt A.uuid_simples(A.gerador(2)))
+
+action test_entre():
+    g := A.gerador(13)
+    cycle i from 1 to 50:
+        v := A.entre(1.5, 2.5, g)
+        T.assert_true(v bigger_eq 1.5 and v smaller 2.5)

@@ -12,6 +12,7 @@ from . import ast_nodes as ast
 from .environment import Environment
 from .builtins import BuiltinFunction, get_builtins, set_stringifier
 from .errors import (
+    ControlSignal,
     DataForgeError, Frame, RuntimeError_, TypeError_, NameError_, TriggerError,
     HaltSignal, SkipSignal, YieldSignal, IndexError_, ImportError_,
     StackOverflowError_,
@@ -523,6 +524,29 @@ class Interpreter:
         for name, value in get_builtins().items():
             self.global_env.set_local(name, value)
 
+    #: Como explicar um sinal de controle que escapou ate o topo.
+    _SINAIS_SOLTOS = {
+        'HaltSignal': ("halt", "loop",
+                       "'halt' leaves the loop it is in. Outside a "
+                       "'cycle', 'persist' or 'perform', there is nothing "
+                       "to leave.\n"
+                       "    To end the program, use 'yield' inside an "
+                       "action, or just let it reach the end."),
+        'SkipSignal': ("skip", "loop",
+                       "'skip' jumps to the next iteration. Outside a "
+                       "'cycle', 'persist' or 'perform', there is no next "
+                       "iteration to jump to.\n"
+                       "    Inside a 'handle', to ignore the error and go "
+                       "on, leave the block empty or write what should "
+                       "happen instead."),
+        'YieldSignal': ("yield", "action",
+                        "'yield' returns from the action it is in. At the "
+                        "top level of a file there is no action to return "
+                        "from.\n"
+                        "    Use 'out' to print a value, or wrap the code "
+                        "in an action."),
+    }
+
     def run(self, program: ast.Program, filename: str = ""):
         """Execute a full program."""
         if filename:
@@ -532,6 +556,25 @@ class Interpreter:
         except DataForgeError as erro:
             self._attach_stack(erro)
             raise
+        except ControlSignal as sinal:
+            # 'halt', 'skip' e 'yield' sao BaseException de proposito, para
+            # que 'monitor' nao os engula. O preco e que, soltos no topo,
+            # escapariam como traceback do Python — e quem escreveu .df nao
+            # tem o que fazer com isso. Aqui viram erro da linguagem.
+            raise self._erro_de_sinal(sinal) from None
+
+    def _erro_de_sinal(self, sinal):
+        palavra, contexto, explicacao = self._SINAIS_SOLTOS.get(
+            type(sinal).__name__, ("this", "block", ""))
+        artigo = "an" if contexto[0] in "aeiou" else "a"
+        erro = RuntimeError_(
+            f"'{palavra}' was used outside {artigo} {contexto}.",
+            getattr(sinal, 'line', 0), getattr(sinal, 'column', 0),
+            nota=explicacao.split("\n")[0],
+            dica="\n".join(explicacao.split("\n")[1:]).strip(),
+            doc="lacos" if contexto == "loop" else "acoes")
+        erro.filename = self.filename
+        return erro
 
     def exec_block(self, statements: list, env: Environment):
         """Execute a block of statements."""
@@ -1439,7 +1482,63 @@ class Interpreter:
         ) if isinstance(node.expression, ast.Identifier) else type(value).__name__
         print(f"[INSPECT] type={type_name} value={value!r}")
 
+    def eval_ValorPronto(self, node, env):
+        return node.value
+
+    def _atribuicao_composta(self, node, op, env):
+        """x += v — le, aplica e escreve, avaliando o alvo uma vez so."""
+        alvo = node.target
+        direita = self.evaluate(node.value, env)
+
+        def aplicar(atual):
+            combinado = ast.BinaryOp(left=ast.ValorPronto(value=atual), op=op,
+                                     right=ast.ValorPronto(value=direita),
+                                     line=node.line, column=node.column)
+            return self.eval_BinaryOp(combinado, env)
+
+        if isinstance(alvo, ast.Identifier):
+            novo = aplicar(env.get(alvo.name))
+            env.set(alvo.name, novo)
+            return novo
+
+        if isinstance(alvo, ast.IndexAccess):
+            # objeto e indice avaliados uma vez, e reaproveitados
+            obj = self.evaluate(alvo.object, env)
+            idx = self.evaluate(alvo.index, env)
+            try:
+                atual = obj[idx]
+            except KeyError:
+                raise self._erro_chave(obj, idx, alvo)
+            except IndexError:
+                raise self._erro_indice(obj, idx, alvo)
+            novo = aplicar(atual)
+            obj[idx] = novo
+            return novo
+
+        if isinstance(alvo, ast.MemberAccess):
+            obj = self.evaluate(alvo.object, env)
+            leitura = ast.MemberAccess(object=ast.ValorPronto(value=obj),
+                                       member=alvo.member,
+                                       line=node.line, column=node.column)
+            novo = aplicar(self.eval_MemberAccess(leitura, env))
+            escrita = ast.Assignment(target=ast.MemberAccess(
+                object=ast.ValorPronto(value=obj), member=alvo.member,
+                line=node.line, column=node.column),
+                value=ast.ValorPronto(value=novo),
+                line=node.line, column=node.column)
+            return self.exec_Assignment(escrita, env)
+
+        raise RuntimeError_(
+            f"'{op}=' needs a variable, a field or an index on the left.",
+            node.line, node.column, doc="operadores")
+
     def exec_Assignment(self, node: ast.Assignment, env):
+        # Atribuicao composta ('x += 1') avalia o alvo UMA vez: 'v[f()] += 1'
+        # nao pode chamar f() duas vezes, uma para ler e outra para escrever.
+        op = getattr(node, 'compound_op', "")
+        if op:
+            return self._atribuicao_composta(node, op, env)
+
         value = self.evaluate(node.value, env)
 
         declared = getattr(node, 'declared_type', "")

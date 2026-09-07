@@ -628,3 +628,85 @@ def test_acao_curta_nao_e_reportada_como_longa():
     avisos = lint_program(arvore, "t.df", fonte)
     longas = [d for d in avisos if d.code == "long-action"]
     assert longas == [], [d.message for d in longas]
+
+
+# ─── Atribuicao composta avalia o alvo uma vez ─────────────
+# 'v[f()] += 1' chamava f() duas vezes: o parser reusava o mesmo no como
+# alvo e como operando esquerdo. Num sorteio, isso consumia dois numeros
+# e gravava numa chave diferente da lida — a distribuicao saia errada e
+# nada denunciava.
+
+def test_indice_de_atribuicao_composta_avalia_uma_vez():
+    saida = run('''
+chamadas := []
+action indice():
+    chamadas.append(1)
+    yield "k"
+
+v := {"k": 0}
+v[indice()] += 5
+out v["k"], len(chamadas)
+''')
+    assert saida == "5 1"
+
+
+def test_compostas_em_todas_as_formas():
+    assert run('x := 1\nx += 2\nx *= 3\nout x\n') == "9"
+    assert run('l := [1, 2]\nl[0] += 10\nout l\n') == "[11, 2]"
+    assert run('v := {"a": 1}\nv["a"] += 4\nout v["a"]\n') == "5"
+
+
+def test_composta_em_campo_de_instancia():
+    assert run('''
+blueprint C:
+    action setup():
+        self.n := 0
+c := spawn C()
+c.n += 7
+out c.n
+''') == "7"
+
+
+def test_composta_em_chave_ausente_da_erro_util():
+    from dataforge.errors import IndexError_
+    with pytest.raises(IndexError_) as exc:
+        run('v := {}\nv["x"] += 1\n')
+    assert "x" in str(exc.value)
+
+
+# ─── Sinal de controle solto vira erro da linguagem ────────
+# 'halt', 'skip' e 'yield' derivam de BaseException para que 'monitor'
+# nao os engula. O preco era que, soltos no topo, escapavam como
+# traceback do Python — inutil para quem escreve .df.
+
+@pytest.mark.parametrize("codigo,palavra,contexto", [
+    ("halt\n", "halt", "loop"),
+    ("skip\n", "skip", "loop"),
+    ("yield 1\n", "yield", "action"),
+])
+def test_sinal_solto_vira_erro_da_linguagem(codigo, palavra, contexto):
+    from dataforge.errors import RuntimeError_
+    with pytest.raises(RuntimeError_) as exc:
+        run(codigo)
+    msg = str(exc.value)
+    assert palavra in msg
+    assert contexto in msg
+
+
+def test_skip_dentro_de_handle_fora_de_laco():
+    """O caso real: 'handle e: skip' num teste, sem laco em volta."""
+    from dataforge.errors import RuntimeError_
+    with pytest.raises(RuntimeError_):
+        run('monitor:\n    trigger "x"\nhandle e:\n    skip\n')
+
+
+def test_sinal_dentro_do_laco_continua_funcionando():
+    """A correcao nao pode quebrar o uso legitimo."""
+    assert run('''
+cycle i from 1 to 5:
+    given i is 3:
+        skip
+    given i is 5:
+        halt
+    out i
+''') == "1\n2\n4"

@@ -1,0 +1,94 @@
+adopt Arcane.Test as T
+adopt estado as S
+
+action nova_publicacao():
+    m := S.maquina("rascunho")
+    m.permitir("rascunho", "publicar", "publicado")
+    m.permitir("publicado", "arquivar", "arquivado")
+    m.permitir("publicado", "despublicar", "rascunho")
+    yield m
+
+action test_transicao_declarada_funciona():
+    m := nova_publicacao()
+    T.assert_eq(m.atual, "rascunho")
+    T.assert_true(m.pode("publicar"))
+    T.assert_eq(m.disparar("publicar"), "publicado")
+    T.assert_eq(m.atual, "publicado")
+
+action test_transicao_nao_declarada_e_recusada():
+    m := nova_publicacao()
+    T.assert_false(m.pode("arquivar"))       // não sai de rascunho
+    T.assert_throws(lambda => m.disparar("arquivar"))
+
+action test_mensagem_lista_o_que_da_para_fazer():
+    m := nova_publicacao()
+    monitor:
+        m.disparar("inexistente")
+        T.assert_true(no)
+    handle e:
+        T.assert_true(e.message.contains("publicar"))
+
+action test_tentar_nao_estoura():
+    m := nova_publicacao()
+    T.assert_false(m.tentar("arquivar"))
+    T.assert_eq(m.atual, "rascunho")
+    T.assert_true(m.tentar("publicar"))
+    T.assert_eq(m.atual, "publicado")
+
+action test_guarda():
+    liberado := [no]
+    m := S.maquina("a")
+    m.permitir("a", "ir", "b", lambda d => liberado[0])
+    T.assert_false(m.pode("ir"))
+    liberado[0] := yes
+    T.assert_true(m.pode("ir"))
+    T.assert_eq(m.disparar("ir"), "b")
+
+action test_ao_entrar_e_ao_sair():
+    eventos := []
+    m := S.maquina("a")
+    m.permitir("a", "ir", "b")
+    m.ao_sair_de("a", lambda d => eventos.append("saiu de a"))
+    m.ao_entrar_em("b", lambda d => eventos.append("entrou em b"))
+    m.disparar("ir")
+    T.assert_eq(eventos, ["saiu de a", "entrou em b"])
+
+action test_eventos_possiveis_e_final():
+    m := nova_publicacao()
+    T.assert_eq(m.eventos_possiveis(), ["publicar"])
+    m.disparar("publicar")
+    T.assert_eq(len(m.eventos_possiveis()), 2)
+    m.disparar("arquivar")
+    T.assert_true(m.e_final())
+
+action test_historico_e_caminho():
+    m := nova_publicacao()
+    m.disparar("publicar")
+    m.disparar("arquivar")
+    T.assert_eq(len(m.registro), 2)
+    T.assert_eq(m.registro[0]["evento"], "publicar")
+    T.assert_eq(m.caminho, ["rascunho", "publicado", "arquivado"])
+
+action test_reiniciar():
+    m := nova_publicacao()
+    m.disparar("publicar")
+    m.reiniciar()
+    T.assert_eq(m.atual, "rascunho")
+    T.assert_eq(len(m.registro), 0)
+
+action test_estados_e_dot():
+    m := nova_publicacao()
+    T.assert_eq(len(m.estados()), 3)
+    dot := m.para_dot()
+    T.assert_true(dot.startswith("digraph"))
+    T.assert_true(dot.contains("publicar"))
+
+action test_de_tabela():
+    m := S.de_tabela("novo", [
+        ["novo", "pagar", "pago"],
+        ["pago", "enviar", "enviado"]
+    ])
+    m.disparar("pagar")
+    T.assert_eq(m.atual, "pago")
+    m.disparar("enviar")
+    T.assert_true(m.e_final())

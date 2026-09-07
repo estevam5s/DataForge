@@ -1,0 +1,134 @@
+adopt Arcane.Test as T
+adopt tentativa as R
+
+action test_sucesso_na_primeira():
+    r := R.com_politica(lambda => 42, R.politica(3, 0.001))
+    T.assert_true(r["ok"])
+    T.assert_eq(r["valor"], 42)
+    T.assert_eq(r["tentativas"], 1)
+
+action test_sucesso_depois_de_falhar():
+    n := [0]
+
+    action instavel():
+        n[0] += 1
+        given n[0] smaller 3:
+            trigger "ainda nao"
+        yield "deu certo"
+
+    r := R.com_politica(instavel, R.politica(5, 0.001))
+    T.assert_true(r["ok"])
+    T.assert_eq(r["valor"], "deu certo")
+    T.assert_eq(r["tentativas"], 3)
+
+action test_esgota_as_tentativas():
+    action sempre_falha():
+        trigger "nunca funciona"
+
+    r := R.com_politica(sempre_falha, R.politica(3, 0.001))
+    T.assert_false(r["ok"])
+    T.assert_eq(r["tentativas"], 3)
+    T.assert_eq(r["erro"], "nunca funciona")
+
+action test_parar_se_evita_tentativa_inutil():
+    // Falha determinística não melhora com repetição.
+    n := [0]
+
+    action senha_errada():
+        n[0] += 1
+        trigger "credencial invalida"
+
+    r := R.com_politica(senha_errada, R.politica(5, 0.001),
+                        lambda e => e.message.contains("credencial"))
+    T.assert_false(r["ok"])
+    T.assert_true(r["desistiu"])
+    T.assert_eq(n[0], 1)               // não insistiu
+
+action test_recuo_e_exponencial():
+    p := R.politica(5, 0.1, 2.0, 30.0, no)     // sem jitter, para medir
+    T.assert_eq(R.espera_da_tentativa(p, 0), 0.1)
+    T.assert_eq(R.espera_da_tentativa(p, 1), 0.2)
+    T.assert_eq(R.espera_da_tentativa(p, 2), 0.4)
+
+action test_teto_da_espera():
+    p := R.politica(20, 1.0, 10.0, 5.0, no)
+    T.assert_eq(R.espera_da_tentativa(p, 10), 5.0)
+
+action test_jitter_varia():
+    p := R.politica(5, 1.0, 2.0, 30.0, yes)
+    a := R.espera_da_tentativa(p, 3)
+    b := R.espera_da_tentativa(p, 3)
+    T.assert_true(a bigger 0)
+    // com jitter os valores raramente coincidem
+    T.assert_true(a smaller_eq 30.0 and b smaller_eq 30.0)
+
+action test_repetir_curto():
+    action falha():
+        trigger "x"
+
+    T.assert_eq(R.repetir(lambda => 7, 3), 7)
+    T.assert_throws(lambda => R.repetir(falha, 2))
+
+action test_repetir_ate():
+    n := [0]
+
+    action ja_subiu():
+        n[0] += 1
+        yield n[0] bigger_eq 3
+
+    r := R.repetir_ate(ja_subiu, 10, 0.001)
+    T.assert_true(r["ok"])
+    T.assert_eq(r["tentativas"], 3)
+
+action test_repetir_ate_desiste():
+    r := R.repetir_ate(lambda => no, 3, 0.001)
+    T.assert_false(r["ok"])
+    T.assert_eq(r["tentativas"], 3)
+
+action test_disjuntor_abre_apos_o_limite():
+    d := R.disjuntor(2, 60)
+    T.assert_eq(d.estado, "fechado")
+
+    action falha():
+        trigger "servico caiu"
+
+    monitor:
+        d.chamar(falha)
+    handle e:
+        out ""
+    T.assert_eq(d.estado, "instavel")
+
+    monitor:
+        d.chamar(falha)
+    handle e:
+        out ""
+    T.assert_eq(d.estado, "aberto")
+    T.assert_true(d.aberto)
+
+    // com o disjuntor aberto, nem tenta
+    T.assert_throws(lambda => d.chamar(lambda => 1))
+
+action test_sucesso_zera_o_disjuntor():
+    action falha():
+        trigger "x"
+
+    d := R.disjuntor(3, 60)
+    monitor:
+        d.chamar(falha)
+    handle e:
+        out ""
+    d.chamar(lambda => "ok")
+    T.assert_eq(d.estado, "fechado")
+
+action test_disjuntor_reinicia():
+    action falha():
+        trigger "x"
+
+    d := R.disjuntor(1, 60)
+    monitor:
+        d.chamar(falha)
+    handle e:
+        out ""
+    T.assert_true(d.aberto)
+    d.reiniciar()
+    T.assert_false(d.aberto)

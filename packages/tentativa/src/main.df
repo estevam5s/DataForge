@@ -1,0 +1,144 @@
+// tentativa — repetir o que falha por acaso
+//
+//     adopt tentativa as R
+//
+//     dados := R.repetir(lambda => buscar_api(), 3)
+//
+//     politica := R.politica(5, 0.1, 2.0)
+//     dados := R.com_politica(lambda => buscar_api(), politica)
+//
+// Repetir só ajuda quando a falha é transitória. Repetir uma falha
+// determinística — senha errada, JSON inválido — é gastar tempo para
+// chegar ao mesmo lugar, e por isso `parar_se` existe.
+
+adopt Arcane.Time as Tempo
+
+record Politica:
+    tentativas: Integer
+    espera_inicial: Float
+    fator: Float
+    espera_maxima: Float
+    jitter: Boolean
+
+action politica(tentativas := 3, espera_inicial := 0.1, fator := 2.0,
+                espera_maxima := 30.0, jitter := yes):
+    yield Politica(tentativas, espera_inicial, fator, espera_maxima, jitter)
+
+action espera_da_tentativa(p, n):
+    // Recuo exponencial: 0.1, 0.2, 0.4, 0.8… até o teto.
+    espera := p.espera_inicial * (p.fator ** n)
+    given espera bigger p.espera_maxima:
+        espera := p.espera_maxima
+    given p.jitter:
+        // Sem jitter, mil clientes que falharam juntos voltam juntos, e
+        // derrubam o serviço de novo. O ruído espalha as tentativas.
+        espera := espera * (0.5 + random())
+    yield espera
+
+action com_politica(acao, p, parar_se := void):
+    // Roda até dar certo ou acabar as tentativas. Devolve um vault com
+    // o resultado, quantas tentativas gastou e o erro final.
+    tentativa := 0
+    ultimo_erro := void
+    esperas := []
+
+    persist tentativa smaller p.tentativas:
+        monitor:
+            valor := acao()
+            yield {"ok": yes, "valor": valor, "tentativas": tentativa + 1,
+                   "erro": void, "esperas": esperas}
+        handle e:
+            ultimo_erro := e.message
+            // Falha que não vai mudar: parar agora poupa o tempo das
+            // outras tentativas.
+            given parar_se isnt void and parar_se(e):
+                yield {"ok": no, "valor": void, "tentativas": tentativa + 1,
+                       "erro": ultimo_erro, "esperas": esperas,
+                       "desistiu": yes}
+            tentativa += 1
+            given tentativa smaller p.tentativas:
+                espera := espera_da_tentativa(p, tentativa - 1)
+                esperas.append(round(espera, 3))
+                wait espera
+
+    yield {"ok": no, "valor": void, "tentativas": tentativa,
+           "erro": ultimo_erro, "esperas": esperas}
+
+action repetir(acao, tentativas := 3):
+    // A forma curta: devolve o valor, ou estoura com o último erro.
+    r := com_politica(acao, politica(tentativas))
+    given r["ok"]:
+        yield r["valor"]
+    trigger $"falhou {r['tentativas']}x — ultimo erro: {r['erro']}"
+
+action repetir_ate(condicao, tentativas := 10, espera := 0.1):
+    // Espera uma condição virar verdadeira. Útil para aguardar um
+    // serviço subir, ou um arquivo aparecer.
+    n := 0
+    persist n smaller tentativas:
+        // A condição pode estourar enquanto o recurso não existe — é
+        // justamente o que estamos esperando passar. 'skip' aqui pularia
+        // o incremento e travaria o laço.
+        monitor:
+            given condicao():
+                yield {"ok": yes, "tentativas": n + 1}
+        handle e:
+            _ignorado := e.message
+        n += 1
+        given n smaller tentativas:
+            wait espera
+    yield {"ok": no, "tentativas": n}
+
+// ── Circuit breaker ───────────────────────────────────────
+
+blueprint Disjuntor:
+    private falhas: Integer := 0
+    private aberto_ate: Float := 0.0
+    private limite: Integer := 5
+    private descanso: Float := 30.0
+
+    action setup(limite := 5, descanso := 30.0):
+        self.limite := limite
+        self.descanso := descanso
+        self.falhas := 0
+        self.aberto_ate := 0.0
+
+    private action agora():
+        yield Tempo.now()["timestamp"]
+
+    get aberto():
+        // Aberto = recusando chamadas, porque o serviço está caindo.
+        yield self.agora() smaller self.aberto_ate
+
+    action chamar(acao):
+        given self.aberto:
+            faltam := round(self.aberto_ate - self.agora(), 1)
+            trigger $"disjuntor aberto — tente em {faltam}s"
+
+        monitor:
+            valor := acao()
+            self.falhas := 0            // sucesso zera a contagem
+            yield valor
+        handle e:
+            self.falhas += 1
+            given self.falhas bigger_eq self.limite:
+                self.aberto_ate := self.agora() + self.descanso
+            propagate
+
+    action reiniciar():
+        self.falhas := 0
+        self.aberto_ate := 0.0
+        yield self
+
+    get estado():
+        given self.aberto:
+            yield "aberto"
+        given self.falhas bigger 0:
+            yield "instavel"
+        yield "fechado"
+
+action disjuntor(limite := 5, descanso := 30.0):
+    yield spawn Disjuntor(limite, descanso)
+
+relay Politica, Disjuntor
+relay politica, espera_da_tentativa, com_politica, repetir, repetir_ate, disjuntor

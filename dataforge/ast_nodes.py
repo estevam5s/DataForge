@@ -97,10 +97,29 @@ class NotOp(ASTNode):
     operand: Any = None
 
 @dataclass
+class ValorPronto(ASTNode):
+    """Embrulha um valor ja calculado para reaproveita-lo numa arvore.
+
+    Serve a quem precisa montar um no de expressao a partir de algo que
+    ja foi avaliado — a atribuicao composta, que nao pode avaliar o alvo
+    duas vezes.
+    """
+    value: Any = None
+
+
+@dataclass
 class Assignment(ASTNode):
+    """alvo := valor   |   alvo += valor (com compound_op preenchido)
+
+    Numa atribuicao composta, 'value' e so o lado direito — nao o
+    BinaryOp inteiro. O interpretador avalia o alvo uma vez, le, aplica e
+    escreve. Guardar o BinaryOp aqui faria o alvo ser avaliado duas
+    vezes, e 'v[sortear()] += 1' consumiria dois sorteios.
+    """
     target: Any = None
     value: Any = None
     declared_type: str = ""
+    compound_op: str = ""
 
 @dataclass
 class SteadyDeclaration(ASTNode):

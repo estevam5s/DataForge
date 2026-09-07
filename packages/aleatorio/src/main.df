@@ -1,0 +1,130 @@
+// aleatorio — sorteio com semente
+//
+//     adopt aleatorio as A
+//
+//     r := A.gerador(42)
+//     out r.inteiro(1, 6)          // um dado
+//     out A.embaralhar([1,2,3,4], r)
+//
+// Com semente, a sequência se repete. É o que torna um teste que usa
+// aleatoriedade reproduzível — sem isso, a falha de ontem não volta.
+
+// Congruente linear: os mesmos parâmetros do numerical recipes.
+// Não serve para criptografia; serve para simulação, teste e sorteio.
+steady MULTIPLICADOR := 1664525
+steady INCREMENTO := 1013904223
+steady MODULO := 4294967296
+
+blueprint Gerador:
+    private semente: Integer := 0
+    private inicial: Integer := 0
+
+    action setup(semente := 12345):
+        self.inicial := int(semente)
+        self.semente := int(semente)
+
+    private action proximo():
+        self.semente := (MULTIPLICADOR * self.semente + INCREMENTO) % MODULO
+        yield self.semente
+
+    action fracao():
+        // 0.0 até (quase) 1.0
+        yield self.proximo() / MODULO
+
+    action inteiro(minimo, maximo):
+        // Inclusivo nas duas pontas — é o que se espera de um dado.
+        given maximo smaller minimo:
+            trigger $"faixa invertida: {minimo} a {maximo}"
+        yield minimo + int(self.fracao() * (maximo - minimo + 1))
+
+    action booleano(probabilidade := 0.5):
+        yield self.fracao() smaller probabilidade
+
+    action escolher(itens):
+        given len(itens) is 0:
+            trigger "nao da para escolher de uma lista vazia"
+        yield itens[self.inteiro(0, len(itens) - 1)]
+
+    action escolher_com_peso(itens, pesos):
+        // Sorteio proporcional: peso 3 sai três vezes mais que peso 1.
+        given len(itens) isnt len(pesos):
+            trigger "itens e pesos precisam ter o mesmo tamanho"
+        total := 0
+        cycle p in pesos:
+            total += p
+        given total smaller_eq 0:
+            trigger "a soma dos pesos precisa ser positiva"
+
+        alvo := self.fracao() * total
+        acumulado := 0
+        cycle i from 0 to len(itens) - 1:
+            acumulado += pesos[i]
+            given alvo smaller acumulado:
+                yield itens[i]
+        yield itens[len(itens) - 1]
+
+    action reiniciar():
+        self.semente := self.inicial
+        yield self
+
+action gerador(semente := 12345):
+    yield spawn Gerador(semente)
+
+action embaralhar(itens, r := void):
+    // Fisher-Yates: cada permutação com a mesma chance. O embaralhamento
+    // ingênuo (trocar posições ao acaso N vezes) não tem essa garantia.
+    g := r ?? gerador()
+    copia := []
+    cycle x in itens:
+        copia.append(x)
+    i := len(copia) - 1
+    persist i bigger 0:
+        j := g.inteiro(0, i)
+        temp := copia[i]
+        copia[i] := copia[j]
+        copia[j] := temp
+        i -= 1
+    yield copia
+
+action amostra(itens, quantos, r := void):
+    // Sem repetição. Pede mais do que existe? Devolve tudo embaralhado.
+    given quantos bigger_eq len(itens):
+        yield embaralhar(itens, r)
+    yield embaralhar(itens, r)[0:quantos]
+
+action amostra_com_repeticao(itens, quantos, r := void):
+    g := r ?? gerador()
+    saida := []
+    cycle i from 1 to quantos:
+        saida.append(g.escolher(itens))
+    yield saida
+
+action normal(media := 0.0, desvio := 1.0, r := void):
+    // Box-Muller: duas uniformes viram uma normal.
+    g := r ?? gerador()
+    u1 := g.fracao()
+    u2 := g.fracao()
+    given u1 smaller_eq 0.0:
+        u1 := 0.0000001
+    z := sqrt(-2.0 * log(u1)) * cos(2.0 * PI * u2)
+    yield media + z * desvio
+
+action uuid_simples(r := void):
+    // Um identificador aleatório em formato UUID. NÃO é criptográfico:
+    // para token de sessão ou senha, use Arcane.Crypto.
+    g := r ?? gerador()
+    steady HEX := "0123456789abcdef"
+    partes := []
+    cycle tamanho in [8, 4, 4, 4, 12]:
+        pedaco := ""
+        cycle i from 1 to tamanho:
+            pedaco += HEX.char_at(g.inteiro(0, 15))
+        partes.append(pedaco)
+    yield partes.join("-")
+
+action entre(minimo, maximo, r := void):
+    g := r ?? gerador()
+    yield minimo + g.fracao() * (maximo - minimo)
+
+relay Gerador, gerador, embaralhar, amostra, amostra_com_repeticao
+relay normal, uuid_simples, entre
