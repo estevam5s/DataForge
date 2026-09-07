@@ -1,18 +1,62 @@
-export function Logo({ size = 34 }: { size?: number }) {
+/**
+ * Marca do DataForge — uma bigorna.
+ *
+ * "Forge" é o que a linguagem faz: recebe dado bruto e o molda. A bigorna
+ * é a superfície onde isso acontece, e tem uma silhueta que sobrevive a
+ * 16px — o teste que separa um logo de um desenho.
+ *
+ * O caminho é único e sólido, sem traço nem gradiente: assim a marca
+ * funciona em qualquer fundo, em uma cor só, e não some quando reduzida.
+ */
+
+/** O caminho da bigorna, num viewBox 64×64. Fonte única para todos os usos. */
+export const CAMINHO_MARCA =
+  'M8 14h48a2 2 0 011.6 3.2L50 25a3 3 0 01-2.4 1.2H41v9.4a4 4 0 001 2.6' +
+  'l6.5 7.6A3 3 0 0146.2 51H17.8a3 3 0 01-2.3-5l6.5-7.7a4 4 0 001-2.6V26.2' +
+  'h-6.6a3 3 0 01-2.4-1.2L6.4 17.2A2 2 0 018 14z';
+
+export function Logo({
+  size = 34,
+  className = '',
+  cor,
+}: {
+  size?: number;
+  className?: string;
+  /** Sobrepõe a cor; por padrão segue o acento do tema. */
+  cor?: string;
+}) {
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="df-g" x1="8" y1="6" x2="40" y2="42" gradientUnits="userSpaceOnUse">
-          <stop stopColor="rgb(var(--accent-soft))" />
-          <stop offset="1" stopColor="rgb(var(--accent))" />
-        </linearGradient>
-      </defs>
-      {/* Bigorna estilizada: "forge" — o D é formado pelo vazado */}
-      <path
-        d="M10 9h16.5c8.2 0 13.5 5.6 13.5 15S34.7 39 26.5 39H10V9Zm7.5 6.6v16.8h8.4c4.4 0 7-3.1 7-8.4s-2.6-8.4-7-8.4h-8.4Z"
-        fill="url(#df-g)"
-      />
-      <path d="M6 20.5h6.5v2.8H6zM6 26h6.5v2.8H6z" fill="rgb(var(--accent))" opacity=".55" />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      className={className}
+      role="img"
+      aria-label="DataForge"
+    >
+      <path d={CAMINHO_MARCA} fill={cor ?? 'rgb(var(--accent))'} />
     </svg>
+  );
+}
+
+/** A marca com o nome ao lado — para cabeçalho e rodapé. */
+export function LogoCompleto({
+  size = 30,
+  className = '',
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <span className={`inline-flex items-center gap-2.5 ${className}`}>
+      <Logo size={size} />
+      <span
+        className="font-extrabold tracking-tight"
+        style={{ fontSize: size * 0.58 }}
+      >
+        DataForge
+      </span>
+    </span>
   );
 }

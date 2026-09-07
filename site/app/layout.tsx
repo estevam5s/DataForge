@@ -21,6 +21,21 @@ export const metadata: Metadata = {
     title: 'DataForge — documentação da linguagem',
     description:
       'Tipos verificados, pattern matching estrutural, pipelines nativos e 20 módulos de biblioteca padrão.',
+    images: [{ url: '/marca/og.svg', width: 1200, height: 630,
+               alt: 'DataForge — linguagem de programação' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DataForge',
+    description: 'Uma linguagem de programação com vocabulário próprio.',
+    images: ['/marca/og.svg'],
+  },
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '16x16 32x32 48x48' },
+    ],
+    apple: '/apple-icon.png',
   },
   robots: { index: true, follow: true },
 };
