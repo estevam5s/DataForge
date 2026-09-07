@@ -60,6 +60,12 @@ export function Header() {
             >
               Biblioteca
             </Link>
+            <Link
+              href="/painel"
+              className="text-[14.5px] font-medium text-body transition-colors hover:text-strong"
+            >
+              Painel
+            </Link>
 
             <span className="mx-1 hidden h-5 w-px bg-line lg:block" />
 

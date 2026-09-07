@@ -12,6 +12,7 @@ const links = [
   { t: 'Biblioteca', h: '/docs/biblioteca' },
   { t: 'Exercícios', h: '/docs/exercicios' },
   { t: 'Referência', h: '/docs/referencia/gramatica' },
+  { t: 'Painel', h: '/painel' },
 ];
 
 export function NavSite() {
