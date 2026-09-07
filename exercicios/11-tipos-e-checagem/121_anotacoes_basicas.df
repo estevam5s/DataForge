@@ -1,0 +1,29 @@
+// Exercicio 121 — Anotacoes de tipo
+// Enunciado: declare variaveis com tipo e comprove que o valor errado e recusado.
+
+// Tipos simples
+idade: Integer := 30
+nome: String := "Ana"
+altura: Float := 1.72
+ativo: Boolean := yes
+notas: Cluster := [8, 9, 10]
+config: Vault := {"tema": "escuro"}
+
+out idade, nome, altura, ativo
+out notas, config
+
+// Integer serve onde se espera Float — a conversao e segura
+media: Float := 8
+
+// O contrario nao vale
+recusou := no
+monitor:
+    quantidade: Integer := 3.5
+handle e:
+    recusou := yes
+    out "recusado:", e.message
+
+assert recusou is yes, "Float nao entra onde se espera Integer"
+assert media is 8, "Integer entra onde se espera Float"
+assert typeof(idade) is "Integer", "tipo de idade"
+assert typeof(config) is "Vault", "tipo de config"

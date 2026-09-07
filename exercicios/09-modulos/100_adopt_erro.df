@@ -3,7 +3,8 @@
 
 falhou := no
 monitor:
-    adopt Arcane.NaoExiste as X
+    adopt Arcane.NaoExiste as inexistente
+    out inexistente
 handle e:
     falhou := yes
     out "erro esperado:", e.type

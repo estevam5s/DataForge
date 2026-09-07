@@ -1,0 +1,71 @@
+// Exercicio 170 — Threads e paralelismo
+// Enunciado: execute trabalho em segundo plano.
+
+adopt Arcane.Time as Time
+
+// Um bloco thread roda em segundo plano
+resultados := []
+
+thread:
+    cycle i from 1 to 3:
+        resultados.append($"A{i}")
+
+thread:
+    cycle i from 1 to 3:
+        resultados.append($"B{i}")
+
+// Espera as threads terminarem
+wait 200
+
+out $"itens produzidos: {len(resultados)}"
+assert len(resultados) is 6, "as duas threads produziram"
+
+// parallel roda cada instrucao em uma thread
+adopt Arcane.Math as Math
+
+saidas := []
+parallel:
+    saidas.append($"fatorial: {Math.factorial(12)}")
+    saidas.append($"fibonacci: {Math.fibonacci(25)}")
+    saidas.append($"primo: {Math.is_prime(9973)}")
+
+wait 300
+out ""
+cycle s in sorted(saidas):
+    out $"  {s}"
+assert len(saidas) is 3, "tres tarefas"
+
+// Medindo: trabalho concorrente
+action trabalho(n):
+    total := 0
+    cycle i from 1 to n:
+        total += i * i
+    yield total
+
+crono := Time.stopwatch()
+crono.start()
+
+sequencial := []
+cycle n in [50000, 50000, 50000]:
+    sequencial.append(trabalho(n))
+
+tempo_seq := crono.stop()
+out ""
+out $"sequencial: {round(tempo_seq * 1000, 1)} ms"
+assert len(sequencial) is 3, "tres resultados"
+
+// Aviso importante: sem sincronizacao, atualizacoes se perdem
+contador := {"valor": 0}
+
+thread:
+    cycle _ in range(0, 1000):
+        contador["valor"] := contador["valor"] + 1
+
+thread:
+    cycle _ in range(0, 1000):
+        contador["valor"] := contador["valor"] + 1
+
+wait 400
+out ""
+out $"contador (esperado 2000): {contador["valor"]}"
+out "se o numero veio menor, voce acabou de ver uma condicao de corrida"

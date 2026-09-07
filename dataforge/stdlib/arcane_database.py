@@ -105,8 +105,14 @@ class ArcaneDatabase:
 
     @staticmethod
     def _execute(db, sql, params=None):
+        """Executa um comando. Fora de uma transação, confirma na hora.
+
+        Dentro de begin/commit, NÃO confirma — do contrário 'rollback' não teria
+        o que desfazer e a transação seria decorativa.
+        """
         cursor = db["_conn"].execute(sql, params or [])
-        db["_conn"].commit()
+        if not db.get("_in_transaction"):
+            db["_conn"].commit()
         return {"rowcount": cursor.rowcount, "lastrowid": cursor.lastrowid}
 
     @staticmethod
@@ -129,7 +135,8 @@ class ArcaneDatabase:
     @staticmethod
     def _execute_many(db, sql, params_list):
         cursor = db["_conn"].executemany(sql, params_list)
-        db["_conn"].commit()
+        if not db.get("_in_transaction"):
+            db["_conn"].commit()
         return cursor.rowcount
 
     @staticmethod
@@ -249,17 +256,22 @@ class ArcaneDatabase:
 
     @staticmethod
     def _begin(db):
+        if db.get("_in_transaction"):
+            raise RuntimeError("já existe uma transação aberta nesta conexão")
         db["_conn"].execute("BEGIN")
+        db["_in_transaction"] = True
         return True
 
     @staticmethod
     def _commit(db):
         db["_conn"].commit()
+        db["_in_transaction"] = False
         return True
 
     @staticmethod
     def _rollback(db):
         db["_conn"].rollback()
+        db["_in_transaction"] = False
         return True
 
     # ═══════════════════════════════════════════════════════

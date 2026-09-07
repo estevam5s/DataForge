@@ -1,0 +1,64 @@
+// Exercicio 161 — Executando processos
+// Enunciado: rode comandos externos e trate a saida.
+
+adopt Arcane.Process as Proc
+
+// run devolve stdout, stderr e o codigo de saida
+r := Proc.run("echo ola do processo")
+out $"saida:  {r.stdout.trim()}"
+out $"codigo: {r.exit_code}"
+out $"ok:     {r.ok}"
+
+assert r.ok is yes, "echo funciona"
+assert r.exit_code is 0, "codigo zero"
+assert r.stdout.trim() is "ola do processo", "a saida"
+
+// capture pega so o stdout, ja limpo
+out ""
+out $"capture: '{Proc.capture("echo direto")}'"
+assert Proc.capture("echo direto") is "direto", "capture"
+
+// Comando inexistente nao derruba o programa
+falhou := Proc.run("comando_que_nao_existe_xyz")
+out ""
+out $"inexistente -> codigo {falhou.exit_code}, ok={falhou.ok}"
+out $"stderr: {falhou.stderr}"
+assert falhou.ok is no, "falhou"
+assert falhou.exit_code is 127, "127 = comando nao encontrado"
+
+// check devolve so yes/no
+out ""
+out $"echo existe? {Proc.exists("echo")}"
+out $"xyz existe?  {Proc.exists("comando_inexistente_xyz")}"
+assert Proc.exists("echo") is yes, "echo existe"
+
+// Linhas da saida ja separadas
+multi := Proc.run("printf 'linha1\nlinha2\nlinha3'")
+out ""
+out $"linhas: {len(multi.lines)}"
+cycle l in multi.lines:
+    out $"  {l}"
+assert len(multi.lines) is 3, "tres linhas"
+
+// Argumentos com espacos: passe como lista, sem shell
+r2 := Proc.run(["echo", "texto com espacos"])
+out ""
+out $"lista: {r2.stdout.trim()}"
+assert r2.stdout.trim() is "texto com espacos", "lista preserva o argumento"
+
+// Enviar entrada para o processo
+r3 := Proc.run("cat", input_text := "vindo da entrada")
+out $"stdin: {r3.stdout.trim()}"
+assert r3.stdout.trim() is "vindo da entrada", "entrada padrao"
+
+// Encadear comandos: a saida de um vira a entrada do proximo
+resultado := Proc.pipeline(["printf 'c\na\nb'", "sort"])
+out ""
+out $"pipeline ordenado: {resultado.lines}"
+assert resultado.lines is ["a", "b", "c"], "sort funcionou"
+
+// Tempo limite
+lento := Proc.run("sleep 5", timeout := 1)
+out ""
+out $"com timeout: ok={lento.ok}"
+assert lento.ok is no, "o comando estourou o tempo"

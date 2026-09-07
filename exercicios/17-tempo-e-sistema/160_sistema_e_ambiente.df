@@ -1,0 +1,65 @@
+// Exercicio 160 — Sistema e ambiente
+// Enunciado: consulte o sistema operacional e as variaveis de ambiente.
+
+adopt Arcane.OS as OS
+adopt Arcane.Text as Text
+
+out Text.box("Sistema")
+out $"sistema:    {OS.name()} {OS.release()}"
+out $"arquitetura: {OS.arch()} ({OS.machine()})"
+out $"maquina:    {OS.hostname()}"
+out $"CPUs:       {OS.cpu_count()}"
+out $"usuario:    {OS.user()}"
+
+assert len(OS.name()) bigger 0, "o sistema tem nome"
+assert OS.cpu_count() bigger_eq 1, "ao menos uma CPU"
+
+// Detectar a plataforma
+plataforma := "Windows" given OS.is_windows() otherwise "macOS" given OS.is_mac() otherwise "Linux" given OS.is_linux() otherwise "outro"
+out $"plataforma: {plataforma}"
+
+// info() traz tudo de uma vez
+dados := OS.info()
+assert "system" in dados, "info tem o sistema"
+assert "cpus" in dados, "info tem as CPUs"
+
+// Disco
+uso := OS.disk_usage(".")
+out ""
+out Text.box("Disco")
+out $"total: {uso.total_gb} GB"
+out $"livre: {uso.free_gb} GB ({100 - uso.percent_used}% disponivel)"
+assert uso.total_gb bigger 0, "o disco tem tamanho"
+
+// Diretorios
+out ""
+out Text.box("Caminhos")
+out $"atual: {OS.cwd()}"
+out $"casa:  {OS.home()}"
+out $"temp:  {OS.temp_dir()}"
+out $"separador: '{OS.separator()}'"
+
+// Variaveis de ambiente
+out ""
+out Text.box("Ambiente")
+out $"variaveis definidas: {len(OS.env_names())}"
+out $"PATH existe? {OS.has_env("PATH")}"
+out $"inexistente com padrao: {OS.get_env("VARIAVEL_QUE_NAO_EXISTE", "(padrao)")}"
+
+assert OS.get_env("SEM_ISSO_AQUI", "fallback") is "fallback", "padrao ao faltar"
+assert OS.has_env("VARIAVEL_INEXISTENTE_XYZ") is no, "nao existe"
+
+// Definir e ler de volta
+OS.set_env("DATAFORGE_TESTE", "42")
+assert OS.get_env("DATAFORGE_TESTE") is "42", "definida e lida"
+out $"definida: DATAFORGE_TESTE = {OS.get_env("DATAFORGE_TESTE")}"
+
+// Encontrar um programa
+out ""
+python := OS.which("python3")
+out $"python3 em: {python ?? "(nao encontrado)"}"
+
+// Terminal
+tam := OS.terminal_size()
+out $"terminal: {tam.columns}x{tam.lines}"
+assert tam.columns bigger 0, "largura do terminal"

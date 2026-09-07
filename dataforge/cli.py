@@ -30,26 +30,42 @@ USAGE = f"""{LOGO}
     USAGE:
         dataforge <command> [options]
     
-    COMMANDS:
-        run <file.df>      Run a DataForge source file
-        repl               Start interactive REPL
-        new                Create a new project from template
-        tokens <file.df>   Show token stream
-        ast <file.df>      Show Abstract Syntax Tree
-        check <file.df>    Syntax check without running
-        version            Show version information
-        help               Show this help message
+    COMANDOS:
+        init [pasta]       Cria forge.toml e o esqueleto do projeto
+        info               Mostra o manifesto do projeto atual
+        run <arquivo.df>   Executa um programa (sem argumento usa forge.toml)
+        check <alvo>       Análise estática: sintaxe, nomes e tipos
+        test [alvo]        Executa a suíte de testes (*_test.df, tests/)
+        fmt [alvo]         Formata o código (--check só verifica)
+        lint [alvo]        Aponta problemas de estilo e higiene
+        doc [alvo]         Gera documentação Markdown (--out=arquivo)
+        repl               Console interativo
+        new                Cria um projeto a partir de um template
+        tokens <arquivo>   Mostra o fluxo de tokens (lexer)
+        ast <arquivo>      Mostra a árvore sintática (parser)
+        version            Mostra a versão
+        help               Mostra esta ajuda
     
     OPTIONS:
-        --debug            Enable debug output
-        --time             Show execution time
-        --no-color         Disable colored output
+        --debug            Mostra tokens, AST e traceback completo
+        --time             Mostra o tempo de execução
+        --no-color         Desliga as cores
+        --strict           check: trata avisos como erros
+        --syntax-only      check: só a sintaxe, sem análise semântica
+        --check            fmt: só verifica, não reescreve
+        --strict           check/lint: trata avisos como erros
+        --verbose, -v      test: mostra cada caso
+        --filter=<texto>   test: só os casos cujo nome contém o texto
+        --fail-fast        test: para na primeira falha
+        --out=<arquivo>    doc: escreve num arquivo em vez do terminal
     
-    EXAMPLES:
-        dataforge run hello.df
-        dataforge repl
-        dataforge check myprogram.df
-        df run examples/demo.df
+    EXEMPLOS:
+        dataforge run ola.df
+        dataforge check src/
+        dataforge test tests/ -v
+        dataforge fmt . --check
+        dataforge lint src/ --strict
+        dataforge doc src/ --out=doc/API.md
 """
 
 
@@ -97,7 +113,7 @@ def run_file(filepath: str, debug: bool = False, show_time: bool = False):
         interpreter.global_env.set_local("__file__", filepath)
         interpreter.global_env.set_local("__name__", "__main__")
 
-        result = interpreter.run(tree)
+        result = interpreter.run(tree, filename=filepath)
 
         end_time = time.perf_counter()
 
@@ -106,7 +122,9 @@ def run_file(filepath: str, debug: bool = False, show_time: bool = False):
             print(color(f"\n⚡ Execution time: {elapsed:.2f}ms", "1;36"))
 
     except DataForgeError as e:
-        print(color(f"\n{e.format()}", "1;31"))
+        print()
+        print(e.render(color='--no-color' not in sys.argv,
+                       source_lines=source.splitlines(), debug=debug))
         if debug:
             import traceback
             traceback.print_exc()
@@ -143,19 +161,43 @@ def show_ast(filepath: str):
         print(f"  [{i}] {type(stmt).__name__}")
 
 
-def check_file(filepath: str):
-    """Syntax-check a file without executing."""
+def check_file(filepath: str, strict: bool = False, only_syntax: bool = False):
+    """Analisa sintaxe e semântica sem executar o programa."""
+    from .typechecker import check_program
+
+    if not os.path.exists(filepath):
+        print(color(f"Erro: arquivo não encontrado: {filepath}", "1;31"))
+        sys.exit(1)
+
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             source = f.read()
-
         tokens = tokenize(source, filepath)
         tree = parse(tokens, filepath)
-        print(color(f"✓ {filepath}: No syntax errors ({len(tree.body)} statements)", "1;32"))
-
     except DataForgeError as e:
         print(color(f"✗ {filepath}: {e.format()}", "1;31"))
         sys.exit(1)
+
+    if only_syntax:
+        print(color(f"✓ {filepath}: sintaxe ok ({len(tree.body)} instruções)", "1;32"))
+        return
+
+    diagnosticos = check_program(tree, filepath, strict=strict)
+    erros = [d for d in diagnosticos if d.severity == 'error']
+    avisos = [d for d in diagnosticos if d.severity == 'warning']
+    usar_cor = '--no-color' not in sys.argv
+
+    for d in sorted(diagnosticos, key=lambda x: (x.line, x.column)):
+        print(d.format(filepath, color=usar_cor))
+
+    if erros:
+        print(color(f"\n✗ {len(erros)} erro(s), {len(avisos)} aviso(s)", "1;31"))
+        sys.exit(1)
+    if avisos:
+        print(color(f"\n✓ sem erros, {len(avisos)} aviso(s)", "1;33"))
+        return
+    print(color(f"✓ {filepath}: sem erros "
+                f"({len(tree.body)} instruções analisadas)", "1;32"))
 
 
 # ─── Project Templates ──────────────────────────────────────────
@@ -684,6 +726,227 @@ def new_project():
     print()
 
 
+def fmt_command(alvos, checar=False):
+    """dataforge fmt — formata arquivos .df."""
+    from .formatter import format_source
+
+    arquivos = _expandir(alvos or ["."])
+    if not arquivos:
+        print(color("Nenhum arquivo .df encontrado.", "1;33"))
+        return
+
+    alterados, com_erro = [], []
+    for caminho in arquivos:
+        original = open(caminho, encoding='utf-8').read()
+        try:
+            formatado = format_source(original)
+        except DataForgeError as e:
+            com_erro.append((caminho, e.message))
+            continue
+        if formatado != original:
+            alterados.append(caminho)
+            if not checar:
+                open(caminho, 'w', encoding='utf-8').write(formatado)
+
+    for caminho, mensagem in com_erro:
+        print(color(f"✗ {caminho}: {mensagem}", "1;31"))
+
+    if checar:
+        for caminho in alterados:
+            print(color(f"  precisa formatar  {caminho}", "1;33"))
+        if alterados or com_erro:
+            print(color(f"\n{len(alterados)} arquivo(s) fora do formato, "
+                        f"{len(com_erro)} com erro", "1;33"))
+            sys.exit(1)
+        print(color(f"✓ {len(arquivos)} arquivo(s) já formatados", "1;32"))
+        return
+
+    for caminho in alterados:
+        print(color(f"  formatado  {caminho}", "1;36"))
+    print(color(f"\n{len(alterados)} de {len(arquivos)} arquivo(s) reescritos",
+                "1;32" if not com_erro else "1;33"))
+    if com_erro:
+        sys.exit(1)
+
+
+def lint_command(alvos, strict=False):
+    """dataforge lint — encontra problemas de estilo e higiene."""
+    from .linter import lint_program
+
+    arquivos = _expandir(alvos or ["."])
+    usar_cor = '--no-color' not in sys.argv
+    total = 0
+    for caminho in arquivos:
+        fonte = open(caminho, encoding='utf-8').read()
+        try:
+            arvore = parse(tokenize(fonte, caminho), caminho)
+        except DataForgeError as e:
+            print(color(f"✗ {caminho}: {e.format()}", "1;31"))
+            total += 1
+            continue
+        for d in lint_program(arvore, caminho, fonte):
+            print(d.format(caminho, color=usar_cor))
+            total += 1
+
+    if total:
+        print(color(f"\n{total} aviso(s) em {len(arquivos)} arquivo(s)", "1;33"))
+        if strict:
+            sys.exit(1)
+        return
+    print(color(f"✓ {len(arquivos)} arquivo(s) sem avisos", "1;32"))
+
+
+def test_command(alvos, verboso=False, filtro="", parar=False):
+    """dataforge test — executa a suíte de testes."""
+    from .testrunner import executar
+
+    alvo = alvos[0] if alvos else "."
+    _, ok = executar(alvo, verboso=verboso, filtro=filtro,
+                     cor='--no-color' not in sys.argv, parar_no_primeiro=parar)
+    if not ok:
+        sys.exit(1)
+
+
+def doc_command(alvos, saida=""):
+    """dataforge doc — gera documentação Markdown."""
+    from .docgen import gerar_doc, gerar_doc_pasta
+
+    alvo = alvos[0] if alvos else "."
+    if os.path.isdir(alvo):
+        texto = gerar_doc_pasta(alvo, f"Documentação de {os.path.basename(os.path.abspath(alvo))}")
+    else:
+        texto = gerar_doc(alvo)
+
+    if saida:
+        os.makedirs(os.path.dirname(saida) or ".", exist_ok=True)
+        open(saida, 'w', encoding='utf-8').write(texto)
+        print(color(f"✓ documentação escrita em {saida}", "1;32"))
+    else:
+        print(texto)
+
+
+def init_command(args):
+    """dataforge init — cria o forge.toml e o esqueleto do projeto."""
+    from . import project
+
+    pasta = args[0] if args else "."
+    existente = os.path.join(pasta, project.ARQUIVO)
+    if os.path.exists(existente):
+        print(color(f"✗ já existe um {project.ARQUIVO} em {pasta}", "1;31"))
+        sys.exit(1)
+
+    nome = os.path.basename(os.path.abspath(pasta)) or "meu-projeto"
+    try:
+        digitado = input(color(f"  nome do projeto ({nome}): ", "1;32")).strip()
+        nome = digitado or nome
+        descricao = input(color("  descrição: ", "1;32")).strip()
+        autor = input(color("  autor: ", "1;32")).strip()
+    except (EOFError, KeyboardInterrupt):
+        descricao, autor = "", ""
+
+    os.makedirs(os.path.join(pasta, "src"), exist_ok=True)
+    os.makedirs(os.path.join(pasta, "tests"), exist_ok=True)
+
+    principal = os.path.join(pasta, "src", "main.df")
+    if not os.path.exists(principal):
+        open(principal, 'w', encoding='utf-8').write(
+            f'// {nome}\n\naction principal():\n'
+            f'    out "Ola, {nome}!"\n\nprincipal()\n')
+
+    teste = os.path.join(pasta, "tests", "principal_test.df")
+    if not os.path.exists(teste):
+        open(teste, 'w', encoding='utf-8').write(
+            'action test_soma():\n    assert 1 + 1 is 2, "aritmetica basica"\n')
+
+    caminho = project.criar(pasta, nome, descricao, autor,
+                            entrada="src/main.df", versao=__version__)
+    print()
+    print(color(f"✓ projeto '{nome}' iniciado", "1;32"))
+    for arquivo in (project.ARQUIVO, "src/main.df", "tests/principal_test.df"):
+        print(color(f"    {arquivo}", "0;37"))
+    print()
+    print(color("  dataforge run src/main.df", "1;36"))
+    print(color("  dataforge test tests/", "1;36"))
+
+
+def info_command(args):
+    """dataforge info — mostra o manifesto do projeto atual."""
+    from . import project
+
+    manifesto = project.carregar(args[0] if args else ".")
+    if manifesto is None:
+        print(color("Nenhum forge.toml encontrado aqui nem acima.", "1;33"))
+        print("Crie um com: dataforge init")
+        sys.exit(1)
+
+    ok, exigido = manifesto.requires(__version__)
+    print()
+    print(color(f"  {manifesto.name} {manifesto.version}", "1;36"))
+    descricao = manifesto.dados["project"].get("description", "")
+    if descricao:
+        print(f"  {descricao}")
+    print()
+    print(f"  manifesto  {os.path.relpath(manifesto.caminho)}")
+    print(f"  entrada    {manifesto.entry}")
+    autores = manifesto.dados["project"].get("authors") or []
+    if autores:
+        print(f"  autores    {', '.join(autores)}")
+    licenca = manifesto.dados["project"].get("license", "")
+    if licenca:
+        print(f"  licença    {licenca}")
+    if exigido:
+        estado = color("ok", "1;32") if ok else color(
+            f"incompatível (você tem {__version__})", "1;31")
+        print(f"  requer     DataForge {exigido}  {estado}")
+    if manifesto.dependencies:
+        print()
+        print(color("  dependências", "1;37"))
+        for nome, versao in manifesto.dependencies.items():
+            print(f"    {nome} {versao}")
+    if manifesto.scripts:
+        print()
+        print(color("  scripts", "1;37"))
+        for nome, comando in manifesto.scripts.items():
+            print(f"    {nome:<10} dataforge {comando}")
+    print()
+    if not ok:
+        sys.exit(1)
+
+
+def _rodar_script(nome, flags):
+    """Executa um script declarado no forge.toml."""
+    from . import project
+
+    manifesto = project.carregar(".")
+    if manifesto is None or nome not in manifesto.scripts:
+        return False
+    comando = manifesto.scripts[nome]
+    anterior = os.getcwd()
+    os.chdir(manifesto.raiz)
+    try:
+        sys.argv = ["dataforge"] + comando.split() + flags
+        main()
+    finally:
+        os.chdir(anterior)
+    return True
+
+
+def _expandir(alvos):
+    """Resolve caminhos e pastas numa lista de arquivos .df."""
+    import glob as _glob
+    arquivos = []
+    for alvo in alvos:
+        if os.path.isdir(alvo):
+            arquivos.extend(_glob.glob(os.path.join(alvo, "**", "*.df"),
+                                       recursive=True))
+        elif os.path.isfile(alvo):
+            arquivos.append(alvo)
+        else:
+            achados = _glob.glob(alvo, recursive=True)
+            arquivos.extend(a for a in achados if a.endswith('.df'))
+    return sorted(set(os.path.normpath(a) for a in arquivos))
+
+
 def main():
     """Main CLI entry point."""
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
@@ -700,9 +963,21 @@ def main():
 
     if command == 'run':
         if len(args) < 2:
-            print(color("Error: No file specified. Usage: dataforge run <file.df>", "1;31"))
-            sys.exit(1)
-        run_file(args[1], debug=debug, show_time=show_time)
+            # Sem arquivo: usa a entrada declarada no forge.toml.
+            from . import project
+            manifesto = project.carregar(".")
+            if manifesto is None:
+                print(color("Erro: informe o arquivo a executar, ou crie um "
+                            "forge.toml com 'dataforge init'.", "1;31"))
+                sys.exit(1)
+            alvo = manifesto.entry_path()
+            if not os.path.exists(alvo):
+                print(color(f"Erro: a entrada '{manifesto.entry}' do forge.toml "
+                            f"não existe.", "1;31"))
+                sys.exit(1)
+            run_file(alvo, debug=debug, show_time=show_time)
+        else:
+            run_file(args[1], debug=debug, show_time=show_time)
 
     elif command == 'repl':
         start_repl()
@@ -726,7 +1001,35 @@ def main():
         if len(args) < 2:
             print(color("Error: No file specified.", "1;31"))
             sys.exit(1)
-        check_file(args[1])
+        check_file(args[1], strict='--strict' in flags,
+                   only_syntax='--syntax-only' in flags)
+
+    elif command == 'fmt':
+        fmt_command(args[1:], checar='--check' in flags)
+
+    elif command == 'lint':
+        lint_command(args[1:], strict='--strict' in flags)
+
+    elif command == 'test':
+        filtro = ""
+        for f in flags:
+            if f.startswith('--filter='):
+                filtro = f.split('=', 1)[1]
+        test_command(args[1:], verboso='--verbose' in flags or '-v' in flags,
+                     filtro=filtro, parar='--fail-fast' in flags)
+
+    elif command == 'doc':
+        saida = ""
+        for f in flags:
+            if f.startswith('--out='):
+                saida = f.split('=', 1)[1]
+        doc_command(args[1:], saida=saida)
+
+    elif command == 'init':
+        init_command(args[1:])
+
+    elif command == 'info':
+        info_command(args[1:])
 
     elif command == 'version':
         print(f"DataForge v{__version__}")
@@ -739,9 +1042,12 @@ def main():
         # Direct file execution: dataforge myfile.df
         run_file(command, debug=debug, show_time=show_time)
 
+    elif _rodar_script(command, sys.argv[2:]):
+        pass
+
     else:
-        print(color(f"Unknown command: {command}", "1;31"))
-        print("Run 'dataforge help' for usage.")
+        print(color(f"Comando desconhecido: {command}", "1;31"))
+        print("Rode 'dataforge help' para ver a lista.")
         sys.exit(1)
 
 

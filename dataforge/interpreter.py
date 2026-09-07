@@ -12,7 +12,7 @@ from . import ast_nodes as ast
 from .environment import Environment
 from .builtins import BuiltinFunction, get_builtins, set_stringifier
 from .errors import (
-    DataForgeError, RuntimeError_, TypeError_, NameError_, TriggerError,
+    DataForgeError, Frame, RuntimeError_, TypeError_, NameError_, TriggerError,
     HaltSignal, SkipSignal, YieldSignal, IndexError_, ImportError_,
     StackOverflowError_,
 )
@@ -70,7 +70,7 @@ class DFAction:
     _interpreter = None  # Set during Interpreter.__init__
 
     def __init__(self, name, params, defaults, body, closure, is_async=False,
-                 param_types=None, return_type=""):
+                 param_types=None, return_type="", is_generator=False):
         self.name = name
         self.params = params
         self.defaults = defaults
@@ -79,6 +79,7 @@ class DFAction:
         self.is_async = is_async
         self.param_types = param_types or {}
         self.return_type = return_type
+        self.is_generator = is_generator
 
     def __call__(self, *args, **kwargs):
         """Allow DFAction to be called like a Python function."""
@@ -224,6 +225,167 @@ class DFError:
         return f"<{self.type}: {self.message}>"
 
 
+class DFRecord:
+    """Um tipo record: dados imutáveis, com igualdade estrutural."""
+
+    def __init__(self, name, fields, methods, env):
+        self.name = name
+        self.fields = fields        # [(nome, tipo, default_node|None)]
+        self.field_names = [f[0] for f in fields]
+        self.field_types = {f[0]: f[1] for f in fields}
+        self.methods = methods      # nome -> DFAction
+        self.env = env
+
+    def __repr__(self):
+        return f"<record '{self.name}'>"
+
+
+class DFRecordInstance:
+    """Uma instância de record. Imutável: use 'with' para gerar uma cópia."""
+
+    __slots__ = ('record', 'values')
+
+    def __init__(self, record: DFRecord, values: dict):
+        self.record = record
+        self.values = values
+
+    def get(self, name):
+        if name in self.values:
+            return self.values[name]
+        if name in self.record.methods:
+            return self.record.methods[name]
+        raise NameError_(
+            f"Record '{self.record.name}' has no field or method '{name}'. "
+            f"It has: {', '.join(self.record.field_names)}")
+
+    def replace(self, changes: dict):
+        """Cópia com campos trocados — a base do operador 'with'."""
+        desconhecidos = [k for k in changes if k not in self.record.field_names]
+        if desconhecidos:
+            raise NameError_(
+                f"Record '{self.record.name}' has no field(s): "
+                f"{', '.join(desconhecidos)}")
+        novos = dict(self.values)
+        novos.update(changes)
+        return DFRecordInstance(self.record, novos)
+
+    def __eq__(self, other):
+        if isinstance(other, DFRecordInstance):
+            return (self.record.name == other.record.name
+                    and self.values == other.values)
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((self.record.name, tuple(sorted(
+            (k, v) for k, v in self.values.items() if isinstance(v, (int, float, str, bool, type(None)))))))
+
+    def __repr__(self):
+        campos = ', '.join(f"{k}: {v!r}" for k, v in self.values.items())
+        return f"{self.record.name}({campos})"
+
+
+class DFEnumMember:
+    """Um membro de enum. Compara por identidade dentro do enum."""
+
+    __slots__ = ('enum_name', 'name', 'value', 'index')
+
+    def __init__(self, enum_name, name, value, index):
+        self.enum_name = enum_name
+        self.name = name
+        self.value = value
+        self.index = index
+
+    def __eq__(self, other):
+        if isinstance(other, DFEnumMember):
+            return self.enum_name == other.enum_name and self.name == other.name
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((self.enum_name, self.name))
+
+    def __repr__(self):
+        return f"{self.enum_name}.{self.name}"
+
+
+class DFEnum:
+    """Um tipo enum e seus membros."""
+
+    def __init__(self, name, members, methods, env):
+        self.name = name
+        self.members = members      # nome -> DFEnumMember (ordenado)
+        self.methods = methods
+        self.env = env
+
+    def get(self, name):
+        if name in self.members:
+            return self.members[name]
+        if name in self.methods:
+            return self.methods[name]
+        raise NameError_(
+            f"Enum '{self.name}' has no member '{name}'. "
+            f"Members: {', '.join(self.members)}")
+
+    def __repr__(self):
+        return f"<enum '{self.name}'>"
+
+
+class DFStream:
+    """Uma sequência preguiçosa produzida por um 'stream action'."""
+
+    def __init__(self, name, produce):
+        self.name = name
+        self._produce = produce     # callable -> generator Python
+        self._iter = None
+
+    def __iter__(self):
+        return self._produce()
+
+    def take(self, n):
+        saida = []
+        for i, item in enumerate(self):
+            if i >= n:
+                break
+            saida.append(item)
+        return saida
+
+    def to_cluster(self):
+        return list(self)
+
+    def next(self):
+        if self._iter is None:
+            self._iter = iter(self)
+        try:
+            return next(self._iter)
+        except StopIteration:
+            return None
+
+    def reset(self):
+        self._iter = None
+        return self
+
+    def __repr__(self):
+        return f"<stream '{self.name}'>"
+
+
+class BoundRecordMethod:
+    """Um método de record já ligado à sua instância."""
+
+    __slots__ = ('interpreter', 'instance', 'action')
+
+    def __init__(self, interpreter, instance, action):
+        self.interpreter = interpreter
+        self.instance = instance
+        self.action = action
+
+    def __call__(self, *args, **kwargs):
+        no = type('_N', (), {'line': 0, 'column': 0})()
+        return self.interpreter._call_action(
+            self.action, list(args), kwargs, no, None, instance=self.instance)
+
+    def __repr__(self):
+        return f"<method '{self.action.name}' of {self.instance.record.name}>"
+
+
 class DFChannel:
     """Thread-safe communication channel."""
 
@@ -276,6 +438,9 @@ class Interpreter:
         self.modules = {}
         self.events = {}  # event name → list of callbacks
         self._depth = 0   # current action-call depth
+        self._call_stack = []  # quadros para o stack trace
+        self._loading = []     # módulos em carga, para detectar ciclos
+        self.filename = "<stdin>"
         # A DataForge frame costs several Python frames; give the interpreter
         # room so its own depth guard reports the error instead of CPython.
         if sys.getrecursionlimit() < 20000:
@@ -291,9 +456,15 @@ class Interpreter:
         for name, value in get_builtins().items():
             self.global_env.set_local(name, value)
 
-    def run(self, program: ast.Program):
+    def run(self, program: ast.Program, filename: str = ""):
         """Execute a full program."""
-        return self.exec_block(program.body, self.global_env)
+        if filename:
+            self.filename = filename
+        try:
+            return self.exec_block(program.body, self.global_env)
+        except DataForgeError as erro:
+            self._attach_stack(erro)
+            raise
 
     def exec_block(self, statements: list, env: Environment):
         """Execute a block of statements."""
@@ -353,14 +524,27 @@ class Interpreter:
         return None
 
     def eval_ListLiteral(self, node: ast.ListLiteral, env):
+        if any(isinstance(e, ast.SpreadElement) for e in node.elements):
+            return self._expand_elements(node.elements, env)
         return [self.evaluate(elem, env) for elem in node.elements]
 
     def eval_DictLiteral(self, node: ast.DictLiteral, env):
         result = {}
         for key_node, val_node in node.pairs:
-            key = self.evaluate(key_node, env)
-            val = self.evaluate(val_node, env)
-            result[key] = val
+            if isinstance(key_node, ast.SpreadElement):
+                base = self.evaluate(key_node.value, env)
+                if isinstance(base, DFRecordInstance):
+                    base = dict(base.values)
+                elif isinstance(base, DFInstance):
+                    base = dict(base.fields)
+                if not isinstance(base, dict):
+                    raise TypeError_(
+                        f"Cannot spread {self._type_of(base)} into a vault: "
+                        f"'...' needs a Vault, a record or an instance",
+                        key_node.line, key_node.column)
+                result.update(base)
+                continue
+            result[self.evaluate(key_node, env)] = self.evaluate(val_node, env)
         return result
 
     # ═══════════════════════════════════════════════════════
@@ -470,6 +654,79 @@ class Interpreter:
         # Handle root (super) proxy
         if isinstance(obj, _RootProxy):
             return obj.get(node.member)
+
+        if isinstance(obj, DFRecordInstance):
+            if node.member == 'fields':
+                return dict(obj.values)
+            if node.member == 'record_name':
+                return obj.record.name
+            valor = obj.get(node.member)
+            if isinstance(valor, DFAction):
+                return BoundRecordMethod(self, obj, valor)
+            return valor
+
+        if isinstance(obj, DFRecord):
+            if node.member == 'fields':
+                return list(obj.field_names)
+            if node.member in obj.methods:
+                return obj.methods[node.member]
+            raise NameError_(
+                f"Record '{obj.name}' has no static member '{node.member}'",
+                node.line, node.column)
+
+        if isinstance(obj, DFEnumMember):
+            if node.member == 'name':
+                return obj.name
+            if node.member == 'value':
+                return obj.value
+            if node.member == 'index':
+                return obj.index
+            if node.member == 'enum_name':
+                return obj.enum_name
+            raise NameError_(
+                f"Enum member '{obj}' has no member '{node.member}'. "
+                f"Use .name, .value or .index",
+                node.line, node.column)
+
+        if isinstance(obj, DFEnum):
+            enum_methods = {
+                'names': lambda: list(obj.members.keys()),
+                'values': lambda: [m.value for m in obj.members.values()],
+                'members': lambda: list(obj.members.values()),
+                'count': lambda: len(obj.members),
+                'has': lambda n: n in obj.members,
+                'from_value': lambda v: next(
+                    (m for m in obj.members.values() if m.value == v), None),
+                'from_name': lambda n: obj.members.get(n),
+            }
+            if node.member in obj.members:
+                return obj.members[node.member]
+            if node.member in enum_methods:
+                return BuiltinFunction(node.member, enum_methods[node.member])
+            if node.member in obj.methods:
+                return obj.methods[node.member]
+            raise NameError_(
+                f"Enum '{obj.name}' has no member '{node.member}'. "
+                f"Members: {', '.join(obj.members)}",
+                node.line, node.column)
+
+        if isinstance(obj, DFStream):
+            stream_methods = {
+                'take': lambda n: obj.take(n),
+                'to_cluster': lambda: obj.to_cluster(),
+                'next': lambda: obj.next(),
+                'reset': lambda: obj.reset(),
+                'count': lambda: sum(1 for _ in obj),
+                'map': lambda f: [f(x) for x in obj],
+                'filter': lambda f: [x for x in obj if f(x)],
+                'first': lambda: next(iter(obj), None),
+            }
+            if node.member in stream_methods:
+                return BuiltinFunction(node.member, stream_methods[node.member])
+            raise NameError_(
+                f"Stream has no member '{node.member}'. Use take, to_cluster, "
+                f"next, reset, count, map, filter or first",
+                node.line, node.column)
 
         if isinstance(obj, DFInstance):
             # Instance built-in methods
@@ -665,13 +922,13 @@ class Interpreter:
 
     def eval_FunctionCall(self, node: ast.FunctionCall, env):
         callee = self.evaluate(node.callee, env)
-        args = [self.evaluate(arg, env) for arg in node.args]
+        args = self._eval_args(node.args, env)
         kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
         return self._call(callee, args, kwargs, node, env)
 
     def eval_MethodCall(self, node: ast.MethodCall, env):
         obj = self.evaluate(node.object, env)
-        args = [self.evaluate(arg, env) for arg in node.args]
+        args = self._eval_args(node.args, env)
         kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
 
         # Handle root (super) proxy calls
@@ -681,6 +938,13 @@ class Interpreter:
                 return self._call_action(method, args, kwargs, node, env, instance=obj.instance)
             if callable(method):
                 return method(*args, **kwargs)
+
+        if isinstance(obj, DFRecordInstance):
+            metodo = obj.get(node.method)
+            if isinstance(metodo, DFAction):
+                return self._call_action(metodo, args, kwargs, node, env, instance=obj)
+            if callable(metodo):
+                return metodo(*args, **kwargs)
 
         if isinstance(obj, DFInstance):
             method = obj.get(node.method)
@@ -718,7 +982,7 @@ class Interpreter:
             raise TypeError_(f"Cannot spawn non-blueprint: {blueprint}", node.line, node.column)
 
         instance = DFInstance(blueprint)
-        args = [self.evaluate(arg, env) for arg in node.args]
+        args = self._eval_args(node.args, env)
         kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
 
         # If blueprint has constructor_params, assign them to instance fields
@@ -760,23 +1024,8 @@ class Interpreter:
         return instance
 
     def eval_TypeofExpression(self, node: ast.TypeofExpression, env):
-        value = self.evaluate(node.operand, env)
-        type_map = {
-            int: "Integer",
-            float: "Float",
-            str: "String",
-            bool: "Boolean",
-            list: "Cluster",
-            dict: "Vault",
-            type(None): "Void",
-        }
-        if isinstance(value, DFInstance):
-            return value.blueprint.name
-        if isinstance(value, DFBlueprint):
-            return "Blueprint"
-        if isinstance(value, DFAction):
-            return "Action"
-        return type_map.get(type(value), type(value).__name__)
+        """typeof x — o nome DataForge do tipo, igual ao usado nas anotações."""
+        return self._type_of(self.evaluate(node.operand, env))
 
     def eval_CastExpression(self, node: ast.CastExpression, env):
         value = self.evaluate(node.operand, env)
@@ -891,6 +1140,16 @@ class Interpreter:
         values = [self._to_str(self.evaluate(expr, env)) for expr in node.expressions]
         print(' '.join(values))
 
+    def exec_EmitStatement(self, node, env):
+        """Fora de um 'stream action', 'emit' é um alias histórico de 'out'.
+
+        Dentro do corpo de um stream ele é interceptado por _lazy_stmt e produz
+        um valor em vez de imprimir.
+        """
+        valores = [self.evaluate(e, env) for e in node.expressions]
+        print(' '.join(self._to_str(v) for v in valores))
+        return None
+
     def exec_YieldStatement(self, node: ast.YieldStatement, env):
         value = self.evaluate(node.value, env) if node.value else None
         raise YieldSignal(value)
@@ -945,6 +1204,12 @@ class Interpreter:
             env.set(node.target.name, value)
         elif isinstance(node.target, ast.MemberAccess):
             obj = self.evaluate(node.target.object, env)
+            if isinstance(obj, DFRecordInstance):
+                raise RuntimeError_(
+                    f"Record '{obj.record.name}' is immutable: cannot assign to "
+                    f"'{node.target.member}'. Build a changed copy with "
+                    f"\"registro with {{'{node.target.member}': valor}}\".",
+                    node.line, node.column)
             if isinstance(obj, DFInstance):
                 obj.set(node.target.member, value)
             elif isinstance(obj, DFBlueprint):
@@ -997,11 +1262,25 @@ class Interpreter:
         return None
 
     def exec_MatchBlock(self, node: ast.MatchBlock, env):
-        value = self.evaluate(node.expression, env)
-        for point_val, point_body in node.points:
-            pv = self.evaluate(point_val, env)
-            if value == pv:
-                return self.exec_block(point_body, env.child("<point>"))
+        valor = self.evaluate(node.expression, env)
+
+        for caso in node.points:
+            # Compatibilidade: 'point' antigo guardado como tupla (valor, corpo)
+            if isinstance(caso, tuple):
+                alvo, corpo = caso
+                if valor == self.evaluate(alvo, env):
+                    return self.exec_block(corpo, env.child("<point>"))
+                continue
+
+            ligacoes = {}
+            if not self._match_pattern(caso.pattern, valor, env, ligacoes):
+                continue
+            escopo = env.child("<point>")
+            for nome, ligado in ligacoes.items():
+                escopo.set_local(nome, ligado)
+            if caso.guard is not None and not self.evaluate(caso.guard, escopo):
+                continue
+            return self.exec_block(caso.body, escopo)
 
         if node.default_body:
             return self.exec_block(node.default_body, env.child("<default>"))
@@ -1077,6 +1356,7 @@ class Interpreter:
             is_async=node.is_async,
             param_types=getattr(node, 'param_types', None),
             return_type=getattr(node, 'return_type', ""),
+            is_generator=getattr(node, 'is_generator', False),
         )
         env.set_local(node.name, action)
 
@@ -1177,6 +1457,295 @@ class Interpreter:
         env.set_local(node.name, blueprint)
         return blueprint
 
+    # ═══════════════════════════════════════════════════════
+    #  DataForge 4.0 — RECORDS E ENUMS
+    # ═══════════════════════════════════════════════════════
+
+    def exec_RecordDeclaration(self, node, env):
+        rec_env = env.child(f"<record {node.name}>")
+        metodos = {}
+        for nome, decl in node.methods.items():
+            metodos[nome] = DFAction(
+                name=nome, params=decl.params, defaults=decl.defaults,
+                body=decl.body, closure=rec_env,
+                param_types=getattr(decl, 'param_types', None),
+                return_type=getattr(decl, 'return_type', ""))
+        record = DFRecord(node.name, node.fields, metodos, rec_env)
+        rec_env.set_local(node.name, record)
+        env.set_local(node.name, record)
+        return record
+
+    def exec_EnumDeclaration(self, node, env):
+        enum_env = env.child(f"<enum {node.name}>")
+        membros = {}
+        for indice, (nome, valor_node) in enumerate(node.members):
+            valor = self.evaluate(valor_node, enum_env) if valor_node is not None else nome
+            membros[nome] = DFEnumMember(node.name, nome, valor, indice)
+        metodos = {}
+        for nome, decl in node.methods.items():
+            metodos[nome] = DFAction(
+                name=nome, params=decl.params, defaults=decl.defaults,
+                body=decl.body, closure=enum_env,
+                param_types=getattr(decl, 'param_types', None),
+                return_type=getattr(decl, 'return_type', ""))
+        enum = DFEnum(node.name, membros, metodos, enum_env)
+        enum_env.set_local(node.name, enum)
+        env.set_local(node.name, enum)
+        return enum
+
+    def _build_record(self, record: DFRecord, args, kwargs, node, env):
+        """Constrói uma instância de record a partir dos argumentos."""
+        nomes = record.field_names
+        if len(args) > len(nomes):
+            raise TypeError_(
+                f"Record '{record.name}' has {len(nomes)} field(s) "
+                f"but {len(args)} value(s) were given",
+                node.line, node.column)
+        desconhecidos = [k for k in kwargs if k not in nomes]
+        if desconhecidos:
+            raise NameError_(
+                f"Record '{record.name}' has no field(s): "
+                f"{', '.join(desconhecidos)}. It has: {', '.join(nomes)}",
+                node.line, node.column)
+
+        valores = {}
+        for indice, nome in enumerate(nomes):
+            tipo, padrao = record.field_types[nome], record.fields[indice][2]
+            if indice < len(args):
+                valor = args[indice]
+            elif nome in kwargs:
+                valor = kwargs[nome]
+            elif padrao is not None:
+                valor = self.evaluate(padrao, record.env)
+            else:
+                raise TypeError_(
+                    f"Record '{record.name}' is missing field '{nome}'",
+                    node.line, node.column)
+            if tipo:
+                self._check_type(valor, tipo,
+                                 f"field '{nome}' of record '{record.name}'", node)
+            valores[nome] = valor
+        return DFRecordInstance(record, valores)
+
+    # ═══════════════════════════════════════════════════════
+    #  DataForge 4.0 — DESESTRUTURAÇÃO
+    # ═══════════════════════════════════════════════════════
+
+    def exec_DestructuringAssignment(self, node, env):
+        valor = self.evaluate(node.value, env)
+
+        if node.is_mapping:
+            for nome, is_rest in node.targets:
+                if is_rest:
+                    usados = {n for n, r in node.targets if not r}
+                    if isinstance(valor, DFRecordInstance):
+                        resto = {k: v for k, v in valor.values.items() if k not in usados}
+                    elif isinstance(valor, dict):
+                        resto = {k: v for k, v in valor.items() if k not in usados}
+                    else:
+                        raise TypeError_(
+                            f"Cannot destructure {self._type_of(valor)} with {{...}}",
+                            node.line, node.column)
+                    env.set(nome, resto)
+                    continue
+                if isinstance(valor, DFRecordInstance):
+                    env.set(nome, valor.get(nome))
+                elif isinstance(valor, dict):
+                    if nome not in valor:
+                        raise NameError_(
+                            f"Vault has no key '{nome}' to destructure. "
+                            f"Keys: {', '.join(str(k) for k in valor)}",
+                            node.line, node.column)
+                    env.set(nome, valor[nome])
+                elif isinstance(valor, DFInstance):
+                    env.set(nome, valor.get(nome))
+                else:
+                    raise TypeError_(
+                        f"Cannot destructure {self._type_of(valor)} with {{...}}: "
+                        f"expected a record, a vault or an instance",
+                        node.line, node.column)
+            return valor
+
+        if isinstance(valor, DFStream):
+            valor = list(valor)
+        if isinstance(valor, DFRecordInstance):
+            valor = [valor.values[n] for n in valor.record.field_names]
+        if isinstance(valor, dict):
+            valor = list(valor.items())
+        if not hasattr(valor, '__iter__') or isinstance(valor, str) and len(node.targets) > len(valor):
+            if not hasattr(valor, '__iter__'):
+                raise TypeError_(
+                    f"Cannot destructure {self._type_of(valor)}: "
+                    f"expected a Cluster or a record",
+                    node.line, node.column)
+        itens = list(valor)
+
+        rest_pos = next((i for i, (_, r) in enumerate(node.targets) if r), -1)
+        fixos = len(node.targets) - (1 if rest_pos >= 0 else 0)
+        if rest_pos < 0 and len(itens) != fixos:
+            raise RuntimeError_(
+                f"Cannot unpack {len(itens)} value(s) into {fixos} name(s)",
+                node.line, node.column)
+        if rest_pos >= 0 and len(itens) < fixos:
+            raise RuntimeError_(
+                f"Cannot unpack {len(itens)} value(s): at least {fixos} needed",
+                node.line, node.column)
+
+        if rest_pos < 0:
+            for (nome, _), item in zip(node.targets, itens):
+                env.set(nome, item)
+        else:
+            antes = node.targets[:rest_pos]
+            depois = node.targets[rest_pos + 1:]
+            for (nome, _), item in zip(antes, itens[:len(antes)]):
+                env.set(nome, item)
+            fim = len(itens) - len(depois)
+            env.set(node.targets[rest_pos][0], itens[len(antes):fim])
+            for (nome, _), item in zip(depois, itens[fim:]):
+                env.set(nome, item)
+        return valor
+
+    # ═══════════════════════════════════════════════════════
+    #  DataForge 4.0 — PATTERN MATCHING
+    # ═══════════════════════════════════════════════════════
+
+    def _match_pattern(self, padrao, valor, env, ligacoes):
+        """Tenta casar 'valor' com 'padrao'. Preenche 'ligacoes'. Devolve bool."""
+        casou = self._match_pattern_inner(padrao, valor, env, ligacoes)
+        if casou and getattr(padrao, 'binding', ''):
+            ligacoes[padrao.binding] = valor
+        return casou
+
+    def _match_pattern_inner(self, padrao, valor, env, ligacoes):
+        if isinstance(padrao, ast.WildcardPattern):
+            return True
+
+        if isinstance(padrao, ast.LiteralPattern):
+            return valor == padrao.value and (
+                type(valor) is type(padrao.value)
+                or not isinstance(padrao.value, bool) and not isinstance(valor, bool))
+
+        if isinstance(padrao, ast.CapturePattern):
+            ligacoes[padrao.name] = valor
+            return True
+
+        if isinstance(padrao, ast.ValuePattern):
+            return valor == self.evaluate(padrao.expression, env)
+
+        if isinstance(padrao, ast.OrPattern):
+            for opcao in padrao.options:
+                tentativa = {}
+                if self._match_pattern(opcao, valor, env, tentativa):
+                    ligacoes.update(tentativa)
+                    return True
+            return False
+
+        if isinstance(padrao, ast.SequencePattern):
+            # Só sequências de verdade: um vault casa com {..}, não com [..].
+            if isinstance(valor, DFStream):
+                valor = list(valor)
+            if not isinstance(valor, (list, tuple)):
+                return False
+            itens = list(valor)
+            fixos = padrao.elements
+            if padrao.rest_index < 0:
+                if len(itens) != len(fixos):
+                    return False
+                return all(self._match_pattern(p, i, env, ligacoes)
+                           for p, i in zip(fixos, itens))
+            antes = fixos[:padrao.rest_index]
+            depois = fixos[padrao.rest_index:]
+            if len(itens) < len(antes) + len(depois):
+                return False
+            for p, i in zip(antes, itens[:len(antes)]):
+                if not self._match_pattern(p, i, env, ligacoes):
+                    return False
+            fim = len(itens) - len(depois)
+            if padrao.rest_name:
+                ligacoes[padrao.rest_name] = itens[len(antes):fim]
+            for p, i in zip(depois, itens[fim:]):
+                if not self._match_pattern(p, i, env, ligacoes):
+                    return False
+            return True
+
+        if isinstance(padrao, ast.MappingPattern):
+            if isinstance(valor, DFRecordInstance):
+                mapa = valor.values
+            elif isinstance(valor, DFInstance):
+                mapa = valor.fields
+            elif isinstance(valor, dict):
+                mapa = valor
+            else:
+                return False
+            usadas = set()
+            for chave_node, sub in padrao.pairs:
+                chave = self.evaluate(chave_node, env)
+                if chave not in mapa:
+                    return False
+                usadas.add(chave)
+                if not self._match_pattern(sub, mapa[chave], env, ligacoes):
+                    return False
+            if padrao.rest_name:
+                ligacoes[padrao.rest_name] = {
+                    k: v for k, v in mapa.items() if k not in usadas}
+            return True
+
+        if isinstance(padrao, ast.TypePattern):
+            if not self._value_has_type(valor, padrao.type_name, env):
+                return False
+            if padrao.sub_patterns:
+                campos = self._positional_fields(valor)
+                if campos is None or len(campos) < len(padrao.sub_patterns):
+                    return False
+                for sub, item in zip(padrao.sub_patterns, campos):
+                    if not self._match_pattern(sub, item, env, ligacoes):
+                        return False
+            for campo, sub in padrao.field_patterns.items():
+                try:
+                    atual = self._field_of(valor, campo)
+                except (NameError_, KeyError):
+                    return False
+                if not self._match_pattern(sub, atual, env, ligacoes):
+                    return False
+            return True
+
+        return False
+
+    def _value_has_type(self, valor, nome_tipo, env) -> bool:
+        canonico = self.TYPE_ALIASES.get(nome_tipo, nome_tipo)
+        if canonico == "Any":
+            return True
+        if canonico == "Number":
+            return isinstance(valor, (int, float)) and not isinstance(valor, bool)
+        atual = self._type_of(valor)
+        if atual == canonico:
+            return True
+        if isinstance(valor, DFInstance):
+            return any(bp.name == nome_tipo for bp in valor.get_mro())
+        if isinstance(valor, DFRecordInstance):
+            return valor.record.name == nome_tipo
+        if isinstance(valor, DFEnumMember):
+            return valor.enum_name == nome_tipo
+        return False
+
+    def _positional_fields(self, valor):
+        if isinstance(valor, DFRecordInstance):
+            return [valor.values[n] for n in valor.record.field_names]
+        if isinstance(valor, DFInstance):
+            return list(valor.fields.values())
+        if isinstance(valor, (list, tuple)):
+            return list(valor)
+        return None
+
+    def _field_of(self, valor, campo):
+        if isinstance(valor, DFRecordInstance):
+            return valor.get(campo)
+        if isinstance(valor, DFInstance):
+            return valor.get(campo)
+        if isinstance(valor, dict):
+            return valor[campo]
+        raise NameError_(f"No field '{campo}'")
+
     # ── Error Handling ─────────────────────────────────────
 
     def exec_MonitorBlock(self, node: ast.MonitorBlock, env):
@@ -1218,40 +1787,83 @@ class Interpreter:
     # ── Modules ────────────────────────────────────────────
 
     def exec_AdoptStatement(self, node: ast.AdoptStatement, env):
-        module_name = node.module
-        alias = node.alias or module_name.split('.')[-1]
+        """Importa um módulo da stdlib ou um arquivo .df vizinho.
 
-        # Check if module already loaded
-        if module_name in self.modules:
-            env.set_local(alias, self.modules[module_name])
+        Três formas:
+            adopt Arcane.Math as M          — o módulo inteiro, sob um nome
+            adopt Arcane.Math.{sqrt, floor} — só os símbolos nomeados
+            adopt {sqrt} from Arcane.Math   — idem, com a ordem invertida
+        """
+        nome_modulo = node.module
+        modulo = self._resolver_modulo(nome_modulo, node, env)
+
+        if node.selection:
+            faltando = [n for n, _ in node.selection if n not in modulo]
+            if faltando:
+                disponiveis = sorted(k for k in modulo if not k.startswith('__'))
+                raise ImportError_(
+                    f"Module '{nome_modulo}' does not export: "
+                    f"{', '.join(faltando)}. "
+                    f"It exports: {', '.join(disponiveis[:10])}"
+                    f"{'…' if len(disponiveis) > 10 else ''}",
+                    node.line, node.column)
+            for nome, apelido in node.selection:
+                env.set_local(apelido, modulo[nome])
             return
 
-        # Try to load from stdlib
+        alias = node.alias or nome_modulo.split('.')[-1]
+        env.set_local(alias, modulo)
+
+    def _resolver_modulo(self, nome_modulo, node, env):
+        """Encontra o módulo: cache, stdlib ou arquivo .df."""
+        if nome_modulo in self.modules:
+            return self.modules[nome_modulo]
+
         from .stdlib import get_module, list_modules
-        module = get_module(module_name)
-        if module is not None:
-            self.modules[module_name] = module
-            env.set_local(alias, module)
-            return
+        modulo = get_module(nome_modulo)
+        if modulo is not None:
+            self.modules[nome_modulo] = modulo
+            return modulo
 
-        # Try to load .df file
         import os
-        parts = module_name.replace('.', os.sep)
-        for ext in ['.df', '/main.df']:
-            path = parts + ext
-            if os.path.exists(path):
-                self._load_module_file(path, module_name, env, alias)
-                return
+        # Caminhos relativos ao arquivo que faz o import, não ao diretório atual
+        bases = []
+        if self.filename and not self.filename.startswith('<'):
+            bases.append(os.path.dirname(os.path.abspath(self.filename)))
+        bases.append(os.getcwd())
 
+        partes = nome_modulo.replace('.', os.sep)
+        for base in bases:
+            for sufixo in ('.df', os.path.join('', 'main.df')):
+                caminho = os.path.join(base, partes + sufixo) if sufixo == '.df' \
+                    else os.path.join(base, partes, 'main.df')
+                if os.path.exists(caminho):
+                    return self._load_module_file(caminho, nome_modulo)
+
+        disponiveis = sorted(set(list_modules()))
         raise ImportError_(
-            f"Module '{module_name}' not found. "
-            f"Available: {', '.join(sorted(set(list_modules())))}",
+            f"Module '{nome_modulo}' not found. "
+            f"Looked in the standard library and next to "
+            f"{os.path.basename(self.filename) if self.filename else 'the current file'}. "
+            f"Available: {', '.join(disponiveis[:8])}…",
             node.line, node.column)
 
     def exec_RelayStatement(self, node: ast.RelayStatement, env):
-        # In the current context, relay marks names for export
-        # This is handled at module level
-        pass
+        """Marca quais nomes o módulo exporta.
+
+        Sem nenhum 'relay', o módulo exporta tudo o que definiu no topo — é o
+        comportamento conveniente para scripts. Com pelo menos um 'relay', só
+        os nomes listados atravessam o 'adopt'.
+        """
+        exportados = getattr(env, '_exports', None)
+        if exportados is None:
+            exportados = env._exports = []
+        for nome in node.names:
+            if not env.has(nome):
+                raise NameError_(
+                    f"'relay' exports '{nome}', which is not defined in this module",
+                    node.line, node.column)
+            exportados.append(nome)
 
     # ── Concurrency ────────────────────────────────────────
 
@@ -1344,34 +1956,38 @@ class Interpreter:
         env._deferred.append((node.body, env))
 
     def exec_ObserveBlock(self, node: ast.ObserveBlock, env):
-        """Observe: iterate over a source (reactive stream simulation)."""
+        """observe var in fonte: reage a cada item que chega.
+
+        A fonte pode ser um Cluster, um DFStream (de um 'stream action'), ou o
+        vault {"__type__": "Stream"} produzido por stream(colecao).
+        """
         source = self.evaluate(node.source, env)
-        if not isinstance(source, (list, tuple, dict)):
+
+        if isinstance(source, DFStream):
+            itens = source
+        elif isinstance(source, (list, tuple)):
+            itens = source
+        elif isinstance(source, dict) and source.get("__type__") == "Stream":
+            itens = source.get("data", [])
+        elif isinstance(source, dict):
+            itens = list(source.keys())
+        elif isinstance(source, str):
+            itens = source
+        else:
             raise TypeError_(
                 f"Cannot observe a value of type {self._type_of(source)}: "
-                f"expected a Cluster or a stream",
+                f"expected a Cluster, a Vault, a String or a stream",
                 node.line, node.column)
-        if isinstance(source, (list, tuple)):
-            for item in source:
-                obs_env = env.child("<observe>")
-                obs_env.set_local(node.var, item)
-                try:
-                    self.exec_block(node.body, obs_env)
-                except HaltSignal:
-                    break
-                except SkipSignal:
-                    continue
-        elif isinstance(source, dict) and source.get("__type__") == "Stream":
-            data = source.get("data", [])
-            for item in data:
-                obs_env = env.child("<observe>")
-                obs_env.set_local(node.var, item)
-                try:
-                    self.exec_block(node.body, obs_env)
-                except HaltSignal:
-                    break
-                except SkipSignal:
-                    continue
+
+        for item in itens:
+            obs_env = env.child("<observe>")
+            obs_env.set_local(node.var, item)
+            try:
+                self.exec_block(node.body, obs_env)
+            except HaltSignal:
+                break
+            except SkipSignal:
+                continue
 
     def eval_StreamExpression(self, node: ast.StreamExpression, env):
         """Create a reactive stream from data."""
@@ -1415,6 +2031,22 @@ class Interpreter:
         if isinstance(callee, DFAction):
             return self._call_action(callee, args, kwargs, node, env)
 
+        if isinstance(callee, DFRecord):
+            return self._build_record(callee, args, kwargs, node, env)
+
+        if isinstance(callee, DFEnum):
+            # Enum(valor) procura o membro por valor
+            if len(args) == 1:
+                for membro in callee.members.values():
+                    if membro.value == args[0] or membro.name == args[0]:
+                        return membro
+                raise RuntimeError_(
+                    f"Enum '{callee.name}' has no member with value {args[0]!r}",
+                    node.line, node.column)
+            raise TypeError_(
+                f"Calling enum '{callee.name}' takes exactly 1 value",
+                node.line, node.column)
+
         if isinstance(callee, DFBlueprint):
             # Calling a blueprint = spawn
             instance = DFInstance(callee)
@@ -1454,6 +2086,9 @@ class Interpreter:
         """Call a user-defined action (function)."""
         self._check_arity(action, args, kwargs, node)
 
+        if getattr(action, 'is_generator', False):
+            return self._make_stream(action, args, kwargs, node, instance)
+
         call_env = action.closure.child(f"<action {action.name}>")
 
         # Bind parameters
@@ -1486,6 +2121,9 @@ class Interpreter:
             raise StackOverflowError_(
                 f"Call stack exceeded {self.MAX_CALL_DEPTH} frames "
                 f"(infinite recursion in '{action.name}'?)", node.line, node.column)
+        self._call_stack.append(Frame(
+            action.name, getattr(node, 'line', 0), getattr(node, 'column', 0),
+            self.filename))
         try:
             self.exec_block(action.body, call_env)
             result = None
@@ -1495,8 +2133,12 @@ class Interpreter:
             raise StackOverflowError_(
                 f"Python recursion limit reached while running '{action.name}'",
                 node.line, node.column)
+        except DataForgeError as erro:
+            self._attach_stack(erro)
+            raise
         finally:
             self._depth -= 1
+            self._call_stack.pop()
             # Deferred blocks run on every exit path, including an error —
             # that is the whole point of 'defer'.
             self._run_deferred(call_env)
@@ -1505,6 +2147,190 @@ class Interpreter:
                 result, action.return_type,
                 f"return value of action '{action.name}'", node)
         return result
+
+    def _make_stream(self, action, args, kwargs, node, instance):
+        """Um 'stream action' devolve um DFStream verdadeiramente preguiçoso."""
+        interpretador = self
+
+        def produzir():
+            call_env = action.closure.child(f"<stream {action.name}>")
+            for indice, param in enumerate(action.params):
+                if indice < len(args):
+                    valor = args[indice]
+                elif param in kwargs:
+                    valor = kwargs[param]
+                elif param in action.defaults:
+                    valor = interpretador.evaluate(action.defaults[param], call_env)
+                else:
+                    valor = None
+                call_env.set_local(param, valor)
+            if instance is not None:
+                call_env.set_local("self", instance)
+                call_env.set_local("this", instance)
+
+            try:
+                yield from interpretador._lazy_block(action.body, call_env)
+            except YieldSignal:
+                pass
+            finally:
+                interpretador._run_deferred(call_env)
+
+        return DFStream(action.name, produzir)
+
+    # ── Executor preguiçoso de generators ──────────────────
+    #
+    # 'emit' precisa entregar cada valor no instante em que é produzido, mesmo
+    # dentro de um laço infinito. Por isso o corpo de um 'stream action' é
+    # percorrido por este executor paralelo, que é um gerador Python: ele desce
+    # nas estruturas onde 'emit' pode aparecer e delega o resto ao execute()
+    # normal. 'emit' fora dessas estruturas (dentro de outra ação, por exemplo)
+    # não é preguiçoso — precisa aparecer no corpo do próprio stream.
+
+    def _lazy_block(self, statements, env):
+        for stmt in statements:
+            yield from self._lazy_stmt(stmt, env)
+
+    def _lazy_stmt(self, node, env):
+        if isinstance(node, ast.EmitStatement):
+            valores = [self.evaluate(e, env) for e in node.expressions]
+            yield valores[0] if len(valores) == 1 else valores
+            return
+
+        if isinstance(node, ast.GivenBlock):
+            if self.evaluate(node.condition, env):
+                yield from self._lazy_block(node.body, env.child("<given>"))
+                return
+            for cond, corpo in node.orif_blocks:
+                if self.evaluate(cond, env):
+                    yield from self._lazy_block(corpo, env.child("<orif>"))
+                    return
+            if node.otherwise_body:
+                yield from self._lazy_block(node.otherwise_body, env.child("<otherwise>"))
+            return
+
+        if isinstance(node, ast.CycleFromTo):
+            inicio = self.evaluate(node.start, env)
+            fim = self.evaluate(node.end, env)
+            passo = self.evaluate(node.step, env) if node.step else 1
+            i = inicio
+            while (passo > 0 and i <= fim) or (passo < 0 and i >= fim):
+                escopo = env.child("<cycle>")
+                escopo.set_local(node.var, i)
+                try:
+                    yield from self._lazy_block(node.body, escopo)
+                except HaltSignal:
+                    return
+                except SkipSignal:
+                    pass
+                i += passo
+            return
+
+        if isinstance(node, ast.ObserveBlock):
+            fonte = self.evaluate(node.source, env)
+            if isinstance(fonte, dict) and fonte.get("__type__") == "Stream":
+                fonte = fonte.get("data", [])
+            elif isinstance(fonte, dict):
+                fonte = list(fonte.keys())
+            for item in fonte:
+                escopo = env.child("<observe>")
+                escopo.set_local(node.var, item)
+                try:
+                    yield from self._lazy_block(node.body, escopo)
+                except HaltSignal:
+                    return
+                except SkipSignal:
+                    continue
+            return
+
+        if isinstance(node, ast.CycleIn):
+            colecao = self.evaluate(node.collection, env)
+            if isinstance(colecao, DFStream):
+                colecao = iter(colecao)
+            elif not hasattr(colecao, '__iter__'):
+                raise TypeError_(
+                    f"Cannot cycle over {self._type_of(colecao)}",
+                    node.line, node.column)
+            for item in colecao:
+                escopo = env.child("<cycle>")
+                escopo.set_local(node.var, item)
+                try:
+                    yield from self._lazy_block(node.body, escopo)
+                except HaltSignal:
+                    return
+                except SkipSignal:
+                    continue
+            return
+
+        if isinstance(node, ast.PersistBlock):
+            while self.evaluate(node.condition, env):
+                escopo = env.child("<persist>")
+                try:
+                    yield from self._lazy_block(node.body, escopo)
+                except HaltSignal:
+                    return
+                except SkipSignal:
+                    continue
+            return
+
+        if isinstance(node, ast.PerformBlock):
+            while True:
+                escopo = env.child("<perform>")
+                try:
+                    yield from self._lazy_block(node.body, escopo)
+                except HaltSignal:
+                    return
+                except SkipSignal:
+                    pass
+                if not self.evaluate(node.condition, env):
+                    return
+
+        if isinstance(node, ast.MatchBlock):
+            valor = self.evaluate(node.expression, env)
+            for caso in node.points:
+                if isinstance(caso, tuple):
+                    alvo, corpo = caso
+                    if valor == self.evaluate(alvo, env):
+                        yield from self._lazy_block(corpo, env.child("<point>"))
+                        return
+                    continue
+                ligacoes = {}
+                if not self._match_pattern(caso.pattern, valor, env, ligacoes):
+                    continue
+                escopo = env.child("<point>")
+                for nome, ligado in ligacoes.items():
+                    escopo.set_local(nome, ligado)
+                if caso.guard is not None and not self.evaluate(caso.guard, escopo):
+                    continue
+                yield from self._lazy_block(caso.body, escopo)
+                return
+            if node.default_body:
+                yield from self._lazy_block(node.default_body, env.child("<default>"))
+            return
+
+        if isinstance(node, ast.MonitorBlock):
+            try:
+                yield from self._lazy_block(node.body, env.child("<monitor>"))
+            except Exception as e:
+                if not node.handle_body or not self._error_matches(e, node.handle_type, env):
+                    raise
+                escopo = env.child("<handle>")
+                escopo.set_local(node.handle_name, self._error_value(e))
+                yield from self._lazy_block(node.handle_body, escopo)
+            finally:
+                if node.ensure_body:
+                    self.exec_block(node.ensure_body, env.child("<ensure>"))
+            return
+
+        # Qualquer outra instrução roda normalmente (não produz valores).
+        self.execute(node, env)
+
+    def _attach_stack(self, erro):
+        """Guarda a pilha no erro, uma única vez (a mais interna vence)."""
+        if not getattr(erro, 'stack', None):
+            erro.stack = list(self._call_stack)
+        if not getattr(erro, 'filename', ''):
+            erro.filename = self.filename
+        return erro
 
     def _run_deferred(self, env):
         """Run all deferred blocks registered in the environment, in LIFO order."""
@@ -1521,6 +2347,177 @@ class Interpreter:
         local = env.child("<lambda>")
         local.set_local(param_name, value)
         return self.evaluate(body_expr, local)
+
+    # ═══════════════════════════════════════════════════════
+    #  DataForge 4.0 — EXPRESSÕES NOVAS
+    # ═══════════════════════════════════════════════════════
+
+    def eval_InterpolatedString(self, node, env):
+        partes = []
+        for tipo, conteudo in node.parts:
+            if tipo == 'text':
+                partes.append(conteudo)
+            else:
+                partes.append(self._to_str(self.evaluate(conteudo, env)))
+        return ''.join(partes)
+
+    def eval_TernaryExpression(self, node, env):
+        if self.evaluate(node.condition, env):
+            return self.evaluate(node.then_value, env)
+        return self.evaluate(node.else_value, env)
+
+    def eval_CoalesceOp(self, node, env):
+        esquerda = self.evaluate(node.left, env)
+        if esquerda is None:
+            return self.evaluate(node.right, env)
+        return esquerda
+
+    def eval_MembershipOp(self, node, env):
+        elemento = self.evaluate(node.element, env)
+        recipiente = self.evaluate(node.container, env)
+        if recipiente is None:
+            raise TypeError_(
+                "Cannot test membership in void", node.line, node.column)
+        try:
+            if isinstance(recipiente, DFRecordInstance):
+                presente = elemento in recipiente.values
+            elif isinstance(recipiente, DFEnum):
+                presente = any(m == elemento or m.value == elemento
+                               for m in recipiente.members.values())
+            elif isinstance(recipiente, DFStream):
+                presente = any(item == elemento for item in recipiente)
+            else:
+                presente = elemento in recipiente
+        except TypeError:
+            raise TypeError_(
+                f"Cannot test membership in {self._type_of(recipiente)}",
+                node.line, node.column)
+        return (not presente) if node.negated else presente
+
+    def eval_SafeMemberAccess(self, node, env):
+        obj = self.evaluate(node.object, env)
+        if obj is None:
+            return None
+        return self.eval_MemberAccess(
+            ast.MemberAccess(object=ast._Wrapped(value=obj), member=node.member,
+                             line=node.line, column=node.column), env)
+
+    def eval_SafeMethodCall(self, node, env):
+        obj = self.evaluate(node.object, env)
+        if obj is None:
+            return None
+        return self.eval_MethodCall(
+            ast.MethodCall(object=ast._Wrapped(value=obj), method=node.method,
+                           args=node.args, kwargs=node.kwargs,
+                           line=node.line, column=node.column), env)
+
+    def eval__Wrapped(self, node, env):
+        """Nó interno que carrega um valor já avaliado."""
+        return node.value
+
+    def eval_SpreadElement(self, node, env):
+        # Um spread solto (fora de literal/chamada) não faz sentido.
+        raise RuntimeError_(
+            "'...' can only be used inside a list, a vault or a call",
+            node.line, node.column)
+
+    def _eval_args(self, nodes, env):
+        """Avalia argumentos de chamada, expandindo '...expr'."""
+        if any(isinstance(a, ast.SpreadElement) for a in nodes):
+            return self._expand_elements(nodes, env)
+        return [self.evaluate(a, env) for a in nodes]
+
+    def _expand_elements(self, elementos, env):
+        """Avalia elementos de literal expandindo os '...expr'."""
+        saida = []
+        for elemento in elementos:
+            if isinstance(elemento, ast.SpreadElement):
+                valor = self.evaluate(elemento.value, env)
+                if isinstance(valor, DFStream):
+                    valor = list(valor)
+                if isinstance(valor, dict):
+                    saida.extend(valor.keys())
+                elif hasattr(valor, '__iter__') and not isinstance(valor, str):
+                    saida.extend(valor)
+                elif isinstance(valor, str):
+                    saida.extend(valor)
+                else:
+                    raise TypeError_(
+                        f"Cannot spread {self._type_of(valor)}: "
+                        f"'...' needs a Cluster, Vault or String",
+                        elemento.line, elemento.column)
+            else:
+                saida.append(self.evaluate(elemento, env))
+        return saida
+
+    def _run_clauses(self, clauses, indice, env, emitir):
+        """Executa as cláusulas de uma comprehension, recursivamente."""
+        clause = clauses[indice]
+        fonte = self.evaluate(clause.source, env)
+        if isinstance(fonte, DFStream):
+            fonte = list(fonte)
+        if isinstance(fonte, dict):
+            fonte = list(fonte.keys())
+        if not hasattr(fonte, '__iter__'):
+            raise TypeError_(
+                f"Cannot iterate over {self._type_of(fonte)} in the comprehension",
+                clause.line, clause.column)
+
+        for item in fonte:
+            local = env.child("<comprehension>")
+            alvos = clause.targets or [clause.var]
+            if len(alvos) == 1:
+                local.set_local(alvos[0], item)
+            else:
+                valores = list(item) if hasattr(item, '__iter__') and not isinstance(item, str) else [item]
+                if len(valores) != len(alvos):
+                    raise RuntimeError_(
+                        f"Cannot unpack {len(valores)} value(s) into "
+                        f"{len(alvos)} name(s) in the comprehension",
+                        clause.line, clause.column)
+                for nome, valor in zip(alvos, valores):
+                    local.set_local(nome, valor)
+
+            if clause.condition is not None and not self.evaluate(clause.condition, local):
+                continue
+            if indice + 1 < len(clauses):
+                self._run_clauses(clauses, indice + 1, local, emitir)
+            else:
+                emitir(local)
+
+    def eval_ListComprehension(self, node, env):
+        saida = []
+        self._run_clauses(node.clauses, 0, env,
+                          lambda escopo: saida.append(
+                              self.evaluate(node.expression, escopo)))
+        return saida
+
+    def eval_VaultComprehension(self, node, env):
+        saida = {}
+        def registrar(escopo):
+            saida[self.evaluate(node.key, escopo)] = self.evaluate(node.value, escopo)
+        self._run_clauses(node.clauses, 0, env, registrar)
+        return saida
+
+    def eval_WithExpression(self, node, env):
+        base = self.evaluate(node.source, env)
+        mudancas = self.evaluate(node.changes, env)
+        if not isinstance(mudancas, dict):
+            raise TypeError_("'with' needs a vault of changes: obj with {\"campo\": valor}",
+                             node.line, node.column)
+        if isinstance(base, DFRecordInstance):
+            return base.replace(mudancas)
+        if isinstance(base, dict):
+            return {**base, **mudancas}
+        if isinstance(base, DFInstance):
+            copia = DFInstance(base.blueprint)
+            copia.fields = dict(base.fields)
+            copia.fields.update(mudancas)
+            return copia
+        raise TypeError_(
+            f"'with' does not apply to {self._type_of(base)}: "
+            f"use it on a record, a vault or a blueprint instance",
+            node.line, node.column)
 
     # ── Type annotations (checked at runtime) ──────────────
 
@@ -1558,6 +2555,16 @@ class Interpreter:
             return "Void"
         if isinstance(value, DFInstance):
             return value.blueprint.name
+        if isinstance(value, DFRecordInstance):
+            return value.record.name
+        if isinstance(value, DFRecord):
+            return "Record"
+        if isinstance(value, DFEnumMember):
+            return value.enum_name
+        if isinstance(value, DFEnum):
+            return "Enum"
+        if isinstance(value, DFStream):
+            return "Stream"
         if isinstance(value, DFBlueprint):
             return "Blueprint"
         if isinstance(value, (DFAction, BuiltinFunction)) or callable(value):
@@ -1629,6 +2636,23 @@ class Interpreter:
             return f"<channel {value.name}>"
         if isinstance(value, DFError):
             return value.message
+        if isinstance(value, DFRecordInstance):
+            if 'toString' in value.record.methods:
+                no = type('_N', (), {'line': 0, 'column': 0})()
+                return str(self._call_action(
+                    value.record.methods['toString'], [], {}, no, None,
+                    instance=value))
+            campos = ', '.join(f"{k}: {self._to_str(v)}"
+                               for k, v in value.values.items())
+            return f"{value.record.name}({campos})"
+        if isinstance(value, DFRecord):
+            return f"<record {value.name}>"
+        if isinstance(value, DFEnumMember):
+            return f"{value.enum_name}.{value.name}"
+        if isinstance(value, DFEnum):
+            return f"<enum {value.name}>"
+        if isinstance(value, DFStream):
+            return f"<stream {value.name}>"
         if isinstance(value, list):
             items = ', '.join(self._to_str(i) for i in value)
             return f"[{items}]"
@@ -1639,21 +2663,41 @@ class Interpreter:
             return '{' + pairs + '}'
         return str(value)
 
-    def _load_module_file(self, path, module_name, env, alias):
-        """Load and execute a .df file as a module."""
+    def _load_module_file(self, path, module_name):
+        """Executa um arquivo .df como módulo e devolve o que ele exporta."""
+        import os
         from .lexer import tokenize
         from .parser import parse
 
-        with open(path, 'r', encoding='utf-8') as f:
-            source = f.read()
+        real = os.path.abspath(path)
+        if real in self._loading:
+            cadeia = " → ".join(os.path.basename(p) for p in self._loading)
+            raise ImportError_(
+                f"Circular import: {cadeia} → {os.path.basename(real)}. "
+                f"Break the cycle by moving the shared part into a third module.")
 
-        tokens = tokenize(source, path)
-        tree = parse(tokens, path)
+        with open(path, 'r', encoding='utf-8') as f:
+            fonte = f.read()
+
+        tokens = tokenize(fonte, path)
+        arvore = parse(tokens, path)
 
         mod_env = self.global_env.child(f"<module {module_name}>")
-        self.exec_block(tree.body, mod_env)
+        arquivo_anterior = self.filename
+        self._loading.append(real)
+        self.filename = path
+        try:
+            self.exec_block(arvore.body, mod_env)
+        finally:
+            self._loading.pop()
+            self.filename = arquivo_anterior
 
-        module_obj = dict(mod_env.variables)
-        module_obj["__name__"] = module_name
-        self.modules[module_name] = module_obj
-        env.set_local(alias, module_obj)
+        exportados = getattr(mod_env, '_exports', None)
+        if exportados:
+            objeto = {nome: mod_env.get(nome) for nome in exportados}
+        else:
+            objeto = dict(mod_env.variables)
+        objeto["__name__"] = module_name
+        objeto["__file__"] = path
+        self.modules[module_name] = objeto
+        return objeto

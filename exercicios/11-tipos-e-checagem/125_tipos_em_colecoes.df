@@ -1,0 +1,44 @@
+// Exercicio 125 — Tipos dentro de colecoes
+// Enunciado: combine anotacoes com listas e dicionarios, e valide o conteudo.
+
+adopt Arcane.Collections as Col
+
+// A anotacao cobre o recipiente; o conteudo se valida com codigo
+notas: Cluster := [7.5, 8.0, 9.5]
+alunos: Vault := {"ana": 9.5, "bruno": 7.0}
+
+action media(valores: Cluster) -> Float:
+    given len(valores) is 0:
+        yield 0.0
+    yield sum(valores) / len(valores)
+
+action todos_numeros(valores: Cluster) -> Boolean:
+    cycle v in valores:
+        given typeof(v) isnt "Integer" and typeof(v) isnt "Float":
+            yield no
+    yield yes
+
+out $"media das notas: {round(media(notas), 2)}"
+out $"so numeros? {todos_numeros(notas)}"
+out $"e com texto? {todos_numeros([1, "dois"])}"
+
+// Validando um vault campo a campo
+action validar_aluno(dados: Vault) -> Cluster:
+    problemas := []
+    given "nome" not in dados:
+        problemas.append("falta o nome")
+    orif typeof(dados["nome"]) isnt "String":
+        problemas.append("nome deve ser String")
+    given "nota" not in dados:
+        problemas.append("falta a nota")
+    orif typeof(dados["nota"]) is "String":
+        problemas.append("nota deve ser numero")
+    yield problemas
+
+out validar_aluno({"nome": "Ana", "nota": 9.5})
+out validar_aluno({"nota": "dez"})
+
+assert todos_numeros(notas) is yes, "notas sao numeros"
+assert len(validar_aluno({"nome": "Ana", "nota": 9.5})) is 0, "aluno valido"
+assert len(validar_aluno({"nota": "dez"})) is 2, "dois problemas"
+assert round(media(notas), 2) is 8.33, "media"

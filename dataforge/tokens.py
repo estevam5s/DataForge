@@ -11,6 +11,7 @@ class TokenType(Enum):
     INTEGER = auto()
     FLOAT = auto()
     STRING = auto()
+    INTERP_STRING = auto()   # $"texto {expr}" — valor e a lista de partes
     BOOLEAN = auto()         # yes / no
     VOID = auto()            # void
     IDENTIFIER = auto()
@@ -33,6 +34,9 @@ class TokenType(Enum):
     STAR_ASSIGN = auto()     # *=
     SLASH_ASSIGN = auto()    # /=
     PERCENT_ASSIGN = auto()  # %=
+    SPREAD = auto()          # ...  (spread / rest)
+    SAFE_DOT = auto()        # ?.   (acesso seguro)
+    COALESCE = auto()        # ??   (valor padrao para void)
     DOT = auto()             # .
     COMMA = auto()           # ,
     AT = auto()              # @
@@ -156,6 +160,9 @@ class TokenType(Enum):
     THAW = auto()            # thaw (unlock)
     CAST = auto()            # cast (type conversion)
     LAMBDA = auto()          # lambda (anonymous action)
+    RECORD = auto()          # record (dado imutavel)
+    ENUM = auto()            # enum
+    WHEN = auto()            # when (guarda de pattern)
     INSPECT = auto()         # inspect (debug)
     ASSERT = auto()          # assert
     DELETE = auto()          # delete
@@ -289,6 +296,9 @@ KEYWORDS = {
     "forge": TokenType.FORGE,
     "cast": TokenType.CAST,
     "lambda": TokenType.LAMBDA,
+    "record": TokenType.RECORD,
+    "enum": TokenType.ENUM,
+    "when": TokenType.WHEN,
     "inspect": TokenType.INSPECT,
     "assert": TokenType.ASSERT,
     "delete": TokenType.DELETE,

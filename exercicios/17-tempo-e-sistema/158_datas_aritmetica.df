@@ -1,0 +1,59 @@
+// Exercicio 158 — Aritmetica com datas
+// Enunciado: some e subtraia periodos, e calcule diferencas.
+
+adopt Arcane.Time as Time
+
+base := Time.date(2026, 1, 31)
+out $"base: {Time.to_date_string(base)}"
+
+// Somar periodos
+out $"+10 dias:   {Time.to_date_string(Time.add_days(base, 10))}"
+out $"+2 semanas: {Time.to_date_string(Time.add_weeks(base, 2))}"
+out $"+1 mes:     {Time.to_date_string(Time.add_months(base, 1))}"
+out $"+1 ano:     {Time.to_date_string(Time.add_years(base, 1))}"
+
+assert Time.day(Time.add_days(base, 1)) is 1, "31/01 + 1 dia = 01/02"
+assert Time.month(Time.add_days(base, 1)) is 2, "virou fevereiro"
+
+// add_months ajusta o dia quando o mes e mais curto
+fevereiro := Time.add_months(base, 1)
+out $"31/01 + 1 mes = {Time.to_date_string(fevereiro)}"
+assert Time.day(fevereiro) is 28, "fevereiro de 2026 tem 28 dias"
+
+// Subtrair e somar negativo
+assert Time.day(Time.add_days(base, -1)) is 30, "31/01 - 1 dia = 30/01"
+
+// Diferenca entre datas
+inicio := Time.date(2026, 1, 1)
+fim := Time.date(2026, 12, 31)
+d := Time.diff(inicio, fim)
+
+out ""
+out $"de 01/01 a 31/12: {d.days} dias"
+out $"em horas: {d.total_hours}"
+out $"legivel: {d.human}"
+assert d.days is 364, "2026 nao e bissexto"
+assert Time.days_between(inicio, fim) is 364, "days_between"
+
+// Duracao construida a mao
+duracao := Time.duration(1, 2, 30, 0)
+out ""
+out $"1 dia, 2h30: {duracao.human} = {duracao.total_seconds} segundos"
+assert duracao.total_hours is 26.5, "1 dia + 2.5 horas"
+
+// Humanizar segundos
+cycle s in [45, 90, 3725, 90000]:
+    out $"  {s}s -> {Time.humanize(s)}"
+assert Time.humanize(3725) is "1h 2min", "uma hora e dois minutos"
+
+// Idade
+out ""
+out $"quem nasceu em 20/05/1990 tem {Time.age(Time.date(1990, 5, 20))} anos"
+
+// Limites do dia e do mes
+out ""
+out $"inicio do mes: {Time.to_date_string(Time.start_of_month(base))}"
+out $"fim do mes:    {Time.to_date_string(Time.end_of_month(base))}"
+assert Time.day(Time.start_of_month(base)) is 1, "primeiro dia"
+assert Time.day(Time.end_of_month(base)) is 31, "janeiro tem 31"
+assert Time.days_in_month(2024, 2) is 29, "fevereiro bissexto"

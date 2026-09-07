@@ -1,0 +1,33 @@
+// Exercicio 124 — Analise estatica
+// Enunciado: escreva erros de proposito e confirme que o dataforge check os encontra.
+
+// Este arquivo roda sem erros. Os problemas que o analisador encontraria
+// estao descritos abaixo, em comentarios, para voce reproduzir.
+
+action somar(a: Integer, b: Integer) -> Integer:
+    yield a + b
+
+steady LIMITE := 100
+
+out somar(2, 3)
+out LIMITE
+
+// Cada linha abaixo, se descomentada, e apontada por 'dataforge check':
+//
+//   somar(1)              -> action 'somar' is missing argument(s): b
+//   somar(1, 2, 3)        -> action 'somar' takes 2 argument(s) but 3 were given
+//   somar("x", 2)         -> parameter 'a' expects Integer but got String
+//   sommar(1, 2)          -> undefined action 'sommar'  (sugere 'somar')
+//   LIMITE := 200         -> cannot reassign the steady constant 'LIMITE'
+//   x: Intger := 1        -> unknown type 'Intger'      (sugere 'Integer')
+//   out 1 + [2]           -> cannot add Integer and Cluster
+
+// O que o analisador NAO impede: erros que so existem em tempo de execucao.
+divisor := 0
+monitor:
+    out 10 / divisor
+handle e:
+    out "isso so aparece rodando:", e.message
+
+assert somar(2, 3) is 5, "soma"
+out "rode 'dataforge check' neste arquivo: zero erros"

@@ -1,0 +1,181 @@
+// Exercicio 178 — Projeto: sistema de biblioteca
+// Enunciado: integre records, enums, banco, validacao e relatorios.
+
+adopt Arcane.Database as DB
+adopt Arcane.Time as Time
+adopt Arcane.Text as Text
+adopt Arcane.Collections as Col
+
+// ═══════════════════════════════════════════════════════════
+//  SISTEMA DE BIBLIOTECA
+// ═══════════════════════════════════════════════════════════
+
+// ── MODELO ──
+
+enum Situacao:
+    Disponivel
+    Emprestado
+    Atrasado
+
+record Livro:
+    id: Integer
+    titulo: String
+    autor: String
+    ano: Integer
+
+record Emprestimo:
+    id: Integer
+    livro_id: Integer
+    leitor: String
+    dias: Integer
+
+steady PRAZO_DIAS := 14
+steady MULTA_POR_DIA := 2.5
+
+// ── REGRAS (puras, testaveis) ──
+
+action situacao_do(emprestimo) -> Situacao:
+    given emprestimo is void:
+        yield Situacao.Disponivel
+    given emprestimo.dias bigger PRAZO_DIAS:
+        yield Situacao.Atrasado
+    yield Situacao.Emprestado
+
+action multa_de(emprestimo) -> Number:
+    given emprestimo is void:
+        yield 0
+    atraso := emprestimo.dias - PRAZO_DIAS
+    yield 0 given atraso smaller_eq 0 otherwise round(atraso * MULTA_POR_DIA, 2)
+
+action validar_livro(titulo, autor, ano) -> Cluster:
+    problemas := []
+    given len(titulo.trim()) smaller 2:
+        problemas.append("titulo muito curto")
+    given len(autor.trim()) smaller 2:
+        problemas.append("autor muito curto")
+    given ano smaller 1450 or ano bigger 2100:
+        problemas.append($"ano improvavel: {ano}")
+    yield problemas
+
+// ── PERSISTENCIA ──
+
+conn := DB.memory()
+DB.execute(conn, """CREATE TABLE livros (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    titulo TEXT NOT NULL,
+    autor TEXT NOT NULL,
+    ano INTEGER NOT NULL
+)""")
+DB.execute(conn, """CREATE TABLE emprestimos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    livro_id INTEGER NOT NULL,
+    leitor TEXT NOT NULL,
+    dias INTEGER NOT NULL
+)""")
+
+action cadastrar(titulo, autor, ano):
+    problemas := validar_livro(titulo, autor, ano)
+    given len(problemas) bigger 0:
+        yield {"ok": no, "erros": problemas}
+    DB.execute(conn, "INSERT INTO livros (titulo, autor, ano) VALUES (?, ?, ?)",
+               [titulo.trim(), autor.trim(), ano])
+    yield {"ok": yes}
+
+action emprestar(livro_id, leitor, dias):
+    ja := DB.query_one(conn, "SELECT id FROM emprestimos WHERE livro_id = ?", [livro_id])
+    given ja isnt void:
+        yield {"ok": no, "erros": ["livro ja emprestado"]}
+    DB.execute(conn, "INSERT INTO emprestimos (livro_id, leitor, dias) VALUES (?, ?, ?)",
+               [livro_id, leitor, dias])
+    yield {"ok": yes}
+
+action livros():
+    yield DB.query(conn, "SELECT id, titulo, autor, ano FROM livros ORDER BY titulo")
+        >> morph l: Livro(l["id"], l["titulo"], l["autor"], l["ano"])
+
+action emprestimo_de(livro_id):
+    linha := DB.query_one(conn,
+        "SELECT id, livro_id, leitor, dias FROM emprestimos WHERE livro_id = ?", [livro_id])
+    given linha is void:
+        yield void
+    yield Emprestimo(linha["id"], linha["livro_id"], linha["leitor"], linha["dias"])
+
+// ── APLICACAO ──
+
+out Text.box("Biblioteca")
+
+acervo := [
+    ["Dom Casmurro", "Machado de Assis", 1899],
+    ["Grande Sertao Veredas", "Guimaraes Rosa", 1956],
+    ["Vidas Secas", "Graciliano Ramos", 1938],
+    ["A Hora da Estrela", "Clarice Lispector", 1977],
+    ["X", "Autor", 2020],
+    ["Livro do Futuro", "Alguem", 3000]
+]
+
+out ""
+out "── cadastro ──"
+cycle item in acervo:
+    titulo, autor, ano := item
+    r := cadastrar(titulo, autor, ano)
+    given r.ok:
+        out $"  ok   {titulo}"
+    otherwise:
+        out $"  nao  {titulo}: {r["erros"].join("; ")}"
+
+assert DB.count(conn, "livros") is 4, "quatro livros validos"
+
+// ── emprestimos ──
+out ""
+out "── emprestimos ──"
+cycle e in [[1, "Ana", 5], [2, "Bruno", 20], [1, "Carla", 3]]:
+    livro_id, leitor, dias := e
+    r := emprestar(livro_id, leitor, dias)
+    given r.ok:
+        out $"  ok   livro {livro_id} para {leitor} ha {dias} dias"
+    otherwise:
+        out $"  nao  livro {livro_id} para {leitor}: {r["erros"].join("; ")}"
+
+assert DB.count(conn, "emprestimos") is 2, "dois emprestimos"
+
+// ── acervo com situacao ──
+out ""
+out Text.box("Acervo")
+out ""
+out $"  {"TITULO".pad_end(24)}{"ANO".pad_start(6)}  {"SITUACAO".pad_end(12)}MULTA"
+out $"  {"-".repeat(56)}"
+
+total_multas := 0
+cycle l in livros():
+    emp := emprestimo_de(l.id)
+    sit := situacao_do(emp)
+    multa := multa_de(emp)
+    total_multas += multa
+    texto_multa := "-" given multa is 0 otherwise $"R$ {multa}"
+    out $"  {l.titulo.pad_end(24)}{str(l.ano).pad_start(6)}  {sit.name.pad_end(12)}{texto_multa}"
+
+out ""
+out $"  multas acumuladas: R$ {total_multas}"
+assert total_multas is 15.0, "6 dias de atraso x 2.5"
+
+// ── estatisticas ──
+todos := livros()
+por_seculo := Col.group_by(todos, lambda l: $"seculo {l.ano ~/ 100 + 1}")
+
+out ""
+out "── por seculo ──"
+cycle s in sorted(por_seculo.keys()):
+    out $"  {s}: {len(por_seculo[s])} livro(s)"
+
+mais_antigo := Col.sort_by_field(todos, "ano")[0]
+out ""
+out $"  mais antigo: {mais_antigo.titulo} ({mais_antigo.ano})"
+assert mais_antigo.ano is 1899, "Dom Casmurro"
+
+emprestados := len(todos >> sift l: emprestimo_de(l.id) isnt void)
+out $"  emprestados: {emprestados} de {len(todos)} ({round(emprestados * 100 / len(todos), 1)}%)"
+assert emprestados is 2, "dois emprestados"
+
+DB.close(conn)
+out ""
+out "  (conexao fechada)"

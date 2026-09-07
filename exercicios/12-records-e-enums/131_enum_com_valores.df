@@ -1,0 +1,54 @@
+// Exercicio 131 — Enums com valores
+// Enunciado: associe dados a cada membro e converta de ida e volta.
+
+enum Prioridade:
+    Baixa := 1
+    Media := 5
+    Alta := 10
+    Critica := 100
+
+enum Moeda:
+    Real := "BRL"
+    Dolar := "USD"
+    Euro := "EUR"
+
+out Prioridade.Alta.value
+out Moeda.Real.value
+
+assert Prioridade.Alta.value is 10, "valor numerico"
+assert Moeda.Dolar.value is "USD", "valor textual"
+
+// Converter de valor para membro — util ao ler dados externos
+vinda_do_banco := "EUR"
+moeda := Moeda.from_value(vinda_do_banco)
+out $"{vinda_do_banco} -> {moeda.name}"
+assert moeda is Moeda.Euro, "from_value encontra o membro"
+assert Moeda.from_value("JPY") is void, "valor desconhecido devolve void"
+
+// Usar os valores para ordenar
+tarefas := [
+    {"titulo": "revisar", "prio": Prioridade.Baixa},
+    {"titulo": "deploy", "prio": Prioridade.Critica},
+    {"titulo": "reuniao", "prio": Prioridade.Media}
+]
+
+por_urgencia := sorted(tarefas >> morph t: t["prio"].value)
+out por_urgencia
+assert por_urgencia is [1, 5, 100], "valores ordenados"
+
+// Somar os valores
+peso_total := Prioridade.values() >> distill acc, v: acc + v 0
+out $"soma dos pesos: {peso_total}"
+assert peso_total is 116, "1 + 5 + 10 + 100"
+
+// Escolher com base no valor
+action nivel(p):
+    given p.value bigger_eq 100:
+        yield "largar tudo"
+    orif p.value bigger_eq 10:
+        yield "hoje ainda"
+    otherwise:
+        yield "quando der"
+
+out nivel(Prioridade.Critica), nivel(Prioridade.Alta), nivel(Prioridade.Baixa)
+assert nivel(Prioridade.Critica) is "largar tudo", "critica"

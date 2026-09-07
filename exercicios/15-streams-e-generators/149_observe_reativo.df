@@ -1,0 +1,66 @@
+// Exercicio 149 — observe e eventos
+// Enunciado: reaja a valores conforme eles chegam.
+
+// observe percorre uma fonte reagindo a cada item
+recebidos := []
+observe valor in [10, 20, 30]:
+    recebidos.append(valor * 2)
+
+out recebidos
+assert recebidos is [20, 40, 60], "reagiu a cada item"
+
+// halt e skip funcionam dentro do observe
+selecionados := []
+observe n in [1, 2, 3, 4, 5, 6, 7]:
+    given n % 2 is 0:
+        skip
+    given n bigger 5:
+        halt
+    selecionados.append(n)
+
+out selecionados
+assert selecionados is [1, 3, 5], "impares ate 5"
+
+// stream() cria uma fonte a partir de uma colecao
+fonte := stream([1, 2, 3])
+soma := 0
+observe v in fonte:
+    soma += v
+assert soma is 6, "somou o stream"
+
+// Observando um generator
+stream action temperaturas():
+    emit 18
+    emit 25
+    emit 31
+    emit 28
+
+alertas := []
+observe t in temperaturas():
+    given t bigger 30:
+        alertas.append($"alerta: {t} graus")
+
+out alertas
+assert len(alertas) is 1, "um alerta"
+
+// Um padrao de assinantes
+assinantes := []
+
+action inscrever(fn):
+    assinantes.append(fn)
+    yield len(assinantes)
+
+action publicar(evento):
+    cycle fn in assinantes:
+        fn(evento)
+    yield len(assinantes)
+
+log := []
+inscrever(lambda e: log.append($"A viu {e}"))
+inscrever(lambda e: log.append($"B viu {e}"))
+publicar("inicio")
+publicar("fim")
+
+out log
+assert len(log) is 4, "dois assinantes, dois eventos"
+assert log[0] is "A viu inicio", "ordem preservada"

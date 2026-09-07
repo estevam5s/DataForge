@@ -1,0 +1,62 @@
+// Exercicio 132 — Enums com match
+// Enunciado: use pattern matching para tratar cada membro e garantir cobertura.
+
+enum Semaforo:
+    Vermelho := "pare"
+    Amarelo := "atencao"
+    Verde := "siga"
+
+action acao(luz):
+    match luz:
+        point Semaforo.Vermelho:
+            yield "frear"
+        point Semaforo.Amarelo:
+            yield "reduzir"
+        point Semaforo.Verde:
+            yield "acelerar"
+        default:
+            yield "estado desconhecido"
+
+cycle luz in Semaforo.members():
+    out $"{luz.name} ({luz.value}) -> {acao(luz)}"
+
+assert acao(Semaforo.Vermelho) is "frear", "vermelho"
+assert acao(Semaforo.Verde) is "acelerar", "verde"
+assert acao("qualquer coisa") is "estado desconhecido", "default protege"
+
+// Maquina de estados com enum
+enum Pedido:
+    Novo
+    Pago
+    Enviado
+    Entregue
+
+steady TRANSICOES := {
+    "Novo": ["Pago"],
+    "Pago": ["Enviado"],
+    "Enviado": ["Entregue"],
+    "Entregue": []
+}
+
+action pode_ir(de, para):
+    yield para.name in TRANSICOES[de.name]
+
+action avancar(atual):
+    permitidos := TRANSICOES[atual.name]
+    given len(permitidos) is 0:
+        yield void
+    yield Pedido.from_name(permitidos[0])
+
+estado := Pedido.Novo
+caminho := [estado.name]
+persist estado isnt void:
+    proximo := avancar(estado)
+    given proximo is void:
+        halt
+    caminho.append(proximo.name)
+    estado := proximo
+
+out caminho
+assert caminho is ["Novo", "Pago", "Enviado", "Entregue"], "ciclo completo"
+assert pode_ir(Pedido.Novo, Pedido.Pago) is yes, "transicao valida"
+assert pode_ir(Pedido.Novo, Pedido.Entregue) is no, "transicao invalida"

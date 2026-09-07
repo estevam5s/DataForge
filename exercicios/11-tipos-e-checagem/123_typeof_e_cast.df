@@ -1,0 +1,45 @@
+// Exercicio 123 — typeof e conversao
+// Enunciado: descubra o tipo de qualquer valor e converta entre tipos com seguranca.
+
+record Ponto:
+    x: Integer
+    y: Integer
+
+enum Cor:
+    Vermelho
+    Verde
+
+stream action contador():
+    emit 1
+
+valores := [42, 3.14, "texto", yes, void, [1], {"k": 1}, Ponto(1, 2), Cor.Verde]
+
+cycle v in valores:
+    out $"{typeof(v)}"
+
+assert typeof(42) is "Integer", "Integer"
+assert typeof(3.14) is "Float", "Float"
+assert typeof("texto") is "String", "String"
+assert typeof(yes) is "Boolean", "Boolean"
+assert typeof(void) is "Void", "Void"
+assert typeof([1]) is "Cluster", "Cluster"
+assert typeof({"k": 1}) is "Vault", "Vault"
+assert typeof(Ponto(1, 2)) is "Ponto", "record devolve o proprio nome"
+assert typeof(Cor.Verde) is "Cor", "membro de enum devolve o nome do enum"
+assert typeof(contador()) is "Stream", "Stream"
+
+// Conversao explicita
+assert cast "42" as Integer is 42, "texto para inteiro"
+assert cast 3.9 as Integer is 3, "decimal trunca"
+assert cast 42 as String is "42", "inteiro para texto"
+assert cast "3.5" as Float is 3.5, "texto para decimal"
+
+// Conversao impossivel dispara
+falhou := no
+monitor:
+    cast "abc" as Integer
+handle e:
+    falhou := yes
+assert falhou is yes, "texto sem numero nao converte"
+
+out "conversoes verificadas"

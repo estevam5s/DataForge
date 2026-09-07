@@ -1,0 +1,43 @@
+// Exercicio 137 — Compreensao de vaults
+// Enunciado: construa dicionarios com a mesma sintaxe, produzindo chave e valor.
+
+nums := [1, 2, 3, 4, 5]
+
+// Chave e valor a partir de uma fonte
+quadrados := {n: n * n cycle n in nums}
+out quadrados
+assert quadrados[4] is 16, "chave 4 mapeia para 16"
+
+// Filtrando
+pares := {n: n * n cycle n in nums given n % 2 is 0}
+out pares
+assert len(pares.keys()) is 2, "so 2 e 4"
+
+// Inverter um dicionario
+originais := {"a": 1, "b": 2, "c": 3}
+invertido := {originais[k]: k cycle k in originais.keys()}
+out invertido
+assert invertido[2] is "b", "valor virou chave"
+
+// Indexar registros por um campo
+pessoas := [
+    {"id": 10, "nome": "Ana"},
+    {"id": 20, "nome": "Bruno"}
+]
+por_id := {p["id"]: p["nome"] cycle p in pessoas}
+out por_id
+assert por_id[20] is "Bruno", "acesso direto por id"
+
+// Contar ocorrencias
+palavras := ["sol", "lua", "sol", "mar", "sol", "lua"]
+distintas := unique(palavras)
+contagem := {p: palavras.count(p) cycle p in distintas}
+out contagem
+assert contagem["sol"] is 3, "sol aparece 3 vezes"
+
+// Normalizar chaves de entrada
+bruto := {"  Nome ": "Ana", "IDADE": 30}
+limpo := {k.trim().lower(): bruto[k] cycle k in bruto.keys()}
+out limpo
+assert "nome" in limpo, "chave normalizada"
+assert limpo["idade"] is 30, "valor preservado"

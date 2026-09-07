@@ -1,0 +1,75 @@
+// Exercicio 153 — Organizando um projeto
+// Enunciado: estruture codigo em modulos com responsabilidades separadas.
+
+// Este exercicio demonstra a organizacao em camadas dentro de um so arquivo,
+// para ser autocontido. Num projeto real cada secao seria um modulo.
+
+// ═══ CAMADA 1: modelo — os dados e suas regras ═══
+
+record Produto:
+    codigo: String
+    nome: String
+    preco: Number
+    estoque: Integer
+
+    action valor_em_estoque():
+        yield self.preco * self.estoque
+
+    action disponivel():
+        yield self.estoque bigger 0
+
+enum Situacao:
+    EmFalta
+    Critico
+    Normal
+
+// ═══ CAMADA 2: regras de negocio — decisoes puras ═══
+
+steady LIMITE_CRITICO := 5
+
+action situacao_de(p: Produto) -> Situacao:
+    given p.estoque is 0:
+        yield Situacao.EmFalta
+    orif p.estoque smaller LIMITE_CRITICO:
+        yield Situacao.Critico
+    yield Situacao.Normal
+
+action precisa_repor(p: Produto) -> Boolean:
+    yield situacao_de(p) isnt Situacao.Normal
+
+// ═══ CAMADA 3: apresentacao — como isso vira texto ═══
+
+action formatar_produto(p: Produto) -> String:
+    marca := "!" given precisa_repor(p) otherwise " "
+    yield $"{marca} {p.codigo.pad_end(6)}{p.nome.pad_end(14)}{str(p.estoque).pad_start(4)}  R$ {p.valor_em_estoque()}"
+
+action cabecalho(titulo: String) -> String:
+    yield $"{titulo}\n{"-".repeat(len(titulo))}"
+
+// ═══ CAMADA 4: aplicacao — junta tudo ═══
+
+estoque := [
+    Produto("P01", "Mouse", 80.0, 15),
+    Produto("P02", "Teclado", 200.0, 3),
+    Produto("P03", "Monitor", 1200.0, 0),
+    Produto("P04", "Cabo", 25.0, 60)
+]
+
+out cabecalho("Inventario")
+cycle p in estoque:
+    out formatar_produto(p)
+
+repor := estoque >> sift p: precisa_repor(p)
+out ""
+out cabecalho("Repor")
+cycle p in repor:
+    out $"  {p.nome}: {situacao_de(p).name}"
+
+patrimonio := estoque >> morph p: p.valor_em_estoque() >> distill acc, v: acc + v 0
+out ""
+out $"patrimonio: R$ {patrimonio}"
+
+assert len(repor) is 2, "teclado e monitor"
+assert situacao_de(estoque[2]) is Situacao.EmFalta, "monitor esta zerado"
+assert situacao_de(estoque[0]) is Situacao.Normal, "mouse ok"
+assert patrimonio is 3300.0, "1200 + 600 + 0 + 1500"

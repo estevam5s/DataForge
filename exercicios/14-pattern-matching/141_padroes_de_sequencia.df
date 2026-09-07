@@ -1,0 +1,66 @@
+// Exercicio 141 — Padroes de sequencia
+// Enunciado: desmonte listas por posicao, com cabeca, cauda e tamanho fixo.
+
+action descrever(lista):
+    match lista:
+        point []:
+            yield "vazia"
+        point [unico]:
+            yield $"um item: {unico}"
+        point [a, b]:
+            yield $"par: {a} e {b}"
+        point [primeiro, ...resto]:
+            yield $"comeca com {primeiro}, mais {len(resto)}"
+        default:
+            yield "nao e lista"
+
+cycle l in [[], [7], [1, 2], [1, 2, 3, 4], "texto"]:
+    out descrever(l)
+
+assert descrever([]) is "vazia", "lista vazia"
+assert descrever([7]) is "um item: 7", "um elemento"
+assert descrever([1, 2]) is "par: 1 e 2", "dois elementos"
+assert descrever([1, 2, 3, 4]) is "comeca com 1, mais 3", "cabeca e cauda"
+assert descrever("texto") is "nao e lista", "texto nao casa com sequencia"
+
+// Padroes aninhados
+action ler_par(p):
+    match p:
+        point [nome, [x, y]]:
+            yield $"{nome} em ({x}, {y})"
+        default:
+            yield "formato inesperado"
+
+out ler_par(["origem", [0, 0]])
+assert ler_par(["origem", [0, 0]]) is "origem em (0, 0)", "aninhado"
+
+// Literais dentro do padrao
+action comando(partes):
+    match partes:
+        point ["mover", direcao, passos]:
+            yield $"mover {passos} para {direcao}"
+        point ["parar"]:
+            yield "parando"
+        point ["dizer", ...palavras]:
+            yield $"dizendo: {palavras.join(" ")}"
+        default:
+            yield "comando desconhecido"
+
+out comando(["mover", "norte", 3])
+out comando(["parar"])
+out comando(["dizer", "ola", "mundo"])
+out comando(["voar"])
+
+assert comando(["mover", "norte", 3]) is "mover 3 para norte", "com literal"
+assert comando(["dizer", "ola", "mundo"]) is "dizendo: ola mundo", "resto"
+
+// Recursao sobre cabeca e cauda
+action somar(lista):
+    match lista:
+        point []:
+            yield 0
+        point [cabeca, ...cauda]:
+            yield cabeca + somar(cauda)
+
+assert somar([1, 2, 3, 4, 5]) is 15, "soma recursiva"
+out $"soma recursiva: {somar([1, 2, 3, 4, 5])}"

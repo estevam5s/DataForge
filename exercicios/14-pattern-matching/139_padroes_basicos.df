@@ -1,0 +1,47 @@
+// Exercicio 139 — Padroes basicos
+// Enunciado: case por literal, capture com um nome e use o curinga.
+
+action classificar(v):
+    match v:
+        point 0:
+            yield "zero"
+        point 1 or 2 or 3:
+            yield "pequeno"
+        point "sim" or "yes":
+            yield "afirmativo"
+        point void:
+            yield "vazio"
+        point n:
+            yield $"outro: {n}"
+
+cycle v in [0, 2, "sim", void, 99]:
+    out classificar(v)
+
+assert classificar(0) is "zero", "literal"
+assert classificar(3) is "pequeno", "alternativa com or"
+assert classificar("yes") is "afirmativo", "texto"
+assert classificar(void) is "vazio", "void"
+assert classificar(99) is "outro: 99", "captura"
+
+// O curinga _ casa com tudo e nao liga nome
+action tem_valor(v):
+    match v:
+        point void:
+            yield no
+        point _:
+            yield yes
+
+assert tem_valor(void) is no, "void"
+assert tem_valor(0) is yes, "zero e um valor"
+assert tem_valor("") is yes, "texto vazio e um valor"
+
+// A ordem importa: o primeiro que casa vence
+action ordem(n):
+    match n:
+        point x:
+            yield "pegou tudo"
+        point 5:
+            yield "nunca chega aqui"
+
+assert ordem(5) is "pegou tudo", "captura antes de literal engole tudo"
+out "cuidado: uma captura no topo torna os demais inalcancaveis"

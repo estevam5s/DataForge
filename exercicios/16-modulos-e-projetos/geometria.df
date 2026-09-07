@@ -1,0 +1,22 @@
+// Modulo auxiliar dos exercicios 151 e 152.
+// Calculos com formas planas.
+
+steady PI := 3.14159265
+
+// Area de um circulo de raio dado.
+action area_circulo(raio: Number) -> Float:
+    yield PI * raio ** 2
+
+// Perimetro de um circulo.
+action perimetro_circulo(raio: Number) -> Float:
+    yield 2 * PI * raio
+
+// Area de um retangulo.
+action area_retangulo(base: Number, altura: Number) -> Number:
+    yield base * altura
+
+// Detalhe interno: nao faz parte da interface publica.
+action _arredondar(v):
+    yield round(v, 4)
+
+relay PI, area_circulo, perimetro_circulo, area_retangulo

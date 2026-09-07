@@ -1,0 +1,42 @@
+// Exercicio 130 — Enums
+// Enunciado: declare um conjunto fechado de valores e use seus membros com seguranca.
+
+enum Status:
+    Rascunho
+    Publicado
+    Arquivado
+
+out Status.Rascunho
+out Status.Publicado.name, Status.Publicado.value, Status.Publicado.index
+
+// Membros comparam por identidade dentro do enum
+out Status.Rascunho is Status.Rascunho
+out Status.Rascunho is Status.Publicado
+
+assert Status.Rascunho is Status.Rascunho, "mesmo membro"
+assert Status.Rascunho isnt Status.Publicado, "membros diferentes"
+assert Status.Publicado.index is 1, "indice segue a ordem de declaracao"
+assert typeof(Status.Rascunho) is "Status", "typeof devolve o enum"
+
+// Utilitarios do enum
+out Status.names()
+out Status.count()
+out Status.has("Publicado"), Status.has("Removido")
+
+assert Status.names() is ["Rascunho", "Publicado", "Arquivado"], "nomes na ordem"
+assert Status.count() is 3, "tres membros"
+assert Status.has("Publicado") is yes, "membro existe"
+assert Status.has("Removido") is no, "membro inexistente"
+
+// Membro inexistente e erro, nao void
+erro := no
+monitor:
+    out Status.Removido
+handle e:
+    erro := yes
+    out e.message
+assert erro is yes, "acessar membro inexistente dispara"
+
+// Percorrer todos
+cycle s in Status.members():
+    out $"  {s.index}: {s.name}"

@@ -1,0 +1,48 @@
+// Exercicio 136 — Compreensao de listas
+// Enunciado: construa listas transformando e filtrando numa unica expressao.
+
+nums := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+// Transformar
+quadrados := [n * n cycle n in nums]
+out quadrados
+assert quadrados[0] is 1 and quadrados[9] is 100, "quadrados"
+
+// Filtrar
+pares := [n cycle n in nums given n % 2 is 0]
+out pares
+assert pares is [2, 4, 6, 8, 10], "so os pares"
+
+// Transformar e filtrar juntos
+dobro_dos_impares := [n * 2 cycle n in nums given n % 2 is 1]
+out dobro_dos_impares
+assert dobro_dos_impares is [2, 6, 10, 14, 18], "dobro dos impares"
+
+// Sobre texto
+letras := [c.upper() cycle c in "dataforge" given c isnt "a"]
+out letras.join("")
+assert letras.join("") is "DTFORGE", "sem os a"
+
+// Aninhada: duas fontes
+tabuada := [$"{a}x{b}={a * b}" cycle a in [2, 3] cycle b in [1, 2, 3]]
+out tabuada
+assert len(tabuada) is 6, "2 x 3 combinacoes"
+
+// Sobre registros
+pessoas := [
+    {"nome": "Ana", "idade": 30},
+    {"nome": "Bruno", "idade": 17},
+    {"nome": "Carla", "idade": 25}
+]
+adultos := [p["nome"] cycle p in pessoas given p["idade"] bigger_eq 18]
+out adultos
+assert adultos is ["Ana", "Carla"], "nomes dos adultos"
+
+// A variavel do cycle nao vaza
+_ := [i cycle i in [1, 2]]
+vazou := yes
+monitor:
+    out i
+handle e:
+    vazou := no
+assert vazou is no, "i so existe dentro da compreensao"

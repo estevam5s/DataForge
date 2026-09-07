@@ -1,7 +1,8 @@
 # DataForge — análise técnica e o que falta
 
 Auditoria completa do repositório, feita rodando o código, não lendo apenas.
-Data da auditoria: 2026-09-06. Versão analisada: 3.0.0 → corrigida para 3.1.0.
+Auditoria inicial em 2026-09-06 (3.0.0 → 3.1.0); segunda rodada em
+2026-09-07 implementando o roadmap 4.x (3.1.0 → 4.0.0).
 
 ---
 
@@ -12,15 +13,21 @@ implementação de linguagem, todos escritos do zero e todos funcionando:
 
 | Componente | Arquivo | Linhas | Estado |
 |------------|---------|--------|--------|
-| Lexer com INDENT/DEDENT | `lexer.py` | 473 | completo |
-| Parser recursivo descendente | `parser.py` | 1.381 | completo |
-| AST tipada (dataclasses) | `ast_nodes.py` | 503 | completo |
-| Interpretador de árvore | `interpreter.py` | 1.658 | completo |
+| Lexer com INDENT/DEDENT | `lexer.py` | 556 | completo |
+| Parser recursivo descendente | `parser.py` | 1.941 | completo |
+| AST tipada (dataclasses) | `ast_nodes.py` | 706 | completo |
+| Interpretador de árvore | `interpreter.py` | 2.703 | completo |
+| Analisador estático | `typechecker.py` | 1.193 | completo (4.0) |
 | Cadeia de escopos | `environment.py` | 91 | completo |
 | Funções embutidas | `builtins.py` | 1.224 | 225 funções |
-| Biblioteca padrão | `stdlib/` | 5.486 | 13 módulos, 454 símbolos |
-| REPL | `repl.py` | 204 | funcional |
-| CLI | `cli.py` | 749 | 8 comandos, 6 templates |
+| Biblioteca padrão | `stdlib/` | 7.282 | 20 módulos, 674 símbolos |
+| Formatter | `formatter.py` | 280 | completo (4.0) |
+| Linter | `linter.py` | 394 | completo (4.0) |
+| Test runner | `testrunner.py` | 194 | completo (4.0) |
+| Doc generator | `docgen.py` | 218 | completo (4.0) |
+| Manifesto de projeto | `project.py` | 184 | completo (4.0) |
+| REPL | `repl.py` | 409 | avançado (4.0) |
+| CLI | `cli.py` | 1.055 | 13 comandos |
 
 Não é um wrapper sobre `eval` do Python: cada construção tem seu nó de AST e sua
 regra de avaliação. A prova prática está em `exercicios/`, onde um dos exercícios
@@ -257,12 +264,12 @@ Comandos e resultados desta auditoria:
 
 | Verificação | Comando | Resultado |
 |-------------|---------|-----------|
-| Testes unitários | `python3 -m pytest tests/ -q` | **77 passando** |
-| Exercícios | `python3 exercicios/run_all.py` | **120/120** |
+| Testes unitários | `python3 -m pytest tests/ -q` | **236 passando** |
+| Exercícios | `python3 exercicios/run_all.py` | **180/180** |
 | Exemplos | `examples/*.df` | **42/42** |
 | Blocos de documentação | executados um a um | **93/94** (o restante é lista de assinaturas) |
 | Templates de projeto | `dataforge check` em cada `.df` gerado | **8/8** |
-| Módulos da stdlib | import de todos | **30/30** |
+| Módulos da stdlib | import de todos | **20 módulos, 674 símbolos** |
 | Instalação | `pip install .` em venv limpo | **funciona** |
 | Servidor HTTP | GET, POST, GET por id, 404 | **funciona** |
 
@@ -285,7 +292,12 @@ Cada um traz enunciado comentado e verifica o próprio resultado com `assert`.
 
 ---
 
-## 5. O que falta para a linguagem estar completa
+## 5. O que faltava na 3.1 (histórico)
+
+> Esta era a análise feita na versão 3.1. **A maior parte foi implementada no
+> 4.0** — veja a seção 5.5 logo abaixo para o que saiu do papel, e a seção 6
+> para o que ainda resta. Mantida aqui como registro do diagnóstico original.
+
 
 Em ordem de impacto. As três primeiras são o que separa DataForge de uma
 linguagem que dá para usar em produção.
@@ -394,27 +406,159 @@ verdade, ajuste de modelo) ou se remove. Manter marcador sintático sem semânti
 
 ---
 
+## 5.5 O que foi implementado no DataForge 4.0
+
+Esta seção registra o que saiu do "falta" e virou realidade, seguindo o roadmap
+de `DataForge_4_0_5_0_Roadmap_Melhorias.docx`.
+
+### Fase 1 — Núcleo (roadmap §3)
+
+| Item | Estado | Onde |
+|------|--------|------|
+| Type checker estático | **feito** | `typechecker.py`, `dataforge check` |
+| Stack traces | **feito** | `errors.py`, com linha, coluna e cadeia |
+| Records | **feito** | imutáveis, igualdade estrutural, `with` |
+| Enums | **feito** | valores associados, integração com `match` |
+| Desestruturação | **feito** | listas, records, vaults, `...resto` |
+| Spread | **feito** | literais, vaults, chamadas |
+| Compreensões | **feito** | de lista e de vault, múltiplas cláusulas |
+| Null safety | **feito** | `??` e `?.` |
+| Pattern matching avançado | **feito** | tipo, sequência, mapa, record, enum, guardas |
+| Generics | **pendente** | `Cluster<T>` continua no roadmap |
+
+### Fase 2 — Developer experience (roadmap §4)
+
+| Item | Estado | Comando |
+|------|--------|---------|
+| Formatter | **feito** | `dataforge fmt [--check]` |
+| Linter | **feito** | `dataforge lint [--strict]` |
+| REPL avançado | **feito** | `:type`, `:ast`, `:check`, `:load`, `:save`, `:doc`, histórico |
+| Test runner | **feito** | `dataforge test [-v] [--filter=] [--fail-fast]` |
+| Doc generator | **feito** | `dataforge doc [--out=]` |
+| LSP | **pendente** | |
+| Debugger | **pendente** | |
+
+### Fase 3 — Módulos (roadmap §5)
+
+| Item | Estado |
+|------|--------|
+| `forge.toml` | **feito** — `dataforge init` / `info`, scripts nomeados |
+| Escopo real entre módulos | **feito** — `relay` controla o que sai |
+| Imports seletivos | **feito** — `adopt M.{a, b}` e `adopt {a as b} from M` |
+| Caminhos relativos ao importador | **feito** |
+| Detecção de ciclos | **feito** — `ImportError_` com a cadeia |
+| Package manager | **pendente** |
+
+### Fase 5 — Biblioteca padrão (roadmap §6)
+
+Sete módulos novos, 220 símbolos, mantendo a política de zero dependências:
+
+| Módulo | Símbolos | Conteúdo |
+|--------|----------|----------|
+| `Arcane.Time` | 54 | datas, durações, cronômetro, idade, fusos |
+| `Arcane.OS` | 38 | sistema, ambiente, disco, terminal, processo |
+| `Arcane.Crypto` | 38 | hashes, HMAC, PBKDF2, base64/32/hex, aleatoriedade |
+| `Arcane.Collections` | 35 | pilha, fila, deque, heap, conjunto, união-busca, grafo |
+| `Arcane.Serialization` | 26 | JSON, JSONL, CSV, INI, TOML, XML, flatten |
+| `Arcane.Process` | 15 | execução, pipeline, spawn, timeout |
+| `Arcane.Logging` | 14 | seis níveis, campos, arquivo, JSON |
+
+Total da stdlib: **20 módulos, 674 símbolos**.
+
+### Streams e generators (roadmap §7)
+
+Implementado exatamente como o documento propõe: `emit` produz, `yield` retorna.
+Um `stream action` devolve um `Stream` **verdadeiramente preguiçoso** — o corpo é
+percorrido por um executor paralelo (`_lazy_block` em `interpreter.py`) que
+entrega cada valor no instante em que `emit` o produz. Por isso um `persist yes:`
+com `emit` dentro não trava: `take(n)` simplesmente para de pedir.
+
+### Bugs encontrados e corrigidos no 4.0
+
+O trabalho de escrever os 60 exercícios novos revelou cinco defeitos reais:
+
+**22. `observe` recusava um `Stream`**
+`exec_ObserveBlock` só aceitava lista e o vault `{"__type__": "Stream"}`, não o
+`DFStream` que um `stream action` devolve. Consumir um generator com `observe`
+era impossível.
+
+**23. Transações do SQLite eram decorativas**
+`DB.execute` fazia `commit()` incondicional. Com isso, `DB.rollback` nunca tinha
+o que desfazer: `begin` / `insert` / `rollback` deixava a linha inserida.
+Corrigido com um marcador `_in_transaction` respeitado por `execute` e
+`execute_many`.
+
+**24. `Collections.sort_by_field` ignorava records**
+Lia campos com `item.get()` ou `getattr`, e um `DFRecordInstance` guarda os
+valores em `.values`. O resultado era `None` para todos, e ordenar estourava com
+`'<' not supported between instances of 'NoneType'`. Vale para `group_by` e
+`index_by` também, em `Arcane.Collections` e `Arcane.Analytics`.
+
+**25. Ordenação estourava com tipos misturados**
+`sorted` com `void` ou tipos diferentes na mesma lista levantava `TypeError` do
+Python. Agora há uma chave de ordenação que agrupa por categoria antes de
+comparar.
+
+**26. A heurística do `//` era imprevisível**
+A regra anterior classificava `lab[r][c] := 3  // marcar como caminho` como
+divisão. A regra do 4.0 é conservadora e explicável: `//` é **comentário**, salvo
+quando seguido de dígito, `(`, ou um identificador que abre chamada, índice ou
+membro. Para divisão inteira sem ambiguidade existe **`~/`**.
+
+---
+
 ## 6. Roadmap sugerido
 
-**3.2 — confiança**
-Análise estática, rastreamento de pilha, contrato de traits.
+O que resta, em ordem de impacto.
 
-**3.3 — ergonomia**
-Compreensões, desestruturação, `cycle` com índice, `in` como operador,
-interpolação, `match` com padrão.
+### 4.1 — Confiança
 
-**3.4 — módulos**
-`relay` respeitado, import seletivo, caminhos relativos, detecção de ciclo.
+- **Verificação de exaustividade** em `match` sobre enum: avisar quando um membro
+  ficou de fora. É o item de melhor relação custo/benefício que sobrou.
+- **Contrato de trait**: falhar na declaração quando o blueprint não implementa
+  os métodos do trait, em vez de só na chamada.
+- **Generics** — `Cluster<T>`, `Vault<K,V>`, ações genéricas.
 
-**4.0 — ecossistema**
-Gerenciador de pacotes, LSP, formatador, decisão sobre `frame`/`train`/`predict`.
+### 4.2 — Ferramental
+
+- **LSP**: autocomplete, ir-para-definição, renomear, hover com tipos. O
+  `typechecker` já produz diagnósticos com linha e coluna — falta o servidor.
+- **Debugger**: breakpoints, passo a passo, inspeção de variáveis.
+- **Cobertura de testes** no `dataforge test`.
+
+### 4.3 — Ecossistema
+
+- **Gerenciador de pacotes**: `dataforge add/remove/install`, lockfile, registry.
+  A seção `[dependencies]` do `forge.toml` já existe e está vazia por enquanto.
+- **Publicação**: `dataforge publish`, versionamento semântico.
+
+### 5.0 — Runtime
+
+- **IR e VM de bytecode**: hoje é interpretador de árvore, sem otimização.
+  Nenhum usuário reclamou de desempenho ainda — medir antes de investir.
+- **Cache de compilação**.
+- **Empacotamento**: gerar um executável com runtime embutido.
+
+### Concorrência (roadmap §8)
+
+- `Mutex`, `Semaphore`, `Atomic` — hoje só `channel` é seguro.
+- `receive` bloqueante.
+- `TaskGroup` e cancelamento.
+- `parallel` tratando **blocos** em vez de instruções.
+
+### Decisão pendente
+
+`frame`, `train` e `predict` são marcadores sintáticos que devolvem um vault com
+`__type__` e nada fazem. Ou se implementa (DataFrame de verdade, ajuste de
+modelo), ou se remove. Manter sintaxe sem semântica é pior que não ter.
 
 ---
 
 ## 7. Resumo em uma frase
 
-DataForge é uma linguagem de programação real e razoavelmente completa, cuja
-implementação tinha vinte e um defeitos — onze deles corrompendo a semântica —
-que foram corrigidos e cobertos por teste; o que falta agora não é fundação, é
-ferramental: análise estática, rastreamento de pilha e um sistema de módulos que
-faça o que promete.
+DataForge é uma linguagem de programação real e agora razoavelmente madura: os
+vinte e um defeitos do 3.1 e os cinco encontrados no 4.0 foram corrigidos e
+cobertos por teste, e o núcleo ganhou tipos verificados, análise estática,
+records, enums, pattern matching estrutural, generators preguiçosos, módulos com
+escopo real e seis ferramentas de linha de comando; o que falta agora não é fundação nem ferramenta
+básica, é ecossistema: generics, LSP, debugger e um gerenciador de pacotes.

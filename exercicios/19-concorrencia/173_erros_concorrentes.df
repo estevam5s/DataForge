@@ -1,0 +1,101 @@
+// Exercicio 173 — Erros e retentativas
+// Enunciado: trate falhas temporarias com retry e propagacao controlada.
+
+adopt Arcane.Logging as Log
+
+registro := Log.logger("rede", "INFO")
+registro.colored(no)
+
+// Simula uma operacao instavel
+estado := {"tentativas": 0}
+
+action chamada_instavel():
+    estado["tentativas"] := estado["tentativas"] + 1
+    given estado["tentativas"] smaller 3:
+        trigger $"timeout na tentativa {estado["tentativas"]}"
+    yield $"sucesso na tentativa {estado["tentativas"]}"
+
+// retry repete ate conseguir
+out "── com retry ──"
+retry 5:
+    resultado := chamada_instavel()
+    out $"  {resultado}"
+handle e:
+    out $"  desistiu: {e}"
+
+assert estado["tentativas"] is 3, "precisou de tres tentativas"
+
+// Quando todas falham, o handler final roda
+estado2 := {"n": 0}
+action sempre_falha():
+    estado2["n"] := estado2["n"] + 1
+    trigger "indisponivel"
+
+out ""
+out "── falhando sempre ──"
+capturou := no
+retry 3:
+    sempre_falha()
+handle e:
+    capturou := yes
+    out $"  apos {estado2["n"]} tentativas: {e}"
+
+assert estado2["n"] is 3, "tentou tres vezes"
+assert capturou is yes, "o handler final rodou"
+
+// Espera crescente entre tentativas
+out ""
+out "── com espera crescente ──"
+espera := {"ms": 10}
+tentativa := {"n": 0}
+
+action com_recuo():
+    tentativa["n"] := tentativa["n"] + 1
+    given tentativa["n"] smaller 3:
+        out $"  tentativa {tentativa["n"]} falhou, esperando {espera["ms"]}ms"
+        wait espera["ms"]
+        espera["ms"] := espera["ms"] * 2
+        trigger "ainda indisponivel"
+    yield "conectado"
+
+retry 5:
+    out $"  {com_recuo()}"
+handle e:
+    out $"  desistiu: {e}"
+
+assert espera["ms"] is 40, "10 -> 20 -> 40"
+
+// Registrar e repassar
+out ""
+out "── logando e propagando ──"
+
+action camada_baixa():
+    trigger "disco cheio"
+
+action camada_media():
+    monitor:
+        camada_baixa()
+    handle e:
+        registro.error("falha na camada baixa", {"motivo": e.message})
+        propagate e.message
+
+monitor:
+    camada_media()
+handle e:
+    out $"  o topo recebeu: {e.message}"
+
+// Nem todo erro merece retry
+action classificar_erro(mensagem):
+    temporarios := ["timeout", "indisponivel", "conexao recusada"]
+    cycle t in temporarios:
+        given t in mensagem:
+            yield "tentar de novo"
+    yield "desistir"
+
+out ""
+out "── decidindo sobre retry ──"
+cycle m in ["timeout ao conectar", "senha invalida", "servico indisponivel", "404 nao encontrado"]:
+    out $"  {m.pad_end(26)} -> {classificar_erro(m)}"
+
+assert classificar_erro("timeout ao conectar") is "tentar de novo", "temporario"
+assert classificar_erro("senha invalida") is "desistir", "permanente"

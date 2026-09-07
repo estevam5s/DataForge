@@ -326,6 +326,7 @@ class ActionDeclaration(ASTNode):
     decorators: list = field(default_factory=list)
     param_types: dict = field(default_factory=dict)
     return_type: str = ""
+    is_generator: bool = False
 
 @dataclass
 class BlueprintDeclaration(ASTNode):
@@ -427,9 +428,10 @@ class ParallelBlock(ASTNode):
 
 @dataclass
 class AdoptStatement(ASTNode):
-    """adopt Module [as Alias]"""
+    """adopt Modulo [as Alias] | adopt {a, b as c} from Modulo"""
     module: str = ""
     alias: str = ""
+    selection: list = None      # [(nome, apelido)] quando o import é seletivo
 
 @dataclass
 class RelayStatement(ASTNode):
@@ -500,4 +502,205 @@ class PredictExpression(ASTNode):
 class ShadowDeclaration(ASTNode):
     """shadow name := value"""
     name: str = ""
+    value: Any = None
+
+
+# ═══════════════════════════════════════════════════════════
+#  DataForge 4.0 — EXPRESSÕES
+# ═══════════════════════════════════════════════════════════
+
+@dataclass
+class InterpolatedString(ASTNode):
+    """$"texto {expr} texto" — partes já resolvidas em nós."""
+    parts: list = field(default_factory=list)   # [('text', str) | ('expr', ASTNode)]
+
+
+@dataclass
+class TernaryExpression(ASTNode):
+    """valor_se_verdadeiro given condicao otherwise valor_se_falso"""
+    then_value: Any = None
+    condition: Any = None
+    else_value: Any = None
+
+
+@dataclass
+class MembershipOp(ASTNode):
+    """x in colecao  /  x not in colecao"""
+    element: Any = None
+    container: Any = None
+    negated: bool = False
+
+
+@dataclass
+class CoalesceOp(ASTNode):
+    """a ?? b — devolve b quando a for void"""
+    left: Any = None
+    right: Any = None
+
+
+@dataclass
+class SafeMemberAccess(ASTNode):
+    """obj?.membro — void quando obj for void"""
+    object: Any = None
+    member: str = ""
+
+
+@dataclass
+class SafeMethodCall(ASTNode):
+    """obj?.metodo(args)"""
+    object: Any = None
+    method: str = ""
+    args: list = field(default_factory=list)
+    kwargs: dict = field(default_factory=dict)
+
+
+@dataclass
+class SpreadElement(ASTNode):
+    """...expr dentro de lista, vault ou chamada"""
+    value: Any = None
+
+
+@dataclass
+class ComprehensionClause(ASTNode):
+    """cycle <var> in <fonte> [given <cond>]"""
+    var: str = ""
+    targets: list = field(default_factory=list)   # desestruturação no cycle
+    source: Any = None
+    condition: Any = None
+
+
+@dataclass
+class ListComprehension(ASTNode):
+    """[expr cycle x in fonte given cond]"""
+    expression: Any = None
+    clauses: list = field(default_factory=list)
+
+
+@dataclass
+class VaultComprehension(ASTNode):
+    """{k: v cycle x in fonte given cond}"""
+    key: Any = None
+    value: Any = None
+    clauses: list = field(default_factory=list)
+
+
+# ═══════════════════════════════════════════════════════════
+#  DataForge 4.0 — DECLARAÇÕES
+# ═══════════════════════════════════════════════════════════
+
+@dataclass
+class RecordDeclaration(ASTNode):
+    """record Nome: campo: Tipo [:= padrao]"""
+    name: str = ""
+    fields: list = field(default_factory=list)     # [(nome, tipo, default|None)]
+    methods: dict = field(default_factory=dict)    # nome -> ActionDeclaration
+
+
+@dataclass
+class EnumDeclaration(ASTNode):
+    """enum Nome: MEMBRO [:= valor]"""
+    name: str = ""
+    members: list = field(default_factory=list)    # [(nome, valor_expr|None)]
+    methods: dict = field(default_factory=dict)
+
+
+@dataclass
+class DestructuringAssignment(ASTNode):
+    """a, b := expr   |   a, ...resto := expr   |   {nome, idade} := registro"""
+    targets: list = field(default_factory=list)    # [(nome, is_rest)]
+    value: Any = None
+    is_mapping: bool = False                       # forma {a, b} := vault/record
+    declared_types: dict = field(default_factory=dict)
+
+
+@dataclass
+class WithExpression(ASTNode):
+    """registro with {"campo": valor} — cópia alterada"""
+    source: Any = None
+    changes: Any = None
+
+
+# ═══════════════════════════════════════════════════════════
+#  DataForge 4.0 — PATTERN MATCHING
+# ═══════════════════════════════════════════════════════════
+
+@dataclass
+class Pattern(ASTNode):
+    """Base dos padrões de 'point'."""
+    binding: str = ""        # 'padrao as nome'
+
+
+@dataclass
+class WildcardPattern(Pattern):
+    """_ — casa com qualquer coisa"""
+
+
+@dataclass
+class LiteralPattern(Pattern):
+    """1, "a", yes, void — casa por igualdade"""
+    value: Any = None
+
+
+@dataclass
+class CapturePattern(Pattern):
+    """nome — casa com qualquer coisa e liga ao nome"""
+    name: str = ""
+
+
+@dataclass
+class TypePattern(Pattern):
+    """Integer, Usuario — casa pelo tipo"""
+    type_name: str = ""
+    sub_patterns: list = field(default_factory=list)   # Usuario(a, b)
+    field_patterns: dict = field(default_factory=dict) # Usuario(nome := p)
+
+
+@dataclass
+class SequencePattern(Pattern):
+    """[a, b, ...resto]"""
+    elements: list = field(default_factory=list)
+    rest_index: int = -1
+    rest_name: str = ""
+
+
+@dataclass
+class MappingPattern(Pattern):
+    """{"chave": padrao, ...}"""
+    pairs: list = field(default_factory=list)   # [(chave_expr, padrao)]
+    rest_name: str = ""
+
+
+@dataclass
+class ValuePattern(Pattern):
+    """Status.Ativo — casa por igualdade com um valor nomeado"""
+    expression: Any = None
+
+
+@dataclass
+class OrPattern(Pattern):
+    """p1 or p2"""
+    options: list = field(default_factory=list)
+
+
+@dataclass
+class MatchCase(ASTNode):
+    """point <padrao> [when <guarda>]: corpo"""
+    pattern: Any = None
+    guard: Any = None
+    body: list = field(default_factory=list)
+
+
+# ═══════════════════════════════════════════════════════════
+#  DataForge 4.0 — GENERATORS
+# ═══════════════════════════════════════════════════════════
+
+@dataclass
+class EmitStatement(ASTNode):
+    """emit valor — produz num 'stream action'; imprime fora dele (legado)."""
+    expressions: list = field(default_factory=list)
+
+
+@dataclass
+class _Wrapped(ASTNode):
+    """Nó interno: transporta um valor já avaliado para reaproveitar um eval_*."""
     value: Any = None

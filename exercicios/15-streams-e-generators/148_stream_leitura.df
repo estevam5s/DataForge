@@ -1,0 +1,59 @@
+// Exercicio 148 — Processamento incremental
+// Enunciado: use streams para tratar dados grandes sem carregar tudo na memoria.
+
+adopt Arcane.Serialization as Serde
+
+// Simula linhas chegando de um arquivo grande
+stream action linhas_do_log():
+    dados := [
+        "2026-01-10 INFO servidor iniciado",
+        "2026-01-10 WARN memoria em 80%",
+        "2026-01-10 ERROR falha ao conectar",
+        "2026-01-11 INFO requisicao ok",
+        "2026-01-11 ERROR timeout no banco",
+        "2026-01-11 INFO requisicao ok"
+    ]
+    cycle l in dados:
+        emit l
+
+// Um estagio que interpreta cada linha
+stream action interpretar(fonte):
+    cycle linha in fonte:
+        partes := linha.split(" ")
+        emit {
+            "data": partes[0],
+            "nivel": partes[1],
+            "mensagem": partes.slice(2).join(" ")
+        }
+
+// Um estagio que filtra
+stream action apenas(fonte, nivel):
+    cycle registro in fonte:
+        given registro["nivel"] is nivel:
+            emit registro
+
+// A cadeia inteira, montada sem executar nada
+erros := apenas(interpretar(linhas_do_log()), "ERROR")
+
+out "── erros encontrados ──"
+cycle e in erros:
+    out $"  {e["data"]}: {e["mensagem"]}"
+
+assert erros.count() is 2, "dois erros no log"
+
+// Contar por nivel sem materializar o log inteiro
+contagem := {}
+cycle registro in interpretar(linhas_do_log()):
+    nivel := registro["nivel"]
+    contagem[nivel] := contagem.get(nivel, 0) + 1
+
+out ""
+out contagem
+assert contagem["INFO"] is 3, "tres INFO"
+assert contagem["ERROR"] is 2, "dois ERROR"
+
+// Primeiro que satisfaz, sem ler o resto
+primeiro_erro := apenas(interpretar(linhas_do_log()), "ERROR").first()
+out ""
+out $"primeiro erro: {primeiro_erro["mensagem"]}"
+assert primeiro_erro["mensagem"] is "falha ao conectar", "para no primeiro"

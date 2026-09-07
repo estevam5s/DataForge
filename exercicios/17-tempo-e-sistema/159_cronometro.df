@@ -1,0 +1,70 @@
+// Exercicio 159 — Cronometragem e desempenho
+// Enunciado: meca quanto tempo o codigo leva.
+
+adopt Arcane.Time as Time
+
+// measure roda a acao e devolve resultado + tempo
+action trabalho_pesado():
+    total := 0
+    cycle i from 1 to 200000:
+        total += i
+    yield total
+
+medida := Time.measure(trabalho_pesado)
+out $"resultado: {medida.result}"
+out $"levou: {round(medida.ms, 2)} ms"
+assert medida.result is 20000100000, "soma de 1 a 200000"
+assert medida.ms bigger 0, "tempo positivo"
+
+// Cronometro com controle manual
+crono := Time.stopwatch()
+crono.start()
+
+soma := 0
+cycle i from 1 to 50000:
+    soma += i * 2
+
+parcial := crono.elapsed_ms()
+out ""
+out $"parcial: {round(parcial, 2)} ms"
+
+cycle i from 1 to 50000:
+    soma += i
+
+crono.stop()
+out $"total:   {round(crono.elapsed_ms(), 2)} ms"
+assert crono.elapsed_ms() bigger_eq parcial, "o total inclui a parcial"
+
+// Comparar duas implementacoes
+action com_laco(n):
+    total := 0
+    cycle i from 1 to n:
+        total += i
+    yield total
+
+action com_formula(n):
+    yield n * (n + 1) ~/ 2
+
+a := Time.measure(lambda: com_laco(100000))
+b := Time.measure(lambda: com_formula(100000))
+
+out ""
+out $"laco:    {round(a.ms, 3)} ms -> {a.result}"
+out $"formula: {round(b.ms, 3)} ms -> {b.result}"
+assert a.result is b.result, "os dois chegam ao mesmo numero"
+assert b.ms smaller a.ms, "a formula e mais rapida"
+
+// Medir varias vezes e tirar a media
+tempos := []
+cycle _ in [1, 2, 3, 4, 5]:
+    tempos.append(Time.measure(lambda: com_laco(20000)).ms)
+
+out ""
+out $"5 execucoes: media {round(mean(tempos), 3)} ms, minimo {round(min(tempos), 3)} ms"
+assert len(tempos) is 5, "cinco medicoes"
+
+// reset zera o cronometro
+crono.reset()
+assert crono.elapsed() is 0.0, "zerado"
+out ""
+out "cronometro zerado"

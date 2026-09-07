@@ -105,7 +105,7 @@ blueprint Banco(nome):
     action buscar_conta(numero):
         given contains(this.contas, numero):
             yield this.contas[numero]
-        yield empty
+        yield void
     
     action listar_contas():
         out ""

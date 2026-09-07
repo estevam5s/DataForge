@@ -22,7 +22,12 @@ Se ainda não instalou, veja [`INSTALACAO.md`](INSTALACAO.md).
 12. [Pipelines](#12-pipelines)
 13. [Módulos](#13-módulos)
 14. [Concorrência](#14-concorrência)
-15. [Projeto final](#15-projeto-final)
+15. [Interpolação e expressões](#15-interpolação-e-expressões)
+16. [Compreensões, spread e desestruturação](#16-compreensões-spread-e-desestruturação)
+17. [Records e enums](#17-records-e-enums)
+18. [Pattern matching](#18-pattern-matching)
+19. [Generators](#19-generators)
+20. [Projeto final](#20-projeto-final)
 
 ---
 
@@ -68,6 +73,17 @@ Se você já programa, esta é a ponte:
 | throw | `throw` / `raise` | `trigger` |
 | true / false / null | `true` / `false` / `null` | `yes` / `no` / `void` |
 | filter / map / reduce | `.filter` / `.map` / `.reduce` | `>> sift` / `>> morph` / `>> distill` |
+| f-string | `f"{x}"` / `` `${x}` `` | `$"{x}"` |
+| ternário | `a if c else b` | `a given c otherwise b` |
+| coalescência | `??` / `or` | `??` |
+| acesso seguro | `?.` | `?.` |
+| pertinência | `in` | `in` / `not in` |
+| spread / rest | `...` / `*` | `...` |
+| dataclass frozen | `@dataclass(frozen=True)` | `record` |
+| enum | `enum` / `Enum` | `enum` |
+| generator | `yield` (Python) | `stream action` + `emit` |
+| list comprehension | `[e for x in f if c]` | `[e cycle x in f given c]` |
+| guarda em match | `case x if cond` | `point x when cond` |
 
 ---
 
@@ -158,8 +174,8 @@ aceito onde se espera `Float`.
 ### Conversão
 
 ```dataforge
-out cast "42" as Integer      // 42
-out cast 3.9 as Integer       // 3   (trunca)
+out cast "42" as Integer      # 42
+out cast 3.9 as Integer       # 3   (trunca)
 out cast 42 as String         // "42"
 out str(42), int("7"), float("2.5"), bool(1)
 ```
@@ -174,9 +190,9 @@ action le():
 
 action sombreia():
     shadow x := 99     // cria uma cópia local
-    yield x            // 99
+    yield x            # 99
 
-out le(), sombreia(), x    // 10 99 10
+out le(), sombreia(), x    # 10 99 10
 ```
 
 `shadow` cria uma variável local que **não** afeta a externa.
@@ -188,19 +204,29 @@ out le(), sombreia(), x    // 10 99 10
 ### Aritméticos
 
 ```dataforge
-out 7 + 2      // 9
-out 7 - 2      // 5
-out 7 * 2      // 14
-out 7 / 2      // 3.5    (sempre Float)
-out 7 % 2      // 1
-out 7 ** 2     // 49
-out 7 ~/ 2     // 3      (divisão inteira)
+out 7 + 2      # 9
+out 7 - 2      # 5
+out 7 * 2      # 14
+out 7 / 2      # 3.5    (sempre Float)
+out 7 % 2      # 1
+out 7 ** 2     # 49
+out 7 ~/ 2     # 3      (divisão inteira)
 ```
 
-> **Divisão inteira:** prefira **`~/`**. O `//` também funciona, mas é ambíguo —
-> ele abre comentários. O lexer resolve pelo contexto, e a regra é: `7 // 2` é
-> divisão; `x := 3  // marcar item` (dois ou mais espaços antes, seguido de
-> prosa) é comentário. Use `~/` e nunca pense nisso.
+> **Divisão inteira: use `~/`.** O `//` também funciona, mas é ambíguo: ele abre
+> comentários. A regra do lexer é conservadora — **`//` é comentário**, salvo
+> quando seguido de um dígito, de `(`, ou de um identificador que abre chamada,
+> índice ou membro:
+>
+> ```
+> x := 7 // 2              divisão
+> x := total // len(xs)    divisão (chamada depois)
+> x := 3  // marcar item   comentário
+> x := a // b              comentário
+> ```
+>
+> Com `~/` você nunca precisa pensar nisso. Nos exemplos deste tutorial os
+> comentários inline usam `#` justamente por isso.
 
 ### Precedência
 
@@ -212,9 +238,9 @@ Da mais alta para a mais baixa:
 ```
 
 ```dataforge
-out 2 + 3 * 4        // 14
-out 2 ** 3 ** 2      // 512    (associa à direita)
-out -2 ** 2          // -4     (o sinal aplica depois)
+out 2 + 3 * 4        # 14
+out 2 ** 3 ** 2      # 512    (associa à direita)
+out -2 ** 2          # -4     (o sinal aplica depois)
 ```
 
 ### Comparação
@@ -252,11 +278,11 @@ out not yes         // no
 
 ```dataforge
 x := 10
-x += 5      // 15
-x -= 3      // 12
-x *= 2      // 24
-x /= 4      // 6.0
-x %= 4      // 2.0
+x += 5      # 15
+x -= 3      # 12
+x *= 2      # 24
+x /= 4      # 6.0
+x %= 4      # 2.0
 ```
 
 ---
@@ -305,13 +331,13 @@ out dia(9)     // outro
 
 ```dataforge
 cycle i from 1 to 5:
-    out i                 // 1 2 3 4 5   (o limite é inclusivo)
+    out i                 # 1 2 3 4 5   (o limite é inclusivo)
 
 cycle i from 0 to 10 step 2:
-    out i                 // 0 2 4 6 8 10
+    out i                 # 0 2 4 6 8 10
 
 cycle i from 5 to 1 step -1:
-    out i                 // 5 4 3 2 1
+    out i                 # 5 4 3 2 1
 ```
 
 ### Sobre uma coleção
@@ -336,7 +362,7 @@ divisoes := 0
 persist n bigger 1:
     n := n ~/ 2
     divisoes += 1
-out divisoes      // 10
+out divisoes      # 10
 ```
 
 ### Faça-enquanto (do-while)
@@ -369,9 +395,9 @@ cycle i from 1 to 100:
 ```dataforge
 nums := [10, 20, 30, 40, 50]
 
-out nums[0]        // 10
-out nums[-1]       // 50    (índice negativo conta do fim)
-out len(nums)      // 5
+out nums[0]        # 10
+out nums[-1]       # 50    (índice negativo conta do fim)
+out len(nums)      # 5
 
 nums[1] := 99      // atribuição por índice
 ```
@@ -460,14 +486,14 @@ cycle par in estoque.items():
 ```dataforge
 s := "DataForge"
 
-out s.length()          // 9
+out s.length()          # 9
 out s[0]                // D
 out s[0:4]              // Data
 out s.upper()           // DATAFORGE
 out s.lower()  s.title()  s.capitalize()
 out s.trim()  s.strip()
 out s.contains("Forge")  s.startswith("Data")  s.endswith("ge")
-out s.find("Forge")     // 4   (-1 se não achar)
+out s.find("Forge")     # 4   (-1 se não achar)
 out s.replace("Data", "Info")
 out s.split("a")        // divide
 out s.reverse()  s.repeat(2)
@@ -501,7 +527,7 @@ out ";".join(campos)             // "a;b;c"
 action somar(a, b):
     yield a + b
 
-out somar(2, 3)      // 5
+out somar(2, 3)      # 5
 ```
 
 `yield` devolve o valor **e encerra a ação**. Sem `yield`, a ação devolve `void`.
@@ -522,7 +548,7 @@ out criar("Bruno", "admin")
 action retangulo(largura := 1, altura := 1):
     yield largura * altura
 
-out retangulo(altura := 5, largura := 3)      // 15
+out retangulo(altura := 5, largura := 3)      # 15
 ```
 
 ### Parâmetros e retorno tipados
@@ -531,7 +557,7 @@ out retangulo(altura := 5, largura := 3)      // 15
 action media(nums: Cluster) -> Float:
     yield sum(nums) / len(nums)
 
-out media([1, 2, 3])      // 2.0
+out media([1, 2, 3])      # 2.0
 // media("texto")  →  TypeError_
 ```
 
@@ -555,7 +581,7 @@ action fatorial(n):
         yield 1
     yield n * fatorial(n - 1)
 
-out fatorial(6)      // 720
+out fatorial(6)      # 720
 ```
 
 Recursão infinita vira `StackOverflowError_` depois de 1000 quadros, com o nome
@@ -570,8 +596,8 @@ action fabrica_somador(n):
     yield somador
 
 soma10 := fabrica_somador(10)
-out soma10(5)                  // 15
-out fabrica_somador(3)(4)      // 7   (chamada encadeada)
+out soma10(5)                  # 15
+out fabrica_somador(3)(4)      # 7   (chamada encadeada)
 ```
 
 ### Lambdas
@@ -637,8 +663,8 @@ blueprint Ponto(x, y):
         yield "(" + str(self.x) + ", " + str(self.y) + ")"
 
 p := spawn Ponto(3, 4)
-out p.x, p.distancia()      // 3 5.0
-out str(p)                  // (3, 4)
+out p.x, p.distancia()      # 3 5.0
+out str(p)                  # (3, 4)
 ```
 
 Os parâmetros do cabeçalho viram campos automaticamente. `toString` é usado por
@@ -716,7 +742,7 @@ blueprint Contador:
 
 c := spawn Contador()
 c.inc()
-out Contador.total      // 1
+out Contador.total      # 1
 ```
 
 ### Sobrecarga de operadores
@@ -871,7 +897,7 @@ out nums >> morph n: n ** 2          // [1, 4, 9, 16, 25, 36]
 
 ```dataforge
 nums := [1, 2, 3, 4, 5, 6]
-out nums >> distill acc, v: acc + v 0        // 21
+out nums >> distill acc, v: acc + v 0        # 21
 //                          ^expressão   ^valor inicial
 ```
 
@@ -924,13 +950,23 @@ out nums.reduce(lambda a, b: a + b, 0)
 adopt Arcane.Math as Math
 adopt Arcane.Text as Text
 
-out Math.sqrt(16)        // 4.0
+out Math.sqrt(16)        # 4.0
 out Text.slug("Ola Mundo")
 ```
 
 Os nomes curtos também valem: `adopt Math as M`.
 
-Importar um módulo inexistente dispara `ImportError_` com a lista do que existe.
+Também dá para importar só o que você usa:
+
+```dataforge
+adopt Arcane.Math.{sqrt, factorial}         # forma compacta
+adopt {sqrt as raiz} from Arcane.Math       # com apelido
+
+out sqrt(16), factorial(4), raiz(25)
+```
+
+Importar um módulo inexistente — ou um símbolo que ele não exporta — dispara
+`ImportError_` com a lista do que existe.
 
 ### Importar um arquivo local
 
@@ -952,23 +988,30 @@ adopt geometria as geo
 out geo.area_circulo(2)
 ```
 
-### Os 13 módulos
+### Os 20 módulos
 
-| Módulo | Para quê |
-|--------|----------|
-| `Arcane.Math` | Matemática e estatística (51 funções) |
-| `Arcane.Text` | Manipulação de texto, tabelas, caixas (58) |
-| `Arcane.Analytics` | Análise de dados, regressão, clustering (65) |
-| `Arcane.Functional` | Utilitários funcionais, lentes, mônadas (56) |
-| `Arcane.Database` | SQLite: tabelas, queries, migrações (39) |
-| `Arcane.Test` | Asserções e suítes de teste (34) |
-| `Arcane.Regex` | Expressões regulares e validadores BR (32) |
-| `Arcane.IO` | Arquivos, JSON, CSV, diretórios (27) |
-| `Arcane.Http` | Servidor HTTP com rotas e middleware (17) |
-| `Arcane.Async` | Promessas, filas, agendamento (46) |
-| `Arcane.Data` | DataFrames e transformações (13) |
-| `Arcane.Web` | Cliente HTTP, URL, JSON (11) |
-| `Arcane.Cortex` | Blocos de rede neural e NLP (5) |
+| Módulo | Símbolos | Para quê |
+|--------|----------|----------|
+| `Arcane.Analytics` | 65 | análise de dados, regressão, clustering |
+| `Arcane.Text` | 58 | texto, tabelas, caixas, conversão de caixa |
+| `Arcane.Functional` | 56 | utilitários funcionais, lentes, mônadas |
+| `Arcane.Time` | 54 | datas, durações, cronômetro, idade |
+| `Arcane.Math` | 51 | matemática, álgebra linear, estatística |
+| `Arcane.Async` | 46 | promessas, filas, agendamento |
+| `Arcane.Database` | 39 | SQLite: tabelas, queries, transações |
+| `Arcane.Crypto` | 38 | hashes, HMAC, senhas, base64, aleatoriedade |
+| `Arcane.OS` | 38 | sistema, ambiente, disco, processo |
+| `Arcane.Collections` | 35 | pilha, fila, heap, grafo, união-busca |
+| `Arcane.Test` | 34 | asserções e suítes |
+| `Arcane.Regex` | 32 | regex e validadores BR |
+| `Arcane.IO` | 27 | arquivos, JSON, CSV, diretórios |
+| `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML |
+| `Arcane.Http` | 17 | servidor HTTP com rotas |
+| `Arcane.Process` | 15 | processos externos |
+| `Arcane.Logging` | 14 | níveis, campos, arquivo, JSON |
+| `Arcane.Data` | 13 | DataFrames e transformações |
+| `Arcane.Web` | 11 | cliente HTTP, URL, JSON |
+| `Arcane.Cortex` | 5 | rede neural e NLP |
 
 Detalhes em [`BIBLIOTECA_PADRAO.md`](BIBLIOTECA_PADRAO.md).
 
@@ -1031,7 +1074,373 @@ observe valor in s:
 
 ---
 
-## 15. Projeto final
+## 15. Interpolação e expressões
+
+### Interpolação de strings
+
+Uma string prefixada por `$` interpreta `{…}` como expressão:
+
+```dataforge
+nome := "Ana"
+idade := 30
+
+out $"Ola {nome}, voce tem {idade} anos"
+out $"no ano que vem: {idade + 1}"
+out $"{yes} e {void} seguem a grafia da linguagem"
+out $"{{chaves literais}} precisam ser dobradas"
+```
+
+Qualquer expressão cabe dentro das chaves — inclusive chamadas de ação e índices.
+Strings comuns **não** interpolam, o que permite escrever JSON e regex sem
+escapar nada.
+
+### Expressão condicional (ternário)
+
+```dataforge
+n := 4
+rotulo := "par" given n % 2 is 0 otherwise "impar"
+out rotulo
+```
+
+Lê-se: *"este valor, dado que a condição vale, senão o outro"*. Associa à direita,
+então encadeia:
+
+```dataforge
+n := 0
+x := "positivo" given n bigger 0 otherwise "zero" given n is 0 otherwise "negativo"
+out x
+```
+
+### Coalescência e acesso seguro
+
+```dataforge
+config := void
+out config ?? "padrao"          # "padrao"
+out config?.porta ?? 8080       # 8080, sem estourar
+```
+
+`??` só entra em ação quando o valor é `void`. `no`, `0` e `""` são valores, e
+passam direto.
+
+### Pertinência
+
+```dataforge
+out 2 in [1, 2, 3]
+out "a" in "casa"
+out "chave" in {"chave": 1}
+out 9 not in [1, 2, 3]
+```
+
+---
+
+## 16. Compreensões, spread e desestruturação
+
+### Compreensões
+
+```dataforge
+nums := [1, 2, 3, 4, 5, 6]
+
+out [n * n cycle n in nums]                      # transforma
+out [n cycle n in nums given n % 2 is 0]         # filtra
+out {n: n * n cycle n in [1, 2, 3]}              # vault
+out [a + b cycle a in [1, 2] cycle b in [10, 20]]  # duas fontes
+```
+
+Repare que a sintaxe **reutiliza `cycle` e `given`** — não há palavras novas para
+memorizar. A variável do `cycle` não vaza para fora.
+
+### Spread
+
+```dataforge
+a := [1, 2]
+b := [3, 4]
+out [...a, ...b, 5]
+
+padrao := {"tema": "claro", "fonte": 14}
+usuario := {"tema": "escuro"}
+out {...padrao, ...usuario}      # o último vence
+
+action somar(x, y, z):
+    yield x + y + z
+args := [1, 2, 3]
+out somar(...args)
+```
+
+### Desestruturação
+
+```dataforge
+a, b := [1, 2]
+primeiro, ...resto := [1, 2, 3, 4]
+inicio, ...meio, fim := [1, 2, 3, 4, 5]
+
+p := "a"
+q := "b"
+p, q := q, p                      # troca, sem temporária
+
+{nome, idade} := {"nome": "Ana", "idade": 30}
+
+out a, b, primeiro, resto, meio, p, q, nome
+```
+
+Com colchetes casa **por posição**; com chaves, **por nome**.
+
+---
+
+## 17. Records e enums
+
+### Records
+
+Um `record` é um agregado de dados nomeados e tipados — o equivalente a um
+`@dataclass(frozen=True)` do Python ou a um `record` do Java.
+
+```dataforge
+record Usuario:
+    nome: String
+    idade: Integer
+    email: String := "sem@email"
+
+    action maior_de_idade():
+        yield self.idade bigger_eq 18
+
+u := Usuario("Ana", 30)
+out u.nome, u.maior_de_idade()
+out Usuario(nome := "Bruno", idade := 25)
+```
+
+Três características que o distinguem de um `blueprint`:
+
+**Igualdade estrutural** — mesmos valores, mesmo record:
+
+```dataforge
+record P:
+    x: Integer
+p := P(1)
+out P(1) is p                 # yes
+```
+
+**Imutável** — atribuir a um campo é erro:
+
+```dataforge
+record P:
+    x: Integer
+p := P(1)
+monitor:
+    p.x := 2
+handle e:
+    out e.message
+```
+
+**`with` produz uma cópia alterada**:
+
+```dataforge
+record Conta:
+    titular: String
+    saldo: Number
+
+c := Conta("Ana", 1000)
+c2 := c with {"saldo": 1500}
+out c.saldo, c2.saldo         # 1000 1500
+```
+
+### Enums
+
+Um conjunto fechado de valores nomeados:
+
+```dataforge
+enum Status:
+    Rascunho
+    Publicado
+    Arquivado := "arq"
+
+out Status.Publicado.name, Status.Publicado.index
+out Status.Arquivado.value
+out Status.names(), Status.count()
+out Status.from_value("arq").name
+```
+
+Cada membro tem `.name`, `.value` (padrão: o nome) e `.index`. O enum expõe
+`names()`, `values()`, `members()`, `count()`, `has(n)`, `from_name(n)` e
+`from_value(v)`.
+
+O ganho: um erro de digitação em `Status.Publicad` falha na hora, enquanto
+`"publicado"` como texto solto falharia silenciosamente numa comparação.
+
+### Quando usar cada um
+
+| Use `record` | Use `blueprint` |
+|--------------|-----------------|
+| dados sem comportamento próprio | objetos com estado que muda |
+| igualdade por valor | identidade importa |
+| imutável | precisa mutar campos |
+| sem herança | herança, traits, polimorfismo |
+
+---
+
+## 18. Pattern matching
+
+O `match` do DataForge compara **estruturas**, não só valores.
+
+```dataforge
+record Ponto:
+    x: Integer
+    y: Integer
+
+enum Status:
+    Ativo
+
+action descrever(v):
+    match v:
+        point 0:
+            yield "zero"
+        point 1 or 2 or 3:
+            yield "pequeno"
+        point Integer as n when n bigger 100:
+            yield $"grande: {n}"
+        point Integer:
+            yield "inteiro"
+        point String as s:
+            yield $"texto de {len(s)} letras"
+        point [a, b]:
+            yield $"par ({a}, {b})"
+        point [primeiro, ...resto]:
+            yield $"lista de {len(resto) + 1}"
+        point Ponto(x, y):
+            yield $"ponto ({x}, {y})"
+        point {"tipo": t}:
+            yield $"vault do tipo {t}"
+        point Status.Ativo:
+            yield "ligado"
+        point _:
+            yield "outro"
+
+cycle v in [0, 2, 500, 7, "abc", [1, 2], [1, 2, 3],
+            Ponto(3, 4), {"tipo": "x"}, Status.Ativo, 3.5]:
+    out descrever(v)
+```
+
+### A convenção que organiza tudo
+
+| Escrita | Significa |
+|---------|-----------|
+| `point n` (minúscula) | **captura** — casa com tudo, liga a `n` |
+| `point Integer` (Maiúscula) | **tipo** — casa se for daquele tipo |
+| `point Status.Ativo` | **valor** — casa por igualdade |
+| `point _` | **curinga** |
+| `point [a, b]` | sequência, por comprimento |
+| `point {"k": v}` | mapa, **parcial** (chaves extras não atrapalham) |
+| `point P(x, y)` | record por posição |
+| `point P(nome := n)` | record por nome |
+| `point A or B` | alternativa |
+| `point p as tudo` | apelido para o valor inteiro |
+
+### Guardas com `when`
+
+```dataforge
+action faixa(n):
+    match n:
+        point Integer as v when v smaller 0:
+            yield "negativo"
+        point Integer as v when v smaller_eq 9:
+            yield "unidade"
+        point Integer:
+            yield "grande"
+        default:
+            yield "?"
+
+out faixa(-5), faixa(7), faixa(1000)
+```
+
+Se a guarda falha, o `match` **continua** para o próximo `point`.
+
+### Três regras que evitam surpresa
+
+1. Os `point` são testados **de cima para baixo**; o primeiro que casa vence.
+2. Ordene do **específico ao geral** — uma captura no topo engole tudo abaixo.
+3. Mantenha um `default`: a exaustividade ainda não é verificada.
+
+---
+
+## 19. Generators
+
+Um `stream action` produz uma sequência sob demanda:
+
+```dataforge
+stream action contar(ate):
+    cycle i from 1 to ate:
+        emit i
+
+out contar(5).to_cluster()
+out contar(1000).take(3)
+```
+
+### `emit` produz, `yield` retorna
+
+```dataforge
+action f():
+    yield 1        # devolve 1 e ENCERRA
+
+stream action g():
+    emit 1         # produz 1 e CONTINUA
+    emit 2
+
+out f(), g().to_cluster()
+```
+
+### Sequências infinitas
+
+Como nada executa até alguém pedir, um laço infinito é legítimo:
+
+```dataforge
+stream action fibonacci():
+    a := 0
+    b := 1
+    persist yes:
+        emit a
+        a, b := b, a + b
+
+out fibonacci().take(10)
+```
+
+`take(10)` pede dez itens e para de pedir — o laço nunca chega à volta seguinte.
+
+### Consumindo
+
+| Chamada | Devolve |
+|---------|---------|
+| `s.to_cluster()` | tudo, como lista |
+| `s.take(n)` | os `n` primeiros |
+| `s.next()` | o próximo, ou `void` |
+| `s.count()` | quantos ao todo |
+| `s.first()` | o primeiro, ou `void` |
+| `cycle v in s:` | percorre item a item |
+
+### Encadeando
+
+Um generator pode consumir outro, e a cadeia continua preguiçosa:
+
+```dataforge
+stream action naturais():
+    n := 1
+    persist yes:
+        emit n
+        n += 1
+
+stream action dobrar(fonte):
+    cycle v in fonte:
+        emit v * 2
+
+out dobrar(naturais()).take(5)
+```
+
+Isso é o desenho dos pipes do Unix: cada estágio consome o anterior aos poucos, e
+a memória usada não depende do tamanho da fonte.
+
+> **Cuidado:** `to_cluster()` num generator infinito trava. Use `take(n)` ou
+> garanta um `halt` dentro dele.
+
+---
+
+## 20. Projeto final
 
 Um inventário que usa quase tudo:
 
@@ -1095,8 +1504,9 @@ bloqueado: estoque insuficiente para Monitor
 
 ## Continuando
 
-- **[`exercicios/`](../exercicios)** — 120 exercícios comentados, do "Olá mundo"
-  a um interpretador RPN. Cada um verifica o próprio resultado com `assert`.
+- **[`exercicios/`](../exercicios)** — 180 exercícios, do "Olá mundo" a um
+  interpretador com lexer, parser e avaliador. Cada um verifica o próprio
+  resultado com `assert`, e os 60 do 4.0 têm um `.md` explicativo ao lado.
   Rode todos com `python3 exercicios/run_all.py`.
 - **[`examples/`](../examples)** — 42 programas maiores: banco, loja, jogos,
   calculadora científica.

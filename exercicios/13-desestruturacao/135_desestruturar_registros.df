@@ -1,0 +1,56 @@
+// Exercicio 135 — Desestruturar records e vaults
+// Enunciado: extraia campos nomeados de um record ou de um dicionario.
+
+record Usuario:
+    nome: String
+    idade: Integer
+    cidade: String
+
+u := Usuario("Ana", 30, "Floripa")
+
+// Por nome, na ordem que quiser
+{nome, cidade} := u
+out $"{nome} mora em {cidade}"
+assert nome is "Ana" and cidade is "Floripa", "campos por nome"
+
+// Funciona igual em vaults
+config := {"host": "localhost", "porta": 8080, "debug": yes}
+{host, porta} := config
+out $"{host}:{porta}"
+assert host is "localhost" and porta is 8080, "chaves do vault"
+
+// Chave inexistente e erro
+erro := no
+monitor:
+    {inexistente} := config
+handle e:
+    erro := yes
+    out e.message
+assert erro is yes, "chave que nao existe dispara"
+
+// Resto captura os campos restantes
+{nome, ...resto} := u
+out resto
+assert resto is {"idade": 30, "cidade": "Floripa"}, "resto do record"
+
+// Padrao util: desempacotar no inicio da acao
+action apresentar(pessoa):
+    {nome, idade} := pessoa
+    yield $"{nome}, {idade} anos"
+
+out apresentar(u)
+out apresentar(Usuario("Bruno", 25, "Recife"))
+assert apresentar(u) is "Ana, 30 anos", "desempacota no inicio"
+
+// Tambem funciona em pattern matching
+action saudacao(p):
+    match p:
+        point Usuario(nome := n, idade := i) when i smaller 18:
+            yield $"oi, {n}"
+        point Usuario(nome := n):
+            yield $"bom dia, {n}"
+        default:
+            yield "?"
+
+out saudacao(u), saudacao(Usuario("Kid", 12, "SP"))
+assert saudacao(Usuario("Kid", 12, "SP")) is "oi, Kid", "menor de idade"

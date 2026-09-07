@@ -102,6 +102,102 @@ class Lexer:
 
         self.error("Unterminated multiline string")
 
+    def read_interpolated(self, quote: str) -> Token:
+        """Read $"texto {expr} texto" into a list of parts.
+
+        The token value is a list of ('text', str) and ('expr', source) pairs;
+        the parser turns each 'expr' source into a real sub-expression.
+        Use '{{' and '}}' for literal braces.
+        """
+        line, col = self.line, self.column
+        self.advance()  # skip '$'
+        triple = self.peek(1) == quote and self.peek(2) == quote
+        if triple:
+            self.advance(); self.advance(); self.advance()
+        else:
+            self.advance()  # opening quote
+
+        parts = []
+        buffer = []
+
+        def flush():
+            if buffer:
+                parts.append(('text', ''.join(buffer)))
+                buffer.clear()
+
+        while self.pos < len(self.source):
+            ch = self.peek()
+
+            if triple and ch == quote and self.peek(1) == quote and self.peek(2) == quote:
+                self.advance(); self.advance(); self.advance()
+                flush()
+                return Token(TokenType.INTERP_STRING, parts, line, col)
+            if not triple and ch == quote:
+                self.advance()
+                flush()
+                return Token(TokenType.INTERP_STRING, parts, line, col)
+
+            if ch == '\\':
+                self.advance()
+                esc = self.advance()
+                escape_map = {'n': '\n', 't': '\t', 'r': '\r', '\\': '\\',
+                              "'": "'", '"': '"', '0': '\0', '{': '{', '}': '}'}
+                buffer.append(escape_map.get(esc, '\\' + esc))
+                continue
+
+            if ch == '{':
+                if self.peek(1) == '{':      # '{{' escapes a literal brace
+                    self.advance(); self.advance()
+                    buffer.append('{')
+                    continue
+                self.advance()               # opening brace
+                flush()
+                depth = 1
+                expr_chars = []
+                while self.pos < len(self.source) and depth > 0:
+                    c = self.peek()
+                    if c in ('"', "'"):
+                        # copy a nested string literal verbatim
+                        q = self.advance()
+                        expr_chars.append(q)
+                        while self.pos < len(self.source) and self.peek() != q:
+                            if self.peek() == '\\':
+                                expr_chars.append(self.advance())
+                            expr_chars.append(self.advance())
+                        if self.pos < len(self.source):
+                            expr_chars.append(self.advance())
+                        continue
+                    if c == '{':
+                        depth += 1
+                    elif c == '}':
+                        depth -= 1
+                        if depth == 0:
+                            self.advance()
+                            break
+                    if c == '\n':
+                        self.error("Unterminated interpolation: '}' expected")
+                    expr_chars.append(self.advance())
+                else:
+                    if depth > 0:
+                        self.error("Unterminated interpolation: '}' expected")
+                fonte = ''.join(expr_chars).strip()
+                if not fonte:
+                    self.error("Empty interpolation: '{}' needs an expression")
+                parts.append(('expr', fonte))
+                continue
+
+            if ch == '}' and self.peek(1) == '}':
+                self.advance(); self.advance()
+                buffer.append('}')
+                continue
+
+            if ch == '\n' and not triple:
+                self.error("Unterminated interpolated string")
+
+            buffer.append(self.advance())
+
+        self.error("Unterminated interpolated string")
+
     def read_number(self) -> Token:
         """Read integer or float literal."""
         line, col = self.line, self.column
@@ -214,80 +310,54 @@ class Lexer:
     _EXPR_END_TYPES = None
 
     def _looks_like_floor_div(self) -> bool:
-        """Decide whether the '//' at self.pos is floor division or a comment.
+        """Decide se o '//' na posicao atual e divisao inteira ou comentario.
 
-        Floor division requires all of:
-          * the previous token can end an expression (value, ')', ']', '}');
-          * at most two spaces separate it from '//' (a trailing comment is
-            conventionally set off further);
-          * what follows parses as the start of an operand;
-          * the rest of the line is not prose — two bare words in a row with no
-            operator between them means it is a comment.
+        Regra (deliberadamente conservadora): '//' e um COMENTARIO, como em
+        praticamente toda linguagem da familia C. So vira divisao inteira nos
+        casos em que o que vem depois nao pode ser prosa:
+
+          * um numero        ->  7 // 2
+          * um parenteses    ->  x // (a + b)
+          * uma chamada,
+            indexacao ou
+            acesso a membro  ->  (a * b) // mdc(a, b)
+
+        Um identificador solto depois de '//' e tratado como comentario
+        ('// backtrack', '// TODO'). Para divisao inteira sem ambiguidade use
+        o operador dedicado '~/'.
         """
-        if Lexer._EXPR_END_TYPES is None:
-            Lexer._EXPR_END_TYPES = {
-                TokenType.IDENTIFIER, TokenType.INTEGER, TokenType.FLOAT,
-                TokenType.STRING, TokenType.RPAREN, TokenType.RBRACKET,
-                TokenType.RBRACE, TokenType.BOOLEAN, TokenType.VOID,
-                TokenType.SELF,
-            }
-        if not self.tokens or self.tokens[-1].type not in Lexer._EXPR_END_TYPES:
+        if not self.tokens:
+            return False
+        expr_end = {
+            TokenType.IDENTIFIER, TokenType.INTEGER, TokenType.FLOAT,
+            TokenType.STRING, TokenType.RPAREN, TokenType.RBRACKET,
+            TokenType.RBRACE, TokenType.BOOLEAN, TokenType.VOID,
+            TokenType.SELF,
+        }
+        if self.tokens[-1].type not in expr_end:
             return False
 
-        spaces_before = 0
-        check = self.pos - 1
-        while check >= 0 and self.source[check] == ' ':
-            spaces_before += 1
-            check -= 1
-        if spaces_before > 2:
+        resto = self.source[self.pos + 2:]
+        quebra = resto.find('\n')
+        if quebra != -1:
+            resto = resto[:quebra]
+        depois = resto.lstrip()
+        if not depois:
             return False
 
-        rest = self.source[self.pos + 2:]
-        newline = rest.find('\n')
-        if newline != -1:
-            rest = rest[:newline]
-        stripped = rest.lstrip()
-        if not stripped:
-            return False
-        first = stripped[0]
-        if not (first.isdigit() or first in '(-_' or first.isalpha()):
-            return False
+        primeiro = depois[0]
+        if primeiro.isdigit() or primeiro == '(':
+            return True
+        if primeiro == '-' and len(depois) > 1 and (depois[1].isdigit() or depois[1] == '('):
+            return True
 
-        return not self._reads_as_prose(stripped)
-
-    @staticmethod
-    def _reads_as_prose(text: str) -> bool:
-        """True when the text after '//' reads as words rather than an expression."""
-        words = 0
-        i = 0
-        n = len(text)
-        while i < n:
-            ch = text[i]
-            if ch.isalpha() or ch == '_':
-                start = i
-                while i < n and (text[i].isalnum() or text[i] == '_'):
-                    i += 1
-                word = text[start:i]
-                # A call or an index means it is code, not prose.
-                nxt = text[i:i + 1]
-                if nxt in ('(', '[', '.'):
-                    return False
-                if word in KEYWORDS and word not in ('in', 'to', 'from', 'as', 'is', 'not'):
-                    return False
-                words += 1
-                if words >= 2:
-                    return True
-            elif ch.isdigit():
-                while i < n and (text[i].isdigit() or text[i] == '.'):
-                    i += 1
-            elif ch in '+-*/%()[]{}<>=!,:':
-                return False
-            else:
+        # Identificador: so e codigo se for chamada, indexacao ou membro.
+        if primeiro.isalpha() or primeiro == '_':
+            i = 0
+            while i < len(depois) and (depois[i].isalnum() or depois[i] == '_'):
                 i += 1
-                continue
-            # skip separating spaces
-            while i < n and text[i] == ' ':
-                i += 1
+            return depois[i:i + 1] in ('(', '[', '.')
+
         return False
 
     def tokenize(self) -> list[Token]:
@@ -354,6 +424,11 @@ class Lexer:
                 self.skip_block_comment()
                 continue
 
+            # Interpolated string: $"..{expr}.."
+            if ch == '$' and self.peek(1) in ('"', "'"):
+                self.tokens.append(self.read_interpolated(self.peek(1)))
+                continue
+
             # Strings
             if ch in ('"', "'"):
                 if self.peek(1) == ch and self.peek(2) == ch:
@@ -375,6 +450,12 @@ class Lexer:
             # Multi-char operators
             line, col = self.line, self.column
 
+            three = ch + self.peek(1) + self.peek(2)
+            if three == '...':
+                self.advance(); self.advance(); self.advance()
+                self.tokens.append(Token(TokenType.SPREAD, '...', line, col))
+                continue
+
             two = ch + self.peek(1)
             two_char_map = {
                 '~/': TokenType.FLOOR_DIV,
@@ -387,6 +468,8 @@ class Lexer:
                 '%=': TokenType.PERCENT_ASSIGN,
                 '<=': TokenType.LT_EQ,
                 '>=': TokenType.GT_EQ,
+                '?.': TokenType.SAFE_DOT,
+                '??': TokenType.COALESCE,
             }
             if two in two_char_map:
                 self.advance(); self.advance()

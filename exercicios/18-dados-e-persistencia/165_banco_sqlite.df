@@ -1,0 +1,88 @@
+// Exercicio 165 — Banco de dados
+// Enunciado: crie tabelas, insira e consulte com Arcane.Database.
+
+adopt Arcane.Database as DB
+
+// Um banco em memoria: nada toca o disco
+conn := DB.memory()
+
+DB.execute(conn, """CREATE TABLE produtos (
+    id INTEGER PRIMARY KEY,
+    nome TEXT NOT NULL,
+    preco REAL NOT NULL,
+    estoque INTEGER DEFAULT 0
+)""")
+
+assert DB.table_exists(conn, "produtos") is yes, "tabela criada"
+
+// Inserir um por vez
+DB.execute(conn, "INSERT INTO produtos (nome, preco, estoque) VALUES (?, ?, ?)",
+           ["Mouse", 80.0, 15])
+
+// Ou varios de uma vez
+DB.execute_many(conn, "INSERT INTO produtos (nome, preco, estoque) VALUES (?, ?, ?)", [
+    ["Teclado", 200.0, 3],
+    ["Monitor", 1200.0, 0],
+    ["Cabo", 25.0, 60]
+])
+
+assert DB.count(conn, "produtos") is 4, "quatro produtos"
+
+// Consultar
+todos := DB.query(conn, "SELECT nome, preco, estoque FROM produtos ORDER BY preco DESC")
+out "── catalogo ──"
+cycle p in todos:
+    out $"  {str(p["nome"]).pad_end(10)} R$ {str(p["preco"]).pad_start(8)}  ({p["estoque"]} un)"
+
+assert len(todos) is 4, "quatro linhas"
+assert todos[0]["nome"] is "Monitor", "o mais caro primeiro"
+
+// Parametros evitam injecao de SQL
+baratos := DB.query(conn, "SELECT nome FROM produtos WHERE preco < ?", [100])
+out ""
+out $"abaixo de 100: {baratos >> morph p: p["nome"]}"
+assert len(baratos) is 2, "mouse e cabo"
+
+// Uma linha so
+caro := DB.query_one(conn, "SELECT nome, preco FROM produtos ORDER BY preco DESC LIMIT 1")
+out $"mais caro: {caro["nome"]} a R$ {caro["preco"]}"
+assert caro["nome"] is "Monitor", "query_one"
+
+// Agregacoes
+resumo := DB.query_one(conn, "SELECT COUNT(*) AS total, SUM(preco * estoque) AS patrimonio FROM produtos")
+out ""
+out $"{resumo["total"]} produtos, patrimonio R$ {resumo["patrimonio"]}"
+assert resumo["total"] is 4, "contagem"
+assert resumo["patrimonio"] is 3300.0, "1200 + 600 + 0 + 1500"
+
+// Atualizar e remover
+DB.execute(conn, "UPDATE produtos SET estoque = estoque + 10 WHERE nome = ?", ["Monitor"])
+novo := DB.query_one(conn, "SELECT estoque FROM produtos WHERE nome = ?", ["Monitor"])
+assert novo["estoque"] is 10, "estoque reposto"
+
+DB.execute(conn, "DELETE FROM produtos WHERE estoque = 0")
+assert DB.count(conn, "produtos") is 4, "nenhum zerado agora"
+
+// Transacao: tudo ou nada
+out ""
+DB.begin(conn)
+DB.execute(conn, "INSERT INTO produtos (nome, preco) VALUES (?, ?)", ["Temporario", 1.0])
+assert DB.count(conn, "produtos") is 5, "dentro da transacao"
+DB.rollback(conn)
+assert DB.count(conn, "produtos") is 4, "rollback desfez"
+out "rollback funcionou"
+
+DB.begin(conn)
+DB.execute(conn, "INSERT INTO produtos (nome, preco) VALUES (?, ?)", ["Definitivo", 50.0])
+DB.commit(conn)
+assert DB.count(conn, "produtos") is 5, "commit manteve"
+out "commit funcionou"
+
+// Estrutura da tabela
+out ""
+out $"tabelas: {DB.tables(conn)}"
+out $"colunas: {DB.columns(conn, "produtos")}"
+
+DB.close(conn)
+out ""
+out "conexao fechada"

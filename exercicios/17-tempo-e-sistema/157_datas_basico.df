@@ -1,0 +1,46 @@
+// Exercicio 157 — Datas e horas
+// Enunciado: crie, formate e compare datas com Arcane.Time.
+
+adopt Arcane.Time as Time
+
+// Construir datas
+natal := Time.date(2026, 12, 25)
+reuniao := Time.datetime(2026, 3, 15, 14, 30, 0)
+
+out Time.to_date_string(natal)
+out Time.to_br(reuniao)
+out Time.to_iso(natal)
+
+assert Time.to_date_string(natal) is "25/12/2026", "formato brasileiro"
+assert Time.year(natal) is 2026, "ano"
+assert Time.month(natal) is 12, "mes"
+assert Time.day(natal) is 25, "dia"
+assert Time.hour(reuniao) is 14, "hora"
+
+// Componentes com nome
+out $"{Time.to_date_string(natal)} cai numa {Time.weekday_name(natal)}"
+out $"mes: {Time.month_name(natal)}"
+assert Time.weekday_name(natal) is "sexta-feira", "25/12/2026 e sexta"
+assert Time.month_name(natal) is "dezembro", "nome do mes"
+assert Time.month_name(natal, yes) is "dez", "nome curto"
+
+// Formato livre
+out Time.format(reuniao, "%d/%m/%Y as %H:%M")
+assert Time.format(natal, "%Y-%m-%d") is "2026-12-25", "formato personalizado"
+
+// Interpretar texto
+lida := Time.parse("2026-06-15")
+out Time.to_date_string(lida)
+assert Time.month(lida) is 6, "parse ISO"
+assert Time.day(Time.parse("01/02/2026")) is 1, "parse brasileiro"
+
+// Comparar
+assert Time.is_before(reuniao, natal) is yes, "marco vem antes de dezembro"
+assert Time.is_after(natal, reuniao) is yes, "dezembro vem depois"
+assert Time.is_weekend(Time.date(2026, 12, 26)) is yes, "26/12/2026 e sabado"
+assert Time.is_leap_year(2024) is yes, "2024 e bissexto"
+assert Time.is_leap_year(2026) is no, "2026 nao e"
+
+// Semana, trimestre e dia do ano
+out $"trimestre: {Time.quarter(natal)}  dia do ano: {Time.day_of_year(natal)}"
+assert Time.quarter(natal) is 4, "dezembro e do quarto trimestre"

@@ -1,0 +1,180 @@
+// Exercicio 179 — Revisao: todos os conceitos
+// Enunciado: um programa que exercita cada recurso da linguagem.
+
+adopt Arcane.Text as Text
+adopt Arcane.Collections as Col
+
+out Text.box("Revisao DataForge 4.0")
+
+// ── 1. Tipos e variaveis ──
+out ""
+out "1. tipos e variaveis"
+nome: String := "DataForge"
+versao: Number := 4.0
+steady ANO := 2026
+out $"   {nome} {versao} ({ANO}) — typeof: {typeof(versao)}"
+
+// ── 2. Operadores ──
+out ""
+out "2. operadores"
+out $"   7 // 2 = {7 ~/ 2}   2 ** 10 = {2 ** 10}   0 <= 5 <= 10: {0 <= 5 <= 10}"
+out $"   pertinencia: {"a" in "casa"}   coalescencia: {void ?? "padrao"}"
+
+// ── 3. Controle de fluxo ──
+out ""
+out "3. controle de fluxo"
+classificacao := "alto" given versao bigger_eq 4 otherwise "antigo"
+out $"   ternario: {classificacao}"
+soma := 0
+cycle i from 1 to 10:
+    given i % 3 is 0:
+        skip
+    soma += i
+out $"   soma sem multiplos de 3: {soma}"
+
+// ── 4. Colecoes e compreensoes ──
+out ""
+out "4. colecoes"
+nums := [1, 2, 3, 4, 5, 6, 7, 8]
+out $"   quadrados pares: {[n * n cycle n in nums given n % 2 is 0]}"
+out $"   fatia invertida: {nums[::-1][0:3]}"
+out $"   vault: {{n: n * 2 cycle n in [1, 2, 3]}}"
+
+// ── 5. Desestruturacao e spread ──
+out ""
+out "5. desestruturacao"
+primeiro, ...resto := nums
+out $"   cabeca {primeiro}, cauda com {len(resto)}"
+combinado := [...resto[0:2], 99]
+out $"   spread: {combinado}"
+
+// ── 6. Acoes ──
+out ""
+out "6. acoes"
+action aplicar(f, v):
+    yield f(v)
+dobro := lambda x: x * 2
+out $"   alta ordem + lambda: {aplicar(dobro, 21)}"
+
+action com_padrao(base, fator := 2):
+    yield base * fator
+out $"   parametro padrao: {com_padrao(10)} e {com_padrao(10, 5)}"
+
+// ── 7. Records e enums ──
+out ""
+out "7. records e enums"
+record Ponto:
+    x: Integer
+    y: Integer
+    action distancia():
+        yield round(sqrt(self.x ** 2 + self.y ** 2), 4)
+
+enum Quadrante:
+    Primeiro
+    Outro
+
+p := Ponto(3, 4)
+q := Quadrante.Primeiro given p.x bigger 0 and p.y bigger 0 otherwise Quadrante.Outro
+out $"   {p} dista {p.distancia()} — quadrante {q.name}"
+out $"   copia com with: {p with {"y": 0}}"
+
+// ── 8. Blueprints ──
+out ""
+out "8. blueprints"
+blueprint Forma:
+    action area():
+        yield 0
+    action descrever():
+        yield $"{typeof(self)} de area {self.area()}"
+
+blueprint Quadrado(lado) extends Forma:
+    action area():
+        yield self.lado ** 2
+
+out $"   {(spawn Quadrado(4)).descrever()}"
+
+// ── 9. Pattern matching ──
+out ""
+out "9. pattern matching"
+action descrever(v):
+    match v:
+        point Integer as n when n bigger 100:
+            yield "inteiro grande"
+        point Integer:
+            yield "inteiro"
+        point [a, b]:
+            yield $"par ({a},{b})"
+        point Ponto(x, y):
+            yield $"ponto {x},{y}"
+        point {"tipo": t}:
+            yield $"vault {t}"
+        default:
+            yield "outro"
+
+cycle v in [5, 500, [1, 2], Ponto(1, 2), {"tipo": "x"}, "texto"]:
+    out $"   {descrever(v)}"
+
+// ── 10. Erros ──
+out ""
+out "10. erros"
+action arriscado(n):
+    guard n isnt 0, "divisor nao pode ser zero"
+    defer:
+        out "   (defer limpou)"
+    yield 100 / n
+
+monitor:
+    out $"   ok: {arriscado(4)}"
+    arriscado(0)
+handle e:
+    out $"   capturado: {e.message}"
+ensure:
+    out "   (ensure sempre roda)"
+
+// ── 11. Pipelines ──
+out ""
+out "11. pipelines"
+total := nums
+    >> sift n: n % 2 is 0
+    >> morph n: n * 10
+    >> distill acc, v: acc + v 0
+out $"   pares x10 somados: {total}"
+
+// ── 12. Generators ──
+out ""
+out "12. generators"
+stream action fib():
+    a := 0
+    b := 1
+    persist yes:
+        emit a
+        a, b := b, a + b
+out $"   fibonacci: {fib().take(8)}"
+
+// ── 13. Modulos e stdlib ──
+out ""
+out "13. stdlib"
+g := Col.graph()
+g.add_edge("a", "b", 1)
+g.add_edge("b", "c", 2)
+out $"   menor caminho a->c: {g.shortest_path("a", "c")["path"]}"
+
+// ── 14. Concorrencia ──
+out ""
+out "14. concorrencia"
+channel canal
+thread:
+    canal.send("mensagem da thread")
+wait 150
+out $"   recebido: {canal.receive()}"
+
+// ── VERIFICACAO ──
+assert soma is 37, "1+2+4+5+7+8+10"
+assert p.distancia() is 5.0, "distancia"
+assert total is 200, "20+40+60+80"
+assert fib().take(8) is [0, 1, 1, 2, 3, 5, 8, 13], "fibonacci"
+assert descrever(500) is "inteiro grande", "pattern com guarda"
+assert (spawn Quadrado(4)).area() is 16, "heranca"
+
+out ""
+out Text.box("Tudo verificado")

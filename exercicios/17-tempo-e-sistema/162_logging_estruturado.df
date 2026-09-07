@@ -1,0 +1,78 @@
+// Exercicio 162 — Registro de eventos
+// Enunciado: registre o que acontece com niveis, campos e destino em arquivo.
+
+adopt Arcane.Logging as Log
+adopt Arcane.IO as IO
+
+// Um logger nomeado, com nivel minimo
+registro := Log.logger("pedidos", "DEBUG")
+registro.colored(no)
+
+registro.debug("iniciando o processamento")
+registro.info("pedido recebido", {"id": 1042, "cliente": "Ana"})
+registro.warn("estoque baixo", {"produto": "P02", "restam": 3})
+registro.error("pagamento recusado", {"id": 1042, "codigo": 402})
+
+out ""
+out $"contagem: {registro.stats()}"
+assert registro.stats().INFO is 1, "um INFO"
+assert registro.stats().ERROR is 1, "um ERROR"
+
+// O nivel filtra o que sai
+out ""
+out "── com nivel WARN, DEBUG e INFO somem ──"
+silencioso := Log.logger("filtrado", "WARN")
+silencioso.colored(no)
+silencioso.debug("nao aparece")
+silencioso.info("nao aparece")
+silencioso.warn("essa aparece")
+silencioso.error("essa tambem")
+
+assert "DEBUG" not in silencioso.stats().keys(), "DEBUG filtrado"
+assert silencioso.stats().WARN is 1, "WARN passou"
+
+// Contexto fixo, repetido em toda linha
+out ""
+out "── com contexto ──"
+servico := Log.logger("api", "INFO")
+servico.colored(no)
+servico.with_context({"servico": "checkout", "versao": "1.2"})
+servico.info("requisicao recebida", {"rota": "/pagar"})
+servico.info("requisicao concluida", {"ms": 42})
+
+// Formato JSON, para maquina ler
+out ""
+out "── em JSON ──"
+maquina := Log.logger("json", "INFO")
+maquina.as_json(yes)
+maquina.info("evento estruturado", {"usuario": 7, "acao": "login"})
+
+// Guardar em memoria para inspecionar
+out ""
+auditoria := Log.logger("auditoria", "INFO")
+auditoria.colored(no)
+auditoria.keep(yes)
+auditoria.info("acao A")
+auditoria.error("acao B falhou")
+
+erros := auditoria.records() >> sift r: r["level"] is "ERROR"
+out $"registros guardados: {len(auditoria.records())}, erros: {len(erros)}"
+assert len(auditoria.records()) is 2, "dois registros"
+assert len(erros) is 1, "um erro"
+
+// Gravar em arquivo
+out ""
+caminho := "_log_exercicio.txt"
+arquivo := Log.logger("disco", "INFO")
+arquivo.colored(no)
+arquivo.to_file(caminho, no)
+arquivo.info("linha gravada", {"n": 1})
+arquivo.warn("segunda linha")
+arquivo.close()
+
+conteudo := IO.read(caminho)
+out $"o arquivo tem {len(conteudo.lines())} linhas"
+assert len(conteudo.lines()) is 2, "duas linhas no arquivo"
+assert "linha gravada" in conteudo, "conteudo gravado"
+IO.delete(caminho)
+out "arquivo temporario removido"

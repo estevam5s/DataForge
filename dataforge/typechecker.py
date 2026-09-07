@@ -1,0 +1,1231 @@
+"""
+DataForge Static Analyzer (Type Checker)
+=========================================
+
+Runs between the parser and the interpreter. It walks the AST once and reports
+problems that would otherwise only surface when that exact line executes:
+
+  * names used before being defined
+  * calls with the wrong number of arguments
+  * type annotations contradicted by the value assigned
+  * operations between incompatible types
+  * fields and members that a record or enum does not have
+  * unreachable code after 'yield', 'halt' or 'skip'
+  * actions with a declared return type that can fall through without yielding
+  * assignment to a 'steady' constant
+  * imports of modules that do not exist
+
+Design notes
+------------
+The checker is deliberately *optimistic*: when it cannot prove something is
+wrong it stays quiet. DataForge is dynamically typed, so a false alarm is worse
+than a missed one. Every diagnostic carries a line, a column and a suggested
+fix.
+"""
+
+from . import ast_nodes as ast
+from .tokens import KEYWORDS
+
+
+# ── Tipos internos ─────────────────────────────────────────
+
+ANY = "Any"
+UNKNOWN = "?"
+
+NUMERIC = {"Integer", "Float", "Number"}
+ORDERABLE = NUMERIC | {"String"}
+
+ALIASES = {
+    "integer": "Integer", "int": "Integer", "Integer": "Integer",
+    "float": "Float", "Float": "Float",
+    "number": "Number", "Number": "Number",
+    "string": "String", "str": "String", "text": "String", "String": "String",
+    "boolean": "Boolean", "bool": "Boolean", "Boolean": "Boolean",
+    "cluster": "Cluster", "list": "Cluster", "array": "Cluster", "Cluster": "Cluster",
+    "vault": "Vault", "dict": "Vault", "map": "Vault", "Vault": "Vault",
+    "void": "Void", "none": "Void", "Void": "Void",
+    "action": "Action", "function": "Action", "Action": "Action",
+    "stream": "Stream", "Stream": "Stream",
+    "any": ANY, "Any": ANY,
+}
+
+
+def canonical(nome: str) -> str:
+    return ALIASES.get(nome, nome)
+
+
+def compatible(esperado: str, obtido: str) -> bool:
+    """O valor de tipo 'obtido' serve onde se espera 'esperado'?"""
+    if UNKNOWN in (esperado, obtido) or ANY in (esperado, obtido):
+        return True
+    if esperado == obtido:
+        return True
+    if esperado == "Number":
+        return obtido in ("Integer", "Float", "Number")
+    if esperado == "Float" and obtido == "Integer":
+        return True          # um inteiro serve onde se espera decimal
+    return False
+
+
+class Diagnostic:
+    """Um problema encontrado, com onde e como corrigir."""
+
+    __slots__ = ('severity', 'message', 'line', 'column', 'hint', 'code')
+
+    def __init__(self, severity, message, line, column, hint="", code=""):
+        self.severity = severity          # 'error' | 'warning'
+        self.message = message
+        self.line = line
+        self.column = column
+        self.hint = hint
+        self.code = code
+
+    def format(self, filename="<stdin>", color=True):
+        cores = {'error': '1;31', 'warning': '1;33'} if color else {}
+        rotulo = 'erro' if self.severity == 'error' else 'aviso'
+        if color:
+            rotulo = f"\033[{cores[self.severity]}m{rotulo}\033[0m"
+        cabecalho = f"{filename}:{self.line}:{self.column}: {rotulo}: {self.message}"
+        if self.hint:
+            cabecalho += f"\n    sugestão: {self.hint}"
+        return cabecalho
+
+    def __repr__(self):
+        return f"<{self.severity} L{self.line}: {self.message}>"
+
+
+class Scope:
+    """Escopo léxico usado só na análise."""
+
+    def __init__(self, parent=None, kind="block"):
+        self.parent = parent
+        self.kind = kind
+        self.names = {}        # nome -> tipo
+        self.constants = set()
+        self.used = set()
+        self.declared_at = {}  # nome -> (linha, coluna)
+
+    def declare(self, nome, tipo=UNKNOWN, linha=0, coluna=0, constante=False):
+        self.names[nome] = tipo
+        self.declared_at[nome] = (linha, coluna)
+        if constante:
+            self.constants.add(nome)
+
+    def lookup(self, nome):
+        escopo = self
+        while escopo is not None:
+            if nome in escopo.names:
+                escopo.used.add(nome)
+                return escopo.names[nome]
+            escopo = escopo.parent
+        return None
+
+    def is_constant(self, nome):
+        escopo = self
+        while escopo is not None:
+            if nome in escopo.names:
+                return nome in escopo.constants
+            escopo = escopo.parent
+        return False
+
+    def has(self, nome):
+        escopo = self
+        while escopo is not None:
+            if nome in escopo.names:
+                return True
+            escopo = escopo.parent
+        return False
+
+
+class ActionSignature:
+    __slots__ = ('name', 'params', 'defaults', 'param_types', 'return_type',
+                 'is_generator', 'line')
+
+    def __init__(self, decl):
+        self.name = decl.name
+        self.params = list(decl.params)
+        self.defaults = set(decl.defaults or {})
+        self.param_types = dict(getattr(decl, 'param_types', {}) or {})
+        self.return_type = canonical(getattr(decl, 'return_type', '') or UNKNOWN)
+        self.is_generator = getattr(decl, 'is_generator', False)
+        self.line = decl.line
+
+    @property
+    def required(self):
+        return [p for p in self.params if p not in self.defaults]
+
+
+class TypeChecker:
+    """Percorre a AST reportando problemas antes da execução."""
+
+    def __init__(self, filename="<stdin>", builtins=None, strict=False):
+        self.filename = filename
+        self.strict = strict
+        self.diagnostics = []
+        self.global_scope = Scope(kind="global")
+        self.actions = {}        # nome -> ActionSignature
+        self.records = {}        # nome -> {campo: tipo}
+        self.record_defaults = {}
+        self.enums = {}          # nome -> [membros]
+        self.blueprints = {}     # nome -> set(membros)
+        self.known_types = set(ALIASES.values())
+        self._action_depth = 0
+        self._loop_depth = 0
+        self._current_return = None
+        self._demote = 0
+        self._em_membro = False   # dentro de blueprint/record/enum/trait
+        self._seed_builtins(builtins)
+
+    # ── Infra ──────────────────────────────────────────────
+
+    def _seed_builtins(self, builtins):
+        if builtins is None:
+            from .builtins import get_builtins
+            builtins = get_builtins()
+        for nome in builtins:
+            self.global_scope.declare(nome, ANY)
+        for extra in ("self", "this", "root", "__file__", "__name__", "error"):
+            self.global_scope.declare(extra, ANY)
+
+    def _demoted(self):
+        """Contexto em que 'erro' vira 'aviso' (corpo de monitor/retry)."""
+        verificador = self
+
+        class _Contexto:
+            def __enter__(self):
+                verificador._demote += 1
+
+            def __exit__(self, *_):
+                verificador._demote -= 1
+                return False
+
+        return _Contexto()
+
+    def error(self, mensagem, node, hint="", code=""):
+        severidade = 'warning' if self._demote else 'error'
+        if severidade == 'warning':
+            hint = (hint + " (inside a 'monitor', so this is only a warning)").strip()
+        self.diagnostics.append(Diagnostic(
+            severidade, mensagem, getattr(node, 'line', 0),
+            getattr(node, 'column', 0), hint, code))
+
+    def warn(self, mensagem, node, hint="", code=""):
+        self.diagnostics.append(Diagnostic(
+            'warning', mensagem, getattr(node, 'line', 0),
+            getattr(node, 'column', 0), hint, code))
+
+    @property
+    def errors(self):
+        return [d for d in self.diagnostics if d.severity == 'error']
+
+    @property
+    def warnings(self):
+        return [d for d in self.diagnostics if d.severity == 'warning']
+
+    def _similar(self, nome, candidatos):
+        """Sugere o nome existente mais parecido (distância de edição curta)."""
+        import difflib
+        proximos = difflib.get_close_matches(nome, [c for c in candidatos], n=1, cutoff=0.75)
+        return proximos[0] if proximos else ""
+
+    def _visible_names(self, escopo):
+        nomes = set()
+        atual = escopo
+        while atual is not None:
+            nomes.update(atual.names)
+            atual = atual.parent
+        return nomes
+
+    # ── Entrada ────────────────────────────────────────────
+
+    def check(self, program):
+        escopo = self.global_scope
+        self._hoist(program.body, escopo)
+        self.visit_block(program.body, escopo)
+        return self.diagnostics
+
+    def _hoist(self, statements, escopo, registrar_acoes=True):
+        """Declara ações, records, enums e blueprints antes de visitar o corpo,
+        para que a ordem de definição no arquivo não importe.
+
+        'registrar_acoes' fica falso dentro de um blueprint/record/enum: um
+        método chamado 'descrever' não deve ser confundido com uma ação global
+        de mesmo nome na hora de verificar aridade.
+        """
+        for stmt in statements:
+            if isinstance(stmt, ast.ActionDeclaration):
+                if registrar_acoes:
+                    self.actions[stmt.name] = ActionSignature(stmt)
+                escopo.declare(stmt.name, "Action", stmt.line, stmt.column)
+            elif isinstance(stmt, ast.RecordDeclaration):
+                self.records[stmt.name] = {c: canonical(t) for c, t, _ in stmt.fields}
+                self.record_defaults[stmt.name] = {c for c, _, d in stmt.fields if d is not None}
+                self.known_types.add(stmt.name)
+                escopo.declare(stmt.name, "Record", stmt.line, stmt.column)
+            elif isinstance(stmt, ast.EnumDeclaration):
+                self.enums[stmt.name] = [m for m, _ in stmt.members]
+                self.known_types.add(stmt.name)
+                escopo.declare(stmt.name, "Enum", stmt.line, stmt.column)
+            elif isinstance(stmt, (ast.BlueprintDeclaration, ast.TraitDeclaration)):
+                membros = set()
+                corpo = stmt.body if isinstance(stmt, ast.BlueprintDeclaration) else stmt.methods
+                for sub in corpo:
+                    if isinstance(sub, ast.ActionDeclaration):
+                        membros.add(sub.name)
+                    elif isinstance(sub, ast.StaticDeclaration):
+                        membros.add(sub.name)
+                if isinstance(stmt, ast.BlueprintDeclaration):
+                    membros.update(stmt.constructor_params or [])
+                self.blueprints[stmt.name] = membros
+                self.known_types.add(stmt.name)
+                escopo.declare(stmt.name, "Blueprint", stmt.line, stmt.column)
+
+    # ── Instruções ─────────────────────────────────────────
+
+    def visit_block(self, statements, escopo):
+        terminou = False
+        for stmt in statements:
+            if terminou and not isinstance(stmt, (ast.ActionDeclaration,
+                                                  ast.BlueprintDeclaration,
+                                                  ast.RecordDeclaration,
+                                                  ast.EnumDeclaration)):
+                self.warn(
+                    "Unreachable code: the block already ended above",
+                    stmt,
+                    "Remove this line or move it before the 'yield'/'halt'/'skip'",
+                    "unreachable")
+                terminou = True
+                continue
+            if self.visit(stmt, escopo):
+                terminou = True
+        return terminou
+
+    def visit(self, node, escopo):
+        """Visita uma instrução. Devolve True se ela encerra o fluxo do bloco."""
+        if node is None:
+            return False
+        metodo = getattr(self, f"st_{type(node).__name__}", None)
+        if metodo:
+            return metodo(node, escopo)
+        # Expressão em posição de instrução
+        self.infer(node, escopo)
+        return False
+
+    def st_Assignment(self, node, escopo):
+        tipo = self.infer(node.value, escopo)
+        declarado = canonical(getattr(node, 'declared_type', '') or '')
+
+        if declarado:
+            if declarado not in self.known_types and declarado != UNKNOWN:
+                self.error(
+                    f"Unknown type '{node.declared_type}'", node,
+                    self._hint_tipo(node.declared_type), "unknown-type")
+            elif not compatible(declarado, tipo):
+                self.error(
+                    f"Declared as {declarado} but the value is {tipo}", node,
+                    f"Change the annotation to {tipo} or fix the value",
+                    "type-mismatch")
+
+        if isinstance(node.target, ast.Identifier):
+            nome = node.target.name
+            if escopo.is_constant(nome):
+                self.error(
+                    f"Cannot reassign the steady constant '{nome}'", node,
+                    "Use another name, or drop 'steady' from the declaration",
+                    "steady-reassign")
+                return False
+            escopo.declare(nome, declarado or tipo, node.line, node.column)
+        else:
+            self.infer(node.target, escopo)
+        return False
+
+    def st_DestructuringAssignment(self, node, escopo):
+        self.infer(node.value, escopo)
+        for nome, _ in node.targets:
+            escopo.declare(nome, UNKNOWN, node.line, node.column)
+        return False
+
+    def st_SteadyDeclaration(self, node, escopo):
+        tipo = self.infer(node.value, escopo)
+        if escopo.has(node.name) and escopo.is_constant(node.name):
+            self.error(f"Constant '{node.name}' is already defined", node,
+                       "Pick another name", "steady-redeclare")
+        escopo.declare(node.name, tipo, node.line, node.column, constante=True)
+        return False
+
+    def st_ShadowDeclaration(self, node, escopo):
+        escopo.declare(node.name, self.infer(node.value, escopo), node.line, node.column)
+        return False
+
+    def st_StaticDeclaration(self, node, escopo):
+        escopo.declare(node.name, self.infer(node.value, escopo), node.line, node.column)
+        return False
+
+    def st_OutStatement(self, node, escopo):
+        for e in node.expressions:
+            self.infer(e, escopo)
+        return False
+
+    st_EmitStatement = st_OutStatement
+
+    def st_YieldStatement(self, node, escopo):
+        tipo = self.infer(node.value, escopo) if node.value else "Void"
+        if self._action_depth == 0:
+            self.error("'yield' outside of an action", node,
+                       "'yield' returns from an action; use 'out' to print",
+                       "yield-outside-action")
+        elif self._current_return and self._current_return not in (UNKNOWN, ANY):
+            if not compatible(self._current_return, tipo):
+                self.error(
+                    f"Action declares '-> {self._current_return}' but yields {tipo}",
+                    node,
+                    f"Return a {self._current_return} or change the declared type",
+                    "return-mismatch")
+        return True
+
+    def st_HaltStatement(self, node, escopo):
+        if self._loop_depth == 0:
+            self.error("'halt' outside of a loop", node,
+                       "'halt' breaks out of cycle/persist/perform", "halt-outside-loop")
+        return True
+
+    def st_SkipStatement(self, node, escopo):
+        if self._loop_depth == 0:
+            self.error("'skip' outside of a loop", node,
+                       "'skip' jumps to the next iteration", "skip-outside-loop")
+        return True
+
+    def st_TriggerStatement(self, node, escopo):
+        self.infer(node.value, escopo)
+        return True
+
+    def st_PropagateStatement(self, node, escopo):
+        if node.value:
+            self.infer(node.value, escopo)
+        return True
+
+    def st_GivenBlock(self, node, escopo):
+        self.infer(node.condition, escopo)
+        ramos = [self.visit_block(node.body, escopo.__class__(escopo))]
+        for cond, corpo in node.orif_blocks:
+            self.infer(cond, escopo)
+            ramos.append(self.visit_block(corpo, Scope(escopo)))
+        if node.otherwise_body:
+            ramos.append(self.visit_block(node.otherwise_body, Scope(escopo)))
+            return all(ramos)
+        return False
+
+    def st_MatchBlock(self, node, escopo):
+        self.infer(node.expression, escopo)
+        ramos = []
+        for caso in node.points:
+            if isinstance(caso, tuple):
+                alvo, corpo = caso
+                self.infer(alvo, escopo)
+                ramos.append(self.visit_block(corpo, Scope(escopo)))
+                continue
+            interno = Scope(escopo)
+            self._declare_pattern(caso.pattern, interno)
+            if caso.guard is not None:
+                self.infer(caso.guard, interno)
+            ramos.append(self.visit_block(caso.body, interno))
+        if node.default_body:
+            ramos.append(self.visit_block(node.default_body, Scope(escopo)))
+            return bool(ramos) and all(ramos)
+        return False
+
+    def _declare_pattern(self, padrao, escopo):
+        if padrao is None:
+            return
+        if getattr(padrao, 'binding', ''):
+            escopo.declare(padrao.binding, UNKNOWN, padrao.line, padrao.column)
+        if isinstance(padrao, ast.CapturePattern):
+            escopo.declare(padrao.name, UNKNOWN, padrao.line, padrao.column)
+        elif isinstance(padrao, ast.SequencePattern):
+            for sub in padrao.elements:
+                self._declare_pattern(sub, escopo)
+            if padrao.rest_name:
+                escopo.declare(padrao.rest_name, "Cluster", padrao.line, padrao.column)
+        elif isinstance(padrao, ast.MappingPattern):
+            for _, sub in padrao.pairs:
+                self._declare_pattern(sub, escopo)
+            if padrao.rest_name:
+                escopo.declare(padrao.rest_name, "Vault", padrao.line, padrao.column)
+        elif isinstance(padrao, ast.TypePattern):
+            if (padrao.type_name not in self.known_types
+                    and padrao.type_name not in ALIASES):
+                self.warn(
+                    f"Unknown type '{padrao.type_name}' in the pattern", padrao,
+                    self._hint_tipo(padrao.type_name), "unknown-type")
+            for sub in padrao.sub_patterns:
+                self._declare_pattern(sub, escopo)
+            for sub in padrao.field_patterns.values():
+                self._declare_pattern(sub, escopo)
+        elif isinstance(padrao, ast.OrPattern):
+            for opcao in padrao.options:
+                self._declare_pattern(opcao, escopo)
+
+    def st_CycleFromTo(self, node, escopo):
+        for parte in (node.start, node.end, node.step):
+            if parte is not None:
+                tipo = self.infer(parte, escopo)
+                if tipo not in (UNKNOWN, ANY) and tipo not in NUMERIC:
+                    self.error(
+                        f"'cycle from/to' needs numbers, got {tipo}", parte,
+                        "Use integers in the range bounds", "cycle-range-type")
+        interno = Scope(escopo, "loop")
+        interno.declare(node.var, "Integer", node.line, node.column)
+        self._loop_depth += 1
+        try:
+            self.visit_block(node.body, interno)
+        finally:
+            self._loop_depth -= 1
+        return False
+
+    def st_CycleIn(self, node, escopo):
+        tipo = self.infer(node.collection, escopo)
+        if tipo in ("Integer", "Float", "Boolean", "Void"):
+            self.error(
+                f"Cannot cycle over {tipo}", node.collection,
+                "Use a Cluster, a Vault, a String or a Stream", "cycle-not-iterable")
+        interno = Scope(escopo, "loop")
+        interno.declare(node.var, UNKNOWN, node.line, node.column)
+        self._loop_depth += 1
+        try:
+            self.visit_block(node.body, interno)
+        finally:
+            self._loop_depth -= 1
+        return False
+
+    def st_PersistBlock(self, node, escopo):
+        self.infer(node.condition, escopo)
+        self._loop_depth += 1
+        try:
+            self.visit_block(node.body, Scope(escopo, "loop"))
+        finally:
+            self._loop_depth -= 1
+        return False
+
+    def st_PerformBlock(self, node, escopo):
+        self._loop_depth += 1
+        try:
+            self.visit_block(node.body, Scope(escopo, "loop"))
+        finally:
+            self._loop_depth -= 1
+        self.infer(node.condition, escopo)
+        return False
+
+    def st_ObserveBlock(self, node, escopo):
+        self.infer(node.source, escopo)
+        interno = Scope(escopo, "loop")
+        interno.declare(node.var, UNKNOWN, node.line, node.column)
+        self._loop_depth += 1
+        try:
+            self.visit_block(node.body, interno)
+        finally:
+            self._loop_depth -= 1
+        return False
+
+    def st_MonitorBlock(self, node, escopo):
+        # O corpo de um 'monitor' existe para conter falhas; codigo que provoca
+        # um erro de proposito e legitimo ali. Por isso os diagnosticos do corpo
+        # sao rebaixados a aviso.
+        with self._demoted():
+            self.visit_block(node.body, Scope(escopo))
+        if node.handle_body:
+            interno = Scope(escopo)
+            interno.declare(node.handle_name, "Error", node.line, node.column)
+            self.visit_block(node.handle_body, interno)
+        if node.ensure_body:
+            self.visit_block(node.ensure_body, Scope(escopo))
+        return False
+
+    def st_RetryBlock(self, node, escopo):
+        self.infer(node.count, escopo)
+        with self._demoted():
+            self.visit_block(node.body, Scope(escopo))
+        if node.handle_body:
+            interno = Scope(escopo)
+            interno.declare(node.handle_name, "Error", node.line, node.column)
+            self.visit_block(node.handle_body, interno)
+        return False
+
+    def st_GuardStatement(self, node, escopo):
+        self.infer(node.condition, escopo)
+        if node.message is not None:
+            self.infer(node.message, escopo)
+        if node.else_body:
+            self.visit_block(node.else_body, Scope(escopo))
+        return False
+
+    def st_ValidateStatement(self, node, escopo):
+        self.infer(node.value, escopo)
+        if node.message is not None:
+            self.infer(node.message, escopo)
+        if node.else_body:
+            self.visit_block(node.else_body, Scope(escopo))
+        return False
+
+    def st_AssertStatement(self, node, escopo):
+        self.infer(node.condition, escopo)
+        if node.message is not None:
+            self.infer(node.message, escopo)
+        return False
+
+    def st_DeferStatement(self, node, escopo):
+        self.visit_block(node.body, Scope(escopo))
+        return False
+
+    def st_ThreadBlock(self, node, escopo):
+        self.visit_block(node.body, Scope(escopo))
+        return False
+
+    def st_ParallelBlock(self, node, escopo):
+        self.visit_block(node.blocks, Scope(escopo))
+        return False
+
+    def st_ChannelDeclaration(self, node, escopo):
+        escopo.declare(node.name, "Channel", node.line, node.column)
+        return False
+
+    def st_ActionDeclaration(self, node, escopo):
+        assinatura = ActionSignature(node)
+        if not self._em_membro:
+            self.actions.setdefault(node.name, assinatura)
+        escopo.declare(node.name, "Action", node.line, node.column)
+
+        interno = Scope(escopo, "action")
+        for param in node.params:
+            interno.declare(param, canonical(assinatura.param_types.get(param, UNKNOWN)),
+                            node.line, node.column)
+        for tipo in assinatura.param_types.values():
+            alvo = canonical(tipo)
+            if alvo not in self.known_types and alvo != UNKNOWN:
+                self.error(f"Unknown parameter type '{tipo}'", node,
+                           self._hint_tipo(tipo), "unknown-type")
+
+        retorno_anterior = self._current_return
+        self._current_return = assinatura.return_type
+        self._action_depth += 1
+        self._hoist(node.body, interno)
+        try:
+            sempre_retorna = self.visit_block(node.body, interno)
+        finally:
+            self._action_depth -= 1
+            self._current_return = retorno_anterior
+
+        declarado = assinatura.return_type
+        if (declarado not in (UNKNOWN, ANY, "Void")
+                and not sempre_retorna and not assinatura.is_generator):
+            self.warn(
+                f"Action '{node.name}' declares '-> {declarado}' but can end "
+                f"without a 'yield'", node,
+                "Add a 'yield' at the end, or drop the return type",
+                "missing-return")
+        return False
+
+    def st_BlueprintDeclaration(self, node, escopo):
+        interno = Scope(escopo, "blueprint")
+        interno.declare("self", node.name, node.line, node.column)
+        interno.declare("this", node.name, node.line, node.column)
+        interno.declare("root", ANY, node.line, node.column)
+        for param in node.constructor_params or []:
+            interno.declare(param, UNKNOWN, node.line, node.column)
+        for pai in node.parents:
+            if pai not in self.blueprints and pai not in self.known_types:
+                self.error(f"Unknown parent blueprint '{pai}'", node,
+                           self._hint_nome(pai, self.blueprints), "unknown-parent")
+        for trait in getattr(node, 'traits', []) or []:
+            if trait not in self.blueprints:
+                self.error(f"Unknown trait '{trait}'", node,
+                           self._hint_nome(trait, self.blueprints), "unknown-trait")
+        self._hoist(node.body, interno, registrar_acoes=False)
+        anterior = self._em_membro
+        self._em_membro = True
+        try:
+            self.visit_block(node.body, interno)
+        finally:
+            self._em_membro = anterior
+        return False
+
+    def st_TraitDeclaration(self, node, escopo):
+        interno = Scope(escopo, "trait")
+        interno.declare("self", node.name, node.line, node.column)
+        anterior = self._em_membro
+        self._em_membro = True
+        try:
+            self.visit_block(node.methods, interno)
+        finally:
+            self._em_membro = anterior
+        return False
+
+    def st_RecordDeclaration(self, node, escopo):
+        vistos = set()
+        for campo, tipo, padrao in node.fields:
+            if campo in vistos:
+                self.error(f"Duplicate field '{campo}' in record '{node.name}'",
+                           node, "Remove the repeated field", "duplicate-field")
+            vistos.add(campo)
+            alvo = canonical(tipo)
+            if alvo not in self.known_types:
+                self.error(f"Unknown type '{tipo}' for field '{campo}'", node,
+                           self._hint_tipo(tipo), "unknown-type")
+            if padrao is not None:
+                obtido = self.infer(padrao, escopo)
+                if not compatible(alvo, obtido):
+                    self.error(
+                        f"Default value of '{campo}' is {obtido}, expected {alvo}",
+                        node, f"Use a {alvo} as the default", "type-mismatch")
+        interno = Scope(escopo, "record")
+        interno.declare("self", node.name, node.line, node.column)
+        for campo, tipo, _ in node.fields:
+            interno.declare(campo, canonical(tipo), node.line, node.column)
+        anterior = self._em_membro
+        self._em_membro = True
+        try:
+            for metodo in node.methods.values():
+                self.visit(metodo, interno)
+        finally:
+            self._em_membro = anterior
+        return False
+
+    def st_EnumDeclaration(self, node, escopo):
+        vistos = set()
+        for membro, valor in node.members:
+            if membro in vistos:
+                self.error(f"Duplicate member '{membro}' in enum '{node.name}'",
+                           node, "Remove the repeated member", "duplicate-member")
+            vistos.add(membro)
+            if valor is not None:
+                self.infer(valor, escopo)
+        interno = Scope(escopo, "enum")
+        interno.declare("self", node.name, node.line, node.column)
+        anterior = self._em_membro
+        self._em_membro = True
+        try:
+            for metodo in node.methods.values():
+                self.visit(metodo, interno)
+        finally:
+            self._em_membro = anterior
+        return False
+
+    def st_AdoptStatement(self, node, escopo):
+        from .stdlib import get_module, list_modules
+
+        selecao = getattr(node, 'selection', None)
+        if selecao:
+            # adopt M.{a, b as c} — os nomes entram direto no escopo
+            for _, apelido in selecao:
+                escopo.declare(apelido, ANY, node.line, node.column)
+                self.actions.setdefault(apelido, None)
+        else:
+            alias = node.alias or node.module.split('.')[-1]
+            escopo.declare(alias, "Module", node.line, node.column)
+        if get_module(node.module) is None:
+            import os
+            caminho = node.module.replace('.', os.sep)
+            if not any(os.path.exists(caminho + ext) for ext in ('.df', os.sep + 'main.df')):
+                self.warn(
+                    f"Module '{node.module}' was not found", node,
+                    f"Available: {', '.join(sorted(set(list_modules()))[:8])}…",
+                    "unknown-module")
+        return False
+
+    def st_RelayStatement(self, node, escopo):
+        for nome in node.names:
+            if not escopo.has(nome):
+                self.error(f"'relay' exports '{nome}', which is not defined", node,
+                           self._hint_nome(nome, self._visible_names(escopo)),
+                           "relay-undefined")
+        return False
+
+    def st_DeleteStatement(self, node, escopo):
+        self.infer(node.target, escopo)
+        return False
+
+    def st_WaitStatement(self, node, escopo):
+        self.infer(node.duration, escopo)
+        return False
+
+    def st_InspectStatement(self, node, escopo):
+        self.infer(node.expression, escopo)
+        return False
+
+    def st_PulseStatement(self, node, escopo):
+        self.infer(node.event, escopo)
+        if node.data is not None:
+            self.infer(node.data, escopo)
+        return False
+
+    # ── Expressões: inferência ─────────────────────────────
+
+    def infer(self, node, escopo):
+        if node is None:
+            return "Void"
+        metodo = getattr(self, f"ex_{type(node).__name__}", None)
+        if metodo:
+            return metodo(node, escopo)
+        return UNKNOWN
+
+    def ex_IntegerLiteral(self, node, escopo): return "Integer"
+    def ex_FloatLiteral(self, node, escopo): return "Float"
+    def ex_StringLiteral(self, node, escopo): return "String"
+    def ex_BooleanLiteral(self, node, escopo): return "Boolean"
+    def ex_VoidLiteral(self, node, escopo): return "Void"
+
+    def ex_InterpolatedString(self, node, escopo):
+        for tipo, conteudo in node.parts:
+            if tipo == 'expr':
+                self.infer(conteudo, escopo)
+        return "String"
+
+    def ex_ListLiteral(self, node, escopo):
+        for e in node.elements:
+            self.infer(e.value if isinstance(e, ast.SpreadElement) else e, escopo)
+        return "Cluster"
+
+    def ex_DictLiteral(self, node, escopo):
+        for chave, valor in node.pairs:
+            if isinstance(chave, ast.SpreadElement):
+                self.infer(chave.value, escopo)
+                continue
+            self.infer(chave, escopo)
+            self.infer(valor, escopo)
+        return "Vault"
+
+    def ex_SpreadElement(self, node, escopo):
+        return self.infer(node.value, escopo)
+
+    def ex_Identifier(self, node, escopo):
+        tipo = escopo.lookup(node.name)
+        if tipo is None:
+            if node.name in KEYWORDS:
+                self.error(f"'{node.name}' is a reserved keyword", node,
+                           "Pick another name", "reserved-word")
+            else:
+                self.error(f"Undefined name '{node.name}'", node,
+                           self._hint_nome(node.name, self._visible_names(escopo)),
+                           "undefined-name")
+            return UNKNOWN
+        return tipo
+
+    def ex_BinaryOp(self, node, escopo):
+        esq = self.infer(node.left, escopo)
+        dir_ = self.infer(node.right, escopo)
+        op = node.op
+
+        if UNKNOWN in (esq, dir_) or ANY in (esq, dir_):
+            return UNKNOWN
+
+        # Blueprints e records podem sobrecarregar add/sub/mul/div/mod/pow.
+        if self._overloads(esq) or self._overloads(dir_):
+            return esq if self._overloads(esq) else dir_
+
+        if op == '+':
+            if "String" in (esq, dir_):
+                return "String"
+            if esq == "Cluster" and dir_ == "Cluster":
+                return "Cluster"
+            if esq in NUMERIC and dir_ in NUMERIC:
+                return "Float" if "Float" in (esq, dir_) else "Integer"
+            self.error(f"Cannot add {esq} and {dir_}", node,
+                       "Convert one side with str() or int()", "operator-types")
+            return UNKNOWN
+
+        if op == '*':
+            if {esq, dir_} == {"String", "Integer"} or {esq, dir_} == {"Cluster", "Integer"}:
+                return esq if esq != "Integer" else dir_
+            if esq in NUMERIC and dir_ in NUMERIC:
+                return "Float" if "Float" in (esq, dir_) else "Integer"
+            self.error(f"Cannot multiply {esq} by {dir_}", node,
+                       "Multiplication needs numbers", "operator-types")
+            return UNKNOWN
+
+        if op in ('-', '%', '**', '//'):
+            if esq in NUMERIC and dir_ in NUMERIC:
+                if op == '//':
+                    return "Integer" if {esq, dir_} <= {"Integer"} else "Float"
+                return "Float" if "Float" in (esq, dir_) else "Integer"
+            self.error(f"Operator '{op}' does not apply to {esq} and {dir_}", node,
+                       f"'{op}' needs numbers on both sides", "operator-types")
+            return UNKNOWN
+
+        if op == '/':
+            if esq in NUMERIC and dir_ in NUMERIC:
+                if isinstance(node.right, ast.IntegerLiteral) and node.right.value == 0:
+                    self.error("Division by zero", node,
+                               "Check the divisor before dividing", "division-by-zero")
+                return "Float"
+            self.error(f"Cannot divide {esq} by {dir_}", node,
+                       "Division needs numbers", "operator-types")
+            return UNKNOWN
+
+        return UNKNOWN
+
+    def _overloads(self, tipo):
+        """O tipo pode definir operadores próprios (add, mul, ...)?"""
+        return tipo in self.blueprints or tipo in self.records
+
+    def ex_UnaryOp(self, node, escopo):
+        tipo = self.infer(node.operand, escopo)
+        if tipo not in (UNKNOWN, ANY) and tipo not in NUMERIC:
+            self.error(f"Unary '{node.op}' does not apply to {tipo}", node,
+                       "Use it on a number", "operator-types")
+        return tipo
+
+    def ex_NotOp(self, node, escopo):
+        self.infer(node.operand, escopo)
+        return "Boolean"
+
+    def ex_ComparisonOp(self, node, escopo):
+        esq = self.infer(node.left, escopo)
+        dir_ = self.infer(node.right, escopo)
+        if node.op in ('bigger', 'smaller', 'bigger_eq', 'smaller_eq'):
+            if UNKNOWN not in (esq, dir_) and ANY not in (esq, dir_):
+                if esq in NUMERIC and dir_ in NUMERIC:
+                    pass
+                elif esq == dir_ and esq in ORDERABLE:
+                    pass
+                else:
+                    self.error(
+                        f"Cannot order {esq} against {dir_}", node,
+                        "Compare values of the same comparable type", "compare-types")
+        return "Boolean"
+
+    def ex_LogicalOp(self, node, escopo):
+        self.infer(node.left, escopo)
+        self.infer(node.right, escopo)
+        return "Boolean"
+
+    def ex_MembershipOp(self, node, escopo):
+        self.infer(node.element, escopo)
+        recipiente = self.infer(node.container, escopo)
+        if recipiente in ("Integer", "Float", "Boolean", "Void"):
+            self.error(f"Cannot test membership in {recipiente}", node,
+                       "'in' needs a Cluster, Vault or String", "membership-type")
+        return "Boolean"
+
+    def ex_TernaryExpression(self, node, escopo):
+        self.infer(node.condition, escopo)
+        a = self.infer(node.then_value, escopo)
+        b = self.infer(node.else_value, escopo)
+        return a if a == b else UNKNOWN
+
+    def ex_CoalesceOp(self, node, escopo):
+        self.infer(node.left, escopo)
+        return self.infer(node.right, escopo)
+
+    def ex_TypeofExpression(self, node, escopo):
+        self.infer(node.operand, escopo)
+        return "String"
+
+    def ex_CastExpression(self, node, escopo):
+        self.infer(node.operand, escopo)
+        alvo = canonical(node.target_type)
+        if alvo not in self.known_types:
+            self.error(f"Unknown cast target '{node.target_type}'", node,
+                       self._hint_tipo(node.target_type), "unknown-type")
+            return UNKNOWN
+        return alvo
+
+    def ex_AwaitExpression(self, node, escopo):
+        return self.infer(node.expression, escopo)
+
+    def ex_InExpression(self, node, escopo):
+        if node.prompt is not None:
+            self.infer(node.prompt, escopo)
+        return "String"
+
+    def ex_PipelineExpression(self, node, escopo):
+        fonte = self.infer(node.source, escopo)
+        if fonte in ("Integer", "Float", "Boolean", "Void"):
+            self.error(f"Cannot pipeline from {fonte}", node,
+                       "Pipelines start from a Cluster", "pipeline-source")
+        resultado = "Cluster"
+        for op in node.operations:
+            interno = Scope(escopo)
+            if isinstance(op, ast.SiftOperation):
+                if op.func_ref:
+                    self._check_ref(op.func_ref, op, escopo, 1)
+                else:
+                    interno.declare(op.param, UNKNOWN, op.line, op.column)
+                    self.infer(op.condition, interno)
+            elif isinstance(op, ast.MorphOperation):
+                if op.func_ref:
+                    self._check_ref(op.func_ref, op, escopo, 1)
+                else:
+                    interno.declare(op.param, UNKNOWN, op.line, op.column)
+                    self.infer(op.expression, interno)
+            elif isinstance(op, ast.DistillOperation):
+                if op.func_ref:
+                    self._check_ref(op.func_ref, op, escopo, 2)
+                else:
+                    interno.declare(op.acc_param, UNKNOWN, op.line, op.column)
+                    interno.declare(op.val_param, UNKNOWN, op.line, op.column)
+                    self.infer(op.expression, interno)
+                if op.initial is not None:
+                    self.infer(op.initial, escopo)
+                resultado = UNKNOWN
+        return resultado
+
+    def _check_ref(self, nome, node, escopo, aridade):
+        if not escopo.has(nome):
+            self.error(f"Undefined action '{nome}' in the pipeline", node,
+                       self._hint_nome(nome, self.actions), "undefined-name")
+            return
+        assinatura = self.actions.get(nome)
+        if assinatura and len(assinatura.required) > aridade:
+            self.error(
+                f"Action '{nome}' needs {len(assinatura.required)} argument(s) "
+                f"but the pipeline passes {aridade}", node,
+                f"Give the extra parameters a default value", "arity")
+
+    def ex_ListComprehension(self, node, escopo):
+        interno = self._scope_for_clauses(node.clauses, escopo)
+        self.infer(node.expression, interno)
+        return "Cluster"
+
+    def ex_VaultComprehension(self, node, escopo):
+        interno = self._scope_for_clauses(node.clauses, escopo)
+        self.infer(node.key, interno)
+        self.infer(node.value, interno)
+        return "Vault"
+
+    def _scope_for_clauses(self, clauses, escopo):
+        atual = escopo
+        for clause in clauses:
+            fonte = self.infer(clause.source, atual)
+            if fonte in ("Integer", "Float", "Boolean", "Void"):
+                self.error(
+                    f"Cannot iterate over {fonte} in the comprehension",
+                    clause, "Use a Cluster, a Vault or a String", "cycle-not-iterable")
+            atual = Scope(atual)
+            for alvo in (clause.targets or [clause.var]):
+                atual.declare(alvo, UNKNOWN, clause.line, clause.column)
+            if clause.condition is not None:
+                self.infer(clause.condition, atual)
+        return atual
+
+    def ex_LambdaExpression(self, node, escopo):
+        interno = Scope(escopo, "action")
+        for param in node.params:
+            interno.declare(param, canonical(node.param_types.get(param, UNKNOWN)),
+                            node.line, node.column)
+        for padrao in node.defaults.values():
+            self.infer(padrao, escopo)
+        self.infer(node.body, interno)
+        return "Action"
+
+    def ex_IndexAccess(self, node, escopo):
+        alvo = self.infer(node.object, escopo)
+        self.infer(node.index, escopo)
+        if alvo in ("Integer", "Float", "Boolean", "Void"):
+            self.error(f"Cannot index a value of type {alvo}", node,
+                       "Indexing needs a Cluster, Vault or String", "index-type")
+        return UNKNOWN
+
+    def ex_SliceAccess(self, node, escopo):
+        alvo = self.infer(node.object, escopo)
+        for parte in (node.start, node.stop, node.step):
+            if parte is not None:
+                tipo = self.infer(parte, escopo)
+                if tipo not in (UNKNOWN, ANY) and tipo != "Integer":
+                    self.error(f"Slice bounds must be Integer, got {tipo}", node,
+                               "Use whole numbers in the slice", "slice-type")
+        return alvo if alvo in ("Cluster", "String") else UNKNOWN
+
+    def ex_MemberAccess(self, node, escopo):
+        alvo = self.infer(node.object, escopo)
+
+        if alvo in self.records:
+            campos = self.records[alvo]
+            if node.member not in campos and node.member not in ('fields', 'record_name'):
+                self.error(
+                    f"Record '{alvo}' has no field '{node.member}'", node,
+                    self._hint_nome(node.member, campos) or
+                    f"Fields: {', '.join(campos)}", "unknown-field")
+                return UNKNOWN
+            return campos.get(node.member, UNKNOWN)
+
+        if isinstance(node.object, ast.Identifier):
+            nome = node.object.name
+            if nome in self.enums:
+                membros = self.enums[nome]
+                metodos = {'names', 'values', 'members', 'count', 'has',
+                           'from_value', 'from_name'}
+                if node.member not in membros and node.member not in metodos:
+                    self.error(
+                        f"Enum '{nome}' has no member '{node.member}'", node,
+                        self._hint_nome(node.member, membros) or
+                        f"Members: {', '.join(membros)}", "unknown-member")
+                    return UNKNOWN
+                return nome if node.member in membros else UNKNOWN
+
+        return UNKNOWN
+
+    def ex_SafeMemberAccess(self, node, escopo):
+        self.infer(node.object, escopo)
+        return UNKNOWN
+
+    def ex_MethodCall(self, node, escopo):
+        self.infer(node.object, escopo)
+        for a in node.args:
+            self.infer(a.value if isinstance(a, ast.SpreadElement) else a, escopo)
+        for v in node.kwargs.values():
+            self.infer(v, escopo)
+        return UNKNOWN
+
+    def ex_SafeMethodCall(self, node, escopo):
+        return self.ex_MethodCall(node, escopo)
+
+    def ex_FunctionCall(self, node, escopo):
+        for a in node.args:
+            self.infer(a.value if isinstance(a, ast.SpreadElement) else a, escopo)
+        for v in node.kwargs.values():
+            self.infer(v, escopo)
+
+        if not isinstance(node.callee, ast.Identifier):
+            self.infer(node.callee, escopo)
+            return UNKNOWN
+
+        nome = node.callee.name
+
+        if nome in self.records:
+            return self._check_record_call(nome, node, escopo)
+
+        if not escopo.has(nome):
+            self.error(f"Undefined action '{nome}'", node,
+                       self._hint_nome(nome, self._visible_names(escopo)),
+                       "undefined-name")
+            return UNKNOWN
+        escopo.lookup(nome)
+
+        assinatura = self.actions.get(nome)
+        if assinatura is None:
+            # Nome importado seletivamente ou definido fora deste arquivo:
+            # não há assinatura para conferir.
+            return UNKNOWN
+        if any(isinstance(a, ast.SpreadElement) for a in node.args):
+            return assinatura.return_type
+
+        posicionais = len(node.args)
+        fornecidos = set(assinatura.params[:posicionais]) | set(node.kwargs)
+        faltando = [p for p in assinatura.required if p not in fornecidos]
+        if faltando:
+            self.error(
+                f"Action '{nome}' is missing argument(s): {', '.join(faltando)}",
+                node, f"Call it as {nome}({', '.join(assinatura.params)})", "arity")
+        if posicionais > len(assinatura.params):
+            self.error(
+                f"Action '{nome}' takes {len(assinatura.params)} argument(s) "
+                f"but {posicionais} were given", node,
+                f"Call it as {nome}({', '.join(assinatura.params)})", "arity")
+        desconhecidos = [k for k in node.kwargs if k not in assinatura.params]
+        if desconhecidos:
+            self.error(
+                f"Action '{nome}' has no parameter(s): {', '.join(desconhecidos)}",
+                node, f"Parameters: {', '.join(assinatura.params)}", "unknown-argument")
+
+        for indice, arg in enumerate(node.args):
+            if indice >= len(assinatura.params):
+                break
+            declarado = canonical(assinatura.param_types.get(assinatura.params[indice], UNKNOWN))
+            if declarado in (UNKNOWN, ANY):
+                continue
+            obtido = self.infer(arg, escopo)
+            if not compatible(declarado, obtido):
+                self.error(
+                    f"Parameter '{assinatura.params[indice]}' of '{nome}' expects "
+                    f"{declarado} but got {obtido}", arg,
+                    f"Pass a {declarado}", "argument-type")
+
+        if assinatura.is_generator:
+            return "Stream"
+        return assinatura.return_type
+
+    def _check_record_call(self, nome, node, escopo):
+        campos = self.records[nome]
+        opcionais = self.record_defaults.get(nome, set())
+        obrigatorios = [c for c in campos if c not in opcionais]
+        posicionais = len(node.args)
+        fornecidos = set(list(campos)[:posicionais]) | set(node.kwargs)
+        faltando = [c for c in obrigatorios if c not in fornecidos]
+        if faltando:
+            self.error(
+                f"Record '{nome}' is missing field(s): {', '.join(faltando)}",
+                node, f"Build it as {nome}({', '.join(campos)})", "record-arity")
+        if posicionais > len(campos):
+            self.error(
+                f"Record '{nome}' has {len(campos)} field(s) but "
+                f"{posicionais} value(s) were given", node,
+                f"Build it as {nome}({', '.join(campos)})", "record-arity")
+        desconhecidos = [k for k in node.kwargs if k not in campos]
+        if desconhecidos:
+            self.error(
+                f"Record '{nome}' has no field(s): {', '.join(desconhecidos)}",
+                node, f"Fields: {', '.join(campos)}", "unknown-field")
+        for indice, arg in enumerate(node.args):
+            if indice >= len(campos):
+                break
+            campo = list(campos)[indice]
+            esperado = campos[campo]
+            obtido = self.infer(arg, escopo)
+            if not compatible(esperado, obtido):
+                self.error(
+                    f"Field '{campo}' of record '{nome}' expects {esperado} "
+                    f"but got {obtido}", arg, f"Pass a {esperado}", "field-type")
+        return nome
+
+    def ex_SpawnExpression(self, node, escopo):
+        for a in node.args:
+            self.infer(a.value if isinstance(a, ast.SpreadElement) else a, escopo)
+        if isinstance(node.class_name, ast.Identifier):
+            nome = node.class_name.name
+            if nome in self.records:
+                self.error(
+                    f"'{nome}' is a record, not a blueprint", node,
+                    f"Build it with {nome}(...) instead of 'spawn'", "spawn-record")
+                return nome
+            if nome not in self.blueprints and not escopo.has(nome):
+                self.error(f"Unknown blueprint '{nome}'", node,
+                           self._hint_nome(nome, self.blueprints), "unknown-blueprint")
+                return UNKNOWN
+            return nome
+        return UNKNOWN
+
+    def ex_WithExpression(self, node, escopo):
+        base = self.infer(node.source, escopo)
+        self.infer(node.changes, escopo)
+        if base in self.records and isinstance(node.changes, ast.DictLiteral):
+            campos = self.records[base]
+            for chave, _ in node.changes.pairs:
+                if isinstance(chave, ast.StringLiteral) and chave.value not in campos:
+                    self.error(
+                        f"Record '{base}' has no field '{chave.value}'", node,
+                        self._hint_nome(chave.value, campos) or
+                        f"Fields: {', '.join(campos)}", "unknown-field")
+        return base
+
+    def ex_FrameExpression(self, node, escopo):
+        self.infer(node.data, escopo)
+        return "Vault"
+
+    # ── Sugestões ──────────────────────────────────────────
+
+    def _hint_nome(self, nome, candidatos):
+        parecido = self._similar(nome, candidatos)
+        if parecido:
+            return f"Did you mean '{parecido}'?"
+        return ""
+
+    def _hint_tipo(self, nome):
+        parecido = self._similar(nome, self.known_types)
+        if parecido:
+            return f"Did you mean '{parecido}'?"
+        return f"Known types: Integer, Float, String, Boolean, Cluster, Vault, Void"
+
+
+def check_program(program, filename="<stdin>", strict=False):
+    """Analisa um programa e devolve a lista de diagnósticos."""
+    verificador = TypeChecker(filename=filename, strict=strict)
+    return verificador.check(program)

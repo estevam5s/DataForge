@@ -1,0 +1,93 @@
+// Exercicio 167 — Cliente HTTP e URLs
+// Enunciado: monte URLs, trate respostas e prepare requisicoes.
+
+adopt Arcane.Web as Web
+adopt Arcane.Serialization as Serde
+
+// Codificar valores para URL
+out "── codificacao ──"
+out $"espacos:  {Web.encode_url("busca com espacos")}"
+out $"acentos:  {Web.encode_url("cafe & pao")}"
+assert Web.decode_url(Web.encode_url("a b&c")) is "a b&c", "roundtrip"
+
+// Montar uma query string
+action montar_url(base, parametros):
+    given len(parametros.keys()) is 0:
+        yield base
+    partes := [$"{Web.encode_url(k)}={Web.encode_url(str(parametros[k]))}"
+               cycle k in parametros.keys()]
+    yield $"{base}?{partes.join("&")}"
+
+url := montar_url("https://api.exemplo.com/busca", {
+    "q": "linguagem de programacao",
+    "pagina": 2,
+    "ordem": "recente"
+})
+out ""
+out url
+assert "q=linguagem" in url, "parametro codificado"
+assert "pagina=2" in url, "numero convertido"
+
+// Interpretar uma query string de volta
+action ler_query(texto):
+    resultado := {}
+    given len(texto) is 0:
+        yield resultado
+    cycle par in texto.split("&"):
+        given "=" in par:
+            partes := par.split("=")
+            resultado[Web.decode_url(partes[0])] := Web.decode_url(partes[1])
+    yield resultado
+
+lidos := ler_query("nome=Ana%20Silva&idade=30")
+out ""
+out $"query lida: {lidos}"
+assert lidos["nome"] is "Ana Silva", "decodificado"
+assert lidos["idade"] is "30", "valores sao texto"
+
+// JSON no corpo
+corpo := Web.json_stringify({"acao": "criar", "dados": {"nome": "Ana"}})
+out ""
+out $"corpo: {corpo}"
+assert Web.json_parse(corpo)["acao"] is "criar", "roundtrip json"
+
+// Classificar o codigo de resposta
+action classificar(codigo):
+    match codigo:
+        point c when c bigger_eq 200 and c smaller 300:
+            yield "sucesso"
+        point c when c bigger_eq 300 and c smaller 400:
+            yield "redirecionamento"
+        point c when c bigger_eq 400 and c smaller 500:
+            yield "erro do cliente"
+        point c when c bigger_eq 500:
+            yield "erro do servidor"
+        default:
+            yield "desconhecido"
+
+out ""
+out "── codigos ──"
+cycle c in [200, 201, 301, 400, 404, 500, 503]:
+    out $"  {c}: {classificar(c)}"
+
+assert classificar(200) is "sucesso", "2xx"
+assert classificar(404) is "erro do cliente", "4xx"
+assert classificar(503) is "erro do servidor", "5xx"
+
+// Tratar uma resposta simulada
+action processar(resposta):
+    given resposta["status"] bigger_eq 400:
+        yield {"ok": no, "erro": $"HTTP {resposta["status"]}"}
+    dados := Serde.from_json_safe(resposta["body"])
+    given dados.ok is no:
+        yield {"ok": no, "erro": "resposta nao e JSON valido"}
+    yield {"ok": yes, "dados": dados.value}
+
+out ""
+out processar({"status": 200, "body": "{\"nome\": \"Ana\"}"})
+out processar({"status": 404, "body": ""})
+out processar({"status": 200, "body": "isso nao e json"})
+
+assert processar({"status": 200, "body": "{\"a\": 1}"}).ok is yes, "sucesso"
+assert processar({"status": 500, "body": ""}).ok is no, "erro http"
+assert processar({"status": 200, "body": "quebrado"}).ok is no, "json invalido"

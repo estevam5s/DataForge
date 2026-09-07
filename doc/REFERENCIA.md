@@ -45,6 +45,7 @@ Começam com letra ou `_`, seguidos de letras, dígitos ou `_`. Sensíveis à ca
 | Decimal | `3.14`, `0.5` |
 | Texto | `"a"`, `'a'` |
 | Texto multilinha | `"""..."""`, `'''...'''` |
+| Texto interpolado | `$"Ola {nome}"` |
 | Booleano | `yes`, `no` |
 | Nulo | `void` |
 | Lista | `[1, 2, 3]` |
@@ -52,25 +53,26 @@ Começam com letra ou `_`, seguidos de letras, dígitos ou `_`. Sensíveis à ca
 
 Escapes em texto: `\n`, `\t`, `\r`, `\\`, `\'`, `\"`, `\0`.
 
-### 1.6 Palavras reservadas (78)
+### 1.6 Palavras reservadas (81)
 
 ```
 action    adopt     and       as        assert    async     await     bigger
 bigger_eq blueprint cast      channel   cycle     default   defer     delete
-distill   emit      ensure    extends   forge     frame     from      given
-guard     halt      handle    in        inspect   is        isnt      lambda
-mark      match     monitor   morph     no        not       observe   or
-orif      otherwise out       parallel  perform   persist   point     predict
-propagate pulse     recover   relay     retry     root      self      shadow
-sift      skip      smaller   smaller_eq spawn    static    steady    step
-stream    thread    to        train     trait     trigger   typeof    using
-validate  void      wait      with      yes       yield
+distill   emit      ensure    enum      extends   forge     frame     from
+given     guard     halt      handle    in        inspect   is        isnt
+lambda    mark      match     monitor   morph     no        not       observe
+or        orif      otherwise out       parallel  perform   persist   point
+predict   propagate pulse     record    recover   relay     retry     root
+self      shadow    sift      skip      smaller   smaller_eq spawn     static
+steady    step      stream    thread    to        train     trait     trigger
+typeof    using     validate  void      wait      when      with      yes
+yield
 ```
 
 `cluster`, `vault` e `range` **não** são reservadas: são funções embutidas e
-podem ser usadas como nomes.
+podem ser usadas como nome.
 
-Usar uma delas como nome produz um `ParseError` explicando qual é a palavra.
+**Novas no 4.0:** `record`, `enum`, `when`.
 
 ---
 
@@ -85,6 +87,10 @@ Usar uma delas como nome produz um `ParseError` explicando qual é a palavra.
 | `+` `-` `*` `/` `%` | aritmética | soma, subtração, produto, divisão, resto |
 | `**` | aritmética | potência (associa à direita) |
 | `~/` | aritmética | divisão inteira (**preferido**) |
+| `??` | coalescência | valor alternativo quando o esquerdo é `void` |
+| `?.` | acesso seguro | membro/método, ou `void` se o objeto for `void` |
+| `...` | spread / rest | expande ou coleta em coleções e chamadas |
+| `in` / `not in` | pertinência | o elemento está na coleção? |
 | `//` | aritmética | divisão inteira (ambíguo — ver 2.3) |
 | `is` / `==` | comparação | igual |
 | `isnt` / `!=` | comparação | diferente |
@@ -116,15 +122,21 @@ Da mais alta para a mais baixa:
 | 7 | `not` | direita |
 | 8 | `and` | esquerda |
 | 9 | `or` | esquerda |
-| 10 | `>>` | esquerda |
+| 10 | `??` | esquerda |
+| 11 | `given … otherwise` (ternário) | direita |
+| 12 | `>>` | esquerda |
 
 Consequências:
 
 ```dataforge
-2 ** 3 ** 2    // 512, não 64
--2 ** 2        // -4, não 4
-2 + 3 * 4      // 14
+out 2 ** 3 ** 2    # 512, e não 64
+out -2 ** 2        # -4, e não 4
+out 2 + 3 * 4      # 14
 ```
+
+> Repare que os comentários acima usam `#`. Com `//`, a linha
+> `2 ** 3 ** 2  // 512, não 64` seria lida como divisão inteira — exatamente a
+> ambiguidade descrita a seguir.
 
 ### 2.3 A ambiguidade de `//`
 
@@ -557,27 +569,230 @@ variáveis de nível superior do arquivo ficam acessíveis pelo alias.
 
 ---
 
+## 11.5 Recursos do DataForge 4.0
+
+### 11.5.1 Interpolação de strings
+
+```ebnf
+$"texto {expressao} texto"
+$"""multilinha com {valor}"""
+```
+
+Prefixo `$` liga a interpolação; `{{` e `}}` escapam chaves literais. Qualquer
+expressão cabe dentro das chaves, e a conversão usa as mesmas regras de `out`.
+
+### 11.5.2 Expressão condicional (ternário)
+
+```
+<valor> "given" <condição> "otherwise" <alternativa>
+```
+
+```ebnf
+rotulo := "par" given n % 2 is 0 otherwise "impar"
+```
+
+Associa à direita, então encadeia:
+
+```ebnf
+x := "a" given c1 otherwise "b" given c2 otherwise "c"
+```
+
+Não se aplica em contexto de padrão — lá as guardas usam `when`.
+
+### 11.5.3 Coalescência e acesso seguro
+
+```ebnf
+a ?? b            # b apenas se a for void
+obj?.membro       # void se obj for void
+obj?.metodo()     # idem
+```
+
+Só `void` dispara a alternativa. `no`, `0` e `""` são valores, e passam.
+
+### 11.5.4 Pertinência
+
+```ebnf
+x in colecao
+x not in colecao
+```
+
+Funciona em `Cluster` (elemento), `Vault` (chave), `String` (subtexto), `Record`
+(nome de campo) e `Stream` (consome).
+
+### 11.5.5 Spread e rest
+
+| Posição | Significa | Exemplo |
+|---------|-----------|---------|
+| esquerda do `:=` | coleta | `a, ...resto := lista` |
+| dentro de `[…]` | expande | `[...a, ...b]` |
+| dentro de `{…}` | expande (último vence) | `{...padrao, ...usuario}` |
+| numa chamada | expande argumentos | `f(...args)` |
+
+Só um `...rest` por desestruturação.
+
+### 11.5.6 Desestruturação
+
+```
+<nome> {"," <nome>} ":=" <expressão>          // por posição
+"{" <nome> {"," <nome>} "}" ":=" <expressão>  // por nome
+```
+
+```ebnf
+a, b := [1, 2]
+a, ...resto := lista
+a, b := b, a                       # troca
+{nome, idade} := registro          # record, vault ou instância
+```
+
+Quantidade incompatível dispara `RuntimeError_`; chave ausente, `NameError_`.
+
+### 11.5.7 Compreensões
+
+```
+"[" <expr> {"cycle" <nome> "in" <fonte> ["given" <cond>]} "]"
+"{" <chave> ":" <valor> {"cycle" …} "}"
+```
+
+```ebnf
+[n * 2 cycle n in nums given n bigger 0]
+{k: v cycle k in chaves}
+[a + b cycle a in xs cycle b in ys]     # o da direita gira mais rápido
+```
+
+A variável do `cycle` não vaza para fora da compreensão.
+
+### 11.5.8 Records
+
+```
+"record" Nome ":"
+    <campo> ":" <Tipo> [":=" <padrão>]
+    ["action" …]
+```
+
+Características:
+
+- **imutável** — atribuir a um campo é erro
+- **igualdade estrutural** — mesmos valores, mesmo record
+- construção posicional ou nomeada, com tipos verificados
+- `registro with {"campo": valor}` produz uma cópia alterada
+- `toString` é usado por `out` e `str()`
+- `typeof` devolve o nome do record
+
+### 11.5.9 Enums
+
+```
+"enum" Nome ":"
+    <MEMBRO> [":=" <valor>]
+    ["action" …]
+```
+
+Cada membro expõe `.name`, `.value` (padrão: o nome) e `.index`.
+
+O enum expõe `names()`, `values()`, `members()`, `count()`, `has(n)`,
+`from_name(n)` e `from_value(v)` — as duas últimas devolvem `void` se não achar.
+
+### 11.5.10 Pattern matching
+
+```
+"point" <padrão> ["when" <guarda>] ":" bloco
+```
+
+| Padrão | Casa com | Exemplo |
+|--------|----------|---------|
+| literal | igualdade | `point 0` |
+| captura (minúscula) | qualquer coisa, liga o nome | `point n` |
+| tipo (Maiúscula) | o tipo | `point Integer` |
+| curinga | qualquer coisa | `point _` |
+| valor nomeado | igualdade | `point Status.Ativo` |
+| sequência | lista, por comprimento | `point [a, b]`, `point [x, ...r]` |
+| mapa | vault/record, **parcial** | `point {"k": v}` |
+| record posicional | tipo + campos na ordem | `point Ponto(x, y)` |
+| record nomeado | tipo + campos por nome | `point Ponto(y := 0)` |
+| alternativa | qualquer uma | `point 1 or 2` |
+| apelido | liga o valor inteiro | `point [a, b] as tudo` |
+
+Regras:
+
+- testados **de cima para baixo**; o primeiro que casa vence
+- `when` falso faz o `match` **continuar** para o próximo `point`
+- padrão de sequência não casa com `Vault`, e vice-versa
+- padrão de mapa é parcial: chaves extras não impedem o casamento
+
+### 11.5.11 Generators
+
+```
+"stream" "action" nome "(" params ")" ":" bloco
+"emit" <expressão>
+```
+
+Um `stream action` devolve um `Stream` **preguiçoso**: nada executa até alguém
+pedir um item. Por isso um `persist yes:` com `emit` dentro é legítimo.
+
+| Método | Devolve |
+|--------|---------|
+| `to_cluster()` | tudo, como lista |
+| `take(n)` | os `n` primeiros |
+| `next()` | o próximo, ou `void` |
+| `count()` | quantos itens |
+| `first()` | o primeiro, ou `void` |
+| `map(f)` / `filter(f)` | lista |
+| `reset()` | reinicia o `next()` |
+
+`yield` dentro de um `stream action` encerra a produção. Fora de um
+`stream action`, `emit` é um alias histórico de `out`.
+
+### 11.5.12 Módulos
+
+```
+"adopt" <Caminho> ["as" <alias>]
+"adopt" <Caminho> "." "{" <nome> ["as" <apelido>] {"," …} "}"
+"adopt" "{" <nome> ["as" <apelido>] {"," …} "}" "from" <Caminho>
+"relay" <nome> {"," <nome>}
+```
+
+Resolução, nesta ordem: cache → biblioteca padrão → arquivo `.df` **relativo ao
+arquivo que importa**.
+
+`relay` controla o que sai: sem nenhum, o módulo exporta tudo do nível superior;
+com pelo menos um, só os nomes listados. Importes circulares são detectados e
+disparam `ImportError_`.
+
+---
+
 ## 12. Gramática (EBNF)
 
 ```ebnf
 programa       = { instrução } ;
 
-instrução      = decl_var | decl_steady | decl_shadow | decl_static
+instrução      = decl_var | decl_destr | decl_steady | decl_shadow | decl_static
                | decl_ação | decl_blueprint | decl_trait
+               | decl_record | decl_enum
                | adopt | relay
-               | condicional | seleção | laço
+               | condicional | seleção_match | laço
                | bloco_erro | concorrência
-               | out | yield | halt | skip | trigger | assert
+               | out | emit | yield | halt | skip | trigger | assert
                | delete | wait | inspect | expressão ;
 
 decl_var       = identificador [ ":" tipo ] ":=" expressão
                | alvo ( "+=" | "-=" | "*=" | "/=" | "%=" ) expressão ;
+decl_destr     = alvos_pos ":=" expressão { "," expressão }
+               | "{" alvos_nom "}" ":=" expressão ;
+alvos_pos      = alvo_destr { "," alvo_destr } ;
+alvos_nom      = alvo_destr { "," alvo_destr } ;
+alvo_destr     = [ "..." ] identificador ;
+
+decl_record    = "record" identificador ":" NEWLINE INDENT
+                 { campo_record | decl_ação } DEDENT ;
+campo_record   = identificador ":" tipo [ ":=" expressão ] NEWLINE ;
+decl_enum      = "enum" identificador ":" NEWLINE INDENT
+                 { membro_enum | decl_ação } DEDENT ;
+membro_enum    = identificador [ ":=" expressão ] NEWLINE ;
 decl_steady    = "steady" identificador ":=" expressão ;
 decl_shadow    = "shadow" identificador ":=" expressão ;
 decl_static    = "static" identificador ":=" expressão ;
 
 decl_ação      = { "mark" "@" identificador [ "(" args ")" ] }
-                 [ "async" ] "action" identificador
+                 [ "async" | "stream" ] "action" identificador
                  "(" [ params ] ")" [ "->" tipo ] ":" bloco ;
 params         = param { "," param } ;
 param          = identificador [ ":" tipo ] [ ":=" expressão ] ;
@@ -586,15 +801,37 @@ decl_blueprint = "blueprint" identificador [ "(" nomes ")" ]
                  [ "extends" nomes ] [ "with" nomes ] ":" bloco ;
 decl_trait     = "trait" identificador ":" bloco ;
 
-adopt          = "adopt" caminho [ "as" identificador ] ;
+adopt          = "adopt" caminho [ "as" identificador ]
+               | "adopt" caminho "." seleção
+               | "adopt" seleção "from" caminho ;
+seleção        = "{" sel_item { "," sel_item } "}" ;
+sel_item       = identificador [ "as" identificador ] ;
 relay          = "relay" nomes ;
+emit           = "emit" expressão { "," expressão } ;
 
 condicional    = "given" expressão ":" bloco
                  { "orif" expressão ":" bloco }
                  [ "otherwise" ":" bloco ] ;
-seleção        = "match" expressão ":" INDENT
-                 { "point" expressão ":" bloco }
+seleção_match  = "match" expressão ":" NEWLINE INDENT
+                 { "point" padrão [ "when" expressão ] ":" bloco }
                  [ "default" ":" bloco ] DEDENT ;
+
+padrão         = padrão_alt [ "as" identificador ] ;
+padrão_alt     = padrão_base { "or" padrão_base } ;
+padrão_base    = literal
+               | "_"
+               | identificador                          (* minúscula: captura *)
+               | Identificador                          (* Maiúscula: tipo *)
+               | Identificador "(" [ sub_padrões ] ")"  (* record por posição/nome *)
+               | Identificador { "." nome }             (* valor nomeado *)
+               | "[" [ padrão_seq ] "]"
+               | "{" [ padrão_mapa ] "}" ;
+sub_padrões    = ( padrão | identificador ":=" padrão )
+                 { "," ( padrão | identificador ":=" padrão ) } ;
+padrão_seq     = ( padrão | "..." [ identificador ] )
+                 { "," ( padrão | "..." [ identificador ] ) } ;
+padrão_mapa    = ( primário ":" padrão | "..." [ identificador ] )
+                 { "," ( primário ":" padrão | "..." [ identificador ] ) } ;
 
 laço           = "cycle" identificador "from" expressão "to" expressão
                      [ "step" expressão ] ":" bloco
@@ -619,7 +856,9 @@ concorrência   = "thread" ":" bloco
                | "pulse" expressão [ "," expressão ] ;
 
 expressão      = pipeline ;
-pipeline       = ou { ">>" op_pipeline } ;
+pipeline       = ternário { ">>" op_pipeline } ;
+ternário       = coalescência [ "given" coalescência "otherwise" ternário ] ;
+coalescência   = ou { "??" ou } ;
 op_pipeline    = "sift"    ( identificador ":" ou | identificador )
                | "morph"   ( identificador ":" ou | identificador )
                | "distill" ( identificador [ "," ] identificador ":" ou [ ou ]
@@ -627,16 +866,20 @@ op_pipeline    = "sift"    ( identificador ":" ou | identificador )
 ou             = e { "or" e } ;
 e              = negação { "and" negação } ;
 negação        = [ "not" ] comparação ;
-comparação     = adição { op_comp adição } ;
+comparação     = adição ( [ "not" ] "in" adição
+                        | { op_comp adição } ) ;
 adição         = multiplicação { ( "+" | "-" ) multiplicação } ;
 multiplicação  = unário { ( "*" | "/" | "%" | "~/" | "//" ) unário } ;
 unário         = ( "+" | "-" | "not" ) unário | potência ;
 potência       = posfixo [ "**" unário ] ;
-posfixo        = primário { "." nome | "[" índice "]" | "(" args ")" } ;
+posfixo        = primário { "." nome | "?." nome
+                          | "[" índice "]" | "(" args ")"
+                          | "with" dicionário } ;
 índice         = expressão | [expressão] ":" [expressão] [ ":" [expressão] ] ;
 
-primário       = literal | identificador | "(" expressão ")"
+primário       = literal | interpolada | identificador | "(" expressão ")"
                | lista | dicionário | lambda
+               | compreensão_lista | compreensão_vault
                | "self" | "root"
                | ( "spawn" | "forge" ) posfixo
                | "typeof" unário
@@ -649,9 +892,22 @@ primário       = literal | identificador | "(" expressão ")"
                | "predict" posfixo "using" expressão ;
 
 lambda         = "lambda" [ params_lambda ] ( ":" | "=>" ) ou ;
-lista          = "[" [ expressão { "," expressão } ] "]" ;
-dicionário     = "{" [ par { "," par } ] "}" ;
-par            = expressão ":" expressão ;
+interpolada    = "$" '"' { texto | "{" expressão "}" } '"' ;
+lista          = "[" [ elemento { "," elemento } ] "]" ;
+elemento       = expressão | "..." expressão ;
+dicionário     = "{" [ par_ou_spread { "," par_ou_spread } ] "}" ;
+par_ou_spread  = expressão ":" expressão | "..." expressão ;
+
+compreensão_lista = "[" expressão cláusulas "]" ;
+compreensão_vault = "{" expressão ":" expressão cláusulas "}" ;
+cláusulas      = cláusula { cláusula } ;
+cláusula       = "cycle" identificador { "," identificador }
+                 "in" expressão [ "given" expressão ] ;
+
+args           = ( expressão | "..." expressão
+                 | identificador ":=" expressão )
+                 { "," ( expressão | "..." expressão
+                       | identificador ":=" expressão ) } ;
 
 bloco          = NEWLINE INDENT { instrução } DEDENT ;
 ```

@@ -1,0 +1,64 @@
+// Exercicio 154 — Manifesto e ferramentas
+// Enunciado: conheca o forge.toml e os comandos de projeto.
+
+adopt Arcane.Serialization as Serde
+
+// O forge.toml e o manifesto do projeto. Este exercicio monta um
+// em memoria para mostrar sua estrutura.
+
+manifesto := {
+    "project": {
+        "name": "meu-app",
+        "version": "0.1.0",
+        "description": "Exemplo de manifesto",
+        "authors": ["voce"],
+        "license": "MIT",
+        "entry": "src/main.df",
+        "dataforge": ">=4.0"
+    },
+    "scripts": {
+        "start": "run src/main.df",
+        "test": "test tests/",
+        "check": "check ."
+    },
+    "lint": {
+        "strict": no,
+        "ignore": ["magic-number"]
+    }
+}
+
+out Serde.to_toml(manifesto)
+
+// Ler de volta preserva a estrutura
+lido := Serde.from_toml(Serde.to_toml(manifesto))
+assert lido["project"]["name"] is "meu-app", "roundtrip do nome"
+assert lido["project"]["entry"] is "src/main.df", "roundtrip da entrada"
+
+// Acesso por caminho pontuado
+out ""
+out $"nome:    {Serde.json_path(manifesto, "project.name")}"
+out $"entrada: {Serde.json_path(manifesto, "project.entry")}"
+out $"script:  {Serde.json_path(manifesto, "scripts.test")}"
+out $"ausente: {Serde.json_path(manifesto, "project.homepage", "nao definido")}"
+
+assert Serde.json_path(manifesto, "project.name") is "meu-app", "caminho"
+assert Serde.json_path(manifesto, "x.y", "padrao") is "padrao", "fallback"
+
+// Validar o manifesto antes de usar
+action validar_manifesto(m):
+    problemas := []
+    given "project" not in m:
+        problemas.append("falta a secao [project]")
+        yield problemas
+    projeto := m["project"]
+    cycle campo in ["name", "version", "entry"]:
+        given campo not in projeto:
+            problemas.append($"falta project.{campo}")
+    yield problemas
+
+out ""
+out $"validacao: {validar_manifesto(manifesto)}"
+out $"incompleto: {validar_manifesto({"project": {"name": "x"}})}"
+
+assert len(validar_manifesto(manifesto)) is 0, "manifesto completo"
+assert len(validar_manifesto({"project": {"name": "x"}})) is 2, "faltam dois campos"

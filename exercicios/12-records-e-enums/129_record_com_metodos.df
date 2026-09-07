@@ -1,0 +1,50 @@
+// Exercicio 129 — Records com metodos
+// Enunciado: adicione comportamento a um record sem abrir mao da imutabilidade.
+
+record Retangulo:
+    largura: Number
+    altura: Number
+
+    action area():
+        yield self.largura * self.altura
+
+    action perimetro():
+        yield 2 * (self.largura + self.altura)
+
+    action e_quadrado():
+        yield self.largura is self.altura
+
+    action escalar(fator):
+        yield Retangulo(self.largura * fator, self.altura * fator)
+
+    action toString():
+        yield $"{self.largura}x{self.altura}"
+
+r := Retangulo(3, 4)
+out r
+out $"area: {r.area()}  perimetro: {r.perimetro()}"
+out $"quadrado? {r.e_quadrado()}"
+
+dobro := r.escalar(2)
+out $"dobrado: {dobro} com area {dobro.area()}"
+
+assert r.area() is 12, "area"
+assert r.perimetro() is 14, "perimetro"
+assert r.e_quadrado() is no, "3x4 nao e quadrado"
+assert Retangulo(5, 5).e_quadrado() is yes, "5x5 e quadrado"
+assert dobro.area() is 48, "area dobrada em cada lado quadruplica"
+assert str(r) is "3x4", "toString"
+assert r.largura is 3, "escalar nao alterou o original"
+
+// Metodos convivem com pattern matching
+action classificar(fig):
+    match fig:
+        point Retangulo(l, a) when l is a:
+            yield "quadrado"
+        point Retangulo:
+            yield "retangulo"
+        default:
+            yield "outra forma"
+
+out classificar(Retangulo(2, 2)), classificar(r), classificar(42)
+assert classificar(Retangulo(2, 2)) is "quadrado", "pattern com guarda"

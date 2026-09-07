@@ -1,0 +1,91 @@
+// Exercicio 171 — Canais entre threads
+// Enunciado: passe valores entre threads com seguranca.
+
+// Um canal e uma fila com trava: seguro entre threads
+channel fila
+
+fila.send("primeiro")
+fila.send("segundo")
+fila.send("terceiro")
+
+out fila.receive()
+out fila.receive()
+assert fila.receive() is "terceiro", "FIFO"
+assert fila.receive() is void, "canal vazio devolve void"
+
+// O padrao correto: cada thread envia, a principal recolhe
+channel resultados
+
+action trabalho_pesado(n):
+    total := 0
+    cycle i from 1 to n:
+        total += i
+    yield total
+
+thread:
+    resultados.send({"tarefa": "A", "valor": trabalho_pesado(10000)})
+
+thread:
+    resultados.send({"tarefa": "B", "valor": trabalho_pesado(20000)})
+
+thread:
+    resultados.send({"tarefa": "C", "valor": trabalho_pesado(30000)})
+
+wait 400
+
+// Recolhe tudo que chegou
+colhidos := []
+persist yes:
+    item := resultados.receive()
+    given item is void:
+        halt
+    colhidos.append(item)
+
+out ""
+out $"colhidos: {len(colhidos)}"
+cycle c in sorted(colhidos >> morph c: c["tarefa"]):
+    out $"  tarefa {c}"
+
+assert len(colhidos) is 3, "as tres threads reportaram"
+
+// Contador correto: cada thread manda seu total
+channel parciais
+
+thread:
+    soma := 0
+    cycle _ in range(0, 1000):
+        soma += 1
+    parciais.send(soma)
+
+thread:
+    soma := 0
+    cycle _ in range(0, 1000):
+        soma += 1
+    parciais.send(soma)
+
+wait 400
+
+total := 0
+persist yes:
+    parcial := parciais.receive()
+    given parcial is void:
+        halt
+    total += parcial
+
+out ""
+out $"total pelo canal: {total}"
+assert total is 2000, "sem condicao de corrida"
+out "cada thread trabalhou no proprio escopo e reportou pelo canal"
+
+// Um canal tambem serve de fila de trabalho
+channel tarefas
+cycle t in ["compilar", "testar", "empacotar", "publicar"]:
+    tarefas.send(t)
+
+out ""
+out "── processando a fila ──"
+persist yes:
+    t := tarefas.receive()
+    given t is void:
+        halt
+    out $"  executando: {t}"

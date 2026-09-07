@@ -1,0 +1,126 @@
+// Exercicio 180 — Encerramento e proximos passos
+// Enunciado: o que voce aprendeu, o que a linguagem ainda nao faz e para onde ir.
+
+adopt Arcane.Text as Text
+adopt Arcane.Collections as Col
+
+out Text.box("DataForge 4.0 — Encerramento")
+
+// ── O QUE A LINGUAGEM TEM ──
+
+recursos := [
+    ["Tipos", "anotacoes opcionais verificadas, typeof, cast"],
+    ["Analise estatica", "dataforge check: nomes, aridade, tipos"],
+    ["Controle", "given/orif/otherwise, match com padroes, 4 lacos"],
+    ["Colecoes", "clusters, vaults, fatiamento, compreensoes"],
+    ["Destructuring", "listas, records, vaults, spread"],
+    ["Acoes", "padroes, tipos, closures, lambdas, decoradores, defer"],
+    ["Records", "imutaveis, igualdade estrutural, with"],
+    ["Enums", "valores associados, integracao com match"],
+    ["Blueprints", "heranca, traits, operadores, introspeccao"],
+    ["Erros", "monitor/handle tipado, guard, retry, propagate"],
+    ["Pipelines", "sift, morph, distill, multilinha"],
+    ["Generators", "stream action, emit, sequencias infinitas"],
+    ["Modulos", "adopt seletivo, relay, deteccao de ciclos"],
+    ["Concorrencia", "async/await, thread, channel, parallel"],
+    ["Stdlib", "20 modulos Arcane"],
+    ["Ferramentas", "check, test, fmt, lint, doc, repl, init"]
+]
+
+out ""
+out "── o que voce aprendeu ──"
+cycle r in recursos:
+    area, detalhe := r
+    out $"  {area.pad_end(18)}{detalhe}"
+
+assert len(recursos) is 16, "dezesseis areas"
+
+// ── O QUE AINDA NAO EXISTE ──
+
+pendentes := [
+    ["Generics", "Cluster<T> e acoes genericas"],
+    ["Exaustividade", "avisar quando um membro de enum ficou fora do match"],
+    ["Contrato de trait", "verificar que o blueprint implementou tudo"],
+    ["LSP", "autocomplete e ir-para-definicao no editor"],
+    ["Debugger", "breakpoints e inspecao passo a passo"],
+    ["Pacotes", "dataforge add, registry, lockfile"],
+    ["Bytecode", "VM propria em vez de interpretador de arvore"],
+    ["Sincronizacao", "mutex e semaforo entre threads"]
+]
+
+out ""
+out "── o que ainda falta ──"
+cycle p in pendentes:
+    area, detalhe := p
+    out $"  {area.pad_end(18)}{detalhe}"
+
+// ── ONDE ESTUDAR ──
+
+out ""
+out "── documentacao ──"
+docs := {
+    "doc/TUTORIAL.md": "a linguagem do zero, com exemplos que rodam",
+    "doc/REFERENCIA.md": "gramatica EBNF, palavras-chave, precedencia",
+    "doc/BIBLIOTECA_PADRAO.md": "assinaturas dos 20 modulos Arcane",
+    "doc/INSTALACAO.md": "instalar e preparar o ambiente",
+    "doc/ANALISE_E_ROADMAP.md": "estado tecnico e o que vem depois",
+    "CLAUDE.md": "contexto para trabalhar no interpretador"
+}
+cycle caminho in docs.keys():
+    out $"  {caminho.pad_end(28)}{docs[caminho]}"
+
+// ── COMANDOS ──
+
+out ""
+out "── comandos do dia a dia ──"
+comandos := [
+    "dataforge init            comeca um projeto",
+    "dataforge run arquivo.df  executa",
+    "dataforge check src/      analise estatica",
+    "dataforge test tests/ -v  roda os testes",
+    "dataforge fmt . --check   verifica a formatacao",
+    "dataforge lint src/       estilo e higiene",
+    "dataforge doc src/        gera documentacao",
+    "dataforge repl            console interativo"
+]
+cycle c in comandos:
+    out $"  {c}"
+
+// ── DESAFIOS ──
+
+out ""
+out Text.box("Desafios")
+
+desafios := [
+    ["Facil", "um jogo da velha em terminal"],
+    ["Facil", "conversor de unidades com enum e records"],
+    ["Medio", "gerenciador de tarefas com banco e CLI"],
+    ["Medio", "cliente de API com retry e cache"],
+    ["Medio", "gerador de sites estaticos a partir de markdown"],
+    ["Dificil", "linguagem de consulta sobre CSV"],
+    ["Dificil", "servidor HTTP com rotas, auth e persistencia"],
+    ["Dificil", "type checker para o mini interpretador do exercicio 177"]
+]
+
+por_nivel := Col.group_by(desafios, lambda d: d[0])
+out ""
+cycle nivel in ["Facil", "Medio", "Dificil"]:
+    out $"  {nivel}:"
+    cycle d in por_nivel[nivel]:
+        out $"    - {d[1]}"
+
+assert len(desafios) is 8, "oito desafios"
+assert len(por_nivel.keys()) is 3, "tres niveis"
+
+// ── FECHAMENTO ──
+
+out ""
+out Text.box("180 exercicios concluidos")
+out ""
+out "  Modulos 01-10: fundamentos, colecoes, acoes, blueprints, erros"
+out "  Modulos 11-20: tipos, records, padroes, streams, projetos"
+out ""
+out "  Rode a suite inteira com:"
+out "    python3 exercicios/run_all.py"
+out ""
+out "  Contribua: o roadmap esta em doc/ANALISE_E_ROADMAP.md"

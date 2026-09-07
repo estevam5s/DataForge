@@ -1,0 +1,95 @@
+// Exercicio 172 — Liberacao garantida
+// Enunciado: garanta limpeza mesmo quando algo falha.
+
+adopt Arcane.IO as IO
+
+// defer roda ao sair da acao, em qualquer caminho
+ordem := []
+
+action com_recurso(deve_falhar):
+    ordem.append("abriu")
+    defer:
+        ordem.append("fechou")
+    given deve_falhar:
+        trigger "falhou no meio"
+    ordem.append("usou")
+    yield "concluido"
+
+// Caminho feliz
+ordem := []
+out com_recurso(no)
+out ordem
+assert ordem is ["abriu", "usou", "fechou"], "defer roda no fim"
+
+// Caminho com erro: o defer roda mesmo assim
+ordem := []
+monitor:
+    com_recurso(yes)
+handle e:
+    ordem.append($"tratou: {e.message}")
+
+out ""
+out ordem
+assert ordem[1] is "fechou", "o defer rodou antes do erro subir"
+assert len(ordem) is 3, "abriu, fechou, tratou"
+
+// Varios defer rodam em ordem inversa (LIFO)
+pilha := []
+action varios():
+    defer:
+        pilha.append("primeiro declarado")
+    defer:
+        pilha.append("segundo declarado")
+    defer:
+        pilha.append("terceiro declarado")
+    yield void
+
+varios()
+out ""
+out pilha
+assert pilha[0] is "terceiro declarado", "o ultimo declarado roda primeiro"
+
+// Uso real: arquivo temporario sempre removido
+action processar_com_temporario(deve_falhar):
+    caminho := "_temp_exercicio_172.txt"
+    IO.write(caminho, "dados de trabalho")
+    defer:
+        given IO.exists(caminho):
+            IO.delete(caminho)
+    given deve_falhar:
+        trigger "erro durante o processamento"
+    yield IO.read(caminho).upper()
+
+out ""
+out processar_com_temporario(no)
+assert IO.exists("_temp_exercicio_172.txt") is no, "removido apos sucesso"
+
+monitor:
+    processar_com_temporario(yes)
+handle e:
+    out $"erro: {e.message}"
+
+assert IO.exists("_temp_exercicio_172.txt") is no, "removido apos falha tambem"
+out "o arquivo temporario nao sobreviveu a nenhum dos caminhos"
+
+// defer em cadeia de chamadas: cada acao limpa a sua parte
+trilha := []
+
+action interna():
+    defer:
+        trilha.append("interna limpou")
+    trigger "falha na interna"
+
+action externa():
+    defer:
+        trilha.append("externa limpou")
+    interna()
+
+monitor:
+    externa()
+handle e:
+    trilha.append("topo tratou")
+
+out ""
+out trilha
+assert trilha is ["interna limpou", "externa limpou", "topo tratou"], "de dentro para fora"

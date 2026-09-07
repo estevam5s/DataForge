@@ -12,7 +12,7 @@
 
 Além destes:
 
-- [`../exercicios/`](../exercicios) — 120 exercícios comentados e verificados
+- [`../exercicios/`](../exercicios) — 180 exercícios; os 60 do 4.0 com `.md` explicativo
 - [`../examples/`](../examples) — 42 programas maiores
 - [`../CLAUDE.md`](../CLAUDE.md) — contexto para trabalhar no interpretador
 
@@ -26,7 +26,12 @@ python3 tools/gerar_doc_stdlib.py
 ```
 
 Ao mudar `KEYWORDS` em `dataforge/tokens.py`, sincronize a lista em
-`REFERENCIA.md` §1.6 — há um teste que compara as duas.
+`REFERENCIA.md` §1.6 — há um teste que compara as duas
+(`test_referencia_lista_exatamente_as_palavras_reservadas`). O mesmo vale para a
+§13 e as funções de `builtins.py`.
+
+Ao criar um módulo `Arcane.*` novo, registre-o em `dataforge/stdlib/__init__.py`
+**e** no dicionário `DESCRICOES` de `tools/gerar_doc_stdlib.py`.
 
 ## Documentos históricos
 

@@ -1,0 +1,55 @@
+// Exercicio 147 — Streams com pipelines
+// Enunciado: combine generators com sift, morph e distill.
+
+stream action naturais():
+    n := 1
+    persist yes:
+        emit n
+        n += 1
+
+// Materialize antes de usar o pipeline
+primeiros := naturais().take(20)
+out primeiros >> sift n: n % 3 is 0
+assert (primeiros >> sift n: n % 3 is 0) is [3, 6, 9, 12, 15, 18], "multiplos de 3"
+
+// Compreensao sobre stream
+stream action letras():
+    cycle c in "dataforge":
+        emit c
+
+maiusculas := [c.upper() cycle c in letras() given c isnt "a"]
+out maiusculas.join("")
+assert maiusculas.join("") is "DTFORGE", "sem os a"
+
+// map e filter direto no stream
+stream action ate(n):
+    cycle i from 1 to n:
+        emit i
+
+out ate(10).filter(lambda n: n % 2 is 0)
+out ate(5).map(lambda n: n * n)
+assert ate(10).filter(lambda n: n % 2 is 0) is [2, 4, 6, 8, 10], "filter"
+assert ate(5).map(lambda n: n * n) is [1, 4, 9, 16, 25], "map"
+
+// Encadear geradores: um consome o outro
+stream action dobrar(fonte):
+    cycle v in fonte:
+        emit v * 2
+
+out dobrar(ate(5)).to_cluster()
+assert dobrar(ate(5)).to_cluster() is [2, 4, 6, 8, 10], "generator sobre generator"
+
+stream action so_pares(fonte):
+    cycle v in fonte:
+        given v % 2 is 0:
+            emit v
+
+// Uma cadeia inteira, ainda preguicosa ate o take
+cadeia := dobrar(so_pares(naturais()))
+out cadeia.take(5)
+assert cadeia.take(5) is [4, 8, 12, 16, 20], "pares dobrados"
+
+// Reduzir um stream
+total := ate(100).to_cluster() >> distill acc, v: acc + v 0
+out $"soma de 1 a 100: {total}"
+assert total is 5050, "soma de Gauss"

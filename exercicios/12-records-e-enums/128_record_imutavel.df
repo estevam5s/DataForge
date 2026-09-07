@@ -1,0 +1,50 @@
+// Exercicio 128 — Imutabilidade e with
+// Enunciado: comprove que um record nao muda, e crie copias alteradas com with.
+
+record Conta:
+    titular: String
+    saldo: Number
+
+original := Conta("Ana", 1000)
+
+// Tentar mudar um campo e erro
+bloqueou := no
+monitor:
+    original.saldo := 2000
+handle e:
+    bloqueou := yes
+    out e.message
+
+assert bloqueou is yes, "record e imutavel"
+assert original.saldo is 1000, "o valor original nao mudou"
+
+// 'with' produz uma copia com os campos trocados
+depositado := original with {"saldo": original.saldo + 500}
+out original
+out depositado
+
+assert original.saldo is 1000, "o original continua intacto"
+assert depositado.saldo is 1500, "a copia tem o novo valor"
+assert depositado.titular is "Ana", "os demais campos vieram junto"
+
+// Encadear transformacoes lendo de cima para baixo
+action depositar(conta, valor):
+    yield conta with {"saldo": conta.saldo + valor}
+
+action sacar(conta, valor):
+    guard valor smaller_eq conta.saldo, "saldo insuficiente"
+    yield conta with {"saldo": conta.saldo - valor}
+
+final := sacar(depositar(depositar(original, 200), 300), 100)
+out final
+assert final.saldo is 1400, "1000 +200 +300 -100"
+assert original.saldo is 1000, "nada disso tocou no original"
+
+// Campo inexistente no with
+erro := no
+monitor:
+    original with {"limite": 5000}
+handle e:
+    erro := yes
+    out e.message
+assert erro is yes, "with recusa campo que nao existe"

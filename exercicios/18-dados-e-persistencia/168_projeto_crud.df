@@ -1,0 +1,146 @@
+// Exercicio 168 — Projeto: CRUD com persistencia
+// Enunciado: junte banco, validacao e relatorio num sistema completo.
+
+adopt Arcane.Database as DB
+adopt Arcane.Text as Text
+adopt Arcane.Time as Time
+
+// ═══ MODELO ═══
+
+record Aluno:
+    id: Integer
+    nome: String
+    email: String
+    nota: Number
+
+enum Conceito:
+    A := 9
+    B := 7
+    C := 5
+    D := 0
+
+action conceito_de(nota: Number) -> Conceito:
+    given nota bigger_eq 9:
+        yield Conceito.A
+    orif nota bigger_eq 7:
+        yield Conceito.B
+    orif nota bigger_eq 5:
+        yield Conceito.C
+    yield Conceito.D
+
+// ═══ VALIDACAO ═══
+
+action validar(nome, email, nota):
+    problemas := []
+    given len(nome.trim()) smaller 3:
+        problemas.append("nome precisa de ao menos 3 letras")
+    given "@" not in email:
+        problemas.append("email invalido")
+    given nota smaller 0 or nota bigger 10:
+        problemas.append("nota deve estar entre 0 e 10")
+    yield problemas
+
+// ═══ PERSISTENCIA ═══
+
+conn := DB.memory()
+DB.execute(conn, """CREATE TABLE alunos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    nota REAL NOT NULL
+)""")
+
+action inserir(nome, email, nota):
+    problemas := validar(nome, email, nota)
+    given len(problemas) bigger 0:
+        yield {"ok": no, "erros": problemas}
+    monitor:
+        DB.execute(conn, "INSERT INTO alunos (nome, email, nota) VALUES (?, ?, ?)",
+                   [nome.trim(), email.trim().lower(), nota])
+        yield {"ok": yes}
+    handle e:
+        yield {"ok": no, "erros": ["email ja cadastrado"]}
+
+action buscar_todos():
+    linhas := DB.query(conn, "SELECT id, nome, email, nota FROM alunos ORDER BY nota DESC")
+    yield linhas >> morph l: Aluno(l["id"], l["nome"], l["email"], l["nota"])
+
+action atualizar_nota(id, nova):
+    given nova smaller 0 or nova bigger 10:
+        yield {"ok": no, "erros": ["nota fora da faixa"]}
+    DB.execute(conn, "UPDATE alunos SET nota = ? WHERE id = ?", [nova, id])
+    yield {"ok": yes}
+
+action remover(id):
+    antes := DB.count(conn, "alunos")
+    DB.execute(conn, "DELETE FROM alunos WHERE id = ?", [id])
+    yield {"ok": DB.count(conn, "alunos") smaller antes}
+
+// ═══ APLICACAO ═══
+
+out Text.box("Cadastro de Alunos")
+
+entradas := [
+    ["Ana Silva", "ana@escola.br", 9.5],
+    ["Bruno Costa", "bruno@escola.br", 7.0],
+    ["Carla Dias", "carla@escola.br", 4.5],
+    ["Ze", "ze@escola.br", 8.0],
+    ["Diego Alves", "sem-arroba", 6.0],
+    ["Elena Rocha", "elena@escola.br", 15.0],
+    ["Repetido", "ana@escola.br", 5.0]
+]
+
+out ""
+out "── cadastrando ──"
+aceitos := 0
+cycle e in entradas:
+    nome, email, nota := e
+    r := inserir(nome, email, nota)
+    given r.ok:
+        aceitos += 1
+        out $"  ok   {nome}"
+    otherwise:
+        out $"  nao  {nome}: {r["erros"].join("; ")}"
+
+assert aceitos is 3, "tres aceitos"
+assert DB.count(conn, "alunos") is 3, "tres no banco"
+
+// ── relatorio ──
+alunos := buscar_todos()
+out ""
+out Text.box("Boletim")
+cycle a in alunos:
+    c := conceito_de(a.nota)
+    out $"  {a.nome.pad_end(14)} {str(a.nota).pad_start(5)}  {c.name}"
+
+media := alunos >> morph a: a.nota >> distill acc, n: acc + n 0
+out ""
+out $"media da turma: {round(media / len(alunos), 2)}"
+assert round(media / len(alunos), 2) is 7.0, "media (9.5 + 7.0 + 4.5) / 3"
+
+// ── distribuicao por conceito ──
+out ""
+out "── por conceito ──"
+cycle nome_conceito in Conceito.names():
+    quantos := len(alunos >> sift a: conceito_de(a.nota).name is nome_conceito)
+    given quantos bigger 0:
+        out $"  {nome_conceito}: {"#".repeat(quantos)} ({quantos})"
+
+// ── atualizar e remover ──
+out ""
+primeiro := alunos[0]
+atualizar_nota(primeiro.id, 10.0)
+depois := DB.query_one(conn, "SELECT nota FROM alunos WHERE id = ?", [primeiro.id])
+out $"nota de {primeiro.nome} atualizada para {depois["nota"]}"
+assert depois["nota"] is 10.0, "nota atualizada"
+
+assert atualizar_nota(primeiro.id, 99).ok is no, "nota fora da faixa recusada"
+
+ultimo := alunos[len(alunos) - 1]
+remover(ultimo.id)
+out $"{ultimo.nome} removido"
+assert DB.count(conn, "alunos") is 2, "dois restantes"
+
+DB.close(conn)
+out ""
+out "conexao fechada"

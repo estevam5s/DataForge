@@ -1,0 +1,40 @@
+// Exercicio 133 — Desestruturacao de listas
+// Enunciado: extraia varios valores de uma lista numa unica linha.
+
+// Forma basica: um nome para cada posicao
+a, b := [1, 2]
+out a, b
+assert a is 1 and b is 2, "dois valores"
+
+x, y, z := [10, 20, 30]
+assert x + y + z is 60, "tres valores"
+
+// Troca sem variavel temporaria
+p := "primeiro"
+q := "segundo"
+p, q := q, p
+out p, q
+assert p is "segundo", "troca"
+
+// Quantidade errada e erro, nao silencio
+erro := no
+monitor:
+    m, n := [1, 2, 3]
+handle e:
+    erro := yes
+    out e.message
+assert erro is yes, "3 valores nao cabem em 2 nomes"
+
+// Desestruturar dentro de um laco
+pares := [[1, "um"], [2, "dois"], [3, "tres"]]
+cycle par in pares:
+    numero, palavra := par
+    out $"{numero} = {palavra}"
+
+// Retornar varios valores de uma acao
+action divide_com_resto(a, b):
+    yield [a ~/ b, a % b]
+
+quociente, resto := divide_com_resto(17, 5)
+out $"17 / 5 = {quociente} resto {resto}"
+assert quociente is 3 and resto is 2, "divisao com resto"

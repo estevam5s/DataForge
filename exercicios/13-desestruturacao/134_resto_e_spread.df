@@ -1,0 +1,48 @@
+// Exercicio 134 — Resto e spread
+// Enunciado: colete o que sobra com ...resto e expanda colecoes com ...
+
+// ...resto captura o que sobrou
+primeiro, ...outros := [1, 2, 3, 4, 5]
+out primeiro, outros
+assert primeiro is 1, "cabeca"
+assert outros is [2, 3, 4, 5], "cauda"
+
+// O resto pode estar no meio
+inicio, ...meio, fim := [1, 2, 3, 4, 5]
+out inicio, meio, fim
+assert meio is [2, 3, 4], "o meio"
+assert fim is 5, "o ultimo"
+
+// Resto vazio e valido
+so_um, ...nada := [9]
+assert nada is [], "resto pode ser vazio"
+
+// Spread expande na construcao
+a := [1, 2]
+b := [3, 4]
+juntos := [...a, ...b, 5]
+out juntos
+assert juntos is [1, 2, 3, 4, 5], "concatenacao com spread"
+
+// Spread em vaults: o ultimo vence
+padrao := {"tema": "claro", "fonte": 14}
+usuario := {"tema": "escuro"}
+final := {...padrao, ...usuario}
+out final
+assert final is {"tema": "escuro", "fonte": 14}, "usuario sobrescreve padrao"
+
+// Spread em chamadas
+action somar_tres(a, b, c):
+    yield a + b + c
+
+args := [10, 20, 30]
+out somar_tres(...args)
+assert somar_tres(...args) is 60, "argumentos expandidos"
+
+// Copia rasa: o novo nao e o mesmo objeto
+original := [1, 2, 3]
+copia := [...original]
+copia.append(4)
+out original, copia
+assert original is [1, 2, 3], "o original nao mudou"
+assert copia is [1, 2, 3, 4], "a copia mudou"

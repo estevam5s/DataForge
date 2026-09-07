@@ -1,0 +1,59 @@
+// Exercicio 146 — Sequencias infinitas
+// Enunciado: escreva um generator sem fim e consuma so o que precisa.
+
+// Um laco infinito num generator e legitimo: nada roda ate alguem pedir
+stream action naturais():
+    n := 0
+    persist yes:
+        emit n
+        n += 1
+
+out naturais().take(6)
+assert naturais().take(6) is [0, 1, 2, 3, 4, 5], "seis primeiros"
+
+// Fibonacci infinito
+stream action fibonacci():
+    a := 0
+    b := 1
+    persist yes:
+        emit a
+        a, b := b, a + b
+
+out fibonacci().take(10)
+assert fibonacci().take(10) is [0, 1, 1, 2, 3, 5, 8, 13, 21, 34], "fib"
+
+// Potencias de dois
+stream action potencias(base):
+    valor := 1
+    persist yes:
+        emit valor
+        valor *= base
+
+out potencias(2).take(8)
+assert potencias(2).take(8) is [1, 2, 4, 8, 16, 32, 64, 128], "potencias de 2"
+
+// Ciclo eterno sobre uma lista
+stream action repetir(itens):
+    persist yes:
+        cycle i in itens:
+            emit i
+
+out repetir(["a", "b", "c"]).take(7)
+assert repetir(["a", "b"]).take(5) is ["a", "b", "a", "b", "a"], "alterna"
+
+// Parar de dentro, com halt
+stream action ate_passar(limite):
+    n := 1
+    persist yes:
+        given n bigger limite:
+            halt
+        emit n
+        n *= 3
+
+out ate_passar(100).to_cluster()
+assert ate_passar(100).to_cluster() is [1, 3, 9, 27, 81], "para em 81"
+
+// next() avanca um por vez
+g := naturais()
+out g.next(), g.next(), g.next()
+assert g.next() is 3, "a quarta chamada devolve 3"

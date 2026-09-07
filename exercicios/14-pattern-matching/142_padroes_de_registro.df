@@ -1,0 +1,62 @@
+// Exercicio 142 — Padroes de record e vault
+// Enunciado: extraia campos direto no padrao, por posicao ou por nome.
+
+record Usuario:
+    nome: String
+    idade: Integer
+    papel: String := "leitor"
+
+action permissao(u):
+    match u:
+        point Usuario(papel := "admin"):
+            yield "acesso total"
+        point Usuario(nome := n, idade := i) when i smaller 18:
+            yield $"{n} e menor: acesso limitado"
+        point Usuario(nome := n):
+            yield $"{n}: acesso padrao"
+        default:
+            yield "nao e usuario"
+
+cycle u in [
+    Usuario("Root", 40, "admin"),
+    Usuario("Kid", 12),
+    Usuario("Ana", 30),
+]:
+    out permissao(u)
+
+assert permissao(Usuario("Root", 40, "admin")) is "acesso total", "por campo"
+assert permissao(Usuario("Kid", 12)) is "Kid e menor: acesso limitado", "guarda"
+assert permissao(Usuario("Ana", 30)) is "Ana: acesso padrao", "geral"
+
+// Por posicao, na ordem dos campos
+action resumo(u):
+    match u:
+        point Usuario(n, i, p):
+            yield $"{n}/{i}/{p}"
+        default:
+            yield "?"
+
+assert resumo(Usuario("Ana", 30)) is "Ana/30/leitor", "posicional"
+
+// Vaults casam com chaves
+action rotear(req):
+    match req:
+        point {"metodo": "GET", "rota": r}:
+            yield $"lendo {r}"
+        point {"metodo": "POST", "rota": r, "corpo": c}:
+            yield $"criando em {r} com {len(c.keys())} campos"
+        point {"metodo": m}:
+            yield $"metodo {m} nao suportado"
+        default:
+            yield "requisicao invalida"
+
+out rotear({"metodo": "GET", "rota": "/usuarios"})
+out rotear({"metodo": "POST", "rota": "/usuarios", "corpo": {"nome": "Ana"}})
+out rotear({"metodo": "DELETE", "rota": "/x"})
+out rotear("nao e vault")
+
+assert rotear({"metodo": "GET", "rota": "/x"}) is "lendo /x", "GET"
+assert rotear({"metodo": "DELETE", "rota": "/x"}) is "metodo DELETE nao suportado", "outro"
+
+// Chaves extras nao atrapalham
+assert rotear({"metodo": "GET", "rota": "/x", "extra": 1}) is "lendo /x", "casamento parcial"

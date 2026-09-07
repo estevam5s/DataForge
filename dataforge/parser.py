@@ -16,6 +16,11 @@ class Parser:
         self.tokens = tokens
         self.filename = filename
         self.pos = 0
+        # Contextos onde certas producoes ficariam ambiguas:
+        #  _no_ternary     — 'given' seria guarda/condicao, nao ternario
+        #  _no_membership  — 'in' pertence ao cabecalho de cycle/observe
+        self._no_ternary = 0
+        self._no_membership = 0
 
     # ── Helpers ────────────────────────────────────────────
 
@@ -142,6 +147,19 @@ class Parser:
         if tt == TokenType.BLUEPRINT:
             return self.parse_blueprint()
 
+        # ── record ──
+        if tt == TokenType.RECORD:
+            return self.parse_record()
+
+        # ── enum ──
+        if tt == TokenType.ENUM:
+            return self.parse_enum()
+
+        # ── stream action (generator) ──
+        if tt == TokenType.STREAM and self.peek().type == TokenType.ACTION:
+            self.advance()
+            return self.parse_action(is_generator=True)
+
         # ── trait ──
         if tt == TokenType.TRAIT:
             return self.parse_trait()
@@ -170,9 +188,13 @@ class Parser:
         if tt == TokenType.MONITOR:
             return self.parse_monitor()
 
-        # ── out / emit ──
-        if tt == TokenType.OUT or tt == TokenType.EMIT:
+        # ── out ──
+        if tt == TokenType.OUT:
             return self.parse_out()
+
+        # ── emit ──
+        if tt == TokenType.EMIT:
+            return self.parse_emit()
 
         # ── yield ──
         if tt == TokenType.YIELD:
@@ -296,19 +318,66 @@ class Parser:
         return next_stmt
 
     def parse_adopt(self):
-        """adopt Module[.Sub] [as Alias]"""
+        """adopt Modulo[.Sub] [as Alias]
+           adopt {nome1, nome2 as apelido} from Modulo    (import seletivo)
+           adopt Modulo.{nome1, nome2}                    (forma compacta)
+        """
         tok = self.advance()  # consume 'adopt'
-        parts = [self.expect(TokenType.IDENTIFIER).value]
+
+        # adopt {a, b as c} from Modulo
+        if self.current().type == TokenType.LBRACE:
+            selecao = self._parse_selecao()
+            self.expect(TokenType.FROM, "Expected 'from' after the selected names")
+            modulo = self._parse_caminho_de_modulo()
+            self.match(TokenType.NEWLINE)
+            return ast.AdoptStatement(module=modulo, alias="", selection=selecao,
+                                      line=tok.line, column=tok.column)
+
+        partes = [self.expect(TokenType.IDENTIFIER,
+                              "Expected the module name after 'adopt'").value]
+        selecao = None
         while self.match(TokenType.DOT):
-            parts.append(self.expect(TokenType.IDENTIFIER).value)
-        module_name = '.'.join(parts)
+            # adopt Arcane.Math.{sqrt, floor}
+            if self.current().type == TokenType.LBRACE:
+                selecao = self._parse_selecao()
+                break
+            partes.append(self.expect_member_name())
+        modulo = '.'.join(partes)
 
         alias = ""
         if self.match(TokenType.AS):
-            alias = self.expect(TokenType.IDENTIFIER).value
+            alias = self.expect(TokenType.IDENTIFIER,
+                                "Expected the alias name after 'as'").value
 
         self.match(TokenType.NEWLINE)
-        return ast.AdoptStatement(module=module_name, alias=alias, line=tok.line, column=tok.column)
+        return ast.AdoptStatement(module=modulo, alias=alias, selection=selecao,
+                                  line=tok.line, column=tok.column)
+
+    def _parse_selecao(self):
+        """{nome, outro as apelido} — a lista de nomes importados."""
+        self.expect(TokenType.LBRACE)
+        selecao = []
+        while self.current().type != TokenType.RBRACE:
+            self.skip_newlines()
+            nome = self.expect_member_name()
+            apelido = nome
+            if self.match(TokenType.AS):
+                apelido = self.expect(TokenType.IDENTIFIER,
+                                      "Expected the alias name after 'as'").value
+            selecao.append((nome, apelido))
+            self.skip_newlines()
+            self.match(TokenType.COMMA)
+            self.skip_newlines()
+        self.expect(TokenType.RBRACE)
+        if not selecao:
+            self.error("Empty selection: name at least one symbol to import")
+        return selecao
+
+    def _parse_caminho_de_modulo(self):
+        partes = [self.expect(TokenType.IDENTIFIER, "Expected the module name").value]
+        while self.match(TokenType.DOT):
+            partes.append(self.expect_member_name())
+        return '.'.join(partes)
 
     def parse_relay(self):
         """relay name1, name2, ..."""
@@ -337,7 +406,8 @@ class Parser:
         self.match(TokenType.NEWLINE)
         return ast.ShadowDeclaration(name=name, value=value, line=tok.line, column=tok.column)
 
-    def parse_action(self, is_async: bool = False, decorators: list = None):
+    def parse_action(self, is_async: bool = False, decorators: list = None,
+                     is_generator: bool = False):
         """action name(params): block"""
         tok = self.advance()  # consume 'action'
 
@@ -365,6 +435,7 @@ class Parser:
                 name=name, params=params, defaults=defaults, body=[],
                 is_async=is_async, decorators=decorators or [],
                 param_types=param_types, return_type=return_type,
+                is_generator=is_generator,
                 line=tok.line, column=tok.column
             )
 
@@ -376,6 +447,7 @@ class Parser:
             name=name, params=params, defaults=defaults, body=body,
             is_async=is_async, decorators=decorators or [],
             param_types=param_types, return_type=return_type,
+            is_generator=is_generator,
             line=tok.line, column=tok.column
         )
 
@@ -454,6 +526,96 @@ class Parser:
             line=tok.line, column=tok.column
         )
 
+    def parse_record(self):
+        """record Nome: campo: Tipo [:= padrao] ... [action metodo(): ...]"""
+        tok = self.advance()  # record
+        nome = self.expect(TokenType.IDENTIFIER, "Expected the record name").value
+        self.expect(TokenType.COLON, "Expected ':' after the record name")
+        self.match(TokenType.NEWLINE)
+        self.skip_newlines()
+        self.expect(TokenType.INDENT, "A record needs an indented body")
+
+        campos = []
+        metodos = {}
+        while self.current().type not in (TokenType.DEDENT, TokenType.EOF):
+            self.skip_newlines()
+            if self.current().type in (TokenType.DEDENT, TokenType.EOF):
+                break
+            if self.current().type == TokenType.ACTION:
+                metodo = self.parse_action()
+                metodos[metodo.name] = metodo
+                self.skip_newlines()
+                continue
+            campo = self.expect(TokenType.IDENTIFIER,
+                                "Expected a field name in the record").value
+            self.expect(TokenType.COLON,
+                        f"Field '{campo}' needs a type: '{campo}: Tipo'")
+            tipo = self.expect(TokenType.IDENTIFIER,
+                               f"Expected the type of field '{campo}'").value
+            padrao = None
+            if self.match(TokenType.ASSIGN):
+                padrao = self.parse_expression()
+            campos.append((campo, tipo, padrao))
+            self.match(TokenType.NEWLINE)
+            self.skip_newlines()
+        if self.current().type == TokenType.DEDENT:
+            self.advance()
+
+        if not campos:
+            self.error(f"Record '{nome}' has no fields. "
+                       f"Declare at least one as 'campo: Tipo'.")
+        return ast.RecordDeclaration(name=nome, fields=campos, methods=metodos,
+                                     line=tok.line, column=tok.column)
+
+    def parse_enum(self):
+        """enum Nome: MEMBRO [:= valor] ... [action metodo(): ...]"""
+        tok = self.advance()  # enum
+        nome = self.expect(TokenType.IDENTIFIER, "Expected the enum name").value
+        self.expect(TokenType.COLON, "Expected ':' after the enum name")
+        self.match(TokenType.NEWLINE)
+        self.skip_newlines()
+        self.expect(TokenType.INDENT, "An enum needs an indented body")
+
+        membros = []
+        metodos = {}
+        while self.current().type not in (TokenType.DEDENT, TokenType.EOF):
+            self.skip_newlines()
+            if self.current().type in (TokenType.DEDENT, TokenType.EOF):
+                break
+            if self.current().type == TokenType.ACTION:
+                metodo = self.parse_action()
+                metodos[metodo.name] = metodo
+                self.skip_newlines()
+                continue
+            membro = self.expect(TokenType.IDENTIFIER,
+                                 "Expected an enum member name").value
+            valor = None
+            if self.match(TokenType.ASSIGN):
+                valor = self.parse_expression()
+            membros.append((membro, valor))
+            self.match(TokenType.NEWLINE)
+            self.skip_newlines()
+        if self.current().type == TokenType.DEDENT:
+            self.advance()
+
+        if not membros:
+            self.error(f"Enum '{nome}' has no members.")
+        return ast.EnumDeclaration(name=nome, members=membros, methods=metodos,
+                                   line=tok.line, column=tok.column)
+
+    def parse_emit(self):
+        """emit expr — produz num generator, imprime fora dele."""
+        tok = self.advance()
+        expressoes = []
+        if self.current().type not in (TokenType.NEWLINE, TokenType.EOF,
+                                       TokenType.DEDENT):
+            expressoes.append(self.parse_expression())
+            while self.match(TokenType.COMMA):
+                expressoes.append(self.parse_expression())
+        self.match(TokenType.NEWLINE)
+        return ast.EmitStatement(expressions=expressoes,
+                                 line=tok.line, column=tok.column)
+
     def parse_trait(self):
         """trait Name: method_signatures"""
         tok = self.advance()  # consume 'trait'
@@ -511,12 +673,21 @@ class Parser:
         while self.current().type not in (TokenType.DEDENT, TokenType.EOF):
             self.skip_newlines()
             if self.current().type == TokenType.POINT:
-                self.advance()
-                value = self.parse_expression()
-                self.expect(TokenType.COLON)
+                ptok = self.advance()
+                padrao = self.parse_pattern()
+                guarda = None
+                if self.match(TokenType.WHEN):
+                    self._no_ternary += 1
+                    try:
+                        guarda = self.parse_expression()
+                    finally:
+                        self._no_ternary -= 1
+                self.expect(TokenType.COLON, "Expected ':' after the pattern")
                 self.match(TokenType.NEWLINE)
                 point_body = self.parse_block()
-                points.append((value, point_body))
+                points.append(ast.MatchCase(
+                    pattern=padrao, guard=guarda, body=point_body,
+                    line=ptok.line, column=ptok.column))
             elif self.current().type == TokenType.DEFAULT:
                 self.advance()
                 self.expect(TokenType.COLON)
@@ -533,6 +704,132 @@ class Parser:
             expression=expression, points=points, default_body=default_body,
             line=tok.line, column=tok.column
         )
+
+    # ── Padrões de 'match / point' ─────────────────────────
+
+    def parse_pattern(self):
+        """Um padrão de 'point', com 'or' e 'as' no topo."""
+        opcoes = [self._parse_pattern_primary()]
+        while self.match(TokenType.OR):
+            opcoes.append(self._parse_pattern_primary())
+        padrao = opcoes[0] if len(opcoes) == 1 else ast.OrPattern(
+            options=opcoes, line=opcoes[0].line, column=opcoes[0].column)
+
+        if self.match(TokenType.AS):
+            padrao.binding = self.expect(
+                TokenType.IDENTIFIER, "Expected a name after 'as'").value
+        return padrao
+
+    def _parse_pattern_primary(self):
+        tok = self.current()
+
+        # Literais
+        if tok.type in (TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING,
+                        TokenType.BOOLEAN, TokenType.VOID):
+            self.advance()
+            return ast.LiteralPattern(value=tok.value,
+                                      line=tok.line, column=tok.column)
+
+        # Número negativo
+        if tok.type == TokenType.MINUS and self.peek().type in (
+                TokenType.INTEGER, TokenType.FLOAT):
+            self.advance()
+            num = self.advance()
+            return ast.LiteralPattern(value=-num.value,
+                                      line=tok.line, column=tok.column)
+
+        # Sequência: [a, b, ...resto]
+        if tok.type == TokenType.LBRACKET:
+            self.advance()
+            elementos = []
+            rest_index, rest_name = -1, ""
+            while self.current().type != TokenType.RBRACKET:
+                self.skip_newlines()
+                if self.match(TokenType.SPREAD):
+                    if rest_index != -1:
+                        self.error("Only one '...rest' is allowed in a pattern")
+                    rest_index = len(elementos)
+                    if self.current().type == TokenType.IDENTIFIER:
+                        rest_name = self.advance().value
+                else:
+                    elementos.append(self.parse_pattern())
+                self.skip_newlines()
+                self.match(TokenType.COMMA)
+                self.skip_newlines()
+            self.expect(TokenType.RBRACKET)
+            return ast.SequencePattern(
+                elements=elementos, rest_index=rest_index, rest_name=rest_name,
+                line=tok.line, column=tok.column)
+
+        # Mapa: {"chave": padrao, ...resto}
+        if tok.type == TokenType.LBRACE:
+            self.advance()
+            pares = []
+            rest_name = ""
+            while self.current().type != TokenType.RBRACE:
+                self.skip_newlines()
+                if self.match(TokenType.SPREAD):
+                    if self.current().type == TokenType.IDENTIFIER:
+                        rest_name = self.advance().value
+                else:
+                    chave = self.parse_primary()
+                    self.expect(TokenType.COLON,
+                                "Expected ':' after the key in the pattern")
+                    pares.append((chave, self.parse_pattern()))
+                self.skip_newlines()
+                self.match(TokenType.COMMA)
+                self.skip_newlines()
+            self.expect(TokenType.RBRACE)
+            return ast.MappingPattern(pairs=pares, rest_name=rest_name,
+                                      line=tok.line, column=tok.column)
+
+        if tok.type == TokenType.IDENTIFIER:
+            nome = self.advance().value
+
+            # Curinga
+            if nome == "_":
+                return ast.WildcardPattern(line=tok.line, column=tok.column)
+
+            # Valor nomeado: Status.Ativo
+            if self.current().type == TokenType.DOT:
+                expr = ast.Identifier(name=nome, line=tok.line, column=tok.column)
+                while self.match(TokenType.DOT):
+                    membro = self.expect_member_name()
+                    expr = ast.MemberAccess(object=expr, member=membro,
+                                            line=tok.line, column=tok.column)
+                return ast.ValuePattern(expression=expr,
+                                        line=tok.line, column=tok.column)
+
+            # Tipo com sub-padrões: Usuario(nome, idade) / Usuario(nome := p)
+            if self.current().type == TokenType.LPAREN:
+                self.advance()
+                sub, campos = [], {}
+                while self.current().type != TokenType.RPAREN:
+                    self.skip_newlines()
+                    if (self.current().type == TokenType.IDENTIFIER
+                            and self.peek().type == TokenType.ASSIGN):
+                        campo = self.advance().value
+                        self.advance()
+                        campos[campo] = self.parse_pattern()
+                    else:
+                        sub.append(self.parse_pattern())
+                    self.skip_newlines()
+                    self.match(TokenType.COMMA)
+                    self.skip_newlines()
+                self.expect(TokenType.RPAREN)
+                return ast.TypePattern(type_name=nome, sub_patterns=sub,
+                                       field_patterns=campos,
+                                       line=tok.line, column=tok.column)
+
+            # Convenção: Maiúscula casa por tipo, minúscula captura
+            if nome[0].isupper():
+                return ast.TypePattern(type_name=nome,
+                                       line=tok.line, column=tok.column)
+            return ast.CapturePattern(name=nome, line=tok.line, column=tok.column)
+
+        self.error(
+            f"Invalid pattern after 'point': {tok.type.name}. "
+            f"Use a literal, a name, [..], {{..}} or a Type.")
 
     def parse_cycle(self):
         """cycle var from start to end [step s]: block
@@ -557,7 +854,11 @@ class Parser:
             )
         elif self.match(TokenType.IN):
             # cycle var in collection:
-            collection = self.parse_expression()
+            self._no_membership += 1
+            try:
+                collection = self.parse_expression()
+            finally:
+                self._no_membership -= 1
             self.expect(TokenType.COLON)
             self.match(TokenType.NEWLINE)
             body = self.parse_block()
@@ -777,7 +1078,11 @@ class Parser:
         tok = self.advance()  # consume 'observe'
         var = self.expect(TokenType.IDENTIFIER).value
         self.expect(TokenType.IN)
-        source = self.parse_expression()
+        self._no_membership += 1
+        try:
+            source = self.parse_expression()
+        finally:
+            self._no_membership -= 1
         self.expect(TokenType.COLON)
         self.match(TokenType.NEWLINE)
         body = self.parse_block()
@@ -810,8 +1115,91 @@ class Parser:
         TokenType.PERCENT_ASSIGN: "%",
     }
 
+    def _looks_like_destructuring(self) -> bool:
+        """Ha 'a, b := ...' ou '{a, b} := ...' a partir daqui?"""
+        i = self.pos
+        toks = self.tokens
+        n = len(toks)
+
+        if toks[i].type == TokenType.LBRACE:
+            # {nome, idade} := registro
+            i += 1
+            vistos = 0
+            while i < n and toks[i].type != TokenType.RBRACE:
+                if toks[i].type == TokenType.IDENTIFIER:
+                    vistos += 1
+                elif toks[i].type not in (TokenType.COMMA, TokenType.SPREAD):
+                    return False
+                i += 1
+            if i >= n or vistos == 0:
+                return False
+            return i + 1 < n and toks[i + 1].type == TokenType.ASSIGN
+
+        if toks[i].type not in (TokenType.IDENTIFIER, TokenType.SPREAD):
+            return False
+        tem_virgula = False
+        while i < n:
+            if toks[i].type == TokenType.SPREAD:
+                i += 1
+                continue
+            if toks[i].type != TokenType.IDENTIFIER:
+                return False
+            i += 1
+            if i < n and toks[i].type == TokenType.COMMA:
+                tem_virgula = True
+                i += 1
+                continue
+            break
+        return tem_virgula and i < n and toks[i].type == TokenType.ASSIGN
+
+    def parse_destructuring(self):
+        """a, b := lista   |   a, ...resto := lista   |   {nome, idade} := registro"""
+        tok = self.current()
+        alvos = []
+        is_mapping = False
+
+        if self.match(TokenType.LBRACE):
+            is_mapping = True
+            while self.current().type != TokenType.RBRACE:
+                resto = bool(self.match(TokenType.SPREAD))
+                nome = self.expect(TokenType.IDENTIFIER,
+                                   "Expected a field name to destructure").value
+                alvos.append((nome, resto))
+                self.match(TokenType.COMMA)
+            self.expect(TokenType.RBRACE)
+        else:
+            while True:
+                resto = bool(self.match(TokenType.SPREAD))
+                nome = self.expect(TokenType.IDENTIFIER,
+                                   "Expected a name to destructure into").value
+                alvos.append((nome, resto))
+                if not self.match(TokenType.COMMA):
+                    break
+
+        restos = [n for n, r in alvos if r]
+        if len(restos) > 1:
+            self.error("Only one '...rest' target is allowed when destructuring")
+
+        self.expect(TokenType.ASSIGN, "Expected ':=' in the destructuring")
+        valor = self.parse_expression()
+
+        # Lado direito com vírgulas vira uma lista: a, b := b, a (troca)
+        if self.current().type == TokenType.COMMA:
+            elementos = [valor]
+            while self.match(TokenType.COMMA):
+                elementos.append(self._parse_element())
+            valor = ast.ListLiteral(elements=elementos,
+                                    line=valor.line, column=valor.column)
+        self.match(TokenType.NEWLINE)
+        return ast.DestructuringAssignment(
+            targets=alvos, value=valor, is_mapping=is_mapping,
+            line=tok.line, column=tok.column)
+
     def parse_expression_statement(self):
         """Parse an expression, an assignment, or a typed declaration."""
+        if self._looks_like_destructuring():
+            return self.parse_destructuring()
+
         start = self.current()
 
         # A keyword immediately followed by ':=' is a reserved-word mistake.
@@ -877,7 +1265,7 @@ class Parser:
 
     def parse_pipeline(self):
         """expr >> sift/morph/distill ..."""
-        expr = self.parse_or()
+        expr = self.parse_ternary()
 
         if self.current().type == TokenType.PIPE:
             ops = []
@@ -953,6 +1341,34 @@ class Parser:
 
         self.error(f"Expected pipeline operation (sift/morph/distill), got {tok.type.name}")
 
+    def parse_ternary(self):
+        """valor given condicao otherwise alternativa.
+
+        Le-se "este valor, dado que a condicao vale, senao o outro".
+        Nao se aplica em contexto de padrao (guardas usam 'when').
+        """
+        expr = self.parse_coalesce()
+        if self._no_ternary or self.current().type != TokenType.GIVEN:
+            return expr
+        self.advance()  # given
+        condition = self.parse_coalesce()
+        self.expect(TokenType.OTHERWISE,
+                    "Expected 'otherwise' to close the conditional expression")
+        alternativa = self.parse_ternary()
+        return ast.TernaryExpression(
+            then_value=expr, condition=condition, else_value=alternativa,
+            line=expr.line, column=expr.column)
+
+    def parse_coalesce(self):
+        """a ?? b — b entra em cena so quando a e void."""
+        left = self.parse_or()
+        while self.current().type == TokenType.COALESCE:
+            self.advance()
+            right = self.parse_or()
+            left = ast.CoalesceOp(left=left, right=right,
+                                  line=left.line, column=left.column)
+        return left
+
     def parse_or(self):
         left = self.parse_and()
         while self.current().type == TokenType.OR:
@@ -994,6 +1410,19 @@ class Parser:
     def parse_comparison(self):
         """Comparisons, including chains such as '1 smaller x smaller 10'."""
         left = self.parse_addition()
+
+        # Pertinencia: x in colecao / x not in colecao
+        if self.current().type == TokenType.IN and not self._no_membership:
+            self.advance()
+            container = self.parse_addition()
+            return ast.MembershipOp(element=left, container=container, negated=False,
+                                    line=left.line, column=left.column)
+        if (self.current().type == TokenType.NOT
+                and self.peek().type == TokenType.IN and not self._no_membership):
+            self.advance(); self.advance()
+            container = self.parse_addition()
+            return ast.MembershipOp(element=left, container=container, negated=True,
+                                    line=left.line, column=left.column)
 
         if self.current().type not in self.COMPARISON_OPS:
             return left
@@ -1104,6 +1533,27 @@ class Parser:
                         object=expr, member=member,
                         line=expr.line, column=expr.column
                     )
+            elif self.current().type == TokenType.SAFE_DOT:
+                self.advance()
+                member = self.expect_member_name()
+                if self.current().type == TokenType.LPAREN:
+                    self.advance()
+                    args, kwargs = self._parse_call_args()
+                    self.expect(TokenType.RPAREN)
+                    expr = ast.SafeMethodCall(
+                        object=expr, method=member, args=args, kwargs=kwargs,
+                        line=expr.line, column=expr.column)
+                else:
+                    expr = ast.SafeMemberAccess(
+                        object=expr, member=member,
+                        line=expr.line, column=expr.column)
+            elif (self.current().type == TokenType.WITH
+                  and self.peek().type == TokenType.LBRACE):
+                # registro with {"campo": novo_valor}
+                self.advance()
+                changes = self.parse_dict()
+                expr = ast.WithExpression(source=expr, changes=changes,
+                                          line=expr.line, column=expr.column)
             elif self.current().type == TokenType.LBRACKET:
                 self.advance()
                 expr = self._parse_subscript(expr)
@@ -1140,6 +1590,17 @@ class Parser:
         if tok.type == TokenType.STRING:
             self.advance()
             return ast.StringLiteral(value=tok.value, line=tok.line, column=tok.column)
+
+        # String interpolada: $"texto {expr}"
+        if tok.type == TokenType.INTERP_STRING:
+            self.advance()
+            partes = []
+            for tipo, conteudo in tok.value:
+                if tipo == 'text':
+                    partes.append(('text', conteudo))
+                else:
+                    partes.append(('expr', self._parse_sub_expression(conteudo, tok)))
+            return ast.InterpolatedString(parts=partes, line=tok.line, column=tok.column)
 
         # Boolean
         if tok.type == TokenType.BOOLEAN:
@@ -1310,29 +1771,124 @@ class Parser:
             self.error(f"Unexpected token: {tok.type.name} ('{word}')")
         self.error(f"Unexpected token: {tok.type.name} ({tok.value!r})")
 
+    def _parse_sub_expression(self, fonte: str, tok):
+        """Compila o trecho de dentro de {...} numa expressao."""
+        from .lexer import tokenize
+        try:
+            sub_tokens = tokenize(fonte, self.filename)
+            sub = Parser(sub_tokens, self.filename)
+            expr = sub.parse_expression()
+        except ParseError as e:
+            raise ParseError(
+                f"Invalid expression inside the interpolated string "
+                f"({{{fonte}}}): {e.message}", tok.line, tok.column)
+        # Reposiciona para a linha da string, que e o que o usuario ve
+        expr.line, expr.column = tok.line, tok.column
+        return expr
+
     def parse_list(self):
-        """Parse [a, b, c]"""
+        """[a, b, c]  |  [...a, b]  |  [expr cycle x in fonte given cond]"""
         tok = self.advance()  # [
-        elements = []
+        self.skip_newlines()
+
+        if self.current().type == TokenType.RBRACKET:
+            self.advance()
+            return ast.ListLiteral(elements=[], line=tok.line, column=tok.column)
+
+        primeiro = self._parse_element()
+        self.skip_newlines()
+
+        # Compreensao de lista
+        if self.current().type == TokenType.CYCLE:
+            clauses = self._parse_comprehension_clauses(TokenType.RBRACKET)
+            self.expect(TokenType.RBRACKET)
+            return ast.ListComprehension(expression=primeiro, clauses=clauses,
+                                         line=tok.line, column=tok.column)
+
+        elements = [primeiro]
+        self.match(TokenType.COMMA)
+        self.skip_newlines()
         while self.current().type != TokenType.RBRACKET:
             self.skip_newlines()
-            elements.append(self.parse_expression())
+            elements.append(self._parse_element())
             self.skip_newlines()
             self.match(TokenType.COMMA)
             self.skip_newlines()
         self.expect(TokenType.RBRACKET)
         return ast.ListLiteral(elements=elements, line=tok.line, column=tok.column)
 
+    def _parse_element(self):
+        """Um elemento de literal: expressao ou '...expr'."""
+        if self.current().type == TokenType.SPREAD:
+            tok = self.advance()
+            valor = self.parse_expression()
+            return ast.SpreadElement(value=valor, line=tok.line, column=tok.column)
+        return self.parse_expression()
+
+    def _parse_comprehension_clauses(self, fim):
+        """Uma ou mais clausulas 'cycle x in fonte [given cond]'."""
+        clauses = []
+        while self.current().type == TokenType.CYCLE:
+            tok = self.advance()
+            alvos = [self.expect(TokenType.IDENTIFIER,
+                                 "Expected a name after 'cycle'").value]
+            while self.match(TokenType.COMMA):
+                alvos.append(self.expect(TokenType.IDENTIFIER).value)
+            self.expect(TokenType.IN, "Expected 'in' after the comprehension name")
+            self._no_membership += 1
+            self._no_ternary += 1
+            try:
+                fonte = self.parse_expression()
+            finally:
+                self._no_membership -= 1
+                self._no_ternary -= 1
+            condicao = None
+            if self.current().type == TokenType.GIVEN:
+                self.advance()
+                self._no_ternary += 1
+                try:
+                    condicao = self.parse_expression()
+                finally:
+                    self._no_ternary -= 1
+            clauses.append(ast.ComprehensionClause(
+                var=alvos[0], targets=alvos, source=fonte, condition=condicao,
+                line=tok.line, column=tok.column))
+            self.skip_newlines()
+        if not clauses:
+            self.error("Expected 'cycle' to start the comprehension")
+        return clauses
+
     def parse_dict(self):
-        """Parse {key: value, ...}"""
+        """{k: v}  |  {...base, k: v}  |  {k: v cycle x in fonte given cond}"""
         tok = self.advance()  # {
         pairs = []
+        self.skip_newlines()
+
+        if self.current().type == TokenType.RBRACE:
+            self.advance()
+            return ast.DictLiteral(pairs=[], line=tok.line, column=tok.column)
+
         while self.current().type != TokenType.RBRACE:
             self.skip_newlines()
-            key = self.parse_expression()
-            self.expect(TokenType.COLON)
-            value = self.parse_expression()
-            pairs.append((key, value))
+            if self.current().type == TokenType.SPREAD:
+                stok = self.advance()
+                pairs.append((ast.SpreadElement(value=self.parse_expression(),
+                                                line=stok.line, column=stok.column),
+                              None))
+            else:
+                chave = self.parse_expression()
+                self.expect(TokenType.COLON, "Expected ':' between key and value")
+                valor = self.parse_expression()
+
+                # Compreensao de vault, detectada apos o primeiro par
+                if not pairs and self.current().type == TokenType.CYCLE:
+                    clauses = self._parse_comprehension_clauses(TokenType.RBRACE)
+                    self.expect(TokenType.RBRACE)
+                    return ast.VaultComprehension(
+                        key=chave, value=valor, clauses=clauses,
+                        line=tok.line, column=tok.column)
+
+                pairs.append((chave, valor))
             self.skip_newlines()
             self.match(TokenType.COMMA)
             self.skip_newlines()
@@ -1369,6 +1925,10 @@ class Parser:
                 self.advance()  # skip :=
                 value = self.parse_expression()
                 kwargs[name] = value
+            elif self.current().type == TokenType.SPREAD:
+                stok = self.advance()
+                args.append(ast.SpreadElement(value=self.parse_expression(),
+                                              line=stok.line, column=stok.column))
             else:
                 args.append(self.parse_expression())
             self.match(TokenType.COMMA)

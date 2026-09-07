@@ -1,0 +1,100 @@
+// Exercicio 155 — Testes automatizados
+// Enunciado: escreva testes que o dataforge test descobre e executa.
+
+// Um arquivo cujo nome termina em _test.df, ou dentro de tests/, e descoberto
+// automaticamente. Cada acao 'test_*' vira um caso.
+
+// ── codigo sob teste ──
+
+action fatorial(n: Integer) -> Integer:
+    guard n bigger_eq 0, "fatorial exige n >= 0"
+    given n smaller_eq 1:
+        yield 1
+    yield n * fatorial(n - 1)
+
+action eh_primo(n: Integer) -> Boolean:
+    given n smaller 2:
+        yield no
+    i := 2
+    persist i * i smaller_eq n:
+        given n % i is 0:
+            yield no
+        i += 1
+    yield yes
+
+record Conta:
+    titular: String
+    saldo: Number
+
+action sacar(c: Conta, valor: Number) -> Conta:
+    guard valor bigger 0, "valor precisa ser positivo"
+    guard valor smaller_eq c.saldo, "saldo insuficiente"
+    yield c with {"saldo": c.saldo - valor}
+
+// ── casos de teste ──
+
+action test_fatorial_casos_base():
+    assert fatorial(0) is 1, "fatorial de 0"
+    assert fatorial(1) is 1, "fatorial de 1"
+
+action test_fatorial_cresce():
+    assert fatorial(5) is 120, "fatorial de 5"
+    assert fatorial(6) is 720, "fatorial de 6"
+
+action test_fatorial_recusa_negativo():
+    disparou := no
+    monitor:
+        fatorial(-1)
+    handle e:
+        disparou := yes
+    assert disparou is yes, "negativo deve disparar"
+
+action test_primos_conhecidos():
+    cycle n in [2, 3, 5, 7, 11, 13]:
+        assert eh_primo(n) is yes, $"{n} e primo"
+
+action test_nao_primos():
+    cycle n in [0, 1, 4, 9, 15, 100]:
+        assert eh_primo(n) is no, $"{n} nao e primo"
+
+action test_saque_reduz_saldo():
+    c := Conta("Ana", 1000)
+    depois := sacar(c, 300)
+    assert depois.saldo is 700, "saldo apos saque"
+    assert c.saldo is 1000, "o original nao muda"
+
+action test_saque_acima_do_saldo():
+    erro := ""
+    monitor:
+        sacar(Conta("Ana", 100), 500)
+    handle e:
+        erro := e.message
+    assert erro is "saldo insuficiente", "mensagem do guard"
+
+// ── executando manualmente, para este exercicio ser autocontido ──
+
+casos := [
+    ["fatorial_casos_base", test_fatorial_casos_base],
+    ["fatorial_cresce", test_fatorial_cresce],
+    ["fatorial_recusa_negativo", test_fatorial_recusa_negativo],
+    ["primos_conhecidos", test_primos_conhecidos],
+    ["nao_primos", test_nao_primos],
+    ["saque_reduz_saldo", test_saque_reduz_saldo],
+    ["saque_acima_do_saldo", test_saque_acima_do_saldo]
+]
+
+passaram := 0
+falharam := 0
+cycle caso in casos:
+    nome, acao := caso
+    monitor:
+        acao()
+        passaram += 1
+        out $"  ok    {nome}"
+    handle e:
+        falharam += 1
+        out $"  FALHA {nome}: {e.message}"
+
+out ""
+out $"{passaram} passaram, {falharam} falharam"
+assert falharam is 0, "a suite deve estar verde"

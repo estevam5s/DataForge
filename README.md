@@ -4,53 +4,66 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-3.1.0-green.svg)](https://github.com/estevam5s/DataForge)
-[![Tests](https://img.shields.io/badge/testes-77%20passando-brightgreen.svg)](tests/)
-[![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-120%2F120-brightgreen.svg)](exercicios/)
+[![Version](https://img.shields.io/badge/version-4.0.0-green.svg)](https://github.com/estevam5s/DataForge)
+[![Tests](https://img.shields.io/badge/testes-236%20passando-brightgreen.svg)](tests/)
+[![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-180%2F180-brightgreen.svg)](exercicios/)
 
-**Uma linguagem de programação interpretada, com vocabulário próprio, pipelines
-nativos e biblioteca padrão de 454 símbolos — escrita em Python puro, sem
-dependências.**
+**Uma linguagem de programação com vocabulário próprio, tipos verificados,
+pattern matching estrutural, pipelines nativos e 20 módulos de biblioteca
+padrão — escrita em Python puro, sem dependências.**
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [Exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md)
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [180 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
 ---
 
 ```dataforge
-// Sistema de estoque em 20 linhas de DataForge
-adopt Arcane.Text as Text
+adopt Arcane.Collections as Col
 
-blueprint Produto(nome, preco, quantidade):
-    action valor_total():
-        yield self.preco * self.quantidade
+record Produto:
+    nome: String
+    preco: Number
+    estoque: Integer
 
-    action baixa(qtd):
-        guard qtd smaller_eq self.quantidade, "estoque insuficiente"
-        self.quantidade := self.quantidade - qtd
-        yield self.quantidade
+enum Situacao:
+    EmFalta
+    Critico
+    Normal
+
+action situacao_de(p: Produto) -> Situacao:
+    match p:
+        point Produto(estoque := 0):
+            yield Situacao.EmFalta
+        point Produto(estoque := e) when e smaller 5:
+            yield Situacao.Critico
+        default:
+            yield Situacao.Normal
 
 estoque := [
-    spawn Produto("Mouse", 80.0, 15),
-    spawn Produto("Teclado", 200.0, 4)
+    Produto("Mouse", 80.0, 15),
+    Produto("Teclado", 200.0, 3),
+    Produto("Monitor", 1200.0, 0)
 ]
 
 patrimonio := estoque
-    >> morph p: p.valor_total()
+    >> morph p: p.preco * p.estoque
     >> distill acc, v: acc + v 0
 
-out Text.box("Inventario")
-out "patrimonio: R$", patrimonio
-out "criticos:", estoque >> sift p: p.quantidade smaller 5 >> morph p: p.nome
+cycle p in Col.sort_by_field(estoque, "preco", yes):
+    out $"{p.nome.pad_end(10)} {situacao_de(p).name.pad_end(10)} R$ {p.preco * p.estoque}"
+
+out $"\npatrimônio: R$ {patrimonio}"
+out $"repor: {[p.nome cycle p in estoque given situacao_de(p) isnt Situacao.Normal]}"
 ```
 
 ```
-┌────────────┐
-│ Inventario │
-└────────────┘
-patrimonio: R$ 2000.0
-criticos: [Teclado]
+Monitor    EmFalta    R$ 0.0
+Teclado    Critico    R$ 600.0
+Mouse      Normal     R$ 1200.0
+
+patrimônio: R$ 1800.0
+repor: [Teclado, Monitor]
 ```
 
 ---
@@ -59,11 +72,14 @@ criticos: [Teclado]
 
 | | |
 |---|---|
-| **Vocabulário que descreve intenção** | `given`/`orif`/`otherwise`, `cycle`, `blueprint`, `monitor`/`handle`/`ensure` — as palavras dizem o que o código faz, não como a máquina executa |
-| **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática, não de uma biblioteca |
-| **Tipos quando você quiser** | `action media(n: Cluster) -> Float:` — opcional, verificado em tempo de execução |
-| **Erros de primeira classe** | `handle` tipado, `retry`, `guard`, `validate`, `defer`, `propagate` |
-| **Bateria inclusa** | 13 módulos `Arcane.*`: estatística, SQLite, servidor HTTP, regex, testes |
+| **Vocabulário que descreve intenção** | `given`/`orif`/`otherwise`, `cycle`, `blueprint`, `monitor`/`handle`/`ensure` — as palavras dizem o que o código faz |
+| **Tipos quando você quiser** | anotações opcionais, verificadas em tempo de execução **e** por análise estática |
+| **Erros que ensinam** | `dataforge check` aponta linha, coluna e sugere a correção antes de executar |
+| **Pattern matching estrutural** | por tipo, sequência, record, vault, enum — com guardas |
+| **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
+| **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
+| **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
+| **Bateria inclusa** | 20 módulos `Arcane.*` com 674 símbolos + 225 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -83,142 +99,325 @@ dataforge version
 Guia detalhado, com Windows e solução de problemas:
 [`doc/INSTALACAO.md`](doc/INSTALACAO.md).
 
-### Primeiro programa
+### Primeiro projeto
 
 ```bash
-echo 'out "Ola, DataForge!"' > ola.df
-dataforge run ola.df
+dataforge init meu-app
+cd meu-app
+dataforge run
+dataforge test
 ```
 
 ---
 
-## A linguagem em um minuto
+## A linguagem
+
+### Fundamentos
 
 ```dataforge
-// Variáveis e constantes
 nome := "DataForge"
-steady VERSAO := "3.1.0"
-idade: Integer := 30              // tipo opcional, verificado
+steady VERSAO := "4.0.0"
+idade: Integer := 30                 // tipo opcional, verificado
 
-// Condicionais
+out $"Ola {nome}, versão {VERSAO}"   // interpolação
+out 7 ~/ 2, 2 ** 10, 0 <= 5 <= 10    // operadores
+out "a" in "casa", void ?? "padrão"  // pertinência, coalescência
+```
+
+### Controle de fluxo
+
+```dataforge
+idade := 30
+
 given idade bigger_eq 18:
     out "adulto"
 orif idade bigger_eq 12:
     out "adolescente"
 otherwise:
-    out "crianca"
+    out "criança"
 
-// Laços
+rotulo := "par" given idade % 2 is 0 otherwise "impar"    # ternário
+
 cycle i from 1 to 5 step 2:
     out i
-cycle item in ["a", "b"]:
-    out item
 
-// Ações
-action fatorial(n: Integer) -> Integer:
-    given n smaller_eq 1:
-        yield 1
-    yield n * fatorial(n - 1)
+persist idade bigger 0:
+    idade -= 10
+```
 
-out fatorial(6)
+### Coleções
 
-// Blueprints
-blueprint Ponto(x, y):
-    action norma():
-        yield sqrt(self.x ** 2 + self.y ** 2)
-    action toString():
-        yield "(" + str(self.x) + ", " + str(self.y) + ")"
+```dataforge
+nums := [1, 2, 3, 4, 5, 6]
 
-out spawn Ponto(3, 4)
+out [n * n cycle n in nums given n % 2 is 0]    // compreensão
+out {n: n * 2 cycle n in nums}                  // compreensão de vault
+out nums[1:4], nums[::-1]                       // fatiamento
+out [...nums, 7]                                // spread
 
-// Erros
+primeiro, ...resto := nums                      // desestruturação
+{nome, idade} := {"nome": "Ana", "idade": 30}
+```
+
+### Ações
+
+```dataforge
+action somar(a: Integer, b: Integer := 0) -> Integer:
+    yield a + b
+
+dobro := lambda x: x * 2
+
+action registrar(fn):                  # um decorador é uma ação que envolve outra
+    action envolvida(dados):
+        out $"processando {len(dados)} item(ns)"
+        yield fn(dados)
+    yield envolvida
+
+mark @registrar
+action processar(dados):
+    defer:
+        out "limpou"                   # roda em qualquer caminho de saída
+    yield dados >> morph d: d * 2
+
+out somar(2), dobro(21), processar([1, 2, 3])
+```
+
+### Records e enums
+
+```dataforge
+record Usuario:
+    nome: String
+    idade: Integer
+    email: String := "sem@email"
+
+    action maior_de_idade():
+        yield self.idade bigger_eq 18
+
+u := Usuario("Ana", 30)
+u2 := u with {"idade": 31}          // cópia; records são imutáveis
+out Usuario("Ana", 30) is u          // yes — igualdade estrutural
+
+enum Status:
+    Ativo
+    Inativo := "off"
+
+out Status.Ativo.name, Status.from_value("off").name
+```
+
+### Pattern matching
+
+```dataforge
+action descrever(valor):
+    match valor:
+        point 0:
+            yield "zero"
+        point Integer as n when n bigger 100:
+            yield "grande"
+        point [primeiro, ...resto]:
+            yield $"lista de {len(resto) + 1}"
+        point Usuario(nome := n, idade := i) when i smaller 18:
+            yield $"{n} é menor"
+        point {"tipo": t}:
+            yield $"vault {t}"
+        point Status.Ativo:
+            yield "ligado"
+        default:
+            yield "outro"
+
+out descrever(0), descrever(500), descrever([1, 2, 3])
+out descrever(Usuario("Kid", 12)), descrever(Status.Ativo)
+```
+
+### Erros
+
+```dataforge
+record Conta:
+    titular: String
+    saldo: Number
+
+action sacar(conta, valor):
+    guard valor bigger 0, "valor precisa ser positivo"
+    guard valor smaller_eq conta.saldo, "saldo insuficiente"
+    yield conta with {"saldo": conta.saldo - valor}
+
+conta := Conta("Ana", 100)
+out sacar(conta, 30)
+
 monitor:
-    x := 10 / 0
-handle RuntimeError as e:
-    out "capturado:", e.message
+    sacar(conta, 9999)
+handle e:
+    out $"{e.type}: {e.message}"
 ensure:
     out "sempre roda"
 
-// Pipelines
-out [1, 2, 3, 4, 5, 6]
-    >> sift n: n % 2 is 0
-    >> morph n: n * 10
-    >> distill acc, v: acc + v 0
-
-// Módulos
-adopt Arcane.Math as Math
-out Math.sqrt(16), Math.is_prime(97)
+tentativas := {"n": 0}
+retry 3:
+    tentativas["n"] := tentativas["n"] + 1
+    given tentativas["n"] smaller 3:
+        trigger "instabilidade"
+    out $"conseguiu na tentativa {tentativas["n"]}"
+handle e:
+    out $"desistiu: {e}"
 ```
 
-### Tabela de tradução
+Erros trazem a pilha de chamadas:
 
-Se você já programa em outra linguagem:
+```
+RuntimeError: Division by zero
+  em calculadora.df:12:15
+
+    12 |     yield total / divisor
+       |           ^
+
+  Pilha de chamadas (mais recente primeiro):
+    em media                  calculadora.df:12
+    em relatorio              calculadora.df:28
+    em main                   calculadora.df:45
+```
+
+### Pipelines e generators
+
+```dataforge
+record Venda:
+    cliente: String
+    valor: Number
+
+vendas := [Venda("Ana", 250), Venda("Bruno", 80), Venda("Carla", 400)]
+
+out vendas
+    >> sift v: v.valor bigger 100
+    >> morph v: v.valor * 1.1
+    >> distill acc, v: acc + v 0
+
+stream action fibonacci():
+    a := 0
+    b := 1
+    persist yes:
+        emit a
+        a, b := b, a + b
+
+out fibonacci().take(10)      // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+```
+
+### Módulos
+
+```dataforge
+adopt Arcane.Math as Math              # o módulo inteiro
+adopt Arcane.Math.{sqrt, floor}        # seletivo
+adopt {sqrt as raiz} from Arcane.Math  # com apelido
+
+out Math.factorial(5), sqrt(16), raiz(25)
+
+action somar(a, b):
+    yield a + b
+
+relay somar                            # controla o que este módulo exporta
+```
+
+---
+
+## Tabela de tradução
 
 | Conceito | DataForge | | Conceito | DataForge |
 |----------|-----------|---|----------|-----------|
 | `=` | `:=` | | `class` / `new` | `blueprint` / `spawn` |
-| `const` | `steady` | | `self` / `super` | `self` / `root` |
-| `print` | `out` | | `interface` | `trait` |
-| `if/elif/else` | `given/orif/otherwise` | | `import` / `export` | `adopt` / `relay` |
-| `switch/case` | `match/point` | | `try/catch/finally` | `monitor/handle/ensure` |
+| `const` | `steady` | | `@dataclass(frozen)` | `record` |
+| `print` | `out` | | `enum` | `enum` |
+| f-string | `$"{x}"` | | `self` / `super` | `self` / `root` |
+| `if/elif/else` | `given/orif/otherwise` | | `interface` | `trait` |
+| ternário | `a given c otherwise b` | | `import` / `export` | `adopt` / `relay` |
+| `match/case` | `match` / `point` / `when` | | `try/catch/finally` | `monitor/handle/ensure` |
 | `for` | `cycle` | | `throw` | `trigger` |
 | `while` | `persist` | | `true/false/null` | `yes/no/void` |
-| `break/continue` | `halt/skip` | | `filter/map/reduce` | `>> sift/morph/distill` |
-| `def` / `return` | `action` / `yield` | | `//` (div. inteira) | `~/` |
+| `break`/`continue` | `halt`/`skip` | | `??` / `?.` / `in` | iguais |
+| `def` / `return` | `action` / `yield` | | spread `...` | igual |
+| generator | `stream action` / `emit` | | `filter/map/reduce` | `>> sift/morph/distill` |
+| list comprehension | `[e cycle x in f given c]` | | `//` (div. inteira) | **`~/`** |
 
 ---
 
-## Comandos
+## Ferramentas
 
 ```bash
-dataforge run programa.df        # executa
-dataforge run programa.df --time # com tempo de execução
-dataforge check programa.df      # só verifica a sintaxe
-dataforge repl                   # console interativo
-dataforge new                    # cria projeto de um template
-dataforge tokens programa.df     # inspeciona o lexer
-dataforge ast programa.df        # inspeciona o parser
+dataforge init [pasta]        # cria forge.toml e o esqueleto
+dataforge run [arquivo.df]    # executa (sem argumento usa a entrada do manifesto)
+dataforge check <alvo>        # análise estática: nomes, aridade, tipos
+dataforge test [alvo] -v      # descobre e roda *_test.df e tests/
+dataforge fmt <alvo> --check  # formata
+dataforge lint <alvo>         # estilo e higiene
+dataforge doc <alvo> --out=…  # documentação Markdown
+dataforge repl                # console interativo
+dataforge info                # mostra o manifesto
 ```
 
-`df` é um atalho para `dataforge`.
+### `dataforge check` — o que ele encontra
 
-### Templates de projeto
+```
+src/main.df:9:11: erro: Parameter 'a' of 'somar' expects Integer but got String
+    sugestão: Pass a Integer
+src/main.df:10:5: erro: Undefined action 'sommar'
+    sugestão: Did you mean 'somar'?
+src/main.df:23:1: aviso: Action 'processar' declares '-> Integer' but can end without a 'yield'
+    sugestão: Add a 'yield' at the end, or drop the return type
+```
 
-`dataforge new` gera um projeto pronto e executável:
+Nomes indefinidos, aridade errada, tipos incompatíveis, campos de record, membros
+de enum, constantes reatribuídas, código inalcançável, retorno ausente — tudo
+antes de executar uma linha.
 
-| Template | O que traz |
-|----------|-----------|
-| **CLI Tool** | Ferramenta de linha de comando |
-| **Data Analytics** | Estatística e pipelines sobre dados |
-| **Orientado a Objetos** | Blueprints, herança e traits |
-| **Suíte de Testes** | Módulo com `relay` + testes |
-| **API REST** | Servidor HTTP com CRUD completo |
-| **Web App** | Servidor com HTML e estáticos |
+### `forge.toml`
+
+```toml
+[project]
+name = "meu-app"
+version = "0.1.0"
+entry = "src/main.df"
+dataforge = ">=4.0"
+
+[scripts]
+start = "run src/main.df"
+test = "test tests/"
+```
+
+Qualquer chave em `[scripts]` vira um comando: `dataforge start`.
+
+### Em integração contínua
+
+```bash
+dataforge fmt . --check && dataforge check . && dataforge test
+```
 
 ---
 
 ## Biblioteca padrão
 
-13 módulos, 454 símbolos. Importe com `adopt`:
+20 módulos, 674 símbolos, mais 225 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
 | `Arcane.Analytics` | 65 | regressão, correlação, clustering, gráficos ASCII |
 | `Arcane.Text` | 58 | formatação, tabelas, caixas, conversão de caixa |
 | `Arcane.Functional` | 56 | composição, lentes, Maybe/Either, transdutores |
+| `Arcane.Time` | 54 | datas, durações, cronômetro, idade |
 | `Arcane.Math` | 51 | matemática, álgebra linear, estatística |
 | `Arcane.Async` | 46 | promessas, filas, agendamento |
-| `Arcane.Database` | 39 | SQLite: tabelas, queries, migrações |
+| `Arcane.Database` | 39 | SQLite: tabelas, consultas, transações |
+| `Arcane.Crypto` | 38 | hashes, HMAC, senhas, base64, aleatoriedade segura |
+| `Arcane.OS` | 38 | sistema, ambiente, disco, processo |
+| `Arcane.Collections` | 35 | pilha, fila, heap, grafo, união-busca |
 | `Arcane.Test` | 34 | asserções e suítes |
 | `Arcane.Regex` | 32 | regex e validadores BR (CPF, CNPJ) |
-| `Arcane.IO` | 27 | arquivos, JSON, CSV, shell |
+| `Arcane.IO` | 27 | arquivos, JSON, CSV, diretórios |
+| `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML |
 | `Arcane.Http` | 17 | servidor HTTP com rotas e middleware |
+| `Arcane.Process` | 15 | processos externos, stdout, exit code |
+| `Arcane.Logging` | 14 | níveis, campos estruturados, arquivo, JSON |
 | `Arcane.Data` | 13 | DataFrames e transformações |
 | `Arcane.Web` | 11 | cliente HTTP, URL, JSON |
 | `Arcane.Cortex` | 5 | blocos de rede neural e NLP |
 
-Mais 225 funções globais disponíveis sem import. Referência completa:
-[`doc/BIBLIOTECA_PADRAO.md`](doc/BIBLIOTECA_PADRAO.md).
+Referência completa: [`doc/BIBLIOTECA_PADRAO.md`](doc/BIBLIOTECA_PADRAO.md)
+(gerada a partir do código com `tools/gerar_doc_stdlib.py`).
 
 ### Um servidor HTTP de verdade
 
@@ -227,8 +426,6 @@ adopt Arcane.Http as Http
 
 app := Http.create("Minha API")
 Http.cors(app)
-
-itens := [{"id": 1, "nome": "Primeiro"}]
 
 action listar(req, res):
     res.json(itens)
@@ -243,33 +440,47 @@ Http.listen(app, 3000)
 
 | Recurso | O que é |
 |---------|---------|
-| [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | A linguagem inteira, do zero, com exemplos que rodam |
-| [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | Gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | Assinaturas de todos os módulos `Arcane.*` |
-| [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | Instalação passo a passo e solução de problemas |
-| [**exercicios/**](exercicios/) | 120 exercícios comentados, cada um verifica o próprio resultado |
-| [**examples/**](examples/) | 42 programas maiores: banco, loja, jogos, calculadora |
-| [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | Estado técnico e o que falta implementar |
+| [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
+| [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 20 módulos |
+| [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
+| [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
+| [**exercicios/**](exercicios/) | 180 exercícios; os 60 do 4.0 com `.md` explicativo |
+| [**examples/**](examples/) | 42 programas maiores |
 
-### Os 120 exercícios
+### Os 180 exercícios
 
 ```bash
-python3 exercicios/run_all.py        # roda todos
-python3 exercicios/run_all.py 05     # só o módulo 05
+python3 exercicios/run_all.py        # todos
+python3 exercicios/run_all.py 14     # só o módulo 14
 ```
+
+Cada exercício **verifica o próprio resultado com `assert`**. Os módulos 11–20
+trazem um `.md` ao lado de cada `.df`, com enunciado, conceitos, saída esperada e
+sugestões.
 
 | Módulo | N | Tema |
 |--------|---|------|
-| 01 | 12 | fundamentos: tipos, operadores, precedência, conversão |
+| 01 | 12 | fundamentos: tipos, operadores, precedência |
 | 02 | 12 | controle de fluxo: condicionais e os quatro laços |
-| 03 | 14 | coleções: clusters, fatiamento, vaults, busca, ordenação |
-| 04 | 10 | strings: métodos, regex, templates, cifra de César |
+| 03 | 14 | coleções: clusters, fatiamento, vaults, busca |
+| 04 | 10 | strings: métodos, regex, templates |
 | 05 | 14 | ações: aridade, recursão, closures, lambdas, decoradores |
-| 06 | 14 | blueprints: herança, traits, polimorfismo, padrões de projeto |
+| 06 | 14 | blueprints: herança, traits, polimorfismo |
 | 07 | 10 | erros: `monitor`, `handle` tipado, `guard`, `retry` |
-| 08 | 12 | pipelines: `sift`/`morph`/`distill`, composição, streams |
-| 09 | 12 | módulos: import local, Math, Analytics, IO, SQLite |
-| 10 | 10 | avançado: async, threads, árvore binária, interpretador RPN |
+| 08 | 12 | pipelines: `sift`/`morph`/`distill`, composição |
+| 09 | 12 | módulos: `adopt`, Math, Analytics, IO, SQLite |
+| 10 | 10 | avançado: async, threads, árvore binária, RPN |
+| **11** | 6 | **tipos e checagem estática** |
+| **12** | 6 | **records e enums** |
+| **13** | 6 | **desestruturação, spread, compreensões, interpolação** |
+| **14** | 6 | **pattern matching estrutural** |
+| **15** | 6 | **streams e generators** |
+| **16** | 6 | **módulos, testes, biblioteca publicável** |
+| **17** | 6 | **tempo, sistema, processos, logging** |
+| **18** | 6 | **serialização, arquivos, SQLite, HTTP** |
+| **19** | 6 | **concorrência: async, threads, canais, retry** |
+| **20** | 6 | **projetos finais: CLI, análise de dados, interpretador** |
 
 ---
 
@@ -278,8 +489,8 @@ python3 exercicios/run_all.py 05     # só o módulo 05
 ```bash
 pip install -e ".[dev]"
 
-python3 -m pytest tests/ -q       # 77 testes
-python3 exercicios/run_all.py     # 120 exercícios
+python3 -m pytest tests/ -q       # 236 testes
+python3 exercicios/run_all.py     # 180 exercícios
 ```
 
 Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).
@@ -287,20 +498,25 @@ Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).
 ### Arquitetura
 
 ```
-arquivo.df → tokenize() → parse() → Interpreter().run(ast)
-             lexer.py     parser.py   interpreter.py
+arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(ast)
+             lexer.py     parser.py  typechecker.py   interpreter.py
 ```
 
-| Arquivo | Responsabilidade |
-|---------|------------------|
-| `dataforge/tokens.py` | TokenType e as 78 palavras reservadas |
-| `dataforge/lexer.py` | texto → tokens, com INDENT/DEDENT |
-| `dataforge/parser.py` | recursivo descendente: tokens → AST |
-| `dataforge/ast_nodes.py` | nós da AST como dataclasses |
-| `dataforge/interpreter.py` | interpretador de árvore: a semântica |
-| `dataforge/environment.py` | cadeia de escopos |
-| `dataforge/builtins.py` | 225 funções globais |
-| `dataforge/stdlib/` | os 13 módulos `Arcane.*` |
+| Arquivo | Responsabilidade | Linhas |
+|---------|------------------|--------|
+| `dataforge/tokens.py` | TokenType e as 81 palavras reservadas | 305 |
+| `dataforge/lexer.py` | texto → tokens, INDENT/DEDENT, interpolação | 556 |
+| `dataforge/parser.py` | recursivo descendente: tokens → AST | 1941 |
+| `dataforge/ast_nodes.py` | nós da AST como dataclasses | 706 |
+| `dataforge/interpreter.py` | interpretador de árvore: a semântica | 2703 |
+| `dataforge/typechecker.py` | análise estática | 1193 |
+| `dataforge/formatter.py` | `dataforge fmt` | 280 |
+| `dataforge/linter.py` | `dataforge lint` | 394 |
+| `dataforge/testrunner.py` | `dataforge test` | 194 |
+| `dataforge/docgen.py` | `dataforge doc` | 218 |
+| `dataforge/project.py` | `forge.toml` | 184 |
+| `dataforge/builtins.py` | 225 funções globais | 1224 |
+| `dataforge/stdlib/` | os 20 módulos `Arcane.*` | 7282 |
 
 ---
 
@@ -308,16 +524,18 @@ arquivo.df → tokenize() → parse() → Interpreter().run(ast)
 
 | Verificação | Resultado |
 |-------------|-----------|
-| Testes unitários | 77 passando |
-| Exercícios | 120/120 |
+| Testes unitários | 236 passando |
+| Exercícios | 180/180 |
 | Exemplos | 42/42 |
-| Templates de projeto | 8/8 arquivos válidos |
-| Módulos da stdlib | 30/30 carregam |
+| Módulos da stdlib | 20/20 carregam |
+| Análise estática sobre o repositório | 0 erros em 222 arquivos |
 | Instalação via pip | funciona |
 
-O que ainda falta — análise estática, rastreamento de pilha, sistema de módulos
-com escopo real, gerenciador de pacotes — está detalhado em
-[`doc/ANALISE_E_ROADMAP.md`](doc/ANALISE_E_ROADMAP.md).
+### O que ainda não existe
+
+Generics, verificação de exaustividade em `match`, contrato de trait, LSP,
+debugger, gerenciador de pacotes, VM de bytecode e sincronização entre threads.
+Detalhado em [`doc/ANALISE_E_ROADMAP.md`](doc/ANALISE_E_ROADMAP.md).
 
 ---
 

@@ -1,0 +1,58 @@
+// Exercicio 140 — Padroes de tipo
+// Enunciado: case pelo tipo do valor e ligue o resultado ja tipado.
+
+record Ponto:
+    x: Integer
+    y: Integer
+
+action descrever(v):
+    match v:
+        point Integer as n when n smaller 0:
+            yield $"inteiro negativo ({n})"
+        point Integer as n:
+            yield $"inteiro {n}"
+        point Float as d:
+            yield $"decimal {d}"
+        point String as s:
+            yield $"texto de {len(s)} letras"
+        point Boolean:
+            yield "booleano"
+        point Cluster as c:
+            yield $"lista com {len(c)} itens"
+        point Vault:
+            yield "dicionario"
+        point Ponto as p:
+            yield $"ponto ({p.x}, {p.y})"
+        point Void:
+            yield "nada"
+        default:
+            yield "tipo desconhecido"
+
+valores := [7, -3, 2.5, "abc", yes, [1, 2], {"a": 1}, Ponto(3, 4), void]
+cycle v in valores:
+    out descrever(v)
+
+assert descrever(7) is "inteiro 7", "Integer"
+assert descrever(-3) is "inteiro negativo (-3)", "guarda antes do geral"
+assert descrever(2.5) is "decimal 2.5", "Float"
+assert descrever(Ponto(3, 4)) is "ponto (3, 4)", "record por tipo"
+assert descrever(void) is "nada", "Void"
+
+// Number aceita Integer e Float
+action e_numero(v):
+    match v:
+        point Number:
+            yield yes
+        default:
+            yield no
+
+assert e_numero(1) is yes, "Integer e Number"
+assert e_numero(1.5) is yes, "Float e Number"
+assert e_numero("1") is no, "texto nao e Number"
+
+// Any casa com tudo, inclusive void
+action sempre(v):
+    match v:
+        point Any:
+            yield "casou"
+assert sempre(void) is "casou", "Any casa ate com void"

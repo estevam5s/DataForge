@@ -1,0 +1,68 @@
+// Exercicio 143 — Guardas e ligacao com as
+// Enunciado: combine condicoes e apelidos para casos precisos.
+
+action faixa(n):
+    match n:
+        point Integer as v when v smaller 0:
+            yield "negativo"
+        point 0:
+            yield "zero"
+        point Integer as v when v smaller_eq 9:
+            yield "unidade"
+        point Integer as v when v smaller_eq 99:
+            yield "dezena"
+        point Integer:
+            yield "grande"
+        default:
+            yield "nao e inteiro"
+
+cycle n in [-5, 0, 7, 42, 1000, "x"]:
+    out $"{n} -> {faixa(n)}"
+
+assert faixa(-5) is "negativo", "negativo"
+assert faixa(0) is "zero", "zero vem antes da faixa das unidades"
+assert faixa(7) is "unidade", "unidade"
+assert faixa(42) is "dezena", "dezena"
+assert faixa(1000) is "grande", "sem guarda, pega o resto"
+
+// 'as' liga o valor inteiro, mesmo em padroes compostos
+action analisar(lista):
+    match lista:
+        point [a, b] as tudo when a is b:
+            yield $"par repetido {tudo}"
+        point [a, b] as tudo:
+            yield $"par distinto {tudo}"
+        point [] as vazia:
+            yield $"vazia {vazia}"
+        default:
+            yield "outro"
+
+out analisar([3, 3])
+out analisar([1, 2])
+assert analisar([3, 3]) is "par repetido [3, 3]", "as guarda a lista toda"
+
+// Guarda que usa nomes ligados no proprio padrao
+record Pedido:
+    itens: Cluster
+    total: Number
+
+action revisar(p):
+    match p:
+        point Pedido(itens := i, total := t) when len(i) is 0 and t bigger 0:
+            yield "inconsistente: total sem itens"
+        point Pedido(itens := i) when len(i) is 0:
+            yield "pedido vazio"
+        point Pedido(total := t) when t bigger 1000:
+            yield "pedido grande"
+        point Pedido:
+            yield "pedido normal"
+        default:
+            yield "?"
+
+out revisar(Pedido([], 500))
+out revisar(Pedido([], 0))
+out revisar(Pedido(["a"], 2000))
+out revisar(Pedido(["a"], 50))
+
+assert revisar(Pedido([], 500)) is "inconsistente: total sem itens", "duas condicoes"
+assert revisar(Pedido(["a"], 2000)) is "pedido grande", "guarda no total"

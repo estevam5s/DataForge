@@ -1,0 +1,42 @@
+// Exercicio 127 — Records
+// Enunciado: declare um record, construa instancias e comprove a igualdade estrutural.
+
+record Usuario:
+    nome: String
+    idade: Integer
+    email: String := "sem@email"
+
+// Construcao posicional e nomeada
+a := Usuario("Ana", 30)
+b := Usuario(nome := "Bruno", idade := 25, email := "b@x.com")
+
+out a
+out b
+out a.nome, a.idade, a.email
+
+// Igualdade e estrutural: mesmos campos, mesmo valor
+out Usuario("Ana", 30) is Usuario("Ana", 30)
+out Usuario("Ana", 30) is Usuario("Ana", 31)
+
+assert a.email is "sem@email", "campo com valor padrao"
+assert Usuario("Ana", 30) is Usuario("Ana", 30), "igualdade estrutural"
+assert Usuario("Ana", 30) isnt Usuario("Ana", 31), "campos diferentes"
+assert typeof(a) is "Usuario", "typeof devolve o nome do record"
+
+// Campo obrigatorio ausente
+faltou := no
+monitor:
+    Usuario("Carla")
+handle e:
+    faltou := yes
+    out "erro:", e.message
+assert faltou is yes, "idade e obrigatoria"
+
+// Tipo errado no campo
+tipo_errado := no
+monitor:
+    Usuario(42, 30)
+handle e:
+    tipo_errado := yes
+    out "erro:", e.message
+assert tipo_errado is yes, "nome precisa ser String"

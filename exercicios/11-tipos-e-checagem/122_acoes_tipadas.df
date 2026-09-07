@@ -1,0 +1,30 @@
+// Exercicio 122 — Acoes com tipos
+// Enunciado: anote parametros e retorno, e veja o erro apontar o parametro exato.
+
+action area_retangulo(largura: Number, altura: Number) -> Float:
+    yield largura * altura * 1.0
+
+action saudar(nome: String, vezes: Integer := 1) -> String:
+    yield (nome + " ").repeat(vezes).trim()
+
+action primeiro_item(itens: Cluster) -> Any:
+    given len(itens) is 0:
+        yield void
+    yield itens[0]
+
+out area_retangulo(3, 4)
+out saudar("oi", 3)
+out primeiro_item([10, 20]), primeiro_item([])
+
+// O erro nomeia o parametro
+erro := ""
+monitor:
+    area_retangulo("tres", 4)
+handle e:
+    erro := e.message
+    out erro
+
+assert area_retangulo(3, 4) is 12.0, "area"
+assert saudar("oi", 2) is "oi oi", "repeticao"
+assert primeiro_item([]) is void, "lista vazia devolve void"
+assert "largura" in erro, "a mensagem nomeia o parametro errado"

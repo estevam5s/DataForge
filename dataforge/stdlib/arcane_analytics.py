@@ -408,7 +408,16 @@ class ArcaneAnalytics:
         """Group records. 'key_fn' may be a callable or the name of a field."""
         if isinstance(key_fn, str):
             field = key_fn
-            key_fn = lambda item: item.get(field) if isinstance(item, dict) else getattr(item, field, None)
+
+            def key_fn(item, _f=field):
+                if isinstance(item, dict):
+                    return item.get(_f)
+                # records guardam em .values; instâncias, em .fields
+                for atributo in ('values', 'fields'):
+                    mapa = getattr(item, atributo, None)
+                    if isinstance(mapa, dict) and _f in mapa:
+                        return mapa[_f]
+                return getattr(item, _f, None)
         groups = defaultdict(list)
         for item in data:
             k = key_fn(item)

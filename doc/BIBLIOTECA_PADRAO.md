@@ -27,6 +27,13 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Data`](#arcanedata) | `Data` | 13 | DataFrames, séries e transformações tabulares. |
 | [`Arcane.Web`](#arcaneweb) | `Web / Network` | 11 | Cliente HTTP, URL encoding e JSON. |
 | [`Arcane.Cortex`](#arcanecortex) | `Cortex` | 5 | Blocos de rede neural, visão e NLP (implementações simplificadas). |
+| [`Arcane.Time`](#arcanetime) | `Time` | 54 | Datas, horas, durações e cronometragem. |
+| [`Arcane.OS`](#arcaneos) | `OS` | 38 | Sistema operacional, ambiente, disco e processo atual. |
+| [`Arcane.Process`](#arcaneprocess) | `Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
+| [`Arcane.Logging`](#arcanelogging) | `Logging / Log` | 14 | Registro estruturado de eventos, com níveis e destinos. |
+| [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 38 | Hashes, HMAC, senhas, codificações e aleatoriedade segura. |
+| [`Arcane.Collections`](#arcanecollections) | `Collections` | 35 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
+| [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 
 > Os nomes curtos e os aliases (`DB`, `Server`, `Network`) apontam para o mesmo
 > módulo — use o que ficar mais legível.
@@ -721,3 +728,335 @@ adopt Arcane.Cortex as Cortex
 |------------|
 | `accuracy(predictions, labels)` |
 | `evaluate(model, test_data)` |
+
+
+---
+
+## Arcane.Time
+
+Datas, horas, durações e cronometragem.
+
+```dataforge
+adopt Arcane.Time as Time
+```
+
+**Funções (54)**
+
+| Assinatura |
+|------------|
+| `add_days(d, n)` |
+| `add_hours(d, n)` |
+| `add_minutes(d, n)` |
+| `add_months(d, n)` |
+| `add_seconds(d, n)` |
+| `add_weeks(d, n)` |
+| `add_years(d, n)` |
+| `age(nascimento, referencia=None)` |
+| `date(ano, mes, dia)` |
+| `datetime(ano, mes, dia, hora=0, minuto=0, segundo=0)` |
+| `day(d)` |
+| `day_of_year(d)` |
+| `days_between(a, b)` |
+| `days_in_month(a, m)` |
+| `diff(a, b)` |
+| `duration(dias=0, horas=0, minutos=0, segundos=0)` |
+| `end_of_day(d)` |
+| `end_of_month(d)` |
+| `format(d, formato='%Y-%m-%d %H:%M:%S')` |
+| `from_iso(t)` |
+| `from_timestamp(ts)` |
+| `hour(d)` |
+| `humanize(s)` |
+| `is_after(a, b)` |
+| `is_before(a, b)` |
+| `is_leap_year(a)` |
+| `is_same_day(a, b)` |
+| `is_weekend(d)` |
+| `measure(acao)` |
+| `minute(d)` |
+| `monotonic()` |
+| `month(d)` |
+| `month_name(d, curto=False)` |
+| `now()` |
+| `parse(texto, formato=None)` |
+| `quarter(d)` |
+| `second(d)` |
+| `sleep(s)` |
+| `start_of_day(d)` |
+| `start_of_month(d)` |
+| `stopwatch()` |
+| `timestamp()` |
+| `timezone_offset()` |
+| `to_br(d)` |
+| `to_date_string(d)` |
+| `to_iso(d)` |
+| `to_time_string(d)` |
+| `to_utc(d)` |
+| `today()` |
+| `utcnow()` |
+| `week_of_year(d)` |
+| `weekday(d)` |
+| `weekday_name(d, curto=False)` |
+| `year(d)` |
+
+
+---
+
+## Arcane.OS
+
+Sistema operacional, ambiente, disco e processo atual.
+
+```dataforge
+adopt Arcane.OS as OS
+```
+
+**Funções (38)**
+
+| Assinatura |
+|------------|
+| `arch()` |
+| `argv()` |
+| `chdir(caminho)` |
+| `cpu_count()` |
+| `cwd()` |
+| `disk_usage(caminho='.')` |
+| `env()` |
+| `env_names()` |
+| `executable()` |
+| `exit(codigo=0)` |
+| `get_env(nome, padrao=None)` |
+| `has_env(nome)` |
+| `home()` |
+| `hostname()` |
+| `info()` |
+| `is_linux()` |
+| `is_mac()` |
+| `is_posix()` |
+| `is_tty()` |
+| `is_windows()` |
+| `line_separator()` |
+| `machine()` |
+| `memory_info()` |
+| `name()` |
+| `parent_pid()` |
+| `path_separator()` |
+| `pid()` |
+| `platform()` |
+| `processor()` |
+| `python_version()` |
+| `release()` |
+| `separator()` |
+| `set_env(nome, valor)` |
+| `temp_dir()` |
+| `terminal_size()` |
+| `user()` |
+| `version()` |
+| `which(prog)` |
+
+
+---
+
+## Arcane.Process
+
+Execução de processos externos, com stdout, stderr e código de saída.
+
+```dataforge
+adopt Arcane.Process as Process
+```
+
+**Funções (15)**
+
+| Assinatura |
+|------------|
+| `capture(comando, shell=False, timeout=None)` |
+| `check(comando, shell=False, timeout=None)` |
+| `exists(prog)` |
+| `exit_code(comando, shell=False, timeout=None)` |
+| `is_running(processo)` |
+| `kill(processo)` |
+| `pid()` |
+| `pipeline(comandos, timeout=None)` |
+| `python()` |
+| `run(comando, shell=False, timeout=None, cwd=None, env=None, input_text=None)` |
+| `run_shell(cmd, timeout=None)` |
+| `spawn(comando, shell=False, cwd=None)` |
+| `terminate(processo)` |
+| `wait(processo, timeout=None)` |
+| `which(programa)` |
+
+
+---
+
+## Arcane.Logging
+
+Registro estruturado de eventos, com níveis e destinos.
+
+```dataforge
+adopt Arcane.Logging as Logging
+```
+
+**Funções (14)**
+
+| Assinatura |
+|------------|
+| `as_json(a=True)` |
+| `debug(m, campos=None)` |
+| `default()` |
+| `error(m, campos=None)` |
+| `fatal(m, campos=None)` |
+| `info(m, campos=None)` |
+| `levels()` |
+| `log(n, m, campos=None)` |
+| `logger(nome='app', nivel='INFO')` |
+| `set_level(n)` |
+| `stats()` |
+| `to_file(c, anexar=True)` |
+| `trace(m, campos=None)` |
+| `warn(m, campos=None)` |
+
+
+---
+
+## Arcane.Crypto
+
+Hashes, HMAC, senhas, codificações e aleatoriedade segura.
+
+```dataforge
+adopt Arcane.Crypto as Crypto
+```
+
+**Funções (38)**
+
+| Assinatura |
+|------------|
+| `algorithms()` |
+| `base32_decode(v)` |
+| `base32_encode(v)` |
+| `base64_decode(texto)` |
+| `base64_encode(v)` |
+| `base64url_decode(texto)` |
+| `base64url_encode(v)` |
+| `blake2b(v)` |
+| `blake2s(v)` |
+| `constant_time_equals(a, b)` |
+| `hash(valor, algoritmo='sha256')` |
+| `hash_file(caminho, algoritmo='sha256')` |
+| `hash_password(senha, iteracoes=200000)` |
+| `hex_decode(v)` |
+| `hex_encode(v)` |
+| `hmac(chave, mensagem, algoritmo='sha256')` |
+| `hmac_verify(chave, mensagem, assinatura, algoritmo='sha256')` |
+| `mask(texto, visiveis=4, caractere='*')` |
+| `md5(v)` |
+| `pbkdf2(senha, sal, iteracoes=200000, algoritmo='sha256')` |
+| `random_bytes(n=32)` |
+| `random_choice(itens)` |
+| `random_hex(n=32)` |
+| `random_int(a, b)` |
+| `random_password(tamanho=16, simbolos=True)` |
+| `random_token(n=32)` |
+| `rot13(t)` |
+| `sha1(v)` |
+| `sha224(v)` |
+| `sha256(v)` |
+| `sha384(v)` |
+| `sha512(v)` |
+| `short_id(n=12)` |
+| `uuid()` |
+| `uuid4()` |
+| `uuid_hex()` |
+| `verify_password(senha, guardada)` |
+| `xor_cipher(texto, chave)` |
+
+
+---
+
+## Arcane.Collections
+
+Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca.
+
+```dataforge
+adopt Arcane.Collections as Collections
+```
+
+**Funções (35)**
+
+| Assinatura |
+|------------|
+| `batched(itens, n)` |
+| `binary_search(ordenado, alvo)` |
+| `bottom_n(itens, n, chave=None)` |
+| `cartesian(a, b)` |
+| `chunk_evenly(itens, partes)` |
+| `counter(itens)` |
+| `deep_merge(a, b)` |
+| `default_vault(padrao=0)` |
+| `deque(itens=None, limite=None)` |
+| `difference(a, b)` |
+| `flatten_deep(itens, profundidade=-1)` |
+| `graph(dirigido=False)` |
+| `group_by(itens, chave)` |
+| `index_by(itens, chave)` |
+| `intersection(a, b)` |
+| `is_subset(a, b)` |
+| `merge_sorted(a, b)` |
+| `most_common(itens, n=1)` |
+| `ordered_vault(pares=None)` |
+| `pairwise(itens)` |
+| `partition(itens, predicado)` |
+| `priority_queue()` |
+| `queue(itens=None)` |
+| `rotate(itens, n)` |
+| `set(itens=None)` |
+| `sliding_window(itens, tamanho)` |
+| `sort_by(itens, chave)` |
+| `sort_by_field(itens, campo, reverso=False)` |
+| `stack(itens=None)` |
+| `symmetric_difference(a, b)` |
+| `top_n(itens, n, chave=None)` |
+| `union(a, b)` |
+| `union_find(itens=None)` |
+| `unique_by(itens, chave)` |
+| `zip_longest(a, b, preencher=None)` |
+
+
+---
+
+## Arcane.Serialization
+
+JSON, CSV, INI, TOML, XML e conversões entre eles.
+
+```dataforge
+adopt Arcane.Serialization as Serialization
+```
+
+**Funções (26)**
+
+| Assinatura |
+|------------|
+| `csv_to_records(texto, delimitador=',')` |
+| `deep_copy(d)` |
+| `flatten(dados, separador='.', prefixo='')` |
+| `formats()` |
+| `from_base64(t)` |
+| `from_bytes(b)` |
+| `from_csv(texto, delimitador=',', tem_cabecalho=False)` |
+| `from_ini(texto)` |
+| `from_json(texto)` |
+| `from_json_lines(texto)` |
+| `from_json_safe(texto, padrao=None)` |
+| `from_toml(texto)` |
+| `from_xml(texto)` |
+| `is_valid_json(texto)` |
+| `json_lines(registros)` |
+| `json_path(dados, caminho, padrao=None)` |
+| `json_pretty(d, indent=2)` |
+| `records_to_csv(registros, delimitador=',')` |
+| `to_base64(d)` |
+| `to_bytes(d)` |
+| `to_csv(linhas, delimitador=',', cabecalho=None)` |
+| `to_ini(dados)` |
+| `to_json(dados, indent=None, ordenar=False)` |
+| `to_toml(dados)` |
+| `to_xml(dados, raiz='root')` |
+| `unflatten(plano, separador='.')` |

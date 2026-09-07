@@ -1,0 +1,103 @@
+// Exercicio 166 — Servidor HTTP
+// Enunciado: monte uma API REST com rotas e JSON.
+
+adopt Arcane.Http as Http
+adopt Arcane.Serialization as Serde
+
+// Este exercicio monta a aplicacao e verifica a configuracao sem
+// abrir a porta — assim ele roda na suite de testes.
+
+app := Http.create("API de Tarefas")
+Http.cors(app)
+Http.logger(app)
+
+// ── dados em memoria ──
+tarefas := [
+    {"id": 1, "titulo": "Estudar DataForge", "feita": yes},
+    {"id": 2, "titulo": "Escrever testes", "feita": no}
+]
+proximo_id := 3
+
+// ── validacao, separada da rota ──
+action validar_tarefa(corpo):
+    problemas := []
+    given corpo is void:
+        problemas.append("corpo ausente")
+        yield problemas
+    given "titulo" not in corpo:
+        problemas.append("titulo e obrigatorio")
+    orif len(corpo["titulo"].trim()) smaller 3:
+        problemas.append("titulo precisa de ao menos 3 letras")
+    yield problemas
+
+// ── as rotas ──
+action listar(req, res):
+    res.json(tarefas)
+
+action buscar(req, res):
+    id := cast req["params"]["id"] as Integer
+    achadas := tarefas >> sift t: t["id"] is id
+    given len(achadas) is 0:
+        res.json({"erro": "tarefa nao encontrada"}, 404)
+    otherwise:
+        res.json(achadas[0])
+
+action criar(req, res):
+    problemas := validar_tarefa(req["json"])
+    given len(problemas) bigger 0:
+        res.json({"erros": problemas}, 400)
+        yield void
+    nova := {
+        "id": proximo_id,
+        "titulo": req["json"]["titulo"].trim(),
+        "feita": no
+    }
+    proximo_id += 1
+    tarefas.append(nova)
+    res.json(nova, 201)
+
+action concluir(req, res):
+    id := cast req["params"]["id"] as Integer
+    cycle i from 0 to len(tarefas) - 1:
+        given tarefas[i]["id"] is id:
+            tarefas[i]["feita"] := yes
+            res.json(tarefas[i])
+            yield void
+    res.json({"erro": "tarefa nao encontrada"}, 404)
+
+action remover(req, res):
+    id := cast req["params"]["id"] as Integer
+    tarefas := tarefas >> sift t: t["id"] isnt id
+    res.json({"removida": id})
+
+Http.get(app, "/api/tarefas", listar)
+Http.get(app, "/api/tarefas/:id", buscar)
+Http.post(app, "/api/tarefas", criar)
+Http.put(app, "/api/tarefas/:id", concluir)
+Http.delete(app, "/api/tarefas/:id", remover)
+
+// ── verificando a configuracao ──
+out "── rotas registradas ──"
+out "  GET    /api/tarefas"
+out "  GET    /api/tarefas/:id"
+out "  POST   /api/tarefas"
+out "  PUT    /api/tarefas/:id"
+out "  DELETE /api/tarefas/:id"
+
+// A validacao e testavel sem subir servidor
+out ""
+out "── validacao ──"
+out $"  sem corpo:      {validar_tarefa(void)}"
+out $"  sem titulo:     {validar_tarefa({"outro": 1})}"
+out $"  titulo curto:   {validar_tarefa({"titulo": "ab"})}"
+out $"  valido:         {validar_tarefa({"titulo": "Uma tarefa"})}"
+
+assert len(validar_tarefa(void)) is 1, "corpo ausente"
+assert len(validar_tarefa({"titulo": "ab"})) is 1, "titulo curto"
+assert len(validar_tarefa({"titulo": "Uma tarefa"})) is 0, "valido"
+
+out ""
+out $"tarefas iniciais: {len(tarefas)}"
+out ""
+out "Para subir de verdade, acrescente ao final:"
+out "    Http.listen(app, 3000)"

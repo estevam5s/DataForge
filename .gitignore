@@ -31,3 +31,6 @@ htmlcov/
 # Backups
 *.bak
 *.orig
+
+# Dumps de páginas (não fazem parte do projeto)
+pagecloner_*/

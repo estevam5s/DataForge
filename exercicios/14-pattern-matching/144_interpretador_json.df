@@ -1,0 +1,62 @@
+// Exercicio 144 — Projeto: validador de dados
+// Enunciado: junte padroes de tipo, sequencia e vault num validador de esquema.
+
+// Um validador que percorre dados e um esquema em paralelo.
+// Esquema: {"tipo": "String"} ou {"tipo": "Cluster", "de": <esquema>}
+//          ou {"tipo": "Vault", "campos": {<nome>: <esquema>}}
+
+action validar(dado, esquema, caminho := "raiz"):
+    problemas := []
+    esperado := esquema["tipo"]
+
+    match esquema:
+        point {"tipo": "Cluster", "de": interno}:
+            given typeof(dado) isnt "Cluster":
+                problemas.append($"{caminho}: esperava Cluster, veio {typeof(dado)}")
+                yield problemas
+            cycle i from 0 to len(dado) - 1:
+                cycle p in validar(dado[i], interno, $"{caminho}[{i}]"):
+                    problemas.append(p)
+
+        point {"tipo": "Vault", "campos": campos}:
+            given typeof(dado) isnt "Vault":
+                problemas.append($"{caminho}: esperava Vault, veio {typeof(dado)}")
+                yield problemas
+            cycle nome in campos.keys():
+                given nome not in dado:
+                    problemas.append($"{caminho}.{nome}: campo obrigatorio ausente")
+                otherwise:
+                    cycle p in validar(dado[nome], campos[nome], $"{caminho}.{nome}"):
+                        problemas.append(p)
+
+        default:
+            given typeof(dado) isnt esperado:
+                problemas.append($"{caminho}: esperava {esperado}, veio {typeof(dado)}")
+
+    yield problemas
+
+esquema_usuario := {
+    "tipo": "Vault",
+    "campos": {
+        "nome": {"tipo": "String"},
+        "idade": {"tipo": "Integer"},
+        "tags": {"tipo": "Cluster", "de": {"tipo": "String"}}
+    }
+}
+
+bom := {"nome": "Ana", "idade": 30, "tags": ["admin", "dev"]}
+ruim := {"nome": 42, "tags": ["ok", 7]}
+
+out "── dados validos ──"
+out validar(bom, esquema_usuario)
+
+out ""
+out "── dados invalidos ──"
+cycle p in validar(ruim, esquema_usuario):
+    out $"  {p}"
+
+assert len(validar(bom, esquema_usuario)) is 0, "dados bons passam"
+achados := validar(ruim, esquema_usuario)
+assert len(achados) is 3, "nome errado, idade ausente, tag errada"
+out ""
+out $"{len(achados)} problema(s) encontrados"

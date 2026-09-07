@@ -1,0 +1,12 @@
+// Modulo auxiliar do exercicio 152.
+// Utilidades de formatacao.
+
+// Coloca o texto entre colchetes.
+action realcar(t: String) -> String:
+    yield $"[{t}]"
+
+// Repete um caractere n vezes.
+action linha(caractere: String := "-", n: Integer := 20) -> String:
+    yield caractere.repeat(n)
+
+relay realcar, linha

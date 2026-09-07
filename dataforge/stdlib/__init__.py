@@ -16,6 +16,13 @@ from .arcane_text import ArcaneText
 from .arcane_analytics import ArcaneAnalytics
 from .arcane_database import ArcaneDatabase
 from .arcane_http import ArcaneHttp
+from .arcane_time import ArcaneTime
+from .arcane_os import ArcaneOS
+from .arcane_process import ArcaneProcess
+from .arcane_logging import ArcaneLogging
+from .arcane_crypto import ArcaneCrypto
+from .arcane_collections import ArcaneCollections
+from .arcane_serialization import ArcaneSerialization
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -47,7 +54,24 @@ _MODULES = {
     "Http": ArcaneHttp,
     "Server": ArcaneHttp,
     "Network": ArcaneWeb,
-    "UI": {},
+
+    # ── DataForge 4.0 ──
+    "Arcane.Time": ArcaneTime,
+    "Time": ArcaneTime,
+    "Arcane.OS": ArcaneOS,
+    "OS": ArcaneOS,
+    "Arcane.Process": ArcaneProcess,
+    "Process": ArcaneProcess,
+    "Arcane.Logging": ArcaneLogging,
+    "Logging": ArcaneLogging,
+    "Log": ArcaneLogging,
+    "Arcane.Crypto": ArcaneCrypto,
+    "Crypto": ArcaneCrypto,
+    "Arcane.Collections": ArcaneCollections,
+    "Collections": ArcaneCollections,
+    "Arcane.Serialization": ArcaneSerialization,
+    "Serialization": ArcaneSerialization,
+    "Serde": ArcaneSerialization,
 }
 
 

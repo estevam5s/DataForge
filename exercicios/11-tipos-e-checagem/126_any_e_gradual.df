@@ -1,0 +1,38 @@
+// Exercicio 126 — Tipagem gradual com Any
+// Enunciado: use Any quando o tipo depende do uso, e estreite depois com typeof.
+
+// Any diz honestamente "pode ser qualquer coisa"
+action envolver(valor: Any) -> Vault:
+    yield {"tipo": typeof(valor), "valor": valor}
+
+out envolver(42)
+out envolver("texto")
+out envolver([1, 2])
+
+// Estreitar o tipo dentro da acao e o padrao correto
+action descrever(v: Any) -> String:
+    match v:
+        point Integer as n:
+            yield $"inteiro {n}"
+        point Float as f:
+            yield $"decimal {f}"
+        point String as s:
+            yield $"texto de {len(s)} letras"
+        point Cluster as c:
+            yield $"lista com {len(c)} itens"
+        point Vault:
+            yield "dicionario"
+        point Void:
+            yield "nada"
+        default:
+            yield "outro"
+
+cycle v in [7, 2.5, "abc", [1, 2, 3], {"a": 1}, void]:
+    out descrever(v)
+
+assert descrever(7) is "inteiro 7", "Integer"
+assert descrever(2.5) is "decimal 2.5", "Float"
+assert descrever("abc") is "texto de 3 letras", "String"
+assert descrever([1, 2, 3]) is "lista com 3 itens", "Cluster"
+assert descrever(void) is "nada", "Void"
+assert envolver(42).tipo is "Integer", "envolver guarda o tipo"

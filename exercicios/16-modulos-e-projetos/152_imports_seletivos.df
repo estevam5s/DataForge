@@ -1,0 +1,39 @@
+// Exercicio 152 — Imports seletivos e apelidos
+// Enunciado: traga so os simbolos que voce usa, com o nome que preferir.
+
+// Forma compacta: Modulo.{nomes}
+adopt geometria.{area_circulo, PI}
+
+out $"PI = {PI}"
+out $"area = {round(area_circulo(1), 4)}"
+assert round(area_circulo(1), 4) is 3.1416, "usado sem prefixo"
+
+// Forma explicita, com apelido
+adopt {realcar as destacar, linha} from textos
+
+out destacar("titulo")
+out linha("=", 24)
+assert destacar("x") is "[x]", "apelido funciona"
+assert linha("*", 3) is "***", "importado direto"
+
+// Tambem vale para a stdlib
+adopt Arcane.Math.{sqrt, factorial}
+out $"sqrt(81) = {sqrt(81)}  5! = {factorial(5)}"
+assert sqrt(81) is 9.0, "sqrt sem prefixo"
+assert factorial(5) is 120, "factorial sem prefixo"
+
+// Pedir um simbolo que o modulo nao exporta e erro claro
+erro := ""
+monitor:
+    adopt geometria.{nao_existe}
+handle e:
+    erro := e.message
+    out $"erro: {erro}"
+
+assert "does not export" in erro, "a mensagem explica"
+assert "area_circulo" in erro, "e lista o que existe"
+
+// O modulo inteiro e o seletivo convivem
+adopt geometria as geo
+assert geo.PI is PI, "mesmo valor pelos dois caminhos"
+out "os dois estilos coexistem"

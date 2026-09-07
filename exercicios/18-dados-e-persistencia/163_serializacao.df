@@ -1,0 +1,74 @@
+// Exercicio 163 — Serializacao de dados
+// Enunciado: converta estruturas para JSON, CSV, TOML e de volta.
+
+adopt Arcane.Serialization as Serde
+
+dados := {
+    "app": "DataForge",
+    "versao": 4,
+    "ativo": yes,
+    "tags": ["linguagem", "dados"],
+    "autor": {"nome": "Ana", "email": "ana@x.com"}
+}
+
+// JSON
+texto := Serde.to_json(dados)
+out $"json: {texto[0:50]}..."
+volta := Serde.from_json(texto)
+assert volta["versao"] is 4, "roundtrip json"
+assert volta["autor"]["nome"] is "Ana", "aninhado preservado"
+
+// JSON legivel
+out ""
+out Serde.json_pretty(dados["autor"])
+
+// Leitura tolerante: nunca dispara
+out ""
+bom := Serde.from_json_safe(texto)
+ruim := Serde.from_json_safe("{isso nao e json")
+out $"valido: ok={bom.ok}"
+out $"invalido: ok={ruim.ok}, erro='{ruim.error[0:30]}...'"
+assert bom.ok is yes, "json valido"
+assert ruim.ok is no, "json invalido nao dispara"
+assert ruim.value is void, "valor padrao"
+
+// Caminho pontuado
+out ""
+out $"autor.nome: {Serde.json_path(dados, "autor.nome")}"
+out $"tags.0:     {Serde.json_path(dados, "tags.0")}"
+out $"ausente:    {Serde.json_path(dados, "autor.telefone", "nao informado")}"
+assert Serde.json_path(dados, "autor.email") is "ana@x.com", "caminho aninhado"
+assert Serde.json_path(dados, "tags.1") is "dados", "indice de lista"
+
+// CSV a partir de registros
+registros := [
+    {"nome": "Ana", "idade": 30, "setor": "vendas"},
+    {"nome": "Bruno", "idade": 25, "setor": "ti"}
+]
+csv := Serde.records_to_csv(registros)
+out ""
+out csv
+lidos := Serde.csv_to_records(csv)
+assert len(lidos) is 2, "dois registros"
+assert lidos[0]["nome"] is "Ana", "primeiro registro"
+
+// TOML
+config := {"servidor": {"host": "localhost", "porta": 8080}, "debug": yes}
+out Serde.to_toml(config)
+assert Serde.from_toml(Serde.to_toml(config))["servidor"]["porta"] is 8080, "roundtrip toml"
+
+// Achatar e desachatar
+plano := Serde.flatten(dados["autor"])
+out $"achatado: {plano}"
+assert plano["nome"] is "Ana", "achatado"
+assert Serde.unflatten({"a.b.c": 1})["a"]["b"]["c"] is 1, "desachatado"
+
+// JSON Lines: um objeto por linha
+linhas := Serde.json_lines(registros)
+out ""
+out $"json lines tem {len(linhas.lines())} linhas"
+assert len(Serde.from_json_lines(linhas)) is 2, "roundtrip jsonl"
+
+// Formatos disponiveis
+out ""
+out $"formatos: {Serde.formats()}"

@@ -29,6 +29,15 @@ DESCRICOES = {
     "Arcane.Data": ("DataFrames, séries e transformações tabulares.", "Data"),
     "Arcane.Web": ("Cliente HTTP, URL encoding e JSON.", "Web / Network"),
     "Arcane.Cortex": ("Blocos de rede neural, visão e NLP (implementações simplificadas).", "Cortex"),
+
+    # ── DataForge 4.0 ──
+    "Arcane.Time": ("Datas, horas, durações e cronometragem.", "Time"),
+    "Arcane.OS": ("Sistema operacional, ambiente, disco e processo atual.", "OS"),
+    "Arcane.Process": ("Execução de processos externos, com stdout, stderr e código de saída.", "Process"),
+    "Arcane.Logging": ("Registro estruturado de eventos, com níveis e destinos.", "Logging / Log"),
+    "Arcane.Crypto": ("Hashes, HMAC, senhas, codificações e aleatoriedade segura.", "Crypto"),
+    "Arcane.Collections": ("Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca.", "Collections"),
+    "Arcane.Serialization": ("JSON, CSV, INI, TOML, XML e conversões entre eles.", "Serialization / Serde"),
 }
 
 CABECALHO = """# Biblioteca padrão DataForge — módulos `Arcane.*`
