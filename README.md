@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Version](https://img.shields.io/badge/version-4.0.0-green.svg)](https://github.com/estevam5s/DataForge)
-[![Tests](https://img.shields.io/badge/testes-236%20passando-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/testes-240%20passando-brightgreen.svg)](tests/)
 [![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-180%2F180-brightgreen.svg)](exercicios/)
 
 **Uma linguagem de programação com vocabulário próprio, tipos verificados,
@@ -489,7 +489,7 @@ sugestões.
 ```bash
 pip install -e ".[dev]"
 
-python3 -m pytest tests/ -q       # 236 testes
+python3 -m pytest tests/ -q       # 240 testes
 python3 exercicios/run_all.py     # 180 exercícios
 ```
 
@@ -524,7 +524,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 
 | Verificação | Resultado |
 |-------------|-----------|
-| Testes unitários | 236 passando |
+| Testes unitários | 240 passando |
 | Exercícios | 180/180 |
 | Exemplos | 42/42 |
 | Módulos da stdlib | 20/20 carregam |

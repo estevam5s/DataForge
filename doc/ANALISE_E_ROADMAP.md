@@ -264,7 +264,7 @@ Comandos e resultados desta auditoria:
 
 | Verificação | Comando | Resultado |
 |-------------|---------|-----------|
-| Testes unitários | `python3 -m pytest tests/ -q` | **236 passando** |
+| Testes unitários | `python3 -m pytest tests/ -q` | **240 passando** |
 | Exercícios | `python3 exercicios/run_all.py` | **180/180** |
 | Exemplos | `examples/*.df` | **42/42** |
 | Blocos de documentação | executados um a um | **93/94** (o restante é lista de assinaturas) |

@@ -485,3 +485,67 @@ def test_referencia_lista_todas_as_funcoes_embutidas():
     reais = set(get_builtins())
     assert not (reais - listadas), f"não documentadas: {sorted(reais - listadas)}"
     assert not (listadas - reais), f"documentadas mas inexistentes: {sorted(listadas - reais)}"
+
+
+# ─── CLI: check/fmt/lint sobre pastas ──────────────────────────
+# Bugs encontrados ao conferir os comandos que a doc manda rodar:
+# 'dataforge check .' estourava IsADirectoryError, e fmt/lint
+# derrubavam a execucao inteira ao topar num .df fora de UTF-8.
+
+def test_check_aceita_diretorio(tmp_path):
+    """'dataforge check <pasta>' analisa todos os .df, sem estourar."""
+    from dataforge.cli import check_command
+
+    (tmp_path / "bom.df").write_text("x := 1\nout x\n", encoding='utf-8')
+    (tmp_path / "outro.df").write_text("y := 2\nout y\n", encoding='utf-8')
+
+    saida = io.StringIO()
+    with redirect_stdout(saida):
+        check_command([str(tmp_path)])
+    assert "2 arquivo(s) sem erros" in saida.getvalue()
+
+
+def test_check_em_diretorio_falha_quando_ha_erro(tmp_path):
+    """Com erro de verdade, sai com codigo 1 — serve para a esteira."""
+    from dataforge.cli import check_command
+
+    (tmp_path / "bom.df").write_text("x := 1\nout x\n", encoding='utf-8')
+    (tmp_path / "ruim.df").write_text(
+        "action f(a, b):\n    yield a + b\n\nout f(1)\n", encoding='utf-8')
+
+    with pytest.raises(SystemExit) as exc:
+        with redirect_stdout(io.StringIO()):
+            check_command([str(tmp_path)])
+    assert exc.value.code == 1
+
+
+def test_arquivo_ilegivel_nao_derruba_a_execucao(tmp_path):
+    """Um .df fora de UTF-8 e reportado; os outros seguem sendo lidos."""
+    from dataforge.cli import fmt_command, lint_command
+
+    (tmp_path / "bom.df").write_text("x := 1\nout x\n", encoding='utf-8')
+    (tmp_path / "torto.df").write_bytes(b'out "caf\xe9"\n')  # latin-1
+
+    saida = io.StringIO()
+    with pytest.raises(SystemExit):   # --check sai 1 quando ha pendencia
+        with redirect_stdout(saida):
+            fmt_command([str(tmp_path)], checar=True)
+    assert "UTF-8" in saida.getvalue()
+
+    saida = io.StringIO()
+    with redirect_stdout(saida):
+        lint_command([str(tmp_path)])
+    assert "UTF-8" in saida.getvalue()
+
+
+def test_pacote_nao_tem_df_fora_de_utf8():
+    """Nenhum .df do repositorio pode estar fora de UTF-8."""
+    import glob
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ruins = []
+    for f in glob.glob(os.path.join(raiz, "**", "*.df"), recursive=True):
+        try:
+            open(f, encoding='utf-8').read()
+        except UnicodeDecodeError:
+            ruins.append(os.path.relpath(f, raiz))
+    assert ruins == [], f"arquivos fora de UTF-8: {ruins}"

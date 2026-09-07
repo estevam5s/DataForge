@@ -20,7 +20,7 @@ analisador estático e interpretador de árvore próprios.
 ### Verificação rápida — rode antes e depois de mexer
 
 ```bash
-python3 -m pytest tests/ -q                          # 236 testes
+python3 -m pytest tests/ -q                          # 240 testes
 python3 exercicios/run_all.py                        # 180 exercícios
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
@@ -344,7 +344,7 @@ Ao criar um módulo novo, adicione-o em `stdlib/__init__.py` **e** no dicionári
 
 | Comando | Arquivo | Faz |
 |---------|---------|-----|
-| `dataforge check` | `typechecker.py` | nomes, aridade, tipos, alcance |
+| `dataforge check` | `typechecker.py` | nomes, aridade, tipos, alcance (aceita arquivo, pasta ou padrão) |
 | `dataforge test` | `testrunner.py` | descobre `*_test.df`, `tests/` |
 | `dataforge fmt` | `formatter.py` | formata (`--check` só verifica) |
 | `dataforge lint` | `linter.py` | estilo e higiene |
@@ -352,6 +352,17 @@ Ao criar um módulo novo, adicione-o em `stdlib/__init__.py` **e** no dicionári
 | `dataforge init` | `project.py` | cria `forge.toml` e esqueleto |
 | `dataforge info` | `project.py` | mostra o manifesto |
 | `dataforge repl` | `repl.py` | console com `:type`, `:ast`, `:load` |
+
+### As ferramentas não podem morrer no meio da pasta
+
+`check`, `fmt` e `lint` aceitam arquivo, pasta ou padrão, e resolvem a lista
+com `_expandir()`. A leitura passa por `_ler()`, que devolve `(fonte, None)`
+ou `(None, motivo)`: um `.df` fora de UTF-8 é reportado e os demais seguem.
+Antes disso, um único arquivo mal codificado derrubava `fmt .` inteiro com um
+`UnicodeDecodeError` cru — e `check` numa pasta estourava `IsADirectoryError`.
+
+Há teste para os dois casos em `tests/test_regressoes.py`, mais um que proíbe
+qualquer `.df` fora de UTF-8 no repositório.
 
 ### O analisador estático é otimista de propósito
 

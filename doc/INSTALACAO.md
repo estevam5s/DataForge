@@ -164,7 +164,7 @@ contando: 3
 | `dataforge run arquivo.df` | Executa um programa |
 | `dataforge arquivo.df` | Idem (a palavra `run` é opcional) |
 | `dataforge repl` | Abre o console interativo |
-| `dataforge check arquivo.df` | Só verifica a sintaxe, não executa |
+| `dataforge check arquivo.df` | Analisa sem executar (aceita pasta: `dataforge check .`) |
 | `dataforge tokens arquivo.df` | Mostra o fluxo de tokens (lexer) |
 | `dataforge ast arquivo.df` | Mostra a árvore sintática (parser) |
 | `dataforge new` | Cria um projeto a partir de um template |

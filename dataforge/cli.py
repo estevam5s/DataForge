@@ -200,6 +200,65 @@ def check_file(filepath: str, strict: bool = False, only_syntax: bool = False):
                 f"({len(tree.body)} instruções analisadas)", "1;32"))
 
 
+
+def check_command(alvos, strict=False, only_syntax=False):
+    """dataforge check — analisa um arquivo, uma pasta ou um padrao.
+
+    Um unico arquivo mantem a saida detalhada de sempre. Com varios,
+    imprime os diagnosticos de cada um e um resumo no fim.
+    """
+    from .typechecker import check_program
+
+    arquivos = _expandir(alvos or ["."])
+    if not arquivos:
+        alvo = alvos[0] if alvos else "."
+        print(color(f"Nenhum arquivo .df encontrado em: {alvo}", "1;33"))
+        sys.exit(1)
+
+    if len(arquivos) == 1:
+        check_file(arquivos[0], strict=strict, only_syntax=only_syntax)
+        return
+
+    usar_cor = '--no-color' not in sys.argv
+    total_erros = total_avisos = ilegiveis = 0
+
+    for caminho in arquivos:
+        fonte, motivo = _ler(caminho)
+        if motivo:
+            print(color(f"\u2717 {caminho}: {motivo}", "1;31"))
+            ilegiveis += 1
+            continue
+        try:
+            arvore = parse(tokenize(fonte, caminho), caminho)
+        except DataForgeError as e:
+            print(color(f"\u2717 {caminho}: {e.format()}", "1;31"))
+            total_erros += 1
+            continue
+
+        if only_syntax:
+            continue
+
+        for d in sorted(check_program(arvore, caminho, strict=strict),
+                        key=lambda x: (x.line, x.column)):
+            print(d.format(caminho, color=usar_cor))
+            if d.severity == 'error':
+                total_erros += 1
+            else:
+                total_avisos += 1
+
+    n = len(arquivos)
+    if total_erros or ilegiveis:
+        resumo = f"{total_erros} erro(s), {total_avisos} aviso(s)"
+        if ilegiveis:
+            resumo += f", {ilegiveis} arquivo(s) ilegivel(is)"
+        print(color(f"\n\u2717 {resumo} em {n} arquivo(s)", "1;31"))
+        sys.exit(1)
+    if total_avisos:
+        print(color(f"\n\u2713 sem erros, {total_avisos} aviso(s) "
+                    f"em {n} arquivo(s)", "1;33"))
+        return
+    print(color(f"\u2713 {n} arquivo(s) sem erros", "1;32"))
+
 # ─── Project Templates ──────────────────────────────────────────
 
 PROJECT_TEMPLATES = {
@@ -737,7 +796,10 @@ def fmt_command(alvos, checar=False):
 
     alterados, com_erro = [], []
     for caminho in arquivos:
-        original = open(caminho, encoding='utf-8').read()
+        original, motivo = _ler(caminho)
+        if motivo:
+            com_erro.append((caminho, motivo))
+            continue
         try:
             formatado = format_source(original)
         except DataForgeError as e:
@@ -777,7 +839,11 @@ def lint_command(alvos, strict=False):
     usar_cor = '--no-color' not in sys.argv
     total = 0
     for caminho in arquivos:
-        fonte = open(caminho, encoding='utf-8').read()
+        fonte, motivo = _ler(caminho)
+        if motivo:
+            print(color(f"\u2717 {caminho}: {motivo}", "1;31"))
+            total += 1
+            continue
         try:
             arvore = parse(tokenize(fonte, caminho), caminho)
         except DataForgeError as e:
@@ -931,6 +997,21 @@ def _rodar_script(nome, flags):
     return True
 
 
+def _ler(caminho):
+    """Le um .df. Devolve (fonte, None) ou (None, motivo) — nunca estoura.
+
+    Um arquivo mal codificado no meio de uma pasta nao pode derrubar
+    'fmt .' ou 'lint .' inteiro; ele e reportado e os demais seguem.
+    """
+    try:
+        with open(caminho, 'r', encoding='utf-8') as f:
+            return f.read(), None
+    except UnicodeDecodeError:
+        return None, "nao esta em UTF-8"
+    except OSError as e:
+        return None, e.strerror or str(e)
+
+
 def _expandir(alvos):
     """Resolve caminhos e pastas numa lista de arquivos .df."""
     import glob as _glob
@@ -998,11 +1079,8 @@ def main():
         show_ast(args[1])
 
     elif command == 'check':
-        if len(args) < 2:
-            print(color("Error: No file specified.", "1;31"))
-            sys.exit(1)
-        check_file(args[1], strict='--strict' in flags,
-                   only_syntax='--syntax-only' in flags)
+        check_command(args[1:], strict='--strict' in flags,
+                      only_syntax='--syntax-only' in flags)
 
     elif command == 'fmt':
         fmt_command(args[1:], checar='--check' in flags)

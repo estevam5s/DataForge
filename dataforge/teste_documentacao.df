@@ -1,4 +1,0 @@
-out "Ì∫Ä DataForge documenta√ß√£o atualizada!"
-out "Instala√ß√£o funcionando perfeitamente!"
-nome := "Desenvolvedor"
-out "Bem-vindo, " + nome + "!"
