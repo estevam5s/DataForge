@@ -1,0 +1,72 @@
+// Exercicio 186 — Blueprints abstratos e contratos de trait
+// Enunciado: declare o que um tipo precisa ter, e deixe o compilador cobrar.
+
+// Um blueprint abstrato nao pode ser spawnado: ele existe para ser
+// herdado. Um metodo abstrato e uma exigencia — quem herdar precisa
+// implementar, e o erro sai na declaracao, nao na chamada.
+
+abstract blueprint Forma:
+    abstract action area()
+
+    // metodo concreto: os herdeiros ganham de graca
+    action descrever():
+        yield $"{self.nome()} com area {round(self.area(), 2)}"
+
+    abstract action nome()
+
+blueprint Quadrado extends Forma:
+    lado: Float := 0.0
+
+    action setup(lado):
+        self.lado := lado
+
+    action area():
+        yield self.lado ** 2
+
+    action nome():
+        yield "quadrado"
+
+blueprint Circulo extends Forma:
+    raio: Float := 0.0
+
+    action setup(raio):
+        self.raio := raio
+
+    action area():
+        yield PI * self.raio ** 2
+
+    action nome():
+        yield "circulo"
+
+formas := [spawn Quadrado(4), spawn Circulo(2)]
+cycle f in formas:
+    out f.descrever()
+
+assert (spawn Quadrado(4)).area() is 16.0, "area do quadrado"
+
+// o abstrato nao pode ser instanciado
+monitor:
+    spawn Forma()
+    assert no, "deveria ter recusado"
+handle e:
+    assert e.message.contains("abstract"), "diz que e abstrato"
+    out "abstrato nao se instancia"
+
+// trait declara contrato
+trait Comparavel:
+    action comparar(outro)
+
+blueprint Peso with Comparavel:
+    kg: Float := 0.0
+    action setup(kg):
+        self.kg := kg
+    action comparar(o):
+        given self.kg smaller o.kg:
+            yield -1
+        given self.kg bigger o.kg:
+            yield 1
+        yield 0
+
+assert (spawn Peso(1)).comparar(spawn Peso(2)) is -1, "o contrato foi cumprido"
+
+out "ok"

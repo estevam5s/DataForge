@@ -1,0 +1,64 @@
+// api-links — servidor HTTP do encurtador
+//
+//     dataforge run src/main.df
+//     curl -X POST localhost:8080/encurtar -d '{"url":"https://exemplo.com"}'
+//     curl -L localhost:8080/abc123
+
+adopt Arcane.Http as Http
+adopt Arcane.Serialization as Serde
+adopt registro as Log
+adopt cofre as C
+adopt ./encurtador as E
+
+action carregar_config():
+    cfg := C.novo()
+    cfg := C.padroes(cfg, {"porta": 8080, "host": "localhost"})
+    cfg := C.do_arquivo(cfg, "config.json")
+    cfg := C.do_ambiente(cfg, "LINKS_")
+    cfg := C.dos_argumentos(cfg)
+    yield cfg
+
+action principal():
+    cfg := carregar_config()
+    porta := C.como_inteiro(cfg, "porta", 8080)
+    log := Log.novo("api-links", "info")
+    app := E.novo()
+
+    log.info("subindo", {"porta": porta, "origem": C.origem(cfg, "porta")})
+
+    servidor := Http.create("api-links")
+
+    Http.post(servidor, "/encurtar", lambda req => tratar_encurtar(app, log, req))
+    Http.get(servidor, "/estatisticas", lambda req => tratar_top(app, req))
+    Http.get(servidor, "/:codigo", lambda req => tratar_redirecionar(app, log, req))
+
+    log.info("no ar", {"url": $"http://localhost:{porta}"})
+    out $"servidor em http://localhost:{porta}  (Ctrl+C para parar)"
+    Http.listen(servidor, porta)
+    yield 0
+
+action tratar_encurtar(app, log, req):
+    monitor:
+        corpo := Serde.from_json(req["body"] ?? "{}")
+        r := app.encurtar(corpo["url"] ?? "", corpo["codigo"] ?? "")
+        log.info("link criado", {"codigo": r["codigo"]})
+        yield Http.json_response(r, 201)
+    handle e:
+        // 400, não 500: a URL inválida é erro de quem chamou.
+        log.aviso("recusado", {"motivo": e.message})
+        yield Http.json_response({"erro": e.message}, 400)
+
+action tratar_redirecionar(app, log, req):
+    codigo := (req["params"] ?? {})["codigo"] ?? ""
+    destino := app.resolver(codigo)
+    given destino is void:
+        log.aviso("codigo nao encontrado", {"codigo": codigo})
+        yield Http.json_response({"erro": "link nao existe"}, 404)
+    log.info("redirecionando", {"codigo": codigo, "destino": destino})
+    yield Http.json_response({"redirect": destino}, 200)
+
+action tratar_top(app, req):
+    yield Http.json_response({"total": app.total,
+                              "mais_acessados": app.mais_acessados(5)})
+
+principal()

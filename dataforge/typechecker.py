@@ -530,24 +530,27 @@ class TypeChecker:
         # O corpo de um 'monitor' existe para conter falhas; codigo que provoca
         # um erro de proposito e legitimo ali. Por isso os diagnosticos do corpo
         # sao rebaixados a aviso.
+        #
+        # O corpo usa o escopo de FORA, como o interpretador: uma variavel
+        # atribuida dentro do monitor continua existindo depois dele.
         with self._demoted():
-            self.visit_block(node.body, Scope(escopo))
+            self.visit_block(node.body, escopo)
         if node.handle_body:
-            interno = Scope(escopo)
-            interno.declare(node.handle_name, "Error", node.line, node.column)
-            self.visit_block(node.handle_body, interno)
+            # o nome do erro existe so aqui; o resto compartilha o escopo
+            escopo.declare(node.handle_name, "Error", node.line, node.column)
+            self.visit_block(node.handle_body, escopo)
         if node.ensure_body:
             self.visit_block(node.ensure_body, Scope(escopo))
         return False
 
     def st_RetryBlock(self, node, escopo):
         self.infer(node.count, escopo)
+        # mesma regra do monitor: o corpo nao cria escopo proprio
         with self._demoted():
-            self.visit_block(node.body, Scope(escopo))
+            self.visit_block(node.body, escopo)
         if node.handle_body:
-            interno = Scope(escopo)
-            interno.declare(node.handle_name, "Error", node.line, node.column)
-            self.visit_block(node.handle_body, interno)
+            escopo.declare(node.handle_name, "Error", node.line, node.column)
+            self.visit_block(node.handle_body, escopo)
         return False
 
     def st_GuardStatement(self, node, escopo):

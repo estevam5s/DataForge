@@ -1,0 +1,62 @@
+// Exercicio 183 — Propriedades com get e set
+// Enunciado: exponha um valor calculado, e valide na atribuicao.
+
+// Uma propriedade e lida como campo mas roda codigo. O ganho: dá para
+// validar na escrita, e mudar a implementacao sem mexer em quem usa.
+
+blueprint Retangulo:
+    private _largura: Float := 1.0
+    private _altura: Float := 1.0
+
+    action setup(largura, altura):
+        self.largura := largura
+        self.altura := altura
+
+    get largura():
+        yield self._largura
+
+    set largura(v):
+        given v smaller_eq 0:
+            trigger "largura precisa ser positiva"
+        self._largura := v
+
+    get altura():
+        yield self._altura
+
+    set altura(v):
+        given v smaller_eq 0:
+            trigger "altura precisa ser positiva"
+        self._altura := v
+
+    // so leitura: nao ha 'set area'
+    get area():
+        yield self._largura * self._altura
+
+    get e_quadrado():
+        yield self._largura is self._altura
+
+r := spawn Retangulo(3, 4)
+out "area:", r.area
+assert r.area is 12.0, "area calculada na leitura"
+assert not r.e_quadrado, "3x4 nao e quadrado"
+
+// a atribuicao passa pelo setter
+r.largura := 4
+assert r.area is 16.0, "a area acompanhou"
+assert r.e_quadrado, "agora e quadrado"
+
+// e o setter valida
+monitor:
+    r.largura := -5
+    assert no, "deveria ter recusado"
+handle e:
+    assert e.message.contains("positiva"), "a validacao rodou"
+
+// propriedade so leitura recusa escrita
+monitor:
+    r.area := 100
+    assert no, "deveria ter recusado"
+handle e:
+    assert e.message.contains("read-only"), "diz que falta o set"
+
+out "ok"

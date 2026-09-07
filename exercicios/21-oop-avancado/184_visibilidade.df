@@ -1,0 +1,59 @@
+// Exercicio 184 — Visibilidade: private e protected
+// Enunciado: proteja o estado interno de um objeto.
+
+// 'private' e visivel so dentro do blueprint. 'protected' alcanca
+// tambem os herdeiros. O que fica publico e a promessa que voce
+// mantem; o resto voce pode mudar sem avisar ninguem.
+
+blueprint Conta:
+    private saldo: Float := 0.0
+    protected titular: String := ""
+
+    action setup(titular):
+        self.titular := titular
+
+    action depositar(valor):
+        given valor smaller_eq 0:
+            trigger "deposito precisa ser positivo"
+        self.saldo += valor
+        yield self.saldo
+
+    action sacar(valor):
+        given valor bigger self.saldo:
+            trigger "saldo insuficiente"
+        self.saldo -= valor
+        yield self.saldo
+
+    get extrato():
+        yield $"{self.titular}: {self.saldo}"
+
+c := spawn Conta("Ana")
+c.depositar(100)
+c.sacar(30)
+out c.extrato
+assert c.extrato is "Ana: 70.0", "as operacoes publicas funcionam"
+
+// de fora, o saldo nao se alcanca
+monitor:
+    out c.saldo
+    assert no, "deveria ter recusado"
+handle e:
+    assert e.message.contains("private"), "diz que e private"
+    out "saldo protegido"
+
+// e nem se altera
+monitor:
+    c.saldo := 999999
+    assert no, "deveria ter recusado"
+handle e:
+    out "nao da para forjar saldo"
+
+// 'protected' alcanca o herdeiro
+blueprint ContaPremium extends Conta:
+    action saudacao():
+        yield $"Bem-vinda, {self.titular}"
+
+p := spawn ContaPremium("Bruna")
+assert p.saudacao() is "Bem-vinda, Bruna", "protected alcanca o filho"
+
+out "ok"

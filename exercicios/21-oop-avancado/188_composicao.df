@@ -1,0 +1,58 @@
+// Exercicio 188 — Composicao no lugar de heranca
+// Enunciado: monte comportamento juntando objetos, nao estendendo.
+
+// Heranca amarra o filho ao pai para sempre. Composicao troca a peca
+// quando precisar. A regra pratica: heranca quando A *e* um B;
+// composicao quando A *tem* um B.
+
+trait Motor:
+    action ligar()
+    action potencia()
+
+blueprint MotorEletrico with Motor:
+    kw: Float := 0.0
+    action setup(kw):
+        self.kw := kw
+    action ligar():
+        yield "zumbido"
+    action potencia():
+        yield self.kw
+
+blueprint MotorCombustao with Motor:
+    cavalos: Float := 0.0
+    action setup(cavalos):
+        self.cavalos := cavalos
+    action ligar():
+        yield "ronco"
+    action potencia():
+        yield self.cavalos * 0.7355
+
+blueprint Carro:
+    modelo: String := ""
+
+    action setup(modelo, motor):
+        self.modelo := modelo
+        self.motor := motor        // o carro TEM um motor
+
+    action dar_partida():
+        yield $"{self.modelo}: {self.motor.ligar()}"
+
+    action ficha():
+        yield $"{self.modelo} — {round(self.motor.potencia(), 1)} kW"
+
+eletrico := spawn Carro("Modelo E", spawn MotorEletrico(150))
+combustao := spawn Carro("Modelo C", spawn MotorCombustao(200))
+
+out eletrico.dar_partida()
+out combustao.dar_partida()
+out eletrico.ficha()
+
+assert eletrico.dar_partida().contains("zumbido"), "usou o motor eletrico"
+assert combustao.dar_partida().contains("ronco"), "e o outro carro, o outro motor"
+assert eletrico.ficha().contains("150"), "a potencia veio do motor"
+
+// trocar o motor e trocar um campo — com heranca seria outro tipo
+eletrico.motor := spawn MotorCombustao(100)
+assert eletrico.dar_partida().contains("ronco"), "o mesmo carro, outro motor"
+
+out "ok"

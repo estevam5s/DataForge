@@ -60,6 +60,24 @@ class Parser:
         while self.current().type == TokenType.NEWLINE:
             self.advance()
 
+    def continuar_linha(self):
+        """Pula a quebra de linha logo apos um operador binario.
+
+        Uma linha que termina em operador esta obviamente incompleta —
+        nao ha o que ela possa significar sozinha. Permitir a quebra ali
+        deixa escrever uma expressao longa em varias linhas:
+
+            mensagem := "primeira parte " +
+                        "segunda parte"
+
+        A indentacao seguinte e ignorada de proposito: o lexer ja emitiu
+        INDENT/DEDENT, mas dentro de uma expressao continuada eles nao
+        delimitam bloco nenhum.
+        """
+        while self.current().type in (TokenType.NEWLINE, TokenType.INDENT,
+                                      TokenType.DEDENT):
+            self.advance()
+
     def expect_member_name(self) -> str:
         """Expect an identifier or a keyword used as a member name after '.'."""
         tok = self.current()
@@ -1964,6 +1982,17 @@ class Parser:
             if isinstance(class_expr, ast.FunctionCall):
                 return ast.SpawnExpression(
                     class_name=class_expr.callee, args=class_expr.args,
+                    kwargs=class_expr.kwargs, line=tok.line, column=tok.column
+                )
+            # 'spawn Modulo.Blueprint(args)' chega como MethodCall. O que
+            # se quer construir e 'Modulo.Blueprint'; os argumentos vao
+            # para o construtor, nao para uma chamada de metodo.
+            if isinstance(class_expr, ast.MethodCall):
+                alvo = ast.MemberAccess(
+                    object=class_expr.object, member=class_expr.method,
+                    line=class_expr.line, column=class_expr.column)
+                return ast.SpawnExpression(
+                    class_name=alvo, args=class_expr.args,
                     kwargs=class_expr.kwargs, line=tok.line, column=tok.column
                 )
             return ast.SpawnExpression(class_name=class_expr, line=tok.line, column=tok.column)

@@ -1,0 +1,76 @@
+adopt Arcane.Test as T
+adopt ../src/encurtador as E
+
+action test_encurta_url_valida():
+    app := E.novo(42)
+    r := app.encurtar("https://exemplo.com/uma/pagina")
+    T.assert_eq(r["codigo"].length(), 6)
+    T.assert_eq(r["url"], "https://exemplo.com/uma/pagina")
+    T.assert_eq(app.total, 1)
+
+action test_recusa_url_invalida():
+    app := E.novo(42)
+    T.assert_throws(lambda => app.encurtar("nao é url"))
+    T.assert_throws(lambda => app.encurtar("ftp://exemplo.com"))
+    T.assert_throws(lambda => app.encurtar(""))
+    T.assert_eq(app.total, 0)
+
+action test_codigo_personalizado():
+    app := E.novo(42)
+    r := app.encurtar("https://exemplo.com", "meu-link")
+    T.assert_eq(r["codigo"], "meu-link")
+    T.assert_eq(app.resolver("meu-link"), "https://exemplo.com")
+
+action test_codigo_duplicado_e_recusado():
+    app := E.novo(42)
+    app.encurtar("https://a.com", "igual")
+    T.assert_throws(lambda => app.encurtar("https://b.com", "igual"))
+
+action test_codigo_invalido():
+    app := E.novo(42)
+    T.assert_throws(lambda => app.encurtar("https://x.com", "ab"))       // curto
+    T.assert_throws(lambda => app.encurtar("https://x.com", "com espaço"))
+    T.assert_throws(lambda => app.encurtar("https://x.com", "a".repeat(21)))
+
+action test_resolver_conta_acesso():
+    app := E.novo(42)
+    r := app.encurtar("https://exemplo.com")
+    app.resolver(r["codigo"])
+    app.resolver(r["codigo"])
+    T.assert_eq(app.estatisticas(r["codigo"])["acessos"], 2)
+
+action test_codigo_inexistente():
+    app := E.novo(42)
+    T.assert_eq(app.resolver("nada"), void)
+    T.assert_eq(app.estatisticas("nada"), void)
+
+action test_semente_torna_reproduzivel():
+    a := E.novo(7).encurtar("https://x.com")
+    b := E.novo(7).encurtar("https://x.com")
+    T.assert_eq(a["codigo"], b["codigo"])
+
+action test_codigos_diferentes_para_links_diferentes():
+    app := E.novo(42)
+    a := app.encurtar("https://a.com")
+    b := app.encurtar("https://b.com")
+    T.assert_true(a["codigo"] isnt b["codigo"])
+
+action test_mais_acessados():
+    app := E.novo(42)
+    pouco := app.encurtar("https://pouco.com")
+    muito := app.encurtar("https://muito.com")
+    cycle i from 1 to 5:
+        app.resolver(muito["codigo"])
+    app.resolver(pouco["codigo"])
+
+    top := app.mais_acessados(2)
+    T.assert_eq(top[0]["url"], "https://muito.com")
+    T.assert_eq(top[0]["acessos"], 5)
+
+action test_remover():
+    app := E.novo(42)
+    r := app.encurtar("https://x.com")
+    T.assert_true(app.remover(r["codigo"]))
+    T.assert_eq(app.resolver(r["codigo"]), void)
+    T.assert_false(app.remover("nao existe"))
+    T.assert_eq(app.total, 0)

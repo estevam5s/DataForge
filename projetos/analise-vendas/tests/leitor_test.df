@@ -1,0 +1,49 @@
+adopt Arcane.Test as T
+adopt Arcane.IO as IO
+adopt ../src/leitor as L
+
+steady TEMP := "/tmp/df_vendas_teste.csv"
+
+action escrever(conteudo):
+    IO.write(TEMP, conteudo)
+    yield TEMP
+
+action test_le_csv_valido():
+    escrever("data,regiao,vendedor,produto,valor\n2026-01-01,Sul,Ana,X,100.50\n")
+    vendas := L.ler(TEMP)
+    T.assert_eq(len(vendas), 1)
+    T.assert_eq(vendas[0].regiao, "Sul")
+    T.assert_eq(vendas[0].valor, 10050)      // centavos
+
+action test_valor_vira_centavos():
+    escrever("data,regiao,vendedor,produto,valor\n2026-01-01,S,A,X,0.10\n")
+    T.assert_eq(L.ler(TEMP)[0].valor, 10)
+
+action test_arquivo_ausente():
+    T.assert_throws(lambda => L.ler("/tmp/nao_existe_mesmo.csv"))
+
+action test_csv_sem_linhas():
+    escrever("data,regiao,vendedor,produto,valor\n")
+    T.assert_throws(lambda => L.ler(TEMP))
+
+action test_coluna_faltando():
+    escrever("data,regiao,valor\n2026-01-01,Sul,100\n")
+    T.assert_throws(lambda => L.ler(TEMP))
+
+action test_linha_com_colunas_a_menos():
+    escrever("data,regiao,vendedor,produto,valor\n2026-01-01,Sul,Ana\n")
+    T.assert_throws(lambda => L.ler(TEMP))
+
+action test_linha_em_branco_e_ignorada():
+    escrever("data,regiao,vendedor,produto,valor\n2026-01-01,S,A,X,10.00\n\n")
+    T.assert_eq(len(L.ler(TEMP)), 1)
+
+action test_erro_diz_a_linha():
+    escrever("data,regiao,vendedor,produto,valor\n" +
+             "2026-01-01,S,A,X,10.00\n" +
+             "2026-01-02,S,A,X\n")
+    monitor:
+        L.ler(TEMP)
+        T.assert_true(no)
+    handle e:
+        T.assert_true(e.message.contains("3"))    // a linha problemática

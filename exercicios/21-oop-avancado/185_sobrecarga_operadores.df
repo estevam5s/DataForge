@@ -1,0 +1,52 @@
+// Exercicio 185 — Sobrecarga de operadores
+// Enunciado: faca '+' e '==' funcionarem no seu proprio tipo.
+
+// Sobrecarregar operador so vale quando a operacao e obvia: somar dois
+// vetores, comparar dois dinheiros. Se alguem precisa ler a
+// documentacao para saber o que '+' faz, use um metodo com nome.
+
+blueprint Vetor:
+    x: Float := 0.0
+    y: Float := 0.0
+
+    action setup(x, y):
+        self.x := x
+        self.y := y
+
+    operator + (o):
+        yield spawn Vetor(self.x + o.x, self.y + o.y)
+
+    operator - (o):
+        yield spawn Vetor(self.x - o.x, self.y - o.y)
+
+    operator * (k):
+        yield spawn Vetor(self.x * k, self.y * k)
+
+    operator == (o):
+        yield self.x is o.x and self.y is o.y
+
+    get comprimento():
+        yield sqrt(self.x ** 2 + self.y ** 2)
+
+    action toString():
+        yield $"({self.x}, {self.y})"
+
+a := spawn Vetor(1, 2)
+b := spawn Vetor(3, 4)
+
+out "a + b =", str(a + b)
+assert (a + b).x is 4.0, "soma componente a componente"
+assert (b - a).y is 2.0, "subtracao"
+assert (a * 3).x is 3.0, "multiplicacao por escalar"
+
+// igualdade estrutural, nao de identidade
+assert a == spawn Vetor(1, 2), "dois vetores iguais sao =="
+assert not (a == b), "vetores diferentes nao sao"
+
+// '!=' sai de '==' negado, sem precisar declarar
+assert a isnt b, "isnt deriva do =="
+
+out "comprimento de (3,4):", b.comprimento
+assert b.comprimento is 5.0, "3-4-5"
+
+out "ok"

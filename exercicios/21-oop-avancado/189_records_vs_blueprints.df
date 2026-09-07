@@ -1,0 +1,57 @@
+// Exercicio 189 — Quando usar record e quando usar blueprint
+// Enunciado: compare os dois, e escolha pelo que o dado precisa.
+
+// record: imutavel, igualdade estrutural, sem estado que muda.
+// blueprint: identidade propria, estado que evolui, comportamento.
+//
+// A pergunta que decide: dois desses com os mesmos valores sao a mesma
+// coisa? Se sim, record.
+
+record Ponto:
+    x: Integer
+    y: Integer
+
+    action distancia_ate(outro):
+        yield sqrt((self.x - outro.x) ** 2 + (self.y - outro.y) ** 2)
+
+// dois pontos com as mesmas coordenadas SAO o mesmo ponto
+a := Ponto(1, 2)
+b := Ponto(1, 2)
+assert a is b, "records com os mesmos valores sao iguais"
+assert a.distancia_ate(Ponto(4, 6)) is 5.0, "e tem comportamento"
+
+// e nao mudam: 'with' cria outro
+movido := a with {"x": 10}
+assert a.x is 1, "o original nao mudou"
+assert movido.x is 10, "a copia tem o valor novo"
+
+monitor:
+    a.x := 99
+    assert no, "deveria ter recusado"
+handle e:
+    out "record e imutavel"
+
+// ja duas contas com o mesmo saldo NAO sao a mesma conta
+blueprint Conta:
+    private saldo: Float := 0.0
+    numero: String := ""
+
+    action setup(numero):
+        self.numero := numero
+
+    action depositar(v):
+        self.saldo += v
+        yield self.saldo
+
+c1 := spawn Conta("001")
+c2 := spawn Conta("002")
+c1.depositar(100)
+c2.depositar(100)
+
+// mesmo saldo, contas diferentes — cada uma tem identidade
+assert c1.numero isnt c2.numero, "sao contas distintas"
+c1.depositar(50)
+assert c1.numero is "001", "e cada uma evolui por conta propria"
+
+out "record para valor, blueprint para identidade"
+out "ok"

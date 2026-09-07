@@ -1,0 +1,91 @@
+// Persistência em JSON. Separada do resto para que trocar por SQLite
+// seja mexer só aqui.
+
+adopt Arcane.IO as IO
+adopt Arcane.Serialization as Serde
+adopt ./tarefa as T
+
+blueprint Repositorio:
+    private caminho: String := ""
+    private tarefas: Cluster := []
+    private proximo_id: Integer := 1
+
+    action setup(caminho):
+        self.caminho := caminho
+        self.tarefas := []
+        self.proximo_id := 1
+        self.carregar()
+
+    action carregar():
+        given not IO.exists(self.caminho):
+            yield self
+        monitor:
+            dados := Serde.from_json(IO.read(self.caminho))
+            self.tarefas := []
+            cycle t in dados["tarefas"] ?? []:
+                self.tarefas.append(T.Tarefa(
+                    t["id"], t["titulo"], t["prioridade"],
+                    t["prazo"] ?? "", t["feita"]))
+            self.proximo_id := dados["proximo_id"] ?? 1
+        handle e:
+            // Arquivo corrompido não pode impedir o programa de rodar:
+            // avisa e começa vazio, sem apagar o original.
+            out $"aviso: nao consegui ler {self.caminho} ({e.message})"
+        yield self
+
+    action gravar():
+        planas := []
+        cycle t in self.tarefas:
+            planas.append({"id": t.id, "titulo": t.titulo,
+                           "prioridade": t.prioridade, "prazo": t.prazo,
+                           "feita": t.feita})
+        IO.write(self.caminho,
+                 Serde.to_json({"tarefas": planas,
+                                "proximo_id": self.proximo_id}))
+        yield self
+
+    action todas():
+        yield self.tarefas
+
+    action adicionar(titulo, prioridade := 2, prazo := ""):
+        t := T.nova(self.proximo_id, titulo, prioridade, prazo)
+        self.tarefas.append(t)
+        self.proximo_id += 1
+        self.gravar()
+        yield t
+
+    action buscar(id):
+        cycle t in self.tarefas:
+            given t.id is id:
+                yield t
+        yield void
+
+    action concluir(id):
+        atualizadas := []
+        achou := no
+        cycle t in self.tarefas:
+            given t.id is id:
+                atualizadas.append(t with {"feita": yes})
+                achou := yes
+            otherwise:
+                atualizadas.append(t)
+        self.tarefas := atualizadas
+        given achou:
+            self.gravar()
+        yield achou
+
+    action remover(id):
+        restantes := []
+        cycle t in self.tarefas:
+            given t.id isnt id:
+                restantes.append(t)
+        achou := len(restantes) smaller len(self.tarefas)
+        self.tarefas := restantes
+        given achou:
+            self.gravar()
+        yield achou
+
+action abrir(caminho):
+    yield spawn Repositorio(caminho)
+
+relay Repositorio, abrir

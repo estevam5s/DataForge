@@ -141,16 +141,47 @@ class _DFRequestHandler(BaseHTTPRequestHandler):
                 pass
 
         # Run handler
+        #
+        # Um handler pode declarar (req) ou (req, res): quem so monta e
+        # devolve a resposta nao precisa do 'res'. Exigir os dois
+        # obrigava a escrever um parametro que nunca se usa.
         try:
-            result = handler(req, res)
-            if isinstance(result, dict) or isinstance(result, list):
+            try:
+                result = handler(req, res)
+            except Exception as erro_aridade:
+                # A acao do DataForge levanta TypeError_ (nao o TypeError
+                # do Python) quando a aridade nao bate. Reconhecer isso
+                # pela mensagem e o unico caminho sem importar o modulo
+                # de erros aqui dentro.
+                texto = str(getattr(erro_aridade, "message", erro_aridade))
+                if "argument" not in texto.lower():
+                    raise
+                result = handler(req)
+
+            # 'json_response(dados, status)' devolve um envelope; aqui
+            # ele e desembrulhado. Sem isto, o cliente recebia a
+            # estrutura interna — '__json__', 'data', 'status' — em vez
+            # da resposta, e o status era sempre 200.
+            if isinstance(result, dict) and result.get("__json__"):
+                # o status vai junto: send_json o sobrescreveria com 200
+                send_json(result.get("data"), int(result.get("status", 200)))
+                for chave, valor in (result.get("headers") or {}).items():
+                    response_data["headers"][chave] = valor
+            elif isinstance(result, dict) or isinstance(result, list):
                 if not response_data["body"]:
                     send_json(result)
             elif isinstance(result, str):
                 if not response_data["body"]:
                     send(result)
         except Exception as e:
-            self._send_json(500, {"error": "Internal Server Error", "detail": str(e)})
+            # O detalhe vai para o cliente E para o terminal de quem
+            # roda o servidor. Sem isso, depurar um handler significa
+            # adivinhar a partir de "Internal Server Error".
+            detalhe = getattr(e, "message", None) or str(e)
+            print(f"\033[1;31m[http] {req.get('method', '?')} "
+                  f"{req.get('path', '?')} falhou:\033[0m {detalhe}")
+            self._send_json(500, {"error": "Internal Server Error",
+                                  "detail": detalhe})
             return
 
         # Send response

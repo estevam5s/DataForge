@@ -1,0 +1,175 @@
+// gestor-tarefas — junta seis bibliotecas do registro numa ferramenta
+// de linha de comando de verdade.
+//
+//     dataforge run src/main.df -- adicionar "Comprar pão" --prioridade 3
+//     dataforge run src/main.df -- listar --pendentes
+//     dataforge run src/main.df -- concluir 1
+
+adopt argumentos as Arg
+adopt tabela as Tb
+adopt datas as D
+adopt cofre as C
+adopt colecao as Col
+adopt registro as Log
+adopt Arcane.OS as OS
+adopt ./repositorio as Repo
+adopt ./tarefa as T
+
+// ── Configuração em camadas ───────────────────────────────
+
+action carregar_config():
+    cfg := C.novo()
+    cfg := C.padroes(cfg, {
+        "arquivo": "tarefas.json",
+        "estilo": "simples",
+        "cor": yes
+    })
+    cfg := C.do_arquivo(cfg, "tarefas.config.json")
+    cfg := C.do_ambiente(cfg, "TAREFAS_")
+    yield cfg
+
+// ── Linha de comando ──────────────────────────────────────
+
+action montar_cli():
+    p := Arg.programa("tarefas", "Gestor de tarefas em DataForge")
+
+    adicionar := Arg.programa("adicionar", "cria uma tarefa")
+    adicionar.posicional("titulo", "o que precisa ser feito")
+    adicionar.opcao("prioridade", "p", "1 baixa, 2 media, 3 alta", 2, "inteiro")
+    adicionar.opcao("prazo", "d", "data no formato AAAA-MM-DD", "")
+
+    listar := Arg.programa("listar", "mostra as tarefas")
+    listar.flag("pendentes", "p", "so as que faltam")
+    listar.flag("atrasadas", "a", "so as vencidas")
+
+    concluir := Arg.programa("concluir", "marca como feita")
+    concluir.posicional("id", "o numero da tarefa")
+
+    remover := Arg.programa("remover", "apaga uma tarefa")
+    remover.posicional("id", "o numero da tarefa")
+
+    p.subcomando("adicionar", adicionar)
+    p.subcomando("listar", listar)
+    p.subcomando("concluir", concluir)
+    p.subcomando("remover", remover)
+    p.subcomando("resumo", Arg.programa("resumo", "estatisticas"))
+    yield p
+
+// ── Apresentação ──────────────────────────────────────────
+
+action linha_da_tarefa(t):
+    marca := "✓" given t.feita otherwise " "
+    prazo := t.prazo given t.prazo isnt "" otherwise "—"
+    given t.esta_atrasada():
+        prazo := prazo + " (atrasada)"
+    yield [marca, t.id, t.titulo, t.rotulo_prioridade(), prazo]
+
+action mostrar(tarefas, estilo):
+    given len(tarefas) is 0:
+        out "nenhuma tarefa por aqui."
+        yield 0
+    linhas := []
+    cycle t in tarefas:
+        linhas.append(linha_da_tarefa(t))
+    out Tb.render(linhas, ["", "#", "Tarefa", "Prior.", "Prazo"], estilo)
+    yield len(tarefas)
+
+action mostrar_resumo(tarefas):
+    feitas := []
+    pendentes := []
+    atrasadas := []
+    cycle t in tarefas:
+        given t.feita:
+            feitas.append(t)
+        otherwise:
+            pendentes.append(t)
+            given t.esta_atrasada():
+                atrasadas.append(t)
+
+    out Tb.caixa(
+        $"total       {len(tarefas)}\n" +
+        $"feitas      {len(feitas)}\n" +
+        $"pendentes   {len(pendentes)}\n" +
+        $"atrasadas   {len(atrasadas)}",
+        "Resumo", "grossa")
+
+    given len(tarefas) bigger 0:
+        out ""
+        out "Por prioridade:"
+        por_prioridade := Col.contar_por(tarefas, lambda t => t.rotulo_prioridade())
+        maior := 0
+        cycle k in por_prioridade.keys():
+            given por_prioridade[k] bigger maior:
+                maior := por_prioridade[k]
+        cycle k in ["alta", "media", "baixa"]:
+            n := por_prioridade[k] ?? 0
+            out "  " + Tb.encher(k, 6) + " " + Tb.barra(n, maior, 16) + " " + str(n)
+    yield len(tarefas)
+
+// ── Programa ──────────────────────────────────────────────
+
+action principal():
+    cfg := carregar_config()
+    log := Log.novo("tarefas", "aviso")
+    repo := Repo.abrir(C.como_texto(cfg, "arquivo"))
+    estilo := C.como_texto(cfg, "estilo")
+
+    args := OS.argv()
+    cli := montar_cli()
+
+    given len(args) is 0:
+        out cli.ajuda()
+        yield 0
+
+    // O parser estoura em argumento inválido, com mensagem própria.
+    // Aqui só acrescentamos a ajuda, para quem errou saber o que existe.
+    monitor:
+        r := cli.processar(args)
+    handle e:
+        out $"✗ {e.message}"
+        out ""
+        out cli.ajuda()
+        yield 1
+
+    comando := r["__comando__"] ?? ""
+
+    given comando is "adicionar":
+        t := repo.adicionar(r["titulo"], r["prioridade"], r["prazo"])
+        out $"✓ #{t.id} — {t.titulo}"
+        given t.prazo isnt "":
+            out $"  prazo: {D.por_extenso(D.de_iso(t.prazo))}"
+        yield 0
+
+    given comando is "listar":
+        tarefas := repo.todas()
+        given r["pendentes"]:
+            tarefas := tarefas.filter(lambda t => not t.feita)
+        given r["atrasadas"]:
+            tarefas := tarefas.filter(lambda t => t.esta_atrasada())
+        mostrar(tarefas, estilo)
+        yield 0
+
+    given comando is "concluir":
+        id := int(r["id"])
+        given repo.concluir(id):
+            out $"✓ tarefa #{id} concluida"
+            yield 0
+        out $"✗ nao achei a tarefa #{id}"
+        yield 1
+
+    given comando is "remover":
+        id := int(r["id"])
+        given repo.remover(id):
+            out $"✓ tarefa #{id} removida"
+            yield 0
+        out $"✗ nao achei a tarefa #{id}"
+        yield 1
+
+    given comando is "resumo":
+        mostrar_resumo(repo.todas())
+        yield 0
+
+    out cli.ajuda()
+    yield 0
+
+principal()

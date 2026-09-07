@@ -1,0 +1,38 @@
+// Exercicio 181 — Campos declarados
+// Enunciado: declare campos com tipo e padrao no corpo do blueprint.
+
+// Antes do 4.1, todo campo nascia no setup. Declara-los no corpo diz o
+// que o objeto tem antes de dizer como ele nasce — e o padrao evita o
+// setup repetitivo.
+
+blueprint Contador:
+    valor: Integer := 0
+    passo: Integer := 1
+
+    action somar():
+        self.valor += self.passo
+        yield self.valor
+
+c := spawn Contador()
+out "comeca em:", c.valor
+out "depois de somar:", c.somar()
+assert c.valor is 1, "o campo declarado ja existe no spawn"
+
+// Sem padrao, o campo nasce void
+blueprint Pessoa:
+    nome: String
+    idade: Integer := 0
+
+p := spawn Pessoa()
+out "nome sem padrao:", p.nome
+assert p.nome is void, "campo sem padrao comeca void"
+assert p.idade is 0, "campo com padrao comeca com ele"
+
+// Campos sao herdados
+blueprint Funcionario extends Pessoa:
+    salario: Float := 0.0
+
+f := spawn Funcionario()
+assert f.idade is 0, "o campo do pai foi herdado"
+assert f.salario is 0.0, "e o proprio tambem existe"
+out "ok"

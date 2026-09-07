@@ -710,3 +710,147 @@ cycle i from 1 to 5:
         halt
     out i
 ''') == "1\n2\n4"
+
+
+# ─── 'monitor' nao cria escopo proprio ─────────────────────
+# O corpo rodava num escopo filho, entao o padrao mais comum de
+# try/catch — atribuir dentro e usar depois — nao funcionava, e a
+# variavel sumia sem explicacao. Em Python, Java e JavaScript, 'try'
+# nao cria escopo; essa e a expectativa de quem chega de qualquer uma.
+
+def test_variavel_do_monitor_existe_depois():
+    assert run('''
+monitor:
+    x := 42
+handle e:
+    x := 0
+out x
+''') == "42"
+
+
+def test_monitor_que_falha_deixa_o_handle_atribuir():
+    assert run('''
+monitor:
+    valor := 10 / 0
+handle e:
+    valor := -1
+out valor
+''') == "-1"
+
+
+def test_retry_tambem_compartilha_o_escopo():
+    assert run('retry 2:\n    y := 7\nout y\n') == "7"
+
+
+def test_handle_nao_vaza_o_nome_do_erro():
+    """'e' existe so dentro do handle — senao poluiria o escopo de fora."""
+    from dataforge.errors import NameError_
+    with pytest.raises(NameError_):
+        run('monitor:\n    trigger "x"\nhandle e:\n    out e.message\nout e\n')
+
+
+def test_analisador_concorda_com_o_runtime():
+    """O check nao pode reprovar o que o interpretador aceita."""
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.typechecker import check_program
+
+    fonte = 'monitor:\n    x := 1\nhandle e:\n    x := 2\nout x\n'
+    diagnosticos = check_program(parse(tokenize(fonte, "t.df"), "t.df"), "t.df")
+    erros = [d for d in diagnosticos if d.severity == 'error']
+    assert erros == [], [d.message for d in erros]
+
+
+# ─── Continuacao de linha apos operador ────────────────────
+# Uma linha que termina em operador esta incompleta — nao ha o que ela
+# possa significar sozinha. O lexer tratava o recuo da linha seguinte
+# como INDENT, e o parser via um bloco onde havia uma expressao.
+
+def test_continuacao_apos_mais():
+    assert run('a := "um " +\n     "dois"\nout a\n') == "um dois"
+
+
+def test_continuacao_apos_operadores_variados():
+    assert run('n := 1 +\n     2 *\n     3\nout n\n') == "7"
+    assert run('b := yes and\n     no\nout b\n') == "no"
+    assert run('v := void ??\n     42\nout v\n') == "42"
+
+
+def test_continuacao_apos_virgula():
+    assert run('l := [1,\n      2,\n      3]\nout l\n') == "[1, 2, 3]"
+
+
+def test_continuacao_dentro_de_acao():
+    assert run('''
+action junta(a, b):
+    yield a +
+          " " +
+          b
+
+out junta("oi", "mundo")
+''') == "oi mundo"
+
+
+def test_bloco_normal_continua_funcionando():
+    """A correcao nao pode confundir bloco com continuacao."""
+    assert run('''
+given yes:
+    x := 1
+    out x
+''') == "1"
+
+
+def test_linha_apos_operador_nao_quebra_indentacao_seguinte():
+    assert run('''
+total := 10 +
+         20
+
+cycle i from 1 to 2:
+    out i
+out total
+''') == "1\n2\n30"
+
+
+# ─── Arcane.Http: json_response e aridade do handler ───────
+# 'json_response' montava um envelope {__json__, data, status} que
+# ninguem desembrulhava: o cliente recebia a estrutura interna e o
+# status era sempre 200. E o handler era chamado com (req, res), o que
+# obrigava a declarar um parametro que a maioria nao usa.
+
+def test_json_response_devolve_envelope():
+    from dataforge.stdlib import get_module
+    http = get_module("Arcane.Http")
+    envelope = http["json_response"]({"a": 1}, 201)
+    assert envelope["__json__"] is True
+    assert envelope["data"] == {"a": 1}
+    assert envelope["status"] == 201
+
+
+def test_servidor_desembrulha_e_preserva_status():
+    """O envelope precisa virar corpo e status de verdade."""
+    import inspect
+
+    from dataforge.stdlib import arcane_http
+    fonte = inspect.getsource(arcane_http)
+    # o desembrulho existe e passa o status adiante
+    assert 'result.get("__json__")' in fonte
+    assert 'send_json(result.get("data"), int(result.get("status"' in fonte
+
+
+def test_handler_de_um_argumento_e_aceito():
+    """Um handler que so monta a resposta nao precisa do 'res'."""
+    import inspect
+
+    from dataforge.stdlib import arcane_http
+    fonte = inspect.getsource(arcane_http)
+    assert "result = handler(req)" in fonte, \
+        "o servidor precisa tentar chamar o handler com um argumento so"
+
+
+def test_erro_no_handler_vai_para_o_terminal():
+    """Depurar handler nao pode depender de adivinhar."""
+    import inspect
+
+    from dataforge.stdlib import arcane_http
+    fonte = inspect.getsource(arcane_http)
+    assert "[http]" in fonte, "o erro do handler precisa ser impresso"

@@ -1,0 +1,42 @@
+{
+  "lockVersion": 1,
+  "registro": "file:///Users/estevamsouza/Documents/linguagem/DataForge/site/public/registry",
+  "pacotes": {
+    "colecao": {
+      "versao": "1.0.0",
+      "fonte": "registro",
+      "sha256": "8f493aae39b0978599c328a5aef6fecb66c4ca71af9bbd577c1af3063931cba7",
+      "dependencias": {}
+    },
+    "datas": {
+      "versao": "1.0.0",
+      "fonte": "registro",
+      "sha256": "533100cb7b1d5425f07b349cbb5b9bcca71ce3f91f7e8a45c386a01c1deddb42",
+      "dependencias": {}
+    },
+    "estatistica": {
+      "versao": "1.0.0",
+      "fonte": "registro",
+      "sha256": "3cdc800c484a835db48b194e7934c5baa95dab167cb7b9b0ac4dac041e1000fc",
+      "dependencias": {}
+    },
+    "moeda": {
+      "versao": "1.0.0",
+      "fonte": "registro",
+      "sha256": "a1dfd5eba16e4018c049edb84c9eea85947f4b3207c20e76e255317305aa8aab",
+      "dependencias": {}
+    },
+    "progresso": {
+      "versao": "1.0.0",
+      "fonte": "registro",
+      "sha256": "5ffed500c1ed9e58431c59aa88cc6efde396378708ea50c26ec5e8f4bc902395",
+      "dependencias": {}
+    },
+    "tabela": {
+      "versao": "1.0.0",
+      "fonte": "registro",
+      "sha256": "c00eae3940cd9846b3b2ed1aec92d772bd0b558f9ab8bd8167b1379334d922fa",
+      "dependencias": {}
+    }
+  }
+}

@@ -1,0 +1,131 @@
+// analise-vendas — do CSV ao relatório
+//
+//     dataforge run src/main.df -- dados/vendas.csv
+
+adopt estatistica as E
+adopt colecao as C
+adopt tabela as Tb
+adopt moeda as M
+adopt datas as D
+adopt Arcane.OS as OS
+adopt ./leitor as L
+
+action total_de(vendas):
+    soma := 0
+    cycle v in vendas:
+        soma += v.valor
+    yield soma
+
+action tabela_por(vendas, chave, titulo):
+    grupos := C.agrupar(vendas, chave)
+    total_geral := total_de(vendas)
+
+    linhas := []
+    nomes := sorted(grupos.keys())
+    cycle nome in nomes:
+        itens := grupos[nome]
+        total := total_de(itens)
+        fatia := round(total * 100 / total_geral, 1)
+        linhas.append([nome, len(itens),
+                       M.formatar(M.de_centavos(total)),
+                       $"{fatia}%"])
+
+    out Tb.render(linhas, [titulo, "Vendas", "Total", "Fatia"])
+    yield grupos
+
+action grafico_de(grupos, titulo):
+    out ""
+    out titulo
+    maior := 0
+    cycle nome in grupos.keys():
+        t := total_de(grupos[nome])
+        given t bigger maior:
+            maior := t
+    cycle nome in sorted(grupos.keys()):
+        t := total_de(grupos[nome])
+        out "  " + Tb.encher(nome, 10) + " " + Tb.barra(t, maior, 22) +
+            " " + M.formatar(M.de_centavos(t))
+    yield grupos
+
+action principal():
+    args := OS.argv()
+    caminho := args[0] given len(args) bigger 0 otherwise "dados/vendas.csv"
+
+    vendas := void
+    monitor:
+        vendas := L.ler(caminho)
+    handle e:
+        out $"✗ {e.message}"
+        yield 1
+
+    out Tb.caixa($"{len(vendas)} vendas lidas de {caminho}", "Análise de vendas", "grossa")
+    out ""
+
+    // ── Visão geral ──
+    valores := []
+    cycle v in vendas:
+        valores.append(v.valor / 100)
+
+    resumo := E.resumo(valores)
+    out Tb.render([
+        ["Total", M.formatar(M.de_centavos(total_de(vendas)))],
+        ["Ticket médio", M.formatar(M.de_reais(resumo["media"]))],
+        ["Mediana", M.formatar(M.de_reais(resumo["mediana"]))],
+        ["Desvio padrão", M.formatar(M.de_reais(resumo["desvio"]))],
+        ["Menor venda", M.formatar(M.de_reais(resumo["minimo"]))],
+        ["Maior venda", M.formatar(M.de_reais(resumo["maximo"]))]
+    ], ["Indicador", "Valor"])
+
+    // A média sozinha engana quando há dispersão. Se o desvio passa de
+    // metade da média, o relatório avisa em vez de deixar quem lê
+    // concluir que o ticket médio descreve as vendas.
+    given resumo["desvio"] bigger resumo["media"] / 2:
+        out ""
+        out "  ⚠ dispersão alta: o ticket médio não representa bem as vendas."
+
+    extremos := E.extremos(valores)
+    given len(extremos) bigger 0:
+        out $"  {len(extremos)} venda(s) fora do padrão: {extremos}"
+
+    out ""
+    por_regiao := tabela_por(vendas, lambda v => v.regiao, "Região")
+    grafico_de(por_regiao, "Por região")
+
+    out ""
+    tabela_por(vendas, lambda v => v.produto, "Produto")
+
+    out ""
+    por_vendedor := tabela_por(vendas, lambda v => v.vendedor, "Vendedor")
+
+    // ── Série temporal ──
+    por_mes := C.agrupar(vendas, lambda v => v.data.substring(0, 7))
+    meses := sorted(por_mes.keys())
+    serie := []
+    cycle m in meses:
+        serie.append(total_de(por_mes[m]) / 100)
+
+    out ""
+    out "Evolução mensal"
+    out "  " + Tb.sparkline(serie)
+    cycle i from 0 to len(meses) - 1:
+        d := D.de_iso(meses[i] + "-01")
+        out $"  {D.formatar(d, 'MMM/yyyy')}  " +
+            M.formatar(M.de_reais(serie[i]))
+
+    // ── Tendência ──
+    given len(serie) bigger_eq 3:
+        indices := []
+        cycle i from 0 to len(serie) - 1:
+            indices.append(i)
+        r := E.regressao(indices, serie)
+        direcao := "subindo" given r["inclinacao"] bigger 0 otherwise "caindo"
+        out ""
+        out $"Tendência: {direcao} " +
+            M.formatar(M.de_reais(r["inclinacao"])) + " por mês " +
+            $"(r² = {round(r['r2'], 3)})"
+        given r["r2"] smaller 0.5:
+            out "  (ajuste fraco — a tendência não é confiável com estes dados)"
+
+    yield 0
+
+principal()

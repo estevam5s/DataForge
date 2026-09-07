@@ -1,0 +1,50 @@
+// Leitura e conversão do CSV para records tipados.
+//
+// O CSV chega com tudo em texto. Converter na entrada — e falhar cedo
+// se algo não converte — evita que um valor em texto chegue a uma soma
+// e produza concatenação em vez de erro.
+
+adopt Arcane.IO as IO
+adopt moeda as M
+
+record Venda:
+    data: String
+    regiao: String
+    vendedor: String
+    produto: String
+    valor: Integer          // centavos, para não acumular erro de float
+
+action ler(caminho):
+    given not IO.exists(caminho):
+        trigger $"arquivo nao encontrado: {caminho}"
+
+    linhas := IO.read(caminho).trim().split("\n")
+    given len(linhas) smaller 2:
+        trigger "o CSV precisa de cabecalho e ao menos uma linha"
+
+    cabecalho := linhas[0].split(",")
+    esperado := ["data", "regiao", "vendedor", "produto", "valor"]
+    cycle c in esperado:
+        given not (c in cabecalho):
+            trigger $"falta a coluna '{c}' no CSV"
+
+    vendas := []
+    numero := 1
+    cycle linha in linhas[1:]:
+        numero += 1
+        given linha.trim() is "":
+            skip
+        campos := linha.split(",")
+        given len(campos) isnt len(cabecalho):
+            trigger $"linha {numero}: esperava {len(cabecalho)} colunas, veio {len(campos)}"
+
+        monitor:
+            vendas.append(Venda(
+                campos[0].trim(), campos[1].trim(), campos[2].trim(),
+                campos[3].trim(), M.de_texto(campos[4]).centavos))
+        handle e:
+            trigger $"linha {numero}: valor invalido ({campos[4]})"
+
+    yield vendas
+
+relay Venda, ler

@@ -131,3 +131,41 @@ def test_stdlib_continua_valendo():
     with redirect_stdout(saida):
         Interpreter().run(parse(tokenize(fonte, "<t>"), "<t>"), "<t>")
     assert saida.getvalue().strip() == "3"
+
+
+# ─── Construir tipos vindos de um modulo ───────────────────
+# 'M.Ponto(1, 2)' procurava um metodo de dict chamado 'Ponto' e falhava
+# com "Cannot call method 'Ponto' on dict". E 'spawn M.Caixa(7)' chegava
+# ao interpretador como chamada de metodo, construindo antes do spawn.
+
+def test_record_de_modulo_constroi(projeto):
+    (projeto / "lib" / "tipos.df").write_text(
+        'record Ponto:\n    x: Integer\n    y: Integer\n\nrelay Ponto\n',
+        encoding="utf-8")
+    (projeto / "app.df").write_text(
+        'adopt ./lib/tipos as T\np := T.Ponto(1, 2)\nout p.x\n', encoding="utf-8")
+    assert rodar_arquivo(str(projeto / "app.df")) == "1"
+
+
+def test_blueprint_de_modulo_spawna(projeto):
+    (projeto / "lib" / "caixa.df").write_text(
+        'blueprint Caixa:\n    action setup(v):\n        self.v := v\n\n'
+        'relay Caixa\n', encoding="utf-8")
+    (projeto / "app.df").write_text(
+        'adopt ./lib/caixa as C\nb := spawn C.Caixa(7)\nout b.v\n',
+        encoding="utf-8")
+    assert rodar_arquivo(str(projeto / "app.df")) == "7"
+
+
+def test_enum_de_modulo(projeto):
+    (projeto / "lib" / "cores.df").write_text(
+        'enum Cor:\n    Azul\n    Verde\n\nrelay Cor\n', encoding="utf-8")
+    (projeto / "app.df").write_text(
+        'adopt ./lib/cores as C\nout C.Cor.Azul\n', encoding="utf-8")
+    assert "Azul" in rodar_arquivo(str(projeto / "app.df"))
+
+
+def test_acao_de_modulo_continua_funcionando(projeto):
+    (projeto / "app.df").write_text(
+        'adopt ./lib/util as U\nout U.dobro(21)\n', encoding="utf-8")
+    assert rodar_arquivo(str(projeto / "app.df")) == "42"

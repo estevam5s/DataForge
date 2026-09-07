@@ -1,0 +1,75 @@
+// Exercicio 190 — Polimorfismo
+// Enunciado: trate tipos diferentes pela interface comum.
+
+// O ganho do polimorfismo nao e evitar 'given': e poder acrescentar um
+// tipo novo sem tocar em quem usa. O codigo que percorre a lista abaixo
+// nao muda quando chega um formato novo.
+
+trait Exportavel:
+    action exportar()
+    action extensao()
+
+blueprint ComoJson with Exportavel:
+    dados: Vault := {}
+    action setup(dados):
+        self.dados := dados
+    action exportar():
+        adopt Arcane.Serialization as S
+        yield S.to_json(self.dados)
+    action extensao():
+        yield "json"
+
+blueprint ComoCsv with Exportavel:
+    dados: Vault := {}
+    action setup(dados):
+        self.dados := dados
+    action exportar():
+        chaves := sorted(self.dados.keys())
+        valores := []
+        cycle k in chaves:
+            valores.append(str(self.dados[k]))
+        yield chaves.join(",") + "\n" + valores.join(",")
+    action extensao():
+        yield "csv"
+
+blueprint ComoTexto with Exportavel:
+    dados: Vault := {}
+    action setup(dados):
+        self.dados := dados
+    action exportar():
+        linhas := []
+        cycle k in sorted(self.dados.keys()):
+            linhas.append($"{k}: {self.dados[k]}")
+        yield linhas.join("\n")
+    action extensao():
+        yield "txt"
+
+dados := {"nome": "Ana", "idade": 30}
+formatos := [spawn ComoJson(dados), spawn ComoCsv(dados), spawn ComoTexto(dados)]
+
+// este laco nao sabe quantos formatos existem, nem quais
+cycle f in formatos:
+    out $"--- .{f.extensao()} ---"
+    out f.exportar()
+
+assert len(formatos) is 3, "tres formatos"
+assert formatos[0].extensao() is "json", "cada um se identifica"
+assert formatos[1].exportar().contains("idade,nome"), "o csv tem cabecalho"
+
+// acrescentar um quarto formato nao muda nada acima
+blueprint ComoMarkdown with Exportavel:
+    dados: Vault := {}
+    action setup(dados):
+        self.dados := dados
+    action exportar():
+        linhas := ["| chave | valor |", "|---|---|"]
+        cycle k in sorted(self.dados.keys()):
+            linhas.append($"| {k} | {self.dados[k]} |")
+        yield linhas.join("\n")
+    action extensao():
+        yield "md"
+
+formatos.append(spawn ComoMarkdown(dados))
+assert len(formatos) is 4, "o laco acima funcionaria igual"
+
+out "ok"

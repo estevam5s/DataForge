@@ -1,0 +1,38 @@
+adopt Arcane.Test as T
+adopt datas as D
+adopt ../src/tarefa as Tf
+
+action test_nova_tem_padroes():
+    t := Tf.nova(1, "fazer algo")
+    T.assert_eq(t.id, 1)
+    T.assert_eq(t.prioridade, 2)
+    T.assert_false(t.feita)
+    T.assert_eq(t.prazo, "")
+
+action test_rotulo_de_prioridade():
+    T.assert_eq(Tf.nova(1, "x", 1).rotulo_prioridade(), "baixa")
+    T.assert_eq(Tf.nova(1, "x", 2).rotulo_prioridade(), "media")
+    T.assert_eq(Tf.nova(1, "x", 3).rotulo_prioridade(), "alta")
+
+action test_atraso():
+    ontem := D.iso(D.dias_atras(1))
+    amanha := D.iso(D.dias_a_frente(1))
+    T.assert_true(Tf.nova(1, "vencida", 2, ontem).esta_atrasada())
+    T.assert_false(Tf.nova(2, "no prazo", 2, amanha).esta_atrasada())
+    T.assert_false(Tf.nova(3, "sem prazo").esta_atrasada())
+
+action test_tarefa_feita_nunca_esta_atrasada():
+    ontem := D.iso(D.dias_atras(5))
+    t := Tf.nova(1, "vencida mas feita", 2, ontem) with {"feita": yes}
+    T.assert_false(t.esta_atrasada())
+
+action test_dias_restantes():
+    T.assert_eq(Tf.nova(1, "x").dias_restantes(), void)
+    daqui_a_tres := D.iso(D.dias_a_frente(3))
+    T.assert_eq(Tf.nova(1, "x", 2, daqui_a_tres).dias_restantes(), 3)
+
+action test_record_e_imutavel():
+    t := Tf.nova(1, "original")
+    concluida := t with {"feita": yes}
+    T.assert_false(t.feita)
+    T.assert_true(concluida.feita)

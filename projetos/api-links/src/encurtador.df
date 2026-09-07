@@ -1,0 +1,110 @@
+// A lógica do encurtador, separada do servidor.
+//
+// Testar HTTP é lento e chato. Com a regra de negócio aqui, os testes
+// rodam em milissegundos e o servidor vira uma casca fina.
+
+adopt validador as V
+adopt cache as K
+adopt aleatorio as A
+
+steady ALFABETO := "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+steady TAMANHO_CODIGO := 6
+
+blueprint Encurtador:
+    private links: Vault := {}
+    private acessos: Vault := {}
+    private gerador: Any := void
+
+    action setup(semente := void):
+        self.links := {}
+        self.acessos := {}
+        // Semente fixa deixa o teste reproduzível; sem ela, o relógio.
+        self.gerador := A.gerador(semente ?? 20260907)
+        self.recentes := K.lru(100)
+
+    private action novo_codigo():
+        // Tenta até achar um código livre. Com 56^6 possibilidades, a
+        // colisão é rara — mas 'rara' não é 'impossível'.
+        cycle tentativa from 1 to 10:
+            codigo := ""
+            cycle i from 1 to TAMANHO_CODIGO:
+                codigo += ALFABETO.char_at(self.gerador.inteiro(0, ALFABETO.length() - 1))
+            given not self.links.has(codigo):
+                yield codigo
+        trigger "nao consegui gerar um codigo livre"
+
+    action encurtar(url, personalizado := ""):
+        given not V.url(url):
+            trigger $"'{url}' nao e uma URL valida (precisa comecar com http:// ou https://)"
+
+        codigo := personalizado
+        given codigo isnt "":
+            given not self.codigo_valido(codigo):
+                trigger "o codigo pode ter de 3 a 20 letras, numeros, '-' e '_'"
+            given self.links.has(codigo):
+                trigger $"o codigo '{codigo}' ja esta em uso"
+        otherwise:
+            codigo := self.novo_codigo()
+
+        self.links[codigo] := url
+        self.acessos[codigo] := 0
+        yield {"codigo": codigo, "url": url}
+
+    action codigo_valido(codigo):
+        given codigo.length() smaller 3 or codigo.length() bigger 20:
+            yield no
+        cycle c in codigo:
+            given not (c.isalnum() or c is "-" or c is "_"):
+                yield no
+        yield yes
+
+    action resolver(codigo):
+        // Passa pelo cache antes do mapa: numa carga real, poucos links
+        // respondem pela maioria dos acessos.
+        given not self.links.has(codigo):
+            yield void
+        self.acessos[codigo] += 1
+        self.recentes.guardar(codigo, self.links[codigo])
+        yield self.links[codigo]
+
+    action estatisticas(codigo):
+        given not self.links.has(codigo):
+            yield void
+        yield {"codigo": codigo, "url": self.links[codigo],
+               "acessos": self.acessos[codigo]}
+
+    action mais_acessados(quantos := 5):
+        pares := []
+        cycle c in self.links.keys():
+            pares.append({"codigo": c, "url": self.links[c],
+                          "acessos": self.acessos[c]})
+        // ordenação por acessos, decrescente
+        ordenados := []
+        resto := pares
+        persist len(resto) bigger 0:
+            melhor := 0
+            cycle i from 1 to len(resto) - 1:
+                given resto[i]["acessos"] bigger resto[melhor]["acessos"]:
+                    melhor := i
+            ordenados.append(resto[melhor])
+            novo := []
+            cycle i from 0 to len(resto) - 1:
+                given i isnt melhor:
+                    novo.append(resto[i])
+            resto := novo
+        yield ordenados[0:quantos]
+
+    action remover(codigo):
+        given not self.links.has(codigo):
+            yield no
+        delete self.links[codigo]
+        delete self.acessos[codigo]
+        yield yes
+
+    get total():
+        yield len(self.links)
+
+action novo(semente := void):
+    yield spawn Encurtador(semente)
+
+relay Encurtador, novo, ALFABETO

@@ -5,7 +5,24 @@ Somente leitura por padrão: nada aqui altera o sistema, salvo as funções
 explicitamente marcadas (set_env, chdir).
 """
 
+import json
 import os
+
+
+def _argv_do_programa():
+    """Os argumentos passados ao programa apos '--'.
+
+    A CLI os grava em DATAFORGE_ARGV como JSON. Sem a variavel — quando
+    alguem importa o modulo fora do 'dataforge run' — devolve vazio.
+    """
+    bruto = os.environ.get("DATAFORGE_ARGV")
+    if not bruto:
+        return []
+    try:
+        return list(json.loads(bruto))
+    except (ValueError, TypeError):
+        return []
+
 import platform
 import shutil
 import socket
@@ -61,7 +78,12 @@ class ArcaneOS:
             "user": cls._user,
             "pid": lambda: os.getpid(),
             "parent_pid": lambda: os.getppid() if hasattr(os, "getppid") else 0,
-            "argv": lambda: list(sys.argv),
+            # Os argumentos do PROGRAMA, nao do interpretador: o que
+            # vier depois de '--' na linha do dataforge. Devolver
+            # sys.argv inteiro faria todo programa ter de descartar
+            # 'dataforge', 'run' e o caminho do arquivo.
+            "argv": _argv_do_programa,
+            "argv_completo": lambda: list(sys.argv),
             "executable": lambda: sys.executable,
             "python_version": lambda: platform.python_version(),
             "exit": cls._exit,

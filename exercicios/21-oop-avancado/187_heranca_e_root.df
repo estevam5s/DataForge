@@ -1,0 +1,47 @@
+// Exercicio 187 — Heranca e 'root'
+// Enunciado: estenda um comportamento sem reescrever o do pai.
+
+// 'root' chama a versao do pai. Serve para acrescentar sem duplicar —
+// e o que distingue estender de reimplementar.
+
+blueprint Documento:
+    titulo: String := ""
+    action setup(titulo):
+        self.titulo := titulo
+
+    action cabecalho():
+        yield $"# {self.titulo}"
+
+    action render():
+        yield self.cabecalho()
+
+blueprint Artigo extends Documento:
+    autor: String := ""
+
+    action setup(titulo, autor):
+        self.titulo := titulo
+        self.autor := autor
+
+    // acrescenta ao do pai, em vez de refazer
+    action cabecalho():
+        yield root.cabecalho() + $"\npor {self.autor}"
+
+a := spawn Artigo("Sobre pipelines", "Ana")
+out a.render()
+assert a.render().contains("# Sobre pipelines"), "o cabecalho do pai veio"
+assert a.render().contains("por Ana"), "e o acrescimo tambem"
+
+// 'render' foi herdado sem mudanca, e chama o 'cabecalho' do filho —
+// e o polimorfismo funcionando
+d := spawn Documento("Simples")
+assert d.render() is "# Simples", "o pai continua o mesmo"
+
+// 'final' impede sobrescrita: o erro sai na declaracao do herdeiro,
+// nao quando alguem chama o metodo.
+blueprint Base:
+    final action identidade():
+        yield "base"
+
+assert (spawn Base()).identidade() is "base", "o final funciona normalmente"
+
+out "ok"

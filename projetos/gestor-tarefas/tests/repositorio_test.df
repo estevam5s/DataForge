@@ -1,0 +1,62 @@
+adopt Arcane.Test as T
+adopt Arcane.IO as IO
+adopt ../src/repositorio as R
+
+steady ARQUIVO := "/tmp/df_tarefas_teste.json"
+
+action limpo():
+    given IO.exists(ARQUIVO):
+        IO.delete(ARQUIVO)
+    yield R.abrir(ARQUIVO)
+
+action test_adiciona_e_numera():
+    repo := limpo()
+    a := repo.adicionar("primeira")
+    b := repo.adicionar("segunda")
+    T.assert_eq(a.id, 1)
+    T.assert_eq(b.id, 2)
+    T.assert_eq(len(repo.todas()), 2)
+
+action test_persiste_entre_sessoes():
+    repo := limpo()
+    repo.adicionar("sobrevive")
+    // outra instância, mesmo arquivo
+    outro := R.abrir(ARQUIVO)
+    T.assert_eq(len(outro.todas()), 1)
+    T.assert_eq(outro.todas()[0].titulo, "sobrevive")
+
+action test_id_continua_apos_recarregar():
+    repo := limpo()
+    repo.adicionar("a")
+    repo.adicionar("b")
+    outro := R.abrir(ARQUIVO)
+    c := outro.adicionar("c")
+    T.assert_eq(c.id, 3)
+
+action test_concluir():
+    repo := limpo()
+    repo.adicionar("fazer")
+    T.assert_true(repo.concluir(1))
+    T.assert_true(repo.buscar(1).feita)
+    T.assert_false(repo.concluir(999))
+
+action test_remover():
+    repo := limpo()
+    repo.adicionar("some")
+    T.assert_true(repo.remover(1))
+    T.assert_eq(len(repo.todas()), 0)
+    T.assert_false(repo.remover(1))
+
+action test_buscar():
+    repo := limpo()
+    repo.adicionar("existe")
+    T.assert_eq(repo.buscar(1).titulo, "existe")
+    T.assert_eq(repo.buscar(42), void)
+
+action test_arquivo_corrompido_nao_derruba():
+    IO.write(ARQUIVO, "isto não é json {{{")
+    repo := R.abrir(ARQUIVO)
+    T.assert_eq(len(repo.todas()), 0)
+    // e ainda dá para usar
+    repo.adicionar("depois do estrago")
+    T.assert_eq(len(repo.todas()), 1)

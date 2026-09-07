@@ -1,0 +1,38 @@
+// O modelo. Um record porque duas tarefas com os mesmos campos são a
+// mesma tarefa — o que muda é a lista que as contém.
+
+adopt datas as D
+
+enum Prioridade:
+    Baixa := 1
+    Media := 2
+    Alta := 3
+
+record Tarefa:
+    id: Integer
+    titulo: String
+    prioridade: Integer
+    prazo: String
+    feita: Boolean
+
+    action esta_atrasada():
+        given self.feita or self.prazo is "":
+            yield no
+        yield D.dias_entre(D.hoje(), D.de_iso(self.prazo)) smaller 0
+
+    action dias_restantes():
+        given self.prazo is "":
+            yield void
+        yield D.dias_entre(D.hoje(), D.de_iso(self.prazo))
+
+    action rotulo_prioridade():
+        given self.prioridade bigger_eq 3:
+            yield "alta"
+        given self.prioridade is 2:
+            yield "media"
+        yield "baixa"
+
+action nova(id, titulo, prioridade := 2, prazo := ""):
+    yield Tarefa(id, titulo, prioridade, prazo, no)
+
+relay Tarefa, Prioridade, nova

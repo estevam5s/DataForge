@@ -1,0 +1,16 @@
+data,regiao,vendedor,produto,valor
+2026-01-05,Sudeste,Ana,Notebook,4500.00
+2026-01-08,Sul,Bruno,Monitor,1200.00
+2026-01-12,Sudeste,Ana,Teclado,350.00
+2026-01-15,Nordeste,Carla,Notebook,4500.00
+2026-01-20,Sudeste,Diego,Monitor,1200.00
+2026-02-03,Sul,Bruno,Notebook,4800.00
+2026-02-11,Sudeste,Ana,Monitor,1150.00
+2026-02-14,Nordeste,Carla,Teclado,320.00
+2026-02-19,Sul,Elena,Notebook,4500.00
+2026-02-25,Sudeste,Diego,Teclado,340.00
+2026-03-02,Nordeste,Carla,Monitor,1200.00
+2026-03-09,Sudeste,Ana,Notebook,5200.00
+2026-03-15,Sul,Bruno,Teclado,360.00
+2026-03-22,Sudeste,Diego,Notebook,4500.00
+2026-03-28,Nordeste,Fabio,Monitor,1180.00

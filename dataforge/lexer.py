@@ -257,6 +257,32 @@ class Lexer:
 
         return Token(TokenType.IDENTIFIER, word, line, col)
 
+    #: Operadores que, no fim da linha, indicam que ela continua abaixo.
+    #  'not' e o unario '-' ficam de fora: uma linha pode legitimamente
+    #  terminar neles em outro contexto.
+    FIM_INCOMPLETO = frozenset({
+        TokenType.PLUS, TokenType.MINUS, TokenType.STAR, TokenType.SLASH,
+        TokenType.PERCENT, TokenType.POWER, TokenType.FLOOR_DIV,
+        TokenType.AND, TokenType.OR,
+        TokenType.EQUAL, TokenType.NOT_EQUAL,
+        TokenType.LT, TokenType.GT, TokenType.LT_EQ, TokenType.GT_EQ,
+        TokenType.IS, TokenType.ISNT,
+        TokenType.BIGGER, TokenType.SMALLER,
+        TokenType.BIGGER_EQ, TokenType.SMALLER_EQ,
+        TokenType.COALESCE, TokenType.COMMA, TokenType.ASSIGN,
+        TokenType.PIPE, TokenType.ARROW, TokenType.FAT_ARROW,
+        TokenType.PLUS_ASSIGN, TokenType.MINUS_ASSIGN,
+        TokenType.STAR_ASSIGN, TokenType.SLASH_ASSIGN,
+        TokenType.PERCENT_ASSIGN,
+    })
+
+    def _continua_expressao(self):
+        """A linha anterior terminou em operador, esperando o resto?"""
+        i = len(self.tokens) - 1
+        while i >= 0 and self.tokens[i].type == TokenType.NEWLINE:
+            i -= 1
+        return i >= 0 and self.tokens[i].type in self.FIM_INCOMPLETO
+
     def handle_indentation(self):
         """Process indentation at the start of a logical line.
         Emits INDENT/DEDENT tokens."""
@@ -287,6 +313,20 @@ class Lexer:
         # cases drop the pending NEWLINE and skip the indent bookkeeping.
         here = self.source[self.pos]
         if here == '.' or (here == '>' and self.source[self.pos + 1:self.pos + 2] == '>'):
+            if self.tokens and self.tokens[-1].type == TokenType.NEWLINE:
+                self.tokens.pop()
+            return
+
+        # A linha ANTERIOR terminou num operador binario? Entao ela esta
+        # obviamente incompleta — nao ha o que possa significar sozinha —
+        # e esta e a continuacao dela:
+        #
+        #     mensagem := "primeira parte " +
+        #                 "segunda parte"
+        #
+        # Sem isto, o recuo da segunda linha viraria INDENT e o parser
+        # veria um bloco onde ha uma expressao.
+        if self._continua_expressao():
             if self.tokens and self.tokens[-1].type == TokenType.NEWLINE:
                 self.tokens.pop()
             return

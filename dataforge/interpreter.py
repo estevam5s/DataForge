@@ -1201,6 +1201,16 @@ class Interpreter:
             if callable(metodo):
                 return metodo(*args, **kwargs)
 
+        # Um modulo e um dict de nomes. 'M.Ponto(1, 2)' precisa construir
+        # o record que esta sob 'Ponto' — sem isto, a chamada procurava
+        # um metodo de dict com esse nome e falhava.
+        #
+        # So records entram aqui: blueprint se constroi com 'spawn', que
+        # avalia 'M.Caixa' como valor e faz o resto sozinho; acao ja e
+        # tratada mais abaixo, pelo caminho comum.
+        if isinstance(obj, dict) and isinstance(obj.get(node.method), DFRecord):
+            return self._call(obj[node.method], args, kwargs, node, env)
+
         if isinstance(obj, DFInstance):
             method = obj.get(node.method)
             if isinstance(method, DFAction):
@@ -2239,17 +2249,47 @@ class Interpreter:
     # ── Error Handling ─────────────────────────────────────
 
     def exec_MonitorBlock(self, node: ast.MonitorBlock, env):
+        """monitor / handle / ensure.
+
+        O corpo roda no MESMO escopo, nao num filho. Em Python, Java e
+        JavaScript, 'try' nao cria escopo — e a expectativa de quem chega
+        de qualquer uma delas:
+
+            monitor:
+                resposta := buscar()
+            handle e:
+                out e.message
+            out resposta          // precisa existir aqui
+
+        Com escopo proprio, esse padrao — o mais comum de todos — nao
+        funcionava, e a variavel sumia sem explicacao.
+
+        'handle' e 'ensure' ganham filho: 'handle' porque precisa ligar o
+        nome do erro sem vazar depois, e 'ensure' porque roda em qualquer
+        saida e nao deveria deixar rastro.
+        """
         try:
-            return self.exec_block(node.body, env.child("<monitor>"))
+            return self.exec_block(node.body, env)
         except Exception as e:
             # A 'monitor' with no 'handle' is a try/finally: never swallow the error.
             if not node.handle_body:
                 raise
             if not self._error_matches(e, node.handle_type, env):
                 raise
-            handle_env = env.child("<handle>")
-            handle_env.set_local(node.handle_name, self._error_value(e))
-            return self.exec_block(node.handle_body, handle_env)
+            # O 'handle' roda no escopo de fora, para que o que ele
+            # atribui continue valendo — mas o nome do erro nao vaza:
+            # ele e removido no fim, ou devolvido ao valor anterior se
+            # ja existia um nome igual.
+            tinha = node.handle_name in env.variables
+            anterior = env.variables.get(node.handle_name)
+            env.set_local(node.handle_name, self._error_value(e))
+            try:
+                return self.exec_block(node.handle_body, env)
+            finally:
+                if tinha:
+                    env.variables[node.handle_name] = anterior
+                else:
+                    env.variables.pop(node.handle_name, None)
         finally:
             if node.ensure_body:
                 self.exec_block(node.ensure_body, env.child("<ensure>"))
@@ -2556,15 +2596,24 @@ class Interpreter:
         last_error = None
         for attempt in range(int(count)):
             try:
-                return self.exec_block(node.body, env.child(f"<retry-{attempt}>"))
+                # mesmo escopo do monitor: o que a tentativa atribui
+                # continua valendo depois do bloco
+                return self.exec_block(node.body, env)
             except Exception as e:
                 last_error = self._error_value(e)
 
         # All attempts failed
         if node.handle_body and last_error is not None:
-            handle_env = env.child("<retry-handle>")
-            handle_env.set_local(node.handle_name, last_error)
-            return self.exec_block(node.handle_body, handle_env)
+            tinha = node.handle_name in env.variables
+            anterior = env.variables.get(node.handle_name)
+            env.set_local(node.handle_name, last_error)
+            try:
+                return self.exec_block(node.handle_body, env)
+            finally:
+                if tinha:
+                    env.variables[node.handle_name] = anterior
+                else:
+                    env.variables.pop(node.handle_name, None)
         return None
 
     def exec_ValidateStatement(self, node: ast.ValidateStatement, env):

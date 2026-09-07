@@ -1,0 +1,39 @@
+// Exercicio 182 — Metodos estaticos
+// Enunciado: crie metodos que pertencem ao blueprint, nao a instancia.
+
+// Um metodo estatico nao usa 'self'. Serve para o que e da familia toda:
+// construtores alternativos, conversoes, constantes calculadas.
+
+blueprint Temperatura:
+    celsius: Float := 0.0
+
+    static action de_fahrenheit(f):
+        t := spawn Temperatura()
+        t.celsius := (f - 32) * 5 / 9
+        yield t
+
+    static action congelamento():
+        yield 0.0
+
+    action em_fahrenheit():
+        yield self.celsius * 9 / 5 + 32
+
+// chamado no blueprint, sem instancia
+gelo := Temperatura.de_fahrenheit(32)
+assert round(gelo.celsius, 6) is 0.0, "32F sao 0C"
+assert Temperatura.congelamento() is 0.0, "constante da familia"
+
+// o metodo de instancia precisa de uma
+t := spawn Temperatura()
+t.celsius := 100
+assert t.em_fahrenheit() is 212.0, "100C sao 212F"
+
+// chamar metodo de instancia no blueprint da erro util
+monitor:
+    Temperatura.em_fahrenheit()
+    assert no, "deveria ter recusado"
+handle e:
+    out "recusado, como esperado"
+    assert e.message.contains("spawn"), "a mensagem diz o que fazer"
+
+out "ok"

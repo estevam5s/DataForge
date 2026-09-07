@@ -2130,8 +2130,25 @@ def clean_command(tudo=False):
 
 def main():
     """Main CLI entry point."""
-    args = [a for a in sys.argv[1:] if not a.startswith('--')]
-    flags = [a for a in sys.argv[1:] if a.startswith('--')]
+    # Tudo depois de '--' pertence ao programa, nao ao dataforge.
+    # Sem esta separacao, 'dataforge run app.df -- --porta 8080' faria o
+    # proprio dataforge tentar entender '--porta'.
+    bruto = sys.argv[1:]
+    if '--' in bruto:
+        corte = bruto.index('--')
+        do_programa = bruto[corte + 1:]
+        bruto = bruto[:corte]
+    else:
+        do_programa = []
+
+    # O que o programa recebe em OS.argv(). JSON porque uma variavel de
+    # ambiente nao aceita byte nulo, e um separador comum (':' ou ',')
+    # quebraria num argumento que o contenha.
+    import json as _json
+    os.environ['DATAFORGE_ARGV'] = _json.dumps(do_programa)
+
+    args = [a for a in bruto if not a.startswith('--')]
+    flags = [a for a in bruto if a.startswith('--')]
 
     debug = '--debug' in flags
     show_time = '--time' in flags

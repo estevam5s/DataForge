@@ -1,0 +1,18 @@
+[project]
+name = "api-links"
+version = "1.0.0"
+description = "Encurtador de links: servidor HTTP, validação, cache e log estruturado."
+entry = "src/main.df"
+dataforge = ">=4.1"
+
+[dependencies]
+validador = "^1.0.0"
+cache = "^1.0.0"
+registro = "^1.0.0"
+aleatorio = "^1.0.0"
+cofre = "^1.0.0"
+estado = "^1.0.0"
+
+[scripts]
+start = "run src/main.df"
+test = "test tests/"

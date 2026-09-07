@@ -56,3 +56,8 @@ forge_modules/
 # é dele que 'curl … | sh' baixa a linguagem.
 !site/public/dist/
 !site/public/dist/**
+
+# Projetos: dependências baixadas e dados de execução
+projetos/*/forge_modules/
+projetos/*/tarefas.json
+projetos/*/dist/
