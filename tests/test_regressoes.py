@@ -551,3 +551,80 @@ def test_pacote_nao_tem_df_fora_de_utf8():
         except UnicodeDecodeError:
             ruins.append(os.path.relpath(f, raiz))
     assert ruins == [], f"arquivos fora de UTF-8: {ruins}"
+
+
+# ─── '??' cobre indice ausente ─────────────────────────────
+# A mensagem do DF0601 sugere 'valor ?? padrao'. Antes isso nao
+# funcionava: ler chave inexistente estourava antes de o '??' rodar,
+# e a dica mandava o usuario para um caminho que nao existia.
+
+def test_coalesce_cobre_chave_ausente():
+    assert run('v := {"a": 1}\nout v["b"] ?? 99\n') == "99"
+
+
+def test_coalesce_cobre_indice_fora_da_faixa():
+    assert run('l := [10]\nout l[5] ?? 0\n') == "0"
+
+
+def test_coalesce_nao_engole_erro_de_verdade():
+    """So o erro de indice vira void; o resto continua subindo."""
+    saida = run('''
+monitor:
+    out naoexiste ?? 1
+handle e:
+    out e.type
+''')
+    assert "NameError" in saida
+
+
+def test_coalesce_preserva_valor_existente():
+    assert run('v := {"a": 5}\nout v["a"] ?? 99\n') == "5"
+
+
+# ─── Interpolacao: posicao dos nos ─────────────────────────
+# As expressoes de dentro de $"{...}" eram compiladas isoladas e nasciam
+# na linha 1. So a raiz era reposicionada, entao qualquer ferramenta que
+# descesse na arvore via linha 1 nos filhos — o linter media uma acao de
+# duas linhas como tendo 197.
+
+def test_no_de_interpolacao_fica_na_linha_certa():
+    from dataforge import ast_nodes as ast
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    fonte = "\n\n\nnome := \"ana\"\nout $\"ola, {nome}\"\n"
+    arvore = parse(tokenize(fonte, "t.df"), "t.df")
+
+    linhas = []
+
+    def descer(n):
+        if not isinstance(n, ast.ASTNode):
+            return
+        linhas.append(getattr(n, "line", 0))
+        for campo, valor in vars(n).items():
+            if campo in ("line", "column"):
+                continue
+            if isinstance(valor, ast.ASTNode):
+                descer(valor)
+            elif isinstance(valor, list):
+                for i in valor:
+                    descer(i)
+
+    interp = arvore.body[-1]
+    descer(interp)
+    # tudo na linha 5, nada na 1
+    assert all(l == 5 for l in linhas if l), linhas
+
+
+def test_acao_curta_nao_e_reportada_como_longa():
+    """Uma acao de duas linhas com interpolacao nao pode virar 'has 197 lines'."""
+    from dataforge.lexer import tokenize
+    from dataforge.linter import lint_program
+    from dataforge.parser import parse
+
+    fonte = "steady X := 1\n" + "\n" * 190 + (
+        "action curta(d):\n    yield $\"valor {X}\"\n")
+    arvore = parse(tokenize(fonte, "t.df"), "t.df")
+    avisos = lint_program(arvore, "t.df", fonte)
+    longas = [d for d in avisos if d.code == "long-action"]
+    assert longas == [], [d.message for d in longas]

@@ -10,5 +10,10 @@ keywords = ["terminal", "cli", "tabela", "formatacao"]
 
 [dependencies]
 
+[lint]
+# A largura das bordas e o numero de faixas do sparkline sao
+# constantes de desenho, sem nome melhor que o proprio valor.
+ignore = ["magic-number"]
+
 [scripts]
 test = "test tests/"

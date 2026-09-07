@@ -1,0 +1,14 @@
+[package]
+name = "texto"
+version = "1.0.0"
+description = "Texto: slug, truncar, mascarar, distância de edição, similaridade e templates."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["texto", "string", "slug"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

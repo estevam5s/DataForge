@@ -1,0 +1,83 @@
+adopt Arcane.Test as T
+adopt evento as E
+
+action test_assinar_e_publicar():
+    bus := E.barramento()
+    recebidos := []
+    bus.assinar("teste", lambda d => recebidos.append(d))
+    T.assert_eq(bus.publicar("teste", "oi"), 1)
+    T.assert_eq(recebidos, ["oi"])
+
+action test_varios_ouvintes():
+    bus := E.barramento()
+    contador := []
+    bus.assinar("x", lambda d => contador.append(1))
+    bus.assinar("x", lambda d => contador.append(2))
+    T.assert_eq(bus.publicar("x"), 2)
+    T.assert_eq(len(contador), 2)
+
+action test_evento_sem_ouvinte_nao_estoura():
+    bus := E.barramento()
+    T.assert_eq(bus.publicar("ninguem_escuta", 1), 0)
+
+action test_uma_vez_so():
+    bus := E.barramento()
+    recebidos := []
+    bus.uma_vez_so("boot", lambda d => recebidos.append(d))
+    bus.publicar("boot", 1)
+    bus.publicar("boot", 2)
+    T.assert_eq(recebidos, [1])
+
+action test_cancelar():
+    bus := E.barramento()
+    recebidos := []
+    cancelar := bus.assinar("y", lambda d => recebidos.append(d))
+    bus.publicar("y", 1)
+    cancelar()
+    bus.publicar("y", 2)
+    T.assert_eq(recebidos, [1])
+    T.assert_eq(bus.quantos("y"), 0)
+
+action test_curinga_recebe_tudo():
+    bus := E.barramento()
+    tudo := []
+    bus.assinar("*", lambda e => tudo.append(e["evento"]))
+    bus.publicar("a")
+    bus.publicar("b")
+    T.assert_eq(tudo, ["a", "b"])
+
+action test_ouvinte_que_estoura_nao_derruba_os_outros():
+    bus := E.barramento()
+    ok := []
+
+    action quebra(d):
+        trigger "falhei"
+
+    bus.assinar("z", quebra)
+    bus.assinar("z", lambda d => ok.append(d))
+    atendidos := bus.publicar("z", 1)
+    T.assert_eq(atendidos, 1)          // só o que funcionou
+    T.assert_eq(ok, [1])               // o segundo rodou mesmo assim
+
+action test_historico():
+    bus := E.barramento(yes)
+    bus.publicar("a", 1)
+    bus.publicar("b", 2)
+    T.assert_eq(len(bus.registro), 2)
+    T.assert_eq(bus.registro[0]["evento"], "a")
+
+action test_eventos_e_limpar():
+    bus := E.barramento()
+    bus.assinar("a", lambda d => d)
+    bus.assinar("b", lambda d => d)
+    T.assert_eq(len(bus.eventos), 2)
+    bus.limpar("a")
+    T.assert_eq(bus.eventos, ["b"])
+    bus.limpar()
+    T.assert_eq(bus.eventos, [])
+
+action test_barramento_global():
+    recebidos := []
+    E.assinar("global_teste", lambda d => recebidos.append(d))
+    E.publicar("global_teste", "ok")
+    T.assert_eq(recebidos, ["ok"])

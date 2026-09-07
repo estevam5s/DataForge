@@ -1,0 +1,14 @@
+[package]
+name = "colecao"
+version = "1.0.0"
+description = "Coleções: agrupar, particionar, zip, janela, achatar e frequências."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["colecao", "lista", "agrupar"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

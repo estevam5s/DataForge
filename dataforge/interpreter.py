@@ -3002,7 +3002,25 @@ class Interpreter:
         return self.evaluate(node.else_value, env)
 
     def eval_CoalesceOp(self, node, env):
-        esquerda = self.evaluate(node.left, env)
+        """a ?? b — 'b' quando 'a' e void.
+
+        Quando o lado esquerdo e uma leitura por indice ou chave, a
+        ausencia tambem conta como void:
+
+            porta := config["porta"] ?? 8080
+
+        Sem isso, ler chave que nao existe estouraria antes de o '??'
+        rodar — e o operador nao serviria justamente para o caso em que
+        mais se precisa dele. O escopo e estreito de proposito: so a
+        leitura imediata a esquerda, e so o erro de indice. Qualquer
+        outra falha continua subindo.
+        """
+        try:
+            esquerda = self.evaluate(node.left, env)
+        except IndexError_:
+            if isinstance(node.left, (ast.IndexAccess, ast.MemberAccess)):
+                return self.evaluate(node.right, env)
+            raise
         if esquerda is None:
             return self.evaluate(node.right, env)
         return esquerda

@@ -92,6 +92,39 @@ action e_numero(valor):
     t := typeof(valor)
     yield t is "Integer" or t is "Float"
 
+action contar_colunas(linhas):
+    // A linha mais larga manda: uma linha curta ganha células vazias.
+    maior := 0
+    cycle linha in linhas:
+        given len(linha) bigger maior:
+            maior := len(linha)
+    yield maior
+
+action medir_colunas(linhas, n_colunas):
+    // A largura de cada coluna é a do seu conteúdo mais largo.
+    larguras := []
+    cycle i from 0 to n_colunas - 1:
+        maior := 0
+        cycle linha in linhas:
+            valor := linha[i] given i smaller len(linha) otherwise ""
+            l := largura_visivel(str(valor))
+            given l bigger maior:
+                maior := l
+        larguras.append(maior)
+    yield larguras
+
+action colunas_numericas(linhas, n_colunas):
+    // Uma coluna alinha à direita só se todo dado dela for número —
+    // é o que faz uma coluna de valores ficar legível de relance.
+    saida := []
+    cycle i from 0 to n_colunas - 1:
+        so_numeros := yes
+        cycle linha in linhas:
+            given i smaller len(linha) and not e_numero(linha[i]):
+                so_numeros := no
+        saida.append(so_numeros and len(linhas) bigger 0)
+    yield saida
+
 action render(linhas, cabecalho := void, estilo := "simples"):
     given len(linhas) is 0 and cabecalho is void:
         yield ""
@@ -104,30 +137,9 @@ action render(linhas, cabecalho := void, estilo := "simples"):
     cycle linha in linhas:
         todas.append(linha)
 
-    // quantas colunas: a linha mais larga manda
-    n_colunas := 0
-    cycle linha in todas:
-        given len(linha) bigger n_colunas:
-            n_colunas := len(linha)
-
-    larguras := []
-    cycle i from 0 to n_colunas - 1:
-        maior := 0
-        cycle linha in todas:
-            valor := linha[i] given i smaller len(linha) otherwise ""
-            l := largura_visivel(str(valor))
-            given l bigger maior:
-                maior := l
-        larguras.append(maior)
-
-    // uma coluna alinha à direita se todo dado dela for número
-    direita := []
-    cycle i from 0 to n_colunas - 1:
-        so_numeros := yes
-        cycle linha in linhas:
-            given i smaller len(linha) and not e_numero(linha[i]):
-                so_numeros := no
-        direita.append(so_numeros and len(linhas) bigger 0)
+    n_colunas := contar_colunas(todas)
+    larguras := medir_colunas(todas, n_colunas)
+    direita := colunas_numericas(linhas, n_colunas)
 
     action faixa(esq, meio, dir):
         partes := []
@@ -248,5 +260,6 @@ action lista(itens, marcador := "•", recuo := 2):
         saida.append(espacos + marcador + " " + str(item))
     yield saida.join("\n")
 
+relay contar_colunas, medir_colunas, colunas_numericas
 relay render, de_records, barra, sparkline, caixa, lista
 relay colorir, encher, largura_visivel, ESTILOS, CORES

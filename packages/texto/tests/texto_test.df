@@ -1,0 +1,62 @@
+adopt Arcane.Test as T
+adopt texto as Tx
+
+action test_sem_acento():
+    T.assert_eq(Tx.sem_acento("ação"), "acao")
+    T.assert_eq(Tx.sem_acento("Ñoño"), "Nono")
+    T.assert_eq(Tx.sem_acento("sem nada"), "sem nada")
+
+action test_slug():
+    T.assert_eq(Tx.slug("Olá, Mundo Cruel!"), "ola-mundo-cruel")
+    T.assert_eq(Tx.slug("  espaços   demais  "), "espacos-demais")
+    T.assert_eq(Tx.slug("Título", "_"), "titulo")
+    T.assert_eq(Tx.slug("A B", "_"), "a_b")
+    T.assert_eq(Tx.slug("!!!"), "")
+
+action test_truncar():
+    T.assert_eq(Tx.truncar("curto", 20), "curto")
+    T.assert_true(Tx.truncar("uma frase bem longa aqui", 12).length() smaller_eq 12)
+    // não corta no meio da palavra
+    T.assert_false(Tx.truncar("palavra gigantesca aqui", 14).contains("gigant…"))
+
+action test_mascarar():
+    T.assert_eq(Tx.mascarar("4539148803436467", 0, 4), "************6467")
+    T.assert_eq(Tx.mascarar("123", 0, 4), "***")
+    T.assert_eq(Tx.mascarar_email("contato@exemplo.com"), "c*****o@exemplo.com")
+
+action test_distancia():
+    T.assert_eq(Tx.distancia("casa", "casa"), 0)
+    T.assert_eq(Tx.distancia("casa", "caza"), 1)
+    T.assert_eq(Tx.distancia("", "abc"), 3)
+    T.assert_eq(Tx.distancia("kitten", "sitting"), 3)
+
+action test_similaridade_e_parecido():
+    T.assert_eq(Tx.similaridade("casa", "casa"), 1.0)
+    T.assert_true(Tx.similaridade("casa", "caza") bigger 0.7)
+    T.assert_eq(Tx.mais_parecido("contadr", ["contador", "total", "soma"]), "contador")
+    T.assert_eq(Tx.mais_parecido("xyz", ["contador", "total"]), void)
+
+action test_preencher():
+    T.assert_eq(Tx.preencher("Olá, {nome}!", {"nome": "Ana"}), "Olá, Ana!")
+    T.assert_eq(Tx.preencher("{a}+{b}={c}", {"a": 1, "b": 2, "c": 3}), "1+2=3")
+
+action test_titulo():
+    T.assert_eq(Tx.titulo("o senhor dos aneis"), "O Senhor dos Aneis")
+    T.assert_eq(Tx.titulo("MEMORIAS DE UM SARGENTO"), "Memorias de Um Sargento")
+
+action test_quebrar_linhas():
+    linhas := Tx.quebrar_linhas("uma frase que precisa quebrar em varias linhas", 15)
+    T.assert_true(len(linhas) bigger 1)
+    cycle l in linhas:
+        T.assert_true(l.length() smaller_eq 15)
+
+action test_palindromo_e_iniciais():
+    T.assert_true(Tx.e_palindromo("A man, a plan, a canal: Panama"))
+    T.assert_true(Tx.e_palindromo("Socorram-me, subi no ônibus em Marrocos"))
+    T.assert_false(Tx.e_palindromo("nao sou"))
+    T.assert_eq(Tx.iniciais("Ana Maria Silva"), "AS")
+    T.assert_eq(Tx.iniciais("Ana"), "A")
+
+action test_contar_palavras():
+    T.assert_eq(Tx.contar_palavras("uma duas tres"), 3)
+    T.assert_eq(Tx.contar_palavras(""), 0)

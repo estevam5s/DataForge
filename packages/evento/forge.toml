@@ -1,0 +1,14 @@
+[package]
+name = "evento"
+version = "1.0.0"
+description = "Eventos: publicar, assinar, uma vez só e barramento tipado."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["evento", "pubsub", "observador"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

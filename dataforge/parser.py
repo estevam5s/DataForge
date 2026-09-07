@@ -2094,9 +2094,31 @@ class Parser:
             raise ParseError(
                 f"Invalid expression inside the interpolated string "
                 f"({{{fonte}}}): {e.message}", tok.line, tok.column)
-        # Reposiciona para a linha da string, que e o que o usuario ve
-        expr.line, expr.column = tok.line, tok.column
+        # O trecho e compilado isolado, entao os nos nascem na linha 1.
+        # Reposicionar so a raiz nao basta: qualquer ferramenta que desca
+        # na arvore — o linter, um futuro LSP — encontraria linha 1 nos
+        # filhos, e mediria distancias absurdas. Reposiciona tudo.
+        self._reposicionar(expr, tok.line, tok.column)
         return expr
+
+    @classmethod
+    def _reposicionar(cls, node, linha, coluna):
+        """Poe a subarvore inteira na posicao da string que a contem."""
+        if not isinstance(node, ast.ASTNode):
+            return
+        node.line, node.column = linha, coluna
+        for campo, valor in vars(node).items():
+            if campo in ('line', 'column'):
+                continue
+            if isinstance(valor, ast.ASTNode):
+                cls._reposicionar(valor, linha, coluna)
+            elif isinstance(valor, list):
+                for item in valor:
+                    cls._reposicionar(item, linha, coluna)
+            elif isinstance(valor, dict):
+                for item in valor.values():
+                    cls._reposicionar(item, linha, coluna)
+        return node
 
     def parse_list(self):
         """[a, b, c]  |  [...a, b]  |  [expr cycle x in fonte given cond]"""

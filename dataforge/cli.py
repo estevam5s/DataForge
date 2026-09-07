@@ -1443,7 +1443,19 @@ def fmt_command(alvos, checar=False):
 
 def lint_command(alvos, strict=False):
     """dataforge lint — encontra problemas de estilo e higiene."""
-    from .linter import lint_program
+    from .linter import REGRAS, lint_program
+    from . import project as proj
+
+    # [lint] ignore do forge.toml desliga regras que nao servem ao projeto
+    manifesto = proj.carregar(alvos[0] if alvos else ".")
+    ignorar = list(manifesto.lint_ignore) if manifesto else []
+    desconhecidas = [r for r in ignorar if r not in REGRAS]
+    if desconhecidas:
+        print(color(f"Aviso: [lint] ignore cita regra(s) que nao existem: "
+                    f"{', '.join(desconhecidas)}", "1;33"))
+        print(color(f"  Regras validas: {', '.join(sorted(REGRAS))}", "0;90"))
+    if manifesto and manifesto.lint_strict:
+        strict = True
 
     arquivos = _expandir(alvos or ["."])
     usar_cor = '--no-color' not in sys.argv
@@ -1460,7 +1472,7 @@ def lint_command(alvos, strict=False):
             print(color(f"✗ {caminho}: {e.format()}", "1;31"))
             total += 1
             continue
-        for d in lint_program(arvore, caminho, fonte):
+        for d in lint_program(arvore, caminho, fonte, ignorar):
             print(d.format(caminho, color=usar_cor))
             total += 1
 

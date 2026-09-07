@@ -1,0 +1,80 @@
+adopt Arcane.Test as T
+adopt colecao as C
+
+steady PESSOAS := [
+    {"nome": "Ana", "cidade": "SP", "idade": 30},
+    {"nome": "Bruno", "cidade": "RJ", "idade": 25},
+    {"nome": "Carla", "cidade": "SP", "idade": 35}
+]
+
+action test_agrupar():
+    g := C.agrupar(PESSOAS, lambda p => p["cidade"])
+    T.assert_eq(len(g), 2)
+    T.assert_eq(len(g["SP"]), 2)
+    T.assert_eq(g["RJ"][0]["nome"], "Bruno")
+
+action test_contar_por():
+    c := C.contar_por(PESSOAS, lambda p => p["cidade"])
+    T.assert_eq(c["SP"], 2)
+    T.assert_eq(c["RJ"], 1)
+
+action test_indexar():
+    i := C.indexar(PESSOAS, lambda p => p["nome"])
+    T.assert_eq(i["Ana"]["idade"], 30)
+
+action test_particionar():
+    r := C.particionar([1, 2, 3, 4, 5], lambda n => n % 2 is 0)
+    T.assert_eq(r[0], [2, 4])
+    T.assert_eq(r[1], [1, 3, 5])
+
+action test_zip_e_descompactar():
+    T.assert_eq(C.zip([1, 2], ["a", "b"]), [[1, "a"], [2, "b"]])
+    T.assert_eq(C.zip([1, 2, 3], ["a"]), [[1, "a"]])
+    r := C.descompactar([[1, "a"], [2, "b"]])
+    T.assert_eq(r[0], [1, 2])
+    T.assert_eq(r[1], ["a", "b"])
+
+action test_janela():
+    T.assert_eq(C.janela([1, 2, 3, 4], 2), [[1, 2], [2, 3], [3, 4]])
+    T.assert_eq(C.janela([1, 2], 5), [])
+    T.assert_eq(len(C.janela([1, 2, 3, 4], 2, 2)), 2)
+
+action test_achatar():
+    T.assert_eq(C.achatar([[1, 2], [3], [4]]), [1, 2, 3, 4])
+    T.assert_eq(C.achatar([1, [2, [3]]]), [1, 2, [3]])
+    T.assert_eq(C.achatar([1, [2, [3]]], -1), [1, 2, 3])
+
+action test_frequencias_e_mais_comum():
+    f := C.frequencias(["a", "b", "a", "c", "a"])
+    T.assert_eq(f["a"], 3)
+    top := C.mais_comum(["a", "b", "a"], 1)
+    T.assert_eq(top[0][0], "a")
+    T.assert_eq(top[0][1], 2)
+
+action test_somar_e_media():
+    T.assert_eq(C.somar_por(PESSOAS, lambda p => p["idade"]), 90)
+    T.assert_eq(C.media_por(PESSOAS, lambda p => p["idade"]), 30.0)
+    T.assert_eq(C.media_por([], lambda p => 1), 0)
+
+action test_ordenar_por():
+    o := C.ordenar_por(PESSOAS, lambda p => p["idade"])
+    T.assert_eq(o[0]["nome"], "Bruno")
+    d := C.ordenar_por(PESSOAS, lambda p => p["idade"], yes)
+    T.assert_eq(d[0]["nome"], "Carla")
+
+action test_conjuntos():
+    T.assert_eq(C.intersecao([1, 2, 3], [2, 3, 4]), [2, 3])
+    T.assert_eq(C.diferenca([1, 2, 3], [2]), [1, 3])
+    T.assert_eq(C.uniao([1, 2], [2, 3]), [1, 2, 3])
+
+action test_distintos_por():
+    d := C.distintos_por(PESSOAS, lambda p => p["cidade"])
+    T.assert_eq(len(d), 2)
+    T.assert_eq(d[0]["nome"], "Ana")
+
+action test_fatiar_e_projetar():
+    T.assert_eq(C.fatiar([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]])
+    T.assert_eq(C.fatiar([1], 0), [])
+    p := C.selecionar_campos(PESSOAS, ["nome"])
+    T.assert_eq(len(p[0]), 1)
+    T.assert_eq(p[0]["nome"], "Ana")

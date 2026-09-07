@@ -1,0 +1,180 @@
+// cache — memoização, TTL e LRU
+//
+//     adopt cache as K
+//
+//     lento := lambda n => n * n
+//     rapido := K.memoizar(lento)
+//     out rapido(9)      // calcula
+//     out rapido(9)      // devolve o guardado
+//
+// Todo cache é uma aposta: gastar memória para não gastar tempo. As três
+// estratégias aqui diferem no que fazem quando a memória acaba.
+
+adopt Arcane.Time as Tempo
+
+// ── Memoização simples ────────────────────────────────────
+
+blueprint Memo:
+    private guardados: Vault := {}
+    private acertos: Integer := 0
+    private erros: Integer := 0
+    private limite: Integer := 0
+
+    action setup(acao, limite := 0):
+        self.acao := acao
+        self.limite := limite
+        self.guardados := {}
+        self.acertos := 0
+        self.erros := 0
+
+    action chamar(argumento):
+        chave := str(argumento)
+        given self.guardados.has(chave):
+            self.acertos += 1
+            yield self.guardados[chave]
+
+        self.erros += 1
+        valor := self.acao(argumento)
+
+        // Sem limite, cresce à vontade. Com limite, o mais antigo sai —
+        // é a aproximação barata de LRU que serve para memoização.
+        given self.limite bigger 0 and len(self.guardados) bigger_eq self.limite:
+            primeira := self.guardados.keys()[0]
+            delete self.guardados[primeira]
+
+        self.guardados[chave] := valor
+        yield valor
+
+    get estatisticas():
+        total := self.acertos + self.erros
+        taxa := 0.0
+        given total bigger 0:
+            taxa := self.acertos / total
+        yield {"acertos": self.acertos, "erros": self.erros,
+               "taxa": round(taxa, 3), "guardados": len(self.guardados)}
+
+    action limpar():
+        self.guardados := {}
+        yield self
+
+action memoizar(acao, limite := 0):
+    // Devolve uma versão que lembra o que já calculou.
+    m := spawn Memo(acao, limite)
+    yield lambda x => m.chamar(x)
+
+action memo_com_estatisticas(acao, limite := 0):
+    // Igual, mas devolve o objeto — dá para inspecionar os acertos.
+    yield spawn Memo(acao, limite)
+
+// ── Cache com validade ────────────────────────────────────
+
+blueprint CacheTTL:
+    private itens: Vault := {}
+    private segundos: Float := 60.0
+
+    action setup(segundos := 60.0):
+        self.segundos := segundos
+        self.itens := {}
+
+    private action agora():
+        yield Tempo.now()["timestamp"]
+
+    action guardar(chave, valor, segundos := void):
+        validade := segundos ?? self.segundos
+        self.itens[str(chave)] := {"valor": valor,
+                                   "expira": self.agora() + validade}
+        yield valor
+
+    action ler(chave, padrao := void):
+        k := str(chave)
+        given not self.itens.has(k):
+            yield padrao
+        item := self.itens[k]
+        given self.agora() bigger item["expira"]:
+            delete self.itens[k]
+            yield padrao
+        yield item["valor"]
+
+    action tem(chave):
+        yield self.ler(chave, void) isnt void
+
+    action esquecer(chave):
+        k := str(chave)
+        given self.itens.has(k):
+            delete self.itens[k]
+        yield self
+
+    action limpar_expirados():
+        // Varre e remove o que venceu. Chame de tempos em tempos: sem
+        // isso, chave que ninguém mais lê fica ocupando memória.
+        agora := self.agora()
+        vivos := {}
+        removidos := 0
+        cycle k in self.itens.keys():
+            given self.itens[k]["expira"] bigger_eq agora:
+                vivos[k] := self.itens[k]
+            otherwise:
+                removidos += 1
+        self.itens := vivos
+        yield removidos
+
+    get tamanho():
+        yield len(self.itens)
+
+action ttl(segundos := 60.0):
+    yield spawn CacheTTL(segundos)
+
+// ── LRU de verdade ────────────────────────────────────────
+
+blueprint LRU:
+    private itens: Vault := {}
+    private ordem: Cluster := []
+    private limite: Integer := 100
+
+    action setup(limite := 100):
+        self.limite := limite
+        self.itens := {}
+        self.ordem := []
+
+    private action tocar(chave):
+        // Move para o fim: o fim é o mais recente.
+        nova := []
+        cycle k in self.ordem:
+            given k isnt chave:
+                nova.append(k)
+        nova.append(chave)
+        self.ordem := nova
+
+    action guardar(chave, valor):
+        k := str(chave)
+        self.itens[k] := valor
+        self.tocar(k)
+        given len(self.ordem) bigger self.limite:
+            // o começo da ordem é o menos usado recentemente
+            velho := self.ordem[0]
+            delete self.itens[velho]
+            self.ordem := self.ordem[1:]
+        yield valor
+
+    action ler(chave, padrao := void):
+        k := str(chave)
+        given not self.itens.has(k):
+            yield padrao
+        self.tocar(k)
+        yield self.itens[k]
+
+    action tem(chave):
+        yield self.itens.has(str(chave))
+
+    get tamanho():
+        yield len(self.itens)
+
+    get chaves():
+        // do menos ao mais recente
+        yield self.ordem
+
+action lru(limite := 100):
+    yield spawn LRU(limite)
+
+relay Memo, CacheTTL, LRU
+relay memoizar, memo_com_estatisticas, ttl, lru

@@ -32,6 +32,15 @@ action email(valor):
     yield Rx.test(PADRAO_EMAIL, limpo)
 
 // ── Documentos brasileiros ────────────────────────────────
+//
+// Os números abaixo são a especificação do documento, não escolhas:
+// o CPF tem 11 dígitos e módulo 11, o CNPJ tem 14. Dar nome a eles é o
+// que separa "por que 11 aqui?" de código que se lê sozinho.
+
+steady DIGITOS_CPF := 11
+steady DIGITOS_CNPJ := 14
+steady MODULO := 11
+steady LIMITE_DIGITO := 10
 
 action so_digitos(texto):
     saida := ""
@@ -43,7 +52,7 @@ action so_digitos(texto):
 action cpf(valor):
     // CPF com os dois dígitos verificadores conferidos.
     numeros := so_digitos(str(valor))
-    given numeros.length() isnt 11:
+    given numeros.length() isnt DIGITOS_CPF:
         yield no
 
     // 111.111.111-11 e afins passam no cálculo, mas não são válidos
@@ -58,22 +67,22 @@ action cpf(valor):
     soma := 0
     cycle i from 0 to 8:
         soma += int(numeros.char_at(i)) * (10 - i)
-    resto := (soma * 10) % 11
-    digito1 := 0 given resto bigger_eq 10 otherwise resto
+    resto := (soma * LIMITE_DIGITO) % MODULO
+    digito1 := 0 given resto bigger_eq LIMITE_DIGITO otherwise resto
     given digito1 isnt int(numeros.char_at(9)):
         yield no
 
     soma := 0
     cycle i from 0 to 9:
         soma += int(numeros.char_at(i)) * (11 - i)
-    resto := (soma * 10) % 11
-    digito2 := 0 given resto bigger_eq 10 otherwise resto
+    resto := (soma * LIMITE_DIGITO) % MODULO
+    digito2 := 0 given resto bigger_eq LIMITE_DIGITO otherwise resto
     yield digito2 is int(numeros.char_at(10))
 
 action cnpj(valor):
     // CNPJ com os dois dígitos verificadores conferidos.
     numeros := so_digitos(str(valor))
-    given numeros.length() isnt 14:
+    given numeros.length() isnt DIGITOS_CNPJ:
         yield no
 
     primeiro := numeros.char_at(0)
@@ -88,8 +97,8 @@ action cnpj(valor):
     soma := 0
     cycle i from 0 to 11:
         soma += int(numeros.char_at(i)) * pesos1[i]
-    resto := soma % 11
-    digito1 := 0 given resto smaller 2 otherwise 11 - resto
+    resto := soma % MODULO
+    digito1 := 0 given resto smaller 2 otherwise MODULO - resto
     given digito1 isnt int(numeros.char_at(12)):
         yield no
 
@@ -97,8 +106,8 @@ action cnpj(valor):
     soma := 0
     cycle i from 0 to 12:
         soma += int(numeros.char_at(i)) * pesos2[i]
-    resto := soma % 11
-    digito2 := 0 given resto smaller 2 otherwise 11 - resto
+    resto := soma % MODULO
+    digito2 := 0 given resto smaller 2 otherwise MODULO - resto
     yield digito2 is int(numeros.char_at(13))
 
 action cep(valor):

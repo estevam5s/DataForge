@@ -1,0 +1,132 @@
+// evento — publicar e assinar
+//
+//     adopt evento as E
+//
+//     bus := E.barramento()
+//     bus.assinar("pedido.criado", lambda p => out $"novo: {p}")
+//     bus.publicar("pedido.criado", {"id": 1})
+//
+// O que um barramento resolve: quem publica não precisa saber quem
+// escuta. O preço é que o fluxo deixa de ser óbvio na leitura — use
+// quando os ouvintes forem mesmo independentes.
+
+blueprint Barramento:
+    private ouvintes: Vault := {}
+    private uma_vez: Vault := {}
+    private historico: Cluster := []
+    private guardar_historico: Boolean := no
+
+    action setup(guardar_historico := no):
+        self.ouvintes := {}
+        self.uma_vez := {}
+        self.historico := []
+        self.guardar_historico := guardar_historico
+
+    action assinar(nome, ouvinte):
+        // Devolve uma ação que cancela a assinatura — sem isso, não há
+        // como desinscrever uma lambda, que não tem nome.
+        given not self.ouvintes.has(nome):
+            self.ouvintes[nome] := []
+        self.ouvintes[nome].append(ouvinte)
+        yield lambda => self.cancelar(nome, ouvinte)
+
+    action uma_vez_so(nome, ouvinte):
+        given not self.uma_vez.has(nome):
+            self.uma_vez[nome] := []
+        self.uma_vez[nome].append(ouvinte)
+        yield lambda => self.cancelar(nome, ouvinte)
+
+    private action sem(lista, ouvinte):
+        restantes := []
+        cycle o in lista:
+            given o isnt ouvinte:
+                restantes.append(o)
+        yield restantes
+
+    action cancelar(nome, ouvinte):
+        cycle mapa in [self.ouvintes, self.uma_vez]:
+            given mapa.has(nome):
+                mapa[nome] := self.sem(mapa[nome], ouvinte)
+        yield self
+
+    action publicar(nome, dado := void):
+        // Devolve quantos ouvintes atenderam. Um ouvinte que estoura não
+        // impede os outros: o barramento existe para desacoplar, e um
+        // assinante quebrado não pode derrubar quem publicou.
+        atendidos := 0
+        falhas := []
+
+        given self.guardar_historico:
+            self.historico.append({"evento": nome, "dado": dado})
+
+        cycle o in self.ouvintes[nome] ?? []:
+            monitor:
+                o(dado)
+                atendidos += 1
+            handle e:
+                falhas.append({"evento": nome, "erro": e.message})
+
+        cycle o in self.uma_vez[nome] ?? []:
+            monitor:
+                o(dado)
+                atendidos += 1
+            handle e:
+                falhas.append({"evento": nome, "erro": e.message})
+        given self.uma_vez.has(nome):
+            self.uma_vez[nome] := []
+
+        // curinga: quem assina "*" recebe tudo
+        cycle o in self.ouvintes["*"] ?? []:
+            monitor:
+                o({"evento": nome, "dado": dado})
+                atendidos += 1
+            handle e:
+                falhas.append({"evento": "*", "erro": e.message})
+
+        given len(falhas) bigger 0:
+            self.ultimas_falhas := falhas
+        yield atendidos
+
+    action quantos(nome):
+        yield len(self.ouvintes[nome] ?? []) + len(self.uma_vez[nome] ?? [])
+
+    get eventos():
+        // Os nomes que têm ao menos um ouvinte.
+        nomes := []
+        cycle n in self.ouvintes.keys():
+            given len(self.ouvintes[n]) bigger 0:
+                nomes.append(n)
+        cycle n in self.uma_vez.keys():
+            given len(self.uma_vez[n]) bigger 0 and not (n in nomes):
+                nomes.append(n)
+        yield nomes
+
+    get registro():
+        yield self.historico
+
+    action limpar(nome := void):
+        given nome is void:
+            self.ouvintes := {}
+            self.uma_vez := {}
+        otherwise:
+            self.ouvintes[nome] := []
+            self.uma_vez[nome] := []
+        yield self
+
+action barramento(guardar_historico := no):
+    yield spawn Barramento(guardar_historico)
+
+// ── Um barramento global, para quem não quer carregar a instância ──
+
+steady GLOBAL := spawn Barramento()
+
+action assinar(nome, ouvinte):
+    yield GLOBAL.assinar(nome, ouvinte)
+
+action publicar(nome, dado := void):
+    yield GLOBAL.publicar(nome, dado)
+
+action uma_vez_so(nome, ouvinte):
+    yield GLOBAL.uma_vez_so(nome, ouvinte)
+
+relay Barramento, barramento, GLOBAL, assinar, publicar, uma_vez_so

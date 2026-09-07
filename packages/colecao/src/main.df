@@ -1,0 +1,220 @@
+// colecao — o que falta nos métodos de Cluster e Vault
+//
+//     adopt colecao as C
+//     out C.agrupar(pessoas, lambda p => p["cidade"])
+//     out C.particionar([1,2,3,4], lambda n => n % 2 is 0)
+//     out C.zip([1,2], ["a","b"])
+//
+// Cluster já traz map, filter, reduce, unique e chunk. Aqui está o que
+// se reescreve em todo projeto que mexe com dados.
+
+action agrupar(itens, chave):
+    // Um vault de listas, agrupadas pelo que `chave` devolve.
+    grupos := {}
+    cycle item in itens:
+        k := str(chave(item))
+        given not grupos.has(k):
+            grupos[k] := []
+        grupos[k].append(item)
+    yield grupos
+
+action contar_por(itens, chave):
+    // Quantos itens em cada grupo, sem guardar os itens.
+    contagem := {}
+    cycle item in itens:
+        k := str(chave(item))
+        contagem[k] := (contagem[k] ?? 0) + 1
+    yield contagem
+
+action indexar(itens, chave):
+    // Um vault de item único por chave. O último vence, como em qualquer
+    // índice — se houver duplicata, é sinal de que a chave está errada.
+    indice := {}
+    cycle item in itens:
+        indice[str(chave(item))] := item
+    yield indice
+
+action particionar(itens, condicao):
+    // Devolve [os que passam, os que não passam] numa varredura só.
+    sim := []
+    nao := []
+    cycle item in itens:
+        given condicao(item):
+            sim.append(item)
+        otherwise:
+            nao.append(item)
+    yield [sim, nao]
+
+action zip(a, b):
+    // Pares, parando no menor — como em toda linguagem que tem zip.
+    n := len(a)
+    given len(b) smaller n:
+        n := len(b)
+    saida := []
+    cycle i from 0 to n - 1:
+        saida.append([a[i], b[i]])
+    yield saida
+
+action descompactar(pares):
+    // O inverso do zip.
+    esquerda := []
+    direita := []
+    cycle par in pares:
+        esquerda.append(par[0])
+        direita.append(par[1])
+    yield [esquerda, direita]
+
+action janela(itens, tamanho, passo := 1):
+    // Sub-listas deslizantes: [1,2,3,4] com 2 -> [[1,2],[2,3],[3,4]]
+    given tamanho smaller_eq 0 or len(itens) smaller tamanho:
+        yield []
+    saida := []
+    i := 0
+    persist i + tamanho smaller_eq len(itens):
+        saida.append(itens[i:i + tamanho])
+        i += passo
+    yield saida
+
+action pares_consecutivos(itens):
+    yield janela(itens, 2)
+
+action achatar(itens, profundidade := 1):
+    // Um nível por vez; profundidade -1 achata tudo.
+    saida := []
+    cycle item in itens:
+        given typeof(item) is "Cluster" and profundidade isnt 0:
+            interno := achatar(item, profundidade - 1)
+            cycle x in interno:
+                saida.append(x)
+        otherwise:
+            saida.append(item)
+    yield saida
+
+action frequencias(itens):
+    contagem := {}
+    cycle item in itens:
+        k := str(item)
+        contagem[k] := (contagem[k] ?? 0) + 1
+    yield contagem
+
+action mais_comum(itens, quantos := 1):
+    // Os que mais aparecem, do maior para o menor.
+    freq := frequencias(itens)
+    pares := []
+    cycle k in freq.keys():
+        pares.append([k, freq[k]])
+    // ordenação por contagem: seleção simples, a lista aqui é pequena
+    ordenados := []
+    resto := pares
+    persist len(resto) bigger 0:
+        melhor := 0
+        cycle i from 1 to len(resto) - 1:
+            given resto[i][1] bigger resto[melhor][1]:
+                melhor := i
+        ordenados.append(resto[melhor])
+        novo := []
+        cycle i from 0 to len(resto) - 1:
+            given i isnt melhor:
+                novo.append(resto[i])
+        resto := novo
+    yield ordenados[0:quantos]
+
+action somar_por(itens, valor):
+    total := 0
+    cycle item in itens:
+        total += valor(item)
+    yield total
+
+action media_por(itens, valor):
+    given len(itens) is 0:
+        yield 0
+    yield somar_por(itens, valor) / len(itens)
+
+action ordenar_por(itens, chave, decrescente := no):
+    // Ordenação estável por seleção. Para as listas que aparecem em
+    // código de aplicação, a diferença para um quicksort não se percebe.
+    resto := []
+    cycle x in itens:
+        resto.append(x)
+    saida := []
+    persist len(resto) bigger 0:
+        escolhido := 0
+        cycle i from 1 to len(resto) - 1:
+            a := chave(resto[i])
+            b := chave(resto[escolhido])
+            melhor := a bigger b given decrescente otherwise a smaller b
+            given melhor:
+                escolhido := i
+        saida.append(resto[escolhido])
+        novo := []
+        cycle i from 0 to len(resto) - 1:
+            given i isnt escolhido:
+                novo.append(resto[i])
+        resto := novo
+    yield saida
+
+action distintos_por(itens, chave):
+    // Remove duplicatas segundo uma chave, guardando o primeiro.
+    vistos := {}
+    saida := []
+    cycle item in itens:
+        k := str(chave(item))
+        given not vistos.has(k):
+            vistos[k] := yes
+            saida.append(item)
+    yield saida
+
+action intersecao(a, b):
+    marcados := {}
+    cycle x in b:
+        marcados[str(x)] := yes
+    saida := []
+    cycle x in a:
+        given marcados.has(str(x)):
+            saida.append(x)
+    yield distintos_por(saida, lambda x => x)
+
+action diferenca(a, b):
+    marcados := {}
+    cycle x in b:
+        marcados[str(x)] := yes
+    saida := []
+    cycle x in a:
+        given not marcados.has(str(x)):
+            saida.append(x)
+    yield saida
+
+action uniao(a, b):
+    juntos := []
+    cycle x in a:
+        juntos.append(x)
+    cycle x in b:
+        juntos.append(x)
+    yield distintos_por(juntos, lambda x => x)
+
+action fatiar(itens, tamanho):
+    // Divide em pedaços de até `tamanho`.
+    given tamanho smaller_eq 0:
+        yield []
+    saida := []
+    i := 0
+    persist i smaller len(itens):
+        saida.append(itens[i:i + tamanho])
+        i += tamanho
+    yield saida
+
+action selecionar_campos(vaults, campos):
+    // Projeção: só as chaves pedidas, como um SELECT.
+    saida := []
+    cycle v in vaults:
+        novo := {}
+        cycle c in campos:
+            given v.has(c):
+                novo[c] := v[c]
+        saida.append(novo)
+    yield saida
+
+relay agrupar, contar_por, indexar, particionar, zip, descompactar
+relay janela, pares_consecutivos, achatar, frequencias, mais_comum
+relay somar_por, media_por, ordenar_por, distintos_por
+relay intersecao, diferenca, uniao, fatiar, selecionar_campos

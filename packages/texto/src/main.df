@@ -1,0 +1,215 @@
+// texto — o que falta na manipulação de String
+//
+//     adopt texto as T
+//     out T.slug("Olá, Mundo Cruel!")     // ola-mundo-cruel
+//     out T.truncar("uma frase longa", 10)
+//     out T.similaridade("casa", "caza")  // 0.75
+//
+// A biblioteca padrão já traz `upper`, `split`, `replace` e companhia.
+// Aqui está o que se escreve de novo em todo projeto.
+
+steady ACENTOS := {
+    "á": "a", "à": "a", "ã": "a", "â": "a", "ä": "a",
+    "é": "e", "è": "e", "ê": "e", "ë": "e",
+    "í": "i", "ì": "i", "î": "i", "ï": "i",
+    "ó": "o", "ò": "o", "õ": "o", "ô": "o", "ö": "o",
+    "ú": "u", "ù": "u", "û": "u", "ü": "u",
+    "ç": "c", "ñ": "n",
+    "Á": "A", "À": "A", "Ã": "A", "Â": "A",
+    "É": "E", "Ê": "E", "Í": "I", "Ó": "O", "Õ": "O", "Ô": "O",
+    "Ú": "U", "Ç": "C", "Ñ": "N"
+}
+
+action sem_acento(s):
+    saida := ""
+    cycle c in str(s):
+        saida += ACENTOS[c] given ACENTOS.has(c) otherwise c
+    yield saida
+
+action slug(s, separador := "-"):
+    // "Olá, Mundo!" -> "ola-mundo". Serve para URL e nome de arquivo.
+    limpo := sem_acento(str(s)).lower()
+    saida := ""
+    ultimo_foi_sep := yes          // começa yes para não abrir com separador
+    cycle c in limpo:
+        given c.isalnum():
+            saida += c
+            ultimo_foi_sep := no
+        orif not ultimo_foi_sep:
+            saida += separador
+            ultimo_foi_sep := yes
+    given saida.endswith(separador):
+        saida := saida.substring(0, saida.length() - separador.length())
+    yield saida
+
+action truncar(s, limite, reticencias := "…"):
+    // Corta sem cortar palavra no meio, quando dá.
+    texto := str(s)
+    given texto.length() smaller_eq limite:
+        yield texto
+    corte := limite - reticencias.length()
+    given corte smaller_eq 0:
+        yield reticencias
+
+    pedaco := texto.substring(0, corte)
+    espaco := pedaco.rfind(" ")
+    given espaco bigger corte ~/ 2:
+        pedaco := pedaco.substring(0, espaco)
+    yield pedaco.trim() + reticencias
+
+action mascarar(s, visivel_inicio := 0, visivel_fim := 4, marca := "*"):
+    // Esconde o miolo: "4539********6467"
+    texto := str(s)
+    n := texto.length()
+    given n smaller_eq visivel_inicio + visivel_fim:
+        yield marca.repeat(n)
+    inicio := texto.substring(0, visivel_inicio)
+    fim := texto.substring(n - visivel_fim)
+    yield inicio + marca.repeat(n - visivel_inicio - visivel_fim) + fim
+
+action mascarar_email(email):
+    partes := str(email).split("@")
+    given len(partes) isnt 2:
+        yield mascarar(email, 1, 0)
+    yield mascarar(partes[0], 1, 1) + "@" + partes[1]
+
+action distancia(a, b):
+    // Levenshtein: quantas edições separam duas palavras.
+    // Guarda só duas linhas da matriz — o resto não é preciso.
+    s1 := str(a)
+    s2 := str(b)
+    given s1 is s2:
+        yield 0
+    given s1.length() is 0:
+        yield s2.length()
+    given s2.length() is 0:
+        yield s1.length()
+
+    anterior := []
+    cycle j from 0 to s2.length():
+        anterior.append(j)
+
+    cycle i from 1 to s1.length():
+        atual := [i]
+        cycle j from 1 to s2.length():
+            custo := 0 given s1.char_at(i - 1) is s2.char_at(j - 1) otherwise 1
+            remocao := anterior[j] + 1
+            insercao := atual[j - 1] + 1
+            troca := anterior[j - 1] + custo
+            menor := remocao
+            given insercao smaller menor:
+                menor := insercao
+            given troca smaller menor:
+                menor := troca
+            atual.append(menor)
+        anterior := atual
+
+    yield anterior[s2.length()]
+
+action similaridade(a, b):
+    // 0.0 a 1.0. Útil para "você quis dizer…".
+    s1 := str(a)
+    s2 := str(b)
+    maior := s1.length()
+    given s2.length() bigger maior:
+        maior := s2.length()
+    given maior is 0:
+        yield 1.0
+    yield 1.0 - (distancia(s1, s2) / maior)
+
+action mais_parecido(alvo, candidatos, minimo := 0.6):
+    // O candidato mais próximo, ou void se nenhum passa do mínimo.
+    melhor := void
+    melhor_nota := minimo
+    cycle c in candidatos:
+        nota := similaridade(alvo, c)
+        given nota bigger_eq melhor_nota:
+            melhor := c
+            melhor_nota := nota
+    yield melhor
+
+action preencher(modelo, valores):
+    // "Olá, {nome}!" com {"nome": "Ana"} -> "Olá, Ana!"
+    saida := str(modelo)
+    cycle chave in valores.keys():
+        saida := saida.replace("{" + chave + "}", str(valores[chave]))
+    yield saida
+
+action titulo(s):
+    // Título em português: preposições curtas ficam minúsculas.
+    steady MINUSCULAS := ["de", "da", "do", "das", "dos", "e", "a", "o",
+                          "as", "os", "em", "no", "na", "para", "com"]
+    palavras := str(s).lower().split(" ")
+    saida := []
+    cycle i from 0 to len(palavras) - 1:
+        p := palavras[i]
+        given p is "":
+            skip
+        given i bigger 0 and p in MINUSCULAS:
+            saida.append(p)
+        otherwise:
+            saida.append(p.capitalize())
+    yield saida.join(" ")
+
+action contar_palavras(s):
+    total := 0
+    cycle p in str(s).split(" "):
+        given p.trim() isnt "":
+            total += 1
+    yield total
+
+action quebrar_linhas(s, largura := 72):
+    // Quebra em linhas de até `largura`, sem partir palavra.
+    linhas := []
+    atual := ""
+    cycle palavra in str(s).split(" "):
+        given palavra is "":
+            skip
+        candidata := palavra given atual is "" otherwise atual + " " + palavra
+        given candidata.length() smaller_eq largura:
+            atual := candidata
+        otherwise:
+            given atual isnt "":
+                linhas.append(atual)
+            atual := palavra
+    given atual isnt "":
+        linhas.append(atual)
+    yield linhas
+
+action inverter(s):
+    yield str(s).reverse()
+
+action e_palindromo(s):
+    limpo := ""
+    cycle c in sem_acento(str(s)).lower():
+        given c.isalnum():
+            limpo += c
+    yield limpo is limpo.reverse()
+
+action iniciais(nome, maximo := 2):
+    // "Ana Maria Silva" -> "AS" com maximo 2, "AMS" com 3.
+    // Com mais partes que o maximo, pega a primeira e as ultimas —
+    // e o sobrenome que identifica, nao o nome do meio.
+    partes := []
+    cycle p in str(nome).split(" "):
+        given p.trim() isnt "":
+            partes.append(p.trim())
+    given len(partes) is 0:
+        yield ""
+    given maximo smaller_eq 0:
+        yield ""
+
+    escolhidas := partes
+    given len(partes) bigger maximo:
+        escolhidas := [partes[0]]
+        cycle i from len(partes) - maximo + 1 to len(partes) - 1:
+            escolhidas.append(partes[i])
+
+    saida := ""
+    cycle p in escolhidas:
+        saida += p.char_at(0)
+    yield saida.upper()
+
+relay sem_acento, slug, truncar, mascarar, mascarar_email
+relay distancia, similaridade, mais_parecido, preencher
+relay titulo, contar_palavras, quebrar_linhas, inverter, e_palindromo, iniciais

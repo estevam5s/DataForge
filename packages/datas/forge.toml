@@ -10,5 +10,10 @@ keywords = ["data", "tempo", "feriado", "brasil", "calendario"]
 
 [dependencies]
 
+[lint]
+# Os numeros do calendario (4 do ciclo bissexto, 7 dos dias da
+# semana, 12 dos meses) sao a definicao do calendario gregoriano.
+ignore = ["magic-number"]
+
 [scripts]
 test = "test tests/"

@@ -42,14 +42,20 @@ METODOS_ESPECIAIS = {
 class Linter:
     """Analisa estilo e higiene do código."""
 
-    def __init__(self, filename="<stdin>", source=""):
+    def __init__(self, filename="<stdin>", source="", ignorar=()):
         self.filename = filename
         self.source = source
         self.diagnostics = []
         self._profundidade = 0
         self._numeros = {}
+        # Regras desligadas — vem de [lint] ignore no forge.toml.
+        # Uma regra que nao serve ao projeto e pior que nenhuma: ensina
+        # a ignorar a saida inteira.
+        self.ignorar = set(ignorar or ())
 
     def warn(self, mensagem, node, hint="", code=""):
+        if code and code in self.ignorar:
+            return
         self.diagnostics.append(Diagnostic(
             'warning', mensagem, getattr(node, 'line', 0),
             getattr(node, 'column', 0), hint, code))
@@ -302,12 +308,24 @@ class Linter:
                     f"Name it: 'steady NOME := {valor}'", "magic-number")
 
     def _checar_comentarios(self):
+        """Marcadores TODO/FIXME. Nao confundir com a palavra 'todo'.
+
+        Em portugues, 'todo' e 'toda' abrem frases o tempo todo — "todo
+        cache e uma aposta". Um marcador de verdade e escrito em
+        MAIUSCULA, ou vem seguido de ':'. Exigir uma das duas coisas
+        elimina o falso positivo sem deixar passar marcador real.
+        """
         for numero, linha in enumerate(self.source.split("\n"), start=1):
-            achado = re.search(r"(?://|#)\s*(TODO|FIXME|XXX|HACK)\b[: ]*(.*)",
-                               linha, re.IGNORECASE)
+            achado = re.search(
+                r"(?://|#)\s*(TODO|FIXME|XXX|HACK)\b(:)?[ ]*(.*)", linha)
+            if achado is None:
+                # tolera minuscula so quando ha ':' logo depois
+                achado = re.search(
+                    r"(?://|#)\s*(todo|fixme|xxx|hack)(:)[ ]*(.*)",
+                    linha, re.IGNORECASE)
             if achado:
                 marca = achado.group(1).upper()
-                resto = achado.group(2).strip()
+                resto = achado.group(3).strip()
                 node = type('_N', (), {'line': numero, 'column': achado.start() + 1})()
                 self.warn(f"{marca}: {resto}" if resto else f"{marca} comment", node,
                           "Track it in an issue, or resolve it", "todo-comment")
@@ -368,15 +386,29 @@ class Linter:
                         ast.TriggerStatement, ast.PropagateStatement))
 
     def _extensao(self, node):
-        linhas = [getattr(node, 'line', 0)]
+        """Quantas linhas o corpo de uma acao ocupa.
+
+        Nem todo no do AST tem linha preenchida — alguns nascem com 0.
+        Um unico zero na conta puxava o minimo para o comeco do arquivo e
+        transformava uma acao de duas linhas em 'has 197 lines'.
+        """
+        linhas = []
 
         def descer(n):
-            linhas.append(getattr(n, 'line', 0))
+            linha = getattr(n, 'line', 0)
+            if linha:
+                linhas.append(linha)
             for filho in self._filhos(n):
                 descer(filho)
 
+        inicio = getattr(node, 'line', 0)
+        if inicio:
+            linhas.append(inicio)
         for stmt in node.body:
             descer(stmt)
+
+        if not linhas:
+            return 0
         return max(linhas) - min(linhas) + 1
 
     @staticmethod
@@ -389,6 +421,19 @@ class Linter:
         return ''.join(p.capitalize() for p in re.split(r'[_\-\s]+', nome) if p)
 
 
-def lint_program(program, filename="<stdin>", source=""):
-    """Analisa estilo e higiene, devolvendo os avisos encontrados."""
-    return Linter(filename, source).lint(program)
+#: Todas as regras, para validar o que se pede em [lint] ignore.
+REGRAS = {
+    "unused-variable", "unused-import", "unused-parameter", "shadowed-name",
+    "empty-block", "magic-number", "long-action", "deep-nesting",
+    "naming-convention", "redundant-else", "double-negation",
+    "comparison-to-bool", "todo-comment",
+}
+
+
+def lint_program(program, filename="<stdin>", source="", ignorar=()):
+    """Analisa estilo e higiene, devolvendo os avisos encontrados.
+
+    'ignorar' desliga regras pelo nome — o que o forge.toml declara em
+    [lint] ignore.
+    """
+    return Linter(filename, source, ignorar).lint(program)

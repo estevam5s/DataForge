@@ -185,7 +185,8 @@ action como_booleano(cfg, chave, padrao := no):
     v := pegar(cfg, chave, padrao)
     given typeof(v) is "Boolean":
         yield v
-    yield _converter(str(v)) is yes
+    convertido := _converter(str(v))
+    yield typeof(convertido) is "Boolean" and convertido
 
 action como_lista(cfg, chave, separador := ",", padrao := void):
     v := pegar(cfg, chave, void)

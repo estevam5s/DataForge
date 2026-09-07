@@ -10,5 +10,10 @@ keywords = ["validacao", "formulario", "cpf", "cnpj", "brasil"]
 
 [dependencies]
 
+[lint]
+# A tabela de pesos do CPF/CNPJ e a especificacao do documento: sao
+# numeros que nao se pode nomear, porque nao significam nada sozinhos.
+ignore = ["magic-number"]
+
 [scripts]
 test = "test tests/"
