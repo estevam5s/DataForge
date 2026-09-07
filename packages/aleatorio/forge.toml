@@ -5,7 +5,7 @@ description = "Aleatoriedade com semente: sorteio, embaralhar, amostra e distrib
 authors = ["DataForge"]
 license = "MIT"
 entry = "src/main.df"
-dataforge = ">=4.1"
+dataforge = ">=1.0"
 keywords = ["aleatorio", "random", "sorteio"]
 
 [dependencies]

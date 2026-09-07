@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Logo } from './Logo';
 import { Search } from './Search';
 import { ThemeToggle } from './ThemeToggle';
@@ -9,114 +9,148 @@ import { Sidebar } from './Sidebar';
 
 const REPO = 'https://github.com/estevam5s/DataForge';
 
+/**
+ * Cabeçalho flutuante.
+ *
+ * É um cartão com margem, não uma barra colada no topo: o fundo aparece
+ * em volta e a página inteira lê como uma superfície sobre outra. Ao
+ * rolar, ganha sombra e o fundo fecha — a única mudança, porque um
+ * cabeçalho que muda de tamanho faz o conteúdo pular.
+ *
+ * A marca aparece sozinha, sem o nome ao lado: uma marca reconhecível
+ * não precisa se apresentar em toda página.
+ */
 export function Header() {
   const [menuAberto, setMenuAberto] = useState(false);
+  const [rolou, setRolou] = useState(false);
+
+  useEffect(() => {
+    const aoRolar = () => setRolou(window.scrollY > 8);
+    aoRolar();
+    window.addEventListener('scroll', aoRolar, { passive: true });
+    return () => window.removeEventListener('scroll', aoRolar);
+  }, []);
+
+  // Com o menu do celular aberto, a página atrás não deve rolar.
+  useEffect(() => {
+    document.body.style.overflow = menuAberto ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [menuAberto]);
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line bg-base/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-[68px] max-w-[1600px] items-center gap-4 px-4 lg:px-6">
-          {/* Menu do celular */}
+      <div className="sticky top-0 z-40 px-2 pt-2 sm:px-4 sm:pt-4">
+        <header
+          className={`mx-auto flex h-[64px] max-w-[1620px] items-center gap-3 rounded-2xl border px-3 transition-all duration-300 sm:px-4 ${
+            rolou
+              ? 'border-line bg-surface/90 shadow-[0_8px_30px_-12px_rgb(0_0_0/0.5)] backdrop-blur-xl'
+              : 'border-line/60 bg-surface/60 backdrop-blur-lg'
+          }`}
+        >
           <button
             onClick={() => setMenuAberto(true)}
-            className="rounded-lg p-2 text-muted transition-colors hover:bg-raised hover:text-strong lg:hidden"
+            className="rounded-xl p-2 text-muted transition-colors hover:bg-raised hover:text-strong lg:hidden"
             aria-label="Abrir navegação"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M3 5.5h14M3 10h14M3 14.5h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+              <path
+                d="M3 5.5h14M3 10h14M3 14.5h14"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
 
-          <Link href="/docs" className="flex shrink-0 items-center gap-2.5">
-            <Logo />
-            <span className="text-[17px] font-extrabold tracking-[-0.4px] text-strong">
-              DataForge
-            </span>
-            <span className="hidden rounded-md border border-line px-1.5 py-px font-mono text-[10.5px] text-muted sm:block">
-              v4.2
-            </span>
+          <Link
+            href="/docs"
+            className="group flex shrink-0 items-center rounded-xl p-1 transition-transform duration-300 hover:scale-105"
+            aria-label="DataForge — início da documentação"
+          >
+            <Logo size={44} className="transition-opacity group-hover:opacity-90" />
           </Link>
 
-          <div className="ml-auto hidden flex-1 justify-center px-6 md:flex">
+          <div className="ml-2 hidden flex-1 justify-center px-4 md:flex">
             <Search />
           </div>
 
-          <nav className="ml-auto flex items-center gap-1 md:ml-0">
-            <Link
-              href="/docs/primeiros-passos"
-              className="hidden rounded-lg px-3 py-2 text-[13.5px] font-semibold text-body transition-colors hover:text-strong lg:block"
-            >
+          <nav className="ml-auto flex items-center gap-0.5">
+            <Link href="/docs/primeiros-passos" className="link-topo hidden lg:block">
               Começar
             </Link>
-            <Link
-              href="/docs/exercicios"
-              className="hidden rounded-lg px-3 py-2 text-[13.5px] font-semibold text-body transition-colors hover:text-strong lg:block"
-            >
+            <Link href="/docs/exercicios" className="link-topo hidden lg:block">
               Exercícios
             </Link>
-            <Link
-              href="/docs/biblioteca"
-              className="hidden rounded-lg px-3 py-2 text-[13.5px] font-semibold text-body transition-colors hover:text-strong xl:block"
-            >
+            <Link href="/docs/kiln" className="link-topo hidden xl:flex xl:items-center xl:gap-1.5">
+              <span className="rounded-full bg-accent px-1.5 py-px text-[9.5px] font-bold uppercase tracking-wide text-white">
+                novo
+              </span>
+              Kiln
+            </Link>
+            <Link href="/docs/biblioteca" className="link-topo hidden xl:block">
               Biblioteca
             </Link>
+
             <Link
               href="/painel"
-              className="text-[14.5px] font-medium text-body transition-colors hover:text-strong"
+              className="ml-2 hidden rounded-xl bg-accent px-4 py-2 text-[13.5px] font-semibold text-white shadow-[0_4px_16px_-6px_rgb(var(--accent))] transition-all hover:bg-accent-soft hover:shadow-[0_6px_20px_-6px_rgb(var(--accent))] sm:block"
             >
               Painel
             </Link>
 
-            <span className="mx-1 hidden h-5 w-px bg-line lg:block" />
+            <span className="mx-1.5 hidden h-5 w-px bg-line sm:block" aria-hidden="true" />
 
             <a
               href={REPO}
               target="_blank"
-              rel="noreferrer noopener"
-              className="rounded-lg p-2 text-muted transition-colors hover:bg-raised hover:text-strong"
+              rel="noopener noreferrer"
+              className="rounded-xl p-2 text-muted transition-colors hover:bg-raised hover:text-strong"
               aria-label="Repositório no GitHub"
             >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+              <svg width="19" height="19" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z" />
               </svg>
             </a>
             <ThemeToggle />
           </nav>
-        </div>
+        </header>
+      </div>
 
-        {/* Busca no celular */}
-        <div className="border-t border-line px-4 py-2.5 md:hidden">
-          <Search />
-        </div>
-      </header>
-
-      {/* Gaveta de navegação no celular */}
+      {/* Navegação do celular */}
       {menuAberto && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden"
-          onClick={() => setMenuAberto(false)}
-        >
-          <aside
-            className="h-full w-[300px] max-w-[85vw] overflow-y-auto border-r border-line bg-surface p-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Logo size={26} />
-                <span className="font-extrabold text-strong">DataForge</span>
-              </span>
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-[fade_.2s_ease]"
+            onClick={() => setMenuAberto(false)}
+            aria-label="Fechar navegação"
+          />
+          <div className="absolute inset-y-0 left-0 flex w-[86%] max-w-[330px] flex-col border-r border-line bg-surface shadow-2xl animate-[entrar-lado_.24s_cubic-bezier(.22,1,.36,1)]">
+            <div className="flex h-[64px] shrink-0 items-center justify-between border-b border-line px-4">
+              <Logo size={34} />
               <button
                 onClick={() => setMenuAberto(false)}
-                className="rounded-lg p-2 text-muted hover:text-strong"
-                aria-label="Fechar navegação"
+                className="rounded-xl p-2 text-muted transition-colors hover:bg-raised hover:text-strong"
+                aria-label="Fechar"
               >
-                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 4l10 10M14 4L4 14"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
             </div>
-            <Sidebar onNavigate={() => setMenuAberto(false)} />
-          </aside>
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+              <div className="mb-4 md:hidden">
+                <Search />
+              </div>
+              <Sidebar onNavigate={() => setMenuAberto(false)} />
+            </div>
+          </div>
         </div>
       )}
     </>

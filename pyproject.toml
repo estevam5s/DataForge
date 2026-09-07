@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dataforge-lang"
-version = "4.2.0"
+version = "1.0.0"
 description = "DataForge — linguagem de programação interpretada, construída sobre Python"
 readme = "README.md"
 requires-python = ">=3.10"

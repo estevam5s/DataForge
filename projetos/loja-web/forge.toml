@@ -3,7 +3,7 @@ name = "loja-web"
 version = "1.0.0"
 description = "Site completo com Kiln: páginas, API REST, banco, sessão e exportação para Excel."
 entry = "src/main.df"
-dataforge = ">=4.2"
+dataforge = ">=1.0"
 
 [dependencies]
 validador = "^1.0.0"

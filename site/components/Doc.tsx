@@ -147,7 +147,7 @@ export function DocPage({
 
   return (
     <div className="flex w-full min-w-0 gap-10">
-      <article className="min-w-0 flex-1 py-10 lg:py-12">
+      <article className="entra-conteudo min-w-0 flex-1 px-1 py-8 sm:px-2 lg:py-10">
         <div className="max-w-content">
           {secao && !secao.standalone && (
             <p className="nav-label mb-3 text-accent">{secao.title}</p>
@@ -192,7 +192,7 @@ export function DocPage({
       </article>
 
       <aside className="hidden w-[220px] shrink-0 xl:block">
-        <div className="sticky top-[92px] max-h-[calc(100vh-120px)] overflow-y-auto py-12">
+        <div className="sticky top-[100px] max-h-[calc(100vh-130px)] overflow-y-auto py-10">
           <Toc headings={headings} />
         </div>
       </aside>

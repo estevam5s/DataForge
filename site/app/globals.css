@@ -323,3 +323,69 @@
 @media (prefers-reduced-motion: reduce) {
   .lp-caret { animation: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Animações do chrome da documentação
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes entrar-lado {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes subir {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* O conteúdo entra ao trocar de página. Curto e discreto: uma animação
+   de entrada que se faz notar cansa na terceira página. */
+.entra-conteudo {
+  animation: subir 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Link do cabeçalho: o sublinhado cresce do centro. */
+.link-topo {
+  @apply relative rounded-xl px-3 py-2 text-[13.5px] font-semibold text-body transition-colors hover:text-strong;
+}
+.link-topo::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  height: 2px;
+  width: 0;
+  border-radius: 2px;
+  background: rgb(var(--accent));
+  transform: translateX(-50%);
+  transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.link-topo:hover::after { width: calc(100% - 24px); }
+
+/* A barra lateral rola muito: uma barra fina que só aparece no hover
+   evita que ela dispute atenção com o conteúdo. */
+aside ::-webkit-scrollbar { width: 8px; }
+aside ::-webkit-scrollbar-track { background: transparent; }
+aside ::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+aside:hover ::-webkit-scrollbar-thumb {
+  background: rgb(var(--line));
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entra-conteudo,
+  [class*='animate-'] {
+    animation: none !important;
+  }
+  .link-topo::after { transition: none; }
+}

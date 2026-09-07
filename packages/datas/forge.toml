@@ -5,7 +5,7 @@ description = "Datas em português: formatação, tempo relativo, dias úteis, f
 authors = ["DataForge"]
 license = "MIT"
 entry = "src/main.df"
-dataforge = ">=4.0"
+dataforge = ">=1.0"
 keywords = ["data", "tempo", "feriado", "brasil", "calendario"]
 
 [dependencies]

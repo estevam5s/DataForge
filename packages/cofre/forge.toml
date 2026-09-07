@@ -5,7 +5,7 @@ description = "Configuração em camadas: padrões, arquivo, ambiente e argument
 authors = ["DataForge"]
 license = "MIT"
 entry = "src/main.df"
-dataforge = ">=4.0"
+dataforge = ">=1.0"
 keywords = ["config", "env", "cli", "argumentos"]
 
 [dependencies]

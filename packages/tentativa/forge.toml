@@ -5,7 +5,7 @@ description = "Repetição com recuo exponencial, jitter e circuit breaker."
 authors = ["DataForge"]
 license = "MIT"
 entry = "src/main.df"
-dataforge = ">=4.1"
+dataforge = ">=1.0"
 keywords = ["retry", "resiliencia", "backoff"]
 
 [dependencies]

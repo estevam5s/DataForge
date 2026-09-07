@@ -1,0 +1,14 @@
+{
+  "nome": "DataForge",
+  "versao": "1.0.0",
+  "descricao": "API pública da linguagem: sintaxe, biblioteca, comandos e conteúdos. Tudo gerado do código-fonte.",
+  "documentacao": "https://dataforge-lang.vercel.app/docs",
+  "rotas": {
+    "sintaxe": "/api/sintaxe.json",
+    "embutidas": "/api/embutidas.json",
+    "modulos": "/api/modulos.json",
+    "comandos": "/api/comandos.json",
+    "erros": "/api/erros.json",
+    "conteudos": "/api/conteudos.json"
+  }
+}

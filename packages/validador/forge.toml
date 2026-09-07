@@ -5,7 +5,7 @@ description = "Validação de dados: e-mail, CPF, CNPJ, CEP, telefone, cartão e
 authors = ["DataForge"]
 license = "MIT"
 entry = "src/main.df"
-dataforge = ">=4.0"
+dataforge = ">=1.0"
 keywords = ["validacao", "formulario", "cpf", "cnpj", "brasil"]
 
 [dependencies]

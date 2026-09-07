@@ -1,0 +1,36 @@
+adopt Arcane.Collections as Col
+
+record Produto:
+    nome: String
+    preco: Number
+    estoque: Integer
+
+enum Situacao:
+    EmFalta
+    Critico
+    Normal
+
+action situacao_de(p: Produto) -> Situacao:
+    match p:
+        point Produto(estoque := 0):
+            yield Situacao.EmFalta
+        point Produto(estoque := e) when e smaller 5:
+            yield Situacao.Critico
+        default:
+            yield Situacao.Normal
+
+estoque := [
+    Produto("Mouse", 80.0, 15),
+    Produto("Teclado", 200.0, 3),
+    Produto("Monitor", 1200.0, 0)
+]
+
+patrimonio := estoque
+    >> morph p: p.preco * p.estoque
+    >> distill acc, v: acc + v 0
+
+cycle p in Col.sort_by_field(estoque, "preco", yes):
+    out $"{p.nome.pad_end(10)} {situacao_de(p).name.pad_end(10)} R$ {p.preco * p.estoque}"
+
+out $"\npatrimônio: R$ {patrimonio}"
+out $"repor: {[p.nome cycle p in estoque given situacao_de(p) isnt Situacao.Normal]}"

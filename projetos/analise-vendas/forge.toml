@@ -3,7 +3,7 @@ name = "analise-vendas"
 version = "1.0.0"
 description = "Lê CSV de vendas e produz um relatório com estatística e gráficos de terminal."
 entry = "src/main.df"
-dataforge = ">=4.1"
+dataforge = ">=1.0"
 
 [dependencies]
 estatistica = "^1.0.0"

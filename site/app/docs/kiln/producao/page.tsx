@@ -57,7 +57,7 @@ ignite loja on porta at "0.0.0.0"` },
     ["log em arquivo, não só no terminal", "`Kiln.logger` escreve na saída padrão"]
   ]}},
   {"h2": "Em Docker"},
-  { code: `FROM estevan5s/dataforge:4.2.0
+  { code: `FROM estevan5s/dataforge:1.0.0
 WORKDIR /app
 COPY . .
 ENV PORT=8080

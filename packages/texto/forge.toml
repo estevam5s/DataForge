@@ -5,7 +5,7 @@ description = "Texto: slug, truncar, mascarar, distância de edição, similarid
 authors = ["DataForge"]
 license = "MIT"
 entry = "src/main.df"
-dataforge = ">=4.1"
+dataforge = ">=1.0"
 keywords = ["texto", "string", "slug"]
 
 [dependencies]

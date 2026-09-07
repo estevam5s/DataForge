@@ -2,19 +2,75 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { nav } from '@/lib/nav';
 
 function Chevron({ aberto }: { aberto: boolean }) {
   return (
     <svg
-      width="14" height="14" viewBox="0 0 16 16" fill="none"
-      className={`shrink-0 transition-transform duration-200 ${aberto ? '' : '-rotate-90'}`}
+      width="13"
+      height="13"
+      viewBox="0 0 16 16"
+      fill="none"
+      className={`shrink-0 opacity-60 transition-transform duration-300 ${
+        aberto ? '' : '-rotate-90'
+      }`}
       aria-hidden="true"
     >
-      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.7"
-        strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M4 6l4 4 4-4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
+  );
+}
+
+function Selo({ texto }: { texto: string }) {
+  return (
+    <span className="rounded-full bg-accent px-1.5 py-px text-[9.5px] font-bold uppercase leading-[15px] tracking-wide text-white">
+      {texto}
+    </span>
+  );
+}
+
+/**
+ * Uma seção que abre e fecha com altura animada.
+ *
+ * `height: auto` não anima. Medimos o conteúdo e animamos até a altura
+ * exata; ao terminar, soltamos para `auto` — senão uma seção que muda de
+ * tamanho depois (por quebra de linha, por zoom) fica cortada.
+ */
+function Painel({ aberto, children, id }: { aberto: boolean; children: React.ReactNode; id: string }) {
+  const conteudo = useRef<HTMLDivElement>(null);
+  const [altura, setAltura] = useState<number | undefined>(aberto ? undefined : 0);
+
+  useEffect(() => {
+    const elemento = conteudo.current;
+    if (!elemento) return;
+
+    if (aberto) {
+      setAltura(elemento.scrollHeight);
+      const t = setTimeout(() => setAltura(undefined), 300);
+      return () => clearTimeout(t);
+    }
+    // Fixa a altura atual antes de ir a zero: de `auto` não há transição.
+    setAltura(elemento.scrollHeight);
+    const t = requestAnimationFrame(() => setAltura(0));
+    return () => cancelAnimationFrame(t);
+  }, [aberto]);
+
+  return (
+    <div
+      id={id}
+      style={{ height: altura }}
+      className="overflow-hidden transition-[height] duration-300 ease-[cubic-bezier(.22,1,.36,1)]"
+      aria-hidden={!aberto}
+    >
+      <div ref={conteudo}>{children}</div>
+    </div>
   );
 }
 
@@ -22,7 +78,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname() ?? '/';
   const atual = pathname.replace(/\/$/, '') || '/';
 
-  // A seção que contém a página atual começa aberta; as demais seguem o padrão.
+  // A seção que contém a página atual começa aberta; as demais seguem o
+  // que a própria seção pedir.
   const [abertas, setAbertas] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
@@ -44,7 +101,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     });
 
   return (
-    <nav aria-label="Navegação da documentação" className="pb-16">
+    <nav aria-label="Navegação da documentação" className="pb-2">
       {nav.map((secao) => {
         const unico = secao.standalone && secao.items.length === 1;
 
@@ -56,7 +113,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               key={secao.title}
               href={item.href}
               onClick={onNavigate}
-              className={`nav-label mt-1 block rounded-lg px-3 py-2 transition-colors ${
+              className={`nav-label block rounded-xl px-3 py-[9px] transition-colors ${
                 ativo ? 'text-accent' : 'text-body hover:text-strong'
               }`}
             >
@@ -66,29 +123,28 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         }
 
         const aberta = abertas.has(secao.title);
+        const contemAtual = secao.items.some((i) => i.href === atual);
         const idPainel = `secao-${secao.title.replace(/\s+/g, '-').toLowerCase()}`;
 
         return (
-          <div key={secao.title} className="mt-1">
+          <div key={secao.title}>
             <button
               onClick={() => alternar(secao.title)}
               aria-expanded={aberta}
               aria-controls={idPainel}
-              className="nav-label flex w-full items-center justify-between rounded-lg px-3 py-2 text-body transition-colors hover:text-strong"
+              className={`nav-label flex w-full items-center justify-between rounded-xl px-3 py-[9px] transition-colors ${
+                contemAtual ? 'text-strong' : 'text-body hover:text-strong'
+              }`}
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2 text-left">
+                {secao.badge && <Selo texto={secao.badge} />}
                 {secao.title}
-                {secao.badge && (
-                  <span className="rounded-full bg-accent/15 px-1.5 py-px text-[10px] font-bold tracking-normal text-accent">
-                    {secao.badge}
-                  </span>
-                )}
               </span>
               <Chevron aberto={aberta} />
             </button>
 
-            {aberta && (
-              <ul id={idPainel} className="mb-2 space-y-px">
+            <Painel aberto={aberta} id={idPainel}>
+              <ul className="mb-1 ml-[18px] space-y-px border-l border-line/70 pl-2">
                 {secao.items.map((item) => {
                   const ativo = item.href === atual;
                   return (
@@ -97,19 +153,30 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         href={item.href}
                         onClick={onNavigate}
                         aria-current={ativo ? 'page' : undefined}
-                        className={`block rounded-lg py-[7px] pl-6 pr-3 text-[14px] transition-colors ${
+                        tabIndex={aberta ? undefined : -1}
+                        className={`group relative block rounded-lg py-[6px] pl-3 pr-2 text-[13.5px] transition-all duration-200 ${
                           ativo
                             ? 'bg-accent/10 font-medium text-accent'
-                            : 'text-muted hover:bg-raised/60 hover:text-strong'
+                            : 'text-muted hover:translate-x-0.5 hover:text-strong'
                         }`}
                       >
-                        {item.title}
+                        {/* A barra do item ativo cresce a partir do centro */}
+                        <span
+                          className={`absolute -left-[9px] top-1/2 w-[2px] -translate-y-1/2 rounded-full bg-accent transition-all duration-300 ${
+                            ativo ? 'h-[18px] opacity-100' : 'h-0 opacity-0'
+                          }`}
+                          aria-hidden="true"
+                        />
+                        <span className="flex items-center gap-1.5">
+                          {item.badge && <Selo texto={item.badge} />}
+                          {item.title}
+                        </span>
                       </Link>
                     </li>
                   );
                 })}
               </ul>
-            )}
+            </Painel>
           </div>
         );
       })}

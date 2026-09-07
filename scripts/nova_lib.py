@@ -15,7 +15,7 @@ description = "{descricao}"
 authors = ["DataForge"]
 license = "MIT"
 entry = "src/main.df"
-dataforge = ">=4.1"
+dataforge = ">=1.0"
 keywords = [{tags}]
 
 [dependencies]

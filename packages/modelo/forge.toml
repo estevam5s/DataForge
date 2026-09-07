@@ -5,7 +5,7 @@ description = "Templates de texto: variáveis, laços, condicionais e filtros."
 authors = ["DataForge"]
 license = "MIT"
 entry = "src/main.df"
-dataforge = ">=4.1"
+dataforge = ">=1.0"
 keywords = ["template", "texto", "render"]
 
 [dependencies]

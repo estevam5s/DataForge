@@ -5,7 +5,7 @@ description = "Tabelas de texto para o terminal: bordas, alinhamento, cores, bar
 authors = ["DataForge"]
 license = "MIT"
 entry = "src/main.df"
-dataforge = ">=4.0"
+dataforge = ">=1.0"
 keywords = ["terminal", "cli", "tabela", "formatacao"]
 
 [dependencies]

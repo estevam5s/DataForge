@@ -3,7 +3,7 @@ name = "api-links"
 version = "1.0.0"
 description = "Encurtador de links: servidor HTTP, validação, cache e log estruturado."
 entry = "src/main.df"
-dataforge = ">=4.1"
+dataforge = ">=1.0"
 
 [dependencies]
 validador = "^1.0.0"
