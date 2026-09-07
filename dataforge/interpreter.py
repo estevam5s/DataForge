@@ -98,7 +98,11 @@ class DFAction:
 class DFBlueprint:
     """A user-defined class (blueprint)."""
 
-    def __init__(self, name, parents, methods, statics, env, constructor_params=None, constructor_body=None):
+    def __init__(self, name, parents, methods, statics, env,
+                 constructor_params=None, constructor_body=None,
+                 properties=None, operators=None, fields_decl=None,
+                 visibility=None, is_abstract=False, abstract_methods=None,
+                 static_methods=None, final_methods=None, traits=None):
         self.name = name
         self.parents = parents       # list of DFBlueprint
         self.methods = methods       # dict: name → DFAction
@@ -106,6 +110,69 @@ class DFBlueprint:
         self.env = env
         self.constructor_params = constructor_params or []
         self.constructor_body = constructor_body or []
+        # ── DataForge 4.1 ──
+        self.properties = properties or {}       # nome → {'get': acao, 'set': acao}
+        self.operators = operators or {}         # '+' → DFAction
+        self.fields_decl = fields_decl or []     # [(nome, tipo, padrao, visib)]
+        self.visibility = visibility or {}       # membro → public|private|protected
+        self.is_abstract = is_abstract
+        self.abstract_methods = abstract_methods or set()
+        self.static_methods = static_methods or set()
+        self.final_methods = final_methods or set()
+        self.traits = traits or []               # nomes dos traits adotados
+
+    def buscar_operador(self, simbolo):
+        """O operador sobrecarregado, olhando a cadeia de heranca."""
+        if simbolo in self.operators:
+            return self.operators[simbolo]
+        for pai in self.parents:
+            achado = pai.buscar_operador(simbolo)
+            if achado is not None:
+                return achado
+        return None
+
+    def buscar_propriedade(self, nome):
+        """A propriedade, olhando a cadeia de heranca."""
+        if nome in self.properties:
+            return self.properties[nome]
+        for pai in self.parents:
+            achado = pai.buscar_propriedade(nome)
+            if achado is not None:
+                return achado
+        return None
+
+    def visibilidade_de(self, nome):
+        if nome in self.visibility:
+            return self.visibility[nome]
+        for pai in self.parents:
+            v = pai.visibilidade_de(nome)
+            if v != "public":
+                # private do pai nao vaza para o filho; protected sim
+                return "protected" if v == "protected" else "private"
+        return "public"
+
+    def linhagem(self):
+        """Este blueprint e todos os ancestrais, do mais proximo ao mais longe."""
+        vistos, ordem, fila = {self.name}, [self], list(self.parents)
+        while fila:
+            bp = fila.pop(0)
+            if bp.name in vistos:
+                continue
+            vistos.add(bp.name)
+            ordem.append(bp)
+            fila.extend(bp.parents)
+        return ordem
+
+    def pendencias_abstratas(self):
+        """Metodos abstratos herdados que ninguem implementou ainda."""
+        faltando = {}
+        for bp in reversed(self.linhagem()):
+            for nome in bp.abstract_methods:
+                faltando[nome] = bp.name
+            for nome, acao in bp.methods.items():
+                if nome in faltando and not getattr(acao, "is_abstract", False):
+                    faltando.pop(nome)
+        return faltando
 
     def __repr__(self):
         return f"<blueprint '{self.name}'>"
@@ -568,7 +635,22 @@ class Interpreter:
         right = self.evaluate(node.right, env)
         op = node.op
 
-        # ── Operator overloading for blueprint instances ───
+        # ── Sobrecarga de operador ─────────────────────────
+        # 'operator + (outro):' declarado no blueprint tem prioridade.
+        for lado, outro, invertido in ((left, right, False), (right, left, True)):
+            if not isinstance(lado, DFInstance):
+                continue
+            sobrecarga = lado.blueprint.buscar_operador(op)
+            if sobrecarga is None:
+                continue
+            # a + b tenta 'a'; se so 'b' define, ainda funciona para
+            # operadores comutativos, mas nunca para os que nao sao
+            if invertido and op in ('-', '/', '%', '**', '<', '>', '<=', '>='):
+                continue
+            return self._call_action(sobrecarga, [outro], {}, node, env,
+                                     instance=lado)
+
+        # Forma antiga, mantida: metodos 'add', 'sub'…
         op_methods = {'+': 'add', '-': 'sub', '*': 'mul', '/': 'div',
                       '%': 'mod', '**': 'pow', '//': 'floordiv'}
         if isinstance(left, DFInstance) and op in op_methods:
@@ -611,10 +693,38 @@ class Interpreter:
             return +operand
         raise RuntimeError_(f"Unknown unary operator: {node.op}", node.line, node.column)
 
+    #: 'is' e '==' sao o mesmo operador para efeito de sobrecarga.
+    _SIMBOLO_COMPARACAO = {
+        'is': '==', '==': '==', 'isnt': '!=', '!=': '!=',
+        'bigger': '>', '>': '>', 'smaller': '<', '<': '<',
+        'bigger_eq': '>=', '>=': '>=', 'smaller_eq': '<=', '<=': '<=',
+    }
+
     def eval_ComparisonOp(self, node: ast.ComparisonOp, env):
         left = self.evaluate(node.left, env)
         right = self.evaluate(node.right, env)
         op = node.op
+
+        # ── Sobrecarga de comparacao ───────────────────────
+        simbolo = self._SIMBOLO_COMPARACAO.get(op)
+        if simbolo is not None:
+            for lado, outro, invertido in ((left, right, False),
+                                           (right, left, True)):
+                if not isinstance(lado, DFInstance):
+                    continue
+                sobrecarga = lado.blueprint.buscar_operador(simbolo)
+                if sobrecarga is None:
+                    # '!=' pode sair de '==' negado; '>' de '<' invertido
+                    if simbolo == '!=':
+                        eq = lado.blueprint.buscar_operador('==')
+                        if eq is not None:
+                            return not bool(self._call_action(
+                                eq, [outro], {}, node, env, instance=lado))
+                    continue
+                if invertido and simbolo in ('<', '>', '<=', '>='):
+                    continue
+                return self._call_action(sobrecarga, [outro], {}, node, env,
+                                         instance=lado)
 
         if op == 'is':
             return left == right
@@ -736,13 +846,35 @@ class Interpreter:
                 return dict(obj.fields)
             if node.member == 'methods':
                 return list(obj.blueprint.methods.keys())
+
+            # Propriedade: 'p.area' roda o corpo do 'get area()'
+            prop = obj.blueprint.buscar_propriedade(node.member)
+            if prop is not None and 'get' in prop:
+                self._conferir_acesso(obj.blueprint, node.member, env, node)
+                return self._call(prop['get'], [], {}, node, env, instancia=obj)
+            if prop is not None:
+                raise TypeError_(
+                    f"'{obj.blueprint.name}.{node.member}' is write-only: it "
+                    f"has a 'set' but no 'get'.",
+                    node.line, node.column)
+
+            self._conferir_acesso(obj.blueprint, node.member, env, node)
             return obj.get(node.member)
+
         elif isinstance(obj, DFBlueprint):
             if node.member in obj.statics:
                 return obj.statics[node.member]
             if node.member in obj.methods:
-                return obj.methods[node.member]
-            raise NameError_(f"Blueprint '{obj.name}' has no member '{node.member}'")
+                if node.member in obj.static_methods:
+                    return obj.methods[node.member]
+                raise TypeError_(
+                    f"'{obj.name}.{node.member}' is an instance method: it "
+                    f"needs an object.\n"
+                    f"    Spawn one first:  obj := spawn {obj.name}(…)  "
+                    f"then obj.{node.member}(…)\n"
+                    f"    Or declare it as 'static action {node.member}(…)'.",
+                    node.line, node.column)
+            self._erro_membro_blueprint(obj, node)
         elif isinstance(obj, dict):
             # Module namespace dicts: check key access first
             if "__name__" in obj and node.member in obj:
@@ -955,6 +1087,19 @@ class Interpreter:
         elif isinstance(obj, DFBlueprint):
             if node.method in obj.methods:
                 method = obj.methods[node.method]
+                if node.method not in obj.static_methods:
+                    # Sem instancia, 'self' fica solto e o erro sai la dentro,
+                    # longe da causa. Melhor recusar aqui, dizendo o que fazer.
+                    raise TypeError_(
+                        f"'{obj.name}.{node.method}()' is an instance method "
+                        f"and needs an object.\n"
+                        f"    Spawn one first:\n"
+                        f"        obj := spawn {obj.name}(…)\n"
+                        f"        obj.{node.method}(…)\n"
+                        f"    Or declare it as "
+                        f"'static action {node.method}(…)' if it does not "
+                        f"use 'self'.",
+                        node.line, node.column)
                 return self._call_action(method, args, kwargs, node, env)
             if node.method in obj.statics:
                 val = obj.statics[node.method]
@@ -979,9 +1124,30 @@ class Interpreter:
     def eval_SpawnExpression(self, node: ast.SpawnExpression, env):
         blueprint = self.evaluate(node.class_name, env)
         if not isinstance(blueprint, DFBlueprint):
-            raise TypeError_(f"Cannot spawn non-blueprint: {blueprint}", node.line, node.column)
+            nome = getattr(node.class_name, 'name', None) or self._to_str(blueprint)
+            raise TypeError_(
+                f"'{nome}' is not a blueprint, so it cannot be spawned.\n"
+                f"    'spawn' builds an object from a blueprint; "
+                f"'{nome}' is {self._nome_do_tipo(blueprint)}.",
+                node.line, node.column)
+
+        if blueprint.is_abstract:
+            faltando = blueprint.pendencias_abstratas()
+            detalhe = ""
+            if faltando:
+                itens = ", ".join(f"{n}()" for n in sorted(faltando))
+                detalhe = f"\n    It still misses: {itens}"
+            raise TypeError_(
+                f"'{blueprint.name}' is an abstract blueprint and cannot be "
+                f"spawned directly.{detalhe}\n"
+                f"    Spawn a blueprint that extends it instead.",
+                node.line, node.column)
 
         instance = DFInstance(blueprint)
+
+        # Campos declarados no corpo comecam com o padrao (ou void)
+        for nome_campo, _tipo, padrao, _visib in blueprint.fields_decl:
+            instance.fields[nome_campo] = padrao
         args = self._eval_args(node.args, env)
         kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
 
@@ -1211,7 +1377,21 @@ class Interpreter:
                     f"\"registro with {{'{node.target.member}': valor}}\".",
                     node.line, node.column)
             if isinstance(obj, DFInstance):
-                obj.set(node.target.member, value)
+                membro = node.target.member
+                # Propriedade com 'set': a atribuicao roda o corpo do setter
+                prop = obj.blueprint.buscar_propriedade(membro)
+                if prop is not None:
+                    if 'set' not in prop:
+                        raise TypeError_(
+                            f"'{obj.blueprint.name}.{membro}' is read-only: it "
+                            f"has a 'get' but no 'set'.\n"
+                            f"    Add one:  set {membro}(valor): …",
+                            node.line, node.column)
+                    self._conferir_acesso(obj.blueprint, membro, env, node.target)
+                    self._call(prop['set'], [value], {}, node, env, instancia=obj)
+                    return value
+                self._conferir_acesso(obj.blueprint, membro, env, node.target)
+                obj.set(membro, value)
             elif isinstance(obj, DFBlueprint):
                 obj.statics[node.target.member] = value
             elif isinstance(obj, dict):
@@ -1383,76 +1563,207 @@ class Interpreter:
             except NameError_:
                 pass  # Trait or not found
 
-        # Execute blueprint body to collect methods and statics
         bp_env = env.child(f"<blueprint {node.name}>")
-        methods = {}
-        statics = {}
+        methods, statics = {}, {}
+        properties, operators, visibility = {}, {}, {}
+        abstract_methods, static_methods, final_methods = set(), set(), set()
+        origem_abstrata = {}          # metodo -> quem exigiu (trait ou pai)
         constructor_body = []
 
-        # Inherit parent methods
+        # Herda do pai: metodos, estaticos, propriedades e operadores
         for parent in parents:
             methods.update(parent.methods)
             statics.update(parent.statics)
+            properties.update(parent.properties)
+            operators.update(parent.operators)
+            static_methods |= parent.static_methods
+            final_methods |= parent.final_methods
 
-        # Merge trait methods (with Trait1, Trait2)
-        for tname in getattr(node, 'traits', []):
+        # Traits: so preenchem o que ainda nao existe
+        traits_adotados = list(getattr(node, 'traits', []))
+        for tname in traits_adotados:
             try:
                 trait = env.get(tname)
-                if isinstance(trait, DFBlueprint):
-                    for mname, mval in trait.methods.items():
-                        if mname not in methods:
-                            methods[mname] = mval
             except NameError_:
-                pass
+                continue
+            if not isinstance(trait, DFBlueprint):
+                continue
+            for mname, mval in trait.methods.items():
+                if mname not in methods:
+                    methods[mname] = mval
+            for pname, pval in trait.properties.items():
+                properties.setdefault(pname, pval)
+            for n in trait.abstract_methods:
+                if n not in methods:
+                    abstract_methods.add(n)
+                    origem_abstrata[n] = tname
 
         for stmt in node.body:
             if isinstance(stmt, ast.ActionDeclaration):
+                nome = stmt.name
+                # 'final' do pai nao pode ser sobrescrito
+                if nome in final_methods:
+                    dono = next((bp.name for bp in
+                                 (p for pa in parents for p in pa.linhagem())
+                                 if nome in bp.methods), "the parent")
+                    raise TypeError_(
+                        f"'{node.name}.{nome}' cannot override "
+                        f"'{dono}.{nome}', which is declared final",
+                        stmt.line, stmt.column)
+
+                if getattr(stmt, 'is_abstract', False):
+                    abstract_methods.add(nome)
+                else:
+                    abstract_methods.discard(nome)
+
                 action = DFAction(
-                    name=stmt.name, params=stmt.params,
+                    name=nome, params=stmt.params,
                     defaults=stmt.defaults, body=stmt.body,
                     closure=bp_env, is_async=stmt.is_async,
                     param_types=getattr(stmt, 'param_types', None),
                     return_type=getattr(stmt, 'return_type', ""),
                 )
-                methods[stmt.name] = action
+                action.is_abstract = getattr(stmt, 'is_abstract', False)
+                action.owner = node.name
+                methods[nome] = action
+
+                visibility[nome] = getattr(stmt, 'visibility', 'public')
+                if getattr(stmt, 'is_static', False):
+                    static_methods.add(nome)
+                    statics[nome] = action
+                if getattr(stmt, 'is_final', False):
+                    final_methods.add(nome)
+
+            elif isinstance(stmt, ast.PropertyDeclaration):
+                acao = DFAction(
+                    name=stmt.name,
+                    params=[stmt.param] if stmt.kind == 'set' else [],
+                    defaults={}, body=stmt.body, closure=bp_env,
+                    return_type=getattr(stmt, 'return_type', ""))
+                acao.owner = node.name
+                properties.setdefault(stmt.name, {})
+                properties[stmt.name] = {**properties[stmt.name],
+                                         stmt.kind: acao}
+                visibility[stmt.name] = getattr(stmt, 'visibility', 'public')
+
+            elif isinstance(stmt, ast.OperatorDeclaration):
+                acao = DFAction(name=f"operator{stmt.symbol}",
+                                params=[stmt.param], defaults={},
+                                body=stmt.body, closure=bp_env)
+                acao.owner = node.name
+                operators[stmt.symbol] = acao
+
             elif isinstance(stmt, ast.StaticDeclaration):
                 statics[stmt.name] = self.evaluate(stmt.value, bp_env)
+
             elif isinstance(stmt, ast.Assignment):
                 if node.constructor_params:
-                    # If we have constructor params, non-action statements go to constructor body
                     constructor_body.append(stmt)
                 elif isinstance(stmt.target, ast.Identifier):
                     statics[stmt.target.name] = self.evaluate(stmt.value, bp_env)
+
             elif node.constructor_params:
-                # Any non-action, non-static statement in a parameterized blueprint
-                # is part of the constructor body (e.g., given/otherwise, out, etc.)
                 constructor_body.append(stmt)
+
+        # Campos declarados: 'nome: Tipo := padrao'
+        campos = []
+        for nome, tipo, padrao, visib in getattr(node, 'fields_decl', []):
+            valor = self.evaluate(padrao, bp_env) if padrao is not None else None
+            campos.append((nome, tipo, valor, visib))
+            visibility[nome] = visib
+        for parent in parents:
+            declarados = {c[0] for c in campos}
+            campos = [c for c in parent.fields_decl
+                      if c[0] not in declarados] + campos
 
         blueprint = DFBlueprint(
             name=node.name, parents=parents,
             methods=methods, statics=statics, env=bp_env,
             constructor_params=node.constructor_params,
-            constructor_body=constructor_body
+            constructor_body=constructor_body,
+            properties=properties, operators=operators,
+            fields_decl=campos, visibility=visibility,
+            is_abstract=getattr(node, 'is_abstract', False),
+            abstract_methods=abstract_methods,
+            static_methods=static_methods,
+            final_methods=final_methods,
+            traits=traits_adotados,
         )
+        blueprint.origem_abstrata = origem_abstrata
+
+        # Contrato de trait: conferido aqui, na declaracao, e nao na chamada.
+        # Descobrir que falta um metodo so quando alguem o chama, em producao,
+        # e tarde demais.
+        if not blueprint.is_abstract:
+            self._conferir_contrato(blueprint, node, env)
+
         bp_env.set_local(node.name, blueprint)
         env.set_local(node.name, blueprint)
         return blueprint
 
+    def _conferir_contrato(self, blueprint, node, env):
+        """Um blueprint concreto precisa implementar tudo o que prometeu."""
+        faltando = blueprint.pendencias_abstratas()
+        faltando.update({n: o for n, o in
+                         getattr(blueprint, 'origem_abstrata', {}).items()
+                         if n in faltando})
+        if not faltando:
+            return
+
+        itens = sorted(faltando.items())
+        linhas = [f"    {nome}()  — declarado em '{origem}'"
+                  for nome, origem in itens]
+        plural = "methods" if len(itens) > 1 else "method"
+        raise TypeError_(
+            f"Blueprint '{node.name}' does not implement {len(itens)} "
+            f"abstract {plural}:\n" + "\n".join(linhas) +
+            f"\n    Implement {'them' if len(itens) > 1 else 'it'}, or mark "
+            f"'{node.name}' as 'abstract blueprint' if it is not meant to be "
+            f"spawned directly.",
+            node.line, node.column)
+
     def exec_TraitDeclaration(self, node: ast.TraitDeclaration, env):
-        """Traits are stored as blueprints with abstract methods."""
-        methods = {}
+        """Um trait e um blueprint so com contrato.
+
+        Metodo com corpo vira implementacao padrao; metodo sem corpo vira
+        exigencia — quem adotar o trait precisa implementar.
+        """
+        methods, properties, abstratos = {}, {}, set()
+
         for stmt in node.methods:
-            if isinstance(stmt, ast.ActionDeclaration):
-                action = DFAction(
-                    name=stmt.name, params=stmt.params,
-                    defaults=stmt.defaults, body=stmt.body,
-                    closure=env
-                )
+            if isinstance(stmt, ast.PropertyDeclaration):
+                acao = DFAction(
+                    name=stmt.name,
+                    params=[stmt.param] if stmt.kind == 'set' else [],
+                    defaults={}, body=stmt.body, closure=env)
+                acao.owner = node.name
+                properties.setdefault(stmt.name, {})[stmt.kind] = acao
+                continue
+
+            if not isinstance(stmt, ast.ActionDeclaration):
+                continue
+
+            # Sem corpo (ou so com o marcador abstract) = exigencia
+            vazio = not stmt.body or getattr(stmt, 'is_abstract', False)
+            if vazio:
+                abstratos.add(stmt.name)
+
+            action = DFAction(
+                name=stmt.name, params=stmt.params,
+                defaults=stmt.defaults, body=stmt.body,
+                closure=env,
+                param_types=getattr(stmt, 'param_types', None),
+                return_type=getattr(stmt, 'return_type', ""),
+            )
+            action.is_abstract = vazio
+            action.owner = node.name
+            if not vazio:
                 methods[stmt.name] = action
 
         blueprint = DFBlueprint(
             name=node.name, parents=[], methods=methods,
-            statics={}, env=env
+            statics={}, env=env, properties=properties,
+            is_abstract=True, abstract_methods=abstratos,
         )
         env.set_local(node.name, blueprint)
         return blueprint
@@ -2121,8 +2432,101 @@ class Interpreter:
     #  INTERNAL HELPERS
     # ═══════════════════════════════════════════════════════
 
-    def _call(self, callee, args, kwargs, node, env):
-        """Call a callable value."""
+    #: Como cada tipo do runtime se chama em DataForge.
+    _NOMES_DE_TIPO = {
+        int: "an Integer", float: "a Float", str: "a String",
+        bool: "a Boolean", list: "a Cluster", dict: "a Vault",
+        type(None): "void",
+    }
+
+    def _nome_do_tipo(self, valor):
+        """Descreve o tipo de um valor com o vocabulario da linguagem."""
+        if isinstance(valor, DFInstance):
+            return f"an instance of '{valor.blueprint.name}'"
+        if isinstance(valor, DFBlueprint):
+            return f"the blueprint '{valor.name}'"
+        if isinstance(valor, DFRecord):
+            return f"the record type '{valor.name}'"
+        if isinstance(valor, DFRecordInstance):
+            return f"a '{valor.record.name}' record"
+        if isinstance(valor, DFEnum):
+            return f"the enum '{valor.name}'"
+        if isinstance(valor, DFAction):
+            return f"the action '{valor.name}'"
+        if isinstance(valor, BuiltinFunction):
+            return f"the builtin '{valor.name}'"
+        for tipo, nome in self._NOMES_DE_TIPO.items():
+            if type(valor) is tipo:
+                return nome
+        return f"a {type(valor).__name__}"
+
+    # ── Visibilidade e diagnostico de membros ────────────────
+
+    def _conferir_acesso(self, blueprint, membro, env, node):
+        """'private' so dentro do proprio blueprint; 'protected' tambem nos herdeiros.
+
+        O escopo diz de onde a leitura partiu: um ambiente '<blueprint X>'
+        na cadeia significa que estamos dentro de X.
+        """
+        visib = blueprint.visibilidade_de(membro)
+        if visib == "public":
+            return
+
+        de_dentro = self._blueprint_do_escopo(env)
+        if de_dentro is None:
+            onde = "outside any blueprint"
+        else:
+            if visib == "private" and de_dentro == blueprint.name:
+                return
+            if visib == "protected" and any(
+                    bp.name == de_dentro for bp in blueprint.linhagem()):
+                return
+            onde = f"from '{de_dentro}'"
+
+        dica = (f"Only '{blueprint.name}' can read it."
+                if visib == "private"
+                else f"Only '{blueprint.name}' and its subtypes can read it.")
+        raise TypeError_(
+            f"'{blueprint.name}.{membro}' is {visib} and was accessed {onde}. "
+            f"{dica}",
+            node.line, node.column)
+
+    @staticmethod
+    def _blueprint_do_escopo(env):
+        """Nome do blueprint em cujo corpo estamos, ou None."""
+        atual = env
+        while atual is not None:
+            nome = getattr(atual, "name", "") or ""
+            if nome.startswith("<blueprint "):
+                return nome[len("<blueprint "):-1]
+            atual = getattr(atual, "parent", None)
+        return None
+
+    def _erro_membro_blueprint(self, blueprint, node):
+        """Membro inexistente: diz o que existe, e sugere o parecido."""
+        import difflib
+        disponiveis = sorted(
+            set(blueprint.statics) | set(blueprint.methods) |
+            set(blueprint.properties) | {c[0] for c in blueprint.fields_decl})
+        perto = difflib.get_close_matches(node.member, disponiveis, n=1, cutoff=0.6)
+
+        msg = f"Blueprint '{blueprint.name}' has no member '{node.member}'."
+        if perto:
+            msg += f"\n    Did you mean '{perto[0]}'?"
+        elif disponiveis:
+            mostra = ", ".join(disponiveis[:8])
+            resto = "…" if len(disponiveis) > 8 else ""
+            msg += f"\n    It has: {mostra}{resto}"
+        raise NameError_(msg, node.line, node.column)
+
+    def _call(self, callee, args, kwargs, node, env, instancia=None):
+        """Call a callable value.
+
+        Com 'instancia', a acao roda como metodo: 'self' aponta para ela.
+        """
+        if instancia is not None and isinstance(callee, DFAction):
+            return self._call_action(callee, args, kwargs, node, env,
+                                     instance=instancia)
         if isinstance(callee, BuiltinFunction):
             try:
                 return callee(*args, **kwargs)

@@ -56,16 +56,16 @@ Escapes em texto: `\n`, `\t`, `\r`, `\\`, `\'`, `\"`, `\0`.
 ### 1.6 Palavras reservadas (81)
 
 ```
-action    adopt     and       as        assert    async     await     bigger
-bigger_eq blueprint cast      channel   cycle     default   defer     delete
-distill   emit      ensure    enum      extends   forge     frame     from
-given     guard     halt      handle    in        inspect   is        isnt
-lambda    mark      match     monitor   morph     no        not       observe
-or        orif      otherwise out       parallel  perform   persist   point
-predict   propagate pulse     record    recover   relay     retry     root
-self      shadow    sift      skip      smaller   smaller_eq spawn     static
-steady    step      stream    thread    to        train     trait     trigger
-typeof    using     validate  void      wait      when      with      yes
+action     adopt      and        as         assert     async      await      bigger
+bigger_eq  blueprint  cast       channel    cycle      default    defer      delete
+distill    emit       ensure     enum       extends    forge      frame      from
+given      guard      halt       handle     in         inspect    is         isnt
+lambda     mark       match      monitor    morph      no         not        observe
+or         orif       otherwise  out        parallel   perform    persist    point
+predict    propagate  pulse      record     recover    relay      retry      root
+self       shadow     sift       skip       smaller    smaller_eq spawn      static
+steady     step       stream     thread     to         train      trait      trigger
+typeof     using      validate   void       wait       when       with       yes
 yield
 ```
 
@@ -73,6 +73,27 @@ yield
 podem ser usadas como nome.
 
 **Novas no 4.0:** `record`, `enum`, `when`.
+
+### 1.7 Palavras contextuais
+
+`abstract`, `final`, `get`, `operator`, `private`, `protected`, `set` têm significado **apenas dentro do corpo de um blueprint**.
+Em qualquer outro lugar seguem sendo identificadores comuns:
+
+```dataforge
+final := 10                    // uma variável chamada 'final'
+action get(chave):             // uma ação chamada 'get'
+    yield chave
+
+blueprint Conta:
+    private saldo: Float := 0.0    // aqui 'private' é modificador
+    get extrato():                 // e 'get' abre uma propriedade
+        yield self.saldo
+```
+
+Foi uma decisão deliberada: `get`, `set` e `final` são nomes bons demais
+para tirar de quem escreve. O parser só os trata como palavra-chave quando
+o que vem em seguida confirma a intenção — `get nome(` é propriedade,
+`get := 1` é variável.
 
 ---
 

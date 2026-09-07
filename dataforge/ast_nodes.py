@@ -327,6 +327,10 @@ class ActionDeclaration(ASTNode):
     param_types: dict = field(default_factory=dict)
     return_type: str = ""
     is_generator: bool = False
+    visibility: str = "public"   # public | private | protected
+    is_static: bool = False
+    is_abstract: bool = False
+    is_final: bool = False
 
 @dataclass
 class BlueprintDeclaration(ASTNode):
@@ -336,6 +340,33 @@ class BlueprintDeclaration(ASTNode):
     body: list = field(default_factory=list)
     traits: list = field(default_factory=list)
     constructor_params: list = field(default_factory=list)
+    # (nome, tipo, padrao, visibilidade) — campos declarados no corpo
+    fields_decl: list = field(default_factory=list)
+    is_abstract: bool = False
+
+
+@dataclass
+class PropertyDeclaration(ASTNode):
+    """get nome(): ...  |  set nome(valor): ...
+
+    Uma propriedade e lida e escrita como campo, mas roda codigo.
+    """
+    name: str = ""
+    kind: str = "get"            # 'get' ou 'set'
+    param: str = ""              # so no set: o nome do valor recebido
+    body: list = field(default_factory=list)
+    visibility: str = "public"
+    return_type: str = ""
+
+
+@dataclass
+class OperatorDeclaration(ASTNode):
+    """operator + (outro): ... — sobrecarga de operador."""
+    symbol: str = ""             # '+', '-', '*', '/', '%', '**', '==', '<', …
+    param: str = ""
+    body: list = field(default_factory=list)
+    line: int = 0
+    column: int = 0
 
 @dataclass
 class TraitDeclaration(ASTNode):

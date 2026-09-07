@@ -147,6 +147,12 @@ class Parser:
         if tt == TokenType.BLUEPRINT:
             return self.parse_blueprint()
 
+        # ── abstract blueprint ──
+        if (tt == TokenType.IDENTIFIER and self.current().value == "abstract"
+                and self.peek(1).type == TokenType.BLUEPRINT):
+            self.advance()                      # consome 'abstract'
+            return self.parse_blueprint(abstrato=True)
+
         # ── record ──
         if tt == TokenType.RECORD:
             return self.parse_record()
@@ -407,8 +413,12 @@ class Parser:
         return ast.ShadowDeclaration(name=name, value=value, line=tok.line, column=tok.column)
 
     def parse_action(self, is_async: bool = False, decorators: list = None,
-                     is_generator: bool = False):
-        """action name(params): block"""
+                     is_generator: bool = False, sem_corpo: bool = False):
+        """action name(params): block
+
+        Com sem_corpo=True (metodo abstrato), aceita a assinatura sozinha:
+        'abstract action falar()' declara o contrato sem implementar.
+        """
         tok = self.advance()  # consume 'action'
 
         # Handle decorator-style: action @server.on_request(...)
@@ -440,6 +450,19 @@ class Parser:
             )
 
         self.expect(TokenType.COLON, "Expected ':' after action signature")
+        # Um metodo abstrato pode terminar aqui mesmo, sem ':' nem bloco.
+        if sem_corpo and self.current().type in (TokenType.NEWLINE,
+                                                 TokenType.DEDENT,
+                                                 TokenType.EOF):
+            self.match(TokenType.NEWLINE)
+            return ast.ActionDeclaration(
+                name=name, params=params, defaults=defaults, body=[],
+                is_async=is_async, decorators=decorators or [],
+                param_types=param_types, return_type=return_type,
+                is_generator=is_generator, is_abstract=True,
+                line=tok.line, column=tok.column
+            )
+
         self.match(TokenType.NEWLINE)
 
         body = self.parse_block()
@@ -470,9 +493,13 @@ class Parser:
             )
         self.error("Expected 'action' or ':' after 'async'")
 
-    def parse_blueprint(self):
+    def parse_blueprint(self, abstrato: bool = False):
         """blueprint Name [(params)] [extends Parent] [with Trait]: block
-        OR blueprint Name [(Parent)]: block  (backward compat)"""
+        OR blueprint Name [(Parent)]: block  (backward compat)
+
+        Com abstrato=True veio de 'abstract blueprint Nome:' — nao pode
+        ser instanciado com spawn, so herdado.
+        """
         tok = self.advance()  # consume 'blueprint'
         name = self.expect(TokenType.IDENTIFIER).value
         parents = []
@@ -518,13 +545,223 @@ class Parser:
 
         self.expect(TokenType.COLON, "Expected ':' after blueprint header")
         self.match(TokenType.NEWLINE)
-        body = self.parse_block()
+        body, campos = self.parse_blueprint_body()
 
         return ast.BlueprintDeclaration(
             name=name, parents=parents, body=body, traits=traits,
             constructor_params=constructor_params,
+            fields_decl=campos, is_abstract=abstrato,
             line=tok.line, column=tok.column
         )
+
+    # ── Corpo do blueprint ───────────────────────────────────
+
+    #: Operadores que podem ser sobrecarregados, e o metodo que cada um vira.
+    OPERADORES_SOBRECARREGAVEIS = {
+        TokenType.PLUS: "+", TokenType.MINUS: "-", TokenType.STAR: "*",
+        TokenType.SLASH: "/", TokenType.PERCENT: "%", TokenType.POWER: "**",
+        TokenType.EQUAL: "==", TokenType.NOT_EQUAL: "!=",
+        TokenType.LT: "<", TokenType.GT: ">",
+        TokenType.LT_EQ: "<=", TokenType.GT_EQ: ">=",
+        TokenType.SMALLER: "<", TokenType.BIGGER: ">",
+        TokenType.SMALLER_EQ: "<=", TokenType.BIGGER_EQ: ">=",
+        TokenType.IS: "==", TokenType.ISNT: "!=",
+    }
+
+    def parse_blueprint_body(self):
+        """Le o corpo de um blueprint.
+
+        Devolve (instrucoes, campos_declarados). Reconhece, alem de acoes:
+
+            nome: Tipo [:= padrao]     campo declarado
+            private action f(): ...    visibilidade
+            static action f(): ...     metodo de classe
+            abstract action f()        sem corpo, obriga o herdeiro
+            final action f(): ...      nao pode ser sobrescrito
+            get area(): ...            propriedade de leitura
+            set area(v): ...           propriedade de escrita
+            operator + (o): ...        sobrecarga
+        """
+        self.skip_newlines()
+        self.expect(TokenType.INDENT, "A blueprint needs an indented body")
+
+        corpo, campos = [], []
+        while self.current().type not in (TokenType.DEDENT, TokenType.EOF):
+            self.skip_newlines()
+            if self.current().type in (TokenType.DEDENT, TokenType.EOF):
+                break
+
+            item, campo = self.parse_membro_blueprint()
+            if campo is not None:
+                campos.append(campo)
+            if item is not None:
+                corpo.append(item)
+            self.skip_newlines()
+
+        if self.current().type == TokenType.DEDENT:
+            self.advance()
+        return corpo, campos
+
+    @staticmethod
+    def _texto_e(token, *palavras):
+        """O token e um identificador com um destes textos?"""
+        return (token.type == TokenType.IDENTIFIER
+                and token.value in palavras)
+
+    def _e_modificador(self, palavra):
+        """'private' so e modificador se vier antes de outro membro.
+
+        'private action f()' e modificador. Ja 'private := 1' e uma
+        variavel chamada 'private', e a palavra nao tem poder nenhum.
+        """
+        if not self._texto_e(self.current(), palavra):
+            return False
+        prox = self.peek(1)
+        if prox.type in (TokenType.ACTION, TokenType.STATIC,
+                         TokenType.BLUEPRINT):
+            return True
+        if self._texto_e(prox, "get", "set", "operator", "private",
+                         "protected", "abstract", "final"):
+            return True
+        # 'private nome: Tipo' — campo com visibilidade
+        return (prox.type == TokenType.IDENTIFIER
+                and self.peek(2).type == TokenType.COLON)
+
+    def _e_propriedade(self):
+        """'get nome(' ou 'set nome(' — e ai sim uma propriedade."""
+        return (self._texto_e(self.current(), "get", "set")
+                and self.peek(1).type == TokenType.IDENTIFIER
+                and self.peek(2).type == TokenType.LPAREN)
+
+    def parse_membro_blueprint(self):
+        """Um membro do corpo. Devolve (instrucao, campo) — um dos dois e None."""
+        visibilidade = "public"
+        estatico = abstrato = final = False
+
+        # Modificadores, em qualquer ordem: 'private static action f()'.
+        # Sao palavras contextuais: reconhecidas pelo texto, e so quando o
+        # que vem em seguida confirma que sao modificador. Assim
+        # 'final := 10' continua sendo uma variavel chamada 'final'.
+        while True:
+            if self._e_modificador("private"):
+                visibilidade = "private"; self.advance()
+            elif self._e_modificador("protected"):
+                visibilidade = "protected"; self.advance()
+            elif self._e_modificador("abstract"):
+                abstrato = True; self.advance()
+            elif self._e_modificador("final"):
+                final = True; self.advance()
+            elif (self.current().type == TokenType.STATIC
+                  and (self.peek(1).type == TokenType.ACTION
+                       or self._texto_e(self.peek(1), "get", "set"))):
+                estatico = True; self.advance()
+            else:
+                break
+
+        t = self.current().type
+
+        # get nome(): ...   |   set nome(valor): ...
+        if self._e_propriedade():
+            return self.parse_property(visibilidade), None
+
+        # operator + (outro): ...
+        # 'operator' seguido de ':=', '(' ou '.' e uma variavel chamada
+        # 'operator'; qualquer outra coisa e uma tentativa de sobrecarga —
+        # inclusive um simbolo invalido, que merece a mensagem certa.
+        if self._texto_e(self.current(), "operator") and self.peek(1).type not in (
+                TokenType.ASSIGN, TokenType.LPAREN, TokenType.DOT,
+                TokenType.NEWLINE, TokenType.COLON, TokenType.COMMA,
+                TokenType.RPAREN, TokenType.LBRACKET):
+            return self.parse_operator(), None
+
+        # action / abstract action
+        if t == TokenType.ACTION:
+            decl = self.parse_action(sem_corpo=abstrato)
+            decl.visibility = visibilidade
+            decl.is_static = estatico
+            decl.is_abstract = abstrato
+            decl.is_final = final
+            return decl, None
+
+        # static x := valor
+        if t == TokenType.STATIC:
+            return self.parse_statement(), None
+
+        # nome: Tipo [:= padrao] — campo declarado
+        if t == TokenType.IDENTIFIER and self.peek(1).type == TokenType.COLON:
+            nome_tok = self.advance()
+            self.advance()                      # ':'
+            tipo = self.expect(
+                TokenType.IDENTIFIER,
+                f"Field '{nome_tok.value}' needs a type, as in "
+                f"'{nome_tok.value}: String'").value
+            padrao = None
+            if self.match(TokenType.ASSIGN):
+                padrao = self.parse_expression()
+            self.match(TokenType.NEWLINE)
+            return None, (nome_tok.value, tipo, padrao, visibilidade)
+
+        # qualquer outra instrucao (out, given, corpo de construtor…)
+        return self.parse_statement(), None
+
+    def parse_property(self, visibilidade="public"):
+        """get nome() [-> Tipo]: bloco   |   set nome(valor): bloco"""
+        tok = self.advance()                    # 'get' ou 'set'
+        tipo = tok.value
+        nome = self.expect(
+            TokenType.IDENTIFIER,
+            f"Expected the property name after '{tipo}'").value
+
+        parametro = ""
+        self.expect(TokenType.LPAREN, f"Expected '(' after the property '{nome}'")
+        if tipo == "set":
+            parametro = self.expect(
+                TokenType.IDENTIFIER,
+                f"The setter '{nome}' needs one parameter: the value being "
+                f"assigned, as in 'set {nome}(valor):'").value
+        elif self.current().type != TokenType.RPAREN:
+            self.error(f"The getter '{nome}' takes no parameters. "
+                       f"Write 'get {nome}():'.")
+        self.expect(TokenType.RPAREN, "Expected ')'")
+
+        tipo_retorno = ""
+        if self.match(TokenType.ARROW):
+            tipo_retorno = self.expect(TokenType.IDENTIFIER,
+                                       "Expected the return type after '->'").value
+
+        self.expect(TokenType.COLON, f"Expected ':' after the property '{nome}'")
+        self.match(TokenType.NEWLINE)
+        corpo = self.parse_block()
+
+        return ast.PropertyDeclaration(
+            name=nome, kind=tipo, param=parametro, body=corpo,
+            visibility=visibilidade, return_type=tipo_retorno,
+            line=tok.line, column=tok.column)
+
+    def parse_operator(self):
+        """operator <simbolo> (outro): bloco"""
+        tok = self.advance()                    # 'operator'
+        simbolo_tok = self.current()
+        simbolo = self.OPERADORES_SOBRECARREGAVEIS.get(simbolo_tok.type)
+        if simbolo is None:
+            aceitos = ", ".join(sorted(set(self.OPERADORES_SOBRECARREGAVEIS.values())))
+            self.error(f"'{simbolo_tok.text or simbolo_tok.value}' cannot be "
+                       f"overloaded. You can overload: {aceitos}")
+        self.advance()
+
+        self.expect(TokenType.LPAREN, f"Expected '(' after 'operator {simbolo}'")
+        parametro = self.expect(
+            TokenType.IDENTIFIER,
+            f"'operator {simbolo}' needs one parameter: the value on the "
+            f"other side, as in 'operator {simbolo} (outro):'").value
+        self.expect(TokenType.RPAREN, "Expected ')'")
+        self.expect(TokenType.COLON, f"Expected ':' after 'operator {simbolo}'")
+        self.match(TokenType.NEWLINE)
+        corpo = self.parse_block()
+
+        return ast.OperatorDeclaration(
+            symbol=simbolo, param=parametro, body=corpo,
+            line=tok.line, column=tok.column)
 
     def parse_record(self):
         """record Nome: campo: Tipo [:= padrao] ... [action metodo(): ...]"""

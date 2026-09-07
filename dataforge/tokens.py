@@ -105,6 +105,12 @@ class TokenType(Enum):
     TRAIT = auto()           # trait (interface)
     STATIC = auto()          # static
     ABSTRACT = auto()        # abstract
+    GET = auto()             # get      (propriedade de leitura)
+    SET = auto()             # set      (propriedade de escrita)
+    PRIVATE = auto()         # private  (so dentro do blueprint)
+    PROTECTED = auto()       # protected (blueprint e herdeiros)
+    OPERATOR = auto()        # operator (sobrecarga)
+    FINAL = auto()           # final    (nao pode ser sobrescrito)
 
     # ── Error Handling ────────────────────────────────────
     MONITOR = auto()         # monitor (try)
@@ -302,4 +308,20 @@ KEYWORDS = {
     "inspect": TokenType.INSPECT,
     "assert": TokenType.ASSERT,
     "delete": TokenType.DELETE,
+}
+
+
+# ── Palavras contextuais ─────────────────────────────────────
+# Estas NAO sao reservadas: 'get', 'set' e 'final' sao nomes bons demais
+# para tirar de quem escreve ('action get()', 'final := ...'). Elas so
+# ganham sentido especial dentro do corpo de um blueprint, onde o parser
+# as reconhece pelo texto. Fora dali, seguem sendo identificadores.
+CONTEXTUAIS_BLUEPRINT = {
+    "get":       TokenType.GET,
+    "set":       TokenType.SET,
+    "private":   TokenType.PRIVATE,
+    "protected": TokenType.PROTECTED,
+    "operator":  TokenType.OPERATOR,
+    "final":     TokenType.FINAL,
+    "abstract":  TokenType.ABSTRACT,
 }

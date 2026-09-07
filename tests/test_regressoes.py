@@ -396,7 +396,9 @@ out str(spawn N(2) + spawn N(3))
 
 # ── Palavras reservadas ────────────────────────────────────
 
-@pytest.mark.parametrize("nome", ["each", "link", "listen", "claim", "abstract"])
+# 'abstract' saiu desta lista no 4.1: agora e consumida por
+# 'abstract action' e 'abstract blueprint'.
+@pytest.mark.parametrize("nome", ["each", "link", "listen", "claim"])
 def test_palavras_liberadas_sao_identificadores(nome):
     assert env_of(f"{nome} := 1")[nome] == 1
 
