@@ -466,8 +466,14 @@ class AdoptStatement(ASTNode):
 
 @dataclass
 class RelayStatement(ASTNode):
-    """relay name"""
+    """relay nome, outro   |   relay from ./modulo
+
+    Com 'origem' preenchida, e re-exportacao: tudo o que aquele modulo
+    exporta passa a sair tambem por este. E o que permite montar uma
+    fachada — um index.df que reune varios modulos internos numa API so.
+    """
     names: list = field(default_factory=list)
+    origem: str = ""
 
 
 # ═══════════════════════════════════════════════════════════

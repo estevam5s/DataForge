@@ -2217,6 +2217,30 @@ class Interpreter:
             return modulo
 
         import os
+
+        # ── Caminho relativo explicito: './util', '../lib/x' ──
+        # Resolve sempre a partir do arquivo que escreve o import, nunca do
+        # diretorio de onde se rodou o programa. Assim mover a pasta inteira
+        # nao quebra nada, e ler o codigo basta para saber o que ele importa.
+        if nome_modulo.startswith(('./', '../', '.\\', '..\\')) or \
+                nome_modulo.endswith('.df'):
+            origem = (os.path.dirname(os.path.abspath(self.filename))
+                      if self.filename and not self.filename.startswith('<')
+                      else os.getcwd())
+            alvo = os.path.normpath(os.path.join(origem, nome_modulo))
+            for candidato in (alvo, alvo + '.df',
+                              os.path.join(alvo, 'main.df'),
+                              os.path.join(alvo, 'src', 'main.df')):
+                if os.path.isfile(candidato):
+                    return self._load_module_file(candidato, nome_modulo)
+            raise ImportError_(
+                f"Module '{nome_modulo}' not found.",
+                node.line, node.column,
+                nota=f"resolved to {os.path.relpath(alvo)} "
+                     f"relative to {os.path.basename(self.filename)}",
+                dica="check the path, or that the file ends in .df",
+                doc="pacotes")
+
         # Caminhos relativos ao arquivo que faz o import, não ao diretório atual
         bases = []
         if self.filename and not self.filename.startswith('<'):
@@ -2350,11 +2374,37 @@ class Interpreter:
         exportados = getattr(env, '_exports', None)
         if exportados is None:
             exportados = env._exports = []
+
+        # 'relay from ./util' — re-exporta tudo daquele modulo
+        if getattr(node, 'origem', ''):
+            modulo = self._resolver_modulo(node.origem, node, env)
+            if not isinstance(modulo, dict):
+                raise ImportError_(
+                    f"'relay from {node.origem}' needs a module, but that "
+                    f"resolved to {self._nome_do_tipo(modulo)}.",
+                    node.line, node.column, doc="pacotes")
+            for nome, valor in modulo.items():
+                if nome.startswith('__'):
+                    continue
+                # o nome local vence: um 'relay from' nao sobrescreve o
+                # que este modulo definiu por conta propria
+                if not env.has(nome):
+                    env.set_local(nome, valor)
+                if nome not in exportados:
+                    exportados.append(nome)
+            return
+
         for nome in node.names:
             if not env.has(nome):
+                import difflib
+                visiveis = [n for n in env.variables if not n.startswith('__')]
+                perto = difflib.get_close_matches(nome, visiveis, n=1, cutoff=0.6)
                 raise NameError_(
-                    f"'relay' exports '{nome}', which is not defined in this module",
-                    node.line, node.column)
+                    f"'relay' exports '{nome}', which this module never defines.",
+                    node.line, node.column,
+                    dica=(f"did you mean '{perto[0]}'?" if perto else
+                          "define it before the 'relay', or remove it from the list"),
+                    doc="pacotes")
             exportados.append(nome)
 
     # ── Concurrency ────────────────────────────────────────

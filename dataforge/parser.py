@@ -339,8 +339,28 @@ class Parser:
             return ast.AdoptStatement(module=modulo, alias="", selection=selecao,
                                       line=tok.line, column=tok.column)
 
+        # adopt ./util  |  adopt ../compartilhado/config  |  adopt "caminho"
+        caminho_relativo = self._parse_caminho_relativo()
+        if caminho_relativo is not None:
+            selecao = None
+            if self.current().type == TokenType.DOT and \
+                    self.peek(1).type == TokenType.LBRACE:
+                self.advance()
+                selecao = self._parse_selecao()
+            alias = ""
+            if self.match(TokenType.AS):
+                alias = self.expect(TokenType.IDENTIFIER,
+                                    "Expected the alias name after 'as'").value
+            self.match(TokenType.NEWLINE)
+            return ast.AdoptStatement(
+                module=caminho_relativo, alias=alias, selection=selecao,
+                line=tok.line, column=tok.column)
+
         partes = [self.expect(TokenType.IDENTIFIER,
-                              "Expected the module name after 'adopt'").value]
+                              "Expected the module name after 'adopt'.\n"
+                              "    Use a name (adopt Arcane.Math), a relative "
+                              "path (adopt ./util) or a selection "
+                              "(adopt {a, b} from M).").value]
         selecao = None
         while self.match(TokenType.DOT):
             # adopt Arcane.Math.{sqrt, floor}
@@ -358,6 +378,50 @@ class Parser:
         self.match(TokenType.NEWLINE)
         return ast.AdoptStatement(module=modulo, alias=alias, selection=selecao,
                                   line=tok.line, column=tok.column)
+
+    def _parse_caminho_relativo(self):
+        """Le './x', '../y/z' ou "caminho" — ou devolve None se nao e isso.
+
+        Um caminho relativo comeca sempre por '.' ou '..', que o lexer
+        entrega como DOT ou SPREAD ('...' seria tres, mas '..' vem como
+        dois DOT). Assim './util' se distingue de 'util' sem ambiguidade.
+        """
+        # forma literal: adopt "src/util.df"
+        if self.current().type == TokenType.STRING:
+            return self.advance().value
+
+        if self.current().type != TokenType.DOT:
+            return None
+
+        pedacos = []
+        while self.current().type == TokenType.DOT:
+            self.advance()
+            if self.current().type == TokenType.DOT:      # '..'
+                self.advance()
+                pedacos.append("..")
+            else:
+                pedacos.append(".")
+            if self.current().type == TokenType.SLASH:
+                self.advance()
+            else:
+                break
+
+        if not pedacos:
+            return None
+
+        # o resto: nomes separados por '/'
+        nomes = []
+        while self.current().type == TokenType.IDENTIFIER:
+            nomes.append(self.advance().value)
+            if self.current().type == TokenType.SLASH:
+                self.advance()
+                continue
+            break
+
+        if not nomes:
+            self.error("Expected a path after "
+                       f"'{'/'.join(pedacos)}', as in 'adopt ./util'")
+        return "/".join(pedacos + nomes)
 
     def _parse_selecao(self):
         """{nome, outro as apelido} — a lista de nomes importados."""
@@ -386,8 +450,19 @@ class Parser:
         return '.'.join(partes)
 
     def parse_relay(self):
-        """relay name1, name2, ..."""
+        """relay nome1, nome2, …   |   relay from ./modulo"""
         tok = self.advance()  # consume 'relay'
+
+        # relay from ./util — re-exporta tudo o que aquele modulo exporta
+        if self.current().type == TokenType.FROM:
+            self.advance()
+            origem = self._parse_caminho_relativo()
+            if origem is None:
+                origem = self._parse_caminho_de_modulo()
+            self.match(TokenType.NEWLINE)
+            return ast.RelayStatement(names=[], origem=origem,
+                                      line=tok.line, column=tok.column)
+
         names = [self.expect(TokenType.IDENTIFIER).value]
         while self.match(TokenType.COMMA):
             names.append(self.expect(TokenType.IDENTIFIER).value)
