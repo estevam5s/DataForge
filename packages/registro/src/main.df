@@ -1,0 +1,155 @@
+// registro — log estruturado
+//
+//     adopt registro as L
+//
+//     log := L.novo("api")
+//     log.info("pedido recebido", {"id": 42, "cliente": "ana"})
+//
+//     [14:07:19] INFO  api  pedido recebido  id=42 cliente=ana
+//
+// Log com campos, não com frase concatenada. A diferença aparece no dia
+// em que alguém precisa filtrar por cliente: com campos é uma consulta,
+// com frase é uma expressão regular que quebra na semana seguinte.
+
+adopt Arcane.Time as Tempo
+adopt Arcane.Serialization as Serde
+
+steady NIVEIS := {"debug": 10, "info": 20, "aviso": 30, "erro": 40, "grave": 50}
+
+steady CORES := {
+    "debug": "0;90", "info": "1;36", "aviso": "1;33",
+    "erro": "1;31", "grave": "1;35"
+}
+
+steady LARGURA_NIVEL := 5
+
+blueprint Registrador:
+    private nome: String := ""
+    private minimo: Integer := 20
+    private campos_fixos: Vault := {}
+    private formato: String := "texto"
+    private colorir: Boolean := yes
+    private destino: Action := void
+    private capturadas: Cluster := []
+    private guardar: Boolean := no
+
+    action setup(nome := "app", nivel := "info"):
+        self.nome := nome
+        self.minimo := NIVEIS[nivel] ?? 20
+        self.campos_fixos := {}
+        self.formato := "texto"
+        self.colorir := yes
+        self.destino := void
+        self.capturadas := []
+        self.guardar := no
+
+    action nivel(nome_nivel):
+        given not NIVEIS.has(nome_nivel):
+            trigger $"nivel '{nome_nivel}' nao existe. Ha: {NIVEIS.keys().join(', ')}"
+        self.minimo := NIVEIS[nome_nivel]
+        yield self
+
+    action como_json():
+        self.formato := "json"
+        yield self
+
+    action sem_cor():
+        self.colorir := no
+        yield self
+
+    action para(acao):
+        // Redireciona a saída — arquivo, rede, o que for.
+        self.destino := acao
+        yield self
+
+    action capturar(ligado := yes):
+        // Guarda as linhas em memória, para conferir em teste.
+        self.guardar := ligado
+        yield self
+
+    action com(campos):
+        // Um registrador filho que carrega campos fixos. Serve para
+        // marcar todas as linhas de uma requisição com o mesmo id.
+        filho := spawn Registrador(self.nome, "debug")
+        filho.minimo := self.minimo
+        filho.formato := self.formato
+        filho.colorir := self.colorir
+        filho.destino := self.destino
+        filho.guardar := self.guardar
+        juntos := {}
+        cycle k in self.campos_fixos.keys():
+            juntos[k] := self.campos_fixos[k]
+        cycle k in campos.keys():
+            juntos[k] := campos[k]
+        filho.campos_fixos := juntos
+        yield filho
+
+    private action montar(nivel, mensagem, campos):
+        agora := Tempo.now()
+        todos := {}
+        cycle k in self.campos_fixos.keys():
+            todos[k] := self.campos_fixos[k]
+        cycle k in (campos ?? {}).keys():
+            todos[k] := campos[k]
+        yield {"hora": agora["iso"], "nivel": nivel, "origem": self.nome,
+               "mensagem": mensagem, "campos": todos}
+
+    private action formatar(linha):
+        given self.formato is "json":
+            plano := {"hora": linha["hora"], "nivel": linha["nivel"],
+                      "origem": linha["origem"], "mensagem": linha["mensagem"]}
+            cycle k in linha["campos"].keys():
+                plano[k] := linha["campos"][k]
+            yield Serde.to_json(plano)
+
+        hora := linha["hora"].split("T")[1].split(".")[0]
+        rotulo := linha["nivel"].upper().ljust(LARGURA_NIVEL)
+        given self.colorir:
+            cor := CORES[linha["nivel"]] ?? "0"
+            rotulo := "[" + cor + "m" + rotulo + "[0m"
+
+        partes := []
+        cycle k in linha["campos"].keys():
+            partes.append($"{k}={linha['campos'][k]}")
+        extra := "  " + partes.join(" ") given len(partes) bigger 0 otherwise ""
+        yield $"[{hora}] {rotulo} {linha['origem']}  {linha['mensagem']}{extra}"
+
+    action escrever(nivel, mensagem, campos := void):
+        given (NIVEIS[nivel] ?? 0) smaller self.minimo:
+            yield no
+        linha := self.montar(nivel, mensagem, campos)
+        texto := self.formatar(linha)
+        given self.guardar:
+            self.capturadas.append(linha)
+        given self.destino isnt void:
+            self.destino(texto)
+        otherwise:
+            out texto
+        yield yes
+
+    action debug(mensagem, campos := void):
+        yield self.escrever("debug", mensagem, campos)
+
+    action info(mensagem, campos := void):
+        yield self.escrever("info", mensagem, campos)
+
+    action aviso(mensagem, campos := void):
+        yield self.escrever("aviso", mensagem, campos)
+
+    action erro(mensagem, campos := void):
+        yield self.escrever("erro", mensagem, campos)
+
+    action grave(mensagem, campos := void):
+        yield self.escrever("grave", mensagem, campos)
+
+    get linhas():
+        yield self.capturadas
+
+    action limpar():
+        self.capturadas := []
+        yield self
+
+action novo(nome := "app", nivel := "info"):
+    yield spawn Registrador(nome, nivel)
+
+relay Registrador, novo, NIVEIS

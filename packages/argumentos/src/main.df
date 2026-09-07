@@ -1,0 +1,229 @@
+// argumentos — linha de comando com ajuda automática
+//
+//     adopt argumentos as Arg
+//
+//     p := Arg.programa("backup", "Faz backup de uma pasta")
+//     p.posicional("origem", "a pasta a copiar")
+//     p.opcao("destino", "d", "para onde copiar", "./backup")
+//     p.flag("verboso", "v", "mostra cada arquivo")
+//
+//     r := p.processar(["/dados", "-d", "/mnt/hd", "-v"])
+//     out r["origem"], r["destino"], r["verboso"]
+//
+// A ajuda sai da mesma declaração que faz a leitura. Duas fontes para a
+// mesma informação divergem na primeira vez que alguém tem pressa.
+
+record Definicao:
+    nome: String
+    curto: String
+    ajuda: String
+    padrao: Any
+    tipo: String
+    obrigatorio: Boolean
+
+blueprint Programa:
+    private posicionais: Cluster := []
+    private opcoes: Vault := {}
+    private flags: Vault := {}
+    private curtos: Vault := {}
+    private subcomandos: Vault := {}
+
+    action setup(nome, descricao := ""):
+        self.nome := nome
+        self.descricao := descricao
+        self.posicionais := []
+        self.opcoes := {}
+        self.flags := {}
+        self.curtos := {}
+        self.subcomandos := {}
+
+    action posicional(nome, ajuda := "", obrigatorio := yes, padrao := void):
+        self.posicionais.append(
+            Definicao(nome, "", ajuda, padrao, "texto", obrigatorio))
+        yield self
+
+    action opcao(nome, curto := "", ajuda := "", padrao := void, tipo := "texto"):
+        self.opcoes[nome] := Definicao(nome, curto, ajuda, padrao, tipo, no)
+        given curto isnt "":
+            self.curtos[curto] := nome
+        yield self
+
+    action flag(nome, curto := "", ajuda := ""):
+        self.flags[nome] := Definicao(nome, curto, ajuda, no, "flag", no)
+        given curto isnt "":
+            self.curtos[curto] := nome
+        yield self
+
+    action subcomando(nome, programa):
+        self.subcomandos[nome] := programa
+        yield self
+
+    private action converter(valor, tipo):
+        given tipo is "inteiro":
+            monitor:
+                yield int(valor)
+            handle e:
+                trigger $"'{valor}' nao e um numero inteiro"
+        given tipo is "decimal":
+            monitor:
+                yield float(valor)
+            handle e:
+                trigger $"'{valor}' nao e um numero"
+        given tipo is "lista":
+            yield str(valor).split(",")
+        yield valor
+
+    private action nome_da_bandeira(bruto):
+        // --verboso ou -v viram 'verboso'
+        given bruto.startswith("--"):
+            yield bruto.substring(2)
+        given bruto.startswith("-"):
+            curto := bruto.substring(1)
+            yield self.curtos[curto] ?? curto
+        yield bruto
+
+    action processar(args := void):
+        entrada := args ?? []
+        resultado := {}
+
+        // padrões primeiro; o que vier na linha sobrescreve
+        cycle nome in self.opcoes.keys():
+            resultado[nome] := self.opcoes[nome].padrao
+        cycle nome in self.flags.keys():
+            resultado[nome] := no
+
+        // subcomando: a primeira palavra, quando casa
+        given len(entrada) bigger 0 and self.subcomandos.has(entrada[0]):
+            sub := self.subcomandos[entrada[0]]
+            interno := sub.processar(entrada[1:])
+            interno["__comando__"] := entrada[0]
+            yield interno
+
+        soltos := self.ler_bandeiras(entrada, resultado)
+        self.ler_posicionais(soltos, resultado)
+        yield resultado
+
+    private action ler_bandeiras(entrada, resultado):
+        // Preenche as opções e flags em `resultado`, devolvendo o que
+        // sobrou — os argumentos posicionais.
+        soltos := []
+        i := 0
+        persist i smaller len(entrada):
+            item := str(entrada[i])
+
+            given not item.startswith("-"):
+                soltos.append(item)
+                i += 1
+                skip
+
+            // tudo depois de '--' é posicional, mesmo parecendo bandeira
+            given item is "--":
+                soltos := soltos + self.resto_como_texto(entrada, i + 1)
+                halt
+
+            i += self.ler_uma_bandeira(item, entrada, i, resultado)
+        yield soltos
+
+    private action resto_como_texto(entrada, desde):
+        saida := []
+        cycle j from desde to len(entrada) - 1:
+            saida.append(str(entrada[j]))
+        yield saida
+
+    private action ler_uma_bandeira(item, entrada, i, resultado):
+        // Devolve quantas posições consumiu: 1 ou 2.
+        corpo := item
+        embutido := void
+        given item.contains("="):
+            partes := item.split("=")
+            corpo := partes[0]
+            embutido := partes[1]
+
+        nome := self.nome_da_bandeira(corpo)
+
+        given self.flags.has(nome):
+            resultado[nome] := yes
+            yield 1
+
+        given not self.opcoes.has(nome):
+            trigger $"opcao desconhecida: {corpo}"
+
+        given embutido isnt void:
+            resultado[nome] := self.converter(embutido, self.opcoes[nome].tipo)
+            yield 1
+
+        given i + 1 bigger_eq len(entrada):
+            trigger $"a opcao '{corpo}' precisa de um valor"
+        resultado[nome] := self.converter(str(entrada[i + 1]),
+                                          self.opcoes[nome].tipo)
+        yield 2
+
+    private action ler_posicionais(soltos, resultado):
+        cycle k from 0 to len(self.posicionais) - 1:
+            d := self.posicionais[k]
+            given k smaller len(soltos):
+                resultado[d.nome] := soltos[k]
+            orif d.obrigatorio:
+                trigger $"falta o argumento '{d.nome}'. Use --help para ver o uso."
+            otherwise:
+                resultado[d.nome] := d.padrao
+
+        given len(soltos) bigger len(self.posicionais):
+            resultado["__extras__"] := soltos[len(self.posicionais):]
+        yield resultado
+
+    action uso():
+        partes := [self.nome]
+        given len(self.opcoes) bigger 0 or len(self.flags) bigger 0:
+            partes.append("[opcoes]")
+        cycle d in self.posicionais:
+            partes.append($"<{d.nome}>" given d.obrigatorio otherwise $"[{d.nome}]")
+        yield partes.join(" ")
+
+    private action linha_de_opcao(d):
+        rotulo := $"--{d.nome}"
+        given d.curto isnt "":
+            rotulo := $"-{d.curto}, --{d.nome}"
+        extra := ""
+        given d.tipo isnt "flag" and d.padrao isnt void:
+            extra := $"  (padrao: {d.padrao})"
+        yield $"    {rotulo.ljust(22)} {d.ajuda}{extra}"
+
+    action ajuda():
+        linhas := []
+        given self.descricao isnt "":
+            linhas.append(self.descricao)
+            linhas.append("")
+        linhas.append("USO")
+        linhas.append("    " + self.uso())
+
+        given len(self.posicionais) bigger 0:
+            linhas.append("")
+            linhas.append("ARGUMENTOS")
+            cycle d in self.posicionais:
+                linhas.append($"    {d.nome.ljust(16)} {d.ajuda}")
+
+        todas := []
+        cycle nome in self.opcoes.keys():
+            todas.append(self.opcoes[nome])
+        cycle nome in self.flags.keys():
+            todas.append(self.flags[nome])
+
+        given len(todas) bigger 0:
+            linhas.append("")
+            linhas.append("OPCOES")
+            cycle d in todas:
+                linhas.append(self.linha_de_opcao(d))
+
+        given len(self.subcomandos) bigger 0:
+            linhas.append("")
+            linhas.append("COMANDOS")
+            cycle nome in self.subcomandos.keys():
+                linhas.append($"    {nome.ljust(16)} {self.subcomandos[nome].descricao}")
+
+        yield linhas.join("\n")
+
+action programa(nome, descricao := ""):
+    yield spawn Programa(nome, descricao)
+
+relay Definicao, Programa, programa

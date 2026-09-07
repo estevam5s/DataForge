@@ -1,0 +1,14 @@
+[package]
+name = "registro"
+version = "1.0.0"
+description = "Registro estruturado: níveis, campos, destinos e formatação JSON ou texto."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["log", "registro", "observabilidade"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

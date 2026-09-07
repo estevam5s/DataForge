@@ -1,0 +1,87 @@
+adopt Arcane.Test as T
+adopt registro as L
+
+action capturado(nivel := "debug"):
+    yield L.novo("teste", nivel).sem_cor().capturar()
+
+action test_niveis_filtram():
+    log := L.novo("t", "aviso").sem_cor().capturar()
+    T.assert_false(log.info("nao passa"))
+    T.assert_false(log.debug("nao passa"))
+    T.assert_true(log.aviso("passa"))
+    T.assert_true(log.erro("passa"))
+    T.assert_eq(len(log.linhas), 2)
+
+action test_todos_os_niveis():
+    log := capturado()
+    log.debug("d")
+    log.info("i")
+    log.aviso("a")
+    log.erro("e")
+    log.grave("g")
+    T.assert_eq(len(log.linhas), 5)
+    T.assert_eq(log.linhas[0]["nivel"], "debug")
+    T.assert_eq(log.linhas[4]["nivel"], "grave")
+
+action test_campos():
+    log := capturado()
+    log.info("pedido", {"id": 42, "cliente": "ana"})
+    linha := log.linhas[0]
+    T.assert_eq(linha["campos"]["id"], 42)
+    T.assert_eq(linha["campos"]["cliente"], "ana")
+    T.assert_eq(linha["mensagem"], "pedido")
+
+action test_campos_fixos_com_filho():
+    pai := capturado()
+    filho := pai.com({"requisicao": "abc123"})
+    filho.info("entrou", {"rota": "/pedidos"})
+    linha := filho.linhas[0]
+    T.assert_eq(linha["campos"]["requisicao"], "abc123")
+    T.assert_eq(linha["campos"]["rota"], "/pedidos")
+
+action test_filho_nao_afeta_o_pai():
+    pai := capturado()
+    filho := pai.com({"x": 1})
+    filho.info("do filho")
+    pai.info("do pai")
+    T.assert_eq(len(pai.linhas), 1)
+    T.assert_eq(pai.linhas[0]["campos"], {})
+
+action test_destino_personalizado():
+    recebidas := []
+    log := L.novo("t", "debug").sem_cor().para(lambda linha => recebidas.append(linha))
+    log.info("vai para a lista")
+    T.assert_eq(len(recebidas), 1)
+    T.assert_true(recebidas[0].contains("vai para a lista"))
+    T.assert_true(recebidas[0].contains("INFO"))
+
+action test_formato_json():
+    saida := []
+    log := L.novo("api", "debug").como_json().para(lambda l => saida.append(l))
+    log.info("oi", {"n": 1})
+    T.assert_true(saida[0].startswith("{"))
+    T.assert_true(saida[0].contains("\"mensagem\""))
+    T.assert_true(saida[0].contains("\"n\""))
+
+action test_nivel_invalido_avisa():
+    log := capturado()
+    T.assert_throws(lambda => log.nivel("inexistente"))
+
+action test_trocar_nivel():
+    log := capturado()
+    log.nivel("erro")
+    T.assert_false(log.info("nao"))
+    T.assert_true(log.erro("sim"))
+
+action test_limpar():
+    log := capturado()
+    log.info("a")
+    log.limpar()
+    T.assert_eq(len(log.linhas), 0)
+
+action test_formato_texto_tem_hora_e_origem():
+    saida := []
+    log := L.novo("meuapp", "debug").sem_cor().para(lambda l => saida.append(l))
+    log.info("mensagem")
+    T.assert_true(saida[0].contains("meuapp"))
+    T.assert_true(saida[0].contains("["))

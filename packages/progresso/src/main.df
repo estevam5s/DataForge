@@ -1,0 +1,190 @@
+// progresso — barra, spinner e cronômetro no terminal
+//
+//     adopt progresso as P
+//
+//     b := P.barra(len(arquivos), "copiando")
+//     cycle a in arquivos:
+//         copiar(a)
+//         b.avancar()
+//     b.terminar()
+//
+//     copiando  ████████████░░░░░░░░  60%  12/20  ~4s
+//
+// Redesenha a mesma linha com \r. Quando a saída não é um terminal —
+// redirecionada para arquivo, ou num pipe — imprime uma linha por
+// atualização, senão o log fica com um borrão de caracteres de controle.
+
+adopt Arcane.Time as Tempo
+
+steady BLOCOS := ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"]
+steady QUADROS := ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+steady LIMPAR := "[2K\r"
+
+blueprint Barra:
+    private total: Integer := 0
+    private atual: Integer := 0
+    private largura: Integer := 24
+    private rotulo: String := ""
+    private inicio: Float := 0.0
+    private interativo: Boolean := yes
+    private terminada: Boolean := no
+    private escrever: Action := void
+
+    action setup(total, rotulo := "", largura := 24):
+        self.total := total
+        self.rotulo := rotulo
+        self.largura := largura
+        self.atual := 0
+        self.inicio := Tempo.now()["timestamp"]
+        self.interativo := yes
+        self.terminada := no
+        self.escrever := void
+
+    action nao_interativa():
+        // Uma linha por atualizacao, em vez de redesenhar.
+        self.interativo := no
+        yield self
+
+    action para(acao):
+        self.escrever := acao
+        yield self
+
+    get fracao():
+        given self.total smaller_eq 0:
+            yield 1.0
+        f := self.atual / self.total
+        yield 1.0 given f bigger 1.0 otherwise f
+
+    get decorrido():
+        yield Tempo.now()["timestamp"] - self.inicio
+
+    get restante():
+        // Estimativa linear: o que falta no ritmo do que já passou.
+        given self.atual smaller_eq 0:
+            yield void
+        por_item := self.decorrido / self.atual
+        yield por_item * (self.total - self.atual)
+
+    action desenhar_blocos():
+        // Blocos parciais dão resolução de 1/8 de caractere, o que faz a
+        // barra parecer contínua mesmo estreita.
+        exatos := self.fracao * self.largura
+        cheios := int(exatos)
+        resto := exatos - cheios
+        parcial := BLOCOS[int(resto * 8)]
+        vazios := self.largura - cheios - (1 given parcial isnt "" otherwise 0)
+        given vazios smaller 0:
+            vazios := 0
+        yield "█".repeat(cheios) + parcial + "░".repeat(vazios)
+
+    action linha():
+        pct := str(int(self.fracao * 100)).rjust(3)
+        contagem := $"{self.atual}/{self.total}"
+        tempo := ""
+        r := self.restante
+        given r isnt void and not self.terminada:
+            tempo := $"  ~{int(r)}s"
+        given self.terminada:
+            tempo := $"  {round(self.decorrido, 1)}s"
+        rot := self.rotulo + "  " given self.rotulo isnt "" otherwise ""
+        yield $"{rot}{self.desenhar_blocos()}  {pct}%  {contagem}{tempo}"
+
+    private action emitir(texto, fim := no):
+        given self.escrever isnt void:
+            self.escrever(texto)
+            yield self
+        given not self.interativo:
+            out texto
+            yield self
+        // \r volta ao começo da linha; a próxima escrita cobre a anterior
+        out LIMPAR + texto given not fim otherwise LIMPAR + texto
+        yield self
+
+    action avancar(quanto := 1):
+        self.atual += quanto
+        given self.atual bigger self.total:
+            self.atual := self.total
+        self.emitir(self.linha())
+        yield self
+
+    action ir_para(n):
+        self.atual := n
+        self.emitir(self.linha())
+        yield self
+
+    action terminar():
+        self.atual := self.total
+        self.terminada := yes
+        self.emitir(self.linha(), yes)
+        yield self
+
+action barra(total, rotulo := "", largura := 24):
+    yield spawn Barra(total, rotulo, largura)
+
+blueprint Spinner:
+    private quadro: Integer := 0
+    private rotulo: String := ""
+    private escrever: Action := void
+
+    action setup(rotulo := ""):
+        self.rotulo := rotulo
+        self.quadro := 0
+        self.escrever := void
+
+    action para(acao):
+        self.escrever := acao
+        yield self
+
+    action girar():
+        marca := QUADROS[self.quadro % len(QUADROS)]
+        self.quadro += 1
+        texto := $"{marca} {self.rotulo}"
+        given self.escrever isnt void:
+            self.escrever(texto)
+        otherwise:
+            out LIMPAR + texto
+        yield self
+
+    action pronto(mensagem := "pronto"):
+        texto := $"✓ {mensagem}"
+        given self.escrever isnt void:
+            self.escrever(texto)
+        otherwise:
+            out LIMPAR + texto
+        yield self
+
+    action falhou(mensagem := "falhou"):
+        texto := $"✗ {mensagem}"
+        given self.escrever isnt void:
+            self.escrever(texto)
+        otherwise:
+            out LIMPAR + texto
+        yield self
+
+action spinner(rotulo := ""):
+    yield spawn Spinner(rotulo)
+
+action duracao_legivel(segundos):
+    // 3725 -> "1h 2min"
+    s := int(segundos)
+    given s smaller 60:
+        yield $"{s}s"
+    given s smaller 3600:
+        yield $"{s ~/ 60}min {s % 60}s"
+    horas := s ~/ 3600
+    yield $"{horas}h {(s % 3600) ~/ 60}min"
+
+action tamanho_legivel(bytes):
+    // 1536 -> "1.5 KB"
+    unidades := ["B", "KB", "MB", "GB", "TB"]
+    valor := float(bytes)
+    i := 0
+    persist valor bigger_eq 1024.0 and i smaller len(unidades) - 1:
+        valor := valor / 1024.0
+        i += 1
+    given i is 0:
+        yield $"{int(valor)} B"
+    yield $"{round(valor, 1)} {unidades[i]}"
+
+relay Barra, Spinner, barra, spinner, duracao_legivel, tamanho_legivel
+relay BLOCOS, QUADROS

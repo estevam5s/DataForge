@@ -1,0 +1,14 @@
+[package]
+name = "argumentos"
+version = "1.0.0"
+description = "Argumentos de linha de comando: flags, posicionais, subcomandos e ajuda automática."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["cli", "argumentos", "parser"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

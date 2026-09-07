@@ -1,0 +1,91 @@
+adopt Arcane.Test as T
+adopt argumentos as Arg
+
+action backup():
+    p := Arg.programa("backup", "Faz backup de uma pasta")
+    p.posicional("origem", "a pasta a copiar")
+    p.opcao("destino", "d", "para onde copiar", "./backup")
+    p.opcao("nivel", "n", "compressao de 1 a 9", 6, "inteiro")
+    p.flag("verboso", "v", "mostra cada arquivo")
+    yield p
+
+action test_posicional_e_opcao():
+    r := backup().processar(["/dados", "-d", "/mnt/hd"])
+    T.assert_eq(r["origem"], "/dados")
+    T.assert_eq(r["destino"], "/mnt/hd")
+
+action test_padroes():
+    r := backup().processar(["/dados"])
+    T.assert_eq(r["destino"], "./backup")
+    T.assert_eq(r["nivel"], 6)
+    T.assert_eq(r["verboso"], no)
+
+action test_forma_longa_e_curta():
+    curta := backup().processar(["/x", "-d", "/y"])
+    longa := backup().processar(["/x", "--destino", "/y"])
+    T.assert_eq(curta["destino"], longa["destino"])
+
+action test_igual():
+    r := backup().processar(["/x", "--destino=/y", "--nivel=9"])
+    T.assert_eq(r["destino"], "/y")
+    T.assert_eq(r["nivel"], 9)
+
+action test_flag():
+    r := backup().processar(["/x", "-v"])
+    T.assert_true(r["verboso"])
+    T.assert_false(backup().processar(["/x"])["verboso"])
+
+action test_tipo_inteiro():
+    r := backup().processar(["/x", "-n", "9"])
+    T.assert_eq(r["nivel"], 9)
+    T.assert_eq(typeof(r["nivel"]), "Integer")
+
+action test_tipo_invalido_avisa():
+    T.assert_throws(lambda => backup().processar(["/x", "-n", "muito"]))
+
+action test_opcao_desconhecida():
+    T.assert_throws(lambda => backup().processar(["/x", "--inexistente", "1"]))
+
+action test_opcao_sem_valor():
+    T.assert_throws(lambda => backup().processar(["/x", "-d"]))
+
+action test_posicional_obrigatorio():
+    T.assert_throws(lambda => backup().processar([]))
+
+action test_posicional_opcional():
+    p := Arg.programa("t")
+    p.posicional("alvo", "", no, "padrao")
+    T.assert_eq(p.processar([])["alvo"], "padrao")
+
+action test_separador_duplo():
+    p := Arg.programa("t")
+    p.posicional("a")
+    p.flag("v", "v")
+    r := p.processar(["x", "--", "-v"])
+    T.assert_eq(r["a"], "x")
+    T.assert_false(r["v"])            // '-v' virou posicional
+    T.assert_eq(r["__extras__"], ["-v"])
+
+action test_tipo_lista():
+    p := Arg.programa("t")
+    p.opcao("tags", "t", "", [], "lista")
+    T.assert_eq(p.processar(["-t", "a,b,c"])["tags"], ["a", "b", "c"])
+
+action test_subcomando():
+    sub := Arg.programa("criar", "cria um item")
+    sub.posicional("nome")
+    p := Arg.programa("app")
+    p.subcomando("criar", sub)
+    r := p.processar(["criar", "meu-item"])
+    T.assert_eq(r["__comando__"], "criar")
+    T.assert_eq(r["nome"], "meu-item")
+
+action test_uso_e_ajuda():
+    p := backup()
+    T.assert_eq(p.uso(), "backup [opcoes] <origem>")
+    a := p.ajuda()
+    T.assert_true(a.contains("Faz backup"))
+    T.assert_true(a.contains("--destino"))
+    T.assert_true(a.contains("-d,"))
+    T.assert_true(a.contains("padrao: ./backup"))
+    T.assert_true(a.contains("ARGUMENTOS"))

@@ -1,0 +1,99 @@
+adopt Arcane.Test as T
+adopt progresso as P
+
+action linhas_de(b):
+    // captura o que a barra escreveria, em vez de imprimir
+    saida := []
+    b.para(lambda l => saida.append(l))
+    yield saida
+
+action test_fracao():
+    b := P.barra(10)
+    T.assert_eq(b.fracao, 0.0)
+    b.avancar(5)
+    T.assert_eq(b.fracao, 0.5)
+    b.avancar(5)
+    T.assert_eq(b.fracao, 1.0)
+
+action test_nao_passa_de_cem_por_cento():
+    b := P.barra(3)
+    b.avancar(99)
+    T.assert_eq(b.fracao, 1.0)
+    T.assert_true(b.linha().contains("100%"))
+    T.assert_true(b.linha().contains("3/3"))
+
+action test_total_zero_nao_divide_por_zero():
+    b := P.barra(0)
+    T.assert_eq(b.fracao, 1.0)
+
+action test_linha_tem_percentual_e_contagem():
+    b := P.barra(4, "copiando")
+    b.avancar()
+    l := b.linha()
+    T.assert_true(l.contains("copiando"))
+    T.assert_true(l.contains("25%"))
+    T.assert_true(l.contains("1/4"))
+
+action test_barra_desenha_proporcional():
+    b := P.barra(10, "", 10)
+    b.ir_para(5)
+    desenho := b.desenhar_blocos()
+    T.assert_eq(desenho.length(), 10)
+    T.assert_true(desenho.startswith("█"))
+    T.assert_true(desenho.endswith("░"))
+
+action test_barra_cheia_e_vazia():
+    b := P.barra(10, "", 8)
+    T.assert_eq(b.desenhar_blocos(), "░░░░░░░░")
+    b.ir_para(10)
+    T.assert_eq(b.desenhar_blocos(), "████████")
+
+action test_escreve_a_cada_avanco():
+    b := P.barra(3)
+    saida := linhas_de(b)
+    b.avancar()
+    b.avancar()
+    T.assert_eq(len(saida), 2)
+
+action test_terminar_completa():
+    b := P.barra(10)
+    saida := linhas_de(b)
+    b.avancar()
+    b.terminar()
+    T.assert_eq(b.fracao, 1.0)
+    T.assert_true(saida[len(saida) - 1].contains("100%"))
+
+action test_ir_para():
+    b := P.barra(100)
+    b.ir_para(42)
+    T.assert_true(b.linha().contains("42/100"))
+
+action test_spinner_gira():
+    s := P.spinner("carregando")
+    saida := []
+    s.para(lambda l => saida.append(l))
+    s.girar()
+    s.girar()
+    T.assert_eq(len(saida), 2)
+    T.assert_true(saida[0] isnt saida[1])     // quadro diferente
+    T.assert_true(saida[0].contains("carregando"))
+
+action test_spinner_pronto_e_falhou():
+    s := P.spinner("x")
+    saida := []
+    s.para(lambda l => saida.append(l))
+    s.pronto("tudo certo")
+    s.falhou("deu ruim")
+    T.assert_true(saida[0].contains("✓"))
+    T.assert_true(saida[0].contains("tudo certo"))
+    T.assert_true(saida[1].contains("✗"))
+
+action test_duracao_legivel():
+    T.assert_eq(P.duracao_legivel(45), "45s")
+    T.assert_eq(P.duracao_legivel(90), "1min 30s")
+    T.assert_eq(P.duracao_legivel(3725), "1h 2min")
+
+action test_tamanho_legivel():
+    T.assert_eq(P.tamanho_legivel(512), "512 B")
+    T.assert_eq(P.tamanho_legivel(1536), "1.5 KB")
+    T.assert_eq(P.tamanho_legivel(1048576), "1.0 MB")

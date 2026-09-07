@@ -1,0 +1,14 @@
+[package]
+name = "progresso"
+version = "1.0.0"
+description = "Terminal: barra de progresso, spinner, contagem e tempo estimado."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["terminal", "progresso", "cli"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

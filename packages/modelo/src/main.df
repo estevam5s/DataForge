@@ -1,0 +1,149 @@
+// modelo — templates de texto
+//
+//     adopt modelo as M
+//
+//     out M.render("Olá, {{nome}}!", {"nome": "Ana"})
+//     out M.render("{{#itens}}- {{.}}\n{{/itens}}", {"itens": ["a", "b"]})
+//
+// Sintaxe deliberadamente pequena: variável, laço, condicional e filtro.
+// Template que vira linguagem de programação é código escondido onde
+// ninguém procura — quando precisar de lógica, escreva em DataForge.
+
+steady FILTROS := {
+    "maiusculo": lambda v => str(v).upper(),
+    "minusculo": lambda v => str(v).lower(),
+    "capitalizar": lambda v => str(v).capitalize(),
+    "aparar": lambda v => str(v).trim(),
+    "tamanho": lambda v => len(v),
+    "reverso": lambda v => str(v).reverse()
+}
+
+action buscar(dados, caminho):
+    // "usuario.nome" desce no vault. "." é o item corrente do laço.
+    given caminho is ".":
+        yield dados
+    atual := dados
+    cycle parte in str(caminho).split("."):
+        given atual is void:
+            yield void
+        given typeof(atual) is "Vault":
+            atual := atual[parte] ?? void
+        orif typeof(atual) is "Cluster" and parte.isdigit():
+            i := int(parte)
+            atual := atual[i] given i smaller len(atual) otherwise void
+        otherwise:
+            monitor:
+                atual := atual[parte]
+            handle e:
+                yield void
+    yield atual
+
+action aplicar_filtros(valor, texto_filtros):
+    // "nome | maiusculo | aparar"
+    atual := valor
+    cycle nome in text_partes(texto_filtros):
+        given FILTROS.has(nome):
+            atual := FILTROS[nome](atual)
+    yield atual
+
+action text_partes(texto):
+    saida := []
+    cycle p in str(texto).split("|"):
+        limpo := p.trim()
+        given limpo isnt "":
+            saida.append(limpo)
+    yield saida
+
+action verdadeiro(valor):
+    // O que conta como "tem conteúdo" numa condicional de template.
+    given valor is void:
+        yield no
+    given typeof(valor) is "Boolean":
+        yield valor
+    given typeof(valor) is "Cluster" or typeof(valor) is "Vault":
+        yield len(valor) bigger 0
+    given typeof(valor) is "String":
+        yield valor isnt ""
+    given typeof(valor) is "Integer" or typeof(valor) is "Float":
+        yield valor isnt 0
+    yield yes
+
+action render(modelo, dados := void):
+    contexto := dados ?? {}
+    yield renderizar_bloco(str(modelo), contexto)
+
+action renderizar_secao(negado, valor, corpo, dados):
+    // Uma seção {{#x}}…{{/x}} é laço quando x é lista, e condicional
+    // quando não é. {{^x}} inverte: rende só quando x está vazio.
+    given negado:
+        yield renderizar_bloco(corpo, dados) given not verdadeiro(valor) otherwise ""
+
+    given typeof(valor) is "Cluster":
+        yield renderizar_itens(valor, corpo, dados)
+
+    given not verdadeiro(valor):
+        yield ""
+    interno := valor given typeof(valor) is "Vault" otherwise dados
+    yield renderizar_bloco(corpo, interno)
+
+action renderizar_itens(itens, corpo, dados):
+    // Item que é vault vira o contexto do corpo; item simples entra
+    // no lugar de {{.}}.
+    saida := ""
+    cycle item in itens:
+        given typeof(item) is "Vault":
+            saida += renderizar_bloco(corpo, item)
+        otherwise:
+            saida += renderizar_bloco(corpo.replace("{{.}}", str(item)), dados)
+    yield saida
+
+action renderizar_bloco(texto, dados):
+    saida := ""
+    i := 0
+    persist i smaller texto.length():
+        abre := texto.find("{{", i)
+        given abre is -1:
+            saida += texto.substring(i)
+            halt
+
+        saida += texto.substring(i, abre)
+        fecha := texto.find("}}", abre)
+        given fecha is -1:
+            trigger $"'{{{{' sem fechamento na posicao {abre}"
+
+        marca := texto.substring(abre + 2, fecha).trim()
+
+        // {{#lista}} … {{/lista}}  — laço ou condicional
+        given marca.startswith("#") or marca.startswith("^"):
+            negado := marca.startswith("^")
+            nome := marca.substring(1).trim()
+            final := texto.find("{{/" + nome + "}}", fecha)
+            given final is -1:
+                trigger $"bloco '{nome}' aberto e nunca fechado"
+            corpo := texto.substring(fecha + 2, final)
+            valor := buscar(dados, nome)
+
+            saida += renderizar_secao(negado, valor, corpo, dados)
+            i := final + nome.length() + 5
+            skip
+
+        // {{ nome | filtro }}
+        partes := marca.split("|")
+        valor := buscar(dados, partes[0].trim())
+        given len(partes) bigger 1:
+            valor := aplicar_filtros(valor, marca.substring(marca.find("|") + 1))
+        saida += "" given valor is void otherwise str(valor)
+        i := fecha + 2
+
+    yield saida
+
+action registrar_filtro(nome, acao):
+    FILTROS[nome] := acao
+    yield FILTROS
+
+action de_arquivo(caminho, dados := void):
+    adopt Arcane.IO as IO
+    yield render(IO.read(caminho), dados)
+
+relay renderizar_secao, renderizar_itens
+relay render, buscar, verdadeiro, registrar_filtro, de_arquivo, FILTROS
