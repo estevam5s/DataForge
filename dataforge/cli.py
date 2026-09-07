@@ -25,49 +25,319 @@ LOGO = r"""
                                          |___/      
 """
 
-USAGE = f"""{LOGO}
-    DataForge Programming Language v{__version__}
-    
-    USAGE:
-        dataforge <command> [options]
-    
-    COMANDOS:
-        init [pasta]       Cria forge.toml e o esqueleto do projeto
-        info               Mostra o manifesto do projeto atual
-        run <arquivo.df>   Executa um programa (sem argumento usa forge.toml)
-        check <alvo>       Análise estática: sintaxe, nomes e tipos
-        test [alvo]        Executa a suíte de testes (*_test.df, tests/)
-        fmt [alvo]         Formata o código (--check só verifica)
-        lint [alvo]        Aponta problemas de estilo e higiene
-        doc [alvo]         Gera documentação Markdown (--out=arquivo)
-        repl               Console interativo
-        new                Cria um projeto a partir de um template
-        tokens <arquivo>   Mostra o fluxo de tokens (lexer)
-        ast <arquivo>      Mostra a árvore sintática (parser)
-        version            Mostra a versão
-        help               Mostra esta ajuda
-    
-    OPTIONS:
-        --debug            Mostra tokens, AST e traceback completo
-        --time             Mostra o tempo de execução
-        --no-color         Desliga as cores
-        --strict           check: trata avisos como erros
-        --syntax-only      check: só a sintaxe, sem análise semântica
-        --check            fmt: só verifica, não reescreve
-        --strict           check/lint: trata avisos como erros
-        --verbose, -v      test: mostra cada caso
-        --filter=<texto>   test: só os casos cujo nome contém o texto
-        --fail-fast        test: para na primeira falha
-        --out=<arquivo>    doc: escreve num arquivo em vez do terminal
-    
-    EXEMPLOS:
-        dataforge run ola.df
-        dataforge check src/
-        dataforge test tests/ -v
-        dataforge fmt . --check
-        dataforge lint src/ --strict
-        dataforge doc src/ --out=doc/API.md
-"""
+# ═══════════════════════════════════════════════════════════
+#  Catalogo de comandos
+#
+#  Uma entrada por comando, agrupada por proposito. E daqui que saem
+#  o help geral, a ajuda de cada comando e a sugestao quando alguem
+#  erra o nome — assim as tres nunca divergem.
+# ═══════════════════════════════════════════════════════════
+
+class Cmd:
+    """Um comando da CLI."""
+
+    __slots__ = ("nome", "uso", "resumo", "detalhe", "opcoes",
+                 "exemplos", "apelidos", "veja")
+
+    def __init__(self, nome, uso, resumo, detalhe="", opcoes=(),
+                 exemplos=(), apelidos=(), veja=()):
+        self.nome = nome
+        self.uso = uso
+        self.resumo = resumo
+        self.detalhe = detalhe
+        self.opcoes = opcoes          # [(flag, descricao)]
+        self.exemplos = exemplos      # [(comando, o que faz)]
+        self.apelidos = apelidos
+        self.veja = veja              # comandos relacionados
+
+
+GRUPOS = [
+    ("Projeto", [
+        Cmd("init", "dataforge init [pasta]",
+            "Cria forge.toml e o esqueleto do projeto",
+            "Escreve o manifesto, a pasta src/ com um main.df e a tests/.\n"
+            "Sem argumento, usa a pasta atual.",
+            exemplos=[("dataforge init", "aqui mesmo"),
+                      ("dataforge init meu-app", "numa pasta nova")],
+            veja=("new", "info")),
+        Cmd("new", "dataforge new [template] [nome]",
+            "Cria um projeto a partir de um template",
+            "Templates: cli, api, lib, data, game, script.\n"
+            "Sem argumento, lista os disponiveis.",
+            exemplos=[("dataforge new", "lista os templates"),
+                      ("dataforge new cli minha-ferramenta", "projeto de CLI")],
+            veja=("init",)),
+        Cmd("info", "dataforge info",
+            "Mostra o manifesto do projeto atual",
+            "Nome, versao, entrada, scripts e dependencias declaradas.",
+            veja=("init", "list")),
+    ]),
+
+    ("Executar", [
+        Cmd("run", "dataforge run [arquivo.df] [-- args]",
+            "Executa um programa",
+            "Sem arquivo, usa a entrada declarada no forge.toml.\n"
+            "O que vier depois de '--' chega ao programa em OS.argv().",
+            opcoes=[("--time", "mostra o tempo de execucao"),
+                    ("--debug", "mostra tokens, AST e traceback completo")],
+            exemplos=[("dataforge run ola.df", ""),
+                      ("dataforge run", "usa a entrada do forge.toml"),
+                      ("dataforge run app.df -- --porta 8080",
+                       "passa argumentos ao programa")],
+            veja=("eval", "watch", "repl")),
+        Cmd("eval", "dataforge eval \'<codigo>\'",
+            "Executa uma linha de codigo direto",
+            "Para experimentar sem criar arquivo. Multiplas instrucoes\n"
+            "podem ser separadas por ponto e virgula ou quebra de linha.",
+            exemplos=[('dataforge eval \'out 2 ** 10\'', ""),
+                      ('dataforge eval \'out [1,2,3] >> morph n: n * 2\'', "")],
+            veja=("run", "repl")),
+        Cmd("watch", "dataforge watch [arquivo.df]",
+            "Reexecuta a cada mudanca no arquivo",
+            "Fica observando e roda de novo quando voce salva.\n"
+            "Ctrl+C para sair.",
+            opcoes=[("--test", "roda a suite em vez do arquivo"),
+                    ("--check", "roda a analise estatica")],
+            exemplos=[("dataforge watch src/main.df", ""),
+                      ("dataforge watch --test", "TDD: a suite a cada save")],
+            veja=("run", "test")),
+        Cmd("repl", "dataforge repl",
+            "Console interativo",
+            "Comandos internos: :type <expr>, :ast <expr>, :check <expr>,\n"
+            ":load <arquivo>, :vars, :help, :quit.",
+            veja=("run", "eval")),
+    ]),
+
+    ("Qualidade", [
+        Cmd("check", "dataforge check [alvo]",
+            "Analise estatica: nomes, aridade, tipos e alcance",
+            "Aceita arquivo, pasta ou padrao. Sem alvo, analisa a pasta atual.\n"
+            "Sai com codigo 1 se houver erro — serve na esteira de CI.",
+            opcoes=[("--strict", "trata avisos como erros"),
+                    ("--syntax-only", "so a sintaxe, sem analise semantica")],
+            exemplos=[("dataforge check .", "o projeto inteiro"),
+                      ("dataforge check src/ --strict", "avisos viram erros")],
+            veja=("lint", "explain")),
+        Cmd("test", "dataforge test [alvo]",
+            "Executa a suite de testes",
+            "Descobre *_test.df e a pasta tests/. Cada acao que comeca\n"
+            "com 'test_' vira um caso.",
+            opcoes=[("--verbose, -v", "mostra cada caso"),
+                    ("--filter=<texto>", "so os casos cujo nome contem o texto"),
+                    ("--fail-fast", "para na primeira falha")],
+            exemplos=[("dataforge test", ""),
+                      ("dataforge test tests/ -v", ""),
+                      ("dataforge test --filter=soma", "so o que casa")],
+            veja=("bench", "watch")),
+        Cmd("fmt", "dataforge fmt [alvo]",
+            "Formata o codigo",
+            "Idempotente: formatar duas vezes da o mesmo resultado.",
+            opcoes=[("--check", "so verifica, nao reescreve (sai 1 se houver "
+                                "pendencia)")],
+            exemplos=[("dataforge fmt .", "reescreve"),
+                      ("dataforge fmt . --check", "para a esteira de CI")],
+            veja=("lint",)),
+        Cmd("lint", "dataforge lint [alvo]",
+            "Aponta problemas de estilo e higiene",
+            "Treze regras: nome fora do padrao, variavel escrita e nunca\n"
+            "lida, ramo redundante, e outras.",
+            opcoes=[("--strict", "trata avisos como erros")],
+            veja=("fmt", "check")),
+        Cmd("bench", "dataforge bench <arquivo.df>",
+            "Mede o tempo de execucao, repetindo",
+            "Roda varias vezes e mostra minimo, mediana e desvio.\n"
+            "Descarta as primeiras execucoes, que aquecem o cache.",
+            opcoes=[("--runs=<n>", "quantas repeticoes (padrao 10)")],
+            exemplos=[("dataforge bench algoritmo.df", ""),
+                      ("dataforge bench alg.df --runs=50", "")],
+            veja=("test", "run")),
+    ]),
+
+    ("Pacotes", [
+        Cmd("add", "dataforge add <pacote>[@versao] …",
+            "Instala uma dependencia e grava no forge.toml",
+            "Sem faixa, grava '^' da versao mais recente. Aceita tambem\n"
+            "caminho local, git+URL e URL de tarball.",
+            opcoes=[("--offline", "so com o cache local")],
+            exemplos=[("dataforge add validador", ""),
+                      ("dataforge add tabela@^2.0", "faixa de versoes"),
+                      ("dataforge add ../lib-interna", "pasta local")],
+            veja=("install", "remove", "search")),
+        Cmd("remove", "dataforge remove <pacote> …",
+            "Desinstala e tira do forge.toml",
+            apelidos=("rm", "uninstall"), veja=("add", "list")),
+        Cmd("install", "dataforge install",
+            "Instala tudo o que o forge.toml declara",
+            "O comando que se roda depois de clonar um projeto.",
+            opcoes=[("--dry-run", "mostra o plano sem baixar"),
+                    ("--offline", "so com o cache local")],
+            apelidos=("i", "sync"), veja=("add", "list", "tree")),
+        Cmd("list", "dataforge list",
+            "Mostra o que esta instalado",
+            "Marca as transitivas e o que sumiu do disco.",
+            apelidos=("ls",), veja=("tree", "outdated")),
+        Cmd("tree", "dataforge tree",
+            "Desenha a arvore de dependencias",
+            "Mostra quem trouxe cada pacote, e onde ha versao compartilhada.",
+            veja=("list", "why")),
+        Cmd("why", "dataforge why <pacote>",
+            "Explica por que um pacote esta instalado",
+            "Mostra a cadeia desde o forge.toml ate ele.",
+            exemplos=[("dataforge why tabela", "")],
+            veja=("tree", "list")),
+        Cmd("outdated", "dataforge outdated",
+            "Lista dependencias com versao mais nova disponivel",
+            "Separa o que cabe na faixa declarada do que exigiria\n"
+            "mudar o forge.toml.",
+            veja=("add", "list")),
+        Cmd("search", "dataforge search <termo>",
+            "Procura pacotes no registro",
+            "Busca no nome, na descricao e nas tags.",
+            exemplos=[("dataforge search cpf", ""),
+                      ('dataforge search ""', "lista tudo")],
+            veja=("add",)),
+        Cmd("pack", "dataforge pack",
+            "Empacota este projeto para publicar",
+            "Gera dist/<nome>-<versao>.tar.gz com o sha256.\n"
+            "Reprodutivel: mesma fonte, mesmo hash.",
+            veja=("publish",)),
+        Cmd("publish", "dataforge publish --registry=<pasta>",
+            "Publica o pacote num registro",
+            "O registro e uma pasta com index.json e pacotes/.",
+            veja=("pack",)),
+    ]),
+
+    ("Diagnostico", [
+        Cmd("explain", "dataforge explain <codigo>",
+            "Explica um codigo de erro",
+            "Todo erro do DataForge tem um codigo estavel, como DF0601.\n"
+            "Este comando diz o que ele significa e como resolver.",
+            exemplos=[("dataforge explain DF0601", ""),
+                      ("dataforge explain 0401", "o prefixo e opcional")],
+            veja=("check",)),
+        Cmd("doc", "dataforge doc [alvo]",
+            "Gera documentacao Markdown a partir dos comentarios",
+            opcoes=[("--out=<arquivo>", "escreve num arquivo")],
+            exemplos=[("dataforge doc src/ --out=doc/API.md", "")]),
+        Cmd("deps", "dataforge deps [alvo]",
+            "Mostra o grafo de imports do codigo",
+            "Quem adota quem, e avisa sobre ciclos.",
+            veja=("tree",)),
+        Cmd("tokens", "dataforge tokens <arquivo>",
+            "Mostra o fluxo de tokens (lexer)",
+            veja=("ast",)),
+        Cmd("ast", "dataforge ast <arquivo>",
+            "Mostra a arvore sintatica (parser)",
+            veja=("tokens",)),
+        Cmd("clean", "dataforge clean",
+            "Limpa caches e artefatos de build",
+            "Remove dist/, __pycache__ e o cache de pacotes baixados.",
+            opcoes=[("--all", "inclui forge_modules/ e o cache global")]),
+        Cmd("version", "dataforge version",
+            "Mostra a versao", apelidos=("--version", "-V")),
+        Cmd("help", "dataforge help [comando]",
+            "Mostra esta ajuda, ou a de um comando",
+            exemplos=[("dataforge help", "visao geral"),
+                      ("dataforge help add", "so o 'add'")],
+            apelidos=("--help", "-h")),
+    ]),
+]
+
+#: nome ou apelido -> Cmd
+COMANDOS = {}
+for _grupo, _lista in GRUPOS:
+    for _c in _lista:
+        COMANDOS[_c.nome] = _c
+        for _a in _c.apelidos:
+            COMANDOS[_a] = _c
+
+
+def ajuda_geral():
+    """O help principal: comandos agrupados por proposito."""
+    linhas = [LOGO.rstrip("\n")]
+    linhas.append(f"  {color('DataForge', '1;37')} "
+                  f"{color('v' + __version__, '0;90')}"
+                  f"  —  linguagem de programacao\n")
+    linhas.append(f"  {color('USO', '1;36')}")
+    linhas.append(f"      dataforge <comando> [alvo] [opcoes]\n")
+
+    for grupo, comandos in GRUPOS:
+        linhas.append(f"  {color(grupo.upper(), '1;36')}")
+        for c in comandos:
+            nome = c.nome.ljust(10)
+            linhas.append(f"      {color(nome, '1;37')} {c.resumo}")
+        linhas.append("")
+
+    linhas.append(f"  {color('OPCOES GERAIS', '1;36')}")
+    for flag, desc in [("--no-color", "desliga as cores"),
+                       ("--debug", "traceback completo do interpretador"),
+                       ("-h, --help", "ajuda de um comando")]:
+        linhas.append(f"      {flag.ljust(14)} {desc}")
+    linhas.append("")
+    linhas.append(f"  {color('PARA COMECAR', '1;36')}")
+    linhas.append(f"      dataforge init meu-app     cria um projeto")
+    linhas.append(f"      dataforge repl             experimenta a linguagem")
+    linhas.append(f"      dataforge help run         ajuda de um comando\n")
+    linhas.append(color("  documentacao: https://dataforge-lang.vercel.app/docs",
+                        "0;90"))
+    return "\n".join(linhas)
+
+
+def ajuda_comando(nome):
+    """A ajuda detalhada de um comando."""
+    cmd = COMANDOS.get(nome)
+    if cmd is None:
+        return None
+
+    linhas = [""]
+    linhas.append(f"  {color(cmd.nome, '1;37')} — {cmd.resumo}")
+    linhas.append("")
+    linhas.append(f"  {color('USO', '1;36')}")
+    linhas.append(f"      {cmd.uso}")
+
+    if cmd.apelidos:
+        linhas.append("")
+        linhas.append(f"  {color('TAMBEM', '1;36')}")
+        linhas.append(f"      {', '.join(cmd.apelidos)}")
+
+    if cmd.detalhe:
+        linhas.append("")
+        for linha in cmd.detalhe.split("\n"):
+            linhas.append(f"      {linha}")
+
+    if cmd.opcoes:
+        linhas.append("")
+        linhas.append(f"  {color('OPCOES', '1;36')}")
+        larg = max(len(o[0]) for o in cmd.opcoes) + 2
+        for flag, desc in cmd.opcoes:
+            linhas.append(f"      {color(flag.ljust(larg), '1;37')} {desc}")
+
+    if cmd.exemplos:
+        linhas.append("")
+        linhas.append(f"  {color('EXEMPLOS', '1;36')}")
+        larg = max(len(e[0]) for e in cmd.exemplos) + 2
+        for comando, o_que in cmd.exemplos:
+            sufixo = color(f"  {o_que}", "0;90") if o_que else ""
+            linhas.append(f"      {comando.ljust(larg) if o_que else comando}"
+                          f"{sufixo}")
+
+    if cmd.veja:
+        linhas.append("")
+        linhas.append(f"  {color('VEJA TAMBEM', '1;36')}")
+        linhas.append(f"      {', '.join(cmd.veja)}")
+
+    linhas.append("")
+    return "\n".join(linhas)
+
+
+def comando_parecido(nome):
+    """Sugestao para quem errou o nome do comando."""
+    import difflib
+    perto = difflib.get_close_matches(nome, sorted(COMANDOS), n=3, cutoff=0.6)
+    return perto
+
+
+USAGE = None      # montado sob demanda, para as cores respeitarem --no-color
 
 
 def color(text: str, code: str) -> str:
@@ -1352,20 +1622,494 @@ def _ler(caminho):
         return None, e.strerror or str(e)
 
 
-def _expandir(alvos):
-    """Resolve caminhos e pastas numa lista de arquivos .df."""
+#: Pastas que uma varredura por '.' nunca deve entrar.
+#  forge_modules e codigo de terceiros: analisar, formatar ou lintar o que
+#  se baixou nao ajuda ninguem, e enche a saida de ruido que o usuario nao
+#  pode corrigir. E o mesmo motivo pelo qual ninguem linta node_modules.
+PASTAS_IGNORADAS = {
+    "forge_modules", ".git", "__pycache__", ".venv", "venv",
+    "node_modules", "dist", ".pytest_cache", ".mypy_cache",
+}
+
+
+def _expandir(alvos, incluir_dependencias=False):
+    """Resolve caminhos e pastas numa lista de arquivos .df.
+
+    Uma pasta explicita e sempre respeitada: 'dataforge check
+    forge_modules/x' analisa o que foi pedido. O filtro so vale para a
+    varredura recursiva.
+    """
     import glob as _glob
+
+    ignorar = set() if incluir_dependencias else PASTAS_IGNORADAS
     arquivos = []
+
+    def visivel(caminho):
+        partes = set(os.path.normpath(caminho).split(os.sep))
+        return not (partes & ignorar)
+
     for alvo in alvos:
         if os.path.isdir(alvo):
-            arquivos.extend(_glob.glob(os.path.join(alvo, "**", "*.df"),
-                                       recursive=True))
+            achados = _glob.glob(os.path.join(alvo, "**", "*.df"),
+                                 recursive=True)
+            # o que foi pedido explicitamente nao e filtrado
+            base = set(os.path.normpath(alvo).split(os.sep))
+            arquivos.extend(
+                a for a in achados
+                if visivel(os.path.relpath(a, alvo)) or (base & ignorar))
         elif os.path.isfile(alvo):
             arquivos.append(alvo)
         else:
             achados = _glob.glob(alvo, recursive=True)
-            arquivos.extend(a for a in achados if a.endswith('.df'))
+            arquivos.extend(a for a in achados
+                            if a.endswith('.df') and visivel(a))
     return sorted(set(os.path.normpath(a) for a in arquivos))
+
+
+# ═══════════════════════════════════════════════════════════
+#  Comandos novos do 4.1
+# ═══════════════════════════════════════════════════════════
+
+def eval_command(codigo, debug=False):
+    """dataforge eval '<codigo>' — roda uma linha sem criar arquivo."""
+    if not codigo:
+        print(color("Erro: informe o codigo entre aspas.", "1;31"))
+        print("  dataforge eval 'out 2 ** 10'")
+        sys.exit(1)
+
+    # ';' separa instrucoes, para caber numa linha do shell
+    fonte = codigo.replace("; ", "\n").replace(";", "\n")
+    try:
+        arvore = parse(tokenize(fonte, "<eval>"), "<eval>")
+        Interpreter().run(arvore, "<eval>")
+    except DataForgeError as e:
+        e.filename = "<eval>"
+        print(e.render(color='--no-color' not in sys.argv,
+                       source_lines=fonte.split("\n")))
+        sys.exit(1)
+
+
+def watch_command(alvo, modo="run"):
+    """dataforge watch — reexecuta a cada save.
+
+    Sem biblioteca de watch: compara o mtime a cada meio segundo. Para
+    um punhado de arquivos isso e mais simples e mais portatil que
+    inotify, e a diferenca nao se percebe.
+    """
+    import subprocess
+
+    arquivos = _expandir([alvo]) if alvo else _expandir(["."])
+    if not arquivos:
+        print(color("Nenhum arquivo .df para observar.", "1;33"))
+        sys.exit(1)
+
+    rotulo = {"run": f"run {alvo}", "test": "test", "check": "check ."}[modo]
+    print(color(f"observando {len(arquivos)} arquivo(s) — Ctrl+C para sair",
+                "1;36"))
+
+    def rodar():
+        os.system("clear" if os.name != "nt" else "cls")
+        print(color(f"$ dataforge {rotulo}", "0;90"))
+        print()
+        comando = {"run": ["run", alvo] if alvo else ["run"],
+                   "test": ["test"], "check": ["check", "."]}[modo]
+        subprocess.run([sys.executable, "-m", "dataforge"] + comando)
+        print()
+        print(color("aguardando mudancas…", "0;90"))
+
+    marcas = {a: os.path.getmtime(a) for a in arquivos}
+    rodar()
+    try:
+        while True:
+            time.sleep(0.5)
+            mudou = False
+            for a in list(marcas):
+                try:
+                    agora = os.path.getmtime(a)
+                except OSError:
+                    continue
+                if agora != marcas[a]:
+                    marcas[a] = agora
+                    mudou = True
+            if mudou:
+                rodar()
+    except KeyboardInterrupt:
+        print("\n" + color("ate a proxima.", "1;33"))
+
+
+def bench_command(alvo, repeticoes=10):
+    """dataforge bench — mede o tempo, repetindo."""
+    import statistics
+
+    if not alvo or not os.path.exists(alvo):
+        print(color(f"Erro: arquivo nao encontrado: {alvo}", "1;31"))
+        sys.exit(1)
+
+    fonte, motivo = _ler(alvo)
+    if motivo:
+        print(color(f"Erro: {alvo}: {motivo}", "1;31"))
+        sys.exit(1)
+
+    try:
+        arvore = parse(tokenize(fonte, alvo), alvo)
+    except DataForgeError as e:
+        print(color(f"✗ {alvo}: {e.format()}", "1;31"))
+        sys.exit(1)
+
+    import io
+    from contextlib import redirect_stdout
+
+    print(color(f"medindo {os.path.basename(alvo)} — "
+                f"{repeticoes} repeticoes", "1;36"))
+
+    # As primeiras execucoes aquecem cache e alocador; medi-las
+    # distorce a mediana para cima.
+    aquecimento = min(3, max(1, repeticoes // 5))
+    tempos = []
+    for i in range(repeticoes + aquecimento):
+        inicio = time.perf_counter()
+        try:
+            with redirect_stdout(io.StringIO()):
+                Interpreter().run(arvore, alvo)
+        except DataForgeError as e:
+            print(color(f"✗ o programa falhou: {e.message}", "1;31"))
+            sys.exit(1)
+        decorrido = time.perf_counter() - inicio
+        if i >= aquecimento:
+            tempos.append(decorrido)
+
+    def ms(v):
+        return f"{v * 1000:.2f} ms"
+
+    print()
+    print(f"  mediana   {color(ms(statistics.median(tempos)), '1;32')}")
+    print(f"  minimo    {ms(min(tempos))}")
+    print(f"  maximo    {ms(max(tempos))}")
+    if len(tempos) > 1:
+        desvio = statistics.stdev(tempos)
+        print(f"  desvio    {ms(desvio)}  "
+              f"{color(f'({desvio / statistics.median(tempos) * 100:.1f}%)', '0;90')}")
+    print(color(f"\n  {aquecimento} execucao(oes) de aquecimento descartada(s)",
+                "0;90"))
+
+
+def explain_command(codigo):
+    """dataforge explain DF0601 — o que significa um codigo de erro."""
+    from .diagnosticos import CATALOGO, buscar
+
+    if not codigo:
+        print(color("Erro: informe o codigo.", "1;31"))
+        print("  dataforge explain DF0601")
+        print()
+        print("  Codigos conhecidos:")
+        for c in sorted(CATALOGO):
+            print(f"    {c}  {CATALOGO[c]['titulo']}")
+        sys.exit(1)
+
+    entrada = buscar(codigo)
+    if entrada is None:
+        print(color(f"Nao conheco o codigo '{codigo}'.", "1;31"))
+        print(f"\n  Codigos disponiveis: {', '.join(sorted(CATALOGO))}")
+        sys.exit(1)
+
+    cod, dados = entrada
+    print()
+    print(f"  {color(cod, '1;31')}  {color(dados['titulo'], '1;37')}")
+    print()
+    for linha in dados['explicacao'].strip().split("\n"):
+        print(f"  {linha}")
+    if dados.get('exemplo'):
+        print()
+        print(f"  {color('EXEMPLO', '1;36')}")
+        for linha in dados['exemplo'].strip().split("\n"):
+            print(f"      {linha}")
+    if dados.get('solucao'):
+        print()
+        print(f"  {color('COMO RESOLVER', '1;36')}")
+        for linha in dados['solucao'].strip().split("\n"):
+            print(f"      {linha}")
+    if dados.get('doc'):
+        print()
+        print(color(f"  doc: https://dataforge-lang.vercel.app/docs/"
+                    f"{dados['doc']}", "0;90"))
+    print()
+
+
+def tree_command():
+    """dataforge tree — a arvore de dependencias."""
+    from . import packages as pk
+
+    manifesto = _manifesto_ou_sair()
+    lock = pk.Lock(manifesto.raiz)
+    if not lock.pacotes:
+        print(color("Nenhum pacote instalado.", "1;33"))
+        return
+
+    diretas = list(manifesto.dependencies)
+    print(color(f"{manifesto.name or 'projeto'} "
+                f"{manifesto.version}", "1;36"))
+
+    vistos = set()
+
+    def ramo(nome, prefixo, ultimo):
+        marca = "└─ " if ultimo else "├─ "
+        info = lock.pacotes.get(nome)
+        if info is None:
+            print(f"{prefixo}{marca}{color(nome, '1;31')} "
+                  f"{color('(nao instalado)', '0;90')}")
+            return
+        repetido = nome in vistos
+        rotulo = f"{nome}@{info['versao']}"
+        sufixo = color("  (ja mostrado)", "0;90") if repetido else ""
+        print(f"{prefixo}{marca}{color(rotulo, '1;37')}{sufixo}")
+        if repetido:
+            return
+        vistos.add(nome)
+
+        filhos = sorted(info.get("dependencias", {}))
+        novo_prefixo = prefixo + ("   " if ultimo else "│  ")
+        for i, filho in enumerate(filhos):
+            ramo(filho, novo_prefixo, i == len(filhos) - 1)
+
+    for i, nome in enumerate(sorted(diretas)):
+        ramo(nome, "", i == len(diretas) - 1)
+
+    orfaos = sorted(set(lock.pacotes) - vistos)
+    if orfaos:
+        print()
+        print(color(f"  {len(orfaos)} no lock mas fora da arvore: "
+                    f"{', '.join(orfaos)}", "1;33"))
+        print(color("  rode 'dataforge install' para reconciliar", "0;90"))
+
+
+def why_command(nome):
+    """dataforge why <pacote> — quem trouxe este pacote."""
+    from . import packages as pk
+
+    if not nome:
+        print(color("Erro: informe o pacote.", "1;31"))
+        sys.exit(1)
+
+    manifesto = _manifesto_ou_sair()
+    lock = pk.Lock(manifesto.raiz)
+    if nome not in lock.pacotes:
+        print(color(f"'{nome}' nao esta instalado.", "1;33"))
+        perto = [n for n in lock.pacotes if nome in n]
+        if perto:
+            print(f"  Instalados parecidos: {', '.join(perto)}")
+        sys.exit(1)
+
+    diretas = set(manifesto.dependencies)
+    caminhos = []
+
+    def buscar_ate(alvo, atual, caminho):
+        if atual == alvo and caminho:
+            caminhos.append(list(caminho))
+            return
+        for filho in lock.pacotes.get(atual, {}).get("dependencias", {}):
+            if filho in caminho:
+                continue
+            buscar_ate(alvo, filho, caminho + [filho])
+
+    if nome in diretas:
+        faixa = manifesto.dependencies[nome]
+        faixa = faixa if isinstance(faixa, str) else "(fonte propria)"
+        print(f"  {color(nome, '1;37')} e uma dependencia "
+              f"{color('direta', '1;32')}")
+        print(f"  declarada no forge.toml como {color(faixa, '1;37')}")
+    else:
+        for direta in sorted(diretas):
+            buscar_ate(nome, direta, [direta])
+        if not caminhos:
+            print(color(f"  '{nome}' esta no lock, mas ninguem o exige.",
+                        "1;33"))
+            print(color("  rode 'dataforge install' para reconciliar", "0;90"))
+            return
+        print(f"  {color(nome, '1;37')} e "
+              f"{color('transitiva', '1;33')} — veio por:")
+        for caminho in caminhos:
+            print("      " + color(" → ", "0;90").join(caminho))
+
+    versao = lock.pacotes[nome]["versao"]
+    print()
+    print(f"  versao instalada: {color(versao, '1;37')}")
+
+
+def outdated_command(offline=False):
+    """dataforge outdated — o que tem versao mais nova."""
+    from . import packages as pk
+
+    manifesto = _manifesto_ou_sair()
+    lock = pk.Lock(manifesto.raiz)
+    if not lock.pacotes:
+        print(color("Nenhum pacote instalado.", "1;33"))
+        return
+
+    registro = pk.Registro(offline=offline)
+    declaradas = {d.nome: d for d in pk.ler_dependencias(manifesto.dependencies)}
+
+    dentro_da_faixa, exige_mudanca, erros = [], [], []
+    for nome, info in sorted(lock.pacotes.items()):
+        dep = declaradas.get(nome)
+        if dep is not None and dep.fonte != "registro":
+            continue
+        try:
+            disponiveis = registro.versoes(nome)
+        except pk.ErroPacote:
+            erros.append(nome)
+            continue
+
+        atual = pk.Versao(info["versao"])
+        mais_nova = max((pk.Versao(v) for v in disponiveis),
+                        key=lambda v: v.chave, default=atual)
+        if mais_nova <= atual:
+            continue
+
+        requisito = dep.requisito if dep else pk.Requisito("*")
+        cabe = requisito.melhor(disponiveis)
+        if cabe is not None and cabe > atual:
+            dentro_da_faixa.append((nome, atual, cabe, mais_nova, requisito))
+        else:
+            exige_mudanca.append((nome, atual, mais_nova, requisito))
+
+    if not dentro_da_faixa and not exige_mudanca:
+        print(color("✓ tudo atualizado", "1;32"))
+        return
+
+    if dentro_da_faixa:
+        print(color("Dentro da faixa declarada — basta reinstalar:", "1;36"))
+        for nome, atual, cabe, ultima, req in dentro_da_faixa:
+            print(f"  {nome:<18} {color(str(atual), '0;90')} → "
+                  f"{color(str(cabe), '1;32')}   "
+                  f"{color(f'({req})', '0;90')}")
+        print(color("\n  dataforge install", "0;90"))
+
+    if exige_mudanca:
+        print()
+        print(color("Exige mudar o forge.toml:", "1;33"))
+        for nome, atual, ultima, req in exige_mudanca:
+            print(f"  {nome:<18} {color(str(atual), '0;90')} → "
+                  f"{color(str(ultima), '1;33')}   "
+                  f"{color(f'a faixa {req} nao alcanca', '0;90')}")
+        print(color("\n  confira o que mudou antes de subir a faixa", "0;90"))
+
+    if erros:
+        print()
+        print(color(f"  nao consegui consultar: {', '.join(erros)}", "0;90"))
+
+
+def deps_command(alvos):
+    """dataforge deps — o grafo de imports do codigo."""
+    import re as _re
+
+    arquivos = _expandir(alvos or ["."])
+    if not arquivos:
+        print(color("Nenhum arquivo .df encontrado.", "1;33"))
+        return
+
+    grafo, stdlib = {}, {}
+    for caminho in arquivos:
+        fonte, motivo = _ler(caminho)
+        if motivo:
+            continue
+        curto = os.path.relpath(caminho)
+        # 'adopt geometria.{a, b}' importa de 'geometria': o ponto antes
+        # da chave separa o modulo dos nomes, e nao faz parte do nome.
+        adotados = _re.findall(r'^\s*adopt\s+([A-Za-z_][\w.]*?)\.?(?=\s|\{|$)',
+                               fonte, _re.MULTILINE)
+        adotados += _re.findall(r'\bfrom\s+([A-Za-z_][\w.]*)', fonte)
+        proprios = [a for a in adotados if not a.startswith("Arcane")
+                    and a not in ("IO", "Math", "Text", "Data")]
+        grafo[curto] = sorted(set(proprios))
+        for a in adotados:
+            if a.startswith("Arcane") or a in ("IO", "Math", "Text", "Data"):
+                stdlib[a] = stdlib.get(a, 0) + 1
+
+    com_deps = {k: v for k, v in grafo.items() if v}
+    print(color(f"{len(grafo)} arquivo(s), "
+                f"{len(com_deps)} com imports proprios", "1;36"))
+    if com_deps:
+        print()
+        for arquivo in sorted(com_deps):
+            print(f"  {color(arquivo, '1;37')}")
+            for alvo in com_deps[arquivo]:
+                print(f"      → {alvo}")
+
+    if stdlib:
+        print()
+        print(color("Modulos da biblioteca padrao mais usados:", "1;36"))
+        for nome, n in sorted(stdlib.items(), key=lambda x: -x[1])[:10]:
+            print(f"  {nome:<24} {color(str(n) + '×', '0;90')}")
+
+    # Ciclos: A adota B e B adota A, direta ou indiretamente
+    ciclos = []
+    def caminhar(no, visto):
+        for vizinho in grafo.get(no, []):
+            candidato = next((k for k in grafo if k.endswith(vizinho + ".df")),
+                             None)
+            if candidato is None:
+                continue
+            if candidato in visto:
+                ciclos.append(visto[visto.index(candidato):] + [candidato])
+                continue
+            caminhar(candidato, visto + [candidato])
+    for no in grafo:
+        caminhar(no, [no])
+    if ciclos:
+        print()
+        print(color(f"⚠ {len(ciclos)} ciclo(s) de import:", "1;33"))
+        for c in ciclos[:5]:
+            print("    " + " → ".join(c))
+
+
+def clean_command(tudo=False):
+    """dataforge clean — remove artefatos gerados."""
+    import shutil
+
+    from . import project as proj
+    manifesto = proj.carregar(".")
+    raiz = manifesto.raiz if manifesto else os.getcwd()
+
+    alvos = [
+        (os.path.join(raiz, "dist"), "dist/"),
+    ]
+    if tudo:
+        from . import packages as pk
+        alvos.append((os.path.join(raiz, pk.PASTA_MODULOS),
+                      f"{pk.PASTA_MODULOS}/"))
+        alvos.append((pk.CACHE, "cache global de pacotes"))
+
+    liberado, removidos = 0, []
+    for caminho, rotulo in alvos:
+        if os.path.isdir(caminho):
+            liberado += sum(
+                os.path.getsize(os.path.join(pasta, f))
+                for pasta, _, arquivos in os.walk(caminho) for f in arquivos)
+            shutil.rmtree(caminho)
+            removidos.append(rotulo)
+
+    # __pycache__ espalhado
+    n_cache = 0
+    for pasta, subpastas, _ in os.walk(raiz):
+        for sub in list(subpastas):
+            if sub == "__pycache__":
+                alvo = os.path.join(pasta, sub)
+                liberado += sum(
+                    os.path.getsize(os.path.join(p, f))
+                    for p, _, fs in os.walk(alvo) for f in fs)
+                shutil.rmtree(alvo, ignore_errors=True)
+                subpastas.remove(sub)
+                n_cache += 1
+    if n_cache:
+        removidos.append(f"{n_cache} __pycache__")
+
+    if not removidos:
+        print(color("Nada a limpar.", "1;33"))
+        return
+    print(color(f"✓ removido: {', '.join(removidos)}", "1;32"))
+    print(f"  {liberado / 1024:.0f} KB liberados")
+    if not tudo:
+        print(color("  (--all inclui forge_modules/ e o cache global)", "0;90"))
 
 
 def main():
@@ -1377,10 +2121,18 @@ def main():
     show_time = '--time' in flags
 
     if not args:
-        print(USAGE)
+        # '-h' / '--help' sozinhos tambem caem aqui
+        print(ajuda_geral())
         sys.exit(0)
 
     command = args[0]
+
+    # 'dataforge <comando> --help' mostra a ajuda daquele comando
+    if '--help' in flags or '-h' in sys.argv[1:]:
+        detalhe = ajuda_comando(command)
+        if detalhe:
+            print(detalhe)
+            sys.exit(0)
 
     if command == 'run':
         if len(args) < 2:
@@ -1476,12 +2228,60 @@ def main():
     elif command == 'info':
         info_command(args[1:])
 
+    elif command == 'eval':
+        eval_command(" ".join(args[1:]), debug=debug)
+
+    elif command == 'watch':
+        modo = ('test' if '--test' in flags
+                else 'check' if '--check' in flags else 'run')
+        watch_command(args[1] if len(args) > 1 else None, modo)
+
+    elif command == 'bench':
+        repeticoes = 10
+        for f in flags:
+            if f.startswith('--runs='):
+                try:
+                    repeticoes = max(1, int(f.split('=', 1)[1]))
+                except ValueError:
+                    print(color(f"--runs precisa de um numero: {f}", "1;31"))
+                    sys.exit(1)
+        bench_command(args[1] if len(args) > 1 else None, repeticoes)
+
+    elif command == 'explain':
+        explain_command(args[1] if len(args) > 1 else "")
+
+    elif command == 'tree':
+        tree_command()
+
+    elif command == 'why':
+        why_command(args[1] if len(args) > 1 else "")
+
+    elif command == 'outdated':
+        outdated_command(offline='--offline' in flags)
+
+    elif command == 'deps':
+        deps_command(args[1:])
+
+    elif command == 'clean':
+        clean_command(tudo='--all' in flags)
+
     elif command == 'version':
         print(f"DataForge v{__version__}")
         print(f"Python {sys.version}")
 
-    elif command == 'help':
-        print(USAGE)
+    elif command in ('help', '--help', '-h'):
+        if len(args) > 1:
+            detalhe = ajuda_comando(args[1])
+            if detalhe:
+                print(detalhe)
+            else:
+                print(color(f"Nao ha comando '{args[1]}'.", "1;31"))
+                perto = comando_parecido(args[1])
+                if perto:
+                    print(f"  Voce quis dizer: {', '.join(perto)}?")
+                sys.exit(1)
+        else:
+            print(ajuda_geral())
 
     elif command.endswith('.df'):
         # Direct file execution: dataforge myfile.df
@@ -1491,8 +2291,16 @@ def main():
         pass
 
     else:
-        print(color(f"Comando desconhecido: {command}", "1;31"))
-        print("Rode 'dataforge help' para ver a lista.")
+        print(color(f"'{command}' nao e um comando do DataForge.", "1;31"))
+        perto = comando_parecido(command)
+        if perto:
+            if len(perto) == 1:
+                print(f"\n  Voce quis dizer {color(perto[0], '1;37')}?")
+            else:
+                opcoes = ", ".join(color(p, '1;37') for p in perto)
+                print(f"\n  Voce quis dizer: {opcoes}?")
+        print(f"\n  {color('dataforge help', '1;36')} lista os "
+              f"{len(set(c.nome for _, l in GRUPOS for c in l))} comandos.")
         sys.exit(1)
 
 
