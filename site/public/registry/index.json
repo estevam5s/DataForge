@@ -1,0 +1,91 @@
+{
+ "registro": "dataforge",
+ "pacotes": {
+  "validador": {
+   "descricao": "Validação de dados: e-mail, CPF, CNPJ, CEP, telefone, cartão e senha, com regras encadeáveis.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "validacao",
+    "formulario",
+    "cpf",
+    "cnpj",
+    "brasil"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "validador-1.0.0.tar.gz",
+     "sha256": "9eb3d7de7b8581abf905ad93c978514af39b65253ede72ee82d262c8fe7761d0",
+     "dependencias": {},
+     "dataforge": ">=4.0"
+    }
+   }
+  },
+  "tabela": {
+   "descricao": "Tabelas de texto para o terminal: bordas, alinhamento, cores, barras e sparklines.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "terminal",
+    "cli",
+    "tabela",
+    "formatacao"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "tabela-1.0.0.tar.gz",
+     "sha256": "c00eae3940cd9846b3b2ed1aec92d772bd0b558f9ab8bd8167b1379334d922fa",
+     "dependencias": {},
+     "dataforge": ">=4.0"
+    }
+   }
+  },
+  "datas": {
+   "descricao": "Datas em português: formatação, tempo relativo, dias úteis, feriados brasileiros e faixas.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "data",
+    "tempo",
+    "feriado",
+    "brasil",
+    "calendario"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "datas-1.0.0.tar.gz",
+     "sha256": "533100cb7b1d5425f07b349cbb5b9bcca71ce3f91f7e8a45c386a01c1deddb42",
+     "dependencias": {},
+     "dataforge": ">=4.0"
+    }
+   }
+  },
+  "cofre": {
+   "descricao": "Configuração em camadas: padrões, arquivo, ambiente e argumentos, com tipos e validação.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "config",
+    "env",
+    "cli",
+    "argumentos"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "cofre-1.0.0.tar.gz",
+     "sha256": "180ebbafbd50ca7f5cc407a3ca60e57fb1514915cc74a7b7aee209592dcab9b9",
+     "dependencias": {},
+     "dataforge": ">=4.0"
+    }
+   }
+  }
+ }
+}

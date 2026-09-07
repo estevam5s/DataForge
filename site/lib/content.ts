@@ -10,7 +10,7 @@ export type Bloco =
   | { h2: string }
   | { h3: string }
   | { p: string }
-  | { code: string; lang?: 'df' | 'bash' | 'toml' | 'json' | 'text'; title?: string }
+  | { code: string; lang?: 'df' | 'bash' | 'powershell' | 'toml' | 'json' | 'text'; title?: string }
   | { list: string[]; ordered?: boolean }
   | { table: { head: string[]; rows: string[][] } }
   | { callout: { tipo?: 'dica' | 'nota' | 'atencao' | 'perigo'; titulo?: string; texto: string } }

@@ -1,0 +1,80 @@
+adopt Arcane.Test as T
+adopt Arcane.IO as IO
+adopt cofre as C
+
+action test_padroes():
+    cfg := C.padroes(C.novo(), {"porta": 8080, "debug": no})
+    T.assert_eq(C.pegar(cfg, "porta"), 8080)
+    T.assert_eq(C.pegar(cfg, "debug"), no)
+    T.assert_eq(C.pegar(cfg, "inexistente", "cai_aqui"), "cai_aqui")
+    T.assert_true(C.tem(cfg, "porta"))
+    T.assert_false(C.tem(cfg, "inexistente"))
+
+action test_camada_seguinte_sobrescreve():
+    cfg := C.padroes(C.novo(), {"porta": 8080, "host": "local"})
+    cfg := C.dos_argumentos(cfg, ["--porta", "9000"])
+    T.assert_eq(C.pegar(cfg, "porta"), 9000)
+    T.assert_eq(C.pegar(cfg, "host"), "local")
+    T.assert_eq(C.origem(cfg, "porta"), "argumentos")
+    T.assert_eq(C.origem(cfg, "host"), "padrão")
+
+action test_argumentos_formatos():
+    cfg := C.dos_argumentos(C.novo(), [
+        "--porta", "9000", "--host=exemplo.com", "--debug", "--no-cache",
+        "--taxa", "1.5", "--nome", "meu app"
+    ])
+    T.assert_eq(C.pegar(cfg, "porta"), 9000)
+    T.assert_eq(C.pegar(cfg, "host"), "exemplo.com")
+    T.assert_eq(C.pegar(cfg, "debug"), yes)
+    T.assert_eq(C.pegar(cfg, "cache"), no)
+    T.assert_eq(C.pegar(cfg, "taxa"), 1.5)
+    T.assert_eq(C.pegar(cfg, "nome"), "meu app")
+
+action test_hifen_vira_sublinhado():
+    cfg := C.dos_argumentos(C.novo(), ["--tempo-limite", "30"])
+    T.assert_eq(C.pegar(cfg, "tempo_limite"), 30)
+
+action test_conversao_de_tipo():
+    cfg := C.dos_argumentos(C.novo(), ["--n", "42", "--f", "3.14", "--b", "yes",
+                                        "--neg", "-7", "--txt", "abc"])
+    T.assert_eq(typeof(C.pegar(cfg, "n")), "Integer")
+    T.assert_eq(typeof(C.pegar(cfg, "f")), "Float")
+    T.assert_eq(typeof(C.pegar(cfg, "b")), "Boolean")
+    T.assert_eq(C.pegar(cfg, "neg"), -7)
+    T.assert_eq(typeof(C.pegar(cfg, "txt")), "String")
+
+action test_arquivo_json():
+    caminho := "/tmp/cofre_teste.json"
+    IO.write(caminho, "{\"porta\": 3000, \"nome\": \"do arquivo\"}")
+    cfg := C.padroes(C.novo(), {"porta": 8080})
+    cfg := C.do_arquivo(cfg, caminho)
+    T.assert_eq(C.pegar(cfg, "porta"), 3000)
+    T.assert_eq(C.pegar(cfg, "nome"), "do arquivo")
+    T.assert_true(C.origem(cfg, "porta").startswith("arquivo:"))
+
+action test_arquivo_ausente_e_tolerado():
+    cfg := C.do_arquivo(C.novo(), "/tmp/nao_existe_mesmo.json")
+    T.assert_eq(len(C.tudo(cfg)), 0)
+
+action test_arquivo_obrigatorio_falha():
+    T.assert_throws(lambda => C.do_arquivo(C.novo(), "/tmp/nao_existe.json", yes))
+
+action test_exigir():
+    cfg := C.padroes(C.novo(), {"a": 1})
+    C.exigir(cfg, ["a"])
+    T.assert_throws(lambda => C.exigir(cfg, ["a", "b", "c"]))
+
+action test_conversores():
+    cfg := C.padroes(C.novo(), {"n": "42", "b": "yes", "l": "a, b, c"})
+    T.assert_eq(C.como_inteiro(cfg, "n"), 42)
+    T.assert_eq(C.como_inteiro(cfg, "ausente", 7), 7)
+    T.assert_eq(C.como_booleano(cfg, "b"), yes)
+    T.assert_eq(C.como_lista(cfg, "l"), ["a", "b", "c"])
+    T.assert_eq(C.como_texto(cfg, "ausente", "padrao"), "padrao")
+
+action test_explicar():
+    cfg := C.padroes(C.novo(), {"a": 1})
+    cfg := C.dos_argumentos(cfg, ["--b", "2"])
+    texto := C.explicar(cfg)
+    T.assert_true(texto.contains("padrão"))
+    T.assert_true(texto.contains("argumentos"))

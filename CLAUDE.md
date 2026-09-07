@@ -352,6 +352,10 @@ Ao criar um módulo novo, adicione-o em `stdlib/__init__.py` **e** no dicionári
 | `dataforge init` | `project.py` | cria `forge.toml` e esqueleto |
 | `dataforge info` | `project.py` | mostra o manifesto |
 | `dataforge repl` | `repl.py` | console com `:type`, `:ast`, `:load` |
+| `dataforge add/remove` | `packages.py` | instala e desinstala dependências |
+| `dataforge install` | `packages.py` | resolve o `forge.toml` inteiro |
+| `dataforge search` | `packages.py` | procura no registro |
+| `dataforge pack/publish` | `packages.py` | empacota e publica |
 
 ### As ferramentas não podem morrer no meio da pasta
 
@@ -380,6 +384,74 @@ original.
 
 ---
 
+## O gerenciador de pacotes
+
+`dataforge add` resolve, baixa e instala; `adopt` encontra o resultado. As
+três peças:
+
+| Onde | O quê |
+|------|-------|
+| `dataforge/packages.py` | `Versao`, `Requisito` (semver `^` `~` `>=`), `Registro`, `Dependencia`, `Lock`, `resolver()`, `instalar_pacote()`, `empacotar()` |
+| `dataforge/cli.py` | `add_command`, `remove_command`, `install_command`, `list_command`, `search_command`, `pack_command`, `publish_command` |
+| `dataforge/interpreter.py` | `_procurar_em_pacotes()` — o `adopt` olha `forge_modules/`, subindo até achar um `forge.toml` |
+
+Layout de um projeto com dependências:
+
+```
+forge.toml          o que você pediu      (versionado)
+forge.lock          o que foi instalado   (versionado)
+forge_modules/      os pacotes            (NÃO versionado)
+~/.dataforge/cache/ tarballs, entre projetos
+```
+
+**O registro é estático**: uma pasta com `index.json` e `pacotes/*.tar.gz`,
+servida por qualquer host. Não há servidor a manter. O do projeto vive em
+`site/public/registry/` e vai ao ar junto com o site.
+
+Três decisões que valem lembrar:
+
+1. **Conflito de versão é erro, não aviso.** Se dois pacotes pedem faixas
+   incompatíveis do mesmo terceiro, `resolver()` falha dizendo quem pediu o
+   quê. Instalar duas cópias em versões diferentes gera bug irreproduzível.
+2. **O tarball é reprodutível** — `mtime=0`, uid/gid zerados. Sem isso o
+   sha256 mudaria a cada empacotamento e a verificação de integridade não
+   significaria nada.
+3. **A extração recusa `../` e links simbólicos.** Um pacote não pode
+   escrever fora da sua pasta.
+
+### Os pacotes deste repositório
+
+`packages/` tem quatro bibliotecas escritas em DataForge, publicadas no
+registro do site: `validador` (CPF/CNPJ/e-mail e esquema de formulário),
+`tabela` (saída para terminal), `datas` (datas em pt-BR com feriados) e
+`cofre` (configuração em camadas). Somam 46 testes.
+
+Elas servem de referência para quem for escrever um pacote — e de prova de
+que o gerenciador funciona ponta a ponta.
+
+```bash
+cd packages/validador && dataforge pack
+dataforge publish --registry=../../site/public/registry
+```
+
+## Instaladores
+
+| Arquivo | Para |
+|---------|------|
+| `scripts/instalar.sh` | macOS e Linux, POSIX sh (roda em dash e busybox) |
+| `scripts/instalar.ps1` | Windows, PowerShell |
+| `Dockerfile` | imagem multi-estágio, usuário sem privilégio |
+
+Ambos criam uma venv em `~/.dataforge` — não tocam no Python do sistema e
+não pedem sudo. A origem do download é o site (`/dist/dataforge-X.tar.gz`),
+com o GitHub apenas como alternativa.
+
+Ao mudar a versão, regenere o tarball que o site serve:
+
+```bash
+python3 scripts/gerar_tarball.py
+```
+
 ## Testes
 
 | Arquivo | Como roda | Cobre |
@@ -400,7 +472,9 @@ corrigidos no 3.1 e no 4.0 têm teste correspondente.
 
 ## Estado conhecido e limitações
 
-O que **funciona e está testado**: tudo do 3.1 mais tipos verificados, análise
+O que **funciona e está testado**: tudo do 3.1 mais gerenciador de pacotes
+(`add`, `install`, `remove`, `list`, `search`, `pack`, `publish`, com semver,
+lockfile e verificação de integridade), tipos verificados, análise
 estática com sugestões, stack traces, interpolação, ternário, `??`, `?.`, `in`,
 spread/rest, desestruturação, compreensões, records imutáveis com `with`, enums
 com valores, pattern matching estrutural completo, generators preguiçosos
@@ -413,8 +487,6 @@ O que **ainda não existe** (não invente que existe):
 - **Exaustividade** — o `match` não avisa se um membro de enum ficou fora.
 - **Contrato de trait** — não se verifica se o blueprint implementou tudo.
 - **LSP e debugger** — a gramática TextMate só colore.
-- **Gerenciador de pacotes** — `forge.toml` tem a seção `[dependencies]`, mas
-  nada a resolve.
 - **Bytecode** — é interpretador de árvore, sem otimização.
 - **Sincronização entre threads** — sem mutex/semáforo; use `channel`.
 - **`receive` bloqueante** — devolve `void` na hora se a fila está vazia.

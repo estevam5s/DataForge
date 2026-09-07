@@ -1,0 +1,212 @@
+// cofre — configuração em camadas
+//
+//     adopt cofre as C
+//
+//     cfg := C.novo()
+//         >> C.padroes({"porta": 8080, "debug": no})
+//         >> C.do_arquivo("config.json")
+//         >> C.do_ambiente("MEUAPP_")
+//         >> C.dos_argumentos()
+//
+//     out C.pegar(cfg, "porta")
+//
+// A ordem é a de precedência: cada camada sobrescreve a anterior.
+// Argumento de linha de comando ganha de variável de ambiente, que
+// ganha do arquivo, que ganha do padrão. É a ordem que todo mundo
+// espera, e é ela que torna a configuração previsível.
+
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+adopt Arcane.Serialization as Serde
+
+record Config:
+    valores: Vault
+    origens: Vault
+
+action novo():
+    yield Config({}, {})
+
+action _mesclar(cfg, novos, origem):
+    valores := {}
+    origens := {}
+    cycle k in cfg.valores.keys():
+        valores[k] := cfg.valores[k]
+        origens[k] := cfg.origens[k]
+    cycle k in novos.keys():
+        valores[k] := novos[k]
+        origens[k] := origem
+    yield Config(valores, origens)
+
+action padroes(cfg, mapa):
+    yield _mesclar(cfg, mapa, "padrão")
+
+action _converter(texto):
+    // "8080" vira 8080, "yes" vira yes — senão tudo viria como texto
+    // e a comparação com um padrão numérico falharia em silêncio.
+    given typeof(texto) isnt "String":
+        yield texto
+    t := texto.trim()
+    given t.lower() in ["yes", "true", "sim", "1"] and t.length() smaller_eq 4:
+        yield yes
+    given t.lower() in ["no", "false", "nao", "não", "0"] and t.length() smaller_eq 5:
+        yield no
+    given t.lower() in ["void", "null", "nil", ""]:
+        yield void
+    monitor:
+        given t.isdigit() or (t.startswith("-") and t.substring(1).isdigit()):
+            yield int(t)
+        given t.contains(".") and t.replace(".", "").replace("-", "").isdigit():
+            yield float(t)
+    handle e:
+        yield t
+    yield t
+
+action do_arquivo(cfg, caminho, obrigatorio := no):
+    // Aceita JSON, TOML e INI, pela extensão.
+    given not IO.exists(caminho):
+        given obrigatorio:
+            trigger $"arquivo de configuração não encontrado: {caminho}"
+        yield cfg
+
+    texto := IO.read(caminho)
+    dados := {}
+    monitor:
+        given caminho.endswith(".json"):
+            dados := Serde.from_json(texto)
+        orif caminho.endswith(".toml"):
+            dados := _achatar(Serde.from_toml(texto))
+        orif caminho.endswith(".ini") or caminho.endswith(".cfg"):
+            dados := _achatar(Serde.from_ini(texto))
+        otherwise:
+            dados := Serde.from_json(texto)
+    handle e:
+        trigger $"não consegui ler {caminho}: {e.message}"
+
+    yield _mesclar(cfg, dados, $"arquivo:{caminho}")
+
+action _achatar(mapa, prefixo := ""):
+    // TOML e INI têm seções; achata "banco.host" numa chave só.
+    saida := {}
+    cycle k in mapa.keys():
+        valor := mapa[k]
+        chave := k given prefixo is "" otherwise $"{prefixo}.{k}"
+        given typeof(valor) is "Vault":
+            interno := _achatar(valor, chave)
+            cycle ik in interno.keys():
+                saida[ik] := interno[ik]
+        otherwise:
+            saida[chave] := valor
+    yield saida
+
+action do_ambiente(cfg, prefixo := ""):
+    // MEUAPP_PORTA vira a chave "porta"; MEUAPP_BANCO__HOST vira "banco.host".
+    todas := OS.env()
+    achados := {}
+    cycle nome in todas.keys():
+        given prefixo isnt "" and not nome.startswith(prefixo):
+            skip
+        chave := nome.removeprefix(prefixo).lower().replace("__", ".")
+        achados[chave] := _converter(todas[nome])
+    yield _mesclar(cfg, achados, $"ambiente:{prefixo}*")
+
+action dos_argumentos(cfg, argumentos := void):
+    // --porta 9000, --porta=9000, --debug (vira yes), --no-debug (vira no)
+    args := argumentos ?? OS.argv()
+    achados := {}
+    i := 0
+    persist i smaller len(args):
+        arg := str(args[i])
+        given not arg.startswith("--"):
+            i += 1
+            skip
+
+        corpo := arg.removeprefix("--")
+        given corpo.contains("="):
+            partes := corpo.split("=")
+            chave := partes[0].replace("-", "_")
+            achados[chave] := _converter(partes[1])
+            i += 1
+            skip
+
+        given corpo.startswith("no-"):
+            achados[corpo.removeprefix("no-").replace("-", "_")] := no
+            i += 1
+            skip
+
+        chave := corpo.replace("-", "_")
+        proximo := str(args[i + 1]) given i + 1 smaller len(args) otherwise ""
+        given proximo isnt "" and not proximo.startswith("--"):
+            achados[chave] := _converter(proximo)
+            i += 2
+        otherwise:
+            achados[chave] := yes
+            i += 1
+
+    yield _mesclar(cfg, achados, "argumentos")
+
+action pegar(cfg, chave, padrao := void):
+    yield cfg.valores[chave] given cfg.valores.has(chave) otherwise padrao
+
+action tem(cfg, chave):
+    yield cfg.valores.has(chave)
+
+action origem(cfg, chave):
+    // De qual camada veio este valor — a pergunta que se faz às 3 da manhã.
+    yield cfg.origens[chave] given cfg.origens.has(chave) otherwise void
+
+action definir(cfg, chave, valor):
+    yield _mesclar(cfg, {chave: valor}, "manual")
+
+action tudo(cfg):
+    yield cfg.valores
+
+action exigir(cfg, chaves):
+    // Falha cedo, listando tudo o que falta de uma vez.
+    faltando := []
+    cycle c in chaves:
+        given not cfg.valores.has(c) or cfg.valores[c] is void:
+            faltando.append(c)
+    given len(faltando) bigger 0:
+        trigger $"configuração incompleta, faltam: {faltando.join(', ')}"
+    yield cfg
+
+action como_inteiro(cfg, chave, padrao := 0):
+    v := pegar(cfg, chave, padrao)
+    monitor:
+        yield int(v)
+    handle e:
+        yield padrao
+
+action como_texto(cfg, chave, padrao := ""):
+    v := pegar(cfg, chave, padrao)
+    yield padrao given v is void otherwise str(v)
+
+action como_booleano(cfg, chave, padrao := no):
+    v := pegar(cfg, chave, padrao)
+    given typeof(v) is "Boolean":
+        yield v
+    yield _converter(str(v)) is yes
+
+action como_lista(cfg, chave, separador := ",", padrao := void):
+    v := pegar(cfg, chave, void)
+    given v is void:
+        yield padrao ?? []
+    given typeof(v) is "Cluster":
+        yield v
+    itens := []
+    cycle parte in str(v).split(separador):
+        limpo := parte.trim()
+        given limpo isnt "":
+            itens.append(limpo)
+    yield itens
+
+action explicar(cfg):
+    // Cada chave, seu valor e de onde ele veio.
+    linhas := []
+    cycle k in sorted(cfg.valores.keys()):
+        linhas.append($"{k} = {cfg.valores[k]}  ({origem(cfg, k)})")
+    yield linhas.join("\n")
+
+relay Config, novo, padroes, do_arquivo, do_ambiente, dos_argumentos
+relay pegar, tem, origem, definir, tudo, exigir, explicar
+relay como_inteiro, como_texto, como_booleano, como_lista

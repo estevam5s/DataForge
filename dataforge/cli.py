@@ -3,6 +3,7 @@ DataForge CLI (Command Line Interface)
 Main entry point for the DataForge language.
 """
 
+import re
 import sys
 import os
 import time
@@ -258,6 +259,345 @@ def check_command(alvos, strict=False, only_syntax=False):
                     f"em {n} arquivo(s)", "1;33"))
         return
     print(color(f"\u2713 {n} arquivo(s) sem erros", "1;32"))
+
+
+# ─── Gerenciador de pacotes ─────────────────────────────────────
+
+def _manifesto_ou_sair():
+    from . import project as proj
+    m = proj.carregar(".")
+    if m is None:
+        print(color("Nenhum forge.toml encontrado.", "1;31"))
+        print("  Crie um projeto com:  dataforge init")
+        sys.exit(1)
+    return m
+
+
+def _escrever_dependencias(manifesto, mapa):
+    """Reescreve so a secao [dependencies] do forge.toml, preservando o resto.
+
+    Reserializar o arquivo inteiro perderia comentarios e ordem; por isso a
+    substituicao e textual, com fallback para acrescentar a secao no fim.
+    """
+    texto = open(manifesto.caminho, encoding="utf-8").read()
+
+    linhas = ["[dependencies]"]
+    for nome in sorted(mapa):
+        valor = mapa[nome]
+        if isinstance(valor, dict):
+            campos = ", ".join(f'{k} = "{v}"' for k, v in valor.items())
+            linhas.append(f"{nome} = {{ {campos} }}")
+        else:
+            linhas.append(f'{nome} = "{valor}"')
+    bloco = "\n".join(linhas)
+
+    padrao = re.compile(r"^\[dependencies\]\s*$.*?(?=^\[|\Z)",
+                        re.MULTILINE | re.DOTALL)
+    if padrao.search(texto):
+        texto = padrao.sub(bloco + "\n\n", texto, count=1)
+    else:
+        texto = texto.rstrip() + "\n\n" + bloco + "\n"
+
+    open(manifesto.caminho, "w", encoding="utf-8").write(texto)
+
+
+def _sincronizar(manifesto, alvos=None, offline=False, so_conferir=False):
+    """Resolve e instala. Devolve a lista de (nome, versao, fonte)."""
+    from . import packages as pk
+
+    registro = pk.Registro(offline=offline)
+    declaradas = pk.ler_dependencias(manifesto.dependencies)
+    if alvos:
+        declaradas = [d for d in declaradas if d.nome in alvos]
+    if not declaradas:
+        print(color("Nenhuma dependencia declarada.", "1;33"))
+        print("  Adicione uma com:  dataforge add <pacote>")
+        return []
+
+    plano = pk.resolver(declaradas, registro)
+    lock = pk.Lock(manifesto.raiz)
+    instalados = []
+
+    for nome in sorted(plano):
+        item = plano[nome]
+        rotulo = f"{nome}@{item['versao']}" if item["versao"] else nome
+        if so_conferir:
+            print(f"  {rotulo}  ({item['dep'].fonte})")
+            instalados.append((nome, item["versao"], item["dep"].fonte))
+            continue
+        try:
+            versao, sha, fonte = pk.instalar_pacote(
+                nome, item, manifesto.raiz, registro)
+        except pk.ErroPacote as e:
+            print(color(f"  ✗ {nome}: {e}", "1;31"))
+            sys.exit(1)
+        transitivas = {}
+        if item["dep"].fonte == "registro":
+            transitivas = registro.lancamento(nome, versao).get("dependencias", {})
+        lock.registrar(nome, versao, fonte, sha, transitivas)
+        print(color(f"  + {nome}@{versao}", "1;32") +
+              color(f"  ({fonte})", "0;90"))
+        instalados.append((nome, versao, fonte))
+
+    if not so_conferir:
+        lock.gravar(registro.url)
+    return instalados
+
+
+def add_command(alvos, offline=False, salvar=True):
+    """dataforge add <pacote>[@versao] — instala e grava no forge.toml."""
+    from . import packages as pk
+
+    if not alvos:
+        print(color("Erro: informe ao menos um pacote.", "1;31"))
+        print("  dataforge add validador")
+        print("  dataforge add validador@1.2.0")
+        print("  dataforge add tabela@^2.0")
+        print("  dataforge add ./lib-local")
+        print("  dataforge add git+https://github.com/alguem/lib.git")
+        sys.exit(1)
+
+    manifesto = _manifesto_ou_sair()
+    registro = pk.Registro(offline=offline)
+    deps = dict(manifesto.dependencies)
+    novos = []
+
+    for alvo in alvos:
+        # 'nome@faixa' so e versao se o alvo nao for caminho nem URL
+        if "@" in alvo and not alvo.startswith((".", "/", "http", "git+")):
+            nome, _, faixa = alvo.partition("@")
+        else:
+            nome, faixa = alvo, ""
+
+        if alvo.startswith((".", "/", "http", "git+")):
+            dep = pk.Dependencia(os.path.basename(alvo.rstrip("/")).replace(".git", ""), alvo)
+            deps[dep.nome] = dep.para_toml()
+            novos.append(dep.nome)
+            continue
+
+        try:
+            disponiveis = registro.versoes(nome)
+        except pk.ErroPacote as e:
+            print(color(f"✗ {e}", "1;31"))
+            sys.exit(1)
+
+        requisito = pk.Requisito(faixa or "*")
+        escolhida = requisito.melhor(disponiveis)
+        if escolhida is None:
+            print(color(f"✗ '{nome}' nao tem versao que satisfaca '{faixa}'. "
+                        f"Ha: {', '.join(sorted(disponiveis))}", "1;31"))
+            sys.exit(1)
+
+        # sem faixa explicita, trava o 'maior' — a convencao do npm e do cargo
+        deps[nome] = faixa or f"^{escolhida}"
+        novos.append(nome)
+
+    manifesto.dados["dependencies"] = deps
+    if salvar:
+        _escrever_dependencias(manifesto, deps)
+
+    print(color(f"Instalando em {pk.PASTA_MODULOS}/", "1;36"))
+    _sincronizar(manifesto, offline=offline)
+    print(color(f"\n✓ {', '.join(novos)} adicionado(s) ao forge.toml", "1;32"))
+
+
+def remove_command(alvos):
+    """dataforge remove <pacote> — desinstala e tira do forge.toml."""
+    from . import packages as pk
+    import shutil
+
+    if not alvos:
+        print(color("Erro: informe o pacote a remover.", "1;31"))
+        sys.exit(1)
+
+    manifesto = _manifesto_ou_sair()
+    deps = dict(manifesto.dependencies)
+    lock = pk.Lock(manifesto.raiz)
+    removidos = []
+
+    for nome in alvos:
+        if nome not in deps:
+            print(color(f"  '{nome}' nao esta no forge.toml", "1;33"))
+            continue
+        deps.pop(nome)
+        lock.esquecer(nome)
+        pasta = os.path.join(manifesto.raiz, pk.PASTA_MODULOS, nome)
+        if os.path.isdir(pasta):
+            shutil.rmtree(pasta)
+        removidos.append(nome)
+        print(color(f"  - {nome}", "1;31"))
+
+    if not removidos:
+        return
+    _escrever_dependencias(manifesto, deps)
+    lock.gravar()
+    print(color(f"\n✓ {', '.join(removidos)} removido(s)", "1;32"))
+
+
+def install_command(offline=False, conferir=False):
+    """dataforge install — instala tudo o que o forge.toml declara."""
+    manifesto = _manifesto_ou_sair()
+    if conferir:
+        print(color("Plano de instalacao:", "1;36"))
+        _sincronizar(manifesto, offline=offline, so_conferir=True)
+        return
+    print(color(f"Instalando as dependencias de {manifesto.name or 'seu projeto'}",
+                "1;36"))
+    instalados = _sincronizar(manifesto, offline=offline)
+    if instalados:
+        print(color(f"\n✓ {len(instalados)} pacote(s) prontos", "1;32"))
+
+
+def list_command():
+    """dataforge list — o que esta instalado agora."""
+    from . import packages as pk
+
+    manifesto = _manifesto_ou_sair()
+    lock = pk.Lock(manifesto.raiz)
+    pasta = os.path.join(manifesto.raiz, pk.PASTA_MODULOS)
+
+    if not lock.pacotes:
+        print(color("Nenhum pacote instalado.", "1;33"))
+        print("  dataforge add <pacote>")
+        return
+
+    diretas = set(manifesto.dependencies)
+    print(color(f"{manifesto.name or 'projeto'} {manifesto.version}", "1;36"))
+    for nome, info in sorted(lock.pacotes.items()):
+        presente = os.path.isdir(os.path.join(pasta, nome))
+        marca = color("✓", "1;32") if presente else color("✗", "1;31")
+        tipo = "" if nome in diretas else color("  (transitiva)", "0;90")
+        fonte = color(f"  {info['fonte']}", "0;90") if info["fonte"] != "registro" else ""
+        print(f"  {marca} {nome}@{info['versao']}{tipo}{fonte}")
+
+    faltando = [n for n in lock.pacotes
+                if not os.path.isdir(os.path.join(pasta, n))]
+    if faltando:
+        print(color(f"\n{len(faltando)} no lock mas nao em disco — "
+                    f"rode 'dataforge install'", "1;33"))
+
+
+def search_command(termo, offline=False):
+    """dataforge search <termo> — procura no registro."""
+    from . import packages as pk
+
+    if not termo:
+        print(color("Erro: informe o que procurar.", "1;31"))
+        sys.exit(1)
+
+    registro = pk.Registro(offline=offline)
+    try:
+        achados = registro.buscar(termo)
+    except pk.ErroPacote as e:
+        print(color(f"✗ {e}", "1;31"))
+        sys.exit(1)
+
+    if not achados:
+        print(color(f"Nada encontrado para '{termo}'.", "1;33"))
+        total = len(registro.pacotes())
+        print(f"  O registro tem {total} pacote(s). "
+              f"Veja todos com: dataforge search ''")
+        return
+
+    print(color(f"{len(achados)} resultado(s) para '{termo}':\n", "1;36"))
+    for nome, info in achados:
+        versoes = sorted(info.get("versoes", {}), key=pk.Versao)
+        ultima = versoes[-1] if versoes else "?"
+        print(color(f"  {nome}", "1;37") + color(f"  {ultima}", "0;90"))
+        if info.get("descricao"):
+            print(f"    {info['descricao']}")
+        if info.get("tags"):
+            print(color(f"    {' '.join('#' + t for t in info['tags'])}", "0;90"))
+        print()
+    print(color("  dataforge add <nome>", "0;90"))
+
+
+def pack_command():
+    """dataforge pack — gera o tarball publicavel deste projeto."""
+    from . import packages as pk
+
+    try:
+        caminho, sha, nome, versao = pk.empacotar(".")
+    except pk.ErroPacote as e:
+        print(color(f"✗ {e}", "1;31"))
+        sys.exit(1)
+
+    tamanho = os.path.getsize(caminho)
+    print(color(f"✓ {nome} {versao}", "1;32"))
+    print(f"  arquivo  {os.path.relpath(caminho)}")
+    print(f"  tamanho  {tamanho / 1024:.1f} KB")
+    print(f"  sha256   {sha}")
+    print()
+    print(color("Para publicar no registro, veja: dataforge publish --help", "0;90"))
+
+
+def publish_command(destino=None):
+    """dataforge publish — empacota e registra num indice local.
+
+    O registro oficial e um indice estatico. 'publish' prepara o tarball e
+    atualiza um index.json — apontando --registry para o clone do registro,
+    o fluxo e: publish, conferir o diff, abrir um PR.
+    """
+    from . import packages as pk
+    import json as _json
+    import shutil as _shutil
+
+    if destino is None:
+        destino = os.environ.get("DATAFORGE_REGISTRY_DIR")
+    if not destino:
+        print(color("Erro: informe a pasta do registro.", "1;31"))
+        print("  dataforge publish --registry=/caminho/do/registro")
+        print("  ou defina DATAFORGE_REGISTRY_DIR")
+        print()
+        print("  O registro e uma pasta com index.json e pacotes/.")
+        print("  Publicar = acrescentar seu tarball e abrir um PR.")
+        sys.exit(1)
+
+    try:
+        caminho, sha, nome, versao = pk.empacotar(".")
+    except pk.ErroPacote as e:
+        print(color(f"✗ {e}", "1;31"))
+        sys.exit(1)
+
+    from . import project as proj
+    manifesto = proj.carregar(".")
+    secao = manifesto.dados.get("package") or manifesto.dados.get("project") or {}
+
+    pasta_pacotes = os.path.join(destino, "pacotes")
+    os.makedirs(pasta_pacotes, exist_ok=True)
+    _shutil.copy2(caminho, os.path.join(pasta_pacotes, os.path.basename(caminho)))
+
+    indice_path = os.path.join(destino, "index.json")
+    if os.path.exists(indice_path):
+        with open(indice_path, encoding="utf-8") as f:
+            indice = _json.load(f)
+    else:
+        indice = {"registro": "dataforge", "pacotes": {}}
+
+    pacote = indice.setdefault("pacotes", {}).setdefault(nome, {})
+    pacote["descricao"] = secao.get("description", "")
+    pacote["licenca"] = secao.get("license", "")
+    pacote["autores"] = secao.get("authors", [])
+    pacote.setdefault("tags", secao.get("keywords", []))
+    if str(versao) in pacote.setdefault("versoes", {}):
+        print(color(f"✗ {nome} {versao} ja existe no registro. "
+                    f"Suba a versao no forge.toml.", "1;31"))
+        sys.exit(1)
+    pacote["versoes"][str(versao)] = {
+        "arquivo": os.path.basename(caminho),
+        "sha256": sha,
+        "dependencias": manifesto.dependencies,
+        "dataforge": secao.get("dataforge", ""),
+    }
+
+    with open(indice_path, "w", encoding="utf-8") as f:
+        _json.dump(indice, f, indent=1, ensure_ascii=False)
+        f.write("\n")
+
+    print(color(f"✓ {nome} {versao} publicado em {destino}", "1;32"))
+    print(f"  pacotes/{os.path.basename(caminho)}")
+    print(f"  index.json atualizado")
+
 
 # ─── Project Templates ──────────────────────────────────────────
 
@@ -1105,6 +1445,33 @@ def main():
 
     elif command == 'init':
         init_command(args[1:])
+
+    elif command == 'add':
+        add_command(args[1:], offline='--offline' in flags)
+
+    elif command in ('remove', 'rm', 'uninstall'):
+        remove_command(args[1:])
+
+    elif command in ('install', 'i', 'sync'):
+        install_command(offline='--offline' in flags,
+                        conferir='--dry-run' in flags or '--check' in flags)
+
+    elif command in ('list', 'ls'):
+        list_command()
+
+    elif command == 'search':
+        search_command(args[1] if len(args) > 1 else '',
+                       offline='--offline' in flags)
+
+    elif command == 'pack':
+        pack_command()
+
+    elif command == 'publish':
+        destino = None
+        for f in flags:
+            if f.startswith('--registry='):
+                destino = f.split('=', 1)[1]
+        publish_command(destino)
 
     elif command == 'info':
         info_command(args[1:])

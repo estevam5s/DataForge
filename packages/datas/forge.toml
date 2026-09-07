@@ -1,0 +1,14 @@
+[package]
+name = "datas"
+version = "1.0.0"
+description = "Datas em português: formatação, tempo relativo, dias úteis, feriados brasileiros e faixas."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.0"
+keywords = ["data", "tempo", "feriado", "brasil", "calendario"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

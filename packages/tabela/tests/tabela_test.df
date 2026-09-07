@@ -1,0 +1,66 @@
+adopt Arcane.Test as T
+adopt tabela as Tb
+
+action test_render_basico():
+    saida := Tb.render([["Ana", 30], ["Bruno", 25]], ["Nome", "Idade"])
+    linhas := saida.split("\n")
+    T.assert_eq(len(linhas), 6)
+    T.assert_true(linhas[0].startswith("┌"))
+    T.assert_true(linhas[5].startswith("└"))
+    T.assert_true(saida.contains("Ana"))
+
+action test_numeros_alinham_a_direita():
+    saida := Tb.render([["a", 5], ["b", 1000]], ["x", "n"])
+    T.assert_true(saida.contains("    5"))
+
+action test_estilos():
+    T.assert_true(Tb.render([["a"]], void, "ascii").contains("+"))
+    T.assert_true(Tb.render([["a"]], void, "dupla").contains("╔"))
+    md := Tb.render([["a", 1]], ["x", "n"], "markdown")
+    T.assert_false(md.contains("┌"))
+    T.assert_true(md.startswith("|"))
+
+action test_largura_ignora_cor():
+    cru := "abc"
+    colorido := Tb.colorir("abc", "verde")
+    T.assert_eq(Tb.largura_visivel(cru), Tb.largura_visivel(colorido))
+    T.assert_true(colorido.length() bigger cru.length())
+
+action test_de_records():
+    saida := Tb.de_records([{"nome": "Ana", "idade": 30}])
+    T.assert_true(saida.contains("nome"))
+    T.assert_true(saida.contains("Ana"))
+    T.assert_eq(Tb.de_records([]), "")
+
+action test_barra():
+    T.assert_eq(Tb.barra(10, 10, 4), "████")
+    T.assert_eq(Tb.barra(0, 10, 4), "░░░░")
+    T.assert_eq(Tb.barra(5, 10, 4), "██░░")
+    T.assert_eq(Tb.barra(99, 10, 4), "████")
+
+action test_sparkline():
+    s := Tb.sparkline([1, 2, 3, 4])
+    T.assert_eq(s.length(), 4)
+    T.assert_eq(Tb.sparkline([]), "")
+    T.assert_eq(Tb.sparkline([5, 5, 5]).length(), 3)
+
+action test_caixa_e_lista():
+    c := Tb.caixa("oi", "Título")
+    T.assert_true(c.contains("Título"))
+    T.assert_true(c.contains("oi"))
+    l := Tb.lista(["a", "b"])
+    T.assert_eq(len(l.split("\n")), 2)
+
+action test_tabela_vazia():
+    T.assert_eq(Tb.render([], void), "")
+
+action test_caixa_tem_bordas_do_mesmo_tamanho():
+    // A moldura precisa fechar: topo e base com a mesma largura,
+    // com ou sem título, e com título mais longo que o conteúdo.
+    cycle caso in [["oi", ""], ["oi", "Título"], ["oi", "Um título bem longo"]]:
+        linhas := Tb.caixa(caso[0], caso[1]).split("\n")
+        topo := Tb.largura_visivel(linhas[0])
+        base := Tb.largura_visivel(linhas[len(linhas) - 1])
+        T.assert_eq(topo, base)
+        cycle l in linhas:
+            T.assert_eq(Tb.largura_visivel(l), topo)

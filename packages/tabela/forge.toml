@@ -1,0 +1,14 @@
+[package]
+name = "tabela"
+version = "1.0.0"
+description = "Tabelas de texto para o terminal: bordas, alinhamento, cores, barras e sparklines."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.0"
+keywords = ["terminal", "cli", "tabela", "formatacao"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

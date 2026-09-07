@@ -384,11 +384,12 @@ seguro. Falta `mutex`/`lock`, `await` sobre várias tarefas em paralelo, e
 - Depurador com breakpoints — hoje só `inspect`.
 - Cobertura de testes.
 
-**10. Gerenciador de pacotes**
+**10. Gerenciador de pacotes** — *feito no 4.0*
 
-Sem `dataforge install`, não há ecossistema: nenhuma forma de publicar ou
-consumir bibliotecas de terceiros. Precisa de um registro, um manifesto
-(`dataforge.toml`) e resolução de versões.
+`dataforge add/remove/install/list/search/pack/publish`, com semver (`^`, `~`,
+comparadores), lockfile com sha256, resolução de dependências transitivas e
+quatro origens: registro, pasta local, git e URL. O registro é um índice
+estático — `index.json` mais tarballs — servido junto com o site.
 
 **11. Desempenho**
 
@@ -528,9 +529,13 @@ O que resta, em ordem de impacto.
 
 ### 4.3 — Ecossistema
 
-- **Gerenciador de pacotes**: `dataforge add/remove/install`, lockfile, registry.
-  A seção `[dependencies]` do `forge.toml` já existe e está vazia por enquanto.
-- **Publicação**: `dataforge publish`, versionamento semântico.
+- ~~**Gerenciador de pacotes**~~ — **feito**. `dataforge add/remove/install`,
+  lockfile com integridade, registro estático.
+- ~~**Publicação**~~ — **feito**. `dataforge pack` e `dataforge publish`, com
+  tarball reprodutível e versionamento semântico.
+- **Registro hospedado com autenticação** — hoje publicar é abrir um PR no
+  repositório do registro. Basta para começar; não escala para milhares de
+  pacotes nem permite revogar uma versão comprometida.
 
 ### 5.0 — Runtime
 
@@ -561,4 +566,5 @@ vinte e um defeitos do 3.1 e os cinco encontrados no 4.0 foram corrigidos e
 cobertos por teste, e o núcleo ganhou tipos verificados, análise estática,
 records, enums, pattern matching estrutural, generators preguiçosos, módulos com
 escopo real e seis ferramentas de linha de comando; o que falta agora não é fundação nem ferramenta
-básica, é ecossistema: generics, LSP, debugger e um gerenciador de pacotes.
+básica, é ecossistema: generics, LSP e debugger. O gerenciador de pacotes
+saiu no 4.0.

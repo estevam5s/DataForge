@@ -5,15 +5,15 @@ import { tokenize, classePorTipo } from '@/lib/highlight';
 
 type Props = {
   code: string;
-  /** 'df' realça DataForge; 'bash', 'toml', 'json' e 'text' têm tratamento próprio. */
-  lang?: 'df' | 'bash' | 'toml' | 'json' | 'text';
+  /** 'df' realça DataForge; 'bash'/'powershell', 'toml', 'json' e 'text' têm tratamento próprio. */
+  lang?: 'df' | 'bash' | 'powershell' | 'toml' | 'json' | 'text';
   /** Rótulo exibido no topo do bloco — normalmente o nome do arquivo. */
   title?: string;
 };
 
 /** Realce leve para linguagens que não são DataForge. */
 function realceSimples(code: string, lang: string) {
-  if (lang === 'bash') {
+  if (lang === 'bash' || lang === 'powershell') {
     return code.split('\n').map((linha, i) => {
       const comentario = linha.match(/(^|\s)(#.*)$/);
       const corpo = comentario ? linha.slice(0, comentario.index! + comentario[1].length) : linha;

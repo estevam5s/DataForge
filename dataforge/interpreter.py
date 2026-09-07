@@ -1840,13 +1840,114 @@ class Interpreter:
                 if os.path.exists(caminho):
                     return self._load_module_file(caminho, nome_modulo)
 
+        # Pacotes instalados: forge_modules/<pacote>/, procurando a partir
+        # do arquivo atual para cima — assim um .df em qualquer subpasta do
+        # projeto enxerga o que 'dataforge add' instalou na raiz.
+        caminho = self._procurar_em_pacotes(nome_modulo, bases)
+        if caminho:
+            return self._load_module_file(caminho, nome_modulo)
+
         disponiveis = sorted(set(list_modules()))
+        instalados = self._pacotes_instalados(bases)
+        dica = ""
+        if instalados:
+            import difflib
+            raiz_pedida = nome_modulo.split('.')[0]
+            perto = difflib.get_close_matches(raiz_pedida, instalados, n=2, cutoff=0.6)
+            if perto:
+                dica = f" Installed packages: {', '.join(perto)}."
+            else:
+                dica = f" Installed: {', '.join(sorted(instalados)[:6])}."
+        else:
+            dica = " No packages installed — try 'dataforge add <package>'."
+
         raise ImportError_(
             f"Module '{nome_modulo}' not found. "
-            f"Looked in the standard library and next to "
-            f"{os.path.basename(self.filename) if self.filename else 'the current file'}. "
-            f"Available: {', '.join(disponiveis[:8])}…",
+            f"Looked in the standard library, next to "
+            f"{os.path.basename(self.filename) if self.filename else 'the current file'}, "
+            f"and in forge_modules/.{dica} "
+            f"Standard library: {', '.join(disponiveis[:6])}…",
             node.line, node.column)
+
+    @staticmethod
+    def _raizes_de_projeto(bases):
+        """Sobe de cada base ate achar forge_modules/ ou forge.toml."""
+        import os
+        raizes = []
+        for base in bases:
+            atual = os.path.abspath(base)
+            while True:
+                if os.path.isdir(os.path.join(atual, 'forge_modules')) or \
+                        os.path.exists(os.path.join(atual, 'forge.toml')):
+                    if atual not in raizes:
+                        raizes.append(atual)
+                    break
+                pai = os.path.dirname(atual)
+                if pai == atual:
+                    break
+                atual = pai
+        return raizes
+
+    def _procurar_em_pacotes(self, nome_modulo, bases):
+        """Encontra o .df de um modulo dentro de forge_modules/.
+
+        'adopt validador' carrega o ponto de entrada do pacote;
+        'adopt validador.email' carrega src/email.df (ou email.df) dentro dele.
+        """
+        import os
+        raiz_pacote, _, resto = nome_modulo.partition('.')
+        for raiz in self._raizes_de_projeto(bases):
+            pasta = os.path.join(raiz, 'forge_modules', raiz_pacote)
+            if not os.path.isdir(pasta):
+                continue
+
+            if resto:
+                sub = resto.replace('.', os.sep)
+                for candidato in (os.path.join(pasta, 'src', sub + '.df'),
+                                  os.path.join(pasta, sub + '.df'),
+                                  os.path.join(pasta, 'src', sub, 'main.df'),
+                                  os.path.join(pasta, sub, 'main.df')):
+                    if os.path.exists(candidato):
+                        return candidato
+                continue
+
+            entrada = self._entrada_do_pacote(pasta)
+            if entrada and os.path.exists(entrada):
+                return entrada
+            for candidato in (os.path.join(pasta, 'src', 'main.df'),
+                              os.path.join(pasta, 'main.df'),
+                              os.path.join(pasta, f'{raiz_pacote}.df')):
+                if os.path.exists(candidato):
+                    return candidato
+        return None
+
+    @staticmethod
+    def _entrada_do_pacote(pasta):
+        """Le 'entry' do forge.toml do pacote, se houver."""
+        import os
+        manifesto = os.path.join(pasta, 'forge.toml')
+        if not os.path.exists(manifesto):
+            return None
+        try:
+            from .stdlib.arcane_serialization import ArcaneSerialization
+            dados = ArcaneSerialization()['from_toml'](
+                open(manifesto, encoding='utf-8').read())
+            secao = dados.get('package') or dados.get('project') or {}
+            entrada = secao.get('entry')
+            return os.path.join(pasta, entrada) if entrada else None
+        except Exception:
+            return None
+
+    def _pacotes_instalados(self, bases):
+        import os
+        nomes = []
+        for raiz in self._raizes_de_projeto(bases):
+            pasta = os.path.join(raiz, 'forge_modules')
+            if os.path.isdir(pasta):
+                nomes += [d for d in os.listdir(pasta)
+                          if os.path.isdir(os.path.join(pasta, d))
+                          and not d.startswith('.')]
+        return sorted(set(nomes))
 
     def exec_RelayStatement(self, node: ast.RelayStatement, env):
         """Marca quais nomes o módulo exporta.

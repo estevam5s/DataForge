@@ -23,7 +23,7 @@ app.df:10:5: erro: Undefined action 'sommar'
 
 ✗ 2 erro(s), 0 aviso(s)`, lang: 'text' },
   {"h2": "Otimista de propósito"},
-  {"p": "Quando não consegue **provar** que algo está errado, fica calado. Zero falsos positivos em 225 arquivos conhecidamente bons."},
+  {"p": "Quando não consegue **provar** que algo está errado, fica calado. Zero falsos positivos em 233 arquivos conhecidamente bons."},
   {"p": "Guia completo em [Análise estática](/docs/tecnicas/analise-estatica)."},
 ];
 

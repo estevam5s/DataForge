@@ -1,0 +1,285 @@
+// validador — validação de dados com mensagens em português
+//
+// Duas formas de usar. Direta, para uma checagem só:
+//
+//     adopt validador as V
+//     out V.cpf("529.982.247-25")        // yes
+//
+// Ou encadeada, para um formulário inteiro de uma vez:
+//
+//     regras := V.esquema({
+//         "email": [V.regra_obrigatorio(), V.regra_email()],
+//         "idade": [V.regra_entre(18, 120)]
+//     })
+//     resultado := V.validar(regras, dados)
+//     out resultado.valido, resultado.erros
+
+adopt Arcane.Regex as Rx
+
+// ── E-mail ────────────────────────────────────────────────
+
+steady PADRAO_EMAIL := "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+
+action email(valor):
+    // Um e-mail válido no formato usual. Não confere se a caixa existe.
+    given typeof(valor) isnt "String":
+        yield no
+    limpo := valor.trim()
+    given limpo.length() bigger 254:
+        yield no
+    given limpo.contains(".."):
+        yield no
+    yield Rx.test(PADRAO_EMAIL, limpo)
+
+// ── Documentos brasileiros ────────────────────────────────
+
+action so_digitos(texto):
+    saida := ""
+    cycle c in texto:
+        given c.isdigit():
+            saida += c
+    yield saida
+
+action cpf(valor):
+    // CPF com os dois dígitos verificadores conferidos.
+    numeros := so_digitos(str(valor))
+    given numeros.length() isnt 11:
+        yield no
+
+    // 111.111.111-11 e afins passam no cálculo, mas não são válidos
+    primeiro := numeros.char_at(0)
+    todos_iguais := yes
+    cycle c in numeros:
+        given c isnt primeiro:
+            todos_iguais := no
+    given todos_iguais:
+        yield no
+
+    soma := 0
+    cycle i from 0 to 8:
+        soma += int(numeros.char_at(i)) * (10 - i)
+    resto := (soma * 10) % 11
+    digito1 := 0 given resto bigger_eq 10 otherwise resto
+    given digito1 isnt int(numeros.char_at(9)):
+        yield no
+
+    soma := 0
+    cycle i from 0 to 9:
+        soma += int(numeros.char_at(i)) * (11 - i)
+    resto := (soma * 10) % 11
+    digito2 := 0 given resto bigger_eq 10 otherwise resto
+    yield digito2 is int(numeros.char_at(10))
+
+action cnpj(valor):
+    // CNPJ com os dois dígitos verificadores conferidos.
+    numeros := so_digitos(str(valor))
+    given numeros.length() isnt 14:
+        yield no
+
+    primeiro := numeros.char_at(0)
+    todos_iguais := yes
+    cycle c in numeros:
+        given c isnt primeiro:
+            todos_iguais := no
+    given todos_iguais:
+        yield no
+
+    pesos1 := [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    soma := 0
+    cycle i from 0 to 11:
+        soma += int(numeros.char_at(i)) * pesos1[i]
+    resto := soma % 11
+    digito1 := 0 given resto smaller 2 otherwise 11 - resto
+    given digito1 isnt int(numeros.char_at(12)):
+        yield no
+
+    pesos2 := [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    soma := 0
+    cycle i from 0 to 12:
+        soma += int(numeros.char_at(i)) * pesos2[i]
+    resto := soma % 11
+    digito2 := 0 given resto smaller 2 otherwise 11 - resto
+    yield digito2 is int(numeros.char_at(13))
+
+action cep(valor):
+    yield so_digitos(str(valor)).length() is 8
+
+action telefone(valor):
+    // Fixo (10) ou celular (11). No celular, o nono dígito é 9.
+    numeros := so_digitos(str(valor))
+    given numeros.length() is 10:
+        yield int(numeros.char_at(2)) bigger_eq 2
+    given numeros.length() is 11:
+        yield numeros.char_at(2) is "9"
+    yield no
+
+// ── Cartão ────────────────────────────────────────────────
+
+action cartao(valor):
+    // Algoritmo de Luhn. Diz se o número é bem-formado, não se tem saldo.
+    numeros := so_digitos(str(valor))
+    given numeros.length() smaller 13 or numeros.length() bigger 19:
+        yield no
+
+    soma := 0
+    dobrar := no
+    i := numeros.length() - 1
+    persist i bigger_eq 0:
+        d := int(numeros.char_at(i))
+        given dobrar:
+            d := d * 2
+            given d bigger 9:
+                d -= 9
+        soma += d
+        dobrar := not dobrar
+        i -= 1
+    yield soma % 10 is 0
+
+// ── Senha ─────────────────────────────────────────────────
+
+action forca_senha(senha):
+    // Devolve um vault com a nota de 0 a 5 e o que está faltando.
+    given typeof(senha) isnt "String":
+        yield {"nota": 0, "forte": no, "faltando": ["senha precisa ser texto"]}
+
+    faltando := []
+    nota := 0
+
+    given senha.length() bigger_eq 8:
+        nota += 1
+    otherwise:
+        faltando.append("ao menos 8 caracteres")
+
+    tem_minuscula := no
+    tem_maiuscula := no
+    tem_digito := no
+    tem_simbolo := no
+    cycle c in senha:
+        given c.isdigit():
+            tem_digito := yes
+        orif c.isalpha() and c.islower():
+            tem_minuscula := yes
+        orif c.isalpha() and c.isupper():
+            tem_maiuscula := yes
+        orif not c.isspace():
+            tem_simbolo := yes
+
+    given tem_minuscula:
+        nota += 1
+    otherwise:
+        faltando.append("uma letra minúscula")
+    given tem_maiuscula:
+        nota += 1
+    otherwise:
+        faltando.append("uma letra maiúscula")
+    given tem_digito:
+        nota += 1
+    otherwise:
+        faltando.append("um número")
+    given tem_simbolo:
+        nota += 1
+    otherwise:
+        faltando.append("um símbolo")
+
+    yield {"nota": nota, "forte": nota bigger_eq 4, "faltando": faltando}
+
+// ── Genéricos ─────────────────────────────────────────────
+
+action nao_vazio(valor):
+    given valor is void:
+        yield no
+    given typeof(valor) is "String":
+        yield valor.trim().length() bigger 0
+    given typeof(valor) is "Cluster" or typeof(valor) is "Vault":
+        yield len(valor) bigger 0
+    yield yes
+
+action entre(valor, minimo, maximo):
+    given typeof(valor) isnt "Integer" and typeof(valor) isnt "Float":
+        yield no
+    yield valor bigger_eq minimo and valor smaller_eq maximo
+
+action tamanho_entre(texto, minimo, maximo):
+    given typeof(texto) isnt "String":
+        yield no
+    n := texto.length()
+    yield n bigger_eq minimo and n smaller_eq maximo
+
+action url(valor):
+    given typeof(valor) isnt "String":
+        yield no
+    yield Rx.test("^https?://[^\\s/$.?#].[^\\s]*$", valor.trim())
+
+// ── Esquema encadeável ────────────────────────────────────
+
+record Regra:
+    nome: String
+    mensagem: String
+    verificar: Action
+
+action regra_obrigatorio(mensagem := "campo obrigatório"):
+    yield Regra("obrigatorio", mensagem, nao_vazio)
+
+action regra_email(mensagem := "e-mail inválido"):
+    yield Regra("email", mensagem, email)
+
+action regra_cpf(mensagem := "CPF inválido"):
+    yield Regra("cpf", mensagem, cpf)
+
+action regra_cnpj(mensagem := "CNPJ inválido"):
+    yield Regra("cnpj", mensagem, cnpj)
+
+action regra_cep(mensagem := "CEP inválido"):
+    yield Regra("cep", mensagem, cep)
+
+action regra_telefone(mensagem := "telefone inválido"):
+    yield Regra("telefone", mensagem, telefone)
+
+action regra_url(mensagem := "URL inválida"):
+    yield Regra("url", mensagem, url)
+
+action regra_entre(minimo, maximo, mensagem := void):
+    texto := mensagem ?? $"precisa estar entre {minimo} e {maximo}"
+    yield Regra("entre", texto, lambda v => entre(v, minimo, maximo))
+
+action regra_tamanho(minimo, maximo, mensagem := void):
+    texto := mensagem ?? $"precisa ter de {minimo} a {maximo} caracteres"
+    yield Regra("tamanho", texto, lambda v => tamanho_entre(v, minimo, maximo))
+
+action regra_senha_forte(mensagem := "senha fraca"):
+    yield Regra("senha", mensagem, lambda v => forca_senha(v)["forte"])
+
+action regra(nome, mensagem, verificar):
+    // Sua própria regra, para o que a biblioteca não cobre.
+    yield Regra(nome, mensagem, verificar)
+
+action esquema(campos):
+    yield campos
+
+action validar(esquema, dados):
+    // Roda todas as regras e devolve tudo o que falhou de uma vez.
+    //
+    // Só a primeira falha de cada campo entra: listar cinco erros do
+    // mesmo campo não ajuda quem preenche o formulário.
+    erros := {}
+    cycle campo in esquema.keys():
+        valor := dados[campo] given dados.has(campo) otherwise void
+        cycle r in esquema[campo]:
+            ok := monitor_regra(r, valor)
+            given not ok:
+                erros[campo] := r.mensagem
+                halt
+    yield {"valido": len(erros) is 0, "erros": erros}
+
+action monitor_regra(r, valor):
+    // Uma regra que estoura conta como falha, não derruba a validação.
+    monitor:
+        yield r.verificar(valor)
+    handle e:
+        yield no
+
+relay email, cpf, cnpj, cep, telefone, cartao, forca_senha
+relay nao_vazio, entre, tamanho_entre, url, so_digitos
+relay Regra, regra, regra_obrigatorio, regra_email, regra_cpf, regra_cnpj
+relay regra_cep, regra_telefone, regra_url, regra_entre, regra_tamanho
+relay regra_senha_forte, esquema, validar

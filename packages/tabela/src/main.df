@@ -1,0 +1,252 @@
+// tabela — saída tabular para o terminal
+//
+//     adopt tabela as Tb
+//     out Tb.render([["Ana", 30], ["Bruno", 25]], ["Nome", "Idade"])
+//
+//     ┌───────┬───────┐
+//     │ Nome  │ Idade │
+//     ├───────┼───────┤
+//     │ Ana   │    30 │
+//     │ Bruno │    25 │
+//     └───────┴───────┘
+//
+// Números alinham à direita, texto à esquerda — a convenção que torna
+// uma coluna de valores legível de relance.
+
+steady ESTILOS := {
+    "simples": {
+        "tl": "┌", "tm": "┬", "tr": "┐",
+        "ml": "├", "mm": "┼", "mr": "┤",
+        "bl": "└", "bm": "┴", "br": "┘",
+        "h": "─", "v": "│"
+    },
+    "dupla": {
+        "tl": "╔", "tm": "╦", "tr": "╗",
+        "ml": "╠", "mm": "╬", "mr": "╣",
+        "bl": "╚", "bm": "╩", "br": "╝",
+        "h": "═", "v": "║"
+    },
+    "grossa": {
+        "tl": "┏", "tm": "┳", "tr": "┓",
+        "ml": "┣", "mm": "╋", "mr": "┫",
+        "bl": "┗", "bm": "┻", "br": "┛",
+        "h": "━", "v": "┃"
+    },
+    "ascii": {
+        "tl": "+", "tm": "+", "tr": "+",
+        "ml": "+", "mm": "+", "mr": "+",
+        "bl": "+", "bm": "+", "br": "+",
+        "h": "-", "v": "|"
+    },
+    "markdown": {
+        "tl": "", "tm": "", "tr": "",
+        "ml": "|", "mm": "|", "mr": "|",
+        "bl": "", "bm": "", "br": "",
+        "h": "-", "v": "|"
+    }
+}
+
+steady CORES := {
+    "reset": "[0m",
+    "negrito": "[1m",
+    "apagado": "[2m",
+    "vermelho": "[31m",
+    "verde": "[32m",
+    "amarelo": "[33m",
+    "azul": "[34m",
+    "magenta": "[35m",
+    "ciano": "[36m",
+    "cinza": "[90m"
+}
+
+action colorir(texto, cor):
+    given not CORES.has(cor):
+        yield str(texto)
+    yield CORES[cor] + str(texto) + CORES["reset"]
+
+action largura_visivel(texto):
+    // Ignora os códigos ANSI: eles ocupam bytes, não colunas.
+    s := str(texto)
+    largura := 0
+    dentro := no
+    cycle c in s:
+        given dentro:
+            given c is "m":
+                dentro := no
+            skip
+        given c is "":
+            dentro := yes
+            skip
+        largura += 1
+    yield largura
+
+action encher(texto, largura, direita := no):
+    s := str(texto)
+    falta := largura - largura_visivel(s)
+    given falta smaller_eq 0:
+        yield s
+    espacos := " ".repeat(falta)
+    yield espacos + s given direita otherwise s + espacos
+
+action e_numero(valor):
+    t := typeof(valor)
+    yield t is "Integer" or t is "Float"
+
+action render(linhas, cabecalho := void, estilo := "simples"):
+    given len(linhas) is 0 and cabecalho is void:
+        yield ""
+
+    e := ESTILOS[estilo] ?? ESTILOS["simples"]
+
+    todas := []
+    given cabecalho isnt void:
+        todas.append(cabecalho)
+    cycle linha in linhas:
+        todas.append(linha)
+
+    // quantas colunas: a linha mais larga manda
+    n_colunas := 0
+    cycle linha in todas:
+        given len(linha) bigger n_colunas:
+            n_colunas := len(linha)
+
+    larguras := []
+    cycle i from 0 to n_colunas - 1:
+        maior := 0
+        cycle linha in todas:
+            valor := linha[i] given i smaller len(linha) otherwise ""
+            l := largura_visivel(str(valor))
+            given l bigger maior:
+                maior := l
+        larguras.append(maior)
+
+    // uma coluna alinha à direita se todo dado dela for número
+    direita := []
+    cycle i from 0 to n_colunas - 1:
+        so_numeros := yes
+        cycle linha in linhas:
+            given i smaller len(linha) and not e_numero(linha[i]):
+                so_numeros := no
+        direita.append(so_numeros and len(linhas) bigger 0)
+
+    action faixa(esq, meio, dir):
+        partes := []
+        cycle i from 0 to n_colunas - 1:
+            partes.append(e["h"].repeat(larguras[i] + 2))
+        yield esq + partes.join(meio) + dir
+
+    action faixa_linha(valores, alinhar):
+        celulas := []
+        cycle i from 0 to n_colunas - 1:
+            valor := valores[i] given i smaller len(valores) otherwise ""
+            a := alinhar and direita[i]
+            celulas.append(" " + encher(valor, larguras[i], a) + " ")
+        yield e["v"] + celulas.join(e["v"]) + e["v"]
+
+    saida := []
+    markdown := estilo is "markdown"
+
+    given not markdown:
+        saida.append(faixa(e["tl"], e["tm"], e["tr"]))
+    given cabecalho isnt void:
+        saida.append(faixa_linha(cabecalho, no))
+        saida.append(faixa(e["ml"], e["mm"], e["mr"]))
+    cycle linha in linhas:
+        saida.append(faixa_linha(linha, yes))
+    given not markdown:
+        saida.append(faixa(e["bl"], e["bm"], e["br"]))
+
+    yield saida.join("\n")
+
+action de_records(itens, campos := void, estilo := "simples"):
+    // Uma tabela a partir de uma lista de vaults.
+    given len(itens) is 0:
+        yield ""
+
+    chaves := campos
+    given chaves is void:
+        primeiro := itens[0]
+        chaves := primeiro.keys() given typeof(primeiro) is "Vault" otherwise []
+
+    linhas := []
+    cycle item in itens:
+        linha := []
+        cycle c in chaves:
+            linha.append(item[c] ?? "")
+        linhas.append(linha)
+    yield render(linhas, chaves, estilo)
+
+action barra(valor, maximo, largura := 24, cheio := "█", vazio := "░"):
+    // Barra proporcional. Útil para ranking no terminal.
+    given maximo smaller_eq 0:
+        yield vazio.repeat(largura)
+    proporcao := valor / maximo
+    given proporcao bigger 1:
+        proporcao := 1
+    given proporcao smaller 0:
+        proporcao := 0
+    cheias := int(round(proporcao * largura, 0))
+    yield cheio.repeat(cheias) + vazio.repeat(largura - cheias)
+
+steady FAIXAS := ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+
+action sparkline(valores):
+    // Gráfico de uma linha só, para série pequena.
+    given len(valores) is 0:
+        yield ""
+    menor := min(valores)
+    maior := max(valores)
+    given maior is menor:
+        yield FAIXAS[3].repeat(len(valores))
+    saida := ""
+    cycle v in valores:
+        posicao := (v - menor) / (maior - menor)
+        indice := int(round(posicao * 7, 0))
+        saida += FAIXAS[indice]
+    yield saida
+
+action caixa(texto, titulo := "", estilo := "simples", largura := 0):
+    // Um bloco de texto emoldurado.
+    e := ESTILOS[estilo] ?? ESTILOS["simples"]
+    linhas := str(texto).split("\n")
+
+    interna := largura
+    given interna is 0:
+        cycle l in linhas:
+            given largura_visivel(l) bigger interna:
+                interna := largura_visivel(l)
+        given largura_visivel(titulo) bigger interna:
+            interna := largura_visivel(titulo)
+
+    // o titulo ocupa "─ titulo " no topo; se for mais largo que o
+    // conteudo, a caixa inteira cresce para acompanhar
+    given titulo isnt "":
+        minima := largura_visivel(titulo) + 2
+        given minima bigger interna:
+            interna := minima
+
+    saida := []
+    given titulo isnt "":
+        // topo = tl + h + " titulo " + h*resto + tr, com o mesmo
+        // comprimento de tl + h*(interna+2) + tr
+        resto := interna - largura_visivel(titulo) - 1
+        given resto smaller 0:
+            resto := 0
+        saida.append(e["tl"] + e["h"] + " " + titulo + " " + e["h"].repeat(resto) + e["tr"])
+    otherwise:
+        saida.append(e["tl"] + e["h"].repeat(interna + 2) + e["tr"])
+
+    cycle l in linhas:
+        saida.append(e["v"] + " " + encher(l, interna) + " " + e["v"])
+    saida.append(e["bl"] + e["h"].repeat(interna + 2) + e["br"])
+    yield saida.join("\n")
+
+action lista(itens, marcador := "•", recuo := 2):
+    espacos := " ".repeat(recuo)
+    saida := []
+    cycle item in itens:
+        saida.append(espacos + marcador + " " + str(item))
+    yield saida.join("\n")
+
+relay render, de_records, barra, sparkline, caixa, lista
+relay colorir, encher, largura_visivel, ESTILOS, CORES

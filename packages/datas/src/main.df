@@ -1,0 +1,265 @@
+// datas — datas e tempo em português
+//
+//     adopt datas as D
+//     out D.formatar(D.hoje(), "dd/MM/yyyy")     // 07/09/2026
+//     out D.relativo(D.dias_atras(3))            // "há 3 dias"
+//     out D.e_feriado(D.criar(2026, 12, 25))     // yes
+//
+// As contas são feitas sobre o dia juliano, não sobre strings: somar
+// mês em "31/01" tem que dar "28/02", e isso só sai certo com aritmética.
+
+adopt Arcane.Time as Tempo
+
+steady MESES := ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+                 "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+
+steady MESES_CURTOS := ["jan", "fev", "mar", "abr", "mai", "jun",
+                        "jul", "ago", "set", "out", "nov", "dez"]
+
+steady DIAS := ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira",
+                "sexta-feira", "sábado", "domingo"]
+
+steady DIAS_CURTOS := ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"]
+
+record Data:
+    ano: Integer
+    mes: Integer
+    dia: Integer
+
+action criar(ano, mes, dia):
+    yield Data(ano, mes, dia)
+
+action hoje():
+    // Arcane.Time.now() devolve um vault com os campos já separados
+    agora := Tempo.now()
+    yield Data(agora["year"], agora["month"], agora["day"])
+
+// ── Aritmética de calendário ──────────────────────────────
+
+action bissexto(ano):
+    given ano % 400 is 0:
+        yield yes
+    given ano % 100 is 0:
+        yield no
+    yield ano % 4 is 0
+
+action dias_no_mes(ano, mes):
+    given mes is 2:
+        yield 29 given bissexto(ano) otherwise 28
+    given mes in [4, 6, 9, 11]:
+        yield 30
+    yield 31
+
+action valida(d):
+    given d.mes smaller 1 or d.mes bigger 12:
+        yield no
+    given d.dia smaller 1:
+        yield no
+    yield d.dia smaller_eq dias_no_mes(d.ano, d.mes)
+
+action para_juliano(d):
+    // Dia juliano: transforma a data num inteiro, e aí somar vira soma.
+    a := (14 - d.mes) ~/ 12
+    y := d.ano + 4800 - a
+    m := d.mes + 12 * a - 3
+    yield d.dia + (153 * m + 2) ~/ 5 + 365 * y + y ~/ 4 - y ~/ 100 + y ~/ 400 - 32045
+
+action de_juliano(jd):
+    a := jd + 32044
+    b := (4 * a + 3) ~/ 146097
+    c := a - (146097 * b) ~/ 4
+    d2 := (4 * c + 3) ~/ 1461
+    e := c - (1461 * d2) ~/ 4
+    m := (5 * e + 2) ~/ 153
+    dia := e - (153 * m + 2) ~/ 5 + 1
+    mes := m + 3 - 12 * (m ~/ 10)
+    ano := 100 * b + d2 - 4800 + m ~/ 10
+    yield Data(ano, mes, dia)
+
+action somar_dias(d, n):
+    yield de_juliano(para_juliano(d) + n)
+
+action somar_meses(d, n):
+    total := d.ano * 12 + (d.mes - 1) + n
+    ano := total ~/ 12
+    mes := total % 12 + 1
+    // 31 de janeiro + 1 mês = 28 (ou 29) de fevereiro, não 31
+    limite := dias_no_mes(ano, mes)
+    dia := d.dia given d.dia smaller_eq limite otherwise limite
+    yield Data(ano, mes, dia)
+
+action somar_anos(d, n):
+    yield somar_meses(d, n * 12)
+
+action dias_entre(a, b):
+    yield para_juliano(b) - para_juliano(a)
+
+action dias_atras(n):
+    yield somar_dias(hoje(), 0 - n)
+
+action dias_a_frente(n):
+    yield somar_dias(hoje(), n)
+
+action dia_da_semana(d):
+    // 0 = segunda … 6 = domingo.
+    // O dia juliano 0 caiu numa segunda, então o resto por 7 já dá
+    // o índice direto — sem deslocamento.
+    yield para_juliano(d) % 7
+
+action e_fim_de_semana(d):
+    yield dia_da_semana(d) bigger_eq 5
+
+action e_dia_util(d):
+    yield not e_fim_de_semana(d) and not e_feriado(d)
+
+// ── Feriados nacionais ────────────────────────────────────
+
+action pascoa(ano):
+    // Algoritmo de Meeus/Jones/Butcher.
+    a := ano % 19
+    b := ano ~/ 100
+    c := ano % 100
+    d2 := b ~/ 4
+    e := b % 4
+    f := (b + 8) ~/ 25
+    g := (b - f + 1) ~/ 3
+    h := (19 * a + b - d2 - g + 15) % 30
+    i := c ~/ 4
+    k := c % 4
+    l := (32 + 2 * e + 2 * i - h - k) % 7
+    m := (a + 11 * h + 22 * l) ~/ 451
+    mes := (h + l - 7 * m + 114) ~/ 31
+    dia := ((h + l - 7 * m + 114) % 31) + 1
+    yield Data(ano, mes, dia)
+
+action feriados(ano):
+    // Nacionais, incluindo os móveis que dependem da Páscoa.
+    p := pascoa(ano)
+    yield {
+        "01-01": "Confraternização Universal",
+        formatar(somar_dias(p, -48), "MM-dd"): "Carnaval",
+        formatar(somar_dias(p, -47), "MM-dd"): "Carnaval",
+        formatar(somar_dias(p, -2), "MM-dd"): "Sexta-feira Santa",
+        formatar(p, "MM-dd"): "Páscoa",
+        "04-21": "Tiradentes",
+        "05-01": "Dia do Trabalho",
+        formatar(somar_dias(p, 60), "MM-dd"): "Corpus Christi",
+        "09-07": "Independência",
+        "10-12": "Nossa Senhora Aparecida",
+        "11-02": "Finados",
+        "11-15": "Proclamação da República",
+        "11-20": "Consciência Negra",
+        "12-25": "Natal"
+    }
+
+action e_feriado(d):
+    yield feriados(d.ano).has(formatar(d, "MM-dd"))
+
+action nome_do_feriado(d):
+    lista := feriados(d.ano)
+    chave := formatar(d, "MM-dd")
+    yield lista[chave] given lista.has(chave) otherwise void
+
+action dias_uteis_entre(a, b):
+    total := 0
+    atual := a
+    persist para_juliano(atual) smaller_eq para_juliano(b):
+        given e_dia_util(atual):
+            total += 1
+        atual := somar_dias(atual, 1)
+    yield total
+
+action proximo_dia_util(d):
+    atual := somar_dias(d, 1)
+    persist not e_dia_util(atual):
+        atual := somar_dias(atual, 1)
+    yield atual
+
+// ── Formatação ────────────────────────────────────────────
+
+action doisdig(n):
+    yield str(n) given n bigger_eq 10 otherwise "0" + str(n)
+
+action formatar(d, padrao := "dd/MM/yyyy"):
+    // dd MM yyyy yy  |  MMMM MMM (mês)  |  EEEE EEE (dia da semana)
+    saida := padrao
+    saida := saida.replace("yyyy", str(d.ano))
+    saida := saida.replace("MMMM", MESES[d.mes - 1])
+    saida := saida.replace("MMM", MESES_CURTOS[d.mes - 1])
+    saida := saida.replace("EEEE", DIAS[dia_da_semana(d)])
+    saida := saida.replace("EEE", DIAS_CURTOS[dia_da_semana(d)])
+    saida := saida.replace("dd", doisdig(d.dia))
+    saida := saida.replace("MM", doisdig(d.mes))
+    saida := saida.replace("yy", doisdig(d.ano % 100))
+    yield saida
+
+action por_extenso(d):
+    yield $"{d.dia} de {MESES[d.mes - 1]} de {d.ano}"
+
+action iso(d):
+    yield formatar(d, "yyyy-MM-dd")
+
+action de_iso(texto):
+    p := texto.split("T")[0].split("-")
+    yield Data(int(p[0]), int(p[1]), int(p[2]))
+
+action de_br(texto):
+    p := texto.split("/")
+    yield Data(int(p[2]), int(p[1]), int(p[0]))
+
+action relativo(d, referencia := void):
+    // "há 3 dias", "em 2 meses" — a forma que se lê num feed.
+    base := referencia ?? hoje()
+    n := dias_entre(base, d)
+    passado := n smaller 0
+    n := 0 - n given passado otherwise n
+
+    given n is 0:
+        yield "hoje"
+    given n is 1:
+        yield "ontem" given passado otherwise "amanhã"
+
+    valor := n
+    unidade := "dia"
+    given n bigger_eq 365:
+        valor := n ~/ 365
+        unidade := "ano"
+    orif n bigger_eq 30:
+        valor := n ~/ 30
+        unidade := "mês"
+    orif n bigger_eq 7:
+        valor := n ~/ 7
+        unidade := "semana"
+
+    plural := unidade + "s"
+    given unidade is "mês":
+        plural := "meses"
+    texto := unidade given valor is 1 otherwise plural
+
+    yield $"há {valor} {texto}" given passado otherwise $"em {valor} {texto}"
+
+action idade(nascimento, referencia := void):
+    base := referencia ?? hoje()
+    anos := base.ano - nascimento.ano
+    // ainda não fez aniversário este ano
+    given base.mes smaller nascimento.mes:
+        anos -= 1
+    orif base.mes is nascimento.mes and base.dia smaller nascimento.dia:
+        anos -= 1
+    yield anos
+
+action faixa(inicio, fim):
+    // Todas as datas de um intervalo, inclusive nas pontas.
+    saida := []
+    atual := inicio
+    persist para_juliano(atual) smaller_eq para_juliano(fim):
+        saida.append(atual)
+        atual := somar_dias(atual, 1)
+    yield saida
+
+relay Data, criar, hoje, bissexto, dias_no_mes, valida
+relay somar_dias, somar_meses, somar_anos, dias_entre, dias_atras, dias_a_frente
+relay dia_da_semana, e_fim_de_semana, e_dia_util, para_juliano, de_juliano
+relay pascoa, feriados, e_feriado, nome_do_feriado, dias_uteis_entre, proximo_dia_util
+relay formatar, por_extenso, iso, de_iso, de_br, relativo, idade, faixa
+relay MESES, MESES_CURTOS, DIAS, DIAS_CURTOS

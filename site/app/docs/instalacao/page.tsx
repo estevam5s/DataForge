@@ -9,7 +9,57 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Requisitos"},
+  {"p": "A forma mais rápida é o instalador: um comando, e o `dataforge` fica pronto. Ele não mexe no Python do sistema — cria um ambiente próprio em `~/.dataforge`."},
+
+  {"h2": "Instalação em um comando"},
+  {"h3": "macOS e Linux"},
+  { code: `curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | sh`, lang: 'bash' },
+  {"p": "Com `wget`, se preferir:"},
+  { code: `wget -qO- https://dataforge-lang.vercel.app/instalar.sh | sh`, lang: 'bash' },
+  {"callout": {"tipo": "dica", "titulo": "Ler antes de executar", "texto": "Canalizar um script da internet direto para o `sh` pede confiança na origem. Para conferir o que ele faz antes: `curl -fsSL https://dataforge-lang.vercel.app/instalar.sh -o instalar.sh`, leia, e então `sh instalar.sh`."}},
+
+  {"h3": "Windows (PowerShell)"},
+  { code: `irm https://dataforge-lang.vercel.app/instalar.ps1 | iex`, lang: 'powershell' },
+  {"p": "O instalador acrescenta o DataForge ao PATH do usuário. Abra um terminal novo depois."},
+
+  {"h3": "Ajustar a instalação"},
+  {"table": {"head": ["Variável", "Padrão", "Para que serve"], "rows": [["`DATAFORGE_PREFIX`", "`~/.dataforge`", "onde instalar"], ["`DATAFORGE_VERSION`", "`4.0.0`", "qual versão"], ["`DATAFORGE_SITE`", "o site oficial", "de onde baixar"]]}},
+  { code: `# instalar em outro lugar
+DATAFORGE_PREFIX=/opt/dataforge curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | sh
+
+# desinstalar é apagar a pasta
+rm -rf ~/.dataforge`, lang: 'bash' },
+
+  {"h2": "Docker"},
+  {"p": "Sem instalar nada no seu sistema — nem Python:"},
+  { code: `# console interativo
+docker run --rm -it dataforge/dataforge repl
+
+# rodar um arquivo da pasta atual
+docker run --rm -v "$PWD:/app" dataforge/dataforge run main.df
+
+# a suíte de testes de um projeto
+docker run --rm -v "$PWD:/app" dataforge/dataforge test tests/`, lang: 'bash' },
+  {"p": "Um apelido no shell deixa o uso igual ao nativo:"},
+  { code: `alias dataforge='docker run --rm -it -v "$PWD:/app" dataforge/dataforge'
+dataforge run main.df`, lang: 'bash' },
+  {"h3": "Construir a imagem você mesmo"},
+  { code: `docker build -t dataforge/dataforge:4.0.0 .
+docker compose run --rm repl`, lang: 'bash' },
+  {"p": "A imagem é multi-estágio e roda como usuário sem privilégio. Cerca de 217 MB, a maior parte sendo o Python."},
+
+  {"h2": "Baixar o tarball direto"},
+  {"p": "Se você prefere controlar cada passo:"},
+  { code: `curl -fsSL -O https://dataforge-lang.vercel.app/dist/dataforge-4.0.0.tar.gz
+curl -fsSL -O https://dataforge-lang.vercel.app/dist/dataforge-4.0.0.tar.gz.sha256
+shasum -a 256 -c dataforge-4.0.0.tar.gz.sha256
+
+tar -xzf dataforge-4.0.0.tar.gz
+cd dataforge-4.0.0
+pip install .`, lang: 'bash' },
+
+  {"h2": "A partir do código-fonte"},
+  {"h3": "Requisitos"},
   {"table": {"head": ["Item", "Versão mínima", "Como conferir"], "rows": [["Python", "3.10", "`python3 --version`"], ["pip", "qualquer recente", "`python3 -m pip --version`"], ["git", "opcional", "`git --version`"]]}},
   {"p": "DataForge é um interpretador escrito em Python puro. **Não há dependências externas obrigatórias** — nada de compilar, nada de toolchain."},
   {"h3": "Se você ainda não tem Python"},
@@ -19,10 +69,12 @@ brew install python@3.12
 # Ubuntu / Debian
 sudo apt update && sudo apt install -y python3 python3-pip python3-venv`, lang: 'bash' },
   {"p": "No **Windows**, baixe em [python.org/downloads](https://www.python.org/downloads/) e marque **\"Add Python to PATH\"** durante a instalação."},
-  {"h2": "Obter o DataForge"},
+  {"h3": "Clonar e instalar"},
   { code: `git clone https://github.com/estevam5s/DataForge.git
-cd DataForge`, lang: 'bash' },
-  {"p": "Sem git, baixe o ZIP pelo botão **Code → Download ZIP** no GitHub e extraia."},
+cd DataForge
+pip install -e .`, lang: 'bash' },
+  {"p": "O `-e` instala em modo editável: mudanças no código valem na hora, sem reinstalar. É como você trabalha se for [contribuir](/docs/contribuir)."},
+
   {"h2": "Ambiente virtual"},
   {"p": "O ambiente virtual isola o DataForge do Python do sistema. É opcional, mas evita conflitos."},
   { code: `# macOS / Linux
@@ -45,7 +97,7 @@ cp -r editor/vscode/* ~/.vscode/extensions/dataforge/`, lang: 'bash' },
   {"p": "Reinicie o VS Code. Arquivos `.df` passam a ter realce."},
   {"h2": "Verificar a instalação"},
   { code: `dataforge version
-python3 -m pytest tests/ -q          # 240 testes
+python3 -m pytest tests/ -q          # 272 testes
 python3 exercicios/run_all.py        # 180 exercícios`, lang: 'bash' },
   {"h2": "Problemas comuns"},
   {"h3": "`command not found: dataforge`"},

@@ -125,6 +125,7 @@ export const nav: NavSection[] = [
       { title: 'dataforge doc', href: '/docs/cli/doc' },
       { title: 'dataforge init', href: '/docs/cli/init' },
       { title: 'dataforge repl', href: '/docs/cli/repl' },
+      { title: 'dataforge add', href: '/docs/cli/pacotes' },
       { title: 'forge.toml', href: '/docs/cli/forge-toml' },
     ],
   },
@@ -153,6 +154,17 @@ export const nav: NavSection[] = [
       { title: '18 · Persistência', href: '/docs/exercicios/18-dados-e-persistencia' },
       { title: '19 · Concorrência', href: '/docs/exercicios/19-concorrencia' },
       { title: '20 · Projetos finais', href: '/docs/exercicios/20-projetos-finais' },
+    ],
+  },
+  {
+    title: 'Pacotes',
+    items: [
+      { title: 'Gerenciador de pacotes', href: '/docs/pacotes' },
+      { title: 'Publicar um pacote', href: '/docs/pacotes/publicar' },
+      { title: 'validador', href: '/docs/pacotes/validador' },
+      { title: 'tabela', href: '/docs/pacotes/tabela' },
+      { title: 'datas', href: '/docs/pacotes/datas' },
+      { title: 'cofre', href: '/docs/pacotes/cofre' },
     ],
   },
   {

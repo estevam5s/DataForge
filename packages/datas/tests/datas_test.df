@@ -1,0 +1,109 @@
+adopt Arcane.Test as T
+adopt datas as D
+
+action test_bissexto():
+    T.assert_true(D.bissexto(2024))
+    T.assert_true(D.bissexto(2000))
+    T.assert_false(D.bissexto(1900))
+    T.assert_false(D.bissexto(2026))
+    T.assert_eq(D.dias_no_mes(2024, 2), 29)
+    T.assert_eq(D.dias_no_mes(2026, 2), 28)
+
+action test_juliano_ida_e_volta():
+    cycle d in [D.criar(2026, 9, 7), D.criar(2000, 1, 1), D.criar(1999, 12, 31)]:
+        volta := D.de_juliano(D.para_juliano(d))
+        T.assert_eq(volta.ano, d.ano)
+        T.assert_eq(volta.mes, d.mes)
+        T.assert_eq(volta.dia, d.dia)
+
+action test_somar_dias_atravessa_o_ano():
+    r := D.somar_dias(D.criar(2026, 12, 31), 1)
+    T.assert_eq(D.iso(r), "2027-01-01")
+    r2 := D.somar_dias(D.criar(2024, 2, 28), 1)
+    T.assert_eq(D.iso(r2), "2024-02-29")
+
+action test_somar_meses_ajusta_o_dia():
+    // 31 de janeiro + 1 mês não pode virar 31 de fevereiro
+    r := D.somar_meses(D.criar(2026, 1, 31), 1)
+    T.assert_eq(D.iso(r), "2026-02-28")
+    r2 := D.somar_meses(D.criar(2024, 1, 31), 1)
+    T.assert_eq(D.iso(r2), "2024-02-29")
+
+action test_dias_entre():
+    T.assert_eq(D.dias_entre(D.criar(2026, 1, 1), D.criar(2026, 1, 31)), 30)
+    T.assert_eq(D.dias_entre(D.criar(2026, 1, 31), D.criar(2026, 1, 1)), -30)
+
+action test_dia_da_semana():
+    // 7 de setembro de 2026 é uma segunda-feira
+    T.assert_eq(D.dia_da_semana(D.criar(2026, 9, 7)), 0)
+    T.assert_true(D.e_fim_de_semana(D.criar(2026, 9, 12)))
+    T.assert_false(D.e_fim_de_semana(D.criar(2026, 9, 7)))
+
+action test_pascoa():
+    T.assert_eq(D.iso(D.pascoa(2026)), "2026-04-05")
+    T.assert_eq(D.iso(D.pascoa(2024)), "2024-03-31")
+    T.assert_eq(D.iso(D.pascoa(2025)), "2025-04-20")
+
+action test_feriados():
+    T.assert_true(D.e_feriado(D.criar(2026, 12, 25)))
+    T.assert_true(D.e_feriado(D.criar(2026, 9, 7)))
+    T.assert_false(D.e_feriado(D.criar(2026, 9, 8)))
+    T.assert_eq(D.nome_do_feriado(D.criar(2026, 12, 25)), "Natal")
+    T.assert_true(D.e_feriado(D.criar(2026, 6, 4)))
+
+action test_formatar():
+    d := D.criar(2026, 9, 7)
+    T.assert_eq(D.formatar(d), "07/09/2026")
+    T.assert_eq(D.formatar(d, "yyyy-MM-dd"), "2026-09-07")
+    T.assert_eq(D.formatar(d, "dd/MM/yy"), "07/09/26")
+    T.assert_eq(D.formatar(d, "MMMM"), "setembro")
+    T.assert_eq(D.formatar(d, "MMM"), "set")
+    T.assert_eq(D.por_extenso(d), "7 de setembro de 2026")
+
+action test_parse():
+    T.assert_eq(D.iso(D.de_iso("2026-09-07")), "2026-09-07")
+    T.assert_eq(D.iso(D.de_br("07/09/2026")), "2026-09-07")
+    T.assert_eq(D.iso(D.de_iso("2026-09-07T12:30:00")), "2026-09-07")
+
+action test_relativo():
+    base := D.criar(2026, 9, 7)
+    T.assert_eq(D.relativo(base, base), "hoje")
+    T.assert_eq(D.relativo(D.criar(2026, 9, 6), base), "ontem")
+    T.assert_eq(D.relativo(D.criar(2026, 9, 8), base), "amanhã")
+    T.assert_eq(D.relativo(D.criar(2026, 9, 4), base), "há 3 dias")
+    T.assert_eq(D.relativo(D.criar(2026, 9, 21), base), "em 2 semanas")
+    T.assert_eq(D.relativo(D.criar(2025, 9, 7), base), "há 1 ano")
+
+action test_idade():
+    base := D.criar(2026, 9, 7)
+    T.assert_eq(D.idade(D.criar(1990, 5, 10), base), 36)
+    // ainda não fez aniversário este ano
+    T.assert_eq(D.idade(D.criar(1990, 12, 25), base), 35)
+    // faz hoje
+    T.assert_eq(D.idade(D.criar(1990, 9, 7), base), 36)
+
+action test_dias_uteis():
+    // 7 a 11 de setembro de 2026: seg a sex, e o dia 7 é feriado
+    n := D.dias_uteis_entre(D.criar(2026, 9, 7), D.criar(2026, 9, 11))
+    T.assert_eq(n, 4)
+
+action test_faixa():
+    f := D.faixa(D.criar(2026, 1, 1), D.criar(2026, 1, 5))
+    T.assert_eq(len(f), 5)
+    T.assert_eq(D.iso(f[0]), "2026-01-01")
+    T.assert_eq(D.iso(f[4]), "2026-01-05")
+
+action test_valida():
+    T.assert_true(D.valida(D.criar(2024, 2, 29)))
+    T.assert_false(D.valida(D.criar(2026, 2, 29)))
+    T.assert_false(D.valida(D.criar(2026, 13, 1)))
+
+action test_hoje_e_uma_data_valida():
+    // hoje() lê o relógio do sistema; o teste não pode fixar o valor,
+    // mas pode exigir que seja uma data que existe.
+    h := D.hoje()
+    T.assert_true(D.valida(h))
+    T.assert_true(h.ano bigger_eq 2024)
+    T.assert_true(h.mes bigger_eq 1 and h.mes smaller_eq 12)
+    T.assert_eq(D.dias_entre(h, D.dias_a_frente(3)), 3)
+    T.assert_eq(D.relativo(D.dias_atras(3)), "há 3 dias")

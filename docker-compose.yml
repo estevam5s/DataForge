@@ -1,0 +1,27 @@
+# Atalhos para o dia a dia com Docker.
+#
+#   docker compose run --rm repl        console interativo
+#   docker compose run --rm df run main.df
+#   docker compose run --rm testes
+
+services:
+  df:
+    build: .
+    image: dataforge/dataforge:4.0.0
+    volumes:
+      - .:/app
+    working_dir: /app
+
+  repl:
+    extends: df
+    command: ["repl"]
+    stdin_open: true
+    tty: true
+
+  testes:
+    extends: df
+    command: ["test", "tests/"]
+
+  verificar:
+    extends: df
+    command: ["check", "."]

@@ -147,7 +147,7 @@ export default function Home() {
         O analisador estático fica calado quando não consegue{' '}
         <strong>provar</strong> que algo está errado. Um falso alarme é pior que
         um alerta perdido, porque ensina a ignorar as mensagens. Hoje ele reporta{' '}
-        <strong>zero erros</strong> em 225 arquivos conhecidamente bons.
+        <strong>zero erros</strong> em 233 arquivos conhecidamente bons.
       </p>
 
       <H3>Verificável</H3>

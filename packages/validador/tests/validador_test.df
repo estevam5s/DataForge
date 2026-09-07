@@ -1,0 +1,61 @@
+adopt Arcane.Test as T
+adopt validador as V
+
+action test_email():
+    T.assert_true(V.email("ana@exemplo.com"))
+    T.assert_true(V.email("ana.silva+tag@sub.exemplo.com.br"))
+    T.assert_false(V.email("sem-arroba.com"))
+    T.assert_false(V.email("dois..pontos@exemplo.com"))
+    T.assert_false(V.email("@exemplo.com"))
+    T.assert_false(V.email(42))
+
+action test_cpf():
+    T.assert_true(V.cpf("529.982.247-25"))
+    T.assert_true(V.cpf("52998224725"))
+    T.assert_false(V.cpf("529.982.247-26"))
+    T.assert_false(V.cpf("111.111.111-11"))
+    T.assert_false(V.cpf("123"))
+
+action test_cnpj():
+    T.assert_true(V.cnpj("11.222.333/0001-81"))
+    T.assert_false(V.cnpj("11.222.333/0001-82"))
+    T.assert_false(V.cnpj("00.000.000/0000-00"))
+
+action test_cep_e_telefone():
+    T.assert_true(V.cep("01310-100"))
+    T.assert_false(V.cep("0131"))
+    T.assert_true(V.telefone("(11) 98765-4321"))
+    T.assert_true(V.telefone("(11) 3456-7890"))
+    T.assert_false(V.telefone("(11) 12345-6789"))
+
+action test_cartao():
+    T.assert_true(V.cartao("4539 1488 0343 6467"))
+    T.assert_false(V.cartao("4539 1488 0343 6468"))
+
+action test_senha():
+    fraca := V.forca_senha("abc")
+    T.assert_false(fraca["forte"])
+    T.assert_true(len(fraca["faltando"]) bigger 0)
+    forte := V.forca_senha("Senha@2026")
+    T.assert_true(forte["forte"])
+    T.assert_eq(forte["nota"], 5)
+
+action test_esquema():
+    regras := V.esquema({
+        "email": [V.regra_obrigatorio(), V.regra_email()],
+        "cpf": [V.regra_cpf()],
+        "idade": [V.regra_entre(18, 120)]
+    })
+
+    bom := V.validar(regras, {"email": "ana@exemplo.com", "cpf": "52998224725", "idade": 30})
+    T.assert_true(bom["valido"])
+
+    ruim := V.validar(regras, {"email": "invalido", "cpf": "111", "idade": 5})
+    T.assert_false(ruim["valido"])
+    T.assert_eq(len(ruim["erros"]), 3)
+    T.assert_eq(ruim["erros"]["email"], "e-mail inválido")
+
+action test_campo_ausente_e_obrigatorio():
+    regras := V.esquema({"nome": [V.regra_obrigatorio()]})
+    r := V.validar(regras, {})
+    T.assert_false(r["valido"])

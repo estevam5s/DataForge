@@ -86,18 +86,45 @@ repor: [Teclado, Monitor]
 
 ## Instalação
 
+**macOS e Linux** — um comando:
+
+```bash
+curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | sh
+```
+
+Com `wget`, se preferir:
+
+```bash
+wget -qO- https://dataforge-lang.vercel.app/instalar.sh | sh
+```
+
+**Windows** (PowerShell):
+
+```powershell
+irm https://dataforge-lang.vercel.app/instalar.ps1 | iex
+```
+
+O instalador cria um ambiente próprio em `~/.dataforge`. Não mexe no Python
+do sistema, não pede sudo, e desinstalar é apagar a pasta.
+
+**Docker** — sem instalar nada, nem Python:
+
+```bash
+docker run --rm -it dataforge/dataforge repl
+docker run --rm -v "$PWD:/app" dataforge/dataforge run main.df
+```
+
+**Do código-fonte**:
+
 ```bash
 git clone https://github.com/estevam5s/DataForge.git
 cd DataForge
-
-python3 -m venv .venv && source .venv/bin/activate
-pip install .
-
-dataforge version
+pip install -e .
 ```
 
-Guia detalhado, com Windows e solução de problemas:
-[`doc/INSTALACAO.md`](doc/INSTALACAO.md).
+Guia completo, com solução de problemas:
+[`doc/INSTALACAO.md`](doc/INSTALACAO.md) ou
+[dataforge-lang.vercel.app/docs/instalacao](https://dataforge-lang.vercel.app/docs/instalacao).
 
 ### Primeiro projeto
 
@@ -107,6 +134,30 @@ cd meu-app
 dataforge run
 dataforge test
 ```
+
+### Pacotes
+
+O gerenciador vem junto — não há binário separado:
+
+```bash
+dataforge add validador       # instala e grava no forge.toml
+dataforge add tabela datas
+dataforge install             # instala o que o forge.toml declara
+dataforge search cpf          # procura no registro
+dataforge list                # o que está instalado
+```
+
+```dataforge
+adopt validador as V
+adopt tabela as Tb
+
+out V.cpf("529.982.247-25")                        // yes
+out Tb.render([["Ana", 30]], ["Nome", "Idade"])
+```
+
+Semver (`^1.2.3`, `~1.2`, `>=1.0 <2.0`), lockfile com sha256, dependências
+de registro, pasta local, git ou URL. Detalhes em
+[Pacotes](https://dataforge-lang.vercel.app/docs/pacotes).
 
 ---
 
@@ -524,17 +575,18 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 
 | Verificação | Resultado |
 |-------------|-----------|
-| Testes unitários | 240 passando |
+| Testes unitários | 272 passando |
 | Exercícios | 180/180 |
 | Exemplos | 42/42 |
 | Módulos da stdlib | 20/20 carregam |
-| Análise estática sobre o repositório | 0 erros em 222 arquivos |
-| Instalação via pip | funciona |
+| Pacotes do registro | 4, com 46 testes |
+| Análise estática sobre o repositório | 0 erros em 233 arquivos |
+| Instalação via pip, curl e Docker | funciona |
 
 ### O que ainda não existe
 
 Generics, verificação de exaustividade em `match`, contrato de trait, LSP,
-debugger, gerenciador de pacotes, VM de bytecode e sincronização entre threads.
+debugger, VM de bytecode e sincronização entre threads.
 Detalhado em [`doc/ANALISE_E_ROADMAP.md`](doc/ANALISE_E_ROADMAP.md).
 
 ---

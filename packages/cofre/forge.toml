@@ -1,0 +1,14 @@
+[package]
+name = "cofre"
+version = "1.0.0"
+description = "Configuração em camadas: padrões, arquivo, ambiente e argumentos, com tipos e validação."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.0"
+keywords = ["config", "env", "cli", "argumentos"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

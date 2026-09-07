@@ -42,3 +42,17 @@ site/out/
 site/next-env.d.ts
 .vercel
 site/tsconfig.tsbuildinfo
+
+# Segredos — nunca commitar
+vercel_token.txt
+*_token.txt
+.vercel/
+
+# Pacotes: o fonte entra, o build não
+packages/*/dist/
+forge_modules/
+
+# Exceção: o tarball servido pelo site é publicado de propósito —
+# é dele que 'curl … | sh' baixa a linguagem.
+!site/public/dist/
+!site/public/dist/**
