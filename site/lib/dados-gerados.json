@@ -1,1857 +1,571 @@
 {
  "modulos": {
-  "math": {
-   "nome": "Arcane.Math",
-   "desc": "Matemática, álgebra linear e estatística.",
-   "funcoes": [
-    {
-     "nome": "abs",
-     "sig": "(x)"
-    },
-    {
-     "nome": "acos",
-     "sig": "(x)"
-    },
-    {
-     "nome": "asin",
-     "sig": "(x)"
-    },
-    {
-     "nome": "atan",
-     "sig": "(x)"
-    },
-    {
-     "nome": "atan2",
-     "sig": "(y, x)"
-    },
-    {
-     "nome": "cbrt",
-     "sig": "(x)"
-    },
-    {
-     "nome": "ceil",
-     "sig": "(x)"
-    },
-    {
-     "nome": "clamp",
-     "sig": "(value, min_val, max_val)"
-    },
-    {
-     "nome": "comb",
-     "sig": "(n, k)"
-    },
-    {
-     "nome": "cos",
-     "sig": "(x)"
-    },
-    {
-     "nome": "degrees",
-     "sig": "(x)"
-    },
-    {
-     "nome": "determinant",
-     "sig": "(matrix)"
-    },
-    {
-     "nome": "dot",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "exp",
-     "sig": "(x)"
-    },
-    {
-     "nome": "factorial",
-     "sig": "(n)"
-    },
-    {
-     "nome": "fibonacci",
-     "sig": "(n)"
-    },
-    {
-     "nome": "floor",
-     "sig": "(x)"
-    },
-    {
-     "nome": "gcd",
-     "sig": "(*integers)"
-    },
-    {
-     "nome": "hypot",
-     "sig": "(…)"
-    },
-    {
-     "nome": "identity",
-     "sig": "(n)"
-    },
-    {
-     "nome": "is_prime",
-     "sig": "(n)"
-    },
-    {
-     "nome": "lcm",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "lerp",
-     "sig": "(a, b, t)"
-    },
-    {
-     "nome": "log",
-     "sig": "(…)"
-    },
-    {
-     "nome": "log10",
-     "sig": "(x)"
-    },
-    {
-     "nome": "log2",
-     "sig": "(x)"
-    },
-    {
-     "nome": "map_range",
-     "sig": "(value, in_min, in_max, out_min, out_max)"
-    },
-    {
-     "nome": "matrix",
-     "sig": "(data)"
-    },
-    {
-     "nome": "max",
-     "sig": "(…)"
-    },
-    {
-     "nome": "mean",
-     "sig": "(data)"
-    },
-    {
-     "nome": "median",
-     "sig": "(data)"
-    },
-    {
-     "nome": "min",
-     "sig": "(…)"
-    },
-    {
-     "nome": "ones",
-     "sig": "(rows, cols=None)"
-    },
-    {
-     "nome": "perm",
-     "sig": "(n, k=None)"
-    },
-    {
-     "nome": "pow",
-     "sig": "(x, y)"
-    },
-    {
-     "nome": "radians",
-     "sig": "(x)"
-    },
-    {
-     "nome": "round",
-     "sig": "(number, ndigits=None)"
-    },
-    {
-     "nome": "sin",
-     "sig": "(x)"
-    },
-    {
-     "nome": "sqrt",
-     "sig": "(x)"
-    },
-    {
-     "nome": "stdev",
-     "sig": "(data)"
-    },
-    {
-     "nome": "sum",
-     "sig": "(data)"
-    },
-    {
-     "nome": "tan",
-     "sig": "(x)"
-    },
-    {
-     "nome": "transpose",
-     "sig": "(matrix)"
-    },
-    {
-     "nome": "variance",
-     "sig": "(data)"
-    },
-    {
-     "nome": "zeros",
-     "sig": "(rows, cols=None)"
-    }
-   ],
-   "constantes": [
-    {
-     "nome": "E",
-     "valor": "2.718281828459045"
-    },
-    {
-     "nome": "INF",
-     "valor": "inf"
-    },
-    {
-     "nome": "NAN",
-     "valor": "nan"
-    },
-    {
-     "nome": "PI",
-     "valor": "3.141592653589793"
-    },
-    {
-     "nome": "TAU",
-     "valor": "6.283185307179586"
-    },
-    {
-     "nome": "random",
-     "valor": "{'random': <built-in method random of Random o…"
-    }
-   ],
-   "total": 51
-  },
-  "text": {
-   "nome": "Arcane.Text",
-   "desc": "Manipulação de texto, tabelas, caixas e conversão de caixa.",
-   "funcoes": [
-    {
-     "nome": "align",
-     "sig": "(lines, alignment='left', width=None)"
-    },
-    {
-     "nome": "box",
-     "sig": "(text, style='single')"
-    },
-    {
-     "nome": "camel_case",
-     "sig": "(text)"
-    },
-    {
-     "nome": "char_count",
-     "sig": "(text, include_spaces=True)"
-    },
-    {
-     "nome": "closest",
-     "sig": "(query, candidates, n=3)"
-    },
-    {
-     "nome": "constant_case",
-     "sig": "(text)"
-    },
-    {
-     "nome": "currency",
-     "sig": "(amount, symbol='$', decimals=2)"
-    },
-    {
-     "nome": "dedent",
-     "sig": "(text)"
-    },
-    {
-     "nome": "diff",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "distance",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "dot_case",
-     "sig": "(text)"
-    },
-    {
-     "nome": "escape_html",
-     "sig": "(text)"
-    },
-    {
-     "nome": "escape_regex",
-     "sig": "(text)"
-    },
-    {
-     "nome": "extract_emails",
-     "sig": "(text)"
-    },
-    {
-     "nome": "extract_hashtags",
-     "sig": "(text)"
-    },
-    {
-     "nome": "extract_links",
-     "sig": "(text)"
-    },
-    {
-     "nome": "extract_mentions",
-     "sig": "(text)"
-    },
-    {
-     "nome": "extract_numbers",
-     "sig": "(text)"
-    },
-    {
-     "nome": "frequency",
-     "sig": "(text)"
-    },
-    {
-     "nome": "fuzzy_match",
-     "sig": "(query, text, threshold=0.6)"
-    },
-    {
-     "nome": "highlight",
-     "sig": "(text, word, start='\\x1b[1;33m', end='\\x1b[0m')"
-    },
-    {
-     "nome": "indent",
-     "sig": "(text, prefix='    ')"
-    },
-    {
-     "nome": "kebab_case",
-     "sig": "(text)"
-    },
-    {
-     "nome": "line_count",
-     "sig": "(text)"
-    },
-    {
-     "nome": "lorem",
-     "sig": "(sentences=3)"
-    },
-    {
-     "nome": "ngrams",
-     "sig": "(text, n=2)"
-    },
-    {
-     "nome": "normalize_whitespace",
-     "sig": "(text)"
-    },
-    {
-     "nome": "number_format",
-     "sig": "(n, decimals=2, thousands_sep=',', decimal_sep='.')"
-    },
-    {
-     "nome": "pad",
-     "sig": "(text, width, fill=' ', align='left')"
-    },
-    {
-     "nome": "paragraph_count",
-     "sig": "(text)"
-    },
-    {
-     "nome": "parse_csv",
-     "sig": "(text, delimiter=',')"
-    },
-    {
-     "nome": "parse_ini",
-     "sig": "(text)"
-    },
-    {
-     "nome": "parse_query",
-     "sig": "(query_string)"
-    },
-    {
-     "nome": "pascal_case",
-     "sig": "(text)"
-    },
-    {
-     "nome": "path_case",
-     "sig": "(text)"
-    },
-    {
-     "nome": "random_string",
-     "sig": "(length=16, charset='alphanumeric')"
-    },
-    {
-     "nome": "reading_time",
-     "sig": "(text, wpm=200)"
-    },
-    {
-     "nome": "remove_accents",
-     "sig": "(text)"
-    },
-    {
-     "nome": "render",
-     "sig": "(template, context)"
-    },
-    {
-     "nome": "repeat_str",
-     "sig": "(text, n, separator='')"
-    },
-    {
-     "nome": "sentence_case",
-     "sig": "(text)"
-    },
-    {
-     "nome": "sentence_count",
-     "sig": "(text)"
-    },
-    {
-     "nome": "similarity",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "slug",
-     "sig": "(text)"
-    },
-    {
-     "nome": "snake_case",
-     "sig": "(text)"
-    },
-    {
-     "nome": "strip_ansi",
-     "sig": "(text)"
-    },
-    {
-     "nome": "strip_html",
-     "sig": "(text)"
-    },
-    {
-     "nome": "table",
-     "sig": "(headers, rows, style='simple')"
-    },
-    {
-     "nome": "template",
-     "sig": "(text)"
-    },
-    {
-     "nome": "title_case",
-     "sig": "(text)"
-    },
-    {
-     "nome": "to_csv",
-     "sig": "(data, delimiter=',')"
-    },
-    {
-     "nome": "to_query",
-     "sig": "(params)"
-    },
-    {
-     "nome": "transliterate",
-     "sig": "(text)"
-    },
-    {
-     "nome": "truncate",
-     "sig": "(text, length=50, suffix='...')"
-    },
-    {
-     "nome": "unescape_html",
-     "sig": "(text)"
-    },
-    {
-     "nome": "unified_diff",
-     "sig": "(a, b, a_name='original', b_name='modified')"
-    },
-    {
-     "nome": "word_count",
-     "sig": "(text)"
-    },
-    {
-     "nome": "wrap",
-     "sig": "(text, width=80)"
-    }
-   ],
-   "constantes": [],
-   "total": 58
-  },
   "analytics": {
    "nome": "Arcane.Analytics",
-   "desc": "Análise de dados: estatística, regressão, clustering e gráficos.",
+   "desc": "Agregação, agrupamento e séries.",
    "funcoes": [
     {
      "nome": "DataFrame",
-     "sig": "(data=None, columns=None)"
+     "sig": "(data, columns)",
+     "tipo": "funcao"
     },
     {
      "nome": "autocorrelation",
-     "sig": "(data, lag=1)"
+     "sig": "(data, lag)",
+     "tipo": "funcao"
     },
     {
      "nome": "bar_chart",
-     "sig": "(data, labels=None, width=40, char='█')"
+     "sig": "(data, labels, width, char)",
+     "tipo": "funcao"
     },
     {
      "nome": "bin_data",
-     "sig": "(data, bins=5)"
+     "sig": "(data, bins)",
+     "tipo": "funcao"
     },
     {
      "nome": "bootstrap",
-     "sig": "(data, n_samples=1000, stat_fn=None)"
+     "sig": "(data, n_samples, stat_fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "box_plot",
-     "sig": "(data, width=40)"
+     "sig": "(data, width)",
+     "tipo": "funcao"
     },
     {
      "nome": "correlation",
-     "sig": "(x, y)"
+     "sig": "(x, y)",
+     "tipo": "funcao"
     },
     {
      "nome": "correlation_matrix",
-     "sig": "(data_dict)"
+     "sig": "(data_dict)",
+     "tipo": "funcao"
     },
     {
      "nome": "cosine_similarity",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "covariance",
-     "sig": "(x, y)"
+     "sig": "(x, y)",
+     "tipo": "funcao"
     },
     {
      "nome": "create_frame",
-     "sig": "(data, columns=None)"
+     "sig": "(data, columns)",
+     "tipo": "funcao"
     },
     {
      "nome": "cross_tab",
-     "sig": "(data, row_fn, col_fn)"
+     "sig": "(data, row_fn, col_fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "cumulative_sum",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "data_types",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "describe",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "diff",
-     "sig": "(data, periods=1)"
+     "sig": "(data, periods)",
+     "tipo": "funcao"
     },
     {
      "nome": "euclidean_distance",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "exponential_smoothing",
-     "sig": "(data, alpha=0.3)"
+     "sig": "(data, alpha)",
+     "tipo": "funcao"
     },
     {
      "nome": "frequency_table",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "from_csv",
-     "sig": "(path, delimiter=',', has_header=True)"
+     "sig": "(path, delimiter, has_header)",
+     "tipo": "funcao"
     },
     {
      "nome": "from_dict",
-     "sig": "(d)"
+     "sig": "(d)",
+     "tipo": "funcao"
     },
     {
      "nome": "from_json",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "from_records",
-     "sig": "(records)"
+     "sig": "(records)",
+     "tipo": "funcao"
     },
     {
      "nome": "group_by",
-     "sig": "(data, key_fn)"
+     "sig": "(data, key_fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "heatmap",
-     "sig": "(matrix, row_labels=None, col_labels=None)"
+     "sig": "(matrix, row_labels, col_labels)",
+     "tipo": "funcao"
     },
     {
      "nome": "histogram",
-     "sig": "(data, bins=10, width=40, char='█')"
+     "sig": "(data, bins, width, char)",
+     "tipo": "funcao"
     },
     {
      "nome": "iqr",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "kmeans",
-     "sig": "(data, k=3, max_iter=100)"
+     "sig": "(data, k, max_iter)",
+     "tipo": "funcao"
     },
     {
      "nome": "kurtosis",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "lag",
-     "sig": "(data, k=1)"
+     "sig": "(data, k)",
+     "tipo": "funcao"
     },
     {
      "nome": "line_chart",
-     "sig": "(data, width=60, height=15)"
+     "sig": "(data, width, height)",
+     "tipo": "funcao"
     },
     {
      "nome": "linear_regression",
-     "sig": "(x, y)"
+     "sig": "(x, y)",
+     "tipo": "funcao"
     },
     {
      "nome": "log_transform",
-     "sig": "(data, base=None)"
+     "sig": "(data, base)",
+     "tipo": "funcao"
     },
     {
      "nome": "manhattan_distance",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "mean",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "median",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "min_max_scale",
-     "sig": "(data, feature_range=(0, 1))"
+     "sig": "(data, feature_range)",
+     "tipo": "funcao"
     },
     {
      "nome": "missing_values",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "mode",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "moving_average",
-     "sig": "(data, window=3)"
+     "sig": "(data, window)",
+     "tipo": "funcao"
     },
     {
      "nome": "normalize",
-     "sig": "(data, low=0, high=1)"
+     "sig": "(data, low, high)",
+     "tipo": "funcao"
     },
     {
      "nome": "outliers",
-     "sig": "(data, threshold=1.5)"
+     "sig": "(data, threshold)",
+     "tipo": "funcao"
     },
     {
      "nome": "percentile",
-     "sig": "(data, p)"
+     "sig": "(data, p)",
+     "tipo": "funcao"
     },
     {
      "nome": "pivot_table",
-     "sig": "(data, index_fn, value_fn, agg='sum')"
+     "sig": "(data, index_fn, value_fn, agg)",
+     "tipo": "funcao"
     },
     {
      "nome": "predict_linear",
-     "sig": "(model, x_val)"
+     "sig": "(model, x_val)",
+     "tipo": "funcao"
     },
     {
      "nome": "profile",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "quartiles",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "r_squared",
-     "sig": "(x, y)"
+     "sig": "(x, y)",
+     "tipo": "funcao"
     },
     {
      "nome": "rank",
-     "sig": "(data, method='average')"
+     "sig": "(data, method)",
+     "tipo": "funcao"
     },
     {
      "nome": "running_average",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "sample",
-     "sig": "(data, n=5, replace=False)"
+     "sig": "(data, n, replace)",
+     "tipo": "funcao"
     },
     {
      "nome": "scatter_plot",
-     "sig": "(x, y, width=40, height=20)"
+     "sig": "(x, y, width, height)",
+     "tipo": "funcao"
     },
     {
      "nome": "seasonality",
-     "sig": "(data, period=7)"
+     "sig": "(data, period)",
+     "tipo": "funcao"
     },
     {
      "nome": "silhouette_score",
-     "sig": "(data, labels)"
+     "sig": "(data, labels)",
+     "tipo": "funcao"
     },
     {
      "nome": "skewness",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "sparkline",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "standardize",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "stdev",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "stratified_sample",
-     "sig": "(data, labels, n_per_group=2)"
+     "sig": "(data, labels, n_per_group)",
+     "tipo": "funcao"
     },
     {
      "nome": "summary",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "trend",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "unique_counts",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "value_counts",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "variance",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     },
     {
      "nome": "zscore",
-     "sig": "(data)"
+     "sig": "(data)",
+     "tipo": "funcao"
     }
-   ],
-   "constantes": [],
-   "total": 65
-  },
-  "functional": {
-   "nome": "Arcane.Functional",
-   "desc": "Composição, lentes, Maybe/Either e transdutores.",
-   "funcoes": [
-    {
-     "nome": "all_pass",
-     "sig": "(*preds)"
-    },
-    {
-     "nome": "any_pass",
-     "sig": "(*preds)"
-    },
-    {
-     "nome": "both",
-     "sig": "(f, g)"
-    },
-    {
-     "nome": "chunk",
-     "sig": "(n, collection)"
-    },
-    {
-     "nome": "complement",
-     "sig": "(fn)"
-    },
-    {
-     "nome": "compose",
-     "sig": "(*fns)"
-    },
-    {
-     "nome": "constantly",
-     "sig": "(x)"
-    },
-    {
-     "nome": "curry",
-     "sig": "(fn, arity=None)"
-    },
-    {
-     "nome": "drop_while",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "either",
-     "sig": "(f, g)"
-    },
-    {
-     "nome": "filter",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "flat_map",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "flip",
-     "sig": "(fn)"
-    },
-    {
-     "nome": "frequencies",
-     "sig": "(collection)"
-    },
-    {
-     "nome": "from_either",
-     "sig": "(left_fn, right_fn, e)"
-    },
-    {
-     "nome": "from_maybe",
-     "sig": "(default, m)"
-    },
-    {
-     "nome": "group_by",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "identity",
-     "sig": "(x)"
-    },
-    {
-     "nome": "index_by",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "interleave",
-     "sig": "(*collections)"
-    },
-    {
-     "nome": "into",
-     "sig": "(target_type, xform, collection)"
-    },
-    {
-     "nome": "is_just",
-     "sig": "(m)"
-    },
-    {
-     "nome": "is_left",
-     "sig": "(e)"
-    },
-    {
-     "nome": "is_nothing",
-     "sig": "(m)"
-    },
-    {
-     "nome": "is_right",
-     "sig": "(e)"
-    },
-    {
-     "nome": "just",
-     "sig": "(value)"
-    },
-    {
-     "nome": "juxt",
-     "sig": "(*fns)"
-    },
-    {
-     "nome": "left",
-     "sig": "(value)"
-    },
-    {
-     "nome": "lens",
-     "sig": "(*keys)"
-    },
-    {
-     "nome": "map",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "match",
-     "sig": "(value, *cases)"
-    },
-    {
-     "nome": "maybe",
-     "sig": "(value)"
-    },
-    {
-     "nome": "memoize",
-     "sig": "(fn)"
-    },
-    {
-     "nome": "nothing",
-     "sig": "()"
-    },
-    {
-     "nome": "once",
-     "sig": "(fn)"
-    },
-    {
-     "nome": "over",
-     "sig": "(lens, fn, obj)"
-    },
-    {
-     "nome": "partial",
-     "sig": "(fn, *args)"
-    },
-    {
-     "nome": "partition_by",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "pipe",
-     "sig": "(*fns)"
-    },
-    {
-     "nome": "reduce",
-     "sig": "(fn, collection, initial=None)"
-    },
-    {
-     "nome": "right",
-     "sig": "(value)"
-    },
-    {
-     "nome": "scan",
-     "sig": "(fn, collection, initial)"
-    },
-    {
-     "nome": "set_lens",
-     "sig": "(lens, value, obj)"
-    },
-    {
-     "nome": "sort_by",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "spread",
-     "sig": "(fn)"
-    },
-    {
-     "nome": "take_while",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "tap",
-     "sig": "(fn, value)"
-    },
-    {
-     "nome": "thread_first",
-     "sig": "(value, *fns)"
-    },
-    {
-     "nome": "thread_last",
-     "sig": "(value, *fns)"
-    },
-    {
-     "nome": "trampoline",
-     "sig": "(fn, *args)"
-    },
-    {
-     "nome": "transduce",
-     "sig": "(xform, reducer, initial, collection)"
-    },
-    {
-     "nome": "try_catch",
-     "sig": "(fn)"
-    },
-    {
-     "nome": "unique_by",
-     "sig": "(fn, collection)"
-    },
-    {
-     "nome": "view",
-     "sig": "(lens, obj)"
-    },
-    {
-     "nome": "when",
-     "sig": "(*conditions)"
-    },
-    {
-     "nome": "zip_with",
-     "sig": "(fn, *collections)"
-    }
-   ],
-   "constantes": [],
-   "total": 56
-  },
-  "time": {
-   "nome": "Arcane.Time",
-   "desc": "Datas, horas, durações e cronometragem.",
-   "funcoes": [
-    {
-     "nome": "add_days",
-     "sig": "(d, n)"
-    },
-    {
-     "nome": "add_hours",
-     "sig": "(d, n)"
-    },
-    {
-     "nome": "add_minutes",
-     "sig": "(d, n)"
-    },
-    {
-     "nome": "add_months",
-     "sig": "(d, n)"
-    },
-    {
-     "nome": "add_seconds",
-     "sig": "(d, n)"
-    },
-    {
-     "nome": "add_weeks",
-     "sig": "(d, n)"
-    },
-    {
-     "nome": "add_years",
-     "sig": "(d, n)"
-    },
-    {
-     "nome": "age",
-     "sig": "(nascimento, referencia=None)"
-    },
-    {
-     "nome": "date",
-     "sig": "(ano, mes, dia)"
-    },
-    {
-     "nome": "datetime",
-     "sig": "(ano, mes, dia, hora=0, minuto=0, segundo=0)"
-    },
-    {
-     "nome": "day",
-     "sig": "(d)"
-    },
-    {
-     "nome": "day_of_year",
-     "sig": "(d)"
-    },
-    {
-     "nome": "days_between",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "days_in_month",
-     "sig": "(a, m)"
-    },
-    {
-     "nome": "diff",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "duration",
-     "sig": "(dias=0, horas=0, minutos=0, segundos=0)"
-    },
-    {
-     "nome": "end_of_day",
-     "sig": "(d)"
-    },
-    {
-     "nome": "end_of_month",
-     "sig": "(d)"
-    },
-    {
-     "nome": "format",
-     "sig": "(d, formato='%Y-%m-%d %H:%M:%S')"
-    },
-    {
-     "nome": "from_iso",
-     "sig": "(t)"
-    },
-    {
-     "nome": "from_timestamp",
-     "sig": "(ts)"
-    },
-    {
-     "nome": "hour",
-     "sig": "(d)"
-    },
-    {
-     "nome": "humanize",
-     "sig": "(s)"
-    },
-    {
-     "nome": "is_after",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "is_before",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "is_leap_year",
-     "sig": "(a)"
-    },
-    {
-     "nome": "is_same_day",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "is_weekend",
-     "sig": "(d)"
-    },
-    {
-     "nome": "measure",
-     "sig": "(acao)"
-    },
-    {
-     "nome": "minute",
-     "sig": "(d)"
-    },
-    {
-     "nome": "monotonic",
-     "sig": "()"
-    },
-    {
-     "nome": "month",
-     "sig": "(d)"
-    },
-    {
-     "nome": "month_name",
-     "sig": "(d, curto=False)"
-    },
-    {
-     "nome": "now",
-     "sig": "()"
-    },
-    {
-     "nome": "parse",
-     "sig": "(texto, formato=None)"
-    },
-    {
-     "nome": "quarter",
-     "sig": "(d)"
-    },
-    {
-     "nome": "second",
-     "sig": "(d)"
-    },
-    {
-     "nome": "sleep",
-     "sig": "(s)"
-    },
-    {
-     "nome": "start_of_day",
-     "sig": "(d)"
-    },
-    {
-     "nome": "start_of_month",
-     "sig": "(d)"
-    },
-    {
-     "nome": "stopwatch",
-     "sig": "()"
-    },
-    {
-     "nome": "timestamp",
-     "sig": "()"
-    },
-    {
-     "nome": "timezone_offset",
-     "sig": "()"
-    },
-    {
-     "nome": "to_br",
-     "sig": "(d)"
-    },
-    {
-     "nome": "to_date_string",
-     "sig": "(d)"
-    },
-    {
-     "nome": "to_iso",
-     "sig": "(d)"
-    },
-    {
-     "nome": "to_time_string",
-     "sig": "(d)"
-    },
-    {
-     "nome": "to_utc",
-     "sig": "(d)"
-    },
-    {
-     "nome": "today",
-     "sig": "()"
-    },
-    {
-     "nome": "utcnow",
-     "sig": "()"
-    },
-    {
-     "nome": "week_of_year",
-     "sig": "(d)"
-    },
-    {
-     "nome": "weekday",
-     "sig": "(d)"
-    },
-    {
-     "nome": "weekday_name",
-     "sig": "(d, curto=False)"
-    },
-    {
-     "nome": "year",
-     "sig": "(d)"
-    }
-   ],
-   "constantes": [],
-   "total": 54
+   ]
   },
   "async": {
    "nome": "Arcane.Async",
-   "desc": "Promessas, filas e agendamento.",
+   "desc": "Tarefas, canais e concorrência.",
    "funcoes": [
     {
      "nome": "all",
-     "sig": "(promises)"
+     "sig": "(promises)",
+     "tipo": "funcao"
     },
     {
      "nome": "any",
-     "sig": "(promises)"
+     "sig": "(promises)",
+     "tipo": "funcao"
     },
     {
      "nome": "batch",
-     "sig": "(fn)"
+     "sig": "(fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "buffer_op",
-     "sig": "(size)"
+     "sig": "(size)",
+     "tipo": "funcao"
     },
     {
      "nome": "catch",
-     "sig": "(promise, callback)"
+     "sig": "(promise, callback)",
+     "tipo": "funcao"
     },
     {
      "nome": "channel",
-     "sig": "(buffer_size=0)"
+     "sig": "(buffer_size)",
+     "tipo": "funcao"
     },
     {
      "nome": "combine_latest",
-     "sig": "(*observables)"
+     "sig": "(observables)",
+     "tipo": "funcao"
     },
     {
      "nome": "computed",
-     "sig": "(signals, fn)"
+     "sig": "(signals, fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "debounce_op",
-     "sig": "(ms)"
+     "sig": "(ms)",
+     "tipo": "funcao"
     },
     {
      "nome": "delay",
-     "sig": "(ms, fn=None)"
+     "sig": "(ms, fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "distinct_op",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "effect",
-     "sig": "(signals, fn)"
+     "sig": "(signals, fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "emit",
-     "sig": "(emitter, event, *data)"
+     "sig": "(emitter, event, data)",
+     "tipo": "funcao"
     },
     {
      "nome": "emit_event",
-     "sig": "(emitter, event, *data)"
+     "sig": "(emitter, event, data)",
+     "tipo": "funcao"
     },
     {
      "nome": "emitter",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "event_emitter",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "filter_op",
-     "sig": "(fn)"
+     "sig": "(fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "from_list",
-     "sig": "(lst)"
+     "sig": "(lst)",
+     "tipo": "funcao"
     },
     {
      "nome": "interval",
-     "sig": "(ms, count=10)"
+     "sig": "(ms, count)",
+     "tipo": "funcao"
     },
     {
      "nome": "map_op",
-     "sig": "(fn)"
+     "sig": "(fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "merge",
-     "sig": "(*observables)"
+     "sig": "(observables)",
+     "tipo": "funcao"
     },
     {
      "nome": "observable",
-     "sig": "(producer=None)"
+     "sig": "(producer)",
+     "tipo": "funcao"
     },
     {
      "nome": "of",
-     "sig": "(*values)"
+     "sig": "(values)",
+     "tipo": "funcao"
     },
     {
      "nome": "off",
-     "sig": "(emitter, event, callback=None)"
+     "sig": "(emitter, event, callback)",
+     "tipo": "funcao"
     },
     {
      "nome": "on",
-     "sig": "(emitter, event, callback)"
+     "sig": "(emitter, event, callback)",
+     "tipo": "funcao"
     },
     {
      "nome": "once_event",
-     "sig": "(emitter, event, callback)"
+     "sig": "(emitter, event, callback)",
+     "tipo": "funcao"
     },
     {
      "nome": "parallel",
-     "sig": "(*fns)"
+     "sig": "(fns)",
+     "tipo": "funcao"
     },
     {
      "nome": "pipe_stream",
-     "sig": "(observable, *operators)"
+     "sig": "(observable, operators)",
+     "tipo": "funcao"
     },
     {
      "nome": "promise",
-     "sig": "(executor)"
+     "sig": "(executor)",
+     "tipo": "funcao"
     },
     {
      "nome": "race",
-     "sig": "(promises)"
+     "sig": "(promises)",
+     "tipo": "funcao"
     },
     {
      "nome": "receive",
-     "sig": "(ch)"
+     "sig": "(ch)",
+     "tipo": "funcao"
     },
     {
      "nome": "reject",
-     "sig": "(error)"
+     "sig": "(error)",
+     "tipo": "funcao"
     },
     {
      "nome": "resolve",
-     "sig": "(value)"
+     "sig": "(value)",
+     "tipo": "funcao"
     },
     {
      "nome": "retry_task",
-     "sig": "(fn, max_retries=3, delay_ms=100)"
+     "sig": "(fn, max_retries, delay_ms)",
+     "tipo": "funcao"
     },
     {
      "nome": "scan_op",
-     "sig": "(fn, initial)"
+     "sig": "(fn, initial)",
+     "tipo": "funcao"
     },
     {
      "nome": "send",
-     "sig": "(ch, value)"
+     "sig": "(ch, value)",
+     "tipo": "funcao"
     },
     {
      "nome": "sequential",
-     "sig": "(*fns)"
+     "sig": "(fns)",
+     "tipo": "funcao"
     },
     {
      "nome": "settled",
-     "sig": "(promises)"
+     "sig": "(promises)",
+     "tipo": "funcao"
     },
     {
      "nome": "signal",
-     "sig": "(initial_value)"
+     "sig": "(initial_value)",
+     "tipo": "funcao"
     },
     {
      "nome": "skip_op",
-     "sig": "(n)"
+     "sig": "(n)",
+     "tipo": "funcao"
     },
     {
      "nome": "subject",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "subscribe",
-     "sig": "(observable, callback)"
+     "sig": "(observable, callback)",
+     "tipo": "funcao"
     },
     {
      "nome": "take_op",
-     "sig": "(n)"
+     "sig": "(n)",
+     "tipo": "funcao"
     },
     {
      "nome": "task",
-     "sig": "(fn)"
+     "sig": "(fn)",
+     "tipo": "funcao"
     },
     {
      "nome": "then",
-     "sig": "(promise, callback)"
+     "sig": "(promise, callback)",
+     "tipo": "funcao"
     },
     {
      "nome": "timeout",
-     "sig": "(ms, fn)"
+     "sig": "(ms, fn)",
+     "tipo": "funcao"
     }
-   ],
-   "constantes": [],
-   "total": 46
-  },
-  "database": {
-   "nome": "Arcane.Database",
-   "desc": "SQLite: tabelas, consultas, transações e migrações.",
-   "funcoes": [
-    {
-     "nome": "Model",
-     "sig": "(db, table, schema=None)"
-    },
-    {
-     "nome": "QueryBuilder",
-     "sig": "(db, table)"
-    },
-    {
-     "nome": "add_column",
-     "sig": "(db, table, name, col_type='TEXT')"
-    },
-    {
-     "nome": "backup",
-     "sig": "(db, dest_path)"
-    },
-    {
-     "nome": "begin",
-     "sig": "(db)"
-    },
-    {
-     "nome": "builder",
-     "sig": "(db, table)"
-    },
-    {
-     "nome": "close",
-     "sig": "(db)"
-    },
-    {
-     "nome": "columns",
-     "sig": "(db, table)"
-    },
-    {
-     "nome": "commit",
-     "sig": "(db)"
-    },
-    {
-     "nome": "connect",
-     "sig": "(path)"
-    },
-    {
-     "nome": "count",
-     "sig": "(db, table, where=None)"
-    },
-    {
-     "nome": "create_index",
-     "sig": "(db, table, columns, unique=False, name=None)"
-    },
-    {
-     "nome": "create_model",
-     "sig": "(db, table, schema)"
-    },
-    {
-     "nome": "create_table",
-     "sig": "(db, name, schema)"
-    },
-    {
-     "nome": "database_size",
-     "sig": "(db)"
-    },
-    {
-     "nome": "delete",
-     "sig": "(db, table, where=None)"
-    },
-    {
-     "nome": "drop_table",
-     "sig": "(db, name)"
-    },
-    {
-     "nome": "execute",
-     "sig": "(db, sql, params=None)"
-    },
-    {
-     "nome": "execute_many",
-     "sig": "(db, sql, params_list)"
-    },
-    {
-     "nome": "execute_script",
-     "sig": "(db, script)"
-    },
-    {
-     "nome": "exists",
-     "sig": "(db, table, where)"
-    },
-    {
-     "nome": "export_csv",
-     "sig": "(db, table, path)"
-    },
-    {
-     "nome": "export_json",
-     "sig": "(db, table, path)"
-    },
-    {
-     "nome": "import_csv",
-     "sig": "(db, table, path, has_header=True)"
-    },
-    {
-     "nome": "import_json",
-     "sig": "(db, table, path)"
-    },
-    {
-     "nome": "insert",
-     "sig": "(db, table, data)"
-    },
-    {
-     "nome": "insert_many",
-     "sig": "(db, table, records)"
-    },
-    {
-     "nome": "memory",
-     "sig": "()"
-    },
-    {
-     "nome": "migrate",
-     "sig": "(db, migrations)"
-    },
-    {
-     "nome": "query",
-     "sig": "(db, sql, params=None)"
-    },
-    {
-     "nome": "query_one",
-     "sig": "(db, sql, params=None)"
-    },
-    {
-     "nome": "rollback",
-     "sig": "(db)"
-    },
-    {
-     "nome": "seed",
-     "sig": "(db, table, records)"
-    },
-    {
-     "nome": "select",
-     "sig": "(db, table, where=None, order_by=None, limit=None, columns=None)"
-    },
-    {
-     "nome": "table_exists",
-     "sig": "(db, name)"
-    },
-    {
-     "nome": "table_info",
-     "sig": "(db, table)"
-    },
-    {
-     "nome": "tables",
-     "sig": "(db)"
-    },
-    {
-     "nome": "update",
-     "sig": "(db, table, data, where)"
-    },
-    {
-     "nome": "vacuum",
-     "sig": "(db)"
-    }
-   ],
-   "constantes": [],
-   "total": 39
-  },
-  "crypto": {
-   "nome": "Arcane.Crypto",
-   "desc": "Hashes, HMAC, senhas, codificações e aleatoriedade segura.",
-   "funcoes": [
-    {
-     "nome": "algorithms",
-     "sig": "()"
-    },
-    {
-     "nome": "base32_decode",
-     "sig": "(v)"
-    },
-    {
-     "nome": "base32_encode",
-     "sig": "(v)"
-    },
-    {
-     "nome": "base64_decode",
-     "sig": "(texto)"
-    },
-    {
-     "nome": "base64_encode",
-     "sig": "(v)"
-    },
-    {
-     "nome": "base64url_decode",
-     "sig": "(texto)"
-    },
-    {
-     "nome": "base64url_encode",
-     "sig": "(v)"
-    },
-    {
-     "nome": "blake2b",
-     "sig": "(v)"
-    },
-    {
-     "nome": "blake2s",
-     "sig": "(v)"
-    },
-    {
-     "nome": "constant_time_equals",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "hash",
-     "sig": "(valor, algoritmo='sha256')"
-    },
-    {
-     "nome": "hash_file",
-     "sig": "(caminho, algoritmo='sha256')"
-    },
-    {
-     "nome": "hash_password",
-     "sig": "(senha, iteracoes=200000)"
-    },
-    {
-     "nome": "hex_decode",
-     "sig": "(v)"
-    },
-    {
-     "nome": "hex_encode",
-     "sig": "(v)"
-    },
-    {
-     "nome": "hmac",
-     "sig": "(chave, mensagem, algoritmo='sha256')"
-    },
-    {
-     "nome": "hmac_verify",
-     "sig": "(chave, mensagem, assinatura, algoritmo='sha256')"
-    },
-    {
-     "nome": "mask",
-     "sig": "(texto, visiveis=4, caractere='*')"
-    },
-    {
-     "nome": "md5",
-     "sig": "(v)"
-    },
-    {
-     "nome": "pbkdf2",
-     "sig": "(senha, sal, iteracoes=200000, algoritmo='sha256')"
-    },
-    {
-     "nome": "random_bytes",
-     "sig": "(n=32)"
-    },
-    {
-     "nome": "random_choice",
-     "sig": "(itens)"
-    },
-    {
-     "nome": "random_hex",
-     "sig": "(n=32)"
-    },
-    {
-     "nome": "random_int",
-     "sig": "(a, b)"
-    },
-    {
-     "nome": "random_password",
-     "sig": "(tamanho=16, simbolos=True)"
-    },
-    {
-     "nome": "random_token",
-     "sig": "(n=32)"
-    },
-    {
-     "nome": "rot13",
-     "sig": "(t)"
-    },
-    {
-     "nome": "sha1",
-     "sig": "(v)"
-    },
-    {
-     "nome": "sha224",
-     "sig": "(v)"
-    },
-    {
-     "nome": "sha256",
-     "sig": "(v)"
-    },
-    {
-     "nome": "sha384",
-     "sig": "(v)"
-    },
-    {
-     "nome": "sha512",
-     "sig": "(v)"
-    },
-    {
-     "nome": "short_id",
-     "sig": "(n=12)"
-    },
-    {
-     "nome": "uuid",
-     "sig": "()"
-    },
-    {
-     "nome": "uuid4",
-     "sig": "()"
-    },
-    {
-     "nome": "uuid_hex",
-     "sig": "()"
-    },
-    {
-     "nome": "verify_password",
-     "sig": "(senha, guardada)"
-    },
-    {
-     "nome": "xor_cipher",
-     "sig": "(texto, chave)"
-    }
-   ],
-   "constantes": [],
-   "total": 38
-  },
-  "os": {
-   "nome": "Arcane.OS",
-   "desc": "Sistema operacional, ambiente, disco e processo.",
-   "funcoes": [
-    {
-     "nome": "arch",
-     "sig": "()"
-    },
-    {
-     "nome": "argv",
-     "sig": "()"
-    },
-    {
-     "nome": "chdir",
-     "sig": "(caminho)"
-    },
-    {
-     "nome": "cpu_count",
-     "sig": "()"
-    },
-    {
-     "nome": "cwd",
-     "sig": "()"
-    },
-    {
-     "nome": "disk_usage",
-     "sig": "(caminho='.')"
-    },
-    {
-     "nome": "env",
-     "sig": "()"
-    },
-    {
-     "nome": "env_names",
-     "sig": "()"
-    },
-    {
-     "nome": "executable",
-     "sig": "()"
-    },
-    {
-     "nome": "exit",
-     "sig": "(codigo=0)"
-    },
-    {
-     "nome": "get_env",
-     "sig": "(nome, padrao=None)"
-    },
-    {
-     "nome": "has_env",
-     "sig": "(nome)"
-    },
-    {
-     "nome": "home",
-     "sig": "()"
-    },
-    {
-     "nome": "hostname",
-     "sig": "()"
-    },
-    {
-     "nome": "info",
-     "sig": "()"
-    },
-    {
-     "nome": "is_linux",
-     "sig": "()"
-    },
-    {
-     "nome": "is_mac",
-     "sig": "()"
-    },
-    {
-     "nome": "is_posix",
-     "sig": "()"
-    },
-    {
-     "nome": "is_tty",
-     "sig": "()"
-    },
-    {
-     "nome": "is_windows",
-     "sig": "()"
-    },
-    {
-     "nome": "line_separator",
-     "sig": "()"
-    },
-    {
-     "nome": "machine",
-     "sig": "()"
-    },
-    {
-     "nome": "memory_info",
-     "sig": "()"
-    },
-    {
-     "nome": "name",
-     "sig": "()"
-    },
-    {
-     "nome": "parent_pid",
-     "sig": "()"
-    },
-    {
-     "nome": "path_separator",
-     "sig": "()"
-    },
-    {
-     "nome": "pid",
-     "sig": "()"
-    },
-    {
-     "nome": "platform",
-     "sig": "()"
-    },
-    {
-     "nome": "processor",
-     "sig": "()"
-    },
-    {
-     "nome": "python_version",
-     "sig": "()"
-    },
-    {
-     "nome": "release",
-     "sig": "()"
-    },
-    {
-     "nome": "separator",
-     "sig": "()"
-    },
-    {
-     "nome": "set_env",
-     "sig": "(nome, valor)"
-    },
-    {
-     "nome": "temp_dir",
-     "sig": "()"
-    },
-    {
-     "nome": "terminal_size",
-     "sig": "()"
-    },
-    {
-     "nome": "user",
-     "sig": "()"
-    },
-    {
-     "nome": "version",
-     "sig": "()"
-    },
-    {
-     "nome": "which",
-     "sig": "(prog)"
-    }
-   ],
-   "constantes": [],
-   "total": 38
+   ]
   },
   "collections": {
    "nome": "Arcane.Collections",
@@ -1859,428 +573,1056 @@
    "funcoes": [
     {
      "nome": "batched",
-     "sig": "(itens, n)"
+     "sig": "(itens, n)",
+     "tipo": "funcao"
     },
     {
      "nome": "binary_search",
-     "sig": "(ordenado, alvo)"
+     "sig": "(ordenado, alvo)",
+     "tipo": "funcao"
     },
     {
      "nome": "bottom_n",
-     "sig": "(itens, n, chave=None)"
+     "sig": "(itens, n, chave)",
+     "tipo": "funcao"
     },
     {
      "nome": "cartesian",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "chunk_evenly",
-     "sig": "(itens, partes)"
+     "sig": "(itens, partes)",
+     "tipo": "funcao"
     },
     {
      "nome": "counter",
-     "sig": "(itens)"
+     "sig": "(itens)",
+     "tipo": "funcao"
     },
     {
      "nome": "deep_merge",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "default_vault",
-     "sig": "(padrao=0)"
+     "sig": "(padrao)",
+     "tipo": "funcao"
     },
     {
      "nome": "deque",
-     "sig": "(itens=None, limite=None)"
+     "sig": "(itens, limite)",
+     "tipo": "funcao"
     },
     {
      "nome": "difference",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "flatten_deep",
-     "sig": "(itens, profundidade=-1)"
+     "sig": "(itens, profundidade)",
+     "tipo": "funcao"
     },
     {
      "nome": "graph",
-     "sig": "(dirigido=False)"
+     "sig": "(dirigido)",
+     "tipo": "funcao"
     },
     {
      "nome": "group_by",
-     "sig": "(itens, chave)"
+     "sig": "(itens, chave)",
+     "tipo": "funcao"
     },
     {
      "nome": "index_by",
-     "sig": "(itens, chave)"
+     "sig": "(itens, chave)",
+     "tipo": "funcao"
     },
     {
      "nome": "intersection",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "is_subset",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "merge_sorted",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "most_common",
-     "sig": "(itens, n=1)"
+     "sig": "(itens, n)",
+     "tipo": "funcao"
     },
     {
      "nome": "ordered_vault",
-     "sig": "(pares=None)"
+     "sig": "(pares)",
+     "tipo": "funcao"
     },
     {
      "nome": "pairwise",
-     "sig": "(itens)"
+     "sig": "(itens)",
+     "tipo": "funcao"
     },
     {
      "nome": "partition",
-     "sig": "(itens, predicado)"
+     "sig": "(itens, predicado)",
+     "tipo": "funcao"
     },
     {
      "nome": "priority_queue",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "queue",
-     "sig": "(itens=None)"
+     "sig": "(itens)",
+     "tipo": "funcao"
     },
     {
      "nome": "rotate",
-     "sig": "(itens, n)"
+     "sig": "(itens, n)",
+     "tipo": "funcao"
     },
     {
      "nome": "set",
-     "sig": "(itens=None)"
+     "sig": "(itens)",
+     "tipo": "funcao"
     },
     {
      "nome": "sliding_window",
-     "sig": "(itens, tamanho)"
+     "sig": "(itens, tamanho)",
+     "tipo": "funcao"
     },
     {
      "nome": "sort_by",
-     "sig": "(itens, chave)"
+     "sig": "(itens, chave)",
+     "tipo": "funcao"
     },
     {
      "nome": "sort_by_field",
-     "sig": "(itens, campo, reverso=False)"
+     "sig": "(itens, campo, reverso)",
+     "tipo": "funcao"
     },
     {
      "nome": "stack",
-     "sig": "(itens=None)"
+     "sig": "(itens)",
+     "tipo": "funcao"
     },
     {
      "nome": "symmetric_difference",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "top_n",
-     "sig": "(itens, n, chave=None)"
+     "sig": "(itens, n, chave)",
+     "tipo": "funcao"
     },
     {
      "nome": "union",
-     "sig": "(a, b)"
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
      "nome": "union_find",
-     "sig": "(itens=None)"
+     "sig": "(itens)",
+     "tipo": "funcao"
     },
     {
      "nome": "unique_by",
-     "sig": "(itens, chave)"
+     "sig": "(itens, chave)",
+     "tipo": "funcao"
     },
     {
      "nome": "zip_longest",
-     "sig": "(a, b, preencher=None)"
+     "sig": "(a, b, preencher)",
+     "tipo": "funcao"
     }
-   ],
-   "constantes": [],
-   "total": 35
+   ]
   },
-  "test": {
-   "nome": "Arcane.Test",
-   "desc": "Asserções e organização de suítes.",
+  "cortex": {
+   "nome": "Arcane.Cortex",
+   "desc": "Aprendizado de máquina didático.",
    "funcoes": [
     {
-     "nome": "add_test",
-     "sig": "(suite, name, spec)"
+     "nome": "accuracy",
+     "sig": "(predictions, labels)",
+     "tipo": "funcao"
     },
     {
-     "nome": "assert_all",
-     "sig": "(collection, predicate, msg=None)"
+     "nome": "evaluate",
+     "sig": "(model, test_data)",
+     "tipo": "funcao"
     },
     {
-     "nome": "assert_any",
-     "sig": "(collection, predicate, msg=None)"
+     "nome": "neural",
+     "sig": "{ … }",
+     "tipo": "grupo"
     },
     {
-     "nome": "assert_between",
-     "sig": "(value, low, high, msg=None)"
+     "nome": "nlp",
+     "sig": "{ … }",
+     "tipo": "grupo"
     },
     {
-     "nome": "assert_close",
-     "sig": "(actual, expected, tolerance=0.001, msg=None)"
-    },
-    {
-     "nome": "assert_contains",
-     "sig": "(collection, item, msg=None)"
-    },
-    {
-     "nome": "assert_deep_eq",
-     "sig": "(a, b, msg=None)"
-    },
-    {
-     "nome": "assert_empty",
-     "sig": "(collection, msg=None)"
-    },
-    {
-     "nome": "assert_eq",
-     "sig": "(actual, expected, msg=None)"
-    },
-    {
-     "nome": "assert_false",
-     "sig": "(value, msg=None)"
-    },
-    {
-     "nome": "assert_greater",
-     "sig": "(a, b, msg=None)"
-    },
-    {
-     "nome": "assert_instance",
-     "sig": "(obj, blueprint_name, msg=None)"
-    },
-    {
-     "nome": "assert_keys",
-     "sig": "(d, *expected_keys, msg=None)"
-    },
-    {
-     "nome": "assert_length",
-     "sig": "(collection, expected, msg=None)"
-    },
-    {
-     "nome": "assert_less",
-     "sig": "(a, b, msg=None)"
-    },
-    {
-     "nome": "assert_match",
-     "sig": "(string, pattern, msg=None)"
-    },
-    {
-     "nome": "assert_neq",
-     "sig": "(actual, expected, msg=None)"
-    },
-    {
-     "nome": "assert_not_contains",
-     "sig": "(collection, item, msg=None)"
-    },
-    {
-     "nome": "assert_not_empty",
-     "sig": "(collection, msg=None)"
-    },
-    {
-     "nome": "assert_not_void",
-     "sig": "(value, msg=None)"
-    },
-    {
-     "nome": "assert_sorted",
-     "sig": "(collection, reverse=False, msg=None)"
-    },
-    {
-     "nome": "assert_throws",
-     "sig": "(func, msg=None)"
-    },
-    {
-     "nome": "assert_true",
-     "sig": "(value, msg=None)"
-    },
-    {
-     "nome": "assert_type",
-     "sig": "(value, expected_type, msg=None)"
-    },
-    {
-     "nome": "assert_unique",
-     "sig": "(collection, msg=None)"
-    },
-    {
-     "nome": "assert_void",
-     "sig": "(value, msg=None)"
-    },
-    {
-     "nome": "benchmark",
-     "sig": "(func, iterations=1000)"
-    },
-    {
-     "nome": "describe",
-     "sig": "(name, tests)"
-    },
-    {
-     "nome": "it",
-     "sig": "(description, test_func)"
-    },
-    {
-     "nome": "mock",
-     "sig": "(return_value=None)"
-    },
-    {
-     "nome": "run",
-     "sig": "(suite, tests)"
-    },
-    {
-     "nome": "run_suite",
-     "sig": "(suite)"
-    },
-    {
-     "nome": "spy",
-     "sig": "(func)"
-    },
-    {
-     "nome": "suite",
-     "sig": "(name='Test Suite')"
+     "nome": "vision",
+     "sig": "{ … }",
+     "tipo": "grupo"
     }
-   ],
-   "constantes": [],
-   "total": 34
+   ]
   },
-  "regex": {
-   "nome": "Arcane.Regex",
-   "desc": "Expressões regulares e validadores brasileiros.",
+  "crypto": {
+   "nome": "Arcane.Crypto",
+   "desc": "Hash, HMAC, base64 e aleatoriedade.",
    "funcoes": [
     {
-     "nome": "clean_whitespace",
-     "sig": "(string)"
+     "nome": "algorithms",
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
-     "nome": "compile",
-     "sig": "(pattern, flags=0)"
+     "nome": "base32_decode",
+     "sig": "(v)",
+     "tipo": "funcao"
     },
     {
-     "nome": "count",
-     "sig": "(pattern, string, flags=0)"
+     "nome": "base32_encode",
+     "sig": "(v)",
+     "tipo": "funcao"
     },
     {
-     "nome": "escape",
-     "sig": "(string)"
+     "nome": "base64_decode",
+     "sig": "(texto)",
+     "tipo": "funcao"
     },
     {
-     "nome": "extract",
-     "sig": "(pattern, string, flags=0)"
+     "nome": "base64_encode",
+     "sig": "(v)",
+     "tipo": "funcao"
     },
     {
-     "nome": "extract_emails",
-     "sig": "(string)"
+     "nome": "base64url_decode",
+     "sig": "(texto)",
+     "tipo": "funcao"
     },
     {
-     "nome": "extract_numbers",
-     "sig": "(string)"
+     "nome": "base64url_encode",
+     "sig": "(v)",
+     "tipo": "funcao"
     },
     {
-     "nome": "extract_urls",
-     "sig": "(string)"
+     "nome": "blake2b",
+     "sig": "(v)",
+     "tipo": "funcao"
     },
     {
-     "nome": "extract_words",
-     "sig": "(string)"
+     "nome": "blake2s",
+     "sig": "(v)",
+     "tipo": "funcao"
     },
     {
-     "nome": "findall",
-     "sig": "(pattern, string, flags=0)"
+     "nome": "constant_time_equals",
+     "sig": "(a, b)",
+     "tipo": "funcao"
     },
     {
-     "nome": "finditer",
-     "sig": "(pattern, string, flags=0)"
+     "nome": "hash",
+     "sig": "(valor, algoritmo)",
+     "tipo": "funcao"
     },
     {
-     "nome": "is_cnpj",
-     "sig": "(string)"
+     "nome": "hash_file",
+     "sig": "(caminho, algoritmo)",
+     "tipo": "funcao"
     },
     {
-     "nome": "is_cpf",
-     "sig": "(string)"
+     "nome": "hash_password",
+     "sig": "(senha, iteracoes)",
+     "tipo": "funcao"
     },
     {
-     "nome": "is_date",
-     "sig": "(string)"
+     "nome": "hex_decode",
+     "sig": "(v)",
+     "tipo": "funcao"
     },
     {
-     "nome": "is_email",
-     "sig": "(string)"
+     "nome": "hex_encode",
+     "sig": "(v)",
+     "tipo": "funcao"
     },
     {
-     "nome": "is_ipv4",
-     "sig": "(string)"
+     "nome": "hmac",
+     "sig": "(chave, mensagem, algoritmo)",
+     "tipo": "funcao"
     },
     {
-     "nome": "is_phone",
-     "sig": "(string)"
-    },
-    {
-     "nome": "is_url",
-     "sig": "(string)"
+     "nome": "hmac_verify",
+     "sig": "(chave, mensagem, assinatura, algoritmo)",
+     "tipo": "funcao"
     },
     {
      "nome": "mask",
-     "sig": "(string, pattern, mask_char='*')"
+     "sig": "(texto, visiveis, caractere)",
+     "tipo": "funcao"
     },
     {
-     "nome": "match",
-     "sig": "(pattern, string, flags=0)"
+     "nome": "md5",
+     "sig": "(v)",
+     "tipo": "funcao"
     },
     {
-     "nome": "remove_html",
-     "sig": "(string)"
+     "nome": "pbkdf2",
+     "sig": "(senha, sal, iteracoes, algoritmo)",
+     "tipo": "funcao"
     },
     {
-     "nome": "replace_all",
-     "sig": "(pattern, repl, string)"
+     "nome": "random_bytes",
+     "sig": "(n)",
+     "tipo": "funcao"
     },
     {
-     "nome": "search",
-     "sig": "(pattern, string, flags=0)"
+     "nome": "random_choice",
+     "sig": "(itens)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "random_hex",
+     "sig": "(n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "random_int",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "random_password",
+     "sig": "(tamanho, simbolos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "random_token",
+     "sig": "(n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rot13",
+     "sig": "(t)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sha1",
+     "sig": "(v)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sha224",
+     "sig": "(v)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sha256",
+     "sig": "(v)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sha384",
+     "sig": "(v)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sha512",
+     "sig": "(v)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "short_id",
+     "sig": "(n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "uuid",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "uuid4",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "uuid_hex",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "verify_password",
+     "sig": "(senha, guardada)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "xor_cipher",
+     "sig": "(texto, chave)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "data": {
+   "nome": "Arcane.Data",
+   "desc": "Estruturas tabulares e transformação de dados.",
+   "funcoes": [
+    {
+     "nome": "Frame",
+     "sig": "(data, columns)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "correlate",
+     "sig": "(x, y)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "describe",
+     "sig": "(data)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "group_by",
+     "sig": "(data, key_func)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "merge",
+     "sig": "(left, right, on)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "normalize",
+     "sig": "(data, min_val, max_val)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "one_hot",
+     "sig": "(labels)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pivot",
+     "sig": "(data, index_col, value_col, agg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "read_csv",
+     "sig": "(path, header)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "read_json",
+     "sig": "(path)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "series",
+     "sig": "(data, name)",
+     "tipo": "funcao"
     },
     {
      "nome": "split",
-     "sig": "(pattern, string, maxsplit=0, flags=0)"
+     "sig": "(data, ratio)",
+     "tipo": "funcao"
     },
     {
-     "nome": "sub",
-     "sig": "(pattern, repl, string, count=0, flags=0)"
-    },
-    {
-     "nome": "subn",
-     "sig": "(pattern, repl, string, count=0, flags=0)"
-    },
-    {
-     "nome": "test",
-     "sig": "(pattern, string, flags=0)"
-    },
-    {
-     "nome": "word_count",
-     "sig": "(string)"
+     "nome": "standardize",
+     "sig": "(data)",
+     "tipo": "funcao"
     }
-   ],
-   "constantes": [
+   ]
+  },
+  "database": {
+   "nome": "Arcane.Database",
+   "desc": "SQLite com transações reais.",
+   "funcoes": [
     {
-     "nome": "DOTALL",
-     "valor": "re.DOTALL"
+     "nome": "Model",
+     "sig": "(db, table, schema)",
+     "tipo": "funcao"
     },
     {
-     "nome": "IGNORECASE",
-     "valor": "re.IGNORECASE"
+     "nome": "QueryBuilder",
+     "sig": "(db, table)",
+     "tipo": "funcao"
     },
     {
-     "nome": "MULTILINE",
-     "valor": "re.MULTILINE"
+     "nome": "add_column",
+     "sig": "(db, table, name, col_type)",
+     "tipo": "funcao"
     },
     {
-     "nome": "patterns",
-     "valor": "{'email': '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.…"
+     "nome": "backup",
+     "sig": "(db, dest_path)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "begin",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "builder",
+     "sig": "(db, table)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "close",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "columns",
+     "sig": "(db, table)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "commit",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "connect",
+     "sig": "(path)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "count",
+     "sig": "(db, table, where)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "create_index",
+     "sig": "(db, table, columns, unique, name)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "create_model",
+     "sig": "(db, table, schema)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "create_table",
+     "sig": "(db, name, schema)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "database_size",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "delete",
+     "sig": "(db, table, where)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "drop_table",
+     "sig": "(db, name)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "execute",
+     "sig": "(db, sql, params)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "execute_many",
+     "sig": "(db, sql, params_list)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "execute_script",
+     "sig": "(db, script)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exists",
+     "sig": "(db, table, where)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "export_csv",
+     "sig": "(db, table, path)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "export_json",
+     "sig": "(db, table, path)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "import_csv",
+     "sig": "(db, table, path, has_header)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "import_json",
+     "sig": "(db, table, path)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "insert",
+     "sig": "(db, table, data)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "insert_many",
+     "sig": "(db, table, records)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "memory",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "migrate",
+     "sig": "(db, migrations)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "query",
+     "sig": "(db, sql, params)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "query_one",
+     "sig": "(db, sql, params)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rollback",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "seed",
+     "sig": "(db, table, records)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "select",
+     "sig": "(db, table, where, order_by, limit, columns)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "table_exists",
+     "sig": "(db, name)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "table_info",
+     "sig": "(db, table)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tables",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "update",
+     "sig": "(db, table, data, where)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vacuum",
+     "sig": "(db)",
+     "tipo": "funcao"
     }
-   ],
-   "total": 32
+   ]
+  },
+  "functional": {
+   "nome": "Arcane.Functional",
+   "desc": "Composição, currying, memoização e preguiça.",
+   "funcoes": [
+    {
+     "nome": "all_pass",
+     "sig": "(preds)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "any_pass",
+     "sig": "(preds)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "both",
+     "sig": "(f, g)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chunk",
+     "sig": "(n, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complement",
+     "sig": "(fn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compose",
+     "sig": "(fns)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "constantly",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "curry",
+     "sig": "(fn, arity)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "drop_while",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "either",
+     "sig": "(f, g)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "filter",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "flat_map",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "flip",
+     "sig": "(fn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "frequencies",
+     "sig": "(collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_either",
+     "sig": "(left_fn, right_fn, e)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_maybe",
+     "sig": "(default, m)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "group_by",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "identity",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "index_by",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "interleave",
+     "sig": "(collections)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "into",
+     "sig": "(target_type, xform, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_just",
+     "sig": "(m)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_left",
+     "sig": "(e)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_nothing",
+     "sig": "(m)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_right",
+     "sig": "(e)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "just",
+     "sig": "(value)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "juxt",
+     "sig": "(fns)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "left",
+     "sig": "(value)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lens",
+     "sig": "(keys)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "map",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "match",
+     "sig": "(value, cases)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "maybe",
+     "sig": "(value)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "memoize",
+     "sig": "(fn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nothing",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "once",
+     "sig": "(fn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "over",
+     "sig": "(lens, fn, obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "partial",
+     "sig": "(fn, args)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "partition_by",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pipe",
+     "sig": "(fns)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "reduce",
+     "sig": "(fn, collection, initial)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "right",
+     "sig": "(value)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "scan",
+     "sig": "(fn, collection, initial)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "set_lens",
+     "sig": "(lens, value, obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sort_by",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "spread",
+     "sig": "(fn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "take_while",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tap",
+     "sig": "(fn, value)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "thread_first",
+     "sig": "(value, fns)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "thread_last",
+     "sig": "(value, fns)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "trampoline",
+     "sig": "(fn, args)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "transduce",
+     "sig": "(xform, reducer, initial, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "try_catch",
+     "sig": "(fn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "unique_by",
+     "sig": "(fn, collection)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "view",
+     "sig": "(lens, obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "when",
+     "sig": "(conditions)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "zip_with",
+     "sig": "(fn, collections)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "http": {
+   "nome": "Arcane.Http",
+   "desc": "Cliente e servidor HTTP.",
+   "funcoes": [
+    {
+     "nome": "cors",
+     "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "create",
+     "sig": "(name)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "delete",
+     "sig": "(app, path, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "get",
+     "sig": "(app, path, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "html_response",
+     "sig": "(html, status)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "json_parser",
+     "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "json_response",
+     "sig": "(data, status)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "listen",
+     "sig": "(app, port, host)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "logger",
+     "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "patch",
+     "sig": "(app, path, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "post",
+     "sig": "(app, path, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "put",
+     "sig": "(app, path, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "route",
+     "sig": "(app, method, path, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "static",
+     "sig": "(app, directory)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "stop",
+     "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "templates",
+     "sig": "(app, directory)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "use",
+     "sig": "(app, middleware)",
+     "tipo": "funcao"
+    }
+   ]
   },
   "io": {
    "nome": "Arcane.IO",
@@ -2288,576 +1630,1865 @@
    "funcoes": [
     {
      "nome": "abs",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "append",
-     "sig": "(path, content)"
+     "sig": "(path, content)",
+     "tipo": "funcao"
     },
     {
      "nome": "basename",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "copy",
-     "sig": "(src, dst)"
+     "sig": "(src, dst)",
+     "tipo": "funcao"
     },
     {
      "nome": "cwd",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "delete",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "dirname",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "exists",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "ext",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "file_exists",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "join",
-     "sig": "(*parts)"
+     "sig": "(parts)",
+     "tipo": "funcao"
     },
     {
      "nome": "list_dir",
-     "sig": "(path='.')"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "listdir",
-     "sig": "(path='.')"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "mkdir",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "open",
-     "sig": "(path, mode='r')"
+     "sig": "(path, mode)",
+     "tipo": "funcao"
     },
     {
      "nome": "path",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "read",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "read_csv",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "read_file",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "read_json",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "rename",
-     "sig": "(old, new)"
+     "sig": "(old, new)",
+     "tipo": "funcao"
     },
     {
      "nome": "shell",
-     "sig": "(command)"
+     "sig": "(command)",
+     "tipo": "funcao"
     },
     {
      "nome": "size",
-     "sig": "(path)"
+     "sig": "(path)",
+     "tipo": "funcao"
     },
     {
      "nome": "write",
-     "sig": "(path, content)"
+     "sig": "(path, content)",
+     "tipo": "funcao"
     },
     {
      "nome": "write_csv",
-     "sig": "(path, data)"
+     "sig": "(path, data)",
+     "tipo": "funcao"
     },
     {
      "nome": "write_file",
-     "sig": "(path, content)"
+     "sig": "(path, content)",
+     "tipo": "funcao"
     },
     {
      "nome": "write_json",
-     "sig": "(path, data, indent=2)"
+     "sig": "(path, data, indent)",
+     "tipo": "funcao"
     }
-   ],
-   "constantes": [],
-   "total": 27
-  },
-  "serialization": {
-   "nome": "Arcane.Serialization",
-   "desc": "JSON, JSONL, CSV, INI, TOML e XML.",
-   "funcoes": [
-    {
-     "nome": "csv_to_records",
-     "sig": "(texto, delimitador=',')"
-    },
-    {
-     "nome": "deep_copy",
-     "sig": "(d)"
-    },
-    {
-     "nome": "flatten",
-     "sig": "(dados, separador='.', prefixo='')"
-    },
-    {
-     "nome": "formats",
-     "sig": "()"
-    },
-    {
-     "nome": "from_base64",
-     "sig": "(t)"
-    },
-    {
-     "nome": "from_bytes",
-     "sig": "(b)"
-    },
-    {
-     "nome": "from_csv",
-     "sig": "(texto, delimitador=',', tem_cabecalho=False)"
-    },
-    {
-     "nome": "from_ini",
-     "sig": "(texto)"
-    },
-    {
-     "nome": "from_json",
-     "sig": "(texto)"
-    },
-    {
-     "nome": "from_json_lines",
-     "sig": "(texto)"
-    },
-    {
-     "nome": "from_json_safe",
-     "sig": "(texto, padrao=None)"
-    },
-    {
-     "nome": "from_toml",
-     "sig": "(texto)"
-    },
-    {
-     "nome": "from_xml",
-     "sig": "(texto)"
-    },
-    {
-     "nome": "is_valid_json",
-     "sig": "(texto)"
-    },
-    {
-     "nome": "json_lines",
-     "sig": "(registros)"
-    },
-    {
-     "nome": "json_path",
-     "sig": "(dados, caminho, padrao=None)"
-    },
-    {
-     "nome": "json_pretty",
-     "sig": "(d, indent=2)"
-    },
-    {
-     "nome": "records_to_csv",
-     "sig": "(registros, delimitador=',')"
-    },
-    {
-     "nome": "to_base64",
-     "sig": "(d)"
-    },
-    {
-     "nome": "to_bytes",
-     "sig": "(d)"
-    },
-    {
-     "nome": "to_csv",
-     "sig": "(linhas, delimitador=',', cabecalho=None)"
-    },
-    {
-     "nome": "to_ini",
-     "sig": "(dados)"
-    },
-    {
-     "nome": "to_json",
-     "sig": "(dados, indent=None, ordenar=False)"
-    },
-    {
-     "nome": "to_toml",
-     "sig": "(dados)"
-    },
-    {
-     "nome": "to_xml",
-     "sig": "(dados, raiz='root')"
-    },
-    {
-     "nome": "unflatten",
-     "sig": "(plano, separador='.')"
-    }
-   ],
-   "constantes": [],
-   "total": 26
-  },
-  "http": {
-   "nome": "Arcane.Http",
-   "desc": "Servidor HTTP com rotas, middleware e JSON.",
-   "funcoes": [
-    {
-     "nome": "cors",
-     "sig": "(app)"
-    },
-    {
-     "nome": "create",
-     "sig": "(name='DataForge App')"
-    },
-    {
-     "nome": "delete",
-     "sig": "(app, path, handler)"
-    },
-    {
-     "nome": "get",
-     "sig": "(app, path, handler)"
-    },
-    {
-     "nome": "html_response",
-     "sig": "(html, status=200)"
-    },
-    {
-     "nome": "json_parser",
-     "sig": "(app)"
-    },
-    {
-     "nome": "json_response",
-     "sig": "(data, status=200)"
-    },
-    {
-     "nome": "listen",
-     "sig": "(app, port=3000, host='0.0.0.0')"
-    },
-    {
-     "nome": "logger",
-     "sig": "(app)"
-    },
-    {
-     "nome": "patch",
-     "sig": "(app, path, handler)"
-    },
-    {
-     "nome": "post",
-     "sig": "(app, path, handler)"
-    },
-    {
-     "nome": "put",
-     "sig": "(app, path, handler)"
-    },
-    {
-     "nome": "route",
-     "sig": "(app, method, path, handler)"
-    },
-    {
-     "nome": "static",
-     "sig": "(app, directory)"
-    },
-    {
-     "nome": "stop",
-     "sig": "(app)"
-    },
-    {
-     "nome": "templates",
-     "sig": "(app, directory)"
-    },
-    {
-     "nome": "use",
-     "sig": "(app, middleware)"
-    }
-   ],
-   "constantes": [],
-   "total": 17
-  },
-  "process": {
-   "nome": "Arcane.Process",
-   "desc": "Execução de processos externos.",
-   "funcoes": [
-    {
-     "nome": "capture",
-     "sig": "(comando, shell=False, timeout=None)"
-    },
-    {
-     "nome": "check",
-     "sig": "(comando, shell=False, timeout=None)"
-    },
-    {
-     "nome": "exists",
-     "sig": "(prog)"
-    },
-    {
-     "nome": "exit_code",
-     "sig": "(comando, shell=False, timeout=None)"
-    },
-    {
-     "nome": "is_running",
-     "sig": "(processo)"
-    },
-    {
-     "nome": "kill",
-     "sig": "(processo)"
-    },
-    {
-     "nome": "pid",
-     "sig": "()"
-    },
-    {
-     "nome": "pipeline",
-     "sig": "(comandos, timeout=None)"
-    },
-    {
-     "nome": "python",
-     "sig": "()"
-    },
-    {
-     "nome": "run",
-     "sig": "(comando, shell=False, timeout=None, cwd=None, env=None, input_text=None)"
-    },
-    {
-     "nome": "run_shell",
-     "sig": "(cmd, timeout=None)"
-    },
-    {
-     "nome": "spawn",
-     "sig": "(comando, shell=False, cwd=None)"
-    },
-    {
-     "nome": "terminate",
-     "sig": "(processo)"
-    },
-    {
-     "nome": "wait",
-     "sig": "(processo, timeout=None)"
-    },
-    {
-     "nome": "which",
-     "sig": "(programa)"
-    }
-   ],
-   "constantes": [],
-   "total": 15
+   ]
   },
   "logging": {
    "nome": "Arcane.Logging",
-   "desc": "Registro estruturado com níveis e destinos.",
+   "desc": "Registro com níveis e destinos.",
    "funcoes": [
     {
      "nome": "as_json",
-     "sig": "(a=True)"
+     "sig": "(a)",
+     "tipo": "funcao"
     },
     {
      "nome": "debug",
-     "sig": "(m, campos=None)"
+     "sig": "(m, campos)",
+     "tipo": "funcao"
     },
     {
      "nome": "default",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "error",
-     "sig": "(m, campos=None)"
+     "sig": "(m, campos)",
+     "tipo": "funcao"
     },
     {
      "nome": "fatal",
-     "sig": "(m, campos=None)"
+     "sig": "(m, campos)",
+     "tipo": "funcao"
     },
     {
      "nome": "info",
-     "sig": "(m, campos=None)"
+     "sig": "(m, campos)",
+     "tipo": "funcao"
     },
     {
      "nome": "levels",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "log",
-     "sig": "(n, m, campos=None)"
+     "sig": "(n, m, campos)",
+     "tipo": "funcao"
     },
     {
      "nome": "logger",
-     "sig": "(nome='app', nivel='INFO')"
+     "sig": "(nome, nivel)",
+     "tipo": "funcao"
     },
     {
      "nome": "set_level",
-     "sig": "(n)"
+     "sig": "(n)",
+     "tipo": "funcao"
     },
     {
      "nome": "stats",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "to_file",
-     "sig": "(c, anexar=True)"
+     "sig": "(c, anexar)",
+     "tipo": "funcao"
     },
     {
      "nome": "trace",
-     "sig": "(m, campos=None)"
+     "sig": "(m, campos)",
+     "tipo": "funcao"
     },
     {
      "nome": "warn",
-     "sig": "(m, campos=None)"
+     "sig": "(m, campos)",
+     "tipo": "funcao"
     }
-   ],
-   "constantes": [],
-   "total": 14
+   ]
   },
-  "data": {
-   "nome": "Arcane.Data",
-   "desc": "DataFrames, séries e transformações.",
+  "math": {
+   "nome": "Arcane.Math",
+   "desc": "Matemática, álgebra linear e estatística.",
    "funcoes": [
     {
-     "nome": "Frame",
-     "sig": "(data=None, columns=None)"
+     "nome": "E",
+     "sig": "",
+     "tipo": "const"
     },
     {
-     "nome": "correlate",
-     "sig": "(x, y)"
+     "nome": "INF",
+     "sig": "",
+     "tipo": "const"
     },
     {
-     "nome": "describe",
-     "sig": "(data)"
+     "nome": "NAN",
+     "sig": "",
+     "tipo": "const"
     },
     {
-     "nome": "group_by",
-     "sig": "(data, key_func)"
+     "nome": "PI",
+     "sig": "",
+     "tipo": "const"
     },
     {
-     "nome": "merge",
-     "sig": "(left, right, on)"
+     "nome": "TAU",
+     "sig": "",
+     "tipo": "const"
     },
     {
-     "nome": "normalize",
-     "sig": "(data, min_val=0, max_val=1)"
+     "nome": "abs",
+     "sig": "(x)",
+     "tipo": "funcao"
     },
     {
-     "nome": "one_hot",
-     "sig": "(labels)"
+     "nome": "acos",
+     "sig": "(x)",
+     "tipo": "funcao"
     },
     {
-     "nome": "pivot",
-     "sig": "(data, index_col, value_col, agg='sum')"
+     "nome": "asin",
+     "sig": "(x)",
+     "tipo": "funcao"
     },
     {
-     "nome": "read_csv",
-     "sig": "(path, header=True)"
+     "nome": "atan",
+     "sig": "(x)",
+     "tipo": "funcao"
     },
     {
-     "nome": "read_json",
-     "sig": "(path)"
+     "nome": "atan2",
+     "sig": "(y, x)",
+     "tipo": "funcao"
     },
     {
-     "nome": "series",
-     "sig": "(data, name='series')"
+     "nome": "cbrt",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ceil",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "clamp",
+     "sig": "(value, min_val, max_val)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "comb",
+     "sig": "(n, k)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cos",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "degrees",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "determinant",
+     "sig": "(matrix)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dot",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exp",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "factorial",
+     "sig": "(n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fibonacci",
+     "sig": "(n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "floor",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "gcd",
+     "sig": "(integers)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hypot",
+     "sig": "(…)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "identity",
+     "sig": "(n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_prime",
+     "sig": "(n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lcm",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lerp",
+     "sig": "(a, b, t)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "log",
+     "sig": "(…)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "log10",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "log2",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "map_range",
+     "sig": "(value, in_min, in_max, out_min, out_max)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "matrix",
+     "sig": "(data)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "max",
+     "sig": "(…)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mean",
+     "sig": "(data)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "median",
+     "sig": "(data)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "min",
+     "sig": "(…)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ones",
+     "sig": "(rows, cols)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "perm",
+     "sig": "(n, k)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pow",
+     "sig": "(x, y)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "radians",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "random",
+     "sig": "{ … }",
+     "tipo": "grupo"
+    },
+    {
+     "nome": "round",
+     "sig": "(number, ndigits)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sin",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sqrt",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "stdev",
+     "sig": "(data)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sum",
+     "sig": "(data)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tan",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "transpose",
+     "sig": "(matrix)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "variance",
+     "sig": "(data)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "zeros",
+     "sig": "(rows, cols)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "os": {
+   "nome": "Arcane.OS",
+   "desc": "Sistema de arquivos, ambiente e caminhos.",
+   "funcoes": [
+    {
+     "nome": "arch",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "argv",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chdir",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cpu_count",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cwd",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "disk_usage",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "env",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "env_names",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "executable",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exit",
+     "sig": "(codigo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "get_env",
+     "sig": "(nome, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "has_env",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "home",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hostname",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "info",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_linux",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_mac",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_posix",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_tty",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_windows",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "line_separator",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "machine",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "memory_info",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "name",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parent_pid",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "path_separator",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pid",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "platform",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "processor",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "python_version",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "release",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "separator",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "set_env",
+     "sig": "(nome, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "temp_dir",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "terminal_size",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "user",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "version",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "which",
+     "sig": "(prog)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "process": {
+   "nome": "Arcane.Process",
+   "desc": "Processos externos e pipes.",
+   "funcoes": [
+    {
+     "nome": "capture",
+     "sig": "(comando, shell, timeout)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "check",
+     "sig": "(comando, shell, timeout)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exists",
+     "sig": "(prog)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exit_code",
+     "sig": "(comando, shell, timeout)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_running",
+     "sig": "(processo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "kill",
+     "sig": "(processo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pid",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pipeline",
+     "sig": "(comandos, timeout)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "python",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "run",
+     "sig": "(comando, shell, timeout, cwd, env, input_text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "run_shell",
+     "sig": "(cmd, timeout)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "spawn",
+     "sig": "(comando, shell, cwd)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "terminate",
+     "sig": "(processo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "wait",
+     "sig": "(processo, timeout)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "which",
+     "sig": "(programa)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "regex": {
+   "nome": "Arcane.Regex",
+   "desc": "Expressões regulares e padrões prontos.",
+   "funcoes": [
+    {
+     "nome": "DOTALL",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "IGNORECASE",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "MULTILINE",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "clean_whitespace",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compile",
+     "sig": "(pattern, flags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "count",
+     "sig": "(pattern, string, flags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escape",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract",
+     "sig": "(pattern, string, flags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract_emails",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract_numbers",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract_urls",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract_words",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "findall",
+     "sig": "(pattern, string, flags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "finditer",
+     "sig": "(pattern, string, flags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_cnpj",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_cpf",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_date",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_email",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_ipv4",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_phone",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_url",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mask",
+     "sig": "(string, pattern, mask_char)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "match",
+     "sig": "(pattern, string, flags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "patterns",
+     "sig": "{ … }",
+     "tipo": "grupo"
+    },
+    {
+     "nome": "remove_html",
+     "sig": "(string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "replace_all",
+     "sig": "(pattern, repl, string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "search",
+     "sig": "(pattern, string, flags)",
+     "tipo": "funcao"
     },
     {
      "nome": "split",
-     "sig": "(data, ratio=0.8)"
+     "sig": "(pattern, string, maxsplit, flags)",
+     "tipo": "funcao"
     },
     {
-     "nome": "standardize",
-     "sig": "(data)"
+     "nome": "sub",
+     "sig": "(pattern, repl, string, count, flags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "subn",
+     "sig": "(pattern, repl, string, count, flags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "test",
+     "sig": "(pattern, string, flags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "word_count",
+     "sig": "(string)",
+     "tipo": "funcao"
     }
-   ],
-   "constantes": [],
-   "total": 13
+   ]
+  },
+  "serialization": {
+   "nome": "Arcane.Serialization",
+   "desc": "JSON, CSV, YAML simples e binário.",
+   "funcoes": [
+    {
+     "nome": "csv_to_records",
+     "sig": "(texto, delimitador)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "deep_copy",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "flatten",
+     "sig": "(dados, separador, prefixo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "formats",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_base64",
+     "sig": "(t)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_bytes",
+     "sig": "(b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_csv",
+     "sig": "(texto, delimitador, tem_cabecalho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_ini",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_json",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_json_lines",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_json_safe",
+     "sig": "(texto, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_toml",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_xml",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_valid_json",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "json_lines",
+     "sig": "(registros)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "json_path",
+     "sig": "(dados, caminho, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "json_pretty",
+     "sig": "(d, indent)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "records_to_csv",
+     "sig": "(registros, delimitador)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_base64",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_bytes",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_csv",
+     "sig": "(linhas, delimitador, cabecalho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_ini",
+     "sig": "(dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_json",
+     "sig": "(dados, indent, ordenar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_toml",
+     "sig": "(dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_xml",
+     "sig": "(dados, raiz)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "unflatten",
+     "sig": "(plano, separador)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "test": {
+   "nome": "Arcane.Test",
+   "desc": "Asserções, suítes, mocks e benchmark.",
+   "funcoes": [
+    {
+     "nome": "add_test",
+     "sig": "(suite, name, spec)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_all",
+     "sig": "(collection, predicate, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_any",
+     "sig": "(collection, predicate, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_between",
+     "sig": "(value, low, high, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_close",
+     "sig": "(actual, expected, tolerance, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_contains",
+     "sig": "(collection, item, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_deep_eq",
+     "sig": "(a, b, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_empty",
+     "sig": "(collection, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_eq",
+     "sig": "(actual, expected, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_false",
+     "sig": "(value, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_greater",
+     "sig": "(a, b, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_instance",
+     "sig": "(obj, blueprint_name, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_keys",
+     "sig": "(d, expected_keys, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_length",
+     "sig": "(collection, expected, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_less",
+     "sig": "(a, b, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_match",
+     "sig": "(string, pattern, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_neq",
+     "sig": "(actual, expected, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_not_contains",
+     "sig": "(collection, item, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_not_empty",
+     "sig": "(collection, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_not_void",
+     "sig": "(value, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_sorted",
+     "sig": "(collection, reverse, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_throws",
+     "sig": "(func, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_true",
+     "sig": "(value, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_type",
+     "sig": "(value, expected_type, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_unique",
+     "sig": "(collection, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assert_void",
+     "sig": "(value, msg)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "benchmark",
+     "sig": "(func, iterations)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "describe",
+     "sig": "(name, tests)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "it",
+     "sig": "(description, test_func)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mock",
+     "sig": "(return_value)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "run",
+     "sig": "(suite, tests)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "run_suite",
+     "sig": "(suite)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "spy",
+     "sig": "(func)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "suite",
+     "sig": "(name)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "text": {
+   "nome": "Arcane.Text",
+   "desc": "Manipulação de texto, tabelas, caixas e conversão de caixa.",
+   "funcoes": [
+    {
+     "nome": "align",
+     "sig": "(lines, alignment, width)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "box",
+     "sig": "(text, style)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "camel_case",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "char_count",
+     "sig": "(text, include_spaces)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "closest",
+     "sig": "(query, candidates, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "constant_case",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "currency",
+     "sig": "(amount, symbol, decimals)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dedent",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "diff",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "distance",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dot_case",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escape_html",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escape_regex",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract_emails",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract_hashtags",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract_links",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract_mentions",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extract_numbers",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "frequency",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fuzzy_match",
+     "sig": "(query, text, threshold)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "highlight",
+     "sig": "(text, word, start, end)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "indent",
+     "sig": "(text, prefix)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "kebab_case",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "line_count",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lorem",
+     "sig": "(sentences)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ngrams",
+     "sig": "(text, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "normalize_whitespace",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "number_format",
+     "sig": "(n, decimals, thousands_sep, decimal_sep)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pad",
+     "sig": "(text, width, fill, align)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "paragraph_count",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parse_csv",
+     "sig": "(text, delimiter)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parse_ini",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parse_query",
+     "sig": "(query_string)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pascal_case",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "path_case",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "random_string",
+     "sig": "(length, charset)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "reading_time",
+     "sig": "(text, wpm)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "remove_accents",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "render",
+     "sig": "(template, context)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "repeat_str",
+     "sig": "(text, n, separator)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sentence_case",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sentence_count",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "similarity",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "slug",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "snake_case",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "strip_ansi",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "strip_html",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "table",
+     "sig": "(headers, rows, style)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "template",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "title_case",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_csv",
+     "sig": "(data, delimiter)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_query",
+     "sig": "(params)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "transliterate",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "truncate",
+     "sig": "(text, length, suffix)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "unescape_html",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "unified_diff",
+     "sig": "(a, b, a_name, b_name)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "word_count",
+     "sig": "(text)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "wrap",
+     "sig": "(text, width)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "time": {
+   "nome": "Arcane.Time",
+   "desc": "Datas, durações e fusos.",
+   "funcoes": [
+    {
+     "nome": "add_days",
+     "sig": "(d, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "add_hours",
+     "sig": "(d, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "add_minutes",
+     "sig": "(d, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "add_months",
+     "sig": "(d, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "add_seconds",
+     "sig": "(d, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "add_weeks",
+     "sig": "(d, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "add_years",
+     "sig": "(d, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "age",
+     "sig": "(nascimento, referencia)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "date",
+     "sig": "(ano, mes, dia)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "datetime",
+     "sig": "(ano, mes, dia, hora, minuto, segundo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "day",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "day_of_year",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "days_between",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "days_in_month",
+     "sig": "(a, m)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "diff",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "duration",
+     "sig": "(dias, horas, minutos, segundos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "end_of_day",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "end_of_month",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "format",
+     "sig": "(d, formato)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_iso",
+     "sig": "(t)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_timestamp",
+     "sig": "(ts)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hour",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "humanize",
+     "sig": "(s)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_after",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_before",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_leap_year",
+     "sig": "(a)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_same_day",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_weekend",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "measure",
+     "sig": "(acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "minute",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "monotonic",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "month",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "month_name",
+     "sig": "(d, curto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "now",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parse",
+     "sig": "(texto, formato)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "quarter",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "second",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sleep",
+     "sig": "(s)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "start_of_day",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "start_of_month",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "stopwatch",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "timestamp",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "timezone_offset",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_br",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_date_string",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_iso",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_time_string",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_utc",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "today",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "utcnow",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "week_of_year",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "weekday",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "weekday_name",
+     "sig": "(d, curto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "year",
+     "sig": "(d)",
+     "tipo": "funcao"
+    }
+   ]
   },
   "web": {
    "nome": "Arcane.Web",
-   "desc": "Cliente HTTP, URL encoding e JSON.",
+   "desc": "Requisições, URLs e HTML.",
    "funcoes": [
     {
      "nome": "check",
-     "sig": "(user_id=None)"
+     "sig": "(user_id)",
+     "tipo": "funcao"
     },
     {
      "nome": "close",
-     "sig": "()"
+     "sig": "()",
+     "tipo": "funcao"
     },
     {
      "nome": "decode_url",
-     "sig": "(text)"
+     "sig": "(text)",
+     "tipo": "funcao"
     },
     {
      "nome": "encode_url",
-     "sig": "(text)"
+     "sig": "(text)",
+     "tipo": "funcao"
     },
     {
      "nome": "get",
-     "sig": "(url, headers=None)"
+     "sig": "(url, headers)",
+     "tipo": "funcao"
     },
     {
      "nome": "json_parse",
-     "sig": "(text)"
+     "sig": "(text)",
+     "tipo": "funcao"
     },
     {
      "nome": "json_stringify",
-     "sig": "(obj, indent=None)"
+     "sig": "(obj, indent)",
+     "tipo": "funcao"
     },
     {
      "nome": "post",
-     "sig": "(url, data=None, headers=None)"
+     "sig": "(url, data, headers)",
+     "tipo": "funcao"
     },
     {
      "nome": "request",
-     "sig": "(url, method='GET', data=None, headers=None)"
+     "sig": "(url, method, data, headers)",
+     "tipo": "funcao"
     },
     {
      "nome": "serve",
-     "sig": "(port=8080, host='0.0.0.0')"
+     "sig": "(port, host)",
+     "tipo": "funcao"
     },
     {
      "nome": "socket",
-     "sig": "(host, port)"
+     "sig": "(host, port)",
+     "tipo": "funcao"
     }
-   ],
-   "constantes": [],
-   "total": 11
-  },
-  "cortex": {
-   "nome": "Arcane.Cortex",
-   "desc": "Blocos de rede neural, visão e NLP.",
-   "funcoes": [
-    {
-     "nome": "accuracy",
-     "sig": "(predictions, labels)"
-    },
-    {
-     "nome": "evaluate",
-     "sig": "(model, test_data)"
-    }
-   ],
-   "constantes": [
-    {
-     "nome": "neural",
-     "valor": "{'Sequential': <class 'dataforge.stdlib.arcane…"
-    },
-    {
-     "nome": "nlp",
-     "valor": "{'tokenize': <function ArcaneCortex._nlp.<loca…"
-    },
-    {
-     "nome": "vision",
-     "valor": "{'load_image': <function ArcaneCortex._vision.…"
-    }
-   ],
-   "total": 5
+   ]
   }
  },
  "exercicios": {
@@ -4426,7 +5057,7 @@
   "yield"
  ],
  "builtins": {
-  "Tipos e conversão": [
+  "Type & Conversion": [
    "bool",
    "cast",
    "cluster",
@@ -4438,7 +5069,7 @@
    "type",
    "vault"
   ],
-  "Texto": [
+  "String Functions (50+)": [
    "capitalize",
    "center",
    "char",
@@ -4494,7 +5125,7 @@
    "words",
    "zfill"
   ],
-  "Expressões regulares": [
+  "Regex Functions": [
    "regex_count",
    "regex_extract",
    "regex_findall",
@@ -4504,7 +5135,7 @@
    "regex_sub",
    "regex_test"
   ],
-  "Matemática": [
+  "Math (expanded 40+)": [
    "abs",
    "acos",
    "asin",
@@ -4538,18 +5169,23 @@
    "perm",
    "pow",
    "radians",
-   "reversed",
    "round",
    "sign",
    "sin",
-   "sorted",
    "sqrt",
    "stdev",
    "sum",
    "tan",
    "variance"
   ],
-  "Coleções": [
+  "Random": [
+   "choice",
+   "randint",
+   "random",
+   "sample",
+   "shuffle"
+  ],
+  "Collections (expanded)": [
    "append",
    "chunk",
    "contains",
@@ -4572,15 +5208,17 @@
    "pick",
    "pop",
    "remove",
+   "reversed",
    "rotate",
    "slice",
+   "sorted",
    "take",
    "unique",
    "unzip",
    "values",
    "zip"
   ],
-  "Funcional": [
+  "Functional Programming": [
    "complement",
    "compose",
    "constantly",
@@ -4603,13 +5241,22 @@
    "tap",
    "zip_with"
   ],
-  "Sistema e utilidades": [
+  "Itertools": [
    "accumulate",
+   "chain",
+   "combinations",
+   "permutations",
+   "product",
+   "repeat_val"
+  ],
+  "Time": [
+   "sleep",
+   "time",
+   "timestamp"
+  ],
+  "Utility": [
    "base64_decode",
    "base64_encode",
-   "chain",
-   "choice",
-   "combinations",
    "env_var",
    "exists",
    "freeze",
@@ -4618,21 +5265,11 @@
    "hash_md5",
    "hash_sha256",
    "id",
-   "permutations",
-   "product",
-   "randint",
-   "random",
-   "repeat_val",
-   "sample",
-   "shuffle",
-   "sleep",
    "thaw",
-   "time",
-   "timestamp",
    "to_json",
    "uuid"
   ],
-  "Predicados e validação": [
+  "Type Checking": [
    "assert_type",
    "coalesce",
    "default",
@@ -4649,7 +5286,7 @@
    "is_void",
    "validate"
   ],
-  "Introspecção": [
+  "OOP Avançado": [
    "class_name",
    "get_fields",
    "get_methods",
@@ -4659,7 +5296,7 @@
    "has_method",
    "instanceof"
   ],
-  "Constantes e outros": [
+  "Constants": [
    "E",
    "EMPTY",
    "INF",

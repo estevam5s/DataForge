@@ -1,0 +1,26 @@
+[
+ {
+  "titulo": "Fundamentos",
+  "desc": "steady, action com tipos, cycle e given.",
+  "codigo": "steady TAXA := 0.1\n\naction total(itens: Cluster) -> Float:\n    soma := 0.0\n    cycle item in itens:\n        soma += item\n    yield soma * (1 + TAXA)\n\ncarrinho := [29.9, 15.5, 62.0]\nout $\"total com taxa: {round(total(carrinho), 2)}\"\n\ngiven total(carrinho) bigger 100:\n    out \"frete gratis\"\notherwise:\n    out \"frete cobrado\"",
+  "saida": "total com taxa: 118.14\nfrete gratis"
+ },
+ {
+  "titulo": "Records",
+  "desc": "Imutáveis, com igualdade estrutural e cópia por with.",
+  "codigo": "record Pedido:\n    cliente: String\n    total: Float\n    action com_desconto(taxa):\n        yield self.total * (1 - taxa)\n\np := Pedido(\"Ana\", 250.0)\npromocional := p with {\"total\": 200.0}\n\nout p.cliente, p.total\nout promocional.total\nout round(p.com_desconto(0.2), 2)\nout p is Pedido(\"Ana\", 250.0)",
+  "saida": "Ana 250.0\n200.0\n200.0\nyes"
+ },
+ {
+  "titulo": "Pattern matching",
+  "desc": "match estrutural sobre tipo, sequência, mapa e enum.",
+  "codigo": "enum Status:\n    Ativo\n    Suspenso := \"off\"\n\naction descrever(v):\n    match v:\n        point Integer as n when n bigger 100:\n            yield $\"inteiro grande: {n}\"\n        point [primeiro, ...resto]:\n            yield $\"lista de {len(resto) + 1}\"\n        point {\"tipo\": t}:\n            yield $\"vault do tipo {t}\"\n        point Status.Ativo:\n            yield \"ligado\"\n        default:\n            yield \"outro\"\n\nout descrever(500)\nout descrever([1, 2, 3])\nout descrever({\"tipo\": \"json\"})\nout descrever(Status.Ativo)",
+  "saida": "inteiro grande: 500\nlista de 3\nvault do tipo json\nligado"
+ },
+ {
+  "titulo": "Pipelines",
+  "desc": "sift, morph e distill encadeados; generator preguiçoso.",
+  "codigo": "vendas := [120, 45, 300, 80, 500, 15, 250]\n\ntotal := vendas\n    >> sift v: v bigger_eq 100\n    >> morph v: v * 1.1\n    >> distill acc, v: acc + v 0\n\nout $\"vendas grandes, com 10%: {round(total, 2)}\"\n\nstream action fib():\n    a := 0\n    b := 1\n    persist yes:\n        emit a\n        a, b := b, a + b\n\nout fib().take(8)",
+  "saida": "vendas grandes, com 10%: 1287.0\n[0, 1, 1, 2, 3, 5, 8, 13]"
+ }
+]

@@ -27,7 +27,7 @@ export function Header() {
             </svg>
           </button>
 
-          <Link href="/" className="flex shrink-0 items-center gap-2.5">
+          <Link href="/docs" className="flex shrink-0 items-center gap-2.5">
             <Logo />
             <span className="text-[17px] font-extrabold tracking-[-0.4px] text-strong">
               DataForge
@@ -43,19 +43,19 @@ export function Header() {
 
           <nav className="ml-auto flex items-center gap-1 md:ml-0">
             <Link
-              href="/primeiros-passos"
+              href="/docs/primeiros-passos"
               className="hidden rounded-lg px-3 py-2 text-[13.5px] font-semibold text-body transition-colors hover:text-strong lg:block"
             >
               Começar
             </Link>
             <Link
-              href="/exercicios"
+              href="/docs/exercicios"
               className="hidden rounded-lg px-3 py-2 text-[13.5px] font-semibold text-body transition-colors hover:text-strong lg:block"
             >
               Exercícios
             </Link>
             <Link
-              href="/biblioteca"
+              href="/docs/biblioteca"
               className="hidden rounded-lg px-3 py-2 text-[13.5px] font-semibold text-body transition-colors hover:text-strong xl:block"
             >
               Biblioteca

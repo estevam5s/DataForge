@@ -1,0 +1,51 @@
+import Link from 'next/link';
+import { NavSite } from './NavSite';
+
+/* Números reais do repositório — os mesmos que a suíte verifica. */
+const fatos = [
+  { rotulo: 'Testes passando', valor: '240' },
+  { rotulo: 'Exercícios verificados', valor: '180' },
+  { rotulo: 'Dependências no runtime', valor: 'nenhuma' },
+];
+
+export function Heroi() {
+  return (
+    <header className="p-4 sm:p-10">
+      <div className="lp-noise lp-hero-glow relative isolate overflow-hidden rounded-[28px] px-6 pb-14 pt-32 sm:rounded-[40px] sm:px-10 sm:pb-16 sm:pt-44 lg:pb-20 lg:pt-52">
+        <NavSite />
+
+        <div className="relative z-10 mx-auto max-w-[1280px]">
+          <h1 className="lp-h1 mx-auto max-w-[15ch] text-center text-white">
+            Mais que uma sintaxe diferente
+          </h1>
+
+          <p className="lp-mono mx-auto mt-8 max-w-[62ch] text-center text-[14px] leading-[24px] text-white/75 sm:text-[15px] sm:leading-[26px]">
+            DataForge é uma linguagem interpretada de propósito geral, com lexer,
+            parser, analisador estático e interpretador próprios — escritos em
+            Python, sem uma única dependência externa em tempo de execução.
+          </p>
+
+          <div className="mt-12 flex flex-col items-center gap-6 lg:mt-20 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Link href="/docs/primeiros-passos" className="lp-btn">
+                Começar
+              </Link>
+              <Link href="/docs" className="lp-btn-ghost">
+                Documentação
+              </Link>
+            </div>
+
+            <dl className="lp-mono grid w-full gap-2 text-[13px] sm:w-auto">
+              {fatos.map((f) => (
+                <div key={f.rotulo} className="flex items-baseline justify-between gap-8 sm:justify-end">
+                  <dt className="text-white/55">{f.rotulo}</dt>
+                  <dd className="font-medium text-white sm:w-[10ch] sm:text-right">{f.valor}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}

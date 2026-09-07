@@ -26,9 +26,9 @@ export default function NaoEncontrada() {
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3">
         {[
-          { href: '/', title: 'Introdução', texto: 'O que é a linguagem' },
-          { href: '/primeiros-passos', title: 'Primeiros passos', texto: 'Do zero ao primeiro .df' },
-          { href: '/biblioteca', title: 'Biblioteca', texto: '20 módulos, 674 símbolos' },
+          { href: '/docs', title: 'Documentação', texto: 'O que é a linguagem' },
+          { href: '/docs/primeiros-passos', title: 'Primeiros passos', texto: 'Do zero ao primeiro .df' },
+          { href: '/docs/biblioteca', title: 'Biblioteca', texto: '20 módulos, 674 símbolos' },
         ].map((c) => (
           <Link key={c.href} href={c.href} className="surface-card group p-4 transition-colors hover:border-accent/45">
             <p className="font-semibold text-strong transition-colors group-hover:text-accent">

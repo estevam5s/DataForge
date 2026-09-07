@@ -7,37 +7,37 @@ const colunas = [
   {
     titulo: 'Aprender',
     links: [
-      { t: 'Primeiros passos', h: '/primeiros-passos' },
-      { t: 'Instalação', h: '/instalacao' },
-      { t: 'Exercícios', h: '/exercicios' },
-      { t: 'Receitas', h: '/receitas/cli' },
+      { t: 'Primeiros passos', h: '/docs/primeiros-passos' },
+      { t: 'Instalação', h: '/docs/instalacao' },
+      { t: 'Exercícios', h: '/docs/exercicios' },
+      { t: 'Receitas', h: '/docs/receitas/cli' },
     ],
   },
   {
     titulo: 'Referência',
     links: [
-      { t: 'Gramática', h: '/referencia/gramatica' },
-      { t: 'Palavras reservadas', h: '/referencia/palavras-reservadas' },
-      { t: 'Funções embutidas', h: '/referencia/embutidas' },
-      { t: 'Biblioteca Arcane', h: '/biblioteca' },
+      { t: 'Gramática', h: '/docs/referencia/gramatica' },
+      { t: 'Palavras reservadas', h: '/docs/referencia/palavras-reservadas' },
+      { t: 'Funções embutidas', h: '/docs/referencia/embutidas' },
+      { t: 'Biblioteca Arcane', h: '/docs/biblioteca' },
     ],
   },
   {
     titulo: 'Ferramentas',
     links: [
-      { t: 'CLI', h: '/cli' },
-      { t: 'Análise estática', h: '/tecnicas/analise-estatica' },
-      { t: 'Testes', h: '/tecnicas/testes' },
-      { t: 'forge.toml', h: '/cli/forge-toml' },
+      { t: 'CLI', h: '/docs/cli' },
+      { t: 'Análise estática', h: '/docs/tecnicas/analise-estatica' },
+      { t: 'Testes', h: '/docs/tecnicas/testes' },
+      { t: 'forge.toml', h: '/docs/cli/forge-toml' },
     ],
   },
   {
     titulo: 'Projeto',
     links: [
-      { t: 'Roadmap', h: '/roadmap' },
-      { t: 'Contribuir', h: '/contribuir' },
-      { t: 'FAQ', h: '/faq' },
-      { t: 'Migração 3.x → 4.0', h: '/faq/migracao' },
+      { t: 'Roadmap', h: '/docs/roadmap' },
+      { t: 'Contribuir', h: '/docs/contribuir' },
+      { t: 'FAQ', h: '/docs/faq' },
+      { t: 'Migração 3.x → 4.0', h: '/docs/faq/migracao' },
     ],
   },
 ];
