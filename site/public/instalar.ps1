@@ -10,7 +10,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$Versao  = if ($env:DATAFORGE_VERSION) { $env:DATAFORGE_VERSION } else { '4.0.0' }
+$Versao  = if ($env:DATAFORGE_VERSION) { $env:DATAFORGE_VERSION } else { '4.1.0' }
 $Prefixo = if ($env:DATAFORGE_PREFIX)  { $env:DATAFORGE_PREFIX }  else { "$HOME\.dataforge" }
 $Site    = if ($env:DATAFORGE_SITE)    { $env:DATAFORGE_SITE }    else { 'https://dataforge-lang.vercel.app' }
 

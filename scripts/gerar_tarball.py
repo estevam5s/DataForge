@@ -59,12 +59,28 @@ def main():
     print(f"  {destino.stat().st_size / 1024:.0f} KB")
     print(f"  sha256 {sha}")
 
-    # O instalador tem a versao embutida como padrao; se ficarem
-    # diferentes, quem rodar o curl baixa um arquivo que nao existe.
-    instalador = (RAIZ / "scripts" / "instalar.sh").read_text(encoding="utf-8")
-    if f'DATAFORGE_VERSION:-{VERSAO}' not in instalador:
-        print(f"\n  ATENCAO: scripts/instalar.sh nao aponta para {VERSAO}.")
-        print(f"  Ajuste a linha VERSAO=\"${{DATAFORGE_VERSION:-...}}\".")
+    # Os instaladores tem a versao embutida como padrao. Se ela divergir,
+    # quem roda o curl baixa um arquivo que nao existe — foi o que
+    # aconteceu no 4.1.0, porque havia duas copias do script e so uma foi
+    # atualizada. Agora a copia publicada e gerada aqui, sempre.
+    problemas = []
+    for origem, destino in [("scripts/instalar.sh", "site/public/instalar.sh"),
+                            ("scripts/instalar.ps1", "site/public/instalar.ps1")]:
+        fonte = RAIZ / origem
+        if not fonte.exists():
+            continue
+        texto = fonte.read_text(encoding="utf-8")
+        if VERSAO not in texto:
+            problemas.append(f"{origem} nao menciona {VERSAO}")
+        alvo = RAIZ / destino
+        alvo.write_text(texto, encoding="utf-8")
+        alvo.chmod(fonte.stat().st_mode)
+        print(f"  {destino} <- {origem}")
+
+    if problemas:
+        print("\n  ATENCAO:")
+        for p_ in problemas:
+            print(f"    {p_}")
         return 1
     return 0
 

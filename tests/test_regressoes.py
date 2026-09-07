@@ -854,3 +854,45 @@ def test_erro_no_handler_vai_para_o_terminal():
     from dataforge.stdlib import arcane_http
     fonte = inspect.getsource(arcane_http)
     assert "[http]" in fonte, "o erro do handler precisa ser impresso"
+
+
+# ─── Instalador publicado bate com o do repositorio ────────
+# Havia duas copias do instalar.sh: scripts/ e site/public/. No 4.1.0 so
+# uma foi atualizada, e quem rodou 'curl | sh' baixou um tarball 4.0.0
+# que nao existia mais. Agora gerar_tarball.py copia uma na outra.
+
+def _raiz():
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+@pytest.mark.parametrize("nome", ["instalar.sh", "instalar.ps1"])
+def test_instalador_publicado_e_igual_ao_do_repositorio(nome):
+    raiz = _raiz()
+    origem = os.path.join(raiz, "scripts", nome)
+    publicado = os.path.join(raiz, "site", "public", nome)
+    if not os.path.exists(origem):
+        pytest.skip(f"{nome} nao existe")
+    assert os.path.exists(publicado), f"site/public/{nome} nao foi gerado"
+    assert open(origem, encoding="utf-8").read() == \
+           open(publicado, encoding="utf-8").read(), \
+        f"{nome} divergiu — rode 'python3 scripts/gerar_tarball.py'"
+
+
+def test_instalador_aponta_para_a_versao_atual():
+    """O curl precisa baixar um tarball que existe."""
+    from dataforge import __version__
+
+    raiz = _raiz()
+    instalador = open(os.path.join(raiz, "scripts", "instalar.sh"),
+                      encoding="utf-8").read()
+    assert f"DATAFORGE_VERSION:-{__version__}" in instalador, \
+        f"instalar.sh nao aponta para {__version__}"
+
+
+def test_tarball_da_versao_atual_existe():
+    from dataforge import __version__
+
+    caminho = os.path.join(_raiz(), "site", "public", "dist",
+                           f"dataforge-{__version__}.tar.gz")
+    assert os.path.exists(caminho), \
+        f"falta o tarball {__version__} — rode 'python3 scripts/gerar_tarball.py'"
