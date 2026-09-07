@@ -1,0 +1,78 @@
+adopt Arcane.Test as T
+adopt medida as U
+
+action test_distancia():
+    T.assert_eq(U.converter(1, "km", "m"), 1000.0)
+    T.assert_eq(U.converter(100, "cm", "m"), 1.0)
+    T.assert_eq(round(U.converter(5, "km", "milha"), 4), 3.1069)
+    T.assert_eq(round(U.converter(1, "pe", "polegada"), 4), 12.0)
+
+action test_massa():
+    T.assert_eq(U.converter(1, "kg", "g"), 1000.0)
+    T.assert_eq(round(U.converter(1, "libra", "g"), 3), 453.592)
+    T.assert_eq(round(U.converter(1, "arroba", "kg"), 3), 14.688)
+
+action test_volume():
+    T.assert_eq(U.converter(1, "l", "ml"), 1000.0)
+    T.assert_eq(round(U.converter(1, "galao", "l"), 4), 3.7854)
+
+action test_tempo():
+    T.assert_eq(U.converter(1, "h", "min"), 60.0)
+    T.assert_eq(U.converter(1, "dia", "h"), 24.0)
+    T.assert_eq(U.converter(2, "semana", "dia"), 14.0)
+
+action test_dados():
+    T.assert_eq(U.converter(1, "gb", "mb"), 1024.0)
+    T.assert_eq(U.converter(2048, "b", "kb"), 2.0)
+
+action test_ida_e_volta():
+    cycle par in [["km", "milha"], ["kg", "libra"], ["l", "galao"]]:
+        ida := U.converter(7, par[0], par[1])
+        volta := U.converter(ida, par[1], par[0])
+        T.assert_eq(round(volta, 6), 7.0)
+
+action test_unidade_desconhecida():
+    T.assert_throws(lambda => U.converter(1, "parsec", "m"))
+    T.assert_throws(lambda => U.converter(1, "m", "furlong"))
+
+action test_familias_diferentes_nao_convertem():
+    T.assert_throws(lambda => U.converter(1, "kg", "m"))
+    T.assert_throws(lambda => U.converter(1, "h", "l"))
+
+action test_temperatura():
+    T.assert_eq(U.temperatura(0, "C", "F"), 32.0)
+    T.assert_eq(U.temperatura(100, "C", "F"), 212.0)
+    T.assert_eq(U.temperatura(32, "F", "C"), 0.0)
+    T.assert_eq(U.temperatura(0, "C", "K"), 273.15)
+    T.assert_eq(round(U.temperatura(300, "K", "C"), 2), 26.85)
+    T.assert_eq(U.temperatura(25, "C", "C"), 25)
+
+action test_temperatura_ida_e_volta():
+    T.assert_eq(round(U.temperatura(U.temperatura(37, "C", "F"), "F", "C"), 6), 37.0)
+
+action test_escala_invalida():
+    T.assert_throws(lambda => U.temperatura(1, "X", "C"))
+
+action test_formatar_escolhe_a_unidade():
+    T.assert_eq(U.formatar(1500, "m"), "1.5 km")
+    T.assert_eq(U.formatar(0.5, "m"), "50.0 cm")
+    T.assert_eq(U.formatar(1048576, "b"), "1.0 mb")
+    T.assert_eq(U.formatar(90, "min"), "1.5 h")
+
+action test_formatar_unidade_desconhecida():
+    T.assert_eq(U.formatar(5, "quatloo"), "5 quatloo")
+
+action test_familia_de():
+    T.assert_eq(U.familia_de("km"), "distancia")
+    T.assert_eq(U.familia_de("kg"), "massa")
+    T.assert_eq(U.familia_de("inexistente"), void)
+
+action test_mesma_familia():
+    T.assert_true(U.mesma_familia("km", "milha"))
+    T.assert_false(U.mesma_familia("km", "kg"))
+    T.assert_false(U.mesma_familia("km", "inexistente"))
+
+action test_unidades():
+    T.assert_true("distancia" in U.unidades())
+    T.assert_true("km" in U.unidades("distancia"))
+    T.assert_throws(lambda => U.unidades("inexistente"))

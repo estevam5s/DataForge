@@ -1,0 +1,14 @@
+[package]
+name = "estatistica"
+version = "1.0.0"
+description = "Estatística: média, mediana, desvio, quartis, correlação e regressão."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["estatistica", "dados", "analise"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

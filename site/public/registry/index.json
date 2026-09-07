@@ -86,6 +86,342 @@
      "dataforge": ">=4.0"
     }
    }
+  },
+  "texto": {
+   "descricao": "Texto: slug, truncar, mascarar, distância de edição, similaridade e templates.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "texto",
+    "string",
+    "slug"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "texto-1.0.0.tar.gz",
+     "sha256": "6a45c3d3aa12e2e1ef8a824086ae5eb16f80bb8c92719a2379907e3cb213c7c3",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "colecao": {
+   "descricao": "Coleções: agrupar, particionar, zip, janela, achatar e frequências.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "colecao",
+    "lista",
+    "agrupar"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "colecao-1.0.0.tar.gz",
+     "sha256": "8f493aae39b0978599c328a5aef6fecb66c4ca71af9bbd577c1af3063931cba7",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "cache": {
+   "descricao": "Cache: memoização, TTL e LRU, com estatísticas de acerto.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "cache",
+    "memoizacao",
+    "ttl"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "cache-1.0.0.tar.gz",
+     "sha256": "2a4b892989f8fd4198cc0fb0b5d2943ffbae7b39952066ba43c271b5e70ab5ee",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "evento": {
+   "descricao": "Eventos: publicar, assinar, uma vez só e barramento tipado.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "evento",
+    "pubsub",
+    "observador"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "evento-1.0.0.tar.gz",
+     "sha256": "8b5f754113f6e16896f317d195f132c6726985a50bd9879f3816bf1ae52cc7d9",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "moeda": {
+   "descricao": "Dinheiro sem erro de ponto flutuante: centavos inteiros, câmbio e formatação BRL.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "dinheiro",
+    "moeda",
+    "financeiro"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "moeda-1.0.0.tar.gz",
+     "sha256": "a1dfd5eba16e4018c049edb84c9eea85947f4b3207c20e76e255317305aa8aab",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "estado": {
+   "descricao": "Máquina de estados: transições declaradas, guardas e histórico.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "estado",
+    "maquina",
+    "fluxo"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "estado-1.0.0.tar.gz",
+     "sha256": "3ccebde00ba321b14b6a38569805b29c3d7167f1936ef6c883b5c77e5058d73b",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "tentativa": {
+   "descricao": "Repetição com recuo exponencial, jitter e circuit breaker.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "retry",
+    "resiliencia",
+    "backoff"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "tentativa-1.0.0.tar.gz",
+     "sha256": "989517effa63ea8ad328b5c0b318a9c5b59ca95d86b04d4781f8e61ed1a9fdab",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "aleatorio": {
+   "descricao": "Aleatoriedade com semente: sorteio, embaralhar, amostra e distribuições.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "aleatorio",
+    "random",
+    "sorteio"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "aleatorio-1.0.0.tar.gz",
+     "sha256": "3bbe364cad4fdb0ad12ee818154b88847ba687fa709dae29fe13dbcea9247e71",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "registro": {
+   "descricao": "Registro estruturado: níveis, campos, destinos e formatação JSON ou texto.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "log",
+    "registro",
+    "observabilidade"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "registro-1.0.0.tar.gz",
+     "sha256": "8417e5fcfc0a34e758fb772e93434ad619743dbd7e8f0bcf374d8babc63049e7",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "modelo": {
+   "descricao": "Templates de texto: variáveis, laços, condicionais e filtros.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "template",
+    "texto",
+    "render"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "modelo-1.0.0.tar.gz",
+     "sha256": "138ebe9b09da0ebd8ce5f6cfc219df76ed5ca74783f18495468e1769a40015ca",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "argumentos": {
+   "descricao": "Argumentos de linha de comando: flags, posicionais, subcomandos e ajuda automática.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "cli",
+    "argumentos",
+    "parser"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "argumentos-1.0.0.tar.gz",
+     "sha256": "ddac703425ac155360364b34f2a28a815b0e72018514d3547b8c41a32a192266",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "progresso": {
+   "descricao": "Terminal: barra de progresso, spinner, contagem e tempo estimado.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "terminal",
+    "progresso",
+    "cli"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "progresso-1.0.0.tar.gz",
+     "sha256": "5ffed500c1ed9e58431c59aa88cc6efde396378708ea50c26ec5e8f4bc902395",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "estatistica": {
+   "descricao": "Estatística: média, mediana, desvio, quartis, correlação e regressão.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "estatistica",
+    "dados",
+    "analise"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "estatistica-1.0.0.tar.gz",
+     "sha256": "3cdc800c484a835db48b194e7934c5baa95dab167cb7b9b0ac4dac041e1000fc",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "grafo": {
+   "descricao": "Grafos: busca, caminho mínimo, ordenação topológica e componentes.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "grafo",
+    "algoritmo",
+    "busca"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "grafo-1.0.0.tar.gz",
+     "sha256": "205cf493496dd86caf6b3aa7718b41924fc2ef1986f021b03b91425f51e6427b",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "medida": {
+   "descricao": "Conversão de unidades: distância, massa, volume, temperatura e tempo.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "medida",
+    "unidade",
+    "conversao"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "medida-1.0.0.tar.gz",
+     "sha256": "bb62b363a76b5f4bd4be0ecc7fa16f2b7cf7f7d46bf94b82e658b70376400a97",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    },
+    "1.0.1": {
+     "arquivo": "medida-1.0.1.tar.gz",
+     "sha256": "8b3b4472d681580c50ea42a25d31b62e2383b63ae067040d1ef8355c26a8f345",
+     "dependencias": {},
+     "dataforge": ">=4.1"
+    }
+   }
+  },
+  "documento": {
+   "descricao": "Markdown: converte para HTML e texto, extrai títulos e sumário.",
+   "licenca": "MIT",
+   "autores": [
+    "DataForge"
+   ],
+   "tags": [
+    "markdown",
+    "html",
+    "documento"
+   ],
+   "versoes": {
+    "1.0.0": {
+     "arquivo": "documento-1.0.0.tar.gz",
+     "sha256": "89091d47c7970ed26af822a697021e54e8ae276b381f87ec90806b63825801aa",
+     "dependencias": {
+      "texto": "^1.0.0"
+     },
+     "dataforge": ">=4.1"
+    },
+    "1.0.1": {
+     "arquivo": "documento-1.0.1.tar.gz",
+     "sha256": "ccb0e5b81d5e93a049af9a61934f2edb776c0939813c0a145989f8ae68fb0afc",
+     "dependencias": {
+      "texto": "^1.0.0"
+     },
+     "dataforge": ">=4.1"
+    }
+   }
   }
  }
 }

@@ -1,0 +1,247 @@
+// grafo — busca, caminho e ordenação
+//
+//     adopt grafo as G
+//
+//     g := G.novo()
+//     g.ligar("a", "b", 4)
+//     g.ligar("b", "c", 2)
+//     out g.caminho_minimo("a", "c")   // {distancia: 6, caminho: [a, b, c]}
+//
+// Dirigido por padrão. Um grafo não dirigido é o mesmo com as arestas
+// nos dois sentidos — `ligar_ambos` faz isso.
+
+blueprint Grafo:
+    private vizinhos: Vault := {}
+    private pesos: Vault := {}
+
+    action setup(dirigido := yes):
+        self.dirigido := dirigido
+        self.vizinhos := {}
+        self.pesos := {}
+
+    action adicionar(vertice):
+        given not self.vizinhos.has(vertice):
+            self.vizinhos[vertice] := []
+        yield self
+
+    action ligar(de, para, peso := 1):
+        self.adicionar(de)
+        self.adicionar(para)
+        given not (para in self.vizinhos[de]):
+            self.vizinhos[de].append(para)
+        self.pesos[de + "→" + para] := peso
+        given not self.dirigido:
+            given not (de in self.vizinhos[para]):
+                self.vizinhos[para].append(de)
+            self.pesos[para + "→" + de] := peso
+        yield self
+
+    action ligar_ambos(a, b, peso := 1):
+        self.ligar(a, b, peso)
+        self.ligar(b, a, peso)
+        yield self
+
+    action peso(de, para):
+        yield self.pesos[de + "→" + para] ?? void
+
+    action nos():
+        yield self.vizinhos.keys()
+
+    action arestas():
+        saida := []
+        cycle de in self.vizinhos.keys():
+            cycle para in self.vizinhos[de]:
+                saida.append([de, para, self.peso(de, para)])
+        yield saida
+
+    action grau(vertice):
+        yield len(self.vizinhos[vertice] ?? [])
+
+    action tem(vertice):
+        yield self.vizinhos.has(vertice)
+
+    action largura(inicio):
+        // Ordem de descoberta em largura. Numa aresta sem peso, é também
+        // o caminho com menos saltos.
+        given not self.tem(inicio):
+            yield []
+        vistos := {inicio: yes}
+        fila := [inicio]
+        ordem := []
+        persist len(fila) bigger 0:
+            atual := fila[0]
+            fila := fila[1:]
+            ordem.append(atual)
+            fila := fila + self.novos_vizinhos(atual, vistos)
+        yield ordem
+
+    private action novos_vizinhos(atual, vistos):
+        // Marca e devolve os vizinhos ainda nao vistos.
+        saida := []
+        cycle v in self.vizinhos[atual] ?? []:
+            given not vistos.has(v):
+                vistos[v] := yes
+                saida.append(v)
+        yield saida
+
+    action profundidade(inicio):
+        given not self.tem(inicio):
+            yield []
+        vistos := {}
+        ordem := []
+        pilha := [inicio]
+        persist len(pilha) bigger 0:
+            atual := pilha[len(pilha) - 1]
+            pilha := pilha[0:len(pilha) - 1]
+            given vistos.has(atual):
+                skip
+            vistos[atual] := yes
+            ordem.append(atual)
+            pilha := pilha + self.pendentes_invertidos(atual, vistos)
+        yield ordem
+
+    private action pendentes_invertidos(atual, vistos):
+        // Ordem invertida: a pilha desempilha do fim, entao o primeiro
+        // vizinho precisa entrar por ultimo para sair primeiro.
+        vizinhos := self.vizinhos[atual] ?? []
+        saida := []
+        i := len(vizinhos) - 1
+        persist i bigger_eq 0:
+            given not vistos.has(vizinhos[i]):
+                saida.append(vizinhos[i])
+            i -= 1
+        yield saida
+
+    action alcanca(de, para):
+        yield para in self.largura(de)
+
+    action caminho_minimo(inicio, fim):
+        // Dijkstra. Sem fila de prioridade: varre para achar o menor,
+        // o que é O(n²) — suficiente para grafos de aplicação.
+        given not self.tem(inicio) or not self.tem(fim):
+            yield {"distancia": void, "caminho": []}
+
+        distancias := {}
+        anterior := {}
+        pendentes := []
+        cycle n in self.nos():
+            distancias[n] := -1
+            pendentes.append(n)
+        distancias[inicio] := 0
+
+        persist len(pendentes) bigger 0:
+            atual := self.mais_perto(pendentes, distancias)
+            given atual is void:
+                halt
+            given atual is fim:
+                halt
+            pendentes := self.sem(pendentes, atual)
+            self.relaxar(atual, distancias, anterior)
+
+        given distancias[fim] smaller 0:
+            yield {"distancia": void, "caminho": []}
+
+        caminho := [fim]
+        atual := fim
+        persist anterior.has(atual):
+            atual := anterior[atual]
+            caminho := [atual] + caminho
+        yield {"distancia": distancias[fim], "caminho": caminho}
+
+    private action sem(lista, alvo):
+        saida := []
+        cycle x in lista:
+            given x isnt alvo:
+                saida.append(x)
+        yield saida
+
+    private action relaxar(atual, distancias, anterior):
+        // Se chegar por 'atual' e mais curto, essa passa a ser a rota.
+        cycle v in self.vizinhos[atual] ?? []:
+            candidata := distancias[atual] + self.peso(atual, v)
+            given distancias[v] smaller 0 or candidata smaller distancias[v]:
+                distancias[v] := candidata
+                anterior[v] := atual
+        yield distancias
+
+    private action mais_perto(pendentes, distancias):
+        escolhido := void
+        melhor := -1
+        cycle n in pendentes:
+            d := distancias[n]
+            given d smaller 0:
+                skip
+            given melhor smaller 0 or d smaller melhor:
+                melhor := d
+                escolhido := n
+        yield escolhido
+
+    action ordem_topologica():
+        // Kahn. Devolve void quando há ciclo — um grafo com ciclo não
+        // tem ordem topológica, e dizer isso é melhor que devolver
+        // uma lista incompleta em silêncio.
+        entradas := {}
+        cycle n in self.nos():
+            entradas[n] := 0
+        cycle a in self.arestas():
+            entradas[a[1]] += 1
+
+        fila := []
+        cycle n in self.nos():
+            given entradas[n] is 0:
+                fila.append(n)
+
+        ordem := []
+        persist len(fila) bigger 0:
+            atual := fila[0]
+            fila := fila[1:]
+            ordem.append(atual)
+            fila := fila + self.liberados_por(atual, entradas)
+
+        given len(ordem) isnt len(self.nos()):
+            yield void
+        yield ordem
+
+    private action liberados_por(atual, entradas):
+        // Remover 'atual' zera a contagem de quem so dependia dele.
+        saida := []
+        cycle v in self.vizinhos[atual] ?? []:
+            entradas[v] -= 1
+            given entradas[v] is 0:
+                saida.append(v)
+        yield saida
+
+    action tem_ciclo():
+        yield self.ordem_topologica() is void
+
+    action componentes():
+        // Grupos conectados, ignorando o sentido das arestas.
+        // dirigido = no: as arestas valem nos dois sentidos
+        naodirigido := spawn Grafo(no)
+        cycle a in self.arestas():
+            naodirigido.ligar_ambos(a[0], a[1], a[2])
+        cycle n in self.nos():
+            naodirigido.adicionar(n)
+
+        vistos := {}
+        grupos := []
+        cycle n in naodirigido.nos():
+            given vistos.has(n):
+                skip
+            grupo := naodirigido.largura(n)
+            cycle m in grupo:
+                vistos[m] := yes
+            grupos.append(grupo)
+        yield grupos
+
+action novo(dirigido := yes):
+    yield spawn Grafo(dirigido)
+
+action de_arestas(lista, dirigido := yes):
+    g := spawn Grafo(dirigido)
+    cycle a in lista:
+        peso := a[2] given len(a) bigger 2 otherwise 1
+        g.ligar(a[0], a[1], peso)
+    yield g
+
+relay Grafo, novo, de_arestas

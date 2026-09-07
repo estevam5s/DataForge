@@ -1,0 +1,250 @@
+// documento — Markdown para HTML e texto
+//
+//     adopt documento as D
+//
+//     out D.para_html("# Título\n\nUm **parágrafo**.")
+//     out D.sumario(texto)      // os títulos, com nível e âncora
+//
+// Subconjunto do Markdown: títulos, ênfase, listas, código, citação,
+// link, imagem, linha e tabela. Não é CommonMark completo — é o que
+// aparece num README, feito para caber num arquivo legível.
+
+adopt texto as Txt
+
+action escapar(s):
+    // A ordem importa: '&' primeiro, senão as outras entidades
+    // que ele mesmo cria seriam escapadas de novo.
+    yield str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+action ancora(titulo):
+    yield Txt.slug(titulo)
+
+action inline(linha):
+    // Ênfase, código, link e imagem — o que vale dentro de uma linha.
+    // Código primeiro: `**isto**` dentro de crase não vira negrito.
+    saida := ""
+    i := 0
+    persist i smaller linha.length():
+        c := linha.char_at(i)
+
+        given c is "`":
+            fim := linha.find("`", i + 1)
+            given fim is -1:
+                saida += escapar(c)
+                i += 1
+                skip
+            saida += "<code>" + escapar(linha.substring(i + 1, fim)) + "</code>"
+            i := fim + 1
+            skip
+
+        given c is "!" and linha.substring(i, i + 2) is "![":
+            resultado := ler_link(linha, i + 1, yes)
+            given resultado is void:
+                saida += escapar(c)
+                i += 1
+                skip
+            saida += resultado["html"]
+            i := resultado["fim"]
+            skip
+
+        given c is "[":
+            resultado := ler_link(linha, i, no)
+            given resultado is void:
+                saida += escapar(c)
+                i += 1
+                skip
+            saida += resultado["html"]
+            i := resultado["fim"]
+            skip
+
+        given linha.substring(i, i + 2) is "**":
+            fim := linha.find("**", i + 2)
+            given fim isnt -1:
+                saida += "<strong>" + inline(linha.substring(i + 2, fim)) + "</strong>"
+                i := fim + 2
+                skip
+
+        given c is "*":
+            fim := linha.find("*", i + 1)
+            given fim isnt -1:
+                saida += "<em>" + inline(linha.substring(i + 1, fim)) + "</em>"
+                i := fim + 1
+                skip
+
+        saida += escapar(c)
+        i += 1
+    yield saida
+
+action ler_link(linha, i, e_imagem):
+    // [texto](url) ou ![alt](url). Devolve void se não fecha.
+    fim_texto := linha.find("]", i)
+    given fim_texto is -1:
+        yield void
+    given linha.substring(fim_texto + 1, fim_texto + 2) isnt "(":
+        yield void
+    fim_url := linha.find(")", fim_texto)
+    given fim_url is -1:
+        yield void
+
+    rotulo := linha.substring(i + 1, fim_texto)
+    url := escapar(linha.substring(fim_texto + 2, fim_url))
+    given e_imagem:
+        yield {"html": $"<img src=\"{url}\" alt=\"{escapar(rotulo)}\">",
+               "fim": fim_url + 1}
+    yield {"html": $"<a href=\"{url}\">{inline(rotulo)}</a>", "fim": fim_url + 1}
+
+action titulos(fonte):
+    // Os títulos, com nível, texto e âncora — a base de um sumário.
+    saida := []
+    dentro_de_codigo := no
+    cycle linha in str(fonte).split("\n"):
+        given linha.trim().startswith("```"):
+            dentro_de_codigo := not dentro_de_codigo
+            skip
+        given dentro_de_codigo:
+            skip
+        given not linha.startswith("#"):
+            skip
+        nivel := nivel_do_titulo(linha)
+        texto := linha.substring(nivel).trim()
+        given texto isnt "":
+            saida.append({"nivel": nivel, "texto": texto,
+                          "ancora": ancora(texto)})
+    yield saida
+
+action sumario(fonte, ate_nivel := 3):
+    linhas := []
+    cycle t in titulos(fonte):
+        given t["nivel"] bigger ate_nivel:
+            skip
+        recuo := "  ".repeat(t["nivel"] - 1)
+        linhas.append($"{recuo}- [{t['texto']}](#{t['ancora']})")
+    yield linhas.join("\n")
+
+action nivel_do_titulo(linha):
+    // Quantos '#' abrem a linha.
+    nivel := 0
+    cycle c in str(linha):
+        given c is "#":
+            nivel += 1
+        otherwise:
+            halt
+    yield nivel
+
+action titulo_html(linha):
+    nivel := nivel_do_titulo(linha)
+    texto := linha.substring(nivel).trim()
+    yield $"<h{nivel} id=\"{ancora(texto)}\">{inline(texto)}</h{nivel}>"
+
+action bloco_codigo_html(linhas, i):
+    // Lê do ``` de abertura até o de fechamento. Devolve o html e a
+    // linha seguinte ao bloco.
+    idioma := linhas[i].trim().substring(3).trim()
+    corpo := []
+    j := i + 1
+    persist j smaller len(linhas) and not linhas[j].trim().startswith("```"):
+        corpo.append(escapar(linhas[j]))
+        j += 1
+    classe := $" class=\"language-{idioma}\"" given idioma isnt "" otherwise ""
+    yield {"html": $"<pre><code{classe}>" + corpo.join("\n") + "</code></pre>",
+           "proxima": j + 1}
+
+action para_html(fonte):
+    saida := []
+    linhas := str(fonte).split("\n")
+    i := 0
+    lista_aberta := no
+
+    persist i smaller len(linhas):
+        linha := linhas[i]
+        cortada := linha.trim()
+
+        // bloco de código
+        given cortada.startswith("```"):
+            bloco := bloco_codigo_html(linhas, i)
+            saida.append(bloco["html"])
+            i := bloco["proxima"]
+            skip
+
+        given cortada is "":
+            given lista_aberta:
+                saida.append("</ul>")
+                lista_aberta := no
+            i += 1
+            skip
+
+        // título
+        given cortada.startswith("#"):
+            given lista_aberta:
+                saida.append("</ul>")
+                lista_aberta := no
+            saida.append(titulo_html(cortada))
+            i += 1
+            skip
+
+        // linha horizontal
+        given cortada is "---" or cortada is "***":
+            saida.append("<hr>")
+            i += 1
+            skip
+
+        // citação
+        given cortada.startswith(">"):
+            saida.append("<blockquote>" + inline(cortada.substring(1).trim()) +
+                         "</blockquote>")
+            i += 1
+            skip
+
+        // item de lista
+        given cortada.startswith("- ") or cortada.startswith("* "):
+            given not lista_aberta:
+                saida.append("<ul>")
+                lista_aberta := yes
+            saida.append("<li>" + inline(cortada.substring(2)) + "</li>")
+            i += 1
+            skip
+
+        // parágrafo
+        given lista_aberta:
+            saida.append("</ul>")
+            lista_aberta := no
+        saida.append("<p>" + inline(cortada) + "</p>")
+        i += 1
+
+    given lista_aberta:
+        saida.append("</ul>")
+    yield saida.join("\n")
+
+action para_texto(fonte):
+    // Tira a marcação, deixando o conteúdo legível.
+    saida := []
+    dentro_de_codigo := no
+    cycle linha in str(fonte).split("\n"):
+        cortada := linha.trim()
+        given cortada.startswith("```"):
+            dentro_de_codigo := not dentro_de_codigo
+            skip
+        given dentro_de_codigo:
+            saida.append(linha)
+            skip
+        limpa := cortada
+        persist limpa.startswith("#"):
+            limpa := limpa.substring(1)
+        limpa := limpa.replace("**", "").replace("`", "")
+        given limpa.startswith("> "):
+            limpa := limpa.substring(2)
+        saida.append(limpa.trim())
+    yield saida.join("\n")
+
+action contar_palavras(fonte):
+    yield Txt.contar_palavras(para_texto(fonte))
+
+action tempo_de_leitura(fonte, palavras_por_minuto := 200):
+    minutos := contar_palavras(fonte) / palavras_por_minuto
+    given minutos smaller 1:
+        yield "menos de 1 min"
+    yield $"{int(minutos + 0.5)} min"
+
+relay nivel_do_titulo, titulo_html, bloco_codigo_html
+relay escapar, ancora, inline, titulos, sumario
+relay para_html, para_texto, contar_palavras, tempo_de_leitura

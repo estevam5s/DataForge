@@ -1,0 +1,100 @@
+adopt Arcane.Test as T
+adopt estatistica as E
+
+steady V := [2, 4, 4, 4, 5, 5, 7, 9]
+
+action test_media_e_soma():
+    T.assert_eq(E.soma([1, 2, 3]), 6)
+    T.assert_eq(E.media([1, 2, 3, 4]), 2.5)
+    T.assert_eq(E.media(V), 5.0)
+    T.assert_throws(lambda => E.media([]))
+
+action test_mediana_resiste_ao_extremo():
+    // é isso que a distingue da média
+    T.assert_eq(E.mediana([1, 2, 3]), 2)
+    T.assert_eq(E.mediana([1, 2, 3, 4]), 2.5)
+    T.assert_eq(E.mediana([1, 1, 1, 97]), 1.0)
+    T.assert_eq(E.media([1, 1, 1, 97]), 25.0)
+
+action test_moda():
+    T.assert_eq(E.moda([1, 2, 2, 3]), [2])
+    T.assert_eq(E.moda([1, 1, 2, 2]), [1, 2])      // empate
+    T.assert_eq(E.moda([]), [])
+
+action test_variancia_e_desvio():
+    T.assert_eq(round(E.desvio_padrao(V), 4), 2.1381)
+    T.assert_eq(round(E.desvio_padrao(V, no), 4), 2.0)
+    T.assert_eq(E.variancia([5]), 0.0)
+
+action test_percentil():
+    T.assert_eq(E.percentil([1, 2, 3, 4, 5], 50), 3)
+    T.assert_eq(E.percentil([1, 2, 3, 4], 0), 1)
+    T.assert_eq(E.percentil([1, 2, 3, 4], 100), 4)
+    T.assert_throws(lambda => E.percentil([1], 101))
+    T.assert_throws(lambda => E.percentil([], 50))
+
+action test_quartis_e_iqr():
+    q := E.quartis([1, 2, 3, 4, 5])
+    T.assert_eq(q["q2"], 3)
+    T.assert_eq(E.amplitude_interquartil([1, 2, 3, 4, 5]), 2.0)
+
+action test_extremos():
+    // 100 está muito fora da nuvem
+    fora := E.extremos([1, 2, 3, 4, 5, 100])
+    T.assert_true(100 in fora)
+    T.assert_false(3 in fora)
+    T.assert_eq(E.extremos([1, 2]), [])       // poucos dados, sem julgar
+
+action test_amplitude():
+    T.assert_eq(E.amplitude([3, 9, 1]), 8)
+    T.assert_eq(E.amplitude([]), 0)
+
+action test_normalizar():
+    n := E.normalizar([0, 5, 10])
+    T.assert_eq(n, [0.0, 0.5, 1.0])
+    T.assert_eq(E.normalizar([7, 7]), [0.5, 0.5])
+    T.assert_eq(E.normalizar([]), [])
+
+action test_padronizar():
+    z := E.padronizar([2, 4, 6])
+    T.assert_eq(round(E.media(z), 6), 0.0)
+    T.assert_eq(E.padronizar([5, 5]), [0.0, 0.0])
+
+action test_correlacao():
+    // relação perfeita e direta
+    T.assert_eq(round(E.correlacao([1, 2, 3], [2, 4, 6]), 6), 1.0)
+    // perfeita e inversa
+    T.assert_eq(round(E.correlacao([1, 2, 3], [6, 4, 2]), 6), -1.0)
+    // série constante não correlaciona com nada
+    T.assert_eq(E.correlacao([1, 2, 3], [5, 5, 5]), 0.0)
+
+action test_covariancia_exige_mesmo_tamanho():
+    T.assert_throws(lambda => E.covariancia([1, 2], [1]))
+
+action test_regressao():
+    r := E.regressao([1, 2, 3, 4], [2, 4, 6, 8])
+    T.assert_eq(round(r["inclinacao"], 6), 2.0)
+    T.assert_eq(round(r["intercepto"], 6), 0.0)
+    T.assert_eq(round(r["r2"], 6), 1.0)
+    T.assert_eq(round(r["prever"](5), 6), 10.0)
+    T.assert_throws(lambda => E.regressao([1], [1]))
+
+action test_resumo():
+    r := E.resumo(V)
+    T.assert_eq(r["n"], 8)
+    T.assert_eq(r["media"], 5.0)
+    T.assert_eq(r["mediana"], 4.5)
+    T.assert_eq(r["minimo"], 2)
+    T.assert_eq(r["maximo"], 9)
+    T.assert_throws(lambda => E.resumo([]))
+
+action test_media_movel():
+    T.assert_eq(E.media_movel([1, 2, 3, 4], 2), [1.5, 2.5, 3.5])
+    T.assert_eq(E.media_movel([1, 2], 5), [])
+
+action test_histograma():
+    h := E.histograma([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2)
+    T.assert_eq(len(h), 2)
+    T.assert_eq(h[0]["n"] + h[1]["n"], 10)     // ninguém fica de fora
+    T.assert_eq(len(E.histograma([], 3)), 0)
+    T.assert_eq(len(E.histograma([5, 5, 5], 3)), 1)

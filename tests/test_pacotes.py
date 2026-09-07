@@ -259,3 +259,38 @@ def test_erro_de_import_menciona_forge_modules(tmp_path):
     with pytest.raises(ImportError_) as exc:
         _rodar(str(tmp_path / "main.df"))
     assert "forge_modules" in str(exc.value)
+
+
+# ─── Dependencias de pacote local ──────────────────────────
+# 'resolver' so buscava transitivas de pacotes do registro. Um pacote
+# instalado por caminho local ('dataforge add ../minha-lib') entrava
+# sozinho, e quebrava no primeiro 'adopt' do que ele mesmo usa.
+
+def test_dependencia_local_traz_as_suas(tmp_path):
+    from dataforge.packages import Dependencia, resolver
+
+    # a lib local declara que depende de 'ajudante'
+    lib = tmp_path / "minha-lib"
+    (lib / "src").mkdir(parents=True)
+    (lib / "forge.toml").write_text(
+        '[package]\nname = "minha-lib"\nversion = "1.0.0"\n'
+        'entry = "src/main.df"\n\n[dependencies]\najudante = "^1.0.0"\n',
+        encoding="utf-8")
+
+    reg = RegistroFalso({"ajudante": _pkg({"1.0.0": {}, "1.2.0": {}})})
+    plano = resolver([Dependencia("minha-lib", {"path": str(lib)})],
+                     reg, raiz=str(tmp_path))
+
+    assert "minha-lib" in plano
+    assert "ajudante" in plano, "a dependencia da lib local ficou de fora"
+    assert str(plano["ajudante"]["versao"]) == "1.2.0"
+
+
+def test_pacote_local_sem_manifesto_nao_estoura(tmp_path):
+    from dataforge.packages import Dependencia, resolver
+
+    lib = tmp_path / "sem-toml"
+    lib.mkdir()
+    plano = resolver([Dependencia("sem-toml", {"path": str(lib)})],
+                     RegistroFalso({}), raiz=str(tmp_path))
+    assert list(plano) == ["sem-toml"]

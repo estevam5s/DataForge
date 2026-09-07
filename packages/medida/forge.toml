@@ -1,0 +1,14 @@
+[package]
+name = "medida"
+version = "1.0.1"
+description = "Conversão de unidades: distância, massa, volume, temperatura e tempo."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["medida", "unidade", "conversao"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

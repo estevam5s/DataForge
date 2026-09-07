@@ -584,7 +584,11 @@ def _sincronizar(manifesto, alvos=None, offline=False, so_conferir=False):
         print("  Adicione uma com:  dataforge add <pacote>")
         return []
 
-    plano = pk.resolver(declaradas, registro)
+    try:
+        plano = pk.resolver(declaradas, registro, raiz=manifesto.raiz)
+    except pk.ErroPacote as e:
+        print(color(f"✗ {e}", "1;31"))
+        sys.exit(1)
     lock = pk.Lock(manifesto.raiz)
     instalados = []
 

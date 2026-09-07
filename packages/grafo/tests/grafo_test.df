@@ -1,0 +1,101 @@
+adopt Arcane.Test as T
+adopt grafo as G
+
+action rede():
+    // a --4-- b --2-- c
+    //  \______10_____/
+    g := G.novo()
+    g.ligar("a", "b", 4)
+    g.ligar("b", "c", 2)
+    g.ligar("a", "c", 10)
+    yield g
+
+action test_ligar_e_consultar():
+    g := rede()
+    T.assert_eq(len(g.nos()), 3)
+    T.assert_eq(g.peso("a", "b"), 4)
+    T.assert_eq(g.peso("b", "a"), void)      // dirigido
+    T.assert_eq(g.grau("a"), 2)
+    T.assert_true(g.tem("a"))
+    T.assert_false(g.tem("z"))
+
+action test_ligar_ambos():
+    g := G.novo()
+    g.ligar_ambos("x", "y", 3)
+    T.assert_eq(g.peso("x", "y"), 3)
+    T.assert_eq(g.peso("y", "x"), 3)
+
+action test_nao_dirigido():
+    g := G.novo(no)
+    g.ligar("x", "y")
+    T.assert_eq(g.peso("y", "x"), 1)
+
+action test_arestas():
+    T.assert_eq(len(rede().arestas()), 3)
+
+action test_largura():
+    g := G.de_arestas([["a", "b"], ["a", "c"], ["b", "d"]])
+    ordem := g.largura("a")
+    T.assert_eq(ordem[0], "a")
+    T.assert_eq(len(ordem), 4)
+    // largura visita os vizinhos antes de descer
+    T.assert_true(ordem.index("b") smaller ordem.index("d"))
+    T.assert_eq(g.largura("inexistente"), [])
+
+action test_profundidade():
+    g := G.de_arestas([["a", "b"], ["b", "c"], ["a", "d"]])
+    ordem := g.profundidade("a")
+    T.assert_eq(ordem[0], "a")
+    T.assert_eq(len(ordem), 4)
+    // profundidade desce antes de voltar
+    T.assert_true(ordem.index("c") smaller ordem.index("d"))
+
+action test_alcanca():
+    g := rede()
+    T.assert_true(g.alcanca("a", "c"))
+    T.assert_false(g.alcanca("c", "a"))
+
+action test_caminho_minimo_escolhe_o_desvio():
+    // a→c direto custa 10; via b custa 6
+    r := rede().caminho_minimo("a", "c")
+    T.assert_eq(r["distancia"], 6)
+    T.assert_eq(r["caminho"], ["a", "b", "c"])
+
+action test_caminho_para_si_mesmo():
+    r := rede().caminho_minimo("a", "a")
+    T.assert_eq(r["distancia"], 0)
+
+action test_caminho_inexistente():
+    g := G.de_arestas([["a", "b"], ["c", "d"]])
+    r := g.caminho_minimo("a", "d")
+    T.assert_eq(r["distancia"], void)
+    T.assert_eq(r["caminho"], [])
+    T.assert_eq(g.caminho_minimo("a", "zzz")["distancia"], void)
+
+action test_ordem_topologica():
+    // dependências: base → meio → topo
+    g := G.de_arestas([["base", "meio"], ["meio", "topo"], ["base", "topo"]])
+    ordem := g.ordem_topologica()
+    T.assert_eq(ordem[0], "base")
+    T.assert_eq(ordem[2], "topo")
+    T.assert_false(g.tem_ciclo())
+
+action test_ciclo_nao_tem_ordem():
+    g := G.de_arestas([["a", "b"], ["b", "c"], ["c", "a"]])
+    T.assert_eq(g.ordem_topologica(), void)
+    T.assert_true(g.tem_ciclo())
+
+action test_componentes():
+    g := G.de_arestas([["a", "b"], ["c", "d"], ["d", "e"]])
+    g.adicionar("solitario")
+    grupos := g.componentes()
+    T.assert_eq(len(grupos), 3)
+    tamanhos := []
+    cycle grupo in grupos:
+        tamanhos.append(len(grupo))
+    T.assert_true(3 in tamanhos)     // c, d, e
+    T.assert_true(1 in tamanhos)     // solitario
+
+action test_de_arestas_com_peso():
+    g := G.de_arestas([["a", "b", 7]])
+    T.assert_eq(g.peso("a", "b"), 7)

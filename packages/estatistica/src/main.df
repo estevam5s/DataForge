@@ -1,0 +1,226 @@
+// estatistica — o resumo de um conjunto de números
+//
+//     adopt estatistica as E
+//
+//     out E.media([1, 2, 3, 4])        // 2.5
+//     out E.resumo(vendas)             // média, mediana, desvio, quartis
+//     out E.correlacao(x, y)           // -1.0 a 1.0
+//
+// Média sozinha engana: [1, 1, 1, 97] tem média 25, e nenhum valor perto
+// disso. Por isso `resumo` devolve mediana e desvio junto — é o conjunto
+// que diz a verdade sobre a distribuição.
+
+action soma(v):
+    total := 0
+    cycle x in v:
+        total += x
+    yield total
+
+action media(v):
+    given len(v) is 0:
+        trigger "media de conjunto vazio nao existe"
+    yield soma(v) / len(v)
+
+action ordenados(v):
+    copia := []
+    cycle x in v:
+        copia.append(x)
+    yield sorted(copia)
+
+action mediana(v):
+    // O valor do meio. Ao contrário da média, não se move quando um
+    // único valor extremo entra no conjunto.
+    given len(v) is 0:
+        trigger "mediana de conjunto vazio nao existe"
+    o := ordenados(v)
+    meio := len(o) ~/ 2
+    given len(o) % 2 is 1:
+        yield o[meio]
+    yield (o[meio - 1] + o[meio]) / 2
+
+action moda(v):
+    // O que mais aparece. Devolve lista: pode haver empate.
+    given len(v) is 0:
+        yield []
+    contagem := {}
+    cycle x in v:
+        k := str(x)
+        contagem[k] := (contagem[k] ?? 0) + 1
+    maior := 0
+    cycle k in contagem.keys():
+        given contagem[k] bigger maior:
+            maior := contagem[k]
+    saida := []
+    cycle x in v:
+        given contagem[str(x)] is maior and not (x in saida):
+            saida.append(x)
+    yield saida
+
+action variancia(v, amostral := yes):
+    // Amostral divide por n-1: é o que se usa quando os dados são uma
+    // amostra de algo maior, que é quase sempre o caso.
+    n := len(v)
+    given n smaller 2:
+        yield 0.0
+    m := media(v)
+    acumulado := 0.0
+    cycle x in v:
+        acumulado += (x - m) ** 2
+    yield acumulado / (n - 1) given amostral otherwise acumulado / n
+
+action desvio_padrao(v, amostral := yes):
+    yield sqrt(variancia(v, amostral))
+
+action amplitude(v):
+    given len(v) is 0:
+        yield 0
+    yield max(v) - min(v)
+
+action percentil(v, p):
+    // Interpolação linear entre os vizinhos, como fazem R e numpy.
+    given len(v) is 0:
+        trigger "percentil de conjunto vazio nao existe"
+    given p smaller 0 or p bigger 100:
+        trigger $"percentil precisa estar entre 0 e 100, veio {p}"
+    o := ordenados(v)
+    given len(o) is 1:
+        yield o[0]
+    posicao := (p / 100) * (len(o) - 1)
+    abaixo := int(posicao)
+    resto := posicao - abaixo
+    given abaixo + 1 bigger_eq len(o):
+        yield o[len(o) - 1]
+    yield o[abaixo] + resto * (o[abaixo + 1] - o[abaixo])
+
+action quartis(v):
+    yield {"q1": percentil(v, 25), "q2": percentil(v, 50),
+           "q3": percentil(v, 75)}
+
+action amplitude_interquartil(v):
+    q := quartis(v)
+    yield q["q3"] - q["q1"]
+
+action extremos(v, fator := 1.5):
+    // Regra de Tukey: fora de 1.5 vezes o intervalo interquartil.
+    given len(v) smaller 4:
+        yield []
+    q := quartis(v)
+    iqr := q["q3"] - q["q1"]
+    piso := q["q1"] - fator * iqr
+    teto := q["q3"] + fator * iqr
+    saida := []
+    cycle x in v:
+        given x smaller piso or x bigger teto:
+            saida.append(x)
+    yield saida
+
+action normalizar(v):
+    // Reescala para 0..1. Conjunto constante vira tudo 0.5.
+    given len(v) is 0:
+        yield []
+    menor := min(v)
+    maior := max(v)
+    given maior is menor:
+        saida := []
+        cycle x in v:
+            saida.append(0.5)
+        yield saida
+    saida := []
+    cycle x in v:
+        saida.append((x - menor) / (maior - menor))
+    yield saida
+
+action padronizar(v):
+    // Escore-z: quantos desvios cada valor está da média.
+    m := media(v)
+    d := desvio_padrao(v)
+    given d is 0:
+        saida := []
+        cycle x in v:
+            saida.append(0.0)
+        yield saida
+    saida := []
+    cycle x in v:
+        saida.append((x - m) / d)
+    yield saida
+
+action covariancia(x, y):
+    given len(x) isnt len(y):
+        trigger $"as series precisam ter o mesmo tamanho: {len(x)} e {len(y)}"
+    n := len(x)
+    given n smaller 2:
+        yield 0.0
+    mx := media(x)
+    my := media(y)
+    acumulado := 0.0
+    cycle i from 0 to n - 1:
+        acumulado += (x[i] - mx) * (y[i] - my)
+    yield acumulado / (n - 1)
+
+action correlacao(x, y):
+    // Pearson: -1 (inversa) a 1 (direta). Mede relação linear — duas
+    // séries com relação forte mas curva podem dar correlação baixa.
+    dx := desvio_padrao(x)
+    dy := desvio_padrao(y)
+    given dx is 0 or dy is 0:
+        yield 0.0
+    yield covariancia(x, y) / (dx * dy)
+
+action regressao(x, y):
+    // Reta dos mínimos quadrados: y = a + b·x
+    given len(x) isnt len(y) or len(x) smaller 2:
+        trigger "regressao precisa de ao menos dois pares"
+    b := covariancia(x, y) / variancia(x)
+    a := media(y) - b * media(x)
+    r := correlacao(x, y)
+    yield {"intercepto": a, "inclinacao": b, "r": r, "r2": r * r,
+           "prever": lambda v => a + b * v}
+
+action resumo(v):
+    // O conjunto mínimo para não se enganar com uma média sozinha.
+    given len(v) is 0:
+        trigger "resumo de conjunto vazio nao existe"
+    q := quartis(v)
+    yield {"n": len(v), "media": media(v), "mediana": mediana(v),
+           "desvio": desvio_padrao(v), "minimo": min(v), "maximo": max(v),
+           "q1": q["q1"], "q3": q["q3"], "amplitude": amplitude(v)}
+
+action media_movel(v, janela):
+    given janela smaller_eq 0 or janela bigger len(v):
+        yield []
+    saida := []
+    i := 0
+    persist i + janela smaller_eq len(v):
+        saida.append(media(v[i:i + janela]))
+        i += 1
+    yield saida
+
+action histograma(v, faixas := 10):
+    // Conta quantos caem em cada faixa de largura igual.
+    given len(v) is 0:
+        yield []
+    menor := min(v)
+    maior := max(v)
+    largura := (maior - menor) / faixas
+    given largura is 0:
+        yield [{"de": menor, "ate": maior, "n": len(v)}]
+
+    saida := []
+    cycle i from 0 to faixas - 1:
+        de := menor + i * largura
+        ate := de + largura
+        n := 0
+        cycle x in v:
+            // a última faixa fecha à direita, senão o máximo fica de fora
+            dentro := x bigger_eq de and x smaller ate
+            given i is faixas - 1:
+                dentro := x bigger_eq de and x smaller_eq ate
+            given dentro:
+                n += 1
+        saida.append({"de": de, "ate": ate, "n": n})
+    yield saida
+
+relay soma, media, mediana, moda, variancia, desvio_padrao, amplitude
+relay percentil, quartis, amplitude_interquartil, extremos
+relay normalizar, padronizar, covariancia, correlacao, regressao
+relay resumo, media_movel, histograma, ordenados

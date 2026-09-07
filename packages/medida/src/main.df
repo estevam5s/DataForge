@@ -1,0 +1,141 @@
+// medida — conversão de unidades
+//
+//     adopt medida as U
+//
+//     out U.converter(5, "km", "milha")     // 3.1069
+//     out U.temperatura(100, "C", "F")      // 212.0
+//     out U.formatar(1500, "m")             // 1.5 km
+//
+// Cada família converte por uma unidade de referência: metro, grama,
+// litro, segundo. Duas conversões em vez de uma tabela n×n — o erro de
+// arredondamento é desprezível e a tabela não cresce ao quadrado.
+
+steady DISTANCIA := {
+    "mm": 0.001, "cm": 0.01, "m": 1.0, "km": 1000.0,
+    "polegada": 0.0254, "pe": 0.3048, "jarda": 0.9144,
+    "milha": 1609.344, "milha_nautica": 1852.0
+}
+
+steady MASSA := {
+    "mg": 0.001, "g": 1.0, "kg": 1000.0, "tonelada": 1000000.0,
+    "onca": 28.349523125, "libra": 453.59237, "arroba": 14688.0
+}
+
+steady VOLUME := {
+    "ml": 0.001, "l": 1.0, "m3": 1000.0,
+    "xicara": 0.24, "colher_sopa": 0.015, "colher_cha": 0.005,
+    "galao": 3.785411784, "pinta": 0.473176473
+}
+
+steady TEMPO := {
+    "ms": 0.001, "s": 1.0, "min": 60.0, "h": 3600.0,
+    "dia": 86400.0, "semana": 604800.0, "mes": 2592000.0, "ano": 31536000.0
+}
+
+steady DADOS := {
+    "b": 1.0, "kb": 1024.0, "mb": 1048576.0,
+    "gb": 1073741824.0, "tb": 1099511627776.0
+}
+
+steady FAMILIAS := {
+    "distancia": DISTANCIA, "massa": MASSA, "volume": VOLUME,
+    "tempo": TEMPO, "dados": DADOS
+}
+
+action familia_de(unidade):
+    // Em que família mora esta unidade.
+    cycle nome in FAMILIAS.keys():
+        given FAMILIAS[nome].has(unidade):
+            yield nome
+    yield void
+
+action converter(valor, de, para):
+    fam_de := familia_de(de)
+    fam_para := familia_de(para)
+
+    given fam_de is void:
+        trigger $"unidade desconhecida: '{de}'. {sugerir(de)}"
+    given fam_para is void:
+        trigger $"unidade desconhecida: '{para}'. {sugerir(para)}"
+    given fam_de isnt fam_para:
+        trigger $"nao da para converter {fam_de} em {fam_para}: '{de}' e '{para}'"
+
+    tabela := FAMILIAS[fam_de]
+    yield valor * tabela[de] / tabela[para]
+
+action sugerir(unidade):
+    // Ajuda quem errou o nome, listando o que existe.
+    todas := []
+    cycle nome in FAMILIAS.keys():
+        cycle u in FAMILIAS[nome].keys():
+            todas.append(u)
+    parecidas := []
+    cycle u in todas:
+        given u.startswith(unidade.char_at(0)):
+            parecidas.append(u)
+    given len(parecidas) bigger 0:
+        yield $"Comecando com '{unidade.char_at(0)}': {parecidas.join(', ')}"
+    yield $"Conhecidas: {todas[0:8].join(', ')}…"
+
+action temperatura(valor, de, para):
+    // Temperatura não escala por fator: 0°C não é 0°F. Precisa de
+    // deslocamento, e por isso fica fora da tabela geral.
+    escalas := ["C", "F", "K"]
+    given not (de in escalas) or not (para in escalas):
+        trigger $"escala precisa ser C, F ou K — veio '{de}' e '{para}'"
+
+    // tudo passa por Celsius
+    celsius := valor
+    given de is "F":
+        celsius := (valor - 32) * 5 / 9
+    given de is "K":
+        celsius := valor - 273.15
+
+    given para is "F":
+        yield celsius * 9 / 5 + 32
+    given para is "K":
+        yield celsius + 273.15
+    yield celsius
+
+//: Cada família tem uma escada métrica. Formatar 0.5 m como "1.64 pe"
+//  seria tecnicamente certo e completamente inútil: quem escreveu em
+//  metros quer ler em centímetros, não em pés.
+steady ESCADAS := {
+    "distancia": ["mm", "cm", "m", "km"],
+    "massa": ["mg", "g", "kg", "tonelada"],
+    "volume": ["ml", "l", "m3"],
+    "tempo": ["ms", "s", "min", "h", "dia", "semana"],
+    "dados": ["b", "kb", "mb", "gb", "tb"]
+}
+
+action formatar(valor, unidade, casas := 2):
+    // Sobe para a maior unidade da escada que deixa o valor >= 1.
+    fam := familia_de(unidade)
+    given fam is void:
+        yield $"{valor} {unidade}"
+
+    tabela := FAMILIAS[fam]
+    escada := ESCADAS[fam] ?? tabela.keys()
+    em_base := valor * tabela[unidade]
+
+    melhor := escada[0]
+    cycle u in escada:
+        given em_base / tabela[u] bigger_eq 1.0:
+            melhor := u
+
+    convertido := round(em_base / tabela[melhor], casas)
+    yield $"{convertido} {melhor}"
+
+action unidades(familia := void):
+    given familia is void:
+        yield FAMILIAS.keys()
+    given not FAMILIAS.has(familia):
+        trigger $"familia '{familia}' nao existe. Ha: {FAMILIAS.keys().join(', ')}"
+    yield FAMILIAS[familia].keys()
+
+action mesma_familia(a, b):
+    fa := familia_de(a)
+    yield fa isnt void and fa is familia_de(b)
+
+relay converter, temperatura, formatar, familia_de, unidades, mesma_familia
+relay ESCADAS, DISTANCIA, MASSA, VOLUME, TEMPO, DADOS, FAMILIAS

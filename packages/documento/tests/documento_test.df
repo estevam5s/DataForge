@@ -1,0 +1,95 @@
+adopt Arcane.Test as T
+adopt documento as D
+
+action test_titulo():
+    T.assert_true(D.para_html("# Olá").contains("<h1"))
+    T.assert_true(D.para_html("### Três").contains("<h3"))
+    T.assert_true(D.para_html("# Olá").contains("id=\"ola\""))
+
+action test_paragrafo_e_enfase():
+    T.assert_eq(D.para_html("texto simples"), "<p>texto simples</p>")
+    T.assert_true(D.para_html("um **forte** aqui").contains("<strong>forte</strong>"))
+    T.assert_true(D.para_html("um *leve* aqui").contains("<em>leve</em>"))
+
+action test_codigo_inline_nao_interpreta_enfase():
+    // `**isto**` dentro de crase é código, não negrito
+    r := D.para_html("veja `**isto**` aqui")
+    T.assert_true(r.contains("<code>**isto**</code>"))
+    T.assert_false(r.contains("<strong>"))
+
+action test_bloco_de_codigo():
+    r := D.para_html("```python\nx = 1\n```")
+    T.assert_true(r.contains("<pre><code"))
+    T.assert_true(r.contains("language-python"))
+    T.assert_true(r.contains("x = 1"))
+
+action test_lista():
+    r := D.para_html("- um\n- dois")
+    T.assert_true(r.contains("<ul>"))
+    T.assert_true(r.contains("<li>um</li>"))
+    T.assert_true(r.contains("</ul>"))
+
+action test_lista_fecha_no_paragrafo():
+    r := D.para_html("- item\n\ntexto")
+    T.assert_true(r.contains("</ul>"))
+    T.assert_true(r.contains("<p>texto</p>"))
+
+action test_link_e_imagem():
+    r := D.para_html("veja [aqui](http://x.com)")
+    T.assert_true(r.contains("<a href=\"http://x.com\">aqui</a>"))
+    i := D.para_html("![alt](foto.png)")
+    T.assert_true(i.contains("<img src=\"foto.png\""))
+    T.assert_true(i.contains("alt=\"alt\""))
+
+action test_colchete_sem_link_e_literal():
+    T.assert_true(D.para_html("um [colchete solto").contains("[colchete"))
+
+action test_citacao_e_linha():
+    T.assert_true(D.para_html("> citado").contains("<blockquote>"))
+    T.assert_true(D.para_html("---").contains("<hr>"))
+
+action test_escapa_html():
+    r := D.para_html("<script>alerta()</script>")
+    T.assert_false(r.contains("<script>"))
+    T.assert_true(r.contains("&lt;script&gt;"))
+
+action test_titulos_e_sumario():
+    fonte := "# Um\n\ntexto\n\n## Dois\n\n### Três"
+    t := D.titulos(fonte)
+    T.assert_eq(len(t), 3)
+    T.assert_eq(t[0]["nivel"], 1)
+    T.assert_eq(t[1]["texto"], "Dois")
+    T.assert_eq(t[0]["ancora"], "um")
+
+    s := D.sumario(fonte)
+    T.assert_true(s.contains("- [Um](#um)"))
+    T.assert_true(s.contains("  - [Dois](#dois)"))
+
+action test_sumario_respeita_o_nivel():
+    fonte := "# Um\n## Dois\n### Três"
+    T.assert_eq(len(D.sumario(fonte, 2).split("\n")), 2)
+
+action test_titulo_dentro_de_codigo_nao_conta():
+    fonte := "# Real\n\n```\n# comentário, não título\n```"
+    T.assert_eq(len(D.titulos(fonte)), 1)
+
+action test_para_texto():
+    t := D.para_texto("# Título\n\nUm **forte** e `codigo`.")
+    T.assert_false(t.contains("#"))
+    T.assert_false(t.contains("**"))
+    T.assert_true(t.contains("Título"))
+    T.assert_true(t.contains("forte"))
+
+action test_contar_e_tempo():
+    fonte := "# T\n\n" + "palavra ".repeat(400)
+    T.assert_true(D.contar_palavras(fonte) bigger 390)
+    T.assert_eq(D.tempo_de_leitura(fonte), "2 min")
+    T.assert_eq(D.tempo_de_leitura("só isso"), "menos de 1 min")
+
+action test_documento_completo():
+    fonte := "# API\n\nUsa `adopt`.\n\n## Métodos\n\n- `um()`\n- `dois()`\n\n> nota"
+    html := D.para_html(fonte)
+    T.assert_true(html.contains("<h1"))
+    T.assert_true(html.contains("<h2"))
+    T.assert_true(html.contains("<ul>"))
+    T.assert_true(html.contains("<blockquote>"))

@@ -221,7 +221,19 @@ class Registro:
 
 
 def _baixar(url, tentativas=3):
-    """GET com repeticao. Devolve bytes."""
+    """GET com repeticao. Devolve bytes.
+
+    Aceita tambem 'file://' e caminho de disco: e o que permite apontar
+    DATAFORGE_REGISTRY para uma pasta local, seja um espelho corporativo
+    ou o registro do proprio repositorio durante o desenvolvimento.
+    """
+    if url.startswith("file://") or (os.path.isabs(url) and "://" not in url):
+        caminho = url[7:] if url.startswith("file://") else url
+        if not os.path.isfile(caminho):
+            raise ErroPacote(f"nao encontrado: {caminho}")
+        with open(caminho, "rb") as f:
+            return f.read()
+
     ultimo = None
     for n in range(tentativas):
         try:
@@ -356,7 +368,7 @@ class Lock:
 # Resolucao
 # ─────────────────────────────────────────────────────────────
 
-def resolver(dependencias, registro, ja_instalados=None):
+def resolver(dependencias, registro, ja_instalados=None, raiz="."):
     """Resolve a arvore completa, incluindo dependencias transitivas.
 
     Estrategia: largura primeiro, escolhendo sempre a maior versao que
@@ -375,6 +387,12 @@ def resolver(dependencias, registro, ja_instalados=None):
 
         if dep.fonte != "registro":
             plano[dep.nome] = {"versao": None, "dep": dep, "por": quem}
+            # Um pacote local ou de git tambem tem dependencias. Le-las do
+            # forge.toml dele e o que faz 'dataforge add ../minha-lib'
+            # trazer junto o que ela usa — sem isso, o pacote instala e
+            # quebra no primeiro 'adopt'.
+            for nome, req in _dependencias_declaradas(dep, raiz).items():
+                fila.append((Dependencia(nome, req), f"{dep.nome} (local)"))
             continue
 
         disponiveis = registro.versoes(dep.nome)
@@ -399,6 +417,29 @@ def resolver(dependencias, registro, ja_instalados=None):
             fila.append((Dependencia(nome, req), f"{dep.nome}@{escolhida}"))
 
     return plano
+
+
+
+def _dependencias_declaradas(dep, raiz="."):
+    """As dependencias que um pacote local declara no seu forge.toml.
+
+    So funciona para 'path': um pacote de git ou URL ainda nao foi
+    baixado quando a resolucao acontece, e suas dependencias entram
+    depois, na instalacao.
+    """
+    if dep.fonte != "path" or not dep.local:
+        return {}
+
+    manifesto = os.path.join(os.path.abspath(raiz), dep.local, "forge.toml")
+    if not os.path.isfile(manifesto):
+        return {}
+    try:
+        from .stdlib.arcane_serialization import ArcaneSerialization
+        dados = ArcaneSerialization()["from_toml"](
+            open(manifesto, encoding="utf-8").read())
+        return dados.get("dependencies", {}) or {}
+    except Exception:
+        return {}
 
 
 # ─────────────────────────────────────────────────────────────

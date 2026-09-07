@@ -1,0 +1,14 @@
+[package]
+name = "grafo"
+version = "1.0.0"
+description = "Grafos: busca, caminho mínimo, ordenação topológica e componentes."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["grafo", "algoritmo", "busca"]
+
+[dependencies]
+
+[scripts]
+test = "test tests/"

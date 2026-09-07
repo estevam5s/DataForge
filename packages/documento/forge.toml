@@ -1,0 +1,22 @@
+[package]
+name = "documento"
+version = "1.0.1"
+description = "Markdown: converte para HTML e texto, extrai títulos e sumário."
+authors = ["DataForge"]
+license = "MIT"
+entry = "src/main.df"
+dataforge = ">=4.1"
+keywords = ["markdown", "html", "documento"]
+
+[dependencies]
+texto = "^1.0.0"
+
+[lint]
+# 'para_html' e um despachante linear: um 'given' por tipo de bloco do
+# Markdown, todos no mesmo nivel. Sao 65 linhas contra um limite de 60,
+# e quebra-la em pedacos menores esconderia a ordem em que os casos
+# precisam ser testados — que e a unica coisa sutil ali.
+ignore = ["long-action"]
+
+[scripts]
+test = "test tests/"

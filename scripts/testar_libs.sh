@@ -4,6 +4,10 @@
 # os testes de dentro da pasta não exercita a instalação nem o 'adopt'.
 set -u
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
+
+# O registro do proprio repositorio: um pacote com dependencia precisa
+# achar a versao que esta aqui, nao a que ja foi publicada.
+export DATAFORGE_REGISTRY="file://$RAIZ/site/public/registry"
 BANCADA="${TMPDIR:-/tmp}/df_bancada"
 falhas=0; total=0
 
