@@ -620,7 +620,7 @@ def test_render_do_erro_mostra_linha_e_pilha():
         interp.run(parse(tokenize(fonte)), filename="t.df")
     texto = exc.value.render(color=False, source_lines=fonte.splitlines())
     assert "Division by zero" in texto
-    assert "Pilha de chamadas" in texto
+    assert "pilha de chamadas" in texto
     assert "em f" in texto
     assert "yield 1 / 0" in texto
 

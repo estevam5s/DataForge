@@ -20,12 +20,36 @@ class Frame:
 
 
 class DataForgeError(Exception):
-    """Base error for all DataForge errors."""
+    """Erro do DataForge, com tudo o que o relatorio precisa.
 
-    def __init__(self, message: str, line: int = 0, column: int = 0):
+    Alem da mensagem, um erro pode carregar:
+
+        nota    contexto que ajuda a entender o que houve
+        dica    o que fazer para resolver
+        codigo  identificador estavel (DF0042), para procurar na doc
+        doc     ancora na documentacao
+        span    quantas colunas sublinhar, quando o erro cobre um trecho
+        rotulo  o que escrever sob o sublinhado
+
+    A separacao importa: a mensagem diz o que houve, a dica diz o que
+    fazer. Misturar as duas produz mensagens longas que ninguem le.
+    """
+
+    #: Codigo padrao da classe; cada erro pode sobrepor.
+    CODIGO = "DF0000"
+
+    def __init__(self, message: str, line: int = 0, column: int = 0,
+                 nota: str = "", dica: str = "", codigo: str = "",
+                 doc: str = "", span: int = 0, rotulo: str = ""):
         self.message = message
         self.line = line
         self.column = column
+        self.nota = nota
+        self.dica = dica
+        self.codigo = codigo or self.CODIGO
+        self.doc = doc
+        self.span = span
+        self.rotulo = rotulo
         self.stack = []        # list[Frame], preenchida pelo interpretador
         self.source_line = ""  # texto da linha que falhou
         self.filename = ""
@@ -56,87 +80,156 @@ class DataForgeError(Exception):
             return caminho
         return relativo if len(relativo) < len(caminho) else caminho
 
+    # ── Relatorio ────────────────────────────────────────────
+
+    #: Quantas linhas de contexto mostrar antes e depois da que falhou.
+    CONTEXTO = 2
+
     def render(self, color=True, source_lines=None, debug=False):
-        """Relatório completo: mensagem, trecho do código e pilha de chamadas."""
+        """Relatorio completo do erro.
+
+            erro[DF0201]: a chave 'b' nao existe neste vault
+              ┌─ exemplo.df:2:5
+              │
+            1 │ v := {"a": 1}
+            2 │ out v["b"]
+              │     ^^^^^^ esta leitura falhou
+              │
+              = nota: o vault tem 1 chave: "a"
+              = dica: use v["b"] ?? padrao, ou v.has("b") antes de ler
+              = doc:  https://dataforge-lang.vercel.app/docs/colecoes
+        """
         def tinta(texto, codigo):
             return f"\033[{codigo}m{texto}\033[0m" if color else texto
 
-        partes = []
+        VERMELHO, AZUL, CIANO = '1;31', '1;34', '1;36'
+        AMARELO, APAGADO = '1;33', '0;90'
+
+        linhas = []
         local = self._curto(self.filename)
-        partes.append(
-            f"{tinta(self.friendly_name(), '1;31')}: {self.message}")
-        partes.append(f"  em {local}:{self.line}:{self.column}")
 
-        # Trecho da linha que falhou, com um marcador na coluna
+        # ── Cabecalho ──
+        titulo = tinta(f"erro[{self.codigo}]", VERMELHO)
+        primeira, *resto_msg = self.message.split("\n")
+        linhas.append(f"{titulo}: {tinta(primeira, '1;37')}")
+
+        # ── Onde ──
+        larg = len(str(self.line + self.CONTEXTO)) if self.line else 1
+        margem = " " * larg
+        seta = tinta("┌─", AZUL)
+        linhas.append(f"{margem} {seta} {local}:{self.line}:{self.column}")
+
+        # ── Trecho do codigo, com contexto ──
         if source_lines and 0 < self.line <= len(source_lines):
-            texto = source_lines[self.line - 1].rstrip()
-            recuo = len(texto) - len(texto.lstrip())
-            partes.append("")
-            partes.append(f"  {self.line:>4} | {texto}")
-            if self.column:
-                seta = ' ' * (self.column - 1) + '^'
-                partes.append(f"       | {tinta(seta, '1;31')}")
-            elif recuo >= 0:
-                partes.append("       |")
+            barra = tinta("│", AZUL)
+            linhas.append(f"{margem} {barra}")
 
+            inicio = max(1, self.line - self.CONTEXTO)
+            fim = min(len(source_lines), self.line + self.CONTEXTO)
+
+            for n in range(inicio, fim + 1):
+                texto = source_lines[n - 1].rstrip("\n").rstrip()
+                numero = str(n).rjust(larg)
+                if n == self.line:
+                    linhas.append(
+                        f"{tinta(numero, VERMELHO)} {barra} {texto}")
+                    if self.column:
+                        largura = max(1, self.span or 1)
+                        marca = ' ' * (self.column - 1) + '^' * largura
+                        rotulo = f" {self.rotulo}" if self.rotulo else ""
+                        linhas.append(
+                            f"{margem} {barra} "
+                            f"{tinta(marca + rotulo, VERMELHO)}")
+                else:
+                    linhas.append(
+                        f"{tinta(numero, APAGADO)} {barra} "
+                        f"{tinta(texto, APAGADO)}")
+
+            linhas.append(f"{margem} {barra}")
+
+        # ── Linhas extras da mensagem ──
+        for linha in resto_msg:
+            if linha.strip():
+                linhas.append(f"{margem} {tinta('=', AZUL)} {linha.strip()}")
+
+        # ── Nota, dica e doc ──
+        if self.nota:
+            for i, parte in enumerate(self.nota.split("\n")):
+                marcador = tinta("nota:", CIANO) if i == 0 else "     "
+                linhas.append(f"{margem} {tinta('=', AZUL)} {marcador} {parte}")
+        if self.dica:
+            for i, parte in enumerate(self.dica.split("\n")):
+                marcador = tinta("dica:", AMARELO) if i == 0 else "     "
+                linhas.append(f"{margem} {tinta('=', AZUL)} {marcador} {parte}")
+        if self.doc:
+            url = self.doc if self.doc.startswith("http") else (
+                f"https://dataforge-lang.vercel.app/docs/{self.doc.lstrip('/')}")
+            linhas.append(
+                f"{margem} {tinta('=', AZUL)} {tinta('doc: ', APAGADO)}"
+                f"{tinta(url, APAGADO)}")
+
+        # ── Pilha de chamadas ──
         if self.stack:
-            partes.append("")
-            partes.append(tinta("  Pilha de chamadas (mais recente primeiro):", '1;36'))
+            linhas.append("")
+            linhas.append(tinta("  pilha de chamadas (mais recente primeiro):",
+                                CIANO))
             for quadro in reversed(self.stack):
-                nome = quadro.name
                 arquivo = self._curto(quadro.filename) if quadro.filename else local
-                partes.append(f"    em {nome:<22} {arquivo}:{quadro.line}")
-        return "\n".join(partes)
+                linhas.append(
+                    f"    em {tinta(quadro.name, '1;37'):<30} "
+                    f"{tinta(f'{arquivo}:{quadro.line}', APAGADO)}")
+
+        return "\n".join(linhas)
 
 
 class SyncError(DataForgeError):
     """Raised when indentation is inconsistent (mixed tabs/spaces)."""
-    pass
+    CODIGO = "DF0101"
 
 
 class LexError(DataForgeError):
     """Raised during tokenization."""
-    pass
+    CODIGO = "DF0102"
 
 
 class ParseError(DataForgeError):
     """Raised during parsing."""
-    pass
+    CODIGO = "DF0103"
 
 
 class RuntimeError_(DataForgeError):
     """Raised during interpretation/runtime."""
-    pass
+    CODIGO = "DF0201"
 
 
 class TypeError_(DataForgeError):
     """Raised on type mismatch."""
-    pass
+    CODIGO = "DF0301"
 
 
 class NameError_(DataForgeError):
     """Raised when a name is not found."""
-    pass
+    CODIGO = "DF0401"
 
 
 class ImportError_(DataForgeError):
     """Raised when an adopt (import) fails."""
-    pass
+    CODIGO = "DF0501"
 
 
 class IndexError_(DataForgeError):
     """Raised on invalid index access."""
-    pass
+    CODIGO = "DF0601"
 
 
 class TriggerError(DataForgeError):
     """User-raised error via 'trigger'."""
-    pass
+    CODIGO = "DF0701"
 
 
 class StackOverflowError_(DataForgeError):
     """Raised when recursion goes too deep."""
-    pass
+    CODIGO = "DF0801"
 
 
 class ControlSignal(BaseException):

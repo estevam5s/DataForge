@@ -628,7 +628,15 @@ class Interpreter:
                     # Return a proxy dict that resolves parent methods
                     parent = instance.blueprint.parents[0]
                     return _RootProxy(instance, parent, self)
-        return env.get(node.name)
+        try:
+            return env.get(node.name)
+        except NameError_ as e:
+            # O Environment nao conhece posicao; o no conhece.
+            if not e.line:
+                e.line, e.column = node.line, node.column
+                e.span = len(node.name)
+                e.args = (e.format(),)
+            raise
 
     def eval_BinaryOp(self, node: ast.BinaryOp, env):
         left = self.evaluate(node.left, env)
@@ -670,7 +678,13 @@ class Interpreter:
                 return left * right
             elif op == '/':
                 if right == 0:
-                    raise RuntimeError_("Division by zero", node.line, node.column)
+                    raise RuntimeError_(
+                        "Division by zero.", node.line, node.column,
+                        nota="the right side evaluated to 0",
+                        dica=("guard the divisor first:\n"
+                              "    given divisor isnt 0:\n"
+                              "        out a / divisor"),
+                        doc="operadores")
                 return left / right
             elif op == '%':
                 return left % right
@@ -678,7 +692,13 @@ class Interpreter:
                 return left ** right
             elif op == '//':
                 if right == 0:
-                    raise RuntimeError_("Division by zero", node.line, node.column)
+                    raise RuntimeError_(
+                        "Division by zero.", node.line, node.column,
+                        nota="the right side evaluated to 0",
+                        dica=("guard the divisor first:\n"
+                              "    given divisor isnt 0:\n"
+                              "        out a / divisor"),
+                        doc="operadores")
                 return left // right
         except TypeError as e:
             raise TypeError_(str(e), node.line, node.column)
@@ -1024,12 +1044,72 @@ class Interpreter:
         index = self.evaluate(node.index, env)
         try:
             return obj[index]
-        except (IndexError, KeyError) as e:
-            raise IndexError_(str(e), node.line, node.column)
+        except KeyError:
+            raise self._erro_chave(obj, index, node)
+        except IndexError:
+            raise self._erro_indice(obj, index, node)
         except TypeError:
+            if isinstance(index, (dict, list)):
+                raise TypeError_(
+                    f"An index cannot be {self._nome_do_tipo(index)}.",
+                    node.line, node.column,
+                    dica="Use an Integer for a Cluster, or a String for a Vault.",
+                    doc="colecoes")
             raise TypeError_(
-                f"Cannot index a value of type {self._type_of(obj)}",
-                node.line, node.column)
+                f"{self._nome_do_tipo(obj).capitalize()} cannot be indexed.",
+                node.line, node.column,
+                nota="Only Cluster, Vault, String and record accept [ ].",
+                doc="colecoes")
+
+    def _erro_chave(self, vault, chave, node):
+        """Chave ausente num vault: mostra o que existe e o que fazer."""
+        import difflib
+        chaves = [k for k in vault] if isinstance(vault, dict) else []
+        texto_chave = self._to_str(chave)
+
+        perto = difflib.get_close_matches(
+            str(chave), [str(k) for k in chaves], n=1, cutoff=0.6)
+        if perto:
+            nota = f"there is a similar key: \"{perto[0]}\""
+            dica = f"did you mean vault[\"{perto[0]}\"]?"
+        elif not chaves:
+            nota = "this vault is empty"
+            dica = "fill it before reading, or use ?? for a fallback value"
+        else:
+            amostra = ", ".join(f'"{k}"' for k in list(chaves)[:6])
+            resto = f" (+{len(chaves) - 6} more)" if len(chaves) > 6 else ""
+            nota = (f"the vault has {len(chaves)} "
+                    f"{'key' if len(chaves) == 1 else 'keys'}: {amostra}{resto}")
+            dica = ("use  valor ?? padrao  for a fallback, or check first "
+                    "with  vault.has(chave)")
+
+        return IndexError_(
+            f'Key "{texto_chave}" is not in this vault.',
+            node.line, node.column, nota=nota, dica=dica, doc="colecoes",
+            rotulo="key read here")
+
+    def _erro_indice(self, sequencia, indice, node):
+        """Indice fora da faixa: diz o tamanho e a faixa valida."""
+        n = len(sequencia)
+        tipo = "Cluster" if isinstance(sequencia, list) else "String"
+
+        if n == 0:
+            return IndexError_(
+                f"Index {indice} is out of range: this {tipo.lower()} is empty.",
+                node.line, node.column,
+                dica=("check it is not empty before reading:  "
+                      "given len(itens) bigger 0:"),
+                doc="colecoes", rotulo="nothing to read")
+
+        return IndexError_(
+            f"Index {indice} is out of range for a {tipo.lower()} "
+            f"of {n} {'item' if n == 1 else 'items'}.",
+            node.line, node.column,
+            nota=f"valid indexes go from 0 to {n - 1}, or -1 to -{n} from the end",
+            dica=("remember the last index is len(x) - 1, not len(x)"
+                  if indice == n else
+                  f"use  x[-1]  for the last item"),
+            doc="colecoes", rotulo="out of range")
 
     def eval_SliceAccess(self, node: ast.SliceAccess, env):
         obj = self.evaluate(node.object, env)

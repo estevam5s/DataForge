@@ -96,7 +96,7 @@ monitor:
     x := 1 / 0
 handle e:
     out e.type, e.message
-""") == "RuntimeError Division by zero"
+""") == "RuntimeError Division by zero."
 
 
 # ── Precedencia e associatividade ──────────────────────────

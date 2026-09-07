@@ -375,3 +375,61 @@ action {palavra}(x):
     yield x * 2
 out {palavra}(21)
 ''') == "42"
+
+
+# ─── Qualidade das mensagens de erro ───────────────────────
+
+def render_de(fonte, arquivo="/tmp/df_erro_teste.df"):
+    """Roda esperando erro; devolve o relatorio renderizado, sem cor."""
+    import pathlib
+    pathlib.Path(arquivo).write_text(fonte, encoding="utf-8")
+    with pytest.raises(DataForgeError) as exc:
+        Interpreter().run(parse(tokenize(fonte, arquivo), arquivo), arquivo)
+    erro = exc.value
+    erro.filename = arquivo
+    return erro.render(color=False, source_lines=fonte.split("\n"))
+
+
+def test_erro_tem_codigo_local_e_trecho():
+    r = render_de('nums := [1, 2, 3]\nout nums[10]\n')
+    assert "erro[DF0601]" in r          # codigo estavel
+    assert ":2:" in r                    # linha e coluna
+    assert "out nums[10]" in r           # a linha que falhou
+    assert "^" in r                      # o marcador
+    assert "nums := [1, 2, 3]" in r      # contexto acima
+
+
+def test_erro_de_indice_diz_o_tamanho_e_a_faixa():
+    r = render_de('out [10, 20, 30][7]\n')
+    assert "3 items" in r
+    assert "0 to 2" in r
+
+
+def test_erro_de_chave_lista_o_que_existe():
+    r = render_de('v := {"nome": "ana", "idade": 30}\nout v["nomes"]\n')
+    assert "nomes" in r
+    assert '"nome"' in r                 # sugere a chave parecida
+    assert "did you mean" in r
+
+
+def test_erro_de_nome_sugere_o_parecido():
+    r = render_de('contador := 1\nout contadr\n')
+    assert "'contadr' is not defined" in r
+    assert "contador" in r
+
+
+def test_divisao_por_zero_ensina_a_guardar():
+    r = render_de('a := 10\nb := 0\nout a / b\n')
+    assert "Division by zero" in r
+    assert "given" in r                  # mostra a guarda
+
+
+def test_erro_aponta_para_a_documentacao():
+    r = render_de('out [1][9]\n')
+    assert "dataforge-lang.vercel.app/docs" in r
+
+
+def test_steady_reatribuida_explica():
+    r = render_de('steady PI := 3.14\nPI := 3\n')
+    assert "steady" in r
+    assert "PI" in r

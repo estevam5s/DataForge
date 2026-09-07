@@ -21,19 +21,67 @@ class Environment:
             return self.variables[name]
         if self.parent:
             return self.parent.get(name)
-        raise NameError_(f"Undefined name: '{name}'")
+        raise self._erro_de_nome(name)
+
+    # ── Diagnostico ──────────────────────────────────────────
+
+    def nomes_visiveis(self):
+        """Tudo o que este escopo enxerga, do mais proximo ao mais distante."""
+        vistos, escopo = [], self
+        while escopo is not None:
+            for nome in escopo.variables:
+                if not nome.startswith('__') and nome not in vistos:
+                    vistos.append(nome)
+            escopo = escopo.parent
+        return vistos
+
+    def _erro_de_nome(self, name):
+        """'x nao existe' e pouco. Sugerir o parecido resolve a maioria."""
+        import difflib
+
+        visiveis = self.nomes_visiveis()
+        perto = difflib.get_close_matches(name, visiveis, n=3, cutoff=0.7)
+
+        nota = dica = ""
+        if perto:
+            if len(perto) == 1:
+                dica = f"did you mean '{perto[0]}'?"
+            else:
+                opcoes = ", ".join(f"'{p}'" for p in perto)
+                dica = f"did you mean one of: {opcoes}?"
+        else:
+            # Escrito depois de usado? Ou so nao existe mesmo?
+            nota = "this name was never assigned in any enclosing scope"
+            dica = ("assign it before using:  "
+                    f"{name} := …\n"
+                    "remember DataForge assigns with ':=', not '='")
+
+        return NameError_(f"'{name}' is not defined.",
+                          nota=nota, dica=dica, doc="variaveis",
+                          rotulo="used here")
 
     def set(self, name: str, value):
         """Set a variable in the current scope."""
         if name in self.constants:
-            raise RuntimeError_(f"Cannot reassign steady (constant) '{name}'")
+            raise RuntimeError_(
+                f"'{name}' is steady and cannot be reassigned.",
+                nota="'steady' declares a value that never changes",
+                dica=(f"use a different name for the new value, or declare "
+                      f"'{name}' with ':=' instead of 'steady' if it does "
+                      f"need to change"),
+                doc="variaveis")
 
         # Walk up to find existing variable to update
         env = self
         while env is not None:
             if name in env.variables:
                 if name in env.constants:
-                    raise RuntimeError_(f"Cannot reassign steady (constant) '{name}'")
+                    raise RuntimeError_(
+                        f"'{name}' is steady and cannot be reassigned.",
+                        nota="'steady' declares a value that never changes",
+                        dica=(f"pick another name, or declare '{name}' with "
+                              f"':=' if it needs to change"),
+                        doc="variaveis")
                 env.variables[name] = value
                 return
             env = env.parent
