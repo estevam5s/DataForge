@@ -45,6 +45,7 @@ export default function Praticar() {
   const [saidaLivre, setSaidaLivre] = useState<string | null>(null);
   const [dicasAbertas, setDicasAbertas] = useState(false);
   const [solucao, setSolucao] = useState<string | null>(null);
+  const [semSolucao, setSemSolucao] = useState(false);
 
   const [filtro, setFiltro] = useState<'todos' | Dificuldade>('todos');
   const [busca, setBusca] = useState('');
@@ -67,6 +68,7 @@ export default function Praticar() {
     setCorrecao(null);
     setSaidaLivre(null);
     setSolucao(null);
+    setSemSolucao(false);
     setDicasAbertas(false);
   };
 
@@ -129,6 +131,9 @@ export default function Praticar() {
     if (!atual) return;
     const { dados } = await buscarSolucao(atual.id);
     setSolucao(dados);
+    // O banco devolve void para quem ainda não resolveu. Dizer isso é
+    // mais útil que uma caixa vazia.
+    setSemSolucao(dados === null);
   };
 
   const resolvidos = useMemo(
@@ -361,6 +366,16 @@ export default function Praticar() {
             )}
 
             {correcao && <Resultado correcao={correcao} />}
+
+            {semSolucao && !solucao && (
+              <div className="rounded-xl border border-line bg-raised/25 px-4 py-3 text-[13.5px]">
+                <strong className="text-strong">A solução aparece depois que você resolver.</strong>{' '}
+                <span className="text-muted">
+                  Não é só a interface escondendo: o banco só a entrega a quem já
+                  acertou. Tente as dicas primeiro.
+                </span>
+              </div>
+            )}
 
             {solucao && (
               <div className="rounded-xl border border-line bg-raised/25 p-4">

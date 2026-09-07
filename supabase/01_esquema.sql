@@ -157,8 +157,9 @@ comment on column public.problemas.casos is
   'está logado — esconder não protege nada, já que a correção roda no '
   'navegador, e ver os casos ajuda a entender o problema.';
 comment on column public.problemas.solucao is
-  'Solução de referência. A RLS esconde esta coluna de quem ainda não '
-  'acertou o problema (veja a view problemas_publicos).';
+  'Solução de referência. O Postgres não faz RLS por coluna, então quem '
+  'a esconde é a migração 03: a prática lê a view problemas_publicos '
+  '(sem esta coluna) e a solução sai por solucao_de(uuid).';
 
 create index if not exists problemas_categoria_idx
   on public.problemas (categoria, ordem);

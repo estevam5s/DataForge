@@ -15,6 +15,7 @@ Ou cole o conteúdo no SQL Editor do Supabase, na ordem `01 → 02`.
 |---|---|
 | `01_esquema.sql` | 10 tabelas, 25 políticas de RLS, gatilhos, a visão do placar |
 | `02_agendamentos.sql` | pg_cron, 6 tarefas, fila de envios, log de execuções |
+| `03_solucoes.sql` | esconde a solução de referência de quem ainda não resolveu |
 
 ## As credenciais
 
@@ -65,6 +66,16 @@ Três decisões que valem lembrar:
 
 3. **Submissão não se edita nem se apaga.** É histórico. Sem política de
    update/delete, ambos ficam negados por padrão.
+
+4. **O Postgres não faz RLS por coluna.** A política de select libera a
+   linha inteira — e a linha de `problemas` tem a resposta. Por isso a
+   prática lê a view `problemas_publicos`, que lista as colunas
+   explicitamente, a tabela crua fica fechada a admin, e a solução sai
+   por `solucao_de(uuid)`, que só a entrega a quem já resolveu.
+
+   Esta era uma falha de verdade: o comentário do `01` afirmava que a
+   RLS escondia a coluna, e não escondia. Qualquer um com a chave anon
+   lia a resposta de todos os problemas.
 
 ## As tarefas agendadas
 

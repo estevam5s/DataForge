@@ -235,9 +235,45 @@ def test_o_pacote_web_e_reproduzivel():
 
 # ── As migrações do Supabase ─────────────────────────────────
 
-@pytest.mark.parametrize("arquivo", ["01_esquema.sql", "02_agendamentos.sql"])
+@pytest.mark.parametrize("arquivo", [
+    "01_esquema.sql", "02_agendamentos.sql", "03_solucoes.sql"])
 def test_migracoes_existem(arquivo):
     assert os.path.isfile(os.path.join(RAIZ, "supabase", arquivo))
+
+
+def test_a_view_publica_nao_expoe_a_solucao():
+    """O Postgres não faz RLS por coluna.
+
+    Uma política que liberasse a linha de 'problemas' entregaria a
+    resposta junto com o enunciado — foi o que aconteceu, e a saída foi
+    esta view com as colunas explícitas. 'select *' aqui traria a
+    solução de volta sem ninguém notar.
+    """
+    import re
+    sql = open(os.path.join(RAIZ, "supabase", "03_solucoes.sql"),
+               encoding="utf-8").read()
+
+    corpo = sql[sql.index("create view public.problemas_publicos"):]
+    corpo = corpo[:corpo.index(";")]
+
+    assert "select *" not in corpo, "a view precisa listar as colunas"
+    assert "solucao" not in corpo, "a view voltou a expor a solução"
+    assert "where publicado" in corpo, "a view mostraria problemas ocultos"
+
+
+def test_a_tabela_crua_de_problemas_e_so_de_admin():
+    sql = open(os.path.join(RAIZ, "supabase", "03_solucoes.sql"),
+               encoding="utf-8").read()
+    assert 'drop policy if exists "problemas: publicados para todos"' in sql
+    assert "e_admin()" in sql
+
+
+def test_o_cliente_le_a_view_e_nao_a_tabela():
+    fonte = open(os.path.join(RAIZ, "site", "lib", "supabase", "pratica.ts"),
+                 encoding="utf-8").read()
+    assert "from('problemas_publicos')" in fonte
+    assert "rpc('solucao_de'" in fonte
+    assert "from('problemas')\n" not in fonte
 
 
 def test_toda_tabela_da_migracao_liga_rls():

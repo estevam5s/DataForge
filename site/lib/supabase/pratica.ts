@@ -109,11 +109,13 @@ export async function listarProblemas(): Promise<Resposta<Problema[]>> {
   const cliente = obterCliente();
   if (!cliente) return { dados: PROBLEMAS_DEMO, erro: null };
 
+  // A view não tem a coluna 'solucao'. A tabela crua é fechada a admin:
+  // o Postgres não faz RLS por coluna, e uma política que liberasse a
+  // linha entregaria a resposta junto com o enunciado.
   const { data, error } = await cliente
-    .from('problemas')
+    .from('problemas_publicos')
     .select('id, slug, titulo, dificuldade, categoria, enunciado, '
           + 'assinatura, exemplos, dicas, casos, conceitos')
-    .eq('publicado', true)
     .order('ordem');
 
   if (error) return { dados: [], erro: error.message };
@@ -123,9 +125,12 @@ export async function listarProblemas(): Promise<Resposta<Problema[]>> {
 /**
  * A solução de referência de um problema.
  *
- * Separada da listagem de propósito: quem está resolvendo não deve
- * receber a resposta junto com o enunciado, nem por acidente na aba de
- * rede.
+ * Vem de uma função do banco, não de uma consulta: ela entrega a
+ * solução só a quem **já resolveu** o problema — ou a um admin. Quem
+ * ainda não chegou lá recebe void, e a interface diz o porquê.
+ *
+ * Fosse uma coluna da listagem, a resposta viajaria junto com o
+ * enunciado e apareceria na aba de rede de qualquer navegador.
  */
 export async function buscarSolucao(
   problemaId: string
@@ -135,14 +140,12 @@ export async function buscarSolucao(
     return { dados: 'action resolver(a, b):\n    yield a + b', erro: null };
   }
 
-  const { data, error } = await cliente
-    .from('problemas')
-    .select('solucao')
-    .eq('id', problemaId)
-    .maybeSingle();
+  const { data, error } = await cliente.rpc('solucao_de', {
+    p_problema: problemaId,
+  });
 
   if (error) return { dados: null, erro: error.message };
-  return { dados: (data?.solucao as string) ?? null, erro: null };
+  return { dados: (data as string) ?? null, erro: null };
 }
 
 export async function listarResolucoes(): Promise<Resposta<Resolucao[]>> {
