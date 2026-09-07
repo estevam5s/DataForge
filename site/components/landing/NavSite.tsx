@@ -39,7 +39,7 @@ export function NavSite() {
         </div>
 
         <div className="ml-auto flex items-center gap-3 lg:ml-0">
-          <span className="lp-mono hidden text-[12px] text-white/45 sm:inline">v4.0.0</span>
+          <span className="lp-mono hidden text-[12px] text-white/45 sm:inline">v4.1.0</span>
           <a
             href={REPO}
             target="_blank"

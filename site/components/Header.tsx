@@ -33,7 +33,7 @@ export function Header() {
               DataForge
             </span>
             <span className="hidden rounded-md border border-line px-1.5 py-px font-mono text-[10.5px] text-muted sm:block">
-              v4.0
+              v4.1
             </span>
           </Link>
 

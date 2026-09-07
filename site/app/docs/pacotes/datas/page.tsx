@@ -5,46 +5,69 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "datas",
-  description: "Datas em português, com feriados brasileiros e dias úteis.",
+  description: "Datas em português: formatação, tempo relativo, dias úteis, feriados brasileiros e faixas.",
 };
 
 const blocos: Bloco[] = [
   { code: `dataforge add datas`, lang: 'bash' },
-  {"table": {"head": ["", ""], "rows": [["Versão", "`1.0.0`"], ["Licença", "MIT"], ["Dependências", "nenhuma"]]}},
+  {"table": {"head": ["", ""], "rows": [["Versão", "`1.0.0`"], ["Licença", "MIT"], ["Dependências", "nenhuma"], ["Exporta", "35 símbolos"]]}},
   {"h2": "Por que existe"},
-  {"p": "Somar um mês a 31 de janeiro tem que dar 28 (ou 29) de fevereiro. As contas aqui passam pelo dia juliano, não por manipulação de texto — é o que faz esse caso sair certo."},
-  {"h2": "Exemplo"},
+  {"p": "Somar um mês a 31 de janeiro tem que dar 28 (ou 29) de fevereiro. As contas passam pelo dia juliano, não por manipulação de texto — é o que faz esse caso sair certo."},
+  {"h2": "Uso"},
   { code: `adopt datas as D
-
-hoje := D.hoje()
-out D.formatar(hoje, "dd/MM/yyyy")        // 07/09/2026
-out D.formatar(hoje, "EEEE")              // segunda-feira
-out D.por_extenso(hoje)                   // 7 de setembro de 2026
-
-out D.relativo(D.dias_atras(3))           // há 3 dias
-out D.idade(D.criar(1990, 5, 10))         // 36
-
-out D.e_feriado(D.criar(2026, 12, 25))    // yes
-out D.nome_do_feriado(D.criar(2026, 9, 7))// Independência
-out D.iso(D.pascoa(2026))                 // 2026-04-05
-
-// 31 de janeiro + 1 mês
-out D.iso(D.somar_meses(D.criar(2026, 1, 31), 1))   // 2026-02-28`, lang: 'df' },
+out D.formatar(D.hoje(), "dd/MM/yyyy")     // 07/09/2026
+out D.relativo(D.dias_atras(3))            // "há 3 dias"
+out D.e_feriado(D.criar(2026, 12, 25))     // yes`, lang: 'df' },
   {"h2": "API"},
-  {"table": {"head": ["Função", "O que faz"], "rows": [["`hoje()` / `criar(a, m, d)`", "a data"], ["`formatar(d, padrao)`", "dd MM yyyy MMMM EEEE"], ["`por_extenso(d)`", "7 de setembro de 2026"], ["`relativo(d)`", "há 3 dias, em 2 meses"], ["`idade(nascimento)`", "anos completos"], ["`somar_dias/meses/anos`", "aritmética de calendário"], ["`dias_entre(a, b)`", "diferença em dias"], ["`dia_da_semana(d)`", "0 = segunda … 6 = domingo"], ["`e_feriado(d)` / `feriados(ano)`", "feriados nacionais"], ["`pascoa(ano)`", "base dos feriados móveis"], ["`e_dia_util(d)` / `dias_uteis_entre`", "desconta fim de semana e feriado"], ["`de_iso(t)` / `de_br(t)`", "leitura de texto"], ["`faixa(inicio, fim)`", "todas as datas do intervalo"]]}},
+  {"p": "O que `relay` exporta — 35 símbolos:"},
+  { code: `record Data
+criar(ano, mes, dia)
+hoje()
+bissexto(ano)
+dias_no_mes(ano, mes)
+valida(d)
+somar_dias(d, n)
+somar_meses(d, n)
+somar_anos(d, n)
+dias_entre(a, b)
+dias_atras(n)
+dias_a_frente(n)
+dia_da_semana(d)
+e_fim_de_semana(d)
+e_dia_util(d)
+para_juliano(d)
+de_juliano(jd)
+pascoa(ano)
+feriados(ano)
+e_feriado(d)
+nome_do_feriado(d)
+dias_uteis_entre(a, b)
+proximo_dia_util(d)
+formatar(d, padrao := "dd/MM/yyyy")
+por_extenso(d)
+iso(d)
+de_iso(texto)
+de_br(texto)
+relativo(d, referencia := void)
+idade(nascimento, referencia := void)
+faixa(inicio, fim)
+MESES
+MESES_CURTOS
+DIAS
+DIAS_CURTOS`, lang: 'df' },
   {"h2": "Instalar"},
   { code: `dataforge add datas
 dataforge add datas@1.0.0
 dataforge add datas@^1.0`, lang: 'bash' },
 ];
 
-const headings = [{ id: 'por-que-existe', text: "Por que existe", level: 2 as const }, { id: 'exemplo', text: "Exemplo", level: 2 as const }, { id: 'api', text: "API", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }];
+const headings = [{ id: 'por-que-existe', text: "Por que existe", level: 2 as const }, { id: 'uso', text: "Uso", level: 2 as const }, { id: 'api', text: "API", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"datas"}
-      description={"Datas em português, com feriados brasileiros e dias úteis."}
+      description={"Datas em português: formatação, tempo relativo, dias úteis, feriados brasileiros e faixas."}
       href={"/docs/pacotes/datas"}
       headings={headings}
     >

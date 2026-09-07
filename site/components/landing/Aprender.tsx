@@ -42,10 +42,10 @@ export function Aprender() {
         <Sobe atraso={200}>
           <div className="lp-mono mx-auto mt-16 grid max-w-[760px] grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--lp-line)] bg-[var(--lp-line)] sm:grid-cols-4">
             {[
-              ['240', 'testes'],
-              ['180', 'exercícios'],
+              ['378', 'testes'],
+              ['190', 'exercícios'],
               ['42', 'exemplos'],
-              ['225', 'arquivos .df'],
+              ['286', 'arquivos .df'],
             ].map(([n, r]) => (
               <div key={r} className="bg-[var(--lp-bg)] px-4 py-7">
                 <p className="text-[26px] font-medium text-white sm:text-[30px]">{n}</p>

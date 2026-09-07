@@ -20,7 +20,7 @@ FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="DataForge"
 LABEL org.opencontainers.image.description="Linguagem de programação interpretada, com vocabulário próprio"
-LABEL org.opencontainers.image.version="4.0.0"
+LABEL org.opencontainers.image.version="4.1.0"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.documentation="https://dataforge-lang.vercel.app/docs"
 

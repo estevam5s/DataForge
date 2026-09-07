@@ -5,48 +5,66 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "validador",
-  description: "Validação de dados com mensagens em português, e um esquema para formulários inteiros.",
+  description: "Validação de dados: e-mail, CPF, CNPJ, CEP, telefone, cartão e senha, com regras encadeáveis.",
 };
 
 const blocos: Bloco[] = [
   { code: `dataforge add validador`, lang: 'bash' },
-  {"table": {"head": ["", ""], "rows": [["Versão", "`1.0.0`"], ["Licença", "MIT"], ["Dependências", "nenhuma"]]}},
+  {"table": {"head": ["", ""], "rows": [["Versão", "`1.0.0`"], ["Licença", "MIT"], ["Dependências", "nenhuma"], ["Exporta", "26 símbolos"]]}},
   {"h2": "Por que existe"},
-  {"p": "Validar CPF conferindo só o tamanho aceita `111.111.111-11`. Este pacote roda os dígitos verificadores de verdade — e devolve todos os erros de um formulário de uma vez, não o primeiro."},
-  {"h2": "Exemplo"},
+  {"p": "Validar CPF conferindo só o tamanho aceita `111.111.111-11`. Aqui os dígitos verificadores rodam de verdade — e o esquema devolve todos os erros de um formulário de uma vez, não o primeiro."},
+  {"h2": "Uso"},
   { code: `adopt validador as V
+out V.cpf("529.982.247-25")        // yes
 
-// direto
-out V.email("ana@exemplo.com")      // yes
-out V.cpf("529.982.247-25")         // yes
-out V.cpf("111.111.111-11")         // no — repetido não vale
-out V.cartao("4539 1488 0343 6467") // yes (Luhn)
 
-// um formulário inteiro
 regras := V.esquema({
     "email": [V.regra_obrigatorio(), V.regra_email()],
-    "cpf": [V.regra_cpf()],
     "idade": [V.regra_entre(18, 120)]
 })
-
-r := V.validar(regras, {"email": "invalido", "cpf": "111", "idade": 5})
-out r["valido"]     // no
-out r["erros"]      // {email: e-mail inválido, cpf: CPF inválido, ...}`, lang: 'df' },
+resultado := V.validar(regras, dados)
+out resultado.valido, resultado.erros`, lang: 'df' },
   {"h2": "API"},
-  {"table": {"head": ["Função", "O que faz"], "rows": [["`email(v)`", "formato de e-mail"], ["`cpf(v)`", "CPF com dígitos verificadores"], ["`cnpj(v)`", "CNPJ com dígitos verificadores"], ["`cep(v)`", "CEP brasileiro"], ["`telefone(v)`", "fixo ou celular, com o nono dígito"], ["`cartao(v)`", "número de cartão, por Luhn"], ["`forca_senha(v)`", "nota de 0 a 5 e o que falta"], ["`url(v)`", "URL http/https"], ["`nao_vazio(v)`", "texto, lista ou vault com conteúdo"], ["`entre(v, min, max)`", "faixa numérica"], ["`esquema(campos)`", "monta o conjunto de regras"], ["`validar(esquema, dados)`", "roda tudo, devolve `{valido, erros}`"], ["`regra(nome, msg, fn)`", "sua própria regra"]]}},
+  {"p": "O que `relay` exporta — 26 símbolos:"},
+  { code: `email(valor)
+cpf(valor)
+cnpj(valor)
+cep(valor)
+telefone(valor)
+cartao(valor)
+forca_senha(senha)
+nao_vazio(valor)
+entre(valor, minimo, maximo)
+tamanho_entre(texto, minimo, maximo)
+url(valor)
+so_digitos(texto)
+record Regra
+regra(nome, mensagem, verificar)
+regra_obrigatorio(mensagem := "campo obrigatório")
+regra_email(mensagem := "e-mail inválido")
+regra_cpf(mensagem := "CPF inválido")
+regra_cnpj(mensagem := "CNPJ inválido")
+regra_cep(mensagem := "CEP inválido")
+regra_telefone(mensagem := "telefone inválido")
+regra_url(mensagem := "URL inválida")
+regra_entre(minimo, maximo, mensagem := void)
+regra_tamanho(minimo, maximo, mensagem := void)
+regra_senha_forte(mensagem := "senha fraca")
+esquema(campos)
+validar(esquema, dados)`, lang: 'df' },
   {"h2": "Instalar"},
   { code: `dataforge add validador
 dataforge add validador@1.0.0
 dataforge add validador@^1.0`, lang: 'bash' },
 ];
 
-const headings = [{ id: 'por-que-existe', text: "Por que existe", level: 2 as const }, { id: 'exemplo', text: "Exemplo", level: 2 as const }, { id: 'api', text: "API", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }];
+const headings = [{ id: 'por-que-existe', text: "Por que existe", level: 2 as const }, { id: 'uso', text: "Uso", level: 2 as const }, { id: 'api', text: "API", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"validador"}
-      description={"Validação de dados com mensagens em português, e um esquema para formulários inteiros."}
+      description={"Validação de dados: e-mail, CPF, CNPJ, CEP, telefone, cartão e senha, com regras encadeáveis."}
       href={"/docs/pacotes/validador"}
       headings={headings}
     >

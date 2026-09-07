@@ -32,7 +32,7 @@ const blocos: Bloco[] = [
   {"p": "`frame`, `train` e `predict` são marcadores sintáticos: existem no lexer, no parser e no interpretador, mas devolvem um vault com `__type__` e nada acontece."},
   {"p": "Ou se implementa — DataFrame de verdade, ajuste de modelo — ou se remove. Manter sintaxe sem semântica é pior que não ter, porque quem lê a referência assume que funciona."},
   {"h2": "Estado verificado"},
-  {"table": {"head": ["Verificação", "Resultado"], "rows": [["Testes unitários", "272 passando"], ["Exercícios", "180/180"], ["Exemplos", "42/42"], ["Análise estática sobre o repositório", "0 erros em 233 arquivos"], ["Formatador", "idempotente em 233 arquivos"], ["Módulos da stdlib", "20/20 carregam"], ["Instalação via pip", "funciona em venv limpo"]]}},
+  {"table": {"head": ["Verificação", "Resultado"], "rows": [["Testes unitários", "272 passando"], ["Exercícios", "190/190"], ["Exemplos", "42/42"], ["Análise estática sobre o repositório", "0 erros em 233 arquivos"], ["Formatador", "idempotente em 233 arquivos"], ["Módulos da stdlib", "20/20 carregam"], ["Instalação via pip", "funciona em venv limpo"]]}},
 ];
 
 const headings = [{ id: 'implementado-no-40', text: "Implementado no 4.0", level: 2 as const }, { id: '41--confianca', text: "4.1 — Confiança", level: 2 as const }, { id: '42--ferramental', text: "4.2 — Ferramental", level: 2 as const }, { id: '43--ecossistema', text: "4.3 — Ecossistema", level: 2 as const }, { id: '50--runtime', text: "5.0 — Runtime", level: 2 as const }, { id: 'concorrencia', text: "Concorrência", level: 2 as const }, { id: 'uma-decisao-pendente', text: "Uma decisão pendente", level: 2 as const }, { id: 'estado-verificado', text: "Estado verificado", level: 2 as const }];

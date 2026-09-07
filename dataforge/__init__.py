@@ -2,5 +2,5 @@
 A revolutionary language built on Python with unique syntax and keywords.
 """
 
-__version__ = "4.0.0"
+__version__ = "4.1.0"
 __language__ = "DataForge"

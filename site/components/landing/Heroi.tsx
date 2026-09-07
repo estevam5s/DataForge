@@ -3,8 +3,8 @@ import { NavSite } from './NavSite';
 
 /* Números reais do repositório — os mesmos que a suíte verifica. */
 const fatos = [
-  { rotulo: 'Testes passando', valor: '240' },
-  { rotulo: 'Exercícios verificados', valor: '180' },
+  { rotulo: 'Testes passando', valor: '378' },
+  { rotulo: 'Exercícios verificados', valor: '190' },
   { rotulo: 'Dependências no runtime', valor: 'nenhuma' },
 ];
 

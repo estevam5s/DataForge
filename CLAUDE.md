@@ -12,7 +12,7 @@ implementada em Python 3.10+ **sem dependências externas no runtime**. Não é 
 DSL nem um transpilador: tem lexer, parser recursivo descendente, AST tipada,
 analisador estático e interpretador de árvore próprios.
 
-- Versão atual: **4.0.0**
+- Versão atual: **4.1.0**
 - Extensão dos arquivos: `.df`
 - Entrypoints: `dataforge` e `df` (mesmo `main`)
 - Licença: MIT

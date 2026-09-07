@@ -5,43 +5,56 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "cofre",
-  description: "Configuração em camadas: padrão, arquivo, ambiente e argumentos.",
+  description: "Configuração em camadas: padrões, arquivo, ambiente e argumentos, com tipos e validação.",
 };
 
 const blocos: Bloco[] = [
   { code: `dataforge add cofre`, lang: 'bash' },
-  {"table": {"head": ["", ""], "rows": [["Versão", "`1.0.0`"], ["Licença", "MIT"], ["Dependências", "nenhuma"]]}},
+  {"table": {"head": ["", ""], "rows": [["Versão", "`1.0.0`"], ["Licença", "MIT"], ["Dependências", "nenhuma"], ["Exporta", "17 símbolos"]]}},
   {"h2": "Por que existe"},
-  {"p": "A ordem de precedência é sempre a mesma — argumento ganha de ambiente, que ganha de arquivo, que ganha de padrão. E `origem()` responde de onde veio cada valor, que é a pergunta que se faz quando algo está errado em produção."},
-  {"h2": "Exemplo"},
+  {"p": "A ordem de precedência é sempre a mesma: argumento ganha de ambiente, que ganha de arquivo, que ganha de padrão. E `origem()` responde de onde veio cada valor — a pergunta que se faz quando algo está errado em produção."},
+  {"h2": "Uso"},
   { code: `adopt cofre as C
 
 cfg := C.novo()
-cfg := C.padroes(cfg, {"porta": 8080, "debug": no})
-cfg := C.do_arquivo(cfg, "config.json")
-cfg := C.do_ambiente(cfg, "MEUAPP_")
-cfg := C.dos_argumentos(cfg)
+    >> C.padroes({"porta": 8080, "debug": no})
+    >> C.do_arquivo("config.json")
+    >> C.do_ambiente("MEUAPP_")
+    >> C.dos_argumentos()
 
-out C.pegar(cfg, "porta")
-out C.origem(cfg, "porta")     // argumentos
-out C.explicar(cfg)
-
-C.exigir(cfg, ["porta", "banco_url"])   // falha cedo se faltar`, lang: 'df' },
+out C.pegar(cfg, "porta")`, lang: 'df' },
   {"h2": "API"},
-  {"table": {"head": ["Função", "O que faz"], "rows": [["`novo()`", "começa vazio"], ["`padroes(cfg, mapa)`", "a camada de baixo"], ["`do_arquivo(cfg, caminho)`", "JSON, TOML ou INI"], ["`do_ambiente(cfg, prefixo)`", "variáveis de ambiente"], ["`dos_argumentos(cfg)`", "`--chave valor`, `--chave=valor`, `--flag`, `--no-flag`"], ["`pegar(cfg, chave, padrao)`", "lê um valor"], ["`origem(cfg, chave)`", "de que camada veio"], ["`exigir(cfg, chaves)`", "falha listando o que falta"], ["`como_inteiro/texto/booleano/lista`", "leitura com tipo"], ["`explicar(cfg)`", "tudo, com a origem de cada um"]]}},
+  {"p": "O que `relay` exporta — 17 símbolos:"},
+  { code: `record Config
+novo()
+padroes(cfg, mapa)
+do_arquivo(cfg, caminho, obrigatorio := no)
+do_ambiente(cfg, prefixo := "")
+dos_argumentos(cfg, argumentos := void)
+pegar(cfg, chave, padrao := void)
+tem(cfg, chave)
+origem(cfg, chave)
+definir(cfg, chave, valor)
+tudo(cfg)
+exigir(cfg, chaves)
+explicar(cfg)
+como_inteiro(cfg, chave, padrao := 0)
+como_texto(cfg, chave, padrao := "")
+como_booleano(cfg, chave, padrao := no)
+como_lista(cfg, chave, separador := ",", padrao := void)`, lang: 'df' },
   {"h2": "Instalar"},
   { code: `dataforge add cofre
 dataforge add cofre@1.0.0
 dataforge add cofre@^1.0`, lang: 'bash' },
 ];
 
-const headings = [{ id: 'por-que-existe', text: "Por que existe", level: 2 as const }, { id: 'exemplo', text: "Exemplo", level: 2 as const }, { id: 'api', text: "API", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }];
+const headings = [{ id: 'por-que-existe', text: "Por que existe", level: 2 as const }, { id: 'uso', text: "Uso", level: 2 as const }, { id: 'api', text: "API", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"cofre"}
-      description={"Configuração em camadas: padrão, arquivo, ambiente e argumentos."}
+      description={"Configuração em camadas: padrões, arquivo, ambiente e argumentos, com tipos e validação."}
       href={"/docs/pacotes/cofre"}
       headings={headings}
     >

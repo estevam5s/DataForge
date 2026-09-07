@@ -5,7 +5,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Exercícios",
-  description: "180 exercícios em 20 módulos, do \"Olá, mundo\" a um interpretador com lexer, parser e avaliador.",
+  description: "190 exercícios em 20 módulos, do \"Olá, mundo\" a um interpretador com lexer, parser e avaliador.",
 };
 
 const blocos: Bloco[] = [
@@ -34,7 +34,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Exercícios"}
-      description={"180 exercícios em 20 módulos, do \"Olá, mundo\" a um interpretador com lexer, parser e avaliador."}
+      description={"190 exercícios em 20 módulos, do \"Olá, mundo\" a um interpretador com lexer, parser e avaliador."}
       href={"/docs/exercicios"}
       headings={headings}
     >

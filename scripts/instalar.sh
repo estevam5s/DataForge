@@ -12,7 +12,7 @@
 
 set -eu
 
-VERSAO="${DATAFORGE_VERSION:-4.0.0}"
+VERSAO="${DATAFORGE_VERSION:-4.1.0}"
 PREFIXO="${DATAFORGE_PREFIX:-$HOME/.dataforge}"
 SITE="${DATAFORGE_SITE:-https://dataforge-lang.vercel.app}"
 REPO="${DATAFORGE_REPO:-https://github.com/estevam5s/DataForge}"

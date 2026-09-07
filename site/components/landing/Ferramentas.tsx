@@ -29,7 +29,7 @@ const verificar: Aba[] = [
       { t: "    Module 'geometria' was not found", c: 'aviso' },
       { t: '    sugestão: Available: Analytics, Arcane.Async…', c: 'dim' },
       { t: '' },
-      { t: '✓ sem erros, 29 aviso(s) em 233 arquivo(s)', c: 'ok' },
+      { t: '✓ sem erros, 74 aviso(s) em 286 arquivo(s)', c: 'ok' },
     ],
   },
   {

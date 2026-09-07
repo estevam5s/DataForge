@@ -93,10 +93,10 @@ export default function Home() {
       <Table
         head={['', 'Valor']}
         rows={[
-          [<>Versão</>, <><code>4.0.0</code></>],
+          [<>Versão</>, <><code>4.1.0</code></>],
           [<>Extensão</>, <><code>.df</code></>],
           [<>Runtime</>, <>Python 3.10+, zero dependências</>],
-          [<>Biblioteca padrão</>, <>20 módulos, 674 símbolos</>],
+          [<>Biblioteca padrão</>, <>20 módulos, 675 símbolos</>],
           [<>Funções globais</>, <>225, sem <code>adopt</code></>],
           [<>Licença</>, <>MIT</>],
         ]}
@@ -153,7 +153,7 @@ export default function Home() {
       <H3>Verificável</H3>
       <p>
         Cada afirmação desta documentação corresponde a código que roda. São 240
-        testes, 180 exercícios que verificam o próprio resultado com{' '}
+        testes, 190 exercícios que verificam o próprio resultado com{' '}
         <code>assert</code>, e 42 programas de exemplo.
       </p>
 
@@ -258,10 +258,10 @@ dataforge version`}
         <Card href="/docs/variaveis" title="Visão geral" meta="13 páginas">
           A linguagem do zero, na ordem em que é usada.
         </Card>
-        <Card href="/docs/exercicios" title="180 exercícios" meta="20 módulos">
+        <Card href="/docs/exercicios" title="190 exercícios" meta="20 módulos">
           Cada um se verifica com <code>assert</code>. Os 60 do 4.0 têm explicação ao lado.
         </Card>
-        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="674 símbolos">
+        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="675 símbolos">
           Estatística, SQLite, HTTP, criptografia, grafos, datas.
         </Card>
         <Card href="/docs/referencia/gramatica" title="Referência formal">
