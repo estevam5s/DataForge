@@ -1,0 +1,35 @@
+// Exercicio 117 — Arvore binaria de busca
+// Enunciado: insira valores e percorra em ordem.
+
+blueprint NoArvore(valor):
+    action setup(valor):
+        self.valor := valor
+        self.esq := void
+        self.dir := void
+
+action inserir(raiz, valor):
+    given raiz is void:
+        yield spawn NoArvore(valor)
+    given valor smaller raiz.valor:
+        raiz.esq := inserir(raiz.esq, valor)
+    orif valor bigger raiz.valor:
+        raiz.dir := inserir(raiz.dir, valor)
+    yield raiz
+
+action em_ordem(atual, saida):
+    given atual is void:
+        yield saida
+    em_ordem(atual.esq, saida)
+    saida.append(atual.valor)
+    em_ordem(atual.dir, saida)
+    yield saida
+
+raiz := void
+cycle v in [50, 30, 70, 20, 40, 60, 80]:
+    raiz := inserir(raiz, v)
+
+ordenado := em_ordem(raiz, [])
+out ordenado
+assert ordenado is [20, 30, 40, 50, 60, 70, 80], "percurso em ordem"
+assert raiz.valor is 50, "raiz"
+assert raiz.esq.valor is 30, "filho esquerdo"

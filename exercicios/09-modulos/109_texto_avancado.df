@@ -1,0 +1,20 @@
+// Exercicio 109 — Arcane.Text
+// Enunciado: formate um relatorio em caixa e tabela.
+
+adopt Arcane.Text as Text
+
+out Text.box("Relatorio Mensal")
+
+cabecalho := ["Produto", "Qtd", "Valor"]
+linhas := [
+    ["Mouse", "12", "960.00"],
+    ["Teclado", "5", "1000.00"]
+]
+out Text.table(cabecalho, linhas)
+
+assert Text.word_count("um dois tres") is 3, "word_count"
+assert Text.kebab_case("MinhaClasseLegal") is "minha-classe-legal", "kebab_case"
+assert Text.pascal_case("minha_classe") is "MinhaClasse", "pascal_case"
+assert Text.remove_accents("coracao") is "coracao", "remove_accents"
+assert Text.number_format(1234567.891, 2) is "1,234,567.89", "number_format"
+out Text.number_format(1234567.891, 2)

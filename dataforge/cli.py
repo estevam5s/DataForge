@@ -161,270 +161,41 @@ def check_file(filepath: str):
 # ─── Project Templates ──────────────────────────────────────────
 
 PROJECT_TEMPLATES = {
-    "api": {
-        "name": "API REST",
-        "description": "Servidor HTTP com rotas REST, CRUD e JSON",
-        "icon": "🌐",
-        "files": {
-            "main.df": '''// {name} - API REST
-// Criado com DataForge v{version}
-
-adopt Http from "Arcane.Http"
-adopt Data from "Arcane.Data"
-
-// Criar aplicação
-app := Http.create("{name}")
-
-// Middleware
-Http.cors(app)
-Http.logger(app)
-
-// Banco de dados em memória
-items := []
-
-// GET /api/items — Listar todos
-Http.get(app, "/api/items", action(req, res):
-    res.json(items)
-end)
-
-// GET /api/items/:id — Buscar por ID
-Http.get(app, "/api/items/:id", action(req, res):
-    id := to_number(req.params.id)
-    item := items >> sift(i => i.id is id) >> first()
-    given item isnot void:
-        res.json(item)
-    otherwise:
-        res.json({{"error": "Item não encontrado"}}, 404)
-    end
-end)
-
-// POST /api/items — Criar item
-Http.post(app, "/api/items", action(req, res):
-    body := req.json
-    item := {{
-        "id": length(items) + 1,
-        "name": body.name,
-        "status": "active"
-    }}
-    push(items, item)
-    res.json(item, 201)
-end)
-
-// DELETE /api/items/:id — Remover item
-Http.delete(app, "/api/items/:id", action(req, res):
-    id := to_number(req.params.id)
-    items := items >> sift(i => i.id isnot id)
-    res.json({{"message": "Item removido"}})
-end)
-
-// Iniciar servidor
-Http.listen(app, 3000)
-''',
-            "README.md": '''# {name}
-
-API REST criada com **DataForge** v{version}.
-
-## Executar
-
-```bash
-dataforge run main.df
-```
-
-## Endpoints
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | /api/items | Listar todos |
-| GET | /api/items/:id | Buscar por ID |
-| POST | /api/items | Criar item |
-| DELETE | /api/items/:id | Remover item |
-
-## Porta
-
-Servidor roda em `http://localhost:3000`
-''',
-            "config.df": '''// Configurações do projeto
-steady API_PORT := 3000
-steady API_HOST := "0.0.0.0"
-steady API_NAME := "{name}"
-steady VERSION := "1.0.0"
-''',
-        }
-    },
-    "data": {
-        "name": "Data Analytics",
-        "description": "Projeto de análise de dados com estatísticas e visualização",
-        "icon": "📊",
-        "files": {
-            "main.df": '''// {name} - Análise de Dados
-// Criado com DataForge v{version}
-
-adopt Math from "Arcane.Math"
-adopt Data from "Arcane.Data"
-adopt Analytics from "Arcane.Analytics"
-adopt IO from "Arcane.IO"
-
-// ─── Dataset de exemplo ───
-dados := [
-    {{"nome": "Alice", "idade": 28, "salario": 5500}},
-    {{"nome": "Bruno", "idade": 34, "salario": 7200}},
-    {{"nome": "Carla", "idade": 25, "salario": 4800}},
-    {{"nome": "Diego", "idade": 41, "salario": 9100}},
-    {{"nome": "Elena", "idade": 30, "salario": 6300}}
-]
-
-// ─── Análise estatística ───
-salarios := dados >> morph(d => d.salario)
-
-show("═══ Relatório de Análise ═══")
-show("Total de registros: " + to_string(length(dados)))
-show("Média salarial: R$ " + to_string(Math.mean(salarios)))
-show("Mediana: R$ " + to_string(Math.median(salarios)))
-show("Mínimo: R$ " + to_string(Math.min(salarios)))
-show("Máximo: R$ " + to_string(Math.max(salarios)))
-show("Desvio padrão: R$ " + to_string(Math.round(Math.std(salarios), 2)))
-
-// ─── Filtros ───
-show("\\n═══ Salários acima de R$ 6000 ═══")
-altos := dados >> sift(d => d.salario bigger 6000)
-cycle item in altos:
-    show("  " + item.nome + ": R$ " + to_string(item.salario))
-end
-
-// ─── Transformação ───
-show("\\n═══ Com bônus de 15% ═══")
-com_bonus := dados >> morph(d => {{
-    "nome": d.nome,
-    "salario": d.salario,
-    "bonus": Math.round(d.salario * 0.15, 2),
-    "total": Math.round(d.salario * 1.15, 2)
-}})
-
-cycle item in com_bonus:
-    show("  " + item.nome + ": R$ " + to_string(item.total))
-end
-''',
-            "README.md": '''# {name}
-
-Projeto de **Análise de Dados** criado com **DataForge** v{version}.
-
-## Executar
-
-```bash
-dataforge run main.df
-```
-
-## Funcionalidades
-
-- Estatísticas descritivas (média, mediana, desvio padrão)
-- Filtragem e transformação de dados com pipelines
-- Relatórios formatados no terminal
-''',
-        }
-    },
-    "web": {
-        "name": "Web App",
-        "description": "Aplicação web com servidor HTTP, templates e arquivos estáticos",
-        "icon": "🖥️",
-        "files": {
-            "main.df": '''// {name} - Web Application
-// Criado com DataForge v{version}
-
-adopt Http from "Arcane.Http"
-
-app := Http.create("{name}")
-Http.cors(app)
-Http.logger(app)
-Http.static(app, "./public")
-
-// Página inicial
-Http.get(app, "/", action(req, res):
-    html := "<html><head><title>{name}</title>"
-    html := html + "<style>body{{font-family:sans-serif;max-width:800px;margin:50px auto;padding:20px}}</style>"
-    html := html + "</head><body>"
-    html := html + "<h1>🔥 {name}</h1>"
-    html := html + "<p>Servidor DataForge rodando!</p>"
-    html := html + "<a href='/api/status'>Ver status da API</a>"
-    html := html + "</body></html>"
-    res.html(html)
-end)
-
-// API Status
-Http.get(app, "/api/status", action(req, res):
-    res.json({{
-        "status": "online",
-        "app": "{name}",
-        "version": "1.0.0"
-    }})
-end)
-
-Http.listen(app, 3000)
-''',
-            "README.md": '''# {name}
-
-Aplicação Web criada com **DataForge** v{version}.
-
-## Executar
-
-```bash
-dataforge run main.df
-```
-
-## Estrutura
-
-- `main.df` — Servidor principal
-- `public/` — Arquivos estáticos (CSS, JS, imagens)
-''',
-            "public/index.html": '''<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>{name}</title>
-</head>
-<body>
-    <h1>{name}</h1>
-    <p>Bem-vindo ao {name}!</p>
-</body>
-</html>
-''',
-        }
-    },
     "cli": {
         "name": "CLI Tool",
-        "description": "Ferramenta de linha de comando com argumentos e cores",
+        "description": "Ferramenta de linha de comando com acoes, constantes e cores",
         "icon": "⚡",
         "files": {
-            "main.df": '''// {name} - CLI Tool
+            "main.df": '''// {name} — ferramenta de linha de comando
 // Criado com DataForge v{version}
 
-adopt IO from "Arcane.IO"
-adopt Text from "Arcane.Text"
+adopt Arcane.Text as Text
 
-// ─── Configurações ───
 steady APP_NAME := "{name}"
 steady VERSION := "1.0.0"
 
-// ─── Funções ───
-action show_help():
-    show("╔═══════════════════════════════╗")
-    show("║  " + APP_NAME + " v" + VERSION + "  ║")
-    show("╚═══════════════════════════════╝")
-    show("")
-    show("Uso: dataforge run main.df [comando]")
-    show("")
-    show("Comandos:")
-    show("  help     Mostra essa ajuda")
-    show("  version  Mostra a versão")
-    show("  greet    Saudação personalizada")
-end
+action cabecalho():
+    out Text.box(APP_NAME + " v" + VERSION)
 
-action greet(name):
-    show("👋 Olá, " + name + "! Bem-vindo ao " + APP_NAME + "!")
-end
+action ajuda():
+    out "Uso: dataforge run main.df"
+    out ""
+    out "Comandos disponiveis:"
+    cmds := [
+        ["ajuda", "mostra esta tela"],
+        ["versao", "mostra a versao"],
+        ["saudar", "saudacao personalizada"]
+    ]
+    cycle c in cmds:
+        out "  " + c[0].pad_end(12) + c[1]
 
-// ─── Main ───
-show_help()
-greet("Desenvolvedor")
+action saudar(nome: String) -> String:
+    yield "Ola, " + nome + "! Bem-vindo ao " + APP_NAME + "."
+
+cabecalho()
+ajuda()
+out ""
+out saudar("Desenvolvedor")
 ''',
             "README.md": '''# {name}
 
@@ -438,115 +209,291 @@ dataforge run main.df
 ''',
         }
     },
-    "crud": {
-        "name": "CRUD Completo",
-        "description": "API REST com CRUD completo, validação e testes",
-        "icon": "🗃️",
+    "data": {
+        "name": "Data Analytics",
+        "description": "Analise de dados com estatistica, pipelines e relatorio",
+        "icon": "📊",
         "files": {
-            "main.df": '''// {name} - CRUD API
+            "main.df": '''// {name} — analise de dados
 // Criado com DataForge v{version}
 
-adopt Http from "Arcane.Http"
-adopt Data from "Arcane.Data"
+adopt Arcane.Math as Math
+adopt Arcane.Analytics as Analytics
+
+steady TITULO := "{name}"
+
+dados := [
+    {{"nome": "Alice", "idade": 28, "salario": 5500}},
+    {{"nome": "Bruno", "idade": 34, "salario": 7200}},
+    {{"nome": "Carla", "idade": 25, "salario": 4800}},
+    {{"nome": "Diego", "idade": 41, "salario": 9100}},
+    {{"nome": "Elena", "idade": 30, "salario": 6300}}
+]
+
+salarios := dados >> morph d: d["salario"]
+
+action moeda(valor) -> String:
+    yield "R$ " + str(round(valor, 2))
+
+out "=== " + TITULO + " ==="
+out "Registros:      " + str(len(dados))
+out "Media salarial: " + moeda(Math.mean(salarios))
+out "Mediana:        " + moeda(Math.median(salarios))
+out "Minimo:         " + moeda(min(salarios))
+out "Maximo:         " + moeda(max(salarios))
+out "Desvio padrao:  " + moeda(Math.stdev(salarios))
+
+out ""
+out "=== Acima de R$ 6.000 ==="
+altos := dados >> sift d: d["salario"] bigger 6000
+cycle p in altos:
+    out "  " + p["nome"] + ": " + moeda(p["salario"])
+
+out ""
+out "=== Com bonus de 15% ==="
+com_bonus := dados >> morph d: {{
+    "nome": d["nome"],
+    "total": round(d["salario"] * 1.15, 2)
+}}
+cycle p in com_bonus:
+    out "  " + p["nome"] + ": " + moeda(p["total"])
+
+out ""
+out "=== Folha total ==="
+folha := salarios >> distill acc, v: acc + v 0
+out "  " + moeda(folha)
+''',
+            "README.md": '''# {name}
+
+Projeto de **analise de dados** criado com **DataForge** v{version}.
+
+## Executar
+
+```bash
+dataforge run main.df
+```
+
+## O que faz
+
+- Estatistica descritiva (media, mediana, desvio padrao)
+- Filtragem e transformacao com pipelines `>> sift` / `>> morph` / `>> distill`
+- Relatorio formatado no terminal
+''',
+        }
+    },
+    "oop": {
+        "name": "Orientado a Objetos",
+        "description": "Blueprints, heranca, traits e polimorfismo",
+        "icon": "🧩",
+        "files": {
+            "main.df": '''// {name} — modelagem com blueprints
+// Criado com DataForge v{version}
+
+trait Descritivel:
+    action descrever()
+
+blueprint Conta(titular, saldo) with Descritivel:
+    action depositar(valor: Number):
+        given valor smaller_eq 0:
+            trigger "Valor de deposito invalido"
+        self.saldo := self.saldo + valor
+        yield self.saldo
+
+    action sacar(valor: Number):
+        guard valor smaller_eq self.saldo, "Saldo insuficiente"
+        self.saldo := self.saldo - valor
+        yield self.saldo
+
+    action descrever() -> String:
+        yield self.titular + ": R$ " + str(round(self.saldo, 2))
+
+blueprint ContaPoupanca(titular, saldo, taxa) extends Conta:
+    action render():
+        juros := self.saldo * self.taxa
+        self.saldo := self.saldo + juros
+        yield juros
+
+    action descrever() -> String:
+        yield "[poupanca] " + root.descrever()
+
+contas := [
+    spawn Conta("Alice", 1000),
+    spawn ContaPoupanca("Bruno", 2000, 0.05)
+]
+
+cycle c in contas:
+    c.depositar(500)
+    out c.descrever()
+
+poupanca := contas[1]
+out "Juros creditados: R$ " + str(round(poupanca.render(), 2))
+out poupanca.descrever()
+
+monitor:
+    conta := contas[0]
+    conta.sacar(999999)
+handle e:
+    out "Erro tratado: " + e
+''',
+            "README.md": '''# {name}
+
+Projeto **orientado a objetos** criado com **DataForge** v{version}.
+
+## Executar
+
+```bash
+dataforge run main.df
+```
+
+## Conceitos usados
+
+- `trait` (interface) e `with` para compor
+- `blueprint` com parametros de construtor
+- `extends` para heranca e `root` para chamar o pai
+- `guard` / `trigger` / `monitor` / `handle` para erros
+''',
+        }
+    },
+    "test": {
+        "name": "Suite de Testes",
+        "description": "Codigo + testes automatizados com Arcane.Test",
+        "icon": "🧪",
+        "files": {
+            "lib.df": '''// {name} — funcoes sob teste
+
+action somar(a: Number, b: Number) -> Number:
+    yield a + b
+
+action fatorial(n: Integer) -> Integer:
+    given n smaller 0:
+        trigger "fatorial exige n >= 0"
+    given n smaller_eq 1:
+        yield 1
+    yield n * fatorial(n - 1)
+
+action eh_primo(n: Integer) -> Boolean:
+    given n smaller 2:
+        yield no
+    i := 2
+    persist i * i smaller_eq n:
+        given n % i is 0:
+            yield no
+        i += 1
+    yield yes
+
+relay somar, fatorial, eh_primo
+''',
+            "tests.df": '''// {name} — testes
+// Executar: dataforge run tests.df
+
+adopt lib
+adopt Arcane.Test as Test
+
+total := 0
+falhas := 0
+
+action checar(nome: String, obtido, esperado):
+    total += 1
+    given obtido is esperado:
+        out "  ok   " + nome
+    otherwise:
+        falhas += 1
+        out "  FALHA " + nome + " -> esperado " + str(esperado) + ", obtido " + str(obtido)
+
+out "=== {name} ==="
+checar("somar(2, 3)", lib.somar(2, 3), 5)
+checar("somar(-1, 1)", lib.somar(-1, 1), 0)
+checar("fatorial(0)", lib.fatorial(0), 1)
+checar("fatorial(5)", lib.fatorial(5), 120)
+checar("eh_primo(7)", lib.eh_primo(7), yes)
+checar("eh_primo(9)", lib.eh_primo(9), no)
+
+monitor:
+    lib.fatorial(-1)
+    checar("fatorial(-1) dispara erro", no, yes)
+handle e:
+    checar("fatorial(-1) dispara erro", yes, yes)
+
+out ""
+out "Total: " + str(total) + " | falhas: " + str(falhas)
+assert falhas is 0, "a suite tem falhas"
+out "Suite verde."
+''',
+            "README.md": '''# {name}
+
+Projeto com **suite de testes** criado com **DataForge** v{version}.
+
+## Executar
+
+```bash
+dataforge run tests.df
+```
+
+`lib.df` guarda as funcoes e exporta com `relay`; `tests.df` importa com
+`adopt lib` e verifica cada caso.
+''',
+        }
+    },
+    "api": {
+        "name": "API REST",
+        "description": "Servidor HTTP com rotas REST e JSON (Arcane.Http)",
+        "icon": "🌐",
+        "files": {
+            "main.df": '''// {name} — API REST
+// Criado com DataForge v{version}
+// Executar: dataforge run main.df  (Ctrl+C para parar)
+
+adopt Arcane.Http as Http
+
+steady PORTA := 3000
 
 app := Http.create("{name}")
 Http.cors(app)
 Http.logger(app)
 
-// ─── Database em memória ───
-db := {{
-    "users": [],
-    "next_id": 1
-}}
+itens := [
+    {{"id": 1, "nome": "Primeiro item", "status": "ativo"}}
+]
+proximo_id := 2
 
-// ─── Validação ───
-action validate_user(data):
-    given data is void:
-        yield {{"valid": no, "error": "Dados não fornecidos"}}
-    end
-    given data.name is void or length(data.name) smaller 2:
-        yield {{"valid": no, "error": "Nome deve ter pelo menos 2 caracteres"}}
-    end
-    given data.email is void:
-        yield {{"valid": no, "error": "Email é obrigatório"}}
-    end
-    yield {{"valid": yes}}
-end
+action listar(req, res):
+    res.json(itens)
 
-// CREATE
-Http.post(app, "/api/users", action(req, res):
-    validation := validate_user(req.json)
-    given validation.valid is no:
-        res.json({{"error": validation.error}}, 400)
-        yield void
-    end
-    user := {{
-        "id": db.next_id,
-        "name": req.json.name,
-        "email": req.json.email,
-        "created_at": "2025-01-01"
-    }}
-    db.next_id := db.next_id + 1
-    push(db.users, user)
-    res.json(user, 201)
-end)
-
-// READ ALL
-Http.get(app, "/api/users", action(req, res):
-    res.json(db.users)
-end)
-
-// READ ONE
-Http.get(app, "/api/users/:id", action(req, res):
-    id := to_number(req.params.id)
-    user := db.users >> sift(u => u.id is id) >> first()
-    given user isnot void:
-        res.json(user)
+action buscar(req, res):
+    id := int(req["params"]["id"])
+    achados := itens >> sift i: i["id"] is id
+    given len(achados) is 0:
+        res.json({{"erro": "Item nao encontrado"}}, 404)
     otherwise:
-        res.json({{"error": "Usuário não encontrado"}}, 404)
-    end
-end)
+        res.json(achados[0])
 
-// UPDATE
-Http.put(app, "/api/users/:id", action(req, res):
-    id := to_number(req.params.id)
-    cycle i in range(0, length(db.users)):
-        given db.users[i].id is id:
-            db.users[i].name := req.json.name or db.users[i].name
-            db.users[i].email := req.json.email or db.users[i].email
-            res.json(db.users[i])
-            yield void
-        end
-    end
-    res.json({{"error": "Usuário não encontrado"}}, 404)
-end)
+action criar(req, res):
+    corpo := req["json"]
+    item := {{
+        "id": proximo_id,
+        "nome": corpo["nome"],
+        "status": "ativo"
+    }}
+    proximo_id += 1
+    itens.append(item)
+    res.json(item, 201)
 
-// DELETE
-Http.delete(app, "/api/users/:id", action(req, res):
-    id := to_number(req.params.id)
-    db.users := db.users >> sift(u => u.id isnot id)
-    res.json({{"message": "Usuário removido"}})
-end)
+action remover(req, res):
+    id := int(req["params"]["id"])
+    itens := itens >> sift i: i["id"] isnt id
+    res.json({{"mensagem": "Item removido"}})
 
-show("🗃️ {name} — CRUD API")
-Http.listen(app, 3000)
-''',
-            "tests.df": '''// Testes do CRUD
-adopt Test from "Arcane.Test"
+Http.get(app, "/api/itens", listar)
+Http.get(app, "/api/itens/:id", buscar)
+Http.post(app, "/api/itens", criar)
+Http.delete(app, "/api/itens/:id", remover)
 
-Test.describe("Validação de Usuário", [
-    ["deve rejeitar dados vazios", action():
-        Test.assert_equal(validate_user(void).valid, no)
-    end],
-    ["deve aceitar dados válidos", action():
-        result := validate_user({{"name": "Teste", "email": "t@t.com"}})
-        Test.assert_equal(result.valid, yes)
-    end]
-])
+out "{name} escutando em http://localhost:" + str(PORTA)
+Http.listen(app, PORTA)
 ''',
             "README.md": '''# {name}
 
-CRUD API completa criada com **DataForge** v{version}.
+API REST criada com **DataForge** v{version}.
 
 ## Executar
 
@@ -556,55 +503,80 @@ dataforge run main.df
 
 ## Endpoints
 
-| Método | Rota | Descrição |
+| Metodo | Rota | Descricao |
 |--------|------|-----------|
-| POST | /api/users | Criar usuário |
-| GET | /api/users | Listar todos |
-| GET | /api/users/:id | Buscar por ID |
-| PUT | /api/users/:id | Atualizar |
-| DELETE | /api/users/:id | Remover |
+| GET | /api/itens | Lista todos |
+| GET | /api/itens/:id | Busca por id |
+| POST | /api/itens | Cria item |
+| DELETE | /api/itens/:id | Remove item |
+
+Servidor em `http://localhost:3000`.
+''',
+            "config.df": '''// Configuracoes do projeto
+steady API_PORT := 3000
+steady API_HOST := "0.0.0.0"
+steady API_NAME := "{name}"
+steady VERSION := "1.0.0"
+
+relay API_PORT, API_HOST, API_NAME, VERSION
 ''',
         }
     },
-    "fullstack": {
-        "name": "Fullstack App",
-        "description": "Aplicação completa com frontend HTML, API backend, e database",
-        "icon": "🚀",
+    "web": {
+        "name": "Web App",
+        "description": "Servidor HTTP com pagina HTML e arquivos estaticos",
+        "icon": "🖥️",
         "files": {
-            "server.df": '''// {name} - Fullstack Server
+            "main.df": '''// {name} — aplicacao web
 // Criado com DataForge v{version}
 
-adopt Http from "Arcane.Http"
+adopt Arcane.Http as Http
+
+steady PORTA := 3000
 
 app := Http.create("{name}")
 Http.cors(app)
 Http.logger(app)
 Http.static(app, "./public")
 
-// API
-tasks := []
-next_id := 1
+action home(req, res):
+    html := "<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'>"
+    html += "<title>{name}</title>"
+    html += "<style>body{{font-family:system-ui;max-width:720px;margin:60px auto;padding:0 20px}}</style>"
+    html += "</head><body>"
+    html += "<h1>{name}</h1>"
+    html += "<p>Servidor DataForge no ar.</p>"
+    html += "<p><a href='/api/status'>Ver status da API</a></p>"
+    html += "</body></html>"
+    res.html(html)
 
-Http.get(app, "/", action(req, res):
-    res.html("<!DOCTYPE html><html><head><title>{name}</title></head>"
-        + "<body><h1>🚀 {name}</h1>"
-        + "<p>Acesse <a href='/api/tasks'>/api/tasks</a></p>"
-        + "</body></html>")
-end)
+action status(req, res):
+    res.json({{
+        "status": "online",
+        "app": "{name}",
+        "versao": "1.0.0"
+    }})
 
-Http.get(app, "/api/tasks", action(req, res):
-    res.json(tasks)
-end)
+Http.get(app, "/", home)
+Http.get(app, "/api/status", status)
 
-Http.post(app, "/api/tasks", action(req, res):
-    task := {{"id": next_id, "title": req.json.title, "done": no}}
-    next_id := next_id + 1
-    push(tasks, task)
-    res.json(task, 201)
-end)
+out "{name} escutando em http://localhost:" + str(PORTA)
+Http.listen(app, PORTA)
+''',
+            "README.md": '''# {name}
 
-show("🚀 {name} iniciado!")
-Http.listen(app, 3000)
+Aplicacao web criada com **DataForge** v{version}.
+
+## Executar
+
+```bash
+dataforge run main.df
+```
+
+## Estrutura
+
+- `main.df` — servidor
+- `public/` — arquivos estaticos
 ''',
             "public/index.html": '''<!DOCTYPE html>
 <html lang="pt-BR">
@@ -612,32 +584,12 @@ Http.listen(app, 3000)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{name}</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: system-ui; background: #0f0f23; color: #eee; padding: 2rem; }}
-        h1 {{ color: #00d4ff; margin-bottom: 1rem; }}
-        .container {{ max-width: 600px; margin: 0 auto; }}
-    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🚀 {name}</h1>
-        <p>Aplicação fullstack DataForge</p>
-    </div>
+    <h1>{name}</h1>
+    <p>Arquivo estatico servido por DataForge.</p>
 </body>
 </html>
-''',
-            "README.md": '''# {name}
-
-Aplicação Fullstack criada com **DataForge** v{version}.
-
-## Executar
-
-```bash
-dataforge run server.df
-```
-
-Abre `http://localhost:3000` no navegador.
 ''',
         }
     },

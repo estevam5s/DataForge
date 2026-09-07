@@ -1,0 +1,21 @@
+// Exercicio 056 — Acoes de alta ordem
+// Enunciado: passe acoes como argumento e devolva acoes.
+
+action aplicar_duas_vezes(fn, valor):
+    yield fn(fn(valor))
+
+action dobro(x):
+    yield x * 2
+
+action fabrica_somador(n):
+    action somador(x):
+        yield x + n
+    yield somador
+
+out aplicar_duas_vezes(dobro, 5)
+soma10 := fabrica_somador(10)
+out soma10(5)
+
+assert aplicar_duas_vezes(dobro, 5) is 20, "aplicada duas vezes"
+assert soma10(5) is 15, "acao devolvida"
+assert fabrica_somador(3)(4) is 7, "chamada encadeada"

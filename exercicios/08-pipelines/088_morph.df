@@ -1,0 +1,16 @@
+// Exercicio 088 — morph (transformacao)
+// Enunciado: transforme cada elemento de um cluster.
+
+nums := [1, 2, 3, 4]
+quadrados := nums >> morph n: n ** 2
+textos := nums >> morph n: "item-" + str(n)
+
+out quadrados
+out textos
+
+assert quadrados is [1, 4, 9, 16], "quadrados"
+assert textos is ["item-1", "item-2", "item-3", "item-4"], "textos"
+
+precos := [100, 200, 300]
+com_imposto := precos >> morph p: round(p * 1.15, 2)
+assert com_imposto is [115.0, 230.0, 345.0], "com imposto"

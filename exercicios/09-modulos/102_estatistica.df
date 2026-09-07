@@ -1,0 +1,17 @@
+// Exercicio 102 — Estatistica descritiva
+// Enunciado: calcule medidas de posicao e dispersao.
+
+adopt Arcane.Math as Math
+
+amostra := [12, 15, 11, 18, 20, 15, 14, 19, 16, 15]
+
+out "media   ", round(Math.mean(amostra), 2)
+out "mediana ", Math.median(amostra)
+out "desvio  ", round(Math.stdev(amostra), 4)
+out "variancia", round(Math.variance(amostra), 4)
+
+assert Math.mean(amostra) is 15.5, "media"
+assert Math.median(amostra) is 15.0, "mediana"
+assert Math.min(amostra) is 11, "minimo"
+assert Math.max(amostra) is 20, "maximo"
+assert round(Math.stdev(amostra), 2) is 2.88, "desvio padrao"

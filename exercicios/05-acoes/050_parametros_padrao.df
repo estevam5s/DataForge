@@ -1,0 +1,12 @@
+// Exercicio 050 — Parametros com valor padrao
+// Enunciado: permita chamar a acao com menos argumentos.
+
+action criar_usuario(nome, papel := "leitor", ativo := yes):
+    yield {"nome": nome, "papel": papel, "ativo": ativo}
+
+out criar_usuario("Ana")
+out criar_usuario("Bruno", "admin")
+
+assert criar_usuario("Ana")["papel"] is "leitor", "padrao aplicado"
+assert criar_usuario("Bruno", "admin")["papel"] is "admin", "padrao sobrescrito"
+assert criar_usuario("Carla", "editor", no)["ativo"] is no, "terceiro argumento"

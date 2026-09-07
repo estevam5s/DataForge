@@ -1,0 +1,15 @@
+// Exercicio 067 — root (super)
+// Enunciado: chame a implementacao do pai a partir do filho.
+
+blueprint Base(nome):
+    action descrever():
+        yield "Base:" + self.nome
+
+blueprint Derivada(nome) extends Base:
+    action descrever():
+        yield "Derivada[" + root.descrever() + "]"
+
+d := spawn Derivada("teste")
+out d.descrever()
+
+assert d.descrever() is "Derivada[Base:teste]", "root chama o pai"

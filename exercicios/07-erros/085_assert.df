@@ -1,0 +1,18 @@
+// Exercicio 085 — assert
+// Enunciado: use assert como verificacao interna e capture a falha.
+
+action media(nums):
+    assert len(nums) bigger 0, "a lista nao pode ser vazia"
+    yield sum(nums) / len(nums)
+
+out media([2, 4, 6])
+assert media([2, 4, 6]) is 4.0, "media"
+
+falhou := no
+monitor:
+    media([])
+handle e:
+    falhou := yes
+    out "assert disparou:", e
+
+assert falhou is yes, "assert com lista vazia dispara"

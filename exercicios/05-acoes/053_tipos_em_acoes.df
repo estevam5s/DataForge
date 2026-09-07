@@ -1,0 +1,16 @@
+// Exercicio 053 — Acoes tipadas
+// Enunciado: anote parametros e retorno e comprove a checagem.
+
+action area_circulo(raio: Number) -> Float:
+    yield 3.14159 * raio ** 2
+
+out round(area_circulo(2), 4)
+assert round(area_circulo(2), 5) is 12.56636, "area"
+
+erro := no
+monitor:
+    area_circulo("dois")
+handle e:
+    erro := yes
+    out "erro esperado:", e
+assert erro is yes, "parametro tipado rejeita String"

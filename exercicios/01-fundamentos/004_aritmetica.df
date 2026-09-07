@@ -1,0 +1,21 @@
+// Exercicio 004 — Operadores aritmeticos
+// Enunciado: use +, -, *, /, %, ** e a divisao inteira ~/.
+
+a := 17
+b := 5
+
+out "soma       ", a + b
+out "subtracao  ", a - b
+out "produto    ", a * b
+out "divisao    ", a / b
+out "resto      ", a % b
+out "potencia   ", a ** 2
+out "div inteira", a ~/ b
+
+assert a + b is 22, "soma"
+assert a - b is 12, "subtracao"
+assert a * b is 85, "produto"
+assert a / b is 3.4, "divisao"
+assert a % b is 2, "resto"
+assert a ** 2 is 289, "potencia"
+assert a ~/ b is 3, "divisao inteira"

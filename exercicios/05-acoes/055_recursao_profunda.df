@@ -1,0 +1,21 @@
+// Exercicio 055 — Limite de recursao
+// Enunciado: comprove que recursao infinita vira erro controlado.
+
+action infinita(n):
+    yield infinita(n + 1)
+
+estourou := no
+monitor:
+    infinita(1)
+handle e:
+    estourou := yes
+    out "erro controlado:", e
+
+assert estourou is yes, "recursao infinita e detectada"
+
+action contar(n):
+    given n smaller_eq 0:
+        yield 0
+    yield 1 + contar(n - 1)
+assert contar(500) is 500, "recursao profunda legitima funciona"
+out "recursao de 500 niveis ok"

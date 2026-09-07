@@ -1,0 +1,21 @@
+// Exercicio 037 — Bubble sort
+// Enunciado: ordene um cluster sem usar sorted().
+
+action bubble(lista):
+    copia := lista.copy()
+    n := len(copia)
+    cycle i from 0 to n - 2:
+        cycle j from 0 to n - 2 - i:
+            given copia[j] bigger copia[j + 1]:
+                tmp := copia[j]
+                copia[j] := copia[j + 1]
+                copia[j + 1] := tmp
+    yield copia
+
+entrada := [5, 2, 9, 1, 7]
+saida := bubble(entrada)
+out "entrada:", entrada
+out "saida:  ", saida
+
+assert saida is [1, 2, 5, 7, 9], "ordenado"
+assert entrada is [5, 2, 9, 1, 7], "a entrada nao foi alterada"

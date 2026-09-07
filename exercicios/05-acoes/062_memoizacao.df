@@ -1,0 +1,21 @@
+// Exercicio 062 — Memoizacao manual
+// Enunciado: acelere fibonacci guardando resultados ja calculados.
+
+cache := {}
+chamadas := {"n": 0}
+
+action fib_memo(n):
+    chamadas["n"] := chamadas["n"] + 1
+    given n smaller 2:
+        yield n
+    given cache.has(str(n)):
+        yield cache[str(n)]
+    valor := fib_memo(n - 1) + fib_memo(n - 2)
+    cache[str(n)] := valor
+    yield valor
+
+out "fib(30) =", fib_memo(30)
+out "chamadas:", chamadas["n"]
+
+assert fib_memo(30) is 832040, "fib(30)"
+assert chamadas["n"] smaller 100, "memoizacao evita explosao de chamadas"

@@ -1,0 +1,16 @@
+// Exercicio 028 — Agregacoes numericas
+// Enunciado: calcule soma, minimo, maximo e media de um cluster.
+
+vendas := [120, 340, 90, 500, 210]
+
+out "soma  ", sum(vendas)
+out "minimo", min(vendas)
+out "maximo", max(vendas)
+out "media ", mean(vendas)
+out "desvio", round(stdev(vendas), 4)
+
+assert sum(vendas) is 1260, "soma"
+assert min(vendas) is 90, "minimo"
+assert max(vendas) is 500, "maximo"
+assert mean(vendas) is 252.0, "media"
+assert median(vendas) is 210, "mediana"

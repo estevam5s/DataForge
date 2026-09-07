@@ -1,3 +1,11 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Documento de **requisitos e planejamento**, não de comportamento atual. O que falta implementar de fato está em `doc/ANALISE_E_ROADMAP.md`.
+>
+> **Documentação vigente:** [`doc/TUTORIAL.md`](doc/TUTORIAL.md) · [`doc/REFERENCIA.md`](doc/REFERENCIA.md) · [`doc/BIBLIOTECA_PADRAO.md`](doc/BIBLIOTECA_PADRAO.md) · [`doc/INSTALACAO.md`](doc/INSTALACAO.md)
+
+---
+
 # DataForge
 
 ## Documento de Requisitos para Adição de Conteúdos à Linguagem

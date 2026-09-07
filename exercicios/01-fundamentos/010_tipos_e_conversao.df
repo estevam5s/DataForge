@@ -1,0 +1,19 @@
+// Exercicio 010 — typeof e cast
+// Enunciado: descubra o tipo de cada valor e converta entre tipos.
+
+out typeof(1), typeof(1.0), typeof("a"), typeof(yes), typeof([1]), typeof({"k": 1}), typeof(void)
+
+assert typeof(1) is "Integer", "Integer"
+assert typeof(1.0) is "Float", "Float"
+assert typeof("a") is "String", "String"
+assert typeof(yes) is "Boolean", "Boolean"
+assert typeof([1]) is "Cluster", "Cluster"
+assert typeof({"k": 1}) is "Vault", "Vault"
+assert typeof(void) is "Void", "Void"
+
+assert cast "42" as Integer is 42, "String para Integer"
+assert cast 42 as String is "42", "Integer para String"
+assert cast 3.9 as Integer is 3, "Float para Integer trunca"
+assert cast "3.5" as Float is 3.5, "String para Float"
+
+out "conversoes ok"

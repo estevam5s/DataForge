@@ -1,0 +1,17 @@
+// Exercicio 093 — Composicao de funcoes
+// Enunciado: combine acoes pequenas em uma maior.
+
+action mais_um(x):
+    yield x + 1
+
+action dobrar(x):
+    yield x * 2
+
+composta := compose(dobrar, mais_um)
+encadeada := pipe_fn(mais_um, dobrar)
+
+out composta(5)
+out encadeada(5)
+
+assert composta(5) is 12, "compose aplica da direita para a esquerda"
+assert encadeada(5) is 12, "pipe aplica da esquerda para a direita"

@@ -1,0 +1,13 @@
+// Exercicio 044 — Palindromo
+// Enunciado: verifique se uma frase e palindromo ignorando espacos e caixa.
+
+action eh_palindromo(texto):
+    limpo := texto.lower().replace(" ", "")
+    yield limpo is limpo.reverse()
+
+cycle t in ["Ana", "socorram me subi no onibus em marrocos", "DataForge"]:
+    out t, "->", eh_palindromo(t)
+
+assert eh_palindromo("Ana") is yes, "Ana"
+assert eh_palindromo("socorram me subi no onibus em marrocos") is yes, "frase"
+assert eh_palindromo("DataForge") is no, "nao e palindromo"

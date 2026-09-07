@@ -1,0 +1,25 @@
+// Exercicio 084 — propagate
+// Enunciado: registre o erro e repasse para o chamador.
+
+log := []
+
+action camada_baixa():
+    trigger "falha de disco"
+
+action camada_media():
+    monitor:
+        camada_baixa()
+    handle e:
+        log.append("media viu: " + e.message)
+        propagate e.message
+
+chegou := no
+monitor:
+    camada_media()
+handle e:
+    chegou := yes
+    log.append("topo viu: " + e.message)
+
+out log
+assert chegou is yes, "o erro subiu ate o topo"
+assert log is ["media viu: falha de disco", "topo viu: falha de disco"], "propagacao registrada"

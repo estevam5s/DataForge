@@ -1,0 +1,23 @@
+// Exercicio 052 — Verificacao de aridade
+// Enunciado: comprove que argumentos faltando ou sobrando disparam erro.
+
+action dividir(a, b):
+    yield a / b
+
+faltando := no
+monitor:
+    dividir(10)
+handle e:
+    faltando := yes
+    out "faltando:", e
+
+sobrando := no
+monitor:
+    dividir(1, 2, 3)
+handle e:
+    sobrando := yes
+    out "sobrando:", e
+
+assert faltando is yes, "argumento faltando dispara"
+assert sobrando is yes, "argumento sobrando dispara"
+assert dividir(10, 4) is 2.5, "chamada correta"

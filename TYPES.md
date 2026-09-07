@@ -1,3 +1,11 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Rascunho de um sistema de tipos **mais ambicioso do que o implementado**. Os tipos que realmente existem estão em `doc/REFERENCIA.md` §3.
+>
+> **Documentação vigente:** [`doc/TUTORIAL.md`](doc/TUTORIAL.md) · [`doc/REFERENCIA.md`](doc/REFERENCIA.md) · [`doc/BIBLIOTECA_PADRAO.md`](doc/BIBLIOTECA_PADRAO.md) · [`doc/INSTALACAO.md`](doc/INSTALACAO.md)
+
+---
+
 # TYPES.md
 
 ## Especificação Oficial de Tipos — Linguagem DataForge

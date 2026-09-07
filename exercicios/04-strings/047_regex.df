@@ -1,0 +1,19 @@
+// Exercicio 047 — Expressoes regulares
+// Enunciado: valide e extraia dados com Arcane.Regex.
+
+adopt Arcane.Regex as Regex
+
+texto := "contato: ana@exemplo.com e bruno@teste.org, tel (48) 99999-1234"
+
+emails := Regex.extract_emails(texto)
+numeros := Regex.extract_numbers(texto)
+
+out "emails: ", emails
+out "numeros:", numeros
+
+assert len(emails) is 2, "dois emails"
+assert emails[0] is "ana@exemplo.com", "primeiro email"
+assert Regex.is_email("ana@exemplo.com") is yes, "email valido"
+assert Regex.is_email("ana@") is no, "email invalido"
+assert Regex.test("\\d+", "abc123") is yes, "test encontra digitos"
+assert Regex.replace_all("\\d", "#", "texto1 texto2") is "texto# texto#", "replace_all"

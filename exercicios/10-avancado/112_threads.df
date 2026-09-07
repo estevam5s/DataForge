@@ -1,0 +1,16 @@
+// Exercicio 112 — thread
+// Enunciado: dispare trabalho em segundo plano e espere terminar.
+
+resultados := []
+
+thread:
+    cycle i from 1 to 3:
+        resultados.append("t1-" + str(i))
+
+thread:
+    cycle i from 1 to 3:
+        resultados.append("t2-" + str(i))
+
+wait 200
+out "itens produzidos:", len(resultados)
+assert len(resultados) is 6, "as duas threads produziram"

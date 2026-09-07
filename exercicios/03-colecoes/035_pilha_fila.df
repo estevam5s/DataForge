@@ -1,0 +1,20 @@
+// Exercicio 035 — Pilha e fila
+// Enunciado: implemente LIFO e FIFO usando cluster.
+
+pilha := []
+pilha.append("a")
+pilha.append("b")
+pilha.append("c")
+topo := pilha.pop()
+assert topo is "c", "pilha LIFO"
+assert pilha is ["a", "b"], "pilha apos pop"
+
+fila := []
+fila.append("x")
+fila.append("y")
+fila.append("z")
+primeiro := fila.pop(0)
+assert primeiro is "x", "fila FIFO"
+assert fila is ["y", "z"], "fila apos remover o primeiro"
+
+out "pilha:", pilha, "| fila:", fila

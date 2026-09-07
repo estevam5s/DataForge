@@ -1,0 +1,23 @@
+// Exercicio 080 — handle tipado
+// Enunciado: capture apenas um tipo de erro e deixe os outros passarem.
+
+capturou_runtime := no
+monitor:
+    x := 1 / 0
+handle RuntimeError as e:
+    capturou_runtime := yes
+    out "runtime:", e.type, "-", e.message
+
+assert capturou_runtime is yes, "capturou RuntimeError"
+
+escapou := no
+monitor:
+    monitor:
+        trigger "erro do usuario"
+    handle RuntimeError as e:
+        out "nao deveria capturar aqui"
+handle externo:
+    escapou := yes
+    out "escapou para o handler externo:", externo.type
+
+assert escapou is yes, "TriggerError nao casa com RuntimeError"

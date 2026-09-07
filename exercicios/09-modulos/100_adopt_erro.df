@@ -1,0 +1,15 @@
+// Exercicio 100 — Import inexistente
+// Enunciado: comprove que importar um modulo que nao existe dispara erro.
+
+falhou := no
+monitor:
+    adopt Arcane.NaoExiste as X
+handle e:
+    falhou := yes
+    out "erro esperado:", e.type
+
+assert falhou is yes, "modulo inexistente dispara ImportError"
+
+adopt Arcane.Math as M
+assert M.sqrt(9) is 3.0, "modulo valido funciona"
+out "Math.sqrt(9) =", M.sqrt(9)

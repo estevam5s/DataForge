@@ -1,3 +1,11 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Análise anterior. A auditoria atual, com bugs corrigidos e o que falta, está em `doc/ANALISE_E_ROADMAP.md`.
+>
+> **Documentação vigente:** [`doc/TUTORIAL.md`](TUTORIAL.md) · [`doc/REFERENCIA.md`](REFERENCIA.md) · [`doc/BIBLIOTECA_PADRAO.md`](BIBLIOTECA_PADRAO.md) · [`doc/INSTALACAO.md`](INSTALACAO.md)
+
+---
+
 # 🔍 DataForge: Análise Completa da Linguagem
 
 > **Respostas às perguntas essenciais sobre o DataForge Programming Language e análise aprofundada**

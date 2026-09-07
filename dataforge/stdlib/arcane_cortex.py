@@ -39,7 +39,7 @@ class ArcaneCortex:
             },
             "sigmoid": lambda x: 1 / (1 + math.exp(-x)) if isinstance(x, (int, float)) else x,
             "relu": lambda x: max(0, x) if isinstance(x, (int, float)) else x,
-            "softmax": cls._softmax,
+            "softmax": ArcaneCortex._softmax,
         }
 
     @staticmethod

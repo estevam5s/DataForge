@@ -1,0 +1,10 @@
+// Exercicio 051 — Argumentos nomeados
+// Enunciado: passe argumentos fora de ordem usando o nome.
+
+action retangulo(largura := 1, altura := 1):
+    yield largura * altura
+
+out retangulo(altura := 5, largura := 3)
+assert retangulo(altura := 5, largura := 3) is 15, "nomeados fora de ordem"
+assert retangulo(largura := 4) is 4, "so um nomeado"
+assert retangulo() is 1, "todos padrao"

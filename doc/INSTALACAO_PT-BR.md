@@ -1,3 +1,11 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Guia de instalação antigo, com exemplos que não compilam. O atual é `doc/INSTALACAO.md`.
+>
+> **Documentação vigente:** [`doc/TUTORIAL.md`](TUTORIAL.md) · [`doc/REFERENCIA.md`](REFERENCIA.md) · [`doc/BIBLIOTECA_PADRAO.md`](BIBLIOTECA_PADRAO.md) · [`doc/INSTALACAO.md`](INSTALACAO.md)
+
+---
+
 # 🇧🇷 DataForge - Guia de Instalação em Português
 
 Este guia fornece instruções completas para instalar e configurar o DataForge no Windows usando os comandos que **funcionaram com sucesso**.

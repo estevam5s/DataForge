@@ -1,0 +1,24 @@
+// Exercicio 091 — Pipeline com acao nomeada
+// Enunciado: reutilize acoes declaradas dentro do pipeline.
+
+action eh_primo(n):
+    given n smaller 2:
+        yield no
+    i := 2
+    persist i * i smaller_eq n:
+        given n % i is 0:
+            yield no
+        i += 1
+    yield yes
+
+action ao_quadrado(n):
+    yield n * n
+
+nums := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+primos := nums >> sift eh_primo
+quadrados_primos := nums >> sift eh_primo >> morph ao_quadrado
+
+out primos
+out quadrados_primos
+assert primos is [2, 3, 5, 7, 11], "primos"
+assert quadrados_primos is [4, 9, 25, 49, 121], "quadrados dos primos"

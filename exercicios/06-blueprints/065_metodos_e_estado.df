@@ -1,0 +1,27 @@
+// Exercicio 065 — Estado mutavel
+// Enunciado: uma conta bancaria que muda de saldo.
+
+blueprint Conta(titular, saldo):
+    action depositar(valor):
+        self.saldo := self.saldo + valor
+        yield self.saldo
+
+    action sacar(valor):
+        given valor bigger self.saldo:
+            trigger "Saldo insuficiente"
+        self.saldo := self.saldo - valor
+        yield self.saldo
+
+c := spawn Conta("Ana", 100)
+c.depositar(50)
+c.sacar(30)
+out c.titular, "tem", c.saldo
+
+assert c.saldo is 120, "saldo apos operacoes"
+
+erro := no
+monitor:
+    c.sacar(9999)
+handle e:
+    erro := yes
+assert erro is yes, "saque acima do saldo dispara"

@@ -1,0 +1,12 @@
+// Exercicio 005 — Precedencia de operadores
+// Enunciado: comprove a ordem de avaliacao e a associatividade de **.
+
+out 2 + 3 * 4
+out (2 + 3) * 4
+out 2 ** 3 ** 2
+out -2 ** 2
+
+assert 2 + 3 * 4 is 14, "multiplicacao antes da soma"
+assert (2 + 3) * 4 is 20, "parenteses primeiro"
+assert 2 ** 3 ** 2 is 512, "potencia associa a direita"
+assert -2 ** 2 is -4, "o sinal aplica depois da potencia"

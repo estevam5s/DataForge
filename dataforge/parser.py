@@ -349,8 +349,14 @@ class Parser:
         name = self.expect(TokenType.IDENTIFIER, "Expected action name").value
 
         self.expect(TokenType.LPAREN, "Expected '(' after action name")
-        params, defaults = self._parse_params()
+        params, defaults, param_types = self._parse_params()
         self.expect(TokenType.RPAREN, "Expected ')'")
+
+        # Optional return type: -> Type
+        return_type = ""
+        if self.match(TokenType.ARROW):
+            return_type = self.expect(
+                TokenType.IDENTIFIER, "Expected a return type after '->'").value
 
         # Allow action signatures without body (trait/abstract methods)
         if self.current().type in (TokenType.NEWLINE, TokenType.EOF, TokenType.DEDENT):
@@ -358,6 +364,7 @@ class Parser:
             return ast.ActionDeclaration(
                 name=name, params=params, defaults=defaults, body=[],
                 is_async=is_async, decorators=decorators or [],
+                param_types=param_types, return_type=return_type,
                 line=tok.line, column=tok.column
             )
 
@@ -368,6 +375,7 @@ class Parser:
         return ast.ActionDeclaration(
             name=name, params=params, defaults=defaults, body=body,
             is_async=is_async, decorators=decorators or [],
+            param_types=param_types, return_type=return_type,
             line=tok.line, column=tok.column
         )
 
@@ -589,14 +597,21 @@ class Parser:
         body = self.parse_block()
 
         handle_name = "error"
+        handle_type = ""
         handle_body = []
         ensure_body = []
 
         self.skip_newlines()
         if self.current().type == TokenType.HANDLE:
             self.advance()
+            # handle:  |  handle name:  |  handle Type as name:
             if self.current().type == TokenType.IDENTIFIER:
-                handle_name = self.advance().value
+                first = self.advance().value
+                if self.match(TokenType.AS):
+                    handle_type = first
+                    handle_name = self.expect(TokenType.IDENTIFIER, "Expected error name after 'as'").value
+                else:
+                    handle_name = first
             self.expect(TokenType.COLON)
             self.match(TokenType.NEWLINE)
             handle_body = self.parse_block()
@@ -609,8 +624,9 @@ class Parser:
             ensure_body = self.parse_block()
 
         return ast.MonitorBlock(
-            body=body, handle_name=handle_name, handle_body=handle_body,
-            ensure_body=ensure_body, line=tok.line, column=tok.column
+            body=body, handle_name=handle_name, handle_type=handle_type,
+            handle_body=handle_body, ensure_body=ensure_body,
+            line=tok.line, column=tok.column
         )
 
     def parse_out(self):
@@ -786,9 +802,51 @@ class Parser:
 
     # ── Expression statement / assignment ──────────────────
 
+    COMPOUND_ASSIGN = {
+        TokenType.PLUS_ASSIGN: "+",
+        TokenType.MINUS_ASSIGN: "-",
+        TokenType.STAR_ASSIGN: "*",
+        TokenType.SLASH_ASSIGN: "/",
+        TokenType.PERCENT_ASSIGN: "%",
+    }
+
     def parse_expression_statement(self):
-        """Parse an expression or assignment statement."""
+        """Parse an expression, an assignment, or a typed declaration."""
+        start = self.current()
+
+        # A keyword immediately followed by ':=' is a reserved-word mistake.
+        # Catch it here so the message names the word instead of pointing at
+        # whatever the keyword's own parser choked on.
+        if (start.type not in (TokenType.IDENTIFIER, TokenType.SELF)
+                and start.text and self.peek().type == TokenType.ASSIGN):
+            self.error(
+                f"'{start.text}' is a reserved keyword and cannot be assigned to. "
+                f"Pick another name.")
+
         expr = self.parse_expression()
+
+        # A keyword on the left of ':=' is a reserved-word mistake, not a
+        # mysterious "invalid target" at runtime.
+        if self.current().type == TokenType.ASSIGN and not isinstance(
+                expr, (ast.Identifier, ast.MemberAccess, ast.IndexAccess)):
+            word = start.text
+            if word:
+                self.error(
+                    f"'{word}' is a reserved keyword and cannot be assigned to. "
+                    f"Pick another name.")
+
+        # Typed declaration: name: Type := value
+        if (self.current().type == TokenType.COLON
+                and isinstance(expr, ast.Identifier)
+                and self.peek().type == TokenType.IDENTIFIER
+                and self.peek(2).type == TokenType.ASSIGN):
+            self.advance()  # ':'
+            declared = self.advance().value
+            self.advance()  # ':='
+            value = self.parse_expression()
+            self.match(TokenType.NEWLINE)
+            return ast.Assignment(target=expr, value=value, declared_type=declared,
+                                  line=expr.line, column=expr.column)
 
         # Assignment: target := value
         if self.current().type == TokenType.ASSIGN:
@@ -796,6 +854,17 @@ class Parser:
             value = self.parse_expression()
             self.match(TokenType.NEWLINE)
             return ast.Assignment(target=expr, value=value, line=expr.line, column=expr.column)
+
+        # Compound assignment: target += value (and friends)
+        if self.current().type in self.COMPOUND_ASSIGN:
+            op = self.COMPOUND_ASSIGN[self.current().type]
+            self.advance()
+            rhs = self.parse_expression()
+            self.match(TokenType.NEWLINE)
+            combined = ast.BinaryOp(left=expr, op=op, right=rhs,
+                                    line=expr.line, column=expr.column)
+            return ast.Assignment(target=expr, value=combined,
+                                  line=expr.line, column=expr.column)
 
         self.match(TokenType.NEWLINE)
         return expr  # Expression statement
@@ -907,27 +976,46 @@ class Parser:
             return ast.NotOp(operand=operand, line=tok.line, column=tok.column)
         return self.parse_comparison()
 
+    COMPARISON_OPS = {
+        TokenType.IS: "is",
+        TokenType.ISNT: "isnt",
+        TokenType.BIGGER: "bigger",
+        TokenType.SMALLER: "smaller",
+        TokenType.BIGGER_EQ: "bigger_eq",
+        TokenType.SMALLER_EQ: "smaller_eq",
+        TokenType.EQUAL: "==",
+        TokenType.NOT_EQUAL: "!=",
+        TokenType.GT: "bigger",
+        TokenType.LT: "smaller",
+        TokenType.GT_EQ: "bigger_eq",
+        TokenType.LT_EQ: "smaller_eq",
+    }
+
     def parse_comparison(self):
+        """Comparisons, including chains such as '1 smaller x smaller 10'."""
         left = self.parse_addition()
 
-        comp_types = {
-            TokenType.IS: "is",
-            TokenType.ISNT: "isnt",
-            TokenType.BIGGER: "bigger",
-            TokenType.SMALLER: "smaller",
-            TokenType.BIGGER_EQ: "bigger_eq",
-            TokenType.SMALLER_EQ: "smaller_eq",
-            TokenType.EQUAL: "==",
-            TokenType.NOT_EQUAL: "!=",
-        }
+        if self.current().type not in self.COMPARISON_OPS:
+            return left
 
-        if self.current().type in comp_types:
-            op = comp_types[self.current().type]
+        op = self.COMPARISON_OPS[self.current().type]
+        self.advance()
+        right = self.parse_addition()
+        result = ast.ComparisonOp(left=left, op=op, right=right,
+                                  line=left.line, column=left.column)
+
+        # Chained comparison: a < b < c  ==>  (a < b) and (b < c)
+        while self.current().type in self.COMPARISON_OPS:
+            op = self.COMPARISON_OPS[self.current().type]
             self.advance()
-            right = self.parse_addition()
-            return ast.ComparisonOp(left=left, op=op, right=right, line=left.line, column=left.column)
+            next_right = self.parse_addition()
+            link = ast.ComparisonOp(left=right, op=op, right=next_right,
+                                    line=right.line, column=right.column)
+            result = ast.LogicalOp(left=result, op="and", right=link,
+                                   line=result.line, column=result.column)
+            right = next_right
 
-        return left
+        return result
 
     def parse_addition(self):
         left = self.parse_multiplication()
@@ -938,22 +1026,19 @@ class Parser:
         return left
 
     def parse_multiplication(self):
-        left = self.parse_power()
+        left = self.parse_unary()
         while self.current().type in (TokenType.STAR, TokenType.SLASH, TokenType.PERCENT, TokenType.FLOOR_DIV):
             op = self.advance().value
-            right = self.parse_power()
+            right = self.parse_unary()
             left = ast.BinaryOp(left=left, op=op, right=right, line=left.line, column=left.column)
         return left
 
-    def parse_power(self):
-        base = self.parse_unary()
-        if self.current().type == TokenType.POWER:
-            self.advance()
-            exp = self.parse_unary()
-            return ast.BinaryOp(left=base, op="**", right=exp, line=base.line, column=base.column)
-        return base
-
     def parse_unary(self):
+        """Sign and 'not', binding looser than '**' so -2 ** 2 == -(2 ** 2)."""
+        if self.current().type == TokenType.PLUS:
+            tok = self.advance()
+            operand = self.parse_unary()
+            return ast.UnaryOp(op="+", operand=operand, line=tok.line, column=tok.column)
         if self.current().type == TokenType.MINUS:
             tok = self.advance()
             operand = self.parse_unary()
@@ -962,7 +1047,39 @@ class Parser:
             tok = self.advance()
             operand = self.parse_unary()
             return ast.NotOp(operand=operand, line=tok.line, column=tok.column)
-        return self.parse_postfix()
+        return self.parse_power()
+
+    def parse_power(self):
+        """Exponentiation, right-associative: 2 ** 3 ** 2 == 2 ** (3 ** 2)."""
+        base = self.parse_postfix()
+        if self.current().type == TokenType.POWER:
+            self.advance()
+            exp = self.parse_unary()
+            return ast.BinaryOp(left=base, op="**", right=exp, line=base.line, column=base.column)
+        return base
+
+    def _parse_subscript(self, expr):
+        """Parse the inside of '[...]': an index or a slice (start:stop:step)."""
+        start = None
+        if self.current().type != TokenType.COLON:
+            start = self.parse_expression()
+
+        if self.current().type != TokenType.COLON:
+            self.expect(TokenType.RBRACKET)
+            return ast.IndexAccess(object=expr, index=start,
+                                   line=expr.line, column=expr.column)
+
+        self.advance()  # first ':'
+        stop = None
+        step = None
+        if self.current().type not in (TokenType.RBRACKET, TokenType.COLON):
+            stop = self.parse_expression()
+        if self.match(TokenType.COLON):
+            if self.current().type != TokenType.RBRACKET:
+                step = self.parse_expression()
+        self.expect(TokenType.RBRACKET)
+        return ast.SliceAccess(object=expr, start=start, stop=stop, step=step,
+                               line=expr.line, column=expr.column)
 
     def parse_postfix(self):
         """Handle member access, indexing, and function calls."""
@@ -989,13 +1106,10 @@ class Parser:
                     )
             elif self.current().type == TokenType.LBRACKET:
                 self.advance()
-                index = self.parse_expression()
-                self.expect(TokenType.RBRACKET)
-                expr = ast.IndexAccess(
-                    object=expr, index=index,
-                    line=expr.line, column=expr.column
-                )
-            elif self.current().type == TokenType.LPAREN and isinstance(expr, ast.Identifier):
+                expr = self._parse_subscript(expr)
+            elif self.current().type == TokenType.LPAREN and isinstance(
+                    expr, (ast.Identifier, ast.FunctionCall, ast.MethodCall,
+                           ast.IndexAccess, ast.MemberAccess)):
                 self.advance()
                 args, kwargs = self._parse_call_args()
                 self.expect(TokenType.RPAREN)
@@ -1083,6 +1197,40 @@ class Parser:
                 )
             return ast.SpawnExpression(class_name=class_expr, line=tok.line, column=tok.column)
 
+        # Lambda: lambda a, b: expr   |   lambda a, b => expr   |   lambda: expr
+        if tok.type == TokenType.LAMBDA:
+            self.advance()
+            params = []
+            param_types = {}
+            defaults = {}
+            has_parens = bool(self.match(TokenType.LPAREN))
+            while self.current().type == TokenType.IDENTIFIER:
+                name = self.advance().value
+                params.append(name)
+                # A ':' type annotation is only unambiguous inside parentheses;
+                # without them 'lambda n: n' means the body starts at ':'.
+                if has_parens and self.match(TokenType.COLON):
+                    param_types[name] = self.expect(
+                        TokenType.IDENTIFIER, "Expected a type name after ':'").value
+                if self.match(TokenType.ASSIGN):
+                    defaults[name] = self.parse_or()
+                if not self.match(TokenType.COMMA):
+                    break
+            if has_parens:
+                self.expect(TokenType.RPAREN, "Expected ')' after lambda parameters")
+            if not self.match(TokenType.COLON, TokenType.FAT_ARROW):
+                self.error("Expected ':' or '=>' after lambda parameters")
+            body = self.parse_or()
+            return ast.LambdaExpression(params=params, defaults=defaults,
+                                        param_types=param_types, body=body,
+                                        line=tok.line, column=tok.column)
+
+        # Stream: stream <expr>
+        if tok.type == TokenType.STREAM:
+            self.advance()
+            source = self.parse_or()
+            return ast.StreamExpression(source=source, line=tok.line, column=tok.column)
+
         # Typeof
         if tok.type == TokenType.TYPEOF:
             self.advance()
@@ -1153,6 +1301,13 @@ class Parser:
             self.advance()
             return ast.Identifier(name=tok.value, line=tok.line, column=tok.column)
 
+        word = tok.text
+        if word and self.peek().type in (TokenType.ASSIGN, TokenType.COLON):
+            self.error(
+                f"'{word}' is a reserved keyword and cannot be used as a name. "
+                f"Pick another identifier.")
+        if word:
+            self.error(f"Unexpected token: {tok.type.name} ('{word}')")
         self.error(f"Unexpected token: {tok.type.name} ({tok.value!r})")
 
     def parse_list(self):
@@ -1187,16 +1342,20 @@ class Parser:
     # ── Helper: parse parameters ───────────────────────────
 
     def _parse_params(self):
-        """Parse function parameter list: (a, b, c := default)"""
+        """Parse a parameter list: (a, b: Integer, c := default)."""
         params = []
         defaults = {}
+        types = {}
         while self.current().type != TokenType.RPAREN:
             name = self.expect(TokenType.IDENTIFIER).value
             params.append(name)
+            if self.match(TokenType.COLON):
+                types[name] = self.expect(
+                    TokenType.IDENTIFIER, "Expected a type name after ':'").value
             if self.match(TokenType.ASSIGN):
                 defaults[name] = self.parse_expression()
             self.match(TokenType.COMMA)
-        return params, defaults
+        return params, defaults, types
 
     def _parse_call_args(self):
         """Parse function call arguments: (a, b, key := val)"""

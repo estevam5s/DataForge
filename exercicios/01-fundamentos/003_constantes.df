@@ -1,0 +1,16 @@
+// Exercicio 003 — Constantes com steady
+// Enunciado: declare constantes e comprove que reatribuir dispara erro.
+
+steady PI := 3.14159
+steady APP := "DataForge"
+
+out PI, APP
+
+reatribuiu := no
+monitor:
+    PI := 0
+    reatribuiu := yes
+handle e:
+    out "Erro esperado:", e
+
+assert reatribuiu is no, "steady nao pode ser reatribuida"

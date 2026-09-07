@@ -1,3 +1,11 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Documentação da v3.0 com exemplos que **não compilam** na versão atual. Use `doc/TUTORIAL.md` e `doc/REFERENCIA.md`.
+>
+> **Documentação vigente:** [`doc/TUTORIAL.md`](TUTORIAL.md) · [`doc/REFERENCIA.md`](REFERENCIA.md) · [`doc/BIBLIOTECA_PADRAO.md`](BIBLIOTECA_PADRAO.md) · [`doc/INSTALACAO.md`](INSTALACAO.md)
+
+---
+
 # 📖 DataForge — Documentação Completa
 
 > **DataForge v3.0** — Uma linguagem de programação inovadora construída sobre Python, com sintaxe única e palavras reservadas totalmente originais.

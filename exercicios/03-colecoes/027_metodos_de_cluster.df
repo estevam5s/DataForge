@@ -1,0 +1,25 @@
+// Exercicio 027 — Metodos de cluster
+// Enunciado: use append, insert, remove, pop, sort e reverse.
+
+pilha := [3, 1, 2]
+pilha.append(4)
+assert pilha is [3, 1, 2, 4], "append"
+
+pilha.insert(0, 0)
+assert pilha is [0, 3, 1, 2, 4], "insert"
+
+pilha.remove(3)
+assert pilha is [0, 1, 2, 4], "remove"
+
+ultimo := pilha.pop()
+assert ultimo is 4, "pop devolve o ultimo"
+assert pilha is [0, 1, 2], "pop remove"
+
+pilha.append(9)
+pilha.reverse()
+assert pilha is [9, 2, 1, 0], "reverse"
+
+pilha.sort()
+assert pilha is [0, 1, 2, 9], "sort"
+
+out "cluster final:", pilha

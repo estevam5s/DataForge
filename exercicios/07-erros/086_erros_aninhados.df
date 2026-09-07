@@ -1,0 +1,27 @@
+// Exercicio 086 — Pilha de erros e recuperacao
+// Enunciado: converta valores com fallback em varias camadas.
+
+action para_inteiro(texto, padrao := 0):
+    monitor:
+        yield cast texto as Integer
+    handle e:
+        yield padrao
+
+entradas := ["10", "abc", "42", ""]
+convertidos := []
+cycle t in entradas:
+    convertidos.append(para_inteiro(t, -1))
+
+out convertidos
+assert convertidos is [10, -1, 42, -1], "conversao com fallback"
+
+// erro dentro de laco nao interrompe as demais iteracoes
+processados := 0
+cycle n in [1, 0, 2, 0, 3]:
+    monitor:
+        x := 10 / n
+        processados += 1
+    handle e:
+        skip
+assert processados is 3, "tres divisoes validas"
+out "processados:", processados

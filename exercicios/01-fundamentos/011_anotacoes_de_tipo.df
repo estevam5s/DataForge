@@ -1,0 +1,19 @@
+// Exercicio 011 — Anotacoes de tipo
+// Enunciado: declare variaveis tipadas e comprove que o tipo errado dispara erro.
+
+idade: Integer := 30
+nome: String := "Ana"
+altura: Float := 1.72
+ativo: Boolean := yes
+tags: Cluster := ["a", "b"]
+
+out idade, nome, altura, ativo, tags
+
+falhou := no
+monitor:
+    peso: Integer := "setenta"
+handle e:
+    falhou := yes
+    out "Erro esperado:", e
+
+assert falhou is yes, "atribuir String a Integer deve falhar"

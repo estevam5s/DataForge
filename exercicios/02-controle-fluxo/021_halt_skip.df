@@ -1,0 +1,13 @@
+// Exercicio 021 — halt e skip
+// Enunciado: pule os multiplos de 3 e pare ao encontrar o primeiro maior que 10.
+
+selecionados := []
+cycle i from 1 to 100:
+    given i % 3 is 0:
+        skip
+    given i bigger 10:
+        halt
+    selecionados.append(i)
+
+out selecionados
+assert selecionados is [1, 2, 4, 5, 7, 8, 10], "pulou multiplos de 3 e parou em 11"

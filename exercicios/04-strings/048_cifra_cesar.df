@@ -1,0 +1,26 @@
+// Exercicio 048 — Cifra de Cesar
+// Enunciado: cifre e decifre um texto deslocando as letras.
+
+action cifrar(texto, desloc):
+    saida := ""
+    cycle c in texto:
+        given c.isalpha():
+            base := 97
+            given c.isupper():
+                base := 65
+            pos := (ord(c) - base + desloc) % 26
+            saida += char(base + pos)
+        otherwise:
+            saida += c
+    yield saida
+
+original := "DataForge Rocks"
+cifrado := cifrar(original, 3)
+decifrado := cifrar(cifrado, -3)
+
+out "original: ", original
+out "cifrado:  ", cifrado
+out "decifrado:", decifrado
+
+assert cifrado is "GdwdIrujh Urfnv", "cifra +3"
+assert decifrado is original, "ida e volta"

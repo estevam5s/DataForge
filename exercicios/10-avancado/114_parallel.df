@@ -1,0 +1,17 @@
+// Exercicio 114 — parallel
+// Enunciado: rode varias tarefas ao mesmo tempo.
+
+adopt Arcane.Math as Math
+
+saidas := []
+
+parallel:
+    saidas.append("tarefa A: " + str(Math.factorial(10)))
+    saidas.append("tarefa B: " + str(Math.fibonacci(20)))
+    saidas.append("tarefa C: " + str(Math.is_prime(9973)))
+
+wait 200
+cycle s in sorted(saidas):
+    out s
+
+assert len(saidas) is 3, "tres tarefas concluidas"

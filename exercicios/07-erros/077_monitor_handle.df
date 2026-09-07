@@ -1,0 +1,12 @@
+// Exercicio 077 — monitor / handle
+// Enunciado: capture uma divisao por zero sem derrubar o programa.
+
+resultado := void
+monitor:
+    resultado := 10 / 0
+handle e:
+    out "capturado:", e
+    resultado := -1
+
+out "continuou, resultado =", resultado
+assert resultado is -1, "o handle rodou"

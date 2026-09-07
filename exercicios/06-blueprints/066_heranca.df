@@ -1,0 +1,25 @@
+// Exercicio 066 — Heranca com extends
+// Enunciado: especialize um blueprint reutilizando o pai.
+
+blueprint Animal(nome):
+    action falar():
+        yield "..."
+
+    action apresentar():
+        yield self.nome + " diz " + self.falar()
+
+blueprint Cachorro(nome) extends Animal:
+    action falar():
+        yield "Au au"
+
+blueprint Gato(nome) extends Animal:
+    action falar():
+        yield "Miau"
+
+bichos := [spawn Cachorro("Rex"), spawn Gato("Mia"), spawn Animal("X")]
+cycle b in bichos:
+    out b.apresentar()
+
+assert bichos[0].apresentar() is "Rex diz Au au", "cachorro"
+assert bichos[1].apresentar() is "Mia diz Miau", "gato"
+assert bichos[2].falar() is "...", "animal generico"

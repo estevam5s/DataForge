@@ -1,0 +1,25 @@
+// Exercicio 024 — guard como pre-condicao
+// Enunciado: use guard para sair cedo de uma acao com entrada invalida.
+
+action raiz_segura(n):
+    guard n bigger_eq 0 otherwise:
+        out "  entrada negativa, devolvendo void"
+    yield sqrt(n)
+
+out raiz_segura(16)
+out raiz_segura(-4)
+
+assert raiz_segura(16) is 4.0, "raiz de 16"
+assert raiz_segura(-4) is void, "guard interrompe a acao"
+
+// guard com mensagem dispara erro
+disparou := no
+action exige_positivo(n):
+    guard n bigger 0, "n precisa ser positivo"
+    yield n
+monitor:
+    exige_positivo(-1)
+handle e:
+    disparou := yes
+    out "  erro:", e
+assert disparou is yes, "guard com mensagem dispara"

@@ -1,0 +1,15 @@
+// Exercicio 107 — JSON
+// Enunciado: serialize e desserialize estruturas.
+
+original := {"nome": "Ana", "tags": ["a", "b"], "ativo": yes, "nota": 9.5}
+
+texto := to_json(original)
+out texto
+
+volta := from_json(texto)
+out volta
+
+assert typeof(texto) is "String", "to_json devolve String"
+assert volta["nome"] is "Ana", "nome preservado"
+assert volta["tags"] is ["a", "b"], "lista preservada"
+assert volta["nota"] is 9.5, "float preservado"

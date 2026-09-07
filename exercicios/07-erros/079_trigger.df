@@ -1,0 +1,23 @@
+// Exercicio 079 — trigger (lancar erro)
+// Enunciado: valide a entrada de uma acao lancando erros descritivos.
+
+action idade_valida(n):
+    given typeof(n) isnt "Integer":
+        trigger "idade precisa ser Integer"
+    given n smaller 0:
+        trigger "idade nao pode ser negativa"
+    given n bigger 150:
+        trigger "idade improvavel"
+    yield n
+
+erros := []
+cycle entrada in ["x", -5, 200, 30]:
+    monitor:
+        out "ok:", idade_valida(entrada)
+    handle e:
+        erros.append(e.message)
+        out "erro:", e
+
+assert len(erros) is 3, "tres entradas invalidas"
+assert erros[0] is "idade precisa ser Integer", "tipo"
+assert erros[1] is "idade nao pode ser negativa", "negativa"

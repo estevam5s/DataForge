@@ -405,6 +405,10 @@ class ArcaneAnalytics:
 
     @staticmethod
     def _group_by(data, key_fn):
+        """Group records. 'key_fn' may be a callable or the name of a field."""
+        if isinstance(key_fn, str):
+            field = key_fn
+            key_fn = lambda item: item.get(field) if isinstance(item, dict) else getattr(item, field, None)
         groups = defaultdict(list)
         for item in data:
             k = key_fn(item)

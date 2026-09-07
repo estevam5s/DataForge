@@ -1,0 +1,16 @@
+// Exercicio 046 — Templates de texto
+// Enunciado: preencha um modelo com dados de um vault.
+
+adopt Arcane.Text as Text
+
+modelo := "Ola {nome}, voce tem {pontos} pontos."
+dados := {"nome": "Ana", "pontos": 120}
+mensagem := Text.render(modelo, dados)
+
+out mensagem
+assert mensagem is "Ola Ana, voce tem 120 pontos.", "render"
+
+assert Text.slug("Ola Mundo DataForge!") is "ola-mundo-dataforge", "slug"
+assert Text.snake_case("MinhaVariavelLegal") is "minha_variavel_legal", "snake_case"
+assert Text.truncate("frase bem longa demais", 10) is "frase b...", "truncate"
+out Text.slug("Ola Mundo DataForge!")

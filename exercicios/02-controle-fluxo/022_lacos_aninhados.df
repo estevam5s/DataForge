@@ -1,0 +1,13 @@
+// Exercicio 022 — Lacos aninhados
+// Enunciado: imprima a tabuada de 1 a 3 e monte a matriz de produtos.
+
+matriz := []
+cycle i from 1 to 3:
+    linha := []
+    cycle j from 1 to 3:
+        linha.append(i * j)
+    matriz.append(linha)
+    out "tabuada do", i, ":", linha
+
+assert matriz is [[1, 2, 3], [2, 4, 6], [3, 6, 9]], "matriz de produtos"
+assert matriz[2][2] is 9, "3 x 3"

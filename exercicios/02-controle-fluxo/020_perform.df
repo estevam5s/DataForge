@@ -1,0 +1,18 @@
+// Exercicio 020 — Laco perform (do-while)
+// Enunciado: garanta que o corpo execute ao menos uma vez.
+
+execucoes := 0
+perform:
+    execucoes += 1
+persist no
+
+out "executou", execucoes, "vez(es) mesmo com condicao falsa"
+assert execucoes is 1, "do-while roda ao menos uma vez"
+
+contagem := 0
+i := 0
+perform:
+    i += 1
+    contagem += i
+persist i smaller 4
+assert contagem is 10, "1+2+3+4"

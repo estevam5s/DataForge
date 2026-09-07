@@ -1,0 +1,18 @@
+// Exercicio 104 — Regressao linear
+// Enunciado: ajuste uma reta e faca previsoes.
+
+adopt Arcane.Analytics as An
+
+x := [1, 2, 3, 4, 5]
+y := [3, 5, 7, 9, 11]
+
+modelo := An.linear_regression(x, y)
+out "modelo:", modelo
+
+previsto := An.predict_linear(modelo, 6)
+out "previsao para x=6:", previsto
+
+assert round(modelo["slope"], 4) is 2.0, "inclinacao"
+assert round(modelo["intercept"], 4) is 1.0, "intercepto"
+assert round(previsto, 4) is 13.0, "previsao"
+assert round(An.r_squared(x, y), 4) is 1.0, "ajuste perfeito"

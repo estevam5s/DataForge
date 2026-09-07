@@ -1,0 +1,13 @@
+// Exercicio 041 — Busca dentro de texto
+// Enunciado: descubra se e onde um trecho aparece.
+
+frase := "DataForge e uma linguagem de programacao"
+
+out frase.contains("linguagem"), frase.find("linguagem"), frase.startswith("Data"), frase.endswith("cao")
+
+assert frase.contains("linguagem") is yes, "contains"
+assert frase.find("linguagem") is 16, "posicao"
+assert frase.find("python") is -1, "ausente devolve -1"
+assert frase.startswith("Data") is yes, "startswith"
+assert frase.endswith("cao") is yes, "endswith"
+assert frase.count("a") is 7, "contagem de a"

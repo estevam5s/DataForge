@@ -1,0 +1,21 @@
+// Exercicio 075 — Padrao Singleton
+// Enunciado: garanta uma unica instancia de configuracao usando membro estatico.
+
+blueprint Config:
+    static instancia := void
+
+    action setup():
+        self.valores := {"tema": "escuro"}
+
+action config_unica():
+    given Config.instancia is void:
+        Config.instancia := spawn Config()
+    yield Config.instancia
+
+a := config_unica()
+b := config_unica()
+a.valores["tema"] := "claro"
+
+out b.valores
+assert b.valores["tema"] is "claro", "a e b sao a mesma instancia"
+assert Config.instancia isnt void, "a instancia ficou guardada no estatico"

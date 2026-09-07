@@ -1,0 +1,17 @@
+// Exercicio 061 — Escopo e shadow
+// Enunciado: entenda quando uma acao le e quando cria uma variavel.
+
+global_x := 10
+
+action le_global():
+    yield global_x
+
+action sombreia():
+    shadow global_x := 99
+    yield global_x
+
+out le_global(), sombreia(), global_x
+
+assert le_global() is 10, "le do escopo externo"
+assert sombreia() is 99, "shadow cria uma copia local"
+assert global_x is 10, "o valor externo nao mudou"

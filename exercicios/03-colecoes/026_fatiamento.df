@@ -1,0 +1,13 @@
+// Exercicio 026 — Fatiamento
+// Enunciado: extraia trechos de um cluster com [inicio:fim:passo].
+
+letras := ["a", "b", "c", "d", "e", "f"]
+
+out letras[1:4], letras[:3], letras[3:], letras[::2], letras[-2:]
+
+assert letras[1:4] is ["b", "c", "d"], "intervalo"
+assert letras[:3] is ["a", "b", "c"], "do inicio"
+assert letras[3:] is ["d", "e", "f"], "ate o fim"
+assert letras[::2] is ["a", "c", "e"], "passo 2"
+assert letras[-2:] is ["e", "f"], "dois ultimos"
+assert letras[::-1] is ["f", "e", "d", "c", "b", "a"], "invertido"

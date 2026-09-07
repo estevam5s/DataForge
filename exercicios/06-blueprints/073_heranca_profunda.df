@@ -1,0 +1,23 @@
+// Exercicio 073 — Cadeia de heranca
+// Enunciado: tres niveis de heranca e resolucao de metodos.
+
+blueprint A:
+    action quem():
+        yield "A"
+    action so_de_a():
+        yield "metodo de A"
+
+blueprint B extends A:
+    action quem():
+        yield "B"
+
+blueprint C extends B:
+    action quem():
+        yield "C"
+
+c := spawn C()
+out c.quem(), c.so_de_a()
+
+assert c.quem() is "C", "o mais especifico vence"
+assert c.so_de_a() is "metodo de A", "herda do avo"
+assert class_name(c) is "C", "class_name"

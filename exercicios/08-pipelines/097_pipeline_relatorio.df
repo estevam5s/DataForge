@@ -1,0 +1,29 @@
+// Exercicio 097 — Relatorio com pipelines
+// Enunciado: gere um resumo de vendas por vendedor.
+
+vendas := [
+    {"vendedor": "Ana", "valor": 1200},
+    {"vendedor": "Bruno", "valor": 800},
+    {"vendedor": "Ana", "valor": 300},
+    {"vendedor": "Carla", "valor": 2000},
+    {"vendedor": "Bruno", "valor": 450}
+]
+
+por_vendedor := {}
+cycle v in vendas:
+    nome := v["vendedor"]
+    atual := por_vendedor.get(nome, 0)
+    por_vendedor[nome] := atual + v["valor"]
+
+out "=== total por vendedor ==="
+cycle par in por_vendedor.items():
+    out "  " + par[0].pad_end(8) + "R$ " + str(par[1])
+
+valores := vendas >> morph v: v["valor"]
+out "faturamento:", sum(valores)
+out "ticket medio:", round(mean(valores), 2)
+
+assert por_vendedor["Ana"] is 1500, "Ana"
+assert por_vendedor["Bruno"] is 1250, "Bruno"
+assert sum(valores) is 4750, "faturamento"
+assert round(mean(valores), 1) is 950.0, "ticket medio"

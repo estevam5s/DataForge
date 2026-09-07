@@ -1,0 +1,17 @@
+// Exercicio 070 — Membros estaticos
+// Enunciado: conte quantas instancias foram criadas.
+
+blueprint Registro(dado):
+    static criados := 0
+
+    action registrar():
+        Registro.criados := Registro.criados + 1
+        yield Registro.criados
+
+assert Registro.criados is 0, "comeca em zero"
+a := spawn Registro("x")
+b := spawn Registro("y")
+a.registrar()
+b.registrar()
+out "instancias registradas:", Registro.criados
+assert Registro.criados is 2, "contador estatico compartilhado"

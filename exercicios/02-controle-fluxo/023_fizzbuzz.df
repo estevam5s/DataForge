@@ -1,0 +1,23 @@
+// Exercicio 023 — FizzBuzz
+// Enunciado: para 1..15, diga Fizz, Buzz, FizzBuzz ou o proprio numero.
+
+action fizzbuzz(n):
+    given n % 15 is 0:
+        yield "FizzBuzz"
+    orif n % 3 is 0:
+        yield "Fizz"
+    orif n % 5 is 0:
+        yield "Buzz"
+    otherwise:
+        yield str(n)
+
+resultado := []
+cycle i from 1 to 15:
+    resultado.append(fizzbuzz(i))
+
+out resultado.join(" ")
+assert fizzbuzz(3) is "Fizz", "3"
+assert fizzbuzz(5) is "Buzz", "5"
+assert fizzbuzz(15) is "FizzBuzz", "15"
+assert fizzbuzz(7) is "7", "7"
+assert len(resultado) is 15, "15 itens"

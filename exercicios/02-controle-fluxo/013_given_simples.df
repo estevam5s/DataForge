@@ -1,0 +1,17 @@
+// Exercicio 013 — Condicional given
+// Enunciado: classifique um numero como positivo, negativo ou zero.
+
+action classificar(n):
+    given n bigger 0:
+        yield "positivo"
+    orif n smaller 0:
+        yield "negativo"
+    otherwise:
+        yield "zero"
+
+cycle n in [5, -3, 0]:
+    out n, "->", classificar(n)
+
+assert classificar(5) is "positivo", "positivo"
+assert classificar(-3) is "negativo", "negativo"
+assert classificar(0) is "zero", "zero"

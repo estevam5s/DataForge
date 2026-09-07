@@ -1,0 +1,22 @@
+// Exercicio 059 — Decoradores com mark
+// Enunciado: envolva uma acao com log sem alterar seu corpo.
+
+registro := []
+
+action com_log(fn):
+    action envolvida(x):
+        registro.append("chamada com " + str(x))
+        yield fn(x)
+    yield envolvida
+
+mark @com_log
+action triplo(x):
+    yield x * 3
+
+out triplo(5)
+out triplo(2)
+out registro
+
+assert triplo(4) is 12, "a acao decorada continua correta"
+assert len(registro) is 3, "o decorador registrou 3 chamadas"
+assert registro[0] is "chamada com 5", "primeiro registro"

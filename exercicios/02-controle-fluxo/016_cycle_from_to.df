@@ -1,0 +1,9 @@
+// Exercicio 016 — Laco cycle from/to
+// Enunciado: some os numeros de 1 a 100.
+
+total := 0
+cycle i from 1 to 100:
+    total += i
+
+out "soma de 1 a 100 =", total
+assert total is 5050, "soma de Gauss"

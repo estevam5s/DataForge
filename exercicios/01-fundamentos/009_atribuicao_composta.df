@@ -1,0 +1,18 @@
+// Exercicio 009 — Atribuicao composta
+// Enunciado: use +=, -=, *=, /= e %= para transformar um saldo.
+
+saldo := 100
+saldo += 50
+assert saldo is 150, "apos +="
+saldo -= 30
+assert saldo is 120, "apos -="
+saldo *= 2
+assert saldo is 240, "apos *="
+saldo /= 4
+assert saldo is 60.0, "apos /="
+resto := 17
+resto %= 5
+assert resto is 2, "apos %="
+
+out "saldo final:", saldo
+out "resto:", resto

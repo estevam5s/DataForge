@@ -1,0 +1,19 @@
+// Exercicio 074 — Introspeccao
+// Enunciado: descubra campos, metodos e tipo de uma instancia.
+
+blueprint Usuario(nome, email):
+    action ativar():
+        self.ativo := yes
+        yield self.ativo
+
+u := spawn Usuario("Ana", "ana@x.com")
+u.ativar()
+
+out "campos:  ", get_fields(u)
+out "metodos: ", get_methods(u)
+out "tipo:    ", typeof(u)
+
+assert has_field(u, "nome") is yes, "tem campo nome"
+assert has_field(u, "senha") is no, "nao tem campo senha"
+assert has_method(u, "ativar") is yes, "tem metodo ativar"
+assert u.ativo is yes, "campo criado em tempo de execucao"

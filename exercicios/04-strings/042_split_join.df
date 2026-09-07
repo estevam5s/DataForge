@@ -1,0 +1,14 @@
+// Exercicio 042 — split e join
+// Enunciado: converta um CSV de uma linha em cluster e volte para texto.
+
+linha := "nome,idade,cidade"
+campos := linha.split(",")
+out campos
+
+remontado := ";".join(campos)
+out remontado
+
+assert campos is ["nome", "idade", "cidade"], "split"
+assert remontado is "nome;idade;cidade", "join"
+assert "a b c".words() is ["a", "b", "c"], "words"
+assert "l1\nl2".lines() is ["l1", "l2"], "lines"

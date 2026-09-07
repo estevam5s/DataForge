@@ -1,0 +1,23 @@
+// Exercicio 054 — Recursao
+// Enunciado: fatorial, fibonacci e soma de digitos.
+
+action fatorial(n):
+    given n smaller_eq 1:
+        yield 1
+    yield n * fatorial(n - 1)
+
+action fib(n):
+    given n smaller 2:
+        yield n
+    yield fib(n - 1) + fib(n - 2)
+
+action soma_digitos(n):
+    given n smaller 10:
+        yield n
+    yield n % 10 + soma_digitos(n ~/ 10)
+
+out fatorial(6), fib(10), soma_digitos(9875)
+
+assert fatorial(6) is 720, "fatorial"
+assert fib(10) is 55, "fibonacci"
+assert soma_digitos(9875) is 29, "soma de digitos"

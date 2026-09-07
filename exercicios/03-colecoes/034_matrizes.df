@@ -1,0 +1,23 @@
+// Exercicio 034 — Matrizes
+// Enunciado: monte uma matriz identidade 3x3 e calcule o traco.
+
+n := 3
+matriz := []
+cycle i from 0 to n - 1:
+    linha := []
+    cycle j from 0 to n - 1:
+        given i is j:
+            linha.append(1)
+        otherwise:
+            linha.append(0)
+    matriz.append(linha)
+
+traco := 0
+cycle i from 0 to n - 1:
+    traco += matriz[i][i]
+
+cycle linha in matriz:
+    out linha
+
+assert matriz is [[1, 0, 0], [0, 1, 0], [0, 0, 1]], "identidade"
+assert traco is 3, "traco da identidade 3x3"

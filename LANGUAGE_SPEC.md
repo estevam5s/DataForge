@@ -1,3 +1,11 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Rascunho **descartado**: descreve uma sintaxe (`let x: Int32 = 10`, `fn`, `pipeline main { }`) que **não** é a da linguagem implementada. Mantido apenas como registro histórico de uma direção que não foi seguida.
+>
+> **Documentação vigente:** [`doc/TUTORIAL.md`](doc/TUTORIAL.md) · [`doc/REFERENCIA.md`](doc/REFERENCIA.md) · [`doc/BIBLIOTECA_PADRAO.md`](doc/BIBLIOTECA_PADRAO.md) · [`doc/INSTALACAO.md`](doc/INSTALACAO.md)
+
+---
+
 # LANGUAGE_SPEC.md
 
 ## Especificação Oficial da Linguagem DataForge

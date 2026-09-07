@@ -1,0 +1,21 @@
+// Exercicio 045 — Contagem de palavras
+// Enunciado: conte palavras e ache a mais frequente.
+
+texto := "o rato roeu a roupa do rei de roma o rato fugiu"
+palavras := texto.words()
+freq := palavras.frequencies()
+
+out "palavras:", len(palavras)
+out "distintas:", len(freq.keys())
+
+top := ""
+maximo := 0
+cycle par in freq.items():
+    given par[1] bigger maximo:
+        maximo := par[1]
+        top := par[0]
+
+out "mais frequente:", top, "(" + str(maximo) + "x)"
+assert len(palavras) is 12, "12 palavras"
+assert freq["rato"] is 2, "rato aparece 2x"
+assert maximo is 2, "frequencia maxima"

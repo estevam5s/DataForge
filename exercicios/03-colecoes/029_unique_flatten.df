@@ -1,0 +1,15 @@
+// Exercicio 029 — unique, flatten e chunk
+// Enunciado: limpe e reorganize dados aninhados.
+
+bruto := [[1, 2], [2, 3], [3, [4, 4]]]
+plano := flatten(bruto)
+distintos := unique(plano)
+blocos := distintos.chunk(2)
+
+out "plano:    ", plano
+out "distintos:", distintos
+out "blocos:   ", blocos
+
+assert plano is [1, 2, 2, 3, 3, 4, 4], "flatten profundo"
+assert distintos is [1, 2, 3, 4], "unique preserva a ordem"
+assert blocos is [[1, 2], [3, 4]], "chunk de 2"

@@ -1,0 +1,29 @@
+// Exercicio 036 — Busca linear e binaria
+// Enunciado: implemente as duas buscas e compare o resultado.
+
+action busca_linear(lista, alvo):
+    cycle i from 0 to len(lista) - 1:
+        given lista[i] is alvo:
+            yield i
+    yield -1
+
+action busca_binaria(lista, alvo):
+    esq := 0
+    dir := len(lista) - 1
+    persist esq smaller_eq dir:
+        meio := (esq + dir) ~/ 2
+        given lista[meio] is alvo:
+            yield meio
+        orif lista[meio] smaller alvo:
+            esq := meio + 1
+        otherwise:
+            dir := meio - 1
+    yield -1
+
+ordenada := [1, 3, 5, 7, 9, 11]
+cycle alvo in [1, 7, 11, 4]:
+    out alvo, "-> linear", busca_linear(ordenada, alvo), "| binaria", busca_binaria(ordenada, alvo)
+
+assert busca_linear(ordenada, 7) is 3, "linear"
+assert busca_binaria(ordenada, 7) is 3, "binaria"
+assert busca_binaria(ordenada, 4) is -1, "ausente"

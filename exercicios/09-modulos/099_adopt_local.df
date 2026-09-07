@@ -1,0 +1,12 @@
+// Exercicio 099 — adopt de um modulo local
+// Enunciado: importe um arquivo .df vizinho e use suas acoes.
+
+adopt geometria as geo
+
+out "PI       =", geo.PI
+out "circulo  =", round(geo.area_circulo(2), 4)
+out "retangulo=", geo.area_retangulo(3, 4)
+
+assert round(geo.area_circulo(1), 5) is 3.14159, "area do circulo"
+assert geo.area_retangulo(3, 4) is 12, "area do retangulo"
+assert round(geo.perimetro_circulo(1), 5) is 6.28319, "perimetro"

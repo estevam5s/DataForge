@@ -1,0 +1,17 @@
+// Exercicio 063 — Blueprint com construtor
+// Enunciado: modele um ponto no plano com campos e um metodo.
+
+blueprint Ponto(x, y):
+    action distancia_origem():
+        yield sqrt(self.x ** 2 + self.y ** 2)
+
+    action toString():
+        yield "(" + str(self.x) + ", " + str(self.y) + ")"
+
+p := spawn Ponto(3, 4)
+out p, p.distancia_origem()
+
+assert p.x is 3, "campo x"
+assert p.y is 4, "campo y"
+assert p.distancia_origem() is 5.0, "distancia"
+assert str(p) is "(3, 4)", "toString"

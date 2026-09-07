@@ -1,0 +1,14 @@
+// Exercicio 032 — Percorrendo vaults
+// Enunciado: use keys, values e items para somar um estoque.
+
+estoque := {"parafuso": 120, "porca": 80, "arruela": 200}
+
+total := 0
+cycle par in estoque.items():
+    out par[0].pad_end(10), par[1]
+    total += par[1]
+
+assert len(estoque.keys()) is 3, "3 chaves"
+assert sum(estoque.values()) is 400, "soma dos valores"
+assert total is 400, "soma via items"
+out "total:", total

@@ -1,0 +1,25 @@
+// Exercicio 068 — Traits (interfaces)
+// Enunciado: declare um contrato e implemente em dois blueprints.
+
+trait Serializavel:
+    action serializar()
+
+trait Comparavel:
+    action comparar(outro)
+
+blueprint Produto(nome, preco) with Serializavel, Comparavel:
+    action serializar():
+        yield {"nome": self.nome, "preco": self.preco}
+
+    action comparar(outro):
+        yield self.preco - outro.preco
+
+a := spawn Produto("Mouse", 80)
+b := spawn Produto("Teclado", 200)
+
+out a.serializar()
+out "diferenca:", a.comparar(b)
+
+assert a.serializar() is {"nome": "Mouse", "preco": 80}, "serializar"
+assert a.comparar(b) is -120, "comparar"
+assert has_method(a, "serializar") is yes, "implementa o trait"

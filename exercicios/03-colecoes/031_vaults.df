@@ -1,0 +1,18 @@
+// Exercicio 031 — Vaults (dicionarios)
+// Enunciado: crie, leia, atualize e remova chaves de um vault.
+
+pessoa := {"nome": "Ana", "idade": 30}
+
+out pessoa["nome"], pessoa.idade
+pessoa["cidade"] := "Floripa"
+pessoa["idade"] := 31
+
+assert pessoa["cidade"] is "Floripa", "nova chave"
+assert pessoa["idade"] is 31, "atualizacao"
+assert pessoa.has("nome") is yes, "has"
+assert pessoa.has("email") is no, "chave ausente"
+assert pessoa.get("email", "sem email") is "sem email", "get com padrao"
+
+pessoa.delete("cidade")
+assert pessoa.has("cidade") is no, "delete"
+out pessoa

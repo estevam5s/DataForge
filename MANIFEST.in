@@ -1,11 +1,13 @@
 include LICENSE
 include README.md
-include INSTALL.md
-include INSTALACAO_PT-BR.md
-include DOCUMENTATION.md
-include SPECIFICATION.md
-recursive-include public *.png
-recursive-include examples *.df
+include CLAUDE.md
+include LANGUAGE_SPEC.md
+include pyproject.toml
 recursive-include doc *.md
+recursive-include examples *.df
+recursive-include exercicios *.df
 recursive-include tests *.py
-recursive-include dataforge/stdlib *.py
+recursive-include dataforge *.py
+recursive-include editor *.json
+global-exclude *.pyc
+global-exclude __pycache__/*

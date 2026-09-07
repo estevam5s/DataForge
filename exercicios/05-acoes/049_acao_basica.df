@@ -1,0 +1,14 @@
+// Exercicio 049 — Acao basica
+// Enunciado: escreva uma acao que soma e outra sem retorno.
+
+action somar(a, b):
+    yield a + b
+
+action saudar(nome):
+    out "Ola,", nome
+
+out somar(2, 3)
+saudar("Ana")
+
+assert somar(2, 3) is 5, "soma"
+assert saudar("Ana") is void, "acao sem yield devolve void"

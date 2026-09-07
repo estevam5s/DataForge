@@ -1,0 +1,27 @@
+// Exercicio 076 — Padrao Observador
+// Enunciado: notifique varios assinantes quando o estado mudar.
+
+blueprint Assunto:
+    action setup():
+        self.assinantes := []
+        self.estado := 0
+
+    action assinar(fn):
+        self.assinantes.append(fn)
+        yield len(self.assinantes)
+
+    action definir(valor):
+        self.estado := valor
+        cycle fn in self.assinantes:
+            fn(valor)
+        yield valor
+
+recebidos := []
+s := spawn Assunto()
+s.assinar(lambda v: recebidos.append("A:" + str(v)))
+s.assinar(lambda v: recebidos.append("B:" + str(v)))
+s.definir(7)
+s.definir(9)
+
+out recebidos
+assert recebidos is ["A:7", "B:7", "A:9", "B:9"], "todos os assinantes receberam"

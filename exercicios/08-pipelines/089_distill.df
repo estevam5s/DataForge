@@ -1,0 +1,18 @@
+// Exercicio 089 — distill (reducao)
+// Enunciado: reduza um cluster a um unico valor.
+
+nums := [1, 2, 3, 4, 5]
+
+soma := nums >> distill acc, v: acc + v 0
+produto := nums >> distill acc, v: acc * v 1
+maximo := nums >> distill acc, v: acc bigger v and acc or v 0
+
+out soma, produto, maximo
+assert soma is 15, "soma"
+assert produto is 120, "produto"
+assert maximo is 5, "maximo"
+
+palavras := ["Data", "Forge", "Lang"]
+concatenado := palavras >> distill acc, v: acc + v ""
+assert concatenado is "DataForgeLang", "concatenacao"
+out concatenado

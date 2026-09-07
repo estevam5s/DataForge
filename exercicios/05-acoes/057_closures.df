@@ -1,0 +1,18 @@
+// Exercicio 057 — Closures
+// Enunciado: crie um contador que preserva estado entre chamadas.
+
+action criar_contador(inicio := 0):
+    estado := {"valor": inicio}
+    action proximo():
+        estado["valor"] := estado["valor"] + 1
+        yield estado["valor"]
+    yield proximo
+
+c1 := criar_contador()
+c2 := criar_contador(100)
+
+out c1(), c1(), c1()
+out c2(), c2()
+
+assert c1() is 4, "c1 continuou de 3"
+assert c2() is 103, "c2 tem estado proprio"

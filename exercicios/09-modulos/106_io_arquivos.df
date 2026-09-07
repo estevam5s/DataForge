@@ -1,0 +1,21 @@
+// Exercicio 106 — Arcane.IO
+// Enunciado: escreva, leia e apague um arquivo temporario.
+
+adopt Arcane.IO as IO
+
+caminho := "_exercicio_106.txt"
+IO.write(caminho, "linha 1\nlinha 2\nlinha 3")
+
+assert IO.exists(caminho) is yes, "arquivo criado"
+
+conteudo := IO.read(caminho)
+linhas := conteudo.lines()
+out "linhas lidas:", len(linhas)
+out linhas
+
+assert len(linhas) is 3, "tres linhas"
+assert linhas[0] is "linha 1", "primeira linha"
+
+IO.delete(caminho)
+assert IO.exists(caminho) is no, "arquivo removido"
+out "arquivo temporario removido"

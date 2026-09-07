@@ -1,0 +1,17 @@
+// Exercicio 113 — channel
+// Enunciado: passe valores entre partes do programa por um canal.
+
+channel fila
+
+fila.send("primeiro")
+fila.send("segundo")
+fila.send("terceiro")
+
+a := fila.receive()
+b := fila.receive()
+
+out a, b
+assert a is "primeiro", "FIFO"
+assert b is "segundo", "segunda leitura"
+assert fila.receive() is "terceiro", "terceira leitura"
+assert fila.receive() is void, "canal vazio devolve void"

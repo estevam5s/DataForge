@@ -157,7 +157,7 @@ class Lexer:
                 value = False
             elif word == "void":
                 value = None
-            return Token(tok_type, value, line, col)
+            return Token(tok_type, value, line, col, text=word)
 
         return Token(TokenType.IDENTIFIER, word, line, col)
 
@@ -186,9 +186,11 @@ class Lexer:
         if self.source[self.pos] == '#':
             return
 
-        # Dot-continuation: if the line starts with '.', it's a method chain
-        # continuation. Remove the preceding NEWLINE and skip indent logic.
-        if self.source[self.pos] == '.':
+        # Continuation lines: a line that starts with '.' continues a method
+        # chain, and one that starts with '>>' continues a pipeline. In both
+        # cases drop the pending NEWLINE and skip the indent bookkeeping.
+        here = self.source[self.pos]
+        if here == '.' or (here == '>' and self.source[self.pos + 1:self.pos + 2] == '>'):
             if self.tokens and self.tokens[-1].type == TokenType.NEWLINE:
                 self.tokens.pop()
             return
@@ -207,6 +209,86 @@ class Lexer:
                     f"Indentation mismatch: expected {self.indent_stack[-1]} spaces, got {spaces}",
                     self.line, 1
                 )
+
+    # ── '//' disambiguation ────────────────────────────────
+    _EXPR_END_TYPES = None
+
+    def _looks_like_floor_div(self) -> bool:
+        """Decide whether the '//' at self.pos is floor division or a comment.
+
+        Floor division requires all of:
+          * the previous token can end an expression (value, ')', ']', '}');
+          * at most two spaces separate it from '//' (a trailing comment is
+            conventionally set off further);
+          * what follows parses as the start of an operand;
+          * the rest of the line is not prose — two bare words in a row with no
+            operator between them means it is a comment.
+        """
+        if Lexer._EXPR_END_TYPES is None:
+            Lexer._EXPR_END_TYPES = {
+                TokenType.IDENTIFIER, TokenType.INTEGER, TokenType.FLOAT,
+                TokenType.STRING, TokenType.RPAREN, TokenType.RBRACKET,
+                TokenType.RBRACE, TokenType.BOOLEAN, TokenType.VOID,
+                TokenType.SELF,
+            }
+        if not self.tokens or self.tokens[-1].type not in Lexer._EXPR_END_TYPES:
+            return False
+
+        spaces_before = 0
+        check = self.pos - 1
+        while check >= 0 and self.source[check] == ' ':
+            spaces_before += 1
+            check -= 1
+        if spaces_before > 2:
+            return False
+
+        rest = self.source[self.pos + 2:]
+        newline = rest.find('\n')
+        if newline != -1:
+            rest = rest[:newline]
+        stripped = rest.lstrip()
+        if not stripped:
+            return False
+        first = stripped[0]
+        if not (first.isdigit() or first in '(-_' or first.isalpha()):
+            return False
+
+        return not self._reads_as_prose(stripped)
+
+    @staticmethod
+    def _reads_as_prose(text: str) -> bool:
+        """True when the text after '//' reads as words rather than an expression."""
+        words = 0
+        i = 0
+        n = len(text)
+        while i < n:
+            ch = text[i]
+            if ch.isalpha() or ch == '_':
+                start = i
+                while i < n and (text[i].isalnum() or text[i] == '_'):
+                    i += 1
+                word = text[start:i]
+                # A call or an index means it is code, not prose.
+                nxt = text[i:i + 1]
+                if nxt in ('(', '[', '.'):
+                    return False
+                if word in KEYWORDS and word not in ('in', 'to', 'from', 'as', 'is', 'not'):
+                    return False
+                words += 1
+                if words >= 2:
+                    return True
+            elif ch.isdigit():
+                while i < n and (text[i].isdigit() or text[i] == '.'):
+                    i += 1
+            elif ch in '+-*/%()[]{}<>=!,:':
+                return False
+            else:
+                i += 1
+                continue
+            # skip separating spaces
+            while i < n and text[i] == ' ':
+                i += 1
+        return False
 
     def tokenize(self) -> list[Token]:
         """Main tokenization loop. Returns list of tokens."""
@@ -252,44 +334,18 @@ class Lexer:
                 )
 
             # Comments vs Floor Division (//)
+            # '//' is ambiguous in DataForge: it opens a line comment AND is the
+            # legacy floor-division operator. Prefer the unambiguous '~/' for
+            # floor division; the heuristic below keeps old code working.
             if ch == '/' and self.peek(1) == '/':
-                # Check if this is floor division or a comment
-                # Floor division requires: last token ends an expression + next chars look like expression start
-                # Also, if there are 3+ spaces before //, it's almost certainly a trailing comment
-                is_floor_div = False
-                if self.tokens:
-                    last_type = self.tokens[-1].type
-                    expr_end_types = {
-                        TokenType.IDENTIFIER, TokenType.INTEGER, TokenType.FLOAT,
-                        TokenType.STRING, TokenType.RPAREN, TokenType.RBRACKET,
-                        TokenType.RBRACE, TokenType.BOOLEAN, TokenType.VOID,
-                    }
-                    if last_type in expr_end_types:
-                        # Check spacing before // — if 3+ spaces precede it, treat as comment
-                        spaces_before = 0
-                        check_pos = self.pos - 1
-                        while check_pos >= 0 and self.source[check_pos] == ' ':
-                            spaces_before += 1
-                            check_pos -= 1
-                        if spaces_before < 3:
-                            # Check what follows // (skip whitespace)
-                            look = self.pos + 2
-                            while look < len(self.source) and self.source[look] == ' ':
-                                look += 1
-                            if look < len(self.source):
-                                next_ch = self.source[look]
-                                # Floor div if followed by a digit, (, identifier, or - (negative number)
-                                if next_ch.isdigit() or next_ch == '(' or next_ch == '-' or next_ch.isalpha() or next_ch == '_':
-                                    is_floor_div = True
-                if is_floor_div:
+                if self._looks_like_floor_div():
                     line, col = self.line, self.column
                     self.advance()
                     self.advance()
                     self.tokens.append(Token(TokenType.FLOOR_DIV, '//', line, col))
                     continue
-                else:
-                    self.skip_comment()
-                    continue
+                self.skip_comment()
+                continue
             if ch == '#':
                 self.skip_comment()
                 continue
@@ -318,6 +374,27 @@ class Lexer:
 
             # Multi-char operators
             line, col = self.line, self.column
+
+            two = ch + self.peek(1)
+            two_char_map = {
+                '~/': TokenType.FLOOR_DIV,
+                '->': TokenType.ARROW,
+                '=>': TokenType.FAT_ARROW,
+                '+=': TokenType.PLUS_ASSIGN,
+                '-=': TokenType.MINUS_ASSIGN,
+                '*=': TokenType.STAR_ASSIGN,
+                '/=': TokenType.SLASH_ASSIGN,
+                '%=': TokenType.PERCENT_ASSIGN,
+                '<=': TokenType.LT_EQ,
+                '>=': TokenType.GT_EQ,
+            }
+            if two in two_char_map:
+                self.advance(); self.advance()
+                # '~/' is a spelling of the floor-division operator: normalise
+                # its value so the parser and interpreter see a single form.
+                value = '//' if two == '~/' else two
+                self.tokens.append(Token(two_char_map[two], value, line, col))
+                continue
 
             if ch == ':' and self.peek(1) == '=':
                 self.advance(); self.advance()
@@ -355,6 +432,8 @@ class Lexer:
                 '.': TokenType.DOT,
                 ',': TokenType.COMMA,
                 '@': TokenType.AT,
+                '<': TokenType.LT,
+                '>': TokenType.GT,
                 '(': TokenType.LPAREN,
                 ')': TokenType.RPAREN,
                 '[': TokenType.LBRACKET,

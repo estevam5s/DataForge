@@ -3,16 +3,18 @@ DataForge Interpreter
 Tree-walking interpreter that executes AST nodes.
 """
 
+import sys
 import threading
 import time
 import asyncio
 
 from . import ast_nodes as ast
 from .environment import Environment
-from .builtins import BuiltinFunction, get_builtins
+from .builtins import BuiltinFunction, get_builtins, set_stringifier
 from .errors import (
-    RuntimeError_, TypeError_, NameError_, TriggerError,
-    HaltSignal, SkipSignal, YieldSignal, IndexError_
+    DataForgeError, RuntimeError_, TypeError_, NameError_, TriggerError,
+    HaltSignal, SkipSignal, YieldSignal, IndexError_, ImportError_,
+    StackOverflowError_,
 )
 
 
@@ -67,13 +69,16 @@ class DFAction:
     """A user-defined function (action)."""
     _interpreter = None  # Set during Interpreter.__init__
 
-    def __init__(self, name, params, defaults, body, closure, is_async=False):
+    def __init__(self, name, params, defaults, body, closure, is_async=False,
+                 param_types=None, return_type=""):
         self.name = name
         self.params = params
         self.defaults = defaults
         self.body = body
         self.closure = closure
         self.is_async = is_async
+        self.param_types = param_types or {}
+        self.return_type = return_type
 
     def __call__(self, *args, **kwargs):
         """Allow DFAction to be called like a Python function."""
@@ -184,6 +189,41 @@ class DFInstance:
         return f"<{self.blueprint.name} instance>"
 
 
+class DFError:
+    """A runtime error captured by 'monitor / handle'.
+
+    Behaves like the error message string (so older code that concatenates or
+    compares it keeps working) while also exposing '.type', '.message' and
+    '.line'.
+    """
+
+    def __init__(self, kind: str, message: str, original=None):
+        self.type = kind
+        self.message = message
+        self.original = original
+        self.line = getattr(original, 'line', 0)
+        self.column = getattr(original, 'column', 0)
+
+    def __str__(self):
+        return self.message
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.message == other
+        if isinstance(other, DFError):
+            return self.type == other.type and self.message == other.message
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((self.type, self.message))
+
+    def __bool__(self):
+        return True
+
+    def __repr__(self):
+        return f"<{self.type}: {self.message}>"
+
+
 class DFChannel:
     """Thread-safe communication channel."""
 
@@ -235,9 +275,17 @@ class Interpreter:
         self.global_env = Environment(name="<global>")
         self.modules = {}
         self.events = {}  # event name → list of callbacks
+        self._depth = 0   # current action-call depth
+        # A DataForge frame costs several Python frames; give the interpreter
+        # room so its own depth guard reports the error instead of CPython.
+        if sys.getrecursionlimit() < 20000:
+            sys.setrecursionlimit(20000)
 
         # Set interpreter reference for DFAction __call__
         DFAction._interpreter = self
+
+        # str() and 'out' must format values identically.
+        set_stringifier(self._to_str)
 
         # Load builtins
         for name, value in get_builtins().items():
@@ -369,10 +417,14 @@ class Interpreter:
         except TypeError as e:
             raise TypeError_(str(e), node.line, node.column)
 
+        raise RuntimeError_(f"Unknown binary operator: {op!r}", node.line, node.column)
+
     def eval_UnaryOp(self, node: ast.UnaryOp, env):
         operand = self.evaluate(node.operand, env)
         if node.op == '-':
             return -operand
+        if node.op == '+':
+            return +operand
         raise RuntimeError_(f"Unknown unary operator: {node.op}", node.line, node.column)
 
     def eval_ComparisonOp(self, node: ast.ComparisonOp, env):
@@ -585,6 +637,31 @@ class Interpreter:
             return obj[index]
         except (IndexError, KeyError) as e:
             raise IndexError_(str(e), node.line, node.column)
+        except TypeError:
+            raise TypeError_(
+                f"Cannot index a value of type {self._type_of(obj)}",
+                node.line, node.column)
+
+    def eval_SliceAccess(self, node: ast.SliceAccess, env):
+        obj = self.evaluate(node.object, env)
+        start = self.evaluate(node.start, env) if node.start is not None else None
+        stop = self.evaluate(node.stop, env) if node.stop is not None else None
+        step = self.evaluate(node.step, env) if node.step is not None else None
+        try:
+            return obj[start:stop:step]
+        except TypeError as e:
+            raise TypeError_(f"Cannot slice {type(obj).__name__}: {e}", node.line, node.column)
+
+    def eval_LambdaExpression(self, node: ast.LambdaExpression, env):
+        """A lambda is an anonymous action closing over the current scope."""
+        return DFAction(
+            name="<lambda>",
+            params=list(node.params),
+            defaults=dict(node.defaults),
+            body=[ast.YieldStatement(value=node.body, line=node.line, column=node.column)],
+            closure=env,
+            param_types=dict(node.param_types),
+        )
 
     def eval_FunctionCall(self, node: ast.FunctionCall, env):
         callee = self.evaluate(node.callee, env)
@@ -651,6 +728,12 @@ class Interpreter:
                     instance.fields[param] = args[i]
                 else:
                     instance.fields[param] = None
+
+            # A 'setup' method still runs, so a blueprint may declare params and
+            # still initialise derived fields explicitly.
+            if 'setup' in blueprint.methods:
+                self._call_action(blueprint.methods['setup'], args, kwargs, node, env,
+                                  instance=instance)
 
             # Execute the constructor body with 'this'/'self' bound to instance
             if blueprint.constructor_body:
@@ -760,14 +843,14 @@ class Interpreter:
                     local.set_local(param, self.evaluate(func.defaults[param], func.closure))
             try:
                 self.exec_block(func.body, local)
+                return None
             except YieldSignal as ys:
-                self._run_deferred(local)
                 return ys.value
-            self._run_deferred(local)
-            return None
+            finally:
+                self._run_deferred(local)
         elif callable(func):
             return func(*args)
-        raise Runtime_(f"Not callable in pipeline", node.line, node.column)
+        raise TypeError_("Value is not callable in a pipeline stage", node.line, node.column)
 
     def eval_AwaitExpression(self, node: ast.AwaitExpression, env):
         result = self.evaluate(node.expression, env)
@@ -853,6 +936,10 @@ class Interpreter:
 
     def exec_Assignment(self, node: ast.Assignment, env):
         value = self.evaluate(node.value, env)
+
+        declared = getattr(node, 'declared_type', "")
+        if declared:
+            self._check_type(value, declared, f"variable '{self._target_name(node.target)}'", node)
 
         if isinstance(node.target, ast.Identifier):
             env.set(node.target.name, value)
@@ -941,6 +1028,11 @@ class Interpreter:
 
     def exec_CycleIn(self, node: ast.CycleIn, env):
         collection = self.evaluate(node.collection, env)
+        if not hasattr(collection, '__iter__'):
+            raise TypeError_(
+                f"Cannot cycle over {self._type_of(collection)}: "
+                f"expected a Cluster, Vault or String",
+                node.line, node.column)
         for item in collection:
             loop_env = env.child("<cycle>")
             loop_env.set_local(node.var, item)
@@ -982,10 +1074,24 @@ class Interpreter:
             defaults=node.defaults,
             body=node.body,
             closure=env,
-            is_async=node.is_async
+            is_async=node.is_async,
+            param_types=getattr(node, 'param_types', None),
+            return_type=getattr(node, 'return_type', ""),
         )
         env.set_local(node.name, action)
-        return action
+
+        # Apply 'mark @decorator' wrappers, innermost (closest) first.
+        value = action
+        for deco in reversed(getattr(node, 'decorators', []) or []):
+            wrapper = env.get(deco.name)
+            deco_args = [self.evaluate(a, env) for a in getattr(deco, 'args', []) or []]
+            if deco_args:
+                factory = self._call(wrapper, deco_args, {}, node, env)
+                value = self._call(factory, [value], {}, node, env)
+            else:
+                value = self._call(wrapper, [value], {}, node, env)
+            env.set_local(node.name, value)
+        return value
 
     def exec_BlueprintDeclaration(self, node: ast.BlueprintDeclaration, env):
         parents = []
@@ -1024,7 +1130,9 @@ class Interpreter:
                 action = DFAction(
                     name=stmt.name, params=stmt.params,
                     defaults=stmt.defaults, body=stmt.body,
-                    closure=bp_env, is_async=stmt.is_async
+                    closure=bp_env, is_async=stmt.is_async,
+                    param_types=getattr(stmt, 'param_types', None),
+                    return_type=getattr(stmt, 'return_type', ""),
                 )
                 methods[stmt.name] = action
             elif isinstance(stmt, ast.StaticDeclaration):
@@ -1074,19 +1182,38 @@ class Interpreter:
     def exec_MonitorBlock(self, node: ast.MonitorBlock, env):
         try:
             return self.exec_block(node.body, env.child("<monitor>"))
-        except (TriggerError, RuntimeError_, TypeError_, NameError_, IndexError_) as e:
-            if node.handle_body:
-                handle_env = env.child("<handle>")
-                handle_env.set_local(node.handle_name, str(e.message) if hasattr(e, 'message') else str(e))
-                return self.exec_block(node.handle_body, handle_env)
         except Exception as e:
-            if node.handle_body:
-                handle_env = env.child("<handle>")
-                handle_env.set_local(node.handle_name, str(e))
-                return self.exec_block(node.handle_body, handle_env)
+            # A 'monitor' with no 'handle' is a try/finally: never swallow the error.
+            if not node.handle_body:
+                raise
+            if not self._error_matches(e, node.handle_type, env):
+                raise
+            handle_env = env.child("<handle>")
+            handle_env.set_local(node.handle_name, self._error_value(e))
+            return self.exec_block(node.handle_body, handle_env)
         finally:
             if node.ensure_body:
                 self.exec_block(node.ensure_body, env.child("<ensure>"))
+
+    def _error_value(self, exc):
+        """Wrap a caught exception into the value bound by 'handle'."""
+        message = exc.message if isinstance(exc, DataForgeError) else str(exc)
+        return DFError(type(exc).__name__.rstrip('_'), message, exc)
+
+    def _error_matches(self, exc, handle_type, env) -> bool:
+        """Check whether a caught exception matches an optional 'handle <Type>' filter."""
+        if not handle_type:
+            return True
+        name = type(exc).__name__.rstrip('_')
+        if handle_type in (name, type(exc).__name__):
+            return True
+        # Allow the generic aliases used in the docs.
+        aliases = {
+            "Error": True,
+            "Exception": True,
+            "Any": True,
+        }
+        return bool(aliases.get(handle_type))
 
     # ── Modules ────────────────────────────────────────────
 
@@ -1100,7 +1227,7 @@ class Interpreter:
             return
 
         # Try to load from stdlib
-        from .stdlib import get_module
+        from .stdlib import get_module, list_modules
         module = get_module(module_name)
         if module is not None:
             self.modules[module_name] = module
@@ -1116,8 +1243,10 @@ class Interpreter:
                 self._load_module_file(path, module_name, env, alias)
                 return
 
-        # Module not found - just set as empty dict for now
-        env.set_local(alias, {"__name__": module_name})
+        raise ImportError_(
+            f"Module '{module_name}' not found. "
+            f"Available: {', '.join(sorted(set(list_modules())))}",
+            node.line, node.column)
 
     def exec_RelayStatement(self, node: ast.RelayStatement, env):
         # In the current context, relay marks names for export
@@ -1175,10 +1304,8 @@ class Interpreter:
         for attempt in range(int(count)):
             try:
                 return self.exec_block(node.body, env.child(f"<retry-{attempt}>"))
-            except (TriggerError, RuntimeError_, TypeError_, NameError_, IndexError_) as e:
-                last_error = str(e.message) if hasattr(e, 'message') else str(e)
             except Exception as e:
-                last_error = str(e)
+                last_error = self._error_value(e)
 
         # All attempts failed
         if node.handle_body and last_error is not None:
@@ -1219,6 +1346,11 @@ class Interpreter:
     def exec_ObserveBlock(self, node: ast.ObserveBlock, env):
         """Observe: iterate over a source (reactive stream simulation)."""
         source = self.evaluate(node.source, env)
+        if not isinstance(source, (list, tuple, dict)):
+            raise TypeError_(
+                f"Cannot observe a value of type {self._type_of(source)}: "
+                f"expected a Cluster or a stream",
+                node.line, node.column)
         if isinstance(source, (list, tuple)):
             for item in source:
                 obs_env = env.child("<observe>")
@@ -1291,6 +1423,9 @@ class Interpreter:
                 for i, pname in enumerate(callee.constructor_params):
                     val = args[i] if i < len(args) else None
                     instance.set(pname, val)
+                if 'setup' in callee.methods:
+                    self._call_action(callee.methods['setup'], args, kwargs, node, env,
+                                      instance=instance)
                 if callee.constructor_body:
                     ctor_env = env.child(f"<constructor {callee.name}>")
                     ctor_env.set_local("self", instance)
@@ -1313,36 +1448,63 @@ class Interpreter:
 
         raise TypeError_(f"'{callee}' is not callable", node.line, node.column)
 
+    MAX_CALL_DEPTH = 1000
+
     def _call_action(self, action: DFAction, args, kwargs, node, env, instance=None):
         """Call a user-defined action (function)."""
+        self._check_arity(action, args, kwargs, node)
+
         call_env = action.closure.child(f"<action {action.name}>")
 
         # Bind parameters
         params = action.params
         for i, param in enumerate(params):
             if i < len(args):
-                call_env.set_local(param, args[i])
+                value = args[i]
             elif param in kwargs:
-                call_env.set_local(param, kwargs[param])
+                value = kwargs[param]
             elif param in action.defaults:
-                call_env.set_local(param, self.evaluate(action.defaults[param], call_env))
+                value = self.evaluate(action.defaults[param], call_env)
             else:
-                call_env.set_local(param, None)
+                value = None
+            declared = action.param_types.get(param)
+            if declared:
+                self._check_type(
+                    value, declared,
+                    f"parameter '{param}' of action '{action.name}'", node)
+            call_env.set_local(param, value)
 
         # Bind 'self' and 'this' for instance methods
         if instance is not None:
             call_env.set_local("self", instance)
             call_env.set_local("this", instance)
 
-        # Execute body
+        # Execute body, guarding against runaway recursion
+        self._depth += 1
+        if self._depth > self.MAX_CALL_DEPTH:
+            self._depth -= 1
+            raise StackOverflowError_(
+                f"Call stack exceeded {self.MAX_CALL_DEPTH} frames "
+                f"(infinite recursion in '{action.name}'?)", node.line, node.column)
         try:
             self.exec_block(action.body, call_env)
+            result = None
         except YieldSignal as ys:
+            result = ys.value
+        except RecursionError:
+            raise StackOverflowError_(
+                f"Python recursion limit reached while running '{action.name}'",
+                node.line, node.column)
+        finally:
+            self._depth -= 1
+            # Deferred blocks run on every exit path, including an error —
+            # that is the whole point of 'defer'.
             self._run_deferred(call_env)
-            return ys.value
-
-        self._run_deferred(call_env)
-        return None
+        if action.return_type:
+            self._check_type(
+                result, action.return_type,
+                f"return value of action '{action.name}'", node)
+        return result
 
     def _run_deferred(self, env):
         """Run all deferred blocks registered in the environment, in LIFO order."""
@@ -1359,6 +1521,92 @@ class Interpreter:
         local = env.child("<lambda>")
         local.set_local(param_name, value)
         return self.evaluate(body_expr, local)
+
+    # ── Type annotations (checked at runtime) ──────────────
+
+    TYPE_ALIASES = {
+        "integer": "Integer", "int": "Integer", "Integer": "Integer",
+        "float": "Float", "Float": "Float", "number": "Number", "Number": "Number",
+        "string": "String", "str": "String", "String": "String", "text": "String",
+        "boolean": "Boolean", "bool": "Boolean", "Boolean": "Boolean",
+        "cluster": "Cluster", "list": "Cluster", "Cluster": "Cluster", "array": "Cluster",
+        "vault": "Vault", "dict": "Vault", "Vault": "Vault", "map": "Vault",
+        "void": "Void", "Void": "Void", "none": "Void",
+        "action": "Action", "Action": "Action", "function": "Action",
+        "any": "Any", "Any": "Any",
+    }
+
+    def _target_name(self, target) -> str:
+        if isinstance(target, ast.Identifier):
+            return target.name
+        return "<expression>"
+
+    def _type_of(self, value) -> str:
+        if isinstance(value, bool):
+            return "Boolean"
+        if isinstance(value, int):
+            return "Integer"
+        if isinstance(value, float):
+            return "Float"
+        if isinstance(value, str):
+            return "String"
+        if isinstance(value, list):
+            return "Cluster"
+        if isinstance(value, dict):
+            return "Vault"
+        if value is None:
+            return "Void"
+        if isinstance(value, DFInstance):
+            return value.blueprint.name
+        if isinstance(value, DFBlueprint):
+            return "Blueprint"
+        if isinstance(value, (DFAction, BuiltinFunction)) or callable(value):
+            return "Action"
+        return type(value).__name__
+
+    def _check_type(self, value, declared: str, what: str, node):
+        """Enforce a declared type annotation. Unknown names name a blueprint."""
+        expected = self.TYPE_ALIASES.get(declared, declared)
+        if expected == "Any":
+            return value
+        actual = self._type_of(value)
+
+        if expected == "Number":
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise TypeError_(
+                    f"{what} declared as Number but got {actual}", node.line, node.column)
+            return value
+        if expected == "Float" and isinstance(value, int) and not isinstance(value, bool):
+            return value  # an Integer widens to Float
+        if expected == actual:
+            return value
+        if isinstance(value, DFInstance):
+            for bp in value.get_mro():
+                if bp.name == expected:
+                    return value
+        raise TypeError_(
+            f"{what} declared as {expected} but got {actual}", node.line, node.column)
+
+    def _check_arity(self, action, args, kwargs, node):
+        """Reject calls with too few or too many arguments."""
+        params = action.params
+        required = [p for p in params if p not in action.defaults]
+        supplied = set(params[:len(args)]) | set(kwargs)
+        missing = [p for p in required if p not in supplied]
+        if missing:
+            raise TypeError_(
+                f"action '{action.name}' is missing argument(s): {', '.join(missing)}",
+                node.line, node.column)
+        if len(args) > len(params):
+            raise TypeError_(
+                f"action '{action.name}' takes {len(params)} argument(s) "
+                f"but {len(args)} were given",
+                node.line, node.column)
+        unknown = [k for k in kwargs if k not in params]
+        if unknown:
+            raise TypeError_(
+                f"action '{action.name}' got unexpected argument(s): {', '.join(unknown)}",
+                node.line, node.column)
 
     def _to_str(self, value) -> str:
         """Convert a DataForge value to its string representation."""
@@ -1379,6 +1627,8 @@ class Interpreter:
             return f"<action {value.name}>"
         if isinstance(value, DFChannel):
             return f"<channel {value.name}>"
+        if isinstance(value, DFError):
+            return value.message
         if isinstance(value, list):
             items = ', '.join(self._to_str(i) for i in value)
             return f"[{items}]"

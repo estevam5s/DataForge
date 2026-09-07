@@ -1,0 +1,13 @@
+// Exercicio 033 — Operacoes avancadas de vault
+// Enunciado: use merge, pick, omit, invert e map_values.
+
+base := {"a": 1, "b": 2, "c": 3}
+
+assert base.merge({"d": 4}) is {"a": 1, "b": 2, "c": 3, "d": 4}, "merge"
+assert base.pick("a", "c") is {"a": 1, "c": 3}, "pick"
+assert base.omit("b") is {"a": 1, "c": 3}, "omit"
+assert base.invert() is {1: "a", 2: "b", 3: "c"}, "invert"
+assert base.map_values(lambda v: v * 10) is {"a": 10, "b": 20, "c": 30}, "map_values"
+
+out base.merge({"d": 4})
+out base.map_values(lambda v: v * 10)

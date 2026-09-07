@@ -1,0 +1,40 @@
+// Exercicio 116 — Lista ligada com blueprints
+// Enunciado: implemente uma lista ligada simples.
+
+blueprint No(valor):
+    action setup(valor):
+        self.valor := valor
+        self.proximo := void
+
+blueprint ListaLigada:
+    action setup():
+        self.cabeca := void
+        self.tamanho := 0
+
+    action inserir(valor):
+        novo := spawn No(valor)
+        given self.cabeca is void:
+            self.cabeca := novo
+        otherwise:
+            atual := self.cabeca
+            persist atual.proximo isnt void:
+                atual := atual.proximo
+            atual.proximo := novo
+        self.tamanho := self.tamanho + 1
+        yield self.tamanho
+
+    action para_cluster():
+        saida := []
+        atual := self.cabeca
+        persist atual isnt void:
+            saida.append(atual.valor)
+            atual := atual.proximo
+        yield saida
+
+l := spawn ListaLigada()
+cycle v in [10, 20, 30]:
+    l.inserir(v)
+
+out l.para_cluster(), "tamanho:", l.tamanho
+assert l.para_cluster() is [10, 20, 30], "ordem de insercao"
+assert l.tamanho is 3, "tamanho"

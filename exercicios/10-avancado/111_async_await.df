@@ -1,0 +1,18 @@
+// Exercicio 111 — async / await
+// Enunciado: declare acoes assincronas e aguarde o resultado.
+
+async action buscar_usuario(id):
+    yield {"id": id, "nome": "Usuario " + str(id)}
+
+async action buscar_pedidos(id):
+    yield [{"id": 1, "usuario": id}, {"id": 2, "usuario": id}]
+
+usuario := await buscar_usuario(7)
+pedidos := await buscar_pedidos(7)
+
+out usuario
+out "pedidos:", len(pedidos)
+
+assert usuario["id"] is 7, "id do usuario"
+assert usuario["nome"] is "Usuario 7", "nome"
+assert len(pedidos) is 2, "dois pedidos"

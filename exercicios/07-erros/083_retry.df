@@ -1,0 +1,26 @@
+// Exercicio 083 — retry
+// Enunciado: repita uma operacao instavel ate ter sucesso.
+
+tentativas := {"n": 0}
+
+retry 5:
+    tentativas["n"] := tentativas["n"] + 1
+    given tentativas["n"] smaller 3:
+        trigger "instabilidade temporaria"
+    out "sucesso na tentativa", tentativas["n"]
+handle e:
+    out "desistiu apos as tentativas:", e
+
+assert tentativas["n"] is 3, "precisou de 3 tentativas"
+
+falhas := {"n": 0}
+capturou := no
+retry 2:
+    falhas["n"] := falhas["n"] + 1
+    trigger "sempre falha"
+handle e:
+    capturou := yes
+    out "handler final:", e
+
+assert falhas["n"] is 2, "tentou 2 vezes"
+assert capturou is yes, "o handler final rodou"

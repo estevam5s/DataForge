@@ -1,0 +1,18 @@
+// Exercicio 101 — Arcane.Math
+// Enunciado: use funcoes matematicas da biblioteca padrao.
+
+adopt Arcane.Math as Math
+
+out "sqrt(16)  =", Math.sqrt(16)
+out "PI        =", round(Math.PI, 5)
+out "fatorial5 =", Math.factorial(5)
+out "primo(97) =", Math.is_prime(97)
+out "fib(12)   =", Math.fibonacci(12)
+out "mdc(48,18)=", Math.gcd(48, 18)
+
+assert Math.sqrt(16) is 4.0, "sqrt"
+assert Math.factorial(5) is 120, "fatorial"
+assert Math.is_prime(97) is yes, "primo"
+assert Math.gcd(48, 18) is 6, "mdc"
+assert Math.lcm(4, 6) is 12, "mmc"
+assert Math.clamp(15, 0, 10) is 10, "clamp"

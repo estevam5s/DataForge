@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dataforge-lang"
+version = "3.1.0"
+description = "DataForge — linguagem de programação interpretada, construída sobre Python"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "DataForge Team" }]
+keywords = ["language", "interpreter", "dsl", "data", "compiler"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Software Development :: Interpreters",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.urls]
+Homepage = "https://github.com/estevam5s/DataForge"
+Documentation = "https://github.com/estevam5s/DataForge/tree/main/doc"
+
+[project.scripts]
+dataforge = "dataforge.cli:main"
+df = "dataforge.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["dataforge*"]
+
+[tool.setuptools.package-data]
+dataforge = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

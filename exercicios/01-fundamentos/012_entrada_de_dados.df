@@ -1,0 +1,13 @@
+// Exercicio 012 — Interpolacao e formatacao de saida
+// Enunciado: monte uma linha de relatorio combinando texto e numeros.
+
+produto := "Teclado"
+preco := 199.9
+quantidade := 3
+total := preco * quantidade
+
+linha := produto + " x" + str(quantidade) + " = R$ " + str(round(total, 2))
+out linha
+
+assert linha is "Teclado x3 = R$ 599.7", "linha formatada"
+assert round(total, 2) is 599.7, "total"

@@ -1,0 +1,26 @@
+// Exercicio 115 — defer com recursos reais
+// Enunciado: garanta que o arquivo seja apagado mesmo apos erro.
+
+adopt Arcane.IO as IO
+
+caminho := "_exercicio_115.tmp"
+
+action processa_arquivo(deve_falhar):
+    IO.write(caminho, "dados")
+    defer:
+        IO.delete(caminho)
+    given deve_falhar:
+        trigger "falha no processamento"
+    yield "processado"
+
+out processa_arquivo(no)
+assert IO.exists(caminho) is no, "defer apagou apos sucesso"
+
+monitor:
+    processa_arquivo(yes)
+handle e:
+    out "erro tratado:", e
+
+out "arquivo ainda existe?", IO.exists(caminho)
+assert IO.exists(caminho) is no, "defer tambem apagou apos o erro"
+out "defer roda em todos os caminhos de saida"

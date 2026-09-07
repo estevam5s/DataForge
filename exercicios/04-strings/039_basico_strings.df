@@ -1,0 +1,12 @@
+// Exercicio 039 — Strings basicas
+// Enunciado: monte, meca e indexe textos.
+
+nome := "DataForge"
+out nome.length(), nome[0], nome[-1], nome[0:4]
+
+assert nome.length() is 9, "tamanho"
+assert nome[0] is "D", "primeiro caractere"
+assert nome[-1] is "e", "ultimo caractere"
+assert nome[0:4] is "Data", "fatia"
+assert nome + " v3" is "DataForge v3", "concatenacao"
+assert "ab".repeat(3) is "ababab", "repeticao"

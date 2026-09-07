@@ -1,0 +1,18 @@
+// Exercicio 110 — Arcane.Test
+// Enunciado: escreva asserts de biblioteca para uma funcao.
+
+adopt Arcane.Test as Test
+
+action fatorial(n):
+    given n smaller_eq 1:
+        yield 1
+    yield n * fatorial(n - 1)
+
+Test.assert_eq(fatorial(0), 1, "fatorial de 0")
+Test.assert_eq(fatorial(5), 120, "fatorial de 5")
+Test.assert_true(fatorial(3) bigger fatorial(2), "cresce")
+Test.assert_type(fatorial(4), "Integer", "devolve Integer")
+Test.assert_between(fatorial(4), 20, 30, "24 esta no intervalo")
+
+out "todas as verificacoes de Arcane.Test passaram"
+assert fatorial(6) is 720, "verificacao final"

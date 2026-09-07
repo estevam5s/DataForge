@@ -26,6 +26,13 @@ class TokenType(Enum):
     POWER = auto()           # **
     FLOOR_DIV = auto()       # //
     PIPE = auto()            # >>  (pipeline)
+    ARROW = auto()           # ->  (return type annotation)
+    FAT_ARROW = auto()       # =>  (lambda body)
+    PLUS_ASSIGN = auto()     # +=
+    MINUS_ASSIGN = auto()    # -=
+    STAR_ASSIGN = auto()     # *=
+    SLASH_ASSIGN = auto()    # /=
+    PERCENT_ASSIGN = auto()  # %=
     DOT = auto()             # .
     COMMA = auto()           # ,
     AT = auto()              # @
@@ -47,6 +54,10 @@ class TokenType(Enum):
     SMALLER_EQ = auto()      # smaller_eq
     EQUAL = auto()           # ==
     NOT_EQUAL = auto()       # !=
+    LT = auto()              # <   (alias of smaller)
+    GT = auto()              # >   (alias of bigger)
+    LT_EQ = auto()           # <=  (alias of smaller_eq)
+    GT_EQ = auto()           # >=  (alias of bigger_eq)
 
     # ── Logic ─────────────────────────────────────────────
     AND = auto()             # and
@@ -144,6 +155,7 @@ class TokenType(Enum):
     FREEZE = auto()          # freeze (lock)
     THAW = auto()            # thaw (unlock)
     CAST = auto()            # cast (type conversion)
+    LAMBDA = auto()          # lambda (anonymous action)
     INSPECT = auto()         # inspect (debug)
     ASSERT = auto()          # assert
     DELETE = auto()          # delete
@@ -160,13 +172,17 @@ class TokenType(Enum):
 class Token:
     """Represents a single token from the source code."""
 
-    __slots__ = ('type', 'value', 'line', 'column')
+    __slots__ = ('type', 'value', 'line', 'column', 'text')
 
-    def __init__(self, type: TokenType, value, line: int = 0, column: int = 0):
+    def __init__(self, type: TokenType, value, line: int = 0, column: int = 0,
+                 text: str | None = None):
         self.type = type
         self.value = value
         self.line = line
         self.column = column
+        # Source spelling; differs from 'value' for yes/no/void.
+        self.text = text if text is not None else (
+            value if isinstance(value, str) else None)
 
     def __repr__(self):
         return f"Token({self.type.name}, {self.value!r}, L{self.line}:C{self.column})"
@@ -229,7 +245,6 @@ KEYWORDS = {
     "relay": TokenType.RELAY,
     "trait": TokenType.TRAIT,
     "static": TokenType.STATIC,
-    "abstract": TokenType.ABSTRACT,
 
     # Error handling
     "monitor": TokenType.MONITOR,
@@ -255,13 +270,9 @@ KEYWORDS = {
 
     # Metadata
     "mark": TokenType.MARK,
-    "claim": TokenType.CLAIM,
-    "release": TokenType.RELEASE,
 
     # Data Science
     "frame": TokenType.FRAME,
-    "cluster": TokenType.CLUSTER,
-    "vault": TokenType.VAULT,
     "sift": TokenType.SIFT,
     "morph": TokenType.MORPH,
     "distill": TokenType.DISTILL,
@@ -273,15 +284,11 @@ KEYWORDS = {
     "with": TokenType.WITH,
     "extends": TokenType.EXTENDS,
     "as": TokenType.AS,
-    "range": TokenType.RANGE,
     "wait": TokenType.WAIT,
     "emit": TokenType.EMIT,
-    "listen": TokenType.LISTEN,
-    "each": TokenType.EACH,
     "forge": TokenType.FORGE,
-    "link": TokenType.LINK,
-    "unlink": TokenType.UNLINK,
     "cast": TokenType.CAST,
+    "lambda": TokenType.LAMBDA,
     "inspect": TokenType.INSPECT,
     "assert": TokenType.ASSERT,
     "delete": TokenType.DELETE,

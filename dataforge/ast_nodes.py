@@ -100,6 +100,7 @@ class NotOp(ASTNode):
 class Assignment(ASTNode):
     target: Any = None
     value: Any = None
+    declared_type: str = ""
 
 @dataclass
 class SteadyDeclaration(ASTNode):
@@ -118,6 +119,24 @@ class IndexAccess(ASTNode):
     """object[index]"""
     object: Any = None
     index: Any = None
+
+@dataclass
+class SliceAccess(ASTNode):
+    """obj[start:stop:step]"""
+    object: Any = None
+    start: Any = None
+    stop: Any = None
+    step: Any = None
+
+
+@dataclass
+class LambdaExpression(ASTNode):
+    """lambda a, b: expression"""
+    params: list = field(default_factory=list)
+    defaults: dict = field(default_factory=dict)
+    body: Any = None
+    param_types: dict = field(default_factory=dict)
+
 
 @dataclass
 class FunctionCall(ASTNode):
@@ -182,12 +201,6 @@ class DistillOperation(ASTNode):
 @dataclass
 class AwaitExpression(ASTNode):
     expression: Any = None
-
-@dataclass
-class LambdaExpression(ASTNode):
-    params: list = field(default_factory=list)
-    body: Any = None
-
 
 # ═══════════════════════════════════════════════════════════
 #  STATEMENTS
@@ -311,6 +324,8 @@ class ActionDeclaration(ASTNode):
     body: list = field(default_factory=list)
     is_async: bool = False
     decorators: list = field(default_factory=list)
+    param_types: dict = field(default_factory=dict)
+    return_type: str = ""
 
 @dataclass
 class BlueprintDeclaration(ASTNode):
@@ -343,6 +358,7 @@ class MonitorBlock(ASTNode):
     """monitor: / handle: / ensure:"""
     body: list = field(default_factory=list)
     handle_name: str = ""
+    handle_type: str = ""
     handle_body: list = field(default_factory=list)
     ensure_body: list = field(default_factory=list)
 

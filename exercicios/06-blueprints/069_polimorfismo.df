@@ -1,0 +1,27 @@
+// Exercicio 069 — Polimorfismo
+// Enunciado: calcule a area de formas diferentes pela mesma interface.
+
+blueprint Forma:
+    action area():
+        yield 0
+
+blueprint Quadrado(lado) extends Forma:
+    action area():
+        yield self.lado ** 2
+
+blueprint Circulo(raio) extends Forma:
+    action area():
+        yield round(3.14159 * self.raio ** 2, 2)
+
+blueprint Triangulo(base, altura) extends Forma:
+    action area():
+        yield self.base * self.altura / 2
+
+formas := [spawn Quadrado(4), spawn Circulo(2), spawn Triangulo(6, 4)]
+areas := []
+cycle f in formas:
+    areas.append(f.area())
+    out typeof(f), "->", f.area()
+
+assert areas is [16, 12.57, 12.0], "areas polimorficas"
+assert typeof(formas[0]) is "Quadrado", "typeof devolve o blueprint"

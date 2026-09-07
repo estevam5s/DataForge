@@ -1,0 +1,23 @@
+// Exercicio 108 — Arcane.Database
+// Enunciado: crie uma tabela em memoria, insira e consulte.
+
+adopt Arcane.Database as DB
+
+conn := DB.memory()
+DB.execute(conn, "CREATE TABLE alunos (id INTEGER PRIMARY KEY, nome TEXT, nota REAL)")
+DB.execute(conn, "INSERT INTO alunos (nome, nota) VALUES ('Ana', 9.5)")
+DB.execute(conn, "INSERT INTO alunos (nome, nota) VALUES ('Bruno', 7.0)")
+DB.execute(conn, "INSERT INTO alunos (nome, nota) VALUES ('Carla', 8.25)")
+
+todos := DB.query(conn, "SELECT nome, nota FROM alunos ORDER BY nota DESC")
+cycle linha in todos:
+    out "  " + str(linha["nome"]).pad_end(8) + str(linha["nota"])
+
+assert len(todos) is 3, "tres alunos"
+assert todos[0]["nome"] is "Ana", "melhor nota primeiro"
+
+aprovados := DB.query(conn, "SELECT COUNT(*) AS total FROM alunos WHERE nota >= 8")
+assert aprovados[0]["total"] is 2, "dois aprovados"
+out "aprovados:", aprovados[0]["total"]
+
+DB.close(conn)

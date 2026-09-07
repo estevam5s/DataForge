@@ -1,0 +1,17 @@
+// Exercicio 098 — Pipeline de limpeza de dados
+// Enunciado: normalize uma lista suja de emails.
+
+bruto := ["  ANA@Exemplo.com ", "invalido", "bruno@teste.org", "", "  CARLA@X.COM"]
+
+adopt Arcane.Regex as Regex
+
+limpos := bruto
+    >> morph e: e.trim().lower()
+    >> sift e: Regex.is_email(e)
+
+out limpos
+assert limpos is ["ana@exemplo.com", "bruno@teste.org", "carla@x.com"], "emails limpos"
+
+dominios := limpos >> morph e: e.split("@")[1]
+out unique(dominios)
+assert unique(dominios) is ["exemplo.com", "teste.org", "x.com"], "dominios"

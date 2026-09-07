@@ -1,0 +1,19 @@
+// Exercicio 064 — Construtor com setup
+// Enunciado: use o metodo setup como construtor tradicional.
+
+blueprint Retangulo:
+    action setup(largura, altura):
+        self.largura := largura
+        self.altura := altura
+
+    action area():
+        yield self.largura * self.altura
+
+    action perimetro():
+        yield 2 * (self.largura + self.altura)
+
+r := spawn Retangulo(4, 6)
+out "area:", r.area(), "perimetro:", r.perimetro()
+
+assert r.area() is 24, "area"
+assert r.perimetro() is 20, "perimetro"

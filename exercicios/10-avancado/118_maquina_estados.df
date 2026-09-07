@@ -1,0 +1,41 @@
+// Exercicio 118 — Maquina de estados
+// Enunciado: modele o ciclo de vida de um pedido.
+
+steady TRANSICOES := {
+    "novo": ["pago", "cancelado"],
+    "pago": ["enviado", "reembolsado"],
+    "enviado": ["entregue"],
+    "entregue": [],
+    "cancelado": [],
+    "reembolsado": []
+}
+
+blueprint Pedido:
+    action setup():
+        self.estado := "novo"
+        self.historico := ["novo"]
+
+    action mover(destino):
+        permitidos := TRANSICOES[self.estado]
+        given not permitidos.contains(destino):
+            trigger "transicao invalida: " + self.estado + " -> " + destino
+        self.estado := destino
+        self.historico.append(destino)
+        yield destino
+
+p := spawn Pedido()
+p.mover("pago")
+p.mover("enviado")
+p.mover("entregue")
+out p.historico
+
+assert p.estado is "entregue", "estado final"
+assert p.historico is ["novo", "pago", "enviado", "entregue"], "historico"
+
+invalida := no
+monitor:
+    p.mover("pago")
+handle e:
+    invalida := yes
+    out "bloqueado:", e
+assert invalida is yes, "transicao invalida bloqueada"

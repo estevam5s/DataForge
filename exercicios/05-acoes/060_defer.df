@@ -1,0 +1,18 @@
+// Exercicio 060 — defer
+// Enunciado: agende limpeza que roda ao sair da acao.
+
+ordem := []
+
+action com_recurso():
+    defer:
+        ordem.append("fechou recurso")
+    ordem.append("abriu recurso")
+    ordem.append("usou recurso")
+    yield "pronto"
+
+resultado := com_recurso()
+out resultado
+out ordem
+
+assert resultado is "pronto", "retorno normal"
+assert ordem is ["abriu recurso", "usou recurso", "fechou recurso"], "defer roda por ultimo"

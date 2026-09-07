@@ -110,7 +110,9 @@ class ArcaneText:
         result = text
         if isinstance(context, dict):
             for key, value in context.items():
+                # Accept both {{key}} and {key} placeholders.
                 result = result.replace("{{" + str(key) + "}}", str(value))
+                result = result.replace("{" + str(key) + "}", str(value))
         return result
 
     # ── Case Conversions ─────────────────────────────────

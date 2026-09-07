@@ -67,17 +67,32 @@ class TriggerError(DataForgeError):
     pass
 
 
-class HaltSignal(Exception):
+class StackOverflowError_(DataForgeError):
+    """Raised when recursion goes too deep."""
+    pass
+
+
+class ControlSignal(BaseException):
+    """Base for internal control-flow signals.
+
+    Derives from BaseException (not Exception) on purpose: 'halt', 'skip' and
+    'yield' are control flow, not errors, so a 'monitor/handle' block must never
+    swallow them.
+    """
+    pass
+
+
+class HaltSignal(ControlSignal):
     """Internal signal for 'halt' (break)."""
     pass
 
 
-class SkipSignal(Exception):
+class SkipSignal(ControlSignal):
     """Internal signal for 'skip' (continue)."""
     pass
 
 
-class YieldSignal(Exception):
+class YieldSignal(ControlSignal):
     """Internal signal for 'yield' (return)."""
 
     def __init__(self, value=None):

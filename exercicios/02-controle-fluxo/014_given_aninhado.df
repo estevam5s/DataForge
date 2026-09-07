@@ -1,0 +1,20 @@
+// Exercicio 014 — Condicionais aninhadas
+// Enunciado: converta uma nota de 0 a 10 em conceito A/B/C/D.
+
+action conceito(nota):
+    given nota bigger_eq 9:
+        yield "A"
+    orif nota bigger_eq 7:
+        yield "B"
+    orif nota bigger_eq 5:
+        yield "C"
+    otherwise:
+        yield "D"
+
+cycle n in [10, 8, 6, 2]:
+    out n, "->", conceito(n)
+
+assert conceito(10) is "A", "A"
+assert conceito(8) is "B", "B"
+assert conceito(6) is "C", "C"
+assert conceito(2) is "D", "D"

@@ -1,0 +1,11 @@
+// Exercicio 019 — Laco persist (while)
+// Enunciado: calcule quantas vezes um numero pode ser dividido por 2.
+
+n := 1024
+divisoes := 0
+persist n bigger 1:
+    n := n ~/ 2
+    divisoes += 1
+
+out "1024 vira 1 apos", divisoes, "divisoes"
+assert divisoes is 10, "log2(1024) = 10"

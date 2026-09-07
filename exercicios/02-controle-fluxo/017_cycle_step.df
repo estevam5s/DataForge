@@ -1,0 +1,16 @@
+// Exercicio 017 — Laco com step
+// Enunciado: liste os pares de 0 a 10 e faca uma contagem regressiva.
+
+pares := []
+cycle i from 0 to 10 step 2:
+    pares.append(i)
+
+regressiva := []
+cycle i from 5 to 1 step -1:
+    regressiva.append(i)
+
+out "pares:      ", pares
+out "regressiva: ", regressiva
+
+assert pares is [0, 2, 4, 6, 8, 10], "pares"
+assert regressiva is [5, 4, 3, 2, 1], "regressiva"

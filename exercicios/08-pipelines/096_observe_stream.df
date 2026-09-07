@@ -1,0 +1,21 @@
+// Exercicio 096 — Streams reativos
+// Enunciado: observe os itens de um stream conforme chegam.
+
+recebidos := []
+s := stream([10, 20, 30, 40])
+
+observe valor in s:
+    given valor bigger 35:
+        halt
+    recebidos.append(valor)
+
+out recebidos
+assert recebidos is [10, 20, 30], "parou em 40"
+
+soma := 0
+observe v in [1, 2, 3, 4, 5]:
+    given v % 2 is 0:
+        skip
+    soma += v
+assert soma is 9, "somou apenas os impares"
+out "soma dos impares:", soma

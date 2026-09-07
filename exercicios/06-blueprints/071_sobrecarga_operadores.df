@@ -1,0 +1,22 @@
+// Exercicio 071 — Sobrecarga de operadores
+// Enunciado: some e multiplique vetores com + e *.
+
+blueprint Vetor(x, y):
+    action add(outro):
+        yield spawn Vetor(self.x + outro.x, self.y + outro.y)
+
+    action mul(escalar):
+        yield spawn Vetor(self.x * escalar, self.y * escalar)
+
+    action toString():
+        yield "<" + str(self.x) + ", " + str(self.y) + ">"
+
+a := spawn Vetor(1, 2)
+b := spawn Vetor(3, 4)
+
+soma := a + b
+escalado := a * 3
+
+out soma, escalado
+assert str(soma) is "<4, 6>", "soma de vetores"
+assert str(escalado) is "<3, 6>", "produto por escalar"

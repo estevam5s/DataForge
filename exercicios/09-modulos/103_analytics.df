@@ -1,0 +1,18 @@
+// Exercicio 103 — Arcane.Analytics
+// Enunciado: explore correlacao, percentis e outliers.
+
+adopt Arcane.Analytics as An
+
+x := [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+y := [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+
+out "correlacao:", round(An.correlation(x, y), 4)
+out "percentil 50:", An.percentile(x, 50)
+out "quartis:", An.quartiles(x)
+
+com_outlier := [10, 11, 12, 11, 10, 200]
+out "outliers:", An.outliers(com_outlier)
+
+assert round(An.correlation(x, y), 4) is 1.0, "correlacao perfeita"
+assert An.percentile(x, 50) is 5.5, "mediana via percentil"
+assert len(An.outliers(com_outlier)) bigger 0, "detectou outlier"

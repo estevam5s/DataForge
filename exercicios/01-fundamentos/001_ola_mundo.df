@@ -1,0 +1,7 @@
+// Exercicio 001 — Ola, mundo
+// Enunciado: imprima uma saudacao e o nome da linguagem em duas linhas.
+
+out "Ola, mundo!"
+out "Bem-vindo ao DataForge."
+
+assert 1 is 1, "o programa deve rodar ate o fim"

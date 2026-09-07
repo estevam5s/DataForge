@@ -1,3 +1,11 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Especificação da **v2.0**, defasada. A referência atual é `doc/REFERENCIA.md`.
+>
+> **Documentação vigente:** [`doc/TUTORIAL.md`](TUTORIAL.md) · [`doc/REFERENCIA.md`](REFERENCIA.md) · [`doc/BIBLIOTECA_PADRAO.md`](BIBLIOTECA_PADRAO.md) · [`doc/INSTALACAO.md`](INSTALACAO.md)
+
+---
+
 ================================================================================
           OFFICIAL SPECIFICATION: DATAFORGE PROGRAMMING LANGUAGE (v2.0)
 ================================================================================

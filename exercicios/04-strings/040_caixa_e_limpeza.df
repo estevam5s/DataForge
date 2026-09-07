@@ -1,0 +1,15 @@
+// Exercicio 040 — Caixa e limpeza
+// Enunciado: normalize um texto sujo vindo de um formulario.
+
+bruto := "   joao DA silva   "
+limpo := bruto.trim()
+
+out "'" + bruto + "'"
+out "'" + limpo + "'"
+out limpo.upper(), limpo.lower(), limpo.title()
+
+assert limpo is "joao DA silva", "trim"
+assert limpo.upper() is "JOAO DA SILVA", "upper"
+assert limpo.lower() is "joao da silva", "lower"
+assert limpo.title() is "Joao Da Silva", "title"
+assert limpo.capitalize() is "Joao da silva", "capitalize"

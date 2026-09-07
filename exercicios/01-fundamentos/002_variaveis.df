@@ -1,0 +1,18 @@
+// Exercicio 002 — Variaveis
+// Enunciado: declare uma variavel de cada tipo primitivo e imprima cada uma.
+
+inteiro := 42
+decimal := 3.14
+texto := "DataForge"
+verdadeiro := yes
+falso := no
+nada := void
+
+out inteiro, decimal, texto, verdadeiro, falso, nada
+
+assert inteiro is 42, "inteiro"
+assert decimal is 3.14, "decimal"
+assert texto is "DataForge", "texto"
+assert verdadeiro is yes, "booleano verdadeiro"
+assert falso is no, "booleano falso"
+assert nada is void, "void"

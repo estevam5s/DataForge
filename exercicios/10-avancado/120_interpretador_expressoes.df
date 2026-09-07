@@ -1,0 +1,50 @@
+// Exercicio 120 — Avaliador de expressoes em notacao polonesa reversa
+// Enunciado: escreva um mini interpretador dentro do DataForge.
+
+action avaliar_rpn(expressao):
+    pilha := []
+    cycle token in expressao.words():
+        given ["+", "-", "*", "/"].contains(token):
+            given len(pilha) smaller 2:
+                trigger "expressao malformada perto de '" + token + "'"
+            b := pilha.pop()
+            a := pilha.pop()
+            match token:
+                point "+":
+                    pilha.append(a + b)
+                point "-":
+                    pilha.append(a - b)
+                point "*":
+                    pilha.append(a * b)
+                point "/":
+                    given b is 0:
+                        trigger "divisao por zero"
+                    pilha.append(a / b)
+        otherwise:
+            pilha.append(cast token as Float)
+    given len(pilha) isnt 1:
+        trigger "expressao incompleta"
+    yield pilha[0]
+
+casos := [
+    ["3 4 +", 7.0],
+    ["5 1 2 + 4 * + 3 -", 14.0],
+    ["10 2 /", 5.0],
+    ["2 3 4 * +", 14.0]
+]
+
+cycle caso in casos:
+    obtido := avaliar_rpn(caso[0])
+    out caso[0].pad_end(22) + "= " + str(obtido)
+    assert obtido is caso[1], "resultado de " + caso[0]
+
+erros := 0
+cycle ruim in ["1 +", "1 0 /", "1 2"]:
+    monitor:
+        avaliar_rpn(ruim)
+    handle e:
+        erros += 1
+        out "rejeitado '" + ruim + "': " + e
+
+assert erros is 3, "as tres expressoes invalidas foram rejeitadas"
+out "mini interpretador RPN validado"

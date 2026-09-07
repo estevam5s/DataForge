@@ -1,0 +1,16 @@
+// Exercicio 043 — Substituicao e preenchimento
+// Enunciado: mascare um documento e alinhe uma coluna.
+
+cpf := "123.456.789-00"
+mascarado := cpf.replace("123", "***")
+out mascarado
+
+assert mascarado is "***.456.789-00", "replace"
+assert "abc".pad_start(6, ".") is "...abc", "pad_start"
+assert "abc".pad_end(6, ".") is "abc...", "pad_end"
+assert "7".zfill(3) is "007", "zfill"
+assert "  meio  ".strip() is "meio", "strip"
+
+cabecalho := "item".pad_end(10) + "qtd".pad_start(5)
+out cabecalho
+assert cabecalho.length() is 15, "largura da coluna"

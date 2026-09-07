@@ -1,0 +1,16 @@
+// Exercicio 018 — Laco cycle in
+// Enunciado: percorra uma lista e um vault.
+
+frutas := ["maca", "uva", "pera"]
+cycle f in frutas:
+    out "fruta:", f
+
+precos := {"maca": 3.5, "uva": 8.0}
+cycle chave in precos.keys():
+    out chave, "custa", precos[chave]
+
+contagem := 0
+cycle f in frutas:
+    contagem += 1
+assert contagem is 3, "percorreu 3 frutas"
+assert len(precos.keys()) is 2, "duas chaves"

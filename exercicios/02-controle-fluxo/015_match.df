@@ -1,0 +1,20 @@
+// Exercicio 015 — match / point / default
+// Enunciado: traduza o codigo de um dia da semana para o nome.
+
+action dia(n):
+    match n:
+        point 1:
+            yield "segunda"
+        point 2:
+            yield "terca"
+        point 3:
+            yield "quarta"
+        default:
+            yield "desconhecido"
+
+cycle n in [1, 2, 3, 9]:
+    out n, "->", dia(n)
+
+assert dia(1) is "segunda", "1"
+assert dia(3) is "quarta", "3"
+assert dia(9) is "desconhecido", "default"

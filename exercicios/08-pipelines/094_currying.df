@@ -1,0 +1,17 @@
+// Exercicio 094 — Aplicacao parcial e curry
+// Enunciado: fixe argumentos e gere novas acoes.
+
+action somar3(a, b, c):
+    yield a + b + c
+
+soma_com_10 := partial(somar3, 10)
+out soma_com_10(5, 2)
+assert soma_com_10(5, 2) is 17, "aplicacao parcial"
+
+action multiplicar(a, b):
+    yield a * b
+
+triplicar := partial(multiplicar, 3)
+assert triplicar(7) is 21, "triplicar"
+out [1, 2, 3].map(triplicar)
+assert [1, 2, 3].map(triplicar) is [3, 6, 9], "usada em map"

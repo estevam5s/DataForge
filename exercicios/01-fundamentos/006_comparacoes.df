@@ -1,0 +1,16 @@
+// Exercicio 006 — Comparacoes
+// Enunciado: use as palavras-chave e os simbolos equivalentes.
+
+a := 10
+b := 3
+
+out a is 10, a isnt b, a bigger b, a smaller b
+out a bigger_eq 10, a smaller_eq 9
+out a > b, a < b, a >= 10, a <= 9
+
+assert (a is 10) is yes, "is"
+assert (a isnt b) is yes, "isnt"
+assert (a bigger b) is (a > b), "bigger equivale a >"
+assert (a smaller b) is (a < b), "smaller equivale a <"
+assert (a bigger_eq 10) is (a >= 10), "bigger_eq equivale a >="
+assert (a smaller_eq 9) is (a <= 9), "smaller_eq equivale a <="

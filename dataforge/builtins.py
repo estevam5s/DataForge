@@ -55,7 +55,20 @@ def _df_str(obj):
         return "void"
     if isinstance(obj, bool):
         return "yes" if obj else "no"
+    # Delegate to the interpreter so blueprint instances honour toString() and
+    # clusters/vaults print with DataForge spelling — same as 'out'.
+    formatter = _STRINGIFY[0]
+    if formatter is not None:
+        return formatter(obj)
     return str(obj)
+
+
+# Set by Interpreter.__init__ so str() and out agree on formatting.
+_STRINGIFY = [None]
+
+
+def set_stringifier(fn):
+    _STRINGIFY[0] = fn
 
 def _df_int(obj):
     return int(obj)

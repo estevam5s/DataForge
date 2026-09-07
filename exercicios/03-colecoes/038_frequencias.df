@@ -1,0 +1,19 @@
+// Exercicio 038 — Contagem de frequencias
+// Enunciado: conte quantas vezes cada item aparece.
+
+votos := ["ana", "bruno", "ana", "carla", "ana", "bruno"]
+contagem := votos.frequencies()
+
+out contagem
+
+vencedor := ""
+maximo := 0
+cycle par in contagem.items():
+    given par[1] bigger maximo:
+        maximo := par[1]
+        vencedor := par[0]
+
+out "vencedor:", vencedor, "com", maximo, "votos"
+assert contagem["ana"] is 3, "ana"
+assert contagem["bruno"] is 2, "bruno"
+assert vencedor is "ana", "vencedor"

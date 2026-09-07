@@ -1,0 +1,19 @@
+// Exercicio 081 — monitor sem handle propaga
+// Enunciado: comprove que um monitor com apenas ensure nao engole o erro.
+
+log := []
+propagou := no
+
+monitor:
+    monitor:
+        log.append("tentou")
+        trigger "erro interno"
+    ensure:
+        log.append("limpou")
+handle e:
+    propagou := yes
+    log.append("externo tratou")
+
+out log
+assert propagou is yes, "o erro chegou ao handler externo"
+assert log is ["tentou", "limpou", "externo tratou"], "ordem de execucao"

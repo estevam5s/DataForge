@@ -9,6 +9,7 @@ from .lexer import tokenize
 from .parser import parse
 from .interpreter import Interpreter
 from .errors import DataForgeError
+from . import __version__
 
 
 BANNER = r"""
@@ -21,8 +22,8 @@ BANNER = r"""
 ║    |____/ \__,_|\__\__,_|_|  \___/|_|  \__, |\___|          ║
 ║                                         |___/                ║
 ║                                                              ║
-║    DataForge Programming Language v2.0                       ║
-║    Type 'exit' to quit | 'help' for commands                 ║
+║    DataForge Programming Language                            ║
+║    Digite 'exit' para sair | 'help' para os comandos         ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 """

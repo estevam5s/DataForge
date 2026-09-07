@@ -1,0 +1,27 @@
+// Exercicio 078 — ensure (finally)
+// Enunciado: garanta que a limpeza rode com ou sem erro.
+
+log := []
+
+action com_falha():
+    monitor:
+        log.append("inicio")
+        trigger "falhou"
+    handle e:
+        log.append("tratou")
+    ensure:
+        log.append("limpou")
+
+action sem_falha():
+    monitor:
+        log.append("ok")
+    handle e:
+        log.append("nao deveria")
+    ensure:
+        log.append("limpou2")
+
+com_falha()
+sem_falha()
+out log
+
+assert log is ["inicio", "tratou", "limpou", "ok", "limpou2"], "ensure sempre roda"

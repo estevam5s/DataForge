@@ -1,0 +1,29 @@
+// Exercicio 072 — Composicao
+// Enunciado: um pedido composto por varios itens.
+
+blueprint Item(nome, preco, qtd):
+    action subtotal():
+        yield self.preco * self.qtd
+
+blueprint Pedido(cliente):
+    action setup(cliente):
+        self.cliente := cliente
+        self.itens := []
+
+    action adicionar(item):
+        self.itens.append(item)
+        yield len(self.itens)
+
+    action total():
+        soma := 0
+        cycle i in self.itens:
+            soma += i.subtotal()
+        yield soma
+
+p := spawn Pedido("Ana")
+p.adicionar(spawn Item("Mouse", 80, 2))
+p.adicionar(spawn Item("Teclado", 200, 1))
+
+out p.cliente, "->", len(p.itens), "itens, total R$", p.total()
+assert len(p.itens) is 2, "dois itens"
+assert p.total() is 360, "total do pedido"

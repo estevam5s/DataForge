@@ -1,0 +1,23 @@
+// Exercicio 082 — guard e validate
+// Enunciado: compare as duas formas de pre-condicao.
+
+action com_guard(n):
+    guard n bigger 0, "guard: n precisa ser positivo"
+    yield n * 2
+
+action com_validate(n):
+    validate n bigger 0, "validate: n precisa ser positivo"
+    yield n * 3
+
+msgs := []
+cycle acao in [com_guard, com_validate]:
+    monitor:
+        acao(-1)
+    handle e:
+        msgs.append(e.message)
+
+out msgs
+assert com_guard(5) is 10, "guard passa"
+assert com_validate(5) is 15, "validate passa"
+assert msgs[0] is "guard: n precisa ser positivo", "guard dispara"
+assert msgs[1] is "validate: n precisa ser positivo", "validate dispara"

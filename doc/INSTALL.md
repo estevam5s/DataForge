@@ -1,3 +1,11 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Guia de instalação antigo. O atual é `doc/INSTALACAO.md`.
+>
+> **Documentação vigente:** [`doc/TUTORIAL.md`](TUTORIAL.md) · [`doc/REFERENCIA.md`](REFERENCIA.md) · [`doc/BIBLIOTECA_PADRAO.md`](BIBLIOTECA_PADRAO.md) · [`doc/INSTALACAO.md`](INSTALACAO.md)
+
+---
+
 # 📦 DataForge Installation Guide
 
 This comprehensive guide covers all installation methods for DataForge Programming Language across different platforms and environments.

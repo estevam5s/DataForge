@@ -1,0 +1,13 @@
+// Exercicio 025 — Clusters (listas)
+// Enunciado: crie, acesse e altere elementos de um cluster.
+
+nums := [10, 20, 30, 40, 50]
+out "primeiro:", nums[0], "ultimo:", nums[-1], "tamanho:", len(nums)
+
+nums[1] := 99
+out nums
+
+assert nums[0] is 10, "indice 0"
+assert nums[-1] is 50, "indice negativo"
+assert nums[1] is 99, "atribuicao por indice"
+assert len(nums) is 5, "tamanho"
