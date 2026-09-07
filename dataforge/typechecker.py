@@ -591,6 +591,78 @@ class TypeChecker:
         escopo.declare(node.name, "Channel", node.line, node.column)
         return False
 
+    # ── Kiln ───────────────────────────────────────────────
+
+    def st_ServerBlock(self, node, escopo):
+        """O nome do server passa a existir no escopo de fora."""
+        escopo.declare(node.name, "Server", node.line, node.column)
+        if node.port is not None:
+            self.infer(node.port, escopo)
+        if node.host is not None:
+            self.infer(node.host, escopo)
+        self.visit_block(node.body, Scope(escopo, "server"))
+        return False
+
+    def st_RouteBlock(self, node, escopo):
+        self.infer(node.path, escopo)
+        interno = Scope(escopo, "action")
+        # O corpo da rota recebe estes seis prontos.
+        for nome, tipo in (("req", "Vault"), ("params", "Vault"),
+                           ("query", "Vault"), ("body", UNKNOWN),
+                           ("headers", "Vault"), ("session", "Vault")):
+            interno.declare(nome, tipo, node.line, node.column)
+        self.visit_block(node.body, interno)
+        return False
+
+    def st_RespondStatement(self, node, escopo):
+        if node.value is not None:
+            self.infer(node.value, escopo)
+        if node.status is not None:
+            self.infer(node.status, escopo)
+        # 'respond' encerra a rota, como 'yield' encerra uma acao:
+        # marcar isso evita "codigo inalcancavel" falso logo abaixo.
+        return True
+
+    def st_RenderStatement(self, node, escopo):
+        self.infer(node.template, escopo)
+        if node.data is not None:
+            self.infer(node.data, escopo)
+        if node.status is not None:
+            self.infer(node.status, escopo)
+        return True
+
+    def st_RedirectStatement(self, node, escopo):
+        self.infer(node.target, escopo)
+        if node.status is not None:
+            self.infer(node.status, escopo)
+        return True
+
+    def st_MiddlewareStatement(self, node, escopo):
+        self.infer(node.value, escopo)
+        return False
+
+    def st_MountStatement(self, node, escopo):
+        self.infer(node.value, escopo)
+        self.infer(node.prefix, escopo)
+        return False
+
+    def st_AssetsStatement(self, node, escopo):
+        self.infer(node.prefix, escopo)
+        self.infer(node.folder, escopo)
+        return False
+
+    def st_ViewsStatement(self, node, escopo):
+        self.infer(node.folder, escopo)
+        return False
+
+    def st_IgniteStatement(self, node, escopo):
+        self.infer(node.target, escopo)
+        if node.port is not None:
+            self.infer(node.port, escopo)
+        if node.host is not None:
+            self.infer(node.host, escopo)
+        return False
+
     def st_ActionDeclaration(self, node, escopo):
         assinatura = ActionSignature(node)
         if not self._em_membro:

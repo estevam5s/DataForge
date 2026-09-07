@@ -207,6 +207,21 @@ GRUPOS = [
             veja=("pack",)),
     ]),
 
+    ("Ambiente", [
+        Cmd("editor", "dataforge editor [status|remove]",
+            "Instala a coloracao de sintaxe no VS Code",
+            "Copia a extensao para o VS Code, Insiders, Cursor, VSCodium e\n"
+            "Windsurf — todos os que encontrar. Depois disso, todo arquivo\n"
+            ".df abre com as palavras reservadas coloridas, 23 snippets e a\n"
+            "indentacao de 4 espacos que a linguagem exige.\n"
+            "\nO instalador ja faz isso; use este comando para reinstalar\n"
+            "depois de atualizar o DataForge ou de instalar um editor novo.",
+            opcoes=[("status", "mostra onde esta instalada"),
+                    ("remove", "desinstala de todos os editores")],
+            exemplos=[("dataforge editor", "instala em todos"),
+                      ("dataforge editor status", "so confere")],
+            veja=("version",)),
+    ]),
     ("Diagnostico", [
         Cmd("explain", "dataforge explain <codigo>",
             "Explica um codigo de erro",
@@ -2128,6 +2143,155 @@ def clean_command(tudo=False):
         print(color("  (--all inclui forge_modules/ e o cache global)", "0;90"))
 
 
+# ─────────────────────────────────────────────────────────────
+#  dataforge editor — instala a coloracao no VS Code
+# ─────────────────────────────────────────────────────────────
+
+#: Onde cada editor guarda as extensoes. Copiar a pasta e o que o
+#: 'code --install-extension' faz por baixo, e funciona mesmo quando o
+#: comando 'code' nao esta no PATH — o caso da maioria das instalacoes
+#: no macOS.
+PASTAS_DE_EDITOR = [
+    ("VS Code",          "~/.vscode/extensions"),
+    ("VS Code Insiders", "~/.vscode-insiders/extensions"),
+    ("VSCodium",         "~/.vscode-oss/extensions"),
+    ("Cursor",           "~/.cursor/extensions"),
+    ("Windsurf",         "~/.windsurf/extensions"),
+    ("VS Code (WSL)",    "~/.vscode-server/extensions"),
+]
+
+NOME_EXTENSAO = "dataforge.dataforge-language-4.2.0"
+
+
+def _origem_da_extensao():
+    """A pasta editor/vscode que veio junto com a instalacao."""
+    aqui = os.path.dirname(os.path.abspath(__file__))
+    candidatos = [
+        os.path.join(aqui, "editor", "vscode"),                   # no pacote
+        os.path.join(os.path.dirname(aqui), "editor", "vscode"),  # no repo
+    ]
+    for caminho in candidatos:
+        if os.path.isfile(os.path.join(caminho, "package.json")):
+            return caminho
+    return None
+
+
+def _editores_presentes():
+    achados = []
+    for nome, bruto in PASTAS_DE_EDITOR:
+        pasta = os.path.expanduser(bruto)
+        if os.path.isdir(pasta):
+            achados.append((nome, pasta))
+    return achados
+
+
+def _todas_as_versoes(pasta):
+    """Qualquer versao da extensao ja instalada nesta pasta."""
+    achadas = []
+    try:
+        for nome in os.listdir(pasta):
+            if nome.startswith("dataforge") and "language" in nome:
+                caminho = os.path.join(pasta, nome)
+                if os.path.isdir(caminho):
+                    achadas.append(caminho)
+    except OSError:
+        pass
+    return achadas
+
+
+def editor_command(args, flags=()):
+    """Instala, remove ou confere a coloracao de sintaxe nos editores."""
+    import shutil
+
+    pedido = args[0] if args else ""
+    remover = "--remove" in flags or pedido == "remove"
+    so_status = "--status" in flags or pedido == "status"
+
+    editores = _editores_presentes()
+    if not editores:
+        print(color("Nenhum editor compativel encontrado.", "1;33"))
+        print()
+        print("Procurei em:")
+        for nome, bruto in PASTAS_DE_EDITOR:
+            print("  " + color("·", "0;90") + f" {bruto}  " +
+                  color(nome, "0;90"))
+        print()
+        print(color("dica:", "1;36") + " instale o VS Code e rode "
+              "'dataforge editor' de novo.")
+        return 1
+
+    if so_status:
+        print()
+        print(color("  Coloracao de sintaxe do DataForge", "1;37"))
+        print()
+        for nome, pasta in editores:
+            instalado = os.path.isdir(os.path.join(pasta, NOME_EXTENSAO))
+            marca = (color("instalada", "1;32") if instalado
+                     else color("nao instalada", "0;90"))
+            print(f"  {nome:<20} {marca}")
+        antigas = [c for _, p in editores for c in _todas_as_versoes(p)
+                   if os.path.basename(c) != NOME_EXTENSAO]
+        if antigas:
+            print()
+            print("  " + color("versoes antigas:", "1;33") +
+                  f" {len(antigas)} — 'dataforge editor' substitui")
+        print()
+        return 0
+
+    if remover:
+        removidas = 0
+        for nome, pasta in editores:
+            for alvo in _todas_as_versoes(pasta):
+                shutil.rmtree(alvo, ignore_errors=True)
+                removidas += 1
+                print("  " + color("removida", "1;31") + f" de {nome}")
+        print()
+        print(f"  {removidas} instalacao(oes) removida(s). Reinicie o editor.")
+        print()
+        return 0
+
+    origem = _origem_da_extensao()
+    if origem is None:
+        print(color("Erro: os arquivos da extensao nao foram encontrados.",
+                    "1;31"))
+        print()
+        print(color("nota:", "1;36") + " eles ficam em editor/vscode/.")
+        print(color("dica:", "1;36") + " se instalou por curl/wget, baixe de "
+              "novo — a extensao passou a vir junto na 4.2.0.")
+        return 1
+
+    print()
+    print(color("  Instalando a coloracao do DataForge", "1;37"))
+    print()
+    instalados = 0
+    for nome, pasta in editores:
+        destino = os.path.join(pasta, NOME_EXTENSAO)
+        try:
+            # Uma versao antiga ficaria ativa junto com a nova, e o
+            # editor escolheria uma das duas sem avisar qual.
+            for antiga in _todas_as_versoes(pasta):
+                shutil.rmtree(antiga, ignore_errors=True)
+            shutil.copytree(origem, destino, dirs_exist_ok=True)
+            instalados += 1
+            print("  " + color("✓", "1;32") + f" {nome:<20} " +
+                  color(destino, "0;90"))
+        except OSError as erro:
+            print("  " + color("✗", "1;31") + f" {nome:<20} {erro}")
+
+    if not instalados:
+        return 1
+
+    print()
+    print("  " + color("Pronto.", "1;32") +
+          " Reinicie o editor e abra um arquivo .df.")
+    print(color("  Voce ganha: cores para as palavras reservadas, snippets,",
+                "0;90"))
+    print(color("              indentacao de 4 espacos e dobra de blocos.",
+                "0;90"))
+    print()
+    return 0
+
+
 def main():
     """Main CLI entry point."""
     # Tudo depois de '--' pertence ao programa, nao ao dataforge.
@@ -2187,6 +2351,12 @@ def main():
 
     elif command == 'repl':
         start_repl()
+
+    elif command == 'editor':
+        sys.exit(editor_command(args[1:], flags))
+
+    elif command == 'editor':
+        sys.exit(editor_command(args[1:], flags))
 
     elif command == 'new':
         new_project()

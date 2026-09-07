@@ -1,0 +1,38 @@
+// Exercicio 198 — Gravar e ler uma planilha
+// Enunciado: transforme uma lista de vaults num .xlsx e leia de volta.
+
+// Um .xlsx e um ZIP de arquivos XML. O Arcane.Excel escreve e le esse
+// formato sem nenhuma dependencia externa — o arquivo abre no Excel, no
+// LibreOffice e no Google Sheets.
+
+adopt Arcane.Excel as Xls
+
+vendas := [
+    {"produto": "Martelo", "qtd": 12, "preco": 89.9},
+    {"produto": "Bigorna", "qtd": 3,  "preco": 450.0},
+    {"produto": "Tenaz",   "qtd": 27, "preco": 65.5}
+]
+
+// Quando os dados sao vaults, o cabecalho sai das chaves — em negrito,
+// com a primeira linha congelada e a largura ajustada ao conteudo.
+Xls.quick("/tmp/vendas.xlsx", vendas, "Vendas")
+out "planilha gravada"
+
+livro := Xls.read("/tmp/vendas.xlsx")
+out "abas:", Xls.sheets(livro)
+out "tamanho:", Xls.dims(livro, "Vendas")
+
+linhas := Xls.rows(livro, "Vendas")
+out "cabecalho:", linhas[0]
+out "primeira linha:", linhas[1]
+
+assert linhas[0] is ["produto", "qtd", "preco"], "o cabecalho veio das chaves"
+assert linhas[1][1] is 12, "o numero voltou numero, nao texto"
+
+// 'records' devolve vaults de novo, usando a linha de cabecalho.
+de_volta := Xls.records(livro, "Vendas")
+assert len(de_volta) is 3, "tres registros"
+assert de_volta[0]["produto"] is "Martelo", "ida e volta sem perda"
+
+// Uma coluna inteira, pelo titulo.
+assert Xls.column(livro, "Vendas", "qtd") is [12, 3, 27], "coluna pelo nome"

@@ -1,0 +1,52 @@
+// Exercicio 199 — Relatorio com varias abas e formulas
+// Enunciado: monte um relatorio com formulas que o Excel calcula ao abrir.
+
+// Formulas nao sao calculadas aqui: sao gravadas no arquivo e o Excel as
+// resolve ao abrir. Isso e o que se quer num relatorio — quem receber
+// pode mexer nos numeros e ver o total mudar sozinho.
+
+adopt Arcane.Excel as Xls
+
+itens := [
+    {"produto": "Martelo", "qtd": 12, "preco": 89.9},
+    {"produto": "Bigorna", "qtd": 3,  "preco": 450.0},
+    {"produto": "Tenaz",   "qtd": 27, "preco": 65.5}
+]
+
+livro := Xls.new()
+aba := Xls.sheet(livro, "Vendas", itens)
+
+// coluna de total: quantidade x preco, linha a linha
+Xls.set(aba, "D1", "total")
+cycle i from 2 to 4:
+    Xls.formula(aba, $"D{i}", $"B{i}*C{i}")
+
+// e a soma de tudo, uma linha abaixo
+Xls.set(aba, "A5", "SOMA")
+Xls.formula(aba, "D5", "SUM(D2:D4)")
+Xls.bold_row(aba, 4)
+
+// segunda aba, com o resumo
+Xls.sheet(livro, "Resumo", [
+    ["metrica", "valor"],
+    ["itens", len(itens)],
+    ["unidades", [i["qtd"] cycle i in itens] >> distill a, v: a + v 0]
+])
+
+Xls.save(livro, "/tmp/relatorio.xlsx")
+out "relatorio com", len(Xls.sheets(livro)), "abas"
+
+lido := Xls.read("/tmp/relatorio.xlsx")
+vendas := Xls.sheet(lido, "Vendas")
+
+out "abas:", Xls.sheets(lido)
+out "formula da linha 2:", Xls.get_formula(vendas, "D2")
+out "todas as formulas:", Xls.formulas(vendas)
+
+assert Xls.sheets(lido) is ["Vendas", "Resumo"], "as duas abas, na ordem"
+assert Xls.get_formula(vendas, "D5") is "SUM(D2:D4)", "a formula sobreviveu"
+assert Xls.get_formula(vendas, "A1") is void, "celula sem formula devolve void"
+
+resumo := Xls.records(lido, "Resumo")
+out "resumo:", resumo
+assert resumo[1]["valor"] is 42, "12 + 3 + 27 unidades"

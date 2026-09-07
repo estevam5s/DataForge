@@ -21,6 +21,11 @@ class Parser:
         #  _no_membership  — 'in' pertence ao cabecalho de cycle/observe
         self._no_ternary = 0
         self._no_membership = 0
+        #  _em_server / _em_rota — onde as palavras do Kiln valem
+        self._em_server = 0
+        self._em_rota = 0
+        #  _no_with — 'with' abre os dados do render, nao 'record with {…}'
+        self._no_with = 0
 
     # ── Helpers ────────────────────────────────────────────
 
@@ -122,6 +127,212 @@ class Parser:
             self.advance()
         return stmts
 
+
+    # ── Kiln ───────────────────────────────────────────────
+    #  As palavras do Kiln nao estao em KEYWORDS: sao reconhecidas
+    #  aqui, pelo texto, e so onde fazem sentido. Fora de um bloco
+    #  'server', 'route' e 'render' continuam sendo nomes livres.
+
+    def _abre_server(self) -> bool:
+        """'server' so abre bloco em 'server <nome> on/at/:'.
+
+        Sem esta confirmacao, 'server := ...' ou 'server(x)' seriam
+        lidos como declaracao e o programa quebraria.
+        """
+        if self.peek(1).type != TokenType.IDENTIFIER:
+            return False
+        seguinte = self.peek(2)
+        if seguinte.type == TokenType.COLON:
+            return True
+        return (seguinte.type == TokenType.IDENTIFIER
+                and seguinte.value in ("on", "at"))
+
+    def _kiln_no_server(self, palavra):
+        return {
+            "route":      self.parse_route,
+            "middleware": self.parse_middleware,
+            "mount":      self.parse_mount,
+            "assets":     self.parse_assets,
+            "views":      self.parse_views,
+        }.get(palavra)
+
+    def _kiln_na_rota(self, palavra):
+        return {
+            "respond":  self.parse_respond,
+            "render":   self.parse_render,
+            "redirect": self.parse_redirect,
+        }.get(palavra)
+
+    def _palavra(self, texto) -> bool:
+        """A instrucao atual e o identificador <texto>?"""
+        tok = self.current()
+        return tok.type == TokenType.IDENTIFIER and tok.value == texto
+
+    def _consumir_palavra(self, texto) -> bool:
+        if self._palavra(texto):
+            self.advance()
+            return True
+        return False
+
+    def parse_server(self):
+        """server <nome> [on <porta>] [at <host>]: corpo"""
+        tok = self.advance()                       # 'server'
+        nome = self.expect(TokenType.IDENTIFIER,
+                           "Expected a name after 'server'").value
+        porta = host = None
+        while True:
+            if self._consumir_palavra("on"):
+                porta = self.parse_expression()
+            elif self._consumir_palavra("at"):
+                host = self.parse_expression()
+            else:
+                break
+        self.expect(TokenType.COLON, "Expected ':' after the server header")
+
+        self._em_server += 1
+        try:
+            corpo = self.parse_block()
+        finally:
+            self._em_server -= 1
+        return ast.ServerBlock(line=tok.line, column=tok.column, name=nome,
+                               port=porta, host=host, body=corpo)
+
+    def parse_route(self):
+        """route <VERBO> <caminho>: corpo"""
+        from .tokens import VERBOS_KILN
+        tok = self.advance()                       # 'route'
+        verbo_tok = self.current()
+        verbo = str(verbo_tok.value or "").upper()
+
+        # Os verbos chegam como identificadores; 'delete' e palavra
+        # reservada e chega como DELETE, dai a segunda checagem.
+        if verbo_tok.type == TokenType.DELETE:
+            verbo = "DELETE"
+            self.advance()
+        elif verbo_tok.type == TokenType.IDENTIFIER and verbo in VERBOS_KILN:
+            self.advance()
+        else:
+            aceitos = ", ".join(VERBOS_KILN)
+            self.error(f"'{verbo_tok.value}' is not an HTTP verb. "
+                       f"Use one of: {aceitos}.")
+
+        caminho = self.parse_expression()
+        self.expect(TokenType.COLON, "Expected ':' after the route path")
+
+        self._em_rota += 1
+        try:
+            corpo = self.parse_block()
+        finally:
+            self._em_rota -= 1
+        return ast.RouteBlock(line=tok.line, column=tok.column,
+                              method="ANY" if verbo == "ANY" else verbo,
+                              path=caminho, body=corpo)
+
+    def parse_respond(self):
+        """respond [status] [json|html|text|file] <expr>"""
+        tok = self.advance()                       # 'respond'
+        status = None
+        # Um inteiro logo apos 'respond' e o status, nunca o corpo:
+        # 'respond 404' devolve 404, e 'respond json 404' devolve o
+        # numero 404 como JSON.
+        if self.current().type == TokenType.INTEGER:
+            status = ast.IntegerLiteral(value=self.advance().value)
+
+        tipo = ""
+        if self.current().type == TokenType.IDENTIFIER and \
+                self.current().value in ("json", "html", "text", "file"):
+            tipo = self.advance().value
+
+        valor = None
+        if self.current().type not in (TokenType.NEWLINE, TokenType.DEDENT,
+                                       TokenType.EOF):
+            valor = self.parse_expression()
+        elif status is None:
+            self.error("'respond' needs a status, a body, or both.")
+
+        return ast.RespondStatement(line=tok.line, column=tok.column,
+                                    value=valor, kind=tipo, status=status)
+
+    def parse_render(self):
+        """render <template> [with <vault>] [status <n>]"""
+        tok = self.advance()                       # 'render'
+        # Sem esta guarda, 'render "x" with {…}' seria lido como a
+        # expressao 'record with {…}' e o template comeria os dados.
+        self._no_with += 1
+        try:
+            template = self.parse_expression()
+        finally:
+            self._no_with -= 1
+        dados = status = None
+        if self.match(TokenType.WITH):
+            dados = self.parse_expression()
+        if self._consumir_palavra("status"):
+            status = self.parse_expression()
+        return ast.RenderStatement(line=tok.line, column=tok.column,
+                                   template=template, data=dados, status=status)
+
+    def parse_redirect(self):
+        """redirect <destino> [status <n>]"""
+        tok = self.advance()                       # 'redirect'
+        destino = self.parse_expression()
+        status = None
+        if self._consumir_palavra("status"):
+            status = self.parse_expression()
+        return ast.RedirectStatement(line=tok.line, column=tok.column,
+                                     target=destino, status=status)
+
+    def parse_middleware(self):
+        """middleware <expr>"""
+        tok = self.advance()
+        return ast.MiddlewareStatement(line=tok.line, column=tok.column,
+                                       value=self.parse_expression())
+
+    def parse_mount(self):
+        """mount <server> at <prefixo>"""
+        tok = self.advance()
+        alvo = self.parse_expression()
+        prefixo = None
+        if self._consumir_palavra("at"):
+            prefixo = self.parse_expression()
+        else:
+            self.error("'mount' needs a prefix: mount admin at \"/admin\"")
+        return ast.MountStatement(line=tok.line, column=tok.column,
+                                  value=alvo, prefix=prefixo)
+
+    def parse_assets(self):
+        """assets <prefixo> from <pasta>"""
+        tok = self.advance()
+        prefixo = self.parse_expression()
+        if not self.match(TokenType.FROM):
+            self.error("'assets' needs a folder: assets \"/static\" from \"./www\"")
+        pasta = self.parse_expression()
+        return ast.AssetsStatement(line=tok.line, column=tok.column,
+                                   prefix=prefixo, folder=pasta)
+
+    def parse_views(self):
+        """views <pasta>"""
+        tok = self.advance()
+        return ast.ViewsStatement(line=tok.line, column=tok.column,
+                                  folder=self.parse_expression())
+
+    def parse_ignite(self):
+        """ignite <server> [on <porta>] [at <host>]"""
+        tok = self.advance()                       # 'ignite'
+        # Uma expressao, nao so um nome: o server pode vir de um modulo
+        # ('ignite App.loja'), que e como um projeto de verdade separa
+        # quem monta de quem acende.
+        alvo = self.parse_expression()
+        porta = host = None
+        while True:
+            if self._consumir_palavra("on"):
+                porta = self.parse_expression()
+            elif self._consumir_palavra("at"):
+                host = self.parse_expression()
+            else:
+                break
+        return ast.IgniteStatement(line=tok.line, column=tok.column,
+                                   target=alvo, port=porta, host=host)
+
     # ── Statement ──────────────────────────────────────────
 
     def parse_statement(self):
@@ -132,6 +343,26 @@ class Parser:
 
         if tt == TokenType.EOF:
             return None
+
+        # ── Kiln: 'server nome …:' e 'ignite nome' ──
+        if tt == TokenType.IDENTIFIER and tok.value == "server" \
+                and self._abre_server():
+            return self.parse_server()
+        if tt == TokenType.IDENTIFIER and tok.value == "ignite" \
+                and self.peek(1).type == TokenType.IDENTIFIER:
+            return self.parse_ignite()
+
+        # ── Kiln: palavras validas dentro de 'server' ──
+        if self._em_server and tt == TokenType.IDENTIFIER:
+            producao = self._kiln_no_server(tok.value)
+            if producao is not None:
+                return producao()
+
+        # ── Kiln: palavras validas dentro de 'route' ──
+        if self._em_rota and tt == TokenType.IDENTIFIER:
+            producao = self._kiln_na_rota(tok.value)
+            if producao is not None:
+                return producao()
 
         # ── mark @Decorator ──
         if tt == TokenType.MARK:
@@ -1876,7 +2107,8 @@ class Parser:
                         object=expr, member=member,
                         line=expr.line, column=expr.column)
             elif (self.current().type == TokenType.WITH
-                  and self.peek().type == TokenType.LBRACE):
+                  and self.peek().type == TokenType.LBRACE
+                  and not self._no_with):
                 # registro with {"campo": novo_valor}
                 self.advance()
                 changes = self.parse_dict()

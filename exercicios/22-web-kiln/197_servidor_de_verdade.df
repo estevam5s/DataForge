@@ -1,0 +1,47 @@
+// Exercicio 197 — Subir o servidor de verdade
+// Enunciado: acenda o forno, faca um pedido pela rede e apague.
+
+// Ate aqui usamos Kiln.test, que executa a rota sem abrir socket. Agora
+// o servidor de verdade: 'Kiln.serve' sobe em segundo plano e devolve a
+// porta na hora (porta 0 deixa o sistema escolher uma livre — util em
+// teste, onde uma porta fixa daria conflito). Em producao voce usa
+// 'ignite', que bloqueia ate o Ctrl-C.
+
+adopt Kiln
+adopt Arcane.Web as Web
+
+visitas := 0
+
+server contador on 0:
+    route GET "/":
+        respond html "<h1>Forja</h1>"
+
+    route GET "/contar":
+        visitas += 1
+        respond json {"visitas": visitas}
+
+porta := Kiln.serve(contador, 0)
+out "no ar na porta", porta
+
+pagina := Web.get($"http://127.0.0.1:{porta}/")
+out "pela rede:", pagina["status"], pagina["body"]
+assert pagina["status"] is 200, "o servidor respondeu de verdade"
+assert "Forja" in pagina["body"], "o HTML chegou inteiro"
+
+Web.get($"http://127.0.0.1:{porta}/contar")
+Web.get($"http://127.0.0.1:{porta}/contar")
+terceira := Web.get($"http://127.0.0.1:{porta}/contar")
+out "tres pedidos:", terceira["body"]
+assert visitas is 3, "o estado do programa sobrevive entre pedidos"
+
+numeros := Kiln.stats(contador)
+out "estatisticas:", numeros["pedidos"], "pedidos,", numeros["rotas"], "rotas"
+assert numeros["pedidos"] is 4, "quatro pedidos contados"
+assert numeros["erros"] is 0, "nenhum erro"
+
+Kiln.stop(contador)
+out "forno apagado"
+
+// Em um programa de verdade, a ultima linha seria:
+//     ignite contador on 8080
+// que sobe e fica servindo ate voce apertar Ctrl-C.

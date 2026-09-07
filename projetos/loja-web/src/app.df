@@ -1,0 +1,152 @@
+// app.df — a aplicação inteira, montada e pronta.
+//
+// Este arquivo monta e não sobe nada. Quem acende o forno é o main.df.
+// A separação não é enfeite: um teste que importasse o main subiria o
+// servidor e nunca terminaria.
+//
+//   banco.df    tudo o que toca SQL
+//   paginas.df  o que o visitante vê
+//   app.df      as rotas — este arquivo
+//   main.df     lê a porta e acende
+
+adopt Kiln
+adopt Arcane.OS as OS
+adopt Arcane.Excel as Xls
+adopt banco as Banco
+adopt paginas as Paginas
+
+steady CAMINHO_BANCO := "/tmp/loja-web.db"
+
+// Ao lado do programa, não de onde o usuário o chamou. Sem isso, rodar
+// 'dataforge run src/main.df' de duas pastas diferentes carrega — ou
+// não carrega — templates diferentes.
+steady RAIZ := OS.beside("..")
+
+// Numa aplicação de verdade isto viria de um banco com senha derivada
+// por Argon2. Aqui é um mapa fixo, porque o assunto do projeto é o
+// framework — e deixar isso claro vale mais do que fingir o contrário.
+steady CONTAS := {"ferreiro": "bigorna"}
+
+conexao := Banco.abrir(CAMINHO_BANCO)
+Banco.semear(conexao)
+
+action quem_e(req):
+    yield req["session"]["usuario"] ?? void
+
+action so_logado(req):
+    given quem_e(req) is void:
+        yield Kiln.redirect("/entrar")
+    yield void
+
+// ── o site ──────────────────────────────────────────────────
+
+server loja on 8080:
+    middleware Kiln.logger()
+
+    views RAIZ + "/views"
+    assets "/static" from RAIZ + "/www"
+
+    // A query é do visitante: a chave pode simplesmente não vir. Ler
+    // sem '??' dá 500 na primeira visita sem filtro.
+    route GET "/":
+        respond html Paginas.catalogo(loja, conexao,
+                                      query["categoria"] ?? void, quem_e(req))
+
+    route GET "/produto/:id":
+        p := Banco.achar(conexao, params["id"])
+        given p is void:
+            respond 404 html Paginas.envolver(loja, "Não achei",
+                "<h1>404</h1><p>Esse produto não existe.</p>", quem_e(req))
+        respond html Paginas.ficha(loja, p, quem_e(req))
+
+    route GET "/relatorio":
+        respond html Paginas.relatorio(loja, conexao, quem_e(req))
+
+    // A planilha do mesmo relatório: os números que estão na tela,
+    // num arquivo que abre no Excel.
+    route GET "/relatorio.xlsx":
+        produtos := Banco.listar(conexao, void)
+        livro := Xls.new()
+        aba := Xls.sheet(livro, "Estoque", produtos)
+
+        Xls.set(aba, "F1", "valor")
+        cycle i from 2 to len(produtos) + 1:
+            Xls.formula(aba, $"F{i}", $"D{i}*E{i}")
+        Xls.set(aba, "A" + str(len(produtos) + 2), "TOTAL")
+        Xls.formula(aba, "F" + str(len(produtos) + 2),
+                    $"SUM(F2:F{len(produtos) + 1})")
+        Xls.bold_row(aba, len(produtos) + 1)
+
+        Xls.sheet(livro, "Categorias", Banco.categorias(conexao))
+        Xls.save(livro, "/tmp/relatorio-loja.xlsx")
+
+        respond file "/tmp/relatorio-loja.xlsx"
+
+    // ── sessão ──
+
+    route GET "/entrar":
+        given quem_e(req) isnt void:
+            redirect "/"
+        respond html Paginas.entrar(loja, void)
+
+    route POST "/entrar":
+        usuario := body["usuario"] ?? ""
+        senha := body["senha"] ?? ""
+        given CONTAS[usuario] isnt senha:
+            respond 401 html Paginas.entrar(loja, "Usuário ou senha não conferem.")
+        pronto := Kiln.redirect("/admin")
+        respond Kiln.session_start(loja, req, pronto, {"usuario": usuario})
+
+    route GET "/sair":
+        respond Kiln.session_end(loja, req, Kiln.redirect("/"))
+
+    route GET "/admin":
+        fora := so_logado(req)
+        given fora isnt void:
+            respond fora
+        respond html Paginas.envolver(loja, "Admin",
+            "<h1>Painel</h1><p>Use a API em <code>/api/produtos</code>.</p>",
+            quem_e(req))
+
+// ── a API, montada sob /api ─────────────────────────────────
+
+server api on 0:
+    middleware Kiln.cors()
+
+    route GET "/produtos":
+        itens := Banco.listar(conexao, query["categoria"] ?? void)
+        respond json {"itens": itens, "total": len(itens)}
+
+    route GET "/produtos/:id":
+        p := Banco.achar(conexao, params["id"])
+        given p is void:
+            respond 404 json {"erro": "produto não encontrado"}
+        respond json p
+
+    route POST "/produtos":
+        // O corpo vem de fora: pode não ter a chave, e indexar um
+        // vault sem a chave é erro. '??' é o que separa 400 de 500.
+        given body is void or (body["nome"] ?? void) is void:
+            respond 400 json {"erro": "informe ao menos 'nome' e 'preco'"}
+        respond 201 json Banco.criar(conexao, body)
+
+    route PUT "/produtos/:id":
+        trocado := Banco.atualizar(conexao, params["id"], body ?? {})
+        given trocado is void:
+            respond 404 json {"erro": "produto não encontrado"}
+        respond json trocado
+
+    route DELETE "/produtos/:id":
+        given not Banco.apagar(conexao, params["id"]):
+            respond 404 json {"erro": "produto não encontrado"}
+        respond 204
+
+    route GET "/categorias":
+        respond json Banco.categorias(conexao)
+
+Kiln.mount(loja, "/api", api)
+
+Kiln.on_error(loja, 404, lambda req => Kiln.html(
+    "<h1>404</h1><p>Não achei essa página. <a href=\"/\">Voltar</a></p>", 404))
+
+relay loja, api, conexao

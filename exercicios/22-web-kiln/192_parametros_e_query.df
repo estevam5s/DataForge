@@ -1,0 +1,29 @@
+// Exercicio 192 — Parametros de caminho e query string
+// Enunciado: leia :id do caminho e ?campo= da query.
+
+// Dentro de uma rota voce ja tem seis nomes prontos: 'req', 'params',
+// 'query', 'body', 'headers' e 'session'. Escrever
+// req["params"]["id"] toda vez cansa; os atalhos existem por isso.
+
+adopt Kiln
+
+server api on 0:
+    // ':id' casa um trecho; '*resto' casa o que sobrar, barras inclusive
+    route GET "/usuarios/:id":
+        respond json {"id": params["id"], "formato": query["f"] ?? "curto"}
+
+    route GET "/arquivos/*caminho":
+        respond json {"caminho": params["caminho"]}
+
+curto := Kiln.test(api, "GET", "/usuarios/42")
+out "sem query:", curto["body"]
+assert curto["body"]["id"] is "42", "o parametro chega como texto"
+assert curto["body"]["formato"] is "curto", "?? cobre a query ausente"
+
+longo := Kiln.test(api, "GET", "/usuarios/42?f=longo")
+out "com query:", longo["body"]["formato"]
+assert longo["body"]["formato"] is "longo", "a query e lida"
+
+fundo := Kiln.test(api, "GET", "/arquivos/notas/2026/marco.txt")
+out "curinga:", fundo["body"]["caminho"]
+assert fundo["body"]["caminho"] is "notas/2026/marco.txt", "'*' pega tudo"

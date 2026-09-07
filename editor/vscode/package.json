@@ -1,24 +1,46 @@
 {
   "name": "dataforge-language",
-  "displayName": "DataForge Language",
-  "description": "Suporte à linguagem DataForge (.df) — Syntax highlighting, ícone e snippets",
-  "version": "3.0.0",
-  "publisher": "dataforge-team",
+  "displayName": "DataForge",
+  "description": "Suporte à linguagem DataForge (.df): cores para todas as palavras reservadas, snippets, indentação e o framework web Kiln.",
+  "version": "4.2.0",
+  "publisher": "dataforge",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.60.0"
   },
-  "categories": ["Programming Languages"],
-  "icon": "../../public/DataForge.png",
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "dataforge",
+    "df",
+    "kiln",
+    "linguagem",
+    "language"
+  ],
+  "icon": "icone.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/estevam5s/DataForge"
+  },
+  "homepage": "https://dataforge-lang.vercel.app/docs/editor",
   "contributes": {
     "languages": [
       {
         "id": "dataforge",
-        "aliases": ["DataForge", "dataforge", "df"],
-        "extensions": [".df"],
+        "aliases": [
+          "DataForge",
+          "dataforge",
+          "df"
+        ],
+        "extensions": [
+          ".df"
+        ],
         "configuration": "./language-configuration.json",
         "icon": {
-          "light": "../../public/DataForge.png",
-          "dark": "../../public/DataForge.png"
+          "light": "./icone.png",
+          "dark": "./icone.png"
         }
       }
     ],
@@ -28,6 +50,20 @@
         "scopeName": "source.dataforge",
         "path": "./syntaxes/dataforge.tmLanguage.json"
       }
-    ]
+    ],
+    "snippets": [
+      {
+        "language": "dataforge",
+        "path": "./snippets/dataforge.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[dataforge]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 4,
+        "editor.detectIndentation": false,
+        "files.trimTrailingWhitespace": true
+      }
+    }
   }
 }

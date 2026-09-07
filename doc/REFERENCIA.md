@@ -95,6 +95,25 @@ para tirar de quem escreve. O parser só os trata como palavra-chave quando
 o que vem em seguida confirma a intenção — `get nome(` é propriedade,
 `get := 1` é variável.
 
+`assets`, `ignite`, `middleware`, `mount`, `redirect`, `render`, `respond`,
+`route`, `server` e `views` seguem a mesma regra, mas dentro de um bloco
+**`server`** — são as palavras do [Kiln](KILN.md), o framework web. Fora
+dali continuam livres:
+
+```dataforge
+render := 42                   // uma variável chamada 'render'
+action route(x):               // uma ação chamada 'route'
+    yield x + 1
+
+server api on 8080:            // aqui 'server' abre a aplicação
+    route GET "/":             // e 'route' declara uma rota
+        respond html "<h1>oi</h1>"
+```
+
+`server` só abre um bloco quando o que vem em seguida confirma: um nome
+seguido de `:`, de `on` ou de `at`. `server := "10.0.0.1"` continua sendo
+uma atribuição comum.
+
 ---
 
 ## 2. Operadores

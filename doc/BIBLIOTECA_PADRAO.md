@@ -19,6 +19,8 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Analytics`](#arcaneanalytics) | `Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
 | [`Arcane.Functional`](#arcanefunctional) | `Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
 | [`Arcane.Database`](#arcanedatabase) | `Database / DB` | 39 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
+| [`Arcane.Excel`](#arcaneexcel) | `Excel / Xlsx` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
+| [`Kiln`](#kiln) | `Kiln` | 46 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | [`Arcane.Test`](#arcanetest) | `Test` | 34 | Asserções e organização de suítes de teste. |
 | [`Arcane.Regex`](#arcaneregex) | `Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | [`Arcane.IO`](#arcaneio) | `IO` | 27 | Arquivos, diretórios, JSON, CSV e shell. |
@@ -28,7 +30,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Web`](#arcaneweb) | `Web / Network` | 11 | Cliente HTTP, URL encoding e JSON. |
 | [`Arcane.Cortex`](#arcanecortex) | `Cortex` | 5 | Blocos de rede neural, visão e NLP (implementações simplificadas). |
 | [`Arcane.Time`](#arcanetime) | `Time` | 54 | Datas, horas, durações e cronometragem. |
-| [`Arcane.OS`](#arcaneos) | `OS` | 38 | Sistema operacional, ambiente, disco e processo atual. |
+| [`Arcane.OS`](#arcaneos) | `OS` | 42 | Sistema operacional, ambiente, disco e processo atual. |
 | [`Arcane.Process`](#arcaneprocess) | `Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | [`Arcane.Logging`](#arcanelogging) | `Logging / Log` | 14 | Registro estruturado de eventos, com níveis e destinos. |
 | [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 38 | Hashes, HMAC, senhas, codificações e aleatoriedade segura. |
@@ -405,6 +407,113 @@ adopt Arcane.Database as Database
 | `tables(db)` |
 | `update(db, table, data, where)` |
 | `vacuum(db)` |
+
+
+---
+
+## Arcane.Excel
+
+Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame.
+
+```dataforge
+adopt Arcane.Excel as Excel
+```
+
+**Funções (29)**
+
+| Assinatura |
+|------------|
+| `addr(linha, coluna)` |
+| `append(aba, linha_valores)` |
+| `autofit(aba)` |
+| `bold_row(aba, linha)` |
+| `cell(aba, linha, coluna, valor=None)` |
+| `col_letter(indice)` |
+| `column(livro, nome_aba, coluna)` |
+| `dims(livro, nome=None)` |
+| `drop_sheet(livro, nome)` |
+| `formula(aba, ref, expressao)` |
+| `formulas(aba)` |
+| `freeze(aba, ref='A2')` |
+| `from_csv(caminho, separador=',', nome='Planilha1')` |
+| `from_frame(frame, nome='Dados', livro=None)` |
+| `get(aba, ref)` |
+| `get_formula(aba, ref)` |
+| `new()` |
+| `parse_addr(ref)` |
+| `quick(caminho, dados, nome='Planilha1', cabecalho=None)` |
+| `read(caminho)` |
+| `records(livro, nome=None)` |
+| `rows(livro, nome=None)` |
+| `save(livro, caminho)` |
+| `set(aba, ref, valor)` |
+| `sheet(livro, nome, dados=None, cabecalho=None)` |
+| `sheets(livro)` |
+| `to_csv(livro, caminho, nome=None, separador=',')` |
+| `to_frame(livro, nome=None)` |
+| `width(aba, coluna, largura)` |
+
+
+---
+
+## Kiln
+
+Framework web: rotas, middleware, templates, sessão e arquivos estáticos.
+
+```dataforge
+adopt Kiln as Kiln
+```
+
+**Funções (46)**
+
+| Assinatura |
+|------------|
+| `after(app, funcao)` |
+| `any(app, padrao, handler)` |
+| `app(nome='kiln', **config)` |
+| `auth(verificador, esquema='Bearer')` |
+| `config(app, chave, valor)` |
+| `cookie(resp, nome, valor, dias=None, http_only=True, caminho='/', same_site='Lax', seguro=False)` |
+| `cors(origens='*', metodos=None, cabecalhos=None)` |
+| `delete(app, padrao, handler)` |
+| `escape(texto)` |
+| `file(caminho, tipo=None, baixar=None)` |
+| `forge(nome='kiln', **config)` |
+| `get(app, padrao, handler)` |
+| `group(app, prefixo, meio=None)` |
+| `guard(condicao, status=403, mensagem='sem permissão')` |
+| `head(app, padrao, handler)` |
+| `header(resp, chave, valor)` |
+| `html(texto, status=200, cabecalhos=None)` |
+| `json(dados, status=200, cabecalhos=None)` |
+| `listen(app, porta=8080, host='127.0.0.1', silencioso=False)` |
+| `logger(formato='dev')` |
+| `mount(app, prefixo, outro)` |
+| `on_error(app, status, handler)` |
+| `options(app, padrao, handler)` |
+| `patch(app, padrao, handler)` |
+| `post(app, padrao, handler)` |
+| `put(app, padrao, handler)` |
+| `rate_limit(maximo=60, janela=60)` |
+| `redirect(destino, status=302)` |
+| `render(app, nome, dados=None, status=200)` |
+| `render_string(texto, dados=None)` |
+| `resource(app, base, controlador)` |
+| `route(app, metodo, padrao, handler)` |
+| `routes(app)` |
+| `serve(app, porta=8080, host='127.0.0.1')` |
+| `session_end(app, req, resp)` |
+| `session_start(app, req, resp, dados=None)` |
+| `sign(dados, segredo)` |
+| `static(app, prefixo, pasta)` |
+| `stats(app)` |
+| `status(codigo, mensagem=None)` |
+| `stop(app)` |
+| `templates(app, pasta)` |
+| `test(app, metodo, caminho, corpo=None, cabecalhos=None)` |
+| `text(texto, status=200, cabecalhos=None)` |
+| `unsign(token, segredo)` |
+| `use(app, funcao)` |
 
 
 ---
@@ -810,12 +919,14 @@ Sistema operacional, ambiente, disco e processo atual.
 adopt Arcane.OS as OS
 ```
 
-**Funções (38)**
+**Funções (42)**
 
 | Assinatura |
 |------------|
 | `arch()` |
 | `argv()` |
+| `argv_completo()` |
+| `beside(*partes)` |
 | `chdir(caminho)` |
 | `cpu_count()` |
 | `cwd()` |
@@ -845,6 +956,8 @@ adopt Arcane.OS as OS
 | `processor()` |
 | `python_version()` |
 | `release()` |
+| `script()` |
+| `script_dir()` |
 | `separator()` |
 | `set_env(nome, valor)` |
 | `temp_dir()` |

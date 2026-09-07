@@ -1,7 +1,7 @@
 # DataForge — imagem oficial
 #
-#   docker run --rm -it dataforge/dataforge repl
-#   docker run --rm -v "$PWD:/app" dataforge/dataforge run main.df
+#   docker run --rm -it estevan5s/dataforge repl
+#   docker run --rm -v "$PWD:/app" estevan5s/dataforge run main.df
 #
 # Duas etapas para a imagem final não carregar as ferramentas de build.
 
@@ -20,9 +20,10 @@ FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="DataForge"
 LABEL org.opencontainers.image.description="Linguagem de programação interpretada, com vocabulário próprio"
-LABEL org.opencontainers.image.version="4.1.0"
+LABEL org.opencontainers.image.version="4.2.0"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.documentation="https://dataforge-lang.vercel.app/docs"
+LABEL org.opencontainers.image.source="https://github.com/estevam5s/DataForge"
 
 COPY --from=construcao /instalado /usr/local
 

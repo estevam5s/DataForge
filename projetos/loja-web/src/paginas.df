@@ -1,0 +1,97 @@
+// paginas.df — o que o visitante vê.
+//
+// Uma ação por página. Cada uma devolve HTML pronto; quem decide o
+// status e monta a resposta é o main.
+
+adopt Kiln
+adopt banco as Banco
+
+// O layout envolve o conteúdo. Sem isso, cada página repetiria o
+// cabeçalho e o rodapé — e um dia dois deles ficariam diferentes.
+action envolver(app, titulo, conteudo, usuario):
+    yield Kiln.render_string(ler_base(app), {
+        "titulo": titulo,
+        "conteudo": conteudo,
+        "usuario": usuario
+    })
+
+action ler_base(app):
+    adopt Arcane.IO as IO
+    yield IO.read_file(app.pasta_templates + "/base.html")
+
+action dinheiro(valor):
+    // Duas casas sempre: 89.9 vira "89,90", nao "89,9".
+    centavos := int(round(float(valor) * 100))
+    inteiro := centavos ~/ 100
+    resto := centavos % 100
+    yield $"R$ {inteiro},{pad_start(str(resto), 2, "0")}"
+
+action enfeitar(produto):
+    // A view recebe o que vai mostrar, já formatado. Formatar dentro do
+    // template exigiria lógica no template.
+    yield {
+        "id": produto["id"],
+        "nome": produto["nome"],
+        "categoria": produto["categoria"],
+        "estoque": produto["estoque"],
+        "preco_formatado": dinheiro(produto["preco"]),
+        "classe_estoque": "pouco" given produto["estoque"] smaller 5 otherwise ""
+    }
+
+action catalogo(app, conexao, categoria, usuario):
+    produtos := [enfeitar(p) cycle p in Banco.listar(conexao, categoria)]
+    corpo := Kiln.render_string(
+        Kiln.render(app, "catalogo.html", {
+            "titulo": "Catálogo",
+            "produtos": produtos,
+            "categorias": Banco.categorias(conexao),
+            "aviso": void
+        })["body"], {})
+    yield envolver(app, "Catálogo", corpo, usuario)
+
+action ficha(app, produto, usuario):
+    corpo := Kiln.render(app, "produto.html", enfeitar(produto))["body"]
+    yield envolver(app, produto["nome"], corpo, usuario)
+
+action relatorio(app, conexao, usuario):
+    produtos := Banco.listar(conexao, void)
+    precos := [p["preco"] cycle p in produtos]
+    valor := [p["preco"] * p["estoque"] cycle p in produtos]
+        >> distill a, v: a + v 0
+
+    // O valor inicial do distill vem depois do corpo: escrever
+    // '>> distill a, v: a + v 0 / len(precos)' divide o ZERO, nao a
+    // soma — e o relatorio mostra a soma no lugar da media.
+    soma_precos := precos >> distill a, v: a + v 0
+
+    por_categoria := []
+    cycle c in Banco.categorias(conexao):
+        soma := [p["preco"] * p["estoque"] cycle p in produtos
+                 given p["categoria"] is c["categoria"]]
+            >> distill a, v: a + v 0
+        por_categoria.append({
+            "categoria": c["categoria"],
+            "n": c["n"],
+            "valor": dinheiro(soma)
+        })
+
+    caro := produtos[0]
+    cycle p in produtos:
+        given p["preco"] bigger caro["preco"]:
+            caro := p
+
+    corpo := Kiln.render(app, "relatorio.html", {
+        "titulo": "Relatório de estoque",
+        "total": len(produtos),
+        "valor_total": dinheiro(valor),
+        "preco_medio": dinheiro(soma_precos / len(precos)),
+        "mais_caro": caro["nome"],
+        "categorias": por_categoria
+    })["body"]
+    yield envolver(app, "Relatório", corpo, usuario)
+
+action entrar(app, erro):
+    corpo := Kiln.render(app, "entrar.html", {"erro": erro})["body"]
+    yield envolver(app, "Entrar", corpo, void)
+
+relay catalogo, ficha, relatorio, entrar, enfeitar, dinheiro, envolver

@@ -1,0 +1,88 @@
+// Exercicio 200 — Do banco para a planilha, passando pela analise
+// Enunciado: consulte o banco, analise os numeros e exporte a planilha.
+
+// Este e o caminho completo de um trabalho de dados: os dados moram no
+// banco, a analise responde a pergunta, e a planilha e o que se manda
+// para quem decide. As tres pecas conversam.
+
+adopt Arcane.Database as DB
+adopt Arcane.Analytics as An
+adopt Arcane.Excel as Xls
+
+// ── 1. o banco ──
+banco := DB.connect(":memory:")
+DB.execute(banco, """CREATE TABLE vendas (
+    produto TEXT, regiao TEXT, qtd INTEGER, preco REAL)""")
+
+cycle linha in [
+    ["Martelo", "Sul",   12, 89.9],
+    ["Bigorna", "Sul",    3, 450.0],
+    ["Tenaz",   "Norte", 27, 65.5],
+    ["Fole",    "Norte",  8, 320.0],
+    ["Marreta", "Sul",   15, 110.0]
+]:
+    DB.execute(banco, "INSERT INTO vendas VALUES (?, ?, ?, ?)", linha)
+
+registros := DB.query(banco, "SELECT * FROM vendas ORDER BY qtd DESC")
+out "no banco:", len(registros), "vendas"
+assert len(registros) is 5, "cinco linhas inseridas"
+
+// ── 2. a analise ──
+quantidades := [r["qtd"] cycle r in registros]
+precos := [r["preco"] cycle r in registros]
+
+out "media de unidades:", An.mean(quantidades)
+out "desvio dos precos:", round(An.stdev(precos), 2)
+
+// Preco e quantidade andam juntos? Correlacao negativa forte diria que
+// o que e caro vende pouco.
+correlacao := An.correlation(quantidades, precos)
+out "correlacao qtd x preco:", round(correlacao, 3)
+assert correlacao smaller 0, "quanto mais caro, menos unidades"
+
+// describe() sobre um frame descreve cada coluna de uma vez
+tabela := An.from_records(registros)
+descricao := An.describe(tabela)
+out "resumo da coluna qtd:", descricao["qtd"]["count"], "valores, media",
+    descricao["qtd"]["mean"]
+assert descricao["qtd"]["count"] is 5, "cinco valores numericos"
+assert descricao["produto"]["type"] is "non-numeric", "texto e marcado como tal"
+
+// ── 3. a planilha ──
+livro := Xls.new()
+aba := Xls.sheet(livro, "Vendas", registros)
+
+Xls.set(aba, "E1", "receita")
+cycle i from 2 to 6:
+    Xls.formula(aba, $"E{i}", $"C{i}*D{i}")
+Xls.set(aba, "A7", "TOTAL")
+Xls.formula(aba, "E7", "SUM(E2:E6)")
+Xls.bold_row(aba, 6)
+
+Xls.sheet(livro, "Estatisticas", [
+    ["metrica", "valor"],
+    ["vendas", len(registros)],
+    ["media_qtd", An.mean(quantidades)],
+    ["correlacao", round(correlacao, 3)]
+])
+
+Xls.save(livro, "/tmp/analise.xlsx")
+out "planilha com", len(Xls.sheets(livro)), "abas gravada"
+
+// e a prova de que tudo chegou inteiro
+conferencia := Xls.read("/tmp/analise.xlsx")
+assert Xls.sheets(conferencia) is ["Vendas", "Estatisticas"], "as duas abas"
+// Seis registros, nao cinco: a linha TOTAL tambem e uma linha. Uma
+// planilha para humanos e uma tabela para maquinas nao sao a mesma
+// coisa, e vale saber disso antes de alimentar um script com ela.
+de_volta := Xls.records(conferencia, "Vendas")
+assert len(de_volta) is 6, "cinco vendas mais a linha de total"
+assert de_volta[5]["produto"] is "TOTAL", "a ultima linha e o rodape"
+
+// A coluna 'receita' volta vazia: e formula, e quem calcula e o Excel
+// ao abrir o arquivo — nao nos.
+assert de_volta[0]["receita"] is void, "formula nao tem valor gravado"
+assert Xls.get_formula(Xls.sheet(conferencia, "Vendas"), "E7") is "SUM(E2:E6)",
+    "a formula do total"
+
+DB.close(banco)

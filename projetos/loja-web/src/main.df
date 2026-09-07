@@ -1,0 +1,17 @@
+// loja-web — um site completo em DataForge.
+//
+//   dataforge run src/main.df           sobe em http://127.0.0.1:8080
+//   dataforge run src/main.df -- 3000   noutra porta
+//
+// Páginas HTML, API REST no mesmo processo, sessão com cookie, banco
+// SQLite e exportação para Excel — tudo sem dependência externa.
+
+adopt Arcane.OS as OS
+adopt app as App
+
+// Sem argumento, 8080. Com 'dataforge run src/main.df -- 3000', a porta
+// que veio.
+argumentos := OS.argv()
+porta := int(argumentos[0]) given len(argumentos) bigger 0 otherwise 8080
+
+ignite App.loja on porta

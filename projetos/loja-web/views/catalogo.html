@@ -1,0 +1,23 @@
+<h1>{{titulo}}</h1>
+{{#aviso}}<p class="aviso">{{aviso}}</p>{{/aviso}}
+<form method="get" action="/">
+  <label>Categoria
+    <select name="categoria" onchange="this.form.submit()">
+      <option value="">todas</option>
+      {{#categorias}}<option value="{{categoria}}">{{categoria}} ({{n}})</option>{{/categorias}}
+    </select>
+  </label>
+</form>
+<table>
+  <thead><tr><th>Produto<th>Categoria<th>Preço<th>Estoque</thead>
+  <tbody>
+  {{#produtos}}
+    <tr>
+      <td><a href="/produto/{{id}}">{{nome}}</a>
+      <td>{{categoria}}
+      <td class="num">{{preco_formatado}}
+      <td class="num {{classe_estoque}}">{{estoque}}
+  {{/produtos}}
+  </tbody>
+</table>
+{{^produtos}}<p class="vazio">Nenhum produto nesta categoria.</p>{{/produtos}}

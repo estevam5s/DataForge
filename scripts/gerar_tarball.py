@@ -24,6 +24,11 @@ from dataforge import __version__ as VERSAO  # noqa: E402
 # site ficam de fora: sao dezenas de MB que ninguem baixa para rodar
 # 'dataforge run'. Quem quer isso clona o repositorio.
 INCLUIR = ["dataforge", "pyproject.toml", "README.md", "LICENSE", "CLAUDE.md", "doc"]
+
+# A extensao do VS Code entra *dentro* do pacote, e nao ao lado dele:
+# assim o pip a instala junto e 'dataforge editor' funciona em qualquer
+# maquina, sem repositorio e sem rede.
+EMBUTIR = [("editor/vscode", "dataforge/editor/vscode")]
 IGNORAR = {"__pycache__", ".pyc", ".DS_Store", ".pytest_cache", "dist", ".egg-info"}
 
 
@@ -50,6 +55,14 @@ def main():
                         filter=filtrar)
             else:
                 print(f"  aviso: {item} nao existe, pulando")
+
+        for origem, dentro in EMBUTIR:
+            caminho = RAIZ / origem
+            if caminho.exists():
+                tar.add(caminho, arcname=f"dataforge-{VERSAO}/{dentro}",
+                        filter=filtrar)
+            else:
+                print(f"  aviso: {origem} nao existe, pulando")
 
     sha = hashlib.sha256(destino.read_bytes()).hexdigest()
     (saida / f"dataforge-{VERSAO}.tar.gz.sha256").write_text(

@@ -174,6 +174,18 @@ class TokenType(Enum):
     DELETE = auto()          # delete
     EXISTS = auto()          # exists
 
+    # ── Kiln — framework web (contextuais) ────────────────
+    SERVER = auto()          # server   (declara a aplicacao)
+    ROUTE = auto()           # route    (declara uma rota)
+    RESPOND = auto()         # respond  (envia a resposta)
+    RENDER = auto()          # render   (renderiza um template)
+    REDIRECT = auto()        # redirect (302 para outro caminho)
+    MIDDLEWARE = auto()      # middleware (roda antes das rotas)
+    MOUNT = auto()           # mount    (junta outro server sob um prefixo)
+    ASSETS = auto()          # assets   (arquivos estaticos)
+    VIEWS = auto()           # views    (pasta de templates)
+    IGNITE = auto()          # ignite   (acende o forno: sobe o servidor)
+
     # ── Structural ────────────────────────────────────────
     NEWLINE = auto()
     INDENT = auto()
@@ -325,3 +337,26 @@ CONTEXTUAIS_BLUEPRINT = {
     "final":     TokenType.FINAL,
     "abstract":  TokenType.ABSTRACT,
 }
+
+
+# ── Palavras do Kiln ─────────────────────────────────────────
+# Mesmo raciocinio de CONTEXTUAIS_BLUEPRINT: 'route', 'render' e
+# 'server' sao nomes bons demais para tirar de quem escreve. Elas so
+# valem como palavra do Kiln dentro de um bloco 'server' — e o proprio
+# 'server' so quando abre um bloco ('server nome on ...:'). Em qualquer
+# outro lugar seguem sendo identificadores comuns.
+CONTEXTUAIS_KILN = {
+    "server":     TokenType.SERVER,
+    "route":      TokenType.ROUTE,
+    "respond":    TokenType.RESPOND,
+    "render":     TokenType.RENDER,
+    "redirect":   TokenType.REDIRECT,
+    "middleware": TokenType.MIDDLEWARE,
+    "mount":      TokenType.MOUNT,
+    "assets":     TokenType.ASSETS,
+    "views":      TokenType.VIEWS,
+    "ignite":     TokenType.IGNITE,
+}
+
+#: Os verbos aceitos depois de 'route'.
+VERBOS_KILN = ("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "ANY")

@@ -12,7 +12,7 @@ implementada em Python 3.10+ **sem dependências externas no runtime**. Não é 
 DSL nem um transpilador: tem lexer, parser recursivo descendente, AST tipada,
 analisador estático e interpretador de árvore próprios.
 
-- Versão atual: **4.1.0**
+- Versão atual: **4.2.0**
 - Extensão dos arquivos: `.df`
 - Entrypoints: `dataforge` e `df` (mesmo `main`)
 - Licença: MIT
@@ -20,8 +20,8 @@ analisador estático e interpretador de árvore próprios.
 ### Verificação rápida — rode antes e depois de mexer
 
 ```bash
-python3 -m pytest tests/ -q                          # 240 testes
-python3 exercicios/run_all.py                        # 180 exercícios
+python3 -m pytest tests/ -q                          # 502 testes
+python3 exercicios/run_all.py                        # 200 exercícios
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
 
@@ -50,16 +50,21 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/         7282   20 módulos Arcane.* (674 símbolos)
+  stdlib/                22 módulos (753 símbolos), incluindo:
+    kiln.py              Kiln — o framework web (46 símbolos)
+    arcane_excel.py      planilhas .xlsx, sem dependência externa (29)
 
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
-                   ANALISE_E_ROADMAP (todos em pt-BR)
+                   KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          42 programas de demonstração
-exercicios/        180 exercícios em 20 módulos + run_all.py
-                   (os módulos 11-20 têm um .md explicativo por exercício)
+exercicios/        200 exercícios em 23 módulos + run_all.py
+                   (os módulos 11-23 têm um .md explicativo por exercício)
+projetos/          4 programas completos com forge.toml e testes
+tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
 tests/             test_dataforge.py (legado), test_regressoes.py, test_dataforge4.py
 tools/             gerar_doc_stdlib.py
-editor/vscode/     gramática TextMate
+editor/vscode/     extensão do VS Code — gramática **gerada** de tokens.py,
+                   snippets, ícone. Instalada por 'dataforge editor'.
 ```
 
 ### Fluxo de execução
@@ -263,7 +268,21 @@ Estas são as que mais custam tempo:
     `halt`.
 
 14. **Sem sincronização entre threads.** Duas threads escrevendo na mesma
-    variável perdem atualizações. Use `channel`.
+    variável perdem atualizações. Use `channel`. Isso vale para o Kiln, que
+    atende **um pedido por thread**.
+
+15. **Dentro de `$"{…}"`, aspas normais.** `$"item {v["id"]}"` funciona;
+    `$"item {v[\"id\"]}"` não — o lexer copia strings aninhadas verbatim, e o
+    escape quebra a leitura. A mensagem ("Unterminated interpolation") não
+    aponta para a causa.
+
+16. **`query["x"]` sem `??` dá 500 numa rota.** A query, o corpo e os
+    cabeçalhos vêm de fora: a chave pode não vir, e indexar um vault sem a
+    chave é erro. `params` é a exceção — se a rota casou, o parâmetro existe.
+
+17. **O valor inicial do `distill` vem depois do corpo.**
+    `>> distill a, v: a + v 0 / len(x)` divide o **zero**, não a soma. O
+    resultado fica errado sem nada denunciar.
 
 ---
 
@@ -352,6 +371,7 @@ Ao criar um módulo novo, adicione-o em `stdlib/__init__.py` **e** no dicionári
 | `dataforge init` | `project.py` | cria `forge.toml` e esqueleto |
 | `dataforge info` | `project.py` | mostra o manifesto |
 | `dataforge repl` | `repl.py` | console com `:type`, `:ast`, `:load` |
+| `dataforge editor` | `cli.py` | instala a coloração no VS Code e derivados |
 | `dataforge add/remove` | `packages.py` | instala e desinstala dependências |
 | `dataforge install` | `packages.py` | resolve o `forge.toml` inteiro |
 | `dataforge search` | `packages.py` | procura no registro |
@@ -434,6 +454,53 @@ cd packages/validador && dataforge pack
 dataforge publish --registry=../../site/public/registry
 ```
 
+## Kiln — o framework web
+
+`dataforge/stdlib/kiln.py` é o runtime; as dez palavras da linguagem
+(`server`, `route`, `respond`, `render`, `redirect`, `middleware`, `mount`,
+`assets`, `views`, `ignite`) atravessam os cinco lugares de sempre e estão em
+`CONTEXTUAIS_KILN`, não em `KEYWORDS`.
+
+**Elas são contextuais pelo mesmo motivo de `get`/`set`/`final`**: `route`,
+`render` e `server` são nomes bons demais para tirar de quem escreve. O parser
+as reconhece pelo texto, e só onde fazem sentido — `_em_server` e `_em_rota`
+controlam isso. `server` só abre bloco quando o que vem depois confirma
+(`_abre_server`): um nome seguido de `:`, de `on` ou de `at`.
+
+Três decisões que valem lembrar:
+
+1. **`server` monta, `ignite` sobe.** Sem essa separação, um teste que
+   importasse o módulo subiria o servidor e nunca terminaria. É por isso que
+   `projetos/loja-web` tem `app.df` e `main.df` separados.
+2. **`respond` e `render` levantam `YieldSignal`.** Encerram a rota como
+   `yield` encerra uma ação — e o `typechecker` marca isso devolvendo `True`,
+   senão o analisador acusaria "código inalcançável" logo abaixo.
+3. **`Kiln.test` executa a rota sem socket.** É o que torna teste de rota
+   barato. Mas ele roda tudo na mesma thread: bug de concorrência (como o do
+   SQLite) **só aparece subindo o servidor de verdade**.
+
+O `parse_render` precisa de `_no_with`: sem essa guarda,
+`render "x" with {…}` seria lido como a expressão `record with {…}` e o
+template comeria os dados.
+
+## O que é gerado — não edite à mão
+
+| Arquivo | Gerador | Guardado por |
+|---------|---------|--------------|
+| `editor/vscode/syntaxes/dataforge.tmLanguage.json` | `tools/gerar_gramatica.py` | `tests/test_editor.py` |
+| `site/app/docs/kiln/referencia/page.tsx` | `tools/gerar_ref_kiln.py` | — |
+| `doc/BIBLIOTECA_PADRAO.md` | `tools/gerar_doc_stdlib.py` | — |
+| `site/lib/dados-gerados.json` | `site/scripts/gerar_dados.py` | — |
+| `site/public/dist/*.tar.gz` | `scripts/gerar_tarball.py` | `tests/test_regressoes.py` |
+
+A gramática do editor tem **duas** travas: o gerador recusa rodar se uma
+palavra de `KEYWORDS` não estiver em nenhum grupo de cor, e um teste falha se o
+arquivo versionado divergir do que o gerador produz. A versão anterior era
+escrita à mão e por isso não conhecia `record` nem `enum` — exatamente o
+problema que isso resolve.
+
+O mesmo vale para `site/lib/highlight.ts`: há teste comparando com `tokens.py`.
+
 ## Instaladores
 
 | Arquivo | Para |
@@ -459,7 +526,11 @@ python3 scripts/gerar_tarball.py
 | `tests/test_dataforge4.py` | `pytest` | recursos 4.0: interpolação, ternário, records, enums, padrões, generators, stack traces, checker, stdlib nova, ferramentas |
 | `tests/test_regressoes.py` | `pytest` | bugs já corrigidos + sincronia da doc |
 | `tests/test_dataforge.py` | `pytest` **e** script | 69 verificações da suíte original |
-| `exercicios/run_all.py` | script | 180 exercícios, cada um com `assert` |
+| `tests/test_kiln.py` | `pytest` | o framework web: rotas, respostas, templates, segurança, a sintaxe da linguagem e as palavras que continuam livres |
+| `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
+| `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
+| `exercicios/run_all.py` | script | 200 exercícios, cada um com `assert` |
+| `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 42 programas maiores |
 
 **Ao corrigir um bug, escreva primeiro o teste que falha.** Todos os bugs
@@ -486,9 +557,19 @@ O que **ainda não existe** (não invente que existe):
 - **Generics** — `Cluster<T>`, ações genéricas.
 - **Exaustividade** — o `match` não avisa se um membro de enum ficou fora.
 - **Contrato de trait** — não se verifica se o blueprint implementou tudo.
-- **LSP e debugger** — a gramática TextMate só colore.
+- **LSP e debugger** — a gramática TextMate só colore. `dataforge editor` a
+  instala automaticamente (o instalador já faz isso), mas não há autocompletar
+  sensível a contexto nem erro sublinhado enquanto se digita.
 - **Bytecode** — é interpretador de árvore, sem otimização.
-- **Sincronização entre threads** — sem mutex/semáforo; use `channel`.
+- **Sincronização entre threads** — sem mutex/semáforo; use `channel`. O Kiln
+  atende um pedido por thread: o `Arcane.Database` serializa o acesso à
+  conexão (sem isso, a primeira consulta de qualquer servidor estoura), mas
+  estado em memória compartilhado entre rotas não é protegido.
+- **WebSocket, HTTP/2 e streaming de resposta** — o Kiln não tem. Ele roda
+  sobre o `http.server` do Python; em produção pública, ponha um nginx ou
+  Caddy na frente.
+- **Cálculo de fórmula em planilha** — o `Arcane.Excel` grava a fórmula e o
+  Excel a resolve ao abrir. Também não lê o `.xls` binário antigo.
 - **`receive` bloqueante** — devolve `void` na hora se a fila está vazia.
 - **`parallel`** roda **cada instrução** numa thread, não um bloco por thread.
 - **`frame`, `train`, `predict`** são marcadores sintáticos: devolvem um vault

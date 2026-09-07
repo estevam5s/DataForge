@@ -70,6 +70,9 @@ class ArcaneOS:
             # ── Diretórios ──
             "cwd": lambda: os.getcwd(),
             "chdir": cls._chdir,
+            "script": cls._script,
+            "script_dir": cls._script_dir,
+            "beside": cls._beside,
             "home": lambda: os.path.expanduser("~"),
             "temp_dir": lambda: tempfile.gettempdir(),
             "which": lambda prog: shutil.which(prog),
@@ -114,6 +117,51 @@ class ArcaneOS:
     def _set_env(nome, valor):
         os.environ[nome] = str(valor)
         return valor
+
+
+    # ── Onde o programa esta ─────────────────────────────────
+
+    @staticmethod
+    def _interpretador():
+        """O interpretador que esta rodando.
+
+        DFAction guarda essa referencia para poder chamar acoes da
+        linguagem a partir do Python; aproveitamos a mesma porta.
+        """
+        from ..interpreter import DFAction
+        return DFAction._interpreter
+
+    @staticmethod
+    def _script():
+        """O caminho absoluto do arquivo .df em execucao, ou void.
+
+        No REPL e em '-c' nao ha arquivo, e ai devolve void — melhor do
+        que devolver o diretorio atual e o programa achar que se
+        localizou.
+        """
+        interp = ArcaneOS._interpretador()
+        nome = getattr(interp, "filename", "") if interp else ""
+        if not nome or nome.startswith("<"):
+            return None
+        return os.path.abspath(nome)
+
+    @staticmethod
+    def _script_dir():
+        """A pasta do arquivo em execucao, ou void."""
+        caminho = ArcaneOS._script()
+        return os.path.dirname(caminho) if caminho else None
+
+    @staticmethod
+    def _beside(*partes):
+        """Um caminho ao lado do arquivo em execucao.
+
+        E o que templates, dados e configuracao pedem: eles moram junto
+        do programa, nao junto de onde o usuario chamou o programa.
+        Sem isto, rodar 'dataforge run src/main.df' de duas pastas
+        diferentes carrega — ou nao carrega — arquivos diferentes.
+        """
+        base = ArcaneOS._script_dir() or os.getcwd()
+        return os.path.normpath(os.path.join(base, *[str(p) for p in partes]))
 
     @staticmethod
     def _chdir(caminho):

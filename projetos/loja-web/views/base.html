@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{titulo}} · Forja</title>
+<link rel="stylesheet" href="/static/estilo.css">
+<header>
+  <a class="marca" href="/">Forja</a>
+  <nav>
+    <a href="/">Catálogo</a>
+    <a href="/relatorio">Relatório</a>
+    {{#usuario}}<a href="/admin">Admin</a> <a href="/sair">Sair ({{usuario}})</a>{{/usuario}}
+    {{^usuario}}<a href="/entrar">Entrar</a>{{/usuario}}
+  </nav>
+</header>
+<main>
+{{&conteudo}}
+</main>
+<footer>Feito com DataForge e Kiln.</footer>

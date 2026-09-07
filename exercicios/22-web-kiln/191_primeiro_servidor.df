@@ -1,0 +1,31 @@
+// Exercicio 191 — O primeiro servidor
+// Enunciado: declare um servidor com duas rotas e responda texto e HTML.
+
+// 'server' declara a aplicacao; 'route' declara uma rota; 'respond'
+// envia a resposta e encerra a rota, como 'yield' encerra uma acao.
+// Nada sobe ainda: quem acende o forno e 'ignite'. Essa separacao e o
+// que permite testar uma rota sem abrir socket nenhum.
+
+adopt Kiln
+
+server ola on 8080:
+    route GET "/":
+        respond html "<h1>Ola do Kiln</h1>"
+
+    route GET "/ping":
+        respond text "pong"
+
+// Kiln.test executa o pedido direto na aplicacao, sem rede.
+inicio := Kiln.test(ola, "GET", "/")
+out "GET / ->", inicio["status"]
+out inicio["body"]
+
+pong := Kiln.test(ola, "GET", "/ping")
+out "GET /ping ->", pong["body"]
+
+assert inicio["status"] is 200, "a raiz responde 200"
+assert pong["body"] is "pong", "o texto chega inteiro"
+assert len(Kiln.routes(ola)) is 2, "duas rotas registradas"
+
+// Um caminho que nao existe da 404 — sem precisar escrever isso.
+assert Kiln.test(ola, "GET", "/nada")["status"] is 404, "404 automatico"

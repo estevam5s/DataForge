@@ -1,0 +1,1056 @@
+"""
+Kiln — o framework web do DataForge
+
+No forno (kiln) a peca ganha a forma final. Aqui a requisicao entra
+crua e sai como resposta.
+
+    adopt Kiln
+
+    app := Kiln.forge("minha-api")
+
+    Kiln.get(app, "/", lambda req => Kiln.html("<h1>Ola</h1>"))
+    Kiln.listen(app, 8080)
+
+Ha tambem sintaxe propria na linguagem — 'server', 'route', 'respond' —
+que compila para estas mesmas chamadas. Veja doc/KILN.md.
+
+Sem dependencia externa: http.server da biblioteca padrao do Python,
+com roteamento, middleware, sessao e templates escritos aqui.
+"""
+
+import html as _html
+import json
+import mimetypes
+import os
+import re
+import socket
+import threading
+import time
+import traceback
+import urllib.parse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+# ─────────────────────────────────────────────────────────────
+#  Requisicao e resposta
+# ─────────────────────────────────────────────────────────────
+
+#: Metodos que o roteador reconhece.
+METODOS = ("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
+
+#: Texto de cada status, para a linha de resposta.
+RAZOES = {
+    200: "OK", 201: "Created", 202: "Accepted", 204: "No Content",
+    301: "Moved Permanently", 302: "Found", 304: "Not Modified",
+    400: "Bad Request", 401: "Unauthorized", 403: "Forbidden",
+    404: "Not Found", 405: "Method Not Allowed", 409: "Conflict",
+    413: "Payload Too Large", 415: "Unsupported Media Type",
+    422: "Unprocessable Entity", 429: "Too Many Requests",
+    500: "Internal Server Error", 502: "Bad Gateway",
+    503: "Service Unavailable",
+}
+
+
+class Requisicao(dict):
+    """O que chegou.
+
+    E um dict para o DataForge poder ler com req["path"], mas tambem
+    expoe os campos como atributo para o codigo Python interno.
+    """
+
+    def __init__(self, metodo, caminho, cabecalhos, corpo_bruto, cliente):
+        partes = urllib.parse.urlsplit(caminho)
+        consulta = {}
+        for chave, valores in urllib.parse.parse_qs(
+                partes.query, keep_blank_values=True).items():
+            # ?tag=a&tag=b vira lista; ?nome=x vira string. E o que
+            # quem escreve espera — obrigar a indexar [0] sempre seria
+            # ruido em 95% dos casos.
+            consulta[chave] = valores[0] if len(valores) == 1 else valores
+
+        super().__init__({
+            "method": metodo,
+            "path": urllib.parse.unquote(partes.path),
+            "query": consulta,
+            "headers": cabecalhos,
+            "params": {},
+            "body": _interpretar_corpo(corpo_bruto, cabecalhos),
+            "raw_body": corpo_bruto,
+            "cookies": _ler_cookies(cabecalhos.get("cookie", "")),
+            "ip": cliente,
+            "session": {},
+            "state": {},          # espaco para o middleware guardar coisas
+        })
+
+    def __getattr__(self, nome):
+        try:
+            return self[nome]
+        except KeyError:
+            raise AttributeError(nome)
+
+
+def _interpretar_corpo(bruto, cabecalhos):
+    """Interpreta o corpo pelo Content-Type, sem estourar.
+
+    JSON invalido vira o texto cru, nao uma excecao: o handler decide se
+    isso e erro. Estourar aqui daria 500 onde o certo e 400.
+    """
+    if not bruto:
+        return None
+    tipo = (cabecalhos.get("content-type") or "").split(";")[0].strip().lower()
+    texto = bruto.decode("utf-8", errors="replace")
+
+    if tipo == "application/json":
+        try:
+            return json.loads(texto)
+        except json.JSONDecodeError:
+            return texto
+    if tipo == "application/x-www-form-urlencoded":
+        return {k: v[0] if len(v) == 1 else v
+                for k, v in urllib.parse.parse_qs(texto).items()}
+    return texto
+
+
+def _ler_cookies(cabecalho):
+    cookies = {}
+    for parte in cabecalho.split(";"):
+        if "=" in parte:
+            chave, _, valor = parte.partition("=")
+            cookies[chave.strip()] = urllib.parse.unquote(valor.strip())
+    return cookies
+
+
+def resposta(corpo="", status=200, cabecalhos=None, tipo=None):
+    """Uma resposta. E um dict para o DataForge montar a mao se quiser."""
+    return {
+        "__kiln__": True,
+        "status": int(status),
+        "headers": dict(cabecalhos or {}),
+        "body": corpo,
+        "content_type": tipo,
+        "cookies": [],
+    }
+
+
+# ─────────────────────────────────────────────────────────────
+#  Roteamento
+# ─────────────────────────────────────────────────────────────
+
+class Rota:
+    """Um padrao de caminho, compilado.
+
+        /users/:id        casa /users/42        -> {"id": "42"}
+        /files/*caminho   casa /files/a/b.txt   -> {"caminho": "a/b.txt"}
+    """
+
+    __slots__ = ("metodo", "padrao", "handler", "regex", "nomes", "meio")
+
+    def __init__(self, metodo, padrao, handler=None, meio=()):
+        self.metodo = metodo.upper()
+        self.padrao = padrao
+        self.handler = handler
+        self.meio = list(meio)
+        self.regex, self.nomes = self._compilar(padrao)
+
+    @staticmethod
+    def _compilar(padrao):
+        nomes = []
+        partes = ["^"]
+        for pedaco in re.split(r"(:[A-Za-z_]\w*|\*[A-Za-z_]\w*)", padrao):
+            if pedaco.startswith(":"):
+                nomes.append(pedaco[1:])
+                partes.append(r"([^/]+)")
+            elif pedaco.startswith("*"):
+                nomes.append(pedaco[1:])
+                partes.append(r"(.*)")
+            else:
+                partes.append(re.escape(pedaco))
+        partes.append("/?$")
+        return re.compile("".join(partes)), nomes
+
+    def casa(self, caminho):
+        """Devolve os parametros, ou None."""
+        achado = self.regex.match(caminho)
+        if achado is None:
+            return None
+        return {nome: urllib.parse.unquote(valor)
+                for nome, valor in zip(self.nomes, achado.groups())}
+
+    def __repr__(self):
+        return f"<rota {self.metodo} {self.padrao}>"
+
+
+class App:
+    """Uma aplicacao Kiln."""
+
+    def __init__(self, nome="kiln"):
+        self.nome = nome
+        self.rotas = []
+        self.middleware = []            # roda antes do handler
+        self.depois = []                # roda depois, com a resposta
+        self.estaticos = []             # [(prefixo, pasta)]
+        self.tratadores = {}            # status -> handler
+        self.pasta_templates = None
+        self.sessoes = {}               # id -> dict
+        self.config = {}
+        self.servidor = None
+        self._contador = {"pedidos": 0, "erros": 0, "inicio": time.time()}
+
+    # ── Registro ──
+
+    def rota(self, metodo, padrao, handler, meio=()):
+        self.rotas.append(Rota(metodo, padrao, handler, meio))
+        return self
+
+    def usar(self, funcao):
+        self.middleware.append(funcao)
+        return self
+
+    def apos(self, funcao):
+        self.depois.append(funcao)
+        return self
+
+    def montar(self, prefixo, outro):
+        """Junta as rotas de outro app sob um prefixo."""
+        limpo = "/" + prefixo.strip("/")
+        for r in outro.rotas:
+            caminho = (limpo + r.padrao).replace("//", "/")
+            self.rotas.append(Rota(r.metodo, caminho, r.handler, r.meio))
+        self.middleware.extend(outro.middleware)
+        return self
+
+    def erro(self, status, handler):
+        self.tratadores[int(status)] = handler
+        return self
+
+    # ── Resolucao ──
+
+    def achar(self, metodo, caminho):
+        """Devolve (rota, params). Rota None quando nao casa.
+
+        Distingue 404 de 405: se o caminho casa com outro metodo, o
+        cliente errou o verbo, e dizer isso poupa depuracao.
+        """
+        outros_metodos = set()
+        for r in self.rotas:
+            params = r.casa(caminho)
+            if params is None:
+                continue
+            if r.metodo == metodo or r.metodo == "*":
+                return r, params
+            outros_metodos.add(r.metodo)
+        return None, outros_metodos
+
+
+# ─────────────────────────────────────────────────────────────
+#  Servidor
+# ─────────────────────────────────────────────────────────────
+
+class _Handler(BaseHTTPRequestHandler):
+    """Ponte entre o http.server e o App."""
+
+    app = None
+    server_version = "Kiln"
+    sys_version = ""
+
+    def log_message(self, formato, *args):
+        pass        # o log e do middleware, nao do http.server
+
+    def _atender(self, metodo):
+        app = self.app
+        app._contador["pedidos"] += 1
+        inicio = time.perf_counter()
+
+        try:
+            tamanho = int(self.headers.get("content-length") or 0)
+        except ValueError:
+            tamanho = 0
+        # Um corpo grande demais e recusado antes de ser lido inteiro na
+        # memoria: sem isso, um POST de 2 GB derruba o processo.
+        limite = app.config.get("limite_corpo", 10 * 1024 * 1024)
+        if tamanho > limite:
+            self._enviar(resposta(
+                {"erro": f"corpo acima do limite de {limite} bytes"}, 413))
+            return
+        bruto = self.rfile.read(tamanho) if tamanho else b""
+
+        cabecalhos = {k.lower(): v for k, v in self.headers.items()}
+        req = Requisicao(metodo, self.path, cabecalhos, bruto,
+                         self.client_address[0])
+        _ligar_sessao(app, req)
+
+        try:
+            resp = _processar(app, req)
+        except Exception as erro:
+            app._contador["erros"] += 1
+            resp = _resposta_de_erro(app, req, erro)
+
+        for depois in app.depois:
+            try:
+                trocada = depois(req, resp)
+                if isinstance(trocada, dict) and trocada.get("__kiln__"):
+                    resp = trocada
+            except Exception:
+                pass        # middleware de saida nao pode derrubar a resposta
+
+        resp["headers"].setdefault(
+            "X-Response-Time",
+            f"{(time.perf_counter() - inicio) * 1000:.1f}ms")
+        self._enviar(resp)
+
+    def _enviar(self, resp):
+        corpo = resp.get("body", "")
+        tipo = resp.get("content_type")
+
+        if isinstance(corpo, (dict, list)) or corpo is None:
+            dados = json.dumps(corpo, ensure_ascii=False, default=str,
+                               indent=2).encode("utf-8")
+            tipo = tipo or "application/json; charset=utf-8"
+        elif isinstance(corpo, bytes):
+            dados = corpo
+            tipo = tipo or "application/octet-stream"
+        else:
+            texto = str(corpo)
+            dados = texto.encode("utf-8")
+            if tipo is None:
+                tipo = ("text/html; charset=utf-8"
+                        if texto.lstrip()[:1] == "<"
+                        else "text/plain; charset=utf-8")
+
+        status = int(resp.get("status", 200))
+        self.send_response(status, RAZOES.get(status, ""))
+        self.send_header("Content-Type", tipo)
+        self.send_header("Content-Length", str(len(dados)))
+        for chave, valor in resp.get("headers", {}).items():
+            self.send_header(chave, str(valor))
+        for cookie in resp.get("cookies", []):
+            self.send_header("Set-Cookie", cookie)
+        self.end_headers()
+
+        if self.command != "HEAD":
+            try:
+                self.wfile.write(dados)
+            except (BrokenPipeError, ConnectionResetError):
+                pass        # o cliente desistiu; nao e erro nosso
+
+
+for _metodo in METODOS:
+    setattr(_Handler, f"do_{_metodo}",
+            lambda self, _m=_metodo: self._atender(_m))
+
+
+def _processar(app, req):
+    """Middleware, rota estatica, rota casada — nessa ordem."""
+    for meio in app.middleware:
+        saida = meio(req)
+        # Middleware que devolve resposta interrompe a cadeia: e assim
+        # que autenticacao e limite de taxa cortam o pedido.
+        if isinstance(saida, dict) and saida.get("__kiln__"):
+            return saida
+
+    estatica = _servir_estatico(app, req["path"])
+    if estatica is not None:
+        return estatica
+
+    rota, extra = app.achar(req["method"], req["path"])
+
+    if rota is None:
+        if extra:       # o caminho existe, o verbo nao
+            permitidos = ", ".join(sorted(extra))
+            return _erro(app, req, 405,
+                         f"{req['method']} não é aceito em {req['path']}",
+                         {"Allow": permitidos})
+        return _erro(app, req, 404, f"nada em {req['path']}")
+
+    req["params"] = extra
+    for meio in rota.meio:
+        saida = meio(req)
+        if isinstance(saida, dict) and saida.get("__kiln__"):
+            return saida
+
+    return _normalizar(rota.handler(req))
+
+
+def _normalizar(saida):
+    """O que o handler devolveu vira uma resposta."""
+    if isinstance(saida, dict) and saida.get("__kiln__"):
+        return saida
+    if saida is None:
+        return resposta("", 204)
+    return resposta(saida)
+
+
+def _erro(app, req, status, mensagem, cabecalhos=None):
+    tratador = app.tratadores.get(status)
+    if tratador is not None:
+        try:
+            return _normalizar(tratador(req))
+        except Exception:
+            pass
+    corpo = {"erro": mensagem, "status": status}
+    return resposta(corpo, status, cabecalhos)
+
+
+def _resposta_de_erro(app, req, erro):
+    """500 com o detalhe no terminal — e no corpo, se em modo debug."""
+    mensagem = getattr(erro, "message", None) or str(erro)
+    print(f"\033[1;31m[kiln] {req['method']} {req['path']} → 500\033[0m "
+          f"{mensagem}")
+    if app.config.get("debug"):
+        traceback.print_exc()
+
+    tratador = app.tratadores.get(500)
+    if tratador is not None:
+        try:
+            req["state"]["erro"] = mensagem
+            return _normalizar(tratador(req))
+        except Exception:
+            pass
+
+    corpo = {"erro": "erro interno", "status": 500}
+    if app.config.get("debug"):
+        corpo["detalhe"] = mensagem
+    return resposta(corpo, 500)
+
+
+def _servir_estatico(app, caminho):
+    for prefixo, pasta in app.estaticos:
+        if not caminho.startswith(prefixo):
+            continue
+        relativo = caminho[len(prefixo):].lstrip("/")
+        base = os.path.abspath(pasta)
+        alvo = os.path.abspath(os.path.join(base, relativo))
+        # Um '../' no caminho nao pode escapar da pasta servida.
+        if not alvo.startswith(base + os.sep) and alvo != base:
+            return resposta({"erro": "caminho inválido"}, 403)
+        if os.path.isdir(alvo):
+            alvo = os.path.join(alvo, "index.html")
+        if not os.path.isfile(alvo):
+            continue
+        tipo, _ = mimetypes.guess_type(alvo)
+        with open(alvo, "rb") as f:
+            return resposta(f.read(), 200,
+                            {"Cache-Control": "public, max-age=3600"},
+                            tipo or "application/octet-stream")
+    return None
+
+
+# ── Sessao ──
+
+def _ligar_sessao(app, req):
+    """Sessao em memoria, identificada por cookie.
+
+    Some quando o processo reinicia — e o certo para desenvolvimento e
+    para app de um processo so. Producao com varios processos precisa de
+    um armazenamento compartilhado.
+    """
+    sid = req["cookies"].get("kiln_sid")
+    if sid and sid in app.sessoes:
+        req["session"] = app.sessoes[sid]
+        req["state"]["sid"] = sid
+    else:
+        req["session"] = {}
+        req["state"]["sid"] = None
+
+
+# ─────────────────────────────────────────────────────────────
+#  Templates
+# ─────────────────────────────────────────────────────────────
+
+def _render(app, nome, dados=None):
+    """Renderiza um template do disco.
+
+    Sintaxe pequena de proposito: {{var}}, {{#lista}}…{{/lista}},
+    {{^vazio}}…{{/vazio}}. Template que vira linguagem e codigo
+    escondido onde ninguem procura.
+    """
+    if not app.pasta_templates:
+        raise ValueError("nenhuma pasta de templates: use Kiln.templates(app, pasta)")
+    caminho = os.path.join(app.pasta_templates, nome)
+    if not os.path.isfile(caminho):
+        raise FileNotFoundError(f"template não encontrado: {nome}")
+    with open(caminho, encoding="utf-8") as f:
+        return _preencher(f.read(), dados or {})
+
+
+def _preencher(texto, dados):
+    saida, i = [], 0
+    while i < len(texto):
+        abre = texto.find("{{", i)
+        if abre == -1:
+            saida.append(texto[i:])
+            break
+        saida.append(texto[i:abre])
+        fecha = texto.find("}}", abre)
+        if fecha == -1:
+            saida.append(texto[abre:])
+            break
+
+        marca = texto[abre + 2:fecha].strip()
+
+        if marca.startswith("#") or marca.startswith("^"):
+            negado = marca[0] == "^"
+            nome = marca[1:].strip()
+            final = texto.find("{{/" + nome + "}}", fecha)
+            if final == -1:
+                raise ValueError(f"bloco '{nome}' aberto e nunca fechado")
+            corpo = texto[fecha + 2:final]
+            valor = _buscar(dados, nome)
+            if negado:
+                if not _tem_conteudo(valor):
+                    saida.append(_preencher(corpo, dados))
+            elif isinstance(valor, list):
+                for item in valor:
+                    contexto = item if isinstance(item, dict) else dados
+                    trecho = corpo.replace("{{.}}", _escapar(item)) \
+                        if not isinstance(item, dict) else corpo
+                    saida.append(_preencher(trecho, contexto))
+            elif _tem_conteudo(valor):
+                contexto = valor if isinstance(valor, dict) else dados
+                saida.append(_preencher(corpo, contexto))
+            i = final + len(nome) + 5
+            continue
+
+        # {{& x}} nao escapa; {{x}} escapa
+        if marca.startswith("&"):
+            saida.append(str(_buscar(dados, marca[1:].strip()) or ""))
+        else:
+            saida.append(_escapar(_buscar(dados, marca)))
+        i = fecha + 2
+    return "".join(saida)
+
+
+def _buscar(dados, caminho):
+    if caminho == ".":
+        return dados
+    atual = dados
+    for parte in caminho.split("."):
+        if isinstance(atual, dict):
+            atual = atual.get(parte)
+        elif isinstance(atual, list) and parte.isdigit():
+            indice = int(parte)
+            atual = atual[indice] if indice < len(atual) else None
+        else:
+            return None
+        if atual is None:
+            return None
+    return atual
+
+
+def _escapar(valor):
+    if valor is None:
+        return ""
+    return _html.escape(str(valor), quote=True)
+
+
+def _tem_conteudo(valor):
+    if valor is None or valor is False:
+        return False
+    if isinstance(valor, (list, dict, str)):
+        return len(valor) > 0
+    if isinstance(valor, (int, float)):
+        return valor != 0
+    return True
+
+
+# ─────────────────────────────────────────────────────────────
+#  Sessao com assinatura
+# ─────────────────────────────────────────────────────────────
+
+import base64
+import hashlib
+import hmac
+import secrets
+
+
+def _assinar(dados, segredo):
+    corpo = base64.urlsafe_b64encode(
+        json.dumps(dados, default=str).encode()).decode().rstrip("=")
+    marca = hmac.new(segredo.encode(), corpo.encode(),
+                     hashlib.sha256).hexdigest()[:32]
+    return f"{corpo}.{marca}"
+
+
+def _conferir(token, segredo):
+    """Le um token assinado. Devolve None se foi adulterado."""
+    if not token or "." not in token:
+        return None
+    corpo, _, marca = token.rpartition(".")
+    esperado = hmac.new(segredo.encode(), corpo.encode(),
+                        hashlib.sha256).hexdigest()[:32]
+    # compare_digest para o tempo de comparacao nao vazar o prefixo certo
+    if not hmac.compare_digest(marca, esperado):
+        return None
+    try:
+        preenchido = corpo + "=" * (-len(corpo) % 4)
+        return json.loads(base64.urlsafe_b64decode(preenchido))
+    except Exception:
+        return None
+
+
+# ─────────────────────────────────────────────────────────────
+#  Modulo Kiln para o DataForge
+# ─────────────────────────────────────────────────────────────
+
+def _apenas_dict(valor):
+    """Converte estruturas do DataForge em algo serializavel."""
+    if hasattr(valor, "campos") and hasattr(valor, "blueprint"):
+        return dict(valor.campos)
+    if hasattr(valor, "_asdict"):
+        return valor._asdict()
+    if isinstance(valor, dict):
+        return {k: _apenas_dict(v) for k, v in valor.items()}
+    if isinstance(valor, (list, tuple)):
+        return [_apenas_dict(v) for v in valor]
+    return valor
+
+
+class ArcaneKiln:
+    """Kiln — framework web do DataForge."""
+
+    # ── aplicacao ──
+
+    @staticmethod
+    def _forge(nome="kiln", **config):
+        app = App(nome)
+        app.config.update(config)
+        return app
+
+    @staticmethod
+    def _config(app, chave, valor):
+        app.config[chave] = valor
+        return app
+
+    # ── rotas ──
+
+    @staticmethod
+    def _rota(app, metodo, padrao, handler):
+        return app.rota(metodo, padrao, handler)
+
+    @staticmethod
+    def _get(app, padrao, handler):
+        return app.rota("GET", padrao, handler)
+
+    @staticmethod
+    def _post(app, padrao, handler):
+        return app.rota("POST", padrao, handler)
+
+    @staticmethod
+    def _put(app, padrao, handler):
+        return app.rota("PUT", padrao, handler)
+
+    @staticmethod
+    def _patch(app, padrao, handler):
+        return app.rota("PATCH", padrao, handler)
+
+    @staticmethod
+    def _delete(app, padrao, handler):
+        return app.rota("DELETE", padrao, handler)
+
+    @staticmethod
+    def _options(app, padrao, handler):
+        return app.rota("OPTIONS", padrao, handler)
+
+    @staticmethod
+    def _head(app, padrao, handler):
+        return app.rota("HEAD", padrao, handler)
+
+    @staticmethod
+    def _any(app, padrao, handler):
+        return app.rota("*", padrao, handler)
+
+    @staticmethod
+    def _resource(app, base, controlador):
+        """Sete rotas RESTful de uma vez.
+
+        index/show/create/update/patch/destroy — os que o controlador
+        (um vault) tiver. Os que faltarem simplesmente nao existem.
+        """
+        base = "/" + base.strip("/")
+        mapa = [
+            ("GET", base, "index"),
+            ("GET", f"{base}/:id", "show"),
+            ("POST", base, "create"),
+            ("PUT", f"{base}/:id", "update"),
+            ("PATCH", f"{base}/:id", "patch"),
+            ("DELETE", f"{base}/:id", "destroy"),
+        ]
+        for metodo, caminho, nome in mapa:
+            handler = controlador.get(nome) if isinstance(controlador, dict) \
+                else getattr(controlador, nome, None)
+            if handler is not None:
+                app.rota(metodo, caminho, handler)
+        return app
+
+    @staticmethod
+    def _mount(app, prefixo, outro):
+        return app.montar(prefixo, outro)
+
+    @staticmethod
+    def _group(app, prefixo, meio=None):
+        """Sub-app: rotas registradas nele herdam prefixo e middleware."""
+        filho = App(f"{app.nome}{prefixo}")
+        if meio:
+            filho.middleware.extend(meio if isinstance(meio, list) else [meio])
+        filho.config = app.config
+        filho.pasta_templates = app.pasta_templates
+        app.config.setdefault("__grupos__", []).append((prefixo, filho))
+        return filho
+
+    @staticmethod
+    def _routes(app):
+        """Lista as rotas — util para depurar e para o comando 'kiln rotas'."""
+        return [{"method": r.metodo, "path": r.padrao,
+                 "params": list(r.nomes)} for r in app.rotas]
+
+    # ── middleware ──
+
+    @staticmethod
+    def _use(app, funcao):
+        return app.usar(funcao)
+
+    @staticmethod
+    def _after(app, funcao):
+        return app.apos(funcao)
+
+    @staticmethod
+    def _on_error(app, status, handler):
+        return app.erro(status, handler)
+
+    @staticmethod
+    def _cors(origens="*", metodos=None, cabecalhos=None):
+        permitidos = metodos or "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        cabs = cabecalhos or "Content-Type, Authorization"
+
+        def middleware(req):
+            # OPTIONS e respondido aqui: o preflight nunca chega na rota.
+            if req["method"] == "OPTIONS":
+                return resposta("", 204, {
+                    "Access-Control-Allow-Origin": origens,
+                    "Access-Control-Allow-Methods": permitidos,
+                    "Access-Control-Allow-Headers": cabs,
+                    "Access-Control-Max-Age": "86400",
+                })
+            req["state"]["cors"] = origens
+            return None
+        return middleware
+
+    @staticmethod
+    def _logger(formato="dev"):
+        def middleware(req):
+            hora = time.strftime("%H:%M:%S")
+            print(f"\033[2m{hora}\033[0m \033[1;36m{req['method']:<6}\033[0m "
+                  f"{req['path']}")
+            return None
+        return middleware
+
+    @staticmethod
+    def _rate_limit(maximo=60, janela=60):
+        """Limita pedidos por IP numa janela deslizante."""
+        registro = {}
+        trava = threading.Lock()
+
+        def middleware(req):
+            agora = time.time()
+            ip = req["ip"]
+            with trava:
+                marcas = [t for t in registro.get(ip, []) if agora - t < janela]
+                if len(marcas) >= maximo:
+                    espera = int(janela - (agora - marcas[0])) + 1
+                    return resposta(
+                        {"erro": "pedidos demais", "tente_em": espera}, 429,
+                        {"Retry-After": str(espera)})
+                marcas.append(agora)
+                registro[ip] = marcas
+            return None
+        return middleware
+
+    @staticmethod
+    def _auth(verificador, esquema="Bearer"):
+        """Exige Authorization; 'verificador' recebe o token e devolve
+        o usuario (ou void para recusar)."""
+        def middleware(req):
+            cabecalho = req["headers"].get("authorization", "")
+            prefixo = esquema + " "
+            if not cabecalho.startswith(prefixo):
+                return resposta({"erro": "não autenticado"}, 401,
+                                {"WWW-Authenticate": esquema})
+            usuario = verificador(cabecalho[len(prefixo):])
+            if usuario is None or usuario is False:
+                return resposta({"erro": "credencial inválida"}, 401)
+            req["state"]["user"] = usuario
+            return None
+        return middleware
+
+    @staticmethod
+    def _guard(condicao, status=403, mensagem="sem permissão"):
+        """Middleware a partir de uma condicao qualquer."""
+        def middleware(req):
+            if not condicao(req):
+                return resposta({"erro": mensagem}, int(status))
+            return None
+        return middleware
+
+    # ── respostas ──
+
+    @staticmethod
+    def _json(dados, status=200, cabecalhos=None):
+        return resposta(_apenas_dict(dados), int(status), cabecalhos,
+                        "application/json; charset=utf-8")
+
+    @staticmethod
+    def _html(texto, status=200, cabecalhos=None):
+        return resposta(texto, int(status), cabecalhos,
+                        "text/html; charset=utf-8")
+
+    @staticmethod
+    def _text(texto, status=200, cabecalhos=None):
+        return resposta(str(texto), int(status), cabecalhos,
+                        "text/plain; charset=utf-8")
+
+    @staticmethod
+    def _status(codigo, mensagem=None):
+        corpo = {"status": int(codigo),
+                 "mensagem": mensagem or RAZOES.get(int(codigo), "")}
+        return resposta(corpo, int(codigo))
+
+    @staticmethod
+    def _redirect(destino, status=302):
+        return resposta("", int(status), {"Location": destino})
+
+    @staticmethod
+    def _file(caminho, tipo=None, baixar=None):
+        if not os.path.isfile(caminho):
+            return resposta({"erro": "arquivo não encontrado"}, 404)
+        adivinhado, _ = mimetypes.guess_type(caminho)
+        cabecalhos = {}
+        if baixar:
+            cabecalhos["Content-Disposition"] = f'attachment; filename="{baixar}"'
+        with open(caminho, "rb") as f:
+            return resposta(f.read(), 200, cabecalhos,
+                            tipo or adivinhado or "application/octet-stream")
+
+    @staticmethod
+    def _header(resp, chave, valor):
+        resp["headers"][chave] = str(valor)
+        return resp
+
+    @staticmethod
+    def _cookie(resp, nome, valor, dias=None, http_only=True, caminho="/",
+                same_site="Lax", seguro=False):
+        partes = [f"{nome}={urllib.parse.quote(str(valor))}",
+                  f"Path={caminho}", f"SameSite={same_site}"]
+        if dias is not None:
+            partes.append(f"Max-Age={int(float(dias) * 86400)}")
+        if http_only:
+            partes.append("HttpOnly")
+        if seguro:
+            partes.append("Secure")
+        resp["cookies"].append("; ".join(partes))
+        return resp
+
+    # ── sessao ──
+
+    @staticmethod
+    def _session_start(app, req, resp, dados=None):
+        sid = req["state"].get("sid") or secrets.token_urlsafe(24)
+        app.sessoes[sid] = dict(dados or req.get("session") or {})
+        req["session"] = app.sessoes[sid]
+        req["state"]["sid"] = sid
+        return ArcaneKiln._cookie(resp, "kiln_sid", sid, dias=7)
+
+    @staticmethod
+    def _session_end(app, req, resp):
+        sid = req["state"].get("sid")
+        if sid:
+            app.sessoes.pop(sid, None)
+        req["session"] = {}
+        return ArcaneKiln._cookie(resp, "kiln_sid", "", dias=0)
+
+    @staticmethod
+    def _sign(dados, segredo):
+        return _assinar(_apenas_dict(dados), segredo)
+
+    @staticmethod
+    def _unsign(token, segredo):
+        return _conferir(token, segredo)
+
+    # ── templates e estaticos ──
+
+    @staticmethod
+    def _templates(app, pasta):
+        app.pasta_templates = pasta
+        return app
+
+    @staticmethod
+    def _render(app, nome, dados=None, status=200):
+        texto = _render(app, nome, _apenas_dict(dados or {}))
+        return resposta(texto, int(status), None, "text/html; charset=utf-8")
+
+    @staticmethod
+    def _render_string(texto, dados=None):
+        return _preencher(texto, _apenas_dict(dados or {}))
+
+    @staticmethod
+    def _static(app, prefixo, pasta):
+        app.estaticos.append(("/" + prefixo.strip("/"), pasta))
+        return app
+
+    @staticmethod
+    def _escape(texto):
+        return _escapar(texto)
+
+    # ── ciclo de vida ──
+
+    @staticmethod
+    def _listen(app, porta=8080, host="127.0.0.1", silencioso=False):
+        """Sobe o servidor e bloqueia ate Ctrl-C."""
+        for prefixo, filho in app.config.pop("__grupos__", []):
+            app.montar(prefixo, filho)
+
+        handler = type("KilnHandler", (_Handler,), {"app": app})
+        servidor = ThreadingHTTPServer((host, int(porta)), handler)
+        servidor.daemon_threads = True
+        app.servidor = servidor
+
+        if not silencioso:
+            print(f"\n  \033[1;33m▲ Kiln\033[0m  {app.nome}")
+            print(f"  \033[2mno ar em\033[0m  http://{host}:{int(porta)}")
+            print(f"  \033[2m{len(app.rotas)} rota(s) · Ctrl-C para parar\033[0m\n")
+        try:
+            servidor.serve_forever()
+        except KeyboardInterrupt:
+            if not silencioso:
+                print("\n  \033[2mforno apagado.\033[0m")
+        finally:
+            servidor.server_close()
+        return app
+
+    @staticmethod
+    def _serve(app, porta=8080, host="127.0.0.1"):
+        """Sobe em segundo plano e devolve na hora. Devolve a porta real
+        (util com porta 0, que deixa o SO escolher)."""
+        for prefixo, filho in app.config.pop("__grupos__", []):
+            app.montar(prefixo, filho)
+        handler = type("KilnHandler", (_Handler,), {"app": app})
+        servidor = ThreadingHTTPServer((host, int(porta)), handler)
+        servidor.daemon_threads = True
+        app.servidor = servidor
+        threading.Thread(target=servidor.serve_forever, daemon=True).start()
+        return servidor.server_address[1]
+
+    @staticmethod
+    def _stop(app):
+        if app.servidor is not None:
+            app.servidor.shutdown()
+            app.servidor.server_close()
+            app.servidor = None
+        return app
+
+    @staticmethod
+    def _stats(app):
+        return {
+            "pedidos": app._contador["pedidos"],
+            "erros": app._contador["erros"],
+            "rotas": len(app.rotas),
+            "uptime": round(time.time() - app._contador["inicio"], 1),
+        }
+
+    # ── cliente, para testar sem rede ──
+
+    @staticmethod
+    def _test(app, metodo, caminho, corpo=None, cabecalhos=None):
+        """Executa um pedido direto no app, sem socket.
+
+        Torna teste de rota tao barato quanto teste de funcao — que e o
+        que faz alguem realmente escrever esses testes.
+        """
+        cabs = {k.lower(): v for k, v in (cabecalhos or {}).items()}
+        bruto = b""
+        if corpo is not None:
+            if isinstance(corpo, (dict, list)):
+                bruto = json.dumps(_apenas_dict(corpo)).encode()
+                cabs.setdefault("content-type", "application/json")
+            else:
+                bruto = str(corpo).encode()
+        req = Requisicao(metodo.upper(), caminho, cabs, bruto, "127.0.0.1")
+        _ligar_sessao(app, req)
+        try:
+            resp = _processar(app, req)
+        except Exception as erro:
+            resp = _resposta_de_erro(app, req, erro)
+        corpo = resp["body"]
+        # Um arquivo servido do disco volta em bytes. Num teste isso
+        # obriga a decodificar a mao toda vez; quando o tipo e textual,
+        # entregamos texto — que e o que o teste vai comparar.
+        if isinstance(corpo, bytes):
+            tipo = resp.get("content_type") or ""
+            if tipo.startswith("text/") or "json" in tipo or "xml" in tipo \
+                    or "javascript" in tipo:
+                corpo = corpo.decode("utf-8", errors="replace")
+        return {"status": resp["status"], "body": corpo,
+                "headers": resp["headers"]}
+
+    def __new__(cls):
+        return {
+            "__name__": "Kiln",
+
+            # aplicacao
+            "forge": cls._forge,
+            "app": cls._forge,
+            "config": cls._config,
+
+            # rotas
+            "route": cls._rota,
+            "get": cls._get,
+            "post": cls._post,
+            "put": cls._put,
+            "patch": cls._patch,
+            "delete": cls._delete,
+            "options": cls._options,
+            "head": cls._head,
+            "any": cls._any,
+            "resource": cls._resource,
+            "mount": cls._mount,
+            "group": cls._group,
+            "routes": cls._routes,
+
+            # middleware
+            "use": cls._use,
+            "after": cls._after,
+            "on_error": cls._on_error,
+            "cors": cls._cors,
+            "logger": cls._logger,
+            "rate_limit": cls._rate_limit,
+            "auth": cls._auth,
+            "guard": cls._guard,
+
+            # respostas
+            "json": cls._json,
+            "html": cls._html,
+            "text": cls._text,
+            "status": cls._status,
+            "redirect": cls._redirect,
+            "file": cls._file,
+            "header": cls._header,
+            "cookie": cls._cookie,
+
+            # sessao
+            "session_start": cls._session_start,
+            "session_end": cls._session_end,
+            "sign": cls._sign,
+            "unsign": cls._unsign,
+
+            # views
+            "templates": cls._templates,
+            "render": cls._render,
+            "render_string": cls._render_string,
+            "static": cls._static,
+            "escape": cls._escape,
+
+            # ciclo de vida
+            "listen": cls._listen,
+            "serve": cls._serve,
+            "stop": cls._stop,
+            "stats": cls._stats,
+            "test": cls._test,
+        }

@@ -42,12 +42,19 @@ const KEYWORDS = new Set([
   'to', 'train', 'trait', 'trigger', 'typeof', 'using', 'validate', 'wait',
   'when', 'with', 'yield', 'adopt', 'action', 'blueprint', 'record', 'enum',
   'steady',
+
+  // As dez do Kiln. Na linguagem elas são contextuais — só valem dentro
+  // de um bloco 'server' — mas aqui colorimos sempre: num trecho de
+  // documentação, 'route' é praticamente sempre a palavra do framework,
+  // e deixá-la cinza esconde justamente o que o exemplo está ensinando.
+  'server', 'route', 'respond', 'render', 'redirect', 'middleware',
+  'mount', 'assets', 'views', 'ignite',
 ]);
 
 /** Palavras que introduzem uma declaração — recebem ênfase própria. */
 const DECLARATIONS = new Set([
   'action', 'blueprint', 'record', 'enum', 'trait', 'adopt', 'relay',
-  'steady', 'static', 'shadow', 'stream', 'async',
+  'steady', 'static', 'shadow', 'stream', 'async', 'server', 'route',
 ]);
 
 const LITERALS = new Set(['yes', 'no', 'void']);
@@ -56,6 +63,7 @@ const LITERALS = new Set(['yes', 'no', 'void']);
 const TYPES = new Set([
   'Integer', 'Float', 'Number', 'String', 'Boolean', 'Cluster', 'Vault',
   'Void', 'Action', 'Stream', 'Any', 'Record', 'Enum', 'Blueprint', 'Error',
+  'Server',
 ]);
 
 const OPERATORS = [

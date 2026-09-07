@@ -1,0 +1,83 @@
+// banco.df — tudo o que toca o SQLite mora aqui.
+//
+// O resto do programa fala com estas ações e nunca com o banco: trocar
+// SQLite por outra coisa é mexer neste arquivo só.
+
+adopt Arcane.Database as DB
+
+steady ESQUEMA := """CREATE TABLE IF NOT EXISTS produtos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    categoria TEXT NOT NULL,
+    preco REAL NOT NULL,
+    estoque INTEGER NOT NULL DEFAULT 0
+)"""
+
+action abrir(caminho):
+    conexao := DB.connect(caminho)
+    DB.execute(conexao, ESQUEMA)
+    yield conexao
+
+action semear(conexao):
+    // Só semeia banco vazio: rodar o programa duas vezes não pode
+    // duplicar o catálogo.
+    quantos := DB.query(conexao, "SELECT COUNT(*) AS n FROM produtos")[0]["n"]
+    given quantos bigger 0:
+        yield quantos
+
+    cycle linha in [
+        ["Martelo de forja", "ferramenta", 89.9, 12],
+        ["Bigorna 50kg",     "ferramenta", 450.0, 3],
+        ["Tenaz reta",       "ferramenta", 65.5, 27],
+        ["Fole manual",      "equipamento", 320.0, 8],
+        ["Avental de couro", "protecao", 145.0, 15]
+    ]:
+        DB.execute(conexao,
+            "INSERT INTO produtos (nome, categoria, preco, estoque) VALUES (?, ?, ?, ?)",
+            linha)
+    yield 5
+
+action listar(conexao, categoria):
+    given categoria is void or categoria is "":
+        yield DB.query(conexao, "SELECT * FROM produtos ORDER BY nome")
+    yield DB.query(conexao,
+        "SELECT * FROM produtos WHERE categoria = ? ORDER BY nome",
+        [categoria])
+
+action achar(conexao, id):
+    linhas := DB.query(conexao, "SELECT * FROM produtos WHERE id = ?", [int(id)])
+    yield linhas[0] given len(linhas) bigger 0 otherwise void
+
+action criar(conexao, dados):
+    DB.execute(conexao,
+        "INSERT INTO produtos (nome, categoria, preco, estoque) VALUES (?, ?, ?, ?)",
+        [dados["nome"], dados["categoria"], float(dados["preco"]),
+         int(dados["estoque"] ?? 0)])
+    yield DB.query(conexao,
+        "SELECT * FROM produtos ORDER BY id DESC LIMIT 1")[0]
+
+action atualizar(conexao, id, dados):
+    atual := achar(conexao, id)
+    given atual is void:
+        yield void
+    DB.execute(conexao,
+        "UPDATE produtos SET nome = ?, categoria = ?, preco = ?, estoque = ? WHERE id = ?",
+        [dados["nome"] ?? atual["nome"],
+         dados["categoria"] ?? atual["categoria"],
+         float(dados["preco"] ?? atual["preco"]),
+         int(dados["estoque"] ?? atual["estoque"]),
+         int(id)])
+    yield achar(conexao, id)
+
+action apagar(conexao, id):
+    given achar(conexao, id) is void:
+        yield no
+    DB.execute(conexao, "DELETE FROM produtos WHERE id = ?", [int(id)])
+    yield yes
+
+action categorias(conexao):
+    linhas := DB.query(conexao,
+        "SELECT categoria, COUNT(*) AS n FROM produtos GROUP BY categoria ORDER BY categoria")
+    yield linhas
+
+relay abrir, semear, listar, achar, criar, atualizar, apagar, categorias

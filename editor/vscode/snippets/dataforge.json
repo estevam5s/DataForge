@@ -1,0 +1,215 @@
+{
+  "action": {
+    "prefix": "action",
+    "body": [
+      "action ${1:nome}(${2:args}):",
+      "\t$0"
+    ],
+    "description": "Uma ação (função)"
+  },
+  "stream action": {
+    "prefix": "stream",
+    "body": [
+      "stream action ${1:nome}():",
+      "\temit $0"
+    ],
+    "description": "Generator preguiçoso"
+  },
+  "blueprint": {
+    "prefix": "blueprint",
+    "body": [
+      "blueprint ${1:Nome}(${2:campos}):",
+      "\taction ${3:metodo}():",
+      "\t\t$0"
+    ],
+    "description": "Uma classe"
+  },
+  "record": {
+    "prefix": "record",
+    "body": [
+      "record ${1:Nome}:",
+      "\t${2:campo}: ${3:Integer}$0"
+    ],
+    "description": "Dado imutável"
+  },
+  "enum": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Nome}:",
+      "\t${2:Valor}$0"
+    ],
+    "description": "Enumeração"
+  },
+  "trait": {
+    "prefix": "trait",
+    "body": [
+      "trait ${1:Nome}:",
+      "\taction ${2:metodo}()$0"
+    ],
+    "description": "Interface"
+  },
+  "given": {
+    "prefix": "given",
+    "body": [
+      "given ${1:condicao}:",
+      "\t$0"
+    ],
+    "description": "Condicional"
+  },
+  "given/otherwise": {
+    "prefix": "givenelse",
+    "body": [
+      "given ${1:condicao}:",
+      "\t${2:...}",
+      "otherwise:",
+      "\t$0"
+    ],
+    "description": "if/else"
+  },
+  "match": {
+    "prefix": "match",
+    "body": [
+      "match ${1:valor}:",
+      "\tpoint ${2:padrao}:",
+      "\t\t${3:...}",
+      "\tdefault:",
+      "\t\t$0"
+    ],
+    "description": "Pattern matching"
+  },
+  "cycle in": {
+    "prefix": "cycle",
+    "body": [
+      "cycle ${1:item} in ${2:colecao}:",
+      "\t$0"
+    ],
+    "description": "for-each"
+  },
+  "cycle from": {
+    "prefix": "cyclefrom",
+    "body": [
+      "cycle ${1:i} from ${2:1} to ${3:10}:",
+      "\t$0"
+    ],
+    "description": "for numérico (inclusivo nos dois extremos)"
+  },
+  "persist": {
+    "prefix": "persist",
+    "body": [
+      "persist ${1:condicao}:",
+      "\t$0"
+    ],
+    "description": "while"
+  },
+  "monitor": {
+    "prefix": "monitor",
+    "body": [
+      "monitor:",
+      "\t${1:...}",
+      "handle ${2:RuntimeError} as ${3:e}:",
+      "\t$0"
+    ],
+    "description": "try/catch"
+  },
+  "pipeline": {
+    "prefix": "pipe",
+    "body": [
+      "${1:dados}",
+      "\t>> sift ${2:x}: ${3:cond}",
+      "\t>> morph ${4:x}: ${5:expr}"
+    ],
+    "description": "Pipeline sift/morph/distill"
+  },
+  "adopt": {
+    "prefix": "adopt",
+    "body": [
+      "adopt Arcane.${1:Math} as ${2:M}$0"
+    ],
+    "description": "Importar módulo"
+  },
+  "interpolação": {
+    "prefix": "istr",
+    "body": [
+      "$\"${1:texto} {${2:expr}}\"$0"
+    ],
+    "description": "String interpolada"
+  },
+  "server": {
+    "prefix": "server",
+    "body": [
+      "server ${1:app} on ${2:8080}:",
+      "\tmiddleware Kiln.logger()",
+      "",
+      "\troute GET \"/\":",
+      "\t\trespond html \"<h1>${3:Olá}</h1>\"",
+      "",
+      "ignite ${1:app}$0"
+    ],
+    "description": "Kiln: uma aplicação web completa"
+  },
+  "route": {
+    "prefix": "route",
+    "body": [
+      "route ${1|GET,POST,PUT,PATCH,DELETE|} \"${2:/caminho}\":",
+      "\trespond json ${3:dados}$0"
+    ],
+    "description": "Kiln: uma rota"
+  },
+  "route com parâmetro": {
+    "prefix": "routeparam",
+    "body": [
+      "route GET \"${1:/itens}/:id\":",
+      "\t${2:item} := ${3:buscar}(params[\"id\"])",
+      "\tgiven ${2:item} is void:",
+      "\t\trespond 404 json {\"erro\": \"não achei\"}",
+      "\trespond json ${2:item}$0"
+    ],
+    "description": "Kiln: rota com parâmetro e 404"
+  },
+  "respond": {
+    "prefix": "respond",
+    "body": [
+      "respond ${1|json,html,text,file|} ${2:valor}$0"
+    ],
+    "description": "Kiln: responder"
+  },
+  "render": {
+    "prefix": "render",
+    "body": [
+      "render \"${1:pagina.html}\" with {${2:\"titulo\": \"\"}}$0"
+    ],
+    "description": "Kiln: renderizar template"
+  },
+  "CRUD REST": {
+    "prefix": "crud",
+    "body": [
+      "server ${1:api} on ${2:8080}:",
+      "\tmiddleware Kiln.cors()",
+      "",
+      "\troute GET \"/${3:itens}\":",
+      "\t\trespond json ${3:itens}",
+      "",
+      "\troute GET \"/${3:itens}/:id\":",
+      "\t\trespond json ${3:itens}[int(params[\"id\"])]",
+      "",
+      "\troute POST \"/${3:itens}\":",
+      "\t\t${3:itens}.append(body)",
+      "\t\trespond 201 json body",
+      "",
+      "\troute DELETE \"/${3:itens}/:id\":",
+      "\t\trespond 204$0"
+    ],
+    "description": "Kiln: CRUD RESTful completo"
+  },
+  "planilha": {
+    "prefix": "xlsx",
+    "body": [
+      "adopt Arcane.Excel as Xls",
+      "",
+      "livro := Xls.new()",
+      "Xls.sheet(livro, \"${1:Dados}\", ${2:registros})",
+      "Xls.save(livro, \"${3:saida.xlsx}\")$0"
+    ],
+    "description": "Excel: gravar uma planilha"
+  }
+}

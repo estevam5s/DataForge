@@ -896,3 +896,16 @@ def test_tarball_da_versao_atual_existe():
                            f"dataforge-{__version__}.tar.gz")
     assert os.path.exists(caminho), \
         f"falta o tarball {__version__} — rode 'python3 scripts/gerar_tarball.py'"
+
+
+# ── Aspas dentro de interpolacao ─────────────────────────────
+
+def test_interpolacao_aceita_string_com_aspas_normais():
+    """Dentro de {...} as aspas sao normais, nao escapadas.
+
+    Escrever \\" ali quebra o lexer, e a mensagem ("Unterminated
+    interpolation") nao aponta para a causa. Este teste fixa a forma que
+    funciona, que e tambem a que a doc ensina.
+    """
+    assert run('v := {"id": 7}\nout $"item {v["id"]}"') == "item 7"
+    assert run('out $"{pad_start(str(5), 2, "0")}"') == "05"

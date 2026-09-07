@@ -4,15 +4,16 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-4.1.0-green.svg)](https://github.com/estevam5s/DataForge)
+[![Version](https://img.shields.io/badge/version-4.2.0-green.svg)](https://github.com/estevam5s/DataForge)
 [![Tests](https://img.shields.io/badge/testes-240%20passando-brightgreen.svg)](tests/)
 [![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-180%2F180-brightgreen.svg)](exercicios/)
 
 **Uma linguagem de programação com vocabulário próprio, tipos verificados,
-pattern matching estrutural, pipelines nativos e 20 módulos de biblioteca
+pattern matching estrutural, pipelines nativos, um framework web próprio
+e 22 módulos de biblioteca
 padrão — escrita em Python puro, sem dependências.**
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [180 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [200 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
@@ -79,7 +80,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 20 módulos `Arcane.*` com 674 símbolos + 225 funções globais |
+| **Bateria inclusa** | 22 módulos com 753 símbolos + 225 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -107,11 +108,16 @@ irm https://dataforge-lang.vercel.app/instalar.ps1 | iex
 O instalador cria um ambiente próprio em `~/.dataforge`. Não mexe no Python
 do sistema, não pede sudo, e desinstalar é apagar a pasta.
 
+Ele também instala a **coloração de sintaxe** no VS Code, Insiders, Cursor,
+VSCodium e Windsurf — todos os que encontrar. Reinicie o editor e todo `.df`
+abre com as palavras reservadas coloridas, 23 snippets e a indentação de 4
+espaços que a linguagem exige. Para refazer isso depois: `dataforge editor`.
+
 **Docker** — sem instalar nada, nem Python:
 
 ```bash
-docker run --rm -it dataforge/dataforge repl
-docker run --rm -v "$PWD:/app" dataforge/dataforge run main.df
+docker run --rm -it estevan5s/dataforge repl
+docker run --rm -v "$PWD:/app" estevan5s/dataforge run main.df
 ```
 
 **Do código-fonte**:
@@ -442,7 +448,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 
 ## Biblioteca padrão
 
-20 módulos, 674 símbolos, mais 225 funções globais sem import.
+22 módulos, 753 símbolos, mais 225 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -470,20 +476,77 @@ dataforge fmt . --check && dataforge check . && dataforge test
 Referência completa: [`doc/BIBLIOTECA_PADRAO.md`](doc/BIBLIOTECA_PADRAO.md)
 (gerada a partir do código com `tools/gerar_doc_stdlib.py`).
 
-### Um servidor HTTP de verdade
+---
+
+## Kiln — o framework web
+
+O DataForge tem um framework web próprio, com **sintaxe na linguagem**. Não é
+um módulo com `lambda` dentro: uma rota se lê como uma rota.
 
 ```dataforge
-adopt Arcane.Http as Http
+adopt Kiln
 
-app := Http.create("Minha API")
-Http.cors(app)
+server loja on 8080:
+    middleware Kiln.logger()
+    views "./paginas"
 
-action listar(req, res):
-    res.json(itens)
+    route GET "/":
+        render "catalogo.html" with {"produtos": produtos}
 
-Http.get(app, "/api/itens", listar)
-Http.listen(app, 3000)
+    route GET "/api/produtos/:id":
+        p := achar(int(params["id"]))
+        given p is void:
+            respond 404 json {"erro": "não achei"}
+        respond json p
+
+    route POST "/api/produtos":
+        respond 201 json criar(body)
+
+ignite loja
 ```
+
+Roteamento com `:param` e `*curinga`, middleware, CORS, limite de taxa,
+autenticação, sessão com cookie, templates com escape automático, arquivos
+estáticos e páginas de erro. **Zero dependências** — `http.server` e mais nada.
+
+E dá para testar sem abrir socket:
+
+```dataforge
+r := Kiln.test(loja, "GET", "/api/produtos/2")
+assert r["status"] is 200
+```
+
+O 404 e o **405 com `Allow`** vêm de graça; um erro na rota vira 500 sem
+derrubar o servidor; `../` num caminho estático é recusado antes de o arquivo
+ser aberto.
+
+O projeto [`projetos/loja-web`](projetos/loja-web/) é um site completo —
+catálogo, ficha, relatório, login e um `/relatorio.xlsx` gerado no pedido —
+com 29 testes que rodam em 0,06 s.
+
+Documentação: [doc/KILN.md](doc/KILN.md) ou
+[dataforge-lang.vercel.app/docs/kiln](https://dataforge-lang.vercel.app/docs/kiln).
+
+---
+
+## Dados: banco, análise e planilhas
+
+```dataforge
+adopt Arcane.Database as DB
+adopt Arcane.Analytics as An
+adopt Arcane.Excel as Xls
+
+registros := DB.query(banco, "SELECT * FROM vendas")
+An.describe(An.from_records(registros))     # descreve cada coluna
+
+livro := Xls.new()
+aba := Xls.sheet(livro, "Vendas", registros)
+Xls.formula(aba, "E7", "SUM(E2:E6)")        # o Excel calcula ao abrir
+Xls.save(livro, "relatorio.xlsx")
+```
+
+O `.xlsx` é escrito e lido sem dependência externa — o arquivo abre no Excel,
+no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas.
 
 ---
 
@@ -493,13 +556,13 @@ Http.listen(app, 3000)
 |---------|---------|
 | [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
 | [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 20 módulos |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 22 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
-| [**exercicios/**](exercicios/) | 180 exercícios; os 60 do 4.0 com `.md` explicativo |
+| [**exercicios/**](exercicios/) | 200 exercícios; os módulos 11-23 com `.md` explicativo |
 | [**examples/**](examples/) | 42 programas maiores |
 
-### Os 180 exercícios
+### Os 200 exercícios
 
 ```bash
 python3 exercicios/run_all.py        # todos
@@ -541,7 +604,7 @@ sugestões.
 pip install -e ".[dev]"
 
 python3 -m pytest tests/ -q       # 240 testes
-python3 exercicios/run_all.py     # 180 exercícios
+python3 exercicios/run_all.py     # 200 exercícios
 ```
 
 Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).
@@ -567,7 +630,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/docgen.py` | `dataforge doc` | 218 |
 | `dataforge/project.py` | `forge.toml` | 184 |
 | `dataforge/builtins.py` | 225 funções globais | 1224 |
-| `dataforge/stdlib/` | os 20 módulos `Arcane.*` | 7282 |
+| `dataforge/stdlib/` | os 22 módulos, incluindo o Kiln | 8200 |
 
 ---
 

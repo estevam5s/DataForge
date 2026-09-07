@@ -1,0 +1,32 @@
+:root { --tinta: #1a1a1a; --fundo: #faf8f5; --linha: #e0dbd3; --brasa: #c2410c; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.6 system-ui, sans-serif; color: var(--tinta);
+       background: var(--fundo); }
+header { display: flex; gap: 2rem; align-items: baseline; padding: 1rem 2rem;
+         border-bottom: 1px solid var(--linha); background: #fff; }
+.marca { font-weight: 700; font-size: 1.25rem; text-decoration: none;
+         color: var(--brasa); }
+nav { display: flex; gap: 1.25rem; }
+nav a { color: var(--tinta); text-decoration: none; }
+nav a:hover { color: var(--brasa); }
+main { max-width: 56rem; margin: 2rem auto; padding: 0 1.5rem; }
+h1 { font-size: 1.75rem; margin-top: 0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: .6rem .5rem; border-bottom: 1px solid var(--linha); }
+th { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: #6b6b6b; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pouco { color: var(--brasa); font-weight: 600; }
+.aviso { padding: .75rem 1rem; background: #fff4ed; border-left: 3px solid var(--brasa); }
+.vazio { color: #6b6b6b; font-style: italic; }
+.ficha .preco { font-size: 1.5rem; font-weight: 600; }
+.numeros { display: grid; grid-template-columns: auto 1fr; gap: .5rem 2rem; }
+.numeros dt { color: #6b6b6b; }
+.numeros dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.entrar { display: grid; gap: 1rem; max-width: 22rem; }
+.entrar label { display: grid; gap: .25rem; }
+input { padding: .5rem; border: 1px solid var(--linha); border-radius: 4px; font: inherit; }
+button, .botao { display: inline-block; padding: .6rem 1.2rem; border: 0; border-radius: 4px;
+                 background: var(--brasa); color: #fff; font: inherit; cursor: pointer;
+                 text-decoration: none; }
+footer { max-width: 56rem; margin: 4rem auto 2rem; padding: 1rem 1.5rem 0;
+         border-top: 1px solid var(--linha); color: #6b6b6b; font-size: .9rem; }

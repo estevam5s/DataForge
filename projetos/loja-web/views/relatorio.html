@@ -1,0 +1,15 @@
+<h1>{{titulo}}</h1>
+<dl class="numeros">
+  <dt>Produtos<dd>{{total}}
+  <dt>Valor em estoque<dd>{{valor_total}}
+  <dt>Preço médio<dd>{{preco_medio}}
+  <dt>Mais caro<dd>{{mais_caro}}
+</dl>
+<h2>Por categoria</h2>
+<table>
+  <thead><tr><th>Categoria<th>Itens<th>Valor</thead>
+  <tbody>
+  {{#categorias}}<tr><td>{{categoria}}<td class="num">{{n}}<td class="num">{{valor}}{{/categorias}}
+  </tbody>
+</table>
+<p><a class="botao" href="/relatorio.xlsx">Baixar planilha</a></p>

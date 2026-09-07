@@ -1,0 +1,71 @@
+// Exercicio 193 — Uma API RESTful completa
+// Enunciado: os cinco verbos sobre um mesmo recurso, com os status certos.
+
+// REST nao e so usar POST e GET: cada situacao tem seu status. 201 para
+// criado, 204 para apagado sem corpo, 404 para inexistente, 405 quando
+// o caminho existe mas o verbo nao. O Kiln entrega 404 e 405 sozinho;
+// os outros sao decisao sua.
+
+adopt Kiln
+
+itens := [
+    {"id": 1, "nome": "Martelo", "preco": 89.9},
+    {"id": 2, "nome": "Bigorna", "preco": 450.0}
+]
+
+action indice_de(id):
+    cycle i from 0 to len(itens) - 1:
+        given itens[i]["id"] is int(id):
+            yield i
+    yield -1
+
+server loja on 0:
+    route GET "/itens":
+        respond json {"itens": itens, "total": len(itens)}
+
+    route GET "/itens/:id":
+        pedido := params["id"]
+        i := indice_de(pedido)
+        given i is -1:
+            respond 404 json {"erro": $"item {pedido} nao existe"}
+        respond json itens[i]
+
+    route POST "/itens":
+        novo := {"id": len(itens) + 1, "nome": body["nome"], "preco": body["preco"]}
+        itens.append(novo)
+        respond 201 json novo
+
+    route PUT "/itens/:id":
+        i := indice_de(params["id"])
+        given i is -1:
+            respond 404 json {"erro": "nao existe"}
+        itens[i] := {"id": int(params["id"]), "nome": body["nome"], "preco": body["preco"]}
+        respond json itens[i]
+
+    route DELETE "/itens/:id":
+        i := indice_de(params["id"])
+        given i is -1:
+            respond 404 json {"erro": "nao existe"}
+        itens.pop(i)
+        respond 204
+
+out "lista:", Kiln.test(loja, "GET", "/itens")["body"]["total"]
+
+criado := Kiln.test(loja, "POST", "/itens", {"nome": "Tenaz", "preco": 65.5})
+out "criado:", criado["status"], criado["body"]["nome"]
+assert criado["status"] is 201, "criar devolve 201"
+
+trocado := Kiln.test(loja, "PUT", "/itens/1", {"nome": "Marreta", "preco": 120})
+out "trocado:", trocado["body"]["nome"]
+assert trocado["body"]["nome"] is "Marreta", "PUT substitui"
+
+apagado := Kiln.test(loja, "DELETE", "/itens/2")
+out "apagado:", apagado["status"]
+assert apagado["status"] is 204, "apagar nao devolve corpo"
+
+assert Kiln.test(loja, "GET", "/itens/999")["status"] is 404, "404 do recurso"
+
+// O caminho existe, o verbo nao: 405, com a lista do que e aceito.
+recusa := Kiln.test(loja, "PATCH", "/itens/1")
+out "verbo errado:", recusa["status"], recusa["headers"]["Allow"]
+assert recusa["status"] is 405, "405, nao 404 — o caminho existe"

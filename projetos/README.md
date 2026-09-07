@@ -16,6 +16,7 @@ dataforge run src/main.df -- listar
 | [gestor-tarefas](gestor-tarefas/) | CLI de tarefas com prazos e persistência | argumentos, tabela, datas, cofre, colecao, registro |
 | [analise-vendas](analise-vendas/) | Lê CSV e produz relatório estatístico | estatistica, colecao, tabela, moeda, datas, progresso |
 | [api-links](api-links/) | Encurtador de URL com servidor HTTP | validador, cache, registro, aleatorio, cofre, estado |
+| [loja-web](loja-web/) | Site completo com Kiln: páginas, API, sessão, Excel | validador, moeda |
 
 ## O que cada um mostra
 
@@ -23,6 +24,11 @@ dataforge run src/main.df -- listar
 declaração que faz a leitura, `cofre` monta a configuração em camadas, e o
 repositório fica isolado atrás de uma interface para que trocar JSON por SQLite
 seja mexer num arquivo só.
+
+**loja-web** — um site de verdade: páginas HTML com template, API REST montada
+sob `/api` no mesmo processo, sessão com cookie, SQLite e um `/relatorio.xlsx`
+gerado no pedido com fórmulas que o Excel resolve ao abrir. Os 29 testes rodam
+sem abrir socket, em 0,06s.
 
 **analise-vendas** — o pipeline de dados: converter na entrada (e falhar cedo se
 algo não converte), calcular, e apresentar. O relatório avisa quando o desvio

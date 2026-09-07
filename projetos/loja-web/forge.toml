@@ -1,0 +1,14 @@
+[project]
+name = "loja-web"
+version = "1.0.0"
+description = "Site completo com Kiln: páginas, API REST, banco, sessão e exportação para Excel."
+entry = "src/main.df"
+dataforge = ">=4.2"
+
+[dependencies]
+validador = "^1.0.0"
+moeda = "^1.0.0"
+
+[scripts]
+start = "run src/main.df"
+test = "test tests/"

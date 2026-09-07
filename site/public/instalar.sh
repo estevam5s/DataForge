@@ -12,7 +12,7 @@
 
 set -eu
 
-VERSAO="${DATAFORGE_VERSION:-4.1.0}"
+VERSAO="${DATAFORGE_VERSION:-4.2.0}"
 PREFIXO="${DATAFORGE_PREFIX:-$HOME/.dataforge}"
 SITE="${DATAFORGE_SITE:-https://dataforge-lang.vercel.app}"
 REPO="${DATAFORGE_REPO:-https://github.com/estevam5s/DataForge}"
@@ -175,6 +175,13 @@ ATALHO
 
     VERIFICADA="$("$PREFIXO/bin/dataforge" version 2>&1 | head -1)"
     printf "\n${verde}  %s instalado${fim}\n\n" "$VERIFICADA"
+
+    # Coloracao no editor. Se nao houver editor instalado, o comando diz
+    # isso e sai sem erro — nao e motivo para a instalacao falhar.
+    if [ -z "${DATAFORGE_SEM_EDITOR:-}" ]; then
+        "$PREFIXO/bin/dataforge" editor >/dev/null 2>&1 && \
+            ok "coloração de sintaxe instalada no editor"
+    fi
 
     if command -v dataforge >/dev/null 2>&1 && \
        [ "$(command -v dataforge)" = "$PREFIXO/bin/dataforge" ]; then

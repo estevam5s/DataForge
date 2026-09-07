@@ -10,7 +10,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$Versao  = if ($env:DATAFORGE_VERSION) { $env:DATAFORGE_VERSION } else { '4.1.0' }
+$Versao  = if ($env:DATAFORGE_VERSION) { $env:DATAFORGE_VERSION } else { '4.2.0' }
 $Prefixo = if ($env:DATAFORGE_PREFIX)  { $env:DATAFORGE_PREFIX }  else { "$HOME\.dataforge" }
 $Site    = if ($env:DATAFORGE_SITE)    { $env:DATAFORGE_SITE }    else { 'https://dataforge-lang.vercel.app' }
 
@@ -127,6 +127,13 @@ if ($PathUsuario -notlike "*$Prefixo\bin*") {
 
 $env:Path = "$Prefixo\bin;$env:Path"
 $versaoInstalada = & "$Prefixo\bin\dataforge.cmd" version 2>&1 | Select-Object -First 1
+
+# Coloracao no VS Code. Sem editor instalado o comando avisa e sai — nao
+# e motivo para a instalacao inteira falhar.
+if (-not $env:DATAFORGE_SEM_EDITOR) {
+    & "$Prefixo\bin\dataforge.cmd" editor *> $null
+    if ($LASTEXITCODE -eq 0) { Ok "coloração de sintaxe instalada no editor" }
+}
 
 Write-Host ""
 Write-Host "  $versaoInstalada instalado" -ForegroundColor Green

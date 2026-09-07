@@ -1,0 +1,43 @@
+// Exercicio 195 — Middleware, autenticacao e limite de taxa
+// Enunciado: proteja rotas e limite pedidos por IP.
+
+// Middleware roda antes de toda rota. Se ele devolve uma resposta, a
+// cadeia para ali — e assim que autenticacao e limite de taxa cortam o
+// pedido antes de ele custar qualquer coisa. Se devolve void, o pedido
+// segue, e o que ele guardou em req["state"] chega na rota.
+
+adopt Kiln
+
+usuarios := {"tk-ana": "Ana", "tk-bia": "Bia"}
+
+action conferir(token):
+    yield usuarios[token] ?? void
+
+// A ordem importa. O limite vem primeiro: um pedido barrado pelo 'auth'
+// nunca chegaria a ser contado, e quem esta martelando a porta com
+// credenciais invalidas e justamente quem voce quer limitar.
+server privado on 0:
+    middleware Kiln.rate_limit(3, 60)
+    middleware Kiln.auth(conferir)
+
+    route GET "/eu":
+        respond json {"usuario": req["state"]["user"]}
+
+sem_token := Kiln.test(privado, "GET", "/eu")
+out "sem credencial:", sem_token["status"], sem_token["headers"]["WWW-Authenticate"]
+assert sem_token["status"] is 401, "sem token, 401"
+
+errado := Kiln.test(privado, "GET", "/eu", void, {"Authorization": "Bearer nao-existe"})
+out "token invalido:", errado["status"]
+assert errado["status"] is 401, "token desconhecido tambem e 401"
+
+certo := Kiln.test(privado, "GET", "/eu", void, {"Authorization": "Bearer tk-ana"})
+out "autenticado:", certo["body"]["usuario"]
+assert certo["body"]["usuario"] is "Ana", "o middleware passou o usuario adiante"
+
+// O limite ja contou tres pedidos deste IP — inclusive os dois que o
+// 'auth' recusou. O quarto nao passa, mesmo com credencial boa.
+excedido := Kiln.test(privado, "GET", "/eu", void, {"Authorization": "Bearer tk-bia"})
+out "quarto pedido:", excedido["status"]
+assert excedido["status"] is 429, "o quarto pedido no minuto e recusado"
+assert "Retry-After" in excedido["headers"], "e o cliente sabe quando voltar"

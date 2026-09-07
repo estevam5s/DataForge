@@ -23,39 +23,45 @@ const blocos: Bloco[] = [
   {"p": "O instalador acrescenta o DataForge ao PATH do usuário. Abra um terminal novo depois."},
 
   {"h3": "Ajustar a instalação"},
-  {"table": {"head": ["Variável", "Padrão", "Para que serve"], "rows": [["`DATAFORGE_PREFIX`", "`~/.dataforge`", "onde instalar"], ["`DATAFORGE_VERSION`", "`4.1.0`", "qual versão"], ["`DATAFORGE_SITE`", "o site oficial", "de onde baixar"]]}},
+  {"table": {"head": ["Variável", "Padrão", "Para que serve"], "rows": [["`DATAFORGE_PREFIX`", "`~/.dataforge`", "onde instalar"], ["`DATAFORGE_VERSION`", "`4.2.0`", "qual versão"], ["`DATAFORGE_SITE`", "o site oficial", "de onde baixar"]]}},
   { code: `# instalar em outro lugar
 DATAFORGE_PREFIX=/opt/dataforge curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | sh
 
 # desinstalar é apagar a pasta
 rm -rf ~/.dataforge`, lang: 'bash' },
 
+  {"h2": "O editor, junto"},
+  {"p": "O instalador também instala a **coloração de sintaxe** no VS Code, Insiders, Cursor, VSCodium e Windsurf — todos os que encontrar. Reinicie o editor e todo `.df` abre com as palavras reservadas coloridas, 23 snippets e a indentação de 4 espaços que a linguagem exige."},
+  { code: `dataforge editor           # refaz a instalação
+dataforge editor status    # mostra onde está
+DATAFORGE_SEM_EDITOR=1 …   # pula a etapa`, lang: 'bash' },
+  {"p": "Detalhes em [Editor e cores](/docs/tecnicas/editor)."},
   {"h2": "Docker"},
   {"p": "Sem instalar nada no seu sistema — nem Python:"},
   { code: `# console interativo
-docker run --rm -it dataforge/dataforge repl
+docker run --rm -it estevan5s/dataforge repl
 
 # rodar um arquivo da pasta atual
-docker run --rm -v "$PWD:/app" dataforge/dataforge run main.df
+docker run --rm -v "$PWD:/app" estevan5s/dataforge run main.df
 
 # a suíte de testes de um projeto
-docker run --rm -v "$PWD:/app" dataforge/dataforge test tests/`, lang: 'bash' },
+docker run --rm -v "$PWD:/app" estevan5s/dataforge test tests/`, lang: 'bash' },
   {"p": "Um apelido no shell deixa o uso igual ao nativo:"},
-  { code: `alias dataforge='docker run --rm -it -v "$PWD:/app" dataforge/dataforge'
+  { code: `alias dataforge='docker run --rm -it -v "$PWD:/app" estevan5s/dataforge'
 dataforge run main.df`, lang: 'bash' },
   {"h3": "Construir a imagem você mesmo"},
-  { code: `docker build -t dataforge/dataforge:4.1.0 .
+  { code: `docker build -t estevan5s/dataforge:4.2.0 .
 docker compose run --rm repl`, lang: 'bash' },
   {"p": "A imagem é multi-estágio e roda como usuário sem privilégio. Cerca de 217 MB, a maior parte sendo o Python."},
 
   {"h2": "Baixar o tarball direto"},
   {"p": "Se você prefere controlar cada passo:"},
-  { code: `curl -fsSL -O https://dataforge-lang.vercel.app/dist/dataforge-4.1.0.tar.gz
-curl -fsSL -O https://dataforge-lang.vercel.app/dist/dataforge-4.1.0.tar.gz.sha256
-shasum -a 256 -c dataforge-4.1.0.tar.gz.sha256
+  { code: `curl -fsSL -O https://dataforge-lang.vercel.app/dist/dataforge-4.2.0.tar.gz
+curl -fsSL -O https://dataforge-lang.vercel.app/dist/dataforge-4.2.0.tar.gz.sha256
+shasum -a 256 -c dataforge-4.2.0.tar.gz.sha256
 
-tar -xzf dataforge-4.1.0.tar.gz
-cd dataforge-4.1.0
+tar -xzf dataforge-4.2.0.tar.gz
+cd dataforge-4.2.0
 pip install .`, lang: 'bash' },
 
   {"h2": "A partir do código-fonte"},

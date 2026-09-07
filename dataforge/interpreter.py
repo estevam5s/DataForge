@@ -1449,6 +1449,163 @@ class Interpreter:
         print(' '.join(self._to_str(v) for v in valores))
         return None
 
+
+    # ═══════════════════════════════════════════════════════
+    #  Kiln — framework web
+    # ═══════════════════════════════════════════════════════
+
+    def exec_ServerBlock(self, node: ast.ServerBlock, env):
+        """server <nome> [on <porta>]: corpo
+
+        Monta a aplicacao e liga ao nome. Nao sobe nada: quem acende o
+        forno e 'ignite'. Separar as duas coisas e o que permite testar
+        uma rota sem abrir socket.
+        """
+        from .stdlib.kiln import App
+
+        app = App(node.name)
+        if node.port is not None:
+            app.config["porta"] = self.evaluate(node.port, env)
+        if node.host is not None:
+            app.config["host"] = self.evaluate(node.host, env)
+
+        # O corpo enxerga o escopo de fora — as rotas costumam usar
+        # dados e acoes declarados antes do 'server'.
+        interno = Environment(parent=env, name=f"<server {node.name}>")
+        interno.set_local("__kiln_app__", app)
+
+        for stmt in node.body:
+            self.execute(stmt, interno)
+
+        env.set(node.name, app)
+        return app
+
+    def _app_do_escopo(self, env, node, palavra):
+        try:
+            return env.get("__kiln_app__")
+        except Exception:
+            raise RuntimeError_(
+                f"'{palavra}' only works inside a 'server' block.",
+                node.line, node.column,
+                nota=f"'{palavra}' configures a server, so it needs one",
+                dica=f"wrap it in 'server nome on 8080:' — or call the "
+                     f"matching Kiln.* function directly",
+                doc="kiln")
+
+    def exec_RouteBlock(self, node: ast.RouteBlock, env):
+        """route <VERBO> <caminho>: corpo"""
+        app = self._app_do_escopo(env, node, "route")
+        caminho = self.evaluate(node.path, env)
+        fechamento = env
+
+        def handler(req, _no=node, _env=fechamento):
+            escopo = Environment(parent=_env, name=f"<{_no.method} {caminho}>")
+            escopo.set_local("req", req)
+            # Atalhos: quem escreve a rota quase sempre quer estes quatro,
+            # e 'req["params"]["id"]' repetido cansa.
+            escopo.set_local("params", req.get("params", {}))
+            escopo.set_local("query", req.get("query", {}))
+            escopo.set_local("body", req.get("body"))
+            escopo.set_local("headers", req.get("headers", {}))
+            escopo.set_local("session", req.get("session", {}))
+            try:
+                self.exec_block(_no.body, escopo)
+            except YieldSignal as sinal:
+                return sinal.value
+            return None
+
+        app.rota(node.method if node.method != "ANY" else "*", caminho, handler)
+        return None
+
+    def _sair_com(self, resposta):
+        """Toda resposta encerra a rota — igual a 'yield' numa acao."""
+        raise YieldSignal(resposta)
+
+    def exec_RespondStatement(self, node: ast.RespondStatement, env):
+        from .stdlib.kiln import ArcaneKiln, resposta as _resp
+
+        status = self.evaluate(node.status, env) if node.status else 200
+        valor = self.evaluate(node.value, env) if node.value is not None else None
+
+        if node.kind == "json":
+            self._sair_com(ArcaneKiln._json(valor, status))
+        if node.kind == "html":
+            self._sair_com(ArcaneKiln._html(self._to_str(valor), status))
+        if node.kind == "text":
+            self._sair_com(ArcaneKiln._text(self._to_str(valor), status))
+        if node.kind == "file":
+            self._sair_com(ArcaneKiln._file(self._to_str(valor)))
+
+        # Sem tipo: 'respond 204' e so status; o resto se descobre pelo
+        # valor (vault/cluster viram JSON, texto vira html ou plain).
+        if valor is None:
+            self._sair_com(ArcaneKiln._status(status))
+        if isinstance(valor, dict) and valor.get("__kiln__"):
+            valor["status"] = int(status) if node.status else valor["status"]
+            self._sair_com(valor)
+        if isinstance(valor, (dict, list)):
+            self._sair_com(ArcaneKiln._json(valor, status))
+        self._sair_com(_resp(self._to_str(valor), status))
+
+    def exec_RenderStatement(self, node: ast.RenderStatement, env):
+        from .stdlib.kiln import ArcaneKiln
+
+        app = self._app_do_escopo(env, node, "render")
+        nome = self._to_str(self.evaluate(node.template, env))
+        dados = self.evaluate(node.data, env) if node.data else {}
+        status = self.evaluate(node.status, env) if node.status else 200
+        self._sair_com(ArcaneKiln._render(app, nome, dados, status))
+
+    def exec_RedirectStatement(self, node: ast.RedirectStatement, env):
+        from .stdlib.kiln import ArcaneKiln
+
+        destino = self._to_str(self.evaluate(node.target, env))
+        status = self.evaluate(node.status, env) if node.status else 302
+        self._sair_com(ArcaneKiln._redirect(destino, status))
+
+    def exec_MiddlewareStatement(self, node: ast.MiddlewareStatement, env):
+        app = self._app_do_escopo(env, node, "middleware")
+        app.usar(self.evaluate(node.value, env))
+        return None
+
+    def exec_MountStatement(self, node: ast.MountStatement, env):
+        app = self._app_do_escopo(env, node, "mount")
+        outro = self.evaluate(node.value, env)
+        prefixo = self._to_str(self.evaluate(node.prefix, env))
+        app.montar(prefixo, outro)
+        return None
+
+    def exec_AssetsStatement(self, node: ast.AssetsStatement, env):
+        app = self._app_do_escopo(env, node, "assets")
+        prefixo = self._to_str(self.evaluate(node.prefix, env))
+        pasta = self._to_str(self.evaluate(node.folder, env))
+        app.estaticos.append(("/" + prefixo.strip("/"), pasta))
+        return None
+
+    def exec_ViewsStatement(self, node: ast.ViewsStatement, env):
+        app = self._app_do_escopo(env, node, "views")
+        app.pasta_templates = self._to_str(self.evaluate(node.folder, env))
+        return None
+
+    def exec_IgniteStatement(self, node: ast.IgniteStatement, env):
+        """ignite <server> [on <porta>] — bloqueia ate Ctrl-C."""
+        from .stdlib.kiln import ArcaneKiln, App
+
+        app = self.evaluate(node.target, env)
+        if not isinstance(app, App):
+            raise RuntimeError_(
+                f"'ignite' expects a server, got {self._nome_do_tipo(app)}.",
+                node.line, node.column,
+                nota="only a name declared with 'server' can be ignited",
+                dica="declare it first: server api on 8080: …",
+                doc="kiln")
+
+        porta = (self.evaluate(node.port, env) if node.port is not None
+                 else app.config.get("porta", 8080))
+        host = (self.evaluate(node.host, env) if node.host is not None
+                else app.config.get("host", "127.0.0.1"))
+        return ArcaneKiln._listen(app, porta, host)
+
     def exec_YieldStatement(self, node: ast.YieldStatement, env):
         value = self.evaluate(node.value, env) if node.value else None
         raise YieldSignal(value)

@@ -760,3 +760,89 @@ class EmitStatement(ASTNode):
 class _Wrapped(ASTNode):
     """Nó interno: transporta um valor já avaliado para reaproveitar um eval_*."""
     value: Any = None
+
+
+# ═══════════════════════════════════════════════════════════
+#  DataForge 4.2 — KILN (framework web)
+# ═══════════════════════════════════════════════════════════
+
+@dataclass
+class ServerBlock(ASTNode):
+    """server <nome> [on <porta>] [at <host>]: corpo
+
+    Liga <nome> a uma aplicacao Kiln. Nao sobe nada — quem acende o
+    forno e o 'ignite'.
+    """
+    name: str = ""
+    port: Any = None
+    host: Any = None
+    body: list = field(default_factory=list)
+
+
+@dataclass
+class RouteBlock(ASTNode):
+    """route <VERBO> "<caminho>": corpo
+
+    Dentro do corpo existem 'req' e os atalhos 'params', 'query',
+    'body' e 'headers'.
+    """
+    method: str = "GET"
+    path: Any = None
+    body: list = field(default_factory=list)
+
+
+@dataclass
+class RespondStatement(ASTNode):
+    """respond [status] [json|html|text|file] <expr>"""
+    value: Any = None
+    kind: str = ""            # "", "json", "html", "text", "file"
+    status: Any = None
+
+
+@dataclass
+class RenderStatement(ASTNode):
+    """render "<template>" [with <vault>] [status <n>]"""
+    template: Any = None
+    data: Any = None
+    status: Any = None
+
+
+@dataclass
+class RedirectStatement(ASTNode):
+    """redirect "<destino>" [status <n>]"""
+    target: Any = None
+    status: Any = None
+
+
+@dataclass
+class MiddlewareStatement(ASTNode):
+    """middleware <expr> — roda antes de toda rota do server."""
+    value: Any = None
+
+
+@dataclass
+class MountStatement(ASTNode):
+    """mount <expr> at "<prefixo>" — junta outro server sob um prefixo."""
+    value: Any = None
+    prefix: Any = None
+
+
+@dataclass
+class AssetsStatement(ASTNode):
+    """assets "<prefixo>" from "<pasta>" — serve arquivos do disco."""
+    prefix: Any = None
+    folder: Any = None
+
+
+@dataclass
+class ViewsStatement(ASTNode):
+    """views "<pasta>" — onde ficam os templates."""
+    folder: Any = None
+
+
+@dataclass
+class IgniteStatement(ASTNode):
+    """ignite <server> [on <porta>] — acende o forno (bloqueia)."""
+    target: Any = None
+    port: Any = None
+    host: Any = None

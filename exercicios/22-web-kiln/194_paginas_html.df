@@ -1,0 +1,46 @@
+// Exercicio 194 — Paginas HTML com template
+// Enunciado: renderize uma pagina a partir de um template com laco.
+
+// 'render' le um arquivo da pasta declarada em 'views' e devolve HTML.
+// A sintaxe do template e pequena de proposito: {{nome}} escreve,
+// {{#lista}}…{{/lista}} repete, {{^lista}}…{{/lista}} cobre o vazio e
+// {{&bruto}} nao escapa. Template que vira linguagem e codigo escondido
+// onde ninguem procura.
+
+adopt Kiln
+adopt Arcane.IO as IO
+
+// escreve o template no disco para o exercicio ser auto-contido
+pasta := "/tmp/kilnviews"
+IO.write_file(pasta + "/lista.html", """<!doctype html>
+<title>{{titulo}}</title>
+<h1>{{titulo}}</h1>
+{{#produtos}}<article><h2>{{nome}}</h2><p>R$ {{preco}}</p></article>
+{{/produtos}}
+{{^produtos}}<p>Nada na forja.</p>{{/produtos}}""")
+
+produtos := [
+    {"nome": "Martelo", "preco": 89.9},
+    {"nome": "Bigorna <de aco>", "preco": 450.0}
+]
+
+server site on 0:
+    views pasta
+
+    route GET "/":
+        render "lista.html" with {"titulo": "Forja", "produtos": produtos}
+
+    route GET "/vazio":
+        render "lista.html" with {"titulo": "Vazio", "produtos": []}
+
+pagina := Kiln.test(site, "GET", "/")
+out pagina["body"]
+
+assert "Martelo" in pagina["body"], "o laco do template repetiu"
+// O escape e automatico: '<de aco>' nao vira tag.
+assert "&lt;de aco&gt;" in pagina["body"], "HTML e escapado por padrao"
+assert "<article>" in pagina["body"], "as tags do template ficam"
+
+vazio := Kiln.test(site, "GET", "/vazio")
+assert "Nada na forja" in vazio["body"], "{{^}} cobre a lista vazia"
+assert "article" not in vazio["body"], "sem itens, sem artigos"

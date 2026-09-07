@@ -1,0 +1,164 @@
+// Testes da loja-web.
+//
+// Cada teste executa um pedido de verdade contra a aplicação — sem
+// abrir socket, porque Kiln.test roda a rota direto. É o que torna
+// testar rota tão barato quanto testar função.
+
+adopt Arcane.Test as T
+adopt Kiln
+adopt Arcane.Excel as Xls
+adopt ../src/app as App
+
+steady LOJA := App.loja
+
+action pegar(caminho):
+    yield Kiln.test(LOJA, "GET", caminho)
+
+// ── páginas ──
+
+action test_home_lista_o_catalogo():
+    r := pegar("/")
+    T.assert_eq(r["status"], 200)
+    T.assert_contains(r["body"], "Martelo de forja")
+
+action test_home_traz_o_layout_inteiro():
+    corpo := pegar("/")["body"]
+    T.assert_contains(corpo, "<!doctype html>")
+    T.assert_contains(corpo, "</footer>")
+
+action test_filtro_de_categoria():
+    corpo := pegar("/?categoria=protecao")["body"]
+    T.assert_contains(corpo, "Avental de couro")
+    T.assert_not_contains(corpo, "Bigorna")
+
+action test_ficha_do_produto():
+    r := pegar("/produto/1")
+    T.assert_eq(r["status"], 200)
+    T.assert_contains(r["body"], "em estoque")
+
+action test_produto_inexistente_da_404_com_pagina():
+    r := pegar("/produto/999")
+    T.assert_eq(r["status"], 404)
+    T.assert_contains(r["body"], "não existe")
+
+action test_caminho_desconhecido_usa_o_404_personalizado():
+    r := pegar("/nao-existe")
+    T.assert_eq(r["status"], 404)
+    T.assert_contains(r["body"], "Não achei essa página")
+
+action test_relatorio_mostra_a_media_e_nao_a_soma():
+    // A soma dos cinco preços é 1070,40; a média é 214,08. Escrever
+    // '>> distill a, v: a + v 0 / len(precos)' divide o zero inicial e
+    // o relatório mostra a soma — errado e nada óbvio de notar.
+    corpo := pegar("/relatorio")["body"]
+    T.assert_contains(corpo, "R$ 214,08")
+    T.assert_not_contains(corpo, "Preço médio<dd>R$ 1070,40")
+
+action test_relatorio_mostra_o_valor_em_estoque():
+    r := pegar("/relatorio")
+    T.assert_eq(r["status"], 200)
+    T.assert_contains(r["body"], "Valor em estoque")
+
+action test_preco_sai_formatado_em_reais():
+    T.assert_contains(pegar("/produto/1")["body"], "R$ 89,90")
+
+// ── arquivos estáticos ──
+
+action test_css_e_servido():
+    r := pegar("/static/estilo.css")
+    T.assert_eq(r["status"], 200)
+    T.assert_contains(r["body"], "--brasa")
+
+action test_nao_da_para_sair_da_pasta_publica():
+    T.assert_eq(pegar("/static/../../../etc/passwd")["status"], 403)
+
+// ── a planilha ──
+
+action test_relatorio_baixa_como_xlsx():
+    T.assert_eq(pegar("/relatorio.xlsx")["status"], 200)
+
+action test_planilha_gerada_tem_as_duas_abas():
+    pegar("/relatorio.xlsx")
+    T.assert_eq(Xls.sheets(Xls.read("/tmp/relatorio-loja.xlsx")),
+                ["Estoque", "Categorias"])
+
+action test_planilha_traz_os_produtos_e_o_total():
+    pegar("/relatorio.xlsx")
+    livro := Xls.read("/tmp/relatorio-loja.xlsx")
+    // cinco produtos mais a linha TOTAL
+    T.assert_eq(len(Xls.records(livro, "Estoque")), 6)
+
+action test_planilha_tem_a_formula_do_total():
+    pegar("/relatorio.xlsx")
+    aba := Xls.sheet(Xls.read("/tmp/relatorio-loja.xlsx"), "Estoque")
+    T.assert_eq(Xls.get_formula(aba, "F7"), "SUM(F2:F6)")
+
+// ── a API ──
+
+action test_api_lista_produtos():
+    T.assert_eq(pegar("/api/produtos")["body"]["total"], 5)
+
+action test_api_filtra_por_categoria():
+    T.assert_eq(pegar("/api/produtos?categoria=ferramenta")["body"]["total"], 3)
+
+action test_api_devolve_um_produto():
+    T.assert_eq(pegar("/api/produtos/1")["body"]["nome"], "Martelo de forja")
+
+action test_api_da_404_no_que_nao_existe():
+    T.assert_eq(pegar("/api/produtos/999")["status"], 404)
+
+action test_api_cria_com_201():
+    r := Kiln.test(LOJA, "POST", "/api/produtos",
+                   {"nome": "Lima", "categoria": "ferramenta",
+                    "preco": 42.0, "estoque": 9})
+    T.assert_eq(r["status"], 201)
+    T.assert_eq(r["body"]["nome"], "Lima")
+    // limpa o que criou: o teste seguinte conta produtos
+    Kiln.test(LOJA, "DELETE", "/api/produtos/" + str(r["body"]["id"]))
+
+action test_api_recusa_corpo_incompleto_com_400():
+    T.assert_eq(Kiln.test(LOJA, "POST", "/api/produtos", {"preco": 1})["status"],
+                400)
+
+action test_api_atualiza():
+    antes := pegar("/api/produtos/1")["body"]["preco"]
+    r := Kiln.test(LOJA, "PUT", "/api/produtos/1", {"preco": 99.9})
+    T.assert_eq(r["body"]["preco"], 99.9)
+    Kiln.test(LOJA, "PUT", "/api/produtos/1", {"preco": antes})
+
+action test_api_apaga_com_204():
+    novo := Kiln.test(LOJA, "POST", "/api/produtos",
+                      {"nome": "Provisório", "categoria": "teste",
+                       "preco": 1.0, "estoque": 0})["body"]
+    T.assert_eq(Kiln.test(LOJA, "DELETE",
+                          "/api/produtos/" + str(novo["id"]))["status"], 204)
+
+action test_verbo_errado_da_405_nao_404():
+    T.assert_eq(Kiln.test(LOJA, "PATCH", "/api/produtos/1")["status"], 405)
+
+action test_api_lista_categorias():
+    T.assert_eq(len(pegar("/api/categorias")["body"]), 3)
+
+// ── sessão ──
+
+action test_admin_exige_login():
+    r := pegar("/admin")
+    T.assert_eq(r["status"], 302)
+    T.assert_eq(r["headers"]["Location"], "/entrar")
+
+action test_pagina_de_login_abre():
+    r := pegar("/entrar")
+    T.assert_eq(r["status"], 200)
+    T.assert_contains(r["body"], "Senha")
+
+action test_senha_errada_devolve_401():
+    r := Kiln.test(LOJA, "POST", "/entrar",
+                   {"usuario": "ferreiro", "senha": "errada"})
+    T.assert_eq(r["status"], 401)
+    T.assert_contains(r["body"], "não conferem")
+
+action test_login_certo_redireciona_para_o_admin():
+    r := Kiln.test(LOJA, "POST", "/entrar",
+                   {"usuario": "ferreiro", "senha": "bigorna"})
+    T.assert_eq(r["status"], 302)
+    T.assert_eq(r["headers"]["Location"], "/admin")

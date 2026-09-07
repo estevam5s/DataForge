@@ -157,7 +157,20 @@ class ArcaneAnalytics:
 
     @staticmethod
     def _describe(data):
-        nums = [x for x in data if isinstance(x, (int, float))]
+        # Um frame nao e uma lista de numeros: iterar sobre ele da
+        # linhas, nenhuma delas numerica, e o resultado era um silencioso
+        # {"count": 0} em vez da descricao da tabela.
+        if isinstance(data, AnalyticsFrame):
+            return {coluna: ArcaneAnalytics._describe(data.column(coluna))
+                    for coluna in data.columns}
+        if isinstance(data, dict):
+            if all(isinstance(v, (list, tuple)) for v in data.values()):
+                return {chave: ArcaneAnalytics._describe(list(valor))
+                        for chave, valor in data.items()}
+            data = list(data.values())
+
+        nums = [x for x in data
+                if isinstance(x, (int, float)) and not isinstance(x, bool)]
         if not nums:
             return {"count": 0, "type": "non-numeric"}
         n = len(nums)
@@ -179,7 +192,11 @@ class ArcaneAnalytics:
 
     @staticmethod
     def _summary(data):
-        nums = [x for x in data if isinstance(x, (int, float))]
+        if isinstance(data, AnalyticsFrame):
+            return {coluna: ArcaneAnalytics._summary(data.column(coluna))
+                    for coluna in data.columns}
+        nums = [x for x in data
+                if isinstance(x, (int, float)) and not isinstance(x, bool)]
         n = len(nums)
         if n == 0:
             return {"count": len(data), "non_numeric": len(data)}

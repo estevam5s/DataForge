@@ -6,8 +6,110 @@ migrations, ORM-like models, and transaction support.
 
 import sqlite3
 import json
+import threading
 import os
 import time
+
+
+
+# ─────────────────────────────────────────────────────────────
+#  Conexao utilizavel de varias threads
+# ─────────────────────────────────────────────────────────────
+
+class _CursorSerial:
+    """Cursor cujas leituras passam pelo mesmo lock da conexao."""
+
+    __slots__ = ("_cursor", "_trava")
+
+    def __init__(self, cursor, trava):
+        self._cursor = cursor
+        self._trava = trava
+
+    def fetchall(self):
+        with self._trava:
+            return self._cursor.fetchall()
+
+    def fetchone(self):
+        with self._trava:
+            return self._cursor.fetchone()
+
+    def fetchmany(self, tamanho=1):
+        with self._trava:
+            return self._cursor.fetchmany(tamanho)
+
+    def __iter__(self):
+        return iter(self.fetchall())
+
+    def __getattr__(self, nome):
+        return getattr(self._cursor, nome)
+
+
+class _ConexaoSerial:
+    """Uma conexao SQLite que varias threads podem usar.
+
+    O sqlite3 do Python recusa uma conexao vinda de outra thread. Isso
+    derruba qualquer servidor — o Kiln atende cada pedido numa thread, e
+    a primeira consulta estoura com 'SQLite objects created in a thread
+    can only be used in that same thread'.
+
+    A saida e desligar essa checagem e serializar os acessos aqui. Fica
+    mais lento sob carga (uma consulta por vez), e e o preco certo: a
+    alternativa e um banco corrompido.
+
+    Limitacao honesta: a serializacao protege cada operacao, nao uma
+    transacao inteira. Duas threads em begin/commit ao mesmo tempo
+    compartilham a mesma transacao. Para trabalho transacional
+    concorrente, abra uma conexao por thread.
+    """
+
+    __slots__ = ("_conn", "_trava")
+
+    def __init__(self, conn):
+        self._conn = conn
+        # Reentrante: 'execute' pode ser chamado de dentro de outro
+        # metodo que ja segura a trava.
+        self._trava = threading.RLock()
+
+    def execute(self, sql, params=()):
+        with self._trava:
+            return _CursorSerial(self._conn.execute(sql, params), self._trava)
+
+    def executemany(self, sql, seq):
+        with self._trava:
+            return _CursorSerial(self._conn.executemany(sql, seq), self._trava)
+
+    def executescript(self, sql):
+        with self._trava:
+            return _CursorSerial(self._conn.executescript(sql), self._trava)
+
+    def cursor(self):
+        with self._trava:
+            return _CursorSerial(self._conn.cursor(), self._trava)
+
+    def commit(self):
+        with self._trava:
+            return self._conn.commit()
+
+    def rollback(self):
+        with self._trava:
+            return self._conn.rollback()
+
+    def close(self):
+        with self._trava:
+            return self._conn.close()
+
+    def backup(self, destino, **kwargs):
+        with self._trava:
+            return self._conn.backup(destino, **kwargs)
+
+    def __getattr__(self, nome):
+        return getattr(self._conn, nome)
+
+    def __setattr__(self, nome, valor):
+        if nome in _ConexaoSerial.__slots__:
+            object.__setattr__(self, nome, valor)
+        else:
+            setattr(self._conn, nome, valor)
 
 
 class ArcaneDatabase:
@@ -81,18 +183,20 @@ class ArcaneDatabase:
 
     @staticmethod
     def _connect(path):
-        conn = sqlite3.connect(path)
+        conn = sqlite3.connect(path, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA foreign_keys=ON")
-        return {"__type__": "DBConnection", "_conn": conn, "path": path}
+        return {"__type__": "DBConnection", "_conn": _ConexaoSerial(conn),
+                "path": path}
 
     @staticmethod
     def _memory():
-        conn = sqlite3.connect(":memory:")
+        conn = sqlite3.connect(":memory:", check_same_thread=False)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
-        return {"__type__": "DBConnection", "_conn": conn, "path": ":memory:"}
+        return {"__type__": "DBConnection", "_conn": _ConexaoSerial(conn),
+                "path": ":memory:"}
 
     @staticmethod
     def _close(db):
@@ -384,7 +488,7 @@ class ArcaneDatabase:
 
     @staticmethod
     def _backup(db, dest_path):
-        dest = sqlite3.connect(dest_path)
+        dest = sqlite3.connect(dest_path, check_same_thread=False)
         db["_conn"].backup(dest)
         dest.close()
         return dest_path

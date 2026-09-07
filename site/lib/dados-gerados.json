@@ -1247,6 +1247,157 @@
     }
    ]
   },
+  "excel": {
+   "nome": "Arcane.Excel",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "addr",
+     "sig": "(linha, coluna)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "append",
+     "sig": "(aba, linha_valores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "autofit",
+     "sig": "(aba)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bold_row",
+     "sig": "(aba, linha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cell",
+     "sig": "(aba, linha, coluna, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "col_letter",
+     "sig": "(indice)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "column",
+     "sig": "(livro, nome_aba, coluna)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dims",
+     "sig": "(livro, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "drop_sheet",
+     "sig": "(livro, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "formula",
+     "sig": "(aba, ref, expressao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "formulas",
+     "sig": "(aba)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "freeze",
+     "sig": "(aba, ref)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_csv",
+     "sig": "(caminho, separador, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "from_frame",
+     "sig": "(frame, nome, livro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "get",
+     "sig": "(aba, ref)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "get_formula",
+     "sig": "(aba, ref)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "new",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parse_addr",
+     "sig": "(ref)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "quick",
+     "sig": "(caminho, dados, nome, cabecalho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "read",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "records",
+     "sig": "(livro, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rows",
+     "sig": "(livro, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "save",
+     "sig": "(livro, caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "set",
+     "sig": "(aba, ref, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sheet",
+     "sig": "(livro, nome, dados, cabecalho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sheets",
+     "sig": "(livro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_csv",
+     "sig": "(livro, caminho, nome, separador)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_frame",
+     "sig": "(livro, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "width",
+     "sig": "(aba, coluna, largura)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "functional": {
    "nome": "Arcane.Functional",
    "desc": "Composição, currying, memoização e preguiça.",
@@ -1765,6 +1916,242 @@
     }
    ]
   },
+  "kiln": {
+   "nome": "Kiln",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "after",
+     "sig": "(app, funcao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "any",
+     "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "app",
+     "sig": "(nome, config)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "auth",
+     "sig": "(verificador, esquema)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "config",
+     "sig": "(app, chave, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cookie",
+     "sig": "(resp, nome, valor, dias, http_only, caminho, same_site, seguro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cors",
+     "sig": "(origens, metodos, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "delete",
+     "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escape",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "file",
+     "sig": "(caminho, tipo, baixar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "forge",
+     "sig": "(nome, config)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "get",
+     "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "group",
+     "sig": "(app, prefixo, meio)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "guard",
+     "sig": "(condicao, status, mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "head",
+     "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "header",
+     "sig": "(resp, chave, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "html",
+     "sig": "(texto, status, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "json",
+     "sig": "(dados, status, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "listen",
+     "sig": "(app, porta, host, silencioso)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "logger",
+     "sig": "(formato)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mount",
+     "sig": "(app, prefixo, outro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_error",
+     "sig": "(app, status, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "options",
+     "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "patch",
+     "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "post",
+     "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "put",
+     "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rate_limit",
+     "sig": "(maximo, janela)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "redirect",
+     "sig": "(destino, status)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "render",
+     "sig": "(app, nome, dados, status)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "render_string",
+     "sig": "(texto, dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "resource",
+     "sig": "(app, base, controlador)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "route",
+     "sig": "(app, metodo, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "routes",
+     "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "serve",
+     "sig": "(app, porta, host)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "session_end",
+     "sig": "(app, req, resp)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "session_start",
+     "sig": "(app, req, resp, dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sign",
+     "sig": "(dados, segredo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "static",
+     "sig": "(app, prefixo, pasta)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "stats",
+     "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "status",
+     "sig": "(codigo, mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "stop",
+     "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "templates",
+     "sig": "(app, pasta)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "test",
+     "sig": "(app, metodo, caminho, corpo, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "text",
+     "sig": "(texto, status, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "unsign",
+     "sig": "(token, segredo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "use",
+     "sig": "(app, funcao)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "logging": {
    "nome": "Arcane.Logging",
    "desc": "Registro com níveis e destinos.",
@@ -2122,6 +2509,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "beside",
+     "sig": "(partes)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "chdir",
      "sig": "(caminho)",
      "tipo": "funcao"
@@ -2263,6 +2655,16 @@
     },
     {
      "nome": "release",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "script",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "script_dir",
      "sig": "()",
      "tipo": "funcao"
     },
@@ -5057,6 +5459,90 @@
     "arquivo": "190_polimorfismo.df",
     "temDoc": true,
     "codigo": "// Exercicio 190 — Polimorfismo\n// Enunciado: trate tipos diferentes pela interface comum.\n\n// O ganho do polimorfismo nao e evitar 'given': e poder acrescentar um\n// tipo novo sem tocar em quem usa. O codigo que percorre a lista abaixo\n// nao muda quando chega um formato novo.\n\ntrait Exportavel:\n    action exportar()\n    action extensao()\n\nblueprint ComoJson with Exportavel:\n    dados: Vault := {}\n    action setup(dados):\n        self.dados := dados\n    action exportar():\n        adopt Arcane.Serialization as S\n        yield S.to_json(self.dados)\n    action extensao():\n        yield \"json\"\n\nblueprint ComoCsv with Exportavel:\n    dados: Vault := {}\n    action setup(dados):\n        self.dados := dados\n    action exportar():\n        chaves := sorted(self.dados.keys())\n        valores := []\n        cycle k in chaves:\n            valores.append(str(self.dados[k]))\n        yield chaves.join(\",\") + \"\\n\" + valores.join(\",\")\n    action extensao():\n        yield \"csv\"\n\nblueprint ComoTexto with Exportavel:\n    dados: Vault := {}\n    action setup(dados):\n        self.dados := dados\n    action exportar():\n        linhas := []\n        cycle k in sorted(self.dados.keys()):\n            linhas.append($\"{k}: {self.dados[k]}\")\n        yield linhas.join(\"\\n\")\n    action extensao():\n        yield \"txt\"\n\ndados := {\"nome\": \"Ana\", \"idade\": 30}\nformatos := [spawn ComoJson(dados), spawn ComoCsv(dados), spawn ComoTexto(dados)]\n\n// este laco nao sabe quantos formatos existem, nem quais\ncycle f in formatos:\n    out $\"--- .{f.extensao()} ---\"\n    out f.exportar()\n\nassert len(formatos) is 3, \"tres formatos\"\nassert formatos[0].extensao() is \"json\", \"cada um se identifica\"\nassert formatos[1].exportar().contains(\"idade,nome\"), \"o csv tem cabecalho\"\n\n// acrescentar um quarto formato nao muda nada acima\nblueprint ComoMarkdown with Exportavel:\n    dados: Vault := {}\n    action setup(dados):\n        self.dados := dados\n    action exportar():\n        linhas := [\"| chave | valor |\", \"|---|---|\"]\n        cycle k in sorted(self.dados.keys()):\n            linhas.append($\"| {k} | {self.dados[k]} |\")\n        yield linhas.join(\"\\n\")\n    action extensao():\n        yield \"md\"\n\nformatos.append(spawn ComoMarkdown(dados))\nassert len(formatos) is 4, \"o laco acima funcionaria igual\"\n\nout \"ok\"\n"
+   }
+  ],
+  "22-web-kiln": [
+   {
+    "num": "191",
+    "titulo": "O primeiro servidor",
+    "enunciado": "declare um servidor com duas rotas e responda texto e HTML.",
+    "arquivo": "191_primeiro_servidor.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 191 — O primeiro servidor\n// Enunciado: declare um servidor com duas rotas e responda texto e HTML.\n\n// 'server' declara a aplicacao; 'route' declara uma rota; 'respond'\n// envia a resposta e encerra a rota, como 'yield' encerra uma acao.\n// Nada sobe ainda: quem acende o forno e 'ignite'. Essa separacao e o\n// que permite testar uma rota sem abrir socket nenhum.\n\nadopt Kiln\n\nserver ola on 8080:\n    route GET \"/\":\n        respond html \"<h1>Ola do Kiln</h1>\"\n\n    route GET \"/ping\":\n        respond text \"pong\"\n\n// Kiln.test executa o pedido direto na aplicacao, sem rede.\ninicio := Kiln.test(ola, \"GET\", \"/\")\nout \"GET / ->\", inicio[\"status\"]\nout inicio[\"body\"]\n\npong := Kiln.test(ola, \"GET\", \"/ping\")\nout \"GET /ping ->\", pong[\"body\"]\n\nassert inicio[\"status\"] is 200, \"a raiz responde 200\"\nassert pong[\"body\"] is \"pong\", \"o texto chega inteiro\"\nassert len(Kiln.routes(ola)) is 2, \"duas rotas registradas\"\n\n// Um caminho que nao existe da 404 — sem precisar escrever isso.\nassert Kiln.test(ola, \"GET\", \"/nada\")[\"status\"] is 404, \"404 automatico\"\n"
+   },
+   {
+    "num": "192",
+    "titulo": "Parametros de caminho e query string",
+    "enunciado": "leia :id do caminho e ?campo= da query.",
+    "arquivo": "192_parametros_e_query.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 192 — Parametros de caminho e query string\n// Enunciado: leia :id do caminho e ?campo= da query.\n\n// Dentro de uma rota voce ja tem seis nomes prontos: 'req', 'params',\n// 'query', 'body', 'headers' e 'session'. Escrever\n// req[\"params\"][\"id\"] toda vez cansa; os atalhos existem por isso.\n\nadopt Kiln\n\nserver api on 0:\n    // ':id' casa um trecho; '*resto' casa o que sobrar, barras inclusive\n    route GET \"/usuarios/:id\":\n        respond json {\"id\": params[\"id\"], \"formato\": query[\"f\"] ?? \"curto\"}\n\n    route GET \"/arquivos/*caminho\":\n        respond json {\"caminho\": params[\"caminho\"]}\n\ncurto := Kiln.test(api, \"GET\", \"/usuarios/42\")\nout \"sem query:\", curto[\"body\"]\nassert curto[\"body\"][\"id\"] is \"42\", \"o parametro chega como texto\"\nassert curto[\"body\"][\"formato\"] is \"curto\", \"?? cobre a query ausente\"\n\nlongo := Kiln.test(api, \"GET\", \"/usuarios/42?f=longo\")\nout \"com query:\", longo[\"body\"][\"formato\"]\nassert longo[\"body\"][\"formato\"] is \"longo\", \"a query e lida\"\n\nfundo := Kiln.test(api, \"GET\", \"/arquivos/notas/2026/marco.txt\")\nout \"curinga:\", fundo[\"body\"][\"caminho\"]\nassert fundo[\"body\"][\"caminho\"] is \"notas/2026/marco.txt\", \"'*' pega tudo\"\n"
+   },
+   {
+    "num": "193",
+    "titulo": "Uma API RESTful completa",
+    "enunciado": "os cinco verbos sobre um mesmo recurso, com os status certos.",
+    "arquivo": "193_crud_restful.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 193 — Uma API RESTful completa\n// Enunciado: os cinco verbos sobre um mesmo recurso, com os status certos.\n\n// REST nao e so usar POST e GET: cada situacao tem seu status. 201 para\n// criado, 204 para apagado sem corpo, 404 para inexistente, 405 quando\n// o caminho existe mas o verbo nao. O Kiln entrega 404 e 405 sozinho;\n// os outros sao decisao sua.\n\nadopt Kiln\n\nitens := [\n    {\"id\": 1, \"nome\": \"Martelo\", \"preco\": 89.9},\n    {\"id\": 2, \"nome\": \"Bigorna\", \"preco\": 450.0}\n]\n\naction indice_de(id):\n    cycle i from 0 to len(itens) - 1:\n        given itens[i][\"id\"] is int(id):\n            yield i\n    yield -1\n\nserver loja on 0:\n    route GET \"/itens\":\n        respond json {\"itens\": itens, \"total\": len(itens)}\n\n    route GET \"/itens/:id\":\n        pedido := params[\"id\"]\n        i := indice_de(pedido)\n        given i is -1:\n            respond 404 json {\"erro\": $\"item {pedido} nao existe\"}\n        respond json itens[i]\n\n    route POST \"/itens\":\n        novo := {\"id\": len(itens) + 1, \"nome\": body[\"nome\"], \"preco\": body[\"preco\"]}\n        itens.append(novo)\n        respond 201 json novo\n\n    route PUT \"/itens/:id\":\n        i := indice_de(params[\"id\"])\n        given i is -1:\n            respond 404 json {\"erro\": \"nao existe\"}\n        itens[i] := {\"id\": int(params[\"id\"]), \"nome\": body[\"nome\"], \"preco\": body[\"preco\"]}\n        respond json itens[i]\n\n    route DELETE \"/itens/:id\":\n        i := indice_de(params[\"id\"])\n        given i is -1:\n            respond 404 json {\"erro\": \"nao existe\"}\n        itens.pop(i)\n        respond 204\n\nout \"lista:\", Kiln.test(loja, \"GET\", \"/itens\")[\"body\"][\"total\"]\n\ncriado := Kiln.test(loja, \"POST\", \"/itens\", {\"nome\": \"Tenaz\", \"preco\": 65.5})\nout \"criado:\", criado[\"status\"], criado[\"body\"][\"nome\"]\nassert criado[\"status\"] is 201, \"criar devolve 201\"\n\ntrocado := Kiln.test(loja, \"PUT\", \"/itens/1\", {\"nome\": \"Marreta\", \"preco\": 120})\nout \"trocado:\", trocado[\"body\"][\"nome\"]\nassert trocado[\"body\"][\"nome\"] is \"Marreta\", \"PUT substitui\"\n\napagado := Kiln.test(loja, \"DELETE\", \"/itens/2\")\nout \"apagado:\", apagado[\"status\"]\nassert apagado[\"status\"] is 204, \"apagar nao devolve corpo\"\n\nassert Kiln.test(loja, \"GET\", \"/itens/999\")[\"status\"] is 404, \"404 do recurso\"\n\n// O caminho existe, o verbo nao: 405, com a lista do que e aceito.\nrecusa := Kiln.test(loja, \"PATCH\", \"/itens/1\")\nout \"verbo errado:\", recusa[\"status\"], recusa[\"headers\"][\"Allow\"]\nassert recusa[\"status\"] is 405, \"405, nao 404 — o caminho existe\"\n"
+   },
+   {
+    "num": "194",
+    "titulo": "Paginas HTML com template",
+    "enunciado": "renderize uma pagina a partir de um template com laco.",
+    "arquivo": "194_paginas_html.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 194 — Paginas HTML com template\n// Enunciado: renderize uma pagina a partir de um template com laco.\n\n// 'render' le um arquivo da pasta declarada em 'views' e devolve HTML.\n// A sintaxe do template e pequena de proposito: {{nome}} escreve,\n// {{#lista}}…{{/lista}} repete, {{^lista}}…{{/lista}} cobre o vazio e\n// {{&bruto}} nao escapa. Template que vira linguagem e codigo escondido\n// onde ninguem procura.\n\nadopt Kiln\nadopt Arcane.IO as IO\n\n// escreve o template no disco para o exercicio ser auto-contido\npasta := \"/tmp/kilnviews\"\nIO.write_file(pasta + \"/lista.html\", \"\"\"<!doctype html>\n<title>{{titulo}}</title>\n<h1>{{titulo}}</h1>\n{{#produtos}}<article><h2>{{nome}}</h2><p>R$ {{preco}}</p></article>\n{{/produtos}}\n{{^produtos}}<p>Nada na forja.</p>{{/produtos}}\"\"\")\n\nprodutos := [\n    {\"nome\": \"Martelo\", \"preco\": 89.9},\n    {\"nome\": \"Bigorna <de aco>\", \"preco\": 450.0}\n]\n\nserver site on 0:\n    views pasta\n\n    route GET \"/\":\n        render \"lista.html\" with {\"titulo\": \"Forja\", \"produtos\": produtos}\n\n    route GET \"/vazio\":\n        render \"lista.html\" with {\"titulo\": \"Vazio\", \"produtos\": []}\n\npagina := Kiln.test(site, \"GET\", \"/\")\nout pagina[\"body\"]\n\nassert \"Martelo\" in pagina[\"body\"], \"o laco do template repetiu\"\n// O escape e automatico: '<de aco>' nao vira tag.\nassert \"&lt;de aco&gt;\" in pagina[\"body\"], \"HTML e escapado por padrao\"\nassert \"<article>\" in pagina[\"body\"], \"as tags do template ficam\"\n\nvazio := Kiln.test(site, \"GET\", \"/vazio\")\nassert \"Nada na forja\" in vazio[\"body\"], \"{{^}} cobre a lista vazia\"\nassert \"article\" not in vazio[\"body\"], \"sem itens, sem artigos\"\n"
+   },
+   {
+    "num": "195",
+    "titulo": "Middleware, autenticacao e limite de taxa",
+    "enunciado": "proteja rotas e limite pedidos por IP.",
+    "arquivo": "195_middleware_e_auth.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 195 — Middleware, autenticacao e limite de taxa\n// Enunciado: proteja rotas e limite pedidos por IP.\n\n// Middleware roda antes de toda rota. Se ele devolve uma resposta, a\n// cadeia para ali — e assim que autenticacao e limite de taxa cortam o\n// pedido antes de ele custar qualquer coisa. Se devolve void, o pedido\n// segue, e o que ele guardou em req[\"state\"] chega na rota.\n\nadopt Kiln\n\nusuarios := {\"tk-ana\": \"Ana\", \"tk-bia\": \"Bia\"}\n\naction conferir(token):\n    yield usuarios[token] ?? void\n\n// A ordem importa. O limite vem primeiro: um pedido barrado pelo 'auth'\n// nunca chegaria a ser contado, e quem esta martelando a porta com\n// credenciais invalidas e justamente quem voce quer limitar.\nserver privado on 0:\n    middleware Kiln.rate_limit(3, 60)\n    middleware Kiln.auth(conferir)\n\n    route GET \"/eu\":\n        respond json {\"usuario\": req[\"state\"][\"user\"]}\n\nsem_token := Kiln.test(privado, \"GET\", \"/eu\")\nout \"sem credencial:\", sem_token[\"status\"], sem_token[\"headers\"][\"WWW-Authenticate\"]\nassert sem_token[\"status\"] is 401, \"sem token, 401\"\n\nerrado := Kiln.test(privado, \"GET\", \"/eu\", void, {\"Authorization\": \"Bearer nao-existe\"})\nout \"token invalido:\", errado[\"status\"]\nassert errado[\"status\"] is 401, \"token desconhecido tambem e 401\"\n\ncerto := Kiln.test(privado, \"GET\", \"/eu\", void, {\"Authorization\": \"Bearer tk-ana\"})\nout \"autenticado:\", certo[\"body\"][\"usuario\"]\nassert certo[\"body\"][\"usuario\"] is \"Ana\", \"o middleware passou o usuario adiante\"\n\n// O limite ja contou tres pedidos deste IP — inclusive os dois que o\n// 'auth' recusou. O quarto nao passa, mesmo com credencial boa.\nexcedido := Kiln.test(privado, \"GET\", \"/eu\", void, {\"Authorization\": \"Bearer tk-bia\"})\nout \"quarto pedido:\", excedido[\"status\"]\nassert excedido[\"status\"] is 429, \"o quarto pedido no minuto e recusado\"\nassert \"Retry-After\" in excedido[\"headers\"], \"e o cliente sabe quando voltar\"\n"
+   },
+   {
+    "num": "196",
+    "titulo": "Paginas de erro, redirecionamento e arquivos estaticos",
+    "enunciado": "personalize o 404, redirecione uma rota antiga e sirva CSS.",
+    "arquivo": "196_erros_e_estaticos.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 196 — Paginas de erro, redirecionamento e arquivos estaticos\n// Enunciado: personalize o 404, redirecione uma rota antiga e sirva CSS.\n\n// Um 404 em JSON serve para uma API; para um site, o visitante merece\n// uma pagina. Kiln.on_error troca a resposta de um status inteiro.\n\nadopt Kiln\nadopt Arcane.IO as IO\n\nIO.write_file(\"/tmp/kilnviews/estilo.css\", \"body { font: 16px system-ui }\")\n\nserver site on 0:\n    assets \"/static\" from \"/tmp/kilnviews\"\n\n    route GET \"/\":\n        respond html \"<h1>Inicio</h1>\"\n\n    route GET \"/antigo\":\n        redirect \"/\"\n\nKiln.on_error(site, 404, lambda req => Kiln.html(\n    \"<h1>404</h1><p>Nao achei essa pagina.</p>\", 404))\n\nassert Kiln.test(site, \"GET\", \"/\")[\"status\"] is 200, \"a raiz responde\"\n\nperdido := Kiln.test(site, \"GET\", \"/nao-existe\")\nout \"404 personalizado:\", perdido[\"status\"]\nout perdido[\"body\"]\nassert perdido[\"status\"] is 404, \"o status continua 404\"\nassert \"Nao achei\" in perdido[\"body\"], \"mas o corpo agora e uma pagina\"\n\nmudou := Kiln.test(site, \"GET\", \"/antigo\")\nout \"redirect:\", mudou[\"status\"], \"->\", mudou[\"headers\"][\"Location\"]\nassert mudou[\"status\"] is 302, \"redirect padrao e 302\"\nassert mudou[\"headers\"][\"Location\"] is \"/\", \"e diz para onde ir\"\n\ncss := Kiln.test(site, \"GET\", \"/static/estilo.css\")\nout \"css:\", css[\"status\"]\nassert css[\"status\"] is 200, \"o arquivo do disco e servido\"\n\n// Um '../' no caminho nao escapa da pasta declarada. Esta e a falha\n// classica de servidor de arquivos, e o Kiln recusa antes de abrir.\nfuga := Kiln.test(site, \"GET\", \"/static/../../../etc/passwd\")\nout \"travessia de diretorio:\", fuga[\"status\"]\nassert fuga[\"status\"] is 403, \"sair da pasta e proibido\"\n"
+   },
+   {
+    "num": "197",
+    "titulo": "Subir o servidor de verdade",
+    "enunciado": "acenda o forno, faca um pedido pela rede e apague.",
+    "arquivo": "197_servidor_de_verdade.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 197 — Subir o servidor de verdade\n// Enunciado: acenda o forno, faca um pedido pela rede e apague.\n\n// Ate aqui usamos Kiln.test, que executa a rota sem abrir socket. Agora\n// o servidor de verdade: 'Kiln.serve' sobe em segundo plano e devolve a\n// porta na hora (porta 0 deixa o sistema escolher uma livre — util em\n// teste, onde uma porta fixa daria conflito). Em producao voce usa\n// 'ignite', que bloqueia ate o Ctrl-C.\n\nadopt Kiln\nadopt Arcane.Web as Web\n\nvisitas := 0\n\nserver contador on 0:\n    route GET \"/\":\n        respond html \"<h1>Forja</h1>\"\n\n    route GET \"/contar\":\n        visitas += 1\n        respond json {\"visitas\": visitas}\n\nporta := Kiln.serve(contador, 0)\nout \"no ar na porta\", porta\n\npagina := Web.get($\"http://127.0.0.1:{porta}/\")\nout \"pela rede:\", pagina[\"status\"], pagina[\"body\"]\nassert pagina[\"status\"] is 200, \"o servidor respondeu de verdade\"\nassert \"Forja\" in pagina[\"body\"], \"o HTML chegou inteiro\"\n\nWeb.get($\"http://127.0.0.1:{porta}/contar\")\nWeb.get($\"http://127.0.0.1:{porta}/contar\")\nterceira := Web.get($\"http://127.0.0.1:{porta}/contar\")\nout \"tres pedidos:\", terceira[\"body\"]\nassert visitas is 3, \"o estado do programa sobrevive entre pedidos\"\n\nnumeros := Kiln.stats(contador)\nout \"estatisticas:\", numeros[\"pedidos\"], \"pedidos,\", numeros[\"rotas\"], \"rotas\"\nassert numeros[\"pedidos\"] is 4, \"quatro pedidos contados\"\nassert numeros[\"erros\"] is 0, \"nenhum erro\"\n\nKiln.stop(contador)\nout \"forno apagado\"\n\n// Em um programa de verdade, a ultima linha seria:\n//     ignite contador on 8080\n// que sobe e fica servindo ate voce apertar Ctrl-C.\n"
+   }
+  ],
+  "23-dados-e-planilhas": [
+   {
+    "num": "198",
+    "titulo": "Gravar e ler uma planilha",
+    "enunciado": "transforme uma lista de vaults num .xlsx e leia de volta.",
+    "arquivo": "198_primeira_planilha.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 198 — Gravar e ler uma planilha\n// Enunciado: transforme uma lista de vaults num .xlsx e leia de volta.\n\n// Um .xlsx e um ZIP de arquivos XML. O Arcane.Excel escreve e le esse\n// formato sem nenhuma dependencia externa — o arquivo abre no Excel, no\n// LibreOffice e no Google Sheets.\n\nadopt Arcane.Excel as Xls\n\nvendas := [\n    {\"produto\": \"Martelo\", \"qtd\": 12, \"preco\": 89.9},\n    {\"produto\": \"Bigorna\", \"qtd\": 3,  \"preco\": 450.0},\n    {\"produto\": \"Tenaz\",   \"qtd\": 27, \"preco\": 65.5}\n]\n\n// Quando os dados sao vaults, o cabecalho sai das chaves — em negrito,\n// com a primeira linha congelada e a largura ajustada ao conteudo.\nXls.quick(\"/tmp/vendas.xlsx\", vendas, \"Vendas\")\nout \"planilha gravada\"\n\nlivro := Xls.read(\"/tmp/vendas.xlsx\")\nout \"abas:\", Xls.sheets(livro)\nout \"tamanho:\", Xls.dims(livro, \"Vendas\")\n\nlinhas := Xls.rows(livro, \"Vendas\")\nout \"cabecalho:\", linhas[0]\nout \"primeira linha:\", linhas[1]\n\nassert linhas[0] is [\"produto\", \"qtd\", \"preco\"], \"o cabecalho veio das chaves\"\nassert linhas[1][1] is 12, \"o numero voltou numero, nao texto\"\n\n// 'records' devolve vaults de novo, usando a linha de cabecalho.\nde_volta := Xls.records(livro, \"Vendas\")\nassert len(de_volta) is 3, \"tres registros\"\nassert de_volta[0][\"produto\"] is \"Martelo\", \"ida e volta sem perda\"\n\n// Uma coluna inteira, pelo titulo.\nassert Xls.column(livro, \"Vendas\", \"qtd\") is [12, 3, 27], \"coluna pelo nome\"\n"
+   },
+   {
+    "num": "199",
+    "titulo": "Relatorio com varias abas e formulas",
+    "enunciado": "monte um relatorio com formulas que o Excel calcula ao abrir.",
+    "arquivo": "199_relatorio_com_formulas.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 199 — Relatorio com varias abas e formulas\n// Enunciado: monte um relatorio com formulas que o Excel calcula ao abrir.\n\n// Formulas nao sao calculadas aqui: sao gravadas no arquivo e o Excel as\n// resolve ao abrir. Isso e o que se quer num relatorio — quem receber\n// pode mexer nos numeros e ver o total mudar sozinho.\n\nadopt Arcane.Excel as Xls\n\nitens := [\n    {\"produto\": \"Martelo\", \"qtd\": 12, \"preco\": 89.9},\n    {\"produto\": \"Bigorna\", \"qtd\": 3,  \"preco\": 450.0},\n    {\"produto\": \"Tenaz\",   \"qtd\": 27, \"preco\": 65.5}\n]\n\nlivro := Xls.new()\naba := Xls.sheet(livro, \"Vendas\", itens)\n\n// coluna de total: quantidade x preco, linha a linha\nXls.set(aba, \"D1\", \"total\")\ncycle i from 2 to 4:\n    Xls.formula(aba, $\"D{i}\", $\"B{i}*C{i}\")\n\n// e a soma de tudo, uma linha abaixo\nXls.set(aba, \"A5\", \"SOMA\")\nXls.formula(aba, \"D5\", \"SUM(D2:D4)\")\nXls.bold_row(aba, 4)\n\n// segunda aba, com o resumo\nXls.sheet(livro, \"Resumo\", [\n    [\"metrica\", \"valor\"],\n    [\"itens\", len(itens)],\n    [\"unidades\", [i[\"qtd\"] cycle i in itens] >> distill a, v: a + v 0]\n])\n\nXls.save(livro, \"/tmp/relatorio.xlsx\")\nout \"relatorio com\", len(Xls.sheets(livro)), \"abas\"\n\nlido := Xls.read(\"/tmp/relatorio.xlsx\")\nvendas := Xls.sheet(lido, \"Vendas\")\n\nout \"abas:\", Xls.sheets(lido)\nout \"formula da linha 2:\", Xls.get_formula(vendas, \"D2\")\nout \"todas as formulas:\", Xls.formulas(vendas)\n\nassert Xls.sheets(lido) is [\"Vendas\", \"Resumo\"], \"as duas abas, na ordem\"\nassert Xls.get_formula(vendas, \"D5\") is \"SUM(D2:D4)\", \"a formula sobreviveu\"\nassert Xls.get_formula(vendas, \"A1\") is void, \"celula sem formula devolve void\"\n\nresumo := Xls.records(lido, \"Resumo\")\nout \"resumo:\", resumo\nassert resumo[1][\"valor\"] is 42, \"12 + 3 + 27 unidades\"\n"
+   },
+   {
+    "num": "200",
+    "titulo": "Do banco para a planilha, passando pela analise",
+    "enunciado": "consulte o banco, analise os numeros e exporte a planilha.",
+    "arquivo": "200_planilha_banco_e_analise.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 200 — Do banco para a planilha, passando pela analise\n// Enunciado: consulte o banco, analise os numeros e exporte a planilha.\n\n// Este e o caminho completo de um trabalho de dados: os dados moram no\n// banco, a analise responde a pergunta, e a planilha e o que se manda\n// para quem decide. As tres pecas conversam.\n\nadopt Arcane.Database as DB\nadopt Arcane.Analytics as An\nadopt Arcane.Excel as Xls\n\n// ── 1. o banco ──\nbanco := DB.connect(\":memory:\")\nDB.execute(banco, \"\"\"CREATE TABLE vendas (\n    produto TEXT, regiao TEXT, qtd INTEGER, preco REAL)\"\"\")\n\ncycle linha in [\n    [\"Martelo\", \"Sul\",   12, 89.9],\n    [\"Bigorna\", \"Sul\",    3, 450.0],\n    [\"Tenaz\",   \"Norte\", 27, 65.5],\n    [\"Fole\",    \"Norte\",  8, 320.0],\n    [\"Marreta\", \"Sul\",   15, 110.0]\n]:\n    DB.execute(banco, \"INSERT INTO vendas VALUES (?, ?, ?, ?)\", linha)\n\nregistros := DB.query(banco, \"SELECT * FROM vendas ORDER BY qtd DESC\")\nout \"no banco:\", len(registros), \"vendas\"\nassert len(registros) is 5, \"cinco linhas inseridas\"\n\n// ── 2. a analise ──\nquantidades := [r[\"qtd\"] cycle r in registros]\nprecos := [r[\"preco\"] cycle r in registros]\n\nout \"media de unidades:\", An.mean(quantidades)\nout \"desvio dos precos:\", round(An.stdev(precos), 2)\n\n// Preco e quantidade andam juntos? Correlacao negativa forte diria que\n// o que e caro vende pouco.\ncorrelacao := An.correlation(quantidades, precos)\nout \"correlacao qtd x preco:\", round(correlacao, 3)\nassert correlacao smaller 0, \"quanto mais caro, menos unidades\"\n\n// describe() sobre um frame descreve cada coluna de uma vez\ntabela := An.from_records(registros)\ndescricao := An.describe(tabela)\nout \"resumo da coluna qtd:\", descricao[\"qtd\"][\"count\"], \"valores, media\",\n    descricao[\"qtd\"][\"mean\"]\nassert descricao[\"qtd\"][\"count\"] is 5, \"cinco valores numericos\"\nassert descricao[\"produto\"][\"type\"] is \"non-numeric\", \"texto e marcado como tal\"\n\n// ── 3. a planilha ──\nlivro := Xls.new()\naba := Xls.sheet(livro, \"Vendas\", registros)\n\nXls.set(aba, \"E1\", \"receita\")\ncycle i from 2 to 6:\n    Xls.formula(aba, $\"E{i}\", $\"C{i}*D{i}\")\nXls.set(aba, \"A7\", \"TOTAL\")\nXls.formula(aba, \"E7\", \"SUM(E2:E6)\")\nXls.bold_row(aba, 6)\n\nXls.sheet(livro, \"Estatisticas\", [\n    [\"metrica\", \"valor\"],\n    [\"vendas\", len(registros)],\n    [\"media_qtd\", An.mean(quantidades)],\n    [\"correlacao\", round(correlacao, 3)]\n])\n\nXls.save(livro, \"/tmp/analise.xlsx\")\nout \"planilha com\", len(Xls.sheets(livro)), \"abas gravada\"\n\n// e a prova de que tudo chegou inteiro\nconferencia := Xls.read(\"/tmp/analise.xlsx\")\nassert Xls.sheets(conferencia) is [\"Vendas\", \"Estatisticas\"], \"as duas abas\"\n// Seis registros, nao cinco: a linha TOTAL tambem e uma linha. Uma\n// planilha para humanos e uma tabela para maquinas nao sao a mesma\n// coisa, e vale saber disso antes de alimentar um script com ela.\nde_volta := Xls.records(conferencia, \"Vendas\")\nassert len(de_volta) is 6, \"cinco vendas mais a linha de total\"\nassert de_volta[5][\"produto\"] is \"TOTAL\", \"a ultima linha e o rodape\"\n\n// A coluna 'receita' volta vazia: e formula, e quem calcula e o Excel\n// ao abrir o arquivo — nao nos.\nassert de_volta[0][\"receita\"] is void, \"formula nao tem valor gravado\"\nassert Xls.get_formula(Xls.sheet(conferencia, \"Vendas\"), \"E7\") is \"SUM(E2:E6)\",\n    \"a formula do total\"\n\nDB.close(banco)\n"
    }
   ]
  },

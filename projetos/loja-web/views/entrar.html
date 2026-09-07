@@ -1,0 +1,8 @@
+<h1>Entrar</h1>
+{{#erro}}<p class="aviso">{{erro}}</p>{{/erro}}
+<form method="post" action="/entrar" class="entrar">
+  <label>Usuário <input name="usuario" autocomplete="username" required></label>
+  <label>Senha <input name="senha" type="password" autocomplete="current-password" required></label>
+  <button type="submit">Entrar</button>
+</form>
+<p class="dica">Para experimentar: <code>ferreiro</code> / <code>bigorna</code>.</p>

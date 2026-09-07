@@ -23,6 +23,8 @@ from .arcane_logging import ArcaneLogging
 from .arcane_crypto import ArcaneCrypto
 from .arcane_collections import ArcaneCollections
 from .arcane_serialization import ArcaneSerialization
+from .kiln import ArcaneKiln
+from .arcane_excel import ArcaneExcel
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -72,6 +74,13 @@ _MODULES = {
     "Arcane.Serialization": ArcaneSerialization,
     "Serialization": ArcaneSerialization,
     "Serde": ArcaneSerialization,
+
+    # ── Kiln 4.2 — framework web ──
+    "Kiln": ArcaneKiln,
+    "Arcane.Kiln": ArcaneKiln,
+    "Arcane.Excel": ArcaneExcel,
+    "Excel": ArcaneExcel,
+    "Xlsx": ArcaneExcel,
 }
 
 

@@ -1,0 +1,45 @@
+// Exercicio 196 — Paginas de erro, redirecionamento e arquivos estaticos
+// Enunciado: personalize o 404, redirecione uma rota antiga e sirva CSS.
+
+// Um 404 em JSON serve para uma API; para um site, o visitante merece
+// uma pagina. Kiln.on_error troca a resposta de um status inteiro.
+
+adopt Kiln
+adopt Arcane.IO as IO
+
+IO.write_file("/tmp/kilnviews/estilo.css", "body { font: 16px system-ui }")
+
+server site on 0:
+    assets "/static" from "/tmp/kilnviews"
+
+    route GET "/":
+        respond html "<h1>Inicio</h1>"
+
+    route GET "/antigo":
+        redirect "/"
+
+Kiln.on_error(site, 404, lambda req => Kiln.html(
+    "<h1>404</h1><p>Nao achei essa pagina.</p>", 404))
+
+assert Kiln.test(site, "GET", "/")["status"] is 200, "a raiz responde"
+
+perdido := Kiln.test(site, "GET", "/nao-existe")
+out "404 personalizado:", perdido["status"]
+out perdido["body"]
+assert perdido["status"] is 404, "o status continua 404"
+assert "Nao achei" in perdido["body"], "mas o corpo agora e uma pagina"
+
+mudou := Kiln.test(site, "GET", "/antigo")
+out "redirect:", mudou["status"], "->", mudou["headers"]["Location"]
+assert mudou["status"] is 302, "redirect padrao e 302"
+assert mudou["headers"]["Location"] is "/", "e diz para onde ir"
+
+css := Kiln.test(site, "GET", "/static/estilo.css")
+out "css:", css["status"]
+assert css["status"] is 200, "o arquivo do disco e servido"
+
+// Um '../' no caminho nao escapa da pasta declarada. Esta e a falha
+// classica de servidor de arquivos, e o Kiln recusa antes de abrir.
+fuga := Kiln.test(site, "GET", "/static/../../../etc/passwd")
+out "travessia de diretorio:", fuga["status"]
+assert fuga["status"] is 403, "sair da pasta e proibido"

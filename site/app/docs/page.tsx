@@ -93,7 +93,7 @@ export default function Home() {
       <Table
         head={['', 'Valor']}
         rows={[
-          [<>Versão</>, <><code>4.1.0</code></>],
+          [<>Versão</>, <><code>4.2.0</code></>],
           [<>Extensão</>, <><code>.df</code></>],
           [<>Runtime</>, <>Python 3.10+, zero dependências</>],
           [<>Biblioteca padrão</>, <>20 módulos, 675 símbolos</>],
