@@ -10,6 +10,8 @@ import { useAuth } from '@/lib/supabase/auth';
 export const ROTAS_PAINEL = [
   { href: '/painel', titulo: 'Início', icone: 'casa',
     desc: 'Resumo da sua atividade' },
+  { href: '/painel/playground', titulo: 'Playground', icone: 'terminal',
+    desc: 'Escreva, rode e inspecione' },
   { href: '/painel/praticar', titulo: 'Praticar', icone: 'raio',
     desc: 'Resolva problemas na linguagem' },
   { href: '/painel/laboratorio', titulo: 'Laboratório', icone: 'frasco',
@@ -64,6 +66,7 @@ const CAMINHOS: Record<string, string> = {
   relogio: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18M12 7v5l3 2',
   olho: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6',
   chama: 'M12 22a7 7 0 0 0 7-7c0-5-4-6-4-11 0 0-3 2-3 6 0-2-2-3-2-3s-5 3-5 8a7 7 0 0 0 7 7z',
+  terminal: 'M3 4h18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1M7 9l3 3-3 3M13 15h4',
 };
 
 export function Icone({ nome, className = 'h-[18px] w-[18px]' }:

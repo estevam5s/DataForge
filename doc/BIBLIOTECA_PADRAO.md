@@ -20,6 +20,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Functional`](#arcanefunctional) | `Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
 | [`Arcane.Database`](#arcanedatabase) | `Database / DB` | 39 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
 | [`Arcane.Excel`](#arcaneexcel) | `Excel / Xlsx` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
+| [`Arcane.Meta`](#arcanemeta) | `Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
 | [`Kiln`](#kiln) | `Kiln` | 46 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | [`Arcane.Test`](#arcanetest) | `Test` | 34 | Asserções e organização de suítes de teste. |
 | [`Arcane.Regex`](#arcaneregex) | `Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
@@ -452,6 +453,34 @@ adopt Arcane.Excel as Excel
 | `to_csv(livro, caminho, nome=None, separador=',')` |
 | `to_frame(livro, nome=None)` |
 | `width(aba, coluna, largura)` |
+
+
+---
+
+## Arcane.Meta
+
+Metadados de decorador: ler @Nome em tempo de execução.
+
+```dataforge
+adopt Arcane.Meta as Meta
+```
+
+**Funções (12)**
+
+| Assinatura |
+|------------|
+| `arg(alvo, nome, indice=0, padrao=None)` |
+| `descrever(alvo)` |
+| `filtrar(valores, nome)` |
+| `ler(alvo, nome)` |
+| `limpar(alvo)` |
+| `marcar(alvo, nome, *args, **kwargs)` |
+| `metodos_com(alvo, nome)` |
+| `nomes(alvo)` |
+| `opcao(alvo, nome, chave, padrao=None)` |
+| `tem(alvo, nome)` |
+| `todos(alvo)` |
+| `todos_de(alvo, nome)` |
 
 
 ---

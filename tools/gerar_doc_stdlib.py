@@ -22,6 +22,7 @@ DESCRICOES = {
     "Arcane.Functional": ("Utilitários funcionais: composição, lentes, Maybe/Either, transdutores.", "Functional"),
     "Arcane.Database": ("Banco de dados SQLite: tabelas, consultas, migrações e importação.", "Database / DB"),
     "Arcane.Excel": ("Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame.", "Excel / Xlsx"),
+    "Arcane.Meta": ("Metadados de decorador: ler @Nome em tempo de execução.", "Meta"),
     "Kiln": ("Framework web: rotas, middleware, templates, sessão e arquivos estáticos.", "Kiln"),
     "Arcane.Test": ("Asserções e organização de suítes de teste.", "Test"),
     "Arcane.Regex": ("Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone).", "Regex"),
