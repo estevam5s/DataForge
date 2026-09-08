@@ -411,6 +411,7 @@ class StaticDeclaration(ASTNode):
     """static name := value"""
     name: str = ""
     value: Any = None
+    declared_type: str = ""
 
 
 # ═══════════════════════════════════════════════════════════

@@ -2064,13 +2064,32 @@ class Parser:
         return ast.ParallelBlock(blocks=body, line=tok.line, column=tok.column)
 
     def parse_static(self):
-        """static name := value"""
-        tok = self.advance()  # consume 'static'
+        """static nome [: Tipo] := valor
+
+        A anotacao de tipo e opcional aqui pelo mesmo motivo que em
+        qualquer outra declaracao: ela documenta e o analisador a
+        confere. Recusa-la num campo estatico era so uma
+        inconsistencia — o campo de instancia ao lado a aceitava, e
+        quem escrevia os dois juntos tropecava no primeiro.
+        """
+        tok = self.advance()                    # 'static'
         name = self.expect(TokenType.IDENTIFIER).value
-        self.expect(TokenType.ASSIGN)
+
+        tipo = ""
+        if self.match(TokenType.COLON):
+            tipo = self.expect(
+                TokenType.IDENTIFIER,
+                f"Static field '{name}' needs a type after ':', as in "
+                f"'static {name}: Integer := 0'").value
+
+        self.expect(TokenType.ASSIGN,
+                    f"Static field '{name}' needs a value: "
+                    f"'static {name} := 0'")
         value = self.parse_expression()
         self.match(TokenType.NEWLINE)
-        return ast.StaticDeclaration(name=name, value=value, line=tok.line, column=tok.column)
+        return ast.StaticDeclaration(name=name, value=value,
+                                     declared_type=tipo,
+                                     line=tok.line, column=tok.column)
 
     # ── Expression statement / assignment ──────────────────
 

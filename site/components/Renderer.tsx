@@ -1,7 +1,21 @@
 import type { Bloco } from '@/lib/content';
 import { CodeBlock } from './CodeBlock';
+import { CorridaBusca, CurvasBigO, EscalaBigO } from './BigO';
 import { Callout, Card, CardGrid, H2, H3 } from './Doc';
 import { Inline } from './Inline';
+
+/**
+ * Os componentes que uma página pode pedir pelo nome.
+ *
+ * O mapa existe para as páginas continuarem sendo dados: elas citam
+ * 'curvas-big-o', não importam um módulo. Um nome desconhecido some em
+ * vez de derrubar a página.
+ */
+const COMPONENTES = {
+  'curvas-big-o': CurvasBigO,
+  'escala-big-o': EscalaBigO,
+  'corrida-busca': CorridaBusca,
+} as const;
 
 /** Converte a lista de blocos de uma página no markup correspondente. */
 export function Renderer({ blocos }: { blocos: Bloco[] }) {
@@ -19,6 +33,10 @@ export function Renderer({ blocos }: { blocos: Bloco[] }) {
         if ('code' in b)
           return <CodeBlock key={i} code={b.code} lang={b.lang} title={b.title} />;
         if ('hr' in b) return <hr key={i} />;
+        if ('componente' in b) {
+          const Componente = COMPONENTES[b.componente];
+          return Componente ? <Componente key={i} /> : null;
+        }
         if ('list' in b) {
           const Tag = b.ordered ? 'ol' : 'ul';
           return (

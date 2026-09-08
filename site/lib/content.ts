@@ -15,6 +15,14 @@ export type Bloco =
   | { table: { head: string[]; rows: string[][] } }
   | { callout: { tipo?: 'dica' | 'nota' | 'atencao' | 'perigo'; titulo?: string; texto: string } }
   | { cards: { href: string; title: string; desc?: string; meta?: string }[] }
+  /**
+   * Um componente interativo no meio do texto.
+   *
+   * O nome é uma chave num mapa do Renderer, e não um import — as
+   * páginas são dados, e dado não importa componente. Um nome que não
+   * existe no mapa não renderiza nada em vez de quebrar a página.
+   */
+  | { componente: 'curvas-big-o' | 'escala-big-o' | 'corrida-busca' }
   | { hr: true };
 
 export type Pagina = {

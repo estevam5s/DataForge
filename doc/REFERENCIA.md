@@ -959,6 +959,7 @@ bloco          = NEWLINE INDENT { instrução } DEDENT ;
 Disponíveis sem `adopt`. São 225 nomes, agrupados por tema:
 
 **Tipos e conversão** — `len` `type` `str` `int` `float` `bool` `cluster` `vault`
+`linhagem` `e_um`
 `range` `cast`
 
 **Texto** — `join` `split` `strip` `lstrip` `rstrip` `upper` `lower` `title`

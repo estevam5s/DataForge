@@ -469,3 +469,79 @@ def test_steady_reatribuida_explica():
     r = render_de('steady PI := 3.14\nPI := 3\n')
     assert "steady" in r
     assert "PI" in r
+
+
+# ─── Reflexao de tipo ──────────────────────────────────────
+
+def test_type_devolve_o_nome_do_blueprint():
+    """Antes vinha 'DFInstance' — nome de classe interna do Python.
+
+    Quem escreve DataForge nunca viu esse nome e nao pode usa-lo para
+    nada; ele so aparecia para confundir.
+    """
+    assert rodar('''
+blueprint Caixa:
+    action f():
+        yield 1
+out type(spawn Caixa())
+''') == "Caixa"
+
+
+def test_type_devolve_o_nome_do_record_e_do_enum():
+    assert rodar('''
+record Ponto:
+    x: Integer
+enum Status:
+    Ativo := "on"
+out type(Ponto(1)), type(Status.Ativo)
+''') == "Ponto Status"
+
+
+def test_membro_de_enum_e_do_tipo_do_enum():
+    """'Status.Ativo' e um Status, como '3' e um Integer."""
+    assert rodar('''
+enum Status:
+    Ativo
+out type(Status.Ativo)
+''') == "Status"
+
+
+def test_type_de_acao_e_Action():
+    assert rodar('out type(lambda x: x), type(len)') == "Action Action"
+
+
+def test_linhagem_lista_do_proprio_ate_a_raiz():
+    assert rodar('''
+blueprint Animal:
+    action f():
+        yield 1
+blueprint Cachorro extends Animal:
+    action g():
+        yield 2
+out linhagem(spawn Cachorro())
+''') == "[Cachorro, Animal]"
+
+
+def test_e_um_aceita_a_linhagem_inteira():
+    """Perguntar o tipo sem comparar o nome exato: um herdeiro conta."""
+    assert rodar('''
+blueprint Animal:
+    action f():
+        yield 1
+blueprint Cachorro extends Animal:
+    action g():
+        yield 2
+c := spawn Cachorro()
+out e_um(c, "Cachorro"), e_um(c, "Animal"), e_um(c, "Gato")
+''') == "yes yes no"
+
+
+def test_campo_estatico_aceita_anotacao_de_tipo():
+    """O campo de instancia ao lado ja aceitava; recusar aqui era so
+    inconsistencia — e quem escrevia os dois juntos tropecava."""
+    assert rodar('''
+blueprint Contador:
+    static total: Integer := 7
+    static rotulo := "c"
+out Contador.total, Contador.rotulo
+''') == "7 c"

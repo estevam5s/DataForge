@@ -37,18 +37,84 @@ class BuiltinFunction:
 def _df_len(obj):
     return len(obj)
 
+#: Tipo do Python -> nome que a linguagem usa. 'bool' vem antes de
+#: 'int' na busca porque em Python todo booleano E um inteiro.
+_NOMES_DE_TIPO = {
+    bool: "Boolean",
+    int: "Integer",
+    float: "Float",
+    str: "String",
+    list: "Cluster",
+    dict: "Vault",
+    type(None): "Void",
+    tuple: "Frozen",
+}
+
+
 def _df_type(obj):
-    type_map = {
-        int: "Integer",
-        float: "Float",
-        str: "String",
-        bool: "Boolean",
-        list: "Cluster",
-        dict: "Vault",
-        type(None): "Void",
-        tuple: "Frozen",
+    """O tipo, no vocabulario do DataForge.
+
+    Uma instancia devolve o nome do blueprint dela, e um record o nome
+    do record. Antes vinha 'DFInstance' e 'DFRecordInstance' — nomes de
+    classes internas do interpretador, que quem escreve DataForge nunca
+    viu e nao pode usar para nada.
+    """
+    nome = _NOMES_DE_TIPO.get(type(obj))
+    if nome is not None:
+        return nome
+
+    blueprint = getattr(obj, "blueprint", None)
+    if blueprint is not None and getattr(blueprint, "name", None):
+        return blueprint.name
+    for campo in ("record", "enum"):
+        dono = getattr(obj, campo, None)
+        if dono is not None and getattr(dono, "name", None):
+            return dono.name
+
+    # Um membro de enum e do tipo do ENUM, nao do proprio nome:
+    # 'Status.Ativo' e um Status, como '3' e um Integer.
+    do_enum = getattr(obj, "enum_name", None)
+    if do_enum:
+        return do_enum
+
+    interno = type(obj).__name__
+    conhecidos = {
+        "DFAction": "Action",
+        "BuiltinFunction": "Action",
+        "DFStream": "Stream",
+        "DFError": "Error",
     }
-    return type_map.get(type(obj), type(obj).__name__)
+    if interno in conhecidos:
+        return conhecidos[interno]
+
+    # Um blueprint, record ou trait usado como VALOR e o proprio tipo.
+    proprio = getattr(obj, "name", None)
+    if proprio and interno.startswith("DF"):
+        return proprio
+    return interno
+
+
+def _df_linhagem(obj):
+    """Os blueprints de que este objeto descende, do proprio ate a raiz.
+
+    E o que permite perguntar 'isto e um Cachorro?' sem comparar o nome
+    exato — um herdeiro de Cachorro tambem responde que sim:
+
+        given "Animal" in linhagem(bicho):
+            out bicho.nome
+    """
+    blueprint = getattr(obj, "blueprint", None)
+    if blueprint is None:
+        blueprint = obj if getattr(obj, "linhagem", None) else None
+    if blueprint is None or not hasattr(blueprint, "linhagem"):
+        return [_df_type(obj)]
+    return [bp.name for bp in blueprint.linhagem()]
+
+
+def _df_e_um(obj, nome):
+    """O objeto e daquele tipo, ou descende dele?"""
+    alvo = nome if isinstance(nome, str) else getattr(nome, "name", str(nome))
+    return alvo == _df_type(obj) or alvo in _df_linhagem(obj)
 
 def _df_str(obj):
     if obj is None:
@@ -1003,6 +1069,8 @@ def get_builtins() -> dict:
         # ── Type & Conversion ──
         "len": BuiltinFunction("len", _df_len, 1),
         "type": BuiltinFunction("type", _df_type, 1),
+        "linhagem": BuiltinFunction("linhagem", _df_linhagem, 1),
+        "e_um": BuiltinFunction("e_um", _df_e_um, 2),
         "str": BuiltinFunction("str", _df_str, 1),
         "int": BuiltinFunction("int", _df_int, 1),
         "float": BuiltinFunction("float", _df_float, 1),
