@@ -312,8 +312,15 @@ class CycleFromTo(ASTNode):
 
 @dataclass
 class CycleIn(ASTNode):
-    """cycle var in collection:"""
+    """cycle x in colecao:  |  cycle i, item in enumerate(colecao):
+
+    'vars' guarda os nomes quando o laco desestrutura cada item. Fica
+    ao lado de 'var' em vez de substitui-lo porque o caso de um nome
+    so e a esmagadora maioria, e um par ('nome', None) em toda parte
+    custaria mais que o campo extra.
+    """
     var: str = ""
+    vars: list = field(default_factory=list)
     collection: Any = None
     body: list = field(default_factory=list)
 

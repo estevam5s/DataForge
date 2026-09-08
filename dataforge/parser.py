@@ -491,6 +491,11 @@ class Parser:
         # numero 404 como JSON.
         if self.current().type == TokenType.INTEGER:
             status = ast.IntegerLiteral(value=self.advance().value)
+            # 'respond 404, "nao achei"' — a virgula depois do status e
+            # o que se escreve por reflexo, vindo de qualquer framework
+            # web. Recusa-la nao ensinava nada: so obrigava a apagar um
+            # caractere depois de um erro de sintaxe.
+            self.match(TokenType.COMMA)
 
         tipo = ""
         if self.current().type == TokenType.IDENTIFIER and \
@@ -1770,6 +1775,22 @@ class Parser:
         tok = self.advance()  # consume 'cycle'
         var_name = self.expect(TokenType.IDENTIFIER).value
 
+        # 'cycle i, item in …' — desestrutura cada item do percurso.
+        # A linguagem ja desestrutura em atribuicao ('a, b := xs'); nao
+        # aceitar aqui obrigava a escrever tres linhas para o padrao
+        # mais comum que existe: percorrer com indice.
+        nomes = []
+        while self.current().type == TokenType.COMMA:
+            self.advance()
+            nomes.append(self.expect(
+                TokenType.IDENTIFIER,
+                "Expected another name after ',' in cycle").value)
+        if nomes:
+            nomes.insert(0, var_name)
+            if self.current().type == TokenType.FROM:
+                self.error("'cycle a, b from …' does not exist: a counted "
+                           "loop has one variable. Use 'cycle a, b in …'.")
+
         if self.match(TokenType.FROM):
             # cycle var from X to Y [step Z]:
             start = self.parse_expression()
@@ -1796,7 +1817,7 @@ class Parser:
             self.match(TokenType.NEWLINE)
             body = self.parse_block()
             return ast.CycleIn(
-                var=var_name, collection=collection, body=body,
+                var=var_name, vars=nomes, collection=collection, body=body,
                 line=tok.line, column=tok.column
             )
         else:

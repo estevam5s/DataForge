@@ -1,23 +1,32 @@
 {
   "name": "dataforge-language",
   "displayName": "DataForge",
-  "description": "Suporte à linguagem DataForge (.df): cores para todas as palavras reservadas, snippets, indentação e o framework web Kiln.",
+  "description": "Suporte completo à linguagem DataForge (.df): cores, snippets, erros sublinhados, Big-O acima de cada ação, custo de import, botão de rodar com cronômetro, criação de projetos e painel de bancos de dados.",
   "version": "1.0.0",
   "publisher": "dataforge",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.60.0"
+    "vscode": "^1.75.0"
   },
   "categories": [
     "Programming Languages",
-    "Snippets"
+    "Snippets",
+    "Linters",
+    "Debuggers",
+    "Formatters",
+    "Other"
   ],
   "keywords": [
     "dataforge",
     "df",
     "kiln",
+    "crucible",
+    "forge",
+    "big-o",
+    "complexity",
     "linguagem",
-    "language"
+    "language",
+    "orm"
   ],
   "icon": "icone.png",
   "repository": {
@@ -71,6 +80,341 @@
         "label": "DataForge",
         "path": "./icones-arquivo.json"
       }
+    ],
+    "commands": [
+      {
+        "command": "dataforge.rodar",
+        "title": "Rodar arquivo",
+        "category": "DataForge",
+        "icon": "$(play)"
+      },
+      {
+        "command": "dataforge.rodarComTempo",
+        "title": "Rodar e medir o tempo",
+        "category": "DataForge",
+        "icon": "$(watch)"
+      },
+      {
+        "command": "dataforge.rodarDepurando",
+        "title": "Rodar com --debug (tokens, AST, traceback)",
+        "category": "DataForge",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "dataforge.medirRepetido",
+        "title": "Medir várias execuções (média, mediana, p95)",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.verificar",
+        "title": "Verificar erros neste arquivo",
+        "category": "DataForge",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "dataforge.formatar",
+        "title": "Formatar",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.testar",
+        "title": "Rodar os testes (Crucible)",
+        "category": "DataForge",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "dataforge.complexidade",
+        "title": "Analisar complexidade (Big-O)",
+        "category": "DataForge",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "dataforge.escalaBigO",
+        "title": "Big-O: a tabela de referência",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.custo",
+        "title": "Recalcular o custo dos imports",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.novoProjeto",
+        "title": "Novo projeto…",
+        "category": "DataForge",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "dataforge.repl",
+        "title": "Abrir o REPL",
+        "category": "DataForge",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "dataforge.explicarErro",
+        "title": "Explicar um código de erro (DF0601)",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.documentacao",
+        "title": "Abrir a documentação",
+        "category": "DataForge",
+        "icon": "$(book)"
+      },
+      {
+        "command": "dataforge.conexoes.adicionar",
+        "title": "Nova conexão",
+        "category": "DataForge",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dataforge.conexoes.atualizar",
+        "title": "Atualizar",
+        "category": "DataForge",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "dataforge.conexoes.remover",
+        "title": "Remover",
+        "category": "DataForge",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dataforge.conexoes.testar",
+        "title": "Testar conexão",
+        "category": "DataForge",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "dataforge.conexoes.inserir",
+        "title": "Inserir o código no editor",
+        "category": "DataForge",
+        "icon": "$(insert)"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "dataforge.rodar",
+          "when": "resourceLangId == dataforge",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dataforge.rodarComTempo",
+          "when": "resourceLangId == dataforge",
+          "group": "navigation@2"
+        },
+        {
+          "command": "dataforge.rodarDepurando",
+          "when": "resourceLangId == dataforge",
+          "group": "navigation@3"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "dataforge.complexidade",
+          "when": "resourceLangId == dataforge",
+          "group": "navigation@9"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "dataforge.rodar",
+          "when": "resourceLangId == dataforge",
+          "group": "dataforge@1"
+        },
+        {
+          "command": "dataforge.rodarComTempo",
+          "when": "resourceLangId == dataforge",
+          "group": "dataforge@2"
+        },
+        {
+          "command": "dataforge.complexidade",
+          "when": "resourceLangId == dataforge",
+          "group": "dataforge@3"
+        },
+        {
+          "command": "dataforge.explicarErro",
+          "when": "resourceLangId == dataforge",
+          "group": "dataforge@4"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "dataforge.rodar",
+          "when": "resourceExtname == .df",
+          "group": "dataforge@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "dataforge.conexoes.adicionar",
+          "when": "view == dataforgeConexoes",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dataforge.conexoes.atualizar",
+          "when": "view == dataforgeConexoes",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dataforge.conexoes.testar",
+          "when": "view == dataforgeConexoes && viewItem == conexao",
+          "group": "inline@1"
+        },
+        {
+          "command": "dataforge.conexoes.inserir",
+          "when": "view == dataforgeConexoes && viewItem == tabela",
+          "group": "inline@1"
+        },
+        {
+          "command": "dataforge.conexoes.remover",
+          "when": "view == dataforgeConexoes && viewItem == conexao"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "dataforge.rodar",
+        "key": "ctrl+f5",
+        "mac": "cmd+f5",
+        "when": "resourceLangId == dataforge"
+      },
+      {
+        "command": "dataforge.rodarComTempo",
+        "key": "ctrl+shift+f5",
+        "mac": "cmd+shift+f5",
+        "when": "resourceLangId == dataforge"
+      },
+      {
+        "command": "dataforge.complexidade",
+        "key": "ctrl+alt+o",
+        "mac": "cmd+alt+o",
+        "when": "resourceLangId == dataforge"
+      },
+      {
+        "command": "dataforge.testar",
+        "key": "ctrl+alt+t",
+        "mac": "cmd+alt+t",
+        "when": "resourceLangId == dataforge"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dataforge",
+          "title": "DataForge",
+          "icon": "marca.svg"
+        }
+      ]
+    },
+    "views": {
+      "dataforge": [
+        {
+          "id": "dataforgeConexoes",
+          "name": "Bancos de dados",
+          "icon": "$(database)",
+          "contextualTitle": "Conexões do Forge"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DataForge",
+      "properties": {
+        "dataforge.caminho": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Caminho do executável `dataforge`. Vazio procura no PATH e em `~/.dataforge/bin`."
+        },
+        "dataforge.verificar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sublinha erros e avisos com o analisador da linguagem — o mesmo que roda no CI."
+        },
+        "dataforge.complexidade.mostrar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra a complexidade (Big-O) acima de cada ação."
+        },
+        "dataforge.complexidade.avisarAcimaDe": {
+          "type": "string",
+          "default": "O(n log n)",
+          "enum": [
+            "O(1)",
+            "O(log n)",
+            "O(n)",
+            "O(n log n)",
+            "O(n^2)",
+            "O(n^3)"
+          ],
+          "markdownDescription": "Marca com `⟵ acima do limite` o que passar desta classe."
+        },
+        "dataforge.custoDeImport": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra quantos símbolos cada 'adopt' traz, ao lado da linha."
+        },
+        "dataforge.formatarAoSalvar": {
+          "type": "boolean",
+          "default": false,
+          "description": "Roda 'dataforge fmt' ao salvar."
+        }
+      }
+    },
+    "problemMatchers": [
+      {
+        "name": "dataforge",
+        "owner": "dataforge",
+        "fileLocation": [
+          "autoDetect",
+          "${workspaceFolder}"
+        ],
+        "pattern": {
+          "regexp": "^(.+?):(\\d+):(\\d+):\\s*(erro|aviso|error|warning):\\s*(.+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "dataforge",
+        "required": [
+          "comando"
+        ],
+        "properties": {
+          "comando": {
+            "type": "string",
+            "description": "run, check, test, crucible, fmt, big-o"
+          },
+          "arquivo": {
+            "type": "string",
+            "description": "o alvo"
+          }
+        }
+      }
     ]
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:dataforge",
+    "workspaceContains:**/forge.toml",
+    "workspaceContains:**/*.df"
+  ],
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "empacotar": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.4.0"
   }
 }

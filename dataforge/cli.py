@@ -1432,6 +1432,22 @@ def new_project(args=None, flags=()):
     args = list(args or [])
     chaves = list(MODELOS)
 
+    # ── so a lista, para quem le por programa ──
+    # O editor precisa dos modelos sem entrar no modo interativo: sem
+    # isto, a extensao teria a propria lista, e ela envelheceria no dia
+    # em que um modelo novo fosse acrescentado aqui.
+    if "--listar" in flags or "--list" in flags:
+        if "--json" in flags:
+            import json as _json
+            print(_json.dumps(
+                [{"nome": c, "titulo": MODELOS[c]["name"],
+                  "descricao": MODELOS[c]["description"]} for c in chaves],
+                ensure_ascii=False, indent=2))
+        else:
+            for chave in chaves:
+                print(f"  {chave:<10}  {MODELOS[chave]['description']}")
+        return
+
     # ── qual modelo ──
     escolhido = args[0] if args and args[0] in MODELOS else None
     if args and not escolhido and args[0] not in MODELOS and args[0].startswith("-") is False \

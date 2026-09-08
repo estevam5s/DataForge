@@ -965,3 +965,41 @@ out pessoas.sorted(lambda p: p["i"]).map(lambda p: p["n"])
 def test_agrupamento_e_particao():
     assert run('out [1, 2, 3, 4].partition(lambda n: n % 2 is 0)') == "[[2, 4], [1, 3]]"
     assert run('out [1, 1, 2].tally()') == "{1: 2, 2: 1}"
+
+
+def test_cycle_desestrutura_cada_item():
+    """'cycle i, item in enumerate(xs)' — o padrão mais comum que existe.
+
+    A linguagem já desestruturava em atribuição; não aceitar aqui
+    obrigava a três linhas para percorrer com índice.
+    """
+    assert run('''
+cycle i, x in enumerate(["a", "b"]):
+    out i, x
+''') == "0 a\n1 b"
+
+
+def test_cycle_desestrutura_pares():
+    assert run('''
+cycle n, nome in [[1, "um"], [2, "dois"]]:
+    out $"{n}={nome}"
+''') == "1=um\n2=dois"
+
+
+def test_cycle_com_um_nome_continua_valendo():
+    assert run('''
+cycle x in [1, 2]:
+    out x
+''') == "1\n2"
+
+
+def test_cycle_desestruturado_recusa_o_que_nao_reparte():
+    """O erro tem de aparecer no laço, não mais tarde num nome ausente."""
+    saida = run('''
+monitor:
+    cycle a, b in [1, 2]:
+        out a
+handle e:
+    out e.message
+''')
+    assert "across 2 names" in saida

@@ -507,7 +507,8 @@ class TypeChecker:
                 f"Cannot cycle over {tipo}", node.collection,
                 "Use a Cluster, a Vault, a String or a Stream", "cycle-not-iterable")
         interno = Scope(escopo, "loop")
-        interno.declare(node.var, UNKNOWN, node.line, node.column)
+        for nome in (getattr(node, "vars", None) or [node.var]):
+            interno.declare(nome, UNKNOWN, node.line, node.column)
         self._loop_depth += 1
         try:
             self.visit_block(node.body, interno)

@@ -2343,19 +2343,58 @@ class Interpreter:
                 node.line, node.column)
         reusavel = self._escopo_de_laco(node, env, "<cycle>")
         corpo = node.body
+        nomes = getattr(node, "vars", None) or []
         for item in collection:
             if reusavel is None:
                 loop_env = env.child("<cycle>")
             else:
                 loop_env = reusavel
                 loop_env.limpar()
-            loop_env.set_local(node.var, item)
+            if nomes:
+                self._espalhar_no_laco(nomes, item, loop_env, node)
+            else:
+                loop_env.set_local(node.var, item)
             try:
                 self.exec_block(corpo, loop_env)
             except HaltSignal:
                 break
             except SkipSignal:
                 continue
+
+    def _espalhar_no_laco(self, nomes, item, escopo, node):
+        """'cycle i, item in …' — reparte cada item pelos nomes.
+
+        Um item que nao se reparte da erro AQUI, dizendo quantos nomes
+        havia e quantos valores vieram. Sem isso o erro apareceria mais
+        tarde, ao usar um dos nomes, e ele diria 'nao definido'.
+        """
+        if isinstance(item, dict):
+            valores = list(item.items())[0] if len(nomes) == 2 else None
+            if valores is None:
+                valores = list(item.values())
+        elif isinstance(item, (list, tuple)):
+            valores = list(item)
+        else:
+            raise TypeError_(
+                f"cannot split {self._nome_do_tipo(item)} across "
+                f"{len(nomes)} names.",
+                node.line, node.column,
+                nota=f"the loop asked for {', '.join(nomes)}",
+                dica=("each item needs to be a Cluster or a pair; "
+                      "'enumerate(xs)' produces pairs"),
+                doc="controle")
+
+        if len(valores) != len(nomes):
+            raise UnpackError(
+                f"each item has {len(valores)} value(s), but the loop "
+                f"asks for {len(nomes)} name(s).",
+                node.line, node.column,
+                nota=f"names: {', '.join(nomes)}",
+                dica="use one name to receive the item whole",
+                doc="desestruturacao")
+
+        for nome, valor in zip(nomes, valores):
+            escopo.set_local(nome, valor)
 
     def exec_PersistBlock(self, node: ast.PersistBlock, env):
         reusavel = self._escopo_de_laco(node, env, "<persist>")

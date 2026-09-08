@@ -191,12 +191,26 @@ def test_snippets_usam_a_sintaxe_da_linguagem():
             if linha.startswith(" ") and linha.strip() in ("", "...")
             else linha
             for linha in fonte.split("\n"))
-        # 'route', 'respond' e 'render' sao contextuais: valem dentro de
-        # um bloco 'server'. Um snippet desses e um fragmento, e e assim
-        # que ele sera usado.
-        if fonte.lstrip().startswith(("route ", "respond ", "render ")):
+        # As palavras contextuais so valem dentro do bloco delas. Um
+        # snippet que comeca por uma e um FRAGMENTO — e e assim que ele
+        # sera usado, com o cursor ja dentro do bloco. Testa-lo solto
+        # cobraria uma sintaxe que ninguem escreve.
+        primeira = fonte.lstrip()
+        moldura = None
+        if primeira.startswith(("route ", "respond ", "render ",
+                                "middleware ", "mount ", "assets ",
+                                "views ")):
+            moldura = "server s on 0:"
+        elif primeira.startswith(("get ", "set ", "private ", "protected ",
+                                  "static ", "operator ", "final ",
+                                  "abstract action")):
+            moldura = "blueprint B:"
+        elif primeira.startswith(("trial ", "setup:", "teardown:",
+                                  "fixture ", "bench ", "expect ")):
+            moldura = 'crucible "s":'
+        if moldura:
             recuado = "\n".join("    " + l for l in fonte.split("\n"))
-            fonte = 'server s on 0:\n' + recuado
+            fonte = moldura + "\n" + recuado
 
         try:
             parse(tokenize(fonte))
@@ -296,3 +310,93 @@ def test_o_tema_de_icone_de_arquivo_existe():
     assert "df" in tema["fileExtensions"]
     icone = tema["iconDefinitions"][tema["fileExtensions"]["df"]]["iconPath"]
     assert os.path.isfile(os.path.join(EXTENSAO, icone.lstrip("./")))
+
+
+# ── A extensão: comandos, configuração, código ───────────────
+# Ela deixou de ser só gramática e snippets: roda o arquivo, sublinha
+# erros, mostra Big-O e lista bancos. Cada peça dessas é um contrato
+# com o VS Code, e um contrato quebrado só aparece em uso.
+
+def _manifesto():
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "editor", "vscode", "package.json")
+    with open(caminho, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def test_todo_comando_declarado_esta_registrado_no_codigo():
+    """Um comando na paleta que não existe no código dá erro ao clicar."""
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonte = open(os.path.join(raiz, "editor", "vscode", "src",
+                              "extension.ts"), encoding="utf-8").read()
+
+    declarados = {c["command"] for c in _manifesto()["contributes"]["commands"]}
+    faltando = [c for c in declarados if f"'{c}'" not in fonte]
+    assert not faltando, f"declarados e não registrados: {faltando}"
+
+
+def test_todo_comando_de_menu_existe():
+    """Um menu apontando para comando inexistente some sem avisar."""
+    contribui = _manifesto()["contributes"]
+    declarados = {c["command"] for c in contribui["commands"]}
+    for lugar, itens in contribui.get("menus", {}).items():
+        for item in itens:
+            assert item["command"] in declarados, f"{lugar}: {item['command']}"
+
+
+def test_toda_tecla_de_atalho_aponta_para_comando_existente():
+    contribui = _manifesto()["contributes"]
+    declarados = {c["command"] for c in contribui["commands"]}
+    for atalho in contribui.get("keybindings", []):
+        assert atalho["command"] in declarados, atalho
+
+
+def test_o_ponto_de_entrada_existe():
+    """'main' apontando para o lugar errado faz a extensão não carregar."""
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base = os.path.join(raiz, "editor", "vscode")
+    principal = _manifesto()["main"]
+    fonte = principal.replace("./out/", "src/").replace(".js", ".ts")
+    assert os.path.isfile(os.path.join(base, fonte)), fonte
+
+
+def test_configuracao_tem_descricao():
+    """Uma opção sem descrição é uma opção que ninguém acha."""
+    props = _manifesto()["contributes"]["configuration"]["properties"]
+    assert props
+    for nome, dados in props.items():
+        assert dados.get("description") or dados.get("markdownDescription"), nome
+        assert "default" in dados, nome
+
+
+def test_a_extensao_nao_reimplementa_a_linguagem():
+    """Toda análise sai da CLI — senão o editor e o CI discordam.
+
+    Uma segunda implementação em TypeScript divergiria no dia em que a
+    linguagem ganhasse um nó novo, e o programador veria um erro que o
+    'dataforge check' não confirma.
+    """
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    proibidos = ("tokenize", "class Parser", "class Lexer", "KEYWORDS = [")
+    for caminho in glob.glob(os.path.join(raiz, "editor", "vscode",
+                                          "src", "*.ts")):
+        fonte = open(caminho, encoding="utf-8").read()
+        for termo in proibidos:
+            assert termo not in fonte, f"{os.path.basename(caminho)}: {termo}"
+
+
+def test_snippets_cobrem_o_que_a_linguagem_tem():
+    """Os assuntos grandes precisam de snippet; senão ninguém os acha."""
+    snippets = carregar("snippets", "dataforge.json")
+    prefixos = {s["prefix"] for s in snippets.values()}
+
+    for esperado in ("action", "blueprint", "record", "trait", "enum",
+                     "match", "monitor", "cyclein", "server", "route",
+                     "crucible", "trial", "expect", "forgeconn",
+                     "forgemodel", "get", "static", "operator", "private",
+                     "abstract", "extends", "spawn", "lambda", "pipe"):
+        assert esperado in prefixos, f"falta snippet para '{esperado}'"
+
+    assert len(snippets) >= 100, f"só {len(snippets)} snippets"

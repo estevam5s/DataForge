@@ -1,215 +1,946 @@
 {
-  "action": {
-    "prefix": "action",
+  "saída": {
+    "prefix": "out",
     "body": [
-      "action ${1:nome}(${2:args}):",
-      "\t$0"
+      "out ${1:valor}"
     ],
-    "description": "Uma ação (função)"
+    "description": "Imprime"
   },
-  "stream action": {
-    "prefix": "stream",
+  "interpolação": {
+    "prefix": "$\"",
     "body": [
-      "stream action ${1:nome}():",
-      "\temit $0"
+      "out $\"${1:texto} {${2:expr}}\""
     ],
-    "description": "Generator preguiçoso"
+    "description": "String interpolada"
   },
-  "blueprint": {
-    "prefix": "blueprint",
+  "variável": {
+    "prefix": ":=",
     "body": [
-      "blueprint ${1:Nome}(${2:campos}):",
-      "\taction ${3:metodo}():",
-      "\t\t$0"
+      "${1:nome} := ${2:valor}"
     ],
-    "description": "Uma classe"
+    "description": "Atribuição"
   },
-  "record": {
-    "prefix": "record",
+  "variável tipada": {
+    "prefix": "var",
     "body": [
-      "record ${1:Nome}:",
-      "\t${2:campo}: ${3:Integer}$0"
+      "${1:nome}: ${2|Integer,Float,String,Boolean,Cluster,Vault,Any|} := ${3:valor}"
     ],
-    "description": "Dado imutável"
+    "description": "Declaração com tipo"
   },
-  "enum": {
-    "prefix": "enum",
+  "constante": {
+    "prefix": "steady",
     "body": [
-      "enum ${1:Nome}:",
-      "\t${2:Valor}$0"
+      "steady ${1:NOME} := ${2:valor}"
     ],
-    "description": "Enumeração"
+    "description": "Constante"
   },
-  "trait": {
-    "prefix": "trait",
+  "desestruturação": {
+    "prefix": "destruct",
     "body": [
-      "trait ${1:Nome}:",
-      "\taction ${2:metodo}()$0"
+      "${1:primeiro}, ${2:segundo} := ${3:colecao}"
     ],
-    "description": "Interface"
+    "description": "Desestruturação"
+  },
+  "resto": {
+    "prefix": "rest",
+    "body": [
+      "${1:primeiro}, ...${2:resto} := ${3:colecao}"
+    ],
+    "description": "Desestruturação com resto"
+  },
+  "troca": {
+    "prefix": "swap",
+    "body": [
+      "${1:a}, ${2:b} := ${2:b}, ${1:a}"
+    ],
+    "description": "Troca dois valores"
   },
   "given": {
     "prefix": "given",
     "body": [
       "given ${1:condicao}:",
-      "\t$0"
+      "    ${2:out \"aqui\"}"
     ],
     "description": "Condicional"
   },
   "given/otherwise": {
-    "prefix": "givenelse",
+    "prefix": "gio",
     "body": [
       "given ${1:condicao}:",
-      "\t${2:...}",
+      "    ${2:out \"aqui\"}",
       "otherwise:",
-      "\t$0"
+      "    ${3:out \"aqui\"}"
     ],
     "description": "if/else"
   },
-  "match": {
-    "prefix": "match",
+  "given/orif/otherwise": {
+    "prefix": "gioo",
     "body": [
-      "match ${1:valor}:",
-      "\tpoint ${2:padrao}:",
-      "\t\t${3:...}",
-      "\tdefault:",
-      "\t\t$0"
+      "given ${1:cond}:",
+      "    ${2:out \"aqui\"}",
+      "orif ${3:outra}:",
+      "    ${4:out \"aqui\"}",
+      "otherwise:",
+      "    ${5:out \"aqui\"}"
     ],
-    "description": "Pattern matching"
+    "description": "if/elif/else"
   },
-  "cycle in": {
-    "prefix": "cycle",
+  "ternário": {
+    "prefix": "tern",
     "body": [
-      "cycle ${1:item} in ${2:colecao}:",
-      "\t$0"
+      "${1:valor_se_sim} given ${2:condicao} otherwise ${3:valor_se_nao}"
     ],
-    "description": "for-each"
+    "description": "Ternário"
+  },
+  "guarda": {
+    "prefix": "guard",
+    "body": [
+      "given ${1:condicao}:",
+      "    trigger \"${2:motivo}\""
+    ],
+    "description": "Guarda com trigger"
+  },
+  "coalescência": {
+    "prefix": "??",
+    "body": [
+      "${1:valor} ?? ${2:padrao}"
+    ],
+    "description": "Valor padrão se void"
+  },
+  "acesso seguro": {
+    "prefix": "?.",
+    "body": [
+      "${1:obj}?.${2:campo}"
+    ],
+    "description": "Acesso que não estoura em void"
   },
   "cycle from": {
     "prefix": "cyclefrom",
     "body": [
       "cycle ${1:i} from ${2:1} to ${3:10}:",
-      "\t$0"
+      "    ${4:out $1}"
     ],
-    "description": "for numérico (inclusivo nos dois extremos)"
+    "description": "Laço contado"
+  },
+  "cycle from step": {
+    "prefix": "cyclestep",
+    "body": [
+      "cycle ${1:i} from ${2:0} to ${3:100} step ${4:5}:",
+      "    ${5:out $1}"
+    ],
+    "description": "Laço com passo"
+  },
+  "cycle in": {
+    "prefix": "cyclein",
+    "body": [
+      "cycle ${1:item} in ${2:colecao}:",
+      "    ${3:out $1}"
+    ],
+    "description": "Laço sobre coleção"
+  },
+  "cycle com índice": {
+    "prefix": "cycleidx",
+    "body": [
+      "cycle ${1:i}, ${2:item} in enumerate(${3:colecao}):",
+      "    out ${1:i}, ${2:item}"
+    ],
+    "description": "Laço com índice"
   },
   "persist": {
     "prefix": "persist",
     "body": [
       "persist ${1:condicao}:",
-      "\t$0"
+      "    ${2:out \"aqui\"}"
     ],
-    "description": "while"
+    "description": "While"
+  },
+  "perform/persist": {
+    "prefix": "perform",
+    "body": [
+      "perform:",
+      "    ${1:out \"aqui\"}",
+      "persist ${2:condicao}"
+    ],
+    "description": "do..while"
+  },
+  "laço infinito": {
+    "prefix": "loop",
+    "body": [
+      "persist yes:",
+      "    ${1:out \"aqui\"}",
+      "    given ${2:condicao}:",
+      "        halt"
+    ],
+    "description": "Laço com saída explícita"
+  },
+  "compreensão": {
+    "prefix": "comp",
+    "body": [
+      "[${1:x} cycle ${1:x} in ${2:fonte}]"
+    ],
+    "description": "List comprehension"
+  },
+  "compreensão com filtro": {
+    "prefix": "compif",
+    "body": [
+      "[${1:x} cycle ${1:x} in ${2:fonte} given ${3:condicao}]"
+    ],
+    "description": "Comprehension com guarda"
+  },
+  "compreensão de vault": {
+    "prefix": "compvault",
+    "body": [
+      "{${1:chave}: ${2:valor} cycle ${3:item} in ${4:fonte}}"
+    ],
+    "description": "Vault comprehension"
+  },
+  "pipeline": {
+    "prefix": "pipe",
+    "body": [
+      "${1:colecao}",
+      "    >> sift ${2:x}: ${3:x % 2 is 0}",
+      "    >> morph ${2:x}: ${4:x * 2}"
+    ],
+    "description": "Pipeline sift/morph"
+  },
+  "pipeline com distill": {
+    "prefix": "pipered",
+    "body": [
+      "${1:colecao}",
+      "    >> sift ${2:x}: ${3:cond}",
+      "    >> morph ${2:x}: ${4:expr}",
+      "    >> distill ${5:acc}, ${6:v}: ${5:acc} + ${6:v} 0"
+    ],
+    "description": "Pipeline completo"
+  },
+  "fatia": {
+    "prefix": "slice",
+    "body": [
+      "${1:xs}[${2:0}:${3:5}]"
+    ],
+    "description": "Fatiamento"
+  },
+  "spread": {
+    "prefix": "spread",
+    "body": [
+      "[...${1:xs}, ${2:novo}]"
+    ],
+    "description": "Spread"
+  },
+  "vault": {
+    "prefix": "vault",
+    "body": [
+      "{",
+      "    \"${1:chave}\": ${2:valor},",
+      "    \"${3:outra}\": ${4:valor}",
+      "}"
+    ],
+    "description": "Literal de vault"
+  },
+  "ordenar por campo": {
+    "prefix": "sortby",
+    "body": [
+      "sorted(${1:xs}, chave := lambda ${2:x}: ${2:x}[\"${3:campo}\"])"
+    ],
+    "description": "Ordenação por chave"
+  },
+  "agrupar": {
+    "prefix": "groupby",
+    "body": [
+      "${1:xs}.group_by(lambda ${2:x}: ${2:x}[\"${3:campo}\"])"
+    ],
+    "description": "Agrupamento"
+  },
+  "action": {
+    "prefix": "action",
+    "body": [
+      "action ${1:nome}(${2:params}):",
+      "    ${3:yield void}"
+    ],
+    "description": "Ação"
+  },
+  "action tipada": {
+    "prefix": "actiont",
+    "body": [
+      "action ${1:nome}(${2:a}: ${3:Integer}) -> ${4:Integer}:",
+      "    ${5:yield $2}"
+    ],
+    "description": "Ação com tipos"
+  },
+  "action com padrão": {
+    "prefix": "actiondef",
+    "body": [
+      "action ${1:nome}(${2:obrigatorio}, ${3:opcional} := ${4:padrao}):",
+      "    ${5:yield $2}"
+    ],
+    "description": "Ação com valor padrão"
+  },
+  "stream action": {
+    "prefix": "stream",
+    "body": [
+      "stream action ${1:nome}():",
+      "    cycle ${2:i} from ${3:1} to ${4:10}:",
+      "        emit ${2:i}"
+    ],
+    "description": "Generator"
+  },
+  "lambda": {
+    "prefix": "lambda",
+    "body": [
+      "lambda ${1:x}: ${2:x * 2}"
+    ],
+    "description": "Lambda"
+  },
+  "lambda seta": {
+    "prefix": "lambda2",
+    "body": [
+      "lambda ${1:a}, ${2:b} => ${3:a + b}"
+    ],
+    "description": "Lambda com =>"
+  },
+  "action genérica": {
+    "prefix": "actiongen",
+    "body": [
+      "action ${1:nome}<${2:T}>(${3:x}: ${2:T}) -> ${2:T}:",
+      "    yield ${3:x}"
+    ],
+    "description": "Ação genérica"
+  },
+  "recursão com caso base": {
+    "prefix": "rec",
+    "body": [
+      "action ${1:nome}(${2:n}):",
+      "    given ${2:n} smaller_eq ${3:1}:",
+      "        yield ${4:1}",
+      "    yield ${2:n} * ${1:nome}(${2:n} - 1)"
+    ],
+    "description": "Recursão com caso base"
+  },
+  "memoização": {
+    "prefix": "memo",
+    "body": [
+      "cache := {}",
+      "",
+      "action ${1:nome}(${2:n}):",
+      "    given cache.has(str(${2:n})):",
+      "        yield cache[str(${2:n})]",
+      "    resultado := ${3:n * 2}",
+      "    cache[str(${2:n})] := resultado",
+      "    yield resultado"
+    ],
+    "description": "Memoização — derruba O(2^n) para O(n)"
+  },
+  "blueprint": {
+    "prefix": "blueprint",
+    "body": [
+      "blueprint ${1:Nome}:",
+      "    action setup(${2:params}):",
+      "        self.${2:params} := ${2:params}",
+      "",
+      "    action ${3:metodo}():",
+      "        yield self.${2:params}"
+    ],
+    "description": "Classe"
+  },
+  "blueprint inline": {
+    "prefix": "bpi",
+    "body": [
+      "blueprint ${1:Nome}(${2:a}, ${3:b}):",
+      "    action ${4:metodo}():",
+      "        yield self.${2:a} + self.${3:b}"
+    ],
+    "description": "Classe com construtor inline"
+  },
+  "blueprint completo": {
+    "prefix": "bpfull",
+    "body": [
+      "blueprint ${1:Nome}:",
+      "    private ${2:campo}: ${3:Float} := ${4:0.0}",
+      "    protected ${5:interno}: ${6:String} := \"\"",
+      "",
+      "    action setup(${2:campo}):",
+      "        self.${2:campo} := ${2:campo}",
+      "",
+      "    get ${7:propriedade}():",
+      "        yield self.${2:campo}",
+      "",
+      "    set ${7:propriedade}(valor):",
+      "        given valor smaller 0:",
+      "            trigger \"não pode ser negativo\"",
+      "        self.${2:campo} := valor",
+      "",
+      "    static action ${8:auxiliar}(x):",
+      "        yield x * 2",
+      "",
+      "    operator +(outro):",
+      "        yield spawn ${1:Nome}(self.${2:campo} + outro.${2:campo})"
+    ],
+    "description": "Blueprint com visibilidade, propriedade, estático e operador"
+  },
+  "herança": {
+    "prefix": "extends",
+    "body": [
+      "blueprint ${1:Filho} extends ${2:Pai}:",
+      "    action setup(${3:params}):",
+      "        root.setup(${3:params})",
+      "",
+      "    action ${4:metodo}():",
+      "        yield root.${4:metodo}()"
+    ],
+    "description": "Herança com root"
+  },
+  "trait": {
+    "prefix": "trait",
+    "body": [
+      "trait ${1:Nome}:",
+      "    action ${2:metodo}()"
+    ],
+    "description": "Interface"
+  },
+  "trait com padrão": {
+    "prefix": "traitdef",
+    "body": [
+      "trait ${1:Nome}:",
+      "    action ${2:obrigatorio}()",
+      "",
+      "    action ${3:comum}():",
+      "        yield self.${2:obrigatorio}() * 2"
+    ],
+    "description": "Trait com implementação padrão"
+  },
+  "implementar trait": {
+    "prefix": "with",
+    "body": [
+      "blueprint ${1:Nome} with ${2:Trait}:",
+      "    action ${3:metodo}():",
+      "        yield ${4:0}"
+    ],
+    "description": "Blueprint implementando trait"
+  },
+  "abstrato": {
+    "prefix": "abstract",
+    "body": [
+      "abstract blueprint ${1:Nome}:",
+      "    abstract action ${2:metodo}()",
+      "",
+      "    action ${3:concreto}():",
+      "        yield self.${2:metodo}() + 1"
+    ],
+    "description": "Blueprint abstrato"
+  },
+  "propriedade completa": {
+    "prefix": "getset",
+    "body": [
+      "get ${1:nome}():",
+      "    yield self.${2:_campo}",
+      "",
+      "set ${1:nome}(valor):",
+      "    given ${3:condicao}:",
+      "        trigger \"${4:motivo}\"",
+      "    self.${2:_campo} := valor"
+    ],
+    "description": "Propriedade com validação"
+  },
+  "campo privado": {
+    "prefix": "private",
+    "body": [
+      "private ${1:nome}: ${2:Integer} := ${3:0}"
+    ],
+    "description": "Campo privado"
+  },
+  "campo protegido": {
+    "prefix": "protected",
+    "body": [
+      "protected ${1:nome}: ${2:Integer} := ${3:0}"
+    ],
+    "description": "Campo protegido"
+  },
+  "método estático": {
+    "prefix": "static",
+    "body": [
+      "static action ${1:nome}(${2:params}):",
+      "    yield ${3:void}"
+    ],
+    "description": "Método estático"
+  },
+  "operador": {
+    "prefix": "operator",
+    "body": [
+      "operator ${1|+,-,*,/,==,<,>|}(outro):",
+      "    yield spawn ${2:Nome}(self.${3:campo} ${1:+} outro.${3:campo})"
+    ],
+    "description": "Sobrecarga de operador"
+  },
+  "final": {
+    "prefix": "final",
+    "body": [
+      "final action ${1:nome}():",
+      "    yield ${2:void}"
+    ],
+    "description": "Método que não pode ser sobrescrito"
+  },
+  "record": {
+    "prefix": "record",
+    "body": [
+      "record ${1:Nome}:",
+      "    ${2:campo}: ${3:Integer}",
+      "    ${4:outro}: ${5:String}"
+    ],
+    "description": "Record imutável"
+  },
+  "record com método": {
+    "prefix": "recordm",
+    "body": [
+      "record ${1:Ponto}:",
+      "    x: Float",
+      "    y: Float",
+      "",
+      "    action ${2:distancia}(outro):",
+      "        yield sqrt((self.x - outro.x) ** 2 + (self.y - outro.y) ** 2)"
+    ],
+    "description": "Record com comportamento"
+  },
+  "with": {
+    "prefix": "recwith",
+    "body": [
+      "${1:novo} := ${2:original} with {\"${3:campo}\": ${4:valor}}"
+    ],
+    "description": "Deriva um record novo"
+  },
+  "enum": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Nome}:",
+      "    ${2:Primeiro}",
+      "    ${3:Segundo}"
+    ],
+    "description": "Enum"
+  },
+  "enum com valores": {
+    "prefix": "enumv",
+    "body": [
+      "enum ${1:Status}:",
+      "    ${2:Ativo} := \"${3:ativo}\"",
+      "    ${4:Inativo} := \"${5:inativo}\""
+    ],
+    "description": "Enum com valores"
+  },
+  "spawn": {
+    "prefix": "spawn",
+    "body": [
+      "spawn ${1:Nome}(${2:args})"
+    ],
+    "description": "Instancia um blueprint"
+  },
+  "decorador": {
+    "prefix": "@",
+    "body": [
+      "@${1:Nome}(${2:args})",
+      "action ${3:alvo}():",
+      "    yield ${4:void}"
+    ],
+    "description": "Decorador"
+  },
+  "match": {
+    "prefix": "match",
+    "body": [
+      "match ${1:valor}:",
+      "    point ${2:padrao}:",
+      "        ${3:out \"aqui\"}",
+      "    default:",
+      "        ${4:out \"aqui\"}"
+    ],
+    "description": "Pattern matching"
+  },
+  "match completo": {
+    "prefix": "matchfull",
+    "body": [
+      "match ${1:valor}:",
+      "    point Integer as ${2:n} when ${2:n} bigger ${3:100}:",
+      "        yield \"grande\"",
+      "    point [${4:a}, ${5:b}]:",
+      "        yield \"par\"",
+      "    point {\"${6:tipo}\": ${7:t}}:",
+      "        yield \"vault\"",
+      "    point ${8:Record}(${9:x}, ${10:y}):",
+      "        yield \"record\"",
+      "    default:",
+      "        yield \"outro\""
+    ],
+    "description": "Match com todos os tipos de padrão"
   },
   "monitor": {
     "prefix": "monitor",
     "body": [
       "monitor:",
-      "\t${1:...}",
-      "handle ${2:RuntimeError} as ${3:e}:",
-      "\t$0"
+      "    ${1:out \"aqui\"}",
+      "handle ${2:e}:",
+      "    out ${2:e}.type, ${2:e}.message"
     ],
     "description": "try/catch"
   },
-  "pipeline": {
-    "prefix": "pipe",
+  "monitor tipado": {
+    "prefix": "monitort",
     "body": [
-      "${1:dados}",
-      "\t>> sift ${2:x}: ${3:cond}",
-      "\t>> morph ${4:x}: ${5:expr}"
+      "monitor:",
+      "    ${1:out \"aqui\"}",
+      "handle ${2|RuntimeError,TypeError,IndexError,KeyError,DivisionByZeroError,ValidationError,DatabaseError,NetworkError|} as ${3:e}:",
+      "    out ${3:e}.message"
     ],
-    "description": "Pipeline sift/morph/distill"
+    "description": "catch por tipo"
+  },
+  "monitor completo": {
+    "prefix": "monitorfull",
+    "body": [
+      "monitor:",
+      "    ${1:arriscado()}",
+      "handle ${2:e}:",
+      "    out ${2:e}.message",
+      "ensure:",
+      "    ${3:out \"fim\"}"
+    ],
+    "description": "try/catch/finally"
+  },
+  "trigger": {
+    "prefix": "trigger",
+    "body": [
+      "trigger \"${1:mensagem}\""
+    ],
+    "description": "Lança erro"
+  },
+  "trigger nomeado": {
+    "prefix": "triggern",
+    "body": [
+      "trigger ${1:MeuErro}(\"${2:mensagem}\")"
+    ],
+    "description": "Erro com tipo próprio"
+  },
+  "assert": {
+    "prefix": "assert",
+    "body": [
+      "assert ${1:condicao}, \"${2:mensagem}\""
+    ],
+    "description": "Asserção"
   },
   "adopt": {
     "prefix": "adopt",
     "body": [
-      "adopt Arcane.${1:Math} as ${2:M}$0"
+      "adopt ${1|Arcane.Math,Arcane.IO,Arcane.Text,Arcane.Time,Arcane.Data,Arcane.Http,Arcane.Crypto,Arcane.Collections,Forge,Crucible,Kiln|}"
     ],
-    "description": "Importar módulo"
+    "description": "Importa um módulo"
   },
-  "interpolação": {
-    "prefix": "istr",
+  "adopt seletivo": {
+    "prefix": "adoptsel",
     "body": [
-      "$\"${1:texto} {${2:expr}}\"$0"
+      "adopt ${1:Arcane.Math}.{${2:sqrt}, ${3:floor}}"
     ],
-    "description": "String interpolada"
+    "description": "Importa só o necessário — menor custo"
+  },
+  "adopt com apelido": {
+    "prefix": "adoptas",
+    "body": [
+      "adopt ${1:Arcane.Math} as ${2:M}"
+    ],
+    "description": "Importa com apelido"
+  },
+  "relay": {
+    "prefix": "relay",
+    "body": [
+      "relay ${1:nome}, ${2:outro}"
+    ],
+    "description": "Exporta"
+  },
+  "crucible": {
+    "prefix": "crucible",
+    "body": [
+      "crucible \"${1:O que você testa}\":",
+      "    trial \"${2:o que deve acontecer}\":",
+      "        expect ${3:valor} is ${4:esperado}"
+    ],
+    "description": "Suíte de testes"
+  },
+  "crucible completo": {
+    "prefix": "cruciblefull",
+    "body": [
+      "crucible \"${1:Nome}\" tagged \"${2:rapido}\":",
+      "    setup:",
+      "        ${3:base} := ${4:valor}",
+      "",
+      "    teardown:",
+      "        ${5:expect 1 is 1}",
+      "",
+      "    fixture ${6:recurso}():",
+      "        ${7:r} := ${8:preparar()}",
+      "        provide ${7:r}",
+      "        ${7:r}.fechar()",
+      "",
+      "    trial \"${9:caso}\":",
+      "        expect ${10:valor} is ${11:esperado}",
+      "",
+      "    trial \"${12:erro esperado}\":",
+      "        expect(lambda => ${13:arriscado()}).to_raise(${14:RuntimeError})",
+      "",
+      "    trial \"${15:adiado}\" pending \"${16:motivo}\":",
+      "        expect 1 is 1"
+    ],
+    "description": "Suíte completa com ganchos e fixture"
+  },
+  "trial": {
+    "prefix": "trial",
+    "body": [
+      "trial \"${1:o que deve acontecer}\":",
+      "    expect ${2:valor} is ${3:esperado}"
+    ],
+    "description": "Um caso de teste"
+  },
+  "trial parametrizado": {
+    "prefix": "trialover",
+    "body": [
+      "trial \"${1:vale para todos}\" over [${2:1, 2, 3}]:",
+      "    expect caso ${3:bigger} 0"
+    ],
+    "description": "Um caso por linha da tabela"
+  },
+  "trial com prazo": {
+    "prefix": "trialwithin",
+    "body": [
+      "trial \"${1:rápido}\" within ${2:100}:",
+      "    ${3:out \"aqui\"}"
+    ],
+    "description": "Falha se passar do prazo"
+  },
+  "expect encadeado": {
+    "prefix": "expect",
+    "body": [
+      "expect(${1:valor}).to_be(${2:esperado})"
+    ],
+    "description": "Expectativa encadeada"
+  },
+  "expect erro": {
+    "prefix": "expectraise",
+    "body": [
+      "expect(lambda => ${1:arriscado()}).to_raise(${2:RuntimeError})"
+    ],
+    "description": "Espera um erro"
+  },
+  "setup": {
+    "prefix": "setup",
+    "body": [
+      "setup:",
+      "    ${1:base} := ${2:valor}"
+    ],
+    "description": "Roda antes de cada trial"
+  },
+  "fixture": {
+    "prefix": "fixture",
+    "body": [
+      "fixture ${1:nome}():",
+      "    ${2:r} := ${3:preparar()}",
+      "    provide ${2:r}",
+      "    ${2:r}.fechar()"
+    ],
+    "description": "Preparo e limpeza juntos"
+  },
+  "bench": {
+    "prefix": "bench",
+    "body": [
+      "bench \"${1:nome}\" times ${2:1000}:",
+      "    ${3:x := 1 + 1}"
+    ],
+    "description": "Benchmark com p95"
+  },
+  "mock": {
+    "prefix": "mock",
+    "body": [
+      "m := Crucible.mock(\"${1:servico}\")",
+      "m.quando(\"${2:metodo}\").devolve(${3:valor})"
+    ],
+    "description": "Dublê programado"
+  },
+  "conectar": {
+    "prefix": "forgeconn",
+    "body": [
+      "adopt Forge",
+      "",
+      "db := Forge.conectar(\"${1|postgres://usuario:senha@localhost:5432/app,mysql://root@localhost/app,mongodb://localhost/app,redis://localhost,dados.db|}\")"
+    ],
+    "description": "Conecta a um banco"
+  },
+  "consulta": {
+    "prefix": "forgequery",
+    "body": [
+      "Forge.de(db, \"${1:tabela}\")",
+      "    .onde(\"${2:coluna}\", \"${3|=,!=,<,<=,>,>=,like,in|}\", ${4:valor})",
+      "    .ordenar(\"${5:coluna}\")",
+      "    .limite(${6:20})",
+      "    .buscar()"
+    ],
+    "description": "Consulta com o construtor"
+  },
+  "paginação": {
+    "prefix": "forgepage",
+    "body": [
+      "pagina := Forge.de(db, \"${1:tabela}\").paginar(${2:1}, ${3:20})",
+      "out pagina[\"linhas\"], pagina[\"paginas\"]"
+    ],
+    "description": "Consulta paginada"
+  },
+  "inserir": {
+    "prefix": "forgeinsert",
+    "body": [
+      "Forge.de(db, \"${1:tabela}\").inserir({",
+      "    \"${2:coluna}\": ${3:valor}",
+      "})"
+    ],
+    "description": "Inserção parametrizada"
+  },
+  "transação": {
+    "prefix": "forgetx",
+    "body": [
+      "Forge.transacao(db, lambda c => ${1:c.executar(\"update contas set saldo = 0\")})"
+    ],
+    "description": "Transação que desfaz sozinha no erro"
+  },
+  "modelo": {
+    "prefix": "forgemodel",
+    "body": [
+      "Usuario := Forge.modelo(\"${1:Usuario}\", {",
+      "    \"id\":    {\"tipo\": \"Serial\"},",
+      "    \"${2:email}\": {\"tipo\": \"Texto\", \"obrigatorio\": yes, \"unico\": yes,",
+      "              \"validacoes\": [\"email\"]},",
+      "    \"${3:idade}\": {\"tipo\": \"Inteiro\", \"padrao\": 0,",
+      "              \"validacoes\": [[\"minimo\", 0], [\"maximo\", 130]]}",
+      "}, {\"conexao\": db, \"marcas_de_tempo\": yes})",
+      "",
+      "Forge.migrar_tudo(db)"
+    ],
+    "description": "Modelo do ORM com validação"
+  },
+  "pool": {
+    "prefix": "forgepool",
+    "body": [
+      "pool := Forge.pool(\"${1:postgres://localhost/app}\", ${2:5})"
+    ],
+    "description": "Pool de conexões"
   },
   "server": {
     "prefix": "server",
     "body": [
       "server ${1:app} on ${2:8080}:",
-      "\tmiddleware Kiln.logger()",
+      "    route GET \"/\":",
+      "        respond \"${3:olá}\"",
       "",
-      "\troute GET \"/\":",
-      "\t\trespond html \"<h1>${3:Olá}</h1>\"",
-      "",
-      "ignite ${1:app}$0"
+      "ignite ${1:app}"
     ],
-    "description": "Kiln: uma aplicação web completa"
+    "description": "Servidor web"
   },
   "route": {
     "prefix": "route",
     "body": [
       "route ${1|GET,POST,PUT,PATCH,DELETE|} \"${2:/caminho}\":",
-      "\trespond json ${3:dados}$0"
+      "    respond ${3:json} ${4:dados}"
     ],
-    "description": "Kiln: uma rota"
+    "description": "Rota"
   },
   "route com parâmetro": {
-    "prefix": "routeparam",
+    "prefix": "routep",
     "body": [
-      "route GET \"${1:/itens}/:id\":",
-      "\t${2:item} := ${3:buscar}(params[\"id\"])",
-      "\tgiven ${2:item} is void:",
-      "\t\trespond 404 json {\"erro\": \"não achei\"}",
-      "\trespond json ${2:item}$0"
+      "route GET \"/${1:recurso}/:${2:id}\":",
+      "    respond json ${3:buscar}(params.${2:id})"
     ],
-    "description": "Kiln: rota com parâmetro e 404"
-  },
-  "respond": {
-    "prefix": "respond",
-    "body": [
-      "respond ${1|json,html,text,file|} ${2:valor}$0"
-    ],
-    "description": "Kiln: responder"
-  },
-  "render": {
-    "prefix": "render",
-    "body": [
-      "render \"${1:pagina.html}\" with {${2:\"titulo\": \"\"}}$0"
-    ],
-    "description": "Kiln: renderizar template"
+    "description": "Rota com parâmetro"
   },
   "CRUD REST": {
     "prefix": "crud",
     "body": [
-      "server ${1:api} on ${2:8080}:",
-      "\tmiddleware Kiln.cors()",
+      "route GET \"/${1:itens}\":",
+      "    respond json ${2:listar}()",
       "",
-      "\troute GET \"/${3:itens}\":",
-      "\t\trespond json ${3:itens}",
+      "route GET \"/${1:itens}/:id\":",
+      "    ${3:item} := ${4:buscar}(params.id)",
+      "    given ${3:item} is void:",
+      "        respond 404, {\"erro\": \"não encontrado\"}",
+      "    respond json ${3:item}",
       "",
-      "\troute GET \"/${3:itens}/:id\":",
-      "\t\trespond json ${3:itens}[int(params[\"id\"])]",
+      "route POST \"/${1:itens}\":",
+      "    dados := req.json()",
+      "    respond 201, json ${5:criar}(dados)",
       "",
-      "\troute POST \"/${3:itens}\":",
-      "\t\t${3:itens}.append(body)",
-      "\t\trespond 201 json body",
+      "route PUT \"/${1:itens}/:id\":",
+      "    respond json ${6:atualizar}(params.id, req.json())",
       "",
-      "\troute DELETE \"/${3:itens}/:id\":",
-      "\t\trespond 204$0"
+      "route DELETE \"/${1:itens}/:id\":",
+      "    ${7:remover}(params.id)",
+      "    respond 204, \"\""
     ],
-    "description": "Kiln: CRUD RESTful completo"
+    "description": "CRUD REST completo"
+  },
+  "middleware": {
+    "prefix": "middleware",
+    "body": [
+      "action ${1:registrar}(req, proximo):",
+      "    ${2:out req.caminho}",
+      "    yield proximo(req)",
+      "",
+      "server ${3:app} on ${4:8080}:",
+      "    middleware ${1:registrar}"
+    ],
+    "description": "Middleware: uma ação, ligada no bloco server"
+  },
+  "render": {
+    "prefix": "render",
+    "body": [
+      "render \"${1:pagina.html}\" with {\"${2:chave}\": ${3:valor}}"
+    ],
+    "description": "Renderiza template"
   },
   "planilha": {
-    "prefix": "xlsx",
+    "prefix": "excel",
     "body": [
-      "adopt Arcane.Excel as Xls",
+      "adopt Arcane.Excel as Excel",
       "",
-      "livro := Xls.new()",
-      "Xls.sheet(livro, \"${1:Dados}\", ${2:registros})",
-      "Xls.save(livro, \"${3:saida.xlsx}\")$0"
+      "livro := Excel.novo()",
+      "Excel.escrever(livro, \"${1:Planilha}\", [",
+      "    [\"${2:Nome}\", \"${3:Valor}\"],",
+      "    [\"${4:a}\", ${5:1}]",
+      "])",
+      "Excel.salvar(livro, \"${6:saida.xlsx}\")"
     ],
-    "description": "Excel: gravar uma planilha"
+    "description": "Gera .xlsx"
+  },
+  "thread": {
+    "prefix": "thread",
+    "body": [
+      "thread:",
+      "    ${1:out \"em paralelo\"}"
+    ],
+    "description": "Thread"
+  },
+  "canal": {
+    "prefix": "channel",
+    "body": [
+      "channel ${1:fila}",
+      "",
+      "thread:",
+      "    ${1:fila}.enviar(${2:valor})",
+      "",
+      "out ${1:fila}.receber()"
+    ],
+    "description": "Canal entre threads"
+  },
+  "teste por propriedade": {
+    "prefix": "forall",
+    "body": [
+      "Crucible.forall(Crucible.integers(0, 1000), lambda ${1:n}: ${2:condicao})"
+    ],
+    "description": "Teste por propriedade"
+  },
+  "propriedade (get)": {
+    "prefix": "get",
+    "body": [
+      "get ${1:nome}():",
+      "    yield self.${2:campo}"
+    ],
+    "description": "Propriedade só de leitura"
   }
 }
