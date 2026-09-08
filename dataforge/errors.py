@@ -182,54 +182,82 @@ class DataForgeError(Exception):
         return "\n".join(linhas)
 
 
-class SyncError(DataForgeError):
-    """Raised when indentation is inconsistent (mixed tabs/spaces)."""
-    CODIGO = "DF0101"
+# ═══════════════════════════════════════════════════════════
+#  As classes de erro
+# ═══════════════════════════════════════════════════════════
+#
+# Elas nao sao escritas a mao: nascem da tabela em
+# 'catalogo_erros.py', a mesma de onde sai o texto de
+# 'dataforge explain'. Escrever as duas listas separadamente
+# garantia divergencia — um erro com classe e sem explicacao, ou
+# com explicacao sob o codigo errado.
+#
+# O que se ganha alem de nao divergir: a hierarquia fica
+# declarada num lugar so, e e ela que 'handle' usa para decidir o
+# que captura. 'handle RuntimeError' pega DivisionByZeroError
+# porque a tabela diz que uma deriva da outra.
+
+def _construir_classes():
+    """Cria uma classe por entrada do catalogo, respeitando a heranca.
+
+    Percorre em rodadas: numa passada so, uma classe cuja mae ainda
+    nao existe ficaria de fora. Poucas rodadas bastam — a hierarquia
+    tem tres niveis.
+    """
+    from .catalogo_erros import ERROS
+
+    criadas = {"DataForgeError": DataForgeError}
+    pendentes = [e for e in ERROS if e["classe"]]
+
+    while pendentes:
+        avancou = False
+        restantes = []
+        for entrada in pendentes:
+            mae = criadas.get(entrada["pai"])
+            if mae is None:
+                restantes.append(entrada)
+                continue
+            classe = type(entrada["classe"], (mae,), {
+                "CODIGO": entrada["codigo"],
+                "__doc__": entrada["titulo"],
+                "__module__": __name__,
+            })
+            criadas[entrada["classe"]] = classe
+            avancou = True
+        if not avancou:
+            faltando = ", ".join(f'{e["classe"]}<-{e["pai"]}' for e in restantes)
+            raise RuntimeError(f"catalogo de erros com mae inexistente: {faltando}")
+        pendentes = restantes
+
+    return criadas
 
 
-class LexError(DataForgeError):
-    """Raised during tokenization."""
-    CODIGO = "DF0102"
+ERROS_POR_NOME = _construir_classes()
+globals().update(ERROS_POR_NOME)
+
+#: Todo nome de erro que 'handle' aceita, incluindo a forma sem
+#: sublinhado ('TypeError' para a classe 'TypeError_'). O sublinhado
+#: existe so para nao colidir com o builtin do Python; quem escreve
+#: DataForge nunca o ve.
+ALIAS_DE_ERRO = {}
+for _nome, _classe in ERROS_POR_NOME.items():
+    ALIAS_DE_ERRO[_nome] = _classe
+    if _nome.endswith("_"):
+        ALIAS_DE_ERRO[_nome[:-1]] = _classe
+del _nome, _classe
 
 
-class ParseError(DataForgeError):
-    """Raised during parsing."""
-    CODIGO = "DF0103"
+def erro_por_nome(nome):
+    """A classe de erro com este nome, ou None.
+
+    Aceita 'TypeError' e 'TypeError_' indistintamente.
+    """
+    return ALIAS_DE_ERRO.get(nome)
 
 
-class RuntimeError_(DataForgeError):
-    """Raised during interpretation/runtime."""
-    CODIGO = "DF0201"
-
-
-class TypeError_(DataForgeError):
-    """Raised on type mismatch."""
-    CODIGO = "DF0301"
-
-
-class NameError_(DataForgeError):
-    """Raised when a name is not found."""
-    CODIGO = "DF0401"
-
-
-class ImportError_(DataForgeError):
-    """Raised when an adopt (import) fails."""
-    CODIGO = "DF0501"
-
-
-class IndexError_(DataForgeError):
-    """Raised on invalid index access."""
-    CODIGO = "DF0601"
-
-
-class TriggerError(DataForgeError):
-    """User-raised error via 'trigger'."""
-    CODIGO = "DF0701"
-
-
-class StackOverflowError_(DataForgeError):
-    """Raised when recursion goes too deep."""
-    CODIGO = "DF0801"
+def nomes_de_erro():
+    """Todo nome capturavel por 'handle', em ordem."""
+    return sorted(ALIAS_DE_ERRO)
 
 
 class ControlSignal(BaseException):

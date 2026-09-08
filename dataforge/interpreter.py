@@ -16,10 +16,42 @@ from .errors import (
     DataForgeError, Frame, RuntimeError_, TypeError_, NameError_, TriggerError,
     HaltSignal, SkipSignal, YieldSignal, IndexError_, ImportError_,
     StackOverflowError_,
+    erro_por_nome, ERROS_POR_NOME,
+    DivisionByZeroError, ConversionError, NullReferenceError, ValueError_,
+    ImmutableError, ConstantReassignmentError, UnpackError, OperatorError,
+    ComparisonError, RangeError, ArithmeticOverflowError, StateError,
+    ArityError, NotCallableError, NotIterableError, NotIndexableError,
+    NotHashableError, UndefinedMemberError, KeyError_, EmptyCollectionError,
+    SliceError, ValueNotFoundError, SortKeyError, NegativeSizeError,
+    PrivateAccessError, ProtectedAccessError, AbstractInstantiationError,
+    TraitContractError, FinalOverrideError, ReadOnlyPropertyError,
+    RecordMutationError, UnknownFieldError, EnumMemberError, EnumValueError,
+    ModuleNotFoundError_, CircularImportError, IOError_, FileNotFoundError_,
+    PermissionError_, SerializationError, RegexError, DateTimeError,
+    ObjectError, EncodingError, FormatError, MemoryLimitError,
+    NotImplementedError_,
 )
 
 
 # ── DataForge Runtime Objects ──────────────────────────────
+
+def _agrupar_por(itens, chave):
+    """Agrupa numa vault: {valor_da_chave: [itens]}."""
+    grupos = {}
+    for item in itens:
+        grupos.setdefault(chave(item), []).append(item)
+    return grupos
+
+
+def _intercalar(itens, separador):
+    """Poe o separador entre os itens, nao nas pontas."""
+    saida = []
+    for i, item in enumerate(itens):
+        if i:
+            saida.append(separador)
+        saida.append(item)
+    return saida
+
 
 def _flatten_deep(lst):
     """Recursively flatten nested lists."""
@@ -155,6 +187,29 @@ class DFBlueprint:
                 # private do pai nao vaza para o filho; protected sim
                 return "protected" if v == "protected" else "private"
         return "public"
+
+    def declarante_de(self, nome):
+        """O blueprint da linhagem que DECLAROU este membro.
+
+        E o que decide a visibilidade: um metodo de Base acessando um
+        'private' de Base funciona mesmo quando 'self' e uma Derivada.
+        Comparar com o blueprint da instancia — como se fazia — recusava
+        exatamente esse caso, que e o normal em qualquer linguagem com
+        heranca.
+        """
+        # A subclasse COPIA os campos declarados do pai, entao
+        # 'fields_decl' nao distingue quem declarou. O que distingue e
+        # 'visibility': ele so recebe entrada no blueprint onde o membro
+        # aparece escrito. Por isso ele vem primeiro, e o resto e
+        # desempate para membros publicos.
+        for bp in self.linhagem():
+            if nome in bp.visibility:
+                return bp
+        for bp in self.linhagem():
+            if (nome in bp.methods or nome in bp.properties
+                    or any(c[0] == nome for c in bp.fields_decl)):
+                return bp
+        return self
 
     def linhagem(self):
         """Este blueprint e todos os ancestrais, do mais proximo ao mais longe."""
@@ -632,7 +687,22 @@ class Interpreter:
                 raise RuntimeError_(
                     f"Cannot execute node type: {classe.__name__}",
                     node.line, node.column)
-        return metodo(node, env)
+        try:
+            return metodo(node, env)
+        except (DataForgeError, ControlSignal):
+            # Ja e da linguagem, ou e desvio de fluxo: passa reto. Um
+            # 'raise' aqui nao mexe no traceback nem na origem.
+            raise
+        except Exception as e:
+            # Rede final. Qualquer coisa que o Python levante e que nao
+            # tenha sido traduzida mais perto da causa vira erro da
+            # linguagem AQUI, e nao no topo do programa — e essa a
+            # diferenca entre 'monitor' capturar e nao capturar.
+            #
+            # Fica em 'execute' e nao em 'evaluate' de proposito: a
+            # instrucao e a menor unidade que 'monitor' delimita, e
+            # sao muito menos por segundo que expressoes.
+            raise self._traduzir_excecao(e, node) from None
 
     def evaluate(self, node, env: Environment):
         """Avalia um no e devolve o valor."""
@@ -708,6 +778,17 @@ class Interpreter:
         try:
             return env.get(node.name)
         except NameError_ as e:
+            # Nome de erro como valor: 'to_raise(KeyError)',
+            # 'e.type is KeyError'. Fica aqui, e nao nos builtins,
+            # porque sao TIPOS e nao funcoes — a doc de embutidas
+            # listaria 177 nomes que ninguem chama.
+            #
+            # E o ultimo recurso, depois do escopo: quem declarar uma
+            # variavel chamada 'KeyError' continua vendo a sua.
+            tipo = erro_por_nome(node.name)
+            if tipo is not None:
+                return tipo
+
             # O Environment nao conhece posicao; o no conhece.
             if not e.line:
                 e.line, e.column = node.line, node.column
@@ -762,7 +843,7 @@ class Interpreter:
                 return left * right
             elif op == '/':
                 if right == 0:
-                    raise RuntimeError_(
+                    raise DivisionByZeroError(
                         "Division by zero.", node.line, node.column,
                         nota="the right side evaluated to 0",
                         dica=("guard the divisor first:\n"
@@ -771,12 +852,20 @@ class Interpreter:
                         doc="operadores")
                 return left / right
             elif op == '%':
+                if right == 0:
+                    raise DivisionByZeroError(
+                        "Remainder by zero.", node.line, node.column,
+                        nota="'%' divides too, so a zero on the right has no answer",
+                        dica=("guard the divisor first:\n"
+                              "    given divisor isnt 0:\n"
+                              "        out a % divisor"),
+                        doc="operadores")
                 return left % right
             elif op == '**':
                 return left ** right
             elif op == '//':
                 if right == 0:
-                    raise RuntimeError_(
+                    raise DivisionByZeroError(
                         "Division by zero.", node.line, node.column,
                         nota="the right side evaluated to 0",
                         dica=("guard the divisor first:\n"
@@ -1068,6 +1157,33 @@ class Interpreter:
                 'encode': lambda enc="utf-8": list(obj.encode(enc)),
                 'format': lambda *a, **kw: obj.format(*a, **kw),
                 'join': lambda it: obj.join(str(x) for x in it),
+                # O resto da linguagem e snake_case ('index_of', 'pad_start',
+                # 'char_at'). Estes nomes vieram do Python e destoavam: quem
+                # escrevia o obvio 'starts_with' recebia "membro nao existe".
+                'starts_with': lambda prefix: obj.startswith(prefix),
+                'ends_with': lambda suffix: obj.endswith(suffix),
+                'is_alpha': lambda: obj.isalpha(),
+                'is_digit': lambda: obj.isdigit(),
+                'is_alnum': lambda: obj.isalnum(),
+                'is_space': lambda: obj.isspace(),
+                'is_upper': lambda: obj.isupper(),
+                'is_lower': lambda: obj.islower(),
+                'is_title': lambda: obj.istitle(),
+                'is_numeric': lambda: obj.isnumeric(),
+                'is_empty': lambda: len(obj) == 0,
+                'split_lines': lambda keepends=False: obj.splitlines(keepends),
+                'remove_prefix': lambda pfx: obj[len(pfx):] if obj.startswith(pfx) else obj,
+                'remove_suffix': lambda sfx: obj[:-len(sfx)] if sfx and obj.endswith(sfx) else obj,
+                'expand_tabs': lambda ts=8: obj.expandtabs(ts),
+                'trim_start': lambda: obj.lstrip(),
+                'trim_end': lambda: obj.rstrip(),
+                'to_upper': lambda: obj.upper(),
+                'to_lower': lambda: obj.lower(),
+                'title_case': lambda: obj.title(),
+                'swap_case': lambda: obj.swapcase(),
+                'count_of': lambda sub: obj.count(sub),
+                'chars': lambda: list(obj),
+                'bytes': lambda enc="utf-8": list(obj.encode(enc)),
             }
             if node.member in string_methods:
                 return BuiltinFunction(node.member, string_methods[node.member])
@@ -1081,7 +1197,28 @@ class Interpreter:
                 'pop': lambda idx=-1: obj.pop(idx),
                 'insert': lambda idx, item: obj.insert(idx, item),
                 'remove': lambda item: obj.remove(item),
-                'sort': lambda: (obj.sort(), obj)[-1],
+                # Sem 'chave', ordenar vaults ou records era impossivel
+                # pela lista — so pela funcao global 'sorted'.
+                'sort': lambda chave=None, reverso=False: (
+                    obj.sort(key=chave, reverse=reverso), obj)[-1],
+                'sorted': lambda chave=None, reverso=False:
+                    sorted(obj, key=chave, reverse=reverso),
+                'is_empty': lambda: len(obj) == 0,
+                'sum_of': lambda f: sum(f(x) for x in obj),
+                'group_by': lambda f: _agrupar_por(obj, f),
+                'partition': lambda f: [
+                    [x for x in obj if f(x)], [x for x in obj if not f(x)]],
+                'zip_with': lambda outra: [list(t) for t in zip(obj, outra)],
+                'index_where': lambda f: next(
+                    (i for i, x in enumerate(obj) if f(x)), -1),
+                'find_last': lambda f: next(
+                    (x for x in reversed(obj) if f(x)), None),
+                'none': lambda f: not any(f(x) for x in obj),
+                'sliding': lambda n: [obj[i:i+n] for i in range(len(obj)-n+1)]
+                    if n <= len(obj) else [],
+                'intersperse': lambda sep: _intercalar(obj, sep),
+                'compact': lambda: [x for x in obj if x is not None],
+                'tally': lambda: _freq_list(obj),
                 'reverse': lambda: (obj.reverse(), obj)[-1],
                 'contains': lambda item: item in obj,
                 'includes': lambda item: item in obj,
@@ -1167,7 +1304,7 @@ class Interpreter:
             dica = ("use  valor ?? padrao  for a fallback, or check first "
                     "with  vault.has(chave)")
 
-        return IndexError_(
+        return KeyError_(
             f'Key "{texto_chave}" is not in this vault.',
             node.line, node.column, nota=nota, dica=dica, doc="colecoes",
             rotulo="key read here")
@@ -1178,7 +1315,7 @@ class Interpreter:
         tipo = "Cluster" if isinstance(sequencia, list) else "String"
 
         if n == 0:
-            return IndexError_(
+            return EmptyCollectionError(
                 f"Index {indice} is out of range: this {tipo.lower()} is empty.",
                 node.line, node.column,
                 dica=("check it is not empty before reading:  "
@@ -1233,14 +1370,14 @@ class Interpreter:
             if isinstance(method, DFAction):
                 return self._call_action(method, args, kwargs, node, env, instance=obj.instance)
             if callable(method):
-                return method(*args, **kwargs)
+                return self._invocar(method, args, kwargs, node, node.method)
 
         if isinstance(obj, DFRecordInstance):
             metodo = obj.get(node.method)
             if isinstance(metodo, DFAction):
                 return self._call_action(metodo, args, kwargs, node, env, instance=obj)
             if callable(metodo):
-                return metodo(*args, **kwargs)
+                return self._invocar(metodo, args, kwargs, node, node.method)
 
         # Um modulo e um dict de nomes. 'M.Ponto(1, 2)' precisa construir
         # o record que esta sob 'Ponto' — sem isto, a chamada procurava
@@ -1257,7 +1394,7 @@ class Interpreter:
             if isinstance(method, DFAction):
                 return self._call_action(method, args, kwargs, node, env, instance=obj)
             if callable(method):
-                return method(*args, **kwargs)
+                return self._invocar(method, args, kwargs, node, node.method)
         elif isinstance(obj, DFBlueprint):
             if node.method in obj.methods:
                 method = obj.methods[node.method]
@@ -1278,12 +1415,12 @@ class Interpreter:
             if node.method in obj.statics:
                 val = obj.statics[node.method]
                 if callable(val):
-                    return val(*args, **kwargs)
+                    return self._invocar(val, args, kwargs, node, node.method)
                 return val
         elif isinstance(obj, (BuiltinFunction,)):
-            return obj(*args, **kwargs)
+            return self._invocar(obj, args, kwargs, node, node.method)
         elif hasattr(obj, '__call__'):
-            return obj(*args, **kwargs)
+            return self._invocar(obj, args, kwargs, node, node.method)
 
         # Try getting a builtin method
         member = self.eval_MemberAccess(
@@ -1291,9 +1428,9 @@ class Interpreter:
             env
         )
         if callable(member):
-            return member(*args, **kwargs)
+            return self._invocar(member, args, kwargs, node, node.method)
 
-        raise RuntimeError_(f"Cannot call method '{node.method}' on {type(obj).__name__}", node.line, node.column)
+        raise NotCallableError(f"Cannot call method '{node.method}' on {type(obj).__name__}", node.line, node.column)
 
     @staticmethod
     def _copiar_padrao(valor):
@@ -1517,6 +1654,239 @@ class Interpreter:
     # ═══════════════════════════════════════════════════════
     #  Kiln — framework web
     # ═══════════════════════════════════════════════════════
+
+    # ═══════════════════════════════════════════════════════
+    #  Crucible — o framework de testes
+    # ═══════════════════════════════════════════════════════
+
+    def exec_CrucibleBlock(self, node: ast.CrucibleBlock, env):
+        """crucible "<nome>": corpo — abre uma suite e a preenche.
+
+        O corpo roda UMA vez, na declaracao, e o que ele faz e
+        registrar: 'trial' guarda um corpo para depois, 'setup' guarda
+        um gancho. Nada e executado agora — quem executa e o
+        'Crucible.run()', ou o 'dataforge crucible'.
+
+        Essa separacao e a mesma de 'server' e 'ignite', e pelo mesmo
+        motivo: um arquivo importado nao pode sair rodando a suite
+        inteira so por ter sido lido.
+        """
+        from .stdlib.crucible import REGISTRO
+
+        nome = self.evaluate(node.name, env)
+        suite = REGISTRO.abrir_suite(self._to_str(nome))
+        suite.tags = [self._to_str(self.evaluate(t, env)) for t in node.tags]
+        if node.pending is not None:
+            suite.pendente = self._to_str(self.evaluate(node.pending, env))
+
+        interno = Environment(parent=env, name=f"<crucible {nome}>")
+        interno.set_local("__crucible_suite__", suite)
+
+        # O quadro do trial: um escopo filho, refeito antes de cada
+        # trial. O 'setup' escreve nele e o corpo do trial le dali —
+        # e como um le o que o outro preparou sem que o valor sobreviva
+        # ao trial seguinte.
+        def abrir_quadro():
+            suite.quadro = Environment(parent=interno, name=f"<quadro {nome}>")
+            return suite.quadro
+
+        suite.abrir_quadro = abrir_quadro
+        abrir_quadro()
+
+        try:
+            for stmt in node.body:
+                self.execute(stmt, interno)
+        finally:
+            REGISTRO.fechar_suite()
+        return suite
+
+    def _suite_do_escopo(self, env, node, palavra):
+        from .stdlib.crucible import REGISTRO
+        try:
+            return env.get("__crucible_suite__")
+        except Exception:
+            if REGISTRO.atual is not REGISTRO.raiz:
+                return REGISTRO.atual
+            raise RuntimeError_(
+                f"'{palavra}' only works inside a 'crucible' block.",
+                node.line, node.column,
+                dica=('open one first:\n'
+                      '    crucible "o que voce testa":\n'
+                      f'        {palavra} …'),
+                doc="crucible")
+
+    def exec_TrialBlock(self, node: ast.TrialBlock, env):
+        """trial "<nome>" [modificadores]: corpo"""
+        from .stdlib.crucible import Trial
+
+        suite = self._suite_do_escopo(env, node, "trial")
+        nome = self._to_str(self.evaluate(node.name, env))
+        tags = [self._to_str(self.evaluate(t, env)) for t in node.tags]
+        pendente = ("" if node.pending is None
+                    else self._to_str(self.evaluate(node.pending, env)))
+        repetir = 1 if node.repeat is None else int(self.evaluate(node.repeat, env))
+        prazo = 0 if node.within is None else float(self.evaluate(node.within, env))
+        dados = None if node.over is None else list(self.evaluate(node.over, env))
+
+        corpo_node = node.body
+        arquivo = self.filename
+
+        def corpo(caso=None):
+            """Roda no quadro da suite, que o executor acabou de refazer.
+
+            Escrever direto no quadro, e nao num filho dele, e o que
+            permite 'contador := contador + 1' funcionar como se
+            espera — e nao vazar, porque o quadro nasce de novo a cada
+            trial.
+            """
+            escopo = suite.quadro or Environment(parent=env,
+                                                 name=f"<trial {nome}>")
+            if caso is not None:
+                escopo.set_local("caso", caso)
+            for stmt in corpo_node:
+                self.execute(stmt, escopo)
+
+        suite.trials.append(Trial(
+            nome, corpo, tags, pendente=pendente, focado=node.focused,
+            repetir=repetir, prazo=prazo, arquivo=arquivo, linha=node.line,
+            dados=dados))
+        return nome
+
+    def exec_HookBlock(self, node: ast.HookBlock, env):
+        """setup: / teardown: / setup all: / teardown all:"""
+        suite = self._suite_do_escopo(env, node, node.kind)
+        corpo_node = node.body
+
+        def gancho(alvo=None):
+            # Escreve NO quadro do trial, nao num escopo proprio: o que
+            # o 'setup' declara precisa chegar ao corpo do trial, e e
+            # exatamente para isso que ele existe.
+            escopo = (alvo.quadro if alvo is not None and alvo.quadro
+                      else suite.quadro)
+            if escopo is None:
+                escopo = Environment(parent=env, name=f"<{node.kind}>")
+            for stmt in corpo_node:
+                self.execute(stmt, escopo)
+            return dict(escopo.variables)
+
+        if node.kind == "setup":
+            (suite.antes_de_cada if node.every else suite.antes_de_tudo).append(gancho)
+        else:
+            (suite.depois_de_cada if node.every else suite.depois_de_tudo).append(gancho)
+        return None
+
+    def exec_FixtureBlock(self, node: ast.FixtureBlock, env):
+        """fixture <nome>(): corpo — preparo e limpeza em um lugar so.
+
+        O 'provide' divide o corpo em duas metades: o que vem antes
+        prepara, o que vem depois limpa. Escrever as duas juntas e o
+        que impede a limpeza de ser esquecida — que e o modo mais comum
+        de uma suite passar a depender da ordem.
+        """
+        suite = self._suite_do_escopo(env, node, "fixture")
+        corpo_node = node.body
+        interpretador = self
+
+        def montar():
+            escopo = Environment(parent=env, name=f"<fixture {node.name}>")
+            entregue = []
+            resto = []
+            for i, stmt in enumerate(corpo_node):
+                if isinstance(stmt, ast.ProvideStatement):
+                    entregue.append(interpretador.evaluate(stmt.value, escopo)
+                                    if stmt.value is not None else None)
+                    resto = corpo_node[i + 1:]
+                    break
+                interpretador.execute(stmt, escopo)
+
+            def limpar():
+                for stmt in resto:
+                    interpretador.execute(stmt, escopo)
+
+            return (entregue[0] if entregue else None), limpar
+
+        suite.fixtures[node.name] = montar
+        env.set(node.name, montar)
+        return node.name
+
+    def exec_ProvideStatement(self, node: ast.ProvideStatement, env):
+        """provide <valor> — so tem sentido dentro de uma fixture."""
+        raise RuntimeError_(
+            "'provide' only works inside a 'fixture' block.",
+            node.line, node.column,
+            dica=("it splits the fixture in two: what comes before "
+                  "prepares, what comes after cleans up"),
+            doc="crucible")
+
+    def exec_ExpectStatement(self, node: ast.ExpectStatement, env):
+        """expect <expr> <matcher> <arg> — a forma curta."""
+        from .stdlib.crucible import Expectativa, FalhaDeExpectativa
+
+        valor = self.evaluate(node.value, env)
+        expectativa = Expectativa(valor)
+        if node.negated:
+            expectativa.nao()
+
+        if not node.matcher:
+            # 'expect <expr>' sozinho cobra que o valor seja verdadeiro.
+            if bool(valor) == node.negated:
+                raise FalhaDeExpectativa(
+                    f"devia valer como verdadeiro, e veio "
+                    f"{self._to_str(valor)}")
+            return None
+
+        args = [self.evaluate(a, env) for a in node.args]
+
+        # 'to_not_be' nao existe como matcher: e 'to_be' negado.
+        nome = node.matcher
+        if nome.startswith("to_not_"):
+            expectativa.nao()
+            nome = "to_" + nome[len("to_not_"):]
+
+        metodo = getattr(expectativa, nome, None)
+        if metodo is None:
+            disponiveis = sorted(
+                m for m in dir(Expectativa) if m.startswith("to_"))
+            import difflib
+            perto = difflib.get_close_matches(nome, disponiveis, n=3, cutoff=0.5)
+            raise RuntimeError_(
+                f"'{nome}' is not a matcher.", node.line, node.column,
+                nota=(f"did you mean: {', '.join(perto)}?" if perto else
+                      f"there are {len(disponiveis)} matchers"),
+                dica="dataforge crucible --matchers  lists them all",
+                doc="crucible")
+        metodo(*args)
+        return None
+
+    def exec_BenchBlock(self, node: ast.BenchBlock, env):
+        """bench "<nome>" [times <n>]: corpo — mede em vez de cobrar."""
+        from .stdlib.crucible import Trial
+
+        suite = self._suite_do_escopo(env, node, "bench")
+        nome = self._to_str(self.evaluate(node.name, env))
+        vezes = 1000 if node.times is None else int(self.evaluate(node.times, env))
+        corpo_node = node.body
+        interpretador = self
+        arquivo = self.filename
+
+        def corpo(caso=None):
+            from .stdlib.crucible import ArcaneCrucible
+            escopo = suite.quadro or Environment(parent=env,
+                                                 name=f"<bench {nome}>")
+
+            def uma_volta():
+                for stmt in corpo_node:
+                    interpretador.execute(stmt, escopo)
+
+            medida = ArcaneCrucible._benchmark(nome, uma_volta, vezes)
+            print(f"    ⏱  {nome}: {medida['media_ms']:.4f}ms media, "
+                  f"{medida['mediana_ms']:.4f}ms mediana, "
+                  f"p95 {medida['p95_ms']:.4f}ms, "
+                  f"{medida['ops_por_s']:.0f} ops/s")
+
+        suite.trials.append(Trial(nome, corpo, ["bench"], arquivo=arquivo,
+                                  linha=node.line))
+        return nome
 
     def exec_ServerBlock(self, node: ast.ServerBlock, env):
         """server <nome> [on <porta>]: corpo
@@ -2721,20 +3091,45 @@ class Interpreter:
         message = exc.message if isinstance(exc, DataForgeError) else str(exc)
         return DFError(type(exc).__name__.rstrip('_'), message, exc)
 
+    #: Nomes que capturam qualquer erro.
+    _CAPTURA_TUDO = frozenset({"Error", "Exception", "Any", "DataForgeError"})
+
     def _error_matches(self, exc, handle_type, env) -> bool:
-        """Check whether a caught exception matches an optional 'handle <Type>' filter."""
+        """O erro capturado casa com o filtro de 'handle <Tipo>'?
+
+        A comparacao e por HERANCA, nao por nome. Com 177 codigos
+        organizados em familias, comparar nomes exatos obrigaria a
+        listar cada erro possivel:
+
+            handle DivisionByZeroError:
+            handle ConversionError:
+            handle NullReferenceError:      // ... e mais dezessete
+
+        Com heranca, 'handle RuntimeError' pega os tres, e quem
+        precisa distinguir ainda pode nomear o especifico. E a
+        expectativa de quem chega de qualquer linguagem com excecoes.
+
+        Um erro do proprio programa ('trigger MinhaFalha(...)') nao tem
+        classe: casa pelo nome que o 'trigger' deu.
+        """
         if not handle_type:
             return True
-        name = type(exc).__name__.rstrip('_')
-        if handle_type in (name, type(exc).__name__):
+        if handle_type in self._CAPTURA_TUDO:
             return True
-        # Allow the generic aliases used in the docs.
-        aliases = {
-            "Error": True,
-            "Exception": True,
-            "Any": True,
-        }
-        return bool(aliases.get(handle_type))
+
+        # Erro nomeado pelo programa: 'trigger SaldoInsuficiente(...)'.
+        rotulo = getattr(exc, "tipo_usuario", None)
+        if rotulo and rotulo == handle_type:
+            return True
+
+        alvo = erro_por_nome(handle_type)
+        if alvo is not None:
+            return isinstance(exc, alvo)
+
+        # Nome desconhecido: cai no confronto textual de antes, para
+        # nao quebrar codigo que capture um erro do Python cru.
+        nome = type(exc).__name__
+        return handle_type in (nome, nome.rstrip('_'))
 
     # ── Modules ────────────────────────────────────────────
 
@@ -3172,22 +3567,34 @@ class Interpreter:
         if visib == "public":
             return
 
+        # Quem manda na visibilidade e o blueprint que DECLAROU o membro,
+        # nao o da instancia. Sem isto, um metodo herdado que le um
+        # 'private' da propria classe era recusado: 'self' e da subclasse,
+        # e a comparacao dava Base != Derivada.
+        dono = blueprint.declarante_de(membro)
+
         de_dentro = self._blueprint_do_escopo(env)
         if de_dentro is None:
             onde = "outside any blueprint"
         else:
-            if visib == "private" and de_dentro == blueprint.name:
+            if visib == "private" and de_dentro == dono.name:
                 return
             if visib == "protected" and any(
-                    bp.name == de_dentro for bp in blueprint.linhagem()):
+                    bp.name == de_dentro for bp in dono.linhagem()):
                 return
+            # 'protected' tambem vale de dentro de uma subclasse: quem
+            # herda enxerga o membro do pai.
+            if visib == "protected":
+                for bp in blueprint.linhagem():
+                    if bp.name == de_dentro:
+                        return
             onde = f"from '{de_dentro}'"
 
-        dica = (f"Only '{blueprint.name}' can read it."
+        dica = (f"Only '{dono.name}' can read it."
                 if visib == "private"
-                else f"Only '{blueprint.name}' and its subtypes can read it.")
+                else f"Only '{dono.name}' and its subtypes can read it.")
         raise TypeError_(
-            f"'{blueprint.name}.{membro}' is {visib} and was accessed {onde}. "
+            f"'{dono.name}.{membro}' is {visib} and was accessed {onde}. "
             f"{dica}",
             node.line, node.column)
 
@@ -3219,6 +3626,117 @@ class Interpreter:
             msg += f"\n    It has: {mostra}{resto}"
         raise NameError_(msg, node.line, node.column)
 
+    #: Excecao do Python -> classe do DataForge. O que nao esta aqui
+    #: vira RuntimeError_, que e o pai de quase tudo em 02xx.
+    _TRADUCAO_PYTHON = None
+
+    @classmethod
+    def _tabela_traducao(cls):
+        if cls._TRADUCAO_PYTHON is None:
+            cls._TRADUCAO_PYTHON = {
+                ZeroDivisionError: DivisionByZeroError,
+                KeyError: KeyError_,
+                IndexError: IndexError_,
+                OverflowError: ArithmeticOverflowError,
+                RecursionError: StackOverflowError_,
+                UnicodeDecodeError: EncodingError,
+                UnicodeEncodeError: EncodingError,
+                FileNotFoundError: FileNotFoundError_,
+                PermissionError: PermissionError_,
+                IsADirectoryError: IOError_,
+                NotADirectoryError: IOError_,
+                FileExistsError: IOError_,
+                OSError: IOError_,
+                MemoryError: MemoryLimitError,
+                AttributeError: UndefinedMemberError,
+                NotImplementedError: NotImplementedError_,
+                StopIteration: EmptyCollectionError,
+            }
+        return cls._TRADUCAO_PYTHON
+
+    def _traduzir_excecao(self, e, node, contexto=""):
+        """Uma excecao do Python vira um erro do DataForge.
+
+        Sem isto, tudo o que a stdlib do Python levanta atravessava o
+        interpretador cru: '[].min()' terminava num 'Internal Error:
+        min() iterable argument is empty' que nem 'monitor' capturava,
+        e que fala de um Python que quem escreve DataForge nunca viu.
+
+        A traducao faz duas coisas de uma vez: da ao erro um tipo que
+        'handle' entende, e troca o vocabulario do Python pelo da
+        linguagem.
+        """
+        if isinstance(e, DataForgeError):
+            return e
+
+        classe = None
+        for py, df in self._tabela_traducao().items():
+            if isinstance(e, py):
+                classe = df
+                break
+
+        texto = str(e) or type(e).__name__
+        nota = ""
+        dica = ""
+
+        # Casos em que a mensagem do Python nao ajuda quem le.
+        if isinstance(e, ValueError):
+            baixo = texto.lower()
+            if "empty" in baixo:
+                classe = EmptyCollectionError
+                texto = "This collection is empty."
+                nota = "min, max, first, last and mean need at least one item"
+                dica = "check with  given len(xs) bigger 0:  before calling"
+            elif "invalid literal" in baixo or "could not convert" in baixo:
+                classe = ConversionError
+                dica = "use int_ou(x, padrao) when the input may not be a number"
+            elif "not in list" in baixo or "not in" in baixo:
+                classe = ValueNotFoundError
+                dica = "check with  xs.contains(item)  before removing or indexing"
+            elif "slice step" in baixo or "step argument" in baixo:
+                classe = SliceError
+            else:
+                classe = classe or ValueError_
+        elif isinstance(e, TypeError):
+            baixo = texto.lower()
+            if "not iterable" in baixo:
+                classe = NotIterableError
+            elif "not subscriptable" in baixo:
+                classe = NotIndexableError
+            elif "unhashable" in baixo:
+                classe = NotHashableError
+                dica = "vault keys must be immutable: text, number or record"
+            elif "not callable" in baixo:
+                classe = NotCallableError
+            elif "argument" in baixo and ("positional" in baixo or "takes" in baixo):
+                classe = ArityError
+            else:
+                classe = classe or TypeError_
+
+        if classe is None:
+            classe = RuntimeError_
+
+        if contexto:
+            texto = f"{contexto}: {texto}"
+
+        linha = getattr(node, "line", 0)
+        coluna = getattr(node, "column", 0)
+        return classe(texto, linha, coluna, nota=nota, dica=dica)
+
+    def _invocar(self, alvo, args, kwargs, node, contexto=""):
+        """Chama um callable do host traduzindo o que ele levantar.
+
+        Todo ponto em que o interpretador entrega o controle a codigo
+        Python passa por aqui. Deixar um deles de fora reabre o buraco:
+        o erro sobe cru e o programa DataForge nao tem como trata-lo.
+        """
+        try:
+            return alvo(*args, **kwargs)
+        except (DataForgeError, ControlSignal):
+            raise
+        except Exception as e:
+            raise self._traduzir_excecao(e, node, contexto) from None
+
     def _call(self, callee, args, kwargs, node, env, instancia=None):
         """Call a callable value.
 
@@ -3228,10 +3746,7 @@ class Interpreter:
             return self._call_action(callee, args, kwargs, node, env,
                                      instance=instancia)
         if isinstance(callee, BuiltinFunction):
-            try:
-                return callee(*args, **kwargs)
-            except Exception as e:
-                raise RuntimeError_(str(e), node.line, node.column)
+            return self._invocar(callee, args, kwargs, node)
 
         if isinstance(callee, DFAction):
             return self._call_action(callee, args, kwargs, node, env)

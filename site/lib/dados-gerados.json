@@ -2489,6 +2489,72 @@
     }
    ]
   },
+  "meta": {
+   "nome": "Arcane.Meta",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "arg",
+     "sig": "(alvo, nome, indice, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "descrever",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "filtrar",
+     "sig": "(valores, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler",
+     "sig": "(alvo, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limpar",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "marcar",
+     "sig": "(alvo, nome, args, kwargs)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "metodos_com",
+     "sig": "(alvo, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nomes",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "opcao",
+     "sig": "(alvo, nome, chave, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tem",
+     "sig": "(alvo, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "todos",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "todos_de",
+     "sig": "(alvo, nome)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "os": {
    "nome": "Arcane.OS",
    "desc": "Sistema de arquivos, ambiente e caminhos.",

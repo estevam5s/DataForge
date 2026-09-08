@@ -186,6 +186,18 @@ class TokenType(Enum):
     VIEWS = auto()           # views    (pasta de templates)
     IGNITE = auto()          # ignite   (acende o forno: sobe o servidor)
 
+    # ── Crucible — framework de testes (contextuais) ──────
+    CRUCIBLE = auto()        # crucible (abre uma suite)
+    TRIAL = auto()           # trial    (um caso de teste)
+    EXPECT = auto()          # expect   (cobra um valor)
+    FIXTURE = auto()         # fixture  (preparo compartilhado)
+    PROVIDE = auto()         # provide  (entrega o valor da fixture)
+    SETUP_ = auto()          # setup    (roda antes de cada trial)
+    TEARDOWN = auto()        # teardown (roda depois de cada trial)
+    TAGGED = auto()          # tagged   (marca o trial)
+    PENDING = auto()         # pending  (nao roda, e diz por que)
+    BENCH = auto()           # bench    (mede em vez de cobrar)
+
     # ── Structural ────────────────────────────────────────
     NEWLINE = auto()
     INDENT = auto()
@@ -357,6 +369,28 @@ CONTEXTUAIS_KILN = {
     "views":      TokenType.VIEWS,
     "ignite":     TokenType.IGNITE,
 }
+
+# ── Palavras do Crucible ─────────────────────────────────────
+# Mesmo raciocinio das anteriores. 'expect', 'trial' e 'setup' sao
+# nomes que ninguem deveria perder — 'setup' e o proprio nome do
+# construtor de blueprint. Elas so valem dentro de um bloco
+# 'crucible', e 'crucible' so quando abre um ('crucible "nome":').
+CONTEXTUAIS_CRUCIBLE = {
+    "crucible": TokenType.CRUCIBLE,
+    "trial":    TokenType.TRIAL,
+    "expect":   TokenType.EXPECT,
+    "fixture":  TokenType.FIXTURE,
+    "provide":  TokenType.PROVIDE,
+    "setup":    TokenType.SETUP_,
+    "teardown": TokenType.TEARDOWN,
+    "tagged":   TokenType.TAGGED,
+    "pending":  TokenType.PENDING,
+    "bench":    TokenType.BENCH,
+}
+
+#: Os modificadores que podem seguir o nome de um trial.
+MODIFICADORES_TRIAL = ("tagged", "pending", "only", "repeat", "within")
+
 
 #: Os verbos aceitos depois de 'route'.
 VERBOS_KILN = ("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "ANY")

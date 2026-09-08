@@ -5,7 +5,7 @@ Handles indentation-based scoping with INDENT/DEDENT tokens.
 """
 
 from .tokens import Token, TokenType, KEYWORDS
-from .errors import LexError, SyncError
+from .errors import DataForgeError, LexError, SyncError
 
 
 class Lexer:
@@ -632,4 +632,12 @@ class Lexer:
 def tokenize(source: str, filename: str = "<stdin>") -> list[Token]:
     """Convenience function to tokenize source code."""
     lexer = Lexer(source, filename)
-    return lexer.tokenize()
+    try:
+        return lexer.tokenize()
+    except DataForgeError as erro:
+        # Carimba o arquivo na saida, e nao em cada 'raise': ha varios
+        # pontos que levantam SyncError direto, e um deles esquecido
+        # devolveria '<stdin>' para um arquivo que tem nome.
+        if not erro.filename:
+            erro.filename = filename
+        raise

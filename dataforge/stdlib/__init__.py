@@ -26,6 +26,7 @@ from .arcane_serialization import ArcaneSerialization
 from .kiln import ArcaneKiln
 from .arcane_excel import ArcaneExcel
 from .arcane_meta import ArcaneMeta
+from .crucible import ArcaneCrucible
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -86,6 +87,10 @@ _MODULES = {
     # ── Metadados de decorador ──
     "Arcane.Meta": ArcaneMeta,
     "Meta": ArcaneMeta,
+
+    # ── Crucible — o framework de testes ──
+    "Crucible": ArcaneCrucible,
+    "Arcane.Crucible": ArcaneCrucible,
 }
 
 

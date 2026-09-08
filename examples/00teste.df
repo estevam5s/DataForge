@@ -1,6 +1,0 @@
-adopt Arcane.Math as M              // biblioteca padrão
-adopt validador as V                // pacote instalado
-adopt ./util as U                   // arquivo ao lado
-adopt ./lib/formato as F            // numa subpasta
-adopt ../compartilhado/config as C  // subindo
-adopt "src/legado.df" as L          // caminho literal

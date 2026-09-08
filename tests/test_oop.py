@@ -255,6 +255,42 @@ out (spawn Filho()).revelar()
 ''') == "42"
 
 
+def test_private_do_pai_vale_em_metodo_herdado():
+    """Regressao: o metodo herdado le o private de quem o declarou.
+
+    A checagem olhava o blueprint da INSTANCIA. Numa instancia de
+    'Quadrado', um metodo escrito em 'Retangulo' lendo 'self.escala'
+    comparava 'Retangulo' com 'Quadrado' e recusava o proprio autor.
+    """
+    assert rodar('''
+blueprint Retangulo(largura, altura):
+    private escala: Float := 2.0
+    action area():
+        yield self.largura * self.altura * self.escala
+blueprint Quadrado(lado) extends Retangulo:
+    action setup(lado):
+        self.largura := lado
+        self.altura := lado
+out (spawn Quadrado(5)).area()
+''') == "50.0"
+
+
+def test_private_do_pai_continua_fechado_para_o_filho():
+    """O que a correcao acima nao pode afrouxar: o herdeiro em pessoa."""
+    msg = erro_de('''
+blueprint Base:
+    private segredo: Integer := 42
+    action nada():
+        yield 0
+blueprint Filho extends Base:
+    action espiar():
+        yield self.segredo
+out (spawn Filho()).espiar()
+''')
+    assert "private" in msg
+    assert "segredo" in msg
+
+
 # ─── Estaticos ─────────────────────────────────────────────
 
 def test_metodo_estatico():

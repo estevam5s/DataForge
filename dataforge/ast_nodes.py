@@ -861,3 +861,99 @@ class IgniteStatement(ASTNode):
     target: Any = None
     port: Any = None
     host: Any = None
+
+
+# ═════════════════════════════════════════════════════════════
+#  Crucible — o framework de testes
+# ═════════════════════════════════════════════════════════════
+
+@dataclass
+class CrucibleBlock(ASTNode):
+    """crucible "<nome>" [tagged "a", "b"]: corpo
+
+    Abre uma suite. Suites aninham: um 'crucible' dentro de outro cria
+    um grupo filho, que herda os ganchos e as fixtures do pai.
+    """
+    name: Any = None
+    tags: list = field(default_factory=list)
+    pending: Any = None
+    body: list = field(default_factory=list)
+
+
+@dataclass
+class TrialBlock(ASTNode):
+    """trial "<nome>" [modificadores]: corpo
+
+    Modificadores:
+        tagged "lento", "rede"      marca, para filtrar depois
+        pending "motivo"            nao roda, e o relatorio diz por que
+        only                        so os focados rodam
+        repeat <n>                  roda n vezes; instabilidade aparece
+        within <ms>                 falha se passar do prazo
+        over <tabela>               um caso por linha, com 'caso' ligado
+    """
+    name: Any = None
+    tags: list = field(default_factory=list)
+    pending: Any = None
+    focused: bool = False
+    repeat: Any = None
+    within: Any = None
+    over: Any = None
+    body: list = field(default_factory=list)
+
+
+@dataclass
+class ExpectStatement(ASTNode):
+    """expect <expr> [<matcher> <argumentos>]
+
+    Duas formas, e as duas viram a mesma cadeia:
+
+        expect(total).to_be(10)     encadeada, como na biblioteca
+        expect total is 10          a forma curta, so para os comuns
+    """
+    value: Any = None
+    matcher: str = ""
+    args: list = field(default_factory=list)
+    negated: bool = False
+
+
+@dataclass
+class FixtureBlock(ASTNode):
+    """fixture <nome>(): corpo
+
+    O corpo prepara, entrega com 'provide', e o que vem depois do
+    'provide' limpa. A limpeza roda mesmo quando o trial falha.
+    """
+    name: str = ""
+    params: list = field(default_factory=list)
+    scope: str = "trial"          # "trial" | "suite" | "arquivo"
+    body: list = field(default_factory=list)
+
+
+@dataclass
+class ProvideStatement(ASTNode):
+    """provide <valor> — entrega o valor preparado ao trial."""
+    value: Any = None
+
+
+@dataclass
+class HookBlock(ASTNode):
+    """setup: / teardown: — o que roda em volta de cada trial.
+
+    Com 'all' ('setup all:'), roda uma vez para a suite inteira.
+    """
+    kind: str = "setup"           # "setup" | "teardown"
+    every: bool = True            # False = uma vez por suite
+    body: list = field(default_factory=list)
+
+
+@dataclass
+class BenchBlock(ASTNode):
+    """bench "<nome>" [times <n>]: corpo
+
+    Mede em vez de cobrar. Sai no relatorio com media, mediana e p95 —
+    a media sozinha esconde a pausa do coletor de lixo.
+    """
+    name: Any = None
+    times: Any = None
+    body: list = field(default_factory=list)

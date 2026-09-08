@@ -985,9 +985,21 @@ def _df_class_name(instance):
 #  REGISTRY
 # ═══════════════════════════════════════════════════════════
 
+def _df_expect(valor, rotulo=""):
+    """O valor sob teste, com os matchers do Crucible."""
+    from .stdlib.crucible import Expectativa
+    return Expectativa(valor, rotulo)
+
+
 def get_builtins() -> dict:
     """Return all built-in functions as a dictionary."""
     return {
+        # ── Crucible ──
+        # '__expect__' e o alvo interno de 'expect(x).to_be(y)'. Tem
+        # dois sublinhados porque nao e para ser chamado a mao: quem
+        # escreve o teste ve 'expect', e o parser traduz.
+        "__expect__": BuiltinFunction("__expect__", _df_expect, 1),
+
         # ── Type & Conversion ──
         "len": BuiltinFunction("len", _df_len, 1),
         "type": BuiltinFunction("type", _df_type, 1),

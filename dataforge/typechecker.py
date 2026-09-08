@@ -191,6 +191,13 @@ class TypeChecker:
         for extra in ("self", "this", "root", "__file__", "__name__", "error"):
             self.global_scope.declare(extra, ANY)
 
+        # Os 177 nomes de erro sao valores: 'to_raise(KeyError)',
+        # 'e.type is KeyError'. Sem isto o analisador acusa "nome nao
+        # definido" em todo teste que nomeia o erro que espera.
+        from .errors import ALIAS_DE_ERRO
+        for nome in ALIAS_DE_ERRO:
+            self.global_scope.declare(nome, "Error")
+
     def _demoted(self):
         """Contexto em que 'erro' vira 'aviso' (corpo de monitor/retry)."""
         verificador = self
@@ -208,7 +215,8 @@ class TypeChecker:
     def error(self, mensagem, node, hint="", code=""):
         severidade = 'warning' if self._demote else 'error'
         if severidade == 'warning':
-            hint = (hint + " (inside a 'monitor', so this is only a warning)").strip()
+            hint = (hint + " (inside a 'monitor' or 'expect', "
+                    "so this is only a warning)").strip()
         self.diagnostics.append(Diagnostic(
             severidade, mensagem, getattr(node, 'line', 0),
             getattr(node, 'column', 0), hint, code))
@@ -602,6 +610,74 @@ class TypeChecker:
         return False
 
     # ── Kiln ───────────────────────────────────────────────
+
+    # ── Crucible ───────────────────────────────────────────
+
+    def st_CrucibleBlock(self, node, escopo):
+        """A suite ve o escopo de fora; o que ela declara nao vaza."""
+        self.infer(node.name, escopo)
+        for t in node.tags:
+            self.infer(t, escopo)
+        if node.pending is not None:
+            self.infer(node.pending, escopo)
+        self.visit_block(node.body, Scope(escopo, "crucible"))
+        return False
+
+    def st_TrialBlock(self, node, escopo):
+        self.infer(node.name, escopo)
+        for t in node.tags:
+            self.infer(t, escopo)
+        for campo in (node.pending, node.repeat, node.within, node.over):
+            if campo is not None:
+                self.infer(campo, escopo)
+        interno = Scope(escopo, "action")
+        # 'caso' existe quando o trial percorre uma tabela ('over'), e
+        # so entao. Declarar sempre produziria "nao usado" em todo
+        # trial comum; nao declarar nunca acusaria "nao definido" nos
+        # parametrizados. Por isso a condicao.
+        if node.over is not None:
+            interno.declare("caso", UNKNOWN, node.line, node.column)
+        self.visit_block(node.body, interno)
+        return False
+
+    def st_HookBlock(self, node, escopo):
+        # O gancho declara no escopo da SUITE, nao num filho: e assim
+        # que 'setup' entrega valores aos trials.
+        self.visit_block(node.body, escopo)
+        return False
+
+    def st_FixtureBlock(self, node, escopo):
+        escopo.declare(node.name, "Action", node.line, node.column)
+        interno = Scope(escopo, "action")
+        for p in node.params:
+            interno.declare(p, UNKNOWN, node.line, node.column)
+        self.visit_block(node.body, interno)
+        return False
+
+    def st_ProvideStatement(self, node, escopo):
+        if node.value is not None:
+            self.infer(node.value, escopo)
+        # 'provide' divide a fixture, nao a encerra: o que vem depois e
+        # a limpeza, e precisa ser analisado.
+        return False
+
+    def st_ExpectStatement(self, node, escopo):
+        # Um 'expect' existe para provocar: 'expect(lambda => 1 / 0)
+        # .to_raise(...)' e o jeito certo de testar a divisao por zero,
+        # e acusar erro ali ensina a ignorar o analisador. Mesma regra
+        # do corpo de 'monitor'.
+        with self._demoted():
+            self.infer(node.value, escopo)
+            for a in node.args:
+                self.infer(a, escopo)
+        return False
+
+    def st_BenchBlock(self, node, escopo):
+        self.infer(node.name, escopo)
+        if node.times is not None:
+            self.infer(node.times, escopo)
+        self.visit_block(node.body, Scope(escopo, "action"))
+        return False
 
     def st_ServerBlock(self, node, escopo):
         """O nome do server passa a existir no escopo de fora."""
@@ -1182,6 +1258,18 @@ class TypeChecker:
         return self.ex_MethodCall(node, escopo)
 
     def ex_FunctionCall(self, node, escopo):
+        # 'expect(...)' na forma encadeada chega aqui como chamada a
+        # '__expect__'. O argumento existe para provocar falha —
+        # 'expect(lambda => 1 / 0).to_raise(...)' e a forma correta de
+        # testar divisao por zero — entao vale a mesma tolerancia do
+        # 'monitor'. Sem ela, o analisador acusa o teste que faz certo.
+        if isinstance(node.callee, ast.Identifier) \
+                and node.callee.name == "__expect__":
+            with self._demoted():
+                for a in node.args:
+                    self.infer(a, escopo)
+            return "Expectativa"
+
         for a in node.args:
             self.infer(a.value if isinstance(a, ast.SpreadElement) else a, escopo)
         for v in node.kwargs.values():

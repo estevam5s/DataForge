@@ -270,8 +270,37 @@ GRUPOS = [
             "Todo erro do DataForge tem um codigo estavel, como DF0601.\n"
             "Este comando diz o que ele significa e como resolver.",
             exemplos=[("dataforge explain DF0601", ""),
-                      ("dataforge explain 0401", "o prefixo e opcional")],
-            veja=("check",)),
+                      ("dataforge explain 0401", "o prefixo e opcional"),
+                      ("dataforge explain KeyError", "o nome da classe tambem")],
+            veja=("check", "erros")),
+        Cmd("crucible", "dataforge crucible [alvo]",
+            "Roda as suites do Crucible, o framework de testes",
+            "Descobre os arquivos, carrega as suites e roda tudo junto.\n"
+            "Sem alvo, procura em tests/, testes/ e *_crucible.df.",
+            opcoes=[("--verbose, -v", "mostra tambem o que passou"),
+                    ("--filtro=<t>", "so os trials cujo nome contem <t>"),
+                    ("--tag=<a,b>", "so os marcados com estas tags"),
+                    ("--sem-tag=<a>", "pula os marcados com esta tag"),
+                    ("--aleatorio", "embaralha a ordem; ordem oculta aparece"),
+                    ("--semente=<n>", "repete um embaralhamento especifico"),
+                    ("--repetir=<n>", "roda cada trial n vezes"),
+                    ("--prazo=<ms>", "falha o que passar deste tempo"),
+                    ("--fail-fast", "para na primeira falha"),
+                    ("--formato=<f>", "texto | junit | json | tap"),
+                    ("--out=<arq>", "escreve o relatorio num arquivo"),
+                    ("--matchers", "lista tudo o que se pode cobrar")],
+            exemplos=[("dataforge crucible", "roda tudo"),
+                      ("dataforge crucible --tag=rapido", "so os rapidos"),
+                      ("dataforge crucible --formato=junit --out=r.xml",
+                       "para o CI")],
+            veja=("test", "bench")),
+        Cmd("erros", "dataforge erros [termo]",
+            "Lista o catalogo de erros da linguagem",
+            "Sao 177 codigos em 15 familias. Sem termo, lista tudo\n"
+            "agrupado; com termo, procura no titulo e na explicacao.",
+            exemplos=[("dataforge erros", "o catalogo inteiro"),
+                      ("dataforge erros banco", "so o que fala de banco")],
+            veja=("explain",)),
         Cmd("doc", "dataforge doc [alvo]",
             "Gera documentacao Markdown a partir dos comentarios",
             opcoes=[("--out=<arquivo>", "escreve num arquivo")],
@@ -1606,6 +1635,144 @@ def test_command(alvos, verboso=False, filtro="", parar=False):
         sys.exit(1)
 
 
+def crucible_command(alvos, opcoes):
+    """dataforge crucible — roda as suites do Crucible.
+
+    Descobre os arquivos, executa cada um (o que registra as suites) e
+    so entao roda tudo junto. A ordem importa: rodar durante a
+    descoberta impediria '--aleatorio' de embaralhar entre arquivos, e
+    'setup all' de uma suite espalhada em dois arquivos rodaria duas
+    vezes.
+    """
+    from .stdlib.crucible import (REGISTRO, Executor, relatorio,
+                                  relatorio_junit, relatorio_json,
+                                  relatorio_tap)
+    from .interpreter import Interpreter
+    from .lexer import tokenize
+    from .parser import parse
+
+    if opcoes.get("matchers"):
+        return _listar_matchers()
+
+    arquivos = _expandir(alvos or ["."])
+    arquivos = [a for a in arquivos
+                if "_crucible" in os.path.basename(a)
+                or "_test" in os.path.basename(a)
+                or os.sep + "tests" + os.sep in a
+                or os.sep + "testes" + os.sep in a] or arquivos
+
+    if not arquivos:
+        print(color("Nenhum arquivo .df encontrado.", "1;33"))
+        sys.exit(1)
+
+    REGISTRO.reiniciar()
+    cor = "--no-color" not in sys.argv
+
+    problemas = []
+    for caminho in arquivos:
+        fonte, motivo = _ler(caminho)
+        if fonte is None:
+            problemas.append((caminho, motivo))
+            continue
+        try:
+            interpretador = Interpreter()
+            interpretador.run(parse(tokenize(fonte, caminho), caminho), caminho)
+        except SystemExit:
+            raise
+        except BaseException as e:          # noqa: BLE001
+            problemas.append((caminho, f"{type(e).__name__}: {e}"))
+
+    if problemas:
+        print(color("\n  Arquivos que nao puderam ser carregados:", "1;31"))
+        for caminho, motivo in problemas:
+            print(f"    {os.path.relpath(caminho)}: {motivo}")
+        print()
+
+    if REGISTRO.raiz.total() == 0:
+        print(color("Nenhuma suite encontrada.", "1;33"))
+        print(color("  Uma suite comeca com:  crucible \"o que voce testa\":",
+                    "0;90"))
+        sys.exit(1)
+
+    executor = Executor(
+        semente=opcoes.get("semente"),
+        aleatorio=bool(opcoes.get("aleatorio")),
+        prazo_padrao=opcoes.get("prazo", 0),
+        filtro=opcoes.get("filtro", ""),
+        tags=opcoes.get("tags", ()),
+        sem_tags=opcoes.get("sem_tags", ()),
+        parar_na_primeira=bool(opcoes.get("parar")),
+        repetir=opcoes.get("repetir", 1),
+    )
+    executor.rodar(REGISTRO.raiz)
+
+    formato = opcoes.get("formato", "texto")
+    if formato == "junit":
+        saida = relatorio_junit(executor)
+    elif formato == "json":
+        saida = relatorio_json(executor)
+    elif formato == "tap":
+        saida = relatorio_tap(executor)
+    else:
+        saida = relatorio(executor, colorir=cor,
+                          verboso=bool(opcoes.get("verboso")))
+
+    destino = opcoes.get("saida", "")
+    if destino:
+        os.makedirs(os.path.dirname(destino) or ".", exist_ok=True)
+        open(destino, "w", encoding="utf-8").write(saida)
+        print(color(f"✓ relatorio escrito em {destino}", "1;32"))
+    else:
+        print(saida)
+
+    if not executor.resumo()["verde"] or problemas:
+        sys.exit(1)
+
+
+def _listar_matchers():
+    """dataforge crucible --matchers — o que se pode cobrar."""
+    from .stdlib.crucible import Expectativa
+
+    grupos = {
+        "igualdade": ("to_be", "to_equal", "to_be_exactly", "to_be_close_to",
+                      "to_be_between"),
+        "verdade": ("to_be_true", "to_be_false", "to_be_truthy",
+                    "to_be_falsy", "to_be_void", "to_exist", "to_be_empty"),
+        "tipos": ("to_be_a", "to_be_number", "to_be_text", "to_be_cluster",
+                  "to_be_vault", "to_be_action", "to_be_integer",
+                  "to_be_float", "to_be_boolean", "to_be_instance_of"),
+        "numeros": ("to_be_greater_than", "to_be_less_than", "to_be_at_least",
+                    "to_be_at_most", "to_be_positive", "to_be_negative",
+                    "to_be_zero", "to_be_even", "to_be_odd",
+                    "to_be_divisible_by", "to_be_finite", "to_be_nan"),
+        "texto": ("to_start_with", "to_end_with", "to_match", "to_be_blank",
+                  "to_be_uppercase", "to_be_lowercase", "to_contain_text",
+                  "to_have_lines"),
+        "colecoes": ("to_contain", "to_contain_all", "to_contain_any",
+                     "to_be_in", "to_have_length", "to_have_key",
+                     "to_have_keys", "to_have_field", "to_be_sorted",
+                     "to_be_unique", "to_all_satisfy", "to_any_satisfy",
+                     "to_have_same_items"),
+        "erros": ("to_raise", "to_not_raise"),
+        "desempenho": ("to_finish_within",),
+        "saida": ("to_print",),
+    }
+    print()
+    total = sum(len(v) for v in grupos.values())
+    print(f"  {color('MATCHERS DO CRUCIBLE', '1;37')}  "
+          f"{color(f'{total} em {len(grupos)} grupos', '0;90')}")
+    for nome, matchers in grupos.items():
+        print()
+        print(f"  {color(nome.upper(), '1;36')}")
+        for m in matchers:
+            doc = (getattr(Expectativa, m).__doc__ or "").strip().split("\n")[0]
+            print(f"    {color(m, '1;33'):<34} {color(doc, '0;90')}")
+    print()
+    print(color("  Todo matcher aceita '.nao()' antes dele para inverter.",
+                "0;90"))
+    print()
+
+
 def doc_command(alvos, saida=""):
     """dataforge doc — gera documentação Markdown."""
     from .docgen import gerar_doc, gerar_doc_pasta
@@ -1916,6 +2083,51 @@ def bench_command(alvo, repeticoes=10):
                 "0;90"))
 
 
+def erros_command(filtro=""):
+    """dataforge erros [termo] — o catalogo inteiro, por familia.
+
+    Com 177 codigos, uma lista plana nao se le. O agrupamento por
+    familia e o mesmo do codigo: os dois primeiros digitos depois do
+    'DF' dizem a familia, entao quem ve 'DF06xx' na mensagem ja sabe
+    que o problema e de colecao.
+    """
+    from .diagnosticos import por_familia, procurar
+
+    if filtro:
+        achados = procurar(filtro)
+        if not achados:
+            print(color(f"Nada no catalogo menciona '{filtro}'.", "1;33"))
+            print("  Sem termo, 'dataforge erros' lista tudo.")
+            sys.exit(1)
+        print()
+        print(f"  {len(achados)} resultado(s) para {color(filtro, '1;37')}")
+        print()
+        for e in achados:
+            print(f"    {color(e['codigo'], '1;31')}  "
+                  f"{e['titulo']:<42} {color(e['classe'], '0;90')}")
+        print()
+        print(color("  dataforge explain <codigo>  para o detalhe", "0;90"))
+        print()
+        return
+
+    grupos = por_familia()
+    total = sum(len(v) for v in grupos.values())
+    print()
+    print(f"  {color('CATALOGO DE ERROS', '1;37')}  "
+          f"{color(f'{total} codigos em {len(grupos)} familias', '0;90')}")
+    for nome, entradas in grupos.items():
+        faixa = entradas[0]["codigo"][:4] + "xx"
+        print()
+        print(f"  {color(faixa, '1;33')}  {color(nome.upper(), '1;36')}")
+        for e in entradas:
+            print(f"    {color(e['codigo'], '1;31')}  "
+                  f"{e['titulo']:<42} {color(e['classe'], '0;90')}")
+    print()
+    print(color("  dataforge explain <codigo|Classe>   o detalhe de um", "0;90"))
+    print(color("  dataforge erros <termo>             procura no catalogo", "0;90"))
+    print()
+
+
 def explain_command(codigo):
     """dataforge explain DF0601 — o que significa um codigo de erro."""
     from .diagnosticos import CATALOGO, buscar
@@ -1923,21 +2135,25 @@ def explain_command(codigo):
     if not codigo:
         print(color("Erro: informe o codigo.", "1;31"))
         print("  dataforge explain DF0601")
+        print("  dataforge explain KeyError      (o nome tambem serve)")
         print()
-        print("  Codigos conhecidos:")
-        for c in sorted(CATALOGO):
-            print(f"    {c}  {CATALOGO[c]['titulo']}")
+        print(color("  dataforge erros   lista o catalogo inteiro", "0;90"))
         sys.exit(1)
 
     entrada = buscar(codigo)
     if entrada is None:
         print(color(f"Nao conheco o codigo '{codigo}'.", "1;31"))
-        print(f"\n  Codigos disponiveis: {', '.join(sorted(CATALOGO))}")
+        print(color("\n  dataforge erros            lista os 177 codigos", "0;90"))
+        print(color("  dataforge erros <termo>    procura por assunto", "0;90"))
         sys.exit(1)
 
     cod, dados = entrada
     print()
     print(f"  {color(cod, '1;31')}  {color(dados['titulo'], '1;37')}")
+    if dados.get('classe'):
+        linhagem = f"{dados['classe']} < {dados['pai']}"
+        print(f"  {color(dados['familia'], '1;36')}   "
+              f"{color(linhagem, '0;90')}")
     print()
     for linha in dados['explicacao'].strip().split("\n"):
         print(f"  {linha}")
@@ -2504,6 +2720,35 @@ def main():
         test_command(args[1:], verboso='--verbose' in flags or '-v' in flags,
                      filtro=filtro, parar='--fail-fast' in flags)
 
+    elif command in ('crucible', 'cr'):
+        opcoes = {
+            "verboso": '--verbose' in flags or '-v' in flags,
+            "aleatorio": '--aleatorio' in flags or '--random' in flags,
+            "parar": '--fail-fast' in flags or '--parar' in flags,
+            "matchers": '--matchers' in flags,
+            "formato": "texto", "saida": "", "filtro": "",
+            "tags": (), "sem_tags": (), "prazo": 0, "repetir": 1,
+            "semente": None,
+        }
+        for f in flags:
+            if f.startswith('--filter=') or f.startswith('--filtro='):
+                opcoes["filtro"] = f.split('=', 1)[1]
+            elif f.startswith('--tag='):
+                opcoes["tags"] = tuple(f.split('=', 1)[1].split(','))
+            elif f.startswith('--sem-tag='):
+                opcoes["sem_tags"] = tuple(f.split('=', 1)[1].split(','))
+            elif f.startswith('--formato='):
+                opcoes["formato"] = f.split('=', 1)[1]
+            elif f.startswith('--out='):
+                opcoes["saida"] = f.split('=', 1)[1]
+            elif f.startswith('--prazo='):
+                opcoes["prazo"] = float(f.split('=', 1)[1])
+            elif f.startswith('--repetir='):
+                opcoes["repetir"] = int(f.split('=', 1)[1])
+            elif f.startswith('--semente='):
+                opcoes["semente"] = int(f.split('=', 1)[1])
+        crucible_command(args[1:], opcoes)
+
     elif command == 'doc':
         saida = ""
         for f in flags:
@@ -2565,6 +2810,8 @@ def main():
 
     elif command == 'explain':
         explain_command(args[1] if len(args) > 1 else "")
+    elif command in ('erros', 'errors'):
+        erros_command(args[1] if len(args) > 1 else "")
 
     elif command == 'tree':
         tree_command()

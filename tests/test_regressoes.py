@@ -96,7 +96,35 @@ monitor:
     x := 1 / 0
 handle e:
     out e.type, e.message
-""") == "RuntimeError Division by zero."
+""") == "DivisionByZeroError Division by zero."
+
+
+def test_erro_especifico_ainda_e_pego_pela_familia():
+    """O tipo ficou especifico; 'handle RuntimeError' nao pode ter parado.
+
+    Se a especializacao dos erros quebrasse a captura pela familia,
+    todo 'handle' escrito antes dela deixaria de funcionar em silencio.
+    """
+    assert run("""
+monitor:
+    x := 1 / 0
+handle RuntimeError as e:
+    out "peguei"
+""") == "peguei"
+
+
+def test_excecao_do_python_vira_erro_capturavel():
+    """Regressao: '[].min()' subia como 'Internal Error' incapturavel.
+
+    A mensagem vinha do Python ('min() iterable argument is empty') e
+    'monitor' nao a via, porque nao era um erro da linguagem.
+    """
+    assert run("""
+monitor:
+    out [].min()
+handle EmptyCollectionError as e:
+    out "capturado"
+""") == "capturado"
 
 
 # ── Precedencia e associatividade ──────────────────────────
@@ -484,7 +512,10 @@ def test_referencia_lista_todas_as_funcoes_embutidas():
     doc = open(os.path.join(raiz, "doc", "REFERENCIA.md"), encoding="utf-8").read()
     secao = doc[doc.index("## 13. Funções embutidas"):doc.index("## 14.")]
     listadas = set(re.findall(r"`([A-Za-z_0-9]+)`", secao)) - {"adopt"}
-    reais = set(get_builtins())
+    # Nomes com '__' sao do runtime, nao da linguagem: '__expect__' e o
+    # alvo interno de 'expect(x).to_be(y)', e quem escreve DataForge
+    # nunca o digita.
+    reais = {n for n in get_builtins() if not n.startswith("__")}
     assert not (reais - listadas), f"não documentadas: {sorted(reais - listadas)}"
     assert not (listadas - reais), f"documentadas mas inexistentes: {sorted(listadas - reais)}"
 
@@ -909,3 +940,28 @@ def test_interpolacao_aceita_string_com_aspas_normais():
     """
     assert run('v := {"id": 7}\nout $"item {v["id"]}"') == "item 7"
     assert run('out $"{pad_start(str(5), 2, "0")}"') == "05"
+
+
+def test_metodos_de_texto_seguem_snake_case():
+    """Regressao: 'starts_with' nao existia — so 'startswith', do Python.
+
+    O resto da linguagem e snake_case ('index_of', 'char_at', 'pad_start'),
+    entao quem escrevia o nome coerente recebia "membro nao existe".
+    """
+    assert run('out "abacate".starts_with("aba")') == "yes"
+    assert run('out "abacate".ends_with("ate")') == "yes"
+    assert run('out "abc".is_alpha(), "".is_empty()') == "yes yes"
+    assert run('out "a-b".to_upper()') == "A-B"
+
+
+def test_sort_da_lista_aceita_chave():
+    """Sem 'chave', ordenar records ou vaults pela lista era impossivel."""
+    assert run('''
+pessoas := [{"n": "Ana", "i": 30}, {"n": "Bia", "i": 25}]
+out pessoas.sorted(lambda p: p["i"]).map(lambda p: p["n"])
+''') == "[Bia, Ana]"
+
+
+def test_agrupamento_e_particao():
+    assert run('out [1, 2, 3, 4].partition(lambda n: n % 2 is 0)') == "[[2, 4], [1, 3]]"
+    assert run('out [1, 1, 2].tally()') == "{1: 2, 2: 1}"

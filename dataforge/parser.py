@@ -5,7 +5,7 @@ Implements recursive descent parsing with indentation-based scoping.
 """
 
 from .tokens import Token, TokenType
-from .errors import ParseError
+from .errors import DataForgeError, ParseError
 from . import ast_nodes as ast
 
 
@@ -24,6 +24,9 @@ class Parser:
         #  _em_server / _em_rota — onde as palavras do Kiln valem
         self._em_server = 0
         self._em_rota = 0
+        #  _em_crucible / _em_trial — onde as palavras do Crucible valem
+        self._em_crucible = 0
+        self._em_trial = 0
         #  _no_with — 'with' abre os dados do render, nao 'record with {…}'
         self._no_with = 0
 
@@ -162,6 +165,257 @@ class Parser:
             "render":   self.parse_render,
             "redirect": self.parse_redirect,
         }.get(palavra)
+
+    # ── Crucible ───────────────────────────────────────────
+    #  Mesma regra do Kiln: as dez palavras do Crucible so tem
+    #  sentido dentro de um bloco 'crucible'. Fora dele, 'expect',
+    #  'trial' e 'setup' seguem sendo nomes livres — e 'setup' e o
+    #  nome do construtor de blueprint, entao tirar seria caro.
+
+    def _abre_crucible(self) -> bool:
+        """'crucible' so abre bloco quando o que vem depois confirma.
+
+        Aceita 'crucible "nome":' e 'crucible nome:'. Sem esta
+        confirmacao, 'crucible := ...' viraria declaracao de suite.
+        """
+        seguinte = self.peek(1)
+        if seguinte.type not in (TokenType.STRING, TokenType.IDENTIFIER):
+            return False
+        depois = self.peek(2)
+        return depois.type == TokenType.COLON or (
+            depois.type == TokenType.IDENTIFIER
+            and depois.value in ("tagged", "pending"))
+
+    def _crucible_na_suite(self, palavra):
+        return {
+            "trial":    self.parse_trial,
+            "crucible": self.parse_crucible,
+            "fixture":  self.parse_fixture,
+            "setup":    lambda: self.parse_hook("setup"),
+            "teardown": lambda: self.parse_hook("teardown"),
+            "bench":    self.parse_bench,
+        }.get(palavra)
+
+    def parse_crucible(self):
+        """crucible "<nome>" [tagged ...] [pending "..."]: corpo"""
+        tok = self.advance()                       # 'crucible'
+        nome = self.parse_expression()
+        tags, pendente = self._modificadores_de_suite()
+        self.expect(TokenType.COLON, "Expected ':' after the crucible name")
+
+        self._em_crucible += 1
+        try:
+            corpo = self.parse_block()
+        finally:
+            self._em_crucible -= 1
+        return ast.CrucibleBlock(line=tok.line, column=tok.column,
+                                 name=nome, tags=tags, pending=pendente,
+                                 body=corpo)
+
+    def _modificadores_de_suite(self):
+        tags, pendente = [], None
+        while True:
+            if self._consumir_palavra("tagged"):
+                tags.append(self.parse_expression())
+                while self.match(TokenType.COMMA):
+                    tags.append(self.parse_expression())
+            elif self._consumir_palavra("pending"):
+                pendente = (self.parse_expression()
+                            if self.current().type == TokenType.STRING
+                            else ast.StringLiteral(value="pendente"))
+            else:
+                break
+        return tags, pendente
+
+    def parse_trial(self):
+        """trial "<nome>" [modificadores]: corpo"""
+        tok = self.advance()                       # 'trial'
+        nome = self.parse_expression()
+        tags, pendente = [], None
+        focado = False
+        repetir = dentro = sobre = None
+
+        while True:
+            if self._consumir_palavra("tagged"):
+                tags.append(self.parse_expression())
+                while self.match(TokenType.COMMA):
+                    tags.append(self.parse_expression())
+            elif self._consumir_palavra("pending"):
+                pendente = (self.parse_expression()
+                            if self.current().type == TokenType.STRING
+                            else ast.StringLiteral(value="pendente"))
+            elif self._consumir_palavra("only"):
+                focado = True
+            elif self._consumir_palavra("repeat"):
+                repetir = self.parse_expression()
+            elif self._consumir_palavra("within"):
+                dentro = self.parse_expression()
+            elif self._consumir_palavra("over"):
+                sobre = self.parse_expression()
+            else:
+                break
+
+        self.expect(TokenType.COLON, "Expected ':' after the trial name")
+        self._em_trial += 1
+        try:
+            corpo = self.parse_block()
+        finally:
+            self._em_trial -= 1
+        return ast.TrialBlock(line=tok.line, column=tok.column, name=nome,
+                              tags=tags, pending=pendente, focused=focado,
+                              repeat=repetir, within=dentro, over=sobre,
+                              body=corpo)
+
+    def parse_fixture(self):
+        """fixture <nome>() [scope suite|arquivo]: corpo"""
+        tok = self.advance()                       # 'fixture'
+        nome = self.expect(TokenType.IDENTIFIER,
+                           "Expected a name after 'fixture'").value
+        params = []
+        if self.match(TokenType.LPAREN):
+            while self.current().type != TokenType.RPAREN:
+                params.append(self.expect(TokenType.IDENTIFIER,
+                                          "Expected a parameter name").value)
+                if not self.match(TokenType.COMMA):
+                    break
+            self.expect(TokenType.RPAREN, "Expected ')'")
+
+        escopo = "trial"
+        if self._consumir_palavra("scope"):
+            escopo = str(self.advance().value or "trial")
+
+        self.expect(TokenType.COLON, "Expected ':' after the fixture header")
+        corpo = self.parse_block()
+        return ast.FixtureBlock(line=tok.line, column=tok.column, name=nome,
+                                params=params, scope=escopo, body=corpo)
+
+    def parse_provide(self):
+        """provide <valor>"""
+        tok = self.advance()                       # 'provide'
+        valor = None
+        if self.current().type not in (TokenType.NEWLINE, TokenType.EOF,
+                                       TokenType.DEDENT):
+            valor = self.parse_expression()
+        return ast.ProvideStatement(line=tok.line, column=tok.column,
+                                    value=valor)
+
+    def parse_hook(self, qual):
+        """setup: | teardown: | setup all: | teardown all:"""
+        tok = self.advance()                       # 'setup' ou 'teardown'
+        cada = not self._consumir_palavra("all")
+        self.expect(TokenType.COLON, f"Expected ':' after '{qual}'")
+        corpo = self.parse_block()
+        return ast.HookBlock(line=tok.line, column=tok.column, kind=qual,
+                             every=cada, body=corpo)
+
+    def parse_bench(self):
+        """bench "<nome>" [times <n>]: corpo"""
+        tok = self.advance()                       # 'bench'
+        nome = self.parse_expression()
+        vezes = None
+        if self._consumir_palavra("times"):
+            vezes = self.parse_expression()
+        self.expect(TokenType.COLON, "Expected ':' after the bench name")
+        corpo = self.parse_block()
+        return ast.BenchBlock(line=tok.line, column=tok.column, name=nome,
+                              times=vezes, body=corpo)
+
+    #: Operador de comparacao -> matcher, para a forma curta
+    #: 'expect total is 10' e 'expect n bigger 5'.
+    _MATCHER_DE_OPERADOR = {
+        "is": "to_be",
+        "isnt": "to_not_be",
+        "bigger": "to_be_greater_than",
+        "smaller": "to_be_less_than",
+        "bigger_eq": "to_be_at_least",
+        "smaller_eq": "to_be_at_most",
+    }
+
+    #: Matchers escritos por palavra: 'expect nome matches "^A"'.
+    _MATCHER_CURTO = {
+        "matches": "to_match", "raises": "to_raise",
+        "has": "to_contain", "near": "to_be_close_to",
+        "type": "to_be_a", "length": "to_have_length",
+        "starts": "to_start_with", "ends": "to_end_with",
+    }
+
+    def parse_expect(self):
+        """expect <expr> [<matcher> <arg>]
+
+        A forma longa ('expect(x).to_be(1)') e so uma expressao: o
+        'expect' inicial e consumido aqui e o resto vira chamada de
+        metodo pelo caminho comum. A curta ('expect x is 1') existe
+        porque quatro de cada cinco cobrancas sao igualdade, e
+        '.to_be(...)' em volta delas so acrescenta ruido.
+        """
+        tok = self.advance()                       # 'expect'
+
+        # Forma longa: 'expect(' — devolve a cadeia inteira como
+        # expressao, para os matchers encadearem naturalmente.
+        if self.current().type == TokenType.LPAREN:
+            # Uma expressao solta ja e uma instrucao valida aqui: o
+            # interpretador avalia e descarta o valor, e os matchers
+            # levantam por conta propria quando nao se cumprem.
+            return self._expect_encadeado(tok)
+
+        negado = self._consumir_palavra("not")
+        valor = self.parse_expression()
+        matcher, args = "", []
+
+        # 'is', 'bigger' e 'in' sao operadores de comparacao: quando o
+        # parser chega aqui, 'expect 2 + 2 is 4' ja virou UM no de
+        # comparacao, e nao 'expect <2+2>' seguido de 'is 4'.
+        #
+        # Baixar a precedencia para deixar o 'is' de fora quebraria
+        # 'expect a and b' e 'expect x ?? y'. Decompor o no depois
+        # custa nada e preserva a expressao inteira nos dois casos.
+        if isinstance(valor, ast.ComparisonOp) and \
+                valor.op in self._MATCHER_DE_OPERADOR:
+            matcher = self._MATCHER_DE_OPERADOR[valor.op]
+            args = [valor.right]
+            valor = valor.left
+        elif isinstance(valor, ast.BinaryOp) and valor.op == "in":
+            matcher, args, valor = "to_be_in", [valor.right], valor.left
+        else:
+            # Forma com palavra: 'expect texto matches "^a"'.
+            atual = self.current()
+            texto = atual.value if atual.type == TokenType.IDENTIFIER else None
+            if texto in self._MATCHER_CURTO:
+                self.advance()
+                matcher = self._MATCHER_CURTO[texto]
+                if self.current().type not in (TokenType.NEWLINE, TokenType.EOF,
+                                               TokenType.DEDENT):
+                    args.append(self.parse_expression())
+                    while self.match(TokenType.COMMA):
+                        args.append(self.parse_expression())
+
+        return ast.ExpectStatement(line=tok.line, column=tok.column,
+                                   value=valor, matcher=matcher, args=args,
+                                   negated=negado)
+
+    def _expect_encadeado(self, tok):
+        """'(valor).matcher(...)…' — devolve a expressao inteira."""
+        self.advance()                             # '('
+        valor = self.parse_expression()
+        self.expect(TokenType.RPAREN, "Expected ')' after the expected value")
+        expr = ast.FunctionCall(
+            callee=ast.Identifier(name="__expect__", line=tok.line,
+                                  column=tok.column),
+            args=[valor], kwargs={}, line=tok.line, column=tok.column)
+        while self.current().type == TokenType.DOT:
+            self.advance()
+            membro = self.advance().value
+            args, kwargs = [], {}
+            if self.current().type == TokenType.LPAREN:
+                self.advance()
+                args, kwargs = self._parse_call_args()
+                # '_parse_call_args' para NO ')' e deixa o fechamento
+                # para quem chamou — como fazem os outros usos dele.
+                self.expect(TokenType.RPAREN, "Expected ')' after the matcher")
+            expr = ast.MethodCall(object=expr, method=membro, args=args,
+                                  kwargs=kwargs, line=tok.line,
+                                  column=tok.column)
+        return expr
 
     def _palavra(self, texto) -> bool:
         """A instrucao atual e o identificador <texto>?"""
@@ -363,6 +617,21 @@ class Parser:
             producao = self._kiln_na_rota(tok.value)
             if producao is not None:
                 return producao()
+
+        # ── Crucible: 'crucible "nome":' abre a suite ──
+        if tt == TokenType.IDENTIFIER and tok.value == "crucible" \
+                and self._abre_crucible():
+            return self.parse_crucible()
+
+        # ── Crucible: palavras validas dentro da suite ──
+        if self._em_crucible and tt == TokenType.IDENTIFIER:
+            producao = self._crucible_na_suite(tok.value)
+            if producao is not None:
+                return producao()
+            if tok.value == "provide":
+                return self.parse_provide()
+            if tok.value == "expect":
+                return self.parse_expect()
 
         # ── @Decorador (com ou sem 'mark' antes) ──
         if tt == TokenType.AT or (tt == TokenType.MARK
@@ -1569,12 +1838,25 @@ class Parser:
         self.skip_newlines()
         if self.current().type == TokenType.HANDLE:
             self.advance()
-            # handle:  |  handle name:  |  handle Type as name:
+            # handle:  |  handle nome:  |  handle Tipo:  |  handle Tipo as nome:
+            #
+            # Sem 'as', a inicial decide: 'handle KeyError:' filtra pelo
+            # tipo, 'handle erro:' da nome ao erro. E a mesma convencao
+            # do resto da linguagem — Integer, Cluster e Ponto sao tipos,
+            # 'total' e 'erro' sao valores.
+            #
+            # Antes, tudo sem 'as' virava nome, e 'handle KeyError:'
+            # capturava QUALQUER erro sob o nome 'KeyError'. Com um
+            # punhado de tipos isso passava; com 177, e uma armadilha:
+            # o bloco engole erros sem relacao nenhuma e o programa
+            # segue como se nada tivesse acontecido.
             if self.current().type == TokenType.IDENTIFIER:
                 first = self.advance().value
                 if self.match(TokenType.AS):
                     handle_type = first
                     handle_name = self.expect(TokenType.IDENTIFIER, "Expected error name after 'as'").value
+                elif first[:1].isupper():
+                    handle_type = first
                 else:
                     handle_name = first
             self.expect(TokenType.COLON)
@@ -2634,4 +2916,9 @@ class Parser:
 def parse(tokens: list[Token], filename: str = "<stdin>") -> ast.Program:
     """Convenience function to parse tokens into AST."""
     parser = Parser(tokens, filename)
-    return parser.parse()
+    try:
+        return parser.parse()
+    except DataForgeError as erro:
+        if not erro.filename:
+            erro.filename = filename
+        raise
