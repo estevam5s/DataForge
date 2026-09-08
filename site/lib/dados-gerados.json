@@ -779,6 +779,222 @@
     }
    ]
   },
+  "crucible": {
+   "nome": "Crucible",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "after",
+     "sig": "(corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "after_all",
+     "sig": "(corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "approx",
+     "sig": "(valor, casas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "before",
+     "sig": "(corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "before_all",
+     "sig": "(corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "benchmark",
+     "sig": "(nome, acao, vezes, aquecimento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "booleans",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "capture",
+     "sig": "(acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "check",
+     "sig": "(condicao, mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "clusters",
+     "sig": "(item, tamanho_max)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "describe",
+     "sig": "(nome, corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "diff",
+     "sig": "(esperado, obtido)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "expect",
+     "sig": "(valor, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fail",
+     "sig": "(mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fixture",
+     "sig": "(nome, corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "floats",
+     "sig": "(minimo, maximo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "forall",
+     "sig": "(gerador, propriedade, casos, semente)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "freeze_time",
+     "sig": "(instante)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "integers",
+     "sig": "(minimo, maximo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "json",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "junit",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mock",
+     "sig": "(nome, alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "one_of",
+     "sig": "(valores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "only",
+     "sig": "(nome, corpo, tags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pending",
+     "sig": "(nome, motivo, corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "report",
+     "sig": "(colorir, verboso)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "reset",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "results",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "run",
+     "sig": "(opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "spy",
+     "sig": "(alvo, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "stub",
+     "sig": "(respostas, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "suite",
+     "sig": "(nome, corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "summary",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "table",
+     "sig": "(nome, casos, corpo, tags)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tag",
+     "sig": "(nomes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tap",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "temp_file",
+     "sig": "(conteudo, sufixo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "test",
+     "sig": "(nome, corpo, tags, prazo, repetir, dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "texts",
+     "sig": "(tamanho_max, alfabeto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "timed",
+     "sig": "(acao, vezes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "trial",
+     "sig": "(nome, corpo, tags, prazo, repetir, dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vaults",
+     "sig": "(valor, tamanho_max)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "crypto": {
    "nome": "Arcane.Crypto",
    "desc": "Hash, HMAC, base64 e aleatoriedade.",
@@ -1394,6 +1610,152 @@
     {
      "nome": "width",
      "sig": "(aba, coluna, largura)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "forge": {
+   "nome": "Forge",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "buscar_modelo",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "colunas",
+     "sig": "(db, t)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conectar",
+     "sig": "(url, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conexao",
+     "sig": "(pool)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "consultar",
+     "sig": "(conexao, sql, parametros)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de",
+     "sig": "(conexao, tabela)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_csv",
+     "sig": "(caminho_ou_texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dialetos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "executar",
+     "sig": "(conexao, sql, parametros)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fechar",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ligar",
+     "sig": "(modelo, conexao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limpar_modelos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "memoria",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "migracoes",
+     "sig": "(conexao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "migrar_tudo",
+     "sig": "(conexao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modelo",
+     "sig": "(nome, campos, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modelos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "motores",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "para_csv",
+     "sig": "(linhas, caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ping",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pool",
+     "sig": "(url, tamanho, o)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "primeiro",
+     "sig": "(conexao, sql, parametros)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tabela",
+     "sig": "(conexao, tabela)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tabelas",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tipos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "transacao",
+     "sig": "(conexao, corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "url",
+     "sig": "(url)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "versao",
+     "sig": "(db)",
      "tipo": "funcao"
     }
    ]
@@ -3962,6 +4324,152 @@
      "tipo": "funcao"
     }
    ]
+  },
+  "banco": {
+   "nome": "Banco",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "buscar_modelo",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "colunas",
+     "sig": "(db, t)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conectar",
+     "sig": "(url, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conexao",
+     "sig": "(pool)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "consultar",
+     "sig": "(conexao, sql, parametros)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de",
+     "sig": "(conexao, tabela)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_csv",
+     "sig": "(caminho_ou_texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dialetos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "executar",
+     "sig": "(conexao, sql, parametros)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fechar",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ligar",
+     "sig": "(modelo, conexao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limpar_modelos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "memoria",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "migracoes",
+     "sig": "(conexao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "migrar_tudo",
+     "sig": "(conexao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modelo",
+     "sig": "(nome, campos, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modelos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "motores",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "para_csv",
+     "sig": "(linhas, caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ping",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pool",
+     "sig": "(url, tamanho, o)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "primeiro",
+     "sig": "(conexao, sql, parametros)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tabela",
+     "sig": "(conexao, tabela)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tabelas",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tipos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "transacao",
+     "sig": "(conexao, corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "url",
+     "sig": "(url)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "versao",
+     "sig": "(db)",
+     "tipo": "funcao"
+    }
+   ]
   }
  },
  "exercicios": {
@@ -5610,6 +6118,140 @@
     "temDoc": true,
     "codigo": "// Exercicio 200 — Do banco para a planilha, passando pela analise\n// Enunciado: consulte o banco, analise os numeros e exporte a planilha.\n\n// Este e o caminho completo de um trabalho de dados: os dados moram no\n// banco, a analise responde a pergunta, e a planilha e o que se manda\n// para quem decide. As tres pecas conversam.\n\nadopt Arcane.Database as DB\nadopt Arcane.Analytics as An\nadopt Arcane.Excel as Xls\n\n// ── 1. o banco ──\nbanco := DB.connect(\":memory:\")\nDB.execute(banco, \"\"\"CREATE TABLE vendas (\n    produto TEXT, regiao TEXT, qtd INTEGER, preco REAL)\"\"\")\n\ncycle linha in [\n    [\"Martelo\", \"Sul\",   12, 89.9],\n    [\"Bigorna\", \"Sul\",    3, 450.0],\n    [\"Tenaz\",   \"Norte\", 27, 65.5],\n    [\"Fole\",    \"Norte\",  8, 320.0],\n    [\"Marreta\", \"Sul\",   15, 110.0]\n]:\n    DB.execute(banco, \"INSERT INTO vendas VALUES (?, ?, ?, ?)\", linha)\n\nregistros := DB.query(banco, \"SELECT * FROM vendas ORDER BY qtd DESC\")\nout \"no banco:\", len(registros), \"vendas\"\nassert len(registros) is 5, \"cinco linhas inseridas\"\n\n// ── 2. a analise ──\nquantidades := [r[\"qtd\"] cycle r in registros]\nprecos := [r[\"preco\"] cycle r in registros]\n\nout \"media de unidades:\", An.mean(quantidades)\nout \"desvio dos precos:\", round(An.stdev(precos), 2)\n\n// Preco e quantidade andam juntos? Correlacao negativa forte diria que\n// o que e caro vende pouco.\ncorrelacao := An.correlation(quantidades, precos)\nout \"correlacao qtd x preco:\", round(correlacao, 3)\nassert correlacao smaller 0, \"quanto mais caro, menos unidades\"\n\n// describe() sobre um frame descreve cada coluna de uma vez\ntabela := An.from_records(registros)\ndescricao := An.describe(tabela)\nout \"resumo da coluna qtd:\", descricao[\"qtd\"][\"count\"], \"valores, media\",\n    descricao[\"qtd\"][\"mean\"]\nassert descricao[\"qtd\"][\"count\"] is 5, \"cinco valores numericos\"\nassert descricao[\"produto\"][\"type\"] is \"non-numeric\", \"texto e marcado como tal\"\n\n// ── 3. a planilha ──\nlivro := Xls.new()\naba := Xls.sheet(livro, \"Vendas\", registros)\n\nXls.set(aba, \"E1\", \"receita\")\ncycle i from 2 to 6:\n    Xls.formula(aba, $\"E{i}\", $\"C{i}*D{i}\")\nXls.set(aba, \"A7\", \"TOTAL\")\nXls.formula(aba, \"E7\", \"SUM(E2:E6)\")\nXls.bold_row(aba, 6)\n\nXls.sheet(livro, \"Estatisticas\", [\n    [\"metrica\", \"valor\"],\n    [\"vendas\", len(registros)],\n    [\"media_qtd\", An.mean(quantidades)],\n    [\"correlacao\", round(correlacao, 3)]\n])\n\nXls.save(livro, \"/tmp/analise.xlsx\")\nout \"planilha com\", len(Xls.sheets(livro)), \"abas gravada\"\n\n// e a prova de que tudo chegou inteiro\nconferencia := Xls.read(\"/tmp/analise.xlsx\")\nassert Xls.sheets(conferencia) is [\"Vendas\", \"Estatisticas\"], \"as duas abas\"\n// Seis registros, nao cinco: a linha TOTAL tambem e uma linha. Uma\n// planilha para humanos e uma tabela para maquinas nao sao a mesma\n// coisa, e vale saber disso antes de alimentar um script com ela.\nde_volta := Xls.records(conferencia, \"Vendas\")\nassert len(de_volta) is 6, \"cinco vendas mais a linha de total\"\nassert de_volta[5][\"produto\"] is \"TOTAL\", \"a ultima linha e o rodape\"\n\n// A coluna 'receita' volta vazia: e formula, e quem calcula e o Excel\n// ao abrir o arquivo — nao nos.\nassert de_volta[0][\"receita\"] is void, \"formula nao tem valor gravado\"\nassert Xls.get_formula(Xls.sheet(conferencia, \"Vendas\"), \"E7\") is \"SUM(E2:E6)\",\n    \"a formula do total\"\n\nDB.close(banco)\n"
    }
+  ],
+  "24-banco-de-dados": [
+   {
+    "num": "201",
+    "titulo": "Conectar e consultar",
+    "enunciado": "abra um banco, crie uma tabela e leia de volta.",
+    "arquivo": "201_conectar.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 201 — Conectar e consultar\n// Enunciado: abra um banco, crie uma tabela e leia de volta.\n\n// O Forge fala com cinco motores pela mesma interface. Trocar o motor\n// troca a URL, e mais nada — e por isso o exercicio usa ':memory:',\n// que nao precisa de servidor nenhum.\n\nadopt Forge\n\ndb := Forge.conectar(\":memory:\")\nout \"dialeto:\", db.dialeto\nassert db.dialeto is \"sqlite\", \"a URL decide o motor\"\n\nForge.executar(db, \"\"\"\n    create table produtos (\n        id integer primary key autoincrement,\n        nome text not null,\n        preco real\n    )\n\"\"\")\nassert \"produtos\" in Forge.tabelas(db), \"a tabela foi criada\"\n\n// 'executar' devolve quantas linhas mudaram\nmudou := Forge.executar(db,\n    \"insert into produtos (nome, preco) values (?, ?)\", [\"Teclado\", 250.0])\nassert mudou is 1, \"uma linha inserida\"\n\n// 'consultar' devolve uma lista de vaults, um por linha\nlinhas := Forge.consultar(db, \"select * from produtos\")\nout linhas\nassert len(linhas) is 1, \"uma linha de volta\"\nassert linhas[0][\"nome\"] is \"Teclado\", \"lida pelo nome da coluna, nao pelo indice\"\n\n// O tipo volta convertido: preco e Float, nao texto\nassert type(linhas[0][\"preco\"]) is \"Float\", \"o tipo sobrevive a ida e volta\"\nassert type(linhas[0][\"id\"]) is \"Integer\", \"idem\"\n\n// 'primeiro' quando so interessa uma\np := Forge.primeiro(db, \"select * from produtos where nome = ?\", [\"Teclado\"])\nassert p[\"preco\"] is 250.0, \"achou\"\n\nvazio := Forge.primeiro(db, \"select * from produtos where nome = ?\", [\"nada\"])\nassert vazio is void, \"sem resultado devolve void, nao erro\"\n\nForge.fechar(db)\nout \"ok\"\n"
+   },
+   {
+    "num": "202",
+    "titulo": "Construtor de consultas",
+    "enunciado": "monte consultas encadeando chamadas, sem escrever SQL.",
+    "arquivo": "202_construtor_de_consultas.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 202 — Construtor de consultas\n// Enunciado: monte consultas encadeando chamadas, sem escrever SQL.\n\n// O construtor resolve tres coisas que o SQL a mao nao resolve: o\n// dialeto de cada banco, a condicao que so as vezes existe, e o\n// identificador citado. E ele nunca poe um valor no texto.\n\nadopt Forge\n\ndb := Forge.conectar(\":memory:\")\nForge.executar(db, \"\"\"\n    create table usuarios (\n        id integer primary key autoincrement,\n        nome text, cidade text, idade integer\n    )\n\"\"\")\n\nForge.de(db, \"usuarios\").inserir([\n    {\"nome\": \"Ana\", \"cidade\": \"Floripa\", \"idade\": 30},\n    {\"nome\": \"Bia\", \"cidade\": \"Recife\",  \"idade\": 25},\n    {\"nome\": \"Cid\", \"cidade\": \"Floripa\", \"idade\": 41}\n])\nassert Forge.de(db, \"usuarios\").contar() is 3, \"tres inseridos de uma vez\"\n\n// Filtros encadeados\nmaduros := Forge.de(db, \"usuarios\")\n    .onde(\"idade\", \">=\", 30)\n    .ordenar(\"idade\", \"desc\")\n    .buscar()\nout [u[\"nome\"] cycle u in maduros]\nassert len(maduros) is 2, \"dois com 30 ou mais\"\nassert maduros[0][\"nome\"] is \"Cid\", \"o mais velho primeiro\"\n\n// 'onde_em' vira IN, com um parametro por item\nfloripa := Forge.de(db, \"usuarios\").onde_em(\"cidade\", [\"Floripa\"]).buscar()\nassert len(floripa) is 2, \"dois em Floripa\"\n\n// Lista vazia nao gera 'in ()', que e erro de sintaxe em quase todo banco\nnenhum := Forge.de(db, \"usuarios\").onde_em(\"cidade\", []).buscar()\nassert len(nenhum) is 0, \"lista vazia devolve nada, sem quebrar\"\n\n// Agregados\nassert Forge.de(db, \"usuarios\").somar(\"idade\") is 96, \"30+25+41\"\nassert Forge.de(db, \"usuarios\").media(\"idade\") is 32.0, \"a media\"\nassert Forge.de(db, \"usuarios\").maximo(\"idade\") is 41, \"o maior\"\nassert Forge.de(db, \"usuarios\").existe() is yes, \"tem alguem\"\n\n// Paginacao: a pagina 1 e a primeira, nao a zero\npagina := Forge.de(db, \"usuarios\").paginar(1, 2)\nassert pagina[\"total\"] is 3, \"o total nao muda com a pagina\"\nassert len(pagina[\"linhas\"]) is 2, \"dois por pagina\"\nassert pagina[\"paginas\"] is 2, \"duas paginas\"\nassert pagina[\"tem_proxima\"] is yes, \"ha uma segunda\"\n\n// 'quando' aplica o filtro so se a condicao valer\naction procurar(db, cidade):\n    yield Forge.de(db, \"usuarios\")\n        .quando(cidade, lambda c => c.onde(\"cidade\", cidade))\n        .contar()\n\nassert procurar(db, \"\") is 3, \"sem filtro, todos\"\nassert procurar(db, \"Recife\") is 1, \"com filtro, um\"\n\nout \"ok\"\n"
+   },
+   {
+    "num": "203",
+    "titulo": "Injecao de SQL, e por que ela nao acontece aqui",
+    "enunciado": "tente derrubar uma tabela por um campo de busca.",
+    "arquivo": "203_injecao_de_sql.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 203 — Injecao de SQL, e por que ela nao acontece aqui\n// Enunciado: tente derrubar uma tabela por um campo de busca.\n\n// Injecao de SQL e o bug mais explorado da historia do software. O\n// Forge o torna impossivel POR CONSTRUCAO: o construtor nao tem como\n// por um valor no texto da consulta.\n\nadopt Forge\n\ndb := Forge.conectar(\":memory:\")\nForge.executar(db, \"\"\"\n    create table usuarios (\n        id integer primary key autoincrement,\n        nome text\n    )\n\"\"\")\nForge.de(db, \"usuarios\").inserir([{\"nome\": \"Ana\"}, {\"nome\": \"Bia\"}])\n\n// O classico: um nome que fecha a string e emenda outro comando\nmalicioso := \"'; drop table usuarios; --\"\n\nForge.de(db, \"usuarios\").inserir({\"nome\": malicioso})\nassert \"usuarios\" in Forge.tabelas(db), \"a tabela continua la\"\nassert Forge.de(db, \"usuarios\").contar() is 3, \"e o texto virou um nome comum\"\n\n// A busca tambem: o valor e comparado, nao executado\nachados := Forge.de(db, \"usuarios\").onde(\"nome\", malicioso).buscar()\nassert len(achados) is 1, \"encontrou o registro cujo nome e aquele texto\"\nout \"guardado como texto:\", achados[0][\"nome\"]\n\n// SQL escrito a mao TAMBEM parametriza, desde que use '?'\nForge.executar(db, \"insert into usuarios (nome) values (?)\", [malicioso])\nassert Forge.de(db, \"usuarios\").contar() is 4, \"seguro do mesmo jeito\"\nassert \"usuarios\" in Forge.tabelas(db), \"a tabela sobreviveu\"\n\n// A lista de operadores tambem e fechada: um operador vindo de\n// variavel seria outro caminho de injecao\nmonitor:\n    Forge.de(db, \"usuarios\").onde(\"nome\", \"; drop table usuarios; --\", 1)\n    assert no, \"devia ter recusado\"\nhandle QueryError as e:\n    out \"operador recusado:\", e.message\n    assert \"operator\" in e.message, \"a mensagem explica\"\n\nassert \"usuarios\" in Forge.tabelas(db), \"a tabela continua viva no fim\"\nout \"ok\"\n"
+   },
+   {
+    "num": "204",
+    "titulo": "Transacoes",
+    "enunciado": "transfira saldo entre contas, e garanta que nao suma dinheiro.",
+    "arquivo": "204_transacoes.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 204 — Transacoes\n// Enunciado: transfira saldo entre contas, e garanta que nao suma dinheiro.\n\n// Uma transferencia sao duas escritas. Se a segunda falhar depois da\n// primeira, o dinheiro desaparece. A transacao garante que as duas\n// aconteçam, ou nenhuma.\n\nadopt Forge\n\ndb := Forge.conectar(\":memory:\")\nForge.executar(db, \"\"\"\n    create table contas (\n        id integer primary key,\n        dono text,\n        saldo real\n    )\n\"\"\")\nForge.de(db, \"contas\").inserir([\n    {\"id\": 1, \"dono\": \"Ana\", \"saldo\": 100.0},\n    {\"id\": 2, \"dono\": \"Bia\", \"saldo\": 50.0}\n])\n\naction saldo_de(db, id):\n    yield Forge.de(db, \"contas\").onde(\"id\", id).primeiro()[\"saldo\"]\n\naction transferir(db, de, para, valor):\n    given saldo_de(db, de) smaller valor:\n        trigger \"saldo insuficiente\"\n    Forge.de(db, \"contas\").onde(\"id\", de).incrementar(\"saldo\", 0 - valor)\n    Forge.de(db, \"contas\").onde(\"id\", para).incrementar(\"saldo\", valor)\n    yield yes\n\n// A transferencia que da certo\nForge.transacao(db, lambda c => transferir(c, 1, 2, 30.0))\nassert saldo_de(db, 1) is 70.0, \"saiu de uma\"\nassert saldo_de(db, 2) is 80.0, \"entrou na outra\"\n\ntotal_antes := saldo_de(db, 1) + saldo_de(db, 2)\n\n// A que falha no meio: nada fica\nmonitor:\n    Forge.transacao(db, lambda c => transferir(c, 1, 2, 1000.0))\n    assert no, \"devia ter falhado\"\nhandle e:\n    out \"recusada:\", e.message\n\nassert saldo_de(db, 1) + saldo_de(db, 2) is total_antes,\n    \"o total nao mudou — nenhuma das duas escritas ficou\"\nassert saldo_de(db, 1) is 70.0, \"a conta de origem esta intacta\"\n\n// 'incrementar' soma NO BANCO, sem ler antes.\n// Ler-somar-gravar perde atualizacoes quando duas conexoes fazem isso\n// ao mesmo tempo; deixar a soma com o banco nao perde.\nForge.de(db, \"contas\").onde(\"id\", 1).incrementar(\"saldo\", 5.0)\nassert saldo_de(db, 1) is 75.0, \"somou no banco\"\n\nout \"ok\"\n"
+   },
+   {
+    "num": "205",
+    "titulo": "Modelos e validacao",
+    "enunciado": "declare um modelo, e deixe que ele recuse dado invalido.",
+    "arquivo": "205_modelos_e_validacao.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 205 — Modelos e validacao\n// Enunciado: declare um modelo, e deixe que ele recuse dado invalido.\n\n// Um modelo descreve a tabela E o que vale nela. A validacao junta\n// TODOS os problemas antes de reclamar: um formulario que aponta um\n// erro por vez faz o usuario submeter cinco vezes.\n\nadopt Forge\n\ndb := Forge.conectar(\":memory:\")\n\nUsuario := Forge.modelo(\"Usuario\", {\n    \"id\":    {\"tipo\": \"Serial\"},\n    \"email\": {\"tipo\": \"Texto\", \"obrigatorio\": yes, \"unico\": yes,\n              \"validacoes\": [\"email\"]},\n    \"nome\":  {\"tipo\": \"Texto\", \"obrigatorio\": yes,\n              \"validacoes\": [[\"minimo\", 2]]},\n    \"idade\": {\"tipo\": \"Inteiro\", \"padrao\": 0,\n              \"validacoes\": [[\"minimo\", 0], [\"maximo\", 130]]},\n    \"ativo\": {\"tipo\": \"Booleano\", \"padrao\": yes},\n    \"perfil\": {\"tipo\": \"Json\"}\n}, {\"conexao\": db, \"marcas_de_tempo\": yes})\n\nForge.migrar_tudo(db)\nassert \"usuarios\" in Forge.tabelas(db), \"o nome da tabela sai do plural\"\n\nana := Usuario.criar({\n    \"email\": \"ana@exemplo.com\",\n    \"nome\": \"Ana\",\n    \"idade\": 30,\n    \"perfil\": {\"tema\": \"escuro\"}\n})\nout \"criou:\", ana[\"email\"], \"id\", ana[\"id\"]\nassert ana[\"id\"] is 1, \"o Serial gerou o id\"\nassert ana[\"ativo\"] is yes, \"o padrao foi aplicado\"\n\n// Os tipos voltam CONVERTIDOS. Sem isso, o SQLite devolveria 0 e 1\n// para booleano, e 'given usuario[\"ativo\"]:' seria sempre verdadeiro.\nassert type(ana[\"ativo\"]) is \"Boolean\", \"booleano volta booleano\"\nassert type(ana[\"perfil\"]) is \"Vault\", \"json volta vault\"\nassert ana[\"perfil\"][\"tema\"] is \"escuro\", \"e da para ler dentro\"\nassert ana[\"criado_em\"] isnt void, \"a marca de tempo foi posta\"\n\n// A validacao recusa, e diz TUDO o que esta errado\nmonitor:\n    Usuario.criar({\"email\": \"nao-e-email\", \"nome\": \"X\", \"idade\": 999})\n    assert no, \"devia ter recusado\"\nhandle ValidationError as e:\n    out \"problemas:\", len(e.campos)\n    cycle c in e.campos:\n        out \"  \", c[\"campo\"], \"-\", c[\"motivo\"]\n    assert len(e.campos) is 3, \"os tres de uma vez, nao so o primeiro\"\n\n// Campo que o modelo nao declara tambem e recusado\nmonitor:\n    Usuario.criar({\"email\": \"b@x.com\", \"nome\": \"Bia\", \"inventado\": 1})\n    assert no, \"devia ter recusado\"\nhandle ValidationError as e:\n    assert len(e.campos) is 1, \"so o campo inventado\"\n\n// Buscar e atualizar\nassert Usuario.buscar(1)[\"nome\"] is \"Ana\", \"achou pelo id\"\nassert Usuario.buscar(99) is void, \"sem resultado devolve void\"\nassert Usuario.primeiro(nome := \"Ana\")[\"idade\"] is 30, \"achou por campo\"\n\nUsuario.atualizar(1, {\"idade\": 31})\nassert Usuario.buscar(1)[\"idade\"] is 31, \"atualizou\"\n\n// 'criar_ou_atualizar' nao duplica\nUsuario.criar_ou_atualizar({\"email\": \"ana@exemplo.com\"}, {\"nome\": \"Ana Maria\"})\nassert Usuario.contar() is 1, \"continua uma\"\nassert Usuario.buscar(1)[\"nome\"] is \"Ana Maria\", \"mas foi atualizada\"\n\nout \"ok\"\n"
+   },
+   {
+    "num": "206",
+    "titulo": "Relacoes, e o problema do N+1",
+    "enunciado": "carregue os pedidos de cem usuarios em duas consultas.",
+    "arquivo": "206_relacoes_sem_n_mais_um.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 206 — Relacoes, e o problema do N+1\n// Enunciado: carregue os pedidos de cem usuarios em duas consultas.\n\n// Buscar cem usuarios e ler 'usuario.pedidos' de cada um faz cento e\n// uma consultas. Isso nao aparece em desenvolvimento, com tres linhas\n// na tabela, e derruba a producao com dez mil. E o bug de ORM mais\n// comum que existe.\n\nadopt Forge\n\ndb := Forge.conectar(\":memory:\")\n\nUsuario := Forge.modelo(\"Usuario\", {\n    \"id\": {\"tipo\": \"Serial\"},\n    \"nome\": {\"tipo\": \"Texto\", \"obrigatorio\": yes}\n}, {\"conexao\": db})\n\nPedido := Forge.modelo(\"Pedido\", {\n    \"id\": {\"tipo\": \"Serial\"},\n    \"usuario_id\": {\"tipo\": \"Inteiro\", \"indice\": yes},\n    \"total\": {\"tipo\": \"Real\", \"padrao\": 0}\n}, {\"conexao\": db})\n\nUsuario.tem_muitos(\"pedidos\", \"Pedido\")\nPedido.pertence_a(\"usuario\", \"Usuario\")\nForge.migrar_tudo(db)\n\nana := Usuario.criar({\"nome\": \"Ana\"})\nbia := Usuario.criar({\"nome\": \"Bia\"})\ncid := Usuario.criar({\"nome\": \"Cid\"})\n\nPedido.criar({\"usuario_id\": ana[\"id\"], \"total\": 100.0})\nPedido.criar({\"usuario_id\": ana[\"id\"], \"total\": 50.0})\nPedido.criar({\"usuario_id\": bia[\"id\"], \"total\": 20.0})\n\n// A relacao NAO carrega sozinha ao ser lida — ou voce pede, ou ela\n// nao vem. Ler uma relacao nao carregada devolveria void em vez de\n// funcionar devagar.\ncom_pedidos := Usuario.com(Usuario.todos(), \"pedidos\")\n\ncycle u in com_pedidos:\n    out u[\"nome\"], \"tem\", len(u[\"pedidos\"]), \"pedido(s)\"\n\nassert len(com_pedidos[0][\"pedidos\"]) is 2, \"Ana tem dois\"\nassert len(com_pedidos[1][\"pedidos\"]) is 1, \"Bia tem um\"\nassert len(com_pedidos[2][\"pedidos\"]) is 0, \"Cid nao tem nenhum\"\n\n// Do outro lado: cada pedido conhece o dono\ncom_dono := Pedido.com(Pedido.todos(), \"usuario\")\nassert com_dono[0][\"usuario\"][\"nome\"] is \"Ana\", \"o pedido sabe de quem e\"\n\n// Somar por usuario, sem laco aninhado\ntotal_da_ana := Forge.de(db, \"pedidos\").onde(\"usuario_id\", ana[\"id\"]).somar(\"total\")\nassert total_da_ana is 150.0, \"100 + 50\"\n\n// Uma relacao que nao existe avisa, e lista as que existem\nmonitor:\n    Usuario.com(Usuario.todos(), \"inventada\")\n    assert no, \"devia ter recusado\"\nhandle SchemaError as e:\n    out \"recusado:\", e.message\n    assert \"inventada\" in e.message, \"a mensagem nomeia o erro\"\n\nout \"ok\"\n"
+   },
+   {
+    "num": "207",
+    "titulo": "Migracoes",
+    "enunciado": "evolua o esquema sem perder o que ja esta gravado.",
+    "arquivo": "207_migracoes.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 207 — Migracoes\n// Enunciado: evolua o esquema sem perder o que ja esta gravado.\n\n// Duas formas. A simples compara o modelo com a tabela; a completa usa\n// passos numerados, com historico NO BANCO — um arquivo versionado diz\n// o que deveria ter rodado, a tabela diz o que rodou.\n\nadopt Forge\n\ndb := Forge.conectar(\":memory:\")\n\n// ── A forma simples: a diferenca ──\n\nU := Forge.modelo(\"Usuario\", {\n    \"id\": {\"tipo\": \"Serial\"},\n    \"nome\": {\"tipo\": \"Texto\", \"obrigatorio\": yes}\n}, {\"conexao\": db})\nForge.migrar_tudo(db)\nU.criar({\"nome\": \"Ana\"})\n\n// O modelo cresce: um campo novo\nU2 := Forge.modelo(\"Usuario\", {\n    \"id\": {\"tipo\": \"Serial\"},\n    \"nome\": {\"tipo\": \"Texto\", \"obrigatorio\": yes},\n    \"telefone\": {\"tipo\": \"Texto\"}\n}, {\"conexao\": db})\n\nd := U2.diferenca()\nout \"faltando:\", d[\"colunas_faltando\"]\nassert d[\"colunas_faltando\"] is [\"telefone\"], \"a coluna nova\"\nassert d[\"tabela_falta\"] is no, \"a tabela ja existe\"\n\nU2.aplicar_diferenca()\nassert U2.diferenca()[\"colunas_faltando\"] is [], \"agora esta em dia\"\nassert U2.contar() is 1, \"e o dado de antes continua la\"\n\n// 'aplicar_diferenca' NUNCA apaga. Perda de dado nao se automatiza:\n// uma coluna que sumiu do modelo pode ter sido erro de digitacao.\nU3 := Forge.modelo(\"Usuario\", {\n    \"id\": {\"tipo\": \"Serial\"},\n    \"nome\": {\"tipo\": \"Texto\", \"obrigatorio\": yes}\n}, {\"conexao\": db})\nresultado := U3.aplicar_diferenca()\nout \"sobrando:\", resultado[\"colunas_a_mais\"]\nassert \"telefone\" in resultado[\"colunas_a_mais\"], \"ele relata\"\ncolunas := [c[\"nome\"] cycle c in db.colunas(\"usuarios\")]\nassert \"telefone\" in colunas, \"mas nao remove\"\n\n// ── A forma completa: passos numerados ──\n\nm := Forge.migracoes(db)\n\nm.passo(\"001_cria_pedidos\",\n    lambda c => c.executar(\"create table pedidos (id integer primary key)\"),\n    lambda c => c.executar(\"drop table pedidos\"))\n\nm.passo(\"002_acrescenta_total\",\n    lambda c => c.executar(\"alter table pedidos add column total real\"))\n\nfeitas := m.subir()\nout \"aplicadas:\", feitas\nassert len(feitas) is 2, \"as duas\"\nassert \"pedidos\" in Forge.tabelas(db), \"a tabela existe\"\n\n// Rodar de novo nao repete\nassert m.subir() is [], \"o historico impede a repeticao\"\nassert m.estado()[\"aplicadas\"] is 2, \"duas no historico\"\nassert m.estado()[\"pendentes\"] is 0, \"nenhuma pendente\"\n\n// Desfazer so o que declarou como desfazer\nm2 := Forge.migracoes(db)\nm2.passo(\"003_sem_volta\",\n    lambda c => c.executar(\"create table temp (id integer)\"))\nm2.subir()\nmonitor:\n    m2.descer(1)\n    assert no, \"devia ter recusado\"\nhandle MigrationError as e:\n    out \"sem volta:\", e.message\n    assert \"003\" in e.message, \"diz qual\"\n\nout \"ok\"\n"
+   },
+   {
+    "num": "208",
+    "titulo": "Pool de conexoes",
+    "enunciado": "reaproveite conexoes, e garanta que elas voltem.",
+    "arquivo": "208_pool_e_conexoes.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 208 — Pool de conexoes\n// Enunciado: reaproveite conexoes, e garanta que elas voltem.\n\n// Abrir conexao custa: TCP, autenticacao, negociacao. Numa rota web\n// isso acontece por requisicao e passa a dominar o tempo de resposta.\n// O pool nao e so cache — e tambem limite.\n\nadopt Forge\n\npool := Forge.pool(\":memory:\", 2)\nout \"no comeco:\", pool.estado()\n\n// 'with' devolve a conexao sozinho, no fim do bloco\nwith Forge.conexao(pool) as db:\n    Forge.executar(db, \"create table t (id integer primary key)\")\n    assert \"t\" in Forge.tabelas(db), \"usou a conexao\"\n\nassert pool.estado()[\"livres\"] is 1, \"voltou para o pool\"\n\n// E devolve mesmo quando o corpo falha — que e onde mais importa\nmonitor:\n    with Forge.conexao(pool) as db:\n        trigger \"erro no meio\"\nhandle e:\n    out \"capturado:\", e.message\n\nassert pool.estado()[\"livres\"] is 1, \"voltou mesmo com erro\"\n\n// A mesma conexao e reaproveitada\nwith Forge.conexao(pool) as a:\n    primeira := a\nwith Forge.conexao(pool) as b:\n    assert b is primeira, \"e a mesma de antes, nao uma nova\"\n\n// Sem teto, um pico de trafego abriria mil conexoes e o servidor\n// recusaria TODAS — inclusive as de quem ja estava funcionando.\n// Melhor a milesima requisicao esperar do que as mil falharem.\npequeno := Forge.pool(\":memory:\", 1)\nocupada := pequeno.pegar()\nmonitor:\n    pequeno.pegar()\n    assert no, \"devia ter esperado e desistido\"\nhandle PoolExhaustedError as e:\n    out \"esgotado:\", e.message\n    assert \"busy\" in e.message, \"a mensagem explica\"\n\npequeno.devolver(ocupada)\nassert pequeno.pegar() isnt void, \"depois de devolver, funciona\"\n\npool.fechar()\npequeno.fechar()\nout \"ok\"\n"
+   }
+  ],
+  "25-testes-crucible": [
+   {
+    "num": "209",
+    "titulo": "A primeira suite",
+    "enunciado": "escreva testes que dizem o que quebrou, e nao so que quebrou.",
+    "arquivo": "209_primeira_suite.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 209 — A primeira suite\n// Enunciado: escreva testes que dizem o que quebrou, e nao so que quebrou.\n\n// 'assert' responde \"passou?\" e nada mais. Quando falha, ele diz que\n// uma expressao deu falso — nao o que se esperava, o que veio, nem\n// qual dos quarenta casos era. O Crucible responde as outras perguntas.\n\nadopt Crucible\n\naction somar(a, b):\n    yield a + b\n\naction dividir(a, b):\n    given b is 0:\n        trigger \"divisao por zero\"\n    yield a / b\n\ncrucible \"Calculadora\":\n\n    setup:\n        // roda antes de CADA trial, num quadro novo\n        base := 10\n\n    trial \"soma dois numeros\":\n        expect somar(2, 2) is 4\n\n    trial \"soma com negativo\":\n        expect somar(5, 0 - 3) is 2\n\n    trial \"divide\":\n        expect dividir(10, 2) is 5.0\n\n    trial \"recusa divisao por zero\":\n        expect(lambda => dividir(1, 0)).to_raise()\n\n    trial \"ve o que o setup preparou\":\n        expect base is 10\n\n    trial \"adiado\" pending \"esperando decidir o arredondamento\":\n        expect dividir(1, 3) is 0.333\n\nresumo := Crucible.run()\nout Crucible.report()\n\nassert resumo[\"passou\"] is 5, \"cinco passaram\"\nassert resumo[\"pendente\"] is 1, \"um adiado\"\nassert resumo[\"falhou\"] is 0, \"nenhum falhou\"\nassert resumo[\"verde\"] is yes, \"a suite esta verde\"\nout \"ok\"\n"
+   },
+   {
+    "num": "210",
+    "titulo": "Isolamento entre trials",
+    "enunciado": "prove que um teste nao contamina o proximo.",
+    "arquivo": "210_isolamento.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 210 — Isolamento entre trials\n// Enunciado: prove que um teste nao contamina o proximo.\n\n// A garantia central do Crucible: cada trial roda no proprio quadro de\n// escopo, com o setup refeito. Um teste que passa sozinho e falha na\n// suite seria bug do framework, nao do teste.\n\nadopt Crucible\n\ncrucible \"Isolamento\":\n\n    setup:\n        contador := 0\n        itens := []\n\n    trial \"o primeiro soma\":\n        contador := contador + 1\n        itens.append(\"a\")\n        expect contador is 1\n        expect len(itens) is 1\n\n    trial \"o segundo ve o valor original\":\n        // o que o primeiro escreveu nao existe aqui\n        expect contador is 0\n        expect len(itens) is 0\n\n    trial \"e o terceiro tambem\":\n        contador := contador + 100\n        expect contador is 100\n\ncrucible \"Ordem nao importa\":\n\n    setup:\n        estado := \"limpo\"\n\n    trial \"b vem antes de a no alfabeto? nao importa\":\n        expect estado is \"limpo\"\n\n    trial \"a\":\n        estado := \"sujo\"\n        expect estado is \"sujo\"\n\n    trial \"c\":\n        expect estado is \"limpo\"\n\nresumo := Crucible.run()\nout Crucible.report()\nassert resumo[\"verde\"] is yes, \"todos passam, em qualquer ordem\"\n\n// Com ordem aleatoria, o resultado e o mesmo — e um teste que\n// dependesse de ordem falharia aqui, e nao seis meses depois\nCrucible.reset()\n\ncrucible \"Aleatorio\":\n    setup:\n        n := 0\n    trial \"um\":\n        n := n + 1\n        expect n is 1\n    trial \"dois\":\n        n := n + 2\n        expect n is 2\n    trial \"tres\":\n        expect n is 0\n\naleatorio := Crucible.run({\"aleatorio\": yes, \"semente\": 42})\nassert aleatorio[\"verde\"] is yes, \"a ordem nao muda o resultado\"\nout \"ok\"\n"
+   },
+   {
+    "num": "211",
+    "titulo": "Os matchers",
+    "enunciado": "cobre valores de todas as formas, e leia o que a falha diz.",
+    "arquivo": "211_matchers.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 211 — Os matchers\n// Enunciado: cobre valores de todas as formas, e leia o que a falha diz.\n\n// Sao 59 matchers. A forma curta cobre igualdade e comparacao; a\n// encadeada, o resto. As duas viram a mesma cobranca.\n\nadopt Crucible\n\nrecord Ponto:\n    x: Integer\n    y: Integer\n\ncrucible \"Matchers\":\n\n    trial \"as duas formas dao no mesmo\":\n        expect 2 + 2 is 4\n        expect(2 + 2).to_be(4)\n\n    trial \"encadeando\":\n        expect(4).to_be_even().to_be_positive().to_be_between(1, 10)\n\n    trial \"ponto flutuante nunca por igualdade exata\":\n        // 0.1 + 0.2 nao da 0.3 em nenhuma linguagem com IEEE 754\n        expect(0.1 + 0.2).to_be_close_to(0.3)\n\n    trial \"tipos\":\n        expect(42).to_be_integer().to_be_number()\n        expect(\"a\").to_be_text()\n        expect([1]).to_be_cluster()\n        expect({}).to_be_vault()\n        expect(void).to_be_void()\n\n    trial \"texto\":\n        expect(\"abacate\").to_start_with(\"aba\").to_end_with(\"ate\")\n        expect(\"ana@x.com\").to_match(\"^[^@]+@[^@]+$\")\n        expect(\"   \").to_be_blank()\n\n    trial \"colecoes\":\n        expect([1, 2, 3]).to_contain(2).to_have_length(3)\n        expect([1, 2, 3]).to_be_sorted().to_be_unique()\n        expect([3, 1, 2]).to_have_same_items([1, 2, 3])\n        expect({\"a\": 1}).to_have_key(\"a\")\n\n    trial \"todos e algum\":\n        expect([2, 4, 6]).to_all_satisfy(lambda n: n % 2 is 0)\n        expect([1, 2, 3]).to_any_satisfy(lambda n: n bigger 2)\n\n    trial \"campo, seja vault ou record\":\n        // o teste nao deveria precisar saber qual dos dois o valor e\n        expect({\"nome\": \"Ana\"}).to_have_field(\"nome\", \"Ana\")\n        expect(Ponto(1, 2)).to_have_field(\"x\", 1)\n\n    trial \"negacao inverte SO o proximo\":\n        expect([1, 2, 3]).nao().to_contain(9).to_contain(2)\n\n    trial \"erro esperado\":\n        expect(lambda => 1 / 0).to_raise(DivisionByZeroError)\n        // a familia tambem serve\n        expect(lambda => 1 / 0).to_raise(RuntimeError)\n\n    trial \"e o que nao levanta\":\n        expect(lambda => 1 + 1).to_not_raise()\n\nresumo := Crucible.run()\nassert resumo[\"verde\"] is yes, \"todos os matchers passam\"\nassert resumo[\"passou\"] is 11, \"onze trials\"\n\n// A mensagem de falha mostra a DIFERENCA, nao os dois valores inteiros\nCrucible.reset()\ncrucible \"Mensagem\":\n    trial \"vault com diferenca\":\n        expect {\"a\": 1, \"b\": 2, \"c\": 3} is {\"a\": 1, \"b\": 9, \"c\": 3}\n\nCrucible.run()\nresultado := Crucible.results()[0]\nout \"motivo:\", resultado[\"motivo\"]\nout \"diferenca:\", resultado[\"diferenca\"]\nassert resultado[\"estado\"] is \"falhou\", \"falhou de proposito\"\nassert \"\\\"b\\\"\" in resultado[\"diferenca\"], \"aponta a chave que difere\"\nout \"ok\"\n"
+   },
+   {
+    "num": "212",
+    "titulo": "Dubles e fixtures",
+    "enunciado": "teste uma regra de negocio sem tocar no banco.",
+    "arquivo": "212_dubles_e_fixtures.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 212 — Dubles e fixtures\n// Enunciado: teste uma regra de negocio sem tocar no banco.\n\n// Um servico que constroi a propria conexao exige subir PostgreSQL\n// para testar uma validacao de nome. Um que recebe o repositorio por\n// parametro se testa com um duble, em microssegundos.\n\nadopt Crucible\n\ntrait Repositorio:\n    action salvar(nome)\n    action contar()\n\nblueprint ServicoDeCadastro:\n    action setup(repositorio):\n        self.repositorio := repositorio\n\n    action cadastrar(nome):\n        given len(nome) smaller 2:\n            trigger \"nome curto demais\"\n        yield self.repositorio.salvar(nome)\n\ncrucible \"Cadastro\":\n\n    trial \"salva o que passa na validacao\":\n        repo := Crucible.mock(\"repositorio\")\n        repo.quando(\"salvar\").devolve(\"Ana\")\n\n        s := spawn ServicoDeCadastro(repo)\n        expect s.cadastrar(\"Ana\") is \"Ana\"\n        expect repo.chamado_com(\"salvar\", \"Ana\") is yes\n\n    trial \"e NAO salva o que nao passa\":\n        // cobrar o que nao aconteceu e o que so o duble permite\n        repo := Crucible.mock(\"repositorio\")\n        s := spawn ServicoDeCadastro(repo)\n\n        expect(lambda => s.cadastrar(\"A\")).to_raise()\n        expect repo.foi_chamado(\"salvar\") is no\n\n    trial \"anota todas as chamadas\":\n        m := Crucible.mock(\"api\")\n        m.buscar(1)\n        m.buscar(2)\n        m.salvar(\"x\")\n\n        expect m.vezes(\"buscar\") is 2\n        expect m.argumentos_de(\"buscar\") is [[1], [2]]\n        expect m.foi_chamado(\"apagar\") is no\n\n    trial \"respostas em sequencia\":\n        m := Crucible.mock()\n        m.quando(\"proximo\").devolve_em_sequencia([1, 2, 3])\n        expect [m.proximo(), m.proximo(), m.proximo()] is [1, 2, 3]\n\ncrucible \"Fixtures\":\n\n    // 'provide' divide a fixture: antes prepara, depois limpa.\n    // Escrever as duas juntas e o que impede a limpeza de ser\n    // esquecida — o modo mais comum de uma suite virar fragil.\n    fixture banco():\n        adopt Forge\n        db := Forge.conectar(\":memory:\")\n        Forge.executar(db, \"create table t (id integer primary key, n integer)\")\n        provide db\n        Forge.fechar(db)\n\n    trial \"usa o banco preparado\":\n        adopt Forge\n        db := banco()\n        Forge.de(db, \"t\").inserir({\"n\": 1})\n        expect Forge.de(db, \"t\").contar() is 1\n\nresumo := Crucible.run()\nout Crucible.report()\nassert resumo[\"verde\"] is yes, \"todos passam\"\nassert resumo[\"passou\"] is 5, \"cinco trials\"\nout \"ok\"\n"
+   }
+  ],
+  "26-complexidade": [
+   {
+    "num": "213",
+    "titulo": "Medir o crescimento, nao o relogio",
+    "enunciado": "escreva duas versoes do mesmo problema e compare as ordens.",
+    "arquivo": "213_medir_o_crescimento.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 213 — Medir o crescimento, nao o relogio\n// Enunciado: escreva duas versoes do mesmo problema e compare as ordens.\n\n// Um algoritmo que funciona com dez itens pode nao terminar com um\n// milhao. 'dataforge big-o' le a arvore e diz a classe de cada acao,\n// sem rodar nada — e diz TAMBEM o porque.\n\nadopt Crucible\n\n// ── O(n^2): para cada item de xs, percorre ys inteiro ──\naction comuns_lento(xs, ys):\n    saida := []\n    cycle x in xs:\n        given x in ys:\n            saida.append(x)\n    yield saida\n\n// ── O(n): o vault responde em O(1) ──\naction comuns(xs, ys):\n    indice := {}\n    cycle y in ys:\n        indice[str(y)] := yes\n\n    saida := []\n    cycle x in xs:\n        given indice.has(str(x)):\n            saida.append(x)\n    yield saida\n\n// As duas respondem a mesma coisa\na := [1, 2, 3, 4, 5]\nb := [4, 5, 6, 7]\nassert comuns_lento(a, b) is comuns(a, b), \"mesmo resultado\"\nassert comuns(a, b) is [4, 5], \"e o resultado certo\"\n\n// A diferenca so aparece quando a entrada cresce. E aqui ha uma licao\n// que a notacao sozinha nao ensina: com entrada PEQUENA, o O(n) pode\n// perder — montar o vault custa, e esse custo nao depende de n.\n\naction comparar(n):\n    xs := [i cycle i in range(n)]\n    ys := [i + n ~/ 2 cycle i in range(n)]\n\n    lento := Crucible.timed(lambda => comuns_lento(xs, ys))\n    rapido := Crucible.timed(lambda => comuns(xs, ys))\n\n    assert comuns_lento(xs, ys) is comuns(xs, ys), \"as duas concordam\"\n    yield {\"n\": n, \"lento\": lento[\"total_ms\"], \"rapido\": rapido[\"total_ms\"]}\n\ncycle n in [500, 2000, 5000]:\n    r := comparar(n)\n    razao := round(r[\"lento\"] / r[\"rapido\"], 2)\n    out \"n =\", r[\"n\"], \" O(n^2):\", round(r[\"lento\"], 1),\n        \"ms   O(n):\", round(r[\"rapido\"], 1), \"ms   razao:\", razao\n\n// O que a saida mostra:\n//\n//   n=500    razao ~0.5   o O(n) PERDE — montar o vault custa\n//   n=2000   razao ~0.9   quase empatam\n//   n=5000   razao ~1.6   o O(n) ganha, e a vantagem so cresce\n//\n// Big-O e sobre CRESCIMENTO, nao sobre velocidade. O(n) com constante\n// grande perde de O(n^2) com constante pequena ate um certo n —\n// depois disso, nunca mais. Achar esse ponto e trabalho de medicao;\n// saber que ele existe e trabalho da notacao.\n\npequeno := comparar(500)\ngrande := comparar(5000)\nrazao_pequeno := pequeno[\"lento\"] / pequeno[\"rapido\"]\nrazao_grande := grande[\"lento\"] / grande[\"rapido\"]\n\nout \"razao com n=500: \", round(razao_pequeno, 2)\nout \"razao com n=5000:\", round(razao_grande, 2)\nassert razao_grande bigger razao_pequeno,\n    \"a vantagem do O(n) cresce com a entrada\"\nassert razao_grande bigger 1.0,\n    \"e a partir de certo tamanho, ele ja e mais rapido\"\n\n// A analise estatica concorda, e diz o porque:\n//\n//   $ dataforge big-o 213_medir_o_crescimento.df -v\n//\n//   ▲ comuns_lento    O(n^2)  tempo   O(n) espaco\n//       · 'in' na linha 14 percorre a colecao (use um vault para O(1))\n//       ⚠ O(n^2): dobrar a entrada quadruplica o tempo.\n//   ● comuns          O(n)    tempo   O(n) espaco\n\nout \"ok\"\n"
+   },
+   {
+    "num": "214",
+    "titulo": "Trocar tempo exponencial por memoria linear",
+    "enunciado": "faca fib(35) responder, sem esperar.",
+    "arquivo": "214_memoizacao.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 214 — Trocar tempo exponencial por memoria linear\n// Enunciado: faca fib(35) responder, sem esperar.\n\n// Fibonacci ingenuo e O(2^n): cada chamada gera duas, e quase todas\n// recalculam o que ja foi calculado. Guardar o resultado derruba para\n// O(n) — e e a troca mais lucrativa que existe.\n\nadopt Crucible\n\naction fib_lento(n):\n    given n smaller 2:\n        yield n\n    yield fib_lento(n - 1) + fib_lento(n - 2)\n\ncache := {}\n\naction fib(n):\n    given n smaller 2:\n        yield n\n    chave := str(n)\n    given cache.has(chave):\n        yield cache[chave]\n    resultado := fib(n - 1) + fib(n - 2)\n    cache[chave] := resultado\n    yield resultado\n\n// As duas concordam\ncycle i from 0 to 15:\n    assert fib_lento(i) is fib(i), \"mesmo resultado\"\n\nassert fib(10) is 55, \"o decimo\"\nassert fib(20) is 6765, \"o vigesimo\"\n\n// A diferenca de custo, medida\nlento := Crucible.timed(lambda => fib_lento(22))\ncache := {}\nrapido := Crucible.timed(lambda => fib(22))\n\nout \"fib(22) ingenuo:  \", round(lento[\"total_ms\"], 2), \"ms\"\nout \"fib(22) memoizado:\", round(rapido[\"total_ms\"], 3), \"ms\"\nout \"razao:            \", round(lento[\"total_ms\"] / rapido[\"total_ms\"], 0), \"x\"\nassert lento[\"total_ms\"] bigger rapido[\"total_ms\"], \"o memoizado ganha\"\n\n// E o que so o memoizado consegue: fib(90) tem 19 digitos, e o\n// ingenuo levaria mais tempo que a idade do universo.\ncache := {}\nassert fib(90) is 2880067194370816120, \"instantaneo\"\n\n// O custo: memoria. Cada valor calculado fica guardado.\nout \"valores guardados:\", len(cache)\nassert len(cache) is 89, \"um por chamada, de 2 a 90\"\n\n// A conta que decide a troca:\n//\n//   fib(50) ingenuo   ~2^50  = 10^15 chamadas    (semanas)\n//   fib(50) memoizado ~50    = 50 chamadas       (microssegundos)\n//   custo em memoria  ~50 valores                (nada)\n//\n// Trocar O(2^n) de tempo por O(n) de memoria quase sempre vale. A\n// excecao e quando a memoria e o gargalo — ver o exercicio 216.\n\nout \"ok\"\n"
+   },
+   {
+    "num": "215",
+    "titulo": "A estrutura certa",
+    "enunciado": "escolha entre cluster e vault pela operacao que voce faz.",
+    "arquivo": "215_estrutura_certa.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 215 — A estrutura certa\n// Enunciado: escolha entre cluster e vault pela operacao que voce faz.\n\n// Escolher a estrutura costuma render mais que otimizar o algoritmo. A\n// tabela que decide cabe em tres linhas:\n//\n//   procurar por posicao  -> Cluster, O(1)\n//   procurar por chave    -> Vault,   O(1)\n//   procurar por valor    -> Cluster, O(n)   <- e aqui que se perde\n\nadopt Crucible\n\nn := 3000\nlista := [i cycle i in range(n)]\nmapa := {}\ncycle i in range(n):\n    mapa[str(i)] := i\n\n// Ler por posicao: os dois sao O(1)\nassert lista[500] is 500, \"cluster indexa direto\"\nassert mapa[\"500\"] is 500, \"vault tambem\"\n\n// Procurar por VALOR: o cluster percorre.\n//\n// A medicao repete 200 vezes: uma busca sozinha leva microssegundos, e\n// o custo de medir dominaria o resultado. Medir uma vez so e o erro\n// mais comum de quem compara desempenho.\npor_valor := Crucible.timed(lambda => 999999 in lista, 200)\npor_chave := Crucible.timed(lambda => mapa.has(\"999999\"), 200)\n\nout \"procurar num cluster de\", n, \":\", round(por_valor[\"media_ms\"], 4), \"ms\"\nout \"procurar num vault  de\", n, \":\", round(por_chave[\"media_ms\"], 5), \"ms\"\nassert por_valor[\"media_ms\"] bigger por_chave[\"media_ms\"],\n    \"o vault ganha, e a vantagem cresce com n\"\n\n// Contar ocorrencias: uma passada, nao um laco aninhado\npalavras := [\"a\", \"b\", \"a\", \"c\", \"b\", \"a\"]\n\n// O(n^2) — para cada palavra, conta percorrendo tudo\naction contar_lento(xs):\n    saida := {}\n    cycle x in xs:\n        saida[x] := xs.count(x)\n    yield saida\n\n// O(n) — uma passada\naction contar(xs):\n    yield xs.tally()\n\nassert contar_lento(palavras) is contar(palavras), \"mesmo resultado\"\nassert contar(palavras)[\"a\"] is 3, \"tres 'a'\"\n\n// Agrupar: o vault ja e o agrupamento\npessoas := [\n    {\"nome\": \"Ana\", \"cidade\": \"Floripa\"},\n    {\"nome\": \"Bia\", \"cidade\": \"Recife\"},\n    {\"nome\": \"Cid\", \"cidade\": \"Floripa\"}\n]\npor_cidade := pessoas.group_by(lambda p: p[\"cidade\"])\nassert len(por_cidade[\"Floripa\"]) is 2, \"duas em Floripa\"\nassert len(por_cidade) is 2, \"duas cidades\"\n\n// Remover do INICIO de um cluster e O(n): desloca todos os outros.\n// Num laco, isso vira O(n^2).\nfila := [i cycle i in range(500)]\ninverso := fila.reversed()      // O(n), uma vez\nassert inverso.pop() is 0, \"tirar do fim e O(1)\"\nassert len(inverso) is 499, \"e a fila continua\"\n\nout \"ok\"\n"
+   },
+   {
+    "num": "216",
+    "titulo": "Complexidade de espaco",
+    "enunciado": "processe mais dados do que cabem na memoria.",
+    "arquivo": "216_espaco.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 216 — Complexidade de espaco\n// Enunciado: processe mais dados do que cabem na memoria.\n\n// Tempo nao e o unico recurso. Um algoritmo O(n log n) que aloca uma\n// copia pode perder para um O(n^2) que trabalha no lugar, quando a\n// memoria e o gargalo.\n\nadopt Crucible\n\n// ── O(1) de espaco: uma variavel, nao importa o tamanho ──\naction somar(xs):\n    total := 0\n    cycle x in xs:\n        total += x\n    yield total\n\n// ── O(n) de espaco: a saida cresce com a entrada ──\naction dobrar(xs):\n    saida := []\n    cycle x in xs:\n        saida.append(x * 2)\n    yield saida\n\nassert somar([1, 2, 3]) is 6, \"somou\"\nassert dobrar([1, 2]) is [2, 4], \"dobrou\"\n\n// A pilha tambem e memoria: cada chamada recursiva ocupa um quadro\naction soma_recursiva(n):\n    given n smaller_eq 0:\n        yield 0\n    yield n + soma_recursiva(n - 1)\n\naction soma_iterativa(n):\n    total := 0\n    cycle i from 1 to n:\n        total += i\n    yield total\n\nassert soma_recursiva(100) is soma_iterativa(100), \"mesmo resultado\"\n\n// Recursao profunda estoura a pilha; o laco nao\nmonitor:\n    soma_recursiva(100000)\n    assert no, \"devia ter estourado\"\nhandle e:\n    out \"recursao profunda:\", e.type\n    assert soma_iterativa(100000) is 5000050000, \"o laco vai fundo sem estourar\"\n\n// ── Preguica: processar sem materializar ──\n\n// Um generator produz um item por vez. Este 'range' de um milhao nunca\n// existe inteiro na memoria — so os tres primeiros pares sao calculados.\nstream action pares(xs):\n    cycle x in xs:\n        given x % 2 is 0:\n            emit x\n\nprimeiros := pares(range(1000000)).take(3)\nout \"os tres primeiros pares de um milhao:\", primeiros\nassert primeiros is [0, 2, 4], \"so tres foram calculados\"\n\n// A compreensao equivalente alocaria 500 mil itens\npoucos := [x cycle x in range(20) given x % 2 is 0]\nassert len(poucos) is 10, \"aqui cabe, com 20 itens\"\n\n// Medindo a diferenca com uma entrada media\ncom_preguica := Crucible.timed(lambda => pares(range(100000)).take(5))\ncom_lista := Crucible.timed(lambda => [x cycle x in range(100000) given x % 2 is 0])\n\nout \"preguicoso (5 itens):\", round(com_preguica[\"total_ms\"], 3), \"ms\"\nout \"lista inteira:       \", round(com_lista[\"total_ms\"], 1), \"ms\"\nassert com_preguica[\"total_ms\"] smaller com_lista[\"total_ms\"],\n    \"a preguica so paga pelo que voce pede\"\n\n// A regra:\n//\n//   'stream action' + 'take(n)' processa mais dados do que cabem na\n//   RAM. A compreensao e mais legivel e materializa tudo. Use a\n//   segunda ate ela nao caber, e entao troque.\n\nout \"ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -5696,13 +6338,18 @@
   "yield"
  ],
  "builtins": {
+  "Crucible": [
+   "__expect__"
+  ],
   "Type & Conversion": [
    "bool",
    "cast",
    "cluster",
+   "e_um",
    "float",
    "int",
    "len",
+   "linhagem",
    "range",
    "str",
    "type",
@@ -5948,5 +6595,5 @@
    "TAU"
   ]
  },
- "totalBuiltins": 225
+ "totalBuiltins": 228
 }

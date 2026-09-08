@@ -220,7 +220,7 @@ dataforge big-o --escala             # a tabela de referência
 dataforge big-o programa.df --json   # para o editor e o CI""", "lang": "bash"},
 
  {"h2": "No editor"},
- {"p": "A [extensão do VS Code](/docs/editor) mostra a classe acima de cada ação, enquanto se escreve. O motivo aparece no hover, e o comando *Analisar complexidade* abre o relatório completo."},
+ {"p": "A [extensão do VS Code](/docs/tecnicas/editor) mostra a classe acima de cada ação, enquanto se escreve. O motivo aparece no hover, e o comando *Analisar complexidade* abre o relatório completo."},
  {"p": "É a mesma análise: a extensão chama a CLI. O que o editor mostra é exatamente o que o CI vai reprovar."},
 
  {"h2": "O que ele detecta"},
@@ -575,6 +575,6 @@ out pares(range(1000000)).take(3)""", "lang": "df"},
  {"code": """// O(n) de espaço — materializa um milhão de itens
 todos := [x cycle x in range(1000000) given x % 2 is 0]
 out len(todos)""", "lang": "df"},
- {"callout": {"tipo": "dica", "titulo": "Preguiça é uma estratégia de memória", "texto": "`stream action` + `take(n)` é como processar mais dados do que cabem na RAM. Ver [generators](/docs/generators)."}},
+ {"callout": {"tipo": "dica", "titulo": "Preguiça é uma estratégia de memória", "texto": "`stream action` + `take(n)` é como processar mais dados do que cabem na RAM. Ver [generators](/docs/fundamentos/generators)."}},
 ]},
 ]

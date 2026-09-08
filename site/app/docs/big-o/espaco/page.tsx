@@ -65,7 +65,7 @@ out pares(range(1000000)).take(3)`, lang: 'df' },
   { code: `// O(n) de espaço — materializa um milhão de itens
 todos := [x cycle x in range(1000000) given x % 2 is 0]
 out len(todos)`, lang: 'df' },
-  {"callout": {"tipo": "dica", "titulo": "Preguiça é uma estratégia de memória", "texto": "`stream action` + `take(n)` é como processar mais dados do que cabem na RAM. Ver [generators](/docs/generators)."}},
+  {"callout": {"tipo": "dica", "titulo": "Preguiça é uma estratégia de memória", "texto": "`stream action` + `take(n)` é como processar mais dados do que cabem na RAM. Ver [generators](/docs/fundamentos/generators)."}},
 ];
 
 const headings = [{ id: 'o-que-conta-como-espaco', text: "O que conta como espaço", level: 2 as const }, { id: 'a-pilha-tambem-e-memoria', text: "A pilha também é memória", level: 2 as const }, { id: 'a-troca', text: "A troca", level: 2 as const }, { id: 'trabalhar-em-fluxo', text: "Trabalhar em fluxo", level: 2 as const }];

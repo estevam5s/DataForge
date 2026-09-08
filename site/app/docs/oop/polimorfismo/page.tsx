@@ -131,7 +131,7 @@ action perguntar(x):
 // a função não sabe o tipo; o objeto decide
 assert perguntar(spawn A()) is "A"
 assert perguntar(spawn B()) is "B"`, lang: 'df' },
-  {"p": "É mais flexível e mais lento — a busca do método acontece a cada chamada. Ver [desempenho](/docs/desempenho)."},
+  {"p": "É mais flexível e mais lento — a busca do método acontece a cada chamada. Ver [análise estática](/docs/tecnicas/analise-estatica)."},
 ];
 
 const headings = [{ id: 'o-problema', text: "O problema", level: 2 as const }, { id: 'a-solucao', text: "A solução", level: 2 as const }, { id: 'sobrescrita-override', text: "Sobrescrita (override)", level: 2 as const }, { id: 'sobrecarga-overload', text: "Sobrecarga (overload)", level: 2 as const }, { id: 'upcasting-e-downcasting', text: "Upcasting e downcasting", level: 2 as const }, { id: 'tempo-de-compilacao-e-tempo-de-execucao', text: "Tempo de compilação e tempo de execução", level: 2 as const }];

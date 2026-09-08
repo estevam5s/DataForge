@@ -194,7 +194,7 @@ assert s.repositorio.contar() is 1`, lang: 'df' },
   {"h2": "Acoplamento e coesão"},
   {"p": "Os cinco princípios servem a duas ideias mais gerais:"},
   {"table": {"head": ["", "Você quer", "Sinal de problema"], "rows": [["**acoplamento**", "baixo — poucas peças se conhecem", "mudar A obriga a mudar B, C e D"], ["**coesão**", "alta — o que está junto pertence junto", "uma classe chamada `Utils` ou `Manager`"]]}},
-  {"p": "Ver [composição e arquitetura](/docs/oop/composicao)."},
+  {"p": "Ver [modelagem](/docs/oop/modelagem)."},
 ];
 
 const headings = [{ id: 's--responsabilidade-unica', text: "S — Responsabilidade única", level: 2 as const }, { id: 'o--abertofechado', text: "O — Aberto/fechado", level: 2 as const }, { id: 'l--substituicao-de-liskov', text: "L — Substituição de Liskov", level: 2 as const }, { id: 'i--segregacao-de-interface', text: "I — Segregação de interface", level: 2 as const }, { id: 'd--inversao-de-dependencia', text: "D — Inversão de dependência", level: 2 as const }, { id: 'acoplamento-e-coesao', text: "Acoplamento e coesão", level: 2 as const }];

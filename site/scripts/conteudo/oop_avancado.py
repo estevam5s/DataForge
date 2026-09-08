@@ -403,7 +403,7 @@ action perguntar(x):
 // a função não sabe o tipo; o objeto decide
 assert perguntar(spawn A()) is "A"
 assert perguntar(spawn B()) is "B\"""", "lang": "df"},
- {"p": "É mais flexível e mais lento — a busca do método acontece a cada chamada. Ver [desempenho](/docs/desempenho)."},
+ {"p": "É mais flexível e mais lento — a busca do método acontece a cada chamada. Ver [análise estática](/docs/tecnicas/analise-estatica)."},
 ]},
 
 {
@@ -750,6 +750,6 @@ assert s.repositorio.contar() is 1""", "lang": "df"},
  {"table": {"head": ["", "Você quer", "Sinal de problema"], "rows": [
    ["**acoplamento**", "baixo — poucas peças se conhecem", "mudar A obriga a mudar B, C e D"],
    ["**coesão**", "alta — o que está junto pertence junto", "uma classe chamada `Utils` ou `Manager`"]]}},
- {"p": "Ver [composição e arquitetura](/docs/oop/composicao)."},
+ {"p": "Ver [modelagem](/docs/oop/modelagem)."},
 ]},
 ]

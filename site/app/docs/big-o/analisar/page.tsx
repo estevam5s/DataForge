@@ -16,7 +16,7 @@ dataforge big-o src/ --strict        # sai com erro acima de O(n log n)
 dataforge big-o --escala             # a tabela de referência
 dataforge big-o programa.df --json   # para o editor e o CI`, lang: 'bash' },
   {"h2": "No editor"},
-  {"p": "A [extensão do VS Code](/docs/editor) mostra a classe acima de cada ação, enquanto se escreve. O motivo aparece no hover, e o comando *Analisar complexidade* abre o relatório completo."},
+  {"p": "A [extensão do VS Code](/docs/tecnicas/editor) mostra a classe acima de cada ação, enquanto se escreve. O motivo aparece no hover, e o comando *Analisar complexidade* abre o relatório completo."},
   {"p": "É a mesma análise: a extensão chama a CLI. O que o editor mostra é exatamente o que o CI vai reprovar."},
   {"h2": "O que ele detecta"},
   {"table": {"head": ["Padrão", "Classe", "Como reconhece"], "rows": [["`cycle x in xs`", "O(n)", "uma volta por item"], ["dois `cycle` aninhados", "O(n²)", "multiplica as ordens"], ["`persist` com `n ~/ 2`", "O(log n)", "a variável se divide a cada volta"], ["`persist` com `n -= 1`", "O(n)", "avança de um em um"], ["`cycle i from 1 to 10`", "O(1)", "limites constantes"], ["`sorted(xs)`", "O(n log n)", "custo conhecido da embutida"], ["`x in xs`", "O(n)", "percorre o cluster"], ["`v.has(k)`", "O(1)", "vault indexa"], ["uma chamada recursiva, `n - 1`", "O(n)", "profundidade linear"], ["uma chamada recursiva, `n ~/ 2`", "O(log n)", "profundidade logarítmica"], ["duas chamadas, `n - 1`", "O(2ⁿ)", "ramifica sem dividir"], ["duas chamadas, metade cada", "O(n log n)", "divisão e conquista"], ["compreensão aninhada", "O(n²)", "cabe numa linha e é um laço duplo"]]}},

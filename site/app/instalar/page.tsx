@@ -82,7 +82,7 @@ sh instalar.sh`}
               desc="a linguagem em vinte minutos, escrevendo"
             />
             <Card
-              href="/docs/editor"
+              href="/docs/tecnicas/editor"
               titulo="Configurar o editor"
               desc="dataforge editor instala a extensão sozinho"
             />
