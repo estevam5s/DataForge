@@ -13,6 +13,16 @@ import { CAMINHO_MARCA, VIEWBOX_MARCA } from '@/lib/marca';
 
 export { CAMINHO_MARCA };
 
+/**
+ * O amarelo do logo original (#FED403).
+ *
+ * A marca não segue o acento do tema: ela tem uma cor, e ela é a mesma
+ * no site claro, no escuro, no favicon e no terminal. Seguir o tema
+ * faria a pantera mudar de cor com o botão de tema — e uma marca que
+ * muda de cor deixa de ser marca.
+ */
+export const COR_MARCA = '#FED403';
+
 export function Logo({
   size = 40,
   className = '',
@@ -20,7 +30,7 @@ export function Logo({
 }: {
   size?: number;
   className?: string;
-  /** Sobrepõe a cor; por padrão segue o acento do tema. */
+  /** Sobrepõe a cor; por padrão o amarelo da marca. */
   cor?: string;
 }) {
   return (
@@ -35,7 +45,7 @@ export function Logo({
       <path
         d={CAMINHO_MARCA}
         fillRule="evenodd"
-        fill={cor ?? 'rgb(var(--accent))'}
+        fill={cor ?? COR_MARCA}
       />
     </svg>
   );

@@ -364,8 +364,9 @@ class Parser:
             if producao is not None:
                 return producao()
 
-        # ── mark @Decorator ──
-        if tt == TokenType.MARK:
+        # ── @Decorador (com ou sem 'mark' antes) ──
+        if tt == TokenType.AT or (tt == TokenType.MARK
+                                  and self.peek(1).type == TokenType.AT):
             return self.parse_decorator()
 
         # ── adopt ──
@@ -545,32 +546,90 @@ class Parser:
 
     # ── Specific Statement Parsers ─────────────────────────
 
-    def parse_decorator(self):
-        """mark @Name [→ followed by action/blueprint]"""
-        tok = self.advance()  # consume 'mark'
-        self.expect(TokenType.AT, "Expected '@' after 'mark'")
-        name_tok = self.expect(TokenType.IDENTIFIER, "Expected decorator name")
-        decorator = ast.MarkDecorator(name=name_tok.value, line=tok.line, column=tok.column)
+    def parse_um_decorador(self):
+        """Um '@Nome' ou '@Nome(argumentos)'.
 
-        # Optional args
-        if self.current().type == TokenType.LPAREN:
+        Aceita nome pontuado ('@Http.Get') e argumentos nomeados
+        ('@Rota(metodo: "GET")') — os dois aparecem em qualquer
+        framework que use decoradores para configurar.
+        """
+        tok = self.expect(TokenType.AT, "Expected '@'")
+
+        partes = [self.expect_member_name()]
+        while self.current().type is TokenType.DOT:
             self.advance()
-            args = []
-            while self.current().type != TokenType.RPAREN:
-                args.append(self.parse_expression())
-                self.match(TokenType.COMMA)
-            self.expect(TokenType.RPAREN)
-            decorator.args = args
+            partes.append(self.expect_member_name())
 
+        decorador = ast.MarkDecorator(name=".".join(partes),
+                                      line=tok.line, column=tok.column)
+
+        if self.current().type is TokenType.LPAREN:
+            self.advance()
+            self.skip_newlines()
+            args, kwargs = [], {}
+            while self.current().type is not TokenType.RPAREN:
+                # nome: valor  → argumento nomeado
+                if (self.current().type is TokenType.IDENTIFIER
+                        and self.peek(1).type is TokenType.COLON):
+                    chave = self.advance().value
+                    self.advance()                 # ':'
+                    kwargs[chave] = self.parse_expression()
+                else:
+                    args.append(self.parse_expression())
+                self.skip_newlines()
+                if not self.match(TokenType.COMMA):
+                    break
+                self.skip_newlines()
+            self.expect(TokenType.RPAREN,
+                        "Expected ')' closing the decorator arguments")
+            decorador.args = args
+            decorador.kwargs = kwargs
+
+        return decorador
+
+    def parse_decorator(self):
+        """Uma pilha de decoradores, e o que eles decoram.
+
+            @Injetavel
+            @Rota("/itens")
+            action listar():
+                ...
+
+        O 'mark' antes do '@' e opcional — ele existia porque o parser
+        antigo precisava de uma palavra para se orientar. Hoje '@' basta,
+        e 'mark @Nome' continua funcionando para nao quebrar o que ja
+        foi escrito.
+        """
+        if self.current().type is TokenType.MARK:
+            self.advance()
+
+        decoradores = [self.parse_um_decorador()]
         self.skip_newlines()
 
-        # The decorated item follows
-        next_stmt = self.parse_statement()
-        if isinstance(next_stmt, ast.ActionDeclaration):
-            next_stmt.decorators.append(decorator)
-        elif isinstance(next_stmt, ast.BlueprintDeclaration):
-            pass  # could attach decorators to blueprints too
-        return next_stmt
+        # Uma pilha: cada '@' seguinte se acumula sobre o mesmo alvo.
+        while (self.current().type is TokenType.AT
+               or (self.current().type is TokenType.MARK
+                   and self.peek(1).type is TokenType.AT)):
+            if self.current().type is TokenType.MARK:
+                self.advance()
+            decoradores.append(self.parse_um_decorador())
+            self.skip_newlines()
+
+        alvo = self.parse_statement()
+
+        if isinstance(alvo, (ast.ActionDeclaration, ast.BlueprintDeclaration,
+                             ast.RecordDeclaration)):
+            alvo.decorators = list(decoradores) + list(
+                getattr(alvo, "decorators", []) or [])
+            return alvo
+
+        # Um decorador sobre outra coisa nao tem o que fazer, e calar
+        # seria pior: quem escreveu espera que ele valha alguma coisa.
+        nomes = ", ".join("@" + d.name for d in decoradores)
+        tipo = type(alvo).__name__ if alvo else "nada"
+        self.error(
+            f"{nomes} não pode decorar isto ({tipo}). "
+            f"Decoradores valem para 'action', 'blueprint' e 'record'.")
 
     def parse_adopt(self):
         """adopt Modulo[.Sub] [as Alias]

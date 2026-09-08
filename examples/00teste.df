@@ -1,10 +1,6 @@
-action classificar(n):
-    given n bigger 0:
-        yield "positivo"
-    orif n smaller 0:
-        yield "negativo"
-    otherwise:
-        yield "zero"
-
-cycle n in [5, -3, 0]:
-    out $"{n} -> {classificar(n)}"
+adopt Arcane.Math as M              // biblioteca padrão
+adopt validador as V                // pacote instalado
+adopt ./util as U                   // arquivo ao lado
+adopt ./lib/formato as F            // numa subpasta
+adopt ../compartilhado/config as C  // subindo
+adopt "src/legado.df" as L          // caminho literal

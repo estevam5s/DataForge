@@ -16,7 +16,7 @@ import sys
 import threading
 import time
 
-from .marca import cor, largura_terminal, marca
+from .marca import AMARELO, cor, largura_terminal, marca_colorida
 
 #: Quadros do girador. Braille porque ele gira de verdade em qualquer
 #: fonte monoespaçada, sem depender de emoji.
@@ -50,7 +50,7 @@ class Girador:
             if self._parar.is_set():
                 break
             sys.stdout.write(
-                f"\r  {cor(quadro, '1;31')} {self.texto}")
+                f"\r  {cor(quadro, AMARELO)} {self.texto}")
             sys.stdout.flush()
             time.sleep(0.08)
 
@@ -162,7 +162,7 @@ def apresentar(nome: str, modelo: dict, criados: list[str],
 def abertura(subtitulo: str) -> None:
     """A marca no topo do comando."""
     print()
-    print(marca())
+    print(marca_colorida())
     print()
     print(f"  {cor('DataForge', '1;37')} {cor(subtitulo, '0;90')}")
     print()

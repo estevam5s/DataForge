@@ -362,6 +362,9 @@ class BlueprintDeclaration(ASTNode):
     # (nome, tipo, padrao, visibilidade) — campos declarados no corpo
     fields_decl: list = field(default_factory=list)
     is_abstract: bool = False
+    decorators: list = field(default_factory=list)
+    # (nome_do_campo, [decoradores]) — decoradores em campos declarados
+    field_decorators: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -522,9 +525,15 @@ class PulseStatement(ASTNode):
 
 @dataclass
 class MarkDecorator(ASTNode):
-    """mark @Name"""
+    """@Nome  ou  @Nome(argumentos)
+
+    Aplica-se a acao, blueprint, record, metodo e campo. O 'mark' antes
+    do '@' continua aceito, mas e opcional — '@Nome' sozinho e a forma
+    normal, e a que a documentacao ensina.
+    """
     name: str = ""
     args: list = field(default_factory=list)
+    kwargs: dict = field(default_factory=dict)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -650,6 +659,8 @@ class RecordDeclaration(ASTNode):
     name: str = ""
     fields: list = field(default_factory=list)     # [(nome, tipo, default|None)]
     methods: dict = field(default_factory=dict)    # nome -> ActionDeclaration
+    decorators: list = field(default_factory=list)
+    field_decorators: dict = field(default_factory=dict)
 
 
 @dataclass

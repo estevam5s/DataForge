@@ -46,7 +46,7 @@ export function NavSite() {
 
   return (
     <>
-      <div className="sticky inset-x-0 top-0 z-50 px-4 pt-4 sm:px-10 sm:pt-6">
+      <div className="sticky inset-x-0 top-0 z-50 px-4 pb-2 pt-4 sm:px-10 sm:pb-3 sm:pt-5">
         <nav
           className={`mx-auto flex h-[76px] max-w-[1280px] items-center gap-4 rounded-[30px] border px-5 transition-all duration-300 sm:rounded-full sm:px-7 ${
             rolou

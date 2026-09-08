@@ -3,17 +3,20 @@ import { NavSite } from './NavSite';
 
 /* Números reais do repositório — os mesmos que a suíte verifica. */
 const fatos = [
-  { rotulo: 'Testes passando', valor: '378' },
-  { rotulo: 'Exercícios verificados', valor: '190' },
+  { rotulo: 'Testes passando', valor: '602' },
+  { rotulo: 'Exercícios verificados', valor: '200' },
   { rotulo: 'Dependências no runtime', valor: 'nenhuma' },
 ];
 
 export function Heroi() {
   return (
-    <header className="p-4 sm:p-10">
-      <div className="lp-noise lp-hero-glow relative isolate overflow-hidden rounded-[28px] px-6 pb-14 pt-32 sm:rounded-[40px] sm:px-10 sm:pb-16 sm:pt-44 lg:pb-20 lg:pt-52">
-        <NavSite />
+    <header>
+      {/* A barra fica FORA do card: dentro dele herdava o padding do
+          hero e aparecia flutuando no meio do nada, longe do topo. */}
+      <NavSite />
 
+      <div className="px-4 pb-4 sm:px-10 sm:pb-10">
+        <div className="lp-noise lp-hero-glow relative isolate overflow-hidden rounded-[28px] px-6 pb-14 pt-20 sm:rounded-[40px] sm:px-10 sm:pb-16 sm:pt-28 lg:pb-20 lg:pt-32">
         <div className="relative z-10 mx-auto max-w-[1280px]">
           <h1 className="lp-h1 mx-auto max-w-[15ch] text-center text-white">
             Mais que uma sintaxe diferente
@@ -44,6 +47,7 @@ export function Heroi() {
               ))}
             </dl>
           </div>
+        </div>
         </div>
       </div>
     </header>

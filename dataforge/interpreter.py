@@ -502,6 +502,12 @@ class Interpreter:
     """Tree-walking interpreter for DataForge AST."""
 
     def __init__(self):
+        # Tabelas de despacho, preenchidas sob demanda por classe de no.
+        # Uma por interpretador (e nao de classe) porque os metodos
+        # ligados guardam a referencia a esta instancia.
+        self._tabela_exec = {}
+        self._tabela_eval = {}
+
         self.global_env = Environment(name="<global>")
         self.modules = {}
         self.events = {}  # event name → list of callbacks
@@ -583,36 +589,60 @@ class Interpreter:
             result = self.execute(stmt, env)
         return result
 
+    # ── Despacho ───────────────────────────────────────────
+    #
+    #  Um programa de porte medio percorre mais de um milhao de nos, e
+    #  cada um passava por f"exec_{type(node).__name__}" mais um getattr.
+    #  Montar string e buscar por nome nesse volume domina o tempo de
+    #  execucao — era 15% do total no perfil.
+    #
+    #  A tabela abaixo indexa pela CLASSE do no, resolvida uma vez por
+    #  tipo. Um dict de classe para metodo ligado e a estrutura mais
+    #  rapida que o Python oferece para isto.
+
+    def _resolver_exec(self, classe):
+        """O metodo que executa esta classe de no. Memoriza."""
+        metodo = getattr(self, f"exec_{classe.__name__}", None)
+        if metodo is None:
+            metodo = getattr(self, f"eval_{classe.__name__}", None)
+        self._tabela_exec[classe] = metodo
+        return metodo
+
+    def _resolver_eval(self, classe):
+        """O metodo que avalia esta classe de no. Memoriza."""
+        metodo = getattr(self, f"eval_{classe.__name__}", None)
+        if metodo is None:
+            metodo = getattr(self, f"exec_{classe.__name__}", None)
+        self._tabela_eval[classe] = metodo
+        return metodo
+
     def execute(self, node, env: Environment):
-        """Execute a single AST node."""
+        """Executa um no."""
         if node is None:
             return None
-
-        method_name = f"exec_{type(node).__name__}"
-        method = getattr(self, method_name, None)
-        if method:
-            return method(node, env)
-
-        # If it's an expression node, evaluate it
-        return self.evaluate(node, env)
+        classe = node.__class__
+        metodo = self._tabela_exec.get(classe)
+        if metodo is None:
+            metodo = self._resolver_exec(classe)
+            if metodo is None:
+                raise RuntimeError_(
+                    f"Cannot execute node type: {classe.__name__}",
+                    node.line, node.column)
+        return metodo(node, env)
 
     def evaluate(self, node, env: Environment):
-        """Evaluate an expression node and return its value."""
+        """Avalia um no e devolve o valor."""
         if node is None:
             return None
-
-        method_name = f"eval_{type(node).__name__}"
-        method = getattr(self, method_name, None)
-        if method:
-            return method(node, env)
-
-        # Fallback: try execute
-        method_name2 = f"exec_{type(node).__name__}"
-        method2 = getattr(self, method_name2, None)
-        if method2:
-            return method2(node, env)
-
-        raise RuntimeError_(f"Cannot evaluate node type: {type(node).__name__}", node.line, node.column)
+        classe = node.__class__
+        metodo = self._tabela_eval.get(classe)
+        if metodo is None:
+            metodo = self._resolver_eval(classe)
+            if metodo is None:
+                raise RuntimeError_(
+                    f"Cannot evaluate node type: {classe.__name__}",
+                    node.line, node.column)
+        return metodo(node, env)
 
     # ═══════════════════════════════════════════════════════
     #  LITERAL EVALUATION
@@ -682,10 +712,17 @@ class Interpreter:
             raise
 
     def eval_BinaryOp(self, node: ast.BinaryOp, env):
-        left = self.evaluate(node.left, env)
-        right = self.evaluate(node.right, env)
-        op = node.op
+        return self._operar(self.evaluate(node.left, env), node.op,
+                            self.evaluate(node.right, env), node, env)
 
+    def _operar(self, left, op, right, node, env):
+        """Aplica um operador binario a dois valores JA avaliados.
+
+        Separado de eval_BinaryOp para que 'x += 1' possa chamar isto
+        direto. Antes, a atribuicao composta montava dois nos de AST por
+        volta so para reusar a avaliacao — 220 mil alocacoes num laco de
+        200 mil voltas, jogadas fora em seguida.
+        """
         # ── Sobrecarga de operador ─────────────────────────
         # 'operator + (outro):' declarado no blueprint tem prioridade.
         for lado, outro, invertido in ((left, right, False), (right, left, True)):
@@ -1681,10 +1718,9 @@ class Interpreter:
         direita = self.evaluate(node.value, env)
 
         def aplicar(atual):
-            combinado = ast.BinaryOp(left=ast.ValorPronto(value=atual), op=op,
-                                     right=ast.ValorPronto(value=direita),
-                                     line=node.line, column=node.column)
-            return self.eval_BinaryOp(combinado, env)
+            # Direto sobre os valores: montar dois nos de AST por volta
+            # so para joga-los fora custava mais que a operacao em si.
+            return self._operar(atual, op, direita, node, env)
 
         if isinstance(alvo, ast.Identifier):
             novo = aplicar(env.get(alvo.name))
@@ -1706,6 +1742,8 @@ class Interpreter:
             return novo
 
         if isinstance(alvo, ast.MemberAccess):
+            # O objeto e avaliado uma vez; a leitura e a escrita usam o
+            # mesmo valor, e nao dois nos de AST recem-criados.
             obj = self.evaluate(alvo.object, env)
             leitura = ast.MemberAccess(object=ast.ValorPronto(value=obj),
                                        member=alvo.member,
@@ -1837,17 +1875,85 @@ class Interpreter:
 
     # ── Loops ──────────────────────────────────────────────
 
+    @staticmethod
+    def _corpo_captura_escopo(corpo):
+        """O corpo do laco guarda uma referencia ao escopo da volta?
+
+        Uma acao declarada dentro do laco captura o escopo no
+        fechamento; um 'thread' ou 'defer' idem. Nesses casos cada volta
+        precisa do proprio escopo, senao todas compartilhariam o ultimo
+        — o classico 'todas as funcoes veem o mesmo i'.
+
+        Fora esses casos, o escopo pode ser reaproveitado, e um laco de
+        200 mil voltas deixa de alocar 200 mil objetos.
+        """
+        CAPTURAM = (ast.ActionDeclaration, ast.BlueprintDeclaration,
+                    ast.RecordDeclaration, ast.ThreadBlock,
+                    ast.DeferStatement, ast.ParallelBlock,
+                    ast.LambdaExpression)
+
+        # Varre a arvore inteira do corpo, nao so o primeiro nivel: um
+        # 'lambda' vive DENTRO de uma expressao ('lista.append(lambda …)'),
+        # e olhar so as instrucoes o deixaria passar — todas as closures
+        # da volta acabariam vendo o ultimo valor.
+        pilha = list(corpo)
+        vistos = 0
+        while pilha:
+            no = pilha.pop()
+            vistos += 1
+            if vistos > 5000:
+                # Corpo enorme: assumir que captura e o lado seguro.
+                return True
+            if isinstance(no, CAPTURAM):
+                return True
+            if isinstance(no, (list, tuple)):
+                pilha.extend(no)
+                continue
+            if isinstance(no, dict):
+                pilha.extend(no.values())
+                continue
+            if not isinstance(no, ast.ASTNode):
+                continue
+            for campo in getattr(no, "__dataclass_fields__", ()):
+                valor = getattr(no, campo, None)
+                if isinstance(valor, (ast.ASTNode, list, tuple, dict)):
+                    pilha.append(valor)
+        return False
+
+    def _escopo_de_laco(self, node, env, nome):
+        """O escopo da volta — novo a cada vez, ou um so reaproveitado.
+
+        A decisao e por no de laco e memorizada: analisar o corpo a cada
+        volta custaria mais do que a alocacao que se quer evitar.
+        """
+        captura = getattr(node, "_captura_escopo", None)
+        if captura is None:
+            captura = self._corpo_captura_escopo(node.body)
+            try:
+                node._captura_escopo = captura
+            except AttributeError:
+                pass
+        if captura:
+            return None                       # um novo por volta
+        return env.child(nome)
+
     def exec_CycleFromTo(self, node: ast.CycleFromTo, env):
         start = self.evaluate(node.start, env)
         end = self.evaluate(node.end, env)
         step = self.evaluate(node.step, env) if node.step else 1
 
+        reusavel = self._escopo_de_laco(node, env, "<cycle>")
+        corpo = node.body
         i = start
         while (step > 0 and i <= end) or (step < 0 and i >= end):
-            loop_env = env.child("<cycle>")
+            if reusavel is None:
+                loop_env = env.child("<cycle>")
+            else:
+                loop_env = reusavel
+                loop_env.limpar()
             loop_env.set_local(node.var, i)
             try:
-                self.exec_block(node.body, loop_env)
+                self.exec_block(corpo, loop_env)
             except HaltSignal:
                 break
             except SkipSignal:
@@ -1861,29 +1967,46 @@ class Interpreter:
                 f"Cannot cycle over {self._type_of(collection)}: "
                 f"expected a Cluster, Vault or String",
                 node.line, node.column)
+        reusavel = self._escopo_de_laco(node, env, "<cycle>")
+        corpo = node.body
         for item in collection:
-            loop_env = env.child("<cycle>")
+            if reusavel is None:
+                loop_env = env.child("<cycle>")
+            else:
+                loop_env = reusavel
+                loop_env.limpar()
             loop_env.set_local(node.var, item)
             try:
-                self.exec_block(node.body, loop_env)
+                self.exec_block(corpo, loop_env)
             except HaltSignal:
                 break
             except SkipSignal:
                 continue
 
     def exec_PersistBlock(self, node: ast.PersistBlock, env):
+        reusavel = self._escopo_de_laco(node, env, "<persist>")
+        corpo = node.body
         while self.evaluate(node.condition, env):
-            loop_env = env.child("<persist>")
+            if reusavel is None:
+                loop_env = env.child("<persist>")
+            else:
+                loop_env = reusavel
+                loop_env.limpar()
             try:
-                self.exec_block(node.body, loop_env)
+                self.exec_block(corpo, loop_env)
             except HaltSignal:
                 break
             except SkipSignal:
                 continue
 
     def exec_PerformBlock(self, node: ast.PerformBlock, env):
+        reusavel = self._escopo_de_laco(node, env, "<perform>")
         while True:
-            loop_env = env.child("<perform>")
+            if reusavel is None:
+                loop_env = env.child("<perform>")
+            else:
+                loop_env = reusavel
+                loop_env.limpar()
             try:
                 self.exec_block(node.body, loop_env)
             except HaltSignal:
@@ -1909,18 +2032,113 @@ class Interpreter:
         )
         env.set_local(node.name, action)
 
-        # Apply 'mark @decorator' wrappers, innermost (closest) first.
-        value = action
-        for deco in reversed(getattr(node, 'decorators', []) or []):
-            wrapper = env.get(deco.name)
-            deco_args = [self.evaluate(a, env) for a in getattr(deco, 'args', []) or []]
-            if deco_args:
-                factory = self._call(wrapper, deco_args, {}, node, env)
-                value = self._call(factory, [value], {}, node, env)
+        valor = self._aplicar_decoradores(action, node, env)
+        env.set_local(node.name, valor)
+        return valor
+
+    # ── Decoradores ────────────────────────────────────────
+
+    def _resolver_decorador(self, nome, node, env):
+        """O decorador pelo nome, aceitando 'Modulo.Nome'."""
+        partes = nome.split(".")
+        try:
+            valor = env.get(partes[0])
+        except NameError_:
+            raise RuntimeError_(
+                f"'@{nome}' não existe.",
+                node.line, node.column,
+                nota="um decorador é uma ação que recebe o que decora "
+                     "e devolve o que fica no lugar",
+                dica=f"declare 'action {partes[0]}(alvo):' antes de usá-lo, "
+                     f"ou importe o módulo que o traz",
+                doc="decoradores") from None
+
+        for parte in partes[1:]:
+            if isinstance(valor, dict):
+                if parte not in valor:
+                    raise RuntimeError_(
+                        f"'{parte}' não existe em '{partes[0]}'.",
+                        node.line, node.column, doc="decoradores")
+                valor = valor[parte]
             else:
-                value = self._call(wrapper, [value], {}, node, env)
-            env.set_local(node.name, value)
-        return value
+                valor = getattr(valor, parte, None)
+        return valor
+
+    def _aplicar_decoradores(self, alvo, node, env):
+        """Aplica a pilha de decoradores, o mais proximo primeiro.
+
+            @A
+            @B
+            action f(): …        vira  A(B(f))
+
+        E a ordem de toda linguagem que tem decoradores: o de baixo
+        embrulha primeiro, e o de cima embrulha o resultado.
+
+        Antes de aplicar, os metadados do decorador sao gravados no
+        alvo. E o que permite um decorador so anotar — '@Rota("/x")' nao
+        precisa embrulhar nada, so registrar o caminho para outra parte
+        do programa ler depois.
+        """
+        decoradores = getattr(node, "decorators", None) or []
+        if not decoradores:
+            return alvo
+
+        for deco in decoradores:
+            args = [self.evaluate(a, env) for a in (deco.args or [])]
+            kwargs = {k: self.evaluate(v, env)
+                      for k, v in (deco.kwargs or {}).items()}
+            self._gravar_metadado(alvo, deco.name, args, kwargs)
+
+        valor = alvo
+        for deco in reversed(decoradores):
+            funcao = self._resolver_decorador(deco.name, node, env)
+            args = [self.evaluate(a, env) for a in (deco.args or [])]
+            kwargs = {k: self.evaluate(v, env)
+                      for k, v in (deco.kwargs or {}).items()}
+
+            if args or kwargs:
+                # Com argumentos, o decorador e uma FABRICA: primeiro
+                # recebe a configuracao, depois o alvo.
+                fabrica = self._call(funcao, args, kwargs, node, env)
+                novo = self._call(fabrica, [valor], {}, node, env)
+            else:
+                novo = self._call(funcao, [valor], {}, node, env)
+
+            # Um decorador que so anota devolve void; nesse caso o alvo
+            # segue sendo ele mesmo. Sem isto, '@Rota("/x")' apagaria a
+            # acao que decorou.
+            if novo is not None:
+                self._herdar_metadados(valor, novo)
+                valor = novo
+
+        return valor
+
+    @staticmethod
+    def _gravar_metadado(alvo, nome, args, kwargs):
+        """Guarda '@Nome(args)' no alvo, para leitura posterior."""
+        try:
+            registro = getattr(alvo, "__metadados__", None)
+            if registro is None:
+                registro = []
+                alvo.__metadados__ = registro
+            registro.append({"nome": nome, "args": list(args),
+                             "kwargs": dict(kwargs)})
+        except (AttributeError, TypeError):
+            pass          # o alvo nao aceita atributo; segue sem metadado
+
+    @staticmethod
+    def _herdar_metadados(antigo, novo):
+        """O embrulho herda os metadados do que embrulhou.
+
+        Sem isto, '@Injetavel @Rota("/x")' perderia a anotacao assim que
+        o primeiro decorador devolvesse um embrulho.
+        """
+        try:
+            herdados = getattr(antigo, "__metadados__", None)
+            if herdados and not getattr(novo, "__metadados__", None):
+                novo.__metadados__ = list(herdados)
+        except (AttributeError, TypeError):
+            pass
 
     def exec_BlueprintDeclaration(self, node: ast.BlueprintDeclaration, env):
         parents = []
@@ -1994,6 +2212,12 @@ class Interpreter:
                 )
                 action.is_abstract = getattr(stmt, 'is_abstract', False)
                 action.owner = node.name
+
+                # Decoradores do metodo. Sem isto, '@Rota("/x")' dentro
+                # de um blueprint seria ignorado — e e justamente ai que
+                # ele mais serve, para um controlador declarar as rotas
+                # ao lado dos metodos que as atendem.
+                action = self._aplicar_decoradores(action, stmt, bp_env)
                 methods[nome] = action
 
                 visibility[nome] = getattr(stmt, 'visibility', 'public')
@@ -2067,8 +2291,13 @@ class Interpreter:
             self._conferir_contrato(blueprint, node, env)
 
         bp_env.set_local(node.name, blueprint)
-        env.set_local(node.name, blueprint)
-        return blueprint
+
+        # Decoradores do blueprint. Um deles pode devolver outro valor
+        # (uma fabrica, um proxy) e e esse que fica com o nome.
+        valor = self._aplicar_decoradores(blueprint, node, env)
+        bp_env.set_local(node.name, valor)
+        env.set_local(node.name, valor)
+        return valor
 
     def _conferir_contrato(self, blueprint, node, env):
         """Um blueprint concreto precisa implementar tudo o que prometeu."""
@@ -2152,8 +2381,10 @@ class Interpreter:
                 return_type=getattr(decl, 'return_type', ""))
         record = DFRecord(node.name, node.fields, metodos, rec_env)
         rec_env.set_local(node.name, record)
-        env.set_local(node.name, record)
-        return record
+
+        valor = self._aplicar_decoradores(record, node, env)
+        env.set_local(node.name, valor)
+        return valor
 
     def exec_EnumDeclaration(self, node, env):
         enum_env = env.child(f"<enum {node.name}>")

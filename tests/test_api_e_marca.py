@@ -161,7 +161,9 @@ def test_favicon_tem_cor_propria_e_a_marca_herda():
                    encoding="utf-8").read()
     assert "currentColor" in inline
     assert "currentColor" not in favicon
-    assert "#ea2845" in favicon
+    # O amarelo do logo original, não o acento do site: a marca tem uma
+    # cor, e ela não muda porque o tema da página é outro.
+    assert "#FED403" in favicon
 
 
 def test_o_svg_usa_evenodd():

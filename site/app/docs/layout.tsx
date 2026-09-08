@@ -20,22 +20,22 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
       <Header />
 
       <div className="relative mx-auto flex max-w-[1620px] gap-6 px-2 pt-3 sm:px-4">
-        <aside className="hidden w-[280px] shrink-0 lg:block">
+        <aside className="hidden w-[248px] shrink-0 lg:block">
           <div className="sticky top-[84px] flex max-h-[calc(100vh-100px)] flex-col rounded-2xl border border-line/70 bg-surface/50 backdrop-blur-sm">
             <SidebarRolagem>
               <Sidebar />
             </SidebarRolagem>
 
-            <div className="shrink-0 space-y-2 border-t border-line/70 p-3">
+            <div className="shrink-0 space-y-1.5 border-t border-line/70 p-2.5">
               <Link
                 href="/painel"
-                className="block rounded-xl bg-accent px-4 py-2.5 text-center text-[13px] font-bold uppercase tracking-wide text-white shadow-[0_6px_20px_-8px_rgb(var(--accent))] transition-all hover:bg-accent-soft hover:shadow-[0_8px_24px_-8px_rgb(var(--accent))]"
+                className="block rounded-lg bg-accent px-3 py-2 text-center text-[12px] font-bold uppercase tracking-wide text-white shadow-[0_6px_20px_-8px_rgb(var(--accent))] transition-all hover:bg-accent-soft hover:shadow-[0_8px_24px_-8px_rgb(var(--accent))]"
               >
                 Praticar no painel
               </Link>
               <Link
                 href="/docs/roadmap"
-                className="block rounded-xl border border-line px-4 py-2 text-center text-[12.5px] font-semibold text-muted transition-colors hover:border-line hover:bg-raised hover:text-strong"
+                className="block rounded-lg border border-line px-3 py-1.5 text-center text-[11.5px] font-semibold text-muted transition-colors hover:border-line hover:bg-raised hover:text-strong"
               >
                 Versão 1.0.0
               </Link>

@@ -19,7 +19,7 @@ from .errors import DataForgeError
 # A marca no terminal vem de dataforge/marca.py, que a gera de logo.png.
 # Escrever o nome em ASCII era o que se fazia antes de a linguagem ter
 # uma marca — agora ela tem, e a CLI mostra a mesma do site.
-from .marca import marca as _marca
+from .marca import marca_colorida as _marca
 
 
 # ═══════════════════════════════════════════════════════════

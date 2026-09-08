@@ -35,8 +35,15 @@ TOLERANCIA = 0.8
 AREA_MINIMA = 60
 
 #: A cor da marca onde ela nao pode herdar a do contexto: favicon,
-#: apple-touch-icon e o icone do editor. E o mesmo vermelho do site.
-COR_MARCA = "#ea2845"
+#: apple-touch-icon e o icone do editor.
+#:
+#: E o amarelo do proprio logo.png (#FED403), nao o vermelho do site: a
+#: marca tem uma cor, e ela nao muda porque o tema da pagina e outro.
+COR_MARCA = "#FED403"
+
+#: O preto do fundo do logo. Um icone de favicon precisa de fundo
+#: proprio — o amarelo sobre a barra clara do navegador some.
+FUNDO_MARCA = (10, 10, 12, 255)
 
 
 def carregar_mascara(caminho):
@@ -362,9 +369,9 @@ def _gravar_pngs(d, lado):
 
     saidas = [
         (os.path.join(RAIZ, "site", "app", "apple-icon.png"), 180,
-         rgb + (255,), (10, 10, 12, 255)),
+         rgb + (255,), FUNDO_MARCA),
         (os.path.join(RAIZ, "editor", "vscode", "icone.png"), 256,
-         rgb + (255,), (10, 10, 12, 255)),
+         rgb + (255,), FUNDO_MARCA),
         (os.path.join(RAIZ, "site", "public", "marca-256.png"), 256,
          rgb + (255,), (0, 0, 0, 0)),
     ]
@@ -377,8 +384,7 @@ def _gravar_pngs(d, lado):
     # favicon fica sendo o do logo antigo para sempre.
     ico = os.path.join(RAIZ, "site", "app", "favicon.ico")
     tamanhos = [16, 32, 48, 64, 128, 256]
-    imagens = [desenhar(t, rgb + (255,), (10, 10, 12, 255))
-               for t in tamanhos]
+    imagens = [desenhar(t, rgb + (255,), FUNDO_MARCA) for t in tamanhos]
     imagens[-1].save(ico, format="ICO",
                      sizes=[(t, t) for t in tamanhos])
     print(f"  escrito: {os.path.relpath(ico, RAIZ)}  "

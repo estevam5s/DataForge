@@ -82,9 +82,11 @@
 }
 
 @layer components {
-  /* ── Rótulo de seção da barra lateral (h3: 13px/700/1.04px na captura) ── */
+  /* ── Rótulo de seção da barra lateral ──────────────────────────
+     Menor que o corpo do texto: com 190 rotas, cada pixel a mais em
+     cada linha custa uma seção inteira de rolagem. */
   .nav-label {
-    @apply text-micro font-bold uppercase tracking-[1.04px];
+    @apply text-[11.5px] font-bold uppercase leading-[16px] tracking-[0.9px];
   }
 
   /* ── Conteúdo em prosa ─────────────────────────────────────────── */

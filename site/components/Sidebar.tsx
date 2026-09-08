@@ -113,7 +113,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               key={secao.title}
               href={item.href}
               onClick={onNavigate}
-              className={`nav-label block rounded-xl px-3 py-[9px] transition-colors ${
+              className={`nav-label block rounded-lg px-2.5 py-[6px] transition-colors ${
                 ativo ? 'text-accent' : 'text-body hover:text-strong'
               }`}
             >
@@ -132,7 +132,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               onClick={() => alternar(secao.title)}
               aria-expanded={aberta}
               aria-controls={idPainel}
-              className={`nav-label flex w-full items-center justify-between rounded-xl px-3 py-[9px] transition-colors ${
+              className={`nav-label flex w-full items-center justify-between rounded-lg px-2.5 py-[6px] transition-colors ${
                 contemAtual ? 'text-strong' : 'text-body hover:text-strong'
               }`}
             >
@@ -144,7 +144,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             </button>
 
             <Painel aberto={aberta} id={idPainel}>
-              <ul className="mb-1 ml-[18px] space-y-px border-l border-line/70 pl-2">
+              <ul className="mb-0.5 ml-[15px] space-y-0 border-l border-line/60 pl-2">
                 {secao.items.map((item) => {
                   const ativo = item.href === atual;
                   return (
@@ -154,7 +154,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         onClick={onNavigate}
                         aria-current={ativo ? 'page' : undefined}
                         tabIndex={aberta ? undefined : -1}
-                        className={`group relative block rounded-lg py-[6px] pl-3 pr-2 text-[13.5px] transition-all duration-200 ${
+                        className={`group relative block rounded-md py-[4.5px] pl-2.5 pr-2 text-[12.5px] leading-[18px] transition-all duration-200 ${
                           ativo
                             ? 'bg-accent/10 font-medium text-accent'
                             : 'text-muted hover:translate-x-0.5 hover:text-strong'
@@ -163,7 +163,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         {/* A barra do item ativo cresce a partir do centro */}
                         <span
                           className={`absolute -left-[9px] top-1/2 w-[2px] -translate-y-1/2 rounded-full bg-accent transition-all duration-300 ${
-                            ativo ? 'h-[18px] opacity-100' : 'h-0 opacity-0'
+                            ativo ? 'h-[14px] opacity-100' : 'h-0 opacity-0'
                           }`}
                           aria-hidden="true"
                         />

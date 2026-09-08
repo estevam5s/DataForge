@@ -9,6 +9,16 @@ from .errors import NameError_, RuntimeError_
 class Environment:
     """A scope environment for variable/function lookups."""
 
+    # __slots__ economiza o dict de atributos de cada escopo. Um laco de
+    # 200 mil voltas cria 200 mil escopos, e cada um custava um dict a
+    # mais so para guardar quatro campos.
+    # '_deferred' e '_exports' sao anexados pelo interpretador em
+    # escopos especificos (blocos com 'defer', modulos com 'relay'). Com
+    # __slots__ eles precisam ser declarados aqui, senao o Python recusa
+    # a atribuicao — e o erro aparece longe da causa.
+    __slots__ = ("parent", "name", "variables", "constants",
+                 "_deferred", "_exports")
+
     def __init__(self, parent=None, name: str = "<global>"):
         self.parent = parent
         self.name = name
@@ -133,6 +143,19 @@ class Environment:
     def child(self, name: str = "<block>"):
         """Create a child scope."""
         return Environment(parent=self, name=name)
+
+    def limpar(self):
+        """Esvazia o escopo para reutiliza-lo.
+
+        Um laco cria um escopo por volta. Reaproveitar o mesmo objeto,
+        limpando-o, evita alocar um Environment por iteracao — desde
+        que ninguem tenha guardado uma referencia a ele, o que so
+        acontece quando o corpo declara uma acao (que captura o escopo
+        no fechamento).
+        """
+        self.variables.clear()
+        if self.constants:
+            self.constants.clear()
 
     def __repr__(self):
         keys = list(self.variables.keys())

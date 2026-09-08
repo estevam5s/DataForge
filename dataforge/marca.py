@@ -65,7 +65,13 @@ def largura_terminal(padrao: int = 80) -> int:
         return padrao
 
 
-def marca(compacta: bool = False, codigo_cor: str = "1;31") -> str:
+#: O amarelo da marca em 256 cores. O terminal nao entende hex, e o
+#: amarelo padrao do ANSI (33) e mostarda em quase todo tema — 220 e o
+#: que mais se aproxima do #FED403 do logo.
+AMARELO = "38;5;220"
+
+
+def marca(compacta: bool = False, codigo_cor: str = AMARELO) -> str:
     """A pantera pronta para imprimir.
 
     Num terminal estreito a arte não cabe e ficaria picotada, então a
@@ -78,11 +84,26 @@ def marca(compacta: bool = False, codigo_cor: str = "1;31") -> str:
     return "\n".join(cor("  " + l, codigo_cor) for l in linhas)
 
 
+def suporta_cor_verdadeira() -> bool:
+    """O terminal aceita 24 bits?
+
+    Quase todo terminal moderno aceita, e ai a marca sai no tom exato
+    do logo em vez do mais proximo da paleta de 256.
+    """
+    return os.environ.get("COLORTERM", "") in ("truecolor", "24bit")
+
+
+def marca_colorida(compacta: bool = False) -> str:
+    """A marca no amarelo exato do logo, quando o terminal permite."""
+    codigo = "38;2;254;212;3" if suporta_cor_verdadeira() else AMARELO
+    return marca(compacta, codigo)
+
+
 def cabecalho(subtitulo: str = "", versao: str = "") -> str:
     """A marca com o nome e a versão ao lado, para abrir um comando."""
     from dataforge import __version__
 
-    partes = [marca(), ""]
+    partes = [marca_colorida(), ""]
     nome = cor("DataForge", "1;37")
     v = cor(f"v{versao or __version__}", "0;90")
     partes.append(f"  {nome} {v}")

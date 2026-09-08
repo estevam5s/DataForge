@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
-
-const REPO = 'https://github.com/estevam5s/DataForge';
+import { REPO, Redes } from './Redes';
 
 const colunas = [
   {
@@ -37,7 +36,7 @@ const colunas = [
       { t: 'Roadmap', h: '/docs/roadmap' },
       { t: 'Contribuir', h: '/docs/contribuir' },
       { t: 'FAQ', h: '/docs/faq' },
-      { t: 'Migração 3.x → 4.0', h: '/docs/faq/migracao' },
+      { t: 'Painel', h: '/painel' },
     ],
   },
 ];
@@ -56,6 +55,7 @@ export function Footer() {
               Uma linguagem de programação com vocabulário próprio, tipos
               verificados e pipelines nativos.
             </p>
+            <Redes tamanho={18} gap="gap-0.5" className="-ml-2 mt-4" />
           </div>
 
           {colunas.map((c) => (
@@ -75,7 +75,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>DataForge 4.0 · licença MIT · documentação em português</p>
+          <p>DataForge 1.0.0 · licença MIT · documentação em português</p>
           <a href={REPO} target="_blank" rel="noreferrer noopener" className="link-quiet">
             github.com/estevam5s/DataForge
           </a>
