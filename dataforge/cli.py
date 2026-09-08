@@ -294,6 +294,24 @@ GRUPOS = [
                       ("dataforge crucible --formato=junit --out=r.xml",
                        "para o CI")],
             veja=("test", "bench")),
+        Cmd("big-o", "dataforge big-o [alvo]",
+            "Calcula a complexidade de cada acao, sem rodar o codigo",
+            "Le a arvore e conta estrutura: lacos aninhados, recursao,\n"
+            "e o custo das funcoes embutidas que aparecem. Diz a classe\n"
+            "E o porque — 'O(n^2)' sozinho nao ajuda a melhorar nada.",
+            opcoes=[("--verbose, -v", "mostra o porque e o que fazer"),
+                    ("--escala", "a tabela do que cada classe custa"),
+                    ("--json", "saida estruturada, para o editor"),
+                    ("--strict", "sai com erro se algo passar de O(n log n)")],
+            exemplos=[("dataforge big-o src/ -v", ""),
+                      ("dataforge big-o --escala", "a tabela de referencia")],
+            veja=("profile", "bench")),
+        Cmd("custo", "dataforge custo [alvo]",
+            "Mostra o que cada 'adopt' traz junto",
+            "Uma linha de import nao parece cara. Um modulo de 200\n"
+            "simbolos entra inteiro no processo.",
+            exemplos=[("dataforge custo src/", "")],
+            veja=("big-o",)),
         Cmd("erros", "dataforge erros [termo]",
             "Lista o catalogo de erros da linguagem",
             "Sao 177 codigos em 15 familias. Sem termo, lista tudo\n"
@@ -2083,6 +2101,184 @@ def bench_command(alvo, repeticoes=10):
                 "0;90"))
 
 
+def bigo_command(alvos, opcoes):
+    """dataforge big-o — a complexidade de cada acao, sem rodar o codigo."""
+    import json as _json
+    from .complexidade import ESCALA, analisar_arquivo, para_json
+
+    if opcoes.get("escala"):
+        return _tabela_de_escala()
+
+    arquivos = _expandir(alvos or ["."])
+    if not arquivos:
+        print(color("Nenhum arquivo .df encontrado.", "1;33"))
+        sys.exit(1)
+
+    tudo = {}
+    piores = []
+    for caminho in arquivos:
+        try:
+            resultados = analisar_arquivo(caminho)
+        except Exception as e:                       # noqa: BLE001
+            if not opcoes.get("json"):
+                print(color(f"  {os.path.relpath(caminho)}: "
+                            f"{type(e).__name__}", "1;33"))
+            continue
+        tudo[caminho] = resultados
+        piores.extend(resultados)
+
+    if opcoes.get("json"):
+        print(_json.dumps(
+            {os.path.relpath(c): para_json(r) for c, r in tudo.items()},
+            ensure_ascii=False, indent=2))
+        return
+
+    cores = {0: "1;32", 1: "1;36", 2: "1;33", 3: "1;31"}
+    simbolos = {0: "●", 1: "●", 2: "▲", 3: "■"}
+
+    for caminho, resultados in tudo.items():
+        if not resultados:
+            continue
+        print()
+        print(f"  {color(os.path.relpath(caminho), '1;37')}")
+        for r in resultados:
+            g = r.tempo.gravidade()
+            print(f"    {color(simbolos[g], cores[g])} "
+                  f"{r.nome:<26} "
+                  f"{color(r.tempo.texto(), cores[g]):<22} tempo   "
+                  f"{color(r.espaco.texto(), '0;90')} espaco")
+            if opcoes.get("verboso"):
+                for motivo in r.tempo.motivos[:3]:
+                    print(f"        {color('· ' + motivo, '0;90')}")
+                for aviso in r.avisos:
+                    cor = {"grave": "1;31", "atencao": "1;33"}.get(
+                        aviso["nivel"], "0;90")
+                    print(f"        {color('⚠ ' + aviso['texto'], cor)}")
+                    print(f"          {color(aviso['sugestao'], '0;90')}")
+
+    ruins = [r for r in piores if r.tempo.gravidade() >= 2]
+    print()
+    if ruins:
+        print(color(f"  {len(ruins)} acao(oes) acima de O(n log n):", "1;33"))
+        for r in sorted(ruins, key=lambda x: -x.tempo._peso())[:8]:
+            print(f"    {r.tempo.texto():<12} {r.nome}")
+        print()
+        print(color("  dataforge big-o <arquivo> -v   mostra o porque e o que fazer",
+                    "0;90"))
+    else:
+        print(color(f"  ✓ {len(piores)} acao(oes), nenhuma acima de O(n log n)",
+                    "1;32"))
+    print()
+
+    if opcoes.get("estrito") and ruins:
+        sys.exit(1)
+
+
+def _tabela_de_escala():
+    """dataforge big-o --escala — o que cada classe custa na pratica."""
+    from .complexidade import ESCALA
+
+    print()
+    print(f"  {color('A ESCALA', '1;37')}   "
+          f"{color('operacoes por tamanho de entrada', '0;90')}")
+    print()
+    cabecalho = (f"  {'classe':<12} {'nome':<16} {'n=10':>10} "
+                 f"{'n=1.000':>12} {'n=1.000.000':>14}")
+    print(color(cabecalho, "0;90"))
+    print(color("  " + "─" * 68, "0;90"))
+    for linha in ESCALA:
+        cor = {"O(1)": "1;32", "O(log n)": "1;32", "O(n)": "1;36",
+               "O(n log n)": "1;36", "O(n^2)": "1;33", "O(n^3)": "1;33"}.get(
+                   linha["notacao"], "1;31")
+        print(f"  {color(linha['notacao'], cor):<21} {linha['nome']:<16} "
+              f"{linha['n10']:>10} {linha['n1k']:>12} {linha['n1m']:>14}")
+    print()
+    for linha in ESCALA:
+        print(f"  {color(linha['notacao'], '1;37'):<20} {linha['descricao']}")
+        print(f"  {' ' * 12} {color(linha['exemplo'], '0;90')}")
+    print()
+
+
+def custo_command(alvos):
+    """dataforge custo — o que cada 'adopt' traz junto.
+
+    Uma linha de import nao parece cara. Um modulo com 200 simbolos e
+    30 KB de codigo entra inteiro no processo, e num programa que so
+    queria 'sqrt' isso e desperdicio que ninguem ve.
+    """
+    from .lexer import tokenize
+    from .parser import parse
+    from . import ast_nodes as ast
+    from .stdlib import get_module
+
+    arquivos = _expandir(alvos or ["."])
+    if not arquivos:
+        print(color("Nenhum arquivo .df encontrado.", "1;33"))
+        sys.exit(1)
+
+    total_simbolos = 0
+    print()
+    for caminho in arquivos:
+        fonte, motivo = _ler(caminho)
+        if fonte is None:
+            continue
+        try:
+            arvore = parse(tokenize(fonte, caminho), caminho)
+        except Exception:                            # noqa: BLE001
+            continue
+
+        adocoes = [n for n in arvore.body if isinstance(n, ast.AdoptStatement)]
+        if not adocoes:
+            continue
+
+        print(f"  {color(os.path.relpath(caminho), '1;37')}")
+        for no in adocoes:
+            nome = getattr(no, "module", "") or getattr(no, "path", "")
+            modulo = get_module(nome) or get_module(nome.split(".")[-1])
+            if modulo is None:
+                print(f"    {color('?', '0;90')} {nome:<28} "
+                      f"{color('modulo local', '0;90')}")
+                continue
+
+            simbolos = len(modulo)
+            selecionados = getattr(no, "names", None) or []
+            total_simbolos += simbolos
+
+            tamanho = _peso_do_modulo(nome)
+            cor = ("1;32" if simbolos < 20 else
+                   "1;36" if simbolos < 60 else "1;33")
+            detalhe = f"{simbolos} simbolos"
+            if tamanho:
+                detalhe += f", {tamanho // 1024} KB"
+            print(f"    {color('●', cor)} {nome:<28} {color(detalhe, cor)}")
+
+            if selecionados and len(selecionados) < simbolos / 3:
+                print(f"      {color(f'usa {len(selecionados)} de {simbolos}', '0;90')}")
+            elif not selecionados and simbolos > 40:
+                print(f"      {color('adopt seletivo traria so o que voce usa:', '0;90')}")
+                print(f"      {color(f'adopt {nome}.' + '{' + 'sqrt, floor' + '}', '0;90')}")
+        print()
+
+    print(color(f"  {total_simbolos} simbolo(s) importados no total", "0;90"))
+    print()
+
+
+def _peso_do_modulo(nome):
+    """Bytes do arquivo que implementa o modulo, quando da para achar."""
+    from . import stdlib
+    base = os.path.dirname(os.path.abspath(stdlib.__file__))
+    curto = nome.split(".")[-1].lower()
+    for candidato in (f"arcane_{curto}.py", f"{curto}.py"):
+        caminho = os.path.join(base, candidato)
+        if os.path.isfile(caminho):
+            return os.path.getsize(caminho)
+    pasta = os.path.join(base, curto)
+    if os.path.isdir(pasta):
+        return sum(os.path.getsize(os.path.join(pasta, f))
+                   for f in os.listdir(pasta) if f.endswith(".py"))
+    return 0
+
+
 def erros_command(filtro=""):
     """dataforge erros [termo] — o catalogo inteiro, por familia.
 
@@ -2629,8 +2825,18 @@ def main():
     import json as _json
     os.environ['DATAFORGE_ARGV'] = _json.dumps(do_programa)
 
-    args = [a for a in bruto if not a.startswith('--')]
-    flags = [a for a in bruto if a.startswith('--')]
+    # Flag e o que comeca com '-' e tem mais que isso. Antes so o '--'
+    # contava, e '-v' caia entre os ALVOS: 'dataforge test -v' procurava
+    # um arquivo chamado '-v', e o modo verboso nunca ligava — em
+    # nenhum comando que o oferecia.
+    #
+    # Um '-' sozinho continua sendo alvo: e como se pede a entrada
+    # padrao.
+    def _e_flag(a):
+        return len(a) > 1 and a.startswith('-')
+
+    args = [a for a in bruto if not _e_flag(a)]
+    flags = [a for a in bruto if _e_flag(a)]
 
     debug = '--debug' in flags
     show_time = '--time' in flags
@@ -2810,6 +3016,16 @@ def main():
 
     elif command == 'explain':
         explain_command(args[1] if len(args) > 1 else "")
+    elif command in ('big-o', 'bigo', 'complexidade'):
+        opcoes = {
+            "verboso": '--verbose' in flags or '-v' in flags,
+            "json": '--json' in flags,
+            "escala": '--escala' in flags or '--scale' in flags,
+            "estrito": '--strict' in flags or '--estrito' in flags,
+        }
+        bigo_command(args[1:], opcoes)
+    elif command in ('custo', 'cost'):
+        custo_command(args[1:])
     elif command in ('erros', 'errors'):
         erros_command(args[1] if len(args) > 1 else "")
 

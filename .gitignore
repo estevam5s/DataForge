@@ -62,3 +62,5 @@ projetos/*/forge_modules/
 projetos/*/tarefas.json
 projetos/*/dist/
 .supabase.local
+github.txt
+supabase.md
