@@ -372,6 +372,23 @@ def _gravar_pngs(d, lado):
         desenhar(tamanho, cor, fundo).save(caminho)
         print(f"  escrito: {os.path.relpath(caminho, RAIZ)}  ({tamanho}px)")
 
+    # O .ico ainda importa: o Next.js o declara ANTES do SVG, e navegador
+    # que aceita os dois costuma usar o primeiro. Sem gerar este aqui, o
+    # favicon fica sendo o do logo antigo para sempre.
+    ico = os.path.join(RAIZ, "site", "app", "favicon.ico")
+    tamanhos = [16, 32, 48, 64, 128, 256]
+    imagens = [desenhar(t, rgb + (255,), (10, 10, 12, 255))
+               for t in tamanhos]
+    imagens[-1].save(ico, format="ICO",
+                     sizes=[(t, t) for t in tamanhos])
+    print(f"  escrito: {os.path.relpath(ico, RAIZ)}  "
+          f"({', '.join(str(t) for t in tamanhos)}px)")
+
+    # E o ícone dos arquivos .df no editor, que o VS Code exige em PNG.
+    tema = os.path.join(RAIZ, "editor", "vscode", "icone-arquivo.png")
+    desenhar(128, rgb + (255,), (0, 0, 0, 0)).save(tema)
+    print(f"  escrito: {os.path.relpath(tema, RAIZ)}  (128px)")
+
 
 if __name__ == "__main__":
     main()

@@ -389,3 +389,39 @@ aside:hover ::-webkit-scrollbar-thumb {
   }
   .link-topo::after { transition: none; }
 }
+
+/* ── Links da barra da landing ─────────────────────────────────
+   O sublinhado cresce do centro e o fundo acende junto: dois sinais
+   discretos valem mais que um forte. */
+.lp-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.85);
+  transition: color 0.2s, background-color 0.2s;
+}
+.lp-link:hover {
+  color: #fff;
+  background: rgb(255 255 255 / 0.07);
+}
+.lp-link::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  height: 2px;
+  width: 0;
+  border-radius: 2px;
+  background: var(--lp-accent);
+  transform: translateX(-50%);
+  transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-link:hover::after { width: calc(100% - 28px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-link::after { transition: none; }
+}

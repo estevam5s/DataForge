@@ -1,0 +1,16 @@
+{
+  "_comentario": "Gerado por tools/vetorizar_logo.py — o PNG vem de logo.png.",
+  "iconDefinitions": {
+    "_df": {
+      "iconPath": "./icone-arquivo.png"
+    }
+  },
+  "fileExtensions": {
+    "df": "_df"
+  },
+  "fileNames": {
+    "forge.toml": "_df",
+    "forge.lock": "_df"
+  },
+  "hidesExplorerArrows": false
+}

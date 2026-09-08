@@ -349,6 +349,36 @@ class Lexer:
     # ── '//' disambiguation ────────────────────────────────
     _EXPR_END_TYPES = None
 
+    @staticmethod
+    def _numero_e_operando(depois: str) -> bool:
+        """O numero logo apos '//' e um operando, ou o inicio de prosa?
+
+        '7 // 2' e divisao. '// 200, application/json' e comentario.
+        A diferenca esta no que segue o numero: depois de um operando
+        vem fim de linha, operador, fecha-delimitador ou virgula de
+        argumento — nunca uma palavra.
+
+        Sem isto, todo comentario que comeca com numero vira codigo, e
+        o programa quebra num lugar que nao tem nada a ver com o erro.
+        """
+        i = 0
+        while i < len(depois) and (depois[i].isdigit() or depois[i] == '.'):
+            i += 1
+        resto = depois[i:].lstrip()
+
+        if not resto:
+            return True                     # '7 // 2'
+
+        # Uma letra logo depois do numero e prosa: '// 200 OK'.
+        # (Um espaco ja foi consumido pelo lstrip.)
+        if resto[0].isalpha() or resto[0] == '_':
+            return False
+        # Dois pontos e virgula seguidos de palavra tambem: '// 404, nao achei'
+        if resto[0] in ',:' :
+            seguinte = resto[1:].lstrip()
+            return not (seguinte[:1].isalpha() or seguinte[:1] == '_')
+        return True
+
     def _looks_like_floor_div(self) -> bool:
         """Decide se o '//' na posicao atual e divisao inteira ou comentario.
 
@@ -387,6 +417,15 @@ class Lexer:
 
         primeiro = depois[0]
         if primeiro.isdigit() or primeiro == '(':
+            # Um numero depois de '//' quase sempre e divisao — mas
+            # '// 200, application/json' e '// 302, temporario' sao
+            # comentarios que comecam com numero, e sao comuns em
+            # documentacao de HTTP. O que os denuncia e o que vem
+            # DEPOIS do numero: uma divisao termina a expressao ali,
+            # enquanto a prosa continua com virgula, letra ou dois
+            # pontos.
+            if not self._numero_e_operando(depois):
+                return False
             return True
         if primeiro == '-' and len(depois) > 1 and (depois[1].isdigit() or depois[1] == '('):
             return True

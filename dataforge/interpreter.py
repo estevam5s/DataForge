@@ -1254,6 +1254,22 @@ class Interpreter:
 
         raise RuntimeError_(f"Cannot call method '{node.method}' on {type(obj).__name__}", node.line, node.column)
 
+    @staticmethod
+    def _copiar_padrao(valor):
+        """Uma copia rasa do padrao, quando ele for mutavel.
+
+        Rasa e o suficiente: o caso real e '[]' e '{}' na declaracao do
+        campo. Copia profunda seria cara e surpreendente — quem poe uma
+        estrutura aninhada como padrao provavelmente quer compartilha-la.
+        """
+        if isinstance(valor, list):
+            return list(valor)
+        if isinstance(valor, dict):
+            return dict(valor)
+        if isinstance(valor, set):
+            return set(valor)
+        return valor
+
     def eval_SpawnExpression(self, node: ast.SpawnExpression, env):
         blueprint = self.evaluate(node.class_name, env)
         if not isinstance(blueprint, DFBlueprint):
@@ -1278,9 +1294,16 @@ class Interpreter:
 
         instance = DFInstance(blueprint)
 
-        # Campos declarados no corpo comecam com o padrao (ou void)
+        # Campos declarados no corpo comecam com o padrao (ou void).
+        #
+        # O padrao e COPIADO quando for mutavel: 'itens: Cluster := []'
+        # avalia o literal uma vez, na declaracao do blueprint, e sem a
+        # copia todas as instancias compartilhariam a mesma lista — o
+        # 'a.itens.append(1)' de uma apareceria em todas as outras. E a
+        # armadilha do argumento mutavel padrao do Python, e aqui ela
+        # nao tem justificativa nenhuma.
         for nome_campo, _tipo, padrao, _visib in blueprint.fields_decl:
-            instance.fields[nome_campo] = padrao
+            instance.fields[nome_campo] = self._copiar_padrao(padrao)
         args = self._eval_args(node.args, env)
         kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
 

@@ -19,7 +19,7 @@ pip install .
 
 dataforge version`, lang: 'bash' },
   {"p": "A saída confirma a versão instalada:"},
-  { code: `DataForge v4.1.0
+  { code: `DataForge v1.0.0
 Python 3.12.x`, lang: 'text', title: `saída` },
   {"callout": {"tipo": "dica", "texto": "O comando `df` é um atalho para `dataforge`. Os dois fazem exatamente a mesma coisa."}},
   {"h2": "O primeiro programa"},

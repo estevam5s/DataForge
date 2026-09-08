@@ -151,7 +151,7 @@ export function RodapeSite() {
               <Link href="/" className="flex items-center gap-2.5">
                 <Logo size={24} />
                 <span className="font-extrabold tracking-tight">DataForge</span>
-                <span className="lp-mono text-[11px] text-white/40">v4.1.0</span>
+                <span className="lp-mono text-[11px] text-white/40">v1.0.0</span>
               </Link>
 
               <p className="lp-mono text-[11px] leading-[20px] tracking-[.6px] text-white/40">

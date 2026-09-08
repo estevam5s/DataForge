@@ -317,3 +317,81 @@ def test_credenciais_ficam_fora_do_git():
                      encoding="utf-8").read()
     assert ".supabase.local" in ignorados
     assert ".env" in ignorados
+
+
+# ── Os códigos publicados na documentação ────────────────────
+
+def test_todo_bloco_de_codigo_da_documentacao_compila():
+    """Um trecho na doc que não compila ensina errado.
+
+    Foi um problema real: o usuário copiou um exemplo, rodou e recebeu
+    erro de sintaxe. A causa estava no lexer (comentário começando com
+    número virava divisão), mas ninguém teria notado sem esta varredura.
+    """
+    import importlib.util
+
+    caminho = os.path.join(RAIZ, "tools", "verificar_docs.py")
+    spec = importlib.util.spec_from_file_location("verificar_docs", caminho)
+    modulo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modulo)
+
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    falhas = []
+    for bloco in modulo.blocos_das_paginas():
+        tipo = modulo.classificar(bloco)
+        if tipo == "outro":
+            continue
+        try:
+            parse(tokenize(modulo.preparar(bloco["codigo"], tipo)))
+        except Exception as erro:
+            falhas.append(f"{bloco['rota']}:{bloco['linha']} — "
+                          f"{str(erro).splitlines()[0][:80]}")
+
+    assert not falhas, (
+        f"{len(falhas)} bloco(s) não compilam:\n  " + "\n  ".join(falhas[:8]))
+
+
+# ── Comentário que começa com número ─────────────────────────
+
+@pytest.mark.parametrize("fonte,esperado", [
+    ("out 7 // 2", "3"),
+    ("out 100 // 7", "14"),
+    ("out (10 + 4) // 2", "7"),
+    ("out 9 // 2 + 1", "5"),
+    ("a := 20\nout a // 3", "6"),
+    ("out 7 // 2  // resultado inteiro", "3"),
+])
+def test_divisao_inteira_continua_funcionando(fonte, esperado):
+    import io
+    from contextlib import redirect_stdout
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        Interpreter().run(parse(tokenize(fonte)))
+    assert buffer.getvalue().strip() == esperado
+
+
+@pytest.mark.parametrize("fonte", [
+    'x := 1   // 200, application/json',
+    'x := 1   // 302, temporário',
+    'x := 1   // 404 não achei',
+    'x := 1   // 2 é o dobro',
+    'x := 1   // 405 com Allow',
+    'x := 1   // 90 dias de retenção',
+])
+def test_comentario_que_comeca_com_numero_e_comentario(fonte):
+    """'// 200, application/json' virava divisão e quebrava o programa.
+
+    Comentário de status HTTP é comum em documentação, e o erro
+    aparecia numa linha que não tinha nada a ver com a causa.
+    """
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    Interpreter().run(parse(tokenize(fonte)))   # não pode levantar

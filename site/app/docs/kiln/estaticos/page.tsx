@@ -25,11 +25,12 @@ GET /static/%2e%2e/%2e%2e/etc/passwd → 403` },
   {"h2": "Caminho relativo a quê?"},
   { code: `adopt Arcane.OS as OS
 
-// relativo a de onde o usuário chamou — frágil
-assets "/static" from "./www"
+server site on 8080:
+    // relativo a de onde o usuário chamou — frágil
+    assets "/static" from "./www"
 
-// relativo ao programa — sempre certo
-assets "/static" from OS.beside("../www")` },
+    // relativo ao programa — sempre certo
+    assets "/static" from OS.beside("../www")` },
   {"p": "`OS.beside` resolve a partir do arquivo `.df` em execução. Sem isso, rodar `dataforge run src/main.df` de duas pastas diferentes carrega — ou não carrega — arquivos diferentes, e o erro só aparece na máquina de outra pessoa."},
   {"h2": "Um arquivo específico"},
   { code: `route GET "/manual.pdf":

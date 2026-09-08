@@ -11,14 +11,24 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   {"h2": "Os verbos"},
   { code: `server api on 8080:
-    route GET     "/itens":      respond json itens
-    route POST    "/itens":      respond 201 json body
-    route PUT     "/itens/:id":  respond json trocado
-    route PATCH   "/itens/:id":  respond json parcial
-    route DELETE  "/itens/:id":  respond 204
-    route HEAD    "/saude":      respond 200
-    route OPTIONS "/itens":      respond 204
-    route ANY     "/webhook":    respond 200` },
+    route GET "/itens":
+        respond json itens
+
+    route POST "/itens":
+        respond 201 json body
+
+    route PUT "/itens/:id":
+        respond json trocado
+
+    route DELETE "/itens/:id":
+        respond 204
+
+    route HEAD "/saude":
+        respond 200
+
+    route ANY "/webhook":
+        respond 200` },
+  {"p": "O corpo da rota é um bloco indentado, como o de uma ação — não cabe na mesma linha do `route`."},
   {"p": "`ANY` casa qualquer verbo — útil para webhooks de serviços que mudam de método sem avisar."},
   {"h2": "Padrões de caminho"},
   {"table": {"head": ["Padrão", "Casa", "Não casa", "Resultado"], "rows": [

@@ -39,8 +39,8 @@
         ],
         "configuration": "./language-configuration.json",
         "icon": {
-          "light": "./icone.png",
-          "dark": "./icone.png"
+          "light": "./icone-arquivo.png",
+          "dark": "./icone-arquivo.png"
         }
       }
     ],
@@ -64,6 +64,13 @@
         "editor.detectIndentation": false,
         "files.trimTrailingWhitespace": true
       }
-    }
+    },
+    "iconThemes": [
+      {
+        "id": "dataforge",
+        "label": "DataForge",
+        "path": "./icones-arquivo.json"
+      }
+    ]
   }
 }

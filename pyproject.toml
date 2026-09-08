@@ -49,3 +49,6 @@ dataforge = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "slow: cria projetos de verdade em disco e roda a CLI neles",
+]

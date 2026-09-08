@@ -1,4 +1,4 @@
-"""DataForge Programming Language v4.0
+"""DataForge — linguagem de programação
 A revolutionary language built on Python with unique syntax and keywords.
 """
 

@@ -333,8 +333,25 @@ def _df_max(*args):
 def _df_sum(iterable):
     return sum(iterable)
 
-def _df_sorted(iterable, reverse=False):
-    return sorted(iterable, reverse=reverse)
+def _df_sorted(iterable, chave=None, reverse=False):
+    """Ordena. O segundo argumento pode ser uma acao que da o criterio.
+
+        sorted([3, 1, 2])                       -> [1, 2, 3]
+        sorted(pessoas, lambda p => p["idade"]) -> por idade
+        sorted(nums, void, yes)                 -> decrescente
+
+    Sem a chave, ordenar uma lista de vaults falha com uma mensagem do
+    Python ("'<' not supported between instances of 'dict'"), que nao
+    diz o que fazer. Com ela, o caso comum simplesmente funciona.
+    """
+    if chave is None:
+        return sorted(iterable, reverse=reverse)
+    if not callable(chave):
+        raise TypeError(
+            f"o segundo argumento de 'sorted' deve ser uma acao que "
+            f"devolve o criterio, nao {type(chave).__name__}. "
+            f'Exemplo: sorted(pessoas, lambda p => p["idade"])')
+    return sorted(iterable, key=chave, reverse=reverse)
 
 def _df_reversed(iterable):
     return list(reversed(iterable))

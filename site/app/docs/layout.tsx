@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Sidebar } from '@/components/Sidebar';
+import { SidebarRolagem } from '@/components/SidebarRolagem';
 
 /**
  * Chrome da documentação.
@@ -21,9 +22,9 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
       <div className="relative mx-auto flex max-w-[1620px] gap-6 px-2 pt-3 sm:px-4">
         <aside className="hidden w-[280px] shrink-0 lg:block">
           <div className="sticky top-[84px] flex max-h-[calc(100vh-100px)] flex-col rounded-2xl border border-line/70 bg-surface/50 backdrop-blur-sm">
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-4 [scrollbar-width:thin]">
+            <SidebarRolagem>
               <Sidebar />
-            </div>
+            </SidebarRolagem>
 
             <div className="shrink-0 space-y-2 border-t border-line/70 p-3">
               <Link

@@ -20,10 +20,18 @@ analisador estático e interpretador de árvore próprios.
 ### Verificação rápida — rode antes e depois de mexer
 
 ```bash
-python3 -m pytest tests/ -q                          # 502 testes
+python3 -m pytest tests/ -q                          # 600 testes
 python3 exercicios/run_all.py                        # 200 exercícios
+python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
+
+**Cuidado com instalação velha no PATH.** Há três lugares onde o
+DataForge pode estar instalado (`.venv/`, `~/.dataforge/`, o Python do
+sistema), e uma cópia antiga produz erros que não existem no repositório
+— foi assim que um `LexError: Unexpected character: '$'` apareceu num
+arquivo que usava interpolação normalmente. O `.venv` deve estar em modo
+editável (`pip install -e .`), que aponta para o repo e nunca envelhece.
 
 O estado esperado é **tudo verde**. Se algo falhar antes da sua mudança, diga
 isso ao usuário em vez de assumir que foi você.
@@ -284,6 +292,15 @@ Estas são as que mais custam tempo:
     `>> distill a, v: a + v 0 / len(x)` divide o **zero**, não a soma. O
     resultado fica errado sem nada denunciar.
 
+18. **`trigger` levanta `TriggerError`, não `RuntimeError`.**
+    `handle RuntimeError` não pega um `trigger`. Para pegar qualquer
+    coisa, `handle Error`.
+
+19. **Campo declarado com padrão mutável é copiado no `spawn`.**
+    `itens: Cluster := []` dá uma lista nova por instância — o literal é
+    avaliado uma vez, na declaração, e sem a cópia todas compartilhariam
+    a mesma. Padrões imutáveis (número, texto) não são copiados.
+
 ---
 
 ## Convenções ao mexer no interpretador
@@ -372,6 +389,7 @@ Ao criar um módulo novo, adicione-o em `stdlib/__init__.py` **e** no dicionári
 | `dataforge info` | `project.py` | mostra o manifesto |
 | `dataforge repl` | `repl.py` | console com `:type`, `:ast`, `:load` |
 | `dataforge editor` | `cli.py` | instala a coloração no VS Code e derivados |
+| `dataforge new` | `modelos.py` + `scaffold.py` | 8 modelos; todo projeto criado passa nos próprios testes |
 | `dataforge add/remove` | `packages.py` | instala e desinstala dependências |
 | `dataforge install` | `packages.py` | resolve o `forge.toml` inteiro |
 | `dataforge search` | `packages.py` | procura no registro |
@@ -492,6 +510,9 @@ template comeria os dados.
 | `doc/BIBLIOTECA_PADRAO.md` | `tools/gerar_doc_stdlib.py` | — |
 | `site/lib/dados-gerados.json` | `site/scripts/gerar_dados.py` | — |
 | `site/public/dist/*.tar.gz` | `scripts/gerar_tarball.py` | `tests/test_regressoes.py` |
+| `site/lib/marca.ts`, favicon, ícones | `tools/vetorizar_logo.py` | `tests/test_api_e_marca.py` |
+| `site/public/api/*.json` | `scripts/gerar_api.py` | `tests/test_api_e_marca.py` |
+| `dataforge/marca.py` (arte ASCII) | `tools/vetorizar_logo.py` | — |
 
 A gramática do editor tem **duas** travas: o gerador recusa rodar se uma
 palavra de `KEYWORDS` não estiver em nenhum grupo de cor, e um teste falha se o

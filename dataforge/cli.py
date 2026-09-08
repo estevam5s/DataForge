@@ -16,14 +16,11 @@ from .repl import start_repl
 from .errors import DataForgeError
 
 
-LOGO = r"""
-     ____        _        _____                    
-    |  _ \  __ _| |_ __ _|  ___|__  _ __ __ _  ___ 
-    | | | |/ _` | __/ _` | |_ / _ \| '__/ _` |/ _ \
-    | |_| | (_| | || (_| |  _| (_) | | | (_| |  __/
-    |____/ \__,_|\__\__,_|_|  \___/|_|  \__, |\___|
-                                         |___/      
-"""
+# A marca no terminal vem de dataforge/marca.py, que a gera de logo.png.
+# Escrever o nome em ASCII era o que se fazia antes de a linguagem ter
+# uma marca — agora ela tem, e a CLI mostra a mesma do site.
+from .marca import marca as _marca
+
 
 # ═══════════════════════════════════════════════════════════
 #  Catalogo de comandos
@@ -60,13 +57,27 @@ GRUPOS = [
             exemplos=[("dataforge init", "aqui mesmo"),
                       ("dataforge init meu-app", "numa pasta nova")],
             veja=("new", "info")),
-        Cmd("new", "dataforge new [template] [nome]",
-            "Cria um projeto a partir de um template",
-            "Templates: cli, api, lib, data, game, script.\n"
-            "Sem argumento, lista os disponiveis.",
-            exemplos=[("dataforge new", "lista os templates"),
-                      ("dataforge new cli minha-ferramenta", "projeto de CLI")],
-            veja=("init",)),
+        Cmd("new", "dataforge new [modelo] [nome]",
+            "Cria um projeto a partir de um modelo",
+            "Oito modelos, e todos produzem um projeto que RODA e passa\n"
+            "nos proprios testes — nao um esqueleto com TODOs:\n"
+            "\n"
+            "  cli      ferramenta de linha de comando, com --help\n"
+            "  api      API REST com o Kiln, testes sem abrir socket\n"
+            "  web      site com paginas HTML e arquivos estaticos\n"
+            "  data     banco, estatistica e exportacao para Excel\n"
+            "  lib      biblioteca com relay, pronta para publicar\n"
+            "  oop      blueprints, traits, propriedades, operadores\n"
+            "  script   automacao: arquivos, JSON, datas\n"
+            "  test     como se testa em DataForge\n"
+            "\n"
+            "Sem argumento, pergunta na tela.",
+            opcoes=[("--list", "so lista os modelos, sem perguntar nada")],
+            exemplos=[("dataforge new", "escolhe na tela"),
+                      ("dataforge new api", "usa o modelo, pergunta o nome"),
+                      ("dataforge new api minha-api", "direto ao ponto"),
+                      ("dataforge new --list", "so os modelos")],
+            veja=("init", "run", "test")),
         Cmd("info", "dataforge info",
             "Mostra o manifesto do projeto atual",
             "Nome, versao, entrada, scripts e dependencias declaradas.",
@@ -269,7 +280,7 @@ for _grupo, _lista in GRUPOS:
 
 def ajuda_geral():
     """O help principal: comandos agrupados por proposito."""
-    linhas = [LOGO.rstrip("\n")]
+    linhas = ["", _marca(), ""]
     linhas.append(f"  {color('DataForge', '1;37')} "
                   f"{color('v' + __version__, '0;90')}"
                   f"  —  linguagem de programacao\n")
@@ -1326,92 +1337,142 @@ dataforge run main.df
 }
 
 
-def new_project():
-    """Interactive project creation with colored output."""
-    print()
-    print(color("  ╔══════════════════════════════════════════╗", "1;36"))
-    print(color("  ║      🔥 DataForge — Novo Projeto         ║", "1;36"))
-    print(color("  ╚══════════════════════════════════════════╝", "1;36"))
-    print()
+def new_project(args=None, flags=()):
+    """dataforge new — cria um projeto, com apresentacao.
 
-    # Show project types
-    print(color("  Escolha o tipo de projeto:\n", "1;37"))
-    templates_list = list(PROJECT_TEMPLATES.keys())
-    for i, key in enumerate(templates_list, 1):
-        t = PROJECT_TEMPLATES[key]
-        num = color(f"  [{i}]", "1;33")
-        icon = t["icon"]
-        name = color(t["name"], "1;37")
-        desc = color(t["description"], "0;90")
-        print(f"{num} {icon} {name}")
-        print(f"       {desc}")
+        dataforge new                 escolhe o modelo na tela
+        dataforge new api             usa o modelo, pergunta o nome
+        dataforge new api minha-api   direto ao ponto
+
+    A animacao nao e enfeite: 'new' e a primeira coisa que alguem faz
+    com a linguagem, e a impressao dessa etapa fica.
+    """
+    from .marca import cor as _cor
+    from .modelos import MODELOS
+    from .scaffold import Girador, abertura, apresentar, criar_projeto
+
+    args = list(args or [])
+    chaves = list(MODELOS)
+
+    # ── qual modelo ──
+    escolhido = args[0] if args and args[0] in MODELOS else None
+    if args and not escolhido and args[0] not in MODELOS and args[0].startswith("-") is False \
+            and len(args) == 1 and not os.path.exists(args[0]):
+        # 'dataforge new nome-que-nao-e-modelo' — provavelmente e o nome
+        # do projeto, mas nao da para adivinhar o modelo. Pergunta.
+        pass
+
+    abertura("criando um projeto")
+
+    if not escolhido:
+        print(_cor("  Que tipo de projeto?", "1;37"))
         print()
+        for i, chave in enumerate(chaves, 1):
+            modelo = MODELOS[chave]
+            print(f"  {_cor(f'{i}.', '1;33')} {modelo['icon']}  "
+                  f"{_cor(modelo['name'], '1;37')}  "
+                  f"{_cor(chave, '0;90')}")
+            print(f"      {_cor(modelo['description'], '0;90')}")
+        print()
+        try:
+            resposta = input(_cor(f"  › número ou nome (1-{len(chaves)}): ",
+                                  "1;32")).strip()
+        except (EOFError, KeyboardInterrupt):
+            print(_cor("\n  cancelado.", "0;90"))
+            return 1
 
-    # Get choice
-    try:
-        choice = input(color("  ➜ Número do template (1-" + str(len(templates_list)) + "): ", "1;32"))
-        choice_idx = int(choice) - 1
-        if choice_idx < 0 or choice_idx >= len(templates_list):
-            print(color("  ✗ Opção inválida.", "1;31"))
-            sys.exit(1)
-    except (ValueError, EOFError, KeyboardInterrupt):
-        print(color("\n  ✗ Operação cancelada.", "1;31"))
-        sys.exit(1)
+        if resposta in MODELOS:
+            escolhido = resposta
+        else:
+            try:
+                indice = int(resposta) - 1
+                if not 0 <= indice < len(chaves):
+                    raise ValueError
+                escolhido = chaves[indice]
+            except ValueError:
+                print(_cor(f"  ✗ '{resposta}' não é um modelo. "
+                           f"Use um número de 1 a {len(chaves)}, "
+                           f"ou o nome ({', '.join(chaves)}).", "1;31"))
+                return 1
 
-    template_key = templates_list[choice_idx]
-    template = PROJECT_TEMPLATES[template_key]
+    modelo = MODELOS[escolhido]
 
-    # Get project name
-    try:
-        default_name = template["name"].replace(" ", "-").lower()
-        proj_name = input(color(f"  ➜ Nome do projeto ({default_name}): ", "1;32")).strip()
-        if not proj_name:
-            proj_name = default_name
-    except (EOFError, KeyboardInterrupt):
-        print(color("\n  ✗ Operação cancelada.", "1;31"))
-        sys.exit(1)
+    # ── qual nome ──
+    nome = args[1] if len(args) > 1 else (
+        args[0] if args and args[0] not in MODELOS else None)
+    if not nome:
+        padrao = "meu-" + escolhido
+        try:
+            nome = input(_cor(f"  › nome do projeto ({padrao}): ",
+                              "1;32")).strip() or padrao
+        except (EOFError, KeyboardInterrupt):
+            print(_cor("\n  cancelado.", "0;90"))
+            return 1
 
-    # Sanitize name for directory
-    dir_name = proj_name.replace(" ", "-").lower()
-    dir_name = "".join(c for c in dir_name if c.isalnum() or c in "-_")
+    pasta = "".join(c for c in nome.replace(" ", "-").lower()
+                    if c.isalnum() or c in "-_")
+    if not pasta:
+        print(_cor("  ✗ nome vazio depois de limpo. Use letras e números.",
+                   "1;31"))
+        return 1
 
-    if os.path.exists(dir_name):
-        print(color(f"  ✗ Diretório '{dir_name}' já existe!", "1;31"))
-        sys.exit(1)
+    if os.path.exists(pasta):
+        print()
+        print(_cor(f"  ✗ a pasta '{pasta}' já existe.", "1;31"))
+        print(_cor("      Escolha outro nome, ou apague a pasta antes.",
+                   "0;90"))
+        return 1
 
-    # Create project
+    # ── criar ──
     print()
-    print(color(f"  ⚡ Criando projeto '{proj_name}'...", "1;33"))
-    print()
+    with Girador(f"criando {pasta}") as g:
+        criados = criar_projeto(pasta, modelo, pasta, __version__)
+        g.ok(f"{len(criados)} arquivo(s) criados")
 
-    created_files = []
-    for filepath, content in template["files"].items():
-        full_path = os.path.join(dir_name, filepath)
-        os.makedirs(os.path.dirname(full_path) if os.path.dirname(full_path) else dir_name, exist_ok=True)
-        formatted = content.format(name=proj_name, version=__version__)
-        with open(full_path, 'w', encoding='utf-8') as f:
-            f.write(formatted)
-        created_files.append(filepath)
-        print(color(f"    ✓ ", "1;32") + color(filepath, "0;37"))
+    with Girador("conferindo a sintaxe") as g:
+        # Um modelo que nao compila e pior que nenhum: quem acabou de
+        # criar o projeto acha que errou alguma coisa.
+        from .lexer import tokenize
+        from .parser import parse
+        problemas = []
+        for relativo in criados:
+            if not relativo.endswith(".df"):
+                continue
+            caminho = os.path.join(pasta, relativo)
+            try:
+                parse(tokenize(open(caminho, encoding="utf-8").read()),
+                      caminho)
+            except DataForgeError as erro:
+                problemas.append((relativo, erro.message))
+        if problemas:
+            g.__exit__()
+            print(f"  {_cor('✗', '1;31')} o modelo tem erro de sintaxe:")
+            for arquivo, motivo in problemas:
+                print(f"      {arquivo}: {motivo}")
+            print(_cor("      Isto é um bug do DataForge — por favor "
+                       "reporte.", "0;90"))
+            return 1
+        g.ok("sintaxe conferida")
 
-    # Summary
-    print()
-    print(color("  ╔══════════════════════════════════════════╗", "1;32"))
-    print(color("  ║      ✅ Projeto criado com sucesso!       ║", "1;32"))
-    print(color("  ╚══════════════════════════════════════════╝", "1;32"))
-    print()
-    print(color(f"  📁 Diretório: ", "0;37") + color(dir_name + "/", "1;36"))
-    print(color(f"  📦 Template:  ", "0;37") + color(f"{template['icon']} {template['name']}", "1;33"))
-    print(color(f"  📄 Arquivos:  ", "0;37") + color(str(len(created_files)), "1;37"))
-    print()
-    print(color("  Para executar:", "1;37"))
-    print()
+    apresentar(pasta, modelo, criados, pasta)
+    return 0
 
-    # Determine the main file
-    main_file = "main.df" if "main.df" in template["files"] else list(template["files"].keys())[0]
-    print(color(f"    cd {dir_name}", "1;36"))
-    print(color(f"    dataforge run {main_file}", "1;36"))
+
+def list_templates():
+    """dataforge new --list — so os modelos, sem perguntar nada."""
+    from .marca import cor as _cor
+    from .modelos import MODELOS
+
     print()
+    print(_cor("  Modelos de projeto", "1;37"))
+    print()
+    for chave, modelo in MODELOS.items():
+        print(f"  {modelo['icon']}  {_cor(chave.ljust(8), '1;33')} "
+              f"{_cor(modelo['name'], '1;37')}")
+        print(f"      {_cor(modelo['description'], '0;90')}")
+        print(f"      {_cor(f'dataforge new {chave} <nome>', '0;36')}")
+        print()
+    return 0
 
 
 def fmt_command(alvos, checar=False):
@@ -2359,7 +2420,9 @@ def main():
         sys.exit(editor_command(args[1:], flags))
 
     elif command == 'new':
-        new_project()
+        if '--list' in flags or (len(args) > 1 and args[1] == 'list'):
+            sys.exit(list_templates())
+        sys.exit(new_project(args[1:], flags))
 
     elif command == 'tokens':
         if len(args) < 2:

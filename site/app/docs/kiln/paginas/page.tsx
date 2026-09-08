@@ -36,7 +36,7 @@ const blocos: Bloco[] = [
     <p>{{preco_formatado}}</p>
   </article>
 {{/produtos}}
-{{^produtos}}<p>Nada na forja ainda.</p>{{/produtos}}` },
+{{^produtos}}<p>Nada na forja ainda.</p>{{/produtos}}`, lang: 'text' },
   {"p": "É pequena de propósito. Template que vira linguagem é código escondido onde ninguém procura — e ninguém testa. A lógica fica no `.df`."},
   {"h2": "O escape é o padrão"},
   {"p": "Um produto chamado `Bigorna <de aço>` sai como `Bigorna &lt;de aço&gt;`. Isso fecha a porta para XSS **por acidente** — a falha mais comum em página gerada por servidor."},
