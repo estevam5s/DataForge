@@ -270,3 +270,29 @@ def test_o_destacador_do_site_nao_inventa_palavra():
              | set(CONTEXTUAIS_BLUEPRINT))
     inventadas = _palavras_do_site() - todas
     assert not inventadas, f"a linguagem nao tem: {sorted(inventadas)}"
+
+
+def test_a_pasta_da_extensao_usa_a_versao_atual():
+    """A pasta dizia 4.2.0 depois de a linguagem virar 1.0.0.
+
+    Ela é derivada de __version__ agora: escrever a versão em dois
+    lugares garante que um dia eles divirjam.
+    """
+    from dataforge import __version__
+    from dataforge.cli import NOME_EXTENSAO
+    assert NOME_EXTENSAO.endswith(__version__)
+
+
+def test_o_tema_de_icone_de_arquivo_existe():
+    """É ele que dá o ícone aos .df no explorador do VS Code."""
+    pkg = carregar("package.json")
+    temas = pkg["contributes"].get("iconThemes", [])
+    assert temas, "sem iconThemes no manifesto"
+
+    caminho = os.path.join(EXTENSAO, temas[0]["path"].lstrip("./"))
+    assert os.path.isfile(caminho)
+
+    tema = json.load(open(caminho, encoding="utf-8"))
+    assert "df" in tema["fileExtensions"]
+    icone = tema["iconDefinitions"][tema["fileExtensions"]["df"]]["iconPath"]
+    assert os.path.isfile(os.path.join(EXTENSAO, icone.lstrip("./")))

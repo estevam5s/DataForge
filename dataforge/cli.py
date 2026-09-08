@@ -2221,7 +2221,17 @@ PASTAS_DE_EDITOR = [
     ("VS Code (WSL)",    "~/.vscode-server/extensions"),
 ]
 
-NOME_EXTENSAO = "dataforge.dataforge-language-4.2.0"
+def _nome_extensao():
+    """A pasta da extensao inclui a versao, como o VS Code espera.
+
+    Derivar de __version__ em vez de escrever a mao evita o que ja
+    aconteceu: a linguagem virou 1.0.0 e a pasta continuou dizendo
+    4.2.0, porque ninguem lembrou de trocar em dois lugares.
+    """
+    return f"dataforge.dataforge-language-{__version__}"
+
+
+NOME_EXTENSAO = _nome_extensao()
 
 
 def _origem_da_extensao():
