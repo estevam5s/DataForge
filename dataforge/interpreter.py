@@ -325,12 +325,37 @@ class DFError:
     '.line'.
     """
 
+    #: Campos do erro original que o programa pode ler pelo nome.
+    #:
+    #: Um erro carrega mais que a mensagem. 'ValidationError' traz a
+    #: lista de campos que falharam; 'HttpError' traz o codigo e o
+    #: corpo. Sem expor isso, o programa recebe um texto e tem de
+    #: reconstruir por extracao o que o erro ja sabia — e a doc que
+    #: promete 'e.campos' vira mentira.
+    EXTRAS = ("nota", "dica", "codigo", "doc", "campos", "caminho",
+              "motivo", "corpo", "cabecalhos", "esperado", "obtido",
+              "diferenca", "restricao", "tabela", "coluna")
+
     def __init__(self, kind: str, message: str, original=None):
         self.type = kind
         self.message = message
         self.original = original
         self.line = getattr(original, 'line', 0)
         self.column = getattr(original, 'column', 0)
+
+    def __getattr__(self, nome):
+        """Os campos extras do erro original, lidos pelo nome.
+
+        Fica em '__getattr__' e nao no construtor porque so e chamado
+        quando o atributo NAO existe — nao custa nada nos acessos
+        comuns, que sao '.type' e '.message'.
+        """
+        if nome.startswith("_") or nome not in DFError.EXTRAS:
+            raise AttributeError(nome)
+        valor = getattr(self.original, nome, None)
+        if valor is None and nome == "codigo":
+            valor = getattr(type(self.original), "CODIGO", "")
+        return valor
 
     def __str__(self):
         return self.message
@@ -3493,6 +3518,61 @@ class Interpreter:
             value = self.evaluate(node.value, env)
             raise TriggerError(self._to_str(value), node.line, node.column)
         raise TriggerError("Propagated error", node.line, node.column)
+
+    def exec_WithBlock(self, node: ast.WithBlock, env):
+        """with <recurso> [as <nome>]: corpo — abre, usa e fecha.
+
+        O fechamento roda em QUALQUER saida: retorno, erro, 'halt'. E o
+        que separa isto de abrir e fechar a mao — a mao esquece
+        exatamente no caminho de erro, que e onde mais importa.
+
+        Reconhece tres formas de recurso, na ordem:
+            'abrir()' e 'fechar()' — o protocolo do Forge e do Kiln
+            '__enter__' / '__exit__' — objetos do host
+            'fechar()' sozinho — o caso mais comum
+        """
+        recurso = self.evaluate(node.resource, env)
+
+        entrar = getattr(recurso, "__enter__", None)
+        valor = recurso
+        if callable(entrar):
+            valor = entrar()
+        elif callable(getattr(recurso, "abrir", None)):
+            aberto = recurso.abrir()
+            if aberto is not None:
+                valor = aberto
+
+        interno = Environment(parent=env, name="<with>")
+        if node.name:
+            interno.set_local(node.name, valor)
+
+        try:
+            return self.exec_block(node.body, interno)
+        finally:
+            self._fechar_recurso(recurso, node)
+
+    def _fechar_recurso(self, recurso, node):
+        """Fecha o que o 'with' abriu, pelo primeiro jeito que servir.
+
+        Um erro AO FECHAR nao pode esconder o erro que veio do corpo:
+        se o corpo ja estourou, este 'finally' roda durante aquela
+        excecao, e levantar outra aqui a substituiria — trocando a
+        causa real por um sintoma.
+        """
+        sair = getattr(recurso, "__exit__", None)
+        try:
+            if callable(sair):
+                sair(None, None, None)
+                return
+            fechar = getattr(recurso, "fechar", None)
+            if callable(fechar):
+                fechar()
+                return
+            close = getattr(recurso, "close", None)
+            if callable(close):
+                close()
+        except (DataForgeError, Exception):           # noqa: BLE001
+            pass
 
     def exec_DeferStatement(self, node: ast.DeferStatement, env):
         """Defer: schedule block to run at scope exit.

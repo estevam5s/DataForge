@@ -373,10 +373,25 @@ class Lexer:
         # (Um espaco ja foi consumido pelo lstrip.)
         if resto[0].isalpha() or resto[0] == '_':
             return False
+
+        # Pontuacao que NAO existe em expressao so aparece em prosa. O
+        # travessao e o caso que mais dói: '// 10 — o dobro' e um
+        # comentario que qualquer um escreve, e sem esta linha ele vira
+        # 'x // 10' seguido de um caractere que o lexer nao conhece —
+        # com o erro apontando para o travessao, longe da causa.
+        if resto[0] in '—–…"\'‘’“”¡¿·•':
+            return False
+
         # Dois pontos e virgula seguidos de palavra tambem: '// 404, nao achei'
         if resto[0] in ',:' :
             seguinte = resto[1:].lstrip()
-            return not (seguinte[:1].isalpha() or seguinte[:1] == '_')
+            # 'seguinte and ...' antes do 'in': em Python, uma string
+            # VAZIA e subcadeia de qualquer outra, e sem a guarda
+            # 'cycle i from 1 to n // 20:' — onde nada segue os dois
+            # pontos — virava comentario e o laco perdia o limite.
+            prosa = (seguinte[:1].isalpha() or seguinte[:1] == '_'
+                     or (seguinte and seguinte[0] in '—–'))
+            return not prosa
         return True
 
     def _looks_like_floor_div(self) -> bool:

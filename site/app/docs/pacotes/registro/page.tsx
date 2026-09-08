@@ -17,9 +17,8 @@ const blocos: Bloco[] = [
   { code: `adopt registro as L
 
 log := L.novo("api")
-log.info("pedido recebido", {"id": 42, "cliente": "ana"})
-
-[14:07:19] INFO  api  pedido recebido  id=42 cliente=ana`, lang: 'df' },
+log.info("pedido recebido", {"id": 42, "cliente": "ana"})`, lang: 'df' },
+  { code: `[14:07:19] INFO  api  pedido recebido  id=42 cliente=ana`, lang: 'text' },
   {"h2": "API"},
   {"p": "O que `relay` exporta — 3 símbolos:"},
   { code: `blueprint Registrador

@@ -51,7 +51,12 @@ FRAGMENTOS_BLUEPRINT = ("get ", "set ", "private ", "protected ",
 #: Marcas de um bloco que **mostra o erro de propósito**. Conferir a
 #: sintaxe deles seria exigir que o exemplo errado estivesse certo.
 MARCAS_DE_ERRO = ("# ERRO", "// ERRO", "# erro:", "// erro:",
-                  "# ruim", "// ruim", "# nunca entra", "# não compila")
+                  "# ruim", "// ruim", "# nunca entra", "# não compila",
+                  # A referência de erros mostra o código errado ao lado
+                  # do certo. Cobrar que ele compile seria cobrar que o
+                  # exemplo de erro não fosse um erro.
+                  "// errado", "# errado", "<- SyncError", "<- LexError",
+                  "<- ParseError", "<- erro", "falta ':'", "// <- ")
 
 #: Marcas de elipse: o bloco omite parte do código de propósito.
 #: '{...}' não é um vault vazio, é "o que vier aqui".
@@ -86,9 +91,41 @@ def blocos_das_paginas():
     return achados
 
 
+def _e_listagem_de_api(linhas, sem_comentario):
+    """O bloco é um índice de assinaturas, e não código?
+
+    Uma página de pacote lista o que ele expõe:
+
+        blueprint Barra
+        barra(total, rotulo := "", largura := 24)
+        spinner(rotulo := "")
+
+    Isso não compila e não deveria — não é um programa. O sinal é
+    'blueprint'/'record'/'trait' SEM os dois-pontos que abrem o corpo,
+    ou um bloco em que quase toda linha é uma chamada solta.
+    """
+    declaracoes_sem_corpo = sum(
+        1 for l in sem_comentario
+        if l.strip().startswith(("blueprint ", "record ", "trait ", "enum "))
+        and not l.rstrip().endswith(":"))
+    if declaracoes_sem_corpo:
+        return True
+
+    # Toda linha no nível zero, e a maioria com a forma 'nome(...)'.
+    if any(l.startswith((" ", "\t")) for l in linhas):
+        return False
+    chamadas = sum(1 for l in sem_comentario
+                   if re.match(r"^[A-Za-z_][\w.]*\(.*\)\s*$", l.strip()))
+    return len(linhas) >= 2 and chamadas >= len(linhas) * 0.6
+
+
 def classificar(bloco):
     """O que é este bloco, e como conferi-lo."""
-    if bloco["lingua"] and bloco["lingua"] != "dataforge":
+    # 'df' e 'dataforge' sao o mesmo — o gerador escreve 'df', que e o
+    # que o CodeBlock espera. Aceitar so 'dataforge' fazia TODO bloco
+    # gerado ser classificado como outra linguagem e nunca conferido:
+    # o verificador dizia verde sobre codigo que ele nao tinha olhado.
+    if bloco["lingua"] and bloco["lingua"] not in ("dataforge", "df"):
         return "outro"
 
     codigo = bloco["codigo"]
@@ -121,6 +158,20 @@ def classificar(bloco):
     # Um fragmento de match começa com 'point'.
     if primeira.startswith("point "):
         return "fragmento-match"
+
+    # Listagem de assinaturas: 'blueprint Nome' sem ':', ou linhas do
+    # tipo 'funcao(a, b := 1)' soltas. É um índice de API, não um
+    # programa — as páginas de pacotes são cheias disso.
+    if _e_listagem_de_api(linhas, sem_comentario):
+        return "outro"
+
+    # Fragmento indentado: o bloco começa dentro de um bloco maior que
+    # a página mostrou antes. Não compila solto por definição.
+    if codigo.split("\n")[0].startswith((" ", "\t")) or (
+            len(linhas) > 1 and linhas[1].startswith((" ", "\t"))
+            and not sem_comentario[0].endswith(":")
+            and not sem_comentario[0].endswith(("(", ",", "["))):
+        return "outro"
 
     # Saída de terminal: setas, ✓/✗, ou uma tabela desenhada.
     if any(marca in bloco["codigo"] for marca in ("→", "├", "└", "│", "✓ ", "✗ ")):

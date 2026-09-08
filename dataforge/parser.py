@@ -811,6 +811,13 @@ class Parser:
         if tt == TokenType.PARALLEL:
             return self.parse_parallel()
 
+        # ── with recurso as nome: ──
+        # So quando 'with' ABRE a instrucao. No meio de uma expressao
+        # ele continua sendo o operador de record ('p with {…}'), que e
+        # o uso muito mais frequente.
+        if tt == TokenType.WITH:
+            return self.parse_with()
+
         # ── static ──
         if tt == TokenType.STATIC:
             return self.parse_static()
@@ -1897,13 +1904,22 @@ class Parser:
             line=tok.line, column=tok.column
         )
 
-    def parse_out(self):
-        """out expr1, expr2, ..."""
+    def parse_out(self, uma_so=False):
+        """out expr1, expr2, ...
+
+        Com 'uma_so', para na primeira expressao. E o que ele precisa
+        ser como corpo de lambda dentro de um cluster:
+
+            [lambda => out "a", lambda => out "b"]
+
+        Sem a limitacao, o primeiro 'out' engole a virgula e o segundo
+        lambda vira argumento dele — e o cluster passa a ter um item.
+        """
         tok = self.advance()  # consume 'out'
         expressions = []
         if self.current().type not in (TokenType.NEWLINE, TokenType.EOF, TokenType.DEDENT):
             expressions.append(self.parse_expression())
-            while self.match(TokenType.COMMA):
+            while not uma_so and self.match(TokenType.COMMA):
                 expressions.append(self.parse_expression())
         self.match(TokenType.NEWLINE)
         return ast.OutStatement(expressions=expressions, line=tok.line, column=tok.column)
@@ -2062,6 +2078,48 @@ class Parser:
         self.match(TokenType.NEWLINE)
         body = self.parse_block()
         return ast.ParallelBlock(blocks=body, line=tok.line, column=tok.column)
+
+    #: As instrucoes que valem como corpo de lambda.
+    #:
+    #: O corpo de um lambda e uma expressao — e assim que ele devolve
+    #: valor. Mas duas instrucoes aparecem o tempo todo em callback e
+    #: nao tem forma de expressao:
+    #:
+    #:     bus.assinar("pedido", lambda p => out $"novo: {p}")
+    #:     expect(lambda => trigger "falhou").to_raise()
+    #:
+    #: Recusa-las obrigava a declarar uma acao de uma linha para cada
+    #: callback, o que e ruido puro. Elas devolvem void, que e o valor
+    #: certo para um callback que so age.
+    _STATEMENTS_EM_LAMBDA = {
+        TokenType.OUT: "parse_out",
+        TokenType.TRIGGER: "parse_trigger",
+        TokenType.ASSERT: "parse_assert",
+    }
+
+    def _corpo_de_lambda(self):
+        """O corpo: uma expressao, ou uma das instrucoes que cabem aqui."""
+        producao = self._STATEMENTS_EM_LAMBDA.get(self.current().type)
+        if producao is None:
+            return self.parse_or()
+        if producao == "parse_out":
+            return self.parse_out(uma_so=True)
+        return getattr(self, producao)()
+
+    def parse_with(self):
+        """with <recurso> [as <nome>]: corpo"""
+        tok = self.advance()                        # 'with'
+        recurso = self.parse_expression()
+        nome = ""
+        if self.match(TokenType.AS):
+            nome = self.expect(
+                TokenType.IDENTIFIER,
+                "Expected a name after 'as'").value
+        self.expect(TokenType.COLON, "Expected ':' after the 'with' header")
+        self.match(TokenType.NEWLINE)
+        corpo = self.parse_block()
+        return ast.WithBlock(resource=recurso, name=nome, body=corpo,
+                             line=tok.line, column=tok.column)
 
     def parse_static(self):
         """static nome [: Tipo] := valor
@@ -2677,7 +2735,7 @@ class Parser:
                 self.expect(TokenType.RPAREN, "Expected ')' after lambda parameters")
             if not self.match(TokenType.COLON, TokenType.FAT_ARROW):
                 self.error("Expected ':' or '=>' after lambda parameters")
-            body = self.parse_or()
+            body = self._corpo_de_lambda()
             return ast.LambdaExpression(params=params, defaults=defaults,
                                         param_types=param_types, body=body,
                                         line=tok.line, column=tok.column)

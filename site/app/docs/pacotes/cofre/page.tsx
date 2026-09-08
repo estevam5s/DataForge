@@ -17,10 +17,10 @@ const blocos: Bloco[] = [
   { code: `adopt cofre as C
 
 cfg := C.novo()
-    >> C.padroes({"porta": 8080, "debug": no})
-    >> C.do_arquivo("config.json")
-    >> C.do_ambiente("MEUAPP_")
-    >> C.dos_argumentos()
+cfg := C.padroes(cfg, {"porta": 8080, "debug": no})
+cfg := C.do_arquivo(cfg, "config.json")
+cfg := C.do_ambiente(cfg, "MEUAPP_")
+cfg := C.dos_argumentos(cfg)
 
 out C.pegar(cfg, "porta")`, lang: 'df' },
   {"h2": "API"},

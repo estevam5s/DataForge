@@ -20,9 +20,8 @@ b := P.barra(len(arquivos), "copiando")
 cycle a in arquivos:
     copiar(a)
     b.avancar()
-b.terminar()
-
-copiando  ████████████░░░░░░░░  60%  12/20  ~4s`, lang: 'df' },
+b.terminar()`, lang: 'df' },
+  { code: `copiando  ████████████░░░░░░░░  60%  12/20  ~4s`, lang: 'text' },
   {"h2": "API"},
   {"p": "O que `relay` exporta — 8 símbolos:"},
   { code: `blueprint Barra

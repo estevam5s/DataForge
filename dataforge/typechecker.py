@@ -545,6 +545,16 @@ class TypeChecker:
             self._loop_depth -= 1
         return False
 
+    def st_WithBlock(self, node, escopo):
+        self.infer(node.resource, escopo)
+        # O corpo usa o escopo de FORA, como o do monitor: uma variavel
+        # atribuida dentro continua existindo depois. So o nome do
+        # recurso e local.
+        if node.name:
+            escopo.declare(node.name, UNKNOWN, node.line, node.column)
+        self.visit_block(node.body, escopo)
+        return False
+
     def st_MonitorBlock(self, node, escopo):
         # O corpo de um 'monitor' existe para conter falhas; codigo que provoca
         # um erro de proposito e legitimo ali. Por isso os diagnosticos do corpo

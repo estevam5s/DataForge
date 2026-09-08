@@ -1003,3 +1003,83 @@ handle e:
     out e.message
 ''')
     assert "across 2 names" in saida
+
+
+def test_travessao_depois_de_numero_e_comentario():
+    """'// 10 — o dobro' é prosa, e era lido como divisão.
+
+    O erro saía no travessão — um caractere que o lexer não conhece —
+    e apontava para longe da causa.
+    """
+    assert run('out 3      // 10 — o dobro de 5') == "3"
+    assert run('out 3      // 404, — não achei') == "3"
+
+
+def test_dois_pontos_depois_do_numero_continua_sendo_divisao():
+    """A guarda do travessão quase quebrou isto.
+
+    Em Python, uma string VAZIA é subcadeia de qualquer outra: sem a
+    verificação, `n // 20:` — onde nada segue os dois pontos — virava
+    comentário e o laço perdia o limite.
+    """
+    assert run('''
+cycle i from 1 to 60 // 20:
+    out i
+''') == "1\n2\n3"
+
+
+def test_lambda_aceita_out_e_trigger():
+    """Callback que só age não deveria exigir uma ação declarada."""
+    assert run('''
+f := lambda p => out $"recebi: {p}"
+f("oi")
+''') == "recebi: oi"
+    assert run('''
+g := lambda => trigger "falhou"
+monitor:
+    g()
+handle e:
+    out e.message
+''') == "falhou"
+
+
+def test_out_dentro_de_lambda_para_na_primeira_expressao():
+    """Senão o primeiro 'out' engole a vírgula do cluster."""
+    assert run('''
+acoes := [lambda => out "a", lambda => out "b"]
+out len(acoes)
+cycle a in acoes:
+    a()
+''') == "2\na\nb"
+
+
+def test_out_fora_de_lambda_continua_aceitando_varias():
+    assert run('out "x", "y", "z"') == "x y z"
+
+
+def test_with_fecha_o_recurso_mesmo_com_erro():
+    """'defer' limpa na saída do ESCOPO; 'with' limpa no fim do BLOCO."""
+    assert run('''
+adopt Forge
+
+pool := Forge.pool(":memory:", 1)
+
+monitor:
+    with Forge.conexao(pool) as db:
+        trigger "erro no meio"
+handle e:
+    out "capturado"
+
+out pool.estado()["livres"]
+''') == "capturado\n1"
+
+
+def test_with_liga_o_nome_e_devolve_no_fim():
+    assert run('''
+adopt Forge
+
+pool := Forge.pool(":memory:", 2)
+with Forge.conexao(pool) as db:
+    out Forge.tabelas(db)
+out pool.estado()["livres"]
+''') == "[]\n1"

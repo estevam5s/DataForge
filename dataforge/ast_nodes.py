@@ -965,3 +965,18 @@ class BenchBlock(ASTNode):
     name: Any = None
     times: Any = None
     body: list = field(default_factory=list)
+
+
+@dataclass
+class WithBlock(ASTNode):
+    """with <recurso> [as <nome>]: corpo
+
+    Abre um recurso, roda o corpo, e o fecha — mesmo se o corpo falhar.
+
+    'defer' já garante limpeza, mas na saída do ESCOPO. Um recurso
+    aberto no meio de uma ação longa fica aberto até o fim dela; com
+    'with', ele fecha no fim do bloco, que é onde deixou de ser usado.
+    """
+    resource: Any = None
+    name: str = ""
+    body: list = field(default_factory=list)
