@@ -27,6 +27,7 @@ from .kiln import ArcaneKiln
 from .arcane_excel import ArcaneExcel
 from .arcane_meta import ArcaneMeta
 from .crucible import ArcaneCrucible
+from .forge import ArcaneForge
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -91,6 +92,11 @@ _MODULES = {
     # ── Crucible — o framework de testes ──
     "Crucible": ArcaneCrucible,
     "Arcane.Crucible": ArcaneCrucible,
+
+    # ── Forge — bancos de dados e ORM ──
+    "Forge": ArcaneForge,
+    "Arcane.Forge": ArcaneForge,
+    "Banco": ArcaneForge,
 }
 
 
