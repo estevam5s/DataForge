@@ -1,0 +1,68 @@
+// Exercicio 210 — Isolamento entre trials
+// Enunciado: prove que um teste nao contamina o proximo.
+
+// A garantia central do Crucible: cada trial roda no proprio quadro de
+// escopo, com o setup refeito. Um teste que passa sozinho e falha na
+// suite seria bug do framework, nao do teste.
+
+adopt Crucible
+
+crucible "Isolamento":
+
+    setup:
+        contador := 0
+        itens := []
+
+    trial "o primeiro soma":
+        contador := contador + 1
+        itens.append("a")
+        expect contador is 1
+        expect len(itens) is 1
+
+    trial "o segundo ve o valor original":
+        // o que o primeiro escreveu nao existe aqui
+        expect contador is 0
+        expect len(itens) is 0
+
+    trial "e o terceiro tambem":
+        contador := contador + 100
+        expect contador is 100
+
+crucible "Ordem nao importa":
+
+    setup:
+        estado := "limpo"
+
+    trial "b vem antes de a no alfabeto? nao importa":
+        expect estado is "limpo"
+
+    trial "a":
+        estado := "sujo"
+        expect estado is "sujo"
+
+    trial "c":
+        expect estado is "limpo"
+
+resumo := Crucible.run()
+out Crucible.report()
+assert resumo["verde"] is yes, "todos passam, em qualquer ordem"
+
+// Com ordem aleatoria, o resultado e o mesmo — e um teste que
+// dependesse de ordem falharia aqui, e nao seis meses depois
+Crucible.reset()
+
+crucible "Aleatorio":
+    setup:
+        n := 0
+    trial "um":
+        n := n + 1
+        expect n is 1
+    trial "dois":
+        n := n + 2
+        expect n is 2
+    trial "tres":
+        expect n is 0
+
+aleatorio := Crucible.run({"aleatorio": yes, "semente": 42})
+assert aleatorio["verde"] is yes, "a ordem nao muda o resultado"
+out "ok"

@@ -1,0 +1,88 @@
+// Exercicio 213 — Medir o crescimento, nao o relogio
+// Enunciado: escreva duas versoes do mesmo problema e compare as ordens.
+
+// Um algoritmo que funciona com dez itens pode nao terminar com um
+// milhao. 'dataforge big-o' le a arvore e diz a classe de cada acao,
+// sem rodar nada — e diz TAMBEM o porque.
+
+adopt Crucible
+
+// ── O(n^2): para cada item de xs, percorre ys inteiro ──
+action comuns_lento(xs, ys):
+    saida := []
+    cycle x in xs:
+        given x in ys:
+            saida.append(x)
+    yield saida
+
+// ── O(n): o vault responde em O(1) ──
+action comuns(xs, ys):
+    indice := {}
+    cycle y in ys:
+        indice[str(y)] := yes
+
+    saida := []
+    cycle x in xs:
+        given indice.has(str(x)):
+            saida.append(x)
+    yield saida
+
+// As duas respondem a mesma coisa
+a := [1, 2, 3, 4, 5]
+b := [4, 5, 6, 7]
+assert comuns_lento(a, b) is comuns(a, b), "mesmo resultado"
+assert comuns(a, b) is [4, 5], "e o resultado certo"
+
+// A diferenca so aparece quando a entrada cresce. E aqui ha uma licao
+// que a notacao sozinha nao ensina: com entrada PEQUENA, o O(n) pode
+// perder — montar o vault custa, e esse custo nao depende de n.
+
+action comparar(n):
+    xs := [i cycle i in range(n)]
+    ys := [i + n ~/ 2 cycle i in range(n)]
+
+    lento := Crucible.timed(lambda => comuns_lento(xs, ys))
+    rapido := Crucible.timed(lambda => comuns(xs, ys))
+
+    assert comuns_lento(xs, ys) is comuns(xs, ys), "as duas concordam"
+    yield {"n": n, "lento": lento["total_ms"], "rapido": rapido["total_ms"]}
+
+cycle n in [500, 2000, 5000]:
+    r := comparar(n)
+    razao := round(r["lento"] / r["rapido"], 2)
+    out "n =", r["n"], " O(n^2):", round(r["lento"], 1),
+        "ms   O(n):", round(r["rapido"], 1), "ms   razao:", razao
+
+// O que a saida mostra:
+//
+//   n=500    razao ~0.5   o O(n) PERDE — montar o vault custa
+//   n=2000   razao ~0.9   quase empatam
+//   n=5000   razao ~1.6   o O(n) ganha, e a vantagem so cresce
+//
+// Big-O e sobre CRESCIMENTO, nao sobre velocidade. O(n) com constante
+// grande perde de O(n^2) com constante pequena ate um certo n —
+// depois disso, nunca mais. Achar esse ponto e trabalho de medicao;
+// saber que ele existe e trabalho da notacao.
+
+pequeno := comparar(500)
+grande := comparar(5000)
+razao_pequeno := pequeno["lento"] / pequeno["rapido"]
+razao_grande := grande["lento"] / grande["rapido"]
+
+out "razao com n=500: ", round(razao_pequeno, 2)
+out "razao com n=5000:", round(razao_grande, 2)
+assert razao_grande bigger razao_pequeno,
+    "a vantagem do O(n) cresce com a entrada"
+assert razao_grande bigger 1.0,
+    "e a partir de certo tamanho, ele ja e mais rapido"
+
+// A analise estatica concorda, e diz o porque:
+//
+//   $ dataforge big-o 213_medir_o_crescimento.df -v
+//
+//   ▲ comuns_lento    O(n^2)  tempo   O(n) espaco
+//       · 'in' na linha 14 percorre a colecao (use um vault para O(1))
+//       ⚠ O(n^2): dobrar a entrada quadruplica o tempo.
+//   ● comuns          O(n)    tempo   O(n) espaco
+
+out "ok"

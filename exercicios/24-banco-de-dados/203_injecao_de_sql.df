@@ -1,0 +1,46 @@
+// Exercicio 203 — Injecao de SQL, e por que ela nao acontece aqui
+// Enunciado: tente derrubar uma tabela por um campo de busca.
+
+// Injecao de SQL e o bug mais explorado da historia do software. O
+// Forge o torna impossivel POR CONSTRUCAO: o construtor nao tem como
+// por um valor no texto da consulta.
+
+adopt Forge
+
+db := Forge.conectar(":memory:")
+Forge.executar(db, """
+    create table usuarios (
+        id integer primary key autoincrement,
+        nome text
+    )
+""")
+Forge.de(db, "usuarios").inserir([{"nome": "Ana"}, {"nome": "Bia"}])
+
+// O classico: um nome que fecha a string e emenda outro comando
+malicioso := "'; drop table usuarios; --"
+
+Forge.de(db, "usuarios").inserir({"nome": malicioso})
+assert "usuarios" in Forge.tabelas(db), "a tabela continua la"
+assert Forge.de(db, "usuarios").contar() is 3, "e o texto virou um nome comum"
+
+// A busca tambem: o valor e comparado, nao executado
+achados := Forge.de(db, "usuarios").onde("nome", malicioso).buscar()
+assert len(achados) is 1, "encontrou o registro cujo nome e aquele texto"
+out "guardado como texto:", achados[0]["nome"]
+
+// SQL escrito a mao TAMBEM parametriza, desde que use '?'
+Forge.executar(db, "insert into usuarios (nome) values (?)", [malicioso])
+assert Forge.de(db, "usuarios").contar() is 4, "seguro do mesmo jeito"
+assert "usuarios" in Forge.tabelas(db), "a tabela sobreviveu"
+
+// A lista de operadores tambem e fechada: um operador vindo de
+// variavel seria outro caminho de injecao
+monitor:
+    Forge.de(db, "usuarios").onde("nome", "; drop table usuarios; --", 1)
+    assert no, "devia ter recusado"
+handle QueryError as e:
+    out "operador recusado:", e.message
+    assert "operator" in e.message, "a mensagem explica"
+
+assert "usuarios" in Forge.tabelas(db), "a tabela continua viva no fim"
+out "ok"

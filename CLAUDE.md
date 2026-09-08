@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # 600 testes
-python3 exercicios/run_all.py                        # 200 exercícios
+python3 exercicios/run_all.py                        # 216 exercícios
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
@@ -65,7 +65,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          42 programas de demonstração
-exercicios/        200 exercícios em 23 módulos + run_all.py
+exercicios/        216 exercícios em 26 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -579,7 +579,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_kiln.py` | `pytest` | o framework web: rotas, respostas, templates, segurança, a sintaxe da linguagem e as palavras que continuam livres |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 200 exercícios, cada um com `assert` |
+| `exercicios/run_all.py` | script | 216 exercícios, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 42 programas maiores |
 

@@ -450,9 +450,57 @@ class Lexer:
             i = 0
             while i < len(depois) and (depois[i].isalnum() or depois[i] == '_'):
                 i += 1
-            return depois[i:i + 1] in ('(', '[', '.')
+            if depois[i:i + 1] not in ('(', '[', '.'):
+                return False
+            # '// O(n), uma vez' tambem casa com "chamada" — e prosa.
+            # O que denuncia e o mesmo de sempre: depois da chamada
+            # fechada, uma divisao TERMINA a expressao, e a prosa
+            # continua com virgula ou letra.
+            return self._chamada_e_operando(depois, i)
 
         return False
+
+    @staticmethod
+    def _chamada_e_operando(depois: str, inicio: int) -> bool:
+        """Depois da chamada vem fim de expressao, ou continua a frase?
+
+        'x // mdc(a, b)' e divisao. '// O(n), uma vez' e comentario.
+        A diferenca esta no que segue o fecha-parenteses.
+        """
+        i = inicio
+        # Anda ate fechar o que abriu, contando o aninhamento.
+        if depois[i] in '([':
+            abre, fecha = depois[i], ')' if depois[i] == '(' else ']'
+            nivel = 0
+            while i < len(depois):
+                if depois[i] == abre:
+                    nivel += 1
+                elif depois[i] == fecha:
+                    nivel -= 1
+                    if nivel == 0:
+                        i += 1
+                        break
+                i += 1
+        else:
+            # Acesso a membro: anda pelo nome.
+            i += 1
+            while i < len(depois) and (depois[i].isalnum() or depois[i] in '_.'):
+                i += 1
+
+        resto = depois[i:].lstrip()
+        if not resto:
+            return True                     # 'x // f(a)'
+
+        # Virgula ou letra depois da chamada e prosa: a expressao teria
+        # terminado ali.
+        if resto[0].isalpha() or resto[0] == '_':
+            return False
+        if resto[0] == ',':
+            seguinte = resto[1:].lstrip()
+            return not (seguinte[:1].isalpha() or seguinte[:1] == '_')
+        if resto[0] in '—–…':
+            return False
+        return True
 
     def tokenize(self) -> list[Token]:
         """Main tokenization loop. Returns list of tokens."""

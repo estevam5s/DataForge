@@ -1,0 +1,46 @@
+// Exercicio 201 — Conectar e consultar
+// Enunciado: abra um banco, crie uma tabela e leia de volta.
+
+// O Forge fala com cinco motores pela mesma interface. Trocar o motor
+// troca a URL, e mais nada — e por isso o exercicio usa ':memory:',
+// que nao precisa de servidor nenhum.
+
+adopt Forge
+
+db := Forge.conectar(":memory:")
+out "dialeto:", db.dialeto
+assert db.dialeto is "sqlite", "a URL decide o motor"
+
+Forge.executar(db, """
+    create table produtos (
+        id integer primary key autoincrement,
+        nome text not null,
+        preco real
+    )
+""")
+assert "produtos" in Forge.tabelas(db), "a tabela foi criada"
+
+// 'executar' devolve quantas linhas mudaram
+mudou := Forge.executar(db,
+    "insert into produtos (nome, preco) values (?, ?)", ["Teclado", 250.0])
+assert mudou is 1, "uma linha inserida"
+
+// 'consultar' devolve uma lista de vaults, um por linha
+linhas := Forge.consultar(db, "select * from produtos")
+out linhas
+assert len(linhas) is 1, "uma linha de volta"
+assert linhas[0]["nome"] is "Teclado", "lida pelo nome da coluna, nao pelo indice"
+
+// O tipo volta convertido: preco e Float, nao texto
+assert type(linhas[0]["preco"]) is "Float", "o tipo sobrevive a ida e volta"
+assert type(linhas[0]["id"]) is "Integer", "idem"
+
+// 'primeiro' quando so interessa uma
+p := Forge.primeiro(db, "select * from produtos where nome = ?", ["Teclado"])
+assert p["preco"] is 250.0, "achou"
+
+vazio := Forge.primeiro(db, "select * from produtos where nome = ?", ["nada"])
+assert vazio is void, "sem resultado devolve void, nao erro"
+
+Forge.fechar(db)
+out "ok"

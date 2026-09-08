@@ -1136,3 +1136,42 @@ def test_instalador_aceita_as_opcoes_que_o_site_monta():
     # precisam chegar por variável de ambiente também.
     assert "DATAFORGE_EXTRAS" in sh
     assert "DATAFORGE_EXTRAS" in ps
+
+
+def test_indice_dos_exercicios_esta_em_dia():
+    """O README lista o que existe na pasta.
+
+    Escrito à mão, ele envelhece: os módulos 21 a 26 existiam e o índice
+    parava no 20 — porque conferir 216 linhas à mão não é algo que se
+    faça duas vezes.
+    """
+    import subprocess
+    import sys as _sys
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    r = subprocess.run(
+        [_sys.executable, "tools/gerar_indice_exercicios.py", "--check"],
+        capture_output=True, text=True, cwd=raiz)
+    assert r.returncode == 0, (
+        f"{r.stdout}{r.stderr}\n"
+        "rode: python3 tools/gerar_indice_exercicios.py")
+
+
+def test_todo_exercicio_tem_explicacao_a_partir_do_modulo_11():
+    """Do 11 em diante, cada exercício traz um .md ao lado."""
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    faltando = []
+    for pasta in sorted(glob.glob(os.path.join(raiz, "exercicios", "*"))):
+        nome = os.path.basename(pasta)
+        if not os.path.isdir(pasta) or not nome[:2].isdigit():
+            continue
+        if int(nome[:2]) < 11:
+            continue
+        for df in sorted(glob.glob(os.path.join(pasta, "*.df"))):
+            if not os.path.basename(df)[0].isdigit():
+                continue
+            if not os.path.isfile(df.replace(".df", ".md")):
+                faltando.append(os.path.relpath(df, raiz))
+    assert not faltando, f"sem .md: {faltando}"

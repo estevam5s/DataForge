@@ -234,7 +234,17 @@ class Ordem:
 
 CUSTOS = {
     # constantes
+    #
+    # 'str' esta aqui, e nao entre as lineares, de proposito. Ele e
+    # O(tamanho do valor) — mas 'tamanho do valor' nao e o 'n' do
+    # algoritmo. Trata-lo como linear fazia TODO laco com 'str(x)'
+    # dentro virar quadratico, inclusive o jeito certo de montar um
+    # indice de vault:
+    #
+    #     cycle y in ys:
+    #         indice[str(y)] := yes      <- isto e O(n), nao O(n^2)
     "len": (0, 0), "abs": (0, 0), "int": (0, 0), "float": (0, 0),
+    "str": (0, 0), "repr": (0, 0),
     "bool": (0, 0), "type": (0, 0), "round": (0, 0), "chr": (0, 0),
     "ord": (0, 0), "hex": (0, 0), "bin": (0, 0), "pow": (0, 0),
     "sqrt": (0, 0), "floor": (0, 0), "ceil": (0, 0), "random": (0, 0),
@@ -245,7 +255,7 @@ CUSTOS = {
     "map": (1, 0), "filter": (1, 0), "reduce": (1, 0), "any": (1, 0),
     "all": (1, 0), "range": (1, 0), "list": (1, 0), "cluster": (1, 0),
     "flatten": (1, 0), "unique": (1, 0), "replace": (1, 0),
-    "enumerate": (1, 0), "zip": (1, 0), "str": (1, 0),
+    "enumerate": (1, 0), "zip": (1, 0),
 
     # n log n
     "sorted": (1, 1), "sort": (1, 1), "sort_by": (1, 1),

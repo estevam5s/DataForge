@@ -1,0 +1,64 @@
+// Exercicio 202 — Construtor de consultas
+// Enunciado: monte consultas encadeando chamadas, sem escrever SQL.
+
+// O construtor resolve tres coisas que o SQL a mao nao resolve: o
+// dialeto de cada banco, a condicao que so as vezes existe, e o
+// identificador citado. E ele nunca poe um valor no texto.
+
+adopt Forge
+
+db := Forge.conectar(":memory:")
+Forge.executar(db, """
+    create table usuarios (
+        id integer primary key autoincrement,
+        nome text, cidade text, idade integer
+    )
+""")
+
+Forge.de(db, "usuarios").inserir([
+    {"nome": "Ana", "cidade": "Floripa", "idade": 30},
+    {"nome": "Bia", "cidade": "Recife",  "idade": 25},
+    {"nome": "Cid", "cidade": "Floripa", "idade": 41}
+])
+assert Forge.de(db, "usuarios").contar() is 3, "tres inseridos de uma vez"
+
+// Filtros encadeados
+maduros := Forge.de(db, "usuarios")
+    .onde("idade", ">=", 30)
+    .ordenar("idade", "desc")
+    .buscar()
+out [u["nome"] cycle u in maduros]
+assert len(maduros) is 2, "dois com 30 ou mais"
+assert maduros[0]["nome"] is "Cid", "o mais velho primeiro"
+
+// 'onde_em' vira IN, com um parametro por item
+floripa := Forge.de(db, "usuarios").onde_em("cidade", ["Floripa"]).buscar()
+assert len(floripa) is 2, "dois em Floripa"
+
+// Lista vazia nao gera 'in ()', que e erro de sintaxe em quase todo banco
+nenhum := Forge.de(db, "usuarios").onde_em("cidade", []).buscar()
+assert len(nenhum) is 0, "lista vazia devolve nada, sem quebrar"
+
+// Agregados
+assert Forge.de(db, "usuarios").somar("idade") is 96, "30+25+41"
+assert Forge.de(db, "usuarios").media("idade") is 32.0, "a media"
+assert Forge.de(db, "usuarios").maximo("idade") is 41, "o maior"
+assert Forge.de(db, "usuarios").existe() is yes, "tem alguem"
+
+// Paginacao: a pagina 1 e a primeira, nao a zero
+pagina := Forge.de(db, "usuarios").paginar(1, 2)
+assert pagina["total"] is 3, "o total nao muda com a pagina"
+assert len(pagina["linhas"]) is 2, "dois por pagina"
+assert pagina["paginas"] is 2, "duas paginas"
+assert pagina["tem_proxima"] is yes, "ha uma segunda"
+
+// 'quando' aplica o filtro so se a condicao valer
+action procurar(db, cidade):
+    yield Forge.de(db, "usuarios")
+        .quando(cidade, lambda c => c.onde("cidade", cidade))
+        .contar()
+
+assert procurar(db, "") is 3, "sem filtro, todos"
+assert procurar(db, "Recife") is 1, "com filtro, um"
+
+out "ok"

@@ -616,12 +616,36 @@ class Expectativa:
         escreve o teste nao deveria precisar saber qual e qual.
         """
         alvo = self.valor
+        NAO_ACHOU = object()
+        atual = NAO_ACHOU
+
         if isinstance(alvo, dict):
-            tem, atual = campo in alvo, alvo.get(campo)
-        elif hasattr(alvo, "fields") and campo in getattr(alvo, "fields", {}):
-            tem, atual = True, alvo.fields[campo]
+            atual = alvo.get(campo, NAO_ACHOU)
         else:
-            tem, atual = hasattr(alvo, campo), getattr(alvo, campo, None)
+            # Record guarda em 'values'; instancia de blueprint em
+            # 'fields'. Olhar so um dos dois fazia o matcher prometer
+            # os tres tipos e cumprir dois — e a falha dizia 'vale
+            # void', que parece problema do teste.
+            for atributo in ("values", "fields"):
+                mapa = getattr(alvo, atributo, None)
+                if isinstance(mapa, dict) and campo in mapa:
+                    atual = mapa[campo]
+                    break
+            if atual is NAO_ACHOU:
+                ler = getattr(alvo, "get", None)
+                if callable(ler):
+                    try:
+                        lido = ler(campo)
+                        if lido is not None:
+                            atual = lido
+                    except Exception:            # noqa: BLE001
+                        pass
+            if atual is NAO_ACHOU and hasattr(alvo, campo):
+                atual = getattr(alvo, campo)
+
+        tem = atual is not NAO_ACHOU
+        if not tem:
+            atual = None
         if valor is NADA:
             return self._cobrar(tem, f"ter o campo '{campo}'")
         return self._cobrar(tem and atual == valor,
@@ -922,6 +946,12 @@ class Suite:
         #: executor o troca antes de cada trial.
         self.quadro = None
         self.abrir_quadro = None    # o interpretador instala
+        #: Limpezas que as fixtures usadas NESTE trial deixaram
+        #: pendentes. Uma fixture chamada no meio do trial precisa
+        #: registrar o fechamento em algum lugar, e esse lugar tem de
+        #: ser esvaziado a cada trial — senao a limpeza do primeiro
+        #: roda de novo no segundo.
+        self.limpezas = []
         self.trials = []
         self.filhas = []
         self.antes_de_cada = []
@@ -1138,6 +1168,8 @@ class Executor:
         # que o anterior escreveu.
         if suite.abrir_quadro is not None:
             suite.abrir_quadro()
+        for nivel in suite.linhagem():
+            nivel.limpezas = []
 
         # Os ganchos rodam da raiz para dentro: o 'setup' mais geral
         # prepara o terreno, o mais especifico ajusta. A ordem inversa
@@ -1150,7 +1182,14 @@ class Executor:
 
     def _limpar(self, suite, contexto, limpezas):
         erros = []
-        for limpeza in reversed(limpezas):
+        # As fixtures usadas neste trial fecham na ordem inversa da
+        # abertura: a ultima aberta e a primeira a fechar, porque ela
+        # pode depender das anteriores.
+        pendentes = list(limpezas)
+        for nivel in suite.linhagem():
+            pendentes.extend(nivel.limpezas)
+            nivel.limpezas = []
+        for limpeza in reversed(pendentes):
             try:
                 limpeza()
             except BaseException as e:      # noqa: BLE001

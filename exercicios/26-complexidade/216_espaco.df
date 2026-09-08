@@ -1,0 +1,81 @@
+// Exercicio 216 — Complexidade de espaco
+// Enunciado: processe mais dados do que cabem na memoria.
+
+// Tempo nao e o unico recurso. Um algoritmo O(n log n) que aloca uma
+// copia pode perder para um O(n^2) que trabalha no lugar, quando a
+// memoria e o gargalo.
+
+adopt Crucible
+
+// ── O(1) de espaco: uma variavel, nao importa o tamanho ──
+action somar(xs):
+    total := 0
+    cycle x in xs:
+        total += x
+    yield total
+
+// ── O(n) de espaco: a saida cresce com a entrada ──
+action dobrar(xs):
+    saida := []
+    cycle x in xs:
+        saida.append(x * 2)
+    yield saida
+
+assert somar([1, 2, 3]) is 6, "somou"
+assert dobrar([1, 2]) is [2, 4], "dobrou"
+
+// A pilha tambem e memoria: cada chamada recursiva ocupa um quadro
+action soma_recursiva(n):
+    given n smaller_eq 0:
+        yield 0
+    yield n + soma_recursiva(n - 1)
+
+action soma_iterativa(n):
+    total := 0
+    cycle i from 1 to n:
+        total += i
+    yield total
+
+assert soma_recursiva(100) is soma_iterativa(100), "mesmo resultado"
+
+// Recursao profunda estoura a pilha; o laco nao
+monitor:
+    soma_recursiva(100000)
+    assert no, "devia ter estourado"
+handle e:
+    out "recursao profunda:", e.type
+    assert soma_iterativa(100000) is 5000050000, "o laco vai fundo sem estourar"
+
+// ── Preguica: processar sem materializar ──
+
+// Um generator produz um item por vez. Este 'range' de um milhao nunca
+// existe inteiro na memoria — so os tres primeiros pares sao calculados.
+stream action pares(xs):
+    cycle x in xs:
+        given x % 2 is 0:
+            emit x
+
+primeiros := pares(range(1000000)).take(3)
+out "os tres primeiros pares de um milhao:", primeiros
+assert primeiros is [0, 2, 4], "so tres foram calculados"
+
+// A compreensao equivalente alocaria 500 mil itens
+poucos := [x cycle x in range(20) given x % 2 is 0]
+assert len(poucos) is 10, "aqui cabe, com 20 itens"
+
+// Medindo a diferenca com uma entrada media
+com_preguica := Crucible.timed(lambda => pares(range(100000)).take(5))
+com_lista := Crucible.timed(lambda => [x cycle x in range(100000) given x % 2 is 0])
+
+out "preguicoso (5 itens):", round(com_preguica["total_ms"], 3), "ms"
+out "lista inteira:       ", round(com_lista["total_ms"], 1), "ms"
+assert com_preguica["total_ms"] smaller com_lista["total_ms"],
+    "a preguica so paga pelo que voce pede"
+
+// A regra:
+//
+//   'stream action' + 'take(n)' processa mais dados do que cabem na
+//   RAM. A compreensao e mais legivel e materializa tudo. Use a
+//   segunda ate ela nao caber, e entao troque.
+
+out "ok"

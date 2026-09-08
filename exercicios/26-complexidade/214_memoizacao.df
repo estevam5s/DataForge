@@ -1,0 +1,62 @@
+// Exercicio 214 — Trocar tempo exponencial por memoria linear
+// Enunciado: faca fib(35) responder, sem esperar.
+
+// Fibonacci ingenuo e O(2^n): cada chamada gera duas, e quase todas
+// recalculam o que ja foi calculado. Guardar o resultado derruba para
+// O(n) — e e a troca mais lucrativa que existe.
+
+adopt Crucible
+
+action fib_lento(n):
+    given n smaller 2:
+        yield n
+    yield fib_lento(n - 1) + fib_lento(n - 2)
+
+cache := {}
+
+action fib(n):
+    given n smaller 2:
+        yield n
+    chave := str(n)
+    given cache.has(chave):
+        yield cache[chave]
+    resultado := fib(n - 1) + fib(n - 2)
+    cache[chave] := resultado
+    yield resultado
+
+// As duas concordam
+cycle i from 0 to 15:
+    assert fib_lento(i) is fib(i), "mesmo resultado"
+
+assert fib(10) is 55, "o decimo"
+assert fib(20) is 6765, "o vigesimo"
+
+// A diferenca de custo, medida
+lento := Crucible.timed(lambda => fib_lento(22))
+cache := {}
+rapido := Crucible.timed(lambda => fib(22))
+
+out "fib(22) ingenuo:  ", round(lento["total_ms"], 2), "ms"
+out "fib(22) memoizado:", round(rapido["total_ms"], 3), "ms"
+out "razao:            ", round(lento["total_ms"] / rapido["total_ms"], 0), "x"
+assert lento["total_ms"] bigger rapido["total_ms"], "o memoizado ganha"
+
+// E o que so o memoizado consegue: fib(90) tem 19 digitos, e o
+// ingenuo levaria mais tempo que a idade do universo.
+cache := {}
+assert fib(90) is 2880067194370816120, "instantaneo"
+
+// O custo: memoria. Cada valor calculado fica guardado.
+out "valores guardados:", len(cache)
+assert len(cache) is 89, "um por chamada, de 2 a 90"
+
+// A conta que decide a troca:
+//
+//   fib(50) ingenuo   ~2^50  = 10^15 chamadas    (semanas)
+//   fib(50) memoizado ~50    = 50 chamadas       (microssegundos)
+//   custo em memoria  ~50 valores                (nada)
+//
+// Trocar O(2^n) de tempo por O(n) de memoria quase sempre vale. A
+// excecao e quando a memoria e o gargalo — ver o exercicio 216.
+
+out "ok"

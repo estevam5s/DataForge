@@ -1,6 +1,6 @@
 # Exercícios DataForge
 
-**180 exercícios em 20 módulos**, do `out "Ola"` a um interpretador de expressões
+**216 exercícios em 26 módulos**, do `out "Ola"` a um interpretador de expressões
 com lexer, parser e avaliador próprios.
 
 Cada exercício **verifica o próprio resultado com `assert`** — se ele roda sem
@@ -44,10 +44,11 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ---
 
+<!-- indice:inicio -->
 
 ## 01 — Fundamentos
 
-*12 exercícios: tipos, operadores, precedência, conversão, anotações*
+*12 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -64,9 +65,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 011 | [`011_anotacoes_de_tipo.df`](01-fundamentos/011_anotacoes_de_tipo.df) | Anotacoes de tipo |
 | 012 | [`012_entrada_de_dados.df`](01-fundamentos/012_entrada_de_dados.df) | Interpolacao e formatacao de saida |
 
-## 02 — Controle de fluxo
+## 02 — Controle fluxo
 
-*12 exercícios: `given`, `match`, os quatro laços, `halt`/`skip`, `guard`*
+*12 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -83,9 +84,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 023 | [`023_fizzbuzz.df`](02-controle-fluxo/023_fizzbuzz.df) | FizzBuzz |
 | 024 | [`024_guard.df`](02-controle-fluxo/024_guard.df) | guard como pre-condicao |
 
-## 03 — Coleções
+## 03 — Colecoes
 
-*14 exercícios: clusters, fatiamento, vaults, matrizes, busca, ordenação*
+*14 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -104,9 +105,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 037 | [`037_ordenacao_manual.df`](03-colecoes/037_ordenacao_manual.df) | Bubble sort |
 | 038 | [`038_frequencias.df`](03-colecoes/038_frequencias.df) | Contagem de frequencias |
 
-## 04 — Textos
+## 04 — Strings
 
-*10 exercícios: métodos, regex, templates, palíndromo, cifra de César*
+*10 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -121,9 +122,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 047 | [`047_regex.df`](04-strings/047_regex.df) | Expressoes regulares |
 | 048 | [`048_cifra_cesar.df`](04-strings/048_cifra_cesar.df) | Cifra de Cesar |
 
-## 05 — Ações
+## 05 — Acoes
 
-*14 exercícios: padrões, aridade, recursão, closures, lambdas, decoradores, `defer`*
+*14 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -144,7 +145,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 06 — Blueprints
 
-*14 exercícios: construtores, herança, `root`, traits, polimorfismo, padrões de projeto*
+*14 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -163,9 +164,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 075 | [`075_padrao_singleton.df`](06-blueprints/075_padrao_singleton.df) | Padrao Singleton |
 | 076 | [`076_padrao_observador.df`](06-blueprints/076_padrao_observador.df) | Padrao Observador |
 
-## 07 — Tratamento de erros
+## 07 — Erros
 
-*10 exercícios: `monitor`/`handle`/`ensure`, tipado, `guard`, `retry`, `propagate`*
+*10 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -180,9 +181,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 085 | [`085_assert.df`](07-erros/085_assert.df) | assert |
 | 086 | [`086_erros_aninhados.df`](07-erros/086_erros_aninhados.df) | Pilha de erros e recuperacao |
 
-## 08 — Pipelines e funcional
+## 08 — Pipelines
 
-*12 exercícios: `sift`/`morph`/`distill`, composição, currying, streams*
+*12 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -199,9 +200,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 097 | [`097_pipeline_relatorio.df`](08-pipelines/097_pipeline_relatorio.df) | Relatorio com pipelines |
 | 098 | [`098_pipeline_texto.df`](08-pipelines/098_pipeline_texto.df) | Pipeline de limpeza de dados |
 
-## 09 — Módulos e stdlib
+## 09 — Modulos
 
-*12 exercícios: `adopt` local e da stdlib, Math, Analytics, IO, SQLite*
+*12 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -218,11 +219,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 109 | [`109_texto_avancado.df`](09-modulos/109_texto_avancado.df) | Arcane.Text |
 | 110 | [`110_testes.df`](09-modulos/110_testes.df) | Arcane.Test |
 
-> Módulos auxiliares (importados, não executados): `geometria.df`
+## 10 — Avancado
 
-## 10 — Concorrência e estruturas
-
-*10 exercícios: async, threads, canais, lista ligada, árvore, RPN*
+*10 exercícios*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -237,9 +236,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 119 | [`119_inventario_completo.df`](10-avancado/119_inventario_completo.df) | Sistema de inventario |
 | 120 | [`120_interpretador_expressoes.df`](10-avancado/120_interpretador_expressoes.df) | Avaliador de expressoes em notacao polonesa reversa |
 
-## 11 — Tipos e checagem estática
+## 11 — Tipos e checagem
 
-*6 exercícios: anotações, ações tipadas, `typeof`, `cast`, `dataforge check`, `Any` · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -252,7 +251,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 12 — Records e enums
 
-*6 exercícios: imutabilidade, `with`, métodos, enums com valores, `match` · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -263,9 +262,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 131 | [`131_enum_com_valores.df`](12-records-e-enums/131_enum_com_valores.df) · [doc](12-records-e-enums/131_enum_com_valores.md) | Enums com valores |
 | 132 | [`132_enum_e_match.df`](12-records-e-enums/132_enum_e_match.df) · [doc](12-records-e-enums/132_enum_e_match.md) | Enums com match |
 
-## 13 — Desestruturação e compreensões
+## 13 — Desestruturacao
 
-*6 exercícios: `...resto`, spread, `{a, b} :=`, compreensões, interpolação · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -278,7 +277,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 14 — Pattern matching
 
-*6 exercícios: literais, tipos, sequências, records, vaults, guardas, validador · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -291,7 +290,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 15 — Streams e generators
 
-*6 exercícios: `stream action`, `emit`, infinitos, pipelines, `observe`, ETL · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -302,9 +301,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 149 | [`149_observe_reativo.df`](15-streams-e-generators/149_observe_reativo.df) · [doc](15-streams-e-generators/149_observe_reativo.md) | observe e eventos |
 | 150 | [`150_projeto_etl.df`](15-streams-e-generators/150_projeto_etl.df) · [doc](15-streams-e-generators/150_projeto_etl.md) | Projeto: ETL com streams |
 
-## 16 — Módulos e projetos
+## 16 — Modulos e projetos
 
-*6 exercícios: `adopt`/`relay`, imports seletivos, camadas, `forge.toml`, testes · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -315,11 +314,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 155 | [`155_testes_automatizados.df`](16-modulos-e-projetos/155_testes_automatizados.df) · [doc](16-modulos-e-projetos/155_testes_automatizados.md) | Testes automatizados |
 | 156 | [`156_projeto_biblioteca.df`](16-modulos-e-projetos/156_projeto_biblioteca.df) · [doc](16-modulos-e-projetos/156_projeto_biblioteca.md) | Projeto: biblioteca completa |
 
-> Módulos auxiliares (importados, não executados): `geometria.df`, `textos.df`
-
 ## 17 — Tempo e sistema
 
-*6 exercícios: datas, aritmética, cronômetro, SO, processos, logging · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -330,9 +327,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 161 | [`161_processos.df`](17-tempo-e-sistema/161_processos.df) · [doc](17-tempo-e-sistema/161_processos.md) | Executando processos |
 | 162 | [`162_logging_estruturado.df`](17-tempo-e-sistema/162_logging_estruturado.df) · [doc](17-tempo-e-sistema/162_logging_estruturado.md) | Registro de eventos |
 
-## 18 — Dados e persistência
+## 18 — Dados e persistencia
 
-*6 exercícios: serialização, arquivos, SQLite, HTTP servidor e cliente · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -343,9 +340,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 167 | [`167_http_cliente.df`](18-dados-e-persistencia/167_http_cliente.df) · [doc](18-dados-e-persistencia/167_http_cliente.md) | Cliente HTTP e URLs |
 | 168 | [`168_projeto_crud.df`](18-dados-e-persistencia/168_projeto_crud.df) · [doc](18-dados-e-persistencia/168_projeto_crud.md) | Projeto: CRUD com persistencia |
 
-## 19 — Concorrência
+## 19 — Concorrencia
 
-*6 exercícios: `async`/`await`, threads, canais, `defer`, `retry`, fila de trabalho · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -358,7 +355,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 20 — Projetos finais
 
-*6 exercícios: CLI, análise de dados, interpretador, sistema completo, revisão · com documentação `.md`*
+*6 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -369,11 +366,90 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 179 | [`179_revisao_geral.df`](20-projetos-finais/179_revisao_geral.df) · [doc](20-projetos-finais/179_revisao_geral.md) | Revisao: todos os conceitos |
 | 180 | [`180_proximos_passos.df`](20-projetos-finais/180_proximos_passos.df) · [doc](20-projetos-finais/180_proximos_passos.md) | Encerramento e proximos passos |
 
+## 21 — Oop avancado
+
+*10 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 181 | [`181_campos_declarados.df`](21-oop-avancado/181_campos_declarados.df) · [doc](21-oop-avancado/181_campos_declarados.md) | Campos declarados |
+| 182 | [`182_metodos_estaticos.df`](21-oop-avancado/182_metodos_estaticos.df) · [doc](21-oop-avancado/182_metodos_estaticos.md) | Metodos estaticos |
+| 183 | [`183_propriedades.df`](21-oop-avancado/183_propriedades.df) · [doc](21-oop-avancado/183_propriedades.md) | Propriedades com get e set |
+| 184 | [`184_visibilidade.df`](21-oop-avancado/184_visibilidade.df) · [doc](21-oop-avancado/184_visibilidade.md) | Visibilidade: private e protected |
+| 185 | [`185_sobrecarga_operadores.df`](21-oop-avancado/185_sobrecarga_operadores.df) · [doc](21-oop-avancado/185_sobrecarga_operadores.md) | Sobrecarga de operadores |
+| 186 | [`186_abstratos_e_traits.df`](21-oop-avancado/186_abstratos_e_traits.df) · [doc](21-oop-avancado/186_abstratos_e_traits.md) | Blueprints abstratos e contratos de trait |
+| 187 | [`187_heranca_e_root.df`](21-oop-avancado/187_heranca_e_root.df) · [doc](21-oop-avancado/187_heranca_e_root.md) | Heranca e 'root' |
+| 188 | [`188_composicao.df`](21-oop-avancado/188_composicao.df) · [doc](21-oop-avancado/188_composicao.md) | Composicao no lugar de heranca |
+| 189 | [`189_records_vs_blueprints.df`](21-oop-avancado/189_records_vs_blueprints.df) · [doc](21-oop-avancado/189_records_vs_blueprints.md) | Quando usar record e quando usar blueprint |
+| 190 | [`190_polimorfismo.df`](21-oop-avancado/190_polimorfismo.df) · [doc](21-oop-avancado/190_polimorfismo.md) | Polimorfismo |
+
+## 22 — Web kiln
+
+*7 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 191 | [`191_primeiro_servidor.df`](22-web-kiln/191_primeiro_servidor.df) · [doc](22-web-kiln/191_primeiro_servidor.md) | O primeiro servidor |
+| 192 | [`192_parametros_e_query.df`](22-web-kiln/192_parametros_e_query.df) · [doc](22-web-kiln/192_parametros_e_query.md) | Parametros de caminho e query string |
+| 193 | [`193_crud_restful.df`](22-web-kiln/193_crud_restful.df) · [doc](22-web-kiln/193_crud_restful.md) | Uma API RESTful completa |
+| 194 | [`194_paginas_html.df`](22-web-kiln/194_paginas_html.df) · [doc](22-web-kiln/194_paginas_html.md) | Paginas HTML com template |
+| 195 | [`195_middleware_e_auth.df`](22-web-kiln/195_middleware_e_auth.df) · [doc](22-web-kiln/195_middleware_e_auth.md) | Middleware, autenticacao e limite de taxa |
+| 196 | [`196_erros_e_estaticos.df`](22-web-kiln/196_erros_e_estaticos.df) · [doc](22-web-kiln/196_erros_e_estaticos.md) | Paginas de erro, redirecionamento e arquivos estaticos |
+| 197 | [`197_servidor_de_verdade.df`](22-web-kiln/197_servidor_de_verdade.df) · [doc](22-web-kiln/197_servidor_de_verdade.md) | Subir o servidor de verdade |
+
+## 23 — Dados e planilhas
+
+*3 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 198 | [`198_primeira_planilha.df`](23-dados-e-planilhas/198_primeira_planilha.df) · [doc](23-dados-e-planilhas/198_primeira_planilha.md) | Gravar e ler uma planilha |
+| 199 | [`199_relatorio_com_formulas.df`](23-dados-e-planilhas/199_relatorio_com_formulas.df) · [doc](23-dados-e-planilhas/199_relatorio_com_formulas.md) | Relatorio com varias abas e formulas |
+| 200 | [`200_planilha_banco_e_analise.df`](23-dados-e-planilhas/200_planilha_banco_e_analise.df) · [doc](23-dados-e-planilhas/200_planilha_banco_e_analise.md) | Do banco para a planilha, passando pela analise |
+
+## 24 — Banco de dados
+
+*8 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 201 | [`201_conectar.df`](24-banco-de-dados/201_conectar.df) · [doc](24-banco-de-dados/201_conectar.md) | Conectar e consultar |
+| 202 | [`202_construtor_de_consultas.df`](24-banco-de-dados/202_construtor_de_consultas.df) · [doc](24-banco-de-dados/202_construtor_de_consultas.md) | Construtor de consultas |
+| 203 | [`203_injecao_de_sql.df`](24-banco-de-dados/203_injecao_de_sql.df) · [doc](24-banco-de-dados/203_injecao_de_sql.md) | Injecao de SQL, e por que ela nao acontece aqui |
+| 204 | [`204_transacoes.df`](24-banco-de-dados/204_transacoes.df) · [doc](24-banco-de-dados/204_transacoes.md) | Transacoes |
+| 205 | [`205_modelos_e_validacao.df`](24-banco-de-dados/205_modelos_e_validacao.df) · [doc](24-banco-de-dados/205_modelos_e_validacao.md) | Modelos e validacao |
+| 206 | [`206_relacoes_sem_n_mais_um.df`](24-banco-de-dados/206_relacoes_sem_n_mais_um.df) · [doc](24-banco-de-dados/206_relacoes_sem_n_mais_um.md) | Relacoes, e o problema do N+1 |
+| 207 | [`207_migracoes.df`](24-banco-de-dados/207_migracoes.df) · [doc](24-banco-de-dados/207_migracoes.md) | Migracoes |
+| 208 | [`208_pool_e_conexoes.df`](24-banco-de-dados/208_pool_e_conexoes.df) · [doc](24-banco-de-dados/208_pool_e_conexoes.md) | Pool de conexoes |
+
+## 25 — Testes crucible
+
+*4 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 209 | [`209_primeira_suite.df`](25-testes-crucible/209_primeira_suite.df) · [doc](25-testes-crucible/209_primeira_suite.md) | A primeira suite |
+| 210 | [`210_isolamento.df`](25-testes-crucible/210_isolamento.df) · [doc](25-testes-crucible/210_isolamento.md) | Isolamento entre trials |
+| 211 | [`211_matchers.df`](25-testes-crucible/211_matchers.df) · [doc](25-testes-crucible/211_matchers.md) | Os matchers |
+| 212 | [`212_dubles_e_fixtures.df`](25-testes-crucible/212_dubles_e_fixtures.df) · [doc](25-testes-crucible/212_dubles_e_fixtures.md) | Dubles e fixtures |
+
+## 26 — Complexidade
+
+*4 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 213 | [`213_medir_o_crescimento.df`](26-complexidade/213_medir_o_crescimento.df) · [doc](26-complexidade/213_medir_o_crescimento.md) | Medir o crescimento, nao o relogio |
+| 214 | [`214_memoizacao.df`](26-complexidade/214_memoizacao.df) · [doc](26-complexidade/214_memoizacao.md) | Trocar tempo exponencial por memoria linear |
+| 215 | [`215_estrutura_certa.df`](26-complexidade/215_estrutura_certa.df) · [doc](26-complexidade/215_estrutura_certa.md) | A estrutura certa |
+| 216 | [`216_espaco.df`](26-complexidade/216_espaco.df) · [doc](26-complexidade/216_espaco.md) | Complexidade de espaco |
+
 ---
 
-**Total: 180 exercícios.** Todos passam — o estado esperado do repositório é
-verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 216 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
+
+<!-- indice:fim -->
 
 ## Depois dos exercícios
 

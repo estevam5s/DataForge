@@ -1,0 +1,78 @@
+// Exercicio 212 — Dubles e fixtures
+// Enunciado: teste uma regra de negocio sem tocar no banco.
+
+// Um servico que constroi a propria conexao exige subir PostgreSQL
+// para testar uma validacao de nome. Um que recebe o repositorio por
+// parametro se testa com um duble, em microssegundos.
+
+adopt Crucible
+
+trait Repositorio:
+    action salvar(nome)
+    action contar()
+
+blueprint ServicoDeCadastro:
+    action setup(repositorio):
+        self.repositorio := repositorio
+
+    action cadastrar(nome):
+        given len(nome) smaller 2:
+            trigger "nome curto demais"
+        yield self.repositorio.salvar(nome)
+
+crucible "Cadastro":
+
+    trial "salva o que passa na validacao":
+        repo := Crucible.mock("repositorio")
+        repo.quando("salvar").devolve("Ana")
+
+        s := spawn ServicoDeCadastro(repo)
+        expect s.cadastrar("Ana") is "Ana"
+        expect repo.chamado_com("salvar", "Ana") is yes
+
+    trial "e NAO salva o que nao passa":
+        // cobrar o que nao aconteceu e o que so o duble permite
+        repo := Crucible.mock("repositorio")
+        s := spawn ServicoDeCadastro(repo)
+
+        expect(lambda => s.cadastrar("A")).to_raise()
+        expect repo.foi_chamado("salvar") is no
+
+    trial "anota todas as chamadas":
+        m := Crucible.mock("api")
+        m.buscar(1)
+        m.buscar(2)
+        m.salvar("x")
+
+        expect m.vezes("buscar") is 2
+        expect m.argumentos_de("buscar") is [[1], [2]]
+        expect m.foi_chamado("apagar") is no
+
+    trial "respostas em sequencia":
+        m := Crucible.mock()
+        m.quando("proximo").devolve_em_sequencia([1, 2, 3])
+        expect [m.proximo(), m.proximo(), m.proximo()] is [1, 2, 3]
+
+crucible "Fixtures":
+
+    // 'provide' divide a fixture: antes prepara, depois limpa.
+    // Escrever as duas juntas e o que impede a limpeza de ser
+    // esquecida — o modo mais comum de uma suite virar fragil.
+    fixture banco():
+        adopt Forge
+        db := Forge.conectar(":memory:")
+        Forge.executar(db, "create table t (id integer primary key, n integer)")
+        provide db
+        Forge.fechar(db)
+
+    trial "usa o banco preparado":
+        adopt Forge
+        db := banco()
+        Forge.de(db, "t").inserir({"n": 1})
+        expect Forge.de(db, "t").contar() is 1
+
+resumo := Crucible.run()
+out Crucible.report()
+assert resumo["verde"] is yes, "todos passam"
+assert resumo["passou"] is 5, "cinco trials"
+out "ok"

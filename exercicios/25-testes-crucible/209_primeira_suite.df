@@ -1,0 +1,49 @@
+// Exercicio 209 — A primeira suite
+// Enunciado: escreva testes que dizem o que quebrou, e nao so que quebrou.
+
+// 'assert' responde "passou?" e nada mais. Quando falha, ele diz que
+// uma expressao deu falso — nao o que se esperava, o que veio, nem
+// qual dos quarenta casos era. O Crucible responde as outras perguntas.
+
+adopt Crucible
+
+action somar(a, b):
+    yield a + b
+
+action dividir(a, b):
+    given b is 0:
+        trigger "divisao por zero"
+    yield a / b
+
+crucible "Calculadora":
+
+    setup:
+        // roda antes de CADA trial, num quadro novo
+        base := 10
+
+    trial "soma dois numeros":
+        expect somar(2, 2) is 4
+
+    trial "soma com negativo":
+        expect somar(5, 0 - 3) is 2
+
+    trial "divide":
+        expect dividir(10, 2) is 5.0
+
+    trial "recusa divisao por zero":
+        expect(lambda => dividir(1, 0)).to_raise()
+
+    trial "ve o que o setup preparou":
+        expect base is 10
+
+    trial "adiado" pending "esperando decidir o arredondamento":
+        expect dividir(1, 3) is 0.333
+
+resumo := Crucible.run()
+out Crucible.report()
+
+assert resumo["passou"] is 5, "cinco passaram"
+assert resumo["pendente"] is 1, "um adiado"
+assert resumo["falhou"] is 0, "nenhum falhou"
+assert resumo["verde"] is yes, "a suite esta verde"
+out "ok"

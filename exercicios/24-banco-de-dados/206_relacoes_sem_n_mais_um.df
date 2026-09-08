@@ -1,0 +1,64 @@
+// Exercicio 206 — Relacoes, e o problema do N+1
+// Enunciado: carregue os pedidos de cem usuarios em duas consultas.
+
+// Buscar cem usuarios e ler 'usuario.pedidos' de cada um faz cento e
+// uma consultas. Isso nao aparece em desenvolvimento, com tres linhas
+// na tabela, e derruba a producao com dez mil. E o bug de ORM mais
+// comum que existe.
+
+adopt Forge
+
+db := Forge.conectar(":memory:")
+
+Usuario := Forge.modelo("Usuario", {
+    "id": {"tipo": "Serial"},
+    "nome": {"tipo": "Texto", "obrigatorio": yes}
+}, {"conexao": db})
+
+Pedido := Forge.modelo("Pedido", {
+    "id": {"tipo": "Serial"},
+    "usuario_id": {"tipo": "Inteiro", "indice": yes},
+    "total": {"tipo": "Real", "padrao": 0}
+}, {"conexao": db})
+
+Usuario.tem_muitos("pedidos", "Pedido")
+Pedido.pertence_a("usuario", "Usuario")
+Forge.migrar_tudo(db)
+
+ana := Usuario.criar({"nome": "Ana"})
+bia := Usuario.criar({"nome": "Bia"})
+cid := Usuario.criar({"nome": "Cid"})
+
+Pedido.criar({"usuario_id": ana["id"], "total": 100.0})
+Pedido.criar({"usuario_id": ana["id"], "total": 50.0})
+Pedido.criar({"usuario_id": bia["id"], "total": 20.0})
+
+// A relacao NAO carrega sozinha ao ser lida — ou voce pede, ou ela
+// nao vem. Ler uma relacao nao carregada devolveria void em vez de
+// funcionar devagar.
+com_pedidos := Usuario.com(Usuario.todos(), "pedidos")
+
+cycle u in com_pedidos:
+    out u["nome"], "tem", len(u["pedidos"]), "pedido(s)"
+
+assert len(com_pedidos[0]["pedidos"]) is 2, "Ana tem dois"
+assert len(com_pedidos[1]["pedidos"]) is 1, "Bia tem um"
+assert len(com_pedidos[2]["pedidos"]) is 0, "Cid nao tem nenhum"
+
+// Do outro lado: cada pedido conhece o dono
+com_dono := Pedido.com(Pedido.todos(), "usuario")
+assert com_dono[0]["usuario"]["nome"] is "Ana", "o pedido sabe de quem e"
+
+// Somar por usuario, sem laco aninhado
+total_da_ana := Forge.de(db, "pedidos").onde("usuario_id", ana["id"]).somar("total")
+assert total_da_ana is 150.0, "100 + 50"
+
+// Uma relacao que nao existe avisa, e lista as que existem
+monitor:
+    Usuario.com(Usuario.todos(), "inventada")
+    assert no, "devia ter recusado"
+handle SchemaError as e:
+    out "recusado:", e.message
+    assert "inventada" in e.message, "a mensagem nomeia o erro"
+
+out "ok"

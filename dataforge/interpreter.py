@@ -1813,6 +1813,16 @@ class Interpreter:
         interpretador = self
 
         def montar():
+            """Prepara, registra a limpeza, e devolve o valor.
+
+            Devolver o VALOR — e nao um par (valor, limpeza) — e o que
+            faz 'db := banco()' funcionar como quem escreve espera. A
+            limpeza vai para a suite, que a executa no fim do trial;
+            devolve-la junto obrigaria todo teste a desempacotar um
+            par e a lembrar de chamar a segunda metade, que e
+            exatamente o esquecimento que a fixture existe para
+            impedir.
+            """
             escopo = Environment(parent=env, name=f"<fixture {node.name}>")
             entregue = []
             resto = []
@@ -1824,11 +1834,14 @@ class Interpreter:
                     break
                 interpretador.execute(stmt, escopo)
 
-            def limpar():
-                for stmt in resto:
-                    interpretador.execute(stmt, escopo)
+            if resto:
+                def limpar():
+                    for stmt in resto:
+                        interpretador.execute(stmt, escopo)
 
-            return (entregue[0] if entregue else None), limpar
+                suite.limpezas.append(limpar)
+
+            return entregue[0] if entregue else None
 
         suite.fixtures[node.name] = montar
         env.set(node.name, montar)
@@ -3542,13 +3555,30 @@ class Interpreter:
             if aberto is not None:
                 valor = aberto
 
-        interno = Environment(parent=env, name="<with>")
+        # O corpo roda no escopo de FORA, como o do 'monitor', e pelo
+        # mesmo motivo: o que ele calcula costuma ser necessario depois.
+        #
+        #     with abrir(caminho) as f:
+        #         conteudo := f.ler()
+        #     out conteudo          <- precisa existir aqui
+        #
+        # So o nome do recurso e local: ele deixa de valer quando o
+        # recurso fecha, e mante-lo visivel seria um convite a usa-lo
+        # fechado. E devolvido ao valor anterior se ja existia um nome
+        # igual.
+        tinha = node.name and node.name in env.variables
+        anterior = env.variables.get(node.name) if tinha else None
         if node.name:
-            interno.set_local(node.name, valor)
+            env.set_local(node.name, valor)
 
         try:
-            return self.exec_block(node.body, interno)
+            return self.exec_block(node.body, env)
         finally:
+            if node.name:
+                if tinha:
+                    env.variables[node.name] = anterior
+                else:
+                    env.variables.pop(node.name, None)
             self._fechar_recurso(recurso, node)
 
     def _fechar_recurso(self, recurso, node):

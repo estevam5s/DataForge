@@ -1,0 +1,70 @@
+// Exercicio 215 — A estrutura certa
+// Enunciado: escolha entre cluster e vault pela operacao que voce faz.
+
+// Escolher a estrutura costuma render mais que otimizar o algoritmo. A
+// tabela que decide cabe em tres linhas:
+//
+//   procurar por posicao  -> Cluster, O(1)
+//   procurar por chave    -> Vault,   O(1)
+//   procurar por valor    -> Cluster, O(n)   <- e aqui que se perde
+
+adopt Crucible
+
+n := 3000
+lista := [i cycle i in range(n)]
+mapa := {}
+cycle i in range(n):
+    mapa[str(i)] := i
+
+// Ler por posicao: os dois sao O(1)
+assert lista[500] is 500, "cluster indexa direto"
+assert mapa["500"] is 500, "vault tambem"
+
+// Procurar por VALOR: o cluster percorre.
+//
+// A medicao repete 200 vezes: uma busca sozinha leva microssegundos, e
+// o custo de medir dominaria o resultado. Medir uma vez so e o erro
+// mais comum de quem compara desempenho.
+por_valor := Crucible.timed(lambda => 999999 in lista, 200)
+por_chave := Crucible.timed(lambda => mapa.has("999999"), 200)
+
+out "procurar num cluster de", n, ":", round(por_valor["media_ms"], 4), "ms"
+out "procurar num vault  de", n, ":", round(por_chave["media_ms"], 5), "ms"
+assert por_valor["media_ms"] bigger por_chave["media_ms"],
+    "o vault ganha, e a vantagem cresce com n"
+
+// Contar ocorrencias: uma passada, nao um laco aninhado
+palavras := ["a", "b", "a", "c", "b", "a"]
+
+// O(n^2) — para cada palavra, conta percorrendo tudo
+action contar_lento(xs):
+    saida := {}
+    cycle x in xs:
+        saida[x] := xs.count(x)
+    yield saida
+
+// O(n) — uma passada
+action contar(xs):
+    yield xs.tally()
+
+assert contar_lento(palavras) is contar(palavras), "mesmo resultado"
+assert contar(palavras)["a"] is 3, "tres 'a'"
+
+// Agrupar: o vault ja e o agrupamento
+pessoas := [
+    {"nome": "Ana", "cidade": "Floripa"},
+    {"nome": "Bia", "cidade": "Recife"},
+    {"nome": "Cid", "cidade": "Floripa"}
+]
+por_cidade := pessoas.group_by(lambda p: p["cidade"])
+assert len(por_cidade["Floripa"]) is 2, "duas em Floripa"
+assert len(por_cidade) is 2, "duas cidades"
+
+// Remover do INICIO de um cluster e O(n): desloca todos os outros.
+// Num laco, isso vira O(n^2).
+fila := [i cycle i in range(500)]
+inverso := fila.reversed()      // O(n), uma vez
+assert inverso.pop() is 0, "tirar do fim e O(1)"
+assert len(inverso) is 499, "e a fila continua"
+
+out "ok"

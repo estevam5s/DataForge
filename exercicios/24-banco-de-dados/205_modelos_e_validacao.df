@@ -1,0 +1,74 @@
+// Exercicio 205 — Modelos e validacao
+// Enunciado: declare um modelo, e deixe que ele recuse dado invalido.
+
+// Um modelo descreve a tabela E o que vale nela. A validacao junta
+// TODOS os problemas antes de reclamar: um formulario que aponta um
+// erro por vez faz o usuario submeter cinco vezes.
+
+adopt Forge
+
+db := Forge.conectar(":memory:")
+
+Usuario := Forge.modelo("Usuario", {
+    "id":    {"tipo": "Serial"},
+    "email": {"tipo": "Texto", "obrigatorio": yes, "unico": yes,
+              "validacoes": ["email"]},
+    "nome":  {"tipo": "Texto", "obrigatorio": yes,
+              "validacoes": [["minimo", 2]]},
+    "idade": {"tipo": "Inteiro", "padrao": 0,
+              "validacoes": [["minimo", 0], ["maximo", 130]]},
+    "ativo": {"tipo": "Booleano", "padrao": yes},
+    "perfil": {"tipo": "Json"}
+}, {"conexao": db, "marcas_de_tempo": yes})
+
+Forge.migrar_tudo(db)
+assert "usuarios" in Forge.tabelas(db), "o nome da tabela sai do plural"
+
+ana := Usuario.criar({
+    "email": "ana@exemplo.com",
+    "nome": "Ana",
+    "idade": 30,
+    "perfil": {"tema": "escuro"}
+})
+out "criou:", ana["email"], "id", ana["id"]
+assert ana["id"] is 1, "o Serial gerou o id"
+assert ana["ativo"] is yes, "o padrao foi aplicado"
+
+// Os tipos voltam CONVERTIDOS. Sem isso, o SQLite devolveria 0 e 1
+// para booleano, e 'given usuario["ativo"]:' seria sempre verdadeiro.
+assert type(ana["ativo"]) is "Boolean", "booleano volta booleano"
+assert type(ana["perfil"]) is "Vault", "json volta vault"
+assert ana["perfil"]["tema"] is "escuro", "e da para ler dentro"
+assert ana["criado_em"] isnt void, "a marca de tempo foi posta"
+
+// A validacao recusa, e diz TUDO o que esta errado
+monitor:
+    Usuario.criar({"email": "nao-e-email", "nome": "X", "idade": 999})
+    assert no, "devia ter recusado"
+handle ValidationError as e:
+    out "problemas:", len(e.campos)
+    cycle c in e.campos:
+        out "  ", c["campo"], "-", c["motivo"]
+    assert len(e.campos) is 3, "os tres de uma vez, nao so o primeiro"
+
+// Campo que o modelo nao declara tambem e recusado
+monitor:
+    Usuario.criar({"email": "b@x.com", "nome": "Bia", "inventado": 1})
+    assert no, "devia ter recusado"
+handle ValidationError as e:
+    assert len(e.campos) is 1, "so o campo inventado"
+
+// Buscar e atualizar
+assert Usuario.buscar(1)["nome"] is "Ana", "achou pelo id"
+assert Usuario.buscar(99) is void, "sem resultado devolve void"
+assert Usuario.primeiro(nome := "Ana")["idade"] is 30, "achou por campo"
+
+Usuario.atualizar(1, {"idade": 31})
+assert Usuario.buscar(1)["idade"] is 31, "atualizou"
+
+// 'criar_ou_atualizar' nao duplica
+Usuario.criar_ou_atualizar({"email": "ana@exemplo.com"}, {"nome": "Ana Maria"})
+assert Usuario.contar() is 1, "continua uma"
+assert Usuario.buscar(1)["nome"] is "Ana Maria", "mas foi atualizada"
+
+out "ok"

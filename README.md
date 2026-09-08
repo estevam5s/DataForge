@@ -13,7 +13,7 @@ pattern matching estrutural, pipelines nativos, um framework web próprio
 e 22 módulos de biblioteca
 padrão — escrita em Python puro, sem dependências.**
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [200 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [216 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
@@ -559,10 +559,10 @@ no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas.
 | [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 22 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
-| [**exercicios/**](exercicios/) | 200 exercícios; os módulos 11-23 com `.md` explicativo |
+| [**exercicios/**](exercicios/) | 216 exercícios; os módulos 11-26 com `.md` explicativo |
 | [**examples/**](examples/) | 42 programas maiores |
 
-### Os 200 exercícios
+### Os 216 exercícios
 
 ```bash
 python3 exercicios/run_all.py        # todos
@@ -604,7 +604,7 @@ sugestões.
 pip install -e ".[dev]"
 
 python3 -m pytest tests/ -q       # 240 testes
-python3 exercicios/run_all.py     # 200 exercícios
+python3 exercicios/run_all.py     # 216 exercícios
 ```
 
 Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).

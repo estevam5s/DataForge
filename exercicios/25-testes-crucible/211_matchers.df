@@ -1,0 +1,80 @@
+// Exercicio 211 — Os matchers
+// Enunciado: cobre valores de todas as formas, e leia o que a falha diz.
+
+// Sao 59 matchers. A forma curta cobre igualdade e comparacao; a
+// encadeada, o resto. As duas viram a mesma cobranca.
+
+adopt Crucible
+
+record Ponto:
+    x: Integer
+    y: Integer
+
+crucible "Matchers":
+
+    trial "as duas formas dao no mesmo":
+        expect 2 + 2 is 4
+        expect(2 + 2).to_be(4)
+
+    trial "encadeando":
+        expect(4).to_be_even().to_be_positive().to_be_between(1, 10)
+
+    trial "ponto flutuante nunca por igualdade exata":
+        // 0.1 + 0.2 nao da 0.3 em nenhuma linguagem com IEEE 754
+        expect(0.1 + 0.2).to_be_close_to(0.3)
+
+    trial "tipos":
+        expect(42).to_be_integer().to_be_number()
+        expect("a").to_be_text()
+        expect([1]).to_be_cluster()
+        expect({}).to_be_vault()
+        expect(void).to_be_void()
+
+    trial "texto":
+        expect("abacate").to_start_with("aba").to_end_with("ate")
+        expect("ana@x.com").to_match("^[^@]+@[^@]+$")
+        expect("   ").to_be_blank()
+
+    trial "colecoes":
+        expect([1, 2, 3]).to_contain(2).to_have_length(3)
+        expect([1, 2, 3]).to_be_sorted().to_be_unique()
+        expect([3, 1, 2]).to_have_same_items([1, 2, 3])
+        expect({"a": 1}).to_have_key("a")
+
+    trial "todos e algum":
+        expect([2, 4, 6]).to_all_satisfy(lambda n: n % 2 is 0)
+        expect([1, 2, 3]).to_any_satisfy(lambda n: n bigger 2)
+
+    trial "campo, seja vault ou record":
+        // o teste nao deveria precisar saber qual dos dois o valor e
+        expect({"nome": "Ana"}).to_have_field("nome", "Ana")
+        expect(Ponto(1, 2)).to_have_field("x", 1)
+
+    trial "negacao inverte SO o proximo":
+        expect([1, 2, 3]).nao().to_contain(9).to_contain(2)
+
+    trial "erro esperado":
+        expect(lambda => 1 / 0).to_raise(DivisionByZeroError)
+        // a familia tambem serve
+        expect(lambda => 1 / 0).to_raise(RuntimeError)
+
+    trial "e o que nao levanta":
+        expect(lambda => 1 + 1).to_not_raise()
+
+resumo := Crucible.run()
+assert resumo["verde"] is yes, "todos os matchers passam"
+assert resumo["passou"] is 11, "onze trials"
+
+// A mensagem de falha mostra a DIFERENCA, nao os dois valores inteiros
+Crucible.reset()
+crucible "Mensagem":
+    trial "vault com diferenca":
+        expect {"a": 1, "b": 2, "c": 3} is {"a": 1, "b": 9, "c": 3}
+
+Crucible.run()
+resultado := Crucible.results()[0]
+out "motivo:", resultado["motivo"]
+out "diferenca:", resultado["diferenca"]
+assert resultado["estado"] is "falhou", "falhou de proposito"
+assert "\"b\"" in resultado["diferenca"], "aponta a chave que difere"
+out "ok"

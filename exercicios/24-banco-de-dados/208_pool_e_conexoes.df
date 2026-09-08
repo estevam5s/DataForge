@@ -1,0 +1,52 @@
+// Exercicio 208 — Pool de conexoes
+// Enunciado: reaproveite conexoes, e garanta que elas voltem.
+
+// Abrir conexao custa: TCP, autenticacao, negociacao. Numa rota web
+// isso acontece por requisicao e passa a dominar o tempo de resposta.
+// O pool nao e so cache — e tambem limite.
+
+adopt Forge
+
+pool := Forge.pool(":memory:", 2)
+out "no comeco:", pool.estado()
+
+// 'with' devolve a conexao sozinho, no fim do bloco
+with Forge.conexao(pool) as db:
+    Forge.executar(db, "create table t (id integer primary key)")
+    assert "t" in Forge.tabelas(db), "usou a conexao"
+
+assert pool.estado()["livres"] is 1, "voltou para o pool"
+
+// E devolve mesmo quando o corpo falha — que e onde mais importa
+monitor:
+    with Forge.conexao(pool) as db:
+        trigger "erro no meio"
+handle e:
+    out "capturado:", e.message
+
+assert pool.estado()["livres"] is 1, "voltou mesmo com erro"
+
+// A mesma conexao e reaproveitada
+with Forge.conexao(pool) as a:
+    primeira := a
+with Forge.conexao(pool) as b:
+    assert b is primeira, "e a mesma de antes, nao uma nova"
+
+// Sem teto, um pico de trafego abriria mil conexoes e o servidor
+// recusaria TODAS — inclusive as de quem ja estava funcionando.
+// Melhor a milesima requisicao esperar do que as mil falharem.
+pequeno := Forge.pool(":memory:", 1)
+ocupada := pequeno.pegar()
+monitor:
+    pequeno.pegar()
+    assert no, "devia ter esperado e desistido"
+handle PoolExhaustedError as e:
+    out "esgotado:", e.message
+    assert "busy" in e.message, "a mensagem explica"
+
+pequeno.devolver(ocupada)
+assert pequeno.pegar() isnt void, "depois de devolver, funciona"
+
+pool.fechar()
+pequeno.fechar()
+out "ok"

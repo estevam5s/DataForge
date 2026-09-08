@@ -1,0 +1,57 @@
+// Exercicio 204 — Transacoes
+// Enunciado: transfira saldo entre contas, e garanta que nao suma dinheiro.
+
+// Uma transferencia sao duas escritas. Se a segunda falhar depois da
+// primeira, o dinheiro desaparece. A transacao garante que as duas
+// aconteçam, ou nenhuma.
+
+adopt Forge
+
+db := Forge.conectar(":memory:")
+Forge.executar(db, """
+    create table contas (
+        id integer primary key,
+        dono text,
+        saldo real
+    )
+""")
+Forge.de(db, "contas").inserir([
+    {"id": 1, "dono": "Ana", "saldo": 100.0},
+    {"id": 2, "dono": "Bia", "saldo": 50.0}
+])
+
+action saldo_de(db, id):
+    yield Forge.de(db, "contas").onde("id", id).primeiro()["saldo"]
+
+action transferir(db, de, para, valor):
+    given saldo_de(db, de) smaller valor:
+        trigger "saldo insuficiente"
+    Forge.de(db, "contas").onde("id", de).incrementar("saldo", 0 - valor)
+    Forge.de(db, "contas").onde("id", para).incrementar("saldo", valor)
+    yield yes
+
+// A transferencia que da certo
+Forge.transacao(db, lambda c => transferir(c, 1, 2, 30.0))
+assert saldo_de(db, 1) is 70.0, "saiu de uma"
+assert saldo_de(db, 2) is 80.0, "entrou na outra"
+
+total_antes := saldo_de(db, 1) + saldo_de(db, 2)
+
+// A que falha no meio: nada fica
+monitor:
+    Forge.transacao(db, lambda c => transferir(c, 1, 2, 1000.0))
+    assert no, "devia ter falhado"
+handle e:
+    out "recusada:", e.message
+
+assert saldo_de(db, 1) + saldo_de(db, 2) is total_antes,
+    "o total nao mudou — nenhuma das duas escritas ficou"
+assert saldo_de(db, 1) is 70.0, "a conta de origem esta intacta"
+
+// 'incrementar' soma NO BANCO, sem ler antes.
+// Ler-somar-gravar perde atualizacoes quando duas conexoes fazem isso
+// ao mesmo tempo; deixar a soma com o banco nao perde.
+Forge.de(db, "contas").onde("id", 1).incrementar("saldo", 5.0)
+assert saldo_de(db, 1) is 75.0, "somou no banco"
+
+out "ok"

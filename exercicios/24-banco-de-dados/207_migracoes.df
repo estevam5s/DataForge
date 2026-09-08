@@ -1,0 +1,82 @@
+// Exercicio 207 — Migracoes
+// Enunciado: evolua o esquema sem perder o que ja esta gravado.
+
+// Duas formas. A simples compara o modelo com a tabela; a completa usa
+// passos numerados, com historico NO BANCO — um arquivo versionado diz
+// o que deveria ter rodado, a tabela diz o que rodou.
+
+adopt Forge
+
+db := Forge.conectar(":memory:")
+
+// ── A forma simples: a diferenca ──
+
+U := Forge.modelo("Usuario", {
+    "id": {"tipo": "Serial"},
+    "nome": {"tipo": "Texto", "obrigatorio": yes}
+}, {"conexao": db})
+Forge.migrar_tudo(db)
+U.criar({"nome": "Ana"})
+
+// O modelo cresce: um campo novo
+U2 := Forge.modelo("Usuario", {
+    "id": {"tipo": "Serial"},
+    "nome": {"tipo": "Texto", "obrigatorio": yes},
+    "telefone": {"tipo": "Texto"}
+}, {"conexao": db})
+
+d := U2.diferenca()
+out "faltando:", d["colunas_faltando"]
+assert d["colunas_faltando"] is ["telefone"], "a coluna nova"
+assert d["tabela_falta"] is no, "a tabela ja existe"
+
+U2.aplicar_diferenca()
+assert U2.diferenca()["colunas_faltando"] is [], "agora esta em dia"
+assert U2.contar() is 1, "e o dado de antes continua la"
+
+// 'aplicar_diferenca' NUNCA apaga. Perda de dado nao se automatiza:
+// uma coluna que sumiu do modelo pode ter sido erro de digitacao.
+U3 := Forge.modelo("Usuario", {
+    "id": {"tipo": "Serial"},
+    "nome": {"tipo": "Texto", "obrigatorio": yes}
+}, {"conexao": db})
+resultado := U3.aplicar_diferenca()
+out "sobrando:", resultado["colunas_a_mais"]
+assert "telefone" in resultado["colunas_a_mais"], "ele relata"
+colunas := [c["nome"] cycle c in db.colunas("usuarios")]
+assert "telefone" in colunas, "mas nao remove"
+
+// ── A forma completa: passos numerados ──
+
+m := Forge.migracoes(db)
+
+m.passo("001_cria_pedidos",
+    lambda c => c.executar("create table pedidos (id integer primary key)"),
+    lambda c => c.executar("drop table pedidos"))
+
+m.passo("002_acrescenta_total",
+    lambda c => c.executar("alter table pedidos add column total real"))
+
+feitas := m.subir()
+out "aplicadas:", feitas
+assert len(feitas) is 2, "as duas"
+assert "pedidos" in Forge.tabelas(db), "a tabela existe"
+
+// Rodar de novo nao repete
+assert m.subir() is [], "o historico impede a repeticao"
+assert m.estado()["aplicadas"] is 2, "duas no historico"
+assert m.estado()["pendentes"] is 0, "nenhuma pendente"
+
+// Desfazer so o que declarou como desfazer
+m2 := Forge.migracoes(db)
+m2.passo("003_sem_volta",
+    lambda c => c.executar("create table temp (id integer)"))
+m2.subir()
+monitor:
+    m2.descer(1)
+    assert no, "devia ter recusado"
+handle MigrationError as e:
+    out "sem volta:", e.message
+    assert "003" in e.message, "diz qual"
+
+out "ok"
