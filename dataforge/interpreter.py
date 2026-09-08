@@ -71,7 +71,8 @@ class DFAction:
     _interpreter = None  # Set during Interpreter.__init__
 
     def __init__(self, name, params, defaults, body, closure, is_async=False,
-                 param_types=None, return_type="", is_generator=False):
+                 param_types=None, return_type="", is_generator=False,
+                 type_params=None):
         self.name = name
         self.params = params
         self.defaults = defaults
@@ -81,6 +82,9 @@ class DFAction:
         self.param_types = param_types or {}
         self.return_type = return_type
         self.is_generator = is_generator
+        # <T> de 'action primeiro<T>(l) -> T' — nomes que valem como
+        # tipo dentro desta acao, e aceitam qualquer valor.
+        self.type_params = tuple(type_params or ())
 
     def __call__(self, *args, **kwargs):
         """Allow DFAction to be called like a Python function."""
@@ -2029,6 +2033,7 @@ class Interpreter:
             param_types=getattr(node, 'param_types', None),
             return_type=getattr(node, 'return_type', ""),
             is_generator=getattr(node, 'is_generator', False),
+            type_params=getattr(node, 'type_params', None),
         )
         env.set_local(node.name, action)
 
@@ -2209,6 +2214,12 @@ class Interpreter:
                     closure=bp_env, is_async=stmt.is_async,
                     param_types=getattr(stmt, 'param_types', None),
                     return_type=getattr(stmt, 'return_type', ""),
+                    # O <T> do blueprint vale dentro dos metodos dele:
+                    # 'blueprint Pilha<T>' com 'action por(x: T)' e o
+                    # caso normal de um generico, e sem isto o T do
+                    # metodo seria um blueprint inexistente.
+                    type_params=(list(getattr(stmt, 'type_params', None) or [])
+                                 + list(getattr(node, 'type_params', None) or [])),
                 )
                 action.is_abstract = getattr(stmt, 'is_abstract', False)
                 action.owner = node.name
@@ -3300,7 +3311,8 @@ class Interpreter:
             if declared:
                 self._check_type(
                     value, declared,
-                    f"parameter '{param}' of action '{action.name}'", node)
+                    f"parameter '{param}' of action '{action.name}'", node,
+                    getattr(action, "type_params", ()))
             call_env.set_local(param, value)
 
         # Bind 'self' and 'this' for instance methods
@@ -3339,7 +3351,8 @@ class Interpreter:
         if action.return_type:
             self._check_type(
                 result, action.return_type,
-                f"return value of action '{action.name}'", node)
+                f"return value of action '{action.name}'", node,
+                getattr(action, "type_params", ()))
         return result
 
     def _make_stream(self, action, args, kwargs, node, instance):
@@ -3783,10 +3796,18 @@ class Interpreter:
             return "Action"
         return type(value).__name__
 
-    def _check_type(self, value, declared: str, what: str, node):
-        """Enforce a declared type annotation. Unknown names name a blueprint."""
+    def _check_type(self, value, declared: str, what: str, node,
+                    parametros_de_tipo=()):
+        """Enforce a declared type annotation. Unknown names name a blueprint.
+
+        Um parametro de tipo ('T' de 'action primeiro<T>(l) -> T') aceita
+        qualquer valor: a linguagem e de tipagem dinamica, e o parametro
+        existe para documentar a relacao entre entrada e saida, nao para
+        ser verificado em tempo de execucao. E o mesmo que o TypeScript
+        faz ao compilar — os tipos somem.
+        """
         expected = self.TYPE_ALIASES.get(declared, declared)
-        if expected == "Any":
+        if expected == "Any" or expected in parametros_de_tipo:
             return value
         actual = self._type_of(value)
 

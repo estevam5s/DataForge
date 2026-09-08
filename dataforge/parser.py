@@ -810,6 +810,8 @@ class Parser:
             pass
 
         name = self.expect(TokenType.IDENTIFIER, "Expected action name").value
+        # 'action primeiro<T>(lista) -> T:' — acao generica.
+        tipos = self._parse_parametros_de_tipo()
 
         self.expect(TokenType.LPAREN, "Expected '(' after action name")
         params, defaults, param_types = self._parse_params()
@@ -827,6 +829,7 @@ class Parser:
             return ast.ActionDeclaration(
                 name=name, params=params, defaults=defaults, body=[],
                 is_async=is_async, decorators=decorators or [],
+                type_params=tipos,
                 param_types=param_types, return_type=return_type,
                 is_generator=is_generator,
                 line=tok.line, column=tok.column
@@ -841,6 +844,7 @@ class Parser:
             return ast.ActionDeclaration(
                 name=name, params=params, defaults=defaults, body=[],
                 is_async=is_async, decorators=decorators or [],
+                type_params=tipos,
                 param_types=param_types, return_type=return_type,
                 is_generator=is_generator, is_abstract=True,
                 line=tok.line, column=tok.column
@@ -852,6 +856,7 @@ class Parser:
         return ast.ActionDeclaration(
             name=name, params=params, defaults=defaults, body=body,
             is_async=is_async, decorators=decorators or [],
+            type_params=tipos,
             param_types=param_types, return_type=return_type,
             is_generator=is_generator,
             line=tok.line, column=tok.column
@@ -876,6 +881,44 @@ class Parser:
             )
         self.error("Expected 'action' or ':' after 'async'")
 
+    def _parse_parametros_de_tipo(self):
+        """<T>, <K, V> — os parametros de tipo de um generico.
+
+        O analisador estatico os trata como nomes de tipo validos dentro
+        da declaracao; o interpretador os ignora, porque a linguagem e
+        de tipagem dinamica. Isso e o mesmo que TypeScript faz ao
+        compilar: os tipos somem, e o que fica e a documentacao mais o
+        que o analisador conseguiu provar.
+
+        Sem isto, 'blueprint Caixa<T>:' era erro de sintaxe, e quem vem
+        de Java ou TypeScript batia nele na primeira tentativa.
+        """
+        if self.current().type is not TokenType.LT:
+            return []
+
+        # 'Caixa<T>' e generico; 'a < b' e comparacao. O que separa e o
+        # que vem depois: um nome de tipo (maiusculo) seguido de '>' ou
+        # ','. Sem esta checagem, 'x < y' viraria erro de sintaxe.
+        salvo = self.pos
+        self.advance()
+        tipos = []
+        while True:
+            atual = self.current()
+            if atual.type is not TokenType.IDENTIFIER or \
+                    not str(atual.value or "")[:1].isupper():
+                self.pos = salvo
+                return []
+            tipos.append(self.advance().value)
+            if self.match(TokenType.COMMA):
+                continue
+            break
+
+        if self.current().type is not TokenType.GT:
+            self.pos = salvo
+            return []
+        self.advance()
+        return tipos
+
     def parse_blueprint(self, abstrato: bool = False):
         """blueprint Name [(params)] [extends Parent] [with Trait]: block
         OR blueprint Name [(Parent)]: block  (backward compat)
@@ -885,6 +928,7 @@ class Parser:
         """
         tok = self.advance()  # consume 'blueprint'
         name = self.expect(TokenType.IDENTIFIER).value
+        tipos = self._parse_parametros_de_tipo()
         parents = []
         traits = []
         constructor_params = []
@@ -933,7 +977,7 @@ class Parser:
         return ast.BlueprintDeclaration(
             name=name, parents=parents, body=body, traits=traits,
             constructor_params=constructor_params,
-            fields_decl=campos, is_abstract=abstrato,
+            fields_decl=campos, is_abstract=abstrato, type_params=tipos,
             line=tok.line, column=tok.column
         )
 

@@ -218,6 +218,37 @@ GRUPOS = [
             veja=("pack",)),
     ]),
 
+    ("Analise", [
+        Cmd("stats", "dataforge stats [alvo]",
+            "O tamanho e a forma do codigo",
+            "Nao e 'linhas de codigo' como metrica de produtividade — e o\n"
+            "inventario: quantas acoes, quantos blueprints, o arquivo mais\n"
+            "longo, a acao mais longa.\n"
+            "\nServe para achar o que cresceu demais sem ninguem notar. Uma\n"
+            "acao acima de 50 linhas costuma fazer mais de uma coisa.",
+            exemplos=[("dataforge stats", "o projeto inteiro"),
+                      ("dataforge stats src/", "so uma pasta")],
+            veja=("lint", "check")),
+        Cmd("profile", "dataforge profile <arquivo>",
+            "Onde o tempo foi gasto, acao por acao",
+            "Um 'bench' diz que esta lento; um 'profile' diz ONDE.\n"
+            "Mede cada acao: quantas chamadas, tempo acumulado e por\n"
+            "chamada, ordenado pelo que mais custa.\n"
+            "\nMeca antes de otimizar. A acao que voce acha que e o gargalo\n"
+            "quase nunca e.",
+            exemplos=[("dataforge profile src/main.df", "")],
+            veja=("bench", "run")),
+        Cmd("fix", "dataforge fix [alvo]",
+            "Formata e aponta o que precisa de voce",
+            "Roda o formatador e, em seguida, o linter — arrumando o que da\n"
+            "para arrumar sozinho e listando o resto.\n"
+            "\nO que exige julgamento nao e 'consertado' automaticamente:\n"
+            "uma ferramenta que muda o codigo precisa ser previsivel.",
+            opcoes=[("--dry-run", "mostra o que faria, sem escrever")],
+            exemplos=[("dataforge fix", "o projeto inteiro"),
+                      ("dataforge fix --dry-run", "so o relatorio")],
+            veja=("fmt", "lint")),
+    ]),
     ("Ambiente", [
         Cmd("editor", "dataforge editor [status|remove]",
             "Instala a coloracao de sintaxe no VS Code",
@@ -2423,6 +2454,15 @@ def main():
     elif command == 'repl':
         start_repl()
 
+    elif command == 'stats':
+        sys.exit(stats_command(args[1:], flags))
+
+    elif command == 'profile':
+        sys.exit(profile_command(args[1:], flags))
+
+    elif command == 'fix':
+        sys.exit(fix_command(args[1:], flags))
+
     elif command == 'editor':
         sys.exit(editor_command(args[1:], flags))
 
@@ -2582,3 +2622,314 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+# ═══════════════════════════════════════════════════════════
+#  Comandos 1.0 — analise, medicao e manutencao
+# ═══════════════════════════════════════════════════════════
+
+def stats_command(alvos, flags=()):
+    """dataforge stats — o tamanho e a forma do codigo.
+
+    Nao e 'linhas de codigo' como metrica de produtividade, que nao
+    mede nada. E o inventario: quantas acoes, quantos blueprints, o
+    arquivo mais longo, a acao mais longa. Serve para achar o que
+    cresceu demais sem ninguem notar.
+    """
+    from .lexer import tokenize
+    from .parser import parse
+    from . import ast_nodes as ast
+
+    arquivos = _expandir(alvos or ["."])
+    if not arquivos:
+        print(color("Nenhum arquivo .df encontrado.", "1;33"))
+        return 1
+
+    total = {
+        "arquivos": 0, "linhas": 0, "codigo": 0, "comentario": 0, "vazias": 0,
+        "acoes": 0, "blueprints": 0, "records": 0, "enums": 0, "traits": 0,
+        "testes": 0, "decoradores": 0,
+    }
+    maiores_arquivos = []
+    maiores_acoes = []
+    problemas = []
+
+    for caminho in arquivos:
+        fonte, motivo = _ler(caminho)
+        if motivo:
+            problemas.append((caminho, motivo))
+            continue
+
+        linhas = fonte.split("\n")
+        total["arquivos"] += 1
+        total["linhas"] += len(linhas)
+        for linha in linhas:
+            limpa = linha.strip()
+            if not limpa:
+                total["vazias"] += 1
+            elif limpa.startswith("//") or limpa.startswith("#"):
+                total["comentario"] += 1
+            else:
+                total["codigo"] += 1
+        maiores_arquivos.append((len(linhas), caminho))
+
+        try:
+            arvore = parse(tokenize(fonte, caminho), caminho)
+        except DataForgeError as erro:
+            problemas.append((caminho, erro.message))
+            continue
+
+        pilha = list(arvore.body)
+        while pilha:
+            no = pilha.pop()
+            if isinstance(no, ast.ActionDeclaration):
+                total["acoes"] += 1
+                if no.name.startswith("test_"):
+                    total["testes"] += 1
+                # A acao vai do 'action' ate o fim do corpo.
+                fim = no.line
+                for interno in no.body:
+                    fim = max(fim, getattr(interno, "line", fim))
+                maiores_acoes.append((fim - no.line + 1, no.name, caminho))
+                pilha.extend(no.body)
+            elif isinstance(no, ast.BlueprintDeclaration):
+                total["blueprints"] += 1
+                pilha.extend(no.body)
+            elif isinstance(no, ast.RecordDeclaration):
+                total["records"] += 1
+            elif isinstance(no, ast.EnumDeclaration):
+                total["enums"] += 1
+            elif isinstance(no, ast.TraitDeclaration):
+                total["traits"] += 1
+            else:
+                for campo in getattr(no, "__dataclass_fields__", ()):
+                    valor = getattr(no, campo, None)
+                    if isinstance(valor, list):
+                        pilha.extend(v for v in valor
+                                     if isinstance(v, ast.ASTNode))
+            total["decoradores"] += len(getattr(no, "decorators", None) or [])
+
+    print()
+    print(color(f"  {total['arquivos']} arquivo(s) .df", "1;37"))
+    print()
+
+    linhas_uteis = max(total["codigo"], 1)
+    print(f"  {color('linhas', '1;36')}")
+    print(f"      {total['linhas']:>7}  total")
+    print(f"      {total['codigo']:>7}  código")
+    print(f"      {total['comentario']:>7}  comentário  "
+          f"{color(f'({total['comentario'] * 100 // linhas_uteis}% do código)', '0;90')}")
+    print(f"      {total['vazias']:>7}  em branco")
+    print()
+
+    print(f"  {color('declarações', '1;36')}")
+    for rotulo, chave in (("ações", "acoes"), ("blueprints", "blueprints"),
+                          ("records", "records"), ("enums", "enums"),
+                          ("traits", "traits"),
+                          ("decoradores", "decoradores")):
+        if total[chave]:
+            print(f"      {total[chave]:>7}  {rotulo}")
+    if total["testes"]:
+        print(f"      {total['testes']:>7}  {color('testes', '1;32')}")
+    print()
+
+    if maiores_arquivos:
+        maiores_arquivos.sort(reverse=True)
+        print(f"  {color('maiores arquivos', '1;36')}")
+        for tamanho, caminho in maiores_arquivos[:5]:
+            print(f"      {tamanho:>7}  {color(caminho, '0;90')}")
+        print()
+
+    if maiores_acoes:
+        maiores_acoes.sort(reverse=True)
+        print(f"  {color('maiores ações', '1;36')}")
+        for tamanho, nome, caminho in maiores_acoes[:5]:
+            marca = "1;33" if tamanho > 50 else "0;90"
+            print(f"      {color(f'{tamanho:>7}', marca)}  {nome}  "
+                  f"{color(os.path.basename(caminho), '0;90')}")
+        if maiores_acoes[0][0] > 50:
+            print(f"      {color('uma ação acima de 50 linhas costuma fazer '
+                                 'mais de uma coisa', '0;90')}")
+        print()
+
+    if problemas:
+        print(f"  {color(f'{len(problemas)} arquivo(s) não puderam ser lidos',
+                         '1;33')}")
+        for caminho, motivo in problemas[:3]:
+            print(f"      {caminho}: {motivo[:60]}")
+        print()
+    return 0
+
+
+def fix_command(alvos, flags=()):
+    """dataforge fix — formata e conserta o que da para consertar sozinho.
+
+    Hoje: 'dataforge fmt' mais um relatorio do que o lint achou e nao
+    da para arrumar automaticamente. A separacao importa — uma
+    ferramenta que muda o codigo tem que ser previsivel, e 'consertar'
+    o que exige julgamento seria pior do que apontar.
+    """
+    from .formatter import format_source
+    from .lexer import tokenize
+    from .linter import lint_program
+    from .parser import parse
+
+    arquivos = _expandir(alvos or ["."])
+    if not arquivos:
+        print(color("Nenhum arquivo .df encontrado.", "1;33"))
+        return 1
+
+    formatados, restantes, com_erro = [], [], []
+    for caminho in arquivos:
+        original, motivo = _ler(caminho)
+        if motivo:
+            com_erro.append((caminho, motivo))
+            continue
+        try:
+            novo = format_source(original)
+        except DataForgeError as erro:
+            com_erro.append((caminho, erro.message))
+            continue
+        if novo != original:
+            if "--dry-run" not in flags:
+                open(caminho, "w", encoding="utf-8").write(novo)
+            formatados.append(caminho)
+        try:
+            arvore = parse(tokenize(novo, caminho), caminho)
+            for aviso in lint_program(arvore, caminho, novo):
+                restantes.append((caminho, aviso))
+        except DataForgeError:
+            pass          # erro de sintaxe: o 'check' e quem reporta
+
+    print()
+    verbo = "seriam formatados" if "--dry-run" in flags else "formatados"
+    if formatados:
+        print(f"  {color('✓', '1;32')} {len(formatados)} arquivo(s) {verbo}")
+        for caminho in formatados[:8]:
+            print(f"      {color(caminho, '0;90')}")
+    else:
+        print(f"  {color('✓', '1;32')} tudo já estava formatado")
+
+    if restantes:
+        print()
+        print(f"  {color(f'{len(restantes)} aviso(s) que precisam de você',
+                         '1;33')}")
+        for caminho, aviso in restantes[:10]:
+            texto = getattr(aviso, "message", str(aviso))
+            linha = getattr(aviso, "line", "?")
+            print(f"      {color(f'{caminho}:{linha}', '0;90')}  {texto[:70]}")
+        if len(restantes) > 10:
+            print(f"      {color(f'… e mais {len(restantes) - 10}', '0;90')}")
+        print()
+        print(f"      {color('rode', '0;90')} dataforge lint "
+              f"{color('para ver todos', '0;90')}")
+
+    if com_erro:
+        print()
+        for caminho, motivo in com_erro:
+            print(f"  {color('✗', '1;31')} {caminho}: {motivo[:70]}")
+    print()
+    return 1 if com_erro else 0
+
+
+def profile_command(args, flags=()):
+    """dataforge profile <arquivo> — onde o tempo foi gasto.
+
+    Um 'bench' diz que esta lento; um 'profile' diz onde. Mede por acao,
+    contando chamadas e tempo acumulado, e mostra as mais caras.
+    """
+    if not args:
+        print(color("Erro: informe o arquivo a analisar.", "1;31"))
+        print(color("      dataforge profile src/main.df", "0;90"))
+        return 1
+
+    caminho = args[0]
+    if not os.path.exists(caminho):
+        print(color(f"Erro: '{caminho}' não existe.", "1;31"))
+        return 1
+
+    import time as _time
+    from .interpreter import Interpreter
+    from .lexer import tokenize
+    from .parser import parse
+
+    fonte, motivo = _ler(caminho)
+    if motivo:
+        print(color(f"Erro: {motivo}", "1;31"))
+        return 1
+
+    medidas = {}
+    interpretador = Interpreter()
+    original = interpretador._call_action
+    # Uma acao recursiva (ou que chama outra) tem o tempo das chamadas
+    # internas dentro do proprio. Somar tudo daria mais de 100% — foi
+    # o que aconteceu na primeira versao: fib apareceu com 207%.
+    #
+    # O que se mede aqui e o tempo PROPRIO: o total menos o que foi
+    # gasto nas chamadas que ela mesma fez. E o que responde "onde
+    # mexer", que e a pergunta.
+    pilha_tempo = []
+
+    def medido(action, *resto, **kwargs):
+        nome = getattr(action, "name", "?")
+        pilha_tempo.append(0.0)
+        inicio = _time.perf_counter()
+        try:
+            return original(action, *resto, **kwargs)
+        finally:
+            gasto = _time.perf_counter() - inicio
+            nos_filhos = pilha_tempo.pop()
+            proprio = max(gasto - nos_filhos, 0.0)
+            if pilha_tempo:
+                pilha_tempo[-1] += gasto
+            atual = medidas.setdefault(nome, [0, 0.0, 0.0])
+            atual[0] += 1
+            atual[1] += proprio
+            atual[2] += gasto
+
+    interpretador._call_action = medido
+
+    print()
+    print(color(f"  medindo {caminho}…", "0;90"))
+    comeco = _time.perf_counter()
+    try:
+        interpretador.run(parse(tokenize(fonte, caminho), caminho), caminho)
+    except DataForgeError as erro:
+        print()
+        print(erro.render(fonte, color='--no-color' not in sys.argv))
+        return 1
+    total = _time.perf_counter() - comeco
+
+    print()
+    print(f"  {color('total', '1;37')}  {total * 1000:.1f} ms")
+    print()
+
+    if not medidas:
+        print(color("  nenhuma ação foi chamada — o programa é só código "
+                    "de topo", "0;90"))
+        print()
+        return 0
+
+    # Ordena pelo tempo proprio: e onde vale mexer primeiro.
+    ordenadas = sorted(medidas.items(), key=lambda kv: -kv[1][1])
+    print(f"  {'ação':<26} {'chamadas':>9} {'próprio':>11} "
+          f"{'acumulado':>12} {'por chamada':>13}")
+    print(f"  {color('─' * 74, '0;90')}")
+    for nome, (chamadas, proprio, acumulado) in ordenadas[:15]:
+        fatia = proprio / total * 100 if total else 0
+        marca = "1;33" if fatia > 20 else "0;37"
+        print(f"  {color(nome[:24].ljust(24), marca)}  "
+              f"{chamadas:>9}  "
+              f"{proprio * 1000:>8.1f} ms  "
+              f"{acumulado * 1000:>9.1f} ms  "
+              f"{proprio / max(chamadas, 1) * 1000:>9.3f} ms  "
+              f"{color(f'{fatia:4.1f}%', '0;90')}")
+    print()
+    print(f"  {color('próprio', '0;90')} = tempo na ação em si; "
+          f"{color('acumulado', '0;90')} = inclui o que ela chamou")
+    print()
+    if ordenadas and ordenadas[0][1][1] / max(total, 1e-9) > 0.5:
+        print(f"  {color('metade do tempo está numa ação só — é por ela '
+                         'que se começa', '0;90')}")
+        print()
+    return 0

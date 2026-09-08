@@ -301,6 +301,15 @@ Estas são as que mais custam tempo:
     avaliado uma vez, na declaração, e sem a cópia todas compartilhariam
     a mesma. Padrões imutáveis (número, texto) não são copiados.
 
+20. **`<T>` não é verificado em execução.** O parâmetro de tipo é aceito
+    pelo analisador e documenta a relação entre entrada e saída, mas a
+    linguagem é dinâmica: `action eco<T>(x: T) -> T` aceita qualquer
+    valor. Um tipo **concreto** continua sendo cobrado.
+
+21. **Um decorador que devolve `void` não substitui o alvo.** É o que
+    permite `@Rota("/x")` só anotar. Se ele devolvesse `void` e isso
+    virasse o novo valor, a ação decorada sumiria.
+
 ---
 
 ## Convenções ao mexer no interpretador
@@ -318,6 +327,23 @@ Estas são as que mais custam tempo:
   `"Invalid assignment target"` (ruim) com `"'no' is a reserved keyword and
   cannot be assigned to. Pick another name."` (bom). Quando houver um nome
   parecido, sugira: o `typechecker` usa `difflib` para isso.
+
+### Otimizar: meça antes
+
+Três gargalos já foram medidos e resolvidos (`cProfile`, não intuição):
+despacho por string (virou tabela por classe), alocação de escopo por
+volta de laço (reaproveitado quando o corpo não captura) e construção
+de AST em tempo de execução (`x += 1` montava dois nós por volta).
+
+A carga de referência está em `tests/test_desempenho.py`; use
+`dataforge profile` num programa real antes de mexer em qualquer coisa.
+
+**O reaproveitamento de escopo é a otimização mais perigosa do
+interpretador.** Se o corpo do laço captura o escopo — uma ação, um
+`lambda`, um `blueprint`, um `thread`, um `defer` — cada volta precisa
+do seu, senão todas as closures veem o último valor.
+`_corpo_captura_escopo` varre a árvore inteira, e não só as instruções:
+um `lambda` vive dentro de uma expressão.
 
 ### Ao adicionar um recurso à linguagem
 
@@ -390,6 +416,9 @@ Ao criar um módulo novo, adicione-o em `stdlib/__init__.py` **e** no dicionári
 | `dataforge repl` | `repl.py` | console com `:type`, `:ast`, `:load` |
 | `dataforge editor` | `cli.py` | instala a coloração no VS Code e derivados |
 | `dataforge new` | `modelos.py` + `scaffold.py` | 8 modelos; todo projeto criado passa nos próprios testes |
+| `dataforge stats` | `cli.py` | inventário: ações, blueprints, o arquivo e a ação mais longos |
+| `dataforge profile` | `cli.py` | tempo **próprio** por ação (o acumulado somaria mais de 100%) |
+| `dataforge fix` | `cli.py` | formata e aponta o que exige julgamento |
 | `dataforge add/remove` | `packages.py` | instala e desinstala dependências |
 | `dataforge install` | `packages.py` | resolve o `forge.toml` inteiro |
 | `dataforge search` | `packages.py` | procura no registro |
@@ -575,7 +604,9 @@ com valores, pattern matching estrutural completo, generators preguiçosos
 
 O que **ainda não existe** (não invente que existe):
 
-- **Generics** — `Cluster<T>`, ações genéricas.
+- **Generics com restrição** — `<T>` existe e o analisador o aceita,
+  mas não há `<T extends Comparable>`: o parâmetro de tipo documenta a
+  relação entre entrada e saída, e não é verificado em execução.
 - **Exaustividade** — o `match` não avisa se um membro de enum ficou fora.
 - **Contrato de trait** — não se verifica se o blueprint implementou tudo.
 - **LSP e debugger** — a gramática TextMate só colore. `dataforge editor` a

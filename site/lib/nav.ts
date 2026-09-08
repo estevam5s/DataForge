@@ -63,6 +63,7 @@ export const nav: NavSection[] = [
       { title: 'Decoradores', href: '/docs/fundamentos/decoradores' },
       { title: 'Decoradores avançados', href: '/docs/fundamentos/decoradores-avancados', badge: 'novo' },
       { title: 'Traits', href: '/docs/fundamentos/traits' },
+      { title: 'Generics', href: '/docs/fundamentos/generics', badge: 'novo' },
       { title: 'Escopo', href: '/docs/fundamentos/escopo' },
       { title: 'Módulos', href: '/docs/fundamentos/modulos' },
     ],

@@ -214,3 +214,103 @@ def test_nenhum_modelo_usa_o_handle_errado_para_trigger(chave):
         if "trigger " in conteudo:
             assert "handle RuntimeError" not in conteudo, (
                 f"{chave}/{relativo}: 'trigger' levanta TriggerError")
+
+
+# ── Comandos de análise ──────────────────────────────────────
+
+def _rodar_cli(*argumentos, cwd=None):
+    """Roda a CLI como um usuário rodaria, e devolve (código, saída)."""
+    resultado = subprocess.run(
+        [sys.executable, "-m", "dataforge", *argumentos],
+        cwd=cwd or RAIZ, capture_output=True, text=True,
+        env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
+        timeout=180)
+    return resultado.returncode, resultado.stdout + resultado.stderr
+
+
+@pytest.mark.parametrize("comando", ["stats", "profile", "fix"])
+def test_comando_esta_no_catalogo_de_ajuda(comando):
+    from dataforge.cli import COMANDOS
+    assert comando in COMANDOS
+
+
+@pytest.mark.slow
+def test_stats_conta_o_que_existe():
+    codigo, saida = _rodar_cli("stats", "exercicios/22-web-kiln")
+    assert codigo == 0, saida
+    assert "arquivo(s) .df" in saida
+    assert "ações" in saida
+    assert "linhas" in saida
+
+
+@pytest.mark.slow
+def test_stats_sem_arquivo_avisa_em_vez_de_estourar():
+    with tempfile.TemporaryDirectory() as vazio:
+        codigo, saida = _rodar_cli("stats", vazio)
+        assert codigo == 1
+        assert "Nenhum arquivo" in saida
+
+
+@pytest.mark.slow
+def test_profile_mede_por_acao():
+    """O tempo próprio não pode passar de 100% — uma ação recursiva
+    tem o tempo das chamadas internas dentro do próprio, e somar tudo
+    dava 207% na primeira versão."""
+    with tempfile.NamedTemporaryFile("w", suffix=".df", delete=False,
+                                     encoding="utf-8") as f:
+        f.write('''action fib(n):
+    given n smaller 2:
+        yield n
+    yield fib(n - 1) + fib(n - 2)
+
+out fib(15)
+''')
+        caminho = f.name
+
+    try:
+        codigo, saida = _rodar_cli("profile", caminho)
+        assert codigo == 0, saida
+        assert "fib" in saida
+        assert "próprio" in saida
+
+        # Nenhuma fatia pode passar de 100%.
+        import re
+        for fatia in re.findall(r"(\d+\.\d)%", saida):
+            assert float(fatia) <= 100.5, f"fatia impossível: {fatia}%"
+    finally:
+        os.unlink(caminho)
+
+
+@pytest.mark.slow
+def test_profile_sem_arquivo_explica():
+    codigo, saida = _rodar_cli("profile")
+    assert codigo == 1
+    assert "informe o arquivo" in saida
+
+
+@pytest.mark.slow
+def test_fix_dry_run_nao_escreve():
+    """'--dry-run' que escrevesse seria o pior tipo de bug: silencioso."""
+    with tempfile.TemporaryDirectory() as pasta:
+        caminho = os.path.join(pasta, "torto.df")
+        # Espaçamento fora do padrão, para o formatador ter o que fazer.
+        original = 'x:=1\nout    x\n'
+        with open(caminho, "w", encoding="utf-8") as f:
+            f.write(original)
+
+        codigo, saida = _rodar_cli("fix", "--dry-run", pasta)
+        assert codigo == 0, saida
+        assert open(caminho, encoding="utf-8").read() == original, (
+            "--dry-run não pode escrever no arquivo")
+
+
+@pytest.mark.slow
+def test_fix_formata_de_verdade_sem_dry_run():
+    with tempfile.TemporaryDirectory() as pasta:
+        caminho = os.path.join(pasta, "torto.df")
+        with open(caminho, "w", encoding="utf-8") as f:
+            f.write('x:=1\nout    x\n')
+
+        codigo, _ = _rodar_cli("fix", pasta)
+        assert codigo == 0
+        assert open(caminho, encoding="utf-8").read() != 'x:=1\nout    x\n'

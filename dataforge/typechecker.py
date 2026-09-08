@@ -169,6 +169,10 @@ class TypeChecker:
         self.enums = {}          # nome -> [membros]
         self.blueprints = {}     # nome -> set(membros)
         self.known_types = set(ALIASES.values())
+        # Os '<T>' do blueprint que esta sendo analisado. Um metodo dele
+        # pode usa-los como tipo; fora dali, eles nao existem.
+        self._genericos_do_blueprint = set()
+        self._genericos_da_acao = set()
         self._action_depth = 0
         self._loop_depth = 0
         self._current_return = None
@@ -368,13 +372,19 @@ class TypeChecker:
 
     st_EmitStatement = st_OutStatement
 
+    def _genericos_em_escopo(self):
+        """Os '<T>' que valem aqui: os da acao mais os do blueprint."""
+        return self._genericos_da_acao | self._genericos_do_blueprint
+
     def st_YieldStatement(self, node, escopo):
         tipo = self.infer(node.value, escopo) if node.value else "Void"
         if self._action_depth == 0:
             self.error("'yield' outside of an action", node,
                        "'yield' returns from an action; use 'out' to print",
                        "yield-outside-action")
-        elif self._current_return and self._current_return not in (UNKNOWN, ANY):
+        elif (self._current_return
+              and self._current_return not in (UNKNOWN, ANY)
+              and self._current_return not in self._genericos_em_escopo()):
             if not compatible(self._current_return, tipo):
                 self.error(
                     f"Action declares '-> {self._current_return}' but yields {tipo}",
@@ -673,14 +683,25 @@ class TypeChecker:
         for param in node.params:
             interno.declare(param, canonical(assinatura.param_types.get(param, UNKNOWN)),
                             node.line, node.column)
+
+        # Os parametros de tipo ('<T>') valem como nome de tipo dentro
+        # desta acao — e so dentro dela. Sem isto, 'action primeiro<T>(l)
+        # -> T' acusaria "tipo T desconhecido", que e o oposto do que a
+        # declaracao acabou de dizer.
+        genericos = set(getattr(node, "type_params", None) or [])
+        genericos |= self._genericos_do_blueprint
+
         for tipo in assinatura.param_types.values():
             alvo = canonical(tipo)
-            if alvo not in self.known_types and alvo != UNKNOWN:
+            if (alvo not in self.known_types and alvo != UNKNOWN
+                    and tipo not in genericos):
                 self.error(f"Unknown parameter type '{tipo}'", node,
                            self._hint_tipo(tipo), "unknown-type")
 
         retorno_anterior = self._current_return
+        genericos_anteriores = self._genericos_da_acao
         self._current_return = assinatura.return_type
+        self._genericos_da_acao = set(getattr(node, "type_params", None) or [])
         self._action_depth += 1
         self._hoist(node.body, interno)
         try:
@@ -688,9 +709,11 @@ class TypeChecker:
         finally:
             self._action_depth -= 1
             self._current_return = retorno_anterior
+            self._genericos_da_acao = genericos_anteriores
 
         declarado = assinatura.return_type
         if (declarado not in (UNKNOWN, ANY, "Void")
+                and declarado not in genericos
                 and not sempre_retorna and not assinatura.is_generator):
             self.warn(
                 f"Action '{node.name}' declares '-> {declarado}' but can end "
@@ -716,11 +739,16 @@ class TypeChecker:
                            self._hint_nome(trait, self.blueprints), "unknown-trait")
         self._hoist(node.body, interno, registrar_acoes=False)
         anterior = self._em_membro
+        genericos_antes = self._genericos_do_blueprint
         self._em_membro = True
+        # Os '<T>' deste blueprint valem nos metodos dele — e so ali.
+        self._genericos_do_blueprint = set(
+            getattr(node, "type_params", None) or [])
         try:
             self.visit_block(node.body, interno)
         finally:
             self._em_membro = anterior
+            self._genericos_do_blueprint = genericos_antes
         return False
 
     def st_TraitDeclaration(self, node, escopo):

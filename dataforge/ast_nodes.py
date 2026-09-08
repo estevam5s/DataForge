@@ -343,6 +343,7 @@ class ActionDeclaration(ASTNode):
     body: list = field(default_factory=list)
     is_async: bool = False
     decorators: list = field(default_factory=list)
+    type_params: list = field(default_factory=list)
     param_types: dict = field(default_factory=dict)
     return_type: str = ""
     is_generator: bool = False
@@ -365,6 +366,8 @@ class BlueprintDeclaration(ASTNode):
     decorators: list = field(default_factory=list)
     # (nome_do_campo, [decoradores]) — decoradores em campos declarados
     field_decorators: dict = field(default_factory=dict)
+    # <T>, <K, V> — nomes de tipo validos dentro desta declaracao
+    type_params: list = field(default_factory=list)
 
 
 @dataclass
@@ -661,6 +664,7 @@ class RecordDeclaration(ASTNode):
     methods: dict = field(default_factory=dict)    # nome -> ActionDeclaration
     decorators: list = field(default_factory=list)
     field_decorators: dict = field(default_factory=dict)
+    type_params: list = field(default_factory=list)
 
 
 @dataclass
