@@ -6,6 +6,16 @@
     Variáveis (opcionais, antes de rodar):
         $env:DATAFORGE_VERSION = "1.0.0"
         $env:DATAFORGE_PREFIX  = "$HOME\.dataforge"
+        $env:DATAFORGE_EXTRAS  = "--com-exemplos --abrir-docs"
+
+    Extras aceitos:
+        --com-editor      instala a extensão do editor   (padrão: sim)
+        --sem-editor      não instala
+        --com-exemplos    baixa os 42 exemplos e 200 exercícios
+        --abrir-docs      abre a documentação ao terminar
+
+    Vão por variável de ambiente porque `irm ... | iex` não repassa
+    argumentos — é o mesmo motivo do instalador de shell.
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -13,6 +23,11 @@ $ErrorActionPreference = 'Stop'
 $Versao  = if ($env:DATAFORGE_VERSION) { $env:DATAFORGE_VERSION } else { '1.0.0' }
 $Prefixo = if ($env:DATAFORGE_PREFIX)  { $env:DATAFORGE_PREFIX }  else { "$HOME\.dataforge" }
 $Site    = if ($env:DATAFORGE_SITE)    { $env:DATAFORGE_SITE }    else { 'https://dataforge-lang.vercel.app' }
+
+$Extras      = if ($env:DATAFORGE_EXTRAS) { $env:DATAFORGE_EXTRAS } else { '' }
+$ComEditor   = -not ($Extras -match '--sem-editor') -and -not $env:DATAFORGE_SEM_EDITOR
+$ComExemplos = $Extras -match '--com-exemplos'
+$AbrirDocs   = $Extras -match '--abrir-docs' 
 
 function Info($m)  { Write-Host "==> " -ForegroundColor Cyan -NoNewline; Write-Host $m }
 function Ok($m)    { Write-Host "  ok " -ForegroundColor Green -NoNewline; Write-Host $m }
@@ -130,9 +145,23 @@ $versaoInstalada = & "$Prefixo\bin\dataforge.cmd" version 2>&1 | Select-Object -
 
 # Coloracao no VS Code. Sem editor instalado o comando avisa e sai — nao
 # e motivo para a instalacao inteira falhar.
-if (-not $env:DATAFORGE_SEM_EDITOR) {
+if ($ComEditor) {
     & "$Prefixo\bin\dataforge.cmd" editor *> $null
-    if ($LASTEXITCODE -eq 0) { Ok "coloração de sintaxe instalada no editor" }
+    if ($LASTEXITCODE -eq 0) { Ok "extensão instalada no editor" }
+}
+
+if ($ComExemplos) {
+    # Do pacote já baixado: um segundo download só para isto dobraria
+    # o tempo de instalação de quem só quer olhar dois programas.
+    if (Test-Path "$Fonte\examples") {
+        Copy-Item "$Fonte\examples" "$Prefixo\exemplos" -Recurse -Force
+        if (Test-Path "$Fonte\exercicios") {
+            Copy-Item "$Fonte\exercicios" "$Prefixo\exercicios" -Recurse -Force
+        }
+        Ok "exemplos em $Prefixo\exemplos"
+    } else {
+        Aviso "os exemplos não vieram no pacote"
+    }
 }
 
 Write-Host ""
@@ -149,3 +178,9 @@ Write-Host ""
 Write-Host "  documentação: https://dataforge-lang.vercel.app/docs" -ForegroundColor DarkGray
 Write-Host "  desinstalar:  Remove-Item -Recurse -Force $Prefixo" -ForegroundColor DarkGray
 Write-Host ""
+
+if ($AbrirDocs) {
+    # Sem 'Erro' se falhar: uma instalação bem-sucedida não pode
+    # falhar por causa de um extra opcional.
+    try { Start-Process "$Site/docs/primeiros-passos" } catch { }
+}

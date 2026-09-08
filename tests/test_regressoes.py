@@ -1083,3 +1083,56 @@ with Forge.conexao(pool) as db:
     out Forge.tabelas(db)
 out pool.estado()["livres"]
 ''') == "[]\n1"
+
+
+def test_versao_por_flag_nao_imprime_a_ajuda_inteira():
+    """'--version' é o que todo script chama para conferir a instalação.
+
+    Ele caía no ramo "sem argumentos" e imprimia a ajuda inteira — que
+    nem o instalador, nem o CI, nem a extensão do editor sabem ler.
+    """
+    import subprocess
+    import sys as _sys
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for flag in ("--version", "-V"):
+        r = subprocess.run([_sys.executable, "-m", "dataforge", flag],
+                           capture_output=True, text=True, cwd=raiz)
+        primeira = r.stdout.strip().split("\n")[0]
+        assert primeira.startswith("DataForge v"), f"{flag}: {primeira!r}"
+        assert len(r.stdout.split("\n")) < 6, f"{flag} imprimiu demais"
+
+
+def test_tarball_publicado_traz_os_exemplos():
+    """O instalador oferece baixá-los; sem eles no pacote, a opção mente."""
+    import tarfile
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "public", "dist",
+                           "dataforge-1.0.0.tar.gz")
+    if not os.path.isfile(caminho):
+        pytest.skip("tarball ainda não foi gerado")
+
+    with tarfile.open(caminho) as t:
+        nomes = t.getnames()
+    assert any("/examples/" in n for n in nomes), "sem examples/"
+    assert any("/exercicios/" in n for n in nomes), "sem exercicios/"
+
+
+def test_instalador_aceita_as_opcoes_que_o_site_monta():
+    """O assistente do site monta o comando com estas flags."""
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sh = open(os.path.join(raiz, "scripts", "instalar.sh"),
+              encoding="utf-8").read()
+    ps = open(os.path.join(raiz, "scripts", "instalar.ps1"),
+              encoding="utf-8").read()
+
+    for opcao in ("--com-editor", "--sem-editor", "--com-exemplos",
+                  "--abrir-docs"):
+        assert opcao in sh, f"instalar.sh não conhece {opcao}"
+        assert opcao in ps, f"instalar.ps1 não conhece {opcao}"
+
+    # `curl | sh` e `irm | iex` não repassam argumentos: as opções
+    # precisam chegar por variável de ambiente também.
+    assert "DATAFORGE_EXTRAS" in sh
+    assert "DATAFORGE_EXTRAS" in ps

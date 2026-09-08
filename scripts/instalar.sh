@@ -8,6 +8,15 @@
 #   DATAFORGE_PREFIX=~/.local   onde instalar (padrão: ~/.dataforge)
 #   DATAFORGE_REPO=...          repositório de origem
 #
+# Opções (só quando o script roda de um arquivo — `| sh` não repassa
+# argumentos, então baixe primeiro com -o):
+#
+#   --com-editor      instala a extensão do editor       (padrão: sim)
+#   --sem-editor      não instala
+#   --com-exemplos    baixa os 42 exemplos e 200 exercícios
+#   --abrir-docs      abre a documentação ao terminar
+#   --silencioso      só erros
+#
 # POSIX sh de propósito: roda em dash, ash e busybox, não só em bash.
 
 set -eu
@@ -17,6 +26,29 @@ PREFIXO="${DATAFORGE_PREFIX:-$HOME/.dataforge}"
 SITE="${DATAFORGE_SITE:-https://dataforge-lang.vercel.app}"
 REPO="${DATAFORGE_REPO:-https://github.com/estevam5s/DataForge}"
 PYTHON_MINIMO="3.10"
+
+# As opções também chegam por variável de ambiente: `curl … | sh` não
+# repassa argumentos, e o assistente do site monta o comando assim.
+COM_EDITOR=1
+COM_EXEMPLOS=0
+ABRIR_DOCS=0
+SILENCIOSO=0
+
+for opcao in ${DATAFORGE_EXTRAS:-} "$@"; do
+    case "$opcao" in
+        --com-editor)   COM_EDITOR=1 ;;
+        --sem-editor)   COM_EDITOR=0 ;;
+        --com-exemplos) COM_EXEMPLOS=1 ;;
+        --abrir-docs)   ABRIR_DOCS=1 ;;
+        --silencioso|-q) SILENCIOSO=1 ;;
+        "") ;;
+        *) printf "aviso: opção desconhecida: %s\n" "$opcao" >&2 ;;
+    esac
+done
+
+# 'DATAFORGE_SEM_EDITOR' continua valendo: quem já usava não deve
+# descobrir que parou de funcionar.
+[ -n "${DATAFORGE_SEM_EDITOR:-}" ] && COM_EDITOR=0
 
 esc="$(printf '\033')"
 vermelho="${esc}[1;31m"; verde="${esc}[1;32m"; amarelo="${esc}[1;33m"
@@ -178,9 +210,13 @@ ATALHO
 
     # Coloracao no editor. Se nao houver editor instalado, o comando diz
     # isso e sai sem erro — nao e motivo para a instalacao falhar.
-    if [ -z "${DATAFORGE_SEM_EDITOR:-}" ]; then
+    if [ "$COM_EDITOR" = "1" ]; then
         "$PREFIXO/bin/dataforge" editor >/dev/null 2>&1 && \
-            ok "coloração de sintaxe instalada no editor"
+            ok "extensão instalada no editor"
+    fi
+
+    if [ "$COM_EXEMPLOS" = "1" ]; then
+        instalar_exemplos
     fi
 
     if command -v dataforge >/dev/null 2>&1 && \
@@ -197,6 +233,38 @@ ATALHO
 
     printf "  ${apagado}documentação: https://dataforge-lang.vercel.app/docs${fim}\n"
     printf "  ${apagado}desinstalar:  rm -rf %s${fim}\n\n" "$PREFIXO"
+
+    if [ "$ABRIR_DOCS" = "1" ]; then
+        abrir_navegador "$SITE/docs/primeiros-passos"
+    fi
+}
+
+# ── Extras ───────────────────────────────────────────────────
+
+instalar_exemplos() {
+    # Os exemplos vêm do tarball já baixado, se ele os trouxer. Baixar
+    # um segundo arquivo só para isso dobraria o tempo de instalação
+    # de quem só quer olhar dois programas.
+    destino="$PREFIXO/exemplos"
+    if [ -d "$FONTE/examples" ]; then
+        mkdir -p "$destino"
+        cp -R "$FONTE/examples/." "$destino/" 2>/dev/null || true
+        [ -d "$FONTE/exercicios" ] && \
+            cp -R "$FONTE/exercicios" "$PREFIXO/" 2>/dev/null || true
+        ok "exemplos em $destino"
+    else
+        aviso "os exemplos não vieram no pacote; veja em $SITE/docs/exercicios"
+    fi
+}
+
+abrir_navegador() {
+    # Sem 'erro' se não houver navegador: uma instalação bem-sucedida
+    # não pode falhar por causa de um extra opcional.
+    if command -v open >/dev/null 2>&1; then
+        open "$1" >/dev/null 2>&1 || true
+    elif command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "$1" >/dev/null 2>&1 || true
+    fi
 }
 
 principal "$@"

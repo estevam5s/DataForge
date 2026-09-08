@@ -2857,6 +2857,14 @@ def main():
     debug = '--debug' in flags
     show_time = '--time' in flags
 
+    # '--version' e o que todo script chama para conferir a instalacao —
+    # o instalador, o CI, a extensao do editor. Ele caia no ramo "sem
+    # argumentos" e imprimia a AJUDA INTEIRA, que nenhum deles sabe ler.
+    if any(f in flags for f in ('--version', '-V')):
+        print(f"DataForge v{__version__}")
+        print(f"Python {sys.version}")
+        sys.exit(0)
+
     if not args:
         # '-h' / '--help' sozinhos tambem caem aqui
         print(ajuda_geral())

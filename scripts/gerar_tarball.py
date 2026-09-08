@@ -23,7 +23,13 @@ from dataforge import __version__ as VERSAO  # noqa: E402
 # O que o pacote instalavel precisa. Exercicios, exemplos, testes e o
 # site ficam de fora: sao dezenas de MB que ninguem baixa para rodar
 # 'dataforge run'. Quem quer isso clona o repositorio.
-INCLUIR = ["dataforge", "pyproject.toml", "README.md", "LICENSE", "CLAUDE.md", "doc"]
+#: O que vai no tarball que o site serve.
+#:
+#: 'examples' e 'exercicios' entram porque o instalador oferece
+#: baixa-los, e baixar um segundo arquivo so para isso dobraria o
+#: tempo de instalacao de quem so quer olhar dois programas.
+INCLUIR = ["dataforge", "pyproject.toml", "README.md", "LICENSE",
+           "CLAUDE.md", "doc", "examples", "exercicios"]
 
 # A extensao do VS Code entra *dentro* do pacote, e nao ao lado dele:
 # assim o pip a instala junto e 'dataforge editor' funciona em qualquer
