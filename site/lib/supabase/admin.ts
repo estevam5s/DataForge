@@ -343,3 +343,58 @@ export async function publicarProblema(
     .eq('id', id);
   return error ? error.message : null;
 }
+
+// ── Downloads ────────────────────────────────────────────────
+
+export type PainelDownloads = {
+  total: number;
+  total_periodo: number;
+  unicos_periodo: number;
+  hoje: number;
+  por_dia: { dia: string; total: number }[];
+  por_origem: Record<string, number>;
+  por_sistema: Record<string, number>;
+  por_versao: Record<string, number>;
+  por_pais: { pais: string; total: number }[];
+  ultimos: {
+    origem: string;
+    sistema: string | null;
+    versao: string;
+    pais: string | null;
+    quando: string;
+  }[];
+};
+
+const DOWNLOADS_VAZIO: PainelDownloads = {
+  total: 0, total_periodo: 0, unicos_periodo: 0, hoje: 0,
+  por_dia: [], por_origem: {}, por_sistema: {}, por_versao: {},
+  por_pais: [], ultimos: [],
+};
+
+/**
+ * Tudo o que o painel de downloads mostra, numa chamada só.
+ *
+ * O agrupamento acontece no Postgres, e não aqui: trazer cem mil
+ * linhas para o navegador contar seria transferir megabytes para
+ * produzir oito números.
+ */
+export async function carregarDownloads(
+  dias = 30,
+): Promise<Resposta<PainelDownloads>> {
+  const cliente = obterCliente();
+  if (!cliente) return { dados: DOWNLOADS_VAZIO, erro: null };
+
+  const { data, error } = await cliente.rpc('painel_de_downloads', {
+    p_dias: dias,
+  });
+  if (error) return { dados: DOWNLOADS_VAZIO, erro: error.message };
+  return { dados: { ...DOWNLOADS_VAZIO, ...(data as PainelDownloads) }, erro: null };
+}
+
+/** O total público — o mesmo número que o site mostra. */
+export async function totalDeDownloads(): Promise<number> {
+  const cliente = obterCliente();
+  if (!cliente) return 0;
+  const { data, error } = await cliente.rpc('total_de_downloads');
+  return error ? 0 : Number(data ?? 0);
+}

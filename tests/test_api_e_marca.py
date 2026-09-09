@@ -397,3 +397,69 @@ def test_comentario_que_comeca_com_numero_e_comentario(fonte):
     from dataforge.parser import parse
 
     Interpreter().run(parse(tokenize(fonte)))   # não pode levantar
+
+
+# ── O sticky da landing ──────────────────────────────────────
+
+def test_o_ancestral_da_barra_nao_tem_overflow():
+    """`overflow` num ancestral desliga o `sticky` do filho.
+
+    Não há erro e não há aviso: o elemento simplesmente vira
+    `relative` e some depois da primeira dobra. Foi o que aconteceu
+    quando `.lp` ganhou `overflow-x: clip` para conter os brilhos de
+    fundo — e a barra parou de acompanhar o site inteiro.
+
+    O clip continua existindo, mas nas SEÇÕES, onde os brilhos
+    nascem — e a barra é isenta por classe.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    css = open(os.path.join(raiz, "site", "app", "globals.css"),
+               encoding="utf-8").read()
+
+    # O bloco `.lp { … }` — só ele, não `.lp-mono` nem `.lp > *`.
+    bloco = re.search(r"\n\.lp\s*\{(.*?)\n\}", css, re.S)
+    assert bloco, "não achei a regra .lp"
+    assert "overflow" not in bloco.group(1), (
+        "'.lp' voltou a ter overflow — isso desliga o sticky da barra")
+
+
+def test_a_barra_da_landing_e_sticky_e_isenta_do_clip():
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    nav = open(os.path.join(raiz, "site", "components", "landing",
+                            "NavSite.tsx"), encoding="utf-8").read()
+    css = open(os.path.join(raiz, "site", "app", "globals.css"),
+               encoding="utf-8").read()
+
+    assert "lp-barra" in nav, "a barra perdeu a classe que a isenta"
+    assert "sticky" in nav
+    assert ".lp > .lp-barra" in css, "a isenção sumiu do CSS"
+
+
+def test_o_favicon_tem_um_desenho_por_tamanho():
+    """O de 16px não pode ser um downscale do de 256.
+
+    O PIL, ao salvar ICO com `sizes`, grava UMA imagem e reduz para as
+    outras — e a versão pequena vira o borrão que a simplificação
+    existe para evitar. Por isso o .ico é escrito à mão.
+    """
+    from PIL import Image
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "app", "favicon.ico")
+    if not os.path.isfile(caminho):
+        pytest.skip("favicon ainda não foi gerado")
+
+    imagem = Image.open(caminho)
+    tamanhos = sorted(imagem.info.get("sizes", []))
+    assert (16, 16) in tamanhos, "falta o tamanho que a aba usa"
+    assert len(tamanhos) >= 4, f"só {len(tamanhos)} tamanho(s)"
+
+    # O de 16 é desenhado à parte: ele tem menos cores distintas que um
+    # downscale teria, porque é uma silhueta sólida.
+    pequeno = Image.open(caminho)
+    pequeno.size = (16, 16)
+    pequeno.load()
+    cores = len(set(pequeno.convert("RGB").getdata()))
+    assert cores < 200, f"o de 16px parece um downscale ({cores} cores)"

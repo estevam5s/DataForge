@@ -36,6 +36,8 @@ export const ROTAS_PAINEL = [
 export const ROTAS_ADMIN = [
   { href: '/painel/admin', titulo: 'Visão geral', icone: 'grafico',
     desc: 'Métricas da plataforma' },
+  { href: '/painel/admin/downloads', titulo: 'Downloads', icone: 'baixar',
+    desc: 'Quem instalou a linguagem' },
   { href: '/painel/admin/usuarios', titulo: 'Usuários', icone: 'pessoas',
     desc: 'Quem se registrou' },
   { href: '/painel/admin/problemas', titulo: 'Problemas', icone: 'alvo',
@@ -61,6 +63,7 @@ const CAMINHOS: Record<string, string> = {
   frasco: 'M9 3h6M10 3v6L5 18a2 2 0 0 0 1.7 3h10.6A2 2 0 0 0 19 18l-5-9V3',
   livro: 'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM19 3v18',
   grafico: 'M3 21h18M6 17V9M11 17V5M16 17v-6M21 17v-9',
+  baixar: 'M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2',
   pessoas: 'M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8M21 20v-2a4 4 0 0 0-3-3.9',
   alvo: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8M12 12h.01',
   relogio: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18M12 7v5l3 2',

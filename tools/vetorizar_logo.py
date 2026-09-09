@@ -31,6 +31,14 @@ LIMIAR = 128
 #: 0.8 mantem as garras e o desenho do olho; acima de 1.5 elas somam.
 TOLERANCIA = 0.8
 
+#: Para o favicon, a simplificacao e MUITO mais agressiva.
+#:
+#: A 16 pixeis so a silhueta e visivel: um contorno de seiscentos
+#: pontos e um borrao, e os vaos menores que um pixel viram sujeira.
+#: Estes numeros foram escolhidos olhando o resultado a 16, 32 e 48.
+TOLERANCIA_FAVICON = 6.0
+AREA_MINIMA_FAVICON = 1200
+
 #: Regioes menores que isto sao ruido de anti-aliasing, nao desenho.
 AREA_MINIMA = 60
 
@@ -221,8 +229,17 @@ def caminho_svg(contornos, escala, deslocamento):
     return "".join(partes)
 
 
-def extrair(caminho_origem, lado=512):
-    """logo.png -> (atributo d, lado da viewBox)."""
+def extrair(caminho_origem, lado=512, tolerancia=None, area_minima=None):
+    """logo.png -> (atributo d, lado da viewBox).
+
+    'tolerancia' e 'area_minima' controlam quanto detalhe sobrevive. Os
+    padroes sao para a marca em tamanho grande, onde cada bigode conta.
+
+    Para o FAVICON eles sobem muito: a 16 pixeis, um caminho de
+    seiscentos pontos nao vira um desenho — vira um borrao amarelo. O
+    que se ve num favicon e a silhueta, e mais nada. Simplificar nao e
+    perder qualidade ali; e a unica forma de haver qualidade.
+    """
     figura = carregar_mascara(caminho_origem)
     fundo = ~figura
 
@@ -236,13 +253,13 @@ def extrair(caminho_origem, lado=512):
     regioes = []
     for r in range(1, quantas + 1):
         pixels = np.argwhere(rotulos_figura == r)
-        if len(pixels) >= AREA_MINIMA:
+        if len(pixels) >= (AREA_MINIMA if area_minima is None else area_minima):
             regioes.append((rotulos_figura, r, len(pixels)))
     for r in range(1, quantos_fundo + 1):
         if r == externo:
             continue
         pixels = np.argwhere(rotulos_fundo == r)
-        if len(pixels) >= AREA_MINIMA:
+        if len(pixels) >= (AREA_MINIMA if area_minima is None else area_minima):
             regioes.append((rotulos_fundo, r, len(pixels)))
 
     contornos = []
@@ -252,7 +269,8 @@ def extrair(caminho_origem, lado=512):
         bruto = seguir_fronteira(mascara, primeiro)
         if len(bruto) < 8:
             continue
-        contornos.append(douglas_peucker(bruto, TOLERANCIA))
+        contornos.append(douglas_peucker(
+            bruto, TOLERANCIA if tolerancia is None else tolerancia))
 
     # Enquadra pelo que foi desenhado, com uma folga de 4% para o traco
     # nao encostar na borda da viewBox.
@@ -317,12 +335,81 @@ export const CAMINHO_MARCA =
             f.write(svg_com(cor))
         print(f"  escrito: {os.path.relpath(saida, RAIZ)}  ({cor})")
 
+    # ── A variante do favicon ────────────────────────────────
+    #
+    # A 16 pixeis, o caminho completo nao vira um desenho: vira um
+    # borrao amarelo. O olho, a boca e as garras ocupam menos de um
+    # pixel cada, e o que sobra e ruido.
+    #
+    # Simplificar agressivamente deixa a SILHUETA — que e tudo o que
+    # se ve nesse tamanho, e o que faz alguem reconhecer a aba.
+    print("simplificando para o favicon…")
+    d_pequeno, lado_p = extrair(origem, lado=512,
+                                tolerancia=TOLERANCIA_FAVICON,
+                                area_minima=AREA_MINIMA_FAVICON)
+    reducao = 100 * (1 - len(d_pequeno) / len(d))
+    print(f"  {d_pequeno.count('M')} subcaminhos, "
+          f"{len(d_pequeno)} caracteres  ({reducao:.0f}% menor)")
+
+    def svg_pequeno(cor):
+        return (f'<svg xmlns="http://www.w3.org/2000/svg" '
+                f'viewBox="0 0 {lado_p} {lado_p}" fill="{cor}">'
+                f'<path fill-rule="evenodd" d="{d_pequeno}"/></svg>\n')
+
+    for saida, cor in [
+        (os.path.join(RAIZ, "site", "app", "icon.svg"), COR_MARCA),
+        (os.path.join(RAIZ, "site", "public", "marca-favicon.svg"), COR_MARCA),
+    ]:
+        os.makedirs(os.path.dirname(saida), exist_ok=True)
+        with open(saida, "w", encoding="utf-8") as f:
+            f.write(svg_pequeno(cor))
+        print(f"  escrito: {os.path.relpath(saida, RAIZ)}  (simplificado)")
+
     # PNG para quem nao aceita SVG: apple-touch-icon e o icone da
     # extensao, que a loja do VS Code exige em bitmap.
-    _gravar_pngs(d, lado)
+    _gravar_pngs(d, lado, d_pequeno)
 
 
-def _gravar_pngs(d, lado):
+def _gravar_ico(caminho, entradas):
+    """Escreve o .ico com um desenho PROPRIO por tamanho.
+
+    O PIL nao serve aqui: 'Image.save(format="ICO", sizes=[...])' grava
+    UMA imagem e reduz ela para os outros tamanhos — e a de 16 pixeis
+    vira um downscale do desenho de 256, que e exatamente o borrao que
+    a simplificacao existe para evitar. E 'append_images' o plugin de
+    ICO ignora.
+
+    O formato e simples o suficiente para escrever a mao: um cabecalho
+    de 6 bytes, uma entrada de diretorio de 16 bytes por imagem, e os
+    dados. PNG dentro de ICO e aceito desde o Windows Vista, e e o que
+    todo navegador atual le.
+    """
+    import io
+    import struct
+
+    blocos = []
+    for tamanho, imagem in entradas:
+        buffer = io.BytesIO()
+        imagem.save(buffer, format="PNG", optimize=True)
+        blocos.append((tamanho, buffer.getvalue()))
+
+    cabecalho = struct.pack("<HHH", 0, 1, len(blocos))
+    deslocamento = 6 + 16 * len(blocos)
+
+    diretorio, dados = b"", b""
+    for tamanho, bloco in blocos:
+        # 0 no campo de tamanho significa 256 — o byte nao chega la.
+        largura = 0 if tamanho >= 256 else tamanho
+        diretorio += struct.pack("<BBBBHHII", largura, largura, 0, 0,
+                                 1, 32, len(bloco), deslocamento)
+        dados += bloco
+        deslocamento += len(bloco)
+
+    with open(caminho, "wb") as f:
+        f.write(cabecalho + diretorio + dados)
+
+
+def _gravar_pngs(d, lado, d_pequeno=None):
     """Rasteriza a marca nos tamanhos que precisam ser bitmap."""
     from PIL import Image, ImageDraw
 
@@ -343,22 +430,38 @@ def _gravar_pngs(d, lado):
             partes.append((rotulos_fundo == r, False))
 
     contornos = []
+    contornos_simples = []
     for mascara, cheio in partes:
         bruto = seguir_fronteira(mascara, tuple(np.argwhere(mascara)[0]))
         contornos.append((douglas_peucker(bruto, TOLERANCIA), cheio))
+        # A versao simplificada, para os tamanhos pequenos. Os vaos
+        # menores que a area minima somem junto: a 16 pixeis, um olho
+        # de meio pixel nao e um olho — e um pixel escuro no meio da
+        # silhueta, que so suja.
+        if mascara.sum() >= AREA_MINIMA_FAVICON:
+            contornos_simples.append(
+                (douglas_peucker(bruto, TOLERANCIA_FAVICON), cheio))
 
     todos = [p for c, _ in contornos for p in c]
     ys = [p[0] for p in todos]
     xs = [p[1] for p in todos]
 
-    def desenhar(tamanho, cor, fundo):
+    def desenhar(tamanho, cor, fundo, simples=False, solido=False):
+        formas = contornos_simples if (simples and contornos_simples) \
+            else contornos
+        if solido:
+            # A 16 pixeis, um vao interno tem menos de um pixel de
+            # largura: ele nao vira desenho, vira sujeira que quebra a
+            # silhueta. Sem os vaos, sobra a forma — e e a forma que
+            # faz alguem reconhecer a aba de relance.
+            formas = [(pontos, cheio) for pontos, cheio in formas if cheio]
         largura, altura = max(xs) - min(xs), max(ys) - min(ys)
         escala = (tamanho * 0.86) / max(largura, altura)
         dx = min(xs) - (tamanho - largura * escala) / 2 / escala
         dy = min(ys) - (tamanho - altura * escala) / 2 / escala
         imagem = Image.new("RGBA", (tamanho * 4, tamanho * 4), fundo)
         pincel = ImageDraw.Draw(imagem)
-        for pontos, cheio in contornos:
+        for pontos, cheio in formas:
             pincel.polygon([(int((x - dx) * escala * 4),
                              int((y - dy) * escala * 4)) for y, x in pontos],
                            fill=cor if cheio else fundo)
@@ -384,9 +487,13 @@ def _gravar_pngs(d, lado):
     # favicon fica sendo o do logo antigo para sempre.
     ico = os.path.join(RAIZ, "site", "app", "favicon.ico")
     tamanhos = [16, 32, 48, 64, 128, 256]
-    imagens = [desenhar(t, rgb + (255,), FUNDO_MARCA) for t in tamanhos]
-    imagens[-1].save(ico, format="ICO",
-                     sizes=[(t, t) for t in tamanhos])
+    # Abaixo de 64 pixeis, a silhueta simplificada. Acima, o desenho
+    # completo — la o detalhe aparece e vale a pena.
+    imagens = [desenhar(t, rgb + (255,), FUNDO_MARCA,
+                        simples=t < 64, solido=t <= 16)
+               for t in tamanhos]
+
+    _gravar_ico(ico, list(zip(tamanhos, imagens)))
     print(f"  escrito: {os.path.relpath(ico, RAIZ)}  "
           f"({', '.join(str(t) for t in tamanhos)}px)")
 

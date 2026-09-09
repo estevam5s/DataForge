@@ -179,6 +179,32 @@ Write-Host "  documentação: https://dataforge-lang.vercel.app/docs" -Foregroun
 Write-Host "  desinstalar:  Remove-Item -Recurse -Force $Prefixo" -ForegroundColor DarkGray
 Write-Host ""
 
+# Avisa que houve mais uma instalacao.
+#
+# O que vai: origem, versao, sistema e arquitetura. O que NAO vai: nada
+# que identifique quem instalou. Silencioso e opcional —
+# $env:DATAFORGE_SEM_TELEMETRIA=1 desliga, e falha de rede nunca derruba
+# uma instalacao bem-sucedida.
+#
+# A chave abaixo e a ANONIMA do Supabase, ja publica no bundle do site.
+# O que protege a tabela e o RLS, nao a chave.
+if (-not $env:DATAFORGE_SEM_TELEMETRIA) {
+    try {
+        $arq = if ($env:PROCESSOR_ARCHITECTURE) { $env:PROCESSOR_ARCHITECTURE } else { '' }
+        $corpo = @{
+            p_origem      = 'powershell'
+            p_versao      = $Versao
+            p_sistema     = 'windows'
+            p_arquitetura = $arq
+        } | ConvertTo-Json -Compress
+
+        Invoke-RestMethod -Method Post -TimeoutSec 4 `
+            -Uri 'https://teimsogvbhllhzkvioam.supabase.co/rest/v1/rpc/registrar_download' `
+            -Headers @{ apikey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaW1zb2d2YmhsbGh6a3Zpb2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MTM5OTIsImV4cCI6MjEwNDM4OTk5Mn0.0_ZtGzWaYXkRrijJubIodeAJpVSiIC5Mz48mHCjfsmM' } `
+            -ContentType 'application/json' -Body $corpo | Out-Null
+    } catch { }
+}
+
 if ($AbrirDocs) {
     # Sem 'Erro' se falhar: uma instalação bem-sucedida não pode
     # falhar por causa de um extra opcional.

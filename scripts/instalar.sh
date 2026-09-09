@@ -27,6 +27,10 @@ SITE="${DATAFORGE_SITE:-https://dataforge-lang.vercel.app}"
 REPO="${DATAFORGE_REPO:-https://github.com/estevam5s/DataForge}"
 PYTHON_MINIMO="3.10"
 
+# Para onde a contagem de instalacoes vai. Vazio desliga.
+CONTAGEM_URL="${DATAFORGE_CONTAGEM_URL:-https://teimsogvbhllhzkvioam.supabase.co}"
+CONTAGEM_CHAVE="${DATAFORGE_CONTAGEM_CHAVE:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlaW1zb2d2YmhsbGh6a3Zpb2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MTM5OTIsImV4cCI6MjEwNDM4OTk5Mn0.0_ZtGzWaYXkRrijJubIodeAJpVSiIC5Mz48mHCjfsmM}"
+
 # As opções também chegam por variável de ambiente: `curl … | sh` não
 # repassa argumentos, e o assistente do site monta o comando assim.
 COM_EDITOR=1
@@ -237,6 +241,37 @@ ATALHO
     if [ "$ABRIR_DOCS" = "1" ]; then
         abrir_navegador "$SITE/docs/primeiros-passos"
     fi
+
+    contar_instalacao
+}
+
+# Avisa que houve mais uma instalacao.
+#
+# O que vai: a origem, a versao, o sistema e a arquitetura. O que NAO
+# vai: nada que identifique quem instalou — nem nome de maquina, nem
+# usuario, nem caminho.
+#
+# Silencioso e opcional: sai sem barulho se nao houver rede, e
+# DATAFORGE_SEM_TELEMETRIA=1 desliga. Uma instalacao nunca falha por
+# causa disto.
+contar_instalacao() {
+    [ -n "${DATAFORGE_SEM_TELEMETRIA:-}" ] && return 0
+
+    [ -z "$CONTAGEM_URL" ] && return 0
+    command -v curl >/dev/null 2>&1 || return 0
+
+    arq="$(uname -m 2>/dev/null || echo '')"
+    corpo="{\"p_origem\":\"script\",\"p_versao\":\"$VERSAO\",\"p_sistema\":\"$SISTEMA\",\"p_arquitetura\":\"$arq\"}"
+
+    # A chave abaixo e a ANONIMA do Supabase, que ja e publica: ela
+    # esta no bundle de toda pagina do site. O que protege a tabela nao
+    # e a chave — e o RLS, que so deixa gravar pela funcao e so deixa
+    # ler quem e admin.
+    curl -fsS -m 4 -X POST "$CONTAGEM_URL/rest/v1/rpc/registrar_download" \
+        -H "apikey: $CONTAGEM_CHAVE" \
+        -H "Content-Type: application/json" \
+        -d "$corpo" >/dev/null 2>&1 || true
+    return 0
 }
 
 # ── Extras ───────────────────────────────────────────────────

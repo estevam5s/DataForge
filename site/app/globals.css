@@ -221,7 +221,29 @@
   background: var(--lp-bg);
   color: var(--lp-text);
   font-family: Manrope, ui-sans-serif, system-ui, sans-serif;
+}
+
+/* A barra da landing precisa acompanhar o site INTEIRO.
+ *
+ * O `overflow-x: clip` que estava em `.lp` quebrava isso: qualquer
+ * `overflow` diferente de `visible` num ancestral faz o `position:
+ * sticky` do filho parar de grudar — ele passa a rolar junto e some
+ * depois da primeira dobra. É a causa mais comum de sticky que "não
+ * funciona", e não há erro nem aviso: ele simplesmente vira relative.
+ *
+ * O clip existia para conter os brilhos de fundo, que estouram a
+ * largura. A solução é contê-los onde eles nascem — em cada seção —
+ * em vez de num ancestral da barra.
+ */
+.lp > * {
   overflow-x: clip;
+}
+
+/* A barra é a exceção: ela precisa grudar, e um `overflow` nela mesma
+ * não atrapalha o próprio sticky — mas o seletor acima a pegaria pelo
+ * `> *`, e a barra está DENTRO de um wrapper que é filho direto. */
+.lp > .lp-barra {
+  overflow: visible;
 }
 
 .lp ::selection { background: var(--lp-accent); color: #fff; }

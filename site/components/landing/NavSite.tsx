@@ -21,6 +21,12 @@ const links = [
  * `sticky`, não `absolute`: assim ela acompanha a rolagem em vez de
  * ficar presa ao topo do documento e sumir na primeira rolada.
  *
+ * A classe `lp-barra` não é decoração: ela isenta esta barra do
+ * `overflow-x: clip` que as seções da landing têm. Qualquer `overflow`
+ * diferente de `visible` num ANCESTRAL desliga o sticky do filho — sem
+ * erro e sem aviso, ele simplesmente vira `relative` e some depois da
+ * primeira dobra. Era o que acontecia quando o clip estava em `.lp`.
+ *
  * Só a marca, sem o nome ao lado — uma marca reconhecível não precisa
  * se apresentar. Ao rolar, o fundo fecha e ganha sombra; o tamanho não
  * muda, porque uma barra que encolhe faz o conteúdo pular.
@@ -46,7 +52,7 @@ export function NavSite() {
 
   return (
     <>
-      <div className="sticky inset-x-0 top-0 z-50 px-4 pb-2 pt-4 sm:px-10 sm:pb-3 sm:pt-5">
+      <div className="lp-barra sticky inset-x-0 top-0 z-50 px-4 pb-2 pt-4 sm:px-10 sm:pb-3 sm:pt-5">
         <nav
           className={`mx-auto flex h-[76px] max-w-[1280px] items-center gap-4 rounded-[30px] border px-5 transition-all duration-300 sm:rounded-full sm:px-7 ${
             rolou
