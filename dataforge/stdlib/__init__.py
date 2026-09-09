@@ -31,6 +31,7 @@ from .forge import ArcaneForge
 from .arcane_colecoes_esp import ArcaneCollections as ArcaneColecoesEsp
 from .arcane_iter import ArcaneIter
 from .arcane_cor import ArcaneColor
+from .arcane_paralelo import ArcaneConcurrent
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -99,6 +100,9 @@ _MODULES = {
     # ── Iteradores e cor ──
     "Arcane.Iter": ArcaneIter,
     "Iter": ArcaneIter,
+    "Arcane.Concurrent": ArcaneConcurrent,
+    "Concurrent": ArcaneConcurrent,
+    "Paralelo": ArcaneConcurrent,
     "Arcane.Color": ArcaneColor,
     "Color": ArcaneColor,
     "Cor": ArcaneColor,
