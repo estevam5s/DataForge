@@ -331,6 +331,52 @@
     }
    ]
   },
+  "archive": {
+   "nome": "Archive",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "acrescentar",
+     "sig": "(arquivo, caminho, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compactar",
+     "sig": "(origem, destino, nivel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compactar_tar",
+     "sig": "(origem, destino, compressao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir",
+     "sig": "(arquivo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extrair",
+     "sig": "(arquivo, destino, senha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extrair_tar",
+     "sig": "(arquivo, destino)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler_de",
+     "sig": "(arquivo, nome, senha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "listar",
+     "sig": "(arquivo)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "async": {
    "nome": "Arcane.Async",
    "desc": "Tarefas, canais e concorrência.",
@@ -572,6 +618,11 @@
    "desc": "Pilha, fila, heap, grafo, união-busca e algoritmos.",
    "funcoes": [
     {
+     "nome": "add",
+     "sig": "(conjunto, item)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "batched",
      "sig": "(itens, n)",
      "tipo": "funcao"
@@ -589,6 +640,11 @@
     {
      "nome": "cartesian",
      "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chain_vaults",
+     "sig": "(vaults)",
      "tipo": "funcao"
     },
     {
@@ -613,7 +669,7 @@
     },
     {
      "nome": "deque",
-     "sig": "(itens, limite)",
+     "sig": "(itens, maximo)",
      "tipo": "funcao"
     },
     {
@@ -622,8 +678,33 @@
      "tipo": "funcao"
     },
     {
+     "nome": "discard",
+     "sig": "(conjunto, item)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "elements",
+     "sig": "(contagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extend_left",
+     "sig": "(fila, itens)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "first_key",
+     "sig": "(v)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "flatten_deep",
      "sig": "(itens, profundidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "frozen",
+     "sig": "(itens)",
      "tipo": "funcao"
     },
     {
@@ -632,8 +713,33 @@
      "tipo": "funcao"
     },
     {
+     "nome": "group",
+     "sig": "(itens, chave)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "group_by",
      "sig": "(itens, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "heap",
+     "sig": "(itens)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "heap_peek",
+     "sig": "(h)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "heap_pop",
+     "sig": "(h)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "heap_push",
+     "sig": "(h, item)",
      "tipo": "funcao"
     },
     {
@@ -647,8 +753,23 @@
      "tipo": "funcao"
     },
     {
+     "nome": "is_disjoint",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "is_subset",
      "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_superset",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "last_key",
+     "sig": "(v)",
      "tipo": "funcao"
     },
     {
@@ -658,7 +779,32 @@
     },
     {
      "nome": "most_common",
-     "sig": "(itens, n)",
+     "sig": "(contagem, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "move_to_end",
+     "sig": "(v, chave, para_o_fim)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "n_largest",
+     "sig": "(itens, n, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "n_smallest",
+     "sig": "(itens, n, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "named",
+     "sig": "(nome, campos, valores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ordered",
+     "sig": "(pares)",
      "tipo": "funcao"
     },
     {
@@ -677,8 +823,38 @@
      "tipo": "funcao"
     },
     {
+     "nome": "peek",
+     "sig": "(fila)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "peek_left",
+     "sig": "(fila)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pop",
+     "sig": "(fila)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pop_left",
+     "sig": "(fila)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "priority_queue",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "push",
+     "sig": "(fila, item)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "push_left",
+     "sig": "(fila, item)",
      "tipo": "funcao"
     },
     {
@@ -688,7 +864,7 @@
     },
     {
      "nome": "rotate",
-     "sig": "(itens, n)",
+     "sig": "(fila, n)",
      "tipo": "funcao"
     },
     {
@@ -717,6 +893,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "subtract",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "symmetric_difference",
      "sig": "(a, b)",
      "tipo": "funcao"
@@ -724,6 +905,11 @@
     {
      "nome": "top_n",
      "sig": "(itens, n, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "total",
+     "sig": "(contagem)",
      "tipo": "funcao"
     },
     {
@@ -744,6 +930,473 @@
     {
      "nome": "zip_longest",
      "sig": "(a, b, preencher)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "color": {
+   "nome": "Color",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "auto",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "badge",
+     "sig": "(texto, cor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bar",
+     "sig": "(valor, total, largura, cor, mostrar_numero)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bg_rgb",
+     "sig": "(texto, r, g, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "black",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "blink",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "blue",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bold",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "box",
+     "sig": "(texto, titulo, cor, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_blue",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_cyan",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_green",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_magenta",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_red",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_white",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_yellow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cyan",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dim",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "error",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "force",
+     "sig": "(ligado)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "gradient",
+     "sig": "(texto, de, para)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "gray",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "green",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grey",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hex",
+     "sig": "(texto, cor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hidden",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "info",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "info_msg",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "italic",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "magenta",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "muted",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_black",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_blue",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_blue",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_cyan",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_green",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_magenta",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_red",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_white",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_yellow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_cyan",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_gray",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_green",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_grey",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_magenta",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_red",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_white",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_yellow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "paint",
+     "sig": "(texto, nomes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rainbow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "red",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "reverse",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rgb",
+     "sig": "(texto, r, g, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rule",
+     "sig": "(titulo, cor, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "spinner_frames",
+     "sig": "(estilo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "strike",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "strip",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "success",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "supports",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "table",
+     "sig": "(linhas, cabecalho, cor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tree",
+     "sig": "(no, prefixo, ultimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "underline",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "warning",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "white",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "width",
+     "sig": "(padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "yellow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "concurrent": {
+   "nome": "Concurrent",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "barreira",
+     "sig": "(quantas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "canal",
+     "sig": "(capacidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "com_prazo",
+     "sig": "(acao, segundos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "com_trava",
+     "sig": "(trava, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "condicao",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contador",
+     "sig": "(inicial)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dormir",
+     "sig": "(segundos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar",
+     "sig": "(tarefa, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar_primeira",
+     "sig": "(tarefas, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar_todas",
+     "sig": "(tarefas, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "evento",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grupo",
+     "sig": "(trabalhadores, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lotes",
+     "sig": "(acao, itens, tamanho, trabalhadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "map",
+     "sig": "(acao, itens, trabalhadores, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "map_processos",
+     "sig": "(acao, itens, trabalhadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mutex",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nucleos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "para_cada",
+     "sig": "(acao, itens, trabalhadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "repetir_a_cada",
+     "sig": "(acao, segundos, vezes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rodar",
+     "sig": "(acao, args)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "semaforo",
+     "sig": "(quantos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sou_principal",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "thread_atual",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "threads_vivas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "trava_leitura_escrita",
+     "sig": "()",
      "tipo": "funcao"
     }
    ]
@@ -1005,6 +1658,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "apagar_seguro",
+     "sig": "(caminho, passadas)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "base32_decode",
      "sig": "(v)",
      "tipo": "funcao"
@@ -1045,8 +1703,48 @@
      "tipo": "funcao"
     },
     {
+     "nome": "chave_nova",
+     "sig": "(tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cifrar",
+     "sig": "(dados, senha, iteracoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cifrar_arquivo",
+     "sig": "(origem, destino, senha, iteracoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cifrar_pasta",
+     "sig": "(pasta, destino, senha)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "constant_time_equals",
      "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "decifrar",
+     "sig": "(pacote, senha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "decifrar_arquivo",
+     "sig": "(origem, destino, senha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "derivar_chave",
+     "sig": "(senha, sal, iteracoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_cifrado",
+     "sig": "(caminho)",
      "tipo": "funcao"
     },
     {
@@ -1082,6 +1780,11 @@
     {
      "nome": "hmac_verify",
      "sig": "(chave, mensagem, assinatura, algoritmo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "informacao_do_cofre",
+     "sig": "(caminho)",
      "tipo": "funcao"
     },
     {
@@ -2274,6 +2977,232 @@
     {
      "nome": "write_json",
      "sig": "(path, data, indent)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "iter": {
+   "nome": "Iter",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "accumulate",
+     "sig": "(fonte, funcao, inicial)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "attr",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "batched",
+     "sig": "(fonte, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cache_info",
+     "sig": "(memoizada)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chain",
+     "sig": "(fontes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chunk",
+     "sig": "(fonte, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "combinations",
+     "sig": "(fonte, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "combinations_with_repetition",
+     "sig": "(fonte, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compose",
+     "sig": "(acoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compress",
+     "sig": "(fonte, marcas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "constant",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "count",
+     "sig": "(inicio, passo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "curry",
+     "sig": "(funcao, aridade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cycle_forever",
+     "sig": "(itens)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "drop",
+     "sig": "(fonte, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "drop_while",
+     "sig": "(fonte, condicao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "filter_false",
+     "sig": "(fonte, condicao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "flat_map",
+     "sig": "(fonte, funcao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "flatten",
+     "sig": "(fonte, profundidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "flip",
+     "sig": "(funcao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "group_runs",
+     "sig": "(fonte, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "identity",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "item",
+     "sig": "(indice)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "memoize",
+     "sig": "(funcao, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "once",
+     "sig": "(funcao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "op",
+     "sig": "(simbolo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pairwise",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "partial",
+     "sig": "(funcao, fixos, nomeados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "permutations",
+     "sig": "(fonte, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pipe",
+     "sig": "(acoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "powerset",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "product",
+     "sig": "(fontes, repetir)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "reduce",
+     "sig": "(fonte, funcao, inicial)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "repeat",
+     "sig": "(valor, vezes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "running_max",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "running_sum",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "slice",
+     "sig": "(fonte, inicio, fim, passo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "take",
+     "sig": "(fonte, n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "take_while",
+     "sig": "(fonte, condicao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "to_cluster",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "unique",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "unique_by",
+     "sig": "(fonte, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "window",
+     "sig": "(fonte, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "zip_longest",
+     "sig": "(a, b, preencher)",
      "tipo": "funcao"
     }
    ]
@@ -4467,6 +5396,519 @@
     {
      "nome": "versao",
      "sig": "(db)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "cor": {
+   "nome": "Cor",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "auto",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "badge",
+     "sig": "(texto, cor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bar",
+     "sig": "(valor, total, largura, cor, mostrar_numero)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bg_rgb",
+     "sig": "(texto, r, g, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "black",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "blink",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "blue",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bold",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "box",
+     "sig": "(texto, titulo, cor, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_blue",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_cyan",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_green",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_magenta",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_red",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_white",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bright_yellow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cyan",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dim",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "error",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "force",
+     "sig": "(ligado)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "gradient",
+     "sig": "(texto, de, para)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "gray",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "green",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grey",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hex",
+     "sig": "(texto, cor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hidden",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "info",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "info_msg",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "italic",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "magenta",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "muted",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_black",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_blue",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_blue",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_cyan",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_green",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_magenta",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_red",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_white",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_bright_yellow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_cyan",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_gray",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_green",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_grey",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_magenta",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_red",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_white",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "on_yellow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "paint",
+     "sig": "(texto, nomes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rainbow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "red",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "reverse",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rgb",
+     "sig": "(texto, r, g, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rule",
+     "sig": "(titulo, cor, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "spinner_frames",
+     "sig": "(estilo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "strike",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "strip",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "success",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "supports",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "table",
+     "sig": "(linhas, cabecalho, cor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tree",
+     "sig": "(no, prefixo, ultimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "underline",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "warning",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "white",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "width",
+     "sig": "(padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "yellow",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "paralelo": {
+   "nome": "Paralelo",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "barreira",
+     "sig": "(quantas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "canal",
+     "sig": "(capacidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "com_prazo",
+     "sig": "(acao, segundos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "com_trava",
+     "sig": "(trava, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "condicao",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contador",
+     "sig": "(inicial)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dormir",
+     "sig": "(segundos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar",
+     "sig": "(tarefa, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar_primeira",
+     "sig": "(tarefas, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar_todas",
+     "sig": "(tarefas, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "evento",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grupo",
+     "sig": "(trabalhadores, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lotes",
+     "sig": "(acao, itens, tamanho, trabalhadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "map",
+     "sig": "(acao, itens, trabalhadores, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "map_processos",
+     "sig": "(acao, itens, trabalhadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mutex",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nucleos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "para_cada",
+     "sig": "(acao, itens, trabalhadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "repetir_a_cada",
+     "sig": "(acao, segundos, vezes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rodar",
+     "sig": "(acao, args)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "semaforo",
+     "sig": "(quantos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sou_principal",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "thread_atual",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "threads_vivas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "trava_leitura_escrita",
+     "sig": "()",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "zip": {
+   "nome": "Zip",
+   "desc": "",
+   "funcoes": [
+    {
+     "nome": "acrescentar",
+     "sig": "(arquivo, caminho, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compactar",
+     "sig": "(origem, destino, nivel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compactar_tar",
+     "sig": "(origem, destino, compressao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir",
+     "sig": "(arquivo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extrair",
+     "sig": "(arquivo, destino, senha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "extrair_tar",
+     "sig": "(arquivo, destino)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler_de",
+     "sig": "(arquivo, nome, senha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "listar",
+     "sig": "(arquivo)",
      "tipo": "funcao"
     }
    ]

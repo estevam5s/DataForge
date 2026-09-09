@@ -5,7 +5,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Arquivos",
-  description: "Ler, escrever e organizar arquivos com Arcane.IO.",
+  description: "Ler, escrever e organizar arquivos com Arcane.IO, e compactar com Arcane.Archive.",
 };
 
 const blocos: Bloco[] = [
@@ -43,6 +43,27 @@ IO.delete(caminho)` },
   {"h2": "Filtrar por extensão"},
   { code: `textos := IO.list_dir(pasta) >> sift nome: nome.endswith(".txt")` },
   {"p": "`list_dir` devolve uma lista comum, então todo o pipeline funciona sobre ela."},
+  {"h2": "Zip e tar"},
+  {"p": "`Arcane.Archive` compacta e extrai. É um módulo à parte porque a extração tem uma responsabilidade que a leitura de arquivo não tem: o conteúdo veio de fora."},
+  { code: `adopt Arcane.Archive as Zip
+
+Zip.compactar("relatorios", "backup.zip")     # pasta inteira
+Zip.extrair("backup.zip", "destino")
+Zip.listar("backup.zip")                      # sem extrair
+Zip.ler_de("backup.zip", "relatorios/jan.csv")   # um arquivo só
+Zip.conferir("backup.zip")                    # está íntegro?
+Zip.acrescentar("backup.zip", "mar.csv")
+
+Zip.compactar_tar("projeto", "projeto.tar.gz")
+Zip.extrair_tar("projeto.tar.gz", "destino")` },
+  {"h2": "O que a extração recusa"},
+  {"p": "Extrair um arquivo de origem desconhecida é perigoso, e os dois riscos têm nome próprio justamente por terem sido explorados muitas vezes:"},
+  {"table": {"head": ["Ataque", "O que faz", "A defesa aqui"], "rows": [
+    ["**Zip Slip**", "uma entrada chamada `../../.ssh/authorized_keys` escreve **fora** da pasta de destino", "o caminho final é resolvido e comparado com o destino; `..` e link simbólico já foram desfeitos"],
+    ["**Zip bomb**", "1 KB que descompacta para 10 GB, enchendo o disco", "o tamanho declarado é somado antes de extrair"],
+    ["**Link no tar**", "uma entrada que é link simbólico e aponta para qualquer lugar do sistema", "recusada; e o `filter=\"data\"` do Python barra permissão estranha e dono de outro usuário"]]}},
+  {"callout": {"tipo": "nota", "titulo": "Por que a razão de compressão sozinha não serve de alarme", "texto": "Um CSV de linhas repetidas comprime 400× sem ser ataque nenhum, e recusá-lo ensina o usuário a desligar a proteção. O que faz uma bomba ser bomba é o tamanho **absoluto** — por isso a razão só pesa quando o resultado já passa de 512 MB."}},
+  {"p": "Para guardar o pacote cifrado, `Arcane.Crypto.cifrar_pasta` compacta e cifra num passo — ver [Criptografia](/docs/tecnicas/criptografia)."},
   {"h2": "Limpeza garantida"},
   {"p": "Use `defer` para garantir a limpeza mesmo se algo falhar no meio:"},
   { code: `action processar():
@@ -67,13 +88,13 @@ cycle nome in IO.list_dir("."):
         out $"{nome.pad_end(24)}{formatar_bytes(IO.size(caminho)).pad_start(10)}"` },
 ];
 
-const headings = [{ id: 'texto', text: "Texto", level: 2 as const }, { id: 'formatos-estruturados', text: "Formatos estruturados", level: 2 as const }, { id: 'caminhos', text: "Caminhos", level: 2 as const }, { id: 'diretorios', text: "Diretórios", level: 2 as const }, { id: 'copiar-mover-apagar', text: "Copiar, mover, apagar", level: 2 as const }, { id: 'filtrar-por-extensao', text: "Filtrar por extensão", level: 2 as const }, { id: 'limpeza-garantida', text: "Limpeza garantida", level: 2 as const }, { id: 'um-relatorio-de-pasta', text: "Um relatório de pasta", level: 2 as const }];
+const headings = [{ id: 'texto', text: "Texto", level: 2 as const }, { id: 'formatos-estruturados', text: "Formatos estruturados", level: 2 as const }, { id: 'caminhos', text: "Caminhos", level: 2 as const }, { id: 'diretorios', text: "Diretórios", level: 2 as const }, { id: 'copiar-mover-apagar', text: "Copiar, mover, apagar", level: 2 as const }, { id: 'filtrar-por-extensao', text: "Filtrar por extensão", level: 2 as const }, { id: 'zip-e-tar', text: "Zip e tar", level: 2 as const }, { id: 'o-que-a-extracao-recusa', text: "O que a extração recusa", level: 2 as const }, { id: 'limpeza-garantida', text: "Limpeza garantida", level: 2 as const }, { id: 'um-relatorio-de-pasta', text: "Um relatório de pasta", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Arquivos"}
-      description={"Ler, escrever e organizar arquivos com Arcane.IO."}
+      description={"Ler, escrever e organizar arquivos com Arcane.IO, e compactar com Arcane.Archive."}
       href={"/docs/tecnicas/arquivos"}
       headings={headings}
     >

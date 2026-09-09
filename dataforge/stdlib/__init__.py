@@ -32,6 +32,7 @@ from .arcane_colecoes_esp import ArcaneCollections as ArcaneColecoesEsp
 from .arcane_iter import ArcaneIter
 from .arcane_cor import ArcaneColor
 from .arcane_paralelo import ArcaneConcurrent
+from .arcane_arquivo_seguro import ArcaneArchive, ArcaneCofre
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -103,6 +104,10 @@ _MODULES = {
     "Arcane.Concurrent": ArcaneConcurrent,
     "Concurrent": ArcaneConcurrent,
     "Paralelo": ArcaneConcurrent,
+
+    "Arcane.Archive": ArcaneArchive,
+    "Archive": ArcaneArchive,
+    "Zip": ArcaneArchive,
     "Arcane.Color": ArcaneColor,
     "Color": ArcaneColor,
     "Cor": ArcaneColor,
@@ -123,6 +128,8 @@ _MODULES = {
 _COMPLEMENTOS = {
     "Arcane.Collections": (ArcaneColecoesEsp,),
     "Collections": (ArcaneColecoesEsp,),
+    "Arcane.Crypto": (ArcaneCofre,),
+    "Crypto": (ArcaneCofre,),
 }
 
 

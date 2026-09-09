@@ -5,13 +5,13 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Criptografia",
-  description: "Hashes, senhas, HMAC e aleatoriedade segura com Arcane.Crypto.",
+  description: "Hashes, senhas, HMAC, aleatoriedade segura e cifragem de arquivo com Arcane.Crypto.",
 };
 
 const blocos: Bloco[] = [
   {"h2": "O escopo"},
-  {"p": "`Arcane.Crypto` traz primitivas da biblioteca padrão do Python: hashes, HMAC, derivação de senha, codificações e aleatoriedade criptográfica."},
-  {"callout": {"tipo": "atencao", "texto": "Ele **não** implementa criptografia de chave pública nem cifras de bloco. Para isso, use uma biblioteca dedicada."}},
+  {"p": "`Arcane.Crypto` traz primitivas da biblioteca padrão do Python — hashes, HMAC, derivação de senha, codificações e aleatoriedade criptográfica — mais **cifragem de arquivo** com ChaCha20-Poly1305, escrita aqui."},
+  {"callout": {"tipo": "atencao", "texto": "Ele **não** implementa criptografia de chave pública (RSA, curvas elípticas) nem TLS. Para falar com um servidor com segurança, use `Arcane.Http`, que já usa o TLS do sistema."}},
   {"h2": "Hashes"},
   { code: `adopt Arcane.Crypto as Crypto
 
@@ -37,6 +37,30 @@ Crypto.hmac_verify(chave, mensagem, assinatura)     # yes/no` },
   {"h2": "Comparação em tempo constante"},
   { code: `Crypto.constant_time_equals(recebido, esperado)` },
   {"p": "Comparar segredos com `is` vaza informação pelo **tempo**: uma comparação que falha no primeiro caractere retorna mais rápido que uma que falha no último. `hmac_verify` já faz isso internamente."},
+  {"h2": "Cifrar um arquivo"},
+  {"p": "Guardar um contrato, um backup ou um `.env` em disco pede uma cifra de verdade — e não o `xor_cipher` que também mora neste módulo, que é brinquedo educativo."},
+  { code: `adopt Arcane.Crypto as Cofre
+
+Cofre.cifrar_arquivo("contrato.pdf", "contrato.dfv", "minha senha")
+Cofre.decifrar_arquivo("contrato.dfv", "de-volta.pdf", "minha senha")
+
+Cofre.cifrar_pasta("relatorios", "relatorios.dfv", "minha senha")
+Cofre.e_cifrado("contrato.dfv")              # yes
+Cofre.informacao_do_cofre("contrato.dfv")    # o cabeçalho, sem a senha` },
+  {"p": "É **ChaCha20-Poly1305** (RFC 8439): a cifra embaralha, e o Poly1305 assina. Sem a assinatura, cifrar não bastaria — quem intercepta pode virar bits do texto cifrado, e como a cifra é XOR, isso vira bits do texto claro. A chave sai da senha por PBKDF2-SHA256 com 600 mil iterações."},
+  {"h2": "O formato"},
+  { code: `DFVAULT1 | iterações | sal (16) | nonce (12) | etiqueta (16) | dados`, lang: 'text' },
+  {"p": "O cabeçalho **não é segredo** — ele diz como decifrar, e precisa ser lido antes de haver chave. Mas é autenticado junto com os dados: baixar as iterações para 1, na esperança de enfraquecer a derivação, invalida a etiqueta e o arquivo é recusado."},
+  {"callout": {"tipo": "nota", "titulo": "Senha errada e arquivo adulterado dão a mesma mensagem", "texto": "É de propósito. Um erro que distinguisse os dois casos diria ao atacante que a senha está certa e só o conteúdo mudou — e com isso ele testa senhas mais depressa."}},
+  {"h2": "Por que escrever a cifra foi defensável"},
+  {"p": "O conselho de não escrever a própria criptografia vale principalmente contra dois riscos: errar o algoritmo, e vazar o segredo pelo **tempo** que a operação leva."},
+  {"list": [
+    "**Errar o algoritmo** — os vetores oficiais do RFC 8439 estão na suíte de testes. Uma implementação que os reproduz byte a byte está certa; não há meio-termo.",
+    "**Vazar pelo tempo** — é o motivo de a escolha ser ChaCha20 e não AES. O AES em software depende de tabelas, e o tempo de ler uma tabela varia com o que está em cache — que depende da chave. ChaCha20 não tem tabela nenhuma: é soma, rotação e XOR, sempre nas mesmas posições."]},
+  {"callout": {"tipo": "atencao", "titulo": "O que ele não promete", "texto": "O Poly1305 multiplica inteiros grandes, e a multiplicação do Python não é de tempo constante. Para cifrar um arquivo no seu disco isso não importa. Para um canal em rede contra um adversário ativo, use TLS."}},
+  {"h2": "Apagar de verdade"},
+  { code: `Cofre.apagar_seguro("contrato.pdf")      # sobrescreve, depois remove` },
+  {"callout": {"tipo": "atencao", "texto": "Em disco magnético, sobrescrever dificulta a recuperação. Em **SSD não garante nada**: o controlador escreve em outro bloco, e o antigo continua lá, fora do alcance do sistema."}},
   {"h2": "Aleatoriedade segura"},
   { code: `Crypto.random_token(32)       # URL-safe, para links e sessões
 Crypto.random_hex(32)
@@ -55,13 +79,13 @@ Crypto.hex_encode(dados)        Crypto.hex_decode(texto)` },
 Crypto.mask(cpf, 3)                  # mostra os 3 últimos` },
 ];
 
-const headings = [{ id: 'o-escopo', text: "O escopo", level: 2 as const }, { id: 'hashes', text: "Hashes", level: 2 as const }, { id: 'senhas', text: "Senhas", level: 2 as const }, { id: 'hmac--autenticar-mensagens', text: "HMAC — autenticar mensagens", level: 2 as const }, { id: 'comparacao-em-tempo-constante', text: "Comparação em tempo constante", level: 2 as const }, { id: 'aleatoriedade-segura', text: "Aleatoriedade segura", level: 2 as const }, { id: 'codificacoes', text: "Codificações", level: 2 as const }, { id: 'mascarar-para-exibir', text: "Mascarar para exibir", level: 2 as const }];
+const headings = [{ id: 'o-escopo', text: "O escopo", level: 2 as const }, { id: 'hashes', text: "Hashes", level: 2 as const }, { id: 'senhas', text: "Senhas", level: 2 as const }, { id: 'hmac--autenticar-mensagens', text: "HMAC — autenticar mensagens", level: 2 as const }, { id: 'comparacao-em-tempo-constante', text: "Comparação em tempo constante", level: 2 as const }, { id: 'cifrar-um-arquivo', text: "Cifrar um arquivo", level: 2 as const }, { id: 'o-formato', text: "O formato", level: 2 as const }, { id: 'por-que-escrever-a-cifra-foi-defensavel', text: "Por que escrever a cifra foi defensável", level: 2 as const }, { id: 'apagar-de-verdade', text: "Apagar de verdade", level: 2 as const }, { id: 'aleatoriedade-segura', text: "Aleatoriedade segura", level: 2 as const }, { id: 'codificacoes', text: "Codificações", level: 2 as const }, { id: 'mascarar-para-exibir', text: "Mascarar para exibir", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Criptografia"}
-      description={"Hashes, senhas, HMAC e aleatoriedade segura com Arcane.Crypto."}
+      description={"Hashes, senhas, HMAC, aleatoriedade segura e cifragem de arquivo com Arcane.Crypto."}
       href={"/docs/tecnicas/criptografia"}
       headings={headings}
     >

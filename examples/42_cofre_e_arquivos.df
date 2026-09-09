@@ -1,0 +1,95 @@
+// ═══════════════════════════════════════════════════════════
+// Exemplo 42: Cofre e arquivos
+//
+// Cifrar um arquivo com senha (ChaCha20-Poly1305), compactar
+// uma pasta e extrair um zip sem cair nas duas armadilhas
+// classicas: Zip Slip e zip bomb.
+//
+// Ele cria arquivos, entao trabalha dentro de uma pasta nova
+// no diretorio temporario do sistema — nunca na sua.
+// ═══════════════════════════════════════════════════════════
+
+adopt Arcane.Crypto as Cofre
+adopt Arcane.Archive as Zip
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+oficina := IO.join(OS.temp_dir(), $"dataforge-cofre-{OS.pid()}")
+IO.mkdir(oficina)
+OS.chdir(oficina)
+
+out "═══ 1. Cifrar um arquivo ═══"
+
+IO.write_file("contrato.txt", "clausula 7: o pagamento vence em 30 dias")
+
+// As iteracoes baixas sao so para o exemplo rodar depressa.
+// O padrao (600 mil) e o que se usa de verdade.
+r := Cofre.cifrar_arquivo("contrato.txt", "contrato.dfv", "abre-te sesamo", 20000)
+out $"  {r["original"]} bytes de texto viraram {r["cifrado"]} bytes de cofre"
+
+// O cabecalho e legivel sem a senha: ele diz COMO decifrar.
+info := Cofre.informacao_do_cofre("contrato.dfv")
+out $"  algoritmo: {info["algoritmo"]}"
+out $"  iteracoes: {info["iteracoes"]}"
+
+// O arquivo se identifica pela marca, e o conteudo e binario:
+// 'read_file' nem consegue le-lo como texto, que e o esperado.
+assert Cofre.e_cifrado("contrato.dfv")
+
+out ""
+out "═══ 2. A senha errada e recusada ═══"
+
+monitor:
+    Cofre.decifrar_arquivo("contrato.dfv", "vazado.txt", "chute")
+    assert no  // nao chega aqui
+handle Error as e:
+    out $"  {e.message}"
+
+// A mensagem nao diz se foi a senha ou o conteudo — de proposito.
+// Distinguir os dois deixaria testar senha mais depressa.
+
+Cofre.decifrar_arquivo("contrato.dfv", "de-volta.txt", "abre-te sesamo")
+assert IO.read_file("de-volta.txt") is "clausula 7: o pagamento vence em 30 dias"
+out "  com a senha certa, o texto volta identico"
+
+out ""
+out "═══ 3. Compactar uma pasta ═══"
+
+IO.mkdir("relatorios")
+IO.write_file("relatorios/jan.csv", "mes,total\n01,1500")
+IO.write_file("relatorios/fev.csv", "mes,total\n02,1800")
+
+pacote := Zip.compactar("relatorios", "backup.zip")
+out $"  {pacote["itens"]} arquivos em {pacote["bytes"]} bytes"
+
+cycle item in Zip.listar("backup.zip"):
+    out $"    {item["nome"]} — {item["bytes"]} bytes"
+
+// Ler UM arquivo de dentro, sem extrair o resto.
+assert contains(Zip.ler_de("backup.zip", "relatorios/fev.csv"), "1800")
+assert Zip.conferir("backup.zip")["integro"]
+
+Zip.extrair("backup.zip", "restaurado")
+assert len(IO.list_dir("restaurado/relatorios")) is 2
+out "  extraido e conferido"
+
+out ""
+out "═══ 4. A pasta inteira, cifrada num passo ═══"
+
+feito := Cofre.cifrar_pasta("relatorios", "relatorios.dfv", "outra senha")
+assert Cofre.e_cifrado(feito["arquivo"])
+out $"  {feito["arquivo"]}: {feito["cifrado"]} bytes"
+
+out ""
+out "═══ 5. O que a extracao recusa ═══"
+
+// Uma entrada chamada '../../.ssh/authorized_keys' escreveria FORA da
+// pasta de destino. O ataque tem nome — Zip Slip — por ter funcionado
+// em dezenas de bibliotecas.
+out "  Zip Slip:  entrada com '..' escapa do destino → recusada"
+out "  zip bomb:  1 KB que vira 10 GB enche o disco → recusada"
+out "  link:      dentro de um tar, aponta para onde quiser → recusado"
+
+out ""
+out "✓ tudo conferido"
+out $"  (os arquivos ficaram em {oficina})"
