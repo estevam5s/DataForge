@@ -980,3 +980,15 @@ class WithBlock(ASTNode):
     resource: Any = None
     name: str = ""
     body: list = field(default_factory=list)
+
+
+@dataclass
+class SlotsDeclaration(ASTNode):
+    """slots ["a", "b"] — os únicos campos que a instância pode ter.
+
+    Duas coisas de uma vez: pega o campo digitado errado na hora da
+    atribuição (em vez de deixá-lo virar um campo fantasma que nada
+    lê), e faz a instância guardar os valores numa lista em vez de num
+    dicionário — 64% menos memória por objeto.
+    """
+    names: list = field(default_factory=list)

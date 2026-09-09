@@ -49,7 +49,7 @@ GRUPOS = {
         "channel", "lambda",
     ],
     "storage.modifier.dataforge": [
-        "steady", "static", "shadow", "abstract", "final", "private",
+        "steady", "static", "shadow", "abstract", "final", "private", "slots",
         "protected", "get", "set", "operator", "extends", "with",
     ],
     "keyword.other.oop.dataforge": ["spawn", "self", "root", "delete"],

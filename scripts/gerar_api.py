@@ -127,6 +127,8 @@ SIGNIFICADOS_CONTEXTUAIS = {
     "protected": ("visível no blueprint e nos herdeiros", "protected"),
     "operator": ("sobrecarrega um operador", "__add__ / operator+"),
     "final": ("não pode ser sobrescrito", "final"),
+    "slots": ("os únicos campos que a instância pode ter; economiza memória",
+              "slots"),
     "abstract": ("sem implementação; obriga o herdeiro", "abstract"),
     "server": ("declara uma aplicação web", "Flask() / express()"),
     "route": ("declara uma rota", "@app.route"),

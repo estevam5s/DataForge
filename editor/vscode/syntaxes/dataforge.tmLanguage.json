@@ -172,7 +172,7 @@
         },
         {
           "name": "storage.modifier.dataforge",
-          "match": "\\b(protected|abstract|operator|extends|private|shadow|static|steady|final|with|get|set)\\b"
+          "match": "\\b(protected|abstract|operator|extends|private|shadow|static|steady|final|slots|with|get|set)\\b"
         },
         {
           "name": "keyword.other.oop.dataforge",

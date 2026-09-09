@@ -34,7 +34,29 @@ class BuiltinFunction:
 #  TYPE & CONVERSION
 # ═══════════════════════════════════════════════════════════
 
+#: O interpretador se registra aqui para os embutidos poderem chamar
+#: metodos magicos. Uma lista de um item, e nao uma variavel global,
+#: porque o modulo e importado antes de o interpretador existir.
+_MAGICO = [None]
+
+
+def set_magic_dispatcher(fn):
+    """O interpretador instala aqui o chamador de metodo magico."""
+    _MAGICO[0] = fn
+
+
+def _magico(obj, nome, *args):
+    """Chama o metodo magico, ou devolve None se nao houver."""
+    if _MAGICO[0] is None:
+        return None
+    return _MAGICO[0](obj, nome, args)
+
+
 def _df_len(obj):
+    """len(x) — honra '__len__' quando o objeto o declara."""
+    resultado = _magico(obj, "__len__")
+    if resultado is not None:
+        return int(resultado)
     return len(obj)
 
 #: Tipo do Python -> nome que a linguagem usa. 'bool' vem antes de

@@ -1391,6 +1391,40 @@ class Parser:
             decl.is_final = final
             return decl, None
 
+        # slots ["a", "b"]  —  restringe os campos da instancia
+        #
+        # Contextual, como 'get' e 'final': reconhecido pelo TEXTO, e so
+        # quando o que vem depois confirma. 'slots := 3' continua sendo
+        # uma variavel chamada 'slots'.
+        if (self._palavra("slots")
+                and self.peek(1).type in (TokenType.LBRACKET,
+                                          TokenType.IDENTIFIER,
+                                          TokenType.STRING)):
+            tok = self.advance()
+            nomes = []
+            if self.match(TokenType.LBRACKET):
+                while self.current().type != TokenType.RBRACKET:
+                    tok_nome = self.current()
+                    if tok_nome.type == TokenType.STRING:
+                        nomes.append(self.advance().value)
+                    elif tok_nome.type == TokenType.IDENTIFIER:
+                        nomes.append(self.advance().value)
+                    else:
+                        self.error("'slots' takes field names: "
+                                   "slots [\"a\", \"b\"]")
+                    if not self.match(TokenType.COMMA):
+                        break
+                self.expect(TokenType.RBRACKET, "Expected ']' after slots")
+            else:
+                # 'slots a, b' tambem, sem colchetes
+                while self.current().type == TokenType.IDENTIFIER:
+                    nomes.append(self.advance().value)
+                    if not self.match(TokenType.COMMA):
+                        break
+            self.match(TokenType.NEWLINE)
+            return ast.SlotsDeclaration(names=nomes, line=tok.line,
+                                        column=tok.column), None
+
         # static x := valor
         if t == TokenType.STATIC:
             return self.parse_statement(), None

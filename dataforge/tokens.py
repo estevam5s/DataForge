@@ -104,7 +104,8 @@ class TokenType(Enum):
     RELAY = auto()           # relay (export)
     TRAIT = auto()           # trait (interface)
     STATIC = auto()          # static
-    ABSTRACT = auto()        # abstract
+    ABSTRACT = auto()
+    SLOTS = auto()           # slots  (restringe os campos da instancia)        # abstract
     GET = auto()             # get      (propriedade de leitura)
     SET = auto()             # set      (propriedade de escrita)
     PRIVATE = auto()         # private  (so dentro do blueprint)
@@ -348,6 +349,7 @@ CONTEXTUAIS_BLUEPRINT = {
     "operator":  TokenType.OPERATOR,
     "final":     TokenType.FINAL,
     "abstract":  TokenType.ABSTRACT,
+    "slots":     TokenType.SLOTS,
 }
 
 
