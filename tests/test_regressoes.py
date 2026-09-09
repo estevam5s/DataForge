@@ -1175,3 +1175,26 @@ def test_todo_exercicio_tem_explicacao_a_partir_do_modulo_11():
             if not os.path.isfile(df.replace(".df", ".md")):
                 faltando.append(os.path.relpath(df, raiz))
     assert not faltando, f"sem .md: {faltando}"
+
+
+def test_todo_modulo_da_stdlib_se_identifica_como_modulo():
+    """Sem '__name__', o interpretador o trata como vault comum.
+
+    E aí um símbolo chamado 'set', 'get' ou 'keys' é engolido pelo
+    método de vault de mesmo nome — com uma mensagem sobre argumento
+    faltando, que não dá nenhuma pista da causa.
+    """
+    from dataforge.stdlib import get_module, list_modules
+
+    for nome in sorted(set(list_modules())):
+        modulo = get_module(nome)
+        assert modulo is not None, nome
+        assert "__name__" in modulo, f"'{nome}' não se identifica"
+
+
+def test_simbolo_do_modulo_vence_o_metodo_de_vault():
+    """'Collections.set' é o conjunto, não o 'set' de vault."""
+    assert run('''
+adopt Arcane.Collections as C
+out len(C.union(C.set([1, 2]), C.set([2, 3])))
+''') == "3"

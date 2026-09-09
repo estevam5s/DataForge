@@ -35,7 +35,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Process`](#arcaneprocess) | `Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | [`Arcane.Logging`](#arcanelogging) | `Logging / Log` | 14 | Registro estruturado de eventos, com níveis e destinos. |
 | [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 38 | Hashes, HMAC, senhas, codificações e aleatoriedade segura. |
-| [`Arcane.Collections`](#arcanecollections) | `Collections` | 35 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
+| [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 
 > Os nomes curtos e os aliases (`DB`, `Server`, `Network`) apontam para o mesmo
@@ -1121,41 +1121,69 @@ Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca.
 adopt Arcane.Collections as Collections
 ```
 
-**Funções (35)**
+**Funções (63)**
 
 | Assinatura |
 |------------|
+| `add(conjunto, item)` |
 | `batched(itens, n)` |
 | `binary_search(ordenado, alvo)` |
 | `bottom_n(itens, n, chave=None)` |
 | `cartesian(a, b)` |
+| `chain_vaults(*vaults)` |
 | `chunk_evenly(itens, partes)` |
-| `counter(itens)` |
+| `counter(itens=None)` |
 | `deep_merge(a, b)` |
-| `default_vault(padrao=0)` |
-| `deque(itens=None, limite=None)` |
+| `default_vault(padrao=None)` |
+| `deque(itens=None, maximo=0)` |
 | `difference(a, b)` |
+| `discard(conjunto, item)` |
+| `elements(contagem)` |
+| `extend_left(fila, itens)` |
+| `first_key(v)` |
 | `flatten_deep(itens, profundidade=-1)` |
+| `frozen(itens)` |
 | `graph(dirigido=False)` |
+| `group(itens, chave)` |
 | `group_by(itens, chave)` |
+| `heap(itens=None)` |
+| `heap_peek(h)` |
+| `heap_pop(h)` |
+| `heap_push(h, item)` |
 | `index_by(itens, chave)` |
 | `intersection(a, b)` |
+| `is_disjoint(a, b)` |
 | `is_subset(a, b)` |
+| `is_superset(a, b)` |
+| `last_key(v)` |
 | `merge_sorted(a, b)` |
-| `most_common(itens, n=1)` |
+| `most_common(contagem, n=0)` |
+| `move_to_end(v, chave, para_o_fim=True)` |
+| `n_largest(itens, n, chave=None)` |
+| `n_smallest(itens, n, chave=None)` |
+| `named(nome, campos, valores)` |
+| `ordered(pares=None)` |
 | `ordered_vault(pares=None)` |
 | `pairwise(itens)` |
 | `partition(itens, predicado)` |
+| `peek(fila)` |
+| `peek_left(fila)` |
+| `pop(fila)` |
+| `pop_left(fila)` |
 | `priority_queue()` |
+| `push(fila, item)` |
+| `push_left(fila, item)` |
 | `queue(itens=None)` |
-| `rotate(itens, n)` |
+| `rotate(fila, n=1)` |
 | `set(itens=None)` |
 | `sliding_window(itens, tamanho)` |
 | `sort_by(itens, chave)` |
 | `sort_by_field(itens, campo, reverso=False)` |
 | `stack(itens=None)` |
+| `subtract(a, b)` |
 | `symmetric_difference(a, b)` |
 | `top_n(itens, n, chave=None)` |
+| `total(contagem)` |
 | `union(a, b)` |
 | `union_find(itens=None)` |
 | `unique_by(itens, chave)` |

@@ -28,6 +28,9 @@ from .arcane_excel import ArcaneExcel
 from .arcane_meta import ArcaneMeta
 from .crucible import ArcaneCrucible
 from .forge import ArcaneForge
+from .arcane_colecoes_esp import ArcaneCollections as ArcaneColecoesEsp
+from .arcane_iter import ArcaneIter
+from .arcane_cor import ArcaneColor
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -93,6 +96,13 @@ _MODULES = {
     "Crucible": ArcaneCrucible,
     "Arcane.Crucible": ArcaneCrucible,
 
+    # ── Iteradores e cor ──
+    "Arcane.Iter": ArcaneIter,
+    "Iter": ArcaneIter,
+    "Arcane.Color": ArcaneColor,
+    "Color": ArcaneColor,
+    "Cor": ArcaneColor,
+
     # ── Forge — bancos de dados e ORM ──
     "Forge": ArcaneForge,
     "Arcane.Forge": ArcaneForge,
@@ -100,14 +110,44 @@ _MODULES = {
 }
 
 
+#: Modulos servidos sob o mesmo nome, juntos.
+#:
+#: 'Arcane.Collections' e o caso: uma parte trazia 'group_by' e
+#: 'sort_by_field', a outra traz fila, heap e conjunto. Sao o mesmo
+#: assunto, e obrigar quem escreve a lembrar em qual metade esta cada
+#: funcao seria arbitrario.
+_COMPLEMENTOS = {
+    "Arcane.Collections": (ArcaneColecoesEsp,),
+    "Collections": (ArcaneColecoesEsp,),
+}
+
+
 def get_module(name: str):
-    """Get a standard library module by name."""
-    if name in _MODULES:
-        mod = _MODULES[name]
-        if callable(mod) and not isinstance(mod, dict):
-            return mod()
-        return mod
-    return None
+    """Um modulo da biblioteca padrao, pelo nome.
+
+    Carimba '__name__' em quem nao declarou. Nao e enfeite: o
+    interpretador usa esse campo para saber que o dicionario e um
+    MODULO, e nao um vault comum — e so entao os simbolos dele
+    ganham prioridade sobre os metodos de vault.
+
+    Sem o carimbo, um modulo com um simbolo chamado 'set', 'get',
+    'keys' ou 'merge' via esse nome ser engolido pelo metodo de vault
+    de mesmo nome. Foi o que aconteceu com 'Collections.set': ele
+    resolvia para o 'set' do vault, e a mensagem falava de argumento
+    faltando — sem nenhuma pista da causa.
+    """
+    if name not in _MODULES:
+        return None
+    mod = _MODULES[name]
+    if callable(mod) and not isinstance(mod, dict):
+        mod = mod()
+    for extra in _COMPLEMENTOS.get(name, ()):
+        # Um modulo montado de duas partes. O complemento vence nos
+        # nomes repetidos: ele e o mais completo.
+        mod = {**mod, **extra()}
+    if isinstance(mod, dict):
+        mod.setdefault("__name__", name)
+    return mod
 
 
 def list_modules():
