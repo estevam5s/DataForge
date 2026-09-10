@@ -63,7 +63,7 @@ assert "u" in Forge.tabelas(db)`, lang: 'df' },
     middleware Kiln.csrf(SEGREDO)
 
     route GET "/form":
-        render "form.html" with {"csrf": Kiln.csrf_token(pedido, SEGREDO)}
+        render "form.html" with {"csrf": Kiln.csrf_token(req, SEGREDO)}
 
     route POST "/salvar":
         // só chega aqui com o token certo
@@ -80,7 +80,7 @@ Crypto.verify_password(tentativa, guardada)`, lang: 'df' },
   {"h3": "Limite de taxa e autenticação"},
   { code: `middleware Kiln.rate_limit(60, 60)     // 60 pedidos por minuto, por IP
 middleware Kiln.auth(conferir_token)
-middleware Kiln.guard(lambda p: p.session["admin"] ?? no, 403)`, lang: 'df' },
+middleware Kiln.guard(lambda req: (req["session"]["admin"] ?? no), 403)`, lang: 'df' },
   {"h3": "A ordem importa"},
   {"p": "Middleware roda na ordem em que foi declarado. O limite de taxa vem **antes** da autenticação — senão cada tentativa de força bruta paga o custo de verificar uma senha, que é justamente o custo que o PBKDF2 tornou alto de propósito."},
   { code: `server app on 8080:

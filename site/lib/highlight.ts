@@ -47,7 +47,7 @@ const KEYWORDS = new Set([
   // de um bloco 'server' — mas aqui colorimos sempre: num trecho de
   // documentação, 'route' é praticamente sempre a palavra do framework,
   // e deixá-la cinza esconde justamente o que o exemplo está ensinando.
-  'server', 'route', 'respond', 'render', 'redirect', 'middleware',
+  'server', 'route', 'respond', 'render', 'redirect', 'middleware', 'after',
   'mount', 'assets', 'views', 'ignite',
 ]);
 

@@ -3245,13 +3245,48 @@
      "tipo": "funcao"
     },
     {
+     "nome": "audit",
+     "sig": "(escrever, metodos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "auditoria",
+     "sig": "(escrever, metodos)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "auth",
      "sig": "(verificador, esquema)",
      "tipo": "funcao"
     },
     {
+     "nome": "body_limit",
+     "sig": "(bytes_maximos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "buscar",
+     "sig": "(itens, req, campos, parametro)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "cabecalhos_seguros",
      "sig": "(csp, hsts, frame, referrer, permissoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cache",
+     "sig": "(segundos, privado)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "comprimir",
+     "sig": "(minimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir",
+     "sig": "(dados, esquema)",
      "tipo": "funcao"
     },
     {
@@ -3330,8 +3365,18 @@
      "tipo": "funcao"
     },
     {
+     "nome": "idempotente",
+     "sig": "(janela)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "json",
      "sig": "(dados, status, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limite_de_corpo",
+     "sig": "(bytes_maximos)",
      "tipo": "funcao"
     },
     {
@@ -3357,6 +3402,16 @@
     {
      "nome": "options",
      "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ordenar",
+     "sig": "(itens, req, campos, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "paginar",
+     "sig": "(itens, req, por_pagina, teto)",
      "tipo": "funcao"
     },
     {
@@ -3392,6 +3447,11 @@
     {
      "nome": "render_string",
      "sig": "(texto, dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "request_id",
+     "sig": "(cabecalho)",
      "tipo": "funcao"
     },
     {
@@ -3477,6 +3537,16 @@
     {
      "nome": "use",
      "sig": "(app, funcao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "validar",
+     "sig": "(esquema, alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "validate",
+     "sig": "(esquema, alvo)",
      "tipo": "funcao"
     }
    ]

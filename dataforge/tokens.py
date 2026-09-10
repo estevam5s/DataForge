@@ -181,7 +181,8 @@ class TokenType(Enum):
     RESPOND = auto()         # respond  (envia a resposta)
     RENDER = auto()          # render   (renderiza um template)
     REDIRECT = auto()        # redirect (302 para outro caminho)
-    MIDDLEWARE = auto()      # middleware (roda antes das rotas)
+    MIDDLEWARE = auto()
+    AFTER = auto()          # after — middleware de saida      # middleware (roda antes das rotas)
     MOUNT = auto()           # mount    (junta outro server sob um prefixo)
     ASSETS = auto()          # assets   (arquivos estaticos)
     VIEWS = auto()           # views    (pasta de templates)
@@ -366,6 +367,7 @@ CONTEXTUAIS_KILN = {
     "render":     TokenType.RENDER,
     "redirect":   TokenType.REDIRECT,
     "middleware": TokenType.MIDDLEWARE,
+    "after":      TokenType.AFTER,
     "mount":      TokenType.MOUNT,
     "assets":     TokenType.ASSETS,
     "views":      TokenType.VIEWS,

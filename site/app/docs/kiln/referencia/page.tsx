@@ -7,12 +7,12 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Referência do Kiln",
-  description: "As 50 funções do módulo e as dez palavras da linguagem.",
+  description: "As 64 funções do módulo e as dez palavras da linguagem.",
 };
 
 const blocos: Bloco[] = [
   {
-    "p": "Esta página é gerada a partir de `dataforge/stdlib/kiln.py`. São **50 funções** — a sintaxe da linguagem (`server`, `route`, `respond`…) chama estas mesmas."
+    "p": "Esta página é gerada a partir de `dataforge/stdlib/kiln.py`. São **64 funções** — a sintaxe da linguagem (`server`, `route`, `respond`…) chama estas mesmas."
   },
   {
     "h2": "As palavras da linguagem"
@@ -234,6 +234,114 @@ const blocos: Bloco[] = [
         [
           "`Kiln.csrf_token(req, segredo=None)`",
           "Um token para pôr no formulário ou no fetch."
+        ],
+        [
+          "`Kiln.limite_de_corpo(bytes_maximos=1048576)`",
+          "Recusa corpo acima do teto, com 413. Sem ele, um POST de 2 GB derruba o processo sem exploit nenhum."
+        ],
+        [
+          "`Kiln.body_limit(bytes_maximos=1048576)`",
+          "O mesmo que `limite_de_corpo`, em inglês."
+        ]
+      ]
+    }
+  },
+  {
+    "h2": "Validação"
+  },
+  {
+    "table": {
+      "head": [
+        "Função",
+        "Faz"
+      ],
+      "rows": [
+        [
+          "`Kiln.validar(esquema, alvo='body')`",
+          "Middleware que recusa com 422 o que não casa com o esquema — e relata **todos** os campos errados de uma vez."
+        ],
+        [
+          "`Kiln.validate(esquema, alvo='body')`",
+          "O mesmo que `validar`, em inglês."
+        ],
+        [
+          "`Kiln.conferir(dados, esquema)`",
+          "Os problemas do vault, sem responder nada. Para quando o campo errado não é 422, e sim um padrão ou uma pergunta."
+        ]
+      ]
+    }
+  },
+  {
+    "h2": "Listagem"
+  },
+  {
+    "table": {
+      "head": [
+        "Função",
+        "Faz"
+      ],
+      "rows": [
+        [
+          "`Kiln.paginar(itens, req=None, por_pagina=20, teto=100)`",
+          "Uma fatia da lista com `pagina`, `total`, `paginas` e `tem_proxima`. `por_pagina` tem teto — ele vem de fora."
+        ],
+        [
+          "`Kiln.ordenar(itens, req=None, campos=None, padrao='')`",
+          "Ordena por `?ordenar=campo` ou `-campo`. A lista de campos permitidos não é conforto: ordenar por um campo que você nunca expôs revela a ordem dele."
+        ],
+        [
+          "`Kiln.buscar(itens, req=None, campos=(), parametro='q')`",
+          "Filtra por `?q=` nos campos que você indicar."
+        ]
+      ]
+    }
+  },
+  {
+    "h2": "Transferência"
+  },
+  {
+    "table": {
+      "head": [
+        "Função",
+        "Faz"
+      ],
+      "rows": [
+        [
+          "`Kiln.cache(segundos=60, privado=False)`",
+          "Cache-Control e ETag, com 304 quando o cliente já tem a versão."
+        ],
+        [
+          "`Kiln.comprimir(minimo=1024)`",
+          "gzip quando o cliente aceita e o corpo compensa. Não toca em imagem, vídeo nem zip — já comprimidos."
+        ],
+        [
+          "`Kiln.idempotente(janela=86400)`",
+          "Repetir com a mesma `Idempotency-Key` devolve o mesmo resultado, em vez de cobrar duas vezes."
+        ]
+      ]
+    }
+  },
+  {
+    "h2": "Observabilidade"
+  },
+  {
+    "table": {
+      "head": [
+        "Função",
+        "Faz"
+      ],
+      "rows": [
+        [
+          "`Kiln.request_id(cabecalho='X-Request-Id')`",
+          "Um id por pedido, no estado e na resposta. Mantém o que veio do proxy — trocar quebra a corrente."
+        ],
+        [
+          "`Kiln.audit(escrever=None, metodos=('POST', 'PUT', 'PATCH', 'DELETE'))`",
+          "Registra quem mudou o quê. Só métodos que mudam estado, e **sem o corpo**: ele carrega senha, cartão e token."
+        ],
+        [
+          "`Kiln.auditoria(escrever=None, metodos=('POST', 'PUT', 'PATCH', 'DELETE'))`",
+          "O mesmo que `audit`, em português."
         ]
       ]
     }
@@ -439,13 +547,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'as-palavras-da-linguagem', text: "As palavras da linguagem", level: 2 as const }, { id: 'aplicacao', text: "Aplicação", level: 2 as const }, { id: 'rotas', text: "Rotas", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'seguranca', text: "Segurança", level: 2 as const }, { id: 'respostas', text: "Respostas", level: 2 as const }, { id: 'sessao', text: "Sessão", level: 2 as const }, { id: 'views', text: "Views", level: 2 as const }, { id: 'ciclo-de-vida', text: "Ciclo de vida", level: 2 as const }, { id: 'a-requisicao', text: "A requisição", level: 2 as const }, { id: 'os-status-com-frase-pronta', text: "Os status com frase pronta", level: 2 as const }];
+const headings = [{ id: 'as-palavras-da-linguagem', text: "As palavras da linguagem", level: 2 as const }, { id: 'aplicacao', text: "Aplicação", level: 2 as const }, { id: 'rotas', text: "Rotas", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'seguranca', text: "Segurança", level: 2 as const }, { id: 'validacao', text: "Validação", level: 2 as const }, { id: 'listagem', text: "Listagem", level: 2 as const }, { id: 'transferencia', text: "Transferência", level: 2 as const }, { id: 'observabilidade', text: "Observabilidade", level: 2 as const }, { id: 'respostas', text: "Respostas", level: 2 as const }, { id: 'sessao', text: "Sessão", level: 2 as const }, { id: 'views', text: "Views", level: 2 as const }, { id: 'ciclo-de-vida', text: "Ciclo de vida", level: 2 as const }, { id: 'a-requisicao', text: "A requisição", level: 2 as const }, { id: 'os-status-com-frase-pronta', text: "Os status com frase pronta", level: 2 as const }];
 
 export default function Page() {
   return (
     <DocPage
       title="Referência do Kiln"
-      description="As 50 funções do módulo e as dez palavras da linguagem."
+      description="As 64 funções do módulo e as dez palavras da linguagem."
       href="/docs/kiln/referencia"
       headings={headings}
     >

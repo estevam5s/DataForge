@@ -856,8 +856,14 @@ class RedirectStatement(ASTNode):
 
 @dataclass
 class MiddlewareStatement(ASTNode):
-    """middleware <expr> — roda antes de toda rota do server."""
+    """middleware <expr> — antes da rota;  after <expr> — depois dela.
+
+    Sao o mesmo no com um sinalizador, e nao dois: o que muda e a fila
+    em que a funcao entra, nao a forma de ler nem de checar. Um no
+    separado obrigaria a duplicar o metodo do typechecker para nada.
+    """
     value: Any = None
+    depois: bool = False
 
 
 @dataclass

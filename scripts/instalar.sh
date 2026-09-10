@@ -24,6 +24,10 @@ set -eu
 VERSAO="${DATAFORGE_VERSION:-1.0.0}"
 PREFIXO="${DATAFORGE_PREFIX:-$HOME/.dataforge}"
 SITE="${DATAFORGE_SITE:-https://dataforge-lang.vercel.app}"
+
+#: A marca que identifica a linha que ESTE script escreveu no rc do
+#: shell. Sem ela, reinstalar empilha um 'export PATH' a cada vez.
+MARCA_PATH="# DataForge — adicionado pelo instalador"
 REPO="${DATAFORGE_REPO:-https://github.com/estevam5s/DataForge}"
 PYTHON_MINIMO="3.10"
 
@@ -60,6 +64,9 @@ ciano="${esc}[1;36m"; apagado="${esc}[0;90m"; fim="${esc}[0m"
 
 info()  { printf "${ciano}==>${fim} %s\n" "$1"; }
 ok()    { printf "${verde}  ✓${fim} %s\n" "$1"; }
+#: '/Users/ana/.zshrc' -> '~/.zshrc'. Caminho absoluto numa mensagem
+#: rouba a atencao do que importa.
+curto() { printf '%s' "$1" | sed "s|^$HOME|~|"; }
 aviso() { printf "${amarelo}  !${fim} %s\n" "$1"; }
 erro()  { printf "${vermelho}erro:${fim} %s\n" "$1" >&2; exit 1; }
 
@@ -229,10 +236,7 @@ ATALHO
         printf "    ${ciano}dataforge repl${fim}\n"
         printf "    ${ciano}dataforge init meu-projeto${fim}\n\n"
     else
-        printf "  ${amarelo}Falta um passo:${fim} ponha o DataForge no seu PATH.\n\n"
-        printf "    ${ciano}export PATH=\"%s/bin:\$PATH\"${fim}\n\n" "$PREFIXO"
-        printf "  Para valer sempre, acrescente essa linha ao seu\n"
-        printf "  ~/.bashrc, ~/.zshrc ou ~/.profile.\n\n"
+        configurar_path
     fi
 
     printf "  ${apagado}documentação: https://dataforge-lang.vercel.app/docs${fim}\n"
@@ -275,6 +279,61 @@ contar_instalacao() {
 }
 
 # ── Extras ───────────────────────────────────────────────────
+
+#: Os arquivos de inicializacao de cada shell, do mais especifico ao
+#: mais geral. O zsh nao le ~/.bashrc e o bash nao le ~/.zshrc: escrever
+#: no arquivo errado e o mesmo que nao escrever.
+arquivo_de_rc() {
+    nome_do_shell="$(basename "${SHELL:-/bin/sh}")"
+    case "$nome_do_shell" in
+        zsh)  printf '%s/.zshrc'   "$HOME" ;;
+        bash)
+            # No macOS o bash de login le .bash_profile e ignora o
+            # .bashrc; no Linux e o contrario. Preferimos o que ja
+            # existe, e caimos no .profile quando nenhum existe.
+            if [ -f "$HOME/.bashrc" ]; then printf '%s/.bashrc' "$HOME"
+            elif [ -f "$HOME/.bash_profile" ]; then printf '%s/.bash_profile' "$HOME"
+            else printf '%s/.profile' "$HOME"; fi ;;
+        fish) printf '%s/.config/fish/config.fish' "$HOME" ;;
+        *)    printf '%s/.profile' "$HOME" ;;
+    esac
+}
+
+#: Acrescenta o PATH ao rc do shell, uma vez so.
+#:
+#: A marca existe para o script poder rodar de novo — atualizacao,
+#: reinstalacao — sem empilhar uma linha a cada vez. Um ~/.zshrc com
+#: quinze 'export PATH' iguais e o que acontece quando ninguem confere.
+configurar_path() {
+    RC="$(arquivo_de_rc)"
+    LINHA="export PATH=\"$PREFIXO/bin:\$PATH\""
+    case "$RC" in
+        *config.fish) LINHA="fish_add_path $PREFIXO/bin" ;;
+    esac
+
+    if [ -f "$RC" ] && grep -qF "$MARCA_PATH" "$RC" 2>/dev/null; then
+        ok "PATH já estava configurado em $(curto "$RC")"
+    else
+        mkdir -p "$(dirname "$RC")" 2>/dev/null || true
+        if {
+            printf '\n%s\n' "$MARCA_PATH"
+            printf '%s\n' "$LINHA"
+        } >> "$RC" 2>/dev/null; then
+            ok "PATH configurado em $(curto "$RC")"
+        else
+            printf "  ${amarelo}Nao consegui escrever em %s.${fim}\n\n" "$RC"
+            printf "    ${ciano}%s${fim}\n\n" "$LINHA"
+            return 0
+        fi
+    fi
+
+    printf "\n  Pronto. Nesta janela, ative agora:\n\n"
+    printf "    ${ciano}export PATH=\"%s/bin:\$PATH\"${fim}\n\n" "$PREFIXO"
+    printf "  ${apagado}Nas proximas, ja vem sozinho.${fim}\n\n"
+    printf "  Comece por:\n\n"
+    printf "    ${ciano}dataforge repl${fim}\n"
+    printf "    ${ciano}dataforge init meu-projeto${fim}\n\n"
+}
 
 instalar_exemplos() {
     # Os exemplos vêm do tarball já baixado, se ele os trouxer. Baixar

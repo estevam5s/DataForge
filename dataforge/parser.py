@@ -154,6 +154,7 @@ class Parser:
         return {
             "route":      self.parse_route,
             "middleware": self.parse_middleware,
+            "after":      self.parse_after,
             "mount":      self.parse_mount,
             "assets":     self.parse_assets,
             "views":      self.parse_views,
@@ -545,6 +546,13 @@ class Parser:
         tok = self.advance()
         return ast.MiddlewareStatement(line=tok.line, column=tok.column,
                                        value=self.parse_expression())
+
+    def parse_after(self):
+        """after <expr> — middleware que roda DEPOIS, com a resposta."""
+        tok = self.advance()
+        return ast.MiddlewareStatement(line=tok.line, column=tok.column,
+                                       value=self.parse_expression(),
+                                       depois=True)
 
     def parse_mount(self):
         """mount <server> at <prefixo>"""

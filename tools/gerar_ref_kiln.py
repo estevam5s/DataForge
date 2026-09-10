@@ -32,7 +32,11 @@ GRUPOS = [
     ("Middleware", ["use", "after", "on_error", "cors", "logger",
                     "rate_limit", "auth", "guard"]),
     ("Segurança", ["secure_headers", "cabecalhos_seguros", "csrf",
-                   "csrf_token"]),
+                   "csrf_token", "limite_de_corpo", "body_limit"]),
+    ("Validação", ["validar", "validate", "conferir"]),
+    ("Listagem", ["paginar", "ordenar", "buscar"]),
+    ("Transferência", ["cache", "comprimir", "idempotente"]),
+    ("Observabilidade", ["request_id", "audit", "auditoria"]),
     ("Respostas", ["json", "html", "text", "status", "redirect", "file",
                    "header", "cookie"]),
     ("Sessão", ["session_start", "session_end", "sign", "unsign"]),
@@ -77,6 +81,30 @@ RESUMOS = {
     "csrf": ("Recusa POST/PUT/PATCH/DELETE sem um token que você assinou. "
              "Métodos seguros passam."),
     "csrf_token": "Um token para pôr no formulário ou no fetch.",
+    "limite_de_corpo": ("Recusa corpo acima do teto, com 413. Sem ele, um POST "
+                        "de 2 GB derruba o processo sem exploit nenhum."),
+    "body_limit": "O mesmo que `limite_de_corpo`, em inglês.",
+    "validar": ("Middleware que recusa com 422 o que não casa com o esquema — "
+                "e relata **todos** os campos errados de uma vez."),
+    "validate": "O mesmo que `validar`, em inglês.",
+    "conferir": ("Os problemas do vault, sem responder nada. Para quando o "
+                 "campo errado não é 422, e sim um padrão ou uma pergunta."),
+    "paginar": ("Uma fatia da lista com `pagina`, `total`, `paginas` e "
+                "`tem_proxima`. `por_pagina` tem teto — ele vem de fora."),
+    "ordenar": ("Ordena por `?ordenar=campo` ou `-campo`. A lista de campos "
+                "permitidos não é conforto: ordenar por um campo que você "
+                "nunca expôs revela a ordem dele."),
+    "buscar": "Filtra por `?q=` nos campos que você indicar.",
+    "cache": "Cache-Control e ETag, com 304 quando o cliente já tem a versão.",
+    "comprimir": ("gzip quando o cliente aceita e o corpo compensa. Não toca "
+                  "em imagem, vídeo nem zip — já comprimidos."),
+    "idempotente": ("Repetir com a mesma `Idempotency-Key` devolve o mesmo "
+                    "resultado, em vez de cobrar duas vezes."),
+    "request_id": ("Um id por pedido, no estado e na resposta. Mantém o que "
+                   "veio do proxy — trocar quebra a corrente."),
+    "audit": ("Registra quem mudou o quê. Só métodos que mudam estado, e "
+              "**sem o corpo**: ele carrega senha, cartão e token."),
+    "auditoria": "O mesmo que `audit`, em português.",
     "json": "Resposta JSON.",
     "html": "Resposta HTML.",
     "text": "Resposta em texto puro.",

@@ -136,6 +136,7 @@ SIGNIFICADOS_CONTEXTUAIS = {
     "render": ("renderiza um template", "render_template"),
     "redirect": ("redireciona", "redirect"),
     "middleware": ("roda antes de toda rota", "app.use"),
+    "after": ("roda depois, com a resposta na mão", "app.apos"),
     "mount": ("monta outra aplicação sob um prefixo", "app.mount"),
     "assets": ("serve arquivos estáticos", "static_folder"),
     "views": ("pasta dos templates", "template_folder"),

@@ -2406,8 +2406,24 @@ class Interpreter:
         self._sair_com(ArcaneKiln._redirect(destino, status))
 
     def exec_MiddlewareStatement(self, node: ast.MiddlewareStatement, env):
-        app = self._app_do_escopo(env, node, "middleware")
-        app.usar(self.evaluate(node.value, env))
+        palavra = "after" if node.depois else "middleware"
+        app = self._app_do_escopo(env, node, palavra)
+        funcao = self.evaluate(node.value, env)
+
+        if node.depois:
+            app.apos(funcao)
+            return None
+
+        app.usar(funcao)
+        # Um middleware de ENTRADA pode trazer a metade de SAIDA junto —
+        # 'request_id' poe o id no estado e precisa devolve-lo no
+        # cabecalho; 'idempotente' guarda a resposta que acabou de sair.
+        # Sem isto, quem usa teria de escrever as duas linhas e lembrar
+        # da ordem; esquecer a segunda deixa a primeira pela metade, em
+        # silencio.
+        saida = getattr(funcao, "depois", None)
+        if callable(saida):
+            app.apos(saida)
         return None
 
     def exec_MountStatement(self, node: ast.MountStatement, env):

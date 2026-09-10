@@ -13,6 +13,7 @@ import socket
 import sys
 from contextlib import redirect_stdout
 
+import json
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -525,3 +526,246 @@ class TestCsrf:
         r = ArcaneKiln._test(app, "POST", "/enviar",
                              corpo={"_csrf": self._token(app)})
         assert r["status"] == 200
+
+
+# ═══════════════════════════════════════════════════════════
+#  Validacao, listagem, cache e limites
+# ═══════════════════════════════════════════════════════════
+
+ESQUEMA = {
+    "nome": {"tipo": "texto", "obrigatorio": True, "min": 2, "max": 40},
+    "idade": {"tipo": "inteiro", "min": 0, "max": 130},
+    "email": {"tipo": "email"},
+    "papel": {"tipo": "texto", "em": ["admin", "leitor"]},
+}
+
+
+class TestValidar:
+    def _app(self):
+        app = App("s")
+        app.usar(ArcaneKiln._validar(ESQUEMA))
+        app.rota("POST", "/u", lambda req: {"ok": 1})
+        return app
+
+    def test_corpo_certo_passa(self):
+        r = ArcaneKiln._test(self._app(), "POST", "/u", corpo={
+            "nome": "Ana", "idade": 30, "email": "a@b.co", "papel": "admin"})
+        assert r["status"] == 200
+
+    def test_422_e_nao_400(self):
+        """O corpo foi entendido; o que falhou foi o conteudo."""
+        r = ArcaneKiln._test(self._app(), "POST", "/u", corpo={})
+        assert r["status"] == 422
+
+    def test_relata_todos_os_campos_de_uma_vez(self):
+        """Um erro por envio faz a pessoa desistir no terceiro."""
+        r = ArcaneKiln._test(self._app(), "POST", "/u", corpo={
+            "nome": "A", "idade": 999, "email": "nao-e-email", "papel": "x"})
+        campos = r["body"]["campos"]
+        assert set(campos) == {"nome", "idade", "email", "papel"}
+
+    def test_campo_opcional_ausente_nao_e_erro(self):
+        r = ArcaneKiln._test(self._app(), "POST", "/u", corpo={"nome": "Ana"})
+        assert r["status"] == 200
+
+    def test_booleano_nao_passa_por_inteiro(self):
+        """Em Python 'yes' é 1; aqui não pode valer como idade."""
+        r = ArcaneKiln._test(self._app(), "POST", "/u",
+                             corpo={"nome": "Ana", "idade": True})
+        assert r["status"] == 422
+
+
+class TestPaginarOrdenarBuscar:
+    ITENS = [{"id": i, "nome": f"item {i:02d}", "preco": (100 - i)}
+             for i in range(1, 31)]
+
+    def _req(self, consulta):
+        return {"query": consulta, "method": "GET"}
+
+    def test_primeira_pagina_e_a_meta(self):
+        p = ArcaneKiln._paginar(self.ITENS, self._req({}))
+        assert len(p["itens"]) == 20
+        assert (p["pagina"], p["total"], p["paginas"]) == (1, 30, 2)
+        assert p["tem_proxima"] and not p["tem_anterior"]
+
+    def test_segunda_pagina(self):
+        p = ArcaneKiln._paginar(self.ITENS, self._req({"pagina": "2"}))
+        assert len(p["itens"]) == 10
+        assert p["tem_anterior"] and not p["tem_proxima"]
+
+    def test_por_pagina_tem_teto(self):
+        """'?por_pagina=1000000' derrubaria o servidor sem ferramenta."""
+        p = ArcaneKiln._paginar(self.ITENS, self._req({"por_pagina": "1000000"}))
+        assert p["por_pagina"] == 100
+
+    def test_pagina_invalida_nao_estoura(self):
+        for ruim in ("abc", "-5", "0", ""):
+            p = ArcaneKiln._paginar(self.ITENS, self._req({"pagina": ruim}))
+            assert p["pagina"] == 1
+
+    def test_ordenar_crescente_e_descendente(self):
+        campos = ["preco"]
+        asc = ArcaneKiln._ordenar(self.ITENS, self._req({"ordenar": "preco"}), campos)
+        des = ArcaneKiln._ordenar(self.ITENS, self._req({"ordenar": "-preco"}), campos)
+        assert asc[0]["preco"] < asc[-1]["preco"]
+        assert des[0]["preco"] > des[-1]["preco"]
+
+    def test_ordenar_so_pelos_campos_permitidos(self):
+        """Ordenar por um campo nao exposto revela a ordem dele."""
+        fora = ArcaneKiln._ordenar(self.ITENS, self._req({"ordenar": "id"}),
+                                   ["preco"])
+        assert fora == list(self.ITENS)
+
+    def test_ordenar_com_tipos_misturados_nao_estoura(self):
+        bagunca = [{"v": 3}, {"v": None}, {"v": "a"}, {"v": True}]
+        r = ArcaneKiln._ordenar(bagunca, self._req({"ordenar": "v"}), ["v"])
+        assert len(r) == 4
+
+    def test_buscar(self):
+        r = ArcaneKiln._buscar(self.ITENS, self._req({"q": "item 07"}), ["nome"])
+        assert len(r) == 1 and r[0]["id"] == 7
+
+    def test_buscar_sem_termo_devolve_tudo(self):
+        assert len(ArcaneKiln._buscar(self.ITENS, self._req({}), ["nome"])) == 30
+
+
+class TestCacheEtag:
+    def _app(self):
+        app = App("s")
+        app.apos(ArcaneKiln._cache(120))
+        app.rota("GET", "/", lambda req: {"v": 1})
+        return app
+
+    def test_poe_cache_control_e_etag(self):
+        h = ArcaneKiln._test(self._app(), "GET", "/")["headers"]
+        assert "max-age=120" in h["Cache-Control"]
+        assert h["ETag"].startswith('W/"')
+
+    def test_304_quando_nada_mudou(self):
+        app = self._app()
+        etag = ArcaneKiln._test(app, "GET", "/")["headers"]["ETag"]
+        r = ArcaneKiln._test(app, "GET", "/",
+                             cabecalhos={"If-None-Match": etag})
+        assert r["status"] == 304
+
+    def test_etag_diferente_devolve_200(self):
+        r = ArcaneKiln._test(self._app(), "GET", "/",
+                             cabecalhos={"If-None-Match": 'W/"outra"'})
+        assert r["status"] == 200
+
+
+class TestComprimir:
+    def _app(self, tamanho=5000):
+        app = App("s")
+        app.apos(ArcaneKiln._comprimir())
+        app.rota("GET", "/", lambda req: ArcaneKiln._text("x" * tamanho))
+        return app
+
+    def test_comprime_quando_o_cliente_aceita(self):
+        r = ArcaneKiln._test(self._app(), "GET", "/",
+                             cabecalhos={"Accept-Encoding": "gzip, deflate"})
+        assert r["headers"]["Content-Encoding"] == "gzip"
+        assert r["headers"]["Vary"] == "Accept-Encoding"
+
+    def test_nao_comprime_sem_accept_encoding(self):
+        r = ArcaneKiln._test(self._app(), "GET", "/")
+        assert "Content-Encoding" not in r["headers"]
+
+    def test_corpo_pequeno_nao_compensa(self):
+        r = ArcaneKiln._test(self._app(10), "GET", "/",
+                             cabecalhos={"Accept-Encoding": "gzip"})
+        assert "Content-Encoding" not in r["headers"]
+
+
+class TestLimiteDeCorpo:
+    def _app(self, teto=100):
+        app = App("s")
+        app.usar(ArcaneKiln._limite_de_corpo(teto))
+        app.rota("POST", "/", lambda req: {"ok": 1})
+        return app
+
+    def test_corpo_pequeno_passa(self):
+        assert ArcaneKiln._test(self._app(), "POST", "/",
+                                corpo={"a": 1})["status"] == 200
+
+    def test_corpo_grande_e_413(self):
+        r = ArcaneKiln._test(self._app(), "POST", "/", corpo={"a": "x" * 500})
+        assert r["status"] == 413
+
+
+class TestIdempotencia:
+    def _app(self):
+        contador = {"n": 0}
+        app = App("s")
+        meio = ArcaneKiln._idempotente()
+        app.usar(meio)
+        app.apos(meio.depois)
+
+        def cobrar(req):
+            contador["n"] += 1
+            return {"cobranca": contador["n"]}
+
+        app.rota("POST", "/cobrar", cobrar)
+        return app, contador
+
+    def test_sem_chave_cobra_de_novo(self):
+        app, c = self._app()
+        ArcaneKiln._test(app, "POST", "/cobrar")
+        ArcaneKiln._test(app, "POST", "/cobrar")
+        assert c["n"] == 2
+
+    def test_a_mesma_chave_nao_cobra_duas_vezes(self):
+        """O caso real: a resposta se perde e o cliente reenvia."""
+        app, c = self._app()
+        cabs = {"Idempotency-Key": "abc-123"}
+        um = ArcaneKiln._test(app, "POST", "/cobrar", cabecalhos=cabs)
+        dois = ArcaneKiln._test(app, "POST", "/cobrar", cabecalhos=cabs)
+        assert c["n"] == 1
+        assert um["body"] == dois["body"]
+        assert dois["headers"]["Idempotent-Replay"] == "true"
+
+    def test_chaves_diferentes_cobram_separado(self):
+        app, c = self._app()
+        ArcaneKiln._test(app, "POST", "/cobrar", cabecalhos={"Idempotency-Key": "a"})
+        ArcaneKiln._test(app, "POST", "/cobrar", cabecalhos={"Idempotency-Key": "b"})
+        assert c["n"] == 2
+
+
+class TestRequestIdEAudit:
+    def test_gera_e_devolve_o_id(self):
+        app = App("s")
+        meio = ArcaneKiln._request_id()
+        app.usar(meio)
+        app.apos(meio.depois)
+        app.rota("GET", "/", lambda req: {"id": req["state"]["request_id"]})
+        r = ArcaneKiln._test(app, "GET", "/")
+        assert r["headers"]["X-Request-Id"] == r["body"]["id"]
+
+    def test_mantem_o_id_que_veio_de_fora(self):
+        """O proxy na frente ja gerou; trocar quebra a corrente."""
+        app = App("s")
+        meio = ArcaneKiln._request_id()
+        app.usar(meio)
+        app.rota("GET", "/", lambda req: {"id": req["state"]["request_id"]})
+        r = ArcaneKiln._test(app, "GET", "/",
+                             cabecalhos={"X-Request-Id": "do-proxy"})
+        assert r["body"]["id"] == "do-proxy"
+
+    def test_audit_so_registra_o_que_muda_estado(self):
+        app = App("s")
+        registro = ArcaneKiln._audit()
+        app.apos(registro)
+        app.rota("GET", "/x", lambda req: {"ok": 1})
+        app.rota("POST", "/x", lambda req: {"ok": 1})
+        ArcaneKiln._test(app, "GET", "/x")
+        ArcaneKiln._test(app, "POST", "/x")
+        assert [l["metodo"] for l in registro.registro] == ["POST"]
+
+    def test_audit_nao_guarda_o_corpo(self):
+        """Ele carrega senha, cartao e token."""
+        app = App("s")
+        registro = ArcaneKiln._audit()
+        app.apos(registro)
+        app.rota("POST", "/login", lambda req: {"ok": 1})
+        ArcaneKiln._test(app, "POST", "/login", corpo={"senha": "hunter2"})
+        assert "hunter2" not in json.dumps(registro.registro)

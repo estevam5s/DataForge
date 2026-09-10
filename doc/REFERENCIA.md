@@ -95,8 +95,8 @@ para tirar de quem escreve. O parser só os trata como palavra-chave quando
 o que vem em seguida confirma a intenção — `get nome(` é propriedade,
 `get := 1` é variável.
 
-`assets`, `ignite`, `middleware`, `mount`, `redirect`, `render`, `respond`,
-`route`, `server` e `views` seguem a mesma regra, mas dentro de um bloco
+`after`, `assets`, `ignite`, `middleware`, `mount`, `redirect`, `render`,
+`respond`, `route`, `server` e `views` seguem a mesma regra, mas dentro de um bloco
 **`server`** — são as palavras do [Kiln](KILN.md), o framework web. Fora
 dali continuam livres:
 

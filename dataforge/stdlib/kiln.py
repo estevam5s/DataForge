@@ -18,6 +18,8 @@ Sem dependencia externa: http.server da biblioteca padrao do Python,
 com roteamento, middleware, sessao e templates escritos aqui.
 """
 
+import gzip
+import hashlib
 import html as _html
 import json
 import mimetypes
@@ -298,23 +300,8 @@ class _Handler(BaseHTTPRequestHandler):
         self._enviar(resp)
 
     def _enviar(self, resp):
-        corpo = resp.get("body", "")
-        tipo = resp.get("content_type")
-
-        if isinstance(corpo, (dict, list)) or corpo is None:
-            dados = json.dumps(corpo, ensure_ascii=False, default=str,
-                               indent=2).encode("utf-8")
-            tipo = tipo or "application/json; charset=utf-8"
-        elif isinstance(corpo, bytes):
-            dados = corpo
-            tipo = tipo or "application/octet-stream"
-        else:
-            texto = str(corpo)
-            dados = texto.encode("utf-8")
-            if tipo is None:
-                tipo = ("text/html; charset=utf-8"
-                        if texto.lstrip()[:1] == "<"
-                        else "text/plain; charset=utf-8")
+        dados, tipo = _serializar(resp.get("body", ""),
+                                  resp.get("content_type"))
 
         status = int(resp.get("status", 200))
         self.send_response(status, RAZOES.get(status, ""))
@@ -560,6 +547,122 @@ import base64
 import hashlib
 import hmac
 import secrets
+
+
+def _serializar(corpo, tipo=None):
+    """(bytes, content-type) de um corpo de resposta.
+
+    Existe porque DOIS lugares precisam da mesma decisao: o envio pelo
+    socket e a compressao, que precisa dos bytes finais para saber se
+    vale a pena e para troca-los. Duplicar a regra faria a compressao
+    ver um corpo diferente do que sai na rede — e um 'Content-Length'
+    que nao bate trava o navegador esperando bytes que nao vem.
+    """
+    if isinstance(corpo, (dict, list)) or corpo is None:
+        return (json.dumps(corpo, ensure_ascii=False, default=str,
+                           indent=2).encode("utf-8"),
+                tipo or "application/json; charset=utf-8")
+    if isinstance(corpo, (bytes, bytearray)):
+        return bytes(corpo), tipo or "application/octet-stream"
+    texto = str(corpo)
+    if tipo is None:
+        tipo = ("text/html; charset=utf-8" if texto.lstrip()[:1] == "<"
+                else "text/plain; charset=utf-8")
+    return texto.encode("utf-8"), tipo
+
+
+def _inteiro(valor, padrao=0):
+    """Um inteiro vindo de fora, ou o padrao. Nunca levanta."""
+    try:
+        return int(str(valor).strip())
+    except (TypeError, ValueError):
+        return padrao
+
+
+def _campo(item, nome):
+    """O campo, venha ele de vault, record ou instancia."""
+    if isinstance(item, dict):
+        return item.get(nome)
+    return getattr(item, nome, None)
+
+
+def _chave_ordenavel(item, campo):
+    """Uma chave que nunca estoura ao comparar tipos diferentes.
+
+    'sorted' levanta quando a lista mistura None com texto, ou texto
+    com numero — e uma lista vinda de banco mistura o tempo todo. O par
+    (categoria, valor) ordena entre categorias primeiro, e so entao
+    dentro delas.
+    """
+    valor = _campo(item, campo)
+    if valor is None:
+        return (0, "")
+    if isinstance(valor, bool):
+        return (1, int(valor))
+    if isinstance(valor, (int, float)):
+        return (1, valor)
+    return (2, str(valor).lower())
+
+
+def _etag(corpo):
+    """Uma etiqueta estavel para o conteudo.
+
+    Aspas e W/ fazem parte do formato: sem elas o navegador ignora o
+    cabecalho em silencio, e o 304 nunca acontece.
+    """
+    bruto = corpo if isinstance(corpo, (bytes, bytearray)) else \
+        json.dumps(corpo, sort_keys=True, default=str).encode() \
+        if isinstance(corpo, (dict, list)) else str(corpo).encode()
+    return 'W/"' + hashlib.sha256(bruto).hexdigest()[:24] + '"'
+
+
+#: Os tipos que 'Kiln.validar' conhece, e como cada um confere.
+_TIPOS_VALIDOS = {
+    "texto": lambda v: isinstance(v, str),
+    "inteiro": lambda v: isinstance(v, int) and not isinstance(v, bool),
+    "numero": lambda v: isinstance(v, (int, float)) and not isinstance(v, bool),
+    "booleano": lambda v: isinstance(v, bool),
+    "lista": lambda v: isinstance(v, list),
+    "vault": lambda v: isinstance(v, dict),
+    "email": lambda v: isinstance(v, str) and
+                       re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$", v) is not None,
+}
+
+
+def _conferir_esquema(dados, esquema):
+    """Todos os problemas de uma vez — nao so o primeiro.
+
+    Devolver um erro por envio faz quem preenche descobrir os cinco
+    problemas em cinco tentativas, e a maioria desiste no terceiro.
+    """
+    problemas = {}
+    for campo, regra in (esquema or {}).items():
+        regra = regra if isinstance(regra, dict) else {"tipo": str(regra)}
+        presente = campo in dados and dados[campo] not in (None, "")
+        if not presente:
+            if regra.get("obrigatorio"):
+                problemas[campo] = "obrigatório"
+            continue
+
+        valor = dados[campo]
+        tipo = regra.get("tipo")
+        if tipo and tipo in _TIPOS_VALIDOS and not _TIPOS_VALIDOS[tipo](valor):
+            problemas[campo] = f"esperava {tipo}"
+            continue
+
+        tamanho = len(valor) if isinstance(valor, (str, list, dict)) else valor
+        if "min" in regra and isinstance(tamanho, (int, float)) \
+                and tamanho < regra["min"]:
+            problemas[campo] = f"mínimo {regra['min']}"
+        elif "max" in regra and isinstance(tamanho, (int, float)) \
+                and tamanho > regra["max"]:
+            problemas[campo] = f"máximo {regra['max']}"
+        elif "em" in regra and valor not in regra["em"]:
+            problemas[campo] = "valor fora da lista permitida"
+        elif "padrao" in regra and isinstance(valor, str) \
+                and re.match(regra["padrao"], valor) is None:
+            problemas[campo] = "formato inválido"
+    return problemas
 
 
 def _assinar(dados, segredo):
@@ -876,6 +979,285 @@ class ArcaneKiln:
                 "como middleware, ou passe o segredo aqui")
         return _assinar({"t": int(time.time())}, chave)
 
+    # ── validacao ───────────────────────────────────────────
+
+    @staticmethod
+    def _validar(esquema, alvo="body"):
+        """Recusa o pedido que nao casa com o esquema, com 422.
+
+            middleware Kiln.validar({
+                "nome":  {"tipo": "texto", "obrigatorio": yes, "min": 2},
+                "idade": {"tipo": "inteiro", "min": 0, "max": 130},
+                "email": {"tipo": "email"},
+            })
+
+        Ele responde com TODOS os campos errados de uma vez, nao com o
+        primeiro. Um formulario que corrige um erro por envio faz o
+        usuario descobrir os cinco problemas em cinco tentativas — e a
+        maioria desiste no terceiro.
+
+        422 e nao 400: o corpo foi entendido (e JSON valido), o que
+        falhou foi o CONTEUDO. Um cliente consegue distinguir "mandei
+        lixo" de "faltou um campo".
+        """
+        def middleware(req):
+            dados = req.get(alvo) or {}
+            if not isinstance(dados, dict):
+                return resposta({"erro": f"esperava um vault em '{alvo}'"}, 422)
+            problemas = _conferir_esquema(dados, esquema)
+            if problemas:
+                return resposta(
+                    {"erro": "dados inválidos", "campos": problemas}, 422)
+            return None
+        return middleware
+
+    # ── paginacao, ordenacao e busca ────────────────────────
+
+    @staticmethod
+    def _paginar(itens, req=None, por_pagina=20, teto=100):
+        """Uma fatia da lista, com o que o cliente precisa para navegar.
+
+        Le 'pagina' e 'por_pagina' da query. O TETO existe porque
+        'por_pagina' vem de fora: sem ele, '?por_pagina=1000000' e um
+        pedido que derruba o servidor sem nenhuma ferramenta especial.
+        """
+        consulta = (req or {}).get("query", {}) or {}
+        pagina = max(1, _inteiro(consulta.get("pagina"), 1))
+        tamanho = min(teto, max(1, _inteiro(consulta.get("por_pagina"),
+                                            por_pagina)))
+        total = len(itens)
+        paginas = max(1, -(-total // tamanho))     # divisao para cima
+        inicio = (pagina - 1) * tamanho
+        return {
+            "itens": list(itens[inicio:inicio + tamanho]),
+            "pagina": pagina,
+            "por_pagina": tamanho,
+            "total": total,
+            "paginas": paginas,
+            "tem_proxima": pagina < paginas,
+            "tem_anterior": pagina > 1,
+        }
+
+    @staticmethod
+    def _ordenar(itens, req=None, campos=None, padrao=""):
+        """Ordena por '?ordenar=campo' ou '?ordenar=-campo' (descendente).
+
+        A lista 'campos' NAO e conforto: sem ela, o cliente escolhe por
+        qual campo ordenar, e isso inclui campos que voce nunca quis
+        expor. Ordenar por 'senha_hash' revela a ordem deles.
+        """
+        pedido = ((req or {}).get("query", {}) or {}).get("ordenar") or padrao
+        if not pedido:
+            return list(itens)
+        desc = pedido.startswith("-")
+        campo = pedido.lstrip("-+")
+        if campos is not None and campo not in campos:
+            return list(itens)
+        return sorted(itens, key=lambda i: _chave_ordenavel(i, campo),
+                      reverse=desc)
+
+    @staticmethod
+    def _buscar(itens, req=None, campos=(), parametro="q"):
+        """Filtra por '?q=texto', olhando os campos que voce indicar."""
+        termo = (((req or {}).get("query", {}) or {}).get(parametro) or "").strip()
+        if not termo:
+            return list(itens)
+        alvo = termo.lower()
+        return [i for i in itens
+                if any(alvo in str(_campo(i, c) or "").lower() for c in campos)]
+
+    # ── identificacao e registro ────────────────────────────
+
+    @staticmethod
+    def _request_id(cabecalho="X-Request-Id"):
+        """Um id por pedido, no estado e na resposta.
+
+        Ele existe para juntar as pontas: a linha do log, o erro que o
+        usuario viu e o pedido que o proxy registrou sao o mesmo evento,
+        e sem um id comum ninguem prova isso depois.
+
+        Um id que ja veio de fora e MANTIDO — o proxy na frente ja o
+        gerou, e trocar quebra a corrente.
+        """
+        def middleware(req):
+            cabs = req.get("headers") or {}
+            atual = cabs.get(cabecalho.lower()) or cabs.get(cabecalho)
+            req["state"]["request_id"] = atual or secrets.token_hex(8)
+            return None
+
+        def depois(req, resp):
+            ident = req.get("state", {}).get("request_id")
+            if ident:
+                resp["headers"].setdefault(cabecalho, ident)
+            return resp
+
+        middleware.depois = depois
+        return middleware
+
+    @staticmethod
+    def _audit(escrever=None, metodos=("POST", "PUT", "PATCH", "DELETE")):
+        """Registra quem mudou o que, e quando.
+
+        So os metodos que MUDAM estado. Auditar GET enche o registro de
+        ruido e esconde justamente o que se procura numa investigacao.
+
+        O corpo nao entra: ele carrega senha, cartao e token. Um log de
+        auditoria que vaza credenciais e uma falha, nao um recurso.
+        """
+        registro = []
+
+        def depois(req, resp):
+            if req["method"] not in metodos:
+                return resp
+            linha = {
+                "quando": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "metodo": req["method"],
+                "caminho": req["path"],
+                "status": resp["status"],
+                "ip": req.get("ip", ""),
+                "id": req.get("state", {}).get("request_id", ""),
+                "quem": (req.get("session") or {}).get("usuario", ""),
+            }
+            if escrever is not None:
+                escrever(linha)
+            else:
+                registro.append(linha)
+            return resp
+
+        depois.registro = registro
+        return depois
+
+    # ── cache e transferencia ───────────────────────────────
+
+    @staticmethod
+    def _cache(segundos=60, privado=False):
+        """Cache-Control e ETag, com 304 quando nada mudou.
+
+        O 304 e o que economiza banda de verdade: o servidor ainda
+        calcula a resposta, mas nao a transmite. Para uma lista que o
+        cliente pede a cada segundo, a diferenca e o tamanho do corpo.
+        """
+        escopo = "private" if privado else "public"
+
+        def depois(req, resp):
+            if req["method"] not in ("GET", "HEAD") or resp["status"] != 200:
+                return resp
+            resp["headers"].setdefault(
+                "Cache-Control", f"{escopo}, max-age={int(segundos)}")
+            etiqueta = resp["headers"].get("ETag") or _etag(resp["body"])
+            resp["headers"].setdefault("ETag", etiqueta)
+            cabs = req.get("headers") or {}
+            if cabs.get("if-none-match") == etiqueta:
+                return resposta("", 304, {"ETag": etiqueta,
+                                          "Cache-Control": resp["headers"]["Cache-Control"]})
+            return resp
+        return depois
+
+    @staticmethod
+    def _comprimir(minimo=1024):
+        """gzip quando o cliente aceita e o corpo compensa.
+
+        Abaixo de ~1 KB comprimir custa mais do que economiza: o
+        cabecalho do gzip sozinho tem 18 bytes, e a CPU dos dois lados
+        nao e de graca. O minimo existe por isso.
+
+        Nao mexe em imagem, video nem zip: eles ja estao comprimidos, e
+        passar gzip por cima costuma AUMENTAR o tamanho.
+        """
+        def depois(req, resp):
+            cabs = req.get("headers") or {}
+            if "gzip" not in (cabs.get("accept-encoding") or ""):
+                return resp
+            if resp["headers"].get("Content-Encoding"):
+                return resp
+            # Serializa com a MESMA regra do envio: um vault vira JSON
+            # aqui tambem. Sem isto, resposta de API — o caso mais comum
+            # — nunca era comprimida, porque o corpo ainda era um vault
+            # quando a decisao acontecia.
+            corpo, tipo = _serializar(resp["body"], resp.get("content_type"))
+            if len(corpo) < minimo:
+                return resp
+            if any(t in tipo for t in ("image/", "video/", "audio/", "zip",
+                                       "gzip", "octet-stream")):
+                return resp
+            # O tipo precisa ficar FIXADO: o corpo agora e bytes, e sem
+            # isto o envio o chamaria de 'octet-stream' e o navegador
+            # baixaria o JSON em vez de o interpretar.
+            resp["content_type"] = tipo
+            resp["body"] = gzip.compress(corpo)
+            resp["headers"]["Content-Encoding"] = "gzip"
+            resp["headers"]["Vary"] = "Accept-Encoding"
+            return resp
+        return depois
+
+    # ── limites ─────────────────────────────────────────────
+
+    @staticmethod
+    def _limite_de_corpo(bytes_maximos=1024 * 1024):
+        """Recusa corpo grande demais, com 413.
+
+        Sem teto, um POST de 2 GB e um jeito trivial de derrubar o
+        processo — nao precisa de exploit, so de largura de banda. O
+        padrao de 1 MB cobre formulario e JSON; upload de arquivo
+        declara o seu proprio.
+        """
+        def middleware(req):
+            bruto = req.get("raw_body") or b""
+            declarado = _inteiro((req.get("headers") or {})
+                                 .get("content-length"), len(bruto))
+            if max(declarado, len(bruto)) > bytes_maximos:
+                return resposta(
+                    {"erro": "corpo grande demais",
+                     "limite_bytes": int(bytes_maximos)}, 413)
+            return None
+        return middleware
+
+    @staticmethod
+    def _idempotente(janela=86400):
+        """Repetir o pedido com a mesma 'Idempotency-Key' devolve o
+        mesmo resultado, em vez de cobrar duas vezes.
+
+        E o problema real de todo checkout: a resposta se perde na rede,
+        o cliente reenvia, e a cobranca acontece de novo. A chave deixa
+        o SERVIDOR reconhecer o reenvio — o cliente sozinho nao tem como.
+
+        Fica em memoria: some se o processo reiniciar, e nao atravessa
+        varios processos. Para valer de verdade, guarde num banco.
+        """
+        guardadas = {}
+        trava = threading.Lock()
+
+        def middleware(req):
+            if req["method"] in ArcaneKiln.SEGUROS:
+                return None
+            chave = ((req.get("headers") or {}).get("idempotency-key") or
+                     (req.get("headers") or {}).get("Idempotency-Key"))
+            if not chave:
+                return None
+            agora = time.time()
+            with trava:
+                for k, (quando, _) in list(guardadas.items()):
+                    if agora - quando > janela:
+                        guardadas.pop(k, None)
+                achado = guardadas.get(chave)
+            if achado:
+                repetida = dict(achado[1])
+                repetida["headers"] = dict(repetida["headers"])
+                repetida["headers"]["Idempotent-Replay"] = "true"
+                return repetida
+            req["state"]["idempotency_key"] = chave
+            return None
+
+        def depois(req, resp):
+            chave = req.get("state", {}).get("idempotency_key")
+            if chave and 200 <= resp["status"] < 300:
+                with trava:
+                    guardadas[chave] = (time.time(), resp)
+            return resp
+
+        middleware.depois = depois
+        return middleware
+
     @staticmethod
     def _guard(condicao, status=403, mensagem="sem permissão"):
         """Middleware a partir de uma condicao qualquer."""
@@ -1135,6 +1517,28 @@ class ArcaneKiln:
             "cabecalhos_seguros": cls._secure_headers,
             "csrf": cls._csrf,
             "csrf_token": cls._csrf_token,
+            "limite_de_corpo": cls._limite_de_corpo,
+            "body_limit": cls._limite_de_corpo,
+
+            # validacao e listagem
+            "validar": cls._validar,
+            "validate": cls._validar,
+            # Validar SEM responder: as vezes o campo errado nao e 422,
+            # e uma pergunta para o usuario, ou um valor padrao.
+            "conferir": staticmethod(_conferir_esquema).__func__,
+            "paginar": cls._paginar,
+            "ordenar": cls._ordenar,
+            "buscar": cls._buscar,
+
+            # observabilidade
+            "request_id": cls._request_id,
+            "audit": cls._audit,
+            "auditoria": cls._audit,
+
+            # transferencia
+            "cache": cls._cache,
+            "comprimir": cls._comprimir,
+            "idempotente": cls._idempotente,
 
             # respostas
             "json": cls._json,

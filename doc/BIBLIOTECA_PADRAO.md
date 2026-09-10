@@ -21,7 +21,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Database`](#arcanedatabase) | `Database / DB` | 39 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
 | [`Arcane.Excel`](#arcaneexcel) | `Excel / Xlsx` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
 | [`Arcane.Meta`](#arcanemeta) | `Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
-| [`Kiln`](#kiln) | `Kiln` | 50 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
+| [`Kiln`](#kiln) | `Kiln` | 64 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | [`Arcane.Test`](#arcanetest) | `Test` | 34 | Asserções e organização de suítes de teste. |
 | [`Arcane.Regex`](#arcaneregex) | `Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | [`Arcane.IO`](#arcaneio) | `IO` | 27 | Arquivos, diretórios, JSON, CSV e shell. |
@@ -499,15 +499,22 @@ Framework web: rotas, middleware, templates, sessão e arquivos estáticos.
 adopt Kiln as Kiln
 ```
 
-**Funções (50)**
+**Funções (64)**
 
 | Assinatura |
 |------------|
 | `after(app, funcao)` |
 | `any(app, padrao, handler)` |
 | `app(nome='kiln', **config)` |
+| `audit(escrever=None, metodos=('POST', 'PUT', 'PATCH', 'DELETE'))` |
+| `auditoria(escrever=None, metodos=('POST', 'PUT', 'PATCH', 'DELETE'))` |
 | `auth(verificador, esquema='Bearer')` |
+| `body_limit(bytes_maximos=1048576)` |
+| `buscar(itens, req=None, campos=(), parametro='q')` |
 | `cabecalhos_seguros(csp="default-src 'self'", hsts=False, frame='DENY', referrer='strict-origin-when-cross-origin', permissoes='geolocation=(), microphone=(), camera=()')` |
+| `cache(segundos=60, privado=False)` |
+| `comprimir(minimo=1024)` |
+| `conferir(dados, esquema)` |
 | `config(app, chave, valor)` |
 | `cookie(resp, nome, valor, dias=None, http_only=True, caminho='/', same_site='Lax', seguro=False)` |
 | `cors(origens='*', metodos=None, cabecalhos=None)` |
@@ -523,12 +530,16 @@ adopt Kiln as Kiln
 | `head(app, padrao, handler)` |
 | `header(resp, chave, valor)` |
 | `html(texto, status=200, cabecalhos=None)` |
+| `idempotente(janela=86400)` |
 | `json(dados, status=200, cabecalhos=None)` |
+| `limite_de_corpo(bytes_maximos=1048576)` |
 | `listen(app, porta=8080, host='127.0.0.1', silencioso=False)` |
 | `logger(formato='dev')` |
 | `mount(app, prefixo, outro)` |
 | `on_error(app, status, handler)` |
 | `options(app, padrao, handler)` |
+| `ordenar(itens, req=None, campos=None, padrao='')` |
+| `paginar(itens, req=None, por_pagina=20, teto=100)` |
 | `patch(app, padrao, handler)` |
 | `post(app, padrao, handler)` |
 | `put(app, padrao, handler)` |
@@ -536,6 +547,7 @@ adopt Kiln as Kiln
 | `redirect(destino, status=302)` |
 | `render(app, nome, dados=None, status=200)` |
 | `render_string(texto, dados=None)` |
+| `request_id(cabecalho='X-Request-Id')` |
 | `resource(app, base, controlador)` |
 | `route(app, metodo, padrao, handler)` |
 | `routes(app)` |
@@ -553,6 +565,8 @@ adopt Kiln as Kiln
 | `text(texto, status=200, cabecalhos=None)` |
 | `unsign(token, segredo)` |
 | `use(app, funcao)` |
+| `validar(esquema, alvo='body')` |
+| `validate(esquema, alvo='body')` |
 
 
 ---

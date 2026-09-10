@@ -41,7 +41,7 @@ server loja on 8080:
 
 ignite loja` },
   {"p": "Isso é um servidor completo: HTML, JSON, parâmetro de caminho, corpo interpretado, status certo. Não há arquivo de configuração, nem decorador, nem registro manual de rota."},
-  {"h2": "As dez palavras"},
+  {"h2": "As onze palavras"},
   {"table": {"head": ["Palavra", "Faz"], "rows": [
     ["`server nome on porta:`", "declara a aplicação e liga ao nome"],
     ["`route VERBO \"caminho\":`", "registra uma rota"],
@@ -49,12 +49,13 @@ ignite loja` },
     ["`render \"arquivo\" with dados`", "renderiza um template e encerra a rota"],
     ["`redirect \"/destino\"`", "302 com `Location` (ou `status 301`)"],
     ["`middleware expressao`", "roda antes de toda rota"],
+    ["`after expressao`", "roda **depois**, com a resposta na mão"],
     ["`mount outro at \"/prefixo\"`", "junta outro server sob um prefixo"],
     ["`assets \"/prefixo\" from \"pasta\"`", "serve arquivos do disco"],
     ["`views \"pasta\"`", "onde ficam os templates"],
     ["`ignite nome [on porta]`", "acende o forno: sobe e bloqueia"]
   ]}},
-  {"p": "Todas são **contextuais**: só valem dentro de um bloco `server`. Fora dali, `route`, `render` e `server` continuam sendo nomes livres — `render := 42` é uma variável perfeitamente válida, e nenhum programa escrito antes do Kiln parou de compilar por causa dele."},
+  {"p": "`middleware` corta o pedido antes da rota — autenticação, limite de taxa. `after` recebe a resposta pronta e pode trocá-la — cabeçalhos, compressão, cache. Todas são **contextuais**: só valem dentro de um bloco `server`. Fora dali, `route`, `render` e `server` continuam sendo nomes livres — `render := 42` é uma variável perfeitamente válida, e nenhum programa escrito antes do Kiln parou de compilar por causa dele."},
   {"h2": "Declarar não é subir"},
   {"p": "`server` monta a aplicação e liga ao nome. Quem acende o forno é `ignite`. A separação parece pedante até você escrever o primeiro teste:"},
   { code: `// executa a rota direto na aplicação, sem abrir socket
@@ -72,6 +73,64 @@ out r["status"], r["body"]["nome"]    // 200 Bigorna` },
     ["`../` num caminho estático", "403, antes de abrir o arquivo"]
   ]}},
   {"p": "A distinção entre 404 e 405 não é preciosismo: dizer \"esse caminho existe, mas não com esse verbo\" poupa quem consome a API de procurar um bug que não existe."},
+  {"h2": "O que já vem pronto"},
+  {"p": "Estas não são bibliotecas para instalar: fazem parte do Kiln, e não têm dependência nenhuma."},
+  { code: `server api on 8080:
+    middleware Kiln.request_id()             // um id por pedido
+    middleware Kiln.limite_de_corpo(1048576) // 413 acima de 1 MB
+    middleware Kiln.rate_limit(60, 60)       // 60 por minuto, por IP
+    middleware Kiln.csrf(SEGREDO)            // recusa POST de fora
+    middleware Kiln.validar(ESQUEMA)         // 422 com todos os campos
+    middleware Kiln.idempotente()            // não cobra duas vezes
+
+    after Kiln.cache(120)                    // ETag + 304
+    after Kiln.cabecalhos_seguros()          // CSP, nosniff, frame
+    after Kiln.comprimir()                   // gzip quando compensa
+    after Kiln.auditoria()                   // quem mudou o quê
+
+    route GET "/produtos":
+        achados := Kiln.buscar(produtos, req, ["nome"])
+        respond Kiln.paginar(Kiln.ordenar(achados, req, ["preco"]), req)`, lang: 'df' },
+  {"h3": "Listar bem é mais que devolver a lista"},
+  {"p": "`GET /produtos?q=martelo&ordenar=-preco&pagina=2&por_pagina=10` — as três coisas que toda API precisa, e que quase sempre são reescritas à mão em cada rota:"},
+  { code: `{
+  "itens": [ … ],
+  "pagina": 2, "por_pagina": 10,
+  "total": 45, "paginas": 5,
+  "tem_proxima": yes, "tem_anterior": yes
+}`, lang: 'json' },
+  {"callout": {"tipo": "atencao", "titulo": "Dois detalhes que não são conforto", "texto": "`por_pagina` tem **teto**: sem ele, `?por_pagina=1000000` derruba o servidor sem ferramenta nenhuma. E `ordenar` só aceita os campos que você listar — ordenar por um campo que a API nunca expôs revela a ordem dele."}},
+  {"h3": "Validação que relata tudo de uma vez"},
+  { code: `ESQUEMA := {
+    "nome":  {"tipo": "texto", "obrigatorio": yes, "min": 3, "max": 40},
+    "preco": {"tipo": "numero", "min": 0},
+    "email": {"tipo": "email"},
+    "papel": {"tipo": "texto", "em": ["admin", "leitor"]},
+}`, lang: 'df' },
+  { code: `{
+  "erro": "dados inválidos",
+  "campos": {
+    "nome": "mínimo 3",
+    "preco": "mínimo 0",
+    "papel": "valor fora da lista permitida"
+  }
+}`, lang: 'json', title: '422' },
+  {"p": "Um erro por envio faz quem preenche descobrir os cinco problemas em cinco tentativas — e a maioria desiste no terceiro. É **422** e não 400: o corpo foi entendido; o que falhou foi o conteúdo, e um cliente consegue distinguir os dois casos."},
+  {"h3": "Idempotência — o problema do checkout"},
+  {"p": "A resposta se perde na rede, o cliente reenvia, e a cobrança acontece **de novo**. O cliente sozinho não tem como saber; quem precisa reconhecer o reenvio é o servidor:"},
+  { code: `POST /cobrar
+Idempotency-Key: pedido-8f2c
+
+→ {"cobranca": 1}
+
+POST /cobrar                    // mesma chave, cliente reenviou
+Idempotency-Key: pedido-8f2c
+
+→ {"cobranca": 1}               // Idempotent-Replay: true`, lang: 'text' },
+  {"callout": {"tipo": "nota", "titulo": "Fica em memória", "texto": "Some se o processo reiniciar, e não atravessa vários processos. Para valer de verdade, guarde num banco — o `Forge` serve."}},
+  {"h3": "Cache e compressão"},
+  {"p": "`Kiln.cache(120)` põe `Cache-Control` e `ETag`, e devolve **304** quando o cliente já tem a versão. `Kiln.comprimir()` faz gzip quando o cliente aceita e o corpo compensa — numa resposta JSON de 5,4 KB, 69 bytes na rede."},
+  {"p": "Ele não toca em imagem, vídeo nem zip: já estão comprimidos, e passar gzip por cima costuma **aumentar** o tamanho. Abaixo de 1 KB também não vale — o cabeçalho do gzip sozinho tem 18 bytes."},
   {"h2": "Comparado ao que você conhece"},
   {"table": {"head": ["", "Kiln", "Flask", "Express", "Fastify"], "rows": [
     ["declarar", "`server api on 8080:`", "`Flask(__name__)`", "`express()`", "`fastify()`"],
@@ -94,7 +153,7 @@ out r["status"], r["body"]["nome"]    // 200 Bigorna` },
   ]}},
 ];
 
-const headings = [{ id: 'um-servidor-inteiro', text: "Um servidor inteiro", level: 2 as const }, { id: 'as-dez-palavras', text: "As dez palavras", level: 2 as const }, { id: 'declarar-nao-e-subir', text: "Declarar não é subir", level: 2 as const }, { id: 'o-que-vem-de-graca', text: "O que vem de graça", level: 2 as const }, { id: 'comparado-ao-que-voce-conhece', text: "Comparado ao que você conhece", level: 2 as const }, { id: 'por-onde-seguir', text: "Por onde seguir", level: 2 as const }];
+const headings = [{ id: 'um-servidor-inteiro', text: "Um servidor inteiro", level: 2 as const }, { id: 'as-onze-palavras', text: "As onze palavras", level: 2 as const }, { id: 'declarar-nao-e-subir', text: "Declarar não é subir", level: 2 as const }, { id: 'o-que-vem-de-graca', text: "O que vem de graça", level: 2 as const }, { id: 'o-que-ja-vem-pronto', text: "O que já vem pronto", level: 2 as const }, { id: 'comparado-ao-que-voce-conhece', text: "Comparado ao que você conhece", level: 2 as const }, { id: 'por-onde-seguir', text: "Por onde seguir", level: 2 as const }];
 
 export default function Page() {
   return (

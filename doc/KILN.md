@@ -40,7 +40,7 @@ roteamento, middleware, sessão e templates escritos aqui.
 
 ---
 
-## As dez palavras
+## As onze palavras
 
 | Palavra | Faz | Equivale a |
 |---------|-----|------------|
@@ -50,6 +50,7 @@ roteamento, middleware, sessão e templates escritos aqui.
 | `render "arquivo" with dados` | renderiza um template | `yield Kiln.render(…)` |
 | `redirect "/destino"` | 302 com `Location` | `yield Kiln.redirect(…)` |
 | `middleware expr` | roda antes de toda rota | `Kiln.use(app, …)` |
+| `after expr` | roda depois, com a resposta | `Kiln.after(app, …)` |
 | `mount outro at "/prefixo"` | junta outro server | `Kiln.mount(…)` |
 | `assets "/p" from "pasta"` | serve arquivos do disco | `Kiln.static(…)` |
 | `views "pasta"` | onde ficam os templates | `Kiln.templates(…)` |

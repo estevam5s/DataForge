@@ -512,9 +512,9 @@ dataforge publish --registry=../../site/public/registry
 
 ## Kiln — o framework web
 
-`dataforge/stdlib/kiln.py` é o runtime; as dez palavras da linguagem
-(`server`, `route`, `respond`, `render`, `redirect`, `middleware`, `mount`,
-`assets`, `views`, `ignite`) atravessam os cinco lugares de sempre e estão em
+`dataforge/stdlib/kiln.py` é o runtime; as onze palavras da linguagem
+(`server`, `route`, `respond`, `render`, `redirect`, `middleware`, `after`,
+`mount`, `assets`, `views`, `ignite`) atravessam os cinco lugares de sempre e estão em
 `CONTEXTUAIS_KILN`, não em `KEYWORDS`.
 
 **Elas são contextuais pelo mesmo motivo de `get`/`set`/`final`**: `route`,
