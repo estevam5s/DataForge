@@ -1992,3 +1992,53 @@ def test_o_formatador_preserva_a_barra_r():
 
     fonte = 'x := "linha\\r"\nout len(x)\n'
     assert run(format_source(fonte)) == run(fonte)
+
+
+def test_todo_arquivo_python_compila_na_versao_minima():
+    """A linguagem promete Python 3.10+ — e o código precisa caber lá.
+
+    Cinco f-strings usavam recursos que só o 3.12 aceita: expressão
+    quebrada em várias linhas dentro das chaves, e a mesma aspa reusada
+    dentro da interpolação. O arquivo inteiro deixava de importar no
+    3.10 — não era um teste que falhava, era a CLI que não carregava.
+
+    ``ast.parse(feature_version=)`` NÃO serve aqui: ela não volta atrás
+    na gramática de f-string, e aceitaria os cinco casos. A única forma
+    honesta de saber é compilar com o interpretador da versão mínima —
+    então o teste pula quando ele não está na máquina, e o CI, que tem
+    a matriz, é quem realmente cobra.
+    """
+    import glob
+    import shutil
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    minima = "3.10"
+
+    executavel = shutil.which(f"python{minima}")
+    if executavel is None:
+        pytest.skip(f"python{minima} não está nesta máquina — "
+                    f"o CI cobre com a matriz")
+
+    arquivos = [c for c in glob.glob(os.path.join(raiz, "**", "*.py"),
+                                     recursive=True)
+                if not any(parte in c for parte in
+                           (".venv", "node_modules", "build",
+                            "site-packages", ".git"))]
+
+    programa = (
+        "import sys\n"
+        "ruins = []\n"
+        "for caminho in sys.argv[1:]:\n"
+        "    with open(caminho, encoding='utf-8') as f:\n"
+        "        fonte = f.read()\n"
+        "    try:\n"
+        "        compile(fonte, caminho, 'exec')\n"
+        "    except SyntaxError as e:\n"
+        "        ruins.append(f'{caminho}:{e.lineno}')\n"
+        "print(chr(10).join(ruins))\n")
+
+    r = subprocess.run([executavel, "-c", programa] + arquivos,
+                       capture_output=True, text=True, timeout=180)
+    ruins = [linha for linha in r.stdout.split("\n") if linha.strip()]
+    assert not ruins, f"não compila em Python {minima}: {ruins}"

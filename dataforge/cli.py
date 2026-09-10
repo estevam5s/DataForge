@@ -3246,8 +3246,11 @@ def stats_command(alvos, flags=()):
     print(f"  {color('linhas', '1;36')}")
     print(f"      {total['linhas']:>7}  total")
     print(f"      {total['codigo']:>7}  código")
+    # Reusar a MESMA aspa dentro da f-string so vale a partir do 3.12;
+    # ate o 3.11 o interpretador ve a string terminando ali.
+    proporcao = total["comentario"] * 100 // linhas_uteis
     print(f"      {total['comentario']:>7}  comentário  "
-          f"{color(f'({total['comentario'] * 100 // linhas_uteis}% do código)', '0;90')}")
+          f"{color(f'({proporcao}% do código)', '0;90')}")
     print(f"      {total['vazias']:>7}  em branco")
     print()
 
@@ -3277,13 +3280,17 @@ def stats_command(alvos, flags=()):
             print(f"      {color(f'{tamanho:>7}', marca)}  {nome}  "
                   f"{color(os.path.basename(caminho), '0;90')}")
         if maiores_acoes[0][0] > 50:
-            print(f"      {color('uma ação acima de 50 linhas costuma fazer '
-                                 'mais de uma coisa', '0;90')}")
+            # A expressao sai da f-string: quebra-la dentro das chaves
+            # so vale a partir do 3.12, e a linguagem promete 3.10+.
+            aviso = color("uma ação acima de 50 linhas costuma fazer "
+                          "mais de uma coisa", "0;90")
+            print(f"      {aviso}")
         print()
 
     if problemas:
-        print(f"  {color(f'{len(problemas)} arquivo(s) não puderam ser lidos',
-                         '1;33')}")
+        recado = color(f"{len(problemas)} arquivo(s) não puderam ser lidos",
+                       "1;33")
+        print(f"  {recado}")
         for caminho, motivo in problemas[:3]:
             print(f"      {caminho}: {motivo[:60]}")
         print()
@@ -3341,8 +3348,9 @@ def fix_command(alvos, flags=()):
 
     if restantes:
         print()
-        print(f"  {color(f'{len(restantes)} aviso(s) que precisam de você',
-                         '1;33')}")
+        recado = color(f"{len(restantes)} aviso(s) que precisam de você",
+                       "1;33")
+        print(f"  {recado}")
         for caminho, aviso in restantes[:10]:
             texto = getattr(aviso, "message", str(aviso))
             linha = getattr(aviso, "line", "?")
@@ -3458,7 +3466,8 @@ def profile_command(args, flags=()):
           f"{color('acumulado', '0;90')} = inclui o que ela chamou")
     print()
     if ordenadas and ordenadas[0][1][1] / max(total, 1e-9) > 0.5:
-        print(f"  {color('metade do tempo está numa ação só — é por ela '
-                         'que se começa', '0;90')}")
+        recado = color("metade do tempo está numa ação só — é por ela "
+                       "que se começa", "0;90")
+        print(f"  {recado}")
         print()
     return 0

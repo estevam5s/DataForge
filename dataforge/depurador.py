@@ -230,8 +230,11 @@ class Depurador:
             print(_cor("  nenhuma parada", "0;90"))
             return
         for n in sorted(self.paradas):
-            print(f"  {_cor('●', '1;31')} {n:>4}  {self.linhas[n - 1].strip()
-                                                  if n <= len(self.linhas) else ''}")
+            # A expressao sai da f-string: quebra-la dentro das chaves so
+            # e valido a partir do Python 3.12, e a linguagem promete
+            # 3.10+. O arquivo inteiro deixava de importar la.
+            texto = self.linhas[n - 1].strip() if n <= len(self.linhas) else ""
+            print(f"  {_cor('●', '1;31')} {n:>4}  {texto}")
 
     def _avaliar(self, expressao, env):
         """Avalia no QUADRO onde paramos, não no global.
