@@ -1482,3 +1482,44 @@ def test_o_indice_de_exercicios_mostra_a_contagem_real():
     total = len(glob.glob(os.path.join(raiz, "exercicios", "*", "[0-9]*.df")))
     texto = open(pagina, encoding="utf-8").read()
     assert str(total) in texto, f"o índice não cita os {total} exercícios"
+
+
+def test_bigo_ve_o_acumulo_por_spread_no_espaco():
+    """'p := [...p, x]' num laço é O(n) de espaço, não O(1).
+
+    O detector de acúmulo só conhecia 'append/push/extend/insert/add' e
+    'xs[i] := v'. Mas a forma idiomática de crescer uma coleção em
+    DataForge é o spread — é o que os exercícios usam — e uma ação que
+    monta uma lista inteira era relatada como O(1) de espaço.
+    """
+    from dataforge.complexidade import analisar_fonte, para_json
+
+    fonte = '''
+action juntar(xs):
+    p := []
+    cycle x in xs:
+        p := [...p, x * 2]
+    yield p
+'''
+    r = {a["nome"]: a for a in para_json(analisar_fonte(fonte, "t.df"))["acoes"]}
+    assert r["juntar"]["espaco"]["notacao"] != "O(1)", (
+        f"espaço relatado: {r['juntar']['espaco']['notacao']}")
+
+
+def test_bigo_nao_confunde_reatribuicao_com_acumulo():
+    """'x := x + 1' num laço continua sendo O(1) de espaço.
+
+    A distinção é o ponto: uma variável reatribuída não acumula. Contar
+    tudo como O(n) tornaria o relatório inútil.
+    """
+    from dataforge.complexidade import analisar_fonte, para_json
+
+    fonte = '''
+action somar(xs):
+    t := 0
+    cycle x in xs:
+        t := t + x
+    yield t
+'''
+    r = {a["nome"]: a for a in para_json(analisar_fonte(fonte, "t.df"))["acoes"]}
+    assert r["somar"]["espaco"]["notacao"] == "O(1)"

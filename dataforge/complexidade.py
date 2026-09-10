@@ -881,7 +881,18 @@ class Analisador:
         return False
 
     def _acumula(self, corpo):
-        """O laco empurra itens numa colecao?"""
+        """O laco empurra itens numa colecao?
+
+        Tres formas contam, e a terceira e a que mais aparece em
+        DataForge: 'p := [...p, x]'. Sem ela, uma acao que monta uma
+        lista inteira era relatada como O(1) de espaco — e o spread e
+        justamente como se cresce uma colecao aqui, porque e o que os
+        exercicios ensinam.
+
+        O que NAO conta e reatribuir: 't := t + x' num laco continua
+        sendo O(1). A distincao e o ponto do relatorio; contar tudo
+        como O(n) o tornaria inutil.
+        """
         for no in self._andar(corpo):
             if isinstance(no, ast.MethodCall) and \
                     no.method in ("append", "push", "extend", "insert", "add"):
@@ -890,6 +901,32 @@ class Analisador:
                 alvo = getattr(no, "target", None)
                 if isinstance(alvo, ast.IndexAccess):
                     return True
+                if self._cresce_por_spread(no):
+                    return True
+        return False
+
+    def _cresce_por_spread(self, no):
+        """'p := [...p, x]' — a colecao se reconstroi maior.
+
+        A confirmacao e o NOME: o spread precisa ser da propria
+        variavel que esta sendo atribuida. 'p := [...outra, x]' e uma
+        copia de tamanho fixo, nao um acumulo.
+        """
+        alvo = getattr(no, "target", None)
+        nome = getattr(alvo, "name", None)
+        if not nome:
+            return False
+        valor = getattr(no, "value", None)
+        elementos = getattr(valor, "elements", None)
+        if elementos is None:
+            elementos = getattr(valor, "pairs", None)
+            if elementos is None:
+                return False
+            elementos = [v for par in elementos for v in par]
+        for elemento in elementos:
+            if isinstance(elemento, ast.SpreadElement) and \
+                    getattr(elemento.value, "name", None) == nome:
+                return True
         return False
 
     def _ordem_conhecida(self, nome):
