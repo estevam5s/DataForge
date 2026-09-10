@@ -20,6 +20,7 @@ MODULOS = [
     "big_o",
     "oop_avancado",
     "oop_magicos",
+    "exercicios",
     "banco",
     "crucible_doc",
     "versoes",

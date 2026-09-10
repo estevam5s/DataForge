@@ -338,7 +338,6 @@ export const CAMINHO_MARCA =
     saidas = [
         (os.path.join(RAIZ, "site", "public", "marca.svg"), "currentColor"),
         (os.path.join(RAIZ, "site", "app", "icon.svg"), COR_MARCA),
-        (os.path.join(RAIZ, "editor", "vscode", "marca.svg"), COR_MARCA),
     ]
     for saida, cor in saidas:
         os.makedirs(os.path.dirname(saida), exist_ok=True)
@@ -367,9 +366,14 @@ export const CAMINHO_MARCA =
                 f'viewBox="0 0 {lado_p} {lado_p}" fill="{cor}">'
                 f'<path fill-rule="evenodd" d="{d_pequeno}"/></svg>\n')
 
+    # A barra de atividades do VS Code desenha o icone a 24 pixeis, e
+    # aplica uma MASCARA: a cor vem do tema, nao do arquivo. Vale o
+    # mesmo argumento do favicon — a 24px o caminho completo (25 KB)
+    # vira um borrao, e o que se reconhece e a silhueta.
     for saida, cor in [
         (os.path.join(RAIZ, "site", "app", "icon.svg"), COR_MARCA),
         (os.path.join(RAIZ, "site", "public", "marca-favicon.svg"), COR_MARCA),
+        (os.path.join(RAIZ, "editor", "vscode", "marca.svg"), COR_MARCA),
     ]:
         os.makedirs(os.path.dirname(saida), exist_ok=True)
         with open(saida, "w", encoding="utf-8") as f:

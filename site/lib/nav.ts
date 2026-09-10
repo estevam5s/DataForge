@@ -236,6 +236,9 @@ export const nav: NavSection[] = [
       { title: '21 · OOP avançado', href: '/docs/exercicios/21-oop-avancado' },
       { title: '22 · Web com Kiln', href: '/docs/exercicios/22-web-kiln' },
       { title: '23 · Dados e planilhas', href: '/docs/exercicios/23-dados-e-planilhas' },
+      { title: '24 · Banco de dados', href: '/docs/exercicios/24-banco-de-dados' },
+      { title: '25 · Testes com Crucible', href: '/docs/exercicios/25-testes-crucible' },
+      { title: '26 · Complexidade', href: '/docs/exercicios/26-complexidade' },
     ],
   },
   {

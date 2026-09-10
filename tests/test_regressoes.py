@@ -1437,3 +1437,48 @@ def test_a_tabela_da_stdlib_no_readme_esta_em_dia():
         open(readme, "w", encoding="utf-8").write(antes)
     assert antes == depois, (
         "README fora de sincronia — rode: python3 tools/gerar_doc_stdlib.py")
+
+
+def test_todo_modulo_de_exercicio_tem_pagina_no_site():
+    """Os 26 módulos precisam estar em /docs/exercicios.
+
+    Escritas à mão, as páginas pararam no 23: os módulos 24 (banco de
+    dados), 25 (Crucible) e 26 (complexidade) existiam no repositório e
+    não apareciam no site. E o índice ainda dizia "os vinte módulos" e
+    "todos os 180" quando já eram 26 e 216.
+    """
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    docs = os.path.join(raiz, "site", "app", "docs", "exercicios")
+    if not os.path.isdir(docs):
+        pytest.skip("o site não está neste checkout")
+
+    modulos = {
+        os.path.basename(p)
+        for p in glob.glob(os.path.join(raiz, "exercicios", "*"))
+        if os.path.isdir(p) and os.path.basename(p)[:2].isdigit()
+        and glob.glob(os.path.join(p, "[0-9]*.df"))
+    }
+    publicados = {
+        os.path.basename(os.path.dirname(p))
+        for p in glob.glob(os.path.join(docs, "*", "page.tsx"))
+    }
+    faltando = sorted(modulos - publicados)
+    assert not faltando, (
+        f"sem página no site: {faltando} — rode: "
+        "python3 site/scripts/gerar_conteudo.py")
+
+
+def test_o_indice_de_exercicios_mostra_a_contagem_real():
+    """Nem '180', nem 'os vinte módulos': os números saem dos arquivos."""
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pagina = os.path.join(raiz, "site", "app", "docs", "exercicios", "page.tsx")
+    if not os.path.isfile(pagina):
+        pytest.skip("o site não está neste checkout")
+
+    total = len(glob.glob(os.path.join(raiz, "exercicios", "*", "[0-9]*.df")))
+    texto = open(pagina, encoding="utf-8").read()
+    assert str(total) in texto, f"o índice não cita os {total} exercícios"

@@ -313,6 +313,12 @@
     "views": {
       "dataforge": [
         {
+          "id": "dataforgeFerramentas",
+          "name": "Ferramentas",
+          "icon": "$(tools)",
+          "contextualTitle": "Ferramentas do DataForge"
+        },
+        {
           "id": "dataforgeConexoes",
           "name": "Bancos de dados",
           "icon": "$(database)",

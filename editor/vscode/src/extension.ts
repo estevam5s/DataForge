@@ -13,6 +13,7 @@
 import * as vscode from 'vscode';
 import { anotar } from './custo';
 import { ArvoreDeConexoes, Item } from './conexoes';
+import { ArvoreDeFerramentas } from './ferramentas';
 import { LenteDeComplexidade, acoesDe, explicar } from './complexidade';
 import { criarProjeto } from './projetos';
 import { esquecerExecutavel, exigirExecutavel, raizDe, rodar } from './dataforge';
@@ -79,6 +80,8 @@ export function activate(contexto: vscode.ExtensionContext) {
     vscode.languages.registerHoverProvider({ language: 'dataforge' }, {
       provideHover: (documento, posicao) => hoverDeComplexidade(documento, posicao),
     }),
+    vscode.window.registerTreeDataProvider('dataforgeFerramentas',
+                                            new ArvoreDeFerramentas()),
     vscode.window.registerTreeDataProvider('dataforgeConexoes', conexoes),
 
     vscode.workspace.onDidSaveTextDocument((d) => {
