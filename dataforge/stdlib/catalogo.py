@@ -34,7 +34,7 @@ DESCRICOES = {
     "Arcane.Async": ("Promessas, filas, agendamento e execução concorrente.", "Async"),
     "Arcane.Data": ("DataFrames, séries e transformações tabulares.", "Data"),
     "Arcane.Web": ("Cliente HTTP, URL encoding e JSON.", "Web / Network"),
-    "Arcane.Cortex": ("Blocos de rede neural, visão e NLP (implementações simplificadas).", "Cortex"),
+    "Arcane.Cortex": ("Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA.", "Cortex"),
 
     # ── DataForge 4.0 ──
     "Arcane.Time": ("Datas, horas, durações e cronometragem.", "Time"),

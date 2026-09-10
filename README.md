@@ -473,7 +473,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-31 módulos, 1058 símbolos, mais 228 funções globais sem import.
+32 módulos, 1096 símbolos, mais 228 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -498,6 +498,8 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.IO` | 27 | Arquivos, diretórios, JSON, CSV e shell. |
 | `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | `Arcane.Concurrent` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| `Arcane.Cortex` | 25 | Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA. |
+| `Arcane.Lago` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | `Arcane.Http` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
 | `Arcane.Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | `Arcane.Logging` | 14 | Registro estruturado de eventos, com níveis e destinos. |
@@ -507,7 +509,6 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Pipeline` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
 | `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |
 | `Arcane.Archive` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
-| `Arcane.Cortex` | 5 | Blocos de rede neural, visão e NLP (implementações simplificadas). |
 <!-- stdlib:fim -->
 
 Referência completa: [`doc/BIBLIOTECA_PADRAO.md`](doc/BIBLIOTECA_PADRAO.md)

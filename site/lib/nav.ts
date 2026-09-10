@@ -155,6 +155,7 @@ export const nav: NavSection[] = [
       { title: 'Qualidade de dados', href: '/docs/tecnicas/qualidade' },
       { title: 'Parquet', href: '/docs/tecnicas/parquet' },
       { title: 'Data Lake', href: '/docs/tecnicas/lago' },
+      { title: 'Aprendizado de máquina', href: '/docs/tecnicas/ml' },
       { title: 'Planilhas', href: '/docs/tecnicas/planilhas' },
       { title: 'Servidor HTTP', href: '/docs/tecnicas/http' },
       { title: 'Editor e cores', href: '/docs/tecnicas/editor' },

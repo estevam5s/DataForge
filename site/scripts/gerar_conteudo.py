@@ -24,6 +24,7 @@ MODULOS = [
     "lsp",
     "dados",
     "lago",
+    "ml",
     "banco",
     "crucible_doc",
     "versoes",

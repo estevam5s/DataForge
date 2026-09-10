@@ -29,7 +29,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Async`](#arcaneasync) | `Async` | 46 | Promessas, filas, agendamento e execução concorrente. |
 | [`Arcane.Data`](#arcanedata) | `Data` | 13 | DataFrames, séries e transformações tabulares. |
 | [`Arcane.Web`](#arcaneweb) | `Web / Network` | 11 | Cliente HTTP, URL encoding e JSON. |
-| [`Arcane.Cortex`](#arcanecortex) | `Cortex` | 5 | Blocos de rede neural, visão e NLP (implementações simplificadas). |
+| [`Arcane.Cortex`](#arcanecortex) | `Cortex` | 25 | Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA. |
 | [`Arcane.Time`](#arcanetime) | `Time` | 54 | Datas, horas, durações e cronometragem. |
 | [`Arcane.OS`](#arcaneos) | `OS` | 42 | Sistema operacional, ambiente, disco e processo atual. |
 | [`Arcane.Process`](#arcaneprocess) | `Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
@@ -873,26 +873,41 @@ adopt Arcane.Web as Web
 
 ## Arcane.Cortex
 
-Blocos de rede neural, visão e NLP (implementações simplificadas).
+Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA.
 
 ```dataforge
 adopt Arcane.Cortex as Cortex
 ```
 
-**Constantes**
-
-| Nome | Valor |
-|------|-------|
-| `neural` | `{'Sequential': <class 'dataforge.stdlib.arcane_cor…` |
-| `nlp` | `{'tokenize': <function ArcaneCortex._nlp.<locals>.…` |
-| `vision` | `{'load_image': <function ArcaneCortex._vision.<loc…` |
-
-**Funções (2)**
+**Funções (25)**
 
 | Assinatura |
 |------------|
-| `accuracy(predictions, labels)` |
-| `evaluate(model, test_data)` |
+| `acuracia(reais, previstos)` |
+| `aplicar_escala(linhas, escala)` |
+| `arvore(linhas, alvo, colunas, profundidade=6, minimo=2)` |
+| `avaliar(modelo, linhas)` |
+| `bayes_texto(linhas, alvo, coluna)` |
+| `carregar(caminho)` |
+| `categorico(linhas, coluna, prefixo='')` |
+| `dividir(linhas, proporcao=0.2, semente=42, estratificar='')` |
+| `embaralhar(linhas, semente=42)` |
+| `erro(reais, previstos)` |
+| `escalonar(linhas, colunas)` |
+| `floresta(linhas, alvo, colunas, arvores=20, profundidade=8, minimo=2, semente=42)` |
+| `importancia(modelo)` |
+| `kmedias(linhas, colunas, grupos=3, voltas=50, semente=42)` |
+| `linear(linhas, alvo, colunas)` |
+| `logistica(linhas, alvo, colunas, voltas=300, taxa=0.1)` |
+| `matriz(modelo, linhas)` |
+| `pca(linhas, colunas, componentes=2)` |
+| `prever(modelo, linhas)` |
+| `prever_um(modelo, linha)` |
+| `probabilidade(modelo, linha)` |
+| `resumo(modelo)` |
+| `salvar(modelo, caminho)` |
+| `validacao_cruzada(linhas, alvo, colunas, especie='floresta', dobras=5, semente=42, **extras)` |
+| `vizinhos(linhas, alvo, colunas, k=5)` |
 
 
 ---

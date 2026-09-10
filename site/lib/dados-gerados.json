@@ -1409,33 +1409,133 @@
   },
   "cortex": {
    "nome": "Arcane.Cortex",
-   "desc": "Blocos de rede neural, visão e NLP (implementações simplificadas).",
+   "desc": "Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA.",
    "curto": "Cortex",
    "funcoes": [
     {
-     "nome": "accuracy",
-     "sig": "(predictions, labels)",
+     "nome": "acuracia",
+     "sig": "(reais, previstos)",
      "tipo": "funcao"
     },
     {
-     "nome": "evaluate",
-     "sig": "(model, test_data)",
+     "nome": "aplicar_escala",
+     "sig": "(linhas, escala)",
      "tipo": "funcao"
     },
     {
-     "nome": "neural",
-     "sig": "{ … }",
-     "tipo": "grupo"
+     "nome": "arvore",
+     "sig": "(linhas, alvo, colunas, profundidade, minimo)",
+     "tipo": "funcao"
     },
     {
-     "nome": "nlp",
-     "sig": "{ … }",
-     "tipo": "grupo"
+     "nome": "avaliar",
+     "sig": "(modelo, linhas)",
+     "tipo": "funcao"
     },
     {
-     "nome": "vision",
-     "sig": "{ … }",
-     "tipo": "grupo"
+     "nome": "bayes_texto",
+     "sig": "(linhas, alvo, coluna)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "carregar",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "categorico",
+     "sig": "(linhas, coluna, prefixo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dividir",
+     "sig": "(linhas, proporcao, semente, estratificar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "embaralhar",
+     "sig": "(linhas, semente)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "erro",
+     "sig": "(reais, previstos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escalonar",
+     "sig": "(linhas, colunas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "floresta",
+     "sig": "(linhas, alvo, colunas, arvores, profundidade, minimo, semente)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "importancia",
+     "sig": "(modelo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "kmedias",
+     "sig": "(linhas, colunas, grupos, voltas, semente)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "linear",
+     "sig": "(linhas, alvo, colunas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "logistica",
+     "sig": "(linhas, alvo, colunas, voltas, taxa)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "matriz",
+     "sig": "(modelo, linhas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pca",
+     "sig": "(linhas, colunas, componentes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "prever",
+     "sig": "(modelo, linhas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "prever_um",
+     "sig": "(modelo, linha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "probabilidade",
+     "sig": "(modelo, linha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "resumo",
+     "sig": "(modelo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "salvar",
+     "sig": "(modelo, caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "validacao_cruzada",
+     "sig": "(linhas, alvo, colunas, especie, dobras, semente, extras)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vizinhos",
+     "sig": "(linhas, alvo, colunas, k)",
+     "tipo": "funcao"
     }
    ]
   },

@@ -1,0 +1,99 @@
+// ═══════════════════════════════════════════════════════════
+// Exemplo 43: Aprendizado de máquina, do dado ao modelo salvo
+//
+// Treinar é a parte fácil. O que separa um modelo útil de um
+// número bonito é dividir antes de olhar, medir no que não foi
+// visto, e desconfiar da acurácia.
+// ═══════════════════════════════════════════════════════════
+
+adopt Arcane.Cortex as ML
+adopt Arcane.OS as OS
+adopt Arcane.IO as IO
+
+// ── os dados: quem compra é quem visita muito e tem renda ──
+steady SEMENTE := 7
+clientes := []
+cycle i from 1 to 400:
+    idade := 18 + (i * 7) % 50
+    renda := 1000 + (i * 137) % 9000
+    visitas := (i * 13) % 30
+    pontos := (renda / 1000) + visitas - (idade / 20)
+    comprou := "sim" given pontos bigger 12 otherwise "nao"
+    clientes := [...clientes, {"idade": idade, "renda": renda,
+    "visitas": visitas, "comprou": comprou}]
+
+COLUNAS := ["idade", "renda", "visitas"]
+
+out "═══ 1. dividir ANTES de olhar ═══"
+treino, teste := ML.dividir(clientes, 0.25, SEMENTE, "comprou")
+out $"  treino: {len(treino)}   teste: {len(teste)}"
+out "  (estratificado: a proporção das classes é a mesma nos dois)"
+
+out ""
+out "═══ 2. treinar três, comparar ═══"
+// 'given' tem escopo próprio: o nome precisa existir antes.
+m := void
+cycle especie in ["arvore", "vizinhos", "floresta"]:
+    given especie is "arvore":
+        m := ML.arvore(treino, "comprou", COLUNAS)
+    orif especie is "vizinhos":
+        m := ML.vizinhos(treino, "comprou", COLUNAS, 5)
+    otherwise:
+        m := ML.floresta(treino, "comprou", COLUNAS, 25)
+    r := ML.avaliar(m, teste)
+    out $"  {especie:<10} acurácia {r["acuracia"]}   F1 {r["f1"]}"
+
+out ""
+out "═══ 3. a floresta, em detalhe ═══"
+modelo := ML.floresta(treino, "comprou", COLUNAS, 25)
+r := ML.avaliar(modelo, teste)
+out $"  acurácia {r["acuracia"]}  precisão {r["precisao"]}  revocação {r["revocacao"]}  F1 {r["f1"]}"
+out ""
+out ML.matriz(modelo, teste)
+
+out ""
+out "═══ 4. quais colunas decidem ═══"
+pesos := ML.importancia(modelo)
+cycle coluna in pesos:
+    out $"  {coluna:<10} {pesos[coluna]}"
+
+out ""
+out "═══ 5. uma divisão mede um sorteio ═══"
+vc := ML.validacao_cruzada(clientes, "comprou", COLUNAS, "floresta", 5)
+out $"  média {vc["media"]}  desvio {vc["desvio"]}"
+out $"  por dobra: {vc["por_dobra"]}"
+
+out ""
+out "═══ 6. prever um caso novo ═══"
+novo := {"idade": 30, "renda": 8000, "visitas": 25}
+out $"  {novo}"
+out $"  → {ML.prever_um(modelo, novo)}   confiança {ML.probabilidade(modelo, novo)}"
+
+out ""
+out "═══ 7. guardar (JSON, não pickle) ═══"
+arquivo := IO.join(OS.temp_dir(), $"modelo-{OS.pid()}.json")
+info := ML.salvar(modelo, arquivo)
+out $"  {info["bytes"]} bytes"
+devolta := ML.carregar(arquivo)
+assert ML.prever(devolta, teste) is ML.prever(modelo, teste)
+out "  o modelo carregado prevê idêntico ✓"
+
+out ""
+out "═══ 8. texto: Naive Bayes ═══"
+avaliacoes := [
+{"t": "adorei otimo excelente recomendo", "s": "bom"},
+{"t": "excelente produto muito bom", "s": "bom"},
+{"t": "otimo atendimento adorei tudo", "s": "bom"},
+{"t": "pessimo horrivel nao recomendo", "s": "ruim"},
+{"t": "horrivel demorou quebrou logo", "s": "ruim"},
+{"t": "pessimo produto quebrou tudo", "s": "ruim"},
+]
+b := ML.bayes_texto(avaliacoes, "s", "t")
+cycle frase in ["produto excelente adorei muito", "quebrou logo, horrivel"]:
+    out $"  {frase:<34} → {ML.prever_um(b, {"t": frase})}"
+
+assert ML.prever_um(b, {"t": "excelente adorei"}) is "bom"
+assert ML.prever_um(b, {"t": "horrivel quebrou"}) is "ruim"
+
+out ""
+out "✓ do dado ao modelo salvo"
