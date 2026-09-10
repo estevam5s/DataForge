@@ -13,20 +13,52 @@ async action buscar_usuario(id):
 usuario := await buscar_usuario(7)
 ```
 
-`async` marca a ação como assíncrona; `await` resolve o resultado.
+Chamar uma ação `async` **começa o trabalho** numa thread e devolve a *tarefa*.
+`await` espera ela terminar e entrega o valor.
 
 ## Para que serve
 
-A ideia é representar trabalho que **espera** por algo externo — rede, disco,
-banco. Enquanto uma operação espera, o programa poderia fazer outra coisa.
+Representar trabalho que **espera** por algo externo — rede, disco, banco.
+Enquanto uma operação espera, o programa faz outra.
 
-Em DataForge 4.0 o modelo é simples: `await` resolve a corrotina de forma
-síncrona. Isso significa que a estrutura do código já está correta para quando o
-agendamento paralelo chegar (está no roadmap), mas hoje não há ganho de
-desempenho real em `await` sequenciais.
+Só que escrito assim, uma de cada vez, `async` não compra nada: o `await` na
+linha seguinte cancela qualquer sobreposição. O ganho está em **chamar todas
+antes de aguardar qualquer uma**:
 
-Seja honesto sobre isso ao escrever código: use `async` onde a semântica é de
-espera, não esperando aceleração automática.
+```dataforge
+// as quatro comecam aqui
+tarefas := [demorada(n) cycle n in [1, 2, 3, 4]]
+
+// e aqui so se espera a mais lenta
+valores := await tarefas
+```
+
+| Como está escrito | Quatro esperas de 0,1 s custam |
+|---|---|
+| `tarefas := [...]` e depois `await tarefas` | **0,1 s** |
+| `cycle` com `await` dentro | **0,4 s** |
+
+O exercício mede as duas formas e compara. Rode e veja.
+
+## O que acelera e o que não
+
+As tarefas são threads. Elas se sobrepõem enquanto uma está **esperando algo de
+fora**. Para contas, não — o GIL do Python deixa uma thread por vez executar
+código, e vinte tarefas somando números levam o mesmo tempo que uma.
+
+- entrada e saída (rede, disco, banco, `sleep`) → `async`
+- trabalho de CPU → `Arcane.Concurrent`, que usa processos
+
+## A tarefa não é o valor
+
+O engano mais comum de quem escreve código assíncrono, em qualquer linguagem:
+
+```dataforge
+u := buscar_usuario(1)
+out u["nome"]          // erro: 'u' e a tarefa, nao o vault
+```
+
+A linguagem aponta a linha e diz a palavra que faltou.
 
 ## Compor
 
@@ -58,11 +90,13 @@ Nada de especial: o `monitor` funciona igual ao redor de código síncrono.
 
 O roadmap prevê, e vale saber que **ainda não está aqui**:
 
-- `TaskGroup` para aguardar várias tarefas em paralelo
 - cancelamento de tarefa em andamento
+- `await` com prazo — hoje ele espera o tempo que for
 - `Mutex`, `Semaphore`, `Atomic`
 
-Para paralelismo real hoje, use `thread` e `channel` (próximos exercícios).
+Aguardar várias ao mesmo tempo **já existe**: `await` sobre um cluster de
+tarefas espera todas. Para dividir trabalho de CPU, veja `thread`, `channel` e
+`Arcane.Concurrent` (próximos exercícios).
 
 ## Saída esperada
 
@@ -75,9 +109,16 @@ pedidos: 2
 erro capturado: a busca falhou
 
 [Usuario 1, Usuario 2, Usuario 3]
+
+juntas:    0.1s
+uma a uma: 0.4s
 ```
+
+Os dois tempos variam com a máquina; o que não varia é a diferença entre eles.
 
 ## Experimente
 
 - Escreva uma cadeia de três ações async que dependem uma da outra.
 - Combine `await` com `retry` para uma busca que pode falhar temporariamente.
+- Troque `T.sleep(0.1)` por uma conta pesada e meça de novo: o ganho some, e
+  esse é o limite do GIL aparecendo.

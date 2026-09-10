@@ -51,7 +51,7 @@ handle e:
 
 assert await pode_falhar(no) is "ok", "caminho feliz"
 
-// Varias chamadas em sequencia
+// Varias chamadas em sequencia: cada uma espera a anterior
 ids := [1, 2, 3]
 nomes := []
 cycle id in ids:
@@ -61,3 +61,41 @@ cycle id in ids:
 out ""
 out nomes
 assert len(nomes) is 3, "tres usuarios"
+
+// ── O que 'async' realmente compra ──
+//
+// Chamar uma acao async COMECA o trabalho e devolve a tarefa. Quem
+// chama todas antes de aguardar qualquer uma paga o tempo da mais
+// lenta, e nao a soma de todas.
+
+adopt Arcane.Time as T
+
+async action demorada(n):
+    T.sleep(0.1)
+    yield n * 10
+
+// as quatro comecam aqui
+inicio := T.monotonic()
+tarefas := [demorada(n) cycle n in [1, 2, 3, 4]]
+juntas := await tarefas
+tempo_juntas := T.monotonic() - inicio
+
+// e aqui uma de cada vez
+inicio := T.monotonic()
+uma_a_uma := []
+cycle n in [1, 2, 3, 4]:
+    uma_a_uma.append(await demorada(n))
+tempo_sequencial := T.monotonic() - inicio
+
+out ""
+out $"juntas:    {round(tempo_juntas, 2)}s"
+out $"uma a uma: {round(tempo_sequencial, 2)}s"
+
+assert juntas is [10, 20, 30, 40], "os mesmos valores"
+assert juntas is uma_a_uma, "so muda o tempo, nao o resultado"
+assert tempo_juntas smaller tempo_sequencial, "quatro esperas juntas custam menos"
+
+// A tarefa nao e o valor: usar uma sem 'await' e o engano mais comum.
+pendente := buscar_usuario(9)
+assert typeof(pendente) isnt "Vault", "a chamada devolve a tarefa"
+assert await pendente is {"id": 9, "nome": "Usuario 9", "ativo": yes}, "o await entrega o vault"

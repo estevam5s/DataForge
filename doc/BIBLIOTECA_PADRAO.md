@@ -106,7 +106,7 @@ adopt Arcane.Math as Math
 | `determinant(matrix)` |
 | `dot(a, b)` |
 | `exp(x)` |
-| `factorial(x)` |
+| `factorial(n)` |
 | `fibonacci(n)` |
 | `floor(x)` |
 | `gcd(*integers)` |

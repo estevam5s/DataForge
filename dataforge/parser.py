@@ -2838,7 +2838,14 @@ class Parser:
         # Await
         if tok.type == TokenType.AWAIT:
             self.advance()
-            expr = self.parse_expression()
+            # 'parse_unary', e nao 'parse_expression': 'await' aperta como
+            # operador unario, igual a 'typeof' e a 'cast'. Com a
+            # expressao inteira, 'await buscar() is "ok"' virava
+            # 'await (buscar() is "ok")' — aguardava a COMPARACAO e
+            # devolvia o booleano dela. O erro ficou escondido enquanto
+            # 'await' era identidade, porque comparar antes ou depois de
+            # nao fazer nada da no mesmo.
+            expr = self.parse_unary()
             return ast.AwaitExpression(expression=expr, line=tok.line, column=tok.column)
 
         # In (input): in "prompt"

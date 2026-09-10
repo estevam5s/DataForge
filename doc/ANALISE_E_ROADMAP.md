@@ -370,8 +370,12 @@ Precisaria de outra palavra (`produce`, por exemplo) para não colidir.
 **8. Concorrência com garantias**
 
 `thread` e `parallel` não sincronizam variáveis compartilhadas; só `channel` é
-seguro. Falta `mutex`/`lock`, `await` sobre várias tarefas em paralelo, e
-`parallel` deveria tratar cada **bloco** como uma tarefa, não cada instrução.
+seguro. Falta `mutex`/`lock`, e `parallel` deveria tratar cada **bloco** como
+uma tarefa, não cada instrução.
+
+`await` sobre várias tarefas ao mesmo tempo **existe** desde que `async` deixou
+de ser decoração: `await [f(x) cycle x in fonte]` espera todas, e elas já
+corriam desde a chamada.
 
 ### Prioridade baixa
 

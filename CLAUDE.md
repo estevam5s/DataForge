@@ -638,7 +638,11 @@ O que **ainda não existe** (não invente que existe):
 - **`parallel`** roda **cada instrução** numa thread, não um bloco por thread.
 - **`frame`, `train`, `predict`** são marcadores sintáticos: devolvem um vault
   com `__type__` e nada acontece.
-- **`async/await`** resolve de forma síncrona; não há paralelismo real ali.
+- **`async/await` é concorrente de verdade, mas só para entrada e saída.**
+  Chamar uma ação `async` começa o trabalho numa thread e devolve uma
+  tarefa; `await` espera. Rede, disco, banco e `sleep` se sobrepõem de
+  fato. Trabalho de CPU não: o GIL continua no caminho, e a resposta ali
+  é `Arcane.Concurrent`, que usa processos.
 
 O roadmap completo está em `doc/ANALISE_E_ROADMAP.md`.
 

@@ -719,6 +719,93 @@ class DFChannel:
         return f"<channel '{self.name}'>"
 
 
+class _PorThread(threading.local):
+    """O que cada thread do interpretador tem só para si.
+
+    A profundidade de chamada e a pilha de quadros descrevem *uma* linha
+    de execução. Compartilhadas entre threads, duas ações 'async'
+    rodando juntas somavam a profundidade uma da outra — vinte chamadas
+    paralelas de dez quadros pareciam duzentas para o guarda de
+    recursão — e o stack trace de um erro saía com quadros da outra.
+    """
+
+    def __init__(self):
+        self.depth = 0
+        self.pilha = []
+
+
+class DFTarefa:
+    """Uma ação 'async' em andamento.
+
+    Existe porque 'async' passou tempo demais sendo enfeite: a palavra
+    era aceita, guardada em 'is_async' e nunca lida, e 'await' devolvia
+    o valor que já estava pronto. Escrever 'async' não deixava nada mais
+    rápido — e a linguagem dizia que sim.
+
+    Agora a chamada começa a rodar na hora, numa thread própria, e
+    'await' espera terminar. É concorrência de verdade para trabalho de
+    entrada e saída — rede, disco, banco, 'sleep' — onde o Python larga
+    o GIL. Para trabalho de CPU o GIL continua no caminho, e a resposta
+    é 'Arcane.Concurrent', que usa processos.
+
+    Uma thread por chamada, sem piscina: dentro de uma ação 'async' é
+    comum aguardar outra, e uma piscina de tamanho fixo travaria com as
+    trabalhadoras todas bloqueadas esperando uma vaga que só elas
+    poderiam liberar.
+    """
+
+    __slots__ = ("nome", "_thread", "_valor", "_erro", "_pronto", "_colhida")
+
+    def __init__(self, nome, trabalho):
+        self.nome = nome
+        self._valor = None
+        self._erro = None
+        self._colhida = False
+        self._pronto = threading.Event()
+
+        def correr():
+            try:
+                self._valor = trabalho()
+            except BaseException as erro:      # noqa: BLE001
+                # BaseException porque 'halt', 'skip' e 'yield' derivam
+                # dela nesta linguagem. Um sinal solto dentro da tarefa
+                # precisa chegar a quem deu 'await', e não sumir.
+                self._erro = erro
+            finally:
+                self._pronto.set()
+
+        self._thread = threading.Thread(
+            target=correr, name=f"df-async-{nome}", daemon=True)
+        self._thread.start()
+
+    def pronta(self) -> bool:
+        """Já terminou? Não bloqueia."""
+        return self._pronto.is_set()
+
+    def aguardar(self, limite=None):
+        """Espera terminar e devolve o valor, ou levanta o erro."""
+        self._pronto.wait(limite)
+        if not self._pronto.is_set():
+            raise TimeoutError(
+                f"a tarefa '{self.nome}' nao terminou em {limite}s")
+        self._colhida = True
+        if self._erro is not None:
+            raise self._erro
+        return self._valor
+
+    def falhou(self) -> bool:
+        return self._pronto.is_set() and self._erro is not None
+
+    def __repr__(self):
+        if not self._pronto.is_set():
+            estado = "rodando"
+        elif self._erro is not None:
+            estado = f"falhou: {self._erro}"
+        else:
+            estado = "pronta"
+        return f"<tarefa '{self.nome}' {estado}>"
+
+
 class _RootProxy:
     """Proxy for 'root' (super) calls - resolves methods from parent blueprints."""
     def __init__(self, instance, parent_blueprint, interpreter):
@@ -744,6 +831,18 @@ class _RootProxy:
 class Interpreter:
     """Tree-walking interpreter for DataForge AST."""
 
+    @property
+    def _depth(self):
+        return self._por_thread.depth
+
+    @_depth.setter
+    def _depth(self, valor):
+        self._por_thread.depth = valor
+
+    @property
+    def _call_stack(self):
+        return self._por_thread.pilha
+
     def __init__(self):
         # Tabelas de despacho, preenchidas sob demanda por classe de no.
         # Uma por interpretador (e nao de classe) porque os metodos
@@ -754,8 +853,11 @@ class Interpreter:
         self.global_env = Environment(name="<global>")
         self.modules = {}
         self.events = {}  # event name → list of callbacks
-        self._depth = 0   # current action-call depth
-        self._call_stack = []  # quadros para o stack trace
+        # A profundidade e a pilha de quadros sao POR THREAD.
+        # Compartilhadas, duas acoes 'async' rodando juntas somavam a
+        # profundidade uma da outra e trocavam de quadro no meio do
+        # stack trace: o erro de uma aparecia com o caminho da outra.
+        self._por_thread = _PorThread()
         self._loading = []     # módulos em carga, para detectar ciclos
         self.filename = "<stdin>"
         # A DataForge frame costs several Python frames; give the interpreter
@@ -1204,6 +1306,9 @@ class Interpreter:
                         doc="operadores")
                 return left // right
         except TypeError as e:
+            for lado in (left, right):
+                if isinstance(lado, DFTarefa):
+                    raise self._erro_de_tarefa(lado, node) from None
             raise TypeError_(str(e), node.line, node.column)
 
         raise RuntimeError_(f"Unknown binary operator: {op!r}", node.line, node.column)
@@ -1633,6 +1738,8 @@ class Interpreter:
                     node.line, node.column,
                     dica="Use an Integer for a Cluster, or a String for a Vault.",
                     doc="colecoes")
+            if isinstance(obj, DFTarefa):
+                raise self._erro_de_tarefa(obj, node)
             raise TypeError_(
                 f"{self._nome_do_tipo(obj).capitalize()} cannot be indexed.",
                 node.line, node.column,
@@ -1997,14 +2104,44 @@ class Interpreter:
         raise TypeError_("Value is not callable in a pipeline stage", node.line, node.column)
 
     def eval_AwaitExpression(self, node: ast.AwaitExpression, env):
+        """Espera o trabalho terminar e entrega o resultado.
+
+        Aceita quatro coisas, e a terceira e a que faz 'async' valer a
+        pena:
+
+          - uma tarefa, o resultado de chamar uma acao 'async';
+          - uma corrotina do Python, vinda da biblioteca padrao;
+          - um cluster de tarefas, aguardadas TODAS ao mesmo tempo —
+            elas ja estao correndo desde a chamada, entao o custo e o da
+            mais lenta, e nao a soma;
+          - qualquer outro valor, devolvido como esta. Aguardar o que ja
+            esta pronto e legitimo: e o que permite trocar uma acao
+            'async' por uma comum sem mexer em quem chama.
+
+        O erro de dentro da tarefa e relevantado aqui, na linha do
+        'await', que e onde quem escreveu pode fazer algo a respeito —
+        e por isso 'monitor'/'handle' em volta de um 'await' pega o
+        'trigger' que aconteceu na outra thread.
+        """
         result = self.evaluate(node.expression, env)
-        if asyncio.iscoroutine(result):
+        return self._aguardar(result)
+
+    def _aguardar(self, valor):
+        if isinstance(valor, DFTarefa):
+            return valor.aguardar()
+
+        if isinstance(valor, list) and any(
+                isinstance(item, DFTarefa) for item in valor):
+            return [self._aguardar(item) for item in valor]
+
+        if asyncio.iscoroutine(valor):
             loop = asyncio.new_event_loop()
             try:
-                return loop.run_until_complete(result)
+                return loop.run_until_complete(valor)
             finally:
                 loop.close()
-        return result
+
+        return valor
 
     def eval_InExpression(self, node: ast.InExpression, env):
         prompt = ""
@@ -4186,6 +4323,28 @@ class Interpreter:
         type(None): "void",
     }
 
+    def _erro_de_tarefa(self, tarefa, node):
+        """Usou o resultado de uma acao 'async' sem 'await'.
+
+        E o engano mais comum de quem escreve codigo assincrono, em
+        qualquer linguagem: a chamada devolve o TRABALHO, nao o
+        resultado dele. Dizer 'nao da para indexar isto' esta correto e
+        nao ajuda em nada — o que a pessoa precisa ouvir e a palavra que
+        faltou.
+        """
+        return TypeError_(
+            f"'{tarefa.nome}' is an 'async' action: calling it starts the "
+            f"work and hands back the task, not the value.",
+            node.line, node.column,
+            nota="'await' waits for it to finish and gives you the value",
+            dica=(f"    result := await {tarefa.nome}(...)\n"
+                  f"\n"
+                  f"To run several at once, start them all before "
+                  f"awaiting:\n"
+                  f"    tasks := [{tarefa.nome}(x) cycle x in source]\n"
+                  f"    values := await tasks"),
+            doc="tecnicas/concorrencia")
+
     def _nome_do_tipo(self, valor):
         """Descreve o tipo de um valor com o vocabulario da linguagem."""
         if isinstance(valor, DFInstance):
@@ -4202,6 +4361,8 @@ class Interpreter:
             return f"the action '{valor.name}'"
         if isinstance(valor, BuiltinFunction):
             return f"the builtin '{valor.name}'"
+        if isinstance(valor, DFTarefa):
+            return f"the running task '{valor.nome}'"
         for tipo, nome in self._NOMES_DE_TIPO.items():
             if type(valor) is tipo:
                 return nome
@@ -4475,6 +4636,20 @@ class Interpreter:
         if getattr(action, 'is_generator', False):
             return self._make_stream(action, args, kwargs, node, instance)
 
+        if getattr(action, 'is_async', False):
+            return self._iniciar_tarefa(action, args, kwargs, node, instance)
+
+        return self._corpo_da_acao(action, args, kwargs, node, instance)
+
+    def _corpo_da_acao(self, action: DFAction, args, kwargs, node, instance=None):
+        """Liga os parametros e roda o corpo. Sem aridade e sem despacho.
+
+        Separado de '_call_action' porque a tarefa 'async' precisa
+        exatamente disto, e so disto: a aridade ja foi conferida na
+        thread de quem chamou — e e la que o erro faz sentido, com a
+        linha da chamada — e chamar '_call_action' de novo cairia no
+        despacho e criaria outra tarefa, para sempre.
+        """
         call_env = action.closure.child(f"<action {action.name}>")
 
         # Bind parameters
@@ -4535,6 +4710,23 @@ class Interpreter:
                 f"return value of action '{action.name}'", node,
                 getattr(action, "type_params", ()))
         return result
+
+    def _iniciar_tarefa(self, action, args, kwargs, node, instance):
+        """Poe uma acao 'async' para correr agora, e devolve a tarefa.
+
+        Comecar na hora — e nao no 'await' — e o que da paralelismo de
+        verdade a um padrao como
+
+            tarefas := [buscar(u) cycle u in enderecos]
+            paginas := await tarefas
+
+        onde as buscas correm juntas e o 'await' so recolhe. Fosse
+        preguicoso, cada uma so comecaria quando a anterior acabasse, e
+        'async' seria de novo uma palavra sem efeito.
+        """
+        return DFTarefa(
+            action.name,
+            lambda: self._corpo_da_acao(action, args, kwargs, node, instance))
 
     def _make_stream(self, action, args, kwargs, node, instance):
         """Um 'stream action' devolve um DFStream verdadeiramente preguiçoso."""

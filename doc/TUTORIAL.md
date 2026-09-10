@@ -1021,6 +1021,9 @@ Detalhes em [`BIBLIOTECA_PADRAO.md`](BIBLIOTECA_PADRAO.md).
 
 ### async / await
 
+Uma ação marcada com `async` **começa a rodar assim que é chamada**, numa
+thread própria. A chamada não devolve o resultado: devolve a tarefa.
+
 ```dataforge
 async action buscar(id):
     yield {"id": id, "nome": "Usuario " + str(id)}
@@ -1028,6 +1031,54 @@ async action buscar(id):
 usuario := await buscar(7)
 out usuario
 ```
+
+Escrito assim, uma de cada vez, `async` não adianta nada — a única coisa
+que acontece é uma volta pela thread. O ganho aparece quando você chama
+**todas antes de aguardar qualquer uma**:
+
+```dataforge
+adopt Arcane.Time as T
+
+async action baixar(endereco):
+    T.sleep(0.2)          // uma requisicao de rede, na vida real
+    yield endereco.upper()
+
+// as seis comecam aqui, juntas
+tarefas := [baixar(e) cycle e in ["a", "b", "c", "d", "e", "f"]]
+
+// e aqui so se espera a mais lenta
+paginas := await tarefas
+```
+
+Seis esperas de 200 ms custam 200 ms, e não 1,2 s. Trocar as duas linhas
+por um `cycle` com `await` dentro devolve o 1,2 s: aí cada uma só começa
+quando a anterior termina.
+
+**O que `async` acelera e o que não acelera.** As tarefas são threads do
+Python, então elas se sobrepõem enquanto uma delas está *esperando* algo
+de fora — rede, disco, banco de dados, `sleep`. Para contas, não: o GIL
+deixa uma thread por vez executar código, e vinte tarefas somando números
+levam o mesmo tempo que uma. Trabalho de CPU pede
+[`Arcane.Concurrent`](BIBLIOTECA_PADRAO.md), que usa processos.
+
+**Erros atravessam o `await`.** O `trigger` que aconteceu na outra thread
+é relevantado na linha do `await`, que é onde você pode fazer algo:
+
+```dataforge
+async action pode_falhar(deve):
+    given deve:
+        trigger "a busca falhou"
+    yield "ok"
+
+monitor:
+    await pode_falhar(yes)
+handle e:
+    out e.message          // a busca falhou
+```
+
+> **Usar o resultado sem `await`** é o engano mais comum. `buscar(1)["nome"]`
+> não funciona: `buscar(1)` é a tarefa, não o vault. A linguagem diz isso
+> com todas as letras quando acontece.
 
 ### thread
 

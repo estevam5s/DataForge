@@ -729,8 +729,9 @@ variáveis de nível superior do arquivo ficam acessíveis pelo alias.
 
 | Construção | Semântica |
 |------------|-----------|
-| `async action f():` | marca a ação como assíncrona |
-| `await <expr>` | resolve a corrotina |
+| `async action f():` | chamá-la **começa** o trabalho numa thread e devolve uma tarefa |
+| `await <expr>` | espera a tarefa terminar e entrega o valor |
+| `await [t1, t2, …]` | espera **todas**; elas já corriam desde a chamada |
 | `thread: bloco` | roda o bloco em uma thread daemon |
 | `parallel: bloco` | roda **cada instrução** do bloco em uma thread, com join de 30 s |
 | `channel nome` | cria uma fila FIFO com trava |
