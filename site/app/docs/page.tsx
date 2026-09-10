@@ -96,8 +96,8 @@ export default function Home() {
           [<>Versão</>, <><code>1.0.0</code></>],
           [<>Extensão</>, <><code>.df</code></>],
           [<>Runtime</>, <>Python 3.10+, zero dependências</>],
-          [<>Biblioteca padrão</>, <>20 módulos, 675 símbolos</>],
-          [<>Funções globais</>, <>225, sem <code>adopt</code></>],
+          [<>Biblioteca padrão</>, <>34 módulos, 1132 símbolos</>],
+          [<>Funções globais</>, <>228, sem <code>adopt</code></>],
           [<>Licença</>, <>MIT</>],
         ]}
       />
@@ -152,9 +152,10 @@ export default function Home() {
 
       <H3>Verificável</H3>
       <p>
-        Cada afirmação desta documentação corresponde a código que roda. São 240
-        testes, 190 exercícios que verificam o próprio resultado com{' '}
-        <code>assert</code>, e 42 programas de exemplo.
+        Cada afirmação desta documentação corresponde a código que roda. São{' '}
+        <strong>1246 testes</strong>, 216 exercícios que verificam o próprio
+        resultado com <code>assert</code>, e 43 programas de exemplo. Os
+        trechos desta documentação são compilados a cada mudança — 568 deles.
       </p>
 
       <H2>De onde você vem</H2>
@@ -226,7 +227,13 @@ dataforge version`}
           [<><strong>Erros</strong></>, <><code>handle</code> tipado, <code>guard</code>, <code>retry</code>, <code>propagate</code>, stack traces</>],
           [<><strong>Fluxos</strong></>, <>pipelines, <code>stream action</code> com avaliação preguiçosa</>],
           [<><strong>Módulos</strong></>, <><code>adopt</code> seletivo, <code>relay</code>, detecção de ciclos, <code>forge.toml</code></>],
-          [<><strong>Ferramentas</strong></>, <><code>check</code>, <code>test</code>, <code>fmt</code>, <code>lint</code>, <code>doc</code>, <code>repl</code>, <code>init</code></>],
+          [<><strong>Ferramentas</strong></>, <>40 comandos: <code>check</code>, <code>test</code>, <code>fmt</code>, <code>lint</code>, <code>big-o</code>, <code>debug</code>, <code>lsp</code>, <code>repl</code></>],
+          [<><strong>Editor</strong></>, <><Link href="/docs/tecnicas/lsp">servidor de linguagem</Link>: autocompletar, hover, ir-para-definição, renomear</>],
+          [<><strong>Web</strong></>, <><Link href="/docs/kiln">Kiln</Link> — rotas, middleware, CSRF, cache, gzip, idempotência</>],
+          [<><strong>Testes</strong></>, <><Link href="/docs/crucible">Crucible</Link> — 59 matchers, fixtures, dublês, benchmark</>],
+          [<><strong>Banco</strong></>, <><Link href="/docs/banco-de-dados">Forge</Link> — SQLite, Postgres, MySQL, Redis e Mongo por protocolo próprio</>],
+          [<><strong>Dados</strong></>, <><Link href="/docs/tecnicas/parquet">Parquet</Link>, <Link href="/docs/tecnicas/lago">Data Lake</Link>, <Link href="/docs/tecnicas/pipeline">pipelines</Link>, <Link href="/docs/tecnicas/streaming">streaming</Link>, <Link href="/docs/tecnicas/ml">ML</Link></>],
+          [<><strong>Pacotes</strong></>, <>semver, lockfile, verificação de integridade, registro estático</>],
         ]}
       />
 
@@ -237,13 +244,41 @@ dataforge version`}
       </p>
 
       <ul>
-        <li><strong>Generics</strong> — <code>Cluster&lt;T&gt;</code> e ações genéricas</li>
-        <li><strong>Exaustividade</strong> — o <code>match</code> não avisa se um membro de enum ficou de fora</li>
-        <li><strong>Contrato de trait</strong> — não se verifica se o blueprint implementou tudo</li>
-        <li><strong>LSP e debugger</strong> — a gramática TextMate só colore</li>
-        <li><strong>Gerenciador de pacotes</strong> — <code>forge.toml</code> tem a seção, nada a resolve ainda</li>
-        <li><strong>VM de bytecode</strong> — é interpretador de árvore, sem otimização</li>
+        <li>
+          <strong>Desempenho</strong> — é interpretador de árvore escrito em
+          Python, e paga duas camadas de interpretação. Medido:{' '}
+          <code>fib(28)</code> em 4,8 s contra 0,02 s do CPython. Não é
+          bloqueio para script, ETL, CLI ou servidor, onde a rede domina; é
+          bloqueio para laço quente. Uma VM de bytecode é o próximo salto.
+        </li>
+        <li>
+          <strong>Generics com restrição</strong> — <code>&lt;T&gt;</code>{' '}
+          existe e o analisador o aceita, mas não há{' '}
+          <code>&lt;T extends Comparable&gt;</code>: o parâmetro documenta a
+          relação entre entrada e saída, e não é verificado em execução.
+        </li>
+        <li>
+          <strong>Exaustividade além de enum</strong> — o <code>match</code>{' '}
+          avisa quando um membro de enum fica de fora, mas não confere
+          sequências nem records.
+        </li>
+        <li>
+          <strong>Depurador gráfico</strong> — <code>dataforge debug</code>{' '}
+          existe e para, anda e inspeciona no terminal, mas ainda não fala o
+          protocolo que poria os controles na barra do editor.
+        </li>
+        <li>
+          <strong>Ecossistema</strong> — o registro tem 20 pacotes, todos deste
+          projeto. Uma linguagem fica completa quando outra pessoa publica nela,
+          e isso não se resolve com código.
+        </li>
       </ul>
+
+      <p>
+        O que <em>deixou</em> de faltar desde a última revisão: LSP,
+        depurador, exaustividade de enum, contrato de trait e o gerenciador de
+        pacotes — todos existem hoje.
+      </p>
 
       <p>
         O plano completo está no <Link href="/docs/roadmap">Roadmap</Link>.
@@ -258,11 +293,12 @@ dataforge version`}
         <Card href="/docs/variaveis" title="Visão geral" meta="13 páginas">
           A linguagem do zero, na ordem em que é usada.
         </Card>
-        <Card href="/docs/exercicios" title="190 exercícios" meta="20 módulos">
-          Cada um se verifica com <code>assert</code>. Os 60 do 4.0 têm explicação ao lado.
+        <Card href="/docs/exercicios" title="216 exercícios" meta="26 módulos">
+          Cada um se verifica com <code>assert</code>. Dezesseis módulos têm
+          um <code>.md</code> explicativo ao lado de cada exercício.
         </Card>
-        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="675 símbolos">
-          Estatística, SQLite, HTTP, criptografia, grafos, datas.
+        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1132 símbolos">
+          Estatística, bancos, HTTP, criptografia, Parquet, ML, streaming.
         </Card>
         <Card href="/docs/referencia/gramatica" title="Referência formal">
           Gramática EBNF, palavras reservadas, precedência e semântica.

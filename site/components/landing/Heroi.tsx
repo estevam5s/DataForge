@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 /* Números reais do repositório — os mesmos que a suíte verifica. */
 const fatos = [
-  { rotulo: 'Testes passando', valor: '1012' },
+  { rotulo: 'Testes passando', valor: '1246' },
   { rotulo: 'Exercícios verificados', valor: '216' },
   { rotulo: 'Dependências no runtime', valor: 'nenhuma' },
 ];

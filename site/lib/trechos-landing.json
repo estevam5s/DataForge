@@ -22,5 +22,15 @@
   "desc": "sift, morph e distill encadeados; generator preguiçoso.",
   "codigo": "vendas := [120, 45, 300, 80, 500, 15, 250]\n\ntotal := vendas\n    >> sift v: v bigger_eq 100\n    >> morph v: v * 1.1\n    >> distill acc, v: acc + v 0\n\nout $\"vendas grandes, com 10%: {round(total, 2)}\"\n\nstream action fib():\n    a := 0\n    b := 1\n    persist yes:\n        emit a\n        a, b := b, a + b\n\nout fib().take(8)",
   "saida": "vendas grandes, com 10%: 1287.0\n[0, 1, 1, 2, 3, 5, 8, 13]"
+ },
+ {
+  "titulo": "Servidor web",
+  "desc": "Kiln: rotas, middleware, CSRF, paginação — sem instalar nada.",
+  "codigo": "adopt Kiln\n\nserver api on 8080:\n    middleware Kiln.csrf(SEGREDO)\n    after Kiln.cabecalhos_seguros()\n    after Kiln.comprimir()\n\n    route GET \"/produtos\":\n        achados := Kiln.buscar(produtos, req, [\"nome\"])\n        respond Kiln.paginar(Kiln.ordenar(achados, req, [\"preco\"]), req)\n\n    route POST \"/produtos\":\n        respond 201 {\"criado\": body[\"nome\"]}\n"
+ },
+ {
+  "titulo": "Pipeline de dados",
+  "desc": "DAG com dependências, retry e carga incremental.",
+  "codigo": "adopt Arcane.Pipeline as P\nadopt Arcane.Qualidade as Q\n\nfluxo := P.fluxo(\"vendas\", \"estado.json\")\n\nP.etapa(fluxo, \"extrair\", extrair)\nP.etapa(fluxo, \"limpar\", limpar, [\"extrair\"])\nP.etapa(fluxo, \"carregar\", carregar, [\"limpar\"], 3, 2)\n\naction limpar(ctx):\n    yield Q.so_validas(Q.sem_duplicadas(ctx[\"extrair\"], [\"id\"]), REGRAS)\n\nr := P.rodar(fluxo)\nout $\"{r[\"resumo\"][\"ok\"]}/{r[\"resumo\"][\"total\"]} etapas em {r[\"duracao\"]}s\"\n"
  }
 ]

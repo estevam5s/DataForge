@@ -1729,3 +1729,81 @@ def test_o_dois_pontos_do_pipeline_nao_e_formato():
 def test_o_dois_pontos_do_lambda_tambem_nao_e_formato():
     assert run('f := lambda x: x * 2\nout $"{f(21)}"') == "42"
     assert run('out $"{[1, 2, 3] >> sift n: n bigger 1}"') == "[2, 3]"
+
+
+def _contagens_reais():
+    """Os números que o site anuncia, tirados do código."""
+    import glob
+    from dataforge.builtins import get_builtins
+    from dataforge.stdlib import get_module, list_modules
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    modulos = {get_module(n)["__name__"] for n in set(list_modules())}
+    return {
+        "modulos": len(modulos),
+        "simbolos": sum(len([k for k in get_module(n) if not k.startswith("__")])
+                        for n in modulos),
+        "builtins": len(get_builtins()),
+        "exercicios": len(glob.glob(os.path.join(raiz, "exercicios",
+                                                 "*", "[0-9]*.df"))),
+        "exemplos": len(glob.glob(os.path.join(raiz, "examples", "*.df"))),
+    }
+
+
+def test_a_pagina_docs_anuncia_os_numeros_reais():
+    """Ela dizia '20 módulos, 675 símbolos, 190 exercícios'.
+
+    Eram 34, 1132 e 216. Número escrito à mão numa página envelhece em
+    silêncio — e a primeira página que alguém lê é a que mais custa
+    estar errada.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pagina = os.path.join(raiz, "site", "app", "docs", "page.tsx")
+    if not os.path.isfile(pagina):
+        pytest.skip("o site não está neste checkout")
+
+    texto = open(pagina, encoding="utf-8").read()
+    real = _contagens_reais()
+    for chave in ("modulos", "simbolos", "exercicios"):
+        assert str(real[chave]) in texto, (
+            f"a página /docs não cita os {real[chave]} {chave} reais")
+
+
+def test_a_home_lista_todos_os_modulos():
+    """Catorze módulos ficaram invisíveis na home — Kiln entre eles.
+
+    A contagem era gerada e estava certa; a LISTA era escrita à mão e
+    parou em 20. Um módulo que existe e não aparece é trabalho que
+    ninguém encontra.
+    """
+    import json
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    componente = os.path.join(raiz, "site", "components", "landing",
+                              "Arcane.tsx")
+    dados = os.path.join(raiz, "site", "lib", "dados-gerados.json")
+    if not os.path.isfile(componente):
+        pytest.skip("o site não está neste checkout")
+
+    texto = open(componente, encoding="utf-8").read()
+    bloco = texto[texto.index("const grupos"):texto.index("];",
+                                                          texto.index("const grupos"))]
+    listados = set(re.findall(r"'([a-z_]+)'", bloco))
+    todos = set(json.load(open(dados, encoding="utf-8"))["modulos"])
+
+    faltando = sorted(todos - listados)
+    assert not faltando, f"não aparecem na home: {faltando}"
+
+
+def test_os_trechos_da_home_compilam():
+    """Eles são a primeira coisa que alguém lê da linguagem."""
+    import json
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    arquivo = os.path.join(raiz, "site", "lib", "trechos-landing.json")
+    if not os.path.isfile(arquivo):
+        pytest.skip("o site não está neste checkout")
+
+    for trecho in json.load(open(arquivo, encoding="utf-8")):
+        parse(tokenize(trecho["codigo"], trecho["titulo"]), trecho["titulo"])
