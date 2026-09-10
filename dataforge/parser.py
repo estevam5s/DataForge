@@ -2712,6 +2712,10 @@ class Parser:
             for tipo, conteudo in tok.value:
                 if tipo == 'text':
                     partes.append(('text', conteudo))
+                elif tipo == 'fmt':
+                    expressao, formato = conteudo
+                    partes.append(('fmt', (
+                        self._parse_sub_expression(expressao, tok), formato)))
                 else:
                     partes.append(('expr', self._parse_sub_expression(conteudo, tok)))
             return ast.InterpolatedString(parts=partes, line=tok.line, column=tok.column)

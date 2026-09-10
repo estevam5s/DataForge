@@ -205,7 +205,21 @@ out 1 smaller 5 smaller 10
 
 O termo do meio é avaliado uma única vez.
 
-### 2.5 `is not` e `not in`
+### 2.5 Formato na interpolação
+
+Depois de `:` vem o formato, com a mini-linguagem do `format`:
+
+```dataforge
+out $"{3.14159:.2f}"      // 3.14
+out $"[{"ab":<10}]"       // [ab        ]
+out $"{1234567:,}"        // 1,234,567
+```
+
+O `:` que abre o corpo de um `lambda` ou de um `morph` **não** é
+formato: ele é distinguido por não ter espaço depois e por o que vem
+em seguida parecer formato.
+
+### 2.6 `is not` e `not in`
 
 `is not` e `not in` são **um operador cada**, escritos com dois tokens:
 

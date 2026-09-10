@@ -9,6 +9,16 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"h2": "Formato"},
+  {"p": "Depois de `:` vem o formato — a mesma mini-linguagem do `format`, para não haver uma notação a mais para consultar:"},
+  { code: `x := 3.14159
+out $"{x:.2f}"              // 3.14
+out $"[{"ab":<10}]"         // [ab        ]
+out $"[{42:>8}]"            // [      42]
+out $"{1234567:,}"          // 1,234,567
+out $"{0.5:.1%}"            // 50.0%`, lang: 'df' },
+  {"callout": {"tipo": "atencao", "titulo": "O `:` do lambda não é formato", "texto": "`$\"{xs >> morph p: p[\"n\"]}\"` tem um `:` que abre o corpo do `morph`. Ele é distinguido por três coisas: está fora de parêntese e colchete, **não tem espaço depois**, e o que vem em seguida parece formato. Ninguém escreve `{x: .2f}`; todo mundo escreve `morph p: …` com espaço — é a diferença que a própria escrita já faz."}},
+
   {"h2": "A forma"},
   { code: `nome := "Ana"
 idade := 30

@@ -183,7 +183,9 @@ class Lexer:
                 fonte = ''.join(expr_chars).strip()
                 if not fonte:
                     self.error("Empty interpolation: '{}' needs an expression")
-                parts.append(('expr', fonte))
+                expressao, formato = _separar_formato(fonte)
+                parts.append(('expr', expressao)
+                             if not formato else ('fmt', (expressao, formato)))
                 continue
 
             if ch == '}' and self.peek(1) == '}':
@@ -704,3 +706,69 @@ def tokenize(source: str, filename: str = "<stdin>") -> list[Token]:
         if not erro.filename:
             erro.filename = filename
         raise
+
+
+#: O que um formato pode ser — a mini-linguagem do 'format'.
+#:
+#:    [[preenchimento]alinhamento][sinal][#][0][largura][,][.precisao][tipo]
+_FORMATO = __import__("re").compile(
+    r"^(?:.?[<>^=])?[+\- ]?#?0?\d*[,_]?(?:\.\d+)?[bcdeEfFgGnosxX%]?$")
+
+
+def _separar_formato(fonte):
+    """'x:.2f' -> ('x', '.2f'). Sem formato, devolve ('x', '').
+
+    O ':' e ambiguo em DataForge: ele separa o formato, mas tambem abre
+    o corpo de um lambda e de um 'morph'/'sift'. Cortar no primeiro que
+    aparece quebraria isto —
+
+        $"nomes: {xs >> morph p: p["n"]}"
+
+    — e foi assim que o exercicio 165 quebrou: o corpo virava 'formato'
+    e o 'p' dele, nome indefinido.
+
+    Sao tres condicoes, e todas precisam valer:
+
+    1. O ':' esta FORA de parentese, colchete, chave e aspas.
+    2. Nao ha espaco depois dele. Ninguem escreve '{x: .2f}'; todo
+       mundo escreve 'morph p: p[...]' com espaco. E a diferenca que a
+       propria escrita ja faz.
+    3. O que vem depois PARECE um formato — so os caracteres da
+       mini-linguagem. Codigo tem letra, colchete e aspas; formato nao.
+
+    A busca e da direita para a esquerda: em '{v["a"]:.2f}' o ':' do
+    formato e o ultimo.
+    """
+    profundidade = 0
+    aspas = ""
+    candidatos = []
+    i = 0
+    while i < len(fonte):
+        c = fonte[i]
+        if aspas:
+            if c == "\\":
+                i += 2
+                continue
+            if c == aspas:
+                aspas = ""
+        elif c in "\"'":
+            aspas = c
+        elif c in "([{":
+            profundidade += 1
+        elif c in ")]}":
+            profundidade -= 1
+        elif c == ":" and profundidade == 0:
+            candidatos.append(i)
+        i += 1
+
+    for corte in reversed(candidatos):
+        esquerda = fonte[:corte].strip()
+        direita = fonte[corte + 1:]
+        if not esquerda or not direita:
+            continue
+        if direita[0].isspace():
+            continue                     # o ':' de um lambda ou pipeline
+        if not _FORMATO.match(direita):
+            continue                     # aquilo e codigo, nao formato
+        return esquerda, direita
+    return fonte, ""

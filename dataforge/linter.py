@@ -370,6 +370,12 @@ class Linter:
             for tipo, conteudo in node.parts:
                 if tipo == 'expr':
                     self._coletar_leituras(conteudo, destino)
+                elif tipo == 'fmt':
+                    # A parte com formato tambem le nomes. Sem isto, um
+                    # 'adopt' usado so em '{M.pi():.2f}' seria acusado de
+                    # nao usado — e falso alarme ensina a ignorar o lint
+                    # inteiro.
+                    self._coletar_leituras(conteudo[0], destino)
         if isinstance(node, (ast.SiftOperation, ast.MorphOperation,
                              ast.DistillOperation)):
             if getattr(node, 'func_ref', None):

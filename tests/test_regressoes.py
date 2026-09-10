@@ -1640,3 +1640,92 @@ action som(b):
     assert len(avisos) == 1
     for membro in ("Cao", "Ave", "Peixe"):
         assert membro in avisos[0].message
+
+
+def test_o_formato_da_interpolacao_e_aplicado():
+    """'$"{x:.2f}"' precisa arredondar, não imprimir tudo.
+
+    O formato era engolido em silêncio: o lexer o incluía na expressão,
+    o parser o descartava, e a saída vinha sem formato nenhum. Compilava,
+    rodava e produzia o texto errado — a mesma família do 'is not'.
+
+    E não era teórico: alinhamentos com ':<10' escritos em exemplos
+    desta própria documentação saíam desalinhados.
+    """
+    assert run('x := 3.14159\nout $"{x:.2f}"') == "3.14"
+    assert run('out $"[{"ab":<6}]"') == "[ab    ]"
+    assert run('out $"[{42:>6}]"') == "[    42]"
+    assert run('out $"{1234567:,}"') == "1,234,567"
+    assert run('out $"{0.5:.1%}"') == "50.0%"
+
+
+def test_o_dois_pontos_de_vault_nao_e_confundido_com_formato():
+    """'{v["a"]}' e '{ {"a":1}["a"] }' têm ':' que NÃO é formato.
+
+    Cortar no primeiro ':' quebraria toda leitura de vault dentro de
+    interpolação — que é o uso mais comum que existe.
+    """
+    assert run('v := {"id": 7}\nout $"item {v["id"]}"') == "item 7"
+    assert run('out $"{ {"a": 1}["a"] }"') == "1"
+
+
+def test_o_ternario_dentro_da_interpolacao_continua_valendo():
+    """'given/otherwise' não tem ':', mas o lambda tem."""
+    assert run('x := 10\nout $"{"alto" given x bigger 5 otherwise "baixo"}"') \
+        == "alto"
+
+
+def test_formato_invalido_diz_o_que_houve():
+    with pytest.raises(DataForgeError) as e:
+        run('out $"{"texto":.2f}"')
+    assert "formato" in str(e.value).lower() or "format" in str(e.value).lower()
+
+
+def test_o_analisador_ve_a_expressao_dentro_do_formato():
+    """'{naoexiste:.2f}' precisa ser apanhado como nome indefinido.
+
+    O analisador só olhava as partes 'expr'. Com o formato numa parte
+    própria, um nome errado ali passaria despercebido — e o erro só
+    apareceria em execução, que é justamente o que o 'check' existe
+    para evitar.
+    """
+    fonte = 'x := 1\nout $"{naoexiste:.2f}"'
+    programa = parse(tokenize(fonte, "t.df"), "t.df")
+    from dataforge.typechecker import check_program
+    erros = [d for d in check_program(programa, "t.df")
+             if d.severity == "error" and "naoexiste" in d.message]
+    assert erros, "o nome indefinido dentro do formato não foi visto"
+
+
+def test_o_lint_ve_o_uso_dentro_do_formato():
+    """Um módulo usado só em '{M.pi():.2f}' não é 'importado sem uso'.
+
+    O linter também só olhava as partes 'expr'. Acusar um import que
+    ESTÁ sendo usado é o tipo de falso alarme que ensina a ignorar o
+    lint inteiro.
+    """
+    from dataforge.linter import lint_program
+
+    fonte = 'adopt Arcane.Math as M\nout $"{M.sqrt(2):.3f}"\n'
+    programa = parse(tokenize(fonte, "t.df"), "t.df")
+    avisos = [a for a in lint_program(programa, "t.df", fonte)
+              if "never used" in a.message or "sem uso" in a.message]
+    assert not avisos, f"acusou um import que está em uso: {avisos}"
+
+
+def test_o_dois_pontos_do_pipeline_nao_e_formato():
+    """'{xs >> morph p: p["n"]}' tem ':' que é do lambda.
+
+    O separador procura o ':' fora de parêntese e colchete — mas o
+    corpo de um 'morph' fica solto, sem delimitador nenhum. Cortar ali
+    partiria a expressão no meio, e o 'p' do corpo virava nome
+    indefinido: o exercício 165 quebrou exatamente assim.
+    """
+    fonte = ('xs := [{"n": "a"}, {"n": "b"}]\n'
+             'out $"nomes: {xs >> morph p: p["n"]}"')
+    assert "a" in run(fonte) and "b" in run(fonte)
+
+
+def test_o_dois_pontos_do_lambda_tambem_nao_e_formato():
+    assert run('f := lambda x: x * 2\nout $"{f(21)}"') == "42"
+    assert run('out $"{[1, 2, 3] >> sift n: n bigger 1}"') == "[2, 3]"

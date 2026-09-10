@@ -4745,9 +4745,33 @@ class Interpreter:
         for tipo, conteudo in node.parts:
             if tipo == 'text':
                 partes.append(conteudo)
+            elif tipo == 'fmt':
+                expressao, formato = conteudo
+                partes.append(self._formatar(
+                    self.evaluate(expressao, env), formato, node))
             else:
                 partes.append(self._to_str(self.evaluate(conteudo, env)))
         return ''.join(partes)
+
+    def _formatar(self, valor, formato, node):
+        """'{x:.2f}' — o formato depois dos dois-pontos.
+
+        A gramatica e a mesma do 'format' do Python, e isso e
+        deliberado: '.2f', '<10', '>8', ',' e '%' sao o que quem escreve
+        ja conhece de outra linguagem, e inventar uma notacao propria
+        aqui so criaria uma coisa a mais para consultar.
+        """
+        try:
+            return format(valor, formato)
+        except (ValueError, TypeError) as erro:
+            raise TypeError_(
+                f"não dá para formatar {self._nome_do_tipo(valor)} "
+                f"com '{formato}'.",
+                getattr(node, "line", 0), getattr(node, "column", 0),
+                nota=str(erro),
+                dica="'.2f' e ',' pedem número; '<10' e '>8' servem para "
+                     "qualquer valor",
+                doc="fundamentos/interpolacao") from None
 
     def eval_TernaryExpression(self, node, env):
         if self.evaluate(node.condition, env):

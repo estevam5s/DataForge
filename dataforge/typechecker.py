@@ -1054,6 +1054,12 @@ class TypeChecker:
         for tipo, conteudo in node.parts:
             if tipo == 'expr':
                 self.infer(conteudo, escopo)
+            elif tipo == 'fmt':
+                # A parte com formato tambem carrega uma expressao. Sem
+                # olha-la, '{naoexiste:.2f}' passaria pelo 'check' e so
+                # estouraria em execucao — que e o que o analisador
+                # existe para evitar.
+                self.infer(conteudo[0], escopo)
         return "String"
 
     def ex_ListLiteral(self, node, escopo):
