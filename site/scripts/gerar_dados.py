@@ -24,28 +24,10 @@ from dataforge.stdlib import get_module, list_modules          # noqa: E402
 from dataforge.tokens import KEYWORDS                          # noqa: E402
 
 
-DESCRICOES = {
-    "Arcane.Math": "Matemática, álgebra linear e estatística.",
-    "Arcane.Text": "Manipulação de texto, tabelas, caixas e conversão de caixa.",
-    "Arcane.IO": "Arquivos, diretórios, JSON e CSV.",
-    "Arcane.Regex": "Expressões regulares e padrões prontos.",
-    "Arcane.Collections": "Pilha, fila, heap, grafo, união-busca e algoritmos.",
-    "Arcane.Functional": "Composição, currying, memoização e preguiça.",
-    "Arcane.Data": "Estruturas tabulares e transformação de dados.",
-    "Arcane.Analytics": "Agregação, agrupamento e séries.",
-    "Arcane.Database": "SQLite com transações reais.",
-    "Arcane.Serialization": "JSON, CSV, YAML simples e binário.",
-    "Arcane.Cortex": "Aprendizado de máquina didático.",
-    "Arcane.OS": "Sistema de arquivos, ambiente e caminhos.",
-    "Arcane.Process": "Processos externos e pipes.",
-    "Arcane.Time": "Datas, durações e fusos.",
-    "Arcane.Http": "Cliente e servidor HTTP.",
-    "Arcane.Web": "Requisições, URLs e HTML.",
-    "Arcane.Async": "Tarefas, canais e concorrência.",
-    "Arcane.Test": "Asserções, suítes, mocks e benchmark.",
-    "Arcane.Logging": "Registro com níveis e destinos.",
-    "Arcane.Crypto": "Hash, HMAC, base64 e aleatoriedade.",
-}
+#: A tabela vive em 'dataforge/stdlib/catalogo.py'. Ela ja esteve
+#: escrita aqui tambem, e as duas copias divergiram.
+from dataforge.stdlib.catalogo import DESCRICOES, nome_curto  # noqa: E402
+
 
 
 def assinatura(valor):
@@ -86,7 +68,8 @@ def coletar_modulos():
         chave_curta = oficial.split(".")[-1].lower()
         modulos[chave_curta] = {
             "nome": oficial,
-            "desc": DESCRICOES.get(oficial, ""),
+            "desc": DESCRICOES.get(oficial, ("", ""))[0],
+            "curto": nome_curto(oficial),
             "funcoes": simbolos,
         }
     return modulos

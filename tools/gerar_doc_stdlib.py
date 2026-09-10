@@ -15,33 +15,9 @@ sys.path.insert(0, RAIZ)
 
 from dataforge.stdlib import get_module  # noqa: E402
 
-DESCRICOES = {
-    "Arcane.Math": ("Matemática, álgebra linear e estatística básica.", "Math"),
-    "Arcane.Text": ("Manipulação de texto, formatação, tabelas e conversão de caixa.", "Text"),
-    "Arcane.Analytics": ("Análise de dados: estatística, regressão, clustering e gráficos ASCII.", "Analytics"),
-    "Arcane.Functional": ("Utilitários funcionais: composição, lentes, Maybe/Either, transdutores.", "Functional"),
-    "Arcane.Database": ("Banco de dados SQLite: tabelas, consultas, migrações e importação.", "Database / DB"),
-    "Arcane.Excel": ("Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame.", "Excel / Xlsx"),
-    "Arcane.Meta": ("Metadados de decorador: ler @Nome em tempo de execução.", "Meta"),
-    "Kiln": ("Framework web: rotas, middleware, templates, sessão e arquivos estáticos.", "Kiln"),
-    "Arcane.Test": ("Asserções e organização de suítes de teste.", "Test"),
-    "Arcane.Regex": ("Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone).", "Regex"),
-    "Arcane.IO": ("Arquivos, diretórios, JSON, CSV e shell.", "IO"),
-    "Arcane.Http": ("Servidor HTTP: rotas, middleware, JSON, arquivos estáticos.", "Http / Server"),
-    "Arcane.Async": ("Promessas, filas, agendamento e execução concorrente.", "Async"),
-    "Arcane.Data": ("DataFrames, séries e transformações tabulares.", "Data"),
-    "Arcane.Web": ("Cliente HTTP, URL encoding e JSON.", "Web / Network"),
-    "Arcane.Cortex": ("Blocos de rede neural, visão e NLP (implementações simplificadas).", "Cortex"),
-
-    # ── DataForge 4.0 ──
-    "Arcane.Time": ("Datas, horas, durações e cronometragem.", "Time"),
-    "Arcane.OS": ("Sistema operacional, ambiente, disco e processo atual.", "OS"),
-    "Arcane.Process": ("Execução de processos externos, com stdout, stderr e código de saída.", "Process"),
-    "Arcane.Logging": ("Registro estruturado de eventos, com níveis e destinos.", "Logging / Log"),
-    "Arcane.Crypto": ("Hashes, HMAC, senhas, codificações e aleatoriedade segura.", "Crypto"),
-    "Arcane.Collections": ("Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca.", "Collections"),
-    "Arcane.Serialization": ("JSON, CSV, INI, TOML, XML e conversões entre eles.", "Serialization / Serde"),
-}
+#: A tabela vive em 'dataforge/stdlib/catalogo.py', ao lado do
+#: codigo que ela descreve — e nao em copia por gerador.
+from dataforge.stdlib.catalogo import DESCRICOES  # noqa: E402
 
 CABECALHO = """# Biblioteca padrão DataForge — módulos `Arcane.*`
 
@@ -134,6 +110,66 @@ def main():
     with open(destino, "w", encoding="utf-8") as f:
         f.write("\n".join(partes))
     print(f"gerado: {destino}")
+
+    atualizar_readme()
+
+
+#: Os marcadores que delimitam a tabela gerada dentro do README.
+ABRE = "<!-- stdlib:inicio -->"
+FECHA = "<!-- stdlib:fim -->"
+
+
+def atualizar_readme():
+    """A mesma tabela, dentro do README, entre marcadores.
+
+    Ela ja esteve escrita a mao ali — e divergiu: anunciava 22 modulos
+    com 753 simbolos e um 'Arcane.Crypto' com 38, quando eram 29, 1016
+    e 48. Numero em README nao envelhece sozinho; envelhece porque foi
+    digitado.
+    """
+    from dataforge.stdlib import get_module, list_modules
+
+    oficiais = {get_module(n)["__name__"] for n in set(list_modules())}
+    def quantos(n):
+        return len([k for k in get_module(n) if not k.startswith("__")])
+
+    # O nome desempata: sem ele, dois modulos com o mesmo numero de
+    # simbolos trocavam de lugar a cada execucao — 'oficiais' e um
+    # conjunto, e a ordem de um conjunto de textos muda a cada processo.
+    # O gerador tem de dar o MESMO arquivo toda vez, senao o teste que
+    # o compara com o versionado falha sozinho.
+    linhas = []
+    for nome in sorted(oficiais, key=lambda n: (-quantos(n), n)):
+        modulo = get_module(nome)
+        simbolos = [k for k in modulo if not k.startswith("__")]
+        descricao, _ = DESCRICOES.get(nome, ("", ""))
+        linhas.append(f"| `{nome}` | {len(simbolos)} | {descricao} |")
+
+    total = sum(len([k for k in get_module(n) if not k.startswith("__")])
+                for n in oficiais)
+    from dataforge.builtins import get_builtins
+
+    tabela = "\n".join([
+        ABRE,
+        f"{len(oficiais)} módulos, {total} símbolos, mais {len(get_builtins())} "
+        "funções globais sem import.",
+        "",
+        "| Módulo | Símbolos | Para quê |",
+        "|--------|----------|----------|",
+        *linhas,
+        FECHA,
+    ])
+
+    caminho = os.path.join(RAIZ, "README.md")
+    texto = open(caminho, encoding="utf-8").read()
+    if ABRE not in texto or FECHA not in texto:
+        print(f"  (README sem os marcadores {ABRE} … {FECHA}: pulando)")
+        return
+    inicio = texto.index(ABRE)
+    fim = texto.index(FECHA) + len(FECHA)
+    open(caminho, "w", encoding="utf-8").write(
+        texto[:inicio] + tabela + texto[fim:])
+    print(f"gerado: {caminho} (tabela da stdlib)")
 
 
 if __name__ == "__main__":

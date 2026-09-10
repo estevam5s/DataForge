@@ -125,12 +125,40 @@ _MODULES = {
 #: 'sort_by_field', a outra traz fila, heap e conjunto. Sao o mesmo
 #: assunto, e obrigar quem escreve a lembrar em qual metade esta cada
 #: funcao seria arbitrario.
+#: A chave e o nome OFICIAL — o apelido chega ate aqui ja traduzido
+#: por '_CANONICO'. Listar apelido por apelido daria o mesmo modulo
+#: completo por um nome e pela metade por outro.
 _COMPLEMENTOS = {
     "Arcane.Collections": (ArcaneColecoesEsp,),
-    "Collections": (ArcaneColecoesEsp,),
     "Arcane.Crypto": (ArcaneCofre,),
-    "Crypto": (ArcaneCofre,),
 }
+
+
+def _canonicos():
+    """Para cada apelido, o nome oficial do modulo que ele aponta.
+
+    'Zip', 'Archive' e 'Arcane.Archive' sao o MESMO modulo, e ele
+    precisa se chamar 'Arcane.Archive' venha por onde vier. Carimbar o
+    apelido pedido fazia o mesmo modulo aparecer como varios: o site
+    contava 33 modulos onde ha 29, e a descricao do catalogo — indexada
+    pelo nome oficial — nao era encontrada para nenhum apelido.
+
+    O oficial e a forma 'Arcane.X' quando existe; senao, o primeiro
+    nome registrado.
+    """
+    por_objeto = {}
+    for chave, valor in _MODULES.items():
+        por_objeto.setdefault(id(valor), []).append(chave)
+
+    mapa = {}
+    for chaves in por_objeto.values():
+        oficial = next((c for c in chaves if c.startswith("Arcane.")), chaves[0])
+        for c in chaves:
+            mapa[c] = oficial
+    return mapa
+
+
+_CANONICO = _canonicos()
 
 
 def get_module(name: str):
@@ -149,15 +177,16 @@ def get_module(name: str):
     """
     if name not in _MODULES:
         return None
+    oficial = _CANONICO.get(name, name)
     mod = _MODULES[name]
     if callable(mod) and not isinstance(mod, dict):
         mod = mod()
-    for extra in _COMPLEMENTOS.get(name, ()):
+    for extra in _COMPLEMENTOS.get(oficial, ()):
         # Um modulo montado de duas partes. O complemento vence nos
         # nomes repetidos: ele e o mais completo.
         mod = {**mod, **extra()}
     if isinstance(mod, dict):
-        mod.setdefault("__name__", name)
+        mod.setdefault("__name__", oficial)
     return mod
 
 

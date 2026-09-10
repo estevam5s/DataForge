@@ -448,30 +448,41 @@ dataforge fmt . --check && dataforge check . && dataforge test
 
 ## Biblioteca padrão
 
-22 módulos, 753 símbolos, mais 225 funções globais sem import.
+<!-- stdlib:inicio -->
+29 módulos, 1016 símbolos, mais 228 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
-| `Arcane.Analytics` | 65 | regressão, correlação, clustering, gráficos ASCII |
-| `Arcane.Text` | 58 | formatação, tabelas, caixas, conversão de caixa |
-| `Arcane.Functional` | 56 | composição, lentes, Maybe/Either, transdutores |
-| `Arcane.Time` | 54 | datas, durações, cronômetro, idade |
-| `Arcane.Math` | 51 | matemática, álgebra linear, estatística |
-| `Arcane.Async` | 46 | promessas, filas, agendamento |
-| `Arcane.Database` | 39 | SQLite: tabelas, consultas, transações |
-| `Arcane.Crypto` | 38 | hashes, HMAC, senhas, base64, aleatoriedade segura |
-| `Arcane.OS` | 38 | sistema, ambiente, disco, processo |
-| `Arcane.Collections` | 35 | pilha, fila, heap, grafo, união-busca |
-| `Arcane.Test` | 34 | asserções e suítes |
-| `Arcane.Regex` | 32 | regex e validadores BR (CPF, CNPJ) |
-| `Arcane.IO` | 27 | arquivos, JSON, CSV, diretórios |
-| `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML |
-| `Arcane.Http` | 17 | servidor HTTP com rotas e middleware |
-| `Arcane.Process` | 15 | processos externos, stdout, exit code |
-| `Arcane.Logging` | 14 | níveis, campos estruturados, arquivo, JSON |
-| `Arcane.Data` | 13 | DataFrames e transformações |
-| `Arcane.Web` | 11 | cliente HTTP, URL, JSON |
-| `Arcane.Cortex` | 5 | blocos de rede neural e NLP |
+| `Arcane.Color` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
+| `Arcane.Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
+| `Arcane.Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
+| `Arcane.Text` | 58 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
+| `Arcane.Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
+| `Arcane.Time` | 54 | Datas, horas, durações e cronometragem. |
+| `Arcane.Math` | 51 | Matemática, álgebra linear e estatística básica. |
+| `Arcane.Crypto` | 48 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). |
+| `Arcane.Async` | 46 | Promessas, filas, agendamento e execução concorrente. |
+| `Kiln` | 46 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
+| `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
+| `Arcane.Crucible` | 42 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
+| `Arcane.OS` | 42 | Sistema operacional, ambiente, disco e processo atual. |
+| `Arcane.Database` | 39 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
+| `Arcane.Test` | 34 | Asserções e organização de suítes de teste. |
+| `Arcane.Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
+| `Arcane.Excel` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
+| `Arcane.Forge` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
+| `Arcane.IO` | 27 | Arquivos, diretórios, JSON, CSV e shell. |
+| `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
+| `Arcane.Concurrent` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| `Arcane.Http` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
+| `Arcane.Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
+| `Arcane.Logging` | 14 | Registro estruturado de eventos, com níveis e destinos. |
+| `Arcane.Data` | 13 | DataFrames, séries e transformações tabulares. |
+| `Arcane.Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
+| `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |
+| `Arcane.Archive` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
+| `Arcane.Cortex` | 5 | Blocos de rede neural, visão e NLP (implementações simplificadas). |
+<!-- stdlib:fim -->
 
 Referência completa: [`doc/BIBLIOTECA_PADRAO.md`](doc/BIBLIOTECA_PADRAO.md)
 (gerada a partir do código com `tools/gerar_doc_stdlib.py`).

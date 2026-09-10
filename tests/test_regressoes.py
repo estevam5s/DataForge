@@ -1198,3 +1198,76 @@ def test_simbolo_do_modulo_vence_o_metodo_de_vault():
 adopt Arcane.Collections as C
 out len(C.union(C.set([1, 2]), C.set([2, 3])))
 ''') == "3"
+
+
+def test_apelido_de_modulo_carimba_o_nome_oficial():
+    """'Zip', 'Archive' e 'Arcane.Archive' são o MESMO módulo.
+
+    O carimbo de '__name__' usava o nome PEDIDO, então o mesmo módulo
+    se apresentava com um nome diferente por apelido. O site contava 33
+    módulos onde há 29, e a descrição do catálogo — indexada pelo nome
+    oficial — não era encontrada para nenhum apelido.
+    """
+    from dataforge.stdlib import get_module
+
+    for apelidos in (("Arcane.Archive", "Archive", "Zip"),
+                     ("Arcane.Color", "Color", "Cor"),
+                     ("Arcane.Concurrent", "Concurrent", "Paralelo"),
+                     ("Arcane.Forge", "Forge", "Banco"),
+                     ("Arcane.Database", "Database", "DB")):
+        nomes = {get_module(a)["__name__"] for a in apelidos}
+        assert len(nomes) == 1, f"{apelidos} se apresentam como {nomes}"
+
+
+def test_apelido_traz_o_modulo_inteiro():
+    """'Crypto' e 'Arcane.Crypto' precisam ter os mesmos símbolos.
+
+    Os complementos eram listados apelido por apelido — o módulo saía
+    completo por um nome e pela metade por outro.
+    """
+    from dataforge.stdlib import get_module
+
+    for a, b in (("Crypto", "Arcane.Crypto"),
+                 ("Collections", "Arcane.Collections")):
+        assert set(get_module(a)) == set(get_module(b)), f"{a} != {b}"
+
+    # O complemento é o que traz a cifragem de arquivo.
+    assert "cifrar_arquivo" in get_module("Crypto")
+
+
+def test_todo_modulo_registrado_esta_no_catalogo():
+    """Sem a descrição, o módulo some da doc e da tabela do site.
+
+    Cinco já ficaram de fora assim — Iter, Color, Concurrent, Forge e
+    Crucible existiam no código e não apareciam em lugar nenhum.
+    """
+    from dataforge.stdlib import get_module, list_modules
+    from dataforge.stdlib.catalogo import DESCRICOES
+
+    faltando = sorted({get_module(n)["__name__"] for n in set(list_modules())}
+                      - set(DESCRICOES))
+    assert not faltando, (
+        f"sem descrição em stdlib/catalogo.py: {faltando}")
+
+
+def test_a_tabela_da_stdlib_no_readme_esta_em_dia():
+    """Ela é gerada; o README versionado tem de bater com o gerador.
+
+    Escrita à mão, divergiu: anunciava 22 módulos com 753 símbolos e um
+    'Arcane.Crypto' com 38, quando eram 29, 1016 e 48.
+    """
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    readme = os.path.join(raiz, "README.md")
+    antes = open(readme, encoding="utf-8").read()
+
+    r = subprocess.run([sys.executable, "tools/gerar_doc_stdlib.py"],
+                       cwd=raiz, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    depois = open(readme, encoding="utf-8").read()
+
+    if antes != depois:                      # restaura antes de falhar
+        open(readme, "w", encoding="utf-8").write(antes)
+    assert antes == depois, (
+        "README fora de sincronia — rode: python3 tools/gerar_doc_stdlib.py")

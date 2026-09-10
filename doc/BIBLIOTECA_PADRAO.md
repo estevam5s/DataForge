@@ -34,9 +34,15 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.OS`](#arcaneos) | `OS` | 42 | Sistema operacional, ambiente, disco e processo atual. |
 | [`Arcane.Process`](#arcaneprocess) | `Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | [`Arcane.Logging`](#arcanelogging) | `Logging / Log` | 14 | Registro estruturado de eventos, com níveis e destinos. |
-| [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 38 | Hashes, HMAC, senhas, codificações e aleatoriedade segura. |
+| [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 48 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). |
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
+| [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
+| [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 42 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
+| [`Arcane.Iter`](#arcaneiter) | `Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
+| [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
+| [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| [`Arcane.Archive`](#arcanearchive) | `Archive / Zip` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
 
 > Os nomes curtos e os aliases (`DB`, `Server`, `Network`) apontam para o mesmo
 > módulo — use o que ficar mais legível.
@@ -1061,17 +1067,18 @@ adopt Arcane.Logging as Logging
 
 ## Arcane.Crypto
 
-Hashes, HMAC, senhas, codificações e aleatoriedade segura.
+Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305).
 
 ```dataforge
 adopt Arcane.Crypto as Crypto
 ```
 
-**Funções (38)**
+**Funções (48)**
 
 | Assinatura |
 |------------|
 | `algorithms()` |
+| `apagar_seguro(caminho, passadas=1)` |
 | `base32_decode(v)` |
 | `base32_encode(v)` |
 | `base64_decode(texto)` |
@@ -1080,7 +1087,15 @@ adopt Arcane.Crypto as Crypto
 | `base64url_encode(v)` |
 | `blake2b(v)` |
 | `blake2s(v)` |
+| `chave_nova(tamanho=32)` |
+| `cifrar(dados, senha, iteracoes=None)` |
+| `cifrar_arquivo(origem, destino='', senha='', iteracoes=None)` |
+| `cifrar_pasta(pasta, destino='', senha='')` |
 | `constant_time_equals(a, b)` |
+| `decifrar(pacote, senha)` |
+| `decifrar_arquivo(origem, destino='', senha='')` |
+| `derivar_chave(senha, sal='', iteracoes=None)` |
+| `e_cifrado(caminho)` |
 | `hash(valor, algoritmo='sha256')` |
 | `hash_file(caminho, algoritmo='sha256')` |
 | `hash_password(senha, iteracoes=200000)` |
@@ -1088,6 +1103,7 @@ adopt Arcane.Crypto as Crypto
 | `hex_encode(v)` |
 | `hmac(chave, mensagem, algoritmo='sha256')` |
 | `hmac_verify(chave, mensagem, assinatura, algoritmo='sha256')` |
+| `informacao_do_cofre(caminho)` |
 | `mask(texto, visiveis=4, caractere='*')` |
 | `md5(v)` |
 | `pbkdf2(senha, sal, iteracoes=200000, algoritmo='sha256')` |
@@ -1230,3 +1246,312 @@ adopt Arcane.Serialization as Serialization
 | `to_toml(dados)` |
 | `to_xml(dados, raiz='root')` |
 | `unflatten(plano, separador='.')` |
+
+
+---
+
+## Arcane.Forge
+
+Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface.
+
+```dataforge
+adopt Arcane.Forge as Forge
+```
+
+**Funções (28)**
+
+| Assinatura |
+|------------|
+| `buscar_modelo(nome)` |
+| `colunas(db, t)` |
+| `conectar(url, **opcoes)` |
+| `conexao(pool)` |
+| `consultar(conexao, sql, parametros=None)` |
+| `de(conexao, tabela)` |
+| `de_csv(caminho_ou_texto)` |
+| `dialetos()` |
+| `executar(conexao, sql, parametros=None)` |
+| `fechar(db)` |
+| `ligar(modelo, conexao)` |
+| `limpar_modelos()` |
+| `memoria()` |
+| `migracoes(conexao)` |
+| `migrar_tudo(conexao)` |
+| `modelo(nome, campos=None, opcoes=None)` |
+| `modelos()` |
+| `motores()` |
+| `para_csv(linhas, caminho='')` |
+| `ping(db)` |
+| `pool(url, tamanho=5, **o)` |
+| `primeiro(conexao, sql, parametros=None)` |
+| `tabela(conexao, tabela)` |
+| `tabelas(db)` |
+| `tipos()` |
+| `transacao(conexao, corpo)` |
+| `url(url)` |
+| `versao(db)` |
+
+
+---
+
+## Arcane.Crucible
+
+Framework de testes: suítes, matchers, fixtures, dublês e benchmark.
+
+```dataforge
+adopt Arcane.Crucible as Crucible
+```
+
+**Funções (42)**
+
+| Assinatura |
+|------------|
+| `after(corpo)` |
+| `after_all(corpo)` |
+| `approx(valor, casas=7)` |
+| `before(corpo)` |
+| `before_all(corpo)` |
+| `benchmark(nome, acao, vezes=1000, aquecimento=10)` |
+| `booleans()` |
+| `capture(acao)` |
+| `check(condicao, mensagem='a condicao nao se cumpriu')` |
+| `clusters(item=None, tamanho_max=10)` |
+| `describe(nome, corpo=None)` |
+| `diff(esperado, obtido)` |
+| `expect(valor, rotulo='')` |
+| `fail(mensagem='falhou por decisao do teste')` |
+| `fixture(nome, corpo)` |
+| `floats(minimo=-1000.0, maximo=1000.0)` |
+| `forall(gerador, propriedade, casos=100, semente=None)` |
+| `freeze_time(instante)` |
+| `integers(minimo=-1000, maximo=1000)` |
+| `json()` |
+| `junit()` |
+| `mock(nome='mock', alvo=None)` |
+| `one_of(valores)` |
+| `only(nome, corpo, tags=None)` |
+| `pending(nome, motivo='', corpo=None)` |
+| `report(colorir=True, verboso=False)` |
+| `reset()` |
+| `results()` |
+| `run(opcoes=None)` |
+| `spy(alvo, nome='spy')` |
+| `stub(respostas=None, nome='stub')` |
+| `suite(nome, corpo=None)` |
+| `summary()` |
+| `table(nome, casos, corpo, tags=None)` |
+| `tag(*nomes)` |
+| `tap()` |
+| `temp_file(conteudo='', sufixo='.txt')` |
+| `test(nome, corpo, tags=None, prazo=0, repetir=1, dados=None)` |
+| `texts(tamanho_max=20, alfabeto=None)` |
+| `timed(acao, vezes=1)` |
+| `trial(nome, corpo, tags=None, prazo=0, repetir=1, dados=None)` |
+| `vaults(valor=None, tamanho_max=6)` |
+
+
+---
+
+## Arcane.Iter
+
+Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize.
+
+```dataforge
+adopt Arcane.Iter as Iter
+```
+
+**Funções (44)**
+
+| Assinatura |
+|------------|
+| `accumulate(fonte, funcao=None, inicial=None)` |
+| `attr(nome)` |
+| `batched(fonte, tamanho)` |
+| `cache_info(memoizada)` |
+| `chain(*fontes)` |
+| `chunk(fonte, tamanho)` |
+| `combinations(fonte, tamanho)` |
+| `combinations_with_repetition(fonte, tamanho)` |
+| `compose(*acoes)` |
+| `compress(fonte, marcas)` |
+| `constant(valor)` |
+| `count(inicio=0, passo=1)` |
+| `curry(funcao, aridade=2)` |
+| `cycle_forever(itens)` |
+| `drop(fonte, n)` |
+| `drop_while(fonte, condicao)` |
+| `filter_false(fonte, condicao)` |
+| `flat_map(fonte, funcao)` |
+| `flatten(fonte, profundidade=1)` |
+| `flip(funcao)` |
+| `group_runs(fonte, chave=None)` |
+| `identity(x)` |
+| `item(indice)` |
+| `memoize(funcao, tamanho=128)` |
+| `once(funcao)` |
+| `op(simbolo)` |
+| `pairwise(fonte)` |
+| `partial(funcao, *fixos, **nomeados)` |
+| `permutations(fonte, tamanho=0)` |
+| `pipe(*acoes)` |
+| `powerset(fonte)` |
+| `product(*fontes, repetir=1)` |
+| `reduce(fonte, funcao, inicial=None)` |
+| `repeat(valor, vezes=0)` |
+| `running_max(fonte)` |
+| `running_sum(fonte)` |
+| `slice(fonte, inicio, fim=None, passo=1)` |
+| `take(fonte, n)` |
+| `take_while(fonte, condicao)` |
+| `to_cluster(fonte)` |
+| `unique(fonte)` |
+| `unique_by(fonte, chave)` |
+| `window(fonte, tamanho)` |
+| `zip_longest(a, b, preencher=None)` |
+
+
+---
+
+## Arcane.Color
+
+Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore.
+
+```dataforge
+adopt Arcane.Color as Color
+```
+
+**Funções (66)**
+
+| Assinatura |
+|------------|
+| `auto()` |
+| `badge(texto, cor='blue')` |
+| `bar(valor, total, largura=30, cor='green', mostrar_numero=True)` |
+| `bg_rgb(texto, r, g, b)` |
+| `black(texto)` |
+| `blink(texto)` |
+| `blue(texto)` |
+| `bold(texto)` |
+| `box(texto, titulo='', cor='cyan', largura=0)` |
+| `bright_blue(texto)` |
+| `bright_cyan(texto)` |
+| `bright_green(texto)` |
+| `bright_magenta(texto)` |
+| `bright_red(texto)` |
+| `bright_white(texto)` |
+| `bright_yellow(texto)` |
+| `cyan(texto)` |
+| `dim(texto)` |
+| `error(texto)` |
+| `force(ligado=True)` |
+| `gradient(texto, de, para)` |
+| `gray(texto)` |
+| `green(texto)` |
+| `grey(texto)` |
+| `hex(texto, cor)` |
+| `hidden(texto)` |
+| `info()` |
+| `info_msg(texto)` |
+| `italic(texto)` |
+| `magenta(texto)` |
+| `muted(texto)` |
+| `on_black(texto)` |
+| `on_blue(texto)` |
+| `on_bright_blue(texto)` |
+| `on_bright_cyan(texto)` |
+| `on_bright_green(texto)` |
+| `on_bright_magenta(texto)` |
+| `on_bright_red(texto)` |
+| `on_bright_white(texto)` |
+| `on_bright_yellow(texto)` |
+| `on_cyan(texto)` |
+| `on_gray(texto)` |
+| `on_green(texto)` |
+| `on_grey(texto)` |
+| `on_magenta(texto)` |
+| `on_red(texto)` |
+| `on_white(texto)` |
+| `on_yellow(texto)` |
+| `paint(texto, *nomes)` |
+| `rainbow(texto)` |
+| `red(texto)` |
+| `reverse(texto)` |
+| `rgb(texto, r, g, b)` |
+| `rule(titulo='', cor='gray', largura=0)` |
+| `spinner_frames(estilo='pontos')` |
+| `strike(texto)` |
+| `strip(texto)` |
+| `success(texto)` |
+| `supports()` |
+| `table(linhas, cabecalho=True, cor='cyan')` |
+| `tree(no, prefixo='', ultimo=True)` |
+| `underline(texto)` |
+| `warning(texto)` |
+| `white(texto)` |
+| `width(padrao=80)` |
+| `yellow(texto)` |
+
+
+---
+
+## Arcane.Concurrent
+
+Threads, processos, canal bloqueante, grupo de tarefas e prazo.
+
+```dataforge
+adopt Arcane.Concurrent as Concurrent
+```
+
+**Funções (25)**
+
+| Assinatura |
+|------------|
+| `barreira(quantas)` |
+| `canal(capacidade=0)` |
+| `com_prazo(acao, segundos)` |
+| `com_trava(trava, acao)` |
+| `condicao()` |
+| `contador(inicial=0)` |
+| `dormir(segundos)` |
+| `esperar(tarefa, prazo=None)` |
+| `esperar_primeira(tarefas, prazo=None)` |
+| `esperar_todas(tarefas, prazo=None)` |
+| `evento()` |
+| `grupo(trabalhadores=None, nome='')` |
+| `lotes(acao, itens, tamanho=10, trabalhadores=None)` |
+| `map(acao, itens, trabalhadores=None, prazo=None)` |
+| `map_processos(acao, itens, trabalhadores=None)` |
+| `mutex()` |
+| `nucleos()` |
+| `para_cada(acao, itens, trabalhadores=None)` |
+| `repetir_a_cada(acao, segundos, vezes=0)` |
+| `rodar(acao, *args)` |
+| `semaforo(quantos=1)` |
+| `sou_principal()` |
+| `thread_atual()` |
+| `threads_vivas()` |
+| `trava_leitura_escrita()` |
+
+
+---
+
+## Arcane.Archive
+
+Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb.
+
+```dataforge
+adopt Arcane.Archive as Archive
+```
+
+**Funções (8)**
+
+| Assinatura |
+|------------|
+| `acrescentar(arquivo, caminho, nome='')` |
+| `compactar(origem, destino, nivel=6)` |
+| `compactar_tar(origem, destino, compressao='gz')` |
+| `conferir(arquivo)` |
+| `extrair(arquivo, destino='.', senha='')` |
+| `extrair_tar(arquivo, destino='.')` |
+| `ler_de(arquivo, nome, senha='')` |
+| `listar(arquivo)` |

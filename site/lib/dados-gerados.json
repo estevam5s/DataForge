@@ -2,7 +2,8 @@
  "modulos": {
   "analytics": {
    "nome": "Arcane.Analytics",
-   "desc": "Agregação, agrupamento e séries.",
+   "desc": "Análise de dados: estatística, regressão, clustering e gráficos ASCII.",
+   "curto": "Analytics",
    "funcoes": [
     {
      "nome": "DataFrame",
@@ -332,8 +333,9 @@
    ]
   },
   "archive": {
-   "nome": "Archive",
-   "desc": "",
+   "nome": "Arcane.Archive",
+   "desc": "Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb.",
+   "curto": "Archive / Zip",
    "funcoes": [
     {
      "nome": "acrescentar",
@@ -379,7 +381,8 @@
   },
   "async": {
    "nome": "Arcane.Async",
-   "desc": "Tarefas, canais e concorrência.",
+   "desc": "Promessas, filas, agendamento e execução concorrente.",
+   "curto": "Async",
    "funcoes": [
     {
      "nome": "all",
@@ -615,7 +618,8 @@
   },
   "collections": {
    "nome": "Arcane.Collections",
-   "desc": "Pilha, fila, heap, grafo, união-busca e algoritmos.",
+   "desc": "Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca.",
+   "curto": "Collections",
    "funcoes": [
     {
      "nome": "add",
@@ -935,8 +939,9 @@
    ]
   },
   "color": {
-   "nome": "Color",
-   "desc": "",
+   "nome": "Arcane.Color",
+   "desc": "Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore.",
+   "curto": "Color / Cor",
    "funcoes": [
     {
      "nome": "auto",
@@ -1271,8 +1276,9 @@
    ]
   },
   "concurrent": {
-   "nome": "Concurrent",
-   "desc": "",
+   "nome": "Arcane.Concurrent",
+   "desc": "Threads, processos, canal bloqueante, grupo de tarefas e prazo.",
+   "curto": "Concurrent / Paralelo",
    "funcoes": [
     {
      "nome": "barreira",
@@ -1403,7 +1409,8 @@
   },
   "cortex": {
    "nome": "Arcane.Cortex",
-   "desc": "Aprendizado de máquina didático.",
+   "desc": "Blocos de rede neural, visão e NLP (implementações simplificadas).",
+   "curto": "Cortex",
    "funcoes": [
     {
      "nome": "accuracy",
@@ -1433,8 +1440,9 @@
    ]
   },
   "crucible": {
-   "nome": "Crucible",
-   "desc": "",
+   "nome": "Arcane.Crucible",
+   "desc": "Framework de testes: suítes, matchers, fixtures, dublês e benchmark.",
+   "curto": "Crucible",
    "funcoes": [
     {
      "nome": "after",
@@ -1650,7 +1658,8 @@
   },
   "crypto": {
    "nome": "Arcane.Crypto",
-   "desc": "Hash, HMAC, base64 e aleatoriedade.",
+   "desc": "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305).",
+   "curto": "Crypto",
    "funcoes": [
     {
      "nome": "algorithms",
@@ -1896,7 +1905,8 @@
   },
   "data": {
    "nome": "Arcane.Data",
-   "desc": "Estruturas tabulares e transformação de dados.",
+   "desc": "DataFrames, séries e transformações tabulares.",
+   "curto": "Data",
    "funcoes": [
     {
      "nome": "Frame",
@@ -1967,7 +1977,8 @@
   },
   "database": {
    "nome": "Arcane.Database",
-   "desc": "SQLite com transações reais.",
+   "desc": "Banco de dados SQLite: tabelas, consultas, migrações e importação.",
+   "curto": "Database / DB",
    "funcoes": [
     {
      "nome": "Model",
@@ -2168,7 +2179,8 @@
   },
   "excel": {
    "nome": "Arcane.Excel",
-   "desc": "",
+   "desc": "Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame.",
+   "curto": "Excel / Xlsx",
    "funcoes": [
     {
      "nome": "addr",
@@ -2318,8 +2330,9 @@
    ]
   },
   "forge": {
-   "nome": "Forge",
-   "desc": "",
+   "nome": "Arcane.Forge",
+   "desc": "Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface.",
+   "curto": "Forge / Banco",
    "funcoes": [
     {
      "nome": "buscar_modelo",
@@ -2465,7 +2478,8 @@
   },
   "functional": {
    "nome": "Arcane.Functional",
-   "desc": "Composição, currying, memoização e preguiça.",
+   "desc": "Utilitários funcionais: composição, lentes, Maybe/Either, transdutores.",
+   "curto": "Functional",
    "funcoes": [
     {
      "nome": "all_pass",
@@ -2751,7 +2765,8 @@
   },
   "http": {
    "nome": "Arcane.Http",
-   "desc": "Cliente e servidor HTTP.",
+   "desc": "Servidor HTTP: rotas, middleware, JSON, arquivos estáticos.",
+   "curto": "Http / Server",
    "funcoes": [
     {
      "nome": "cors",
@@ -2842,7 +2857,8 @@
   },
   "io": {
    "nome": "Arcane.IO",
-   "desc": "Arquivos, diretórios, JSON e CSV.",
+   "desc": "Arquivos, diretórios, JSON, CSV e shell.",
+   "curto": "IO",
    "funcoes": [
     {
      "nome": "abs",
@@ -2982,8 +2998,9 @@
    ]
   },
   "iter": {
-   "nome": "Iter",
-   "desc": "",
+   "nome": "Arcane.Iter",
+   "desc": "Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize.",
+   "curto": "Iter",
    "funcoes": [
     {
      "nome": "accumulate",
@@ -3209,7 +3226,8 @@
   },
   "kiln": {
    "nome": "Kiln",
-   "desc": "",
+   "desc": "Framework web: rotas, middleware, templates, sessão e arquivos estáticos.",
+   "curto": "Kiln",
    "funcoes": [
     {
      "nome": "after",
@@ -3445,7 +3463,8 @@
   },
   "logging": {
    "nome": "Arcane.Logging",
-   "desc": "Registro com níveis e destinos.",
+   "desc": "Registro estruturado de eventos, com níveis e destinos.",
+   "curto": "Logging / Log",
    "funcoes": [
     {
      "nome": "as_json",
@@ -3521,7 +3540,8 @@
   },
   "math": {
    "nome": "Arcane.Math",
-   "desc": "Matemática, álgebra linear e estatística.",
+   "desc": "Matemática, álgebra linear e estatística básica.",
+   "curto": "Math",
    "funcoes": [
     {
      "nome": "E",
@@ -3782,7 +3802,8 @@
   },
   "meta": {
    "nome": "Arcane.Meta",
-   "desc": "",
+   "desc": "Metadados de decorador: ler @Nome em tempo de execução.",
+   "curto": "Meta",
    "funcoes": [
     {
      "nome": "arg",
@@ -3848,7 +3869,8 @@
   },
   "os": {
    "nome": "Arcane.OS",
-   "desc": "Sistema de arquivos, ambiente e caminhos.",
+   "desc": "Sistema operacional, ambiente, disco e processo atual.",
+   "curto": "OS",
    "funcoes": [
     {
      "nome": "arch",
@@ -4064,7 +4086,8 @@
   },
   "process": {
    "nome": "Arcane.Process",
-   "desc": "Processos externos e pipes.",
+   "desc": "Execução de processos externos, com stdout, stderr e código de saída.",
+   "curto": "Process",
    "funcoes": [
     {
      "nome": "capture",
@@ -4145,7 +4168,8 @@
   },
   "regex": {
    "nome": "Arcane.Regex",
-   "desc": "Expressões regulares e padrões prontos.",
+   "desc": "Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone).",
+   "curto": "Regex",
    "funcoes": [
     {
      "nome": "DOTALL",
@@ -4311,7 +4335,8 @@
   },
   "serialization": {
    "nome": "Arcane.Serialization",
-   "desc": "JSON, CSV, YAML simples e binário.",
+   "desc": "JSON, CSV, INI, TOML, XML e conversões entre eles.",
+   "curto": "Serialization / Serde",
    "funcoes": [
     {
      "nome": "csv_to_records",
@@ -4447,7 +4472,8 @@
   },
   "test": {
    "nome": "Arcane.Test",
-   "desc": "Asserções, suítes, mocks e benchmark.",
+   "desc": "Asserções e organização de suítes de teste.",
+   "curto": "Test",
    "funcoes": [
     {
      "nome": "add_test",
@@ -4623,7 +4649,8 @@
   },
   "text": {
    "nome": "Arcane.Text",
-   "desc": "Manipulação de texto, tabelas, caixas e conversão de caixa.",
+   "desc": "Manipulação de texto, formatação, tabelas e conversão de caixa.",
+   "curto": "Text",
    "funcoes": [
     {
      "nome": "align",
@@ -4919,7 +4946,8 @@
   },
   "time": {
    "nome": "Arcane.Time",
-   "desc": "Datas, durações e fusos.",
+   "desc": "Datas, horas, durações e cronometragem.",
+   "curto": "Time",
    "funcoes": [
     {
      "nome": "add_days",
@@ -5195,7 +5223,8 @@
   },
   "web": {
    "nome": "Arcane.Web",
-   "desc": "Requisições, URLs e HTML.",
+   "desc": "Cliente HTTP, URL encoding e JSON.",
+   "curto": "Web / Network",
    "funcoes": [
     {
      "nome": "check",
@@ -5250,665 +5279,6 @@
     {
      "nome": "socket",
      "sig": "(host, port)",
-     "tipo": "funcao"
-    }
-   ]
-  },
-  "banco": {
-   "nome": "Banco",
-   "desc": "",
-   "funcoes": [
-    {
-     "nome": "buscar_modelo",
-     "sig": "(nome)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "colunas",
-     "sig": "(db, t)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "conectar",
-     "sig": "(url, opcoes)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "conexao",
-     "sig": "(pool)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "consultar",
-     "sig": "(conexao, sql, parametros)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "de",
-     "sig": "(conexao, tabela)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "de_csv",
-     "sig": "(caminho_ou_texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "dialetos",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "executar",
-     "sig": "(conexao, sql, parametros)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "fechar",
-     "sig": "(db)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "ligar",
-     "sig": "(modelo, conexao)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "limpar_modelos",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "memoria",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "migracoes",
-     "sig": "(conexao)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "migrar_tudo",
-     "sig": "(conexao)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "modelo",
-     "sig": "(nome, campos, opcoes)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "modelos",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "motores",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "para_csv",
-     "sig": "(linhas, caminho)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "ping",
-     "sig": "(db)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "pool",
-     "sig": "(url, tamanho, o)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "primeiro",
-     "sig": "(conexao, sql, parametros)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "tabela",
-     "sig": "(conexao, tabela)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "tabelas",
-     "sig": "(db)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "tipos",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "transacao",
-     "sig": "(conexao, corpo)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "url",
-     "sig": "(url)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "versao",
-     "sig": "(db)",
-     "tipo": "funcao"
-    }
-   ]
-  },
-  "cor": {
-   "nome": "Cor",
-   "desc": "",
-   "funcoes": [
-    {
-     "nome": "auto",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "badge",
-     "sig": "(texto, cor)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bar",
-     "sig": "(valor, total, largura, cor, mostrar_numero)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bg_rgb",
-     "sig": "(texto, r, g, b)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "black",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "blink",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "blue",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bold",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "box",
-     "sig": "(texto, titulo, cor, largura)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bright_blue",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bright_cyan",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bright_green",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bright_magenta",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bright_red",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bright_white",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "bright_yellow",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "cyan",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "dim",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "error",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "force",
-     "sig": "(ligado)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "gradient",
-     "sig": "(texto, de, para)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "gray",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "green",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "grey",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "hex",
-     "sig": "(texto, cor)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "hidden",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "info",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "info_msg",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "italic",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "magenta",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "muted",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_black",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_blue",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_bright_blue",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_bright_cyan",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_bright_green",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_bright_magenta",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_bright_red",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_bright_white",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_bright_yellow",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_cyan",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_gray",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_green",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_grey",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_magenta",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_red",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_white",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "on_yellow",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "paint",
-     "sig": "(texto, nomes)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "rainbow",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "red",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "reverse",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "rgb",
-     "sig": "(texto, r, g, b)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "rule",
-     "sig": "(titulo, cor, largura)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "spinner_frames",
-     "sig": "(estilo)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "strike",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "strip",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "success",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "supports",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "table",
-     "sig": "(linhas, cabecalho, cor)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "tree",
-     "sig": "(no, prefixo, ultimo)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "underline",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "warning",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "white",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "width",
-     "sig": "(padrao)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "yellow",
-     "sig": "(texto)",
-     "tipo": "funcao"
-    }
-   ]
-  },
-  "paralelo": {
-   "nome": "Paralelo",
-   "desc": "",
-   "funcoes": [
-    {
-     "nome": "barreira",
-     "sig": "(quantas)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "canal",
-     "sig": "(capacidade)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "com_prazo",
-     "sig": "(acao, segundos)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "com_trava",
-     "sig": "(trava, acao)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "condicao",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "contador",
-     "sig": "(inicial)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "dormir",
-     "sig": "(segundos)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "esperar",
-     "sig": "(tarefa, prazo)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "esperar_primeira",
-     "sig": "(tarefas, prazo)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "esperar_todas",
-     "sig": "(tarefas, prazo)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "evento",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "grupo",
-     "sig": "(trabalhadores, nome)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "lotes",
-     "sig": "(acao, itens, tamanho, trabalhadores)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "map",
-     "sig": "(acao, itens, trabalhadores, prazo)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "map_processos",
-     "sig": "(acao, itens, trabalhadores)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "mutex",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "nucleos",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "para_cada",
-     "sig": "(acao, itens, trabalhadores)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "repetir_a_cada",
-     "sig": "(acao, segundos, vezes)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "rodar",
-     "sig": "(acao, args)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "semaforo",
-     "sig": "(quantos)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "sou_principal",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "thread_atual",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "threads_vivas",
-     "sig": "()",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "trava_leitura_escrita",
-     "sig": "()",
-     "tipo": "funcao"
-    }
-   ]
-  },
-  "zip": {
-   "nome": "Zip",
-   "desc": "",
-   "funcoes": [
-    {
-     "nome": "acrescentar",
-     "sig": "(arquivo, caminho, nome)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "compactar",
-     "sig": "(origem, destino, nivel)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "compactar_tar",
-     "sig": "(origem, destino, compressao)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "conferir",
-     "sig": "(arquivo)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "extrair",
-     "sig": "(arquivo, destino, senha)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "extrair_tar",
-     "sig": "(arquivo, destino)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "ler_de",
-     "sig": "(arquivo, nome, senha)",
-     "tipo": "funcao"
-    },
-    {
-     "nome": "listar",
-     "sig": "(arquivo)",
      "tipo": "funcao"
     }
    ]
