@@ -19,7 +19,6 @@ export type NavSection = {
   standalone?: boolean;
   badge?: string;
   /** Começa aberta na primeira visita. */
-  defaultOpen?: boolean;
 };
 
 export const nav: NavSection[] = [
@@ -30,7 +29,6 @@ export const nav: NavSection[] = [
   },
   {
     title: 'Visão geral',
-    defaultOpen: true,
     items: [
       { title: 'Primeiros passos', href: '/docs/primeiros-passos' },
       { title: 'Instalação', href: '/docs/instalacao' },
@@ -61,9 +59,9 @@ export const nav: NavSection[] = [
       { title: 'Generators', href: '/docs/fundamentos/generators' },
       { title: 'Closures e lambdas', href: '/docs/fundamentos/closures' },
       { title: 'Decoradores', href: '/docs/fundamentos/decoradores' },
-      { title: 'Decoradores avançados', href: '/docs/fundamentos/decoradores-avancados', badge: 'novo' },
+      { title: 'Decoradores avançados', href: '/docs/fundamentos/decoradores-avancados' },
       { title: 'Traits', href: '/docs/fundamentos/traits' },
-      { title: 'Generics', href: '/docs/fundamentos/generics', badge: 'novo' },
+      { title: 'Generics', href: '/docs/fundamentos/generics' },
       { title: 'Escopo', href: '/docs/fundamentos/escopo' },
       { title: 'Módulos', href: '/docs/fundamentos/modulos' },
     ],
@@ -78,10 +76,10 @@ export const nav: NavSection[] = [
       { title: 'Propriedades', href: '/docs/oop/propriedades' },
       { title: 'Métodos estáticos', href: '/docs/oop/estaticos' },
       { title: 'Sobrecarga de operadores', href: '/docs/oop/operadores' },
-      { title: 'Métodos mágicos', href: '/docs/oop/magicos', badge: 'novo' },
-      { title: 'slots', href: '/docs/oop/slots', badge: 'novo' },
+      { title: 'Métodos mágicos', href: '/docs/oop/magicos' },
+      { title: 'slots', href: '/docs/oop/slots' },
       { title: 'Herança e traits', href: '/docs/oop/heranca' },
-      { title: 'MRO — resolução', href: '/docs/oop/mro', badge: 'novo' },
+      { title: 'MRO — resolução', href: '/docs/oop/mro' },
       { title: 'Abstratos e contratos', href: '/docs/oop/abstratos' },
       { title: 'Encapsulamento', href: '/docs/oop/encapsulamento' },
       { title: 'Polimorfismo', href: '/docs/oop/polimorfismo' },
@@ -92,7 +90,6 @@ export const nav: NavSection[] = [
   },
   {
     title: 'Banco de dados',
-    badge: 'novo',
     items: [
       { title: 'Forge — visão geral', href: '/docs/banco-de-dados' },
       { title: 'Construtor de consultas', href: '/docs/banco-de-dados/consultas' },
@@ -105,7 +102,6 @@ export const nav: NavSection[] = [
   },
   {
     title: 'Crucible — testes',
-    badge: 'novo',
     items: [
       { title: 'Visão geral', href: '/docs/crucible' },
       { title: 'Os matchers', href: '/docs/crucible/matchers' },
@@ -117,7 +113,6 @@ export const nav: NavSection[] = [
   },
   {
     title: 'Complexidade',
-    badge: 'novo',
     items: [
       { title: 'Big-O', href: '/docs/big-o' },
       { title: 'As classes', href: '/docs/big-o/classes' },
@@ -130,8 +125,6 @@ export const nav: NavSection[] = [
   },
   {
     title: 'Kiln — framework web',
-    badge: 'novo',
-    defaultOpen: true,
     items: [
       { title: 'Visão geral', href: '/docs/kiln' },
       { title: 'Rotas e parâmetros', href: '/docs/kiln/rotas' },
@@ -175,7 +168,7 @@ export const nav: NavSection[] = [
       { title: 'Arcane.Text', href: '/docs/biblioteca/text' },
       { title: 'Arcane.Analytics', href: '/docs/biblioteca/analytics' },
       { title: 'Arcane.Excel', href: '/docs/biblioteca/excel' },
-      { title: 'Arcane.Meta', href: '/docs/biblioteca/meta', badge: 'novo' },
+      { title: 'Arcane.Meta', href: '/docs/biblioteca/meta' },
       { title: 'Arcane.Functional', href: '/docs/biblioteca/functional' },
       { title: 'Arcane.Time', href: '/docs/biblioteca/time' },
       { title: 'Arcane.Async', href: '/docs/biblioteca/async' },
@@ -217,7 +210,7 @@ export const nav: NavSection[] = [
   },
   {
     title: 'Exercícios',
-    badge: '200',
+    badge: '216',
     items: [
       { title: 'Visão geral', href: '/docs/exercicios' },
       { title: '01 · Fundamentos', href: '/docs/exercicios/01-fundamentos' },

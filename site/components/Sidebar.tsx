@@ -30,7 +30,7 @@ function Chevron({ aberto }: { aberto: boolean }) {
 
 function Selo({ texto }: { texto: string }) {
   return (
-    <span className="rounded-full bg-accent px-1.5 py-px text-[9.5px] font-bold uppercase leading-[15px] tracking-wide text-white">
+    <span className="rounded-full border border-accent/30 bg-accent/10 px-1.5 py-px text-[9.5px] font-bold uppercase leading-[15px] tracking-wide text-accent">
       {texto}
     </span>
   );
@@ -78,19 +78,29 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname() ?? '/';
   const atual = pathname.replace(/\/$/, '') || '/';
 
-  // A seção que contém a página atual começa aberta; as demais seguem o
-  // que a própria seção pedir.
-  const [abertas, setAbertas] = useState<Set<string>>(() => new Set());
+  // Aberta fica UMA seção: a que contém a página atual.
+  //
+  // Antes este efeito só acrescentava — nunca tirava. Cada navegação
+  // deixava a seção anterior aberta, e depois de alguns cliques a barra
+  // estava com tudo escancarado: era preciso rolar por 190 rotas para
+  // achar a de baixo. Duas seções ainda abriam sozinhas na primeira
+  // visita, então até `/docs`, que não pertence a seção nenhuma, já
+  // começava expandido.
+  //
+  // Trocar o conjunto inteiro a cada rota dá o comportamento de
+  // sanfona. Abrir outras à mão continua valendo: o clique manda até a
+  // próxima navegação.
+  const secaoDaRota = (caminho: string) =>
+    nav.find((s) => s.items.some((i) => i.href === caminho))?.title;
+
+  const [abertas, setAbertas] = useState<Set<string>>(() => {
+    const dona = secaoDaRota(atual);
+    return new Set(dona ? [dona] : []);
+  });
 
   useEffect(() => {
-    setAbertas((anteriores) => {
-      const proximas = new Set(anteriores);
-      for (const secao of nav) {
-        const contemAtual = secao.items.some((i) => i.href === atual);
-        if (contemAtual || secao.defaultOpen) proximas.add(secao.title);
-      }
-      return proximas;
-    });
+    const dona = secaoDaRota(atual);
+    setAbertas(new Set(dona ? [dona] : []));
   }, [atual]);
 
   const alternar = (titulo: string) =>
@@ -140,7 +150,21 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 {secao.badge && <Selo texto={secao.badge} />}
                 {secao.title}
               </span>
-              <Chevron aberto={aberta} />
+              <span className="flex shrink-0 items-center gap-1.5">
+                {/* Quantas páginas há ali dentro. Com 20 seções e 190
+                    rotas, saber o tamanho antes de abrir evita expandir
+                    a seção errada — e some quando ela está aberta, que
+                    é quando a contagem deixa de importar. */}
+                <span
+                  className={`text-[10px] tabular-nums transition-opacity duration-200 ${
+                    aberta ? 'opacity-0' : 'opacity-40'
+                  }`}
+                  aria-hidden="true"
+                >
+                  {secao.items.length}
+                </span>
+                <Chevron aberto={aberta} />
+              </span>
             </button>
 
             <Painel aberto={aberta} id={idPainel}>

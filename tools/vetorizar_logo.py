@@ -49,9 +49,20 @@ AREA_MINIMA = 60
 #: marca tem uma cor, e ela nao muda porque o tema da pagina e outro.
 COR_MARCA = "#FED403"
 
-#: O preto do fundo do logo. Um icone de favicon precisa de fundo
-#: proprio — o amarelo sobre a barra clara do navegador some.
+#: O preto do fundo da marca.
+#:
+#: Ele NAO vai mais no favicon: um quadrado preto em volta do glifo
+#: aparece como uma caixa na aba, e some junto com o resto no tema
+#: escuro. O favicon agora e transparente, e o glifo se vira sozinho.
+#:
+#: Continua no 'apple-icon.png' por um motivo tecnico, nao estetico: o
+#: iOS nao compoe alfa no icone de tela inicial — ele pinta o que for
+#: transparente de PRETO. Um icone "transparente" la vira exatamente o
+#: quadrado preto que estamos tirando da aba.
 FUNDO_MARCA = (10, 10, 12, 255)
+
+#: Sem fundo. E o que o favicon e o icone do arquivo .df usam.
+SEM_FUNDO = (0, 0, 0, 0)
 
 
 def carregar_mascara(caminho):
@@ -476,7 +487,7 @@ def _gravar_pngs(d, lado, d_pequeno=None):
         (os.path.join(RAIZ, "editor", "vscode", "icone.png"), 256,
          rgb + (255,), FUNDO_MARCA),
         (os.path.join(RAIZ, "site", "public", "marca-256.png"), 256,
-         rgb + (255,), (0, 0, 0, 0)),
+         rgb + (255,), SEM_FUNDO),
     ]
     for caminho, tamanho, cor, fundo in saidas:
         desenhar(tamanho, cor, fundo).save(caminho)
@@ -489,7 +500,7 @@ def _gravar_pngs(d, lado, d_pequeno=None):
     tamanhos = [16, 32, 48, 64, 128, 256]
     # Abaixo de 64 pixeis, a silhueta simplificada. Acima, o desenho
     # completo — la o detalhe aparece e vale a pena.
-    imagens = [desenhar(t, rgb + (255,), FUNDO_MARCA,
+    imagens = [desenhar(t, rgb + (255,), SEM_FUNDO,
                         simples=t < 64, solido=t <= 16)
                for t in tamanhos]
 
@@ -499,7 +510,7 @@ def _gravar_pngs(d, lado, d_pequeno=None):
 
     # E o ícone dos arquivos .df no editor, que o VS Code exige em PNG.
     tema = os.path.join(RAIZ, "editor", "vscode", "icone-arquivo.png")
-    desenhar(128, rgb + (255,), (0, 0, 0, 0)).save(tema)
+    desenhar(128, rgb + (255,), SEM_FUNDO).save(tema)
     print(f"  escrito: {os.path.relpath(tema, RAIZ)}  (128px)")
 
 
