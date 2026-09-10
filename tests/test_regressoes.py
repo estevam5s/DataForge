@@ -1278,6 +1278,29 @@ def test_is_not_encadeia_como_as_outras_comparacoes():
     assert run("x := 9\nout 1 smaller x is not 9") == "no"
 
 
+def test_membro_ausente_em_modulo_sugere_o_nome_certo():
+    """'Iter.chunks' precisa apontar para 'chunk'.
+
+    A mensagem era 'Vault has no key' — chamava um módulo de vault e
+    não sugeria nada, enquanto uma variável errada já ganhava
+    'did you mean'. Quem erra o nome de uma função da stdlib fica sem
+    pista nenhuma, e são 1016 símbolos.
+    """
+    with pytest.raises(DataForgeError) as e:
+        run("adopt Arcane.Iter as I\nout I.chunks([1, 2], 2)")
+    texto = str(e.value)
+    assert "chunk" in texto
+    assert "Arcane.Iter" in texto
+    assert "Vault" not in texto
+
+
+def test_membro_ausente_em_vault_continua_dizendo_vault():
+    """Um vault comum não vira módulo na mensagem."""
+    with pytest.raises(DataForgeError) as e:
+        run('v := {"nome": "x"}\nout v.nomes')
+    assert "nome" in str(e.value)
+
+
 def test_monitor_aceita_varios_handle():
     """Um 'handle' por tipo de erro, como todo try/except tipado.
 

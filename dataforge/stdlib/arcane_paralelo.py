@@ -47,7 +47,7 @@ import threading
 import time
 
 from ..errors import (ConcurrencyError, DeadlockError, TimeoutError_,
-                      ThreadError)
+                      ThreadError, TypeError_)
 
 
 #: Quantos trabalhadores por padrao.
@@ -87,7 +87,7 @@ class Tarefa:
             raise TimeoutError_(
                 f"the task {self.nome or ''} did not finish in {prazo}s.",
                 dica="raise the deadline, or cancel it with 'cancelar'",
-                doc="concorrencia") from None
+                doc="tecnicas/concorrencia") from None
 
     def pronta(self):
         return self._futuro.done()
@@ -200,7 +200,7 @@ class Canal:
             raise ConcurrencyError(
                 "this channel is closed.",
                 dica="check with 'aberto()' before sending",
-                doc="concorrencia")
+                doc="tecnicas/concorrencia")
         try:
             self._fila.put(valor, timeout=prazo)
             return True
@@ -208,7 +208,7 @@ class Canal:
             raise TimeoutError_(
                 f"the channel is full and did not free up in {prazo}s.",
                 dica="raise the capacity, or consume faster",
-                doc="concorrencia") from None
+                doc="tecnicas/concorrencia") from None
 
     def receber(self, prazo=None):
         """Espera ate chegar algo. Devolve void quando o canal fecha."""
@@ -223,7 +223,7 @@ class Canal:
                         f"nothing arrived in {prazo}s.",
                         dica="raise the deadline, or check whether the "
                              "producer is still running",
-                        doc="concorrencia") from None
+                        doc="tecnicas/concorrencia") from None
 
     def tentar_receber(self):
         """Sem esperar: devolve void se estiver vazio."""
@@ -347,23 +347,53 @@ class ArcaneConcurrent(dict):
         return Grupo(trabalhadores, nome)
 
     @staticmethod
+    def _exigir_tarefa(valor, funcao, indice=None):
+        """Recusa quem nao veio de 'rodar', com a mensagem certa.
+
+        Passar a ACAO em vez da TAREFA e o engano natural: 'map' e
+        'para_cada' recebem acoes, e estes recebem tarefas. Sem esta
+        checagem o erro era "'DFAction' object has no attribute
+        'esperar'" — o nome de uma classe interna do interpretador,
+        que nao diz nada a quem escreve DataForge.
+        """
+        if isinstance(valor, Tarefa):
+            return valor
+        onde = "" if indice is None else f" (o item {indice} da lista)"
+        if callable(valor):
+            raise TypeError_(
+                f"{funcao} espera uma tarefa, e recebeu uma acao{onde}.",
+                nota="uma acao so vira tarefa depois de ser disparada",
+                dica=("dispare antes:  t := Concurrent.rodar(acao)  e entao "
+                      f"{funcao}(t)\n"
+                      "para rodar a acao sobre varios itens de uma vez, use "
+                      "'map' ou 'para_cada'"),
+                doc="tecnicas/concorrencia")
+        raise TypeError_(
+            f"{funcao} espera uma tarefa, e recebeu {type(valor).__name__}{onde}.",
+            dica="uma tarefa vem de 'rodar', de 'grupo.enviar' ou de 'lotes'",
+            doc="tecnicas/concorrencia")
+
+    @staticmethod
     def _esperar(tarefa, prazo=None):
-        return tarefa.esperar(prazo)
+        return ArcaneConcurrent._exigir_tarefa(tarefa, "esperar").esperar(prazo)
 
     @staticmethod
     def _esperar_todas(tarefas, prazo=None):
-        return [t.esperar(prazo) for t in tarefas]
+        return [ArcaneConcurrent._exigir_tarefa(t, "esperar_todas", i).esperar(prazo)
+                for i, t in enumerate(tarefas)]
 
     @staticmethod
     def _esperar_primeira(tarefas, prazo=None):
         """O primeiro resultado que chegar; as outras seguem rodando."""
-        pendentes = [t._futuro for t in tarefas]
+        pendentes = [
+            ArcaneConcurrent._exigir_tarefa(t, "esperar_primeira", i)._futuro
+            for i, t in enumerate(tarefas)]
         prontas, _ = futuros.wait(
             pendentes, timeout=prazo, return_when=futuros.FIRST_COMPLETED)
         if not prontas:
             raise TimeoutError_(
                 f"none of the {len(tarefas)} tasks finished in {prazo}s.",
-                doc="concorrencia")
+                doc="tecnicas/concorrencia")
         return next(iter(prontas)).result()
 
     # ── mapear ──────────────────────────────────────────────
@@ -411,7 +441,7 @@ class ArcaneConcurrent(dict):
                 dica=("declare the action at the top level of the file, "
                       "and pass everything it needs as arguments — or use "
                       "'map', which uses threads and shares memory"),
-                doc="concorrencia") from None
+                doc="tecnicas/concorrencia") from None
 
     @staticmethod
     def _para_cada(acao, itens, trabalhadores=None):
@@ -559,7 +589,7 @@ class ArcaneConcurrent(dict):
                 nota="the action keeps running in the background: Python "
                      "cannot kill a thread from outside safely",
                 dica="raise the deadline, or make the action check a flag",
-                doc="concorrencia") from None
+                doc="tecnicas/concorrencia") from None
         finally:
             pool.shutdown(wait=False)
 

@@ -218,7 +218,7 @@ class ArcaneColor(dict):
             from ...errors import FormatError
             raise FormatError(
                 f"'{cor}' is not a hex color.",
-                dica="use  #RGB  or  #RRGGBB", doc="terminal")
+                dica="use  #RGB  or  #RRGGBB", doc="tecnicas/editor")
         return ArcaneColor._rgb(texto, int(c[0:2], 16), int(c[2:4], 16),
                                 int(c[4:6], 16))
 

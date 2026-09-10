@@ -1447,7 +1447,7 @@ class Interpreter:
             # Fall back to key access
             if node.member in obj:
                 return obj[node.member]
-            raise NameError_(f"Vault has no key '{node.member}'")
+            raise self._erro_membro(obj, node.member, node)
         elif isinstance(obj, str):
             # String methods - comprehensive
             string_methods = {
@@ -1638,6 +1638,44 @@ class Interpreter:
                 node.line, node.column,
                 nota="Only Cluster, Vault, String and record accept [ ].",
                 doc="colecoes")
+
+    def _erro_membro(self, alvo, membro, node):
+        """'x.membro' que nao existe: diz onde procurou e o que existe.
+
+        Um modulo se identifica por '__name__' — e a mensagem precisa
+        chama-lo de modulo, nao de vault. Antes era um seco
+        "Vault has no key 'chunks'": nenhuma sugestao, e o nome errado
+        para a coisa. Uma variavel errada ja ganhava "did you mean";
+        um simbolo da stdlib, nao — e sao 1016 deles.
+        """
+        import difflib
+
+        nomes = [k for k in alvo if not str(k).startswith("__")]
+        modulo = alvo.get("__name__") if isinstance(alvo, dict) else None
+        onde = f"module '{modulo}'" if modulo else "this vault"
+
+        perto = difflib.get_close_matches(str(membro), [str(k) for k in nomes],
+                                          n=3, cutoff=0.6)
+        if perto:
+            alvos = " or ".join(f"'{p}'" for p in perto)
+            dica = f"did you mean {alvos}?"
+        elif modulo:
+            dica = ("in the repl, ':modules' lists the modules and ':doc <nome>' "
+                    "lists the symbols of one; doc/BIBLIOTECA_PADRAO.md has "
+                    "every signature")
+        else:
+            amostra = ", ".join(f"'{k}'" for k in nomes[:6])
+            resto = f" (+{len(nomes) - 6} more)" if len(nomes) > 6 else ""
+            dica = (f"it has: {amostra}{resto}" if nomes
+                    else "it is empty — fill it before reading")
+
+        return NameError_(
+            f"{onde} has no '{membro}'.",
+            getattr(node, "line", 0), getattr(node, "column", 0),
+            nota=(f"the module has {len(nomes)} symbols" if modulo and not perto
+                  else ""),
+            dica=dica,
+            doc="biblioteca" if modulo else "colecoes")
 
     def _erro_chave(self, vault, chave, node):
         """Chave ausente num vault: mostra o que existe e o que fazer."""
@@ -2828,7 +2866,7 @@ class Interpreter:
                 nota=f"the loop asked for {', '.join(nomes)}",
                 dica=("each item needs to be a Cluster or a pair; "
                       "'enumerate(xs)' produces pairs"),
-                doc="controle")
+                doc="lacos")
 
         if len(valores) != len(nomes):
             raise UnpackError(
@@ -2837,7 +2875,7 @@ class Interpreter:
                 node.line, node.column,
                 nota=f"names: {', '.join(nomes)}",
                 dica="use one name to receive the item whole",
-                doc="desestruturacao")
+                doc="fundamentos/desestruturacao")
 
         for nome, valor in zip(nomes, valores):
             escopo.set_local(nome, valor)
@@ -2911,14 +2949,14 @@ class Interpreter:
                      "e devolve o que fica no lugar",
                 dica=f"declare 'action {partes[0]}(alvo):' antes de usá-lo, "
                      f"ou importe o módulo que o traz",
-                doc="decoradores") from None
+                doc="fundamentos/decoradores") from None
 
         for parte in partes[1:]:
             if isinstance(valor, dict):
                 if parte not in valor:
                     raise RuntimeError_(
                         f"'{parte}' não existe em '{partes[0]}'.",
-                        node.line, node.column, doc="decoradores")
+                        node.line, node.column, doc="fundamentos/decoradores")
                 valor = valor[parte]
             else:
                 valor = getattr(valor, parte, None)
