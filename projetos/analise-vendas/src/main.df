@@ -8,7 +8,7 @@ adopt tabela as Tb
 adopt moeda as M
 adopt datas as D
 adopt Arcane.OS as OS
-adopt ./leitor as L
+adopt./ leitor as L
 
 action total_de(vendas):
     soma := 0
@@ -27,8 +27,8 @@ action tabela_por(vendas, chave, titulo):
         total := total_de(itens)
         fatia := round(total * 100 / total_geral, 1)
         linhas.append([nome, len(itens),
-                       M.formatar(M.de_centavos(total)),
-                       $"{fatia}%"])
+                M.formatar(M.de_centavos(total)),
+        $"{fatia}%"])
 
     out Tb.render(linhas, [titulo, "Vendas", "Total", "Fatia"])
     yield grupos
@@ -44,7 +44,7 @@ action grafico_de(grupos, titulo):
     cycle nome in sorted(grupos.keys()):
         t := total_de(grupos[nome])
         out "  " + Tb.encher(nome, 10) + " " + Tb.barra(t, maior, 22) +
-            " " + M.formatar(M.de_centavos(t))
+        " " + M.formatar(M.de_centavos(t))
     yield grupos
 
 action principal():
@@ -68,12 +68,12 @@ action principal():
 
     resumo := E.resumo(valores)
     out Tb.render([
-        ["Total", M.formatar(M.de_centavos(total_de(vendas)))],
-        ["Ticket médio", M.formatar(M.de_reais(resumo["media"]))],
-        ["Mediana", M.formatar(M.de_reais(resumo["mediana"]))],
-        ["Desvio padrão", M.formatar(M.de_reais(resumo["desvio"]))],
-        ["Menor venda", M.formatar(M.de_reais(resumo["minimo"]))],
-        ["Maior venda", M.formatar(M.de_reais(resumo["maximo"]))]
+            ["Total", M.formatar(M.de_centavos(total_de(vendas)))],
+            ["Ticket médio", M.formatar(M.de_reais(resumo["media"]))],
+            ["Mediana", M.formatar(M.de_reais(resumo["mediana"]))],
+            ["Desvio padrão", M.formatar(M.de_reais(resumo["desvio"]))],
+            ["Menor venda", M.formatar(M.de_reais(resumo["minimo"]))],
+            ["Maior venda", M.formatar(M.de_reais(resumo["maximo"]))]
     ], ["Indicador", "Valor"])
 
     // A média sozinha engana quando há dispersão. Se o desvio passa de
@@ -110,7 +110,7 @@ action principal():
     cycle i from 0 to len(meses) - 1:
         d := D.de_iso(meses[i] + "-01")
         out $"  {D.formatar(d, 'MMM/yyyy')}  " +
-            M.formatar(M.de_reais(serie[i]))
+        M.formatar(M.de_reais(serie[i]))
 
     // ── Tendência ──
     given len(serie) bigger_eq 3:
@@ -121,8 +121,8 @@ action principal():
         direcao := "subindo" given r["inclinacao"] bigger 0 otherwise "caindo"
         out ""
         out $"Tendência: {direcao} " +
-            M.formatar(M.de_reais(r["inclinacao"])) + " por mês " +
-            $"(r² = {round(r['r2'], 3)})"
+        M.formatar(M.de_reais(r["inclinacao"])) + " por mês " +
+        $"(r² = {round(r['r2'], 3)})"
         given r["r2"] smaller 0.5:
             out "  (ajuste fraco — a tendência não é confiável com estes dados)"
 

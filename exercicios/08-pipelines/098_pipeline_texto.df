@@ -6,8 +6,8 @@ bruto := ["  ANA@Exemplo.com ", "invalido", "bruno@teste.org", "", "  CARLA@X.CO
 adopt Arcane.Regex as Regex
 
 limpos := bruto
-    >> morph e: e.trim().lower()
-    >> sift e: Regex.is_email(e)
+>> morph e: e.trim().lower()
+>> sift e: Regex.is_email(e)
 
 out limpos
 assert limpos is ["ana@exemplo.com", "bruno@teste.org", "carla@x.com"], "emails limpos"

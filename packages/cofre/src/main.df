@@ -53,7 +53,7 @@ action _converter(texto):
     given t.lower() in ["void", "null", "nil", ""]:
         yield void
     monitor:
-        given t.isdigit() or (t.startswith("-") and t.substring(1).isdigit()):
+        given t.isdigit() or(t.startswith("-") and t.substring(1).isdigit()):
             yield int(t)
         given t.contains(".") and t.replace(".", "").replace("-", "").isdigit():
             yield float(t)

@@ -40,6 +40,7 @@ atualizacoes — e o bug so aparece sob carga.
 """
 
 import concurrent.futures as futuros
+import pickle
 import multiprocessing
 import os
 import queue
@@ -433,7 +434,12 @@ class ArcaneConcurrent(dict):
             n = trabalhadores or min(PADRAO_PROCESSOS, len(lista))
             with futuros.ProcessPoolExecutor(max_workers=n) as pool:
                 return list(pool.map(acao, lista))
-        except (TypeError, AttributeError, OSError) as e:
+        except (TypeError, AttributeError, OSError, pickle.PicklingError) as e:
+            # 'PicklingError' nao deriva de TypeError. Ate o Python 3.13
+            # a falha chegava aqui como TypeError, e a partir do 3.14 ela
+            # vem tipada — sem esta linha, a mensagem crua do pickle
+            # escapava para o usuario, falando de '_CallItem' e de
+            # 'serializing tuple item', que nao existem em DataForge.
             raise ConcurrencyError(
                 f"this action cannot cross into another process: {e}",
                 nota="a process receives the data by copy, and a closure "

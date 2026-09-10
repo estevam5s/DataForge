@@ -111,11 +111,11 @@ emit("")
 // ── Reactive Data Pipeline ──────────────────────
 emit("--- Reactive Data Pipeline ---")
 sales := [
-    {"product": "Widget", "qty": 5, "price": 10.00},
-    {"product": "Gadget", "qty": 3, "price": 25.00},
-    {"product": "Widget", "qty": 8, "price": 10.00},
-    {"product": "Tool", "qty": 2, "price": 50.00},
-    {"product": "Gadget", "qty": 6, "price": 25.00}
+    {"product": "Widget", "qty": 5, "price": 10.0},
+    {"product": "Gadget", "qty": 3, "price": 25.0},
+    {"product": "Widget", "qty": 8, "price": 10.0},
+    {"product": "Tool", "qty": 2, "price": 50.0},
+    {"product": "Gadget", "qty": 6, "price": 25.0}
 ]
 
 // Process sales data reactively

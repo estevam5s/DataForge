@@ -17,13 +17,13 @@ assert DB.table_exists(conn, "produtos") is yes, "tabela criada"
 
 // Inserir um por vez
 DB.execute(conn, "INSERT INTO produtos (nome, preco, estoque) VALUES (?, ?, ?)",
-           ["Mouse", 80.0, 15])
+["Mouse", 80.0, 15])
 
 // Ou varios de uma vez
 DB.execute_many(conn, "INSERT INTO produtos (nome, preco, estoque) VALUES (?, ?, ?)", [
-    ["Teclado", 200.0, 3],
-    ["Monitor", 1200.0, 0],
-    ["Cabo", 25.0, 60]
+        ["Teclado", 200.0, 3],
+        ["Monitor", 1200.0, 0],
+        ["Cabo", 25.0, 60]
 ])
 
 assert DB.count(conn, "produtos") is 4, "quatro produtos"

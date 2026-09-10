@@ -63,7 +63,7 @@ action test_separador_duplo():
     p.flag("v", "v")
     r := p.processar(["x", "--", "-v"])
     T.assert_eq(r["a"], "x")
-    T.assert_false(r["v"])            // '-v' virou posicional
+    T.assert_false(r["v"])  // '-v' virou posicional
     T.assert_eq(r["__extras__"], ["-v"])
 
 action test_tipo_lista():

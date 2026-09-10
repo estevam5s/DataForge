@@ -92,7 +92,7 @@ cycle face from 1 to 6:
     qtd := freq[str(face)]
     percentual := round(qtd * 100.0 / 1000, 1)
     barra := ""
-    cycle i from 1 to qtd // 20:
+    cycle i from 1 to qtd ~/ 20:
         barra := barra + "▓"
     out "  Face " + str(face) + ": " + str(qtd) + " (" + str(percentual) + "%) " + barra
 

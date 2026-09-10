@@ -14,7 +14,7 @@ Forge.executar(db, """
         nome text
     )
 """)
-Forge.de(db, "usuarios").inserir([{"nome": "Ana"}, {"nome": "Bia"}])
+Forge.de(db, "usuarios").inserir([{"nome":"Ana"}, {"nome":"Bia"}])
 
 // O classico: um nome que fecha a string e emenda outro comando
 malicioso := "'; drop table usuarios; --"

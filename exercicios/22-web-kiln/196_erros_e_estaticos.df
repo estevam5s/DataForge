@@ -7,8 +7,8 @@
 adopt Kiln
 adopt Arcane.IO as IO
 
-IO.mkdir("/tmp/kilnviews")          // sem isto, so roda se a pasta ja existir
-IO.write_file("/tmp/kilnviews/estilo.css", "body { font: 16px system-ui }")
+IO.mkdir("/tmp/kilnviews")  // sem isto, so roda se a pasta ja existir
+IO.write_file("/tmp/kilnviews/estilo.css", "body {font: 16px system-ui}")
 
 server site on 0:
     assets "/static" from "/tmp/kilnviews"
@@ -20,7 +20,7 @@ server site on 0:
         redirect "/"
 
 Kiln.on_error(site, 404, lambda req => Kiln.html(
-    "<h1>404</h1><p>Nao achei essa pagina.</p>", 404))
+"<h1>404</h1><p>Nao achei essa pagina.</p>", 404))
 
 assert Kiln.test(site, "GET", "/")["status"] is 200, "a raiz responde"
 

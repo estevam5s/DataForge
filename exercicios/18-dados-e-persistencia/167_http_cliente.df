@@ -15,13 +15,13 @@ action montar_url(base, parametros):
     given len(parametros.keys()) is 0:
         yield base
     partes := [$"{Web.encode_url(k)}={Web.encode_url(str(parametros[k]))}"
-               cycle k in parametros.keys()]
+    cycle k in parametros.keys()]
     yield $"{base}?{partes.join("&")}"
 
 url := montar_url("https://api.exemplo.com/busca", {
-    "q": "linguagem de programacao",
-    "pagina": 2,
-    "ordem": "recente"
+        "q": "linguagem de programacao",
+        "pagina": 2,
+        "ordem": "recente"
 })
 out ""
 out url
@@ -84,10 +84,10 @@ action processar(resposta):
     yield {"ok": yes, "dados": dados.value}
 
 out ""
-out processar({"status": 200, "body": "{\"nome\": \"Ana\"}"})
+out processar({"status": 200, "body": '{"nome": "Ana"}'})
 out processar({"status": 404, "body": ""})
 out processar({"status": 200, "body": "isso nao e json"})
 
-assert processar({"status": 200, "body": "{\"a\": 1}"}).ok is yes, "sucesso"
+assert processar({"status": 200, "body": '{"a": 1}'}).ok is yes, "sucesso"
 assert processar({"status": 500, "body": ""}).ok is no, "erro http"
 assert processar({"status": 200, "body": "quebrado"}).ok is no, "json invalido"

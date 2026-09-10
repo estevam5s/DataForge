@@ -34,7 +34,7 @@ action collatz(n):
     seq := [n]
     persist n isnt 1:
         given n % 2 is 0:
-            n := n // 2
+            n := n ~/ 2
         otherwise:
             n := 3 * n + 1
         append(seq, n)
@@ -74,9 +74,9 @@ action estatisticas(dados):
     // Mediana
     dado_mediana := 0
     given n % 2 is 0:
-        dado_mediana := (ord[n // 2 - 1] + ord[n // 2]) / 2
+        dado_mediana := (ord[n ~/ 2 - 1] + ord[n ~/ 2]) / 2
     otherwise:
-        dado_mediana := ord[n // 2]
+        dado_mediana := ord[n ~/ 2]
 
     // Variância e desvio padrão
     soma_sq := 0
@@ -128,7 +128,7 @@ action dec_para_bin(n):
     resultado := ""
     persist n bigger 0:
         resultado := str(n % 2) + resultado
-        n := n // 2
+        n := n ~/ 2
     yield resultado
 
 action dec_para_hex(n):
@@ -138,7 +138,7 @@ action dec_para_hex(n):
     resultado := ""
     persist n bigger 0:
         resultado := str(hex_chars[n % 16]) + resultado
-        n := n // 16
+        n := n ~/ 16
     yield resultado
 
 numeros := [0, 10, 42, 100, 255, 1024]

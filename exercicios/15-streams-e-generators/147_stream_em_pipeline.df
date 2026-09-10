@@ -10,7 +10,7 @@ stream action naturais():
 // Materialize antes de usar o pipeline
 primeiros := naturais().take(20)
 out primeiros >> sift n: n % 3 is 0
-assert (primeiros >> sift n: n % 3 is 0) is [3, 6, 9, 12, 15, 18], "multiplos de 3"
+assert(primeiros >> sift n: n % 3 is 0) is [3, 6, 9, 12, 15, 18], "multiplos de 3"
 
 // Compreensao sobre stream
 stream action letras():

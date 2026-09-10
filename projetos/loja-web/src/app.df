@@ -50,13 +50,13 @@ server loja on 8080:
     // sem '??' dá 500 na primeira visita sem filtro.
     route GET "/":
         respond html Paginas.catalogo(loja, conexao,
-                                      query["categoria"] ?? void, quem_e(req))
+        query["categoria"] ?? void, quem_e(req))
 
     route GET "/produto/:id":
         p := Banco.achar(conexao, params["id"])
         given p is void:
             respond 404 html Paginas.envolver(loja, "Não achei",
-                "<h1>404</h1><p>Esse produto não existe.</p>", quem_e(req))
+            "<h1>404</h1><p>Esse produto não existe.</p>", quem_e(req))
         respond html Paginas.ficha(loja, p, quem_e(req))
 
     route GET "/relatorio":
@@ -74,7 +74,7 @@ server loja on 8080:
             Xls.formula(aba, $"F{i}", $"D{i}*E{i}")
         Xls.set(aba, "A" + str(len(produtos) + 2), "TOTAL")
         Xls.formula(aba, "F" + str(len(produtos) + 2),
-                    $"SUM(F2:F{len(produtos) + 1})")
+        $"SUM(F2:F{len(produtos) + 1})")
         Xls.bold_row(aba, len(produtos) + 1)
 
         Xls.sheet(livro, "Categorias", Banco.categorias(conexao))
@@ -106,7 +106,7 @@ server loja on 8080:
             respond fora
         respond html Paginas.envolver(loja, "Admin",
             "<h1>Painel</h1><p>Use a API em <code>/api/produtos</code>.</p>",
-            quem_e(req))
+        quem_e(req))
 
 // ── a API, montada sob /api ─────────────────────────────────
 
@@ -126,7 +126,7 @@ server api on 0:
     route POST "/produtos":
         // O corpo vem de fora: pode não ter a chave, e indexar um
         // vault sem a chave é erro. '??' é o que separa 400 de 500.
-        given body is void or (body["nome"] ?? void) is void:
+        given body is void or(body["nome"] ?? void) is void:
             respond 400 json {"erro": "informe ao menos 'nome' e 'preco'"}
         respond 201 json Banco.criar(conexao, body)
 
@@ -147,6 +147,6 @@ server api on 0:
 Kiln.mount(loja, "/api", api)
 
 Kiln.on_error(loja, 404, lambda req => Kiln.html(
-    "<h1>404</h1><p>Não achei essa página. <a href=\"/\">Voltar</a></p>", 404))
+'<h1>404</h1><p>Não achei essa página. <a href="/">Voltar</a></p>', 404))
 
 relay loja, api, conexao

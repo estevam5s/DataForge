@@ -157,9 +157,9 @@ out ""
 out "🛒 COMPRA #1:"
 out "─────────────────────────────────────"
 c1 := spawn Carrinho()
-c1.adicionar(produtos[0], 1)     // MacBook
-c1.adicionar(produtos[2], 2)     // AirPods x2
-c1.adicionar(produtos[5], 1)     // Magic Mouse
+c1.adicionar(produtos[0], 1)  // MacBook
+c1.adicionar(produtos[2], 2)  // AirPods x2
+c1.adicionar(produtos[5], 1)  // Magic Mouse
 c1.exibir()
 
 out ""
@@ -172,8 +172,8 @@ out ""
 out "🛒 COMPRA #2:"
 out "─────────────────────────────────────"
 c2 := spawn Carrinho()
-c2.adicionar(produtos[1], 1)     // iPhone
-c2.adicionar(produtos[4], 1)     // Apple Watch
+c2.adicionar(produtos[1], 1)  // iPhone
+c2.adicionar(produtos[4], 1)  // Apple Watch
 c2.exibir()
 
 out ""

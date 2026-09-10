@@ -14,7 +14,7 @@ action test_memoizar_evita_recalculo():
     T.assert_eq(rapido(9), 81)
     T.assert_eq(len(chamadas), 1)
     T.assert_eq(rapido(9), 81)
-    T.assert_eq(len(chamadas), 1)      // não recalculou
+    T.assert_eq(len(chamadas), 1)  // não recalculou
     T.assert_eq(rapido(4), 16)
     T.assert_eq(len(chamadas), 2)
 
@@ -53,7 +53,7 @@ action test_ttl_guarda_e_le():
 action test_ttl_expira():
     c := K.ttl(60)
     c.guardar("agora", 1)
-    c.guardar("ja_venceu", 2, -1)      // validade negativa: nasce vencido
+    c.guardar("ja_venceu", 2, -1)  // validade negativa: nasce vencido
     T.assert_eq(c.ler("agora"), 1)
     T.assert_eq(c.ler("ja_venceu"), void)
 
@@ -71,8 +71,8 @@ action test_lru_descarta_o_menos_usado():
     c := K.lru(2)
     c.guardar("a", 1)
     c.guardar("b", 2)
-    c.ler("a")               // 'a' vira o mais recente
-    c.guardar("c", 3)        // estoura o limite: 'b' sai
+    c.ler("a")  // 'a' vira o mais recente
+    c.guardar("c", 3)  // estoura o limite: 'b' sai
     T.assert_true(c.tem("a"))
     T.assert_false(c.tem("b"))
     T.assert_true(c.tem("c"))

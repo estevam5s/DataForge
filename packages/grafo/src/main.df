@@ -27,11 +27,11 @@ blueprint Grafo:
     action ligar(de, para, peso := 1):
         self.adicionar(de)
         self.adicionar(para)
-        given not (para in self.vizinhos[de]):
+        given not(para in self.vizinhos[de]):
             self.vizinhos[de].append(para)
         self.pesos[de + "→" + para] := peso
         given not self.dirigido:
-            given not (de in self.vizinhos[para]):
+            given not(de in self.vizinhos[para]):
                 self.vizinhos[para].append(de)
             self.pesos[para + "→" + de] := peso
         yield self
@@ -119,7 +119,7 @@ blueprint Grafo:
         // Dijkstra. Sem fila de prioridade: varre para achar o menor,
         // o que é O(n²) — suficiente para grafos de aplicação.
         given not self.tem(inicio) or not self.tem(fim):
-            yield {"distancia": void, "caminho": []}
+            yield {"distancia": void, "caminho":[]}
 
         distancias := {}
         anterior := {}
@@ -139,7 +139,7 @@ blueprint Grafo:
             self.relaxar(atual, distancias, anterior)
 
         given distancias[fim] smaller 0:
-            yield {"distancia": void, "caminho": []}
+            yield {"distancia": void, "caminho":[]}
 
         caminho := [fim]
         atual := fim

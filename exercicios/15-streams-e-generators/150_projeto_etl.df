@@ -7,10 +7,10 @@ adopt Arcane.Collections as Col
 // ── EXTRACAO: a origem dos dados brutos ──
 stream action extrair():
     linhas := [
-        "  ANA SILVA ,ana@Exemplo.COM , 30, vendas , 5500",
+        "  ANA SILVA,ana@Exemplo.COM, 30, vendas, 5500",
         "bruno costa,bruno@teste.org,25,ti,7200",
         "linha malformada",
-        "CARLA DIAS , carla@x.com ,41, vendas ,9100",
+        "CARLA DIAS, carla@x.com,41, vendas,9100",
         "diego alves,invalido,29,ti,6300",
         "elena rocha,elena@y.com,abc,rh,4800"
     ]

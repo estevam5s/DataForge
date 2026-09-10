@@ -80,7 +80,7 @@ action test_embaralhar_preserva_os_itens():
     T.assert_eq(len(e), 5)
     cycle x in original:
         T.assert_true(x in e)
-    T.assert_eq(original, [1, 2, 3, 4, 5])     // não mexeu no original
+    T.assert_eq(original, [1, 2, 3, 4, 5])  // não mexeu no original
 
 action test_amostra_sem_repeticao():
     a := A.amostra([1, 2, 3, 4, 5], 3, A.gerador(2))

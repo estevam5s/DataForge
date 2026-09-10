@@ -36,7 +36,7 @@ assert IO.basename(alvo) is "notas.txt", "basename"
 assert IO.ext(alvo) is ".txt", "extensao"
 
 // JSON direto em arquivo
-config := {"tema": "escuro", "fonte": 14, "plugins": ["a", "b"]}
+config := {"tema": "escuro", "fonte": 14, "plugins":["a", "b"]}
 json_alvo := IO.join(pasta, "config.json")
 IO.write_json(json_alvo, config)
 lido := IO.read_json(json_alvo)

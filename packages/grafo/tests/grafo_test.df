@@ -14,7 +14,7 @@ action test_ligar_e_consultar():
     g := rede()
     T.assert_eq(len(g.nos()), 3)
     T.assert_eq(g.peso("a", "b"), 4)
-    T.assert_eq(g.peso("b", "a"), void)      // dirigido
+    T.assert_eq(g.peso("b", "a"), void)  // dirigido
     T.assert_eq(g.grau("a"), 2)
     T.assert_true(g.tem("a"))
     T.assert_false(g.tem("z"))
@@ -93,8 +93,8 @@ action test_componentes():
     tamanhos := []
     cycle grupo in grupos:
         tamanhos.append(len(grupo))
-    T.assert_true(3 in tamanhos)     // c, d, e
-    T.assert_true(1 in tamanhos)     // solitario
+    T.assert_true(3 in tamanhos)  // c, d, e
+    T.assert_true(1 in tamanhos)  // solitario
 
 action test_de_arestas_com_peso():
     g := G.de_arestas([["a", "b", 7]])

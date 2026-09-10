@@ -27,7 +27,7 @@ action descrever(v: Any) -> String:
         default:
             yield "outro"
 
-cycle v in [7, 2.5, "abc", [1, 2, 3], {"a": 1}, void]:
+cycle v in [7, 2.5, "abc", [1, 2, 3], {"a":1}, void]:
     out descrever(v)
 
 assert descrever(7) is "inteiro 7", "Integer"

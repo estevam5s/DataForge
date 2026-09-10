@@ -31,7 +31,7 @@ por_chave := Crucible.timed(lambda => mapa.has("999999"), 200)
 out "procurar num cluster de", n, ":", round(por_valor["media_ms"], 4), "ms"
 out "procurar num vault  de", n, ":", round(por_chave["media_ms"], 5), "ms"
 assert por_valor["media_ms"] bigger por_chave["media_ms"],
-    "o vault ganha, e a vantagem cresce com n"
+"o vault ganha, e a vantagem cresce com n"
 
 // Contar ocorrencias: uma passada, nao um laco aninhado
 palavras := ["a", "b", "a", "c", "b", "a"]
@@ -63,7 +63,7 @@ assert len(por_cidade) is 2, "duas cidades"
 // Remover do INICIO de um cluster e O(n): desloca todos os outros.
 // Num laco, isso vira O(n^2).
 fila := [i cycle i in range(500)]
-inverso := fila.reversed()      // O(n), uma vez
+inverso := fila.reversed()  // O(n), uma vez
 assert inverso.pop() is 0, "tirar do fim e O(1)"
 assert len(inverso) is 499, "e a fila continua"
 

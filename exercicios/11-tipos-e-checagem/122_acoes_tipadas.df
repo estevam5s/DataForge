@@ -5,7 +5,7 @@ action area_retangulo(largura: Number, altura: Number) -> Float:
     yield largura * altura * 1.0
 
 action saudar(nome: String, vezes: Integer := 1) -> String:
-    yield (nome + " ").repeat(vezes).trim()
+    yield(nome + " ").repeat(vezes).trim()
 
 action primeiro_item(itens: Cluster) -> Any:
     given len(itens) is 0:

@@ -111,7 +111,7 @@ action descrever(v):
         default:
             yield "outro"
 
-cycle v in [5, 500, [1, 2], Ponto(1, 2), {"tipo": "x"}, "texto"]:
+cycle v in [5, 500, [1, 2], Ponto(1, 2), {"tipo":"x"}, "texto"]:
     out $"   {descrever(v)}"
 
 // ── 10. Erros ──
@@ -135,9 +135,9 @@ ensure:
 out ""
 out "11. pipelines"
 total := nums
-    >> sift n: n % 2 is 0
-    >> morph n: n * 10
-    >> distill acc, v: acc + v 0
+>> sift n: n % 2 is 0
+>> morph n: n * 10
+>> distill acc, v: acc + v 0
 out $"   pares x10 somados: {total}"
 
 // ── 12. Generators ──
@@ -174,7 +174,7 @@ assert p.distancia() is 5.0, "distancia"
 assert total is 200, "20+40+60+80"
 assert fib().take(8) is [0, 1, 1, 2, 3, 5, 8, 13], "fibonacci"
 assert descrever(500) is "inteiro grande", "pattern com guarda"
-assert (spawn Quadrado(4)).area() is 16, "heranca"
+assert(spawn Quadrado(4)).area() is 16, "heranca"
 
 out ""
 out Text.box("Tudo verificado")

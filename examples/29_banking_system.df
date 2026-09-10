@@ -9,16 +9,16 @@ out ""
 
 // --- Modelo de Conta Bancária ---
 blueprint ContaBancaria(titular, tipo, saldo_inicial):
-    
+
     this.numero := str(randint(10000, 99999))
     this.saldo := saldo_inicial
     this.extrato_lista := []
     this.ativa := yes
     this.limite := 0.0
-    
+
     given tipo is "corrente":
         this.limite := 500.0
-    
+
     action depositar(valor):
         given not this.ativa:
             out "  ⚠️ Conta inativa!"
@@ -30,7 +30,7 @@ blueprint ContaBancaria(titular, tipo, saldo_inicial):
         append(this.extrato_lista, {"tipo": "deposito", "valor": valor, "saldo": this.saldo})
         out "  ✅ Depósito de R$" + str(valor) + " realizado"
         yield yes
-    
+
     action sacar(valor):
         given not this.ativa:
             out "  ⚠️ Conta inativa!"
@@ -45,7 +45,7 @@ blueprint ContaBancaria(titular, tipo, saldo_inicial):
         append(this.extrato_lista, {"tipo": "saque", "valor": valor, "saldo": this.saldo})
         out "  ✅ Saque de R$" + str(valor) + " realizado"
         yield yes
-    
+
     action transferir(destino, valor):
         given not this.ativa:
             out "  ⚠️ Conta origem inativa!"
@@ -62,14 +62,14 @@ blueprint ContaBancaria(titular, tipo, saldo_inicial):
         append(destino.extrato_lista, {"tipo": "transf_rec", "valor": valor, "saldo": destino.saldo, "origem": this.numero})
         out "  ✅ Transferência de R$" + str(valor) + " realizada"
         yield yes
-    
+
     action ver_saldo():
         out "  Conta: " + this.numero + " | Titular: " + this.titular
         out "  Saldo: R$" + str(this.saldo)
         given this.tipo is "corrente":
             out "  Limite: R$" + str(this.limite)
             out "  Disponível: R$" + str(this.saldo + this.limite)
-    
+
     action ver_extrato():
         out "  ╔═══════════════════════════════════════╗"
         out "  ║        EXTRATO BANCÁRIO               ║"
@@ -94,19 +94,19 @@ blueprint ContaBancaria(titular, tipo, saldo_inicial):
 blueprint Banco(nome):
     this.contas := {}
     this.total_contas := 0
-    
+
     action abrir_conta(titular, tipo, deposito_inicial):
         conta := forge ContaBancaria(titular, tipo, deposito_inicial)
         this.contas[conta.numero] := conta
         this.total_contas := this.total_contas + 1
         out "  🆕 Conta " + conta.numero + " aberta para " + titular
         yield conta
-    
+
     action buscar_conta(numero):
         given contains(this.contas, numero):
             yield this.contas[numero]
         yield void
-    
+
     action listar_contas():
         out ""
         out "  📋 CONTAS DO BANCO " + this.nome
@@ -119,13 +119,13 @@ blueprint Banco(nome):
             out "  " + status + " [" + c.numero + "] " + c.titular + " | " + c.tipo + " | R$" + str(c.saldo)
         out "  ─────────────────────────────────"
         out "  Total: " + str(this.total_contas) + " contas"
-    
+
     action relatorio():
         saldo_total := 0.0
         contas_ativas := 0
         contas_corrente := 0
         contas_poupanca := 0
-        
+
         cycle num in keys(this.contas):
             c := this.contas[num]
             saldo_total := saldo_total + c.saldo
@@ -135,7 +135,7 @@ blueprint Banco(nome):
                 contas_corrente := contas_corrente + 1
             given c.tipo is "poupanca":
                 contas_poupanca := contas_poupanca + 1
-        
+
         out ""
         out "  📊 RELATÓRIO - " + this.nome
         out "  ═══════════════════════════════"

@@ -8,7 +8,7 @@ adopt Arcane.Http as Http
 adopt Arcane.Serialization as Serde
 adopt registro as Log
 adopt cofre as C
-adopt ./encurtador as E
+adopt./ encurtador as E
 
 action carregar_config():
     cfg := C.novo()
@@ -59,6 +59,6 @@ action tratar_redirecionar(app, log, req):
 
 action tratar_top(app, req):
     yield Http.json_response({"total": app.total,
-                              "mais_acessados": app.mais_acessados(5)})
+    "mais_acessados": app.mais_acessados(5)})
 
 principal()

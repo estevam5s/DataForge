@@ -22,7 +22,7 @@ assert "produtos" in Forge.tabelas(db), "a tabela foi criada"
 
 // 'executar' devolve quantas linhas mudaram
 mudou := Forge.executar(db,
-    "insert into produtos (nome, preco) values (?, ?)", ["Teclado", 250.0])
+"insert into produtos (nome, preco) values (?, ?)", ["Teclado", 250.0])
 assert mudou is 1, "uma linha inserida"
 
 // 'consultar' devolve uma lista de vaults, um por linha

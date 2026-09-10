@@ -97,7 +97,7 @@ blueprint Barramento:
             given len(self.ouvintes[n]) bigger 0:
                 nomes.append(n)
         cycle n in self.uma_vez.keys():
-            given len(self.uma_vez[n]) bigger 0 and not (n in nomes):
+            given len(self.uma_vez[n]) bigger 0 and not(n in nomes):
                 nomes.append(n)
         yield nomes
 

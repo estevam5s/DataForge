@@ -1,6 +1,6 @@
 adopt Arcane.Test as T
 adopt Arcane.IO as IO
-adopt ../src/repositorio as R
+adopt../ src / repositorio as R
 
 steady ARQUIVO := "/tmp/df_tarefas_teste.json"
 

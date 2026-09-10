@@ -64,7 +64,7 @@ action busca_binaria(lista, alvo):
     esq := 0
     dir := len(lista) - 1
     persist esq smaller_eq dir:
-        meio := (esq + dir) // 2
+        meio := (esq + dir) ~/ 2
         given lista[meio] is alvo:
             yield meio
         orif lista[meio] smaller alvo:
@@ -123,7 +123,7 @@ action mdc(a, b):
     yield a
 
 action mmc(a, b):
-    yield (a * b) // mdc(a, b)
+    yield(a * b) ~/ mdc(a, b)
 
 out "MDC(48, 18) =", mdc(48, 18)
 out "MDC(100, 75) =", mdc(100, 75)

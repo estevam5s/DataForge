@@ -4,16 +4,16 @@
 vendas := [120, 45, 300, 80, 500, 15, 250]
 
 total_grandes := vendas
-    >> sift v: v bigger_eq 100
-    >> morph v: v * 1.1
-    >> distill acc, v: acc + v 0
+>> sift v: v bigger_eq 100
+>> morph v: v * 1.1
+>> distill acc, v: acc + v 0
 
 out "total das vendas grandes com 10%:", round(total_grandes, 2)
 assert round(total_grandes, 2) is 1287.0, "pipeline completo"
 
 nomes := ["ana", "BRUNO", "carla", "di"]
 formatados := nomes
-    >> sift n: n.length() bigger 2
-    >> morph n: n.capitalize()
+>> sift n: n.length() bigger 2
+>> morph n: n.capitalize()
 out formatados
 assert formatados is ["Ana", "Bruno", "Carla"], "pipeline de texto"

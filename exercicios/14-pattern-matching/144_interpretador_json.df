@@ -44,8 +44,8 @@ esquema_usuario := {
     }
 }
 
-bom := {"nome": "Ana", "idade": 30, "tags": ["admin", "dev"]}
-ruim := {"nome": 42, "tags": ["ok", 7]}
+bom := {"nome": "Ana", "idade": 30, "tags":["admin", "dev"]}
+ruim := {"nome": 42, "tags":["ok", 7]}
 
 out "── dados validos ──"
 out validar(bom, esquema_usuario)

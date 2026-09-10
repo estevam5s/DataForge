@@ -10,9 +10,9 @@ adopt banco as Banco
 // cabeçalho e o rodapé — e um dia dois deles ficariam diferentes.
 action envolver(app, titulo, conteudo, usuario):
     yield Kiln.render_string(ler_base(app), {
-        "titulo": titulo,
-        "conteudo": conteudo,
-        "usuario": usuario
+            "titulo": titulo,
+            "conteudo": conteudo,
+            "usuario": usuario
     })
 
 action ler_base(app):
@@ -42,11 +42,11 @@ action catalogo(app, conexao, categoria, usuario):
     produtos := [enfeitar(p) cycle p in Banco.listar(conexao, categoria)]
     corpo := Kiln.render_string(
         Kiln.render(app, "catalogo.html", {
-            "titulo": "Catálogo",
-            "produtos": produtos,
-            "categorias": Banco.categorias(conexao),
-            "aviso": void
-        })["body"], {})
+                "titulo": "Catálogo",
+                "produtos": produtos,
+                "categorias": Banco.categorias(conexao),
+                "aviso": void
+    })["body"], {})
     yield envolver(app, "Catálogo", corpo, usuario)
 
 action ficha(app, produto, usuario):
@@ -57,7 +57,7 @@ action relatorio(app, conexao, usuario):
     produtos := Banco.listar(conexao, void)
     precos := [p["preco"] cycle p in produtos]
     valor := [p["preco"] * p["estoque"] cycle p in produtos]
-        >> distill a, v: a + v 0
+    >> distill a, v: a + v 0
 
     // O valor inicial do distill vem depois do corpo: escrever
     // '>> distill a, v: a + v 0 / len(precos)' divide o ZERO, nao a
@@ -67,12 +67,12 @@ action relatorio(app, conexao, usuario):
     por_categoria := []
     cycle c in Banco.categorias(conexao):
         soma := [p["preco"] * p["estoque"] cycle p in produtos
-                 given p["categoria"] is c["categoria"]]
-            >> distill a, v: a + v 0
+        given p["categoria"] is c["categoria"]]
+        >> distill a, v: a + v 0
         por_categoria.append({
-            "categoria": c["categoria"],
-            "n": c["n"],
-            "valor": dinheiro(soma)
+                "categoria": c["categoria"],
+                "n": c["n"],
+                "valor": dinheiro(soma)
         })
 
     caro := produtos[0]
@@ -81,12 +81,12 @@ action relatorio(app, conexao, usuario):
             caro := p
 
     corpo := Kiln.render(app, "relatorio.html", {
-        "titulo": "Relatório de estoque",
-        "total": len(produtos),
-        "valor_total": dinheiro(valor),
-        "preco_medio": dinheiro(soma_precos / len(precos)),
-        "mais_caro": caro["nome"],
-        "categorias": por_categoria
+            "titulo": "Relatório de estoque",
+            "total": len(produtos),
+            "valor_total": dinheiro(valor),
+            "preco_medio": dinheiro(soma_precos / len(precos)),
+            "mais_caro": caro["nome"],
+            "categorias": por_categoria
     })["body"]
     yield envolver(app, "Relatório", corpo, usuario)
 

@@ -38,7 +38,7 @@ out "  2 + 3 =", 2 + 3
 out "  10 - 4 =", 10 - 4
 out "  6 * 7 =", 6 * 7
 out "  15 / 4 =", 15 / 4
-out "  15 // 4 =", 15 // 4
+out "  15 // 4 =", 15 ~/ 4
 out "  17 % 5 =", 17 % 5
 out "  2 ** 10 =", 2 ** 10
 out "  5 bigger 3:", 5 bigger 3
@@ -170,10 +170,10 @@ out "=== 8. BLUEPRINTS ==="
 
 blueprint Animal(nome, som):
     this.energia := 100
-    
+
     action falar():
         out "    " + this.nome + " diz: " + this.som + "!"
-    
+
     action info():
         yield this.nome + " [Energia: " + str(this.energia) + "]"
 
@@ -189,19 +189,19 @@ out "=== 9. HERANÇA ==="
 
 blueprint Forma():
     this.tipo := "forma"
-    
+
     action descricao():
         yield "Forma: " + this.tipo
 
 blueprint Circulo(raio) extends Forma:
     this.tipo := "círculo"
-    
+
     action area():
         yield PI * this.raio ** 2
 
 blueprint Retangulo(largura, altura) extends Forma:
     this.tipo := "retângulo"
-    
+
     action area():
         yield this.largura * this.altura
 
@@ -218,7 +218,7 @@ trait Serializable:
     action serializar()
 
 blueprint Config(nome, valor) with Serializable:
-    
+
     action serializar():
         yield "{nome: " + this.nome + ", valor: " + str(this.valor) + "}"
 
@@ -353,12 +353,12 @@ out "=== 18. MINI SISTEMA - Lista de Compras ==="
 blueprint ListaCompras(nome):
     this.itens := []
     this.total := 0.0
-    
+
     action adicionar(item, preco, qtd):
         append(this.itens, {"item": item, "preco": preco, "qtd": qtd, "subtotal": preco * qtd})
         this.total := this.total + preco * qtd
         out "  + " + item + " (x" + str(qtd) + ") = R$" + str(preco * qtd)
-    
+
     action resumo():
         out "  ┌──── Lista: " + this.nome + " ────"
         cycle it in this.itens:
@@ -369,10 +369,10 @@ blueprint ListaCompras(nome):
 
 lista_mercado := forge ListaCompras("Mercado Semanal")
 lista_mercado.adicionar("Arroz", 5.99, 2)
-lista_mercado.adicionar("Feijão", 8.50, 1)
+lista_mercado.adicionar("Feijão", 8.5, 1)
 lista_mercado.adicionar("Leite", 4.79, 3)
-lista_mercado.adicionar("Pão", 7.00, 1)
-lista_mercado.adicionar("Ovos", 12.90, 1)
+lista_mercado.adicionar("Pão", 7.0, 1)
+lista_mercado.adicionar("Ovos", 12.9, 1)
 out ""
 lista_mercado.resumo()
 

@@ -12,7 +12,7 @@ adopt Arcane.IO as IO
 
 // escreve o template no disco para o exercicio ser auto-contido
 pasta := "/tmp/kilnviews"
-IO.mkdir(pasta)                     // sem isto, so roda se a pasta ja existir
+IO.mkdir(pasta)  // sem isto, so roda se a pasta ja existir
 IO.write_file(pasta + "/lista.html", """<!doctype html>
 <title>{{titulo}}</title>
 <h1>{{titulo}}</h1>
@@ -32,7 +32,7 @@ server site on 0:
         render "lista.html" with {"titulo": "Forja", "produtos": produtos}
 
     route GET "/vazio":
-        render "lista.html" with {"titulo": "Vazio", "produtos": []}
+        render "lista.html" with {"titulo": "Vazio", "produtos":[]}
 
 pagina := Kiln.test(site, "GET", "/")
 out pagina["body"]

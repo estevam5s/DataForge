@@ -27,14 +27,14 @@ action semear(conexao):
 
     cycle linha in [
         ["Martelo de forja", "ferramenta", 89.9, 12],
-        ["Bigorna 50kg",     "ferramenta", 450.0, 3],
-        ["Tenaz reta",       "ferramenta", 65.5, 27],
-        ["Fole manual",      "equipamento", 320.0, 8],
+        ["Bigorna 50kg", "ferramenta", 450.0, 3],
+        ["Tenaz reta", "ferramenta", 65.5, 27],
+        ["Fole manual", "equipamento", 320.0, 8],
         ["Avental de couro", "protecao", 145.0, 15]
     ]:
         DB.execute(conexao,
             "INSERT INTO produtos (nome, categoria, preco, estoque) VALUES (?, ?, ?, ?)",
-            linha)
+        linha)
     yield 5
 
 action listar(conexao, categoria):
@@ -42,7 +42,7 @@ action listar(conexao, categoria):
         yield DB.query(conexao, "SELECT * FROM produtos ORDER BY nome")
     yield DB.query(conexao,
         "SELECT * FROM produtos WHERE categoria = ? ORDER BY nome",
-        [categoria])
+    [categoria])
 
 action achar(conexao, id):
     linhas := DB.query(conexao, "SELECT * FROM produtos WHERE id = ?", [int(id)])
@@ -52,9 +52,9 @@ action criar(conexao, dados):
     DB.execute(conexao,
         "INSERT INTO produtos (nome, categoria, preco, estoque) VALUES (?, ?, ?, ?)",
         [dados["nome"], dados["categoria"], float(dados["preco"]),
-         int(dados["estoque"] ?? 0)])
+    int(dados["estoque"] ?? 0)])
     yield DB.query(conexao,
-        "SELECT * FROM produtos ORDER BY id DESC LIMIT 1")[0]
+    "SELECT * FROM produtos ORDER BY id DESC LIMIT 1")[0]
 
 action atualizar(conexao, id, dados):
     atual := achar(conexao, id)
@@ -63,10 +63,10 @@ action atualizar(conexao, id, dados):
     DB.execute(conexao,
         "UPDATE produtos SET nome = ?, categoria = ?, preco = ?, estoque = ? WHERE id = ?",
         [dados["nome"] ?? atual["nome"],
-         dados["categoria"] ?? atual["categoria"],
-         float(dados["preco"] ?? atual["preco"]),
-         int(dados["estoque"] ?? atual["estoque"]),
-         int(id)])
+            dados["categoria"] ?? atual["categoria"],
+            float(dados["preco"] ?? atual["preco"]),
+            int(dados["estoque"] ?? atual["estoque"]),
+    int(id)])
     yield achar(conexao, id)
 
 action apagar(conexao, id):
@@ -77,7 +77,7 @@ action apagar(conexao, id):
 
 action categorias(conexao):
     linhas := DB.query(conexao,
-        "SELECT categoria, COUNT(*) AS n FROM produtos GROUP BY categoria ORDER BY categoria")
+    "SELECT categoria, COUNT(*) AS n FROM produtos GROUP BY categoria ORDER BY categoria")
     yield linhas
 
 relay abrir, semear, listar, achar, criar, atualizar, apagar, categorias

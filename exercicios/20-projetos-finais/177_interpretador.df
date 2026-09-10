@@ -22,14 +22,14 @@ action tokenizar(fonte: String) -> Cluster:
             skip
         given c.isdigit():
             numero := ""
-            persist i smaller len(fonte) and (fonte[i].isdigit() or fonte[i] is "."):
+            persist i smaller len(fonte) and(fonte[i].isdigit() or fonte[i] is "."):
                 numero += fonte[i]
                 i += 1
             tokens.append(Token("numero", numero))
             skip
         given c.isalpha() or c is "_":
             nome := ""
-            persist i smaller len(fonte) and (fonte[i].isalnum() or fonte[i] is "_"):
+            persist i smaller len(fonte) and(fonte[i].isalnum() or fonte[i] is "_"):
                 nome += fonte[i]
                 i += 1
             tokens.append(Token("nome", nome))

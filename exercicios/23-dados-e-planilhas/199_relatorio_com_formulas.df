@@ -9,8 +9,8 @@ adopt Arcane.Excel as Xls
 
 itens := [
     {"produto": "Martelo", "qtd": 12, "preco": 89.9},
-    {"produto": "Bigorna", "qtd": 3,  "preco": 450.0},
-    {"produto": "Tenaz",   "qtd": 27, "preco": 65.5}
+    {"produto": "Bigorna", "qtd": 3, "preco": 450.0},
+    {"produto": "Tenaz", "qtd": 27, "preco": 65.5}
 ]
 
 livro := Xls.new()
@@ -28,9 +28,9 @@ Xls.bold_row(aba, 4)
 
 // segunda aba, com o resumo
 Xls.sheet(livro, "Resumo", [
-    ["metrica", "valor"],
-    ["itens", len(itens)],
-    ["unidades", [i["qtd"] cycle i in itens] >> distill a, v: a + v 0]
+        ["metrica", "valor"],
+        ["itens", len(itens)],
+        ["unidades", [i["qtd"] cycle i in itens] >> distill a, v:a + v 0]
 ])
 
 Xls.save(livro, "/tmp/relatorio.xlsx")

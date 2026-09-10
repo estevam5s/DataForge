@@ -16,7 +16,7 @@ trait Printable:
 trait Comparable:
     action compare(other)
 
-blueprint Product (Printable):
+blueprint Product(Printable):
     action setup(name, price, stock):
         self.name := name
         self.price := price

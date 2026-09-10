@@ -6,6 +6,6 @@ cycle p in [yes, no]:
     cycle q in [yes, no]:
         out str(p).pad_end(6) + str(q).pad_end(6) + str(p and q).pad_end(6) + str(p or q).pad_end(6) + str(not p)
 
-assert (yes and no) is no, "and"
-assert (yes or no) is yes, "or"
-assert (not yes) is no, "not"
+assert(yes and no) is no, "and"
+assert(yes or no) is yes, "or"
+assert(not yes) is no, "not"

@@ -9,9 +9,9 @@ action test_nao_perde_centavo_no_float():
     T.assert_eq(M.em_reais(M.somar(a, b)), 0.3)
 
 action test_construtores():
-    T.assert_eq(M.de_reais(19.90).centavos, 1990)
+    T.assert_eq(M.de_reais(19.9).centavos, 1990)
     T.assert_eq(M.de_centavos(1990).centavos, 1990)
-    T.assert_eq(M.de_reais(0.005).centavos, 1)      // arredonda pra cima
+    T.assert_eq(M.de_reais(0.005).centavos, 1)  // arredonda pra cima
 
 action test_de_texto():
     T.assert_eq(M.de_texto("R$ 1.234,56").centavos, 123456)
@@ -20,7 +20,7 @@ action test_de_texto():
     T.assert_eq(M.de_texto("").centavos, 0)
 
 action test_aritmetica():
-    p := M.de_reais(19.90)
+    p := M.de_reais(19.9)
     T.assert_eq(M.multiplicar(p, 3).centavos, 5970)
     T.assert_eq(M.dividir(M.de_reais(10), 4).centavos, 250)
     T.assert_eq(M.subtrair(M.de_reais(10), M.de_reais(3)).centavos, 700)
@@ -37,7 +37,7 @@ action test_repartir_nao_perde_centavo():
     T.assert_eq(partes[0].centavos, 334)
     T.assert_eq(partes[1].centavos, 333)
     T.assert_eq(partes[2].centavos, 333)
-    T.assert_eq(M.total(partes).centavos, 1000)     // fecha a conta
+    T.assert_eq(M.total(partes).centavos, 1000)  // fecha a conta
 
 action test_repartir_por_peso_fecha_a_conta():
     partes := M.repartir_por_peso(M.de_reais(100), [1, 1, 1])

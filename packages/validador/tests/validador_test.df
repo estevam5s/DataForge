@@ -42,9 +42,9 @@ action test_senha():
 
 action test_esquema():
     regras := V.esquema({
-        "email": [V.regra_obrigatorio(), V.regra_email()],
-        "cpf": [V.regra_cpf()],
-        "idade": [V.regra_entre(18, 120)]
+            "email":[V.regra_obrigatorio(), V.regra_email()],
+            "cpf":[V.regra_cpf()],
+            "idade":[V.regra_entre(18, 120)]
     })
 
     bom := V.validar(regras, {"email": "ana@exemplo.com", "cpf": "52998224725", "idade": 30})
@@ -56,6 +56,6 @@ action test_esquema():
     T.assert_eq(ruim["erros"]["email"], "e-mail inválido")
 
 action test_campo_ausente_e_obrigatorio():
-    regras := V.esquema({"nome": [V.regra_obrigatorio()]})
+    regras := V.esquema({"nome":[V.regra_obrigatorio()]})
     r := V.validar(regras, {})
     T.assert_false(r["valido"])

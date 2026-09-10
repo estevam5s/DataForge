@@ -2,12 +2,12 @@
 // Enunciado: modele o ciclo de vida de um pedido.
 
 steady TRANSICOES := {
-    "novo": ["pago", "cancelado"],
-    "pago": ["enviado", "reembolsado"],
-    "enviado": ["entregue"],
-    "entregue": [],
-    "cancelado": [],
-    "reembolsado": []
+    "novo":["pago", "cancelado"],
+    "pago":["enviado", "reembolsado"],
+    "enviado":["entregue"],
+    "entregue":[],
+    "cancelado":[],
+    "reembolsado":[]
 }
 
 blueprint Pedido:

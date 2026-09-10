@@ -7,7 +7,7 @@ dados := {
     "app": "DataForge",
     "versao": 4,
     "ativo": yes,
-    "tags": ["linguagem", "dados"],
+    "tags":["linguagem", "dados"],
     "autor": {"nome": "Ana", "email": "ana@x.com"}
 }
 

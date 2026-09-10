@@ -1,6 +1,6 @@
 adopt Arcane.Test as T
 adopt Arcane.IO as IO
-adopt ../src/leitor as L
+adopt../ src / leitor as L
 
 steady TEMP := "/tmp/df_vendas_teste.csv"
 
@@ -13,7 +13,7 @@ action test_le_csv_valido():
     vendas := L.ler(TEMP)
     T.assert_eq(len(vendas), 1)
     T.assert_eq(vendas[0].regiao, "Sul")
-    T.assert_eq(vendas[0].valor, 10050)      // centavos
+    T.assert_eq(vendas[0].valor, 10050)  // centavos
 
 action test_valor_vira_centavos():
     escrever("data,regiao,vendedor,produto,valor\n2026-01-01,S,A,X,0.10\n")
@@ -40,10 +40,10 @@ action test_linha_em_branco_e_ignorada():
 
 action test_erro_diz_a_linha():
     escrever("data,regiao,vendedor,produto,valor\n" +
-             "2026-01-01,S,A,X,10.00\n" +
-             "2026-01-02,S,A,X\n")
+        "2026-01-01,S,A,X,10.00\n" +
+    "2026-01-02,S,A,X\n")
     monitor:
         L.ler(TEMP)
         T.assert_true(no)
     handle e:
-        T.assert_true(e.message.contains("3"))    // a linha problemática
+        T.assert_true(e.message.contains("3"))  // a linha problemática

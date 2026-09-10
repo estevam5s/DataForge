@@ -100,9 +100,9 @@ action mediana(lista):
     ord := sorted(lista)
     n := len(ord)
     given n % 2 is 0:
-        yield (ord[n // 2 - 1] + ord[n // 2]) / 2
+        yield(ord[n ~/ 2 - 1] + ord[n ~/ 2]) / 2
     otherwise:
-        yield ord[n // 2]
+        yield ord[n ~/ 2]
 
 out "Estatísticas das receitas:"
 out "  Média: R$" + str(round(media(receitas), 2))

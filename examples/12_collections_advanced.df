@@ -82,7 +82,7 @@ aluno := {
     "nome": "Maria Silva",
     "idade": 22,
     "curso": "Engenharia",
-    "notas": [8.5, 9.0, 7.5, 8.0]
+    "notas":[8.5, 9.0, 7.5, 8.0]
 }
 
 out "Nome:", aluno["nome"]

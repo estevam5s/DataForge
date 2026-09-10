@@ -1807,3 +1807,188 @@ def test_os_trechos_da_home_compilam():
 
     for trecho in json.load(open(arquivo, encoding="utf-8")):
         parse(tokenize(trecho["codigo"], trecho["titulo"]), trecho["titulo"])
+
+
+def test_o_formatador_nao_separa_o_menos_unario():
+    """'-2' é um número negativo; '- 2' parece uma subtração sem termo.
+
+    O formatador espaçava TODO '-', inclusive o unário — e com isso 93
+    dos 216 exercícios ficavam permanentemente 'fora do formato'. Rodar
+    'fmt' os pioraria, então ninguém rodava, e o 'fmt --check' era
+    inútil no CI.
+    """
+    from dataforge.formatter import format_source
+
+    for fonte, esperado in [
+        ("x := -5", "x := -5"),
+        ("out -2 ** 2", "out -2 ** 2"),
+        ("z := -x + 1", "z := -x + 1"),
+        ("w := [-1, -2]", "w := [-1, -2]"),
+        ("f(-3)", "f(-3)"),
+    ]:
+        assert format_source(fonte).strip() == esperado
+
+
+def test_o_formatador_preserva_a_subtracao_binaria():
+    """'a - b' não pode virar 'a -b': ali o espaço é o que separa."""
+    from dataforge.formatter import format_source
+
+    for fonte in ("y := a - b", "out 10 - 3", "z := (a) - (b)"):
+        assert format_source(fonte).strip() == fonte
+
+
+def test_o_menos_unario_sobrevive_a_ida_e_volta():
+    """Formatar não pode mudar o que o programa faz."""
+    fonte = "out -2 ** 2\nout 10 - 3\nout -(4 + 1)\n"
+    from dataforge.formatter import format_source
+    assert run(fonte) == run(format_source(fonte))
+
+
+def test_o_formatador_preserva_o_formato_da_interpolacao():
+    """'{x:.2f}' não pode virar '{x}' — nem derrubar o formatador.
+
+    A parte com formato traz uma tupla, não um texto: o formatador
+    estourava com 'can only concatenate str (not tuple)' ao tocar em
+    qualquer arquivo que usasse formato.
+    """
+    from dataforge.formatter import format_source
+
+    fonte = 'x := 3.14159\nout $"{x:.2f} e {x}"\n'
+    formatado = format_source(fonte)
+    assert "{x:.2f}" in formatado
+    assert run(fonte) == run(formatado)
+
+
+def test_o_formatador_nao_separa_a_chamada_de_palavra_reservada():
+    """'typeof(1)' não vira 'typeof (1)'.
+
+    A regra de 'nome(' olhava só IDENTIFIER — mas 'typeof', 'delete',
+    'len' e outras são palavras reservadas que CHAMAM como função. O
+    espaço as fazia parecer outra coisa.
+    """
+    from dataforge.formatter import format_source
+
+    for fonte in ('out typeof(1)', 'v.delete("k")', 'out len([1, 2])'):
+        assert format_source(fonte).strip() == fonte
+
+
+def test_o_formatador_nao_espaca_a_fatia():
+    """'xs[1:4]' não vira 'xs[1: 4]'.
+
+    O ':' de fatia não é o de vault nem o de bloco. Espaçá-lo faz a
+    fatia parecer um par chave-valor.
+    """
+    from dataforge.formatter import format_source
+
+    for fonte in ("out xs[1:4]", "out xs[:3]", "out xs[::2]", "out xs[-2:]"):
+        assert format_source(fonte).strip() == fonte
+
+
+def test_o_formatador_continua_espacando_o_vault():
+    """Ali o ':' separa chave de valor, e o espaço ajuda a ler."""
+    from dataforge.formatter import format_source
+    assert format_source('v := {"a": 1, "b": 2}').strip() == 'v := {"a": 1, "b": 2}'
+
+
+def test_o_formatador_indenta_a_continuacao_dentro_de_colchete():
+    """Uma lista multilinha não pode perder o recuo.
+
+    O lexer não emite INDENT dentro de colchete aberto — e a
+    profundidade do formatador vem dali. Sem tratar a continuação, um
+    literal bem escrito voltava encostado na margem: ainda compila, e
+    fica ilegível.
+    """
+    from dataforge.formatter import format_source
+
+    fonte = 'dados := [\n    ["Ana", 25],\n    ["Bo", 30],\n]\nout len(dados)\n'
+    saida = format_source(fonte)
+    for linha in saida.split("\n"):
+        if linha.strip().startswith('["'):
+            assert linha.startswith("    "), f"perdeu o recuo: {linha!r}"
+
+
+def test_o_formatador_continua_idempotente_com_continuacao():
+    """format(format(x)) == format(x) — inclusive com multilinha."""
+    from dataforge.formatter import format_source
+
+    fonte = ('v := {\n    "a": 1,\n    "b": [\n        1,\n        2,\n    ],\n}\n'
+             'out v\n')
+    uma = format_source(fonte)
+    assert format_source(uma) == uma
+
+
+def test_o_formatador_nao_toca_no_conteudo_de_string_multilinha():
+    """Formatar não pode MUDAR o que o programa faz.
+
+    O formatador trata cada linha do arquivo como código. Uma string
+    de três aspas ocupa várias linhas — e as de dentro eram
+    reformatadas: '<h1>' virava '< h1 >', dois espaços viravam um, e um
+    template HTML dentro do programa chegava corrompido ao navegador.
+
+    O exercício 194 quebrou exatamente assim.
+    """
+    from dataforge.formatter import format_source
+
+    html = '<h1>{{titulo}}</h1>\n{{#itens}}<li>x</li>{{/itens}}\ndois  espacos'
+    fonte = f'x := """{html}"""\nout x\n'
+    assert html in format_source(fonte), "o conteúdo da string foi alterado"
+    assert run(fonte) == run(format_source(fonte))
+
+
+def test_string_multilinha_com_codigo_dentro_sobrevive():
+    """SQL e HTML dentro de string têm ':' e '(' que não são código."""
+    from dataforge.formatter import format_source
+
+    sql = 'SELECT *\n  FROM t\n WHERE a = 1  AND b = 2'
+    fonte = f'q := """{sql}"""\nout q\n'
+    assert sql in format_source(fonte)
+
+
+def test_a_linguagem_le_notacao_cientifica():
+    """'6.022e23' é literal de ponto flutuante em qualquer linguagem.
+
+    O lexer o partia em '6.022', 'e', '23' — e o 'e' virava nome
+    indefinido. Não era só uma falta: o FORMATADOR emitia essa notação,
+    porque o 'repr' do Python usa ela para número pequeno. Ele gerava
+    sintaxe que a própria linguagem não conseguia ler de volta.
+    """
+    assert run("out 1e3") == "1000.0"
+    assert run("out 1.5e2") == "150.0"
+    assert run("out 2e-3") == "0.002"
+    assert run("out 6.022e23") == "6.022e+23"
+    assert run("out 1E3") == "1000.0"
+
+
+def test_o_e_de_nome_continua_sendo_nome():
+    """'2 e 3' não existe, mas 'e := 1' e 'x e' precisam continuar."""
+    assert run("e := 5\nout e * 2") == "10"
+    assert run("epsilon := 0.1\nout epsilon") == "0.1"
+
+
+def test_o_formatador_nao_gera_float_que_o_lexer_nao_le():
+    """Ele emite 'repr' do float, e o repr usa notação científica.
+
+    Um formatador que produz sintaxe não-parseável é pior que nenhum: o
+    arquivo passa a não compilar depois de formatado. Foi o que
+    aconteceu com o pacote 'aleatorio'.
+    """
+    from dataforge.formatter import format_source
+
+    for valor in ("0.0000001", "1e-07", "6.022e23", "1.5e10"):
+        fonte = f"x := {valor}\nout x\n"
+        formatado = format_source(fonte)
+        # o formatado precisa COMPILAR e dar o mesmo resultado
+        assert run(formatado) == run(fonte), f"{valor}: {formatado!r}"
+
+
+def test_o_formatador_preserva_a_barra_r():
+    """'\\r' virava um retorno de carro de verdade dentro da string.
+
+    O pacote 'progresso' usa '\\r' para reescrever a linha do terminal;
+    formatá-lo transformava o escape no caractere, e o arquivo deixava
+    de ter uma string terminada.
+    """
+    from dataforge.formatter import format_source
+
+    fonte = 'x := "linha\\r"\nout len(x)\n'
+    assert run(format_source(fonte)) == run(fonte)

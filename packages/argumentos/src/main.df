@@ -39,7 +39,7 @@ blueprint Programa:
 
     action posicional(nome, ajuda := "", obrigatorio := yes, padrao := void):
         self.posicionais.append(
-            Definicao(nome, "", ajuda, padrao, "texto", obrigatorio))
+        Definicao(nome, "", ajuda, padrao, "texto", obrigatorio))
         yield self
 
     action opcao(nome, curto := "", ajuda := "", padrao := void, tipo := "texto"):
@@ -155,7 +155,7 @@ blueprint Programa:
         given i + 1 bigger_eq len(entrada):
             trigger $"a opcao '{corpo}' precisa de um valor"
         resultado[nome] := self.converter(str(entrada[i + 1]),
-                                          self.opcoes[nome].tipo)
+        self.opcoes[nome].tipo)
         yield 2
 
     private action ler_posicionais(soltos, resultado):

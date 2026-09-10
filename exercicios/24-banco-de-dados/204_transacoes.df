@@ -16,8 +16,8 @@ Forge.executar(db, """
     )
 """)
 Forge.de(db, "contas").inserir([
-    {"id": 1, "dono": "Ana", "saldo": 100.0},
-    {"id": 2, "dono": "Bia", "saldo": 50.0}
+        {"id": 1, "dono": "Ana", "saldo": 100.0},
+        {"id": 2, "dono": "Bia", "saldo": 50.0}
 ])
 
 action saldo_de(db, id):
@@ -45,7 +45,7 @@ handle e:
     out "recusada:", e.message
 
 assert saldo_de(db, 1) + saldo_de(db, 2) is total_antes,
-    "o total nao mudou — nenhuma das duas escritas ficou"
+"o total nao mudou — nenhuma das duas escritas ficou"
 assert saldo_de(db, 1) is 70.0, "a conta de origem esta intacta"
 
 // 'incrementar' soma NO BANCO, sem ler antes.

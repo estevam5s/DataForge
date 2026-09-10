@@ -42,7 +42,7 @@ formas := [spawn Quadrado(4), spawn Circulo(2)]
 cycle f in formas:
     out f.descrever()
 
-assert (spawn Quadrado(4)).area() is 16.0, "area do quadrado"
+assert(spawn Quadrado(4)).area() is 16.0, "area do quadrado"
 
 // o abstrato nao pode ser instanciado
 monitor:
@@ -67,6 +67,6 @@ blueprint Peso with Comparavel:
             yield 1
         yield 0
 
-assert (spawn Peso(1)).comparar(spawn Peso(2)) is -1, "o contrato foi cumprido"
+assert(spawn Peso(1)).comparar(spawn Peso(2)) is -1, "o contrato foi cumprido"
 
 out "ok"

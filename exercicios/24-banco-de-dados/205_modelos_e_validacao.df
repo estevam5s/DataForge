@@ -10,25 +10,25 @@ adopt Forge
 db := Forge.conectar(":memory:")
 
 Usuario := Forge.modelo("Usuario", {
-    "id":    {"tipo": "Serial"},
-    "email": {"tipo": "Texto", "obrigatorio": yes, "unico": yes,
-              "validacoes": ["email"]},
-    "nome":  {"tipo": "Texto", "obrigatorio": yes,
-              "validacoes": [["minimo", 2]]},
-    "idade": {"tipo": "Inteiro", "padrao": 0,
-              "validacoes": [["minimo", 0], ["maximo", 130]]},
-    "ativo": {"tipo": "Booleano", "padrao": yes},
-    "perfil": {"tipo": "Json"}
+        "id": {"tipo": "Serial"},
+        "email": {"tipo": "Texto", "obrigatorio": yes, "unico": yes,
+        "validacoes":["email"]},
+        "nome": {"tipo": "Texto", "obrigatorio": yes,
+        "validacoes":[["minimo", 2]]},
+        "idade": {"tipo": "Inteiro", "padrao": 0,
+        "validacoes":[["minimo", 0], ["maximo", 130]]},
+        "ativo": {"tipo": "Booleano", "padrao": yes},
+        "perfil": {"tipo": "Json"}
 }, {"conexao": db, "marcas_de_tempo": yes})
 
 Forge.migrar_tudo(db)
 assert "usuarios" in Forge.tabelas(db), "o nome da tabela sai do plural"
 
 ana := Usuario.criar({
-    "email": "ana@exemplo.com",
-    "nome": "Ana",
-    "idade": 30,
-    "perfil": {"tema": "escuro"}
+        "email": "ana@exemplo.com",
+        "nome": "Ana",
+        "idade": 30,
+        "perfil": {"tema": "escuro"}
 })
 out "criou:", ana["email"], "id", ana["id"]
 assert ana["id"] is 1, "o Serial gerou o id"

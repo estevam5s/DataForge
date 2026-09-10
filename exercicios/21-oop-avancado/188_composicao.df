@@ -32,7 +32,7 @@ blueprint Carro:
 
     action setup(modelo, motor):
         self.modelo := modelo
-        self.motor := motor        // o carro TEM um motor
+        self.motor := motor  // o carro TEM um motor
 
     action dar_partida():
         yield $"{self.modelo}: {self.motor.ligar()}"

@@ -16,17 +16,17 @@ Forge.executar(db, """
 """)
 
 Forge.de(db, "usuarios").inserir([
-    {"nome": "Ana", "cidade": "Floripa", "idade": 30},
-    {"nome": "Bia", "cidade": "Recife",  "idade": 25},
-    {"nome": "Cid", "cidade": "Floripa", "idade": 41}
+        {"nome": "Ana", "cidade": "Floripa", "idade": 30},
+        {"nome": "Bia", "cidade": "Recife", "idade": 25},
+        {"nome": "Cid", "cidade": "Floripa", "idade": 41}
 ])
 assert Forge.de(db, "usuarios").contar() is 3, "tres inseridos de uma vez"
 
 // Filtros encadeados
 maduros := Forge.de(db, "usuarios")
-    .onde("idade", ">=", 30)
-    .ordenar("idade", "desc")
-    .buscar()
+.onde("idade", ">=", 30)
+.ordenar("idade", "desc")
+.buscar()
 out [u["nome"] cycle u in maduros]
 assert len(maduros) is 2, "dois com 30 ou mais"
 assert maduros[0]["nome"] is "Cid", "o mais velho primeiro"
@@ -55,8 +55,8 @@ assert pagina["tem_proxima"] is yes, "ha uma segunda"
 // 'quando' aplica o filtro so se a condicao valer
 action procurar(db, cidade):
     yield Forge.de(db, "usuarios")
-        .quando(cidade, lambda c => c.onde("cidade", cidade))
-        .contar()
+    .quando(cidade, lambda c => c.onde("cidade", cidade))
+    .contar()
 
 assert procurar(db, "") is 3, "sem filtro, todos"
 assert procurar(db, "Recife") is 1, "com filtro, um"

@@ -1,6 +1,6 @@
 adopt Arcane.Test as T
 adopt datas as D
-adopt ../src/tarefa as Tf
+adopt../ src / tarefa as Tf
 
 action test_nova_tem_padroes():
     t := Tf.nova(1, "fazer algo")

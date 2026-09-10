@@ -21,7 +21,7 @@ record Politica:
     jitter: Boolean
 
 action politica(tentativas := 3, espera_inicial := 0.1, fator := 2.0,
-                espera_maxima := 30.0, jitter := yes):
+espera_maxima := 30.0, jitter := yes):
     yield Politica(tentativas, espera_inicial, fator, espera_maxima, jitter)
 
 action espera_da_tentativa(p, n):
@@ -46,15 +46,15 @@ action com_politica(acao, p, parar_se := void):
         monitor:
             valor := acao()
             yield {"ok": yes, "valor": valor, "tentativas": tentativa + 1,
-                   "erro": void, "esperas": esperas}
+            "erro": void, "esperas": esperas}
         handle e:
             ultimo_erro := e.message
             // Falha que não vai mudar: parar agora poupa o tempo das
             // outras tentativas.
             given parar_se isnt void and parar_se(e):
                 yield {"ok": no, "valor": void, "tentativas": tentativa + 1,
-                       "erro": ultimo_erro, "esperas": esperas,
-                       "desistiu": yes}
+                    "erro": ultimo_erro, "esperas": esperas,
+                "desistiu": yes}
             tentativa += 1
             given tentativa smaller p.tentativas:
                 espera := espera_da_tentativa(p, tentativa - 1)
@@ -62,7 +62,7 @@ action com_politica(acao, p, parar_se := void):
                 wait espera
 
     yield {"ok": no, "valor": void, "tentativas": tentativa,
-           "erro": ultimo_erro, "esperas": esperas}
+    "erro": ultimo_erro, "esperas": esperas}
 
 action repetir(acao, tentativas := 3):
     // A forma curta: devolve o valor, ou estoura com o último erro.
@@ -117,7 +117,7 @@ blueprint Disjuntor:
 
         monitor:
             valor := acao()
-            self.falhas := 0            // sucesso zera a contagem
+            self.falhas := 0  // sucesso zera a contagem
             yield valor
         handle e:
             self.falhas += 1

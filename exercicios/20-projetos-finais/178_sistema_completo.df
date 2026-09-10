@@ -78,24 +78,24 @@ action cadastrar(titulo, autor, ano):
     given len(problemas) bigger 0:
         yield {"ok": no, "erros": problemas}
     DB.execute(conn, "INSERT INTO livros (titulo, autor, ano) VALUES (?, ?, ?)",
-               [titulo.trim(), autor.trim(), ano])
+    [titulo.trim(), autor.trim(), ano])
     yield {"ok": yes}
 
 action emprestar(livro_id, leitor, dias):
     ja := DB.query_one(conn, "SELECT id FROM emprestimos WHERE livro_id = ?", [livro_id])
     given ja isnt void:
-        yield {"ok": no, "erros": ["livro ja emprestado"]}
+        yield {"ok": no, "erros":["livro ja emprestado"]}
     DB.execute(conn, "INSERT INTO emprestimos (livro_id, leitor, dias) VALUES (?, ?, ?)",
-               [livro_id, leitor, dias])
+    [livro_id, leitor, dias])
     yield {"ok": yes}
 
 action livros():
     yield DB.query(conn, "SELECT id, titulo, autor, ano FROM livros ORDER BY titulo")
-        >> morph l: Livro(l["id"], l["titulo"], l["autor"], l["ano"])
+    >> morph l: Livro(l["id"], l["titulo"], l["autor"], l["ano"])
 
 action emprestimo_de(livro_id):
     linha := DB.query_one(conn,
-        "SELECT id, livro_id, leitor, dias FROM emprestimos WHERE livro_id = ?", [livro_id])
+    "SELECT id, livro_id, leitor, dias FROM emprestimos WHERE livro_id = ?", [livro_id])
     given linha is void:
         yield void
     yield Emprestimo(linha["id"], linha["livro_id"], linha["leitor"], linha["dias"])

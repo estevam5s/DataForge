@@ -17,7 +17,7 @@ action test_transicao_declarada_funciona():
 
 action test_transicao_nao_declarada_e_recusada():
     m := nova_publicacao()
-    T.assert_false(m.pode("arquivar"))       // não sai de rascunho
+    T.assert_false(m.pode("arquivar"))  // não sai de rascunho
     T.assert_throws(lambda => m.disparar("arquivar"))
 
 action test_mensagem_lista_o_que_da_para_fazer():
@@ -85,8 +85,8 @@ action test_estados_e_dot():
 
 action test_de_tabela():
     m := S.de_tabela("novo", [
-        ["novo", "pagar", "pago"],
-        ["pago", "enviar", "enviado"]
+            ["novo", "pagar", "pago"],
+            ["pago", "enviar", "enviado"]
     ])
     m.disparar("pagar")
     T.assert_eq(m.atual, "pago")

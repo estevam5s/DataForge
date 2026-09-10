@@ -65,7 +65,7 @@ out "Tipo descongelada:", type(descongelada)
 
 out ""
 out "--- 5. Typeof ---"
-valores := [42, 3.14, "texto", yes, no, void, [1, 2], {"a": 1}]
+valores := [42, 3.14, "texto", yes, no, void, [1, 2], {"a":1}]
 nomes := ["42", "3.14", "texto", "yes", "no", "void", "[1,2]", "{a:1}"]
 
 cycle i from 0 to len(valores) - 1:

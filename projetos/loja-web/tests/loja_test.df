@@ -7,7 +7,7 @@
 adopt Arcane.Test as T
 adopt Kiln
 adopt Arcane.Excel as Xls
-adopt ../src/app as App
+adopt../ src / app as App
 
 steady LOJA := App.loja
 
@@ -80,7 +80,7 @@ action test_relatorio_baixa_como_xlsx():
 action test_planilha_gerada_tem_as_duas_abas():
     pegar("/relatorio.xlsx")
     T.assert_eq(Xls.sheets(Xls.read("/tmp/relatorio-loja.xlsx")),
-                ["Estoque", "Categorias"])
+    ["Estoque", "Categorias"])
 
 action test_planilha_traz_os_produtos_e_o_total():
     pegar("/relatorio.xlsx")
@@ -109,8 +109,8 @@ action test_api_da_404_no_que_nao_existe():
 
 action test_api_cria_com_201():
     r := Kiln.test(LOJA, "POST", "/api/produtos",
-                   {"nome": "Lima", "categoria": "ferramenta",
-                    "preco": 42.0, "estoque": 9})
+        {"nome": "Lima", "categoria": "ferramenta",
+    "preco": 42.0, "estoque": 9})
     T.assert_eq(r["status"], 201)
     T.assert_eq(r["body"]["nome"], "Lima")
     // limpa o que criou: o teste seguinte conta produtos
@@ -118,7 +118,7 @@ action test_api_cria_com_201():
 
 action test_api_recusa_corpo_incompleto_com_400():
     T.assert_eq(Kiln.test(LOJA, "POST", "/api/produtos", {"preco": 1})["status"],
-                400)
+    400)
 
 action test_api_atualiza():
     antes := pegar("/api/produtos/1")["body"]["preco"]
@@ -128,10 +128,10 @@ action test_api_atualiza():
 
 action test_api_apaga_com_204():
     novo := Kiln.test(LOJA, "POST", "/api/produtos",
-                      {"nome": "Provisório", "categoria": "teste",
-                       "preco": 1.0, "estoque": 0})["body"]
+        {"nome": "Provisório", "categoria": "teste",
+    "preco": 1.0, "estoque": 0})["body"]
     T.assert_eq(Kiln.test(LOJA, "DELETE",
-                          "/api/produtos/" + str(novo["id"]))["status"], 204)
+    "/api/produtos/" + str(novo["id"]))["status"], 204)
 
 action test_verbo_errado_da_405_nao_404():
     T.assert_eq(Kiln.test(LOJA, "PATCH", "/api/produtos/1")["status"], 405)
@@ -153,12 +153,12 @@ action test_pagina_de_login_abre():
 
 action test_senha_errada_devolve_401():
     r := Kiln.test(LOJA, "POST", "/entrar",
-                   {"usuario": "ferreiro", "senha": "errada"})
+    {"usuario": "ferreiro", "senha": "errada"})
     T.assert_eq(r["status"], 401)
     T.assert_contains(r["body"], "não conferem")
 
 action test_login_certo_redireciona_para_o_admin():
     r := Kiln.test(LOJA, "POST", "/entrar",
-                   {"usuario": "ferreiro", "senha": "bigorna"})
+    {"usuario": "ferreiro", "senha": "bigorna"})
     T.assert_eq(r["status"], 302)
     T.assert_eq(r["headers"]["Location"], "/admin")

@@ -20,8 +20,8 @@ action test_camada_seguinte_sobrescreve():
 
 action test_argumentos_formatos():
     cfg := C.dos_argumentos(C.novo(), [
-        "--porta", "9000", "--host=exemplo.com", "--debug", "--no-cache",
-        "--taxa", "1.5", "--nome", "meu app"
+            "--porta", "9000", "--host=exemplo.com", "--debug", "--no-cache",
+            "--taxa", "1.5", "--nome", "meu app"
     ])
     T.assert_eq(C.pegar(cfg, "porta"), 9000)
     T.assert_eq(C.pegar(cfg, "host"), "exemplo.com")
@@ -36,7 +36,7 @@ action test_hifen_vira_sublinhado():
 
 action test_conversao_de_tipo():
     cfg := C.dos_argumentos(C.novo(), ["--n", "42", "--f", "3.14", "--b", "yes",
-                                        "--neg", "-7", "--txt", "abc"])
+    "--neg", "-7", "--txt", "abc"])
     T.assert_eq(typeof(C.pegar(cfg, "n")), "Integer")
     T.assert_eq(typeof(C.pegar(cfg, "f")), "Float")
     T.assert_eq(typeof(C.pegar(cfg, "b")), "Boolean")
@@ -45,7 +45,7 @@ action test_conversao_de_tipo():
 
 action test_arquivo_json():
     caminho := "/tmp/cofre_teste.json"
-    IO.write(caminho, "{\"porta\": 3000, \"nome\": \"do arquivo\"}")
+    IO.write(caminho, '{"porta": 3000, "nome": "do arquivo"}')
     cfg := C.padroes(C.novo(), {"porta": 8080})
     cfg := C.do_arquivo(cfg, caminho)
     T.assert_eq(C.pegar(cfg, "porta"), 3000)

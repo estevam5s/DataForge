@@ -14,7 +14,7 @@ blueprint Database:
     action criar_tabela(nome, colunas):
         self.tabelas[nome] := {
             "colunas": colunas,
-            "registros": [],
+            "registros":[],
             "auto_id": 1
         }
         out "  ✓ Tabela '" + nome + "' criada"

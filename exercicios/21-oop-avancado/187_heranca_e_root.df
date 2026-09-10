@@ -42,6 +42,6 @@ blueprint Base:
     final action identidade():
         yield "base"
 
-assert (spawn Base()).identidade() is "base", "o final funciona normalmente"
+assert(spawn Base()).identidade() is "base", "o final funciona normalmente"
 
 out "ok"

@@ -19,7 +19,7 @@ cycle i from 1 to 400:
     visitas := (i * 13) % 30
     pontos := (renda / 1000) + visitas - (idade / 20)
     comprou := "sim" given pontos bigger 12 otherwise "nao"
-    clientes := [...clientes, {"idade": idade, "renda": renda,
+    clientes := [...clientes, {"idade":idade, "renda":renda,
     "visitas": visitas, "comprou": comprou}]
 
 COLUNAS := ["idade", "renda", "visitas"]
@@ -81,12 +81,12 @@ out "  o modelo carregado prevê idêntico ✓"
 out ""
 out "═══ 8. texto: Naive Bayes ═══"
 avaliacoes := [
-{"t": "adorei otimo excelente recomendo", "s": "bom"},
-{"t": "excelente produto muito bom", "s": "bom"},
-{"t": "otimo atendimento adorei tudo", "s": "bom"},
-{"t": "pessimo horrivel nao recomendo", "s": "ruim"},
-{"t": "horrivel demorou quebrou logo", "s": "ruim"},
-{"t": "pessimo produto quebrou tudo", "s": "ruim"},
+    {"t": "adorei otimo excelente recomendo", "s": "bom"},
+    {"t": "excelente produto muito bom", "s": "bom"},
+    {"t": "otimo atendimento adorei tudo", "s": "bom"},
+    {"t": "pessimo horrivel nao recomendo", "s": "ruim"},
+    {"t": "horrivel demorou quebrou logo", "s": "ruim"},
+    {"t": "pessimo produto quebrou tudo", "s": "ruim"},
 ]
 b := ML.bayes_texto(avaliacoes, "s", "t")
 cycle frase in ["produto excelente adorei muito", "quebrou logo, horrivel"]:

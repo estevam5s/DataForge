@@ -76,5 +76,5 @@ resultado := Crucible.results()[0]
 out "motivo:", resultado["motivo"]
 out "diferenca:", resultado["diferenca"]
 assert resultado["estado"] is "falhou", "falhou de proposito"
-assert "\"b\"" in resultado["diferenca"], "aponta a chave que difere"
+assert '"b"' in resultado["diferenca"], "aponta a chave que difere"
 out "ok"

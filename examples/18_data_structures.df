@@ -112,10 +112,10 @@ action verificar_parenteses(expressao):
             s.stack_pop()
     yield s.vazia()
 
-out "  '(())()' :", verificar_parenteses("(())()")
-out "  '(()'   :", verificar_parenteses("(()")
-out "  ')('    :", verificar_parenteses(")(")
-out "  '(()())' :", verificar_parenteses("(()())")
+out "  '(())()':", verificar_parenteses("(())()")
+out "  '(()':", verificar_parenteses("(()")
+out "  ')(':", verificar_parenteses(")(")
+out "  '(()())':", verificar_parenteses("(()())")
 
 out ""
 out "--- 3. Queue (Fila) ---"

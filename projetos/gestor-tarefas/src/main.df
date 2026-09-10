@@ -12,17 +12,17 @@ adopt cofre as C
 adopt colecao as Col
 adopt registro as Log
 adopt Arcane.OS as OS
-adopt ./repositorio as Repo
-adopt ./tarefa as T
+adopt./ repositorio as Repo
+adopt./ tarefa as T
 
 // ── Configuração em camadas ───────────────────────────────
 
 action carregar_config():
     cfg := C.novo()
     cfg := C.padroes(cfg, {
-        "arquivo": "tarefas.json",
-        "estilo": "simples",
-        "cor": yes
+            "arquivo": "tarefas.json",
+            "estilo": "simples",
+            "cor": yes
     })
     cfg := C.do_arquivo(cfg, "tarefas.config.json")
     cfg := C.do_ambiente(cfg, "TAREFAS_")
@@ -91,7 +91,7 @@ action mostrar_resumo(tarefas):
         $"feitas      {len(feitas)}\n" +
         $"pendentes   {len(pendentes)}\n" +
         $"atrasadas   {len(atrasadas)}",
-        "Resumo", "grossa")
+    "Resumo", "grossa")
 
     given len(tarefas) bigger 0:
         out ""

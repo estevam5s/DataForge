@@ -3,7 +3,7 @@
 
 adopt Arcane.IO as IO
 adopt Arcane.Serialization as Serde
-adopt ./tarefa as T
+adopt./ tarefa as T
 
 blueprint Repositorio:
     private caminho: String := ""
@@ -24,8 +24,8 @@ blueprint Repositorio:
             self.tarefas := []
             cycle t in dados["tarefas"] ?? []:
                 self.tarefas.append(T.Tarefa(
-                    t["id"], t["titulo"], t["prioridade"],
-                    t["prazo"] ?? "", t["feita"]))
+                        t["id"], t["titulo"], t["prioridade"],
+                t["prazo"] ?? "", t["feita"]))
             self.proximo_id := dados["proximo_id"] ?? 1
         handle e:
             // Arquivo corrompido não pode impedir o programa de rodar:
@@ -37,11 +37,11 @@ blueprint Repositorio:
         planas := []
         cycle t in self.tarefas:
             planas.append({"id": t.id, "titulo": t.titulo,
-                           "prioridade": t.prioridade, "prazo": t.prazo,
-                           "feita": t.feita})
+                    "prioridade": t.prioridade, "prazo": t.prazo,
+            "feita": t.feita})
         IO.write(self.caminho,
-                 Serde.to_json({"tarefas": planas,
-                                "proximo_id": self.proximo_id}))
+            Serde.to_json({"tarefas": planas,
+        "proximo_id": self.proximo_id}))
         yield self
 
     action todas():

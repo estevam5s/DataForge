@@ -15,11 +15,11 @@ DB.execute(banco, """CREATE TABLE vendas (
     produto TEXT, regiao TEXT, qtd INTEGER, preco REAL)""")
 
 cycle linha in [
-    ["Martelo", "Sul",   12, 89.9],
-    ["Bigorna", "Sul",    3, 450.0],
-    ["Tenaz",   "Norte", 27, 65.5],
-    ["Fole",    "Norte",  8, 320.0],
-    ["Marreta", "Sul",   15, 110.0]
+    ["Martelo", "Sul", 12, 89.9],
+    ["Bigorna", "Sul", 3, 450.0],
+    ["Tenaz", "Norte", 27, 65.5],
+    ["Fole", "Norte", 8, 320.0],
+    ["Marreta", "Sul", 15, 110.0]
 ]:
     DB.execute(banco, "INSERT INTO vendas VALUES (?, ?, ?, ?)", linha)
 
@@ -44,7 +44,7 @@ assert correlacao smaller 0, "quanto mais caro, menos unidades"
 tabela := An.from_records(registros)
 descricao := An.describe(tabela)
 out "resumo da coluna qtd:", descricao["qtd"]["count"], "valores, media",
-    descricao["qtd"]["mean"]
+descricao["qtd"]["mean"]
 assert descricao["qtd"]["count"] is 5, "cinco valores numericos"
 assert descricao["produto"]["type"] is "non-numeric", "texto e marcado como tal"
 
@@ -60,10 +60,10 @@ Xls.formula(aba, "E7", "SUM(E2:E6)")
 Xls.bold_row(aba, 6)
 
 Xls.sheet(livro, "Estatisticas", [
-    ["metrica", "valor"],
-    ["vendas", len(registros)],
-    ["media_qtd", An.mean(quantidades)],
-    ["correlacao", round(correlacao, 3)]
+        ["metrica", "valor"],
+        ["vendas", len(registros)],
+        ["media_qtd", An.mean(quantidades)],
+        ["correlacao", round(correlacao, 3)]
 ])
 
 Xls.save(livro, "/tmp/analise.xlsx")
@@ -83,6 +83,6 @@ assert de_volta[5]["produto"] is "TOTAL", "a ultima linha e o rodape"
 // ao abrir o arquivo — nao nos.
 assert de_volta[0]["receita"] is void, "formula nao tem valor gravado"
 assert Xls.get_formula(Xls.sheet(conferencia, "Vendas"), "E7") is "SUM(E2:E6)",
-    "a formula do total"
+"a formula do total"
 
 DB.close(banco)

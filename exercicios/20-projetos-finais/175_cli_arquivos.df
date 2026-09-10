@@ -39,7 +39,7 @@ IO.mkdir(pasta)
 
 exemplos := {
     "notas.txt": "linha 1\nlinha 2\nlinha 3",
-    "config.json": "{\"tema\": \"escuro\", \"fonte\": 14}",
+    "config.json": '{"tema": "escuro", "fonte": 14}',
     "dados.csv": "nome,valor\nA,1\nB,2\nC,3\nD,4",
     "leiame.md": "# Titulo\n\nUm paragrafo.",
     "script.df": "action f():\n    yield 1\nout f()"

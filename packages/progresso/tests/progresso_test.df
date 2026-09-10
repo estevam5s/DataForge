@@ -75,7 +75,7 @@ action test_spinner_gira():
     s.girar()
     s.girar()
     T.assert_eq(len(saida), 2)
-    T.assert_true(saida[0] isnt saida[1])     // quadro diferente
+    T.assert_true(saida[0] isnt saida[1])  // quadro diferente
     T.assert_true(saida[0].contains("carregando"))
 
 action test_spinner_pronto_e_falhou():

@@ -119,8 +119,8 @@ action classificar_imc(peso, altura):
 pacientes := [
     {"nome": "Ana", "peso": 55, "altura": 1.65},
     {"nome": "Bruno", "peso": 90, "altura": 1.75},
-    {"nome": "Carlos", "peso": 110, "altura": 1.80},
-    {"nome": "Diana", "peso": 48, "altura": 1.70}
+    {"nome": "Carlos", "peso": 110, "altura": 1.8},
+    {"nome": "Diana", "peso": 48, "altura": 1.7}
 ]
 
 cycle p in pacientes:

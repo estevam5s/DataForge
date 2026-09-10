@@ -32,10 +32,10 @@ enum Pedido:
     Entregue
 
 steady TRANSICOES := {
-    "Novo": ["Pago"],
-    "Pago": ["Enviado"],
-    "Enviado": ["Entregue"],
-    "Entregue": []
+    "Novo":["Pago"],
+    "Pago":["Enviado"],
+    "Enviado":["Entregue"],
+    "Entregue":[]
 }
 
 action pode_ir(de, para):

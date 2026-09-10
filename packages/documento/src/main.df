@@ -90,7 +90,7 @@ action ler_link(linha, i, e_imagem):
     url := escapar(linha.substring(fim_texto + 2, fim_url))
     given e_imagem:
         yield {"html": $"<img src=\"{url}\" alt=\"{escapar(rotulo)}\">",
-               "fim": fim_url + 1}
+        "fim": fim_url + 1}
     yield {"html": $"<a href=\"{url}\">{inline(rotulo)}</a>", "fim": fim_url + 1}
 
 action titulos(fonte):
@@ -109,7 +109,7 @@ action titulos(fonte):
         texto := linha.substring(nivel).trim()
         given texto isnt "":
             saida.append({"nivel": nivel, "texto": texto,
-                          "ancora": ancora(texto)})
+            "ancora": ancora(texto)})
     yield saida
 
 action sumario(fonte, ate_nivel := 3):
@@ -146,8 +146,8 @@ action bloco_codigo_html(linhas, i):
         corpo.append(escapar(linhas[j]))
         j += 1
     classe := $" class=\"language-{idioma}\"" given idioma isnt "" otherwise ""
-    yield {"html": $"<pre><code{classe}>" + corpo.join("\n") + "</code></pre>",
-           "proxima": j + 1}
+    yield {"html": $"<pre><code{classe}>" +corpo.join("\n") + "</code></pre>",
+    "proxima": j + 1}
 
 action para_html(fonte):
     saida := []
@@ -191,7 +191,7 @@ action para_html(fonte):
         // citação
         given cortada.startswith(">"):
             saida.append("<blockquote>" + inline(cortada.substring(1).trim()) +
-                         "</blockquote>")
+            "</blockquote>")
             i += 1
             skip
 

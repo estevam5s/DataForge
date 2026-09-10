@@ -70,7 +70,7 @@ action collatz(n):
     seq := [n]
     persist n isnt 1:
         given n % 2 is 0:
-            n := n // 2
+            n := n ~/ 2
         otherwise:
             n := 3 * n + 1
         append(seq, n)
@@ -87,7 +87,7 @@ action celsius_para_fahrenheit(c):
     yield c * 9 / 5 + 32
 
 action fahrenheit_para_celsius(f):
-    yield (f - 32) * 5 / 9
+    yield(f - 32) * 5 / 9
 
 action graus_para_radianos(g):
     yield g * PI / 180
@@ -123,8 +123,8 @@ action mediana_lista(dados):
     s := sorted(dados)
     n := len(s)
     given n % 2 is 0:
-        yield (s[n // 2 - 1] + s[n // 2]) / 2
-    yield s[n // 2]
+        yield(s[n ~/ 2 - 1] + s[n ~/ 2]) / 2
+    yield s[n ~/ 2]
 
 action moda_lista(dados):
     freq := {}

@@ -51,7 +51,7 @@ blueprint Memo:
         given total bigger 0:
             taxa := self.acertos / total
         yield {"acertos": self.acertos, "erros": self.erros,
-               "taxa": round(taxa, 3), "guardados": len(self.guardados)}
+        "taxa": round(taxa, 3), "guardados": len(self.guardados)}
 
     action limpar():
         self.guardados := {}
@@ -82,7 +82,7 @@ blueprint CacheTTL:
     action guardar(chave, valor, segundos := void):
         validade := segundos ?? self.segundos
         self.itens[str(chave)] := {"valor": valor,
-                                   "expira": self.agora() + validade}
+        "expira": self.agora() + validade}
         yield valor
 
     action ler(chave, padrao := void):

@@ -11,14 +11,14 @@ adopt Forge
 db := Forge.conectar(":memory:")
 
 Usuario := Forge.modelo("Usuario", {
-    "id": {"tipo": "Serial"},
-    "nome": {"tipo": "Texto", "obrigatorio": yes}
+        "id": {"tipo": "Serial"},
+        "nome": {"tipo": "Texto", "obrigatorio": yes}
 }, {"conexao": db})
 
 Pedido := Forge.modelo("Pedido", {
-    "id": {"tipo": "Serial"},
-    "usuario_id": {"tipo": "Inteiro", "indice": yes},
-    "total": {"tipo": "Real", "padrao": 0}
+        "id": {"tipo": "Serial"},
+        "usuario_id": {"tipo": "Inteiro", "indice": yes},
+        "total": {"tipo": "Real", "padrao": 0}
 }, {"conexao": db})
 
 Usuario.tem_muitos("pedidos", "Pedido")

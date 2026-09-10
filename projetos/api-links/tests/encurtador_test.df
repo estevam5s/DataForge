@@ -1,5 +1,5 @@
 adopt Arcane.Test as T
-adopt ../src/encurtador as E
+adopt../ src / encurtador as E
 
 action test_encurta_url_valida():
     app := E.novo(42)
@@ -28,7 +28,7 @@ action test_codigo_duplicado_e_recusado():
 
 action test_codigo_invalido():
     app := E.novo(42)
-    T.assert_throws(lambda => app.encurtar("https://x.com", "ab"))       // curto
+    T.assert_throws(lambda => app.encurtar("https://x.com", "ab"))  // curto
     T.assert_throws(lambda => app.encurtar("https://x.com", "com espaço"))
     T.assert_throws(lambda => app.encurtar("https://x.com", "a".repeat(21)))
 

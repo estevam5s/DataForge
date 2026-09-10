@@ -56,11 +56,28 @@ class Formatter:
         # (INDENT/DEDENT do lexer), nunca da contagem de espaços do original.
         profundidade = self._profundidade_por_linha()
 
+        # As linhas que estao DENTRO de uma string de tres aspas.
+        #
+        # O formatador trabalha linha a linha sobre o texto cru — e uma
+        # string multilinha ocupa varias. Sem esta marcacao, o conteudo
+        # dela era reformatado como codigo: '<h1>' virava '< h1 >', dois
+        # espacos viravam um, e um template HTML dentro do programa
+        # chegava corrompido ao navegador. Formatar passava a MUDAR o
+        # que o programa faz — a unica coisa que um formatador nao pode
+        # fazer. O exercicio 194 quebrou exatamente assim.
+        dentro_de_texto = self._linhas_de_texto_longo()
+
         linhas_saida = []
         em_branco = 0
         no_topo = True
 
         for numero, bruta in enumerate(self.source.split("\n"), start=1):
+            if numero in dentro_de_texto:
+                linhas_saida.append(bruta)      # verbatim, sem tocar
+                em_branco = 0
+                no_topo = False
+                continue
+
             nua = bruta.strip()
 
             if not nua:
@@ -85,6 +102,63 @@ class Formatter:
         texto = "\n".join(linhas_saida)
         return texto.rstrip("\n") + "\n"
 
+    def _linhas_de_texto_longo(self):
+        """As linhas de continuacao de toda string de tres aspas.
+
+        A PRIMEIRA linha nao entra: ela tem codigo antes das aspas
+        (x := ...) e precisa do recuo. A do FECHA tambem nao, pelo
+        mesmo motivo — pode haver codigo depois dela.
+        """
+        TRIPLO_D = chr(34) * 3
+        TRIPLO_S = chr(39) * 3
+        marcadas = set()
+        fonte = self.source
+        i = 0
+        linha = 1
+        aspas_curtas = ""
+        while i < len(fonte):
+            c = fonte[i]
+            if c == chr(10):
+                linha += 1
+                i += 1
+                continue
+            if aspas_curtas:
+                if c == chr(92):
+                    i += 2
+                    continue
+                if c == aspas_curtas:
+                    aspas_curtas = ""
+                i += 1
+                continue
+            if fonte.startswith(TRIPLO_D, i) or fonte.startswith(TRIPLO_S, i):
+                marca = fonte[i:i + 3]
+                fim = fonte.find(marca, i + 3)
+                if fim < 0:
+                    break                  # nao fechou: o lexer reclama
+                miolo = fonte[i + 3:fim]
+                # A linha do FECHA tambem entra quando ha conteudo
+                # antes dele: em 'WHERE a = 1"""' o texto e da string,
+                # e reformata-lo mudaria o SQL. So fica de fora a linha
+                # que comeca com o fecha — ali o que vem depois e
+                # codigo de verdade.
+                for _ in range(miolo.count(chr(10))):
+                    linha += 1
+                    marcadas.add(linha)
+                if miolo and not miolo.endswith(chr(10)):
+                    pass                   # o fecha esta na mesma linha do texto
+                else:
+                    marcadas.discard(linha)
+                i = fim + 3
+                continue
+            if c in (chr(34), chr(39)):
+                aspas_curtas = c
+            elif c == "/" and fonte.startswith("//", i):
+                fim = fonte.find(chr(10), i)
+                i = len(fonte) if fim < 0 else fim
+                continue
+            i += 1
+        return marcadas
+
     def _profundidade_por_linha(self):
         """Mapeia cada linha do arquivo ao seu nível de bloco.
 
@@ -95,6 +169,7 @@ class Formatter:
 
         profundidade = {}
         nivel = 0
+        abertos = 0
         inicio_de_linha = True
         for token in tokens:
             if token.type is TokenType.INDENT:
@@ -109,8 +184,26 @@ class Formatter:
             if token.type is TokenType.EOF:
                 break
             if inicio_de_linha or token.line not in profundidade:
-                profundidade.setdefault(token.line, nivel)
+                profundidade.setdefault(token.line, nivel + abertos)
                 inicio_de_linha = False
+
+            # O lexer NAO emite INDENT dentro de colchete, chave ou
+            # parentese aberto — e a profundidade do formatador vem
+            # dali. Sem contar aqui, uma lista multilinha voltava
+            # encostada na margem: ainda compila, e fica ilegivel.
+            #
+            # O nivel do FECHA e o de fora, nao o de dentro: ']' alinha
+            # com o '[' que o abriu, e nao com os itens.
+            if token.type in (TokenType.LBRACKET, TokenType.LBRACE,
+                              TokenType.LPAREN):
+                abertos += 1
+            elif token.type in (TokenType.RBRACKET, TokenType.RBRACE,
+                                TokenType.RPAREN):
+                abertos = max(0, abertos - 1)
+                if inicio_de_linha or profundidade.get(token.line) is not None:
+                    profundidade[token.line] = min(
+                        profundidade.get(token.line, nivel + abertos),
+                        nivel + abertos)
 
         # Linhas de comentário herdam o nível da próxima linha com código
         linhas = self.source.split("\n")
@@ -136,15 +229,25 @@ class Formatter:
         comentario = self._extrair_comentario(texto)
         partes = []
         anterior = None
+        antes_do_anterior = None
+        colchetes = 0
 
         for token in tokens:
             if token.type in (TokenType.NEWLINE, TokenType.EOF,
                               TokenType.INDENT, TokenType.DEDENT):
                 continue
+            # A profundidade de colchete distingue a fatia do vault: o
+            # ':' de 'xs[1:4]' esta dentro de '[', o de '{"a": 1}' nao.
+            if token.type is TokenType.LBRACKET:
+                colchetes += 1
+            elif token.type is TokenType.RBRACKET:
+                colchetes = max(0, colchetes - 1)
             texto_token = self._render(token)
-            if partes and self._precisa_espaco(anterior, token):
+            if partes and self._precisa_espaco(
+                    anterior, token, antes_do_anterior, colchetes > 0):
                 partes.append(" ")
             partes.append(texto_token)
+            antes_do_anterior = anterior
             anterior = token
 
         linha = "".join(partes)
@@ -214,7 +317,15 @@ class Formatter:
             corpo = valor.replace("\\", "\\\\")
             if aspas == '"':
                 corpo = corpo.replace('"', '\\"')
-            corpo = corpo.replace("\n", "\\n").replace("\t", "\\t")
+            # O '\\r' precisa estar aqui junto do '\\n' e do '\\t'.
+            # Sem ele, o escape virava um retorno de carro DE VERDADE
+            # dentro da string, e o arquivo deixava de ter uma string
+            # terminada — o pacote 'progresso', que usa '\\r' para
+            # reescrever a linha do terminal, parava de compilar depois
+            # de formatado.
+            corpo = (corpo.replace("\n", "\\n")
+                          .replace("\t", "\\t")
+                          .replace("\r", "\\r"))
             return f"{aspas}{corpo}{aspas}"
         if token.type is TokenType.INTERP_STRING:
             partes = []
@@ -231,6 +342,13 @@ class Formatter:
                                           ("{", "{{"), ("}", "}}")):
                         escapado = escapado.replace(antes, depois)
                     partes.append(escapado)
+                elif tipo == "fmt":
+                    # A parte com formato traz (expressao, formato), e nao
+                    # um texto. Sem este ramo, o formatador estourava com
+                    # 'can only concatenate str (not tuple)' ao tocar em
+                    # qualquer arquivo com '{x:.2f}'.
+                    expressao, formato = conteudo
+                    partes.append("{" + expressao + ":" + formato + "}")
                 else:
                     partes.append("{" + conteudo + "}")
             return '$"' + "".join(partes) + '"'
@@ -245,7 +363,8 @@ class Formatter:
         return str(token.text if token.text is not None else token.value)
 
     @staticmethod
-    def _precisa_espaco(anterior, atual):
+    def _precisa_espaco(anterior, atual, anterior_do_anterior=None,
+                        dentro_de_colchete=False):
         if anterior is None:
             return False
         a, b = anterior, atual
@@ -266,9 +385,16 @@ class Formatter:
         if b.type in (TokenType.DOT, TokenType.SAFE_DOT):
             return False
 
-        # Chamada: nome( sem espaço
-        if b.type is TokenType.LPAREN and a.type in (
-                TokenType.IDENTIFIER, TokenType.RPAREN, TokenType.RBRACKET):
+        # Chamada: nome( sem espaco.
+        #
+        # 'typeof', 'delete', 'len' sao PALAVRAS RESERVADAS que chamam
+        # como funcao — olhar so IDENTIFIER escrevia 'typeof (1)', que
+        # parece outra coisa. A regra e: se o token anterior e um nome
+        # ou um fecha-delimitador, o parentese e de chamada.
+        if b.type is TokenType.LPAREN and (
+                a.type in (TokenType.IDENTIFIER, TokenType.RPAREN,
+                           TokenType.RBRACKET)
+                or _e_nome_chamavel(a)):
             return False
         # Indexação: nome[ sem espaço
         if b.type is TokenType.LBRACKET and a.type in (
@@ -280,6 +406,11 @@ class Formatter:
         if b.type is TokenType.COLON:
             return False
         if a.type is TokenType.COLON:
+            # O ':' de FATIA nao respira: 'xs[1:4]' e um intervalo, e
+            # 'xs[1: 4]' parece um par chave-valor. O de vault continua
+            # espacado, porque ali ele separa chave de valor.
+            if dentro_de_colchete:
+                return False
             return True
 
         # Spread e unário grudam no operando
@@ -290,6 +421,21 @@ class Formatter:
         if b.type is TokenType.AT:
             return True
 
+        # O '-' unário gruda; o binário respira.
+        #
+        # '-2' é um número negativo; '- 2' parece uma subtração a que
+        # falta o termo da esquerda. A diferença entre os dois é o que
+        # vem ANTES: depois de um valor ou de um fecha-delimitador, o
+        # '-' subtrai; em qualquer outro lugar, ele nega.
+        #
+        # Sem esta regra, o formatador espacava todo '-' e 93 dos 216
+        # exercicios ficavam permanentemente 'fora do formato' — rodar
+        # 'fmt' os pioraria, entao ninguem rodava, e o '--check' era
+        # inutil no CI.
+        if a.type in (TokenType.MINUS, TokenType.PLUS) and \
+                _e_unario(anterior_do_anterior):
+            return False
+
         if texto_a in BINARIOS or texto_b in BINARIOS:
             return True
         if texto_a in PALAVRAS_BINARIAS or texto_b in PALAVRAS_BINARIAS:
@@ -297,6 +443,34 @@ class Formatter:
         if a.type is TokenType.COMMA:
             return True
         return True
+
+
+#: O que pode vir ANTES de um '-' binario: um valor, ou o fim de algo
+#: que produz valor. Depois de qualquer outra coisa — inicio de linha,
+#: operador, virgula, abre-parentese — o '-' e unario.
+_ANTES_DE_BINARIO = (
+    TokenType.IDENTIFIER, TokenType.INTEGER, TokenType.FLOAT,
+    TokenType.STRING, TokenType.RPAREN, TokenType.RBRACKET,
+    TokenType.RBRACE,
+)
+
+
+def _e_nome_chamavel(token):
+    """Uma palavra reservada que chama como funcao.
+
+    'typeof(1)' e 'v.delete("k")' sao chamadas; o texto do token e um
+    nome, ainda que o TIPO dele seja de palavra reservada.
+    """
+    texto = token.text if token.text is not None else str(token.value)
+    return bool(texto) and (texto[0].isalpha() or texto[0] == "_") \
+        and texto.replace("_", "").isalnum()
+
+
+def _e_unario(antes):
+    """O token anterior ao '-' diz se ele nega ou subtrai."""
+    if antes is None:
+        return True                     # comeco da linha: '-x'
+    return antes.type not in _ANTES_DE_BINARIO
 
 
 def format_source(source: str, indent: str = INDENTACAO) -> str:

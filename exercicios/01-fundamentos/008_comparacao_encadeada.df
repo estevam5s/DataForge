@@ -7,5 +7,5 @@ dentro := 0 <= nota <= 10
 out "nota", nota, "esta no intervalo [0, 10]?", dentro
 
 assert dentro is yes, "7.5 esta no intervalo"
-assert (0 <= 11 <= 10) is no, "11 esta fora"
-assert (1 smaller 5 smaller 10) is yes, "encadeamento com palavras-chave"
+assert(0 <= 11 <= 10) is no, "11 esta fora"
+assert(1 smaller 5 smaller 10) is yes, "encadeamento com palavras-chave"

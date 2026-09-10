@@ -27,7 +27,7 @@ action test_largura_ignora_cor():
     T.assert_true(colorido.length() bigger cru.length())
 
 action test_de_records():
-    saida := Tb.de_records([{"nome": "Ana", "idade": 30}])
+    saida := Tb.de_records([{"nome":"Ana", "idade":30}])
     T.assert_true(saida.contains("nome"))
     T.assert_true(saida.contains("Ana"))
     T.assert_eq(Tb.de_records([]), "")

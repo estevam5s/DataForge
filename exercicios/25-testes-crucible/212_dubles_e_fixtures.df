@@ -51,7 +51,7 @@ crucible "Cadastro":
     trial "respostas em sequencia":
         m := Crucible.mock()
         m.quando("proximo").devolve_em_sequencia([1, 2, 3])
-        expect [m.proximo(), m.proximo(), m.proximo()] is [1, 2, 3]
+        expect[m.proximo(), m.proximo(), m.proximo()] is [1, 2, 3]
 
 crucible "Fixtures":
 

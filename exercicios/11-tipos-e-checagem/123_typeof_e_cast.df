@@ -12,7 +12,7 @@ enum Cor:
 stream action contador():
     emit 1
 
-valores := [42, 3.14, "texto", yes, void, [1], {"k": 1}, Ponto(1, 2), Cor.Verde]
+valores := [42, 3.14, "texto", yes, void, [1], {"k":1}, Ponto(1, 2), Cor.Verde]
 
 cycle v in valores:
     out $"{typeof(v)}"

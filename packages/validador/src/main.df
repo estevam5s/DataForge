@@ -149,7 +149,7 @@ action cartao(valor):
 action forca_senha(senha):
     // Devolve um vault com a nota de 0 a 5 e o que está faltando.
     given typeof(senha) isnt "String":
-        yield {"nota": 0, "forte": no, "faltando": ["senha precisa ser texto"]}
+        yield {"nota": 0, "forte": no, "faltando":["senha precisa ser texto"]}
 
     faltando := []
     nota := 0

@@ -1,0 +1,217 @@
+# A esteira do DataForge.
+#
+# Ela existe porque "os testes passam" significava, ate hoje, "passam na
+# maquina de quem escreveu". Rodar em tres sistemas e quatro versoes de
+# Python ja apanhou coisa que nao aparecia no Mac — o 'PicklingError' do
+# 3.14, que so vem tipado a partir dessa versao, e a mensagem crua do
+# pickle escapava para o usuario.
+#
+# O que se verifica aqui e o mesmo que o CLAUDE.md manda rodar a mao.
+# Se divergir, um dos dois esta errado.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Um push novo cancela a execucao anterior do mesmo ramo: revisar o
+# resultado de um commit que ja foi substituido nao ajuda ninguem.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── A suite, onde a linguagem promete rodar ──
+  testes:
+    name: testes · ${{ matrix.os }} · py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Sem isto, a primeira falha cancela as outras — e saber que
+      # quebrou SO no Windows, ou SO no 3.10, e metade do diagnostico.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ['3.10', '3.13']
+        include:
+          # As versoes do meio so no Linux: elas quase nunca divergem
+          # por sistema, e a matriz cheia seriam 12 execucoes para
+          # apanhar o que duas apanham.
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.12'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: instalar
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: a suite
+        run: python -m pytest tests/ -q
+
+      - name: os 216 exercicios
+        run: python exercicios/run_all.py
+
+      - name: os exemplos
+        shell: bash
+        run: |
+          for f in examples/*.df; do
+            python -m dataforge run "$f" > /dev/null || { echo "FALHOU $f"; exit 1; }
+          done
+
+      - name: o proprio codigo passa nas proprias ferramentas
+        run: |
+          python -m dataforge check exercicios/ examples/
+          python -m dataforge fmt exercicios/ --check
+          python -m dataforge lint exercicios/
+
+      - name: os projetos completos
+        shell: bash
+        run: |
+          for p in projetos/*/; do
+            [ -d "$p/tests" ] || continue
+            (cd "$p" && python -m dataforge test tests/) || exit 1
+          done
+
+  # ── O que e gerado precisa bater com o gerador ──
+  gerado:
+    name: nada gerado esta atrasado
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - run: pip install -e ".[dev]"
+
+      - name: regerar tudo
+        run: |
+          python tools/gerar_gramatica.py
+          python tools/gerar_doc_stdlib.py
+          python tools/gerar_ref_kiln.py
+          python tools/gerar_indice_exercicios.py
+          python scripts/gerar_api.py
+          python site/scripts/gerar_dados.py
+          python site/scripts/gerar_conteudo.py
+
+      - name: o versionado tem de ser identico ao gerado
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::o que esta versionado difere do que os geradores produzem"
+            echo "rode os geradores e commite:"
+            git --no-pager diff --stat
+            exit 1
+          fi
+
+  # ── A documentacao do site compila como DataForge ──
+  documentacao:
+    name: os trechos da doc compilam
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install -e ".[dev]"
+      - run: python tools/verificar_docs.py
+
+  # ── O site ──
+  site:
+    name: o site compila
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+        working-directory: site
+      - run: npx tsc --noEmit
+        working-directory: site
+      - run: npm run build
+        working-directory: site
+
+  # ── A extensao do editor ──
+  extensao:
+    name: a extensao compila
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+        working-directory: editor/vscode
+      - run: npx tsc -p ./ --noEmit
+        working-directory: editor/vscode
+
+  # ── O instalador roda de verdade, nos dois sistemas ──
+  instalador:
+    name: instalar · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: sintaxe POSIX (roda em dash, nao so em bash)
+        run: sh -n scripts/instalar.sh
+
+      - name: instalar num HOME descartavel
+        shell: bash
+        run: |
+          export HOME="$(mktemp -d)"
+          export SHELL=/bin/bash
+          DATAFORGE_PREFIX="$HOME/.dataforge" sh scripts/instalar.sh --local
+          "$HOME/.dataforge/bin/dataforge" version
+          echo 'out "instalado e rodando"' > "$HOME/t.df"
+          "$HOME/.dataforge/bin/dataforge" run "$HOME/t.df"
+
+      - name: o PATH foi configurado, e uma vez so
+        shell: bash
+        run: |
+          export HOME="$(mktemp -d)"; export SHELL=/bin/bash
+          touch "$HOME/.bashrc"
+          for _ in 1 2; do
+            DATAFORGE_PREFIX="$HOME/.dataforge" sh scripts/instalar.sh --local >/dev/null
+          done
+          n=$(grep -c 'DataForge' "$HOME/.bashrc" || true)
+          [ "$n" = "1" ] || { echo "::error::a linha do PATH apareceu $n vezes"; exit 1; }
+
+  # ── A imagem Docker constroi e roda ──
+  docker:
+    name: a imagem constroi e roda
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t dataforge:ci .
+      - name: ela roda um programa
+        run: |
+          echo 'out "oi do container"' > /tmp/t.df
+          docker run --rm -v /tmp:/app dataforge:ci run t.df
+      - name: e nao roda como root
+        run: |
+          quem=$(docker run --rm --entrypoint id dataforge:ci -un)
+          [ "$quem" != "root" ] || { echo "::error::a imagem roda como root"; exit 1; }
+          echo "usuario: $quem"

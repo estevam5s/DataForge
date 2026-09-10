@@ -172,7 +172,7 @@ action describe_type(val):
     otherwise:
         yield "Unknown"
 
-test_values := ["hello", 42, 3.14, yes, [1, 2], {"a": 1}, void]
+test_values := ["hello", 42, 3.14, yes, [1, 2], {"a":1}, void]
 cycle v in test_values:
     emit("  " + describe_type(v))
 emit("")
@@ -190,7 +190,7 @@ blueprint Animal:
     action speak():
         yield self.name + " says " + self.sound + "!"
 
-blueprint Dog (Animal):
+blueprint Dog(Animal):
     action setup(name):
         self.name := name
         self.sound := "Woof"

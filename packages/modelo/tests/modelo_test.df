@@ -19,19 +19,19 @@ action test_caminho_aninhado():
     T.assert_eq(M.render("{{usuario.faltando}}", dados), "")
 
 action test_indice_de_lista():
-    T.assert_eq(M.render("{{itens.0}}", {"itens": ["a", "b"]}), "a")
+    T.assert_eq(M.render("{{itens.0}}", {"itens":["a", "b"]}), "a")
 
 action test_laco_de_valores():
-    r := M.render("{{#itens}}[{{.}}]{{/itens}}", {"itens": ["a", "b", "c"]})
+    r := M.render("{{#itens}}[{{.}}]{{/itens}}", {"itens":["a", "b", "c"]})
     T.assert_eq(r, "[a][b][c]")
 
 action test_laco_de_vaults():
-    dados := {"pessoas": [{"nome": "Ana"}, {"nome": "Bruno"}]}
+    dados := {"pessoas":[{"nome":"Ana"}, {"nome":"Bruno"}]}
     r := M.render("{{#pessoas}}{{nome}};{{/pessoas}}", dados)
     T.assert_eq(r, "Ana;Bruno;")
 
 action test_laco_vazio_nao_rende():
-    T.assert_eq(M.render("a{{#itens}}X{{/itens}}b", {"itens": []}), "ab")
+    T.assert_eq(M.render("a{{#itens}}X{{/itens}}b", {"itens":[]}), "ab")
 
 action test_condicional():
     T.assert_eq(M.render("{{#tem}}sim{{/tem}}", {"tem": yes}), "sim")
@@ -39,21 +39,21 @@ action test_condicional():
     T.assert_eq(M.render("{{#tem}}sim{{/tem}}", {}), "")
 
 action test_condicional_negada():
-    T.assert_eq(M.render("{{^vazio}}nada aqui{{/vazio}}", {"vazio": []}), "nada aqui")
-    T.assert_eq(M.render("{{^vazio}}nada aqui{{/vazio}}", {"vazio": [1]}), "")
+    T.assert_eq(M.render("{{^vazio}}nada aqui{{/vazio}}", {"vazio":[]}), "nada aqui")
+    T.assert_eq(M.render("{{^vazio}}nada aqui{{/vazio}}", {"vazio":[1]}), "")
 
 action test_filtros():
     T.assert_eq(M.render("{{n | maiusculo}}", {"n": "ana"}), "ANA")
     T.assert_eq(M.render("{{n | capitalizar}}", {"n": "ana"}), "Ana")
     T.assert_eq(M.render("{{n | aparar | maiusculo}}", {"n": "  ana  "}), "ANA")
-    T.assert_eq(M.render("{{l | tamanho}}", {"l": [1, 2, 3]}), "3")
+    T.assert_eq(M.render("{{l | tamanho}}", {"l":[1, 2, 3]}), "3")
 
 action test_filtro_proprio():
     M.registrar_filtro("dobro", lambda v => v * 2)
     T.assert_eq(M.render("{{n | dobro}}", {"n": 21}), "42")
 
 action test_bloco_sem_fechamento_avisa():
-    T.assert_throws(lambda => M.render("{{#lista}}sem fim", {"lista": [1]}))
+    T.assert_throws(lambda => M.render("{{#lista}}sem fim", {"lista":[1]}))
     T.assert_throws(lambda => M.render("{{sem fechar", {}))
 
 action test_verdadeiro():
@@ -69,8 +69,8 @@ action test_verdadeiro():
 action test_documento_completo():
     dados := {
         "titulo": "Relatório",
-        "itens": [{"nome": "café", "preco": "5,00"},
-                  {"nome": "pão", "preco": "2,50"}]
+        "itens":[{"nome":"café", "preco":"5,00"},
+        {"nome": "pão", "preco": "2,50"}]
     }
     saida := M.render("# {{titulo}}\n{{#itens}}- {{nome}}: {{preco}}\n{{/itens}}", dados)
     T.assert_true(saida.contains("# Relatório"))

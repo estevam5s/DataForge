@@ -18,7 +18,7 @@ action test_mediana_resiste_ao_extremo():
 
 action test_moda():
     T.assert_eq(E.moda([1, 2, 2, 3]), [2])
-    T.assert_eq(E.moda([1, 1, 2, 2]), [1, 2])      // empate
+    T.assert_eq(E.moda([1, 1, 2, 2]), [1, 2])  // empate
     T.assert_eq(E.moda([]), [])
 
 action test_variancia_e_desvio():
@@ -43,7 +43,7 @@ action test_extremos():
     fora := E.extremos([1, 2, 3, 4, 5, 100])
     T.assert_true(100 in fora)
     T.assert_false(3 in fora)
-    T.assert_eq(E.extremos([1, 2]), [])       // poucos dados, sem julgar
+    T.assert_eq(E.extremos([1, 2]), [])  // poucos dados, sem julgar
 
 action test_amplitude():
     T.assert_eq(E.amplitude([3, 9, 1]), 8)
@@ -95,6 +95,6 @@ action test_media_movel():
 action test_histograma():
     h := E.histograma([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2)
     T.assert_eq(len(h), 2)
-    T.assert_eq(h[0]["n"] + h[1]["n"], 10)     // ninguém fica de fora
+    T.assert_eq(h[0]["n"] + h[1]["n"], 10)  // ninguém fica de fora
     T.assert_eq(len(E.histograma([], 3)), 0)
     T.assert_eq(len(E.histograma([5, 5, 5], 3)), 1)

@@ -36,7 +36,7 @@ action mediana(v):
     meio := len(o) ~/ 2
     given len(o) % 2 is 1:
         yield o[meio]
-    yield (o[meio - 1] + o[meio]) / 2
+    yield(o[meio - 1] + o[meio]) / 2
 
 action moda(v):
     // O que mais aparece. Devolve lista: pode haver empate.
@@ -52,7 +52,7 @@ action moda(v):
             maior := contagem[k]
     saida := []
     cycle x in v:
-        given contagem[str(x)] is maior and not (x in saida):
+        given contagem[str(x)] is maior and not(x in saida):
             saida.append(x)
     yield saida
 
@@ -94,7 +94,7 @@ action percentil(v, p):
 
 action quartis(v):
     yield {"q1": percentil(v, 25), "q2": percentil(v, 50),
-           "q3": percentil(v, 75)}
+    "q3": percentil(v, 75)}
 
 action amplitude_interquartil(v):
     q := quartis(v)
@@ -174,7 +174,7 @@ action regressao(x, y):
     a := media(y) - b * media(x)
     r := correlacao(x, y)
     yield {"intercepto": a, "inclinacao": b, "r": r, "r2": r * r,
-           "prever": lambda v => a + b * v}
+    "prever": lambda v => a + b * v}
 
 action resumo(v):
     // O conjunto mínimo para não se enganar com uma média sozinha.
@@ -182,8 +182,8 @@ action resumo(v):
         trigger "resumo de conjunto vazio nao existe"
     q := quartis(v)
     yield {"n": len(v), "media": media(v), "mediana": mediana(v),
-           "desvio": desvio_padrao(v), "minimo": min(v), "maximo": max(v),
-           "q1": q["q1"], "q3": q["q3"], "amplitude": amplitude(v)}
+        "desvio": desvio_padrao(v), "minimo": min(v), "maximo": max(v),
+    "q1": q["q1"], "q3": q["q3"], "amplitude": amplitude(v)}
 
 action media_movel(v, janela):
     given janela smaller_eq 0 or janela bigger len(v):
@@ -203,7 +203,7 @@ action histograma(v, faixas := 10):
     maior := max(v)
     largura := (maior - menor) / faixas
     given largura is 0:
-        yield [{"de": menor, "ate": maior, "n": len(v)}]
+        yield [{"de":menor, "ate":maior, "n":len(v)}]
 
     saida := []
     cycle i from 0 to faixas - 1:

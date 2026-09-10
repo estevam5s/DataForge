@@ -30,7 +30,7 @@ action slug(s, separador := "-"):
     // "Olá, Mundo!" -> "ola-mundo". Serve para URL e nome de arquivo.
     limpo := sem_acento(str(s)).lower()
     saida := ""
-    ultimo_foi_sep := yes          // começa yes para não abrir com separador
+    ultimo_foi_sep := yes  // começa yes para não abrir com separador
     cycle c in limpo:
         given c.isalnum():
             saida += c
@@ -138,7 +138,7 @@ action preencher(modelo, valores):
 action titulo(s):
     // Título em português: preposições curtas ficam minúsculas.
     steady MINUSCULAS := ["de", "da", "do", "das", "dos", "e", "a", "o",
-                          "as", "os", "em", "no", "na", "para", "com"]
+    "as", "os", "em", "no", "na", "para", "com"]
     palavras := str(s).lower().split(" ")
     saida := []
     cycle i from 0 to len(palavras) - 1:

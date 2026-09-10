@@ -5,7 +5,7 @@ async action buscar_usuario(id):
     yield {"id": id, "nome": "Usuario " + str(id)}
 
 async action buscar_pedidos(id):
-    yield [{"id": 1, "usuario": id}, {"id": 2, "usuario": id}]
+    yield [{"id":1, "usuario":id}, {"id":2, "usuario":id}]
 
 usuario := await buscar_usuario(7)
 pedidos := await buscar_pedidos(7)

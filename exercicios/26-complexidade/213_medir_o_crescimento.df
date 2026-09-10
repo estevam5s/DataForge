@@ -51,7 +51,7 @@ cycle n in [500, 2000, 5000]:
     r := comparar(n)
     razao := round(r["lento"] / r["rapido"], 2)
     out "n =", r["n"], " O(n^2):", round(r["lento"], 1),
-        "ms   O(n):", round(r["rapido"], 1), "ms   razao:", razao
+    "ms   O(n):", round(r["rapido"], 1), "ms   razao:", razao
 
 // O que a saida mostra:
 //
@@ -72,9 +72,9 @@ razao_grande := grande["lento"] / grande["rapido"]
 out "razao com n=500: ", round(razao_pequeno, 2)
 out "razao com n=5000:", round(razao_grande, 2)
 assert razao_grande bigger razao_pequeno,
-    "a vantagem do O(n) cresce com a entrada"
+"a vantagem do O(n) cresce com a entrada"
 assert razao_grande bigger 1.0,
-    "e a partir de certo tamanho, ele ja e mais rapido"
+"e a partir de certo tamanho, ele ja e mais rapido"
 
 // A analise estatica concorda, e diz o porque:
 //

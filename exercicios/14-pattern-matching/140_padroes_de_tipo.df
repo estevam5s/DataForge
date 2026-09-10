@@ -28,7 +28,7 @@ action descrever(v):
         default:
             yield "tipo desconhecido"
 
-valores := [7, -3, 2.5, "abc", yes, [1, 2], {"a": 1}, Ponto(3, 4), void]
+valores := [7, -3, 2.5, "abc", yes, [1, 2], {"a":1}, Ponto(3, 4), void]
 cycle v in valores:
     out descrever(v)
 

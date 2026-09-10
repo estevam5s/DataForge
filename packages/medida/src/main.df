@@ -81,7 +81,7 @@ action temperatura(valor, de, para):
     // Temperatura não escala por fator: 0°C não é 0°F. Precisa de
     // deslocamento, e por isso fica fora da tabela geral.
     escalas := ["C", "F", "K"]
-    given not (de in escalas) or not (para in escalas):
+    given not(de in escalas) or not(para in escalas):
         trigger $"escala precisa ser C, F ou K — veio '{de}' e '{para}'"
 
     // tudo passa por Celsius
@@ -101,11 +101,11 @@ action temperatura(valor, de, para):
 //  seria tecnicamente certo e completamente inútil: quem escreveu em
 //  metros quer ler em centímetros, não em pés.
 steady ESCADAS := {
-    "distancia": ["mm", "cm", "m", "km"],
-    "massa": ["mg", "g", "kg", "tonelada"],
-    "volume": ["ml", "l", "m3"],
-    "tempo": ["ms", "s", "min", "h", "dia", "semana"],
-    "dados": ["b", "kb", "mb", "gb", "tb"]
+    "distancia":["mm", "cm", "m", "km"],
+    "massa":["mg", "g", "kg", "tonelada"],
+    "volume":["ml", "l", "m3"],
+    "tempo":["ms", "s", "min", "h", "dia", "semana"],
+    "dados":["b", "kb", "mb", "gb", "tb"]
 }
 
 action formatar(valor, unidade, casas := 2):

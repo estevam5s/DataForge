@@ -9,8 +9,8 @@ adopt Arcane.Excel as Xls
 
 vendas := [
     {"produto": "Martelo", "qtd": 12, "preco": 89.9},
-    {"produto": "Bigorna", "qtd": 3,  "preco": 450.0},
-    {"produto": "Tenaz",   "qtd": 27, "preco": 65.5}
+    {"produto": "Bigorna", "qtd": 3, "preco": 450.0},
+    {"produto": "Tenaz", "qtd": 27, "preco": 65.5}
 ]
 
 // Quando os dados sao vaults, o cabecalho sai das chaves — em negrito,

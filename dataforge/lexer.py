@@ -230,8 +230,30 @@ class Lexer:
             else:
                 break
 
+        # Notacao cientifica: '6.022e23', '1e-7', '2E+3'.
+        #
+        # O 'e' so faz parte do numero quando ha DIGITO depois dele —
+        # com sinal opcional no meio. Sem essa confirmacao, 'x := 2' e
+        # 'e := 3' em linhas seguidas viraria um numero so, e um nome
+        # chamado 'e' deixaria de existir.
+        expoente = False
+        if self.pos < len(self.source) and self.peek() in ('e', 'E'):
+            adiante = 1
+            if self.peek(adiante) in ('+', '-'):
+                adiante += 1
+            if self.peek(adiante).isdigit():
+                expoente = True
+                result.append(self.advance())              # e/E
+                if self.peek() in ('+', '-'):
+                    result.append(self.advance())          # sinal
+                while self.pos < len(self.source) and (
+                        self.peek().isdigit() or self.peek() == '_'):
+                    c = self.advance()
+                    if c != '_':
+                        result.append(c)
+
         text = ''.join(result)
-        if has_dot:
+        if has_dot or expoente:
             return Token(TokenType.FLOAT, float(text), line, col)
         return Token(TokenType.INTEGER, int(text), line, col)
 

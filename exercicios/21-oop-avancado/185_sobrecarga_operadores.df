@@ -35,13 +35,13 @@ a := spawn Vetor(1, 2)
 b := spawn Vetor(3, 4)
 
 out "a + b =", str(a + b)
-assert (a + b).x is 4.0, "soma componente a componente"
-assert (b - a).y is 2.0, "subtracao"
-assert (a * 3).x is 3.0, "multiplicacao por escalar"
+assert(a + b).x is 4.0, "soma componente a componente"
+assert(b - a).y is 2.0, "subtracao"
+assert(a * 3).x is 3.0, "multiplicacao por escalar"
 
 // igualdade estrutural, nao de identidade
 assert a == spawn Vetor(1, 2), "dois vetores iguais sao =="
-assert not (a == b), "vetores diferentes nao sao"
+assert not(a == b), "vetores diferentes nao sao"
 
 // '!=' sai de '==' negado, sem precisar declarar
 assert a isnt b, "isnt deriva do =="

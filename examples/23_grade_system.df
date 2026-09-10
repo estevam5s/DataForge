@@ -13,7 +13,7 @@ blueprint Aluno:
         self.disciplinas := {}
 
     action adicionar_disciplina(nome):
-        self.disciplinas[nome] := {"notas": [], "faltas": 0}
+        self.disciplinas[nome] := {"notas":[], "faltas": 0}
 
     action adicionar_nota(disciplina, nota):
         given not contains(self.disciplinas, disciplina):

@@ -89,15 +89,15 @@ blueprint Registrador:
         todos := {}
         cycle k in self.campos_fixos.keys():
             todos[k] := self.campos_fixos[k]
-        cycle k in (campos ?? {}).keys():
+        cycle k in(campos ?? {}).keys():
             todos[k] := campos[k]
         yield {"hora": agora["iso"], "nivel": nivel, "origem": self.nome,
-               "mensagem": mensagem, "campos": todos}
+        "mensagem": mensagem, "campos": todos}
 
     private action formatar(linha):
         given self.formato is "json":
             plano := {"hora": linha["hora"], "nivel": linha["nivel"],
-                      "origem": linha["origem"], "mensagem": linha["mensagem"]}
+            "origem": linha["origem"], "mensagem": linha["mensagem"]}
             cycle k in linha["campos"].keys():
                 plano[k] := linha["campos"][k]
             yield Serde.to_json(plano)
@@ -115,7 +115,7 @@ blueprint Registrador:
         yield $"[{hora}] {rotulo} {linha['origem']}  {linha['mensagem']}{extra}"
 
     action escrever(nivel, mensagem, campos := void):
-        given (NIVEIS[nivel] ?? 0) smaller self.minimo:
+        given(NIVEIS[nivel] ?? 0) smaller self.minimo:
             yield no
         linha := self.montar(nivel, mensagem, campos)
         texto := self.formatar(linha)

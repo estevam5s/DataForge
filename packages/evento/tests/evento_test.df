@@ -56,8 +56,8 @@ action test_ouvinte_que_estoura_nao_derruba_os_outros():
     bus.assinar("z", quebra)
     bus.assinar("z", lambda d => ok.append(d))
     atendidos := bus.publicar("z", 1)
-    T.assert_eq(atendidos, 1)          // só o que funcionou
-    T.assert_eq(ok, [1])               // o segundo rodou mesmo assim
+    T.assert_eq(atendidos, 1)  // só o que funcionou
+    T.assert_eq(ok, [1])  // o segundo rodou mesmo assim
 
 action test_historico():
     bus := E.barramento(yes)

@@ -76,7 +76,7 @@ blueprint Maquina:
 
         self.atual := destino
         self.historico.append({"de": anterior, "evento": evento,
-                               "para": destino})
+        "para": destino})
 
         given self.ao_entrar.has(destino):
             self.ao_entrar[destino](dado)
@@ -103,10 +103,10 @@ blueprint Maquina:
         vistos := []
         cycle chave in self.transicoes.keys():
             origem := chave.split("|")[0]
-            given not (origem in vistos):
+            given not(origem in vistos):
                 vistos.append(origem)
             destino := self.transicoes[chave]
-            given not (destino in vistos):
+            given not(destino in vistos):
                 vistos.append(destino)
         yield vistos
 

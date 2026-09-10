@@ -4,7 +4,7 @@ adopt documento as D
 action test_titulo():
     T.assert_true(D.para_html("# Olá").contains("<h1"))
     T.assert_true(D.para_html("### Três").contains("<h3"))
-    T.assert_true(D.para_html("# Olá").contains("id=\"ola\""))
+    T.assert_true(D.para_html("# Olá").contains('id="ola"'))
 
 action test_paragrafo_e_enfase():
     T.assert_eq(D.para_html("texto simples"), "<p>texto simples</p>")
@@ -36,10 +36,10 @@ action test_lista_fecha_no_paragrafo():
 
 action test_link_e_imagem():
     r := D.para_html("veja [aqui](http://x.com)")
-    T.assert_true(r.contains("<a href=\"http://x.com\">aqui</a>"))
+    T.assert_true(r.contains('<a href="http://x.com">aqui</a>'))
     i := D.para_html("![alt](foto.png)")
-    T.assert_true(i.contains("<img src=\"foto.png\""))
-    T.assert_true(i.contains("alt=\"alt\""))
+    T.assert_true(i.contains('<img src="foto.png"'))
+    T.assert_true(i.contains('alt="alt"'))
 
 action test_colchete_sem_link_e_literal():
     T.assert_true(D.para_html("um [colchete solto").contains("[colchete"))
