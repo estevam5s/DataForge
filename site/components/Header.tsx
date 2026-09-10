@@ -82,10 +82,7 @@ export function Header() {
             <Link href="/docs/exercicios" className="link-topo hidden lg:block">
               Exercícios
             </Link>
-            <Link href="/docs/kiln" className="link-topo hidden xl:flex xl:items-center xl:gap-1.5">
-              <span className="rounded-full bg-accent px-1.5 py-px text-[9.5px] font-bold uppercase tracking-wide text-white">
-                novo
-              </span>
+            <Link href="/docs/kiln" className="link-topo hidden xl:block">
               Kiln
             </Link>
             <Link href="/docs/biblioteca" className="link-topo hidden xl:block">

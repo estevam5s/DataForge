@@ -6,12 +6,13 @@ import { Logo } from '@/components/Logo';
 
 const REPO = 'https://github.com/estevam5s/DataForge';
 
+// Sem selo 'novo': um selo que fica anos no lugar deixa de informar.
 const links = [
   { t: 'Documentação', h: '/docs' },
   { t: 'Primeiros passos', h: '/docs/primeiros-passos' },
   { t: 'Biblioteca', h: '/docs/biblioteca' },
   { t: 'Exercícios', h: '/docs/exercicios' },
-  { t: 'Kiln', h: '/docs/kiln', novo: true },
+  { t: 'Kiln', h: '/docs/kiln' },
   { t: 'Painel', h: '/painel' },
 ];
 
@@ -71,11 +72,6 @@ export function NavSite() {
           <div className="hidden flex-1 justify-center gap-1 lg:flex">
             {links.map((l) => (
               <Link key={l.h} href={l.h} className="lp-link">
-                {l.novo && (
-                  <span className="mr-1.5 rounded-full bg-[var(--lp-accent)] px-1.5 py-px text-[9.5px] font-bold uppercase tracking-wide text-white">
-                    novo
-                  </span>
-                )}
                 {l.t}
               </Link>
             ))}
@@ -154,11 +150,6 @@ export function NavSite() {
                 style={{ animationDelay: `${i * 40}ms` }}
                 className="flex animate-[subir_.36s_cubic-bezier(.22,1,.36,1)_both] items-center gap-2.5 rounded-2xl px-4 py-4 text-[26px] font-bold tracking-tight text-white/90 transition-colors hover:bg-white/5 hover:text-white"
               >
-                {l.novo && (
-                  <span className="rounded-full bg-[var(--lp-accent)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
-                    novo
-                  </span>
-                )}
                 {l.t}
               </Link>
             ))}
