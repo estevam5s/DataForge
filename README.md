@@ -473,7 +473,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-29 módulos, 1034 símbolos, mais 228 funções globais sem import.
+31 módulos, 1058 símbolos, mais 228 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -502,7 +502,9 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | `Arcane.Logging` | 14 | Registro estruturado de eventos, com níveis e destinos. |
 | `Arcane.Data` | 13 | DataFrames, séries e transformações tabulares. |
+| `Arcane.Qualidade` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
 | `Arcane.Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
+| `Arcane.Pipeline` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
 | `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |
 | `Arcane.Archive` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
 | `Arcane.Cortex` | 5 | Blocos de rede neural, visão e NLP (implementações simplificadas). |

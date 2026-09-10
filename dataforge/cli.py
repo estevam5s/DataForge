@@ -263,6 +263,18 @@ GRUPOS = [
             exemplos=[("dataforge editor", "instala em todos"),
                       ("dataforge editor status", "so confere")],
             veja=("version", "lsp")),
+        Cmd("debug", "dataforge debug <arquivo.df>",
+            "Roda parando onde voce mandar",
+            "Para, mostra o que esta valendo e deixa andar de uma\n"
+            "instrucao por vez. Dentro dele: 'p' passo, 'n' proximo,\n"
+            "'f' sai da acao, 'c' continua, 'vars' lista o escopo,\n"
+            "'pilha' mostra quem chamou quem, e qualquer expressao e\n"
+            "avaliada no quadro onde voce parou.\n"
+            "\nSem '--parar', ele para na primeira instrucao.",
+            opcoes=[("--parar=N,M", "paradas ja nas linhas N e M")],
+            exemplos=[("dataforge debug conta.df", "para no comeco"),
+                      ("dataforge debug conta.df --parar=42", "so na linha 42")],
+            veja=("run", "check")),
         Cmd("lsp", "dataforge lsp",
             "Servidor de linguagem para o editor",
             "Fala o Language Server Protocol por stdin/stdout. E o que da\n"
@@ -2924,6 +2936,19 @@ def main():
 
     elif command == 'editor':
         sys.exit(editor_command(args[1:], flags))
+
+    elif command == 'debug':
+        from .depurador import depurar
+        paradas = []
+        for f in flags:
+            if f.startswith('--parar='):
+                paradas += [int(x) for x in f.split('=', 1)[1].split(',')
+                            if x.strip().isdigit()]
+        resto = [a for a in args[1:] if not a.startswith('--')]
+        if not resto:
+            print("uso: dataforge debug <arquivo.df> [--parar=12,40]")
+            sys.exit(1)
+        sys.exit(depurar(resto[0], paradas, resto[1:]))
 
     elif command == 'lsp':
         # Nada de print aqui: stdout E o canal do protocolo, e um

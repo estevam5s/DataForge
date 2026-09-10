@@ -4174,6 +4174,68 @@
     }
    ]
   },
+  "pipeline": {
+   "nome": "Arcane.Pipeline",
+   "desc": "Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório.",
+   "curto": "Pipeline / Fluxo",
+   "funcoes": [
+    {
+     "nome": "esquecer_marca",
+     "sig": "(fluxo, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "etapa",
+     "sig": "(fluxo, nome, acao, depende_de, tentativas, espera, quando, opcional, descricao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fluxo",
+     "sig": "(nome, estado)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico",
+     "sig": "(fluxo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "historico",
+     "sig": "(fluxo, quantos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "marca",
+     "sig": "(fluxo, chave, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "marcar",
+     "sig": "(fluxo, chave, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ordem",
+     "sig": "(fluxo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rodar",
+     "sig": "(fluxo, contexto, ate)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rodar_ate",
+     "sig": "(fluxo, etapa, contexto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ultima_execucao",
+     "sig": "(fluxo)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "process": {
    "nome": "Arcane.Process",
    "desc": "Execução de processos externos, com stdout, stderr e código de saída.",
@@ -4252,6 +4314,78 @@
     {
      "nome": "which",
      "sig": "(programa)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "qualidade": {
+   "nome": "Arcane.Qualidade",
+   "desc": "Qualidade de dados: as seis dimensões, perfil, validação e limpeza.",
+   "curto": "Qualidade / Quality",
+   "funcoes": [
+    {
+     "nome": "atualidade",
+     "sig": "(linhas, campo, dias)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "completude",
+     "sig": "(linhas, campos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir",
+     "sig": "(linhas, regras, parar_em)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "duplicadas",
+     "sig": "(linhas, campos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar",
+     "sig": "(linhas, regras, minimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fora_da_faixa",
+     "sig": "(linhas, campo, minimo, maximo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "formatos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "perfil",
+     "sig": "(linhas, amostra)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "preencher",
+     "sig": "(linhas, padroes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "relatorio",
+     "sig": "(resultado, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sem_duplicadas",
+     "sig": "(linhas, campos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "so_validas",
+     "sig": "(linhas, regras)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "unicidade",
+     "sig": "(linhas, campo)",
      "tipo": "funcao"
     }
    ]

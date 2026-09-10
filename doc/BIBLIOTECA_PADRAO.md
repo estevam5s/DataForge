@@ -43,6 +43,8 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
 | [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | [`Arcane.Archive`](#arcanearchive) | `Archive / Zip` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
+| [`Arcane.Pipeline`](#arcanepipeline) | `Pipeline / Fluxo` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
+| [`Arcane.Qualidade`](#arcanequalidade) | `Qualidade / Quality` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
 
 > Os nomes curtos e os aliases (`DB`, `Server`, `Network`) apontam para o mesmo
 > módulo — use o que ficar mais legível.
@@ -1573,3 +1575,59 @@ adopt Arcane.Archive as Archive
 | `extrair_tar(arquivo, destino='.')` |
 | `ler_de(arquivo, nome, senha='')` |
 | `listar(arquivo)` |
+
+
+---
+
+## Arcane.Pipeline
+
+Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório.
+
+```dataforge
+adopt Arcane.Pipeline as Pipeline
+```
+
+**Funções (11)**
+
+| Assinatura |
+|------------|
+| `esquecer_marca(fluxo, chave='')` |
+| `etapa(fluxo, nome, acao, depende_de=None, tentativas=1, espera=0, quando=None, opcional=False, descricao='')` |
+| `fluxo(nome, estado='')` |
+| `grafico(fluxo)` |
+| `historico(fluxo, quantos=10)` |
+| `marca(fluxo, chave, padrao=None)` |
+| `marcar(fluxo, chave, valor)` |
+| `ordem(fluxo)` |
+| `rodar(fluxo, contexto=None, ate=None)` |
+| `rodar_ate(fluxo, etapa, contexto=None)` |
+| `ultima_execucao(fluxo)` |
+
+
+---
+
+## Arcane.Qualidade
+
+Qualidade de dados: as seis dimensões, perfil, validação e limpeza.
+
+```dataforge
+adopt Arcane.Qualidade as Qualidade
+```
+
+**Funções (13)**
+
+| Assinatura |
+|------------|
+| `atualidade(linhas, campo, dias=1)` |
+| `completude(linhas, campos=None)` |
+| `conferir(linhas, regras, parar_em=0)` |
+| `duplicadas(linhas, campos)` |
+| `esperar(linhas, regras, minimo=1.0)` |
+| `fora_da_faixa(linhas, campo, minimo=None, maximo=None)` |
+| `formatos()` |
+| `perfil(linhas, amostra=0)` |
+| `preencher(linhas, padroes)` |
+| `relatorio(resultado, largura=72)` |
+| `sem_duplicadas(linhas, campos=None)` |
+| `so_validas(linhas, regras)` |
+| `unicidade(linhas, campo)` |

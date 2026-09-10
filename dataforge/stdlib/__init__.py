@@ -33,6 +33,8 @@ from .arcane_iter import ArcaneIter
 from .arcane_cor import ArcaneColor
 from .arcane_paralelo import ArcaneConcurrent
 from .arcane_arquivo_seguro import ArcaneArchive, ArcaneCofre
+from .arcane_pipeline import ArcanePipeline
+from .arcane_qualidade import ArcaneQualidade
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -104,6 +106,14 @@ _MODULES = {
     "Arcane.Concurrent": ArcaneConcurrent,
     "Concurrent": ArcaneConcurrent,
     "Paralelo": ArcaneConcurrent,
+
+    # ── Engenharia de dados ──
+    "Arcane.Pipeline": ArcanePipeline,
+    "Pipeline": ArcanePipeline,
+    "Fluxo": ArcanePipeline,
+    "Arcane.Qualidade": ArcaneQualidade,
+    "Qualidade": ArcaneQualidade,
+    "Quality": ArcaneQualidade,
 
     "Arcane.Archive": ArcaneArchive,
     "Archive": ArcaneArchive,
