@@ -23,6 +23,7 @@ MODULOS = [
     "exercicios",
     "lsp",
     "dados",
+    "lago",
     "banco",
     "crucible_doc",
     "versoes",

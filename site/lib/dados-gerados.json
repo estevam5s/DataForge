@@ -3551,6 +3551,103 @@
     }
    ]
   },
+  "lago": {
+   "nome": "Arcane.Lago",
+   "desc": "Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação.",
+   "curto": "Lago / Parquet",
+   "funcoes": [
+    {
+     "nome": "acrescentar",
+     "sig": "(lago, tabela, linhas, particoes, compressao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "arquivos",
+     "sig": "(lago, tabela, filtro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "camada",
+     "sig": "(lago, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compactar",
+     "sig": "(lago, tabela, minimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esquema",
+     "sig": "(lago, tabela)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esquema_parquet",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "eventos",
+     "sig": "(lago, quantos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "gravar",
+     "sig": "(lago, tabela, linhas, particoes, compressao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "gravar_parquet",
+     "sig": "(caminho, linhas, compressao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lago",
+     "sig": "(raiz)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler",
+     "sig": "(lago, tabela, filtro, colunas, limite)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler_parquet",
+     "sig": "(caminho, colunas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "particoes",
+     "sig": "(lago, tabela)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "promover",
+     "sig": "(lago, tabela, de, para, transformar, particoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "remover_particao",
+     "sig": "(lago, tabela, filtro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tabelas",
+     "sig": "(lago)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tamanho",
+     "sig": "(lago, tabela)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vacuo",
+     "sig": "(lago)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "logging": {
    "nome": "Arcane.Logging",
    "desc": "Registro estruturado de eventos, com níveis e destinos.",

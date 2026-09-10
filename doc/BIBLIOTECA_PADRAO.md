@@ -44,6 +44,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | [`Arcane.Archive`](#arcanearchive) | `Archive / Zip` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
 | [`Arcane.Pipeline`](#arcanepipeline) | `Pipeline / Fluxo` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
+| [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | [`Arcane.Qualidade`](#arcanequalidade) | `Qualidade / Quality` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
 
 > Os nomes curtos e os aliases (`DB`, `Server`, `Network`) apontam para o mesmo
@@ -1602,6 +1603,40 @@ adopt Arcane.Pipeline as Pipeline
 | `rodar(fluxo, contexto=None, ate=None)` |
 | `rodar_ate(fluxo, etapa, contexto=None)` |
 | `ultima_execucao(fluxo)` |
+
+
+---
+
+## Arcane.Lago
+
+Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação.
+
+```dataforge
+adopt Arcane.Lago as Lago
+```
+
+**Funções (18)**
+
+| Assinatura |
+|------------|
+| `acrescentar(lago, tabela, linhas, particoes=None, compressao='gzip')` |
+| `arquivos(lago, tabela, filtro=None)` |
+| `camada(lago, nome)` |
+| `compactar(lago, tabela, minimo=2)` |
+| `esquema(lago, tabela)` |
+| `esquema_parquet(caminho)` |
+| `eventos(lago, quantos=20)` |
+| `gravar(lago, tabela, linhas, particoes=None, compressao='gzip')` |
+| `gravar_parquet(caminho, linhas, compressao='gzip')` |
+| `lago(raiz)` |
+| `ler(lago, tabela, filtro=None, colunas=None, limite=0)` |
+| `ler_parquet(caminho, colunas=None)` |
+| `particoes(lago, tabela)` |
+| `promover(lago, tabela, de, para, transformar=None, particoes=None)` |
+| `remover_particao(lago, tabela, filtro)` |
+| `tabelas(lago)` |
+| `tamanho(lago, tabela='')` |
+| `vacuo(lago)` |
 
 
 ---

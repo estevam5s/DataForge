@@ -35,6 +35,7 @@ from .arcane_paralelo import ArcaneConcurrent
 from .arcane_arquivo_seguro import ArcaneArchive, ArcaneCofre
 from .arcane_pipeline import ArcanePipeline
 from .arcane_qualidade import ArcaneQualidade
+from .arcane_lago import ArcaneLago
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -111,6 +112,10 @@ _MODULES = {
     "Arcane.Pipeline": ArcanePipeline,
     "Pipeline": ArcanePipeline,
     "Fluxo": ArcanePipeline,
+    "Arcane.Lago": ArcaneLago,
+    "Lago": ArcaneLago,
+    "Lake": ArcaneLago,
+    "Parquet": ArcaneLago,
     "Arcane.Qualidade": ArcaneQualidade,
     "Qualidade": ArcaneQualidade,
     "Quality": ArcaneQualidade,

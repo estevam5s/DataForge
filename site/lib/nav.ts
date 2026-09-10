@@ -153,6 +153,8 @@ export const nav: NavSection[] = [
       { title: 'Banco de dados', href: '/docs/tecnicas/banco-de-dados' },
       { title: 'Pipelines e orquestração', href: '/docs/tecnicas/pipeline' },
       { title: 'Qualidade de dados', href: '/docs/tecnicas/qualidade' },
+      { title: 'Parquet', href: '/docs/tecnicas/parquet' },
+      { title: 'Data Lake', href: '/docs/tecnicas/lago' },
       { title: 'Planilhas', href: '/docs/tecnicas/planilhas' },
       { title: 'Servidor HTTP', href: '/docs/tecnicas/http' },
       { title: 'Editor e cores', href: '/docs/tecnicas/editor' },
