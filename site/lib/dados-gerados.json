@@ -4371,6 +4371,108 @@
     }
    ]
   },
+  "observar": {
+   "nome": "Arcane.Observar",
+   "desc": "Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados.",
+   "curto": "Observar / Observe",
+   "funcoes": [
+    {
+     "nome": "abrir",
+     "sig": "(painel, nome, dentro_de)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "alertar",
+     "sig": "(painel, regras)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "arvore",
+     "sig": "(painel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contar",
+     "sig": "(painel, nome, quanto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cronometrar",
+     "sig": "(painel, nome, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "derivar",
+     "sig": "(painel, saida, entradas, como)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fechar",
+     "sig": "(painel, ident, estado, detalhe)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafo",
+     "sig": "(painel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "impacto",
+     "sig": "(painel, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "marcar",
+     "sig": "(painel, nome, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "medir",
+     "sig": "(painel, nome, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "origem",
+     "sig": "(painel, nome, profundidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "painel",
+     "sig": "(nome, versao, arquivo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "prometheus",
+     "sig": "(painel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "relatorio",
+     "sig": "(painel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "resumo",
+     "sig": "(painel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "salvar",
+     "sig": "(painel, caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "trechos",
+     "sig": "(painel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "valor",
+     "sig": "(painel, nome)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "pipeline": {
    "nome": "Arcane.Pipeline",
    "desc": "Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório.",
@@ -4887,6 +4989,98 @@
     {
      "nome": "unflatten",
      "sig": "(plano, separador)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "stream": {
+   "nome": "Arcane.Stream",
+   "desc": "Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo.",
+   "curto": "Stream / Corrente",
+   "funcoes": [
+    {
+     "nome": "atraso",
+     "sig": "(corrente, topico, grupo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "confirmar",
+     "sig": "(corrente, topico, grupo, evento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "confirmar_ate",
+     "sig": "(corrente, topico, grupo, eventos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "consumir",
+     "sig": "(corrente, topico, grupo, quantos, particao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "corrente",
+     "sig": "(raiz)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grupos",
+     "sig": "(corrente, topico)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "informacao",
+     "sig": "(corrente, topico)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "janela",
+     "sig": "(eventos, segundos, campo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler_de",
+     "sig": "(corrente, topico, desde, quantos, particao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "offset",
+     "sig": "(corrente, topico, grupo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "publicar",
+     "sig": "(corrente, topico, valor, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "publicar_lote",
+     "sig": "(corrente, topico, eventos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "remover_topico",
+     "sig": "(corrente, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "reter",
+     "sig": "(corrente, topico, segmentos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "topico",
+     "sig": "(corrente, nome, particoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "topicos",
+     "sig": "(corrente)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "voltar",
+     "sig": "(corrente, topico, grupo, para)",
      "tipo": "funcao"
     }
    ]

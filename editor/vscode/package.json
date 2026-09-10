@@ -195,6 +195,138 @@
         "command": "dataforge.reiniciarServidor",
         "title": "Reiniciar o servidor de linguagem",
         "category": "DataForge"
+      },
+      {
+        "command": "dataforge.verTokens",
+        "title": "Ver os tokens deste arquivo",
+        "category": "DataForge",
+        "icon": "$(symbol-key)"
+      },
+      {
+        "command": "dataforge.verAst",
+        "title": "Ver a árvore sintática",
+        "category": "DataForge",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "dataforge.verEstatisticas",
+        "title": "Inventário do projeto",
+        "category": "DataForge",
+        "icon": "$(graph-scatter)"
+      },
+      {
+        "command": "dataforge.perfilar",
+        "title": "Perfilar: tempo por ação",
+        "category": "DataForge",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "dataforge.porQue",
+        "title": "Por que isto é assim?",
+        "category": "DataForge",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "dataforge.lint",
+        "title": "Lint deste arquivo",
+        "category": "DataForge",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "dataforge.corrigir",
+        "title": "Corrigir o que dá para corrigir",
+        "category": "DataForge",
+        "icon": "$(wand)"
+      },
+      {
+        "command": "dataforge.gerarDoc",
+        "title": "Gerar a documentação",
+        "category": "DataForge",
+        "icon": "$(book)"
+      },
+      {
+        "command": "dataforge.crucible",
+        "title": "Rodar o Crucible",
+        "category": "DataForge",
+        "icon": "$(beaker)"
+      },
+      {
+        "command": "dataforge.depurar",
+        "title": "Depurar (usa os breakpoints)",
+        "category": "DataForge",
+        "icon": "$(debug-alt)"
+      },
+      {
+        "command": "dataforge.avaliar",
+        "title": "Avaliar expressão",
+        "category": "DataForge",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "dataforge.medirDesempenho",
+        "title": "Medir o desempenho (bench)",
+        "category": "DataForge",
+        "icon": "$(watch)"
+      },
+      {
+        "command": "dataforge.observarArquivo",
+        "title": "Observar e reexecutar ao salvar",
+        "category": "DataForge",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "dataforge.instalarPacotes",
+        "title": "Instalar as dependências",
+        "category": "DataForge",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "dataforge.acrescentarPacote",
+        "title": "Acrescentar um pacote…",
+        "category": "DataForge",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dataforge.procurarPacote",
+        "title": "Procurar no registro…",
+        "category": "DataForge",
+        "icon": "$(search)"
+      },
+      {
+        "command": "dataforge.listarPacotes",
+        "title": "Pacotes instalados",
+        "category": "DataForge",
+        "icon": "$(package)"
+      },
+      {
+        "command": "dataforge.pacotesDesatualizados",
+        "title": "Pacotes desatualizados",
+        "category": "DataForge",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "dataforge.arvoreDeDependencias",
+        "title": "Árvore de dependências",
+        "category": "DataForge",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "dataforge.infoDoProjeto",
+        "title": "Ver o forge.toml",
+        "category": "DataForge",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "dataforge.limpar",
+        "title": "Limpar caches e artefatos",
+        "category": "DataForge",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "dataforge.listarErros",
+        "title": "Todos os códigos de erro",
+        "category": "DataForge",
+        "icon": "$(error)"
       }
     ],
     "menus": {

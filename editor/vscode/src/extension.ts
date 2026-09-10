@@ -19,6 +19,7 @@ import { criarProjeto } from './projetos';
 import { esquecerExecutavel, exigirExecutavel, raizDe, rodar } from './dataforge';
 import { Verificador } from './diagnosticos';
 import { iniciarServidor, reiniciarServidor, servidorAtivo } from './servidor';
+import * as cmd from './comandos';
 import {
   fecharTerminal,
   formatarTempo,
@@ -61,6 +62,32 @@ export function activate(contexto: vscode.ExtensionContext) {
   // ── comandos ──
   const comandos: [string, (...a: any[]) => any][] = [
     ['dataforge.reiniciarServidor', () => reiniciarServidor(contexto, saida)],
+
+    // Os que faltavam entre a CLI e o editor. Descobrir um comando de
+    // CLI exige ler '--help', e ler '--help' exige já suspeitar que ele
+    // existe — a paleta é onde se descobre.
+    ['dataforge.verTokens', cmd.verTokens],
+    ['dataforge.verAst', cmd.verAst],
+    ['dataforge.verEstatisticas', cmd.verEstatisticas],
+    ['dataforge.perfilar', cmd.perfilar],
+    ['dataforge.porQue', cmd.porQue],
+    ['dataforge.lint', cmd.lint],
+    ['dataforge.corrigir', cmd.corrigir],
+    ['dataforge.gerarDoc', cmd.gerarDoc],
+    ['dataforge.crucible', cmd.crucible],
+    ['dataforge.depurar', cmd.depurar],
+    ['dataforge.avaliar', cmd.avaliar],
+    ['dataforge.medirDesempenho', cmd.medirDesempenho],
+    ['dataforge.observarArquivo', cmd.observarArquivo],
+    ['dataforge.instalarPacotes', cmd.instalarPacotes],
+    ['dataforge.acrescentarPacote', cmd.acrescentarPacote],
+    ['dataforge.procurarPacote', cmd.procurarPacote],
+    ['dataforge.listarPacotes', cmd.listarPacotes],
+    ['dataforge.pacotesDesatualizados', cmd.pacotesDesatualizados],
+    ['dataforge.arvoreDeDependencias', cmd.arvoreDeDependencias],
+    ['dataforge.infoDoProjeto', cmd.infoDoProjeto],
+    ['dataforge.limpar', cmd.limpar],
+    ['dataforge.listarErros', cmd.listarErros],
     ['dataforge.rodar', () => comEditor((d) => rodarNoTerminal(d))],
     ['dataforge.rodarComTempo', () => comEditor((d) => rodarEMostrarTempo(d))],
     ['dataforge.rodarDepurando', () => comEditor((d) => rodarNoTerminal(d, ['--debug']))],

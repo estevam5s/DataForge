@@ -44,6 +44,8 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | [`Arcane.Archive`](#arcanearchive) | `Archive / Zip` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
 | [`Arcane.Pipeline`](#arcanepipeline) | `Pipeline / Fluxo` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
+| [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
+| [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | [`Arcane.Qualidade`](#arcanequalidade) | `Qualidade / Quality` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
 
@@ -1618,6 +1620,74 @@ adopt Arcane.Pipeline as Pipeline
 | `rodar(fluxo, contexto=None, ate=None)` |
 | `rodar_ate(fluxo, etapa, contexto=None)` |
 | `ultima_execucao(fluxo)` |
+
+
+---
+
+## Arcane.Stream
+
+Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo.
+
+```dataforge
+adopt Arcane.Stream as Stream
+```
+
+**Funções (17)**
+
+| Assinatura |
+|------------|
+| `atraso(corrente, topico, grupo)` |
+| `confirmar(corrente, topico, grupo, evento)` |
+| `confirmar_ate(corrente, topico, grupo, eventos)` |
+| `consumir(corrente, topico, grupo, quantos=0, particao=None)` |
+| `corrente(raiz)` |
+| `grupos(corrente, topico)` |
+| `informacao(corrente, topico)` |
+| `janela(eventos, segundos=60, campo='quando')` |
+| `ler_de(corrente, topico, desde=0, quantos=0, particao=None)` |
+| `offset(corrente, topico, grupo)` |
+| `publicar(corrente, topico, valor, chave=None)` |
+| `publicar_lote(corrente, topico, eventos)` |
+| `remover_topico(corrente, nome)` |
+| `reter(corrente, topico, segmentos=10)` |
+| `topico(corrente, nome, particoes=1)` |
+| `topicos(corrente)` |
+| `voltar(corrente, topico, grupo, para=0)` |
+
+
+---
+
+## Arcane.Observar
+
+Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados.
+
+```dataforge
+adopt Arcane.Observar as Observar
+```
+
+**Funções (19)**
+
+| Assinatura |
+|------------|
+| `abrir(painel, nome, dentro_de=None)` |
+| `alertar(painel, regras)` |
+| `arvore(painel)` |
+| `contar(painel, nome, quanto=1)` |
+| `cronometrar(painel, nome, acao)` |
+| `derivar(painel, saida, entradas, como='')` |
+| `fechar(painel, ident, estado='ok', detalhe=None)` |
+| `grafo(painel)` |
+| `impacto(painel, nome)` |
+| `marcar(painel, nome, valor)` |
+| `medir(painel, nome, valor)` |
+| `origem(painel, nome, profundidade=20)` |
+| `painel(nome, versao='', arquivo='')` |
+| `prometheus(painel)` |
+| `relatorio(painel)` |
+| `resumo(painel)` |
+| `salvar(painel, caminho='')` |
+| `trechos(painel)` |
+| `valor(painel, nome)` |
 
 
 ---

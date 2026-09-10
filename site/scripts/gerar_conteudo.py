@@ -25,6 +25,7 @@ MODULOS = [
     "dados",
     "lago",
     "ml",
+    "fluxo",
     "banco",
     "crucible_doc",
     "versoes",
