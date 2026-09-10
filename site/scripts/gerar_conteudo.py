@@ -19,6 +19,7 @@ from gerar_paginas import escrever  # noqa: E402
 MODULOS = [
     "big_o",
     "oop_avancado",
+    "oop_magicos",
     "banco",
     "crucible_doc",
     "versoes",

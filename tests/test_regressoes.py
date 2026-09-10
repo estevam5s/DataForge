@@ -1200,6 +1200,41 @@ out len(C.union(C.set([1, 2]), C.set([2, 3])))
 ''') == "3"
 
 
+def test_todo_doc_de_erro_aponta_para_uma_rota_que_existe():
+    """O 'doc:' das mensagens vira URL — e URL quebrada é pior que nenhuma.
+
+    Três âncoras já nasceram inventadas ('cofre', 'concorrencia',
+    'terminal'), escritas de memória junto com o módulo. Quem seguisse
+    o link caía num 404 no momento em que mais precisava da página.
+    Aqui a âncora é conferida contra as pastas reais do site.
+    """
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    docs = os.path.join(raiz, "site", "app", "docs")
+    if not os.path.isdir(docs):
+        pytest.skip("o site não está neste checkout")
+
+    rotas = {
+        os.path.relpath(os.path.dirname(p), docs).replace(os.sep, "/")
+        for p in glob.glob(os.path.join(docs, "**", "page.tsx"), recursive=True)
+    }
+
+    quebradas = []
+    alvos = (glob.glob(os.path.join(raiz, "dataforge", "*.py")) +
+             glob.glob(os.path.join(raiz, "dataforge", "stdlib", "*.py")))
+    for arquivo in sorted(alvos):
+        fonte = open(arquivo, encoding="utf-8").read()
+        for ancora in set(re.findall(r'doc="([^"]+)"', fonte)):
+            if ancora.startswith("http"):
+                continue
+            if ancora.strip("/") not in rotas:
+                quebradas.append(f"{os.path.basename(arquivo)}: /docs/{ancora}")
+
+    assert not quebradas, "doc: aponta para rota inexistente: " + ", ".join(quebradas)
+
+
 def test_apelido_de_modulo_carimba_o_nome_oficial():
     """'Zip', 'Archive' e 'Arcane.Archive' são o MESMO módulo.
 

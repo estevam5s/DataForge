@@ -488,16 +488,102 @@ próprio. Não há verificação de que o contrato foi cumprido — use
 
 ### 7.5 Métodos especiais
 
+Os nomes curtos, herdados das primeiras versões:
+
 | Método | Chamado por |
 |--------|-------------|
 | `setup` / `initiate` | `spawn` |
 | `toString` | `out`, `str()` |
 | `add` `sub` `mul` `div` `mod` `pow` `floordiv` | `+` `-` `*` `/` `%` `**` `~/` |
 
-### 7.6 Resolução de nomes
+E os **95 métodos mágicos** no estilo Python, em 16 grupos.
+Quando o blueprint declara os dois para a mesma operação, o `operator` vence.
+A lista completa está em [Métodos mágicos](https://dataforge-lang.vercel.app/docs/oop/magicos);
+os mais usados:
+
+| Método | Chamado por |
+|--------|-------------|
+| `__init__` | roda no spawn; sinonimo de 'setup' |
+| `__new__` | cria a instancia antes de '__init__' |
+| `__del__` | roda quando o objeto e descartado |
+| `__copy__` | copia rasa |
+| `__deepcopy__` | copia profunda |
+| `__clone__` | copia, no vocabulario do DataForge |
+| `__str__` | o texto que 'out' imprime |
+| `__repr__` | o texto para quem depura |
+| `__format__` | formatacao com especificador |
+| `__bytes__` | a representacao em bytes |
+| `__doc__` | a documentacao do objeto |
+| `__eq__` | a == b  (e 'a is b') |
+| `__ne__` | a != b  (e 'a isnt b') |
+| `__lt__` | a < b   (e 'a smaller b') |
+| `__le__` | a <= b |
+| `__gt__` | a > b   (e 'a bigger b') |
+| `__ge__` | a >= b |
+| `__cmp__` | -1, 0 ou 1; cobre os seis de uma vez |
+| `__add__` | a + b |
+| `__sub__` | a - b |
+| `__mul__` | a * b |
+| `__truediv__` | a / b |
+| `__floordiv__` | a ~/ b |
+| `__mod__` | a % b |
+| `__pow__` | a ** b |
+| `__divmod__` | quociente e resto de uma vez |
+| `__matmul__` | a @ b — multiplicacao de matriz |
+| `__len__` | len(obj) |
+| `__getitem__` | obj[chave] |
+| `__setitem__` | obj[chave] := valor |
+| `__delitem__` | delete obj[chave] |
+| `__contains__` | item in obj |
+| `__iter__` | 'cycle x in obj' |
+| `__next__` | o proximo item do percurso |
+| `__reversed__` | percurso de tras para frente |
+| `__missing__` | chave ausente, antes de dar erro |
+| `__length_hint__` | tamanho aproximado, para alocar antes |
+| `__bool__` | o que 'given obj:' decide |
+| `__int__` | int(obj) |
+| `__float__` | float(obj) |
+| `__complex__` | complex(obj) |
+| `__index__` | o objeto como indice de colecao |
+| `__hash__` | a chave de vault que este objeto vira |
+| `__call__` | obj(argumentos) |
+| `__enter__` | 'with obj as x:' — o que 'x' recebe |
+| `__exit__` | o fim do bloco, mesmo com erro |
+
+Ver também `slots` (§7.6) e a MRO por linearização C3 (§7.7).
+
+### 7.6 `slots`
+
+`slots` declara **todos** os campos que a instância pode ter; qualquer outro é
+recusado na escrita e na leitura.
+
+```dataforge
+blueprint Ponto:
+    slots x, y
+```
+
+Os valores passam a ser guardados numa lista, e não num vault: **64% menos
+memória por objeto**, medido. Herdar e acrescentar slots soma os campos — mas
+se **qualquer** ancestral não declara `slots`, a restrição cai por terra, porque
+ele aceita campo livre.
+
+`slots` é contextual, não reservada: `slots := 3` fora de um blueprint continua
+sendo uma variável.
+
+### 7.7 Resolução de nomes e MRO
 
 A busca em uma instância segue: campos → métodos do blueprint → estáticos →
-pais (busca em profundidade, da esquerda para a direita).
+ancestrais **na ordem da MRO**.
+
+A MRO (*method resolution order*) é calculada por **linearização C3**, a mesma
+do Python, e garante três coisas: a classe vem antes das mães; a ordem em que
+as mães foram escritas é respeitada; e uma mãe só aparece depois de todas as
+filhas dela. Quando não existe ordem que satisfaça as três, a hierarquia é
+ambígua e o C3 **recusa**, em vez de escolher em silêncio.
+
+`root` segue a MRO — vai ao **próximo** na lista a partir de onde a chamada
+está, e não ao "primeiro pai". É o que faz uma cadeia de `root` percorrer cada
+blueprint exatamente uma vez, mesmo em diamante.
 
 ---
 
@@ -507,7 +593,7 @@ pais (busca em profundidade, da esquerda para a direita).
 
 ```
 monitor ":" bloco
-[ handle [ Tipo as ] nome ":" bloco ]
+{ handle [ Tipo [ as nome ] | nome ] ":" bloco }
 [ ensure ":" bloco ]
 ```
 
