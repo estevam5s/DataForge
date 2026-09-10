@@ -31,6 +31,8 @@ GRUPOS = [
                "head", "any", "resource", "mount", "group", "routes"]),
     ("Middleware", ["use", "after", "on_error", "cors", "logger",
                     "rate_limit", "auth", "guard"]),
+    ("Segurança", ["secure_headers", "cabecalhos_seguros", "csrf",
+                   "csrf_token"]),
     ("Respostas", ["json", "html", "text", "status", "redirect", "file",
                    "header", "cookie"]),
     ("Sessão", ["session_start", "session_end", "sign", "unsign"]),
@@ -68,6 +70,13 @@ RESUMOS = {
     "rate_limit": "429 + `Retry-After` ao estourar o teto por IP.",
     "auth": "401 sem credencial; põe o usuário em `req[\"state\"][\"user\"]`.",
     "guard": "Middleware a partir de uma condição qualquer.",
+    "secure_headers": ("Middleware de saída com nosniff, X-Frame-Options, CSP, "
+                       "Referrer-Policy e Permissions-Policy. HSTS opcional — "
+                       "ligue só com o certificado de pé."),
+    "cabecalhos_seguros": "O mesmo que `secure_headers`, em português.",
+    "csrf": ("Recusa POST/PUT/PATCH/DELETE sem um token que você assinou. "
+             "Métodos seguros passam."),
+    "csrf_token": "Um token para pôr no formulário ou no fetch.",
     "json": "Resposta JSON.",
     "html": "Resposta HTML.",
     "text": "Resposta em texto puro.",

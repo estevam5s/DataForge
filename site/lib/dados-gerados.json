@@ -3250,6 +3250,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "cabecalhos_seguros",
+     "sig": "(csp, hsts, frame, referrer, permissoes)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "config",
      "sig": "(app, chave, valor)",
      "tipo": "funcao"
@@ -3262,6 +3267,16 @@
     {
      "nome": "cors",
      "sig": "(origens, metodos, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "csrf",
+     "sig": "(segredo, campo, cabecalho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "csrf_token",
+     "sig": "(req, segredo)",
      "tipo": "funcao"
     },
     {
@@ -3392,6 +3407,11 @@
     {
      "nome": "routes",
      "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "secure_headers",
+     "sig": "(csp, hsts, frame, referrer, permissoes)",
      "tipo": "funcao"
     },
     {
@@ -6878,7 +6898,7 @@
     "enunciado": "renderize uma pagina a partir de um template com laco.",
     "arquivo": "194_paginas_html.df",
     "temDoc": true,
-    "codigo": "// Exercicio 194 — Paginas HTML com template\n// Enunciado: renderize uma pagina a partir de um template com laco.\n\n// 'render' le um arquivo da pasta declarada em 'views' e devolve HTML.\n// A sintaxe do template e pequena de proposito: {{nome}} escreve,\n// {{#lista}}…{{/lista}} repete, {{^lista}}…{{/lista}} cobre o vazio e\n// {{&bruto}} nao escapa. Template que vira linguagem e codigo escondido\n// onde ninguem procura.\n\nadopt Kiln\nadopt Arcane.IO as IO\n\n// escreve o template no disco para o exercicio ser auto-contido\npasta := \"/tmp/kilnviews\"\nIO.write_file(pasta + \"/lista.html\", \"\"\"<!doctype html>\n<title>{{titulo}}</title>\n<h1>{{titulo}}</h1>\n{{#produtos}}<article><h2>{{nome}}</h2><p>R$ {{preco}}</p></article>\n{{/produtos}}\n{{^produtos}}<p>Nada na forja.</p>{{/produtos}}\"\"\")\n\nprodutos := [\n    {\"nome\": \"Martelo\", \"preco\": 89.9},\n    {\"nome\": \"Bigorna <de aco>\", \"preco\": 450.0}\n]\n\nserver site on 0:\n    views pasta\n\n    route GET \"/\":\n        render \"lista.html\" with {\"titulo\": \"Forja\", \"produtos\": produtos}\n\n    route GET \"/vazio\":\n        render \"lista.html\" with {\"titulo\": \"Vazio\", \"produtos\": []}\n\npagina := Kiln.test(site, \"GET\", \"/\")\nout pagina[\"body\"]\n\nassert \"Martelo\" in pagina[\"body\"], \"o laco do template repetiu\"\n// O escape e automatico: '<de aco>' nao vira tag.\nassert \"&lt;de aco&gt;\" in pagina[\"body\"], \"HTML e escapado por padrao\"\nassert \"<article>\" in pagina[\"body\"], \"as tags do template ficam\"\n\nvazio := Kiln.test(site, \"GET\", \"/vazio\")\nassert \"Nada na forja\" in vazio[\"body\"], \"{{^}} cobre a lista vazia\"\nassert \"article\" not in vazio[\"body\"], \"sem itens, sem artigos\"\n"
+    "codigo": "// Exercicio 194 — Paginas HTML com template\n// Enunciado: renderize uma pagina a partir de um template com laco.\n\n// 'render' le um arquivo da pasta declarada em 'views' e devolve HTML.\n// A sintaxe do template e pequena de proposito: {{nome}} escreve,\n// {{#lista}}…{{/lista}} repete, {{^lista}}…{{/lista}} cobre o vazio e\n// {{&bruto}} nao escapa. Template que vira linguagem e codigo escondido\n// onde ninguem procura.\n\nadopt Kiln\nadopt Arcane.IO as IO\n\n// escreve o template no disco para o exercicio ser auto-contido\npasta := \"/tmp/kilnviews\"\nIO.mkdir(pasta)                     // sem isto, so roda se a pasta ja existir\nIO.write_file(pasta + \"/lista.html\", \"\"\"<!doctype html>\n<title>{{titulo}}</title>\n<h1>{{titulo}}</h1>\n{{#produtos}}<article><h2>{{nome}}</h2><p>R$ {{preco}}</p></article>\n{{/produtos}}\n{{^produtos}}<p>Nada na forja.</p>{{/produtos}}\"\"\")\n\nprodutos := [\n    {\"nome\": \"Martelo\", \"preco\": 89.9},\n    {\"nome\": \"Bigorna <de aco>\", \"preco\": 450.0}\n]\n\nserver site on 0:\n    views pasta\n\n    route GET \"/\":\n        render \"lista.html\" with {\"titulo\": \"Forja\", \"produtos\": produtos}\n\n    route GET \"/vazio\":\n        render \"lista.html\" with {\"titulo\": \"Vazio\", \"produtos\": []}\n\npagina := Kiln.test(site, \"GET\", \"/\")\nout pagina[\"body\"]\n\nassert \"Martelo\" in pagina[\"body\"], \"o laco do template repetiu\"\n// O escape e automatico: '<de aco>' nao vira tag.\nassert \"&lt;de aco&gt;\" in pagina[\"body\"], \"HTML e escapado por padrao\"\nassert \"<article>\" in pagina[\"body\"], \"as tags do template ficam\"\n\nvazio := Kiln.test(site, \"GET\", \"/vazio\")\nassert \"Nada na forja\" in vazio[\"body\"], \"{{^}} cobre a lista vazia\"\nassert \"article\" not in vazio[\"body\"], \"sem itens, sem artigos\"\n"
    },
    {
     "num": "195",
@@ -6894,7 +6914,7 @@
     "enunciado": "personalize o 404, redirecione uma rota antiga e sirva CSS.",
     "arquivo": "196_erros_e_estaticos.df",
     "temDoc": true,
-    "codigo": "// Exercicio 196 — Paginas de erro, redirecionamento e arquivos estaticos\n// Enunciado: personalize o 404, redirecione uma rota antiga e sirva CSS.\n\n// Um 404 em JSON serve para uma API; para um site, o visitante merece\n// uma pagina. Kiln.on_error troca a resposta de um status inteiro.\n\nadopt Kiln\nadopt Arcane.IO as IO\n\nIO.write_file(\"/tmp/kilnviews/estilo.css\", \"body { font: 16px system-ui }\")\n\nserver site on 0:\n    assets \"/static\" from \"/tmp/kilnviews\"\n\n    route GET \"/\":\n        respond html \"<h1>Inicio</h1>\"\n\n    route GET \"/antigo\":\n        redirect \"/\"\n\nKiln.on_error(site, 404, lambda req => Kiln.html(\n    \"<h1>404</h1><p>Nao achei essa pagina.</p>\", 404))\n\nassert Kiln.test(site, \"GET\", \"/\")[\"status\"] is 200, \"a raiz responde\"\n\nperdido := Kiln.test(site, \"GET\", \"/nao-existe\")\nout \"404 personalizado:\", perdido[\"status\"]\nout perdido[\"body\"]\nassert perdido[\"status\"] is 404, \"o status continua 404\"\nassert \"Nao achei\" in perdido[\"body\"], \"mas o corpo agora e uma pagina\"\n\nmudou := Kiln.test(site, \"GET\", \"/antigo\")\nout \"redirect:\", mudou[\"status\"], \"->\", mudou[\"headers\"][\"Location\"]\nassert mudou[\"status\"] is 302, \"redirect padrao e 302\"\nassert mudou[\"headers\"][\"Location\"] is \"/\", \"e diz para onde ir\"\n\ncss := Kiln.test(site, \"GET\", \"/static/estilo.css\")\nout \"css:\", css[\"status\"]\nassert css[\"status\"] is 200, \"o arquivo do disco e servido\"\n\n// Um '../' no caminho nao escapa da pasta declarada. Esta e a falha\n// classica de servidor de arquivos, e o Kiln recusa antes de abrir.\nfuga := Kiln.test(site, \"GET\", \"/static/../../../etc/passwd\")\nout \"travessia de diretorio:\", fuga[\"status\"]\nassert fuga[\"status\"] is 403, \"sair da pasta e proibido\"\n"
+    "codigo": "// Exercicio 196 — Paginas de erro, redirecionamento e arquivos estaticos\n// Enunciado: personalize o 404, redirecione uma rota antiga e sirva CSS.\n\n// Um 404 em JSON serve para uma API; para um site, o visitante merece\n// uma pagina. Kiln.on_error troca a resposta de um status inteiro.\n\nadopt Kiln\nadopt Arcane.IO as IO\n\nIO.mkdir(\"/tmp/kilnviews\")          // sem isto, so roda se a pasta ja existir\nIO.write_file(\"/tmp/kilnviews/estilo.css\", \"body { font: 16px system-ui }\")\n\nserver site on 0:\n    assets \"/static\" from \"/tmp/kilnviews\"\n\n    route GET \"/\":\n        respond html \"<h1>Inicio</h1>\"\n\n    route GET \"/antigo\":\n        redirect \"/\"\n\nKiln.on_error(site, 404, lambda req => Kiln.html(\n    \"<h1>404</h1><p>Nao achei essa pagina.</p>\", 404))\n\nassert Kiln.test(site, \"GET\", \"/\")[\"status\"] is 200, \"a raiz responde\"\n\nperdido := Kiln.test(site, \"GET\", \"/nao-existe\")\nout \"404 personalizado:\", perdido[\"status\"]\nout perdido[\"body\"]\nassert perdido[\"status\"] is 404, \"o status continua 404\"\nassert \"Nao achei\" in perdido[\"body\"], \"mas o corpo agora e uma pagina\"\n\nmudou := Kiln.test(site, \"GET\", \"/antigo\")\nout \"redirect:\", mudou[\"status\"], \"->\", mudou[\"headers\"][\"Location\"]\nassert mudou[\"status\"] is 302, \"redirect padrao e 302\"\nassert mudou[\"headers\"][\"Location\"] is \"/\", \"e diz para onde ir\"\n\ncss := Kiln.test(site, \"GET\", \"/static/estilo.css\")\nout \"css:\", css[\"status\"]\nassert css[\"status\"] is 200, \"o arquivo do disco e servido\"\n\n// Um '../' no caminho nao escapa da pasta declarada. Esta e a falha\n// classica de servidor de arquivos, e o Kiln recusa antes de abrir.\nfuga := Kiln.test(site, \"GET\", \"/static/../../../etc/passwd\")\nout \"travessia de diretorio:\", fuga[\"status\"]\nassert fuga[\"status\"] is 403, \"sair da pasta e proibido\"\n"
    },
    {
     "num": "197",

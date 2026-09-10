@@ -7,12 +7,12 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Referência do Kiln",
-  description: "As 46 funções do módulo e as dez palavras da linguagem.",
+  description: "As 50 funções do módulo e as dez palavras da linguagem.",
 };
 
 const blocos: Bloco[] = [
   {
-    "p": "Esta página é gerada a partir de `dataforge/stdlib/kiln.py`. São **46 funções** — a sintaxe da linguagem (`server`, `route`, `respond`…) chama estas mesmas."
+    "p": "Esta página é gerada a partir de `dataforge/stdlib/kiln.py`. São **50 funções** — a sintaxe da linguagem (`server`, `route`, `respond`…) chama estas mesmas."
   },
   {
     "h2": "As palavras da linguagem"
@@ -205,6 +205,35 @@ const blocos: Bloco[] = [
         [
           "`Kiln.guard(condicao, status=403, mensagem='sem permissão')`",
           "Middleware a partir de uma condição qualquer."
+        ]
+      ]
+    }
+  },
+  {
+    "h2": "Segurança"
+  },
+  {
+    "table": {
+      "head": [
+        "Função",
+        "Faz"
+      ],
+      "rows": [
+        [
+          "`Kiln.secure_headers(csp=\"default-src 'self'\", hsts=False, frame='DENY', referrer='strict-origin-when-cross-origin', permissoes='geolocation=(), microphone=(), camera=()')`",
+          "Middleware de saída com nosniff, X-Frame-Options, CSP, Referrer-Policy e Permissions-Policy. HSTS opcional — ligue só com o certificado de pé."
+        ],
+        [
+          "`Kiln.cabecalhos_seguros(csp=\"default-src 'self'\", hsts=False, frame='DENY', referrer='strict-origin-when-cross-origin', permissoes='geolocation=(), microphone=(), camera=()')`",
+          "O mesmo que `secure_headers`, em português."
+        ],
+        [
+          "`Kiln.csrf(segredo, campo='_csrf', cabecalho='X-CSRF-Token')`",
+          "Recusa POST/PUT/PATCH/DELETE sem um token que você assinou. Métodos seguros passam."
+        ],
+        [
+          "`Kiln.csrf_token(req, segredo=None)`",
+          "Um token para pôr no formulário ou no fetch."
         ]
       ]
     }
@@ -410,13 +439,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'as-palavras-da-linguagem', text: "As palavras da linguagem", level: 2 as const }, { id: 'aplicacao', text: "Aplicação", level: 2 as const }, { id: 'rotas', text: "Rotas", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'respostas', text: "Respostas", level: 2 as const }, { id: 'sessao', text: "Sessão", level: 2 as const }, { id: 'views', text: "Views", level: 2 as const }, { id: 'ciclo-de-vida', text: "Ciclo de vida", level: 2 as const }, { id: 'a-requisicao', text: "A requisição", level: 2 as const }, { id: 'os-status-com-frase-pronta', text: "Os status com frase pronta", level: 2 as const }];
+const headings = [{ id: 'as-palavras-da-linguagem', text: "As palavras da linguagem", level: 2 as const }, { id: 'aplicacao', text: "Aplicação", level: 2 as const }, { id: 'rotas', text: "Rotas", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'seguranca', text: "Segurança", level: 2 as const }, { id: 'respostas', text: "Respostas", level: 2 as const }, { id: 'sessao', text: "Sessão", level: 2 as const }, { id: 'views', text: "Views", level: 2 as const }, { id: 'ciclo-de-vida', text: "Ciclo de vida", level: 2 as const }, { id: 'a-requisicao', text: "A requisição", level: 2 as const }, { id: 'os-status-com-frase-pronta', text: "Os status com frase pronta", level: 2 as const }];
 
 export default function Page() {
   return (
     <DocPage
       title="Referência do Kiln"
-      description="As 46 funções do módulo e as dez palavras da linguagem."
+      description="As 50 funções do módulo e as dez palavras da linguagem."
       href="/docs/kiln/referencia"
       headings={headings}
     >

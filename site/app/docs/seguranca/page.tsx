@@ -45,6 +45,49 @@ assert "u" in Forge.tabelas(db)`, lang: 'df' },
   {"callout": {"tipo": "perigo", "titulo": "Não desligue a verificação de TLS", "texto": "Um certificado inválido significa que você não sabe com quem está falando. Corrija o certificado do servidor; desligar a verificação transforma um erro visível num problema silencioso."}},
   {"h2": "Senhas no editor"},
   {"p": "**A extensão do VS Code** guarda senhas de banco no cofre do sistema (`SecretStorage`), não no `settings.json` — que muita gente versiona sem perceber. A URL salva leva um marcador no lugar da senha."},
+  {"h2": "Segurança da sua aplicação"},
+  {"p": "O que está acima é sobre a **linguagem** e o **toolchain**. O que segue é sobre o site que você escreve com o [Kiln](/docs/kiln) — e é onde a maioria das falhas acontece."},
+  {"h3": "Cabeçalhos que o navegador só respeita se você mandar"},
+  { code: `server app on 8080:
+    after Kiln.cabecalhos_seguros()`, lang: 'df' },
+  {"table": {"head": ["Cabeçalho", "O que evita"], "rows": [
+    ["`X-Content-Type-Options: nosniff`", "um `.txt` com HTML dentro ser executado como página"],
+    ["`X-Frame-Options: DENY`", "sua página dentro de um `<iframe>` alheio (clickjacking)"],
+    ["`Content-Security-Policy`", "script injetado rodar, mesmo que entre no HTML"],
+    ["`Referrer-Policy`", "vazar a URL inteira — com tokens na query — para outro site"],
+    ["`Permissions-Policy`", "câmera, microfone e localização sem você pedir"]]}},
+  {"callout": {"tipo": "atencao", "titulo": "HSTS vem desligado, e isso é de propósito", "texto": "Ele diz ao navegador *só me acesse por https, pelos próximos meses* — e o navegador **obedece**, mesmo que o https ainda não exista. Mandado cedo demais, tira o site do ar para quem já o visitou, e não há como voltar atrás a tempo. Ligue com `Kiln.cabecalhos_seguros(hsts: yes)` quando o certificado estiver de pé."}},
+  {"h3": "CSRF"},
+  {"p": "Você está logado no seu banco. Abre outra aba num site qualquer, e um `<form>` escondido dela dispara um POST para o banco. **O navegador manda o seu cookie junto** — porque o cookie é do banco, e o pedido vai para o banco. Do lado do servidor, o pedido parece seu."},
+  { code: `server app on 8080:
+    middleware Kiln.csrf(SEGREDO)
+
+    route GET "/form":
+        render "form.html" with {"csrf": Kiln.csrf_token(pedido, SEGREDO)}
+
+    route POST "/salvar":
+        // só chega aqui com o token certo
+        respond {"ok": yes}`, lang: 'df' },
+  {"p": "O token quebra o ataque porque o site atacante **não consegue lê-lo**: ele está na sua página, e a política de mesma origem impede que outro site a leia. Sem poder ler, não há como reenviar."},
+  {"list": [
+    "`GET`, `HEAD`, `OPTIONS` e `TRACE` passam sem token — eles não mudam estado, e cobrar ali quebraria todo link do site.",
+    "A conferência é por **assinatura HMAC**, não por sessão guardada: o servidor confere que foi ele quem emitiu, sem lembrar de cada token. É o que faz isto funcionar com vários processos.",
+    "O token é lido do cabeçalho `X-CSRF-Token` ou do campo `_csrf` — um `<form>` comum não manda cabeçalho nenhum."]},
+  {"h3": "Senhas"},
+  { code: `guardada := Crypto.hash_password(senha)
+Crypto.verify_password(tentativa, guardada)`, lang: 'df' },
+  {"p": "PBKDF2 com sal aleatório e 200 mil iterações. **Nunca** `sha256(senha)`: uma GPU testa bilhões por segundo, e o hash rápido é o que torna o vazamento de um banco uma catástrofe em vez de um susto."},
+  {"h3": "Limite de taxa e autenticação"},
+  { code: `middleware Kiln.rate_limit(60, 60)     // 60 pedidos por minuto, por IP
+middleware Kiln.auth(conferir_token)
+middleware Kiln.guard(lambda p: p.session["admin"] ?? no, 403)`, lang: 'df' },
+  {"h3": "A ordem importa"},
+  {"p": "Middleware roda na ordem em que foi declarado. O limite de taxa vem **antes** da autenticação — senão cada tentativa de força bruta paga o custo de verificar uma senha, que é justamente o custo que o PBKDF2 tornou alto de propósito."},
+  { code: `server app on 8080:
+    middleware Kiln.rate_limit(60, 60)    // 1º: corta o excesso
+    middleware Kiln.csrf(SEGREDO)         // 2º: recusa pedido de fora
+    middleware Kiln.auth(conferir)        // 3º: só então identifica
+    after Kiln.cabecalhos_seguros()`, lang: 'df' },
   {"h2": "O que continua sendo sua responsabilidade"},
   {"h3": "Segredos"},
   {"p": "A linguagem não tem como saber que um texto é uma senha. As regras valem aqui como em qualquer lugar:"},
@@ -99,7 +142,7 @@ handle ValidationError as e:
   {"p": "`dataforge explain DF0508` explica cada um."},
 ];
 
-const headings = [{ id: 'injecao-de-sql', text: "Injeção de SQL", level: 2 as const }, { id: 'xss-nos-templates', text: "XSS nos templates", level: 2 as const }, { id: 'travessia-de-caminho-em-pacotes', text: "Travessia de caminho em pacotes", level: 2 as const }, { id: 'integridade-dos-pacotes', text: "Integridade dos pacotes", level: 2 as const }, { id: 'conflito-de-versao', text: "Conflito de versão", level: 2 as const }, { id: 'tls', text: "TLS", level: 2 as const }, { id: 'senhas-no-editor', text: "Senhas no editor", level: 2 as const }, { id: 'o-que-continua-sendo-sua-responsabilidade', text: "O que continua sendo sua responsabilidade", level: 2 as const }, { id: 'relatar-uma-vulnerabilidade', text: "Relatar uma vulnerabilidade", level: 2 as const }, { id: 'os-erros-que-ajudam', text: "Os erros que ajudam", level: 2 as const }];
+const headings = [{ id: 'injecao-de-sql', text: "Injeção de SQL", level: 2 as const }, { id: 'xss-nos-templates', text: "XSS nos templates", level: 2 as const }, { id: 'travessia-de-caminho-em-pacotes', text: "Travessia de caminho em pacotes", level: 2 as const }, { id: 'integridade-dos-pacotes', text: "Integridade dos pacotes", level: 2 as const }, { id: 'conflito-de-versao', text: "Conflito de versão", level: 2 as const }, { id: 'tls', text: "TLS", level: 2 as const }, { id: 'senhas-no-editor', text: "Senhas no editor", level: 2 as const }, { id: 'seguranca-da-sua-aplicacao', text: "Segurança da sua aplicação", level: 2 as const }, { id: 'o-que-continua-sendo-sua-responsabilidade', text: "O que continua sendo sua responsabilidade", level: 2 as const }, { id: 'relatar-uma-vulnerabilidade', text: "Relatar uma vulnerabilidade", level: 2 as const }, { id: 'os-erros-que-ajudam', text: "Os erros que ajudam", level: 2 as const }];
 
 export default function Pagina() {
   return (

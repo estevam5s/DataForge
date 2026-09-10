@@ -428,3 +428,100 @@ def test_kiln_test_devolve_texto_para_arquivo_textual(tmp_path):
     corpo = ArcaneKiln._test(app, "GET", "/s/e.css")["body"]
     assert isinstance(corpo, str)
     assert "color: red" in corpo
+
+
+# ═══════════════════════════════════════════════════════════
+#  Seguranca de aplicacao
+# ═══════════════════════════════════════════════════════════
+
+class TestCabecalhosSeguros:
+    """Os cabecalhos que o navegador so respeita se voce mandar."""
+
+    def _app(self, **kw):
+        app = App("s")
+        app.apos(ArcaneKiln._secure_headers(**kw))
+        app.rota("GET", "/", lambda req: {"ok": 1})
+        return app
+
+    def _cabs(self, app):
+        r = ArcaneKiln._test(app, "GET", "/")
+        return {k.lower(): v for k, v in r["headers"].items()}
+
+    def test_manda_os_cabecalhos_basicos(self):
+        h = self._cabs(self._app())
+        assert h["x-content-type-options"] == "nosniff"
+        assert h["x-frame-options"] == "DENY"
+        assert "referrer-policy" in h
+        assert "content-security-policy" in h
+        assert "permissions-policy" in h
+
+    def test_hsts_so_com_https_ligado(self):
+        """Mandar HSTS em http tranca o site num https que nao existe."""
+        assert "strict-transport-security" not in self._cabs(self._app())
+        assert "strict-transport-security" in self._cabs(self._app(hsts=True))
+
+    def test_a_csp_pode_ser_trocada(self):
+        h = self._cabs(self._app(csp="default-src 'none'"))
+        assert h["content-security-policy"] == "default-src 'none'"
+
+    def test_nao_apaga_cabecalho_que_a_rota_ja_pos(self):
+        app = App("s")
+        app.apos(ArcaneKiln._secure_headers())
+        app.rota("GET", "/", lambda req: ArcaneKiln._header(
+            ArcaneKiln._json({"ok": 1}), "X-Frame-Options", "SAMEORIGIN"))
+        h = {k.lower(): v for k, v in
+             ArcaneKiln._test(app, "GET", "/")["headers"].items()}
+        assert h["x-frame-options"] == "SAMEORIGIN"
+
+
+class TestCsrf:
+    """O token que separa um pedido do seu site de um de outro."""
+
+    SEGREDO = "segredo-de-teste"
+
+    def _app(self, segredo=None):
+        chave = segredo or self.SEGREDO
+        app = App("s")
+        app.usar(ArcaneKiln._csrf(chave))
+        app.rota("GET", "/form",
+                 lambda req: {"token": ArcaneKiln._csrf_token(req, chave)})
+        app.rota("POST", "/enviar", lambda req: {"ok": 1})
+        return app
+
+    def _token(self, app=None, segredo=None):
+        alvo = app or self._app(segredo)
+        return ArcaneKiln._test(alvo, "GET", "/form")["body"]["token"]
+
+    def test_get_passa_sem_token(self):
+        """Metodo seguro nao muda estado; cobrar token ali so atrapalha."""
+        assert ArcaneKiln._test(self._app(), "GET", "/form")["status"] == 200
+
+    def test_post_sem_token_e_recusado(self):
+        assert ArcaneKiln._test(self._app(), "POST", "/enviar")["status"] == 403
+
+    def test_post_com_o_token_certo_passa(self):
+        app = self._app()
+        r = ArcaneKiln._test(app, "POST", "/enviar",
+                             cabecalhos={"X-CSRF-Token": self._token(app)})
+        assert r["status"] == 200
+
+    def test_token_de_outro_segredo_e_recusado(self):
+        """E o ponto do CSRF: um token forjado fora nao serve."""
+        forjado = self._token(segredo="outro-segredo")
+        r = ArcaneKiln._test(self._app(), "POST", "/enviar",
+                             cabecalhos={"X-CSRF-Token": forjado})
+        assert r["status"] == 403
+
+    def test_token_adulterado_e_recusado(self):
+        app = self._app()
+        t = self._token(app)
+        r = ArcaneKiln._test(app, "POST", "/enviar",
+                             cabecalhos={"X-CSRF-Token": t[:-3] + "aaa"})
+        assert r["status"] == 403
+
+    def test_o_token_tambem_vem_do_corpo(self):
+        """Um <form> comum nao manda cabecalho: manda campo."""
+        app = self._app()
+        r = ArcaneKiln._test(app, "POST", "/enviar",
+                             corpo={"_csrf": self._token(app)})
+        assert r["status"] == 200

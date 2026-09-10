@@ -473,7 +473,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-29 módulos, 1016 símbolos, mais 228 funções globais sem import.
+29 módulos, 1020 símbolos, mais 228 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -484,9 +484,9 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
 | `Arcane.Time` | 54 | Datas, horas, durações e cronometragem. |
 | `Arcane.Math` | 51 | Matemática, álgebra linear e estatística básica. |
+| `Kiln` | 50 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | `Arcane.Crypto` | 48 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). |
 | `Arcane.Async` | 46 | Promessas, filas, agendamento e execução concorrente. |
-| `Kiln` | 46 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | `Arcane.Crucible` | 42 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | `Arcane.OS` | 42 | Sistema operacional, ambiente, disco e processo atual. |

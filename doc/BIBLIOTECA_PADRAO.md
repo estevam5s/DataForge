@@ -21,7 +21,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Database`](#arcanedatabase) | `Database / DB` | 39 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
 | [`Arcane.Excel`](#arcaneexcel) | `Excel / Xlsx` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
 | [`Arcane.Meta`](#arcanemeta) | `Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
-| [`Kiln`](#kiln) | `Kiln` | 46 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
+| [`Kiln`](#kiln) | `Kiln` | 50 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | [`Arcane.Test`](#arcanetest) | `Test` | 34 | Asserções e organização de suítes de teste. |
 | [`Arcane.Regex`](#arcaneregex) | `Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | [`Arcane.IO`](#arcaneio) | `IO` | 27 | Arquivos, diretórios, JSON, CSV e shell. |
@@ -499,7 +499,7 @@ Framework web: rotas, middleware, templates, sessão e arquivos estáticos.
 adopt Kiln as Kiln
 ```
 
-**Funções (46)**
+**Funções (50)**
 
 | Assinatura |
 |------------|
@@ -507,9 +507,12 @@ adopt Kiln as Kiln
 | `any(app, padrao, handler)` |
 | `app(nome='kiln', **config)` |
 | `auth(verificador, esquema='Bearer')` |
+| `cabecalhos_seguros(csp="default-src 'self'", hsts=False, frame='DENY', referrer='strict-origin-when-cross-origin', permissoes='geolocation=(), microphone=(), camera=()')` |
 | `config(app, chave, valor)` |
 | `cookie(resp, nome, valor, dias=None, http_only=True, caminho='/', same_site='Lax', seguro=False)` |
 | `cors(origens='*', metodos=None, cabecalhos=None)` |
+| `csrf(segredo, campo='_csrf', cabecalho='X-CSRF-Token')` |
+| `csrf_token(req, segredo=None)` |
 | `delete(app, padrao, handler)` |
 | `escape(texto)` |
 | `file(caminho, tipo=None, baixar=None)` |
@@ -536,6 +539,7 @@ adopt Kiln as Kiln
 | `resource(app, base, controlador)` |
 | `route(app, metodo, padrao, handler)` |
 | `routes(app)` |
+| `secure_headers(csp="default-src 'self'", hsts=False, frame='DENY', referrer='strict-origin-when-cross-origin', permissoes='geolocation=(), microphone=(), camera=()')` |
 | `serve(app, porta=8080, host='127.0.0.1')` |
 | `session_end(app, req, resp)` |
 | `session_start(app, req, resp, dados=None)` |

@@ -781,6 +781,101 @@ class ArcaneKiln:
             return None
         return middleware
 
+    #: Os metodos que NAO mudam estado. O CSRF nao os cobra: exigir
+    #: token num GET nao protege nada e quebra todo link do site.
+    SEGUROS = ("GET", "HEAD", "OPTIONS", "TRACE")
+
+    @staticmethod
+    def _secure_headers(csp="default-src 'self'", hsts=False,
+                        frame="DENY", referrer="strict-origin-when-cross-origin",
+                        permissoes="geolocation=(), microphone=(), camera=()"):
+        """Os cabecalhos que o navegador so respeita se voce mandar.
+
+        Nenhum deles e ligado por padrao pelo servidor: sem estes, uma
+        pagina do seu site pode ser posta num <iframe> de outro
+        (clickjacking), e um .txt com HTML dentro pode ser executado
+        como pagina (sniffing de tipo).
+
+        HSTS fica DESLIGADO por padrao, e isso e deliberado. Ele diz ao
+        navegador "so me acesse por https, pelos proximos meses" — e o
+        navegador OBEDECE, mesmo que o https ainda nao exista. Mandado
+        cedo demais, ele tira o site do ar para quem ja o visitou, e
+        nao ha como voltar atras a tempo. Ligue quando o certificado
+        estiver de pe.
+        """
+        cabecalhos = {
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": frame,
+            "Referrer-Policy": referrer,
+            "Content-Security-Policy": csp,
+            "Permissions-Policy": permissoes,
+        }
+        if hsts:
+            cabecalhos["Strict-Transport-Security"] = \
+                "max-age=31536000; includeSubDomains"
+
+        def depois(req, resp):
+            # setdefault: a rota manda mais que o padrao. Uma pagina que
+            # precisa ser embutida ja declarou o seu X-Frame-Options, e
+            # sobrescreve-lo aqui quebraria justamente o caso pensado.
+            for chave, valor in cabecalhos.items():
+                resp["headers"].setdefault(chave, valor)
+            return resp
+        return depois
+
+    @staticmethod
+    def _csrf(segredo, campo="_csrf", cabecalho="X-CSRF-Token"):
+        """Recusa POST/PUT/PATCH/DELETE sem um token que voce assinou.
+
+        O ataque: voce esta logado no seu banco, abre outra aba num site
+        qualquer, e um <form> escondido dela dispara um POST para o
+        banco. O navegador manda o seu cookie junto — porque o cookie e
+        do banco, e o pedido vai para o banco. Do lado do servidor, o
+        pedido parece seu.
+
+        O token quebra isso porque o site atacante nao consegue LE-LO:
+        ele esta na sua pagina, e a politica de mesma origem impede que
+        outro site a leia. Sem poder ler, nao ha como reenviar.
+
+        A checagem e por assinatura HMAC, nao por sessao guardada: o
+        servidor confere que ELE emitiu o token, sem precisar lembrar
+        de cada um. E o que faz isto funcionar com varios processos.
+        """
+        def middleware(req):
+            if req["method"] in ArcaneKiln.SEGUROS:
+                return None
+            # Os cabecalhos chegam em minusculas; o corpo e o que um
+            # <form> comum manda, que nao consegue por cabecalho nenhum.
+            cabs = req.get("headers") or {}
+            enviado = cabs.get(cabecalho.lower()) or cabs.get(cabecalho)
+            if not enviado:
+                corpo = req.get("body")
+                if isinstance(corpo, dict):
+                    enviado = corpo.get(campo)
+            if not enviado or _conferir(enviado, segredo) is None:
+                return resposta(
+                    {"erro": "token CSRF ausente ou inválido",
+                     "dica": f"mande-o no cabeçalho '{cabecalho}' "
+                             f"ou no campo '{campo}'"}, 403)
+            return None
+        return middleware
+
+    @staticmethod
+    def _csrf_token(req, segredo=None):
+        """Um token para pôr no formulário ou no fetch.
+
+        Ele carrega a hora de emissão: dois tokens seguidos são
+        diferentes, e um vazamento em log não vale para sempre.
+        """
+        chave = segredo or req.get("state", {}).get("csrf_segredo")
+        if chave is None:
+            chave = req["state"].get("__csrf__")
+        if chave is None:
+            raise ValueError(
+                "csrf_token precisa do segredo: use Kiln.csrf(segredo) "
+                "como middleware, ou passe o segredo aqui")
+        return _assinar({"t": int(time.time())}, chave)
+
     @staticmethod
     def _guard(condicao, status=403, mensagem="sem permissão"):
         """Middleware a partir de uma condicao qualquer."""
@@ -978,6 +1073,19 @@ class ArcaneKiln:
             resp = _processar(app, req)
         except Exception as erro:
             resp = _resposta_de_erro(app, req, erro)
+
+        # A cadeia de saida tambem. Sem isto, 'Kiln.test' pulava TODO o
+        # middleware registrado com 'after' — cabecalhos de seguranca,
+        # compressao, metricas — e um teste passava sobre uma resposta
+        # que o servidor de verdade nunca devolve. Um teste que mente e
+        # pior que teste nenhum.
+        for depois in app.depois:
+            try:
+                trocada = depois(req, resp)
+                if isinstance(trocada, dict) and trocada.get("__kiln__"):
+                    resp = trocada
+            except Exception:
+                pass        # middleware de saida nao derruba a resposta
         corpo = resp["body"]
         # Um arquivo servido do disco volta em bytes. Num teste isso
         # obriga a decodificar a mao toda vez; quando o tipo e textual,
@@ -1023,6 +1131,10 @@ class ArcaneKiln:
             "rate_limit": cls._rate_limit,
             "auth": cls._auth,
             "guard": cls._guard,
+            "secure_headers": cls._secure_headers,
+            "cabecalhos_seguros": cls._secure_headers,
+            "csrf": cls._csrf,
+            "csrf_token": cls._csrf_token,
 
             # respostas
             "json": cls._json,
