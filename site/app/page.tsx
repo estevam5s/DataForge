@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { NavSite } from '@/components/landing/NavSite';
 import { Heroi } from '@/components/landing/Heroi';
 import { Pilares } from '@/components/landing/Pilares';
 import { Manifesto } from '@/components/landing/Manifesto';
@@ -18,6 +19,10 @@ export const metadata: Metadata = {
 export default function Landing() {
   return (
     <div className="lp">
+      {/* Filha DIRETA de '.lp': o sticky de um elemento so gruda dentro
+          da caixa do pai, e dentro do <Heroi> ele parava no fim do
+          hero. Aqui o pai e a pagina inteira. */}
+      <NavSite />
       <Heroi />
       <Pilares />
       <Manifesto />

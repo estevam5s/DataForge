@@ -443,8 +443,14 @@ def test_o_favicon_tem_um_desenho_por_tamanho():
     O PIL, ao salvar ICO com `sizes`, grava UMA imagem e reduz para as
     outras — e a versão pequena vira o borrão que a simplificação
     existe para evitar. Por isso o .ico é escrito à mão.
+
+    O Pillow é dependência de desenvolvimento (`pip install -e .[dev]`),
+    não do runtime: quem só roda DataForge não precisa dele. Sem ele
+    instalado o teste diz isso, em vez de estourar um ImportError que
+    parece defeito do repositório.
     """
-    from PIL import Image
+    Image = pytest.importorskip(
+        "PIL.Image", reason="o favicon é conferido com Pillow: pip install -e '.[dev]'")
 
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     caminho = os.path.join(raiz, "site", "app", "favicon.ico")

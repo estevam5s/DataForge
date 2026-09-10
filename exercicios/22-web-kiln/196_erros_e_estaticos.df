@@ -7,6 +7,7 @@
 adopt Kiln
 adopt Arcane.IO as IO
 
+IO.mkdir("/tmp/kilnviews")          // sem isto, so roda se a pasta ja existir
 IO.write_file("/tmp/kilnviews/estilo.css", "body { font: 16px system-ui }")
 
 server site on 0:

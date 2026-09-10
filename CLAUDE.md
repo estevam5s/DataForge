@@ -58,9 +58,12 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                22 módulos (753 símbolos), incluindo:
+  stdlib/                29 módulos (1016 símbolos), incluindo:
+    catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (46 símbolos)
     arcane_excel.py      planilhas .xlsx, sem dependência externa (29)
+    arcane_arquivo_seguro.py  cofre de arquivo + zip/tar seguro (56)
+    cifra.py             ChaCha20-Poly1305 puro (RFC 8439)
 
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
@@ -397,8 +400,14 @@ print('ok')"
 python3 tools/gerar_doc_stdlib.py
 ```
 
-Ao criar um módulo novo, adicione-o em `stdlib/__init__.py` **e** no dicionário
-`DESCRICOES` de `tools/gerar_doc_stdlib.py`.
+Ao criar um módulo novo, registre-o em `stdlib/__init__.py` **e** descreva-o no
+`DESCRICOES` de `stdlib/catalogo.py` — daí saem a doc em Markdown, os dados do
+site e a tabela de `/docs/biblioteca`. A tabela já esteve escrita em três lugares,
+e os três divergiram.
+
+Os apelidos (`Zip`, `Cor`, `Banco`) são traduzidos para o nome oficial por
+`_CANONICO` antes do carimbo de `__name__`: o mesmo módulo precisa se chamar
+`Arcane.Archive` venha por `Zip`, por `Archive` ou pelo nome inteiro.
 
 ---
 

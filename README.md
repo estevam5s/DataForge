@@ -1,19 +1,38 @@
 <div align="center">
 
+<img src="site/public/marca-favicon.svg" alt="DataForge" width="120" height="120">
+
 # DataForge
+
+**Uma linguagem de programação interpretada, de propósito geral,
+com vocabulário próprio.**
+
+<sub>
+
+`Python 3.10+` · `sem dependências no runtime` · `Next.js 15` · `React 19` ·
+`TypeScript` · `Tailwind CSS` · `Supabase` · `SQLite` · `Docker` · `Vercel`
+
+</sub>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/estevam5s/DataForge)
-[![Tests](https://img.shields.io/badge/testes-240%20passando-brightgreen.svg)](tests/)
-[![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-180%2F180-brightgreen.svg)](exercicios/)
+[![Tests](https://img.shields.io/badge/testes-1012%20passando-brightgreen.svg)](tests/)
+[![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-216%2F216-brightgreen.svg)](exercicios/)
+[![Runtime deps](https://img.shields.io/badge/depend%C3%AAncias%20no%20runtime-nenhuma-brightgreen.svg)](pyproject.toml)
 
-**Uma linguagem de programação com vocabulário próprio, tipos verificados,
-pattern matching estrutural, pipelines nativos, um framework web próprio
-e 22 módulos de biblioteca
-padrão — escrita em Python puro, sem dependências.**
+DataForge não é um DSL nem um transpilador. Tem **lexer, parser recursivo
+descendente, AST tipada, analisador estático e interpretador de árvore
+próprios**, escritos em Python puro — um programa `.df` roda em qualquer
+máquina com Python 3.10+, sem `pip install` de mais nada.
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [216 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
+Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
+generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
+pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
+testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
+(**Forge**) e **29 módulos** de biblioteca padrão com **1016 símbolos**.
+
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [216 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
@@ -80,7 +99,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 22 módulos com 753 símbolos + 225 funções globais |
+| **Bateria inclusa** | 29 módulos com 1016 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -302,6 +321,10 @@ out sacar(conta, 30)
 
 monitor:
     sacar(conta, 9999)
+handle SaldoInsuficienteError:
+    out "sem saldo"
+handle KeyError as e:
+    out $"conta inexistente: {e.message}"
 handle e:
     out $"{e.type}: {e.message}"
 ensure:
@@ -386,10 +409,11 @@ relay somar                            # controla o que este módulo exporta
 | `match/case` | `match` / `point` / `when` | | `try/catch/finally` | `monitor/handle/ensure` |
 | `for` | `cycle` | | `throw` | `trigger` |
 | `while` | `persist` | | `true/false/null` | `yes/no/void` |
-| `break`/`continue` | `halt`/`skip` | | `??` / `?.` / `in` | iguais |
-| `def` / `return` | `action` / `yield` | | spread `...` | igual |
+| `break`/`continue` | `halt`/`skip` | | `??` / `?.` / `in` / `is not` | iguais |
+| `def` / `return` | `action` / `yield` | | `==` / `!=` | `is` / `isnt` |
 | generator | `stream action` / `emit` | | `filter/map/reduce` | `>> sift/morph/distill` |
 | list comprehension | `[e cycle x in f given c]` | | `//` (div. inteira) | **`~/`** |
+| spread / rest `...` | igual | | decorador | `mark @nome` |
 
 ---
 
@@ -567,7 +591,7 @@ no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas.
 |---------|---------|
 | [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
 | [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 22 módulos |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 29 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
 | [**exercicios/**](exercicios/) | 216 exercícios; os módulos 11-26 com `.md` explicativo |
@@ -614,7 +638,7 @@ sugestões.
 ```bash
 pip install -e ".[dev]"
 
-python3 -m pytest tests/ -q       # 240 testes
+python3 -m pytest tests/ -q       # 1012 testes
 python3 exercicios/run_all.py     # 216 exercícios
 ```
 
@@ -640,8 +664,8 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/testrunner.py` | `dataforge test` | 194 |
 | `dataforge/docgen.py` | `dataforge doc` | 218 |
 | `dataforge/project.py` | `forge.toml` | 184 |
-| `dataforge/builtins.py` | 225 funções globais | 1224 |
-| `dataforge/stdlib/` | os 22 módulos, incluindo o Kiln | 8200 |
+| `dataforge/builtins.py` | 228 funções globais | 1224 |
+| `dataforge/stdlib/` | os 29 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
 
 ---
 
@@ -649,11 +673,11 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 
 | Verificação | Resultado |
 |-------------|-----------|
-| Testes unitários | 272 passando |
-| Exercícios | 180/180 |
+| Testes unitários | 1012 passando |
+| Exercícios | 216/216 |
 | Exemplos | 42/42 |
-| Módulos da stdlib | 20/20 carregam |
-| Pacotes do registro | 4, com 46 testes |
+| Módulos da stdlib | 29/29 carregam |
+| Pacotes do registro | 20 no registro, 4 escritos em DataForge com 46 testes |
 | Análise estática sobre o repositório | 0 erros em 233 arquivos |
 | Instalação via pip, curl e Docker | funciona |
 

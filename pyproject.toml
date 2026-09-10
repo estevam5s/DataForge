@@ -24,7 +24,9 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0"]
+# Pillow nao entra no runtime: ele so serve a 'tools/vetorizar_logo.py',
+# que desenha o favicon e os icones, e ao teste que confere o resultado.
+dev = ["pytest>=7.0", "Pillow>=10.0"]
 
 [project.urls]
 Homepage = "https://github.com/estevam5s/DataForge"
