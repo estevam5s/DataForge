@@ -6,6 +6,8 @@
 // pode mexer nos numeros e ver o total mudar sozinho.
 
 adopt Arcane.Excel as Xls
+adopt Arcane.OS as OS
+adopt Arcane.IO as IO
 
 itens := [
     {"produto": "Martelo", "qtd": 12, "preco": 89.9},
@@ -33,10 +35,10 @@ Xls.sheet(livro, "Resumo", [
         ["unidades", [i["qtd"] cycle i in itens] >> distill a, v:a + v 0]
 ])
 
-Xls.save(livro, "/tmp/relatorio.xlsx")
+Xls.save(livro, IO.join(OS.temp_dir(), "relatorio.xlsx"))
 out "relatorio com", len(Xls.sheets(livro)), "abas"
 
-lido := Xls.read("/tmp/relatorio.xlsx")
+lido := Xls.read(IO.join(OS.temp_dir(), "relatorio.xlsx"))
 vendas := Xls.sheet(lido, "Vendas")
 
 out "abas:", Xls.sheets(lido)

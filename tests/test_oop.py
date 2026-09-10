@@ -415,9 +415,20 @@ out {palavra}(21)
 
 # ─── Qualidade das mensagens de erro ───────────────────────
 
-def render_de(fonte, arquivo="/tmp/df_erro_teste.df"):
+def _arquivo_de_teste():
+    """Um caminho gravavel em qualquer sistema.
+
+    '/tmp' nao existe no Windows — o teste escrevia e falhava ali por
+    um motivo que nada tem a ver com o que ele mede.
+    """
+    import tempfile
+    return os.path.join(tempfile.gettempdir(), "df_erro_teste.df")
+
+
+def render_de(fonte, arquivo=None):
     """Roda esperando erro; devolve o relatorio renderizado, sem cor."""
     import pathlib
+    arquivo = arquivo or _arquivo_de_teste()
     pathlib.Path(arquivo).write_text(fonte, encoding="utf-8")
     with pytest.raises(DataForgeError) as exc:
         Interpreter().run(parse(tokenize(fonte, arquivo), arquivo), arquivo)

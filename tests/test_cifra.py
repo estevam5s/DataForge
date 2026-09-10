@@ -267,6 +267,13 @@ class TestArquivosCompactados:
 
         with pytest.raises(UnsafeArchiveError):
             ARCHIVE["extrair"](str(z), str(tmp_path / "d"))
+        # O caminho absoluto dentro do zip continua sendo '/tmp/...' —
+        # ele e o ataque. Mas a CONFERENCIA usa o temporario real do
+        # sistema: '/tmp' nao existe no Windows, e o teste passaria
+        # ali por acidente, provando nada.
+        import tempfile
+        assert not os.path.exists(
+            os.path.join(tempfile.gettempdir(), "df-invadido.txt"))
         assert not os.path.exists("/tmp/df-invadido.txt")
 
     def test_zip_bomb_e_recusada(self, tmp_path):

@@ -9,9 +9,10 @@
 
 adopt Kiln
 adopt Arcane.IO as IO
+adopt Arcane.OS as OS
 
 // escreve o template no disco para o exercicio ser auto-contido
-pasta := "/tmp/kilnviews"
+pasta := IO.join(OS.temp_dir(), "kilnviews")
 IO.mkdir(pasta)  // sem isto, so roda se a pasta ja existir
 IO.write_file(pasta + "/lista.html", """<!doctype html>
 <title>{{titulo}}</title>

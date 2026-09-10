@@ -6,6 +6,8 @@
 // LibreOffice e no Google Sheets.
 
 adopt Arcane.Excel as Xls
+adopt Arcane.OS as OS
+adopt Arcane.IO as IO
 
 vendas := [
     {"produto": "Martelo", "qtd": 12, "preco": 89.9},
@@ -15,10 +17,10 @@ vendas := [
 
 // Quando os dados sao vaults, o cabecalho sai das chaves — em negrito,
 // com a primeira linha congelada e a largura ajustada ao conteudo.
-Xls.quick("/tmp/vendas.xlsx", vendas, "Vendas")
+Xls.quick(IO.join(OS.temp_dir(), "vendas.xlsx"), vendas, "Vendas")
 out "planilha gravada"
 
-livro := Xls.read("/tmp/vendas.xlsx")
+livro := Xls.read(IO.join(OS.temp_dir(), "vendas.xlsx"))
 out "abas:", Xls.sheets(livro)
 out "tamanho:", Xls.dims(livro, "Vendas")
 

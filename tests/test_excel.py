@@ -246,7 +246,7 @@ def test_planilha_vira_frame_de_analise(xls, tmp_path):
 
 def test_arquivo_ausente_diz_o_nome(xls):
     with pytest.raises(FileNotFoundError, match="não encontrada"):
-        xls["read"]("/tmp/nao/existe/isso.xlsx")
+        xls["read"](os.path.join("nao", "existe", "isso.xlsx"))
 
 
 # ── describe(frame): o bug que motivou a correcao ────────────

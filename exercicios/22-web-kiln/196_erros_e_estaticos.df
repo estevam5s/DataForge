@@ -6,12 +6,13 @@
 
 adopt Kiln
 adopt Arcane.IO as IO
+adopt Arcane.OS as OS
 
-IO.mkdir("/tmp/kilnviews")  // sem isto, so roda se a pasta ja existir
-IO.write_file("/tmp/kilnviews/estilo.css", "body {font: 16px system-ui}")
+IO.mkdir(IO.join(OS.temp_dir(), "kilnviews"))  // sem isto, so roda se a pasta ja existir
+IO.write_file(IO.join(OS.temp_dir(), "kilnviews", "estilo.css"), "body {font: 16px system-ui}")
 
 server site on 0:
-    assets "/static" from "/tmp/kilnviews"
+    assets "/static" from IO.join(OS.temp_dir(), "kilnviews")
 
     route GET "/":
         respond html "<h1>Inicio</h1>"

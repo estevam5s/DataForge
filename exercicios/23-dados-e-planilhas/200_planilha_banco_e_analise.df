@@ -8,6 +8,8 @@
 adopt Arcane.Database as DB
 adopt Arcane.Analytics as An
 adopt Arcane.Excel as Xls
+adopt Arcane.OS as OS
+adopt Arcane.IO as IO
 
 // ── 1. o banco ──
 banco := DB.connect(":memory:")
@@ -66,11 +68,11 @@ Xls.sheet(livro, "Estatisticas", [
         ["correlacao", round(correlacao, 3)]
 ])
 
-Xls.save(livro, "/tmp/analise.xlsx")
+Xls.save(livro, IO.join(OS.temp_dir(), "analise.xlsx"))
 out "planilha com", len(Xls.sheets(livro)), "abas gravada"
 
 // e a prova de que tudo chegou inteiro
-conferencia := Xls.read("/tmp/analise.xlsx")
+conferencia := Xls.read(IO.join(OS.temp_dir(), "analise.xlsx"))
 assert Xls.sheets(conferencia) is ["Vendas", "Estatisticas"], "as duas abas"
 // Seis registros, nao cinco: a linha TOTAL tambem e uma linha. Uma
 // planilha para humanos e uma tabela para maquinas nao sao a mesma

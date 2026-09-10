@@ -74,16 +74,24 @@ jobs:
 
       - name: o proprio codigo passa nas proprias ferramentas
         run: |
-          python -m dataforge check exercicios/ examples/
-          python -m dataforge fmt exercicios/ --check
+          python -m dataforge check exercicios/ examples/ packages/
+          python -m dataforge fmt exercicios/ examples/ packages/ projetos/ --check
           python -m dataforge lint exercicios/
 
       - name: os projetos completos
         shell: bash
         run: |
+          # 'forge_modules/' nao e versionado — cada projeto resolve as
+          # proprias dependencias a partir do registro que vive em
+          # 'site/public/registry/'. Sem o 'install', tres dos quatro
+          # projetos nao acham os pacotes que declaram no forge.toml.
           for p in projetos/*/; do
             [ -d "$p/tests" ] || continue
-            (cd "$p" && python -m dataforge test tests/) || exit 1
+            (
+              cd "$p"
+              [ -f forge.toml ] && python -m dataforge install
+              python -m dataforge test tests/
+            ) || exit 1
           done
 
   # ── O que e gerado precisa bater com o gerador ──
