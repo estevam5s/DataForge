@@ -314,3 +314,31 @@ def test_fix_formata_de_verdade_sem_dry_run():
         codigo, _ = _rodar_cli("fix", pasta)
         assert codigo == 0
         assert open(caminho, encoding="utf-8").read() != 'x:=1\nout    x\n'
+
+
+def test_nenhum_modelo_crava_caminho_de_um_sistema_so():
+    """O modelo 'data' gravava o banco em '/tmp/prova.db'.
+
+    Funcionava no Mac e no Linux e falhava no Windows, que não tem essa
+    pasta. O primeiro programa que alguém roda na linguagem não é lugar
+    de aprender isso — e um modelo é copiado, então o erro se
+    multiplica.
+
+    A forma certa é `IO.join(OS.temp_dir(), ...)`, que pergunta ao
+    sistema.
+    """
+    ruins = []
+    for chave, modelo in sorted(MODELOS.items()):
+        for nome, conteudo in modelo.get("files", {}).items():
+            if not isinstance(conteudo, str):
+                continue
+            for numero, linha in enumerate(conteudo.split("\n"), 1):
+                if linha.lstrip().startswith("//"):
+                    continue
+                for cravado in ('"/tmp/', "'/tmp/", '"/var/', '"/usr/',
+                                '"C:\\\\', '"/home/', '"~/'):
+                    if cravado in linha:
+                        ruins.append(f"{chave}/{nome}:{numero}: {linha.strip()}")
+    assert not ruins, (
+        "modelo com caminho de um sistema só — use IO.join(OS.temp_dir(), …):\n"
+        + "\n".join(ruins))

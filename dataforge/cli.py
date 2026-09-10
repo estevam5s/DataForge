@@ -19,6 +19,7 @@ from .errors import DataForgeError
 # A marca no terminal vem de dataforge/marca.py, que a gera de logo.png.
 # Escrever o nome em ASCII era o que se fazia antes de a linguagem ter
 # uma marca — agora ela tem, e a CLI mostra a mesma do site.
+from . import marca
 from .marca import marca_colorida as _marca
 
 
@@ -2849,6 +2850,13 @@ def editor_command(args, flags=()):
 
 def main():
     """Main CLI entry point."""
+    # Antes de qualquer coisa: garantir que o terminal aceita o que a
+    # CLI desenha. No Windows, a saida redirecionada para um cano vem em
+    # 'cp1252', que nao tem nenhum dos tracos das tabelas — e a metade
+    # dos comandos morria com UnicodeEncodeError antes de imprimir a
+    # primeira linha util.
+    marca.preparar_saida()
+
     # Tudo depois de '--' pertence ao programa, nao ao dataforge.
     # Sem esta separacao, 'dataforge run app.df -- --porta 8080' faria o
     # proprio dataforge tentar entender '--porta'.

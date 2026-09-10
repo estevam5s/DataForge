@@ -2042,3 +2042,98 @@ def test_todo_arquivo_python_compila_na_versao_minima():
                        capture_output=True, text=True, timeout=180)
     ruins = [linha for linha in r.stdout.split("\n") if linha.strip()]
     assert not ruins, f"não compila em Python {minima}: {ruins}"
+
+
+# ── A CLI num terminal que nao fala UTF-8 ────────────────────
+
+def test_a_amostra_de_encoding_reprova_cp1252():
+    """'cp1252' e o que o Windows da a uma saida redirecionada.
+
+    E ela nao tem nenhum dos tracos que a CLI usa para desenhar tabela.
+    """
+    from dataforge import marca
+
+    assert marca._cabe(_FluxoFalso("utf-8"))
+    assert not marca._cabe(_FluxoFalso("cp1252"))
+    assert not marca._cabe(_FluxoFalso("cp850"))
+    assert not marca._cabe(_FluxoFalso("ascii"))
+    # Um fluxo sem codificacao declarada (substituto de teste, bytes)
+    # nao e problema nosso.
+    assert marca._cabe(_FluxoFalso(None))
+
+
+class _FluxoFalso:
+    """Um destino de texto com codificacao fixa e sem 'reconfigure'."""
+
+    def __init__(self, encoding):
+        self.encoding = encoding
+        self.escrito = []
+
+    def write(self, texto):
+        if self.encoding:
+            # O ponto do teste: um destino de verdade recusaria.
+            texto.encode(self.encoding)
+        self.escrito.append(texto)
+        return len(texto)
+
+
+def test_saida_traduz_o_desenho_quando_nao_da_para_reconfigurar():
+    """Sem UTF-8 possivel, a tabela vira ASCII em vez de estourar.
+
+    'errors=replace' devolveria uma fileira de '?' no lugar da tabela e
+    'backslashreplace' devolveria '\\u2500', que e pior de ler que o
+    traco que substitui.
+    """
+    from dataforge import marca
+
+    falso = _FluxoFalso("cp1252")
+    original = sys.stdout
+    sys.stdout = falso
+    try:
+        marca.preparar_saida()
+        # Nao explode — era isto que quebrava no Windows.
+        sys.stdout.write("─" * 3 + " ✓ pronto → 100% █")
+        escrito = "".join(falso.escrito)
+    finally:
+        sys.stdout = original
+
+    assert escrito == "--- v pronto -> 100% #"
+
+
+def test_a_cli_inteira_roda_com_a_saida_em_cp1252():
+    """O teste que teria apanhado o bug: a CLI num cano do Windows.
+
+    Metade dos comandos morria com UnicodeEncodeError antes de imprimir
+    a primeira linha util — 'help', 'check', 'lint', 'stats' e
+    'run --time'. Nao era o comando que falhava: era o traco do
+    cabecalho que nao cabia no cano.
+
+    Reproduzir isto no Linux e no macOS exige forcar a codificacao pela
+    variavel de ambiente; e o que o Windows faz sozinho.
+    """
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ambiente = {**os.environ, "PYTHONIOENCODING": "cp1252",
+                "PYTHONPATH": raiz, "NO_COLOR": "1"}
+    pasta = os.path.join(raiz, "exercicios", "01-fundamentos")
+
+    comandos = [
+        ["help"],
+        ["version"],
+        ["check", pasta],
+        ["lint", pasta],
+        ["stats", pasta],
+        ["fmt", pasta, "--check"],
+    ]
+    for comando in comandos:
+        r = subprocess.run([sys.executable, "-m", "dataforge"] + comando,
+                           cwd=raiz, capture_output=True, env=ambiente,
+                           timeout=120)
+        erro = r.stderr.decode("utf-8", errors="replace")
+        assert "UnicodeEncodeError" not in erro, (
+            f"'dataforge {' '.join(comando)}' nao sobrevive a uma saida "
+            f"em cp1252:\n{erro[-600:]}")
+        assert r.returncode == 0, (
+            f"'dataforge {' '.join(comando)}' saiu {r.returncode}:\n"
+            f"{erro[-600:]}")

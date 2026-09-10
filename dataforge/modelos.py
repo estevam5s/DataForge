@@ -575,9 +575,15 @@ relay abrir, semear, todas, por_regiao
 adopt Arcane.Analytics as An
 adopt Arcane.Excel as Xls
 adopt Arcane.Database as DB
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
 adopt dados as D
 
-steady BANCO := "/tmp/{name}.db"
+// A pasta temporaria vem do sistema. Cravar "/tmp" faz o modelo
+// funcionar no Mac e no Linux e falhar no Windows, que nao tem essa
+// pasta — e o primeiro programa que alguem roda nao e lugar de
+// aprender isso do jeito dificil.
+steady BANCO := IO.join(OS.temp_dir(), "{name}.db")
 steady SAIDA := "relatorio.xlsx"
 
 conexao := D.abrir(BANCO)
