@@ -515,6 +515,23 @@ monitor ":" bloco
   erro subir.
 - Com `handle Tipo as e`, só erros daquele tipo são capturados; os demais sobem.
 - `Error`, `Exception` e `Any` capturam qualquer erro.
+- **Vários `handle` são permitidos**, um por tipo. Vence o **primeiro que
+  casar** — a ordem importa, como nos `point` de um `match`:
+
+```dataforge
+monitor:
+    valor := vault[chave] / divisor
+handle KeyError:
+    valor := 0
+handle DivisionByZeroError as e:
+    out e.message
+    valor := 0
+handle Error as e:
+    propagate
+```
+
+  Um `handle` que captura tudo torna inalcançável todo `handle` abaixo dele;
+  `dataforge check` avisa.
 
 ### 8.2 Objeto de erro
 
@@ -899,7 +916,8 @@ laço           = "cycle" identificador "from" expressão "to" expressão
                | "perform" ":" bloco "persist" expressão ;
 
 bloco_erro     = "monitor" ":" bloco
-                 [ "handle" [ identificador "as" ] identificador ":" bloco ]
+                 { "handle" [ tipo [ "as" identificador ] | identificador ]
+                   ":" bloco }
                  [ "ensure" ":" bloco ]
                | "retry" expressão ":" bloco
                  [ ( "handle" | "recover" ) [ identificador ] ":" bloco ]

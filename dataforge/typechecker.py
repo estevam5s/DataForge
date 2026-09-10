@@ -212,6 +212,10 @@ class TypeChecker:
 
         return _Contexto()
 
+    #: Nomes que capturam qualquer erro. A mesma lista do interpretador
+    #: (Interpreter._CAPTURA_TUDO); se uma mudar, a outra precisa mudar.
+    CAPTURA_TUDO = frozenset({"Error", "Exception", "Any", "DataForgeError"})
+
     def error(self, mensagem, node, hint="", code=""):
         severidade = 'warning' if self._demote else 'error'
         if severidade == 'warning':
@@ -564,10 +568,25 @@ class TypeChecker:
         # atribuida dentro do monitor continua existindo depois dele.
         with self._demoted():
             self.visit_block(node.body, escopo)
-        if node.handle_body:
+        pega_tudo = False
+        for clausula in node.handles:
+            # Um 'handle' sem tipo — ou com 'Error' — captura qualquer
+            # coisa, e torna inalcancavel todo 'handle' abaixo dele. E a
+            # mesma armadilha da ordem dos 'point' num match, e vira
+            # aviso pelo mesmo motivo que codigo inalcancavel: o
+            # programa roda, so tem um bloco que nunca executa.
+            if pega_tudo:
+                self.warn(
+                    "Unreachable 'handle': the one above catches every error",
+                    clausula,
+                    "Put the specific error types first and the catch-all last",
+                    "unreachable")
+            if not clausula.error_type or clausula.error_type in self.CAPTURA_TUDO:
+                pega_tudo = True
             # o nome do erro existe so aqui; o resto compartilha o escopo
-            escopo.declare(node.handle_name, "Error", node.line, node.column)
-            self.visit_block(node.handle_body, escopo)
+            escopo.declare(clausula.error_name, "Error",
+                           clausula.line, clausula.column)
+            self.visit_block(clausula.body, escopo)
         if node.ensure_body:
             self.visit_block(node.ensure_body, Scope(escopo))
         return False

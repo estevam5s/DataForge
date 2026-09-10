@@ -3565,24 +3565,24 @@ class Interpreter:
             return self.exec_block(node.body, env)
         except Exception as e:
             # A 'monitor' with no 'handle' is a try/finally: never swallow the error.
-            if not node.handle_body:
-                raise
-            if not self._error_matches(e, node.handle_type, env):
+            clausula = next((h for h in node.handles
+                             if self._error_matches(e, h.error_type, env)), None)
+            if clausula is None:
                 raise
             # O 'handle' roda no escopo de fora, para que o que ele
             # atribui continue valendo — mas o nome do erro nao vaza:
             # ele e removido no fim, ou devolvido ao valor anterior se
             # ja existia um nome igual.
-            tinha = node.handle_name in env.variables
-            anterior = env.variables.get(node.handle_name)
-            env.set_local(node.handle_name, self._error_value(e))
+            tinha = clausula.error_name in env.variables
+            anterior = env.variables.get(clausula.error_name)
+            env.set_local(clausula.error_name, self._error_value(e))
             try:
-                return self.exec_block(node.handle_body, env)
+                return self.exec_block(clausula.body, env)
             finally:
                 if tinha:
-                    env.variables[node.handle_name] = anterior
+                    env.variables[clausula.error_name] = anterior
                 else:
-                    env.variables.pop(node.handle_name, None)
+                    env.variables.pop(clausula.error_name, None)
         finally:
             if node.ensure_body:
                 self.exec_block(node.ensure_body, env.child("<ensure>"))

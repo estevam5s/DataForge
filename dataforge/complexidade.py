@@ -518,6 +518,8 @@ class Analisador:
         if isinstance(no, ast.MonitorBlock):
             pior = self._bloco(no.body)
             pior = pior.maior(self._bloco(getattr(no, "handle_body", [])))
+            for clausula in getattr(no, "handles", []) or []:
+                pior = pior.maior(self._bloco(clausula.body))
             return pior.maior(self._bloco(getattr(no, "ensure_body", [])))
 
         if isinstance(no, ast.RetryBlock):

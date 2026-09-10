@@ -29,6 +29,20 @@ sempre roda`, lang: 'text', title: `saída` },
 handle RuntimeError as e:
     out $"só pego erro de execução: {e.message}"` },
   {"p": "Se o erro não casar com o tipo, ele **continua subindo** — não é capturado ali. Os tipos disponíveis estão em [Hierarquia de erros](/docs/referencia/erros)."},
+  {"h3": "Vários handle"},
+  {"p": "Um `monitor` aceita uma cláusula por tipo de erro. Vence a **primeira que casar** — a ordem importa, como nos `point` de um `match`:"},
+  { code: `action ler(vault, chave, divisor):
+    monitor:
+        yield vault[chave] / divisor
+    handle KeyError:
+        yield 0
+    handle DivisionByZeroError as e:
+        out e.message
+        yield 0
+    handle Error as e:
+        propagate` },
+  {"p": "Sem isso, tratar dois erros de formas diferentes obrigava a capturar `Error` e despachar na mão com um `match e.type` — que é exatamente o que o `handle` tipado existe para evitar."},
+  {"callout": {"tipo": "atencao", "titulo": "Do específico para o geral", "texto": "Um `handle` sem tipo (ou com `Error`) captura tudo e torna **inalcançável** todo `handle` abaixo dele. O `dataforge check` avisa, mas o programa roda mesmo assim — com um bloco que nunca executa."}},
   {"h2": "Lançar"},
   {"table": {"head": ["Forma", "Efeito"], "rows": [["`trigger <expr>`", "lança `TriggerError` com a mensagem"], ["`guard <cond>, <msg>`", "lança se a condição for falsa"], ["`guard <cond> otherwise: bloco`", "roda o bloco e **sai da ação**"], ["`validate <expr>, <msg>`", "lança se o valor for falso"], ["`propagate <expr>`", "relança, depois de registrar"], ["`assert <cond>, <msg>`", "lança `RuntimeError_` se falso"]]}},
   { code: `action sacar(conta, valor):

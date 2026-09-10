@@ -138,9 +138,13 @@ class Linter:
         saida = []
         for atributo in ('body', 'else_body', 'handle_body', 'ensure_body',
                          'otherwise_body', 'default_body', 'blocks'):
+            # 'handle_body' continua na lista pelo 'retry', que tem uma
+            # clausula so; o 'monitor' guarda as suas em 'handles'.
             corpo = getattr(node, atributo, None)
             if isinstance(corpo, list) and corpo and isinstance(corpo[0], ast.ASTNode):
                 saida.append(corpo)
+        for clausula in getattr(node, 'handles', []) or []:
+            saida.append(clausula.body)
         for _, corpo in getattr(node, 'orif_blocks', []) or []:
             saida.append(corpo)
         for caso in getattr(node, 'points', []) or []:
@@ -189,6 +193,8 @@ class Linter:
 
         for atributo in ('body', 'else_body', 'handle_body', 'ensure_body',
                          'otherwise_body', 'default_body', 'blocks'):
+            # 'handle_body' continua na lista pelo 'retry', que tem uma
+            # clausula so; o 'monitor' guarda as suas em 'handles'.
             corpo = getattr(node, atributo, None)
             if isinstance(corpo, list) and corpo and isinstance(corpo[0], ast.ASTNode):
                 self._descer(corpo, nomes_externos)

@@ -1886,20 +1886,23 @@ class Parser:
         return ast.PerformBlock(body=body, condition=condition, line=tok.line, column=tok.column)
 
     def parse_monitor(self):
-        """monitor: block [handle [error]: block] [ensure: block]"""
+        """monitor: block {handle [Tipo [as nome] | nome]: block} [ensure: block]"""
         tok = self.advance()  # consume 'monitor'
         self.expect(TokenType.COLON)
         self.match(TokenType.NEWLINE)
         body = self.parse_block()
 
-        handle_name = "error"
-        handle_type = ""
-        handle_body = []
+        handles = []
         ensure_body = []
 
+        # Uma clausula por tipo de erro, na ordem escrita: vence a
+        # primeira que casar. E a mesma regra dos 'point' do match, e
+        # pelo mesmo motivo — do especifico para o geral.
         self.skip_newlines()
-        if self.current().type == TokenType.HANDLE:
-            self.advance()
+        while self.current().type == TokenType.HANDLE:
+            # A posicao e a do 'handle', nao a do 'monitor': um aviso
+            # sobre a clausula precisa sublinhar a clausula.
+            tok_handle = self.advance()
             # handle:  |  handle nome:  |  handle Tipo:  |  handle Tipo as nome:
             #
             # Sem 'as', a inicial decide: 'handle KeyError:' filtra pelo
@@ -1912,20 +1915,25 @@ class Parser:
             # punhado de tipos isso passava; com 177, e uma armadilha:
             # o bloco engole erros sem relacao nenhuma e o programa
             # segue como se nada tivesse acontecido.
+            nome, tipo = "error", ""
             if self.current().type == TokenType.IDENTIFIER:
                 first = self.advance().value
                 if self.match(TokenType.AS):
-                    handle_type = first
-                    handle_name = self.expect(TokenType.IDENTIFIER, "Expected error name after 'as'").value
+                    tipo = first
+                    nome = self.expect(TokenType.IDENTIFIER,
+                                       "Expected error name after 'as'").value
                 elif first[:1].isupper():
-                    handle_type = first
+                    tipo = first
                 else:
-                    handle_name = first
+                    nome = first
             self.expect(TokenType.COLON)
             self.match(TokenType.NEWLINE)
-            handle_body = self.parse_block()
+            corpo = self.parse_block()
+            handles.append(ast.HandleClause(
+                error_type=tipo, error_name=nome, body=corpo,
+                line=tok_handle.line, column=tok_handle.column))
+            self.skip_newlines()
 
-        self.skip_newlines()
         if self.current().type == TokenType.ENSURE:
             self.advance()
             self.expect(TokenType.COLON)
@@ -1933,8 +1941,7 @@ class Parser:
             ensure_body = self.parse_block()
 
         return ast.MonitorBlock(
-            body=body, handle_name=handle_name, handle_type=handle_type,
-            handle_body=handle_body, ensure_body=ensure_body,
+            body=body, handles=handles, ensure_body=ensure_body,
             line=tok.line, column=tok.column
         )
 

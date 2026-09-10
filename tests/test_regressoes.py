@@ -1278,6 +1278,86 @@ def test_is_not_encadeia_como_as_outras_comparacoes():
     assert run("x := 9\nout 1 smaller x is not 9") == "no"
 
 
+def test_monitor_aceita_varios_handle():
+    """Um 'handle' por tipo de erro, como todo try/except tipado.
+
+    O parser aceitava exatamente UM. Com 177 tipos de erro e 'handle'
+    tipado, ter uma só cláusula obriga a capturar 'Error' e despachar
+    na mão — que é justamente o que o handle tipado existe para evitar.
+    """
+    fonte = '''
+action classificar(f):
+    monitor:
+        f()
+    handle DivisionByZeroError:
+        yield "zero"
+    handle KeyError as e:
+        yield "chave"
+    handle Error as e:
+        yield "outro: " + e.type
+
+out classificar(lambda => 1 / 0)
+out classificar(lambda => {"a": 1}["b"])
+out classificar(lambda => trigger "x")
+'''
+    assert run(fonte).splitlines() == ["zero", "chave", "outro: TriggerError"]
+
+
+def test_o_primeiro_handle_que_casa_vence():
+    """A ordem manda, como nos 'point' do match."""
+    fonte = '''
+monitor:
+    1 / 0
+handle Error:
+    out "generico"
+handle DivisionByZeroError:
+    out "especifico"
+'''
+    assert run(fonte) == "generico"
+
+
+def test_varios_handle_com_ensure_e_sem_casar():
+    """O 'ensure' roda; um erro que não casa com nenhum handle sobe."""
+    fonte = '''
+monitor:
+    trigger "x"
+handle DivisionByZeroError:
+    out "zero"
+ensure:
+    out "ensure"
+'''
+    with pytest.raises(DataForgeError):
+        run(fonte)
+
+    # e o ensure roda mesmo assim
+    fonte_ok = '''
+monitor:
+    monitor:
+        trigger "x"
+    handle KeyError:
+        out "nao"
+    ensure:
+        out "ensure"
+handle Error:
+    out "subiu"
+'''
+    assert run(fonte_ok).splitlines() == ["ensure", "subiu"]
+
+
+def test_nome_do_erro_nao_vaza_de_nenhum_handle():
+    fonte = '''
+e := "original"
+monitor:
+    1 / 0
+handle KeyError as e:
+    out "nao"
+handle DivisionByZeroError as e:
+    out e.type
+out e
+'''
+    assert run(fonte).splitlines() == ["DivisionByZeroError", "original"]
+
+
 def test_a_tabela_da_stdlib_no_readme_esta_em_dia():
     """Ela é gerada; o README versionado tem de bater com o gerador.
 

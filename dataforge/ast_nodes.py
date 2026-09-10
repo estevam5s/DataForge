@@ -419,12 +419,29 @@ class StaticDeclaration(ASTNode):
 # ═══════════════════════════════════════════════════════════
 
 @dataclass
-class MonitorBlock(ASTNode):
-    """monitor: / handle: / ensure:"""
+class HandleClause(ASTNode):
+    """Uma clausula 'handle' de um 'monitor'.
+
+    'error_type' vazio captura qualquer erro; 'error_name' e sempre um
+    nome, porque o erro precisa poder ser lido mesmo quando quem
+    escreveu nao pediu um ('handle KeyError:' liga 'error').
+    """
+    error_type: str = ""
+    error_name: str = "error"
     body: list = field(default_factory=list)
-    handle_name: str = ""
-    handle_type: str = ""
-    handle_body: list = field(default_factory=list)
+
+
+@dataclass
+class MonitorBlock(ASTNode):
+    """monitor: / handle: … / ensure:
+
+    'handles' e uma LISTA: um 'monitor' aceita uma clausula por tipo de
+    erro, e vence a primeira que casar. Com uma so, quem quisesse tratar
+    dois erros de formas diferentes tinha de capturar 'Error' e
+    despachar na mao — o que o handle tipado existe para evitar.
+    """
+    body: list = field(default_factory=list)
+    handles: list = field(default_factory=list)
     ensure_body: list = field(default_factory=list)
 
 
