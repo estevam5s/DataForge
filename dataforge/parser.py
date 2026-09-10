@@ -2483,6 +2483,28 @@ class Parser:
         TokenType.LT_EQ: "smaller_eq",
     }
 
+    def _operador_de_comparacao(self):
+        """O operador de comparacao a seguir, ja consumido, ou None.
+
+        'is not' sao dois tokens e UM operador — o mesmo que 'isnt'.
+        Sem tratar o par aqui, ele era lido como 'is' aplicado a
+        '(not x)': '5 is not 3' virava '5 is no' e respondia 'no'.
+        Compilava, rodava, passava no analisador e no lint, e dava a
+        resposta errada em silencio.
+
+        E o mesmo par que 'not in' ja formava logo acima; quem vem do
+        Python escreve os dois sem pensar.
+        """
+        tipo = self.current().type
+        if tipo not in self.COMPARISON_OPS:
+            return None
+        if tipo == TokenType.IS and self.peek().type == TokenType.NOT:
+            self.advance()
+            self.advance()
+            return "isnt"
+        self.advance()
+        return self.COMPARISON_OPS[tipo]
+
     def parse_comparison(self):
         """Comparisons, including chains such as '1 smaller x smaller 10'."""
         left = self.parse_addition()
@@ -2500,19 +2522,19 @@ class Parser:
             return ast.MembershipOp(element=left, container=container, negated=True,
                                     line=left.line, column=left.column)
 
-        if self.current().type not in self.COMPARISON_OPS:
+        op = self._operador_de_comparacao()
+        if op is None:
             return left
 
-        op = self.COMPARISON_OPS[self.current().type]
-        self.advance()
         right = self.parse_addition()
         result = ast.ComparisonOp(left=left, op=op, right=right,
                                   line=left.line, column=left.column)
 
         # Chained comparison: a < b < c  ==>  (a < b) and (b < c)
-        while self.current().type in self.COMPARISON_OPS:
-            op = self.COMPARISON_OPS[self.current().type]
-            self.advance()
+        while True:
+            op = self._operador_de_comparacao()
+            if op is None:
+                break
             next_right = self.parse_addition()
             link = ast.ComparisonOp(left=right, op=op, right=next_right,
                                     line=right.line, column=right.column)

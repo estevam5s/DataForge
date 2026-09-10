@@ -24,7 +24,8 @@ z := 3  // marcar item   # COMENTÁRIO
 w := a // b              # COMENTÁRIO` },
   {"h2": "Comparação"},
   {"p": "Cada operador tem duas grafias, equivalentes. A forma por palavra lê melhor em condições longas; a simbólica é mais compacta."},
-  {"table": {"head": ["Palavra", "Símbolo", "Significado"], "rows": [["`is`", "`==`", "igual"], ["`isnt`", "`!=`", "diferente"], ["`bigger`", "`>`", "maior"], ["`smaller`", "`<`", "menor"], ["`bigger_eq`", "`>=`", "maior ou igual"], ["`smaller_eq`", "`<=`", "menor ou igual"]]}},
+  {"table": {"head": ["Palavra", "Símbolo", "Significado"], "rows": [["`is`", "`==`", "igual"], ["`isnt` / `is not`", "`!=`", "diferente"], ["`bigger`", "`>`", "maior"], ["`smaller`", "`<`", "menor"], ["`bigger_eq`", "`>=`", "maior ou igual"], ["`smaller_eq`", "`<=`", "menor ou igual"]]}},
+  {"callout": {"tipo": "nota", "titulo": "`is not` é um operador só", "texto": "`5 is not 3` é `yes`, igual a `5 isnt 3`. O par é reconhecido junto — como `not in` — porque lê-lo como `is` aplicado a `(not 3)` daria `5 is no`, que é `no` para qualquer número: compilaria, rodaria e responderia errado sem avisar. Para negar de verdade, use parênteses: `5 is (not 3)`."}},
   {"h3": "Comparações encadeadas"},
   {"p": "Funcionam como em matemática — e o termo do meio é avaliado **uma única vez**:"},
   { code: `nota := 7.5

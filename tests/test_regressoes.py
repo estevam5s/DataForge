@@ -1250,6 +1250,34 @@ def test_todo_modulo_registrado_esta_no_catalogo():
         f"sem descrição em stdlib/catalogo.py: {faltando}")
 
 
+def test_is_not_e_um_operador_so():
+    """'5 is not 3' precisa ser 'yes'.
+
+    Sem isto, 'is not' era lido como 'is' aplicado a '(not x)':
+    '5 is not 3' virava '5 is no' e respondia 'no'. Compilava, rodava,
+    passava no analisador e no lint, e dava a resposta errada em
+    silêncio — o pior tipo de defeito. Quem vem do Python escreve
+    'is not' sem pensar.
+    """
+    assert run("out 5 is not 3") == "yes"
+    assert run("out 5 is not 5") == "no"
+    assert run('out "x" is not ""') == "yes"
+    assert run("out yes is not no") == "yes"
+
+    # 'isnt' e 'is not' são o mesmo operador.
+    assert run("out 5 isnt 3") == run("out 5 is not 3")
+
+    # E 'not' sozinho continua sendo negação.
+    assert run('out not ""') == "yes"
+    assert run("out 5 is (not 3)") == "no"
+
+
+def test_is_not_encadeia_como_as_outras_comparacoes():
+    """'1 smaller x is not 9' encadeia como qualquer comparação."""
+    assert run("x := 5\nout 1 smaller x is not 9") == "yes"
+    assert run("x := 9\nout 1 smaller x is not 9") == "no"
+
+
 def test_a_tabela_da_stdlib_no_readme_esta_em_dia():
     """Ela é gerada; o README versionado tem de bater com o gerador.
 

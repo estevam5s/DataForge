@@ -133,7 +133,7 @@ uma atribuição comum.
 | `in` / `not in` | pertinência | o elemento está na coleção? |
 | `//` | aritmética | divisão inteira (ambíguo — ver 2.3) |
 | `is` / `==` | comparação | igual |
-| `isnt` / `!=` | comparação | diferente |
+| `isnt` / `is not` / `!=` | comparação | diferente |
 | `bigger` / `>` | comparação | maior |
 | `smaller` / `<` | comparação | menor |
 | `bigger_eq` / `>=` | comparação | maior ou igual |
@@ -204,6 +204,25 @@ out 1 smaller 5 smaller 10
 ```
 
 O termo do meio é avaliado uma única vez.
+
+### 2.5 `is not` e `not in`
+
+`is not` e `not in` são **um operador cada**, escritos com dois tokens:
+
+```dataforge
+out 5 is not 3         // yes — o mesmo que  5 isnt 3
+out 3 not in [1, 2]    // yes
+```
+
+Ler `is not` como `is` aplicado a `(not x)` daria `5 is no`, que é `no`
+para qualquer número — compila, roda e responde errado sem avisar. Por
+isso o par é reconhecido junto, como em Python.
+
+Para negar de fato uma expressão depois de `is`, ponha parênteses:
+
+```dataforge
+out 5 is (not 3)       // no — 'not 3' é 'no', e 5 não é 'no'
+```
 
 ---
 
