@@ -25,14 +25,32 @@ const SUGESTAO = /^\s+(sugestão|sugestao|hint|dica):\s*(.+)$/i;
 export class Verificador {
   private colecao: vscode.DiagnosticCollection;
   private pendentes = new Map<string, NodeJS.Timeout>();
+  private ligado = true;
 
   constructor(contexto: vscode.ExtensionContext) {
     this.colecao = vscode.languages.createDiagnosticCollection('dataforge');
     contexto.subscriptions.push(this.colecao);
   }
 
+  /**
+   * Cala este verificador — o servidor de linguagem assumiu.
+   *
+   * Ele analisa a cada tecla; este só ao salvar. Com os dois ligados, o
+   * mesmo erro apareceria duas vezes no painel, e a cópia deste ficaria
+   * desatualizada entre um salvamento e outro. Limpar a coleção junto
+   * importa: sem isso, os erros já publicados ficariam na tela para
+   * sempre, sem ninguém para atualizá-los.
+   */
+  desligar() {
+    this.ligado = false;
+    for (const t of this.pendentes.values()) clearTimeout(t);
+    this.pendentes.clear();
+    this.colecao.clear();
+  }
+
   /** Agenda uma verificação, cancelando a anterior do mesmo arquivo. */
   agendar(documento: vscode.TextDocument, atraso = 400) {
+    if (!this.ligado) return;
     if (documento.languageId !== 'dataforge') return;
     if (!vscode.workspace.getConfiguration('dataforge').get('verificar', true)) {
       return;

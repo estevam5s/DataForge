@@ -278,9 +278,10 @@ Estas são as que mais custam tempo:
 13. **Generator infinito + `to_cluster()` trava.** Use `take(n)` ou garanta um
     `halt`.
 
-14. **Sem sincronização entre threads.** Duas threads escrevendo na mesma
-    variável perdem atualizações. Use `channel`. Isso vale para o Kiln, que
-    atende **um pedido por thread**.
+14. **A linguagem não sincroniza sozinha.** Duas threads escrevendo na
+    mesma variável perdem atualizações. `Arcane.Concurrent` tem `mutex`,
+    `semaforo`, `contador` e canal bloqueante — mas usá-los é escolha de
+    quem escreve. Vale para o Kiln, que atende **um pedido por thread**.
 
 15. **Dentro de `$"{…}"`, aspas normais.** `$"item {v["id"]}"` funciona;
     `$"item {v[\"id\"]}"` não — o lexer copia strings aninhadas verbatim, e o
@@ -616,15 +617,17 @@ O que **ainda não existe** (não invente que existe):
 - **Generics com restrição** — `<T>` existe e o analisador o aceita,
   mas não há `<T extends Comparable>`: o parâmetro de tipo documenta a
   relação entre entrada e saída, e não é verificado em execução.
-- **Exaustividade** — o `match` não avisa se um membro de enum ficou fora.
-- **Contrato de trait** — não se verifica se o blueprint implementou tudo.
-- **LSP e debugger** — a gramática TextMate só colore. `dataforge editor` a
-  instala automaticamente (o instalador já faz isso), mas não há autocompletar
-  sensível a contexto nem erro sublinhado enquanto se digita.
+- **Exaustividade além do enum** — o `match` avisa quando um membro de
+  enum fica de fora, mas não confere sequências nem records.
+- **Debugger** — não há breakpoint nem passo a passo. O LSP existe
+  (`dataforge lsp`, em `lsp.py`) e cobre autocompletar, hover, definição,
+  referências, esquema, assinatura, renomear, formatar e correção rápida —
+  servido do mesmo `typechecker`. Depuração continua sendo `out` e stack trace.
 - **Bytecode** — é interpretador de árvore, sem otimização.
-- **Sincronização entre threads** — sem mutex/semáforo; use `channel`. O Kiln
-  atende um pedido por thread: o `Arcane.Database` serializa o acesso à
-  conexão (sem isso, a primeira consulta de qualquer servidor estoura), mas
+- **Sincronização automática** — `Arcane.Concurrent` tem mutex, semáforo,
+  barreira, contador atômico e canal bloqueante, mas nada é aplicado sozinho.
+  O Kiln atende um pedido por thread: o `Arcane.Database` serializa o acesso
+  à conexão (sem isso, a primeira consulta de qualquer servidor estoura), mas
   estado em memória compartilhado entre rotas não é protegido.
 - **WebSocket, HTTP/2 e streaming de resposta** — o Kiln não tem. Ele roda
   sobre o `http.server` do Python; em produção pública, ponha um nginx ou

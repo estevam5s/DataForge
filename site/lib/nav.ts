@@ -154,6 +154,7 @@ export const nav: NavSection[] = [
       { title: 'Planilhas', href: '/docs/tecnicas/planilhas' },
       { title: 'Servidor HTTP', href: '/docs/tecnicas/http' },
       { title: 'Editor e cores', href: '/docs/tecnicas/editor' },
+      { title: 'Servidor de linguagem (LSP)', href: '/docs/tecnicas/lsp' },
       { title: 'Logging', href: '/docs/tecnicas/logging' },
       { title: 'Datas e horas', href: '/docs/tecnicas/datas' },
       { title: 'Processos', href: '/docs/tecnicas/processos' },

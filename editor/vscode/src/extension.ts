@@ -18,6 +18,7 @@ import { LenteDeComplexidade, acoesDe, explicar } from './complexidade';
 import { criarProjeto } from './projetos';
 import { esquecerExecutavel, exigirExecutavel, raizDe, rodar } from './dataforge';
 import { Verificador } from './diagnosticos';
+import { iniciarServidor, reiniciarServidor, servidorAtivo } from './servidor';
 import {
   fecharTerminal,
   formatarTempo,
@@ -30,9 +31,24 @@ import {
 let barra: vscode.StatusBarItem;
 
 export function activate(contexto: vscode.ExtensionContext) {
+  const saida = vscode.window.createOutputChannel('DataForge');
+  contexto.subscriptions.push(saida);
+
   const verificador = new Verificador(contexto);
   const lente = new LenteDeComplexidade();
   const conexoes = new ArvoreDeConexoes(contexto);
+
+  // O servidor de linguagem assume os diagnósticos: ele analisa a cada
+  // tecla, e o Verificador só ao salvar. Com os dois ligados, o mesmo
+  // erro apareceria duas vezes no painel de problemas — e um deles
+  // ficaria desatualizado, que é pior que não estar lá.
+  iniciarServidor(contexto, saida).then((subiu) => {
+    if (subiu) {
+      verificador.desligar();
+    } else {
+      saida.appendLine('sem servidor: os erros vêm do check ao salvar');
+    }
+  });
 
   // ── barra de status: o botão de rodar ──
   barra = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -44,6 +60,7 @@ export function activate(contexto: vscode.ExtensionContext) {
 
   // ── comandos ──
   const comandos: [string, (...a: any[]) => any][] = [
+    ['dataforge.reiniciarServidor', () => reiniciarServidor(contexto, saida)],
     ['dataforge.rodar', () => comEditor((d) => rodarNoTerminal(d))],
     ['dataforge.rodarComTempo', () => comEditor((d) => rodarEMostrarTempo(d))],
     ['dataforge.rodarDepurando', () => comEditor((d) => rodarNoTerminal(d, ['--debug']))],

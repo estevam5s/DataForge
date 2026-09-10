@@ -683,8 +683,9 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 
 ### O que ainda não existe
 
-Generics, verificação de exaustividade em `match`, contrato de trait, LSP,
-debugger, VM de bytecode e sincronização entre threads.
+Generics com restrição, exaustividade além de enum (o `match` já cobre
+enum), depurador com breakpoint e VM de bytecode — hoje é interpretador
+de árvore, e num laço quente isso se sente.
 Detalhado em [`doc/ANALISE_E_ROADMAP.md`](doc/ANALISE_E_ROADMAP.md).
 
 ---

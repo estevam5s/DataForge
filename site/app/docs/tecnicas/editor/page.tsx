@@ -45,13 +45,13 @@ dataforge editor remove    # desinstala` },
   {"p": "A gramática TextMate é **gerada** a partir de `dataforge/tokens.py`, e há um teste que falha se o arquivo versionado não for exatamente o que o gerador produz. Se você acrescenta uma palavra à linguagem e esquece da gramática, a suíte avisa — em vez de a palavra simplesmente ficar cinza."},
   { code: `python3 tools/gerar_gramatica.py` },
   {"p": "A versão anterior da extensão foi escrita à mão, e por isso não conhecia `record` nem `enum`: exatamente o problema que o gerador resolve."},
-  {"h2": "O que ainda não existe"},
-  {"p": "Não há **LSP**: sem autocompletar sensível a contexto, sem \"ir para a definição\", sem erros sublinhados enquanto você digita. Para ver erros, rode `dataforge check` — ele dá a linha, a coluna, a explicação e a sugestão. Um servidor de linguagem está no [roadmap](/docs/roadmap)."},
+  {"h2": "E o servidor de linguagem"},
+  {"p": "A coloração é só metade. A extensão também inicia o **servidor de linguagem** — autocompletar sensível a contexto, erros sublinhados enquanto você digita, ir-para-definição, renomear e o esquema do arquivo. Ele vem junto e liga sozinho; a página de [LSP](/docs/tecnicas/lsp) conta o que ele responde e como usá-lo em Neovim, Helix e Emacs."},
   {"h2": "Outros editores"},
   {"p": "A gramática é TextMate padrão, em `editor/vscode/syntaxes/dataforge.tmLanguage.json`. Sublime Text e editores compatíveis leem o mesmo arquivo. Para Vim, Emacs ou Zed, ela serve de referência: a lista de palavras por grupo de cor está toda ali."},
 ];
 
-const headings = [{ id: 'instalar-ou-reinstalar-a-mao', text: "Instalar ou reinstalar à mão", level: 2 as const }, { id: 'o-que-voce-ganha', text: "O que você ganha", level: 2 as const }, { id: 'alguns-snippets', text: "Alguns snippets", level: 2 as const }, { id: 'a-gramatica-nao-pode-ficar-atrasada', text: "A gramática não pode ficar atrasada", level: 2 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 2 as const }, { id: 'outros-editores', text: "Outros editores", level: 2 as const }];
+const headings = [{ id: 'instalar-ou-reinstalar-a-mao', text: "Instalar ou reinstalar à mão", level: 2 as const }, { id: 'o-que-voce-ganha', text: "O que você ganha", level: 2 as const }, { id: 'alguns-snippets', text: "Alguns snippets", level: 2 as const }, { id: 'a-gramatica-nao-pode-ficar-atrasada', text: "A gramática não pode ficar atrasada", level: 2 as const }, { id: 'e-o-servidor-de-linguagem', text: "E o servidor de linguagem", level: 2 as const }, { id: 'outros-editores', text: "Outros editores", level: 2 as const }];
 
 export default function Page() {
   return (

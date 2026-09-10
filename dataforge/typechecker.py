@@ -453,8 +453,76 @@ class TypeChecker:
             ramos.append(self.visit_block(caso.body, interno))
         if node.default_body:
             ramos.append(self.visit_block(node.default_body, Scope(escopo)))
+            self._conferir_exaustividade(node, escopo)
             return bool(ramos) and all(ramos)
+        self._conferir_exaustividade(node, escopo)
         return False
+
+    def _conferir_exaustividade(self, node, escopo):
+        """Um 'match' sobre enum que deixou membro de fora.
+
+        Sem isto, esquecer um membro devolve 'void' em silencio — e
+        'void' costuma atravessar meia dezena de chamadas antes de
+        virar erro em outro lugar, longe da causa.
+
+        So fala quando consegue PROVAR: e preciso saber de que enum se
+        trata, e todo 'point' precisa ser um membro dele. Um 'default'
+        ou uma captura solta cobrem o resto, e ai nao ha o que dizer.
+        """
+        if getattr(node, "default_body", None):
+            return
+
+        membros_vistos = []
+        enums = set()
+        for caso in node.points:
+            padrao = caso[0] if isinstance(caso, tuple) else caso.pattern
+            dono, membro = self._membro_de_enum(padrao)
+            if dono is None:
+                # Um padrao que nao e membro de enum — captura, tipo,
+                # sequencia. Nao da para concluir nada.
+                return
+            enums.add(dono)
+            membros_vistos.append(membro)
+
+        # Um match sobre DOIS enums diferentes nao e um match sobre um
+        # enum: e outra coisa, e nao cabe cobrar exaustividade.
+        if len(enums) != 1:
+            return
+        nome_enum = enums.pop()
+        todos = self.enums.get(nome_enum)
+        if not todos:
+            return
+
+        faltando = [m for m in todos if m not in membros_vistos]
+        if not faltando:
+            return
+
+        lista = ", ".join(f"{nome_enum}.{m}" for m in faltando)
+        # Um aviso por membro viraria ruido num enum de dez.
+        self.warn(
+            f"'match' não cobre {len(faltando)} membro(s) de "
+            f"'{nome_enum}': {lista}",
+            node,
+            "Trate cada um, ou acrescente 'default:' para o resto",
+            "match-incompleto")
+
+    def _membro_de_enum(self, padrao):
+        """('Cor', 'Azul') se o padrao for 'point Cor.Azul'; senao (None, None).
+
+        Uma captura com nome ('point Cor.Azul as c') continua sendo o
+        membro: o 'as' liga um nome, nao muda o que casa.
+        """
+        expressao = getattr(padrao, "expression", None)
+        if expressao is None:
+            return None, None
+        if not isinstance(expressao, ast.MemberAccess):
+            return None, None
+        objeto = getattr(expressao, "object", None)
+        if not isinstance(objeto, ast.Identifier):
+            return None, None
+        if objeto.name not in self.enums:
+            return None, None
+        return objeto.name, expressao.member
 
     def _declare_pattern(self, padrao, escopo):
         if padrao is None:

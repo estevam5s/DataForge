@@ -1523,3 +1523,120 @@ action somar(xs):
 '''
     r = {a["nome"]: a for a in para_json(analisar_fonte(fonte, "t.df"))["acoes"]}
     assert r["somar"]["espaco"]["notacao"] == "O(1)"
+
+
+def _avisos(fonte):
+    """Os avisos do analisador sobre uma fonte."""
+    from dataforge.typechecker import check_program
+    programa = parse(tokenize(fonte, "t.df"), "t.df")
+    return [d for d in check_program(programa, "t.df") if d.severity == "warning"]
+
+
+def test_match_avisa_o_membro_de_enum_que_ficou_de_fora():
+    """Sem 'default', um membro esquecido devolve void em silêncio.
+
+    É a promessa quebrada mais visível da linguagem: o pattern matching
+    é vendido como recurso central, o typechecker JÁ conhece os membros
+    do enum, e mesmo assim 'f(C.B)' devolvia void sem ninguém avisar.
+    """
+    fonte = '''
+enum Cor:
+    Vermelho
+    Verde
+    Azul
+
+action nome(c):
+    match c:
+        point Cor.Vermelho:
+            yield "vermelho"
+        point Cor.Verde:
+            yield "verde"
+'''
+    avisos = [a for a in _avisos(fonte) if "Azul" in a.message]
+    assert avisos, "não avisou sobre o membro que ficou de fora"
+    assert avisos[0].code == "match-incompleto"
+
+
+def test_match_completo_nao_avisa():
+    """Falso alarme ensina o usuário a ignorar mensagem."""
+    fonte = '''
+enum Cor:
+    Vermelho
+    Azul
+
+action nome(c):
+    match c:
+        point Cor.Vermelho:
+            yield "vermelho"
+        point Cor.Azul:
+            yield "azul"
+'''
+    assert not [a for a in _avisos(fonte) if a.code == "match-incompleto"]
+
+
+def test_default_cobre_o_resto():
+    """Quem escreveu 'default' já disse o que fazer com o resto."""
+    fonte = '''
+enum Cor:
+    Vermelho
+    Verde
+    Azul
+
+action nome(c):
+    match c:
+        point Cor.Vermelho:
+            yield "vermelho"
+        default:
+            yield "outra"
+'''
+    assert not [a for a in _avisos(fonte) if a.code == "match-incompleto"]
+
+
+def test_captura_solta_tambem_cobre():
+    """'point n' casa com tudo — é um default com outro nome."""
+    fonte = '''
+enum Cor:
+    Vermelho
+    Azul
+
+action nome(c):
+    match c:
+        point Cor.Vermelho:
+            yield "vermelho"
+        point outra:
+            yield "outra"
+'''
+    assert not [a for a in _avisos(fonte) if a.code == "match-incompleto"]
+
+
+def test_match_que_nao_e_sobre_enum_fica_calado():
+    """O analisador só fala quando consegue provar."""
+    fonte = '''
+action classificar(v):
+    match v:
+        point Integer:
+            yield "inteiro"
+        point [a, b]:
+            yield "par"
+'''
+    assert not [a for a in _avisos(fonte) if a.code == "match-incompleto"]
+
+
+def test_avisa_uma_vez_com_todos_os_membros_faltando():
+    """Um aviso por membro viraria ruído num enum de dez."""
+    fonte = '''
+enum Bicho:
+    Gato
+    Cao
+    Ave
+    Peixe
+
+action som(b):
+    match b:
+        point Bicho.Gato:
+            yield "miau"
+'''
+    avisos = [a for a in _avisos(fonte) if a.code == "match-incompleto"]
+    assert len(avisos) == 1
+    for membro in ("Cao", "Ave", "Peixe"):
+        assert membro in avisos[0].message

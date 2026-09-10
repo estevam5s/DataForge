@@ -262,7 +262,20 @@ GRUPOS = [
                     ("remove", "desinstala de todos os editores")],
             exemplos=[("dataforge editor", "instala em todos"),
                       ("dataforge editor status", "so confere")],
-            veja=("version",)),
+            veja=("version", "lsp")),
+        Cmd("lsp", "dataforge lsp",
+            "Servidor de linguagem para o editor",
+            "Fala o Language Server Protocol por stdin/stdout. E o que da\n"
+            "ao editor autocompletar sensivel a contexto, erro sublinhado\n"
+            "enquanto se digita, ir-para-definicao, renomear com seguranca,\n"
+            "o esquema do arquivo e ajuda de assinatura.\n"
+            "\nVoce nao o roda a mao: a extensao do VS Code o inicia\n"
+            "sozinha. Este comando existe para outros editores — Neovim,\n"
+            "Helix, Emacs — que perguntam qual comando iniciar.",
+            opcoes=[("--log=ARQUIVO", "grava o que acontece, para depurar")],
+            exemplos=[("dataforge lsp", "o que o editor executa"),
+                      ("dataforge lsp --log=/tmp/lsp.log", "com registro")],
+            veja=("editor", "check")),
     ]),
     ("Diagnostico", [
         Cmd("explain", "dataforge explain <codigo>",
@@ -2912,8 +2925,12 @@ def main():
     elif command == 'editor':
         sys.exit(editor_command(args[1:], flags))
 
-    elif command == 'editor':
-        sys.exit(editor_command(args[1:], flags))
+    elif command == 'lsp':
+        # Nada de print aqui: stdout E o canal do protocolo, e um
+        # caractere solto corrompe a proxima mensagem — o editor
+        # desiste sem dizer por que.
+        from .lsp import main as lsp_main
+        sys.exit(lsp_main(args[1:] + list(flags)))
 
     elif command == 'new':
         if '--list' in flags or (len(args) > 1 and args[1] == 'list'):

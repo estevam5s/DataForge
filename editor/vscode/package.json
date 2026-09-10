@@ -190,6 +190,11 @@
         "title": "Inserir o código no editor",
         "category": "DataForge",
         "icon": "$(insert)"
+      },
+      {
+        "command": "dataforge.reiniciarServidor",
+        "title": "Reiniciar o servidor de linguagem",
+        "category": "DataForge"
       }
     ],
     "menus": {
@@ -366,6 +371,16 @@
           "type": "boolean",
           "default": false,
           "description": "Roda 'dataforge fmt' ao salvar."
+        },
+        "dataforge.servidor.ativo": {
+          "type": "boolean",
+          "default": true,
+          "description": "Usa o servidor de linguagem (autocompletar, hover, ir-para-definição, renomear). Desligue para voltar ao diagnóstico simples do 'dataforge check' ao salvar."
+        },
+        "dataforge.servidor.log": {
+          "type": "string",
+          "default": "",
+          "description": "Caminho de um arquivo onde o servidor grava o que acontece. Vazio = não grava."
         }
       }
     },
@@ -422,5 +437,8 @@
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.75.0",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
   }
 }

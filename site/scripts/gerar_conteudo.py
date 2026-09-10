@@ -21,6 +21,7 @@ MODULOS = [
     "oop_avancado",
     "oop_magicos",
     "exercicios",
+    "lsp",
     "banco",
     "crucible_doc",
     "versoes",
