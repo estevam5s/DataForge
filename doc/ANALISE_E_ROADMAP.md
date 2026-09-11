@@ -397,10 +397,27 @@ estático — `index.json` mais tarballs — servido junto com o site.
 
 **11. Desempenho**
 
-Interpretador de árvore, sem otimização. Alternativas, em ordem de esforço:
-cachear a resolução de nomes por nó, compilar para bytecode com uma máquina de
-pilha, ou traduzir para bytecode Python. Nada disso importa até alguém reclamar —
-e ninguém reclamou ainda.
+Interpretador de árvore **com compilação para fechamentos** (`compilador.py`):
+a árvore é percorrida uma vez e vira funções Python, o que tira o despacho do
+caminho quente. Medido, melhor de três:
+
+| Carga | Antes | Depois | |
+|---|---|---|---|
+| `fib(24)`, recursão | 0,735 s | 0,459 s | 1,60× |
+| laço de 300 mil | 0,270 s | 0,174 s | 1,55× |
+| 200 mil chamadas de método | 0,962 s | 0,535 s | 1,80× |
+| 200 mil `append` + `distill` | 1,032 s | 0,838 s | 1,23× |
+
+O que **não** se resolve daqui: um `fib(25)` leva 1,28 s onde o CPython leva
+0,03 s, e o CPython já é lento perto de uma linguagem compilada. Um protótipo
+de VM de bytecode escrita em Python deu 7,9×, e um de fechamentos preservando a
+semântica inteira deu 6,5× — mesma ordem de grandeza, nenhum dos dois fecha uma
+diferença de 40×. Fechá-la exigiria sair do Python, e isso custaria a promessa
+de zero dependências.
+
+O que ainda cabe sem sair: compilar mais tipos de nó (a lista está ordenada por
+frequência real em `compilador.py`), e encurtar a máquina de chamada —
+`_check_arity` e `_run_deferred` rodam em toda chamada de ação.
 
 **12. `frame`, `train`, `predict`**
 
@@ -543,10 +560,14 @@ O que resta, em ordem de impacto.
 
 ### 5.0 — Runtime
 
-- **IR e VM de bytecode**: hoje é interpretador de árvore, sem otimização.
-  Nenhum usuário reclamou de desempenho ainda — medir antes de investir.
-- **Cache de compilação**.
-- **Empacotamento**: gerar um executável com runtime embutido.
+- **IR e VM de bytecode**: hoje é interpretador de árvore com compilação
+  para fechamentos (1,23× a 1,80×). Um protótipo de VM escrita em Python deu
+  7,9× e um de fechamentos com a semântica inteira deu 6,5× — mesma ordem de
+  grandeza. Medir de novo antes de investir.
+- **Cache de compilação** — hoje os fechamentos são montados a cada processo.
+- ~~**Empacotamento**: gerar um executável com runtime embutido.~~ **Feito**:
+  `scripts/gerar_binario.py` e o fluxo `binarios` produzem um executável por
+  sistema, e o instalador o usa quando não há Python na máquina.
 
 ### Concorrência (roadmap §8)
 
