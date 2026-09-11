@@ -8,8 +8,7 @@ adopt Arcane.OS as OS
 //
 // 'echo' existe no Linux e no macOS como programa; no Windows ele e
 // embutido do interpretador de comandos, e nao ha arquivo para rodar.
-// 'cat' se chama 'more', e o codigo de "comando nao encontrado" e 127
-// num lado e 1 no outro.
+// 'cat' se chama 'more', e 'sleep' se chama 'timeout'.
 //
 // Por isso o primeiro passo de um programa que chama o sistema e
 // decidir COM QUEM esta falando. O resto do exercicio e igual nos dois.
@@ -18,7 +17,11 @@ steady WINDOWS := OS.is_windows()
 steady NL := char(10)
 
 steady ECO := "cmd /c echo" given WINDOWS otherwise "echo"
-steady NAO_ENCONTRADO := 1 given WINDOWS otherwise 127
+
+// Comando que demora, para a demonstracao de tempo limite. O 'timeout'
+// do Windows recusa entrada redirecionada e sai na hora; o 'ping' para
+// o proprio computador espera de verdade nos dois sistemas.
+steady DEMORA := "ping -n 6 127.0.0.1" given WINDOWS otherwise "sleep 5"
 
 // run devolve stdout, stderr e o codigo de saida
 r := Proc.run($"{ECO} ola do processo")
@@ -40,7 +43,10 @@ falhou := Proc.run("comando_que_nao_existe_xyz")
 out ""
 out $"inexistente -> codigo {falhou.exit_code}, ok={falhou.ok}"
 assert falhou.ok is no, "falhou"
-assert falhou.exit_code is NAO_ENCONTRADO, "o codigo de comando nao encontrado"
+// 127 nos DOIS: a linguagem normaliza. O Windows levanta um erro do
+// sistema em vez de devolver codigo, e 'Arcane.Process' traduz — quem
+// escreve nao precisa saber de qual lado esta.
+assert falhou.exit_code is 127, "o codigo de comando nao encontrado"
 
 // check devolve so yes/no
 out ""
@@ -72,7 +78,7 @@ out $"pipeline: {resultado.stdout.trim()}"
 assert resultado.stdout.trim() is "zebra", "a saida de um virou a entrada do outro"
 
 // Tempo limite
-lento := Proc.run("timeout 5" given WINDOWS otherwise "sleep 5", timeout := 1)
+lento := Proc.run(DEMORA, timeout := 1)
 out ""
 out $"com timeout: ok={lento.ok}"
 assert lento.ok is no, "o comando estourou o tempo"

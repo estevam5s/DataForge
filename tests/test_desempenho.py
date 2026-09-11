@@ -26,6 +26,14 @@ from dataforge.lexer import tokenize                             # noqa: E402
 from dataforge.parser import parse                               # noqa: E402
 
 
+#: Um programa que passa pelo despacho: o compilador nao conhece "match".
+FONTE_MATCH = 'match 1:\n    point 1:\n        out "um"\n'\
+              '    default:\n        out "outro"'
+
+#: Um que nao passa: tudo nele e compilado.
+FONTE_ACAO = "action dobro(n):\n    yield n * 2\n\nout dobro(21)"
+
+
 def run(fonte):
     buffer = io.StringIO()
     with redirect_stdout(buffer):
@@ -36,16 +44,37 @@ def run(fonte):
 # ── Despacho por tabela ──────────────────────────────────────
 
 def test_o_despacho_memoriza_por_classe():
-    """Montar f"exec_{nome}" a cada nó era 15% do tempo de execução."""
+    """Montar f"exec_{nome}" a cada nó era 15% do tempo de execução.
+
+    A tabela continua valendo para tudo o que o compilador de
+    fechamentos não conhece — e é por lá que passa qualquer recurso novo
+    da linguagem. `x := 1` e `out x + 1` já são compilados e não a
+    tocam; um `match` não é, e toca.
+    """
     interpretador = Interpreter()
     assert interpretador._tabela_exec == {}
 
     with redirect_stdout(io.StringIO()):
-        interpretador.run(parse(tokenize("x := 1\nout x + 1")))
+        interpretador.run(parse(tokenize(FONTE_MATCH)))
 
-    assert interpretador._tabela_eval, "a tabela de eval ficou vazia"
+    assert interpretador._tabela_exec, "a tabela de exec ficou vazia"
     # A tabela é indexada pela classe, não pelo nome.
-    assert all(isinstance(c, type) for c in interpretador._tabela_eval)
+    assert all(isinstance(c, type) for c in interpretador._tabela_exec)
+
+
+def test_o_caminho_compilado_nao_toca_a_tabela_de_despacho():
+    """A prova de que a compilação está de fato no caminho.
+
+    Se um dia o corpo compilado voltasse a chamar `evaluate`, o ganho
+    sumiria sem nenhum teste falhar — a saída continuaria certa.
+    """
+    interpretador = Interpreter()
+    with redirect_stdout(io.StringIO()):
+        interpretador.run(parse(tokenize(FONTE_ACAO)))
+
+    assert not interpretador._tabela_eval, (
+        f"o caminho compilado voltou a passar pelo despacho: "
+        f"{sorted(c.__name__ for c in interpretador._tabela_eval)}")
 
 
 def test_no_desconhecido_ainda_da_erro_claro():

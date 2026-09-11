@@ -1855,9 +1855,16 @@ class Interpreter:
         raise NameError_(f"Cannot access member '{membro}' on {type(obj).__name__}", node.line, node.column)
 
     def eval_IndexAccess(self, node: ast.IndexAccess, env):
-        obj = self.evaluate(node.object, env)
-        index = self.evaluate(node.index, env)
+        return self._ler_indice(self.evaluate(node.object, env),
+                                self.evaluate(node.index, env), node, env)
 
+    def _ler_indice(self, obj, index, node, env):
+        """'obj[index]' com os dois JA avaliados.
+
+        O mesmo motivo de '_comparar', '_chamar_metodo' e '_ler_membro':
+        o compilador de fechamentos ja tem os valores, e nao pode
+        percorrer a arvore de novo para obte-los.
+        """
         if isinstance(obj, DFInstance):
             resultado = self._chamar_magico(obj, "__getitem__", [index], node)
             if resultado is not _SEM_MAGICO:

@@ -115,6 +115,65 @@ def _nao(interp, no):
     return lambda env: not verdade(operando(env), no)
 
 
+def _lista(interp, no):
+    """`[a, b, c]` — sem espalhamento, que tem regra própria."""
+    if any(isinstance(e, ast.SpreadElement) for e in no.elements):
+        return None
+    itens = [compilar_expressao(interp, e) for e in no.elements]
+    return lambda env: [item(env) for item in itens]
+
+
+def _vault(interp, no):
+    """`{"a": 1}` — sem espalhamento."""
+    if any(isinstance(k, ast.SpreadElement) for k, _ in no.pairs):
+        return None
+    pares = [(compilar_expressao(interp, k), compilar_expressao(interp, v))
+             for k, v in no.pairs]
+    return lambda env: {k(env): v(env) for k, v in pares}
+
+
+def _indice(interp, no):
+    """`xs[i]` e `v["k"]` — o segundo nó mais comum da linguagem."""
+    objeto = compilar_expressao(interp, no.object)
+    indice = compilar_expressao(interp, no.index)
+    # Método mágico, '__missing__' e a mensagem de chave ausente
+    # continuam onde estavam: só os dois valores chegam prontos.
+    ler = interp._ler_indice
+    return lambda env: ler(objeto(env), indice(env), no, env)
+
+
+def _texto_interpolado(interp, no):
+    """`$"ola {nome}"` — texto e expressão já separados na compilação."""
+    formatar = interp._formatar
+    para_texto = interp._to_str
+
+    pedacos = []
+    for tipo, conteudo in no.parts:
+        if tipo == "text":
+            pedacos.append(("t", conteudo))
+        elif tipo == "fmt":
+            expressao, formato = conteudo
+            pedacos.append(("f", (compilar_expressao(interp, expressao),
+                                  formato)))
+        else:
+            pedacos.append(("e", compilar_expressao(interp, conteudo)))
+
+    # Texto puro entre chaves e o caso comum; resolver o 'tipo' aqui
+    # evita compara-lo a cada montagem da string.
+    def montar(env):
+        partes = []
+        for marca, dado in pedacos:
+            if marca == "t":
+                partes.append(dado)
+            elif marca == "e":
+                partes.append(para_texto(dado(env)))
+            else:
+                fecho, formato = dado
+                partes.append(formatar(fecho(env), formato, no))
+        return "".join(partes)
+    return montar
+
+
 def _chamada(interp, no):
     """`f(a, b)`.
 
@@ -218,6 +277,23 @@ def _atribuicao_em_membro(interp, no):
 
     def executar(env):
         escrever(objeto(env), membro, valor(env), no, env, alvo)
+    return executar
+
+
+def _imprimir(interp, no):
+    """`out a, b` — a instrução mais escrita da linguagem."""
+    partes = [compilar_expressao(interp, e) for e in no.expressions]
+    para_texto = interp._to_str
+
+    if len(partes) == 1:
+        unica = partes[0]
+
+        def executar(env):
+            print(para_texto(unica(env)))
+        return executar
+
+    def executar(env):
+        print(" ".join(para_texto(p(env)) for p in partes))
     return executar
 
 
@@ -418,6 +494,10 @@ _EXPRESSOES = {
     ast.FunctionCall: _chamada,
     ast.MethodCall: _chamada_de_metodo,
     ast.MemberAccess: _membro,
+    ast.IndexAccess: _indice,
+    ast.ListLiteral: _lista,
+    ast.DictLiteral: _vault,
+    ast.InterpolatedString: _texto_interpolado,
 }
 
 #: Uma expressao SOLTA e instrucao: nao ha no proprio para ela, o nó da
@@ -431,6 +511,7 @@ _INSTRUCOES = {
     ast.CycleFromTo: _cycle_de_ate,
     ast.CycleIn: _cycle_em,
     ast.PersistBlock: _persist,
+    ast.OutStatement: _imprimir,
 }
 
 

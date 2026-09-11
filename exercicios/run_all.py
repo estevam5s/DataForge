@@ -8,6 +8,7 @@ Uso:
 
 import glob
 import os
+import re
 import subprocess
 import sys
 
@@ -36,6 +37,35 @@ def modulos(filtros):
         yield caminho, nome
 
 
+#: Os caracteres com que a CLI desenha a moldura do erro.
+#:
+#: A ultima linha da saida costuma ser um pedaco dela — "   │" — e era
+#: exatamente isso que o relatorio mostrava como "motivo". Numa esteira
+#: onde o log nao esta a mao, a diferenca entre isso e a mensagem de
+#: verdade e a diferenca entre diagnosticar e adivinhar.
+_MOLDURA = "─═│┌┐└┘├┤┬┴┼^"
+
+
+def _motivo(saida):
+    """A linha que EXPLICA a falha, e nao a que fecha a caixa."""
+    linhas = [l.rstrip() for l in saida.strip().splitlines()]
+    # Sem os codigos de cor, que a CLI emite mesmo com --no-color quando
+    # a saida vai para um cano.
+    limpas = [re.sub(r"\x1b\[[0-9;]*m", "", l).strip() for l in linhas]
+
+    # A linha do erro da linguagem e a mais informativa que existe.
+    for l in limpas:
+        if re.match(r"erro\[[A-Z]+\d+\]", l) or l.startswith("erro:"):
+            return l
+
+    # Senao, a ultima que diga alguma coisa.
+    for l in reversed(limpas):
+        if l and not all(c in _MOLDURA or c.isdigit() or c.isspace()
+                         for c in l):
+            return l
+    return "sem saida"
+
+
 def main():
     filtros = sys.argv[1:]
     env = dict(os.environ, PYTHONPATH=ROOT)
@@ -59,8 +89,7 @@ def main():
                 ok += 1
             else:
                 falha += 1
-                saida = (proc.stdout + proc.stderr).strip().splitlines()
-                falhas.append((nome, base, saida[-1] if saida else "sem saida"))
+                falhas.append((nome, base, _motivo(proc.stdout + proc.stderr)))
 
         total_ok += ok
         total_falha += falha

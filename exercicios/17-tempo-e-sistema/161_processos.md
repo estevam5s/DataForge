@@ -31,12 +31,13 @@ redirecionamentos ou expansão de `*` — e nunca com texto vindo do usuário.
 | `failed` | o oposto de `ok` |
 | `lines` | `stdout` já separado em linhas |
 
-Um comando inexistente devolve um código de erro em vez de derrubar o programa.
-Isso é deliberado: falha de processo externo é um resultado esperado, não uma
-exceção.
+Um comando inexistente devolve `exit_code` **127** em vez de derrubar o
+programa. Isso é deliberado: falha de processo externo é um resultado esperado,
+não uma exceção.
 
-O código, porém, **não é o mesmo em todo lugar**: 127 no Linux e no macOS, 1 no
-Windows. É o primeiro sinal de algo que o exercício trata logo abaixo.
+E é 127 nos três sistemas. O Windows não devolve código nenhum nesse caso — ele
+levanta um erro de sistema —, e `Arcane.Process` traduz. Quem escreve não
+precisa saber de qual lado está.
 
 ```dataforge
 r := Proc.run("comando_inexistente")
@@ -96,7 +97,9 @@ r := Proc.wait(p)      // espera e colhe o resultado
 Tudo o mais em DataForge roda igual nos três sistemas. Chamar um programa de
 fora é a fronteira: `echo` existe no Linux e no macOS como arquivo executável e
 no Windows é embutido do interpretador de comandos, `cat` se chama `more`, e
-`sleep` se chama `timeout`.
+`sleep` se chama `timeout` — e o `timeout` do Windows recusa entrada
+redirecionada e sai na hora, então quem precisa de uma espera de verdade usa
+`ping` para o próprio computador.
 
 A resposta não é fingir que dá no mesmo. É decidir **uma vez**, no topo, e
 escrever o resto igual:
@@ -106,7 +109,7 @@ adopt Arcane.OS as OS
 
 steady WINDOWS := OS.is_windows()
 steady ECO := "cmd /c echo" given WINDOWS otherwise "echo"
-steady NAO_ENCONTRADO := 1 given WINDOWS otherwise 127
+steady DEMORA := "ping -n 6 127.0.0.1" given WINDOWS otherwise "sleep 5"
 ```
 
 `sort` é uma das poucas exceções: existe com o mesmo nome nos dois e lê da
@@ -134,8 +137,8 @@ pipeline: zebra
 com timeout: ok=no
 ```
 
-No Windows o `127` vira `1`. O resto é idêntico — e é por isso que o exercício
-decide o comando **uma vez**, no topo.
+Idêntico nos três sistemas — e é por isso que o exercício decide os comandos
+**uma vez**, no topo.
 
 ## Experimente
 
