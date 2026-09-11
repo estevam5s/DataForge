@@ -72,6 +72,12 @@ class ArcaneProcess:
         try:
             proc = subprocess.run(
                 alvo, shell=bool(shell), capture_output=True, text=True,
+                # UTF-8 explicito, e nao o que o sistema achar: no
+                # Windows 'text=True' le 'cp1252' e a saida de qualquer
+                # comando moderno chega embaralhada. 'replace' porque o
+                # comando e de fora — um byte estranho degrada a linha,
+                # e nao derruba o programa de quem chamou.
+                encoding="utf-8", errors="replace",
                 timeout=timeout, cwd=cwd, env=ambiente, input=input_text)
             return _resultado(proc, proc.stdout, proc.stderr, comando)
         except subprocess.TimeoutExpired:
@@ -105,7 +111,8 @@ class ArcaneProcess:
         alvo = _normalizar(comando, shell)
         proc = subprocess.Popen(
             alvo, shell=bool(shell), stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, text=True, cwd=cwd)
+            stderr=subprocess.PIPE, text=True,
+            encoding="utf-8", errors="replace", cwd=cwd)
         return {"__type__": "Process", "pid": proc.pid,
                 "command": comando, "_handle": proc}
 

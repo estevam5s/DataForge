@@ -719,6 +719,76 @@ class DFChannel:
         return f"<channel '{self.name}'>"
 
 
+#: Quanto de pilha uma linha de execucao do DataForge precisa.
+#:
+#: Nao e exagero: uma chamada da linguagem custa cerca de nove quadros
+#: do Python — 'evaluate', 'eval_FunctionCall', '_call', '_call_action',
+#: '_corpo_da_acao', 'exec_block', 'execute', e o que o corpo fizer — e
+#: 'MAX_CALL_DEPTH' permite mil. Sao perto de nove mil quadros do Python
+#: para uma recursao legitima no limite.
+#:
+#: Medido no Python 3.10 do macOS: com 8 MB (o tamanho da thread
+#: principal) o processo MORRE com 'Segmentation fault' antes de o
+#: guarda de recursao da linguagem disparar; 12 MB ja bastam. 32 MB e a
+#: folga para as outras plataformas e versoes.
+#:
+#: Reserva de espaco de enderecamento, nao de memoria: as paginas so
+#: passam a existir conforme a pilha cresce.
+_PILHA = 32 * 1024 * 1024
+
+#: Esta thread ja foi criada com a pilha grande?
+_PROVISIONADA = threading.local()
+
+
+def _reservar_pilha():
+    """Faz toda thread criada daqui em diante nascer com pilha grande.
+
+    Vale para as tarefas 'async', para os blocos 'thread' e para o
+    executor de 'run' — e e especialmente importante no macOS, onde uma
+    thread comum nasce com 512 KB contra os 8 MB da principal: uma
+    recursao que funciona no corpo do programa derrubaria o processo
+    inteiro so por estar dentro de uma acao 'async'.
+    """
+    try:
+        if threading.stack_size() < _PILHA:
+            threading.stack_size(_PILHA)
+    except (ValueError, RuntimeError):
+        # Plataforma que nao deixa escolher. Segue com o que ela da.
+        pass
+
+
+def _com_pilha_propria(funcao):
+    """Roda 'funcao' numa thread com pilha suficiente, e devolve o que ela deu.
+
+    No Python 3.12 a CPython passou a vigiar a pilha de C por conta
+    propria e levanta 'RecursionError' antes de estoura-la. Nas versoes
+    anteriores nao ha essa rede: o limite de recursao e a unica protecao,
+    e o interpretador o eleva a 20000 justamente porque uma chamada da
+    linguagem custa varios quadros do Python. O resultado era um
+    'Segmentation fault' — o processo morria sem mensagem nenhuma, onde
+    deveria sair um erro da linguagem dizendo 'recursao infinita?'.
+    """
+    if getattr(_PROVISIONADA, "sim", False):
+        return funcao()
+
+    _reservar_pilha()
+    caixa = {}
+
+    def dentro():
+        _PROVISIONADA.sim = True
+        try:
+            caixa["valor"] = funcao()
+        except BaseException as erro:          # noqa: BLE001
+            caixa["erro"] = erro
+
+    t = threading.Thread(target=dentro, name="df-programa", daemon=True)
+    t.start()
+    t.join()
+    if "erro" in caixa:
+        raise caixa["erro"]
+    return caixa.get("valor")
+
+
 class _PorThread(threading.local):
     """O que cada thread do interpretador tem só para si.
 
@@ -764,6 +834,7 @@ class DFTarefa:
         self._pronto = threading.Event()
 
         def correr():
+            _PROVISIONADA.sim = True
             try:
                 self._valor = trabalho()
             except BaseException as erro:      # noqa: BLE001
@@ -774,6 +845,7 @@ class DFTarefa:
             finally:
                 self._pronto.set()
 
+        _reservar_pilha()
         self._thread = threading.Thread(
             target=correr, name=f"df-async-{nome}", daemon=True)
         self._thread.start()
@@ -906,6 +978,9 @@ class Interpreter:
         """Execute a full program."""
         if filename:
             self.filename = filename
+        return _com_pilha_propria(lambda: self._rodar(program))
+
+    def _rodar(self, program: ast.Program):
         try:
             return self.exec_block(program.body, self.global_env)
         except DataForgeError as erro:

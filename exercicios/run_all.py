@@ -42,7 +42,8 @@ def main():
                 continue
             proc = subprocess.run(
                 [sys.executable, "-m", "dataforge", base, "--no-color"],
-                capture_output=True, text=True, timeout=120, cwd=caminho, env=env,
+                capture_output=True, text=True, encoding="utf-8",
+                timeout=120, cwd=caminho, env=env,
             )
             if proc.returncode == 0:
                 ok += 1

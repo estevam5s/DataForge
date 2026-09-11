@@ -129,7 +129,7 @@ def test_gerador_produz_exatamente_o_arquivo_versionado(tmp_path):
                  encoding="utf-8").read()
     resultado = subprocess.run(
         [sys.executable, os.path.join(RAIZ, "tools", "gerar_gramatica.py")],
-        capture_output=True, text=True, cwd=RAIZ)
+        capture_output=True, text=True, encoding="utf-8", cwd=RAIZ)
     assert resultado.returncode == 0, resultado.stderr
     depois = open(os.path.join(EXTENSAO, "syntaxes",
                                "dataforge.tmLanguage.json"),

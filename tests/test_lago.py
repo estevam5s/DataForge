@@ -151,7 +151,7 @@ class TestParquet:
 class TestInteroperabilidade:
     def _pyarrow(self, codigo):
         r = subprocess.run([PYARROW, "-c", codigo],
-                           capture_output=True, text=True, timeout=120)
+                           capture_output=True, text=True, encoding="utf-8", timeout=120)
         assert r.returncode == 0, r.stderr
         return r.stdout.strip()
 

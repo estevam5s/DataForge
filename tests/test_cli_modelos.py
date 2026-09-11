@@ -90,7 +90,7 @@ def test_o_projeto_criado_passa_nos_proprios_testes(chave):
     with tempfile.TemporaryDirectory() as pasta:
         criar = subprocess.run(
             [sys.executable, "-m", "dataforge", "new", chave, "prova"],
-            cwd=pasta, capture_output=True, text=True,
+            cwd=pasta, capture_output=True, text=True, encoding="utf-8",
             env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
             timeout=120)
         assert criar.returncode == 0, criar.stdout + criar.stderr
@@ -100,7 +100,7 @@ def test_o_projeto_criado_passa_nos_proprios_testes(chave):
 
         testar = subprocess.run(
             [sys.executable, "-m", "dataforge", "test", "tests/"],
-            cwd=projeto, capture_output=True, text=True,
+            cwd=projeto, capture_output=True, text=True, encoding="utf-8",
             env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
             timeout=120)
         assert testar.returncode == 0, (
@@ -222,7 +222,7 @@ def _rodar_cli(*argumentos, cwd=None):
     """Roda a CLI como um usuário rodaria, e devolve (código, saída)."""
     resultado = subprocess.run(
         [sys.executable, "-m", "dataforge", *argumentos],
-        cwd=cwd or RAIZ, capture_output=True, text=True,
+        cwd=cwd or RAIZ, capture_output=True, text=True, encoding="utf-8",
         env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
         timeout=180)
     return resultado.returncode, resultado.stdout + resultado.stderr

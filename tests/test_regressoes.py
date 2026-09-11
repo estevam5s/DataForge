@@ -1097,7 +1097,7 @@ def test_versao_por_flag_nao_imprime_a_ajuda_inteira():
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     for flag in ("--version", "-V"):
         r = subprocess.run([_sys.executable, "-m", "dataforge", flag],
-                           capture_output=True, text=True, cwd=raiz)
+                           capture_output=True, text=True, encoding="utf-8", cwd=raiz)
         primeira = r.stdout.strip().split("\n")[0]
         assert primeira.startswith("DataForge v"), f"{flag}: {primeira!r}"
         assert len(r.stdout.split("\n")) < 6, f"{flag} imprimiu demais"
@@ -1151,7 +1151,7 @@ def test_indice_dos_exercicios_esta_em_dia():
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     r = subprocess.run(
         [_sys.executable, "tools/gerar_indice_exercicios.py", "--check"],
-        capture_output=True, text=True, cwd=raiz)
+        capture_output=True, text=True, encoding="utf-8", cwd=raiz)
     assert r.returncode == 0, (
         f"{r.stdout}{r.stderr}\n"
         "rode: python3 tools/gerar_indice_exercicios.py")
@@ -1429,7 +1429,7 @@ def test_a_tabela_da_stdlib_no_readme_esta_em_dia():
     antes = open(readme, encoding="utf-8").read()
 
     r = subprocess.run([sys.executable, "tools/gerar_doc_stdlib.py"],
-                       cwd=raiz, capture_output=True, text=True)
+                       cwd=raiz, capture_output=True, text=True, encoding="utf-8")
     assert r.returncode == 0, r.stderr
     depois = open(readme, encoding="utf-8").read()
 
@@ -2039,7 +2039,7 @@ def test_todo_arquivo_python_compila_na_versao_minima():
         "print(chr(10).join(ruins))\n")
 
     r = subprocess.run([executavel, "-c", programa] + arquivos,
-                       capture_output=True, text=True, timeout=180)
+                       capture_output=True, text=True, encoding="utf-8", timeout=180)
     ruins = [linha for linha in r.stdout.split("\n") if linha.strip()]
     assert not ruins, f"não compila em Python {minima}: {ruins}"
 
@@ -2137,3 +2137,44 @@ def test_a_cli_inteira_roda_com_a_saida_em_cp1252():
         assert r.returncode == 0, (
             f"'dataforge {' '.join(comando)}' saiu {r.returncode}:\n"
             f"{erro[-600:]}")
+
+
+def test_nenhum_subprocess_decide_a_codificacao_pelo_sistema():
+    """`text=True` sozinho decodifica com a codificação do SISTEMA.
+
+    No Linux e no macOS isso é UTF-8 e ninguém percebe. No Windows é
+    `cp1252`, e a saída da CLI — que é UTF-8 — chega embaralhada: o teste
+    falha comparando um texto que está certo do outro lado do cano.
+
+    Metade dos exercícios desenha tabela com `─` e `═`. Foi assim que
+    duas execuções da matriz caíram sem nada na mensagem explicando por
+    quê.
+
+    A varredura é pela árvore, e não por texto: procurar `text=True` com
+    expressão regular encontra o próprio regex deste teste.
+    """
+    import ast as pyast
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pastas = ("tests", "exercicios", "tools", "scripts", "dataforge")
+    ruins = []
+    for pasta in pastas:
+        for caminho in glob.glob(os.path.join(raiz, pasta, "**", "*.py"),
+                                 recursive=True):
+            arvore = pyast.parse(open(caminho, encoding="utf-8").read(), caminho)
+            for no in pyast.walk(arvore):
+                if not isinstance(no, pyast.Call):
+                    continue
+                nomes = {k.arg for k in no.keywords if k.arg}
+                tem_texto = any(
+                    k.arg in ("text", "universal_newlines")
+                    and isinstance(k.value, pyast.Constant)
+                    and k.value.value is True
+                    for k in no.keywords)
+                if tem_texto and "encoding" not in nomes:
+                    ruins.append(f"{os.path.relpath(caminho, raiz)}:{no.lineno}")
+    assert not ruins, (
+        "subprocess com 'text=True' e sem 'encoding' — no Windows isso lê "
+        "cp1252 em vez do UTF-8 que o filho escreveu:\n  "
+        + "\n  ".join(sorted(ruins)))

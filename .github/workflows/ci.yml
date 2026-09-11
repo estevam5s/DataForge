@@ -59,8 +59,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
+      # O nome do que falhou sai como anotacao do GitHub, e nao so
+      # enterrado no log: numa matriz de sete execucoes, abrir sete logs
+      # para descobrir QUAL teste caiu e o passo mais caro do diagnostico.
       - name: a suite
-        run: python -m pytest tests/ -q
+        shell: bash
+        run: |
+          set +e
+          saida="$RUNNER_TEMP/pytest.txt"
+          python -m pytest tests/ -q -rf --tb=short > "$saida" 2>&1
+          codigo=$?
+          cat "$saida"
+          if [ $codigo -ne 0 ]; then
+            resumo=$(grep -E '^(FAILED|ERROR)' "$saida" | head -25)
+            if [ -z "$resumo" ]; then
+              resumo=$(tail -30 "$saida")
+            fi
+            # '%0A' e como uma anotacao do GitHub carrega quebra de linha.
+            resumo=$(printf '%s' "$resumo" | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"}1')
+            echo "::error title=pytest ${{ matrix.os }} py${{ matrix.python }}::$resumo"
+          fi
+          exit $codigo
 
       - name: os 216 exercicios
         run: python exercicios/run_all.py

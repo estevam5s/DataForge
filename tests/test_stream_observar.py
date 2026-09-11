@@ -48,7 +48,7 @@ class TestParticoes:
                   "print(_particao_de('cliente-7', 8))"
                   % os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         saidas = {subprocess.run([sys.executable, "-c", codigo],
-                                 capture_output=True, text=True).stdout.strip()
+                                 capture_output=True, text=True, encoding="utf-8").stdout.strip()
                   for _ in range(3)}
         assert len(saidas) == 1
 

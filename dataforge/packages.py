@@ -517,7 +517,8 @@ def instalar_pacote(nome, item, raiz, registro, aoVivo=print):
             if dep.ref:
                 cmd += ["--branch", dep.ref]
             r = subprocess.run(cmd + [dep.git, clone],
-                               capture_output=True, text=True)
+                               capture_output=True, text=True,
+                               encoding="utf-8", errors="replace")
             if r.returncode != 0:
                 raise ErroPacote(f"git clone de '{nome}' falhou: {r.stderr.strip()}")
             shutil.rmtree(os.path.join(clone, ".git"), ignore_errors=True)

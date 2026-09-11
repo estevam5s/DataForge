@@ -319,3 +319,62 @@ async action trabalho():
     yield fundo(100)
 
 out await [trabalho() cycle n in range(20)] >> distill a, v: a + v 0''') == "2000"
+
+
+# ── Pilha: recursão profunda não pode matar o processo ───────
+
+def test_recursao_no_limite_da_erro_da_linguagem_e_nao_segfault():
+    """No Python 3.10 e no 3.11 isto MATAVA o processo.
+
+    Uma chamada da linguagem custa cerca de nove quadros do Python, e
+    `MAX_CALL_DEPTH` permite mil — perto de nove mil quadros. Cabem nos
+    8 MB da thread principal? No macOS com 3.10, não: o processo morria
+    com 'Segmentation fault', sem mensagem nenhuma, exatamente onde
+    deveria sair o erro da linguagem.
+
+    O 3.12 não sofria porque a CPython passou a vigiar a pilha de C por
+    conta própria. Como a linguagem promete 3.10, a rede tem que ser
+    nossa: o programa roda numa thread com pilha suficiente.
+    """
+    from dataforge.errors import StackOverflowError_
+
+    with pytest.raises(StackOverflowError_):
+        rodar('''
+action r(n):
+    yield r(n + 1)
+
+r(1)''')
+
+
+def test_recursao_profunda_dentro_de_uma_tarefa_async():
+    """A thread de uma tarefa também precisa da pilha.
+
+    No macOS uma thread comum nasce com 512 KB contra os 8 MB da
+    principal. Sem reservar, uma recursão que funciona no corpo do
+    programa derrubaria o processo só por estar dentro de um `async`.
+    """
+    assert rodar('''
+action fundo(n):
+    given n is 0:
+        yield 0
+    yield fundo(n - 1) + 1
+
+async action trabalho():
+    yield fundo(400)
+
+out await trabalho()''') == "400"
+
+
+def test_o_programa_roda_numa_thread_provisionada():
+    """A garantia de cima, dita diretamente."""
+    from dataforge import interpreter as m
+
+    assert m._PILHA >= 12 * 1024 * 1024, (
+        "12 MB foi o minimo medido no Python 3.10 do macOS")
+
+    visto = {}
+    interp = Interpreter()
+    interp.global_env.set_local("marcar", lambda: visto.setdefault(
+        "provisionada", getattr(m._PROVISIONADA, "sim", False)))
+    interp.run(parse(tokenize("marcar()", "<t>"), "<t>"), "<t>")
+    assert visto["provisionada"] is True

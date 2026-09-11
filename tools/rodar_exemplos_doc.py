@@ -95,7 +95,7 @@ def main(filtro=""):
                 temp = f.name
             r = subprocess.run(
                 [sys.executable, "-m", "dataforge", "run", temp],
-                capture_output=True, text=True, cwd=RAIZ)
+                capture_output=True, text=True, encoding="utf-8", cwd=RAIZ)
             if r.returncode != 0:
                 falhas += 1
                 print(f"\n\033[1;31m✗\033[0m {os.path.relpath(caminho, RAIZ)}")
