@@ -16,6 +16,13 @@ import tempfile
 sys.path.insert(0, os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))))
 
+# A saida deste script tambem desenha, e precisa sobreviver a um
+# terminal que nao fala UTF-8 — o cano do Windows e cp1252, que
+# nao tem um unico dos tracos usados aqui.
+from dataforge import marca  # noqa: E402
+
+marca.preparar_saida()
+
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGINAS = os.path.join(RAIZ, "site", "app")
 

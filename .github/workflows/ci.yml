@@ -100,8 +100,15 @@ jobs:
           codigo=$?
           cat "$saida"
           if [ $codigo -ne 0 ]; then
-            resumo=$(grep -E 'FALHA' "$saida" | head -20)
-            [ -z "$resumo" ] && resumo=$(tail -20 "$saida")
+            # Uma linha de traceback que CITA o 'print' do relatorio
+            # nao e o relatorio: quando o proprio script morre, o que
+            # importa e o erro, nao o 'FALHA' que ele ia imprimir.
+            if grep -q 'Traceback' "$saida"; then
+              resumo=$(tail -25 "$saida")
+            else
+              resumo=$(grep -E '^ *FALHA|FALHA ' "$saida" | head -20)
+              [ -z "$resumo" ] && resumo=$(tail -20 "$saida")
+            fi
             resumo=$(printf '%s' "$resumo" | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"}1')
             echo "::error title=exercicios ${{ matrix.os }} py${{ matrix.python }}::$resumo"
           fi

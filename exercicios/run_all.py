@@ -12,6 +12,16 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+
+from dataforge import marca  # noqa: E402
+
+# A saida deste script tambem precisa sobreviver a um terminal que nao
+# fala UTF-8. A CLI ja faz isto no comeco de 'main'; aqui nao fazia, e
+# no Windows o relatorio de falha — que repete a ultima linha do
+# exercicio, com acento e com os tracos das tabelas — estourava com
+# UnicodeEncodeError ANTES de dizer qual exercicio falhou.
+marca.preparar_saida()
 EXERCICIOS = os.path.join(ROOT, "exercicios")
 VERDE, VERMELHO, CINZA, RESET = "\033[1;32m", "\033[1;31m", "\033[0;90m", "\033[0m"
 

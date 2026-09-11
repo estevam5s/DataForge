@@ -22,6 +22,13 @@ import sys
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 
+# A saida deste script tambem desenha, e precisa sobreviver a um
+# terminal que nao fala UTF-8 — o cano do Windows e cp1252, que
+# nao tem um unico dos tracos usados aqui.
+from dataforge import marca  # noqa: E402
+
+marca.preparar_saida()
+
 from dataforge.lexer import tokenize                             # noqa: E402
 from dataforge.parser import parse                               # noqa: E402
 

@@ -2305,3 +2305,36 @@ def test_a_tabela_de_assinaturas_nao_tem_entrada_morta():
 
     mortas = sorted(set(ASSINATURAS) - expostos)
     assert not mortas, f"entradas que nao correspondem a nenhum simbolo: {mortas}"
+
+
+def test_todo_script_que_desenha_prepara_a_saida():
+    """Quem imprime traço de tabela precisa sobreviver ao cp1252.
+
+    A CLI faz isso no começo de `main`. `exercicios/run_all.py` não
+    fazia: no Windows, o relatório de falha — que repete a última linha
+    do exercício, com acento e com os traços das tabelas — estourava com
+    `UnicodeEncodeError` **antes** de dizer qual exercício falhou. O
+    resultado era uma esteira vermelha sem nenhuma informação.
+    """
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    amostra = "─═│█✓✗→●…"
+
+    ruins = []
+    for caminho in (glob.glob(os.path.join(raiz, "tools", "*.py"))
+                    + glob.glob(os.path.join(raiz, "scripts", "*.py"))
+                    + glob.glob(os.path.join(raiz, "exercicios", "*.py"))):
+        fonte = open(caminho, encoding="utf-8").read()
+        if '__name__ == "__main__"' not in fonte and \
+                "__name__ == '__main__'" not in fonte:
+            continue
+        if not any(c in fonte for c in amostra):
+            continue
+        if "preparar_saida" in fonte:
+            continue
+        ruins.append(os.path.relpath(caminho, raiz))
+
+    assert not ruins, (
+        "script que desenha e nao chama 'marca.preparar_saida()' — no "
+        "Windows ele morre ao imprimir:\n  " + "\n  ".join(ruins))
