@@ -10,8 +10,16 @@ export const metadata: Metadata = {
 
 const blocos: Bloco[] = [
   {"h2": "O que esperar"},
-  {"p": "DataForge é um **interpretador de árvore** escrito em Python, sem otimização. Cada nó da AST é visitado por uma chamada de método. Isso o torna mais lento que Python — que já é lento comparado a linguagens compiladas."},
+  {"p": "DataForge é um **interpretador de árvore** escrito em Python. Isso o torna mais lento que Python — que já é lento perto de uma linguagem compilada. Um `fib(25)` leva 1,28 s onde o CPython leva 0,03 s."},
   {"p": "Para scripts, ferramentas de terminal e processamento de alguns milhares de registros, isso não aparece. Para laços de milhões de iterações, aparece."},
+  {"h3": "O que já foi feito"},
+  {"p": "O corpo das ações e do programa é **compilado para fechamentos** na primeira execução: a árvore é percorrida uma vez e vira funções Python, o que tira a tabela de despacho do caminho quente."},
+  {"table": {"head": ["Carga", "Antes", "Depois", ""], "rows": [
+    ["`fib(24)`, recursão", "0,735 s", "0,459 s", "1,60×"],
+    ["laço de 300 mil", "0,270 s", "0,174 s", "1,55×"],
+    ["200 mil chamadas de método", "0,962 s", "0,535 s", "1,80×"],
+    ["200 mil `append` + `distill`", "1,032 s", "0,838 s", "1,23×"]]}},
+  {"callout": {"tipo": "nota", "titulo": "Por que não uma VM de bytecode", "texto": "Ela foi **medida** antes de descartada: um protótipo em Python deu 7,9×, e o de fechamentos preservando a semântica inteira deu 6,5×. Mesma ordem de grandeza — a VM não é o salto que o nome sugere, porque ela também rodaria em Python. Fechar uma diferença de 40× exigiria sair do Python, e isso custaria a promessa de zero dependências."}},
   {"h2": "Meça antes de otimizar"},
   { code: `adopt Arcane.Time as Time
 
@@ -56,7 +64,7 @@ DB.execute(conn, "CREATE INDEX idx_nome ON produtos(nome)")` },
   {"p": "Nada disso é urgente enquanto ninguém tiver um caso real onde o desempenho impede o uso. Se você tiver, [abra uma issue](/docs/contribuir) com o código — é a melhor forma de priorizar."},
 ];
 
-const headings = [{ id: 'o-que-esperar', text: "O que esperar", level: 2 as const }, { id: 'meca-antes-de-otimizar', text: "Meça antes de otimizar", level: 2 as const }, { id: 'escolher-o-algoritmo-certo', text: "Escolher o algoritmo certo", level: 2 as const }, { id: 'streams-para-dados-grandes', text: "Streams para dados grandes", level: 2 as const }, { id: 'indice-em-vez-de-busca-linear', text: "Índice em vez de busca linear", level: 2 as const }, { id: 'banco-executemany-e-indices', text: "Banco: execute_many e índices", level: 2 as const }, { id: 'recursao-tem-limite', text: "Recursão tem limite", level: 2 as const }, { id: 'o-que-esta-no-roadmap', text: "O que está no roadmap", level: 2 as const }];
+const headings = [{ id: 'o-que-esperar', text: "O que esperar", level: 2 as const }, { id: 'o-que-ja-foi-feito', text: "O que já foi feito", level: 3 as const }, { id: 'meca-antes-de-otimizar', text: "Meça antes de otimizar", level: 2 as const }, { id: 'escolher-o-algoritmo-certo', text: "Escolher o algoritmo certo", level: 2 as const }, { id: 'streams-para-dados-grandes', text: "Streams para dados grandes", level: 2 as const }, { id: 'indice-em-vez-de-busca-linear', text: "Índice em vez de busca linear", level: 2 as const }, { id: 'banco-executemany-e-indices', text: "Banco: execute_many e índices", level: 2 as const }, { id: 'recursao-tem-limite', text: "Recursão tem limite", level: 2 as const }, { id: 'o-que-esta-no-roadmap', text: "O que está no roadmap", level: 2 as const }];
 
 export default function Pagina() {
   return (

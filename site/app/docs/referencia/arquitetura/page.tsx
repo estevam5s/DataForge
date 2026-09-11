@@ -33,7 +33,8 @@ const blocos: Bloco[] = [
   {"h2": "Sem dependências"},
   {"p": "O runtime usa apenas a biblioteca padrão do Python. Isso é uma restrição de projeto, não uma limitação temporária: garante que um programa DataForge roda em qualquer máquina com Python 3.10+."},
   {"h2": "O que ainda não existe"},
-  {"p": "É um **interpretador de árvore**, sem bytecode e sem otimização. Uma IR e uma VM de pilha estão no [roadmap](/docs/roadmap), mas nenhum usuário reclamou de desempenho ainda — e medir antes de otimizar é a regra."},
+  {"p": "É um **interpretador de árvore**, sem bytecode. O corpo das ações e do programa é compilado para **fechamentos Python** na primeira execução (`dataforge/compilador.py`), o que tira a tabela de despacho do caminho quente — de 1,23× a 1,80× conforme a carga."},
+  {"p": "Cada construtor do compilador espelha **um** método `eval_`/`exec_` do interpretador e delega aos mesmos auxiliares; o que ele não conhece recua para o interpretador, byte por byte. É isso que permite acrescentar recursos à linguagem sem tocar nele. Detalhes em [desempenho](/docs/faq/desempenho)."},
 ];
 
 const headings = [{ id: 'o-fluxo', text: "O fluxo", level: 2 as const }, { id: 'os-componentes', text: "Os componentes", level: 2 as const }, { id: 'despacho-por-nome-de-classe', text: "Despacho por nome de classe", level: 2 as const }, { id: 'o-executor-preguicoso', text: "O executor preguiçoso", level: 2 as const }, { id: 'escopos', text: "Escopos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 2 as const }];
