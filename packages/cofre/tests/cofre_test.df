@@ -1,6 +1,7 @@
 adopt Arcane.Test as T
 adopt Arcane.IO as IO
 adopt cofre as C
+adopt Arcane.OS as OS
 
 action test_padroes():
     cfg := C.padroes(C.novo(), {"porta": 8080, "debug": no})
@@ -44,7 +45,7 @@ action test_conversao_de_tipo():
     T.assert_eq(typeof(C.pegar(cfg, "txt")), "String")
 
 action test_arquivo_json():
-    caminho := "/tmp/cofre_teste.json"
+    caminho := IO.join(OS.temp_dir(), "cofre_teste.json")
     IO.write(caminho, '{"porta": 3000, "nome": "do arquivo"}')
     cfg := C.padroes(C.novo(), {"porta": 8080})
     cfg := C.do_arquivo(cfg, caminho)
@@ -53,11 +54,11 @@ action test_arquivo_json():
     T.assert_true(C.origem(cfg, "porta").startswith("arquivo:"))
 
 action test_arquivo_ausente_e_tolerado():
-    cfg := C.do_arquivo(C.novo(), "/tmp/nao_existe_mesmo.json")
+    cfg := C.do_arquivo(C.novo(), IO.join(OS.temp_dir(), "nao_existe_mesmo.json"))
     T.assert_eq(len(C.tudo(cfg)), 0)
 
 action test_arquivo_obrigatorio_falha():
-    T.assert_throws(lambda => C.do_arquivo(C.novo(), "/tmp/nao_existe.json", yes))
+    T.assert_throws(lambda => C.do_arquivo(C.novo(), IO.join(OS.temp_dir(), "nao_existe.json"), yes))
 
 action test_exigir():
     cfg := C.padroes(C.novo(), {"a": 1})

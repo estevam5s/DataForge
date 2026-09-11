@@ -1,8 +1,9 @@
 adopt Arcane.Test as T
 adopt Arcane.IO as IO
+adopt Arcane.OS as OS
 adopt../ src / repositorio as R
 
-steady ARQUIVO := "/tmp/df_tarefas_teste.json"
+steady ARQUIVO := IO.join(OS.temp_dir(), "df_tarefas_teste.json")
 
 action limpo():
     given IO.exists(ARQUIVO):

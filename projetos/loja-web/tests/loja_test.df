@@ -7,6 +7,8 @@
 adopt Arcane.Test as T
 adopt Kiln
 adopt Arcane.Excel as Xls
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
 adopt../ src / app as App
 
 steady LOJA := App.loja
@@ -79,18 +81,18 @@ action test_relatorio_baixa_como_xlsx():
 
 action test_planilha_gerada_tem_as_duas_abas():
     pegar("/relatorio.xlsx")
-    T.assert_eq(Xls.sheets(Xls.read("/tmp/relatorio-loja.xlsx")),
+    T.assert_eq(Xls.sheets(Xls.read(IO.join(OS.temp_dir(), "relatorio-loja.xlsx"))),
     ["Estoque", "Categorias"])
 
 action test_planilha_traz_os_produtos_e_o_total():
     pegar("/relatorio.xlsx")
-    livro := Xls.read("/tmp/relatorio-loja.xlsx")
+    livro := Xls.read(IO.join(OS.temp_dir(), "relatorio-loja.xlsx"))
     // cinco produtos mais a linha TOTAL
     T.assert_eq(len(Xls.records(livro, "Estoque")), 6)
 
 action test_planilha_tem_a_formula_do_total():
     pegar("/relatorio.xlsx")
-    aba := Xls.sheet(Xls.read("/tmp/relatorio-loja.xlsx"), "Estoque")
+    aba := Xls.sheet(Xls.read(IO.join(OS.temp_dir(), "relatorio-loja.xlsx")), "Estoque")
     T.assert_eq(Xls.get_formula(aba, "F7"), "SUM(F2:F6)")
 
 // ── a API ──

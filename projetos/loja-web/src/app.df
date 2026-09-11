@@ -14,8 +14,9 @@ adopt Arcane.OS as OS
 adopt Arcane.Excel as Xls
 adopt banco as Banco
 adopt paginas as Paginas
+adopt Arcane.IO as IO
 
-steady CAMINHO_BANCO := "/tmp/loja-web.db"
+steady CAMINHO_BANCO := IO.join(OS.temp_dir(), "loja-web.db")
 
 // Ao lado do programa, não de onde o usuário o chamou. Sem isso, rodar
 // 'dataforge run src/main.df' de duas pastas diferentes carrega — ou
@@ -78,9 +79,9 @@ server loja on 8080:
         Xls.bold_row(aba, len(produtos) + 1)
 
         Xls.sheet(livro, "Categorias", Banco.categorias(conexao))
-        Xls.save(livro, "/tmp/relatorio-loja.xlsx")
+        Xls.save(livro, IO.join(OS.temp_dir(), "relatorio-loja.xlsx"))
 
-        respond file "/tmp/relatorio-loja.xlsx"
+        respond file IO.join(OS.temp_dir(), "relatorio-loja.xlsx")
 
     // ── sessão ──
 

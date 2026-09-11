@@ -1,8 +1,9 @@
 adopt Arcane.Test as T
 adopt Arcane.IO as IO
+adopt Arcane.OS as OS
 adopt../ src / leitor as L
 
-steady TEMP := "/tmp/df_vendas_teste.csv"
+steady TEMP := IO.join(OS.temp_dir(), "df_vendas_teste.csv")
 
 action escrever(conteudo):
     IO.write(TEMP, conteudo)
@@ -20,7 +21,7 @@ action test_valor_vira_centavos():
     T.assert_eq(L.ler(TEMP)[0].valor, 10)
 
 action test_arquivo_ausente():
-    T.assert_throws(lambda => L.ler("/tmp/nao_existe_mesmo.csv"))
+    T.assert_throws(lambda => L.ler(IO.join(OS.temp_dir(), "nao_existe_mesmo.csv")))
 
 action test_csv_sem_linhas():
     escrever("data,regiao,vendedor,produto,valor\n")

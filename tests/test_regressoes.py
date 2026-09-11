@@ -2548,3 +2548,44 @@ def test_o_lock_recusa_gravar_um_registro_local():
             assert json.load(f)["registro"] == \
                 "https://dataforge-lang.vercel.app/registry", \
                 "o registro remoto precisa ser preservado"
+
+
+def test_nenhum_df_do_repositorio_crava_caminho_de_um_sistema_so():
+    """`/tmp` não existe no Windows — e estava em 12 lugares.
+
+    Foi corrigido três vezes, em três rodadas: primeiro nos exercícios,
+    depois no modelo de projeto do `dataforge new`, e só agora nos
+    projetos e nos pacotes. Cada rodada consertou o que o CI alcançava
+    naquele momento, porque o job parava no primeiro passo vermelho e o
+    seguinte nem chegava a rodar.
+
+    Este teste fecha a classe inteira de uma vez, em vez de esperar o
+    próximo passo da esteira revelar o próximo arquivo.
+
+    A forma certa é `IO.join(OS.temp_dir(), …)`, que pergunta ao sistema
+    onde fica a pasta temporária.
+    """
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cravados = re.compile(r'"(/tmp/|/var/|/usr/|/etc/|/home/|C:\\\\)')
+
+    ruins = []
+    for caminho in sorted(glob.glob(os.path.join(raiz, "**", "*.df"),
+                                    recursive=True)):
+        if "forge_modules" in caminho or "/dist/" in caminho:
+            continue
+        for numero, linha in enumerate(
+                open(caminho, encoding="utf-8").read().split("\n"), 1):
+            # Comentário é prosa: citar '/tmp' ao explicar é legítimo.
+            if linha.lstrip().startswith("//"):
+                continue
+            if cravados.search(linha):
+                ruins.append(
+                    f"{os.path.relpath(caminho, raiz)}:{numero}: "
+                    f"{linha.strip()[:70]}")
+
+    assert not ruins, (
+        "caminho de um sistema so num '.df' — use "
+        "IO.join(OS.temp_dir(), …):\n  " + "\n  ".join(ruins))
