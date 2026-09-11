@@ -81,7 +81,7 @@ DB.table_info(conn, "produtos")  # tipos e restrições
 DB.close(conn)` },
 ];
 
-const headings = [{ id: 'conectar', text: "Conectar", level: 2 as const }, { id: 'parametros-sempre', text: "Parâmetros, sempre", level: 2 as const }, { id: 'as-operacoes', text: "As operações", level: 2 as const }, { id: 'consultar', text: "Consultar", level: 2 as const }, { id: 'transacoes', text: "Transações", level: 2 as const }, { id: 'converter-na-fronteira', text: "Converter na fronteira", level: 2 as const }, { id: 'regra-de-negocio-no-banco', text: "Regra de negócio no banco", level: 2 as const }, { id: 'introspeccao', text: "Introspecção", level: 2 as const }];
+const headings = [{ id: 'conectar', text: "Conectar", level: 2 as const }, { id: 'parametros-sempre', text: "Parâmetros, sempre", level: 2 as const }, { id: 'as-operacoes', text: "As operações", level: 2 as const }, { id: 'executemany', text: "execute_many", level: 3 as const }, { id: 'consultar', text: "Consultar", level: 2 as const }, { id: 'transacoes', text: "Transações", level: 2 as const }, { id: 'converter-na-fronteira', text: "Converter na fronteira", level: 2 as const }, { id: 'regra-de-negocio-no-banco', text: "Regra de negócio no banco", level: 2 as const }, { id: 'introspeccao', text: "Introspecção", level: 2 as const }];
 
 export default function Pagina() {
   return (

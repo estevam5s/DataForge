@@ -119,7 +119,7 @@ out get_mro(p)             # ordem de resolução de métodos` },
   {"p": "Detalhes em [Records](/docs/fundamentos/records)."},
 ];
 
-const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'heranca', text: "Herança", level: 2 as const }, { id: 'traits', text: "Traits", level: 2 as const }, { id: 'membros-estaticos', text: "Membros estáticos", level: 2 as const }, { id: 'sobrecarga-de-operadores', text: "Sobrecarga de operadores", level: 2 as const }, { id: 'introspeccao', text: "Introspecção", level: 2 as const }, { id: 'blueprint-ou-record', text: "Blueprint ou record?", level: 2 as const }];
+const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'construtor-com-setup', text: "Construtor com setup", level: 3 as const }, { id: 'heranca', text: "Herança", level: 2 as const }, { id: 'root-chamar-o-pai', text: "root — chamar o pai", level: 3 as const }, { id: 'traits', text: "Traits", level: 2 as const }, { id: 'membros-estaticos', text: "Membros estáticos", level: 2 as const }, { id: 'sobrecarga-de-operadores', text: "Sobrecarga de operadores", level: 2 as const }, { id: 'introspeccao', text: "Introspecção", level: 2 as const }, { id: 'blueprint-ou-record', text: "Blueprint ou record?", level: 2 as const }];
 
 export default function Pagina() {
   return (

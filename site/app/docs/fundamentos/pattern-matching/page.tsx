@@ -92,7 +92,7 @@ point Usuario(nome := n, idade := i) when i smaller 18:
         yield "nunca chega aqui"` },
 ];
 
-const headings = [{ id: 'a-ideia', text: "A ideia", level: 2 as const }, { id: 'a-convencao-que-organiza-tudo', text: "A convenção que organiza tudo", level: 2 as const }, { id: 'padroes-de-tipo', text: "Padrões de tipo", level: 2 as const }, { id: 'padroes-de-sequencia', text: "Padrões de sequência", level: 2 as const }, { id: 'padroes-de-mapa-e-record', text: "Padrões de mapa e record", level: 2 as const }, { id: 'guardas-com-when', text: "Guardas com when", level: 2 as const }, { id: 'por-que-when-e-nao-given', text: "Por que when e não given", level: 2 as const }, { id: 'tres-regras-que-evitam-surpresa', text: "Três regras que evitam surpresa", level: 2 as const }];
+const headings = [{ id: 'a-ideia', text: "A ideia", level: 2 as const }, { id: 'a-convencao-que-organiza-tudo', text: "A convenção que organiza tudo", level: 2 as const }, { id: 'padroes-de-tipo', text: "Padrões de tipo", level: 2 as const }, { id: 'padroes-de-sequencia', text: "Padrões de sequência", level: 2 as const }, { id: 'cabeca-e-cauda-o-padrao-recursivo', text: "Cabeça e cauda: o padrão recursivo", level: 3 as const }, { id: 'padroes-de-mapa-e-record', text: "Padrões de mapa e record", level: 2 as const }, { id: 'guardas-com-when', text: "Guardas com when", level: 2 as const }, { id: 'a-guarda-enxerga-o-que-o-padrao-ligou', text: "A guarda enxerga o que o padrão ligou", level: 3 as const }, { id: 'por-que-when-e-nao-given', text: "Por que when e não given", level: 2 as const }, { id: 'tres-regras-que-evitam-surpresa', text: "Três regras que evitam surpresa", level: 2 as const }];
 
 export default function Pagina() {
   return (

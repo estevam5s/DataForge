@@ -75,7 +75,7 @@ action extrair(ctx):
   {"p": "A etapa é **saltada** quando a condição dá falso — e saltar não é falhar: o fluxo segue verde. É como se roda o mesmo pipeline em modo cheio e incremental sem duplicá-lo."},
 ];
 
-const headings = [{ id: 'as-tres-garantias', text: "As três garantias", level: 2 as const }, { id: 'carga-incremental', text: "Carga incremental", level: 2 as const }, { id: 'rodar-so-um-pedaco', text: "Rodar só um pedaço", level: 2 as const }, { id: 'o-relatorio', text: "O relatório", level: 2 as const }, { id: 'condicao-o-mesmo-fluxo-em-modos-diferentes', text: "Condição: o mesmo fluxo em modos diferentes", level: 2 as const }];
+const headings = [{ id: 'as-tres-garantias', text: "As três garantias", level: 2 as const }, { id: '1-um-ciclo-e-erro-nao-aviso', text: "1. Um ciclo é erro, não aviso", level: 3 as const }, { id: '2-falhou-quem-depende-e-pulado', text: "2. Falhou? quem depende é PULADO", level: 3 as const }, { id: '3-retry-para-a-falha-passageira', text: "3. Retry para a falha passageira", level: 3 as const }, { id: 'carga-incremental', text: "Carga incremental", level: 2 as const }, { id: 'rodar-so-um-pedaco', text: "Rodar só um pedaço", level: 2 as const }, { id: 'o-relatorio', text: "O relatório", level: 2 as const }, { id: 'condicao-o-mesmo-fluxo-em-modos-diferentes', text: "Condição: o mesmo fluxo em modos diferentes", level: 2 as const }];
 
 export default function Pagina() {
   return (

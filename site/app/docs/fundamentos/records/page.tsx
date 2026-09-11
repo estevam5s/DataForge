@@ -87,7 +87,7 @@ out r, r.area(), r.escalar(2)` },
 out nome, idade` },
 ];
 
-const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'construir', text: "Construir", level: 2 as const }, { id: 'igualdade-estrutural', text: "Igualdade estrutural", level: 2 as const }, { id: 'imutabilidade', text: "Imutabilidade", level: 2 as const }, { id: 'with--a-copia-alterada', text: "with — a cópia alterada", level: 2 as const }, { id: 'transformacoes-encadeadas', text: "Transformações encadeadas", level: 2 as const }, { id: 'metodos', text: "Métodos", level: 2 as const }, { id: 'em-pattern-matching', text: "Em pattern matching", level: 2 as const }, { id: 'desestruturar', text: "Desestruturar", level: 2 as const }];
+const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'construir', text: "Construir", level: 2 as const }, { id: 'igualdade-estrutural', text: "Igualdade estrutural", level: 2 as const }, { id: 'imutabilidade', text: "Imutabilidade", level: 2 as const }, { id: 'with-a-copia-alterada', text: "with — a cópia alterada", level: 2 as const }, { id: 'transformacoes-encadeadas', text: "Transformações encadeadas", level: 2 as const }, { id: 'metodos', text: "Métodos", level: 2 as const }, { id: 'em-pattern-matching', text: "Em pattern matching", level: 2 as const }, { id: 'desestruturar', text: "Desestruturar", level: 2 as const }];
 
 export default function Pagina() {
   return (

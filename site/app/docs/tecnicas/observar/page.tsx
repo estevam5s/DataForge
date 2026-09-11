@@ -76,7 +76,7 @@ O.alertar(p, regras)`, lang: 'df' },
     respond text O.prometheus(painel)`, lang: 'df' },
 ];
 
-const headings = [{ id: 'o-painel', text: "O painel", level: 2 as const }, { id: 'a-media-esconde', text: "A média esconde", level: 2 as const }, { id: 'tracing-onde-o-tempo-foi', text: "Tracing: onde o tempo foi", level: 2 as const }, { id: 'linhagem-de-onde-veio-esse-numero', text: "Linhagem: de onde veio esse número", level: 2 as const }, { id: 'sair', text: "Sair", level: 2 as const }];
+const headings = [{ id: 'o-painel', text: "O painel", level: 2 as const }, { id: 'a-media-esconde', text: "A média esconde", level: 2 as const }, { id: 'tracing-onde-o-tempo-foi', text: "Tracing: onde o tempo foi", level: 2 as const }, { id: 'a-forma-que-nao-deixa-trecho-aberto', text: "A forma que não deixa trecho aberto", level: 3 as const }, { id: 'linhagem-de-onde-veio-esse-numero', text: "Linhagem: de onde veio esse número", level: 2 as const }, { id: 'e-a-pergunta-inversa-que-e-a-mais-cara', text: "E a pergunta inversa, que é a mais cara", level: 3 as const }, { id: 'sair', text: "Sair", level: 2 as const }, { id: 'alertas', text: "Alertas", level: 3 as const }, { id: 'expor-no-kiln', text: "Expor no Kiln", level: 3 as const }];
 
 export default function Pagina() {
   return (

@@ -13,6 +13,7 @@ from .lexer import tokenize
 from .parser import parse
 from .interpreter import Interpreter
 from .repl import start_repl
+from .caminhos import curto as _curto
 from .errors import DataForgeError
 
 
@@ -928,7 +929,7 @@ def pack_command():
 
     tamanho = os.path.getsize(caminho)
     print(color(f"✓ {nome} {versao}", "1;32"))
-    print(f"  arquivo  {os.path.relpath(caminho)}")
+    print(f"  arquivo  {_curto(caminho)}")
     print(f"  tamanho  {tamanho / 1024:.1f} KB")
     print(f"  sha256   {sha}")
     print()
@@ -1745,7 +1746,7 @@ def crucible_command(alvos, opcoes):
     if problemas:
         print(color("\n  Arquivos que nao puderam ser carregados:", "1;31"))
         for caminho, motivo in problemas:
-            print(f"    {os.path.relpath(caminho)}: {motivo}")
+            print(f"    {_curto(caminho)}: {motivo}")
         print()
 
     if REGISTRO.raiz.total() == 0:
@@ -1912,7 +1913,7 @@ def info_command(args):
     if descricao:
         print(f"  {descricao}")
     print()
-    print(f"  manifesto  {os.path.relpath(manifesto.caminho)}")
+    print(f"  manifesto  {_curto(manifesto.caminho)}")
     print(f"  entrada    {manifesto.entry}")
     autores = manifesto.dados["project"].get("authors") or []
     if autores:
@@ -2006,7 +2007,7 @@ def _expandir(alvos, incluir_dependencias=False):
             base = set(os.path.normpath(alvo).split(os.sep))
             arquivos.extend(
                 a for a in achados
-                if visivel(os.path.relpath(a, alvo)) or (base & ignorar))
+                if visivel(_curto(a, alvo)) or (base & ignorar))
         elif os.path.isfile(alvo):
             arquivos.append(alvo)
         else:
@@ -2163,7 +2164,7 @@ def bigo_command(alvos, opcoes):
             resultados = analisar_arquivo(caminho)
         except Exception as e:                       # noqa: BLE001
             if not opcoes.get("json"):
-                print(color(f"  {os.path.relpath(caminho)}: "
+                print(color(f"  {_curto(caminho)}: "
                             f"{type(e).__name__}", "1;33"))
             continue
         tudo[caminho] = resultados
@@ -2171,7 +2172,7 @@ def bigo_command(alvos, opcoes):
 
     if opcoes.get("json"):
         print(_json.dumps(
-            {os.path.relpath(c): para_json(r) for c, r in tudo.items()},
+            {_curto(c): para_json(r) for c, r in tudo.items()},
             ensure_ascii=False, indent=2))
         return
 
@@ -2182,7 +2183,7 @@ def bigo_command(alvos, opcoes):
         if not resultados:
             continue
         print()
-        print(f"  {color(os.path.relpath(caminho), '1;37')}")
+        print(f"  {color(_curto(caminho), '1;37')}")
         for r in resultados:
             g = r.tempo.gravidade()
             print(f"    {color(simbolos[g], cores[g])} "
@@ -2273,7 +2274,7 @@ def custo_command(alvos):
         if not adocoes:
             continue
 
-        print(f"  {color(os.path.relpath(caminho), '1;37')}")
+        print(f"  {color(_curto(caminho), '1;37')}")
         for no in adocoes:
             nome = getattr(no, "module", "") or getattr(no, "path", "")
             modulo = get_module(nome) or get_module(nome.split(".")[-1])
@@ -2589,7 +2590,7 @@ def deps_command(alvos):
         fonte, motivo = _ler(caminho)
         if motivo:
             continue
-        curto = os.path.relpath(caminho)
+        curto = _curto(caminho)
         # 'adopt geometria.{a, b}' importa de 'geometria': o ponto antes
         # da chave separa o modulo dos nomes, e nao faz parte do nome.
         adotados = _re.findall(r'^\s*adopt\s+([A-Za-z_][\w.]*?)\.?(?=\s|\{|$)',

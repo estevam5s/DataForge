@@ -79,7 +79,7 @@ out dia(1), dia(3), dia(9)` },
 given not itens:              # funciona, mas menos explícito` },
 ];
 
-const headings = [{ id: 'given--orif--otherwise', text: "given / orif / otherwise", level: 2 as const }, { id: 'o-ternario', text: "O ternário", level: 2 as const }, { id: 'match--selecao-multipla', text: "match — seleção múltipla", level: 2 as const }, { id: 'verdadeiro-e-falso', text: "Verdadeiro e falso", level: 2 as const }];
+const headings = [{ id: 'given-orif-otherwise', text: "given / orif / otherwise", level: 2 as const }, { id: 'a-ordem-importa', text: "A ordem importa", level: 3 as const }, { id: 'o-ternario', text: "O ternário", level: 2 as const }, { id: 'match-selecao-multipla', text: "match — seleção múltipla", level: 2 as const }, { id: 'alternativas-com-or', text: "Alternativas com or", level: 3 as const }, { id: 'verdadeiro-e-falso', text: "Verdadeiro e falso", level: 2 as const }];
 
 export default function Pagina() {
   return (

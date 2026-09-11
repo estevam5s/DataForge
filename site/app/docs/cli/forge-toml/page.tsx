@@ -53,7 +53,7 @@ dataforge test       # roda "test tests/"`, lang: 'bash' },
   { code: `dataforge init`, lang: 'bash' },
 ];
 
-const headings = [{ id: 'o-arquivo', text: "O arquivo", level: 2 as const }, { id: 'o-que-ele-habilita', text: "O que ele habilita", level: 2 as const }, { id: 'a-secao-dependencies', text: "A seção [dependencies]", level: 2 as const }, { id: 'criar', text: "Criar", level: 2 as const }];
+const headings = [{ id: 'o-arquivo', text: "O arquivo", level: 2 as const }, { id: 'o-que-ele-habilita', text: "O que ele habilita", level: 2 as const }, { id: 'entrada-padrao', text: "Entrada padrão", level: 3 as const }, { id: 'scripts-nomeados', text: "Scripts nomeados", level: 3 as const }, { id: 'raiz-do-projeto', text: "Raiz do projeto", level: 3 as const }, { id: 'versao-minima', text: "Versão mínima", level: 3 as const }, { id: 'a-secao-dependencies', text: "A seção [dependencies]", level: 2 as const }, { id: 'criar', text: "Criar", level: 2 as const }];
 
 export default function Pagina() {
   return (

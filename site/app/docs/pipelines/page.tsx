@@ -110,7 +110,7 @@ primeiros := naturais().take(20)
 out primeiros >> sift n: n % 3 is 0` },
 ];
 
-const headings = [{ id: 'o-operador', text: "O operador >>", level: 2 as const }, { id: 'sift--filtrar', text: "sift — filtrar", level: 2 as const }, { id: 'morph--transformar', text: "morph — transformar", level: 2 as const }, { id: 'distill--reduzir', text: "distill — reduzir", level: 2 as const }, { id: 'encadeando', text: "Encadeando", level: 2 as const }, { id: 'com-acoes-nomeadas', text: "Com ações nomeadas", level: 2 as const }, { id: 'pipeline-compreensao-ou-laco', text: "Pipeline, compreensão ou laço?", level: 2 as const }, { id: 'um-relatorio-completo', text: "Um relatório completo", level: 2 as const }, { id: 'com-streams', text: "Com streams", level: 2 as const }];
+const headings = [{ id: 'o-operador', text: "O operador >>", level: 2 as const }, { id: 'sift-filtrar', text: "sift — filtrar", level: 2 as const }, { id: 'morph-transformar', text: "morph — transformar", level: 2 as const }, { id: 'distill-reduzir', text: "distill — reduzir", level: 2 as const }, { id: 'encadeando', text: "Encadeando", level: 2 as const }, { id: 'com-acoes-nomeadas', text: "Com ações nomeadas", level: 2 as const }, { id: 'pipeline-compreensao-ou-laco', text: "Pipeline, compreensão ou laço?", level: 2 as const }, { id: 'um-relatorio-completo', text: "Um relatório completo", level: 2 as const }, { id: 'com-streams', text: "Com streams", level: 2 as const }];
 
 export default function Pagina() {
   return (

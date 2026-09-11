@@ -548,6 +548,7 @@ template comeria os dados.
 | `site/app/docs/kiln/referencia/page.tsx` | `tools/gerar_ref_kiln.py` | — |
 | `doc/BIBLIOTECA_PADRAO.md` | `tools/gerar_doc_stdlib.py` | — |
 | `site/lib/dados-gerados.json` | `site/scripts/gerar_dados.py` | — |
+| o `const headings` de cada `site/app/docs/**/page.tsx` | `site/scripts/gerar_indices.py` | `tests/test_api_e_marca.py` |
 | `site/public/dist/*.tar.gz` | `scripts/gerar_tarball.py` | `tests/test_regressoes.py` |
 | `site/lib/marca.ts`, favicon, ícones | `tools/vetorizar_logo.py` | `tests/test_api_e_marca.py` |
 | `site/public/api/*.json` | `scripts/gerar_api.py` | `tests/test_api_e_marca.py` |

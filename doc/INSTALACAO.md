@@ -4,6 +4,39 @@ Guia passo a passo, do zero até rodar seu primeiro programa. Tempo estimado: 5 
 
 ---
 
+## 0. O caminho mais curto: o executável
+
+Se você só quer **usar** a linguagem, não precisa de Python nem de mais nada.
+Há um executável pronto por sistema:
+
+```bash
+curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | DATAFORGE_BINARIO=1 sh
+```
+
+Ele baixa um arquivo só, confere que roda, e configura o `PATH`. No Windows:
+
+```powershell
+irm https://dataforge-lang.vercel.app/instalar.ps1 | iex
+```
+
+Ou pegue o arquivo à mão em
+[releases](https://github.com/estevam5s/DataForge/releases) — há um para
+Linux x64, macOS Intel, macOS Apple Silicon e Windows x64, com `SHA256SUMS.txt`
+ao lado para conferir.
+
+| | executável | Python + pip |
+|---|---|---|
+| precisa de Python | **não** | 3.10+ |
+| tamanho | ~11 MB | ~2 MB |
+| início de cada comando | um pouco mais lento | imediato |
+| `pip install` de pacote Python | não | sim |
+| mexer no interpretador | não | sim |
+
+**Use o executável para escrever programas; use o Python para contribuir com a
+linguagem.** O resto deste guia é o segundo caminho.
+
+---
+
 ## 1. Requisitos
 
 | Item | Versão mínima | Como conferir |
@@ -14,6 +47,8 @@ Guia passo a passo, do zero até rodar seu primeiro programa. Tempo estimado: 5 
 
 DataForge é um interpretador escrito em Python puro. **Não há dependências
 externas obrigatórias** — nada de compilar, nada de baixar toolchain.
+
+> Nada disto vale para o executável da seção 0, que já traz o Python dentro.
 
 ### Se você ainda não tem Python
 

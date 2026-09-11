@@ -13,6 +13,7 @@ from .environment import Environment
 from . import magicos
 from .builtins import (BuiltinFunction, get_builtins,
                        set_magic_dispatcher, set_stringifier)
+from .caminhos import curto as _curto
 from .errors import (
     ControlSignal,
     DataForgeError, Frame, RuntimeError_, TypeError_, NameError_, TriggerError,
@@ -3959,7 +3960,7 @@ class Interpreter:
             raise ImportError_(
                 f"Module '{nome_modulo}' not found.",
                 node.line, node.column,
-                nota=f"resolved to {os.path.relpath(alvo)} "
+                nota=f"resolved to {_curto(alvo)} "
                      f"relative to {os.path.basename(self.filename)}",
                 dica="check the path, or that the file ends in .df",
                 doc="pacotes")

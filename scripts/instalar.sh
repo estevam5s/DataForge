@@ -127,6 +127,50 @@ baixar() {
     fi
 }
 
+# ── Binário pronto (sem Python na máquina) ───────────────────
+
+#: O nome do arquivo publicado no release, por sistema e arquitetura.
+#:
+#: 'x86_64' e 'amd64' sao a mesma coisa com dois nomes, e 'aarch64' e
+#: 'arm64' tambem. Normalizar evita alguem concluir que nao ha binario
+#: para a maquina dele.
+nome_do_binario() {
+    arq="$(uname -m)"
+    case "$arq" in
+        x86_64|amd64)  arq=x64 ;;
+        aarch64|arm64) arq=arm64 ;;
+    esac
+    echo "dataforge-$SISTEMA-$arq"
+}
+
+#: Instala o executavel unico. Devolve 1 se nao houver um para esta
+#: maquina — quem chama decide se isso e fatal.
+instalar_binario() {
+    ALVO="$(nome_do_binario)"
+    URL="$REPO/releases/download/v$VERSAO/$ALVO"
+
+    info "baixando o executável $ALVO"
+    TEMP="$(mktemp -d)/$ALVO"
+    if ! baixar "$URL" "$TEMP" 2>/dev/null; then
+        return 1
+    fi
+
+    mkdir -p "$PREFIXO/bin"
+    mv "$TEMP" "$PREFIXO/bin/dataforge"
+    chmod +x "$PREFIXO/bin/dataforge"
+    ln -sf "$PREFIXO/bin/dataforge" "$PREFIXO/bin/df"
+
+    # Conferir que ele RODA. Um arquivo baixado pela metade, ou feito
+    # para outra libc, existe e nao serve — e descobrir isso agora e
+    # muito melhor que o usuario descobrir no primeiro comando.
+    if ! "$PREFIXO/bin/dataforge" --version >/dev/null 2>&1; then
+        rm -rf "$PREFIXO/bin"
+        return 1
+    fi
+    ok "executável instalado — esta máquina não precisa de Python"
+    return 0
+}
+
 # ── Instalação ───────────────────────────────────────────────
 
 principal() {
@@ -147,10 +191,25 @@ ARTE
     detectar_sistema
     ok "sistema: $SISTEMA ($(uname -m))"
 
-    if ! achar_python; then
+    # O caminho do Python continua sendo o padrao: ele instala em modo
+    # editavel, aceita 'pip install' de pacote e e o que esta em uso.
+    # O executavel entra quando nao ha Python — ou quando se pede.
+    if [ "${DATAFORGE_BINARIO:-0}" = "1" ] || ! achar_python; then
+        if [ "${DATAFORGE_BINARIO:-0}" != "1" ]; then
+            aviso "não achei Python $PYTHON_MINIMO ou mais novo — tentando o executável"
+        fi
+        rm -rf "$PREFIXO"
+        mkdir -p "$PREFIXO"
+        if instalar_binario; then
+            configurar_path
+            despedida_binario
+            return 0
+        fi
         printf "\n"
-        erro "não achei Python $PYTHON_MINIMO ou mais novo.
-Instale com:
+        erro "não achei Python $PYTHON_MINIMO ou mais novo, e não há
+executável pronto para $SISTEMA $(uname -m) na versão $VERSAO.
+
+Instale o Python com:
 $(instrucao_python)
 
 Depois rode este instalador de novo."
@@ -246,6 +305,22 @@ ATALHO
         abrir_navegador "$SITE/docs/primeiros-passos"
     fi
 
+    contar_instalacao
+}
+
+# O fecho de quem instalou o executavel.
+#
+# Separado do outro porque as diferencas importam: nao ha venv para
+# apontar, 'pip install' de pacote nao se aplica, e a atualizacao e
+# rodar o instalador de novo — nao ha 'pip install -U'.
+despedida_binario() {
+    printf "\n  ${verde}DataForge %s instalado.${fim}\n" "$VERSAO"
+    # O "comece por" ja saiu de 'configurar_path', que sabe se o PATH
+    # precisa de um passo a mais nesta janela. Repetir aqui daria a
+    # mesma instrucao duas vezes na mesma tela.
+    printf "\n  ${apagado}documentação: https://dataforge-lang.vercel.app/docs${fim}\n"
+    printf "  ${apagado}atualizar:    rode este instalador de novo${fim}\n"
+    printf "  ${apagado}desinstalar:  rm -rf %s${fim}\n\n" "$PREFIXO"
     contar_instalacao
 }
 

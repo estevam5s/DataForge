@@ -112,7 +112,7 @@ out total     # 2000, sempre` },
   {"p": "Tudo isso está no [roadmap](/docs/roadmap)."},
 ];
 
-const headings = [{ id: 'async--await', text: "async / await", level: 2 as const }, { id: 'onde-esta-o-ganho', text: "Onde está o ganho", level: 3 as const }, { id: 'o-que-async-acelera-e-o-que-nao-acelera', text: "O que async acelera, e o que não acelera", level: 3 as const }, { id: 'erros-atravessam-o-await', text: "Erros atravessam o await", level: 3 as const }, { id: 'thread', text: "thread", level: 2 as const }, { id: 'a-condicao-de-corrida', text: "A condição de corrida", level: 2 as const }, { id: 'channel--a-via-segura', text: "channel — a via segura", level: 2 as const }, { id: 'regra-pratica', text: "Regra prática", level: 2 as const }, { id: 'parallel', text: "parallel", level: 2 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 2 as const }];
+const headings = [{ id: 'async-await', text: "async / await", level: 2 as const }, { id: 'onde-esta-o-ganho', text: "Onde está o ganho", level: 3 as const }, { id: 'o-que-async-acelera-e-o-que-nao-acelera', text: "O que async acelera, e o que não acelera", level: 3 as const }, { id: 'erros-atravessam-o-await', text: "Erros atravessam o await", level: 3 as const }, { id: 'thread', text: "thread", level: 2 as const }, { id: 'a-condicao-de-corrida', text: "A condição de corrida", level: 2 as const }, { id: 'channel-a-via-segura', text: "channel — a via segura", level: 2 as const }, { id: 'regra-pratica', text: "Regra prática", level: 2 as const }, { id: 'parallel', text: "parallel", level: 2 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 2 as const }];
 
 export default function Pagina() {
   return (

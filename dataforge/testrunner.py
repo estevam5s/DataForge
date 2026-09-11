@@ -20,6 +20,7 @@ import io
 import os
 import time
 from contextlib import redirect_stdout
+from .caminhos import curto as _curto
 
 from .errors import DataForgeError
 from .interpreter import DFAction, Interpreter
@@ -155,7 +156,7 @@ def executar(alvo=".", verboso=False, filtro="", cor=True, parar_no_primeiro=Fal
 
         passaram = sum(1 for r in resultados if r.status == "pass")
         falharam = len(resultados) - passaram
-        cabecalho = os.path.relpath(arquivo)
+        cabecalho = _curto(arquivo)
         estado = tinta("✓", VERDE) if falharam == 0 else tinta("✗", VERMELHO)
         print(f"{estado} {cabecalho} {CINZA if cor else ''}"
               f"({passaram}/{len(resultados)}){RESET if cor else ''}")

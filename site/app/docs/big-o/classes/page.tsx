@@ -148,7 +148,7 @@ assert len(permutacoes([1, 2, 3])) is 6`, lang: 'df' },
   {"componente": "escala-big-o"},
 ];
 
-const headings = [{ id: 'o1--constante', text: "O(1) — constante", level: 2 as const }, { id: 'olog-n--logaritmica', text: "O(log n) — logarítmica", level: 2 as const }, { id: 'on--linear', text: "O(n) — linear", level: 2 as const }, { id: 'on-log-n--linearitmica', text: "O(n log n) — linearítmica", level: 2 as const }, { id: 'on--quadratica', text: "O(n²) — quadrática", level: 2 as const }, { id: 'on--cubica', text: "O(n³) — cúbica", level: 2 as const }, { id: 'o2--exponencial', text: "O(2ⁿ) — exponencial", level: 2 as const }, { id: 'on--fatorial', text: "O(n!) — fatorial", level: 2 as const }, { id: 'comparando', text: "Comparando", level: 2 as const }];
+const headings = [{ id: 'o1-constante', text: "O(1) — constante", level: 2 as const }, { id: 'olog-n-logaritmica', text: "O(log n) — logarítmica", level: 2 as const }, { id: 'on-linear', text: "O(n) — linear", level: 2 as const }, { id: 'on-log-n-linearitmica', text: "O(n log n) — linearítmica", level: 2 as const }, { id: 'on-quadratica', text: "O(n²) — quadrática", level: 2 as const }, { id: 'on-cubica', text: "O(n³) — cúbica", level: 2 as const }, { id: 'o2-exponencial', text: "O(2ⁿ) — exponencial", level: 2 as const }, { id: 'on-fatorial', text: "O(n!) — fatorial", level: 2 as const }, { id: 'comparando', text: "Comparando", level: 2 as const }];
 
 export default function Pagina() {
   return (

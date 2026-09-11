@@ -1,0 +1,98 @@
+# Os executaveis que nao pedem Python.
+#
+# Instalar a linguagem exigia Python 3.10 ou mais novo. Para quem ja
+# escreve Python isso e nada; para todo mundo mais e a primeira porta, e
+# uma porta fechada. Aqui sai um arquivo por sistema: quem baixa, roda.
+#
+# Dispara numa tag 'vX.Y.Z', ou a mao pelo botao — util para conferir
+# que os tres constroem antes de marcar a versao.
+
+name: binarios
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  construir:
+    name: ${{ matrix.nome }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            nome: linux-x64
+          - os: macos-latest
+            nome: macos-arm64
+          # O runner de 13 e Intel; o de 'macos-latest' e Apple Silicon.
+          # Sao binarios diferentes e as duas maquinas existem la fora.
+          - os: macos-13
+            nome: macos-x64
+          - os: windows-latest
+            nome: windows-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # A versao mais velha que a linguagem suporta: o binario feito
+          # num Python novo nao roda numa libc velha, e o contrario sim.
+          python-version: '3.10'
+
+      - name: instalar
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pyinstaller
+
+      # Construir sem testar nao prova nada: um executavel que abre e
+      # nao roda um '.df' e pior que nenhum, porque o usuario culpa a
+      # linguagem e nao o empacotamento.
+      - name: construir e provar
+        run: python scripts/gerar_binario.py --verificar
+
+      - name: a suite roda pelo binario
+        shell: bash
+        run: |
+          BIN=$(ls dist/bin/dataforge-*)
+          falhas=0
+          for f in examples/*.df; do
+            "$BIN" run "$f" > /dev/null || { echo "FALHOU $f"; falhas=1; }
+          done
+          exit $falhas
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dataforge-${{ matrix.nome }}
+          path: dist/bin/*
+          if-no-files-found: error
+
+  publicar:
+    name: anexar ao release
+    needs: construir
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: binarios
+          merge-multiple: true
+
+      - name: somas de verificacao
+        run: |
+          cd binarios
+          # Quem baixa por um link precisa poder conferir que o arquivo
+          # e o que dizemos que e.
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: binarios/*
+          generate_release_notes: true

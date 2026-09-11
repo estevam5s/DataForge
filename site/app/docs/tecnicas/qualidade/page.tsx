@@ -63,7 +63,7 @@ Q.atualidade(linhas, "atualizado_em", 7)   // quantas passaram de 7 dias`, lang:
   {"p": "**Atualidade** é a dimensão que mais escapa da validação. Dado antigo não é dado errado — é dado que passou a mentir sem avisar."},
 ];
 
-const headings = [{ id: 'por-que-isto-nao-e-um-assert', text: "Por que isto não é um `assert`", level: 2 as const }, { id: 'regras', text: "Regras", level: 2 as const }, { id: 'dentro-do-pipeline', text: "Dentro do pipeline", level: 2 as const }, { id: 'perfil--quando-o-arquivo-e-desconhecido', text: "Perfil — quando o arquivo é desconhecido", level: 2 as const }, { id: 'limpar', text: "Limpar", level: 2 as const }, { id: 'as-dimensoes-isoladas', text: "As dimensões, isoladas", level: 2 as const }];
+const headings = [{ id: 'por-que-isto-nao-e-um-assert', text: "Por que isto não é um `assert`", level: 2 as const }, { id: 'regras', text: "Regras", level: 2 as const }, { id: 'dentro-do-pipeline', text: "Dentro do pipeline", level: 2 as const }, { id: 'perfil-quando-o-arquivo-e-desconhecido', text: "Perfil — quando o arquivo é desconhecido", level: 2 as const }, { id: 'limpar', text: "Limpar", level: 2 as const }, { id: 'as-dimensoes-isoladas', text: "As dimensões, isoladas", level: 2 as const }];
 
 export default function Pagina() {
   return (

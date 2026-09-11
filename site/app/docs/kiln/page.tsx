@@ -153,7 +153,7 @@ Idempotency-Key: pedido-8f2c
   ]}},
 ];
 
-const headings = [{ id: 'um-servidor-inteiro', text: "Um servidor inteiro", level: 2 as const }, { id: 'as-onze-palavras', text: "As onze palavras", level: 2 as const }, { id: 'declarar-nao-e-subir', text: "Declarar não é subir", level: 2 as const }, { id: 'o-que-vem-de-graca', text: "O que vem de graça", level: 2 as const }, { id: 'o-que-ja-vem-pronto', text: "O que já vem pronto", level: 2 as const }, { id: 'comparado-ao-que-voce-conhece', text: "Comparado ao que você conhece", level: 2 as const }, { id: 'por-onde-seguir', text: "Por onde seguir", level: 2 as const }];
+const headings = [{ id: 'um-servidor-inteiro', text: "Um servidor inteiro", level: 2 as const }, { id: 'as-onze-palavras', text: "As onze palavras", level: 2 as const }, { id: 'declarar-nao-e-subir', text: "Declarar não é subir", level: 2 as const }, { id: 'o-que-vem-de-graca', text: "O que vem de graça", level: 2 as const }, { id: 'o-que-ja-vem-pronto', text: "O que já vem pronto", level: 2 as const }, { id: 'listar-bem-e-mais-que-devolver-a-lista', text: "Listar bem é mais que devolver a lista", level: 3 as const }, { id: 'validacao-que-relata-tudo-de-uma-vez', text: "Validação que relata tudo de uma vez", level: 3 as const }, { id: 'idempotencia-o-problema-do-checkout', text: "Idempotência — o problema do checkout", level: 3 as const }, { id: 'cache-e-compressao', text: "Cache e compressão", level: 3 as const }, { id: 'comparado-ao-que-voce-conhece', text: "Comparado ao que você conhece", level: 2 as const }, { id: 'por-onde-seguir', text: "Por onde seguir", level: 2 as const }];
 
 export default function Page() {
   return (

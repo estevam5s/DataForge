@@ -58,7 +58,7 @@ Serde.from_json_lines(texto)` },
   {"p": "A lista completa está em [Arcane.Serialization](/docs/biblioteca/serialization)."},
 ];
 
-const headings = [{ id: 'por-que-importa', text: "Por que importa", level: 2 as const }, { id: 'json', text: "JSON", level: 2 as const }, { id: 'csv', text: "CSV", level: 2 as const }, { id: 'toml', text: "TOML", level: 2 as const }, { id: 'achatar-e-desachatar', text: "Achatar e desachatar", level: 2 as const }, { id: 'json-lines', text: "JSON Lines", level: 2 as const }, { id: 'outros-formatos', text: "Outros formatos", level: 2 as const }];
+const headings = [{ id: 'por-que-importa', text: "Por que importa", level: 2 as const }, { id: 'json', text: "JSON", level: 2 as const }, { id: 'a-variante-safe', text: "A variante _safe", level: 3 as const }, { id: 'jsonpath-navegar-sem-quebrar', text: "json_path — navegar sem quebrar", level: 3 as const }, { id: 'csv', text: "CSV", level: 2 as const }, { id: 'toml', text: "TOML", level: 2 as const }, { id: 'achatar-e-desachatar', text: "Achatar e desachatar", level: 2 as const }, { id: 'json-lines', text: "JSON Lines", level: 2 as const }, { id: 'outros-formatos', text: "Outros formatos", level: 2 as const }];
 
 export default function Pagina() {
   return (

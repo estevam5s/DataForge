@@ -22,8 +22,20 @@ const blocos: Bloco[] = [
   { code: `irm https://dataforge-lang.vercel.app/instalar.ps1 | iex`, lang: 'powershell' },
   {"p": "O instalador acrescenta o DataForge ao PATH do usuário. Abra um terminal novo depois."},
 
+  {"h2": "Sem Python na máquina"},
+  {"p": "O instalador acima cria um ambiente com o Python que encontrar. Se não houver Python 3.10 ou mais novo, ele passa sozinho para o **executável** — um arquivo único que já traz o interpretador dentro. Para pedir esse caminho de propósito:"},
+  { code: `curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | DATAFORGE_BINARIO=1 sh`, lang: 'bash' },
+  {"p": "Ou pegue o arquivo à mão em [releases](https://github.com/estevam5s/DataForge/releases): há um para Linux x64, macOS Intel, macOS Apple Silicon e Windows x64, com `SHA256SUMS.txt` ao lado para conferir."},
+  {"table": {"head": ["", "executável", "Python + pip"], "rows": [
+    ["precisa de Python", "**não**", "3.10+"],
+    ["tamanho", "~11 MB", "~2 MB"],
+    ["início de cada comando", "um pouco mais lento", "imediato"],
+    ["`pip install` de pacote Python", "não", "sim"],
+    ["mexer no interpretador", "não", "sim"]]}},
+  {"callout": {"tipo": "dica", "texto": "Use o **executável** para escrever programas em DataForge; use o **Python** para contribuir com a linguagem. Os dois rodam exatamente o mesmo interpretador — os 216 exercícios e os 42 exemplos passam pelos dois."}},
+
   {"h3": "Ajustar a instalação"},
-  {"table": {"head": ["Variável", "Padrão", "Para que serve"], "rows": [["`DATAFORGE_PREFIX`", "`~/.dataforge`", "onde instalar"], ["`DATAFORGE_VERSION`", "`1.0.0`", "qual versão"], ["`DATAFORGE_SITE`", "o site oficial", "de onde baixar"]]}},
+  {"table": {"head": ["Variável", "Padrão", "Para que serve"], "rows": [["`DATAFORGE_PREFIX`", "`~/.dataforge`", "onde instalar"], ["`DATAFORGE_VERSION`", "`1.0.0`", "qual versão"], ["`DATAFORGE_SITE`", "o site oficial", "de onde baixar"], ["`DATAFORGE_BINARIO`", "`0`", "`1` força o executável, sem Python"]]}},
   { code: `# instalar em outro lugar
 DATAFORGE_PREFIX=/opt/dataforge curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | sh
 
@@ -121,7 +133,7 @@ python3 exercicios/run_all.py        # 190 exercícios`, lang: 'bash' },
   {"p": "Se usou ambiente virtual, apagar a pasta `.venv` também resolve."},
 ];
 
-const headings = [{ id: 'requisitos', text: "Requisitos", level: 2 as const }, { id: 'obter-o-dataforge', text: "Obter o DataForge", level: 2 as const }, { id: 'ambiente-virtual', text: "Ambiente virtual", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }, { id: 'editor', text: "Editor", level: 2 as const }, { id: 'verificar-a-instalacao', text: "Verificar a instalação", level: 2 as const }, { id: 'problemas-comuns', text: "Problemas comuns", level: 2 as const }, { id: 'desinstalar', text: "Desinstalar", level: 2 as const }];
+const headings = [{ id: 'instalacao-em-um-comando', text: "Instalação em um comando", level: 2 as const }, { id: 'macos-e-linux', text: "macOS e Linux", level: 3 as const }, { id: 'windows-powershell', text: "Windows (PowerShell)", level: 3 as const }, { id: 'sem-python-na-maquina', text: "Sem Python na máquina", level: 2 as const }, { id: 'ajustar-a-instalacao', text: "Ajustar a instalação", level: 3 as const }, { id: 'o-editor-junto', text: "O editor, junto", level: 2 as const }, { id: 'docker', text: "Docker", level: 2 as const }, { id: 'construir-a-imagem-voce-mesmo', text: "Construir a imagem você mesmo", level: 3 as const }, { id: 'baixar-o-tarball-direto', text: "Baixar o tarball direto", level: 2 as const }, { id: 'a-partir-do-codigo-fonte', text: "A partir do código-fonte", level: 2 as const }, { id: 'requisitos', text: "Requisitos", level: 3 as const }, { id: 'se-voce-ainda-nao-tem-python', text: "Se você ainda não tem Python", level: 3 as const }, { id: 'clonar-e-instalar', text: "Clonar e instalar", level: 3 as const }, { id: 'ambiente-virtual', text: "Ambiente virtual", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }, { id: 'editor', text: "Editor", level: 2 as const }, { id: 'verificar-a-instalacao', text: "Verificar a instalação", level: 2 as const }, { id: 'problemas-comuns', text: "Problemas comuns", level: 2 as const }, { id: 'command-not-found-dataforge', text: "`command not found: dataforge`", level: 3 as const }, { id: 'no-module-named-dataforge', text: "`No module named dataforge`", level: 3 as const }, { id: 'syncerror-tab-character-detected', text: "`SyncError: Tab character detected`", level: 3 as const }, { id: 'syncerror-indentation-mismatch', text: "`SyncError: Indentation mismatch`", level: 3 as const }, { id: 'erro-de-build-no-pip-install', text: "Erro de build no `pip install`", level: 3 as const }, { id: 'desinstalar', text: "Desinstalar", level: 2 as const }];
 
 export default function Pagina() {
   return (

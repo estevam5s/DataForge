@@ -20,6 +20,7 @@ Regras
   double-negation    'not not x'
   comparison-to-bool x is yes / x is no
   todo-comment       comentário TODO/FIXME (informativo)
+  windows-path       caminho do Windows entre aspas — as contrabarras viram escape
 """
 
 import re
@@ -68,6 +69,7 @@ class Linter:
         for stmt in program.body:
             self._checar_expressoes(stmt)
         self._checar_numeros_magicos()
+        self._checar_caminhos_de_windows()
         self._checar_comentarios()
         return sorted(self.diagnostics, key=lambda d: (d.line, d.column))
 
@@ -313,6 +315,64 @@ class Linter:
                     f"The number {valor} appears {len(ocorrencias)} times", ocorrencias[0],
                     f"Name it: 'steady NOME := {valor}'", "magic-number")
 
+    #: Uma contrabarra seguida de letra, dentro de texto entre aspas.
+    #:
+    #: Os escapes que a linguagem conhece sao 'n', 't', 'r', '0', a
+    #: propria contrabarra e a aspa. Qualquer outra letra depois da
+    #: contrabarra fica literal — e e justamente isso que faz o
+    #: problema passar despercebido: metade do caminho sobrevive.
+    #: So os que mudam o texto EM SILENCIO.
+    #:
+    #: A contrabarra dobrada fica de fora de proposito: quem escreveu
+    #: '\\\\' ja sabe o que esta fazendo, e avisar ali seria um falso
+    #: alarme que ensina a ignorar a regra.
+    _ESCAPES = set("ntr0")
+
+    #: Parece um caminho do Windows?
+    _CAMINHO_WINDOWS = re.compile(r'^(?:[A-Za-z]:\\|\\\\[^\\])')
+
+    def _checar_caminhos_de_windows(self):
+        """Um caminho do Windows escrito entre aspas vira outra coisa.
+
+        `"C:\\temp\\notas"` nao e o que esta escrito: `\\t` e uma
+        tabulacao e `\\n` e uma quebra de linha, entao o texto chega ao
+        programa como `C:<TAB>emp<NL>otas`. Nada reclama — o arquivo
+        simplesmente nao e encontrado, e a mensagem fala do caminho
+        deformado, que ninguem reconhece.
+
+        Foi assim que um teste do Kiln caiu so no Windows: a pasta de
+        templates entrava num literal, e `\\U` sobreviveu enquanto `\\n`
+        nao.
+
+        A barra normal funciona nos tres sistemas — inclusive no
+        Windows, que aceita as duas.
+        """
+        for numero, linha in enumerate(self.source.split("\n"), start=1):
+            # Comentario nao e texto; nao ha escape para processar ali.
+            sem_comentario = re.split(r'(?<!:)//(?!\d)|(?<!\\)#', linha)[0]
+            for achado in re.finditer(r'"((?:[^"\\\n]|\\.)*)"', sem_comentario):
+                bruto = achado.group(1)
+                if not self._CAMINHO_WINDOWS.match(bruto):
+                    continue
+                comidos = [c for i, c in enumerate(bruto)
+                           if i and bruto[i - 1] == "\\" and c in self._ESCAPES
+                           and (i < 2 or bruto[i - 2] != "\\")]
+                if not comidos:
+                    continue
+                node = type('_N', (), {'line': numero,
+                                       'column': achado.start() + 1})()
+                lista = ", ".join(f"'\\{c}'" for c in comidos)
+                eh = ("is an escape sequence" if len(comidos) == 1
+                      else "are escape sequences")
+                self.warn(
+                    f"This looks like a Windows path, but {lista} {eh}, "
+                    f"not part of a folder name.",
+                    node,
+                    "Use forward slashes — Windows accepts them too:\n"
+                    "    " + bruto.replace("\\", "/") + "\n"
+                    "or double each backslash.",
+                    "windows-path")
+
     def _checar_comentarios(self):
         """Marcadores TODO/FIXME. Nao confundir com a palavra 'todo'.
 
@@ -438,7 +498,7 @@ REGRAS = {
     "unused-variable", "unused-import", "unused-parameter", "shadowed-name",
     "empty-block", "magic-number", "long-action", "deep-nesting",
     "naming-convention", "redundant-else", "double-negation",
-    "comparison-to-bool", "todo-comment",
+    "comparison-to-bool", "todo-comment", "windows-path",
 }
 
 

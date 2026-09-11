@@ -69,7 +69,7 @@ out 2 + 3 * 4      # 14` },
   {"p": "A tabela completa está na [Referência de precedência](/docs/referencia/precedencia)."},
 ];
 
-const headings = [{ id: 'aritmeticos', text: "Aritméticos", level: 2 as const }, { id: 'comparacao', text: "Comparação", level: 2 as const }, { id: 'logicos', text: "Lógicos", level: 2 as const }, { id: 'coalescencia-e-acesso-seguro', text: "Coalescência e acesso seguro", level: 2 as const }, { id: 'pertinencia', text: "Pertinência", level: 2 as const }, { id: 'atribuicao-composta', text: "Atribuição composta", level: 2 as const }, { id: 'precedencia', text: "Precedência", level: 2 as const }];
+const headings = [{ id: 'aritmeticos', text: "Aritméticos", level: 2 as const }, { id: 'comparacao', text: "Comparação", level: 2 as const }, { id: 'comparacoes-encadeadas', text: "Comparações encadeadas", level: 3 as const }, { id: 'logicos', text: "Lógicos", level: 2 as const }, { id: 'coalescencia-e-acesso-seguro', text: "Coalescência e acesso seguro", level: 2 as const }, { id: 'pertinencia', text: "Pertinência", level: 2 as const }, { id: 'atribuicao-composta', text: "Atribuição composta", level: 2 as const }, { id: 'precedencia', text: "Precedência", level: 2 as const }];
 
 export default function Pagina() {
   return (

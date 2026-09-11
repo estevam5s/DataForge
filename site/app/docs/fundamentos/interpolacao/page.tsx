@@ -63,7 +63,7 @@ novo := $"Ola, {nome}! Voce tem {idade} anos."` },
   {"callout": {"tipo": "nota", "texto": "`$\"{}\"` com chaves vazias é erro do lexer: `Empty interpolation: '{}' needs an expression`. Melhor falhar do que produzir texto vazio em silêncio."}},
 ];
 
-const headings = [{ id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'por-que-o--e-obrigatorio', text: "Por que o $ é obrigatório", level: 2 as const }, { id: 'o-que-cabe-dentro', text: "O que cabe dentro", level: 2 as const }, { id: 'formatacao-segue-a-linguagem', text: "Formatação segue a linguagem", level: 2 as const }, { id: 'chaves-literais', text: "Chaves literais", level: 2 as const }, { id: 'multilinha', text: "Multilinha", level: 2 as const }, { id: 'alinhar-colunas', text: "Alinhar colunas", level: 2 as const }, { id: 'comparando-com-concatenacao', text: "Comparando com concatenação", level: 2 as const }];
+const headings = [{ id: 'formato', text: "Formato", level: 2 as const }, { id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'por-que-o-e-obrigatorio', text: "Por que o $ é obrigatório", level: 2 as const }, { id: 'o-que-cabe-dentro', text: "O que cabe dentro", level: 2 as const }, { id: 'formatacao-segue-a-linguagem', text: "Formatação segue a linguagem", level: 2 as const }, { id: 'chaves-literais', text: "Chaves literais", level: 2 as const }, { id: 'multilinha', text: "Multilinha", level: 2 as const }, { id: 'alinhar-colunas', text: "Alinhar colunas", level: 2 as const }, { id: 'comparando-com-concatenacao', text: "Comparando com concatenação", level: 2 as const }];
 
 export default function Pagina() {
   return (

@@ -101,7 +101,7 @@ primeiro_erro := apenas(interpretar(linhas_do_log()), "ERROR").first()` },
   {"p": "Fora do corpo de um `stream action`, `emit` é um alias histórico de `out` — ele imprime. Isso mantém compatível o código escrito antes do 4.0."},
 ];
 
-const headings = [{ id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'emit-e-yield-sao-coisas-diferentes', text: "emit e yield são coisas diferentes", level: 2 as const }, { id: 'sequencias-infinitas', text: "Sequências infinitas", level: 2 as const }, { id: 'consumir', text: "Consumir", level: 2 as const }, { id: 'parar-por-dentro', text: "Parar por dentro", level: 2 as const }, { id: 'encadear', text: "Encadear", level: 2 as const }, { id: 'processamento-incremental', text: "Processamento incremental", level: 2 as const }, { id: 'emit-fora-de-um-generator', text: "emit fora de um generator", level: 2 as const }];
+const headings = [{ id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'emit-e-yield-sao-coisas-diferentes', text: "emit e yield são coisas diferentes", level: 2 as const }, { id: 'sequencias-infinitas', text: "Sequências infinitas", level: 2 as const }, { id: 'por-que-funciona', text: "Por que funciona", level: 3 as const }, { id: 'fibonacci', text: "Fibonacci", level: 3 as const }, { id: 'consumir', text: "Consumir", level: 2 as const }, { id: 'parar-por-dentro', text: "Parar por dentro", level: 2 as const }, { id: 'encadear', text: "Encadear", level: 2 as const }, { id: 'processamento-incremental', text: "Processamento incremental", level: 2 as const }, { id: 'emit-fora-de-um-generator', text: "emit fora de um generator", level: 2 as const }];
 
 export default function Pagina() {
   return (

@@ -326,11 +326,16 @@ out Kiln.test(s, "GET", "/d/21")["body"]["r"]''')
 
 def test_render_com_with_nao_vira_expressao_de_record(tmp_path):
     """'render "x" with {…}' e um comando, nao 'record with {…}'."""
-    (tmp_path / "p.html").write_text("<p>{{nome}}</p>")
+    (tmp_path / "p.html").write_text("<p>{{nome}}</p>", encoding="utf-8")
+    # 'as_posix': no Windows o caminho vem com contrabarra, e dentro de
+    # um literal de texto ela e ESCAPE — 'C:\\Users\\...' vira outra coisa
+    # e o template nao e encontrado. A barra normal funciona nos tres
+    # sistemas.
+    pasta = tmp_path.as_posix()
     saida = run(f'''
 adopt Kiln
 server s on 0:
-    views "{tmp_path}"
+    views "{pasta}"
     route GET "/":
         render "p.html" with {{"nome": "Ana"}}
 out Kiln.test(s, "GET", "/")["body"]''')

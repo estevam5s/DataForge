@@ -88,7 +88,7 @@ out pode_ir(Pedido.Novo, Pedido.Entregue)    # no` },
   {"p": "Nenhum estado inválido é representável, e nenhuma transição inválida é possível. `Entregue` com lista vazia é um estado terminal."},
 ];
 
-const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'o-problema-que-resolve', text: "O problema que resolve", level: 2 as const }, { id: 'valores-associados', text: "Valores associados", level: 2 as const }, { id: 'os-utilitarios', text: "Os utilitários", level: 2 as const }, { id: 'com-match', text: "Com match", level: 2 as const }, { id: 'maquina-de-estados', text: "Máquina de estados", level: 2 as const }];
+const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'o-problema-que-resolve', text: "O problema que resolve", level: 2 as const }, { id: 'valores-associados', text: "Valores associados", level: 2 as const }, { id: 'a-ponte-com-o-mundo-externo', text: "A ponte com o mundo externo", level: 3 as const }, { id: 'valores-numericos-como-ordem', text: "Valores numéricos como ordem", level: 3 as const }, { id: 'os-utilitarios', text: "Os utilitários", level: 2 as const }, { id: 'com-match', text: "Com match", level: 2 as const }, { id: 'maquina-de-estados', text: "Máquina de estados", level: 2 as const }];
 
 export default function Pagina() {
   return (

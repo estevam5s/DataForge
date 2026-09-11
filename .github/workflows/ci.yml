@@ -67,13 +67,20 @@ jobs:
         run: |
           set +e
           saida="$RUNNER_TEMP/pytest.txt"
-          python -m pytest tests/ -q -rf --tb=short > "$saida" 2>&1
+          # '-v' para que o ultimo teste iniciado apareca nomeado: quando
+          # o processo morre (estouro de pilha, por exemplo) nao existe
+          # linha 'FAILED' nenhuma, e sem o nome o log nao diz quem caiu.
+          python -m pytest tests/ -v -rf --tb=short -p no:randomly > "$saida" 2>&1
           codigo=$?
           cat "$saida"
           if [ $codigo -ne 0 ]; then
             resumo=$(grep -E '^(FAILED|ERROR)' "$saida" | head -25)
             if [ -z "$resumo" ]; then
-              resumo=$(tail -30 "$saida")
+              # Processo morto: o nome do ultimo teste iniciado, mais o
+              # motivo que o Python conseguiu imprimir antes de morrer.
+              ultimo=$(grep -E '::' "$saida" | tail -1)
+              causa=$(grep -E 'Fatal Python error|Segmentation|MemoryError|Aborted' "$saida" | head -3)
+              resumo="morreu durante: $ultimo"$'\n'"$causa"$'\n'"$(tail -12 "$saida")"
             fi
             # '%0A' e como uma anotacao do GitHub carrega quebra de linha.
             resumo=$(printf '%s' "$resumo" | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"}1')
@@ -134,13 +141,19 @@ jobs:
           python scripts/gerar_api.py
           python site/scripts/gerar_dados.py
           python site/scripts/gerar_conteudo.py
+          python site/scripts/gerar_indices.py
 
       - name: o versionado tem de ser identico ao gerado
         run: |
           if ! git diff --quiet; then
-            echo "::error::o que esta versionado difere do que os geradores produzem"
             echo "rode os geradores e commite:"
             git --no-pager diff --stat
+            echo "--- o diff completo ---"
+            git --no-pager diff
+            # Os NOMES vao para a anotacao: saber que algo divergiu sem
+            # saber o que e metade de um diagnostico.
+            arquivos=$(git --no-pager diff --name-only | tr '\n' ' ')
+            echo "::error title=gerado desatualizado::$arquivos"
             exit 1
           fi
 

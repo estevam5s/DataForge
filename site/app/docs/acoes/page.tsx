@@ -93,7 +93,7 @@ out triplo(5)` },
   {"p": "Vários `defer` rodam em ordem inversa (LIFO), que é a ordem correta para desmontar recursos dependentes. Detalhes em [Tratamento de erros](/docs/erros)."},
 ];
 
-const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'parametros', text: "Parâmetros", level: 2 as const }, { id: 'aridade-verificada', text: "Aridade verificada", level: 2 as const }, { id: 'recursao', text: "Recursão", level: 2 as const }, { id: 'acoes-de-alta-ordem-e-closures', text: "Ações de alta ordem e closures", level: 2 as const }, { id: 'lambdas', text: "Lambdas", level: 2 as const }, { id: 'decoradores', text: "Decoradores", level: 2 as const }, { id: 'defer', text: "defer", level: 2 as const }];
+const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'parametros', text: "Parâmetros", level: 2 as const }, { id: 'valores-padrao', text: "Valores padrão", level: 3 as const }, { id: 'argumentos-nomeados', text: "Argumentos nomeados", level: 3 as const }, { id: 'tipos', text: "Tipos", level: 3 as const }, { id: 'aridade-verificada', text: "Aridade verificada", level: 2 as const }, { id: 'recursao', text: "Recursão", level: 2 as const }, { id: 'acoes-de-alta-ordem-e-closures', text: "Ações de alta ordem e closures", level: 2 as const }, { id: 'lambdas', text: "Lambdas", level: 2 as const }, { id: 'decoradores', text: "Decoradores", level: 2 as const }, { id: 'defer', text: "defer", level: 2 as const }];
 
 export default function Pagina() {
   return (

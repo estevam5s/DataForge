@@ -42,7 +42,7 @@ v := {"a": 1, "b": 2}`, title: `depois` },
   { code: `dataforge fmt . --check && dataforge check . && dataforge test`, lang: 'bash' },
 ];
 
-const headings = [{ id: 'usar', text: "Usar", level: 2 as const }, { id: 'as-regras', text: "As regras", level: 2 as const }, { id: 'idempotencia', text: "Idempotência", level: 2 as const }, { id: 'dois-detalhes-que-importam', text: "Dois detalhes que importam", level: 2 as const }, { id: 'estrutura-nao-espacos', text: "Estrutura, não espaços", level: 2 as const }, { id: 'em-ci', text: "Em CI", level: 2 as const }];
+const headings = [{ id: 'usar', text: "Usar", level: 2 as const }, { id: 'as-regras', text: "As regras", level: 2 as const }, { id: 'idempotencia', text: "Idempotência", level: 2 as const }, { id: 'dois-detalhes-que-importam', text: "Dois detalhes que importam", level: 2 as const }, { id: 'em-vez-de', text: "~/ em vez de //", level: 3 as const }, { id: 'comentarios-e-strings-interpoladas', text: "Comentários e strings interpoladas", level: 3 as const }, { id: 'estrutura-nao-espacos', text: "Estrutura, não espaços", level: 2 as const }, { id: 'em-ci', text: "Em CI", level: 2 as const }];
 
 export default function Pagina() {
   return (

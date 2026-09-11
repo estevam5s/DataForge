@@ -86,7 +86,7 @@ total := nums >> sift n: n bigger 0 >> morph n: n * n >> distill a, v: a + v 0` 
   {"p": "O laço continua sendo a escolha certa quando há lógica com vários passos, efeitos colaterais ou saída antecipada."},
 ];
 
-const headings = [{ id: 'cycle--intervalo-numerico', text: "cycle — intervalo numérico", level: 2 as const }, { id: 'cycle--sobre-uma-colecao', text: "cycle — sobre uma coleção", level: 2 as const }, { id: 'persist--enquanto-while', text: "persist — enquanto (while)", level: 2 as const }, { id: 'perform--faca-enquanto-do-while', text: "perform — faça-enquanto (do-while)", level: 2 as const }, { id: 'halt-e-skip', text: "halt e skip", level: 2 as const }, { id: 'lacos-aninhados', text: "Laços aninhados", level: 2 as const }, { id: 'quando-nao-usar-laco', text: "Quando não usar laço", level: 2 as const }];
+const headings = [{ id: 'cycle-intervalo-numerico', text: "cycle — intervalo numérico", level: 2 as const }, { id: 'cycle-sobre-uma-colecao', text: "cycle — sobre uma coleção", level: 2 as const }, { id: 'persist-enquanto-while', text: "persist — enquanto (while)", level: 2 as const }, { id: 'perform-faca-enquanto-do-while', text: "perform — faça-enquanto (do-while)", level: 2 as const }, { id: 'halt-e-skip', text: "halt e skip", level: 2 as const }, { id: 'lacos-aninhados', text: "Laços aninhados", level: 2 as const }, { id: 'quando-nao-usar-laco', text: "Quando não usar laço", level: 2 as const }];
 
 export default function Pagina() {
   return (

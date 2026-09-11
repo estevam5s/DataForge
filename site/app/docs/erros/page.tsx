@@ -100,7 +100,7 @@ handle e:
   {"p": "**Trate o erro onde você pode fazer algo a respeito.** Nas camadas intermediárias, registre e repasse. No topo, decida: mostrar ao usuário, tentar de novo, ou abortar."},
 ];
 
-const headings = [{ id: 'monitor--handle--ensure', text: "monitor / handle / ensure", level: 2 as const }, { id: 'o-objeto-de-erro', text: "O objeto de erro", level: 2 as const }, { id: 'lancar', text: "Lançar", level: 2 as const }, { id: 'retry', text: "retry", level: 2 as const }, { id: 'propagate--registrar-e-repassar', text: "propagate — registrar e repassar", level: 2 as const }, { id: 'defer--limpeza-garantida', text: "defer — limpeza garantida", level: 2 as const }, { id: 'stack-traces', text: "Stack traces", level: 2 as const }, { id: 'onde-tratar', text: "Onde tratar", level: 2 as const }];
+const headings = [{ id: 'monitor-handle-ensure', text: "monitor / handle / ensure", level: 2 as const }, { id: 'o-objeto-de-erro', text: "O objeto de erro", level: 2 as const }, { id: 'handle-tipado', text: "handle tipado", level: 3 as const }, { id: 'varios-handle', text: "Vários handle", level: 3 as const }, { id: 'lancar', text: "Lançar", level: 2 as const }, { id: 'retry', text: "retry", level: 2 as const }, { id: 'propagate-registrar-e-repassar', text: "propagate — registrar e repassar", level: 2 as const }, { id: 'defer-limpeza-garantida', text: "defer — limpeza garantida", level: 2 as const }, { id: 'defer-ou-ensure', text: "defer ou ensure?", level: 3 as const }, { id: 'stack-traces', text: "Stack traces", level: 2 as const }, { id: 'onde-tratar', text: "Onde tratar", level: 2 as const }];
 
 export default function Pagina() {
   return (

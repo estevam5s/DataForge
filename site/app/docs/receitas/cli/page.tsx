@@ -133,7 +133,7 @@ out "  (pasta temporaria removida)"`, title: `175_cli_arquivos.df` },
   {"p": "`max(1, soma * 20 ~/ max(total, 1))` — dois `max` evitam barra de comprimento zero e divisão por zero numa pasta vazia. Vale escrever mesmo quando \"não vai acontecer\"."},
 ];
 
-const headings = [{ id: 'o-que-ela-faz', text: "O que ela faz", level: 2 as const }, { id: 'decisoes-que-valem-notar', text: "Decisões que valem notar", level: 2 as const }];
+const headings = [{ id: 'o-que-ela-faz', text: "O que ela faz", level: 2 as const }, { id: 'decisoes-que-valem-notar', text: "Decisões que valem notar", level: 2 as const }, { id: 'modelo-primeiro', text: "Modelo primeiro", level: 3 as const }, { id: 'formatacao-legivel', text: "Formatação legível", level: 3 as const }, { id: 'colunas-alinhadas', text: "Colunas alinhadas", level: 3 as const }, { id: 'protecao-nas-bordas', text: "Proteção nas bordas", level: 3 as const }];
 
 export default function Pagina() {
   return (

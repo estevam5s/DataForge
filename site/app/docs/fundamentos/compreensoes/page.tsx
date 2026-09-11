@@ -56,7 +56,7 @@ nums >> sift n: n % 2 is 1 >> morph n: n * 2` },
   {"p": "A compreensão diz **o que** você quer; o laço diz **como** obter. Para transformações simples, a primeira é mais direta — mas não force tudo numa linha."},
 ];
 
-const headings = [{ id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'listas', text: "Listas", level: 2 as const }, { id: 'sobre-outras-fontes', text: "Sobre outras fontes", level: 2 as const }, { id: 'vaults', text: "Vaults", level: 2 as const }, { id: 'multiplas-fontes', text: "Múltiplas fontes", level: 2 as const }, { id: 'escopo', text: "Escopo", level: 2 as const }, { id: 'compreensao-ou-pipeline', text: "Compreensão ou pipeline?", level: 2 as const }];
+const headings = [{ id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'listas', text: "Listas", level: 2 as const }, { id: 'sobre-outras-fontes', text: "Sobre outras fontes", level: 2 as const }, { id: 'vaults', text: "Vaults", level: 2 as const }, { id: 'tres-usos-que-valem-memorizar', text: "Três usos que valem memorizar", level: 3 as const }, { id: 'multiplas-fontes', text: "Múltiplas fontes", level: 2 as const }, { id: 'escopo', text: "Escopo", level: 2 as const }, { id: 'compreensao-ou-pipeline', text: "Compreensão ou pipeline?", level: 2 as const }];
 
 export default function Pagina() {
   return (

@@ -66,7 +66,7 @@ curl -X POST localhost:3000/api/tarefas \\
      -d '{"titulo":"Nova tarefa"}'`, lang: 'bash' },
 ];
 
-const headings = [{ id: 'montar', text: "Montar", level: 2 as const }, { id: 'rotas', text: "Rotas", level: 2 as const }, { id: 'requisicao-e-resposta', text: "Requisição e resposta", level: 2 as const }, { id: 'uma-rota-completa', text: "Uma rota completa", level: 2 as const }, { id: 'codigos-que-importam', text: "Códigos que importam", level: 2 as const }, { id: 'validacao-fora-da-rota', text: "Validação fora da rota", level: 2 as const }, { id: 'testar', text: "Testar", level: 2 as const }];
+const headings = [{ id: 'montar', text: "Montar", level: 2 as const }, { id: 'rotas', text: "Rotas", level: 2 as const }, { id: 'requisicao-e-resposta', text: "Requisição e resposta", level: 2 as const }, { id: 'uma-rota-completa', text: "Uma rota completa", level: 2 as const }, { id: 'codigos-que-importam', text: "Códigos que importam", level: 2 as const }, { id: 'validacao-fora-da-rota', text: "Validação fora da rota", level: 2 as const }, { id: 'o-detalhe-do-orif', text: "O detalhe do orif", level: 3 as const }, { id: 'testar', text: "Testar", level: 2 as const }];
 
 export default function Pagina() {
   return (

@@ -68,7 +68,7 @@ forge.toml`, lang: 'text' },
   {"p": "Mais sobre isso em [Estrutura de projeto](/docs/tecnicas/projeto)."},
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'imports-seletivos', text: "Imports seletivos", level: 2 as const }, { id: 'exportar-com-relay', text: "Exportar com relay", level: 2 as const }, { id: 'erros-com-mensagem-util', text: "Erros com mensagem útil", level: 2 as const }, { id: 'ciclos', text: "Ciclos", level: 2 as const }, { id: 'organizando-um-projeto', text: "Organizando um projeto", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'imports-seletivos', text: "Imports seletivos", level: 2 as const }, { id: 'apelidos-resolvem-colisoes', text: "Apelidos resolvem colisões", level: 3 as const }, { id: 'exportar-com-relay', text: "Exportar com relay", level: 2 as const }, { id: 'erros-com-mensagem-util', text: "Erros com mensagem útil", level: 2 as const }, { id: 'ciclos', text: "Ciclos", level: 2 as const }, { id: 'organizando-um-projeto', text: "Organizando um projeto", level: 2 as const }];
 
 export default function Pagina() {
   return (

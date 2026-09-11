@@ -43,7 +43,7 @@ const blocos: Bloco[] = [
   {"p": "O plano completo está no [roadmap](/docs/roadmap)."},
 ];
 
-const headings = [{ id: '100--o-lancamento', text: "1.0.0 — o lançamento", level: 2 as const }, { id: 'o-caminho-ate-aqui', text: "O caminho até aqui", level: 2 as const }, { id: 'bugs-corrigidos-que-valem-registro', text: "Bugs corrigidos que valem registro", level: 2 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 2 as const }];
+const headings = [{ id: '100-o-lancamento', text: "1.0.0 — o lançamento", level: 2 as const }, { id: 'a-linguagem', text: "A linguagem", level: 3 as const }, { id: 'erros-177-codigos', text: "Erros: 177 códigos", level: 3 as const }, { id: 'crucible-o-framework-de-testes', text: "Crucible — o framework de testes", level: 3 as const }, { id: 'forge-cinco-bancos-de-dados', text: "Forge — cinco bancos de dados", level: 3 as const }, { id: 'kiln-o-framework-web', text: "Kiln — o framework web", level: 3 as const }, { id: 'analise-de-complexidade', text: "Análise de complexidade", level: 3 as const }, { id: 'ferramentas', text: "Ferramentas", level: 3 as const }, { id: 'ecossistema', text: "Ecossistema", level: 3 as const }, { id: 'o-caminho-ate-aqui', text: "O caminho até aqui", level: 2 as const }, { id: 'bugs-corrigidos-que-valem-registro', text: "Bugs corrigidos que valem registro", level: 2 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 2 as const }];
 
 export default function Pagina() {
   return (

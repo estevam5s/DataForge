@@ -2178,3 +2178,69 @@ def test_nenhum_subprocess_decide_a_codificacao_pelo_sistema():
         "subprocess com 'text=True' e sem 'encoding' — no Windows isso lê "
         "cp1252 em vez do UTF-8 que o filho escreveu:\n  "
         + "\n  ".join(sorted(ruins)))
+
+
+def test_encurtar_caminho_nunca_custa_a_mensagem():
+    """No Windows, `relpath` entre unidades diferentes LEVANTA.
+
+    Quase todo uso aqui está dentro da construção de uma mensagem, para
+    encurtar um caminho longo. Quando ele levanta ali, o erro que chega
+    ao usuário não é o dele: `adopt ./lib/naoexiste` num projeto em
+    `D:` com o terminal em `C:` devolvia "path is on mount 'C:', start
+    on mount 'D:'" no lugar de "não achei o módulo".
+    """
+    from dataforge.caminhos import curto
+
+    class _Explode:
+        """O `os.path.relpath` do Windows entre unidades."""
+
+        def __call__(self, *args):
+            raise ValueError("path is on mount 'C:', start on mount 'D:'")
+
+    import dataforge.caminhos as mod
+    original = mod.os.path.relpath
+    mod.os.path.relpath = _Explode()
+    try:
+        assert curto("/algum/lugar/app.df") == "/algum/lugar/app.df"
+    finally:
+        mod.os.path.relpath = original
+
+    # E o encurtamento normal continua encurtando.
+    aqui = os.path.join(os.getcwd(), "app.df")
+    assert curto(aqui) == "app.df"
+
+    # Mas nao quando o "curto" fica mais longo que o original.
+    assert not curto("/x").startswith("..")
+
+
+def test_nenhuma_mensagem_usa_relpath_cru():
+    """`os.path.relpath(x)` com UM argumento é o que quebra no Windows.
+
+    Com um argumento só, a referência é o diretório atual — e a unidade
+    dele é arbitrária: nada garante que o terminal esteja no mesmo disco
+    do arquivo. Com dois argumentos onde quem chama garante uma raiz
+    comum (percorrer uma pasta, nomear a entrada de um zip) não há
+    risco, e ali o relativo é o DADO, não um enfeite de mensagem — cair
+    para o caminho absoluto gravaria caminho absoluto dentro do
+    arquivo compactado.
+    """
+    import ast as pyast
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ruins = []
+    for caminho in glob.glob(os.path.join(raiz, "dataforge", "**", "*.py"),
+                             recursive=True):
+        if os.path.basename(caminho) == "caminhos.py":
+            continue
+        arvore = pyast.parse(open(caminho, encoding="utf-8").read(), caminho)
+        for no in pyast.walk(arvore):
+            if not isinstance(no, pyast.Call) or len(no.args) != 1:
+                continue
+            alvo = no.func
+            if (isinstance(alvo, pyast.Attribute) and alvo.attr == "relpath"):
+                ruins.append(f"{os.path.relpath(caminho, raiz)}:{no.lineno}")
+    assert not ruins, (
+        "use 'caminhos.curto()' — 'os.path.relpath' com um argumento se "
+        "apoia no diretorio atual e levanta no Windows quando ele esta "
+        "noutra unidade:\n  " + "\n  ".join(ruins))

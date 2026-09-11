@@ -95,7 +95,7 @@ out fib(30)     # instantâneo — sem cache seriam milhões de chamadas` },
   {"p": "A biblioteca também traz `memoize` pronto em [Arcane.Functional](/docs/biblioteca/functional)."},
 ];
 
-const headings = [{ id: 'acoes-sao-valores', text: "Ações são valores", level: 2 as const }, { id: 'alta-ordem', text: "Alta ordem", level: 2 as const }, { id: 'closures', text: "Closures", level: 2 as const }, { id: 'lambdas', text: "Lambdas", level: 2 as const }, { id: 'composicao', text: "Composição", level: 2 as const }, { id: 'aplicacao-parcial', text: "Aplicação parcial", level: 2 as const }, { id: 'memoizacao', text: "Memoização", level: 2 as const }];
+const headings = [{ id: 'acoes-sao-valores', text: "Ações são valores", level: 2 as const }, { id: 'alta-ordem', text: "Alta ordem", level: 2 as const }, { id: 'closures', text: "Closures", level: 2 as const }, { id: 'estado-que-persiste', text: "Estado que persiste", level: 3 as const }, { id: 'lambdas', text: "Lambdas", level: 2 as const }, { id: 'onde-usam-se', text: "Onde usam-se", level: 3 as const }, { id: 'composicao', text: "Composição", level: 2 as const }, { id: 'aplicacao-parcial', text: "Aplicação parcial", level: 2 as const }, { id: 'memoizacao', text: "Memoização", level: 2 as const }];
 
 export default function Pagina() {
   return (

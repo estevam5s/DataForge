@@ -66,7 +66,7 @@ cycle par in estoque.items():
   {"table": {"head": ["Precisa de…", "Use"], "rows": [["ordem e índice", "`Cluster`"], ["acesso por chave", "`Vault`"], ["dados nomeados e tipados", "[`record`](/docs/fundamentos/records)"], ["conjunto fechado de valores", "[`enum`](/docs/fundamentos/enums)"], ["pilha, fila, grafo, heap", "[`Arcane.Collections`](/docs/biblioteca/collections)"]]}},
 ];
 
-const headings = [{ id: 'clusters--listas', text: "Clusters — listas", level: 2 as const }, { id: 'vaults--dicionarios', text: "Vaults — dicionários", level: 2 as const }, { id: 'escolhendo-a-estrutura', text: "Escolhendo a estrutura", level: 2 as const }];
+const headings = [{ id: 'clusters-listas', text: "Clusters — listas", level: 2 as const }, { id: 'fatiamento', text: "Fatiamento", level: 3 as const }, { id: 'metodos', text: "Métodos", level: 3 as const }, { id: 'agregacoes-globais', text: "Agregações globais", level: 3 as const }, { id: 'vaults-dicionarios', text: "Vaults — dicionários", level: 2 as const }, { id: 'metodos', text: "Métodos", level: 3 as const }, { id: 'percorrendo', text: "Percorrendo", level: 3 as const }, { id: 'escolhendo-a-estrutura', text: "Escolhendo a estrutura", level: 2 as const }];
 
 export default function Pagina() {
   return (

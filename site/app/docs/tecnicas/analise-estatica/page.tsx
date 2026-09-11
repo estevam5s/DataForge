@@ -44,7 +44,7 @@ handle e:
   {"p": "Cada comando sai com código diferente de zero em caso de falha. Com `--strict`, os avisos também derrubam o build."},
 ];
 
-const headings = [{ id: 'tres-etapas-sem-executar', text: "Três etapas sem executar", level: 2 as const }, { id: 'o-que-ele-encontra', text: "O que ele encontra", level: 2 as const }, { id: 'um-exemplo', text: "Um exemplo", level: 2 as const }, { id: 'por-que-e-otimista', text: "Por que é otimista", level: 2 as const }, { id: 'erros-dentro-de-monitor', text: "Erros dentro de monitor", level: 2 as const }, { id: 'em-integracao-continua', text: "Em integração contínua", level: 2 as const }];
+const headings = [{ id: 'tres-etapas-sem-executar', text: "Três etapas sem executar", level: 2 as const }, { id: 'o-que-ele-encontra', text: "O que ele encontra", level: 2 as const }, { id: 'um-exemplo', text: "Um exemplo", level: 2 as const }, { id: 'por-que-e-otimista', text: "Por que é otimista", level: 2 as const }, { id: 'o-que-ele-nao-encontra', text: "O que ele não encontra", level: 3 as const }, { id: 'erros-dentro-de-monitor', text: "Erros dentro de monitor", level: 2 as const }, { id: 'em-integracao-continua', text: "Em integração contínua", level: 2 as const }];
 
 export default function Pagina() {
   return (

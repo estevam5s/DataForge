@@ -469,3 +469,64 @@ def test_o_favicon_tem_um_desenho_por_tamanho():
     pequeno.load()
     cores = len(set(pequeno.convert("RGB").getdata()))
     assert cores < 200, f"o de 16px parece um downscale ({cores} cores)"
+
+
+# ── O índice lateral tem de descrever a própria página ────────
+
+def test_o_indice_de_cada_pagina_bate_com_o_conteudo():
+    """`headings` e `blocos` eram mantidos à mão, e divergiram em 50 páginas.
+
+    O resultado não é uma página quebrada — é pior: a página abre, o
+    texto está todo lá, e só o sumário mente. Seções que existem não
+    aparecem no índice, e âncoras do índice não levam a lugar nenhum
+    porque o `id` foi escrito diferente do que `slugify` calcula.
+
+    Agora o índice é **gerado** do conteúdo. Este teste é a trava.
+    """
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    r = subprocess.run(
+        [sys.executable, os.path.join(raiz, "site", "scripts",
+                                      "gerar_indices.py"), "--check"],
+        capture_output=True, text=True, encoding="utf-8", cwd=raiz, timeout=120)
+    assert r.returncode == 0, (
+        "o índice lateral divergiu do conteúdo — rode "
+        "'python3 site/scripts/gerar_indices.py':\n" + r.stdout + r.stderr)
+
+
+def test_a_slugify_do_gerador_e_a_do_componente():
+    """Duas implementações da mesma regra é como o `id` deixou de bater.
+
+    O gerador é Python e o componente é TypeScript, então há mesmo duas.
+    O que não pode é elas discordarem — quando discordam, o link do
+    índice aponta para uma âncora que não existe e ninguém percebe.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(raiz, "site", "scripts"))
+    from gerar_indices import slugify           # noqa: E402
+
+    fonte = open(os.path.join(raiz, "site", "components", "Doc.tsx"),
+                 encoding="utf-8").read()
+    corpo = fonte[fonte.index("export function slugify"):]
+    corpo = corpo[:corpo.index("\n}")]
+
+    # As mesmas etapas, na mesma ordem.
+    for etapa in ("toLowerCase", "normalize('NFD')", "trim"):
+        assert etapa in corpo, f"o componente nao faz mais '{etapa}'"
+    assert re.search(r"\[\^a-z0-9\\s-\]", corpo), \
+        "o conjunto de caracteres aceitos mudou no componente"
+
+    casos = [
+        ("Sem Python na máquina", "sem-python-na-maquina"),
+        ("HMAC — autenticar mensagens", "hmac-autenticar-mensagens"),
+        ("Windows (PowerShell)", "windows-powershell"),
+        # O 'trim' roda ANTES da troca de espaco por traco, entao nao
+        # sobra traco na ponta.
+        ("~/ em vez de //", "em-vez-de"),
+        ("1.0.0 — o lançamento", "100-o-lancamento"),
+    ]
+    for texto, esperado in casos:
+        assert slugify(texto) == esperado, f"{texto!r} -> {slugify(texto)!r}"

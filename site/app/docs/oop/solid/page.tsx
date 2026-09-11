@@ -197,7 +197,7 @@ assert s.repositorio.contar() is 1`, lang: 'df' },
   {"p": "Ver [modelagem](/docs/oop/modelagem)."},
 ];
 
-const headings = [{ id: 's--responsabilidade-unica', text: "S — Responsabilidade única", level: 2 as const }, { id: 'o--abertofechado', text: "O — Aberto/fechado", level: 2 as const }, { id: 'l--substituicao-de-liskov', text: "L — Substituição de Liskov", level: 2 as const }, { id: 'i--segregacao-de-interface', text: "I — Segregação de interface", level: 2 as const }, { id: 'd--inversao-de-dependencia', text: "D — Inversão de dependência", level: 2 as const }, { id: 'acoplamento-e-coesao', text: "Acoplamento e coesão", level: 2 as const }];
+const headings = [{ id: 's-responsabilidade-unica', text: "S — Responsabilidade única", level: 2 as const }, { id: 'o-abertofechado', text: "O — Aberto/fechado", level: 2 as const }, { id: 'l-substituicao-de-liskov', text: "L — Substituição de Liskov", level: 2 as const }, { id: 'i-segregacao-de-interface', text: "I — Segregação de interface", level: 2 as const }, { id: 'd-inversao-de-dependencia', text: "D — Inversão de dependência", level: 2 as const }, { id: 'acoplamento-e-coesao', text: "Acoplamento e coesão", level: 2 as const }];
 
 export default function Pagina() {
   return (

@@ -63,6 +63,7 @@ import sys
 import time
 import traceback
 from contextlib import redirect_stdout, redirect_stderr
+from ..caminhos import curto as _curto
 
 from ..errors import ExpectationError, erro_por_nome
 
@@ -1297,8 +1298,8 @@ def relatorio(executor, colorir=True, verboso=False, largura=78):
             linhas.append(f"  {_cor(f'{i})', cor_marca, colorir)} "
                           f"{_cor(r.caminho, '1;37', colorir)}")
             if r.arquivo:
-                local = f"{os.path.relpath(r.arquivo)}:{r.linha}" if r.linha \
-                    else os.path.relpath(r.arquivo)
+                curto = _curto(r.arquivo)
+                local = f"{curto}:{r.linha}" if r.linha else curto
                 linhas.append(f"     {_cor(local, '0;90', colorir)}")
             linhas.append("")
             for linha in str(r.motivo).split("\n"):

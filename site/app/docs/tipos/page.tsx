@@ -75,7 +75,7 @@ config: Vault := {"tema": "escuro"}
             yield "outro"` },
 ];
 
-const headings = [{ id: 'os-tipos-primitivos', text: "Os tipos primitivos", level: 2 as const }, { id: 'typeof', text: "typeof", level: 2 as const }, { id: 'conversao', text: "Conversão", level: 2 as const }, { id: 'anotacoes-de-tipo', text: "Anotações de tipo", level: 2 as const }, { id: 'tipagem-gradual-com-any', text: "Tipagem gradual com Any", level: 2 as const }];
+const headings = [{ id: 'os-tipos-primitivos', text: "Os tipos primitivos", level: 2 as const }, { id: 'typeof', text: "typeof", level: 2 as const }, { id: 'conversao', text: "Conversão", level: 2 as const }, { id: 'anotacoes-de-tipo', text: "Anotações de tipo", level: 2 as const }, { id: 'a-regra-de-alargamento', text: "A regra de alargamento", level: 3 as const }, { id: 'tipagem-gradual-com-any', text: "Tipagem gradual com Any", level: 2 as const }];
 
 export default function Pagina() {
   return (

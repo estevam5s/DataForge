@@ -75,7 +75,7 @@ out round(crono.stop() * 1000, 2)` },
   {"callout": {"tipo": "dica", "titulo": "Meça antes de otimizar", "texto": "A intuição sobre o que é lento erra com frequência. Uma medição isolada também é ruído: o **mínimo** de várias execuções costuma ser mais informativo que a média."}},
 ];
 
-const headings = [{ id: 'construir', text: "Construir", level: 2 as const }, { id: 'formatar', text: "Formatar", level: 2 as const }, { id: 'componentes', text: "Componentes", level: 2 as const }, { id: 'aritmetica', text: "Aritmética", level: 2 as const }, { id: 'diferencas', text: "Diferenças", level: 2 as const }, { id: 'humanizar', text: "Humanizar", level: 2 as const }, { id: 'comparar', text: "Comparar", level: 2 as const }, { id: 'limites-de-periodo', text: "Limites de período", level: 2 as const }, { id: 'cronometrar', text: "Cronometrar", level: 2 as const }];
+const headings = [{ id: 'construir', text: "Construir", level: 2 as const }, { id: 'formatar', text: "Formatar", level: 2 as const }, { id: 'componentes', text: "Componentes", level: 2 as const }, { id: 'aritmetica', text: "Aritmética", level: 2 as const }, { id: 'o-caso-dificil-addmonths', text: "O caso difícil: add_months", level: 3 as const }, { id: 'diferencas', text: "Diferenças", level: 2 as const }, { id: 'humanizar', text: "Humanizar", level: 2 as const }, { id: 'comparar', text: "Comparar", level: 2 as const }, { id: 'limites-de-periodo', text: "Limites de período", level: 2 as const }, { id: 'cronometrar', text: "Cronometrar", level: 2 as const }];
 
 export default function Pagina() {
   return (

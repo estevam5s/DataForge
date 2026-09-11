@@ -79,7 +79,7 @@ handle e:
 Undefined name: 'temporario'`, lang: 'text', title: `saída` },
 ];
 
-const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'constantes', text: "Constantes", level: 2 as const }, { id: 'escopo', text: "Escopo", level: 2 as const }, { id: 'nomes-validos', text: "Nomes válidos", level: 2 as const }, { id: 'apagar', text: "Apagar", level: 2 as const }];
+const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'constantes', text: "Constantes", level: 2 as const }, { id: 'escopo', text: "Escopo", level: 2 as const }, { id: 'shadow-uma-copia-local', text: "shadow — uma cópia local", level: 3 as const }, { id: 'nomes-validos', text: "Nomes válidos", level: 2 as const }, { id: 'apagar', text: "Apagar", level: 2 as const }];
 
 export default function Pagina() {
   return (

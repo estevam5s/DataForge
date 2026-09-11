@@ -981,3 +981,55 @@ def test_formatter_preserva_quebra_em_interpolada():
 def test_formatter_extrai_comentario_corretamente(linha, esperado):
     from dataforge.formatter import Formatter
     assert Formatter('')._extrair_comentario(linha) == esperado
+
+
+# ── lint: caminho do Windows entre aspas ──────────────────────
+
+def _codigos_de_lint(fonte):
+    from dataforge.linter import lint_program
+    return [d.code for d in lint_program(parse(tokenize(fonte)), "t.df", fonte)]
+
+
+def test_lint_avisa_caminho_de_windows_com_escape():
+    r"""`"C:\temp\notas"` não é o que está escrito.
+
+    `\t` é uma tabulação e `\n` é uma quebra de linha, então o texto
+    chega ao programa como `C:<TAB>emp<NL>otas`. Nada reclama — o
+    arquivo simplesmente não é encontrado, e a mensagem fala do caminho
+    deformado, que ninguém reconhece.
+
+    Foi assim que um teste do Kiln caiu só no Windows: a pasta de
+    templates entrava num literal.
+    """
+    assert "windows-path" in _codigos_de_lint(r'pasta := "C:\temp\notas"')
+
+
+def test_lint_nao_avisa_com_barra_normal():
+    """A forma certa não pode ser marcada — o Windows aceita as duas."""
+    assert "windows-path" not in _codigos_de_lint('pasta := "C:/temp/notas"')
+
+
+def test_lint_nao_avisa_contrabarra_dobrada():
+    r"""Quem escreveu `\\` já sabe o que está fazendo.
+
+    Marcar isso seria um falso alarme, e falso alarme ensina a ignorar a
+    regra inteira.
+    """
+    assert "windows-path" not in _codigos_de_lint(r'pasta := "C:\\temp\\notas"')
+
+
+def test_lint_nao_confunde_texto_comum_com_caminho():
+    """`\n` num texto qualquer é exatamente o que se quis dizer."""
+    assert "windows-path" not in _codigos_de_lint(
+        r'msg := "linha um\nlinha dois"')
+    assert "windows-path" not in _codigos_de_lint(r'sep := "a\tb"')
+
+
+def test_a_mensagem_mostra_a_correcao():
+    from dataforge.linter import lint_program
+
+    fonte = r'pasta := "C:\temp\notas"'
+    avisos = [d for d in lint_program(parse(tokenize(fonte)), "t.df", fonte)
+              if d.code == "windows-path"]
+    assert len(avisos) == 1
+    assert "C:/temp/notas" in avisos[0].hint, "a dica precisa trazer a forma certa"

@@ -88,7 +88,7 @@ action medir(fn):
   {"callout": {"tipo": "nota", "texto": "Se o decorador muda o **resultado** da ação de forma não óbvia, provavelmente deveria ser uma chamada explícita."}},
 ];
 
-const headings = [{ id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'empilhar', text: "Empilhar", level: 2 as const }, { id: 'com-argumentos', text: "Com argumentos", level: 2 as const }, { id: 'casos-uteis', text: "Casos úteis", level: 2 as const }, { id: 'quando-nao-usar', text: "Quando não usar", level: 2 as const }];
+const headings = [{ id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'empilhar', text: "Empilhar", level: 2 as const }, { id: 'com-argumentos', text: "Com argumentos", level: 2 as const }, { id: 'casos-uteis', text: "Casos úteis", level: 2 as const }, { id: 'cache', text: "Cache", level: 3 as const }, { id: 'validacao', text: "Validação", level: 3 as const }, { id: 'cronometrar', text: "Cronometrar", level: 3 as const }, { id: 'quando-nao-usar', text: "Quando não usar", level: 2 as const }];
 
 export default function Pagina() {
   return (

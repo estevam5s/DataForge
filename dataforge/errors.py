@@ -74,10 +74,8 @@ class DataForgeError(Exception):
         import os
         if not caminho or caminho.startswith('<'):
             return caminho or "<stdin>"
-        try:
-            relativo = os.path.relpath(caminho)
-        except ValueError:
-            return caminho
+        from .caminhos import curto
+        relativo = curto(caminho)
         return relativo if len(relativo) < len(caminho) else caminho
 
     # ── Relatorio ────────────────────────────────────────────

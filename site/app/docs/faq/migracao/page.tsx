@@ -63,7 +63,7 @@ cycle n in nums:
 resultado := [n * n cycle n in nums given n % 2 is 0]` },
 ];
 
-const headings = [{ id: 'o-que-quebra', text: "O que quebra", level: 2 as const }, { id: 'o-que-foi-corrigido', text: "O que foi corrigido", level: 2 as const }, { id: 'o-que-e-novo', text: "O que é novo", level: 2 as const }, { id: 'o-roteiro-de-migracao', text: "O roteiro de migração", level: 2 as const }, { id: 'aproveitando-o-novo', text: "Aproveitando o novo", level: 2 as const }];
+const headings = [{ id: 'o-que-quebra', text: "O que quebra", level: 2 as const }, { id: 'agora-e-comentario-por-padrao', text: "`//` agora é comentário por padrão", level: 3 as const }, { id: 'tres-palavras-deixaram-de-ser-reservadas', text: "Três palavras deixaram de ser reservadas", level: 3 as const }, { id: 'tres-palavras-novas-foram-reservadas', text: "Três palavras novas foram reservadas", level: 3 as const }, { id: 'o-que-foi-corrigido', text: "O que foi corrigido", level: 2 as const }, { id: 'o-que-e-novo', text: "O que é novo", level: 2 as const }, { id: 'o-roteiro-de-migracao', text: "O roteiro de migração", level: 2 as const }, { id: 'aproveitando-o-novo', text: "Aproveitando o novo", level: 2 as const }];
 
 export default function Pagina() {
   return (

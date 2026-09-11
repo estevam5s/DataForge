@@ -74,7 +74,7 @@ out $"17 / 5 = {quociente} resto {resto}"` },
   {"table": {"head": ["DataForge", "JavaScript", "Python"], "rows": [["`a, ...r := lista`", "`const [a, ...r] = lista`", "`a, *r = lista`"], ["`{a, b} := obj`", "`const {a, b} = obj`", "—"]]}},
 ];
 
-const headings = [{ id: 'por-posicao', text: "Por posição", level: 2 as const }, { id: 'com-resto', text: "Com ...resto", level: 2 as const }, { id: 'por-nome', text: "Por nome", level: 2 as const }, { id: 'desempacotar-no-inicio-da-acao', text: "Desempacotar no início da ação", level: 2 as const }, { id: 'retornar-varios-valores', text: "Retornar vários valores", level: 2 as const }, { id: 'comparando', text: "Comparando", level: 2 as const }];
+const headings = [{ id: 'por-posicao', text: "Por posição", level: 2 as const }, { id: 'a-troca-sem-temporaria', text: "A troca sem temporária", level: 3 as const }, { id: 'quantidade-errada-falha', text: "Quantidade errada falha", level: 3 as const }, { id: 'com-resto', text: "Com ...resto", level: 2 as const }, { id: 'por-nome', text: "Por nome", level: 2 as const }, { id: 'chave-ausente-falha', text: "Chave ausente falha", level: 3 as const }, { id: 'resto-nomeado', text: "Resto nomeado", level: 3 as const }, { id: 'desempacotar-no-inicio-da-acao', text: "Desempacotar no início da ação", level: 2 as const }, { id: 'retornar-varios-valores', text: "Retornar vários valores", level: 2 as const }, { id: 'comparando', text: "Comparando", level: 2 as const }];
 
 export default function Pagina() {
   return (

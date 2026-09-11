@@ -73,7 +73,7 @@ out soma5(10)           # 15 — 'n' ainda vale 5` },
   {"p": "Cada arquivo importado tem seu próprio escopo de topo, e só exporta o que o `relay` permitir. Veja [Módulos](/docs/fundamentos/modulos)."},
 ];
 
-const headings = [{ id: 'a-cadeia-de-escopos', text: "A cadeia de escopos", level: 2 as const }, { id: 'atribuir-atualiza-onde-existe', text: "Atribuir atualiza onde existe", level: 2 as const }, { id: 'shadow--uma-copia-local', text: "shadow — uma cópia local", level: 2 as const }, { id: 'escopos-de-bloco', text: "Escopos de bloco", level: 2 as const }, { id: 'closures', text: "Closures", level: 2 as const }, { id: 'self-e-this', text: "self e this", level: 2 as const }, { id: 'constantes', text: "Constantes", level: 2 as const }, { id: 'modulos', text: "Módulos", level: 2 as const }];
+const headings = [{ id: 'a-cadeia-de-escopos', text: "A cadeia de escopos", level: 2 as const }, { id: 'atribuir-atualiza-onde-existe', text: "Atribuir atualiza onde existe", level: 2 as const }, { id: 'shadow-uma-copia-local', text: "shadow — uma cópia local", level: 2 as const }, { id: 'escopos-de-bloco', text: "Escopos de bloco", level: 2 as const }, { id: 'closures', text: "Closures", level: 2 as const }, { id: 'self-e-this', text: "self e this", level: 2 as const }, { id: 'constantes', text: "Constantes", level: 2 as const }, { id: 'modulos', text: "Módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (

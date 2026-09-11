@@ -22,7 +22,7 @@ out 2 + 3 * 4      # 14` },
   {"p": "Por isso `nums >> sift n: n % 2 is 0` funciona sem parênteses: a expressão inteira `n % 2 is 0` é avaliada antes que o `>>` entre em ação."},
 ];
 
-const headings = [{ id: 'as-consequencias-que-surpreendem', text: "As consequências que surpreendem", level: 2 as const }, { id: 'por-que--associa-a-direita', text: "Por que ** associa à direita", level: 2 as const }, { id: 'por-que-o-unario-vem-depois', text: "Por que o unário vem depois", level: 2 as const }, { id: 'o-pipeline-e-o-mais-fraco', text: "O pipeline é o mais fraco", level: 2 as const }];
+const headings = [{ id: 'as-consequencias-que-surpreendem', text: "As consequências que surpreendem", level: 2 as const }, { id: 'por-que-associa-a-direita', text: "Por que ** associa à direita", level: 2 as const }, { id: 'por-que-o-unario-vem-depois', text: "Por que o unário vem depois", level: 2 as const }, { id: 'o-pipeline-e-o-mais-fraco', text: "O pipeline é o mais fraco", level: 2 as const }];
 
 export default function Pagina() {
   return (
