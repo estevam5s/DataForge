@@ -116,6 +116,11 @@ steady DEMORA := "ping -n 6 127.0.0.1" given WINDOWS otherwise "sleep 5"
 entrada padrão. Por isso o exercício o usa para mostrar `input_text` e
 `pipeline`.
 
+E há um detalhe que a lista **não** resolve: no Windows, `cmd` reprocessa a
+linha que recebe e devolve as aspas junto com o texto. Passar uma lista garante
+que o argumento chega **inteiro** ao programa — não garante o que o programa do
+outro lado faz com ele depois.
+
 ## Saída esperada
 
 ```

@@ -60,7 +60,14 @@ assert Proc.exists("comando_inexistente_xyz") is no, "o que nao existe"
 r2 := Proc.run([...ECO.split(" "), "texto com espacos"])
 out ""
 out $"lista: {r2.stdout.trim()}"
-assert r2.stdout.trim() is "texto com espacos", "a lista preserva o argumento"
+
+// A comparacao e por CONTEM, e nao por igual, de proposito: o 'cmd' do
+// Windows reprocessa a linha e devolve as aspas junto com o texto. Isso
+// nao enfraquece o teste — enfraqueceria se o argumento tivesse sido
+// PARTIDO, e e exatamente isso que se esta cobrando. E e a melhor
+// ilustracao de por que se passa lista: mesmo com lista, o que ha do
+// outro lado ainda pode reinterpretar.
+assert "texto com espacos" in r2.stdout, "a lista preserva o argumento"
 
 // Enviar entrada para o processo
 //
