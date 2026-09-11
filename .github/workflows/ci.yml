@@ -133,10 +133,22 @@ jobs:
           fi
 
       - name: o proprio codigo passa nas proprias ferramentas
+        shell: bash
         run: |
-          python -m dataforge check exercicios/ examples/ packages/
-          python -m dataforge fmt exercicios/ examples/ packages/ projetos/ --check
-          python -m dataforge lint exercicios/
+          set +e
+          saida="$RUNNER_TEMP/ferramentas.txt"
+          {
+            python -m dataforge check exercicios/ examples/ packages/ &&
+            python -m dataforge fmt exercicios/ examples/ packages/ projetos/ --check &&
+            python -m dataforge lint exercicios/
+          } > "$saida" 2>&1
+          codigo=$?
+          cat "$saida"
+          if [ $codigo -ne 0 ]; then
+            resumo=$(tail -30 "$saida" | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"}1')
+            echo "::error title=ferramentas ${{ matrix.os }} py${{ matrix.python }}::$resumo"
+          fi
+          exit $codigo
 
       - name: os projetos completos
         shell: bash
@@ -145,14 +157,25 @@ jobs:
           # proprias dependencias a partir do registro que vive em
           # 'site/public/registry/'. Sem o 'install', tres dos quatro
           # projetos nao acham os pacotes que declaram no forge.toml.
+          set +e
+          saida="$RUNNER_TEMP/projetos.txt"
+          : > "$saida"
+          codigo=0
           for p in projetos/*/; do
             [ -d "$p/tests" ] || continue
+            echo "=== $p" >> "$saida"
             (
               cd "$p"
               [ -f forge.toml ] && python -m dataforge install
               python -m dataforge test tests/
-            ) || exit 1
+            ) >> "$saida" 2>&1 || codigo=1
           done
+          cat "$saida"
+          if [ $codigo -ne 0 ]; then
+            resumo=$(tail -30 "$saida" | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"}1')
+            echo "::error title=projetos ${{ matrix.os }} py${{ matrix.python }}::$resumo"
+          fi
+          exit $codigo
 
   # ── O que e gerado precisa bater com o gerador ──
   gerado:
