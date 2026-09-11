@@ -626,3 +626,75 @@ def test_nenhum_numero_global_da_documentacao_esta_defasado():
     assert not ruins, (
         "numero escrito a mao que envelheceu — confira contra "
         "'site/lib/dados-gerados.json':\n  " + "\n  ".join(ruins))
+
+
+def test_pagina_gerada_avisa_que_e_gerada():
+    """Editar um `.tsx` gerado funciona até alguém rodar o gerador.
+
+    Sessenta e sete páginas de `/docs` vêm de `site/scripts/conteudo/`.
+    Elas não diziam isso em lugar nenhum: uma correção feita no `.tsx`
+    sobrevivia ao commit, ao build e à revisão, e sumia na próxima
+    geração sem nada explicando. Aconteceu com a contagem de símbolos da
+    página do LSP, corrigida à mão e revertida em seguida.
+
+    O aviso vai na **primeira linha do arquivo**, e não num comentário
+    no gerador: quem abre a página para editar precisa ver antes de
+    começar.
+    """
+    import glob
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    conteudo = os.path.join(raiz, "site", "scripts", "conteudo")
+    modulos = [c for c in glob.glob(os.path.join(conteudo, "*.py"))
+               if not os.path.basename(c).startswith("__")]
+    assert modulos, "nenhum modulo de conteudo — o gerador mudou de lugar?"
+
+    r = subprocess.run(
+        [sys.executable, os.path.join(raiz, "site", "scripts",
+                                      "gerar_conteudo.py")],
+        capture_output=True, text=True, encoding="utf-8",
+        cwd=os.path.join(raiz, "site", "scripts"), timeout=120)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+    geradas = [l.strip() for l in r.stdout.split("\n")
+               if l.strip().startswith("/")]
+    assert len(geradas) > 50, f"so {len(geradas)} paginas geradas?"
+
+    sem_aviso = []
+    for href in geradas:
+        caminho = os.path.join(raiz, "site", "app",
+                               href.lstrip("/"), "page.tsx")
+        if not os.path.exists(caminho):
+            continue
+        primeira = open(caminho, encoding="utf-8").readline()
+        if "GERADO" not in primeira:
+            sem_aviso.append(href)
+
+    assert not sem_aviso, (
+        "pagina gerada sem o aviso na primeira linha — alguem vai "
+        f"edita-la a mao e perder o trabalho: {sem_aviso[:8]}")
+
+
+def test_os_dois_geradores_do_indice_concordam():
+    """Eles escreviam a MESMA linha, e cada um de um jeito.
+
+    `gerar_conteudo.py` montava o índice só com os `h2`, e minusculava
+    **depois** de remover o que não é `[a-z0-9]` — o que apagava cada
+    letra maiúscula, e `HMAC` virava âncora vazia. `gerar_indices.py`
+    fazia certo, com `h2` e `h3`. Rodar um depois do outro mudava o
+    arquivo, e o estado final dependia da ordem.
+    """
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    scripts = os.path.join(raiz, "site", "scripts")
+
+    subprocess.run([sys.executable, os.path.join(scripts, "gerar_conteudo.py")],
+                   capture_output=True, cwd=scripts, timeout=120, check=True)
+    r = subprocess.run(
+        [sys.executable, os.path.join(scripts, "gerar_indices.py"), "--check"],
+        capture_output=True, text=True, encoding="utf-8", cwd=raiz, timeout=120)
+    assert r.returncode == 0, (
+        "logo depois de 'gerar_conteudo.py', o 'gerar_indices.py' ainda "
+        "quer mudar as paginas — os dois discordam:\n" + r.stdout)

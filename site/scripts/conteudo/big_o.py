@@ -272,7 +272,7 @@ out naturais().take(5)""", "lang": "df"},
    "**Não decide o indecidível.** Saber se um laço termina é o problema da parada. Quando a análise não consegue provar, ela diz `O(?)` em vez de inventar um número.",
    "**Não segue valor.** `cycle i from 1 to k` é O(k). Se `k` vier de fora, ela usa `k` como símbolo em vez de fingir que é constante.",
    "**Não mede constante.** O(n) com constante grande pode ser mais lento que O(n²) para entrada pequena."]},
- {"callout": {"tipo": "nota", "titulo": "O(?) não é erro", "texto": "Significa que a análise não conseguiu provar a ordem, não que o código esteja errado. Nos 200 exercícios da linguagem, zero ficam indeterminados."}},
+ {"callout": {"tipo": "nota", "titulo": "O(?) não é erro", "texto": "Significa que a análise não conseguiu provar a ordem, não que o código esteja errado. Nos 216 exercícios da linguagem, zero ficam indeterminados."}},
 
  {"h2": "No CI"},
  {"p": "`--strict` faz o comando sair com código 1 se alguma ação passar de O(n log n). É o suficiente para uma regra de projeto:"},

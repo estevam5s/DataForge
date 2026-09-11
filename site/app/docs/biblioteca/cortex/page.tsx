@@ -1,3 +1,6 @@
+// GERADO por 'site/scripts/gerar_conteudo.py'. Nao edite aqui.
+// A fonte e 'site/scripts/conteudo/ml.py' — mude la e rode o gerador.
+
 import type { Metadata } from 'next';
 import type { Bloco } from '@/lib/content';
 import { DocPage } from '@/components/Doc';

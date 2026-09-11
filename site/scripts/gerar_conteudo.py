@@ -41,6 +41,9 @@ def main():
             print(f"  (pulando {nome}: ainda não existe)")
             continue
         for pagina in modulo.PAGINAS:
+            # De onde veio, para o aviso no topo da pagina gerada poder
+            # apontar o arquivo que a pessoa precisa abrir.
+            pagina.setdefault("fonte", f"site/scripts/conteudo/{nome}.py")
             escrever(pagina)
             total += 1
             print(f"  {pagina['href']}")

@@ -579,10 +579,21 @@ template comeria os dados.
 | `doc/BIBLIOTECA_PADRAO.md` | `tools/gerar_doc_stdlib.py` | — |
 | `site/lib/dados-gerados.json` | `site/scripts/gerar_dados.py` | — |
 | o `const headings` de cada `site/app/docs/**/page.tsx` | `site/scripts/gerar_indices.py` | `tests/test_api_e_marca.py` |
+| **67 páginas** de `site/app/docs/` | `site/scripts/gerar_conteudo.py`, de `site/scripts/conteudo/*.py` | o job `gerado` do CI |
 | `site/public/dist/*.tar.gz` | `scripts/gerar_tarball.py` | `tests/test_regressoes.py` |
 | `site/lib/marca.ts`, favicon, ícones | `tools/vetorizar_logo.py` | `tests/test_api_e_marca.py` |
 | `site/public/api/*.json` | `scripts/gerar_api.py` | `tests/test_api_e_marca.py` |
 | `dataforge/marca.py` (arte ASCII) | `tools/vetorizar_logo.py` | — |
+
+**Sessenta e sete das páginas de `/docs` são geradas.** Elas trazem o aviso na
+primeira linha, com o caminho do arquivo de conteúdo que as origina — editar o
+`.tsx` funciona até alguém rodar o gerador, e aí a correção some sem nada
+explicando. Foi assim que uma contagem de símbolos voltou a ficar errada depois
+de corrigida.
+
+O índice lateral dessas páginas sai da **mesma** `slugify` do
+`gerar_indices.py`. Já foram duas implementações, e elas se sobrescreviam a cada
+geração: o estado final dependia da ordem em que os dois geradores rodassem.
 
 A gramática do editor tem **duas** travas: o gerador recusa rodar se uma
 palavra de `KEYWORDS` não estiver em nenhum grupo de cor, e um teste falha se o

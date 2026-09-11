@@ -22,21 +22,34 @@ def escrever(pagina):
     dir_ = f"{RAIZ}/app" + ("" if href == "/" else href)
     os.makedirs(dir_, exist_ok=True)
     blocos = ",\n  ".join(bloco_para_ts(b) for b in pagina['blocos'])
-    heads = [b['h2'] for b in pagina['blocos'] if 'h2' in b]
 
-    def slug(t):
-        import unicodedata
-        t = unicodedata.normalize('NFD', t)
-        t = ''.join(c for c in t if unicodedata.category(c) != 'Mn')
-        return re.sub(r'[^a-z0-9\s-]', '', t.lower()).strip().replace(' ', '-')
+    # O indice sai da MESMA funcao que o 'gerar_indices.py' usa, e com
+    # 'h3' junto. Antes eram duas implementacoes: esta pegava so 'h2' e
+    # minusculava DEPOIS de remover o que nao e [a-z0-9], o que apagava
+    # cada letra maiuscula — 'HMAC' virava ancora vazia. As duas se
+    # sobrescreviam a cada geracao, e o estado final dependia da ORDEM
+    # em que os dois geradores rodassem.
+    from gerar_indices import slugify
 
     headings = ", ".join(
-        "{ id: '%s', text: %s, level: 2 as const }" % (slug(h), json.dumps(h, ensure_ascii=False))
-        for h in heads)
+        "{ id: '%s', text: %s, level: %s as const }"
+        % (slugify(b[nivel]), json.dumps(b[nivel], ensure_ascii=False),
+           nivel[1])
+        for b in pagina['blocos']
+        for nivel in ("h2", "h3") if nivel in b)
 
     # Atributos JSX recebem a string via expressão {"..."}: o literal com
     # aspas escapadas (\") é válido em JS mas NÃO em atributo JSX.
-    tsx = f'''import type {{ Metadata }} from 'next';
+    # O aviso e a primeira linha do arquivo, e nao um comentario no
+    # gerador: quem abre a pagina para editar precisa ver ANTES de
+    # comecar. Sem ele, uma correcao a mao some no proximo
+    # 'gerar_conteudo.py' sem nada explicando — foi o que aconteceu com
+    # a contagem de simbolos desta pagina.
+    fonte_py = pagina.get('fonte', 'site/scripts/conteudo/')
+    tsx = f'''// GERADO por 'site/scripts/gerar_conteudo.py'. Nao edite aqui.
+// A fonte e '{fonte_py}' — mude la e rode o gerador.
+
+import type {{ Metadata }} from 'next';
 import type {{ Bloco }} from '@/lib/content';
 import {{ DocPage }} from '@/components/Doc';
 import {{ Renderer }} from '@/components/Renderer';
