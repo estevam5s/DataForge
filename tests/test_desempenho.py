@@ -282,3 +282,131 @@ cycle i from 0 to 500:
     contagem[chave] := (contagem[chave] ?? 0) + 1
 
 out soma, fib(15), total, len(contagem)''') == "500500 610 124750 10"
+
+
+# ── Compilação para closures ─────────────────────────────────
+
+def test_o_corpo_compilado_e_montado_uma_vez_so():
+    """Recompilar a cada chamada apagaria o ganho inteiro.
+
+    O fechamento fica guardado na `DFAction`, e não no nó da árvore: o
+    interpretador que compilou está amarrado dentro dos fechamentos, e
+    dois interpretadores sobre a mesma árvore — o REPL, os testes — não
+    podem herdar o compilado um do outro.
+    """
+    from dataforge.interpreter import Interpreter
+
+    interp = Interpreter()
+    interp.run(parse(tokenize('''
+action dobro(n):
+    yield n * 2
+
+dobro(1)
+dobro(2)
+dobro(3)''', "t"), "t"), "t")
+
+    acao = interp.global_env.get("dobro")
+    assert acao.corpo_compilado is not None, "o corpo nao foi compilado"
+
+    primeiro = acao.corpo_compilado
+    interp.run(parse(tokenize("dobro(4)", "t"), "t"), "t")
+    assert acao.corpo_compilado is primeiro, "recompilou"
+
+
+def test_o_depurador_desliga_a_compilacao():
+    """Um depurador que enxerga metade das instruções é pior que lento.
+
+    O corpo compilado passa **por fora** de `execute` — é assim que ele
+    economiza o despacho. O depurador para em cada linha sombreando
+    justamente `execute`: com a compilação ligada, ele veria as
+    instruções de topo e nenhuma de dentro de ação.
+    """
+    from dataforge.depurador import Depurador
+    from dataforge.interpreter import Interpreter
+
+    interp = Interpreter()
+    assert interp.compilar_corpos is True
+
+    dep = Depurador(interp, "t.df", "out 1")
+    dep.ligar()
+    assert interp.compilar_corpos is False, \
+        "o depurador nao desligou a compilacao"
+
+    dep.desligar()
+    assert interp.compilar_corpos is True, "e nao religou depois"
+
+
+def test_o_que_o_compilador_nao_conhece_recua_para_o_interpretador():
+    """A garantia que torna o compilador seguro.
+
+    Um nó sem construtor próprio vira `interp.execute(no, env)` — o
+    comportamento de hoje, byte por byte. É o que permite acrescentar
+    recursos à linguagem sem tocar no compilador: eles continuam
+    funcionando, só não ficam mais rápidos.
+    """
+    from dataforge import ast_nodes as df_ast
+    from dataforge.compilador import _EXPRESSOES, _INSTRUCOES
+    from dataforge.interpreter import Interpreter
+
+    interp = Interpreter()
+
+    # 'match' nao esta em nenhuma das tabelas — e roda igual.
+    assert df_ast.MatchBlock not in _INSTRUCOES
+    assert df_ast.MatchBlock not in _EXPRESSOES
+    assert run('''
+action rotular(n):
+    match n:
+        point 0:
+            yield "zero"
+        default:
+            yield "outro"
+
+out rotular(0), rotular(7)''') == "zero outro"
+
+
+def test_a_compilacao_nao_muda_o_resultado_de_nenhum_exercicio():
+    """A prova de que 'mais rapido' nao virou 'diferente'.
+
+    Roda uma amostra dos exercícios com a compilação ligada e desligada
+    e compara a saída caractere por caractere. Se algum fechamento
+    divergir do método que ele espelha, a diferença aparece aqui.
+    """
+    import glob
+    import io as _io
+    import re as _re
+    from contextlib import redirect_stdout
+
+    from dataforge.interpreter import Interpreter
+
+    #: Um exercicio que MEDE tempo imprime um numero diferente a cada
+    #: execucao, e isso nao e divergencia de semantica. So o que vem
+    #: colado numa unidade de tempo e neutralizado — um numero solto
+    #: continua sendo comparado.
+    tempo = _re.compile(r"\d+(?:[.,]\d+)?\s*(ms|µs|us|s)\b")
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    arquivos = sorted(glob.glob(os.path.join(
+        raiz, "exercicios", "*", "[0-9]*.df")))
+    assert arquivos, "nenhum exercicio encontrado"
+
+    # Um de cada cinco: cobre os 26 módulos sem custar a suíte inteira.
+    for caminho in arquivos[::5]:
+        fonte = open(caminho, encoding="utf-8").read()
+        arvore = parse(tokenize(fonte, caminho), caminho)
+
+        saidas = []
+        for compilar in (True, False):
+            interp = Interpreter()
+            interp.compilar_corpos = compilar
+            buffer = _io.StringIO()
+            try:
+                with redirect_stdout(buffer):
+                    interp.run(arvore, caminho)
+            except Exception as erro:            # noqa: BLE001
+                buffer.write(f"\n<erro> {type(erro).__name__}: {erro}")
+            saidas.append(buffer.getvalue())
+
+        saidas = [tempo.sub("<tempo>", t) for t in saidas]
+        assert saidas[0] == saidas[1], (
+            f"{os.path.relpath(caminho, raiz)} muda de resultado com a "
+            f"compilacao ligada")

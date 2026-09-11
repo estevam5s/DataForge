@@ -136,6 +136,13 @@ class DFAction:
         # tipo dentro desta acao, e aceitam qualquer valor.
         self.type_params = tuple(type_params or ())
 
+        # O corpo compilado para fechamentos, montado na primeira
+        # chamada. Fica aqui e nao no no da arvore porque o
+        # interpretador que compila esta amarrado nos fechamentos: dois
+        # interpretadores sobre a mesma arvore — o REPL, os testes —
+        # nao podem compartilhar o compilado de outro.
+        self.corpo_compilado = None
+
     def __call__(self, *args, **kwargs):
         """Allow DFAction to be called like a Python function."""
         if DFAction._interpreter is None:
@@ -953,6 +960,19 @@ class Interpreter:
         # stack trace: o erro de uma aparecia com o caminho da outra.
         self._por_thread = _PorThread()
         self._loading = []     # módulos em carga, para detectar ciclos
+
+        # Compilar o corpo das acoes para fechamentos. Desligado pelo
+        # depurador: ele sombreia 'execute' para parar em cada linha, e
+        # o corpo compilado passa POR FORA de 'execute' — um depurador
+        # que enxerga metade das instrucoes e pior que um interpretador
+        # mais lento.
+        self.compilar_corpos = True
+
+        # Estado de biblioteca que pertence a UMA execucao — hoje so o
+        # registro de testes do Crucible — e zerado na primeira, e nao
+        # aqui: construir um interpretador nao deve mexer no de outro
+        # que ja esteja rodando.
+        self._primeira_execucao = True
         self.filename = "<stdin>"
         # A DataForge frame costs several Python frames; give the interpreter
         # room so its own depth guard reports the error instead of CPython.
@@ -1003,7 +1023,18 @@ class Interpreter:
         return _com_pilha_propria(lambda: self._rodar(program))
 
     def _rodar(self, program: ast.Program):
+        if self._primeira_execucao:
+            self._primeira_execucao = False
+            from .stdlib import reiniciar_por_execucao
+            reiniciar_por_execucao()
         try:
+            # O corpo do programa tambem e compilado: sem isto, um laco
+            # escrito no topo — que e como quase todo exemplo comeca —
+            # nao veria ganho nenhum, so o que estivesse dentro de uma
+            # acao.
+            if self.compilar_corpos:
+                from .compilador import compilar_bloco
+                return compilar_bloco(self, program.body)(self.global_env)
             return self.exec_block(program.body, self.global_env)
         except DataForgeError as erro:
             self._attach_stack(erro)
@@ -1436,10 +1467,17 @@ class Interpreter:
     }
 
     def eval_ComparisonOp(self, node: ast.ComparisonOp, env):
-        left = self.evaluate(node.left, env)
-        right = self.evaluate(node.right, env)
-        op = node.op
+        return self._comparar(self.evaluate(node.left, env), node.op,
+                              self.evaluate(node.right, env), node, env)
 
+    def _comparar(self, left, op, right, node, env):
+        """A comparacao com os dois lados JA avaliados.
+
+        Separado de 'eval_ComparisonOp' porque o compilador de closures
+        precisa exatamente disto: ele avalia os lados pelos fechamentos
+        que ja montou, e so entao pergunta o resultado. Chamar
+        'eval_ComparisonOp' o faria reavaliar a arvore.
+        """
         # ── Sobrecarga de comparacao ───────────────────────
         simbolo = self._SIMBOLO_COMPARACAO.get(op)
         if simbolo is not None:
@@ -1500,42 +1538,50 @@ class Interpreter:
         return not self._verdade(self.evaluate(node.operand, env), node)
 
     def eval_MemberAccess(self, node: ast.MemberAccess, env):
-        obj = self.evaluate(node.object, env)
+        return self._ler_membro(self.evaluate(node.object, env), node, env)
 
+    def _ler_membro(self, obj, node, env, membro=None):
+        """'obj.membro' com o objeto JA avaliado.
+
+        O mesmo motivo de '_comparar' e '_chamar_metodo': o compilador
+        de closures ja tem o objeto, e nao pode percorrer a arvore de
+        novo para obte-lo.
+        """
+        membro = membro if membro is not None else node.member
         # Handle root (super) proxy
         if isinstance(obj, _RootProxy):
-            return obj.get(node.member)
+            return obj.get(membro)
 
         if isinstance(obj, DFRecordInstance):
-            if node.member == 'fields':
+            if membro == 'fields':
                 return dict(obj.values)
-            if node.member == 'record_name':
+            if membro == 'record_name':
                 return obj.record.name
-            valor = obj.get(node.member)
+            valor = obj.get(membro)
             if isinstance(valor, DFAction):
                 return BoundRecordMethod(self, obj, valor)
             return valor
 
         if isinstance(obj, DFRecord):
-            if node.member == 'fields':
+            if membro == 'fields':
                 return list(obj.field_names)
-            if node.member in obj.methods:
-                return obj.methods[node.member]
+            if membro in obj.methods:
+                return obj.methods[membro]
             raise NameError_(
-                f"Record '{obj.name}' has no static member '{node.member}'",
+                f"Record '{obj.name}' has no static member '{membro}'",
                 node.line, node.column)
 
         if isinstance(obj, DFEnumMember):
-            if node.member == 'name':
+            if membro == 'name':
                 return obj.name
-            if node.member == 'value':
+            if membro == 'value':
                 return obj.value
-            if node.member == 'index':
+            if membro == 'index':
                 return obj.index
-            if node.member == 'enum_name':
+            if membro == 'enum_name':
                 return obj.enum_name
             raise NameError_(
-                f"Enum member '{obj}' has no member '{node.member}'. "
+                f"Enum member '{obj}' has no member '{membro}'. "
                 f"Use .name, .value or .index",
                 node.line, node.column)
 
@@ -1550,14 +1596,14 @@ class Interpreter:
                     (m for m in obj.members.values() if m.value == v), None),
                 'from_name': lambda n: obj.members.get(n),
             }
-            if node.member in obj.members:
-                return obj.members[node.member]
-            if node.member in enum_methods:
-                return BuiltinFunction(node.member, enum_methods[node.member])
-            if node.member in obj.methods:
-                return obj.methods[node.member]
+            if membro in obj.members:
+                return obj.members[membro]
+            if membro in enum_methods:
+                return BuiltinFunction(membro, enum_methods[membro])
+            if membro in obj.methods:
+                return obj.methods[membro]
             raise NameError_(
-                f"Enum '{obj.name}' has no member '{node.member}'. "
+                f"Enum '{obj.name}' has no member '{membro}'. "
                 f"Members: {', '.join(obj.members)}",
                 node.line, node.column)
 
@@ -1572,54 +1618,54 @@ class Interpreter:
                 'filter': lambda f: [x for x in obj if f(x)],
                 'first': lambda: next(iter(obj), None),
             }
-            if node.member in stream_methods:
-                return BuiltinFunction(node.member, stream_methods[node.member])
+            if membro in stream_methods:
+                return BuiltinFunction(membro, stream_methods[membro])
             raise NameError_(
-                f"Stream has no member '{node.member}'. Use take, to_cluster, "
+                f"Stream has no member '{membro}'. Use take, to_cluster, "
                 f"next, reset, count, map, filter or first",
                 node.line, node.column)
 
         if isinstance(obj, DFInstance):
             # Instance built-in methods
-            if node.member == 'blueprint_name':
+            if membro == 'blueprint_name':
                 return obj.blueprint.name
-            if node.member == 'fields':
+            if membro == 'fields':
                 return dict(obj.fields)
-            if node.member == 'methods':
+            if membro == 'methods':
                 return list(obj.blueprint.methods.keys())
 
             # Propriedade: 'p.area' roda o corpo do 'get area()'
-            prop = obj.blueprint.buscar_propriedade(node.member)
+            prop = obj.blueprint.buscar_propriedade(membro)
             if prop is not None and 'get' in prop:
-                self._conferir_acesso(obj.blueprint, node.member, env, node)
+                self._conferir_acesso(obj.blueprint, membro, env, node)
                 return self._call(prop['get'], [], {}, node, env, instancia=obj)
             if prop is not None:
                 raise TypeError_(
-                    f"'{obj.blueprint.name}.{node.member}' is write-only: it "
+                    f"'{obj.blueprint.name}.{membro}' is write-only: it "
                     f"has a 'set' but no 'get'.",
                     node.line, node.column)
 
-            self._conferir_acesso(obj.blueprint, node.member, env, node)
-            return obj.get(node.member)
+            self._conferir_acesso(obj.blueprint, membro, env, node)
+            return obj.get(membro)
 
         elif isinstance(obj, DFBlueprint):
-            if node.member in obj.statics:
-                return obj.statics[node.member]
-            if node.member in obj.methods:
-                if node.member in obj.static_methods:
-                    return obj.methods[node.member]
+            if membro in obj.statics:
+                return obj.statics[membro]
+            if membro in obj.methods:
+                if membro in obj.static_methods:
+                    return obj.methods[membro]
                 raise TypeError_(
-                    f"'{obj.name}.{node.member}' is an instance method: it "
+                    f"'{obj.name}.{membro}' is an instance method: it "
                     f"needs an object.\n"
                     f"    Spawn one first:  obj := spawn {obj.name}(…)  "
-                    f"then obj.{node.member}(…)\n"
-                    f"    Or declare it as 'static action {node.member}(…)'.",
+                    f"then obj.{membro}(…)\n"
+                    f"    Or declare it as 'static action {membro}(…)'.",
                     node.line, node.column)
             self._erro_membro_blueprint(obj, node)
         elif isinstance(obj, dict):
             # Module namespace dicts: check key access first
-            if "__name__" in obj and node.member in obj:
-                return obj[node.member]
+            if "__name__" in obj and membro in obj:
+                return obj[membro]
             # Check dict methods
             dict_methods = {
                 'keys': lambda: list(obj.keys()),
@@ -1642,14 +1688,14 @@ class Interpreter:
                 'filter_keys': lambda f: {k: v for k, v in obj.items() if f(k)},
                 'to_pairs': lambda: [list(p) for p in obj.items()],
             }
-            if node.member in dict_methods:
-                return BuiltinFunction(node.member, dict_methods[node.member])
-            if node.member == 'length':
+            if membro in dict_methods:
+                return BuiltinFunction(membro, dict_methods[membro])
+            if membro == 'length':
                 return len(obj)
             # Fall back to key access
-            if node.member in obj:
-                return obj[node.member]
-            raise self._erro_membro(obj, node.member, node)
+            if membro in obj:
+                return obj[membro]
+            raise self._erro_membro(obj, membro, node)
         elif isinstance(obj, str):
             # String methods - comprehensive
             string_methods = {
@@ -1733,9 +1779,9 @@ class Interpreter:
                 'chars': lambda: list(obj),
                 'bytes': lambda enc="utf-8": list(obj.encode(enc)),
             }
-            if node.member in string_methods:
-                return BuiltinFunction(node.member, string_methods[node.member])
-            if node.member == 'length':
+            if membro in string_methods:
+                return BuiltinFunction(membro, string_methods[membro])
+            if membro == 'length':
                 return len(obj)
         elif isinstance(obj, list):
             list_methods = {
@@ -1799,14 +1845,14 @@ class Interpreter:
                 'extend': lambda other: (obj.extend(other), obj)[-1],
                 'frequencies': lambda: _freq_list(obj),
             }
-            if node.member in list_methods:
-                return BuiltinFunction(node.member, list_methods[node.member])
-            if node.member == 'length':
+            if membro in list_methods:
+                return BuiltinFunction(membro, list_methods[membro])
+            if membro == 'length':
                 return len(obj)
-        elif hasattr(obj, node.member):
-            return getattr(obj, node.member)
+        elif hasattr(obj, membro):
+            return getattr(obj, membro)
 
-        raise NameError_(f"Cannot access member '{node.member}' on {type(obj).__name__}", node.line, node.column)
+        raise NameError_(f"Cannot access member '{membro}' on {type(obj).__name__}", node.line, node.column)
 
     def eval_IndexAccess(self, node: ast.IndexAccess, env):
         obj = self.evaluate(node.object, env)
@@ -1959,10 +2005,20 @@ class Interpreter:
         return self._call(callee, args, kwargs, node, env)
 
     def eval_MethodCall(self, node: ast.MethodCall, env):
-        obj = self.evaluate(node.object, env)
-        args = self._eval_args(node.args, env)
-        kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
+        return self._chamar_metodo(
+            self.evaluate(node.object, env),
+            self._eval_args(node.args, env),
+            {k: self.evaluate(v, env) for k, v in node.kwargs.items()},
+            node, env)
 
+    def _chamar_metodo(self, obj, args, kwargs, node, env):
+        """A chamada de metodo com o objeto e os argumentos JA avaliados.
+
+        Separado de 'eval_MethodCall' pelo mesmo motivo que '_comparar':
+        o compilador de closures avalia as partes pelos fechamentos que
+        ja montou, e so entao pergunta o resultado. Chamar
+        'eval_MethodCall' o faria percorrer a arvore de novo.
+        """
         # Handle root (super) proxy calls
         if isinstance(obj, _RootProxy):
             method = obj.get(node.method)
@@ -2021,11 +2077,14 @@ class Interpreter:
         elif hasattr(obj, '__call__'):
             return self._invocar(obj, args, kwargs, node, node.method)
 
-        # Try getting a builtin method
-        member = self.eval_MemberAccess(
-            ast.MemberAccess(object=node.object, member=node.method, line=node.line, column=node.column),
-            env
-        )
+        # Try getting a builtin method.
+        #
+        # Com o objeto que JA foi avaliado — antes isto montava um no de
+        # AST apontando para 'node.object' e mandava avalia-lo de novo.
+        # Nao era so custo: 'dar_lista().count(1)' chamava 'dar_lista()'
+        # DUAS vezes, e todo efeito colateral do objeto se repetia sem
+        # que nada denunciasse.
+        member = self._ler_membro(obj, node, env, membro=node.method)
         if callable(member):
             return self._invocar(member, args, kwargs, node, node.method)
 
@@ -2785,23 +2844,65 @@ class Interpreter:
             return novo
 
         if isinstance(alvo, ast.MemberAccess):
-            # O objeto e avaliado uma vez; a leitura e a escrita usam o
-            # mesmo valor, e nao dois nos de AST recem-criados.
+            # O objeto e avaliado UMA vez, e a leitura e a escrita usam
+            # o mesmo valor. Antes isto montava cinco nos de AST por
+            # execucao so para joga-los fora.
             obj = self.evaluate(alvo.object, env)
-            leitura = ast.MemberAccess(object=ast.ValorPronto(value=obj),
-                                       member=alvo.member,
-                                       line=node.line, column=node.column)
-            novo = aplicar(self.eval_MemberAccess(leitura, env))
-            escrita = ast.Assignment(target=ast.MemberAccess(
-                object=ast.ValorPronto(value=obj), member=alvo.member,
-                line=node.line, column=node.column),
-                value=ast.ValorPronto(value=novo),
-                line=node.line, column=node.column)
-            return self.exec_Assignment(escrita, env)
+            novo = aplicar(self._ler_membro(obj, alvo, env))
+            self._escrever_membro(obj, alvo.member, novo, node, env, alvo)
+            return novo
 
         raise RuntimeError_(
             f"'{op}=' needs a variable, a field or an index on the left.",
             node.line, node.column, doc="operadores")
+
+    def _escrever_membro(self, obj, membro, value, node, env, alvo=None):
+        """'obj.membro := valor' com o objeto JA avaliado.
+
+        Devolve '_SEM_MAGICO' quando a escrita foi feita e nao ha valor
+        a propagar, e o valor quando ela passou por um 'set' de
+        propriedade — que e o unico caso em que 'exec_Assignment'
+        retornava cedo.
+
+        Extraido para que a atribuicao COMPOSTA num membro pare de
+        montar tres nos de AST por execucao: 'self.n += 1' criava um
+        'MemberAccess' para ler, e um 'Assignment' com outro
+        'MemberAccess' e dois 'ValorPronto' para escrever — cinco
+        objetos por volta de laco, jogados fora em seguida.
+        """
+        alvo = alvo if alvo is not None else node
+
+        if isinstance(obj, DFRecordInstance):
+            raise RuntimeError_(
+                f"Record '{obj.record.name}' is immutable: cannot assign to "
+                f"'{membro}'. Build a changed copy with "
+                f"\"registro with {{'{membro}': valor}}\".",
+                node.line, node.column)
+
+        if isinstance(obj, DFInstance):
+            # Propriedade com 'set': a atribuicao roda o corpo do setter
+            prop = obj.blueprint.buscar_propriedade(membro)
+            if prop is not None:
+                if 'set' not in prop:
+                    raise TypeError_(
+                        f"'{obj.blueprint.name}.{membro}' is read-only: it "
+                        f"has a 'get' but no 'set'.\n"
+                        f"    Add one:  set {membro}(valor): …",
+                        node.line, node.column)
+                self._conferir_acesso(obj.blueprint, membro, env, alvo)
+                self._call(prop['set'], [value], {}, node, env, instancia=obj)
+                return value
+            self._conferir_acesso(obj.blueprint, membro, env, alvo)
+            obj.set(membro, value)
+        elif isinstance(obj, DFBlueprint):
+            obj.statics[membro] = value
+        elif isinstance(obj, dict):
+            obj[membro] = value
+        else:
+            raise RuntimeError_(
+                f"Cannot set member on {type(obj).__name__}",
+                node.line, node.column)
+        return _SEM_MAGICO
 
     def exec_Assignment(self, node: ast.Assignment, env):
         # Atribuicao composta ('x += 1') avalia o alvo UMA vez: 'v[f()] += 1'
@@ -2820,37 +2921,10 @@ class Interpreter:
             env.set(node.target.name, value)
         elif isinstance(node.target, ast.MemberAccess):
             obj = self.evaluate(node.target.object, env)
-            if isinstance(obj, DFRecordInstance):
-                raise RuntimeError_(
-                    f"Record '{obj.record.name}' is immutable: cannot assign to "
-                    f"'{node.target.member}'. Build a changed copy with "
-                    f"\"registro with {{'{node.target.member}': valor}}\".",
-                    node.line, node.column)
-            if isinstance(obj, DFInstance):
-                membro = node.target.member
-                # Propriedade com 'set': a atribuicao roda o corpo do setter
-                prop = obj.blueprint.buscar_propriedade(membro)
-                if prop is not None:
-                    if 'set' not in prop:
-                        raise TypeError_(
-                            f"'{obj.blueprint.name}.{membro}' is read-only: it "
-                            f"has a 'get' but no 'set'.\n"
-                            f"    Add one:  set {membro}(valor): …",
-                            node.line, node.column)
-                    self._conferir_acesso(obj.blueprint, membro, env, node.target)
-                    self._call(prop['set'], [value], {}, node, env, instancia=obj)
-                    return value
-                self._conferir_acesso(obj.blueprint, membro, env, node.target)
-                obj.set(membro, value)
-            elif isinstance(obj, DFBlueprint):
-                obj.statics[node.target.member] = value
-            elif isinstance(obj, dict):
-                obj[node.target.member] = value
-            else:
-                raise RuntimeError_(
-                    f"Cannot set member on {type(obj).__name__}",
-                    node.line, node.column
-                )
+            devolvido = self._escrever_membro(
+                obj, node.target.member, value, node, env, node.target)
+            if devolvido is not _SEM_MAGICO:
+                return devolvido
         elif isinstance(node.target, ast.IndexAccess):
             obj = self.evaluate(node.target.object, env)
             idx = self.evaluate(node.target.index, env)
@@ -4784,7 +4858,15 @@ class Interpreter:
             action.name, getattr(node, 'line', 0), getattr(node, 'column', 0),
             self.filename))
         try:
-            self.exec_block(action.body, call_env)
+            if self.compilar_corpos:
+                corpo = action.corpo_compilado
+                if corpo is None:
+                    from .compilador import compilar_bloco
+                    corpo = action.corpo_compilado = compilar_bloco(
+                        self, action.body)
+                corpo(call_env)
+            else:
+                self.exec_block(action.body, call_env)
             result = None
         except YieldSignal as ys:
             result = ys.value

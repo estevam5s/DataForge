@@ -2338,3 +2338,96 @@ def test_todo_script_que_desenha_prepara_a_saida():
     assert not ruins, (
         "script que desenha e nao chama 'marca.preparar_saida()' — no "
         "Windows ele morre ao imprimir:\n  " + "\n  ".join(ruins))
+
+
+# ── A expressao do objeto e avaliada UMA vez ────────────────
+
+def test_chamada_de_metodo_nao_avalia_o_objeto_duas_vezes():
+    """`dar_lista().count(1)` chamava `dar_lista()` DUAS vezes.
+
+    Quando o método não era de nenhum tipo que o interpretador conhece
+    por nome, o último recurso montava um nó `MemberAccess` apontando
+    para a expressão do objeto e mandava avaliá-la de novo — sendo que
+    o objeto já estava ali, avaliado, na variável ao lado.
+
+    Não era um erro visível: o resultado saía certo. O que se repetia
+    era o **efeito colateral** — uma consulta ao banco, uma escrita em
+    arquivo, um contador. Exatamente o tipo de bug que compila, roda e
+    mente.
+    """
+    assert run('''
+vezes := 0
+
+action dar_lista():
+    vezes += 1
+    yield [1, 2, 3]
+
+quantos := dar_lista().count(1)
+out vezes, quantos''') == "1 1"
+
+
+def test_o_objeto_de_um_metodo_encadeado_tambem_conta_uma_vez():
+    """A mesma garantia com o objeto vindo de um atributo caro."""
+    assert run('''
+chamadas := 0
+
+blueprint Fonte:
+    get itens():
+        chamadas += 1
+        yield ["a", "b", "a"]
+
+f := spawn Fonte()
+n := f.itens.count("a")
+out chamadas, n''') == "1 2"
+
+
+# ── Um interpretador novo comeca limpo ─────────────────────
+
+def test_dois_programas_no_mesmo_processo_nao_compartilham_o_crucible():
+    """O registro de testes era um objeto de MÓDULO, um por processo.
+
+    `crucible`/`trial` registram e `Crucible.run()` executa o que foi
+    registrado. Como o registro vivia no módulo, dois programas no mesmo
+    processo o compartilhavam — e `dataforge test` cria um interpretador
+    **por arquivo**: o segundo arquivo via os trials do primeiro.
+
+    O efeito é o pior possível num framework de teste: contagem errada,
+    e a falha de um arquivo reaparecendo no relatório do outro. Nada
+    quebrava; o relatório é que mentia.
+    """
+    fonte = '''adopt Crucible
+
+crucible "Contas":
+    trial "soma":
+        expect(1 + 1).to_be(2)
+
+resumo := Crucible.run()
+out resumo["passou"]'''
+
+    primeiro = run(fonte)
+    segundo = run(fonte)
+    assert primeiro == "1", f"o primeiro ja veio errado: {primeiro}"
+    assert segundo == "1", (
+        f"o segundo programa contou {segundo} trials — esta vendo os do "
+        f"primeiro")
+
+
+def test_o_registro_nao_e_zerado_entre_linhas_do_mesmo_interpretador():
+    """O contrapeso: no REPL, a suíte da linha 3 vale na linha 4.
+
+    Zerar a cada `run` consertaria o teste acima e quebraria o console
+    interativo, onde cada linha é um `run` sobre o mesmo interpretador.
+    """
+    interp = Interpreter()
+    with redirect_stdout(io.StringIO()):
+        interp.run(parse(tokenize('''adopt Crucible
+
+crucible "Contas":
+    trial "soma":
+        expect(1 + 1).to_be(2)''')))
+
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        interp.run(parse(tokenize('out Crucible.run()["passou"]')))
+    assert buffer.getvalue().strip() == "1", \
+        "a suite montada na execucao anterior sumiu"

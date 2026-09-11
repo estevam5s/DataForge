@@ -69,6 +69,12 @@ class Depurador:
 
     def ligar(self):
         """Sombreia 'execute'. Nada muda para quem não depura."""
+        # O corpo compilado das ações passa POR FORA de 'execute' — é
+        # justamente assim que ele economiza o despacho. Com ele ligado,
+        # a sombra abaixo veria as instruções de topo e nenhuma de
+        # dentro de ação: o depurador pararia no lugar errado, ou em
+        # lugar nenhum, sem nada explicando.
+        self.interp.compilar_corpos = False
         self.original = self.interp.execute
 
         def executar(no, env):
@@ -90,6 +96,7 @@ class Depurador:
         if self.original is not None:
             self.interp.__dict__.pop("execute", None)
             self.original = None
+        self.interp.compilar_corpos = True
 
     # ── decidir se para ─────────────────────────────────────
 

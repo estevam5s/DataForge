@@ -213,6 +213,30 @@ def get_module(name: str):
     return mod
 
 
+def reiniciar_por_execucao():
+    """Zera o estado que pertence a UMA execucao de programa.
+
+    Quase todo modulo da biblioteca e sem memoria: 'Arcane.Math.sqrt'
+    nao lembra da chamada anterior. O Crucible e a excecao — ele
+    ACUMULA, porque 'crucible'/'trial' registram e 'Crucible.run()'
+    executa o que foi registrado.
+
+    Esse registro era um objeto de modulo, um por PROCESSO. Dois
+    programas no mesmo processo compartilhavam a lista de testes: o
+    'dataforge test' cria um interpretador por arquivo, e o segundo
+    arquivo via os trials do primeiro — contagem errada, e a falha de um
+    reaparecendo no relatorio do outro. Num framework de teste, um
+    relatorio errado e a pior falha possivel.
+
+    Chamado uma vez por interpretador, na primeira execucao. Nao a cada
+    'adopt': um programa com dois 'adopt Crucible' apagaria o que o
+    primeiro registrou. Nem a cada 'run': o REPL chama 'run' por linha,
+    e a suite montada na linha 3 precisa existir na linha 4.
+    """
+    from .crucible import REGISTRO
+    REGISTRO.reiniciar()
+
+
 def list_modules():
     """List all available standard library modules."""
     return list(_MODULES.keys())

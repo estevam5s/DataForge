@@ -47,6 +47,7 @@ dataforge/
   parser.py       1941   recursivo descendente: tokens → AST
   ast_nodes.py     706   dataclasses dos nós
   interpreter.py  2703   interpretador de árvore — quase toda a semântica
+  compilador.py    330   a árvore vira fechamentos, uma vez (1,5× a 1,8×)
   typechecker.py  1193   análise estática: nomes, aridade, tipos, alcance
   formatter.py     280   dataforge fmt
   linter.py        394   dataforge lint
@@ -331,6 +332,35 @@ Estas são as que mais custam tempo:
   `"Invalid assignment target"` (ruim) com `"'no' is a reserved keyword and
   cannot be assigned to. Pick another name."` (bom). Quando houver um nome
   parecido, sugira: o `typechecker` usa `difflib` para isso.
+
+### O compilador de fechamentos
+
+`compilador.py` percorre a árvore **uma vez** e devolve, para cada nó, um
+fechamento que faz o que aquele nó faz. Executar passa a ser chamar
+fechamentos: sem tabela de despacho, sem `isinstance`, sem `node.campo`.
+
+Três regras ao mexer nele:
+
+1. **Cada construtor espelha um `eval_`/`exec_`, e delega aos mesmos
+   auxiliares.** A semântica não é reimplementada — `_operar`, `_comparar`,
+   `_chamar_metodo`, `_ler_membro` e `_escrever_membro` são os mesmos. Quando
+   um `eval_X` avalia as partes e depois decide, extraia a decisão para um
+   auxiliar que receba os valores prontos, como foi feito nos cinco acima.
+
+2. **O que não estiver nas tabelas recua** para `interp.evaluate`/`execute`,
+   que é o comportamento de hoje byte por byte. Um recurso novo na linguagem
+   continua funcionando sem tocar aqui; só não fica mais rápido. Devolver
+   `None` de um construtor também recua — é como os casos difíceis
+   (`f(...xs)`, `v["k"] += 1`) ficam de fora sem duplicar regra.
+
+3. **O depurador desliga tudo** (`interp.compilar_corpos = False`). Ele para
+   em cada linha sombreando `execute`, e o corpo compilado passa por fora —
+   um depurador que enxerga metade das instruções é pior que um interpretador
+   mais lento.
+
+`tests/test_desempenho.py` roda uma amostra dos exercícios com a compilação
+ligada e desligada e compara a saída caractere por caractere. É esse teste que
+pega um fechamento que divergiu do método que ele espelha.
 
 ### Otimizar: meça antes
 
@@ -624,7 +654,11 @@ O que **ainda não existe** (não invente que existe):
   (`dataforge lsp`, em `lsp.py`) e cobre autocompletar, hover, definição,
   referências, esquema, assinatura, renomear, formatar e correção rápida —
   servido do mesmo `typechecker`. Depuração continua sendo `out` e stack trace.
-- **Bytecode** — é interpretador de árvore, sem otimização.
+- **Bytecode** — continua sendo interpretador de árvore. O que existe é
+  **compilação para fechamentos** (`compilador.py`): a árvore é percorrida
+  uma vez e vira funções Python, o que tira o despacho do caminho quente.
+  Medido: 1,5× a 1,8× conforme a carga. O teto dessa técnica, e o de uma VM
+  de bytecode escrita em Python, é ~6,5× — o resto exigiria sair do Python.
 - **Sincronização automática** — `Arcane.Concurrent` tem mutex, semáforo,
   barreira, contador atômico e canal bloqueante, mas nada é aplicado sozinho.
   O Kiln atende um pedido por thread: o `Arcane.Database` serializa o acesso
