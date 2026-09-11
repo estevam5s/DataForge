@@ -369,8 +369,10 @@ def test_o_programa_roda_numa_thread_provisionada():
     """A garantia de cima, dita diretamente."""
     from dataforge import interpreter as m
 
-    assert m._PILHA >= 12 * 1024 * 1024, (
-        "12 MB foi o minimo medido no Python 3.10 do macOS")
+    assert m._PILHA >= 64 * 1024 * 1024 or m._PILHA == -1, (
+        f"a pilha reservada ficou em {m._PILHA} — o Windows 3.10 gasta "
+        f"mais de 6,5 KB por quadro, e uma recursao no limite pede "
+        f"~10 mil quadros")
 
     visto = {}
     interp = Interpreter()
@@ -378,3 +380,26 @@ def test_o_programa_roda_numa_thread_provisionada():
         "provisionada", getattr(m._PROVISIONADA, "sim", False)))
     interp.run(parse(tokenize("marcar()", "<t>"), "<t>"), "<t>")
     assert visto["provisionada"] is True
+
+
+def test_a_recursao_no_limite_da_linguagem_cabe_na_pilha():
+    """A garantia numérica, em vez de descobrir com o processo morrendo.
+
+    `MAX_CALL_DEPTH` permite mil chamadas. Se a pilha não couber nelas, o
+    guarda da linguagem nunca chega a disparar e o processo morre sem
+    mensagem — foi o que aconteceu no Windows 3.10, com 32 MB, já na
+    quingentésima chamada.
+
+    Aqui a falha vira um número: chega-se a um fio do limite, e o que
+    falta aparece no `assert` em vez de num "fatal exception".
+    """
+    from dataforge.interpreter import Interpreter as _I
+
+    alvo = _I.MAX_CALL_DEPTH - 40
+    assert rodar(f'''
+action contar(n):
+    given n smaller_eq 0:
+        yield 0
+    yield 1 + contar(n - 1)
+
+out contar({alvo})''') == str(alvo)

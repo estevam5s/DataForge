@@ -31,8 +31,12 @@ redirecionamentos ou expansão de `*` — e nunca com texto vindo do usuário.
 | `failed` | o oposto de `ok` |
 | `lines` | `stdout` já separado em linhas |
 
-Um comando inexistente devolve código 127 em vez de derrubar o programa. Isso é
-deliberado: falha de processo externo é um resultado esperado, não uma exceção.
+Um comando inexistente devolve um código de erro em vez de derrubar o programa.
+Isso é deliberado: falha de processo externo é um resultado esperado, não uma
+exceção.
+
+O código, porém, **não é o mesmo em todo lugar**: 127 no Linux e no macOS, 1 no
+Windows. É o primeiro sinal de algo que o exercício trata logo abaixo.
 
 ```dataforge
 r := Proc.run("comando_inexistente")
@@ -52,7 +56,7 @@ Proc.exists("git")         // o programa está instalado?
 ## Enviar entrada
 
 ```dataforge
-Proc.run("cat", input_text := "vindo da entrada")
+Proc.run("sort", input_text := "c\na\nb")
 ```
 
 Útil para alimentar um filtro sem escrever arquivo temporário.
@@ -60,7 +64,7 @@ Proc.run("cat", input_text := "vindo da entrada")
 ## Encadear
 
 ```dataforge
-Proc.pipeline(["printf 'c\na\nb'", "sort"])
+Proc.pipeline(["echo zebra", "sort"])
 ```
 
 A saída de cada comando vira a entrada do próximo, e a cadeia **para no primeiro
@@ -70,6 +74,7 @@ que falhar** — devolvendo o resultado daquele, não um sucesso enganoso.
 
 ```dataforge
 Proc.run("sleep 5", timeout := 1)     // ok = no, timed_out = yes
+// (no Windows: "timeout 5")
 ```
 
 Sempre ponha timeout em comando que fala com a rede. Sem ele, um servidor que
@@ -86,6 +91,28 @@ Proc.kill(p)           // força (SIGKILL)
 r := Proc.wait(p)      // espera e colhe o resultado
 ```
 
+## O comando externo é onde o programa deixa de ser portátil
+
+Tudo o mais em DataForge roda igual nos três sistemas. Chamar um programa de
+fora é a fronteira: `echo` existe no Linux e no macOS como arquivo executável e
+no Windows é embutido do interpretador de comandos, `cat` se chama `more`, e
+`sleep` se chama `timeout`.
+
+A resposta não é fingir que dá no mesmo. É decidir **uma vez**, no topo, e
+escrever o resto igual:
+
+```dataforge
+adopt Arcane.OS as OS
+
+steady WINDOWS := OS.is_windows()
+steady ECO := "cmd /c echo" given WINDOWS otherwise "echo"
+steady NAO_ENCONTRADO := 1 given WINDOWS otherwise 127
+```
+
+`sort` é uma das poucas exceções: existe com o mesmo nome nos dois e lê da
+entrada padrão. Por isso o exercício o usa para mostrar `input_text` e
+`pipeline`.
+
 ## Saída esperada
 
 ```
@@ -96,15 +123,23 @@ ok:     yes
 capture: 'direto'
 
 inexistente -> codigo 127, ok=no
-stderr: comando não encontrado: comando_que_nao_existe_xyz
-...
-pipeline ordenado: [a, b, c]
+
+xyz existe?  no
+
+lista: texto com espacos
+stdin ordenado: [a, b, c]
+
+pipeline: zebra
 
 com timeout: ok=no
 ```
 
+No Windows o `127` vira `1`. O resto é idêntico — e é por isso que o exercício
+decide o comando **uma vez**, no topo.
+
 ## Experimente
 
 - Rode `git log --oneline -5` e mostre os commits formatados.
+- Rode o exercício no outro sistema operacional e veja o que muda.
 - Escreva `action tem_git()` usando `Proc.exists`.
 - Compare `run` com `shell := yes` e sem, num comando com `*`.

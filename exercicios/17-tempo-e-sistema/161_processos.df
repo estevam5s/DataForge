@@ -2,63 +2,77 @@
 // Enunciado: rode comandos externos e trate a saida.
 
 adopt Arcane.Process as Proc
+adopt Arcane.OS as OS
+
+// ── O comando externo e onde o programa deixa de ser portatil ──
+//
+// 'echo' existe no Linux e no macOS como programa; no Windows ele e
+// embutido do interpretador de comandos, e nao ha arquivo para rodar.
+// 'cat' se chama 'more', e o codigo de "comando nao encontrado" e 127
+// num lado e 1 no outro.
+//
+// Por isso o primeiro passo de um programa que chama o sistema e
+// decidir COM QUEM esta falando. O resto do exercicio e igual nos dois.
+
+steady WINDOWS := OS.is_windows()
+steady NL := char(10)
+
+steady ECO := "cmd /c echo" given WINDOWS otherwise "echo"
+steady NAO_ENCONTRADO := 1 given WINDOWS otherwise 127
 
 // run devolve stdout, stderr e o codigo de saida
-r := Proc.run("echo ola do processo")
+r := Proc.run($"{ECO} ola do processo")
 out $"saida:  {r.stdout.trim()}"
 out $"codigo: {r.exit_code}"
 out $"ok:     {r.ok}"
 
-assert r.ok is yes, "echo funciona"
+assert r.ok is yes, "o eco funciona"
 assert r.exit_code is 0, "codigo zero"
 assert r.stdout.trim() is "ola do processo", "a saida"
 
 // capture pega so o stdout, ja limpo
 out ""
-out $"capture: '{Proc.capture("echo direto")}'"
-assert Proc.capture("echo direto") is "direto", "capture"
+out $"capture: '{Proc.capture($"{ECO} direto")}'"
+assert Proc.capture($"{ECO} direto") is "direto", "capture"
 
 // Comando inexistente nao derruba o programa
 falhou := Proc.run("comando_que_nao_existe_xyz")
 out ""
 out $"inexistente -> codigo {falhou.exit_code}, ok={falhou.ok}"
-out $"stderr: {falhou.stderr}"
 assert falhou.ok is no, "falhou"
-assert falhou.exit_code is 127, "127 = comando nao encontrado"
+assert falhou.exit_code is NAO_ENCONTRADO, "o codigo de comando nao encontrado"
 
 // check devolve so yes/no
 out ""
-out $"echo existe? {Proc.exists("echo")}"
 out $"xyz existe?  {Proc.exists("comando_inexistente_xyz")}"
-assert Proc.exists("echo") is yes, "echo existe"
-
-// Linhas da saida ja separadas
-multi := Proc.run("printf 'linha1\nlinha2\nlinha3'")
-out ""
-out $"linhas: {len(multi.lines)}"
-cycle l in multi.lines:
-    out $"  {l}"
-assert len(multi.lines) is 3, "tres linhas"
+assert Proc.exists("comando_inexistente_xyz") is no, "o que nao existe"
 
 // Argumentos com espacos: passe como lista, sem shell
-r2 := Proc.run(["echo", "texto com espacos"])
+//
+// Sem lista, o espaco separaria em dois argumentos — e com um nome de
+// arquivo vindo de fora, um espaco a mais vira uma falha de seguranca.
+r2 := Proc.run([...ECO.split(" "), "texto com espacos"])
 out ""
 out $"lista: {r2.stdout.trim()}"
-assert r2.stdout.trim() is "texto com espacos", "lista preserva o argumento"
+assert r2.stdout.trim() is "texto com espacos", "a lista preserva o argumento"
 
 // Enviar entrada para o processo
-r3 := Proc.run("cat", input_text := "vindo da entrada")
-out $"stdin: {r3.stdout.trim()}"
-assert r3.stdout.trim() is "vindo da entrada", "entrada padrao"
+//
+// 'sort' e um dos poucos que existe com o mesmo nome nos dois sistemas,
+// e le da entrada padrao quando nao recebe arquivo.
+r3 := Proc.run("sort", input_text := $"c{NL}a{NL}b{NL}")
+ordenado := r3.lines >> morph l: l.trim() >> sift l: l isnt ""
+out $"stdin ordenado: {ordenado}"
+assert ordenado is ["a", "b", "c"], "a entrada padrao chegou e voltou ordenada"
 
 // Encadear comandos: a saida de um vira a entrada do proximo
-resultado := Proc.pipeline(["printf 'c\na\nb'", "sort"])
+resultado := Proc.pipeline([$"{ECO} zebra", "sort"])
 out ""
-out $"pipeline ordenado: {resultado.lines}"
-assert resultado.lines is ["a", "b", "c"], "sort funcionou"
+out $"pipeline: {resultado.stdout.trim()}"
+assert resultado.stdout.trim() is "zebra", "a saida de um virou a entrada do outro"
 
 // Tempo limite
-lento := Proc.run("sleep 5", timeout := 1)
+lento := Proc.run("timeout 5" given WINDOWS otherwise "sleep 5", timeout := 1)
 out ""
 out $"com timeout: ok={lento.ok}"
 assert lento.ok is no, "o comando estourou o tempo"

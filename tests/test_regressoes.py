@@ -2244,3 +2244,64 @@ def test_nenhuma_mensagem_usa_relpath_cru():
         "use 'caminhos.curto()' — 'os.path.relpath' com um argumento se "
         "apoia no diretorio atual e levanta no Windows quando ele esta "
         "noutra unidade:\n  " + "\n  ".join(ruins))
+
+
+def test_a_doc_gerada_nao_depende_da_versao_do_python():
+    """`math.factorial(x)` no Python 3.12, `math.factorial(n)` no 3.13.
+
+    `Arcane.Math` publica `math.factorial` sem envolvê-la, então
+    `inspect.signature` vazava o nome interno do CPython para dentro de
+    `doc/BIBLIOTECA_PADRAO.md`. Duas máquinas certas geravam arquivos
+    diferentes, e o CI cobrava a diferença sem que ninguém tivesse
+    errado — o pior tipo de falha de esteira, a que não aponta culpado.
+
+    A tabela `ASSINATURAS` faz o DataForge nomear a própria interface.
+    Este teste cobra que ela esteja completa: um símbolo novo que
+    ficasse de fora voltaria a herdar o nome do CPython em silêncio.
+    """
+    import inspect
+
+    from dataforge.stdlib import get_module, list_modules
+    from dataforge.stdlib.catalogo import ASSINATURAS
+
+    def do_c(valor):
+        return (inspect.isbuiltin(valor)
+                or type(valor).__name__ in ("builtin_function_or_method",
+                                            "method_descriptor"))
+
+    faltando = {}
+    for nome in sorted(set(list_modules())):
+        modulo = get_module(nome)
+        if not isinstance(modulo, dict):
+            continue
+        for simbolo, valor in modulo.items():
+            if simbolo.startswith("__") or not callable(valor):
+                continue
+            if do_c(valor) and simbolo not in ASSINATURAS:
+                faltando.setdefault(simbolo, []).append(nome)
+
+    assert not faltando, (
+        "funcoes C do Python sem assinatura fixa em "
+        "'dataforge/stdlib/catalogo.py' — a doc gerada volta a depender "
+        f"da versao: {sorted(faltando)}")
+
+
+def test_a_tabela_de_assinaturas_nao_tem_entrada_morta():
+    """Uma entrada que não corresponde a nada é ruído que envelhece."""
+    import inspect
+
+    from dataforge.stdlib import get_module, list_modules
+    from dataforge.stdlib.catalogo import ASSINATURAS
+
+    expostos = set()
+    for nome in sorted(set(list_modules())):
+        modulo = get_module(nome)
+        if isinstance(modulo, dict):
+            expostos.update(k for k, v in modulo.items() if callable(v))
+
+    from dataforge.builtins import get_builtins
+    expostos.update(k for k, v in get_builtins().items()
+                    if callable(v) and inspect.isbuiltin(v))
+
+    mortas = sorted(set(ASSINATURAS) - expostos)
+    assert not mortas, f"entradas que nao correspondem a nenhum simbolo: {mortas}"

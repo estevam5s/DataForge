@@ -88,15 +88,42 @@ jobs:
           fi
           exit $codigo
 
+      # Como na suite: o que falhou vira anotacao, e nao so log. Foi
+      # aqui que o Windows caiu por tres execucoes sem que o motivo
+      # aparecesse em lugar nenhum.
       - name: os 216 exercicios
-        run: python exercicios/run_all.py
+        shell: bash
+        run: |
+          set +e
+          saida="$RUNNER_TEMP/exercicios.txt"
+          python exercicios/run_all.py > "$saida" 2>&1
+          codigo=$?
+          cat "$saida"
+          if [ $codigo -ne 0 ]; then
+            resumo=$(grep -E 'FALHA' "$saida" | head -20)
+            [ -z "$resumo" ] && resumo=$(tail -20 "$saida")
+            resumo=$(printf '%s' "$resumo" | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"}1')
+            echo "::error title=exercicios ${{ matrix.os }} py${{ matrix.python }}::$resumo"
+          fi
+          exit $codigo
 
       - name: os exemplos
         shell: bash
         run: |
+          falhas=""
           for f in examples/*.df; do
-            python -m dataforge run "$f" > /dev/null || { echo "FALHOU $f"; exit 1; }
+            python -m dataforge run "$f" > /dev/null 2>&1 \
+              || falhas="$falhas $f"
           done
+          if [ -n "$falhas" ]; then
+            # Rodar de novo o primeiro que caiu, para a anotacao trazer
+            # o erro e nao so o nome do arquivo.
+            primeiro=$(echo $falhas | awk '{print $1}')
+            detalhe=$(python -m dataforge run "$primeiro" 2>&1 | tail -12 \
+                      | sed 's/%/%25/g' | awk 'BEGIN{ORS="%0A"}1')
+            echo "::error title=exemplos ${{ matrix.os }} py${{ matrix.python }}::falharam:$falhas%0A%0A$detalhe"
+            exit 1
+          fi
 
       - name: o proprio codigo passa nas proprias ferramentas
         run: |

@@ -17,7 +17,7 @@ from dataforge.stdlib import get_module  # noqa: E402
 
 #: A tabela vive em 'dataforge/stdlib/catalogo.py', ao lado do
 #: codigo que ela descreve — e nao em copia por gerador.
-from dataforge.stdlib.catalogo import DESCRICOES  # noqa: E402
+from dataforge.stdlib.catalogo import DESCRICOES, assinatura_fixa  # noqa: E402
 
 CABECALHO = """# Biblioteca padrão DataForge — módulos `Arcane.*`
 
@@ -56,11 +56,36 @@ out An.correlation([1,2,3], [2,4,6])    // 1.0
 """
 
 
-def assinatura(valor):
+def e_funcao_do_c(valor):
+    """E uma funcao escrita em C, vinda da biblioteca do Python?
+
+    O nome do parametro dessas nao e estavel entre versoes:
+    `math.factorial` chama o dele de `x` ate o 3.12 e de `n` a partir do
+    3.13. Deixar `inspect` decidir fazia a documentacao da linguagem
+    depender da versao de Python de quem rodou o gerador.
+    """
+    return (inspect.isbuiltin(valor)
+            or type(valor).__name__ in ("builtin_function_or_method",
+                                        "method_descriptor"))
+
+
+def assinatura(valor, simbolo=""):
     """Devolve (assinatura, None) para funcoes e (None, valor) para constantes."""
     if not callable(valor):
         texto = repr(valor)
         return None, (texto[:50] + "…" if len(texto) > 50 else texto)
+
+    if e_funcao_do_c(valor):
+        fixa = assinatura_fixa(simbolo)
+        if fixa is None:
+            raise SystemExit(
+                f"'{simbolo}' e uma funcao C do Python e nao esta em "
+                f"ASSINATURAS, no 'dataforge/stdlib/catalogo.py'.\n"
+                f"Sem uma entrada la, a documentacao herda o nome de "
+                f"parametro do CPython — que muda entre versoes — e este "
+                f"arquivo deixa de ser reproduzivel.")
+        return fixa, None
+
     try:
         sig = str(inspect.signature(valor))
     except (TypeError, ValueError):
@@ -87,7 +112,7 @@ def main():
         ]
         constantes, funcoes = [], []
         for chave in itens:
-            sig, valor = assinatura(modulo[chave])
+            sig, valor = assinatura(modulo[chave], chave)
             if sig is None:
                 constantes.append(f"| `{chave}` | `{valor}` |")
             else:

@@ -720,22 +720,30 @@ class DFChannel:
         return f"<channel '{self.name}'>"
 
 
-#: Quanto de pilha uma linha de execucao do DataForge precisa.
+#: Quanto de pilha uma linha de execucao do DataForge precisa, em ordem
+#: de preferencia.
 #:
-#: Nao e exagero: uma chamada da linguagem custa cerca de nove quadros
-#: do Python — 'evaluate', 'eval_FunctionCall', '_call', '_call_action',
-#: '_corpo_da_acao', 'exec_block', 'execute', e o que o corpo fizer — e
-#: 'MAX_CALL_DEPTH' permite mil. Sao perto de nove mil quadros do Python
-#: para uma recursao legitima no limite.
+#: Uma chamada da linguagem custa ~10 quadros do Python — medido, nao
+#: estimado: 200 chamadas aninhadas produzem 2024 quadros. Como
+#: 'MAX_CALL_DEPTH' permite mil, uma recursao legitima no limite pede
+#: ~10 mil quadros, e a pilha precisa caber neles ANTES que o guarda da
+#: linguagem dispare. Se nao couber, o processo morre sem mensagem.
 #:
-#: Medido no Python 3.10 do macOS: com 8 MB (o tamanho da thread
-#: principal) o processo MORRE com 'Segmentation fault' antes de o
-#: guarda de recursao da linguagem disparar; 12 MB ja bastam. 32 MB e a
-#: folga para as outras plataformas e versoes.
+#: O custo por quadro nao e o mesmo em todo lugar, e a diferenca e
+#: grande:
 #:
-#: Reserva de espaco de enderecamento, nao de memoria: as paginas so
-#: passam a existir conforme a pilha cresce.
-_PILHA = 32 * 1024 * 1024
+#:   macOS 3.10   ~1,2 KB/quadro   (8 MB morre, 12 MB basta)
+#:   Windows 3.10  >6,5 KB/quadro  (32 MB morria em 500 chamadas)
+#:
+#: Por isso uma escada, e nao um numero: pede-se o maior, e cai-se para
+#: o seguinte se a plataforma recusar. E reserva de espaco de
+#: enderecamento, nao de memoria — as paginas so passam a existir
+#: conforme a pilha cresce, entao pedir 256 MB nao custa 256 MB.
+_PILHAS = (256 * 1024 * 1024, 128 * 1024 * 1024,
+           64 * 1024 * 1024, 32 * 1024 * 1024)
+
+#: O que de fato se conseguiu. Zero = a plataforma decide.
+_PILHA = 0
 
 #: Esta thread ja foi criada com a pilha grande?
 _PROVISIONADA = threading.local()
@@ -749,13 +757,26 @@ def _reservar_pilha():
     thread comum nasce com 512 KB contra os 8 MB da principal: uma
     recursao que funciona no corpo do programa derrubaria o processo
     inteiro so por estar dentro de uma acao 'async'.
+
+    Desce a escada ate a plataforma aceitar. Nao conseguindo nenhuma,
+    baixa o limite de recursao do Python para que ELE dispare primeiro:
+    um 'RecursionError' vira erro da linguagem em '_corpo_da_acao', e um
+    erro e sempre melhor que um processo morto sem mensagem.
     """
-    try:
-        if threading.stack_size() < _PILHA:
-            threading.stack_size(_PILHA)
-    except (ValueError, RuntimeError):
-        # Plataforma que nao deixa escolher. Segue com o que ela da.
-        pass
+    global _PILHA
+    if _PILHA:
+        return
+
+    for tamanho in _PILHAS:
+        try:
+            threading.stack_size(tamanho)
+        except (ValueError, RuntimeError, OverflowError):
+            continue
+        _PILHA = tamanho
+        return
+
+    _PILHA = -1      # tentado e recusado; nao insistir a cada thread
+    sys.setrecursionlimit(min(sys.getrecursionlimit(), 3000))
 
 
 def _com_pilha_propria(funcao):

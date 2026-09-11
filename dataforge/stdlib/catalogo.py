@@ -68,3 +68,55 @@ def descricao(nome):
 def nome_curto(nome):
     """O apelido que 'adopt' tambem aceita."""
     return DESCRICOES.get(nome, ("", ""))[1]
+
+
+#: A assinatura das funcoes que a stdlib expoe direto do C do Python.
+#:
+#: `math.factorial` chama o parametro de `x` ate o Python 3.12 e de `n`
+#: a partir do 3.13. Como `Arcane.Math` publica `math.factorial` sem
+#: envolve-la, `inspect.signature` vazava o nome interno do CPython para
+#: dentro da documentacao da linguagem — e `doc/BIBLIOTECA_PADRAO.md`
+#: passava a depender da versao de Python de quem rodou o gerador. Duas
+#: maquinas certas produziam arquivos diferentes, e o CI cobrava a
+#: diferenca sem que ninguem tivesse errado.
+#:
+#: A tabela existe para o DataForge nomear a propria interface. O nome
+#: aqui e o que a documentacao mostra, independente de build.
+#:
+#: Ha teste garantindo que toda funcao C exposta tenha entrada: uma que
+#: faltasse voltaria a herdar o nome do CPython em silencio.
+ASSINATURAS = {
+    # ── Arcane.Math ──
+    "abs": "(x)",
+    "acos": "(x)",
+    "asin": "(x)",
+    "atan": "(x)",
+    "atan2": "(y, x)",
+    "ceil": "(x)",
+    "comb": "(n, k)",
+    "cos": "(x)",
+    "degrees": "(x)",
+    "exp": "(x)",
+    "factorial": "(n)",
+    "floor": "(x)",
+    "gcd": "(*inteiros)",
+    "hypot": "(*coordenadas)",
+    "log": "(x, base=e)",
+    "log10": "(x)",
+    "log2": "(x)",
+    "perm": "(n, k=void)",
+    "pow": "(x, y)",
+    "radians": "(x)",
+    "round": "(numero, casas=void)",
+    "sin": "(x)",
+    "sqrt": "(x)",
+    "tan": "(x)",
+    # ── Globais ──
+    "max": "(*valores)",
+    "min": "(*valores)",
+}
+
+
+def assinatura_fixa(simbolo):
+    """A assinatura declarada, ou None se o simbolo nao esta na tabela."""
+    return ASSINATURAS.get(simbolo)

@@ -106,29 +106,29 @@ adopt Arcane.Math as Math
 | `determinant(matrix)` |
 | `dot(a, b)` |
 | `exp(x)` |
-| `factorial(x)` |
+| `factorial(n)` |
 | `fibonacci(n)` |
 | `floor(x)` |
-| `gcd(*integers)` |
-| `hypot(…)` |
+| `gcd(*inteiros)` |
+| `hypot(*coordenadas)` |
 | `identity(n)` |
 | `is_prime(n)` |
 | `lcm(a, b)` |
 | `lerp(a, b, t)` |
-| `log(…)` |
+| `log(x, base=e)` |
 | `log10(x)` |
 | `log2(x)` |
 | `map_range(value, in_min, in_max, out_min, out_max)` |
 | `matrix(data)` |
-| `max(…)` |
+| `max(*valores)` |
 | `mean(data)` |
 | `median(data)` |
-| `min(…)` |
+| `min(*valores)` |
 | `ones(rows, cols=None)` |
-| `perm(n, k=None)` |
+| `perm(n, k=void)` |
 | `pow(x, y)` |
 | `radians(x)` |
-| `round(number, ndigits=None)` |
+| `round(numero, casas=void)` |
 | `sin(x)` |
 | `sqrt(x)` |
 | `stdev(data)` |
