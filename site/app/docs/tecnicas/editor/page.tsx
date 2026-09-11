@@ -21,7 +21,7 @@ dataforge editor remove    # desinstala` },
   {"p": "Use `dataforge editor` depois de atualizar a linguagem, ou depois de instalar um editor novo. Para pular a etapa na instalação, defina `DATAFORGE_SEM_EDITOR=1`."},
   {"h2": "O que você ganha"},
   {"table": {"head": ["", "O quê"], "rows": [
-    ["cores", "as 98 palavras reservadas, em 14 grupos — condicional, laço, tipo, modificador, Kiln, operador"],
+    ["cores", "as 81 palavras reservadas, em 14 grupos — condicional, laço, tipo, modificador, Kiln, operador"],
     ["snippets", "23 atalhos: `action`, `blueprint`, `match`, `server`, `route`, `crud`, `xlsx`…"],
     ["indentação", "4 espaços, `insertSpaces` forçado — tab é `SyncError` na linguagem"],
     ["dobra", "blocos de `action`, `blueprint`, `server`, `route` e afins"],

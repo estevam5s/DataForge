@@ -316,7 +316,7 @@ python3 exercicios/run_all.py
 # Apenas um módulo de exercícios
 python3 exercicios/run_all.py 03
 
-# Os 42 exemplos
+# Os 43 exemplos
 for f in examples/*.df; do dataforge run "$f" > /dev/null || echo "FALHOU: $f"; done
 ```
 

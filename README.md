@@ -30,7 +30,7 @@ Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
 generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
 pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **29 módulos** de biblioteca padrão com **1016 símbolos**.
+(**Forge**) e **34 módulos** de biblioteca padrão com **1132 símbolos**.
 
 [Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [216 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
@@ -99,7 +99,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 29 módulos com 1016 símbolos + 228 funções globais |
+| **Bateria inclusa** | 34 módulos com 1132 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -596,11 +596,11 @@ no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas.
 |---------|---------|
 | [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
 | [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 29 módulos |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 34 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
 | [**exercicios/**](exercicios/) | 216 exercícios; os módulos 11-26 com `.md` explicativo |
-| [**examples/**](examples/) | 42 programas maiores |
+| [**examples/**](examples/) | 43 programas maiores |
 
 ### Os 216 exercícios
 
@@ -643,7 +643,7 @@ sugestões.
 ```bash
 pip install -e ".[dev]"
 
-python3 -m pytest tests/ -q       # 1012 testes
+python3 -m pytest tests/ -q       # mais de 1300 testes
 python3 exercicios/run_all.py     # 216 exercícios
 ```
 
@@ -670,7 +670,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/docgen.py` | `dataforge doc` | 218 |
 | `dataforge/project.py` | `forge.toml` | 184 |
 | `dataforge/builtins.py` | 228 funções globais | 1224 |
-| `dataforge/stdlib/` | os 29 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
+| `dataforge/stdlib/` | os 34 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
 
 ---
 

@@ -988,7 +988,7 @@ adopt geometria as geo
 out geo.area_circulo(2)
 ```
 
-### Os 20 módulos
+### Os 34 módulos
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -1555,11 +1555,11 @@ bloqueado: estoque insuficiente para Monitor
 
 ## Continuando
 
-- **[`exercicios/`](../exercicios)** — 180 exercícios, do "Olá mundo" a um
+- **[`exercicios/`](../exercicios)** — 216 exercícios, do "Olá mundo" a um
   interpretador com lexer, parser e avaliador. Cada um verifica o próprio
   resultado com `assert`, e os 60 do 4.0 têm um `.md` explicativo ao lado.
   Rode todos com `python3 exercicios/run_all.py`.
-- **[`examples/`](../examples)** — 42 programas maiores: banco, loja, jogos,
+- **[`examples/`](../examples)** — 43 programas maiores: banco, loja, jogos,
   calculadora científica.
 - **[`REFERENCIA.md`](REFERENCIA.md)** — a gramática e todas as palavras-chave.
 - **[`BIBLIOTECA_PADRAO.md`](BIBLIOTECA_PADRAO.md)** — os módulos `Arcane.*`.

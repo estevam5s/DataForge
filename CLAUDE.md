@@ -20,7 +20,7 @@ analisador estático e interpretador de árvore próprios.
 ### Verificação rápida — rode antes e depois de mexer
 
 ```bash
-python3 -m pytest tests/ -q                          # 600 testes
+python3 -m pytest tests/ -q                          # mais de 1300 testes
 python3 exercicios/run_all.py                        # 216 exercícios
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -59,7 +59,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                29 módulos (1016 símbolos), incluindo:
+  stdlib/                34 módulos (1132 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (46 símbolos)
     arcane_excel.py      planilhas .xlsx, sem dependência externa (29)
@@ -68,7 +68,7 @@ dataforge/
 
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
-examples/          42 programas de demonstração
+examples/          43 programas de demonstração
 exercicios/        216 exercícios em 26 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
@@ -622,7 +622,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
 | `exercicios/run_all.py` | script | 216 exercícios, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
-| `examples/*.df` | manual | 42 programas maiores |
+| `examples/*.df` | manual | 43 programas maiores |
 
 **Ao corrigir um bug, escreva primeiro o teste que falha.** Todos os bugs
 corrigidos no 3.1 e no 4.0 têm teste correspondente.

@@ -530,3 +530,99 @@ def test_a_slugify_do_gerador_e_a_do_componente():
     ]
     for texto, esperado in casos:
         assert slugify(texto) == esperado, f"{texto!r} -> {slugify(texto)!r}"
+
+
+# ── Nenhum numero global defasado ────────────────────────────
+
+#: Onde um número **global** pode aparecer escrito à mão.
+#:
+#: Fora daqui, um número seguido de "módulos"/"exercícios" costuma ser
+#: local e correto: a página do módulo 01 diz "12 exercícios" porque são
+#: doze naquele módulo, e a do pacote `moeda` diz "24 símbolos" porque
+#: são os dele.
+_GLOBAIS = {
+    "site/app/page.tsx", "site/app/layout.tsx", "site/app/not-found.tsx",
+    "site/app/instalar/page.tsx",
+    "site/components/instalar/Assistente.tsx",
+    "site/app/docs/page.tsx", "site/app/docs/faq/page.tsx",
+    "site/app/docs/biblioteca/page.tsx",
+    "site/app/docs/contribuir/page.tsx",
+    "site/app/docs/referencia/arquitetura/page.tsx",
+    "site/app/docs/tecnicas/lsp/page.tsx",
+    "site/app/docs/tecnicas/editor/page.tsx",
+    "site/app/docs/tecnicas/analise-estatica/page.tsx",
+    "site/app/docs/instalacao/page.tsx",
+    "site/app/docs/big-o/analisar/page.tsx",
+    "README.md",
+}
+
+#: Números que são legitimamente locais mesmo nos arquivos acima.
+_EXCECOES = {
+    # '/docs' fala dos 26 módulos DE EXERCÍCIO, não dos da stdlib.
+    ("site/app/docs/page.tsx", 26, "modulos"),
+    ("site/app/instalar/page.tsx", 26, "modulos"),
+    ("site/components/instalar/Assistente.tsx", 26, "modulos"),
+    # O desenho do autocompletar mostra o que 'Arcane.Math' oferece.
+    ("site/app/docs/tecnicas/lsp/page.tsx", 51, "simbolos"),
+}
+
+
+def test_nenhum_numero_global_da_documentacao_esta_defasado():
+    """A home dizia "20 módulos e 190 exercícios". Eram 34 e 216.
+
+    Números escritos à mão envelhecem em silêncio: nada quebra, a página
+    abre, e só o conteúdo mente. Era o caso em quinze arquivos, incluindo
+    a descrição que vai para o Open Graph — o texto que aparece quando
+    alguém compartilha o link.
+
+    O parâmetro de comparação é `site/lib/dados-gerados.json`, que é
+    gerado do código. Se ele e a prosa discordarem, a prosa está errada.
+    """
+    import glob
+    import json
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(raiz, "site", "lib", "dados-gerados.json"),
+              encoding="utf-8") as f:
+        dados = json.load(f)
+
+    reais = {
+        "exercicios": sum(len(v) for v in dados["exercicios"].values()),
+        "modulos": len(dados["modulos"]),
+        "simbolos": sum(len(m["funcoes"]) for m in dados["modulos"].values()),
+        "palavras": len(dados["palavras"]),
+        "exemplos": len(glob.glob(os.path.join(raiz, "examples", "*.df"))),
+    }
+
+    # A negativa antes do numero e necessaria: sem ela, o comando
+    # 'python3 exercicios/run_all.py' vira "3 exercicios".
+    def _p(sufixo):
+        return re.compile(r"(?<![A-Za-z0-9])(\d+) " + sufixo)
+
+    padroes = [
+        (_p(r"m[oó]dulos"), "modulos"),
+        (_p(r"exerc[ií]cios"), "exercicios"),
+        (_p(r"exemplos"), "exemplos"),
+        (_p(r"s[ií]mbolos"), "simbolos"),
+        (_p(r"palavras reservadas"), "palavras"),
+    ]
+
+    ruins = []
+    for relativo in sorted(_GLOBAIS):
+        caminho = os.path.join(raiz, relativo)
+        if not os.path.exists(caminho):
+            ruins.append(f"{relativo}: nao existe mais — tire da lista")
+            continue
+        conteudo = open(caminho, encoding="utf-8").read()
+        for padrao, chave in padroes:
+            for achado in padrao.finditer(conteudo):
+                n = int(achado.group(1))
+                if n == reais[chave] or (relativo, n, chave) in _EXCECOES:
+                    continue
+                ruins.append(
+                    f"{relativo}: diz '{n} {chave}', sao {reais[chave]}")
+
+    assert not ruins, (
+        "numero escrito a mao que envelheceu — confira contra "
+        "'site/lib/dados-gerados.json':\n  " + "\n  ".join(ruins))
