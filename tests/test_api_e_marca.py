@@ -641,24 +641,25 @@ def test_pagina_gerada_avisa_que_e_gerada():
     no gerador: quem abre a página para editar precisa ver antes de
     começar.
     """
-    import glob
-    import subprocess
+    import importlib
 
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    conteudo = os.path.join(raiz, "site", "scripts", "conteudo")
-    modulos = [c for c in glob.glob(os.path.join(conteudo, "*.py"))
-               if not os.path.basename(c).startswith("__")]
-    assert modulos, "nenhum modulo de conteudo — o gerador mudou de lugar?"
+    scripts = os.path.join(raiz, "site", "scripts")
 
-    r = subprocess.run(
-        [sys.executable, os.path.join(raiz, "site", "scripts",
-                                      "gerar_conteudo.py")],
-        capture_output=True, text=True, encoding="utf-8",
-        cwd=os.path.join(raiz, "site", "scripts"), timeout=120)
-    assert r.returncode == 0, r.stdout + r.stderr
+    # A lista de páginas vem da MESMA fonte que o gerador usa, e não da
+    # saída de console dele: analisar texto impresso amarra o teste ao
+    # formato da mensagem, que não é contrato de nada.
+    sys.path.insert(0, scripts)
+    try:
+        nomes = importlib.import_module("gerar_conteudo").MODULOS
+        geradas = []
+        for nome in nomes:
+            modulo = importlib.import_module(f"conteudo.{nome}")
+            geradas += [p["href"] for p in modulo.PAGINAS]
+    finally:
+        if scripts in sys.path:
+            sys.path.remove(scripts)
 
-    geradas = [l.strip() for l in r.stdout.split("\n")
-               if l.strip().startswith("/")]
     assert len(geradas) > 50, f"so {len(geradas)} paginas geradas?"
 
     sem_aviso = []
@@ -690,11 +691,18 @@ def test_os_dois_geradores_do_indice_concordam():
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     scripts = os.path.join(raiz, "site", "scripts")
 
-    subprocess.run([sys.executable, os.path.join(scripts, "gerar_conteudo.py")],
-                   capture_output=True, cwd=scripts, timeout=120, check=True)
+    conteudo = subprocess.run(
+        [sys.executable, os.path.join(scripts, "gerar_conteudo.py")],
+        capture_output=True, text=True, encoding="utf-8",
+        cwd=scripts, timeout=120)
+    assert conteudo.returncode == 0, (
+        "o 'gerar_conteudo.py' nem rodou:\n"
+        + (conteudo.stdout or "") + (conteudo.stderr or ""))
+
     r = subprocess.run(
         [sys.executable, os.path.join(scripts, "gerar_indices.py"), "--check"],
         capture_output=True, text=True, encoding="utf-8", cwd=raiz, timeout=120)
     assert r.returncode == 0, (
         "logo depois de 'gerar_conteudo.py', o 'gerar_indices.py' ainda "
-        "quer mudar as paginas — os dois discordam:\n" + r.stdout)
+        "quer mudar as paginas — os dois discordam:\n"
+        + (r.stdout or "") + (r.stderr or ""))
