@@ -38,9 +38,60 @@ EMBUTIR = [("editor/vscode", "dataforge/editor/vscode")]
 IGNORAR = {"__pycache__", ".pyc", ".DS_Store", ".pytest_cache", "dist", ".egg-info"}
 
 
+def producao_da_extensao():
+    """Os pacotes npm que a extensao carrega EM EXECUCAO.
+
+    'node_modules' tem 29 MB, e quase tudo e TypeScript e tipos, que so
+    servem para compilar. Em execucao a extensao carrega uma dependencia
+    so — 'vscode-languageclient' — mais o que ela puxa: cerca de 2,5 MB.
+
+    Sem isto o tarball leva 29 MB para entregar 2,5, e o wheel construido
+    a partir dele nao levava NENHUM: os globs do 'pyproject' alcancam dois
+    niveis, e a biblioteca esta mais fundo. O resultado era um LSP que
+    nao subia em nenhuma instalacao por pip, com a extensao dizendo
+    "vscode-languageclient nao encontrado" no painel de saida.
+
+    Resolvido lendo os 'package.json', e nao chamando o npm: ele pode nao
+    estar na maquina que empacota.
+    """
+    import json
+
+    base = RAIZ / "editor" / "vscode"
+    modulos = base / "node_modules"
+    if not modulos.is_dir():
+        return set()
+
+    def dependencias(pasta):
+        manifesto = pasta / "package.json"
+        if not manifesto.is_file():
+            return []
+        return list(json.loads(manifesto.read_text(encoding="utf-8"))
+                    .get("dependencies", {}))
+
+    vistos, fila = set(), dependencias(base)
+    while fila:
+        nome = fila.pop(0)
+        if nome in vistos or not (modulos / nome).is_dir():
+            continue
+        vistos.add(nome)
+        fila.extend(dependencias(modulos / nome))
+    return vistos
+
+
+PRODUCAO = producao_da_extensao()
+
+
 def filtrar(info):
     if any(marca in info.name for marca in IGNORAR):
         return None
+
+    # De 'node_modules', so o fecho de execucao.
+    if "/node_modules/" in info.name:
+        resto = info.name.split("/node_modules/", 1)[1]
+        pacote = "/".join(resto.split("/")[:2]) if resto.startswith("@") \
+            else resto.split("/")[0]
+        if pacote and pacote not in PRODUCAO:
+            return None
     # tarball reproduzivel: mesmo fonte, mesmo sha256
     info.uid = info.gid = 0
     info.uname = info.gname = ""

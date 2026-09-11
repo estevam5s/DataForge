@@ -13,7 +13,8 @@ Há um executável pronto por sistema:
 curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | DATAFORGE_BINARIO=1 sh
 ```
 
-Ele baixa um arquivo só, confere que roda, e configura o `PATH`. No Windows:
+Ele baixa, confere que o programa **roda de verdade**, e configura o `PATH`.
+No Windows:
 
 ```powershell
 irm https://dataforge-lang.vercel.app/instalar.ps1 | iex
@@ -27,10 +28,17 @@ ao lado para conferir.
 | | executável | Python + pip |
 |---|---|---|
 | precisa de Python | **não** | 3.10+ |
-| tamanho | ~11 MB | ~2 MB |
-| início de cada comando | um pouco mais lento | imediato |
+| download | ~12 MB comprimido, ~28 MB em disco | ~2 MB |
+| `dataforge run` de um "olá" | 80 ms | 67 ms |
+| extensão do VS Code com LSP | **vem junto** | precisa de `npm install` |
 | `pip install` de pacote Python | não | sim |
 | mexer no interpretador | não | sim |
+
+Os 80 ms contra 67 ms são medidos, não estimados: o executável carrega o mesmo
+interpretador, só que de uma cópia própria do Python. Ele vem como pasta
+comprimida em vez de arquivo único **de propósito** — em arquivo único, o
+pacote inteiro é descompactado num diretório temporário a cada chamada, e o
+mesmo comando passa a levar 3,5 segundos.
 
 **Use o executável para escrever programas; use o Python para contribuir com a
 linguagem.** O resto deste guia é o segundo caminho.

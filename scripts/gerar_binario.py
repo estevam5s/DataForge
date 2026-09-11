@@ -51,17 +51,79 @@ def nome_do_alvo() -> str:
     return f"dataforge-{sistema}-{arquitetura}"
 
 
+def fecho_de_producao(base: str):
+    """Os pacotes npm que a extensão precisa **para rodar**.
+
+    `node_modules` tem 29 MB porque inclui o TypeScript e os tipos, que
+    só servem para compilar. O que a extensão carrega em execução é uma
+    dependência só — `vscode-languageclient` — mais o que ela puxa:
+    cerca de 2,5 MB.
+
+    Resolvido lendo os `package.json`, e não chamando o npm: o npm pode
+    não estar na máquina que empacota, e o resultado tem de ser o mesmo
+    nas quatro plataformas.
+    """
+    import json
+
+    modulos = os.path.join(base, "node_modules")
+    if not os.path.isdir(modulos):
+        return []
+
+    def dependencias(pasta):
+        manifesto = os.path.join(pasta, "package.json")
+        if not os.path.isfile(manifesto):
+            return []
+        with open(manifesto, encoding="utf-8") as f:
+            return list(json.load(f).get("dependencies", {}))
+
+    vistos = []
+    fila = dependencias(base)
+    while fila:
+        nome = fila.pop(0)
+        if nome in vistos:
+            continue
+        pasta = os.path.join(modulos, *nome.split("/"))
+        if not os.path.isdir(pasta):
+            continue
+        vistos.append(nome)
+        fila.extend(dependencias(pasta))
+    return sorted(vistos)
+
+
 def _dados_embutidos():
     """A extensão do VS Code viaja dentro do executável.
 
-    'dataforge editor' a instala sem repositório e sem internet; se ela
-    ficasse de fora, o comando existiria e não funcionaria.
+    'dataforge editor' a instala sem repositório e sem internet. Sem
+    isto o comando existe e não funciona — foi o que aconteceu na
+    primeira versão, que apontava para uma pasta inexistente e seguia
+    em silêncio.
+
+    O destino é `editor/vscode` na raiz do pacote, e não dentro de
+    `dataforge/`: é o segundo lugar onde `_origem_da_extensao()` procura,
+    e dentro do bundle a raiz é justamente o pai de `dataforge/`.
     """
-    origem = os.path.join(RAIZ, "dataforge", "editor")
+    origem = os.path.join(RAIZ, "editor", "vscode")
     if not os.path.isdir(origem):
-        return []
+        raise SystemExit(
+            f"'{origem}' nao existe — o binario sairia sem a extensao do "
+            f"editor, e 'dataforge editor' falharia na maquina do usuario")
+
     separador = ";" if platform.system() == "Windows" else ":"
-    return ["--add-data", f"{origem}{separador}dataforge/editor"]
+    dados = []
+    for nome in sorted(os.listdir(origem)):
+        if nome == "node_modules":
+            continue
+        caminho = os.path.join(origem, nome)
+        destino = f"editor/vscode/{nome}" if os.path.isdir(caminho) \
+            else "editor/vscode"
+        dados += ["--add-data", f"{caminho}{separador}{destino}"]
+
+    # E, do node_modules, so o que a extensao carrega em execucao.
+    for pacote in fecho_de_producao(origem):
+        caminho = os.path.join(origem, "node_modules", *pacote.split("/"))
+        dados += ["--add-data",
+                  f"{caminho}{separador}editor/vscode/node_modules/{pacote}"]
+    return dados
 
 
 def construir() -> str:
@@ -71,8 +133,14 @@ def construir() -> str:
     with tempfile.TemporaryDirectory() as trabalho:
         comando = [
             sys.executable, "-m", "PyInstaller",
-            "--onefile",
-            "--name", alvo,
+            # '--onedir', e nao '--onefile'. Medido no macOS: um
+            # 'dataforge run' que leva 61 ms pelo Python leva 810 ms
+            # assim e 3550 ms em arquivo unico, porque o arquivo unico
+            # descompacta o pacote inteiro num diretorio temporario A
+            # CADA CHAMADA. Um arquivo so e mais bonito de baixar e
+            # inutilizavel de usar.
+            "--onedir",
+            "--name", "dataforge",
             "--distpath", SAIDA,
             "--workpath", os.path.join(trabalho, "build"),
             "--specpath", trabalho,
@@ -96,10 +164,38 @@ def construir() -> str:
         if r.returncode != 0:
             raise SystemExit("o empacotamento falhou")
 
-    caminho = os.path.join(SAIDA, alvo + (".exe" if os.name == "nt" else ""))
-    if not os.path.exists(caminho):
-        raise SystemExit(f"o empacotador terminou mas '{caminho}' nao existe")
-    return caminho
+    pasta = os.path.join(SAIDA, "dataforge")
+    executavel = os.path.join(
+        pasta, "dataforge" + (".exe" if os.name == "nt" else ""))
+    if not os.path.exists(executavel):
+        raise SystemExit(
+            f"o empacotador terminou mas '{executavel}' nao existe")
+    return executavel
+
+
+def compactar(alvo: str) -> str:
+    """Empacota a pasta num arquivo so, para publicar.
+
+    '.zip' no Windows e '.tar.gz' nos outros — nao por gosto, mas porque
+    e o que cada sistema abre sem instalar nada, e porque o tar preserva
+    a permissao de execucao que o zip nao tem.
+    """
+    import shutil as _shutil
+    import tarfile
+
+    origem = os.path.join(SAIDA, "dataforge")
+    if platform.system() == "Windows":
+        destino = os.path.join(SAIDA, alvo + ".zip")
+        if os.path.exists(destino):
+            os.remove(destino)
+        _shutil.make_archive(os.path.join(SAIDA, alvo), "zip",
+                             root_dir=SAIDA, base_dir="dataforge")
+        return destino
+
+    destino = os.path.join(SAIDA, alvo + ".tar.gz")
+    with tarfile.open(destino, "w:gz") as tar:
+        tar.add(origem, arcname="dataforge")
+    return destino
 
 
 def verificar(caminho: str) -> None:
@@ -166,14 +262,16 @@ def main() -> int:
             return 1
 
     caminho = construir()
-    tamanho = os.path.getsize(caminho) / (1024 * 1024)
-    print(f"\n  {caminho}")
-    print(f"  {tamanho:.1f} MB")
 
     if "--verificar" in sys.argv:
         print()
         verificar(caminho)
-        print("\n  o binario roda DataForge de verdade")
+        print("  o binario roda DataForge de verdade\n")
+
+    pacote = compactar(nome_do_alvo())
+    print(f"  {caminho}")
+    print(f"  {pacote}")
+    print(f"  {os.path.getsize(pacote) / (1024 * 1024):.1f} MB comprimido")
     return 0
 
 

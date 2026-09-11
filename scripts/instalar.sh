@@ -143,28 +143,47 @@ nome_do_binario() {
     echo "dataforge-$SISTEMA-$arq"
 }
 
-#: Instala o executavel unico. Devolve 1 se nao houver um para esta
-#: maquina — quem chama decide se isso e fatal.
+#: Instala o executavel. Devolve 1 se nao houver um para esta maquina —
+#: quem chama decide se isso e fatal.
+#:
+#: Vem como '.tar.gz' e nao como arquivo unico. Um arquivo unico e mais
+#: bonito de baixar e inutilizavel de usar: ele descompacta o pacote
+#: inteiro num diretorio temporario A CADA CHAMADA, e um
+#: 'dataforge run' que leva 80 ms passa a levar 3,5 segundos.
 instalar_binario() {
     ALVO="$(nome_do_binario)"
-    URL="$REPO/releases/download/v$VERSAO/$ALVO"
+    URL="$REPO/releases/download/v$VERSAO/$ALVO.tar.gz"
 
     info "baixando o executável $ALVO"
-    TEMP="$(mktemp -d)/$ALVO"
-    if ! baixar "$URL" "$TEMP" 2>/dev/null; then
+    TEMP="$(mktemp -d)"
+    if ! baixar "$URL" "$TEMP/pacote.tar.gz" 2>/dev/null; then
+        rm -rf "$TEMP"
         return 1
     fi
 
-    mkdir -p "$PREFIXO/bin"
-    mv "$TEMP" "$PREFIXO/bin/dataforge"
-    chmod +x "$PREFIXO/bin/dataforge"
-    ln -sf "$PREFIXO/bin/dataforge" "$PREFIXO/bin/df"
+    if ! tar -xzf "$TEMP/pacote.tar.gz" -C "$TEMP" 2>/dev/null; then
+        rm -rf "$TEMP"
+        return 1
+    fi
 
-    # Conferir que ele RODA. Um arquivo baixado pela metade, ou feito
-    # para outra libc, existe e nao serve — e descobrir isso agora e
-    # muito melhor que o usuario descobrir no primeiro comando.
+    # 'libexec' porque a pasta inteira e o programa: o executavel do
+    # lado de dentro procura as bibliotecas ao lado dele. Em 'bin' vai
+    # so um link, que e o que entra no PATH.
+    rm -rf "$PREFIXO/libexec"
+    mkdir -p "$PREFIXO/libexec" "$PREFIXO/bin"
+    mv "$TEMP/dataforge" "$PREFIXO/libexec/dataforge"
+    rm -rf "$TEMP"
+
+    chmod +x "$PREFIXO/libexec/dataforge/dataforge"
+    ln -sf "$PREFIXO/libexec/dataforge/dataforge" "$PREFIXO/bin/dataforge"
+    ln -sf "$PREFIXO/libexec/dataforge/dataforge" "$PREFIXO/bin/df"
+
+    # Conferir que ele RODA, e nao so que existe. Um download pela
+    # metade, ou feito para outra libc, existe e nao serve — e
+    # descobrir isso agora e muito melhor que o usuario descobrir no
+    # primeiro comando.
     if ! "$PREFIXO/bin/dataforge" --version >/dev/null 2>&1; then
-        rm -rf "$PREFIXO/bin"
+        rm -rf "$PREFIXO/libexec" "$PREFIXO/bin"
         return 1
     fi
     ok "executável instalado — esta máquina não precisa de Python"

@@ -400,3 +400,73 @@ def test_snippets_cobrem_o_que_a_linguagem_tem():
         assert esperado in prefixos, f"falta snippet para '{esperado}'"
 
     assert len(snippets) >= 100, f"só {len(snippets)} snippets"
+
+
+# ── O que a extensão precisa para rodar viaja com ela ─────────
+
+def test_o_tarball_leva_o_cliente_lsp_e_nada_alem():
+    """O servidor de linguagem não subia em NENHUMA instalação por pip.
+
+    `extension.js` carrega `./servidor`, que carrega
+    `vscode-languageclient` — a única dependência de execução da
+    extensão. Ela vive em `node_modules/<pacote>/lib/…`, e os globs do
+    `pyproject` paravam no segundo nível: o wheel saía com a extensão e
+    sem a biblioteca.
+
+    Não era uma falha ruidosa. O `require` é preguiçoso e dentro de um
+    `try`, então a extensão subia inteira, sem LSP, com uma linha no
+    painel de saída que ninguém abre. Autocompletar, ir-para-definição e
+    erro ao digitar simplesmente não existiam.
+
+    O outro lado do teste importa igual: `node_modules` tem 29 MB, e
+    quase tudo é TypeScript e tipos, que só servem para compilar. Levar
+    tudo seria pagar 29 MB de download para entregar 2,5.
+    """
+    import json
+    import subprocess
+    import tarfile
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base = os.path.join(raiz, "editor", "vscode")
+
+    with open(os.path.join(base, "package.json"), encoding="utf-8") as f:
+        diretas = set(json.load(f).get("dependencies", {}))
+    assert diretas, "a extensão declarava dependência de execução e não declara mais"
+
+    tarballs = [c for c in os.listdir(os.path.join(raiz, "site", "public", "dist"))
+                if c.endswith(".tar.gz")]
+    if not tarballs:
+        pytest.skip("o tarball nao foi gerado — 'python3 scripts/gerar_tarball.py'")
+
+    caminho = os.path.join(raiz, "site", "public", "dist", sorted(tarballs)[-1])
+    with tarfile.open(caminho) as tar:
+        nomes = tar.getnames()
+
+    embalados = {n.split("/node_modules/", 1)[1].split("/")[0]
+                 for n in nomes if "/node_modules/" in n}
+    embalados.discard("")
+
+    faltando = diretas - embalados
+    assert not faltando, (
+        f"o tarball nao leva {sorted(faltando)} — o LSP nao sobe em "
+        f"instalacao por pip")
+
+    # E o que sobra é só o fecho de execução, não a oficina inteira.
+    assert "typescript" not in embalados, (
+        "o TypeScript entrou no tarball: ele so serve para compilar, e "
+        "sozinho tem mais de 20 MB")
+    assert len(embalados) <= 15, (
+        f"{len(embalados)} pacotes npm no tarball — o fecho de execucao "
+        f"tem 8: {sorted(embalados)}")
+
+
+def test_o_glob_do_pyproject_alcanca_o_node_modules():
+    """A trava do teste acima, do lado do empacotamento.
+
+    Estar no tarball não basta: o `pip` só instala o que os globs de
+    `package-data` alcançam, e eles paravam dois níveis acima.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    conteudo = open(os.path.join(raiz, "pyproject.toml"), encoding="utf-8").read()
+    assert "editor/vscode/node_modules/**/*" in conteudo, (
+        "sem um glob recursivo, o wheel sai sem o cliente LSP")

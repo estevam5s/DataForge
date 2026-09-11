@@ -57,20 +57,37 @@ jobs:
       - name: construir e provar
         run: python scripts/gerar_binario.py --verificar
 
-      - name: a suite roda pelo binario
+      # 42 exemplos e 216 exercicios PELO BINARIO. Um '--version' que
+      # responde nao prova que a linguagem funciona dentro do pacote:
+      # foi assim que a primeira versao saiu sem a extensao do editor,
+      # com o comando existindo e nao funcionando.
+      - name: os exemplos e os exercicios rodam pelo binario
         shell: bash
         run: |
-          BIN=$(ls dist/bin/dataforge-*)
+          BIN="dist/bin/dataforge/dataforge"
+          [ -f "$BIN.exe" ] && BIN="$BIN.exe"
+          BIN="$PWD/$BIN"
           falhas=0
           for f in examples/*.df; do
             "$BIN" run "$f" > /dev/null || { echo "FALHOU $f"; falhas=1; }
+          done
+          for d in exercicios/*/; do
+            for f in "$d"[0-9]*.df; do
+              [ -f "$f" ] || continue
+              ( cd "$d" && "$BIN" run "$(basename "$f")" > /dev/null ) \
+                || { echo "FALHOU $f"; falhas=1; }
+            done
           done
           exit $falhas
 
       - uses: actions/upload-artifact@v4
         with:
           name: dataforge-${{ matrix.nome }}
-          path: dist/bin/*
+          # So o pacote comprimido: a pasta crua tem 28 MB e milhares de
+          # arquivos, e o 'upload-artifact' os envia um a um.
+          path: |
+            dist/bin/*.tar.gz
+            dist/bin/*.zip
           if-no-files-found: error
 
   publicar:

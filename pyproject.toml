@@ -46,6 +46,13 @@ dataforge = [
     # sem precisar do repositorio nem de internet.
     "editor/vscode/*",
     "editor/vscode/*/*",
+    # O cliente LSP vive fundo em 'node_modules/<pacote>/lib/...', e os
+    # dois globs acima param no segundo nivel. Sem esta linha o wheel
+    # saia com a extensao e sem a unica biblioteca que ela carrega em
+    # execucao — e o servidor de linguagem nao subia em NENHUMA
+    # instalacao por pip, so na copia de desenvolvimento que tinha
+    # rodado 'npm install'.
+    "editor/vscode/node_modules/**/*",
 ]
 
 [tool.pytest.ini_options]

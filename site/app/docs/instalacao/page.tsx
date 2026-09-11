@@ -28,10 +28,12 @@ const blocos: Bloco[] = [
   {"p": "Ou pegue o arquivo à mão em [releases](https://github.com/estevam5s/DataForge/releases): há um para Linux x64, macOS Intel, macOS Apple Silicon e Windows x64, com `SHA256SUMS.txt` ao lado para conferir."},
   {"table": {"head": ["", "executável", "Python + pip"], "rows": [
     ["precisa de Python", "**não**", "3.10+"],
-    ["tamanho", "~11 MB", "~2 MB"],
-    ["início de cada comando", "um pouco mais lento", "imediato"],
+    ["download", "~12 MB comprimido, ~28 MB em disco", "~2 MB"],
+    ["`dataforge run` de um \"olá\"", "80 ms", "67 ms"],
+    ["extensão do VS Code com LSP", "**vem junto**", "precisa de `npm install`"],
     ["`pip install` de pacote Python", "não", "sim"],
     ["mexer no interpretador", "não", "sim"]]}},
+  {"callout": {"tipo": "nota", "titulo": "Por que é uma pasta e não um arquivo só", "texto": "Um arquivo único é mais bonito de baixar e inutilizável de usar: ele descompacta o pacote inteiro num diretório temporário **a cada chamada**, e o mesmo `dataforge run` passa de 80 ms para 3,5 segundos. Os dois números são medidos."}},
   {"callout": {"tipo": "dica", "texto": "Use o **executável** para escrever programas em DataForge; use o **Python** para contribuir com a linguagem. Os dois rodam exatamente o mesmo interpretador — os 216 exercícios e os 42 exemplos passam pelos dois."}},
 
   {"h3": "Ajustar a instalação"},
