@@ -342,10 +342,29 @@ class Lock:
             except (json.JSONDecodeError, OSError):
                 self.pacotes = {}          # lock corrompido: reinstala do zero
 
+    #: So registro REMOTO entra no lock.
+    #:
+    #: Apontar o registro para uma pasta local e conveniencia de quem
+    #: desenvolve — um 'DATAFORGE_REGISTRY=./site/public/registry' para
+    #: testar um pacote antes de publicar. Gravar isso no lock
+    #: versionado escrevia o caminho da CASA de quem instalou dentro de
+    #: um arquivo publico:
+    #:
+    #:     "registro": "file:///Users/<nome>/.../site/public/registry"
+    #:
+    #: Duas pessoas instalando o mesmo projeto produziam lockfiles
+    #: diferentes, e o arquivo deixava de ser o que promete ser: o
+    #: registro exato do que foi instalado, igual para todos.
+    _REMOTOS = ("http://", "https://")
+
     def gravar(self, registro=""):
+        escolhido = registro or self.registro
+        if escolhido and not escolhido.startswith(self._REMOTOS):
+            escolhido = ""
+
         d = {
             "lockVersion": self.VERSAO,
-            "registro": registro or self.registro,
+            "registro": escolhido,
             "pacotes": dict(sorted(self.pacotes.items())),
         }
         with open(self.caminho, "w", encoding="utf-8") as f:

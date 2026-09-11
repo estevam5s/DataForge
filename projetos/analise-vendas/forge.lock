@@ -1,6 +1,6 @@
 {
   "lockVersion": 1,
-  "registro": "file:///Users/estevamsouza/Documents/linguagem/DataForge/site/public/registry",
+  "registro": "",
   "pacotes": {
     "colecao": {
       "versao": "1.0.0",

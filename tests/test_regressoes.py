@@ -2488,3 +2488,63 @@ def test_cada_documento_de_doc_esta_classificado():
     assert not ruins, (
         "documento de 'doc/' que nao diz o que e — quem abrir a pasta nao "
         "consegue saber se pode confiar nele:\n  " + "\n  ".join(ruins))
+
+
+def test_nenhum_lockfile_guarda_o_caminho_de_quem_instalou():
+    """Três `forge.lock` versionados traziam o meu diretório pessoal.
+
+        "registro": "file:///Users/<nome>/.../site/public/registry"
+
+    Apontar o registro para uma pasta local é conveniência de quem
+    desenvolve — um `DATAFORGE_REGISTRY=./site/public/registry` para
+    testar um pacote antes de publicar. Ele acabava gravado no lock, que
+    é versionado e público.
+
+    Dois problemas de uma vez: o caminho da casa de alguém num
+    repositório aberto, e um lockfile que **não é reproduzível** — duas
+    pessoas instalando o mesmo projeto geravam arquivos diferentes, e o
+    lock deixava de ser o que promete: o registro exato do que foi
+    instalado, igual para todos.
+    """
+    import glob
+    import json
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ruins = []
+    for caminho in sorted(glob.glob(os.path.join(raiz, "**", "forge.lock"),
+                                    recursive=True)):
+        if "forge_modules" in caminho:
+            continue
+        with open(caminho, encoding="utf-8") as f:
+            registro = json.load(f).get("registro", "")
+        if registro and not registro.startswith(("http://", "https://")):
+            ruins.append(f"{os.path.relpath(caminho, raiz)}: {registro}")
+
+    assert not ruins, (
+        "lockfile com registro local — so registro remoto entra no "
+        "arquivo versionado:\n  " + "\n  ".join(ruins))
+
+
+def test_o_lock_recusa_gravar_um_registro_local():
+    """A trava do lado de quem escreve, e não só do que está no disco."""
+    import json
+    import tempfile
+
+    from dataforge.packages import Lock
+
+    with tempfile.TemporaryDirectory() as pasta:
+        # 'Lock' recebe a RAIZ do projeto e monta o nome do arquivo.
+        caminho = os.path.join(pasta, "forge.lock")
+
+        lock = Lock(pasta)
+        lock.registrar("x", "1.0.0", "registro", "abc")
+        lock.gravar("file:///Users/alguem/projeto/registry")
+        with open(caminho, encoding="utf-8") as f:
+            assert json.load(f)["registro"] == "", \
+                "o caminho local entrou no lock"
+
+        lock.gravar("https://dataforge-lang.vercel.app/registry")
+        with open(caminho, encoding="utf-8") as f:
+            assert json.load(f)["registro"] == \
+                "https://dataforge-lang.vercel.app/registry", \
+                "o registro remoto precisa ser preservado"
