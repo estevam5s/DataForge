@@ -1,3 +1,9 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Guia de publicação de uma versão anterior. O que vale hoje está em
+> `CLAUDE.md` (seção "Instaladores" e "O que é gerado") e nos fluxos
+> `.github/workflows/`.
+
 # 🚀 Guia Completo: Como Publicar uma Nova Linguagem de Programação
 
 > **Um guia abrangente para criar, desenvolver e publicar uma linguagem de programação usando a arquitetura Python**

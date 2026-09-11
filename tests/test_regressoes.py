@@ -2431,3 +2431,60 @@ crucible "Contas":
         interp.run(parse(tokenize('out Crucible.run()["passou"]')))
     assert buffer.getvalue().strip() == "1", \
         "a suite montada na execucao anterior sumiu"
+
+
+# ── Todo documento diz o que e ────────────────────────────
+
+def test_cada_documento_de_doc_esta_classificado():
+    """`doc/` mistura três coisas, e confundi-las sai caro.
+
+    Há a documentação **atual**, há **documento histórico** — versões
+    anteriores e direções abandonadas — e há **material de origem**, os
+    textos que serviram de fonte para o que foi implementado.
+
+    `DATAFORGE_LANGUAGE_SPEC.md` estava fora das três: sem aviso no
+    topo, sem entrada no índice. Quem abrisse `doc/` encontraria um
+    arquivo chamado "especificação" descrevendo uma linguagem que não é
+    esta — 23 das 31 palavras reservadas que ele propõe vêm de Rust ou
+    de JavaScript, e prometia interoperabilidade com a ABI C, que não
+    existe.
+
+    A regra: ou o arquivo está citado como atual no `doc/README.md`, ou
+    carrega o aviso **e** está na lista correspondente.
+    """
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    indice = open(os.path.join(raiz, "doc", "README.md"),
+                  encoding="utf-8").read()
+
+    atuais = indice.split("## Documentos históricos")[0]
+    resto = indice.split("## Documentos históricos")[1]
+
+    ruins = []
+    for caminho in sorted(glob.glob(os.path.join(raiz, "doc", "*.md"))):
+        nome = os.path.basename(caminho)
+        if nome == "README.md":
+            continue
+
+        if nome in atuais:
+            continue                       # documentação atual
+
+        if nome not in resto:
+            ruins.append(f"{nome}: nao aparece no indice de doc/README.md")
+            continue
+
+        # Histórico precisa do aviso no topo; material de origem, não —
+        # ele nunca se apresentou como documentação.
+        origem = nome in resto.split("## Material de origem")[-1] \
+            if "## Material de origem" in resto else False
+        if origem:
+            continue
+
+        cabeca = open(caminho, encoding="utf-8").read()[:500]
+        if "DOCUMENTO HISTÓRICO" not in cabeca:
+            ruins.append(f"{nome}: listado como historico e sem o aviso no topo")
+
+    assert not ruins, (
+        "documento de 'doc/' que nao diz o que e — quem abrir a pasta nao "
+        "consegue saber se pode confiar nele:\n  " + "\n  ".join(ruins))

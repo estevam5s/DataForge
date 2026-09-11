@@ -1,3 +1,15 @@
+> ⚠️ **DOCUMENTO HISTÓRICO — não reflete a implementação atual.**
+>
+> Esta é uma **proposta** de especificação, escrita antes da implementação, e
+> ela descreve uma linguagem diferente da que existe. Das 31 palavras
+> reservadas que propõe, 23 vêm de Rust ou de JavaScript (`fn`, `let`, `mut`,
+> `impl`, `trait`, `match`, `async`, `await`, `struct`, `enum`, …) — e a regra
+> deste projeto é que as palavras da DataForge **não saiam de outra linguagem**.
+> A promessa de interoperabilidade com a ABI C também não existe.
+>
+> A referência da linguagem que roda está em `doc/REFERENCIA.md`; o que falta,
+> em `doc/ANALISE_E_ROADMAP.md`.
+
 # Especificação Técnica e Manual de Referência Completo: Linguagem de Programação DataForge
 
 ---
