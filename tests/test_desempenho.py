@@ -439,3 +439,105 @@ def test_a_compilacao_nao_muda_o_resultado_de_nenhum_exercicio():
         assert saidas[0] == saidas[1], (
             f"{os.path.relpath(caminho, raiz)} muda de resultado com a "
             f"compilacao ligada")
+
+
+#: Construções onde um fechamento fácil de escrever erra fácil.
+#:
+#: A amostra de exercícios do teste acima cobre volume; esta cobre os
+#: cantos — escopo, sinais de controle, curto-circuito que devolve valor
+#: em vez de booleano, método mágico e propriedade com `set`.
+CANTOS = {
+    "escopo do given nao vaza": '''
+given yes:
+    dentro := 99
+monitor:
+    out dentro
+handle e:
+    out "nao vazou"''',
+
+    "halt e skip no laco": '''
+r := []
+cycle i from 1 to 10:
+    given i is 3:
+        skip
+    given i is 6:
+        halt
+    r.append(i)
+out r''',
+
+    "erro em instrucao compilada e capturavel": '''
+monitor:
+    x := 1 / 0
+handle e:
+    out e.type''',
+
+    "closure no laco ve o proprio valor": '''
+fs := []
+cycle i from 1 to 3:
+    fs.append(lambda => i)
+out [f() cycle f in fs]''',
+
+    "and e or devolvem o VALOR": '''
+out ("" or "padrao"), (0 and 9), ("a" and "b")''',
+
+    "yield dentro de monitor": '''
+action f():
+    monitor:
+        yield "do monitor"
+    ensure:
+        out "ensure rodou"
+out f()''',
+
+    "interpolacao com formato": 'out $"{3.14159:.2f} e {255:x}"',
+
+    "indice chama __missing__": '''
+blueprint Padrao:
+    action __missing__(k):
+        yield "vazio"
+out spawn Padrao()["qualquer"]''',
+
+    "membro passa pelo set da propriedade": '''
+blueprint C:
+    get v():
+        yield self._v ?? 0
+    set v(novo):
+        self._v := novo * 2
+c := spawn C()
+c.v := 5
+out c.v''',
+
+    "composta num indice de vault": '''
+v := {"n": 1}
+v["n"] += 41
+out v["n"]''',
+}
+
+
+@pytest.mark.parametrize("nome", sorted(CANTOS))
+def test_o_fechamento_concorda_com_o_interpretador(nome):
+    """O mesmo programa, compilado e interpretado, dá o mesmo resultado.
+
+    Cada construtor do compilador espelha um método do interpretador. Um
+    que divirja não quebra nada visivelmente — devolve outro valor, ou
+    perde um efeito colateral, e a suíte continua verde porque nenhum
+    outro teste roda o caminho interpretado.
+    """
+    import io as _io
+    from contextlib import redirect_stdout
+
+    arvore = parse(tokenize(CANTOS[nome], "c"), "c")
+
+    saidas = []
+    for compilar in (True, False):
+        interp = Interpreter()
+        interp.compilar_corpos = compilar
+        buffer = _io.StringIO()
+        try:
+            with redirect_stdout(buffer):
+                interp.run(arvore, "c")
+        except BaseException as erro:            # noqa: BLE001
+            buffer.write(f"<{type(erro).__name__}: {erro}>")
+        saidas.append(buffer.getvalue().strip())
+
+    assert saidas[0] == saidas[1], (
+        f"compilado deu {saidas[0]!r}, interpretado deu {saidas[1]!r}")
