@@ -238,6 +238,7 @@ relay somar, Ponto
 | lambda | `lambda x: expr` ou `lambda a, b => expr` |
 | decorator | `mark @nome` |
 | `//` (div. inteira) | **`~/`** |
+| `Decimal` exato | `adopt Arcane.Decimal as Dec` · `Dec.de("0.1")` |
 
 ---
 
@@ -681,6 +682,11 @@ O que **ainda não existe** (não invente que existe):
 - **WebSocket, HTTP/2 e streaming de resposta** — o Kiln não tem. Ele roda
   sobre o `http.server` do Python; em produção pública, ponha um nginx ou
   Caddy na frente.
+- **Literal decimal exato** — não há sufixo nem sintaxe: `19.99` no código é
+  `Float`, com o arredondamento binário de sempre. Para exatidão use
+  `Arcane.Decimal`, e prefira a forma com aspas (`Dec.de("19.99")`), que não
+  passa por float nenhum. Misturar `Decimal` com `Float` numa conta é
+  **recusado** de propósito.
 - **Cálculo de fórmula em planilha** — o `Arcane.Excel` grava a fórmula e o
   Excel a resolve ao abrir. Também não lê o `.xls` binário antigo.
 - **`receive` bloqueante** — devolve `void` na hora se a fila está vazia.

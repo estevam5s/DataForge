@@ -1448,7 +1448,38 @@ class Interpreter:
             for lado in (left, right):
                 if isinstance(lado, DFTarefa):
                     raise self._erro_de_tarefa(lado, node) from None
+            misto = self._erro_de_exato_com_float(left, right, op, node)
+            if misto is not None:
+                raise misto from None
             raise TypeError_(str(e), node.line, node.column)
+
+    @staticmethod
+    def _erro_de_exato_com_float(left, right, op, node):
+        """Um lado exato e o outro aproximado — a recusa e deliberada.
+
+        Somar um Decimal com um Float devolveria um Float, e a garantia
+        que a pessoa veio buscar desapareceria em silencio. A mensagem
+        crua do Python — "unsupported operand type(s) for +:
+        'decimal.Decimal' and 'float'" — esta certa e nao diz nada disso.
+        """
+        import decimal as _dec
+
+        exato = isinstance(left, _dec.Decimal), isinstance(right, _dec.Decimal)
+        flutuante = isinstance(left, float), isinstance(right, float)
+        if not (any(exato) and any(flutuante)):
+            return None
+
+        qual = "a esquerda" if exato[0] else "a direita"
+        outro = "direita" if exato[0] else "esquerda"
+        return TypeError_(
+            f"'{op}' entre um Decimal e um Float e recusado.",
+            node.line, node.column,
+            nota=f"{qual} e exata e a {outro} e aproximada; o resultado "
+                 f"seria aproximado, e a garantia se perderia sem aviso",
+            dica="converta o lado que falta:\n"
+                 "    Decimal.de(x) + exato       para seguir exato\n"
+                 "    Decimal.float(exato) + x    para aceitar o float",
+            doc="tecnicas/decimal")
 
         raise RuntimeError_(f"Unknown binary operator: {op!r}", node.line, node.column)
 

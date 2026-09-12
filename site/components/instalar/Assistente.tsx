@@ -50,7 +50,7 @@ const COMPONENTES: Componente[] = [
   {
     id: 'interpretador',
     nome: 'Interpretador e biblioteca padrão',
-    desc: 'a linguagem, os 35 módulos Arcane, e as 34 ferramentas de linha de comando',
+    desc: 'a linguagem, os 36 módulos Arcane, e as 34 ferramentas de linha de comando',
     tamanho: '4,2 MB',
     fixo: true,
   },

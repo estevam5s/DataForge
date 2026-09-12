@@ -39,6 +39,7 @@ from .arcane_lago import ArcaneLago
 from .arcane_fluxo import ArcaneStream
 from .arcane_observar import ArcaneObservar
 from .arcane_ponte import ArcanePonte
+from .arcane_decimal import ArcaneDecimal
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -125,6 +126,10 @@ _MODULES = {
     "Lago": ArcaneLago,
     "Lake": ArcaneLago,
     "Parquet": ArcaneLago,
+    "Arcane.Decimal": ArcaneDecimal,
+    "Decimal": ArcaneDecimal,
+    "Exato": ArcaneDecimal,
+
     "Arcane.Ponte": ArcanePonte,
     "Ponte": ArcanePonte,
     "Bridge": ArcanePonte,

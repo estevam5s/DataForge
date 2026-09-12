@@ -266,7 +266,7 @@
     },
     "modulos": {
       "name": "support.class.module.dataforge",
-      "match": "\\b(Arcane|Serialization|Collections|Concurrent|Functional|Analytics|Qualidade|Corrente|Crucible|Database|Observar|Paralelo|Pipeline|Archive|Logging|Network|Observe|Parquet|Process|Quality|Bridge|Cortex|Crypto|Server|Stream|Async|Banco|Color|Excel|Fluxo|Forge|Ponte|Regex|Serde|Data|Http|Iter|Kiln|Lago|Lake|Math|Meta|Test|Text|Time|Xlsx|Cor|Log|Web|Zip|DB|IO|OS)\\b(?=\\s*\\.)"
+      "match": "\\b(Arcane|Serialization|Collections|Concurrent|Functional|Analytics|Qualidade|Corrente|Crucible|Database|Observar|Paralelo|Pipeline|Archive|Decimal|Logging|Network|Observe|Parquet|Process|Quality|Bridge|Cortex|Crypto|Server|Stream|Async|Banco|Color|Exato|Excel|Fluxo|Forge|Ponte|Regex|Serde|Data|Http|Iter|Kiln|Lago|Lake|Math|Meta|Test|Text|Time|Xlsx|Cor|Log|Web|Zip|DB|IO|OS)\\b(?=\\s*\\.)"
     },
     "chamadas": {
       "name": "entity.name.function.call.dataforge",

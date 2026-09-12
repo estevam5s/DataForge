@@ -47,6 +47,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
+| [`Arcane.Decimal`](#arcanedecimal) | `Decimal / Exato` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
 | [`Arcane.Ponte`](#arcaneponte) | `Ponte / Bridge` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
 | [`Arcane.Qualidade`](#arcanequalidade) | `Qualidade / Quality` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
 
@@ -1723,6 +1724,38 @@ adopt Arcane.Lago as Lago
 | `tabelas(lago)` |
 | `tamanho(lago, tabela='')` |
 | `vacuo(lago)` |
+
+
+---
+
+## Arcane.Decimal
+
+Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão.
+
+```dataforge
+adopt Arcane.Decimal as Decimal
+```
+
+**Funções (16)**
+
+| Assinatura |
+|------------|
+| `abs(d)` |
+| `arredondar(valor, casas=0, modo='MEIO_PARA_CIMA')` |
+| `casas(valor)` |
+| `centavos(valor)` |
+| `de(valor)` |
+| `de_centavos(centavos)` |
+| `e_decimal(x)` |
+| `float(valor)` |
+| `inteiro(valor)` |
+| `media(valores)` |
+| `modos()` |
+| `repartir(valor, partes, casas=2)` |
+| `sinal(d)` |
+| `soma(valores)` |
+| `texto(valor, casas=None)` |
+| `zero()` |
 
 
 ---

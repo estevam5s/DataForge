@@ -2277,6 +2277,93 @@
     }
    ]
   },
+  "decimal": {
+   "nome": "Arcane.Decimal",
+   "desc": "Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão.",
+   "curto": "Decimal / Exato",
+   "funcoes": [
+    {
+     "nome": "abs",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "arredondar",
+     "sig": "(valor, casas, modo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "casas",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "centavos",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_centavos",
+     "sig": "(centavos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_decimal",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "float",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "inteiro",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "media",
+     "sig": "(valores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "repartir",
+     "sig": "(valor, partes, casas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sinal",
+     "sig": "(d)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "soma",
+     "sig": "(valores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "texto",
+     "sig": "(valor, casas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "zero",
+     "sig": "()",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "excel": {
    "nome": "Arcane.Excel",
    "desc": "Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame.",
