@@ -195,6 +195,7 @@ def _rodar(pasta, *args):
     return subprocess.run(
         [sys.executable, "-m", "dataforge", "test", "--no-color", *args],
         cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
 
 
@@ -323,6 +324,7 @@ def test_um_erro_dentro_de_modulo_importado_aponta_o_modulo(tmp_path):
     saida = subprocess.run(
         [sys.executable, "-m", "dataforge", "run", "main.df", "--no-color"],
         cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
     junto = saida.stdout + saida.stderr
     # O cabeçalho aponta onde o código está.
@@ -344,6 +346,7 @@ def test_o_arquivo_corrente_volta_depois_da_chamada(tmp_path):
     saida = subprocess.run(
         [sys.executable, "-m", "dataforge", "run", "main.df", "--no-color"],
         cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
     junto = saida.stdout + saida.stderr
     assert "main.df:4" in junto, junto

@@ -487,9 +487,14 @@ def _segredo_versionado(p):
     if not os.path.isdir(os.path.join(p.raiz, ".git")):
         return []
     try:
+        # 'errors="replace"': no Windows o git escreve na codificacao do
+        # console, e um nome de arquivo com acento derrubaria a leitura
+        # — num diagnostico cujo proposito e ACHAR arquivo com nome
+        # esquisito, falhar por causa do nome seria ironico.
         saida = subprocess.run(["git", "ls-files"], cwd=p.raiz,
                                capture_output=True, text=True,
-                               encoding="utf-8", timeout=10)
+                               encoding="utf-8", errors="replace",
+                               timeout=10)
     except (OSError, subprocess.SubprocessError):
         return []
     achados = []

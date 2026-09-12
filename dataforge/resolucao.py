@@ -149,7 +149,12 @@ def achar_no_proprio_pacote(nome, arquivo=None):
 
     procura = []
     if entrada:
-        procura.append(os.path.join(raiz, entrada))
+        # A entrada vem do TOML como 'src/main.df' — com barra, sempre,
+        # porque um manifesto e o mesmo em qualquer sistema. 'normpath'
+        # a converte para o separador local; sem isso o caminho sai
+        # misturado ('C:\\proj\\src/main.df'), que ABRE no Windows mas
+        # nao casa com o que qualquer outra parte do codigo monta.
+        procura.append(os.path.normpath(os.path.join(raiz, entrada)))
     procura += [os.path.join(raiz, "src", "main.df"),
                 os.path.join(raiz, "main.df"),
                 os.path.join(raiz, "src", f"{declarado}.df")]

@@ -93,6 +93,7 @@ def test_o_analisador_nao_inventa_modulo_ausente(tmp_path):
     saida = subprocess.run(
         [sys.executable, "-m", "dataforge", "check", "src/", "--no-color"],
         cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
     assert "was not found" not in saida.stdout, saida.stdout
     assert saida.returncode == 0, saida.stdout
@@ -104,6 +105,7 @@ def test_o_repositorio_nao_tem_aviso_falso_de_modulo():
     saida = subprocess.run(
         [sys.executable, "-m", "dataforge", "check", ".", "--no-color"],
         cwd=RAIZ, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
     linhas = [l for l in saida.stdout.splitlines() if "was not found" in l]
     inesperados = [l for l in linhas if "NaoExiste" not in l]
@@ -176,6 +178,7 @@ def test_a_suite_de_cada_pacote_roda(pacote):
     saida = subprocess.run(
         [sys.executable, "-m", "dataforge", "test", "--no-color"],
         cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
     assert saida.returncode == 0, saida.stdout + saida.stderr
     assert "Tudo verde" in saida.stdout
@@ -213,6 +216,7 @@ def _deps(pasta, *args):
     return subprocess.run(
         [sys.executable, "-m", "dataforge", "deps", *(args or ("."))],
         cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
 
 
@@ -347,6 +351,7 @@ def test_um_projeto_com_hifen_no_nome_roda(tmp_path):
     rodar = subprocess.run(
         [sys.executable, "-m", "dataforge", "run", "main.df"],
         cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
     assert rodar.returncode == 0, rodar.stdout + rodar.stderr
     assert "42" in rodar.stdout
@@ -357,6 +362,7 @@ def test_um_projeto_com_hifen_no_nome_roda(tmp_path):
     conferir = subprocess.run(
         [sys.executable, "-m", "dataforge", "check", "erra.df", "--no-color"],
         cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
     assert "has no 'triplo'" in conferir.stdout, conferir.stdout
 
@@ -380,6 +386,7 @@ def _check(pasta, *args):
         [sys.executable, "-m", "dataforge", "check", "--no-color",
          *(args or (".",))],
         cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ})
 
 

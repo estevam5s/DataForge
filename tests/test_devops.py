@@ -220,7 +220,7 @@ def test_o_compose_e_valido_para_o_docker(tmp_path):
     (tmp_path / "Dockerfile").write_text(g.dockerfile(p), encoding="utf-8")
     saida = subprocess.run(["docker", "compose", "config"], cwd=tmp_path,
                            capture_output=True, text=True,
-                           encoding="utf-8", timeout=60)
+                           encoding="utf-8", errors="replace", timeout=60)
     if "Cannot connect to the Docker daemon" in saida.stderr:
         pytest.skip("o daemon do Docker não está rodando")
     assert saida.returncode == 0, saida.stderr
@@ -440,6 +440,11 @@ def _cli(pasta, *args):
     return subprocess.run(
         [sys.executable, "-m", "dataforge", "devops", "--no-color", *args],
         cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+        # 'replace', e não o padrão: o 'doctor' chama 'git ls-files', e
+        # no Windows o git escreve na codificação do console (cp1252).
+        # Um byte que não é UTF-8 derrubava a thread que lê a saída, e o
+        # pytest reportava um aviso solto que não dizia de onde vinha.
+        errors="replace",
         env={**os.environ, "PYTHONPATH": RAIZ}, timeout=120)
 
 

@@ -2159,6 +2159,7 @@ def test_nenhum_subprocess_decide_a_codificacao_pelo_sistema():
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     pastas = ("tests", "exercicios", "tools", "scripts", "dataforge")
     ruins = []
+    frageis = []
     for pasta in pastas:
         for caminho in glob.glob(os.path.join(raiz, pasta, "**", "*.py"),
                                  recursive=True):
@@ -2174,10 +2175,50 @@ def test_nenhum_subprocess_decide_a_codificacao_pelo_sistema():
                     for k in no.keywords)
                 if tem_texto and "encoding" not in nomes:
                     ruins.append(f"{os.path.relpath(caminho, raiz)}:{no.lineno}")
+                # E, quando o filho e de TERCEIRO — 'git', 'docker',
+                # 'npm' —, 'encoding' sozinho nao basta: eles escrevem
+                # na codificacao do console, e um byte fora do UTF-8
+                # DERRUBA a thread que le a saida. O pytest reporta
+                # isso como um aviso solto que nao diz de onde vem.
+                if (tem_texto and "encoding" in nomes
+                        and "errors" not in nomes
+                        and _chama_programa_de_terceiro(no, pyast)):
+                    frageis.append(
+                        f"{os.path.relpath(caminho, raiz)}:{no.lineno}")
     assert not ruins, (
         "subprocess com 'text=True' e sem 'encoding' — no Windows isso lê "
         "cp1252 em vez do UTF-8 que o filho escreveu:\n  "
         + "\n  ".join(sorted(ruins)))
+    assert not frageis, (
+        "subprocess de programa de TERCEIRO com 'encoding' e sem "
+        "'errors' — no Windows o git e o docker escrevem cp1252, e um "
+        "byte fora do UTF-8 derruba a thread que lê a saída:\n  "
+        + "\n  ".join(sorted(frageis)))
+
+
+#: Programas que NAO escrevem UTF-8 no Windows. A lista e curta de
+#: proposito: exigir 'errors' de todo subprocesso esconderia o caso em
+#: que a saida e nossa e a codificacao esta sob controle.
+_DE_TERCEIRO = ("git", "docker", "npm", "npx", "node", "kubectl", "helm",
+                "sh", "bash", "cmd", "powershell")
+
+
+def _chama_programa_de_terceiro(no, pyast):
+    """O primeiro argumento da chamada nomeia um programa de terceiro?"""
+    if not no.args:
+        return False
+    alvo = no.args[0]
+    candidatos = []
+    if isinstance(alvo, pyast.Constant) and isinstance(alvo.value, str):
+        candidatos.append(alvo.value)
+    elif isinstance(alvo, (pyast.List, pyast.Tuple)):
+        for item in alvo.elts:
+            if isinstance(item, pyast.Constant) and isinstance(item.value, str):
+                candidatos.append(item.value)
+                break
+    return any(
+        os.path.basename(c).split(".")[0] in _DE_TERCEIRO
+        for c in candidatos)
 
 
 def test_encurtar_caminho_nunca_custa_a_mensagem():
