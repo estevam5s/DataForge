@@ -4535,6 +4535,73 @@
     }
    ]
   },
+  "ponte": {
+   "nome": "Arcane.Ponte",
+   "desc": "A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve.",
+   "curto": "Ponte / Bridge",
+   "funcoes": [
+    {
+     "nome": "assinatura",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "atributos",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chamavel",
+     "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cluster",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "doc",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "empacotado",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "importar",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "onde",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tem",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tipo",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vault",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "versao",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "process": {
    "nome": "Arcane.Process",
    "desc": "Execução de processos externos, com stdout, stderr e código de saída.",
@@ -7678,6 +7745,16 @@
     "arquivo": "216_espaco.df",
     "temDoc": true,
     "codigo": "// Exercicio 216 — Complexidade de espaco\n// Enunciado: processe mais dados do que cabem na memoria.\n\n// Tempo nao e o unico recurso. Um algoritmo O(n log n) que aloca uma\n// copia pode perder para um O(n^2) que trabalha no lugar, quando a\n// memoria e o gargalo.\n\nadopt Crucible\n\n// ── O(1) de espaco: uma variavel, nao importa o tamanho ──\naction somar(xs):\n    total := 0\n    cycle x in xs:\n        total += x\n    yield total\n\n// ── O(n) de espaco: a saida cresce com a entrada ──\naction dobrar(xs):\n    saida := []\n    cycle x in xs:\n        saida.append(x * 2)\n    yield saida\n\nassert somar([1, 2, 3]) is 6, \"somou\"\nassert dobrar([1, 2]) is [2, 4], \"dobrou\"\n\n// A pilha tambem e memoria: cada chamada recursiva ocupa um quadro\naction soma_recursiva(n):\n    given n smaller_eq 0:\n        yield 0\n    yield n + soma_recursiva(n - 1)\n\naction soma_iterativa(n):\n    total := 0\n    cycle i from 1 to n:\n        total += i\n    yield total\n\nassert soma_recursiva(100) is soma_iterativa(100), \"mesmo resultado\"\n\n// Recursao profunda estoura a pilha; o laco nao\nmonitor:\n    soma_recursiva(100000)\n    assert no, \"devia ter estourado\"\nhandle e:\n    out \"recursao profunda:\", e.type\n    assert soma_iterativa(100000) is 5000050000, \"o laco vai fundo sem estourar\"\n\n// ── Preguica: processar sem materializar ──\n\n// Um generator produz um item por vez. Este 'range' de um milhao nunca\n// existe inteiro na memoria — so os tres primeiros pares sao calculados.\nstream action pares(xs):\n    cycle x in xs:\n        given x % 2 is 0:\n            emit x\n\nprimeiros := pares(range(1000000)).take(3)\nout \"os tres primeiros pares de um milhao:\", primeiros\nassert primeiros is [0, 2, 4], \"so tres foram calculados\"\n\n// A compreensao equivalente alocaria 500 mil itens\npoucos := [x cycle x in range(20) given x % 2 is 0]\nassert len(poucos) is 10, \"aqui cabe, com 20 itens\"\n\n// Medindo a diferenca com uma entrada media\ncom_preguica := Crucible.timed(lambda => pares(range(100000)).take(5))\ncom_lista := Crucible.timed(lambda => [x cycle x in range(100000) given x % 2 is 0])\n\nout \"preguicoso (5 itens):\", round(com_preguica[\"total_ms\"], 3), \"ms\"\nout \"lista inteira:       \", round(com_lista[\"total_ms\"], 1), \"ms\"\nassert com_preguica[\"total_ms\"] smaller com_lista[\"total_ms\"],\n\"a preguica so paga pelo que voce pede\"\n\n// A regra:\n//\n//   'stream action' + 'take(n)' processa mais dados do que cabem na\n//   RAM. A compreensao e mais legivel e materializa tudo. Use a\n//   segunda ate ela nao caber, e entao troque.\n\nout \"ok\"\n"
+   }
+  ],
+  "27-ponte-python": [
+   {
+    "num": "217",
+    "titulo": "A ponte para o Python",
+    "enunciado": "use uma biblioteca Python de dentro do DataForge, e faca",
+    "arquivo": "217_ponte_python.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 217 — A ponte para o Python\n// Enunciado: use uma biblioteca Python de dentro do DataForge, e faca\n// o programa continuar funcionando quando ela nao estiver instalada.\n\nadopt Arcane.Ponte as Ponte\n\n// ── 1. Perguntar antes de depender ──\n//\n// 'tem' responde sem levantar erro. E o que separa um programa que se\n// adapta de um que morre na primeira linha numa maquina diferente.\n\nout $\"o Python por tras: {Ponte.onde().split(\"/\").last()}\"\nout $\"math instalado?   {Ponte.tem(\"math\")}\"\nout $\"xyz123 instalado? {Ponte.tem(\"xyz123_nao_existe\")}\"\n\nassert Ponte.tem(\"math\") is yes, \"a biblioteca padrao do Python sempre esta la\"\nassert Ponte.tem(\"xyz123_nao_existe\") is no, \"e o que nao existe, nao\"\n\n// ── 2. Trazer um modulo ──\n//\n// E 'adopt' normal. Nao ha palavra reservada nova: 'Python' e um\n// espaco de nomes reservado, resolvido antes da biblioteca padrao.\n\nadopt Python.math as pm\nadopt Python.json as json\n\nout \"\"\nout $\"pm.gcd(12, 18) = {pm.gcd(12, 18)}\"\nassert pm.gcd(12, 18) is 6, \"maximo divisor comum\"\n\n// So os nomes que interessam, se preferir\nadopt Python.math.{floor, isqrt}\nassert floor(3.9) is 3, \"floor\"\nassert isqrt(17) is 4, \"raiz inteira\"\n\n// ── 3. Os valores atravessam sem copia ──\n//\n// Um Cluster E uma lista do Python, e um Vault E um dicionario. Nao ha\n// conversao na ida — por isso passar uma colecao grande nao custa nada.\n\nv := {\"nome\": \"Ana\", \"notas\":[9, 8, 10]}\ntexto := json.dumps(v)\nde_volta := json.loads(texto)\n\nout \"\"\nout texto\nassert typeof(de_volta) is \"Vault\", \"voltou como Vault\"\nassert de_volta[\"notas\"][2] is 10, \"as notas sobreviveram a ida e volta\"\n\n// ── 4. Uma acao do DataForge vira funcao do Python ──\n\nadopt Python.functools as ft\n\naction somar(a, b):\n    yield a + b\n\ntotal := ft.reduce(somar, [1, 2, 3, 4, 5], 0)\nout \"\"\nout $\"reduce com uma acao daqui: {total}\"\nassert total is 15, \"o Python chamou a acao do DataForge\"\n\n// ── 5. O programa se adapta ──\n//\n// Repare no 'media := 0.0' ANTES do 'given': cada ramo tem o proprio\n// escopo, e o que nasce dentro nao vaza para fora.\n\ndados := [4.0, 8.0, 15.0, 16.0]\nmedia := 0.0\n\ngiven Ponte.tem(\"statistics\"):\n    adopt Python.statistics as st\n    media := st.mean(dados)\notherwise:\n    media := (dados >> distill a, v: a + v 0) / len(dados)\n\nout \"\"\nout $\"media: {media}\"\nassert media is 10.75, \"os dois caminhos dao o mesmo numero\"\n\n// ── 6. Explorar de dentro da linguagem ──\n//\n// Sem isto, descobrir o que um pacote oferece exige sair do DataForge\n// e abrir a documentacao dele.\n\nout \"\"\nout $\"json tem 'dumps'? {\"dumps\" in Ponte.atributos(json)}\"\nout $\"assinatura: {Ponte.assinatura(pm.gcd) ?? \"o Python nao declara\"}\"\nout $\"doc: {Ponte.doc(pm.isqrt).lines()[0]}\"\n\nassert \"loads\" in Ponte.atributos(json), \"atributos lista o que existe\"\n\n// ── 7. A ponte NAO converte, e e isso que a faz valer ──\n//\n// Uma tupla do Python indexa e percorre, mas nao tem 'append'. Dizer\n// que ela e um Cluster seria mentira; 'Ponte.cluster' converte quando\n// voce QUER — e a linha diz onde se paga a copia.\n\npar := pm.frexp(8.0)\nout \"\"\nout $\"typeof da tupla:  {typeof(par)}\"\nout $\"typeof convertido: {typeof(Ponte.cluster(par))}\"\nassert typeof(Ponte.cluster(par)) is \"Cluster\", \"a conversao e explicita\"\n\n// ── 8. O erro do outro lado chega capturavel ──\n\nmonitor:\n    json.loads(\"{isso nao e json}\")\nhandle e:\n    out \"\"\n    out $\"erro do Python, capturado aqui: {e.type}\"\n\nout \"\"\nout \"ok\"\n"
    }
   ]
  },

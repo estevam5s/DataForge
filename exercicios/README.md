@@ -444,9 +444,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 215 | [`215_estrutura_certa.df`](26-complexidade/215_estrutura_certa.df) · [doc](26-complexidade/215_estrutura_certa.md) | A estrutura certa |
 | 216 | [`216_espaco.df`](26-complexidade/216_espaco.df) · [doc](26-complexidade/216_espaco.md) | Complexidade de espaco |
 
+## 27 — Ponte python
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 217 | [`217_ponte_python.df`](27-ponte-python/217_ponte_python.df) · [doc](27-ponte-python/217_ponte_python.md) | A ponte para o Python |
+
 ---
 
-**Total: 216 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 217 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

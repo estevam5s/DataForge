@@ -1,0 +1,113 @@
+// Exercicio 217 — A ponte para o Python
+// Enunciado: use uma biblioteca Python de dentro do DataForge, e faca
+// o programa continuar funcionando quando ela nao estiver instalada.
+
+adopt Arcane.Ponte as Ponte
+
+// ── 1. Perguntar antes de depender ──
+//
+// 'tem' responde sem levantar erro. E o que separa um programa que se
+// adapta de um que morre na primeira linha numa maquina diferente.
+
+out $"o Python por tras: {Ponte.onde().split("/").last()}"
+out $"math instalado?   {Ponte.tem("math")}"
+out $"xyz123 instalado? {Ponte.tem("xyz123_nao_existe")}"
+
+assert Ponte.tem("math") is yes, "a biblioteca padrao do Python sempre esta la"
+assert Ponte.tem("xyz123_nao_existe") is no, "e o que nao existe, nao"
+
+// ── 2. Trazer um modulo ──
+//
+// E 'adopt' normal. Nao ha palavra reservada nova: 'Python' e um
+// espaco de nomes reservado, resolvido antes da biblioteca padrao.
+
+adopt Python.math as pm
+adopt Python.json as json
+
+out ""
+out $"pm.gcd(12, 18) = {pm.gcd(12, 18)}"
+assert pm.gcd(12, 18) is 6, "maximo divisor comum"
+
+// So os nomes que interessam, se preferir
+adopt Python.math.{floor, isqrt}
+assert floor(3.9) is 3, "floor"
+assert isqrt(17) is 4, "raiz inteira"
+
+// ── 3. Os valores atravessam sem copia ──
+//
+// Um Cluster E uma lista do Python, e um Vault E um dicionario. Nao ha
+// conversao na ida — por isso passar uma colecao grande nao custa nada.
+
+v := {"nome": "Ana", "notas":[9, 8, 10]}
+texto := json.dumps(v)
+de_volta := json.loads(texto)
+
+out ""
+out texto
+assert typeof(de_volta) is "Vault", "voltou como Vault"
+assert de_volta["notas"][2] is 10, "as notas sobreviveram a ida e volta"
+
+// ── 4. Uma acao do DataForge vira funcao do Python ──
+
+adopt Python.functools as ft
+
+action somar(a, b):
+    yield a + b
+
+total := ft.reduce(somar, [1, 2, 3, 4, 5], 0)
+out ""
+out $"reduce com uma acao daqui: {total}"
+assert total is 15, "o Python chamou a acao do DataForge"
+
+// ── 5. O programa se adapta ──
+//
+// Repare no 'media := 0.0' ANTES do 'given': cada ramo tem o proprio
+// escopo, e o que nasce dentro nao vaza para fora.
+
+dados := [4.0, 8.0, 15.0, 16.0]
+media := 0.0
+
+given Ponte.tem("statistics"):
+    adopt Python.statistics as st
+    media := st.mean(dados)
+otherwise:
+    media := (dados >> distill a, v: a + v 0) / len(dados)
+
+out ""
+out $"media: {media}"
+assert media is 10.75, "os dois caminhos dao o mesmo numero"
+
+// ── 6. Explorar de dentro da linguagem ──
+//
+// Sem isto, descobrir o que um pacote oferece exige sair do DataForge
+// e abrir a documentacao dele.
+
+out ""
+out $"json tem 'dumps'? {"dumps" in Ponte.atributos(json)}"
+out $"assinatura: {Ponte.assinatura(pm.gcd) ?? "o Python nao declara"}"
+out $"doc: {Ponte.doc(pm.isqrt).lines()[0]}"
+
+assert "loads" in Ponte.atributos(json), "atributos lista o que existe"
+
+// ── 7. A ponte NAO converte, e e isso que a faz valer ──
+//
+// Uma tupla do Python indexa e percorre, mas nao tem 'append'. Dizer
+// que ela e um Cluster seria mentira; 'Ponte.cluster' converte quando
+// voce QUER — e a linha diz onde se paga a copia.
+
+par := pm.frexp(8.0)
+out ""
+out $"typeof da tupla:  {typeof(par)}"
+out $"typeof convertido: {typeof(Ponte.cluster(par))}"
+assert typeof(Ponte.cluster(par)) is "Cluster", "a conversao e explicita"
+
+// ── 8. O erro do outro lado chega capturavel ──
+
+monitor:
+    json.loads("{isso nao e json}")
+handle e:
+    out ""
+    out $"erro do Python, capturado aqui: {e.type}"
+
+out ""
+out "ok"

@@ -5,7 +5,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Trinta e quatro módulos e 1132 símbolos, sem uma única dependência externa.",
+  description: "Trinta e cinco módulos e 1144 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -31,7 +31,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Trinta e quatro módulos e 1132 símbolos, sem uma única dependência externa."}
+      description={"Trinta e cinco módulos e 1144 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

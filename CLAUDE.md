@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 1300 testes
-python3 exercicios/run_all.py                        # 216 exercícios
+python3 exercicios/run_all.py                        # 217 exercícios
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
@@ -48,6 +48,7 @@ dataforge/
   ast_nodes.py     706   dataclasses dos nós
   interpreter.py  2703   interpretador de árvore — quase toda a semântica
   compilador.py    330   a árvore vira fechamentos, uma vez (1,5× a 1,8×)
+  ponte.py         290   'adopt Python.numpy' — a ponte para o Python
   typechecker.py  1193   análise estática: nomes, aridade, tipos, alcance
   formatter.py     280   dataforge fmt
   linter.py        394   dataforge lint
@@ -69,7 +70,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          43 programas de demonstração
-exercicios/        216 exercícios em 26 módulos + run_all.py
+exercicios/        217 exercícios em 26 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -224,6 +225,7 @@ relay somar, Ponto
 | `self`/`super` | `self`/`root` |
 | `interface` | `trait` |
 | `import`/`export` | `adopt`/`relay` |
+| chamar biblioteca Python | `adopt Python.numpy as np` |
 | `try/catch/finally` | `monitor/handle/ensure` |
 | `throw` | `trigger` |
 | `true/false/null` | `yes/no/void` |
@@ -631,7 +633,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_kiln.py` | `pytest` | o framework web: rotas, respostas, templates, segurança, a sintaxe da linguagem e as palavras que continuam livres |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 216 exercícios, cada um com `assert` |
+| `exercicios/run_all.py` | script | 217 exercícios, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 43 programas maiores |
 
@@ -689,6 +691,35 @@ O que **ainda não existe** (não invente que existe):
   tarefa; `await` espera. Rede, disco, banco e `sleep` se sobrepõem de
   fato. Trabalho de CPU não: o GIL continua no caminho, e a resposta ali
   é `Arcane.Concurrent`, que usa processos.
+
+### A ponte para o Python
+
+`adopt Python.numpy as np` traz qualquer biblioteca do Python. Quatro
+coisas que valem lembrar antes de mexer em `ponte.py`:
+
+1. **`Python` é espaço de nomes reservado**, resolvido em
+   `_resolver_modulo` **antes** da stdlib e dos arquivos vizinhos. Um
+   `Python.df` no disco não pode sequestrar o import.
+
+2. **A ponte não converte.** Um `ndarray` continua um `ndarray` — é o
+   que faz `a * 2` ser a conta vetorizada do numpy em vez de um laço
+   sobre um milhão de posições. Isso só funciona porque o interpretador
+   trata objeto estranho por **protocolo**, e não por tipo: membro,
+   método, índice, `len`, iteração, aritmética, texto e verdade já
+   passavam assim. Se alguém um dia trocar protocolo por `isinstance`,
+   a ponte quebra inteira — `test_o_objeto_do_python_funciona_por_protocolo`
+   existe para denunciar.
+
+3. **Número é a exceção do `typeof`.** `np.int64` não é subclasse de
+   `int`, mas faz conta de inteiro, então `_type_of` responde `Integer`
+   por `numbers.Integral`. Não há nada de numpy no interpretador —
+   `Fraction` e `Decimal` entram pela mesma porta.
+
+4. **A mensagem de ausência nomeia o Python exato.** O instalador cria
+   uma venv em `~/.dataforge`, e `pip install` no terminal instala em
+   outro. E no executável único não há `pip` nenhum: ali a mensagem
+   aponta `pip install dataforge-lang`, e não um comando que nunca
+   funcionaria.
 
 O roadmap completo está em `doc/ANALISE_E_ROADMAP.md`.
 

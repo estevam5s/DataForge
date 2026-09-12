@@ -38,6 +38,7 @@ from .arcane_qualidade import ArcaneQualidade
 from .arcane_lago import ArcaneLago
 from .arcane_fluxo import ArcaneStream
 from .arcane_observar import ArcaneObservar
+from .arcane_ponte import ArcanePonte
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -124,6 +125,10 @@ _MODULES = {
     "Lago": ArcaneLago,
     "Lake": ArcaneLago,
     "Parquet": ArcaneLago,
+    "Arcane.Ponte": ArcanePonte,
+    "Ponte": ArcanePonte,
+    "Bridge": ArcanePonte,
+
     "Arcane.Qualidade": ArcaneQualidade,
     "Qualidade": ArcaneQualidade,
     "Quality": ArcaneQualidade,

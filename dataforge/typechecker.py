@@ -998,6 +998,22 @@ class TypeChecker:
         else:
             alias = node.alias or node.module.split('.')[-1]
             escopo.declare(alias, "Module", node.line, node.column)
+        # 'Python.x' nao e um modulo da stdlib nem um arquivo vizinho:
+        # e a ponte. Mas o analisador pode PROVAR uma coisa util sobre
+        # ela — se o pacote esta instalado neste Python — e avisar disso
+        # antes de rodar e justamente o trabalho dele.
+        from .ponte import e_caminho_de_ponte, tem, PREFIXO
+        if e_caminho_de_ponte(node.module):
+            pacote = node.module[len(PREFIXO) + 1:].split('.')[0]
+            if pacote and not tem(pacote):
+                self.warn(
+                    f"o pacote Python '{pacote}' nao esta instalado aqui",
+                    node,
+                    "se ele existir na maquina que vai RODAR o programa, "
+                    "este aviso nao se aplica",
+                    "pacote-python-ausente")
+            return False
+
         if get_module(node.module) is None:
             import os
             caminho = node.module.replace('.', os.sep)

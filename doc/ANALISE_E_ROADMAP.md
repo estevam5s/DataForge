@@ -419,6 +419,17 @@ O que ainda cabe sem sair: compilar mais tipos de nó (a lista está ordenada po
 frequência real em `compilador.py`), e encurtar a máquina de chamada —
 `_check_arity` e `_run_deferred` rodam em toda chamada de ação.
 
+**11-A. Interoperabilidade** — ~~não existe~~ **feita**
+
+`adopt Python.numpy as np` traz qualquer biblioteca do Python, sem cópia
+na fronteira. `Arcane.Ponte` responde se o pacote existe, explora o que
+ele oferece e converte quando se pede.
+
+A promessa de zero dependências continua inteira: nada em `dataforge/`
+importa nada de fora. O que mudou é que o **programa de quem escreve**
+passa a poder escolher as suas, e a palavra `Python` na linha do `adopt`
+marca onde a fronteira foi cruzada.
+
 **12. `frame`, `train`, `predict`**
 
 As três palavras existem no lexer, no parser e no interpretador, mas devolvem um

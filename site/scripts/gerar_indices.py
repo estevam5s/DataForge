@@ -38,7 +38,13 @@ PAGINAS = os.path.join(RAIZ, "app", "docs", "**", "page.tsx")
 _TITULO = re.compile(r'\{\s*"(h2|h3)"\s*:\s*"((?:[^"\\]|\\.)*)"')
 
 #: A linha inteira do índice, para trocar de uma vez.
-_INDICE = re.compile(r"^const headings = \[.*?\];$", re.MULTILINE | re.DOTALL)
+#:
+#: A anotação de tipo entra no padrão porque a forma VAZIA é
+#: `const headings: never[] = [];` — sem ela, uma página que nasce sem
+#: título nunca ganharia índice depois, e o gerador diria "0 refeitos"
+#: como se estivesse tudo em ordem.
+_INDICE = re.compile(r"^const headings(?::\s*never\[\])? = \[.*?\];$",
+                     re.MULTILINE | re.DOTALL)
 
 
 def slugify(texto: str) -> str:

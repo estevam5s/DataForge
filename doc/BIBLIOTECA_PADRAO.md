@@ -47,6 +47,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
+| [`Arcane.Ponte`](#arcaneponte) | `Ponte / Bridge` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
 | [`Arcane.Qualidade`](#arcanequalidade) | `Qualidade / Quality` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
 
 > Os nomes curtos e os aliases (`DB`, `Server`, `Network`) apontam para o mesmo
@@ -1722,6 +1723,34 @@ adopt Arcane.Lago as Lago
 | `tabelas(lago)` |
 | `tamanho(lago, tabela='')` |
 | `vacuo(lago)` |
+
+
+---
+
+## Arcane.Ponte
+
+A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve.
+
+```dataforge
+adopt Arcane.Ponte as Ponte
+```
+
+**Funções (12)**
+
+| Assinatura |
+|------------|
+| `assinatura(valor)` |
+| `atributos(valor)` |
+| `chamavel(x)` |
+| `cluster(valor)` |
+| `doc(valor)` |
+| `empacotado() -> bool` |
+| `importar(nome)` |
+| `onde() -> str` |
+| `tem(nome)` |
+| `tipo(valor) -> str` |
+| `vault(valor)` |
+| `versao(nome)` |
 
 
 ---

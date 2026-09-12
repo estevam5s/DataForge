@@ -3,6 +3,7 @@ DataForge Interpreter
 Tree-walking interpreter that executes AST nodes.
 """
 
+import numbers as _numeros
 import sys
 import threading
 import time
@@ -1546,7 +1547,26 @@ class Interpreter:
         O mesmo motivo de '_comparar' e '_chamar_metodo': o compilador
         de closures ja tem o objeto, e nao pode percorrer a arvore de
         novo para obte-lo.
+
+        Esta casca existe para a POSICAO. Um objeto que decide sozinho o
+        que fazer com um nome desconhecido — a ponte para o Python e o
+        caso — levanta o proprio erro, com a mensagem boa, e sem linha:
+        quem levanta nao conhece o arquivo. A linha esta aqui, e so
+        aqui, porque o 'hasattr' la dentro dispara o erro antes de
+        qualquer outro ponto poder captura-lo.
         """
+        try:
+            return self._ler_membro_cru(obj, node, env, membro)
+        except DataForgeError as erro:
+            if not erro.line:
+                nome = membro if membro is not None else \
+                    getattr(node, "member", "")
+                erro.line, erro.column = node.line, node.column
+                erro.span = len(str(nome))
+                erro.args = (erro.format(),)
+            raise
+
+    def _ler_membro_cru(self, obj, node, env, membro=None):
         membro = membro if membro is not None else node.member
         # Handle root (super) proxy
         if isinstance(obj, _RootProxy):
@@ -4032,9 +4052,20 @@ class Interpreter:
         env.set_local(alias, modulo)
 
     def _resolver_modulo(self, nome_modulo, node, env):
-        """Encontra o módulo: cache, stdlib ou arquivo .df."""
+        """Encontra o módulo: a ponte, o cache, a stdlib ou um .df."""
         if nome_modulo in self.modules:
             return self.modules[nome_modulo]
+
+        # 'Python.x' abre a ponte para o Python. Vem antes de tudo o
+        # mais porque e um espaco de nomes RESERVADO: nao ha modulo da
+        # stdlib nem arquivo local que deva responder por ele, e deixar
+        # que respondessem faria um 'Python.df' no disco sequestrar o
+        # import sem nada denunciando.
+        from .ponte import e_caminho_de_ponte, importar as importar_python
+        if e_caminho_de_ponte(nome_modulo):
+            modulo = importar_python(nome_modulo, node)
+            self.modules[nome_modulo] = modulo
+            return modulo
 
         from .stdlib import get_module, list_modules
         modulo = get_module(nome_modulo)
@@ -5363,6 +5394,18 @@ class Interpreter:
         if isinstance(value, int):
             return "Integer"
         if isinstance(value, float):
+            return "Float"
+        # Numero que veio do outro lado da ponte. 'np.int64' nao e
+        # subclasse de 'int', mas FAZ conta de inteiro — e e isso que
+        # 'typeof' responde, senao 'given typeof(x) is "Integer"' seria
+        # falso para um valor que soma, divide e compara como um.
+        #
+        # 'numbers' e o protocolo padrao do Python para isto; nao ha
+        # nada de numpy aqui, e 'Fraction' e 'Decimal' entram pela
+        # mesma porta.
+        if isinstance(value, _numeros.Integral):
+            return "Integer"
+        if isinstance(value, _numeros.Real):
             return "Float"
         if isinstance(value, str):
             return "String"

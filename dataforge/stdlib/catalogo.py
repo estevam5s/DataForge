@@ -56,6 +56,7 @@ DESCRICOES = {
     "Arcane.Stream": ("Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo.", "Stream / Corrente"),
     "Arcane.Observar": ("Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados.", "Observar / Observe"),
     "Arcane.Lago": ("Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação.", "Lago / Parquet"),
+    "Arcane.Ponte": ("A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve.", "Ponte / Bridge"),
     "Arcane.Qualidade": ("Qualidade de dados: as seis dimensões, perfil, validação e limpeza.", "Qualidade / Quality"),
 }
 
