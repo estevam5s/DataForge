@@ -5,8 +5,8 @@
 # DataForge para VS Code
 
 **Suporte completo à linguagem [DataForge](https://dataforge-lang.vercel.app)** —
-servidor de linguagem, Big-O no editor, custo de import, 42 comandos e
-103 snippets.
+servidor de linguagem, Big-O no editor, custo de import, cobertura de
+testes, painéis Vitrine, geradores DevOps, 48 comandos e 123 snippets.
 
 [Documentação](https://dataforge-lang.vercel.app/docs) ·
 [Exercícios](https://dataforge-lang.vercel.app/docs/exercicios) ·
@@ -84,7 +84,7 @@ E há `Depurar`, que usa os breakpoints do VS Code, e
 
 ---
 
-## Os 42 comandos
+## Os 48 comandos
 
 Abra a paleta (`Ctrl+Shift+P`) e digite **DataForge**.
 
@@ -93,8 +93,16 @@ execuções · depurar · observar e reexecutar · avaliar expressão ·
 perfilar (tempo por ação) · medir desempenho (bench)
 
 **Qualidade** — verificar erros · formatar · lint · corrigir o que dá ·
-rodar os testes · rodar o Crucible · analisar complexidade · tabela de
-referência do Big-O · *por que isto é assim?*
+rodar os testes · rodar o Crucible · **cobertura** (quais linhas os
+testes rodaram) · **cobertura mínima** (reprova abaixo de N%) · analisar
+complexidade · tabela de referência do Big-O · *por que isto é assim?*
+
+**Vitrine** — subir o painel recarregando ao salvar · *por que não
+sobe?* (o diagnóstico, da causa mais provável para a menos)
+
+**DevOps** — **gerar artefatos** (Dockerfile, compose, CI, Kubernetes,
+Helm, Terraform, nginx, Prometheus, SBOM, segredos) · *o que falta para
+subir?*
 
 **Projeto** — novo projeto (oito modelos, vindos da própria CLI) ·
 inventário · gerar documentação · ver o `forge.toml` · limpar caches
@@ -119,7 +127,14 @@ Um ícone do DataForge na barra de atividades, com duas árvores:
 que o seu código usa. **A senha vai para o cofre do sistema**, nunca
 para o `settings.json` — que costuma acabar num repositório.
 
-**Ferramentas** — os comandos que você mais usa, a um clique.
+**Ferramentas** — oito grupos, a um clique: Executar, Qualidade,
+Vitrine, DevOps, Complexidade, Pacotes, Inspecionar e Projeto.
+
+A árvore é **estática** de propósito: nada nela consulta o disco nem
+roda processo ao abrir. Um painel que trava enquanto o editor carrega é
+pior que um painel ausente. E o que precisa de um `.df` aberto fica
+**apagado** em vez de sumir — um item que desaparece parece defeito, um
+item apagado ensina quando ele serve.
 
 ---
 
@@ -136,14 +151,39 @@ No macOS, `Cmd` no lugar de `Ctrl`.
 
 ---
 
-## 103 snippets
+## 123 snippets
 
 Cobrem a linguagem inteira: `action`, `blueprint` com visibilidade e
 sobrecarga de operadores, `record`, `enum`, `trait`, `match`/`point`,
 pipelines, `stream action`, rotas do Kiln, suítes do Crucible e modelos
 do Forge.
 
+Os que economizam mais tempo:
+
+| Digite | Sai |
+|---|---|
+| `vitrine` | um painel completo — título, filtro, métricas, gráfico |
+| `vcache` | `mark @V.cache` — obrigatório num painel, que roda inteiro a cada clique |
+| `vform` | um formulário, cujos valores só chegam no envio |
+| `vteste` | testar uma página sem navegador |
+| `kupload` | receber arquivo, com as três recusas de segurança |
+| `ksse` | uma resposta que não termina (o servidor empurra) |
+| `kws` | WebSocket com sala |
+| `btrans` | a operação inteira, ou nenhuma |
+| `bupsert` | insere ou atualiza, sem duplicar |
+| `bincr` | a baixa de estoque **no banco**, não na memória |
+| `bagg` | relatório agrupado, sem escrever SQL |
+| `bpag` | listagem paginada, com total e número de páginas |
+| `bbusca` | busca textual FTS5 — `LIKE %x%` varre a tabela inteira |
+| `bmig` | uma migração, com ida e volta |
+| `snapshot` | instantâneo, para o que é grande demais para escrever à mão |
+| `cbanco` | um teste que grava e não é visto pelo seguinte |
+
 Digite o começo e `Tab`.
+
+**Há um teste que compila os 123.** Um snippet que não compila é pior
+que um snippet ausente: ele ensina sintaxe errada, e quem o usa
+acredita.
 
 ---
 

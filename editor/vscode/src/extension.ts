@@ -107,6 +107,12 @@ export function activate(contexto: vscode.ExtensionContext) {
     ['dataforge.conexoes.remover', (i: Item) => conexoes.remover(i)],
     ['dataforge.conexoes.testar', (i: Item) => i.conexao && conexoes.testar(i.conexao)],
     ['dataforge.conexoes.inserir', (i: Item) => conexoes.inserirCodigo(i)],
+    ['dataforge.cobertura', cmd.cobertura],
+    ['dataforge.coberturaMinima', cmd.coberturaMinima],
+    ['dataforge.vitrineDev', cmd.vitrineDev],
+    ['dataforge.vitrineDoctor', cmd.vitrineDoctor],
+    ['dataforge.devops', cmd.devops],
+    ['dataforge.devopsDoctor', cmd.devopsDoctor],
     ['dataforge.documentacao', () =>
       vscode.env.openExternal(
         vscode.Uri.parse('https://dataforge-lang.vercel.app/docs'))],

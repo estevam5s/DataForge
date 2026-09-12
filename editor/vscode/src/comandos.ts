@@ -240,3 +240,142 @@ export async function observarArquivo(): Promise<void> {
   await salvarSePreciso(doc);
   await rodarNoTerminal(doc, ['watch']);
 }
+
+// ── cobertura ──────────────────────────────────────────────
+
+export async function cobertura(): Promise<void> {
+  const doc = documentoAtual();
+  if (!doc) return;
+  await salvarSePreciso(doc);
+  // No terminal, e não num documento: o relatório tem barras coloridas
+  // que só existem com ANSI, e ver a barra vermelha ao lado do arquivo
+  // é o que faz alguém olhar duas vezes.
+  await rodarNoTerminal(doc, ['test', '--cobertura', '--linhas']);
+}
+
+export async function coberturaMinima(): Promise<void> {
+  const doc = documentoAtual();
+  if (!doc) return;
+  const minimo = await vscode.window.showInputBox({
+    prompt: 'Cobertura mínima exigida (%)',
+    value: '80',
+    placeHolder: '80',
+    validateInput: (v) =>
+      /^\d{1,3}$/.test(v.trim()) && Number(v) <= 100
+        ? undefined
+        : 'um número de 0 a 100',
+  });
+  if (!minimo) return;
+  await salvarSePreciso(doc);
+  await rodarNoTerminal(doc, ['test', `--minimo=${minimo.trim()}`]);
+}
+
+// ── Vitrine ────────────────────────────────────────────────
+
+export async function vitrineDev(): Promise<void> {
+  const doc = documentoAtual();
+  if (!doc) return;
+  await salvarSePreciso(doc);
+  await rodarNoTerminal(doc, ['vitrine', 'dev']);
+  // O 'dev' recarrega ao salvar e não termina: o link é o que falta
+  // para a pessoa não ter de copiar a porta do log.
+  const abrir = await vscode.window.showInformationMessage(
+    'Vitrine no ar em http://127.0.0.1:8501', 'Abrir no navegador');
+  if (abrir) {
+    await vscode.env.openExternal(
+      vscode.Uri.parse('http://127.0.0.1:8501'));
+  }
+}
+
+export async function vitrineDoctor(): Promise<void> {
+  const doc = documentoAtual();
+  if (!doc) return;
+  await mostrar(['vitrine', 'doctor', '--no-color'],
+                'diagnóstico da Vitrine', 'plaintext', raizDe(doc));
+}
+
+// ── DevOps ─────────────────────────────────────────────────
+
+/** O que 'dataforge devops' sabe gerar, e o que cada um resolve. */
+const ARTEFATOS: { rotulo: string; sub: string; detalhe: string }[] = [
+  { rotulo: 'Tudo o que faz sentido', sub: 'init',
+    detalhe: 'Docker, CI, e k8s se for servidor' },
+  { rotulo: 'Docker', sub: 'docker',
+    detalhe: 'Dockerfile, .dockerignore, compose' },
+  { rotulo: 'CI (GitHub Actions)', sub: 'ci',
+    detalhe: '.github/workflows/ci.yml' },
+  { rotulo: 'Kubernetes', sub: 'k8s',
+    detalhe: 'deployment, service, ingress, hpa' },
+  { rotulo: 'Helm', sub: 'helm', detalhe: 'um chart' },
+  { rotulo: 'Terraform', sub: 'terraform', detalhe: 'o esqueleto' },
+  { rotulo: 'nginx', sub: 'nginx',
+    detalhe: 'proxy reverso com TLS, WebSocket e SSE' },
+  { rotulo: 'Observabilidade', sub: 'observar',
+    detalhe: 'Prometheus, Grafana, OpenTelemetry' },
+  { rotulo: 'SBOM', sub: 'sbom', detalhe: 'o inventário, em CycloneDX' },
+  { rotulo: 'Segredos', sub: 'secrets',
+    detalhe: '.env.example e o .gitignore' },
+];
+
+export async function devops(): Promise<void> {
+  const raiz = raizDoProjeto();
+  if (!raiz) return;
+
+  const escolha = await vscode.window.showQuickPick(
+    ARTEFATOS.map((a) => ({
+      label: a.rotulo,
+      description: a.detalhe,
+      sub: a.sub,
+    })),
+    { placeHolder: 'O que gerar? (arquivo que já existe é preservado)' },
+  );
+  if (!escolha) return;
+
+  const binario = await exigirExecutavel();
+  if (!binario) return;
+
+  // '--seco' PRIMEIRO, sempre. O comando não sobrescreve nada sem
+  // '--forcar', mas ver a lista antes é o que evita a surpresa de
+  // descobrir um k8s/ inteiro num projeto onde ninguém queria um.
+  const previa = await rodar(binario,
+                             ['devops', escolha.sub, '--seco', '--no-color'],
+                             30000, raiz);
+  const linhas = (previa.saida || previa.erro || '')
+    .split('\n')
+    .filter((l) => l.trim().startsWith('+') || l.includes('já existe'))
+    .map((l) => l.trim());
+
+  if (linhas.length === 0) {
+    vscode.window.showInformationMessage(
+      'DataForge: nada a gerar aqui.');
+    return;
+  }
+
+  const seguir = await vscode.window.showInformationMessage(
+    `Gerar ${linhas.length} arquivo(s)?`,
+    { modal: true, detail: linhas.join('\n') },
+    'Gerar',
+  );
+  if (seguir !== 'Gerar') return;
+
+  await mostrar(['devops', escolha.sub, '--no-color'],
+                `devops ${escolha.sub}`, 'plaintext', raiz);
+}
+
+export async function devopsDoctor(): Promise<void> {
+  const raiz = raizDoProjeto();
+  if (!raiz) return;
+  await mostrar(['devops', 'doctor', '--no-color'],
+                'o que falta para subir', 'plaintext', raiz);
+}
+
+/** A raiz do projeto, ou avisa e devolve undefined. */
+function raizDoProjeto(): string | undefined {
+  const doc = vscode.window.activeTextEditor?.document;
+  if (doc && doc.uri.scheme === 'file') return raizDe(doc);
+  const pasta = vscode.workspace.workspaceFolders?.[0];
+  if (pasta) return pasta.uri.fsPath;
+  vscode.window.showWarningMessage(
+    'DataForge: abra a pasta do projeto primeiro.');
+  return undefined;
+}

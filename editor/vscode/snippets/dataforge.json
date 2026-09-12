@@ -942,5 +942,243 @@
       "    yield self.${2:campo}"
     ],
     "description": "Propriedade só de leitura"
+  },
+  "painel Vitrine": {
+    "prefix": "vitrine",
+    "body": [
+      "adopt Arcane.Vitrine as V",
+      "",
+      "action ${1:painel}():",
+      "    V.titulo(\"${2:Título}\", icone := \"📊\")",
+      "    ${3:regiao} := V.escolha(\"${4:Região}\", ${5:opcoes})",
+      "",
+      "    colunas := V.colunas(3)",
+      "    colunas[0].metrica(\"${6:Receita}\", ${7:valor})",
+      "",
+      "    V.grafico_barras(${8:dados}, x := \"${9:mes}\")",
+      "",
+      "V.rodar(${1:painel}, porta := 8501)"
+    ],
+    "description": "Um painel Vitrine completo"
+  },
+  "componente Vitrine": {
+    "prefix": "vcomp",
+    "body": [
+      "action ${1:cartao_de}(${2:dados}):",
+      "    caixa := V.cartao(\"${3:Título}\")",
+      "    caixa.metrica(\"${4:Rótulo}\", ${2:dados}[\"${5:campo}\"])"
+    ],
+    "description": "Um componente reaproveitável"
+  },
+  "cache da Vitrine": {
+    "prefix": "vcache",
+    "body": [
+      "mark @V.cache(validade := ${1:120})",
+      "action ${2:carregar}(${3:chave}):",
+      "    yield ${4:consultar(chave)}"
+    ],
+    "description": "Uma consulta em cache — o painel roda inteiro a cada clique"
+  },
+  "formulário Vitrine": {
+    "prefix": "vform",
+    "body": [
+      "forma := V.formulario(\"${1:cadastro}\")",
+      "${2:nome} := forma.entrada(\"${3:Nome}\")",
+      "",
+      "given forma.enviar(\"${4:Salvar}\"):",
+      "    ${5:salvar(nome)}",
+      "    V.sucesso(\"${6:Pronto.}\")"
+    ],
+    "description": "Um formulário — os valores só chegam no envio"
+  },
+  "login da Vitrine": {
+    "prefix": "vlogin",
+    "body": [
+      "action ${1:conferir}(usuario, senha):",
+      "    linha := Banco.query_one(db,",
+      "        \"SELECT * FROM usuarios WHERE email = ?\", [usuario])",
+      "    given linha is not void and Crypto.conferir_senha(senha, linha[\"hash\"]):",
+      "        yield {\"nome\": linha[\"nome\"], \"papel\": linha[\"papel\"]}",
+      "    yield void",
+      "",
+      "V.autenticacao(${1:conferir}, {\"admin\": [\"ver\", \"editar\"]})"
+    ],
+    "description": "Autenticação da Vitrine"
+  },
+  "teste de painel": {
+    "prefix": "vteste",
+    "body": [
+      "t := V.testar(${1:painel})",
+      "t.selecionar(\"${2:Região}\", \"${3:Norte}\")",
+      "assert t.metrica(\"${4:Receita}\") is not void",
+      "assert not t.falhou()"
+    ],
+    "description": "Testar uma página sem navegador"
+  },
+  "upload no Kiln": {
+    "prefix": "kupload",
+    "body": [
+      "route POST \"${1:/importar}\":",
+      "    arquivo := Kiln.upload(req, \"${2:planilha}\")",
+      "    given arquivo is void:",
+      "        respond 400 json {\"erro\": \"nenhum arquivo\"}",
+      "",
+      "    gravado := Kiln.salvar_upload(arquivo, \"${3:envios}\",",
+      "                                  tipos := [\"${4:.csv}\"],",
+      "                                  limite := 5242880)",
+      "    respond json {\"em\": gravado[\"caminho\"]}"
+    ],
+    "description": "Receber arquivo, com as três recusas"
+  },
+  "SSE no Kiln": {
+    "prefix": "ksse",
+    "body": [
+      "action ${1:progresso}(fluxo):",
+      "    cycle i from 1 to ${2:total}:",
+      "        given not fluxo.aberto:",
+      "            halt",
+      "        fluxo.enviar({\"feitos\": i}, tipo := \"${3:progresso}\")",
+      "    fluxo.enviar({\"ok\": yes}, tipo := \"fim\")",
+      "",
+      "server ${4:app} on 8080:",
+      "    route GET \"${5:/eventos}\":",
+      "        respond Kiln.sse(${1:progresso})"
+    ],
+    "description": "Uma resposta que não termina — o servidor empurra"
+  },
+  "WebSocket no Kiln": {
+    "prefix": "kws",
+    "body": [
+      "sala := Kiln.sala(\"${1:chat}\")",
+      "",
+      "action ${2:conversa}(req, ws):",
+      "    sala.entrar(ws)",
+      "    ws.enviar({\"bem_vindo\": ws.id, \"na_sala\": sala.quantos()})",
+      "    persist ws.aberto:",
+      "        msg := ws.receber(prazo := 60)",
+      "        given msg is void or msg is \"sair\":",
+      "            halt",
+      "        sala.transmitir({\"de\": ws.id, \"texto\": msg}, exceto := ws)",
+      "    sala.sair(ws)",
+      "",
+      "Kiln.ws(app, \"${3:/ws}\", ${2:conversa})"
+    ],
+    "description": "WebSocket com sala — os dois falam"
+  },
+  "stream no Kiln": {
+    "prefix": "kstream",
+    "body": [
+      "action ${1:exportar}(fluxo):",
+      "    fluxo.escrever(\"${2:id,valor}\\n\")",
+      "    cycle linha in ${3:linhas}:",
+      "        fluxo.escrever($\"{linha[\"id\"]},{linha[\"valor\"]}\\n\")",
+      "",
+      "server ${4:app} on 8080:",
+      "    route GET \"${5:/export.csv}\":",
+      "        respond Kiln.stream(${1:exportar}, \"text/csv\")"
+    ],
+    "description": "Um arquivo grande, sem montar na memória"
+  },
+  "transação de banco": {
+    "prefix": "btrans",
+    "body": [
+      "action ${1:operacao}(${2:args}):",
+      "    action corpo():",
+      "        // erro aqui desfaz TUDO",
+      "        yield ${3:resultado}",
+      "",
+      "    yield Banco.transacao(db, corpo)"
+    ],
+    "description": "A operação inteira, ou nenhuma"
+  },
+  "upsert": {
+    "prefix": "bupsert",
+    "body": [
+      "Banco.upsert(db, \"${1:produtos}\", {",
+      "    \"${2:sku}\": ${3:sku},",
+      "    \"${4:nome}\": ${5:nome}",
+      "}, \"${2:sku}\")"
+    ],
+    "description": "Insere ou atualiza — não duplica"
+  },
+  "baixa de estoque": {
+    "prefix": "bincr",
+    "body": [
+      "Banco.increment(db, \"${1:produtos}\", \"${2:estoque}\",",
+      "                -${3:quantidade}, {\"id\": ${4:id}})"
+    ],
+    "description": "A soma no banco, não na memória"
+  },
+  "relatório agrupado": {
+    "prefix": "bagg",
+    "body": [
+      "Banco.aggregate(db, \"${1:vendas}\", {",
+      "    \"${2:receita}\": [\"sum\", \"${3:valor}\"],",
+      "    \"${4:quantas}\": [\"count\", \"*\"]",
+      "}, group_by := \"${5:vendedor}\", order_by := \"${2:receita} DESC\")"
+    ],
+    "description": "Relatório sem escrever SQL"
+  },
+  "listagem paginada": {
+    "prefix": "bpag",
+    "body": [
+      "pagina := Banco.paginate(db, \"${1:produtos}\",",
+      "                         ${2:numero}, ${3:20},",
+      "                         order_by := \"${4:nome}\")",
+      "// pagina[\"itens\"], [\"total\"], [\"paginas\"], [\"tem_proxima\"]"
+    ],
+    "description": "Uma fatia, com o que a tela precisa"
+  },
+  "busca textual": {
+    "prefix": "bbusca",
+    "body": [
+      "Banco.create_search(db, \"${1:produtos}\", [\"${2:nome}\"])",
+      "achados := Banco.search(db, \"${1:produtos}\", ${3:termo})"
+    ],
+    "description": "FTS5 — LIKE %x% varre a tabela inteira"
+  },
+  "migração": {
+    "prefix": "bmig",
+    "body": [
+      "steady MIGRACOES := [",
+      "    {",
+      "        \"version\": ${1:1},",
+      "        \"description\": \"${2:o que muda}\",",
+      "        \"up\": \"${3:CREATE TABLE x (id INTEGER PRIMARY KEY);}\",",
+      "        \"down\": \"${4:DROP TABLE x;}\"",
+      "    }",
+      "]",
+      "",
+      "Banco.migrate(db, MIGRACOES)"
+    ],
+    "description": "Mudar o schema sem perder dado"
+  },
+  "instantâneo": {
+    "prefix": "snapshot",
+    "body": [
+      "trial \"${1:o relatorio nao muda sem aviso}\":",
+      "    Crucible.snapshot(\"${2:relatorio}\", ${3:gerar_relatorio()})"
+    ],
+    "description": "Para o que é grande demais para escrever à mão"
+  },
+  "banco isolado": {
+    "prefix": "cbanco",
+    "body": [
+      "crucible \"${1:cadastro}\":",
+      "    Crucible.before(lambda suite: Crucible.banco(db))",
+      "",
+      "    trial \"${2:grava}\":",
+      "        // a transação se desfaz no fim do trial",
+      "        Crucible.expect(${3:Banco.count(db, \"livros\")}).to_be(${4:1})"
+    ],
+    "description": "Um teste que grava não é visto pelo seguinte"
+  },
+  "teste instável": {
+    "prefix": "cflaky",
+    "body": [
+      "r := Crucible.flaky(lambda: ${1:consultar()}, ${2:3}, ${3:0.5})",
+      "Crucible.expect(r[\"ok\"]).to_be(yes)"
+    ],
+    "description": "Para rede e relógio — não para esconder bug"
   }
 }

@@ -327,6 +327,36 @@
         "title": "Todos os códigos de erro",
         "category": "DataForge",
         "icon": "$(error)"
+      },
+      {
+        "command": "dataforge.cobertura",
+        "title": "Cobertura: quais linhas os testes rodaram",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.coberturaMinima",
+        "title": "Cobertura: exigir um mínimo…",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.vitrineDev",
+        "title": "Vitrine: subir recarregando ao salvar",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.vitrineDoctor",
+        "title": "Vitrine: por que não sobe?",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.devops",
+        "title": "DevOps: gerar artefatos…",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.devopsDoctor",
+        "title": "DevOps: o que falta para subir?",
+        "category": "DataForge"
       }
     ],
     "menus": {

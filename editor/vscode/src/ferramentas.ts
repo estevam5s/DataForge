@@ -54,6 +54,24 @@ const GRUPOS: Grupo[] = [
       { titulo: 'Lint', descricao: 'estilo e higiene', comando: 'dataforge.lint', icone: 'checklist', precisaDeArquivo: true },
       { titulo: 'Corrigir', descricao: 'o que dá para corrigir', comando: 'dataforge.corrigir', icone: 'wand', precisaDeArquivo: true },
       { titulo: 'Gerar doc', descricao: 'dos comentários', comando: 'dataforge.gerarDoc', icone: 'book', precisaDeArquivo: true },
+      { titulo: 'Cobertura', descricao: 'o que os testes NÃO rodaram', comando: 'dataforge.cobertura', icone: 'shield', precisaDeArquivo: true },
+      { titulo: 'Cobertura mínima…', descricao: 'reprova abaixo de N%', comando: 'dataforge.coberturaMinima', icone: 'verified', precisaDeArquivo: true },
+    ],
+  },
+  {
+    titulo: 'Vitrine',
+    icone: 'dashboard',
+    itens: [
+      { titulo: 'Subir (dev)', descricao: 'recarrega ao salvar', comando: 'dataforge.vitrineDev', icone: 'play-circle', precisaDeArquivo: true },
+      { titulo: 'Por que não sobe?', descricao: 'diagnóstico', comando: 'dataforge.vitrineDoctor', icone: 'pulse', precisaDeArquivo: true },
+    ],
+  },
+  {
+    titulo: 'DevOps',
+    icone: 'rocket',
+    itens: [
+      { titulo: 'Gerar artefatos…', descricao: 'Docker, CI, k8s, nginx', comando: 'dataforge.devops', icone: 'rocket' },
+      { titulo: 'O que falta para subir?', descricao: 'devops doctor', comando: 'dataforge.devopsDoctor', icone: 'checklist' },
     ],
   },
   {
