@@ -470,3 +470,100 @@ def test_o_glob_do_pyproject_alcanca_o_node_modules():
     conteudo = open(os.path.join(raiz, "pyproject.toml"), encoding="utf-8").read()
     assert "editor/vscode/node_modules/**/*" in conteudo, (
         "sem um glob recursivo, o wheel sai sem o cliente LSP")
+
+
+# ── O README da extensão descreve a extensão de verdade ──────
+
+def test_o_readme_nao_promete_comando_que_nao_existe():
+    """Ele cita números e atalhos; os dois envelhecem sozinhos.
+
+    O README anterior listava 4 atalhos de 42 comandos e dizia "103
+    snippets". Números escritos à mão foram, nesta sessão, a fonte de
+    quinze afirmações falsas no site — aqui a fonte é o
+    `package.json`.
+    """
+    import json
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base = os.path.join(raiz, "editor", "vscode")
+
+    readme = open(os.path.join(base, "README.md"), encoding="utf-8").read()
+    with open(os.path.join(base, "package.json"), encoding="utf-8") as f:
+        manifesto = json.load(f)
+
+    contribui = manifesto["contributes"]
+    comandos = len(contribui["commands"])
+    with open(os.path.join(base, "snippets", "dataforge.json"),
+              encoding="utf-8") as f:
+        snippets = len(json.load(f))
+
+    achado = re.search(r"(\d+) comandos", readme)
+    assert achado, "o README nao diz quantos comandos ha"
+    assert int(achado.group(1)) == comandos, (
+        f"o README diz {achado.group(1)} comandos, o manifesto tem {comandos}")
+
+    achado = re.search(r"(\d+) snippets", readme)
+    assert achado, "o README nao diz quantos snippets ha"
+    assert int(achado.group(1)) == snippets, (
+        f"o README diz {achado.group(1)} snippets, ha {snippets}")
+
+
+def test_todo_atalho_do_readme_existe_no_manifesto():
+    """Um atalho documentado que não funciona é pior que nenhum."""
+    import json
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base = os.path.join(raiz, "editor", "vscode")
+    readme = open(os.path.join(base, "README.md"), encoding="utf-8").read()
+    with open(os.path.join(base, "package.json"), encoding="utf-8") as f:
+        teclas = {k["key"].lower()
+                  for k in json.load(f)["contributes"].get("keybindings", [])}
+
+    # Atalhos do proprio VS Code, que o README cita ao explicar como
+    # chegar aos comandos. Eles nao sao nossos para declarar.
+    do_editor = {"ctrl+shift+p"}
+
+    citados = {t.lower() for t in re.findall(r"`(Ctrl\+[A-Za-z0-9+]+)`", readme)}
+    assert citados, "o README nao cita nenhum atalho"
+
+    faltando = sorted(citados - teclas - do_editor)
+    assert not faltando, (
+        f"o README promete atalhos que o manifesto nao tem: {faltando}")
+
+
+def test_toda_opcao_de_configuracao_esta_documentada():
+    """Uma opção que ninguém documenta é uma opção que ninguém usa."""
+    import json
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base = os.path.join(raiz, "editor", "vscode")
+    readme = open(os.path.join(base, "README.md"), encoding="utf-8").read()
+    with open(os.path.join(base, "package.json"), encoding="utf-8") as f:
+        opcoes = json.load(f)["contributes"]["configuration"]["properties"]
+
+    faltando = [nome for nome in opcoes if nome not in readme]
+    assert not faltando, f"opcoes sem documentacao no README: {faltando}"
+
+
+def test_o_readme_mostra_a_marca():
+    """A extensão aparece numa galeria ao lado de centenas de outras."""
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    readme = open(os.path.join(raiz, "editor", "vscode", "README.md"),
+                  encoding="utf-8").read()
+    assert "marca-256.png" in readme or "<img" in readme, \
+        "o README nao mostra o logo da linguagem"
+
+
+def test_o_readme_diz_o_que_a_extensao_NAO_faz():
+    """A seção mais honesta, e a que evita mais frustração.
+
+    Sem ela, alguém passa vinte minutos procurando a refatoração
+    automática que não existe.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    readme = open(os.path.join(raiz, "editor", "vscode", "README.md"),
+                  encoding="utf-8").read()
+    assert "não faz" in readme.lower() or "nao faz" in readme.lower(), \
+        "falta a secao do que a extensao nao faz"
