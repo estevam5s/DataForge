@@ -69,7 +69,8 @@ com_lista := Crucible.timed(lambda => [x cycle x in range(100000) given x % 2 is
 
 out "preguicoso (5 itens):", round(com_preguica["total_ms"], 3), "ms"
 out "lista inteira:       ", round(com_lista["total_ms"], 1), "ms"
-assert com_preguica["total_ms"] smaller com_lista["total_ms"],
+// Margem: medido, a razao fica em ~130x. Ver a nota do 214.
+assert com_lista["total_ms"] / com_preguica["total_ms"] bigger 10,
 "a preguica so paga pelo que voce pede"
 
 // A regra:

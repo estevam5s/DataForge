@@ -10,7 +10,19 @@
 
 adopt Crucible
 
-n := 3000
+// 100 mil, e nao 3 mil.
+//
+// Com n = 3000 a razao entre as duas buscas ficava em ~2x, e uma volta
+// em cinco dava 1,3x — o 'assert' abaixo virava sorteio, e a CI
+// reprovou nisso num macOS carregado. A causa nao e a medicao: e que o
+// 'in' de um cluster e um laco em C, rapido o bastante para o CUSTO DE
+// DESPACHO do interpretador dominar os dois lados e mascarar a
+// diferenca assintotica.
+//
+// Medido aqui: 2,7x com 3 mil, 9x com 20 mil, 43x com 100 mil, 127x
+// com 300 mil. So a partir de 100 mil a conta que este exercicio
+// ensina fica visivel acima do ruido.
+n := 100000
 lista := [i cycle i in range(n)]
 mapa := {}
 cycle i in range(n):
@@ -25,13 +37,20 @@ assert mapa["500"] is 500, "vault tambem"
 // A medicao repete 200 vezes: uma busca sozinha leva microssegundos, e
 // o custo de medir dominaria o resultado. Medir uma vez so e o erro
 // mais comum de quem compara desempenho.
-por_valor := Crucible.timed(lambda => 999999 in lista, 200)
-por_chave := Crucible.timed(lambda => mapa.has("999999"), 200)
+por_valor := Crucible.timed(lambda => -1 in lista, 50)
+por_chave := Crucible.timed(lambda => mapa.has("nao-existe"), 50)
+
+razao := por_valor["media_ms"] / por_chave["media_ms"]
 
 out "procurar num cluster de", n, ":", round(por_valor["media_ms"], 4), "ms"
 out "procurar num vault  de", n, ":", round(por_chave["media_ms"], 5), "ms"
-assert por_valor["media_ms"] bigger por_chave["media_ms"],
-"o vault ganha, e a vantagem cresce com n"
+
+// A margem e 5x, e nao "maior que": medido, o valor fica em ~43x.
+// Cobrar so 'bigger' passaria por acidente numa medicao quebrada, e
+// cobrar 40x reprovaria numa maquina lenta. 5x e o intervalo onde a
+// afirmacao e verdadeira e a medicao nao e sorteio.
+assert razao bigger 5,
+"o vault ganha por uma ordem de grandeza, e a vantagem cresce com n"
 
 // Contar ocorrencias: uma passada, nao um laco aninhado
 palavras := ["a", "b", "a", "c", "b", "a"]

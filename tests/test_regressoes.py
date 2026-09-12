@@ -3717,3 +3717,47 @@ handle Error as e:
 ''')
     assert "Void" in saida
     assert "?." in saida
+
+
+def test_nenhum_exercicio_compara_dois_tempos_sem_margem():
+    """`assert a_ms bigger b_ms` é um sorteio quando os dois lados são
+    microssegundos.
+
+    O exercício 215 comparava uma busca O(n) num cluster de **3 mil**
+    itens com uma busca O(1) num vault, e a razão medida era de ~2x —
+    com uma volta em cinco dando 1,3x. Reprovou a CI num macOS
+    carregado, no teste que compara a saída com a compilação ligada e
+    desligada.
+
+    A causa não era a medição: o `in` de um cluster é um laço em C,
+    rápido o bastante para o **custo de despacho do interpretador**
+    dominar os dois lados e mascarar a diferença assintótica. Medido:
+    2,7x com 3 mil, 9x com 20 mil, 43x com 100 mil, 127x com 300 mil.
+
+    A correção é medir onde a diferença aparece e cobrar uma **margem**:
+    `razao bigger 5` é verdadeiro com folga e falha alto se a medição
+    quebrar — `bigger` sozinho passa por acidente.
+    """
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    suspeitos = []
+
+    # Um 'assert' que compara dois campos de tempo, sem divisão nem
+    # margem: os dois lados são medidas, e o resultado é ruído.
+    padrao = re.compile(
+        r'assert\s+\w+\[\"(?:total_ms|media_ms|mediana_ms|p95_ms)\"\]\s*'
+        r'(?:bigger|smaller)(?:_eq)?\s+\w+\[\"(?:total_ms|media_ms|'
+        r'mediana_ms|p95_ms)\"\]')
+
+    for caminho in glob.glob(os.path.join(raiz, "exercicios", "*", "*.df")):
+        fonte = open(caminho, encoding="utf-8").read()
+        for achado in padrao.finditer(fonte):
+            linha = fonte[:achado.start()].count("\n") + 1
+            suspeitos.append(
+                f"{os.path.relpath(caminho, raiz)}:{linha}")
+
+    assert not suspeitos, (
+        "exercício comparando dois tempos medidos sem margem — divida e "
+        "cobre um fator:\n  " + "\n  ".join(suspeitos))

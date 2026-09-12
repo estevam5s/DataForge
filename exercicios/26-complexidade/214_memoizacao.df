@@ -39,7 +39,12 @@ rapido := Crucible.timed(lambda => fib(22))
 out "fib(22) ingenuo:  ", round(lento["total_ms"], 2), "ms"
 out "fib(22) memoizado:", round(rapido["total_ms"], 3), "ms"
 out "razao:            ", round(lento["total_ms"] / rapido["total_ms"], 0), "x"
-assert lento["total_ms"] bigger rapido["total_ms"], "o memoizado ganha"
+// Margem, e nao 'bigger': medido, a razao fica em ~440x. Comparar
+// dois tempos com 'bigger' passa por acidente quando a medicao
+// quebra — e foi o que aconteceu no 215, que tinha margem de 2x e
+// reprovou a CI num macOS carregado.
+assert lento["total_ms"] / rapido["total_ms"] bigger 20,
+"o memoizado ganha por duas ordens de grandeza"
 
 // E o que so o memoizado consegue: fib(90) tem 19 digitos, e o
 // ingenuo levaria mais tempo que a idade do universo.

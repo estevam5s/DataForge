@@ -152,6 +152,20 @@ if [ "$MODO" != "rapido" ]; then
         printf '   (site/node_modules ausente: rode npm ci)\n'
     fi
 
+    passo "a doc da organizacao esta em dia"
+    # Fala com a rede, e por isso o silencio nao pode reprovar: quem
+    # esta offline nao tem como saber se a organizacao divergiu, e
+    # travar a verificacao local por isso seria pior que nao conferir.
+    # So o DESVIO CONFIRMADO reprova.
+    if $PY scripts/sincronizar_docs_org.py --check > /tmp/df_org.txt 2>&1; then
+        registrar 0 "doc da org"
+    elif grep -qE "nao deu para listar|sem credencial" /tmp/df_org.txt; then
+        echo "   (sem rede ou sem credencial — pulado)"
+    else
+        cat /tmp/df_org.txt
+        registrar 1 "doc da org"
+    fi
+
     passo "a extensao compila"
     if [ -d editor/vscode/node_modules ]; then
         (cd editor/vscode && npx tsc -p ./ --noEmit > /tmp/df_ext.txt 2>&1)

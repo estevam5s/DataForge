@@ -395,6 +395,27 @@ Três regras ao mexer nele:
 ligada e desligada e compara a saída caractere por caractere. É esse teste que
 pega um fechamento que divergiu do método que ele espelha.
 
+### Comparar dois tempos medidos exige margem
+
+`assert a_ms bigger b_ms` é um sorteio quando os dois lados são
+microssegundos. O exercício 215 comparava uma busca O(n) num cluster de
+**3 mil** itens com uma O(1) num vault, e a razão era ~2x — uma volta em
+cinco dava 1,3x. Reprovou a CI num macOS carregado.
+
+**A causa não era a medição**: o `in` de um cluster é um laço em C,
+rápido o bastante para o custo de despacho do interpretador dominar os
+dois lados e mascarar a diferença assintótica. Medido: 2,7x com 3 mil,
+9x com 20 mil, **43x com 100 mil**, 127x com 300 mil.
+
+A correção é medir onde a diferença aparece e cobrar um **fator**:
+`razao bigger 5` é verdadeiro com folga e falha alto se a busca no vault
+virar O(n) por acidente. `bigger` sozinho passa por acidente.
+
+`test_nenhum_exercicio_compara_dois_tempos_sem_margem` proíbe o padrão
+voltar, e há uma trava irmã para os testes de paralelismo
+(`test_nenhum_teste_de_paralelismo_usa_limite_absoluto`): um limite fixo
+mede a **máquina**, não o paralelismo.
+
 ### Otimizar: meça antes
 
 Três gargalos já foram medidos e resolvidos (`cProfile`, não intuição):
@@ -1117,6 +1138,7 @@ envelhecer, e há teste comparando-a com o disco.
 | `site/public/dist/*.tar.gz` | `scripts/gerar_tarball.py` | `tests/test_regressoes.py` |
 | `site/lib/marca.ts`, favicon, ícones | `tools/vetorizar_logo.py` | `tests/test_api_e_marca.py` |
 | `site/public/api/*.json` | `scripts/gerar_api.py` | `tests/test_api_e_marca.py` |
+| `github.com/dataforge-df/docs` | `scripts/sincronizar_docs_org.py` | `verificar_tudo.sh` |
 | `dataforge/marca.py` (arte ASCII) | `tools/vetorizar_logo.py` | — |
 
 **Sessenta e sete das páginas de `/docs` são geradas.** Elas trazem o aviso na
