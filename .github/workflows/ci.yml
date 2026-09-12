@@ -199,6 +199,7 @@ jobs:
           python site/scripts/gerar_dados.py
           python site/scripts/gerar_conteudo.py
           python site/scripts/gerar_indices.py
+          python scripts/gerar_superficie.py
 
       - name: o versionado tem de ser identico ao gerado
         run: |

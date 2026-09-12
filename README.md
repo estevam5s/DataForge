@@ -601,6 +601,9 @@ no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas.
 | [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 36 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
+| [**doc/ESTABILIDADE.md**](doc/ESTABILIDADE.md) | o que pode quebrar entre versões — e o teste que garante |
+| [**CHANGELOG.md**](CHANGELOG.md) | o que mudou depois da 1.0.0 |
+| [**CONTRIBUTING.md**](CONTRIBUTING.md) | como mandar o primeiro patch |
 | [**exercicios/**](exercicios/) | 217 exercícios; os módulos 11-26 com `.md` explicativo |
 | [**examples/**](examples/) | 43 programas maiores |
 

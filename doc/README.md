@@ -11,6 +11,7 @@
 | [**ANALISE_E_ROADMAP.md**](ANALISE_E_ROADMAP.md) | Estado técnico do projeto e o que falta implementar |
 | [**KILN.md**](KILN.md) | O framework web: rotas, templates, middleware e o que ele não tem |
 | [**OOP.md**](OOP.md) | Orientação a objetos: blueprints, traits, propriedades e métodos mágicos |
+| [**ESTABILIDADE.md**](ESTABILIDADE.md) | O que pode quebrar entre versões, e o que não — verificado por teste |
 
 Além destes:
 
@@ -48,6 +49,13 @@ um aviso no topo. Não use como referência:
 implementação, e descreve uma linguagem diferente desta. Das 31 palavras
 reservadas que propõe, 23 vêm de Rust ou de JavaScript — e a regra deste projeto
 é que as palavras da DataForge não saiam de outra linguagem.
+
+## Gerado — não edite à mão
+
+`superficie.json` é a foto do que é público, produzida por
+`scripts/gerar_superficie.py`. Ela é o que dá dente à promessa de
+`ESTABILIDADE.md`: `tests/test_estabilidade.py` falha quando um símbolo
+some dela.
 
 ## Material de origem
 
