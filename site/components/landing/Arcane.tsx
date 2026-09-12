@@ -9,7 +9,7 @@ const total = modulos.reduce((n, [, m]) => n + m.funcoes.length, 0);
 /* Agrupada pelo que cada módulo serve, na ordem em que costuma ser usada. */
 const grupos: { rotulo: string; chaves: string[] }[] = [
   { rotulo: 'Núcleo', chaves: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal'] },
-  { rotulo: 'Frameworks', chaves: ['kiln', 'crucible', 'forge', 'api'] },
+  { rotulo: 'Frameworks', chaves: ['kiln', 'vitrine', 'crucible', 'forge', 'api'] },
   { rotulo: 'Dados', chaves: ['data', 'analytics', 'cortex', 'lago', 'pipeline', 'qualidade', 'stream'] },
   { rotulo: 'Formatos', chaves: ['serialization', 'excel', 'archive', 'database'] },
   { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte'] },

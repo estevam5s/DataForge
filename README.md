@@ -30,9 +30,9 @@ Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
 generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
 pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **37 módulos** de biblioteca padrão com **1167 símbolos**.
+(**Forge**) e **38 módulos** de biblioteca padrão com **1272 símbolos**.
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [218 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [219 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
@@ -99,7 +99,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 37 módulos com 1167 símbolos + 228 funções globais |
+| **Bateria inclusa** | 38 módulos com 1272 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -473,10 +473,11 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-37 módulos, 1167 símbolos, mais 228 funções globais sem import.
+38 módulos, 1272 símbolos, mais 228 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
+| `Arcane.Vitrine` | 105 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | `Arcane.Color` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
 | `Arcane.Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
 | `Kiln` | 64 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
@@ -572,6 +573,61 @@ Documentação: [doc/KILN.md](doc/KILN.md) ou
 
 ---
 
+## Vitrine: um programa vira uma página web
+
+Para **painel e aplicação de dados**, onde a página é o programa:
+
+```dataforge
+adopt Arcane.Vitrine as V
+
+mark @V.cache
+action vendas():
+    yield DB.query(banco, "SELECT mes, receita, meta FROM vendas")
+
+action painel():
+    lado := V.lateral()
+    regiao := lado.escolha("Região", ["Sudeste", "Sul", "Norte"])
+
+    V.titulo("Dashboard de Vendas", icone := "📊")
+
+    colunas := V.colunas(4)
+    colunas[0].metrica("Receita", "R$ 850.000", variacao := 18.0)
+    colunas[1].metrica("Clientes", "12.450", variacao := 8.0)
+    colunas[2].metrica("Pedidos", "32.500", variacao := 14.0)
+    colunas[3].metrica("Conversão", "8.4%", variacao := 1.2)
+
+    V.grafico_linha(vendas(), x := "mes", y := ["receita", "meta"])
+    V.frame(vendas())
+    V.exportar_csv(vendas())
+
+V.rodar(painel, porta := 8501)
+```
+
+A cada interação **o programa inteiro roda de novo**, e o estado da sessão
+sobrevive — é o que dispensa callback e diffing. Não há HTML, CSS,
+JavaScript nem build: o gráfico é SVG escrito no servidor, e o cliente são
+~4 KB sem uma única CDN, porque painel de dados costuma rodar em rede
+fechada.
+
+Testar não precisa de navegador, porque a árvore de componentes é um dado:
+
+```dataforge
+t := V.testar(painel)
+assert t.quantos("metrica") is 4
+
+antes := t.metrica("Receita")
+t.selecionar("Região", "Norte")
+assert t.metrica("Receita") is not antes
+assert not t.falhou()
+```
+
+Rode `dataforge run examples/vitrine_dashboard.df -- --servir` para ver.
+
+Documentação: [doc/VITRINE.md](doc/VITRINE.md) ou
+[dataforge-lang.vercel.app/docs/vitrine](https://dataforge-lang.vercel.app/docs/vitrine).
+
+---
+
 ## Dados: banco, análise e planilhas
 
 ```dataforge
@@ -599,16 +655,16 @@ no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas.
 |---------|---------|
 | [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
 | [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 37 módulos |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 38 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
 | [**doc/ESTABILIDADE.md**](doc/ESTABILIDADE.md) | o que pode quebrar entre versões — e o teste que garante |
 | [**CHANGELOG.md**](CHANGELOG.md) | o que mudou depois da 1.0.0 |
 | [**CONTRIBUTING.md**](CONTRIBUTING.md) | como mandar o primeiro patch |
-| [**exercicios/**](exercicios/) | 218 exercícios; os módulos 11-26 com `.md` explicativo |
+| [**exercicios/**](exercicios/) | 219 exercícios; os módulos 11-26 com `.md` explicativo |
 | [**examples/**](examples/) | 43 programas maiores |
 
-### Os 218 exercícios
+### Os 219 exercícios
 
 ```bash
 python3 exercicios/run_all.py        # todos
@@ -650,7 +706,7 @@ sugestões.
 pip install -e ".[dev]"
 
 python3 -m pytest tests/ -q       # mais de 1300 testes
-python3 exercicios/run_all.py     # 218 exercícios
+python3 exercicios/run_all.py     # 219 exercícios
 ```
 
 Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).
@@ -676,7 +732,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/docgen.py` | `dataforge doc` | 218 |
 | `dataforge/project.py` | `forge.toml` | 184 |
 | `dataforge/builtins.py` | 228 funções globais | 1224 |
-| `dataforge/stdlib/` | os 37 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
+| `dataforge/stdlib/` | os 38 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
 
 ---
 

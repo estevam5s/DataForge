@@ -1,0 +1,147 @@
+// ════════════════════════════════════════════════════════════
+//  Vitrine — um painel de vendas completo
+//
+//  O programa roda de cima para baixo e vira uma página web. A cada
+//  clique ele roda DE NOVO, inteiro, e o estado da sessão sobrevive —
+//  é o que permite escrever sem callback e sem pensar em qual pedaço
+//  da tela atualizar.
+//
+//  Para ver no navegador (o '--' separa o que e do programa do que e
+//  do 'dataforge'):
+//      dataforge run examples/vitrine_dashboard.df -- --servir
+//
+//  Sem esse argumento, ele roda os proprios testes e termina, que e o
+//  que faz este arquivo entrar na suite.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Vitrine as V
+adopt Arcane.OS as OS
+
+V.app("Business Intelligence",
+    icone := "📊",
+    descricao := "Painel de vendas da Forja Ltda.",
+modo_tema := "automatico")
+
+// ── Os dados ────────────────────────────────────────────────
+//
+// O 'mark @V.cache' faz a leitura acontecer UMA vez, e nao a cada
+// clique. Num painel que le do banco, e a diferenca entre uma pagina
+// que responde e uma que nao.
+
+steady MESES := ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"]
+
+mark @V.cache
+action vendas_de(regiao):
+    base := {"Sul": 120, "Sudeste": 260, "Norte": 80, "Nordeste": 140}
+    peso := base[regiao] ?? 100
+    linhas := []
+    cycle i from 0 to 5:
+        // Um serrilhado deterministico: o mesmo mes da sempre o mesmo
+        // numero, senao o grafico dancaria a cada clique.
+        variacao := ((i * 37) % 23) - 8
+        linhas.append({
+                "mes": MESES[i],
+                "receita": peso + variacao * 4,
+                "meta": peso + 6
+        })
+    yield linhas
+
+action total_de(linhas, campo):
+    yield linhas >> morph l: l[campo] >> distill a, v: a + v 0
+
+// ── A pagina ────────────────────────────────────────────────
+
+action painel():
+    lado := V.lateral()
+    lado.cabecalho("Filtros", 4)
+    regiao := lado.escolha("Região", ["Sudeste", "Sul", "Nordeste", "Norte"])
+    detalhar := lado.interruptor("Mostrar a tabela", yes)
+    lado.divisor()
+    lado.texto($"Atualizado a cada visita · sessão {V.sessoes()}")
+
+    V.titulo("Dashboard de Vendas", icone := "📊")
+    V.texto($"Região: {regiao} · primeiro semestre")
+
+    linhas := vendas_de(regiao)
+    receita := total_de(linhas, "receita")
+    meta := total_de(linhas, "meta")
+    conversao := round(receita / meta * 100, 1)
+
+    // Quatro metricas, lado a lado
+    colunas := V.colunas(4)
+    colunas[0].metrica("Receita", $"R$ {receita} mil", variacao := 18.0)
+    colunas[1].metrica("Clientes", "12.450", variacao := 8.0)
+    colunas[2].metrica("Pedidos", "32.500", variacao := 14.0)
+    colunas[3].metrica("Conversão", $"{conversao}%",
+        variacao := round(conversao - 100, 1),
+    ajuda := "receita sobre meta")
+
+    V.cabecalho("Evolução das vendas")
+    g := V.grafico("linha", linhas)
+    g.eixo_x("mes")
+    g.eixo_y(["receita", "meta"])
+    g.suavizar(yes)
+    V.desenhar(g)
+
+    duas := V.colunas(2)
+    caixa := duas[0].cartao("Participação por mês")
+    caixa.grafico_pizza(linhas, x := "mes", y := "receita", altura := 240)
+
+    barras := duas[1].cartao("Receita contra meta")
+    barras.grafico_barras(linhas, x := "mes", y := ["receita", "meta"],
+    altura := 240)
+
+    given detalhar:
+        V.cabecalho("Dados")
+        V.frame(linhas)
+        V.exportar_csv(linhas, nome := $"vendas-{regiao}.csv")
+
+    abas := V.abas(["Resumo", "Distribuição", "Sobre"])
+    abas[0].texto($"{len(linhas)} meses, receita total de R$ {receita} mil.")
+    abas[0].progresso(min(1.0, receita / meta), $"{conversao}% da meta")
+    abas[1].histograma(linhas, campo := "receita", faixas := 4)
+    abas[2].markdown("Feito com **Arcane.Vitrine** — sem HTML, sem JavaScript.")
+
+    V.divisor()
+    given V.botao("Esquecer o cache", tipo := "secundario"):
+        V.cache.invalidar()
+        V.sucesso("Cache esvaziado — os dados serão lidos de novo.")
+
+V.pagina("/", painel, titulo := "Painel")
+
+// ── Sobe, ou se confere ─────────────────────────────────────
+
+given "--servir" in OS.argv():
+    V.rodar(porta := 8501)
+otherwise:
+    t := V.testar(painel)
+
+    assert t.existe("titulo")
+    assert t.quantos("metrica") is 4
+    assert "Dashboard de Vendas" in t.texto()
+
+    // Os tres graficos desenharam SVG de verdade
+    assert t.quantos("grafico") is 4
+    assert "<svg" in t.html()
+    assert "<path" in t.html()
+
+    // Trocar a regiao troca os numeros
+    antes := t.metrica("Receita")
+    t.selecionar("Região", "Norte")
+    assert t.metrica("Receita") is not antes
+
+    // O interruptor esconde a tabela
+    assert t.quantos("frame") is 1
+    t.marcar("Mostrar a tabela", no)
+    assert t.quantos("frame") is 0
+
+    // A aba escondida foi montada assim mesmo — um erro atras de um
+    // clique seria um erro que so aparece em producao
+    escondidas := t.achar("aba") >> sift a: not a.props["visivel"]
+    assert len(escondidas) is 2
+
+    // Nada quebrou no caminho
+    assert not t.falhou()
+
+    out "  ✓ o painel monta, desenha e responde"
+    out $"  ✓ {len(t.achar())} componentes na arvore"

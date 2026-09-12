@@ -139,6 +139,20 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Vitrine — dashboards',
+    items: [
+      { title: 'Visão geral', href: '/docs/vitrine' },
+      { title: 'Componentes', href: '/docs/vitrine/componentes' },
+      { title: 'Layout', href: '/docs/vitrine/layout' },
+      { title: 'Estado e cache', href: '/docs/vitrine/estado' },
+      { title: 'Gráficos', href: '/docs/vitrine/graficos' },
+      { title: 'Páginas e segurança', href: '/docs/vitrine/paginas' },
+      { title: 'Testar sem navegador', href: '/docs/vitrine/testes' },
+      { title: 'Produção', href: '/docs/vitrine/producao' },
+      { title: 'Referência', href: '/docs/vitrine/referencia' },
+    ],
+  },
+  {
     title: 'Técnicas',
     items: [
       { title: 'Análise estática', href: '/docs/tecnicas/analise-estatica' },

@@ -10,6 +10,7 @@
 | [**BIBLIOTECA_PADRAO.md**](BIBLIOTECA_PADRAO.md) | Assinaturas de todos os módulos `Arcane.*` |
 | [**ANALISE_E_ROADMAP.md**](ANALISE_E_ROADMAP.md) | Estado técnico do projeto e o que falta implementar |
 | [**KILN.md**](KILN.md) | O framework web: rotas, templates, middleware e o que ele não tem |
+| [**VITRINE.md**](VITRINE.md) | O framework de dashboards: um programa de cima para baixo vira uma página web |
 | [**OOP.md**](OOP.md) | Orientação a objetos: blueprints, traits, propriedades e métodos mágicos |
 | [**ESTABILIDADE.md**](ESTABILIDADE.md) | O que pode quebrar entre versões, e o que não — verificado por teste |
 

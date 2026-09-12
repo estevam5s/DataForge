@@ -32,6 +32,8 @@ def modulos(filtros):
         if not os.path.isdir(caminho):
             continue
         nome = os.path.basename(caminho)
+        if nome.startswith((".", "_")):
+            continue        # __pycache__ e afins nao sao modulo
         if filtros and not any(f in nome for f in filtros):
             continue
         yield caminho, nome

@@ -2711,3 +2711,43 @@ def test_o_fmt_acerta_string_com_aspas_escapadas():
     fonte = 'out "ele disse \\"oi : tudo bem\\""'
     saida = format_source(fonte).strip()
     assert "oi : tudo bem" in saida, f"a string foi alterada: {saida}"
+
+
+def test_a_pagina_da_biblioteca_lista_todos_os_modulos():
+    """Seis módulos não apareciam nela: API, Decimal, Observar, Ponte,
+    Stream e Vitrine.
+
+    A tabela era escrita à mão, e a contagem no título dizia "trinta e
+    sete" quando já eram trinta e oito. Um módulo que existe e não
+    aparece é trabalho que ninguém encontra — e foi o mesmo defeito que
+    já tinha atingido a home.
+
+    Agora ela é gerada; este teste garante que o arquivo versionado é o
+    que o gerador produz hoje.
+    """
+    import subprocess
+    import sys as _sys
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    destino = os.path.join(raiz, "site", "app", "docs", "biblioteca",
+                           "page.tsx")
+    if not os.path.isfile(destino):
+        pytest.skip("o site não está neste checkout")
+
+    antes = open(destino, encoding="utf-8").read()
+    saida = subprocess.run(
+        [_sys.executable,
+         os.path.join(raiz, "tools", "gerar_pagina_biblioteca.py")],
+        capture_output=True, text=True, encoding="utf-8", cwd=raiz)
+    assert saida.returncode == 0, saida.stdout + saida.stderr
+    depois = open(destino, encoding="utf-8").read()
+    assert antes == depois, (
+        "site/app/docs/biblioteca/page.tsx está desatualizado — "
+        "rode  python3 tools/gerar_pagina_biblioteca.py")
+
+    # E, independentemente do gerador: todo módulo aparece.
+    sys.path.insert(0, raiz)
+    from dataforge.stdlib import get_module, list_modules
+    oficiais = {get_module(m)["__name__"] for m in list_modules()}
+    faltando = sorted(n for n in oficiais if f"`{n}`" not in depois)
+    assert not faltando, f"não aparecem em /docs/biblioteca: {faltando}"

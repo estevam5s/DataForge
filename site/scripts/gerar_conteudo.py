@@ -28,6 +28,7 @@ MODULOS = [
     "fluxo",
     "banco",
     "crucible_doc",
+    "vitrine",
     "versoes",
 ]
 

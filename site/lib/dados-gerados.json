@@ -6032,6 +6032,538 @@
     }
    ]
   },
+  "vitrine": {
+   "nome": "Arcane.Vitrine",
+   "desc": "O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln.",
+   "curto": "Vitrine",
+   "funcoes": [
+    {
+     "nome": "abas",
+     "sig": "(rotulos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "agendar",
+     "sig": "(acao, a_cada, args)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "antes",
+     "sig": "(funcao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "app",
+     "sig": "(titulo, config)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "area_de_texto",
+     "sig": "(rotulo, valor, linhas, dica, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "arquivo",
+     "sig": "(rotulo, tipos, varios, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "atualizar_a_cada",
+     "sig": "(segundos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "audio",
+     "sig": "(origem, formato)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "autenticacao",
+     "sig": "(verificador, papeis)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "autenticado",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "aviso",
+     "sig": "(mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "baixar",
+     "sig": "(rotulo, conteudo, nome, tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "botao",
+     "sig": "(rotulo, tipo, chave, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cabecalho",
+     "sig": "(conteudo, nivel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cache",
+     "sig": "(args, kwargs)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "caixa",
+     "sig": "(rotulo, valor, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "caminho",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "carregando",
+     "sig": "(mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cartao",
+     "sig": "(titulo, subtitulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "codigo",
+     "sig": "(conteudo, linguagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "colunas",
+     "sig": "(quantidade, larguras, espacamento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "configurar",
+     "sig": "(chave, valor, pares)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "configurar_pagina",
+     "sig": "(titulo, icone, pares)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "container",
+     "sig": "(borda, altura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cor",
+     "sig": "(rotulo, valor, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "data",
+     "sig": "(rotulo, valor, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "depois",
+     "sig": "(funcao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "desenhar",
+     "sig": "(g)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "deslizante",
+     "sig": "(rotulo, minimo, maximo, valor, passo, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "divisor",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "encerrar_sessao",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "entrada",
+     "sig": "(rotulo, valor, dica, tipo, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "entrar",
+     "sig": "(usuario, senha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "erro",
+     "sig": "(mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escolha",
+     "sig": "(rotulo, opcoes, indice, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escolhas",
+     "sig": "(rotulo, opcoes, padrao, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "espacador",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "espaco",
+     "sig": "(altura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "estado",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "exigir_login",
+     "sig": "(mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exigir_permissao",
+     "sig": "(permissao, mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "expandir",
+     "sig": "(rotulo, aberto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exportar_csv",
+     "sig": "(dados, nome, rotulo, separador)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exportar_json",
+     "sig": "(dados, nome, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "formulario",
+     "sig": "(nome, limpar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "frame",
+     "sig": "(dados, colunas, altura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "geral",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "grafico",
+     "sig": "(tipo, dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_area",
+     "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_barras",
+     "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_barras_h",
+     "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_dispersao",
+     "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_linha",
+     "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_pizza",
+     "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_rosca",
+     "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "histograma",
+     "sig": "(dados, campo, faixas, titulo, altura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "html",
+     "sig": "(conteudo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "html_da_pagina",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "imagem",
+     "sig": "(origem, legenda, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "informacao",
+     "sig": "(mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "interruptor",
+     "sig": "(rotulo, valor, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "json",
+     "sig": "(dados, expandido)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lateral",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "linha",
+     "sig": "(alinhar, espacamento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "link",
+     "sig": "(rotulo, destino, nova_aba)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "logs",
+     "sig": "(quantos, nivel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "markdown",
+     "sig": "(conteudo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "markdown_para_html",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "menu",
+     "sig": "(rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "metrica",
+     "sig": "(rotulo, valor, variacao, ajuda)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "metricas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "montar",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "navegar",
+     "sig": "(destino)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "numero",
+     "sig": "(rotulo, valor, minimo, maximo, passo, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "opcao",
+     "sig": "(rotulo, opcoes, indice, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pagina",
+     "sig": "(caminho, acao, titulo, icone, oculta)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "paginas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "paleta",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "parametro",
+     "sig": "(nome, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parametros",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parar",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parar_servidor",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pedir",
+     "sig": "(app, metodo, caminho, corpo, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "plugin",
+     "sig": "(nome, instalar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pode",
+     "sig": "(permissao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "progresso",
+     "sig": "(fracao, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "recarregar",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "registrar",
+     "sig": "(mensagem, nivel, extra)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rodar",
+     "sig": "(acao, porta, host, recarregar, silencioso)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sair",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "saude",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "servir",
+     "sig": "(porta, host)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sessoes",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "subir",
+     "sig": "(porta, host, recarregar, silencioso)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "subtitulo",
+     "sig": "(conteudo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sucesso",
+     "sig": "(mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tabela",
+     "sig": "(dados, colunas, altura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tarefa",
+     "sig": "(acao, args)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "testar",
+     "sig": "(pagina_ou_app, caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "texto",
+     "sig": "(partes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "titulo",
+     "sig": "(conteudo, icone)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "usuario",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vault",
+     "sig": "(dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vazio",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "video",
+     "sig": "(origem, formato)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "web": {
    "nome": "Arcane.Web",
    "desc": "Cliente HTTP, URL encoding e JSON.",
@@ -7892,6 +8424,16 @@
     "arquivo": "217_ponte_python.df",
     "temDoc": true,
     "codigo": "// Exercicio 217 — A ponte para o Python\n// Enunciado: use uma biblioteca Python de dentro do DataForge, e faca\n// o programa continuar funcionando quando ela nao estiver instalada.\n\nadopt Arcane.Ponte as Ponte\n\n// ── 1. Perguntar antes de depender ──\n//\n// 'tem' responde sem levantar erro. E o que separa um programa que se\n// adapta de um que morre na primeira linha numa maquina diferente.\n\nout $\"o Python por tras: {Ponte.onde().split(\"/\").last()}\"\nout $\"math instalado?   {Ponte.tem(\"math\")}\"\nout $\"xyz123 instalado? {Ponte.tem(\"xyz123_nao_existe\")}\"\n\nassert Ponte.tem(\"math\") is yes, \"a biblioteca padrao do Python sempre esta la\"\nassert Ponte.tem(\"xyz123_nao_existe\") is no, \"e o que nao existe, nao\"\n\n// ── 2. Trazer um modulo ──\n//\n// E 'adopt' normal. Nao ha palavra reservada nova: 'Python' e um\n// espaco de nomes reservado, resolvido antes da biblioteca padrao.\n\nadopt Python.math as pm\nadopt Python.json as json\n\nout \"\"\nout $\"pm.gcd(12, 18) = {pm.gcd(12, 18)}\"\nassert pm.gcd(12, 18) is 6, \"maximo divisor comum\"\n\n// So os nomes que interessam, se preferir\nadopt Python.math.{floor, isqrt}\nassert floor(3.9) is 3, \"floor\"\nassert isqrt(17) is 4, \"raiz inteira\"\n\n// ── 3. Os valores atravessam sem copia ──\n//\n// Um Cluster E uma lista do Python, e um Vault E um dicionario. Nao ha\n// conversao na ida — por isso passar uma colecao grande nao custa nada.\n\nv := {\"nome\": \"Ana\", \"notas\":[9, 8, 10]}\ntexto := json.dumps(v)\nde_volta := json.loads(texto)\n\nout \"\"\nout texto\nassert typeof(de_volta) is \"Vault\", \"voltou como Vault\"\nassert de_volta[\"notas\"][2] is 10, \"as notas sobreviveram a ida e volta\"\n\n// ── 4. Uma acao do DataForge vira funcao do Python ──\n\nadopt Python.functools as ft\n\naction somar(a, b):\n    yield a + b\n\ntotal := ft.reduce(somar, [1, 2, 3, 4, 5], 0)\nout \"\"\nout $\"reduce com uma acao daqui: {total}\"\nassert total is 15, \"o Python chamou a acao do DataForge\"\n\n// ── 5. O programa se adapta ──\n//\n// Repare no 'media := 0.0' ANTES do 'given': cada ramo tem o proprio\n// escopo, e o que nasce dentro nao vaza para fora.\n\ndados := [4.0, 8.0, 15.0, 16.0]\nmedia := 0.0\n\ngiven Ponte.tem(\"statistics\"):\n    adopt Python.statistics as st\n    media := st.mean(dados)\notherwise:\n    media := (dados >> distill a, v: a + v 0) / len(dados)\n\nout \"\"\nout $\"media: {media}\"\nassert media is 10.75, \"os dois caminhos dao o mesmo numero\"\n\n// ── 6. Explorar de dentro da linguagem ──\n//\n// Sem isto, descobrir o que um pacote oferece exige sair do DataForge\n// e abrir a documentacao dele.\n\nout \"\"\nout $\"json tem 'dumps'? {\"dumps\" in Ponte.atributos(json)}\"\nout $\"assinatura: {Ponte.assinatura(pm.gcd) ?? \"o Python nao declara\"}\"\nout $\"doc: {Ponte.doc(pm.isqrt).lines()[0]}\"\n\nassert \"loads\" in Ponte.atributos(json), \"atributos lista o que existe\"\n\n// ── 7. A ponte NAO converte, e e isso que a faz valer ──\n//\n// Uma tupla do Python indexa e percorre, mas nao tem 'append'. Dizer\n// que ela e um Cluster seria mentira; 'Ponte.cluster' converte quando\n// voce QUER — e a linha diz onde se paga a copia.\n\npar := pm.frexp(8.0)\nout \"\"\nout $\"typeof da tupla:  {typeof(par)}\"\nout $\"typeof convertido: {typeof(Ponte.cluster(par))}\"\nassert typeof(Ponte.cluster(par)) is \"Cluster\", \"a conversao e explicita\"\n\n// ── 8. O erro do outro lado chega capturavel ──\n\nmonitor:\n    json.loads(\"{isso nao e json}\")\nhandle e:\n    out \"\"\n    out $\"erro do Python, capturado aqui: {e.type}\"\n\nout \"\"\nout \"ok\"\n"
+   }
+  ],
+  "28-vitrine": [
+   {
+    "num": "218",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "218_vitrine.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 218 — Uma aplicacao de dados com a Vitrine\n//\n//  Um programa de cima para baixo que vira uma pagina web, e um teste\n//  que confere o que ela faz sem abrir navegador nenhum.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Vitrine as V\n\n// ── 1. A pagina mais simples que existe ─────────────────────\n//\n// Componente e chamada de acao. Ela devolve o que quem escreve\n// precisa: 'V.botao' devolve yes/no, 'V.entrada' devolve o texto.\n\naction ola():\n    V.titulo(\"Olá\")\n    nome := V.entrada(\"Seu nome\", \"mundo\")\n    V.texto($\"Bom dia, {nome}!\")\n\nt := V.testar(ola)\nassert \"Bom dia, mundo!\" in t.texto()\n\nt.digitar(\"Seu nome\", \"Ana\")\nassert \"Bom dia, Ana!\" in t.texto()\n\n// ── 2. O estado sobrevive; o clique, nao ────────────────────\n//\n// O programa roda INTEIRO a cada interacao. Sem um lugar que\n// sobreviva, o contador voltaria a zero a cada clique. Ja o botao\n// vale por UMA execucao — um clique que continuasse verdadeiro\n// dispararia a acao de novo no carregamento seguinte.\n\naction contador():\n    V.estado.padrao(\"n\", 0)\n    given V.botao(\"Somar\"):\n        V.estado.somar(\"n\")\n    V.metrica(\"Total\", V.estado.obter(\"n\"))\n\nc := V.testar(contador)\nassert c.metrica(\"Total\") is \"0\"\nc.clicar(\"Somar\")\nassert c.metrica(\"Total\") is \"1\"\nc.rodar()\nassert c.metrica(\"Total\") is \"1\"        // sem clique, nao soma\nc.clicar(\"Somar\")\nassert c.metrica(\"Total\") is \"2\"\n\n// ── 3. Layout: a area e um objeto ───────────────────────────\n//\n// A linguagem nao tem bloco de contexto, entao a coluna e um objeto\n// e os componentes sao metodos dele. Aninha sem indentacao extra, e\n// da para guardar a area numa variavel.\n\naction colunado():\n    colunas := V.colunas([2, 1])\n    colunas[0].texto(\"conteúdo\")\n    lado := colunas[1].cartao(\"Resumo\")\n    lado.metrica(\"Itens\", 42)\n\nl := V.testar(colunado)\nraiz := l.achar(\"colunas\")[0]\nassert len(raiz.filhos) is 2\nassert raiz.filhos[0].props[\"proporcao\"] is 66.6667\nassert l.metrica(\"Itens\") is \"42\"\n\n// ── 4. Cache: rodar tudo de novo exige nao recalcular tudo ──\n\nvezes := {\"n\": 0}\n\nmark @V.cache\naction pesado(chave):\n    vezes[\"n\"] := vezes[\"n\"] + 1\n    yield [{\"x\": chave, \"y\": 10}]\n\naction com_cache():\n    V.tabela(pesado(\"a\"))\n    V.tabela(pesado(\"a\"))\n\nV.testar(com_cache)\nassert vezes[\"n\"] is 1\n\n// ── 5. Grafico: SVG escrito no servidor ─────────────────────\n//\n// Sem biblioteca de JavaScript: uma CDN quebraria o app em rede\n// fechada, que e onde painel de dados costuma rodar.\n\naction grafico():\n    dados := [\n        {\"mes\": \"Jan\", \"receita\": 120},\n        {\"mes\": \"Fev\", \"receita\": 90},\n        {\"mes\": \"Mar\", \"receita\": 160}\n    ]\n    V.grafico_barras(dados, x := \"mes\", y := \"receita\", titulo := \"Vendas\")\n\ng := V.testar(grafico)\nassert \"<svg\" in g.html()\nassert \"<rect\" in g.html()\nassert g.primeiro(\"grafico\").props[\"series\"][0][\"valores\"] is [120, 90, 160]\n\n// ── 6. Formulario: so entrega no envio ──────────────────────\n//\n// Sem formulario, CADA tecla roda o programa inteiro. Num campo\n// ligado a uma consulta pesada, e a diferenca entre um app usavel e\n// um que trava a cada letra.\n\nsalvos := []\n\naction cadastro():\n    forma := V.formulario(\"novo\")\n    nome := forma.entrada(\"Nome\")\n    forma.numero(\"Idade\", 18)\n    given forma.enviar(\"Cadastrar\"):\n        salvos.append(nome)\n        V.sucesso($\"{nome} cadastrado.\")\n\nf := V.testar(cadastro)\nf.digitar(\"Nome\", \"Bruno\")\nassert len(salvos) is 0                  // digitar nao salva\nf.enviar(\"novo\")\nassert salvos is [\"Bruno\"]\nassert \"Bruno cadastrado.\" in f.texto()\n\n// ── 7. Um erro na pagina nao derruba o servidor ─────────────\n\naction quebrada():\n    V.titulo(\"antes\")\n    trigger \"falhou de propósito\"\n\nq := V.testar(quebrada)\nassert q.falhou()\nassert \"antes\" in q.texto()              // o que ja montou continua\n\n// ── 8. HTTP de verdade, sem socket ──────────────────────────\n\naction inicio():\n    V.titulo(\"Loja\")\n\napp := V.app(\"Teste\")\nV.pagina(\"/\", inicio)\n\nr := V.pedir(app, \"GET\", \"/\")\nassert r[\"status\"] is 200\nassert \"<!DOCTYPE html>\" in r[\"body\"]\nassert r[\"headers\"][\"X-Content-Type-Options\"] is \"nosniff\"\n\nout \"218 ok — vitrine\"\n"
    }
   ]
  },

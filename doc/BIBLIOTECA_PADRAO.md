@@ -47,6 +47,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
+| [`Arcane.Vitrine`](#arcanevitrine) | `Vitrine` | 105 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | [`Arcane.API`](#arcaneapi) | `API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
 | [`Arcane.Decimal`](#arcanedecimal) | `Decimal / Exato` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
 | [`Arcane.Ponte`](#arcaneponte) | `Ponte / Bridge` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
@@ -1725,6 +1726,132 @@ adopt Arcane.Lago as Lago
 | `tabelas(lago)` |
 | `tamanho(lago, tabela='')` |
 | `vacuo(lago)` |
+
+
+---
+
+## Arcane.Vitrine
+
+O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln.
+
+```dataforge
+adopt Arcane.Vitrine as Vitrine
+```
+
+**Constantes**
+
+| Nome | Valor |
+|------|-------|
+| `estado` | `<dataforge.stdlib.vitrine.estado.Estado object at …` |
+| `geral` | `<dataforge.stdlib.vitrine.estado.Geral object at 0…` |
+| `paleta` | `['#FED403', '#0F62FE', '#24A148', '#FA4D56', '#8A3…` |
+
+**Funções (102)**
+
+| Assinatura |
+|------------|
+| `abas(rotulos)` |
+| `agendar(acao, a_cada, *args)` |
+| `antes(funcao)` |
+| `app(titulo='Vitrine', **config)` |
+| `area_de_texto(rotulo, valor='', linhas=4, dica='', chave=None)` |
+| `arquivo(rotulo, tipos=None, varios=False, chave=None)` |
+| `atualizar_a_cada(segundos)` |
+| `audio(origem, formato='audio/mpeg')` |
+| `autenticacao(verificador, papeis=None)` |
+| `autenticado()` |
+| `aviso(mensagem)` |
+| `baixar(rotulo, conteudo, nome='dados.txt', tipo='text/plain')` |
+| `botao(rotulo, tipo='primario', chave=None, largura='')` |
+| `cabecalho(conteudo, nivel=3)` |
+| `cache(*args, **kwargs)` |
+| `caixa(rotulo, valor=False, chave=None)` |
+| `caminho()` |
+| `carregando(mensagem='Carregando…')` |
+| `cartao(titulo='', subtitulo='')` |
+| `codigo(conteudo, linguagem='dataforge')` |
+| `colunas(quantidade, larguras=None, espacamento='medio')` |
+| `configurar(chave=None, valor=None, **pares)` |
+| `configurar_pagina(titulo='', icone='', **pares)` |
+| `container(borda=False, altura=None)` |
+| `cor(rotulo, valor='#FED403', chave=None)` |
+| `data(rotulo, valor='', chave=None)` |
+| `depois(funcao)` |
+| `desenhar(g)` |
+| `deslizante(rotulo, minimo=0, maximo=100, valor=None, passo=1, chave=None)` |
+| `divisor()` |
+| `encerrar_sessao()` |
+| `entrada(rotulo, valor='', dica='', tipo='texto', chave=None)` |
+| `entrar(usuario, senha)` |
+| `erro(mensagem)` |
+| `escolha(rotulo, opcoes, indice=0, chave=None)` |
+| `escolhas(rotulo, opcoes, padrao=None, chave=None)` |
+| `espacador()` |
+| `espaco(altura=16)` |
+| `exigir_login(mensagem='Entre para continuar.')` |
+| `exigir_permissao(permissao, mensagem='')` |
+| `expandir(rotulo, aberto=False)` |
+| `exportar_csv(dados, nome='dados.csv', rotulo='Baixar CSV', separador=',')` |
+| `exportar_json(dados, nome='dados.json', rotulo='Baixar JSON')` |
+| `formulario(nome, limpar=False)` |
+| `frame(dados, colunas=None, altura=None)` |
+| `grafico(tipo='linha', dados=None)` |
+| `grafico_area(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_barras(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_barras_h(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_dispersao(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_linha(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_pizza(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_rosca(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `histograma(dados, campo='', faixas=10, titulo='', altura=None)` |
+| `html(conteudo)` |
+| `html_da_pagina()` |
+| `imagem(origem, legenda='', largura=None)` |
+| `informacao(mensagem)` |
+| `interruptor(rotulo, valor=False, chave=None)` |
+| `json(dados, expandido=True)` |
+| `lateral()` |
+| `linha(alinhar='inicio', espacamento='medio')` |
+| `link(rotulo, destino, nova_aba=False)` |
+| `logs(quantos=100, nivel='')` |
+| `markdown(conteudo)` |
+| `markdown_para_html(texto)` |
+| `menu(rotulo='Páginas')` |
+| `metrica(rotulo, valor, variacao=None, ajuda='')` |
+| `metricas()` |
+| `montar()` |
+| `navegar(destino)` |
+| `numero(rotulo, valor=0, minimo=None, maximo=None, passo=1, chave=None)` |
+| `opcao(rotulo, opcoes, indice=0, chave=None)` |
+| `pagina(caminho, acao=None, titulo='', icone='', oculta=False)` |
+| `paginas()` |
+| `parametro(nome, padrao='')` |
+| `parametros()` |
+| `parar()` |
+| `parar_servidor()` |
+| `pedir(app, metodo, caminho, corpo=None, cabecalhos=None)` |
+| `plugin(nome, instalar)` |
+| `pode(permissao)` |
+| `progresso(fracao, rotulo='')` |
+| `recarregar()` |
+| `registrar(mensagem, nivel='info', extra=None)` |
+| `rodar(acao=None, porta=8501, host='127.0.0.1', recarregar=False, silencioso=False)` |
+| `sair()` |
+| `saude()` |
+| `servir(porta=0, host='127.0.0.1')` |
+| `sessoes()` |
+| `subir(porta=8501, host='127.0.0.1', recarregar=False, silencioso=False)` |
+| `subtitulo(conteudo)` |
+| `sucesso(mensagem)` |
+| `tabela(dados, colunas=None, altura=None)` |
+| `tarefa(acao, *args)` |
+| `testar(pagina_ou_app, caminho='/')` |
+| `texto(*partes)` |
+| `titulo(conteudo, icone='')` |
+| `usuario()` |
+| `vault(dados)` |
+| `vazio()` |
+| `video(origem, formato='video/mp4')` |
 
 
 ---

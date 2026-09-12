@@ -453,9 +453,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 217 | [`217_ponte_python.df`](27-ponte-python/217_ponte_python.df) · [doc](27-ponte-python/217_ponte_python.md) | A ponte para o Python |
 
+## 28 — Vitrine
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 218 | [`218_vitrine.df`](28-vitrine/218_vitrine.df) · [doc](28-vitrine/218_vitrine.md) | Uma aplicacao de dados com a Vitrine |
+
 ---
 
-**Total: 218 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 219 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

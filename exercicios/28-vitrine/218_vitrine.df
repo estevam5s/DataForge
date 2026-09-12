@@ -1,0 +1,146 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 218 — Uma aplicacao de dados com a Vitrine
+//
+//  Um programa de cima para baixo que vira uma pagina web, e um teste
+//  que confere o que ela faz sem abrir navegador nenhum.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Vitrine as V
+
+// ── 1. A pagina mais simples que existe ─────────────────────
+//
+// Componente e chamada de acao. Ela devolve o que quem escreve
+// precisa: 'V.botao' devolve yes/no, 'V.entrada' devolve o texto.
+
+action ola():
+    V.titulo("Olá")
+    nome := V.entrada("Seu nome", "mundo")
+    V.texto($"Bom dia, {nome}!")
+
+t := V.testar(ola)
+assert "Bom dia, mundo!" in t.texto()
+
+t.digitar("Seu nome", "Ana")
+assert "Bom dia, Ana!" in t.texto()
+
+// ── 2. O estado sobrevive; o clique, nao ────────────────────
+//
+// O programa roda INTEIRO a cada interacao. Sem um lugar que
+// sobreviva, o contador voltaria a zero a cada clique. Ja o botao
+// vale por UMA execucao — um clique que continuasse verdadeiro
+// dispararia a acao de novo no carregamento seguinte.
+
+action contador():
+    V.estado.padrao("n", 0)
+    given V.botao("Somar"):
+        V.estado.somar("n")
+    V.metrica("Total", V.estado.obter("n"))
+
+c := V.testar(contador)
+assert c.metrica("Total") is "0"
+c.clicar("Somar")
+assert c.metrica("Total") is "1"
+c.rodar()
+assert c.metrica("Total") is "1"        // sem clique, nao soma
+c.clicar("Somar")
+assert c.metrica("Total") is "2"
+
+// ── 3. Layout: a area e um objeto ───────────────────────────
+//
+// A linguagem nao tem bloco de contexto, entao a coluna e um objeto
+// e os componentes sao metodos dele. Aninha sem indentacao extra, e
+// da para guardar a area numa variavel.
+
+action colunado():
+    colunas := V.colunas([2, 1])
+    colunas[0].texto("conteúdo")
+    lado := colunas[1].cartao("Resumo")
+    lado.metrica("Itens", 42)
+
+l := V.testar(colunado)
+raiz := l.achar("colunas")[0]
+assert len(raiz.filhos) is 2
+assert raiz.filhos[0].props["proporcao"] is 66.6667
+assert l.metrica("Itens") is "42"
+
+// ── 4. Cache: rodar tudo de novo exige nao recalcular tudo ──
+
+vezes := {"n": 0}
+
+mark @V.cache
+action pesado(chave):
+    vezes["n"] := vezes["n"] + 1
+    yield [{"x": chave, "y": 10}]
+
+action com_cache():
+    V.tabela(pesado("a"))
+    V.tabela(pesado("a"))
+
+V.testar(com_cache)
+assert vezes["n"] is 1
+
+// ── 5. Grafico: SVG escrito no servidor ─────────────────────
+//
+// Sem biblioteca de JavaScript: uma CDN quebraria o app em rede
+// fechada, que e onde painel de dados costuma rodar.
+
+action grafico():
+    dados := [
+        {"mes": "Jan", "receita": 120},
+        {"mes": "Fev", "receita": 90},
+        {"mes": "Mar", "receita": 160}
+    ]
+    V.grafico_barras(dados, x := "mes", y := "receita", titulo := "Vendas")
+
+g := V.testar(grafico)
+assert "<svg" in g.html()
+assert "<rect" in g.html()
+assert g.primeiro("grafico").props["series"][0]["valores"] is [120, 90, 160]
+
+// ── 6. Formulario: so entrega no envio ──────────────────────
+//
+// Sem formulario, CADA tecla roda o programa inteiro. Num campo
+// ligado a uma consulta pesada, e a diferenca entre um app usavel e
+// um que trava a cada letra.
+
+salvos := []
+
+action cadastro():
+    forma := V.formulario("novo")
+    nome := forma.entrada("Nome")
+    forma.numero("Idade", 18)
+    given forma.enviar("Cadastrar"):
+        salvos.append(nome)
+        V.sucesso($"{nome} cadastrado.")
+
+f := V.testar(cadastro)
+f.digitar("Nome", "Bruno")
+assert len(salvos) is 0                  // digitar nao salva
+f.enviar("novo")
+assert salvos is ["Bruno"]
+assert "Bruno cadastrado." in f.texto()
+
+// ── 7. Um erro na pagina nao derruba o servidor ─────────────
+
+action quebrada():
+    V.titulo("antes")
+    trigger "falhou de propósito"
+
+q := V.testar(quebrada)
+assert q.falhou()
+assert "antes" in q.texto()              // o que ja montou continua
+
+// ── 8. HTTP de verdade, sem socket ──────────────────────────
+
+action inicio():
+    V.titulo("Loja")
+
+app := V.app("Teste")
+V.pagina("/", inicio)
+
+r := V.pedir(app, "GET", "/")
+assert r["status"] is 200
+assert "<!DOCTYPE html>" in r["body"]
+assert r["headers"]["X-Content-Type-Options"] is "nosniff"
+
+out "218 ok — vitrine"

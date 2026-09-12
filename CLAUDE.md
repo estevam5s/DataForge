@@ -20,8 +20,8 @@ analisador estático e interpretador de árvore próprios.
 ### Verificação rápida — rode antes e depois de mexer
 
 ```bash
-python3 -m pytest tests/ -q                          # mais de 1300 testes
-python3 exercicios/run_all.py                        # 218 exercícios
+python3 -m pytest tests/ -q                          # mais de 1850 testes
+python3 exercicios/run_all.py                        # 219 exercícios
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
@@ -61,17 +61,18 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                34 módulos (1132 símbolos), incluindo:
+  stdlib/                38 módulos (1272 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (46 símbolos)
+    vitrine/             Vitrine — dashboards e data apps (105 símbolos)
     arcane_excel.py      planilhas .xlsx, sem dependência externa (29)
     arcane_arquivo_seguro.py  cofre de arquivo + zip/tar seguro (56)
     cifra.py             ChaCha20-Poly1305 puro (RFC 8439)
 
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
-examples/          43 programas de demonstração
-exercicios/        218 exercícios em 26 módulos + run_all.py
+examples/          44 programas de demonstração
+exercicios/        219 exercícios em 28 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -595,12 +596,75 @@ O `parse_render` precisa de `_no_with`: sem essa guarda,
 `render "x" with {…}` seria lido como a expressão `record with {…}` e o
 template comeria os dados.
 
+## Vitrine — dashboards e aplicações de dados
+
+`dataforge/stdlib/vitrine/` é o segundo framework web, e ele resolve um
+problema diferente do Kiln. **Nenhuma palavra reservada nova**: tudo é
+chamada de ação num módulo da biblioteca.
+
+| Arquivo | O quê |
+|---|---|
+| `nucleo.py` | `No` (componente), `Sessao`, `Contexto` (a pilha de montagem) |
+| `componentes.py` | os 40 componentes; cada um põe um nó **e devolve um valor** |
+| `layout.py` | `Area` — coluna, aba, cartão; os componentes são métodos dela |
+| `graficos.py` | sete tipos, montados como dado |
+| `render.py` | a árvore vira HTML; o SVG e os ~4 KB de cliente moram aqui |
+| `estado.py` | `V.estado` (sessão), `V.geral` (processo), `V.cache` (TTL + LRU) |
+| `runtime.py` | `Aplicacao` — sessões, ciclo do pedido, servidor sobre o Kiln |
+| `teste.py` | a `Sonda`: clica, digita e pergunta, sem navegador |
+| `tema.py` | claro, escuro e o vault de variáveis CSS |
+| `api.py` | o dicionário que o `adopt` entrega |
+
+Sete decisões que valem lembrar:
+
+1. **O programa inteiro roda de novo a cada interação**, e o estado da
+   sessão sobrevive. É o que dispensa callback e diffing — e o que
+   torna `V.cache` obrigatório, não opcional.
+
+2. **A área de layout é um objeto, não um bloco de contexto.** A
+   linguagem não tem `with`, e inventar uma palavra reservada para o
+   layout de um módulo seria caro demais. `colunas[0].metrica(…)` lê
+   melhor, aninha sem indentação e pode ser passado adiante.
+
+3. **`_Parar`, `_Navegar` e `_Reexecutar` derivam de `BaseException`**,
+   como `halt` e `skip`. O interpretador embrulha toda `Exception` que
+   sai de função Python num `RuntimeError_` — com `Exception`,
+   `V.exigir_login()` virava a mensagem "exigir_login: _Parar" no meio
+   da página em vez de parar coisa alguma.
+
+4. **O cookie de sessão é uma STRING.** O Kiln guarda cookie como a
+   linha `Set-Cookie` pronta, não como vault. Passar um dicionário faz
+   o navegador descartar o cookie e cada pedido abrir sessão nova — o
+   sintoma é um contador que nunca passa de 1 e um login que nunca
+   "pega", sem nenhum erro. `Kiln.test` **não devolve cookies**, então
+   esse bug só aparece com socket de verdade.
+
+5. **O login reexecuta a página do começo.** Continuar de onde parou
+   deixaria a tela vazia para quem escreveu `given V.autenticado(): …`
+   — esse teste já passou com a resposta antiga.
+
+6. **O cache indexa o depósito por identidade, não por nome.** Duas
+   ações `carregar` em arquivos diferentes dividiriam o mesmo cache, e
+   o `teto` da primeira venceria calado sobre o da segunda.
+
+7. **Zero dependência também no navegador.** O gráfico é SVG escrito no
+   servidor; o cliente são ~4 KB sem build e sem CDN. Uma biblioteca de
+   CDN quebra qualquer app em rede fechada — que é onde painel de dados
+   costuma rodar. Há teste proibindo `http://`, `https://` e `cdn` no
+   CSS e no JS.
+
+`site/app/docs/vitrine/referencia/page.tsx` é **gerado** por
+`tools/gerar_ref_vitrine.py`, que recusa rodar se um símbolo do módulo
+ficar de fora — a mesma trava da gramática do editor.
+
 ## O que é gerado — não edite à mão
 
 | Arquivo | Gerador | Guardado por |
 |---------|---------|--------------|
 | `editor/vscode/syntaxes/dataforge.tmLanguage.json` | `tools/gerar_gramatica.py` | `tests/test_editor.py` |
 | `site/app/docs/kiln/referencia/page.tsx` | `tools/gerar_ref_kiln.py` | — |
+| `site/app/docs/vitrine/referencia/page.tsx` | `tools/gerar_ref_vitrine.py` | `tests/test_vitrine.py` |
+| `site/app/docs/biblioteca/page.tsx` | `tools/gerar_pagina_biblioteca.py` | `tests/test_regressoes.py` |
 | `doc/BIBLIOTECA_PADRAO.md` | `tools/gerar_doc_stdlib.py` | — |
 | `site/lib/dados-gerados.json` | `site/scripts/gerar_dados.py` | — |
 | o `const headings` de cada `site/app/docs/**/page.tsx` | `site/scripts/gerar_indices.py` | `tests/test_api_e_marca.py` |
@@ -654,11 +718,12 @@ python3 scripts/gerar_tarball.py
 | `tests/test_regressoes.py` | `pytest` | bugs já corrigidos + sincronia da doc |
 | `tests/test_dataforge.py` | `pytest` **e** script | 69 verificações da suíte original |
 | `tests/test_kiln.py` | `pytest` | o framework web: rotas, respostas, templates, segurança, a sintaxe da linguagem e as palavras que continuam livres |
+| `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 218 exercícios, cada um com `assert` |
+| `exercicios/run_all.py` | script | 219 exercícios, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
-| `examples/*.df` | manual | 43 programas maiores |
+| `examples/*.df` | manual | 44 programas maiores |
 
 **Ao corrigir um bug, escreva primeiro o teste que falha.** Todos os bugs
 corrigidos no 3.1 e no 4.0 têm teste correspondente.
@@ -702,7 +767,11 @@ O que **ainda não existe** (não invente que existe):
   estado em memória compartilhado entre rotas não é protegido.
 - **WebSocket, HTTP/2 e streaming de resposta** — o Kiln não tem. Ele roda
   sobre o `http.server` do Python; em produção pública, ponha um nginx ou
-  Caddy na frente.
+  Caddy na frente. A Vitrine herda isso: o "tempo real" dela é
+  `V.atualizar_a_cada(n)`, que é por pergunta e não por empurrão.
+- **Sessão da Vitrine vive na memória do processo.** Com mais de um
+  processo, dois pedidos da mesma pessoa caem em memórias diferentes.
+  Um processo por aplicação, com proxy na frente, é a forma testada.
 - **Literal decimal exato** — não há sufixo nem sintaxe: `19.99` no código é
   `Float`, com o arredondamento binário de sempre. Para exatidão use
   `Arcane.Decimal`, e prefira a forma com aspas (`Dec.de("19.99")`), que não

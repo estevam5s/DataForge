@@ -28,7 +28,7 @@ export default function NaoEncontrada() {
         {[
           { href: '/docs', title: 'Documentação', texto: 'O que é a linguagem' },
           { href: '/docs/primeiros-passos', title: 'Primeiros passos', texto: 'Do zero ao primeiro .df' },
-          { href: '/docs/biblioteca', title: 'Biblioteca', texto: '37 módulos, 1167 símbolos' },
+          { href: '/docs/biblioteca', title: 'Biblioteca', texto: '38 módulos, 1272 símbolos' },
         ].map((c) => (
           <Link key={c.href} href={c.href} className="surface-card group p-4 transition-colors hover:border-accent/45">
             <p className="font-semibold text-strong transition-colors group-hover:text-accent">

@@ -41,6 +41,7 @@ from .arcane_observar import ArcaneObservar
 from .arcane_ponte import ArcanePonte
 from .arcane_decimal import ArcaneDecimal
 from .arcane_api import ArcaneAPI
+from .vitrine import ArcaneVitrine
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -129,6 +130,11 @@ _MODULES = {
     "Parquet": ArcaneLago,
     "Arcane.API": ArcaneAPI,
     "API": ArcaneAPI,
+
+    # ── Vitrine — dashboards e aplicacoes de dados ──
+    "Arcane.Vitrine": ArcaneVitrine,
+    "Vitrine": ArcaneVitrine,
+    "Painel": ArcaneVitrine,
 
     "Arcane.Decimal": ArcaneDecimal,
     "Decimal": ArcaneDecimal,

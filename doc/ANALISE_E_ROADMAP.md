@@ -613,6 +613,19 @@ O que resta, em ordem de impacto.
 - `TaskGroup` e cancelamento.
 - `parallel` tratando **blocos** em vez de instruções.
 
+### Web
+
+- ~~**Framework de dashboards**~~ — **feito**. `Arcane.Vitrine`: um programa
+  de cima para baixo vira uma página web, com 105 símbolos, gráficos em SVG
+  escritos no servidor, estado por sessão, cache com TTL e LRU, autenticação,
+  temas e uma sonda que testa sem navegador. Roda sobre o Kiln.
+- **WebSocket no Kiln** — o `http.server` do Python não tem. Enquanto isso, o
+  "tempo real" da Vitrine é `V.atualizar_a_cada(n)`, por pergunta e não por
+  empurrão. É suficiente para painel, e insuficiente para chat.
+- **Sessão compartilhada entre processos** — hoje a sessão da Vitrine vive na
+  memória do processo, o que limita a aplicação a um processo com proxy na
+  frente. Escalar horizontalmente exige um armazenamento comum primeiro.
+
 ### Decisão pendente
 
 `frame`, `train` e `predict` estão **ligadas** ao `Arcane.Analytics` e ao `Arcane.Cortex`: elas não reimplementam nada, apenas nomeiam o que já existe.
