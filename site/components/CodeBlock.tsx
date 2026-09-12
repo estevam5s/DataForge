@@ -6,7 +6,7 @@ import { tokenize, classePorTipo } from '@/lib/highlight';
 type Props = {
   code: string;
   /** 'df' realça DataForge; 'bash'/'powershell', 'toml', 'json' e 'text' têm tratamento próprio. */
-  lang?: 'df' | 'bash' | 'powershell' | 'toml' | 'json' | 'text';
+  lang?: 'df' | 'bash' | 'powershell' | 'toml' | 'json' | 'text' | 'sql' | 'javascript' | 'yaml';
   /** Rótulo exibido no topo do bloco — normalmente o nome do arquivo. */
   title?: string;
 };
@@ -52,6 +52,72 @@ function realceSimples(code: string, lang: string) {
         );
       } else if (linha.trim().startsWith('#')) el = <span className="tk-comment">{linha}</span>;
       return <span key={i}>{el}{'\n'}</span>;
+    });
+  }
+  if (lang === 'sql') {
+    // Só as palavras-chave e as strings. Um realce completo de SQL
+    // seria um segundo destacador para manter em dia, e o que importa
+    // num bloco de documentação é distinguir o comando do dado.
+    const chaves = /\b(SELECT|FROM|WHERE|JOIN|LEFT|INNER|OUTER|ON|GROUP|ORDER|BY|HAVING|LIMIT|OFFSET|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|INDEX|VIRTUAL|USING|DROP|ALTER|ADD|COLUMN|PRIMARY|KEY|FOREIGN|REFERENCES|UNIQUE|NOT|NULL|DEFAULT|CHECK|AND|OR|IN|LIKE|MATCH|AS|ASC|DESC|COALESCE|SUM|COUNT|AVG|MIN|MAX|CASE|WHEN|THEN|ELSE|END|PRAGMA|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|CONFLICT|DO|NOTHING|EXCLUDED|RANK)\b/g;
+    return code.split('\n').map((linha, i) => {
+      const comentario = linha.indexOf('--');
+      const corpo = comentario >= 0 ? linha.slice(0, comentario) : linha;
+      const resto = comentario >= 0 ? linha.slice(comentario) : '';
+      const html = corpo
+        .replace(/'([^']*)'/g, '\u0001$1\u0002')
+        .replace(chaves, '\u0003$&\u0004');
+      return (
+        <span key={i}>
+          {html.split(/([\u0001-\u0004])/).reduce<React.ReactNode[]>((acc, p, k, todos) => {
+            if (p === '\u0001' || p === '\u0003') return acc;
+            if (p === '\u0002' || p === '\u0004') return acc;
+            const antes = todos[k - 1];
+            if (antes === '\u0001') acc.push(<span key={k} className="tk-string">{`'${p}'`}</span>);
+            else if (antes === '\u0003') acc.push(<span key={k} className="tk-keyword">{p}</span>);
+            else acc.push(p);
+            return acc;
+          }, [])}
+          {resto && <span className="tk-comment">{resto}</span>}
+          {'\n'}
+        </span>
+      );
+    });
+  }
+  if (lang === 'javascript') {
+    const chaves = /\b(const|let|var|function|return|if|else|for|while|new|await|async|class|import|export|from|=>)\b/g;
+    return code.split('\n').map((linha, i) => {
+      const comentario = linha.indexOf('//');
+      const corpo = comentario >= 0 ? linha.slice(0, comentario) : linha;
+      const resto = comentario >= 0 ? linha.slice(comentario) : '';
+      const partes = corpo.split(chaves);
+      return (
+        <span key={i}>
+          {partes.map((p, k) =>
+            chaves.test(p) && p.trim()
+              ? <span key={k} className="tk-keyword">{p}</span>
+              : <span key={k}>{p}</span>
+          )}
+          {resto && <span className="tk-comment">{resto}</span>}
+          {'\n'}
+        </span>
+      );
+    });
+  }
+  if (lang === 'yaml') {
+    return code.split('\n').map((linha, i) => {
+      if (linha.trim().startsWith('#')) {
+        return <span key={i}><span className="tk-comment">{linha}</span>{'\n'}</span>;
+      }
+      const dois = linha.indexOf(':');
+      if (dois < 0) return <span key={i}>{linha}{'\n'}</span>;
+      return (
+        <span key={i}>
+          <span className="tk-property">{linha.slice(0, dois)}</span>
+          <span className="tk-operator">:</span>
+          <span className="tk-string">{linha.slice(dois + 1)}</span>
+          {'\n'}
+        </span>
+      );
     });
   }
   return code;

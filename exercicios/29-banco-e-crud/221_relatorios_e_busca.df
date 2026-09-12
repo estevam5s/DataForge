@@ -1,0 +1,137 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 221 — Relatorio, busca e o indice que falta
+//
+//  Tres coisas que toda tela de gestao pede, e as tres tem uma versao
+//  ingenua que funciona com cem linhas e morre com cem mil.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Database as Banco
+
+db := Banco.memory()
+
+Banco.create_table(db, "vendas", {
+    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+    "produto": "TEXT NOT NULL",
+    "categoria": "TEXT NOT NULL",
+    "vendedor": "TEXT NOT NULL",
+    "valor": "REAL NOT NULL",
+    "mes": "TEXT NOT NULL"
+})
+
+dados := []
+categorias := ["bebida", "mercearia", "limpeza"]
+vendedores := ["ana", "bruno", "carla"]
+cycle i from 1 to 90:
+    dados.append({
+        "produto": $"Produto {i}",
+        "categoria": categorias[i % 3],
+        // Um passo diferente: se os dois vierem de 'i % 3', categoria e
+        // vendedor ficam presos um ao outro e o cruzamento de dois
+        // grupos da 3 linhas em vez de 9.
+        "vendedor": vendedores[(i ~/ 3) % 3],
+        "valor": 10.0 + (i % 17) * 5.0,
+        "mes": $"2026-{(i % 6) + 1}"
+    })
+Banco.insert_many(db, "vendas", dados)
+
+// ── 1. Relatorio agrupado, sem escrever SQL ─────────────────
+
+por_vendedor := Banco.aggregate(db, "vendas", {
+    "receita": ["sum", "valor"],
+    "vendas": ["count", "*"],
+    "ticket": ["avg", "valor"]
+}, group_by := "vendedor", order_by := "receita DESC")
+
+assert len(por_vendedor) is 3
+// a primeira linha e a de maior receita
+assert por_vendedor[0]["receita"] bigger_eq por_vendedor[1]["receita"]
+// as colunas do group_by vem junto — e o que um grafico precisa
+assert "vendedor" in por_vendedor[0]
+assert por_vendedor[0]["vendas"] is 30
+
+// dois grupos ao mesmo tempo
+cruzado := Banco.aggregate(db, "vendas", {"receita": ["sum", "valor"]},
+                           group_by := ["categoria", "vendedor"])
+assert len(cruzado) is 9       // 3 x 3
+
+// com filtro
+so_bebida := Banco.aggregate(db, "vendas", {"total": ["sum", "valor"]},
+                             where := {"categoria": "bebida"})
+assert so_bebida[0]["total"] smaller_eq por_vendedor[0]["receita"] * 3
+
+// ── 2. O atalho que mais se pede ────────────────────────────
+
+quantas := Banco.group_count(db, "vendas", "categoria")
+assert len(quantas) is 3
+assert quantas[0]["quantidade"] is 30
+
+// ── 3. O que o analisador NAO deixa passar ──────────────────
+//
+// O nome da coluna vai CRU para o SQL — o SQLite nao aceita nome por
+// parametro. Um '?ordenar=' vindo de uma rota e injecao pela porta da
+// frente, e por isso ele e conferido.
+
+monitor:
+    Banco.aggregate(db, "vendas", {"n": ["count", "*"]},
+                    order_by := "valor; DROP TABLE vendas")
+    assert no
+handle Error as e:
+    assert "nao e um nome valido" in e.message
+assert Banco.table_exists(db, "vendas")
+
+monitor:
+    Banco.aggregate(db, "vendas", {"x": ["mediana", "valor"]})
+    assert no
+handle Error as e:
+    assert "agregacao conhecida" in e.message
+
+// ── 4. Busca textual, com indice ────────────────────────────
+//
+// 'WHERE produto LIKE "%termo%"' nao usa indice nenhum: ele le a
+// tabela inteira, sempre. O FTS5 usa indice invertido e ordena por
+// relevancia.
+
+Banco.create_search(db, "vendas", ["produto", "categoria"])
+
+achados := Banco.search(db, "vendas", "produto 4")
+assert len(achados) bigger 0
+// devolve a linha da tabela ORIGINAL, com todas as colunas
+assert "valor" in achados[0]
+assert "vendedor" in achados[0]
+
+// busca por prefixo: quem digita "merce" acha "mercearia"
+assert len(Banco.search(db, "vendas", "merce")) bigger 0
+
+// e o indice se mantem em dia — sem isso ele envelhece em silencio
+Banco.insert(db, "vendas", {
+    "produto": "Cafezinho Especial", "categoria": "bebida",
+    "vendedor": "ana", "valor": 12.0, "mes": "2026-6"})
+assert len(Banco.search(db, "vendas", "cafezinho")) is 1
+
+// ── 5. O plano da consulta: onde esta o indice que falta ────
+
+sem := Banco.explain(db, "SELECT * FROM vendas WHERE vendedor = ?", ["ana"])
+assert sem["varre_tabela"]
+assert "le a tabela inteira" in sem["aviso"]
+
+Banco.create_index(db, "vendas", ["vendedor"])
+com := Banco.explain(db, "SELECT * FROM vendas WHERE vendedor = ?", ["ana"])
+assert not com["varre_tabela"]
+assert com["aviso"] is ""
+
+// os indices, com as colunas de cada um
+indices := Banco.indexes(db, "vendas") >> sift i: not i["automatico"]
+assert len(indices) is 1
+assert indices[0]["colunas"] is ["vendedor"]
+
+// ── 6. Um retrato do banco ──────────────────────────────────
+
+e := Banco.stats(db)
+// as tabelas-sombra do FTS nao contam: um banco de uma tabela nao
+// pode parecer ter cinco
+assert len(e["tabelas"]) is 1
+assert e["tabelas"][0]["tabela"] is "vendas"
+assert e["tabelas"][0]["linhas"] is 91
+assert Banco.integrity(db)["ok"]
+
+out "221 ok — relatorios e busca"

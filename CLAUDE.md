@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 1850 testes
-python3 exercicios/run_all.py                        # 219 exercícios
+python3 exercicios/run_all.py                        # 227 exercícios
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
@@ -64,9 +64,10 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                38 módulos (1280 símbolos), incluindo:
+  stdlib/                38 módulos (1325 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
-    kiln.py              Kiln — o framework web (46 símbolos)
+    kiln.py              Kiln — o framework web (73 símbolos)
+    kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
     vitrine/             Vitrine — dashboards e data apps (113 símbolos)
     arcane_excel.py      planilhas .xlsx, sem dependência externa (29)
     arcane_arquivo_seguro.py  cofre de arquivo + zip/tar seguro (56)
@@ -75,7 +76,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        219 exercícios em 28 módulos + run_all.py
+exercicios/        227 exercícios em 31 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -780,6 +781,89 @@ Nove decisões que valem lembrar:
 `tools/gerar_ref_vitrine.py`, que recusa rodar se um símbolo do módulo
 ficar de fora — a mesma trava da gramática do editor.
 
+## Kiln — upload, SSE e WebSocket
+
+`kiln_tempo_real.py` traz as três coisas que o framework não tinha.
+
+**Upload.** O corpo era interpretado como JSON ou formulário simples; um
+`<input type="file">` chegava como texto ilegível. Agora os campos vão
+para `req["body"]` e os arquivos para `req["files"]` — separados, para
+que um `cycle` sobre `body` não tope com bytes onde espera texto.
+`salvar_upload` **recusa** nome com `/` ou `..`, tamanho acima do limite
+e extensão fora da lista, e o nome final leva prefixo aleatório.
+
+**SSE.** `Kiln.sse(gerador)` marca a resposta como fluxo; o handler
+chama o gerador com um `Fluxo` em vez de serializar um corpo.
+`fluxo.aberto` vira `no` quando o cliente fecha a aba — sem conferir
+isso no laço, um painel fechado deixa uma thread empurrando dado para
+sempre. `Kiln.stream` é o mesmo mecanismo sem o formato de evento.
+
+**WebSocket.** O handshake é HTTP com `Upgrade`, e `_atender_ws` o faz
+antes de qualquer leitura de corpo. Depois dele, `self.connection` é o
+socket. Ping, pong, máscara, continuação e quadro de 64 bits são
+tratados dentro do `Soquete`.
+
+Três decisões:
+
+1. **A rota usa o método `WS`**, que não existe em HTTP. Assim ela não é
+   alcançável por um GET comum, e um `GET /ws` continua livre para
+   servir a página que abre a conexão.
+2. **`_ler_exato` insiste até completar.** `recv` devolve menos do que
+   se pediu com frequência num quadro que atravessa pacotes, e tratar o
+   retorno curto como o quadro inteiro corrompe a mensagem seguinte — o
+   sintoma é uma conexão que funciona e de repente para.
+3. **`Sala.transmitir` remove o soquete morto** em vez de levantar: um
+   cliente que fechou a aba não pode derrubar a mensagem dos outros.
+
+## Arcane.Database — o que um CRUD exige
+
+63 símbolos. O que foi acrescentado, e o problema de cada um:
+
+| Símbolo | Sem ele |
+|---|---|
+| `transacao` · `savepoint` | a venda é gravada e o estoque não baixa |
+| `upsert` · `upsert_many` · `insert_or_ignore` | o catálogo que chega por CSV duplica |
+| `increment` | duas vendas ao mesmo tempo perdem uma baixa |
+| `paginate` | a tela não sabe desenhar a paginação |
+| `aggregate` · `group_count` | todo relatório é SQL escrito à mão |
+| `create_search` · `search` | `LIKE %termo%` varre a tabela inteira |
+| `explain` · `indexes` · `stats` | ninguém descobre o índice que falta |
+| `rollback_migration` | desfazer exige editar o banco à mão |
+
+**Toda escrita confirmava sozinha**, e por isso `transacao` era inútil:
+o primeiro `insert` de dentro commitava, e o `rollback` não tinha o que
+desfazer. `_confirmar(db)` respeita a profundidade da transação.
+
+**Nome de coluna vai cru para o SQL** — o SQLite não aceita nome por
+parâmetro. `_identificador`, `_conferir_colunas` e `_ordem_segura`
+recusam o que não parece um nome; a lista de agregações é fechada pelo
+mesmo motivo. Isso importa porque o `order_by` de uma listagem chega de
+fora (`?ordenar=nome`).
+
+Dois bugs que a busca textual custou, ambos silenciosos:
+
+1. `"livr*"` — o `*` **dentro** das aspas é literal; a sintaxe de
+   prefixo do FTS5 é `"livr"*`. A busca devolvia lista vazia, calada.
+2. `apelido MATCH ?` é recusado pelo SQLite, e o nome da tabela junto de
+   um apelido devolvia vazio — também sem erro. A consulta virou
+   subconsulta, que também aplica o `LIMIT` antes do `JOIN`.
+
+## Crucible — instantâneo, banco isolado, instável
+
+`snapshot` usa a infraestrutura que **já existia e não estava ligada a
+nada** (`_caminho_snapshot`, `carregar_snapshots`, `gravar_snapshots`,
+`REGISTRO.snapshots`). Um JSON por arquivo de teste, ao lado dele.
+Na primeira vez grava e passa; `DF_ATUALIZAR_SNAPSHOT=1` aceita a
+mudança. Atualizar por padrão seria pior que não ter instantâneo.
+
+`Crucible.banco(db)` abre transação e a desfaz no fim do trial. O
+desfazer entra em `alvo.limpezas`, e **não** em `depois_de_cada`: essa
+lista roda a cada teste, e acrescentar a ela dentro de um `before` a
+faria crescer um item por teste.
+
+`flaky` devolve o número de tentativas: um teste que precisa de três
+toda vez não é instável, está quebrado.
+
 ## O que é gerado — não edite à mão
 
 | Arquivo | Gerador | Guardado por |
@@ -843,10 +927,12 @@ python3 scripts/gerar_tarball.py
 | `tests/test_kiln.py` | `pytest` | o framework web: rotas, respostas, templates, segurança, a sintaxe da linguagem e as palavras que continuam livres |
 | `tests/test_resolucao.py` | `pytest` | onde mora o módulo de um `adopt`; ciclo no `check`; os 20 pacotes rodam; a cópia não volta |
 | `tests/test_cobertura.py` | `pytest` | o denominador e o numerador da cobertura; a linha vai para o arquivo certo |
+| `tests/test_banco.py` | `pytest` | transação que desfaz, `upsert`, `increment` sob 4 threads, FTS5, `explain`, migração com `down`, e o nome de coluna recusado |
+| `tests/test_kiln_tempo_real.py` | `pytest` | multipart, SSE e WebSocket — o protocolo falado à mão, para pegar erro de enquadramento |
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 219 exercícios, cada um com `assert` |
+| `exercicios/run_all.py` | script | 227 exercícios em 31 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

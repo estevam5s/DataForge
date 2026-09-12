@@ -1,0 +1,114 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 219 — Um CRUD completo, com o banco fazendo o trabalho
+//
+//  Uma livraria: cadastro, listagem paginada, busca, edicao e
+//  exclusao. O que separa um exemplo de um sistema e onde a regra
+//  mora — e aqui ela mora no BANCO, nao na memoria do processo.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Database as Banco
+
+db := Banco.memory()
+
+// ── 1. O schema, com as restricoes que protegem o dado ──────
+//
+// 'UNIQUE' no ISBN nao e enfeite: e o que permite 'upsert' e o que
+// impede o mesmo livro entrar duas vezes quando dois caixas cadastram
+// ao mesmo tempo. Conferir com um SELECT antes do INSERT perde essa
+// corrida.
+
+Banco.create_table(db, "autores", {
+    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+    "nome": "TEXT NOT NULL UNIQUE"
+})
+
+Banco.create_table(db, "livros", {
+    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+    "isbn": "TEXT NOT NULL UNIQUE",
+    "titulo": "TEXT NOT NULL",
+    "autor_id": "INTEGER NOT NULL REFERENCES autores(id)",
+    "preco": "REAL NOT NULL CHECK (preco >= 0)",
+    "estoque": "INTEGER NOT NULL DEFAULT 0 CHECK (estoque >= 0)"
+})
+
+// ── 2. Create ───────────────────────────────────────────────
+
+action autor(nome):
+    // 'insert_or_ignore' + busca: cadastrar o mesmo autor duas vezes
+    // nao e erro do usuario, e ele nao precisa ver um.
+    Banco.insert_or_ignore(db, "autores", {"nome": nome})
+    yield Banco.query_one(db, "SELECT id FROM autores WHERE nome = ?", [nome])["id"]
+
+action cadastrar(isbn, titulo, nome_autor, preco, estoque):
+    yield Banco.upsert(db, "livros", {
+        "isbn": isbn, "titulo": titulo, "autor_id": autor(nome_autor),
+        "preco": preco, "estoque": estoque
+    }, "isbn")
+
+assert cadastrar("978-1", "Duna", "Frank Herbert", 79.9, 4) is "inserido"
+assert cadastrar("978-2", "O Messias de Duna", "Frank Herbert", 69.9, 2) is "inserido"
+assert cadastrar("978-3", "Neuromancer", "William Gibson", 64.9, 3) is "inserido"
+
+// o mesmo ISBN ATUALIZA, e o autor nao duplicou
+assert cadastrar("978-1", "Duna (ed. especial)", "Frank Herbert", 99.9, 6) is "atualizado"
+assert Banco.count(db, "livros") is 3
+assert Banco.count(db, "autores") is 2
+
+// ── 3. Read, com juncao e paginacao ─────────────────────────
+
+action pagina_de_livros(numero, tamanho):
+    yield Banco.paginate(db, "livros", numero, tamanho, order_by := "titulo")
+
+p := pagina_de_livros(1, 2)
+assert p["total"] is 3
+assert p["paginas"] is 2
+assert len(p["itens"]) is 2
+assert p["tem_proxima"]
+assert not p["tem_anterior"]
+
+segunda := pagina_de_livros(2, 2)
+assert len(segunda["itens"]) is 1
+assert not segunda["tem_proxima"]
+// a segunda pagina nao repete a primeira
+assert segunda["itens"][0]["titulo"] is not p["itens"][0]["titulo"]
+
+// com o nome do autor, que esta em outra tabela
+action com_autor():
+    yield Banco.query(db, """
+        SELECT l.titulo, a.nome AS autor, l.preco
+        FROM livros l JOIN autores a ON a.id = l.autor_id
+        ORDER BY l.titulo
+    """)
+
+catalogo := com_autor()
+assert len(catalogo) is 3
+assert catalogo[0]["autor"] is "Frank Herbert"
+
+// ── 4. Update ───────────────────────────────────────────────
+
+assert Banco.update(db, "livros", {"preco": 89.9}, {"isbn": "978-1"}) is 1
+assert Banco.query_one(db, "SELECT preco FROM livros WHERE isbn = '978-1'")["preco"] is 89.9
+
+// ── 5. Delete, e o que a chave estrangeira impede ───────────
+
+assert Banco.delete(db, "livros", {"isbn": "978-3"}) is 1
+assert Banco.count(db, "livros") is 2
+
+// apagar um autor que tem livro e recusado pelo BANCO
+monitor:
+    Banco.delete(db, "autores", {"nome": "Frank Herbert"})
+    assert no       // nao deveria chegar aqui
+handle Error as e:
+    assert "FOREIGN KEY" in e.message or "constraint" in e.message
+
+// ── 6. O que o CHECK protege ────────────────────────────────
+
+monitor:
+    Banco.insert(db, "livros", {
+        "isbn": "978-9", "titulo": "Impossivel",
+        "autor_id": 1, "preco": -10.0, "estoque": 0})
+    assert no
+handle Error as e:
+    assert "CHECK" in e.message or "constraint" in e.message
+
+out "219 ok — crud completo"

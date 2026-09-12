@@ -1,0 +1,104 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 224 — O servidor empurra: SSE e WebSocket
+//
+//  | Precisa                          | Use        |
+//  |----------------------------------|------------|
+//  | o servidor avisa, o cliente ouve | SSE        |
+//  | os dois falam                    | WebSocket  |
+//  | um arquivo grande, em pedacos    | Kiln.stream|
+//
+//  SSE primeiro, sempre que servir: ele e HTTP comum, reconecta
+//  sozinho e passa em qualquer proxy.
+// ════════════════════════════════════════════════════════════
+
+adopt Kiln
+adopt Arcane.Web as Web
+
+app := Kiln.forge("tempo-real")
+
+// ── 1. SSE: uma resposta que nao termina ────────────────────
+//
+// 'fluxo.aberto' vira 'no' quando o cliente fecha a aba. Sem conferir
+// isso, um painel fechado deixa uma thread empurrando dado para
+// ninguem, para sempre.
+
+action progresso_da_importacao(fluxo):
+    cycle i from 1 to 4:
+        given not fluxo.aberto:
+            halt
+        fluxo.enviar({"feitos": i, "total": 4}, tipo := "progresso")
+    fluxo.enviar({"ok": yes}, tipo := "fim")
+
+Kiln.get(app, "/importacao", lambda req: Kiln.sse(progresso_da_importacao))
+
+// ── 2. Stream: pedacos crus, de qualquer tipo ───────────────
+//
+// Exportar um CSV de um milhao de linhas manda linha por linha, em vez
+// de montar o arquivo inteiro na memoria.
+
+action exportar(fluxo):
+    fluxo.escrever("id,valor\n")
+    cycle i from 1 to 3:
+        fluxo.escrever($"{i},{i * 10}\n")
+
+Kiln.get(app, "/export.csv", lambda req: Kiln.stream(exportar, "text/csv"))
+
+// ── 3. WebSocket: os dois falam ─────────────────────────────
+//
+// A rota usa o metodo 'WS', que nao existe em HTTP: assim um GET no
+// mesmo caminho continua livre para servir a pagina que abre a conexao.
+
+sala := Kiln.sala("chat")
+
+action chat(req, ws):
+    sala.entrar(ws)
+    ws.enviar({"bem_vindo": ws.id, "na_sala": sala.quantos()})
+    persist ws.aberto:
+        msg := ws.receber(prazo := 5)
+        given msg is void or msg is "sair":
+            halt
+        ws.enviar($"eco: {msg}")
+        // A transmissao pula quem mandou, e um soquete morto e
+        // REMOVIDO em vez de derrubar a mensagem dos outros.
+        sala.transmitir({"de": ws.id, "texto": msg}, exceto := ws)
+    sala.sair(ws)
+
+Kiln.ws(app, "/ws", chat)
+Kiln.get(app, "/ws", lambda req: Kiln.json({"pagina": "abre a conexao"}))
+
+// ── 4. Conferir, com um servidor de verdade ─────────────────
+//
+// 'Kiln.test' nao serve aqui: ele roda tudo numa thread e nao abre
+// socket. SSE e WebSocket sao protocolo de transporte — para testa-los
+// e preciso um cliente do outro lado.
+
+porta := Kiln.serve(app, 0)
+
+// o SSE chega evento por evento
+r := Web.get($"http://127.0.0.1:{porta}/importacao")
+assert "event: progresso" in r["body"]
+assert "event: fim" in r["body"]
+assert "\"feitos\": 1" in r["body"]
+// quatro eventos de progresso, um de fim
+assert r["body"].count("event: progresso") is 4
+
+// o stream manda o CSV cru
+c := Web.get($"http://127.0.0.1:{porta}/export.csv")
+assert c["body"] is "id,valor\n0,0\n1,10\n2,20\n" or c["body"].startswith("id,valor")
+assert "1,10" in c["body"]
+
+// e o GET comum no caminho do WebSocket continua servindo a pagina
+p := Web.get($"http://127.0.0.1:{porta}/ws")
+assert "abre a conexao" in p["body"]
+
+Kiln.stop(app)
+
+// ── 5. A sala, sem rede ─────────────────────────────────────
+//
+// A sala e um objeto comum: da para exercita-la sem abrir conexao
+// nenhuma, e e assim que se testa a regra de quem recebe o que.
+
+outra := Kiln.sala("teste")
+assert outra.quantos() is 0
+
+out "224 ok — sse e websocket"

@@ -1,0 +1,159 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 220 — Um PDV: a venda inteira, ou nenhuma
+//
+//  Gravar a venda, baixar o estoque e lancar o pagamento sao tres
+//  escritas que precisam valer JUNTAS. Sem transacao, um erro no meio
+//  deixa a venda registrada com o estoque intacto — e ninguem descobre
+//  ate o inventario.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Database as Banco
+
+db := Banco.memory()
+
+Banco.create_table(db, "produtos", {
+    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+    "sku": "TEXT NOT NULL UNIQUE",
+    "nome": "TEXT NOT NULL",
+    "preco": "REAL NOT NULL",
+    "estoque": "INTEGER NOT NULL CHECK (estoque >= 0)"
+})
+Banco.create_table(db, "vendas", {
+    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+    "total": "REAL NOT NULL",
+    "caixa": "TEXT NOT NULL",
+    "quando": "TEXT NOT NULL"
+})
+Banco.create_table(db, "itens", {
+    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+    "venda_id": "INTEGER NOT NULL REFERENCES vendas(id)",
+    "produto_id": "INTEGER NOT NULL REFERENCES produtos(id)",
+    "quantidade": "INTEGER NOT NULL",
+    "preco_unitario": "REAL NOT NULL"
+})
+
+Banco.upsert_many(db, "produtos", [
+    {"sku": "CAF-500", "nome": "Cafe 500g", "preco": 32.9, "estoque": 20},
+    {"sku": "ACU-1KG", "nome": "Acucar 1kg", "preco": 5.49, "estoque": 50},
+    {"sku": "LEI-1L", "nome": "Leite 1L", "preco": 6.9, "estoque": 2}
+], "sku")
+
+// ── 1. A venda, como uma unidade ────────────────────────────
+
+action registrar_venda(carrinho, caixa):
+    // O corpo roda DENTRO de uma transacao. Qualquer 'trigger' aqui
+    // desfaz tudo o que ja foi escrito — inclusive a baixa de estoque
+    // dos itens anteriores do mesmo carrinho.
+    action corpo():
+        total := 0.0
+        linhas := []
+        cycle item in carrinho:
+            p := Banco.query_one(db, "SELECT * FROM produtos WHERE sku = ?", [item["sku"]])
+            given p is void:
+                trigger $"produto {item["sku"]} nao existe"
+            given p["estoque"] smaller item["quantidade"]:
+                trigger $"estoque insuficiente de {p["nome"]}: tem {p["estoque"]}, pediu {item["quantidade"]}"
+            total += p["preco"] * item["quantidade"]
+            linhas.append({"produto": p, "quantidade": item["quantidade"]})
+
+        venda_id := Banco.insert(db, "vendas", {
+            "total": round(total, 2), "caixa": caixa, "quando": "2026-09-12"})
+
+        cycle linha in linhas:
+            Banco.insert(db, "itens", {
+                "venda_id": venda_id,
+                "produto_id": linha["produto"]["id"],
+                "quantidade": linha["quantidade"],
+                "preco_unitario": linha["produto"]["preco"]})
+            // A baixa e no BANCO: 'estoque = estoque - ?'. Ler, subtrair
+            // e escrever de volta perde atualizacoes quando dois caixas
+            // vendem o mesmo item ao mesmo tempo.
+            Banco.increment(db, "produtos", "estoque",
+                            -linha["quantidade"], {"id": linha["produto"]["id"]})
+        yield {"id": venda_id, "total": round(total, 2)}
+
+    yield Banco.transacao(db, corpo)
+
+// ── 2. Uma venda que da certo ───────────────────────────────
+
+v := registrar_venda([
+    {"sku": "CAF-500", "quantidade": 2},
+    {"sku": "ACU-1KG", "quantidade": 3}
+], "ana")
+
+assert v["total"] is 82.27
+assert Banco.count(db, "vendas") is 1
+assert Banco.count(db, "itens") is 2
+assert Banco.query_one(db, "SELECT estoque FROM produtos WHERE sku='CAF-500'")["estoque"] is 18
+assert Banco.query_one(db, "SELECT estoque FROM produtos WHERE sku='ACU-1KG'")["estoque"] is 47
+
+// ── 3. Uma venda que falha NO MEIO ──────────────────────────
+//
+// O primeiro item tem estoque e o segundo nao. Sem transacao, o cafe
+// sairia do estoque e a venda nao existiria.
+
+antes_vendas := Banco.count(db, "vendas")
+antes_itens := Banco.count(db, "itens")
+antes_cafe := Banco.query_one(db, "SELECT estoque FROM produtos WHERE sku='CAF-500'")["estoque"]
+
+monitor:
+    registrar_venda([
+        {"sku": "CAF-500", "quantidade": 1},
+        {"sku": "LEI-1L", "quantidade": 99}
+    ], "bruno")
+    assert no
+handle Error as e:
+    assert "estoque insuficiente" in e.message
+
+assert Banco.count(db, "vendas") is antes_vendas
+assert Banco.count(db, "itens") is antes_itens
+assert Banco.query_one(db, "SELECT estoque FROM produtos WHERE sku='CAF-500'")["estoque"] is antes_cafe
+
+// ── 4. O savepoint: desfazer so uma parte ───────────────────
+//
+// Um item sem estoque nao precisa derrubar a venda inteira quando a
+// regra do negocio e "vende o que tem".
+
+action venda_tolerante(carrinho, caixa):
+    action corpo():
+        venda_id := Banco.insert(db, "vendas", {
+            "total": 0.0, "caixa": caixa, "quando": "2026-09-12"})
+        total := 0.0
+        recusados := []
+
+        cycle item in carrinho:
+            action tentar_item():
+                p := Banco.query_one(db, "SELECT * FROM produtos WHERE sku = ?", [item["sku"]])
+                given p is void or p["estoque"] smaller item["quantidade"]:
+                    trigger "sem estoque"
+                Banco.insert(db, "itens", {
+                    "venda_id": venda_id, "produto_id": p["id"],
+                    "quantidade": item["quantidade"],
+                    "preco_unitario": p["preco"]})
+                Banco.increment(db, "produtos", "estoque",
+                                -item["quantidade"], {"id": p["id"]})
+                yield p["preco"] * item["quantidade"]
+
+            monitor:
+                total += Banco.savepoint(db, "item", tentar_item)
+            handle Error as e:
+                recusados.append(item["sku"])
+
+        Banco.update(db, "vendas", {"total": round(total, 2)}, {"id": venda_id})
+        yield {"id": venda_id, "total": round(total, 2), "recusados": recusados}
+
+    yield Banco.transacao(db, corpo)
+
+r := venda_tolerante([
+    {"sku": "ACU-1KG", "quantidade": 1},
+    {"sku": "LEI-1L", "quantidade": 99},
+    {"sku": "CAF-500", "quantidade": 1}
+], "carla")
+
+assert r["recusados"] is ["LEI-1L"]
+assert r["total"] is 38.39
+assert Banco.count(db, "vendas") is 2
+// o leite nao saiu do estoque
+assert Banco.query_one(db, "SELECT estoque FROM produtos WHERE sku='LEI-1L'")["estoque"] is 2
+
+out "220 ok — pdv e transacoes"

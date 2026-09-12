@@ -1602,6 +1602,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "banco",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "before",
      "sig": "(corpo)",
      "tipo": "funcao"
@@ -1637,6 +1642,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "database",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "describe",
      "sig": "(nome, corpo)",
      "tipo": "funcao"
@@ -1662,6 +1672,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "flaky",
+     "sig": "(acao, tentativas, espera)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "floats",
      "sig": "(minimo, maximo)",
      "tipo": "funcao"
@@ -1674,6 +1689,16 @@
     {
      "nome": "freeze_time",
      "sig": "(instante)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "instantaneo",
+     "sig": "(nome, valor, atualizar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "instavel",
+     "sig": "(acao, tentativas, espera)",
      "tipo": "funcao"
     },
     {
@@ -1732,6 +1757,16 @@
      "tipo": "funcao"
     },
     {
+     "nome": "snapshot",
+     "sig": "(nome, valor, atualizar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "snapshot_dir",
+     "sig": "(arquivo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "spy",
      "sig": "(alvo, nome)",
      "tipo": "funcao"
@@ -1763,6 +1798,11 @@
     },
     {
      "nome": "tap",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "temp_dir",
      "sig": "()",
      "tipo": "funcao"
     },
@@ -2138,6 +2178,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "aggregate",
+     "sig": "(db, table, agregados, group_by, where, order_by, limit)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "backup",
      "sig": "(db, dest_path)",
      "tipo": "funcao"
@@ -2150,6 +2195,11 @@
     {
      "nome": "builder",
      "sig": "(db, table)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "check_foreign_keys",
+     "sig": "(db)",
      "tipo": "funcao"
     },
     {
@@ -2188,6 +2238,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "create_search",
+     "sig": "(db, table, columns, nome)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "create_table",
      "sig": "(db, name, schema)",
      "tipo": "funcao"
@@ -2200,6 +2255,11 @@
     {
      "nome": "delete",
      "sig": "(db, table, where)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "drop_index",
+     "sig": "(db, nome)",
      "tipo": "funcao"
     },
     {
@@ -2228,6 +2288,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "explain",
+     "sig": "(db, sql, params)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "export_csv",
      "sig": "(db, table, path)",
      "tipo": "funcao"
@@ -2235,6 +2300,16 @@
     {
      "nome": "export_json",
      "sig": "(db, table, path)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "foreign_keys",
+     "sig": "(db, table)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "group_count",
+     "sig": "(db, table, column, where, order_by, limit)",
      "tipo": "funcao"
     },
     {
@@ -2248,6 +2323,21 @@
      "tipo": "funcao"
     },
     {
+     "nome": "in_transaction",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "increment",
+     "sig": "(db, table, column, delta, where)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "indexes",
+     "sig": "(db, table)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "insert",
      "sig": "(db, table, data)",
      "tipo": "funcao"
@@ -2258,6 +2348,16 @@
      "tipo": "funcao"
     },
     {
+     "nome": "insert_or_ignore",
+     "sig": "(db, table, data)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "integrity",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "memory",
      "sig": "()",
      "tipo": "funcao"
@@ -2265,6 +2365,16 @@
     {
      "nome": "migrate",
      "sig": "(db, migrations)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "migrations_applied",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "paginate",
+     "sig": "(db, table, pagina, por_pagina, where, order_by, columns)",
      "tipo": "funcao"
     },
     {
@@ -2283,6 +2393,26 @@
      "tipo": "funcao"
     },
     {
+     "nome": "rollback_migration",
+     "sig": "(db, migrations, ate)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "savepoint",
+     "sig": "(db, nome, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "schema_sql",
+     "sig": "(db, table)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "search",
+     "sig": "(db, table, termo, limit, nome, columns)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "seed",
      "sig": "(db, table, records)",
      "tipo": "funcao"
@@ -2290,6 +2420,16 @@
     {
      "nome": "select",
      "sig": "(db, table, where, order_by, limit, columns)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "slow_log",
+     "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "stats",
+     "sig": "(db)",
      "tipo": "funcao"
     },
     {
@@ -2308,13 +2448,38 @@
      "tipo": "funcao"
     },
     {
+     "nome": "transacao",
+     "sig": "(db, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "transaction",
+     "sig": "(db, acao)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "update",
      "sig": "(db, table, data, where)",
      "tipo": "funcao"
     },
     {
+     "nome": "upsert",
+     "sig": "(db, table, data, chaves)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "upsert_many",
+     "sig": "(db, table, records, chaves)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "vacuum",
      "sig": "(db)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "watch_slow",
+     "sig": "(db, acima_de_ms)",
      "tipo": "funcao"
     }
    ]
@@ -3110,6 +3275,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "copy_tree",
+     "sig": "(origem, destino)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "cwd",
      "sig": "()",
      "tipo": "funcao"
@@ -3190,8 +3360,18 @@
      "tipo": "funcao"
     },
     {
+     "nome": "remove_tree",
+     "sig": "(path)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "rename",
      "sig": "(old, new)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rmdir",
+     "sig": "(path)",
      "tipo": "funcao"
     },
     {
@@ -3459,6 +3639,11 @@
    "curto": "Kiln",
    "funcoes": [
     {
+     "nome": "Sala",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "after",
      "sig": "(app, funcao)",
      "tipo": "funcao"
@@ -3551,6 +3736,11 @@
     {
      "nome": "escape",
      "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "evento",
+     "sig": "(dados, tipo, identificador, reconectar)",
      "tipo": "funcao"
     },
     {
@@ -3699,6 +3889,16 @@
      "tipo": "funcao"
     },
     {
+     "nome": "sala",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "salvar_upload",
+     "sig": "(arquivo, pasta, nome, limite, tipos)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "secure_headers",
      "sig": "(csp, hsts, frame, referrer, permissoes)",
      "tipo": "funcao"
@@ -3724,6 +3924,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "sse",
+     "sig": "(gerador, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "static",
      "sig": "(app, prefixo, pasta)",
      "tipo": "funcao"
@@ -3741,6 +3946,11 @@
     {
      "nome": "stop",
      "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "stream",
+     "sig": "(gerador, tipo, cabecalhos)",
      "tipo": "funcao"
     },
     {
@@ -3764,6 +3974,16 @@
      "tipo": "funcao"
     },
     {
+     "nome": "upload",
+     "sig": "(req, campo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "uploads",
+     "sig": "(req)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "use",
      "sig": "(app, funcao)",
      "tipo": "funcao"
@@ -3776,6 +3996,11 @@
     {
      "nome": "validate",
      "sig": "(esquema, alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ws",
+     "sig": "(app, padrao, handler)",
      "tipo": "funcao"
     }
    ]
@@ -8473,7 +8698,77 @@
     "enunciado": "",
     "arquivo": "218_vitrine.df",
     "temDoc": true,
-    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 218 — Uma aplicacao de dados com a Vitrine\n//\n//  Um programa de cima para baixo que vira uma pagina web, e um teste\n//  que confere o que ela faz sem abrir navegador nenhum.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Vitrine as V\n\n// ── 1. A pagina mais simples que existe ─────────────────────\n//\n// Componente e chamada de acao. Ela devolve o que quem escreve\n// precisa: 'V.botao' devolve yes/no, 'V.entrada' devolve o texto.\n\naction ola():\n    V.titulo(\"Olá\")\n    nome := V.entrada(\"Seu nome\", \"mundo\")\n    V.texto($\"Bom dia, {nome}!\")\n\nt := V.testar(ola)\nassert \"Bom dia, mundo!\" in t.texto()\n\nt.digitar(\"Seu nome\", \"Ana\")\nassert \"Bom dia, Ana!\" in t.texto()\n\n// ── 2. O estado sobrevive; o clique, nao ────────────────────\n//\n// O programa roda INTEIRO a cada interacao. Sem um lugar que\n// sobreviva, o contador voltaria a zero a cada clique. Ja o botao\n// vale por UMA execucao — um clique que continuasse verdadeiro\n// dispararia a acao de novo no carregamento seguinte.\n\naction contador():\n    V.estado.padrao(\"n\", 0)\n    given V.botao(\"Somar\"):\n        V.estado.somar(\"n\")\n    V.metrica(\"Total\", V.estado.obter(\"n\"))\n\nc := V.testar(contador)\nassert c.metrica(\"Total\") is \"0\"\nc.clicar(\"Somar\")\nassert c.metrica(\"Total\") is \"1\"\nc.rodar()\nassert c.metrica(\"Total\") is \"1\"        // sem clique, nao soma\nc.clicar(\"Somar\")\nassert c.metrica(\"Total\") is \"2\"\n\n// ── 3. Layout: a area e um objeto ───────────────────────────\n//\n// A linguagem nao tem bloco de contexto, entao a coluna e um objeto\n// e os componentes sao metodos dele. Aninha sem indentacao extra, e\n// da para guardar a area numa variavel.\n\naction colunado():\n    colunas := V.colunas([2, 1])\n    colunas[0].texto(\"conteúdo\")\n    lado := colunas[1].cartao(\"Resumo\")\n    lado.metrica(\"Itens\", 42)\n\nl := V.testar(colunado)\nraiz := l.achar(\"colunas\")[0]\nassert len(raiz.filhos) is 2\nassert raiz.filhos[0].props[\"proporcao\"] is 66.6667\nassert l.metrica(\"Itens\") is \"42\"\n\n// ── 4. Cache: rodar tudo de novo exige nao recalcular tudo ──\n\nvezes := {\"n\": 0}\n\nmark @V.cache\naction pesado(chave):\n    vezes[\"n\"] := vezes[\"n\"] + 1\n    yield [{\"x\": chave, \"y\": 10}]\n\naction com_cache():\n    V.tabela(pesado(\"a\"))\n    V.tabela(pesado(\"a\"))\n\nV.testar(com_cache)\nassert vezes[\"n\"] is 1\n\n// ── 5. Grafico: SVG escrito no servidor ─────────────────────\n//\n// Sem biblioteca de JavaScript: uma CDN quebraria o app em rede\n// fechada, que e onde painel de dados costuma rodar.\n\naction grafico():\n    dados := [\n        {\"mes\": \"Jan\", \"receita\": 120},\n        {\"mes\": \"Fev\", \"receita\": 90},\n        {\"mes\": \"Mar\", \"receita\": 160}\n    ]\n    V.grafico_barras(dados, x := \"mes\", y := \"receita\", titulo := \"Vendas\")\n\ng := V.testar(grafico)\nassert \"<svg\" in g.html()\nassert \"<rect\" in g.html()\nassert g.primeiro(\"grafico\").props[\"series\"][0][\"valores\"] is [120, 90, 160]\n\n// ── 6. Formulario: so entrega no envio ──────────────────────\n//\n// Sem formulario, CADA tecla roda o programa inteiro. Num campo\n// ligado a uma consulta pesada, e a diferenca entre um app usavel e\n// um que trava a cada letra.\n\nsalvos := []\n\naction cadastro():\n    forma := V.formulario(\"novo\")\n    nome := forma.entrada(\"Nome\")\n    forma.numero(\"Idade\", 18)\n    given forma.enviar(\"Cadastrar\"):\n        salvos.append(nome)\n        V.sucesso($\"{nome} cadastrado.\")\n\nf := V.testar(cadastro)\nf.digitar(\"Nome\", \"Bruno\")\nassert len(salvos) is 0                  // digitar nao salva\nf.enviar(\"novo\")\nassert salvos is [\"Bruno\"]\nassert \"Bruno cadastrado.\" in f.texto()\n\n// ── 7. Um erro na pagina nao derruba o servidor ─────────────\n\naction quebrada():\n    V.titulo(\"antes\")\n    trigger \"falhou de propósito\"\n\nq := V.testar(quebrada)\nassert q.falhou()\nassert \"antes\" in q.texto()              // o que ja montou continua\n\n// ── 8. HTTP de verdade, sem socket ──────────────────────────\n\naction inicio():\n    V.titulo(\"Loja\")\n\napp := V.app(\"Teste\")\nV.pagina(\"/\", inicio)\n\nr := V.pedir(app, \"GET\", \"/\")\nassert r[\"status\"] is 200\nassert \"<!DOCTYPE html>\" in r[\"body\"]\nassert r[\"headers\"][\"X-Content-Type-Options\"] is \"nosniff\"\n\nout \"218 ok — vitrine\"\n"
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 218 — Uma aplicacao de dados com a Vitrine\n//\n//  Um programa de cima para baixo que vira uma pagina web, e um teste\n//  que confere o que ela faz sem abrir navegador nenhum.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Vitrine as V\n\n// ── 1. A pagina mais simples que existe ─────────────────────\n//\n// Componente e chamada de acao. Ela devolve o que quem escreve\n// precisa: 'V.botao' devolve yes/no, 'V.entrada' devolve o texto.\n\naction ola():\n    V.titulo(\"Olá\")\n    nome := V.entrada(\"Seu nome\", \"mundo\")\n    V.texto($\"Bom dia, {nome}!\")\n\nt := V.testar(ola)\nassert \"Bom dia, mundo!\" in t.texto()\n\nt.digitar(\"Seu nome\", \"Ana\")\nassert \"Bom dia, Ana!\" in t.texto()\n\n// ── 2. O estado sobrevive; o clique, nao ────────────────────\n//\n// O programa roda INTEIRO a cada interacao. Sem um lugar que\n// sobreviva, o contador voltaria a zero a cada clique. Ja o botao\n// vale por UMA execucao — um clique que continuasse verdadeiro\n// dispararia a acao de novo no carregamento seguinte.\n\naction contador():\n    V.estado.padrao(\"n\", 0)\n    given V.botao(\"Somar\"):\n        V.estado.somar(\"n\")\n    V.metrica(\"Total\", V.estado.obter(\"n\"))\n\nc := V.testar(contador)\nassert c.metrica(\"Total\") is \"0\"\nc.clicar(\"Somar\")\nassert c.metrica(\"Total\") is \"1\"\nc.rodar()\nassert c.metrica(\"Total\") is \"1\"  // sem clique, nao soma\nc.clicar(\"Somar\")\nassert c.metrica(\"Total\") is \"2\"\n\n// ── 3. Layout: a area e um objeto ───────────────────────────\n//\n// A linguagem nao tem bloco de contexto, entao a coluna e um objeto\n// e os componentes sao metodos dele. Aninha sem indentacao extra, e\n// da para guardar a area numa variavel.\n\naction colunado():\n    colunas := V.colunas([2, 1])\n    colunas[0].texto(\"conteúdo\")\n    lado := colunas[1].cartao(\"Resumo\")\n    lado.metrica(\"Itens\", 42)\n\nl := V.testar(colunado)\nraiz := l.achar(\"colunas\")[0]\nassert len(raiz.filhos) is 2\nassert raiz.filhos[0].props[\"proporcao\"] is 66.6667\nassert l.metrica(\"Itens\") is \"42\"\n\n// ── 4. Cache: rodar tudo de novo exige nao recalcular tudo ──\n\nvezes := {\"n\": 0}\n\nmark @V.cache\naction pesado(chave):\n    vezes[\"n\"] := vezes[\"n\"] + 1\n    yield [{\"x\":chave, \"y\":10}]\n\naction com_cache():\n    V.tabela(pesado(\"a\"))\n    V.tabela(pesado(\"a\"))\n\nV.testar(com_cache)\nassert vezes[\"n\"] is 1\n\n// ── 5. Grafico: SVG escrito no servidor ─────────────────────\n//\n// Sem biblioteca de JavaScript: uma CDN quebraria o app em rede\n// fechada, que e onde painel de dados costuma rodar.\n\naction grafico():\n    dados := [\n        {\"mes\": \"Jan\", \"receita\": 120},\n        {\"mes\": \"Fev\", \"receita\": 90},\n        {\"mes\": \"Mar\", \"receita\": 160}\n    ]\n    V.grafico_barras(dados, x := \"mes\", y := \"receita\", titulo := \"Vendas\")\n\ng := V.testar(grafico)\nassert \"<svg\" in g.html()\nassert \"<rect\" in g.html()\nassert g.primeiro(\"grafico\").props[\"series\"][0][\"valores\"] is [120, 90, 160]\n\n// ── 6. Formulario: so entrega no envio ──────────────────────\n//\n// Sem formulario, CADA tecla roda o programa inteiro. Num campo\n// ligado a uma consulta pesada, e a diferenca entre um app usavel e\n// um que trava a cada letra.\n\nsalvos := []\n\naction cadastro():\n    forma := V.formulario(\"novo\")\n    nome := forma.entrada(\"Nome\")\n    forma.numero(\"Idade\", 18)\n    given forma.enviar(\"Cadastrar\"):\n        salvos.append(nome)\n        V.sucesso($\"{nome} cadastrado.\")\n\nf := V.testar(cadastro)\nf.digitar(\"Nome\", \"Bruno\")\nassert len(salvos) is 0  // digitar nao salva\nf.enviar(\"novo\")\nassert salvos is [\"Bruno\"]\nassert \"Bruno cadastrado.\" in f.texto()\n\n// ── 7. Um erro na pagina nao derruba o servidor ─────────────\n\naction quebrada():\n    V.titulo(\"antes\")\n    trigger \"falhou de propósito\"\n\nq := V.testar(quebrada)\nassert q.falhou()\nassert \"antes\" in q.texto()  // o que ja montou continua\n\n// ── 8. Validacao: o erro sob o campo ────────────────────────\n//\n// Num formulario de doze campos, um alerta no topo dizendo \"ha erros\"\n// obriga a pessoa a cacar qual deles.\n\nadopt Arcane.Regex as Regex\n\naction com_validacao():\n    aviso := \"Digite um e-mail válido.\"\n    email, bom := V.campo_validado(\"E-mail\", Regex.is_email, aviso)\n    given bom:\n        V.sucesso($\"ok: {email}\")\n\nv := V.testar(com_validacao)\nassert v.problemas() is []  // vazio e intocado nao acusa\n\nv.digitar(\"E-mail\", \"sem-arroba\")\nassert v.problema(\"E-mail\") is \"Digite um e-mail válido.\"\nassert \"aria-invalid\" in v.html()\n\nv.digitar(\"E-mail\", \"ana@exemplo.br\")\nassert v.problemas() is []\nassert \"ok\" in v.texto()\n\n// ── 9. Idioma: por sessao, nao por processo ─────────────────\n\nV.i18n.carregar(\"pt-BR\", {\"ola\": \"Olá, {nome}\"})\nV.i18n.carregar(\"en-US\", {\"ola\": \"Hello, {nome}\"})\n\naction saudacao():\n    V.texto(V.t(\"ola\", nome := \"Ana\"))\n    V.texto(V.t(\"sem.traducao\"))\n\ni := V.testar(saudacao)\nassert \"Olá, Ana\" in i.texto()\nassert \"sem.traducao\" in i.texto()  // chave sem traducao aparece crua\n\nV.i18n.idioma(\"en-US\")\nassert \"Hello, Ana\" in V.testar(saudacao).texto()\nV.i18n.idioma(\"pt-BR\")\n\n// ── 10. HTTP de verdade, sem socket ─────────────────────────\n\naction inicio():\n    V.titulo(\"Loja\")\n\napp := V.app(\"Teste\")\nV.pagina(\"/\", inicio)\n\nr := V.pedir(app, \"GET\", \"/\")\nassert r[\"status\"] is 200\nassert \"<!DOCTYPE html>\" in r[\"body\"]\nassert r[\"headers\"][\"X-Content-Type-Options\"] is \"nosniff\"\n\nout \"218 ok — vitrine\"\n"
+   }
+  ],
+  "29-banco-e-crud": [
+   {
+    "num": "219",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "219_crud_completo.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 219 — Um CRUD completo, com o banco fazendo o trabalho\n//\n//  Uma livraria: cadastro, listagem paginada, busca, edicao e\n//  exclusao. O que separa um exemplo de um sistema e onde a regra\n//  mora — e aqui ela mora no BANCO, nao na memoria do processo.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Database as Banco\n\ndb := Banco.memory()\n\n// ── 1. O schema, com as restricoes que protegem o dado ──────\n//\n// 'UNIQUE' no ISBN nao e enfeite: e o que permite 'upsert' e o que\n// impede o mesmo livro entrar duas vezes quando dois caixas cadastram\n// ao mesmo tempo. Conferir com um SELECT antes do INSERT perde essa\n// corrida.\n\nBanco.create_table(db, \"autores\", {\n    \"id\": \"INTEGER PRIMARY KEY AUTOINCREMENT\",\n    \"nome\": \"TEXT NOT NULL UNIQUE\"\n})\n\nBanco.create_table(db, \"livros\", {\n    \"id\": \"INTEGER PRIMARY KEY AUTOINCREMENT\",\n    \"isbn\": \"TEXT NOT NULL UNIQUE\",\n    \"titulo\": \"TEXT NOT NULL\",\n    \"autor_id\": \"INTEGER NOT NULL REFERENCES autores(id)\",\n    \"preco\": \"REAL NOT NULL CHECK (preco >= 0)\",\n    \"estoque\": \"INTEGER NOT NULL DEFAULT 0 CHECK (estoque >= 0)\"\n})\n\n// ── 2. Create ───────────────────────────────────────────────\n\naction autor(nome):\n    // 'insert_or_ignore' + busca: cadastrar o mesmo autor duas vezes\n    // nao e erro do usuario, e ele nao precisa ver um.\n    Banco.insert_or_ignore(db, \"autores\", {\"nome\": nome})\n    yield Banco.query_one(db, \"SELECT id FROM autores WHERE nome = ?\", [nome])[\"id\"]\n\naction cadastrar(isbn, titulo, nome_autor, preco, estoque):\n    yield Banco.upsert(db, \"livros\", {\n        \"isbn\": isbn, \"titulo\": titulo, \"autor_id\": autor(nome_autor),\n        \"preco\": preco, \"estoque\": estoque\n    }, \"isbn\")\n\nassert cadastrar(\"978-1\", \"Duna\", \"Frank Herbert\", 79.9, 4) is \"inserido\"\nassert cadastrar(\"978-2\", \"O Messias de Duna\", \"Frank Herbert\", 69.9, 2) is \"inserido\"\nassert cadastrar(\"978-3\", \"Neuromancer\", \"William Gibson\", 64.9, 3) is \"inserido\"\n\n// o mesmo ISBN ATUALIZA, e o autor nao duplicou\nassert cadastrar(\"978-1\", \"Duna (ed. especial)\", \"Frank Herbert\", 99.9, 6) is \"atualizado\"\nassert Banco.count(db, \"livros\") is 3\nassert Banco.count(db, \"autores\") is 2\n\n// ── 3. Read, com juncao e paginacao ─────────────────────────\n\naction pagina_de_livros(numero, tamanho):\n    yield Banco.paginate(db, \"livros\", numero, tamanho, order_by := \"titulo\")\n\np := pagina_de_livros(1, 2)\nassert p[\"total\"] is 3\nassert p[\"paginas\"] is 2\nassert len(p[\"itens\"]) is 2\nassert p[\"tem_proxima\"]\nassert not p[\"tem_anterior\"]\n\nsegunda := pagina_de_livros(2, 2)\nassert len(segunda[\"itens\"]) is 1\nassert not segunda[\"tem_proxima\"]\n// a segunda pagina nao repete a primeira\nassert segunda[\"itens\"][0][\"titulo\"] is not p[\"itens\"][0][\"titulo\"]\n\n// com o nome do autor, que esta em outra tabela\naction com_autor():\n    yield Banco.query(db, \"\"\"\n        SELECT l.titulo, a.nome AS autor, l.preco\n        FROM livros l JOIN autores a ON a.id = l.autor_id\n        ORDER BY l.titulo\n    \"\"\")\n\ncatalogo := com_autor()\nassert len(catalogo) is 3\nassert catalogo[0][\"autor\"] is \"Frank Herbert\"\n\n// ── 4. Update ───────────────────────────────────────────────\n\nassert Banco.update(db, \"livros\", {\"preco\": 89.9}, {\"isbn\": \"978-1\"}) is 1\nassert Banco.query_one(db, \"SELECT preco FROM livros WHERE isbn = '978-1'\")[\"preco\"] is 89.9\n\n// ── 5. Delete, e o que a chave estrangeira impede ───────────\n\nassert Banco.delete(db, \"livros\", {\"isbn\": \"978-3\"}) is 1\nassert Banco.count(db, \"livros\") is 2\n\n// apagar um autor que tem livro e recusado pelo BANCO\nmonitor:\n    Banco.delete(db, \"autores\", {\"nome\": \"Frank Herbert\"})\n    assert no       // nao deveria chegar aqui\nhandle Error as e:\n    assert \"FOREIGN KEY\" in e.message or \"constraint\" in e.message\n\n// ── 6. O que o CHECK protege ────────────────────────────────\n\nmonitor:\n    Banco.insert(db, \"livros\", {\n        \"isbn\": \"978-9\", \"titulo\": \"Impossivel\",\n        \"autor_id\": 1, \"preco\": -10.0, \"estoque\": 0})\n    assert no\nhandle Error as e:\n    assert \"CHECK\" in e.message or \"constraint\" in e.message\n\nout \"219 ok — crud completo\"\n"
+   },
+   {
+    "num": "220",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "220_pdv_e_transacoes.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 220 — Um PDV: a venda inteira, ou nenhuma\n//\n//  Gravar a venda, baixar o estoque e lancar o pagamento sao tres\n//  escritas que precisam valer JUNTAS. Sem transacao, um erro no meio\n//  deixa a venda registrada com o estoque intacto — e ninguem descobre\n//  ate o inventario.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Database as Banco\n\ndb := Banco.memory()\n\nBanco.create_table(db, \"produtos\", {\n    \"id\": \"INTEGER PRIMARY KEY AUTOINCREMENT\",\n    \"sku\": \"TEXT NOT NULL UNIQUE\",\n    \"nome\": \"TEXT NOT NULL\",\n    \"preco\": \"REAL NOT NULL\",\n    \"estoque\": \"INTEGER NOT NULL CHECK (estoque >= 0)\"\n})\nBanco.create_table(db, \"vendas\", {\n    \"id\": \"INTEGER PRIMARY KEY AUTOINCREMENT\",\n    \"total\": \"REAL NOT NULL\",\n    \"caixa\": \"TEXT NOT NULL\",\n    \"quando\": \"TEXT NOT NULL\"\n})\nBanco.create_table(db, \"itens\", {\n    \"id\": \"INTEGER PRIMARY KEY AUTOINCREMENT\",\n    \"venda_id\": \"INTEGER NOT NULL REFERENCES vendas(id)\",\n    \"produto_id\": \"INTEGER NOT NULL REFERENCES produtos(id)\",\n    \"quantidade\": \"INTEGER NOT NULL\",\n    \"preco_unitario\": \"REAL NOT NULL\"\n})\n\nBanco.upsert_many(db, \"produtos\", [\n    {\"sku\": \"CAF-500\", \"nome\": \"Cafe 500g\", \"preco\": 32.9, \"estoque\": 20},\n    {\"sku\": \"ACU-1KG\", \"nome\": \"Acucar 1kg\", \"preco\": 5.49, \"estoque\": 50},\n    {\"sku\": \"LEI-1L\", \"nome\": \"Leite 1L\", \"preco\": 6.9, \"estoque\": 2}\n], \"sku\")\n\n// ── 1. A venda, como uma unidade ────────────────────────────\n\naction registrar_venda(carrinho, caixa):\n    // O corpo roda DENTRO de uma transacao. Qualquer 'trigger' aqui\n    // desfaz tudo o que ja foi escrito — inclusive a baixa de estoque\n    // dos itens anteriores do mesmo carrinho.\n    action corpo():\n        total := 0.0\n        linhas := []\n        cycle item in carrinho:\n            p := Banco.query_one(db, \"SELECT * FROM produtos WHERE sku = ?\", [item[\"sku\"]])\n            given p is void:\n                trigger $\"produto {item[\"sku\"]} nao existe\"\n            given p[\"estoque\"] smaller item[\"quantidade\"]:\n                trigger $\"estoque insuficiente de {p[\"nome\"]}: tem {p[\"estoque\"]}, pediu {item[\"quantidade\"]}\"\n            total += p[\"preco\"] * item[\"quantidade\"]\n            linhas.append({\"produto\": p, \"quantidade\": item[\"quantidade\"]})\n\n        venda_id := Banco.insert(db, \"vendas\", {\n            \"total\": round(total, 2), \"caixa\": caixa, \"quando\": \"2026-09-12\"})\n\n        cycle linha in linhas:\n            Banco.insert(db, \"itens\", {\n                \"venda_id\": venda_id,\n                \"produto_id\": linha[\"produto\"][\"id\"],\n                \"quantidade\": linha[\"quantidade\"],\n                \"preco_unitario\": linha[\"produto\"][\"preco\"]})\n            // A baixa e no BANCO: 'estoque = estoque - ?'. Ler, subtrair\n            // e escrever de volta perde atualizacoes quando dois caixas\n            // vendem o mesmo item ao mesmo tempo.\n            Banco.increment(db, \"produtos\", \"estoque\",\n                            -linha[\"quantidade\"], {\"id\": linha[\"produto\"][\"id\"]})\n        yield {\"id\": venda_id, \"total\": round(total, 2)}\n\n    yield Banco.transacao(db, corpo)\n\n// ── 2. Uma venda que da certo ───────────────────────────────\n\nv := registrar_venda([\n    {\"sku\": \"CAF-500\", \"quantidade\": 2},\n    {\"sku\": \"ACU-1KG\", \"quantidade\": 3}\n], \"ana\")\n\nassert v[\"total\"] is 82.27\nassert Banco.count(db, \"vendas\") is 1\nassert Banco.count(db, \"itens\") is 2\nassert Banco.query_one(db, \"SELECT estoque FROM produtos WHERE sku='CAF-500'\")[\"estoque\"] is 18\nassert Banco.query_one(db, \"SELECT estoque FROM produtos WHERE sku='ACU-1KG'\")[\"estoque\"] is 47\n\n// ── 3. Uma venda que falha NO MEIO ──────────────────────────\n//\n// O primeiro item tem estoque e o segundo nao. Sem transacao, o cafe\n// sairia do estoque e a venda nao existiria.\n\nantes_vendas := Banco.count(db, \"vendas\")\nantes_itens := Banco.count(db, \"itens\")\nantes_cafe := Banco.query_one(db, \"SELECT estoque FROM produtos WHERE sku='CAF-500'\")[\"estoque\"]\n\nmonitor:\n    registrar_venda([\n        {\"sku\": \"CAF-500\", \"quantidade\": 1},\n        {\"sku\": \"LEI-1L\", \"quantidade\": 99}\n    ], \"bruno\")\n    assert no\nhandle Error as e:\n    assert \"estoque insuficiente\" in e.message\n\nassert Banco.count(db, \"vendas\") is antes_vendas\nassert Banco.count(db, \"itens\") is antes_itens\nassert Banco.query_one(db, \"SELECT estoque FROM produtos WHERE sku='CAF-500'\")[\"estoque\"] is antes_cafe\n\n// ── 4. O savepoint: desfazer so uma parte ───────────────────\n//\n// Um item sem estoque nao precisa derrubar a venda inteira quando a\n// regra do negocio e \"vende o que tem\".\n\naction venda_tolerante(carrinho, caixa):\n    action corpo():\n        venda_id := Banco.insert(db, \"vendas\", {\n            \"total\": 0.0, \"caixa\": caixa, \"quando\": \"2026-09-12\"})\n        total := 0.0\n        recusados := []\n\n        cycle item in carrinho:\n            action tentar_item():\n                p := Banco.query_one(db, \"SELECT * FROM produtos WHERE sku = ?\", [item[\"sku\"]])\n                given p is void or p[\"estoque\"] smaller item[\"quantidade\"]:\n                    trigger \"sem estoque\"\n                Banco.insert(db, \"itens\", {\n                    \"venda_id\": venda_id, \"produto_id\": p[\"id\"],\n                    \"quantidade\": item[\"quantidade\"],\n                    \"preco_unitario\": p[\"preco\"]})\n                Banco.increment(db, \"produtos\", \"estoque\",\n                                -item[\"quantidade\"], {\"id\": p[\"id\"]})\n                yield p[\"preco\"] * item[\"quantidade\"]\n\n            monitor:\n                total += Banco.savepoint(db, \"item\", tentar_item)\n            handle Error as e:\n                recusados.append(item[\"sku\"])\n\n        Banco.update(db, \"vendas\", {\"total\": round(total, 2)}, {\"id\": venda_id})\n        yield {\"id\": venda_id, \"total\": round(total, 2), \"recusados\": recusados}\n\n    yield Banco.transacao(db, corpo)\n\nr := venda_tolerante([\n    {\"sku\": \"ACU-1KG\", \"quantidade\": 1},\n    {\"sku\": \"LEI-1L\", \"quantidade\": 99},\n    {\"sku\": \"CAF-500\", \"quantidade\": 1}\n], \"carla\")\n\nassert r[\"recusados\"] is [\"LEI-1L\"]\nassert r[\"total\"] is 38.39\nassert Banco.count(db, \"vendas\") is 2\n// o leite nao saiu do estoque\nassert Banco.query_one(db, \"SELECT estoque FROM produtos WHERE sku='LEI-1L'\")[\"estoque\"] is 2\n\nout \"220 ok — pdv e transacoes\"\n"
+   },
+   {
+    "num": "221",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "221_relatorios_e_busca.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 221 — Relatorio, busca e o indice que falta\n//\n//  Tres coisas que toda tela de gestao pede, e as tres tem uma versao\n//  ingenua que funciona com cem linhas e morre com cem mil.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Database as Banco\n\ndb := Banco.memory()\n\nBanco.create_table(db, \"vendas\", {\n    \"id\": \"INTEGER PRIMARY KEY AUTOINCREMENT\",\n    \"produto\": \"TEXT NOT NULL\",\n    \"categoria\": \"TEXT NOT NULL\",\n    \"vendedor\": \"TEXT NOT NULL\",\n    \"valor\": \"REAL NOT NULL\",\n    \"mes\": \"TEXT NOT NULL\"\n})\n\ndados := []\ncategorias := [\"bebida\", \"mercearia\", \"limpeza\"]\nvendedores := [\"ana\", \"bruno\", \"carla\"]\ncycle i from 1 to 90:\n    dados.append({\n        \"produto\": $\"Produto {i}\",\n        \"categoria\": categorias[i % 3],\n        // Um passo diferente: se os dois vierem de 'i % 3', categoria e\n        // vendedor ficam presos um ao outro e o cruzamento de dois\n        // grupos da 3 linhas em vez de 9.\n        \"vendedor\": vendedores[(i ~/ 3) % 3],\n        \"valor\": 10.0 + (i % 17) * 5.0,\n        \"mes\": $\"2026-{(i % 6) + 1}\"\n    })\nBanco.insert_many(db, \"vendas\", dados)\n\n// ── 1. Relatorio agrupado, sem escrever SQL ─────────────────\n\npor_vendedor := Banco.aggregate(db, \"vendas\", {\n    \"receita\": [\"sum\", \"valor\"],\n    \"vendas\": [\"count\", \"*\"],\n    \"ticket\": [\"avg\", \"valor\"]\n}, group_by := \"vendedor\", order_by := \"receita DESC\")\n\nassert len(por_vendedor) is 3\n// a primeira linha e a de maior receita\nassert por_vendedor[0][\"receita\"] bigger_eq por_vendedor[1][\"receita\"]\n// as colunas do group_by vem junto — e o que um grafico precisa\nassert \"vendedor\" in por_vendedor[0]\nassert por_vendedor[0][\"vendas\"] is 30\n\n// dois grupos ao mesmo tempo\ncruzado := Banco.aggregate(db, \"vendas\", {\"receita\": [\"sum\", \"valor\"]},\n                           group_by := [\"categoria\", \"vendedor\"])\nassert len(cruzado) is 9       // 3 x 3\n\n// com filtro\nso_bebida := Banco.aggregate(db, \"vendas\", {\"total\": [\"sum\", \"valor\"]},\n                             where := {\"categoria\": \"bebida\"})\nassert so_bebida[0][\"total\"] smaller_eq por_vendedor[0][\"receita\"] * 3\n\n// ── 2. O atalho que mais se pede ────────────────────────────\n\nquantas := Banco.group_count(db, \"vendas\", \"categoria\")\nassert len(quantas) is 3\nassert quantas[0][\"quantidade\"] is 30\n\n// ── 3. O que o analisador NAO deixa passar ──────────────────\n//\n// O nome da coluna vai CRU para o SQL — o SQLite nao aceita nome por\n// parametro. Um '?ordenar=' vindo de uma rota e injecao pela porta da\n// frente, e por isso ele e conferido.\n\nmonitor:\n    Banco.aggregate(db, \"vendas\", {\"n\": [\"count\", \"*\"]},\n                    order_by := \"valor; DROP TABLE vendas\")\n    assert no\nhandle Error as e:\n    assert \"nao e um nome valido\" in e.message\nassert Banco.table_exists(db, \"vendas\")\n\nmonitor:\n    Banco.aggregate(db, \"vendas\", {\"x\": [\"mediana\", \"valor\"]})\n    assert no\nhandle Error as e:\n    assert \"agregacao conhecida\" in e.message\n\n// ── 4. Busca textual, com indice ────────────────────────────\n//\n// 'WHERE produto LIKE \"%termo%\"' nao usa indice nenhum: ele le a\n// tabela inteira, sempre. O FTS5 usa indice invertido e ordena por\n// relevancia.\n\nBanco.create_search(db, \"vendas\", [\"produto\", \"categoria\"])\n\nachados := Banco.search(db, \"vendas\", \"produto 4\")\nassert len(achados) bigger 0\n// devolve a linha da tabela ORIGINAL, com todas as colunas\nassert \"valor\" in achados[0]\nassert \"vendedor\" in achados[0]\n\n// busca por prefixo: quem digita \"merce\" acha \"mercearia\"\nassert len(Banco.search(db, \"vendas\", \"merce\")) bigger 0\n\n// e o indice se mantem em dia — sem isso ele envelhece em silencio\nBanco.insert(db, \"vendas\", {\n    \"produto\": \"Cafezinho Especial\", \"categoria\": \"bebida\",\n    \"vendedor\": \"ana\", \"valor\": 12.0, \"mes\": \"2026-6\"})\nassert len(Banco.search(db, \"vendas\", \"cafezinho\")) is 1\n\n// ── 5. O plano da consulta: onde esta o indice que falta ────\n\nsem := Banco.explain(db, \"SELECT * FROM vendas WHERE vendedor = ?\", [\"ana\"])\nassert sem[\"varre_tabela\"]\nassert \"le a tabela inteira\" in sem[\"aviso\"]\n\nBanco.create_index(db, \"vendas\", [\"vendedor\"])\ncom := Banco.explain(db, \"SELECT * FROM vendas WHERE vendedor = ?\", [\"ana\"])\nassert not com[\"varre_tabela\"]\nassert com[\"aviso\"] is \"\"\n\n// os indices, com as colunas de cada um\nindices := Banco.indexes(db, \"vendas\") >> sift i: not i[\"automatico\"]\nassert len(indices) is 1\nassert indices[0][\"colunas\"] is [\"vendedor\"]\n\n// ── 6. Um retrato do banco ──────────────────────────────────\n\ne := Banco.stats(db)\n// as tabelas-sombra do FTS nao contam: um banco de uma tabela nao\n// pode parecer ter cinco\nassert len(e[\"tabelas\"]) is 1\nassert e[\"tabelas\"][0][\"tabela\"] is \"vendas\"\nassert e[\"tabelas\"][0][\"linhas\"] is 91\nassert Banco.integrity(db)[\"ok\"]\n\nout \"221 ok — relatorios e busca\"\n"
+   },
+   {
+    "num": "222",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "222_migracoes.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 222 — Migracoes: mudar o schema sem perder dado\n//\n//  Num sistema em producao o banco tem dado dentro. Trocar o\n//  'create_table' no codigo nao muda a tabela que ja existe, e apagar\n//  e recriar perde tudo. Migracao e o registro do que ja foi aplicado.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Database as Banco\n\ndb := Banco.memory()\n\n// ── 1. A lista, com ida E volta ─────────────────────────────\n//\n// Toda migracao tem 'up' e deveria ter 'down'. Sem o 'down', desfazer\n// exige editar o banco a mao — no meio de um incidente, que e quando\n// se desfaz.\n\nsteady MIGRACOES := [\n    {\n        \"version\": 1,\n        \"description\": \"clientes\",\n        \"up\": \"\"\"\n            CREATE TABLE clientes (\n                id INTEGER PRIMARY KEY AUTOINCREMENT,\n                nome TEXT NOT NULL\n            );\n        \"\"\",\n        \"down\": \"DROP TABLE clientes;\"\n    },\n    {\n        \"version\": 2,\n        \"description\": \"e-mail do cliente\",\n        \"up\": \"ALTER TABLE clientes ADD COLUMN email TEXT;\",\n        \"down\": \"ALTER TABLE clientes DROP COLUMN email;\"\n    },\n    {\n        \"version\": 3,\n        \"description\": \"indice de e-mail\",\n        \"up\": \"CREATE INDEX idx_cliente_email ON clientes(email);\",\n        \"down\": \"DROP INDEX idx_cliente_email;\"\n    }\n]\n\n// ── 2. Aplicar ──────────────────────────────────────────────\n\nassert Banco.migrate(db, MIGRACOES) is 3\nassert Banco.table_exists(db, \"clientes\")\nassert \"email\" in (Banco.columns(db, \"clientes\") >> morph c: c[\"name\"])\n\n// ── 3. E idempotente: rodar de novo nao faz nada ────────────\n//\n// E o que permite chamar 'migrate' no comeco de todo processo. Sem\n// isso, subir o servidor duas vezes quebraria na segunda.\n\nassert Banco.migrate(db, MIGRACOES) is 0\n\naplicadas := Banco.migrations_applied(db)\nassert len(aplicadas) is 3\nassert aplicadas[0][\"version\"] is 1\nassert aplicadas[2][\"description\"] is \"indice de e-mail\"\n\n// ── 4. O dado sobrevive a uma migracao ──────────────────────\n\nBanco.insert(db, \"clientes\", {\"nome\": \"Ana\", \"email\": \"ana@exemplo.br\"})\nassert Banco.count(db, \"clientes\") is 1\n\n// uma migracao nova, com a tabela ja povoada\nsteady MAIS := [...MIGRACOES, {\n    \"version\": 4,\n    \"description\": \"telefone\",\n    \"up\": \"ALTER TABLE clientes ADD COLUMN telefone TEXT DEFAULT '';\",\n    \"down\": \"ALTER TABLE clientes DROP COLUMN telefone;\"\n}]\n\nassert Banco.migrate(db, MAIS) is 1\nassert Banco.count(db, \"clientes\") is 1     // o dado continua la\nassert Banco.query_one(db, \"SELECT nome FROM clientes\")[\"nome\"] is \"Ana\"\n\n// ── 5. Desfazer uma ─────────────────────────────────────────\n//\n// Por padrao desfaz UMA: desfazer em cascata por acidente e perda de\n// dado, e a diferenca entre \"corrigi a ultima\" e \"apaguei o banco\".\n\nassert Banco.rollback_migration(db, MAIS) is 1\nassert \"telefone\" not in (Banco.columns(db, \"clientes\") >> morph c: c[\"name\"])\nassert len(Banco.migrations_applied(db)) is 3\n\n// ── 6. Desfazer ate uma versao ──────────────────────────────\n\nassert Banco.rollback_migration(db, MAIS, ate := 1) is 2\nassert len(Banco.migrations_applied(db)) is 1\nassert Banco.table_exists(db, \"clientes\")   // a versao 1 ficou\n\n// ── 7. Uma migracao sem 'down' nao e pulada em silencio ─────\n//\n// Pular deixaria o banco num estado que NENHUMA versao descreve, e\n// descobrir isso depois e pior que o erro agora.\n\nsteady SEM_VOLTA := [{\n    \"version\": 1, \"description\": \"sem volta\",\n    \"up\": \"CREATE TABLE x (id INTEGER);\"\n}]\n\noutro := Banco.memory()\nBanco.migrate(outro, SEM_VOLTA)\nmonitor:\n    Banco.rollback_migration(outro, SEM_VOLTA)\n    assert no\nhandle Error as e:\n    assert \"nao tem 'down'\" in e.message\n\n// ── 8. O schema como o banco o guarda ───────────────────────\n//\n// Para versionar, comparar dois ambientes e escrever a migracao que\n// falta.\n\nsql := Banco.schema_sql(db, \"clientes\")\nassert \"CREATE TABLE\" in sql\nassert \"nome\" in sql\n\nout \"222 ok — migracoes\"\n"
+   }
+  ],
+  "30-tempo-real": [
+   {
+    "num": "223",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "223_upload.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 223 — Receber arquivo\n//\n//  O corpo de um pedido era interpretado como JSON ou formulario\n//  simples. Um '<input type=\"file\">' chegava como texto ilegivel, e\n//  com isso toda tela que recebe planilha, foto ou documento ficava\n//  de fora do framework.\n// ════════════════════════════════════════════════════════════\n\nadopt Kiln\nadopt Arcane.OS as OS\nadopt Arcane.IO as IO\n\napp := Kiln.forge(\"uploads\")\n\n// ── 1. A rota que recebe ────────────────────────────────────\n//\n// Os campos comuns ficam em 'body', como num formulario qualquer:\n// quem escreve le 'body[\"titulo\"]' sem saber se o formulario tinha\n// arquivo. Os arquivos ficam em 'files', a parte — assim um 'cycle'\n// sobre 'body' nao topa com bytes onde espera texto.\n\naction receber(req):\n    arquivo := Kiln.upload(req, \"planilha\")\n    given arquivo is void:\n        yield Kiln.json({\"erro\": \"nenhum arquivo em 'planilha'\"}, 400)\n\n    linhas := arquivo[\"texto\"].lines() >> sift l: l.trim() is not \"\"\n    yield Kiln.json({\n        \"titulo\": req[\"body\"][\"titulo\"] ?? \"\",\n        \"nome\": arquivo[\"nome\"],\n        \"tipo\": arquivo[\"tipo\"],\n        \"bytes\": arquivo[\"tamanho\"],\n        \"linhas\": len(linhas)\n    })\n\nKiln.post(app, \"/importar\", receber)\n\n// ── 2. Montar um multipart a mao, para testar ───────────────\n//\n// E o formato que o navegador manda. Escrever um aqui e o que permite\n// testar a rota com 'Kiln.test', sem socket e sem navegador.\n\naction multipart(fronteira, partes):\n    pedacos := []\n    cycle p in partes:\n        cabeca := $\"Content-Disposition: form-data; name=\\\"{p[\"nome\"]}\\\"\"\n        given p[\"arquivo\"] ?? \"\" is not \"\":\n            cabeca += $\"; filename=\\\"{p[\"arquivo\"]}\\\"\"\n        tipo := \"\"\n        given p[\"tipo\"] ?? \"\" is not \"\":\n            tipo := $\"\\r\\nContent-Type: {p[\"tipo\"]}\"\n        pedacos.append($\"--{fronteira}\\r\\n{cabeca}{tipo}\\r\\n\\r\\n{p[\"valor\"]}\\r\\n\")\n    pedacos.append($\"--{fronteira}--\\r\\n\")\n    yield pedacos.join(\"\")\n\ncorpo := multipart(\"----df\", [\n    {\"nome\": \"titulo\", \"valor\": \"Vendas de marco\"},\n    {\"nome\": \"planilha\", \"valor\": \"id,valor\\n1,10\\n2,20\\n\",\n     \"arquivo\": \"vendas.csv\", \"tipo\": \"text/csv\"}\n])\n\nr := Kiln.test(app, \"POST\", \"/importar\", corpo,\n               {\"content-type\": \"multipart/form-data; boundary=----df\"})\n\nassert r[\"status\"] is 200\nassert r[\"body\"][\"nome\"] is \"vendas.csv\"\nassert r[\"body\"][\"tipo\"] is \"text/csv\"\nassert r[\"body\"][\"titulo\"] is \"Vendas de marco\"\nassert r[\"body\"][\"linhas\"] is 3\n\n// ── 3. Sem arquivo, a rota responde 400 ─────────────────────\n\nvazio := multipart(\"----df\", [{\"nome\": \"titulo\", \"valor\": \"so texto\"}])\nr2 := Kiln.test(app, \"POST\", \"/importar\", vazio,\n                {\"content-type\": \"multipart/form-data; boundary=----df\"})\nassert r2[\"status\"] is 400\n\n// ── 4. Gravar em disco, com as tres recusas ─────────────────\n\npasta := IO.join(OS.temp_dir(), \"df_upload_exercicio\")\n\nacao := Kiln.salvar_upload(\n    {\"nome\": \"relatorio.csv\", \"conteudo\": \"a,b\\n1,2\\n\",\n     \"tipo\": \"text/csv\", \"tamanho\": 8},\n    pasta, tipos := [\".csv\", \".xlsx\"])\n\nassert IO.exists(acao[\"caminho\"])\n// o nome final NAO e o que o cliente mandou: dois usuarios enviando\n// \"foto.jpg\" nao podem sobrescrever um ao outro\nassert acao[\"nome\"] is not \"relatorio.csv\"\nassert acao[\"nome\"].endswith(\".csv\")\nassert acao[\"nome_original\"] is \"relatorio.csv\"\n\n// nome que escapa da pasta: recusado\nmonitor:\n    Kiln.salvar_upload({\"nome\": \"../../.ssh/authorized_keys\", \"conteudo\": \"x\"}, pasta)\n    assert no\nhandle Error as e:\n    assert \"recusado\" in e.message\n\n// extensao fora da lista: '.php' numa pasta estatica e execucao remota\nmonitor:\n    Kiln.salvar_upload({\"nome\": \"shell.php\", \"conteudo\": \"x\"},\n                       pasta, tipos := [\".csv\"])\n    assert no\nhandle Error as e:\n    assert \"extensao\" in e.message\n\n// acima do limite\nmonitor:\n    Kiln.salvar_upload({\"nome\": \"grande.csv\", \"conteudo\": \"x\" * 100},\n                       pasta, limite := 50)\n    assert no\nhandle Error as e:\n    assert \"acima do limite\" in e.message\n\nIO.delete(acao[\"caminho\"])\n\nout \"223 ok — upload\"\n"
+   },
+   {
+    "num": "224",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "224_sse_e_websocket.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 224 — O servidor empurra: SSE e WebSocket\n//\n//  | Precisa                          | Use        |\n//  |----------------------------------|------------|\n//  | o servidor avisa, o cliente ouve | SSE        |\n//  | os dois falam                    | WebSocket  |\n//  | um arquivo grande, em pedacos    | Kiln.stream|\n//\n//  SSE primeiro, sempre que servir: ele e HTTP comum, reconecta\n//  sozinho e passa em qualquer proxy.\n// ════════════════════════════════════════════════════════════\n\nadopt Kiln\nadopt Arcane.Web as Web\n\napp := Kiln.forge(\"tempo-real\")\n\n// ── 1. SSE: uma resposta que nao termina ────────────────────\n//\n// 'fluxo.aberto' vira 'no' quando o cliente fecha a aba. Sem conferir\n// isso, um painel fechado deixa uma thread empurrando dado para\n// ninguem, para sempre.\n\naction progresso_da_importacao(fluxo):\n    cycle i from 1 to 4:\n        given not fluxo.aberto:\n            halt\n        fluxo.enviar({\"feitos\": i, \"total\": 4}, tipo := \"progresso\")\n    fluxo.enviar({\"ok\": yes}, tipo := \"fim\")\n\nKiln.get(app, \"/importacao\", lambda req: Kiln.sse(progresso_da_importacao))\n\n// ── 2. Stream: pedacos crus, de qualquer tipo ───────────────\n//\n// Exportar um CSV de um milhao de linhas manda linha por linha, em vez\n// de montar o arquivo inteiro na memoria.\n\naction exportar(fluxo):\n    fluxo.escrever(\"id,valor\\n\")\n    cycle i from 1 to 3:\n        fluxo.escrever($\"{i},{i * 10}\\n\")\n\nKiln.get(app, \"/export.csv\", lambda req: Kiln.stream(exportar, \"text/csv\"))\n\n// ── 3. WebSocket: os dois falam ─────────────────────────────\n//\n// A rota usa o metodo 'WS', que nao existe em HTTP: assim um GET no\n// mesmo caminho continua livre para servir a pagina que abre a conexao.\n\nsala := Kiln.sala(\"chat\")\n\naction chat(req, ws):\n    sala.entrar(ws)\n    ws.enviar({\"bem_vindo\": ws.id, \"na_sala\": sala.quantos()})\n    persist ws.aberto:\n        msg := ws.receber(prazo := 5)\n        given msg is void or msg is \"sair\":\n            halt\n        ws.enviar($\"eco: {msg}\")\n        // A transmissao pula quem mandou, e um soquete morto e\n        // REMOVIDO em vez de derrubar a mensagem dos outros.\n        sala.transmitir({\"de\": ws.id, \"texto\": msg}, exceto := ws)\n    sala.sair(ws)\n\nKiln.ws(app, \"/ws\", chat)\nKiln.get(app, \"/ws\", lambda req: Kiln.json({\"pagina\": \"abre a conexao\"}))\n\n// ── 4. Conferir, com um servidor de verdade ─────────────────\n//\n// 'Kiln.test' nao serve aqui: ele roda tudo numa thread e nao abre\n// socket. SSE e WebSocket sao protocolo de transporte — para testa-los\n// e preciso um cliente do outro lado.\n\nporta := Kiln.serve(app, 0)\n\n// o SSE chega evento por evento\nr := Web.get($\"http://127.0.0.1:{porta}/importacao\")\nassert \"event: progresso\" in r[\"body\"]\nassert \"event: fim\" in r[\"body\"]\nassert \"\\\"feitos\\\": 1\" in r[\"body\"]\n// quatro eventos de progresso, um de fim\nassert r[\"body\"].count(\"event: progresso\") is 4\n\n// o stream manda o CSV cru\nc := Web.get($\"http://127.0.0.1:{porta}/export.csv\")\nassert c[\"body\"] is \"id,valor\\n0,0\\n1,10\\n2,20\\n\" or c[\"body\"].startswith(\"id,valor\")\nassert \"1,10\" in c[\"body\"]\n\n// e o GET comum no caminho do WebSocket continua servindo a pagina\np := Web.get($\"http://127.0.0.1:{porta}/ws\")\nassert \"abre a conexao\" in p[\"body\"]\n\nKiln.stop(app)\n\n// ── 5. A sala, sem rede ─────────────────────────────────────\n//\n// A sala e um objeto comum: da para exercita-la sem abrir conexao\n// nenhuma, e e assim que se testa a regra de quem recebe o que.\n\noutra := Kiln.sala(\"teste\")\nassert outra.quantos() is 0\n\nout \"224 ok — sse e websocket\"\n"
+   }
+  ],
+  "31-qualidade": [
+   {
+    "num": "225",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "225_cobertura.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 225 — Cobertura: o que os testes NAO exercitaram\n//\n//  Uma suite verde nao diz nada sobre o que ela nao toca. Num sistema\n//  de 200 arquivos, o codigo que ninguem exercitou e exatamente onde\n//  o bug mora.\n//\n//  Este exercicio nao mede a si mesmo — a cobertura se pede na linha\n//  de comando:\n//\n//      dataforge test --cobertura\n//      dataforge test --minimo=80        # reprova abaixo disso\n//      dataforge test --cobertura --linhas\n//      dataforge crucible --cobertura\n//\n//  O que ele mostra e o que a medicao ENXERGA, e o que ela nao.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.OS as OS\nadopt Arcane.IO as IO\nadopt Arcane.Process as P\n\n// ── 1. Um projeto pequeno, com um ramo nao testado ──────────\n\nraiz := IO.join(OS.temp_dir(), \"df_cobertura_exercicio\")\ngiven IO.exists(raiz):\n    IO.remove_tree(raiz)\nIO.mkdir(IO.join(raiz, \"src\"))\nIO.mkdir(IO.join(raiz, \"tests\"))\n\nIO.write(IO.join(raiz, \"forge.toml\"),\n         \"[project]\\nname = \\\"cob\\\"\\nversion = \\\"1.0.0\\\"\\nentry = \\\"src/main.df\\\"\\n\")\n\nIO.write(IO.join(raiz, \"src\", \"conta.df\"), \"\"\"\naction taxa(valor, tipo):\n    given tipo is \"premium\":\n        yield valor * 0.01\n    orif tipo is \"comum\":\n        yield valor * 0.03\n    yield valor * 0.05\n\naction nunca_chamada(x):\n    yield x * 2\n\nrelay taxa, nunca_chamada\n\"\"\")\n\nIO.write(IO.join(raiz, \"src\", \"main.df\"), \"\"\"\nadopt ./conta as C\n\nout C.taxa(100, \"comum\")\n\"\"\")\n\nIO.write(IO.join(raiz, \"tests\", \"conta_test.df\"), \"\"\"\nadopt Arcane.Test as T\nadopt ../src/conta as C\n\naction test_premium():\n    T.assert_eq(C.taxa(100, \"premium\"), 1.0)\n\"\"\")\n\n// ── 2. Medir ────────────────────────────────────────────────\n\nr := P.run([\"dataforge\", \"test\", \"--cobertura\", \"--linhas\", \"--no-color\"],\n           cwd := raiz)\nsaida := r[\"stdout\"]\n\n// So a secao de cobertura interessa: o nome do arquivo de teste\n// aparece na linha de resultado dele, que e outra coisa.\nrelatorio := saida.split(\"Cobertura\")[1]\n\n// O arquivo de codigo e medido; o de teste, nao — o que interessa\n// medir e o codigo, nao a suite.\nassert \"src/conta.df\" in relatorio\nassert \"conta_test.df\" not in relatorio\n\n// A acao que ninguem chamou aparece POR NOME. E a informacao que\n// resolve: \"58% coberto\" nao diz o que fazer; \"sem teste:\n// nunca_chamada\" diz.\nassert \"nunca_chamada\" in relatorio\n\n// E as linhas descobertas saem em faixas — uma lista de setenta\n// numeros e ilegivel.\nassert \"linhas:\" in relatorio\n\n// ── 3. O minimo reprova, e isso e o que serve no CI ─────────\n\nalto := P.run([\"dataforge\", \"test\", \"--minimo=95\", \"--no-color\"], cwd := raiz)\nassert alto[\"exit_code\"] is 1\nassert \"abaixo do mínimo\" in alto[\"stdout\"]\n\nbaixo := P.run([\"dataforge\", \"test\", \"--minimo=10\", \"--no-color\"], cwd := raiz)\nassert baixo[\"exit_code\"] is 0\n\n// ── 4. O que a medicao NAO ve ───────────────────────────────\n//\n// Ela e de LINHA, e nao de ramo: 'given a and b' conta como coberta\n// mesmo que 'b' nunca tenha sido avaliado. Medir ramo dobraria o\n// custo, e cobertura de linha ja responde a pergunta que importa —\n// \"existe codigo que ninguem testou\".\n//\n// Duas escolhas que mudam o que o numero diz:\n//\n//   - a linha do 'action' nao conta, so o corpo. Uma acao nunca\n//     chamada aparece com 0%, e nao com 20%.\n//   - um arquivo que NENHUM teste toca aparece com 0% em vez de sumir\n//     do relatorio. Sumir e o que faz uma cobertura de 95% conviver\n//     com metade do sistema sem teste.\n\nassert \"0.0%\" in relatorio  // o main.df, que nenhum teste importa\n\nIO.remove_tree(raiz)\nout \"225 ok — cobertura\"\n"
+   },
+   {
+    "num": "226",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "226_instantaneo_e_isolamento.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 226 — Instantaneo, banco isolado e teste instavel\n//\n//  Tres ferramentas do Crucible para o que um teste comum nao alcanca\n//  bem: resultado grande, estado que sobra entre testes, e falha que\n//  vai e volta.\n// ════════════════════════════════════════════════════════════\n\nadopt Crucible\nadopt Arcane.Database as Banco\n\n// ── 1. O banco de exemplo ───────────────────────────────────\n\ndb := Banco.memory()\nBanco.create_table(db, \"livros\", {\n    \"id\": \"INTEGER PRIMARY KEY AUTOINCREMENT\",\n    \"titulo\": \"TEXT NOT NULL\",\n    \"preco\": \"REAL NOT NULL\"\n})\nBanco.insert_many(db, \"livros\", [\n    {\"titulo\": \"Duna\", \"preco\": 79.9},\n    {\"titulo\": \"Neuromancer\", \"preco\": 64.9}\n])\n\naction relatorio():\n    linhas := Banco.aggregate(db, \"livros\",\n                              {\"quantos\": [\"count\", \"*\"],\n                               \"total\": [\"sum\", \"preco\"]})\n    yield {\"acervo\": linhas[0][\"quantos\"], \"valor\": linhas[0][\"total\"]}\n\n// ── 2. Instantaneo ──────────────────────────────────────────\n//\n// Para o que e grande demais para escrever a mao no teste: o HTML de\n// uma pagina, o relatorio de trinta linhas, o JSON de uma rota.\n// Escrever o esperado a mao para isso da um teste que ninguem mantem.\n//\n// Na PRIMEIRA vez ele grava e passa — e o unico jeito de comecar. O\n// arquivo vai no controle de versao, e e no diff do commit que alguem\n// confere se o novo esperado esta certo.\n//\n// Para aceitar uma mudanca intencional:\n//     DF_ATUALIZAR_SNAPSHOT=1 dataforge crucible\n//\n// Atualizar por padrao seria pior que nao ter instantaneo: o teste\n// passaria sempre, gravando o errado por cima do certo.\n\ncrucible \"o relatorio\":\n    trial \"nao muda sem aviso\":\n        Crucible.snapshot(\"relatorio_do_acervo\", relatorio())\n\n    trial \"e o texto grande tambem entra\":\n        html := \"<table>\\n  <tr><td>Duna</td></tr>\\n</table>\"\n        Crucible.snapshot(\"tabela_html\", html)\n\n// ── 3. Banco que se desfaz ──────────────────────────────────\n//\n// O problema: um teste que grava deixa a linha la, e o teste seguinte\n// a encontra. A suite passa na ordem em que foi escrita e falha em\n// qualquer outra — e '--aleatorio' expoe isso de um jeito que parece\n// intermitente.\n//\n// 'Crucible.banco(db)' abre uma transacao e a desfaz no fim do trial,\n// SEMPRE. Apagar tudo entre testes seria a alternativa, e e mais lenta\n// e mais fragil: ela precisa saber a ordem das chaves estrangeiras.\n\ncrucible \"isolamento de banco\":\n    Crucible.before(lambda suite: Crucible.banco(db))\n\n    trial \"um teste que grava\":\n        Banco.insert(db, \"livros\", {\"titulo\": \"Solaris\", \"preco\": 54.9})\n        Crucible.expect(Banco.count(db, \"livros\")).to_be(3)\n\n    trial \"e o seguinte nao ve o que ele gravou\":\n        Crucible.expect(Banco.count(db, \"livros\")).to_be(2)\n\n    trial \"nem na ordem inversa\":\n        Banco.insert(db, \"livros\", {\"titulo\": \"Fundacao\", \"preco\": 49.9})\n        Crucible.expect(Banco.count(db, \"livros\")).to_be(3)\n\n// ── 4. Teste instavel ──────────────────────────────────────\n//\n// Existe para o que depende de rede, de relogio ou de escalonamento —\n// e NAO para esconder um bug. Ele conta as tentativas: um teste que\n// precisa de tres toda vez nao e instavel, esta quebrado, e o numero e\n// o que denuncia isso.\n\ncrucible \"instabilidade\":\n    trial \"tenta de novo antes de desistir\":\n        tentativas := {\"n\": 0}\n\n        action falha_duas_vezes():\n            tentativas[\"n\"] := tentativas[\"n\"] + 1\n            given tentativas[\"n\"] smaller 3:\n                trigger \"a rede ainda nao respondeu\"\n            yield yes\n\n        r := Crucible.flaky(falha_duas_vezes, 5)\n        Crucible.expect(r[\"ok\"]).to_be(yes)\n        Crucible.expect(r[\"tentativas\"]).to_be(3)\n\n    trial \"e desiste depois do limite\":\n        // 'to_raise' nao serve aqui: o que 'flaky' levanta ao desistir\n        // e a propria falha de expectativa do Crucible, e ela e o\n        // sinal de teste reprovado — nao um erro a capturar.\n        desistiu := no\n        monitor:\n            Crucible.flaky(lambda: trigger(\"sempre falha\"), 2)\n        handle Error as e:\n            desistiu := \"2 tentativas\" in e.message\n        Crucible.expect(desistiu).to_be(yes)\n\n// ── 5. Rodar ────────────────────────────────────────────────\n//\n// Fora do 'dataforge crucible', os instantaneos precisam saber de qual\n// arquivo sao — quem roda pelo comando nao precisa disto.\n\nCrucible.snapshot_dir(__file__)\nr := Crucible.run()\nassert r[\"falhou\"] is 0, $\"{r[\"falhou\"]} falharam\"\nassert r[\"erro\"] is 0\nassert r[\"passou\"] is 7\n\nout \"226 ok — instantaneo e isolamento\"\n"
    }
   ]
  },

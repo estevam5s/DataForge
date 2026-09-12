@@ -77,11 +77,18 @@ class Requisicao(dict):
             "params": {},
             "body": _interpretar_corpo(corpo_bruto, cabecalhos),
             "raw_body": corpo_bruto,
+            "files": {},
             "cookies": _ler_cookies(cabecalhos.get("cookie", "")),
             "ip": cliente,
             "session": {},
             "state": {},          # espaco para o middleware guardar coisas
         })
+        # Os arquivos de um 'multipart' vao para 'files', e nao ficam
+        # misturados aos campos: 'req["files"]["foto"]' e explicito, e
+        # um 'for' sobre 'body' nao topa com bytes onde espera texto.
+        corpo = self["body"]
+        if isinstance(corpo, dict) and "__arquivos__" in corpo:
+            self["files"] = corpo.pop("__arquivos__")
 
     def __getattr__(self, nome):
         try:
@@ -109,6 +116,20 @@ def _interpretar_corpo(bruto, cabecalhos):
     if tipo == "application/x-www-form-urlencoded":
         return {k: v[0] if len(v) == 1 else v
                 for k, v in urllib.parse.parse_qs(texto).items()}
+    if tipo == "multipart/form-data":
+        # Um '<input type="file">' chegava aqui como texto ilegivel, e
+        # com isso toda tela que recebe planilha, foto ou documento
+        # ficava de fora do framework.
+        from .kiln_tempo_real import interpretar_multipart
+        partes = interpretar_multipart(
+            bruto, cabecalhos.get("content-type", ""))
+        if partes is not None:
+            # Os campos ficam no nivel de cima, como num formulario
+            # comum: quem escreve le 'body["nome"]' sem saber se o
+            # formulario tinha arquivo. Os arquivos, a parte.
+            corpo = dict(partes["campos"])
+            corpo["__arquivos__"] = partes["arquivos"]
+            return corpo
     return texto
 
 
@@ -262,6 +283,15 @@ class _Handler(BaseHTTPRequestHandler):
         app._contador["pedidos"] += 1
         inicio = time.perf_counter()
 
+        # WebSocket: o handshake e HTTP com 'Upgrade', e depois dele o
+        # socket e nosso. Vem antes de tudo porque nao ha corpo a ler e
+        # a resposta nao e uma resposta HTTP comum.
+        from .kiln_tempo_real import e_pedido_de_upgrade
+        cabs_cru = {k.lower(): v for k, v in self.headers.items()}
+        if metodo == "GET" and e_pedido_de_upgrade(cabs_cru):
+            self._atender_ws(cabs_cru)
+            return
+
         try:
             tamanho = int(self.headers.get("content-length") or 0)
         except ValueError:
@@ -297,7 +327,92 @@ class _Handler(BaseHTTPRequestHandler):
         resp["headers"].setdefault(
             "X-Response-Time",
             f"{(time.perf_counter() - inicio) * 1000:.1f}ms")
+
+        if resp.get("__fluxo__") is not None:
+            self._enviar_fluxo(resp)
+            return
         self._enviar(resp)
+
+    # ── Uma resposta que nao termina ────────────────────────
+
+    def _enviar_fluxo(self, resp):
+        """SSE: manda os cabecalhos e entrega a escrita ao gerador.
+
+        Sem 'Content-Length' — nao se sabe quanto vem — e por isso a
+        conexao nao pode ser reaproveitada depois. 'Connection: close'
+        diz isso ao cliente em vez de deixa-lo esperando.
+        """
+        from .kiln_tempo_real import Fluxo
+
+        self.send_response(int(resp.get("status", 200)),
+                           RAZOES.get(int(resp.get("status", 200)), ""))
+        self.send_header("Content-Type",
+                         resp.get("content_type", "text/event-stream"))
+        for chave, valor in resp.get("headers", {}).items():
+            if chave.lower() != "content-length":
+                self.send_header(chave, str(valor))
+        for cookie in resp.get("cookies", []):
+            self.send_header("Set-Cookie", cookie)
+        self.end_headers()
+
+        fluxo = Fluxo(self.wfile)
+        try:
+            resp["__fluxo__"](fluxo)
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass        # o cliente fechou a aba
+        except Exception as erro:      # noqa: BLE001
+            # Um erro aqui nao pode virar 500: os cabecalhos ja foram.
+            # O evento 'erro' e o unico canal que sobra.
+            try:
+                fluxo.enviar({"erro": str(erro)}, tipo="erro")
+            except Exception:
+                pass
+        finally:
+            fluxo.fechar()
+        self.close_connection = True
+
+    # ── WebSocket ───────────────────────────────────────────
+
+    def _atender_ws(self, cabecalhos):
+        """Faz o handshake e chama o handler com um 'Soquete'."""
+        from .kiln_tempo_real import Soquete, chave_de_resposta
+
+        app = self.app
+        chave = cabecalhos.get("sec-websocket-key", "")
+        if not chave:
+            self._enviar(resposta(
+                {"erro": "falta o cabecalho Sec-WebSocket-Key"}, 400))
+            return
+
+        req = Requisicao("GET", self.path, cabecalhos, b"",
+                         self.client_address[0])
+        _ligar_sessao(app, req)
+        rota, params = app.achar("WS", req["path"])
+        if rota is None:
+            # Sem rota de WebSocket neste caminho, a resposta certa e
+            # 404 HTTP — o handshake nem comeca.
+            self._enviar(resposta({"erro": "nao ha WebSocket aqui"}, 404))
+            return
+        req["params"] = params
+
+        self.send_response(101, "Switching Protocols")
+        self.send_header("Upgrade", "websocket")
+        self.send_header("Connection", "Upgrade")
+        self.send_header("Sec-WebSocket-Accept", chave_de_resposta(chave))
+        self.end_headers()
+
+        soquete = Soquete(self.connection)
+        app._contador.setdefault("ws", 0)
+        app._contador["ws"] += 1
+        try:
+            rota.handler(req, soquete)
+        except Exception as erro:      # noqa: BLE001
+            app._contador["erros"] += 1
+            if not app.config.get("producao"):
+                print(f"  [kiln:ws] {type(erro).__name__}: {erro}")
+        finally:
+            soquete.fechar(1000, "fim")
+        self.close_connection = True
 
     def _enviar(self, resp):
         dados, tipo = _serializar(resp.get("body", ""),
@@ -705,6 +820,12 @@ def _apenas_dict(valor):
     if isinstance(valor, (list, tuple)):
         return [_apenas_dict(v) for v in valor]
     return valor
+
+
+def _classe_sala():
+    """A classe 'Sala', para quem preferir 'spawn Kiln.Sala("chat")'."""
+    from .kiln_tempo_real import Sala
+    return Sala
 
 
 class ArcaneKiln:
@@ -1376,6 +1497,85 @@ class ArcaneKiln:
     def _escape(texto):
         return _escapar(texto)
 
+    # ── tempo real ──
+
+    @staticmethod
+    def _ws(app, padrao, handler):
+        """Registra uma rota de WebSocket.
+
+        O metodo e 'WS', que nao existe em HTTP: assim ela nao pode ser
+        alcancada por um GET comum, e um GET no mesmo caminho continua
+        livre para servir a pagina que abre a conexao.
+        """
+        return app.rota("WS", padrao, handler)
+
+    @staticmethod
+    def _sala(nome="sala"):
+        """Um grupo de conexoes, para transmitir a todos."""
+        from .kiln_tempo_real import Sala
+        return Sala(nome)
+
+    @staticmethod
+    def _sse(gerador, cabecalhos=None):
+        """Uma resposta SSE: o servidor empurra evento por evento.
+
+            route GET "/fila":
+                respond Kiln.sse(action (fluxo):
+                    persist fluxo.aberto:
+                        fluxo.enviar({"tamanho": tamanho_da_fila()})
+                        wait 1
+                )
+
+        Prefira SSE a WebSocket quando o cliente so ouve: ele e HTTP
+        comum, reconecta sozinho e passa em qualquer proxy.
+        """
+        from .kiln_tempo_real import resposta_de_fluxo
+        return resposta_de_fluxo(gerador, cabecalhos)
+
+    @staticmethod
+    def _evento(dados, tipo="", identificador="", reconectar=0):
+        """Um evento SSE em texto, para quem monta o fluxo a mao."""
+        from .kiln_tempo_real import evento
+        return evento(dados, tipo, identificador, reconectar)
+
+    @staticmethod
+    def _stream(gerador, tipo="text/plain; charset=utf-8", cabecalhos=None):
+        """Uma resposta em pedacos, de qualquer tipo.
+
+        Serve para exportar um CSV de um milhao de linhas sem montar o
+        arquivo inteiro na memoria: cada pedaco sai enquanto o proximo e
+        calculado.
+        """
+        from .kiln_tempo_real import resposta_de_fluxo
+        resp = resposta_de_fluxo(gerador, cabecalhos)
+        resp["content_type"] = tipo
+        # Sem 'text/event-stream', nao e SSE: o 'no-transform' e o
+        # 'X-Accel-Buffering' continuam valendo, mas o cliente nao vai
+        # esperar o formato de evento.
+        return resp
+
+    # ── upload ──
+
+    @staticmethod
+    def _upload(req, campo):
+        """Um arquivo enviado, ou `void`.
+
+        O vault tem 'nome', 'tipo', 'tamanho', 'conteudo' (bytes) e
+        'texto'.
+        """
+        return (req.get("files") or {}).get(campo)
+
+    @staticmethod
+    def _uploads(req):
+        """Todos os arquivos enviados, por nome de campo."""
+        return dict(req.get("files") or {})
+
+    @staticmethod
+    def _salvar_upload(arquivo, pasta, nome=None, limite=0, tipos=None):
+        """Grava um arquivo recebido, recusando o que nao deveria entrar."""
+        from .kiln_tempo_real import salvar_upload
+        return salvar_upload(arquivo, pasta, nome, limite, tipos)
+
     # ── ciclo de vida ──
 
     @staticmethod
@@ -1564,6 +1764,19 @@ class ArcaneKiln:
             "escape": cls._escape,
 
             # ciclo de vida
+            # ── Tempo real ──
+            "ws": cls._ws,
+            "sala": cls._sala,
+            "Sala": _classe_sala(),
+            "sse": cls._sse,
+            "evento": cls._evento,
+            "stream": cls._stream,
+
+            # ── Upload ──
+            "upload": cls._upload,
+            "uploads": cls._uploads,
+            "salvar_upload": cls._salvar_upload,
+
             "listen": cls._listen,
             "serve": cls._serve,
             "stop": cls._stop,

@@ -461,9 +461,38 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 218 | [`218_vitrine.df`](28-vitrine/218_vitrine.df) · [doc](28-vitrine/218_vitrine.md) | Uma aplicacao de dados com a Vitrine |
 
+## 29 — Banco e crud
+
+*4 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 219 | [`219_crud_completo.df`](29-banco-e-crud/219_crud_completo.df) · [doc](29-banco-e-crud/219_crud_completo.md) | Um CRUD completo, com o banco fazendo o trabalho |
+| 220 | [`220_pdv_e_transacoes.df`](29-banco-e-crud/220_pdv_e_transacoes.df) · [doc](29-banco-e-crud/220_pdv_e_transacoes.md) | Um PDV: a venda inteira, ou nenhuma |
+| 221 | [`221_relatorios_e_busca.df`](29-banco-e-crud/221_relatorios_e_busca.df) · [doc](29-banco-e-crud/221_relatorios_e_busca.md) | Relatorio, busca e o indice que falta |
+| 222 | [`222_migracoes.df`](29-banco-e-crud/222_migracoes.df) · [doc](29-banco-e-crud/222_migracoes.md) | Migracoes: mudar o schema sem perder dado |
+
+## 30 — Tempo real
+
+*2 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 223 | [`223_upload.df`](30-tempo-real/223_upload.df) · [doc](30-tempo-real/223_upload.md) | Receber arquivo |
+| 224 | [`224_sse_e_websocket.df`](30-tempo-real/224_sse_e_websocket.df) · [doc](30-tempo-real/224_sse_e_websocket.md) | O servidor empurra: SSE e WebSocket |
+
+## 31 — Qualidade
+
+*2 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 225 | [`225_cobertura.df`](31-qualidade/225_cobertura.df) · [doc](31-qualidade/225_cobertura.md) | Cobertura: o que os testes NAO exercitaram |
+| 226 | [`226_instantaneo_e_isolamento.df`](31-qualidade/226_instantaneo_e_isolamento.df) · [doc](31-qualidade/226_instantaneo_e_isolamento.md) | Instantaneo, banco isolado e teste instavel |
+
 ---
 
-**Total: 219 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 227 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

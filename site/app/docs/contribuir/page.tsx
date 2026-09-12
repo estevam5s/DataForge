@@ -17,7 +17,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
 python3 -m pytest tests/ -q          # 272 testes
-python3 exercicios/run_all.py        # 219 exercícios`, lang: 'bash' },
+python3 exercicios/run_all.py        # 227 exercícios`, lang: 'bash' },
   {"p": "O estado esperado é **tudo verde**. Se algo falhar antes da sua mudança, isso é em si um achado que vale reportar."},
   {"h2": "Por onde começar"},
   {"p": "Os itens mais acessíveis do [roadmap](/docs/roadmap):"},

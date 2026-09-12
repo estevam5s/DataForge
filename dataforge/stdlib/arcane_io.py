@@ -20,6 +20,9 @@ class ArcaneIO:
             "exists": cls._exists,
             "delete": cls._delete,
             "mkdir": cls._mkdir,
+            "rmdir": cls._rmdir,
+            "remove_tree": cls._remove_tree,
+            "copy_tree": cls._copy_tree,
             "listdir": cls._listdir,
             "path": cls._path,
             "join": cls._join,
@@ -76,6 +79,59 @@ class ArcaneIO:
     @staticmethod
     def _mkdir(path):
         os.makedirs(path, exist_ok=True)
+
+    @staticmethod
+    def _rmdir(path):
+        """Remove uma pasta VAZIA. Devolve 'no' se ela nao estava vazia.
+
+        Separado de 'remove_tree' de proposito: apagar uma pasta que se
+        acredita vazia e uma operacao segura, e a mesma chamada apagando
+        uma arvore inteira por engano nao e. Quem quer a arvore pede a
+        arvore.
+        """
+        try:
+            os.rmdir(path)
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def _remove_tree(path):
+        """Remove uma pasta e tudo dentro dela.
+
+        Recusa um LINK SIMBOLICO para pasta: seguir o link apagaria o
+        alvo, que pode estar em qualquer lugar do disco. A remocao anda
+        so dentro do que ela recebeu.
+        """
+        import shutil
+
+        if not os.path.exists(path):
+            return False
+        if os.path.islink(path):
+            from ..errors import RuntimeError_
+            raise RuntimeError_(
+                f"'{path}' e um link simbolico, nao uma pasta.", 0, 0,
+                nota="apagar seguindo o link removeria o alvo, que pode "
+                     "estar em qualquer lugar",
+                dica="use IO.delete para remover o link em si",
+                doc="tecnicas/arquivos")
+        if not os.path.isdir(path):
+            from ..errors import RuntimeError_
+            raise RuntimeError_(
+                f"'{path}' nao e uma pasta.", 0, 0,
+                dica="use IO.delete para um arquivo",
+                doc="tecnicas/arquivos")
+        shutil.rmtree(path)
+        return True
+
+    @staticmethod
+    def _copy_tree(origem, destino):
+        """Copia uma pasta inteira. Junta com o que ja existe no destino."""
+        import shutil
+
+        shutil.copytree(origem, destino, dirs_exist_ok=True,
+                        symlinks=True)
+        return destino
 
     @staticmethod
     def _listdir(path="."):

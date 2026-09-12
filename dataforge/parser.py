@@ -857,12 +857,26 @@ class Parser:
             self.skip_newlines()
             args, kwargs = [], {}
             while self.current().type is not TokenType.RPAREN:
-                # nome: valor  → argumento nomeado
+                # Argumento nomeado, nas DUAS formas.
+                #
+                # 'nome := valor' e o que o resto da linguagem usa —
+                # '_parse_call_args' aceita so essa — e o decorador
+                # aceitava so 'nome: valor'. A divergencia nao produzia
+                # erro em nenhum dos dois lados: produzia um
+                # 'mark @V.cache(validade := 300)' que nao compila,
+                # escrito na documentacao por quem conhecia a forma
+                # comum.
                 if (self.current().type is TokenType.IDENTIFIER
-                        and self.peek(1).type is TokenType.COLON):
+                        and self.peek(1).type in (TokenType.COLON,
+                                                  TokenType.ASSIGN)):
                     chave = self.advance().value
-                    self.advance()                 # ':'
+                    self.advance()                 # ':' ou ':='
                     kwargs[chave] = self.parse_expression()
+                elif self.current().type is TokenType.SPREAD:
+                    marca = self.advance()
+                    args.append(ast.SpreadElement(
+                        value=self.parse_expression(),
+                        line=marca.line, column=marca.column))
                 else:
                     args.append(self.parse_expression())
                 self.skip_newlines()

@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Trinta e oito módulos e 1280 símbolos, sem uma única dependência externa.",
+  description: "Trinta e oito módulos e 1325 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os trinta e oito módulos"
   },
   {
-    "p": "São **1280 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1325 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -41,6 +41,11 @@ const blocos: Bloco[] = [
           "O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln."
         ],
         [
+          "[`Kiln`](/docs/kiln)",
+          "73",
+          "Framework web: rotas, middleware, templates, sessão e arquivos estáticos."
+        ],
+        [
           "`Arcane.Color`",
           "66",
           "Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore."
@@ -51,9 +56,9 @@ const blocos: Bloco[] = [
           "Análise de dados: estatística, regressão, clustering e gráficos ASCII."
         ],
         [
-          "[`Kiln`](/docs/kiln)",
+          "[`Arcane.Database`](/docs/biblioteca/database)",
           "64",
-          "Framework web: rotas, middleware, templates, sessão e arquivos estáticos."
+          "Banco de dados SQLite: tabelas, consultas, migrações e importação."
         ],
         [
           "[`Arcane.Collections`](/docs/biblioteca/collections)",
@@ -81,6 +86,11 @@ const blocos: Bloco[] = [
           "Matemática, álgebra linear e estatística básica."
         ],
         [
+          "[`Arcane.Crucible`](/docs/tecnicas/testes)",
+          "50",
+          "Framework de testes: suítes, matchers, fixtures, dublês e benchmark."
+        ],
+        [
           "[`Arcane.Crypto`](/docs/biblioteca/crypto)",
           "48",
           "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305)."
@@ -96,19 +106,9 @@ const blocos: Bloco[] = [
           "Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize."
         ],
         [
-          "[`Arcane.Crucible`](/docs/tecnicas/testes)",
-          "42",
-          "Framework de testes: suítes, matchers, fixtures, dublês e benchmark."
-        ],
-        [
           "[`Arcane.OS`](/docs/biblioteca/os)",
           "42",
           "Sistema operacional, ambiente, disco e processo atual."
-        ],
-        [
-          "[`Arcane.Database`](/docs/biblioteca/database)",
-          "39",
-          "Banco de dados SQLite: tabelas, consultas, migrações e importação."
         ],
         [
           "[`Arcane.Test`](/docs/biblioteca/test)",
@@ -121,6 +121,11 @@ const blocos: Bloco[] = [
           "Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone)."
         ],
         [
+          "[`Arcane.IO`](/docs/biblioteca/io)",
+          "30",
+          "Arquivos, diretórios, JSON, CSV e shell."
+        ],
+        [
           "[`Arcane.Excel`](/docs/biblioteca/excel)",
           "29",
           "Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame."
@@ -129,11 +134,6 @@ const blocos: Bloco[] = [
           "[`Arcane.Forge`](/docs/tecnicas/banco-de-dados)",
           "28",
           "Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface."
-        ],
-        [
-          "[`Arcane.IO`](/docs/biblioteca/io)",
-          "27",
-          "Arquivos, diretórios, JSON, CSV e shell."
         ],
         [
           "[`Arcane.Serialization`](/docs/biblioteca/serialization)",
@@ -295,7 +295,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Trinta e oito módulos e 1280 símbolos, sem uma única dependência externa."}
+      description={"Trinta e oito módulos e 1325 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

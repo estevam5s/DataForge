@@ -1640,6 +1640,20 @@ class ArcaneCrucible(dict):
             "diff": cls._diff,
             "freeze_time": cls._freeze_time,
             "temp_file": cls._temp_file,
+            "temp_dir": cls._temp_dir,
+
+            # ── instantaneo ──
+            "snapshot": cls._snapshot,
+            "instantaneo": cls._snapshot,
+            "snapshot_dir": cls._snapshot_dir,
+
+            # ── banco que se desfaz ──
+            "banco": cls._banco,
+            "database": cls._banco,
+
+            # ── teste instavel ──
+            "flaky": cls._flaky,
+            "instavel": cls._flaky,
         }
 
     # ── montar ──────────────────────────────────────────────
@@ -1933,6 +1947,223 @@ class ArcaneCrucible(dict):
             f.write(conteudo)
         return {"caminho": caminho,
                 "apagar": lambda: os.path.exists(caminho) and os.remove(caminho)}
+
+    @staticmethod
+    def _temp_dir():
+        """Uma pasta temporaria que se apaga sozinha, com o que houver
+        dentro."""
+        import shutil
+        import tempfile
+        caminho = tempfile.mkdtemp(prefix="crucible_")
+        return {"caminho": caminho,
+                "apagar": lambda: shutil.rmtree(caminho, ignore_errors=True)}
+
+    # ═══════════════════════════════════════════════════════
+    #  Instantaneo
+    # ═══════════════════════════════════════════════════════
+    #
+    # A infraestrutura ja existia — '_caminho_snapshot',
+    # 'carregar_snapshots', 'gravar_snapshots' e os dois campos do
+    # REGISTRO — e nao estava ligada a nada. Alguem montou o encanamento
+    # e a torneira nunca foi instalada.
+    #
+    # A convencao dela e melhor que uma pasta global: um JSON por
+    # ARQUIVO de teste, ao lado dele. Assim o instantaneo anda junto do
+    # teste num 'git mv', e o diff do commit mostra os dois lado a lado.
+
+    @staticmethod
+    def _snapshot(nome, valor, atualizar=None):
+        """Compara com o resultado guardado da ultima vez.
+
+        Serve para o que e grande demais para escrever no teste a mao: o
+        HTML de uma pagina, o relatorio de trinta linhas, o JSON de uma
+        rota. Escrever o esperado a mao para isso da um teste que
+        ninguem mantem.
+
+            trial "o relatorio nao muda sem aviso":
+                Crucible.snapshot("relatorio", gerar_relatorio())
+
+        **Na primeira vez, ele grava e passa.** E o unico jeito de
+        comecar, e por isso o arquivo vai no controle de versao: e no
+        diff do commit que alguem confere se o novo esperado esta certo.
+
+        Para aceitar uma mudanca intencional:
+
+            DF_ATUALIZAR_SNAPSHOT=1 dataforge crucible
+
+        Atualizar por padrao seria pior que nao ter instantaneo: o teste
+        passaria sempre, gravando o errado por cima do certo.
+        """
+        arquivo = REGISTRO.arquivo_snapshots or "instantaneos.df"
+        if not REGISTRO.snapshots:
+            REGISTRO.snapshots = carregar_snapshots(arquivo)
+
+        chave = str(nome)
+        atual = _texto_de_instantaneo(valor)
+        pedido = (atualizar if atualizar is not None
+                  else os.environ.get("DF_ATUALIZAR_SNAPSHOT") in
+                  ("1", "yes", "true", "sim"))
+
+        guardado = REGISTRO.snapshots.get(chave)
+        if pedido or guardado is None:
+            REGISTRO.snapshots[chave] = atual
+            gravar_snapshots(arquivo, REGISTRO.snapshots)
+            return True
+
+        if guardado == atual:
+            return True
+
+        raise FalhaDeExpectativa(
+            f"o instantaneo '{nome}' mudou.\n"
+            + _diferenca_de_instantaneo(guardado, atual)
+            + "\n    para aceitar: DF_ATUALIZAR_SNAPSHOT=1 dataforge crucible"
+            + f"\n    o arquivo:    {_caminho_snapshot(arquivo)}",
+            esperado=guardado, obtido=atual)
+
+    @staticmethod
+    def _snapshot_dir(arquivo):
+        """Diz de qual arquivo de teste os instantaneos sao.
+
+        O 'dataforge crucible' chama isto por arquivo; quem roda um
+        arquivo com 'dataforge run' pode chamar a mao.
+        """
+        REGISTRO.arquivo_snapshots = str(arquivo)
+        REGISTRO.snapshots = carregar_snapshots(str(arquivo))
+        return arquivo
+
+    # ═══════════════════════════════════════════════════════
+    #  Banco que se desfaz
+    # ═══════════════════════════════════════════════════════
+
+    @staticmethod
+    def _banco(db):
+        """Roda o teste numa transacao, e desfaz no fim — sempre.
+
+            before:
+                Crucible.banco(db)
+
+        O problema que isso resolve: um teste que grava deixa a linha
+        la, e o teste seguinte a encontra. A suite passa na ordem em que
+        foi escrita e falha em qualquer outra — e '--aleatorio' expoe
+        isso de um jeito que parece intermitente.
+
+        Apagar tudo entre testes seria a alternativa, e e mais lenta e
+        mais fragil: ela precisa saber a ordem das chaves estrangeiras.
+
+        Devolve um objeto com 'desfazer()', para quem preferir chamar a
+        mao. Com 'after' registrado, ele e chamado sozinho.
+        """
+        from .arcane_database import ArcaneDatabase
+
+        conexao = db["_conn"]
+        conexao.execute("BEGIN")
+        db["_profundidade"] = db.get("_profundidade", 0) + 1
+
+        estado = {"desfeito": False}
+
+        def desfazer():
+            if estado["desfeito"]:
+                return False
+            estado["desfeito"] = True
+            db["_profundidade"] = max(0, db.get("_profundidade", 1) - 1)
+            conexao.rollback()
+            return True
+
+        # O desfazer entra na lista de LIMPEZA do trial que esta
+        # rodando, e nao em 'depois_de_cada' da suite: 'depois_de_cada'
+        # e uma lista que roda a cada teste, e acrescentar a ela dentro
+        # de um 'before' a faria crescer um item por teste — o segundo
+        # teste desfaria duas vezes, o terceiro tres.
+        #
+        # Sem registro nenhum, esquecer o 'after' deixaria a transacao
+        # aberta e a conexao travada para as outras threads — um
+        # travamento que parece um teste lento.
+        alvo = REGISTRO.atual
+        if alvo is not None and hasattr(alvo, "limpezas"):
+            alvo.limpezas.append(desfazer)
+        return {"desfazer": desfazer, "ativo": lambda: not estado["desfeito"]}
+
+    # ═══════════════════════════════════════════════════════
+    #  Teste instavel
+    # ═══════════════════════════════════════════════════════
+
+    @staticmethod
+    def _flaky(acao, tentativas=3, espera=0.0):
+        """Tenta de novo antes de dar por falhado.
+
+        Existe para o teste que depende de rede, de relogio ou de
+        escalonamento — e NAO para esconder um bug. Por isso ele conta
+        as tentativas no resultado: um teste que precisa de tres
+        tentativas toda vez nao e instavel, esta quebrado, e o numero e
+        o que denuncia isso.
+        """
+        import time as _time
+
+        ultima = None
+        for tentativa in range(1, max(1, int(tentativas)) + 1):
+            try:
+                acao()
+                return {"ok": True, "tentativas": tentativa}
+            except Exception as erro:      # noqa: BLE001
+                ultima = erro
+                if tentativa < tentativas and espera:
+                    _time.sleep(float(espera))
+        raise FalhaDeExpectativa(
+            f"falhou nas {tentativas} tentativas.\n    ultima: {ultima}",
+            obtido=str(ultima))
+
+
+def _texto_de_instantaneo(valor):
+    """O valor como texto estavel — e a estabilidade e o ponto.
+
+    Um vault com as chaves em ordem de insercao muda de texto quando o
+    codigo insere na ordem diferente, e o instantaneo falharia sem nada
+    ter mudado de verdade. As chaves saem ORDENADAS.
+    """
+    import json as _json
+
+    if isinstance(valor, str):
+        return valor if valor.endswith("\n") else valor + "\n"
+    try:
+        return _json.dumps(_serializavel_snap(valor), ensure_ascii=False,
+                           indent=2, sort_keys=True) + "\n"
+    except (TypeError, ValueError):
+        return str(valor) + "\n"
+
+
+def _serializavel_snap(valor):
+    if isinstance(valor, dict):
+        return {str(k): _serializavel_snap(v) for k, v in valor.items()}
+    if isinstance(valor, (list, tuple)):
+        return [_serializavel_snap(v) for v in valor]
+    if isinstance(valor, (str, int, float, bool)) or valor is None:
+        return valor
+    if hasattr(valor, "fields"):
+        return _serializavel_snap(dict(valor.fields))
+    return str(valor)
+
+
+def _diferenca_de_instantaneo(esperado, obtido, contexto=2):
+    """As linhas que mudaram, com '-' e '+'.
+
+    O texto inteiro lado a lado e ilegivel num relatorio de terminal
+    quando o instantaneo tem trezentas linhas — e ter trezentas linhas e
+    justamente o motivo de usar instantaneo.
+    """
+    import difflib
+
+    linhas = list(difflib.unified_diff(
+        esperado.splitlines(), obtido.splitlines(),
+        fromfile="guardado", tofile="agora", lineterm="", n=contexto))
+    if not linhas:
+        return "    (as duas versoes tem o mesmo texto)"
+    # As duas primeiras linhas do unified_diff sao os nomes dos arquivos.
+    corpo = linhas[2:] if len(linhas) > 2 else linhas
+    recorte = corpo[:40]
+    saida = "\n".join("    " + l for l in recorte)
+    if len(corpo) > 40:
+        saida += f"\n    … e {len(corpo) - 40} linha(s) a mais"
+    return saida
 
 
 class _Aproximado:

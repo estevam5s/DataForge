@@ -27,6 +27,8 @@ MODULOS = [
     "ml",
     "fluxo",
     "banco",
+    "banco_sqlite",
+    "kiln_extra",
     "crucible_doc",
     "vitrine",
     "versoes",

@@ -1,0 +1,123 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 226 — Instantaneo, banco isolado e teste instavel
+//
+//  Tres ferramentas do Crucible para o que um teste comum nao alcanca
+//  bem: resultado grande, estado que sobra entre testes, e falha que
+//  vai e volta.
+// ════════════════════════════════════════════════════════════
+
+adopt Crucible
+adopt Arcane.Database as Banco
+
+// ── 1. O banco de exemplo ───────────────────────────────────
+
+db := Banco.memory()
+Banco.create_table(db, "livros", {
+    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+    "titulo": "TEXT NOT NULL",
+    "preco": "REAL NOT NULL"
+})
+Banco.insert_many(db, "livros", [
+    {"titulo": "Duna", "preco": 79.9},
+    {"titulo": "Neuromancer", "preco": 64.9}
+])
+
+action relatorio():
+    linhas := Banco.aggregate(db, "livros",
+                              {"quantos": ["count", "*"],
+                               "total": ["sum", "preco"]})
+    yield {"acervo": linhas[0]["quantos"], "valor": linhas[0]["total"]}
+
+// ── 2. Instantaneo ──────────────────────────────────────────
+//
+// Para o que e grande demais para escrever a mao no teste: o HTML de
+// uma pagina, o relatorio de trinta linhas, o JSON de uma rota.
+// Escrever o esperado a mao para isso da um teste que ninguem mantem.
+//
+// Na PRIMEIRA vez ele grava e passa — e o unico jeito de comecar. O
+// arquivo vai no controle de versao, e e no diff do commit que alguem
+// confere se o novo esperado esta certo.
+//
+// Para aceitar uma mudanca intencional:
+//     DF_ATUALIZAR_SNAPSHOT=1 dataforge crucible
+//
+// Atualizar por padrao seria pior que nao ter instantaneo: o teste
+// passaria sempre, gravando o errado por cima do certo.
+
+crucible "o relatorio":
+    trial "nao muda sem aviso":
+        Crucible.snapshot("relatorio_do_acervo", relatorio())
+
+    trial "e o texto grande tambem entra":
+        html := "<table>\n  <tr><td>Duna</td></tr>\n</table>"
+        Crucible.snapshot("tabela_html", html)
+
+// ── 3. Banco que se desfaz ──────────────────────────────────
+//
+// O problema: um teste que grava deixa a linha la, e o teste seguinte
+// a encontra. A suite passa na ordem em que foi escrita e falha em
+// qualquer outra — e '--aleatorio' expoe isso de um jeito que parece
+// intermitente.
+//
+// 'Crucible.banco(db)' abre uma transacao e a desfaz no fim do trial,
+// SEMPRE. Apagar tudo entre testes seria a alternativa, e e mais lenta
+// e mais fragil: ela precisa saber a ordem das chaves estrangeiras.
+
+crucible "isolamento de banco":
+    Crucible.before(lambda suite: Crucible.banco(db))
+
+    trial "um teste que grava":
+        Banco.insert(db, "livros", {"titulo": "Solaris", "preco": 54.9})
+        Crucible.expect(Banco.count(db, "livros")).to_be(3)
+
+    trial "e o seguinte nao ve o que ele gravou":
+        Crucible.expect(Banco.count(db, "livros")).to_be(2)
+
+    trial "nem na ordem inversa":
+        Banco.insert(db, "livros", {"titulo": "Fundacao", "preco": 49.9})
+        Crucible.expect(Banco.count(db, "livros")).to_be(3)
+
+// ── 4. Teste instavel ──────────────────────────────────────
+//
+// Existe para o que depende de rede, de relogio ou de escalonamento —
+// e NAO para esconder um bug. Ele conta as tentativas: um teste que
+// precisa de tres toda vez nao e instavel, esta quebrado, e o numero e
+// o que denuncia isso.
+
+crucible "instabilidade":
+    trial "tenta de novo antes de desistir":
+        tentativas := {"n": 0}
+
+        action falha_duas_vezes():
+            tentativas["n"] := tentativas["n"] + 1
+            given tentativas["n"] smaller 3:
+                trigger "a rede ainda nao respondeu"
+            yield yes
+
+        r := Crucible.flaky(falha_duas_vezes, 5)
+        Crucible.expect(r["ok"]).to_be(yes)
+        Crucible.expect(r["tentativas"]).to_be(3)
+
+    trial "e desiste depois do limite":
+        // 'to_raise' nao serve aqui: o que 'flaky' levanta ao desistir
+        // e a propria falha de expectativa do Crucible, e ela e o
+        // sinal de teste reprovado — nao um erro a capturar.
+        desistiu := no
+        monitor:
+            Crucible.flaky(lambda: trigger("sempre falha"), 2)
+        handle Error as e:
+            desistiu := "2 tentativas" in e.message
+        Crucible.expect(desistiu).to_be(yes)
+
+// ── 5. Rodar ────────────────────────────────────────────────
+//
+// Fora do 'dataforge crucible', os instantaneos precisam saber de qual
+// arquivo sao — quem roda pelo comando nao precisa disto.
+
+Crucible.snapshot_dir(__file__)
+r := Crucible.run()
+assert r["falhou"] is 0, $"{r["falhou"]} falharam"
+assert r["erro"] is 0
+assert r["passou"] is 7
+
+out "226 ok — instantaneo e isolamento"

@@ -1,0 +1,120 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 223 — Receber arquivo
+//
+//  O corpo de um pedido era interpretado como JSON ou formulario
+//  simples. Um '<input type="file">' chegava como texto ilegivel, e
+//  com isso toda tela que recebe planilha, foto ou documento ficava
+//  de fora do framework.
+// ════════════════════════════════════════════════════════════
+
+adopt Kiln
+adopt Arcane.OS as OS
+adopt Arcane.IO as IO
+
+app := Kiln.forge("uploads")
+
+// ── 1. A rota que recebe ────────────────────────────────────
+//
+// Os campos comuns ficam em 'body', como num formulario qualquer:
+// quem escreve le 'body["titulo"]' sem saber se o formulario tinha
+// arquivo. Os arquivos ficam em 'files', a parte — assim um 'cycle'
+// sobre 'body' nao topa com bytes onde espera texto.
+
+action receber(req):
+    arquivo := Kiln.upload(req, "planilha")
+    given arquivo is void:
+        yield Kiln.json({"erro": "nenhum arquivo em 'planilha'"}, 400)
+
+    linhas := arquivo["texto"].lines() >> sift l: l.trim() is not ""
+    yield Kiln.json({
+        "titulo": req["body"]["titulo"] ?? "",
+        "nome": arquivo["nome"],
+        "tipo": arquivo["tipo"],
+        "bytes": arquivo["tamanho"],
+        "linhas": len(linhas)
+    })
+
+Kiln.post(app, "/importar", receber)
+
+// ── 2. Montar um multipart a mao, para testar ───────────────
+//
+// E o formato que o navegador manda. Escrever um aqui e o que permite
+// testar a rota com 'Kiln.test', sem socket e sem navegador.
+
+action multipart(fronteira, partes):
+    pedacos := []
+    cycle p in partes:
+        cabeca := $"Content-Disposition: form-data; name=\"{p["nome"]}\""
+        given p["arquivo"] ?? "" is not "":
+            cabeca += $"; filename=\"{p["arquivo"]}\""
+        tipo := ""
+        given p["tipo"] ?? "" is not "":
+            tipo := $"\r\nContent-Type: {p["tipo"]}"
+        pedacos.append($"--{fronteira}\r\n{cabeca}{tipo}\r\n\r\n{p["valor"]}\r\n")
+    pedacos.append($"--{fronteira}--\r\n")
+    yield pedacos.join("")
+
+corpo := multipart("----df", [
+    {"nome": "titulo", "valor": "Vendas de marco"},
+    {"nome": "planilha", "valor": "id,valor\n1,10\n2,20\n",
+     "arquivo": "vendas.csv", "tipo": "text/csv"}
+])
+
+r := Kiln.test(app, "POST", "/importar", corpo,
+               {"content-type": "multipart/form-data; boundary=----df"})
+
+assert r["status"] is 200
+assert r["body"]["nome"] is "vendas.csv"
+assert r["body"]["tipo"] is "text/csv"
+assert r["body"]["titulo"] is "Vendas de marco"
+assert r["body"]["linhas"] is 3
+
+// ── 3. Sem arquivo, a rota responde 400 ─────────────────────
+
+vazio := multipart("----df", [{"nome": "titulo", "valor": "so texto"}])
+r2 := Kiln.test(app, "POST", "/importar", vazio,
+                {"content-type": "multipart/form-data; boundary=----df"})
+assert r2["status"] is 400
+
+// ── 4. Gravar em disco, com as tres recusas ─────────────────
+
+pasta := IO.join(OS.temp_dir(), "df_upload_exercicio")
+
+acao := Kiln.salvar_upload(
+    {"nome": "relatorio.csv", "conteudo": "a,b\n1,2\n",
+     "tipo": "text/csv", "tamanho": 8},
+    pasta, tipos := [".csv", ".xlsx"])
+
+assert IO.exists(acao["caminho"])
+// o nome final NAO e o que o cliente mandou: dois usuarios enviando
+// "foto.jpg" nao podem sobrescrever um ao outro
+assert acao["nome"] is not "relatorio.csv"
+assert acao["nome"].endswith(".csv")
+assert acao["nome_original"] is "relatorio.csv"
+
+// nome que escapa da pasta: recusado
+monitor:
+    Kiln.salvar_upload({"nome": "../../.ssh/authorized_keys", "conteudo": "x"}, pasta)
+    assert no
+handle Error as e:
+    assert "recusado" in e.message
+
+// extensao fora da lista: '.php' numa pasta estatica e execucao remota
+monitor:
+    Kiln.salvar_upload({"nome": "shell.php", "conteudo": "x"},
+                       pasta, tipos := [".csv"])
+    assert no
+handle Error as e:
+    assert "extensao" in e.message
+
+// acima do limite
+monitor:
+    Kiln.salvar_upload({"nome": "grande.csv", "conteudo": "x" * 100},
+                       pasta, limite := 50)
+    assert no
+handle Error as e:
+    assert "acima do limite" in e.message
+
+IO.delete(acao["caminho"])
+
+out "223 ok — upload"

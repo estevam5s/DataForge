@@ -1,0 +1,122 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 222 — Migracoes: mudar o schema sem perder dado
+//
+//  Num sistema em producao o banco tem dado dentro. Trocar o
+//  'create_table' no codigo nao muda a tabela que ja existe, e apagar
+//  e recriar perde tudo. Migracao e o registro do que ja foi aplicado.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Database as Banco
+
+db := Banco.memory()
+
+// ── 1. A lista, com ida E volta ─────────────────────────────
+//
+// Toda migracao tem 'up' e deveria ter 'down'. Sem o 'down', desfazer
+// exige editar o banco a mao — no meio de um incidente, que e quando
+// se desfaz.
+
+steady MIGRACOES := [
+    {
+        "version": 1,
+        "description": "clientes",
+        "up": """
+            CREATE TABLE clientes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL
+            );
+        """,
+        "down": "DROP TABLE clientes;"
+    },
+    {
+        "version": 2,
+        "description": "e-mail do cliente",
+        "up": "ALTER TABLE clientes ADD COLUMN email TEXT;",
+        "down": "ALTER TABLE clientes DROP COLUMN email;"
+    },
+    {
+        "version": 3,
+        "description": "indice de e-mail",
+        "up": "CREATE INDEX idx_cliente_email ON clientes(email);",
+        "down": "DROP INDEX idx_cliente_email;"
+    }
+]
+
+// ── 2. Aplicar ──────────────────────────────────────────────
+
+assert Banco.migrate(db, MIGRACOES) is 3
+assert Banco.table_exists(db, "clientes")
+assert "email" in (Banco.columns(db, "clientes") >> morph c: c["name"])
+
+// ── 3. E idempotente: rodar de novo nao faz nada ────────────
+//
+// E o que permite chamar 'migrate' no comeco de todo processo. Sem
+// isso, subir o servidor duas vezes quebraria na segunda.
+
+assert Banco.migrate(db, MIGRACOES) is 0
+
+aplicadas := Banco.migrations_applied(db)
+assert len(aplicadas) is 3
+assert aplicadas[0]["version"] is 1
+assert aplicadas[2]["description"] is "indice de e-mail"
+
+// ── 4. O dado sobrevive a uma migracao ──────────────────────
+
+Banco.insert(db, "clientes", {"nome": "Ana", "email": "ana@exemplo.br"})
+assert Banco.count(db, "clientes") is 1
+
+// uma migracao nova, com a tabela ja povoada
+steady MAIS := [...MIGRACOES, {
+    "version": 4,
+    "description": "telefone",
+    "up": "ALTER TABLE clientes ADD COLUMN telefone TEXT DEFAULT '';",
+    "down": "ALTER TABLE clientes DROP COLUMN telefone;"
+}]
+
+assert Banco.migrate(db, MAIS) is 1
+assert Banco.count(db, "clientes") is 1     // o dado continua la
+assert Banco.query_one(db, "SELECT nome FROM clientes")["nome"] is "Ana"
+
+// ── 5. Desfazer uma ─────────────────────────────────────────
+//
+// Por padrao desfaz UMA: desfazer em cascata por acidente e perda de
+// dado, e a diferenca entre "corrigi a ultima" e "apaguei o banco".
+
+assert Banco.rollback_migration(db, MAIS) is 1
+assert "telefone" not in (Banco.columns(db, "clientes") >> morph c: c["name"])
+assert len(Banco.migrations_applied(db)) is 3
+
+// ── 6. Desfazer ate uma versao ──────────────────────────────
+
+assert Banco.rollback_migration(db, MAIS, ate := 1) is 2
+assert len(Banco.migrations_applied(db)) is 1
+assert Banco.table_exists(db, "clientes")   // a versao 1 ficou
+
+// ── 7. Uma migracao sem 'down' nao e pulada em silencio ─────
+//
+// Pular deixaria o banco num estado que NENHUMA versao descreve, e
+// descobrir isso depois e pior que o erro agora.
+
+steady SEM_VOLTA := [{
+    "version": 1, "description": "sem volta",
+    "up": "CREATE TABLE x (id INTEGER);"
+}]
+
+outro := Banco.memory()
+Banco.migrate(outro, SEM_VOLTA)
+monitor:
+    Banco.rollback_migration(outro, SEM_VOLTA)
+    assert no
+handle Error as e:
+    assert "nao tem 'down'" in e.message
+
+// ── 8. O schema como o banco o guarda ───────────────────────
+//
+// Para versionar, comparar dois ambientes e escrever a migracao que
+// falta.
+
+sql := Banco.schema_sql(db, "clientes")
+assert "CREATE TABLE" in sql
+assert "nome" in sql
+
+out "222 ok — migracoes"

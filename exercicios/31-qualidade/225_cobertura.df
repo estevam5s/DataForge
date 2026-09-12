@@ -1,0 +1,113 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 225 — Cobertura: o que os testes NAO exercitaram
+//
+//  Uma suite verde nao diz nada sobre o que ela nao toca. Num sistema
+//  de 200 arquivos, o codigo que ninguem exercitou e exatamente onde
+//  o bug mora.
+//
+//  Este exercicio nao mede a si mesmo — a cobertura se pede na linha
+//  de comando:
+//
+//      dataforge test --cobertura
+//      dataforge test --minimo=80        # reprova abaixo disso
+//      dataforge test --cobertura --linhas
+//      dataforge crucible --cobertura
+//
+//  O que ele mostra e o que a medicao ENXERGA, e o que ela nao.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.OS as OS
+adopt Arcane.IO as IO
+adopt Arcane.Process as P
+
+// ── 1. Um projeto pequeno, com um ramo nao testado ──────────
+
+raiz := IO.join(OS.temp_dir(), "df_cobertura_exercicio")
+given IO.exists(raiz):
+    IO.remove_tree(raiz)
+IO.mkdir(IO.join(raiz, "src"))
+IO.mkdir(IO.join(raiz, "tests"))
+
+IO.write(IO.join(raiz, "forge.toml"),
+         "[project]\nname = \"cob\"\nversion = \"1.0.0\"\nentry = \"src/main.df\"\n")
+
+IO.write(IO.join(raiz, "src", "conta.df"), """
+action taxa(valor, tipo):
+    given tipo is "premium":
+        yield valor * 0.01
+    orif tipo is "comum":
+        yield valor * 0.03
+    yield valor * 0.05
+
+action nunca_chamada(x):
+    yield x * 2
+
+relay taxa, nunca_chamada
+""")
+
+IO.write(IO.join(raiz, "src", "main.df"), """
+adopt ./conta as C
+
+out C.taxa(100, "comum")
+""")
+
+IO.write(IO.join(raiz, "tests", "conta_test.df"), """
+adopt Arcane.Test as T
+adopt ../src/conta as C
+
+action test_premium():
+    T.assert_eq(C.taxa(100, "premium"), 1.0)
+""")
+
+// ── 2. Medir ────────────────────────────────────────────────
+
+r := P.run(["dataforge", "test", "--cobertura", "--linhas", "--no-color"],
+           cwd := raiz)
+saida := r["stdout"]
+
+// So a secao de cobertura interessa: o nome do arquivo de teste
+// aparece na linha de resultado dele, que e outra coisa.
+relatorio := saida.split("Cobertura")[1]
+
+// O arquivo de codigo e medido; o de teste, nao — o que interessa
+// medir e o codigo, nao a suite.
+assert "src/conta.df" in relatorio
+assert "conta_test.df" not in relatorio
+
+// A acao que ninguem chamou aparece POR NOME. E a informacao que
+// resolve: "58% coberto" nao diz o que fazer; "sem teste:
+// nunca_chamada" diz.
+assert "nunca_chamada" in relatorio
+
+// E as linhas descobertas saem em faixas — uma lista de setenta
+// numeros e ilegivel.
+assert "linhas:" in relatorio
+
+// ── 3. O minimo reprova, e isso e o que serve no CI ─────────
+
+alto := P.run(["dataforge", "test", "--minimo=95", "--no-color"], cwd := raiz)
+assert alto["exit_code"] is 1
+assert "abaixo do mínimo" in alto["stdout"]
+
+baixo := P.run(["dataforge", "test", "--minimo=10", "--no-color"], cwd := raiz)
+assert baixo["exit_code"] is 0
+
+// ── 4. O que a medicao NAO ve ───────────────────────────────
+//
+// Ela e de LINHA, e nao de ramo: 'given a and b' conta como coberta
+// mesmo que 'b' nunca tenha sido avaliado. Medir ramo dobraria o
+// custo, e cobertura de linha ja responde a pergunta que importa —
+// "existe codigo que ninguem testou".
+//
+// Duas escolhas que mudam o que o numero diz:
+//
+//   - a linha do 'action' nao conta, so o corpo. Uma acao nunca
+//     chamada aparece com 0%, e nao com 20%.
+//   - um arquivo que NENHUM teste toca aparece com 0% em vez de sumir
+//     do relatorio. Sumir e o que faz uma cobertura de 95% conviver
+//     com metade do sistema sem teste.
+
+assert "0.0%" in relatorio  // o main.df, que nenhum teste importa
+
+IO.remove_tree(raiz)
+out "225 ok — cobertura"

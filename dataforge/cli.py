@@ -2121,6 +2121,21 @@ def crucible_command(alvos, opcoes):
     REGISTRO.reiniciar()
     cor = "--no-color" not in sys.argv
 
+    medidor = None
+    if opcoes.get("cobertura") or opcoes.get("minimo"):
+        from .cobertura import Cobertura
+        from .testrunner import fontes_de
+        medidor = Cobertura()
+        alvo_raiz = alvos[0] if alvos else "."
+        for fonte_medida in fontes_de(alvo_raiz, arquivos):
+            try:
+                texto = open(fonte_medida, encoding="utf-8").read()
+                medidor.registrar_arvore(
+                    fonte_medida,
+                    parse(tokenize(texto, fonte_medida), fonte_medida))
+            except Exception:
+                continue
+
     problemas = []
     for caminho in arquivos:
         fonte, motivo = _ler(caminho)
@@ -2129,6 +2144,13 @@ def crucible_command(alvos, opcoes):
             continue
         try:
             interpretador = Interpreter()
+            # Os instantaneos sao por ARQUIVO de teste, e ficam ao lado
+            # dele. O registro precisa saber de qual arquivo se trata
+            # antes de o primeiro 'Crucible.snapshot' rodar.
+            REGISTRO.arquivo_snapshots = caminho
+            REGISTRO.snapshots = {}
+            if medidor is not None:
+                medidor.medir(interpretador)
             interpretador.run(parse(tokenize(fonte, caminho), caminho), caminho)
         except SystemExit:
             raise
@@ -2178,7 +2200,14 @@ def crucible_command(alvos, opcoes):
     else:
         print(saida)
 
-    if not executor.resumo()["verde"] or problemas:
+    abaixo = False
+    if medidor is not None:
+        from .testrunner import _relatar_cobertura
+        abaixo = _relatar_cobertura(medidor, cor,
+                                    opcoes.get("minimo", 0.0),
+                                    bool(opcoes.get("linhas")))
+
+    if not executor.resumo()["verde"] or problemas or abaixo:
         sys.exit(1)
 
 
@@ -3513,11 +3542,25 @@ def main():
                      detalhar='--linhas' in flags or '--lines' in flags)
 
     elif command in ('crucible', 'cr'):
+        minimo_cr = 0.0
+        for f in flags:
+            if f.startswith('--minimo=') or f.startswith('--min='):
+                bruto = f.split('=', 1)[1].rstrip('%')
+                try:
+                    valor = float(bruto)
+                except ValueError:
+                    print(color(f"'{f}' não é um número.", "1;31"))
+                    sys.exit(2)
+                minimo_cr = valor / 100 if valor >= 1 else valor
         opcoes = {
             "verboso": '--verbose' in flags or '-v' in flags,
             "aleatorio": '--aleatorio' in flags or '--random' in flags,
             "parar": '--fail-fast' in flags or '--parar' in flags,
             "matchers": '--matchers' in flags,
+            "cobertura": any(f in ('--cobertura', '--coverage', '--cov')
+                             for f in flags),
+            "minimo": minimo_cr,
+            "linhas": '--linhas' in flags or '--lines' in flags,
             "formato": "texto", "saida": "", "filtro": "",
             "tags": (), "sem_tags": (), "prazo": 0, "repetir": 1,
             "semente": None,

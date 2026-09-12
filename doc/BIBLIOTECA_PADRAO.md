@@ -18,13 +18,13 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Text`](#arcanetext) | `Text` | 58 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
 | [`Arcane.Analytics`](#arcaneanalytics) | `Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
 | [`Arcane.Functional`](#arcanefunctional) | `Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
-| [`Arcane.Database`](#arcanedatabase) | `Database / DB` | 39 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
+| [`Arcane.Database`](#arcanedatabase) | `Database / DB` | 64 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
 | [`Arcane.Excel`](#arcaneexcel) | `Excel / Xlsx` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
 | [`Arcane.Meta`](#arcanemeta) | `Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
-| [`Kiln`](#kiln) | `Kiln` | 64 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
+| [`Kiln`](#kiln) | `Kiln` | 73 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | [`Arcane.Test`](#arcanetest) | `Test` | 34 | Asserções e organização de suítes de teste. |
 | [`Arcane.Regex`](#arcaneregex) | `Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
-| [`Arcane.IO`](#arcaneio) | `IO` | 27 | Arquivos, diretórios, JSON, CSV e shell. |
+| [`Arcane.IO`](#arcaneio) | `IO` | 30 | Arquivos, diretórios, JSON, CSV e shell. |
 | [`Arcane.Http`](#arcanehttp) | `Http / Server` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
 | [`Arcane.Async`](#arcaneasync) | `Async` | 46 | Promessas, filas, agendamento e execução concorrente. |
 | [`Arcane.Data`](#arcanedata) | `Data` | 13 | DataFrames, séries e transformações tabulares. |
@@ -38,7 +38,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
-| [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 42 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
+| [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 50 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | [`Arcane.Iter`](#arcaneiter) | `Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
 | [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
@@ -380,16 +380,18 @@ Banco de dados SQLite: tabelas, consultas, migrações e importação.
 adopt Arcane.Database as Database
 ```
 
-**Funções (39)**
+**Funções (64)**
 
 | Assinatura |
 |------------|
 | `Model(db, table, schema=None)` |
 | `QueryBuilder(db, table)` |
 | `add_column(db, table, name, col_type='TEXT')` |
+| `aggregate(db, table, agregados, group_by=None, where=None, order_by=None, limit=None)` |
 | `backup(db, dest_path)` |
 | `begin(db)` |
 | `builder(db, table)` |
+| `check_foreign_keys(db)` |
 | `close(db)` |
 | `columns(db, table)` |
 | `commit(db)` |
@@ -397,32 +399,55 @@ adopt Arcane.Database as Database
 | `count(db, table, where=None)` |
 | `create_index(db, table, columns, unique=False, name=None)` |
 | `create_model(db, table, schema)` |
+| `create_search(db, table, columns, nome=None)` |
 | `create_table(db, name, schema)` |
 | `database_size(db)` |
 | `delete(db, table, where=None)` |
+| `drop_index(db, nome)` |
 | `drop_table(db, name)` |
 | `execute(db, sql, params=None)` |
 | `execute_many(db, sql, params_list)` |
 | `execute_script(db, script)` |
 | `exists(db, table, where)` |
+| `explain(db, sql, params=None)` |
 | `export_csv(db, table, path)` |
 | `export_json(db, table, path)` |
+| `foreign_keys(db, table)` |
+| `group_count(db, table, column, where=None, order_by='quantidade DESC', limit=None)` |
 | `import_csv(db, table, path, has_header=True)` |
 | `import_json(db, table, path)` |
+| `in_transaction(db)` |
+| `increment(db, table, column, delta=1, where=None)` |
+| `indexes(db, table=None)` |
 | `insert(db, table, data)` |
 | `insert_many(db, table, records)` |
+| `insert_or_ignore(db, table, data)` |
+| `integrity(db)` |
 | `memory()` |
 | `migrate(db, migrations)` |
+| `migrations_applied(db)` |
+| `paginate(db, table, pagina=1, por_pagina=20, where=None, order_by=None, columns=None)` |
 | `query(db, sql, params=None)` |
 | `query_one(db, sql, params=None)` |
 | `rollback(db)` |
+| `rollback_migration(db, migrations, ate=None)` |
+| `savepoint(db, nome, acao)` |
+| `schema_sql(db, table=None)` |
+| `search(db, table, termo, limit=20, nome=None, columns=None)` |
 | `seed(db, table, records)` |
 | `select(db, table, where=None, order_by=None, limit=None, columns=None)` |
+| `slow_log(db)` |
+| `stats(db)` |
 | `table_exists(db, name)` |
 | `table_info(db, table)` |
 | `tables(db)` |
+| `transacao(db, acao)` |
+| `transaction(db, acao)` |
 | `update(db, table, data, where)` |
+| `upsert(db, table, data, chaves)` |
+| `upsert_many(db, table, records, chaves)` |
 | `vacuum(db)` |
+| `watch_slow(db, acima_de_ms=50)` |
 
 
 ---
@@ -508,10 +533,11 @@ Framework web: rotas, middleware, templates, sessão e arquivos estáticos.
 adopt Kiln as Kiln
 ```
 
-**Funções (64)**
+**Funções (73)**
 
 | Assinatura |
 |------------|
+| `Sala(nome='sala')` |
 | `after(app, funcao)` |
 | `any(app, padrao, handler)` |
 | `app(nome='kiln', **config)` |
@@ -531,6 +557,7 @@ adopt Kiln as Kiln
 | `csrf_token(req, segredo=None)` |
 | `delete(app, padrao, handler)` |
 | `escape(texto)` |
+| `evento(dados, tipo='', identificador='', reconectar=0)` |
 | `file(caminho, tipo=None, baixar=None)` |
 | `forge(nome='kiln', **config)` |
 | `get(app, padrao, handler)` |
@@ -560,22 +587,29 @@ adopt Kiln as Kiln
 | `resource(app, base, controlador)` |
 | `route(app, metodo, padrao, handler)` |
 | `routes(app)` |
+| `sala(nome='sala')` |
+| `salvar_upload(arquivo, pasta, nome=None, limite=0, tipos=None)` |
 | `secure_headers(csp="default-src 'self'", hsts=False, frame='DENY', referrer='strict-origin-when-cross-origin', permissoes='geolocation=(), microphone=(), camera=()')` |
 | `serve(app, porta=8080, host='127.0.0.1')` |
 | `session_end(app, req, resp)` |
 | `session_start(app, req, resp, dados=None)` |
 | `sign(dados, segredo)` |
+| `sse(gerador, cabecalhos=None)` |
 | `static(app, prefixo, pasta)` |
 | `stats(app)` |
 | `status(codigo, mensagem=None)` |
 | `stop(app)` |
+| `stream(gerador, tipo='text/plain; charset=utf-8', cabecalhos=None)` |
 | `templates(app, pasta)` |
 | `test(app, metodo, caminho, corpo=None, cabecalhos=None)` |
 | `text(texto, status=200, cabecalhos=None)` |
 | `unsign(token, segredo)` |
+| `upload(req, campo)` |
+| `uploads(req)` |
 | `use(app, funcao)` |
 | `validar(esquema, alvo='body')` |
 | `validate(esquema, alvo='body')` |
+| `ws(app, padrao, handler)` |
 
 
 ---
@@ -691,7 +725,7 @@ Arquivos, diretórios, JSON, CSV e shell.
 adopt Arcane.IO as IO
 ```
 
-**Funções (27)**
+**Funções (30)**
 
 | Assinatura |
 |------------|
@@ -699,6 +733,7 @@ adopt Arcane.IO as IO
 | `append(path, content)` |
 | `basename(path)` |
 | `copy(src, dst)` |
+| `copy_tree(origem, destino)` |
 | `cwd()` |
 | `delete(path)` |
 | `dirname(path)` |
@@ -715,7 +750,9 @@ adopt Arcane.IO as IO
 | `read_csv(path)` |
 | `read_file(path)` |
 | `read_json(path)` |
+| `remove_tree(path)` |
 | `rename(old, new)` |
+| `rmdir(path)` |
 | `shell(command)` |
 | `size(path)` |
 | `write(path, content)` |
@@ -1344,13 +1381,14 @@ Framework de testes: suítes, matchers, fixtures, dublês e benchmark.
 adopt Arcane.Crucible as Crucible
 ```
 
-**Funções (42)**
+**Funções (50)**
 
 | Assinatura |
 |------------|
 | `after(corpo)` |
 | `after_all(corpo)` |
 | `approx(valor, casas=7)` |
+| `banco(db)` |
 | `before(corpo)` |
 | `before_all(corpo)` |
 | `benchmark(nome, acao, vezes=1000, aquecimento=10)` |
@@ -1358,14 +1396,18 @@ adopt Arcane.Crucible as Crucible
 | `capture(acao)` |
 | `check(condicao, mensagem='a condicao nao se cumpriu')` |
 | `clusters(item=None, tamanho_max=10)` |
+| `database(db)` |
 | `describe(nome, corpo=None)` |
 | `diff(esperado, obtido)` |
 | `expect(valor, rotulo='')` |
 | `fail(mensagem='falhou por decisao do teste')` |
 | `fixture(nome, corpo)` |
+| `flaky(acao, tentativas=3, espera=0.0)` |
 | `floats(minimo=-1000.0, maximo=1000.0)` |
 | `forall(gerador, propriedade, casos=100, semente=None)` |
 | `freeze_time(instante)` |
+| `instantaneo(nome, valor, atualizar=None)` |
+| `instavel(acao, tentativas=3, espera=0.0)` |
 | `integers(minimo=-1000, maximo=1000)` |
 | `json()` |
 | `junit()` |
@@ -1377,6 +1419,8 @@ adopt Arcane.Crucible as Crucible
 | `reset()` |
 | `results()` |
 | `run(opcoes=None)` |
+| `snapshot(nome, valor, atualizar=None)` |
+| `snapshot_dir(arquivo)` |
 | `spy(alvo, nome='spy')` |
 | `stub(respostas=None, nome='stub')` |
 | `suite(nome, corpo=None)` |
@@ -1384,6 +1428,7 @@ adopt Arcane.Crucible as Crucible
 | `table(nome, casos, corpo, tags=None)` |
 | `tag(*nomes)` |
 | `tap()` |
+| `temp_dir()` |
 | `temp_file(conteudo='', sufixo='.txt')` |
 | `test(nome, corpo, tags=None, prazo=0, repetir=1, dados=None)` |
 | `texts(tamanho_max=20, alfabeto=None)` |

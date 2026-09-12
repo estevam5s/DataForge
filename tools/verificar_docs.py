@@ -236,16 +236,54 @@ def preparar(codigo, tipo):
     return codigo
 
 
+#: Linhas que sao conferidas SOZINHAS, em qualquer bloco — inclusive
+#: nos classificados como "outro".
+#:
+#: Um bloco com '…' dentro e pulado inteiro, e esse escape deixou passar
+#: um 'mark @V.cache(validade := 300)' que NAO compilava, escrito na
+#: documentacao por quem conhecia a forma comum de argumento nomeado e
+#: nao sabia que o decorador aceitava so 'nome: valor'.
+#:
+#: A linha de decorador e auto-contida: da para conferi-la isolada, e
+#: assim o escape do '…' deixa de esconder esta classe de erro.
+LINHAS_ISOLADAS = (
+    ("mark @", "action alvo():\n    yield 1\n"),
+)
+
+
+def falhas_de_linha_isolada(bloco):
+    """Erros em linhas auto-contidas, mesmo em bloco elidido."""
+    achadas = []
+    for linha in bloco["codigo"].split("\n"):
+        limpa = linha.strip()
+        for prefixo, sufixo in LINHAS_ISOLADAS:
+            if not limpa.startswith(prefixo):
+                continue
+            if "…" in limpa or "..." in limpa:
+                continue        # a propria linha esta elidida
+            try:
+                parse(tokenize(limpa + "\n" + sufixo))
+            except Exception as erro:
+                achadas.append((limpa, str(erro)))
+    return achadas
+
+
 def main():
     blocos = blocos_das_paginas()
     contagem = {"dataforge": 0, "fragmento-kiln": 0,
                 "fragmento-blueprint": 0, "fragmento-match": 0,
                 "misto-kiln": 0, "outro": 0}
     falhas = []
+    isoladas = 0
 
     for bloco in blocos:
         tipo = classificar(bloco)
         contagem[tipo] += 1
+
+        for linha, erro in falhas_de_linha_isolada(bloco):
+            isoladas += 1
+            falhas.append(({**bloco, "codigo": linha}, "linha", erro))
+
         if tipo == "outro":
             continue
         try:
@@ -263,6 +301,9 @@ def main():
     print(f"    {contagem['fragmento-match']} fragmentos de match")
     print(f"    {contagem['misto-kiln']} blocos com rota solta")
     print(f"    {contagem['outro']} shell, saída ou outra linguagem")
+    if isoladas:
+        print(f"    {VERMELHO}{isoladas} linha(s) isolada(s) com "
+              f"erro{LIMPO}")
 
     if not falhas:
         conferidos = (contagem["dataforge"] + contagem["fragmento-kiln"]

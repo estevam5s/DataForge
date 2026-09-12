@@ -26,9 +26,9 @@ M.▌         ← só os 51 símbolos de Arcane.Math
   { code: `action calcular(precoBase, desconto):
     total := ▌          ← 'precoBase' e 'desconto' aparecem aqui
 `, lang: 'text' },
-  {"p": "E os nomes do próprio arquivo vêm **antes** dos 1280 símbolos da stdlib — é o que se procura em nove de cada dez vezes."},
+  {"p": "E os nomes do próprio arquivo vêm **antes** dos 1325 símbolos da stdlib — é o que se procura em nove de cada dez vezes."},
   {"h2": "O hover lê o seu comentário"},
-  {"p": "DataForge não tem docstring. O costume — visível nos 219 exercícios e na stdlib inteira — é comentar **acima** da declaração, e é dali que o hover lê:"},
+  {"p": "DataForge não tem docstring. O costume — visível nos 227 exercícios e na stdlib inteira — é comentar **acima** da declaração, e é dali que o hover lê:"},
   { code: `// Divide a conta entre as pessoas, arredondando para cima
 // para o total nunca ficar menor que o valor original.
 action dividir(total: Number, pessoas: Integer) -> Number:
