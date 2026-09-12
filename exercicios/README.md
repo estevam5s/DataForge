@@ -385,7 +385,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 22 — Web kiln
 
-*7 exercícios · com documentação `.md`*
+*8 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -396,6 +396,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 195 | [`195_middleware_e_auth.df`](22-web-kiln/195_middleware_e_auth.df) · [doc](22-web-kiln/195_middleware_e_auth.md) | Middleware, autenticacao e limite de taxa |
 | 196 | [`196_erros_e_estaticos.df`](22-web-kiln/196_erros_e_estaticos.df) · [doc](22-web-kiln/196_erros_e_estaticos.md) | Paginas de erro, redirecionamento e arquivos estaticos |
 | 197 | [`197_servidor_de_verdade.df`](22-web-kiln/197_servidor_de_verdade.df) · [doc](22-web-kiln/197_servidor_de_verdade.md) | Subir o servidor de verdade |
+| 198 | [`198_api_rest_export.df`](22-web-kiln/198_api_rest_export.df) · [doc](22-web-kiln/198_api_rest_export.md) | A API vista de fora: OpenAPI, Insomnia e curl |
 
 ## 23 — Dados e planilhas
 
@@ -454,7 +455,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ---
 
-**Total: 217 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 218 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

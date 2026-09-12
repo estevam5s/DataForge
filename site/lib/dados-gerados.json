@@ -1,5 +1,47 @@
 {
  "modulos": {
+  "api": {
+   "nome": "Arcane.API",
+   "desc": "A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas.",
+   "curto": "API",
+   "funcoes": [
+    {
+     "nome": "curl",
+     "sig": "(app, config)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "insomnia",
+     "sig": "(app, config)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "markdown",
+     "sig": "(app, config)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "openapi",
+     "sig": "(app, config)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "postman",
+     "sig": "(app, config)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "resumo",
+     "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rotas",
+     "sig": "(app)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "analytics": {
    "nome": "Arcane.Analytics",
    "desc": "Análise de dados: estatística, regressão, clustering e gráficos ASCII.",
@@ -7672,6 +7714,14 @@
     "arquivo": "197_servidor_de_verdade.df",
     "temDoc": true,
     "codigo": "// Exercicio 197 — Subir o servidor de verdade\n// Enunciado: acenda o forno, faca um pedido pela rede e apague.\n\n// Ate aqui usamos Kiln.test, que executa a rota sem abrir socket. Agora\n// o servidor de verdade: 'Kiln.serve' sobe em segundo plano e devolve a\n// porta na hora (porta 0 deixa o sistema escolher uma livre — util em\n// teste, onde uma porta fixa daria conflito). Em producao voce usa\n// 'ignite', que bloqueia ate o Ctrl-C.\n\nadopt Kiln\nadopt Arcane.Web as Web\n\nvisitas := 0\n\nserver contador on 0:\n    route GET \"/\":\n        respond html \"<h1>Forja</h1>\"\n\n    route GET \"/contar\":\n        visitas += 1\n        respond json {\"visitas\": visitas}\n\nporta := Kiln.serve(contador, 0)\nout \"no ar na porta\", porta\n\npagina := Web.get($\"http://127.0.0.1:{porta}/\")\nout \"pela rede:\", pagina[\"status\"], pagina[\"body\"]\nassert pagina[\"status\"] is 200, \"o servidor respondeu de verdade\"\nassert \"Forja\" in pagina[\"body\"], \"o HTML chegou inteiro\"\n\nWeb.get($\"http://127.0.0.1:{porta}/contar\")\nWeb.get($\"http://127.0.0.1:{porta}/contar\")\nterceira := Web.get($\"http://127.0.0.1:{porta}/contar\")\nout \"tres pedidos:\", terceira[\"body\"]\nassert visitas is 3, \"o estado do programa sobrevive entre pedidos\"\n\nnumeros := Kiln.stats(contador)\nout \"estatisticas:\", numeros[\"pedidos\"], \"pedidos,\", numeros[\"rotas\"], \"rotas\"\nassert numeros[\"pedidos\"] is 4, \"quatro pedidos contados\"\nassert numeros[\"erros\"] is 0, \"nenhum erro\"\n\nKiln.stop(contador)\nout \"forno apagado\"\n\n// Em um programa de verdade, a ultima linha seria:\n//     ignite contador on 8080\n// que sobe e fica servindo ate voce apertar Ctrl-C.\n"
+   },
+   {
+    "num": "198",
+    "titulo": "A API vista de fora: OpenAPI, Insomnia e curl",
+    "enunciado": "exporte as rotas de um servidor Kiln para as ferramentas",
+    "arquivo": "198_api_rest_export.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 198 — A API vista de fora: OpenAPI, Insomnia e curl\n// Enunciado: exporte as rotas de um servidor Kiln para as ferramentas\n// que quem consome a API de fato usa.\n\nadopt Kiln\nadopt Arcane.API as API\n\n// ── Um servidor REST de verdade ──\n//\n// Os cinco metodos que um recurso REST tem. Repare que nada aqui e\n// declarado DUAS vezes: nao ha um arquivo de documentacao ao lado\n// dizendo o que as rotas sao. As rotas sao a fonte da verdade.\n\nserver Loja on 8080:\n    route GET \"/produtos\":\n        respond json {\"produtos\":[], \"total\": 0}\n\n    route POST \"/produtos\":\n        respond json {\"criado\": yes}\n\n    route GET \"/produtos/:id\":\n        respond json {\"id\": params[\"id\"]}\n\n    route PATCH \"/produtos/:id\":\n        respond json {\"alterado\": params[\"id\"]}\n\n    route DELETE \"/produtos/:id\":\n        respond json {\"removido\": params[\"id\"]}\n\nsteady CONF := {\n    \"titulo\": \"API da Loja\",\n    \"versao\": \"2.0.0\",\n    \"base\": \"https://api.loja.com\"\n}\n\n// ── 1. O que existe ──\n\nresumo := API.resumo(Loja)\nout $\"rotas: {resumo[\"rotas\"]}\"\nout $\"metodos: {resumo[\"metodos\"]}\"\nout $\"com parametro: {resumo[\"com_parametro\"]}\"\n\nassert resumo[\"rotas\"] is 5, \"cinco rotas\"\nassert resumo[\"com_parametro\"] is 3, \"tres usam:id\"\n\n// ── 2. OpenAPI, para o Swagger e para gerar cliente ──\n\nadopt Arcane.Serialization as Serde\n\ntexto := API.openapi(Loja, CONF)\ndocumento := Serde.from_json(texto)\n\nout \"\"\nout $\"openapi: {documento[\"openapi\"]}\"\nout $\"titulo:  {documento[\"info\"][\"title\"]}\"\nout $\"caminhos: {documento[\"paths\"].keys()}\"\n\nassert documento[\"openapi\"] is \"3.1.0\", \"OpenAPI 3.1\"\nassert \"/produtos/{id}\" in documento[\"paths\"].keys(), \"o:id virou {id}\"\n\n// O parametro de caminho e DECLARADO. Sem isso, o Swagger trata ':id'\n// como parte literal do caminho, e o cliente gerado bate numa URL que\n// nao existe.\nparametro := documento[\"paths\"][\"/produtos/{id}\"][\"get\"][\"parameters\"][0]\nout $\"parametro: {parametro[\"name\"]} em {parametro[\"in\"]}\"\nassert parametro[\"name\"] is \"id\", \"o parametro se chama id\"\n\n// ── 3. Insomnia, para testar a mao ──\n\ncolecao := Serde.from_json(API.insomnia(Loja, CONF))\npedidos := colecao[\"resources\"] >> sift r: (r[\"_type\"] ?? \"\") is \"request\"\n\nout \"\"\nout $\"requisicoes: {len(pedidos)}\"\nout $\"primeira: {pedidos[0][\"method\"]} {pedidos[0][\"url\"]}\"\n\nassert len(pedidos) is 5, \"uma requisicao por rota\"\n\n// '{{ id }}' e o que o Insomnia reconhece como variavel. Deixar ':id'\n// cru daria uma requisicao que bate literalmente em '/produtos/:id'.\ncom_variavel := pedidos >> sift p: \"{{ id }}\" in p[\"url\"]\nassert len(com_variavel) is 3, \"as tres rotas com :id viraram variavel\"\n\n// ── 4. curl, para o README ──\n\ncomandos := API.curl(Loja, CONF)\nout \"\"\nout comandos.lines()[0]\nout comandos.lines()[1]\n\nassert comandos.count(\"curl \") is 5, \"um curl por rota\"\nassert \"https://api.loja.com\" in comandos, \"a base configurada\"\n\n// ── 5. Markdown, para a documentacao do projeto ──\n\ntabela := API.markdown(Loja, CONF)\nassert \"| `GET` | `/produtos` |\" in tabela, \"a tabela de rotas\"\nassert \"# API da Loja\" in tabela, \"o titulo\"\n\nout \"\"\nout \"ok\"\n"
    }
   ],
   "23-dados-e-planilhas": [

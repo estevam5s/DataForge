@@ -1555,7 +1555,7 @@ bloqueado: estoque insuficiente para Monitor
 
 ## Continuando
 
-- **[`exercicios/`](../exercicios)** — 217 exercícios, do "Olá mundo" a um
+- **[`exercicios/`](../exercicios)** — 218 exercícios, do "Olá mundo" a um
   interpretador com lexer, parser e avaliador. Cada um verifica o próprio
   resultado com `assert`, e os 60 do 4.0 têm um `.md` explicativo ao lado.
   Rode todos com `python3 exercicios/run_all.py`.

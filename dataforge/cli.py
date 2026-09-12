@@ -59,6 +59,29 @@ GRUPOS = [
             exemplos=[("dataforge init", "aqui mesmo"),
                       ("dataforge init meu-app", "numa pasta nova")],
             veja=("new", "info")),
+        Cmd("api", "dataforge api <arquivo.df> [--formato]",
+            "exporta a API de um servidor Kiln",
+            detalhe=(
+                "As rotas sao a fonte da verdade: o arquivo e executado\n"
+                "para que elas se registrem, e o resultado sai do que\n"
+                "esta la — nao de uma descricao escrita a mao, que\n"
+                "divergiria na primeira semana.\n\n"
+                "Aponte para o modulo que MONTA o servidor ('app.df'), e\n"
+                "nao para o que sobe ('main.df')."),
+            opcoes=(
+                ("--openapi", "OpenAPI 3.1 — Swagger, geradores de cliente"),
+                ("--insomnia", "colecao do Insomnia, uma requisicao por rota"),
+                ("--postman", "colecao do Postman v2.1"),
+                ("--curl", "um comando curl por rota"),
+                ("--markdown", "a tabela de rotas (padrao)"),
+                ("--saida=<arq>", "grava em vez de imprimir"),
+            ),
+            exemplos=(
+                ("dataforge api src/app.df", "a tabela de rotas"),
+                ("dataforge api src/app.df --openapi -o=openapi.json", ""),
+                ("dataforge api src/app.df --insomnia -o=insomnia.json", ""),
+            ),
+            veja=("run", "test")),
         Cmd("converter", "dataforge converter <arquivo.py|pasta>",
             "traduz Python para DataForge",
             detalhe=(
@@ -1462,6 +1485,111 @@ dataforge run main.df
         }
     },
 }
+
+
+def api_command(args, flags=()):
+    """dataforge api — exporta a API de um servidor Kiln.
+
+        dataforge api src/app.df                  a tabela de rotas
+        dataforge api src/app.df --openapi        OpenAPI 3.1
+        dataforge api src/app.df --insomnia -o=x.json
+
+    O arquivo e EXECUTADO para que as rotas se registrem — e assim que
+    um servidor Kiln se declara. Por isso ele precisa ser o modulo que
+    monta ('app.df'), e nao o que sobe ('main.df'): o segundo chamaria
+    'ignite' e nunca voltaria.
+    """
+    from .marca import cor as _cor
+    from .stdlib import get_module
+
+    if not args:
+        print(_cor("Erro: informe o arquivo que monta o servidor.", "1;31"))
+        print(_cor("      dataforge api src/app.df --openapi", "0;90"))
+        return 1
+
+    caminho = args[0]
+    if not os.path.isfile(caminho):
+        print(_cor(f"Erro: '{caminho}' nao existe.", "1;31"))
+        return 1
+
+    formatos = {
+        "--openapi": "openapi", "--swagger": "openapi",
+        "--insomnia": "insomnia",
+        "--postman": "postman",
+        "--curl": "curl",
+        "--markdown": "markdown", "--md": "markdown",
+    }
+    formato = "markdown"
+    for flag in flags:
+        if flag in formatos:
+            formato = formatos[flag]
+
+    saida = None
+    for flag in flags:
+        for prefixo in ("--saida=", "--out=", "-o="):
+            if flag.startswith(prefixo):
+                saida = flag[len(prefixo):]
+
+    # ── executar para que as rotas se registrem ──
+    fonte, motivo = _ler(caminho)
+    if motivo:
+        print(_cor(f"Erro: {motivo}", "1;31"))
+        return 1
+
+    interp = Interpreter()
+    try:
+        import io as _io
+        from contextlib import redirect_stdout
+        with redirect_stdout(_io.StringIO()):
+            interp.run(parse(tokenize(fonte, caminho), caminho), caminho)
+    except DataForgeError as erro:
+        print(_cor(f"Erro ao carregar '{_curto(caminho)}':", "1;31"))
+        print(erro.format(caminho, color=True) if hasattr(erro, "format")
+              else str(erro))
+        return 1
+
+    # ── achar o servidor ──
+    servidores = [(nome, valor)
+                  for nome, valor in interp.global_env.variables.items()
+                  if hasattr(valor, "rotas")]
+    if not servidores:
+        print(_cor(f"Nenhum servidor Kiln em '{_curto(caminho)}'.", "1;33"))
+        print()
+        print(_cor("  Um servidor se declara assim:", "0;90"))
+        print(_cor("      adopt Kiln", "1;36"))
+        print(_cor("      server API on 8080:", "1;36"))
+        print(_cor('          route GET "/":', "1;36"))
+        print(_cor('              respond json {}', "1;36"))
+        print()
+        print(_cor("  Se o arquivo chama 'ignite', aponte para o que MONTA",
+                   "0;90"))
+        print(_cor("  (app.df), e nao para o que sobe (main.df).", "0;90"))
+        return 1
+
+    nome_servidor, app = servidores[0]
+    if len(servidores) > 1:
+        print(_cor(f"  ({len(servidores)} servidores; usando "
+                   f"'{nome_servidor}')", "0;90"))
+
+    api = get_module("Arcane.API")
+    config = {"titulo": f"API de {os.path.basename(caminho)}"}
+    texto = api[formato](app, config)
+
+    if saida:
+        with open(saida, "w", encoding="utf-8") as f:
+            f.write(texto if texto.endswith("\n") else texto + "\n")
+        rotas = len(api["rotas"](app))
+        print(_cor(f"  ✓ {rotas} rota(s) em {formato} → "
+                   f"{_curto(saida)}", "1;32"))
+        if formato == "insomnia":
+            print(_cor("    Insomnia → Import → From File", "0;90"))
+        elif formato == "openapi":
+            print(_cor("    abra em editor.swagger.io, ou gere um cliente",
+                       "0;90"))
+        return 0
+
+    print(texto)
+    return 0
 
 
 def converter_command(args, flags=()):
@@ -3177,6 +3305,9 @@ def main():
         if '--list' in flags or (len(args) > 1 and args[1] == 'list'):
             sys.exit(list_templates())
         sys.exit(new_project(args[1:], flags))
+
+    elif command == 'api':
+        sys.exit(api_command(args[1:], flags))
 
     elif command in ('converter', 'convert', 'migrar'):
         sys.exit(converter_command(args[1:], flags))

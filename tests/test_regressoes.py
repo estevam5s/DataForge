@@ -2655,3 +2655,59 @@ def test_nenhum_teste_de_paralelismo_usa_limite_absoluto():
     assert not suspeitos, (
         "teste que mede tempo e compara com numero fixo — ele mede a "
         "maquina, nao o codigo:\n  " + "\n  ".join(suspeitos))
+
+
+# ── O formatador não pode alterar dados ──────────────────────
+
+@pytest.mark.parametrize("fonte", [
+    'out "com :id aqui"',
+    'out "{{ id }}"',
+    'out "a : b"',
+    'out "chave : valor"',
+    'out "10 : 30"',
+    'msg := "erro , grave"',
+    'out "lista [ 1 , 2 ]"',
+    'out "vault { a : 1 }"',
+    'out "chamada ( x )"',
+])
+def test_o_fmt_nao_mexe_no_conteudo_das_strings(fonte):
+    """`out "com :id"` virava `out "com:id"`.
+
+    As limpezas de espaço em volta da pontuação rodavam sobre a linha
+    **montada**, sem distinguir código de conteúdo de string. Uma
+    ferramenta que promete não mudar semântica estava **alterando
+    dados**.
+
+    Apareceu num exercício sobre exportar API: o `{{ id }}` do Insomnia
+    é significativo, e o `fmt` o destruía em silêncio — e o exercício
+    passou a falhar por um motivo que não tinha nada a ver com ele.
+    """
+    from dataforge.formatter import format_source
+
+    assert format_source(fonte).strip() == fonte, \
+        "o conteudo da string mudou"
+
+
+@pytest.mark.parametrize("fonte,esperado", [
+    ('v := { "a" : 1 , "b" : 2 }', 'v := {"a": 1, "b": 2}'),
+    ("f( a , b )", "f(a, b)"),
+    ("xs[ 1 , 2 ]", "xs[1, 2]"),
+])
+def test_o_fmt_continua_normalizando_o_codigo(fonte, esperado):
+    """O contrapeso: preservar string não pode virar preservar tudo."""
+    from dataforge.formatter import format_source
+
+    assert format_source(fonte).strip() == esperado
+
+
+def test_o_fmt_acerta_string_com_aspas_escapadas():
+    """`"ele disse \\"oi : tudo\\""` — a aspa escapada não fecha a string.
+
+    Uma expressão regular sobre aspas erraria aqui, e a limpeza voltaria
+    a rodar dentro do texto.
+    """
+    from dataforge.formatter import format_source
+
+    fonte = 'out "ele disse \\"oi : tudo bem\\""'
+    saida = format_source(fonte).strip()
+    assert "oi : tudo bem" in saida, f"a string foi alterada: {saida}"

@@ -47,6 +47,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
+| [`Arcane.API`](#arcaneapi) | `API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
 | [`Arcane.Decimal`](#arcanedecimal) | `Decimal / Exato` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
 | [`Arcane.Ponte`](#arcaneponte) | `Ponte / Bridge` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
 | [`Arcane.Qualidade`](#arcanequalidade) | `Qualidade / Quality` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
@@ -1724,6 +1725,29 @@ adopt Arcane.Lago as Lago
 | `tabelas(lago)` |
 | `tamanho(lago, tabela='')` |
 | `vacuo(lago)` |
+
+
+---
+
+## Arcane.API
+
+A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas.
+
+```dataforge
+adopt Arcane.API as API
+```
+
+**Funções (7)**
+
+| Assinatura |
+|------------|
+| `curl(app, config=None)` |
+| `insomnia(app, config=None)` |
+| `markdown(app, config=None)` |
+| `openapi(app, config=None)` |
+| `postman(app, config=None)` |
+| `resumo(app)` |
+| `rotas(app)` |
 
 
 ---

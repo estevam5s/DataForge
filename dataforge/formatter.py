@@ -250,17 +250,88 @@ class Formatter:
             antes_do_anterior = anterior
             anterior = token
 
-        linha = "".join(partes)
-        linha = re.sub(r"\s+([,;:])(?!=)", r"\1", linha)
-        linha = re.sub(r"\(\s+", "(", linha)
-        linha = re.sub(r"\s+\)", ")", linha)
-        linha = re.sub(r"\[\s+", "[", linha)
-        linha = re.sub(r"\s+\]", "]", linha)
-        linha = re.sub(r"\{\s+", "{", linha)
-        linha = re.sub(r"\s+\}", "}", linha)
+        linha = self._encostar_pontuacao("".join(partes))
         if comentario:
             linha = f"{linha}  {comentario}" if linha else comentario
         return linha.rstrip()
+
+    #: A limpeza de espaço em volta da pontuação.
+    #:
+    #: Ela roda sobre a linha MONTADA, e por isso precisa saber o que é
+    #: código e o que é conteúdo de string. Sem essa distinção,
+    #: `out "com :id"` virava `out "com:id"` e `"{{ id }}"` virava
+    #: `"{{id}}"` — o formatador **alterando dados**, numa ferramenta
+    #: que promete não mudar semântica.
+    #:
+    #: O bug apareceu num exercício sobre exportar API: o `{{ id }}` do
+    #: Insomnia é significativo, e o `fmt` o destruía em silêncio.
+    _LIMPEZAS = (
+        (r"\s+([,;:])(?!=)", r"\1"),
+        (r"\(\s+", "("),
+        (r"\s+\)", ")"),
+        (r"\[\s+", "["),
+        (r"\s+\]", "]"),
+        (r"\{\s+", "{"),
+        (r"\s+\}", "}"),
+    )
+
+    @classmethod
+    def _encostar_pontuacao(cls, linha):
+        """Tira o espaço antes da pontuação — **fora** das strings."""
+        partes = cls._partir_por_strings(linha)
+        saida = []
+        for texto, e_string in partes:
+            if e_string:
+                saida.append(texto)          # verbatim: é dado, não código
+                continue
+            for padrao, troca in cls._LIMPEZAS:
+                texto = re.sub(padrao, troca, texto)
+            saida.append(texto)
+        return "".join(saida)
+
+    @staticmethod
+    def _partir_por_strings(linha):
+        """A linha em pedaços (texto, é_string).
+
+        Varre caractere a caractere porque é a única forma de acertar:
+        uma expressão regular sobre aspas erra em `"ele disse \"oi\""`, e
+        o lexer já foi usado — o que se tem aqui é a linha montada.
+        """
+        pedacos = []
+        atual = []
+        aspas = ""
+        i = 0
+        while i < len(linha):
+            c = linha[i]
+            if aspas:
+                atual.append(c)
+                if c == chr(92) and i + 1 < len(linha):
+                    atual.append(linha[i + 1])
+                    i += 2
+                    continue
+                if c == aspas:
+                    pedacos.append(("".join(atual), True))
+                    atual = []
+                    aspas = ""
+                i += 1
+                continue
+
+            if c in ('"', "'"):
+                if atual:
+                    pedacos.append(("".join(atual), False))
+                atual = [c]
+                aspas = c
+                i += 1
+                continue
+
+            atual.append(c)
+            i += 1
+
+        if atual:
+            # Aspas não fechada: trata como string, para não estragar o
+            # que o lexer vai recusar de qualquer jeito.
+            pedacos.append(("".join(atual), bool(aspas)))
+        return pedacos
 
     @staticmethod
     def _extrair_comentario(texto):

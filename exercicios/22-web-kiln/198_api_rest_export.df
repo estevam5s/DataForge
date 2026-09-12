@@ -1,0 +1,101 @@
+// Exercicio 198 — A API vista de fora: OpenAPI, Insomnia e curl
+// Enunciado: exporte as rotas de um servidor Kiln para as ferramentas
+// que quem consome a API de fato usa.
+
+adopt Kiln
+adopt Arcane.API as API
+
+// ── Um servidor REST de verdade ──
+//
+// Os cinco metodos que um recurso REST tem. Repare que nada aqui e
+// declarado DUAS vezes: nao ha um arquivo de documentacao ao lado
+// dizendo o que as rotas sao. As rotas sao a fonte da verdade.
+
+server Loja on 8080:
+    route GET "/produtos":
+        respond json {"produtos":[], "total": 0}
+
+    route POST "/produtos":
+        respond json {"criado": yes}
+
+    route GET "/produtos/:id":
+        respond json {"id": params["id"]}
+
+    route PATCH "/produtos/:id":
+        respond json {"alterado": params["id"]}
+
+    route DELETE "/produtos/:id":
+        respond json {"removido": params["id"]}
+
+steady CONF := {
+    "titulo": "API da Loja",
+    "versao": "2.0.0",
+    "base": "https://api.loja.com"
+}
+
+// ── 1. O que existe ──
+
+resumo := API.resumo(Loja)
+out $"rotas: {resumo["rotas"]}"
+out $"metodos: {resumo["metodos"]}"
+out $"com parametro: {resumo["com_parametro"]}"
+
+assert resumo["rotas"] is 5, "cinco rotas"
+assert resumo["com_parametro"] is 3, "tres usam:id"
+
+// ── 2. OpenAPI, para o Swagger e para gerar cliente ──
+
+adopt Arcane.Serialization as Serde
+
+texto := API.openapi(Loja, CONF)
+documento := Serde.from_json(texto)
+
+out ""
+out $"openapi: {documento["openapi"]}"
+out $"titulo:  {documento["info"]["title"]}"
+out $"caminhos: {documento["paths"].keys()}"
+
+assert documento["openapi"] is "3.1.0", "OpenAPI 3.1"
+assert "/produtos/{id}" in documento["paths"].keys(), "o:id virou {id}"
+
+// O parametro de caminho e DECLARADO. Sem isso, o Swagger trata ':id'
+// como parte literal do caminho, e o cliente gerado bate numa URL que
+// nao existe.
+parametro := documento["paths"]["/produtos/{id}"]["get"]["parameters"][0]
+out $"parametro: {parametro["name"]} em {parametro["in"]}"
+assert parametro["name"] is "id", "o parametro se chama id"
+
+// ── 3. Insomnia, para testar a mao ──
+
+colecao := Serde.from_json(API.insomnia(Loja, CONF))
+pedidos := colecao["resources"] >> sift r: (r["_type"] ?? "") is "request"
+
+out ""
+out $"requisicoes: {len(pedidos)}"
+out $"primeira: {pedidos[0]["method"]} {pedidos[0]["url"]}"
+
+assert len(pedidos) is 5, "uma requisicao por rota"
+
+// '{{ id }}' e o que o Insomnia reconhece como variavel. Deixar ':id'
+// cru daria uma requisicao que bate literalmente em '/produtos/:id'.
+com_variavel := pedidos >> sift p: "{{ id }}" in p["url"]
+assert len(com_variavel) is 3, "as tres rotas com :id viraram variavel"
+
+// ── 4. curl, para o README ──
+
+comandos := API.curl(Loja, CONF)
+out ""
+out comandos.lines()[0]
+out comandos.lines()[1]
+
+assert comandos.count("curl ") is 5, "um curl por rota"
+assert "https://api.loja.com" in comandos, "a base configurada"
+
+// ── 5. Markdown, para a documentacao do projeto ──
+
+tabela := API.markdown(Loja, CONF)
+assert "| `GET` | `/produtos` |" in tabela, "a tabela de rotas"
+assert "# API da Loja" in tabela, "o titulo"
+
+out ""
+out "ok"

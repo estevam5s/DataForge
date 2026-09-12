@@ -1,6 +1,8 @@
 {
   "apelidos": [
+    "API",
     "Analytics",
+    "Arcane.API",
     "Arcane.Analytics",
     "Arcane.Archive",
     "Arcane.Async",
@@ -276,6 +278,7 @@
     "-V",
     "-h",
     "add",
+    "api",
     "ast",
     "bench",
     "big-o",
@@ -555,6 +558,15 @@
     "zip_with"
   ],
   "modulos": {
+    "Arcane.API": [
+      "curl",
+      "insomnia",
+      "markdown",
+      "openapi",
+      "postman",
+      "resumo",
+      "rotas"
+    ],
     "Arcane.Analytics": [
       "DataFrame",
       "autocorrelation",
