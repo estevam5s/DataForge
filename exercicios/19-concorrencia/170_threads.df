@@ -72,6 +72,49 @@ thread:
         contador["valor"] := contador["valor"] + 1
 
 wait 400
+
+// O NUMERO nao e impresso — e ele que varia.
+//
+// Este exercicio existe para mostrar a corrida, e por isso o resultado
+// dele e instavel de proposito: 2000 nesta maquina, 1847 no CI, outro
+// numero na proxima execucao. O teste que compara a saida com a
+// compilacao ligada e desligada roda o arquivo DUAS vezes e exige saida
+// identica — e reprovou.
+//
+// Imprimir a instabilidade era a forma errada de ensina-la. A forma
+// certa e AFIRMAR o que se sabe: o valor nunca passa do esperado,
+// porque duas threads so podem perder incrementos, nunca inventar.
+valor := contador["valor"]
+
+assert valor smaller_eq 2000, "nunca passa: so se perde, nao se inventa"
+assert valor bigger 0, "algo foi contado"
+
 out ""
-out $"contador (esperado 2000): {contador["valor"]}"
-out "se o numero veio menor, voce acabou de ver uma condicao de corrida"
+given valor smaller 2000:
+    out "o contador veio MENOR que 2000: voce acabou de ver uma"
+    out "condicao de corrida acontecer."
+otherwise:
+    out "o contador fechou em 2000 NESTA execucao — e sorte, nao"
+    out "garantia. Na proxima, ou em outra maquina, pode nao fechar."
+
+// ── E a saida, no mesmo arquivo ──────────────────────────────
+//
+// 'Conc.contador()' e atomico: o incremento acontece dentro de uma
+// trava, e o numero fecha SEMPRE. Nao ha o que torcer.
+adopt Arcane.Concurrent as Conc
+
+atomico := Conc.contador()
+
+thread:
+    cycle _ in range(0, 1000):
+        atomico.somar(1)
+
+thread:
+    cycle _ in range(0, 1000):
+        atomico.somar(1)
+
+wait 400
+
+out ""
+out $"com Conc.contador(): {atomico.valor()} — e sempre 2000"
+assert atomico.valor() is 2000, "o contador atomico nao perde nada"

@@ -4421,3 +4421,56 @@ out c.valor()
 ''')
     assert saida.strip() == "4000", (
         f"o contador atômico perdeu atualização: {saida!r}")
+
+
+def test_nenhum_exercicio_imprime_valor_de_variavel_disputada():
+    """Um exercício que **imprime** o resultado de uma corrida tem saída
+    instável por definição — e o teste que compara a saída com a
+    compilação ligada e desligada roda o arquivo duas vezes.
+
+    O 170 imprimia `contador["valor"]` depois de duas threads somarem
+    sem sincronização: 2000 nesta máquina, 1847 no runner do CI. Ele
+    reprovou a CI, e a causa não era um bug: o exercício existe para
+    mostrar a corrida.
+
+    Imprimir a instabilidade era a forma errada de ensiná-la. A forma
+    certa é **afirmar o que se sabe** — o valor nunca passa do
+    esperado, porque duas threads só podem perder incrementos, nunca
+    inventar — e dizer em texto qual dos dois casos aconteceu.
+    """
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    suspeitos = []
+
+    for caminho in glob.glob(os.path.join(raiz, "exercicios", "*", "*.df")):
+        fonte = open(caminho, encoding="utf-8").read()
+        # Os nomes escritos dentro de um 'thread'/'parallel' sem
+        # sincronização — é a lista que o próprio `check` monta.
+        if not re.search(r"^\s*(thread|parallel)\s*:", fonte, re.M):
+            continue
+        disputados = set()
+        for bloco in re.findall(
+                r"^(?:\s*)(?:thread|parallel)\s*:\n((?:[ \t]+.*\n|\n)*)",
+                fonte, re.M):
+            for alvo in re.findall(r"^\s*(\w+)(?:\[[^\]]*\])?\s*:=",
+                                   bloco, re.M):
+                disputados.add(alvo)
+        if not disputados:
+            continue
+
+        for numero, linha in enumerate(fonte.split("\n"), 1):
+            if not linha.lstrip().startswith("out"):
+                continue
+            if "df: permitir" in linha:
+                continue
+            for nome in disputados:
+                # 'out …{nome}…' ou 'out …nome["x"]…' — o valor cru.
+                if re.search(rf"\b{re.escape(nome)}\b\s*(\[|\}}|,|$)", linha):
+                    suspeitos.append(
+                        f"{os.path.relpath(caminho, raiz)}:{numero}: {nome}")
+
+    assert not suspeitos, (
+        "exercício imprimindo valor de variável disputada entre threads "
+        "— a saída varia entre execuções:\n  " + "\n  ".join(suspeitos))

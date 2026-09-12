@@ -58,6 +58,60 @@ duas threads leem 5 ao mesmo tempo, ambas escrevem 6. Um incremento se perdeu.
 Rode várias vezes: o número muda. Esse é o tipo de bug que passa em teste e
 quebra em produção sob carga.
 
+### O `check` avisa
+
+```
+aviso: 'contador' e escrito dentro de 'thread' e vem de fora:
+       duas threads podem perder atualizacoes
+   sugestao: a linguagem nao sincroniza sozinha — use
+             'Arcane.Concurrent': 'contador()' para somar,
+             'mutex()' para um bloco, ou 'canal()' para passar
+             o valor adiante
+```
+
+Aqui a corrida é o assunto, então o exercício usa
+`// df: permitir escrita-concorrente` nas duas linhas. Num código de
+verdade, o aviso é para ser atendido.
+
+### E a saída, no mesmo arquivo
+
+```dataforge
+adopt Arcane.Concurrent as Conc
+
+atomico := Conc.contador()
+
+thread:
+    cycle _ in range(0, 1000):
+        atomico.somar(1)
+
+thread:
+    cycle _ in range(0, 1000):
+        atomico.somar(1)
+
+assert atomico.valor() is 2000      // sempre
+```
+
+O incremento acontece dentro de uma trava. Não há o que torcer.
+
+### Por que o número não é impresso
+
+A primeira versão deste exercício imprimia `contador["valor"]`, e **isso
+reprovou a CI**: `test_a_compilacao_nao_muda_o_resultado_de_nenhum_exercicio`
+roda cada arquivo duas vezes e exige saída idêntica. Deu 2000 numa
+execução e 1847 na outra — a corrida acontecendo, que é o ponto.
+
+Imprimir a instabilidade era a forma errada de ensiná-la. A forma certa
+é afirmar o que se **sabe**:
+
+```dataforge
+assert valor smaller_eq 2000, "nunca passa: so se perde, nao se inventa"
+assert valor bigger 0, "algo foi contado"
+```
+
+Duas threads só podem **perder** incrementos, nunca inventar — então o
+limite superior é garantido. O texto diz qual dos dois casos aconteceu
+nesta execução, sem imprimir o número.
+
 ## Como evitar
 
 **DataForge 4.0 não tem mutex nem lock.** A ferramenta segura é `channel`:
@@ -94,11 +148,16 @@ itens produzidos: 6
 
 sequencial: 24.3 ms
 
-contador (esperado 2000): 1847
-se o numero veio menor, voce acabou de ver uma condicao de corrida
+o contador fechou em 2000 NESTA execucao — e sorte, nao
+garantia. Na proxima, ou em outra maquina, pode nao fechar.
+
+com Conc.contador(): 2000 — e sempre 2000
 ```
 
 ## Experimente
 
-- Rode o contador cinco vezes e veja o resultado variar.
-- Reescreva com `channel` e confirme que dá 2000 sempre.
+- Rode cinco vezes e veja a mensagem mudar entre "fechou" e "veio menor"
+  — na sua máquina, num dos dois, mais cedo ou mais tarde.
+- Ponha carga na máquina (`yes > /dev/null &` algumas vezes) e rode de
+  novo: a corrida aparece mais.
+- Troque o `Conc.contador()` pelo vault e veja o `assert` do fim falhar.
