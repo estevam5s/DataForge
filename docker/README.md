@@ -92,7 +92,7 @@ A tabela completa está em
 
 | | |
 |---|---|
-| **Tamanho** | 45 MB comprimida, 222 MB no disco |
+| **Tamanho** | 51 MB comprimida, 259 MB no disco |
 | **Base** | `python:3.12-slim` |
 | **Usuário** | `forge` (UID 1000) — **não** roda como root |
 | **Diretório** | `/app` |
@@ -109,7 +109,13 @@ arquivo por protocolo, sobre socket), o Parquet com metadados em Thrift,
 o `.xlsx`, o ChaCha20-Poly1305 (RFC 8439), o WebSocket (RFC 6455) e os
 gráficos em SVG.
 
-É por isso que a imagem é pequena e o build não precisa de compilador.
+É por isso que o build não precisa de compilador, e a imagem sai de
+`python:3.12-slim` sem uma única camada de `apt-get`.
+
+Dos 259 MB, cerca de 130 são o Python base. O resto é a linguagem
+inteira — interpretador, 39 módulos de biblioteca, as ferramentas, e a
+extensão do editor, que viaja junto para `dataforge editor` funcionar
+sem internet.
 
 ---
 

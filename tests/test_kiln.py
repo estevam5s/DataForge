@@ -774,3 +774,144 @@ class TestRequestIdEAudit:
         app.rota("POST", "/login", lambda req: {"ok": 1})
         ArcaneKiln._test(app, "POST", "/login", corpo={"senha": "hunter2"})
         assert "hunter2" not in json.dumps(registro.registro)
+
+
+# ═══════════════════════════════════════════════════════════
+#  CORS: a resposta REAL precisa levar o cabeçalho
+#
+#  `Kiln.cors()` respondia o preflight e escrevia
+#  `req["state"]["cors"]` — que NINGUÉM LIA. O navegador
+#  aprovava o preflight e então bloqueava o `fetch`, porque a
+#  resposta do GET não trazia `Access-Control-Allow-Origin`.
+#
+#  O sintoma é o pior possível: o servidor responde 200 com o
+#  corpo certo, o `curl` funciona, e só o navegador recusa —
+#  com uma mensagem no console sobre CORS que manda a pessoa
+#  mexer no middleware que ela já pôs.
+# ═══════════════════════════════════════════════════════════
+
+CORS_FONTE = '''
+adopt Kiln
+
+server api on 8080:
+    middleware Kiln.cors()
+
+    route GET "/dados":
+        respond json {"ok": yes}
+
+    route POST "/dados":
+        respond 201 json {"criado": yes}
+'''
+
+
+def test_a_resposta_real_leva_o_cabecalho_de_cors():
+    app = env_of(CORS_FONTE)["api"]
+    r = ArcaneKiln._test(app, "GET", "/dados")
+    assert r["status"] == 200
+    cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
+    assert cabs.get("access-control-allow-origin") == "*", (
+        "sem este cabeçalho na resposta real, o navegador bloqueia o "
+        "fetch depois de aprovar o preflight")
+
+
+def test_o_preflight_continua_respondendo_sem_chegar_na_rota():
+    app = env_of(CORS_FONTE)["api"]
+    r = ArcaneKiln._test(app, "OPTIONS", "/dados")
+    assert r["status"] == 204
+    cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
+    assert cabs["access-control-allow-origin"] == "*"
+    assert "GET" in cabs["access-control-allow-methods"]
+
+
+def test_a_origem_configurada_e_a_que_sai():
+    app = env_of('''
+adopt Kiln
+
+server api on 8080:
+    middleware Kiln.cors("https://loja.com")
+
+    route GET "/x":
+        respond json {}
+''')["api"]
+    r = ArcaneKiln._test(app, "GET", "/x")
+    cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
+    assert cabs.get("access-control-allow-origin") == "https://loja.com"
+
+
+def test_sem_o_middleware_nao_ha_cabecalho_de_cors():
+    """Ele não pode aparecer sozinho: um `Access-Control-Allow-Origin: *`
+    que ninguém pediu abre a API para qualquer site."""
+    app = env_of('''
+adopt Kiln
+
+server api on 8080:
+    route GET "/x":
+        respond json {}
+''')["api"]
+    r = ArcaneKiln._test(app, "GET", "/x")
+    cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
+    assert "access-control-allow-origin" not in cabs
+
+
+def test_o_cabecalho_vale_para_todo_metodo_e_nao_so_para_get():
+    app = env_of(CORS_FONTE)["api"]
+    r = ArcaneKiln._test(app, "POST", "/dados", {"x": 1})
+    cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
+    assert cabs.get("access-control-allow-origin") == "*"
+
+
+def test_com_origem_especifica_a_resposta_varia_por_origin():
+    """Sem `Vary: Origin`, um cache intermediário serve a resposta de um
+    site para outro — e o cabeçalho de CORS vai junto, apontando para a
+    origem errada."""
+    app = env_of('''
+adopt Kiln
+
+server api on 8080:
+    middleware Kiln.cors("https://loja.com")
+
+    route GET "/x":
+        respond json {}
+''')["api"]
+    r = ArcaneKiln._test(app, "GET", "/x")
+    cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
+    assert "origin" in cabs.get("vary", "").lower()
+
+
+def test_com_origem_curinga_nao_ha_vary():
+    """`*` é a mesma resposta para todo mundo: um `Vary: Origin` ali só
+    estraga o cache sem ganhar nada."""
+    app = env_of(CORS_FONTE)["api"]
+    r = ArcaneKiln._test(app, "GET", "/dados")
+    cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
+    assert "origin" not in cabs.get("vary", "").lower()
+
+
+def test_a_rota_que_declara_a_propria_origem_vence_o_middleware():
+    """Uma rota que precisa de outra origem já disse isso, e
+    sobrescrevê-la aqui quebraria justamente o caso pensado."""
+    app = env_of('''
+adopt Kiln
+
+server api on 8080:
+    middleware Kiln.cors()
+
+    route GET "/parceiro":
+        r := Kiln.json({"ok": yes})
+        Kiln.header(r, "Access-Control-Allow-Origin", "https://parceiro.com")
+        respond r
+''')["api"]
+    r = ArcaneKiln._test(app, "GET", "/parceiro")
+    cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
+    assert cabs["access-control-allow-origin"] == "https://parceiro.com"
+
+
+def test_o_cors_vale_tambem_na_resposta_de_erro():
+    """Um 404 ou 500 sem o cabeçalho faz o navegador esconder o corpo —
+    e quem escreveu o cliente vê "erro de CORS" em vez do erro de
+    verdade, que é o que ele precisava ler."""
+    app = env_of(CORS_FONTE)["api"]
+    r = ArcaneKiln._test(app, "GET", "/nao-existe")
+    assert r["status"] == 404
+    cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
+    assert cabs.get("access-control-allow-origin") == "*"

@@ -441,7 +441,45 @@ for _metodo in METODOS:
 
 
 def _processar(app, req):
-    """Middleware, rota estatica, rota casada — nessa ordem."""
+    """Middleware, rota estatica, rota casada — nessa ordem.
+
+    A resposta passa por '_aplicar_cors' na saida: um cabecalho que so
+    aparece no preflight nao serve para nada (ver a funcao).
+    """
+    return _aplicar_cors(req, _rotear(app, req))
+
+
+def _aplicar_cors(req, resp):
+    """O 'Access-Control-Allow-Origin' na resposta REAL.
+
+    'Kiln.cors()' respondia o preflight e escrevia
+    'req["state"]["cors"]' — que NINGUEM LIA. O navegador aprovava o
+    preflight e entao bloqueava o 'fetch', porque a resposta do GET nao
+    trazia o cabecalho.
+
+    O sintoma e o pior possivel: o servidor responde 200 com o corpo
+    certo, o 'curl' funciona, e so o navegador recusa — com uma
+    mensagem no console sobre CORS que manda a pessoa mexer no
+    middleware que ela ja pos.
+
+    'setdefault': uma rota que declarou a propria origem manda mais que
+    o middleware.
+    """
+    origem = (req.get("state") or {}).get("cors")
+    if origem and isinstance(resp, dict) and "headers" in resp:
+        resp["headers"].setdefault("Access-Control-Allow-Origin", origem)
+        if origem != "*":
+            # Com origem especifica, o cache intermediario precisa saber
+            # que a resposta VARIA por 'Origin' — senao ele serve a de
+            # um site para outro.
+            anterior = resp["headers"].get("Vary", "")
+            if "origin" not in anterior.lower():
+                resp["headers"]["Vary"] = (
+                    f"{anterior}, Origin" if anterior else "Origin")
+    return resp
+
+
+def _rotear(app, req):
     for meio in app.middleware:
         saida = meio(req)
         # Middleware que devolve resposta interrompe a cadeia: e assim
