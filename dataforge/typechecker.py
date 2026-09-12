@@ -1175,7 +1175,28 @@ class TypeChecker:
                     "pacote-python-ausente")
             return False
 
-        if get_module(node.module) is not None:
+        modulo_padrao = get_module(node.module)
+        if modulo_padrao is not None:
+            # A superficie de um modulo da BIBLIOTECA e a mais confiavel
+            # que existe: ele esta carregado, e a lista de simbolos e o
+            # proprio dicionario. 'Math.sqrtt(4)' passava pelo 'check'
+            # sem uma palavra e so falhava ao rodar — e num ramo que so
+            # roda em producao, falhava em producao.
+            from . import superficie as sup
+            if selecao:
+                for original, apelido in selecao:
+                    if original not in modulo_padrao:
+                        self.error(
+                            f"module '{node.module}' does not export "
+                            f"'{original}'", node,
+                            self._hint_nome(original, sorted(
+                                k for k in modulo_padrao
+                                if not k.startswith('__'))),
+                            "unknown-export")
+                return False
+            alias = node.alias or node.module.split('.')[-1]
+            self.superficies[alias] = sup.de_modulo_padrao(
+                node.module, modulo_padrao)
             return False
 
         # ── Um modulo LOCAL ──

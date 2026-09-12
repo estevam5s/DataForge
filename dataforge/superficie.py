@@ -135,6 +135,55 @@ def de_modulo(nome, arquivo, profundidade=PROFUNDIDADE, vistos=None):
     return de_arquivo(caminho, profundidade, vistos)
 
 
+def de_modulo_padrao(nome, modulo):
+    """A superficie de um modulo da BIBLIOTECA.
+
+    Ela e a mais confiavel de todas: o modulo esta carregado, e a lista
+    de simbolos e o proprio dicionario — nao ha heuristica nenhuma.
+
+    A aridade sai de 'inspect'. Quando ela nao da para saber — um
+    'staticmethod' embrulhado, um 'lambda' com '*args' — o membro fica
+    VARIADICO, e o analisador nao cobra contagem. Cobrar uma aridade
+    adivinhada daria falso alarme, que e pior que silencio.
+    """
+    import inspect
+
+    membros = {}
+    for chave, valor in modulo.items():
+        if chave.startswith("__"):
+            continue
+        minimo, maximo = _aridade_de(valor, inspect)
+        especie = "acao" if callable(valor) else "valor"
+        membros[chave] = Membro(chave, especie, minimo, maximo)
+    return Superficie(membros, caminho=f"<{nome}>")
+
+
+def _aridade_de(valor, inspect):
+    """(minimo, maximo) de um simbolo da biblioteca.
+
+    O primeiro parametro de muitas funcoes da stdlib e o objeto que
+    recebe a chamada — 'Banco.insert(db, …)' —, e ele conta como
+    argumento normal para quem escreve DataForge. Nao ha ajuste a fazer.
+    """
+    if not callable(valor):
+        return 0, None
+    try:
+        assinatura = inspect.signature(valor)
+    except (TypeError, ValueError):
+        return 0, None
+
+    minimo = 0
+    maximo = 0
+    for parametro in assinatura.parameters.values():
+        if parametro.kind in (parametro.VAR_POSITIONAL,
+                              parametro.VAR_KEYWORD):
+            return minimo, None        # variadico: nao cobra teto
+        maximo += 1
+        if parametro.default is parametro.empty:
+            minimo += 1
+    return minimo, maximo
+
+
 def de_arquivo(caminho, profundidade=PROFUNDIDADE, vistos=None):
     """A superficie de um .df, do cache quando possivel."""
     caminho = os.path.abspath(caminho)

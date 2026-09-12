@@ -302,6 +302,28 @@ GRUPOS = [
             veja=("fmt", "lint")),
     ]),
     ("Ambiente", [
+        Cmd("devops", "dataforge devops <init|docker|ci|k8s|doctor|…>",
+            "Gera os artefatos que levam o projeto ao ar",
+            "Dockerfile, compose, pipeline de CI, manifestos do\n"
+            "Kubernetes, chart do Helm, nginx, Prometheus, SBOM.\n"
+            "\nO que ele gera nao e esboco: e o que se poria em\n"
+            "producao — usuario sem privilegio, limite de recurso,\n"
+            "sonda de saude e segredo fora do repositorio.\n"
+            "\nOs artefatos saem conforme o que o projeto ADOTA: quem\n"
+            "nao usa banco nao ganha um Postgres no compose.\n"
+            "\nArquivo que ja existe e PULADO, nao sobrescrito.",
+            opcoes=[("--forcar", "sobrescreve (o anterior vai para .anterior)"),
+                    ("--seco", "mostra o que faria, sem escrever"),
+                    ("--registro=<host>", "o registro das imagens"),
+                    ("--dominio=<host>", "o dominio, no ingress e no nginx"),
+                    ("--em=<pasta>", "o projeto (padrao: a pasta atual)")],
+            exemplos=[("dataforge devops init", "tudo o que faz sentido"),
+                      ("dataforge devops docker", "Dockerfile e compose"),
+                      ("dataforge devops k8s --dominio=app.exemplo.br", ""),
+                      ("dataforge devops doctor", "o que falta para subir"),
+                      ("dataforge devops secrets", "o que nao pode ir ao repo")],
+            apelidos=("ops",),
+            veja=("vitrine", "new", "pack")),
         Cmd("vitrine", "dataforge vitrine <run|dev|doctor|new>",
             "Sobe um painel feito com Arcane.Vitrine",
             "Um programa de cima para baixo vira uma pagina web. 'dev'\n"
@@ -3457,6 +3479,10 @@ def main():
     elif command == 'vitrine':
         from .vitrine_cli import executar
         sys.exit(executar(args[1:], flags))
+
+    elif command in ('devops', 'ops'):
+        from .devops_cli import executar as executar_devops
+        sys.exit(executar_devops(args[1:], flags))
 
     elif command == 'debug':
         from .depurador import depurar

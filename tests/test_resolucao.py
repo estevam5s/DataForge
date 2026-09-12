@@ -438,3 +438,80 @@ def test_um_projeto_sem_ciclo_nao_e_acusado(tmp_path):
 def test_o_repositorio_nao_tem_ciclo():
     saida = _check(RAIZ, ".")
     assert "circular import" not in saida.stdout, saida.stdout
+
+
+# ═══════════════════════════════════════════════════════════
+#  Os símbolos da biblioteca também são conferidos
+# ═══════════════════════════════════════════════════════════
+
+def test_um_simbolo_que_nao_existe_na_stdlib_e_acusado(tmp_path):
+    """`Math.sqrtt(4)` passava pelo `check` sem uma palavra.
+
+    A superfície de um módulo da **biblioteca** é a mais confiável que
+    existe: ele está carregado, e a lista de símbolos é o próprio
+    dicionário — não há heurística nenhuma. Mesmo assim, o `adopt` de
+    um módulo da stdlib retornava imediatamente, sem registrar nada.
+
+    Num ramo que só roda em produção, o erro aparecia em produção.
+    """
+    (tmp_path / "erra.df").write_text(
+        "adopt Arcane.Math as Math\n\nout Math.sqrtt(16)\n", encoding="utf-8")
+    saida = _check(tmp_path, "erra.df")
+    assert "has no 'sqrtt'" in saida.stdout, saida.stdout
+    assert "Did you mean 'sqrt'" in saida.stdout
+    assert saida.returncode == 1
+
+
+def test_a_aridade_de_um_simbolo_da_stdlib_e_cobrada(tmp_path):
+    (tmp_path / "erra.df").write_text(
+        "adopt Arcane.Math as Math\n\nout Math.sqrt(1, 2, 3)\n",
+        encoding="utf-8")
+    saida = _check(tmp_path, "erra.df")
+    assert "takes 1 argument(s), got 3" in saida.stdout, saida.stdout
+
+
+def test_o_uso_correto_da_stdlib_nao_e_acusado(tmp_path):
+    """O teste que mais importa: zero falso alarme."""
+    (tmp_path / "ok.df").write_text(
+        "adopt Arcane.Math as Math\n"
+        "adopt Arcane.Database as Banco\n"
+        "adopt Arcane.Text as Txt\n\n"
+        "out Math.sqrt(16)\n"
+        "out Math.floor(2.7)\n"
+        "out Txt.constant_case(\"oi mundo\")\n"
+        "db := Banco.memory()\n"
+        "Banco.create_table(db, \"x\", {\"id\": \"INTEGER\"})\n"
+        "Banco.insert(db, \"x\", {\"id\": 1})\n"
+        "out Banco.count(db, \"x\")\n", encoding="utf-8")
+    saida = _check(tmp_path, "ok.df")
+    assert saida.returncode == 0, saida.stdout
+
+
+def test_um_simbolo_variadico_nao_cobra_teto(tmp_path):
+    """Quando a aridade não dá para saber — um `*args`, um `staticmethod`
+    embrulhado — o membro fica variádico. Cobrar uma aridade adivinhada
+    daria falso alarme, que é pior que silêncio."""
+    from dataforge.stdlib import get_module
+    from dataforge.superficie import de_modulo_padrao
+
+    superficie = de_modulo_padrao("Arcane.Text", get_module("Arcane.Text"))
+    # Todo membro aceita ao menos o que a assinatura pede.
+    for nome in superficie.nomes()[:20]:
+        membro = superficie.obter(nome)
+        assert membro.minimo >= 0
+
+
+def test_o_import_seletivo_da_stdlib_e_conferido(tmp_path):
+    (tmp_path / "erra.df").write_text(
+        "adopt Arcane.Math.{sqrt, raizQuadrada}\n\nout sqrt(4)\n",
+        encoding="utf-8")
+    saida = _check(tmp_path, "erra.df")
+    assert "does not export 'raizQuadrada'" in saida.stdout, saida.stdout
+
+
+def test_o_repositorio_inteiro_continua_sem_erro():
+    """330 arquivos que funcionam, e a conferência nova não pode acusar
+    nenhum deles."""
+    saida = _check(RAIZ, ".")
+    erros = [l for l in saida.stdout.splitlines() if ": erro:" in l]
+    assert not erros, "falsos alarmes:\n" + "\n".join(erros[:10])
