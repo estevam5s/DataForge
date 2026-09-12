@@ -479,6 +479,27 @@ Antes disso, um único arquivo mal codificado derrubava `fmt .` inteiro com um
 Há teste para os dois casos em `tests/test_regressoes.py`, mais um que proíbe
 qualquer `.df` fora de UTF-8 no repositório.
 
+### O analisador vê dentro dos objetos
+
+`p.clientte` é acusado antes de rodar, com sugestão. É a checagem que
+mais importa em projeto grande: num arquivo de 40 linhas o erro aparece
+na primeira execução; num sistema de 200 arquivos, aparece em produção.
+
+Ela só acusa quando consegue **provar**, e o que a faz calar é tão
+importante quanto o que a faz falar:
+
+| Cala quando | Porque |
+|---|---|
+| o membro vem da mãe ou de um trait | herdado é tão legítimo quanto declarado |
+| o blueprint herda de algo não visto | ele pode ganhar qualquer membro |
+| o campo nasceu de `self.x := …` | é como a maioria do código cria estado — **inclusive solto no corpo do blueprint**, que é o construtor inline |
+| alguém fez `obj.x := …` de fora | quem faz isso abre mão da conferência ali |
+| o nome começa com `__` | método mágico é chamado pelo runtime |
+
+A primeira versão olhava `self.x := …` só dentro de métodos, e deu **32
+falsos alarmes** num exemplo que funciona há meses. `test_membros_de_instancia.py`
+roda o `check` sobre os 320 arquivos do repositório justamente por isso.
+
 ### O analisador estático é otimista de propósito
 
 Quando não consegue **provar** que algo está errado, fica calado. Um falso alarme

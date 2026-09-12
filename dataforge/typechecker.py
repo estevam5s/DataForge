@@ -167,7 +167,14 @@ class TypeChecker:
         self.records = {}        # nome -> {campo: tipo}
         self.record_defaults = {}
         self.enums = {}          # nome -> [membros]
-        self.blueprints = {}     # nome -> set(membros)
+        self.blueprints = {}     # nome -> set(membros proprios)
+        self.maes = {}           # nome -> [blueprints e traits de quem herda]
+        #: Campos que alguem acrescentou DE FORA, com 'obj.x := …'.
+        #: Quem faz isso perde a conferencia naquele nome, e e a escolha
+        #: de quem escreveu — nao um erro a acusar. Guardar so o NOME, e
+        #: nao o par (tipo, nome), perde um pouco de rigor e nao ganha
+        #: nenhum falso alarme.
+        self.campos_postos_de_fora = set()
         self.known_types = set(ALIASES.values())
         # Os '<T>' do blueprint que esta sendo analisado. Um metodo dele
         # pode usa-los como tipo; fora dali, eles nao existem.
@@ -257,6 +264,9 @@ class TypeChecker:
     def check(self, program):
         escopo = self.global_scope
         self._hoist(program.body, escopo)
+        # Antes de conferir qualquer acesso: a escrita pode estar DEPOIS
+        # da leitura no arquivo.
+        self._recolher_campos_externos(program, escopo)
         self.visit_block(program.body, escopo)
         return self.diagnostics
 
@@ -283,18 +293,157 @@ class TypeChecker:
                 self.known_types.add(stmt.name)
                 escopo.declare(stmt.name, "Enum", stmt.line, stmt.column)
             elif isinstance(stmt, (ast.BlueprintDeclaration, ast.TraitDeclaration)):
-                membros = set()
-                corpo = stmt.body if isinstance(stmt, ast.BlueprintDeclaration) else stmt.methods
-                for sub in corpo:
-                    if isinstance(sub, ast.ActionDeclaration):
-                        membros.add(sub.name)
-                    elif isinstance(sub, ast.StaticDeclaration):
-                        membros.add(sub.name)
+                self.blueprints[stmt.name] = self._membros_de(stmt)
                 if isinstance(stmt, ast.BlueprintDeclaration):
-                    membros.update(stmt.constructor_params or [])
-                self.blueprints[stmt.name] = membros
+                    self.maes[stmt.name] = [
+                        p if isinstance(p, str) else getattr(p, "name", "")
+                        for p in (list(stmt.parents or [])
+                                  + list(stmt.traits or []))]
                 self.known_types.add(stmt.name)
                 escopo.declare(stmt.name, "Blueprint", stmt.line, stmt.column)
+
+    # ── O que um blueprint tem ─────────────────────────────
+    #
+    #  Isto existia pela metade: só ações, estáticos e parâmetros do
+    #  construtor. Faltavam os campos declarados, as propriedades, e —
+    #  o mais comum de todos — o campo que nasce de um 'self.x := …'
+    #  dentro de um método.
+    #
+    #  Faltava sobretudo alguém CONSULTAR. Com a lista incompleta,
+    #  conferir teria dado falso alarme em código correto, e um falso
+    #  alarme ensina a ignorar a ferramenta.
+
+    @staticmethod
+    def _membros_de(stmt):
+        """Tudo o que se pode escrever depois do ponto, neste blueprint.
+
+        Não inclui o que vem da mãe: isso é resolvido em
+        '_membros_com_heranca', que precisa da tabela inteira montada.
+        """
+        membros = set()
+        corpo = (stmt.body if isinstance(stmt, ast.BlueprintDeclaration)
+                 else stmt.methods)
+
+        for sub in corpo:
+            if isinstance(sub, (ast.ActionDeclaration, ast.StaticDeclaration,
+                                ast.PropertyDeclaration)):
+                membros.add(sub.name)
+
+        if isinstance(stmt, ast.BlueprintDeclaration):
+            membros.update(stmt.constructor_params or [])
+            for campo in (stmt.fields_decl or []):
+                nome = campo[0] if isinstance(campo, (tuple, list)) \
+                    else getattr(campo, "name", None)
+                if nome:
+                    membros.add(nome)
+
+            # 'self.x := …' declara um campo, e ele aparece em dois
+            # lugares: dentro de um método, e SOLTO no corpo do
+            # blueprint — que é o construtor inline. Varrer o corpo
+            # inteiro cobre os dois de uma vez.
+            #
+            # Olhar só dentro dos métodos deu 32 falsos alarmes num
+            # exemplo que funciona há meses.
+            membros |= TypeChecker._campos_atribuidos(corpo)
+
+        return membros
+
+    @staticmethod
+    def _campos_atribuidos(no):
+        """Os nomes de todo 'self.x := …' abaixo deste nó."""
+        achados = set()
+        pilha = [no]
+        while pilha:
+            atual = pilha.pop()
+            if isinstance(atual, ast.Assignment):
+                alvo = atual.target
+                if (isinstance(alvo, ast.MemberAccess)
+                        and isinstance(alvo.object, ast.Identifier)
+                        and alvo.object.name in ("self", "this")):
+                    achados.add(alvo.member)
+            if isinstance(atual, ast.ASTNode):
+                for campo, valor in vars(atual).items():
+                    if not campo.startswith("_"):
+                        pilha.append(valor)
+            elif isinstance(atual, (list, tuple)):
+                pilha.extend(atual)
+            elif isinstance(atual, dict):
+                pilha.extend(atual.values())
+        return achados
+
+    def _recolher_campos_externos(self, programa, escopo):
+        """'obj.x := …' fora do blueprint acrescenta o campo em execução.
+
+        Quem escreve assim abre mão da conferência **naquele campo** —
+        é a escolha dele, e não um erro a acusar. O que não dá é acusar
+        a LEITURA e deixar a escrita passar: seria reclamar de ler o que
+        o próprio arquivo escreveu duas linhas acima.
+
+        Roda antes de conferir qualquer acesso, porque a escrita pode
+        estar depois da leitura no arquivo.
+        """
+        pilha = [programa]
+        while pilha:
+            atual = pilha.pop()
+            if isinstance(atual, ast.Assignment):
+                alvo = atual.target
+                if (isinstance(alvo, ast.MemberAccess)
+                        and isinstance(alvo.object, ast.Identifier)
+                        and alvo.object.name not in ("self", "this")):
+                    # O NOME do campo basta, e o tipo da variavel nao
+                    # esta resolvido nesta passagem. A consequencia e
+                    # que um campo posto de fora num tipo desliga a
+                    # conferencia daquele nome em todos — e essa e a
+                    # troca certa: perde-se um pouco de rigor e nao se
+                    # ganha um unico falso alarme.
+                    self.campos_postos_de_fora.add(alvo.member)
+            if isinstance(atual, ast.ASTNode):
+                for campo, valor in vars(atual).items():
+                    if not campo.startswith("_"):
+                        pilha.append(valor)
+            elif isinstance(atual, (list, tuple)):
+                pilha.extend(atual)
+            elif isinstance(atual, dict):
+                pilha.extend(atual.values())
+
+    def _membros_com_heranca(self, nome, vistos=None):
+        """Os membros do blueprint MAIS os de toda a linhagem.
+
+        Um método herdado é tão legítimo quanto um declarado aqui, e
+        acusar 'Filha' de não ter o que 'Base' tem seria o falso alarme
+        mais óbvio possível.
+
+        'vistos' corta ciclo de herança: ele é erro em outro lugar, e
+        aqui não pode virar recursão infinita.
+        """
+        vistos = vistos or set()
+        if nome in vistos or nome not in self.blueprints:
+            return set()
+        vistos.add(nome)
+
+        membros = set(self.blueprints[nome])
+        for mae in self.maes.get(nome, ()):
+            membros |= self._membros_com_heranca(mae, vistos)
+        return membros
+
+    def _blueprint_e_fechado(self, nome, vistos=None):
+        """Dá para afirmar que este blueprint não ganha membro em tempo de execução?
+
+        Não dá quando ele — ou alguém na linhagem — herda de algo que o
+        analisador não viu: um blueprint de outro arquivo, ou um valor
+        vindo de um módulo. Nesses casos o silêncio é a resposta certa.
+        """
+        vistos = vistos or set()
+        if nome in vistos:
+            return True                     # ciclo: outro erro cuida
+        vistos.add(nome)
+
+        for mae in self.maes.get(nome, ()):
+            if mae not in self.blueprints:
+                return False
+            if not self._blueprint_e_fechado(mae, vistos):
+                return False
+        return True
 
     # ── Instruções ─────────────────────────────────────────
 
@@ -1360,18 +1509,79 @@ class TypeChecker:
                     return UNKNOWN
                 return nome if node.member in membros else UNKNOWN
 
+        # ── Membro de instância ──
+        #
+        # O caso que faltava, e o que mais custa em projeto grande:
+        # 'self.clientte' passava pelo 'check' sem uma palavra, e só
+        # explodia no dia em que aquele ramo rodasse.
+        self._conferir_membro_de_instancia(alvo, node)
         return UNKNOWN
+
+    #: O que toda instância tem, venha de onde vier.
+    #:
+    #: `self` e `this` são o próprio objeto; os métodos mágicos são
+    #: chamados pelo runtime e podem não estar declarados no arquivo que
+    #: se está olhando.
+    _SEMPRE_NA_INSTANCIA = {
+        "self", "this", "root", "blueprint_name", "fields",
+        "toString", "to_string", "copy", "clone", "equals", "hash",
+    }
+
+    def _conferir_membro_de_instancia(self, tipo, node):
+        """'p.clientte' quando 'p' é um blueprint conhecido.
+
+        Só acusa quando consegue PROVAR: o tipo é um blueprint deste
+        arquivo, a linhagem inteira é conhecida, e o nome não está em
+        lugar nenhum dela. Fora disso, silêncio — o analisador é
+        otimista de propósito, e um falso alarme ensina a ignorar a
+        ferramenta.
+        """
+        if tipo not in self.blueprints:
+            return
+        if not self._blueprint_e_fechado(tipo):
+            return               # herda de algo que não vimos
+
+        membro = node.member
+        if membro.startswith("__") or membro in self._SEMPRE_NA_INSTANCIA:
+            return
+
+        membros = self._membros_com_heranca(tipo)
+        if membro in membros:
+            return
+
+        # 'obj.x := …' fora do blueprint acrescenta o campo em execução.
+        # Quem faz isso perde a conferência, e é a escolha de quem
+        # escreveu — não um erro a acusar.
+        if membro in self.campos_postos_de_fora:
+            return
+
+        self.error(
+            f"'{tipo}' has no member '{membro}'", node,
+            self._hint_nome(membro, membros)
+            or (f"It has: {', '.join(sorted(membros)[:8])}"
+                + ("…" if len(membros) > 8 else "")),
+            "unknown-member")
 
     def ex_SafeMemberAccess(self, node, escopo):
         self.infer(node.object, escopo)
         return UNKNOWN
 
     def ex_MethodCall(self, node, escopo):
-        self.infer(node.object, escopo)
+        alvo = self.infer(node.object, escopo)
         for a in node.args:
             self.infer(a.value if isinstance(a, ast.SpreadElement) else a, escopo)
         for v in node.kwargs.values():
             self.infer(v, escopo)
+
+        # 'c.sacarr(10)' — o mesmo trabalho do acesso a campo, porque é
+        # o mesmo erro: um nome que não existe naquele blueprint.
+        #
+        # Um nó de MethodCall não tem '.member'; a mensagem de erro o
+        # lê, então passa-se um nó equivalente com a posição certa.
+        if alvo in self.blueprints:
+            self._conferir_membro_de_instancia(
+                alvo, ast.MemberAccess(object=node.object, member=node.method,
+                                       line=node.line, column=node.column))
         return UNKNOWN
 
     def ex_SafeMethodCall(self, node, escopo):
