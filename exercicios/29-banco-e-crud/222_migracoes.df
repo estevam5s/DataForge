@@ -46,7 +46,7 @@ steady MIGRACOES := [
 
 assert Banco.migrate(db, MIGRACOES) is 3
 assert Banco.table_exists(db, "clientes")
-assert "email" in (Banco.columns(db, "clientes") >> morph c: c["name"])
+assert "email" in(Banco.columns(db, "clientes") >> morph c: c["name"])
 
 // ── 3. E idempotente: rodar de novo nao faz nada ────────────
 //
@@ -67,14 +67,14 @@ assert Banco.count(db, "clientes") is 1
 
 // uma migracao nova, com a tabela ja povoada
 steady MAIS := [...MIGRACOES, {
-    "version": 4,
-    "description": "telefone",
-    "up": "ALTER TABLE clientes ADD COLUMN telefone TEXT DEFAULT '';",
-    "down": "ALTER TABLE clientes DROP COLUMN telefone;"
+        "version": 4,
+        "description": "telefone",
+        "up": "ALTER TABLE clientes ADD COLUMN telefone TEXT DEFAULT '';",
+        "down": "ALTER TABLE clientes DROP COLUMN telefone;"
 }]
 
 assert Banco.migrate(db, MAIS) is 1
-assert Banco.count(db, "clientes") is 1     // o dado continua la
+assert Banco.count(db, "clientes") is 1  // o dado continua la
 assert Banco.query_one(db, "SELECT nome FROM clientes")["nome"] is "Ana"
 
 // ── 5. Desfazer uma ─────────────────────────────────────────
@@ -83,14 +83,14 @@ assert Banco.query_one(db, "SELECT nome FROM clientes")["nome"] is "Ana"
 // dado, e a diferenca entre "corrigi a ultima" e "apaguei o banco".
 
 assert Banco.rollback_migration(db, MAIS) is 1
-assert "telefone" not in (Banco.columns(db, "clientes") >> morph c: c["name"])
+assert "telefone" not in(Banco.columns(db, "clientes") >> morph c: c["name"])
 assert len(Banco.migrations_applied(db)) is 3
 
 // ── 6. Desfazer ate uma versao ──────────────────────────────
 
 assert Banco.rollback_migration(db, MAIS, ate := 1) is 2
 assert len(Banco.migrations_applied(db)) is 1
-assert Banco.table_exists(db, "clientes")   // a versao 1 ficou
+assert Banco.table_exists(db, "clientes")  // a versao 1 ficou
 
 // ── 7. Uma migracao sem 'down' nao e pulada em silencio ─────
 //
@@ -98,8 +98,8 @@ assert Banco.table_exists(db, "clientes")   // a versao 1 ficou
 // descobrir isso depois e pior que o erro agora.
 
 steady SEM_VOLTA := [{
-    "version": 1, "description": "sem volta",
-    "up": "CREATE TABLE x (id INTEGER);"
+        "version": 1, "description": "sem volta",
+        "up": "CREATE TABLE x (id INTEGER);"
 }]
 
 outro := Banco.memory()

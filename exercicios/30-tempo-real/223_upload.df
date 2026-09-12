@@ -27,11 +27,11 @@ action receber(req):
 
     linhas := arquivo["texto"].lines() >> sift l: l.trim() is not ""
     yield Kiln.json({
-        "titulo": req["body"]["titulo"] ?? "",
-        "nome": arquivo["nome"],
-        "tipo": arquivo["tipo"],
-        "bytes": arquivo["tamanho"],
-        "linhas": len(linhas)
+            "titulo": req["body"]["titulo"] ?? "",
+            "nome": arquivo["nome"],
+            "tipo": arquivo["tipo"],
+            "bytes": arquivo["tamanho"],
+            "linhas": len(linhas)
     })
 
 Kiln.post(app, "/importar", receber)
@@ -55,13 +55,13 @@ action multipart(fronteira, partes):
     yield pedacos.join("")
 
 corpo := multipart("----df", [
-    {"nome": "titulo", "valor": "Vendas de marco"},
-    {"nome": "planilha", "valor": "id,valor\n1,10\n2,20\n",
-     "arquivo": "vendas.csv", "tipo": "text/csv"}
+        {"nome": "titulo", "valor": "Vendas de marco"},
+        {"nome": "planilha", "valor": "id,valor\n1,10\n2,20\n",
+        "arquivo": "vendas.csv", "tipo": "text/csv"}
 ])
 
 r := Kiln.test(app, "POST", "/importar", corpo,
-               {"content-type": "multipart/form-data; boundary=----df"})
+{"content-type": "multipart/form-data; boundary=----df"})
 
 assert r["status"] is 200
 assert r["body"]["nome"] is "vendas.csv"
@@ -71,9 +71,9 @@ assert r["body"]["linhas"] is 3
 
 // ── 3. Sem arquivo, a rota responde 400 ─────────────────────
 
-vazio := multipart("----df", [{"nome": "titulo", "valor": "so texto"}])
+vazio := multipart("----df", [{"nome":"titulo", "valor":"so texto"}])
 r2 := Kiln.test(app, "POST", "/importar", vazio,
-                {"content-type": "multipart/form-data; boundary=----df"})
+{"content-type": "multipart/form-data; boundary=----df"})
 assert r2["status"] is 400
 
 // ── 4. Gravar em disco, com as tres recusas ─────────────────
@@ -82,8 +82,8 @@ pasta := IO.join(OS.temp_dir(), "df_upload_exercicio")
 
 acao := Kiln.salvar_upload(
     {"nome": "relatorio.csv", "conteudo": "a,b\n1,2\n",
-     "tipo": "text/csv", "tamanho": 8},
-    pasta, tipos := [".csv", ".xlsx"])
+    "tipo": "text/csv", "tamanho": 8},
+pasta, tipos := [".csv", ".xlsx"])
 
 assert IO.exists(acao["caminho"])
 // o nome final NAO e o que o cliente mandou: dois usuarios enviando
@@ -102,7 +102,7 @@ handle Error as e:
 // extensao fora da lista: '.php' numa pasta estatica e execucao remota
 monitor:
     Kiln.salvar_upload({"nome": "shell.php", "conteudo": "x"},
-                       pasta, tipos := [".csv"])
+    pasta, tipos := [".csv"])
     assert no
 handle Error as e:
     assert "extensao" in e.message
@@ -110,7 +110,7 @@ handle Error as e:
 // acima do limite
 monitor:
     Kiln.salvar_upload({"nome": "grande.csv", "conteudo": "x" * 100},
-                       pasta, limite := 50)
+    pasta, limite := 50)
     assert no
 handle Error as e:
     assert "acima do limite" in e.message

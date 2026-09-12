@@ -18,17 +18,17 @@ db := Banco.memory()
 // corrida.
 
 Banco.create_table(db, "autores", {
-    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
-    "nome": "TEXT NOT NULL UNIQUE"
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "nome": "TEXT NOT NULL UNIQUE"
 })
 
 Banco.create_table(db, "livros", {
-    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
-    "isbn": "TEXT NOT NULL UNIQUE",
-    "titulo": "TEXT NOT NULL",
-    "autor_id": "INTEGER NOT NULL REFERENCES autores(id)",
-    "preco": "REAL NOT NULL CHECK (preco >= 0)",
-    "estoque": "INTEGER NOT NULL DEFAULT 0 CHECK (estoque >= 0)"
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "isbn": "TEXT NOT NULL UNIQUE",
+        "titulo": "TEXT NOT NULL",
+        "autor_id": "INTEGER NOT NULL REFERENCES autores(id)",
+        "preco": "REAL NOT NULL CHECK (preco >= 0)",
+        "estoque": "INTEGER NOT NULL DEFAULT 0 CHECK (estoque >= 0)"
 })
 
 // ── 2. Create ───────────────────────────────────────────────
@@ -41,8 +41,8 @@ action autor(nome):
 
 action cadastrar(isbn, titulo, nome_autor, preco, estoque):
     yield Banco.upsert(db, "livros", {
-        "isbn": isbn, "titulo": titulo, "autor_id": autor(nome_autor),
-        "preco": preco, "estoque": estoque
+            "isbn": isbn, "titulo": titulo, "autor_id": autor(nome_autor),
+            "preco": preco, "estoque": estoque
     }, "isbn")
 
 assert cadastrar("978-1", "Duna", "Frank Herbert", 79.9, 4) is "inserido"
@@ -97,7 +97,7 @@ assert Banco.count(db, "livros") is 2
 // apagar um autor que tem livro e recusado pelo BANCO
 monitor:
     Banco.delete(db, "autores", {"nome": "Frank Herbert"})
-    assert no       // nao deveria chegar aqui
+    assert no  // nao deveria chegar aqui
 handle Error as e:
     assert "FOREIGN KEY" in e.message or "constraint" in e.message
 
@@ -105,8 +105,8 @@ handle Error as e:
 
 monitor:
     Banco.insert(db, "livros", {
-        "isbn": "978-9", "titulo": "Impossivel",
-        "autor_id": 1, "preco": -10.0, "estoque": 0})
+            "isbn": "978-9", "titulo": "Impossivel",
+    "autor_id": 1, "preco": -10.0, "estoque": 0})
     assert no
 handle Error as e:
     assert "CHECK" in e.message or "constraint" in e.message

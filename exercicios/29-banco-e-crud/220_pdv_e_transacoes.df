@@ -12,30 +12,30 @@ adopt Arcane.Database as Banco
 db := Banco.memory()
 
 Banco.create_table(db, "produtos", {
-    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
-    "sku": "TEXT NOT NULL UNIQUE",
-    "nome": "TEXT NOT NULL",
-    "preco": "REAL NOT NULL",
-    "estoque": "INTEGER NOT NULL CHECK (estoque >= 0)"
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "sku": "TEXT NOT NULL UNIQUE",
+        "nome": "TEXT NOT NULL",
+        "preco": "REAL NOT NULL",
+        "estoque": "INTEGER NOT NULL CHECK (estoque >= 0)"
 })
 Banco.create_table(db, "vendas", {
-    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
-    "total": "REAL NOT NULL",
-    "caixa": "TEXT NOT NULL",
-    "quando": "TEXT NOT NULL"
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "total": "REAL NOT NULL",
+        "caixa": "TEXT NOT NULL",
+        "quando": "TEXT NOT NULL"
 })
 Banco.create_table(db, "itens", {
-    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
-    "venda_id": "INTEGER NOT NULL REFERENCES vendas(id)",
-    "produto_id": "INTEGER NOT NULL REFERENCES produtos(id)",
-    "quantidade": "INTEGER NOT NULL",
-    "preco_unitario": "REAL NOT NULL"
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "venda_id": "INTEGER NOT NULL REFERENCES vendas(id)",
+        "produto_id": "INTEGER NOT NULL REFERENCES produtos(id)",
+        "quantidade": "INTEGER NOT NULL",
+        "preco_unitario": "REAL NOT NULL"
 })
 
 Banco.upsert_many(db, "produtos", [
-    {"sku": "CAF-500", "nome": "Cafe 500g", "preco": 32.9, "estoque": 20},
-    {"sku": "ACU-1KG", "nome": "Acucar 1kg", "preco": 5.49, "estoque": 50},
-    {"sku": "LEI-1L", "nome": "Leite 1L", "preco": 6.9, "estoque": 2}
+        {"sku": "CAF-500", "nome": "Cafe 500g", "preco": 32.9, "estoque": 20},
+        {"sku": "ACU-1KG", "nome": "Acucar 1kg", "preco": 5.49, "estoque": 50},
+        {"sku": "LEI-1L", "nome": "Leite 1L", "preco": 6.9, "estoque": 2}
 ], "sku")
 
 // ── 1. A venda, como uma unidade ────────────────────────────
@@ -57,19 +57,19 @@ action registrar_venda(carrinho, caixa):
             linhas.append({"produto": p, "quantidade": item["quantidade"]})
 
         venda_id := Banco.insert(db, "vendas", {
-            "total": round(total, 2), "caixa": caixa, "quando": "2026-09-12"})
+        "total": round(total, 2), "caixa": caixa, "quando": "2026-09-12"})
 
         cycle linha in linhas:
             Banco.insert(db, "itens", {
-                "venda_id": venda_id,
-                "produto_id": linha["produto"]["id"],
-                "quantidade": linha["quantidade"],
-                "preco_unitario": linha["produto"]["preco"]})
+                    "venda_id": venda_id,
+                    "produto_id": linha["produto"]["id"],
+                    "quantidade": linha["quantidade"],
+            "preco_unitario": linha["produto"]["preco"]})
             // A baixa e no BANCO: 'estoque = estoque - ?'. Ler, subtrair
             // e escrever de volta perde atualizacoes quando dois caixas
             // vendem o mesmo item ao mesmo tempo.
             Banco.increment(db, "produtos", "estoque",
-                            -linha["quantidade"], {"id": linha["produto"]["id"]})
+            -linha["quantidade"], {"id": linha["produto"]["id"]})
         yield {"id": venda_id, "total": round(total, 2)}
 
     yield Banco.transacao(db, corpo)
@@ -77,8 +77,8 @@ action registrar_venda(carrinho, caixa):
 // ── 2. Uma venda que da certo ───────────────────────────────
 
 v := registrar_venda([
-    {"sku": "CAF-500", "quantidade": 2},
-    {"sku": "ACU-1KG", "quantidade": 3}
+        {"sku": "CAF-500", "quantidade": 2},
+        {"sku": "ACU-1KG", "quantidade": 3}
 ], "ana")
 
 assert v["total"] is 82.27
@@ -98,8 +98,8 @@ antes_cafe := Banco.query_one(db, "SELECT estoque FROM produtos WHERE sku='CAF-5
 
 monitor:
     registrar_venda([
-        {"sku": "CAF-500", "quantidade": 1},
-        {"sku": "LEI-1L", "quantidade": 99}
+            {"sku": "CAF-500", "quantidade": 1},
+            {"sku": "LEI-1L", "quantidade": 99}
     ], "bruno")
     assert no
 handle Error as e:
@@ -117,7 +117,7 @@ assert Banco.query_one(db, "SELECT estoque FROM produtos WHERE sku='CAF-500'")["
 action venda_tolerante(carrinho, caixa):
     action corpo():
         venda_id := Banco.insert(db, "vendas", {
-            "total": 0.0, "caixa": caixa, "quando": "2026-09-12"})
+        "total": 0.0, "caixa": caixa, "quando": "2026-09-12"})
         total := 0.0
         recusados := []
 
@@ -127,11 +127,11 @@ action venda_tolerante(carrinho, caixa):
                 given p is void or p["estoque"] smaller item["quantidade"]:
                     trigger "sem estoque"
                 Banco.insert(db, "itens", {
-                    "venda_id": venda_id, "produto_id": p["id"],
-                    "quantidade": item["quantidade"],
-                    "preco_unitario": p["preco"]})
+                        "venda_id": venda_id, "produto_id": p["id"],
+                        "quantidade": item["quantidade"],
+                "preco_unitario": p["preco"]})
                 Banco.increment(db, "produtos", "estoque",
-                                -item["quantidade"], {"id": p["id"]})
+                -item["quantidade"], {"id": p["id"]})
                 yield p["preco"] * item["quantidade"]
 
             monitor:
@@ -145,9 +145,9 @@ action venda_tolerante(carrinho, caixa):
     yield Banco.transacao(db, corpo)
 
 r := venda_tolerante([
-    {"sku": "ACU-1KG", "quantidade": 1},
-    {"sku": "LEI-1L", "quantidade": 99},
-    {"sku": "CAF-500", "quantidade": 1}
+        {"sku": "ACU-1KG", "quantidade": 1},
+        {"sku": "LEI-1L", "quantidade": 99},
+        {"sku": "CAF-500", "quantidade": 1}
 ], "carla")
 
 assert r["recusados"] is ["LEI-1L"]

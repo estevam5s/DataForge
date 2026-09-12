@@ -78,7 +78,7 @@ porta := Kiln.serve(app, 0)
 r := Web.get($"http://127.0.0.1:{porta}/importacao")
 assert "event: progresso" in r["body"]
 assert "event: fim" in r["body"]
-assert "\"feitos\": 1" in r["body"]
+assert '"feitos": 1' in r["body"]
 // quatro eventos de progresso, um de fim
 assert r["body"].count("event: progresso") is 4
 

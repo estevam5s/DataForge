@@ -48,6 +48,8 @@ GRUPOS = [
                    "header", "cookie"]),
     ("Sessão", ["session_start", "session_end", "sign", "unsign"]),
     ("Views", ["templates", "render", "render_string", "static", "escape"]),
+    ("Upload", ["upload", "uploads", "salvar_upload"]),
+    ("Tempo real", ["sse", "evento", "stream", "ws", "sala", "Sala"]),
     ("Ciclo de vida", ["listen", "serve", "stop", "test"]),
 ]
 
@@ -133,6 +135,26 @@ RESUMOS = {
     "serve": "Sobe em segundo plano e devolve a porta.",
     "stop": "Desliga um servidor que está no ar.",
     "test": "Executa um pedido direto na aplicação, sem socket.",
+
+    "upload": ("Um arquivo enviado num `multipart/form-data`, ou `void`. "
+               "Tem `nome`, `tipo`, `tamanho`, `conteudo` e `texto`."),
+    "uploads": "Todos os arquivos enviados, por nome de campo.",
+    "salvar_upload": ("Grava um arquivo recebido. Recusa nome com `/` ou "
+                      "`..`, tamanho acima do limite e extensão fora da "
+                      "lista; o nome final leva prefixo aleatório."),
+
+    "sse": ("Uma resposta que não termina: o servidor empurra evento por "
+            "evento e o navegador reconecta sozinho. Prefira a WebSocket "
+            "quando o cliente só ouve."),
+    "evento": "Um evento SSE em texto, para quem monta o fluxo à mão.",
+    "stream": ("Uma resposta em pedaços, de qualquer tipo — um CSV de um "
+               "milhão de linhas sem montar o arquivo na memória."),
+    "ws": ("Registra uma rota de WebSocket. O método é `WS`, que não "
+           "existe em HTTP: um `GET` no mesmo caminho continua livre "
+           "para servir a página que abre a conexão."),
+    "sala": ("Um grupo de conexões, para transmitir a todas. O soquete "
+             "morto é removido em vez de derrubar a mensagem dos outros."),
+    "Sala": "A classe, para `spawn Kiln.Sala(\"chat\")`.",
 }
 
 

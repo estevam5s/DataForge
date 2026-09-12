@@ -198,13 +198,28 @@ def _rodar(pasta, *args):
         env={**os.environ, "PYTHONPATH": RAIZ})
 
 
+def _com_barra(texto):
+    """A saída com '\' virado em '/', para comparar em qualquer sistema.
+
+    O relatório mostra o caminho como o sistema o escreve, e no Windows
+    isso é `src\lib.df`. Um teste que procura `src/lib.df` passa em
+    Linux e macOS e reprova o Windows — e foi exatamente o que derrubou
+    a CI nas duas versões de Python de lá.
+
+    Normalizar aqui, e não no relatório: quem lê o relatório no Windows
+    espera ver a barra do Windows.
+    """
+    return texto.replace("\\", "/")
+
+
 def test_a_linha_de_um_modulo_importado_conta_no_modulo(tmp_path):
     """Era atribuída a `interp.filename` — o arquivo de teste."""
     saida = _rodar(_projeto(tmp_path), "--cobertura")
     assert saida.returncode == 0, saida.stdout + saida.stderr
-    assert "src/lib.df" in saida.stdout, saida.stdout
+    assert "src/lib.df" in _com_barra(saida.stdout), saida.stdout
     # 'dobro' rodou, 'nunca_chamada' não: nem 0% nem 100%.
-    linha = next(l for l in saida.stdout.splitlines() if "lib.df" in l)
+    linha = next(l for l in _com_barra(saida.stdout).splitlines()
+                 if "lib.df" in l)
     assert "0.0%" not in linha and "100.0%" not in linha, linha
     assert "nunca_chamada" in saida.stdout
 
@@ -213,8 +228,9 @@ def test_um_arquivo_que_nenhum_teste_toca_aparece_com_zero(tmp_path):
     """Sumir do relatório é o que faz uma cobertura de 95% conviver com
     metade do sistema sem teste."""
     saida = _rodar(_projeto(tmp_path), "--cobertura")
-    assert "src/main.df" in saida.stdout
-    linha = next(l for l in saida.stdout.splitlines() if "main.df" in l)
+    assert "src/main.df" in _com_barra(saida.stdout), saida.stdout
+    linha = next(l for l in _com_barra(saida.stdout).splitlines()
+                 if "main.df" in l)
     assert "0.0%" in linha, linha
 
 

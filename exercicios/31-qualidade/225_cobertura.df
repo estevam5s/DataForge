@@ -29,7 +29,7 @@ IO.mkdir(IO.join(raiz, "src"))
 IO.mkdir(IO.join(raiz, "tests"))
 
 IO.write(IO.join(raiz, "forge.toml"),
-         "[project]\nname = \"cob\"\nversion = \"1.0.0\"\nentry = \"src/main.df\"\n")
+'[project]\nname = "cob"\nversion = "1.0.0"\nentry = "src/main.df"\n')
 
 IO.write(IO.join(raiz, "src", "conta.df"), """
 action taxa(valor, tipo):
@@ -62,12 +62,15 @@ action test_premium():
 // ── 2. Medir ────────────────────────────────────────────────
 
 r := P.run(["dataforge", "test", "--cobertura", "--linhas", "--no-color"],
-           cwd := raiz)
+cwd := raiz)
 saida := r["stdout"]
 
 // So a secao de cobertura interessa: o nome do arquivo de teste
 // aparece na linha de resultado dele, que e outra coisa.
-relatorio := saida.split("Cobertura")[1]
+// A barra invertida do Windows vira barra: o relatorio mostra o
+// caminho como o SISTEMA o escreve, e um teste que procura "src/conta"
+// passa em Linux e reprova no Windows.
+relatorio := saida.split("Cobertura")[1].replace("\\", "/")
 
 // O arquivo de codigo e medido; o de teste, nao — o que interessa
 // medir e o codigo, nao a suite.

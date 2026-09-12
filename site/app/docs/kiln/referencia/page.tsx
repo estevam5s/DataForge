@@ -7,12 +7,12 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Referência do Kiln",
-  description: "As 64 funções do módulo e as dez palavras da linguagem.",
+  description: "As 73 funções do módulo e as dez palavras da linguagem.",
 };
 
 const blocos: Bloco[] = [
   {
-    "p": "Esta página é gerada a partir de `dataforge/stdlib/kiln.py`. São **64 funções** — a sintaxe da linguagem (`server`, `route`, `respond`…) chama estas mesmas."
+    "p": "Esta página é gerada a partir de `dataforge/stdlib/kiln.py`. São **73 funções** — a sintaxe da linguagem (`server`, `route`, `respond`…) chama estas mesmas."
   },
   {
     "h2": "As palavras da linguagem"
@@ -454,6 +454,68 @@ const blocos: Bloco[] = [
     }
   },
   {
+    "h2": "Upload"
+  },
+  {
+    "table": {
+      "head": [
+        "Função",
+        "Faz"
+      ],
+      "rows": [
+        [
+          "`Kiln.upload(req, campo)`",
+          "Um arquivo enviado num `multipart/form-data`, ou `void`. Tem `nome`, `tipo`, `tamanho`, `conteudo` e `texto`."
+        ],
+        [
+          "`Kiln.uploads(req)`",
+          "Todos os arquivos enviados, por nome de campo."
+        ],
+        [
+          "`Kiln.salvar_upload(arquivo, pasta, nome=None, limite=0, tipos=None)`",
+          "Grava um arquivo recebido. Recusa nome com `/` ou `..`, tamanho acima do limite e extensão fora da lista; o nome final leva prefixo aleatório."
+        ]
+      ]
+    }
+  },
+  {
+    "h2": "Tempo real"
+  },
+  {
+    "table": {
+      "head": [
+        "Função",
+        "Faz"
+      ],
+      "rows": [
+        [
+          "`Kiln.sse(gerador, cabecalhos=None)`",
+          "Uma resposta que não termina: o servidor empurra evento por evento e o navegador reconecta sozinho. Prefira a WebSocket quando o cliente só ouve."
+        ],
+        [
+          "`Kiln.evento(dados, tipo='', identificador='', reconectar=0)`",
+          "Um evento SSE em texto, para quem monta o fluxo à mão."
+        ],
+        [
+          "`Kiln.stream(gerador, tipo='text/plain; charset=utf-8', cabecalhos=None)`",
+          "Uma resposta em pedaços, de qualquer tipo — um CSV de um milhão de linhas sem montar o arquivo na memória."
+        ],
+        [
+          "`Kiln.ws(app, padrao, handler)`",
+          "Registra uma rota de WebSocket. O método é `WS`, que não existe em HTTP: um `GET` no mesmo caminho continua livre para servir a página que abre a conexão."
+        ],
+        [
+          "`Kiln.sala(nome='sala')`",
+          "Um grupo de conexões, para transmitir a todas. O soquete morto é removido em vez de derrubar a mensagem dos outros."
+        ],
+        [
+          "`Kiln.Sala(nome='sala')`",
+          "A classe, para `spawn Kiln.Sala(\"chat\")`."
+        ]
+      ]
+    }
+  },
+  {
     "h2": "Ciclo de vida"
   },
   {
@@ -547,13 +609,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'as-palavras-da-linguagem', text: "As palavras da linguagem", level: 2 as const }, { id: 'aplicacao', text: "Aplicação", level: 2 as const }, { id: 'rotas', text: "Rotas", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'seguranca', text: "Segurança", level: 2 as const }, { id: 'validacao', text: "Validação", level: 2 as const }, { id: 'listagem', text: "Listagem", level: 2 as const }, { id: 'transferencia', text: "Transferência", level: 2 as const }, { id: 'observabilidade', text: "Observabilidade", level: 2 as const }, { id: 'respostas', text: "Respostas", level: 2 as const }, { id: 'sessao', text: "Sessão", level: 2 as const }, { id: 'views', text: "Views", level: 2 as const }, { id: 'ciclo-de-vida', text: "Ciclo de vida", level: 2 as const }, { id: 'a-requisicao', text: "A requisição", level: 2 as const }, { id: 'os-status-com-frase-pronta', text: "Os status com frase pronta", level: 2 as const }];
+const headings = [{ id: 'as-palavras-da-linguagem', text: "As palavras da linguagem", level: 2 as const }, { id: 'aplicacao', text: "Aplicação", level: 2 as const }, { id: 'rotas', text: "Rotas", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'seguranca', text: "Segurança", level: 2 as const }, { id: 'validacao', text: "Validação", level: 2 as const }, { id: 'listagem', text: "Listagem", level: 2 as const }, { id: 'transferencia', text: "Transferência", level: 2 as const }, { id: 'observabilidade', text: "Observabilidade", level: 2 as const }, { id: 'respostas', text: "Respostas", level: 2 as const }, { id: 'sessao', text: "Sessão", level: 2 as const }, { id: 'views', text: "Views", level: 2 as const }, { id: 'upload', text: "Upload", level: 2 as const }, { id: 'tempo-real', text: "Tempo real", level: 2 as const }, { id: 'ciclo-de-vida', text: "Ciclo de vida", level: 2 as const }, { id: 'a-requisicao', text: "A requisição", level: 2 as const }, { id: 'os-status-com-frase-pronta', text: "Os status com frase pronta", level: 2 as const }];
 
 export default function Page() {
   return (
     <DocPage
       title="Referência do Kiln"
-      description="As 64 funções do módulo e as dez palavras da linguagem."
+      description="As 73 funções do módulo e as dez palavras da linguagem."
       href="/docs/kiln/referencia"
       headings={headings}
     >

@@ -13,19 +13,19 @@ adopt Arcane.Database as Banco
 
 db := Banco.memory()
 Banco.create_table(db, "livros", {
-    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
-    "titulo": "TEXT NOT NULL",
-    "preco": "REAL NOT NULL"
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "titulo": "TEXT NOT NULL",
+        "preco": "REAL NOT NULL"
 })
 Banco.insert_many(db, "livros", [
-    {"titulo": "Duna", "preco": 79.9},
-    {"titulo": "Neuromancer", "preco": 64.9}
+        {"titulo": "Duna", "preco": 79.9},
+        {"titulo": "Neuromancer", "preco": 64.9}
 ])
 
 action relatorio():
     linhas := Banco.aggregate(db, "livros",
-                              {"quantos": ["count", "*"],
-                               "total": ["sum", "preco"]})
+        {"quantos":["count", "*"],
+    "total":["sum", "preco"]})
     yield {"acervo": linhas[0]["quantos"], "valor": linhas[0]["total"]}
 
 // ── 2. Instantaneo ──────────────────────────────────────────

@@ -10,12 +10,12 @@ adopt Arcane.Database as Banco
 db := Banco.memory()
 
 Banco.create_table(db, "vendas", {
-    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
-    "produto": "TEXT NOT NULL",
-    "categoria": "TEXT NOT NULL",
-    "vendedor": "TEXT NOT NULL",
-    "valor": "REAL NOT NULL",
-    "mes": "TEXT NOT NULL"
+        "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+        "produto": "TEXT NOT NULL",
+        "categoria": "TEXT NOT NULL",
+        "vendedor": "TEXT NOT NULL",
+        "valor": "REAL NOT NULL",
+        "mes": "TEXT NOT NULL"
 })
 
 dados := []
@@ -23,23 +23,23 @@ categorias := ["bebida", "mercearia", "limpeza"]
 vendedores := ["ana", "bruno", "carla"]
 cycle i from 1 to 90:
     dados.append({
-        "produto": $"Produto {i}",
-        "categoria": categorias[i % 3],
-        // Um passo diferente: se os dois vierem de 'i % 3', categoria e
-        // vendedor ficam presos um ao outro e o cruzamento de dois
-        // grupos da 3 linhas em vez de 9.
-        "vendedor": vendedores[(i ~/ 3) % 3],
-        "valor": 10.0 + (i % 17) * 5.0,
-        "mes": $"2026-{(i % 6) + 1}"
+            "produto": $"Produto {i}",
+            "categoria": categorias[i % 3],
+            // Um passo diferente: se os dois vierem de 'i % 3', categoria e
+            // vendedor ficam presos um ao outro e o cruzamento de dois
+            // grupos da 3 linhas em vez de 9.
+            "vendedor": vendedores[(i ~/ 3) % 3],
+            "valor": 10.0 + (i % 17) * 5.0,
+            "mes": $"2026-{(i % 6) + 1}"
     })
 Banco.insert_many(db, "vendas", dados)
 
 // ── 1. Relatorio agrupado, sem escrever SQL ─────────────────
 
 por_vendedor := Banco.aggregate(db, "vendas", {
-    "receita": ["sum", "valor"],
-    "vendas": ["count", "*"],
-    "ticket": ["avg", "valor"]
+        "receita":["sum", "valor"],
+        "vendas":["count", "*"],
+        "ticket":["avg", "valor"]
 }, group_by := "vendedor", order_by := "receita DESC")
 
 assert len(por_vendedor) is 3
@@ -50,13 +50,13 @@ assert "vendedor" in por_vendedor[0]
 assert por_vendedor[0]["vendas"] is 30
 
 // dois grupos ao mesmo tempo
-cruzado := Banco.aggregate(db, "vendas", {"receita": ["sum", "valor"]},
-                           group_by := ["categoria", "vendedor"])
-assert len(cruzado) is 9       // 3 x 3
+cruzado := Banco.aggregate(db, "vendas", {"receita":["sum", "valor"]},
+group_by := ["categoria", "vendedor"])
+assert len(cruzado) is 9  // 3 x 3
 
 // com filtro
-so_bebida := Banco.aggregate(db, "vendas", {"total": ["sum", "valor"]},
-                             where := {"categoria": "bebida"})
+so_bebida := Banco.aggregate(db, "vendas", {"total":["sum", "valor"]},
+where := {"categoria": "bebida"})
 assert so_bebida[0]["total"] smaller_eq por_vendedor[0]["receita"] * 3
 
 // ── 2. O atalho que mais se pede ────────────────────────────
@@ -72,15 +72,15 @@ assert quantas[0]["quantidade"] is 30
 // frente, e por isso ele e conferido.
 
 monitor:
-    Banco.aggregate(db, "vendas", {"n": ["count", "*"]},
-                    order_by := "valor; DROP TABLE vendas")
+    Banco.aggregate(db, "vendas", {"n":["count", "*"]},
+    order_by := "valor; DROP TABLE vendas")
     assert no
 handle Error as e:
     assert "nao e um nome valido" in e.message
 assert Banco.table_exists(db, "vendas")
 
 monitor:
-    Banco.aggregate(db, "vendas", {"x": ["mediana", "valor"]})
+    Banco.aggregate(db, "vendas", {"x":["mediana", "valor"]})
     assert no
 handle Error as e:
     assert "agregacao conhecida" in e.message
@@ -104,8 +104,8 @@ assert len(Banco.search(db, "vendas", "merce")) bigger 0
 
 // e o indice se mantem em dia — sem isso ele envelhece em silencio
 Banco.insert(db, "vendas", {
-    "produto": "Cafezinho Especial", "categoria": "bebida",
-    "vendedor": "ana", "valor": 12.0, "mes": "2026-6"})
+        "produto": "Cafezinho Especial", "categoria": "bebida",
+"vendedor": "ana", "valor": 12.0, "mes": "2026-6"})
 assert len(Banco.search(db, "vendas", "cafezinho")) is 1
 
 // ── 5. O plano da consulta: onde esta o indice que falta ────
