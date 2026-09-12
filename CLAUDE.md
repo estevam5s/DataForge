@@ -1337,6 +1337,24 @@ exemplos e os exercícios *pelo binário*, monta o instalador do Windows
 com o Inno Setup, gera o `.deb` e o PKGBUILD, e anexa tudo ao release
 com um `SHA256SUMS.txt`.
 
+**Um runner que não existe não dá erro: ele nunca começa.** A primeira
+tag ficou meia hora com o job do macOS Intel em `queued` enquanto os
+outros três terminavam — sem mensagem, sem falha, sem prazo. `macos-13`
+foi **retirado** pelo GitHub; as imagens mantidas são `macos-14`,
+`macos-15` e `macos-26`, e só as duas últimas têm variante x64. Era o
+primeiro release do repositório, então não havia histórico dizendo que
+aquele runner nunca tinha funcionado.
+`test_todo_runner_dos_workflows_e_uma_imagem_que_existe` compara os
+rótulos usados com os que o GitHub mantém. A lista envelhece — é o
+preço de conferir algo que vive fora do repositório — mas envelhece com
+uma mensagem clara.
+
+**E a descrição do `.deb` dizia "37 modulos" quando eram 39.** Um
+número escrito à mão no modelo de um pacote envelhece sem ninguém ver:
+o `.deb` é gerado no release, e ninguém lê a descrição dele duas vezes.
+Hoje o modelo tem `{MODULOS}` e `{SIMBOLOS}`, e há teste que constrói o
+pacote e olha o `control` dentro dele.
+
 **A página `/download` anunciava sete arquivos e nenhum existia.** Não
 havia release no repositório — a tag nunca foi criada — e cada botão
 levava à página 404 do GitHub.

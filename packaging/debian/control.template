@@ -11,6 +11,7 @@ Description: Linguagem de programacao interpretada com vocabulario proprio
  parser, analisador estatico e interpretador proprios, escrita em Python
  puro e sem dependencias de runtime.
  .
- Traz 37 modulos de biblioteca padrao, um framework web (Kiln), um
- framework de testes (Crucible), gerenciador de pacotes, servidor de
- linguagem e extensao para o VS Code.
+ Traz {MODULOS} modulos de biblioteca padrao ({SIMBOLOS} simbolos), dois
+ frameworks web (Kiln e Vitrine), um framework de testes (Crucible),
+ gerenciador de pacotes, servidor de linguagem, depurador e extensao
+ para o VS Code.

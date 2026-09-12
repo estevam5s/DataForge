@@ -157,15 +157,39 @@ jobs:
           path: binarios
           merge-multiple: true
 
+      # Os artefatos chegam com a ESTRUTURA DE PASTAS preservada —
+      # 'bin/', 'dist/pacotes/', 'packaging/arch/' — porque o
+      # 'upload-artifact' guarda o caminho de cada arquivo. O
+      # 'merge-multiple' junta os quatro numa arvore, e nao numa pasta
+      # plana.
+      #
+      # As quatro plataformas construiram e o release NAO SAIU por
+      # causa disto: 'sha256sum *' encontrou os diretorios, escreveu
+      # "Is a directory" e saiu com codigo 1.
+      - name: achatar
+        run: |
+          find binarios -type f \
+            \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.exe' \
+               -o -name '*.deb' -o -name 'PKGBUILD' \) \
+            -exec mv -v {} binarios/ \;
+          find binarios -mindepth 1 -type d -empty -delete
+          ls -la binarios
+
       - name: somas de verificacao
         run: |
           cd binarios
           # Quem baixa por um link precisa poder conferir que o arquivo
           # e o que dizemos que e.
-          sha256sum * > SHA256SUMS.txt
+          #
+          # '-maxdepth 1 -type f': so os arquivos desta pasta. Um
+          # diretorio aqui derruba o passo, e foi o que aconteceu.
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' \
+            | xargs -0 sha256sum > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - uses: softprops/action-gh-release@v2
         with:
+          # 'binarios/*' com um diretorio dentro anexaria a PASTA, que
+          # a acao recusa. Depois do 'achatar' sao todos arquivos.
           files: binarios/*
           generate_release_notes: true

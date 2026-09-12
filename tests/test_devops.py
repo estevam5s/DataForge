@@ -709,3 +709,118 @@ def test_a_imagem_do_repositorio_nao_roda_como_root():
                     encoding="utf-8").read()
     assert "USER forge" in conteudo
     assert "useradd" in conteudo
+
+
+# ═══════════════════════════════════════════════════════════
+#  Os pacotes de distribuição não podem citar número velho
+# ═══════════════════════════════════════════════════════════
+
+def test_a_descricao_do_deb_nao_traz_numero_escrito_a_mao():
+    """Ela dizia "37 modulos" quando eram 39.
+
+    Um número escrito à mão no modelo de um pacote envelhece sem
+    ninguém ver: o `.deb` é gerado no release, e ninguém lê a descrição
+    dele duas vezes. Hoje o modelo tem `{MODULOS}` e `{SIMBOLOS}`, e o
+    gerador os preenche do código.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    modelo = os.path.join(raiz, "packaging", "debian", "control.template")
+    if not os.path.isfile(modelo):
+        pytest.skip("o packaging não está neste checkout")
+
+    texto = open(modelo, encoding="utf-8").read()
+    assert "{MODULOS}" in texto and "{SIMBOLOS}" in texto
+
+    # E nenhum número de dois ou mais dígitos solto na descrição, que é
+    # onde o "37" estava.
+    descricao = texto.split("Description:", 1)[-1]
+    soltos = re.findall(r"(?<![.\d{])\b(\d{2,})\b(?![.\d}])", descricao)
+    # A versão mínima do Python é legítima e fica antes da descrição.
+    assert not soltos, (
+        f"número escrito à mão na descrição do .deb: {soltos} — use uma "
+        f"chave que o gerador preencha")
+
+
+def test_o_deb_gerado_traz_a_contagem_real():
+    """Conferido no pacote CONSTRUÍDO — o modelo estar certo não prova
+    que a substituição aconteceu."""
+    import glob
+    import io
+    import subprocess
+    import sys as _sys
+    import tarfile
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.isfile(os.path.join(raiz, "packaging",
+                                       "gerar_pacotes.py")):
+        pytest.skip("o packaging não está neste checkout")
+
+    r = subprocess.run([_sys.executable, "packaging/gerar_pacotes.py"],
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", cwd=raiz)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+    debs = glob.glob(os.path.join(raiz, "dist", "pacotes", "*.deb"))
+    assert debs, "nenhum .deb foi gerado"
+    dados = open(debs[0], "rb").read()
+    assert dados[:8] == b"!<arch>\n", "o .deb não é um arquivo 'ar' válido"
+
+    control = ""
+    i = 8
+    while i < len(dados):
+        nome = dados[i:i + 16].decode(errors="replace").strip()
+        tam = int(dados[i + 48:i + 58].decode().strip())
+        if nome.startswith("control"):
+            arq = tarfile.open(fileobj=io.BytesIO(dados[i + 60:i + 60 + tam]),
+                               mode="r:gz")
+            control = arq.extractfile("./control").read().decode()
+            break
+        i += 60 + tam + (tam % 2)
+
+    assert control, "não achei o 'control' dentro do .deb"
+
+    from dataforge.stdlib import get_module, list_modules
+    oficiais = {get_module(n)["__name__"] for n in set(list_modules())}
+    assert f"{len(oficiais)} modulos" in control, (
+        f"o .deb não diz os {len(oficiais)} módulos reais:\n{control}")
+    assert "{MODULOS}" not in control, (
+        "a chave não foi substituída — o .deb saiu com o literal")
+
+
+def test_o_release_achata_os_artefatos_antes_de_somar():
+    """As quatro plataformas construíram e **o release não saiu**.
+
+    O `upload-artifact` guarda o CAMINHO de cada arquivo, então os
+    artefatos chegam com a árvore preservada — `bin/`,
+    `dist/pacotes/`, `packaging/arch/`. O `merge-multiple` junta os
+    quatro numa árvore, não numa pasta plana.
+
+    `sha256sum *` encontrou os diretórios, escreveu "Is a directory" e
+    saiu com código 1. Trinta minutos de build em quatro plataformas
+    perdidos num glob.
+
+    E o `action-gh-release` teria o mesmo problema: `binarios/*` com um
+    diretório dentro anexaria a pasta, que a ação recusa.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, ".github", "workflows", "release.yml")
+    if not os.path.isfile(caminho):
+        pytest.skip("o workflow não está neste checkout")
+
+    texto = open(caminho, encoding="utf-8").read()
+
+    # O passo que move tudo para uma pasta plana.
+    assert "name: achatar" in texto, (
+        "sem achatar, os artefatos chegam em subpastas e o 'sha256sum *' "
+        "falha com 'Is a directory'")
+
+    # E as somas não podem mais depender de um glob que pega diretório.
+    assert "sha256sum * > SHA256SUMS.txt" not in texto, (
+        "o glob que falhou voltou")
+    assert "-maxdepth 1 -type f" in texto, (
+        "as somas precisam se limitar aos ARQUIVOS da pasta")
+
+    # A ordem importa: achatar antes de somar.
+    assert texto.index("name: achatar") < texto.index("somas de verificacao")

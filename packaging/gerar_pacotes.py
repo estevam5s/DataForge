@@ -34,6 +34,22 @@ marca.preparar_saida()
 SAIDA = os.path.join(RAIZ, "dist", "pacotes")
 
 
+def _oficiais():
+    """Os nomes oficiais dos modulos, sem contar apelido duas vezes."""
+    from dataforge.stdlib import get_module, list_modules
+    return {get_module(n)["__name__"] for n in set(list_modules())}
+
+
+def _modulos():
+    return len(_oficiais())
+
+
+def _simbolos():
+    from dataforge.stdlib import get_module
+    return sum(len([k for k in get_module(n) if not k.startswith("__")])
+               for n in _oficiais())
+
+
 def _ar(destino, membros):
     """Escreve um arquivo `ar` — o formato do `.deb`.
 
@@ -82,7 +98,14 @@ def gerar_deb():
 
     modelo = os.path.join(RAIZ, "packaging", "debian", "control.template")
     with open(modelo, encoding="utf-8") as f:
-        control = f.read().replace("{VERSAO}", __version__)
+        control = (f.read()
+                   .replace("{VERSAO}", __version__)
+                   # A descricao dizia "37 modulos" quando eram 39.
+                   # Numero escrito a mao no modelo de um pacote
+                   # envelhece sem ninguem ver: o '.deb' e gerado no
+                   # release, e ninguem le a descricao dele duas vezes.
+                   .replace("{MODULOS}", str(_modulos()))
+                   .replace("{SIMBOLOS}", str(_simbolos())))
 
     postinst = f"""#!/bin/sh
 set -e
