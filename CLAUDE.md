@@ -685,8 +685,12 @@ O que **ainda não existe** (não invente que existe):
   Excel a resolve ao abrir. Também não lê o `.xls` binário antigo.
 - **`receive` bloqueante** — devolve `void` na hora se a fila está vazia.
 - **`parallel`** roda **cada instrução** numa thread, não um bloco por thread.
-- **`frame`, `train`, `predict`** são marcadores sintáticos: devolvem um vault
-  com `__type__` e nada acontece.
+- **`frame`, `train`, `predict`** são **açúcar fino** sobre `Arcane.Analytics`
+  e `Arcane.Cortex` — não reimplementam nada. `frame` devolve o
+  `AnalyticsFrame` de verdade; `train "floresta" using {…}` chama o treinador
+  do Cortex com o vault de argumentos nomeados; `predict` chama
+  `Cortex.prever`, ou a sua ação. Quem precisa de controle chama o Cortex
+  direto e vê todos os parâmetros.
 - **`async/await` é concorrente de verdade, mas só para entrada e saída.**
   Chamar uma ação `async` começa o trabalho numa thread e devolve uma
   tarefa; `await` espera. Rede, disco, banco e `sleep` se sobrepõem de

@@ -441,12 +441,27 @@ importa nada de fora. O que mudou é que o **programa de quem escreve**
 passa a poder escolher as suas, e a palavra `Python` na linha do `adopt`
 marca onde a fronteira foi cruzada.
 
-**12. `frame`, `train`, `predict`**
+**12. `frame`, `train`, `predict`** — ~~marcadores vazios~~ **ligadas**
 
-As três palavras existem no lexer, no parser e no interpretador, mas devolvem um
-vault com um campo `__type__` e nada acontece. Ou se implementa (DataFrame de
-verdade, ajuste de modelo) ou se remove. Manter marcador sintático sem semântica
-é pior que não ter.
+As três devolviam um vault com `__type__` e nada acontecia. Eram o pior tipo de
+lacuna: **pareciam** implementadas, e quem lia a gramática não tinha como saber.
+
+E a tabela e os algoritmos já existiam um módulo ao lado. `Arcane.Analytics` tem
+um Frame com 25 métodos; `Arcane.Cortex` tem 25 algoritmos de verdade. As
+palavras não precisavam ser implementadas — precisavam ser **ligadas**.
+
+```dataforge
+t := frame registros                  // AnalyticsFrame, com select/filter/group_by
+
+modelo := train "floresta" using {
+    "linhas": treino, "alvo": "especie",
+    "colunas": ["largura", "altura"], "arvores": 50
+}
+out predict modelo using teste
+```
+
+Elas continuam sendo açúcar fino, e isso é deliberado: quem precisa de controle
+chama `Cortex.floresta(…)` direto e vê todos os parâmetros.
 
 ---
 
@@ -600,9 +615,7 @@ O que resta, em ordem de impacto.
 
 ### Decisão pendente
 
-`frame`, `train` e `predict` são marcadores sintáticos que devolvem um vault com
-`__type__` e nada fazem. Ou se implementa (DataFrame de verdade, ajuste de
-modelo), ou se remove. Manter sintaxe sem semântica é pior que não ter.
+`frame`, `train` e `predict` estão **ligadas** ao `Arcane.Analytics` e ao `Arcane.Cortex`: elas não reimplementam nada, apenas nomeiam o que já existe.
 
 ---
 

@@ -2342,20 +2342,154 @@ class Interpreter:
             prompt = self.evaluate(node.prompt, env)
         return input(self._to_str(prompt))
 
+    # ═══════════════════════════════════════════════════════
+    #  frame / train / predict
+    # ═══════════════════════════════════════════════════════
+    #
+    #  As tres devolviam um vault com '__type__' e nada acontecia — tres
+    #  palavras reservadas que PARECIAM implementadas. Eram o pior tipo
+    #  de lacuna, porque quem lia a gramatica nao tinha como saber.
+    #
+    #  E a tabela e os algoritmos ja existiam, um modulo ao lado:
+    #  'Arcane.Analytics' tem um Frame com 25 metodos, e 'Arcane.Cortex'
+    #  tem 25 algoritmos de verdade. As palavras nao precisavam ser
+    #  implementadas — precisavam ser LIGADAS.
+    #
+    #  Elas continuam sendo acucar fino, e isso e deliberado: quem
+    #  precisa de controle chama 'Cortex.floresta(...)' direto, e ve
+    #  todos os parametros.
+
     def eval_FrameExpression(self, node: ast.FrameExpression, env):
-        data = self.evaluate(node.data, env)
-        # Return as a simple list-of-lists (DataFrame simulation)
-        return {"__type__": "Frame", "data": data, "columns": node.columns}
+        """'frame <dados>' — uma tabela de verdade, do Arcane.Analytics.
+
+        Aceita as tres formas em que dado tabular aparece na linguagem:
+
+            frame [{"a": 1}, {"a": 2}]      registros (o que o CSV e o
+                                            banco devolvem)
+            frame {"a": [1, 2], "b": [3, 4]}  colunas
+            frame [[1, 2], [3, 4]]          matriz, com colunas
+                                            geradas
+        """
+        from .stdlib import get_module
+        analytics = get_module("Arcane.Analytics")
+        dados = self.evaluate(node.data, env)
+
+        if isinstance(dados, list) and dados and isinstance(dados[0], dict):
+            return analytics["from_records"](dados)
+
+        if isinstance(dados, dict):
+            return analytics["from_dict"](dados)
+
+        if isinstance(dados, list):
+            colunas = list(node.columns) if node.columns else None
+            return analytics["create_frame"](dados, colunas)
+
+        raise TypeError_(
+            f"'frame' precisa de registros, colunas ou uma matriz — "
+            f"veio {self._nome_do_tipo(dados)}.",
+            node.line, node.column,
+            dica='frame [{"a": 1}, {"a": 2}]      registros\n'
+                 'frame {"a": [1, 2]}             colunas\n'
+                 'frame [[1, 2], [3, 4]]          matriz',
+            doc="tecnicas/ml")
+
+    @staticmethod
+    def _registros_de(valor):
+        """Um Frame ou um cluster de vaults, sempre como registros."""
+        if hasattr(valor, "to_dict") and hasattr(valor, "columns"):
+            return valor.to_dict()
+        return valor
 
     def eval_TrainExpression(self, node: ast.TrainExpression, env):
-        model = self.evaluate(node.model, env)
-        data = self.evaluate(node.data, env)
-        return {"__type__": "TrainedModel", "model": model, "data": data}
+        """'train <algoritmo> using <config>' — treina de verdade.
+
+        O algoritmo e o nome de um treinador do 'Arcane.Cortex', ou uma
+        acao sua. A configuracao e um vault com os argumentos dele — o
+        que mantem a palavra fina o bastante para nao esconder nada:
+
+            modelo := train "floresta" using {
+                "linhas": treino,
+                "alvo": "especie",
+                "colunas": ["largura", "altura"],
+                "arvores": 50
+            }
+        """
+        from .stdlib import get_module
+        algoritmo = self.evaluate(node.model, env)
+        config = self.evaluate(node.data, env)
+
+        if not isinstance(config, dict):
+            raise TypeError_(
+                f"'train … using' precisa de um vault com os argumentos, "
+                f"e veio {self._nome_do_tipo(config)}.",
+                node.line, node.column,
+                dica='train "linear" using {"linhas": dados, '
+                     '"alvo": "preco", "colunas": ["area"]}',
+                doc="tecnicas/ml")
+
+        config = dict(config)
+        if "linhas" in config:
+            config["linhas"] = self._registros_de(config["linhas"])
+
+        treinador = algoritmo
+        if isinstance(algoritmo, str):
+            cortex = get_module("Arcane.Cortex")
+            from .stdlib.arcane_cortex import TREINADORES
+            treinador = cortex.get(algoritmo) if algoritmo in TREINADORES \
+                else None
+            if not callable(treinador):
+                import difflib
+                perto = difflib.get_close_matches(
+                    algoritmo, TREINADORES, n=2, cutoff=0.6)
+                dica = (f"voce quis dizer "
+                        f"{' ou '.join(repr(p) for p in perto)}?"
+                        if perto else
+                        f"os que treinam: {', '.join(TREINADORES)}")
+                raise NameError_(
+                    f"'{algoritmo}' nao e um algoritmo de treino do "
+                    f"Arcane.Cortex.",
+                    node.line, node.column,
+                    nota=f"os que treinam: {', '.join(TREINADORES)}"
+                         if perto else "",
+                    dica=dica,
+                    doc="tecnicas/ml")
+
+        if not callable(treinador):
+            raise TypeError_(
+                f"'train' precisa do nome de um algoritmo ou de uma acao, "
+                f"e veio {self._nome_do_tipo(algoritmo)}.",
+                node.line, node.column,
+                dica='train "linear" using {…}   ou   train minha_acao using {…}',
+                doc="tecnicas/ml")
+
+        return self._invocar(treinador, [], config, node, "train")
 
     def eval_PredictExpression(self, node: ast.PredictExpression, env):
-        model = self.evaluate(node.model, env)
-        data = self.evaluate(node.data, env)
-        return {"__type__": "Prediction", "model": model, "data": data}
+        """'predict <modelo> using <linhas>' — prediz de verdade.
+
+        Um modelo do Cortex vai por 'Cortex.prever'. Uma acao sua e
+        chamada com os dados — assim a palavra serve tambem a quem
+        escreveu o proprio modelo.
+        """
+        from .stdlib import get_module
+        modelo = self.evaluate(node.model, env)
+        dados = self._registros_de(self.evaluate(node.data, env))
+
+        if callable(modelo):
+            return self._invocar(modelo, [dados], {}, node, "predict")
+
+        # Um modelo do Cortex se reconhece por 'especie' — e o campo que
+        # o proprio 'prever' consulta para escolher como prever.
+        if hasattr(modelo, "especie"):
+            return get_module("Arcane.Cortex")["prever"](modelo, dados)
+
+        raise TypeError_(
+            f"'predict' precisa de um modelo treinado ou de uma acao, "
+            f"e veio {self._nome_do_tipo(modelo)}.",
+            node.line, node.column,
+            nota="um modelo treinado sai de 'train … using …' ou de "
+                 "'Arcane.Cortex'",
+            doc="tecnicas/ml")
 
     # ═══════════════════════════════════════════════════════
     #  STATEMENT EXECUTION

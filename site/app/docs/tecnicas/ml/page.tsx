@@ -79,11 +79,30 @@ teste  := ML.aplicar_escala(teste, escala)     // a MESMA escala`, lang: 'df' },
   { code: `ML.salvar(modelo, "modelos/compra.json")
 modelo := ML.carregar("modelos/compra.json")`, lang: 'df' },
   {"p": "É **JSON**, e não pickle. Pickle executaria código ao carregar: um modelo baixado de qualquer lugar viraria execução arbitrária. E o JSON ainda dá para abrir e entender o que o modelo é."},
+  {"h2": "As três palavras da linguagem"},
+  {"p": "`frame`, `train` e `predict` são **palavras reservadas** — e por muito tempo devolviam um vault com `__type__` e nada acontecia. Pareciam implementadas, que é o pior tipo de lacuna."},
+  {"p": "Hoje elas são **açúcar fino** sobre o que já existia aqui: `frame` devolve o mesmo `Frame` do `Arcane.Analytics`, e `train`/`predict` chamam o Cortex."},
+  { code: `registros := IO.read_csv("casas.csv")
+
+t := frame registros                  // uma tabela de verdade
+out t.describe()
+
+modelo := train "floresta" using {
+    "linhas": t,
+    "alvo": "vendeu",
+    "colunas": ["area", "quartos", "idade"],
+    "arvores": 50
+}
+
+out predict modelo using novos`, lang: 'df' },
+  {"table": {"head": ["A palavra", "Chama"], "rows": [["`frame <dados>`", "`Analytics.from_records` / `from_dict` / `create_frame`, pela forma do dado"], ["`train <nome> using <vault>`", "o treinador do Cortex, com o vault como argumentos nomeados"], ["`predict <modelo> using <dados>`", "`Cortex.prever` — ou a **sua** ação, se você escreveu o modelo"]]}},
+  {"callout": {"tipo": "nota", "titulo": "Por que continuam finas", "texto": "O vault de `train` é de argumentos nomeados, então `\"arvores\": 50` chega ao algoritmo sem sair da sintaxe. E quem precisa de controle total chama `ML.floresta(…)` direto, onde todos os parâmetros estão à vista. A palavra nomeia; ela não esconde."}},
+  {"p": "Os nomes que `train` aceita vivem numa lista dentro do próprio Cortex, e não numa dedução sobre assinaturas — `validacao_cruzada` também recebe `(linhas, alvo, colunas)` e devolve uma **nota**, não um modelo. Errar o nome lista os oito e sugere o mais próximo."},
   {"h2": "Os limites, ditos"},
   {"list": ["**Não há rede neural.** Sem GPU e sem retropropagação, uma rede profunda em interpretador de árvore não terminaria.", "**A escala é de milhares de linhas**, não milhões. Para além disso, exporte em [Parquet](/docs/tecnicas/parquet) e use uma ferramenta dedicada.", "**Não há ajuste automático de hiperparâmetro.** `validacao_cruzada` mede; escolher é seu.", "**Nada disso substitui olhar os dados.** `Qualidade.perfil()` antes de treinar acha mais problema que qualquer modelo."]},
 ];
 
-const headings = [{ id: 'o-caminho-inteiro', text: "O caminho inteiro", level: 2 as const }, { id: 'dividir-antes-de-olhar', text: "Dividir antes de olhar", level: 2 as const }, { id: 'a-acuracia-mente', text: "A acurácia mente", level: 2 as const }, { id: 'uma-divisao-mede-um-sorteio', text: "Uma divisão mede um sorteio", level: 2 as const }, { id: 'qual-algoritmo', text: "Qual algoritmo", level: 2 as const }, { id: 'por-que-a-floresta-bate-a-arvore', text: "Por que a floresta bate a árvore", level: 2 as const }, { id: 'escala-importa-para-alguns', text: "Escala importa (para alguns)", level: 2 as const }, { id: 'texto-vira-numero-por-one-hot', text: "Texto vira número por one-hot", level: 2 as const }, { id: 'guardar', text: "Guardar", level: 2 as const }, { id: 'os-limites-ditos', text: "Os limites, ditos", level: 2 as const }];
+const headings = [{ id: 'o-caminho-inteiro', text: "O caminho inteiro", level: 2 as const }, { id: 'dividir-antes-de-olhar', text: "Dividir antes de olhar", level: 2 as const }, { id: 'a-acuracia-mente', text: "A acurácia mente", level: 2 as const }, { id: 'uma-divisao-mede-um-sorteio', text: "Uma divisão mede um sorteio", level: 2 as const }, { id: 'qual-algoritmo', text: "Qual algoritmo", level: 2 as const }, { id: 'por-que-a-floresta-bate-a-arvore', text: "Por que a floresta bate a árvore", level: 2 as const }, { id: 'escala-importa-para-alguns', text: "Escala importa (para alguns)", level: 2 as const }, { id: 'texto-vira-numero-por-one-hot', text: "Texto vira número por one-hot", level: 2 as const }, { id: 'guardar', text: "Guardar", level: 2 as const }, { id: 'as-tres-palavras-da-linguagem', text: "As três palavras da linguagem", level: 2 as const }, { id: 'os-limites-ditos', text: "Os limites, ditos", level: 2 as const }];
 
 export default function Pagina() {
   return (

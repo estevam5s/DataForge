@@ -384,6 +384,28 @@ def _palavras(texto):
 #  A interface
 # ═════════════════════════════════════════════════════════════
 
+#: Os algoritmos que TREINAM — os que devolvem um 'Modelo'.
+#:
+#: A lista vive aqui, e nao numa deducao a partir das assinaturas, por
+#: um motivo concreto: 'validacao_cruzada' tambem recebe
+#: '(linhas, alvo, colunas)' e nao devolve modelo nenhum — ela devolve
+#: uma nota. Qualquer filtro por nome de parametro a incluiria.
+#:
+#: Quem le e 'train … using …', para saber o que aceitar e o que listar
+#: quando o nome esta errado. Ha teste conferindo que cada nome daqui
+#: existe no modulo e e chamavel.
+TREINADORES = (
+    "linear",       # regressao linear
+    "logistica",    # classificacao binaria
+    "arvore",       # arvore de decisao
+    "floresta",     # conjunto de arvores
+    "vizinhos",     # k vizinhos mais proximos
+    "bayes_texto",  # Naive Bayes sobre texto
+    "kmedias",      # agrupamento
+    "pca",          # reducao de dimensao
+)
+
+
 class ArcaneCortex(dict):
     """Aprendizado de máquina clássico, que roda de verdade."""
 
