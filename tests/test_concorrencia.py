@@ -45,11 +45,18 @@ def test_map_roda_junto_e_nao_em_serie():
         time.sleep(espera)
     serie = time.perf_counter() - inicio
 
-    # Metade da serie ja prova que ha sobreposicao: em serie perfeita a
-    # razao seria 1,0, e em paralelo perfeito seria 0,2.
-    assert junto < serie * 0.5, (
+    # Em serie perfeita a razao seria 1,0; em paralelo perfeito, 0,2
+    # (cinco threads). O limite de 0,75 separa as duas com folga, e
+    # sobrevive a uma maquina compartilhada.
+    #
+    # Ja foi 0,5, e o CI do Ubuntu deu 0,51: cinco threads disputando
+    # uma CPU ocupada demoram mais que cinco threads sozinhas, e aqui a
+    # mesma medida da 0,20. Um teste que falha por maquina lenta ensina
+    # a ignorar a suite, que e o pior que pode acontecer com ela.
+    razao = junto / serie
+    assert razao < 0.75, (
         f"junto levou {junto:.2f}s e a serie {serie:.2f}s — "
-        f"razao {junto / serie:.2f}, parece serie")
+        f"razao {razao:.2f}; em serie seria ~1,0 e em paralelo ~0,2")
 
 
 def test_map_preserva_a_ordem_da_entrada():

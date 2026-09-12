@@ -100,9 +100,13 @@ valores := await tarefas'''
         time.sleep(0.15)
     serie = time.monotonic() - inicio
 
-    assert decorrido < serie * 0.5, (
+    # Seis tarefas: em serie a razao seria 1,0, em paralelo ~0,17. O
+    # limite de 0,75 separa as duas e sobrevive a maquina compartilhada
+    # — o CI do Ubuntu chegou a 0,51 rodando perfeitamente em paralelo.
+    razao = decorrido / serie
+    assert razao < 0.75, (
         f"juntas levaram {decorrido:.2f} s e a serie {serie:.2f} s — "
-        f"razao {decorrido / serie:.2f}, nao houve sobreposicao")
+        f"razao {razao:.2f}; em serie seria ~1,0 e em paralelo ~0,17")
 
 
 def test_uma_de_cada_vez_realmente_custa_a_soma():
