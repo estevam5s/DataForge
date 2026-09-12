@@ -771,7 +771,8 @@ V.plugin("tema-empresa", tema_da_empresa)""", "lang": "df"},
     V.atualizar_a_cada(15)
     V.metrica("Fila", tamanho_da_fila())""", "lang": "df"},
  {"p": "A página se recarrega sozinha nesse intervalo — e **não** quando a aba está escondida, porque cobrar do servidor por uma página que ninguém está vendo é desperdício puro."},
- {"p": "É o \"tempo real\" do framework, e ele é por pergunta e não por empurrão: o Kiln não tem WebSocket. Para um painel que muda a cada segundos, perguntar é suficiente e não quebra atrás de proxy nenhum."},
+ {"p": "É o \"tempo real\" do framework, e ele é por pergunta e não por empurrão. O Kiln **tem** WebSocket e SSE ([/docs/kiln/tempo-real](/docs/kiln/tempo-real)) — a Vitrine é que não os usa: o modelo dela é reexecutar o programa inteiro, e empurrar um pedaço de tela exigiria saber qual pedaço mudou, que é exatamente o que este framework existe para não precisar saber."},
+ {"p": "Para um painel que muda a cada segundos, perguntar é suficiente e não quebra atrás de proxy nenhum. Para um fluxo de eventos contínuo — cotação, log ao vivo, progresso de um trabalho longo — é o Kiln direto que serve."},
 ]},
 ]
 

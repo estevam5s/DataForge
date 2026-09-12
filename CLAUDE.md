@@ -1243,9 +1243,13 @@ O que **ainda não existe** (não invente que existe):
   O Kiln atende um pedido por thread: o `Arcane.Database` serializa o acesso
   à conexão (sem isso, a primeira consulta de qualquer servidor estoura), mas
   estado em memória compartilhado entre rotas não é protegido.
-- **WebSocket, HTTP/2 e streaming de resposta** — o Kiln não tem. Ele roda
-  sobre o `http.server` do Python; em produção pública, ponha um nginx ou
-  Caddy na frente. A Vitrine herda isso: o "tempo real" dela é
+- **HTTP/2 e TLS** — o Kiln não tem. Ele roda sobre o `http.server` do
+  Python; em produção pública, ponha um nginx ou Caddy na frente.
+  **WebSocket e streaming de resposta existem** desde o
+  `kiln_tempo_real.py` (`Kiln.ws`, `Kiln.sse`, `Kiln.stream`, `Kiln.sala`),
+  com o RFC 6455 falado à mão — esta linha dizia que não, e era a própria
+  documentação mentindo sobre a linguagem.
+  A Vitrine, porém, não os usa: o "tempo real" dela é
   `V.atualizar_a_cada(n)`, que é por pergunta e não por empurrão.
 - **Sessão da Vitrine vive na memória do processo.** Com mais de um
   processo, dois pedidos da mesma pessoa caem em memórias diferentes.
