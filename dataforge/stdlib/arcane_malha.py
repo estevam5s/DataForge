@@ -47,6 +47,8 @@ import urllib.parse
 import urllib.request
 import uuid
 
+from .opcoes import ler as _ler_opcoes
+
 #: Os codigos que valem tentar de novo.
 #:
 #: 5xx e o servidor dizendo que o problema e dele; 429 e ele pedindo
@@ -264,8 +266,24 @@ class Cliente:
     | so repetir o que e seguro | um POST repetido cobra duas vezes |
     """
 
+    #: As opcoes, com o padrao de cada uma.
+    #:
+    #: Conferidas contra esta lista, e nao lidas soltas: '{"tentativa":
+    #: 9}' — no singular — era aceito em silencio, e o cliente ficava
+    #: com as 3 tentativas do padrao. O 9 nunca chegava a lugar nenhum,
+    #: e nada denunciava.
+    OPCOES = {
+        "prazo": 5.0,
+        "tentativas": 3,
+        "cabecalhos": {},
+        "nome": "",
+        "disjuntor": None,
+        "recuo": 0.2,
+        "recuo_teto": 10.0,
+    }
+
     def __init__(self, base, opcoes=None):
-        opcoes = opcoes or {}
+        opcoes = _ler_opcoes(opcoes, Cliente.OPCOES, "Malha.cliente")
         self.base = str(base).rstrip("/")
         self.prazo = float(opcoes.get("prazo", 5.0))
         self.tentativas = max(1, int(opcoes.get("tentativas", 3)))
@@ -276,7 +294,10 @@ class Cliente:
         if config is False:
             self.disjuntor = None
         else:
-            config = config if isinstance(config, dict) else {}
+            config = _ler_opcoes(
+                config if isinstance(config, dict) else {},
+                {"falhas": 5, "espera": 30.0},
+                "Malha.cliente (disjuntor)")
             self.disjuntor = Disjuntor(
                 falhas=config.get("falhas", 5),
                 espera=config.get("espera", 30.0),

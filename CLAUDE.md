@@ -452,6 +452,24 @@ Funções que recebem "um campo" devem aceitar **vault, record e instância**. H
 um helper para isso em `arcane_collections.py` (`_campo_de`). Esse foi um bug
 real: `sort_by_field` devolvia `None` para todos os records.
 
+**Vault de opções: use `opcoes.ler`.** Ler as chaves soltas com
+`opcoes.get(nome, padrao)` engole erro de digitação — `{"tentativa": 9}`
+deixava o cliente com as 3 tentativas do padrão, e o 9 não chegava a lugar
+nenhum. Pior: `API.openapi(app, {"title": "Loja"})` — em inglês, como o
+próprio OpenAPI escreve o campo — saía com o título padrão, e quem escreve
+isso **publica um contrato com o nome errado** sem nada denunciar.
+
+```python
+from .opcoes import ler as _ler_opcoes
+
+CONFIG = {"titulo": "API DataForge", "versao": "1.0.0"}
+config = _ler_opcoes(config, CONFIG, "API.openapi")
+```
+
+A lista fica num lugar só, e ela também é a documentação. Recusar, e não
+avisar: um aviso impresso não para nada, e o programa segue com o padrão —
+exatamente o estado que se queria evitar. Chave começando com `_` passa.
+
 Confirme que todos carregam e regenere a doc:
 
 ```bash

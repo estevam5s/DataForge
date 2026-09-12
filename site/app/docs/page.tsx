@@ -153,7 +153,7 @@ export default function Home() {
       <H3>Verificável</H3>
       <p>
         Cada afirmação desta documentação corresponde a código que roda. São{' '}
-        <strong>2171 testes</strong>, 230 exercícios que verificam o próprio
+        <strong>2283 testes</strong>, 230 exercícios que verificam o próprio
         resultado com <code>assert</code>, e 43 programas de exemplo. Os
         trechos desta documentação são compilados a cada mudança — 642 deles.
       </p>

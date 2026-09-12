@@ -246,3 +246,110 @@ def test_funciona_num_projeto_de_verdade_do_repositorio():
     inicio = r.stdout.index("{")
     doc = json.loads(r.stdout[inicio:])
     assert doc["paths"], "nenhuma rota saiu de um projeto que tem rotas"
+
+
+# ═══════════════════════════════════════════════════════════
+#  A rota de WebSocket não pode invalidar o documento
+# ═══════════════════════════════════════════════════════════
+
+COM_WS = '''adopt Kiln
+
+action eco(ws):
+    ws.enviar("oi")
+
+server App on 8080:
+    route GET "/pagina":
+        respond json {}
+
+Kiln.ws(App, "/eventos", eco)
+'''
+
+
+@pytest.fixture(scope="module")
+def app_com_ws():
+    interp = Interpreter()
+    with redirect_stdout(io.StringIO()):
+        interp.run(parse(tokenize(COM_WS, "s.df"), "s.df"), "s.df")
+    return interp.global_env.get("App")
+
+
+def test_a_rota_de_websocket_fica_fora_do_openapi(app_com_ws, API):
+    """O Kiln registra a rota de WebSocket com o método `WS`, que não
+    existe em HTTP — de propósito, para ela não ser alcançável por um
+    GET comum.
+
+    Mas ele entrava no documento como `"/eventos": {"ws": {…}}`, e isso
+    **invalida** o OpenAPI: a especificação só admite os oito verbos, o
+    Swagger UI recusa, e um gerador de cliente falha. O documento
+    parecia certo e não era.
+    """
+    doc = json.loads(API["openapi"](app_com_ws))
+    assert "/eventos" not in doc["paths"]
+    assert "/pagina" in doc["paths"]
+
+    # E nenhuma operação fora dos oito verbos, em nenhum caminho.
+    from dataforge.stdlib.arcane_api import VERBOS_OPENAPI
+    for caminho, operacoes in doc["paths"].items():
+        estranhos = [m for m in operacoes if m not in VERBOS_OPENAPI]
+        assert not estranhos, f"{caminho}: {estranhos}"
+
+
+def test_a_rota_que_ficou_fora_e_nomeada_na_descricao(app_com_ws, API):
+    """Uma rota que desaparece do documento sem explicação faz quem lê
+    procurar o bug no lugar errado — e quem escreve não tem como saber
+    que é o formato que não a suporta."""
+    doc = json.loads(API["openapi"](app_com_ws))
+    descricao = doc["info"]["description"]
+    assert "WS /eventos" in descricao
+    assert "WebSocket" in descricao
+
+
+def test_sem_rota_estranha_a_descricao_fica_limpa(app, API):
+    doc = json.loads(API["openapi"](app))
+    assert "Fora deste documento" not in doc["info"]["description"]
+
+
+def test_a_rota_de_websocket_continua_em_rotas_e_no_resumo(app_com_ws, API):
+    """Ela sai do OpenAPI porque o **formato** não a descreve. O
+    inventário do servidor continua conhecendo-a: escondê-la de todo
+    lugar seria trocar um problema por outro."""
+    metodos = [r["method"] for r in API["rotas"](app_com_ws)]
+    assert "WS" in metodos
+
+
+# ═══════════════════════════════════════════════════════════
+#  Uma opção desconhecida é recusada, não ignorada
+# ═══════════════════════════════════════════════════════════
+
+def test_uma_chave_de_config_em_ingles_e_recusada_com_sugestao(app, API):
+    """Passar `{"title": "Loja"}` — em inglês, como o próprio OpenAPI
+    escreve o campo — era **ignorado em silêncio**, e o documento saía
+    com o título padrão "API DataForge".
+
+    Quem escreve isso publica um contrato com o nome errado e não tem
+    como descobrir: não há erro, não há aviso, e o campo existe no
+    resultado.
+    """
+    with pytest.raises(Exception) as falha:
+        API["openapi"](app, {"title": "Loja", "version": "2.0"})
+    texto = str(falha.value)
+    assert "title" in texto
+    assert "titulo" in texto          # a sugestão
+    assert "versao" in texto
+
+
+def test_a_chave_certa_chega_ao_documento(app, API):
+    doc = json.loads(API["openapi"](app, {"titulo": "Loja",
+                                          "versao": "2.0"}))
+    assert doc["info"]["title"] == "Loja"
+    assert doc["info"]["version"] == "2.0"
+
+
+def test_todos_os_exportadores_recusam_a_mesma_opcao_errada(app, API):
+    """A lista é uma só. Um exportador que a lesse solta aceitaria o que
+    os outros recusam, e a incoerência é pior que qualquer dos dois
+    comportamentos."""
+    for nome in ("openapi", "insomnia", "postman", "curl", "markdown"):
+        with pytest.raises(Exception) as falha:
+            API[nome](app, {"nao_existe_esta": 1})
+        assert "nao_existe_esta" in str(falha.value), nome

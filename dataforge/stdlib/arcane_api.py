@@ -44,6 +44,8 @@ verdadeira.
 
 import json as _json
 
+from .opcoes import ler as _ler_opcoes
+
 
 def _rotas_de(app):
     """As rotas registradas, com os nomes dos parâmetros.
@@ -103,6 +105,50 @@ def _resumo(metodo, padrao, params):
     return verbos.get(metodo.upper(), f"{metodo} {padrao}")
 
 
+#: Os verbos que o OpenAPI admite como operacao de um caminho.
+#:
+#: A rota de WebSocket do Kiln usa o metodo 'WS', que nao existe em
+#: HTTP — de proposito, para ela nao ser alcancavel por um GET comum.
+#: Mas ele entrava no documento como  '/eventos': {'ws': {...}}, e isso
+#: INVALIDA o OpenAPI: o Swagger UI recusa, e um gerador de cliente
+#: falha. O documento parecia certo e nao era.
+#:
+#: OpenAPI 3.1 nao tem conceito de WebSocket (e o que a AsyncAPI cobre),
+#: entao a rota fica de FORA, e o documento diz isso na descricao — uma
+#: rota que desaparece sem explicacao e o outro lado do mesmo problema.
+VERBOS_OPENAPI = ("get", "put", "post", "delete", "options", "head",
+                  "patch", "trace")
+
+
+def _descricao_com_o_que_ficou_fora(descricao, fora):
+    """A descricao, mais a lista do que nao cabe no formato.
+
+    Uma rota que desaparece do documento sem explicacao faz quem le
+    procurar o bug no lugar errado — e quem escreve nao tem como saber
+    que o formato e que nao a suporta.
+    """
+    if not fora:
+        return descricao
+    lista = ", ".join(sorted(fora))
+    return (f"{descricao}\n\nFora deste documento (o OpenAPI 3.1 nao "
+            f"descreve WebSocket): {lista}.")
+
+
+#: As opcoes que todo exportador aceita.
+#:
+#: Uma lista, e nao um 'get' solto em cada funcao: passar
+#: '{"title": "Loja"}' — em ingles, como o proprio OpenAPI escreve o
+#: campo — era ignorado EM SILENCIO, e o documento saia com o titulo
+#: padrao. Quem escreve isso publica um contrato com o nome errado e
+#: nao tem como descobrir.
+CONFIG = {
+    "titulo": "API DataForge",
+    "versao": "1.0.0",
+    "descricao": "Gerado de um servidor Kiln.",
+    "base": "http://127.0.0.1:8080",
+}
+
+
 class ArcaneAPI:
     """A API do Kiln, exportada para quem vai consumi-la."""
 
@@ -152,13 +198,19 @@ class ArcaneAPI:
         linguagens, e que um validador de contrato consome. Se for para
         exportar um formato só, é este.
         """
-        config = dict(config or {})
+        config = _ler_opcoes(config, CONFIG, "API.openapi")
         rotas = _rotas_de(app)
 
         caminhos = {}
+        fora = []
         for rota in rotas:
             caminho = _caminho_openapi(rota["path"])
             metodo = rota["method"].lower()
+            if metodo not in VERBOS_OPENAPI:
+                # 'WS', e um 'ANY' que nao e verbo: ficam de fora, e
+                # sao NOMEADOS na descricao.
+                fora.append(f"{rota['method']} {rota['path']}")
+                continue
             operacao = {
                 "summary": _resumo(rota["method"], rota["path"],
                                    rota["params"]),
@@ -187,8 +239,9 @@ class ArcaneAPI:
             "info": {
                 "title": config.get("titulo", "API DataForge"),
                 "version": str(config.get("versao", "1.0.0")),
-                "description": config.get("descricao",
-                                          "Gerado de um servidor Kiln."),
+                "description": _descricao_com_o_que_ficou_fora(
+                    config.get("descricao", "Gerado de um servidor Kiln."),
+                    fora),
             },
             "servers": [{"url": config.get("base", "http://127.0.0.1:8080")}],
             "paths": caminhos,
@@ -206,7 +259,7 @@ class ArcaneAPI:
         parâmetros de caminho viram `{{ id }}`, que o Insomnia reconhece
         como variável de ambiente.
         """
-        config = dict(config or {})
+        config = _ler_opcoes(config, CONFIG, "API.insomnia")
         rotas = _rotas_de(app)
         base = config.get("base", "http://127.0.0.1:8080")
         nome = config.get("titulo", "API DataForge")
@@ -260,7 +313,7 @@ class ArcaneAPI:
     @staticmethod
     def _postman(app, config=None):
         """Coleção do Postman v2.1, como texto JSON."""
-        config = dict(config or {})
+        config = _ler_opcoes(config, CONFIG, "API.postman")
         rotas = _rotas_de(app)
         base = config.get("base", "http://127.0.0.1:8080")
 
@@ -302,7 +355,7 @@ class ArcaneAPI:
         README, num chamado de suporte, ou numa mensagem para quem está
         testando a API pela primeira vez.
         """
-        config = dict(config or {})
+        config = _ler_opcoes(config, CONFIG, "API.curl")
         base = config.get("base", "http://127.0.0.1:8080")
         linhas = []
 
@@ -331,7 +384,7 @@ class ArcaneAPI:
     @staticmethod
     def _markdown(app, config=None):
         """A tabela de rotas, para o README do projeto."""
-        config = dict(config or {})
+        config = _ler_opcoes(config, CONFIG, "API.markdown")
         rotas = _rotas_de(app)
         base = config.get("base", "http://127.0.0.1:8080")
 
