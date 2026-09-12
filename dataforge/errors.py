@@ -284,3 +284,28 @@ class YieldSignal(ControlSignal):
     def __init__(self, value=None):
         self.value = value
         super().__init__()
+
+
+class ChamadaDeCauda(ControlSignal):
+    """'yield f(...)' onde 'f' e a propria acao — um salto, nao uma chamada.
+
+    'yield' devolve e encerra. Se o que ele devolve e uma chamada a
+    propria acao, nada mais acontece depois dela: o quadro atual so
+    existe para repassar o resultado. Reusa-lo em vez de empilhar outro
+    e o que permite recursao de acumulador sobre dado de qualquer
+    tamanho, em vez de morrer no limite de mil.
+
+    Deriva de 'ControlSignal', como 'yield' e 'halt': e desvio de fluxo,
+    e 'monitor' nao pode engoli-lo.
+    """
+
+    #: Os campos NAO se chamam 'args'.
+    #:
+    #: 'BaseException' ja tem um 'args', e 'super().__init__()' o zera —
+    #: os argumentos do salto sumiam entre uma volta e a seguinte, e o
+    #: parametro chegava 'void' na segunda. O erro aparecia longe da
+    #: causa: "unsupported operand for -: 'NoneType' and 'int'".
+    def __init__(self, argumentos=None, nomeados=None):
+        self.argumentos = argumentos if argumentos is not None else []
+        self.nomeados = nomeados if nomeados is not None else {}
+        super().__init__()

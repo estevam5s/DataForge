@@ -15,7 +15,9 @@ from . import magicos
 from .builtins import (BuiltinFunction, get_builtins,
                        set_magic_dispatcher, set_stringifier)
 from .caminhos import curto as _curto
+from .cauda import MARCA as _MARCA_CAUDA
 from .errors import (
+    ChamadaDeCauda,
     ControlSignal,
     DataForgeError, Frame, RuntimeError_, TypeError_, NameError_, TriggerError,
     HaltSignal, SkipSignal, YieldSignal, IndexError_, ImportError_,
@@ -143,6 +145,11 @@ class DFAction:
         # interpretadores sobre a mesma arvore — o REPL, os testes —
         # nao podem compartilhar o compilado de outro.
         self.corpo_compilado = None
+
+        # 'yield f(...)' onde 'f' e esta acao vira salto, e nao chamada.
+        # None = ainda nao analisado; a analise custa uma varredura da
+        # arvore e acontece na primeira chamada.
+        self.tem_cauda = None
 
     def __call__(self, *args, **kwargs):
         """Allow DFAction to be called like a Python function."""
@@ -832,6 +839,9 @@ class _PorThread(threading.local):
     def __init__(self):
         self.depth = 0
         self.pilha = []
+        # A acao cujo quadro esta em execucao NESTA thread. So o
+        # trampolim da chamada de cauda precisa dela, e so ele a escreve.
+        self.acao = None
 
 
 class DFTarefa:
@@ -2785,8 +2795,48 @@ class Interpreter:
         return ArcaneKiln._listen(app, porta, host)
 
     def exec_YieldStatement(self, node: ast.YieldStatement, env):
+        nome = getattr(node, _MARCA_CAUDA, None)
+        if nome is not None:
+            salto = self._tentar_saltar(node, nome, env)
+            if salto is not None:
+                raise salto
         value = self.evaluate(node.value, env) if node.value else None
         raise YieldSignal(value)
+
+    def _tentar_saltar(self, node, nome, env):
+        """'yield f(...)' vira salto — se 'f' for mesmo esta acao.
+
+        A analise marcou o no pelo NOME, e nome pode ser reapontado:
+        'f := outra_coisa' dentro do corpo faria o salto reusar um
+        quadro que nao e o dono da chamada. Por isso a marca nao basta,
+        e confere-se a IDENTIDADE aqui, onde ela e conhecida.
+        """
+        atual = self._por_thread.acao
+        if atual is None or atual.name != nome:
+            return None
+
+        chamada = node.value
+        if isinstance(chamada, ast.MethodCall):
+            # 'self.f(...)': o metodo tem de ser ESTE, e nao um de mesmo
+            # nome herdado ou substituido no meio do caminho.
+            if not env.has("self"):
+                return None
+            instancia = env.get("self")
+            bp = getattr(instancia, "blueprint", None)
+            if bp is None:
+                return None
+            achado = None
+            for ancestral in bp.linhagem():
+                if nome in ancestral.methods:
+                    achado = ancestral.methods[nome]
+                    break
+            if achado is not atual:
+                return None
+        else:
+            if not env.has(nome) or env.get(nome) is not atual:
+                return None
+
+        return ChamadaDeCauda(self._eval_args(chamada.args, env), {})
 
     def exec_HaltStatement(self, node: ast.HaltStatement, env):
         raise HaltSignal()
@@ -4848,7 +4898,114 @@ class Interpreter:
         if getattr(action, 'is_async', False):
             return self._iniciar_tarefa(action, args, kwargs, node, instance)
 
+        if action.tem_cauda is None:
+            from .cauda import analisar
+            action.tem_cauda = analisar(action)
+        if action.tem_cauda:
+            return self._corpo_com_salto(action, args, kwargs, node, instance)
+
         return self._corpo_da_acao(action, args, kwargs, node, instance)
+
+    def _corpo_com_salto(self, action, args, kwargs, node, instance=None):
+        """O corpo de uma acao que chama a si mesma em cauda.
+
+        E um caminho SEPARADO de proposito. A esmagadora maioria das
+        acoes nao tem recursao de cauda, e elas nao podem pagar por um
+        laco, um 'try' a mais e um estado por thread que nunca vao usar
+        — '_corpo_da_acao' continua exatamente como era.
+
+        O que muda aqui: em vez de empilhar um quadro por volta, reusa-se
+        UM. O 'yield f(...)' marcado levanta 'ChamadaDeCauda' com os
+        argumentos ja avaliados, e o laco abaixo os religa e recomeca.
+        """
+        self._depth += 1
+        if self._depth > self.MAX_CALL_DEPTH:
+            self._depth -= 1
+            raise StackOverflowError_(
+                f"Call stack exceeded {self.MAX_CALL_DEPTH} frames "
+                f"(infinite recursion in '{action.name}'?)",
+                node.line, node.column)
+
+        self._call_stack.append(Frame(
+            action.name, getattr(node, 'line', 0), getattr(node, 'column', 0),
+            self.filename))
+
+        por_thread = self._por_thread
+        anterior = por_thread.acao
+        por_thread.acao = action
+        call_env = None
+        try:
+            while True:
+                call_env = self._ligar_parametros(action, args, kwargs,
+                                                 node, instance)
+                try:
+                    if self.compilar_corpos:
+                        corpo = action.corpo_compilado
+                        if corpo is None:
+                            from .compilador import compilar_bloco
+                            corpo = action.corpo_compilado = compilar_bloco(
+                                self, action.body)
+                        corpo(call_env)
+                    else:
+                        self.exec_block(action.body, call_env)
+                    result = None
+                except ChamadaDeCauda as salto:
+                    # A volta terminou e pediu outra. O escopo desta vai
+                    # embora aqui, e nao no fim de todas: uma recursao de
+                    # um milhao de voltas nao pode guardar um milhao de
+                    # escopos vivos.
+                    self._run_deferred(call_env)
+                    args, kwargs = salto.argumentos, salto.nomeados
+                    continue
+                except YieldSignal as ys:
+                    result = ys.value
+                break
+        except RecursionError:
+            raise StackOverflowError_(
+                f"Python recursion limit reached while running '{action.name}'",
+                node.line, node.column)
+        except DataForgeError as erro:
+            self._attach_stack(erro)
+            raise
+        finally:
+            self._depth -= 1
+            self._call_stack.pop()
+            por_thread.acao = anterior
+            if call_env is not None:
+                self._run_deferred(call_env)
+
+        if action.return_type:
+            self._check_type(
+                result, action.return_type,
+                f"return value of action '{action.name}'", node,
+                getattr(action, "type_params", ()))
+        return result
+
+    def _ligar_parametros(self, action, args, kwargs, node, instance=None):
+        """Um escopo novo com os parametros dentro. Sem rodar o corpo."""
+        call_env = action.closure.child(f"<action {action.name}>")
+        params = action.params
+        for i, param in enumerate(params):
+            if i < len(args):
+                value = args[i]
+            elif param in kwargs:
+                value = kwargs[param]
+            elif param in action.defaults:
+                value = self.evaluate(action.defaults[param], call_env)
+            else:
+                value = None
+            declared = action.param_types.get(param)
+            if declared:
+                self._check_type(
+                    value, declared,
+                    f"parameter '{param}' of action '{action.name}'", node,
+                    getattr(action, "type_params", ()))
+            call_env.set_local(param, value)
+
+        if instance is not None:
+            call_env.set_local("self", instance)
+            call_env.set_local("this", instance)
+        return call_env
 
     def _corpo_da_acao(self, action: DFAction, args, kwargs, node, instance=None):
         """Liga os parametros e roda o corpo. Sem aridade e sem despacho.

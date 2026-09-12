@@ -325,7 +325,19 @@ def _atribuicao(interp, no):
 
 
 def _devolver(interp, no):
-    """`yield` — encerra a ação levantando o sinal, como hoje."""
+    """`yield` — encerra a ação levantando o sinal, como hoje.
+
+    Salvo quando ele é uma chamada de cauda: aí quem decide é
+    `exec_YieldStatement`, que confere a identidade da ação antes de
+    saltar. Recuar para ele é mais barato que duplicar a conferência —
+    e um `yield` marcado é raro, então o recuo quase nunca acontece.
+    """
+    from .cauda import MARCA
+
+    if getattr(no, MARCA, None) is not None:
+        devolver = interp.exec_YieldStatement
+        return lambda env: devolver(no, env)
+
     if no.value is None:
         def executar(env):
             raise YieldSignal(None)

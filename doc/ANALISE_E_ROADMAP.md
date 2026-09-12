@@ -419,6 +419,17 @@ O que ainda cabe sem sair: compilar mais tipos de nó (a lista está ordenada po
 frequência real em `compilador.py`), e encurtar a máquina de chamada —
 `_check_arity` e `_run_deferred` rodam em toda chamada de ação.
 
+**11-B. Recursão com teto de mil** — ~~limite~~ **resolvido para o caso direto**
+
+`yield f(…)` onde `f` é a própria ação virou salto: um quadro em vez de
+mil. Medido: um milhão de chamadas em ~4 s, onde mil já era
+`StackOverflowError`.
+
+Continua empilhando, e por escolha: recursão indireta (`f`→`g`→`f`),
+ação com `defer`, `yield` dentro de `monitor`, e a ação que nunca
+devolve — esta última de propósito, porque virar laço mudo seria pior
+que a mensagem de erro.
+
 **11-A. Interoperabilidade** — ~~não existe~~ **feita**
 
 `adopt Python.numpy as np` traz qualquer biblioteca do Python, sem cópia

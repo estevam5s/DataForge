@@ -49,6 +49,7 @@ dataforge/
   interpreter.py  2703   interpretador de árvore — quase toda a semântica
   compilador.py    330   a árvore vira fechamentos, uma vez (1,5× a 1,8×)
   ponte.py         290   'adopt Python.numpy' — a ponte para o Python
+  cauda.py         170   'yield f(…)' vira salto, e a recursão deixa de ter teto
   typechecker.py  1193   análise estática: nomes, aridade, tipos, alcance
   formatter.py     280   dataforge fmt
   linter.py        394   dataforge lint
@@ -691,6 +692,33 @@ O que **ainda não existe** (não invente que existe):
   tarefa; `await` espera. Rede, disco, banco e `sleep` se sobrepõem de
   fato. Trabalho de CPU não: o GIL continua no caminho, e a resposta ali
   é `Arcane.Concurrent`, que usa processos.
+
+### Chamada de cauda
+
+`yield` em DataForge **devolve e encerra**, então `yield f(…)` não tem
+nada depois dele: o quadro existe só para repassar o resultado. `cauda.py`
+marca esses `yield`, e `_corpo_com_salto` reusa **um** quadro em vez de
+empilhar mil.
+
+É um caminho **separado** de `_corpo_da_acao`, e não uma mudança nele: a
+esmagadora maioria das ações não tem recursão de cauda e não pode pagar
+por um laço, um `try` a mais e um estado por thread que nunca vai usar.
+
+Quatro recusas, todas por análise, antes de rodar:
+
+| Recusa quando | Porque |
+|---|---|
+| há `defer` na ação | ele roda na saída do quadro, e o salto reusa o quadro |
+| o `yield` está dentro de `monitor` | um `handle` acima precisa ver o que a chamada levanta |
+| a recursão é indireta (`f`→`g`→`f`) | a análise olha uma ação por vez |
+| **todo** `yield` da ação é cauda | a ação nunca devolve; virar laço mudo seria pior que o `StackOverflowError` |
+
+A última é a menos óbvia e a mais importante: sem ela,
+`action r(n): yield r(n + 1)` deixaria de dar erro e passaria a travar.
+
+A marca é por **nome**, e a identidade é conferida na hora — `f := outra`
+dentro do corpo, ou um método substituído na filha, fariam o salto reusar
+o quadro errado.
 
 ### A ponte para o Python
 
