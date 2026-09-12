@@ -28,11 +28,25 @@ app.df:10:5: erro: Undefined action 'sommar'
   {"p": "Cada diagnóstico traz **linha, coluna e sugestão**. As sugestões de nome usam distância de edição — `sommar` → `somar` é encontrado automaticamente."},
   {"h2": "Por que é otimista"},
   {"p": "O analisador fica calado quando não consegue **provar** que algo está errado. Isso é deliberado: DataForge é dinamicamente tipado, e um falso alarme atrapalha mais que um alerta perdido — porque ensina a ignorar as mensagens."},
-  {"p": "Calibragem atual: **zero erros** em 259 arquivos conhecidamente bons (os 230 exercícios mais os 44 exemplos)."},
+  {"p": "Calibragem atual: **zero erros** em 259 arquivos conhecidamente bons (os 231 exercícios mais os 44 exemplos)."},
   {"h3": "O que ele não encontra"},
   { code: `divisor := 0
 out 10 / divisor      # o valor só é conhecido em tempo de execução` },
   {"p": "Isso passa no `check` e falha ao rodar. Erros que dependem de dados não são detectáveis estaticamente."},
+  {"h2": "Ele atravessa o `adopt`"},
+  {"p": "É a checagem que mais importa em projeto grande: num arquivo de 40 linhas o erro aparece na primeira execução; num de 200 arquivos, a **maioria das chamadas atravessa módulo** — e todas elas eram invisíveis."},
+  { code: `adopt ./pedido as P
+
+p := P.criar(1, "Ana")
+
+out p.clientte        // Record 'P.Pedido' has no field 'clientte'
+q := P.criar(1)       // 'P.criar' takes 2 argument(s), got 1
+P.apagar(1)           // module 'P' has no 'apagar'
+P.criar(1, 2)         // Parameter 'cliente' expects String, got Integer` },
+  {"p": "O primeiro e o último dependem das declarações de tipo: uma ação que declara `-> Tipo` leva o tipo através da fronteira, e uma que declara `param: Tipo` tem cada argumento conferido — com a linha onde ela foi declarada, no outro arquivo. Sem as declarações, o analisador cala."},
+  {"callout": {"tipo": "dica", "titulo": "É o que torna a anotação de tipo valer a pena", "texto": "Num arquivo só, `-> Tipo` e `param: Tipo` documentam. Atravessando módulo, eles são a diferença entre um erro achado em 0,4 s e um erro achado em produção — e a maioria das chamadas de um sistema grande atravessa módulo."}},
+  {"callout": {"tipo": "nota", "titulo": "A superfície é lida sem executar", "texto": "O `check` abre o outro `.df` com o lexer e o parser, e nunca o roda — analisar não pode ter efeito colateral. O resultado fica em cache por `(caminho, mtime)`: sem ele, 200 arquivos importando três vizinhos cada levariam o `check` de 0,7 s a mais de um minuto."}},
+  {"p": "E ele cala **inteiro** quando a superfície do outro arquivo não é confiável: se ele não compila, se há ciclo de import, se a profundidade (4 níveis) acaba, ou se o `relay` nomeia algo que só existe em execução."},
   {"h2": "Silenciar uma regra, de propósito"},
   {"p": "Quando o alarme está certo e o código também, `// df: permitir <regra>` silencia aquela regra naquela linha — ou na de baixo, que é onde o comentário cabe num `match` longo."},
   { code: `action ordem(n):
@@ -55,7 +69,7 @@ handle e:
   {"p": "Cada comando sai com código diferente de zero em caso de falha. Com `--strict`, os avisos também derrubam o build."},
 ];
 
-const headings = [{ id: 'tres-etapas-sem-executar', text: "Três etapas sem executar", level: 2 as const }, { id: 'o-que-ele-encontra', text: "O que ele encontra", level: 2 as const }, { id: 'um-exemplo', text: "Um exemplo", level: 2 as const }, { id: 'por-que-e-otimista', text: "Por que é otimista", level: 2 as const }, { id: 'o-que-ele-nao-encontra', text: "O que ele não encontra", level: 3 as const }, { id: 'silenciar-uma-regra-de-proposito', text: "Silenciar uma regra, de propósito", level: 2 as const }, { id: 'erros-dentro-de-monitor', text: "Erros dentro de monitor", level: 2 as const }, { id: 'em-integracao-continua', text: "Em integração contínua", level: 2 as const }];
+const headings = [{ id: 'tres-etapas-sem-executar', text: "Três etapas sem executar", level: 2 as const }, { id: 'o-que-ele-encontra', text: "O que ele encontra", level: 2 as const }, { id: 'um-exemplo', text: "Um exemplo", level: 2 as const }, { id: 'por-que-e-otimista', text: "Por que é otimista", level: 2 as const }, { id: 'o-que-ele-nao-encontra', text: "O que ele não encontra", level: 3 as const }, { id: 'ele-atravessa-o-adopt', text: "Ele atravessa o `adopt`", level: 2 as const }, { id: 'silenciar-uma-regra-de-proposito', text: "Silenciar uma regra, de propósito", level: 2 as const }, { id: 'erros-dentro-de-monitor', text: "Erros dentro de monitor", level: 2 as const }, { id: 'em-integracao-continua', text: "Em integração contínua", level: 2 as const }];
 
 export default function Pagina() {
   return (

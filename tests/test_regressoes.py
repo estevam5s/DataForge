@@ -4090,3 +4090,132 @@ handle Error as e:
 ''')
     assert "StackOverflowError" in saida
     assert "TAIL call" in saida
+
+
+def test_nenhum_exercicio_imprime_medida_sem_unidade():
+    """Um exercício que **imprime** uma medida precisa colá-la a uma
+    unidade de tempo.
+
+    `test_a_compilacao_nao_muda_o_resultado_de_nenhum_exercicio` roda
+    cada arquivo duas vezes e exige saída idêntica. Ele neutraliza
+    números colados a `ms`/`µs`/`s` — e só esses. Um número solto
+    continua sendo comparado, o que é deliberado: é assim que uma
+    divergência real de semântica é detectada.
+
+    O exercício 214 imprimia `round(lento / rapido, 0), "x"` — a razão
+    entre dois tempos, que varia a cada execução (687x, 441x…). Passava
+    por fora da normalização e reprovou a CI.
+
+    A saída é não imprimir o número: o `assert` cobre o fato, e a
+    frase descreve a ordem de grandeza.
+    """
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # Um 'out' que imprime um campo de tempo, ou uma razão entre dois,
+    # sem que a unidade apareça na MESMA linha.
+    #: Só os campos que o `Crucible.timed` produz — uma medida de
+    #: RELÓGIO, que muda a cada execução.
+    #:
+    #: `duracao` ficou de fora: `duracao.total_seconds` de um intervalo
+    #: declarado é determinístico, e incluí-la deu falso alarme no
+    #: exercício 158, que imprime "1 dia, 2h30 = 95400 segundos".
+    medida = re.compile(
+        r'out\s.*\b(?:total_ms|media_ms|mediana_ms|p95_ms|min_ms|max_ms)\b')
+
+    def tem_unidade(linha):
+        """A unidade tem de sair IMPRESSA, e não estar no nome do campo.
+
+        Procurar `ms"` na linha inteira casa com `["total_ms"]`, que é
+        o nome do campo e não aparece na saída — foi o primeiro jeito
+        que escrevi, e ele deixava a linha errada passar. O que vale é
+        o conteúdo dos literais de texto.
+        """
+        # Os literais que NÃO são índice de vault: `["total_ms"]` é o
+        # nome do campo, não sai impresso, e contá-lo fazia a linha
+        # errada passar — o segundo jeito que escrevi.
+        sem_indices = re.sub(r'\[\s*"[^"]*"\s*\]', "[]", linha)
+        for literal in re.findall(r'"([^"]*)"', sem_indices):
+            if re.search(r'\b(?:ms|µs|us|s)\b', literal):
+                return True
+        return False
+
+    unidade = None
+
+    suspeitos = []
+    for caminho in glob.glob(os.path.join(raiz, "exercicios", "*", "*.df")):
+        for numero, linha in enumerate(
+                open(caminho, encoding="utf-8").read().split("\n"), 1):
+            if linha.lstrip().startswith("//"):
+                continue
+            if medida.search(linha) and not tem_unidade(linha):
+                suspeitos.append(
+                    f"{os.path.relpath(caminho, raiz)}:{numero}")
+
+    assert not suspeitos, (
+        "exercício imprimindo medida sem unidade de tempo na mesma "
+        "linha — a saída varia entre execuções e o teste de compilação "
+        "reprova:\n  " + "\n  ".join(suspeitos))
+
+
+# ═══════════════════════════════════════════════════════════
+#  `OS.unset_env` — a linguagem sabia definir e não remover
+#
+#  A falta aparecia como poluição entre execuções: o exercício
+#  160 definia `DATAFORGE_TESTE`, imprimia o total de
+#  variáveis, e o número era 77 na primeira execução e 78 na
+#  segunda. O teste que compara a saída com a compilação
+#  ligada e desligada pegou.
+#
+#  O ambiente é do PROCESSO, e um processo roda mais de um
+#  programa: `dataforge test` cria um interpretador por
+#  arquivo.
+# ═══════════════════════════════════════════════════════════
+
+def test_unset_env_remove_e_devolve_se_existia():
+    saida = run('''
+adopt Arcane.OS as OS
+
+antes := len(OS.env_names())
+OS.set_env("DF_TESTE_UNSET", "1")
+out OS.has_env("DF_TESTE_UNSET")
+out len(OS.env_names()) is antes + 1
+out OS.unset_env("DF_TESTE_UNSET")
+out OS.has_env("DF_TESTE_UNSET")
+out len(OS.env_names()) is antes
+''')
+    assert saida.strip().splitlines() == ["yes", "yes", "yes", "no", "yes"]
+
+
+def test_remover_o_que_nao_existe_devolve_no_e_nao_levanta():
+    """Remover é pedir um estado final, e nesse ponto já não importa se
+    estava lá. Obrigar a conferir antes faria todo chamador escrever
+    duas linhas onde uma basta."""
+    saida = run('''
+adopt Arcane.OS as OS
+out OS.unset_env("NUNCA_EXISTIU_ISSO_AQUI_XYZ")
+''')
+    assert saida.strip() == "no"
+
+
+def test_nenhum_exercicio_deixa_variavel_de_ambiente_para_tras():
+    """A trava da causa. Um `set_env` sem o `unset_env` correspondente
+    muda o que o arquivo seguinte vê."""
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    faltando = []
+    for caminho in glob.glob(os.path.join(raiz, "exercicios", "*", "*.df")):
+        fonte = open(caminho, encoding="utf-8").read()
+        definidas = set(re.findall(r'set_env\(\s*"([^"]+)"', fonte))
+        removidas = set(re.findall(r'unset_env\(\s*"([^"]+)"', fonte))
+        for nome in sorted(definidas - removidas):
+            faltando.append(f"{os.path.relpath(caminho, raiz)}: {nome}")
+
+    assert not faltando, (
+        "exercício que define variável de ambiente e não a remove — o "
+        "ambiente é do processo, e o arquivo seguinte a vê:\n  "
+        + "\n  ".join(faltando))

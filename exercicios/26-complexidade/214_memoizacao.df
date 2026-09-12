@@ -38,7 +38,14 @@ rapido := Crucible.timed(lambda => fib(22))
 
 out "fib(22) ingenuo:  ", round(lento["total_ms"], 2), "ms"
 out "fib(22) memoizado:", round(rapido["total_ms"], 3), "ms"
-out "razao:            ", round(lento["total_ms"] / rapido["total_ms"], 0), "x"
+// A razao nao e IMPRESSA: ela varia a cada execucao (687x, 441x…), e o
+// teste que compara a saida com a compilacao ligada e desligada roda o
+// arquivo DUAS vezes e exige saida identica. Ele normaliza numeros com
+// unidade de tempo — '12.3ms' — e um numero solto seguido de 'x' passa
+// por fora.
+//
+// O 'assert' abaixo cobre o que importa, e sem imprimir nada instavel.
+out "razao:             duas ordens de grandeza"
 // Margem, e nao 'bigger': medido, a razao fica em ~440x. Comparar
 // dois tempos com 'bigger' passa por acidente quando a medicao
 // quebra — e foi o que aconteceu no 215, que tinha margem de 2x e

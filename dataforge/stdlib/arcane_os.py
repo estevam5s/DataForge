@@ -61,6 +61,7 @@ class ArcaneOS:
             "env": cls._env,
             "get_env": lambda nome, padrao=None: os.environ.get(nome, padrao),
             "set_env": cls._set_env,
+            "unset_env": cls._unset_env,
             "has_env": lambda nome: nome in os.environ,
             "env_names": lambda: sorted(os.environ.keys()),
             "path_separator": lambda: os.pathsep,
@@ -117,6 +118,26 @@ class ArcaneOS:
     def _set_env(nome, valor):
         os.environ[nome] = str(valor)
         return valor
+
+    @staticmethod
+    def _unset_env(nome):
+        """Remove a variavel; devolve `yes` se ela existia.
+
+        A linguagem sabia DEFINIR e nao sabia remover, e a falta
+        aparecia como poluicao entre execucoes: o exercicio 160 definia
+        'DATAFORGE_TESTE' e imprimia o total de variaveis, que era 77 na
+        primeira execucao e 78 na segunda. O teste que compara a saida
+        com a compilacao ligada e desligada pegou.
+
+        Um teste que mexe no ambiente precisa poder devolve-lo ao que
+        era — o ambiente e do PROCESSO, e o processo roda mais de um
+        programa: 'dataforge test' cria um interpretador por arquivo.
+
+        Devolver `yes`/`no` em vez de levantar: remover o que nao existe
+        e o estado final que se pediu, e obrigar a conferir antes faria
+        todo chamador escrever duas linhas onde uma basta.
+        """
+        return os.environ.pop(str(nome), None) is not None
 
 
     # ── Onde o programa esta ─────────────────────────────────

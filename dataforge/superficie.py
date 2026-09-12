@@ -57,10 +57,11 @@ PROFUNDIDADE = 4
 class Membro:
     """Uma coisa que o modulo oferece."""
 
-    __slots__ = ("nome", "especie", "minimo", "maximo", "campos", "linha")
+    __slots__ = ("nome", "especie", "minimo", "maximo", "campos", "linha",
+                 "retorno", "parametros", "tipos")
 
     def __init__(self, nome, especie, minimo=0, maximo=None, campos=None,
-                 linha=0):
+                 linha=0, retorno="", parametros=(), tipos=None):
         self.nome = nome
         #: 'acao', 'record', 'blueprint', 'enum', 'trait', 'valor'
         self.especie = especie
@@ -70,6 +71,26 @@ class Membro:
         #: Para record e blueprint: os membros de instancia.
         self.campos = set(campos or ())
         self.linha = linha
+        #: Os nomes dos parametros, na ordem, e o tipo de cada um que
+        #: foi declarado.
+        #:
+        #: Sem eles, 'D.valor_de("texto")' — onde a acao declara
+        #: 'n: Integer' — passava no 'check'. A aridade era conferida e
+        #: o TIPO nao: a superficie sabia quantos argumentos, e nao o
+        #: que cada um devia ser.
+        self.parametros = tuple(parametros or ())
+        self.tipos = dict(tipos or {})
+        #: O tipo declarado em '-> Tipo', quando ha.
+        #:
+        #: Sem isto, o tipo se perdia na fronteira do modulo: uma acao
+        #: que declara '-> Pedido' devolvia UNKNOWN, e
+        #: 'P.criar(1, "Ana").clientte' — o campo errado, com o nome
+        #: quase certo — passava no 'check'. No mesmo arquivo ele e
+        #: acusado com sugestao; vindo de outro '.df', nao era.
+        #:
+        #: Num sistema de 200 arquivos a maioria das chamadas atravessa
+        #: modulo, e era justamente ali que a conferencia calava.
+        self.retorno = retorno or ""
 
     def aceita(self, quantos):
         if quantos < self.minimo:
@@ -399,7 +420,10 @@ def _de_acao(stmt):
     obrigatorios = sum(1 for p in fixos if p not in padroes)
     return Membro(stmt.name, "acao", obrigatorios,
                   None if variadico else len(fixos),
-                  linha=getattr(stmt, "line", 0))
+                  linha=getattr(stmt, "line", 0),
+                  retorno=str(getattr(stmt, "return_type", "") or ""),
+                  parametros=fixos,
+                  tipos=dict(getattr(stmt, "param_types", {}) or {}))
 
 
 def _de_record(stmt):

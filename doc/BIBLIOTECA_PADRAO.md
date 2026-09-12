@@ -31,7 +31,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Web`](#arcaneweb) | `Web / Network` | 11 | Cliente HTTP, URL encoding e JSON. |
 | [`Arcane.Cortex`](#arcanecortex) | `Cortex` | 25 | Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA. |
 | [`Arcane.Time`](#arcanetime) | `Time` | 54 | Datas, horas, durações e cronometragem. |
-| [`Arcane.OS`](#arcaneos) | `OS` | 42 | Sistema operacional, ambiente, disco e processo atual. |
+| [`Arcane.OS`](#arcaneos) | `OS` | 43 | Sistema operacional, ambiente, disco e processo atual. |
 | [`Arcane.Process`](#arcaneprocess) | `Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | [`Arcane.Logging`](#arcanelogging) | `Logging / Log` | 14 | Registro estruturado de eventos, com níveis e destinos. |
 | [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 48 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). |
@@ -1034,7 +1034,7 @@ Sistema operacional, ambiente, disco e processo atual.
 adopt Arcane.OS as OS
 ```
 
-**Funções (42)**
+**Funções (43)**
 
 | Assinatura |
 |------------|
@@ -1077,6 +1077,7 @@ adopt Arcane.OS as OS
 | `set_env(nome, valor)` |
 | `temp_dir()` |
 | `terminal_size()` |
+| `unset_env(nome)` |
 | `user()` |
 | `version()` |
 | `which(prog)` |

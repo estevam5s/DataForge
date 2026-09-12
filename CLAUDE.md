@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2160 testes
-python3 exercicios/run_all.py                        # 230 exercícios
+python3 exercicios/run_all.py                        # 231 exercícios
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
@@ -66,7 +66,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                39 módulos (1348 símbolos), incluindo:
+  stdlib/                39 módulos (1349 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -78,7 +78,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        230 exercícios em 32 módulos + run_all.py
+exercicios/        231 exercícios em 32 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -649,6 +649,53 @@ Três arquivos sustentam isso:
 | `superficie.py` | o que um `.df` oferece, lido com lexer e parser, **sem executar** |
 | `typechecker.py` | `st_AdoptStatement` guarda a superfície; `ex_MemberAccess` e `_conferir_chamada_de_modulo` cobram |
 
+**O tipo de retorno atravessa a fronteira.** `Membro.retorno` guarda o
+`-> Tipo`, e `_conferir_chamada_de_modulo` o devolve em vez de `UNKNOWN`.
+Sem isso o tipo se perdia no `adopt`: uma ação que declara `-> Pedido`
+virava um valor sem tipo, e `P.criar(1, "Ana").clientte` — o campo
+errado, com o nome quase certo — **passava no `check`**. No mesmo
+arquivo esse campo é acusado com sugestão.
+
+Num sistema de 200 arquivos a maioria das chamadas atravessa módulo, e
+era justamente ali que a conferência calava.
+
+O nome é traduzido para o vocabulário de quem chama (`-> Pedido` no
+outro arquivo é `P.Pedido` aqui): devolver o nome nu faria o analisador
+procurar um record que este arquivo não declara. Um tipo embutido
+atravessa como está, e um tipo que o outro módulo **não exporta** volta
+a calar.
+
+**E os tipos dos parâmetros também.** `Membro.parametros` e
+`Membro.tipos` levam o `n: Integer` pela fronteira, e
+`_conferir_tipos_do_modulo` cobra. A aridade era conferida e o tipo
+não: a superfície sabia *quantos* argumentos, e não *o que cada um devia
+ser* — então `D.valor_de("texto")` passava no `check` e estourava na
+primeira conta.
+
+Os dois lados precisam da mesma tradução. A primeira versão comparava o
+`Pedido` declarado lá com o `P.Pedido` que chega daqui e acusava
+**o código certo**:
+
+```
+Parameter 'p' of 'P.com_total' expects Pedido but got P.Pedido
+```
+
+Um falso alarme no caminho mais comum de um projeto modular ensinaria a
+desligar a verificação inteira. `_esperado_do_modulo` traduz, e devolve
+`None` — calando — quando não dá para concluir.
+
+**E a inferência usa o escopo de QUEM CHAMA.** `self.global_scope` não
+vê parâmetro de ação nem variável de bloco: `D.valor_de(n)` dentro de
+`action f(n)` virou **"Undefined name 'n'"** — **649 falsos alarmes** no
+projeto gerado de 252 arquivos, um por uso de parâmetro numa chamada
+entre módulos.
+
+E a suíte passava. Os primeiros testes que escrevi chamavam no nível de
+topo, onde o escopo global é o certo; o bug só aparecia dentro de uma
+ação, que é onde quase todo código vive. Quem pegou foi rodar o `check`
+no projeto grande — a mesma lição de sempre: comparar contra uma fonte
+de verdade, não reler o código.
+
 A superfície lê só o que `relay` exporta, quando há `relay` — um módulo
 que declara o que exporta está dizendo que o resto é interno. Ela é
 **conservadora**: devolve `aberta = yes`, e o analisador volta a calar,
@@ -683,7 +730,23 @@ ali, e o parser reclamava de um `as` inesperado. `_segmento_de_caminho`
 cola `-`, `.` e dígitos ao nome, exigindo **adjacência de coluna** — sem
 essa guarda, `a - b` viraria um arquivo chamado `a-b`.
 
-`tests/test_resolucao.py` cobre os quatro, e proíbe a cópia voltar.
+`tests/test_resolucao.py` cobre os quatro, e proíbe a cópia voltar. O
+exercício 157 demonstra as quatro conferências e os quatro silêncios,
+rodando o `check` de dentro de um `.df`.
+
+**`OS.unset_env` existe agora.** A linguagem sabia definir variável de
+ambiente e não sabia remover, e a falta aparecia como poluição entre
+execuções: o exercício 160 imprimia 77 variáveis na primeira execução e
+78 na segunda. O ambiente é do **processo**, e `dataforge test` cria um
+interpretador por arquivo. Ela devolve `yes`/`no` em vez de levantar —
+remover é pedir um estado final, e nesse ponto já não importa se estava
+lá.
+
+**`OS.temp_dir()` é a pasta do sistema.** Um teste ou exercício que
+escreve nela deixa lixo, e `IO.remove_tree(OS.temp_dir())` destrói o
+temporário de todo processo da máquina — o exercício 157 fazia isso na
+primeira versão. Sempre uma subpasta própria:
+`$"{OS.temp_dir()}/df-157-{randint(100000, 999999)}"`.
 
 **Um analisador que morre com traceback do Python é pior que um que
 erra**: não diz nada sobre o código, e o usuário não sabe se o problema
@@ -1233,7 +1296,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 230 exercícios em 32 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 231 exercícios em 32 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

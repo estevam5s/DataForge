@@ -303,7 +303,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 16 — Modulos e projetos
 
-*6 exercícios · com documentação `.md`*
+*7 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -313,6 +313,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 154 | [`154_forge_toml.df`](16-modulos-e-projetos/154_forge_toml.df) · [doc](16-modulos-e-projetos/154_forge_toml.md) | Manifesto e ferramentas |
 | 155 | [`155_testes_automatizados.df`](16-modulos-e-projetos/155_testes_automatizados.df) · [doc](16-modulos-e-projetos/155_testes_automatizados.md) | Testes automatizados |
 | 156 | [`156_projeto_biblioteca.df`](16-modulos-e-projetos/156_projeto_biblioteca.df) · [doc](16-modulos-e-projetos/156_projeto_biblioteca.md) | Projeto: biblioteca completa |
+| 157 | [`157_check_entre_modulos.df`](16-modulos-e-projetos/157_check_entre_modulos.df) · [doc](16-modulos-e-projetos/157_check_entre_modulos.md) | O que o 'check' pega ATRAVES do adopt |
 
 ## 17 — Tempo e sistema
 
@@ -502,7 +503,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ---
 
-**Total: 230 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 231 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

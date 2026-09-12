@@ -47,7 +47,7 @@ dataforge editor remove     # desinstala de todos""", "lang": "bash"},
    ["formatar", "o mesmo `dataforge fmt`"],
    ["correção rápida", "onde há uma sugestão a aplicar"],
    ["realçar ocorrências", "o nome sob o cursor, nas outras posições"]]}},
- {"p": "Os nomes do **próprio arquivo** vêm antes dos 1348 símbolos da stdlib — é o que se procura em nove de cada dez vezes."},
+ {"p": "Os nomes do **próprio arquivo** vêm antes dos 1349 símbolos da stdlib — é o que se procura em nove de cada dez vezes."},
  {"callout": {"tipo": "nota", "titulo": "Um erro, uma vez", "texto": "Com o servidor ligado, ele assume os diagnósticos e a verificação-ao-salvar se desliga. Com os dois, o mesmo erro apareceria duas vezes no painel de problemas — e um deles ficaria desatualizado, o que é pior que não estar lá."}},
 
  {"h2": "Depurar: F5"},

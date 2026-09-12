@@ -1549,6 +1549,7 @@
       "set_env",
       "temp_dir",
       "terminal_size",
+      "unset_env",
       "user",
       "version",
       "which"

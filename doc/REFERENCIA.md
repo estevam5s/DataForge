@@ -830,6 +830,33 @@ Não encontrando, dispara `ImportError_` listando os módulos disponíveis.
 `relay` documenta o que o módulo exporta. Na implementação atual, todas as
 variáveis de nível superior do arquivo ficam acessíveis pelo alias.
 
+### 10.1 O que o analisador confere através do `adopt`
+
+O `check` lê o outro arquivo — com lexer e parser, **sem executá-lo** — e
+cobra três coisas antes de rodar:
+
+```dataforge
+adopt ./pedido as P
+
+p := P.criar(1, "Ana")
+
+out p.clientte        // erro: Record 'P.Pedido' has no field 'clientte'
+q := P.criar(1)       // erro: 'P.criar' takes 2 argument(s), got 1
+P.apagar(1)           // erro: module 'P' has no 'apagar'
+P.criar(1, 2)         // erro: Parameter 'cliente' expects String, got Integer
+```
+
+O primeiro e o último dependem das declarações de tipo: uma ação que
+declara `-> Tipo` leva o tipo **através** da fronteira, e uma que declara
+`param: Tipo` tem cada argumento conferido — com a linha onde ela foi
+declarada, no outro arquivo. Sem as declarações, o analisador cala: ele
+só acusa o que consegue provar.
+
+Ele também cala, inteiro, quando a **superfície** do outro arquivo não é
+confiável: se ele não compila, se há ciclo de import, se a profundidade
+(4 níveis) acaba, ou se o `relay` nomeia algo que só existe em execução.
+Um falso alarme é pior que um silêncio.
+
 ---
 
 ## 11. Concorrência

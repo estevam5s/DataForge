@@ -45,6 +45,28 @@ dataforge crucible --aleatorio --semente=1738   # reproduz exatamente`, lang: 'b
   {"h2": "Instabilidade"},
   { code: `dataforge crucible --repetir=20`, lang: 'bash' },
   {"p": "Roda cada trial vinte vezes. Um teste que passa às vezes depende de tempo, de ordem, ou de estado que sobrou — e é melhor descobrir isso agora que numa madrugada de plantão."},
+  {"h3": "O estado que sobra: três fontes"},
+  {"p": "\"Estado que sobrou\" soa abstrato até virar uma suíte que passa sozinha e falha em conjunto. As três fontes, e o que desfaz cada uma:"},
+  {"table": {"head": ["O que sobra", "Como desfazer"], "rows": [["uma linha no banco", "`Crucible.banco(db)` — abre transação e a desfaz no fim do trial"], ["uma variável de ambiente", "`OS.unset_env(nome)` — devolve `yes` se ela existia"], ["um arquivo temporário", "uma **subpasta própria** e `IO.remove_tree` nela"]]}},
+  { code: `adopt Crucible
+adopt Arcane.OS as OS
+adopt Arcane.IO as IO
+
+crucible "com estado externo":
+    setup:
+        pasta := $"{OS.temp_dir()}/meu-teste-{randint(100000, 999999)}"
+        IO.mkdir(pasta)
+        OS.set_env("MODO", "teste")
+
+    teardown:
+        OS.unset_env("MODO")
+        IO.remove_tree(pasta)
+
+    trial "usa o ambiente e a pasta":
+        expect OS.get_env("MODO") is "teste"
+`, lang: 'df' },
+  {"callout": {"tipo": "atencao", "titulo": "`OS.temp_dir()` é a pasta do SISTEMA", "texto": "Ela é compartilhada com todo processo da máquina. Escrever direto nela deixa lixo, e `IO.remove_tree(OS.temp_dir())` destrói o temporário dos outros programas — o exercício 157 fazia isso na primeira versão. Sempre uma subpasta com nome único."}},
+  {"p": "O ambiente é do **processo**, e um processo roda mais de um programa: o `dataforge test` cria um interpretador por arquivo. Uma variável definida e não removida muda o que o arquivo seguinte vê — foi assim que o exercício 160 imprimia 77 variáveis na primeira execução e 78 na segunda."},
   {"h2": "No CI"},
   { code: `name: testes
 on: [push, pull_request]
@@ -78,7 +100,7 @@ cycle r in Crucible.results():
     out r["nome"], r["estado"], r["duracao"]`, lang: 'df' },
 ];
 
-const headings = [{ id: 'os-formatos', text: "Os formatos", level: 2 as const }, { id: 'a-ordem-do-relatorio', text: "A ordem do relatório", level: 2 as const }, { id: 'benchmark', text: "Benchmark", level: 2 as const }, { id: 'ordem-aleatoria', text: "Ordem aleatória", level: 2 as const }, { id: 'instabilidade', text: "Instabilidade", level: 2 as const }, { id: 'no-ci', text: "No CI", level: 2 as const }, { id: 'lendo-o-resultado-por-programa', text: "Lendo o resultado por programa", level: 2 as const }];
+const headings = [{ id: 'os-formatos', text: "Os formatos", level: 2 as const }, { id: 'a-ordem-do-relatorio', text: "A ordem do relatório", level: 2 as const }, { id: 'benchmark', text: "Benchmark", level: 2 as const }, { id: 'ordem-aleatoria', text: "Ordem aleatória", level: 2 as const }, { id: 'instabilidade', text: "Instabilidade", level: 2 as const }, { id: 'o-estado-que-sobra-tres-fontes', text: "O estado que sobra: três fontes", level: 3 as const }, { id: 'no-ci', text: "No CI", level: 2 as const }, { id: 'lendo-o-resultado-por-programa', text: "Lendo o resultado por programa", level: 2 as const }];
 
 export default function Pagina() {
   return (

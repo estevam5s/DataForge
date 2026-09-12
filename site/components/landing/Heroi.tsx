@@ -9,8 +9,8 @@ import Link from 'next/link';
  *
  * 'test_a_home_anuncia_os_numeros_reais' cobra os dois. */
 const fatos = [
-  { rotulo: 'Testes passando', valor: '2304' },
-  { rotulo: 'Exercícios verificados', valor: '230' },
+  { rotulo: 'Testes passando', valor: '2332' },
+  { rotulo: 'Exercícios verificados', valor: '231' },
   { rotulo: 'Dependências no runtime', valor: 'nenhuma' },
 ];
 

@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Trinta e nove módulos e 1348 símbolos, sem uma única dependência externa.",
+  description: "Trinta e nove módulos e 1349 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os trinta e nove módulos"
   },
   {
-    "p": "São **1348 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1349 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -107,7 +107,7 @@ const blocos: Bloco[] = [
         ],
         [
           "[`Arcane.OS`](/docs/biblioteca/os)",
-          "42",
+          "43",
           "Sistema operacional, ambiente, disco e processo atual."
         ],
         [
@@ -300,7 +300,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Trinta e nove módulos e 1348 símbolos, sem uma única dependência externa."}
+      description={"Trinta e nove módulos e 1349 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

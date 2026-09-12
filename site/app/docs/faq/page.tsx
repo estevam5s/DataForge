@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
   {"h2": "Preciso anotar os tipos?"},
   {"p": "Não. Anotar é opcional e você escolhe onde. A recomendação prática: anote a **fronteira** — parâmetros e retorno de ações públicas, campos de record — e deixe o interior livre."},
   {"h2": "Dá para usar em produção?"},
-  {"p": "Depende do que \"produção\" significa no seu caso. O que existe e é testado: mais de 1300 testes, 230 exercícios, 44 exemplos, análise estática, servidor HTTP e SQLite funcionando."},
+  {"p": "Depende do que \"produção\" significa no seu caso. O que existe e é testado: mais de 1300 testes, 231 exercícios, 44 exemplos, análise estática, servidor HTTP e SQLite funcionando."},
   {"p": "O que **não** existe: gerenciador de pacotes, LSP, debugger, VM otimizada e generics. Para um utilitário interno ou um script de dados, é viável. Para um sistema crítico com equipe grande, ainda não."},
   {"h2": "Como o desempenho se compara?"},
   {"p": "É um interpretador de árvore, então mais lento que Python — que já é lento perto de uma linguagem compilada. Um `fib(25)` leva 1,28 s onde o CPython leva 0,03 s."},

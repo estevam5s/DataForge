@@ -1,0 +1,189 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 157 — O que o 'check' pega ATRAVES do adopt
+//
+//  Num arquivo de 40 linhas, um erro aparece na primeira execucao.
+//  Num sistema de 200 arquivos, a maioria das chamadas atravessa
+//  modulo — e e ali que um erro sobrevive ate producao.
+//
+//  Este exercicio prova o que o analisador consegue provar antes de
+//  rodar, e o que o faz calar. As duas metades importam: um falso
+//  alarme ensina a ignorar mensagens.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.OS as OS
+adopt Arcane.IO as IO
+adopt Arcane.Process as Proc
+
+// ── Um projeto de dois modulos, escrito em disco ─────────────
+
+// Uma subpasta PROPRIA, com nome unico.
+//
+// 'OS.temp_dir()' devolve a pasta temporaria do SISTEMA — compartilhada
+// com todo processo da maquina. Escrever direto nela deixa lixo, e
+// apaga-la no fim (a primeira versao deste exercicio fazia isso) seria
+// destruir o temporario de todos os outros programas.
+pasta := $"{OS.temp_dir()}/df-157-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+IO.mkdir($"{pasta}/src")
+
+IO.write($"{pasta}/src/loja.df", """record Produto:
+    sku: String
+    nome: String
+    preco: Float
+
+action criar(sku: String, nome: String) -> Produto:
+    yield Produto(sku, nome, 0.0)
+
+action com_preco(p: Produto, v: Float) -> Produto:
+    yield p with {"preco": v}
+
+action quantos() -> Integer:
+    yield 0
+
+action sem_tipo(x):
+    yield x
+
+relay Produto, criar, com_preco, quantos, sem_tipo
+""")
+
+action conferir(codigo):
+    IO.write($"{pasta}/src/main.df", codigo)
+    r := Proc.run(["dataforge", "check", $"{pasta}/src/main.df"])
+    yield r["stdout"] + r["stderr"]
+
+// ── 1. O campo errado, vindo de OUTRO arquivo ───────────────
+//
+// Isto depende do '-> Produto'. Uma acao que declara o retorno leva o
+// tipo ATRAVES da fronteira, e o campo errado e acusado com sugestao.
+
+saida := conferir("""adopt ./loja as L
+
+p := L.criar("CAF", "Cafe")
+out p.nomee
+""")
+
+assert "has no field" in saida
+assert "nomee" in saida
+assert "Did you mean 'nome'" in saida
+
+// ── 2. Aridade ──────────────────────────────────────────────
+
+saida := conferir("""adopt ./loja as L
+
+L.criar("CAF")
+""")
+
+assert "takes 2 argument" in saida
+// E diz ONDE a acao foi declarada — no outro arquivo.
+assert "loja.df" in saida
+
+// ── 3. Simbolo que o modulo nao exporta ─────────────────────
+
+saida := conferir("""adopt ./loja as L
+
+L.apagar("CAF")
+""")
+
+assert "has no 'apagar'" in saida
+// A mensagem lista o que EXISTE: sem isso, a pessoa adivinha.
+assert "criar" in saida
+
+// ── 4. Tipo do argumento ────────────────────────────────────
+//
+// A aridade era conferida e o tipo nao: a superficie sabia QUANTOS
+// argumentos, e nao O QUE cada um devia ser.
+
+saida := conferir("""adopt ./loja as L
+
+L.criar("CAF", 42)
+""")
+
+assert "expects String" in saida
+assert "got Integer" in saida
+
+// ── 5. E DENTRO de uma acao, que e onde o codigo vive ───────
+//
+// A inferencia usa o escopo de QUEM CHAMA. Usar o escopo global fazia
+// 'L.criar(sku, nome)' dentro de 'action f(sku, nome)' virar
+// "Undefined name 'sku'" — 649 falsos alarmes num projeto de 252
+// arquivos, um por cada uso de parametro numa chamada entre modulos.
+//
+// E os testes passavam: eles chamavam no nivel de topo, onde o escopo
+// global e o certo.
+
+saida := conferir("""adopt ./loja as L
+
+action fazer(codigo: String, titulo: String):
+    yield L.criar(codigo, titulo)
+
+cycle i from 1 to 3:
+    rotulo := $"item {i}"
+    out L.criar(rotulo, rotulo).nome
+""")
+
+assert "sem erros" in saida
+
+// E o erro de verdade, dentro da acao, continua sendo pego
+saida := conferir("""adopt ./loja as L
+
+action fazer(n: Integer):
+    yield L.criar(n, "Cafe")
+""")
+
+assert "expects String" in saida
+assert "got Integer" in saida
+
+// ── 6. O que o faz CALAR — e isto importa igual ─────────────
+//
+// Sem declaracao de tipo, nao ha o que provar. Inventar um tipo aqui
+// daria o falso alarme que a politica proibe.
+
+saida := conferir("""adopt ./loja as L
+
+x := L.sem_tipo("qualquer coisa")
+out x.campo_que_nao_existe
+out L.sem_tipo(1), L.sem_tipo([1, 2])
+""")
+
+// 'sem erros' contem a palavra 'erro': conferir a ausencia dela
+// contradiz a linha de baixo. O que importa e a AUSENCIA de
+// diagnostico, e a saida do 'check' limpo diz "sem erros".
+assert "sem erros" in saida
+
+// ── 7. O codigo certo nao gera alarme nenhum ────────────────
+
+saida := conferir("""adopt ./loja as L
+
+p := L.criar("CAF", "Cafe")
+out p.sku, p.nome, p.preco
+
+q := L.com_preco(p, 29.9)
+out q.preco
+
+// um Integer serve onde se espera Float, como em toda a linguagem
+r := L.com_preco(p, 30)
+out r.preco
+
+out L.quantos() + 1
+""")
+
+assert "sem erros" in saida
+
+// ── 8. E um erro dentro do modulo IMPORTADO faz o check calar ─
+//
+// Um arquivo que nao compila e problema DELE, e o 'check' sobre ele
+// vai dizer isso. Acusar o uso de um simbolo porque o outro arquivo
+// esta quebrado seria culpar o inocente.
+
+IO.write($"{pasta}/src/quebrado.df", "action f(:\n")
+saida := conferir("""adopt ./quebrado as Q
+
+Q.qualquer_coisa(1, 2, 3)
+""")
+
+// Nao acusa a chamada: a superficie de um arquivo que nao compila
+// fica ABERTA, e o analisador volta a calar.
+assert "has no" not in saida
+
+IO.remove_tree(pasta)
+out "157 ok — o check atravessa o adopt"

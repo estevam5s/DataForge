@@ -42,17 +42,38 @@ out $"separador: '{OS.separator()}'"
 // Variaveis de ambiente
 out ""
 out Text.box("Ambiente")
-out $"variaveis definidas: {len(OS.env_names())}"
+// Quantas HA nao se imprime: o numero depende da maquina, e mudaria
+// entre duas execucoes se algo definisse uma variavel no meio. O que
+// se pode afirmar e que ha alguma.
+assert len(OS.env_names()) bigger 0
 out $"PATH existe? {OS.has_env("PATH")}"
 out $"inexistente com padrao: {OS.get_env("VARIAVEL_QUE_NAO_EXISTE", "(padrao)")}"
 
 assert OS.get_env("SEM_ISSO_AQUI", "fallback") is "fallback", "padrao ao faltar"
 assert OS.has_env("VARIAVEL_INEXISTENTE_XYZ") is no, "nao existe"
 
-// Definir e ler de volta
+// Definir, ler de volta — e DESFAZER
+//
+// O ambiente e do PROCESSO, e um processo roda mais de um programa:
+// 'dataforge test' cria um interpretador por arquivo. Deixar a
+// variavel definida polui a execucao seguinte, e foi assim que este
+// exercicio imprimia 77 variaveis na primeira vez e 78 na segunda —
+// pego pelo teste que compara a saida com a compilacao ligada e
+// desligada.
+antes := len(OS.env_names())
+
 OS.set_env("DATAFORGE_TESTE", "42")
 assert OS.get_env("DATAFORGE_TESTE") is "42", "definida e lida"
+assert len(OS.env_names()) is antes + 1, "uma a mais"
 out $"definida: DATAFORGE_TESTE = {OS.get_env("DATAFORGE_TESTE")}"
+
+assert OS.unset_env("DATAFORGE_TESTE"), "devolve yes: ela existia"
+assert not OS.has_env("DATAFORGE_TESTE"), "e agora nao existe"
+assert len(OS.env_names()) is antes, "o ambiente voltou ao que era"
+
+// Remover o que nao existe devolve 'no', e nao levanta: remover e
+// pedir um estado final, e nesse ponto ja nao importa se estava la.
+assert OS.unset_env("NUNCA_EXISTIU_ISSO_AQUI") is no
 
 // Encontrar um programa
 out ""

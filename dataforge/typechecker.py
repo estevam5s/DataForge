@@ -1839,7 +1839,7 @@ class TypeChecker:
 
         # 'P.criar(1, 2, 3)' num modulo local: existe, e com quantos?
         if isinstance(node.object, ast.Identifier):
-            resultado = self._conferir_chamada_de_modulo(node)
+            resultado = self._conferir_chamada_de_modulo(node, escopo)
             if resultado is not None:
                 return resultado
 
@@ -1854,7 +1854,7 @@ class TypeChecker:
                                        line=node.line, column=node.column))
         return UNKNOWN
 
-    def _conferir_chamada_de_modulo(self, node):
+    def _conferir_chamada_de_modulo(self, node, escopo=None):
         """`P.criar(1, 2, 3)` quando `P` é um módulo local lido.
 
         Devolve o tipo quando tratou o caso, ou `None` para deixar o
@@ -1893,7 +1893,130 @@ class TypeChecker:
 
         if membro.especie in ("record", "blueprint", "enum"):
             return f"{node.object.name}.{node.method}"
+
+        self._conferir_tipos_do_modulo(node, membro, superficie, escopo)
+
+        # O tipo declarado em '-> Tipo' ATRAVESSA a fronteira do modulo.
+        #
+        # Devolver UNKNOWN aqui fazia o tipo se perder: uma acao que
+        # declara '-> Pedido' e chamada de outro arquivo virava um valor
+        # sem tipo, e 'P.criar(1, "Ana").clientte' passava no 'check'.
+        # No mesmo arquivo esse campo errado e acusado com sugestao.
+        #
+        # Num sistema de 200 arquivos a maioria das chamadas atravessa
+        # modulo, e era ali que a conferencia calava.
+        if membro.retorno:
+            traduzido = self._tipo_do_modulo(node.object.name, membro.retorno)
+            if traduzido:
+                return traduzido
         return UNKNOWN
+
+    def _conferir_tipos_do_modulo(self, node, membro, superficie,
+                                  escopo=None):
+        """Os tipos dos PARAMETROS, atraves do `adopt`.
+
+        A aridade era conferida e o tipo nao: a superficie sabia quantos
+        argumentos a acao aceita, e nao o que cada um devia ser. Entao
+        `D.valor_de("texto")` — onde a declaracao e `n: Integer` —
+        passava no `check`, e estourava em execucao na primeira conta.
+        """
+        if not membro.tipos or not membro.parametros:
+            return
+        # O escopo de QUEM CHAMA, e nao o global.
+        #
+        # 'self.global_scope' nao ve parametro de acao nem variavel de
+        # bloco: 'D.valor_de(n)' dentro de 'action f(n)' virava
+        # "Undefined name 'n'". Foram 649 falsos alarmes num projeto de
+        # 252 arquivos — cada uso de um parametro numa chamada entre
+        # modulos.
+        #
+        # Os argumentos JA foram inferidos com o escopo certo em
+        # 'ex_MethodCall', antes de chegar aqui; o que se faz agora e
+        # repetir a inferencia para comparar, e ela precisa do mesmo
+        # escopo.
+        if escopo is None:
+            return
+        for indice, argumento in enumerate(node.args):
+            if isinstance(argumento, ast.SpreadElement):
+                return          # o spread esconde quem vai onde
+            if indice >= len(membro.parametros):
+                break
+            esperado = self._esperado_do_modulo(
+                node.object.name, membro.tipos.get(membro.parametros[indice]))
+            if not esperado:
+                continue
+            obtido = self.infer(argumento, escopo)
+            if obtido and not compatible(esperado, obtido):
+                nome = membro.parametros[indice]
+                self.error(
+                    f"Parameter '{nome}' of '{node.object.name}."
+                    f"{node.method}' expects {esperado} but got {obtido}",
+                    argumento,
+                    f"declared in {_curto(superficie.caminho)}"
+                    f"{f' line {membro.linha}' if membro.linha else ''}",
+                    "module-arg-type")
+
+        for nome, valor in (node.kwargs or {}).items():
+            esperado = self._esperado_do_modulo(node.object.name,
+                                                membro.tipos.get(nome))
+            if not esperado:
+                continue
+            obtido = self.infer(valor, escopo)
+            if obtido and not compatible(esperado, obtido):
+                self.error(
+                    f"Parameter '{nome}' of '{node.object.name}."
+                    f"{node.method}' expects {esperado} but got {obtido}",
+                    valor, "", "module-arg-type")
+
+    def _esperado_do_modulo(self, apelido, nome_do_tipo):
+        """O tipo de um PARAMETRO, no vocabulario deste arquivo.
+
+        `p: Pedido` no outro arquivo precisa virar `P.Pedido` aqui —
+        que e como o retorno de `P.criar` chega. Sem a traducao, o
+        analisador comparava `Pedido` com `P.Pedido` e acusava um erro
+        no codigo CERTO:
+
+            Parameter 'p' of 'P.com_total' expects Pedido but got
+            P.Pedido
+
+        Um falso alarme como esse, no caminho mais comum de um projeto
+        modular, ensinaria a desligar a verificacao inteira.
+
+        Devolve `None` quando nao da para concluir — e ai a conferencia
+        cala, que e a politica.
+        """
+        if not nome_do_tipo:
+            return None
+        traduzido = self._tipo_do_modulo(apelido, nome_do_tipo)
+        if traduzido and traduzido != UNKNOWN:
+            return traduzido
+        # Um tipo que o outro modulo nao exporta: nao ha como saber o
+        # que ele e daqui.
+        return None
+
+    def _tipo_do_modulo(self, apelido, nome_do_tipo):
+        """O tipo de retorno de outro modulo, no vocabulario DESTE arquivo.
+
+        Um `-> Pedido` no outro arquivo e `P.Pedido` aqui: o nome nu nao
+        existe neste escopo, e devolve-lo faria o analisador procurar um
+        record chamado 'Pedido' que este arquivo nao declara — e acusar
+        o que nao devia.
+
+        Um tipo embutido (`Integer`, `String`, `Cluster`) atravessa como
+        esta. Um tipo que o outro modulo declara vira `apelido.Tipo`,
+        e so quando ele REALMENTE o exporta.
+        """
+        limpo = canonical(nome_do_tipo)
+        if limpo in set(ALIASES.values()):
+            return limpo
+        superficie = self.superficies.get(apelido)
+        if superficie is None or superficie.aberta:
+            return None
+        membro = superficie.obter(nome_do_tipo)
+        if membro is not None and membro.especie in ("record", "blueprint",
+                                                     "enum"):
+            return f"{apelido}.{nome_do_tipo}"
+        return None
 
     def ex_SafeMethodCall(self, node, escopo):
         return self.ex_MethodCall(node, escopo)
