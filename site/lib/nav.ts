@@ -184,6 +184,7 @@ export const nav: NavSection[] = [
       { title: 'Observabilidade e linhagem', href: '/docs/tecnicas/observar' },
       { title: 'Planilhas', href: '/docs/tecnicas/planilhas' },
       { title: 'Microserviços', href: '/docs/tecnicas/microservicos' },
+      { title: 'DevOps e Docker', href: '/docs/devops' },
       { title: 'Servidor HTTP', href: '/docs/tecnicas/http' },
       { title: 'Editor e extensão', href: '/docs/editor' },
       { title: 'Servidor de linguagem (LSP)', href: '/docs/tecnicas/lsp' },

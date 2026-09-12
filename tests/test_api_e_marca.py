@@ -832,3 +832,152 @@ def test_o_deb_gerado_e_um_ar_valido(tmp_path):
         i += 60 + tamanho + (tamanho % 2)
     assert nomes == ["debian-binary", "control.tar.gz", "data.tar.gz"], \
         f"membros fora de ordem: {nomes}"
+
+
+# ═══════════════════════════════════════════════════════════
+#  Nenhum link interno aponta para o vazio
+#
+#  Havia um verificador, e ele cobria **um** arquivo de
+#  conteúdo (o da Vitrine) e **uma** forma de link (a do
+#  Markdown). Por isso `/docs/devops` — que eu pus num card
+#  da página de microserviços — ficou apontando para uma rota
+#  que não existia, e nada avisou.
+#
+#  Um link quebrado na documentação é pior que uma página
+#  ausente: ele promete que a resposta existe.
+# ═══════════════════════════════════════════════════════════
+
+def _links_de(texto):
+    """As duas formas: `](/rota)` do Markdown e `"href": "/rota"`."""
+    import re
+
+    achados = set(re.findall(r"\]\((/[a-z0-9/_.-]+)\)", texto))
+    achados |= set(re.findall(r'"href":\s*"(/[a-z0-9/_.-]+)"', texto))
+    achados |= set(re.findall(r"href=\{?[\"'](/[a-z0-9/_.-]+)[\"']", texto))
+    return achados
+
+
+def _rota_existe(app, destino):
+    limpo = destino.strip("/")
+    if not limpo:
+        return True          # a home
+    for nome in ("page.tsx", "route.ts"):
+        if os.path.isfile(os.path.join(app, limpo, nome)):
+            return True
+    # Uma rota dinâmica: /docs/x/[slug]
+    pai = os.path.dirname(limpo)
+    if pai and os.path.isdir(os.path.join(app, pai)):
+        for entrada in os.listdir(os.path.join(app, pai)):
+            if entrada.startswith("[") and os.path.isfile(
+                    os.path.join(app, pai, entrada, "page.tsx")):
+                return True
+    return False
+
+
+def test_todo_link_interno_do_conteudo_aponta_para_uma_rota_que_existe():
+    """Os arquivos de `site/scripts/conteudo/` são a FONTE das 95
+    páginas geradas — corrigir o `.tsx` não resolve, porque o gerador o
+    reescreve."""
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    app = os.path.join(raiz, "site", "app")
+    fontes = glob.glob(os.path.join(raiz, "site", "scripts", "conteudo",
+                                    "*.py"))
+    if not fontes or not os.path.isdir(app):
+        pytest.skip("o site não está neste checkout")
+
+    quebrados = []
+    for caminho in sorted(fontes):
+        texto = open(caminho, encoding="utf-8").read()
+        for destino in sorted(_links_de(texto)):
+            if not _rota_existe(app, destino):
+                quebrados.append(
+                    f"{os.path.basename(caminho)} → {destino}")
+
+    assert not quebrados, (
+        "link(es) para rota que não existe:\n  " + "\n  ".join(quebrados))
+
+
+def test_todo_link_interno_das_paginas_escritas_a_mao_tambem():
+    """As páginas manuais não passam por gerador nenhum, e por isso
+    ninguém as reescreve — um link errado ali fica para sempre."""
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    app = os.path.join(raiz, "site", "app")
+    if not os.path.isdir(app):
+        pytest.skip("o site não está neste checkout")
+
+    quebrados = []
+    for caminho in sorted(glob.glob(os.path.join(app, "**", "*.tsx"),
+                                    recursive=True)):
+        texto = open(caminho, encoding="utf-8").read()
+        for destino in sorted(_links_de(texto)):
+            if not _rota_existe(app, destino):
+                quebrados.append(
+                    f"{os.path.relpath(caminho, raiz)} → {destino}")
+
+    assert not quebrados, (
+        "link(es) para rota que não existe:\n  " + "\n  ".join(quebrados))
+
+
+def test_toda_rota_da_navegacao_existe():
+    """Um item de menu que dá 404 é o pior lugar para um link quebrado:
+    ele aparece em **todas** as páginas."""
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    app = os.path.join(raiz, "site", "app")
+    nav = os.path.join(raiz, "site", "lib", "nav.ts")
+    if not os.path.isfile(nav):
+        pytest.skip("o site não está neste checkout")
+
+    texto = open(nav, encoding="utf-8").read()
+    quebrados = [d for d in sorted(set(
+        re.findall(r"href:\s*'(/[a-z0-9/_.-]+)'", texto)))
+        if not _rota_existe(app, d)]
+    assert not quebrados, f"na navegação, para o vazio: {quebrados}"
+
+
+def test_toda_pagina_de_docs_esta_alcancavel_pela_navegacao():
+    """Uma página que existe e não está no menu é trabalho que ninguém
+    encontra — foi o que aconteceu com `/docs/devops`, que nem página
+    tinha, e com a `/docs/editor`, cuja URL a extensão publicada já
+    anunciava."""
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    app = os.path.join(raiz, "site", "app")
+    nav = os.path.join(raiz, "site", "lib", "nav.ts")
+    if not os.path.isfile(nav):
+        pytest.skip("o site não está neste checkout")
+
+    no_menu = set(re.findall(r"href:\s*'(/[a-z0-9/_.-]+)'",
+                             open(nav, encoding="utf-8").read()))
+
+    #: Alcançáveis por outro caminho, de propósito.
+    #:
+    #: As duas referências são páginas-índice de módulo de exercício e
+    #: subpáginas que o próprio texto da seção encadeia; pô-las no menu
+    #: daria uma barra lateral de duzentos itens.
+    fora = ("/docs/exercicios/", "/docs/cli/", "/docs/kiln/",
+            "/docs/vitrine/", "/docs/banco-de-dados/", "/docs/tecnicas/",
+            "/docs/big-o/", "/docs/oop/", "/docs/receitas/",
+            "/docs/referencia/", "/docs/instalacao/", "/docs/projetos/")
+
+    orfas = []
+    for caminho in glob.glob(os.path.join(app, "docs", "**", "page.tsx"),
+                             recursive=True):
+        rota = "/" + os.path.relpath(os.path.dirname(caminho),
+                                     app).replace(os.sep, "/")
+        if rota in no_menu or "[" in rota:
+            continue
+        if any(rota.startswith(p) for p in fora):
+            continue
+        orfas.append(rota)
+
+    assert not orfas, (
+        "página(s) de doc fora da navegação — quem procura não acha:\n  "
+        + "\n  ".join(sorted(orfas)))

@@ -31,6 +31,7 @@ MODULOS = [
     "banco_sqlite",
     "kiln_extra",
     "microservicos",
+    "devops",
     "crucible_doc",
     "vitrine",
     "versoes",
