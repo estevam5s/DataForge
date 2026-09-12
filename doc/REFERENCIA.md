@@ -875,8 +875,38 @@ Um falso alarme é pior que um silêncio.
 | `observe v in fonte: bloco` | itera a fonte; aceita `halt` e `skip` |
 | `pulse <evento>[, <dado>]` | emite um evento |
 
-> **Limitação:** não há sincronização automática de variáveis compartilhadas
-> entre threads. `channel` é a via segura.
+> **Limitação:** não há sincronização automática de variáveis
+> compartilhadas entre threads. Medido: quatro threads somando 20 mil
+> vezes na mesma variável entregaram **40.425 de 80.000**.
+>
+> `x := x + 1` são três passos — ler, somar, escrever — e o
+> interpretador pode trocar de thread entre eles. O `check` **avisa**
+> (`escrita-concorrente`) quando um `thread` ou `parallel` escreve num
+> nome que vem de fora.
+>
+> As três saídas, em `Arcane.Concurrent`:
+
+| Para | Use |
+|------|-----|
+| somar | `contador()` — atômico |
+| um bloco inteiro | `mutex()` |
+| passar o valor adiante | `canal()`, ou o `channel` da linguagem |
+
+```dataforge
+adopt Arcane.Concurrent as Conc
+
+c := Conc.contador()
+
+action bater():
+    cycle i from 1 to 2000:
+        c.somar(1)
+
+parallel:
+    bater()
+    bater()
+
+assert c.valor() is 4000      // fecha, sempre
+```
 
 ---
 

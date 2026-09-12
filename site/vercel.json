@@ -1,6 +1,25 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/baixar/:arquivo",
+      "destination": "https://github.com/estevam5s/DataForge/releases/latest/download/:arquivo"
+    }
+  ],
   "headers": [
+    {
+      "source": "/baixar/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment"
+        }
+      ]
+    },
     {
       "source": "/instalar.sh",
       "headers": [

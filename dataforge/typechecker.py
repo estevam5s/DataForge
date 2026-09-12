@@ -984,12 +984,103 @@ class TypeChecker:
         return False
 
     def st_ThreadBlock(self, node, escopo):
+        self._avisar_escrita_compartilhada(node.body, escopo, "thread")
         self.visit_block(node.body, Scope(escopo))
         return False
 
     def st_ParallelBlock(self, node, escopo):
+        self._avisar_escrita_compartilhada(node.blocks, escopo, "parallel")
         self.visit_block(node.blocks, Scope(escopo))
         return False
+
+    #: O que uma escrita concorrente perde, em silencio.
+    #:
+    #: Quatro threads somando 20 mil vezes na mesma variavel entregaram
+    #: 40.425 de 80.000 — metade, e sem nada denunciando. 'x := x + 1'
+    #: sao tres passos (ler, somar, escrever), e o interpretador pode
+    #: trocar de thread entre eles.
+    #:
+    #: A linguagem tem a resposta ('Arcane.Concurrent': mutex, contador
+    #: atomico, canal) e nao a aplicava sozinha — nem AVISAVA. O bug mais
+    #: caro que ela permite era o unico que nem o 'check' nem o 'lint'
+    #: mencionavam.
+    #:
+    #: E um AVISO, e nao erro: escrever de duas threads e legitimo
+    #: quando quem escreve sabe — um acumulador protegido por mutex
+    #: passa por aqui igual, e recusa-lo seria proibir o uso correto.
+    _CODIGO_CORRIDA = "escrita-concorrente"
+
+    def _avisar_escrita_compartilhada(self, corpo, escopo, palavra):
+        """Nomes de FORA que o corpo concorrente escreve."""
+        escritos = {}
+        self._colher_escritas(corpo, escritos)
+        if not escritos:
+            return
+
+        for nome, no in sorted(escritos.items(), key=lambda p: p[1].line):
+            # Declarado dentro do bloco: cada thread tem o seu, e nao ha
+            # corrida. So o que vem de fora e compartilhado.
+            if not escopo.has(nome):
+                continue
+            self.warn(
+                f"'{nome}' e escrito dentro de '{palavra}' e vem de fora: "
+                f"duas threads podem perder atualizacoes",
+                no,
+                "a linguagem nao sincroniza sozinha — use "
+                "'Arcane.Concurrent': 'contador()' para somar, 'mutex()' "
+                "para um bloco, ou 'canal()' para passar o valor adiante",
+                self._CODIGO_CORRIDA)
+
+    def _colher_escritas(self, no, saida):
+        """Os nomes que este no atribui, em qualquer profundidade.
+
+        Desce em tudo: um 'given' dentro de um 'cycle' dentro de uma
+        acao chamada pelo bloco nao e alcancado — a analise para na
+        fronteira da acao, porque seguir chamada exigiria um grafo, e um
+        aviso que depende disso seria impreciso nos dois sentidos.
+        """
+        if no is None:
+            return
+        if isinstance(no, (list, tuple)):
+            for item in no:
+                self._colher_escritas(item, saida)
+            return
+        if not isinstance(no, ast.ASTNode):
+            return
+
+        # Uma acao declarada dentro do bloco: o corpo dela roda quando
+        # alguem a chama, e nao aqui.
+        if isinstance(no, (ast.ActionDeclaration, ast.BlueprintDeclaration,
+                           ast.RecordDeclaration)):
+            return
+
+        if isinstance(no, ast.Assignment):
+            nome = None
+            alvo = getattr(no, "target", None)
+            if isinstance(alvo, str):
+                nome = alvo
+            elif isinstance(alvo, ast.Identifier):
+                nome = alvo.name
+            elif isinstance(alvo, ast.IndexAccess):
+                # 'v["n"] := …' — a escrita e no VAULT, e o vault vem de
+                # fora. E a forma mais comum do bug, porque parece que
+                # so o campo muda.
+                base = alvo
+                while isinstance(base, (ast.IndexAccess, ast.MemberAccess)):
+                    base = getattr(base, "object", None)
+                if isinstance(base, ast.Identifier):
+                    nome = base.name
+            elif isinstance(alvo, ast.MemberAccess):
+                base = getattr(alvo, "object", None)
+                if isinstance(base, ast.Identifier):
+                    nome = base.name
+            if nome and nome not in ("self", "this", "root"):
+                saida.setdefault(nome, no)
+
+        for campo in getattr(no, "__dataclass_fields__", {}):
+            if campo in ("line", "column"):
+                continue
+            self._colher_escritas(getattr(no, campo, None), saida)
 
     def st_ChannelDeclaration(self, node, escopo):
         escopo.declare(node.name, "Channel", node.line, node.column)

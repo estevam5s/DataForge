@@ -12,7 +12,24 @@ export const metadata: Metadata = {
 };
 
 const VERSAO = '1.0.0';
-const RELEASES = `https://github.com/estevam5s/DataForge/releases/latest/download`;
+
+/**
+ * O download sai pelo DOMÍNIO DO SITE.
+ *
+ * Antes isto era `github.com/.../releases/latest/download`, e havia dois
+ * problemas. O primeiro, grave: **não existia release nenhum**, e cada
+ * um dos sete links dava a página 404 do GitHub — o site anunciava
+ * arquivos que não estavam em lugar algum.
+ *
+ * O segundo continua valendo depois de a release existir: mandar quem
+ * quer instalar para outro domínio é um passo a mais, quebra num
+ * ambiente que bloqueia o GitHub, e some com o contexto da página.
+ *
+ * `/baixar/<arquivo>` é um **rewrite** no `vercel.json`: a edge do
+ * Vercel busca o asset e o serve daqui. O navegador nunca vê
+ * github.com, e a barra de endereços não muda.
+ */
+const RELEASES = `/baixar`;
 
 /** Um caminho de instalação. `pronto` diz se já dá para baixar hoje. */
 type Forma = {
@@ -143,8 +160,12 @@ const FORMAS: { grupo: string; itens: Forma[] }[] = [
         titulo: 'Docker',
         para: 'Sem instalar nada na máquina.',
         comando: 'docker run --rm -it estevan5s/dataforge repl',
-        nota: 'Imagem multi-estágio, usuário sem privilégio. Para rodar um arquivo seu: docker run --rm -v "$PWD:/app" estevan5s/dataforge run /app/main.df',
-        pronto: false,
+        nota: 'Imagem multi-estágio, usuário sem privilégio, 51 MB comprimida. Para rodar um arquivo seu: docker run --rm -v "$PWD:/app" estevan5s/dataforge run main.df. Tags: latest e 1.0.0.',
+        // A imagem está publicada — ficou 'false' depois de o push
+        // acontecer, e a página anunciava como "na próxima versão" algo
+        // que já estava no ar. O inverso do erro dos downloads, e o
+        // mesmo defeito: a página e a realidade em dois lugares.
+        pronto: true,
       },
       {
         id: 'fonte',
@@ -274,6 +295,14 @@ export default function Pagina() {
             Cada release traz um <code className="text-accent">SHA256SUMS.txt</code> com a
             soma de todos os arquivos. Vale conferir — um download pela metade
             existe, tem o nome certo, e não funciona.
+          </p>
+          <p className="mt-2 text-[13px] leading-[21px] text-muted">
+            Baixe as somas por{' '}
+            <a href="/baixar/SHA256SUMS.txt" className="text-accent hover:underline">
+              /baixar/SHA256SUMS.txt
+            </a>
+            . Os arquivos acima saem deste domínio, e não do GitHub: um
+            ambiente que bloqueia o GitHub não impede a instalação.
           </p>
           <div className="mt-3">
             <CodeBlock

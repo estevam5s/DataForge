@@ -1062,3 +1062,196 @@ def test_o_indice_lateral_da_home_dos_docs_cobre_os_h2():
     faltando = [t for t in titulos if t.strip() not in no_indice]
     assert not faltando, (
         f"<H2> fora do índice lateral: {faltando}")
+
+
+def test_o_download_sai_pelo_dominio_do_site():
+    """Os sete links iam para `github.com/.../releases/latest/download`,
+    e **não existia release nenhum**: cada um dava a página 404 do
+    GitHub. O site anunciava arquivos que não estavam em lugar algum.
+
+    O teste ao lado (`…so_oferece_o_que_o_release_produz`) conferia que
+    os NOMES batiam com o workflow — a coerência interna — e passava,
+    porque nada checava se o release existia. Uma trava que valida o
+    mapa e não o território.
+
+    Hoje o caminho é `/baixar/<arquivo>`, um **rewrite** no
+    `vercel.json`: a edge busca o asset e o serve pelo domínio do site.
+    Quem instala não sai da página, e um ambiente que bloqueia o GitHub
+    não impede a instalação.
+    """
+    import json
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonte = open(os.path.join(raiz, "site", "app", "download", "page.tsx"),
+                 encoding="utf-8").read()
+
+    assert "const RELEASES = `/baixar`" in fonte, (
+        "o download voltou a apontar para fora do site")
+    assert "github.com/estevam5s/DataForge/releases/latest/download" \
+        not in fonte, "sobrou um link direto para o release"
+
+    # E o rewrite que faz isso funcionar tem de existir.
+    config = os.path.join(raiz, "site", "vercel.json")
+    with open(config, encoding="utf-8") as f:
+        vercel = json.load(f)
+
+    rewrites = vercel.get("rewrites") or []
+    baixar = [r for r in rewrites if r.get("source", "").startswith("/baixar")]
+    assert baixar, "sem o rewrite, '/baixar/x' e um 404 do proprio site"
+
+    destino = baixar[0]["destination"]
+    assert "releases/latest/download" in destino
+    assert ":arquivo" in destino, (
+        "o rewrite precisa repassar o nome do arquivo")
+
+    # Um segmento só: '/baixar/a/b' não pode montar caminho para fora
+    # do release.
+    assert baixar[0]["source"] == "/baixar/:arquivo", (
+        f"o padrao ficou largo demais: {baixar[0]['source']}")
+
+    # E o cabeçalho que faz baixar em vez de exibir.
+    cabecalhos = vercel.get("headers") or []
+    de_baixar = [h for h in cabecalhos
+                 if h.get("source", "").startswith("/baixar")]
+    assert de_baixar, "sem Content-Disposition, um .zip pode abrir no navegador"
+    chaves = {c["key"].lower() for c in de_baixar[0]["headers"]}
+    assert "content-disposition" in chaves
+
+
+def test_todo_arquivo_oferecido_no_download_e_construido_por_alguem():
+    """A lista de nomes fica em dois lugares — a página e o workflow — e
+    um nome novo em um só deles produz um botão que baixa nada."""
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonte = open(os.path.join(raiz, "site", "app", "download", "page.tsx"),
+                 encoding="utf-8").read()
+
+    oferecidos = {n.replace("${VERSAO}", "1.0.0") for n in
+                  re.findall(r"\$\{RELEASES\}/([A-Za-z0-9_.${}-]+)", fonte)}
+    assert len(oferecidos) >= 6, oferecidos
+
+    # Os nomes que os geradores realmente produzem.
+    from dataforge import __version__
+    esperados = {
+        f"DataForge-{__version__}-windows-x64-setup.exe",
+        "dataforge-windows-x64.zip",
+        "dataforge-macos-arm64.tar.gz",
+        "dataforge-macos-x64.tar.gz",
+        "dataforge-linux-x64.tar.gz",
+        f"dataforge_{__version__}_all.deb",
+    }
+    sobrando = oferecidos - esperados
+    assert not sobrando, (
+        f"a pagina oferece o que nenhum gerador produz: {sorted(sobrando)}")
+
+
+# ═══════════════════════════════════════════════════════════
+#  O sitemap, e o domínio que o site anuncia
+# ═══════════════════════════════════════════════════════════
+
+def test_o_metadatabase_e_o_dominio_onde_o_site_vive():
+    """Era `dataforge-lang.dev`, que **não responde**.
+
+    Todo canônico e todo Open Graph apontavam para um endereço
+    inexistente: um link compartilhado não mostra prévia, e um buscador
+    indexa o lugar errado. E era o único lugar do repositório que citava
+    esse domínio — não havia nem a intenção de usá-lo.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "app", "layout.tsx")
+    if not os.path.isfile(caminho):
+        pytest.skip("o site não está neste checkout")
+
+    fonte = open(caminho, encoding="utf-8").read()
+    assert "dataforge-lang.vercel.app" in fonte
+    assert "dataforge-lang.dev" not in fonte, (
+        "o metadataBase voltou para um domínio que não responde")
+
+
+def test_existe_sitemap_e_ele_sai_da_navegacao():
+    """Não havia sitemap — `/sitemap.xml` dava 404 — e o site tem 96
+    páginas de documentação. As mais fundas levam três ou quatro saltos,
+    e o rastreador desiste antes.
+
+    A lista sai de `nav.ts`, a mesma fonte da barra lateral: uma segunda
+    lista aqui divergiria, e um sitemap que aponta para página removida
+    é pior que nenhum.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "app", "sitemap.ts")
+    if not os.path.isfile(caminho):
+        pytest.skip("o site não está neste checkout")
+
+    fonte = open(caminho, encoding="utf-8").read()
+    assert "from '@/lib/nav'" in fonte, (
+        "o sitemap tem de sair da navegação, e não de uma lista à parte")
+    # Sem isto o `next build` com `output: 'export'` falha.
+    assert "force-static" in fonte
+
+    robots = os.path.join(raiz, "site", "app", "robots.ts")
+    assert os.path.isfile(robots), "sem robots.txt, o sitemap não é anunciado"
+    assert "sitemap" in open(robots, encoding="utf-8").read()
+
+
+def test_o_sitemap_construido_nao_tem_url_repetida_nem_rota_morta():
+    """Conferido no arquivo **construído**, que é o que o rastreador lê.
+
+    `/api` está na navegação e na lista de rotas avulsas: sem o `Set`,
+    ela apareceria duas vezes — ignorado por uns rastreadores e
+    reclamado por outros.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    construido = os.path.join(raiz, "site", "out", "sitemap.xml")
+    if not os.path.isfile(construido):
+        pytest.skip("o site não foi construído neste checkout")
+
+    urls = re.findall(r"<loc>([^<]+)</loc>",
+                      open(construido, encoding="utf-8").read())
+    assert len(urls) > 200, f"só {len(urls)} URLs — a nav não foi lida?"
+    assert len(urls) == len(set(urls)), "URL repetida no sitemap"
+
+    app = os.path.join(raiz, "site", "app")
+    base = "https://dataforge-lang.vercel.app"
+    mortas = []
+    for url in urls:
+        rota = url[len(base):] or "/"
+        if not _rota_existe(app, rota):
+            mortas.append(rota)
+    assert not mortas, f"o sitemap aponta para rota inexistente: {mortas}"
+
+
+def test_o_download_nao_chama_de_pendente_o_que_ja_esta_publicado():
+    """O inverso do erro dos sete links quebrados, e o mesmo defeito.
+
+    A imagem do Docker Hub foi publicada — com README e as tags `latest`
+    e `1.0.0` — e a página continuava com `pronto: false`, anunciando
+    como "na próxima versão" algo que já estava no ar.
+
+    A página e a realidade em dois lugares: um dizia mais do que existe,
+    o outro dizia menos.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonte = open(os.path.join(raiz, "site", "app", "download", "page.tsx"),
+                 encoding="utf-8").read()
+
+    # O bloco do Docker, do título ao 'pronto'.
+    bloco = re.search(r"titulo: 'Docker',.*?pronto: (true|false)", fonte,
+                      re.S)
+    assert bloco, "o bloco do Docker mudou de forma"
+    assert bloco.group(1) == "true", (
+        "a imagem está publicada em hub.docker.com/r/estevan5s/dataforge "
+        "— 'pronto: false' esconde um caminho que funciona")
+
+    # E o único que continua pendente é o AUR, que depende de submissão
+    # a um repositório de terceiro.
+    pendentes = re.findall(r"titulo: '([^']+)',(?:(?!titulo:).)*?"
+                           r"pronto: false", fonte, re.S)
+    assert pendentes == ["Arch Linux e derivadas"], (
+        f"o que está pendente mudou: {pendentes} — confira se ainda é "
+        f"verdade antes de ajustar este teste")

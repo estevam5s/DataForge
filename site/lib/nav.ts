@@ -343,6 +343,7 @@ export const nav: NavSection[] = [
       { title: 'Hierarquia de erros', href: '/docs/referencia/erros' },
       { title: 'Funções embutidas', href: '/docs/referencia/embutidas' },
       { title: 'Arquitetura do runtime', href: '/docs/referencia/arquitetura' },
+      { title: 'API pública (JSON)', href: '/api' },
     ],
   },
   {

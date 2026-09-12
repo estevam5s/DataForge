@@ -152,6 +152,23 @@ if [ "$MODO" != "rapido" ]; then
         printf '   (site/node_modules ausente: rode npm ci)\n'
     fi
 
+    passo "os downloads do site baixam de verdade"
+    # A pagina /download anunciava SETE arquivos e nenhum existia: nao
+    # havia release, e cada botao levava ao 404 do GitHub. O teste que
+    # havia conferia que os NOMES batiam com o workflow — o mapa — e
+    # passava.
+    #
+    # Mesma politica do passo abaixo: sem rede nao reprova, so o link
+    # quebrado confirmado.
+    if $PY scripts/verificar_downloads.py > /tmp/df_dl.txt 2>&1; then
+        registrar 0 "downloads"
+    elif grep -q "sem rede" /tmp/df_dl.txt; then
+        echo "   (sem rede — pulado)"
+    else
+        cat /tmp/df_dl.txt
+        registrar 1 "downloads"
+    fi
+
     passo "a doc da organizacao esta em dia"
     # Fala com a rede, e por isso o silencio nao pode reprovar: quem
     # esta offline nao tem como saber se a organizacao divergiu, e

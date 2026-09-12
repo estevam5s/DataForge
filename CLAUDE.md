@@ -294,9 +294,18 @@ Estas são as que mais custam tempo:
     `halt`.
 
 14. **A linguagem não sincroniza sozinha.** Duas threads escrevendo na
-    mesma variável perdem atualizações. `Arcane.Concurrent` tem `mutex`,
-    `semaforo`, `contador` e canal bloqueante — mas usá-los é escolha de
-    quem escreve. Vale para o Kiln, que atende **um pedido por thread**.
+    mesma variável perdem atualizações — **medido: 40.425 de 80.000**,
+    em silêncio. `Arcane.Concurrent` tem `mutex`, `semaforo`, `contador`
+    e canal bloqueante, mas usá-los é escolha de quem escreve. Vale para
+    o Kiln, que atende **um pedido por thread**.
+    O `check` agora **avisa** (`escrita-concorrente`) quando um `thread`
+    ou `parallel` escreve num nome que vem de fora — inclusive na forma
+    `v["n"] := …`, que é a que mais engana. Era o único bug caro que nem
+    o `check` nem o `lint` mencionavam.
+    A análise **para na fronteira da ação**: seguir chamada exigiria um
+    grafo, e um aviso que depende disso seria impreciso nos dois
+    sentidos. É aviso, e não erro: um acumulador protegido por mutex
+    passa por aqui igual, e recusá-lo proibiria o uso correto.
 
 15. **Dentro de `$"{…}"`, aspas normais.** `$"item {v["id"]}"` funciona;
     `$"item {v[\"id\"]}"` não — o lexer copia strings aninhadas verbatim, e o
@@ -1223,6 +1232,33 @@ e não `find`, porque `dataforge.editor` mora fora da pasta do pacote e
 `find` só acha o que tem `__init__.py`. O preço de uma lista explícita é
 envelhecer, e há teste comparando-a com o disco.
 
+## A API pública do site, e o sitemap
+
+`site/public/api/*.json` são sete endpoints com a linguagem inteira —
+sintaxe, 1349 símbolos, 45 comandos, 177 códigos de erro, o inventário
+— servidos com `Access-Control-Allow-Origin: *`. Saem de
+`scripts/gerar_api.py`, que lê o mesmo código que o interpretador
+executa.
+
+Eles estavam no ar e **não havia uma linha documentando que existem**.
+Uma API sem referência é uma API que ninguém usa: `/api` é a página que
+faltava, com o contrato, a forma de cada objeto e três exemplos que
+rodam (DataForge, `jq` e `fetch`).
+
+A página `/api` e os JSONs coexistem: o export estático gera
+`out/api/index.html` ao lado de `out/api/index.json`.
+
+**Não havia sitemap** — `/sitemap.xml` dava 404 — com 96 páginas de
+doc, as mais fundas a quatro saltos da home. `site/app/sitemap.ts` sai
+de `nav.ts`, a mesma fonte da barra lateral: uma segunda lista
+divergiria, e um sitemap que aponta para página removida é pior que
+nenhum. Ambos precisam de `export const dynamic = 'force-static'`,
+senão o `next build` com `output: 'export'` falha.
+
+E o `metadataBase` apontava para `dataforge-lang.dev`, que **não
+responde** — era o único lugar do repositório que citava esse domínio.
+Todo canônico e todo Open Graph iam para um endereço inexistente.
+
 ## O que é gerado — não edite à mão
 
 | Arquivo | Gerador | Guardado por |
@@ -1238,6 +1274,7 @@ envelhecer, e há teste comparando-a com o disco.
 | `site/public/dist/*.tar.gz` | `scripts/gerar_tarball.py` | `tests/test_regressoes.py` |
 | `site/lib/marca.ts`, favicon, ícones | `tools/vetorizar_logo.py` | `tests/test_api_e_marca.py` |
 | `site/public/api/*.json` | `scripts/gerar_api.py` | `tests/test_api_e_marca.py` |
+| `site/app/sitemap.ts` e `robots.ts` | saem de `nav.ts` em tempo de build | `tests/test_api_e_marca.py` |
 | `github.com/dataforge-df/docs` | `scripts/sincronizar_docs_org.py` | `verificar_tudo.sh` |
 | `dataforge/marca.py` (arte ASCII) | `tools/vetorizar_logo.py` | — |
 
@@ -1270,6 +1307,34 @@ O mesmo vale para `site/lib/highlight.ts`: há teste comparando com `tokens.py`.
 Ambos criam uma venv em `~/.dataforge` — não tocam no Python do sistema e
 não pedem sudo. A origem do download é o site (`/dist/dataforge-X.tar.gz`),
 com o GitHub apenas como alternativa.
+
+### Os binários: a tag publica, e o site serve
+
+`release.yml` é disparado por uma tag `v*` e constrói **nas quatro
+plataformas** (Linux, macOS Intel, macOS ARM, Windows), roda os
+exemplos e os exercícios *pelo binário*, monta o instalador do Windows
+com o Inno Setup, gera o `.deb` e o PKGBUILD, e anexa tudo ao release
+com um `SHA256SUMS.txt`.
+
+**A página `/download` anunciava sete arquivos e nenhum existia.** Não
+havia release no repositório — a tag nunca foi criada — e cada botão
+levava à página 404 do GitHub.
+
+E havia teste sobre isso, e ele passava: conferia que os nomes na
+página batiam com o que o `release.yml` constrói. A coerência entre
+dois arquivos do repositório, e nada sobre o que está publicado. Uma
+trava que valida o mapa e não o território.
+
+`scripts/verificar_downloads.py` vai ao território: pede cada arquivo e
+confere código, tamanho e tipo. O tamanho mínimo importa — **o 404 do
+GitHub responde 200 em alguns caminhos** e devolve HTML de ~10 KB, que
+passaria por um teste que só olha o status.
+
+O download sai pelo **domínio do site**: `/baixar/<arquivo>` é um
+`rewrite` no `site/vercel.json` que a edge resolve contra o release.
+Quem instala não sai da página, e um ambiente que bloqueia o GitHub não
+fica sem instalar. O padrão é `:arquivo` — um segmento só, para não
+haver como montar caminho para fora do release.
 
 Ao mudar a versão, regenere o tarball que o site serve:
 

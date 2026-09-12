@@ -4219,3 +4219,205 @@ def test_nenhum_exercicio_deixa_variavel_de_ambiente_para_tras():
         "exercício que define variável de ambiente e não a remove — o "
         "ambiente é do processo, e o arquivo seguinte a vê:\n  "
         + "\n  ".join(faltando))
+
+
+def test_a_verificacao_local_confere_os_downloads():
+    """A página `/download` anunciava sete arquivos e **nenhum
+    existia**: não havia release no repositório, e cada botão levava à
+    página 404 do GitHub.
+
+    Havia um teste sobre isso, e ele passava — conferia que os nomes na
+    página batiam com o que o `release.yml` constrói. A coerência entre
+    dois arquivos do repositório, e nada sobre o que está publicado.
+
+    `scripts/verificar_downloads.py` pede cada arquivo de verdade. O
+    que este teste garante é que ele **entrou** na verificação local:
+    um verificador que ninguém roda é um arquivo morto.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    script = os.path.join(raiz, "scripts", "verificar_tudo.sh")
+    if not os.path.isfile(script):
+        pytest.skip("o script não está neste checkout")
+
+    texto = open(script, encoding="utf-8").read()
+    assert "verificar_downloads.py" in texto, (
+        "o verificador de downloads ficou fora de verificar_tudo.sh")
+    # E o silêncio não pode reprovar: sem rede, pula.
+    assert "sem rede" in texto
+
+
+def test_o_verificador_de_download_recusa_uma_pagina_html():
+    """O 404 do GitHub responde **200** em alguns caminhos e devolve
+    HTML de ~10 KB. Conferir só o código de status deixaria isso passar,
+    e o usuário baixaria uma página HTML com o nome `.exe`.
+    """
+    import importlib.util
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "scripts", "verificar_downloads.py")
+    if not os.path.isfile(caminho):
+        pytest.skip("o script não está neste checkout")
+
+    fonte = open(caminho, encoding="utf-8").read()
+    # As três conferências que fazem a diferença entre "respondeu" e
+    # "é o arquivo que prometemos".
+    assert "MINIMO" in fonte, "sem tamanho mínimo, uma página de erro passa"
+    assert "text/html" in fonte, "sem isso, HTML com nome de .exe passa"
+    assert "Content-Length" in fonte
+
+    # E o módulo carrega: um verificador que não importa não verifica.
+    spec = importlib.util.spec_from_file_location("vd", caminho)
+    modulo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modulo)
+    assert modulo.MINIMO >= 100 * 1024
+    nomes = modulo.arquivos_da_pagina()
+    assert len(nomes) >= 6, nomes
+    assert all(not n.startswith("/") for n in nomes)
+
+
+# ═══════════════════════════════════════════════════════════
+#  A corrida de dados era o único bug caro que ninguém avisava
+#
+#  Quatro threads somando 20 mil vezes na mesma variável
+#  entregaram 40.425 de 80.000 — metade, em silêncio.
+#  `x := x + 1` são três passos (ler, somar, escrever), e o
+#  interpretador pode trocar de thread entre eles.
+#
+#  A linguagem tem a resposta (`Arcane.Concurrent`) e não a
+#  aplica sozinha — o que é uma decisão. Mas nem `check` nem
+#  `lint` MENCIONAVAM o risco.
+# ═══════════════════════════════════════════════════════════
+
+def test_escrever_de_dentro_de_parallel_num_nome_de_fora_avisa():
+    ds = _diag('''
+total := 0
+
+parallel:
+    total := total + 1
+    total := total + 2
+''')
+    avisos = [d for d in ds if d.code == "escrita-concorrente"]
+    assert avisos, [d.message for d in ds]
+    assert "total" in avisos[0].message
+    assert "perder atualizacoes" in avisos[0].message
+    # A saída, nomeada: a linguagem tem as três ferramentas.
+    assert "Arcane.Concurrent" in avisos[0].hint
+    assert "contador" in avisos[0].hint
+
+
+def test_o_mesmo_vale_para_thread():
+    ds = _diag('''
+x := 0
+
+thread:
+    x := x + 1
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"]
+
+
+def test_escrever_num_campo_de_vault_tambem_avisa():
+    """É a forma que mais engana: `v["n"] := …` parece mexer só no
+    campo, e o vault vem de fora."""
+    ds = _diag('''
+v := {"n": 0}
+
+thread:
+    v["n"] := v["n"] + 1
+''')
+    avisos = [d for d in ds if d.code == "escrita-concorrente"]
+    assert avisos
+    assert "'v'" in avisos[0].message
+
+
+def test_um_nome_declarado_dentro_do_bloco_nao_avisa():
+    """Cada thread tem o seu: não há o que perder."""
+    ds = _diag('''
+thread:
+    meu := 0
+    meu := meu + 1
+    out meu
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"] == []
+
+
+def test_ler_sem_escrever_nao_avisa():
+    """Duas threads lendo o mesmo valor não perdem nada. Avisar aqui
+    daria alarme no uso mais comum — passar dado para a thread."""
+    ds = _diag('''
+dados := [1, 2, 3]
+
+parallel:
+    out len(dados)
+    out dados[0]
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"] == []
+
+
+def test_a_escrita_dentro_de_uma_acao_chamada_pelo_bloco_nao_e_seguida():
+    """A análise para na fronteira da ação. Seguir chamada exigiria um
+    grafo, e um aviso que depende disso seria impreciso nos dois
+    sentidos — o que é pior que a omissão, porque um falso alarme ensina
+    a ignorar a mensagem."""
+    ds = _diag('''
+total := 0
+
+action bater():
+    total := total + 1
+
+parallel:
+    bater()
+    bater()
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"] == []
+
+
+def test_e_um_aviso_e_nao_um_erro():
+    """Escrever de duas threads é legítimo quando quem escreve sabe: um
+    acumulador protegido por mutex passa por aqui igual, e recusá-lo
+    seria proibir o uso correto."""
+    ds = _diag('''
+total := 0
+
+parallel:
+    total := total + 1
+''')
+    corrida = [d for d in ds if d.code == "escrita-concorrente"]
+    assert corrida
+    assert all(d.severity == "warning" for d in corrida)
+
+
+def test_df_permitir_silencia_a_corrida():
+    """O exercício 170 **demonstra** a condição de corrida, com a saída
+    mostrando o número menor que o esperado. O analisador está certo, e
+    o exercício também."""
+    ds = _diag('''
+v := {"n": 0}
+
+thread:
+    // df: permitir escrita-concorrente
+    v["n"] := v["n"] + 1
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"] == []
+
+
+def test_a_perda_de_atualizacao_e_real_e_medida():
+    """O aviso não é teórico. Sem sincronização, o número vem errado —
+    e é por isso que a mensagem vale a pena."""
+    saida = run('''
+adopt Arcane.Concurrent as Conc
+
+// Com o contador atômico do Concurrent: o número fecha.
+c := Conc.contador()
+
+action bater():
+    cycle i from 1 to 2000:
+        c.somar(1)
+
+parallel:
+    bater()
+    bater()
+
+out c.valor()
+''')
+    assert saida.strip() == "4000", (
+        f"o contador atômico perdeu atualização: {saida!r}")

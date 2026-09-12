@@ -2,7 +2,14 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://dataforge-lang.dev'),
+  // O dominio onde o site REALMENTE vive.
+  //
+  // Apontava para um '.dev' que nao responde, e era o unico lugar do
+  // repositorio que o citava — nao havia nem a intencao de usa-lo.
+  // Todo canonico e todo Open Graph iam para um endereco inexistente:
+  // um link compartilhado nao mostra previa, e um buscador indexa o
+  // lugar errado.
+  metadataBase: new URL('https://dataforge-lang.vercel.app'),
   title: {
     default: 'DataForge — documentação da linguagem',
     template: '%s | DataForge',

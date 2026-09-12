@@ -55,14 +55,20 @@ out $"sequencial: {round(tempo_seq * 1000, 1)} ms"
 assert len(sequencial) is 3, "tres resultados"
 
 // Aviso importante: sem sincronizacao, atualizacoes se perdem
+//
+// O 'check' ACUSA as duas linhas abaixo — e esta certo. Aqui a corrida
+// e o assunto do exercicio, e 'df: permitir' diz isso a ele. A regra e
+// nomeada: um 'permitir' solto esconderia o erro seguinte.
 contador := {"valor": 0}
 
 thread:
     cycle _ in range(0, 1000):
+        // df: permitir escrita-concorrente
         contador["valor"] := contador["valor"] + 1
 
 thread:
     cycle _ in range(0, 1000):
+        // df: permitir escrita-concorrente
         contador["valor"] := contador["valor"] + 1
 
 wait 400

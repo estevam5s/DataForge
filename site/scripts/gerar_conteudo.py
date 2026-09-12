@@ -32,6 +32,7 @@ MODULOS = [
     "kiln_extra",
     "microservicos",
     "devops",
+    "api_publica",
     "crucible_doc",
     "vitrine",
     "versoes",
