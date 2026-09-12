@@ -96,7 +96,7 @@ export default function Home() {
           [<>Versão</>, <><code>1.0.0</code></>],
           [<>Extensão</>, <><code>.df</code></>],
           [<>Runtime</>, <>Python 3.10+, zero dependências</>],
-          [<>Biblioteca padrão</>, <>38 módulos, 1325 símbolos</>],
+          [<>Biblioteca padrão</>, <>39 módulos, 1348 símbolos</>],
           [<>Funções globais</>, <>228, sem <code>adopt</code></>],
           [<>Licença</>, <>MIT</>],
         ]}
@@ -147,15 +147,15 @@ export default function Home() {
         O analisador estático fica calado quando não consegue{' '}
         <strong>provar</strong> que algo está errado. Um falso alarme é pior que
         um alerta perdido, porque ensina a ignorar as mensagens. Hoje ele reporta{' '}
-        <strong>zero erros</strong> em 233 arquivos conhecidamente bons.
+        <strong>zero erros</strong> em 368 arquivos conhecidamente bons.
       </p>
 
       <H3>Verificável</H3>
       <p>
         Cada afirmação desta documentação corresponde a código que roda. São{' '}
-        <strong>1858 testes</strong>, 227 exercícios que verificam o próprio
+        <strong>2171 testes</strong>, 229 exercícios que verificam o próprio
         resultado com <code>assert</code>, e 43 programas de exemplo. Os
-        trechos desta documentação são compilados a cada mudança — 568 deles.
+        trechos desta documentação são compilados a cada mudança — 642 deles.
       </p>
 
       <H2>De onde você vem</H2>
@@ -293,11 +293,11 @@ dataforge version`}
         <Card href="/docs/variaveis" title="Visão geral" meta="13 páginas">
           A linguagem do zero, na ordem em que é usada.
         </Card>
-        <Card href="/docs/exercicios" title="227 exercícios" meta="28 áreas">
-          Cada um se verifica com <code>assert</code>. Dezesseis módulos têm
+        <Card href="/docs/exercicios" title="229 exercícios" meta="32 áreas">
+          Cada um se verifica com <code>assert</code>. Vinte e dois módulos têm
           um <code>.md</code> explicativo ao lado de cada exercício.
         </Card>
-        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1325 símbolos">
+        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1348 símbolos">
           Estatística, bancos, HTTP, criptografia, Parquet, ML, streaming.
         </Card>
         <Card href="/docs/referencia/gramatica" title="Referência formal">

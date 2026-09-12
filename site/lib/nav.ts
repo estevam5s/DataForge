@@ -183,6 +183,7 @@ export const nav: NavSection[] = [
       { title: 'Streaming', href: '/docs/tecnicas/streaming' },
       { title: 'Observabilidade e linhagem', href: '/docs/tecnicas/observar' },
       { title: 'Planilhas', href: '/docs/tecnicas/planilhas' },
+      { title: 'Microserviços', href: '/docs/tecnicas/microservicos' },
       { title: 'Servidor HTTP', href: '/docs/tecnicas/http' },
       { title: 'Editor e cores', href: '/docs/tecnicas/editor' },
       { title: 'Servidor de linguagem (LSP)', href: '/docs/tecnicas/lsp' },

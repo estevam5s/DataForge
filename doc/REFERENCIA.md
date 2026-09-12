@@ -796,6 +796,27 @@ x not in colecao
 Funciona em `Cluster` (elemento), `Vault` (chave), `String` (subtexto), `Record`
 (nome de campo) e `Stream` (consome).
 
+#### Apagar uma chave
+
+`remove` e `pop` valem para os dois, e o segundo argumento muda de sentido:
+num `Cluster` é o **valor**, num `Vault` é a **chave**.
+
+```dataforge
+v := {"a": 1, "b": 2}
+remove(v, "a")            // apaga NO LUGAR; devolve o vault
+assert v is {"b": 2}
+remove(v, "nao-existe")   // silencioso: quem remove quer o estado final
+assert pop(v, "b") is 2   // pop DEVOLVE o valor, e por isso exige a chave
+assert v is {}
+```
+
+`pop` de uma chave ausente levanta `KeyError`. A assimetria é de propósito:
+devolver `void` calado esconderia a diferença entre "a chave valia `void`" e
+"a chave não estava lá". `remove` não devolve valor, e aí já não importa.
+
+O método `v.delete("a")` faz o mesmo que `remove(v, "a")`. `omit(v, "a")`
+devolve uma **cópia** sem a chave, e não mexe no original.
+
 ### 11.5.5 Spread e rest
 
 | Posição | Significa | Exemplo |

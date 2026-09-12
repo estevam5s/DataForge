@@ -81,7 +81,11 @@ done
                    || registrar 1 "pacotes: $erros falharam"
 
 passo "as proprias ferramentas"
-$PY -m dataforge check exercicios/ examples/ packages/ > /tmp/df_check.txt 2>&1
+# 'projetos/' ficava de fora, e era o unico lugar com import
+# relativo entre arquivos — o caminho que estourava um traceback
+# do Python dentro do analisador sem ninguem ver.
+$PY -m dataforge check exercicios/ examples/ packages/ projetos/ \
+    > /tmp/df_check.txt 2>&1
 registrar $? "check"
 $PY -m dataforge fmt exercicios/ examples/ packages/ projetos/ --check > /tmp/df_fmt.txt 2>&1
 registrar $? "fmt --check"

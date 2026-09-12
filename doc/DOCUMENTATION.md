@@ -971,9 +971,11 @@ out msg    // Olá do thread!
 | `enumerate(list)` | Lista de [índice, valor] |
 | `zip(a, b)` | Combina listas |
 | `append(list, item)` | Adiciona item |
-| `pop(list)` | Remove último |
+| `pop(list)` | Remove e devolve o último |
+| `pop(vault, chave)` | Remove e devolve o valor; levanta se a chave não existe |
 | `insert(list, i, item)` | Insere na posição |
-| `remove(list, item)` | Remove item |
+| `remove(list, item)` | Remove o item (silencioso se não estiver lá) |
+| `remove(vault, chave)` | Apaga a chave **no lugar** (silencioso se não existe) |
 | `contains(col, item)` | Verifica existência |
 | `flatten(list)` | Achata listas aninhadas |
 | `unique(list)` | Remove duplicatas |

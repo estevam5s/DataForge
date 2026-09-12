@@ -1747,7 +1747,39 @@ def _contagens_reais():
         "exercicios": len(glob.glob(os.path.join(raiz, "exercicios",
                                                  "*", "[0-9]*.df"))),
         "exemplos": len(glob.glob(os.path.join(raiz, "examples", "*.df"))),
+        "areas": len([
+            d for d in glob.glob(os.path.join(raiz, "exercicios", "*"))
+            if os.path.isdir(d) and os.path.basename(d)[:2].isdigit()
+            and glob.glob(os.path.join(d, "[0-9]*.df"))]),
+        "testes": _quantos_testes(raiz),
+        "blocos": _quantos_blocos_de_doc(raiz),
     }
+
+
+def _quantos_testes(raiz):
+    """Quantos testes o pytest coleta — a mesma conta que o CI faz."""
+    import re
+    import subprocess
+    import sys as _sys
+
+    r = subprocess.run([_sys.executable, "-m", "pytest", "tests/", "-q",
+                        "--collect-only"],
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", cwd=raiz)
+    achado = re.search(r"(\d+) tests collected", r.stdout or "")
+    return int(achado.group(1)) if achado else 0
+
+
+def _quantos_blocos_de_doc(raiz):
+    import re
+    import subprocess
+    import sys as _sys
+
+    r = subprocess.run([_sys.executable, "tools/verificar_docs.py"],
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", cwd=raiz)
+    achado = re.search(r"os (\d+) blocos", r.stdout or "")
+    return int(achado.group(1)) if achado else 0
 
 
 def test_a_pagina_docs_anuncia_os_numeros_reais():
@@ -1762,11 +1794,35 @@ def test_a_pagina_docs_anuncia_os_numeros_reais():
     if not os.path.isfile(pagina):
         pytest.skip("o site não está neste checkout")
 
+    import re
+
     texto = open(pagina, encoding="utf-8").read()
     real = _contagens_reais()
-    for chave in ("modulos", "simbolos", "exercicios"):
+
+    # O que é estrutural muda raramente, e uma divergência ali é rot:
+    # cobrado exato.
+    for chave in ("modulos", "simbolos", "exercicios", "areas"):
         assert str(real[chave]) in texto, (
             f"a página /docs não cita os {real[chave]} {chave} reais")
+
+    # Testes e blocos de doc crescem a cada mudança, e cobrar o número
+    # exato faria de cada teste novo uma edição em dois arquivos — o
+    # tipo de atrito que se resolve desligando a trava. Cobrada a ordem
+    # de grandeza: "1858" onde são 2171 falha (17%), dois testes novos
+    # não.
+    for chave, padrao in (("testes", r"<strong>(\d+) testes</strong>"),
+                          ("blocos", r"compilados a cada mudança — (\d+) deles")):
+        if not real[chave]:
+            continue        # a ferramenta não rodou neste ambiente
+        achado = re.search(padrao, texto)
+        assert achado, (
+            f"a página /docs não anuncia mais os {chave} no formato que "
+            f"este teste conhece — ajuste o padrão: {padrao}")
+        dito = int(achado.group(1))
+        desvio = abs(dito - real[chave]) / real[chave]
+        assert desvio <= 0.05, (
+            f"a página /docs diz {dito} {chave}, e são {real[chave]} "
+            f"({desvio:.0%} de diferença)")
 
 
 def test_a_home_lista_todos_os_modulos():
@@ -2691,6 +2747,12 @@ def test_nenhum_teste_de_paralelismo_usa_limite_absoluto():
             if any(palavra in fonte_da_funcao
                    for palavra in ("serie", "referencia", "trabalho")):
                 continue
+            # E um teste de PRAZO é o caso legítimo: o limite não é a
+            # velocidade da máquina, é o prazo que o próprio teste
+            # configurou. "esperou menos que o dobro do prazo de 0,3 s"
+            # é uma afirmação sobre o código, e máquina lenta a reforça.
+            if "prazo" in fonte_da_funcao or "timeout" in fonte_da_funcao:
+                continue
             suspeitos.append(f"{os.path.basename(caminho)}::{no.name}")
 
     assert not suspeitos, (
@@ -2792,3 +2854,155 @@ def test_a_pagina_da_biblioteca_lista_todos_os_modulos():
     oficiais = {get_module(m)["__name__"] for m in list_modules()}
     faltando = sorted(n for n in oficiais if f"`{n}`" not in depois)
     assert not faltando, f"não aparecem em /docs/biblioteca: {faltando}"
+
+
+# ═══════════════════════════════════════════════════════════
+#  'remove' e 'pop' num vault
+#
+#  Não havia como apagar uma chave de um vault no lugar. `omit`
+#  devolve uma cópia, e `delete` só existia como método — a
+#  forma função `remove(v, "k")` estourava
+#  "list.remove(x): x not in list", uma mensagem sobre lista
+#  para quem passou um vault.
+#
+#  Apareceu escrevendo uma saga: a compensação recebe o vault
+#  compartilhado entre ações e precisa mudá-lo, não copiá-lo.
+# ═══════════════════════════════════════════════════════════
+
+def test_remove_apaga_a_chave_de_um_vault_no_lugar():
+    saida = run('''
+v := {"a": 1, "b": 2}
+mesmo := v
+remove(v, "a")
+out v
+out mesmo
+''')
+    # 'no lugar' é o ponto: quem guardou uma referência vê a mudança.
+    assert saida.strip().splitlines() == ["{b: 2}", "{b: 2}"]
+
+
+def test_remove_num_vault_sem_a_chave_e_silencioso():
+    """Quem remove quer o estado final, e nesse ponto já não importa se
+    estava lá. Levantar obrigaria todo chamador a checar antes."""
+    saida = run('''
+v := {"a": 1}
+remove(v, "nao-existe")
+out v
+''')
+    assert saida.strip() == "{a: 1}"
+
+
+def test_remove_num_cluster_sem_o_item_tambem_e_silencioso():
+    """Era a única das duas que levantava, e a assimetria não tinha
+    razão: o `ValueError` cru do Python vazava como erro de runtime."""
+    saida = run('''
+c := [1, 2, 3]
+remove(c, 99)
+out c
+remove(c, 2)
+out c
+''')
+    assert saida.strip().splitlines() == ["[1, 2, 3]", "[1, 3]"]
+
+
+def test_pop_de_vault_tira_pela_chave_e_devolve_o_valor():
+    saida = run('''
+v := {"a": 1, "b": 2}
+out pop(v, "a")
+out v
+''')
+    assert saida.strip().splitlines() == ["1", "{b: 2}"]
+
+
+def test_pop_de_vault_sem_a_chave_levanta():
+    """Ao contrário de `remove`: `pop` devolve o valor, e devolver
+    `void` calado esconderia a diferença entre "a chave valia void" e
+    "a chave não estava lá"."""
+    saida = run('''
+monitor:
+    pop({"a": 1}, "z")
+    out "nao devia chegar aqui"
+handle Error as e:
+    out e.type
+''')
+    assert saida.strip() == "KeyError"
+
+
+def test_pop_de_vault_sem_chave_nenhuma_explica_o_que_fazer():
+    saida = run('''
+monitor:
+    pop({"a": 1})
+handle Error as e:
+    out e.message
+''')
+    assert "precisa da chave" in saida
+
+
+def test_pop_de_cluster_continua_pela_posicao():
+    """A polimorfia não pode mudar o caso que já funcionava."""
+    saida = run('''
+c := [1, 2, 3]
+out pop(c)
+out pop(c, 0)
+out c
+''')
+    assert saida.strip().splitlines() == ["3", "1", "[2]"]
+
+
+def test_nenhuma_ferramenta_estoura_traceback_em_arquivo_do_repositorio():
+    """Um analisador estático que morre com traceback do Python é pior
+    que um que erra: não diz nada sobre o código, e o usuário não tem
+    como saber se o problema é dele.
+
+    Aconteceu de verdade. `superficie.py` lia os membros de um `enum`
+    como se fossem um dicionário, mas o parser os guarda como pares
+    `(nome, valor)`. Um par com valor carrega um nó da árvore, que não
+    é hashável, e `set(campos)` estourava — em cinco arquivos de
+    `projetos/gestor-tarefas`, os únicos do repositório com import
+    relativo entre arquivos, que é o caminho que chega lá.
+
+    E passou meses sem aparecer porque `scripts/verificar_tudo.sh`
+    rodava `check` em `exercicios/`, `examples/` e `packages/` — não em
+    `projetos/`.
+    """
+    import glob
+    import subprocess
+    import sys as _sys
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    alvos = [d for d in ("exercicios", "examples", "packages", "projetos",
+                         "modelos")
+             if os.path.isdir(os.path.join(raiz, d))]
+    assert alvos
+
+    for ferramenta in ("check", "lint", "fmt"):
+        cmd = [_sys.executable, "-m", "dataforge", ferramenta] + alvos
+        if ferramenta == "fmt":
+            cmd.append("--check")
+        r = subprocess.run(cmd, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", cwd=raiz)
+        saida = (r.stdout or "") + (r.stderr or "")
+        assert "Traceback (most recent call last)" not in saida, (
+            f"'dataforge {ferramenta}' estourou traceback:\n{saida[-2000:]}")
+
+
+def test_a_superficie_le_um_enum_com_e_sem_valor(tmp_path):
+    """O caso mínimo do bug acima, sem passar pela CLI."""
+    from dataforge.superficie import de_arquivo
+
+    arquivo = tmp_path / "x.df"
+    arquivo.write_text('''
+enum Status:
+    Ativo
+    Inativo := "off"
+    Contagem := 3
+
+    action ligado():
+        yield self is Status.Ativo
+
+relay Status
+''', encoding="utf-8")
+
+    membro = de_arquivo(str(arquivo)).membros["Status"]
+    assert membro.especie == "enum"
+    assert membro.campos == {"Ativo", "Inativo", "Contagem", "ligado"}

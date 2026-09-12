@@ -20,8 +20,8 @@ analisador estático e interpretador de árvore próprios.
 ### Verificação rápida — rode antes e depois de mexer
 
 ```bash
-python3 -m pytest tests/ -q                          # mais de 1850 testes
-python3 exercicios/run_all.py                        # 227 exercícios
+python3 -m pytest tests/ -q                          # mais de 2160 testes
+python3 exercicios/run_all.py                        # 229 exercícios
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
@@ -64,7 +64,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                38 módulos (1325 símbolos), incluindo:
+  stdlib/                39 módulos (1348 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -76,7 +76,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        227 exercícios em 31 módulos + run_all.py
+exercicios/        229 exercícios em 32 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -323,6 +323,14 @@ Estas são as que mais custam tempo:
 21. **Um decorador que devolve `void` não substitui o alvo.** É o que
     permite `@Rota("/x")` só anotar. Se ele devolvesse `void` e isso
     virasse o novo valor, a ação decorada sumiria.
+
+22. **`remove` e `pop` mudam de sentido conforme a coleção.** Num
+    `Cluster` o segundo argumento é o **valor**; num `Vault`, a
+    **chave**. `remove` apaga **no lugar** e é silencioso quando não
+    acha; `pop` devolve o valor e por isso **levanta** — devolver `void`
+    calado esconderia a diferença entre "a chave valia `void`" e "a
+    chave não estava lá". `omit` devolve **cópia** e não mexe no
+    original.
 
 ---
 
@@ -582,6 +590,20 @@ cola `-`, `.` e dígitos ao nome, exigindo **adjacência de coluna** — sem
 essa guarda, `a - b` viraria um arquivo chamado `a-b`.
 
 `tests/test_resolucao.py` cobre os quatro, e proíbe a cópia voltar.
+
+**Um analisador que morre com traceback do Python é pior que um que
+erra**: não diz nada sobre o código, e o usuário não sabe se o problema
+é dele. `superficie.py` lia os membros de um `enum` como dicionário, mas
+o parser os guarda como pares `(nome, valor)` — e um par com valor
+carrega um nó da árvore, que não é hashável. `set(campos)` estourava em
+cinco arquivos de `projetos/gestor-tarefas`, os únicos do repositório
+com import relativo entre arquivos, que é o caminho que chega lá.
+
+Passou meses invisível porque `scripts/verificar_tudo.sh` rodava `check`
+em `exercicios/`, `examples/` e `packages/` — **não em `projetos/`**.
+Hoje roda, e `test_nenhuma_ferramenta_estoura_traceback_em_arquivo_do_repositorio`
+passa `check`, `lint` e `fmt` sobre as cinco pastas procurando a palavra
+`Traceback`.
 
 **Ciclo de import agora é erro do `check`.** Ele estourava só em
 execução, no primeiro `adopt`, e o `check` passava limpo num projeto que
@@ -865,6 +887,60 @@ faria crescer um item por teste.
 `flaky` devolve o número de tentativas: um teste que precisa de três
 toda vez não é instável, está quebrado.
 
+## Arcane.Malha — chamada entre serviços, e saga
+
+Uma chamada de ação tem dois desfechos; uma de **rede** tem três, e o
+terceiro é o que quebra sistemas: **não se sabe**. Por isso `Malha`
+devolve **vault** em vez de levantar — `status 0` é o caso honesto, e
+colapsá-lo em "falhou" faz o programa acima repetir uma cobrança.
+
+| Peça | O problema dela |
+|---|---|
+| `cliente` · `registrar` · `de` | o disjuntor e as métricas vivem **no cliente**; um por chamada esqueceria que o serviço caiu |
+| `recuo` | retentativa sem jitter sincroniza os clientes e o serviço volta a cair |
+| `Disjuntor` | um serviço caído leva os que dependem dele, e nunca se recupera porque nunca para de receber |
+| `Contexto` · `propagar` | sem id que atravessa a fronteira, investigar incidente é cruzar horário de log |
+| `Saga` | não existe transação que atravesse a rede |
+
+Cinco decisões que valem lembrar:
+
+1. **POST e PATCH não são repetidos** — a menos que venha `chave :=`.
+   Repetir um POST cobra duas vezes; a chave em `Idempotency-Key` dá ao
+   servidor o meio de reconhecer a repetição. **Quem honra é o outro
+   lado**: a `Malha` não pode fabricar idempotência.
+
+2. **4xx não abre o disjuntor.** Não é falha do serviço — o pedido está
+   errado, e contar isso derrubaria uma dependência sadia por um bug de
+   quem chama.
+
+3. **O disjuntor conta cada TENTATIVA**, não cada chamada. Com
+   `tentativas := 4` e `falhas := 3`, a **primeira** chamada já abre —
+   é a conta que mais engana ao calibrar, e `cliente.disjuntor.falhas`
+   mostra o número de verdade.
+
+4. **`Retry-After: 0` significa "tente agora".** `pedida or recuo(…)`
+   fazia o zero cair no recuo, porque `0.0` é falso em Python. É
+   `is not None`.
+
+5. **A saga compensa em ordem INVERSA, e uma compensação que falha vira
+   órfã** — `ok` continua `no`, e as compensações seguintes ainda rodam.
+   O passo que **falhou** não é compensado: desfazer o que não aconteceu
+   é o outro lado do mesmo bug. `conferir()` acusa, antes de executar,
+   o passo que escreve sem declarar compensação.
+
+Saga **não dá isolamento**: entre `reservar` e `cobrar`, outro pedido vê
+o estoque já reservado. É a troca de atomicidade por disponibilidade, e
+ela é o ponto — quem precisa de isolamento precisa de um banco.
+
+Ela **não é um service mesh**: não há sidecar, plano de controle, mTLS
+nem roteamento por peso. Isso é infraestrutura, e reimplementá-la em
+Python daria um subconjunto pior amarrado à linguagem.
+
+`tests/test_malha.py` são 56 testes contra um servidor de verdade, com
+socket — um cliente HTTP testado só com dublê não prova nada sobre o que
+acontece quando o outro lado demora, fecha a conexão ou devolve
+`Retry-After`. Os exercícios 227 e 228 sobem dois serviços.
+
 ## DevOps — geradores, e não orquestrador
 
 `dataforge devops` gera Dockerfile, compose, CI, manifestos do
@@ -967,10 +1043,11 @@ python3 scripts/gerar_tarball.py
 | `tests/test_devops.py` | `pytest` | os artefatos: compose validado pelo `docker compose config`, manifestos conferidos como dado, a sonda do HEALTHCHECK executada, e o README do Hub |
 | `tests/test_banco.py` | `pytest` | transação que desfaz, `upsert`, `increment` sob 4 threads, FTS5, `explain`, migração com `down`, e o nome de coluna recusado |
 | `tests/test_kiln_tempo_real.py` | `pytest` | multipart, SSE e WebSocket — o protocolo falado à mão, para pegar erro de enquadramento |
+| `tests/test_malha.py` | `pytest` | chamada entre serviços contra um servidor que se comporta mal de propósito: retry, disjuntor nos três estados, `Retry-After`, propagação de rastro, e a saga compensando |
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 227 exercícios em 31 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 229 exercícios em 32 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

@@ -1,0 +1,245 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 228 — Saga: nao existe transacao que atravesse a rede
+//
+//  'BEGIN' no servico de estoque nao alcanca o de cobranca. Se o
+//  pedido reserva o produto e a cobranca falha, o produto fica preso
+//  para sempre — e nao ha 'rollback' que chegue la.
+//
+//  A unica resposta correta e COMPENSAR: cada passo declara como se
+//  desfaz, e uma falha no meio desfaz em ordem inversa o que ja
+//  aconteceu.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Malha as Malha
+
+// ── Os "servicos", com o estado que eles guardam ────────────
+
+estoque := {"CAF-500": 10}
+reservas := {}
+cobrancas := {}
+despachos := []
+chaves_vistas := {}
+
+action reservar(estado, chave):
+    sku := estado["sku"]
+    given estoque[sku] smaller estado["quantidade"]:
+        trigger $"estoque insuficiente de {sku}"
+    estoque[sku] := estoque[sku] - estado["quantidade"]
+    reservas[chave] := estado["quantidade"]
+    yield {"reserva": chave}
+
+action liberar(estado, chave):
+    given chave in reservas:
+        estoque[estado["sku"]] := estoque[estado["sku"]] + reservas[chave]
+        reservas.delete(chave)
+
+action cobrar(estado, chave):
+    // A chave de idempotencia faz o trabalho aqui: repetir a saga
+    // depois de uma queda NAO cobra duas vezes.
+    given chave in chaves_vistas:
+        yield {"cobranca": chaves_vistas[chave], "repetida": yes}
+    valor := estado["quantidade"] * 32.5
+    given valor bigger estado["limite"]:
+        trigger $"limite excedido: {valor} bigger {estado['limite']}"
+    cobrancas[chave] := valor
+    chaves_vistas[chave] := valor
+    yield {"cobranca": valor}
+
+action estornar(_estado, chave):
+    given chave in cobrancas:
+        cobrancas.delete(chave)
+        chaves_vistas.delete(chave)
+
+action despachar(estado, chave):
+    despachos.append({"sku": estado["sku"], "chave": chave})
+    yield {"despacho": len(despachos)}
+
+action cancelar_despacho(_estado, _chave):
+    despachos.clear()
+
+// ── 1. O caminho feliz ──────────────────────────────────────
+
+s := Malha.saga("checkout")
+s.passo("reservar", reservar, liberar)
+s.passo("cobrar", cobrar, estornar)
+s.passo("despachar", despachar, cancelar_despacho)
+
+// ANTES de rodar: nenhum passo que escreve pode ficar sem compensacao.
+// Um passo assim nao falha em teste feliz — ele so aparece no dia em
+// que o passo seguinte falha, e ai ja escreveu.
+assert s.conferir() is []
+
+r := s.executar({"sku": "CAF-500", "quantidade": 2, "limite": 100.0})
+
+assert r["ok"]
+assert r["concluidos"] is ["reservar", "cobrar", "despachar"]
+assert r["desfeitos"] is []
+assert r["orfas"] is []
+assert estoque["CAF-500"] is 8
+assert len(cobrancas) is 1
+assert len(despachos) is 1
+
+// O estado ATRAVESSA os passos: 'cobrar' viu o que 'reservar' devolveu.
+assert r["estado"]["cobranca"] is 65.0
+assert "reserva" in r["estado"]
+
+// ── 2. A falha no meio, e a ordem do desfazimento ───────────
+
+estoque := {"CAF-500": 10}
+reservas := {}
+cobrancas := {}
+chaves_vistas := {}
+despachos := []
+ordem := []
+
+action reservar2(estado, chave):
+    estoque["CAF-500"] := estoque["CAF-500"] - estado["quantidade"]
+    reservas[chave] := estado["quantidade"]
+    yield void
+
+action liberar2(_estado, chave):
+    ordem.append("liberar")
+    estoque["CAF-500"] := estoque["CAF-500"] + reservas[chave]
+    reservas.delete(chave)
+
+action cobrar2(_estado, chave):
+    cobrancas[chave] := 99.0
+    yield void
+
+action estornar2(_estado, chave):
+    ordem.append("estornar")
+    cobrancas.delete(chave)
+
+action despachar2(_estado, _chave):
+    trigger "transportadora fora do ar"
+
+s2 := Malha.saga("checkout")
+s2.passo("reservar", reservar2, liberar2)
+s2.passo("cobrar", cobrar2, estornar2)
+s2.passo("despachar", despachar2, cancelar_despacho)
+
+r2 := s2.executar({"sku": "CAF-500", "quantidade": 3})
+
+// Ela NAO levanta: levantar perderia a informacao de quanto conseguiu
+// desfazer, que e exatamente o que se precisa saber.
+assert not r2["ok"]
+assert r2["falhou_em"] is "despachar"
+assert "transportadora" in r2["erro"]
+
+// Ordem INVERSA. Estornar a cobranca antes de liberar o estoque
+// deixaria uma janela em que o cliente nao tem dinheiro nem produto.
+assert r2["desfeitos"] is ["cobrar", "reservar"]
+assert ordem is ["estornar", "liberar"]
+
+// E o mundo voltou ao que era.
+assert estoque["CAF-500"] is 10
+assert len(reservas) is 0
+assert len(cobrancas) is 0
+assert len(despachos) is 0
+
+// O passo que FALHOU nao e compensado: ele nao concluiu, e desfazer o
+// que nao aconteceu e o outro lado do mesmo bug.
+assert "despachar" not in r2["desfeitos"]
+
+// ── 3. Uma compensacao que falha nao pode ser engolida ──────
+//
+// Um estorno que nao passa deixa o sistema inconsistente, e isso
+// precisa chegar a um humano.
+
+action estornar_quebrado(_estado, _chave):
+    trigger "gateway recusou o estorno"
+
+liberou := {"sim": no}
+
+action liberar3(_estado, _chave):
+    liberou["sim"] := yes
+
+s3 := Malha.saga("checkout")
+s3.passo("reservar", reservar2, liberar3)
+s3.passo("cobrar", cobrar2, estornar_quebrado)
+s3.passo("despachar", despachar2, cancelar_despacho)
+
+r3 := s3.executar({"sku": "CAF-500", "quantidade": 1})
+
+assert not r3["ok"]
+assert len(r3["orfas"]) is 1
+assert r3["orfas"][0]["passo"] is "cobrar"
+assert "gateway" in r3["orfas"][0]["erro"]
+
+// A compensacao seguinte AINDA rodou: o estoque preso por um estorno
+// que nao passou seria um segundo problema criado pelo primeiro.
+assert liberou["sim"]
+assert r3["desfeitos"] is ["reservar"]
+
+// ── 4. Idempotencia: repetir a saga nao cobra duas vezes ────
+//
+// Uma saga que cai no meio precisa poder ser repetida. Sem chave
+// estavel, repetir cobra de novo.
+
+estoque := {"CAF-500": 10}
+reservas := {}
+cobrancas := {}
+chaves_vistas := {}
+despachos := []
+
+// O MESMO identificador — e o que torna a chave de cada passo estavel
+// entre execucoes.
+acao := "pedido-4711"
+
+s4 := Malha.saga("checkout", acao)
+s4.passo("reservar", reservar, liberar)
+s4.passo("cobrar", cobrar, estornar)
+
+assert s4.chave_de("cobrar") is "pedido-4711:cobrar"
+
+a := s4.executar({"sku": "CAF-500", "quantidade": 2, "limite": 100.0})
+assert a["ok"]
+assert len(cobrancas) is 1
+
+// Repete a saga inteira, como faria quem reprocessa uma fila.
+s5 := Malha.saga("checkout", acao)
+s5.passo("reservar", reservar, liberar)
+s5.passo("cobrar", cobrar, estornar)
+b := s5.executar({"sku": "CAF-500", "quantidade": 2, "limite": 100.0})
+
+assert b["ok"]
+assert b["estado"]["repetida"]  // 'cobrar' reconheceu a chave
+assert len(cobrancas) is 1  // NAO cobrou duas vezes
+
+// A reserva, porem, aconteceu DE NOVO — ela e indexada pela mesma
+// chave, mas o estoque foi debitado duas vezes. Idempotencia e uma
+// promessa que cada servico faz por si: a saga da a chave, quem honra
+// e o outro lado.
+assert estoque["CAF-500"] is 6
+
+// ── 5. O passo que escreve sem compensacao ──────────────────
+
+s6 := Malha.saga("risco")
+s6.passo("consultar", lambda e, c: {"score": 700}, escreve := no)
+s6.passo("marcar", lambda e, c: void)
+
+// 'consultar' e uma leitura e declara isso; 'marcar' escreve e nao
+// disse como se desfaz.
+assert s6.conferir() is ["marcar"]
+
+// ── 6. O diario: onde isso parou ────────────────────────────
+
+linhas := []
+
+s7 := Malha.saga("checkout", "p-1", lambda linha: linhas.append(linha))
+s7.passo("reservar", reservar2, liberar2)
+s7.passo("cobrar", cobrar2, estornar2)
+s7.passo("despachar", despachar2, cancelar_despacho)
+s7.executar({"sku": "CAF-500", "quantidade": 1})
+
+situacoes := [linha["situacao"] cycle linha in linhas]
+assert situacoes is ["feito", "feito", "falhou", "desfeito", "desfeito"]
+assert linhas[0]["passo"] is "reservar"
+assert linhas[2]["passo"] is "despachar"
+
+// O diario e gravado a CADA passo, e nao no fim: uma queda do processo
+// no meio da saga perderia o que ja foi feito, e ninguem saberia o que
+// compensar.
+assert len(linhas) is len(s7.diario)
+
+out "228 ok — saga"

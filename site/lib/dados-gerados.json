@@ -4179,6 +4179,128 @@
     }
    ]
   },
+  "malha": {
+   "nome": "Arcane.Malha",
+   "desc": "Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido.",
+   "curto": "Malha",
+   "funcoes": [
+    {
+     "nome": "Cliente",
+     "sig": "(base, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Disjuntor",
+     "sig": "(falhas, espera, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Passo",
+     "sig": "(nome, fazer, desfazer, escreve, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "RETENTAVEIS",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "Saga",
+     "sig": "(nome, identificador, registro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cabecalhos_de_contexto",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cliente",
+     "sig": "(base, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "comecar_contexto",
+     "sig": "(rastro, origem, extra)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contexto",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de",
+     "sig": "(nome, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "disjuntor",
+     "sig": "(falhas, espera, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "onde",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "padrao",
+     "sig": "(opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "propagar",
+     "sig": "(req, origem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rastro",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "recuo",
+     "sig": "(tentativa, base, teto, tremor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "registrar",
+     "sig": "(nome, base, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "resumo",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "saga",
+     "sig": "(nome, identificador, registro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "saude",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "servicos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "terminar_contexto",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vale_repetir",
+     "sig": "(resposta)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "math": {
    "nome": "Arcane.Math",
    "desc": "Matemática, álgebra linear e estatística básica.",
@@ -8769,6 +8891,24 @@
     "arquivo": "226_instantaneo_e_isolamento.df",
     "temDoc": true,
     "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 226 — Instantaneo, banco isolado e teste instavel\n//\n//  Tres ferramentas do Crucible para o que um teste comum nao alcanca\n//  bem: resultado grande, estado que sobra entre testes, e falha que\n//  vai e volta.\n// ════════════════════════════════════════════════════════════\n\nadopt Crucible\nadopt Arcane.Database as Banco\n\n// ── 1. O banco de exemplo ───────────────────────────────────\n\ndb := Banco.memory()\nBanco.create_table(db, \"livros\", {\n        \"id\": \"INTEGER PRIMARY KEY AUTOINCREMENT\",\n        \"titulo\": \"TEXT NOT NULL\",\n        \"preco\": \"REAL NOT NULL\"\n})\nBanco.insert_many(db, \"livros\", [\n        {\"titulo\": \"Duna\", \"preco\": 79.9},\n        {\"titulo\": \"Neuromancer\", \"preco\": 64.9}\n])\n\naction relatorio():\n    linhas := Banco.aggregate(db, \"livros\",\n        {\"quantos\":[\"count\", \"*\"],\n    \"total\":[\"sum\", \"preco\"]})\n    yield {\"acervo\": linhas[0][\"quantos\"], \"valor\": linhas[0][\"total\"]}\n\n// ── 2. Instantaneo ──────────────────────────────────────────\n//\n// Para o que e grande demais para escrever a mao no teste: o HTML de\n// uma pagina, o relatorio de trinta linhas, o JSON de uma rota.\n// Escrever o esperado a mao para isso da um teste que ninguem mantem.\n//\n// Na PRIMEIRA vez ele grava e passa — e o unico jeito de comecar. O\n// arquivo vai no controle de versao, e e no diff do commit que alguem\n// confere se o novo esperado esta certo.\n//\n// Para aceitar uma mudanca intencional:\n//     DF_ATUALIZAR_SNAPSHOT=1 dataforge crucible\n//\n// Atualizar por padrao seria pior que nao ter instantaneo: o teste\n// passaria sempre, gravando o errado por cima do certo.\n\ncrucible \"o relatorio\":\n    trial \"nao muda sem aviso\":\n        Crucible.snapshot(\"relatorio_do_acervo\", relatorio())\n\n    trial \"e o texto grande tambem entra\":\n        html := \"<table>\\n  <tr><td>Duna</td></tr>\\n</table>\"\n        Crucible.snapshot(\"tabela_html\", html)\n\n// ── 3. Banco que se desfaz ──────────────────────────────────\n//\n// O problema: um teste que grava deixa a linha la, e o teste seguinte\n// a encontra. A suite passa na ordem em que foi escrita e falha em\n// qualquer outra — e '--aleatorio' expoe isso de um jeito que parece\n// intermitente.\n//\n// 'Crucible.banco(db)' abre uma transacao e a desfaz no fim do trial,\n// SEMPRE. Apagar tudo entre testes seria a alternativa, e e mais lenta\n// e mais fragil: ela precisa saber a ordem das chaves estrangeiras.\n\ncrucible \"isolamento de banco\":\n    Crucible.before(lambda suite: Crucible.banco(db))\n\n    trial \"um teste que grava\":\n        Banco.insert(db, \"livros\", {\"titulo\": \"Solaris\", \"preco\": 54.9})\n        Crucible.expect(Banco.count(db, \"livros\")).to_be(3)\n\n    trial \"e o seguinte nao ve o que ele gravou\":\n        Crucible.expect(Banco.count(db, \"livros\")).to_be(2)\n\n    trial \"nem na ordem inversa\":\n        Banco.insert(db, \"livros\", {\"titulo\": \"Fundacao\", \"preco\": 49.9})\n        Crucible.expect(Banco.count(db, \"livros\")).to_be(3)\n\n// ── 4. Teste instavel ──────────────────────────────────────\n//\n// Existe para o que depende de rede, de relogio ou de escalonamento —\n// e NAO para esconder um bug. Ele conta as tentativas: um teste que\n// precisa de tres toda vez nao e instavel, esta quebrado, e o numero e\n// o que denuncia isso.\n\ncrucible \"instabilidade\":\n    trial \"tenta de novo antes de desistir\":\n        tentativas := {\"n\": 0}\n\n        action falha_duas_vezes():\n            tentativas[\"n\"] := tentativas[\"n\"] + 1\n            given tentativas[\"n\"] smaller 3:\n                trigger \"a rede ainda nao respondeu\"\n            yield yes\n\n        r := Crucible.flaky(falha_duas_vezes, 5)\n        Crucible.expect(r[\"ok\"]).to_be(yes)\n        Crucible.expect(r[\"tentativas\"]).to_be(3)\n\n    trial \"e desiste depois do limite\":\n        // 'to_raise' nao serve aqui: o que 'flaky' levanta ao desistir\n        // e a propria falha de expectativa do Crucible, e ela e o\n        // sinal de teste reprovado — nao um erro a capturar.\n        desistiu := no\n        monitor:\n            Crucible.flaky(lambda: trigger(\"sempre falha\"), 2)\n        handle Error as e:\n            desistiu := \"2 tentativas\" in e.message\n        Crucible.expect(desistiu).to_be(yes)\n\n// ── 5. Rodar ────────────────────────────────────────────────\n//\n// Fora do 'dataforge crucible', os instantaneos precisam saber de qual\n// arquivo sao — quem roda pelo comando nao precisa disto.\n\nCrucible.snapshot_dir(__file__)\nr := Crucible.run()\nassert r[\"falhou\"] is 0, $\"{r[\"falhou\"]} falharam\"\nassert r[\"erro\"] is 0\nassert r[\"passou\"] is 7\n\nout \"226 ok — instantaneo e isolamento\"\n"
+   }
+  ],
+  "32-microservicos": [
+   {
+    "num": "227",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "227_malha.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 227 — Chamada entre servicos que nao mente\n//\n//  Uma chamada de acao ou funciona, ou levanta. Uma chamada de REDE\n//  tem um terceiro estado: NAO SE SABE. Ela pode ter chegado e a\n//  resposta se perdido; pode estar a caminho; pode ter sido\n//  processada duas vezes.\n//\n//  Este exercicio sobe DOIS servicos de verdade e exercita os quatro\n//  problemas que separam um cliente que funciona de um que parece.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Malha as Malha\nadopt Kiln\n\n// ── O servico de baixo: estoque ─────────────────────────────\n//\n// Ele se comporta mal de proposito: cada rota e um dos casos.\n\nestoque := {\"CAF-500\": 20, \"ACU-1KG\": 50}\ninstavel := {\"vezes\": 0}\nrecebidos := []\n\nserver servico_estoque on 0:\n    route GET \"/estoque/:sku\":\n        recebidos.append(headers[\"x-request-id\"] ?? \"\")\n        sku := params[\"sku\"]\n        given sku not in estoque:\n            respond 404 json {\"erro\": \"nao existe\"}\n        respond json {\"sku\": sku, \"quantidade\": estoque[sku]}\n\n    route GET \"/instavel\":\n        // Falha duas vezes e passa na terceira — como um servico que\n        // esta subindo.\n        instavel[\"vezes\"] := instavel[\"vezes\"] + 1\n        given instavel[\"vezes\"] smaller 3:\n            respond 503 json {\"erro\": \"ainda subindo\"}\n        respond json {\"tentativas\": instavel[\"vezes\"]}\n\n    route GET \"/quebrado\":\n        respond 500 json {\"erro\": \"quebrado\"}\n\n    route POST \"/reservas\":\n        respond 201 json {\n            \"reservado\": yes,\n            \"chave\": headers[\"idempotency-key\"] ?? \"\",\n            \"rastro\": headers[\"x-request-id\"] ?? \"\"\n        }\n\nporta := Kiln.serve(servico_estoque, 0)\n\n// ── 1. Descoberta: nao cravar a URL no codigo ───────────────\n\nMalha.registrar(\"estoque\", $\"http://127.0.0.1:{porta}\", {\n        \"prazo\": 2.0,\n        \"tentativas\": 4,\n        \"recuo\": 0.01,\n        \"disjuntor\": {\"falhas\": 3, \"espera\": 0.4}\n})\n\ncliente := Malha.de(\"estoque\")\n\n// O MESMO cliente, sempre: o disjuntor e as metricas vivem NELE, e um\n// cliente novo por chamada esqueceria que o servico esta caido.\nassert Malha.de(\"estoque\") is cliente\n\n// ── 2. A chamada, e o vault que ela devolve ─────────────────\n\nr := cliente.get(\"/estoque/CAF-500\")\nassert r[\"ok\"]\nassert r[\"status\"] is 200\nassert r[\"body\"][\"quantidade\"] is 20\nassert r[\"tentativas\"] is 1\nassert r[\"ms\"] bigger 0\n\n// Um erro de rede devolve VAULT, e nao levanta: quem chama um servico\n// precisa decidir o que fazer, e um 'monitor' em volta de cada chamada\n// seria ruido.\nsumido := Malha.cliente(\"http://127.0.0.1:1\", {\"tentativas\": 1}).get(\"/x\")\nassert not sumido[\"ok\"]\nassert sumido[\"status\"] is 0  // NAO CHEGOU — o terceiro estado\n\n// ── 3. Retry: so o que e seguro ─────────────────────────────\n\n// Um 503 e repetido: o problema e do outro lado.\nr3 := cliente.get(\"/instavel\")\nassert r3[\"ok\"]\nassert r3[\"tentativas\"] is 3\n\n// Um 404 NAO e repetido: o pedido esta errado, e mandar de novo da o\n// mesmo erro com mais latencia.\nr4 := cliente.get(\"/estoque/NAO-EXISTE\")\nassert r4[\"status\"] is 404\nassert r4[\"tentativas\"] is 1\n\n// ── 4. O disjuntor ──────────────────────────────────────────\n//\n// Sem ele, um servico que cai LEVA os que dependem dele: cada pedido\n// espera o prazo inteiro antes de falhar, as threads acabam, e o que\n// estava de pe cai tambem.\n\n// Retry e disjuntor SE SOMAM, e e facil errar a conta: o disjuntor\n// conta cada TENTATIVA, nao cada chamada. Com 'tentativas := 4' e\n// 'falhas := 3', a PRIMEIRA chamada ja abre o disjuntor — ela sozinha\n// produziu quatro falhas.\nr_quebrado := cliente.get(\"/quebrado\")\nassert r_quebrado[\"status\"] is 500\nassert r_quebrado[\"tentativas\"] is 4\nassert cliente.disjuntor.estado is \"aberto\"\nassert cliente.disjuntor.falhas bigger_eq 3\n\n// Com o disjuntor aberto, a chamada NAO SAI.\nantes := len(recebidos)\nr5 := cliente.get(\"/estoque/CAF-500\")\nassert not r5[\"ok\"]\nassert r5[\"status\"] is 0\nassert r5[\"tentativas\"] is 0\nassert \"disjuntor aberto\" in r5[\"erro\"]\nassert len(recebidos) is antes  // nada chegou do outro lado\n\n// Depois da espera, ele ENTREABRE — deixa UMA passar. Abrir tudo de\n// uma vez derrubaria o servico no instante em que ele volta.\nwait 500\nassert cliente.disjuntor.estado is \"entreaberto\"\n\nr6 := cliente.get(\"/estoque/CAF-500\")\nassert r6[\"ok\"]\nassert cliente.disjuntor.estado is \"fechado\"\n\n// Um 4xx NAO abre o disjuntor: nao e falha do SERVICO, o pedido esta\n// errado. Contar isso abriria o disjuntor por um bug de quem chama.\ncycle i from 1 to 5:\n    cliente.get(\"/estoque/NAO-EXISTE\")\nassert cliente.disjuntor.estado is \"fechado\"\n\n// ── 5. O rastro atravessa a fronteira ───────────────────────\n//\n// Sem um identificador que viaja com o pedido, investigar um incidente\n// em cinco servicos e cruzar horario de log — o que e impossivel\n// quando dois pedidos acontecem no mesmo segundo.\n\nMalha.comecar_contexto(void, \"pedidos\", {\"tenant\": \"acme\"})\nmeu := Malha.rastro()\nassert len(meu) bigger 8\n\ncliente.get(\"/estoque/CAF-500\")\nassert recebidos[len(recebidos) - 1] is meu\n\n// ── 6. Idempotencia: o que torna o POST seguro de repetir ───\n\nr7 := cliente.post(\"/reservas\", {\"sku\": \"CAF-500\", \"quantidade\": 2},\nchave := $\"pedido-{meu[0:8]}\")\nassert r7[\"ok\"]\nassert r7[\"body\"][\"chave\"] is $\"pedido-{meu[0:8]}\"\nassert r7[\"body\"][\"rastro\"] is meu\n\nMalha.terminar_contexto()\n\n// ── 7. Propagar: a metade que falta ─────────────────────────\n//\n// Na BORDA, o servico continua o rastro que chegou. Sem isso, cada\n// servico comeca um rastro novo e a corrente se quebra.\n\nfingido := {\"headers\": {\"x-request-id\": \"veio-de-fora\",\n    \"x-ctx-tenant\": \"acme\"},\n\"state\": {}}\nMalha.propagar(fingido, \"estoque\")\nassert Malha.rastro() is \"veio-de-fora\"\nassert Malha.contexto()[\"extra\"][\"tenant\"] is \"acme\"\nassert fingido[\"state\"][\"rastro\"] is \"veio-de-fora\"\nMalha.terminar_contexto()\n\n// ── 8. Observar ─────────────────────────────────────────────\n\nresumo := cliente.resumo()\nassert resumo[\"servico\"] is \"estoque\"\nassert resumo[\"chamadas\"] bigger 5\nassert resumo[\"recusadas\"] is 1  // so a r5: as 404 nao contam\nassert resumo[\"disjuntor\"][\"estado\"] is \"fechado\"\n\n// E o que um incidente pergunta primeiro: quais dependencias deste\n// servico estao de pe?\nsaude := Malha.saude()\nassert len(saude) bigger_eq 1\n\nKiln.stop(servico_estoque)\nout \"227 ok — malha\"\n"
+   },
+   {
+    "num": "228",
+    "titulo": "",
+    "enunciado": "",
+    "arquivo": "228_saga.df",
+    "temDoc": true,
+    "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 228 — Saga: nao existe transacao que atravesse a rede\n//\n//  'BEGIN' no servico de estoque nao alcanca o de cobranca. Se o\n//  pedido reserva o produto e a cobranca falha, o produto fica preso\n//  para sempre — e nao ha 'rollback' que chegue la.\n//\n//  A unica resposta correta e COMPENSAR: cada passo declara como se\n//  desfaz, e uma falha no meio desfaz em ordem inversa o que ja\n//  aconteceu.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Malha as Malha\n\n// ── Os \"servicos\", com o estado que eles guardam ────────────\n\nestoque := {\"CAF-500\": 10}\nreservas := {}\ncobrancas := {}\ndespachos := []\nchaves_vistas := {}\n\naction reservar(estado, chave):\n    sku := estado[\"sku\"]\n    given estoque[sku] smaller estado[\"quantidade\"]:\n        trigger $\"estoque insuficiente de {sku}\"\n    estoque[sku] := estoque[sku] - estado[\"quantidade\"]\n    reservas[chave] := estado[\"quantidade\"]\n    yield {\"reserva\": chave}\n\naction liberar(estado, chave):\n    given chave in reservas:\n        estoque[estado[\"sku\"]] := estoque[estado[\"sku\"]] + reservas[chave]\n        reservas.delete(chave)\n\naction cobrar(estado, chave):\n    // A chave de idempotencia faz o trabalho aqui: repetir a saga\n    // depois de uma queda NAO cobra duas vezes.\n    given chave in chaves_vistas:\n        yield {\"cobranca\": chaves_vistas[chave], \"repetida\": yes}\n    valor := estado[\"quantidade\"] * 32.5\n    given valor bigger estado[\"limite\"]:\n        trigger $\"limite excedido: {valor} bigger {estado['limite']}\"\n    cobrancas[chave] := valor\n    chaves_vistas[chave] := valor\n    yield {\"cobranca\": valor}\n\naction estornar(_estado, chave):\n    given chave in cobrancas:\n        cobrancas.delete(chave)\n        chaves_vistas.delete(chave)\n\naction despachar(estado, chave):\n    despachos.append({\"sku\": estado[\"sku\"], \"chave\": chave})\n    yield {\"despacho\": len(despachos)}\n\naction cancelar_despacho(_estado, _chave):\n    despachos.clear()\n\n// ── 1. O caminho feliz ──────────────────────────────────────\n\ns := Malha.saga(\"checkout\")\ns.passo(\"reservar\", reservar, liberar)\ns.passo(\"cobrar\", cobrar, estornar)\ns.passo(\"despachar\", despachar, cancelar_despacho)\n\n// ANTES de rodar: nenhum passo que escreve pode ficar sem compensacao.\n// Um passo assim nao falha em teste feliz — ele so aparece no dia em\n// que o passo seguinte falha, e ai ja escreveu.\nassert s.conferir() is []\n\nr := s.executar({\"sku\": \"CAF-500\", \"quantidade\": 2, \"limite\": 100.0})\n\nassert r[\"ok\"]\nassert r[\"concluidos\"] is [\"reservar\", \"cobrar\", \"despachar\"]\nassert r[\"desfeitos\"] is []\nassert r[\"orfas\"] is []\nassert estoque[\"CAF-500\"] is 8\nassert len(cobrancas) is 1\nassert len(despachos) is 1\n\n// O estado ATRAVESSA os passos: 'cobrar' viu o que 'reservar' devolveu.\nassert r[\"estado\"][\"cobranca\"] is 65.0\nassert \"reserva\" in r[\"estado\"]\n\n// ── 2. A falha no meio, e a ordem do desfazimento ───────────\n\nestoque := {\"CAF-500\": 10}\nreservas := {}\ncobrancas := {}\nchaves_vistas := {}\ndespachos := []\nordem := []\n\naction reservar2(estado, chave):\n    estoque[\"CAF-500\"] := estoque[\"CAF-500\"] - estado[\"quantidade\"]\n    reservas[chave] := estado[\"quantidade\"]\n    yield void\n\naction liberar2(_estado, chave):\n    ordem.append(\"liberar\")\n    estoque[\"CAF-500\"] := estoque[\"CAF-500\"] + reservas[chave]\n    reservas.delete(chave)\n\naction cobrar2(_estado, chave):\n    cobrancas[chave] := 99.0\n    yield void\n\naction estornar2(_estado, chave):\n    ordem.append(\"estornar\")\n    cobrancas.delete(chave)\n\naction despachar2(_estado, _chave):\n    trigger \"transportadora fora do ar\"\n\ns2 := Malha.saga(\"checkout\")\ns2.passo(\"reservar\", reservar2, liberar2)\ns2.passo(\"cobrar\", cobrar2, estornar2)\ns2.passo(\"despachar\", despachar2, cancelar_despacho)\n\nr2 := s2.executar({\"sku\": \"CAF-500\", \"quantidade\": 3})\n\n// Ela NAO levanta: levantar perderia a informacao de quanto conseguiu\n// desfazer, que e exatamente o que se precisa saber.\nassert not r2[\"ok\"]\nassert r2[\"falhou_em\"] is \"despachar\"\nassert \"transportadora\" in r2[\"erro\"]\n\n// Ordem INVERSA. Estornar a cobranca antes de liberar o estoque\n// deixaria uma janela em que o cliente nao tem dinheiro nem produto.\nassert r2[\"desfeitos\"] is [\"cobrar\", \"reservar\"]\nassert ordem is [\"estornar\", \"liberar\"]\n\n// E o mundo voltou ao que era.\nassert estoque[\"CAF-500\"] is 10\nassert len(reservas) is 0\nassert len(cobrancas) is 0\nassert len(despachos) is 0\n\n// O passo que FALHOU nao e compensado: ele nao concluiu, e desfazer o\n// que nao aconteceu e o outro lado do mesmo bug.\nassert \"despachar\" not in r2[\"desfeitos\"]\n\n// ── 3. Uma compensacao que falha nao pode ser engolida ──────\n//\n// Um estorno que nao passa deixa o sistema inconsistente, e isso\n// precisa chegar a um humano.\n\naction estornar_quebrado(_estado, _chave):\n    trigger \"gateway recusou o estorno\"\n\nliberou := {\"sim\": no}\n\naction liberar3(_estado, _chave):\n    liberou[\"sim\"] := yes\n\ns3 := Malha.saga(\"checkout\")\ns3.passo(\"reservar\", reservar2, liberar3)\ns3.passo(\"cobrar\", cobrar2, estornar_quebrado)\ns3.passo(\"despachar\", despachar2, cancelar_despacho)\n\nr3 := s3.executar({\"sku\": \"CAF-500\", \"quantidade\": 1})\n\nassert not r3[\"ok\"]\nassert len(r3[\"orfas\"]) is 1\nassert r3[\"orfas\"][0][\"passo\"] is \"cobrar\"\nassert \"gateway\" in r3[\"orfas\"][0][\"erro\"]\n\n// A compensacao seguinte AINDA rodou: o estoque preso por um estorno\n// que nao passou seria um segundo problema criado pelo primeiro.\nassert liberou[\"sim\"]\nassert r3[\"desfeitos\"] is [\"reservar\"]\n\n// ── 4. Idempotencia: repetir a saga nao cobra duas vezes ────\n//\n// Uma saga que cai no meio precisa poder ser repetida. Sem chave\n// estavel, repetir cobra de novo.\n\nestoque := {\"CAF-500\": 10}\nreservas := {}\ncobrancas := {}\nchaves_vistas := {}\ndespachos := []\n\n// O MESMO identificador — e o que torna a chave de cada passo estavel\n// entre execucoes.\nacao := \"pedido-4711\"\n\ns4 := Malha.saga(\"checkout\", acao)\ns4.passo(\"reservar\", reservar, liberar)\ns4.passo(\"cobrar\", cobrar, estornar)\n\nassert s4.chave_de(\"cobrar\") is \"pedido-4711:cobrar\"\n\na := s4.executar({\"sku\": \"CAF-500\", \"quantidade\": 2, \"limite\": 100.0})\nassert a[\"ok\"]\nassert len(cobrancas) is 1\n\n// Repete a saga inteira, como faria quem reprocessa uma fila.\ns5 := Malha.saga(\"checkout\", acao)\ns5.passo(\"reservar\", reservar, liberar)\ns5.passo(\"cobrar\", cobrar, estornar)\nb := s5.executar({\"sku\": \"CAF-500\", \"quantidade\": 2, \"limite\": 100.0})\n\nassert b[\"ok\"]\nassert b[\"estado\"][\"repetida\"]  // 'cobrar' reconheceu a chave\nassert len(cobrancas) is 1  // NAO cobrou duas vezes\n\n// A reserva, porem, aconteceu DE NOVO — ela e indexada pela mesma\n// chave, mas o estoque foi debitado duas vezes. Idempotencia e uma\n// promessa que cada servico faz por si: a saga da a chave, quem honra\n// e o outro lado.\nassert estoque[\"CAF-500\"] is 6\n\n// ── 5. O passo que escreve sem compensacao ──────────────────\n\ns6 := Malha.saga(\"risco\")\ns6.passo(\"consultar\", lambda e, c: {\"score\": 700}, escreve := no)\ns6.passo(\"marcar\", lambda e, c: void)\n\n// 'consultar' e uma leitura e declara isso; 'marcar' escreve e nao\n// disse como se desfaz.\nassert s6.conferir() is [\"marcar\"]\n\n// ── 6. O diario: onde isso parou ────────────────────────────\n\nlinhas := []\n\ns7 := Malha.saga(\"checkout\", \"p-1\", lambda linha: linhas.append(linha))\ns7.passo(\"reservar\", reservar2, liberar2)\ns7.passo(\"cobrar\", cobrar2, estornar2)\ns7.passo(\"despachar\", despachar2, cancelar_despacho)\ns7.executar({\"sku\": \"CAF-500\", \"quantidade\": 1})\n\nsituacoes := [linha[\"situacao\"] cycle linha in linhas]\nassert situacoes is [\"feito\", \"feito\", \"falhou\", \"desfeito\", \"desfeito\"]\nassert linhas[0][\"passo\"] is \"reservar\"\nassert linhas[2][\"passo\"] is \"despachar\"\n\n// O diario e gravado a CADA passo, e nao no fim: uma queda do processo\n// no meio da saga perderia o que ja foi feito, e ninguem saberia o que\n// compensar.\nassert len(linhas) is len(s7.diario)\n\nout \"228 ok — saga\"\n"
    }
   ]
  },

@@ -1,0 +1,187 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 227 — Chamada entre servicos que nao mente
+//
+//  Uma chamada de acao ou funciona, ou levanta. Uma chamada de REDE
+//  tem um terceiro estado: NAO SE SABE. Ela pode ter chegado e a
+//  resposta se perdido; pode estar a caminho; pode ter sido
+//  processada duas vezes.
+//
+//  Este exercicio sobe DOIS servicos de verdade e exercita os quatro
+//  problemas que separam um cliente que funciona de um que parece.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Malha as Malha
+adopt Kiln
+
+// ── O servico de baixo: estoque ─────────────────────────────
+//
+// Ele se comporta mal de proposito: cada rota e um dos casos.
+
+estoque := {"CAF-500": 20, "ACU-1KG": 50}
+instavel := {"vezes": 0}
+recebidos := []
+
+server servico_estoque on 0:
+    route GET "/estoque/:sku":
+        recebidos.append(headers["x-request-id"] ?? "")
+        sku := params["sku"]
+        given sku not in estoque:
+            respond 404 json {"erro": "nao existe"}
+        respond json {"sku": sku, "quantidade": estoque[sku]}
+
+    route GET "/instavel":
+        // Falha duas vezes e passa na terceira — como um servico que
+        // esta subindo.
+        instavel["vezes"] := instavel["vezes"] + 1
+        given instavel["vezes"] smaller 3:
+            respond 503 json {"erro": "ainda subindo"}
+        respond json {"tentativas": instavel["vezes"]}
+
+    route GET "/quebrado":
+        respond 500 json {"erro": "quebrado"}
+
+    route POST "/reservas":
+        respond 201 json {
+            "reservado": yes,
+            "chave": headers["idempotency-key"] ?? "",
+            "rastro": headers["x-request-id"] ?? ""
+        }
+
+porta := Kiln.serve(servico_estoque, 0)
+
+// ── 1. Descoberta: nao cravar a URL no codigo ───────────────
+
+Malha.registrar("estoque", $"http://127.0.0.1:{porta}", {
+        "prazo": 2.0,
+        "tentativas": 4,
+        "recuo": 0.01,
+        "disjuntor": {"falhas": 3, "espera": 0.4}
+})
+
+cliente := Malha.de("estoque")
+
+// O MESMO cliente, sempre: o disjuntor e as metricas vivem NELE, e um
+// cliente novo por chamada esqueceria que o servico esta caido.
+assert Malha.de("estoque") is cliente
+
+// ── 2. A chamada, e o vault que ela devolve ─────────────────
+
+r := cliente.get("/estoque/CAF-500")
+assert r["ok"]
+assert r["status"] is 200
+assert r["body"]["quantidade"] is 20
+assert r["tentativas"] is 1
+assert r["ms"] bigger 0
+
+// Um erro de rede devolve VAULT, e nao levanta: quem chama um servico
+// precisa decidir o que fazer, e um 'monitor' em volta de cada chamada
+// seria ruido.
+sumido := Malha.cliente("http://127.0.0.1:1", {"tentativas": 1}).get("/x")
+assert not sumido["ok"]
+assert sumido["status"] is 0  // NAO CHEGOU — o terceiro estado
+
+// ── 3. Retry: so o que e seguro ─────────────────────────────
+
+// Um 503 e repetido: o problema e do outro lado.
+r3 := cliente.get("/instavel")
+assert r3["ok"]
+assert r3["tentativas"] is 3
+
+// Um 404 NAO e repetido: o pedido esta errado, e mandar de novo da o
+// mesmo erro com mais latencia.
+r4 := cliente.get("/estoque/NAO-EXISTE")
+assert r4["status"] is 404
+assert r4["tentativas"] is 1
+
+// ── 4. O disjuntor ──────────────────────────────────────────
+//
+// Sem ele, um servico que cai LEVA os que dependem dele: cada pedido
+// espera o prazo inteiro antes de falhar, as threads acabam, e o que
+// estava de pe cai tambem.
+
+// Retry e disjuntor SE SOMAM, e e facil errar a conta: o disjuntor
+// conta cada TENTATIVA, nao cada chamada. Com 'tentativas := 4' e
+// 'falhas := 3', a PRIMEIRA chamada ja abre o disjuntor — ela sozinha
+// produziu quatro falhas.
+r_quebrado := cliente.get("/quebrado")
+assert r_quebrado["status"] is 500
+assert r_quebrado["tentativas"] is 4
+assert cliente.disjuntor.estado is "aberto"
+assert cliente.disjuntor.falhas bigger_eq 3
+
+// Com o disjuntor aberto, a chamada NAO SAI.
+antes := len(recebidos)
+r5 := cliente.get("/estoque/CAF-500")
+assert not r5["ok"]
+assert r5["status"] is 0
+assert r5["tentativas"] is 0
+assert "disjuntor aberto" in r5["erro"]
+assert len(recebidos) is antes  // nada chegou do outro lado
+
+// Depois da espera, ele ENTREABRE — deixa UMA passar. Abrir tudo de
+// uma vez derrubaria o servico no instante em que ele volta.
+wait 500
+assert cliente.disjuntor.estado is "entreaberto"
+
+r6 := cliente.get("/estoque/CAF-500")
+assert r6["ok"]
+assert cliente.disjuntor.estado is "fechado"
+
+// Um 4xx NAO abre o disjuntor: nao e falha do SERVICO, o pedido esta
+// errado. Contar isso abriria o disjuntor por um bug de quem chama.
+cycle i from 1 to 5:
+    cliente.get("/estoque/NAO-EXISTE")
+assert cliente.disjuntor.estado is "fechado"
+
+// ── 5. O rastro atravessa a fronteira ───────────────────────
+//
+// Sem um identificador que viaja com o pedido, investigar um incidente
+// em cinco servicos e cruzar horario de log — o que e impossivel
+// quando dois pedidos acontecem no mesmo segundo.
+
+Malha.comecar_contexto(void, "pedidos", {"tenant": "acme"})
+meu := Malha.rastro()
+assert len(meu) bigger 8
+
+cliente.get("/estoque/CAF-500")
+assert recebidos[len(recebidos) - 1] is meu
+
+// ── 6. Idempotencia: o que torna o POST seguro de repetir ───
+
+r7 := cliente.post("/reservas", {"sku": "CAF-500", "quantidade": 2},
+chave := $"pedido-{meu[0:8]}")
+assert r7["ok"]
+assert r7["body"]["chave"] is $"pedido-{meu[0:8]}"
+assert r7["body"]["rastro"] is meu
+
+Malha.terminar_contexto()
+
+// ── 7. Propagar: a metade que falta ─────────────────────────
+//
+// Na BORDA, o servico continua o rastro que chegou. Sem isso, cada
+// servico comeca um rastro novo e a corrente se quebra.
+
+fingido := {"headers": {"x-request-id": "veio-de-fora",
+    "x-ctx-tenant": "acme"},
+"state": {}}
+Malha.propagar(fingido, "estoque")
+assert Malha.rastro() is "veio-de-fora"
+assert Malha.contexto()["extra"]["tenant"] is "acme"
+assert fingido["state"]["rastro"] is "veio-de-fora"
+Malha.terminar_contexto()
+
+// ── 8. Observar ─────────────────────────────────────────────
+
+resumo := cliente.resumo()
+assert resumo["servico"] is "estoque"
+assert resumo["chamadas"] bigger 5
+assert resumo["recusadas"] is 1  // so a r5: as 404 nao contam
+assert resumo["disjuntor"]["estado"] is "fechado"
+
+// E o que um incidente pergunta primeiro: quais dependencias deste
+// servico estao de pe?
+saude := Malha.saude()
+assert len(saude) bigger_eq 1
+
+Kiln.stop(servico_estoque)
+out "227 ok — malha"

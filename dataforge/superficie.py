@@ -251,9 +251,15 @@ def _ler(caminho, profundidade, vistos):
         elif tipo == "BlueprintDeclaration":
             definidos[stmt.name] = _de_blueprint(stmt)
         elif tipo == "EnumDeclaration":
+            # 'members' e uma LISTA DE PARES (nome, valor_expr|None), e
+            # nao um dicionario: 'list(...)' devolvia os pares, e um par
+            # com valor traz um no da arvore dentro — que nao e
+            # hashavel, e 'set(campos)' estourava com um traceback do
+            # Python em cima de 'dataforge check'. 'methods' e dict, e
+            # ali 'list' ja da os nomes.
             definidos[stmt.name] = Membro(
                 stmt.name, "enum", 1, 1,
-                campos=(list(getattr(stmt, "members", {}) or {})
+                campos=(_nomes_de_pares(getattr(stmt, "members", ()))
                         + list(getattr(stmt, "methods", {}) or {})),
                 linha=getattr(stmt, "line", 0))
         elif tipo == "TraitDeclaration":
@@ -360,6 +366,24 @@ def ciclo_a_partir_de(caminho, limite=40):
             vistos.add(vizinho)
             fila.append(cadeia + [vizinho])
     return None
+
+
+def _nomes_de_pares(pares):
+    """Os nomes de uma lista de pares (nome, valor).
+
+    Vale para 'enum': o parser guarda os membros como pares, e nem
+    todo par tem valor. Aceita tambem um dicionario e um nome solto,
+    porque nao vale estourar aqui — esta funcao roda dentro de um
+    'check', e um traceback do Python num analisador estatico e pior
+    que qualquer imprecisao no resultado.
+    """
+    saida = []
+    for item in (pares or ()):
+        if isinstance(item, str):
+            saida.append(item)
+        elif isinstance(item, (tuple, list)) and item:
+            saida.append(str(item[0]))
+    return saida
 
 
 def _de_acao(stmt):

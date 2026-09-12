@@ -42,6 +42,7 @@ from .arcane_ponte import ArcanePonte
 from .arcane_decimal import ArcaneDecimal
 from .arcane_api import ArcaneAPI
 from .vitrine import ArcaneVitrine
+from .arcane_malha import ArcaneMalha
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -135,6 +136,11 @@ _MODULES = {
     "Arcane.Vitrine": ArcaneVitrine,
     "Vitrine": ArcaneVitrine,
     "Painel": ArcaneVitrine,
+
+    # ── Malha — chamada entre servicos ──
+    "Arcane.Malha": ArcaneMalha,
+    "Malha": ArcaneMalha,
+    "Mesh": ArcaneMalha,
 
     "Arcane.Decimal": ArcaneDecimal,
     "Decimal": ArcaneDecimal,

@@ -490,9 +490,18 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 225 | [`225_cobertura.df`](31-qualidade/225_cobertura.df) · [doc](31-qualidade/225_cobertura.md) | Cobertura: o que os testes NAO exercitaram |
 | 226 | [`226_instantaneo_e_isolamento.df`](31-qualidade/226_instantaneo_e_isolamento.df) · [doc](31-qualidade/226_instantaneo_e_isolamento.md) | Instantaneo, banco isolado e teste instavel |
 
+## 32 — Microservicos
+
+*2 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 227 | [`227_malha.df`](32-microservicos/227_malha.df) · [doc](32-microservicos/227_malha.md) | Chamada entre servicos que nao mente |
+| 228 | [`228_saga.df`](32-microservicos/228_saga.df) · [doc](32-microservicos/228_saga.md) | Saga: nao existe transacao que atravesse a rede |
+
 ---
 
-**Total: 227 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 229 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

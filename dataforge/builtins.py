@@ -587,6 +587,19 @@ def _df_append(lst, item):
     return lst
 
 def _df_pop(lst, index=-1):
+    """Tira e devolve: de um cluster pela posicao, de um vault pela chave.
+
+    Um vault sem a chave levanta, como indexar sem a chave levanta — a
+    alternativa (devolver 'void' calado) esconde a diferenca entre "a
+    chave valia void" e "a chave nao estava la".
+    """
+    if isinstance(lst, dict):
+        chave = -1 if index is None else index
+        if chave == -1:
+            raise TypeError("pop(vault) precisa da chave: pop(v, \"nome\").")
+        if chave not in lst:
+            raise KeyError(chave)
+        return lst.pop(chave)
     return lst.pop(index)
 
 def _df_insert(lst, index, item):
@@ -594,7 +607,22 @@ def _df_insert(lst, index, item):
     return lst
 
 def _df_remove(lst, item):
-    lst.remove(item)
+    """Apaga no lugar, e devolve a colecao.
+
+    Num cluster, 'item' e o VALOR; num vault, a CHAVE — que e o que a
+    palavra quer dizer nos dois casos. Sem a versao de vault nao havia
+    como apagar uma chave: 'omit' devolve uma copia, e um vault
+    compartilhado entre acoes precisa mudar no lugar.
+
+    Apagar o que nao existe e silencioso de proposito: quem remove quer
+    o estado final, e nesse ponto ja nao importa se estava la. E o
+    inverso de 'pop', que devolve o valor e por isso precisa exigir.
+    """
+    if isinstance(lst, dict):
+        lst.pop(item, None)
+        return lst
+    if item in lst:
+        lst.remove(item)
     return lst
 
 def _df_keys(d):
