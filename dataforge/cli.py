@@ -59,6 +59,28 @@ GRUPOS = [
             exemplos=[("dataforge init", "aqui mesmo"),
                       ("dataforge init meu-app", "numa pasta nova")],
             veja=("new", "info")),
+        Cmd("converter", "dataforge converter <arquivo.py|pasta>",
+            "traduz Python para DataForge",
+            detalhe=(
+                "Le com o 'ast' do Python, e nao com expressao regular.\n"
+                "O que nao tem equivalente honesto vira um comentario\n"
+                "'TODO(converter)' com o codigo original ao lado — um\n"
+                "conversor que erra em silencio e pior que um que aponta\n"
+                "onde errou.\n\n"
+                "O relatorio no fim conta as duas coisas: o que saiu pronto\n"
+                "e o que precisa de voce."),
+            opcoes=(
+                ("--saida=<arq>", "onde gravar (um arquivo so)"),
+                ("--seco", "mostra sem gravar"),
+                ("--forcar", "sobrescreve um .df que ja exista"),
+            ),
+            exemplos=(
+                ("dataforge converter app.py", "grava app.df ao lado"),
+                ("dataforge converter src/", "a pasta inteira, recursiva"),
+                ("dataforge converter app.py --seco", "so mostra"),
+            ),
+            apelidos=("convert", "migrar"),
+            veja=("check", "fmt")),
         Cmd("new", "dataforge new [modelo] [nome]",
             "Cria um projeto a partir de um modelo",
             "Oito modelos, e todos produzem um projeto que RODA e passa\n"
@@ -1440,6 +1462,148 @@ dataforge run main.df
         }
     },
 }
+
+
+def converter_command(args, flags=()):
+    """dataforge converter — Python vira DataForge.
+
+        dataforge converter app.py            grava app.df ao lado
+        dataforge converter src/              a pasta inteira
+        dataforge converter app.py --saida=x.df
+        dataforge converter src/ --seco       mostra sem gravar
+
+    Traduz com o 'ast' do Python, e nao com expressao regular. O que nao
+    tem equivalente honesto vira um 'TODO(converter)' com o codigo
+    original ao lado — um conversor que erra em silencio e pior que um
+    que aponta onde errou.
+    """
+    from .marca import cor as _cor
+    from .migrar import converter_fonte
+
+    if not args:
+        print(_cor("Erro: informe o arquivo ou a pasta.", "1;31"))
+        print(_cor("      dataforge converter app.py", "0;90"))
+        print(_cor("      dataforge converter src/", "0;90"))
+        return 1
+
+    seco = "--seco" in flags or "--dry-run" in flags
+    forcar = "--forcar" in flags or "--force" in flags
+    saida_pedida = None
+    for flag in flags:
+        for prefixo in ("--saida=", "--out=", "-o="):
+            if flag.startswith(prefixo):
+                saida_pedida = flag[len(prefixo):]
+
+    # ── o que converter ──
+    alvos = []
+    for alvo in args:
+        if os.path.isdir(alvo):
+            for raiz, pastas, arquivos in os.walk(alvo):
+                pastas[:] = [p for p in pastas
+                             if p not in ("__pycache__", ".git", ".venv",
+                                          "node_modules", "venv", "build",
+                                          "dist", ".tox", ".mypy_cache")]
+                alvos += [os.path.join(raiz, a) for a in sorted(arquivos)
+                          if a.endswith(".py")]
+        elif os.path.isfile(alvo):
+            alvos.append(alvo)
+        else:
+            print(_cor(f"Erro: '{alvo}' nao existe.", "1;31"))
+            return 1
+
+    if not alvos:
+        print(_cor("Nenhum arquivo .py encontrado.", "1;33"))
+        return 1
+
+    if saida_pedida and len(alvos) > 1:
+        print(_cor("Erro: '--saida' vale para UM arquivo.", "1;31"))
+        print(_cor("      Numa pasta, cada .py vira o .df ao lado.", "0;90"))
+        return 1
+
+    print()
+    print(_cor(f"  convertendo {len(alvos)} arquivo(s)", "1;37"))
+    print()
+
+    convertidos = 0
+    total_pendencias = 0
+    problemas = []
+
+    for caminho in alvos:
+        curto_nome = _curto(caminho)
+        try:
+            with open(caminho, encoding="utf-8") as f:
+                fonte = f.read()
+        except (OSError, UnicodeDecodeError) as erro:
+            problemas.append((curto_nome, f"nao deu para ler: {erro}"))
+            print(f"  {_cor('✗', '1;31')} {curto_nome}")
+            continue
+
+        try:
+            texto, pendencias = converter_fonte(fonte, caminho)
+        except SyntaxError as erro:
+            # Traduzir Python quebrado produziria lixo com aparencia de
+            # traducao. Melhor recusar e dizer onde.
+            problemas.append(
+                (curto_nome, f"Python invalido na linha {erro.lineno}: "
+                             f"{erro.msg}"))
+            print(f"  {_cor('✗', '1;31')} {curto_nome}  "
+                  f"{_cor(f'linha {erro.lineno}: {erro.msg}', '0;90')}")
+            continue
+
+        destino = saida_pedida or (os.path.splitext(caminho)[0] + ".df")
+
+        if seco:
+            print(_cor(f"  ── {curto_nome} → {_curto(destino)} ──", "1;36"))
+            print(texto)
+            convertidos += 1
+            total_pendencias += len(pendencias)
+            continue
+
+        if os.path.exists(destino) and not forcar:
+            problemas.append((curto_nome,
+                              f"'{_curto(destino)}' ja existe (use --forcar)"))
+            print(f"  {_cor('•', '1;33')} {curto_nome}  "
+                  f"{_cor('ja existe, pulado', '0;90')}")
+            continue
+
+        with open(destino, "w", encoding="utf-8") as f:
+            f.write(texto)
+
+        convertidos += 1
+        total_pendencias += len(pendencias)
+        marca_linha = (_cor(f"{len(pendencias)} a revisar", "1;33")
+                       if pendencias else _cor("pronto", "1;32"))
+        print(f"  {_cor('✓', '1;32')} {curto_nome} → "
+              f"{_cor(_curto(destino), '1;37')}  {marca_linha}")
+
+    # ── o relatorio, que e onde a honestidade aparece ──
+    print()
+    if problemas:
+        print(_cor(f"  {len(problemas)} arquivo(s) nao converteram:", "1;31"))
+        for nome, motivo in problemas[:10]:
+            print(f"    {nome}: {_cor(motivo, '0;90')}")
+        print()
+
+    if convertidos:
+        print(_cor(f"  {convertidos} arquivo(s) convertido(s).", "1;32"))
+    if total_pendencias:
+        print(_cor(f"  {total_pendencias} ponto(s) precisam de voce — "
+                   f"procure por 'TODO(converter)'.", "1;33"))
+        print()
+        print(_cor("  A traducao nunca e completa: Python tem construcoes",
+                   "0;90"))
+        print(_cor("  que esta linguagem nao tem, e adivinhar seria pior.",
+                   "0;90"))
+    elif convertidos:
+        print(_cor("  Nada ficou pendente.", "0;90"))
+
+    if convertidos and not seco:
+        print()
+        print(_cor("  Confira antes de confiar:", "1;37"))
+        print(_cor("    dataforge check .", "1;36"))
+        print(_cor("    dataforge fmt .", "1;36"))
+    print()
+    return 1 if problemas else 0
 
 
 def new_project(args=None, flags=()):
@@ -3013,6 +3177,9 @@ def main():
         if '--list' in flags or (len(args) > 1 and args[1] == 'list'):
             sys.exit(list_templates())
         sys.exit(new_project(args[1:], flags))
+
+    elif command in ('converter', 'convert', 'migrar'):
+        sys.exit(converter_command(args[1:], flags))
 
     elif command == 'tokens':
         if len(args) < 2:

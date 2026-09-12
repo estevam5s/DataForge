@@ -11,7 +11,7 @@ PAGINAS = [
 
  {"h2": "O que pode quebrar, e quando"},
  {"p": "**Acrescentar é livre. Tirar e renomear exigem uma versão maior.** Um símbolo novo não quebra ninguém; um símbolo que some quebra todo programa que o usava."},
- {"p": "Isso não é uma promessa em prosa: `doc/superficie.json` guarda a lista de tudo o que é público — as 81 palavras reservadas, as 228 funções embutidas, os 36 módulos e cada símbolo deles, os apelidos, os 49 comandos da CLI e os 177 códigos de erro. Um teste falha quando algo some dessa lista."},
+ {"p": "Isso não é uma promessa em prosa: `doc/superficie.json` guarda a lista de tudo o que é público — as 81 palavras reservadas, as 228 funções embutidas, os 36 módulos e cada símbolo deles, os apelidos, os 52 comandos da CLI e os 177 códigos de erro. Um teste falha quando algo some dessa lista."},
  {"table": {"head": ["", "Quer dizer", "Exemplo"], "rows": [
    ["**1.x.y → 2.0.0**", "um programa válido pode parar de funcionar", "uma palavra reservada some; um módulo muda de nome"],
    ["**1.2.0 → 1.3.0**", "há capacidade nova, e o que existia continua", "um módulo novo; um parâmetro opcional novo"],
