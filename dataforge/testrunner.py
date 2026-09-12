@@ -39,7 +39,14 @@ class Resultado:
                  erro=None, saida=""):
         self.arquivo = arquivo
         self.nome = nome
-        self.status = status        # 'pass' | 'fail' | 'error'
+        # 'pass' | 'fail' | 'error' | 'skip'
+        #
+        # 'skip' existe por causa do 'trial … pending': o Crucible o
+        # conta separado e nao o chama de falha. Sem este estado ele
+        # caia em "tudo que nao passou falhou", e um trial marcado
+        # como pendente — que e quem escreveu dizendo "ainda nao" —
+        # deixava a suite vermelha.
+        self.status = status
         self.mensagem = mensagem
         self.duracao = duracao
         self.erro = erro
@@ -64,6 +71,92 @@ def descobrir(alvo="."):
     de_fora = os.sep + "forge_modules" + os.sep
     return [f for f in unicos
             if os.path.isfile(f) and de_fora not in os.sep + f]
+
+
+def _resultados_do_crucible(interp, caminho, inicio, buffer):
+    """Roda as suites que o arquivo registrou, e devolve um caso cada.
+
+    `None` quando o arquivo nao registrou suite nenhuma — e ai o fluxo
+    normal segue.
+
+    O registro e por PROCESSO, e `reiniciar_por_execucao` o zera a cada
+    interpretador: sem isso o segundo arquivo veria os trials do
+    primeiro, e a falha de um reapareceria no relatorio do outro.
+    """
+    try:
+        from .stdlib.crucible import REGISTRO
+    except ImportError:                                 # pragma: no cover
+        return None
+
+    suites = list(getattr(REGISTRO.raiz, "filhas", ()) or ())
+    trials = list(getattr(REGISTRO.raiz, "trials", ()) or ())
+    if not suites and not trials:
+        return None
+
+    modulo = interp.modules.get("Crucible") or interp.modules.get(
+        "Arcane.Crucible")
+    rodar = (modulo or {}).get("run")
+    if not callable(rodar):
+        return None
+
+    saida = io.StringIO()
+    try:
+        with redirect_stdout(saida):
+            resumo = rodar({"capturar": True})
+    except DataForgeError as erro:
+        return [Resultado(caminho, "<crucible>", "fail", erro.message,
+                          time.perf_counter() - inicio, erro,
+                          buffer.getvalue() + saida.getvalue())]
+
+    return _do_resumo(resumo, caminho, inicio, buffer.getvalue())
+
+
+def _do_resumo(resumo, caminho, inicio, saida_do_arquivo):
+    """O resumo do Crucible virando `Resultado`, um por trial.
+
+    Um por trial, e nao um por arquivo: o relatorio precisa dizer QUAL
+    trial caiu, e o total precisa ser o numero de testes de verdade —
+    era o que fazia "30 passaram" num projeto com 60 trials.
+    """
+    from .stdlib.crucible import ArcaneCrucible
+
+    executor = ArcaneCrucible._ultimo
+    decorrido = time.perf_counter() - inicio
+    saidas = []
+
+    # Os nomes vem de 'crucible.Resultado': 'estado' com os valores
+    # 'passou'/'falhou'/'erro'/'pendente'/'ignorado', e 'caminho' com
+    # "suite > trial". Adivinhar ('situacao', 'ms') nao daria erro —
+    # 'getattr' com padrao devolveria "pass" para TUDO, e um trial
+    # quebrado apareceria verde. Foi o primeiro jeito que escrevi.
+    from .stdlib.crucible import ERRO, FALHOU, IGNORADO, PENDENTE
+
+    traduz = {FALHOU: "fail", ERRO: "fail",
+              PENDENTE: "skip", IGNORADO: "skip"}
+
+    for caso in getattr(executor, "resultados", ()) or ():
+        estado = traduz.get(getattr(caso, "estado", ""), "pass")
+        mensagem = getattr(caso, "motivo", "") or ""
+        erro = getattr(caso, "erro", None)
+        if not mensagem and erro is not None:
+            mensagem = getattr(erro, "message", None) or str(erro)
+        saidas.append(Resultado(
+            caminho, getattr(caso, "caminho", "<trial>"), estado,
+            mensagem, getattr(caso, "duracao", 0.0),
+            erro=erro, saida=getattr(caso, "saida", "") or saida_do_arquivo))
+
+    if saidas:
+        return saidas
+
+    # O executor nao expos os casos: nao inventar um verde. Um unico
+    # resultado que reflete o resumo, que e o que se sabe.
+    total = (resumo or {}).get("total", 0)
+    falhas = (resumo or {}).get("falhou", 0)
+    return [Resultado(
+        caminho, os.path.basename(caminho),
+        "fail" if falhas else "pass",
+        f"{falhas} de {total} trial(s) falharam" if falhas else "",
+        decorrido, saida=saida_do_arquivo)]
 
 
 def _acoes_de_teste(interp):
@@ -104,6 +197,20 @@ def executar_arquivo(caminho, verboso=False, filtro="", medidor=None):
                           time.perf_counter() - inicio, e, buffer.getvalue())]
 
     testes = _acoes_de_teste(interp)
+
+    # Um arquivo com 'crucible'/'trial' registra as suites e NAO as roda:
+    # quem as roda e 'Crucible.run()'. Sem isto, um arquivo de 'trial'
+    # caia no caso abaixo — "sem acoes test_, o proprio arquivo e o
+    # caso" — e era contado como UM TESTE QUE PASSOU.
+    #
+    # Um teste que falha reportando "Tudo verde" e a pior falha possivel
+    # num corredor de testes: a suite fica vermelha e o CI passa. Um
+    # arquivo com dez 'trial', um deles quebrado, saia com codigo 0.
+    do_crucible = _resultados_do_crucible(interp, caminho, inicio, buffer)
+    if do_crucible is not None:
+        if desligar:
+            desligar()
+        return do_crucible
 
     # Arquivo sem ações test_: o próprio arquivo é o caso.
     if not testes:
@@ -224,14 +331,22 @@ def executar(alvo=".", verboso=False, filtro="", cor=True,
         todos.extend(resultados)
 
         passaram = sum(1 for r in resultados if r.status == "pass")
-        falharam = len(resultados) - passaram
+        pulados = sum(1 for r in resultados if r.status == "skip")
+        falharam = len(resultados) - passaram - pulados
         cabecalho = _curto(arquivo)
         estado = tinta("✓", VERDE) if falharam == 0 else tinta("✗", VERMELHO)
+        conta = f"{passaram}/{len(resultados) - pulados}"
+        if pulados:
+            conta += f", {pulados} pendente(s)"
         print(f"{estado} {cabecalho} {CINZA if cor else ''}"
-              f"({passaram}/{len(resultados)}){RESET if cor else ''}")
+              f"({conta}){RESET if cor else ''}")
 
         for r in resultados:
-            if r.status == "pass":
+            if r.status == "skip":
+                if verboso:
+                    print(f"    {tinta('pend', AMARELO)} {r.nome}"
+                          f"{'  ' + r.mensagem if r.mensagem else ''}")
+            elif r.status == "pass":
                 if verboso:
                     print(f"    {tinta('ok', VERDE)}   {r.nome} "
                           f"{CINZA if cor else ''}{r.duracao * 1000:.1f}ms{RESET if cor else ''}")
@@ -252,10 +367,13 @@ def executar(alvo=".", verboso=False, filtro="", cor=True,
 
     decorrido = time.perf_counter() - inicio
     passaram = sum(1 for r in todos if r.status == "pass")
-    falharam = len(todos) - passaram
+    pulados = sum(1 for r in todos if r.status == "skip")
+    falharam = len(todos) - passaram - pulados
 
     print()
     resumo = f"{passaram} passaram"
+    if pulados:
+        resumo += f", {pulados} pendente(s)"
     if falharam:
         resumo += f", {tinta(str(falharam) + ' falharam', VERMELHO)}"
     print(f"{resumo} em {len(arquivos)} arquivo(s) — {decorrido:.2f}s")

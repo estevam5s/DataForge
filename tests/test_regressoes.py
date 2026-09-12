@@ -3761,3 +3761,143 @@ def test_nenhum_exercicio_compara_dois_tempos_sem_margem():
     assert not suspeitos, (
         "exercício comparando dois tempos medidos sem margem — divida e "
         "cobre um fator:\n  " + "\n  ".join(suspeitos))
+
+
+# ═══════════════════════════════════════════════════════════
+#  'dataforge test' não podia reportar verde num trial que
+#  falha
+#
+#  Um arquivo com `crucible`/`trial` REGISTRA as suites e não
+#  as roda — quem as roda é `Crucible.run()`. O corredor caía
+#  no caso "sem ações test_, o próprio arquivo é o caso" e
+#  contava o arquivo como UM TESTE QUE PASSOU.
+#
+#  Um teste que falha reportando "Tudo verde" é a pior falha
+#  possível num corredor de testes: a suíte fica vermelha e o
+#  CI passa. Um arquivo com dez trials, um deles quebrado,
+#  saía com código 0.
+# ═══════════════════════════════════════════════════════════
+
+def _projeto_com_crucible(tmp_path, corpo):
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "x_test.df").write_text(corpo, encoding="utf-8")
+    (tmp_path / "forge.toml").write_text(
+        '[projeto]\nnome = "x"\nversao = "1.0.0"\n', encoding="utf-8")
+    return tmp_path
+
+
+def _rodar_test(pasta, *extra):
+    import subprocess
+    import sys as _sys
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    r = subprocess.run(
+        [_sys.executable, "-m", "dataforge", "test", *extra],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        cwd=str(pasta), env={**os.environ, "PYTHONPATH": raiz,
+                             "NO_COLOR": "1"})
+    return r
+
+
+def test_dataforge_test_reprova_um_trial_que_falha(tmp_path):
+    pasta = _projeto_com_crucible(tmp_path, '''adopt Crucible
+
+crucible "suite":
+    trial "este falha":
+        expect 1 is 2
+
+    trial "este passa":
+        expect 1 is 1
+''')
+    r = _rodar_test(pasta)
+    assert r.returncode == 1, (
+        f"código 0 com um trial quebrado:\n{r.stdout}{r.stderr}")
+    assert "falharam" in r.stdout
+    # E nomeia QUAL: "1 de 2 falhou" sem dizer qual não serve.
+    assert "este falha" in r.stdout
+
+
+def test_dataforge_test_conta_os_trials_e_nao_os_arquivos(tmp_path):
+    """Um arquivo com dois trials contava como **um** teste. Num projeto
+    de 30 arquivos com 2 trials cada, o relatório dizia 30 onde eram
+    60 — e um número de testes errado é o começo da desconfiança."""
+    pasta = _projeto_com_crucible(tmp_path, '''adopt Crucible
+
+crucible "suite":
+    trial "um":
+        expect 1 is 1
+
+    trial "dois":
+        expect 2 is 2
+
+    trial "tres":
+        expect 3 is 3
+''')
+    r = _rodar_test(pasta)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "3 passaram" in r.stdout
+
+
+def test_dataforge_test_e_dataforge_crucible_concordam(tmp_path):
+    """Os dois comandos veem a mesma suíte, e discordavam: `crucible`
+    reprovava e `test` passava. O mais óbvio dos dois nomes era o que
+    mentia."""
+    import subprocess
+    import sys as _sys
+
+    pasta = _projeto_com_crucible(tmp_path, '''adopt Crucible
+
+crucible "suite":
+    trial "quebrado":
+        expect yes is no
+''')
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ambiente = {**os.environ, "PYTHONPATH": raiz, "NO_COLOR": "1"}
+    codigos = {}
+    for comando in ("test", "crucible"):
+        r = subprocess.run([_sys.executable, "-m", "dataforge", comando],
+                           capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", cwd=str(pasta), env=ambiente)
+        codigos[comando] = r.returncode
+    assert codigos["test"] == codigos["crucible"] == 1, codigos
+
+
+def test_um_trial_pendente_nao_conta_como_falha(tmp_path):
+    pasta = _projeto_com_crucible(tmp_path, '''adopt Crucible
+
+crucible "suite":
+    trial "feito":
+        expect 1 is 1
+
+    trial "ainda nao" pending "amanha":
+        expect 1 is 2
+''')
+    r = _rodar_test(pasta)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_um_arquivo_sem_crucible_continua_como_antes(tmp_path):
+    """A correção não podia mudar o caminho das ações `test_`, que é
+    como os quatro projetos do repositório escrevem os seus."""
+    pasta = _projeto_com_crucible(tmp_path, '''adopt Arcane.Test as T
+
+action test_soma():
+    T.assert_equal(2 + 2, 4)
+
+action test_falha():
+    T.assert_equal(1, 2)
+''')
+    r = _rodar_test(pasta)
+    assert r.returncode == 1
+    assert "test_falha" in r.stdout
+    assert "test_soma" in r.stdout or "1 passaram" in r.stdout
+
+
+def test_um_arquivo_que_nao_e_teste_nenhum_continua_passando(tmp_path):
+    """Um `.df` dentro de `tests/` que só define coisas — um helper —
+    não pode virar falha."""
+    pasta = _projeto_com_crucible(tmp_path, '''action ajudar(x):
+    yield x * 2
+''')
+    r = _rodar_test(pasta)
+    assert r.returncode == 0, r.stdout + r.stderr

@@ -551,6 +551,30 @@ Antes disso, um único arquivo mal codificado derrubava `fmt .` inteiro com um
 Há teste para os dois casos em `tests/test_regressoes.py`, mais um que proíbe
 qualquer `.df` fora de UTF-8 no repositório.
 
+### `dataforge test` roda os `trial`, e reprova quando um cai
+
+Um arquivo com `crucible`/`trial` **registra** as suites e não as roda:
+quem as roda é `Crucible.run()`. O corredor caía no caso "sem ações
+`test_`, o próprio arquivo é o caso" e contava o arquivo como **um
+teste que passou**.
+
+Um teste que falha reportando "Tudo verde" é a pior falha possível num
+corredor de testes: a suíte fica vermelha e o CI passa. Um arquivo com
+dez `trial`, um deles quebrado, saía com **código 0** — e
+`dataforge crucible`, sobre a mesma suíte, saía com 1. Os dois comandos
+discordavam, e o nome mais óbvio era o que mentia.
+
+Achado gerando um projeto de 281 arquivos: 30 arquivos com 2 `trial`
+cada relatavam "30 passaram" onde eram 60.
+
+Três detalhes da correção:
+
+| O quê | Porque |
+|---|---|
+| um `Resultado` por **trial**, não por arquivo | "1 de 2 falhou" sem dizer qual não serve para nada |
+| os nomes vêm de `crucible.Resultado` (`estado`, `caminho`, `motivo`) | adivinhar não daria erro: `getattr` com padrão devolvia `"pass"` para tudo, e um trial quebrado aparecia verde — foi o primeiro jeito que escrevi |
+| o estado `skip` no corredor | `trial … pending` é quem escreveu dizendo "ainda não"; sem esse estado ele caía em "tudo que não passou falhou" |
+
 ### Cobertura de linha
 
 `dataforge test --cobertura` diz quais linhas rodaram, e
