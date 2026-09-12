@@ -55,6 +55,7 @@ import traceback
 from . import ast_nodes as ast
 from .builtins import get_builtins
 from .errors import DataForgeError
+from .exemplos_palavras import PALAVRAS
 from .formatter import format_source
 from .lexer import tokenize
 from .parser import parse
@@ -372,6 +373,11 @@ def _caminho_de(uri):
 # ═════════════════════════════════════════════════════════════
 
 #: Palavra -> o que ela abre. So o que ajuda; repetir o nome nao ajuda.
+#:
+#: O EXEMPLO de cada uma vive em 'dataforge/exemplos_palavras.py', com um
+#: teste que roda cada um. Dizer o que a palavra faz e metade: quem esta
+#: aprendendo precisa ver como se escreve, e uma frase de dez palavras
+#: nao substitui tres linhas de codigo.
 _O_QUE_A_PALAVRA_FAZ = {
     "given": "condicional — given cond: … orif … otherwise:",
     "orif": "senão-se, dentro de um 'given'",
@@ -425,7 +431,15 @@ def _itens_de_palavra():
     for palavra in sorted(set(KEYWORDS) | set(CONTEXTUAIS_BLUEPRINT) |
                           set(CONTEXTUAIS_KILN)):
         item = {"label": palavra, "kind": K_PALAVRA,
-                "detail": _O_QUE_A_PALAVRA_FAZ.get(palavra, "palavra reservada")}
+                "detail": (PALAVRAS[palavra][0] if palavra in PALAVRAS
+                           else _O_QUE_A_PALAVRA_FAZ.get(
+                               palavra, "palavra reservada")),
+                # O exemplo aparece no painel ao lado do item selecionado,
+                # antes de a pessoa aceitar a sugestao.
+                "documentation": (
+                    {"kind": "markdown",
+                     "value": f"```dataforge\n{PALAVRAS[palavra][1]}\n```"}
+                    if palavra in PALAVRAS else None)}
         if palavra in _ABREM_BLOCO:
             # O ':' e a quebra vem junto: quem escolhe 'given' vai
             # escrever ':' em seguida, sempre.
@@ -648,6 +662,15 @@ def hover(analise, linha, coluna):
                 + "\n\n*função embutida — não precisa de `adopt`*")
 
     # Palavra reservada
+    ficha = PALAVRAS.get(palavra)
+    if ficha is not None:
+        explicacao, exemplo = ficha
+        contexto = " (só dentro de um bloco `server`)" \
+            if palavra in CONTEXTUAIS_KILN else ""
+        return (f"**{palavra}** — {explicacao}\n\n"
+                f"```dataforge\n{exemplo}\n```\n\n"
+                f"*palavra reservada{contexto}*")
+
     if palavra in _O_QUE_A_PALAVRA_FAZ:
         return (f"```dataforge\n{palavra}\n```\n\n"
                 f"{_O_QUE_A_PALAVRA_FAZ[palavra]}\n\n*palavra reservada*")
