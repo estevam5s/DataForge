@@ -550,6 +550,7 @@ _GLOBAIS = {
     "site/app/docs/referencia/arquitetura/page.tsx",
     "site/app/docs/tecnicas/lsp/page.tsx",
     "site/app/docs/tecnicas/editor/page.tsx",
+    "site/app/docs/editor/page.tsx",
     "site/app/docs/tecnicas/analise-estatica/page.tsx",
     "site/app/docs/instalacao/page.tsx",
     "site/app/docs/big-o/analisar/page.tsx",

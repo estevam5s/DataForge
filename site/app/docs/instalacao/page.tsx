@@ -34,7 +34,7 @@ const blocos: Bloco[] = [
     ["`pip install` de pacote Python", "não", "sim"],
     ["mexer no interpretador", "não", "sim"]]}},
   {"callout": {"tipo": "nota", "titulo": "Por que é uma pasta e não um arquivo só", "texto": "Um arquivo único é mais bonito de baixar e inutilizável de usar: ele descompacta o pacote inteiro num diretório temporário **a cada chamada**, e o mesmo `dataforge run` passa de 80 ms para 3,5 segundos. Os dois números são medidos."}},
-  {"callout": {"tipo": "dica", "texto": "Use o **executável** para escrever programas em DataForge; use o **Python** para contribuir com a linguagem. Os dois rodam exatamente o mesmo interpretador — os 229 exercícios e os 44 exemplos passam pelos dois."}},
+  {"callout": {"tipo": "dica", "texto": "Use o **executável** para escrever programas em DataForge; use o **Python** para contribuir com a linguagem. Os dois rodam exatamente o mesmo interpretador — os 230 exercícios e os 44 exemplos passam pelos dois."}},
 
   {"h3": "Ajustar a instalação"},
   {"table": {"head": ["Variável", "Padrão", "Para que serve"], "rows": [["`DATAFORGE_PREFIX`", "`~/.dataforge`", "onde instalar"], ["`DATAFORGE_VERSION`", "`1.0.0`", "qual versão"], ["`DATAFORGE_SITE`", "o site oficial", "de onde baixar"], ["`DATAFORGE_BINARIO`", "`0`", "`1` força o executável, sem Python"]]}},
@@ -49,7 +49,7 @@ rm -rf ~/.dataforge`, lang: 'bash' },
   { code: `dataforge editor           # refaz a instalação
 dataforge editor status    # mostra onde está
 DATAFORGE_SEM_EDITOR=1 …   # pula a etapa`, lang: 'bash' },
-  {"p": "Detalhes em [Editor e cores](/docs/tecnicas/editor)."},
+  {"p": "Detalhes em [Editor e cores](/docs/editor)."},
   {"h2": "Docker"},
   {"p": "Sem instalar nada no seu sistema — nem Python:"},
   { code: `# console interativo
@@ -118,7 +118,7 @@ cp -r editor/vscode/* ~/.vscode/extensions/dataforge/`, lang: 'bash' },
   {"h2": "Verificar a instalação"},
   { code: `dataforge version
 python3 -m pytest tests/ -q          # 272 testes
-python3 exercicios/run_all.py        # 229 exercícios`, lang: 'bash' },
+python3 exercicios/run_all.py        # 230 exercícios`, lang: 'bash' },
   {"h2": "Problemas comuns"},
   {"h3": "`command not found: dataforge`"},
   {"p": "O ambiente virtual não está ativo, ou o `pip install` não rodou. A alternativa que sempre funciona dentro da pasta do projeto é `python3 -m dataforge run arquivo.df`."},

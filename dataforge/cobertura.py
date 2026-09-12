@@ -140,6 +140,17 @@ class Cobertura:
         return desligar
 
 
+def linhas_executaveis(arvore):
+    """Só o conjunto de linhas — para quem nao precisa das acoes.
+
+    Existe para o depurador: uma parada precisa cair numa linha que o
+    interpretador executa, e a pergunta e a MESMA que a cobertura faz.
+    Duas definicoes de "linha executavel" divergiriam, e a parada
+    cairia onde a cobertura nao conta.
+    """
+    return _linhas_executaveis(arvore)[0]
+
+
 def _linhas_executaveis(arvore):
     """As linhas que o interpretador pode executar, e as acoes por linha.
 

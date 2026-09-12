@@ -133,6 +133,36 @@ export async function crucible(): Promise<void> {
 
 // ── depurar ────────────────────────────────────────────────
 
+/**
+ * A depuração do painel — o mesmo que F5.
+ *
+ * Existe como comando para ser achável na paleta e na árvore de
+ * ferramentas: quem não sabe que F5 funciona num `.df` não descobre por
+ * tentativa.
+ */
+export async function depurarNoEditor(): Promise<void> {
+  const doc = documentoAtual();
+  if (!doc) return;
+  await salvarSePreciso(doc);
+
+  const pasta = vscode.workspace.getWorkspaceFolder(doc.uri);
+  await vscode.debug.startDebugging(pasta, {
+    type: 'dataforge',
+    request: 'launch',
+    name: 'Depurar este arquivo',
+    program: doc.fileName,
+    cwd: pasta?.uri.fsPath,
+    stopOnEntry: false,
+  });
+}
+
+/**
+ * O depurador de TERMINAL.
+ *
+ * Não é o mesmo que o de cima, e a diferença importa: este roda em
+ * qualquer terminal, inclusive por ssh, onde interface gráfica nenhuma
+ * chega. O painel do editor é melhor quando ele está disponível.
+ */
 export async function depurar(): Promise<void> {
   const doc = documentoAtual();
   if (!doc) return;

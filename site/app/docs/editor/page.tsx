@@ -111,7 +111,7 @@ export default function Pagina() {
     <DocPage
       title={"A extensão do editor"}
       description={"Cores, erros enquanto se digita, autocompletar, depurador com breakpoints, Big-O acima de cada ação, 49 comandos e o painel de bancos. O que cada coisa faz, e por quê."}
-      href={"/docs/tecnicas/editor"}
+      href={"/docs/editor"}
       headings={headings}
     >
       <Renderer blocos={blocos} />

@@ -361,6 +361,19 @@ GRUPOS = [
             exemplos=[("dataforge debug conta.df", "para no comeco"),
                       ("dataforge debug conta.df --parar=42", "so na linha 42")],
             veja=("run", "check")),
+        Cmd("dap", "dataforge dap",
+            "Adaptador de depuracao para o editor",
+            "Fala o Debug Adapter Protocol por stdin/stdout. E o que poe\n"
+            "os breakpoints na margem do editor, a pilha de chamadas no\n"
+            "painel, as variaveis em arvore e o console de avaliacao —\n"
+            "com 'entrar', 'passar por cima' e 'sair da acao'.\n"
+            "\nVoce nao o roda a mao: a extensao do VS Code o inicia\n"
+            "sozinha ao apertar F5. Este comando existe para outros\n"
+            "editores que perguntam qual adaptador iniciar.\n"
+            "\nPara depurar no terminal — por ssh, sem interface\n"
+            "grafica — use 'dataforge debug'.",
+            exemplos=[("dataforge dap", "o que o editor executa")],
+            veja=("debug", "lsp")),
         Cmd("lsp", "dataforge lsp",
             "Servidor de linguagem para o editor",
             "Fala o Language Server Protocol por stdin/stdout. E o que da\n"
@@ -3348,7 +3361,7 @@ def editor_command(args, flags=()):
         return 1
 
     print()
-    print(color("  Instalando a coloracao do DataForge", "1;37"))
+    print(color("  Instalando a extensao do DataForge", "1;37"))
     print()
     instalados = 0
     for nome, pasta in editores:
@@ -3371,10 +3384,20 @@ def editor_command(args, flags=()):
     print()
     print("  " + color("Pronto.", "1;32") +
           " Reinicie o editor e abra um arquivo .df.")
-    print(color("  Voce ganha: cores para as palavras reservadas, snippets,",
-                "0;90"))
-    print(color("              indentacao de 4 espacos e dobra de blocos.",
-                "0;90"))
+    print()
+    # A mensagem dizia apenas "cores, snippets, indentacao e dobra". Foi
+    # escrita quando a extensao era so uma gramatica; hoje ela traz LSP,
+    # depurador e 49 comandos, e prometer menos do que se entrega faz a
+    # pessoa nao procurar o que esta la.
+    for titulo, detalhe in (
+            ("cores e snippets", "as 81 palavras reservadas, e 4 espacos de indentacao"),
+            ("erros enquanto digita", "do mesmo 'check' que roda no CI"),
+            ("autocompletar e ir-para-definicao", "servidor de linguagem proprio"),
+            ("depurar com F5", "breakpoints na margem, pilha e variaveis no painel"),
+            ("Big-O acima de cada acao", "e o custo ao lado de cada import"),
+            ("49 comandos", "rodar, testar, cobertura, pacotes, Vitrine, DevOps")):
+        print("  " + color("·", "1;33") + f" {titulo}")
+        print(color(f"      {detalhe}", "0;90"))
     print()
     return 0
 
@@ -3503,6 +3526,11 @@ def main():
         # desiste sem dizer por que.
         from .lsp import main as lsp_main
         sys.exit(lsp_main(args[1:] + list(flags)))
+
+    elif command == 'dap':
+        # Pela mesma razao do 'lsp': stdout e o canal.
+        from .dap import servir
+        sys.exit(servir())
 
     elif command == 'new':
         if '--list' in flags or (len(args) > 1 and args[1] == 'list'):

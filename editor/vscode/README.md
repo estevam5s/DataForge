@@ -6,7 +6,7 @@
 
 **Suporte completo à linguagem [DataForge](https://dataforge-lang.vercel.app)** —
 servidor de linguagem, Big-O no editor, custo de import, cobertura de
-testes, painéis Vitrine, geradores DevOps, 48 comandos e 123 snippets.
+testes, painéis Vitrine, geradores DevOps, 49 comandos e 123 snippets.
 
 [Documentação](https://dataforge-lang.vercel.app/docs) ·
 [Exercícios](https://dataforge-lang.vercel.app/docs/exercicios) ·
@@ -79,12 +79,53 @@ A mediana e o p95 estão lá porque a média sozinha esconde a pausa do
 coletor de lixo — uma execução em vinte que demora dez vezes mais
 desaparece na média e aparece no p95.
 
-E há `Depurar`, que usa os breakpoints do VS Code, e
-`Observar e reexecutar ao salvar`.
+E há `Observar e reexecutar ao salvar`, para quem itera.
 
 ---
 
-## Os 48 comandos
+## Depurar: F5
+
+Clique na margem e aperte **F5**. Não é preciso escrever `launch.json`.
+
+| No painel | O que se vê |
+|---|---|
+| **Variáveis** | o escopo onde você parou, do mais próximo ao global — vault e cluster abrem em árvore |
+| **Pilha de chamadas** | quem chamou quem; clicar leva ao lugar certo do arquivo certo |
+| **Console de depuração** | qualquer expressão DataForge, avaliada **no quadro onde você parou** |
+| `F11` · `F10` · `Shift+F11` | entrar · passar por cima · sair da ação |
+
+```dataforge
+// Pare na linha do 'yield' e escreva no console:
+total * 2 + len(nome)
+[n * n cycle n in itens]
+```
+
+Três coisas que ele faz e que não são óbvias:
+
+- **Uma parada em comentário é movida** para a próxima linha
+  executável, e o painel mostra onde ficou. Uma parada que nunca
+  dispara, mostrada acesa, é o pior dos dois mundos. A pergunta "o que
+  é linha executável" é respondida pelo mesmo módulo que a cobertura
+  usa — duas definições divergiriam.
+- **As 228 embutidas não aparecem** no painel de variáveis. Elas vivem
+  no escopo global, e despejá-las enterra as três variáveis que você
+  parou para ver.
+- **Avaliar usa o quadro escolhido**, e não o global: é justamente para
+  as variáveis locais que a diferença importa.
+
+O adaptador é `dataforge dap`, um processo que fala **Debug Adapter
+Protocol** no stdio — o mesmo protocolo que qualquer editor moderno
+fala. A extensão só diz ao VS Code qual processo iniciar; a máquina de
+depuração mora na linguagem, e por isso serve Neovim, Helix e Emacs
+também.
+
+Para depurar onde não há interface gráfica — por `ssh`, num container —
+o comando **Depurar no terminal** roda `dataforge debug`, que é passo a
+passo em texto.
+
+---
+
+## Os 49 comandos
 
 Abra a paleta (`Ctrl+Shift+P`) e digite **DataForge**.
 
@@ -252,6 +293,12 @@ não tem o que medir.
   dentro de um arquivo; o `adopt` cruzando módulos ainda é manual.
 - **Não tem refatorações automáticas** além das correções rápidas que o
   analisador sabe provar.
+- **Não depura mais de uma thread por vez.** A linguagem tem `thread` e
+  `parallel`, mas o depurador sombreia `execute` no interpretador
+  inteiro: apresentar N threads sem poder pará-las uma a uma seria uma
+  interface que promete o que não cumpre.
+- **Não tem breakpoint condicional** nem watchpoint. Parar e avaliar no
+  console cobre o caso; a condição ainda é um `given` com `out`.
 
 ---
 

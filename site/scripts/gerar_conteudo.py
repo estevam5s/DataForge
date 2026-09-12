@@ -22,6 +22,7 @@ MODULOS = [
     "oop_magicos",
     "exercicios",
     "lsp",
+    "editor",
     "dados",
     "lago",
     "ml",

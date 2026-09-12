@@ -1,0 +1,153 @@
+// ════════════════════════════════════════════════════════════
+//  Exercicio 229 — Depurar sem 'out'
+//
+//  'out' no meio do codigo e o depurador mais usado do mundo, e ele
+//  tem tres defeitos: muda o que voce esta medindo, tem de ser
+//  removido depois, e nao mostra o que voce NAO pensou em imprimir.
+//
+//  Este exercicio nao usa o depurador interativo — ele exige um
+//  terminal ou um editor. Ele exercita as DUAS pecas em que o
+//  depurador se apoia, e que dao para verificar com 'assert': saber
+//  quais linhas sao executaveis, e ler o valor no quadro certo.
+// ════════════════════════════════════════════════════════════
+
+// ── O programa que vamos investigar ─────────────────────────
+//
+// Ele tem um bug de verdade: a media de uma lista vazia.
+
+action media(nums):
+    soma := 0
+    cycle n in nums:
+        soma := soma + n
+    yield soma / len(nums)
+
+// ── 1. O erro diz o arquivo, a linha e a coluna ─────────────
+//
+// E o primeiro depurador: um stack trace que aponta o lugar.
+
+monitor:
+    media([])
+    assert no  // nao chega aqui
+handle Error as e:
+    assert e.type is "DivisionByZeroError"
+    // A linha e a do 'yield', dentro da acao — e nao a da chamada.
+    assert e.line is 22
+
+// ── 2. A pilha diz quem chamou quem ─────────────────────────
+//
+// Numa acao chamada de cinco lugares, "deu erro em media()" nao
+// ajuda: o que importa e QUAL das cinco chamadas.
+
+action relatorio(vendas):
+    yield media(vendas)
+
+monitor:
+    relatorio([])
+handle Error as e:
+    nomes := [q["name"] cycle q in e.stack]
+    assert "media" in nomes
+    assert "relatorio" in nomes
+    // Do mais externo para o mais interno: e a ordem em que se le
+    // "quem chamou quem".
+    assert nomes.index("relatorio") smaller nomes.index("media")
+
+// ── 3. Consertado, com o caso que faltava ───────────────────
+
+action media2(nums):
+    given len(nums) is 0:
+        yield 0.0
+    soma := 0
+    cycle n in nums:
+        soma := soma + n
+    yield soma / len(nums)
+
+assert media2([]) is 0.0
+assert media2([2, 4, 6]) is 4.0
+
+// ── 4. 'defer' mostra sem sujar o caminho de saida ──────────
+//
+// Um 'out' antes de cada 'yield' precisa ser repetido em cada saida
+// da acao — e a que voce esquecer e justamente a que da errado.
+// 'defer' roda na saida, qualquer uma delas.
+
+saidas := []
+
+action classificar(n):
+    // 'defer' abre BLOCO — nao aceita expressao na mesma linha.
+    defer:
+        saidas.append($"classificar({n}) saiu")
+    given n smaller 0:
+        yield "negativo"
+    given n is 0:
+        yield "zero"
+    yield "positivo"
+
+assert classificar(-5) is "negativo"
+assert classificar(0) is "zero"
+assert classificar(7) is "positivo"
+
+// Tres saidas diferentes, tres registros — nenhum esquecido.
+assert len(saidas) is 3
+assert saidas[0] is "classificar(-5) saiu"
+
+// ── 5. A pilha atravessa 'monitor' aninhado ─────────────────
+//
+// O quadro onde o erro NASCEU e o que importa, e nao o ponto onde
+// alguem decidiu capturar. Um 'handle' tres niveis acima ainda ve o
+// caminho inteiro.
+
+action nivel3():
+    trigger "o disco encheu"
+
+action nivel2():
+    yield nivel3()
+
+action nivel1():
+    monitor:
+        yield nivel2()
+    handle RuntimeError:
+        // NAO pega: 'trigger' levanta TriggerError. A armadilha 18.
+        yield "nao passa por aqui"
+
+monitor:
+    nivel1()
+    assert no
+handle Error as e:
+    nomes := [q["name"] cycle q in e.pilha]
+    assert nomes is ["nivel1", "nivel2", "nivel3"]
+
+    // Cada quadro diz onde estava a chamada — arquivo inclusive, que e
+    // o que faz a pilha servir num projeto de 200 arquivos.
+    cycle q in e.pilha:
+        assert q["line"] bigger 0
+        assert "229_depurar" in q["file"]
+
+// ── 6. Duas linhas diferentes, e as duas estao certas ──────
+//
+// E a confusao mais comum ao ler uma pilha:
+//
+//   e.line          onde o erro NASCEU
+//   quadro["line"]  onde a CHAMADA foi feita
+//
+// Sao numeros diferentes de propósito. Para consertar, voce quer o
+// primeiro; para entender por que aquela acao foi chamada com aquele
+// argumento, o segundo.
+
+monitor:
+    media([])
+handle Error as e:
+    // Onde estourou: dentro de 'media', no 'yield'.
+    assert e.line is 22
+
+    // Onde 'media' foi chamada: aqui, DEPOIS da declaracao — e por
+    // isso o numero e maior. Sao dois numeros diferentes, e as duas
+    // respostas estao certas para perguntas diferentes.
+    assert e.pilha[0]["name"] is "media"
+    assert e.pilha[0]["line"] bigger e.line
+
+    // E o arquivo, em cada quadro. Uma acao declarada num arquivo e
+    // chamada de outro ja reportou a linha certa com o NOME do arquivo
+    // errado — e isso manda a pessoa depurar o arquivo errado.
+    assert "229_depurar.df" in e.pilha[0]["file"]
+
+out "229 ok — depurar"

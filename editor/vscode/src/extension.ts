@@ -18,6 +18,7 @@ import { LenteDeComplexidade, acoesDe, explicar } from './complexidade';
 import { criarProjeto } from './projetos';
 import { esquecerExecutavel, exigirExecutavel, raizDe, rodar } from './dataforge';
 import { Verificador } from './diagnosticos';
+import * as depuracao from './depuracao';
 import { iniciarServidor, reiniciarServidor, servidorAtivo } from './servidor';
 import * as cmd from './comandos';
 import {
@@ -34,6 +35,10 @@ let barra: vscode.StatusBarItem;
 export function activate(contexto: vscode.ExtensionContext) {
   const saida = vscode.window.createOutputChannel('DataForge');
   contexto.subscriptions.push(saida);
+
+  // A depuração no painel do editor. O adaptador é `dataforge dap`:
+  // aqui não há lógica de depuração nenhuma.
+  depuracao.registrar(contexto);
 
   const verificador = new Verificador(contexto);
   const lente = new LenteDeComplexidade();
@@ -75,6 +80,7 @@ export function activate(contexto: vscode.ExtensionContext) {
     ['dataforge.corrigir', cmd.corrigir],
     ['dataforge.gerarDoc', cmd.gerarDoc],
     ['dataforge.crucible', cmd.crucible],
+    ['dataforge.depurarNoEditor', cmd.depurarNoEditor],
     ['dataforge.depurar', cmd.depurar],
     ['dataforge.avaliar', cmd.avaliar],
     ['dataforge.medirDesempenho', cmd.medirDesempenho],

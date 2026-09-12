@@ -153,7 +153,7 @@ export default function Home() {
       <H3>Verificável</H3>
       <p>
         Cada afirmação desta documentação corresponde a código que roda. São{' '}
-        <strong>2171 testes</strong>, 229 exercícios que verificam o próprio
+        <strong>2171 testes</strong>, 230 exercícios que verificam o próprio
         resultado com <code>assert</code>, e 43 programas de exemplo. Os
         trechos desta documentação são compilados a cada mudança — 642 deles.
       </p>
@@ -293,7 +293,7 @@ dataforge version`}
         <Card href="/docs/variaveis" title="Visão geral" meta="13 páginas">
           A linguagem do zero, na ordem em que é usada.
         </Card>
-        <Card href="/docs/exercicios" title="229 exercícios" meta="32 áreas">
+        <Card href="/docs/exercicios" title="230 exercícios" meta="32 áreas">
           Cada um se verifica com <code>assert</code>. Vinte e dois módulos têm
           um <code>.md</code> explicativo ao lado de cada exercício.
         </Card>

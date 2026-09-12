@@ -251,8 +251,14 @@
         "icon": "$(beaker)"
       },
       {
+        "command": "dataforge.depurarNoEditor",
+        "title": "Depurar (breakpoints, pilha e variáveis)",
+        "category": "DataForge",
+        "icon": "$(debug-alt)"
+      },
+      {
         "command": "dataforge.depurar",
-        "title": "Depurar (usa os breakpoints)",
+        "title": "Depurar no terminal (passo a passo por ssh)",
         "category": "DataForge",
         "icon": "$(debug-alt)"
       },
@@ -580,6 +586,88 @@
             "description": "o alvo"
           }
         }
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "dataforge"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "dataforge",
+        "label": "DataForge",
+        "languages": [
+          "dataforge"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "O .df a depurar.",
+                "default": "${file}"
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Argumentos passados ao programa (os que 'args()' lê).",
+                "default": []
+              },
+              "cwd": {
+                "type": "string",
+                "description": "A pasta de trabalho. A do projeto, e nao a do arquivo: e ela que tem o forge.toml.",
+                "default": "${workspaceFolder}"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Parar na primeira instrucao.",
+                "default": false
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "dataforge",
+            "request": "launch",
+            "name": "Depurar este arquivo",
+            "program": "${file}",
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "DataForge: depurar o arquivo aberto",
+            "description": "Para nos breakpoints da margem, com pilha e variaveis no painel.",
+            "body": {
+              "type": "dataforge",
+              "request": "launch",
+              "name": "Depurar este arquivo",
+              "program": "^\"\\${file}\"",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "stopOnEntry": false
+            }
+          },
+          {
+            "label": "DataForge: depurar o entrypoint do projeto",
+            "description": "O 'entry' do forge.toml, normalmente src/main.df.",
+            "body": {
+              "type": "dataforge",
+              "request": "launch",
+              "name": "Depurar o projeto",
+              "program": "^\"\\${workspaceFolder}/src/main.df\"",
+              "cwd": "^\"\\${workspaceFolder}\"",
+              "stopOnEntry": false
+            }
+          }
+        ]
       }
     ]
   },

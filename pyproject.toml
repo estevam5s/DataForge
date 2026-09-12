@@ -36,23 +36,51 @@ Documentation = "https://github.com/estevam5s/DataForge/tree/main/doc"
 dataforge = "dataforge.cli:main"
 df = "dataforge.cli:main"
 
-[tool.setuptools.packages.find]
-include = ["dataforge*"]
+# A lista e explicita, e nao 'find', por causa de 'dataforge.editor':
+# a extensao do VS Code mora em 'editor/vscode/' na raiz, fora da pasta
+# do pacote, e 'find' so acha o que tem '__init__.py' dentro de
+# 'dataforge/'. O mapeamento abaixo a traz para dentro do wheel.
+#
+# 'tests/test_empacotamento.py' confere que esta lista tem todos os
+# subpacotes que existem no disco — uma lista explicita que envelhece
+# deixa um subpacote fora do wheel, e o sintoma e um ImportError so na
+# instalacao por pip.
+[tool.setuptools]
+packages = [
+    "dataforge",
+    "dataforge.stdlib",
+    "dataforge.stdlib.forge",
+    "dataforge.stdlib.vitrine",
+    "dataforge.editor",
+]
+
+[tool.setuptools.package-dir]
+"dataforge.editor" = "editor"
 
 [tool.setuptools.package-data]
-dataforge = [
-    "py.typed",
-    # A extensao do VS Code viaja junto: 'dataforge editor' a instala
-    # sem precisar do repositorio nem de internet.
-    "editor/vscode/*",
-    "editor/vscode/*/*",
-    # O cliente LSP vive fundo em 'node_modules/<pacote>/lib/...', e os
-    # dois globs acima param no segundo nivel. Sem esta linha o wheel
-    # saia com a extensao e sem a unica biblioteca que ela carrega em
-    # execucao — e o servidor de linguagem nao subia em NENHUMA
-    # instalacao por pip, so na copia de desenvolvimento que tinha
-    # rodado 'npm install'.
-    "editor/vscode/node_modules/**/*",
+dataforge = ["py.typed"]
+
+# A extensao do VS Code viaja junto: 'dataforge editor' a instala sem
+# precisar do repositorio nem de internet.
+#
+# Ela NAO estava entrando. Os globs viviam sob 'dataforge' e eram
+# relativos a pasta do pacote — 'dataforge/editor/vscode/*', que nao
+# existe. O wheel saia com ZERO arquivo da extensao, e
+# 'dataforge editor' instalado por pip respondia "os arquivos da
+# extensao nao foram encontrados". Tudo que a extensao faz — cores,
+# snippets, LSP, depurador, os 49 comandos — nao chegava a ninguem que
+# instalasse pela forma recomendada.
+#
+# 'out/**' e o JavaScript compilado: sem ele a extensao instala e nao
+# ativa. 'node_modules/**' e o cliente LSP, que vive fundo em
+# '<pacote>/lib/...'.
+"dataforge.editor" = [
+    "vscode/*",
+    "vscode/*/*",
+    "vscode/out/**/*",
+    "vscode/snippets/**/*",
+    "vscode/syntaxes/**/*",
+    "vscode/node_modules/**/*",
 ]
 
 [tool.pytest.ini_options]

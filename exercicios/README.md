@@ -483,12 +483,13 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 31 — Qualidade
 
-*2 exercícios · com documentação `.md`*
+*3 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
 | 225 | [`225_cobertura.df`](31-qualidade/225_cobertura.df) · [doc](31-qualidade/225_cobertura.md) | Cobertura: o que os testes NAO exercitaram |
 | 226 | [`226_instantaneo_e_isolamento.df`](31-qualidade/226_instantaneo_e_isolamento.df) · [doc](31-qualidade/226_instantaneo_e_isolamento.md) | Instantaneo, banco isolado e teste instavel |
+| 229 | [`229_depurar.df`](31-qualidade/229_depurar.df) · [doc](31-qualidade/229_depurar.md) | Depurar sem 'out' |
 
 ## 32 — Microservicos
 
@@ -501,7 +502,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ---
 
-**Total: 229 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 230 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

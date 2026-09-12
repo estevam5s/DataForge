@@ -233,10 +233,39 @@ def test_extensao_entra_no_tarball_que_o_site_serve():
 
 
 def test_pyproject_empacota_os_arquivos_da_extensao():
-    conteudo = open(os.path.join(RAIZ, "pyproject.toml"),
-                    encoding="utf-8").read()
-    assert "editor/vscode/*" in conteudo
-    assert "editor/vscode/*/*" in conteudo      # snippets/ e syntaxes/
+    """A extensão precisa estar mapeada para DENTRO do pacote.
+
+    Este teste conferia o TEXTO do `pyproject.toml` — e passou enquanto
+    o wheel saía com zero arquivo da extensão. Os globs existiam, mas
+    sob a chave `dataforge`, onde são relativos à pasta do pacote:
+    `dataforge/editor/vscode/*`, que não existe. A extensão mora em
+    `editor/vscode/` na raiz.
+
+    Conferir o texto de um arquivo de build não diz o que o build
+    produz. A prova está em `tests/test_empacotamento.py`, que
+    **constrói o wheel** e olha dentro; aqui fica só a peça que faz o
+    mapeamento existir.
+    """
+    dados = _pyproject()
+    if dados is None:
+        pytest.skip("tomllib só existe a partir do 3.11")
+    setup = dados["tool"]["setuptools"]
+    assert "dataforge.editor" in setup["packages"], (
+        "sem este pacote, a extensão não entra no wheel")
+    assert setup["package-dir"]["dataforge.editor"] == "editor", (
+        "é este mapeamento que traz 'editor/' de fora para dentro")
+    dados_do_pacote = setup["package-data"]["dataforge.editor"]
+    assert any(g.startswith("vscode/") for g in dados_do_pacote), (
+        "os globs precisam ser relativos a 'editor/', não a 'dataforge/'")
+
+
+def _pyproject():
+    try:
+        import tomllib
+    except ImportError:
+        return None
+    with open(os.path.join(RAIZ, "pyproject.toml"), "rb") as f:
+        return tomllib.load(f)
 
 
 def test_o_comando_editor_esta_na_ajuda():
@@ -461,15 +490,21 @@ def test_o_tarball_leva_o_cliente_lsp_e_nada_alem():
 
 
 def test_o_glob_do_pyproject_alcanca_o_node_modules():
-    """A trava do teste acima, do lado do empacotamento.
+    """Estar no tarball não basta: o `pip` só instala o que os globs de
+    `package-data` alcançam, e eles paravam dois níveis acima — o
+    cliente LSP vive fundo em `node_modules/<pacote>/lib/...`.
 
-    Estar no tarball não basta: o `pip` só instala o que os globs de
-    `package-data` alcançam, e eles paravam dois níveis acima.
+    Que ele chegue ao wheel é conferido construindo o wheel, em
+    `tests/test_empacotamento.py`.
     """
-    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    conteudo = open(os.path.join(raiz, "pyproject.toml"), encoding="utf-8").read()
-    assert "editor/vscode/node_modules/**/*" in conteudo, (
+    dados = _pyproject()
+    if dados is None:
+        pytest.skip("tomllib só existe a partir do 3.11")
+    globs = dados["tool"]["setuptools"]["package-data"]["dataforge.editor"]
+    assert "vscode/node_modules/**/*" in globs, (
         "sem um glob recursivo, o wheel sai sem o cliente LSP")
+    assert "vscode/out/**/*" in globs, (
+        "sem o 'out/', a extensão instala e não ativa")
 
 
 # ── O README da extensão descreve a extensão de verdade ──────

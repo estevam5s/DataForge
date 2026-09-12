@@ -28,7 +28,7 @@ app.df:10:5: erro: Undefined action 'sommar'
   {"p": "Cada diagnóstico traz **linha, coluna e sugestão**. As sugestões de nome usam distância de edição — `sommar` → `somar` é encontrado automaticamente."},
   {"h2": "Por que é otimista"},
   {"p": "O analisador fica calado quando não consegue **provar** que algo está errado. Isso é deliberado: DataForge é dinamicamente tipado, e um falso alarme atrapalha mais que um alerta perdido — porque ensina a ignorar as mensagens."},
-  {"p": "Calibragem atual: **zero erros** em 259 arquivos conhecidamente bons (os 229 exercícios mais os 44 exemplos)."},
+  {"p": "Calibragem atual: **zero erros** em 259 arquivos conhecidamente bons (os 230 exercícios mais os 44 exemplos)."},
   {"h3": "O que ele não encontra"},
   { code: `divisor := 0
 out 10 / divisor      # o valor só é conhecido em tempo de execução` },

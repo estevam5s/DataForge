@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2160 testes
-python3 exercicios/run_all.py                        # 229 exercícios
+python3 exercicios/run_all.py                        # 230 exercícios
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
@@ -57,6 +57,8 @@ dataforge/
   linter.py        394   dataforge lint
   testrunner.py    380   dataforge test, com cobertura de linha
   cobertura.py     170   quais linhas os testes executaram
+  depurador.py     390   'dataforge debug' — para, mostra e anda
+  dap.py           700   o mesmo, falando o protocolo do editor
   docgen.py        218   dataforge doc
   project.py       184   forge.toml
   environment.py    91   cadeia de escopos
@@ -76,7 +78,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        229 exercícios em 32 módulos + run_all.py
+exercicios/        230 exercícios em 32 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -954,6 +956,44 @@ socket — um cliente HTTP testado só com dublê não prova nada sobre o que
 acontece quando o outro lado demora, fecha a conexão ou devolve
 `Retry-After`. Os exercícios 227 e 228 sobem dois serviços.
 
+## O depurador, e o DAP
+
+`depurador.py` é a máquina: onde parar, como andar, e em que
+profundidade de chamada estávamos quando o comando foi dado — é ela que
+distingue "entrar na ação" de "passar por cima dela". `dap.py` troca a
+interface: em vez de `input()` no terminal, mensagens JSON no stdio, o
+que põe os breakpoints na margem do editor.
+
+**Custo zero quando desligado.** `execute` roda uma vez por instrução —
+mais de um milhão de vezes num programa médio. Um `if self.depurando:`
+ali custaria em TODA execução. Por isso o depurador não é um campo
+consultado: ele **substitui** o método, criando um atributo de
+instância que sombreia o da classe.
+
+`desligar` faz `del`, e **não** `interp.execute = original`: reatribuir
+criaria de novo um atributo de instância com o método ligado, e o
+interpretador sairia da depuração carregando uma indireção que não
+tinha antes.
+
+Quatro coisas que o DAP precisou resolver, e o sintoma de cada uma:
+
+| Decisão | Sem ela |
+|---|---|
+| a foto da pilha é tirada na thread do PROGRAMA | `_call_stack` é por thread; lida do laço do protocolo vem **vazia**, e o painel mostra um quadro só chamado "(programa)" mesmo parado dentro de uma ação |
+| a parada bloqueia num `threading.Event` | girando num `sleep`, o interpretador continua andando e o valor no painel é de um instante que já passou |
+| o laço do protocolo vive em outra thread | um adaptador que só responde quando já está parado não atende `pause` — e pausar é a única saída de um laço infinito |
+| `_Encerrar` deriva de `BaseException` | o interpretador embrulha toda `Exception` num `RuntimeError_`, e `disconnect` viraria uma mensagem de erro no meio do programa |
+
+Uma parada em linha não executável é **movida** para a próxima, e a
+pergunta "o que é linha executável" é respondida por
+`cobertura.linhas_executaveis` — a mesma função. Duas definições
+divergiriam, e a parada cairia onde a cobertura não conta.
+
+`tests/test_dap.py` sobe `dataforge dap` como subprocesso e escreve
+`Content-Length` na entrada dele, como o VS Code faz. Um adaptador
+testado por chamada de função prova que os métodos existem; o que
+quebra na prática é a ordem das mensagens.
+
 ## DevOps — geradores, e não orquestrador
 
 `dataforge devops` gera Dockerfile, compose, CI, manifestos do
@@ -989,6 +1029,27 @@ sozinho.
 e no `ignite` do Kiln (`at "0.0.0.0"`). O padrão é `127.0.0.1`, que de
 dentro significa o próprio container, e o sintoma é enganoso: o log diz
 "no ar" e o `curl` de fora não recebe nada.
+
+## O empacotamento mente sem dar erro
+
+A extensão do VS Code **não entrava no wheel**. Os globs de
+`package-data` viviam sob a chave `dataforge` e eram relativos à pasta
+do pacote — `dataforge/editor/vscode/*`, que não existe; a extensão mora
+em `editor/vscode/` na raiz.
+
+O resultado era silencioso e total: zero arquivo da extensão no wheel, e
+`dataforge editor` instalado por pip respondia "os arquivos da extensao
+nao foram encontrados". Cores, snippets, LSP, depurador, os 49 comandos
+— nada chegava a quem instalasse pela forma recomendada.
+
+Dois testes *conferiam o texto do `pyproject.toml`* e **passavam**.
+Conferir o texto de um arquivo de build não diz o que o build produz:
+`tests/test_empacotamento.py` constrói o wheel e olha dentro.
+
+A lista de pacotes é explícita (`[tool.setuptools] packages = [...]`),
+e não `find`, porque `dataforge.editor` mora fora da pasta do pacote e
+`find` só acha o que tem `__init__.py`. O preço de uma lista explícita é
+envelhecer, e há teste comparando-a com o disco.
 
 ## O que é gerado — não edite à mão
 
@@ -1056,11 +1117,13 @@ python3 scripts/gerar_tarball.py
 | `tests/test_devops.py` | `pytest` | os artefatos: compose validado pelo `docker compose config`, manifestos conferidos como dado, a sonda do HEALTHCHECK executada, e o README do Hub |
 | `tests/test_banco.py` | `pytest` | transação que desfaz, `upsert`, `increment` sob 4 threads, FTS5, `explain`, migração com `down`, e o nome de coluna recusado |
 | `tests/test_kiln_tempo_real.py` | `pytest` | multipart, SSE e WebSocket — o protocolo falado à mão, para pegar erro de enquadramento |
+| `tests/test_dap.py` | `pytest` | o depurador do editor, falado por um cano: ordem das mensagens, a parada que bloqueia de fato, `pause` num laço infinito, e a extensão concordando com o adaptador |
+| `tests/test_empacotamento.py` | `pytest` | **constrói o wheel** e olha dentro — a extensão, o `out/`, o cliente LSP e todo módulo de `dataforge/` |
 | `tests/test_malha.py` | `pytest` | chamada entre serviços contra um servidor que se comporta mal de propósito: retry, disjuntor nos três estados, `Retry-After`, propagação de rastro, e a saga compensando |
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 229 exercícios em 32 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 230 exercícios em 32 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 
@@ -1090,10 +1153,13 @@ O que **ainda não existe** (não invente que existe):
   relação entre entrada e saída, e não é verificado em execução.
 - **Exaustividade além do enum** — o `match` avisa quando um membro de
   enum fica de fora, mas não confere sequências nem records.
-- **Debugger** — não há breakpoint nem passo a passo. O LSP existe
-  (`dataforge lsp`, em `lsp.py`) e cobre autocompletar, hover, definição,
-  referências, esquema, assinatura, renomear, formatar e correção rápida —
-  servido do mesmo `typechecker`. Depuração continua sendo `out` e stack trace.
+- **Depurador de mais de uma thread, e breakpoint condicional.** O
+  depurador existe — `dataforge debug` no terminal, `dataforge dap` no
+  painel do editor, com breakpoint, pilha, variáveis em árvore e
+  avaliação no quadro escolhido. O que não existe: parar uma thread de
+  `thread`/`parallel` sem parar as outras (o depurador sombreia
+  `execute` no interpretador inteiro), breakpoint condicional e
+  watchpoint.
 - **Bytecode** — continua sendo interpretador de árvore. O que existe é
   **compilação para fechamentos** (`compilador.py`): a árvore é percorrida
   uma vez e vira funções Python, o que tira o despacho do caminho quente.

@@ -309,7 +309,7 @@ export default function Pagina() {
               </p>
             </Link>
             <Link
-              href="/docs/tecnicas/editor"
+              href="/docs/editor"
               className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 transition hover:border-[color:var(--accent)]/40"
             >
               <p className="text-[14px] font-bold text-strong">O editor</p>

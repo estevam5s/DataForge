@@ -32,7 +32,7 @@ pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
 (**Forge**) e **39 módulos** de biblioteca padrão com **1348 símbolos**.
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [229 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [230 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
@@ -662,10 +662,10 @@ no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas.
 | [**doc/ESTABILIDADE.md**](doc/ESTABILIDADE.md) | o que pode quebrar entre versões — e o teste que garante |
 | [**CHANGELOG.md**](CHANGELOG.md) | o que mudou depois da 1.0.0 |
 | [**CONTRIBUTING.md**](CONTRIBUTING.md) | como mandar o primeiro patch |
-| [**exercicios/**](exercicios/) | 229 exercícios; os módulos 11-26 com `.md` explicativo |
+| [**exercicios/**](exercicios/) | 230 exercícios; os módulos 11-26 com `.md` explicativo |
 | [**examples/**](examples/) | 43 programas maiores |
 
-### Os 229 exercícios
+### Os 230 exercícios
 
 ```bash
 python3 exercicios/run_all.py        # todos
@@ -707,7 +707,7 @@ sugestões.
 pip install -e ".[dev]"
 
 python3 -m pytest tests/ -q       # mais de 1300 testes
-python3 exercicios/run_all.py     # 229 exercícios
+python3 exercicios/run_all.py     # 230 exercícios
 ```
 
 Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).

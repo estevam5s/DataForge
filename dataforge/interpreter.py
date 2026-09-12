@@ -527,6 +527,21 @@ class DFError:
               "motivo", "corpo", "cabecalhos", "esperado", "obtido",
               "diferenca", "restricao", "tabela", "coluna")
 
+    #: A pilha de chamadas, como DADO.
+    #:
+    #: Ela ja era guardada no erro ('_attach_stack') e desenhada no
+    #: stack trace, mas era inalcancavel de dentro do programa: um
+    #: 'handle' via a mensagem e nada sobre o caminho. Numa acao chamada
+    #: de cinco lugares, "deu erro em media()" nao ajuda — o que importa
+    #: e QUAL das cinco chamadas, e essa informacao existia e ficava
+    #: guardada.
+    #:
+    #: Fica separada de EXTRAS porque precisa de CONVERSAO: os quadros
+    #: sao objetos 'Frame', e entregar objeto de Python ao programa
+    #: funcionaria por protocolo mas nao seria dado que se possa
+    #: serializar, comparar ou mandar para um log.
+    PILHA = ("pilha", "stack")
+
     def __init__(self, kind: str, message: str, original=None):
         self.type = kind
         self.message = message
@@ -541,12 +556,28 @@ class DFError:
         quando o atributo NAO existe — nao custa nada nos acessos
         comuns, que sao '.type' e '.message'.
         """
+        if nome in DFError.PILHA:
+            return self._pilha_como_dado()
         if nome.startswith("_") or nome not in DFError.EXTRAS:
             raise AttributeError(nome)
         valor = getattr(self.original, nome, None)
         if valor is None and nome == "codigo":
             valor = getattr(type(self.original), "CODIGO", "")
         return valor
+
+    def _pilha_como_dado(self):
+        """Do mais externo para o mais interno.
+
+        E a ordem em que se le "quem chamou quem", e a mesma em que o
+        stack trace desenha — inverter aqui faria o programa e a tela
+        discordarem sobre a mesma pilha.
+        """
+        quadros = getattr(self.original, "stack", None) or []
+        return [{"name": getattr(q, "name", "?"),
+                 "line": getattr(q, "line", 0),
+                 "column": getattr(q, "column", 0),
+                 "file": getattr(q, "filename", "")}
+                for q in quadros]
 
     def __str__(self):
         return self.message

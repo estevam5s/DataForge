@@ -642,8 +642,35 @@ O nome ligado pelo `handle` expõe:
 | `.type` | nome do tipo, ex. `"RuntimeError"` |
 | `.message` | a mensagem |
 | `.line`, `.column` | posição de origem |
+| `.pilha` (ou `.stack`) | os quadros de chamada, como dado |
+| `.nota`, `.dica`, `.codigo`, `.doc` | o que a mensagem trazia além do texto |
+| `.campos`, `.caminho`, `.corpo`, `.tabela`, `.coluna`… | os extras do erro específico |
 
 Ele se comporta como texto ao ser concatenado ou comparado com uma `String`.
+
+#### A pilha, como dado
+
+`.pilha` é um `Cluster` de vaults, **do mais externo para o mais
+interno** — a ordem em que se lê "quem chamou quem", e a mesma em que o
+stack trace desenha.
+
+```dataforge
+monitor:
+    relatorio([])
+handle Error as e:
+    cycle q in e.pilha:
+        out $"{q["name"]}  {q["file"]}:{q["line"]}"
+```
+
+Cada quadro traz `name`, `line`, `column` e `file`. Numa ação chamada de
+cinco lugares, *"deu erro em `media()`"* não ajuda: o que importa é qual
+das cinco chamadas — e o `file` é o que faz isso servir num projeto de
+200 arquivos.
+
+**Duas linhas diferentes, e as duas estão certas**: `e.line` é onde o
+erro **nasceu**; `quadro["line"]` é onde a **chamada** foi feita. Para
+consertar você quer a primeira; para entender por que aquela ação
+recebeu aquele argumento, a segunda.
 
 ### 8.3 Hierarquia de erros
 

@@ -36,7 +36,7 @@ dataforge editor remove    # desinstala de todos`, lang: 'bash' },
   {"h2": "Pular na instalação"},
   { code: `DATAFORGE_SEM_EDITOR=1 curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | sh`, lang: 'bash' },
   {"h2": "Veja também"},
-  {"p": "[Editor e cores](/docs/tecnicas/editor) — o que a extensão traz e como a gramática é gerada."},
+  {"p": "[Editor e cores](/docs/editor) — o que a extensão traz e como a gramática é gerada."},
 ];
 
 const headings = [{ id: 'onde-ele-procura', text: "Onde ele procura", level: 2 as const }, { id: 'a-saida', text: "A saída", level: 2 as const }, { id: 'versoes-antigas', text: "Versões antigas", level: 2 as const }, { id: 'pular-na-instalacao', text: "Pular na instalação", level: 2 as const }, { id: 'veja-tambem', text: "Veja também", level: 2 as const }];

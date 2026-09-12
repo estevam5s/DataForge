@@ -3006,3 +3006,123 @@ relay Status
     membro = de_arquivo(str(arquivo)).membros["Status"]
     assert membro.especie == "enum"
     assert membro.campos == {"Ativo", "Inativo", "Contagem", "ligado"}
+
+
+# ═══════════════════════════════════════════════════════════
+#  A pilha de chamadas, alcançável pelo programa
+#
+#  Ela já era guardada no erro (`_attach_stack`) e desenhada
+#  no stack trace, mas era invisível de dentro do programa: um
+#  `handle` via a mensagem e nada sobre o caminho. Numa ação
+#  chamada de cinco lugares, "deu erro em media()" não ajuda —
+#  o que importa é QUAL das cinco chamadas, e essa informação
+#  existia e ficava guardada.
+# ═══════════════════════════════════════════════════════════
+
+def test_o_handle_alcanca_a_pilha_de_chamadas():
+    saida = run('''
+action fundo():
+    yield 1 / 0
+
+action meio():
+    yield fundo()
+
+monitor:
+    meio()
+handle Error as e:
+    out [q["name"] cycle q in e.pilha]
+''')
+    # Do mais externo para o mais interno: a ordem em que se lê "quem
+    # chamou quem", e a mesma em que o stack trace desenha. Inverter
+    # faria o programa e a tela discordarem sobre a mesma pilha.
+    assert saida.strip() == "[meio, fundo]"
+
+
+def test_stack_e_o_mesmo_que_pilha():
+    """O nome em inglês, para quem já conhece a palavra."""
+    saida = run('''
+action f():
+    yield 1 / 0
+
+monitor:
+    f()
+handle Error as e:
+    out len(e.pilha) is len(e.stack)
+    out e.pilha is e.stack
+''')
+    assert saida.strip().splitlines() == ["yes", "yes"]
+
+
+def test_cada_quadro_traz_nome_linha_coluna_e_arquivo():
+    """O `file` é o que faz a pilha servir num projeto de 200
+    arquivos: sem ele, dois `processar` em módulos diferentes são
+    indistinguíveis."""
+    saida = run('''
+action f():
+    yield 1 / 0
+
+monitor:
+    f()
+handle Error as e:
+    q := e.pilha[0]
+    out sorted(keys(q))
+    out q["name"], q["line"] bigger 0, q["column"] bigger 0
+''')
+    linhas = saida.strip().splitlines()
+    assert linhas[0] == "[column, file, line, name]"
+    assert linhas[1] == "f yes yes"
+
+
+def test_a_pilha_e_dado_e_nao_objeto_do_python():
+    """Entregar os `Frame` funcionaria por protocolo, mas não seria
+    dado que se possa serializar, comparar ou mandar para um log — e
+    mandar a pilha para um log é o caso de uso inteiro."""
+    saida = run('''
+adopt Arcane.Serialization as Serde
+
+action f():
+    yield 1 / 0
+
+monitor:
+    f()
+handle Error as e:
+    out typeof(e.pilha)
+    out typeof(e.pilha[0])
+    out len(Serde.to_json(e.pilha)) bigger 10
+''')
+    assert saida.strip().splitlines() == ["Cluster", "Vault", "yes"]
+
+
+def test_a_linha_do_erro_e_a_do_quadro_sao_diferentes():
+    """A confusão mais comum ao ler uma pilha.
+
+    `e.line` é onde o erro nasceu; `quadro["line"]` é onde a chamada
+    foi feita. Colapsar as duas perderia justamente a informação de
+    por que aquela ação recebeu aquele argumento.
+    """
+    saida = run('''
+action f(n):
+    yield 10 / n
+
+monitor:
+    f(0)
+handle Error as e:
+    out e.line
+    out e.pilha[0]["line"]
+''')
+    nascimento, chamada = [int(x) for x in saida.strip().splitlines()]
+    assert nascimento == 3       # o 'yield 10 / n'
+    assert chamada == 6          # o 'f(0)'
+
+
+def test_a_pilha_de_um_erro_sem_acao_nenhuma_e_vazia():
+    """No topo do programa não há quadro, e devolver uma lista vazia é
+    diferente de levantar — quem lê a pilha não deveria precisar de um
+    `monitor` em volta da leitura."""
+    saida = run('''
+monitor:
+    1 / 0
+handle Error as e:
+    out e.pilha
+''')
+    assert saida.strip() == "[]"
