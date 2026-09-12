@@ -24,6 +24,7 @@ fix.
 """
 
 from . import ast_nodes as ast
+from .caminhos import curto as _curto
 from .tokens import KEYWORDS
 
 
@@ -175,6 +176,13 @@ class TypeChecker:
         #: nao o par (tipo, nome), perde um pouco de rigor e nao ganha
         #: nenhum falso alarme.
         self.campos_postos_de_fora = set()
+        #: apelido do 'adopt' -> Superficie do modulo local.
+        #:
+        #: E o que torna possivel conferir chamada ENTRE arquivos. Num
+        #: sistema de 200 modulos a maioria das chamadas e entre
+        #: modulos, e todas elas eram invisiveis: 'P.naoExiste()' e
+        #: 'P.criar(1, 2, 3)' so falhavam em execucao.
+        self.superficies = {}
         self.known_types = set(ALIASES.values())
         # Os '<T>' do blueprint que esta sendo analisado. Um metodo dele
         # pode usa-los como tipo; fora dali, eles nao existem.
@@ -1163,15 +1171,84 @@ class TypeChecker:
                     "pacote-python-ausente")
             return False
 
-        if get_module(node.module) is None:
-            import os
-            caminho = node.module.replace('.', os.sep)
-            if not any(os.path.exists(caminho + ext) for ext in ('.df', os.sep + 'main.df')):
+        if get_module(node.module) is not None:
+            return False
+
+        # ── Um modulo LOCAL ──
+        #
+        # A resolucao mora em 'resolucao.py', a mesma que o
+        # interpretador usa. Antes estava copiada aqui e fazia
+        # `node.module.replace('.', os.sep)`, o que transforma './mod'
+        # em '//mod': TODO 'adopt' relativo de TODO projeto virava um
+        # aviso "não encontrei" falso. Eram 62 no repositorio e 795 num
+        # projeto de 21 mil linhas — 795 de 795.
+        from . import superficie as sup
+
+        achada = sup.de_modulo(node.module, self.filename)
+        if achada is None:
+            from . import resolucao
+            declaradas = resolucao.dependencias_declaradas(self.filename)
+            raiz_pedida = node.module.split('.')[0]
+            if raiz_pedida in declaradas:
+                # Declarado no forge.toml e nao instalado. Dizer o
+                # comando que resolve e a diferenca entre um aviso util
+                # e um aviso que so incomoda.
+                self.warn(
+                    f"package '{raiz_pedida}' is declared in forge.toml "
+                    f"but not installed", node,
+                    "run 'dataforge install'", "pacote-nao-instalado")
+            else:
                 self.warn(
                     f"Module '{node.module}' was not found", node,
                     f"Available: {', '.join(sorted(set(list_modules()))[:8])}…",
                     "unknown-module")
+            return False
+
+        if selecao:
+            # 'adopt ./x.{a, b}' — confere que 'a' e 'b' existem la.
+            for original, apelido in selecao:
+                if not achada.tem(original):
+                    self.error(
+                        f"Module '{node.module}' does not export "
+                        f"'{original}'", node,
+                        self._hint_nome(original, achada.nomes()) or
+                        f"Exports: {', '.join(achada.nomes()[:10])}",
+                        "unknown-export")
+            return False
+
+        alias = node.alias or node.module.split('.')[-1]
+        self.superficies[alias] = achada
+        self._registrar_tipos_de(alias, achada)
         return False
+
+    def _registrar_tipos_de(self, alias, superficie):
+        """Os records e blueprints do outro arquivo entram nas tabelas.
+
+        Sob o nome qualificado (`M0.Ponto0`), que é o que
+        `ex_MemberAccess` devolve. Assim a conferência de campo que já
+        existe para o tipo local passa a valer para o importado, sem
+        uma segunda implementação da mesma regra.
+        """
+        for nome in superficie.nomes():
+            membro = superficie.obter(nome)
+            qualificado = f"{alias}.{nome}"
+            if membro.especie == "record":
+                # Sem os tipos dos campos: a superfície guarda o nome, e
+                # inventar um tipo daria erro onde não há.
+                self.records.setdefault(
+                    qualificado, {c: ANY for c in membro.campos})
+            elif membro.especie == "blueprint":
+                if membro.campos:
+                    self.blueprints.setdefault(qualificado,
+                                               set(membro.campos))
+                else:
+                    # Conjunto vazio na superfície significa "herda de
+                    # algo que não vi". Registrar como mãe desconhecida
+                    # é o que faz a regra existente calar.
+                    self.blueprints.setdefault(qualificado, set())
+                    self.maes.setdefault(qualificado, ["<outro arquivo>"])
+            elif membro.especie == "enum":
+                self.enums.setdefault(qualificado, list(membro.campos))
 
     def st_RelayStatement(self, node, escopo):
         for nome in node.names:
@@ -1497,6 +1574,29 @@ class TypeChecker:
 
         if isinstance(node.object, ast.Identifier):
             nome = node.object.name
+
+            # 'P.naoExiste' num modulo local. O apelido so entra em
+            # 'superficies' quando o arquivo foi lido E a lista de
+            # exportados e confiavel.
+            superficie = self.superficies.get(nome)
+            if superficie is not None and not superficie.aberta:
+                if not superficie.tem(node.member):
+                    self.error(
+                        f"module '{nome}' has no '{node.member}'", node,
+                        self._hint_nome(node.member, superficie.nomes()) or
+                        f"it offers: {', '.join(superficie.nomes()[:10])}",
+                        "unknown-module-member")
+                    return UNKNOWN
+                membro = superficie.obter(node.member)
+                # Um record ou blueprint de outro arquivo: o TIPO passa
+                # a ser conhecido aqui, e é o que permite conferir o
+                # campo de uma instância dele logo abaixo.
+                if membro is not None and membro.especie in ("record",
+                                                             "blueprint",
+                                                             "enum"):
+                    return f"{nome}.{node.member}"
+                return UNKNOWN
+
             if nome in self.enums:
                 membros = self.enums[nome]
                 metodos = {'names', 'values', 'members', 'count', 'has',
@@ -1573,6 +1673,12 @@ class TypeChecker:
         for v in node.kwargs.values():
             self.infer(v, escopo)
 
+        # 'P.criar(1, 2, 3)' num modulo local: existe, e com quantos?
+        if isinstance(node.object, ast.Identifier):
+            resultado = self._conferir_chamada_de_modulo(node)
+            if resultado is not None:
+                return resultado
+
         # 'c.sacarr(10)' — o mesmo trabalho do acesso a campo, porque é
         # o mesmo erro: um nome que não existe naquele blueprint.
         #
@@ -1582,6 +1688,47 @@ class TypeChecker:
             self._conferir_membro_de_instancia(
                 alvo, ast.MemberAccess(object=node.object, member=node.method,
                                        line=node.line, column=node.column))
+        return UNKNOWN
+
+    def _conferir_chamada_de_modulo(self, node):
+        """`P.criar(1, 2, 3)` quando `P` é um módulo local lido.
+
+        Devolve o tipo quando tratou o caso, ou `None` para deixar o
+        fluxo normal seguir. Só acusa o que consegue **provar**: a
+        superfície aberta — arquivo que não compila, ciclo de import,
+        `relay` de nome calculado — não acusa nada.
+        """
+        superficie = self.superficies.get(node.object.name)
+        if superficie is None or superficie.aberta:
+            return None
+
+        membro = superficie.obter(node.method)
+        if membro is None:
+            self.error(
+                f"module '{node.object.name}' has no '{node.method}'", node,
+                self._hint_nome(node.method, superficie.nomes()) or
+                f"it offers: {', '.join(superficie.nomes()[:10])}",
+                "unknown-module-member")
+            return UNKNOWN
+
+        # Spread esconde a contagem: '...args' pode ser qualquer
+        # tamanho, e cobrar aridade ali seria inventar um erro.
+        if any(isinstance(a, ast.SpreadElement) for a in node.args):
+            return UNKNOWN
+
+        quantos = len(node.args) + len(node.kwargs)
+        if not membro.aceita(quantos):
+            plural = "" if quantos == 1 else "s"
+            self.error(
+                f"'{node.object.name}.{node.method}' takes "
+                f"{membro.esperado()} argument(s), got {quantos}", node,
+                f"declared in {_curto(superficie.caminho)}"
+                f"{f' line {membro.linha}' if membro.linha else ''}",
+                "module-arity")
+            return UNKNOWN
+
+        if membro.especie in ("record", "blueprint", "enum"):
+            return f"{node.object.name}.{node.method}"
         return UNKNOWN
 
     def ex_SafeMethodCall(self, node, escopo):

@@ -4334,6 +4334,18 @@ class Interpreter:
         if caminho:
             return self._load_module_file(caminho, nome_modulo)
 
+        # O PROPRIO pacote, pelo nome que ele declara no forge.toml.
+        #
+        # O teste de uma biblioteca escreve 'adopt validador', e nao
+        # 'adopt ../src/main', porque ele precisa exercita-la pelo mesmo
+        # caminho que um usuario usaria. Sem isto a suite de um pacote
+        # so roda depois de publicado e instalado — e as dos VINTE
+        # pacotes deste repositorio falhavam exatamente assim.
+        from . import resolucao
+        caminho = resolucao.achar_no_proprio_pacote(nome_modulo, self.filename)
+        if caminho:
+            return self._load_module_file(caminho, nome_modulo)
+
         disponiveis = sorted(set(list_modules()))
         instalados = self._pacotes_instalados(bases)
         dica = ""

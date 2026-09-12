@@ -50,7 +50,9 @@ dataforge/
   compilador.py    330   a árvore vira fechamentos, uma vez (1,5× a 1,8×)
   ponte.py         290   'adopt Python.numpy' — a ponte para o Python
   cauda.py         170   'yield f(…)' vira salto, e a recursão deixa de ter teto
-  typechecker.py  1193   análise estática: nomes, aridade, tipos, alcance
+  typechecker.py  1752   análise estática: nomes, aridade, tipos, alcance
+  resolucao.py     190   onde mora o módulo de um 'adopt' — a única cópia
+  superficie.py    300   o que um .df oferece, sem executá-lo
   formatter.py     280   dataforge fmt
   linter.py        394   dataforge lint
   testrunner.py    194   dataforge test
@@ -481,6 +483,46 @@ Antes disso, um único arquivo mal codificado derrubava `fmt .` inteiro com um
 Há teste para os dois casos em `tests/test_regressoes.py`, mais um que proíbe
 qualquer `.df` fora de UTF-8 no repositório.
 
+### O analisador atravessa arquivos
+
+`P.naoExiste()` e `P.criar(1, 2, 3)` são acusados **antes de rodar**,
+mesmo quando `P` vem de outro `.df`. É a checagem que mais importa em
+sistema grande: num arquivo de 40 linhas o erro aparece na primeira
+execução; num de 200 arquivos, a maioria das chamadas é entre módulos, e
+todas elas eram invisíveis.
+
+Três arquivos sustentam isso:
+
+| Onde | O quê |
+|---|---|
+| `resolucao.py` | onde mora o módulo que um `adopt` pede — **a única cópia** |
+| `superficie.py` | o que um `.df` oferece, lido com lexer e parser, **sem executar** |
+| `typechecker.py` | `st_AdoptStatement` guarda a superfície; `ex_MemberAccess` e `_conferir_chamada_de_modulo` cobram |
+
+A superfície lê só o que `relay` exporta, quando há `relay` — um módulo
+que declara o que exporta está dizendo que o resto é interno. Ela é
+**conservadora**: devolve `aberta = yes`, e o analisador volta a calar,
+quando o outro arquivo não compila, quando há ciclo de import, quando a
+profundidade (4) acaba, ou quando o `relay` nomeia algo que só existe em
+execução. Um falso alarme é pior que um silêncio.
+
+O cache é por `(caminho, mtime)`. Sem ele, 200 arquivos importando três
+vizinhos cada levariam o `check` de 0,7 s a mais de um minuto.
+
+**A resolução de caminho estava escrita em dois lugares, e divergiu.**
+O analisador fazia `nome.replace('.', os.sep)`, o que transforma
+`'./mod'` em `'//mod'`: todo `adopt` relativo de todo projeto gerava um
+aviso "Module not found" falso — 62 no repositório, e **795 de 795** num
+projeto de 21 mil linhas. Cada aviso que o `check` emitia ali era
+mentira, o que é pior que não avisar nada.
+
+E um pacote não sabia se importar pelo **próprio nome**. O teste de uma
+biblioteca escreve `adopt validador`, não `adopt ../src/main`, porque
+precisa exercitá-la pelo caminho que um usuário usaria: as suítes dos
+**vinte** pacotes do repositório falhavam, e a CI não apanhava — ela não
+rodava `dataforge test` dentro de `packages/`.
+`tests/test_resolucao.py` cobre os dois, e proíbe a cópia voltar.
+
 ### O analisador vê dentro dos objetos
 
 `p.clientte` é acusado antes de rodar, com sugestão. É a checagem que
@@ -734,6 +776,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_regressoes.py` | `pytest` | bugs já corrigidos + sincronia da doc |
 | `tests/test_dataforge.py` | `pytest` **e** script | 69 verificações da suíte original |
 | `tests/test_kiln.py` | `pytest` | o framework web: rotas, respostas, templates, segurança, a sintaxe da linguagem e as palavras que continuam livres |
+| `tests/test_resolucao.py` | `pytest` | onde mora o módulo de um `adopt`; os 20 pacotes rodam; a cópia não volta |
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
