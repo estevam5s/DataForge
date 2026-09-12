@@ -590,3 +590,117 @@ def test_dois_pontos_e_espaco_e_citado():
 def _tem(programa):
     import shutil
     return shutil.which(programa) is not None
+
+
+# ═══════════════════════════════════════════════════════════
+#  O README do Docker Hub
+# ═══════════════════════════════════════════════════════════
+#
+# Ele é a primeira coisa que alguém lê sobre a linguagem, e o Hub não
+# o valida: um comando errado ali fica errado até alguém reclamar.
+
+README_DOCKER = os.path.join(RAIZ, "docker", "README.md")
+
+
+@pytest.fixture(scope="module")
+def readme():
+    if not os.path.isfile(README_DOCKER):
+        pytest.skip("docker/README.md ausente")
+    return open(README_DOCKER, encoding="utf-8").read()
+
+
+def test_o_readme_traz_o_logo_da_linguagem(readme):
+    assert "marca-256.png" in readme
+    assert "dataforge-lang.vercel.app" in readme
+
+
+def test_os_numeros_do_readme_batem_com_a_realidade(readme):
+    """Um README que diz "38 módulos" quando são 40 é um README que
+    ninguém confia na segunda leitura."""
+    import re
+
+    from dataforge.cli import COMANDOS
+    from dataforge.stdlib import get_module, list_modules
+
+    oficiais = {get_module(m)["__name__"] for m in list_modules()}
+    simbolos = sum(len([k for k in get_module(n) if not k.startswith("__")])
+                   for n in oficiais)
+    comandos = len({c.nome for c in COMANDOS.values()})
+
+    # O número vem antes do rótulo no texto corrido ("38 módulos") e
+    # depois dele na tabela ("| **Comandos** | 44, …"). As duas formas
+    # são aceitas: exigir uma faria o teste quebrar por causa de uma
+    # reescrita que não mudou fato nenhum.
+    reais = {
+        "módulos": len(oficiais),
+        "símbolos": simbolos,
+        "Comandos": comandos,
+    }
+    for rotulo, quantos in reais.items():
+        antes = re.search(rf"(\d+)[^\n\d]{{0,12}}{rotulo}", readme)
+        depois = re.search(rf"{rotulo}\**\s*\|\s*(\d+)", readme)
+        achado = antes or depois
+        assert achado, f"o README não cita mais '{rotulo}'"
+        assert int(achado.group(1)) == quantos, (
+            f"o README diz {achado.group(1)} {rotulo}, são {quantos}")
+
+
+def test_o_readme_avisa_do_host_no_container(readme):
+    """É o erro mais comum ao pôr um servidor DataForge em Docker, e o
+    sintoma é enganoso: o log diz "no ar" e o `curl` de fora não recebe
+    nada."""
+    assert "--host=0.0.0.0" in readme
+    assert 'at "0.0.0.0"' in readme, (
+        "o 'ignite' do Kiln também precisa do host; sem isso o exemplo "
+        "do README não responde de fora do container")
+
+
+def test_todo_bloco_dataforge_do_readme_compila(readme):
+    """O mesmo tratamento que a documentação do site recebe."""
+    import re
+
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    falhas = []
+    for bloco in re.findall(r"```dataforge\n(.*?)```", readme, re.S):
+        if "…" in bloco or "..." in bloco:
+            continue
+        try:
+            parse(tokenize(bloco, "readme"), "readme")
+        except Exception as erro:
+            # Fragmento de rota: envolve num 'server', como o
+            # verificador de docs do site faz.
+            try:
+                dentro = "\n".join("    " + l for l in bloco.split("\n"))
+                parse(tokenize("server app on 8080:\n" + dentro, "r"), "r")
+            except Exception:
+                falhas.append((bloco.strip().split("\n")[0][:50], str(erro)))
+    assert not falhas, "blocos que não compilam:\n" + "\n".join(
+        f"  {primeiro}: {e.splitlines()[0][:70]}" for primeiro, e in falhas)
+
+
+def test_a_tag_recomendada_e_a_versao_da_linguagem(readme):
+    """O README mandava usar `1.0.0`, e a imagem publicada era a
+    `4.2.0` — a numeração antiga do projeto. Um `docker pull` da tag
+    recomendada falharia."""
+    from dataforge import __version__
+
+    assert f"`{__version__}` | fixa" in readme, (
+        f"o README precisa recomendar a tag {__version__}, que é a "
+        f"versão da linguagem")
+
+
+def test_o_readme_nao_promete_o_que_o_kiln_nao_tem(readme):
+    """Ele roda sobre o `http.server`: sem TLS, HTTP/2 nem compressão."""
+    assert "proxy reverso na frente" in readme
+    assert "não há TLS" in readme
+
+
+def test_a_imagem_do_repositorio_nao_roda_como_root():
+    """O Dockerfile versionado — não a imagem publicada, que este teste
+    não pode baixar."""
+    conteudo = open(os.path.join(RAIZ, "Dockerfile"),
+                    encoding="utf-8").read()
+    assert "USER forge" in conteudo
+    assert "useradd" in conteudo

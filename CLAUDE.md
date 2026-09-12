@@ -465,6 +465,7 @@ Os apelidos (`Zip`, `Cor`, `Banco`) são traduzidos para o nome oficial por
 | `dataforge repl` | `repl.py` | console com `:type`, `:ast`, `:load` |
 | `dataforge editor` | `cli.py` | instala a coloração no VS Code e derivados |
 | `dataforge new` | `modelos.py` + `scaffold.py` | 9 modelos; todo projeto criado passa nos próprios testes |
+| `dataforge devops` | `devops_cli.py` | Dockerfile, compose, CI, k8s, Helm, nginx, SBOM, `doctor` |
 | `dataforge vitrine` | `vitrine_cli.py` | `run`, `dev` (hot reload), `doctor`, `new`. Sem `build` nem `deploy` — e os dois explicam por quê |
 | `dataforge stats` | `cli.py` | inventário: ações, blueprints, o arquivo e a ação mais longos |
 | `dataforge profile` | `cli.py` | tempo **próprio** por ação (o acumulado somaria mais de 100%) |
@@ -864,6 +865,42 @@ faria crescer um item por teste.
 `flaky` devolve o número de tentativas: um teste que precisa de três
 toda vez não é instável, está quebrado.
 
+## DevOps — geradores, e não orquestrador
+
+`dataforge devops` gera Dockerfile, compose, CI, manifestos do
+Kubernetes, Helm, Terraform, nginx, Prometheus, SBOM — e **sai da
+frente**. Um `deploy` que falasse com Docker e Kubernetes por dentro
+esconderia o que a imagem é, e no dia em que alguém precisa mudar uma
+camada não haveria onde mexer.
+
+`devops.py` produz **texto**; `devops_cli.py` escreve **arquivo**. A
+separação deixa os geradores testáveis sem tocar em disco, e põe a
+política de "o que fazer quando o arquivo já existe" num lugar só — e a
+política é: **nunca sobrescrever em silêncio**.
+
+Cinco decisões que os artefatos carregam, e o problema de cada uma:
+
+| No artefato | Sem ele |
+|---|---|
+| `USER forge` | um escape de container vira root no host |
+| o manifesto copiado antes do código | um commit numa linha reinstala tudo (8 s → 2 min) |
+| `.env` no `.dockerignore` | o segredo fica na camada, e `docker history` o mostra |
+| `resources` + as duas sondas no Deployment | um pod come o nó; o Service manda tráfego antes da hora |
+| `depends_on: service_healthy` | a app falha na primeira consulta, de forma intermitente |
+
+O `Projeto` lê as fontes com **varredura de texto**, e não com o
+parser: o `devops doctor` precisa funcionar num projeto que não
+compila — e é aí que ele é mais útil.
+
+O YAML é escrito à mão. `_escalar` cita `yes`, `no` e `null`: em YAML
+1.1 eles são booleanos, e um valor assim sem aspas muda de tipo
+sozinho.
+
+**`--host=0.0.0.0` é obrigatório dentro de um container** — na Vitrine
+e no `ignite` do Kiln (`at "0.0.0.0"`). O padrão é `127.0.0.1`, que de
+dentro significa o próprio container, e o sintoma é enganoso: o log diz
+"no ar" e o `curl` de fora não recebe nada.
+
 ## O que é gerado — não edite à mão
 
 | Arquivo | Gerador | Guardado por |
@@ -927,6 +964,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_kiln.py` | `pytest` | o framework web: rotas, respostas, templates, segurança, a sintaxe da linguagem e as palavras que continuam livres |
 | `tests/test_resolucao.py` | `pytest` | onde mora o módulo de um `adopt`; ciclo no `check`; os 20 pacotes rodam; a cópia não volta |
 | `tests/test_cobertura.py` | `pytest` | o denominador e o numerador da cobertura; a linha vai para o arquivo certo |
+| `tests/test_devops.py` | `pytest` | os artefatos: compose validado pelo `docker compose config`, manifestos conferidos como dado, a sonda do HEALTHCHECK executada, e o README do Hub |
 | `tests/test_banco.py` | `pytest` | transação que desfaz, `upsert`, `increment` sob 4 threads, FTS5, `explain`, migração com `down`, e o nome de coluna recusado |
 | `tests/test_kiln_tempo_real.py` | `pytest` | multipart, SSE e WebSocket — o protocolo falado à mão, para pegar erro de enquadramento |
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
