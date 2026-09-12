@@ -30,7 +30,7 @@ Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
 generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
 pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **38 módulos** de biblioteca padrão com **1272 símbolos**.
+(**Forge**) e **38 módulos** de biblioteca padrão com **1280 símbolos**.
 
 [Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [219 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
@@ -99,7 +99,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 38 módulos com 1272 símbolos + 228 funções globais |
+| **Bateria inclusa** | 38 módulos com 1280 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -473,11 +473,11 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-38 módulos, 1272 símbolos, mais 228 funções globais sem import.
+38 módulos, 1280 símbolos, mais 228 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
-| `Arcane.Vitrine` | 105 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
+| `Arcane.Vitrine` | 113 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | `Arcane.Color` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
 | `Arcane.Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
 | `Kiln` | 64 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |

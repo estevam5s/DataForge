@@ -69,17 +69,22 @@ action painel():
 
 V.pagina("/", painel)
 V.rodar(porta := 8501)`, lang: 'df' },
-  {"p": "O arquivo que roda está em `examples/vitrine_dashboard.df`, e ele se testa sozinho:"},
+  {"h2": "Começar"},
+  { code: `dataforge vitrine new meupainel
+cd meupainel
+dataforge vitrine dev        # http://127.0.0.1:8501`, lang: 'bash' },
+  {"p": "O projeto criado já tem página, dados, testes e um `forge.toml` — e passa nos próprios testes antes de você tocar em qualquer coisa."},
+  {"p": "O painel completo do exemplo está em `examples/vitrine_dashboard.df`, e ele também se testa sozinho:"},
   { code: `dataforge run examples/vitrine_dashboard.df              # os testes
 dataforge run examples/vitrine_dashboard.df -- --servir  # no navegador`, lang: 'bash' },
   {"h2": "Zero dependência, inclusive no navegador"},
   {"p": "O gráfico é **SVG escrito no servidor**. O cliente são ~4 KB de JavaScript sem build e sem CDN — ele manda de volta o que o usuário fez e troca o miolo da página."},
   {"p": "Não é purismo: uma biblioteca de gráficos vinda de CDN quebra qualquer aplicação que rode em rede fechada, que é exatamente onde painel de dados costuma rodar. E SVG imprime, escala e é legível por leitor de tela."},
   {"h2": "Onde continuar"},
-  {"cards": [{"href": "/docs/vitrine/componentes", "title": "Componentes", "meta": "texto, entrada, dados", "desc": "Os 40 componentes, o que cada um devolve e quando usar formulário."}, {"href": "/docs/vitrine/layout", "title": "Layout", "meta": "colunas, abas, cartões", "desc": "Por que a área é um objeto, e não um bloco de contexto."}, {"href": "/docs/vitrine/estado", "title": "Estado e cache", "meta": "sessão, global, TTL, LRU", "desc": "Os três lugares onde um valor mora, e quem enxerga cada um."}, {"href": "/docs/vitrine/graficos", "title": "Gráficos", "meta": "sete tipos, em SVG", "desc": "A forma curta e a construída, e o que os dados precisam parecer."}, {"href": "/docs/vitrine/paginas", "title": "Páginas e segurança", "meta": "rotas, login, permissões", "desc": "Multipágina, parâmetros de URL, autenticação e autorização."}, {"href": "/docs/vitrine/testes", "title": "Testes", "meta": "sem navegador", "desc": "A sonda clica, digita e pergunta — e o pedido HTTP sem socket."}, {"href": "/docs/vitrine/producao", "title": "Produção", "meta": "hot reload, métricas, plugins", "desc": "Subir, observar, e o que colocar na frente."}, {"href": "/docs/vitrine/referencia", "title": "Referência", "meta": "105 símbolos", "desc": "Tudo o que sai de `adopt Arcane.Vitrine`, em uma tabela."}]},
+  {"cards": [{"href": "/docs/vitrine/componentes", "title": "Componentes", "meta": "texto, entrada, dados", "desc": "Os 40 componentes, o que cada um devolve e quando usar formulário."}, {"href": "/docs/vitrine/layout", "title": "Layout", "meta": "colunas, abas, cartões", "desc": "Por que a área é um objeto, e não um bloco de contexto."}, {"href": "/docs/vitrine/estado", "title": "Estado e cache", "meta": "sessão, global, TTL, LRU", "desc": "Os três lugares onde um valor mora, e quem enxerga cada um."}, {"href": "/docs/vitrine/graficos", "title": "Gráficos", "meta": "sete tipos, em SVG", "desc": "A forma curta e a construída, e o que os dados precisam parecer."}, {"href": "/docs/vitrine/paginas", "title": "Páginas e segurança", "meta": "rotas, login, permissões", "desc": "Multipágina, parâmetros de URL, autenticação e autorização."}, {"href": "/docs/vitrine/acessibilidade", "title": "Acessibilidade e idioma", "meta": "ARIA, teclado, i18n", "desc": "O que já vem pronto para teclado e leitor de tela, e como traduzir."}, {"href": "/docs/vitrine/testes", "title": "Testes", "meta": "sem navegador", "desc": "A sonda clica, digita e pergunta — e o pedido HTTP sem socket."}, {"href": "/docs/vitrine/producao", "title": "Produção", "meta": "hot reload, métricas, plugins", "desc": "Subir, observar, e o que colocar na frente."}, {"href": "/docs/vitrine/referencia", "title": "Referência", "meta": "105 símbolos", "desc": "Tudo o que sai de `adopt Arcane.Vitrine`, em uma tabela."}]},
 ];
 
-const headings = [{ id: 'o-modelo-de-execucao', text: "O modelo de execução", level: 2 as const }, { id: 'vitrine-ou-kiln', text: "Vitrine ou Kiln?", level: 2 as const }, { id: 'um-painel-completo', text: "Um painel completo", level: 2 as const }, { id: 'zero-dependencia-inclusive-no-navegador', text: "Zero dependência, inclusive no navegador", level: 2 as const }, { id: 'onde-continuar', text: "Onde continuar", level: 2 as const }];
+const headings = [{ id: 'o-modelo-de-execucao', text: "O modelo de execução", level: 2 as const }, { id: 'vitrine-ou-kiln', text: "Vitrine ou Kiln?", level: 2 as const }, { id: 'um-painel-completo', text: "Um painel completo", level: 2 as const }, { id: 'comecar', text: "Começar", level: 2 as const }, { id: 'zero-dependencia-inclusive-no-navegador', text: "Zero dependência, inclusive no navegador", level: 2 as const }, { id: 'onde-continuar', text: "Onde continuar", level: 2 as const }];
 
 export default function Pagina() {
   return (

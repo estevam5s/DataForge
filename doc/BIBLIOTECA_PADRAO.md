@@ -47,7 +47,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
-| [`Arcane.Vitrine`](#arcanevitrine) | `Vitrine` | 105 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
+| [`Arcane.Vitrine`](#arcanevitrine) | `Vitrine` | 113 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | [`Arcane.API`](#arcaneapi) | `API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
 | [`Arcane.Decimal`](#arcanedecimal) | `Decimal / Exato` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
 | [`Arcane.Ponte`](#arcaneponte) | `Ponte / Bridge` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
@@ -1744,9 +1744,10 @@ adopt Arcane.Vitrine as Vitrine
 |------|-------|
 | `estado` | `<dataforge.stdlib.vitrine.estado.Estado object at …` |
 | `geral` | `<dataforge.stdlib.vitrine.estado.Geral object at 0…` |
+| `i18n` | `<dataforge.stdlib.vitrine.extras.Traducao object a…` |
 | `paleta` | `['#FED403', '#0F62FE', '#24A148', '#FA4D56', '#8A3…` |
 
-**Funções (102)**
+**Funções (109)**
 
 | Assinatura |
 |------------|
@@ -1767,10 +1768,13 @@ adopt Arcane.Vitrine as Vitrine
 | `cache(*args, **kwargs)` |
 | `caixa(rotulo, valor=False, chave=None)` |
 | `caminho()` |
+| `campo_validado(rotulo, regra, mensagem='', valor='', tipo='texto', dica='', chave=None)` |
 | `carregando(mensagem='Carregando…')` |
 | `cartao(titulo='', subtitulo='')` |
 | `codigo(conteudo, linguagem='dataforge')` |
 | `colunas(quantidade, larguras=None, espacamento='medio')` |
+| `componente(nome, acao=None)` |
+| `componentes()` |
 | `configurar(chave=None, valor=None, **pares)` |
 | `configurar_pagina(titulo='', icone='', **pares)` |
 | `container(borda=False, altura=None)` |
@@ -1843,12 +1847,16 @@ adopt Arcane.Vitrine as Vitrine
 | `subir(porta=8501, host='127.0.0.1', recarregar=False, silencioso=False)` |
 | `subtitulo(conteudo)` |
 | `sucesso(mensagem)` |
+| `t(chave, **valores)` |
 | `tabela(dados, colunas=None, altura=None)` |
 | `tarefa(acao, *args)` |
 | `testar(pagina_ou_app, caminho='/')` |
 | `texto(*partes)` |
 | `titulo(conteudo, icone='')` |
+| `traduzir(chave, **valores)` |
+| `usar(nome, *args, **kwargs)` |
 | `usuario()` |
+| `validar(valor, regra, mensagem='')` |
 | `vault(dados)` |
 | `vazio()` |
 | `video(origem, formato='video/mp4')` |

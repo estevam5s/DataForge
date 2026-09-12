@@ -73,7 +73,12 @@ action painel():
 
 V.pagina("/", painel)
 V.rodar(porta := 8501)""", "lang": "df"},
- {"p": "O arquivo que roda está em `examples/vitrine_dashboard.df`, e ele se testa sozinho:"},
+ {"h2": "Começar"},
+ {"code": """dataforge vitrine new meupainel
+cd meupainel
+dataforge vitrine dev        # http://127.0.0.1:8501""", "lang": "bash"},
+ {"p": "O projeto criado já tem página, dados, testes e um `forge.toml` — e passa nos próprios testes antes de você tocar em qualquer coisa."},
+ {"p": "O painel completo do exemplo está em `examples/vitrine_dashboard.df`, e ele também se testa sozinho:"},
  {"code": """dataforge run examples/vitrine_dashboard.df              # os testes
 dataforge run examples/vitrine_dashboard.df -- --servir  # no navegador""", "lang": "bash"},
 
@@ -88,6 +93,7 @@ dataforge run examples/vitrine_dashboard.df -- --servir  # no navegador""", "lan
    {"href": "/docs/vitrine/estado", "title": "Estado e cache", "meta": "sessão, global, TTL, LRU", "desc": "Os três lugares onde um valor mora, e quem enxerga cada um."},
    {"href": "/docs/vitrine/graficos", "title": "Gráficos", "meta": "sete tipos, em SVG", "desc": "A forma curta e a construída, e o que os dados precisam parecer."},
    {"href": "/docs/vitrine/paginas", "title": "Páginas e segurança", "meta": "rotas, login, permissões", "desc": "Multipágina, parâmetros de URL, autenticação e autorização."},
+   {"href": "/docs/vitrine/acessibilidade", "title": "Acessibilidade e idioma", "meta": "ARIA, teclado, i18n", "desc": "O que já vem pronto para teclado e leitor de tela, e como traduzir."},
    {"href": "/docs/vitrine/testes", "title": "Testes", "meta": "sem navegador", "desc": "A sonda clica, digita e pergunta — e o pedido HTTP sem socket."},
    {"href": "/docs/vitrine/producao", "title": "Produção", "meta": "hot reload, métricas, plugins", "desc": "Subir, observar, e o que colocar na frente."},
    {"href": "/docs/vitrine/referencia", "title": "Referência", "meta": "105 símbolos", "desc": "Tudo o que sai de `adopt Arcane.Vitrine`, em uma tabela."}]},
@@ -156,6 +162,24 @@ given arq is not void:
     V.tabela(linhas)""", "lang": "df"},
  {"p": "O vault tem `nome`, `tamanho`, `tipo`, `conteudo` (bytes) e `texto`. Com `varios := yes`, devolve um cluster deles. O teto padrão é 8 MB, ajustável em `V.configurar(\"limite_upload\", …)`."},
 
+ {"h3": "Validação"},
+ {"p": "O erro aparece **sob o campo**, e não num alerta no topo. Num formulário de doze campos, um alerta dizendo \"há erros\" obriga a pessoa a caçar qual deles — e é a diferença entre corrigir na hora e desistir."},
+ {"code": """adopt Arcane.Regex as Regex
+
+email := V.entrada("E-mail")
+V.validar(email, Regex.is_email, "Digite um e-mail válido.")
+
+// ou com a regra junto, devolvendo (valor, esta_bom)
+senha, ok := V.campo_validado("Senha", lambda s: len(s) bigger 7,
+                              "Mínimo de 8 caracteres.", tipo := "senha")""", "lang": "df"},
+ {"p": "A regra é uma ação que recebe o valor e devolve `yes`/`no` — e aí a mensagem é a que você passou — ou um **texto**, que vira a mensagem (vazio significa que passou)."},
+ {"code": """V.validar(senha, lambda s: "" given len(s) bigger 7
+                            otherwise $"faltam {8 - len(s)} caracteres")""", "lang": "df"},
+ {"table": {"head": ["Comportamento", "Por quê"], "rows": [
+   ["campo vazio e nunca tocado não é acusado", "reclamar antes de a pessoa digitar é ruído, não ajuda"],
+   ["uma regra que **dispara** vira \"a regra de validação falhou\"", "dizer \"E-mail inválido\" ali esconderia o bug real"],
+   ["o campo ganha `aria-invalid` e aponta para a mensagem", "senão quem não vê a tela descobre o erro só ao voltar nele, se voltar"]]}},
+
  {"h2": "Dados"},
  {"code": """V.tabela(linhas)                      // estática
 V.frame(linhas)                       // com busca e ordenação
@@ -185,6 +209,23 @@ V.video("/static/tour.mp4")
 V.link("Documentação", "/docs", nova_aba := yes)
 V.baixar("Baixar relatório", texto, "relatorio.txt")""", "lang": "df"},
  {"p": "Para exportar dados já formatados, `V.exportar_csv(linhas)` e `V.exportar_json(dados)` desenham o botão e cuidam do escape."},
+
+ {"h2": "Componentes próprios"},
+ {"p": "Uma ação **já é** um componente. Chamá-la desenha o que ela desenha, e nada além disso é necessário:"},
+ {"code": """action cartao_de_usuario(nome, email):
+    caixa := V.cartao(nome)
+    caixa.texto(email)
+
+cartao_de_usuario("Ana", "ana@exemplo.br")""", "lang": "df"},
+ {"p": "O registro por nome existe para o caso em que o nome precisa atravessar módulos — um plugin que acrescenta componentes, ou um tema que substitui um deles sem que quem chama saiba:"},
+ {"code": """V.componente("usuario", cartao_de_usuario)
+V.usar("usuario", "Ana", "ana@exemplo.br")
+
+// também serve de decorador
+mark @V.componente("usuario")
+action cartao_de_usuario(nome, email):
+    …""", "lang": "df"},
+ {"p": "O registro vive na **aplicação**, e não no módulo: dois apps no mesmo processo — o que os testes fazem o tempo todo — não podem ver os componentes um do outro. E um nome errado sugere o parecido, em vez de falhar em silêncio."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
@@ -463,6 +504,65 @@ action edicao():
 
 # ══════════════════════════════════════════════════════════════
 {
+"href": "/docs/vitrine/acessibilidade",
+"title": "Acessibilidade e idioma",
+"description": "O que a Vitrine já faz por quem usa teclado e leitor de tela, e como traduzir a aplicação.",
+"blocos": [
+ {"h2": "O que vem pronto"},
+ {"p": "Nada disto precisa ser ligado. É como os componentes são desenhados."},
+ {"table": {"head": ["O quê", "Como"], "rows": [
+   ["HTML semântico", "`<main>`, `<aside>`, `<fieldset>`/`<legend>`, `<table>` com `<thead>`"],
+   ["Link para pular a navegação", "o primeiro elemento da página, visível só ao receber foco"],
+   ["Foco sempre visível", "`:focus-visible` com contorno de 2 px, em todo elemento interativo"],
+   ["Rótulo ligado ao campo", "`<label for>` em todos os campos com rótulo"],
+   ["Erro anunciado", "`role=\"alert\"` na mensagem, `aria-invalid` e `aria-describedby` no campo"],
+   ["Abas pelo teclado", "`role=\"tablist\"`, setas ← →, Home e End, e só a ativa no caminho do Tab"],
+   ["Alerta com a urgência certa", "`role=\"alert\"` para erro e aviso, `role=\"status\"` para o resto"],
+   ["Progresso legível", "`role=\"progressbar\"` com `aria-valuenow` e `aria-label`"],
+   ["Movimento respeitado", "`prefers-reduced-motion` desliga as animações"],
+   ["Tema do sistema", "`prefers-color-scheme` escolhe claro ou escuro sozinho"]]}},
+ {"callout": {"tipo": "nota", "titulo": "A seta ▲ não diz \"aumento de\"", "texto": "A variação de uma métrica sai com o símbolo marcado `aria-hidden` e a palavra ao lado, visível só para leitor de tela. Cor e seta sozinhas excluem quem não vê a tela **e** quem não separa vermelho de verde — 8% dos homens."}},
+ {"p": "A paleta clara usa `#B28600` como primária, e não o amarelo `#FED403` da marca: amarelo sobre branco dá contraste 1,3:1, e a WCAG pede 4,5:1 para texto. O amarelo continua sendo a marca no tema escuro, onde ele funciona."},
+
+ {"h2": "O que fica com você"},
+ {"table": {"head": ["O quê", "Como fazer"], "rows": [
+   ["Texto alternativo de imagem", "`V.imagem(origem, legenda := \"…\")` — a legenda vira o `alt`"],
+   ["Ordem de leitura", "é a ordem do programa; escreva na ordem em que se lê"],
+   ["Rótulo que descreve", "`V.botao(\"Excluir pedido 42\")` diz mais que `V.botao(\"Excluir\")`"],
+   ["Contraste do seu tema", "se trocar as cores, confira 4,5:1 para texto e 3:1 para borda"],
+   ["`V.html`", "o que você puser ali passa cru, sem nenhuma dessas garantias"]]}},
+
+ {"h2": "Idioma"},
+ {"p": "Carregue as chaves e peça o texto. O idioma é **por sessão**: dois visitantes podem estar lendo a mesma página em línguas diferentes, e guardar isso num lugar só faria um trocar o idioma do outro."},
+ {"code": """V.i18n.carregar("pt-BR", {
+    "painel.titulo": "Painel de Vendas",
+    "ola": "Olá, {nome}",
+    "vazio": "Nenhum resultado."
+})
+V.i18n.carregar("en-US", {
+    "painel.titulo": "Sales Dashboard",
+    "ola": "Hello, {nome}",
+    "vazio": "No results."
+})
+
+action painel():
+    V.titulo(V.t("painel.titulo"))
+    V.texto(V.t("ola", nome := V.usuario()["nome"]))""", "lang": "df"},
+ {"table": {"head": ["Chamada", "Faz"], "rows": [
+   ["`V.i18n.carregar(idioma, vault)`", "acrescenta chaves a um idioma"],
+   ["`V.i18n.idioma()`", "o idioma desta sessão"],
+   ["`V.i18n.idioma(\"en-US\")`", "troca, e reexecuta a página"],
+   ["`V.i18n.idiomas()`", "os carregados"],
+   ["`V.i18n.seletor(\"Idioma\")`", "desenha a troca, pronta"],
+   ["`V.t(chave, …)`", "o texto, com `{nome}` substituído"]]}},
+ {"callout": {"tipo": "dica", "titulo": "Uma chave sem tradução aparece crua", "texto": "`V.t(\"painel.titulo\")` sem tradução devolve `painel.titulo`, e não vazio. Feio o bastante na tela para alguém corrigir, e informativo o bastante para dizer **qual** chave falta."}},
+ {"p": "O seletor troca o idioma e **reexecuta a página**: mudá-lo no meio deixaria a metade de cima na língua anterior."},
+ {"code": """V.lateral().espaco(8)
+V.i18n.seletor("Idioma", {"pt-BR": "Português", "en-US": "English"})""", "lang": "df"},
+]},
+
+# ══════════════════════════════════════════════════════════════
+{
 "href": "/docs/vitrine/testes",
 "title": "Testar sem navegador",
 "description": "A sonda clica, digita e pergunta; e o pedido HTTP roda sem socket.",
@@ -533,6 +633,18 @@ assert "Produto 42" in r2["body"]""", "lang": "df"},
 "title": "Produção",
 "description": "Subir, recarregar ao salvar, observar, estender com plugins e o que colocar na frente.",
 "blocos": [
+ {"h2": "A linha de comando"},
+ {"code": """dataforge vitrine new meupainel   # cria o projeto
+dataforge vitrine dev             # sobe recarregando ao salvar
+dataforge vitrine run             # sobe, sem recarregar
+dataforge vitrine doctor          # diz por que ela não sobe
+
+dataforge vitrine dev --porta=8600 --host=0.0.0.0""", "lang": "bash"},
+ {"p": "Sem argumento, ele procura `main.df`, `app.df`, `painel.df` e `src/main.df`, nessa ordem, e depois a entrada do `forge.toml`. A porta e o host da linha de comando **vencem** o que está escrito no arquivo — é o que permite trocar a porta sem editar o programa."},
+ {"p": "O `doctor` responde as perguntas de quem está vendo uma tela em branco, da causa mais provável para a menos: o módulo carrega, o Kiln está lá, existe um arquivo que sobe, ele compila, ele adota a Vitrine, ele chama `V.subir`, a porta está livre."},
+ {"callout": {"tipo": "nota", "titulo": "Não há `build` nem `deploy`", "texto": "Não existe etapa de build numa aplicação Vitrine: sem bundler, sem transpilação, sem `node_modules` — o que roda é o próprio `.df`. E `deploy` seria inventar uma opinião sobre Docker, systemd ou nuvem que o projeto não tem. Os dois comandos existem só para **explicar isso** a quem veio de outro framework, em vez de responder \"comando desconhecido\"."}},
+ {"p": "Para distribuir o projeto, `dataforge pack`."},
+
  {"h2": "Subir"},
  {"code": """V.rodar(painel, porta := 8501)                 // uma página
 V.subir(porta := 8501, recarregar := yes)      // com hot reload

@@ -12,6 +12,17 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"h2": "A linha de comando"},
+  { code: `dataforge vitrine new meupainel   # cria o projeto
+dataforge vitrine dev             # sobe recarregando ao salvar
+dataforge vitrine run             # sobe, sem recarregar
+dataforge vitrine doctor          # diz por que ela não sobe
+
+dataforge vitrine dev --porta=8600 --host=0.0.0.0`, lang: 'bash' },
+  {"p": "Sem argumento, ele procura `main.df`, `app.df`, `painel.df` e `src/main.df`, nessa ordem, e depois a entrada do `forge.toml`. A porta e o host da linha de comando **vencem** o que está escrito no arquivo — é o que permite trocar a porta sem editar o programa."},
+  {"p": "O `doctor` responde as perguntas de quem está vendo uma tela em branco, da causa mais provável para a menos: o módulo carrega, o Kiln está lá, existe um arquivo que sobe, ele compila, ele adota a Vitrine, ele chama `V.subir`, a porta está livre."},
+  {"callout": {"tipo": "nota", "titulo": "Não há `build` nem `deploy`", "texto": "Não existe etapa de build numa aplicação Vitrine: sem bundler, sem transpilação, sem `node_modules` — o que roda é o próprio `.df`. E `deploy` seria inventar uma opinião sobre Docker, systemd ou nuvem que o projeto não tem. Os dois comandos existem só para **explicar isso** a quem veio de outro framework, em vez de responder \"comando desconhecido\"."}},
+  {"p": "Para distribuir o projeto, `dataforge pack`."},
   {"h2": "Subir"},
   { code: `V.rodar(painel, porta := 8501)                 // uma página
 V.subir(porta := 8501, recarregar := yes)      // com hot reload
@@ -75,7 +86,7 @@ V.plugin("tema-empresa", tema_da_empresa)`, lang: 'df' },
   {"p": "É o \"tempo real\" do framework, e ele é por pergunta e não por empurrão: o Kiln não tem WebSocket. Para um painel que muda a cada segundos, perguntar é suficiente e não quebra atrás de proxy nenhum."},
 ];
 
-const headings = [{ id: 'subir', text: "Subir", level: 2 as const }, { id: 'hot-reload', text: "Hot reload", level: 2 as const }, { id: 'configuracao', text: "Configuração", level: 2 as const }, { id: 'tema', text: "Tema", level: 3 as const }, { id: 'observabilidade', text: "Observabilidade", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'trabalho-fora-do-pedido', text: "Trabalho fora do pedido", level: 2 as const }, { id: 'plugins', text: "Plugins", level: 2 as const }, { id: 'o-que-colocar-na-frente', text: "O que colocar na frente", level: 2 as const }, { id: 'atualizacao-automatica', text: "Atualização automática", level: 2 as const }];
+const headings = [{ id: 'a-linha-de-comando', text: "A linha de comando", level: 2 as const }, { id: 'subir', text: "Subir", level: 2 as const }, { id: 'hot-reload', text: "Hot reload", level: 2 as const }, { id: 'configuracao', text: "Configuração", level: 2 as const }, { id: 'tema', text: "Tema", level: 3 as const }, { id: 'observabilidade', text: "Observabilidade", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'trabalho-fora-do-pedido', text: "Trabalho fora do pedido", level: 2 as const }, { id: 'plugins', text: "Plugins", level: 2 as const }, { id: 'o-que-colocar-na-frente', text: "O que colocar na frente", level: 2 as const }, { id: 'atualizacao-automatica', text: "Atualização automática", level: 2 as const }];
 
 export default function Pagina() {
   return (

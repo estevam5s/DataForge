@@ -128,6 +128,51 @@ given forma.enviar("Cadastrar"):
     V.sucesso("Usuário cadastrado.")
 ```
 
+### Validação
+
+O erro aparece **sob o campo**, e não num alerta no topo. Num formulário
+de doze campos, um alerta dizendo "há erros" obriga a pessoa a caçar qual
+deles.
+
+```dataforge
+adopt Arcane.Regex as Regex
+
+email := V.entrada("E-mail")
+V.validar(email, Regex.is_email, "Digite um e-mail válido.")
+
+// ou com a regra junto, devolvendo (valor, esta_bom)
+senha, ok := V.campo_validado("Senha", lambda s: len(s) bigger 7,
+                              "Mínimo de 8 caracteres.", tipo := "senha")
+```
+
+A regra devolve `yes`/`no` — e aí vale a mensagem que você passou — ou um
+**texto**, que vira a mensagem (vazio significa que passou).
+
+Um campo vazio e nunca tocado não é acusado: reclamar antes de a pessoa
+digitar é ruído. E uma regra que **dispara** vira "a regra de validação
+falhou", porque dizer "E-mail inválido" ali esconderia o bug real.
+
+### Componentes próprios
+
+Uma ação já é um componente:
+
+```dataforge
+action cartao_de_usuario(nome, email):
+    caixa := V.cartao(nome)
+    caixa.texto(email)
+
+cartao_de_usuario("Ana", "ana@exemplo.br")
+```
+
+O registro por nome existe para quando o nome precisa atravessar
+módulos — um plugin que acrescenta componentes, um tema que substitui um
+deles sem que quem chama saiba:
+
+```dataforge
+V.componente("usuario", cartao_de_usuario)
+V.usar("usuario", "Ana", "ana@exemplo.br")
+```
+
 ### Dados
 
 ```dataforge
@@ -345,6 +390,46 @@ O cookie de sessão é `HttpOnly` e `SameSite=Lax`. Todo texto é escapado —
 
 ---
 
+## Acessibilidade e idioma
+
+Nada disto precisa ser ligado — é como os componentes são desenhados:
+HTML semântico, link para pular a navegação, foco sempre visível, rótulo
+ligado ao campo, erro anunciado com `role="alert"`, abas navegáveis pelas
+setas, `prefers-reduced-motion` e `prefers-color-scheme` respeitados.
+
+A variação de uma métrica sai com a seta marcada `aria-hidden` e a
+palavra ao lado, visível só para leitor de tela: cor e seta sozinhas
+excluem quem não vê a tela **e** quem não separa vermelho de verde.
+
+A paleta clara usa `#B28600` como primária, e não o amarelo `#FED403` da
+marca: amarelo sobre branco dá contraste 1,3:1, e a WCAG pede 4,5:1.
+
+O que fica com você: o texto alternativo das imagens (`legenda`), rótulos
+que descrevem (`"Excluir pedido 42"` diz mais que `"Excluir"`), o
+contraste do seu tema, e o que você puser em `V.html`, que passa cru.
+
+### Idioma
+
+```dataforge
+V.i18n.carregar("pt-BR", {"painel.titulo": "Painel", "ola": "Olá, {nome}"})
+V.i18n.carregar("en-US", {"painel.titulo": "Dashboard", "ola": "Hello, {nome}"})
+
+action painel():
+    V.titulo(V.t("painel.titulo"))
+    V.texto(V.t("ola", nome := "Ana"))
+```
+
+O idioma é **por sessão**: dois visitantes podem estar lendo a mesma
+página em línguas diferentes. `V.i18n.seletor("Idioma")` desenha a troca
+e reexecuta a página — mudá-lo no meio deixaria a metade de cima na
+língua anterior.
+
+Uma chave sem tradução aparece **crua** (`painel.titulo`), e não vazia:
+feio o bastante para alguém corrigir, e informativo o bastante para dizer
+qual falta.
+
+---
+
 ## Testar sem navegador
 
 A árvore de componentes é um **dado**, e conferir um dado é o que um teste
@@ -382,6 +467,34 @@ nova, com o sintoma de um contador que nunca passava de 1.
 ---
 
 ## Produção
+
+### A linha de comando
+
+```bash
+dataforge vitrine new meupainel   # cria o projeto
+dataforge vitrine dev             # sobe recarregando ao salvar
+dataforge vitrine run             # sobe, sem recarregar
+dataforge vitrine doctor          # diz por que ela não sobe
+
+dataforge vitrine dev --porta=8600 --host=0.0.0.0
+```
+
+Sem argumento, ele procura `main.df`, `app.df`, `painel.df` e
+`src/main.df`, nessa ordem, e depois a entrada do `forge.toml`. A porta e
+o host da linha de comando **vencem** o que está escrito no arquivo.
+
+O `doctor` responde as perguntas de quem vê uma tela em branco, da causa
+mais provável para a menos: o módulo carrega, o Kiln está lá, existe um
+arquivo que sobe, ele compila, ele adota a Vitrine, ele chama `V.subir`,
+a porta está livre.
+
+Não há `build` nem `deploy`. Não existe etapa de build — sem bundler, sem
+transpilação, sem `node_modules`; o que roda é o próprio `.df`. E
+`deploy` seria inventar uma opinião sobre Docker, systemd ou nuvem que o
+projeto não tem. Os dois comandos existem só para **explicar isso** a
+quem veio de outro framework.
+
+### Programaticamente
 
 ```dataforge
 V.subir(porta := 8501, recarregar := yes)   // hot reload
@@ -428,7 +541,7 @@ aplicação, com o proxy na frente, é a forma testada.
 
 ## Referência
 
-Os 105 símbolos, com assinatura extraída do código-fonte:
+Os 113 símbolos, com assinatura extraída do código-fonte:
 <https://dataforge-lang.vercel.app/docs/vitrine/referencia>.
 
 Um painel completo que roda e se testa sozinho está em

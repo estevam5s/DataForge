@@ -21,6 +21,7 @@ O que estes testes protegem, em ordem de quanto doeu descobrir:
 """
 
 import json
+import os
 import re
 import sys
 import threading
@@ -1006,3 +1007,281 @@ def test_todo_link_interno_da_doc_da_vitrine_existe():
         if not os.path.isfile(caminho):
             quebrados.append(destino)
     assert not quebrados, f"links para rotas que não existem: {quebrados}"
+
+
+# ═══════════════════════════════════════════════════════════
+#  Validação
+# ═══════════════════════════════════════════════════════════
+
+def test_o_erro_aparece_sob_o_campo(V):
+    """Num formulário de doze campos, um alerta no topo dizendo "há
+    erros" obriga a pessoa a caçar qual deles."""
+    def pagina():
+        email = V["entrada"]("E-mail", "")
+        V["validar"](email, lambda v: "@" in v, "E-mail inválido.")
+
+    t = sonda(V, pagina)
+    t.digitar("E-mail", "sem-arroba")
+    assert t.problema("E-mail") == "E-mail inválido."
+    html = t.html()
+    assert 'aria-invalid="true"' in html
+    assert 'role="alert"' in html
+    # E o campo aponta para a mensagem, para o leitor de tela achá-la.
+    assert "aria-describedby" in html
+
+
+def test_a_regra_pode_devolver_a_propria_mensagem(V):
+    def pagina():
+        senha = V["entrada"]("Senha", "")
+        V["validar"](senha, lambda v: "" if len(v) >= 8
+                     else f"faltam {8 - len(v)} caracteres")
+
+    t = sonda(V, pagina)
+    t.digitar("Senha", "abc")
+    assert t.problema("Senha") == "faltam 5 caracteres"
+
+
+def test_uma_regra_quebrada_nao_vira_valor_invalido(V):
+    """Dizer "E-mail inválido" quando a regra disparou esconde o bug."""
+    def pagina():
+        V["entrada"]("X", "")
+        V["validar"]("v", lambda v: 1 / 0, "inválido")
+
+    t = sonda(V, pagina)
+    assert "regra de validação falhou" in (t.problema("X") or "")
+
+
+def test_campo_vazio_e_intocado_nao_e_acusado(V):
+    def pagina():
+        V["campo_validado"]("E-mail", lambda v: "@" in v, "inválido")
+
+    assert sonda(V, pagina).problemas() == []
+
+
+def test_campo_validado_devolve_o_valor_e_se_esta_bom(V):
+    visto = {}
+
+    def pagina():
+        valor, bom = V["campo_validado"]("E-mail", lambda v: "@" in v, "x")
+        visto["valor"], visto["bom"] = valor, bom
+
+    t = sonda(V, pagina)
+    t.digitar("E-mail", "ana@exemplo.br")
+    assert visto == {"valor": "ana@exemplo.br", "bom": True}
+
+
+# ═══════════════════════════════════════════════════════════
+#  Idioma
+# ═══════════════════════════════════════════════════════════
+
+def test_a_traducao_troca_o_texto(V):
+    V["i18n"].carregar("pt-BR", {"titulo": "Painel"})
+    V["i18n"].carregar("en-US", {"titulo": "Dashboard"})
+
+    def pagina():
+        V["titulo"](V["t"]("titulo"))
+
+    assert "Painel" in sonda(V, pagina).texto()
+    V["i18n"].idioma("en-US")
+    assert "Dashboard" in V["testar"](pagina).texto()
+    V["i18n"].idioma("pt-BR")
+
+
+def test_uma_chave_sem_traducao_aparece_crua(V):
+    """Feio o bastante para alguém corrigir, e informativo o bastante
+    para dizer qual chave é."""
+    assert V["t"]("painel.sem.traducao") == "painel.sem.traducao"
+
+
+def test_a_traducao_interpola(V):
+    V["i18n"].carregar("pt-BR", {"ola": "Olá, {nome}"})
+    assert V["t"]("ola", nome="Ana") == "Olá, Ana"
+
+
+def test_o_idioma_e_por_sessao(V):
+    """Dois visitantes podem ler a mesma página em línguas diferentes."""
+    V["i18n"].carregar("pt-BR", {"k": "pt"})
+    V["i18n"].carregar("es", {"k": "es"})
+
+    def pagina():
+        V["texto"](V["t"]("k"))
+
+    a = sonda(V, pagina)
+    b = V["testar"](pagina)
+    a.ctx.sessao.definir("__idioma__", "es")
+    a.rodar()
+    assert "es" in a.texto()
+    assert "pt" in b.texto()
+
+
+# ═══════════════════════════════════════════════════════════
+#  Componentes próprios
+# ═══════════════════════════════════════════════════════════
+
+def test_um_componente_registrado_pode_ser_chamado_pelo_nome(V):
+    def cartao_de_usuario(nome, email):
+        caixa = V["cartao"](nome)
+        caixa.texto(email)
+
+    V["componente"]("usuario", cartao_de_usuario)
+
+    def pagina():
+        V["usar"]("usuario", "Ana", "ana@exemplo.br")
+        V["usar"]("usuario", "Bruno", "bruno@exemplo.br")
+
+    t = sonda(V, pagina)
+    assert t.quantos("cartao") == 2
+    assert "ana@exemplo.br" in t.texto()
+    assert V["componentes"]() == ["usuario"]
+
+
+def test_um_nome_errado_sugere_o_certo(V):
+    V["componente"]("usuario", lambda: None)
+
+    def pagina():
+        V["usar"]("usuarios")
+
+    t = sonda(V, pagina)
+    assert t.falhou()
+    assert "usuarios" in t.falhas()[0]
+
+
+def test_o_registro_nao_vaza_entre_aplicacoes(V):
+    """Um teste passaria por um registro que o teste anterior deixou."""
+    V["componente"]("x", lambda: None)
+    assert V["componentes"]() == ["x"]
+    V["app"]("outra")
+    assert V["componentes"]() == []
+
+
+# ═══════════════════════════════════════════════════════════
+#  Acessibilidade
+# ═══════════════════════════════════════════════════════════
+
+def test_a_pagina_tem_link_para_pular_a_navegacao(V):
+    def pagina():
+        V["lateral"]().texto("filtros")
+        V["texto"]("conteúdo")
+
+    html = sonda(V, pagina).html()
+    assert 'href="#v-conteudo"' in html
+    assert 'id="v-conteudo"' in html
+
+
+def test_as_abas_sao_navegaveis_por_teclado(V):
+    def pagina():
+        V["abas"](["A", "B", "C"])
+
+    html = sonda(V, pagina).html()
+    assert 'role="tablist"' in html
+    assert 'role="tabpanel"' in html
+    # Só a ativa fica no caminho do Tab; as outras, nas setas.
+    assert html.count('tabindex="-1"') >= 2
+    assert 'aria-controls=' in html
+    assert 'aria-labelledby=' in html
+    assert "ArrowRight" in html
+
+
+def test_a_variacao_da_metrica_tem_texto_alem_da_seta(V):
+    """A seta ▲ não diz "aumento de" para quem não vê a tela."""
+    def pagina():
+        V["metrica"]("Receita", "10", 5.0)
+        V["metrica"]("Custo", "10", -5.0)
+
+    html = sonda(V, pagina).html()
+    assert "aumento de" in html and "queda de" in html
+    assert 'aria-hidden="true"' in html
+
+
+def test_o_alerta_de_erro_interrompe_e_o_de_sucesso_nao(V):
+    def pagina():
+        V["erro"]("falhou")
+        V["sucesso"]("salvo")
+
+    html = sonda(V, pagina).html()
+    assert 'role="alert"' in html      # o erro
+    assert 'role="status"' in html     # o sucesso
+
+
+def test_um_grupo_de_opcoes_e_um_fieldset(V):
+    def pagina():
+        V["opcao"]("Cor", ["azul", "verde"])
+        V["escolhas"]("Tags", ["a", "b"])
+
+    html = sonda(V, pagina).html()
+    assert html.count("<fieldset") == 2
+    assert html.count("<legend") == 2
+
+
+def test_a_barra_de_progresso_diz_o_que_mede(V):
+    def pagina():
+        V["progresso"](0.4, "40% processado")
+        V["progresso"](0.7)
+
+    html = sonda(V, pagina).html()
+    assert 'role="progressbar"' in html
+    assert 'aria-label="40% processado"' in html
+    assert 'aria-label="70%"' in html
+
+
+# ═══════════════════════════════════════════════════════════
+#  O comando de linha
+# ═══════════════════════════════════════════════════════════
+
+def test_o_modelo_painel_existe_e_e_valido():
+    from dataforge.modelos import MODELOS
+    assert "painel" in MODELOS
+    modelo = MODELOS["painel"]
+    assert "src/main.df" in modelo["files"]
+    assert "tests/painel_test.df" in modelo["files"]
+
+
+def test_o_projeto_de_painel_passa_nos_proprios_testes(tmp_path):
+    """Todo modelo de `dataforge new` tem essa obrigação."""
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    criar = subprocess.run(
+        [sys.executable, "-m", "dataforge", "new", "p", "--modelo=painel",
+         "--silencioso"],
+        cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONPATH": raiz})
+    assert criar.returncode == 0, criar.stdout + criar.stderr
+
+    testar = subprocess.run(
+        [sys.executable, "-m", "dataforge", "test"],
+        cwd=tmp_path / "p", capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONPATH": raiz})
+    assert testar.returncode == 0, testar.stdout + testar.stderr
+    assert "Tudo verde" in testar.stdout
+
+
+def test_o_doctor_nao_estoura_fora_de_um_projeto(tmp_path):
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    saida = subprocess.run(
+        [sys.executable, "-m", "dataforge", "vitrine", "doctor",
+         "--no-color"],
+        cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONPATH": raiz})
+    # Devolve 1 porque falta o arquivo — mas diz o que fazer, e não
+    # despeja um traceback.
+    assert saida.returncode == 1
+    assert "Traceback" not in saida.stdout + saida.stderr
+    assert "dataforge vitrine new" in saida.stdout
+
+
+def test_build_e_deploy_explicam_por_que_nao_existem(tmp_path):
+    """Quem veio de outro framework procura os dois, e "comando
+    desconhecido" não responde a pergunta que a pessoa tem."""
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for sub, esperado in (("build", "não há etapa de build"),
+                          ("deploy", "de propósito")):
+        saida = subprocess.run(
+            [sys.executable, "-m", "dataforge", "vitrine", sub, "--no-color"],
+            cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+            env={**os.environ, "PYTHONPATH": raiz})
+        assert esperado in saida.stdout, (sub, saida.stdout)

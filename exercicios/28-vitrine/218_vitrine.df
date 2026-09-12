@@ -41,7 +41,7 @@ assert c.metrica("Total") is "0"
 c.clicar("Somar")
 assert c.metrica("Total") is "1"
 c.rodar()
-assert c.metrica("Total") is "1"        // sem clique, nao soma
+assert c.metrica("Total") is "1"  // sem clique, nao soma
 c.clicar("Somar")
 assert c.metrica("Total") is "2"
 
@@ -70,7 +70,7 @@ vezes := {"n": 0}
 mark @V.cache
 action pesado(chave):
     vezes["n"] := vezes["n"] + 1
-    yield [{"x": chave, "y": 10}]
+    yield [{"x":chave, "y":10}]
 
 action com_cache():
     V.tabela(pesado("a"))
@@ -115,7 +115,7 @@ action cadastro():
 
 f := V.testar(cadastro)
 f.digitar("Nome", "Bruno")
-assert len(salvos) is 0                  // digitar nao salva
+assert len(salvos) is 0  // digitar nao salva
 f.enviar("novo")
 assert salvos is ["Bruno"]
 assert "Bruno cadastrado." in f.texto()
@@ -128,9 +128,50 @@ action quebrada():
 
 q := V.testar(quebrada)
 assert q.falhou()
-assert "antes" in q.texto()              // o que ja montou continua
+assert "antes" in q.texto()  // o que ja montou continua
 
-// ── 8. HTTP de verdade, sem socket ──────────────────────────
+// ── 8. Validacao: o erro sob o campo ────────────────────────
+//
+// Num formulario de doze campos, um alerta no topo dizendo "ha erros"
+// obriga a pessoa a cacar qual deles.
+
+adopt Arcane.Regex as Regex
+
+action com_validacao():
+    aviso := "Digite um e-mail válido."
+    email, bom := V.campo_validado("E-mail", Regex.is_email, aviso)
+    given bom:
+        V.sucesso($"ok: {email}")
+
+v := V.testar(com_validacao)
+assert v.problemas() is []  // vazio e intocado nao acusa
+
+v.digitar("E-mail", "sem-arroba")
+assert v.problema("E-mail") is "Digite um e-mail válido."
+assert "aria-invalid" in v.html()
+
+v.digitar("E-mail", "ana@exemplo.br")
+assert v.problemas() is []
+assert "ok" in v.texto()
+
+// ── 9. Idioma: por sessao, nao por processo ─────────────────
+
+V.i18n.carregar("pt-BR", {"ola": "Olá, {nome}"})
+V.i18n.carregar("en-US", {"ola": "Hello, {nome}"})
+
+action saudacao():
+    V.texto(V.t("ola", nome := "Ana"))
+    V.texto(V.t("sem.traducao"))
+
+i := V.testar(saudacao)
+assert "Olá, Ana" in i.texto()
+assert "sem.traducao" in i.texto()  // chave sem traducao aparece crua
+
+V.i18n.idioma("en-US")
+assert "Hello, Ana" in V.testar(saudacao).texto()
+V.i18n.idioma("pt-BR")
+
+// ── 10. HTTP de verdade, sem socket ─────────────────────────
 
 action inicio():
     V.titulo("Loja")

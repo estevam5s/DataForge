@@ -67,6 +67,9 @@ GRUPOS = [
     ("Exportar", [
         "exportar_csv", "exportar_json", "html_da_pagina",
         "markdown_para_html"]),
+    ("Validação e idioma", [
+        "validar", "campo_validado", "i18n", "t", "traduzir"]),
+    ("Componentes próprios", ["componente", "usar", "componentes"]),
     ("Testes", ["testar", "pedir"]),
 ]
 
@@ -187,6 +190,15 @@ RESUMOS = {
     "exportar_json": "O mesmo, em JSON.",
     "html_da_pagina": "A página atual como HTML.",
     "markdown_para_html": "Converte Markdown sem pôr nada na página.",
+
+    "validar": "Confere um valor e desenha o erro **sob o campo**.",
+    "campo_validado": "Um campo com a regra junto. Devolve `(valor, bom)`.",
+    "i18n": "Tradução: `carregar`, `idioma`, `traduzir`, `seletor`.",
+    "t": "O texto de uma chave, no idioma da sessão. Atalho de `traduzir`.",
+    "traduzir": "O mesmo que `t`, pelo nome inteiro.",
+    "componente": "Registra um componente reaproveitável, pelo nome.",
+    "usar": "Chama um componente registrado.",
+    "componentes": "Os nomes registrados.",
 
     "testar": "Uma sonda: clica, digita e pergunta, sem navegador.",
     "pedir": "Um pedido HTTP de verdade contra a aplicação, sem socket.",

@@ -6123,6 +6123,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "campo_validado",
+     "sig": "(rotulo, regra, mensagem, valor, tipo, dica, chave)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "carregando",
      "sig": "(mensagem)",
      "tipo": "funcao"
@@ -6140,6 +6145,16 @@
     {
      "nome": "colunas",
      "sig": "(quantidade, larguras, espacamento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "componente",
+     "sig": "(nome, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "componentes",
+     "sig": "()",
      "tipo": "funcao"
     },
     {
@@ -6326,6 +6341,11 @@
      "nome": "html_da_pagina",
      "sig": "()",
      "tipo": "funcao"
+    },
+    {
+     "nome": "i18n",
+     "sig": "",
+     "tipo": "const"
     },
     {
      "nome": "imagem",
@@ -6518,6 +6538,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "t",
+     "sig": "(chave, valores)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "tabela",
      "sig": "(dados, colunas, altura)",
      "tipo": "funcao"
@@ -6543,8 +6568,23 @@
      "tipo": "funcao"
     },
     {
+     "nome": "traduzir",
+     "sig": "(chave, valores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "usar",
+     "sig": "(nome, args, kwargs)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "usuario",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "validar",
+     "sig": "(valor, regra, mensagem)",
      "tipo": "funcao"
     },
     {

@@ -27,6 +27,7 @@ from . import componentes as C
 from . import graficos as G
 from . import layout as L
 from . import render as R
+from . import extras as X
 from . import teste as T
 from .estado import Cache, Estado, Geral
 from .nucleo import Contexto
@@ -528,6 +529,20 @@ class ArcaneVitrine:
             "html_da_pagina": html_da_pagina,
             "markdown_para_html": markdown_para_html,
 
+            # ── Validação ──
+            "validar": X.validar,
+            "campo_validado": X.campo_validado,
+
+            # ── Idioma ──
+            "i18n": _I18N,
+            "t": _I18N.traduzir,
+            "traduzir": _I18N.traduzir,
+
+            # ── Componentes próprios ──
+            "componente": X.componente,
+            "usar": X.usar,
+            "componentes": X.componentes_registrados,
+
             # ── Testes ──
             "testar": T.testar,
             "pedir": T.pedir,
@@ -540,3 +555,7 @@ class ArcaneVitrine:
 #: falhar exatamente no uso mais comum.
 _GERAL = Geral()
 _CACHE = Cache()
+
+#: A tradução também: as chaves são carregadas no topo do arquivo, antes
+#: de qualquer 'V.app(...)'.
+_I18N = X.Traducao()

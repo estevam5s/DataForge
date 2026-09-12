@@ -81,6 +81,12 @@ class Aplicacao:
         self.antes = []                   # middleware da Vitrine
         self.depois = []
         self.plugins = {}
+        #: Componentes registrados por nome. Ficam na APLICAÇÃO, e não
+        #: no módulo: dois apps no mesmo processo — o que os testes
+        #: fazem o tempo todo — não podem ver os componentes um do
+        #: outro, ou um teste passaria por um registro que o anterior
+        #: deixou.
+        self.componentes = {}
         self.autenticador = None
         self.permissoes = {}
         self.trabalhos = []
@@ -432,7 +438,16 @@ class Aplicacao:
 
     def subir(self, porta=8501, host="127.0.0.1", silencioso=False,
               recarregar=False):
-        """Sobe e bloqueia. `recarregar := yes` reinicia ao salvar."""
+        """Sobe e bloqueia. `recarregar := yes` reinicia ao salvar.
+
+        O `dataforge vitrine` passa porta, host e recarregar pelo
+        **ambiente**, e eles vencem o que está escrito no arquivo. É o
+        que permite `dataforge vitrine dev --porta=8600` sem reescrever
+        o `V.subir(porta := 8501)` de quem escreveu o programa.
+        """
+        porta = int(os.environ.get("VITRINE_PORTA") or porta)
+        host = os.environ.get("VITRINE_HOST") or host
+        recarregar = recarregar or os.environ.get("VITRINE_RECARREGAR") == "1"
         app = self.montar()
         if recarregar:
             _vigiar(self, host, porta)

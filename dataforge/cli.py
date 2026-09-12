@@ -297,6 +297,18 @@ GRUPOS = [
             veja=("fmt", "lint")),
     ]),
     ("Ambiente", [
+        Cmd("vitrine", "dataforge vitrine <run|dev|doctor|new>",
+            "Sobe um painel feito com Arcane.Vitrine",
+            "Um programa de cima para baixo vira uma pagina web. 'dev'\n"
+            "recarrega ao salvar; 'doctor' diz por que ela nao sobe.\n"
+            "\nNao ha 'build': nao existe bundler nem transpilacao — o\n"
+            "que roda e o proprio .df.",
+            opcoes=[("--porta=<n>", "a porta (padrao 8501)"),
+                    ("--host=<ip>", "o endereco (padrao 127.0.0.1)")],
+            exemplos=[("dataforge vitrine dev", "sobe recarregando ao salvar"),
+                      ("dataforge vitrine doctor", "o que falta para subir"),
+                      ("dataforge vitrine new meupainel", "cria o projeto")],
+            veja=("new", "run")),
         Cmd("editor", "dataforge editor [status|remove]",
             "Instala a coloracao de sintaxe no VS Code",
             "Copia a extensao para o VS Code, Insiders, Cursor, VSCodium e\n"
@@ -3318,6 +3330,10 @@ def main():
 
     elif command == 'editor':
         sys.exit(editor_command(args[1:], flags))
+
+    elif command == 'vitrine':
+        from .vitrine_cli import executar
+        sys.exit(executar(args[1:], flags))
 
     elif command == 'debug':
         from .depurador import depurar

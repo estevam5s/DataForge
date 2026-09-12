@@ -1046,6 +1046,171 @@ action test_maiores_ordena_por_tamanho():
         },
     },
 
+    # ── 9. Painel de dados (Vitrine) ─────────────────────────
+    "painel": {
+        "name": "Painel de dados (Vitrine)",
+        "description": "Um dashboard: métricas, gráficos, filtros e testes",
+        "icon": "📊",
+        "proximos": [
+            ("dataforge vitrine dev", "sobe em http://127.0.0.1:8501, "
+                                      "recarregando ao salvar"),
+            ("dataforge test tests/", "roda os testes — sem navegador"),
+        ],
+        "files": {
+            "forge.toml": _forge_toml("Painel de dados em DataForge"),
+            ".gitignore": GITIGNORE,
+            "README.md": _readme(
+                "{name}",
+                "Um painel com a **Vitrine**. O programa roda de cima para "
+                "baixo e vira uma página web — sem HTML, sem JavaScript.",
+                "dataforge vitrine dev     # http://127.0.0.1:8501\n"
+                "dataforge test tests/     # os testes, sem navegador",
+                notas="""## Como ele funciona
+
+A cada interação **o programa inteiro roda de novo**, e o estado da
+sessão sobrevive. É o que dispensa callback: `V.botao(...)` devolve
+`yes` no ciclo do clique, e a linha seguinte já usa o valor.
+
+O custo é que a página precisa ser rápida a cada clique — daí o
+`mark @V.cache` sobre `carregar()`.
+
+## Os arquivos
+
+| Arquivo | O quê |
+|---|---|
+| `src/dados.df` | de onde vêm os números |
+| `src/painel.df` | a página |
+| `src/main.df` | sobe o servidor |
+| `tests/painel_test.df` | clica, digita e confere |
+
+`painel.df` monta e **não** sobe nada. Sem essa separação, um teste que
+adotasse o painel subiria o servidor e nunca terminaria.
+
+"""),
+            "src/dados.df": '''// De onde vêm os números.
+//
+// Aqui é sintético. Num painel de verdade, troque por
+// 'Banco.consultar(...)' ou 'IO.read_csv(...)' — o resto da aplicação
+// não muda.
+
+adopt Arcane.Vitrine as V
+
+steady MESES := ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"]
+
+//: O cache faz a leitura acontecer UMA vez, e não a cada clique. Num
+//: painel que lê do banco, é a diferença entre uma página que responde
+//: e uma que trava.
+mark @V.cache
+action carregar(regiao):
+    base := {"Sul": 120, "Sudeste": 260, "Norte": 80}
+    peso := base[regiao] ?? 100
+    linhas := []
+    cycle i from 0 to 5:
+        // Deterministico: o mesmo mês dá sempre o mesmo número, senão
+        // o gráfico dançaria a cada clique.
+        linhas.append({
+            "mes": MESES[i],
+            "receita": peso + ((i * 37) % 23) * 4 - 32,
+            "meta": peso + 6
+        })
+    yield linhas
+
+action somar(linhas, campo):
+    yield linhas >> morph l: l[campo] >> distill a, v: a + v 0
+
+action regioes():
+    yield ["Sudeste", "Sul", "Norte"]
+
+relay carregar, somar, regioes
+''',
+            "src/painel.df": '''// A página. Monta e NÃO sobe nada — quem sobe é o main.df.
+
+adopt Arcane.Vitrine as V
+adopt ./dados as D
+
+action painel():
+    lado := V.lateral()
+    lado.cabecalho("Filtros", 4)
+    regiao := lado.escolha("Região", D.regioes())
+    detalhar := lado.interruptor("Mostrar a tabela", yes)
+
+    V.titulo("{name}", icone := "📊")
+    V.texto($"Região: {regiao} · primeiro semestre")
+
+    linhas := D.carregar(regiao)
+    receita := D.somar(linhas, "receita")
+    meta := D.somar(linhas, "meta")
+
+    colunas := V.colunas(3)
+    colunas[0].metrica("Receita", $"R$ {receita} mil",
+                       variacao := round((receita - meta) / meta * 100, 1))
+    colunas[1].metrica("Meta", $"R$ {meta} mil")
+    colunas[2].metrica("Meses", len(linhas))
+
+    V.cabecalho("Evolução")
+    g := V.grafico("linha", linhas)
+    g.eixo_x("mes")
+    g.eixo_y(["receita", "meta"])
+    g.suavizar(yes)
+    V.desenhar(g)
+
+    given detalhar:
+        V.cabecalho("Dados")
+        V.frame(linhas)
+        V.exportar_csv(linhas, nome := $"vendas-{regiao}.csv")
+
+relay painel
+''',
+            "src/main.df": '''// Sobe o servidor.
+//
+//   dataforge vitrine dev     recarrega ao salvar
+//   dataforge vitrine run     sem recarregar
+
+adopt Arcane.Vitrine as V
+adopt ./painel as P
+
+V.app("{name}", icone := "📊")
+V.pagina("/", P.painel, titulo := "Painel")
+V.subir(porta := 8501)
+''',
+            "tests/painel_test.df": '''// Testar não precisa de navegador: a árvore de componentes é um dado.
+
+adopt Arcane.Test as T
+adopt Arcane.Vitrine as V
+adopt ../src/painel as P
+
+action test_o_painel_monta():
+    t := V.testar(P.painel)
+    T.assert_true(t.existe("titulo"))
+    T.assert_eq(t.quantos("metrica"), 3)
+    T.assert_false(t.falhou())
+
+action test_o_grafico_desenha_svg():
+    t := V.testar(P.painel)
+    T.assert_contains(t.html(), "<svg")
+
+action test_trocar_a_regiao_troca_os_numeros():
+    t := V.testar(P.painel)
+    antes := t.metrica("Receita")
+    t.selecionar("Região", "Norte")
+    T.assert_neq(t.metrica("Receita"), antes)
+
+action test_o_interruptor_esconde_a_tabela():
+    t := V.testar(P.painel)
+    T.assert_eq(t.quantos("frame"), 1)
+    t.marcar("Mostrar a tabela", no)
+    T.assert_eq(t.quantos("frame"), 0)
+
+action test_a_pagina_responde_por_http():
+    app := V.app("teste")
+    V.pagina("/", P.painel)
+    r := V.pedir(app, "GET", "/")
+    T.assert_eq(r["status"], 200)
+    T.assert_contains(r["body"], "<!DOCTYPE html>")
+''',
+        },
+    },
+
     # ── 8. Suíte de testes ───────────────────────────────────
     "test": {
         "name": "Suíte de testes",

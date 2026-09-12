@@ -7,12 +7,12 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Referência da Vitrine",
-  description: "Os 105 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte.",
+  description: "Os 113 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte.",
 };
 
 const blocos: Bloco[] = [
   {
-    "p": "Esta página é gerada a partir de `dataforge/stdlib/vitrine/`. São **105 símbolos**, e o gerador recusa rodar se algum deles ficar de fora."
+    "p": "Esta página é gerada a partir de `dataforge/stdlib/vitrine/`. São **113 símbolos**, e o gerador recusa rodar se algum deles ficar de fora."
   },
   {
     "p": "Em todos os exemplos, `V` é o apelido de `adopt Arcane.Vitrine as V`."
@@ -593,6 +593,64 @@ const blocos: Bloco[] = [
     }
   },
   {
+    "h2": "Validação e idioma"
+  },
+  {
+    "table": {
+      "head": [
+        "Símbolo",
+        "Faz"
+      ],
+      "rows": [
+        [
+          "`V.validar(valor, regra, mensagem='')`",
+          "Confere um valor e desenha o erro **sob o campo**."
+        ],
+        [
+          "`V.campo_validado(rotulo, regra, mensagem='', valor='', tipo='texto', dica='', chave=None)`",
+          "Um campo com a regra junto. Devolve `(valor, bom)`."
+        ],
+        [
+          "`V.i18n`",
+          "Tradução: `carregar`, `idioma`, `traduzir`, `seletor`."
+        ],
+        [
+          "`V.t(chave, **valores)`",
+          "O texto de uma chave, no idioma da sessão. Atalho de `traduzir`."
+        ],
+        [
+          "`V.traduzir(chave, **valores)`",
+          "O mesmo que `t`, pelo nome inteiro."
+        ]
+      ]
+    }
+  },
+  {
+    "h2": "Componentes próprios"
+  },
+  {
+    "table": {
+      "head": [
+        "Símbolo",
+        "Faz"
+      ],
+      "rows": [
+        [
+          "`V.componente(nome, acao=None)`",
+          "Registra um componente reaproveitável, pelo nome."
+        ],
+        [
+          "`V.usar(nome, *args, …args)`",
+          "Chama um componente registrado."
+        ],
+        [
+          "`V.componentes()`",
+          "Os nomes registrados."
+        ]
+      ]
+    }
+  },
+  {
     "h2": "Testes"
   },
   {
@@ -732,13 +790,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'aplicacao-e-servidor', text: "Aplicação e servidor", level: 2 as const }, { id: 'texto', text: "Texto", level: 2 as const }, { id: 'entrada', text: "Entrada", level: 2 as const }, { id: 'dados', text: "Dados", level: 2 as const }, { id: 'retorno-ao-usuario', text: "Retorno ao usuário", level: 2 as const }, { id: 'layout', text: "Layout", level: 2 as const }, { id: 'graficos', text: "Gráficos", level: 2 as const }, { id: 'estado-e-cache', text: "Estado e cache", level: 2 as const }, { id: 'navegacao', text: "Navegação", level: 2 as const }, { id: 'seguranca', text: "Segurança", level: 2 as const }, { id: 'operacao', text: "Operação", level: 2 as const }, { id: 'exportar', text: "Exportar", level: 2 as const }, { id: 'testes', text: "Testes", level: 2 as const }, { id: 'os-metodos-da-sonda', text: "Os métodos da sonda", level: 2 as const }, { id: 'as-rotas-que-vem-prontas', text: "As rotas que vêm prontas", level: 2 as const }];
+const headings = [{ id: 'aplicacao-e-servidor', text: "Aplicação e servidor", level: 2 as const }, { id: 'texto', text: "Texto", level: 2 as const }, { id: 'entrada', text: "Entrada", level: 2 as const }, { id: 'dados', text: "Dados", level: 2 as const }, { id: 'retorno-ao-usuario', text: "Retorno ao usuário", level: 2 as const }, { id: 'layout', text: "Layout", level: 2 as const }, { id: 'graficos', text: "Gráficos", level: 2 as const }, { id: 'estado-e-cache', text: "Estado e cache", level: 2 as const }, { id: 'navegacao', text: "Navegação", level: 2 as const }, { id: 'seguranca', text: "Segurança", level: 2 as const }, { id: 'operacao', text: "Operação", level: 2 as const }, { id: 'exportar', text: "Exportar", level: 2 as const }, { id: 'validacao-e-idioma', text: "Validação e idioma", level: 2 as const }, { id: 'componentes-proprios', text: "Componentes próprios", level: 2 as const }, { id: 'testes', text: "Testes", level: 2 as const }, { id: 'os-metodos-da-sonda', text: "Os métodos da sonda", level: 2 as const }, { id: 'as-rotas-que-vem-prontas', text: "As rotas que vêm prontas", level: 2 as const }];
 
 export default function Page() {
   return (
     <DocPage
       title="Referência da Vitrine"
-      description="Os 105 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte."
+      description="Os 113 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte."
       href="/docs/vitrine/referencia"
       headings={headings}
     >

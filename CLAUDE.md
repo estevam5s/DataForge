@@ -61,10 +61,10 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                38 módulos (1272 símbolos), incluindo:
+  stdlib/                38 módulos (1280 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (46 símbolos)
-    vitrine/             Vitrine — dashboards e data apps (105 símbolos)
+    vitrine/             Vitrine — dashboards e data apps (113 símbolos)
     arcane_excel.py      planilhas .xlsx, sem dependência externa (29)
     arcane_arquivo_seguro.py  cofre de arquivo + zip/tar seguro (56)
     cifra.py             ChaCha20-Poly1305 puro (RFC 8439)
@@ -460,7 +460,8 @@ Os apelidos (`Zip`, `Cor`, `Banco`) são traduzidos para o nome oficial por
 | `dataforge info` | `project.py` | mostra o manifesto |
 | `dataforge repl` | `repl.py` | console com `:type`, `:ast`, `:load` |
 | `dataforge editor` | `cli.py` | instala a coloração no VS Code e derivados |
-| `dataforge new` | `modelos.py` + `scaffold.py` | 8 modelos; todo projeto criado passa nos próprios testes |
+| `dataforge new` | `modelos.py` + `scaffold.py` | 9 modelos; todo projeto criado passa nos próprios testes |
+| `dataforge vitrine` | `vitrine_cli.py` | `run`, `dev` (hot reload), `doctor`, `new`. Sem `build` nem `deploy` — e os dois explicam por quê |
 | `dataforge stats` | `cli.py` | inventário: ações, blueprints, o arquivo e a ação mais longos |
 | `dataforge profile` | `cli.py` | tempo **próprio** por ação (o acumulado somaria mais de 100%) |
 | `dataforge fix` | `cli.py` | formata e aponta o que exige julgamento |
@@ -612,10 +613,11 @@ chamada de ação num módulo da biblioteca.
 | `estado.py` | `V.estado` (sessão), `V.geral` (processo), `V.cache` (TTL + LRU) |
 | `runtime.py` | `Aplicacao` — sessões, ciclo do pedido, servidor sobre o Kiln |
 | `teste.py` | a `Sonda`: clica, digita e pergunta, sem navegador |
+| `extras.py` | validação de campo, tradução por sessão, componentes por nome |
 | `tema.py` | claro, escuro e o vault de variáveis CSS |
 | `api.py` | o dicionário que o `adopt` entrega |
 
-Sete decisões que valem lembrar:
+Oito decisões que valem lembrar:
 
 1. **O programa inteiro roda de novo a cada interação**, e o estado da
    sessão sobrevive. É o que dispensa callback e diffing — e o que
@@ -647,7 +649,15 @@ Sete decisões que valem lembrar:
    ações `carregar` em arquivos diferentes dividiriam o mesmo cache, e
    o `teto` da primeira venceria calado sobre o da segunda.
 
-7. **Zero dependência também no navegador.** O gráfico é SVG escrito no
+7. **Acessibilidade é como os componentes são desenhados**, não uma
+   camada por cima: `<fieldset>`/`<legend>` nos grupos, `role="alert"`
+   no erro de campo com `aria-describedby` ligando ao campo, setas nas
+   abas com só a ativa no Tab, e a variação da métrica com a palavra
+   ("aumento de") ao lado da seta marcada `aria-hidden`. A primária do
+   tema claro é `#B28600` e não o amarelo da marca — amarelo sobre
+   branco dá contraste 1,3:1 onde a WCAG pede 4,5:1.
+
+8. **Zero dependência também no navegador.** O gráfico é SVG escrito no
    servidor; o cliente são ~4 KB sem build e sem CDN. Uma biblioteca de
    CDN quebra qualquer app em rede fechada — que é onde painel de dados
    costuma rodar. Há teste proibindo `http://`, `https://` e `cdn` no

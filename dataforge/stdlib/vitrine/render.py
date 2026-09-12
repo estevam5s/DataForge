@@ -84,14 +84,17 @@ def pagina(ctx, config):
 
 def corpo_html(ctx, config):
     """Só o miolo — é isto que troca a cada interação."""
-    partes = ['<div id="v-raiz">']
+    partes = ['<a class="v-pular" href="#v-conteudo">Ir para o conteúdo</a>',
+              '<div id="v-raiz">']
 
     if ctx.barra_lateral.filhos:
-        partes.append('<aside class="v-lateral"><div class="v-lateral-int">')
+        partes.append('<aside class="v-lateral" aria-label="Filtros e navegação">'
+                      '<div class="v-lateral-int">')
         partes.append(_filhos(ctx.barra_lateral))
         partes.append("</div></aside>")
 
-    partes.append('<main class="v-main"><div class="v-largura">')
+    partes.append('<main class="v-main" id="v-conteudo" tabindex="-1">'
+                  '<div class="v-largura">')
     if config.get("cabecalho"):
         partes.append(
             f'<header class="v-topo"><span class="v-marca">'
@@ -194,7 +197,35 @@ def _rotulo(p, para=""):
     if not p.get("rotulo"):
         return ""
     atributo = f' for="{_a(para)}"' if para else ""
-    return f'<label class="v-rotulo"{atributo}>{_e(p["rotulo"])}</label>'
+    obrigatorio = (' <span class="v-obrigatorio" aria-hidden="true">*</span>'
+                   if p.get("obrigatorio") else "")
+    return (f'<label class="v-rotulo"{atributo}>{_e(p["rotulo"])}'
+            f"{obrigatorio}</label>")
+
+
+def _problema(p):
+    """A mensagem de erro de um campo, sob ele.
+
+    `role="alert"` é o que faz um leitor de tela anunciá-la assim que
+    ela aparece — sem isso, quem não vê a tela descobre o erro só ao
+    chegar de volta no campo, se chegar.
+    """
+    if not p.get("problema"):
+        return ""
+    return (f'<span class="v-problema" id="e-{_a(p["chave"])}" '
+            f'role="alert">{_e(p["problema"])}</span>')
+
+
+def _aria(p):
+    """Os atributos que ligam o campo à mensagem de erro."""
+    if not p.get("problema"):
+        return ""
+    return (f' aria-invalid="true" '
+            f'aria-describedby="e-{_a(p["chave"])}"')
+
+
+def _classe_campo(p):
+    return "v-campo v-com-erro" if p.get("problema") else "v-campo"
 
 
 def _d_entrada(no):
@@ -203,20 +234,23 @@ def _d_entrada(no):
     tipos = {"texto": "text", "senha": "password", "email": "email",
              "numero": "number", "telefone": "tel", "busca": "search",
              "url": "url"}
-    return (f'<div class="v-campo">{_rotulo(p, ident)}'
+    return (f'<div class="{_classe_campo(p)}">{_rotulo(p, ident)}'
             f'<input id="{ident}" class="v-entrada" '
             f'type="{tipos.get(p.get("tipo"), "text")}" '
             f'value="{_a(p["valor"])}" placeholder="{_a(p.get("dica", ""))}" '
-            f'data-v-campo="{_a(p["chave"])}"></div>')
+            f'data-v-campo="{_a(p["chave"])}"{_aria(p)}>'
+            f"{_problema(p)}</div>")
 
 
 def _d_area(no):
     p = no.props
     ident = f'v-{_a(p["chave"])}'
-    return (f'<div class="v-campo">{_rotulo(p, ident)}'
+    return (f'<div class="{_classe_campo(p)}">{_rotulo(p, ident)}'
             f'<textarea id="{ident}" class="v-entrada v-area" '
-            f'rows="{int(p.get("linhas", 4))}" placeholder="{_a(p.get("dica", ""))}" '
-            f'data-v-campo="{_a(p["chave"])}">{_e(p["valor"])}</textarea></div>')
+            f'rows="{int(p.get("linhas", 4))}" '
+            f'placeholder="{_a(p.get("dica", ""))}" '
+            f'data-v-campo="{_a(p["chave"])}"{_aria(p)}>'
+            f"{_e(p['valor'])}</textarea>{_problema(p)}</div>")
 
 
 def _d_numero(no):
@@ -227,10 +261,11 @@ def _d_numero(no):
         limites += f' min="{_a(p["minimo"])}"'
     if p.get("maximo") is not None:
         limites += f' max="{_a(p["maximo"])}"'
-    return (f'<div class="v-campo">{_rotulo(p, ident)}'
+    return (f'<div class="{_classe_campo(p)}">{_rotulo(p, ident)}'
             f'<input id="{ident}" class="v-entrada" type="number" '
             f'value="{_a(p["valor"])}" step="{_a(p.get("passo", 1))}"{limites} '
-            f'data-v-campo="{_a(p["chave"])}" data-v-numero="1"></div>')
+            f'data-v-campo="{_a(p["chave"])}" data-v-numero="1"{_aria(p)}>'
+            f"{_problema(p)}</div>")
 
 
 def _d_deslizante(no):
@@ -270,7 +305,9 @@ def _d_opcao(no):
         f'{" checked" if o == p["valor"] else ""} '
         f'data-v-campo="{_a(p["chave"])}"><span>{_e(o)}</span></label>'
         for o in p["opcoes"])
-    return f'<div class="v-campo">{_rotulo(p)}<div class="v-radios">{itens}</div></div>'
+    return (f'<fieldset class="{_classe_campo(p)}">'
+            f'<legend class="v-rotulo">{_e(p["rotulo"])}</legend>'
+            f'<div class="v-radios">{itens}</div>{_problema(p)}</fieldset>')
 
 
 def _d_escolha(no):
@@ -279,9 +316,10 @@ def _d_escolha(no):
     itens = "".join(
         f'<option value="{_a(o)}"{" selected" if o == p["valor"] else ""}>'
         f"{_e(o)}</option>" for o in p["opcoes"])
-    return (f'<div class="v-campo">{_rotulo(p, ident)}'
+    return (f'<div class="{_classe_campo(p)}">{_rotulo(p, ident)}'
             f'<select id="{ident}" class="v-entrada" '
-            f'data-v-campo="{_a(p["chave"])}">{itens}</select></div>')
+            f'data-v-campo="{_a(p["chave"])}"{_aria(p)}>{itens}</select>'
+            f"{_problema(p)}</div>")
 
 
 def _d_escolhas(no):
@@ -292,16 +330,18 @@ def _d_escolhas(no):
         f'{" checked" if o in escolhidos else ""} '
         f'data-v-campo="{_a(p["chave"])}" data-v-varios="1">'
         f'<span>{_e(o)}</span></label>' for o in p["opcoes"])
-    return (f'<div class="v-campo">{_rotulo(p)}'
-            f'<div class="v-caixas">{itens}</div></div>')
+    return (f'<fieldset class="{_classe_campo(p)}">'
+            f'<legend class="v-rotulo">{_e(p["rotulo"])}</legend>'
+            f'<div class="v-caixas">{itens}</div>{_problema(p)}</fieldset>')
 
 
 def _d_data(no):
     p = no.props
     ident = f'v-{_a(p["chave"])}'
-    return (f'<div class="v-campo">{_rotulo(p, ident)}'
+    return (f'<div class="{_classe_campo(p)}">{_rotulo(p, ident)}'
             f'<input id="{ident}" class="v-entrada" type="date" '
-            f'value="{_a(p["valor"])}" data-v-campo="{_a(p["chave"])}"></div>')
+            f'value="{_a(p["valor"])}" data-v-campo="{_a(p["chave"])}"'
+            f"{_aria(p)}>{_problema(p)}</div>")
 
 
 def _d_cor(no):
@@ -366,10 +406,15 @@ def _d_metrica(no):
             n = 0.0
         classe = "v-sobe" if n > 0 else ("v-desce" if n < 0 else "v-igual")
         seta = "▲" if n > 0 else ("▼" if n < 0 else "—")
+        palavra = "aumento de" if n > 0 else (
+            "queda de" if n < 0 else "sem variação,")
         numero = f"{abs(n):g}"
-        variacao = (f'<span class="v-variacao {classe}">{seta} {_e(numero)}%'
-                    f"</span>")
-    ajuda = (f'<span class="v-ajuda" title="{_a(p["ajuda"])}">?</span>'
+        variacao = (f'<span class="v-variacao {classe}">'
+                    f'<span aria-hidden="true">{seta}</span> '
+                    f'<span class="v-so-leitor">{palavra} </span>'
+                    f"{_e(numero)}%</span>")
+    ajuda = (f'<span class="v-ajuda" title="{_a(p["ajuda"])}" '
+             f'aria-label="{_a(p["ajuda"])}" role="note">?</span>'
              if p.get("ajuda") else "")
     return (f'<div class="v-metrica"><span class="v-metrica-rotulo">'
             f'{_e(p["rotulo"])}{ajuda}</span>'
@@ -398,8 +443,14 @@ def _d_alerta(no):
     p = no.props
     icones = {"sucesso": "✓", "erro": "✕", "aviso": "!", "info": "i"}
     nivel = p.get("nivel", "info")
-    return (f'<div class="v-alerta v-{_a(nivel)}">'
-            f'<span class="v-alerta-icone">{icones.get(nivel, "i")}</span>'
+    # 'alert' para o que exige atenção agora, 'status' para o resto:
+    # um leitor de tela interrompe o primeiro e espera a pausa no
+    # segundo. Anunciar uma confirmação com a mesma urgência de um erro
+    # treina a pessoa a ignorar os dois.
+    papel = "alert" if nivel in ("erro", "aviso") else "status"
+    return (f'<div class="v-alerta v-{_a(nivel)}" role="{papel}">'
+            f'<span class="v-alerta-icone" aria-hidden="true">'
+            f'{icones.get(nivel, "i")}</span>'
             f'<span>{_e(p["mensagem"])}</span></div>')
 
 
@@ -407,14 +458,17 @@ def _d_progresso(no):
     p = no.props
     pct = round(p["valor"] * 100, 2)
     rotulo = f'<span class="v-prog-rotulo">{_e(p["rotulo"])}</span>' if p.get("rotulo") else ""
+    texto = p.get("rotulo") or f"{pct:g}%"
     return (f'<div class="v-prog">{rotulo}<div class="v-prog-trilho" '
             f'role="progressbar" aria-valuenow="{pct}" aria-valuemin="0" '
-            f'aria-valuemax="100"><div class="v-prog-barra" '
-            f'style="width:{pct}%"></div></div></div>')
+            f'aria-valuemax="100" aria-label="{_a(texto)}">'
+            f'<div class="v-prog-barra" style="width:{pct}%"></div>'
+            f"</div></div>")
 
 
 def _d_carregando(no):
-    return (f'<div class="v-carregando"><span class="v-giro"></span>'
+    return (f'<div class="v-carregando" role="status" aria-live="polite">'
+            f'<span class="v-giro" aria-hidden="true"></span>'
             f'<span>{_e(no.props["mensagem"])}</span></div>')
 
 
@@ -512,20 +566,33 @@ def _d_expandir(no):
 
 def _d_abas(no):
     p = no.props
-    botoes = "".join(
-        f'<button type="button" class="v-aba-botao'
-        f'{" v-ativa" if r == p["ativa"] else ""}" '
-        f'data-v-aba="{_a(p["chave"])}" data-v-valor="{_a(r)}" '
-        f'role="tab" aria-selected="{"true" if r == p["ativa"] else "false"}">'
-        f"{_e(r)}</button>" for r in p["rotulos"])
+    chave = p["chave"]
+    botoes = []
+    for i, rotulo in enumerate(p["rotulos"]):
+        ativa = rotulo == p["ativa"]
+        # Só a aba ativa fica no caminho do Tab; as outras se alcançam
+        # com as setas. É como um 'tablist' se navega, e sem isso o Tab
+        # atravessa uma aba por vez antes de chegar ao conteúdo.
+        botoes.append(
+            f'<button type="button" id="t-{_a(chave)}-{i}" '
+            f'class="v-aba-botao{" v-ativa" if ativa else ""}" '
+            f'data-v-aba="{_a(chave)}" data-v-valor="{_a(rotulo)}" '
+            f'role="tab" aria-selected="{"true" if ativa else "false"}" '
+            f'aria-controls="p-{_a(chave)}-{i}" '
+            f'tabindex="{0 if ativa else -1}">{_e(rotulo)}</button>')
+    # Os filhos precisam saber o próprio índice para o 'id' casar.
+    paineis = "".join(
+        _d_aba(filho, chave, i) for i, filho in enumerate(no.filhos))
     return (f'<div class="v-abas"><div class="v-abas-topo" role="tablist">'
-            f"{botoes}</div>{_filhos(no)}</div>")
+            f'{"".join(botoes)}</div>{paineis}</div>')
 
 
-def _d_aba(no):
+def _d_aba(no, chave="", indice=0):
     escondido = "" if no.props.get("visivel") else " hidden"
-    return (f'<div class="v-aba" role="tabpanel"{escondido}>'
-            f"{_filhos(no)}</div>")
+    liga = (f' id="p-{_a(chave)}-{indice}" '
+            f'aria-labelledby="t-{_a(chave)}-{indice}"' if chave else "")
+    return (f'<div class="v-aba" role="tabpanel" tabindex="0"{liga}'
+            f"{escondido}>{_filhos(no)}</div>")
 
 
 def _d_formulario(no):
@@ -1191,6 +1258,26 @@ code{font-family:var(--v-fonte-mono);font-size:.88em;
 .v-interruptor input:checked+.v-trilho{background:var(--v-primaria)}
 .v-interruptor input:checked+.v-trilho::after{transform:translateX(17px)}
 
+.v-problema{display:block;color:var(--v-erro);font-size:.81rem;
+ margin-top:5px;font-weight:520}
+.v-com-erro .v-entrada,.v-com-erro .v-slider{border-color:var(--v-erro)}
+.v-com-erro .v-entrada:focus{box-shadow:0 0 0 3px
+ color-mix(in srgb,var(--v-erro) 22%,transparent)}
+.v-obrigatorio{color:var(--v-erro)}
+fieldset.v-campo{border:0;padding:0;margin:14px 0;min-width:0}
+fieldset.v-campo>legend{padding:0}
+
+/* Visível só para leitor de tela: a seta ▲ não diz "aumento de". */
+.v-so-leitor{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+ overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.v-pular{position:absolute;left:-9999px;top:0;z-index:100;padding:10px 16px;
+ background:var(--v-primaria);color:var(--v-primaria-texto);
+ border-radius:0 0 var(--v-raio) 0;font-weight:560}
+.v-pular:focus{left:0}
+.v-main:focus{outline:none}
+:where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+ outline:2px solid var(--v-info);outline-offset:2px;border-radius:3px}
+
 .v-colunas{display:flex;flex-wrap:wrap;align-items:flex-start;margin:6px 0}
 .v-coluna{min-width:170px}
 .v-linha{display:flex;align-items:center;flex-wrap:wrap;margin:8px 0}
@@ -1408,6 +1495,21 @@ document.addEventListener('click',function(ev){
   if(a){campos[a.dataset.vAba]=a.dataset.vValor;enviar('');return;}
   var th=ev.target.closest('.v-ordenavel th');
   if(th){ordenar(th);return;}
+});
+document.addEventListener('keydown',function(ev){
+  var b=ev.target.closest('[data-v-aba]');
+  if(!b)return;
+  var d=({ArrowRight:1,ArrowLeft:-1,Home:'i',End:'f'})[ev.key];
+  if(d===undefined)return;
+  ev.preventDefault();
+  var todas=Array.prototype.slice.call(
+    b.parentNode.querySelectorAll('[data-v-aba]'));
+  var i=todas.indexOf(b),alvo;
+  if(d==='i')alvo=todas[0];
+  else if(d==='f')alvo=todas[todas.length-1];
+  else alvo=todas[(i+d+todas.length)%todas.length];
+  alvo.focus();
+  campos[alvo.dataset.vAba]=alvo.dataset.vValor;enviar('');
 });
 document.addEventListener('toggle',function(ev){
   var d=ev.target.closest('[data-v-expandir]');

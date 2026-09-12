@@ -147,6 +147,7 @@ export const nav: NavSection[] = [
       { title: 'Estado e cache', href: '/docs/vitrine/estado' },
       { title: 'Gráficos', href: '/docs/vitrine/graficos' },
       { title: 'Páginas e segurança', href: '/docs/vitrine/paginas' },
+      { title: 'Acessibilidade e idioma', href: '/docs/vitrine/acessibilidade' },
       { title: 'Testar sem navegador', href: '/docs/vitrine/testes' },
       { title: 'Produção', href: '/docs/vitrine/producao' },
       { title: 'Referência', href: '/docs/vitrine/referencia' },

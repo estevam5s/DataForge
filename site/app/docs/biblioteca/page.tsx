@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Trinta e oito módulos e 1272 símbolos, sem uma única dependência externa.",
+  description: "Trinta e oito módulos e 1280 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os trinta e oito módulos"
   },
   {
-    "p": "São **1272 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1280 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -37,7 +37,7 @@ const blocos: Bloco[] = [
       "rows": [
         [
           "[`Arcane.Vitrine`](/docs/vitrine)",
-          "105",
+          "113",
           "O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln."
         ],
         [
@@ -295,7 +295,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Trinta e oito módulos e 1272 símbolos, sem uma única dependência externa."}
+      description={"Trinta e oito módulos e 1280 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

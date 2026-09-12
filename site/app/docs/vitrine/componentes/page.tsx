@@ -50,6 +50,20 @@ given arq is not void:
     linhas := arq["texto"].lines()
     V.tabela(linhas)`, lang: 'df' },
   {"p": "O vault tem `nome`, `tamanho`, `tipo`, `conteudo` (bytes) e `texto`. Com `varios := yes`, devolve um cluster deles. O teto padrão é 8 MB, ajustável em `V.configurar(\"limite_upload\", …)`."},
+  {"h3": "Validação"},
+  {"p": "O erro aparece **sob o campo**, e não num alerta no topo. Num formulário de doze campos, um alerta dizendo \"há erros\" obriga a pessoa a caçar qual deles — e é a diferença entre corrigir na hora e desistir."},
+  { code: `adopt Arcane.Regex as Regex
+
+email := V.entrada("E-mail")
+V.validar(email, Regex.is_email, "Digite um e-mail válido.")
+
+// ou com a regra junto, devolvendo (valor, esta_bom)
+senha, ok := V.campo_validado("Senha", lambda s: len(s) bigger 7,
+                              "Mínimo de 8 caracteres.", tipo := "senha")`, lang: 'df' },
+  {"p": "A regra é uma ação que recebe o valor e devolve `yes`/`no` — e aí a mensagem é a que você passou — ou um **texto**, que vira a mensagem (vazio significa que passou)."},
+  { code: `V.validar(senha, lambda s: "" given len(s) bigger 7
+                            otherwise $"faltam {8 - len(s)} caracteres")`, lang: 'df' },
+  {"table": {"head": ["Comportamento", "Por quê"], "rows": [["campo vazio e nunca tocado não é acusado", "reclamar antes de a pessoa digitar é ruído, não ajuda"], ["uma regra que **dispara** vira \"a regra de validação falhou\"", "dizer \"E-mail inválido\" ali esconderia o bug real"], ["o campo ganha `aria-invalid` e aponta para a mensagem", "senão quem não vê a tela descobre o erro só ao voltar nele, se voltar"]]}},
   {"h2": "Dados"},
   { code: `V.tabela(linhas)                      // estática
 V.frame(linhas)                       // com busca e ordenação
@@ -75,9 +89,25 @@ V.video("/static/tour.mp4")
 V.link("Documentação", "/docs", nova_aba := yes)
 V.baixar("Baixar relatório", texto, "relatorio.txt")`, lang: 'df' },
   {"p": "Para exportar dados já formatados, `V.exportar_csv(linhas)` e `V.exportar_json(dados)` desenham o botão e cuidam do escape."},
+  {"h2": "Componentes próprios"},
+  {"p": "Uma ação **já é** um componente. Chamá-la desenha o que ela desenha, e nada além disso é necessário:"},
+  { code: `action cartao_de_usuario(nome, email):
+    caixa := V.cartao(nome)
+    caixa.texto(email)
+
+cartao_de_usuario("Ana", "ana@exemplo.br")`, lang: 'df' },
+  {"p": "O registro por nome existe para o caso em que o nome precisa atravessar módulos — um plugin que acrescenta componentes, ou um tema que substitui um deles sem que quem chama saiba:"},
+  { code: `V.componente("usuario", cartao_de_usuario)
+V.usar("usuario", "Ana", "ana@exemplo.br")
+
+// também serve de decorador
+mark @V.componente("usuario")
+action cartao_de_usuario(nome, email):
+    …`, lang: 'df' },
+  {"p": "O registro vive na **aplicação**, e não no módulo: dois apps no mesmo processo — o que os testes fazem o tempo todo — não podem ver os componentes um do outro. E um nome errado sugere o parecido, em vez de falhar em silêncio."},
 ];
 
-const headings = [{ id: 'texto', text: "Texto", level: 2 as const }, { id: 'entrada', text: "Entrada", level: 2 as const }, { id: 'o-botao-vale-por-uma-execucao', text: "O botão vale por uma execução", level: 3 as const }, { id: 'formulario-quando-cada-tecla-custa-caro', text: "Formulário: quando cada tecla custa caro", level: 3 as const }, { id: 'arquivos', text: "Arquivos", level: 3 as const }, { id: 'dados', text: "Dados", level: 2 as const }, { id: 'retorno-ao-usuario', text: "Retorno ao usuário", level: 2 as const }];
+const headings = [{ id: 'texto', text: "Texto", level: 2 as const }, { id: 'entrada', text: "Entrada", level: 2 as const }, { id: 'o-botao-vale-por-uma-execucao', text: "O botão vale por uma execução", level: 3 as const }, { id: 'formulario-quando-cada-tecla-custa-caro', text: "Formulário: quando cada tecla custa caro", level: 3 as const }, { id: 'arquivos', text: "Arquivos", level: 3 as const }, { id: 'validacao', text: "Validação", level: 3 as const }, { id: 'dados', text: "Dados", level: 2 as const }, { id: 'retorno-ao-usuario', text: "Retorno ao usuário", level: 2 as const }, { id: 'componentes-proprios', text: "Componentes próprios", level: 2 as const }];
 
 export default function Pagina() {
   return (

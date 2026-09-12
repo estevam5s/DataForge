@@ -62,7 +62,9 @@ cabeçalho de segurança já estavam lá, testados.
 | 5 | gráfico vira SVG escrito no servidor, sem biblioteca |
 | 6 | formulário só entrega os valores quando alguém confirma |
 | 7 | um erro aparece **na página**, e não derruba o servidor |
-| 8 | `V.pedir` faz um pedido HTTP de verdade, sem socket |
+| 8 | validação: o erro aparece **sob o campo**, não num alerta no topo |
+| 9 | idioma por sessão; chave sem tradução aparece crua |
+| 10 | `V.pedir` faz um pedido HTTP de verdade, sem socket |
 
 ## Três armadilhas
 
@@ -83,6 +85,15 @@ veio do usuário — para isso, `V.texto`, que escapa.
 ```bash
 dataforge run exercicios/28-vitrine/218_vitrine.df    # os testes
 dataforge run examples/vitrine_dashboard.df -- --servir
+```
+
+Ou comece do zero, com um projeto que já passa nos próprios testes:
+
+```bash
+dataforge vitrine new meupainel
+cd meupainel
+dataforge vitrine dev        # http://127.0.0.1:8501
+dataforge vitrine doctor     # se não subir, ele diz por quê
 ```
 
 O segundo sobe em `http://127.0.0.1:8501` um painel com quatro métricas,

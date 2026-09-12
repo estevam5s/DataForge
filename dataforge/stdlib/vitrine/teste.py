@@ -141,7 +141,7 @@ class Sonda:
 
         def descer(no):
             for campo in ("conteudo", "rotulo", "mensagem", "titulo",
-                          "subtitulo", "valor"):
+                          "subtitulo", "valor", "problema"):
                 valor = no.props.get(campo)
                 if isinstance(valor, str) and valor:
                     pedacos.append(valor)
@@ -171,6 +171,18 @@ class Sonda:
             if no.props.get("rotulo") == rotulo and "valor" in no.props:
                 return no.props["valor"]
         return None
+
+    def problema(self, rotulo):
+        """A mensagem de erro sob um campo, ou `void`."""
+        for no in self.achar():
+            if no.props.get("rotulo") == _str(rotulo):
+                return no.props.get("problema")
+        return None
+
+    def problemas(self):
+        """Todas as mensagens de erro de campo da página."""
+        return [n.props["problema"] for n in self.achar()
+                if n.props.get("problema")]
 
     def alertas(self, nivel=""):
         return [n.props["mensagem"] for n in self.achar("alerta")
@@ -242,6 +254,7 @@ def testar(pagina_ou_app, caminho="/"):
         app.depois = list(atual.depois)
         app.geral = atual.geral
         app.cache = atual.cache
+        app.componentes = atual.componentes
     app.pagina("/", pagina_ou_app)
     return Sonda(app, caminho)
 
