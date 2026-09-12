@@ -88,19 +88,53 @@ export async function criarProjeto() {
   const exe = await exigirExecutavel();
   if (!exe) return;
 
+  // '--silencioso' e a parte que faltava: sem ele a CLI pode cair num
+  // prompt, e o editor nao tem ninguem para responder. O comando ficava
+  // esperando para sempre, o projeto nunca aparecia, e a mensagem
+  // mandava rodar no terminal exatamente o comando que nao funcionava.
+  const argumentos = [
+    'new', nome, `--modelo=${escolha.modelo.nome}`, '--silencioso',
+  ];
+
+  let resultado = { saida: '', erro: '', codigo: 0 };
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: `Criando ${nome}…` },
     async () => {
-      await rodar(exe, ['new', nome, `--modelo=${escolha.modelo.nome}`], 60000, destino);
+      resultado = await rodar(exe, argumentos, 60000, destino);
     },
   );
 
   const criado = path.join(destino, nome);
   if (!fs.existsSync(criado)) {
-    vscode.window.showErrorMessage(
-      'O projeto não foi criado. Rode no terminal para ver o erro: ' +
-        `dataforge new ${nome} --modelo=${escolha.modelo.nome}`,
+    // O motivo REAL, que a CLI acabou de imprimir. Mandar o usuario
+    // reproduzir no terminal e pedir que ele faca o trabalho que a
+    // extensao ja fez — e o comando esta aqui, com a saida dele.
+    const motivo = (resultado.erro || resultado.saida || '')
+      .replace(/\x1b\[[0-9;]*m/g, '')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+      .slice(-4)
+      .join('  ');
+
+    const escolhido = await vscode.window.showErrorMessage(
+      motivo
+        ? `Não foi possível criar '${nome}': ${motivo}`
+        : `Não foi possível criar '${nome}'. A CLI não disse por quê.`,
+      'Ver a saída completa',
     );
+    if (escolhido) {
+      const canal = vscode.window.createOutputChannel('DataForge');
+      canal.appendLine(`$ dataforge ${argumentos.join(' ')}`);
+      canal.appendLine(`  (em ${destino})`);
+      canal.appendLine('');
+      canal.appendLine(resultado.saida || '(sem saída)');
+      if (resultado.erro) {
+        canal.appendLine('--- erro ---');
+        canal.appendLine(resultado.erro);
+      }
+      canal.show();
+    }
     return;
   }
 

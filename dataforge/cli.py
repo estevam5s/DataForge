@@ -1476,14 +1476,54 @@ def new_project(args=None, flags=()):
         return
 
     # ── qual modelo ──
+    #
+    # Duas formas, e as duas precisam funcionar:
+    #
+    #     dataforge new api minha-api        posicional, para quem digita
+    #     dataforge new minha-api --modelo=api   nomeada, para quem chama
+    #
+    # A segunda e a que a extensao do VS Code usa, e ela era IGNORADA: a
+    # CLI caia no menu interativo, o editor nao tem um terminal para
+    # responder, e o projeto nunca era criado. A mensagem que o usuario
+    # via — "Rode no terminal para ver o erro" — mandava rodar
+    # exatamente o comando que nao funcionava.
     escolhido = args[0] if args and args[0] in MODELOS else None
-    if args and not escolhido and args[0] not in MODELOS and args[0].startswith("-") is False \
-            and len(args) == 1 and not os.path.exists(args[0]):
-        # 'dataforge new nome-que-nao-e-modelo' — provavelmente e o nome
-        # do projeto, mas nao da para adivinhar o modelo. Pergunta.
-        pass
+
+    pedido = None
+    for flag in flags:
+        for prefixo in ("--modelo=", "--template=", "-m="):
+            if flag.startswith(prefixo):
+                pedido = flag[len(prefixo):].strip()
+    if pedido:
+        if pedido not in MODELOS:
+            import difflib
+            perto = difflib.get_close_matches(pedido, chaves, n=1, cutoff=0.6)
+            print(_cor(f"  ✗ '{pedido}' não é um modelo.", "1;31"))
+            if perto:
+                print(_cor(f"    Você quis dizer '{perto[0]}'?", "0;90"))
+            print(_cor(f"    Os modelos: {', '.join(chaves)}", "0;90"))
+            return 1
+        escolhido = pedido
+        # Com '--modelo=', o primeiro posicional e o NOME do projeto.
+        if args and args[0] == pedido:
+            args = args[1:]
+
+    # ── nao perguntar nada quando ja se sabe tudo ──
+    #
+    # Quem chama por programa — o editor, um script, o CI — nao tem
+    # ninguem para responder um prompt. '--silencioso' garante isso
+    # mesmo quando falta informacao: ai o certo e falhar dizendo o que
+    # falta, e nao esperar para sempre por uma resposta.
+    silencioso = ("--silencioso" in flags or "--quiet" in flags
+                  or "-q" in flags or not sys.stdin.isatty())
 
     abertura("criando um projeto")
+
+    if not escolhido and silencioso:
+        print(_cor("  ✗ falta dizer o modelo.", "1;31"))
+        print(_cor(f"    dataforge new <nome> --modelo=<{'|'.join(chaves)}>",
+                   "0;90"))
+        return 1
 
     if not escolhido:
         print(_cor("  Que tipo de projeto?", "1;37"))
@@ -1523,12 +1563,15 @@ def new_project(args=None, flags=()):
         args[0] if args and args[0] not in MODELOS else None)
     if not nome:
         padrao = "meu-" + escolhido
-        try:
-            nome = input(_cor(f"  › nome do projeto ({padrao}): ",
-                              "1;32")).strip() or padrao
-        except (EOFError, KeyboardInterrupt):
-            print(_cor("\n  cancelado.", "0;90"))
-            return 1
+        if silencioso:
+            nome = padrao
+        else:
+            try:
+                nome = input(_cor(f"  › nome do projeto ({padrao}): ",
+                                  "1;32")).strip() or padrao
+            except (EOFError, KeyboardInterrupt):
+                print(_cor("\n  cancelado.", "0;90"))
+                return 1
 
     pasta = "".join(c for c in nome.replace(" ", "-").lower()
                     if c.isalnum() or c in "-_")

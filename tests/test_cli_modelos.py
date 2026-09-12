@@ -342,3 +342,86 @@ def test_nenhum_modelo_crava_caminho_de_um_sistema_so():
     assert not ruins, (
         "modelo com caminho de um sistema só — use IO.join(OS.temp_dir(), …):\n"
         + "\n".join(ruins))
+
+
+# ── 'dataforge new' chamado por programa ─────────────────────
+
+def test_new_aceita_o_modelo_como_flag():
+    """A extensão do VS Code chama `new <nome> --modelo=api`.
+
+    A CLI só lia o modelo como argumento **posicional**, então a flag
+    era ignorada, ela caía no menu interativo, e o editor — que não tem
+    um terminal para responder — ficava esperando. O projeto nunca era
+    criado, e a mensagem mandava rodar no terminal exatamente o comando
+    que não funcionava.
+    """
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as pasta:
+        r = subprocess.run(
+            [sys.executable, "-m", "dataforge", "new", "provaflag",
+             "--modelo=api", "--silencioso"],
+            cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+            env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
+            timeout=120)
+        assert r.returncode == 0, r.stdout + r.stderr
+        assert os.path.isdir(os.path.join(pasta, "provaflag")), \
+            "a pasta do projeto nao foi criada"
+        assert os.path.isfile(
+            os.path.join(pasta, "provaflag", "forge.toml"))
+
+
+def test_new_sem_terminal_nunca_fica_esperando():
+    """Sem `stdin` de terminal, a CLI não pode abrir um prompt.
+
+    É o caso do editor, de um script e do CI. Faltando informação, o
+    certo é **falhar dizendo o que falta** — esperar para sempre por uma
+    resposta que não vem é a pior das opções.
+    """
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as pasta:
+        r = subprocess.run(
+            [sys.executable, "-m", "dataforge", "new", "semmodelo"],
+            cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+            env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
+            stdin=subprocess.DEVNULL, timeout=30)
+        assert r.returncode != 0, "devia falhar, e nao criar nada"
+        assert "modelo" in (r.stdout + r.stderr).lower(), \
+            "a mensagem precisa dizer o que falta"
+
+
+def test_new_com_modelo_errado_sugere_o_certo():
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as pasta:
+        r = subprocess.run(
+            [sys.executable, "-m", "dataforge", "new", "x", "--modelo=apii"],
+            cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+            env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
+            stdin=subprocess.DEVNULL, timeout=30)
+        assert r.returncode != 0
+        assert "'api'" in r.stdout, "devia sugerir o modelo mais proximo"
+
+
+def test_a_extensao_e_a_cli_falam_a_mesma_lingua():
+    """O guarda do acoplamento: a extensão monta o comando à mão.
+
+    Se a CLI mudar a forma de receber o modelo e ninguém mexer no
+    TypeScript, o botão "criar projeto" volta a quebrar — e só um
+    usuário descobre.
+    """
+    caminho = os.path.join(RAIZ, "editor", "vscode", "src", "projetos.ts")
+    fonte = open(caminho, encoding="utf-8").read()
+
+    assert "--modelo=" in fonte, "a extensao mudou a forma de pedir o modelo"
+    assert "'--silencioso'" in fonte or '"--silencioso"' in fonte, \
+        "sem '--silencioso' a CLI pode abrir um prompt que ninguem responde"
+
+    # E a CLI precisa aceitar as duas coisas.
+    cli = open(os.path.join(RAIZ, "dataforge", "cli.py"), encoding="utf-8").read()
+    assert '"--modelo="' in cli or "'--modelo='" in cli
+    assert "--silencioso" in cli
