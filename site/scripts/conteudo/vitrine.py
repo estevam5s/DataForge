@@ -82,6 +82,52 @@ dataforge vitrine dev        # http://127.0.0.1:8501""", "lang": "bash"},
  {"code": """dataforge run examples/vitrine_dashboard.df              # os testes
 dataforge run examples/vitrine_dashboard.df -- --servir  # no navegador""", "lang": "bash"},
 
+ {"h2": "De onde vêm os dados"},
+ {"p": "De lugar nenhum especial. A Vitrine desenha; quem lê os dados é o módulo que você já usaria num script — e é por isso que não há um \"conector\" a aprender."},
+ {"code": """adopt Arcane.Vitrine as V
+adopt Arcane.Database as DB
+adopt Arcane.Analytics as An
+adopt Arcane.Cortex as ML
+
+banco := DB.connect("vendas.db")
+
+mark @V.cache
+action vendas():
+    yield DB.query(banco, "SELECT mes, numero, receita FROM v")
+
+action prever(mes):
+    modelo := ML.linear(vendas(), "receita", ["numero"])
+    yield ML.prever(modelo, [{"numero": mes}])[0]
+
+action painel():
+    V.frame(vendas())                                    // do banco
+    V.grafico_barras(An.from_records(vendas()), x := "mes")
+    V.vault(An.describe(An.from_records(vendas())))      // estatística
+    V.metrica("Previsão", round(prever(4), 1))           // modelo""", "lang": "df"},
+ {"table": {"head": ["Para", "Use", "E passe para"], "rows": [
+   ["banco relacional", "[`Arcane.Database`](/docs/tecnicas/banco-de-dados) · `Arcane.Forge`", "`V.frame`, `V.tabela`, qualquer gráfico"],
+   ["CSV, JSON, Excel", "[`Arcane.IO`](/docs/tecnicas/arquivos) · [`Arcane.Excel`](/docs/tecnicas/planilhas)", "o mesmo"],
+   ["estatística e DataFrame", "[`Arcane.Analytics`](/docs/biblioteca/analytics)", "um `Frame` entra direto"],
+   ["Parquet e Data Lake", "[`Arcane.Lago`](/docs/tecnicas/lago)", "o mesmo"],
+   ["streaming", "[`Arcane.Stream`](/docs/tecnicas/streaming)", "com `V.atualizar_a_cada(n)`"],
+   ["aprendizado de máquina", "[`Arcane.Cortex`](/docs/biblioteca/cortex)", "`V.metrica`, `V.grafico_dispersao`"],
+   ["uma API de fora", "[`Arcane.Http`](/docs/biblioteca/http)", "sob `mark @V.cache`, sempre"]]}},
+ {"callout": {"tipo": "dica", "titulo": "Ponha o cache entre o dado e a página", "texto": "O programa roda inteiro a cada clique. Sem `mark @V.cache`, mover um deslizante dispara a consulta de novo — e a mesma consulta, três vezes, se a página a chama três vezes."}},
+
+ {"h2": "A mesma aplicação serve uma API"},
+ {"p": "`V.montar()` devolve o app **Kiln** por baixo. Acrescente rotas nele e o painel e a API vivem no mesmo processo, na mesma porta, lendo das mesmas ações em cache:"},
+ {"code": """adopt Kiln
+
+kiln := V.montar()
+
+Kiln.get(kiln, "/api/vendas", lambda req: {"itens": vendas()})
+Kiln.use(kiln, Kiln.cors())
+Kiln.use(kiln, Kiln.rate_limit(120))
+
+V.subir(porta := 8501)""", "lang": "df"},
+ {"p": "Vale para tudo do Kiln: CORS, limite de taxa, CSRF, cabeçalhos, validação de esquema, `Kiln.resource` com as sete rotas RESTful. Ver [Middleware do Kiln](/docs/kiln/middleware) — e [`Arcane.API`](/docs/tecnicas/api), que exporta essas rotas para o Insomnia e o Postman."},
+ {"callout": {"tipo": "nota", "titulo": "As suas rotas vencem, sempre", "texto": "As páginas da Vitrine viram rotas declaradas, e o que não casa com nenhuma cai no **tratador de 404** — que roda depois de todas. Uma rota curinga, ao contrário, seria casada na ordem do registro e engoliria tudo o que você acrescentasse depois do `V.montar()`. Uma URL que não existe responde **404 de verdade**, e não um 200 com \"404\" escrito no corpo."}},
+
  {"h2": "Zero dependência, inclusive no navegador"},
  {"p": "O gráfico é **SVG escrito no servidor**. O cliente são ~4 KB de JavaScript sem build e sem CDN — ele manda de volta o que o usuário fez e troca o miolo da página."},
  {"p": "Não é purismo: uma biblioteca de gráficos vinda de CDN quebra qualquer aplicação que rode em rede fechada, que é exatamente onde painel de dados costuma rodar. E SVG imprime, escala e é legível por leitor de tela."},

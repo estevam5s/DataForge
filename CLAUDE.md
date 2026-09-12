@@ -617,7 +617,7 @@ chamada de ação num módulo da biblioteca.
 | `tema.py` | claro, escuro e o vault de variáveis CSS |
 | `api.py` | o dicionário que o `adopt` entrega |
 
-Oito decisões que valem lembrar:
+Nove decisões que valem lembrar:
 
 1. **O programa inteiro roda de novo a cada interação**, e o estado da
    sessão sobrevive. É o que dispensa callback e diffing — e o que
@@ -657,7 +657,13 @@ Oito decisões que valem lembrar:
    tema claro é `#B28600` e não o amarelo da marca — amarelo sobre
    branco dá contraste 1,3:1 onde a WCAG pede 4,5:1.
 
-8. **Zero dependência também no navegador.** O gráfico é SVG escrito no
+8. **O que não casa com página nenhuma cai no tratador de 404 do Kiln**,
+   e não numa rota curinga. Uma curinga é casada na ORDEM do registro,
+   então ela engolia toda rota acrescentada depois do `V.montar()` — que
+   é exatamente o que se faz para servir uma API ao lado do painel. E a
+   página de "não achei" responde **404**, não 200 com "404" no corpo.
+
+9. **Zero dependência também no navegador.** O gráfico é SVG escrito no
    servidor; o cliente são ~4 KB sem build e sem CDN. Uma biblioteca de
    CDN quebra qualquer app em rede fechada — que é onde painel de dados
    costuma rodar. Há teste proibindo `http://`, `https://` e `cdn` no

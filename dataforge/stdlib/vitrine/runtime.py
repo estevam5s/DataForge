@@ -429,9 +429,14 @@ class Aplicacao:
             K._get(app, caminho, self._atender_pagina)
         if not any(p["caminho"] == "/" for p in self.paginas):
             K._get(app, "/", self._atender_pagina)
-        # A curinga vem por último: o Kiln casa na ordem do registro, e
-        # posta antes ela engoliria as páginas declaradas.
-        K._get(app, "/*caminho", self._atender_pagina)
+
+        # O que não casou com rota nenhuma cai no tratador de 404, e não
+        # numa rota curinga. A diferença importa: uma curinga é casada
+        # na ORDEM do registro, então ela engoliria toda rota que alguém
+        # acrescentasse depois do `V.montar()` — que é exatamente o que
+        # se faz para servir uma API ao lado do painel. O tratador de
+        # erro roda **depois** de todas elas, sempre.
+        K._on_error(app, 404, self._atender_pagina)
 
         self.app = app
         return app
@@ -475,8 +480,12 @@ class Aplicacao:
                     "headers": {"Location": ctx.redirecionar}, "body": "",
                     "content_type": "text/html", "cookies": []}
         corpo = render.pagina(ctx, {**self.config, **ctx.config_local})
+        # A página de "não achei" precisa vir com 404 de verdade: um 200
+        # com "404" escrito no corpo engana monitoramento, buscador e
+        # qualquer cliente que confira o status em vez de ler HTML.
+        status = 404 if self.achar_pagina(req["path"])[0] is None else 200
         return {
-            "__kiln__": True, "status": 200,
+            "__kiln__": True, "status": status,
             "headers": dict(_SEGURANCA), "body": corpo,
             "content_type": "text/html; charset=utf-8",
             "cookies": [self._cookie_de_sessao(sessao)],

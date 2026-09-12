@@ -430,6 +430,66 @@ qual falta.
 
 ---
 
+## De onde vêm os dados
+
+De lugar nenhum especial. A Vitrine desenha; quem lê os dados é o módulo
+que você já usaria num script.
+
+```dataforge
+adopt Arcane.Database as DB
+adopt Arcane.Analytics as An
+adopt Arcane.Cortex as ML
+
+banco := DB.connect("vendas.db")
+
+mark @V.cache
+action vendas():
+    yield DB.query(banco, "SELECT mes, numero, receita FROM v")
+
+action painel():
+    V.frame(vendas())                                    // do banco
+    V.grafico_barras(An.from_records(vendas()), x := "mes")
+    V.vault(An.describe(An.from_records(vendas())))      // estatística
+    modelo := ML.linear(vendas(), "receita", ["numero"])
+    V.metrica("Previsão", round(ML.prever(modelo, [{"numero": 4}])[0], 1))
+```
+
+| Para | Use |
+|---|---|
+| banco relacional | `Arcane.Database`, `Arcane.Forge` |
+| CSV, JSON, Excel | `Arcane.IO`, `Arcane.Excel` |
+| estatística e DataFrame | `Arcane.Analytics` (um `Frame` entra direto) |
+| Parquet e Data Lake | `Arcane.Lago` |
+| streaming | `Arcane.Stream`, com `V.atualizar_a_cada(n)` |
+| aprendizado de máquina | `Arcane.Cortex` |
+| uma API de fora | `Arcane.Http`, sob `mark @V.cache` sempre |
+
+### A mesma aplicação serve uma API
+
+`V.montar()` devolve o app **Kiln** por baixo. O painel e a API vivem no
+mesmo processo, na mesma porta, lendo das mesmas ações em cache:
+
+```dataforge
+adopt Kiln
+
+kiln := V.montar()
+Kiln.get(kiln, "/api/vendas", lambda req: {"itens": vendas()})
+Kiln.use(kiln, Kiln.cors())
+Kiln.use(kiln, Kiln.rate_limit(120))
+
+V.subir(porta := 8501)
+```
+
+As suas rotas vencem sempre: as páginas viram rotas declaradas, e o que
+não casa com nenhuma cai no **tratador de 404** — que roda depois de
+todas. Uma rota curinga seria casada na ordem do registro e engoliria
+tudo o que você acrescentasse depois do `V.montar()`.
+
+Uma URL que não existe responde **404 de verdade**, e não um 200 com
+"404" escrito no corpo.
+
+---
+
 ## Testar sem navegador
 
 A árvore de componentes é um **dado**, e conferir um dado é o que um teste

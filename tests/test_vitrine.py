@@ -730,6 +730,14 @@ def test_o_parametro_da_rota_chega(V):
     assert "Produto 42" in r["body"]
 
 
+def test_uma_pagina_que_nao_existe_responde_404_de_verdade(V):
+    """Um 200 com "404" escrito no corpo engana monitoramento, buscador
+    e qualquer cliente que confira o status em vez de ler HTML."""
+    r = V["pedir"](_app_http(V), "GET", "/nao-existe")
+    assert r["status"] == 404
+    assert V["pedir"](_app_http(V), "GET", "/")["status"] == 200
+
+
 def test_uma_pagina_que_nao_existe_lista_as_que_existem(V):
     r = V["pedir"](_app_http(V), "GET", "/nao-existe")
     assert "404" in r["body"]
@@ -1285,3 +1293,120 @@ def test_build_e_deploy_explicam_por_que_nao_existem(tmp_path):
             cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
             env={**os.environ, "PYTHONPATH": raiz})
         assert esperado in saida.stdout, (sub, saida.stdout)
+
+
+# ═══════════════════════════════════════════════════════════
+#  De onde vêm os dados
+# ═══════════════════════════════════════════════════════════
+
+def test_o_painel_le_de_banco_analytics_e_cortex(V):
+    """A Vitrine desenha; quem lê os dados são os módulos de sempre.
+
+    Este teste existe porque a documentação afirma isso. Se algum deles
+    mudar de assinatura, é aqui que se descobre — e não na página de
+    alguém.
+    """
+    from dataforge.stdlib import get_module
+
+    DB = get_module("Arcane.Database")
+    An = get_module("Arcane.Analytics")
+    ML = get_module("Arcane.Cortex")
+
+    banco = DB["connect"](":memory:")
+    DB["execute"](banco, "CREATE TABLE v (mes TEXT, numero INT, receita INT)")
+    for linha in (("Jan", 1, 120), ("Fev", 2, 90), ("Mar", 3, 160)):
+        DB["execute"](banco, "INSERT INTO v VALUES (?, ?, ?)", list(linha))
+
+    @V["cache"]
+    def vendas():
+        return DB["query"](banco, "SELECT mes, numero, receita FROM v")
+
+    def pagina():
+        V["frame"](vendas())
+        V["grafico_barras"](An["from_records"](vendas()), x="mes",
+                            y="receita")
+        V["vault"](An["describe"](An["from_records"](vendas())))
+        modelo = ML["linear"](vendas(), "receita", ["numero"])
+        V["metrica"]("Previsão", round(ML["prever"](modelo,
+                                                    [{"numero": 4}])[0], 1))
+
+    t = sonda(V, pagina)
+    assert not t.falhou(), t.falhas()
+    assert t.quantos("frame") == 1
+    assert "<svg" in t.html()
+    assert t.metrica("Previsão") is not None
+    # Um Frame do Analytics entra no gráfico sem conversão.
+    assert t.primeiro("grafico").props["categorias"] == ["Jan", "Fev", "Mar"]
+
+
+def test_a_mesma_aplicacao_serve_painel_e_api(V):
+    """`V.montar()` devolve o app Kiln, e as rotas convivem."""
+    from dataforge.stdlib import get_module
+
+    Kiln = get_module("Kiln")
+
+    def painel():
+        V["titulo"]("Painel")
+
+    app = V["app"]("Misto")
+    V["pagina"]("/", painel)
+
+    kiln = V["montar"]()
+    Kiln["get"](kiln, "/api/itens", lambda req: {"itens": [1, 2, 3]})
+
+    html = V["pedir"](app, "GET", "/")
+    assert html["status"] == 200
+    assert "<!DOCTYPE html>" in html["body"]
+
+    api = V["pedir"](app, "GET", "/api/itens")
+    assert api["status"] == 200
+    corpo = (api["body"] if isinstance(api["body"], dict)
+             else json.loads(api["body"]))
+    assert corpo["itens"] == [1, 2, 3]
+
+
+def test_a_rota_curinga_nao_engole_as_do_kiln(V):
+    """A curinga das páginas é registrada por último, de propósito."""
+    from dataforge.stdlib import get_module
+
+    Kiln = get_module("Kiln")
+    app = V["app"]("Ordem")
+    V["pagina"]("/", lambda: V["titulo"]("x"))
+    Kiln["get"](V["montar"](), "/api/ping", lambda req: {"ok": True})
+
+    r = V["pedir"](app, "GET", "/api/ping")
+    corpo = r["body"] if isinstance(r["body"], dict) else json.loads(r["body"])
+    assert corpo == {"ok": True}, "a curinga da Vitrine comeu a rota do Kiln"
+
+
+def test_por_socket_a_api_e_a_pagina_convivem(V):
+    """A curinga já engoliu a rota da API uma vez; o `Kiln.test` não
+    pega ordem de rota do mesmo jeito que um servidor de verdade."""
+    import urllib.error
+    import urllib.request
+
+    from dataforge.stdlib import get_module
+
+    Kiln = get_module("Kiln")
+    V["app"]("Misto")
+    V["pagina"]("/", lambda: V["titulo"]("Painel"))
+    Kiln["get"](V["montar"](), "/api/ping", lambda req: {"ok": True})
+    porta = V["servir"](0)
+
+    def pegar(caminho):
+        try:
+            resposta = urllib.request.urlopen(
+                f"http://127.0.0.1:{porta}{caminho}")
+            return resposta.status, resposta.read().decode()
+        except urllib.error.HTTPError as erro:
+            return erro.code, erro.read().decode()
+
+    status, corpo = pegar("/")
+    assert status == 200 and "Painel" in corpo
+
+    status, corpo = pegar("/api/ping")
+    assert status == 200, "a curinga da Vitrine comeu a rota do Kiln"
+    assert json.loads(corpo) == {"ok": True}
+
+    status, corpo = pegar("/nao-existe")
+    assert status == 404 and "404" in corpo
