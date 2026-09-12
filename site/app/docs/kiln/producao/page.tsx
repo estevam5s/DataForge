@@ -40,7 +40,29 @@ ignite loja on porta at "0.0.0.0"` },
     ["estado compartilhado", "duas threads que escrevem na mesma variável podem perder atualizações — a linguagem não sincroniza threads"],
     ["banco de dados", "o `Arcane.Database` serializa o acesso, então funciona; uma transação, porém, **não** é isolada por thread"]
   ]}},
-  {"p": "Para trabalho transacional concorrente, abra uma conexão por thread. Para contadores e caches em memória, lembre que o resultado sob carga pode não ser o que você esperava."},
+  {"p": "Para trabalho transacional concorrente, abra uma conexão por thread."},
+  {"p": "Para contadores e caches em memória, o resultado sob carga **não** é o que você esperava — e não é sutil. Medido: seis pedidos simultâneos numa rota que lê, espera e escreve entregaram **1 de 6**."},
+  { code: `// Perde: 'x := x + 1' sao tres passos, e outra thread entra
+// entre eles.
+visitas := {"n": 0}
+
+route GET "/":
+    visitas["n"] := visitas["n"] + 1
+    respond json {"visitas": visitas["n"]}` },
+  {"p": "O `check` avisa isso desde a versão 1.0 (`escrita-concorrente`), e a saída é uma linha:"},
+  { code: `adopt Arcane.Concurrent as Conc
+
+// 'somar' incrementa e devolve o valor novo, dentro da trava.
+visitas := Conc.contador()
+
+route GET "/":
+    respond json {"visitas": visitas.somar(1)}` },
+  {"table": {"head": ["Para", "Use"], "rows": [
+    ["somar", "`Conc.contador()` — atômico, e `somar` devolve o valor novo"],
+    ["um bloco inteiro", "`Conc.mutex()` com `acquire`/`release` e um `defer` para o release"],
+    ["passar valor entre threads", "`Conc.canal()`, ou o `channel` da linguagem"]
+  ]}},
+  {"callout": {"tipo": "nota", "titulo": "`append` não perde", "texto": "Medido: quatro threads chamando `append` 5 mil vezes cada entregaram 20.000 de 20.000 — a operação é atômica sob o GIL. O que perde é **ler-modificar-escrever**, e o que **lê para decidir o que escrever** (`remove`, `pop`, `insert`). Por isso o aviso do `check` não dispara em `append`: seria alarme em código que funciona."}},
   {"h2": "Modo debug"},
   { code: `Kiln.config(app, "debug", yes)` },
   {"p": "Com `debug`, o corpo do 500 traz a mensagem do erro e o traceback sai no terminal. **Deixe desligado em produção**: a mensagem de erro descreve a sua implementação para quem estiver olhando."},

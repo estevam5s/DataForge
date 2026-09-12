@@ -2704,6 +2704,18 @@ def test_nenhum_teste_de_paralelismo_usa_limite_absoluto():
     compara o resultado com um número solto. Um teste que só verifica
     que algo *esperou* (`>= 0.04`) não está no alvo — ali o piso é a
     afirmação, e máquina lenta só o reforça.
+
+    **A razão não basta, se o trabalho for pequeno.**
+    `test_map_roda_junto_e_nao_em_serie` comparava razão — o padrão que
+    esta trava recomenda — e falhou no Windows com **1,47**: o paralelo
+    levou 0,44 s contra 0,30 s da série. O paralelismo estava certo; o
+    que dominou foi o custo de criar cinco threads, que no Windows passa
+    de 60 ms de trabalho.
+
+    A regra que falta é de julgamento, e não de sintaxe: o trabalho por
+    item tem de ser grande o bastante para o custo fixo virar ruído.
+    Subir de 0,06 s para 0,25 s resolveu — a série vira ~1,25 s, e o
+    tempo de partida deixa de aparecer na conta.
     """
     import ast as pyast
     import glob
@@ -4474,3 +4486,192 @@ def test_nenhum_exercicio_imprime_valor_de_variavel_disputada():
     assert not suspeitos, (
         "exercício imprimindo valor de variável disputada entre threads "
         "— a saída varia entre execuções:\n  " + "\n  ".join(suspeitos))
+
+
+# ═══════════════════════════════════════════════════════════
+#  A corrida dentro de uma ROTA — a que mais importa
+#
+#  O Kiln usa `ThreadingHTTPServer`: cada pedido roda numa
+#  thread. Uma rota que escreve estado global é a mesma
+#  corrida de `thread`/`parallel`, e é o caso mais comum em
+#  produção — um contador de visitas, um cache em memória.
+#
+#  A primeira versão da checagem só olhava `thread` e
+#  `parallel`, que APARECEM no código. Numa rota a
+#  concorrência é invisível: quem a escreve não vê thread
+#  nenhuma.
+#
+#  Medido: seis pedidos simultâneos numa rota que lê, espera e
+#  escreve entregaram 1 de 6.
+# ═══════════════════════════════════════════════════════════
+
+def test_escrever_estado_global_numa_rota_avisa():
+    ds = _diag('''
+adopt Kiln
+
+visitas := {"n": 0}
+
+server app on 8080:
+    route GET "/":
+        visitas["n"] := visitas["n"] + 1
+        respond json {"visitas": visitas["n"]}
+''')
+    avisos = [d for d in ds if d.code == "escrita-concorrente"]
+    assert avisos, [d.message for d in ds]
+    assert "route" in avisos[0].message
+    assert "visitas" in avisos[0].message
+
+
+def test_uma_rota_que_so_le_nao_avisa():
+    ds = _diag('''
+adopt Kiln
+
+produtos := [{"id": 1}]
+
+server app on 8080:
+    route GET "/":
+        respond json {"itens": produtos, "total": len(produtos)}
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"] == []
+
+
+def test_um_nome_local_da_rota_nao_avisa():
+    ds = _diag('''
+adopt Kiln
+
+server app on 8080:
+    route GET "/":
+        contagem := 0
+        cycle i from 1 to 3:
+            contagem := contagem + 1
+        respond json {"n": contagem}
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"] == []
+
+
+def test_chamar_funcao_de_modulo_numa_rota_nao_e_mutacao():
+    """`Xls.set(aba, "F1", …)` é chamada de função num MÓDULO, e casava
+    com `set` da lista de métodos que mutam.
+
+    Era o único falso alarme dos seis arquivos acusados no repositório,
+    e só apareceu porque a checagem rodou em tudo antes do commit — o
+    `projetos/loja-web` exporta uma planilha numa rota.
+    """
+    ds = _diag('''
+adopt Kiln
+adopt Arcane.Excel as Xls
+
+server app on 8080:
+    route GET "/planilha":
+        livro := Xls.new()
+        aba := Xls.sheet(livro, "Dados", [])
+        Xls.set(aba, "A1", "titulo")
+        respond json {"ok": yes}
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"] == []
+
+
+def test_append_nao_avisa_porque_nao_perde():
+    """Medido antes de decidir: `append` de quatro threads, 5 mil vezes
+    cada, entregou **20.000 de 20.000** — o GIL protege a operação
+    inteira.
+
+    Avisar sobre ele seria falso alarme em código que funciona, e a
+    política do analisador é calar quando não consegue provar.
+    """
+    ds = _diag('''
+registro := []
+
+parallel:
+    registro.append("a")
+    registro.append("b")
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"] == []
+
+
+def test_o_que_le_para_decidir_o_que_escrever_avisa():
+    """`remove` procura o item antes de tirar, `pop` devolve o que
+    tirou: duas threads podem tirar o mesmo, ou uma pular o que a outra
+    já tirou."""
+    ds = _diag('''
+fila := [1, 2, 3]
+
+parallel:
+    fila.pop(0)
+    fila.pop(0)
+''')
+    assert [d for d in ds if d.code == "escrita-concorrente"]
+
+
+def test_a_perda_por_ler_modificar_escrever_e_real():
+    """O que justifica o aviso. Não é teórico: 40.000 esperados, e o
+    número vem abaixo — com folga suficiente para o teste não ser
+    instável ao contrário."""
+    saida = run('''
+v := {"n": 0}
+
+action somar():
+    cycle i from 1 to 20000:
+        v["n"] := v["n"] + 1
+
+parallel:
+    somar()
+    somar()
+
+wait 500
+out v["n"] smaller_eq 40000
+out v["n"] bigger 0
+''')
+    # O limite superior é garantido: só se perde, nunca se inventa.
+    assert saida.strip().splitlines() == ["yes", "yes"]
+
+
+def test_todo_runner_dos_workflows_e_uma_imagem_que_existe():
+    """`macos-13` foi **retirado** pelo GitHub, e o job ficou `queued`
+    por meia hora enquanto os outros três terminavam.
+
+    Um runner que não existe **não dá erro**: ele nunca começa. Sem
+    mensagem, sem falha, sem prazo — e foi o primeiro release do
+    repositório, então não havia histórico dizendo que aquilo nunca
+    tinha funcionado.
+
+    A lista aqui é a dos rótulos que o GitHub mantém. Ela envelhece —
+    é o preço de conferir algo que vive fora do repositório — mas
+    envelhece com uma mensagem clara, e não com um job em fila para
+    sempre.
+    """
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    #: Os rótulos vivos, conferidos em
+    #: github.com/actions/runner-images/releases.
+    #:
+    #: `macos-13` e `macos-12` saíram; `ubuntu-20.04` também.
+    vivos = {
+        "ubuntu-latest", "ubuntu-24.04", "ubuntu-22.04",
+        "macos-latest", "macos-26", "macos-15", "macos-14",
+        "windows-latest", "windows-2025", "windows-2022",
+    }
+
+    usados = set()
+    for caminho in glob.glob(os.path.join(raiz, ".github", "workflows",
+                                          "*.yml")):
+        texto = open(caminho, encoding="utf-8").read()
+        for achado in re.findall(r"(?:runs-on|os):\s*([a-z0-9.\-]+)", texto):
+            if achado.startswith(("ubuntu", "macos", "windows")):
+                usados.add(achado)
+        # A forma de lista: `os: [ubuntu-latest, macos-latest]`
+        for bloco in re.findall(r"os:\s*\[([^\]]+)\]", texto):
+            for nome in bloco.split(","):
+                nome = nome.strip()
+                if nome.startswith(("ubuntu", "macos", "windows")):
+                    usados.add(nome)
+
+    assert usados, "nenhum runner encontrado — o padrão mudou?"
+    mortos = sorted(usados - vivos)
+    assert not mortos, (
+        f"runner que o GitHub não mantém mais: {mortos} — o job vai "
+        f"ficar em fila para sempre, sem mensagem. Confira os rótulos "
+        f"vivos em github.com/actions/runner-images")

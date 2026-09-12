@@ -31,7 +31,17 @@ def test_map_roda_junto_e_nao_em_serie():
     paralelo, porque cinco threads disputando uma CPU ocupada demoram
     mais que cinco threads sozinhas.
     """
-    espera = 0.06
+    # 0,25s por item, e nao 0,06.
+    #
+    # No Windows o teste falhou com razao 1,47 — o paralelo levou MAIS
+    # que a serie (0,44s contra 0,30s). O paralelismo esta certo; o que
+    # domina ali e o custo de criar cinco threads, que no Windows e
+    # alto o bastante para passar de 60ms de trabalho.
+    #
+    # Com 0,25s por item, a serie e ~1,25s e o custo fixo das threads
+    # vira ruido. E o teste mede o que afirma — que o trabalho acontece
+    # junto — em vez de medir o custo de partida.
+    espera = 0.25
     quantos = 5
 
     inicio = time.perf_counter()
@@ -54,6 +64,8 @@ def test_map_roda_junto_e_nao_em_serie():
     # mesma medida da 0,20. Um teste que falha por maquina lenta ensina
     # a ignorar a suite, que e o pior que pode acontecer com ela.
     razao = junto / serie
+    # 0,75 continua: ele separa serie (~1,0) de paralelo (~0,2) com
+    # folga, e o que mudou foi o trabalho por item, nao o limite.
     assert razao < 0.75, (
         f"junto levou {junto:.2f}s e a serie {serie:.2f}s — "
         f"razao {razao:.2f}; em serie seria ~1,0 e em paralelo ~0,2")

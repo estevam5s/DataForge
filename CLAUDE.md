@@ -298,10 +298,23 @@ Estas são as que mais custam tempo:
     em silêncio. `Arcane.Concurrent` tem `mutex`, `semaforo`, `contador`
     e canal bloqueante, mas usá-los é escolha de quem escreve. Vale para
     o Kiln, que atende **um pedido por thread**.
-    O `check` agora **avisa** (`escrita-concorrente`) quando um `thread`
-    ou `parallel` escreve num nome que vem de fora — inclusive na forma
-    `v["n"] := …`, que é a que mais engana. Era o único bug caro que nem
-    o `check` nem o `lint` mencionavam.
+    O `check` agora **avisa** (`escrita-concorrente`) quando um `thread`,
+    `parallel` **ou `route`** escreve num nome que vem de fora —
+    inclusive na forma `v["n"] := …`, que é a que mais engana. Era o
+    único bug caro que nem o `check` nem o `lint` mencionavam.
+    **A rota é o caso que mais importa**: o Kiln usa
+    `ThreadingHTTPServer`, cada pedido roda numa thread, e ali a
+    concorrência é **invisível** — quem escreve a rota não vê thread
+    nenhuma. Medido: seis pedidos simultâneos numa rota que lê, espera e
+    escreve entregaram **1 de 6**.
+    A lista de métodos que disparam o aviso foi **medida, não
+    presumida**: `append` de quatro threads, 5 mil vezes cada, entregou
+    20.000 de 20.000 — o GIL protege a operação inteira, e avisar sobre
+    ele seria falso alarme em código que funciona. O que perde é
+    ler-modificar-escrever (`v["n"] := v["n"] + 1` deu 33.740 de 40.000)
+    e o que **lê para decidir o que escrever** (`remove`, `pop`,
+    `insert`, `sort`). Um módulo não é coleção: `Xls.set(aba, …)` casava
+    com `set` e deu o único falso alarme do repositório.
     A análise **para na fronteira da ação**: seguir chamada exigiria um
     grafo, e um aviso que depende disso seria impreciso nos dois
     sentidos. É aviso, e não erro: um acumulador protegido por mutex
@@ -437,6 +450,14 @@ virar O(n) por acidente. `bigger` sozinho passa por acidente.
 voltar, e há uma trava irmã para os testes de paralelismo
 (`test_nenhum_teste_de_paralelismo_usa_limite_absoluto`): um limite fixo
 mede a **máquina**, não o paralelismo.
+
+**E a razão não basta, se o trabalho for pequeno.**
+`test_map_roda_junto_e_nao_em_serie` comparava razão — o padrão que a
+trava recomenda — e falhou no Windows com **1,47**: o paralelo levou
+0,44 s contra 0,30 s da série. O paralelismo estava certo; o que dominou
+foi o **custo de criar cinco threads**, que no Windows passa de 60 ms de
+trabalho. Subir a espera de 0,06 s para 0,25 s resolveu: a série vira
+~1,25 s e o tempo de partida deixa de aparecer na conta.
 
 ### Otimizar: meça antes
 

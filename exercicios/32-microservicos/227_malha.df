@@ -32,6 +32,13 @@ server servico_estoque on 0:
     route GET "/instavel":
         // Falha duas vezes e passa na terceira — como um servico que
         // esta subindo.
+        //
+        // O 'check' avisa que 'instavel' e escrito numa rota e vem de
+        // fora, e esta certo: o Kiln atende um pedido por thread. Aqui
+        // os pedidos sao SEQUENCIAIS — o cliente espera cada resposta
+        // antes da proxima —, entao nao ha duas threads na mesma
+        // linha. Num servidor de verdade, 'Conc.contador()'.
+        // df: permitir escrita-concorrente
         instavel["vezes"] := instavel["vezes"] + 1
         given instavel["vezes"] smaller 3:
             respond 503 json {"erro": "ainda subindo"}

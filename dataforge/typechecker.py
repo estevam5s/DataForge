@@ -1077,10 +1077,70 @@ class TypeChecker:
             if nome and nome not in ("self", "this", "root"):
                 saida.setdefault(nome, no)
 
+        # Mutar por METODO, mas so o que PERDE DADO.
+        #
+        # Medido antes de escrever esta lista: 'append' de quatro
+        # threads, 5 mil vezes cada, entregou 20.000 de 20.000 — ele e
+        # atomico, porque o GIL protege a operacao inteira. Avisar sobre
+        # ele seria falso alarme em codigo que funciona.
+        #
+        # O que perde e LER-MODIFICAR-ESCREVER: 'v["n"] := v["n"] + 1'
+        # deu 33.740 de 40.000, e 'lista[0] := lista[0] + 1' deu 31.705.
+        # Esses ja sao pegos como atribuicao, acima.
+        #
+        # Ficam aqui os metodos que leem para decidir o que escrever —
+        # 'remove' procura antes de tirar, 'pop' devolve o que tirou,
+        # 'insert' desloca. Dois deles ao mesmo tempo podem tirar o
+        # mesmo item ou pular um.
+        if isinstance(no, ast.MethodCall) and no.method in self._MUTAM:
+            base = getattr(no, "object", None)
+            while isinstance(base, (ast.IndexAccess, ast.MemberAccess)):
+                base = getattr(base, "object", None)
+            if isinstance(base, ast.Identifier) \
+                    and base.name not in ("self", "this", "root") \
+                    and not self._e_modulo(base.name):
+                # Um MODULO nao e colecao compartilhada. 'Xls.set(aba,
+                # "F1", …)' e chamada de funcao, e casava com 'set' da
+                # lista — um falso alarme no 'projetos/loja-web', que
+                # exporta uma planilha numa rota.
+                #
+                # Foi o unico falso alarme dos seis arquivos acusados, e
+                # so apareceu porque a checagem rodou no repositorio
+                # inteiro antes de eu commitar.
+                saida.setdefault(base.name, no)
+
         for campo in getattr(no, "__dataclass_fields__", {}):
             if campo in ("line", "column"):
                 continue
             self._colher_escritas(getattr(no, campo, None), saida)
+
+    def _e_modulo(self, nome):
+        """`nome` e um modulo adotado?
+
+        Pelo TIPO que o `adopt` declarou (`"Module"`), e nao por uma
+        lista nova: o `st_AdoptStatement` ja sabe disso, e uma segunda
+        fonte divergiria. A superficie cobre o `adopt ./vizinho`.
+        """
+        if nome in self.superficies:
+            return True
+        return self.global_scope.lookup(nome) == "Module"
+
+    #: Os metodos que LEEM para decidir o que escrever.
+    #:
+    #: 'append' e 'add' ficam de FORA: sao atomicos sob o GIL, e
+    #: avisar sobre eles daria falso alarme em codigo que funciona —
+    #: medido, 20.000 de 20.000 com quatro threads.
+    #:
+    #: 'sorted', 'count' e 'index' tambem: devolvem sem mudar nada.
+    _MUTAM = frozenset({
+        # Procuram o item antes de mexer: duas threads podem tirar o
+        # mesmo, ou uma pular o que a outra ja tirou.
+        "remove", "pop", "insert", "delete", "discard",
+        # Reordenam a colecao inteira a partir do estado atual.
+        "sort", "reverse", "clear",
+        # Leem o que existe para decidir o que fica.
+        "update", "merge_in", "setdefault", "extend",
+    })
 
     def st_ChannelDeclaration(self, node, escopo):
         escopo.declare(node.name, "Channel", node.line, node.column)
@@ -1168,6 +1228,19 @@ class TypeChecker:
 
     def st_RouteBlock(self, node, escopo):
         self.infer(node.path, escopo)
+        # Uma rota roda numa THREAD por pedido: o Kiln usa
+        # 'ThreadingHTTPServer'. Escrever num nome de fora do bloco e a
+        # mesma corrida de 'thread'/'parallel', e e o caso mais comum
+        # em producao — um contador de visitas, um cache em memoria.
+        #
+        # Medido: seis pedidos simultaneos numa rota que le, espera e
+        # escreve entregaram 1 de 6. Cinco incrementos perdidos, sem
+        # nada denunciando.
+        #
+        # A checagem so olhava 'thread' e 'parallel', que aparecem no
+        # codigo. Aqui a concorrencia e INVISIVEL: quem escreve a rota
+        # nao ve thread nenhuma.
+        self._avisar_escrita_compartilhada(node.body, escopo, "route")
         interno = Scope(escopo, "action")
         # O corpo da rota recebe estes seis prontos.
         for nome, tipo in (("req", "Vault"), ("params", "Vault"),

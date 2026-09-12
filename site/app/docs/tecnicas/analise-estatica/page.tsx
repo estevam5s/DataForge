@@ -61,6 +61,31 @@ thread:
     meu := 0              // sem aviso: cada thread tem o seu
     meu := meu + 1` },
   {"p": "A forma `v[\"n\"] := …` é a que mais engana — parece mexer só no campo, e o vault vem de fora. Ela é acusada igual."},
+  {"h3": "E dentro de uma rota, que é o caso que mais importa"},
+  {"p": "O Kiln usa `ThreadingHTTPServer`: cada pedido roda numa thread. Uma rota que escreve estado global é a **mesma** corrida — e ali ela é invisível, porque quem escreve a rota não vê thread nenhuma."},
+  { code: `visitas := {"n": 0}
+
+server app on 8080:
+    route GET "/":
+        visitas["n"] := visitas["n"] + 1   // aviso
+        respond json {"visitas": visitas["n"]}` },
+  {"p": "Medido: **seis pedidos simultâneos** numa rota que lê, espera e escreve entregaram **1 de 6**. Cinco incrementos perdidos, sem nada denunciando."},
+  {"p": "A saída é uma linha:"},
+  { code: `adopt Arcane.Concurrent as Conc
+
+visitas := Conc.contador()
+
+server app on 8080:
+    route GET "/":
+        respond json {"visitas": visitas.somar(1)}` },
+  {"h3": "A lista de métodos foi medida, não presumida"},
+  {"p": "`append` **não** dispara o aviso: quatro threads chamando-o 5 mil vezes cada entregaram 20.000 de 20.000 — o GIL protege a operação inteira, e avisar sobre ele seria falso alarme em código que funciona."},
+  {"table": {"head": ["Avisa", "Porque"], "rows": [
+   ["`v[\"n\"] := v[\"n\"] + 1`", "ler-modificar-escrever — medido: 33.740 de 40.000"],
+   ["`.remove()`, `.pop()`, `.insert()`", "leem para decidir o que escrever: duas threads tiram o mesmo item, ou uma pula o que a outra já tirou"],
+   ["`.sort()`, `.reverse()`, `.clear()`", "reordenam a coleção a partir do estado atual"],
+   ["`.append()`, `.add()`", "**não avisa** — atômicos sob o GIL"],
+   ["`Xls.set(aba, …)`", "**não avisa** — um módulo não é coleção compartilhada; foi o único falso alarme do repositório"]]}},
   {"table": {"head": ["Cala quando", "Porque"], "rows": [
    ["o nome é declarado **dentro** do bloco", "cada thread tem o seu; não há o que perder"],
    ["o bloco só **lê**", "duas threads lendo o mesmo valor não perdem nada — e avisar aqui daria alarme no uso mais comum, que é passar dado para a thread"],
@@ -88,7 +113,7 @@ handle e:
   {"p": "Cada comando sai com código diferente de zero em caso de falha. Com `--strict`, os avisos também derrubam o build."},
 ];
 
-const headings = [{ id: 'tres-etapas-sem-executar', text: "Três etapas sem executar", level: 2 as const }, { id: 'o-que-ele-encontra', text: "O que ele encontra", level: 2 as const }, { id: 'um-exemplo', text: "Um exemplo", level: 2 as const }, { id: 'por-que-e-otimista', text: "Por que é otimista", level: 2 as const }, { id: 'o-que-ele-nao-encontra', text: "O que ele não encontra", level: 3 as const }, { id: 'ele-atravessa-o-adopt', text: "Ele atravessa o `adopt`", level: 2 as const }, { id: 'a-corrida-de-dados-que-ninguem-avisava', text: "A corrida de dados, que ninguém avisava", level: 2 as const }, { id: 'silenciar-uma-regra-de-proposito', text: "Silenciar uma regra, de propósito", level: 2 as const }, { id: 'erros-dentro-de-monitor', text: "Erros dentro de monitor", level: 2 as const }, { id: 'em-integracao-continua', text: "Em integração contínua", level: 2 as const }];
+const headings = [{ id: 'tres-etapas-sem-executar', text: "Três etapas sem executar", level: 2 as const }, { id: 'o-que-ele-encontra', text: "O que ele encontra", level: 2 as const }, { id: 'um-exemplo', text: "Um exemplo", level: 2 as const }, { id: 'por-que-e-otimista', text: "Por que é otimista", level: 2 as const }, { id: 'o-que-ele-nao-encontra', text: "O que ele não encontra", level: 3 as const }, { id: 'ele-atravessa-o-adopt', text: "Ele atravessa o `adopt`", level: 2 as const }, { id: 'a-corrida-de-dados-que-ninguem-avisava', text: "A corrida de dados, que ninguém avisava", level: 2 as const }, { id: 'e-dentro-de-uma-rota-que-e-o-caso-que-mais-importa', text: "E dentro de uma rota, que é o caso que mais importa", level: 3 as const }, { id: 'a-lista-de-metodos-foi-medida-nao-presumida', text: "A lista de métodos foi medida, não presumida", level: 3 as const }, { id: 'silenciar-uma-regra-de-proposito', text: "Silenciar uma regra, de propósito", level: 2 as const }, { id: 'erros-dentro-de-monitor', text: "Erros dentro de monitor", level: 2 as const }, { id: 'em-integracao-continua', text: "Em integração contínua", level: 2 as const }];
 
 export default function Pagina() {
   return (

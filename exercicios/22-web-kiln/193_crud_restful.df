@@ -7,11 +7,48 @@
 // os outros sao decisao sua.
 
 adopt Kiln
+adopt Arcane.Concurrent as Conc
 
 itens := [
     {"id": 1, "nome": "Martelo", "preco": 89.9},
     {"id": 2, "nome": "Bigorna", "preco": 450.0}
 ]
+
+// A TRAVA que falta em quase todo CRUD em memoria.
+//
+// O Kiln atende um pedido por thread. Duas escritas simultanEas na
+// mesma lista se atropelam: um PUT que le o indice 3 e escreve nele
+// depois de um DELETE ter tirado o item 2 escreve no lugar errado.
+//
+// O 'check' avisa ('escrita-concorrente'), e a resposta e segurar a
+// trava em volta da escrita — nao da leitura, que nao muda nada.
+//
+// 'mutex()' tem 'acquire' e 'release'; 'defer' garante o release mesmo
+// se o corpo levantar, que e o unico jeito de nao deixar a trava presa.
+trava := Conc.mutex()
+
+action criar(dados):
+    // 'len' e 'append' juntos: dois POST simultaneos leriam o mesmo
+    // tamanho e dariam o mesmo id. A trava cobre os dois.
+    trava.acquire()
+    defer:
+        trava.release()
+    novo := {"id": len(itens) + 1, "nome": dados["nome"],
+             "preco": dados["preco"]}
+    itens.append(novo)
+    yield novo
+
+action trocar(i, novo):
+    trava.acquire()
+    defer:
+        trava.release()
+    itens[i] := novo
+
+action apagar(i):
+    trava.acquire()
+    defer:
+        trava.release()
+    itens.pop(i)
 
 action indice_de(id):
     cycle i from 0 to len(itens) - 1:
@@ -31,22 +68,25 @@ server loja on 0:
         respond json itens[i]
 
     route POST "/itens":
-        novo := {"id": len(itens) + 1, "nome": body["nome"], "preco": body["preco"]}
-        itens.append(novo)
+        // 'len' e 'append' juntos: dois POST simultaneos leriam o
+        // mesmo tamanho e dariam o mesmo id. A trava cobre os dois.
+        novo := criar(body)
         respond 201 json novo
 
     route PUT "/itens/:id":
         i := indice_de(params["id"])
         given i is -1:
             respond 404 json {"erro": "nao existe"}
-        itens[i] := {"id": int(params["id"]), "nome": body["nome"], "preco": body["preco"]}
-        respond json itens[i]
+        novo := {"id": int(params["id"]), "nome": body["nome"],
+                 "preco": body["preco"]}
+        trocar(i, novo)
+        respond json novo
 
     route DELETE "/itens/:id":
         i := indice_de(params["id"])
         given i is -1:
             respond 404 json {"erro": "nao existe"}
-        itens.pop(i)
+        apagar(i)
         respond 204
 
 out "lista:", Kiln.test(loja, "GET", "/itens")["body"]["total"]

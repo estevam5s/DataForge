@@ -9,16 +9,27 @@
 
 adopt Kiln
 adopt Arcane.Web as Web
+adopt Arcane.Concurrent as Conc
 
-visitas := 0
+// Um CONTADOR ATOMICO, e nao uma variavel solta.
+//
+// O Kiln usa 'ThreadingHTTPServer': cada pedido roda numa thread. Dois
+// pedidos ao mesmo tempo em 'visitas += 1' leem o mesmo valor e
+// escrevem o mesmo — um incremento se perde.
+//
+// Medido: seis pedidos simultaneos numa rota que le, espera e escreve
+// entregaram 1 de 6. O 'check' avisa isto ('escrita-concorrente'), e a
+// resposta e uma linha.
+visitas := Conc.contador()
 
 server contador on 0:
     route GET "/":
         respond html "<h1>Forja</h1>"
 
     route GET "/contar":
-        visitas += 1
-        respond json {"visitas": visitas}
+        // 'somar' devolve o valor novo, dentro da trava: nao ha janela
+        // entre ler e escrever.
+        respond json {"visitas": visitas.somar(1)}
 
 porta := Kiln.serve(contador, 0)
 out "no ar na porta", porta
@@ -32,7 +43,7 @@ Web.get($"http://127.0.0.1:{porta}/contar")
 Web.get($"http://127.0.0.1:{porta}/contar")
 terceira := Web.get($"http://127.0.0.1:{porta}/contar")
 out "tres pedidos:", terceira["body"]
-assert visitas is 3, "o estado do programa sobrevive entre pedidos"
+assert visitas.valor() is 3, "o estado do programa sobrevive entre pedidos"
 
 numeros := Kiln.stats(contador)
 out "estatisticas:", numeros["pedidos"], "pedidos,", numeros["rotas"], "rotas"

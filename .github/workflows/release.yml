@@ -29,9 +29,21 @@ jobs:
             nome: linux-x64
           - os: macos-latest
             nome: macos-arm64
-          # O runner de 13 e Intel; o de 'macos-latest' e Apple Silicon.
-          # Sao binarios diferentes e as duas maquinas existem la fora.
-          - os: macos-13
+          # Intel, e nao Apple Silicon: sao binarios diferentes e as
+          # duas maquinas existem la fora.
+          #
+          # Era 'macos-13', e o GitHub RETIROU essa imagem: o job ficou
+          # 'queued' por meia hora enquanto os outros tres terminavam,
+          # sem nenhuma mensagem — um runner que nao existe nao da erro,
+          # so nunca comeca. Foi o primeiro release do repositorio, e
+          # por isso nao havia historico dizendo que aquilo nunca tinha
+          # funcionado.
+          #
+          # 'macos-15' ainda publica imagem x64. Conferido em
+          # github.com/actions/runner-images/releases: as imagens
+          # recentes sao macos-14, macos-15 e macos-26, e apenas as
+          # duas ultimas tem variante sem '-arm64'.
+          - os: macos-15
             nome: macos-x64
           - os: windows-latest
             nome: windows-x64
