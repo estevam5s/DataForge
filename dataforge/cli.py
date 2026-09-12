@@ -1734,6 +1734,34 @@ def converter_command(args, flags=()):
     return 1 if problemas else 0
 
 
+def _tem_alguem_para_responder():
+    """Da para abrir um prompt e esperar resposta?
+
+    'isatty' e a pergunta certa e nao e confiavel sozinha: no Windows o
+    pytest entrega um stdin que se apresenta como terminal e devolve EOF
+    na primeira leitura. Por isso quem chama esta funcao tambem trata o
+    EOF do 'input' como "nao havia ninguem".
+    """
+    try:
+        return bool(sys.stdin) and sys.stdin.isatty()
+    except (ValueError, AttributeError, OSError):
+        return False
+
+
+def _falta_o_modelo(chaves):
+    """A recusa de 'new' sem modelo, dita uma vez so.
+
+    Ela precisa NOMEAR os modelos: "falta dizer o modelo" manda a pessoa
+    adivinhar qual e a lista.
+    """
+    from .marca import cor as _cor
+
+    print(_cor("  ✗ falta dizer o modelo.", "1;31"))
+    print(_cor(f"    dataforge new <nome> --modelo=<{'|'.join(chaves)}>",
+               "0;90"))
+    return 1
+
+
 def new_project(args=None, flags=()):
     """dataforge new — cria um projeto, com apresentacao.
 
@@ -1807,15 +1835,12 @@ def new_project(args=None, flags=()):
     # mesmo quando falta informacao: ai o certo e falhar dizendo o que
     # falta, e nao esperar para sempre por uma resposta.
     silencioso = ("--silencioso" in flags or "--quiet" in flags
-                  or "-q" in flags or not sys.stdin.isatty())
+                  or "-q" in flags or not _tem_alguem_para_responder())
 
     abertura("criando um projeto")
 
     if not escolhido and silencioso:
-        print(_cor("  ✗ falta dizer o modelo.", "1;31"))
-        print(_cor(f"    dataforge new <nome> --modelo=<{'|'.join(chaves)}>",
-                   "0;90"))
-        return 1
+        return _falta_o_modelo(chaves)
 
     if not escolhido:
         print(_cor("  Que tipo de projeto?", "1;37"))
@@ -1830,9 +1855,20 @@ def new_project(args=None, flags=()):
         try:
             resposta = input(_cor(f"  › número ou nome (1-{len(chaves)}): ",
                                   "1;32")).strip()
-        except (EOFError, KeyboardInterrupt):
+        except KeyboardInterrupt:
             print(_cor("\n  cancelado.", "0;90"))
             return 1
+        except (EOFError, OSError):
+            # Nao havia ninguem do outro lado. 'isatty' ja deveria ter
+            # dito isso, e no Windows nem sempre diz — o pytest de la
+            # entrega um stdin que se apresenta como terminal e devolve
+            # EOF na primeira leitura.
+            #
+            # Chegar ate aqui e a prova definitiva, e a resposta e a
+            # mesma: dizer o que falta, em vez de "cancelado", que nao
+            # ajuda quem chamou por programa.
+            print()
+            return _falta_o_modelo(chaves)
 
         if resposta in MODELOS:
             escolhido = resposta
@@ -1861,9 +1897,11 @@ def new_project(args=None, flags=()):
             try:
                 nome = input(_cor(f"  › nome do projeto ({padrao}): ",
                                   "1;32")).strip() or padrao
-            except (EOFError, KeyboardInterrupt):
+            except KeyboardInterrupt:
                 print(_cor("\n  cancelado.", "0;90"))
                 return 1
+            except (EOFError, OSError):
+                nome = padrao        # sem ninguem para responder
 
     pasta = "".join(c for c in nome.replace(" ", "-").lower()
                     if c.isalnum() or c in "-_")

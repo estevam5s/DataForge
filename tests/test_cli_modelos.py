@@ -434,3 +434,45 @@ def test_a_extensao_e_a_cli_falam_a_mesma_lingua():
     cli = open(os.path.join(RAIZ, "dataforge", "cli.py"), encoding="utf-8").read()
     assert '"--modelo="' in cli or "'--modelo='" in cli
     assert "--silencioso" in cli
+
+
+def test_stdin_que_mente_ser_terminal_tambem_e_tratado():
+    """No Windows, `isatty()` diz `True` e a leitura devolve EOF.
+
+    O pytest de lá entrega um `stdin` assim, e a CLI abria o menu,
+    recebia EOF e imprimia "cancelado" — que não ajuda nada quem chamou
+    por programa, e não diz o que faltou.
+
+    Este teste reproduz a condição exata sem precisar de um Windows:
+    chegar ao `except EOFError` é a prova definitiva de que não havia
+    ninguém do outro lado, e a resposta tem de ser a mesma da detecção
+    antecipada.
+    """
+    import io as _io
+    from contextlib import redirect_stdout
+
+    from dataforge.cli import new_project
+
+    class TerminalMentiroso(_io.StringIO):
+        def isatty(self):
+            return True
+
+        def readline(self, *args):
+            return ""
+
+    original = sys.stdin
+    sys.stdin = TerminalMentiroso()
+    buffer = _io.StringIO()
+    try:
+        with redirect_stdout(buffer):
+            codigo = new_project(["provamentirosa"], [])
+    finally:
+        sys.stdin = original
+
+    saida = buffer.getvalue()
+    assert codigo == 1, "devia recusar, e nao criar nada"
+    assert "--modelo=" in saida, \
+        f"a mensagem nao diz como passar o modelo:\n{saida[-300:]}"
+    assert "cancelado" not in saida, \
+        "'cancelado' nao diz o que faltou a quem chamou por programa"
+    assert not os.path.isdir("provamentirosa"), "criou a pasta assim mesmo"
