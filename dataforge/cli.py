@@ -2962,67 +2962,154 @@ def outdated_command(offline=False):
 
 
 def deps_command(alvos):
-    """dataforge deps — o grafo de imports do codigo."""
-    import re as _re
+    """dataforge deps — o grafo de imports do codigo.
+
+    Ele lia os 'adopt' com uma EXPRESSAO REGULAR, e ela comecava em
+    '[A-Za-z_]': './vizinho' nunca casava. Num projeto que usa import
+    relativo — a forma recomendada — o comando cuja unica funcao e
+    mostrar o grafo de imports mostrava "0 arquivos com imports
+    proprios", e a deteccao de ciclo nunca disparava.
+
+    Agora ele usa o PARSER, que ja sabe o que e um 'adopt', e o
+    'resolucao.py', que ja sabe onde o modulo mora. Era a terceira copia
+    da mesma regra no projeto.
+    """
+    from . import resolucao
+    from .lexer import tokenize
+    from .parser import parse
 
     arquivos = _expandir(alvos or ["."])
     if not arquivos:
         print(color("Nenhum arquivo .df encontrado.", "1;33"))
         return
 
-    grafo, stdlib = {}, {}
+    from .stdlib import get_module
+
+    #: caminho absoluto -> [caminhos absolutos que ele importa]
+    grafo = {}
+    #: caminho absoluto -> [nomes de modulo que nao resolveram]
+    soltos = {}
+    stdlib = {}
+    ilegiveis = 0
+
     for caminho in arquivos:
         fonte, motivo = _ler(caminho)
         if motivo:
+            ilegiveis += 1
             continue
-        curto = _curto(caminho)
-        # 'adopt geometria.{a, b}' importa de 'geometria': o ponto antes
-        # da chave separa o modulo dos nomes, e nao faz parte do nome.
-        adotados = _re.findall(r'^\s*adopt\s+([A-Za-z_][\w.]*?)\.?(?=\s|\{|$)',
-                               fonte, _re.MULTILINE)
-        adotados += _re.findall(r'\bfrom\s+([A-Za-z_][\w.]*)', fonte)
-        proprios = [a for a in adotados if not a.startswith("Arcane")
-                    and a not in ("IO", "Math", "Text", "Data")]
-        grafo[curto] = sorted(set(proprios))
-        for a in adotados:
-            if a.startswith("Arcane") or a in ("IO", "Math", "Text", "Data"):
-                stdlib[a] = stdlib.get(a, 0) + 1
+        absoluto = os.path.abspath(caminho)
+        try:
+            programa = parse(tokenize(fonte, caminho), caminho)
+        except Exception:
+            # Um arquivo que nao compila e problema do 'check'. Aqui,
+            # contar e seguir: um grafo com um no de menos ainda serve.
+            ilegiveis += 1
+            continue
+
+        grafo.setdefault(absoluto, [])
+        for stmt in getattr(programa, "body", []) or []:
+            if type(stmt).__name__ != "AdoptStatement":
+                continue
+            nome = str(getattr(stmt, "module", ""))
+            if not nome:
+                continue
+            if nome.startswith("Python."):
+                stdlib[nome.split(".")[0] + "." + nome.split(".")[1]] = \
+                    stdlib.get(nome, 0) + 1
+                continue
+            if get_module(nome) is not None:
+                stdlib[nome] = stdlib.get(nome, 0) + 1
+                continue
+            alvo = (resolucao.achar(nome, absoluto)
+                    or resolucao.achar_em_pacotes(nome, absoluto)
+                    or resolucao.achar_no_proprio_pacote(nome, absoluto))
+            if alvo is None:
+                soltos.setdefault(absoluto, []).append(nome)
+            else:
+                grafo[absoluto].append(os.path.abspath(alvo))
 
     com_deps = {k: v for k, v in grafo.items() if v}
     print(color(f"{len(grafo)} arquivo(s), "
                 f"{len(com_deps)} com imports proprios", "1;36"))
+    if ilegiveis:
+        print(color(f"  ({ilegiveis} nao pude ler ou nao compilam)", "0;90"))
+
     if com_deps:
         print()
-        for arquivo in sorted(com_deps):
-            print(f"  {color(arquivo, '1;37')}")
-            for alvo in com_deps[arquivo]:
-                print(f"      → {alvo}")
+        for arquivo in sorted(com_deps, key=_curto):
+            print(f"  {color(_curto(arquivo), '1;37')}")
+            for alvo in sorted(set(com_deps[arquivo]), key=_curto):
+                print(f"      → {_curto(alvo)}")
+
+    if soltos:
+        print()
+        print(color("Imports que nao resolveram:", "1;33"))
+        for arquivo in sorted(soltos, key=_curto):
+            for nome in sorted(set(soltos[arquivo])):
+                print(f"  {_curto(arquivo)} → {color(nome, '1;33')}")
 
     if stdlib:
         print()
         print(color("Modulos da biblioteca padrao mais usados:", "1;36"))
-        for nome, n in sorted(stdlib.items(), key=lambda x: -x[1])[:10]:
+        for nome, n in sorted(stdlib.items(), key=lambda x: (-x[1], x[0]))[:10]:
             print(f"  {nome:<24} {color(str(n) + '×', '0;90')}")
 
-    # Ciclos: A adota B e B adota A, direta ou indiretamente
-    ciclos = []
-    def caminhar(no, visto):
-        for vizinho in grafo.get(no, []):
-            candidato = next((k for k in grafo if k.endswith(vizinho + ".df")),
-                             None)
-            if candidato is None:
-                continue
-            if candidato in visto:
-                ciclos.append(visto[visto.index(candidato):] + [candidato])
-                continue
-            caminhar(candidato, visto + [candidato])
-    for no in grafo:
-        caminhar(no, [no])
+    ciclos = _ciclos_de(grafo)
     if ciclos:
         print()
         print(color(f"⚠ {len(ciclos)} ciclo(s) de import:", "1;33"))
-        for c in ciclos[:5]:
-            print("    " + " → ".join(c))
+        for ciclo in ciclos[:5]:
+            print("    " + " → ".join(_curto(c) for c in ciclo))
+        print()
+        print(color("  Um ciclo estoura em EXECUCAO, no momento do primeiro",
+                    "0;90"))
+        print(color("  'adopt'. Quebre-o movendo a parte compartilhada para",
+                    "0;90"))
+        print(color("  um terceiro modulo.", "0;90"))
+        return 1
+    return 0
+
+
+def _ciclos_de(grafo):
+    """Os ciclos do grafo de imports, cada um uma vez.
+
+    Busca em profundidade com marca de cor: branco (nao visto), cinza
+    (na pilha atual), preto (terminado). Uma aresta para um cinza fecha
+    um ciclo.
+
+    A versao anterior casava o nome do import com o FIM do caminho
+    ('k.endswith(vizinho + ".df")'), o que confundia 'a/util.df' com
+    'b/util.df' e podia inventar um ciclo que nao existe. Aqui as
+    arestas ja sao caminhos absolutos, resolvidos.
+    """
+    BRANCO, CINZA, PRETO = 0, 1, 2
+    cor = {no: BRANCO for no in grafo}
+    achados = []
+    assinaturas = set()
+
+    def descer(no, pilha):
+        cor[no] = CINZA
+        pilha.append(no)
+        for vizinho in grafo.get(no, []):
+            if vizinho not in cor:
+                continue        # fora do conjunto analisado
+            if cor[vizinho] == CINZA:
+                ciclo = pilha[pilha.index(vizinho):] + [vizinho]
+                # A assinatura e o conjunto de nos: o mesmo ciclo
+                # alcancado por dois pontos de partida e um ciclo so.
+                marca = frozenset(ciclo)
+                if marca not in assinaturas:
+                    assinaturas.add(marca)
+                    achados.append(ciclo)
+            elif cor[vizinho] == BRANCO:
+                descer(vizinho, pilha)
+        pilha.pop()
+        cor[no] = PRETO
+
+    for no in sorted(grafo, key=_curto):
+        if cor[no] == BRANCO:
+            descer(no, [])
+    return achados
 
 
 def clean_command(tudo=False):
@@ -3509,7 +3596,7 @@ def main():
         outdated_command(offline='--offline' in flags)
 
     elif command == 'deps':
-        deps_command(args[1:])
+        sys.exit(deps_command(args[1:]) or 0)
 
     elif command == 'clean':
         clean_command(tudo='--all' in flags)

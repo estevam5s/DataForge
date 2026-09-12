@@ -203,3 +203,159 @@ def test_o_interpretador_e_o_analisador_usam_o_mesmo_resolvedor():
     interp = open(os.path.join(RAIZ, "dataforge/interpreter.py"),
                   encoding="utf-8").read()
     assert "from . import resolucao" in interp
+
+
+# ═══════════════════════════════════════════════════════════
+#  O grafo de imports
+# ═══════════════════════════════════════════════════════════
+
+def _deps(pasta, *args):
+    return subprocess.run(
+        [sys.executable, "-m", "dataforge", "deps", *(args or ("."))],
+        cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONPATH": RAIZ})
+
+
+def test_o_deps_ve_import_relativo(tmp_path):
+    """Ele lia os `adopt` com uma regex que começava em `[A-Za-z_]`:
+    `./vizinho` nunca casava.
+
+    Num projeto que usa import relativo — a forma recomendada — o
+    comando cuja única função é mostrar o grafo de imports mostrava
+    "0 arquivos com imports próprios".
+    """
+    (tmp_path / "util.df").write_text(
+        "action f():\n    yield 1\n\nrelay f\n", encoding="utf-8")
+    (tmp_path / "main.df").write_text(
+        "adopt ./util as U\n\nout U.f()\n", encoding="utf-8")
+
+    saida = _deps(tmp_path)
+    assert "1 com imports proprios" in saida.stdout, saida.stdout
+    assert "→ util.df" in saida.stdout
+
+
+def test_o_deps_acha_o_ciclo(tmp_path):
+    """E a detecção nunca disparava, porque o grafo estava vazio."""
+    (tmp_path / "a.df").write_text(
+        "adopt ./b as B\n\naction fa():\n    yield 1\n\nrelay fa\n",
+        encoding="utf-8")
+    (tmp_path / "b.df").write_text(
+        "adopt ./a as A\n\naction fb():\n    yield 2\n\nrelay fb\n",
+        encoding="utf-8")
+
+    saida = _deps(tmp_path)
+    assert "1 ciclo(s) de import" in saida.stdout, saida.stdout
+    assert saida.returncode == 1, "um ciclo precisa dar saída diferente de 0"
+
+
+def test_dois_arquivos_de_mesmo_nome_nao_inventam_ciclo(tmp_path):
+    """A versão anterior casava o nome do import com o FIM do caminho,
+    então `a/util.df` e `b/util.df` eram o mesmo nó."""
+    for pasta in ("a", "b"):
+        (tmp_path / pasta).mkdir()
+        (tmp_path / pasta / "util.df").write_text(
+            "action f():\n    yield 1\n\nrelay f\n", encoding="utf-8")
+    (tmp_path / "a" / "usa.df").write_text(
+        "adopt ./util as U\n\nout U.f()\n", encoding="utf-8")
+    (tmp_path / "b" / "usa.df").write_text(
+        "adopt ./util as U\n\nout U.f()\n", encoding="utf-8")
+
+    saida = _deps(tmp_path)
+    assert "ciclo" not in saida.stdout, saida.stdout
+    assert saida.returncode == 0
+
+
+def test_o_deps_separa_stdlib_de_import_proprio(tmp_path):
+    (tmp_path / "util.df").write_text(
+        "action f():\n    yield 1\n\nrelay f\n", encoding="utf-8")
+    (tmp_path / "main.df").write_text(
+        "adopt Arcane.Math as Math\nadopt ./util as U\n\n"
+        "out Math.sqrt(4), U.f()\n", encoding="utf-8")
+
+    saida = _deps(tmp_path)
+    assert "Arcane.Math" in saida.stdout
+    assert "→ util.df" in saida.stdout
+
+
+def test_o_deps_relata_import_que_nao_resolveu(tmp_path):
+    (tmp_path / "main.df").write_text("adopt ./nao-existe as X\n",
+                                      encoding="utf-8")
+    saida = _deps(tmp_path)
+    assert "nao resolveram" in saida.stdout
+    assert "./nao-existe" in saida.stdout
+
+
+def test_os_projetos_do_repositorio_tem_grafo_e_nao_tem_ciclo():
+    """Os quatro mostravam "0 com imports próprios"."""
+    for nome in sorted(os.listdir(os.path.join(RAIZ, "projetos"))):
+        pasta = os.path.join(RAIZ, "projetos", nome)
+        if not os.path.isdir(pasta):
+            continue
+        saida = _deps(RAIZ, f"projetos/{nome}")
+        assert "0 com imports proprios" not in saida.stdout, (
+            f"projetos/{nome}: o grafo saiu vazio\n{saida.stdout}")
+        assert "ciclo" not in saida.stdout, f"projetos/{nome}:\n{saida.stdout}"
+
+
+def test_hifen_num_caminho_relativo_compila(tmp_path):
+    """`adopt ./minha-lib as L` não compilava: o lexer entrega o hífen
+    como MINUS, o loop do caminho parava ali, e o parser reclamava de
+    `as` inesperado.
+
+    Hífen em nome de pasta é comum — os projetos deste repositório se
+    chamam `analise-vendas` e `api-links`.
+    """
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    casos = {
+        "adopt ./minha-lib as L": "./minha-lib",
+        "adopt ./a-b-c as A": "./a-b-c",
+        "adopt ../lib/minha-coisa as M": "../lib/minha-coisa",
+        "adopt ./api-v2/rotas as R": "./api-v2/rotas",
+        "adopt ./util.df as U": "./util.df",
+        "adopt ./v2 as V": "./v2",
+    }
+    for fonte, esperado in casos.items():
+        programa = parse(tokenize(fonte + "\n", "t"), "t")
+        assert programa.body[0].module == esperado, fonte
+
+
+def test_a_subtracao_continua_sendo_subtracao():
+    """A colagem exige adjacência de coluna: sem essa guarda, `a - b`
+    viraria um caminho chamado `a-b`."""
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    for fonte in ("x := a - b", "x := 5-3", "x := a-b", "x := 10 - 2 - 3"):
+        parse(tokenize(fonte + "\n", "t"), "t")   # não levanta
+
+    # E um '-' solto depois de um caminho não é engolido.
+    with pytest.raises(Exception):
+        parse(tokenize("adopt ./a -\n", "t"), "t")
+
+
+def test_um_projeto_com_hifen_no_nome_roda(tmp_path):
+    lib = tmp_path / "minha-lib"
+    lib.mkdir()
+    (lib / "main.df").write_text(
+        "action dobro(n):\n    yield n * 2\n\nrelay dobro\n", encoding="utf-8")
+    (tmp_path / "main.df").write_text(
+        "adopt ./minha-lib as L\n\nout L.dobro(21)\nassert L.dobro(21) is 42\n",
+        encoding="utf-8")
+
+    rodar = subprocess.run(
+        [sys.executable, "-m", "dataforge", "run", "main.df"],
+        cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONPATH": RAIZ})
+    assert rodar.returncode == 0, rodar.stdout + rodar.stderr
+    assert "42" in rodar.stdout
+
+    # E o analisador confere o que vem de lá, inclusive com hífen.
+    (tmp_path / "erra.df").write_text(
+        "adopt ./minha-lib as L\n\nout L.triplo(1)\n", encoding="utf-8")
+    conferir = subprocess.run(
+        [sys.executable, "-m", "dataforge", "check", "erra.df", "--no-color"],
+        cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONPATH": RAIZ})
+    assert "has no 'triplo'" in conferir.stdout, conferir.stdout

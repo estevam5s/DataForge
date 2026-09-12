@@ -521,7 +521,19 @@ biblioteca escreve `adopt validador`, não `adopt ../src/main`, porque
 precisa exercitá-la pelo caminho que um usuário usaria: as suítes dos
 **vinte** pacotes do repositório falhavam, e a CI não apanhava — ela não
 rodava `dataforge test` dentro de `packages/`.
-`tests/test_resolucao.py` cobre os dois, e proíbe a cópia voltar.
+E `dataforge deps` tinha a **terceira** cópia da regra — uma expressão
+regular que começava em `[A-Za-z_]`, então `./vizinho` nunca casava. O
+comando cuja única função é mostrar o grafo de imports dizia "0 arquivos
+com imports próprios" em todo projeto do repositório, e a detecção de
+ciclo nunca disparava. Hoje ele usa o parser e o `resolucao.py`.
+
+**Hífen num caminho relativo não compilava.** `adopt ./minha-lib as L`
+falhava: o lexer entrega o hífen como `MINUS`, o loop de segmento parava
+ali, e o parser reclamava de um `as` inesperado. `_segmento_de_caminho`
+cola `-`, `.` e dígitos ao nome, exigindo **adjacência de coluna** — sem
+essa guarda, `a - b` viraria um arquivo chamado `a-b`.
+
+`tests/test_resolucao.py` cobre os quatro, e proíbe a cópia voltar.
 
 ### O analisador vê dentro dos objetos
 

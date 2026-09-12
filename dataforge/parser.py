@@ -1009,7 +1009,7 @@ class Parser:
         # o resto: nomes separados por '/'
         nomes = []
         while self.current().type == TokenType.IDENTIFIER:
-            nomes.append(self.advance().value)
+            nomes.append(self._segmento_de_caminho())
             if self.current().type == TokenType.SLASH:
                 self.advance()
                 continue
@@ -1019,6 +1019,65 @@ class Parser:
             self.error("Expected a path after "
                        f"'{'/'.join(pedacos)}', as in 'adopt ./util'")
         return "/".join(pedacos + nomes)
+
+    def _segmento_de_caminho(self):
+        """Um pedaco de caminho: 'util', 'minha-lib', 'v2', 'util.df'.
+
+        O hifen e o ponto fazem parte do NOME DO ARQUIVO, e o lexer nao
+        tem como saber disso — ele entrega MINUS e DOT, que em qualquer
+        outro lugar sao operadores.
+
+        Sem isto, 'adopt ./minha-lib as L' nao compilava: o loop paravan
+        no MINUS e o parser reclamava de 'as' inesperado. E hifen em
+        nome de pasta e comum — os projetos deste repositorio se chamam
+        'analise-vendas' e 'api-links'.
+
+        A colagem exige ADJACENCIA de coluna. 'adopt ./a - b' continua
+        sendo erro, e nao um caminho chamado 'a-b': sem essa guarda, uma
+        subtracao escrita com espaco viraria nome de arquivo.
+        """
+        primeiro = self.advance()
+        partes = [str(primeiro.value)]
+        fim = primeiro.column + len(str(primeiro.value))
+
+        while True:
+            atual = self.current()
+            if atual.column != fim:
+                break            # ha espaco: acabou o segmento
+            if atual.type == TokenType.MINUS:
+                seguinte = self.peek(1)
+                # Um '-' solto no fim nao e nome de arquivo.
+                if seguinte is None or \
+                        seguinte.type not in (TokenType.IDENTIFIER,
+                                              TokenType.INTEGER) or \
+                        seguinte.column != atual.column + 1:
+                    break
+                self.advance()
+                valor = self.advance()
+                partes.append("-" + str(valor.value))
+                fim = valor.column + len(str(valor.value))
+                continue
+            if atual.type == TokenType.INTEGER:
+                self.advance()
+                partes.append(str(atual.value))
+                fim = atual.column + len(str(atual.value))
+                continue
+            if atual.type == TokenType.DOT:
+                # './util.df' — a extensao. So quando o que vem depois
+                # e um nome colado; senao o DOT pertence a outra coisa.
+                seguinte = self.peek(1)
+                if seguinte is None or \
+                        seguinte.type != TokenType.IDENTIFIER or \
+                        seguinte.column != atual.column + 1:
+                    break
+                self.advance()
+                valor = self.advance()
+                partes.append("." + str(valor.value))
+                fim = valor.column + len(str(valor.value))
+                continue
+            break
+
+        return "".join(partes)
 
     def _parse_selecao(self):
         """{nome, outro as apelido} — a lista de nomes importados."""
