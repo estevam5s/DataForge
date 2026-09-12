@@ -508,6 +508,47 @@ class DFInstance:
         return f"<{self.blueprint.name} instance>"
 
 
+#: O nome que o Python usa -> o nome que a linguagem usa.
+#:
+#: Fica aqui, e nao espalhado pelas mensagens, porque a traducao tem de
+#: valer para o que o Python levanta de QUALQUER lugar — uma comparacao,
+#: um 'len', uma conversao. Cada uma dessas mensagens e escrita pelo
+#: CPython, e nenhuma conhece as palavras desta linguagem.
+_TIPOS_DO_PYTHON = (
+    ("'NoneType'", "Void"),
+    ("'bool'", "Boolean"),
+    ("'int'", "Integer"),
+    ("'float'", "Float"),
+    ("'complex'", "Complex"),
+    ("'str'", "String"),
+    ("'bytes'", "Bytes"),
+    ("'list'", "Cluster"),
+    ("'tuple'", "Cluster"),
+    ("'dict'", "Vault"),
+    ("'set'", "Set"),
+    ("'frozenset'", "Set"),
+    # A forma sem aspas aparece em "object of type 'int' has no len()"
+    # e em "descriptor 'x' for 'str' objects".
+    ("NoneType", "Void"),
+)
+
+
+def _traduzir_tipos(texto):
+    """Troca os nomes de tipo do Python pelos da linguagem.
+
+    Conservadora de proposito: so substitui o nome ENTRE ASPAS, que e
+    como o CPython o escreve nessas mensagens. Trocar a palavra solta
+    estragaria um texto legitimo — uma mensagem sobre um arquivo
+    chamado 'list', ou sobre a funcao 'set' da propria stdlib.
+    """
+    if not texto:
+        return texto
+    for py, df in _TIPOS_DO_PYTHON:
+        if py in texto:
+            texto = texto.replace(py, f"'{df}'" if py.startswith("'") else df)
+    return texto
+
+
 class DFError:
     """A runtime error captured by 'monitor / handle'.
 
@@ -1498,7 +1539,38 @@ class Interpreter:
             misto = self._erro_de_exato_com_float(left, right, op, node)
             if misto is not None:
                 raise misto from None
-            raise TypeError_(str(e), node.line, node.column)
+            # "unsupported operand type(s) for +: 'int' and 'list'" esta
+            # certa e fala de tipos que nao existem aqui. A que importa
+            # diz o que se tentou somar, no vocabulario da linguagem.
+            esquerda = self._nome_do_tipo(left)
+            direita = self._nome_do_tipo(right)
+            raise TypeError_(
+                f"'{op}' between {esquerda} and {direita} is not defined.",
+                node.line, node.column,
+                nota=_traduzir_tipos(str(e)),
+                dica=self._dica_de_operacao(left, right, op),
+                doc="operadores") from None
+
+    def _dica_de_operacao(self, left, right, op):
+        """O que fazer, quando da para saber.
+
+        Uma dica errada e pior que nenhuma, entao so fala nos casos em
+        que a intencao e obvia — e sao justamente os que mais aparecem.
+        """
+        if op == "+" and isinstance(left, (list, tuple)) != isinstance(
+                right, (list, tuple)):
+            return ("to put an item into a cluster, use  [...xs, item]  "
+                    "or  xs.append(item)")
+        if op == "+" and isinstance(left, dict) or isinstance(right, dict):
+            return "to join two vaults, use  {...a, ...b}"
+        if op in ("*", "/", "-") and (isinstance(left, str)
+                                      or isinstance(right, str)):
+            return ("a String only accepts  +  (which joins) and  *  by an "
+                    "Integer (which repeats)")
+        if isinstance(left, type(None)) or isinstance(right, type(None)):
+            return ("one side is Void — check with  ??  before the "
+                    "operation:  (x ?? 0) + 1")
+        return ""
 
     @staticmethod
     def _erro_de_exato_com_float(left, right, op, node):
@@ -1598,14 +1670,33 @@ class Interpreter:
             return left == right
         elif op == 'isnt':
             return left != right
-        elif op == 'bigger':
-            return left > right
-        elif op == 'smaller':
-            return left < right
-        elif op == 'bigger_eq':
-            return left >= right
-        elif op == 'smaller_eq':
-            return left <= right
+        elif op in ('bigger', 'smaller', 'bigger_eq', 'smaller_eq'):
+            # A ORDEM e o unico grupo que pode falhar: 'is' e 'isnt'
+            # comparam qualquer coisa, mas "qual e o maior" nao tem
+            # resposta entre um texto e um numero. A mensagem do Python
+            # — "'<' not supported between instances of 'int' and 'str'"
+            # — fala de tipos que nao existem nesta linguagem.
+            try:
+                if op == 'bigger':
+                    return left > right
+                if op == 'smaller':
+                    return left < right
+                if op == 'bigger_eq':
+                    return left >= right
+                return left <= right
+            except TypeError as e:
+                palavra = {'bigger': 'bigger', 'smaller': 'smaller',
+                           'bigger_eq': 'bigger_eq',
+                           'smaller_eq': 'smaller_eq'}[op]
+                raise TypeError_(
+                    f"'{palavra}' between {self._nome_do_tipo(left)} and "
+                    f"{self._nome_do_tipo(right)} has no answer.",
+                    node.line, node.column,
+                    nota=_traduzir_tipos(str(e)),
+                    dica=("'is' and 'isnt' compare anything; ordering needs "
+                          "two values of the same kind — convert one side "
+                          "first"),
+                    doc="operadores") from None
         elif op == '==':
             return left == right
         elif op == '!=':
@@ -1960,7 +2051,21 @@ class Interpreter:
         elif hasattr(obj, membro):
             return getattr(obj, membro)
 
-        raise NameError_(f"Cannot access member '{membro}' on {type(obj).__name__}", node.line, node.column)
+        if obj is None:
+            # O caso mais comum, e o unico com resposta pronta: uma
+            # busca que nao achou, um campo que nao veio, uma chamada
+            # que devolveu 'void'.
+            raise NameError_(
+                f"Cannot read '{membro}': the value is Void.",
+                node.line, node.column,
+                nota="something before this returned 'void'",
+                dica=(f"use  ?.  to stop safely:  x?.{membro}\n"
+                      f"    or a default:  (x ?? padrao).{membro}"),
+                doc="operadores")
+        raise NameError_(
+            f"Cannot access member '{membro}' on "
+            f"{self._nome_do_tipo(obj)}.",
+            node.line, node.column)
 
     def eval_IndexAccess(self, node: ast.IndexAccess, env):
         return self._ler_indice(self.evaluate(node.object, env),
@@ -2100,7 +2205,12 @@ class Interpreter:
         try:
             return obj[start:stop:step]
         except TypeError as e:
-            raise TypeError_(f"Cannot slice {type(obj).__name__}: {e}", node.line, node.column)
+            raise TypeError_(
+                f"Cannot slice {self._nome_do_tipo(obj)}.",
+                node.line, node.column,
+                nota=_traduzir_tipos(str(e)),
+                dica="only Cluster, String and Bytes accept  [a:b]",
+                doc="colecoes") from None
 
     def eval_LambdaExpression(self, node: ast.LambdaExpression, env):
         """A lambda is an anonymous action closing over the current scope."""
@@ -2203,7 +2313,17 @@ class Interpreter:
         if callable(member):
             return self._invocar(member, args, kwargs, node, node.method)
 
-        raise NotCallableError(f"Cannot call method '{node.method}' on {type(obj).__name__}", node.line, node.column)
+        if obj is None:
+            raise NotCallableError(
+                f"Cannot call '{node.method}': the value is Void.",
+                node.line, node.column,
+                nota="something before this returned 'void'",
+                dica=f"use  ?.  to stop safely:  x?.{node.method}(…)",
+                doc="operadores")
+        raise NotCallableError(
+            f"Cannot call method '{node.method}' on "
+            f"{self._nome_do_tipo(obj)}.",
+            node.line, node.column)
 
     @staticmethod
     def _copiar_padrao(valor):
@@ -3189,8 +3309,13 @@ class Interpreter:
             obj[membro] = value
         else:
             raise RuntimeError_(
-                f"Cannot set member on {type(obj).__name__}",
-                node.line, node.column)
+                f"Cannot set a member on {self._nome_do_tipo(obj)}.",
+                node.line, node.column,
+                nota="only a blueprint instance and a vault accept "
+                     "'x.campo := …'",
+                dica=("a record is immutable — use  p with {\"campo\": valor}"
+                      if isinstance(obj, DFRecordInstance) else ""),
+                doc="oop")
         return _SEM_MAGICO
 
     def exec_Assignment(self, node: ast.Assignment, env):
@@ -4849,7 +4974,12 @@ class Interpreter:
         for tipo, nome in self._NOMES_DE_TIPO.items():
             if type(valor) is tipo:
                 return nome
-        return f"a {type(valor).__name__}"
+        # Ultimo recurso: um objeto que veio da ponte para o Python nao
+        # tem nome NESTA linguagem, e inventar um seria pior. Mas os
+        # tipos que TEM nome passam pela traducao — este ramo tambem e
+        # alcancado por subclasse ('bool' e 'int', um 'OrderedDict' e
+        # 'dict'), e ali o nome do Python nao serve.
+        return "a " + _traduzir_tipos(f"'{type(valor).__name__}'").strip("'")
 
     # ── Visibilidade e diagnostico de membros ────────────────
 
@@ -5031,6 +5161,16 @@ class Interpreter:
 
         if classe is None:
             classe = RuntimeError_
+
+        # O vocabulario, por ultimo e sempre: a mensagem pode ter vindo
+        # de qualquer lugar do Python — de uma comparacao, de um 'len',
+        # de uma conversao — e nenhum deles conhece as palavras da
+        # linguagem. Quem le DataForge nunca viu 'int', 'str', 'dict'
+        # nem 'NoneType', e uma mensagem nesses termos manda a pessoa
+        # procurar na documentacao errada.
+        texto = _traduzir_tipos(texto)
+        if nota:
+            nota = _traduzir_tipos(nota)
 
         if contexto:
             texto = f"{contexto}: {texto}"

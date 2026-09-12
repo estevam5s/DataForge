@@ -22,6 +22,23 @@ Arquivos `.df` são UTF-8. O fim de linha encerra uma instrução; não existe `
    de várias linhas */
 ```
 
+`//` é comentário **exceto** quando seguido de dígito, `(`, ou de uma
+chamada/índice/membro: ali ele é divisão inteira. `x // 2` divide;
+`x // nota` é comentário. Para dividir sem ambiguidade, `~/`.
+
+#### Silenciar uma regra do analisador
+
+```dataforge
+// df: permitir point-inalcancavel
+```
+
+Silencia aquela regra na linha em que está e na de baixo — que é onde o
+comentário cabe num `match` longo. A regra tem de ser **nomeada** (o
+`code` do diagnóstico); várias cabem numa linha, separadas por vírgula.
+
+Um `permitir` sem nome de regra silenciaria o erro seguinte, que
+ninguém pediu para esconder, e por isso não existe.
+
 ### 1.3 Indentação
 
 - Blocos abrem com `:` e são delimitados por indentação.

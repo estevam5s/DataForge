@@ -3539,3 +3539,181 @@ def test_o_dockerfile_copia_todo_pacote_que_o_pyproject_declara():
     assert not faltando, (
         f"o Dockerfile não copia {faltando}, e o 'pip install' dele vai "
         f"falhar com \"package directory does not exist\"")
+
+
+# ═══════════════════════════════════════════════════════════
+#  Nenhuma mensagem fala de tipos do Python
+#
+#  `int`, `str`, `list`, `dict`, `NoneType` não existem
+#  nesta linguagem. Uma mensagem nesses termos manda a pessoa
+#  procurar na documentação errada — e ela não tem como saber
+#  que `list` é `Cluster`.
+# ═══════════════════════════════════════════════════════════
+
+@pytest.mark.parametrize("fonte, proibido, esperado", [
+    ('out 1 smaller "a"', "'str'", "String"),
+    ('out 1 + [2]', "'list'", "Cluster"),
+    ('out len(5)', "'int'", "Integer"),
+    ('out int({"a": 1})', "'dict'", "Vault"),
+    ('out {"a": 1} + {"b": 2}', "'dict'", "Vault"),
+    ('out "x" - 1', "'str'", "String"),
+])
+def test_a_mensagem_usa_o_vocabulario_da_linguagem(fonte, proibido, esperado):
+    saida = run(f'''
+monitor:
+    {fonte}
+handle Error as e:
+    out $"{{e.message}} || {{e.nota}}"
+''')
+    assert proibido not in saida, f"a mensagem fala de {proibido}"
+    assert esperado in saida
+
+
+def test_o_nome_de_tipo_e_trocado_so_entre_aspas():
+    """Conservador de propósito: trocar a palavra solta estragaria um
+    texto legítimo — uma mensagem sobre um arquivo chamado `list`, ou
+    sobre a função `set` da própria stdlib."""
+    from dataforge.interpreter import _traduzir_tipos
+
+    assert _traduzir_tipos("type 'int' is wrong") == "type 'Integer' is wrong"
+    # Sem aspas, fica: pode ser o nome de uma variável, de um arquivo,
+    # de uma função.
+    assert _traduzir_tipos("the file list.df is missing") == \
+        "the file list.df is missing"
+    assert _traduzir_tipos("") == ""
+    assert _traduzir_tipos(None) is None
+
+
+def test_acessar_membro_de_void_diz_o_que_fazer():
+    """O caso mais comum: uma busca que não achou, um campo que não
+    veio, uma chamada que devolveu `void`. A mensagem era "Cannot
+    access member 'campo' on NoneType" — e `NoneType` não existe aqui.
+    """
+    saida = run('''
+monitor:
+    x := void
+    out x.campo
+handle Error as e:
+    out e.message
+    out e.dica
+''')
+    assert "NoneType" not in saida
+    assert "Void" in saida
+    # A saída: os dois operadores que existem para isso.
+    assert "?." in saida
+    assert "??" in saida
+
+
+def test_o_caminho_seguro_continua_funcionando():
+    """A mensagem nova não pode ter vindo de uma mudança que quebre
+    `?.` — que é justamente o que ela recomenda."""
+    saida = run('''
+y := void
+out y?.campo
+out (y ?? {"campo": 7})["campo"]
+''')
+    assert saida.strip().splitlines() == ["void", "7"]
+
+
+def test_a_dica_de_operacao_so_fala_quando_sabe():
+    """Uma dica errada é pior que nenhuma."""
+    saida = run('''
+monitor:
+    out 1 + [2]
+handle Error as e:
+    out e.dica
+''')
+    assert "append" in saida or "..." in saida
+
+    # Um caso sem intenção óbvia não recebe dica inventada.
+    outra = run('''
+record P:
+    x: Integer
+
+monitor:
+    out P(1) - P(2)
+handle Error as e:
+    out $"[{e.dica}]"
+''')
+    assert outra.strip() == "[]"
+
+
+def test_ordenar_tipos_diferentes_aponta_is_e_isnt():
+    """`is` e `isnt` comparam qualquer coisa; ordenar não tem resposta
+    entre um texto e um número — e é essa a saída."""
+    saida = run('''
+monitor:
+    out [1, "a"] >> sift x: x bigger 0
+handle Error as e:
+    out e.message
+    out e.dica
+''')
+    assert "has no answer" in saida
+    assert "'is'" in saida
+
+
+def test_nenhuma_mensagem_de_erro_do_interpretador_cita_tipo_do_python():
+    """A trava da causa.
+
+    Uma mensagem escrita à mão com `type(x).__name__` volta a falar
+    `NoneType` ou `dict` sem nada denunciar — foi assim que as cinco
+    que este bloco corrigiu chegaram lá. Quem quiser o nome do tipo tem
+    `_nome_do_tipo`, que responde no vocabulário da linguagem.
+    """
+    import re
+
+    fonte = open("dataforge/interpreter.py", encoding="utf-8").read()
+
+    # `type(...).__name__` dentro de uma f-string de mensagem.
+    suspeitos = []
+    for numero, linha in enumerate(fonte.split("\n"), 1):
+        if "#" in linha.split("type(")[0]:
+            continue        # comentário
+        if "type(" in linha and "__name__" in linha:
+            # O uso legítimo: comparar, registrar, despachar. O que não
+            # vale é ir para o texto de um erro.
+            if not re.search(r'f"[^"]*\{type\([^)]*\)\.__name__\}', linha):
+                continue
+            # A própria tradutora é o único uso legítimo: ela recebe o
+            # nome do Python justamente para trocá-lo. Reconhecer a
+            # chamada, e não a linha, mantém a trava fechada.
+            if "_traduzir_tipos(" in linha:
+                continue
+            suspeitos.append(f"{numero}: {linha.strip()[:70]}")
+
+    assert not suspeitos, (
+        "mensagem de erro usando o nome do tipo do Python — use "
+        "'self._nome_do_tipo(valor)':\n  " + "\n  ".join(suspeitos))
+
+
+@pytest.mark.parametrize("fonte, esperado", [
+    ("out 5[1:2]", "an Integer"),
+    ("out 5.metodo()", "an Integer"),
+    ("x := yes\nout x + [1]", "a Boolean"),
+])
+def test_o_nome_do_tipo_chega_a_toda_mensagem(fonte, esperado):
+    """`Boolean` é o caso que prova o caminho por subclasse: `bool` é
+    `int` em Python, então ele cai no último recurso de
+    `_nome_do_tipo` — e ali o nome do Python não serve."""
+    saida = run(f'''
+monitor:
+    {fonte.replace(chr(10), chr(10) + "    ")}
+handle Error as e:
+    out e.message
+''')
+    assert esperado in saida
+    for py in ("'int'", "'bool'", "'str'", "'dict'", "'list'", "NoneType"):
+        assert py not in saida
+
+
+def test_chamar_metodo_de_void_tambem_aponta_o_operador_seguro():
+    saida = run('''
+monitor:
+    x := void
+    out x.buscar()
+handle Error as e:
+    out e.message
+    out e.dica
+''')
+    assert "Void" in saida
+    assert "?." in saida

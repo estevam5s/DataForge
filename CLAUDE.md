@@ -354,6 +354,17 @@ Estas são as que mais custam tempo:
   `"Invalid assignment target"` (ruim) com `"'no' is a reserved keyword and
   cannot be assigned to. Pick another name."` (bom). Quando houver um nome
   parecido, sugira: o `typechecker` usa `difflib` para isso.
+- **Nenhuma mensagem cita tipo do Python.** `int`, `str`, `list`, `dict` e
+  `NoneType` não existem nesta linguagem, e uma mensagem nesses termos manda
+  a pessoa procurar na documentação errada — ela não tem como saber que
+  `list` é `Cluster`. Para nomear um tipo, `self._nome_do_tipo(valor)`; para
+  limpar um texto que veio do Python, `_traduzir_tipos`. Há teste sobre o
+  **código** de `interpreter.py` proibindo `type(x).__name__` dentro de
+  f-string de mensagem — foi assim que cinco delas chegaram lá, e a trava
+  achou outras três que eu não tinha visto.
+  A tradução troca só o nome **entre aspas**, que é como o CPython o escreve:
+  trocar a palavra solta estragaria um texto legítimo, como uma mensagem
+  sobre um arquivo chamado `list`.
 
 ### O compilador de fechamentos
 
