@@ -757,6 +757,15 @@ Detalhado em [`doc/ANALISE_E_ROADMAP.md`](doc/ANALISE_E_ROADMAP.md).
 
 ---
 
+## Onde mais
+
+| Onde | O quê |
+|---|---|
+| [dataforge-lang.vercel.app/docs](https://dataforge-lang.vercel.app/docs) | a documentação navegável, com busca |
+| [dataforge-df/docs](https://github.com/dataforge-df/docs) | a mesma documentação em Markdown, para ler no GitHub ou clonar |
+| [dataforge-df](https://github.com/dataforge-df) | a organização |
+| [estevan5s/dataforge](https://hub.docker.com/r/estevan5s/dataforge) | a imagem Docker |
+
 ## Licença
 
 MIT — veja [LICENSE](LICENSE).

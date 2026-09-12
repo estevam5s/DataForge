@@ -77,9 +77,14 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between">
           <p>DataForge 1.0.0 · licença MIT · documentação em português</p>
-          <a href={REPO} target="_blank" rel="noreferrer noopener" className="link-quiet">
-            github.com/estevam5s/DataForge
-          </a>
+          <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <a href={REPO} target="_blank" rel="noreferrer noopener" className="link-quiet">
+              github.com/estevam5s/DataForge
+            </a>
+            <a href="https://github.com/dataforge-df" target="_blank" rel="noreferrer noopener" className="link-quiet">
+              dataforge-df
+            </a>
+          </span>
         </div>
       </div>
     </footer>
