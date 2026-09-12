@@ -60,6 +60,14 @@ middleware so_de_dia` },
   { code: `middleware Kiln.cors()                       // libera tudo
 middleware Kiln.cors("https://meusite.com")  // uma origem` },
   {"p": "O `OPTIONS` é respondido no middleware e **nunca chega na rota** — por isso você não precisa registrar uma rota `OPTIONS` para cada caminho."},
+  {"p": "E o `Access-Control-Allow-Origin` vai na **resposta real**, não só no preflight — inclusive nas de erro. Um 404 sem o cabeçalho faz o navegador esconder o corpo, e quem escreveu o cliente vê \"erro de CORS\" em vez do erro de verdade."},
+  {"callout": {"tipo": "nota", "titulo": "Um cabeçalho só no preflight não serve para nada", "texto": "Foi um bug real: o middleware respondia o `OPTIONS` com os quatro cabeçalhos e guardava a origem num campo que **ninguém lia**. O navegador aprovava o preflight e então bloqueava o `fetch`. O `curl` funcionava, o servidor respondia 200 com o corpo certo, e só o navegador recusava — com uma mensagem que manda mexer no middleware que já estava lá."}},
+  {"p": "Com uma origem específica, a resposta leva `Vary: Origin`: sem ele um cache intermediário serve a resposta de um site para outro, com o cabeçalho apontando para a origem errada. Com `*` não há `Vary` — é a mesma resposta para todos, e ali ele só estragaria o cache."},
+  {"p": "Uma rota que declara a própria origem vence o middleware:"},
+  { code: `route GET "/parceiro":
+    r := Kiln.json(dados)
+    Kiln.header(r, "Access-Control-Allow-Origin", "https://parceiro.com")
+    respond r` },
   {"h2": "Limite de taxa: a letra miúda"},
   {"p": "A contagem é **por processo e em memória**: com vários processos, cada um tem a sua, e o limite efetivo é o número de processos vezes o teto. Serve muito bem para uma aplicação de um processo e para conter abuso acidental; para um limite rígido, use um contador compartilhado."},
 ];
