@@ -55,7 +55,8 @@ dataforge/
   superficie.py    300   o que um .df oferece, sem executá-lo
   formatter.py     280   dataforge fmt
   linter.py        394   dataforge lint
-  testrunner.py    194   dataforge test
+  testrunner.py    380   dataforge test, com cobertura de linha
+  cobertura.py     170   quais linhas os testes executaram
   docgen.py        218   dataforge doc
   project.py       184   forge.toml
   environment.py    91   cadeia de escopos
@@ -454,7 +455,7 @@ Os apelidos (`Zip`, `Cor`, `Banco`) são traduzidos para o nome oficial por
 | Comando | Arquivo | Faz |
 |---------|---------|-----|
 | `dataforge check` | `typechecker.py` | nomes, aridade, tipos, alcance (aceita arquivo, pasta ou padrão) |
-| `dataforge test` | `testrunner.py` | descobre `*_test.df`, `tests/` |
+| `dataforge test` | `testrunner.py` | descobre `*_test.df`, `tests/`; `--cobertura` e `--minimo=80` |
 | `dataforge fmt` | `formatter.py` | formata (`--check` só verifica) |
 | `dataforge lint` | `linter.py` | estilo e higiene |
 | `dataforge doc` | `docgen.py` | Markdown a partir dos comentários |
@@ -482,6 +483,51 @@ Antes disso, um único arquivo mal codificado derrubava `fmt .` inteiro com um
 
 Há teste para os dois casos em `tests/test_regressoes.py`, mais um que proíbe
 qualquer `.df` fora de UTF-8 no repositório.
+
+### Cobertura de linha
+
+`dataforge test --cobertura` diz quais linhas rodaram, e
+`--minimo=80` reprova no CI. Os dois números têm um jeito próprio de
+mentir, e o arquivo `cobertura.py` existe para que nenhum deles minta:
+
+| Metade | De onde vem | Como mentiria |
+|---|---|---|
+| denominador | o parser: quais linhas são **executáveis** | contar comentário e linha vazia dá um número sempre pessimista |
+| numerador | `execute` sombreado, como o depurador faz | com `compilar_corpos` ligado, o corpo das ações passa por fora e toda ação dá 0% |
+
+**A definição de "instrução" é a existência de `exec_<Nó>` no
+interpretador**, e não uma lista. A primeira versão era uma lista e
+apodreceu antes de ser commitada: tinha `CycleLoop`, e o nó se chama
+`CycleFromTo` — o laço inteiro ficava fora do denominador, e a cobertura
+saía **otimista**, que é o pior defeito possível numa métrica.
+
+A linha da declaração de `action` não conta; o corpo conta. Assim uma
+ação nunca chamada aparece com **0%** e não 20%. E um arquivo que
+nenhum teste toca aparece com 0% em vez de sumir do relatório — sumir é
+o que faz uma cobertura de 95% conviver com metade do sistema sem teste.
+
+`forge_modules/` ficou fora da descoberta: um projeto com 13 testes
+relatava **89**, e a suíte ficava vermelha por falha de uma biblioteca
+que ninguém escreveu.
+
+### Toda ação sabe em que arquivo nasceu
+
+`DFAction.arquivo` é carimbado no **construtor**, e `_corpo_da_acao`
+troca `self.filename` enquanto o corpo roda. Duas coisas dependiam
+disso e as duas estavam erradas:
+
+1. Um `1 / 0` na linha 5 de `lib.df` era reportado como `main.df:5`,
+   **com o trecho do outro arquivo desenhado embaixo da seta**. Em
+   projeto grande isso manda a pessoa depurar o arquivo errado.
+2. A cobertura de um módulo importado era contada no arquivo de teste.
+
+O carimbo é no `__init__` porque há **nove** lugares que criam uma
+`DFAction` — método de blueprint, de record, propriedade, operador,
+lambda, método mágico. Carimbar em cada um deixaria de fora os que
+vierem depois, e a falta não dá erro: só faz o arquivo errado aparecer.
+
+`Error.render` também passou a **ler do disco o arquivo que ela nomeia**
+quando o que recebeu não é dele.
 
 ### O analisador atravessa arquivos
 
@@ -534,6 +580,13 @@ cola `-`, `.` e dígitos ao nome, exigindo **adjacência de coluna** — sem
 essa guarda, `a - b` viraria um arquivo chamado `a-b`.
 
 `tests/test_resolucao.py` cobre os quatro, e proíbe a cópia voltar.
+
+**Ciclo de import agora é erro do `check`.** Ele estourava só em
+execução, no primeiro `adopt`, e o `check` passava limpo num projeto que
+não sobe. `superficie.ciclo_a_partir_de` faz busca em **largura**, para
+achar o ciclo mais curto — o mais fácil de quebrar — e a mensagem mostra
+a cadeia inteira (`a.df → b.df → c.df → a.df`), porque um ciclo de
+quatro arquivos é impossível de quebrar sem saber por onde ele passa.
 
 ### O analisador vê dentro dos objetos
 
@@ -788,7 +841,8 @@ python3 scripts/gerar_tarball.py
 | `tests/test_regressoes.py` | `pytest` | bugs já corrigidos + sincronia da doc |
 | `tests/test_dataforge.py` | `pytest` **e** script | 69 verificações da suíte original |
 | `tests/test_kiln.py` | `pytest` | o framework web: rotas, respostas, templates, segurança, a sintaxe da linguagem e as palavras que continuam livres |
-| `tests/test_resolucao.py` | `pytest` | onde mora o módulo de um `adopt`; os 20 pacotes rodam; a cópia não volta |
+| `tests/test_resolucao.py` | `pytest` | onde mora o módulo de um `adopt`; ciclo no `check`; os 20 pacotes rodam; a cópia não volta |
+| `tests/test_cobertura.py` | `pytest` | o denominador e o numerador da cobertura; a linha vai para o arquivo certo |
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |

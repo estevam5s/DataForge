@@ -151,6 +151,22 @@ class DFAction:
         # arvore e acontece na primeira chamada.
         self.tem_cauda = None
 
+        # O arquivo onde esta acao foi DECLARADA.
+        #
+        # Sem isto, um erro dentro de uma acao de modulo importado era
+        # reportado com o arquivo e a LINHA DE QUEM CHAMOU: um '1 / 0'
+        # na linha 2 de 'lib.df' aparecia como 'main.df:2', com o trecho
+        # errado desenhado embaixo da seta. Num projeto de duzentos
+        # arquivos, isso manda a pessoa depurar o arquivo errado.
+        #
+        # O carimbo e AQUI, e nao em quem constroi, porque ha NOVE
+        # lugares que criam uma DFAction — metodo de blueprint, de
+        # record, propriedade, operador, lambda, metodo magico. Carimbar
+        # em cada um deixaria de fora os que vierem depois, e a falta
+        # nao da erro: so faz o arquivo errado aparecer na mensagem.
+        interp = DFAction._interpreter
+        self.arquivo = getattr(interp, "filename", "") if interp else ""
+
     def __call__(self, *args, **kwargs):
         """Allow DFAction to be called like a Python function."""
         if DFAction._interpreter is None:
@@ -5229,6 +5245,12 @@ class Interpreter:
         self._call_stack.append(Frame(
             action.name, getattr(node, 'line', 0), getattr(node, 'column', 0),
             self.filename))
+        # Enquanto o corpo roda, o arquivo corrente e o da acao. E o que
+        # faz um erro apontar o arquivo onde o codigo esta, e nao o de
+        # quem chamou.
+        arquivo_de_quem_chamou = self.filename
+        if action.arquivo:
+            self.filename = action.arquivo
         try:
             if self.compilar_corpos:
                 corpo = action.corpo_compilado
@@ -5252,6 +5274,7 @@ class Interpreter:
         finally:
             self._depth -= 1
             self._call_stack.pop()
+            self.filename = arquivo_de_quem_chamou
             # Deferred blocks run on every exit path, including an error —
             # that is the whole point of 'defer'.
             self._run_deferred(call_env)

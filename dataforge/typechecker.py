@@ -183,6 +183,10 @@ class TypeChecker:
         #: modulos, e todas elas eram invisiveis: 'P.naoExiste()' e
         #: 'P.criar(1, 2, 3)' so falhavam em execucao.
         self.superficies = {}
+        #: Um ciclo e uma propriedade do ARQUIVO, nao de cada 'adopt'.
+        #: Sem esta marca, um arquivo com cinco imports repetiria a
+        #: mesma mensagem cinco vezes.
+        self._ciclo_relatado = False
         self.known_types = set(ALIASES.values())
         # Os '<T>' do blueprint que esta sendo analisado. Um metodo dele
         # pode usa-los como tipo; fora dali, eles nao existem.
@@ -1215,6 +1219,18 @@ class TypeChecker:
                         f"Exports: {', '.join(achada.nomes()[:10])}",
                         "unknown-export")
             return False
+
+        # Um ciclo estoura em EXECUCAO, no primeiro 'adopt'. Achar
+        # isso antes de rodar e o trabalho do analisador, e ele nao
+        # fazia: o 'check' passava limpo num projeto que nao sobe.
+        ciclo = sup.ciclo_a_partir_de(self.filename) \
+            if self.filename and not self.filename.startswith('<') else None
+        if ciclo and not self._ciclo_relatado:
+            self._ciclo_relatado = True
+            cadeia = " → ".join(_curto(c) for c in ciclo)
+            self.error(
+                f"circular import: {cadeia}", node,
+                "move the shared part into a third module", "import-circular")
 
         alias = node.alias or node.module.split('.')[-1]
         self.superficies[alias] = achada

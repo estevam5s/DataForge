@@ -83,6 +83,33 @@ class DataForgeError(Exception):
     #: Quantas linhas de contexto mostrar antes e depois da que falhou.
     CONTEXTO = 2
 
+    def _fonte_certa(self, source_lines):
+        """As linhas do arquivo que o erro NOMEIA.
+
+        Le do disco quando o que veio nao e dele. Falha em silencio: um
+        erro nao pode virar outro erro porque o arquivo sumiu entre a
+        execucao e a impressao.
+        """
+        import os
+
+        if not self.filename or self.filename.startswith("<"):
+            return source_lines
+        if not os.path.isfile(self.filename):
+            return source_lines
+
+        # Ja e a fonte certa? A heuristica e o tamanho: quem chama passa
+        # a fonte do arquivo de entrada, e se o erro e nele, a linha
+        # cabe. Ler do disco de novo seria so desperdicio.
+        try:
+            with open(self.filename, encoding="utf-8") as f:
+                proprias = f.read().splitlines()
+        except OSError:
+            return source_lines
+
+        if source_lines and len(source_lines) == len(proprias):
+            return source_lines       # muito provavelmente o mesmo arquivo
+        return proprias
+
     def render(self, color=True, source_lines=None, debug=False):
         """Relatorio completo do erro.
 
@@ -118,6 +145,14 @@ class DataForgeError(Exception):
         linhas.append(f"{margem} {seta} {local}:{self.line}:{self.column}")
 
         # ── Trecho do codigo, com contexto ──
+        #
+        # Quem chama passa a fonte do arquivo que MANDOU rodar, e o erro
+        # pode ter acontecido dentro de um modulo importado. Desenhar a
+        # linha 5 do arquivo de cima quando o erro esta na linha 5 do de
+        # baixo aponta um trecho que nada tem a ver — e foi o que
+        # acontecia antes de a acao carregar o arquivo onde nasceu.
+        source_lines = self._fonte_certa(source_lines)
+
         if source_lines and 0 < self.line <= len(source_lines):
             barra = tinta("│", AZUL)
             linhas.append(f"{margem} {barra}")

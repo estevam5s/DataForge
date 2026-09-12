@@ -96,13 +96,17 @@ class Superficie:
     que so existe em execucao.
     """
 
-    __slots__ = ("membros", "aberta", "motivo", "caminho")
+    __slots__ = ("membros", "aberta", "motivo", "caminho", "importa")
 
-    def __init__(self, membros=None, aberta=False, motivo="", caminho=""):
+    def __init__(self, membros=None, aberta=False, motivo="", caminho="",
+                 importa=None):
         self.membros = dict(membros or {})
         self.aberta = aberta
         self.motivo = motivo
         self.caminho = caminho
+        #: Os caminhos absolutos que este arquivo adota. E com isto que
+        #: o analisador acha ciclo sem executar nada.
+        self.importa = list(importa or ())
 
     def tem(self, nome):
         return self.aberta or nome in self.membros
@@ -185,6 +189,7 @@ def _ler(caminho, profundidade, vistos):
 
     definidos = {}
     exportados = []
+    importados = []
     reexporta_calculado = False
 
     for stmt in getattr(programa, "body", []) or []:
@@ -222,6 +227,9 @@ def _ler(caminho, profundidade, vistos):
             for nome in getattr(stmt, "names", []) or []:
                 exportados.append(nome)
         elif tipo == "AdoptStatement":
+            alvo = _modulo_local(getattr(stmt, "module", ""), caminho)
+            if alvo:
+                importados.append(alvo)
             # 'adopt ./x as X' + 'relay X' reexporta um modulo inteiro.
             alias = getattr(stmt, "alias", None)
             if not alias:
@@ -249,12 +257,60 @@ def _ler(caminho, profundidade, vistos):
         if reexporta_calculado:
             return Superficie(membros, aberta=True,
                               motivo="relay de nome calculado",
-                              caminho=caminho)
-        return Superficie(membros, caminho=caminho)
+                              caminho=caminho, importa=importados)
+        return Superficie(membros, caminho=caminho, importa=importados)
 
     # Sem 'relay', tudo o que e do nivel de cima esta visivel — e como o
     # interpretador se comporta.
-    return Superficie(definidos, caminho=caminho)
+    return Superficie(definidos, caminho=caminho, importa=importados)
+
+
+def _modulo_local(nome, de_onde):
+    """O caminho absoluto de um 'adopt', quando ele e um arquivo local."""
+    if not nome or str(nome).startswith("Python."):
+        return None
+    from .stdlib import get_module
+    if get_module(str(nome)) is not None:
+        return None
+    alvo = (resolucao.achar(nome, de_onde)
+            or resolucao.achar_em_pacotes(nome, de_onde)
+            or resolucao.achar_no_proprio_pacote(nome, de_onde))
+    return os.path.abspath(alvo) if alvo else None
+
+
+def ciclo_a_partir_de(caminho, limite=40):
+    """O ciclo de import que comeca e volta neste arquivo, ou None.
+
+    Devolve a CADEIA — ['a.df', 'b.df', 'a.df'] — e nao so um sim ou
+    nao: um ciclo de quatro arquivos e impossivel de quebrar sem saber
+    por onde ele passa.
+
+    Um ciclo estoura em EXECUCAO, no primeiro 'adopt'. Achar isso antes
+    de rodar e exatamente o trabalho do analisador, e ele nao fazia:
+    'dataforge check' passava limpo num projeto que nao sobe.
+
+    O limite existe para o caso de um grafo enorme; ele e generoso o
+    bastante para nunca esconder um ciclo real de projeto.
+    """
+    inicio = os.path.abspath(caminho)
+    # Busca em largura: o ciclo mais CURTO primeiro, que e o mais facil
+    # de quebrar — e o que a mensagem deve mostrar.
+    fila = [[inicio]]
+    vistos = set()
+    passos = 0
+    while fila and passos < limite:
+        passos += 1
+        cadeia = fila.pop(0)
+        atual = cadeia[-1]
+        superficie = de_arquivo(atual)
+        for vizinho in superficie.importa:
+            if vizinho == inicio:
+                return cadeia + [vizinho]
+            if vizinho in vistos:
+                continue
+            vistos.add(vizinho)
+            fila.append(cadeia + [vizinho])
+    return None
 
 
 def _de_acao(stmt):

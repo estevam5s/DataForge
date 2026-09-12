@@ -182,9 +182,14 @@ GRUPOS = [
             "com 'test_' vira um caso.",
             opcoes=[("--verbose, -v", "mostra cada caso"),
                     ("--filter=<texto>", "so os casos cujo nome contem o texto"),
-                    ("--fail-fast", "para na primeira falha")],
+                    ("--fail-fast", "para na primeira falha"),
+                    ("--cobertura", "quais linhas os testes executaram"),
+                    ("--minimo=<n>", "falha se a cobertura ficar abaixo de n%"),
+                    ("--linhas", "lista as linhas descobertas, em faixas")],
             exemplos=[("dataforge test", ""),
                       ("dataforge test tests/ -v", ""),
+                      ("dataforge test --cobertura", "com o relatorio"),
+                      ("dataforge test --minimo=80", "exige 80% no CI"),
                       ("dataforge test --filter=soma", "so o que casa")],
             veja=("bench", "watch")),
         Cmd("fmt", "dataforge fmt [alvo]",
@@ -2070,13 +2075,15 @@ def lint_command(alvos, strict=False):
     print(color(f"✓ {len(arquivos)} arquivo(s) sem avisos", "1;32"))
 
 
-def test_command(alvos, verboso=False, filtro="", parar=False):
+def test_command(alvos, verboso=False, filtro="", parar=False,
+                 cobertura=False, minimo=0.0, detalhar=False):
     """dataforge test — executa a suíte de testes."""
     from .testrunner import executar
 
     alvo = alvos[0] if alvos else "."
     _, ok = executar(alvo, verboso=verboso, filtro=filtro,
-                     cor='--no-color' not in sys.argv, parar_no_primeiro=parar)
+                     cor='--no-color' not in sys.argv, parar_no_primeiro=parar,
+                     cobertura=cobertura, minimo=minimo, detalhar=detalhar)
     if not ok:
         sys.exit(1)
 
@@ -3477,11 +3484,33 @@ def main():
 
     elif command == 'test':
         filtro = ""
+        minimo = 0.0
         for f in flags:
             if f.startswith('--filter='):
                 filtro = f.split('=', 1)[1]
+            elif f.startswith('--minimo=') or f.startswith('--min='):
+                bruto = f.split('=', 1)[1].rstrip('%')
+                try:
+                    valor = float(bruto)
+                except ValueError:
+                    print(color(f"'{f}' não é um número.", "1;31"))
+                    sys.exit(2)
+                # Aceita '--minimo=80' e '--minimo=0.8': quem escreve
+                # "oitenta por cento" digita 80, e recusar isso seria
+                # pedantismo.
+                #
+                # A fronteira e em 1, INCLUSIVE: '--minimo=1' e um por
+                # cento, nao cem. Ninguem exige cobertura total
+                # digitando '1', e '>=' faz a regra ser dizivel numa
+                # frase — "numero de 1 para cima e porcentagem".
+                minimo = valor / 100 if valor >= 1 else valor
+        pede_cobertura = any(
+            f in ('--cobertura', '--coverage', '--cov') for f in flags) \
+            or minimo > 0
         test_command(args[1:], verboso='--verbose' in flags or '-v' in flags,
-                     filtro=filtro, parar='--fail-fast' in flags)
+                     filtro=filtro, parar='--fail-fast' in flags,
+                     cobertura=pede_cobertura, minimo=minimo,
+                     detalhar='--linhas' in flags or '--lines' in flags)
 
     elif command in ('crucible', 'cr'):
         opcoes = {

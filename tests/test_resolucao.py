@@ -359,3 +359,82 @@ def test_um_projeto_com_hifen_no_nome_roda(tmp_path):
         cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
         env={**os.environ, "PYTHONPATH": RAIZ})
     assert "has no 'triplo'" in conferir.stdout, conferir.stdout
+
+
+# ═══════════════════════════════════════════════════════════
+#  Ciclo de import, antes de rodar
+# ═══════════════════════════════════════════════════════════
+
+def _ciclo(tmp_path):
+    (tmp_path / "a.df").write_text(
+        "adopt ./b as B\n\naction fa():\n    yield 1\n\nrelay fa\n",
+        encoding="utf-8")
+    (tmp_path / "b.df").write_text(
+        "adopt ./a as A\n\naction fb():\n    yield 2\n\nrelay fb\n",
+        encoding="utf-8")
+    return tmp_path
+
+
+def _check(pasta, *args):
+    return subprocess.run(
+        [sys.executable, "-m", "dataforge", "check", "--no-color",
+         *(args or (".",))],
+        cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONPATH": RAIZ})
+
+
+def test_o_check_acha_o_ciclo_antes_de_rodar(tmp_path):
+    """Um ciclo estoura em execução, no primeiro `adopt`. O `check`
+    passava limpo num projeto que não sobe."""
+    saida = _check(_ciclo(tmp_path))
+    assert "circular import" in saida.stdout, saida.stdout
+    assert "a.df → b.df → a.df" in saida.stdout
+    assert saida.returncode == 1
+
+
+def test_a_mensagem_mostra_a_cadeia_inteira(tmp_path):
+    """Um ciclo de quatro arquivos é impossível de quebrar sem saber por
+    onde ele passa."""
+    for nome, proximo in (("a", "b"), ("b", "c"), ("c", "d"), ("d", "a")):
+        (tmp_path / f"{nome}.df").write_text(
+            f"adopt ./{proximo} as X\n\naction f{nome}():\n    yield 1\n"
+            f"\nrelay f{nome}\n", encoding="utf-8")
+
+    saida = _check(tmp_path, "a.df")
+    assert "a.df → b.df → c.df → d.df → a.df" in saida.stdout, saida.stdout
+
+
+def test_o_ciclo_e_relatado_uma_vez_por_arquivo(tmp_path):
+    """Um arquivo com cinco imports repetiria a mesma mensagem cinco
+    vezes."""
+    pasta = _ciclo(tmp_path)
+    (pasta / "c.df").write_text(
+        "action fc():\n    yield 3\n\nrelay fc\n", encoding="utf-8")
+    (pasta / "a.df").write_text(
+        "adopt ./b as B\nadopt ./c as C\n\naction fa():\n    yield 1\n"
+        "\nrelay fa\n", encoding="utf-8")
+
+    saida = _check(pasta, "a.df")
+    assert saida.stdout.count("circular import") == 1, saida.stdout
+
+
+def test_um_projeto_sem_ciclo_nao_e_acusado(tmp_path):
+    """Vários arquivos adotando o mesmo utilitário não é ciclo."""
+    (tmp_path / "util.df").write_text(
+        "action f():\n    yield 1\n\nrelay f\n", encoding="utf-8")
+    for nome in ("a", "b", "c"):
+        (tmp_path / f"{nome}.df").write_text(
+            f"adopt ./util as U\n\naction g{nome}():\n    yield U.f()\n"
+            f"\nrelay g{nome}\n", encoding="utf-8")
+    (tmp_path / "main.df").write_text(
+        "adopt ./a as A\nadopt ./b as B\nadopt ./c as C\n\n"
+        "out A.ga(), B.gb(), C.gc()\n", encoding="utf-8")
+
+    saida = _check(tmp_path)
+    assert "circular" not in saida.stdout, saida.stdout
+    assert saida.returncode == 0
+
+
+def test_o_repositorio_nao_tem_ciclo():
+    saida = _check(RAIZ, ".")
+    assert "circular import" not in saida.stdout, saida.stdout
