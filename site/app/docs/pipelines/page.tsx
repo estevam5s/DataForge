@@ -98,6 +98,10 @@ out $"acima de 1000: {vendas >> sift v: v["valor"] bigger 1000 >> morph v: v["ve
   { code: `faturamento:  4300
 ticket medio: 1075.0
 acima de 1000: [Ana, Carla]`, lang: 'text', title: `saída` },
+  {"h2": "Duas coisas que pegam"},
+  {"callout": {"tipo": "atencao", "titulo": "Dentro de `lambda`, com parênteses", "texto": "O corpo do lambda liga **mais forte** que `>>`. Sem parênteses, `lambda => xs >> morph x: x * 2` canaliza o **lambda** — não `xs`. Escreva `lambda => (xs >> morph x: x * 2)`."}},
+  {"callout": {"tipo": "atencao", "titulo": "O valor inicial do `distill` vem depois do corpo", "texto": "`>> distill a, v: a + v 0 / len(x)` divide o **zero**, não a soma — o `0 / len(x)` inteiro é o valor inicial. O resultado fica errado sem nada denunciar. Ponha a divisão fora do pipeline."}},
+  {"p": "A fonte precisa ser uma coleção: `Cluster`, `Vault` (as chaves), `String` (os caracteres), `range`, ou qualquer iterável — inclusive um que venha da ponte para o Python. `void` é recusado com a saída: `(x ?? []) >> morph …`."},
   {"h2": "Com streams"},
   {"p": "Pipelines operam sobre listas em memória. Para fonte infinita ou arquivo grande, use [generators](/docs/fundamentos/generators) — que avaliam sob demanda e depois entregam a lista ao pipeline:"},
   { code: `stream action naturais():
@@ -110,7 +114,7 @@ primeiros := naturais().take(20)
 out primeiros >> sift n: n % 3 is 0` },
 ];
 
-const headings = [{ id: 'o-operador', text: "O operador >>", level: 2 as const }, { id: 'sift-filtrar', text: "sift — filtrar", level: 2 as const }, { id: 'morph-transformar', text: "morph — transformar", level: 2 as const }, { id: 'distill-reduzir', text: "distill — reduzir", level: 2 as const }, { id: 'encadeando', text: "Encadeando", level: 2 as const }, { id: 'com-acoes-nomeadas', text: "Com ações nomeadas", level: 2 as const }, { id: 'pipeline-compreensao-ou-laco', text: "Pipeline, compreensão ou laço?", level: 2 as const }, { id: 'um-relatorio-completo', text: "Um relatório completo", level: 2 as const }, { id: 'com-streams', text: "Com streams", level: 2 as const }];
+const headings = [{ id: 'o-operador', text: "O operador >>", level: 2 as const }, { id: 'sift-filtrar', text: "sift — filtrar", level: 2 as const }, { id: 'morph-transformar', text: "morph — transformar", level: 2 as const }, { id: 'distill-reduzir', text: "distill — reduzir", level: 2 as const }, { id: 'encadeando', text: "Encadeando", level: 2 as const }, { id: 'com-acoes-nomeadas', text: "Com ações nomeadas", level: 2 as const }, { id: 'pipeline-compreensao-ou-laco', text: "Pipeline, compreensão ou laço?", level: 2 as const }, { id: 'um-relatorio-completo', text: "Um relatório completo", level: 2 as const }, { id: 'duas-coisas-que-pegam', text: "Duas coisas que pegam", level: 2 as const }, { id: 'com-streams', text: "Com streams", level: 2 as const }];
 
 export default function Pagina() {
   return (

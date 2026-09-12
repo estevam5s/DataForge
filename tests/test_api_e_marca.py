@@ -957,15 +957,22 @@ def test_toda_pagina_de_docs_esta_alcancavel_pela_navegacao():
     no_menu = set(re.findall(r"href:\s*'(/[a-z0-9/_.-]+)'",
                              open(nav, encoding="utf-8").read()))
 
-    #: Alcançáveis por outro caminho, de propósito.
+    #: A ÚNICA exceção, e ela é nomeada uma a uma.
     #:
-    #: As duas referências são páginas-índice de módulo de exercício e
-    #: subpáginas que o próprio texto da seção encadeia; pô-las no menu
-    #: daria uma barra lateral de duzentos itens.
-    fora = ("/docs/exercicios/", "/docs/cli/", "/docs/kiln/",
-            "/docs/vitrine/", "/docs/banco-de-dados/", "/docs/tecnicas/",
-            "/docs/big-o/", "/docs/oop/", "/docs/receitas/",
-            "/docs/referencia/", "/docs/instalacao/", "/docs/projetos/")
+    #: A primeira versão deste teste excluía prefixos inteiros
+    #: (`/docs/exercicios/`, `/docs/tecnicas/`, …) supondo que o texto
+    #: da seção os encadeava. A suposição escondia **dez páginas**: os
+    #: módulos de exercício 27 a 32, e `/docs/tecnicas/api`,
+    #: `/decimal`, `/ponte` e `/editor`.
+    #:
+    #: Excluir por prefixo é excluir o que ainda não existe. Uma lista
+    #: de exceções nomeadas cresce quando alguém decide que cresça.
+    fora = {
+        # Serve a MESMA página de '/docs/editor', para não quebrar os
+        # seis links internos que apontavam para a rota antiga. Duas
+        # entradas de menu para uma página seriam pior.
+        "/docs/tecnicas/editor",
+    }
 
     orfas = []
     for caminho in glob.glob(os.path.join(app, "docs", "**", "page.tsx"),
@@ -974,10 +981,84 @@ def test_toda_pagina_de_docs_esta_alcancavel_pela_navegacao():
                                      app).replace(os.sep, "/")
         if rota in no_menu or "[" in rota:
             continue
-        if any(rota.startswith(p) for p in fora):
+        if rota in fora:
             continue
         orfas.append(rota)
 
     assert not orfas, (
         "página(s) de doc fora da navegação — quem procura não acha:\n  "
         + "\n  ".join(sorted(orfas)))
+
+
+def test_a_home_anuncia_os_numeros_reais():
+    """O comentário acima de `fatos` dizia "os mesmos que a suíte
+    verifica" — e a suíte não verificava nenhum. Os valores estavam em
+    1246 testes e 216 exercícios quando eram 2304 e 230.
+
+    Um comentário que promete uma trava inexistente é pior que nenhum:
+    quem lê confia e não confere. E a home é a primeira página que
+    alguém vê.
+
+    Os exercícios são cobrados exato — o número muda quando se escreve
+    um exercício, o que é raro e deliberado. Os testes toleram 5%, pela
+    mesma razão de `/docs`: cobrar o exato faria de cada teste novo uma
+    edição em dois arquivos, e esse atrito se resolve desligando a
+    trava.
+    """
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "components", "landing", "Heroi.tsx")
+    if not os.path.isfile(caminho):
+        pytest.skip("o site não está neste checkout")
+
+    texto = open(caminho, encoding="utf-8").read()
+
+    reais = len(glob.glob(os.path.join(raiz, "exercicios", "*",
+                                       "[0-9]*.df")))
+    achado = re.search(r"'Exercícios verificados', valor: '(\d+)'", texto)
+    assert achado, "a home não anuncia mais os exercícios nesta forma"
+    assert int(achado.group(1)) == reais, (
+        f"a home diz {achado.group(1)} exercícios, são {reais}")
+
+    achado = re.search(r"'Testes passando', valor: '(\d+)'", texto)
+    assert achado, "a home não anuncia mais os testes nesta forma"
+    dito = int(achado.group(1))
+
+    import subprocess
+    import sys as _sys
+    r = subprocess.run([_sys.executable, "-m", "pytest", "tests/", "-q",
+                        "--collect-only"],
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", cwd=raiz)
+    conta = re.search(r"(\d+) tests collected", r.stdout or "")
+    if not conta:
+        pytest.skip("não deu para contar os testes")
+    verdade = int(conta.group(1))
+    desvio = abs(dito - verdade) / verdade
+    assert desvio <= 0.05, (
+        f"a home diz {dito} testes, são {verdade} ({desvio:.0%})")
+
+
+def test_o_indice_lateral_da_home_dos_docs_cobre_os_h2():
+    """`/docs/page.tsx` é escrita à mão, e o `gerar_indices.py` não a
+    toca: um `<H2>` novo fica fora do índice lateral, e a seção existe
+    na página e não no menu de dentro dela.
+
+    Aconteceu agora: a seção "Levar ao ar" — a que responde onde está a
+    documentação de DevOps — entrou sem índice.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "app", "docs", "page.tsx")
+    if not os.path.isfile(caminho):
+        pytest.skip("o site não está neste checkout")
+
+    texto = open(caminho, encoding="utf-8").read()
+    titulos = re.findall(r"<H2>([^<]+)</H2>", texto)
+    no_indice = set(re.findall(r"text: '([^']+)'", texto))
+    faltando = [t for t in titulos if t.strip() not in no_indice]
+    assert not faltando, (
+        f"<H2> fora do índice lateral: {faltando}")

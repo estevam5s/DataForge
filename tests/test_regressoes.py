@@ -3901,3 +3901,192 @@ def test_um_arquivo_que_nao_e_teste_nenhum_continua_passando(tmp_path):
 ''')
     r = _rodar_test(pasta)
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+# ═══════════════════════════════════════════════════════════
+#  Um `>>` sobre algo que não é coleção
+#
+#  A mensagem era "'DFAction' object is not iterable" — uma
+#  classe do Python, e nada sobre o que fazer.
+# ═══════════════════════════════════════════════════════════
+
+def test_pipeline_dentro_de_lambda_explica_a_precedencia():
+    """O caso que traz quase todo mundo aqui:
+
+        f := lambda => xs >> morph x: x * 2
+
+    O corpo do lambda é `xs`, e o pipeline recebe o **lambda** como
+    fonte. A resposta é um par de parênteses, e a mensagem passou a
+    dizer isso.
+    """
+    saida = run('''
+xs := [1, 2, 3]
+monitor:
+    f := lambda => xs >> morph x: x * 2
+handle Error as e:
+    out e.message
+    out e.nota
+    out e.dica
+''')
+    assert "DFAction" not in saida
+    assert "not iterable" not in saida
+    assert "action" in saida.lower()
+    assert "binds tighter" in saida
+    # A saída, escrita como se digita.
+    assert "lambda => (xs >> morph x: x * 2)" in saida
+
+
+def test_a_forma_com_parenteses_funciona():
+    """A mensagem recomenda isto; se não funcionasse, ela seria pior
+    que a antiga."""
+    saida = run('''
+xs := [1, 2, 3]
+f := lambda => (xs >> morph x: x * 2)
+out f()
+g := lambda => (xs >> distill a, v: a + v 0)
+out g()
+''')
+    assert saida.strip().splitlines() == ["[2, 4, 6]", "6"]
+
+
+def test_pipeline_sobre_void_aponta_o_operador_de_padrao():
+    saida = run('''
+monitor:
+    v := void
+    out v >> morph x: x
+handle Error as e:
+    out e.message
+    out e.dica
+''')
+    assert "Void" in saida
+    assert "??" in saida
+
+
+@pytest.mark.parametrize("fonte, esperado", [
+    ('out [1, 2] >> morph x: x * 2', "[2, 4]"),
+    ('out {"a": 1} >> morph k: k', "[a]"),
+    ('out "ab" >> morph c: c', "[a, b]"),
+    ('out range(3) >> morph x: x', "[0, 1, 2]"),
+    ('out cluster(1, 2) >> morph x: x', "[1, 2]"),
+])
+def test_as_fontes_legitimas_continuam(fonte, esperado):
+    assert run(fonte).strip() == esperado
+
+
+def test_um_iteravel_estranho_nao_e_recusado():
+    """A conferência cala para o que não reconhece: um objeto da ponte
+    para o Python, um generator, um iterável próprio. Recusar aqui
+    quebraria `adopt Python.numpy` dentro de um pipeline — e o
+    interpretador trata objeto estranho por **protocolo**, não por
+    tipo."""
+    saida = run('''
+stream action conta():
+    emit 1
+    emit 2
+
+out conta().to_cluster() >> morph x: x * 10
+''')
+    assert saida.strip() == "[10, 20]"
+
+
+# ═══════════════════════════════════════════════════════════
+#  O teto de quadros diz as duas saídas
+#
+#  A mensagem era "Call stack exceeded 1000 frames (infinite
+#  recursion in 'f'?)" — e parava ali. Mas o limite é atingido
+#  por recursão LEGÍTIMA com frequência: uma travessia de
+#  árvore de cinco mil nós não tem nada de infinita, e a
+#  própria doc de `cauda.py` diz que "qualquer travessia sobre
+#  dado real bate nisso".
+#
+#  Sem dizer as saídas, a pessoa conclui que a linguagem não
+#  serve para o problema dela.
+# ═══════════════════════════════════════════════════════════
+
+def test_o_teto_de_quadros_ensina_a_chamada_de_cauda():
+    saida = run('''
+action fundo(n):
+    given n is 0:
+        yield 0
+    yield 1 + fundo(n - 1)
+
+monitor:
+    fundo(5000)
+handle Error as e:
+    out e.type
+    out e.message
+    out e.dica
+''')
+    assert "StackOverflowError" in saida
+    assert "fundo" in saida
+    # As duas saídas, e a primeira com código que se copia.
+    assert "TAIL call" in saida
+    assert "yield somar(n - 1, acc + n)" in saida
+    assert "cycle" in saida
+
+
+def test_as_duas_saidas_que_a_mensagem_recomenda_funcionam():
+    """Uma dica que não funciona é pior que nenhuma."""
+    saida = run('''
+action somar(n, acc):
+    given n is 0:
+        yield acc
+    yield somar(n - 1, acc + n)
+
+out somar(50000, 0)
+''')
+    assert saida.strip() == "1250025000"
+
+    # E a segunda: laço com pilha explícita sobre uma árvore funda.
+    outra = run('''
+record No:
+    valor: Integer
+    filhos: Cluster := []
+
+action total(raiz):
+    pilha := [raiz]
+    soma := 0
+    persist len(pilha) bigger 0:
+        atual := pop(pilha)
+        soma := soma + atual.valor
+        cycle f in atual.filhos:
+            pilha.append(f)
+    yield soma
+
+fundo := No(1)
+cycle i from 1 to 3000:
+    fundo := No(1, [fundo])
+
+out total(fundo)
+''')
+    assert outra.strip() == "3001"
+
+
+def test_a_mensagem_do_teto_de_quadros_existe_uma_vez_so():
+    """Havia DUAS cópias — uma em `_corpo_da_acao`, outra no caminho
+    com instância — e eu corrigi a que o teste não exercitava. Duas
+    cópias de uma mensagem divergem; a pergunta não é se, é quando."""
+    fonte = open("dataforge/interpreter.py", encoding="utf-8").read()
+    assert fonte.count("Call stack exceeded") == 1, (
+        "a mensagem do teto de quadros voltou a ter mais de uma cópia — "
+        "use '_erro_de_pilha'")
+
+
+def test_o_teto_vale_para_metodo_de_blueprint_tambem():
+    """O caminho com instância é o outro lugar que contava quadros, e
+    era o que a cópia divergente atendia."""
+    saida = run('''
+blueprint Arvore:
+    action descer(n):
+        given n is 0:
+            yield 0
+        yield 1 + self.descer(n - 1)
+
+monitor:
+    (spawn Arvore()).descer(5000)
+handle Error as e:
+    out e.type
+    out e.dica
+''')
+    assert "StackOverflowError" in saida
+    assert "TAIL call" in saida

@@ -459,10 +459,56 @@ defer:
 Agenda o bloco para rodar na saída da ação, em ordem LIFO. Erros dentro de um
 bloco `defer` são descartados.
 
-### 6.7 Limite de recursão
+### 6.7 Limite de recursão, e as duas saídas
 
-O interpretador aborta em **1000 quadros** com `StackOverflowError_`, nomeando a
-ação. Recursões legítimas de até ~900 níveis funcionam.
+O interpretador aborta em **1000 quadros** com `StackOverflowError_`,
+nomeando a ação. Recursões de até ~900 níveis funcionam sem nada
+especial.
+
+Mas esse teto é atingido por recursão **legítima** com frequência: uma
+travessia de árvore de cinco mil nós não tem nada de infinita. Há duas
+saídas, e a mensagem do erro traz as duas.
+
+#### 1. Chamada de cauda — sem teto
+
+Quando `yield f(…)` é o retorno **inteiro** — não há nada depois dele —
+o quadro existe só para repassar o resultado. A linguagem reconhece isso
+e reusa **um** quadro:
+
+```dataforge
+action somar(n, acc):
+    given n is 0:
+        yield acc
+    yield somar(n - 1, acc + n)
+
+out somar(200000, 0)        // duzentos mil níveis, sem estourar
+```
+
+O acumulador é o que torna a cauda possível: `yield 1 + f(n - 1)` **não**
+é cauda, porque a soma acontece depois da chamada.
+
+Quatro casos são recusados pela análise, antes de rodar: se há `defer`
+na ação, se o `yield` está dentro de `monitor`, se a recursão é indireta
+(`f`→`g`→`f`), e se **todo** `yield` da ação é cauda — a última porque
+uma ação que nunca devolve viraria um laço mudo, pior que o erro.
+
+#### 2. Um `cycle` com pilha explícita
+
+Vale para qualquer travessia, e não pede que a chamada seja cauda:
+
+```dataforge
+action total(raiz):
+    pilha := [raiz]
+    soma := 0
+    persist len(pilha) bigger 0:
+        atual := pop(pilha)
+        soma := soma + atual.valor
+        cycle f in atual.filhos:
+            pilha.append(f)
+    yield soma
+```
+
+A pilha vira um `Cluster` no monte, e o teto passa a ser a memória.
 
 ---
 
@@ -747,6 +793,23 @@ out dados
 ```
 
 Sem valor inicial, `distill` usa o primeiro elemento como acumulador.
+
+#### Dentro de `lambda`, com parênteses
+
+O corpo do lambda liga **mais forte** que `>>`:
+
+```dataforge
+f := lambda => (xs >> morph x: x * 2)      // certo
+```
+
+Sem os parênteses, `lambda => xs >> morph …` canaliza o **lambda**, e
+não `xs` — o erro diz isso e mostra a linha corrigida.
+
+#### A fonte precisa ser uma coleção
+
+`Cluster`, `Vault` (as chaves), `String` (os caracteres), `range`, e
+qualquer objeto iterável — inclusive um que venha da ponte para o
+Python. `void` é recusado com a saída: `(x ?? []) >> morph …`.
 
 ---
 

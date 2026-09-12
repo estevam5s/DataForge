@@ -1,9 +1,16 @@
 import Link from 'next/link';
 
-/* Números reais do repositório — os mesmos que a suíte verifica. */
+/* Números reais do repositório — os mesmos que a suíte verifica.
+ *
+ * E ela passou a verificar de verdade: este comentário já estava aqui
+ * quando os valores diziam 1246 e 216, e eram 2304 e 230. Um comentário
+ * que promete uma trava que não existe é pior que nenhum — quem lê
+ * confia e não confere.
+ *
+ * 'test_a_home_anuncia_os_numeros_reais' cobra os dois. */
 const fatos = [
-  { rotulo: 'Testes passando', valor: '1246' },
-  { rotulo: 'Exercícios verificados', valor: '216' },
+  { rotulo: 'Testes passando', valor: '2304' },
+  { rotulo: 'Exercícios verificados', valor: '230' },
   { rotulo: 'Dependências no runtime', valor: 'nenhuma' },
 ];
 

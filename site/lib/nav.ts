@@ -184,7 +184,7 @@ export const nav: NavSection[] = [
       { title: 'Observabilidade e linhagem', href: '/docs/tecnicas/observar' },
       { title: 'Planilhas', href: '/docs/tecnicas/planilhas' },
       { title: 'Microserviços', href: '/docs/tecnicas/microservicos' },
-      { title: 'DevOps e Docker', href: '/docs/devops' },
+      { title: 'OpenAPI, Insomnia e Postman', href: '/docs/tecnicas/api' },
       { title: 'Servidor HTTP', href: '/docs/tecnicas/http' },
       { title: 'Editor e extensão', href: '/docs/editor' },
       { title: 'Servidor de linguagem (LSP)', href: '/docs/tecnicas/lsp' },
@@ -192,6 +192,19 @@ export const nav: NavSection[] = [
       { title: 'Datas e horas', href: '/docs/tecnicas/datas' },
       { title: 'Processos', href: '/docs/tecnicas/processos' },
       { title: 'Criptografia', href: '/docs/tecnicas/criptografia' },
+      { title: 'Número exato (Decimal)', href: '/docs/tecnicas/decimal' },
+      { title: 'A ponte para o Python', href: '/docs/tecnicas/ponte' },
+    ],
+  },
+  {
+    title: 'DevOps e produção',
+    items: [
+      { title: 'Visão geral', href: '/docs/devops' },
+      { title: 'A imagem oficial', href: '/docs/instalacao/docker' },
+      { title: 'Observabilidade', href: '/docs/tecnicas/observar' },
+      { title: 'Segurança', href: '/docs/seguranca' },
+      { title: 'Vitrine em produção', href: '/docs/vitrine/producao' },
+      { title: 'Kiln em produção', href: '/docs/kiln/producao' },
     ],
   },
   {
@@ -244,7 +257,7 @@ export const nav: NavSection[] = [
   },
   {
     title: 'Exercícios',
-    badge: '216',
+    badge: '230',
     items: [
       { title: 'Visão geral', href: '/docs/exercicios' },
       { title: '01 · Fundamentos', href: '/docs/exercicios/01-fundamentos' },
@@ -273,6 +286,12 @@ export const nav: NavSection[] = [
       { title: '24 · Banco de dados', href: '/docs/exercicios/24-banco-de-dados' },
       { title: '25 · Testes com Crucible', href: '/docs/exercicios/25-testes-crucible' },
       { title: '26 · Complexidade', href: '/docs/exercicios/26-complexidade' },
+      { title: '27 · Ponte para o Python', href: '/docs/exercicios/27-ponte-python' },
+      { title: '28 · Vitrine', href: '/docs/exercicios/28-vitrine' },
+      { title: '29 · Banco e CRUD', href: '/docs/exercicios/29-banco-e-crud' },
+      { title: '30 · Tempo real', href: '/docs/exercicios/30-tempo-real' },
+      { title: '31 · Qualidade', href: '/docs/exercicios/31-qualidade' },
+      { title: '32 · Microserviços', href: '/docs/exercicios/32-microservicos' },
     ],
   },
   {

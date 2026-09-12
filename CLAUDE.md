@@ -329,7 +329,20 @@ Estas são as que mais custam tempo:
     permite `@Rota("/x")` só anotar. Se ele devolvesse `void` e isso
     virasse o novo valor, a ação decorada sumiria.
 
-22. **`remove` e `pop` mudam de sentido conforme a coleção.** Num
+22. **Um pipeline dentro de `lambda` precisa de parênteses.** O corpo
+    do lambda liga mais forte que `>>`, então
+    `lambda => xs >> morph x: x * 2` canaliza o **lambda**, não `xs`.
+    A forma certa é `lambda => (xs >> morph x: x * 2)`. A mensagem
+    antiga (`'DFAction' object is not iterable`) falava de uma classe
+    do Python; hoje ela mostra a linha com os parênteses.
+
+23. **O teto de quadros é mil, e recursão legítima o atinge.** Uma
+    travessia de árvore de cinco mil nós não tem nada de infinita. As
+    duas saídas: `yield f(…)` como retorno **inteiro** vira salto e
+    não tem teto (testado com 200 mil), ou um `cycle` com pilha
+    explícita. A mensagem do erro traz as duas.
+
+24. **`remove` e `pop` mudam de sentido conforme a coleção.** Num
     `Cluster` o segundo argumento é o **valor**; num `Vault`, a
     **chave**. `remove` apaga **no lugar** e é silencioso quando não
     acha; `pop` devolve o valor e por isso **levanta** — devolver `void`

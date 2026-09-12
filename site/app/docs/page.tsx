@@ -18,6 +18,7 @@ const headings = [
   { id: 'o-que-tem-hoje', text: 'O que tem hoje', level: 2 as const },
   { id: 'o-que-ainda-nao-tem', text: 'O que ainda não tem', level: 2 as const },
   { id: 'por-onde-comecar', text: 'Por onde começar', level: 2 as const },
+  { id: 'levar-ao-ar', text: 'Levar ao ar', level: 2 as const },
 ];
 
 const exemplo = `adopt Arcane.Collections as Col
@@ -305,6 +306,33 @@ dataforge version`}
         </Card>
         <Card href="/docs/receitas/cli" title="Receitas">
           Projetos completos: CLI, API REST, ETL, interpretador.
+        </Card>
+      </CardGrid>
+
+      <H2>Levar ao ar</H2>
+
+      <p>
+        A parte que a maioria das documentações de linguagem deixa de
+        fora, e que é onde um projeto trava: o que falta para ele subir.
+      </p>
+
+      <CardGrid>
+        <Card href="/docs/devops" title="DevOps" meta="11 subcomandos">
+          <code>Dockerfile</code>, compose, CI, Kubernetes, Helm, Terraform,
+          nginx, Prometheus e SBOM — gerados do que o projeto usa. E o{' '}
+          <code>doctor</code>, que diz o que falta e o comando que resolve.
+        </Card>
+        <Card href="/docs/instalacao/docker" title="A imagem oficial">
+          Rodar DataForge em container sem instalar nada — e usá-la como
+          base da sua.
+        </Card>
+        <Card href="/docs/seguranca" title="Segurança">
+          Cabeçalhos, CSRF, limite de taxa, e o que nunca vai ao
+          repositório.
+        </Card>
+        <Card href="/docs/tecnicas/observar" title="Observabilidade">
+          Métrica, traço e linhagem — e o rastro que atravessa a
+          fronteira entre serviços.
         </Card>
       </CardGrid>
     </DocPage>

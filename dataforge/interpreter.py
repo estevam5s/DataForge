@@ -1602,6 +1602,41 @@ class Interpreter:
 
         raise RuntimeError_(f"Unknown binary operator: {op!r}", node.line, node.column)
 
+    def _conferir_fonte_do_pipeline(self, fonte, node):
+        """Um `>>` sobre algo que nao e colecao.
+
+        O caso que traz quase todo mundo aqui e a precedencia do
+        lambda:
+
+            f := lambda => xs >> morph x: x * 2
+
+        O corpo do lambda e `xs`, e o pipeline recebe o LAMBDA como
+        fonte. A mensagem que saia — "'DFAction' object is not
+        iterable" — fala de uma classe do Python e nao diz o que
+        fazer; a resposta e um par de parenteses.
+        """
+        if isinstance(fonte, (list, tuple, set, dict, str, range)):
+            return
+        if isinstance(fonte, DFAction):
+            raise TypeError_(
+                "A pipeline cannot start from an action.",
+                getattr(node, "line", 0), getattr(node, "column", 0),
+                nota="a lambda body binds tighter than '>>', so "
+                     "'lambda => xs >> morph …' pipes the LAMBDA",
+                dica="wrap the body:  lambda => (xs >> morph x: x * 2)",
+                doc="pipelines")
+        if fonte is None:
+            raise TypeError_(
+                "A pipeline cannot start from Void.",
+                getattr(node, "line", 0), getattr(node, "column", 0),
+                nota="whatever produced the source returned 'void'",
+                dica="use  ?? []  to pipe an empty cluster instead:  "
+                     "(x ?? []) >> morph …",
+                doc="pipelines")
+        # Objeto estranho — da ponte, um generator, um iteravel proprio:
+        # calar. Ele pode ser iteravel por protocolo, e recusar aqui
+        # quebraria 'adopt Python.numpy' num pipeline.
+
     def eval_UnaryOp(self, node: ast.UnaryOp, env):
         operand = self.evaluate(node.operand, env)
 
@@ -2439,6 +2474,7 @@ class Interpreter:
 
     def eval_PipelineExpression(self, node: ast.PipelineExpression, env):
         data = self.evaluate(node.source, env)
+        self._conferir_fonte_do_pipeline(data, node)
         for op in node.operations:
             if isinstance(op, ast.SiftOperation):
                 if op.func_ref:
@@ -5364,6 +5400,40 @@ class Interpreter:
 
     MAX_CALL_DEPTH = 1000
 
+    def _erro_de_pilha(self, action, node):
+        """O teto de quadros, e as duas saidas.
+
+        A mensagem nomeava a acao e perguntava "recursao infinita?" —
+        e parava ali. Mas o limite e atingido por recursao LEGITIMA com
+        frequencia: uma travessia de arvore de cinco mil nos nao tem
+        nada de infinita, e a propria doc de 'cauda.py' diz que
+        "qualquer travessia sobre dado real bate nisso".
+
+        Sem dizer as saidas, a pessoa conclui que a linguagem nao serve
+        para o problema dela.
+
+        Fica num metodo porque HAVIA DUAS COPIAS desta mensagem — uma
+        em '_corpo_da_acao' e outra no caminho com instancia — e eu
+        corrigi a que nao era usada no teste. Duas copias de uma
+        mensagem divergem; a pergunta nao e se, e quando.
+        """
+        return StackOverflowError_(
+            f"Call stack exceeded {self.MAX_CALL_DEPTH} frames in "
+            f"'{getattr(action, 'name', '?')}'.",
+            getattr(node, "line", 0), getattr(node, "column", 0),
+            nota=("if the recursion is infinite, the base case never "
+                  "matched; if it is legitimate, a tree this deep needs "
+                  "one of the two ways out"),
+            dica=("1. make it a TAIL call — 'yield f(…)' as the whole "
+                  "return reuses ONE frame and has no ceiling:\n"
+                  "       action somar(n, acc):\n"
+                  "           given n is 0:\n"
+                  "               yield acc\n"
+                  "           yield somar(n - 1, acc + n)\n"
+                  "    2. or turn it into a 'cycle' with an explicit "
+                  "stack — a cluster of what is left to visit"),
+            doc="acoes")
+
     def _call_action(self, action: DFAction, args, kwargs, node, env, instance=None):
         """Call a user-defined action (function)."""
         self._check_arity(action, args, kwargs, node)
@@ -5397,10 +5467,7 @@ class Interpreter:
         self._depth += 1
         if self._depth > self.MAX_CALL_DEPTH:
             self._depth -= 1
-            raise StackOverflowError_(
-                f"Call stack exceeded {self.MAX_CALL_DEPTH} frames "
-                f"(infinite recursion in '{action.name}'?)",
-                node.line, node.column)
+            raise self._erro_de_pilha(action, node)
 
         self._call_stack.append(Frame(
             action.name, getattr(node, 'line', 0), getattr(node, 'column', 0),
@@ -5522,9 +5589,7 @@ class Interpreter:
         self._depth += 1
         if self._depth > self.MAX_CALL_DEPTH:
             self._depth -= 1
-            raise StackOverflowError_(
-                f"Call stack exceeded {self.MAX_CALL_DEPTH} frames "
-                f"(infinite recursion in '{action.name}'?)", node.line, node.column)
+            raise self._erro_de_pilha(action, node)
         self._call_stack.append(Frame(
             action.name, getattr(node, 'line', 0), getattr(node, 'column', 0),
             self.filename))
