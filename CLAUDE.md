@@ -779,6 +779,19 @@ Nove decisões que valem lembrar:
 6. **O cache indexa o depósito por identidade, não por nome.** Duas
    ações `carregar` em arquivos diferentes dividiriam o mesmo cache, e
    o `teto` da primeira venceria calado sobre o da segunda.
+   **Mas `id()` não é identidade ao longo do tempo**: é único apenas
+   entre objetos **vivos**, e o CPython reaproveita o endereço de um
+   objeto coletado de forma agressiva — cinco mil funções criadas e
+   liberadas em sequência dão **um** id distinto. Uma ação nova caía na
+   chave de uma ação morta e herdava o depósito dela: o `teto` da outra,
+   as entradas da outra e **o valor da outra** — uma função devolvendo
+   o resultado cacheado de outra função, calada. Por isso `_por_alvo`
+   guarda a ação junto do depósito: enquanto o depósito existir, aquele
+   id não pode ser de mais ninguém. Não é vazamento novo — o depósito já
+   vivia para sempre.
+   Apareceu em **um** dos sete ambientes da CI (macOS, 3.10), num teste
+   que pedia `teto=2` e via seis itens. Um bug de cache que depende do
+   alocador é a pior classe: some quando se procura.
 
 7. **Acessibilidade é como os componentes são desenhados**, não uma
    camada por cima: `<fieldset>`/`<legend>` nos grupos, `role="alert"`

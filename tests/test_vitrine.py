@@ -318,6 +318,83 @@ def test_o_cache_solta_o_menos_usado(V):
     assert eco.deposito.estatisticas()["itens"] == 2
 
 
+def test_o_cache_nao_identifica_a_acao_por_um_id_reaproveitavel(V):
+    """`id()` não é identidade ao longo do tempo.
+
+    A chave do depósito era `f"{nome}#{id(alvo):x}"`. `id()` é único
+    apenas entre objetos **vivos**, e o CPython reaproveita o endereço
+    de um objeto coletado de forma agressiva — cinco mil funções criadas
+    e liberadas em sequência dão **um** id distinto.
+
+    Logo, uma ação nova de mesmo nome caía na chave de uma ação morta e
+    herdava o depósito dela: o `teto` da outra, as entradas da outra, e
+    — o pior — **o valor da outra**. Uma função devolvia o resultado
+    cacheado de outra função, calada. É a mesma mistura de caches que o
+    `id` veio consertar, agora com um gatilho não determinístico: na CI
+    apareceu em **um** dos sete ambientes (macOS, 3.10), num teste que
+    pedia `teto=2` e via seis itens — os cinco novos mais o resto do
+    teste anterior, sob o teto 128 herdado.
+
+    Provocar a colisão pelo caminho público depende do alocador, e por
+    isso não é teste: o que se cobra aqui é a **correção**, que é manter
+    a ação viva em `_por_alvo` — enquanto o depósito existir, aquele id
+    não pode ser de mais ninguém.
+    """
+    import gc
+
+    @V["cache"]
+    def unica():
+        return 1
+
+    alvo = unica.sem_cache
+    marca = id(alvo)
+    guardados = V["cache"]._por_alvo
+    assert any(a is alvo for a, _ in guardados.values()), (
+        "o depósito não mantém a ação viva — o id dela pode ser "
+        "reaproveitado por outra ação, que herdaria este cache")
+
+    del alvo, unica
+    gc.collect()
+    assert any(id(a) == marca for a, _ in guardados.values()), (
+        "a ação foi coletada apesar do depósito: o id voltou a estar "
+        "disponível")
+
+
+def test_o_teto_e_a_validade_pedidos_sao_os_do_deposito(V):
+    """O sintoma que aparecia na CI: `teto=2` pedido, 128 em uso."""
+    @V["cache"](teto=2)
+    def eco(x):
+        return x
+
+    assert eco.deposito.teto == 2
+
+    @V["cache"](teto=7, validade=99)
+    def eco(x):                                       # noqa: F811
+        return x
+
+    assert eco.deposito.teto == 7
+    assert eco.deposito.validade == 99
+
+
+def test_duas_acoes_de_mesmo_nome_nao_dividem_o_cache(V):
+    """O bug original, que o `id` consertou e que a reutilização de `id`
+    ressuscitava: uma receberia o resultado da outra."""
+    @V["cache"]
+    def carregar():
+        return "primeira"
+
+    primeira = carregar
+    assert primeira() == "primeira"
+
+    @V["cache"]
+    def carregar():                                   # noqa: F811
+        return "segunda"
+
+    assert carregar() == "segunda"
+    assert primeira() == "primeira"
+    assert carregar.deposito is not primeira.deposito
+
+
 def test_o_cache_pode_ser_esquecido(V):
     vezes = {"n": 0}
 

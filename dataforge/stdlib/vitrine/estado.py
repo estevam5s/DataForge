@@ -283,6 +283,9 @@ class Cache:
 
     def __init__(self):
         self._depositos = {}
+        #: A ação decorada -> o depósito dela, por IDENTIDADE, e com a
+        #: ação mantida viva. Ver `_envolver`.
+        self._por_alvo = {}
         self._trava = threading.RLock()
 
     def __call__(self, *args, **kwargs):
@@ -304,12 +307,30 @@ class Cache:
         # nome. Duas ações chamadas 'carregar' em arquivos diferentes
         # dividiriam o mesmo cache: uma receberia o resultado da outra,
         # e o 'teto' da primeira venceria calado sobre o da segunda.
-        deposito = self.deposito(
-            f"{nome}#{id(alvo):x}",
-            teto=opcoes.get("teto", 128),
-            validade=opcoes.get("validade", opcoes.get("ttl")),
-            pasta=opcoes.get("pasta"),
-            rotulo=nome)
+        #
+        # Mas 'id()' NÃO é identidade ao longo do tempo: ele é único
+        # apenas entre objetos VIVOS, e o CPython reaproveita o endereço
+        # de um objeto coletado. Uma ação nova podia cair na chave de
+        # uma ação morta e herdar o depósito dela — com as entradas e o
+        # 'teto' da outra. Isso é a mesma mistura de caches que o 'id'
+        # veio consertar, com um gatilho pior: não determinístico.
+        #
+        # A correção é guardar a ação em '_por_alvo', o que a mantém
+        # viva e torna o 'id' estável enquanto o depósito existir. Não é
+        # vazamento novo: o depósito já vivia para sempre em
+        # '_depositos', e o que se acrescenta é a referência à ação.
+        with self._trava:
+            achado = self._por_alvo.get(id(alvo))
+            if achado is not None and achado[0] is alvo:
+                deposito = achado[1]
+            else:
+                deposito = self.deposito(
+                    f"{nome}#{id(alvo):x}#{len(self._depositos)}",
+                    teto=opcoes.get("teto", 128),
+                    validade=opcoes.get("validade", opcoes.get("ttl")),
+                    pasta=opcoes.get("pasta"),
+                    rotulo=nome)
+                self._por_alvo[id(alvo)] = (alvo, deposito)
 
         def embrulho(*a, **kw):
             chave = _chave_de(nome, a, kw)
