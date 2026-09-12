@@ -305,7 +305,11 @@ def analisar(texto, uri):
     a.modulos = _modulos_adotados(arvore)
 
     try:
-        for d in check_program(arvore, caminho):
+        # O texto do EDITOR, e nao o do disco: e nele que estao os
+        # '// df: permitir <regra>' que a pessoa acabou de escrever, e
+        # ler do disco silenciaria a regra errada — ou nenhuma — num
+        # arquivo nao salvo.
+        for d in check_program(arvore, caminho, source=texto):
             a.diagnosticos.append(_do_diagnostico(d, a))
     except Exception:                               # noqa: BLE001
         # O analisador falhar nao pode derrubar o servidor: sem

@@ -281,7 +281,10 @@ Estas são as que mais custam tempo:
    `Cluster`; `{"k": v}` casa com `Vault`, record ou instância.
 
 10. **A ordem dos `point` importa.** Do específico ao geral. Uma captura
-    (`point n`) no topo torna tudo abaixo inalcançável.
+    (`point n`) no topo torna tudo abaixo inalcançável — e agora o
+    `check` acusa isso (`point-inalcancavel`). Com **guarda** é
+    legítimo: `point n when n bigger 100:` deixa passar o que não
+    satisfaz a condição.
 
 11. **String simples não cruza linhas.** Para SQL multilinha, use `"""..."""`.
 
@@ -474,6 +477,8 @@ Os apelidos (`Zip`, `Cor`, `Banco`) são traduzidos para o nome oficial por
 | `dataforge info` | `project.py` | mostra o manifesto |
 | `dataforge repl` | `repl.py` | console com `:type`, `:ast`, `:load` |
 | `dataforge editor` | `cli.py` | instala a coloração no VS Code e derivados |
+| `dataforge debug` | `depurador.py` | para, mostra o que vale e anda — serve por ssh |
+| `dataforge dap` | `dap.py` | o mesmo no painel do editor (F5) |
 | `dataforge new` | `modelos.py` + `scaffold.py` | 9 modelos; todo projeto criado passa nos próprios testes |
 | `dataforge devops` | `devops_cli.py` | Dockerfile, compose, CI, k8s, Helm, nginx, SBOM, `doctor` |
 | `dataforge vitrine` | `vitrine_cli.py` | `run`, `dev` (hot reload), `doctor`, `new`. Sem `build` nem `deploy` — e os dois explicam por quê |
@@ -634,6 +639,23 @@ importante quanto o que a faz falar:
 A primeira versão olhava `self.x := …` só dentro de métodos, e deu **32
 falsos alarmes** num exemplo que funciona há meses. `test_membros_de_instancia.py`
 roda o `check` sobre os 320 arquivos do repositório justamente por isso.
+
+### Silenciar uma regra, de propósito
+
+`// df: permitir <regra>` na linha, ou na de cima, silencia aquela
+regra ali. A regra tem de ser **nomeada**: um `permitir` solto
+esconderia o erro seguinte, que ninguém pediu para esconder.
+
+Um analisador sem escape obriga quem escreve a escolher entre conviver
+com um alarme e desligar a verificação inteira — e a segunda é o que
+acontece. O caso que provou a necessidade está no repositório: o
+exercício 139 **demonstra** a armadilha de um `point` inalcançável, com
+um `assert` provando o comportamento. O analisador estava certo, e o
+exercício também.
+
+Os códigos vêm do campo `code` do diagnóstico, que já existia. O LSP
+lê o comentário do **texto do editor**, e não do disco: num arquivo não
+salvo, ler do disco silenciaria a regra errada — ou nenhuma.
 
 ### O analisador estático é otimista de propósito
 

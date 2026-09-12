@@ -10,6 +10,16 @@ FROM python:3.12-slim AS construcao
 WORKDIR /fonte
 COPY pyproject.toml README.md ./
 COPY dataforge ./dataforge
+# 'editor/' e um pacote declarado ('dataforge.editor', mapeado de
+# 'editor/'): sem ele o 'pip install' falha com "package directory
+# 'editor' does not exist" — e falha na CI, nao aqui, porque no
+# repositorio a pasta existe.
+#
+# Nao e peso morto na imagem final: ela e multi-estagio, e o segundo
+# estagio copia apenas o que foi instalado. A extensao vai junto porque
+# 'dataforge editor' precisa dela — inclusive de dentro de um container,
+# quando alguem monta o volume do editor.
+COPY editor ./editor
 
 # --no-cache-dir: a camada não guarda o cache do pip
 RUN pip install --no-cache-dir --upgrade pip build \

@@ -3126,3 +3126,416 @@ handle Error as e:
     out e.pilha
 ''')
     assert saida.strip() == "[]"
+
+
+# ═══════════════════════════════════════════════════════════
+#  A mensagem de aridade não pode falar de Python
+#
+#  O `dataforge check` pega aridade errada antes de rodar,
+#  com a assinatura completa. Mas ele cala quando não
+#  consegue provar — uma ação guardada num vault, um callback
+#  passado adiante — e é exatamente nesses casos que a pessoa
+#  chega em execução.
+# ═══════════════════════════════════════════════════════════
+
+def test_aridade_errada_nao_nomeia_a_implementacao_em_python():
+    """A mensagem era:
+
+        ArcaneAnalytics._correlation() missing 2 required positional
+        arguments: 'x' and 'y'
+
+    Nem `ArcaneAnalytics` nem `_correlation` existem no vocabulário do
+    DataForge: quem escreve chamou `An.correlation`. Uma mensagem que
+    nomeia a implementação manda a pessoa procurar um símbolo que ela
+    não tem como encontrar.
+    """
+    saida = run('''
+adopt Arcane.Analytics as An
+
+// Guardada num vault: o analisador não consegue provar, e cala.
+tabela := {"corr": An.correlation}
+
+monitor:
+    tabela["corr"]()
+handle Error as e:
+    out e.type
+    out e.message
+    out e.nota
+''')
+    linhas = saida.strip().splitlines()
+    assert linhas[0] == "ArityError"
+    assert "correlation" in linhas[1]
+    assert "ArcaneAnalytics" not in saida
+    assert "_correlation" not in saida
+    assert "positional" not in saida
+    # A assinatura de verdade, que é o que torna a mensagem acionável.
+    assert linhas[2] == "correlation(x, y)"
+
+
+def test_aridade_errada_e_capturavel_como_arity_error():
+    """O tipo saía `RuntimeError`, então `handle ArityError` não pegava.
+
+    A causa: um ramo de `_call` chamava a função do host com um `try`
+    próprio e levantava `RuntimeError_(str(e))` — passando por fora de
+    `_invocar`, que é o único ponto que traduz. A docstring de
+    `_invocar` avisava exatamente disso: "deixar um deles de fora
+    reabre o buraco".
+    """
+    saida = run('''
+adopt Arcane.Math as Math
+f := Math.pow
+
+monitor:
+    f(2)
+handle ArityError as e:
+    out "pegou"
+''')
+    assert saida.strip() == "pegou"
+
+
+def test_a_dica_diz_quantos_argumentos_a_funcao_aceita():
+    saida = run('''
+adopt Arcane.Text as Text
+f := Text.slug
+
+monitor:
+    f()
+handle Error as e:
+    out e.dica
+''')
+    assert "takes" in saida
+
+
+def test_toda_funcao_do_host_passa_por_invocar():
+    """A trava da causa, e não do sintoma.
+
+    `_call` tinha um ramo com `try/except` próprio. Qualquer ramo novo
+    assim reabre o buraco para um caminho de chamada diferente, e o
+    sintoma aparece só nesse caminho — foi por isso que passou tanto
+    tempo: `[].min()` tinha mensagem traduzida e `tabela["f"]()` não.
+    """
+    import inspect
+    import re
+
+    from dataforge.interpreter import Interpreter
+
+    fonte = inspect.getsource(Interpreter._call)
+    suspeitos = re.findall(r"raise RuntimeError_\(str\(e\)", fonte)
+    assert not suspeitos, (
+        "'_call' voltou a levantar o texto cru do Python em vez de "
+        "passar por '_invocar'")
+
+
+def test_o_alvo_carimbado_na_excecao_nao_derruba_nada():
+    """`_invocar` escreve `__df_alvo__` na exceção para a mensagem
+    poder mostrar a assinatura. Uma exceção com `__slots__` recusa o
+    atributo, e isso não pode virar um erro diferente do original."""
+    saida = run('''
+monitor:
+    1 / 0
+handle Error as e:
+    out e.type
+''')
+    assert saida.strip() == "DivisionByZeroError"
+
+
+def test_aridade_de_funcao_em_c_tambem_e_arity_error():
+    """`math.pow` diz "expected 2 arguments, got 1" — sem `positional`
+    e sem `takes`.
+
+    Sem cobrir essa forma, a MESMA falha saía com tipo diferente
+    conforme a função tivesse sido escrita em Python ou em C: `handle
+    ArityError` pegava uma e não a outra, e nada na linguagem explica
+    por quê.
+    """
+    saida = run('''
+adopt Arcane.Math as Math
+
+monitor:
+    Math.pow(2)
+handle ArityError as e:
+    out "pegou"
+''')
+    assert saida.strip() == "pegou"
+
+
+# ═══════════════════════════════════════════════════════════
+#  'point' inalcançável, e o escape para silenciá-lo
+#
+#  A armadilha 10 da linguagem — "uma captura no topo torna
+#  tudo abaixo inalcançável" — era a única documentada como
+#  armadilha que o analisador não pegava. O código compila,
+#  roda e devolve o ramo errado, sem uma palavra.
+# ═══════════════════════════════════════════════════════════
+
+def _diag(fonte, arquivo="x.df"):
+    from dataforge.typechecker import check_program
+    return check_program(parse(tokenize(fonte, arquivo), arquivo), arquivo,
+                         source=fonte)
+
+
+def test_um_point_depois_de_captura_e_acusado():
+    ds = _diag('''
+action f(x):
+    match x:
+        point n:
+            yield "qualquer"
+        point Integer:
+            yield "inteiro"
+''')
+    erros = [d for d in ds if d.severity == "error"]
+    assert len(erros) == 1
+    assert "nunca casa" in erros[0].message
+    assert erros[0].code == "point-inalcancavel"
+    # A linha do ponto morto, e a dica apontando a captura.
+    assert erros[0].line == 6
+    assert "linha 4" in erros[0].hint
+
+
+def test_uma_captura_com_guarda_nao_torna_o_resto_inalcancavel():
+    """`point n when n bigger 100:` casa com tudo **se a condição
+    valer** — o que vem abaixo continua alcançável. Sem essa distinção,
+    a checagem acusaria o padrão mais útil do `match`."""
+    ds = _diag('''
+action f(n):
+    match n:
+        point x when x bigger 100:
+            yield "grande"
+        point Integer:
+            yield "inteiro"
+        default:
+            yield "outro"
+''')
+    assert [d for d in ds if d.code == "point-inalcancavel"] == []
+
+
+def test_uma_captura_no_fim_e_legitima():
+    ds = _diag('''
+action f(v):
+    match v:
+        point Integer:
+            yield "int"
+        point resto:
+            yield resto
+''')
+    assert [d for d in ds if d.code == "point-inalcancavel"] == []
+
+
+def test_um_default_no_fim_nao_e_acusado():
+    """`default` é a captura escrita como tal, e o parser não deixa pôr
+    nada depois dele."""
+    ds = _diag('''
+action f(v):
+    match v:
+        point 1:
+            yield "um"
+        default:
+            yield "outro"
+''')
+    assert [d for d in ds if d.code == "point-inalcancavel"] == []
+
+
+def test_um_aviso_basta_mesmo_com_tres_pontos_mortos():
+    """Um por ponto viraria três mensagens sobre a mesma causa."""
+    ds = _diag('''
+action f(x):
+    match x:
+        point n:
+            yield 0
+        point 1:
+            yield 1
+        point 2:
+            yield 2
+        point 3:
+            yield 3
+''')
+    assert len([d for d in ds if d.code == "point-inalcancavel"]) == 1
+
+
+def test_df_permitir_silencia_a_regra_nomeada():
+    """Um analisador sem escape obriga a escolher entre conviver com um
+    alarme e desligar a verificação inteira — e a segunda é o que
+    acontece.
+
+    O caso que provou a necessidade está no repositório: o exercício 139
+    **demonstra** a armadilha, com um `assert` provando o comportamento.
+    O analisador estava certo, e o exercício também.
+    """
+    ds = _diag('''
+action f(x):
+    match x:
+        point n:
+            yield "qualquer"
+        // df: permitir point-inalcancavel
+        point Integer:
+            yield "inteiro"
+''')
+    assert [d for d in ds if d.code == "point-inalcancavel"] == []
+
+
+def test_df_permitir_na_mesma_linha_tambem_vale():
+    ds = _diag('''
+action f(x):
+    match x:
+        point n:
+            yield "qualquer"
+        point Integer:    // df: permitir point-inalcancavel
+            yield "inteiro"
+''')
+    assert [d for d in ds if d.code == "point-inalcancavel"] == []
+
+
+def test_df_permitir_nao_silencia_a_regra_que_ninguem_nomeou():
+    """Um `permitir` que silenciasse tudo naquela linha esconderia o
+    erro seguinte, que ninguém pediu para esconder."""
+    ds = _diag('''
+// df: permitir point-inalcancavel
+out nao_existe_isto
+''')
+    erros = [d for d in ds if d.severity == "error"]
+    assert len(erros) == 1
+    assert "nao_existe_isto" in erros[0].message
+
+
+def test_df_permitir_com_regra_inexistente_nao_silencia_nada():
+    ds = _diag('''
+action f(x):
+    match x:
+        point n:
+            yield 1
+        // df: permitir regra-que-nao-existe
+        point 5:
+            yield 2
+''')
+    assert [d for d in ds if d.code == "point-inalcancavel"]
+
+
+def test_df_permitir_aceita_varias_regras_numa_linha():
+    ds = _diag('''
+action f(x):
+    match x:
+        point n:
+            yield 1
+        // df: permitir point-inalcancavel, match-incompleto
+        point 5:
+            yield 2
+''')
+    assert [d for d in ds if d.code == "point-inalcancavel"] == []
+
+
+def test_o_lsp_le_o_permitir_do_texto_do_editor_e_nao_do_disco(tmp_path):
+    """Num arquivo não salvo, ler do disco silenciaria a regra errada —
+    ou nenhuma. O LSP reanalisa a cada tecla."""
+    from dataforge.lsp import analisar
+
+    arquivo = tmp_path / "a.df"
+    # No disco, SEM o permitir.
+    arquivo.write_text('''action f(x):
+    match x:
+        point n:
+            yield 1
+        point 5:
+            yield 2
+''', encoding="utf-8")
+
+    # No editor, COM o permitir — é este que vale.
+    do_editor = '''action f(x):
+    match x:
+        point n:
+            yield 1
+        // df: permitir point-inalcancavel
+        point 5:
+            yield 2
+'''
+    a = analisar(do_editor, arquivo.as_uri())
+    mortos = [d for d in a.diagnosticos if "nunca casa" in d["message"]]
+    assert mortos == []
+
+
+def test_a_verificacao_local_roda_todo_gerador_do_repositorio():
+    """`scripts/verificar_tudo.sh` existe para rodar o que o CI roda.
+
+    A lista de geradores nele é escrita à mão, e um gerador novo que
+    fique de fora recria o problema que o script veio resolver: o CI
+    reprova com "gerado desatualizado" e a verificação local diz que
+    está tudo bem.
+
+    Já aconteceu de outra forma nesta sessão: eu regenerei à mão com uma
+    lista mais curta que a do script, concluí "geradores estáveis" e o
+    CI acusou `doc/superficie.json`. A lição é a mesma — quem confere
+    precisa usar a lista de um lugar só.
+
+    Três geradores ficam de fora de propósito: `gerar_paginas.py` é
+    biblioteca do `gerar_conteudo.py` (não roda sozinho), e
+    `gerar_tarball.py`, `gerar_binario.py`, `gerar_runtime_web.py` e
+    `gerar_problemas.py` produzem artefatos de release, não arquivos
+    versionados que possam ficar atrasados.
+    """
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    script = os.path.join(raiz, "scripts", "verificar_tudo.sh")
+    if not os.path.isfile(script):
+        pytest.skip("o script não está neste checkout")
+
+    texto = open(script, encoding="utf-8").read()
+
+    #: Não são geradores de arquivo versionado.
+    fora = {
+        "gerar_paginas.py",        # biblioteca do gerar_conteudo
+        "gerar_tarball.py",        # artefato de release
+        "gerar_binario.py",        # artefato de release
+        "gerar_runtime_web.py",    # artefato de release
+        "gerar_problemas.py",      # artefato de release
+    }
+
+    faltando = []
+    for padrao in ("tools/gerar_*.py", "scripts/gerar_*.py",
+                   "site/scripts/gerar_*.py"):
+        for caminho in glob.glob(os.path.join(raiz, padrao)):
+            nome = os.path.basename(caminho)
+            if nome in fora:
+                continue
+            relativo = os.path.relpath(caminho, raiz).replace(os.sep, "/")
+            if relativo not in texto:
+                faltando.append(relativo)
+
+    assert not faltando, (
+        f"gerador(es) fora de verificar_tudo.sh: {sorted(faltando)} — "
+        f"o CI vai acusar 'gerado desatualizado' e a verificação local "
+        f"vai passar")
+
+
+def test_o_dockerfile_copia_todo_pacote_que_o_pyproject_declara():
+    """O `pip install` dentro do Docker falha com "package directory
+    'editor' does not exist" se o `COPY` não trouxer a pasta.
+
+    E falha **só na CI**: no repositório a pasta existe, e o
+    `pip install -e .` local nunca reclama. Foi exatamente o que
+    aconteceu ao declarar `dataforge.editor`.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    try:
+        import tomllib
+    except ImportError:
+        pytest.skip("tomllib só existe a partir do 3.11")
+
+    with open(os.path.join(raiz, "pyproject.toml"), "rb") as f:
+        dados = tomllib.load(f)
+    setup = dados["tool"]["setuptools"]
+    mapa = setup.get("package-dir", {})
+
+    dockerfile = open(os.path.join(raiz, "Dockerfile"), encoding="utf-8").read()
+
+    # A pasta de cada pacote, no nível de cima.
+    pastas = set()
+    for nome in setup["packages"]:
+        caminho = mapa.get(nome) or nome.replace(".", "/")
+        pastas.add(caminho.split("/")[0])
+
+    faltando = [p for p in sorted(pastas)
+                if f"COPY {p} " not in dockerfile
+                and f"COPY {p}/" not in dockerfile]
+    assert not faltando, (
+        f"o Dockerfile não copia {faltando}, e o 'pip install' dele vai "
+        f"falhar com \"package directory does not exist\"")

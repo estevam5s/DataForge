@@ -36,10 +36,16 @@ assert tem_valor(0) is yes, "zero e um valor"
 assert tem_valor("") is yes, "texto vazio e um valor"
 
 // A ordem importa: o primeiro que casa vence
+//
+// O analisador ACUSA isto — e esta certo: o 'point 5' e codigo morto.
+// Aqui o erro e o assunto do exercicio, e 'df: permitir' diz isso a
+// ele. A regra e nomeada de proposito: um 'permitir' solto esconderia
+// o erro seguinte, que ninguem pediu para esconder.
 action ordem(n):
     match n:
         point x:
             yield "pegou tudo"
+        // df: permitir point-inalcancavel
         point 5:
             yield "nunca chega aqui"
 

@@ -5004,8 +5004,28 @@ class Interpreter:
                 dica = "vault keys must be immutable: text, number or record"
             elif "not callable" in baixo:
                 classe = NotCallableError
-            elif "argument" in baixo and ("positional" in baixo or "takes" in baixo):
+            elif "argument" in baixo and (
+                    "positional" in baixo or "takes" in baixo
+                    # Funcao escrita em C ('math.pow', 'len') diz
+                    # "expected 2 arguments, got 1" — sem 'positional' e
+                    # sem 'takes'. Sem este ramo ela saia como
+                    # 'TypeError' generico, e 'handle ArityError' nao
+                    # pegava a MESMA falha dependendo de onde a funcao
+                    # foi implementada.
+                    or "expected" in baixo or "no arguments" in baixo):
                 classe = ArityError
+                # A mensagem do Python nomeia a IMPLEMENTACAO:
+                #   "ArcaneAnalytics._correlation() missing 2 required
+                #    positional arguments: 'x' and 'y'"
+                # Nem 'ArcaneAnalytics' nem '_correlation' existem no
+                # vocabulario do DataForge: quem escreve chamou
+                # 'An.correlation'. Trocar pelo nome chamado e pela
+                # assinatura de verdade e o que transforma a mensagem em
+                # algo acionavel.
+                refeita = self._texto_de_aridade(e, contexto)
+                if refeita:
+                    texto, nota, dica = refeita
+                    contexto = ""     # o nome ja esta no texto
             else:
                 classe = classe or TypeError_
 
@@ -5019,6 +5039,81 @@ class Interpreter:
         coluna = getattr(node, "column", 0)
         return classe(texto, linha, coluna, nota=nota, dica=dica)
 
+    def _texto_de_aridade(self, erro, chamado):
+        """A mensagem de aridade no vocabulario de quem chamou.
+
+        Devolve `(texto, nota, dica)`, ou `None` quando nao da para
+        fazer melhor que o Python — e nesse caso a mensagem original
+        fica, porque uma mensagem crua e melhor que uma inventada.
+
+        O `dataforge check` pega isto ANTES de rodar, com a assinatura
+        completa. Esta funcao e a rede: o analisador cala quando nao
+        consegue provar (uma acao guardada num vault, uma chamada
+        montada em execucao), e e exatamente nesses casos que a pessoa
+        chega aqui.
+        """
+        import inspect
+        import re
+
+        alvo = getattr(erro, "__df_alvo__", None)
+        # A convencao da stdlib e '_nome' na implementacao, 'nome' no
+        # modulo. Quando o nome vem do '__name__' do Python — o caso da
+        # funcao guardada num vault, em que o programa nao escreveu nome
+        # nenhum — o sublinhado tem de cair, senao a mensagem fala de um
+        # simbolo que nao existe para quem escreve.
+        nome = (chamado or "").lstrip("_") or "this function"
+
+        faltando = re.search(r"missing (\d+) required positional argument",
+                             str(erro))
+        nomes = re.findall(r"'([^']+)'", str(erro).split(":", 1)[-1]) \
+            if ":" in str(erro) else []
+
+        assinatura = ""
+        minimo = maximo = None
+        if alvo is not None:
+            try:
+                sig = inspect.signature(alvo)
+                partes = []
+                minimo = 0
+                maximo = 0
+                for par in sig.parameters.values():
+                    if par.kind is par.VAR_POSITIONAL:
+                        partes.append(f"...{par.name}")
+                        maximo = None
+                        continue
+                    if par.kind is par.VAR_KEYWORD:
+                        continue
+                    if par.default is inspect.Parameter.empty:
+                        partes.append(par.name)
+                        minimo += 1
+                    else:
+                        partes.append(f"{par.name} := {par.default!r}")
+                    if maximo is not None:
+                        maximo += 1
+                assinatura = f"{nome}({', '.join(partes)})"
+            except (TypeError, ValueError):
+                assinatura = ""
+
+        if faltando and nomes:
+            quantos = int(faltando.group(1))
+            quais = ", ".join(f"'{n}'" for n in nomes)
+            plural = "s" if quantos > 1 else ""
+            texto = f"'{nome}' needs {quantos} more argument{plural}: {quais}."
+        elif minimo is not None:
+            texto = f"'{nome}' was called with the wrong number of arguments."
+        else:
+            return None
+
+        nota = assinatura
+        dica = ""
+        if maximo == minimo and minimo is not None:
+            dica = f"it takes exactly {minimo}"
+        elif minimo is not None and maximo is not None:
+            dica = f"it takes {minimo} to {maximo}"
+        elif minimo is not None:
+            dica = f"it takes {minimo} or more"
+        return texto, nota, dica
+
     def _invocar(self, alvo, args, kwargs, node, contexto=""):
         """Chama um callable do host traduzindo o que ele levantar.
 
@@ -5031,6 +5126,13 @@ class Interpreter:
         except (DataForgeError, ControlSignal):
             raise
         except Exception as e:
+            # Quem foi chamado, para a mensagem de aridade poder mostrar
+            # a assinatura. Carimbado aqui porque este e o unico ponto
+            # que ainda sabe disso: mais acima, so resta a excecao.
+            try:
+                e.__df_alvo__ = getattr(alvo, "func", alvo)
+            except Exception:               # noqa: BLE001
+                pass
             raise self._traduzir_excecao(e, node, contexto) from None
 
     def _call(self, callee, args, kwargs, node, env, instancia=None):
@@ -5103,10 +5205,20 @@ class Interpreter:
             return instance
 
         if callable(callee):
-            try:
-                return callee(*args, **kwargs)
-            except Exception as e:
-                raise RuntimeError_(str(e), node.line, node.column)
+            # Por '_invocar', e nao por um 'try' proprio: este ramo
+            # atendia toda funcao do host chamada por um caminho que nao
+            # passa pelo acesso a membro — uma funcao guardada num
+            # vault, um callback passado adiante — e levantava
+            # 'RuntimeError_' com o texto cru do Python.
+            #
+            # O sintoma: '[].min()' tinha mensagem traduzida, e
+            # 'tabela["corr"]()' devolvia "ArcaneAnalytics._correlation()
+            # missing 2 required positional arguments" — um nome de
+            # classe e um metodo privado que nao existem no vocabulario
+            # do DataForge. E 'handle ArityError' nao pegava, porque o
+            # tipo saia 'RuntimeError'.
+            return self._invocar(callee, args, kwargs, node,
+                                 getattr(callee, "__name__", ""))
 
         raise TypeError_(f"'{callee}' is not callable", node.line, node.column)
 

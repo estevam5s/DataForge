@@ -23,6 +23,9 @@ than a missed one. Every diagnostic carries a line, a column and a suggested
 fix.
 """
 
+import os
+import re
+
 from . import ast_nodes as ast
 from .caminhos import curto as _curto
 from .tokens import KEYWORDS
@@ -159,9 +162,16 @@ class ActionSignature:
 class TypeChecker:
     """Percorre a AST reportando problemas antes da execução."""
 
-    def __init__(self, filename="<stdin>", builtins=None, strict=False):
+    def __init__(self, filename="<stdin>", builtins=None, strict=False,
+                 source=None):
         self.filename = filename
         self.strict = strict
+        #: A fonte, quando quem chamou a tem — para ler os
+        #: '// df: permitir <regra>'. Sem ela, o arquivo e lido do
+        #: disco na primeira vez que se precisa; e sem arquivo (o REPL,
+        #: uma string), nao ha comentario a ler e nada e silenciado.
+        self._fonte = source
+        self._silencio = None
         self.diagnostics = []
         self.global_scope = Scope(kind="global")
         self.actions = {}        # nome -> ActionSignature
@@ -280,7 +290,69 @@ class TypeChecker:
         # da leitura no arquivo.
         self._recolher_campos_externos(program, escopo)
         self.visit_block(program.body, escopo)
-        return self.diagnostics
+        return self._sem_os_silenciados(program)
+
+    # ── silenciar uma linha, de propósito ────────────────────
+
+    #: `// df: permitir <regra>` silencia aquela regra naquela linha.
+    #:
+    #: Um analisador sem escape obriga quem escreve a escolher entre
+    #: conviver com um alarme falso e desligar a verificação inteira —
+    #: e a segunda é o que acontece.
+    #:
+    #: O caso que provou a necessidade está no repositório: o exercício
+    #: 139 **demonstra** a armadilha de um `point` inalcançável, com um
+    #: `assert` provando o comportamento. O analisador estava certo, e o
+    #: exercício também.
+    #:
+    #: A regra tem de ser NOMEADA. Um `permitir` solto que silenciasse
+    #: tudo naquela linha esconderia o erro seguinte, que ninguém pediu
+    #: para esconder.
+    _SILENCIO = re.compile(r"//\s*df:\s*permitir\s+([a-z0-9\-, ]+)")
+
+    def _ler_fonte(self):
+        if self._fonte is not None:
+            return self._fonte
+        self._fonte = ""
+        nome = self.filename or ""
+        if nome and not nome.startswith("<") and os.path.isfile(nome):
+            try:
+                with open(nome, encoding="utf-8") as f:
+                    self._fonte = f.read()
+            except OSError:
+                pass
+        return self._fonte
+
+    def _silenciados_por_linha(self):
+        """`{linha: {regra, …}}`, lido da FONTE.
+
+        Do texto, e não dos tokens: o lexer descarta comentário, e
+        guardá-lo na árvore só para isto encareceria toda compilação.
+        """
+        if self._silencio is not None:
+            return self._silencio
+        self._silencio = {}
+        fonte = self._ler_fonte()
+        for numero, linha in enumerate(fonte.split("\n"), 1):
+            achado = self._SILENCIO.search(linha)
+            if achado:
+                regras = {r.strip() for r in achado.group(1).replace(",", " ").split()}
+                self._silencio[numero] = {r for r in regras if r}
+        return self._silencio
+
+    def _sem_os_silenciados(self, program):
+        mapa = self._silenciados_por_linha()
+        if not mapa:
+            return self.diagnostics
+        sobrou = []
+        for d in self.diagnostics:
+            # A própria linha, ou a de cima: um `match` longo põe o
+            # comentário acima do `point`, onde ele cabe.
+            regras = mapa.get(d.line, set()) | mapa.get(d.line - 1, set())
+            if d.code and d.code in regras:
+                continue
+            sobrou.append(d)
+        return sobrou
 
     def _hoist(self, statements, escopo, registrar_acoes=True):
         """Declara ações, records, enums e blueprints antes de visitar o corpo,
@@ -615,9 +687,64 @@ class TypeChecker:
         if node.default_body:
             ramos.append(self.visit_block(node.default_body, Scope(escopo)))
             self._conferir_exaustividade(node, escopo)
+            self._conferir_ordem_dos_pontos(node)
             return bool(ramos) and all(ramos)
         self._conferir_exaustividade(node, escopo)
+        self._conferir_ordem_dos_pontos(node)
         return False
+
+    def _conferir_ordem_dos_pontos(self, node):
+        """Um 'point' que vem DEPOIS de uma captura nunca casa.
+
+        `match` decide do primeiro ao ultimo, e uma captura solta
+        (`point n:`) casa com tudo. O que vem abaixo dela e codigo morto
+        — e morto em silencio: o programa compila, roda e devolve o
+        ramo errado.
+
+            match x:
+                point n:                  <- casa com tudo
+                    yield "qualquer"
+                point Integer:            <- nunca
+                    yield "inteiro"
+
+        Isto e a armadilha 10 da linguagem, e era a unica documentada
+        como armadilha que o analisador nao pegava. Um 'default' no fim
+        e diferente: ele e a captura ESCRITA como tal, e o parser nao
+        deixa pôr nada depois.
+
+        A guarda salva o caso legitimo: `point n when n bigger 100:`
+        casa com tudo *se a condicao valer*, e o que vem abaixo continua
+        alcancavel.
+        """
+        capturou = None
+        for caso in node.points:
+            if isinstance(caso, tuple):
+                # Forma antiga (alvo, corpo): sem padrao estruturado
+                # para inspecionar. Calar.
+                return
+            if capturou is not None:
+                self.error(
+                    "este 'point' nunca casa: a captura acima dele casa "
+                    "com tudo",
+                    caso,
+                    f"a captura esta na linha {capturou}; mova-a para o "
+                    f"fim, ou troque-a por 'default:'",
+                    "point-inalcancavel")
+                return          # um aviso basta: os outros sao o mesmo
+            if self._casa_com_tudo(caso):
+                capturou = getattr(caso, "line", 0)
+
+    @staticmethod
+    def _casa_com_tudo(caso):
+        """`point n:` sem guarda — o unico padrao que casa sempre.
+
+        Com guarda, nao: `point n when n bigger 100:` deixa passar o que
+        nao satisfaz a condicao.
+        """
+        if getattr(caso, "guard", None) is not None:
+            return False
+        padrao = getattr(caso, "pattern", None)
+        return isinstance(padrao, ast.CapturePattern)
 
     def _conferir_exaustividade(self, node, escopo):
         """Um 'match' sobre enum que deixou membro de fora.
@@ -1930,7 +2057,12 @@ class TypeChecker:
         return f"Known types: Integer, Float, String, Boolean, Cluster, Vault, Void"
 
 
-def check_program(program, filename="<stdin>", strict=False):
-    """Analisa um programa e devolve a lista de diagnósticos."""
-    verificador = TypeChecker(filename=filename, strict=strict)
+def check_program(program, filename="<stdin>", strict=False, source=None):
+    """Analisa um programa e devolve a lista de diagnósticos.
+
+    `source` e opcional: com ela, os '// df: permitir <regra>' sao
+    lidos sem tocar o disco — o que importa para o LSP, que reanalisa
+    a cada tecla e tem o texto do editor, ainda nao salvo.
+    """
+    verificador = TypeChecker(filename=filename, strict=strict, source=source)
     return verificador.check(program)
