@@ -23,13 +23,33 @@ P = ArcaneConcurrent()
 # ═══ Paralelismo de verdade ════════════════════════════════
 
 def test_map_roda_junto_e_nao_em_serie():
-    """Se rodasse em serie, cinco esperas de 60ms levariam 300ms."""
-    inicio = time.perf_counter()
-    r = P["map"](lambda x: (time.sleep(0.06), x * 2)[1], range(5), 5)
-    levou = time.perf_counter() - inicio
+    """Cinco esperas de 60ms: em serie sao 300ms, juntas sao ~60ms.
 
+    A comparacao e com a SERIE medida na mesma maquina, e nao com um
+    numero fixo. Um limite absoluto — '< 0,20s' — falha numa maquina
+    compartilhada: o CI do macOS levou 0,21s rodando perfeitamente em
+    paralelo, porque cinco threads disputando uma CPU ocupada demoram
+    mais que cinco threads sozinhas.
+    """
+    espera = 0.06
+    quantos = 5
+
+    inicio = time.perf_counter()
+    r = P["map"](lambda x: (time.sleep(espera), x * 2)[1], range(quantos),
+                 quantos)
+    junto = time.perf_counter() - inicio
     assert r == [0, 2, 4, 6, 8]
-    assert levou < 0.20, f"levou {levou:.2f}s — parece serie"
+
+    inicio = time.perf_counter()
+    for x in range(quantos):
+        time.sleep(espera)
+    serie = time.perf_counter() - inicio
+
+    # Metade da serie ja prova que ha sobreposicao: em serie perfeita a
+    # razao seria 1,0, e em paralelo perfeito seria 0,2.
+    assert junto < serie * 0.5, (
+        f"junto levou {junto:.2f}s e a serie {serie:.2f}s — "
+        f"razao {junto / serie:.2f}, parece serie")
 
 
 def test_map_preserva_a_ordem_da_entrada():
@@ -290,10 +310,21 @@ def test_lotes_agrupa_antes_de_chamar():
 # ═══ Prazo ═════════════════════════════════════════════════
 
 def test_com_prazo_nao_prende_quem_chamou():
+    """O prazo e 0,1s e o trabalho dura 2s: quem chamou volta na hora.
+
+    Aqui o teto fixo e a propria afirmacao, e nao um proxy de
+    paralelismo — por isso ele fica. Mas a referencia e o TRABALHO, e
+    nao um numero escolhido a mao: voltar em menos da metade dos 2s
+    prova que o prazo interrompeu, e sobrevive a uma maquina lenta.
+    """
+    trabalho = 2.0
     inicio = time.perf_counter()
     with pytest.raises(TimeoutError_) as exc:
-        P["com_prazo"](lambda: time.sleep(2), 0.1)
-    assert time.perf_counter() - inicio < 0.5
+        P["com_prazo"](lambda: time.sleep(trabalho), 0.1)
+    levou = time.perf_counter() - inicio
+    assert levou < trabalho / 2, (
+        f"levou {levou:.2f}s de um trabalho de {trabalho}s — "
+        f"o prazo nao interrompeu")
     # A mensagem tem de ser honesta sobre o que o prazo garante.
     assert "background" in exc.value.nota
 

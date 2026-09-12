@@ -89,11 +89,20 @@ valores := await tarefas'''
     inicio = time.monotonic()
     resultado = valor_de(fonte, "valores")
     decorrido = time.monotonic() - inicio
-
     assert resultado == [1, 2, 3, 4, 5, 6]
-    assert decorrido < 0.6, (
-        f"seis esperas de 0,15 s levaram {decorrido:.2f} s — "
-        f"em paralelo custam 0,15 s, uma de cada vez custam 0,9 s")
+
+    # A comparacao e com a serie MEDIDA aqui, e nao com um numero fixo:
+    # numa maquina compartilhada, seis threads disputando uma CPU
+    # ocupada demoram mais que seis threads sozinhas, e um limite
+    # absoluto falha em codigo que esta perfeitamente paralelo.
+    inicio = time.monotonic()
+    for _ in range(6):
+        time.sleep(0.15)
+    serie = time.monotonic() - inicio
+
+    assert decorrido < serie * 0.5, (
+        f"juntas levaram {decorrido:.2f} s e a serie {serie:.2f} s — "
+        f"razao {decorrido / serie:.2f}, nao houve sobreposicao")
 
 
 def test_uma_de_cada_vez_realmente_custa_a_soma():

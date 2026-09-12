@@ -2589,3 +2589,69 @@ def test_nenhum_df_do_repositorio_crava_caminho_de_um_sistema_so():
     assert not ruins, (
         "caminho de um sistema so num '.df' — use "
         "IO.join(OS.temp_dir(), …):\n  " + "\n  ".join(ruins))
+
+
+def test_nenhum_teste_de_paralelismo_usa_limite_absoluto():
+    """Um limite fixo mede a MÁQUINA, não o paralelismo.
+
+    `assert levou < 0.20` para cinco esperas de 60 ms passa aqui e falha
+    no CI do macOS — que rodou perfeitamente em paralelo, em 0,21 s,
+    porque cinco threads disputando uma CPU compartilhada demoram mais
+    que cinco threads sozinhas.
+
+    Um teste que falha por máquina lenta ensina a ignorar a suíte, que é
+    o pior que pode acontecer com ela. A comparação tem de ser com a
+    **série medida no mesmo lugar**.
+
+    O guarda procura o padrão exato: uma função que mede tempo **e**
+    compara o resultado com um número solto. Um teste que só verifica
+    que algo *esperou* (`>= 0.04`) não está no alvo — ali o piso é a
+    afirmação, e máquina lenta só o reforça.
+    """
+    import ast as pyast
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    relogios = ("perf_counter", "monotonic", "time")
+
+    def mede_tempo(no):
+        for filho in pyast.walk(no):
+            if (isinstance(filho, pyast.Attribute)
+                    and filho.attr in relogios
+                    and isinstance(filho.value, pyast.Name)
+                    and filho.value.id == "time"):
+                return True
+        return False
+
+    def compara_com_constante(no):
+        """`x < 0.2` — teto fixo. `x >= 0.04` é piso, e piso pode ficar."""
+        for filho in pyast.walk(no):
+            if not isinstance(filho, pyast.Compare):
+                continue
+            for op, direita in zip(filho.ops, filho.comparators):
+                if not isinstance(op, (pyast.Lt, pyast.LtE)):
+                    continue
+                if (isinstance(direita, pyast.Constant)
+                        and isinstance(direita.value, (int, float))):
+                    return True
+        return False
+
+    suspeitos = []
+    for caminho in sorted(glob.glob(os.path.join(raiz, "tests", "*.py"))):
+        arvore = pyast.parse(open(caminho, encoding="utf-8").read(), caminho)
+        for no in pyast.walk(arvore):
+            if not isinstance(no, pyast.FunctionDef):
+                continue
+            if not mede_tempo(no) or not compara_com_constante(no):
+                continue
+            # Com uma série de referência no corpo, o teto fixo é só uma
+            # rede a mais — o que decide é a razão.
+            fonte_da_funcao = pyast.dump(no)
+            if any(palavra in fonte_da_funcao
+                   for palavra in ("serie", "referencia", "trabalho")):
+                continue
+            suspeitos.append(f"{os.path.basename(caminho)}::{no.name}")
+
+    assert not suspeitos, (
+        "teste que mede tempo e compara com numero fixo — ele mede a "
+        "maquina, nao o codigo:\n  " + "\n  ".join(suspeitos))
