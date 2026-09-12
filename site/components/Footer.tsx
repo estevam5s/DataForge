@@ -7,6 +7,7 @@ const colunas = [
     titulo: 'Aprender',
     links: [
       { t: 'Primeiros passos', h: '/docs/primeiros-passos' },
+      { t: 'Download', h: '/download' },
       { t: 'Instalação', h: '/docs/instalacao' },
       { t: 'Exercícios', h: '/docs/exercicios' },
       { t: 'Receitas', h: '/docs/receitas/cli' },

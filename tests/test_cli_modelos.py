@@ -389,8 +389,17 @@ def test_new_sem_terminal_nunca_fica_esperando():
             env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
             stdin=subprocess.DEVNULL, timeout=30)
         assert r.returncode != 0, "devia falhar, e nao criar nada"
-        assert "modelo" in (r.stdout + r.stderr).lower(), \
-            "a mensagem precisa dizer o que falta"
+        assert not os.path.isdir(os.path.join(pasta, "semmodelo")), \
+            "falhou mas criou a pasta assim mesmo"
+
+        # A mensagem precisa NOMEAR os modelos, e nao so dizer que
+        # faltou algo. Procurar a palavra 'modelo' seria fragil: a arte
+        # da marca ocupa a saida, e no Windows ela sai transliterada.
+        saida = (r.stdout or "") + (r.stderr or "")
+        assert "--modelo=" in saida, \
+            f"a mensagem nao diz como passar o modelo:\n{saida[-400:]}"
+        assert "api" in saida and "cli" in saida, \
+            "a mensagem precisa listar os modelos"
 
 
 def test_new_com_modelo_errado_sugere_o_certo():

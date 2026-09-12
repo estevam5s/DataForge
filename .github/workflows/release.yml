@@ -80,6 +80,19 @@ jobs:
           done
           exit $falhas
 
+      # A "caixinha": o instalador grafico do Windows.
+      #
+      # O Inno Setup vem pre-instalado no runner 'windows-latest'. Quem
+      # baixa um '.exe' nao quer aprender o que e pip — e o executavel
+      # que ele instala ja traz o Python dentro.
+      - name: o instalador do Windows
+        if: matrix.os == 'windows-latest'
+        shell: cmd
+        run: |
+          iscc packaging\windows\dataforge.iss
+          if errorlevel 1 exit /b 1
+          dir dist\pacotes
+
       - uses: actions/upload-artifact@v4
         with:
           name: dataforge-${{ matrix.nome }}
@@ -88,11 +101,42 @@ jobs:
           path: |
             dist/bin/*.tar.gz
             dist/bin/*.zip
+            dist/pacotes/*.exe
+          if-no-files-found: error
+
+  # ── Os pacotes de distribuicao ──
+  distros:
+    name: .deb e PKGBUILD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -e .
+
+      - name: gerar
+        run: python packaging/gerar_pacotes.py
+
+      # 'dpkg-deb' existe no runner do Ubuntu: um pacote quebrado e pior
+      # que um pacote ausente, e so ele diz se o 'ar' esta certo.
+      - name: o .deb e valido
+        run: |
+          deb=$(ls dist/pacotes/*.deb)
+          dpkg-deb --info "$deb"
+          dpkg-deb --contents "$deb"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dataforge-distros
+          path: |
+            dist/pacotes/*.deb
+            packaging/arch/PKGBUILD
           if-no-files-found: error
 
   publicar:
     name: anexar ao release
-    needs: construir
+    needs: [construir, distros]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:

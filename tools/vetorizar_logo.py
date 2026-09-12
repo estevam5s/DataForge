@@ -522,6 +522,20 @@ def _gravar_pngs(d, lado, d_pequeno=None):
     print(f"  escrito: {os.path.relpath(ico, RAIZ)}  "
           f"({', '.join(str(t) for t in tamanhos)}px)")
 
+    # O ícone do instalador do Windows, que o Inno Setup exige em .ico.
+    #
+    # Com FUNDO, ao contrário do favicon: ele aparece sobre a janela do
+    # instalador e na lista de "Adicionar ou remover programas", onde o
+    # tema pode ser claro ou escuro — um glifo transparente some num dos
+    # dois.
+    instalador = os.path.join(RAIZ, "editor", "vscode", "icone.ico")
+    _gravar_ico(instalador, [
+        (t, desenhar(t, rgb + (255,), FUNDO_MARCA, simples=t < 64))
+        for t in (16, 24, 32, 48, 64, 128, 256)
+    ])
+    print(f"  escrito: {os.path.relpath(instalador, RAIZ)}  "
+          f"(16..256px, com fundo — vai no instalador do Windows)")
+
     # E o ícone dos arquivos .df no editor, que o VS Code exige em PNG.
     tema = os.path.join(RAIZ, "editor", "vscode", "icone-arquivo.png")
     desenhar(128, rgb + (255,), SEM_FUNDO).save(tema)

@@ -1,0 +1,16 @@
+Package: dataforge
+Version: {VERSAO}
+Section: devel
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.10), python3-pip
+Maintainer: Estevam Souza <contato@estevamsouza.com.br>
+Homepage: https://dataforge-lang.vercel.app
+Description: Linguagem de programacao interpretada com vocabulario proprio
+ DataForge e uma linguagem interpretada de proposito geral, com lexer,
+ parser, analisador estatico e interpretador proprios, escrita em Python
+ puro e sem dependencias de runtime.
+ .
+ Traz 37 modulos de biblioteca padrao, um framework web (Kiln), um
+ framework de testes (Crucible), gerenciador de pacotes, servidor de
+ linguagem e extensao para o VS Code.

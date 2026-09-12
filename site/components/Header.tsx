@@ -88,6 +88,9 @@ export function Header() {
             <Link href="/docs/biblioteca" className="link-topo hidden xl:block">
               Biblioteca
             </Link>
+            <Link href="/download" className="link-topo hidden lg:block">
+              Download
+            </Link>
 
             <Link
               href="/painel"

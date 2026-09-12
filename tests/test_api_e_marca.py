@@ -706,3 +706,128 @@ def test_os_dois_geradores_do_indice_concordam():
         "logo depois de 'gerar_conteudo.py', o 'gerar_indices.py' ainda "
         "quer mudar as paginas — os dois discordam:\n"
         + (r.stdout or "") + (r.stderr or ""))
+
+
+# ── A página de download não pode prometer o que não existe ──
+
+def test_a_pagina_de_download_so_oferece_o_que_o_release_produz():
+    """Um botão "Baixar" que dá 404 é pior que a ausência do botão.
+
+    A página lista os arquivos por nome. Os nomes têm de bater com o que
+    `release.yml` de fato constrói e anexa — e é fácil os dois
+    divergirem, porque estão em linguagens e pastas diferentes.
+
+    Quando uma forma ainda não existe (o AUR, a imagem no Docker Hub),
+    ela fica marcada `pronto: false` e **não** ganha botão. Dizer "na
+    próxima versão" é honesto; oferecer um link quebrado não é.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pagina = os.path.join(raiz, "site", "app", "download", "page.tsx")
+    assert os.path.exists(pagina), "a rota /download sumiu"
+
+    fonte = open(pagina, encoding="utf-8").read()
+    fluxo = open(os.path.join(raiz, ".github", "workflows", "release.yml"),
+                 encoding="utf-8").read()
+
+    # Os nomes de artefato que a página oferece do release.
+    oferecidos = set(re.findall(r"\$\{RELEASES\}/([A-Za-z0-9_.${}-]+)", fonte))
+    assert oferecidos, "a pagina nao oferece nenhum arquivo do release"
+
+    # O que o fluxo constrói, pelos sufixos que ele anexa.
+    for nome in oferecidos:
+        alvo = nome.replace("${VERSAO}", "1.0.0")
+        if alvo.endswith(".exe"):
+            assert "dataforge.iss" in fluxo, \
+                f"'{alvo}' e oferecido e o fluxo nao gera instalador"
+        elif alvo.endswith(".deb"):
+            assert "gerar_pacotes.py" in fluxo, \
+                f"'{alvo}' e oferecido e o fluxo nao gera o .deb"
+        elif alvo.endswith((".tar.gz", ".zip")):
+            assert "gerar_binario.py" in fluxo, \
+                f"'{alvo}' e oferecido e o fluxo nao gera binario"
+
+
+def test_o_que_nao_esta_pronto_nao_ganha_botao():
+    """`pronto: false` tem de significar alguma coisa no HTML."""
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonte = open(os.path.join(raiz, "site", "app", "download", "page.tsx"),
+                 encoding="utf-8").read()
+
+    assert "forma.arquivo && forma.pronto" in fonte, \
+        "o botao Baixar precisa depender de 'pronto'"
+    assert "na próxima versão" in fonte, \
+        "o que nao esta pronto precisa dizer isso"
+
+
+def test_o_instalador_do_windows_tem_o_icone_que_ele_pede():
+    """O `.iss` aponta um `.ico`, e ele é **gerado**.
+
+    Sem o arquivo, o `iscc` falha no meio do release — e o erro aparece
+    numa máquina Windows que ninguém tem à mão para depurar.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    iss = os.path.join(raiz, "packaging", "windows", "dataforge.iss")
+    assert os.path.exists(iss), "o script do instalador sumiu"
+
+    fonte = open(iss, encoding="utf-8").read()
+    assert "SetupIconFile" in fonte
+
+    icone = os.path.join(raiz, "editor", "vscode", "icone.ico")
+    assert os.path.exists(icone), \
+        "o .ico do instalador nao existe — rode tools/vetorizar_logo.py"
+
+    gerador = open(os.path.join(raiz, "tools", "vetorizar_logo.py"),
+                   encoding="utf-8").read()
+    assert "icone.ico" in gerador, \
+        "o .ico precisa ser gerado, e nao um arquivo solto que envelhece"
+
+
+def test_o_pkgbuild_do_arch_esta_na_versao_da_linguagem():
+    import re
+
+    from dataforge import __version__
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "packaging", "arch", "PKGBUILD")
+    assert os.path.exists(caminho), "o PKGBUILD sumiu"
+
+    achado = re.search(r"^pkgver=(.+)$", open(caminho, encoding="utf-8").read(),
+                       re.M)
+    assert achado, "o PKGBUILD nao declara pkgver"
+    assert achado.group(1) == __version__, (
+        f"o PKGBUILD esta em {achado.group(1)} e a linguagem em "
+        f"{__version__} — rode packaging/gerar_pacotes.py")
+
+
+def test_o_deb_gerado_e_um_ar_valido(tmp_path):
+    """Publicar um pacote quebrado é pior que não publicar."""
+    import io as _io
+    import subprocess
+    import tarfile
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    r = subprocess.run(
+        [sys.executable, os.path.join(raiz, "packaging", "gerar_pacotes.py")],
+        capture_output=True, text=True, encoding="utf-8", cwd=raiz, timeout=120)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+    import glob
+    debs = glob.glob(os.path.join(raiz, "dist", "pacotes", "*.deb"))
+    assert debs, "nenhum .deb foi gerado"
+
+    dados = open(debs[0], "rb").read()
+    assert dados[:8] == b"!<arch>\n", "nao e um arquivo 'ar'"
+
+    # Os três membros, na ordem que o dpkg exige.
+    nomes, i = [], 8
+    while i < len(dados):
+        cabecalho = dados[i:i + 60]
+        if len(cabecalho) < 60:
+            break
+        nomes.append(cabecalho[:16].decode().strip())
+        tamanho = int(cabecalho[48:58].decode().strip())
+        i += 60 + tamanho + (tamanho % 2)
+    assert nomes == ["debian-binary", "control.tar.gz", "data.tar.gz"], \
+        f"membros fora de ordem: {nomes}"

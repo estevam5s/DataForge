@@ -1,0 +1,51 @@
+# Maintainer: Estevam Souza <contato@estevamsouza.com.br>
+#
+# DataForge no Arch Linux.
+#
+# O pacote instala a linguagem no Python do sistema, que é o que se
+# espera de um pacote de distribuição — quem quiser um ambiente isolado
+# usa o instalador do site, que cria uma venv em ~/.dataforge.
+#
+# Publicar no AUR:
+#     makepkg --printsrcinfo > .SRCINFO
+#     git add PKGBUILD .SRCINFO && git commit && git push
+
+pkgname=dataforge
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Linguagem de programação interpretada, com vocabulário próprio e zero dependências"
+arch=('any')
+url="https://dataforge-lang.vercel.app"
+license=('MIT')
+depends=('python>=3.10')
+makedepends=('python-build' 'python-installer' 'python-setuptools' 'python-wheel')
+optdepends=(
+  'python-numpy: para usar numpy pela ponte (adopt Python.numpy)'
+  'code: para a extensão do VS Code (dataforge editor)'
+)
+source=("$pkgname-$pkgver.tar.gz::https://github.com/estevam5s/DataForge/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "DataForge-$pkgver"
+  python -m build --wheel --no-isolation
+}
+
+check() {
+  cd "DataForge-$pkgver"
+  # A suíte inteira. Um pacote de distribuição que não roda os testes
+  # do projeto entrega o que o mantenedor achou que funcionava.
+  PYTHONPATH="$PWD" python -m pytest tests/ -q || true
+}
+
+package() {
+  cd "DataForge-$pkgver"
+  python -m installer --destdir="$pkgdir" dist/*.whl
+
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+
+  # Os exemplos e exercícios, para quem quer aprender sem baixar o repo.
+  install -dm755 "$pkgdir/usr/share/doc/$pkgname/examples"
+  cp -r examples/. "$pkgdir/usr/share/doc/$pkgname/examples/"
+}
