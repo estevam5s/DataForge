@@ -123,7 +123,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               key={secao.title}
               href={item.href}
               onClick={onNavigate}
-              className={`nav-label block rounded-lg px-2.5 py-[6px] transition-colors ${
+              className={`nav-label block rounded-lg px-2.5 py-[4.5px] transition-colors ${
                 ativo ? 'text-accent' : 'text-body hover:text-strong'
               }`}
             >
@@ -142,7 +142,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               onClick={() => alternar(secao.title)}
               aria-expanded={aberta}
               aria-controls={idPainel}
-              className={`nav-label flex w-full items-center justify-between rounded-lg px-2.5 py-[6px] transition-colors ${
+              className={`nav-label flex w-full items-center justify-between rounded-lg px-2.5 py-[4.5px] transition-colors ${
                 contemAtual ? 'text-strong' : 'text-body hover:text-strong'
               }`}
             >
@@ -178,7 +178,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         onClick={onNavigate}
                         aria-current={ativo ? 'page' : undefined}
                         tabIndex={aberta ? undefined : -1}
-                        className={`group relative block rounded-md py-[4.5px] pl-2.5 pr-2 text-[12.5px] leading-[18px] transition-all duration-200 ${
+                        className={`group relative block rounded-md py-[3.5px] pl-2.5 pr-2 text-[12px] leading-[17px] transition-all duration-200 ${
                           ativo
                             ? 'bg-accent/10 font-medium text-accent'
                             : 'text-muted hover:translate-x-0.5 hover:text-strong'

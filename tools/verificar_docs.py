@@ -49,9 +49,21 @@ COMANDOS = (
 
 #: Palavras do Kiln que só valem dentro de um bloco 'server'.
 FRAGMENTOS_KILN = ("route ", "respond ", "render ", "redirect ",
-                   "middleware ", "mount ", "assets ", "views ")
+                   "middleware ", "mount ", "assets ", "views ",
+                   # 'middleware:' e 'after:' abrem bloco sem argumento,
+                   # entao vem colados ao ':' e escapavam da lista.
+                   "middleware:", "after:")
 
 #: Palavras contextuais de blueprint — idem, mas dentro de blueprint.
+#: Um 'trial' sozinho e o corpo de uma suite; um 'handle'/'ensure'
+#: sozinho e o outro braco de um 'monitor'. Os dois aparecem assim na
+#: explicacao dos exercicios, que e onde o assunto e justamente aquele
+#: pedaco — mostrar o 'crucible' em volta seria mostrar o que nao se
+#: esta ensinando.
+FRAGMENTOS_CRUCIBLE = ("trial ", "before ", "after ", "before_all ",
+                       "after_all ")
+FRAGMENTOS_MONITOR = ("handle ", "ensure:", "handle:")
+
 FRAGMENTOS_BLUEPRINT = ("get ", "set ", "private ", "protected ",
                         "operator ", "final ", "abstract ")
 
@@ -67,7 +79,11 @@ MARCAS_DE_ERRO = ("# ERRO", "// ERRO", "# erro:", "// erro:",
 
 #: Marcas de elipse: o bloco omite parte do código de propósito.
 #: '{...}' não é um vault vazio, é "o que vier aqui".
-ELIPSES = ("{...}", "{…}", "[...]", "…", "/* … */")
+ELIPSES = ("{...}", "{…}", "[...]", "…", "/* … */",
+           # '...' no MEIO de uma expressao e reticencia de exemplo, e
+           # nao o spread da linguagem — o spread vem colado ao nome
+           # que ele espalha ('...xs'), nunca seguido de ',' ou '}'.
+           ": ...", "...,", "...}", "...)")
 
 
 def blocos_das_paginas():
@@ -162,8 +178,26 @@ def classificar(bloco):
     if len(abre_bloco) >= 2 and not indentadas:
         return "outro"
 
-    # Um fragmento de match começa com 'point'.
-    if primeira.startswith("point "):
+    # ESQUELETO: um bloco que abre e nao tem corpo de verdade.
+    #
+    #     match req:
+    #         point {"metodo": "GET", "rota": r}:
+    #         point {"metodo": "POST", ...}:
+    #
+    # A pagina esta mostrando a FORMA dos padroes, lado a lado, e o
+    # corpo de cada um seria ruido. Comentario tambem nao conta como
+    # corpo — o esqueleto anotado e o mesmo caso.
+    #
+    # Vem ANTES das deteccoes de fragmento: 'point Usuario(n, i, p):'
+    # sozinho e um esqueleto, e embrulha-lo num 'match' so muda o erro
+    # de lugar.
+    if _e_esqueleto(linhas):
+        return "outro"
+
+    # Um fragmento de match começa com 'point' — ou com o 'default',
+    # que e o ultimo braco e aparece sozinho quando o assunto e
+    # justamente "o que fazer com o que nao casou".
+    if primeira.startswith(("point ", "default:")):
         return "fragmento-match"
 
     # Listagem de assinaturas: 'blueprint Nome' sem ':', ou linhas do
@@ -203,7 +237,36 @@ def classificar(bloco):
         return "misto-kiln"
     if any(primeira.startswith(p) for p in FRAGMENTOS_BLUEPRINT):
         return "fragmento-blueprint"
+    if any(primeira.startswith(p) for p in FRAGMENTOS_CRUCIBLE):
+        return "fragmento-crucible"
+    if any(primeira.startswith(p) for p in FRAGMENTOS_MONITOR):
+        return "fragmento-monitor"
+
+    # UMA linha que abre bloco, e nada indentado depois: e a FORMA de
+    # uma condicao, mostrada para se olhar, nao para rodar. A regra
+    # acima ja cobria duas ou mais dessas; uma sozinha caia como
+    # programa e reprovava com "Expected indented block".
+    if len(abre_bloco) == 1 and not indentadas:
+        return "outro"
+
     return "dataforge"
+
+
+def _e_esqueleto(linhas):
+    """Alguma linha abre bloco e nao tem instrucao indentada embaixo?"""
+    uteis = [l for l in linhas
+             if l.strip() and not l.strip().startswith(("//", "#"))]
+    for i, linha in enumerate(uteis):
+        sem_comentario = re.sub(r"\s*(#|//).*$", "", linha).rstrip()
+        if not sem_comentario.endswith(":"):
+            continue
+        recuo = len(linha) - len(linha.lstrip())
+        seguinte = uteis[i + 1] if i + 1 < len(uteis) else None
+        if seguinte is None:
+            return True
+        if len(seguinte) - len(seguinte.lstrip()) <= recuo:
+            return True
+    return False
 
 
 def preparar(codigo, tipo):
@@ -233,6 +296,14 @@ def preparar(codigo, tipo):
     if tipo == "fragmento-blueprint":
         recuado = "\n".join("    " + l for l in codigo.split("\n"))
         return "blueprint B:\n" + recuado
+    if tipo == "fragmento-crucible":
+        recuado = "\n".join("    " + l for l in codigo.split("\n"))
+        return 'crucible "s":\n' + recuado
+    if tipo == "fragmento-monitor":
+        # SEM recuar: 'handle' e irmao do 'monitor', e nao filho.
+        # Recuando, o proprio wrapper produzia o erro que queria
+        # evitar ("Unexpected token: HANDLE", agora na coluna 5).
+        return "monitor:\n    out 1\n" + codigo
     return codigo
 
 
@@ -271,6 +342,7 @@ def falhas_de_linha_isolada(bloco):
 def main():
     blocos = blocos_das_paginas()
     contagem = {"dataforge": 0, "fragmento-kiln": 0,
+                "fragmento-crucible": 0, "fragmento-monitor": 0,
                 "fragmento-blueprint": 0, "fragmento-match": 0,
                 "misto-kiln": 0, "outro": 0}
     falhas = []
@@ -299,6 +371,8 @@ def main():
     print(f"    {contagem['fragmento-kiln']} fragmentos de rota")
     print(f"    {contagem['fragmento-blueprint']} fragmentos de blueprint")
     print(f"    {contagem['fragmento-match']} fragmentos de match")
+    print(f"    {contagem['fragmento-crucible']} fragmentos de suite")
+    print(f"    {contagem['fragmento-monitor']} fragmentos de monitor")
     print(f"    {contagem['misto-kiln']} blocos com rota solta")
     print(f"    {contagem['outro']} shell, saída ou outra linguagem")
     if isoladas:
@@ -309,6 +383,8 @@ def main():
         conferidos = (contagem["dataforge"] + contagem["fragmento-kiln"]
                       + contagem["fragmento-blueprint"]
                       + contagem["fragmento-match"]
+                      + contagem["fragmento-crucible"]
+                      + contagem["fragmento-monitor"]
                       + contagem["misto-kiln"])
         print(f"\n  {VERDE}os {conferidos} blocos de DataForge compilam{LIMPO}\n")
         return 0

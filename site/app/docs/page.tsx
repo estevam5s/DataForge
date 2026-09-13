@@ -156,7 +156,7 @@ export default function Home() {
         Cada afirmação desta documentação corresponde a código que roda. São{' '}
         <strong>2404 testes</strong>, 231 exercícios que verificam o próprio
         resultado com <code>assert</code>, e 44 programas de exemplo. Os
-        trechos desta documentação são compilados a cada mudança — 665 deles.
+        trechos desta documentação são compilados a cada mudança — 1131 deles.
       </p>
 
       <H2>De onde você vem</H2>

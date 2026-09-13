@@ -84,9 +84,19 @@
 @layer components {
   /* ── Rótulo de seção da barra lateral ──────────────────────────
      Menor que o corpo do texto: com 190 rotas, cada pixel a mais em
-     cada linha custa uma seção inteira de rolagem. */
+     cada linha custa uma seção inteira de rolagem.
+
+     Calibrado contra docs.nestjs.com, medindo as duas barras lado a
+     lado na mesma tela: a daqui vinha 15% mais alta no glifo e 21%
+     mais solta no passo entre itens. O que mais pesava não era o
+     tamanho, e sim a QUEBRA — "Vitrine — dashboards" e "Kiln —
+     framework web" ocupavam duas linhas, e uma barra com metade dos
+     rótulos em duas linhas parece o dobro de grande.
+
+     Daí o 'whitespace-nowrap': o rótulo de seção é um nome, e nome
+     não se parte no meio. */
   .nav-label {
-    @apply text-[11.5px] font-bold uppercase leading-[16px] tracking-[0.9px];
+    @apply whitespace-nowrap text-[11px] font-bold uppercase leading-[15px] tracking-[0.07em];
   }
 
   /* ── Conteúdo em prosa ─────────────────────────────────────────── */
@@ -152,25 +162,32 @@
   .prose-df tbody tr:hover { background: rgb(var(--raised) / 0.5); }
   .prose-df td > code, .prose-df th > code { @apply whitespace-nowrap; }
 
-  /* ── Realce de sintaxe DataForge ──────────────────────────────── */
-  .tk-keyword     { color: rgb(var(--accent)); }
-  .tk-declaration { color: rgb(var(--accent)); font-weight: 600; }
-  .tk-type        { color: #7dd3fc; }
-  .tk-string      { color: #a5d6a7; }
-  .tk-number      { color: #f0b67f; }
-  .tk-comment     { color: rgb(var(--muted) / 0.72); font-style: italic; }
-  .tk-operator    { color: #d4b8ff; }
-  .tk-punct       { color: rgb(var(--muted)); }
-  .tk-function    { color: #ffd479; }
-  .tk-literal     { color: #f78fa7; font-weight: 500; }
-  .tk-property    { color: rgb(var(--body)); }
+  /* ── Realce de sintaxe DataForge ──────────────────────────────────
+     A paleta e a de docs.nestjs.com, lida do CSS deles e nao estimada
+     de um print. Sao TRES cores e um cinza, e a moderacao e o ponto:
+     com sete cores, o olho nao sabe mais o que e importante.
 
-  :root[data-theme='light'] .tk-type     { color: #0369a1; }
-  :root[data-theme='light'] .tk-string   { color: #15803d; }
-  :root[data-theme='light'] .tk-number   { color: #b45309; }
-  :root[data-theme='light'] .tk-operator { color: #7c3aed; }
-  :root[data-theme='light'] .tk-function { color: #a16207; }
-  :root[data-theme='light'] .tk-literal  { color: #be185d; }
+       azul    #93d7f1   palavra da linguagem
+       ouro    #ffda98   o que é chamado, e o operador
+       pessego #ffc093   os valores — texto, numero, tipo, yes/no
+       cinza   #7a8186   comentario
+
+     O fundo do bloco tambem fica escuro no tema claro, como no
+     NestJS: codigo colorido sobre branco obriga a escurecer cada
+     cor, e ai as duas paletas deixam de ser a mesma. */
+  .code-surface   { background: #151112; }
+
+  .tk-keyword     { color: #93d7f1; }
+  .tk-declaration { color: #93d7f1; font-weight: 600; }
+  .tk-function    { color: #ffda98; }
+  .tk-operator    { color: #ffda98; }
+  .tk-string      { color: #ffc093; }
+  .tk-number      { color: #ffc093; }
+  .tk-literal     { color: #ffc093; font-weight: 500; }
+  .tk-type        { color: #ffc093; }
+  .tk-property    { color: #f7f7f7; }
+  .tk-punct       { color: #f7f7f7; opacity: 0.7; }
+  .tk-comment     { color: #7a8186; font-style: italic; }
 
   /* ── Utilitários ──────────────────────────────────────────────── */
   .surface-card {

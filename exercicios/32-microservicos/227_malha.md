@@ -107,9 +107,19 @@ A metade que se esquece é a **borda**: o serviço que recebe precisa *continuar
 o rastro que chegou, e não começar um novo.
 
 ```dataforge
-middleware:
-    Malha.propagar(request, "estoque")
+action continuar_rastro(req):
+    Malha.propagar(req, "estoque")
+
+server api on 8080:
+    middleware continuar_rastro
+
+    route GET "/itens":
+        respond json buscar()
 ```
+
+O `middleware` do Kiln recebe uma **expressão** — a ação que roda antes de cada
+rota —, e não um bloco. Um middleware que devolve `void` deixa o pedido seguir,
+que é o que se quer aqui: `propagar` não responde nada, só continua o rastro.
 
 Sem isso, cada serviço inicia um rastro próprio e a corrente se quebra
 exatamente no ponto onde ela serviria.

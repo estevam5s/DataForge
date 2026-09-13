@@ -150,20 +150,20 @@ export function CodeBlock({ code, lang = 'df', title }: Props) {
       : realceSimples(fonte, lang);
 
   return (
-    <figure className="group my-6 overflow-hidden rounded-xl border border-line bg-surface">
-      <div className="flex items-center justify-between border-b border-line/70 bg-raised/50 px-4 py-2">
-        <span className="font-mono text-[11.5px] uppercase tracking-[0.9px] text-muted">
+    <figure className="code-surface group my-6 overflow-hidden rounded-xl border border-line">
+      <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-2">
+        <span className="font-mono text-[11.5px] uppercase tracking-[0.9px] text-white/40">
           {title ?? (lang === 'df' ? 'dataforge' : lang)}
         </span>
         <button
           onClick={copiar}
-          className="rounded-md px-2 py-1 text-[11.5px] font-medium text-muted transition-colors hover:bg-line/60 hover:text-strong"
+          className="rounded-md px-2 py-1 text-[11.5px] font-medium text-white/40 transition-colors hover:bg-white/10 hover:text-white/80"
           aria-label="Copiar código"
         >
           {copiado ? 'copiado' : 'copiar'}
         </button>
       </div>
-      <pre className="overflow-x-auto px-4 py-4 text-[13.5px] leading-[22px]">
+      <pre className="overflow-x-auto px-4 py-4 text-[13.5px] leading-[22px] text-[#f7f7f7]">
         <code className="font-mono">{conteudo}</code>
       </pre>
     </figure>

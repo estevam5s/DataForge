@@ -1458,3 +1458,72 @@ def test_a_landing_nao_engole_nenhum_modulo_da_arcane():
     assert not fantasmas, (
         f"a landing agrupa modulo(s) que nao existem: {fantasmas}")
 
+
+
+def test_a_pagina_de_exercicio_mostra_o_exercicio():
+    """As 32 páginas de `/docs/exercicios` paravam na tabela.
+
+    Título e enunciado, e nada do código. Quem chegava por busca via a
+    PROMESSA de 231 exercícios e nenhum deles — para ler um, era
+    preciso clonar o repositório. O código é a resposta e o teste ao
+    mesmo tempo; escondê-lo esvazia a seção inteira.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(raiz, "site", "scripts"))
+    import conteudo.exercicios as ex             # noqa: E402
+
+    paginas = {p["href"]: p for p in ex.PAGINAS}
+    assert len(paginas) == len(ex.MODULOS) + 1
+
+    total_blocos_de_codigo = 0
+    for nome, itens, caminhos in ex.MODULOS:
+        pagina = paginas[f"/docs/exercicios/{nome}"]
+        codigos = [b for b in pagina["blocos"] if "code" in b and b.get("lang") == "df"]
+        titulos = [b["h2"] for b in pagina["blocos"] if "h2" in b]
+        total_blocos_de_codigo += len(codigos)
+
+        # Um h2 por exercicio, alem do 'Os exercicios'.
+        numerados = [t for t in titulos if t[:3].isdigit()]
+        assert len(numerados) == len([1 for n, _, _ in itens if n]), nome
+
+        # E o codigo de cada um esta la, de verdade.
+        for caminho in caminhos:
+            corpo = ex._corpo(caminho)
+            primeira = next((l for l in corpo.split("\n")
+                             if l.strip() and not l.strip().startswith("//")), "")
+            if primeira:
+                assert any(primeira in b["code"] for b in codigos), (
+                    f"{caminho}: a primeira linha de codigo nao aparece na pagina")
+
+    assert total_blocos_de_codigo >= 231, total_blocos_de_codigo
+
+
+def test_o_rotulo_do_exercicio_e_o_mesmo_na_barra_e_na_pagina():
+    """Dois rótulos para a mesma página é o começo do desencontro.
+
+    O nome vinha da PASTA (`resto.replace('-', ' ').capitalize()`), que
+    não tem acento: a aba dizia "03 · Colecoes", "05 · Acoes",
+    "10 · Avancado" e "22 · Web kiln" enquanto a barra lateral, escrita
+    à mão, dizia o certo.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(raiz, "site", "scripts"))
+    import conteudo.exercicios as ex             # noqa: E402
+
+    nav = open(os.path.join(raiz, "site", "lib", "nav.ts"),
+               encoding="utf-8").read()
+    da_barra = {
+        href: titulo
+        for titulo, href in re.findall(
+            r"title: '([^']+)', href: '/docs/exercicios/([^']+)'", nav)
+    }
+    assert da_barra, "nao achei os exercicios em nav.ts"
+
+    for nome, _, _ in ex.MODULOS:
+        if nome not in da_barra:
+            continue
+        assert ex._rotulo(nome) == da_barra[nome], (
+            f"{nome}: a pagina diz {ex._rotulo(nome)!r} e a barra "
+            f"{da_barra[nome]!r}")
