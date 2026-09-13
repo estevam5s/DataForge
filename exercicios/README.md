@@ -501,9 +501,19 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 227 | [`227_malha.df`](32-microservicos/227_malha.df) · [doc](32-microservicos/227_malha.md) | Chamada entre servicos que nao mente |
 | 228 | [`228_saga.df`](32-microservicos/228_saga.df) · [doc](32-microservicos/228_saga.md) | Saga: nao existe transacao que atravesse a rede |
 
+## 33 — Lavra
+
+*3 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 229 | [`229_lavra_basico.df`](33-lavra/229_lavra_basico.df) · [doc](33-lavra/229_lavra_basico.md) | Lavra: o esquema e a consulta |
+| 230 | [`230_lavra_n1_e_limites.df`](33-lavra/230_lavra_n1_e_limites.df) · [doc](33-lavra/230_lavra_n1_e_limites.md) | Lavra: o N+1, os limites e a paginacao |
+| 231 | [`231_lavra_servidor_e_federacao.df`](33-lavra/231_lavra_servidor_e_federacao.df) · [doc](33-lavra/231_lavra_servidor_e_federacao.md) | Lavra: contratos, mudancas, servidor e federacao |
+
 ---
 
-**Total: 231 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 234 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->
