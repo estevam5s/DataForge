@@ -360,9 +360,10 @@ class ArcaneCollections:
 
     @staticmethod
     def _dedup(itens):
+        from ..builtins import chave_de_identidade
         visto, saida = set(), []
         for item in itens:
-            chave = str(item)
+            chave = chave_de_identidade(item)
             if chave not in visto:
                 visto.add(chave)
                 saida.append(item)
@@ -457,9 +458,10 @@ class ArcaneCollections:
 
     @staticmethod
     def _unique_by(itens, chave):
+        from ..builtins import chave_de_identidade
         visto, saida = set(), []
         for item in itens:
-            k = str(chave(item))
+            k = chave_de_identidade(chave(item))
             if k not in visto:
                 visto.add(k)
                 saida.append(item)

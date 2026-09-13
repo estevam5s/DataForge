@@ -657,7 +657,7 @@ def _df_unique(lst):
     seen = set()
     result = []
     for item in lst:
-        key = str(item)
+        key = chave_de_identidade(item)
         if key not in seen:
             seen.add(key)
             result.append(item)
@@ -735,10 +735,13 @@ def _df_deep_copy(obj):
     return copy.deepcopy(obj)
 
 def _df_frequencies(lst):
+    # A chave e o ITEM, e nao o texto dele. Com 'str', a contagem de
+    # [1, 1, 2] saia '{"1": 2, "2": 1}' — que IMPRIME igual a um vault
+    # de chaves numericas, e falha em 'f[1]' com "there is a similar
+    # key". O resultado parecia certo ate alguem tentar ler.
     freq = {}
     for item in lst:
-        key = str(item)
-        freq[key] = freq.get(key, 0) + 1
+        freq[item] = freq.get(item, 0) + 1
     return freq
 
 # ═══════════════════════════════════════════════════════════
@@ -777,13 +780,54 @@ def _df_partial(func, *partial_args):
         return func(*partial_args, *args)
     return BuiltinFunction("partial", applied)
 
+def aridade_de(func, padrao=2):
+    """Quantos argumentos 'func' aceita.
+
+    A pergunta parece do Python e nao e: uma acao da linguagem chega
+    aqui como uma DFAction, e o '__call__' dela e '(*args, **kwargs)'.
+    'inspect.signature' respondia DOIS para toda acao — para a de um
+    parametro e para a de cinco.
+
+    'curry' e a vitima: com uma acao de tres parametros ele chamava o
+    alvo com dois e o erro saia como "action '<lambda>' is missing
+    argument(s): c", apontando para dentro da biblioteca. Quem escreveu
+    'F.curry(soma3)' nao tem como ligar uma coisa a outra.
+
+    Os parametros declarados vem primeiro; a assinatura do Python fica
+    para quem de fato e uma funcao do Python.
+    """
+    params = getattr(func, "params", None)
+    if isinstance(params, (list, tuple)):
+        return len(params)
+    import inspect
+    try:
+        return len(inspect.signature(func).parameters)
+    except (ValueError, TypeError):
+        return padrao
+
+
+def chave_de_identidade(valor):
+    """Uma chave que distingue valores DIFERENTES, para deduplicar.
+
+    Era 'str(valor)', e por isso o numero 1 e o texto "1" tinham a
+    mesma chave: 'unique([1, "1"])' devolvia '[1]' — um valor sumia,
+    calado, e nenhum dos dois e duplicata do outro.
+
+    O nome do tipo entra na chave. Onde o valor nao pode ser
+    guardado num conjunto (um Cluster dentro de um Cluster), cai-se
+    no texto, que e o comportamento antigo: ali ele e a unica
+    identidade disponivel.
+    """
+    try:
+        hash(valor)
+    except TypeError:
+        return ("~", type(valor).__name__, str(valor))
+    return (type(valor).__name__, valor)
+
+
 def _df_curry(func, arity=None):
     if arity is None:
-        import inspect
-        try:
-            arity = len(inspect.signature(func).parameters)
-        except (ValueError, TypeError):
-            arity = 2
+        arity = aridade_de(func)
     def curried(*args):
         if len(args) >= arity:
             return func(*args[:arity])

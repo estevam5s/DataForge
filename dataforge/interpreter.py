@@ -2162,6 +2162,30 @@ class Interpreter:
                 return BuiltinFunction(membro, list_methods[membro])
             if membro == 'length':
                 return len(obj)
+        elif isinstance(obj, DFAction):
+            # Uma acao expoe o que DECIDIMOS que ela expoe.
+            #
+            # Ela caia no 'hasattr' logo abaixo — a porta do Python,
+            # que existe para um 'ndarray' e para o que vem por
+            # 'adopt Python.…'. Uma DFAction nao vem de fora: os
+            # atributos dela sao os campos da classe do interpretador,
+            # e 'f.body' devolvia
+            #
+            #     [YieldStatement(line=2, column=5, value=Identifier(…))]
+            #
+            # — a arvore, com os nomes das classes do Python, num
+            # valor e nao numa mensagem. Quem lesse aquilo concluiria
+            # que a linguagem tem reflexao sobre a arvore, e ela nao
+            # tem: sao os bastidores escapando.
+            if membro == 'name':
+                return obj.name
+            if membro == 'aridade':
+                return len(obj.params)
+            raise NameError_(
+                f"Action '{obj.name}' has no member '{membro}'.",
+                node.line, node.column,
+                nota="an action offers 'name' and 'aridade'",
+                dica=f"to call it, write  {obj.name}(…)")
         elif hasattr(obj, membro):
             return getattr(obj, membro)
 

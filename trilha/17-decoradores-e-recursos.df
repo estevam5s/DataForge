@@ -1,0 +1,201 @@
+// ═══════════════════════════════════════════════════════════
+//  17. Decoradores e recursos
+// ═══════════════════════════════════════════════════════════
+//
+//   @decorador          → mark @decorador
+//   functools.wraps     → nao e preciso: a acao envolvida e uma acao
+//   with recurso():     → defer, ou monitor/ensure
+//   contextlib          → nao existe, e nao falta
+//
+// A troca da segunda metade e a que surpreende: DataForge nao tem
+// 'with'. O fechamento de um recurso e agendado por quem o abriu, e
+// nao declarado por quem escreveu o recurso.
+
+// ── 17.1 Decorador: uma acao que devolve outra ──
+//
+// O decorador recebe a acao e devolve a substituta. Nao ha '@wraps':
+// a substituta e uma acao normal, e nao uma funcao disfarcada.
+registro := []
+
+action com_log(fn):
+    action envolvida(x):
+        registro.append($"chamada com {x}")
+        yield fn(x)
+    yield envolvida
+
+mark @com_log
+action triplo(x: Integer) -> Integer:
+    yield x * 3
+
+assert triplo(5) is 15
+assert registro is ["chamada com 5"]
+
+// ── 17.2 Decorador com argumentos ──
+//
+// Um nivel a mais: o decorador e chamado PRIMEIRO com os argumentos, e
+// o que ele devolve e que recebe a acao.
+action repetir(n: Integer):
+    action decorador(fn):
+        action envolvida(x):
+            saida := []
+            cycle _ from 1 to n:
+                saida.append(fn(x))
+            yield saida
+        yield envolvida
+    yield decorador
+
+mark @repetir(3)
+action eco(x: String) -> String:
+    yield x
+
+assert eco("oi") is ["oi", "oi", "oi"]
+
+// ── 17.3 Empilhar, e a ordem ──
+//
+// O 'mark' mais PROXIMO da acao e aplicado primeiro — ele fica por
+// dentro. Na chamada, portanto, o de cima roda antes.
+ordem := []
+
+action fora(fn):
+    action envolvida(x):
+        ordem.append("fora")
+        yield fn(x)
+    yield envolvida
+
+action dentro(fn):
+    action envolvida(x):
+        ordem.append("dentro")
+        yield fn(x)
+    yield envolvida
+
+mark @fora
+mark @dentro
+action alvo(x):
+    ordem.append("alvo")
+    yield x
+
+_ := alvo(1)
+assert ordem is ["fora", "dentro", "alvo"]
+
+// ── 17.4 Um decorador que so ANOTA ──
+//
+// Se o decorador devolve 'void', a acao original CONTINUA no lugar. E
+// o que permite um 'mark' usado como metadado — uma rota, um teste,
+// uma permissao — sem embrulhar nada.
+//
+// Se 'void' virasse o novo valor, a acao decorada sumiria: chamar
+// 'soma' depois seria chamar o nada.
+anotadas := []
+
+action anotar(fn):
+    anotadas.append(fn.name)
+    // sem 'yield': devolve void, e nao substitui
+
+mark @anotar
+action soma(a: Integer, b: Integer) -> Integer:
+    yield a + b
+
+assert soma(2, 3) is 5
+assert anotadas is ["soma"]
+
+// Uma acao expoe 'name' e 'aridade', e mais nada: a arvore dela sao
+// os bastidores do interpretador, e nao um valor da linguagem.
+assert soma.name is "soma"
+assert soma.aridade is 2
+
+// ── 17.5 O lugar do 'with': 'defer' ──
+//
+// 'defer' agenda um bloco para a SAIDA da acao — em ordem LIFO, e
+// aconteca o que acontecer. A abertura e o fechamento ficam lado a
+// lado, que e o que o 'with' tinha de bom, sem precisar que o recurso
+// implemente protocolo nenhum.
+eventos := []
+
+blueprint Conexao(nome):
+    self.aberta := yes
+
+    action fechar():
+        self.aberta := no
+        eventos.append($"fechou {self.nome}")
+
+action usar() -> String:
+    c := spawn Conexao("banco")
+    defer:
+        c.fechar()
+    eventos.append("consultou")
+    yield "resultado"
+
+assert usar() is "resultado"
+assert eventos is ["consultou", "fechou banco"]
+
+// LIFO: o ultimo agendado fecha primeiro, que e a ordem certa quando
+// um recurso depende do outro.
+pilha := []
+
+action dois():
+    defer:
+        pilha.append("fecha A")
+    defer:
+        pilha.append("fecha B")
+    yield void
+
+_ := dois()
+assert pilha is ["fecha B", "fecha A"]
+
+// ── 17.6 'defer' roda mesmo quando a acao falha ──
+//
+// E o ponto: um fechamento que so acontece no caminho feliz nao e um
+// fechamento.
+rastro := []
+
+action falha():
+    defer:
+        rastro.append("fechou")
+    trigger "deu errado"
+
+monitor:
+    _ := falha()
+handle Error as e:
+    rastro.append(e.message)
+
+assert rastro is ["fechou", "deu errado"]
+
+// ARMADILHA: erro DENTRO de um 'defer' e descartado. Ele roda na
+// saida, quando ja nao ha a quem contar — e deixar um erro de
+// fechamento sequestrar o resultado da acao seria pior.
+action defer_que_quebra() -> String:
+    defer:
+        trigger "ninguem ve"
+    yield "voltou inteiro"
+
+assert defer_que_quebra() is "voltou inteiro"
+
+// ── 17.7 'defer' x 'ensure' ──
+//
+// Os dois garantem execucao, em escalas diferentes:
+//
+//   defer    → na saida da ACAO      (o recurso vive na acao inteira)
+//   ensure   → na saida do BLOCO     (o recurso vive so ali)
+//
+// E ha uma diferenca pratica: 'ensure' e do 'monitor', entao ele
+// convive com 'handle'; 'defer' nao trata nada, so fecha.
+quadro := []
+
+action com_ensure() -> String:
+    monitor:
+        quadro.append("tentou")
+        trigger "falhou"
+    handle Error as e:
+        quadro.append($"tratou: {e.message}")
+        yield "tratado"
+    ensure:
+        quadro.append("ensure")
+
+assert com_ensure() is "tratado"
+assert quadro is ["tentou", "tratou: falhou", "ensure"]
+
+// ARMADILHA: 'defer' desliga a chamada de cauda. Uma acao com 'defer'
+// nao pode reusar o quadro — o bloco roda na saida DELE. Numa
+// recursao profunda, escolha um dos dois.
+
+out "17. Decoradores e recursos — ok"

@@ -20,6 +20,19 @@ assert 7 ** 2  is 49
 //
 // Use '~/' sempre, e '//' so para comentar.
 
+// E a regra vale nos DOIS sentidos. Um comentario no fim de uma linha
+// de codigo, se o que vem depois do '//' for uma chamada, vira
+// divisao:
+//
+//     assert f(5) is 12      // dobro(x)
+//
+// ali o '// dobro(x)' e lido como '12 ~/ dobro(x)'. Quando um
+// comentario de fim de linha comeca com um nome seguido de '(', ponha
+// alguma coisa antes — ou escreva o comentario na linha de cima.
+soma := lambda a, b => a + b
+assert (12 // soma(2, 4)) is 2        // aqui a divisao e de proposito
+assert 12 is 12                       // texto comum, sem chamada: comentario
+
 // ── 3.2 Comparacao ──
 //
 // As palavras sao os operadores. '>' e '<' NAO existem como

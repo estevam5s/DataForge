@@ -1509,3 +1509,159 @@ a := [1, 2]
 b := [3]
 out a bigger b
 """))
+
+def test_uma_acao_nao_entrega_a_propria_arvore():
+    """`f.body` devolvia a AST, com os nomes das classes do Python.
+
+        out f.body
+        [YieldStatement(line=2, column=5, value=Identifier(…))]
+
+    A DFAction caía no `hasattr` que existe para o objeto que vem de
+    fora — um `ndarray`, o que chega por `adopt Python.…`. Ela não vem
+    de fora: os atributos dela são os campos da classe do
+    interpretador, e entregá-los num VALOR (e não numa mensagem, que
+    já é proibido) faz parecer que a linguagem tem reflexão sobre a
+    árvore. Não tem.
+
+    Sobram `name` e `aridade`, que são deliberados e documentados.
+    """
+    assert _rodar("""
+action soma(a: Integer, b: Integer) -> Integer:
+    yield a + b
+
+out soma.name
+out soma.aridade
+out soma(1, 2)
+""").splitlines() == ["soma", "2", "3"]
+
+    for membro in ("body", "params", "closure", "arquivo", "is_stream"):
+        with pytest.raises(Exception) as erro:
+            _rodar(f"""
+action f(x):
+    yield x
+out f.{membro}
+""")
+        texto = str(erro.value)
+        assert "has no member" in texto, (membro, texto)
+        # E a mensagem nao pode citar a classe do Python que sobrou.
+        assert "YieldStatement" not in texto and "Identifier" not in texto
+
+    # O decorador que so anota tem de quem registrar: e para isto que
+    # 'name' existe.
+    assert _rodar("""
+rotas := []
+
+action rota(fn):
+    rotas.append(fn.name)
+
+mark @rota
+action inicio():
+    yield "oi"
+
+out rotas
+out inicio()
+""").splitlines() == ["[inicio]", "oi"]
+
+def test_curry_le_a_aridade_da_acao_e_nao_a_do_python():
+    """`curry` respondia DOIS para toda ação da linguagem.
+
+    Ele perguntava a aridade com `inspect.signature`, que numa
+    `DFAction` vê o `__call__(*args, **kwargs)` do interpretador. Com
+    três parâmetros, ele chamava o alvo com dois:
+
+        erro: action '<lambda>' is missing argument(s): c
+
+    — uma mensagem que aponta para dentro da biblioteca, e que quem
+    escreveu `curry(soma3)` não tem como ligar ao que fez.
+
+    Com UM parâmetro é pior: `curry(um)(5)` não dava erro nenhum.
+    Esperava o segundo argumento que nunca viria e devolvia outra
+    função, calado.
+
+    Duas cópias da mesma linha erravam igual — a embutida e a de
+    `Arcane.Functional`.
+    """
+    assert _rodar("""
+adopt Arcane.Functional as F
+
+action soma3(a, b, c):
+    yield a + b + c
+
+action um(x):
+    yield x + 1
+
+out curry(soma3)(1)(2)(3)
+out curry(soma3)(1, 2)(3)
+out curry(um)(5)
+out F.curry(soma3)(1)(2)(3)
+out F.curry(lambda a, b => a * b)(3)(4)
+out curry(soma3, 3)(1)(2)(3)
+""").splitlines() == ["6", "6", "6", "6", "12", "6"]
+
+    # E uma funcao de verdade do Python continua respondendo por si.
+    from dataforge.builtins import aridade_de
+    assert aridade_de(lambda a, b, c: a) == 3
+    assert aridade_de(object()) == 2
+
+def test_a_chave_de_um_agrupamento_e_o_valor_e_nao_o_texto_dele():
+    """`F.group_by` devolvia um vault de chaves de TEXTO.
+
+    O resultado imprime igual ao de chaves numéricas:
+
+        {1: [1, 3], 0: [2, 4]}
+
+    e `g[1]` falha com `there is a similar key: "1"`. O mesmo
+    `group_by` de `Arcane.Collections` já devolvia a chave inteira — a
+    mesma operação, duas respostas, e as duas parecem certas na tela.
+    Comparar os dois resultados dava `no`.
+
+    `index_by` e `frequencies` (nas duas cópias, a embutida e a do
+    módulo) tinham a mesma linha.
+    """
+    assert _rodar("""
+adopt Arcane.Functional as F
+adopt Arcane.Collections as C
+
+nums := [1, 2, 3, 4]
+gf := F.group_by(lambda n: n % 2, nums)
+gc := C.group_by(nums, lambda n: n % 2)
+
+out gf is gc
+out gf[1]
+out typeof(gf.keys()[0])
+out F.frequencies([1, 1, 2])
+out frequencies([1, 1, 2])
+out F.index_by(lambda n: n * 10, nums)[20]
+""").splitlines() == [
+        "yes", "[1, 3]", "Integer", "{1: 2, 2: 1}", "{1: 2, 2: 1}", "2",
+    ]
+
+    # Uma chave que nao cabe num vault agora e recusada, como em
+    # 'Arcane.Collections' e como no literal '{[1]: 2}' — e nao
+    # convertida em texto pelas costas.
+    saida = _rodar("""
+adopt Arcane.Functional as F
+monitor:
+    _ := F.group_by(lambda p: p, [[1, 2], [1, 3]])
+handle Error as e:
+    out e.type
+""")
+    assert saida == "NotHashableError", saida
+
+
+def test_deduplicar_nao_confunde_o_numero_1_com_o_texto_1():
+    """`unique([1, "1"])` devolvia `[1]` — um valor sumia, calado.
+
+    A chave do conjunto de vistos era `str(item)`, e os dois viram
+    `"1"`. Nenhum dos dois é duplicata do outro.
+    """
+    assert _rodar("""
+adopt Arcane.Functional as F
+adopt Arcane.Collections as C
+
+out len(unique([1, "1"]))
+out len(F.unique_by(lambda x: x, [1, "1"]))
+out len(C.unique_by([1, "1"], lambda x: x))
+out unique([1, 1, 2])
+out C.unique_by([[1], [1], [2]], lambda x: x)
+""").splitlines() == ["2", "2", "2", "[1, 2]", "[[1], [2]]"]

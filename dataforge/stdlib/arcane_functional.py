@@ -123,11 +123,13 @@ class ArcaneFunctional:
     def _curry(fn, arity=None):
         """Curry a function."""
         if arity is None:
-            import inspect
-            try:
-                arity = len(inspect.signature(fn).parameters)
-            except (ValueError, TypeError):
-                arity = 2
+            # A aridade de uma acao da linguagem vem dos parametros
+            # DELA — 'inspect.signature' ve o '(*args, **kwargs)' da
+            # DFAction e responde dois para todas. Uma copia so da
+            # regra: 'builtins.curry' tinha a mesma linha, e as duas
+            # erravam igual.
+            from ..builtins import aridade_de
+            arity = aridade_de(fn)
 
         def curried(*args):
             if len(args) >= arity:
@@ -241,10 +243,22 @@ class ArcaneFunctional:
 
     @staticmethod
     def _group_by(fn, collection):
+        # A chave e o que 'fn' devolveu, e nao o texto dele.
+        #
+        # Com 'str', 'F.group_by(lambda n: n % 2, nums)' devolvia um
+        # vault de chaves de TEXTO que imprime identico a um de chaves
+        # numericas — e 'g[1]' falhava com "there is a similar key:
+        # \"1\"". O mesmo 'group_by' de 'Arcane.Collections' ja
+        # devolvia a chave inteira: a mesma operacao, duas respostas,
+        # e as duas parecem certas na tela.
+        #
+        # Uma chave que nao pode ser guardada num vault (um Cluster)
+        # agora levanta 'NotHashableError' — que e o que a outra copia
+        # faz, e o que a linguagem diz quando alguem escreve
+        # '{[1]: 2}'.
         result = {}
         for item in collection:
             key = fn(item)
-            key = str(key)
             if key not in result:
                 result[key] = []
             result[key].append(item)
@@ -256,10 +270,11 @@ class ArcaneFunctional:
 
     @staticmethod
     def _unique_by(fn, collection):
+        from ..builtins import chave_de_identidade
         seen = set()
         result = []
         for item in collection:
-            key = str(fn(item))
+            key = chave_de_identidade(fn(item))
             if key not in seen:
                 seen.add(key)
                 result.append(item)
@@ -313,16 +328,14 @@ class ArcaneFunctional:
     def _frequencies(collection):
         freq = {}
         for item in collection:
-            key = str(item)
-            freq[key] = freq.get(key, 0) + 1
+            freq[item] = freq.get(item, 0) + 1
         return freq
 
     @staticmethod
     def _index_by(fn, collection):
         result = {}
         for item in collection:
-            key = str(fn(item))
-            result[key] = item
+            result[fn(item)] = item
         return result
 
     # ── Maybe Monad ──────────────────────────────────────

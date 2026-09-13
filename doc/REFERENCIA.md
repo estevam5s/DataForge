@@ -449,6 +449,17 @@ resultado recebe a ação.
 
 Vários `mark` empilham; o mais próximo da ação é aplicado primeiro.
 
+Um decorador que devolve `void` **não** substitui a ação: é o que permite usar
+`mark` como anotação — registrar uma rota, um teste, uma permissão — sem
+embrulhar nada.
+
+Uma ação expõe dois membros, e só esses dois:
+
+| Membro | O quê |
+|--------|-------|
+| `.name` | o nome com que foi declarada |
+| `.aridade` | quantos parâmetros ela declara |
+
 ### 6.6 defer
 
 ```ebnf
