@@ -1,0 +1,114 @@
+// ═══════════════════════════════════════════════════════════
+//  11. Modulos, pacotes e projetos
+// ═══════════════════════════════════════════════════════════
+//
+//   import          → adopt
+//   from X import Y → adopt {Y} from X
+//   __all__         → relay
+//
+// A diferenca que importa nao e a palavra: e que o ANALISADOR
+// atravessa a fronteira. 'M.naoExiste()' e acusado antes de rodar.
+
+// ── 11.1 As quatro formas de 'adopt' ──
+
+// 1. o modulo inteiro, com apelido
+adopt Arcane.Math as Math
+assert Math.sqrt(144) is 12.0
+
+// 2. selecao compacta
+adopt Arcane.Math.{floor, ceil}
+assert floor(2.7) is 2
+assert ceil(2.1) is 3
+
+// 3. selecao com 'from', e com apelido
+adopt {abs as modulo} from Arcane.Math
+assert modulo(-5) is 5
+
+// 4. um arquivo vizinho — as mesmas quatro formas valem
+adopt ./modulos/calculadora as Calc
+adopt ./modulos/calculadora.{somar}
+adopt {dividir as div} from ./modulos/calculadora
+
+assert Calc.somar(2, 3) is 5
+assert somar(2, 3) is 5
+assert div(10.0, 4.0) is 2.5
+assert Calc.VERSAO is "1.0.0"
+
+r := Calc.Resultado(2.5, yes)
+assert r.exato
+
+// ── 11.2 'relay' e o que fica de fora ──
+//
+// '_normalizar' existe no arquivo e NAO esta no 'relay'. Chamar
+// 'Calc._normalizar(1.0)' e erro — e o 'dataforge check' acusa isso
+// antes de rodar, com a lista do que o modulo oferece.
+escondido := no
+monitor:
+    _ := Calc._normalizar(1.0)
+handle Error as e:
+    escondido := yes
+assert escondido
+
+// ── 11.3 O que o analisador cobra atravessando o arquivo ──
+//
+// Rode 'dataforge check' num arquivo com qualquer destas linhas:
+//
+//   Calc.naoExiste()        → module 'Calc' has no 'naoExiste'
+//   Calc.somar(1, 2, 3)     → 'Calc.somar' takes 2 argument(s), got 3
+//   Calc.somar("a", "b")    → parameter 'a' expects Integer
+//   Calc.dividir(1.0, 2.0).naoTem  → o tipo de retorno atravessa
+//
+// Num arquivo de 40 linhas, o erro aparece na primeira execucao. Num
+// sistema de 200 arquivos, a MAIORIA das chamadas e entre modulos —
+// e sem isso todas elas seriam invisiveis ate a producao.
+
+// ── 11.4 Um projeto ──
+//
+//   forge.toml       o manifesto
+//   src/main.df      a entrada
+//   tests/           os testes, descobertos por 'dataforge test'
+//   forge_modules/   as dependencias (NAO versionado)
+//   forge.lock       o que foi instalado (versionado)
+//
+//   dataforge init          cria o esqueleto
+//   dataforge new api       9 modelos prontos, todos com teste
+//   dataforge info          mostra o manifesto
+
+// ── 11.5 Ambiente e dependencias ──
+//
+// Nao ha 'venv' a ativar: as dependencias do PROJETO moram em
+// 'forge_modules/', ao lado do codigo, e o 'adopt' as encontra
+// subindo ate achar um 'forge.toml'. Dois projetos na mesma maquina
+// nao disputam nada.
+//
+//   dataforge add validador@^1.0     escreve no forge.toml e instala
+//   dataforge install                resolve o forge.toml inteiro
+//   dataforge remove validador
+//   dataforge list
+//   dataforge search cpf
+//
+// Conflito de versao e ERRO, e nao aviso: se dois pacotes pedem
+// faixas incompativeis do mesmo terceiro, o resolvedor falha dizendo
+// quem pediu o que. Instalar duas copias em versoes diferentes gera
+// bug irreproduzivel.
+
+// ── 11.6 A ponte para o Python ──
+//
+// Quando a biblioteca que voce precisa ja existe la:
+//
+//   adopt Python.numpy as np
+//   a := np.array([1, 2, 3])
+//   out a * 2                  // a conta VETORIZADA do numpy
+//
+// A ponte NAO converte: um 'ndarray' continua um 'ndarray'. E isso so
+// funciona porque o interpretador trata objeto estranho por
+// PROTOCOLO — membro, metodo, indice, 'len', iteracao, aritmetica —
+// e nao por tipo.
+
+// ── 11.7 Ciclo de import e erro ──
+//
+// 'a.df' adota 'b.df' que adota 'a.df' e o 'check' acusa, mostrando a
+// cadeia inteira: 'a.df → b.df → c.df → a.df'. Um ciclo de quatro
+// arquivos e impossivel de quebrar sem saber por onde ele passa.
+
+out "11. Modulos, pacotes e projetos — ok"

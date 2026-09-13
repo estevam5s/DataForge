@@ -17,6 +17,9 @@ const links = [
   // quem chegava na pagina inicial e queria instalar nao tinha por
   // onde. A rota nao e de documentacao — ela e do site.
   { t: 'Download', h: '/download' },
+  // Sete JSONs com a linguagem inteira estavam no ar, com CORS, e a
+  // pagina que os documenta nao era alcancavel de lugar nenhum.
+  { t: 'API', h: '/api' },
   { t: 'Painel', h: '/painel' },
 ];
 

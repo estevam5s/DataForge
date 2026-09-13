@@ -4792,3 +4792,106 @@ def test_nenhuma_mensagem_de_metodo_de_colecao_cita_o_tipo_do_python():
                 f"a mensagem cita '{palavra}', que e o nome do tipo no "
                 f"Python:\n  {texto}\npara:\n{programa}")
 
+def test_instanceof_aceita_o_nome_do_blueprint_como_texto():
+    """`instanceof(x, "Animal")` estourava com a frase do Python:
+
+        'String' object has no attribute 'name'
+
+    A mensagem nomeia o tipo certo (`String`) e diz uma coisa que não
+    existe nesta linguagem: aqui não há "attribute", e `name` não é
+    nada que quem escreveu tenha digitado. Ela descreve o interior do
+    interpretador.
+
+    E o erro é fácil de cometer porque a linguagem tem as **duas**
+    formas lado a lado: `e_um(x, "Animal")` pede texto e
+    `instanceof(x, Animal)` pedia o objeto. Aceitar os dois apaga a
+    pegadinha em vez de documentá-la.
+    """
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    import contextlib
+    import io as _io
+
+    programa = """
+blueprint Animal:
+    action falar():
+        yield "?"
+blueprint Cachorro extends Animal:
+    action falar():
+        yield "Au"
+
+c := spawn Cachorro()
+out instanceof(c, Cachorro)
+out instanceof(c, "Cachorro")
+out instanceof(c, "Animal")
+out instanceof(c, "Gato")
+out instanceof(c, "NaoExiste")
+"""
+    saida = _io.StringIO()
+    with contextlib.redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(programa), "<t>"))
+    assert saida.getvalue().split() == ["yes", "yes", "yes", "no", "no"], \
+        saida.getvalue()
+
+def test_class_name_nao_devolve_o_nome_do_tipo_do_python():
+    """`class_name("texto")` respondia **`str`**.
+
+    E `int`, `float`, `list`, `dict`, `bool`, `NoneType` — a tabela
+    inteira do Python, numa função **embutida que o usuário chama
+    direto**. Ela só tratava o caso da instância de blueprint e caía
+    em `type(instance).__name__` para todo o resto.
+
+    Foi assim que apareceu: `[class_name(x) cycle x in get_mro(b)]`
+    devolveu `[str, str]`, porque `get_mro` entrega os nomes como
+    texto. Quem lê conclui que existe um tipo `str` na linguagem.
+    """
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    import contextlib
+    import io as _io
+
+    saida = _io.StringIO()
+    with contextlib.redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(
+            'out class_name("a"), class_name(1), class_name(1.5), '
+            'class_name([1]), class_name({"a": 1}), class_name(yes), '
+            'class_name(void)\n'), "<t>"))
+    nomes = saida.getvalue().split()
+    assert nomes == ["String", "Integer", "Float", "Cluster", "Vault",
+                     "Boolean", "Void"], nomes
+
+
+def test_as_duas_tabelas_de_nome_de_tipo_concordam():
+    """Há **duas** cópias do mapa "tipo do Python → nome da linguagem".
+
+    `Interpreter._type_of` responde ao `typeof`, ao `match` e às
+    mensagens de erro de tipo; `builtins._NOMES_DE_TIPO` responde a
+    `type()`, `class_name` e `e_um`. Elas nasceram separadas e já
+    divergiram: `Set`, `Frozen` e `Bytes` entraram numa e não na
+    outra, e o sintoma seria `typeof(x)` e `class_name(x)`
+    respondendo coisas diferentes sobre o mesmo valor.
+
+    Este teste não as funde — a fusão exigiria o interpretador dentro
+    de `builtins.py` — mas exige que respondam igual.
+    """
+    from dataforge.builtins import _df_type
+    from dataforge.interpreter import Interpreter
+
+    interp = Interpreter()
+    amostra = ["texto", 1, 1.5, True, None, [1], {"a": 1},
+               {1, 2}, frozenset([1]), (1, 2), b"x", bytearray(b"x")]
+
+    divergem = [(repr(v), interp._type_of(v), _df_type(v))
+                for v in amostra if interp._type_of(v) != _df_type(v)]
+    assert not divergem, (
+        "typeof e class_name discordam sobre o mesmo valor:\n  " +
+        "\n  ".join(f"{v}: typeof={a!r} class_name={b!r}"
+                     for v, a, b in divergem))
+
+    # E nenhuma delas responde com uma palavra do Python.
+    for valor in amostra:
+        nome = _df_type(valor)
+        assert nome[:1].isupper(), f"{valor!r} -> {nome!r}"
+

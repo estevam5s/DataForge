@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
+import { NavSite } from '@/components/landing/NavSite';
+import { RodapeSite } from '@/components/landing/RodapeSite';
 import { CodeBlock } from '@/components/CodeBlock';
 import dados from '@/lib/dados-gerados.json';
 
@@ -254,10 +254,17 @@ export default function Pagina() {
   );
 
   return (
-    <div className="page-glow min-h-screen">
-      <Header />
+    // '.lp' — o layout do SITE, e nao o da documentacao.
+    //
+    // A pagina usava o <Header> de '/docs': barra de busca, 'Começar',
+    // 'Exercícios', 'Kiln', 'Biblioteca'. Instalar a linguagem nao e
+    // um assunto da documentacao, e quem chega pela home trocava de
+    // mundo ao clicar em Download — outra barra, outra cor, outro
+    // rodape.
+    <div className="lp min-h-screen">
+      <NavSite />
 
-      <main id="conteudo" className="mx-auto max-w-[860px] px-4 py-10 sm:py-14">
+      <main id="conteudo" className="mx-auto max-w-[900px] px-4 py-14 sm:px-10 sm:py-20">
         <p className="nav-label mb-2 text-accent">Download</p>
         <h1 className="text-[32px] font-extrabold leading-[1.15] tracking-tight text-strong sm:text-[38px]">
           DataForge {VERSAO}
@@ -361,7 +368,7 @@ export default function Pagina() {
         </section>
       </main>
 
-      <Footer />
+      <RodapeSite />
     </div>
   );
 }

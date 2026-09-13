@@ -287,6 +287,24 @@ def _ler(caminho, profundidade, vistos):
             definidos[stmt.name] = Membro(
                 stmt.name, "trait", 0, None,
                 linha=getattr(stmt, "line", 0))
+        elif tipo == "SteadyDeclaration":
+            # Uma constante do topo e um membro como qualquer outro.
+            #
+            # Este ramo NAO existia, e a falta nao dava erro: ela fazia
+            # 'relay somar, VERSAO' cair no ramo "relay de um nome que
+            # este leitor nao viu", que devolve 'aberta = yes' — a
+            # valvula que faz o analisador CALAR sobre o modulo inteiro.
+            #
+            # Uma linha banal — exportar a versao do modulo — desligava,
+            # de uma vez, a checagem de membro inexistente, de aridade e
+            # de tipo para todas as chamadas aquele arquivo. E com o
+            # 'check' respondendo "sem erros", que e o pior jeito de
+            # falhar que este analisador tem: ele nao erra, ele cala.
+            nome = getattr(stmt, "name", None)
+            if nome:
+                definidos.setdefault(nome, Membro(
+                    nome, "valor", 0, None,
+                    linha=getattr(stmt, "line", 0)))
         elif tipo == "Assignment":
             nome = _nome_do_alvo(stmt)
             if nome:

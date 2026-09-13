@@ -945,7 +945,16 @@ class Parser:
         if self.current().type == TokenType.LBRACE:
             selecao = self._parse_selecao()
             self.expect(TokenType.FROM, "Expected 'from' after the selected names")
-            modulo = self._parse_caminho_de_modulo()
+            # Caminho relativo PRIMEIRO, como 'parse_relay' ja fazia.
+            #
+            # Sem isto, 'adopt {somar} from ./calculadora' nao compilava
+            # enquanto 'adopt {sqrt} from Arcane.Math' compilava: a
+            # forma que a pessoa aprende na documentacao da biblioteca
+            # nao servia para o proprio projeto dela, e a mensagem
+            # ("Expected the module name") nao dizia por que.
+            modulo = self._parse_caminho_relativo()
+            if modulo is None:
+                modulo = self._parse_caminho_de_modulo()
             self.match(TokenType.NEWLINE)
             return ast.AdoptStatement(module=modulo, alias="", selection=selecao,
                                       line=tok.line, column=tok.column)

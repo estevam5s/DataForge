@@ -193,6 +193,92 @@ def contar_o_repositorio():
     }
 
 
+def numeros_do_mundo():
+    """Estrelas, release e downloads — o instantâneo de build.
+
+    O site é um **export estático**: não há servidor para consultar
+    nada. Estes números existem para a página abrir já com um valor no
+    lugar, e o navegador atualiza depois (`site/lib/numeros.ts`), que é
+    o único jeito de eles não envelhecerem entre um deploy e outro.
+
+    Sem rede, devolve o que der — um número ausente vira `None`, e o
+    componente mostra o traço. Falhar aqui deixaria o site sem build
+    por causa de uma estatística.
+    """
+    import json as _json
+    import urllib.error
+    import urllib.request
+
+    def pegar(url, dados=None, cabecalhos=None):
+        pedido = urllib.request.Request(
+            url, data=dados,
+            headers={"User-Agent": "dataforge-site", **(cabecalhos or {})})
+        try:
+            with urllib.request.urlopen(pedido, timeout=8) as r:
+                return _json.load(r)
+        except (urllib.error.URLError, TimeoutError, ValueError,
+                urllib.error.HTTPError):
+            return None
+
+    # O que o arquivo ja tem. A API da loja e INTERMITENTE: a mesma
+    # consulta responde ora com 'statistics', ora sem — medido, tres
+    # chamadas seguidas, duas vazias. Um build que caisse na vazia
+    # apagaria um numero que o site ja mostrava.
+    #
+    # Entao o padrao nao e None: e o ultimo valor conhecido. So um
+    # valor NOVO substitui um valor antigo.
+    anterior = {}
+    try:
+        with open(os.path.join(SITE, "lib", "dados-gerados.json"),
+                  encoding="utf-8") as f:
+            anterior = _json.load(f).get("mundo") or {}
+    except (OSError, ValueError):
+        pass
+
+    saida = {chave: anterior.get(chave) for chave in
+             ("estrelas", "versao", "publicado", "baixados", "instalacoes")}
+
+    repo = pegar("https://api.github.com/repos/estevam5s/DataForge")
+    if repo:
+        if repo.get("stargazers_count") is not None:
+            saida["estrelas"] = repo["stargazers_count"]
+
+    release = pegar(
+        "https://api.github.com/repos/estevam5s/DataForge/releases/latest")
+    if release:
+        saida["versao"] = release.get("tag_name") or saida["versao"]
+        saida["publicado"] = ((release.get("published_at") or "")[:10]
+                              or saida["publicado"])
+        saida["baixados"] = sum(a.get("download_count", 0)
+                                for a in release.get("assets", []))
+
+    corpo = _json.dumps({
+        "filters": [{"criteria": [
+            {"filterType": 7, "value": "EstevamSouza.dataforge-language"}],
+            "pageSize": 1}],
+        "flags": 914}).encode()
+    loja = pegar(
+        "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery",
+        corpo,
+        {"Content-Type": "application/json",
+         "Accept": "application/json;api-version=7.2-preview.1"})
+    if loja:
+        try:
+            estatisticas = loja["results"][0]["extensions"][0]["statistics"]
+            por_nome = {e["statisticName"]: e["value"] for e in estatisticas}
+            # 'install' e o numero que a loja mostra na pagina, e ela so
+            # o publica depois de algum tempo; ate la existe so o
+            # 'downloadCount'. Preferir o primeiro e cair no segundo faz
+            # o site mostrar um numero verdadeiro desde o primeiro dia.
+            bruto = por_nome.get("install", por_nome.get("downloadCount"))
+            if bruto is not None:
+                saida["instalacoes"] = int(bruto)
+        except (KeyError, IndexError, TypeError, ValueError):
+            pass
+
+    return saida
+
+
 def main():
     modulos = coletar_modulos()
     builtins = coletar_builtins()
@@ -203,6 +289,7 @@ def main():
         "builtins": builtins,
         "totalBuiltins": sum(len(v) for v in builtins.values()),
         "contagem": contar_o_repositorio(),
+        "mundo": numeros_do_mundo(),
     }
 
     destino = os.path.join(SITE, "lib", "dados-gerados.json")
@@ -219,6 +306,9 @@ def main():
     c = dados["contagem"]
     print(f"  {c['testes']} funcoes de teste, {c['exemplos']} exemplos, "
           f"{c['arquivosDf']} arquivos .df")
+    m = dados["mundo"]
+    print(f"  {m['estrelas']} estrelas, release {m['versao']}, "
+          f"{m['baixados']} baixados, {m['instalacoes']} instalacoes")
 
 
 if __name__ == "__main__":

@@ -1,18 +1,25 @@
-import Link from 'next/link';
+'use client';
 
-/* Números reais do repositório — os mesmos que a suíte verifica.
+import Link from 'next/link';
+import dados from '@/lib/dados-gerados.json';
+import { Contagem } from './Contagem';
+
+/* Os números saem do repositório, e não daqui.
  *
- * E ela passou a verificar de verdade: este comentário já estava aqui
- * quando os valores diziam 1246 e 216, e eram 2304 e 230. Um comentário
- * que promete uma trava que não existe é pior que nenhum — quem lê
- * confia e não confere.
+ * Estavam escritos à mão — '2332' quando eram 2377, e antes disso
+ * '1246' quando eram 2304 — sob um comentário que prometia uma trava.
+ * Um comentário que promete verificação que não existe é pior que
+ * nenhum: quem lê confia e não confere.
  *
- * 'test_a_home_anuncia_os_numeros_reais' cobra os dois. */
-const fatos = [
-  { rotulo: 'Testes passando', valor: '2332' },
-  { rotulo: 'Exercícios verificados', valor: '231' },
-  { rotulo: 'Dependências no runtime', valor: 'nenhuma' },
-];
+ * Hoje vêm de 'site/scripts/gerar_dados.py', que conta o repositório,
+ * e 'test_a_home_anuncia_os_numeros_reais' cobra a sincronia. */
+const contagem = (dados as unknown as {
+  contagem: { testes: number; exemplos: number; arquivosDf: number };
+}).contagem;
+
+const totalExercicios = Object.values(
+  dados.exercicios as Record<string, unknown[]>,
+).reduce((n, l) => n + l.length, 0);
 
 export function Heroi() {
   return (
@@ -40,18 +47,35 @@ export function Heroi() {
               <Link href="/docs/primeiros-passos" className="lp-btn">
                 Começar
               </Link>
-              <Link href="/docs" className="lp-btn-ghost">
-                Documentação
+              <Link href="/download" className="lp-btn-ghost">
+                Instalar
               </Link>
             </div>
 
             <dl className="lp-mono grid w-full gap-2 text-[13px] sm:w-auto">
-              {fatos.map((f) => (
-                <div key={f.rotulo} className="flex items-baseline justify-between gap-8 sm:justify-end">
-                  <dt className="text-white/55">{f.rotulo}</dt>
-                  <dd className="font-medium text-white sm:w-[10ch] sm:text-right">{f.valor}</dd>
-                </div>
-              ))}
+              <div className="flex items-baseline justify-between gap-8 sm:justify-end">
+                {/* 'Funções de teste', e nao 'Testes passando'. O gerador
+                    conta os 'def test_' do repositorio; o pytest reporta
+                    2377 CASOS, porque 'parametrize' expande uma funcao em
+                    varios. Os dois numeros sao verdadeiros e diferentes —
+                    e o rotulo tem de dizer qual deles esta ali. */}
+                <dt className="text-white/55">Funções de teste</dt>
+                <dd className="font-medium text-white sm:w-[10ch] sm:text-right">
+                  <Contagem valor={contagem.testes} />
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-8 sm:justify-end">
+                <dt className="text-white/55">Exercícios verificados</dt>
+                <dd className="font-medium text-white sm:w-[10ch] sm:text-right">
+                  <Contagem valor={totalExercicios} duracao={900} />
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-8 sm:justify-end">
+                <dt className="text-white/55">Dependências no runtime</dt>
+                <dd className="font-medium text-white sm:w-[10ch] sm:text-right">
+                  nenhuma
+                </dd>
+              </div>
             </dl>
           </div>
         </div>

@@ -1145,3 +1145,117 @@ def test_um_erro_que_nao_veio_de_trigger_tem_valor_void():
             '    out e.valor is void\n'), "<t>"))
     assert saida.getvalue().strip() == "yes"
 
+# ═══════════════════════════════════════════════════════════
+#  O corpo do blueprint sem parâmetros
+# ═══════════════════════════════════════════════════════════
+
+def _rodar(programa):
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    import contextlib
+    import io as _io
+
+    saida = _io.StringIO()
+    with contextlib.redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(programa), "<t>"))
+    return saida.getvalue().strip()
+
+
+def test_o_corpo_do_blueprint_roda_mesmo_sem_parametros():
+    """`self.x := …` num blueprint sem parâmetros era DESCARTADO.
+
+    `exec_BlueprintDeclaration` só montava o `constructor_body` quando
+    `node.constructor_params` era verdadeiro. Sem parâmetros, um
+    `self.tipo := "forma"` não ia para lugar nenhum: nem para os
+    estáticos (o alvo é um acesso a membro, não um identificador), nem
+    para o corpo do construtor.
+
+    A linha existia, estava certa, e não fazia nada — sem erro e sem
+    aviso. `examples/30_showcase_all_features.df` tem uma dessas e
+    passa porque a filha sobrescreve o campo.
+
+    E a forma DEPENDIA do formato do cabeçalho: com parâmetros era
+    `self.x := …` que funcionava e `x := …` que não; sem parâmetros,
+    o contrário. Quem escreve tinha de lembrar qual das duas o
+    blueprint tinha.
+    """
+    assert _rodar("""
+blueprint Forma:
+    self.tipo := "forma"
+    action descricao():
+        yield $"Forma: {self.tipo}"
+out (spawn Forma()).descricao()
+""") == "Forma: forma"
+
+    # Com parênteses vazios, que é a outra escrita da mesma coisa.
+    assert _rodar("""
+blueprint Forma():
+    self.tipo := "forma"
+    action descricao():
+        yield $"Forma: {self.tipo}"
+out (spawn Forma()).descricao()
+""") == "Forma: forma"
+
+    # E um 'given' no corpo também roda — antes era descartado junto.
+    assert _rodar("""
+blueprint Config:
+    self.modo := "producao"
+    given yes:
+        self.debug := no
+    action resumo():
+        yield $"{self.modo}/{self.debug}"
+out (spawn Config()).resumo()
+""") == "producao/no"
+
+
+def test_campo_sem_tipo_nao_e_compartilhado_entre_instancias():
+    """`itens := []` no corpo do blueprint era COMPARTILHADO.
+
+    Sem parâmetros, um `x := valor` virava um **estático** avaliado uma
+    vez na declaração. Com uma lista, as instâncias dividiam a mesma:
+
+        a := spawn Caixa()   b := spawn Caixa()
+        a.por(1)             b.por(2)
+        a.itens  →  [1, 2]   b.itens  →  [1, 2]
+
+    É a armadilha do argumento mutável padrão do Python, e aqui não
+    havia justificativa: a forma **com tipo** (`itens: Cluster := []`)
+    já copiava o padrão por instância, justamente por causa disso. As
+    duas formas do mesmo campo faziam coisas opostas.
+    """
+    assert _rodar("""
+blueprint Caixa:
+    itens := []
+    action por(x):
+        self.itens.append(x)
+        yield len(self.itens)
+
+a := spawn Caixa()
+b := spawn Caixa()
+_ := a.por(1)
+_ := b.por(2)
+out $"{a.itens} {b.itens}"
+""") == "[1] [2]"
+
+    # E o valor imutável continua valendo o que foi escrito.
+    assert _rodar("""
+blueprint C:
+    limite := 10
+    nome := "x"
+out (spawn C()).limite, (spawn C()).nome
+""") == "10 x"
+
+    # A forma com tipo não mudou.
+    assert _rodar("""
+blueprint T:
+    itens: Cluster := []
+    action por(x):
+        self.itens.append(x)
+        yield 1
+a := spawn T()
+b := spawn T()
+_ := a.por(1)
+out $"{a.itens} {b.itens}"
+""") == "[1] []"
+

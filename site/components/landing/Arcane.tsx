@@ -6,7 +6,18 @@ type Modulo = { nome: string; desc: string; funcoes: { nome: string }[] };
 const modulos = Object.entries(dados.modulos as Record<string, Modulo>);
 const total = modulos.reduce((n, [, m]) => n + m.funcoes.length, 0);
 
-/* Agrupada pelo que cada módulo serve, na ordem em que costuma ser usada. */
+/* Agrupada pelo que cada módulo serve, na ordem em que costuma ser usada.
+ *
+ * A lista é escrita à mão de propósito — a ordem e o agrupamento são
+ * julgamento, e nenhum gerador os adivinha. O preço de uma lista à mão
+ * é envelhecer: um módulo novo que ninguém acrescentasse aqui SUMIRIA
+ * da página, sem erro e sem aviso, e a seção continuaria dizendo o
+ * total certo logo acima.
+ *
+ * Por isso o que sobra cai em 'Outros' (abaixo), e
+ * 'test_a_landing_nao_engole_nenhum_modulo_da_arcane' reprova a
+ * suíte enquanto ele estiver lá: aparecer no lugar errado é ruim,
+ * desaparecer é pior. */
 const grupos: { rotulo: string; chaves: string[] }[] = [
   { rotulo: 'Núcleo', chaves: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal'] },
   { rotulo: 'Frameworks', chaves: ['kiln', 'vitrine', 'crucible', 'forge', 'api'] },
@@ -15,6 +26,15 @@ const grupos: { rotulo: string; chaves: string[] }[] = [
   { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha'] },
   { rotulo: 'Qualidade', chaves: ['test', 'logging', 'crypto', 'observar', 'color', 'meta'] },
 ];
+
+/** O que nenhum grupo reivindicou. Vazio é o estado esperado. */
+const sobrando = modulos
+  .map(([k]) => k)
+  .filter((k) => !grupos.some((g) => g.chaves.includes(k)));
+
+const todosOsGrupos = sobrando.length
+  ? [...grupos, { rotulo: 'Outros', chaves: sobrando }]
+  : grupos;
 
 export function Arcane() {
   return (
@@ -26,14 +46,19 @@ export function Arcane() {
         />
         <Sobe>
           <p className="lp-mono mt-7 max-w-[56ch] text-[13px] leading-[24px] text-white/60">
-            {modulos.length} módulos, {total} símbolos, nenhum pacote a instalar.
-            Cada nome abaixo tem página própria na documentação, com a assinatura
-            extraída do código-fonte.
+            {modulos.length} módulos, {total} símbolos, nenhum pacote a instalar
+            e nenhuma dependência em tempo de execução. Cada nome abaixo tem
+            página própria na documentação, com a assinatura extraída do
+            código-fonte — e os mesmos dados estão em{' '}
+            <Link href="/api" className="text-white/75 underline-offset-2 hover:underline">
+              /api/modulos.json
+            </Link>
+            , se você quiser gerar algo a partir deles.
           </p>
         </Sobe>
 
         <div className="mt-16 space-y-14">
-          {grupos.map((g) => {
+          {todosOsGrupos.map((g) => {
             const doGrupo = g.chaves
               .map((c) => modulos.find(([k]) => k === c))
               .filter(Boolean) as [string, Modulo][];

@@ -1,0 +1,189 @@
+// ═══════════════════════════════════════════════════════════
+//  12. Programacao orientada a objetos
+// ═══════════════════════════════════════════════════════════
+//
+//   class      → blueprint (mutavel)  ou  record (imutavel)
+//   __init__   → os parametros do blueprint, ou o corpo solto
+//   self       → self
+//   super()    → root
+//   isinstance → e_um / instanceof
+
+// ── 12.1 Blueprint: a classe mutavel ──
+//
+// Os parametros do blueprint SAO o construtor. Nao ha '__init__'
+// separado: o que esta entre parenteses vira campo.
+blueprint Pessoa(nome, idade):
+    action apresentar() -> String:
+        yield $"Sou {self.nome}, {self.idade} anos"
+
+p := spawn Pessoa("Ana", 30)
+assert p.apresentar() is "Sou Ana, 30 anos"
+assert p.nome is "Ana"
+
+// ARMADILHA: dentro de um metodo, 'self' SEMPRE. Escrever 'nome' em
+// vez de 'self.nome' le a variavel do escopo de fora, e o erro e
+// silencioso quando existe uma la.
+
+// O corpo solto do blueprint e o construtor "inline": roda uma vez
+// por instancia, e e onde nasce o estado derivado.
+//
+// Repare no 'self.' a ESQUERDA: 'valor := self.inicio' criaria uma
+// variavel local do corpo, que morre ali. So 'self.valor := …' cria
+// campo — a mesma regra dos metodos, e pelo mesmo motivo.
+blueprint Contador(inicio):
+    self.valor := self.inicio
+    self.historico := []
+
+    action somar(n: Integer):
+        self.valor += n
+        self.historico.append(n)
+        yield self.valor
+
+c := spawn Contador(10)
+assert c.somar(5) is 15
+assert c.historico is [5]
+
+// Cada instancia tem o SEU historico. Um padrao mutavel declarado no
+// campo e COPIADO no spawn — sem essa copia, todas as instancias
+// dividiriam a mesma lista.
+c2 := spawn Contador(0)
+assert c2.historico is []
+
+// ── 12.2 Record: a classe imutavel ──
+//
+// Para um valor — dinheiro, coordenada, um pedido — 'record' e a
+// escolha certa: igualdade estrutural, sem identidade, e impossivel
+// de mudar por engano de outro lugar do programa.
+record Ponto:
+    x: Integer
+    y: Integer
+
+    action norma() -> Float:
+        yield sqrt(self.x ** 2 + self.y ** 2)
+
+a := Ponto(3, 4)
+assert a.norma() is 5.0
+assert Ponto(3, 4) is a            // igualdade por CONTEUDO
+b := a with {"y": 0}               // "mudar" e criar outro
+assert b.y is 0
+assert a.y is 4
+
+// ── 12.3 Encapsulamento: propriedade ──
+//
+// 'get' e 'set' sao contextuais: sao nomes bons demais para tirar de
+// quem escreve, e so viram palavra-chave dentro do blueprint.
+blueprint Conta(saldo_inicial):
+    self._saldo := self.saldo_inicial
+
+    get saldo():
+        yield self._saldo
+
+    action depositar(valor: Float):
+        given valor smaller_eq 0:
+            trigger "deposito precisa ser positivo"
+        self._saldo += valor
+        yield self._saldo
+
+conta := spawn Conta(100.0)
+assert conta.saldo is 100.0        // sem parenteses: e propriedade
+
+recusou := no
+monitor:
+    conta.depositar(-1.0)
+handle Error as e:
+    recusou := yes
+assert recusou
+
+// Com 'set', a validacao fica na escrita:
+blueprint Produto(preco_inicial):
+    self._preco := self.preco_inicial
+
+    get preco():
+        yield self._preco
+
+    set preco(valor):
+        given valor smaller 0:
+            trigger "preco invalido"
+        self._preco := valor
+
+prod := spawn Produto(10.0)
+prod.preco := 20.0
+assert prod.preco is 20.0
+
+invalido := no
+monitor:
+    prod.preco := -1.0
+handle Error as e:
+    invalido := yes
+assert invalido
+assert prod.preco is 20.0          // nao mudou
+
+// ── 12.4 Heranca ──
+blueprint Animal:
+    action falar() -> String:
+        trigger "cada animal fala do seu jeito"
+
+blueprint Cachorro extends Animal:
+    action falar() -> String:
+        yield "Au au"
+
+blueprint Gato extends Animal:
+    action falar() -> String:
+        yield "Miau"
+
+assert (spawn Cachorro()).falar() is "Au au"
+
+// 'root' chama a versao da mae:
+blueprint Filhote extends Cachorro:
+    action falar() -> String:
+        yield $"{root.falar()} (fininho)"
+
+assert (spawn Filhote()).falar() is "Au au (fininho)"
+
+// ── 12.5 Polimorfismo ──
+animais := [spawn Cachorro(), spawn Gato(), spawn Filhote()]
+vozes := [x.falar() cycle x in animais]
+assert vozes is ["Au au", "Miau", "Au au (fininho)"]
+
+// E a pergunta pelo tipo, quando ela e mesmo necessaria. As tres
+// formas existem, e as tres respondem a mesma coisa:
+assert instanceof(animais[0], Animal)      // o blueprint
+assert instanceof(animais[0], "Cachorro")  // ou o nome dele
+assert e_um(animais[0], "Animal")          // ou por 'e_um'
+assert not instanceof(animais[1], "Cachorro")
+
+// E a cadeia de heranca, quando ela importa. 'get_mro' entrega os
+// NOMES, e nao os blueprints — e a ordem e a da resolucao (C3):
+assert get_mro(animais[2]) is ["Filhote", "Cachorro", "Animal"]
+assert class_name(animais[1]) is "Gato"
+assert linhagem(animais[2]) is ["Filhote", "Cachorro", "Animal"]
+
+// ── 12.6 Composicao ──
+//
+// Prefira composicao quando a relacao nao e mesmo um "e um". Um carro
+// nao E um motor; ele TEM um.
+blueprint Motor:
+    action ligar() -> String:
+        yield "motor ligado"
+
+blueprint Carro:
+    self.motor := spawn Motor()
+
+    action ligar() -> String:
+        yield self.motor.ligar()
+
+assert (spawn Carro()).ligar() is "motor ligado"
+
+// Trocar a peca fica trivial, e e o que heranca nao permite:
+blueprint MotorEletrico:
+    action ligar() -> String:
+        yield "motor eletrico, em silencio"
+
+blueprint CarroEletrico:
+    self.motor := spawn MotorEletrico()
+    action ligar() -> String:
+        yield self.motor.ligar()
+
+assert (spawn CarroEletrico()).ligar() is "motor eletrico, em silencio"
+
+out "12. Programacao orientada a objetos — ok"

@@ -990,55 +990,88 @@ def test_toda_pagina_de_docs_esta_alcancavel_pela_navegacao():
         + "\n  ".join(sorted(orfas)))
 
 
-def test_a_home_anuncia_os_numeros_reais():
-    """O comentário acima de `fatos` dizia "os mesmos que a suíte
-    verifica" — e a suíte não verificava nenhum. Os valores estavam em
-    1246 testes e 216 exercícios quando eram 2304 e 230.
+def test_a_home_nao_pode_escrever_numero_a_mao():
+    """Três vezes o mesmo defeito, e a terceira foi a que ensinou.
 
-    Um comentário que promete uma trava inexistente é pior que nenhum:
-    quem lê confia e não confere. E a home é a primeira página que
-    alguém vê.
+    O comentário acima de `fatos` dizia "os mesmos que a suíte
+    verifica", e a suíte não verificava nenhum: os valores estavam em
+    1246 testes e 216 exercícios quando eram 2304 e 230. Corrigidos à
+    mão, voltaram a envelhecer — 2332 quando eram 2377. E em
+    `Aprender.tsx` havia quatro números sob a legenda "conferidos na
+    última execução da suíte", todos falsos.
 
-    Os exercícios são cobrados exato — o número muda quando se escreve
-    um exercício, o que é raro e deliberado. Os testes toleram 5%, pela
-    mesma razão de `/docs`: cobrar o exato faria de cada teste novo uma
-    edição em dois arquivos, e esse atrito se resolve desligando a
-    trava.
+    Comparar o número escrito com o real resolve uma vez e deixa o
+    atrito para a próxima pessoa. O que resolve sempre é o número não
+    poder ser escrito: hoje ele sai de `site/scripts/gerar_dados.py`,
+    que conta o repositório.
+
+    Este teste cobra as duas pontas — a home lê do gerador, e o
+    gerador conta certo.
     """
     import glob
+    import json
     import re
 
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    caminho = os.path.join(raiz, "site", "components", "landing", "Heroi.tsx")
-    if not os.path.isfile(caminho):
+    componentes = os.path.join(raiz, "site", "components", "landing")
+    if not os.path.isdir(componentes):
         pytest.skip("o site não está neste checkout")
 
-    texto = open(caminho, encoding="utf-8").read()
+    # ── 1. os números do gerador batem com o disco ──
+    with open(os.path.join(raiz, "site", "lib", "dados-gerados.json"),
+              encoding="utf-8") as f:
+        dados = json.load(f)
 
-    reais = len(glob.glob(os.path.join(raiz, "exercicios", "*",
-                                       "[0-9]*.df")))
-    achado = re.search(r"'Exercícios verificados', valor: '(\d+)'", texto)
-    assert achado, "a home não anuncia mais os exercícios nesta forma"
-    assert int(achado.group(1)) == reais, (
-        f"a home diz {achado.group(1)} exercícios, são {reais}")
+    exercicios_reais = len(glob.glob(
+        os.path.join(raiz, "exercicios", "*", "[0-9]*.df")))
+    exercicios_ditos = sum(len(v) for v in dados["exercicios"].values())
+    assert exercicios_ditos == exercicios_reais, (
+        f"o gerador diz {exercicios_ditos} exercicios, sao "
+        f"{exercicios_reais} — rode site/scripts/gerar_dados.py")
 
-    achado = re.search(r"'Testes passando', valor: '(\d+)'", texto)
-    assert achado, "a home não anuncia mais os testes nesta forma"
-    dito = int(achado.group(1))
+    funcoes_reais = 0
+    for raiz_dir, _, nomes in os.walk(os.path.join(raiz, "tests")):
+        for nome in nomes:
+            if nome.endswith(".py"):
+                with open(os.path.join(raiz_dir, nome), encoding="utf-8") as f:
+                    funcoes_reais += len(re.findall(r"^def test_", f.read(),
+                                                    re.M))
+    ditas = dados["contagem"]["testes"]
+    # 2% de folga: o arquivo gerado e versionado, e escrever um teste
+    # sem regerar nao pode reprovar a suite inteira — mas divergir
+    # muito significa que ninguem regera ha tempo.
+    assert abs(ditas - funcoes_reais) / max(funcoes_reais, 1) <= 0.02, (
+        f"o gerador diz {ditas} funcoes de teste, sao {funcoes_reais}")
 
-    import subprocess
-    import sys as _sys
-    r = subprocess.run([_sys.executable, "-m", "pytest", "tests/", "-q",
-                        "--collect-only"],
-                       capture_output=True, text=True, encoding="utf-8",
-                       errors="replace", cwd=raiz)
-    conta = re.search(r"(\d+) tests collected", r.stdout or "")
-    if not conta:
-        pytest.skip("não deu para contar os testes")
-    verdade = int(conta.group(1))
-    desvio = abs(dito - verdade) / verdade
-    assert desvio <= 0.05, (
-        f"a home diz {dito} testes, são {verdade} ({desvio:.0%})")
+    # ── 2. a home LE do gerador, e não escreve ──
+    for arquivo in ("Heroi.tsx", "Aprender.tsx"):
+        fonte = open(os.path.join(componentes, arquivo),
+                     encoding="utf-8").read()
+        assert "dados-gerados.json" in fonte, (
+            f"{arquivo} precisa ler os numeros do gerador")
+
+        # Um literal de 3+ digitos num rotulo de numero e o defeito
+        # voltando. Os que sobram sao medida de layout ('[10ch]',
+        # 'text-[13px]'), que nao sao afirmacao sobre o repositorio.
+        suspeitos = re.findall(r"valor:\s*'(\d{3,})'", fonte)
+        assert not suspeitos, (
+            f"{arquivo} voltou a escrever numero a mao: {suspeitos}")
+
+    # ── 3. e o rótulo diz QUAL número é ──
+    #
+    # A home ja disse "Testes passando" mostrando a contagem de
+    # FUNCOES. O pytest reporta ~2377 casos porque 'parametrize'
+    # expande uma funcao em varios: os dois numeros sao verdadeiros e
+    # diferentes, e o rotulo precisa dizer qual esta ali.
+    heroi = open(os.path.join(componentes, "Heroi.tsx"),
+                 encoding="utf-8").read()
+    # Só o que a página MOSTRA — um comentário pode citar o rótulo
+    # antigo para explicar por que ele saiu, e citar não é anunciar.
+    visivel = " ".join(re.findall(r">([^<>{}]+)<", heroi))
+    assert "Funções de teste" in visivel, (
+        "o rotulo do hero precisa dizer 'Funções de teste': o numero "
+        "mostrado conta 'def test_', e nao os casos do pytest")
+    assert "Testes passando" not in visivel
 
 
 def test_o_indice_lateral_da_home_dos_docs_cobre_os_h2():
@@ -1388,3 +1421,40 @@ def test_o_download_nao_chama_de_pendente_o_que_ja_esta_publicado():
     assert pendentes == ["Executável — Intel", "Arch Linux e derivadas"], (
         f"o que está pendente mudou: {pendentes} — confira se ainda é "
         f"verdade antes de ajustar este teste")
+
+def test_a_landing_nao_engole_nenhum_modulo_da_arcane():
+    """A seção Arcane agrupa os módulos por uma lista escrita à mão.
+
+    O agrupamento é julgamento — nenhum gerador adivinha que `Kiln` é
+    framework e `Excel` é formato — mas o preço de uma lista à mão é
+    envelhecer. Um módulo novo que ninguém acrescentasse ali **sumiria
+    da página**, sem erro e sem aviso, e o total logo acima continuaria
+    certo: a página diria "40 módulos" e mostraria 39.
+
+    O componente joga o que sobra num grupo "Outros" para que nada
+    desapareça, e este teste reprova enquanto houver sobra — aparecer
+    no lugar errado é ruim, desaparecer é pior.
+    """
+    import json
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(raiz, "site", "lib", "dados-gerados.json"),
+              encoding="utf-8") as f:
+        catalogo = set(json.load(f)["modulos"])
+
+    fonte = open(os.path.join(raiz, "site", "components", "landing",
+                              "Arcane.tsx"), encoding="utf-8").read()
+    bloco = fonte[fonte.index("const grupos"):fonte.index("/** O que nenhum")]
+    citados = set(re.findall(r"'([a-z_]+)'", bloco)) - {"rotulo", "chaves"}
+
+    fora = sorted(catalogo - citados)
+    assert not fora, (
+        f"{len(fora)} modulo(s) sem grupo na landing: {fora} — eles caem "
+        f"em 'Outros', que existe para nao sumirem, mas o lugar deles e "
+        f"num grupo de verdade em site/components/landing/Arcane.tsx")
+
+    fantasmas = sorted(citados - catalogo)
+    assert not fantasmas, (
+        f"a landing agrupa modulo(s) que nao existem: {fantasmas}")
+

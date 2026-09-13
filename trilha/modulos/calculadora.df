@@ -1,0 +1,28 @@
+// Um modulo da trilha. Ele existe para o capitulo 11 importar.
+//
+// 'relay' declara o que e publico. Sem ele, TUDO o que o arquivo
+// define fica visivel — e um modulo que declara o que exporta esta
+// dizendo que o resto e interno.
+
+steady VERSAO := "1.0.0"
+
+/// Soma dois inteiros.
+action somar(a: Integer, b: Integer) -> Integer:
+    yield a + b
+
+/// Divide, recusando o zero em vez de devolver infinito.
+action dividir(a: Float, b: Float) -> Float:
+    given b is 0:
+        trigger "divisao por zero"
+    yield a / b
+
+record Resultado:
+    valor: Float
+    exato: Boolean
+
+// Fora do 'relay': ninguem de fora alcanca, e o 'check' acusa quem
+// tentar.
+action _normalizar(x: Float) -> Float:
+    yield round(x, 4)
+
+relay somar, dividir, Resultado, VERSAO

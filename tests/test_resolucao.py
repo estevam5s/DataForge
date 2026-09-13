@@ -803,3 +803,131 @@ cycle i from 1 to 3:
     out p.cliente
 ''')
     assert _erros(caminho) == []
+
+def test_um_steady_no_relay_nao_pode_desligar_o_analisador(tmp_path):
+    """Exportar uma constante silenciava o módulo INTEIRO.
+
+    `superficie.py` varre as declarações do topo para saber o que o
+    arquivo oferece, e não conhecia `SteadyDeclaration`. Um
+    `relay somar, VERSAO` caía no ramo "relay de um nome que este
+    leitor não viu" — o que é verdade para um nome que nasce dentro de
+    um `given` — e a superfície voltava `aberta = yes`.
+
+    `aberta` é a válvula que faz o analisador **calar sobre tudo**
+    daquele módulo. Então uma linha tão comum quanto
+
+        steady VERSAO := "1.0.0"
+        relay somar, VERSAO
+
+    desligava, de uma vez, a checagem de membro inexistente, de aridade
+    e de tipo para todas as chamadas àquele arquivo — sem nenhum aviso,
+    e com o `check` dizendo "sem erros".
+
+    É o pior formato de falha que este analisador pode ter: ele não
+    erra, ele **cala**, e quem lê conclui que está tudo certo.
+    """
+    from dataforge.superficie import de_arquivo
+
+    modulo = tmp_path / "calculadora.df"
+    modulo.write_text(
+        'steady VERSAO := "1.0.0"\n'
+        'action somar(a: Integer, b: Integer) -> Integer:\n'
+        '    yield a + b\n'
+        'relay somar, VERSAO\n',
+        encoding="utf-8")
+
+    s = de_arquivo(str(modulo))
+    assert not s.aberta, (
+        f"a superficie abriu por causa do steady: {s.motivo!r} — o "
+        f"analisador cala sobre o modulo inteiro")
+    assert "somar" in s.membros
+    assert "VERSAO" in s.membros, "a constante exportada tambem e um membro"
+
+    # E o efeito visível: o check volta a acusar.
+    usuario = tmp_path / "app.df"
+    usuario.write_text('adopt ./calculadora as C\nout C.naoExiste()\n',
+                       encoding="utf-8")
+
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.typechecker import check_program
+
+    fonte = usuario.read_text(encoding="utf-8")
+    diags = check_program(parse(tokenize(fonte), str(usuario)), str(usuario))
+    erros = [d for d in diags if d.severity == "error"]
+    assert any("naoExiste" in d.message for d in erros), (
+        f"o check nao acusou o membro inexistente: {[d.message for d in diags]}")
+
+
+def test_toda_declaracao_de_topo_entra_na_superficie(tmp_path):
+    """A varredura é uma lista de `type(stmt).__name__`, e uma lista
+    assim envelhece em silêncio.
+
+    Foi `SteadyDeclaration` desta vez. O próximo nó de declaração que
+    a linguagem ganhar cairá no mesmo buraco, e o sintoma será o
+    analisador calando — que ninguém procura.
+
+    Este teste declara um de cada e exige que todos apareçam.
+    """
+    from dataforge.superficie import de_arquivo
+
+    modulo = tmp_path / "tudo.df"
+    modulo.write_text(
+        'steady CONSTANTE := 1\n'
+        'variavel := 2\n'
+        'action acao():\n'
+        '    yield 1\n'
+        'record Reg:\n'
+        '    x: Integer\n'
+        'blueprint Bp:\n'
+        '    action m():\n'
+        '        yield 1\n'
+        'enum En:\n'
+        '    A\n'
+        'trait Tr:\n'
+        '    action t()\n',
+        encoding="utf-8")
+
+    s = de_arquivo(str(modulo))
+    assert not s.aberta, s.motivo
+    faltando = sorted({"CONSTANTE", "variavel", "acao", "Reg", "Bp", "En", "Tr"}
+                      - set(s.membros))
+    assert not faltando, (
+        f"a superficie nao enxerga: {faltando} — um 'relay' de qualquer "
+        f"um deles abriria o modulo e calaria o analisador inteiro")
+
+def test_adopt_seletivo_aceita_caminho_relativo(tmp_path):
+    """`adopt {somar} from ./calculadora` não compilava.
+
+    A mesma frase funciona com um módulo da biblioteca
+    (`adopt {sqrt} from Arcane.Math`) e falhava com um arquivo vizinho,
+    com uma mensagem que não diz o que está errado:
+
+        Expected the module name
+        adopt {somar} from ./m1
+                           ^
+
+    `parse_relay` já fazia certo — tenta o caminho relativo e cai no
+    nome pontilhado —, e o ramo do `from` em `parse_adopt` não. O
+    resultado é que a forma que a pessoa acabou de aprender na
+    documentação da stdlib não serve para o próprio projeto dela, e
+    nada explica por quê.
+    """
+    (tmp_path / "calculadora.df").write_text(
+        'action somar(a: Integer, b: Integer) -> Integer:\n'
+        '    yield a + b\n'
+        'relay somar\n', encoding="utf-8")
+
+    for forma in ('adopt {somar} from ./calculadora\nout somar(2, 3)\n',
+                  'adopt {somar as s} from ./calculadora\nout s(2, 3)\n',
+                  'adopt ./calculadora.{somar}\nout somar(2, 3)\n'):
+        (tmp_path / "app.df").write_text(forma, encoding="utf-8")
+        # Por subprocesso: o 'adopt' relativo resolve a partir da pasta
+        # do ARQUIVO, e chamar o interpretador direto perderia isso.
+        r = subprocess.run(
+            [sys.executable, "-m", "dataforge", "run", "app.df", "--no-color"],
+            cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", env={**os.environ, "PYTHONPATH": RAIZ})
+        assert r.returncode == 0, f"{forma}\n{r.stdout}{r.stderr}"
+        assert r.stdout.strip() == "5", f"falhou em:\n{forma}\n{r.stdout}"
+

@@ -70,6 +70,10 @@ _NOMES_DE_TIPO = {
     dict: "Vault",
     type(None): "Void",
     tuple: "Frozen",
+    set: "Set",
+    frozenset: "Set",
+    bytes: "Bytes",
+    bytearray: "Bytes",
 }
 
 
@@ -1046,7 +1050,25 @@ def _df_validate(value, predicate, message="Validation failed"):
 # ═══════════════════════════════════════════════════════════
 
 def _df_instanceof(instance, blueprint):
-    """Check if instance is of given blueprint or inherits from it."""
+    """Check if instance is of given blueprint or inherits from it.
+
+    Aceita o BLUEPRINT ou o NOME dele. A linguagem tem as duas formas
+    lado a lado — 'e_um(x, "Animal")' pede texto — e passar texto aqui
+    estourava com a frase do Python:
+
+        'String' object has no attribute 'name'
+
+    Ela nomeia o tipo certo e descreve o interior do interpretador:
+    aqui nao ha "attribute", e 'name' nao e nada que quem escreveu
+    tenha digitado. Aceitar os dois apaga a pegadinha em vez de
+    documenta-la.
+    """
+    if isinstance(blueprint, str):
+        obter_mro = getattr(instance, "get_mro", None)
+        if obter_mro is None:
+            return False
+        return any(getattr(bp, "name", None) == blueprint
+                   for bp in obter_mro())
     if hasattr(instance, 'isinstance_of'):
         return instance.isinstance_of(blueprint)
     return False
@@ -1091,10 +1113,18 @@ def _df_get_parent(instance):
     return None
 
 def _df_class_name(instance):
-    """Get the class/blueprint name of an instance."""
-    if hasattr(instance, 'blueprint'):
-        return instance.blueprint.name
-    return type(instance).__name__
+    """O nome do tipo, no vocabulario do DataForge.
+
+    Delega a '_df_type' em vez de repetir a tabela. A versao anterior
+    tratava so o caso da instancia de blueprint e caia em
+    'type(instance).__name__' para todo o resto: 'class_name("a")'
+    respondia 'str', e 'class_name(void)' respondia 'NoneType'.
+
+    Nenhuma das duas existe nesta linguagem, e quem le conclui que
+    existem. Apareceu num '[class_name(x) cycle x in get_mro(b)]', que
+    devolveu '[str, str]' porque 'get_mro' entrega os nomes como texto.
+    """
+    return _df_type(instance)
 
 
 # ═══════════════════════════════════════════════════════════

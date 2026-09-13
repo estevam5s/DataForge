@@ -449,3 +449,37 @@ aside:hover ::-webkit-scrollbar-thumb {
 @media (prefers-reduced-motion: reduce) {
   .lp-link::after { transition: none; }
 }
+
+/* ── O holofote do comando de instalação ──────────────────────
+ *
+ * O texto fica apagado e só o que está sob o cursor acende. A
+ * posição chega por '--x'/'--y', escritas direto no nó pelo handler:
+ * passar por estado do React re-renderizaria a árvore dezenas de
+ * vezes por segundo e o efeito ficaria travado.
+ *
+ * 'background-clip: text' pinta o gradiente DENTRO das letras. Ele
+ * precisa do prefixo '-webkit-' para o Safari, e de
+ * 'color: transparent' — sem isso a cor do texto cobre o gradiente e
+ * nada aparece.
+ */
+.lp-holofote-linha {
+  background-image: radial-gradient(
+    22rem 12rem at var(--x) var(--y),
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(255, 255, 255, 0.55) 35%,
+    rgba(255, 255, 255, 0.14) 72%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: opacity 0.2s ease;
+}
+
+/* Sem ponteiro não há holofote: num celular o texto ficaria
+   invisível. O mesmo vale para quem pediu menos movimento. */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  .lp-holofote-linha {
+    background-image: none;
+    color: rgba(255, 255, 255, 0.82);
+  }
+}

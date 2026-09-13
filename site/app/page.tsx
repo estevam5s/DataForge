@@ -8,6 +8,9 @@ import { Sintaxe } from '@/components/landing/Sintaxe';
 import { Arcane } from '@/components/landing/Arcane';
 import { Aprender } from '@/components/landing/Aprender';
 import { Autor } from '@/components/landing/Autor';
+import { Numeros } from '@/components/landing/Numeros';
+import { Extensao } from '@/components/landing/Extensao';
+import { Instalar } from '@/components/landing/Instalar';
 import { RodapeSite } from '@/components/landing/RodapeSite';
 
 export const metadata: Metadata = {
@@ -31,7 +34,13 @@ export default function Landing() {
       <Sintaxe />
       <Arcane />
       <Aprender />
+      <Extensao />
+      <Numeros />
       <Autor />
+      {/* O comando de instalacao fecha a pagina, logo acima do rodape:
+          quem rolou ate aqui decidiu, e o proximo passo tem de estar
+          embaixo do dedo. */}
+      <Instalar />
       <RodapeSite />
     </div>
   );

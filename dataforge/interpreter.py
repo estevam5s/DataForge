@@ -2426,36 +2426,36 @@ class Interpreter:
         args = self._eval_args(node.args, env)
         kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
 
-        # If blueprint has constructor_params, assign them to instance fields
-        if blueprint.constructor_params:
+        # Os parametros do blueprint viram campos.
+        for i, param in enumerate(blueprint.constructor_params):
+            instance.fields[param] = args[i] if i < len(args) else None
+
+        if blueprint.constructor_params and 'setup' in blueprint.methods:
+            # 'setup' ainda roda: um blueprint pode declarar parametros e
+            # ainda inicializar campos derivados explicitamente.
+            self._call_action(blueprint.methods['setup'], args, kwargs,
+                              node, env, instance=instance)
+
+        # O corpo do construtor roda SEMPRE que existir — inclusive num
+        # blueprint sem parametros.
+        #
+        # Isto estava dentro do 'if blueprint.constructor_params', e a
+        # consequencia era silenciosa: num 'blueprint Forma:' o
+        # 'self.tipo := "forma"' nao ia para lugar nenhum. A linha
+        # existia, estava certa, e nao fazia nada.
+        if blueprint.constructor_body:
+            ctor_env = blueprint.env.child(f"<{blueprint.name}.__init__>")
+            ctor_env.set_local("this", instance)
+            ctor_env.set_local("self", instance)
             for i, param in enumerate(blueprint.constructor_params):
-                if i < len(args):
-                    instance.fields[param] = args[i]
-                else:
-                    instance.fields[param] = None
+                ctor_env.set_local(param, args[i] if i < len(args) else None)
+            try:
+                self.exec_block(blueprint.constructor_body, ctor_env)
+            except YieldSignal:
+                pass  # construtor nao devolve; se devolver, ignoramos
 
-            # A 'setup' method still runs, so a blueprint may declare params and
-            # still initialise derived fields explicitly.
-            if 'setup' in blueprint.methods:
-                self._call_action(blueprint.methods['setup'], args, kwargs, node, env,
-                                  instance=instance)
-
-            # Execute the constructor body with 'this'/'self' bound to instance
-            if blueprint.constructor_body:
-                ctor_env = blueprint.env.child(f"<{blueprint.name}.__init__>")
-                ctor_env.set_local("this", instance)
-                ctor_env.set_local("self", instance)
-                # Also make params available as local variables
-                for i, param in enumerate(blueprint.constructor_params):
-                    if i < len(args):
-                        ctor_env.set_local(param, args[i])
-                    else:
-                        ctor_env.set_local(param, None)
-                try:
-                    self.exec_block(blueprint.constructor_body, ctor_env)
-                except YieldSignal:
-                    pass  # constructors shouldn't yield, but ignore if they do
-
+        if blueprint.constructor_params:
+            pass
         # Call setup (constructor) if exists (traditional style)
         elif 'setup' in blueprint.methods:
             self._call_action(blueprint.methods['setup'], args, kwargs, node, env, instance=instance)
@@ -3853,6 +3853,8 @@ class Interpreter:
         abstract_methods, static_methods, final_methods = set(), set(), set()
         origem_abstrata = {}          # metodo -> quem exigiu (trait ou pai)
         constructor_body = []
+        #: 'x := valor' no corpo — campo com padrao, sem tipo declarado.
+        campos_sem_tipo = []
 
         # Herda dos pais, na ordem INVERSA da declaracao.
         #
@@ -3967,17 +3969,42 @@ class Interpreter:
                 statics[stmt.name] = self.evaluate(stmt.value, bp_env)
 
             elif isinstance(stmt, ast.Assignment):
-                if node.constructor_params:
+                # 'x := valor' e um CAMPO com padrao, sempre — venha o
+                # blueprint com parametros ou sem.
+                #
+                # Antes dependia do cabecalho, e das tres maneiras
+                # possiveis so uma fazia o que parece:
+                #
+                #   blueprint C(p):  x := 1        nao criava nada
+                #   blueprint C:     x := 1        virava ESTATICO,
+                #                                  compartilhado por
+                #                                  todas as instancias
+                #   blueprint C:     x: Integer := 1   campo, por
+                #                                      instancia
+                #
+                # O estatico com valor mutavel e o pior deles:
+                # 'itens := []' dava UMA lista para todas as
+                # instancias, e o 'append' de uma aparecia em todas —
+                # sem erro. A forma COM TIPO ja copiava o padrao por
+                # instancia justamente por isso, e as duas escritas do
+                # mesmo campo faziam coisas opostas.
+                #
+                # Para um valor de CLASSE existe 'static x := valor',
+                # que e explicito e continua funcionando.
+                if isinstance(stmt.target, ast.Identifier):
+                    campos_sem_tipo.append(
+                        (stmt.target.name, None, stmt.value, "public"))
+                else:
+                    # 'self.x := …' — vai para o construtor.
                     constructor_body.append(stmt)
-                elif isinstance(stmt.target, ast.Identifier):
-                    statics[stmt.target.name] = self.evaluate(stmt.value, bp_env)
 
-            elif node.constructor_params:
+            else:
                 constructor_body.append(stmt)
 
         # Campos declarados: 'nome: Tipo := padrao'
         campos = []
-        for nome, tipo, padrao, visib in getattr(node, 'fields_decl', []):
+        for nome, tipo, padrao, visib in (list(getattr(node, 'fields_decl', []))
+                                          + campos_sem_tipo):
             valor = self.evaluate(padrao, bp_env) if padrao is not None else None
             campos.append((nome, tipo, valor, visib))
             visibility[nome] = visib
