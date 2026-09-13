@@ -1093,12 +1093,20 @@ pedir um item. Por isso um `persist yes:` com `emit` dentro é legítimo.
 | Método | Devolve |
 |--------|---------|
 | `to_cluster()` | tudo, como lista |
-| `take(n)` | os `n` primeiros |
+| `take(n)` | os `n` primeiros, como lista |
 | `next()` | o próximo, ou `void` |
 | `count()` | quantos itens |
 | `first()` | o primeiro, ou `void` |
-| `map(f)` / `filter(f)` | lista |
+| `map(f)` / `filter(f)` | **outro stream**, preguiçoso |
+| `skip(n)` | outro stream, sem os `n` primeiros |
+| `enumerate([inicio])` | outro stream, de `[i, item]` |
+| `reduce(f[, inicial])` | os itens dobrados num valor só |
 | `reset()` | reinicia o `next()` |
+
+`map`, `filter`, `skip` e `enumerate` não produzem item nenhum: devolvem um
+stream, encadeiam entre si, e valem num stream infinito. Quem materializa é
+`take(n)` ou `to_cluster()` — e `take(n)` para no item `n`, sem produzir o
+seguinte.
 
 `yield` dentro de um `stream action` encerra a produção. Fora de um
 `stream action`, `emit` é um alias histórico de `out`.

@@ -1,0 +1,148 @@
+// ═══════════════════════════════════════════════════════════
+//  14. Tipos
+// ═══════════════════════════════════════════════════════════
+//
+// A diferenca com o Python nao e a sintaxe: e QUEM confere.
+//
+// Type hint em Python e anotacao — o runtime a ignora, e so uma
+// ferramenta de fora (mypy, pyright) a cobra. Aqui os tipos sao
+// verificados pelo 'dataforge check' ANTES de rodar, e cobrados em
+// EXECUCAO tambem. Nao ha um segundo programa a instalar.
+
+// ── 14.1 Basicos ──
+action somar(a: Integer, b: Integer) -> Integer:
+    yield a + b
+assert somar(2, 3) is 5
+
+// Passar o tipo errado LEVANTA, e nao passa calado:
+errou := no
+monitor:
+    _ := somar("dois", 3)
+handle Error as e:
+    errou := yes
+assert errou
+
+// ── 14.2 Colecoes ──
+//
+// Nao ha 'list[str]' nem 'dict[str, int]': o tipo e 'Cluster' e
+// 'Vault', sem parametro. E deliberado — um parametro que ninguem
+// confere em execucao documenta e nao protege, e a linguagem prefere
+// ser honesta sobre o que garante.
+action nomes() -> Cluster:
+    yield ["Ana", "Joao"]
+assert len(nomes()) is 2
+
+action usuario() -> Vault:
+    yield {"nome": "Ana"}
+assert usuario()["nome"] is "Ana"
+
+// Para cobrar o conteudo, cobre no corpo — que e onde da para provar:
+action so_textos(itens: Cluster) -> Cluster:
+    cycle x in itens:
+        given typeof(x) isnt "String":
+            trigger $"esperava texto, veio {typeof(x)}"
+    yield itens
+assert so_textos(["a", "b"]) is ["a", "b"]
+
+// ── 14.3 Opcional ──
+//
+// Nao ha 'str | None'. O valor ausente e 'void', e quem lida com ele
+// tem '??' e '?.' — que sao verificados e nao dependem de disciplina.
+action buscar(id: Integer):
+    given id is 1:
+        yield "Ana"
+    yield void
+
+assert buscar(1) is "Ana"
+assert buscar(99) is void
+assert (buscar(99) ?? "nao achei") is "nao achei"
+assert buscar(99)?.upper() is void        // nao levanta
+
+// ── 14.4 Uniao ──
+//
+// Tambem nao ha 'int | str'. Um parametro que aceita mais de um tipo
+// simplesmente nao declara tipo — e o 'match' faz a distincao, com o
+// analisador conferindo que nenhum caso ficou inalcancavel.
+action converter(valor) -> String:
+    match valor:
+        point Integer as n:
+            yield $"inteiro {n}"
+        point String as t:
+            yield $"texto {t}"
+        default:
+            yield $"outro ({typeof(valor)})"
+
+assert converter(7)    is "inteiro 7"
+assert converter("a")  is "texto a"
+assert converter(1.5)  is "outro (Float)"
+
+// ── 14.5 Protocolo: 'trait' ──
+//
+// O 'Protocol' do Python e estrutural e so existe para o verificador.
+// Aqui e 'trait', e ele é cobrado: um blueprint que adota e nao
+// implementa nao spawna.
+trait Registrador:
+    action info(mensagem: String)
+
+blueprint RegistradorTela with Registrador:
+    self.linhas := []
+    action info(mensagem: String):
+        self.linhas.append(mensagem)
+        yield void
+
+r := spawn RegistradorTela()
+r.info("subiu")
+assert r.linhas is ["subiu"]
+
+// Quem recebe pede o trait, e nao o blueprint concreto:
+action iniciar(log) -> String:
+    log.info("iniciando")
+    yield "ok"
+assert iniciar(r) is "ok"
+assert len(r.linhas) is 2
+
+// ── 14.6 Apelido de tipo ──
+//
+// Nao ha 'type UserId = int'. Um apelido que nao e conferido nao
+// evita passar um id de pedido onde se espera um de usuario — ele so
+// documenta. O que a linguagem oferece no lugar CONFERE:
+record IdUsuario:
+    valor: Integer
+
+record IdPedido:
+    valor: Integer
+
+action carregar(id: IdUsuario) -> String:
+    yield $"usuario {id.valor}"
+
+assert carregar(IdUsuario(7)) is "usuario 7"
+
+// E trocar um pelo outro e ERRO, em vez de compilar calado:
+trocou := no
+monitor:
+    _ := carregar(IdPedido(7))
+handle Error as e:
+    trocou := yes
+assert trocou
+
+// ── 14.7 Generico ──
+//
+// '<T>' existe e o analisador o aceita. Ele NAO e verificado em
+// execucao — a linguagem e dinamica, e o parametro de tipo documenta
+// a relacao entre entrada e saida. Um tipo CONCRETO continua sendo
+// cobrado.
+action primeiro<T>(itens: Cluster) -> T:
+    yield itens[0]
+
+assert primeiro([1, 2, 3]) is 1
+assert primeiro(["a"]) is "a"
+
+// ── 14.8 O que o 'check' pega antes de rodar ──
+//
+//   dataforge check arquivo.df
+//   dataforge check src/ --strict      avisos viram erros
+//
+// Ele confere nome, aridade, tipo, membro, alcance e ordem de 'point'
+// — e atravessa 'adopt' para conferir chamadas entre arquivos.
+
+out "14. Tipos — ok"

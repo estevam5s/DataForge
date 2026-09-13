@@ -1,0 +1,120 @@
+// ═══════════════════════════════════════════════════════════
+//  16. Iteradores e geradores
+// ═══════════════════════════════════════════════════════════
+//
+//   def + yield   → stream action + emit
+//   yield         → emit          (produz e CONTINUA)
+//   return        → yield         (devolve e ENCERRA)
+//
+// A troca de nomes e o ponto: em Python a mesma palavra faz as duas
+// coisas, e a diferenca entre uma funcao e um generator e uma palavra
+// escondida no meio do corpo.
+
+// ── 16.1 Stream: o generator ──
+stream action contar(ate: Integer):
+    cycle i from 0 to ate - 1:
+        emit i
+
+assert contar(5).to_cluster() is [0, 1, 2, 3, 4]
+
+// Ele e PREGUICOSO: nada roda ate alguem pedir.
+efeitos := []
+stream action com_efeito():
+    efeitos.append("a")
+    emit 1
+    efeitos.append("b")
+    emit 2
+
+fluxo := com_efeito()
+assert efeitos is []                  // criar nao executa
+assert fluxo.next() is 1
+assert efeitos is ["a"]
+
+// ── 16.2 Infinito, e o teto que ele exige ──
+stream action fib():
+    a := 0
+    b := 1
+    persist yes:
+        emit a
+        a, b := b, a + b
+
+assert fib().take(8) is [0, 1, 1, 2, 3, 5, 8, 13]
+
+// ARMADILHA: 'fib().to_cluster()' TRAVA — nao ha fim. Sempre
+// 'take(n)', ou um 'halt' que encerre.
+
+// ── 16.3 O que um stream sabe fazer ──
+s := contar(10)
+assert s.take(3) is [0, 1, 2]
+assert contar(10).skip(7).to_cluster() is [7, 8, 9]
+assert contar(5).map(lambda x: x * 2).to_cluster() is [0, 2, 4, 6, 8]
+assert contar(10).filter(lambda x: x % 3 is 0).to_cluster() is [0, 3, 6, 9]
+assert contar(5).reduce(lambda a, b => a + b, 0) is 10
+assert contar(3).enumerate().to_cluster() is [[0, 0], [1, 1], [2, 2]]
+
+// 'next' e o fim do percurso: 'void', e nao erro.
+curto := contar(1)
+assert curto.next() is 0
+assert curto.next() is void
+
+// ── 16.4 Por que preguicoso importa ──
+//
+// Um arquivo de um milhao de linhas nao cabe na memoria como cluster.
+// O stream processa um item por vez, e a conta fica igual.
+stream action numeros_grandes(quantos: Integer):
+    cycle i from 1 to quantos:
+        emit i * i
+
+// Sem materializar o milhao: so os tres primeiros multiplos de 7.
+tres := numeros_grandes(1000000)
+    .filter(lambda x: x % 7 is 0)
+    .take(3)
+assert tres is [49, 196, 441]
+
+// ── 16.5 Iterador proprio ──
+//
+// Um blueprint vira percorrivel declarando '__iter__' (que devolve
+// uma colecao) ou '__next__' (que devolve 'void' no fim).
+blueprint Paginas(total):
+    self.atual := 0
+
+    action __next__():
+        given self.atual bigger_eq self.total:
+            yield void              // fim: 'void', e nao erro
+        self.atual += 1
+        yield $"pagina {self.atual}"
+
+p := spawn Paginas(3)
+assert [x cycle x in p] is ["pagina 1", "pagina 2", "pagina 3"]
+
+// E as tres formas de percorrer valem igual — instrucao, compreensao
+// e pipeline:
+q := spawn Paginas(2)
+vistas := []
+cycle x in q:
+    vistas.append(x)
+assert vistas is ["pagina 1", "pagina 2"]
+
+maiusculas := spawn Paginas(2) >> morph x: x.upper()
+assert maiusculas is ["PAGINA 1", "PAGINA 2"]
+
+// Com '__iter__', que e mais simples quando a colecao ja existe:
+blueprint Baralho:
+    self.cartas := ["A", "K", "Q"]
+    action __iter__():
+        yield self.cartas
+
+assert [c cycle c in spawn Baralho()] is ["A", "K", "Q"]
+
+// ── 16.6 Compreensao preguicosa ──
+//
+// Nao ha a forma com parenteses do Python ('(x for x in …)'). O
+// equivalente e um 'stream action' — e ele diz no cabecalho o que a
+// outra escondia no meio do corpo.
+stream action quadrados_ate(n: Integer):
+    cycle x from 0 to n - 1:
+        emit x ** 2
+
+assert quadrados_ate(1000000).take(4) is [0, 1, 4, 9]
+
+out "16. Iteradores e geradores — ok"

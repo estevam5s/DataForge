@@ -923,7 +923,8 @@ class TypeChecker:
         # O corpo usa o escopo de FORA, como o interpretador: uma variavel
         # atribuida dentro do monitor continua existindo depois dele.
         with self._demoted():
-            self.visit_block(node.body, escopo)
+            corpo_sempre = self.visit_block(node.body, escopo)
+        handles_sempre = True
         pega_tudo = False
         for clausula in node.handles:
             # Um 'handle' sem tipo — ou com 'Error' — captura qualquer
@@ -942,10 +943,26 @@ class TypeChecker:
             # o nome do erro existe so aqui; o resto compartilha o escopo
             escopo.declare(clausula.error_name, "Error",
                            clausula.line, clausula.column)
-            self.visit_block(clausula.body, escopo)
+            if not self.visit_block(clausula.body, escopo):
+                handles_sempre = False
+        ensure_sempre = False
         if node.ensure_body:
-            self.visit_block(node.ensure_body, Scope(escopo))
-        return False
+            ensure_sempre = self.visit_block(node.ensure_body, Scope(escopo))
+        # Um 'monitor' cujo corpo e cujos 'handle' TODOS terminam em
+        # 'yield' nao deixa por onde cair depois dele. Devolver False
+        # aqui acusava
+        #
+        #     action f() -> Resultado:
+        #         monitor:
+        #             yield Resultado(yes, …)
+        #         handle Error as e:
+        #             yield Resultado(no, …)
+        #
+        # de "pode terminar sem 'yield'" — e essa e a forma canonica de
+        # uma acao que devolve sucesso ou falha. Um erro que nenhum
+        # 'handle' captura sobe: ele nao cai no fim da acao, e por isso
+        # nao precisa de um 'yield' ali.
+        return ensure_sempre or (corpo_sempre and handles_sempre)
 
     def st_RetryBlock(self, node, escopo):
         self.infer(node.count, escopo)
@@ -1338,8 +1355,13 @@ class TypeChecker:
             self._genericos_da_acao = genericos_anteriores
 
         declarado = assinatura.return_type
+        # Um metodo de 'trait' e so a assinatura: corpo vazio, de
+        # proposito. Cobrar um 'yield' de quem nao tem corpo pede o
+        # impossivel, e era o unico aviso que a declaracao de um
+        # contrato produzia.
         if (declarado not in (UNKNOWN, ANY, "Void")
                 and declarado not in genericos
+                and node.body
                 and not sempre_retorna and not assinatura.is_generator):
             self.warn(
                 f"Action '{node.name}' declares '-> {declarado}' but can end "
@@ -1738,6 +1760,14 @@ class TypeChecker:
                 if esq in NUMERIC and dir_ in NUMERIC:
                     pass
                 elif esq == dir_ and esq in ORDERABLE:
+                    pass
+                elif self._overloads(esq) or self._overloads(dir_):
+                    # Um blueprint ou record ordena a si mesmo com
+                    # '__lt__'. O ramo aritmetico ja consultava isto; a
+                    # comparacao nao, e acusava "Cannot order Dinheiro
+                    # against Dinheiro" num arquivo que roda — um falso
+                    # alarme no unico lugar em que a mensagem soa
+                    # absurda, porque os dois lados sao o MESMO tipo.
                     pass
                 else:
                     self.error(

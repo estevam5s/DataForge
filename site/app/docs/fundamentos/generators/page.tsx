@@ -51,8 +51,9 @@ out naturais().take(6)     # [0, 1, 2, 3, 4, 5]` },
 out fibonacci().take(10)   # [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]` },
   {"p": "Essa definição é completa e não menciona limite algum. Quem chama decide. Repare no `a, b := b, a + b` — a [desestruturação](/docs/fundamentos/desestruturacao) faz a troca simultânea sem variável temporária."},
   {"h2": "Consumir"},
-  {"table": {"head": ["Chamada", "Devolve"], "rows": [["`s.to_cluster()`", "tudo, como lista"], ["`s.take(n)`", "os `n` primeiros"], ["`s.next()`", "o próximo item, ou `void`"], ["`s.count()`", "quantos itens ao todo"], ["`s.first()`", "o primeiro, ou `void`"], ["`s.map(f)` `s.filter(f)`", "lista transformada ou filtrada"], ["`s.reset()`", "reinicia o `next()`"], ["`cycle v in s:`", "percorre item a item"]]}},
+  {"table": {"head": ["Chamada", "Devolve"], "rows": [["`s.to_cluster()`", "tudo, como lista"], ["`s.take(n)`", "os `n` primeiros"], ["`s.next()`", "o próximo item, ou `void`"], ["`s.count()`", "quantos itens ao todo"], ["`s.first()`", "o primeiro, ou `void`"], ["`s.map(f)` `s.filter(f)`", "outro stream, **preguiçoso**"], ["`s.skip(n)`", "outro stream, sem os `n` primeiros"], ["`s.enumerate()`", "outro stream, de `[i, item]`"], ["`s.reduce(f, ini)`", "os itens dobrados num valor só"], ["`s.reset()`", "reinicia o `next()`"], ["`cycle v in s:`", "percorre item a item"]]}},
   {"callout": {"tipo": "perigo", "texto": "`to_cluster()` num generator **realmente** infinito trava o programa. Use `take(n)` ou garanta um `halt` dentro dele."}},
+  {"callout": {"tipo": "dica", "titulo": "map e filter devolvem stream", "texto": "Os dois são preguiçosos: `fib().map(f)` volta na hora e não produz item nenhum até alguém pedir. Quem pede é `take(n)` ou `to_cluster()` — e `take(n)` para no item `n`, sem produzir o seguinte."}},
   {"h2": "Parar por dentro"},
   { code: `stream action ate_passar(limite):
     n := 1

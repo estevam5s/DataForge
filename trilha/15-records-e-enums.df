@@ -1,0 +1,166 @@
+// ═══════════════════════════════════════════════════════════
+//  15. Records, enums e validacao
+// ═══════════════════════════════════════════════════════════
+
+// ── 15.1 Record: o dataclass, sem decorador ──
+//
+// Nao ha '@dataclass' a importar. 'record' e uma palavra da
+// linguagem, e ja vem com igualdade estrutural, repr legivel e
+// imutabilidade.
+record Usuario:
+    nome: String
+    idade: Integer
+
+u := Usuario("Ana", 30)
+assert u.nome is "Ana"
+assert $"{u}" is "Usuario(nome: Ana, idade: 30)"
+
+// Igualdade por CONTEUDO, e nao por identidade:
+assert Usuario("Ana", 30) is u
+assert Usuario("Ana", 31) isnt u
+
+// ── 15.2 Imutavel — e nao 'frozen=True' ──
+//
+// Todo record e imutavel. Nao ha a versao mutavel, porque a versao
+// mutavel ja existe e se chama 'blueprint'.
+record Coordenada:
+    x: Float
+    y: Float
+
+c := Coordenada(1.0, 2.0)
+congelado := no
+monitor:
+    c.x := 9.0
+handle Error as e:
+    congelado := yes
+assert congelado
+
+// "Mudar" e derivar:
+c2 := c with {"x": 9.0}
+assert c2.x is 9.0
+assert c.x is 1.0
+
+// Com valor padrao e metodo:
+record Config:
+    host: String := "localhost"
+    porta: Integer := 8080
+
+    action url() -> String:
+        yield $"http://{self.host}:{self.porta}"
+
+assert Config().url() is "http://localhost:8080"
+assert Config("api.exemplo.com", 443).url() is "http://api.exemplo.com:443"
+
+// ── 15.3 Enum ──
+enum Status:
+    Ativo
+    Inativo
+    Suspenso
+
+assert typeof(Status.Ativo) is "Status"
+assert Status.Ativo isnt Status.Inativo
+
+// Com valor associado:
+enum Papel:
+    Admin := "admin"
+    Editor := "editor"
+    Leitor := "leitor"
+
+assert Papel.Admin.value is "admin"
+
+// O 'match' sobre enum e EXAUSTIVO: o analisador avisa quando um
+// membro fica de fora — a unica exaustividade que a linguagem
+// verifica hoje.
+action pode_publicar(papel) -> Boolean:
+    match papel:
+        point Papel.Admin:
+            yield yes
+        point Papel.Editor:
+            yield yes
+        point Papel.Leitor:
+            yield no
+        default:
+            yield no
+
+assert pode_publicar(Papel.Admin)
+assert not pode_publicar(Papel.Leitor)
+
+// ── 15.4 Validacao na CONSTRUCAO ──
+//
+// Um record NAO tem gancho de construcao: '__init__' e do 'spawn', e
+// record nao e spawnado. Isso e coerente — record e dado puro, e um
+// construtor que levanta faria de toda leitura de dado um lugar onde
+// da erro.
+//
+// A validacao vai numa ACAO-FABRICA, e quem quer o valor validado
+// passa por ela. O record continua sendo o tipo; a fabrica e a porta.
+record Email:
+    valor: String
+
+    action dominio() -> String:
+        yield self.valor.split("@")[1]
+
+action criar_email(texto: String) -> Email:
+    given not regex_test("^[\\w.-]+@[\\w.-]+\\.\\w+$", texto):
+        trigger $"e-mail invalido: {texto}"
+    yield Email(texto)
+
+bom := criar_email("ana@exemplo.com")
+assert bom.dominio() is "exemplo.com"
+
+ruim := no
+monitor:
+    _ := criar_email("sem-arroba")
+handle Error as e:
+    ruim := yes
+assert ruim
+
+// Quando o erro nao deve interromper — um formulario, uma importacao
+// de CSV —, devolva o RESULTADO em vez de levantar:
+record Resultado:
+    ok: Boolean
+    valor: Email
+    erro: String
+
+action tentar_email(texto: String) -> Resultado:
+    monitor:
+        yield Resultado(yes, criar_email(texto), "")
+    handle Error as e:
+        yield Resultado(no, Email(""), e.message)
+
+assert tentar_email("a@b.co").ok
+falhou := tentar_email("xxx")
+assert not falhou.ok
+assert "invalido" in falhou.erro
+
+// ── 15.5 Um formulario inteiro ──
+//
+// A validacao de ENTRADA nao substitui a regra de negocio: ela
+// garante a FORMA, e a regra continua onde deve estar.
+record CriarUsuario:
+    nome: String
+    email: String
+    idade: Integer
+
+action validar(entrada: Vault) -> Cluster:
+    erros := []
+    given (entrada["nome"] ?? "").strip() is "":
+        erros.append("nome e obrigatorio")
+    given not regex_test("^[\\w.-]+@[\\w.-]+\\.\\w+$", entrada["email"] ?? ""):
+        erros.append("e-mail invalido")
+    idade := entrada["idade"] ?? 0
+    given typeof(idade) isnt "Integer" or idade smaller 0:
+        erros.append("idade precisa ser inteiro nao negativo")
+    yield erros
+
+assert validar({"nome": "Ana", "email": "a@b.co", "idade": 30}) is []
+assert len(validar({"nome": "", "email": "x", "idade": -1})) is 3
+
+// E a REGRA de negocio, que e outra coisa:
+action pode_se_cadastrar(u: CriarUsuario) -> Boolean:
+    yield u.idade bigger_eq 18
+
+assert pode_se_cadastrar(CriarUsuario("Ana", "a@b.co", 30))
+assert not pode_se_cadastrar(CriarUsuario("Kid", "k@b.co", 12))
+
+out "15. Records, enums e validacao — ok"

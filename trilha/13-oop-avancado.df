@@ -1,0 +1,221 @@
+// ═══════════════════════════════════════════════════════════
+//  13. Recursos avancados de OOP
+// ═══════════════════════════════════════════════════════════
+
+// ── 13.1 Metodo estatico ──
+//
+// 'static' e o que nao precisa de instancia. Chamado no BLUEPRINT.
+blueprint Matematica:
+    static action somar(a: Integer, b: Integer) -> Integer:
+        yield a + b
+
+assert Matematica.somar(2, 3) is 5
+
+// E 'static x := valor' e o valor de classe — UM para todas as
+// instancias, e explicito. ('x := valor' sem 'static' e campo por
+// instancia; a diferenca e deliberada.)
+blueprint Registro:
+    static criados := 0
+    self.id := 0
+
+    action registrar():
+        Registro.criados += 1
+        self.id := Registro.criados
+        yield self.id
+
+a := spawn Registro()
+b := spawn Registro()
+assert a.registrar() is 1
+assert b.registrar() is 2
+assert Registro.criados is 2
+
+// ── 13.2 Construtor alternativo ──
+//
+// Nao ha '@classmethod'. Uma acao estatica que devolve uma instancia
+// faz o mesmo, e le melhor.
+blueprint Usuario(nome, papel):
+    static action convidado():
+        yield spawn Usuario("Convidado", "leitor")
+
+    action e_admin() -> Boolean:
+        yield self.papel is "admin"
+
+u := Usuario.convidado()
+assert u.nome is "Convidado"
+assert not u.e_admin()
+
+// ── 13.3 Propriedade com validacao ──
+//
+// Ja no capitulo 12. O que vale repetir: a validacao mora no 'set', e
+// nao em quem chama — assim ela nao tem como ser esquecida.
+
+// ── 13.4 Metodos magicos ──
+//
+// Sao 95. Os que mais aparecem:
+blueprint Dinheiro(centavos):
+    action __str__() -> String:
+        yield $"R$ {self.centavos / 100}"
+
+    action __eq__(outro) -> Boolean:
+        yield self.centavos is outro.centavos
+
+    action __lt__(outro) -> Boolean:
+        yield self.centavos smaller outro.centavos
+
+    action __add__(outro):
+        yield spawn Dinheiro(self.centavos + outro.centavos)
+
+    action __len__() -> Integer:
+        yield self.centavos
+
+    action __call__(quantas: Integer):
+        yield spawn Dinheiro(self.centavos * quantas)
+
+dez := spawn Dinheiro(1000)
+vinte := spawn Dinheiro(2000)
+
+assert $"{dez}" is "R$ 10.0"
+assert dez is spawn Dinheiro(1000)         // usa __eq__
+assert dez smaller vinte                   // usa __lt__
+assert (dez + vinte).centavos is 3000      // usa __add__
+assert len(dez) is 1000                    // usa __len__
+assert dez(3).centavos is 3000             // usa __call__
+
+// Indexar e iterar:
+blueprint Baralho:
+    self.cartas := ["A", "K", "Q"]
+
+    action __getitem__(i: Integer) -> String:
+        yield self.cartas[i]
+
+    action __setitem__(i: Integer, valor: String):
+        self.cartas[i] := valor
+
+    action __iter__():
+        yield self.cartas
+
+bar := spawn Baralho()
+assert bar[0] is "A"
+bar[0] := "J"
+assert bar[0] is "J"
+assert [c cycle c in bar] is ["J", "K", "Q"]
+
+// ── 13.5 Trait: a interface ──
+//
+// 'trait' declara o que uma coisa precisa saber fazer. Ele nao tem
+// estado, e um blueprint pode adotar varios.
+trait Serializavel:
+    action para_vault() -> Vault
+
+trait Comparavel:
+    action comparar(outro) -> Integer
+
+blueprint Pedido(numero, total) with Serializavel, Comparavel:
+    action para_vault() -> Vault:
+        yield {"numero": self.numero, "total": self.total}
+
+    action comparar(outro) -> Integer:
+        yield self.total - outro.total
+
+p := spawn Pedido(1, 100)
+assert p.para_vault() is {"numero": 1, "total": 100}
+assert p.comparar(spawn Pedido(2, 40)) is 60
+
+// Um trait com corpo dá implementacao PADRAO, que a filha pode trocar:
+trait Descritivel:
+    action descrever() -> String:
+        yield $"<{class_name(self)}>"
+
+blueprint Simples with Descritivel:
+    action nada():
+        yield void
+
+assert (spawn Simples()).descrever() is "<Simples>"
+
+// ── 13.6 Abstrato: o que obriga ──
+//
+// Nao ha 'ABC' nem '@abstractmethod' importados: 'abstract' e uma
+// palavra contextual no corpo do blueprint.
+// 'abstract blueprint' no cabecalho: sem isso o proprio Repositorio
+// seria spawnavel, e a linguagem recusa — com a lista do que falta.
+abstract blueprint Repositorio:
+    abstract action salvar(entidade)
+    abstract action por_id(id: Integer)
+
+    // O que NAO e abstrato ja vem pronto para todos.
+    action salvar_todos(itens: Cluster) -> Integer:
+        cycle item in itens:
+            self.salvar(item)
+        yield len(itens)
+
+blueprint RepoMemoria extends Repositorio:
+    self.dados := {}
+
+    action salvar(entidade):
+        self.dados[entidade["id"]] := entidade
+        yield entidade
+
+    action por_id(id: Integer):
+        yield self.dados[id] ?? void
+
+repo := spawn RepoMemoria()
+assert repo.salvar_todos([{"id": 1}, {"id": 2}]) is 2
+assert repo.por_id(1) is {"id": 1}
+assert repo.por_id(99) is void
+
+// Spawnar o abstrato e ERRO, e a mensagem diz o que falta:
+abstrato := no
+monitor:
+    _ := spawn Repositorio()
+handle Error as e:
+    abstrato := yes
+assert abstrato
+
+// ── 13.7 'final' e 'slots' ──
+//
+// 'final' proibe a filha de sobrescrever — util para o metodo que
+// sustenta uma invariante.
+blueprint Auditoria:
+    final action registrar(evento: String) -> String:
+        yield $"[auditado] {evento}"
+
+// 'slots' fecha a lista de campos: escrever num nome fora dela e
+// erro, em vez de criar um campo por engano de digitacao.
+blueprint Ponto3D:
+    slots ["x", "y", "z"]
+    self.x := 0
+    self.y := 0
+    self.z := 0
+
+pt := spawn Ponto3D()
+pt.x := 5
+assert pt.x is 5
+
+fora := no
+monitor:
+    pt.w := 1            // 'w' nao esta em slots
+handle Error as e:
+    fora := yes
+assert fora
+
+// ── 13.8 A ordem de resolucao (C3) ──
+//
+// Com heranca multipla, a ordem e a mesma de toda linguagem seria: o
+// PRIMEIRO pai escrito tem prioridade.
+blueprint A:
+    action quem() -> String:
+        yield "A"
+blueprint B extends A:
+    action quem() -> String:
+        yield "B"
+blueprint C extends A:
+    action quem() -> String:
+        yield "C"
+blueprint D extends B, C:
+    action nada():
+        yield void
+
+assert (spawn D()).quem() is "B"
+assert linhagem(spawn D()) is ["D", "B", "C", "A"]
+
+out "13. Recursos avancados de OOP — ok"

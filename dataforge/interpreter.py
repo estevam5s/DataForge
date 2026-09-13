@@ -53,6 +53,10 @@ class _SemMagico:
 
 _SEM_MAGICO = _SemMagico()
 
+#: O fim de um percurso do Python, para quem nao pode confundi-lo com
+#: 'void': um stream pode legitimamente produzir 'void' como item.
+_FIM = object()
+
 
 # ── DataForge Runtime Objects ──────────────────────────────
 
@@ -769,12 +773,70 @@ class DFStream:
         return self._produce()
 
     def take(self, n):
+        """Os 'n' primeiros itens, e nem um a mais PRODUZIDO.
+
+        A versao anterior parava depois de PUXAR o item n+1: com a
+        fonte materializada isso nao aparecia, mas com 'map' e 'filter'
+        preguicosos a fonte roda uma volta a mais — e uma volta de
+        'stream action' pode ser uma consulta ou uma escrita.
+        """
+        if n <= 0:
+            return []
         saida = []
-        for i, item in enumerate(self):
-            if i >= n:
-                break
+        for item in self:
             saida.append(item)
+            if len(saida) >= n:
+                break
         return saida
+
+    def map(self, f):
+        """Transforma cada item, SEM percorrer a sequencia.
+
+        Devolve um stream, e nao um cluster: 'fib().map(...)' sobre um
+        stream infinito tem de voltar, e o resultado precisa poder ser
+        encadeado com outro 'map', com 'filter' e com 'take'.
+        """
+        return DFStream(self.name, lambda: (f(x) for x in self))
+
+    def filter(self, f, verdade=bool):
+        """Escolhe itens, SEM percorrer a sequencia.
+
+        A verdade e a da linguagem — uma instancia com '__bool__'
+        responde por si —, por isso ela chega de fora em vez de ser o
+        'bool' do Python.
+        """
+        return DFStream(self.name, lambda: (x for x in self if verdade(f(x))))
+
+    def skip(self, n):
+        """Descarta os 'n' primeiros, e segue preguicoso."""
+        def produzir():
+            it = iter(self)
+            for _ in range(max(0, n)):
+                if next(it, _FIM) is _FIM:
+                    return
+            yield from it
+        return DFStream(self.name, produzir)
+
+    def enumerate(self, inicio=0):
+        """Cada item com a sua posicao, como '[i, item]'.
+
+        Um cluster de dois, e nao uma tupla: a linguagem nao tem
+        tupla, e a desestruturacao 'i, v := par' ja funciona assim.
+        """
+        return DFStream(
+            self.name,
+            lambda: ([i, x] for i, x in enumerate(self, inicio)))
+
+    def reduce(self, f, inicial=None):
+        """Dobra a sequencia num valor so. Consome — nao e preguicoso."""
+        it = iter(self)
+        if inicial is None:
+            acc = next(it, None)
+        else:
+            acc = inicial
+        for item in it:
+            acc = f(acc, item)
+        return acc
 
     def to_cluster(self):
         return list(self)
@@ -1861,15 +1923,19 @@ class Interpreter:
                 'next': lambda: obj.next(),
                 'reset': lambda: obj.reset(),
                 'count': lambda: sum(1 for _ in obj),
-                'map': lambda f: [f(x) for x in obj],
-                'filter': lambda f: [x for x in obj if f(x)],
+                'map': lambda f: obj.map(f),
+                'filter': lambda f: obj.filter(f, self._verdade),
+                'skip': lambda n: obj.skip(n),
+                'enumerate': lambda inicio=0: obj.enumerate(inicio),
+                'reduce': lambda f, inicial=None: obj.reduce(f, inicial),
                 'first': lambda: next(iter(obj), None),
             }
             if membro in stream_methods:
                 return BuiltinFunction(membro, stream_methods[membro])
             raise NameError_(
-                f"Stream has no member '{membro}'. Use take, to_cluster, "
-                f"next, reset, count, map, filter or first",
+                f"Stream has no member '{membro}'. Use take, skip, "
+                f"to_cluster, next, reset, count, map, filter, enumerate, "
+                f"reduce or first",
                 node.line, node.column)
 
         if isinstance(obj, DFInstance):
@@ -2487,6 +2553,12 @@ class Interpreter:
 
     def eval_PipelineExpression(self, node: ast.PipelineExpression, env):
         data = self.evaluate(node.source, env)
+        # Um objeto que declara '__iter__' e fonte legitima, como no
+        # 'cycle' e na compreensao. Sem isto o pipeline era o unico dos
+        # tres que recusava, com uma mensagem que nomeia a classe
+        # interna do interpretador ("'DFInstance' object is not
+        # iterable") — uma palavra que quem escreve DataForge nunca viu.
+        data = self._percorrer(data, node)
         self._conferir_fonte_do_pipeline(data, node)
         for op in node.operations:
             if isinstance(op, ast.SiftOperation):
@@ -6083,6 +6155,20 @@ class Interpreter:
             fonte = list(fonte)
         if isinstance(fonte, dict):
             fonte = list(fonte.keys())
+        # O '__iter__'/'__next__' MAGICO, como no 'cycle' instrucao.
+        #
+        # Aqui perguntava 'hasattr(fonte, "__iter__")' — o protocolo do
+        # PYTHON — e recusava um objeto que declara o metodo magico da
+        # linguagem. A mesma frase funcionava como instrucao e falhava
+        # dentro de colchetes:
+        #
+        #   cycle c in bar:          ok
+        #   [c cycle c in bar]       Cannot iterate over Baralho
+        #
+        # Nao e recurso ausente: e o mesmo recurso respondendo
+        # diferente conforme onde foi escrito, e quem le conclui que o
+        # objeto nao e percorrivel.
+        fonte = self._percorrer(fonte, clause)
         if not hasattr(fonte, '__iter__'):
             raise TypeError_(
                 f"Cannot iterate over {self._type_of(fonte)} in the comprehension",

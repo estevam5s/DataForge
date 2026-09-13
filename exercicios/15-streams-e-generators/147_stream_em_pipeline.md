@@ -26,12 +26,23 @@ out primeiros >> sift n: n % 3 is 0
 Para filtrar e transformar sem escrever a materialização:
 
 ```dataforge
-ate(10).filter(lambda n: n % 2 is 0)
-ate(5).map(lambda n: n * n)
+ate(10).filter(lambda n: n % 2 is 0).to_cluster()
+ate(5).map(lambda n: n * n).to_cluster()
 ```
 
-Ambos devolvem uma **lista** — consomem o stream inteiro. Num stream infinito,
-use `take` primeiro.
+Ambos devolvem outro **stream**, e não uma lista: nada é produzido enquanto
+ninguém pede. É o que faz `naturais().map(…).take(4)` voltar na hora — um `map`
+que consumisse o stream inteiro nunca voltaria de um infinito, e essa é a única
+razão de o stream existir.
+
+Quem pede o resultado é `to_cluster()` (tudo) ou `take(n)` (os `n` primeiros, e
+nem um item a mais produzido).
+
+| Método | Devolve | Preguiçoso |
+|--------|---------|------------|
+| `map(f)` · `filter(f)` · `skip(n)` · `enumerate()` | um stream | sim |
+| `take(n)` · `to_cluster()` | uma lista | não |
+| `reduce(f, inicial)` · `count()` · `first()` · `next()` | um valor | não |
 
 ## Compreensões consomem streams
 

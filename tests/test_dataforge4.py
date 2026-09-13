@@ -1259,3 +1259,253 @@ _ := a.por(1)
 out $"{a.itens} {b.itens}"
 """) == "[1] []"
 
+def test_iter_magico_vale_na_compreensao_e_no_pipeline():
+    """`cycle x in obj` honrava `__iter__`; `[x cycle x in obj]` não.
+
+    A instrução passa por `_percorrer`, que chama o método mágico. A
+    compreensão perguntava `hasattr(fonte, '__iter__')` — o protocolo
+    do **Python** — e recusava o objeto com:
+
+        Cannot iterate over Baralho in the comprehension
+
+    A mesma frase, `cycle c in bar`, funcionava três linhas acima. Não
+    é um recurso ausente: é o mesmo recurso respondendo diferente
+    conforme onde foi escrito, que é pior, porque quem lê conclui que
+    o objeto não é percorrível.
+    """
+    programa = """
+blueprint Baralho:
+    self.cartas := ["A", "K", "Q"]
+    action __iter__():
+        yield self.cartas
+
+bar := spawn Baralho()
+cycle c in bar:
+    out c
+out [c cycle c in bar]
+out [c cycle c in bar given c isnt "K"]
+out (bar >> morph c: c + "!")
+"""
+    assert _rodar(programa).splitlines() == [
+        "A", "K", "Q",
+        "[A, K, Q]",
+        "[A, Q]",
+        "[A!, K!, Q!]",
+    ]
+
+
+def test_next_magico_tambem_vale_na_compreensao():
+    """O outro lado do protocolo: um objeto que só tem `__next__`."""
+    programa = """
+blueprint Contagem:
+    self.n := 0
+    action __next__():
+        given self.n bigger_eq 3:
+            yield void
+        self.n += 1
+        yield self.n
+
+out [x cycle x in spawn Contagem()]
+"""
+    assert _rodar(programa) == "[1, 2, 3]"
+
+def test_map_e_filter_de_stream_sao_preguicosos():
+    """`stream.filter(…).take(3)` percorria a sequência INTEIRA.
+
+    Os dois eram `[f(x) for x in obj]`: materializavam tudo e
+    devolviam um Cluster. Medido, sobre 300 mil itens para pegar 3:
+
+        muitos().filter(…).take(3)    1656 ms
+        muitos().take(3)                 0 ms
+
+    E num stream **infinito** — que a própria documentação apresenta
+    como o caso interessante — `fib().map(…)` não é lento: ele nunca
+    volta.
+
+    Isso desfaz a única razão de o stream existir. Um `stream action`
+    que precisa caber na memória inteira antes de ser transformado é
+    um cluster com sintaxe pior.
+    """
+    from dataforge.interpreter import DFStream
+
+    programa = """
+stream action fib():
+    a := 0
+    b := 1
+    persist yes:
+        emit a
+        a, b := b, a + b
+
+out fib().map(lambda x: x * 2).take(6)
+out fib().filter(lambda x: x % 2 is 0).take(4)
+out typeof(fib().map(lambda x: x))
+out typeof(fib().filter(lambda x: yes))
+"""
+    linhas = _rodar(programa).splitlines()
+    assert linhas[0] == "[0, 2, 2, 4, 6, 10]", linhas
+    assert linhas[1] == "[0, 2, 8, 34]", linhas
+    # E continuam STREAMS: encadear tem de ser possível.
+    assert linhas[2] == "Stream", linhas
+    assert linhas[3] == "Stream", linhas
+
+    # Encadeado, e ainda preguiçoso.
+    assert _rodar("""
+stream action naturais():
+    i := 0
+    persist yes:
+        i += 1
+        emit i
+
+out naturais().filter(lambda x: x % 3 is 0).map(lambda x: x * 10).take(4)
+""") == "[30, 60, 90, 120]"
+
+
+def test_stream_preguicoso_nao_percorre_o_que_nao_precisa():
+    """A medida, e não a promessa.
+
+    Um `filter` que devolve stream mas percorre tudo por dentro
+    passaria no teste acima e continuaria custando 1656 ms. Aqui a
+    fonte CONTA quantos itens produziu.
+    """
+    assert _rodar("""
+vistos := []
+
+stream action fonte():
+    cycle i from 1 to 100000:
+        vistos.append(i)
+        emit i
+
+r := fonte().filter(lambda x: x % 7 is 0).take(3)
+out r
+out len(vistos)
+""").splitlines() == ["[7, 14, 21]", "21"]
+
+
+def test_stream_sabe_pular_enumerar_e_dobrar():
+    """`skip`, `enumerate` e `reduce` — os três que faltavam.
+
+    Os dois primeiros são preguiçosos, como `map` e `filter`: sem
+    isso, pular os sete primeiros de um stream infinito seria pedir os
+    infinitos.
+    """
+    assert _rodar("""
+stream action ate(n):
+    cycle i from 1 to n:
+        emit i
+
+out ate(10).skip(7).to_cluster()
+out ate(3).enumerate().to_cluster()
+out ate(3).enumerate(1).to_cluster()
+out ate(4).reduce(lambda a, b => a + b, 0)
+out ate(4).reduce(lambda a, b => a * b)
+out ate(10).skip(100).to_cluster()
+""").splitlines() == [
+        "[8, 9, 10]",
+        "[[0, 1], [1, 2], [2, 3]]",
+        "[[1, 1], [2, 2], [3, 3]]",
+        "10",
+        "24",
+        "[]",
+    ]
+
+    # E os dois preguiçosos valem num infinito.
+    assert _rodar("""
+stream action naturais():
+    i := 0
+    persist yes:
+        i += 1
+        emit i
+
+out naturais().skip(5).take(3)
+out naturais().enumerate().skip(2).take(2)
+""").splitlines() == ["[6, 7, 8]", "[[2, 3], [3, 4]]"]
+
+
+def test_take_nao_produz_o_item_que_nao_vai_devolver():
+    """`take(3)` puxava o quarto item antes de parar.
+
+    Com a fonte materializada isso não aparecia. Com `filter`
+    preguiçoso, a fonte roda uma volta a mais — e uma volta de um
+    `stream action` pode ser uma consulta, uma escrita ou um pedido de
+    rede.
+    """
+    assert _rodar("""
+puxados := []
+
+stream action fonte():
+    cycle i from 1 to 100:
+        puxados.append(i)
+        emit i
+
+out fonte().take(3)
+out puxados
+out fonte().take(0)
+""").splitlines() == ["[1, 2, 3]", "[1, 2, 3]", "[]"]
+
+
+def test_o_analisador_nao_acusa_o_que_o_blueprint_sabe_fazer():
+    """Três falsos alarmes que a trilha encontrou, os três em código que roda.
+
+    1. `dez smaller vinte` com `__lt__` declarado saía como
+       **erro** — e a mensagem, "Cannot order Dinheiro against
+       Dinheiro", nomeia o mesmo tipo dos dois lados, que é onde ela
+       soa mais absurda. O ramo aritmético já consultava
+       `_overloads`; a comparação não.
+
+    2. O método de um `trait` é só a assinatura, e por isso não tem
+       corpo. Cobrar dele um `yield` pede o impossível.
+
+    3. Um `monitor` cujo corpo e cujos `handle` todos terminam em
+       `yield` não deixa por onde cair — e essa é a forma canônica de
+       uma ação que devolve sucesso ou falha.
+    """
+    fonte = """
+blueprint Dinheiro(centavos):
+    action __lt__(outro) -> Boolean:
+        yield self.centavos smaller outro.centavos
+
+trait Serializavel:
+    action para_vault() -> Vault
+
+record Resultado:
+    ok: Boolean
+    erro: String
+
+action tentar(x: Integer) -> Resultado:
+    monitor:
+        given x smaller 0:
+            trigger "negativo"
+        yield Resultado(yes, "")
+    handle Error as e:
+        yield Resultado(no, e.message)
+
+dez := spawn Dinheiro(1000)
+vinte := spawn Dinheiro(2000)
+out dez smaller vinte
+out tentar(1).ok
+"""
+    assert [d.message for d in diagnostics(fonte)] == []
+    assert _rodar(fonte).splitlines() == ["yes", "yes"]
+
+
+def test_o_analisador_ainda_cobra_o_yield_de_quem_tem_corpo():
+    """A calibragem do teste acima: o silêncio é para quem merece.
+
+    Um `monitor` com um `handle` que NÃO devolve deixa por onde cair, e
+    o aviso continua.
+    """
+    fonte = """
+action f(x: Integer) -> Integer:
+    monitor:
+        yield x
+    handle Error as e:
+        out e.message
+"""
+    assert any(d.code == "missing-return" for d in diagnostics(fonte))
+
+    # E ordenar dois tipos que ninguem ensinou a ordenar continua erro.
+    assert any(d.severity == "error" for d in diagnostics("""
+a := [1, 2]
+b := [3]
+out a bigger b
+"""))

@@ -21,15 +21,26 @@ maiusculas := [c.upper() cycle c in letras() given c isnt "a"]
 out maiusculas.join("")
 assert maiusculas.join("") is "DTFORGE", "sem os a"
 
-// map e filter direto no stream
+// map e filter direto no stream: os dois devolvem um STREAM, e nao
+// uma lista — por isso encadeiam, e por isso valem num infinito.
 stream action ate(n):
     cycle i from 1 to n:
         emit i
 
-out ate(10).filter(lambda n: n % 2 is 0)
-out ate(5).map(lambda n: n * n)
-assert ate(10).filter(lambda n: n % 2 is 0) is [2, 4, 6, 8, 10], "filter"
-assert ate(5).map(lambda n: n * n) is [1, 4, 9, 16, 25], "map"
+out ate(10).filter(lambda n: n % 2 is 0).to_cluster()
+out ate(5).map(lambda n: n * n).to_cluster()
+assert ate(10).filter(lambda n: n % 2 is 0).to_cluster() is [2, 4, 6, 8, 10], "filter"
+assert ate(5).map(lambda n: n * n).to_cluster() is [1, 4, 9, 16, 25], "map"
+
+// Num stream INFINITO, que e onde a preguica deixa de ser detalhe:
+// isto volta na hora, e materializar antes nao voltaria nunca.
+assert naturais().map(lambda n: n * n).take(4) is [1, 4, 9, 16], "infinito"
+assert naturais().filter(lambda n: n % 7 is 0).take(3) is [7, 14, 21], "infinito"
+
+// E os outros tres que um stream sabe fazer:
+assert ate(10).skip(7).to_cluster() is [8, 9, 10], "skip"
+assert ate(4).enumerate().to_cluster() is [[0, 1], [1, 2], [2, 3], [3, 4]], "enumerate"
+assert ate(4).reduce(lambda a, b => a + b, 0) is 10, "reduce"
 
 // Encadear geradores: um consome o outro
 stream action dobrar(fonte):
