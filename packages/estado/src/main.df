@@ -76,7 +76,7 @@ blueprint Maquina:
 
         self.atual := destino
         self.historico.append({"de": anterior, "evento": evento,
-        "para": destino})
+                "para": destino})
 
         given self.ao_entrar.has(destino):
             self.ao_entrar[destino](dado)

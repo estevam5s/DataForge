@@ -34,7 +34,7 @@ action criar(dados):
     defer:
         trava.release()
     novo := {"id": len(itens) + 1, "nome": dados["nome"],
-             "preco": dados["preco"]}
+        "preco": dados["preco"]}
     itens.append(novo)
     yield novo
 
@@ -78,7 +78,7 @@ server loja on 0:
         given i is -1:
             respond 404 json {"erro": "nao existe"}
         novo := {"id": int(params["id"]), "nome": body["nome"],
-                 "preco": body["preco"]}
+            "preco": body["preco"]}
         trocar(i, novo)
         respond json novo
 

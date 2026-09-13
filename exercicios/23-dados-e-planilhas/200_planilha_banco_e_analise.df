@@ -66,7 +66,7 @@ Xls.sheet(livro, "Estatisticas", [
         ["vendas", len(registros)],
         ["media_qtd", An.mean(quantidades)],
         ["correlacao", round(correlacao, 3)]
-])
+    ])
 
 Xls.save(livro, IO.join(OS.temp_dir(), "analise.xlsx"))
 out "planilha com", len(Xls.sheets(livro)), "abas gravada"

@@ -94,7 +94,7 @@ action percentil(v, p):
 
 action quartis(v):
     yield {"q1": percentil(v, 25), "q2": percentil(v, 50),
-    "q3": percentil(v, 75)}
+        "q3": percentil(v, 75)}
 
 action amplitude_interquartil(v):
     q := quartis(v)
@@ -174,7 +174,7 @@ action regressao(x, y):
     a := media(y) - b * media(x)
     r := correlacao(x, y)
     yield {"intercepto": a, "inclinacao": b, "r": r, "r2": r * r,
-    "prever": lambda v => a + b * v}
+        "prever": lambda v => a + b * v}
 
 action resumo(v):
     // O conjunto mínimo para não se enganar com uma média sozinha.
@@ -183,7 +183,7 @@ action resumo(v):
     q := quartis(v)
     yield {"n": len(v), "media": media(v), "mediana": mediana(v),
         "desvio": desvio_padrao(v), "minimo": min(v), "maximo": max(v),
-    "q1": q["q1"], "q3": q["q3"], "amplitude": amplitude(v)}
+        "q1": q["q1"], "q3": q["q3"], "amplitude": amplitude(v)}
 
 action media_movel(v, janela):
     given janela smaller_eq 0 or janela bigger len(v):

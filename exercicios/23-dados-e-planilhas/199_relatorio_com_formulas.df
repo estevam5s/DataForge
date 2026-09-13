@@ -33,7 +33,7 @@ Xls.sheet(livro, "Resumo", [
         ["metrica", "valor"],
         ["itens", len(itens)],
         ["unidades", [i["qtd"] cycle i in itens] >> distill a, v:a + v 0]
-])
+    ])
 
 Xls.save(livro, IO.join(OS.temp_dir(), "relatorio.xlsx"))
 out "relatorio com", len(Xls.sheets(livro)), "abas"

@@ -20,7 +20,7 @@ adopt Arcane.OS as OS
 V.app("Business Intelligence",
     icone := "📊",
     descricao := "Painel de vendas da Forja Ltda.",
-modo_tema := "automatico")
+    modo_tema := "automatico")
 
 // ── Os dados ────────────────────────────────────────────────
 //
@@ -43,7 +43,7 @@ action vendas_de(regiao):
                 "mes": MESES[i],
                 "receita": peso + variacao * 4,
                 "meta": peso + 6
-        })
+            })
     yield linhas
 
 action total_de(linhas, campo):
@@ -74,7 +74,7 @@ action painel():
     colunas[2].metrica("Pedidos", "32.500", variacao := 14.0)
     colunas[3].metrica("Conversão", $"{conversao}%",
         variacao := round(conversao - 100, 1),
-    ajuda := "receita sobre meta")
+        ajuda := "receita sobre meta")
 
     V.cabecalho("Evolução das vendas")
     g := V.grafico("linha", linhas)
@@ -89,7 +89,7 @@ action painel():
 
     barras := duas[1].cartao("Receita contra meta")
     barras.grafico_barras(linhas, x := "mes", y := ["receita", "meta"],
-    altura := 240)
+        altura := 240)
 
     given detalhar:
         V.cabecalho("Dados")

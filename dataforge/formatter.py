@@ -171,6 +171,7 @@ class Formatter:
         nivel = 0
         abertos = 0
         inicio_de_linha = True
+        ultima_linha = 0
         for token in tokens:
             if token.type is TokenType.INDENT:
                 nivel += 1
@@ -183,6 +184,12 @@ class Formatter:
                 continue
             if token.type is TokenType.EOF:
                 break
+            # O lexer nao emite NEWLINE dentro de colchete aberto, entao
+            # "primeiro da linha" nao se descobre pelo NEWLINE: e a
+            # mudanca do numero da linha que denuncia a quebra.
+            primeiro_da_linha = token.line != ultima_linha
+            ultima_linha = token.line
+
             if inicio_de_linha or token.line not in profundidade:
                 profundidade.setdefault(token.line, nivel + abertos)
                 inicio_de_linha = False
@@ -200,7 +207,19 @@ class Formatter:
             elif token.type in (TokenType.RBRACKET, TokenType.RBRACE,
                                 TokenType.RPAREN):
                 abertos = max(0, abertos - 1)
-                if inicio_de_linha or profundidade.get(token.line) is not None:
+                # So quando o FECHA ABRE a linha. Antes bastava ele
+                # aparecer nela, e um fecha no FIM de uma continuacao
+                # puxava a linha inteira para o nivel de fora:
+                #
+                #     novo := {"id": 1, "nome": dados["nome"],
+                #     "preco": dados["preco"]}
+                #
+                # A continuacao encostava na mesma coluna do 'novo :=',
+                # lendo como uma instrucao nova. O formatador piorava um
+                # codigo que estava alinhado a mao — e 'fmt --check'
+                # reprovava o original, entao a CI ficava vermelha
+                # mandando estragar o arquivo.
+                if primeiro_da_linha:
                     profundidade[token.line] = min(
                         profundidade.get(token.line, nivel + abertos),
                         nivel + abertos)

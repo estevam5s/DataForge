@@ -45,7 +45,7 @@ action test_esquema():
             "email":[V.regra_obrigatorio(), V.regra_email()],
             "cpf":[V.regra_cpf()],
             "idade":[V.regra_entre(18, 120)]
-    })
+        })
 
     bom := V.validar(regras, {"email": "ana@exemplo.com", "cpf": "52998224725", "idade": 30})
     T.assert_true(bom["valido"])

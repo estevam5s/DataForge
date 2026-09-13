@@ -23,7 +23,7 @@ action carregar_config():
             "arquivo": "tarefas.json",
             "estilo": "simples",
             "cor": yes
-    })
+        })
     cfg := C.do_arquivo(cfg, "tarefas.config.json")
     cfg := C.do_ambiente(cfg, "TAREFAS_")
     yield cfg
@@ -91,7 +91,7 @@ action mostrar_resumo(tarefas):
         $"feitas      {len(feitas)}\n" +
         $"pendentes   {len(pendentes)}\n" +
         $"atrasadas   {len(atrasadas)}",
-    "Resumo", "grossa")
+        "Resumo", "grossa")
 
     given len(tarefas) bigger 0:
         out ""

@@ -16,7 +16,7 @@ Banco.create_table(db, "vendas", {
         "vendedor": "TEXT NOT NULL",
         "valor": "REAL NOT NULL",
         "mes": "TEXT NOT NULL"
-})
+    })
 
 dados := []
 categorias := ["bebida", "mercearia", "limpeza"]
@@ -31,7 +31,7 @@ cycle i from 1 to 90:
             "vendedor": vendedores[(i ~/ 3) % 3],
             "valor": 10.0 + (i % 17) * 5.0,
             "mes": $"2026-{(i % 6) + 1}"
-    })
+        })
 Banco.insert_many(db, "vendas", dados)
 
 // ── 1. Relatorio agrupado, sem escrever SQL ─────────────────
@@ -40,7 +40,7 @@ por_vendedor := Banco.aggregate(db, "vendas", {
         "receita":["sum", "valor"],
         "vendas":["count", "*"],
         "ticket":["avg", "valor"]
-}, group_by := "vendedor", order_by := "receita DESC")
+    }, group_by := "vendedor", order_by := "receita DESC")
 
 assert len(por_vendedor) is 3
 // a primeira linha e a de maior receita
@@ -51,12 +51,12 @@ assert por_vendedor[0]["vendas"] is 30
 
 // dois grupos ao mesmo tempo
 cruzado := Banco.aggregate(db, "vendas", {"receita":["sum", "valor"]},
-group_by := ["categoria", "vendedor"])
+    group_by := ["categoria", "vendedor"])
 assert len(cruzado) is 9  // 3 x 3
 
 // com filtro
 so_bebida := Banco.aggregate(db, "vendas", {"total":["sum", "valor"]},
-where := {"categoria": "bebida"})
+    where := {"categoria": "bebida"})
 assert so_bebida[0]["total"] smaller_eq por_vendedor[0]["receita"] * 3
 
 // ── 2. O atalho que mais se pede ────────────────────────────
@@ -73,7 +73,7 @@ assert quantas[0]["quantidade"] is 30
 
 monitor:
     Banco.aggregate(db, "vendas", {"n":["count", "*"]},
-    order_by := "valor; DROP TABLE vendas")
+        order_by := "valor; DROP TABLE vendas")
     assert no
 handle Error as e:
     assert "nao e um nome valido" in e.message
@@ -105,7 +105,7 @@ assert len(Banco.search(db, "vendas", "merce")) bigger 0
 // e o indice se mantem em dia — sem isso ele envelhece em silencio
 Banco.insert(db, "vendas", {
         "produto": "Cafezinho Especial", "categoria": "bebida",
-"vendedor": "ana", "valor": 12.0, "mes": "2026-6"})
+        "vendedor": "ana", "valor": 12.0, "mes": "2026-6"})
 assert len(Banco.search(db, "vendas", "cafezinho")) is 1
 
 // ── 5. O plano da consulta: onde esta o indice que falta ────

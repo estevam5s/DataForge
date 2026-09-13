@@ -20,7 +20,7 @@ db := Banco.memory()
 Banco.create_table(db, "autores", {
         "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
         "nome": "TEXT NOT NULL UNIQUE"
-})
+    })
 
 Banco.create_table(db, "livros", {
         "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
@@ -29,7 +29,7 @@ Banco.create_table(db, "livros", {
         "autor_id": "INTEGER NOT NULL REFERENCES autores(id)",
         "preco": "REAL NOT NULL CHECK (preco >= 0)",
         "estoque": "INTEGER NOT NULL DEFAULT 0 CHECK (estoque >= 0)"
-})
+    })
 
 // ── 2. Create ───────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ action cadastrar(isbn, titulo, nome_autor, preco, estoque):
     yield Banco.upsert(db, "livros", {
             "isbn": isbn, "titulo": titulo, "autor_id": autor(nome_autor),
             "preco": preco, "estoque": estoque
-    }, "isbn")
+        }, "isbn")
 
 assert cadastrar("978-1", "Duna", "Frank Herbert", 79.9, 4) is "inserido"
 assert cadastrar("978-2", "O Messias de Duna", "Frank Herbert", 69.9, 2) is "inserido"
@@ -106,7 +106,7 @@ handle Error as e:
 monitor:
     Banco.insert(db, "livros", {
             "isbn": "978-9", "titulo": "Impossivel",
-    "autor_id": 1, "preco": -10.0, "estoque": 0})
+            "autor_id": 1, "preco": -10.0, "estoque": 0})
     assert no
 handle Error as e:
     assert "CHECK" in e.message or "constraint" in e.message

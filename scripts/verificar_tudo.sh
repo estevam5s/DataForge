@@ -20,7 +20,19 @@
 #   sh scripts/verificar_tudo.sh          tudo
 #   sh scripts/verificar_tudo.sh rapido   sem o site (que leva ~40s)
 
-set -e
+# NAO 'set -e'.
+#
+# O script existe para RODAR TUDO e resumir no fim. Com 'set -e', o
+# primeiro passo que falha mata o shell no meio de 'registrar $?' — e
+# o resumo, a lista de falhas e o proprio 'algo falhou' nunca saem.
+#
+# Foi o que aconteceu: 'fmt --check' reprovava um arquivo, o script
+# morria logo depois de imprimir "check", e a saida terminava como se
+# tudo tivesse passado. Quem olhasse o terminal via oito passos verdes
+# e nenhum vermelho, com a CI vermelha do outro lado.
+#
+# Quem controla a saida e a variavel 'falhou', no fim do arquivo.
+set +e
 
 # ABSOLUTO: os passos que entram em subpasta (projetos, pacotes, site)
 # quebrariam com um caminho relativo, e o sintoma seria "todo projeto

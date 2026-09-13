@@ -18,7 +18,7 @@ Forge.executar(db, """
 Forge.de(db, "contas").inserir([
         {"id": 1, "dono": "Ana", "saldo": 100.0},
         {"id": 2, "dono": "Bia", "saldo": 50.0}
-])
+    ])
 
 action saldo_de(db, id):
     yield Forge.de(db, "contas").onde("id", id).primeiro()["saldo"]

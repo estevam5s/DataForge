@@ -42,7 +42,7 @@ action test_linha_em_branco_e_ignorada():
 action test_erro_diz_a_linha():
     escrever("data,regiao,vendedor,produto,valor\n" +
         "2026-01-01,S,A,X,10.00\n" +
-    "2026-01-02,S,A,X\n")
+        "2026-01-02,S,A,X\n")
     monitor:
         L.ler(TEMP)
         T.assert_true(no)

@@ -78,7 +78,7 @@ action cadastrar(titulo, autor, ano):
     given len(problemas) bigger 0:
         yield {"ok": no, "erros": problemas}
     DB.execute(conn, "INSERT INTO livros (titulo, autor, ano) VALUES (?, ?, ?)",
-    [titulo.trim(), autor.trim(), ano])
+        [titulo.trim(), autor.trim(), ano])
     yield {"ok": yes}
 
 action emprestar(livro_id, leitor, dias):
@@ -86,7 +86,7 @@ action emprestar(livro_id, leitor, dias):
     given ja isnt void:
         yield {"ok": no, "erros":["livro ja emprestado"]}
     DB.execute(conn, "INSERT INTO emprestimos (livro_id, leitor, dias) VALUES (?, ?, ?)",
-    [livro_id, leitor, dias])
+        [livro_id, leitor, dias])
     yield {"ok": yes}
 
 action livros():
@@ -95,7 +95,7 @@ action livros():
 
 action emprestimo_de(livro_id):
     linha := DB.query_one(conn,
-    "SELECT id, livro_id, leitor, dias FROM emprestimos WHERE livro_id = ?", [livro_id])
+        "SELECT id, livro_id, leitor, dias FROM emprestimos WHERE livro_id = ?", [livro_id])
     given linha is void:
         yield void
     yield Emprestimo(linha["id"], linha["livro_id"], linha["leitor"], linha["dias"])

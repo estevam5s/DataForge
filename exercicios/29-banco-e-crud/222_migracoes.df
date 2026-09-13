@@ -71,7 +71,7 @@ steady MAIS := [...MIGRACOES, {
         "description": "telefone",
         "up": "ALTER TABLE clientes ADD COLUMN telefone TEXT DEFAULT '';",
         "down": "ALTER TABLE clientes DROP COLUMN telefone;"
-}]
+    }]
 
 assert Banco.migrate(db, MAIS) is 1
 assert Banco.count(db, "clientes") is 1  // o dado continua la
@@ -100,7 +100,7 @@ assert Banco.table_exists(db, "clientes")  // a versao 1 ficou
 steady SEM_VOLTA := [{
         "version": 1, "description": "sem volta",
         "up": "CREATE TABLE x (id INTEGER);"
-}]
+    }]
 
 outro := Banco.memory()
 Banco.migrate(outro, SEM_VOLTA)

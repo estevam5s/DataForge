@@ -23,7 +23,7 @@ action test_argumentos_formatos():
     cfg := C.dos_argumentos(C.novo(), [
             "--porta", "9000", "--host=exemplo.com", "--debug", "--no-cache",
             "--taxa", "1.5", "--nome", "meu app"
-    ])
+        ])
     T.assert_eq(C.pegar(cfg, "porta"), 9000)
     T.assert_eq(C.pegar(cfg, "host"), "exemplo.com")
     T.assert_eq(C.pegar(cfg, "debug"), yes)
@@ -37,7 +37,7 @@ action test_hifen_vira_sublinhado():
 
 action test_conversao_de_tipo():
     cfg := C.dos_argumentos(C.novo(), ["--n", "42", "--f", "3.14", "--b", "yes",
-    "--neg", "-7", "--txt", "abc"])
+            "--neg", "-7", "--txt", "abc"])
     T.assert_eq(typeof(C.pegar(cfg, "n")), "Integer")
     T.assert_eq(typeof(C.pegar(cfg, "f")), "Float")
     T.assert_eq(typeof(C.pegar(cfg, "b")), "Boolean")

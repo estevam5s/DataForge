@@ -63,7 +63,7 @@ Malha.registrar("estoque", $"http://127.0.0.1:{porta}", {
         "tentativas": 4,
         "recuo": 0.01,
         "disjuntor": {"falhas": 3, "espera": 0.4}
-})
+    })
 
 cliente := Malha.de("estoque")
 
@@ -156,7 +156,7 @@ assert recebidos[len(recebidos) - 1] is meu
 // ── 6. Idempotencia: o que torna o POST seguro de repetir ───
 
 r7 := cliente.post("/reservas", {"sku": "CAF-500", "quantidade": 2},
-chave := $"pedido-{meu[0:8]}")
+    chave := $"pedido-{meu[0:8]}")
 assert r7["ok"]
 assert r7["body"]["chave"] is $"pedido-{meu[0:8]}"
 assert r7["body"]["rastro"] is meu
@@ -169,8 +169,8 @@ Malha.terminar_contexto()
 // servico comeca um rastro novo e a corrente se quebra.
 
 fingido := {"headers": {"x-request-id": "veio-de-fora",
-    "x-ctx-tenant": "acme"},
-"state": {}}
+        "x-ctx-tenant": "acme"},
+    "state": {}}
 Malha.propagar(fingido, "estoque")
 assert Malha.rastro() is "veio-de-fora"
 assert Malha.contexto()["extra"]["tenant"] is "acme"

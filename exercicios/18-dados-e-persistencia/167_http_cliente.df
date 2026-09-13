@@ -15,14 +15,14 @@ action montar_url(base, parametros):
     given len(parametros.keys()) is 0:
         yield base
     partes := [$"{Web.encode_url(k)}={Web.encode_url(str(parametros[k]))}"
-    cycle k in parametros.keys()]
+        cycle k in parametros.keys()]
     yield $"{base}?{partes.join("&")}"
 
 url := montar_url("https://api.exemplo.com/busca", {
         "q": "linguagem de programacao",
         "pagina": 2,
         "ordem": "recente"
-})
+    })
 out ""
 out url
 assert "q=linguagem" in url, "parametro codificado"

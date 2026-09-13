@@ -4895,3 +4895,73 @@ def test_as_duas_tabelas_de_nome_de_tipo_concordam():
         nome = _df_type(valor)
         assert nome[:1].isupper(), f"{valor!r} -> {nome!r}"
 
+
+
+def test_o_formatador_nao_desalinha_a_continuacao_de_um_literal():
+    """O `}` no fim de uma continuação puxava a linha inteira para fora.
+
+        novo := {"id": 1, "nome": dados["nome"],
+        "preco": dados["preco"]}
+
+    A segunda linha encostava na mesma coluna do `novo :=` e passava a
+    ler como uma instrução nova. O `fmt --check` reprovava o arquivo
+    alinhado à mão — ou seja, a CI ficava vermelha mandando **piorar**
+    o código, que é o contrário do que um formatador serve.
+
+    A causa: o nível do fecha-colchete era aplicado sempre que ele
+    aparecesse na linha. Ele só vale quando o fecha **abre** a linha —
+    é aí que ele alinha com quem o abriu.
+    """
+    from dataforge.formatter import format_source
+
+    fonte = (
+        'action f(dados):\n'
+        '    novo := {"id": 1, "nome": dados["nome"],\n'
+        '             "preco": dados["preco"]}\n'
+        '    yield novo\n'
+    )
+    saida = format_source(fonte)
+    continuacao = [l for l in saida.split("\n") if '"preco"' in l][0]
+    recuo = len(continuacao) - len(continuacao.lstrip())
+    assert recuo >= 8, (
+        f"a continuacao voltou para a coluna {recuo}; ela tem de ficar "
+        f"mais funda que o 'novo :=' (4):\n{saida}")
+
+    # O fecha SOZINHO na linha continua alinhando com quem abriu.
+    fonte = (
+        'action f():\n'
+        '    v := {\n'
+        '        "a": 1,\n'
+        '    }\n'
+        '    yield v\n'
+    )
+    saida = format_source(fonte)
+    fecha = [l for l in saida.split("\n") if l.strip() == "}"][0]
+    assert len(fecha) - len(fecha.lstrip()) == 4, saida
+
+    assert format_source(saida) == saida
+
+
+def test_a_verificacao_local_nao_morre_no_primeiro_passo_vermelho():
+    """`verificar_tudo.sh` tinha `set -e` e `registrar $?`.
+
+    As duas coisas não convivem: o passo que falha mata o shell antes
+    de `registrar` contar a falha, e o resumo do fim — a lista do que
+    quebrou, e o próprio `algo falhou` — nunca sai.
+
+    Aconteceu de verdade: `fmt --check` reprovava um arquivo, o script
+    morria logo depois de imprimir `✓ check`, e o terminal terminava
+    com oito passos verdes e nenhum vermelho. A CI estava vermelha do
+    outro lado.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    script = os.path.join(raiz, "scripts", "verificar_tudo.sh")
+    texto = open(script, encoding="utf-8").read()
+
+    linhas = [l.strip() for l in texto.split("\n")]
+    assert "set -e" not in linhas, (
+        "'set -e' aborta o script antes de 'registrar' contar a falha — "
+        "o resumo do fim nunca sai")
+    assert "set +e" in linhas, "o script precisa seguir apos um passo vermelho"
+    assert 'exit 1' in texto and 'falhou' in texto, (
+        "o codigo de saida tem de vir da variavel 'falhou', no fim")

@@ -70,7 +70,7 @@ action test_documento_completo():
     dados := {
         "titulo": "Relatório",
         "itens":[{"nome":"café", "preco":"5,00"},
-        {"nome": "pão", "preco": "2,50"}]
+            {"nome": "pão", "preco": "2,50"}]
     }
     saida := M.render("# {{titulo}}\n{{#itens}}- {{nome}}: {{preco}}\n{{/itens}}", dados)
     T.assert_true(saida.contains("# Relatório"))

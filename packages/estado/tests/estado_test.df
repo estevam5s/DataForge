@@ -87,7 +87,7 @@ action test_de_tabela():
     m := S.de_tabela("novo", [
             ["novo", "pagar", "pago"],
             ["pago", "enviar", "enviado"]
-    ])
+        ])
     m.disparar("pagar")
     T.assert_eq(m.atual, "pago")
     m.disparar("enviar")

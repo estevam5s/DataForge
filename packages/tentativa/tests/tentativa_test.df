@@ -39,7 +39,7 @@ action test_parar_se_evita_tentativa_inutil():
         trigger "credencial invalida"
 
     r := R.com_politica(senha_errada, R.politica(5, 0.001),
-    lambda e => e.message.contains("credencial"))
+        lambda e => e.message.contains("credencial"))
     T.assert_false(r["ok"])
     T.assert_true(r["desistiu"])
     T.assert_eq(n[0], 1)  // não insistiu

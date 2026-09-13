@@ -20,7 +20,7 @@ cycle i from 1 to 400:
     pontos := (renda / 1000) + visitas - (idade / 20)
     comprou := "sim" given pontos bigger 12 otherwise "nao"
     clientes := [...clientes, {"idade":idade, "renda":renda,
-    "visitas": visitas, "comprou": comprou}]
+            "visitas": visitas, "comprou": comprou}]
 
 COLUNAS := ["idade", "renda", "visitas"]
 

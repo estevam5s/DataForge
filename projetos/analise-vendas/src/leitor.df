@@ -41,7 +41,7 @@ action ler(caminho):
         monitor:
             vendas.append(Venda(
                     campos[0].trim(), campos[1].trim(), campos[2].trim(),
-            campos[3].trim(), M.de_texto(campos[4]).centavos))
+                    campos[3].trim(), M.de_texto(campos[4]).centavos))
         handle e:
             trigger $"linha {numero}: valor invalido ({campos[4]})"
 

@@ -21,7 +21,7 @@ server site on 0:
         redirect "/"
 
 Kiln.on_error(site, 404, lambda req => Kiln.html(
-"<h1>404</h1><p>Nao achei essa pagina.</p>", 404))
+        "<h1>404</h1><p>Nao achei essa pagina.</p>", 404))
 
 assert Kiln.test(site, "GET", "/")["status"] is 200, "a raiz responde"
 

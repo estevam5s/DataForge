@@ -28,7 +28,7 @@ action tabela_por(vendas, chave, titulo):
         fatia := round(total * 100 / total_geral, 1)
         linhas.append([nome, len(itens),
                 M.formatar(M.de_centavos(total)),
-        $"{fatia}%"])
+                $"{fatia}%"])
 
     out Tb.render(linhas, [titulo, "Vendas", "Total", "Fatia"])
     yield grupos
@@ -74,7 +74,7 @@ action principal():
             ["Desvio padrão", M.formatar(M.de_reais(resumo["desvio"]))],
             ["Menor venda", M.formatar(M.de_reais(resumo["minimo"]))],
             ["Maior venda", M.formatar(M.de_reais(resumo["maximo"]))]
-    ], ["Indicador", "Valor"])
+        ], ["Indicador", "Valor"])
 
     // A média sozinha engana quando há dispersão. Se o desvio passa de
     // metade da média, o relatório avisa em vez de deixar quem lê

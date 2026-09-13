@@ -71,13 +71,13 @@ blueprint Encurtador:
         given not self.links.has(codigo):
             yield void
         yield {"codigo": codigo, "url": self.links[codigo],
-        "acessos": self.acessos[codigo]}
+            "acessos": self.acessos[codigo]}
 
     action mais_acessados(quantos := 5):
         pares := []
         cycle c in self.links.keys():
             pares.append({"codigo": c, "url": self.links[c],
-            "acessos": self.acessos[c]})
+                    "acessos": self.acessos[c]})
         // ordenação por acessos, decrescente
         ordenados := []
         resto := pares

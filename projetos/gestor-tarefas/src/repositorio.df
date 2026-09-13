@@ -25,7 +25,7 @@ blueprint Repositorio:
             cycle t in dados["tarefas"] ?? []:
                 self.tarefas.append(T.Tarefa(
                         t["id"], t["titulo"], t["prioridade"],
-                t["prazo"] ?? "", t["feita"]))
+                        t["prazo"] ?? "", t["feita"]))
             self.proximo_id := dados["proximo_id"] ?? 1
         handle e:
             // Arquivo corrompido não pode impedir o programa de rodar:
@@ -38,10 +38,10 @@ blueprint Repositorio:
         cycle t in self.tarefas:
             planas.append({"id": t.id, "titulo": t.titulo,
                     "prioridade": t.prioridade, "prazo": t.prazo,
-            "feita": t.feita})
+                    "feita": t.feita})
         IO.write(self.caminho,
             Serde.to_json({"tarefas": planas,
-        "proximo_id": self.proximo_id}))
+                    "proximo_id": self.proximo_id}))
         yield self
 
     action todas():

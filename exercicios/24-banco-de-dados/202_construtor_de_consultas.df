@@ -19,7 +19,7 @@ Forge.de(db, "usuarios").inserir([
         {"nome": "Ana", "cidade": "Floripa", "idade": 30},
         {"nome": "Bia", "cidade": "Recife", "idade": 25},
         {"nome": "Cid", "cidade": "Floripa", "idade": 41}
-])
+    ])
 assert Forge.de(db, "usuarios").contar() is 3, "tres inseridos de uma vez"
 
 // Filtros encadeados

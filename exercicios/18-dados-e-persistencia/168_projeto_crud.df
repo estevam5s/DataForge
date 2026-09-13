@@ -56,7 +56,7 @@ action inserir(nome, email, nota):
         yield {"ok": no, "erros": problemas}
     monitor:
         DB.execute(conn, "INSERT INTO alunos (nome, email, nota) VALUES (?, ?, ?)",
-        [nome.trim(), email.trim().lower(), nota])
+            [nome.trim(), email.trim().lower(), nota])
         yield {"ok": yes}
     handle e:
         yield {"ok": no, "erros":["email ja cadastrado"]}

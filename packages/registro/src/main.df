@@ -92,12 +92,12 @@ blueprint Registrador:
         cycle k in(campos ?? {}).keys():
             todos[k] := campos[k]
         yield {"hora": agora["iso"], "nivel": nivel, "origem": self.nome,
-        "mensagem": mensagem, "campos": todos}
+            "mensagem": mensagem, "campos": todos}
 
     private action formatar(linha):
         given self.formato is "json":
             plano := {"hora": linha["hora"], "nivel": linha["nivel"],
-            "origem": linha["origem"], "mensagem": linha["mensagem"]}
+                "origem": linha["origem"], "mensagem": linha["mensagem"]}
             cycle k in linha["campos"].keys():
                 plano[k] := linha["campos"][k]
             yield Serde.to_json(plano)
