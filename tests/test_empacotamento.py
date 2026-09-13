@@ -193,3 +193,79 @@ def test_o_comando_editor_lista_o_que_realmente_instala():
     for palavra in ("erro", "depura", "comando"):
         assert palavra in fonte.lower(), (
             f"a mensagem de 'dataforge editor' não menciona '{palavra}'")
+
+# ═══════════════════════════════════════════════════════════
+#  O binário do Linux e a glibc
+# ═══════════════════════════════════════════════════════════
+
+def test_o_binario_do_linux_e_construido_numa_base_velha():
+    """Um binário feito com glibc nova **não abre** em glibc velha.
+
+    O que foi publicado no `v1.0.0` exigia glibc 2.39, porque o runner
+    do GitHub é Ubuntu 24.04. Medido, com o arquivo que a página
+    oferecia como "Linux":
+
+        Debian 12 (glibc 2.36)
+          Failed to load Python shared library
+          '.../libpython3.10.so.1.0': /lib/.../libm.so.6:
+          version `GLIBC_2.38' not found
+
+    Debian 12, Ubuntu 22.04 e RHEL 9 são as distribuições estáveis em
+    uso. O executável cujo propósito é rodar **sem Python instalado**
+    não abria em nenhuma delas — e o release estava verde.
+
+    O comentário do workflow dizia que o Python 3.10 protegia disso
+    ("o binario feito num Python novo nao roda numa libc velha"). A
+    versão do Python não tem nada a ver: quem decide é a glibc da
+    imagem.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fluxo = open(os.path.join(raiz, ".github", "workflows", "release.yml"),
+                 encoding="utf-8").read()
+
+    assert "python:3.10-slim-bullseye" in fluxo, (
+        "o binario do Linux precisa ser construido numa imagem de glibc "
+        "velha, e nao no runner — 'bullseye' e 2.31")
+
+    # E o passo que confere o artefato, e nao a imagem: trocar a base
+    # sem querer nao pode passar em silencio.
+    assert "o binario nao exige glibc nova" in fluxo, (
+        "falta o passo que le a glibc EXIGIDA pelo binario pronto")
+    assert "objdump -T" in fluxo
+
+
+def test_a_libcrypt_viaja_dentro_do_binario():
+    """Sem ela o executável não abre em Rocky, Alma nem Fedora.
+
+    A glibc removeu a `libcrypt` na 2.39, e a família RHEL já a tinha
+    movido para `libxcrypt-compat`, que **não vem instalado**. O
+    PyInstaller a deixa de fora por considerá-la biblioteca de sistema
+    — o que era verdade enquanto ela vinha na glibc.
+
+    E a mensagem não aponta para nada disso: ela culpa a `libpython`,
+    que existe, está no lugar, e só não carrega porque uma dependência
+    dela falta.
+
+    Medido: sem embutir, roda em Debian 10-13 e Ubuntu 22.04/24.04 e
+    **não abre** em Rocky 9 nem Fedora 41. Com a do `buster` embutida,
+    o inverso — ela é a `libcrypt` da própria glibc, que usa
+    `__snprintf@GLIBC_PRIVATE`, símbolo que a glibc 2.39 deixou de
+    exportar. A do `bullseye` é a libxcrypt, e essa serve nas duas
+    pontas: dez distribuições, nenhuma com Python.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    gerador = open(os.path.join(raiz, "scripts", "gerar_binario.py"),
+                   encoding="utf-8").read()
+
+    assert "libcrypt.so.1" in gerador, (
+        "a libcrypt precisa viajar dentro do pacote")
+    assert "_libs_do_sistema" in gerador
+    assert "--add-binary" in gerador
+
+    # E ela entra so no Linux: no macOS e no Windows o nome nao existe,
+    # e procurar por ele seria trabalho a toa.
+    import re
+    corpo = gerador[gerador.index("def _libs_do_sistema"):
+                    gerador.index("def construir")]
+    assert re.search(r'platform\.system\(\)\s*!=\s*"Linux"', corpo), (
+        "a busca pela libcrypt tem de ser so no Linux")

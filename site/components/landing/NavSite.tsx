@@ -13,6 +13,10 @@ const links = [
   { t: 'Biblioteca', h: '/docs/biblioteca' },
   { t: 'Exercícios', h: '/docs/exercicios' },
   { t: 'Kiln', h: '/docs/kiln' },
+  // '/download' so era alcancavel pelo cabecalho da DOCUMENTACAO:
+  // quem chegava na pagina inicial e queria instalar nao tinha por
+  // onde. A rota nao e de documentacao — ela e do site.
+  { t: 'Download', h: '/download' },
   { t: 'Painel', h: '/painel' },
 ];
 

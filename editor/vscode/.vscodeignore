@@ -3,5 +3,18 @@ src/**
 **/*.ts
 **/*.map
 tsconfig.json
-node_modules/**
 .gitignore
+package-lock.json
+
+# 'node_modules/**' ESTAVA aqui, e nao pode estar.
+#
+# 'vscode-languageclient' e a unica dependencia de execucao da
+# extensao, carregada por require() em servidor.ts. Com ela de fora, o
+# require falha, o catch devolve null, e a extensao sobe SEM servidor
+# de linguagem: sem autocompletar, sem hover, sem ir-para-definicao,
+# sem renomear — exatamente o que a descricao da loja promete. E sem
+# erro visivel: a mensagem vai para um canal de saida que ninguem abre.
+#
+# O 'vsce' poda as devDependencies sozinho ('npm ls --omit=dev'), entao
+# nao e preciso listar o que fica de fora: typescript e @types/* nao
+# entram no pacote.

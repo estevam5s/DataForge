@@ -27,26 +27,35 @@ jobs:
         include:
           - os: ubuntu-latest
             nome: linux-x64
+            # O binario do Linux e construido DENTRO de uma imagem
+            # 'bullseye' (glibc 2.31), e nao no runner. Ver o passo
+            # 'construir e provar' abaixo.
+            base: python:3.10-slim-bullseye
           - os: macos-latest
             nome: macos-arm64
-          # Intel, e nao Apple Silicon: sao binarios diferentes e as
-          # duas maquinas existem la fora.
-          #
-          # Era 'macos-13', e o GitHub RETIROU essa imagem: o job ficou
-          # 'queued' por meia hora enquanto os outros tres terminavam,
-          # sem nenhuma mensagem — um runner que nao existe nao da erro,
-          # so nunca comeca. Foi o primeiro release do repositorio, e
-          # por isso nao havia historico dizendo que aquilo nunca tinha
-          # funcionado.
-          #
-          # 'macos-15' ainda publica imagem x64. Conferido em
-          # github.com/actions/runner-images/releases: as imagens
-          # recentes sao macos-14, macos-15 e macos-26, e apenas as
-          # duas ultimas tem variante sem '-arm64'.
-          - os: macos-15
-            nome: macos-x64
           - os: windows-latest
             nome: windows-x64
+
+          # Nao ha macos-x64 aqui, e a ausencia e deliberada.
+          #
+          # O GitHub retirou TODO runner Intel do plano gratuito: as
+          # imagens publicadas sao macos-14-arm64, macos-15-arm64,
+          # macos-26 e macos-26-arm64, e o x64 so existe atras dos
+          # labels 'macos-15-large' / 'macos-15-intel', que sao runners
+          # maiores — "always charged for, even when used by public
+          # repositories".
+          #
+          # Foi pior que ausencia: 'macos-15' parecia ser Intel, o job
+          # PASSOU, e construiu um arm64. Os dois artefatos se chamavam
+          # 'dataforge-macos-arm64.tar.gz', o 'merge-multiple' juntou os
+          # dois na mesma pasta, e um sobrescreveu o outro **em
+          # silencio**. O release saiu com seis arquivos onde a pagina
+          # anunciava sete, e o job verde dizia que estava tudo bem.
+          #
+          # Quem tem Mac Intel instala pelo script do site, que usa o
+          # Python do sistema. Para voltar a ter o binario, acrescente
+          # '- os: macos-15-intel / nome: macos-x64' aqui e aceite a
+          # cobranca do runner maior.
 
     steps:
       - uses: actions/checkout@v4
@@ -66,8 +75,69 @@ jobs:
       # Construir sem testar nao prova nada: um executavel que abre e
       # nao roda um '.df' e pior que nenhum, porque o usuario culpa a
       # linguagem e nao o empacotamento.
+      # O Linux constroi numa imagem VELHA, e nao no runner.
+      #
+      # Um binario feito com glibc nova nao roda em glibc velha (o
+      # contrario sim), e o runner esta em 2.39 — Ubuntu 24.04. Medido
+      # com o binario que este repositorio publicou:
+      #
+      #   Debian 12 (2.36)   Failed to load Python shared library
+      #                      libm.so.6: version GLIBC_2.38 not found
+      #
+      # Debian 12, Ubuntu 22.04 e RHEL 9 sao as distros estaveis em
+      # uso, e o executavel que a pagina oferecia como "Linux" nao
+      # abria em nenhuma das tres. Um binario que da 404 e um binario
+      # que nao abre quebram a mesma promessa.
+      #
+      # 'bullseye' e glibc 2.31 — Debian 11 e Ubuntu 20.04, de 2020.
+      # Nao e o mais velho que existe: 'buster' (2.28) alcancaria RHEL
+      # 8, mas a libcrypt dele e a da glibc, que usa
+      # '__snprintf@GLIBC_PRIVATE' — simbolo que a glibc 2.39 deixou de
+      # exportar. Com ela o binario nao abre em Ubuntu 24.04 nem em
+      # Fedora. O bullseye ja traz a libxcrypt, que nao depende de
+      # simbolo privado de ninguem.
+      #
+      # Medido, com a libcrypt embutida: roda em Debian 11, 12 e 13,
+      # Ubuntu 20.04, 22.04 e 24.04, Rocky 9, Fedora 41 e 43 — dez
+      # distros, **nenhuma com Python instalado**, que e o ponto do
+      # executavel.
+      #
+      # 'manylinux_2_28' seria melhor ainda e nao serve: o Python dele
+      # e estatico, e o PyInstaller exige libpython compartilhada
+      # ("Python was built without a shared library").
       - name: construir e provar
+        if: matrix.base == ''
         run: python scripts/gerar_binario.py --verificar
+
+      - name: construir e provar (em ${{ matrix.base }})
+        if: matrix.base != ''
+        run: |
+          # binutils nao vem na imagem slim, e o PyInstaller precisa do
+          # objdump para achar as dependencias de cada .so. Sem ele o
+          # empacotamento para com "Cannot find objdump".
+          docker run --rm -v "$PWD":/src -w /src ${{ matrix.base }} bash -c "
+            set -e
+            apt-get -qq update && apt-get -qq install -y binutils
+            pip install --quiet -e . pyinstaller
+            python scripts/gerar_binario.py --verificar"
+          # O container escreve como root; os passos seguintes leem.
+          sudo chown -R "$(id -u):$(id -g)" dist
+
+      # A glibc que o binario EXIGE, conferida no artefato — e nao
+      # deduzida da imagem em que ele foi feito.
+      - name: o binario nao exige glibc nova
+        if: matrix.base != ''
+        run: |
+          maior=$(find dist/bin/dataforge -type f \( -name 'dataforge' -o -name '*.so*' \) \
+            -exec objdump -T {} + 2>/dev/null \
+            | grep -oE 'GLIBC_[0-9]+\.[0-9]+' | sort -uV | tail -1)
+          echo "exige no maximo $maior"
+          # 2.31 e o que a imagem de build oferece. Acima disso, alguem
+          # trocou a base sem querer.
+          case "$maior" in
+            GLIBC_2.1[0-9]|GLIBC_2.2[0-9]|GLIBC_2.3|GLIBC_2.30|GLIBC_2.31) ;;
+            *) echo "::error::$maior e mais novo que a glibc 2.31 da base"; exit 1 ;;
+          esac
 
       # 42 exemplos e 216 exercicios PELO BINARIO. Um '--version' que
       # responde nao prova que a linguagem funciona dentro do pacote:
@@ -130,13 +200,52 @@ jobs:
       - name: gerar
         run: python packaging/gerar_pacotes.py
 
-      # 'dpkg-deb' existe no runner do Ubuntu: um pacote quebrado e pior
-      # que um pacote ausente, e so ele diz se o 'ar' esta certo.
+      # ── A trava que passava num pacote vazio ──
+      #
+      # Aqui havia so 'dpkg-deb --info' e '--contents'. Os dois passam
+      # num 'ar' bem formado, e o pacote estava bem formado E VAZIO: o
+      # 'data.tar.gz' tinha UM arquivo, um README, porque o corpo do
+      # pacote era um 'postinst' chamando
+      # 'pip install dataforge-lang==1.0.0' — e 'dataforge-lang' nao
+      # esta no PyPI. O pacote publicado tinha 1.194 bytes, instalava
+      # nada e saia com erro.
+      #
+      # Outra trava que valida o mapa e nao o territorio. O territorio
+      # e: instalar numa Debian limpa e rodar a linguagem.
       - name: o .deb e valido
         run: |
           deb=$(ls dist/pacotes/*.deb)
           dpkg-deb --info "$deb"
-          dpkg-deb --contents "$deb"
+          dpkg-deb --contents "$deb" | head -20
+          arquivos=$(dpkg-deb --contents "$deb" | grep -c '^-')
+          echo "$arquivos arquivo(s) no pacote"
+          # Um pacote com menos de 100 arquivos nao tem a linguagem
+          # dentro: sao 39 modulos de stdlib mais o interpretador.
+          [ "$arquivos" -ge 100 ] || { echo "::error::o .deb tem so $arquivos arquivo(s)"; exit 1; }
+
+      - name: instalar numa Debian limpa e rodar a linguagem
+        run: |
+          deb=$(ls dist/pacotes/*.deb)
+          cp "$deb" /tmp/prova.deb
+          printf 'action dobro(n: Integer) -> Integer:\n    yield n * 2\nout dobro(21)\n' \
+            > /tmp/prova.df
+          docker run --rm -v /tmp:/o debian:12 bash -c '
+            set -e
+            apt-get -qq update >/dev/null
+            apt-get -qq install -y /o/prova.deb >/dev/null
+            dataforge --version
+            dataforge check /o/prova.df
+            test "$(dataforge run /o/prova.df)" = 42
+            # O .deb NAO pode instalar /usr/bin/df: e o coreutils.
+            df -h / >/dev/null
+            test "$(readlink -f "$(command -v df)")" = /usr/bin/df
+            grep -q coreutils /var/lib/dpkg/info/coreutils.list 2>/dev/null || true
+            dpkg -S /usr/bin/df | grep -q coreutils
+            dpkg --verify dataforge
+            dpkg -r dataforge >/dev/null
+            test ! -e /usr/bin/dataforge
+            df -h / >/dev/null
+            echo "instalou, rodou, removeu — e o df do coreutils intacto"'
 
       - uses: actions/upload-artifact@v4
         with:
@@ -166,14 +275,37 @@ jobs:
       # As quatro plataformas construiram e o release NAO SAIU por
       # causa disto: 'sha256sum *' encontrou os diretorios, escreveu
       # "Is a directory" e saiu com codigo 1.
+      #
+      # 'mv' aqui SOBRESCREVE, e foi assim que o release perdeu um
+      # arquivo sem ninguem ver: o job 'macos-x64' rodava num runner
+      # arm64, produzia 'dataforge-macos-arm64.tar.gz', e este passo
+      # jogava um por cima do outro. Cinco jobs verdes, seis arquivos
+      # onde a pagina anunciava sete.
+      #
+      # '-n' recusa sobrescrever, e a conferencia abaixo transforma a
+      # recusa em erro. Dois artefatos com o mesmo nome significam que
+      # duas plataformas construiram a mesma coisa — e o silencio e o
+      # pior resultado possivel.
       - name: achatar
         run: |
+          antes=$(find binarios -type f | wc -l)
           find binarios -type f \
             \( -name '*.tar.gz' -o -name '*.zip' -o -name '*.exe' \
                -o -name '*.deb' -o -name 'PKGBUILD' \) \
-            -exec mv -v {} binarios/ \;
+            -exec mv -vn {} binarios/ \;
           find binarios -mindepth 1 -type d -empty -delete
           ls -la binarios
+
+          sobrou=$(find binarios -mindepth 2 -type f | wc -l)
+          if [ "$sobrou" != 0 ]; then
+            echo "::error::$sobrou arquivo(s) nao subiram porque o nome"
+            echo "::error::ja existia na pasta — dois jobs produziram o"
+            echo "::error::mesmo artefato. Nomes duplicados:"
+            find binarios -mindepth 2 -type f -printf '  %f\n'
+            exit 1
+          fi
+          depois=$(find binarios -maxdepth 1 -type f | wc -l)
+          echo "$antes arquivo(s) chegaram, $depois na pasta plana"
 
       - name: somas de verificacao
         run: |

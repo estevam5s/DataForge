@@ -4283,7 +4283,12 @@ def test_o_verificador_de_download_recusa_uma_pagina_html():
     spec.loader.exec_module(modulo)
     assert modulo.MINIMO >= 100 * 1024
     nomes = modulo.arquivos_da_pagina()
-    assert len(nomes) >= 6, nomes
+    # Cinco, e nao seis: 'dataforge-macos-x64.tar.gz' saiu da pagina
+    # porque nao ha runner Intel no plano gratuito do GitHub, e o botao
+    # dava 404. Um numero escrito aqui nao pode ser quem decide — quem
+    # decide e a matriz do workflow, conferida em
+    # 'test_todo_arquivo_oferecido_no_download_e_construido_por_alguem'.
+    assert len(nomes) >= 5, nomes
     assert all(not n.startswith("/") for n in nomes)
 
 
@@ -4659,6 +4664,13 @@ def test_todo_runner_dos_workflows_e_uma_imagem_que_existe():
     for caminho in glob.glob(os.path.join(raiz, ".github", "workflows",
                                           "*.yml")):
         texto = open(caminho, encoding="utf-8").read()
+        # Comentario nao e job. O release.yml explica, num comentario,
+        # que 'macos-15-intel' existe e e um runner PAGO — a instrucao
+        # para quem quiser o binario de Mac Intel de volta. Lido como
+        # rotulo em uso, isso reprovava a suite por um job que nao
+        # existe.
+        texto = "\n".join(l for l in texto.splitlines()
+                          if not l.lstrip().startswith("#"))
         for achado in re.findall(r"(?:runs-on|os):\s*([a-z0-9.\-]+)", texto):
             if achado.startswith(("ubuntu", "macos", "windows")):
                 usados.add(achado)

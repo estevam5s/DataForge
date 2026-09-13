@@ -1120,31 +1120,157 @@ def test_o_download_sai_pelo_dominio_do_site():
 
 
 def test_todo_arquivo_oferecido_no_download_e_construido_por_alguem():
-    """A lista de nomes fica em dois lugares — a página e o workflow — e
-    um nome novo em um só deles produz um botão que baixa nada."""
+    """A página não oferece o que nenhum job constrói, nem esconde o que
+    algum job constrói.
+
+    Duas versões deste teste já passaram sobre uma página errada:
+
+    1. A primeira comparava a página com o `release.yml` e dizia que
+       estava tudo bem enquanto **nenhum** dos sete arquivos existia:
+       não havia release. A coerência entre dois arquivos do
+       repositório não é evidência de nada lá fora — quem vai ao
+       território é `scripts/verificar_downloads.py`.
+    2. A segunda comparava a página com uma lista escrita **aqui**, e
+       `dataforge-macos-x64.tar.gz` estava nela. O nome nunca foi
+       produzido por job nenhum: o runner que o construiria é arm64. O
+       teste guardava a lista contra a página, e as duas concordavam
+       sobre um arquivo inexistente.
+
+    Agora os nomes saem da **matriz do workflow**, que é quem decide o
+    que é construído, e a conferência é nos dois sentidos.
+    """
     import re
 
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fonte = open(os.path.join(raiz, "site", "app", "download", "page.tsx"),
                  encoding="utf-8").read()
+    fluxo = open(os.path.join(raiz, ".github", "workflows", "release.yml"),
+                 encoding="utf-8").read()
 
-    oferecidos = {n.replace("${VERSAO}", "1.0.0") for n in
-                  re.findall(r"\$\{RELEASES\}/([A-Za-z0-9_.${}-]+)", fonte)}
-    assert len(oferecidos) >= 6, oferecidos
-
-    # Os nomes que os geradores realmente produzem.
     from dataforge import __version__
-    esperados = {
-        f"DataForge-{__version__}-windows-x64-setup.exe",
-        "dataforge-windows-x64.zip",
-        "dataforge-macos-arm64.tar.gz",
-        "dataforge-macos-x64.tar.gz",
-        "dataforge-linux-x64.tar.gz",
-        f"dataforge_{__version__}_all.deb",
-    }
-    sobrando = oferecidos - esperados
+
+    oferecidos = {n.replace("${VERSAO}", __version__) for n in
+                  re.findall(r"\$\{RELEASES\}/([A-Za-z0-9_.${}-]+)", fonte)}
+
+    # A matriz do 'construir': uma plataforma por 'nome:'. Comentário
+    # não conta — o macos-x64 removido está lá explicado, e um regex
+    # ingênuo o traria de volta.
+    sem_comentario = "\n".join(
+        l for l in fluxo.splitlines() if not l.lstrip().startswith("#"))
+    matriz = sem_comentario[sem_comentario.index("      matrix:"):
+                            sem_comentario.index("    steps:")]
+    alvos = re.findall(r"nome:\s*(\S+)", matriz)
+    assert alvos, "a matriz do release.yml mudou de forma"
+
+    construidos = set()
+    for alvo in alvos:
+        if alvo.startswith("windows"):
+            construidos.add(f"dataforge-{alvo}.zip")
+            # O instalador gráfico sai do mesmo job, pelo Inno Setup.
+            construidos.add(f"DataForge-{__version__}-{alvo}-setup.exe")
+        else:
+            construidos.add(f"dataforge-{alvo}.tar.gz")
+    # E o job 'distros', que não é da matriz.
+    construidos.add(f"dataforge_{__version__}_all.deb")
+
+    sobrando = oferecidos - construidos
     assert not sobrando, (
-        f"a pagina oferece o que nenhum gerador produz: {sorted(sobrando)}")
+        f"a pagina oferece o que nenhum job constroi: {sorted(sobrando)} — "
+        f"o botao existe e o arquivo nao")
+
+    faltando = construidos - oferecidos
+    assert not faltando, (
+        f"algum job constroi e a pagina nao oferece: {sorted(faltando)} — "
+        f"o release carrega um arquivo que ninguem encontra")
+
+
+def test_o_deb_instala_a_linguagem_e_nao_um_pip_install():
+    """O `.deb` publicado tinha **1.194 bytes**.
+
+    O corpo dele era um `postinst` chamando
+    `pip install dataforge-lang==1.0.0`, e `dataforge-lang` não está no
+    PyPI: o `postinst` saía com erro e o `dpkg` deixava o pacote meio
+    configurado. O `data.tar.gz` tinha um arquivo — um README.
+
+    O CI conferia com `dpkg-deb --info`, que passa em qualquer `ar` bem
+    formado. Este teste olha o que o gerador coloca dentro.
+    """
+    import subprocess
+    import sys as _sys
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    gerador = open(os.path.join(raiz, "packaging", "gerar_pacotes.py"),
+                   encoding="utf-8").read()
+
+    # A frase aparece na docstring do gerador, que conta a historia: a
+    # conferencia e no 'postinst' que ele PRODUZ, mais abaixo.
+    assert "dist-packages" in gerador, (
+        "o pacote precisa instalar a arvore em /usr/lib/python3/dist-packages")
+
+    # '/usr/bin/df' seria o df do coreutils. O apelido existe no wheel,
+    # onde mora numa venv; num pacote de sistema ele sombrearia o
+    # comando que mostra espaco em disco.
+    assert 'COMANDOS = ["dataforge"]' in gerador, (
+        "o .deb nao pode instalar 'df' em /usr/bin: e o coreutils")
+
+    # E o gerador produz um pacote com a linguagem dentro. Roda de
+    # verdade, porque a lista de arquivos vem do 'pip install --target':
+    # um teste sobre o texto do gerador nao veria um wheel vazio.
+    r = subprocess.run([_sys.executable, "packaging/gerar_pacotes.py"],
+                       cwd=raiz, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+    assert r.returncode == 0, r.stderr[-800:]
+
+    import glob
+    import tarfile
+    debs = glob.glob(os.path.join(raiz, "dist", "pacotes", "*.deb"))
+    assert debs, "o gerador nao escreveu .deb nenhum"
+    deb = max(debs, key=os.path.getmtime)
+
+    # Um 'ar': tres membros, e o terceiro e o que instala.
+    with open(deb, "rb") as f:
+        bruto = f.read()
+    assert bruto.startswith(b"!<arch>\n")
+    inicio = bruto.index(b"data.tar.gz")
+    # O cabecalho do membro tem 60 bytes a partir do nome.
+    tamanho = int(bruto[inicio + 48:inicio + 58].decode().strip())
+    dados = bruto[inicio + 60:inicio + 60 + tamanho]
+
+    import io as _io
+    with tarfile.open(fileobj=_io.BytesIO(dados)) as tar:
+        nomes = tar.getnames()
+    arquivos = [n for n in nomes if not n.endswith("/")]
+
+    assert "./usr/bin/dataforge" in nomes, nomes[:10]
+    assert "./usr/bin/df" not in nomes, (
+        "o .deb instalaria 'df' por cima do coreutils")
+    assert any(n.endswith("dist-packages/dataforge/interpreter.py")
+               for n in nomes), "o interpretador nao esta no pacote"
+    assert sum(1 for n in nomes if "/stdlib/" in n) >= 39, (
+        "a stdlib nao chegou inteira")
+    assert len(arquivos) >= 100, (
+        f"so {len(arquivos)} arquivo(s) — a linguagem nao esta dentro")
+
+    # 'GNU_FORMAT': o PAX do Python e recusado pelo dpkg com
+    # "unsupported PAX tar header type 'x'", e isso aparece so na hora
+    # de instalar.
+    assert "GNU_FORMAT" in gerador, (
+        "sem GNU_FORMAT o dpkg recusa o tar: os caminhos dentro de "
+        "node_modules passam de 100 caracteres e o tarfile emite PAX")
+
+    # ── E o 'postinst' nao baixa nada ──
+    inicio_c = bruto.index(b"control.tar.gz")
+    tam_c = int(bruto[inicio_c + 48:inicio_c + 58].decode().strip())
+    controle = bruto[inicio_c + 60:inicio_c + 60 + tam_c]
+    with tarfile.open(fileobj=_io.BytesIO(controle)) as tar:
+        script = tar.extractfile("./postinst").read().decode()
+        control = tar.extractfile("./control").read().decode()
+    assert "pip" not in script, (
+        f"o postinst voltou a baixar da rede:\n{script}")
+    assert "python3-pip" not in control, (
+        "'python3-pip' nao e mais dependencia: nada e baixado")
+    assert "Installed-Size" in control, (
+        "sem 'Installed-Size' o apt nao sabe dizer quanto o pacote ocupa")
 
 
 # ═══════════════════════════════════════════════════════════
@@ -1252,6 +1378,13 @@ def test_o_download_nao_chama_de_pendente_o_que_ja_esta_publicado():
     # a um repositório de terceiro.
     pendentes = re.findall(r"titulo: '([^']+)',(?:(?!titulo:).)*?"
                            r"pronto: false", fonte, re.S)
-    assert pendentes == ["Arch Linux e derivadas"], (
+    # 'Executável — Intel' entrou nesta lista e NAO vem numa proxima
+    # versao: o GitHub retirou os runners Intel do plano gratuito, e um
+    # binario so pode ser construido na arquitetura em que roda. A
+    # etiqueta dele diz "não há", e nao "na próxima versão".
+    assert "espera: 'não há'" in fonte, (
+        "o Mac Intel precisa de etiqueta propria: 'na próxima versão' "
+        "prometeria um binario que nao vem")
+    assert pendentes == ["Executável — Intel", "Arch Linux e derivadas"], (
         f"o que está pendente mudou: {pendentes} — confira se ainda é "
         f"verdade antes de ajustar este teste")

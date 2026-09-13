@@ -31,7 +31,14 @@ const VERSAO = '1.0.0';
  */
 const RELEASES = `/baixar`;
 
-/** Um caminho de instalação. `pronto` diz se já dá para baixar hoje. */
+/** Um caminho de instalação. `pronto` diz se já dá para baixar hoje.
+ *
+ * `espera` é o texto da etiqueta de quem não está pronto. O padrão é
+ * "na próxima versão", e ele não serve para todo caso: o executável de
+ * Mac Intel **não vem** na próxima versão nem em nenhuma, porque não há
+ * máquina Intel para construí-lo no plano gratuito do GitHub. Prometer
+ * o que não vem é pior que dizer que não existe.
+ */
 type Forma = {
   id: string;
   titulo: string;
@@ -41,6 +48,7 @@ type Forma = {
   tamanho?: string;
   nota?: string;
   pronto: boolean;
+  espera?: string;
   recomendado?: boolean;
 };
 
@@ -98,9 +106,9 @@ const FORMAS: { grupo: string; itens: Forma[] }[] = [
         id: 'mac-x64',
         titulo: 'Executável — Intel',
         para: 'Macs de 2020 ou anteriores.',
-        arquivo: `${RELEASES}/dataforge-macos-x64.tar.gz`,
-        tamanho: '~12 MB',
-        pronto: true,
+        espera: 'não há',
+        nota: 'Não há executável para Mac Intel: o GitHub retirou os runners Intel do plano gratuito, e um binário só pode ser construído na arquitetura em que vai rodar. Em Mac Intel, use o comando acima — ele instala pelo Python do sistema e funciona igual.',
+        pronto: false,
       },
     ],
   },
@@ -128,9 +136,9 @@ const FORMAS: { grupo: string; itens: Forma[] }[] = [
         titulo: 'Debian e Ubuntu (.deb)',
         para: 'Também Mint, Pop!_OS, Zorin.',
         arquivo: `${RELEASES}/dataforge_${VERSAO}_all.deb`,
-        comando: 'sudo dpkg -i dataforge_1.0.0_all.deb',
-        tamanho: '~2 KB',
-        nota: 'O pacote é fino de propósito: ele chama o pip no postinst, em vez de repetir o que o pip já sabe fazer.',
+        comando: 'sudo apt install ./dataforge_1.0.0_all.deb',
+        tamanho: '~6 MB',
+        nota: 'Instala a árvore inteira em /usr/lib/python3/dist-packages e não baixa nada — a linguagem não tem dependência de runtime. Só o comando dataforge entra em /usr/bin: o apelido df ficaria por cima do df do coreutils.',
         pronto: true,
       },
       {
@@ -138,7 +146,8 @@ const FORMAS: { grupo: string; itens: Forma[] }[] = [
         titulo: 'Executável (.tar.gz)',
         para: 'Qualquer distribuição, sem Python e sem gerenciador.',
         arquivo: `${RELEASES}/dataforge-linux-x64.tar.gz`,
-        tamanho: '~12 MB',
+        tamanho: '~18 MB',
+        nota: 'Pede glibc 2.31 ou mais nova — Debian 11, Ubuntu 20.04, RHEL 9, Fedora e o que vier depois. Testado sem Python instalado em dez distribuições. Em glibc mais velha (Debian 10, RHEL 8) ou no Alpine, que usa musl, use o comando acima.',
         pronto: true,
       },
     ],
@@ -205,7 +214,9 @@ function Cartao({ forma }: { forma: Forma }) {
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-[15px] font-bold text-strong">{forma.titulo}</h3>
         {forma.recomendado && <Etiqueta tom="ok">recomendado</Etiqueta>}
-        {!forma.pronto && <Etiqueta tom="espera">na próxima versão</Etiqueta>}
+        {!forma.pronto && (
+          <Etiqueta tom="espera">{forma.espera ?? 'na próxima versão'}</Etiqueta>
+        )}
         {forma.tamanho && (
           <span className="ml-auto text-[12px] text-muted">{forma.tamanho}</span>
         )}

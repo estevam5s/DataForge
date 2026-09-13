@@ -7,6 +7,7 @@ import { Ferramentas } from '@/components/landing/Ferramentas';
 import { Sintaxe } from '@/components/landing/Sintaxe';
 import { Arcane } from '@/components/landing/Arcane';
 import { Aprender } from '@/components/landing/Aprender';
+import { Autor } from '@/components/landing/Autor';
 import { RodapeSite } from '@/components/landing/RodapeSite';
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function Landing() {
       <Sintaxe />
       <Arcane />
       <Aprender />
+      <Autor />
       <RodapeSite />
     </div>
   );

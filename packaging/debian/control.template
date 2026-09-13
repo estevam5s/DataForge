@@ -3,7 +3,8 @@ Version: {VERSAO}
 Section: devel
 Priority: optional
 Architecture: all
-Depends: python3 (>= 3.10), python3-pip
+Installed-Size: {TAMANHO}
+Depends: python3 (>= 3.10)
 Maintainer: Estevam Souza <contato@estevamsouza.com.br>
 Homepage: https://dataforge-lang.vercel.app
 Description: Linguagem de programacao interpretada com vocabulario proprio
@@ -15,3 +16,9 @@ Description: Linguagem de programacao interpretada com vocabulario proprio
  frameworks web (Kiln e Vitrine), um framework de testes (Crucible),
  gerenciador de pacotes, servidor de linguagem, depurador e extensao
  para o VS Code.
+ .
+ O pacote instala a arvore inteira em /usr/lib/python3/dist-packages e
+ nao baixa nada: a linguagem nao tem dependencia de runtime.
+ .
+ O comando e "dataforge". O apelido "df" existe no wheel do PyPI e NAO
+ e instalado aqui: em /usr/bin ele sombrearia o df do coreutils.

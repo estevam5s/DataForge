@@ -42,10 +42,10 @@ export function Aprender() {
         <Sobe atraso={200}>
           <div className="lp-mono mx-auto mt-16 grid max-w-[760px] grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--lp-line)] bg-[var(--lp-line)] sm:grid-cols-4">
             {[
-              ['378', 'testes'],
-              ['190', 'exercícios'],
-              ['42', 'exemplos'],
-              ['286', 'arquivos .df'],
+              [String(dados.contagem.testes), 'funções de teste'],
+              [String(total), 'exercícios'],
+              [String(dados.contagem.exemplos), 'exemplos'],
+              [String(dados.contagem.arquivosDf), 'arquivos .df'],
             ].map(([n, r]) => (
               <div key={r} className="bg-[var(--lp-bg)] px-4 py-7">
                 <p className="text-[26px] font-medium text-white sm:text-[30px]">{n}</p>
@@ -53,8 +53,13 @@ export function Aprender() {
               </div>
             ))}
           </div>
+          {/* Os quatro numeros estavam escritos A MAO aqui — '378
+              testes', '190 exercicios' — sob esta legenda, que afirma
+              verificacao. Nenhum era verdade: a suite tinha 2368 casos
+              e os exercicios eram 231. Agora saem de
+              'site/scripts/gerar_dados.py', que conta o repositorio. */}
           <p className="lp-mono mt-4 text-[11.5px] text-white/30">
-            números conferidos na última execução da suíte
+            contados no repositório por <span className="text-white/45">gerar_dados.py</span>
           </p>
         </Sobe>
       </div>

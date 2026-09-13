@@ -21,6 +21,20 @@ Uso
 ---
     python scripts/gerar_binario.py             # para este sistema
     python scripts/gerar_binario.py --verificar # constrói e testa
+
+No Linux, `binutils`
+--------------------
+O PyInstaller chama `objdump` para descobrir as bibliotecas de sistema
+que o binário carrega. Sem ele:
+
+    ERROR: On Linux, objdump is required. It is typically provided by
+    the 'binutils' package…
+
+O runner do CI já o tem, e por isso o release nunca reclamou — mas quem
+constrói num container `slim` bate nisso. Conferido aqui, e é a única
+dependência de sistema do empacotamento:
+
+    apt-get install -y binutils
 """
 
 import os
@@ -126,6 +140,39 @@ def _dados_embutidos():
     return dados
 
 
+def _libs_do_sistema():
+    """`libcrypt.so.1` viaja junto — no Linux, e so nele.
+
+    O PyInstaller a considera "biblioteca do sistema" e a deixa de
+    fora, o que era verdade enquanto ela vinha na glibc. A glibc a
+    removeu na 2.39, e a familia RHEL ja a tinha movido para o pacote
+    `libxcrypt-compat`, que **nao vem instalado**.
+
+    O sintoma nao aponta para nada disso: o binario nao abre, e a
+    mensagem culpa a `libpython` — que existe, esta no lugar, e so nao
+    carrega porque uma dependencia dela falta.
+
+        Failed to load Python shared library '.../libpython3.10.so.1.0':
+        libcrypt.so.1: cannot open shared object file
+
+    Medido: sem ela o binario roda em Debian 10, 11, 12, 13, Ubuntu
+    22.04 e 24.04, e **nao abre** em Rocky 9 e Fedora 41.
+    """
+    if platform.system() != "Linux":
+        return []
+    for pasta in ("/lib/" + platform.machine() + "-linux-gnu", "/lib64",
+                  "/usr/lib/" + platform.machine() + "-linux-gnu",
+                  "/usr/lib64", "/lib", "/usr/lib"):
+        caminho = os.path.join(pasta, "libcrypt.so.1")
+        if os.path.exists(caminho):
+            return ["--add-binary", f"{caminho}:."]
+    # Ausente na maquina de build: nao da para embutir o que nao ha, e
+    # falhar aqui trocaria um binario limitado por nenhum binario.
+    print("  aviso: libcrypt.so.1 nao esta nesta maquina — o binario "
+          "nao abrira em Rocky/Fedora", file=sys.stderr)
+    return []
+
+
 def construir() -> str:
     os.makedirs(SAIDA, exist_ok=True)
     alvo = nome_do_alvo()
@@ -157,6 +204,7 @@ def construir() -> str:
             "--exclude-module", "pytest",
             "--exclude-module", "PIL",
             "--exclude-module", "tkinter",
+            *_libs_do_sistema(),
             *_dados_embutidos(),
             os.path.join(RAIZ, "scripts", "_entrada_binario.py"),
         ]
@@ -252,7 +300,33 @@ out "ok"'''
             print(f"  ok  {rotulo}")
 
 
+def conferir_ferramentas() -> str:
+    """O que falta na máquina, ou `""`.
+
+    Dizer antes de começar, e não no meio: o PyInstaller só reclama de
+    `objdump` depois de analisar a árvore de imports, o que leva
+    dezenas de segundos — e a mensagem dele fala de um pacote sem dizer
+    o comando.
+    """
+    if platform.system() != "Linux":
+        return ""
+    if shutil.which("objdump"):
+        return ""
+    return ("o PyInstaller precisa de 'objdump' no Linux, e ele nao esta "
+            "nesta maquina.\n"
+            "    Debian/Ubuntu:  apt-get install -y binutils\n"
+            "    Fedora:         dnf install -y binutils\n"
+            "    Alpine:         apk add binutils")
+
+
 def main() -> int:
+    # Este script roda no runner do Windows, e imprime tamanho, seta e
+    # traco. A saida redirecionada la vem em cp1252, que nao tem nenhum
+    # dos tres: sem isto ele morre com UnicodeEncodeError no meio do
+    # empacotamento, e o log nao diz o que falhou.
+    from dataforge.marca import preparar_saida
+    preparar_saida()
+
     if shutil.which("pyinstaller") is None:
         try:
             import PyInstaller       # noqa: F401

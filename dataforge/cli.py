@@ -3251,16 +3251,48 @@ PASTAS_DE_EDITOR = [
 ]
 
 def _nome_extensao():
-    """A pasta da extensao inclui a versao, como o VS Code espera.
+    """A pasta da extensao, no formato que o VS Code espera:
+    `<publisher>.<name>-<versao>`, com o publisher em minusculas.
 
-    Derivar de __version__ em vez de escrever a mao evita o que ja
-    aconteceu: a linguagem virou 1.0.0 e a pasta continuou dizendo
-    4.2.0, porque ninguem lembrou de trocar em dois lugares.
+    Os tres pedacos saem do `package.json` da extensao, e nao daqui.
+    Ja aconteceu duas vezes de um deles ficar para tras:
+
+    1. A linguagem virou 1.0.0 e a pasta continuou dizendo 4.2.0,
+       porque a versao estava escrita a mao.
+    2. O publisher mudou de `dataforge` para `EstevamSouza` — o nome
+       que a conta da loja realmente tem. Com o nome antigo aqui,
+       quem instalasse pela loja **e** pelo `dataforge editor` ficaria
+       com duas pastas da mesma extensao, e o VS Code carregaria as
+       duas: colorizacao dobrada, comando registrado duas vezes.
+
+    Se o `package.json` nao estiver legivel, cai no nome de sempre —
+    nao ter a pasta certa e melhor que nao instalar nada.
     """
-    return f"dataforge.dataforge-language-{__version__}"
+    origem = _origem_da_extensao()
+    if origem:
+        try:
+            import json
+            with open(os.path.join(origem, "package.json"),
+                      encoding="utf-8") as f:
+                dados = json.load(f)
+            publicador = str(dados["publisher"]).lower()
+            return f"{publicador}.{dados['name']}-{dados['version']}"
+        except (OSError, KeyError, ValueError):
+            pass
+    return f"estevamsouza.dataforge-language-{__version__}"
 
 
-NOME_EXTENSAO = _nome_extensao()
+def _obter_nome_extensao():
+    """Preguicoso: `_nome_extensao` le o `package.json`, o que exige
+    `_origem_da_extensao`, definida abaixo. Calcular na importacao
+    quebraria o `import dataforge.cli`."""
+    global NOME_EXTENSAO
+    if NOME_EXTENSAO is None:
+        NOME_EXTENSAO = _nome_extensao()
+    return NOME_EXTENSAO
+
+
+NOME_EXTENSAO = None
 
 
 def _origem_da_extensao():
@@ -3325,12 +3357,13 @@ def editor_command(args, flags=()):
         print(color("  Coloracao de sintaxe do DataForge", "1;37"))
         print()
         for nome, pasta in editores:
-            instalado = os.path.isdir(os.path.join(pasta, NOME_EXTENSAO))
+            instalado = os.path.isdir(
+                os.path.join(pasta, _obter_nome_extensao()))
             marca = (color("instalada", "1;32") if instalado
                      else color("nao instalada", "0;90"))
             print(f"  {nome:<20} {marca}")
         antigas = [c for _, p in editores for c in _todas_as_versoes(p)
-                   if os.path.basename(c) != NOME_EXTENSAO]
+                   if os.path.basename(c) != _obter_nome_extensao()]
         if antigas:
             print()
             print("  " + color("versoes antigas:", "1;33") +
@@ -3365,7 +3398,7 @@ def editor_command(args, flags=()):
     print()
     instalados = 0
     for nome, pasta in editores:
-        destino = os.path.join(pasta, NOME_EXTENSAO)
+        destino = os.path.join(pasta, _obter_nome_extensao())
         try:
             # Uma versao antiga ficaria ativa junto com a nova, e o
             # editor escolheria uma das duas sem avisar qual.

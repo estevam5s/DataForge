@@ -17,11 +17,13 @@ Uso
     python packaging/gerar_pacotes.py --check    # só confere a versão
 """
 
+import hashlib
 import io
 import os
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -71,30 +73,166 @@ def _ar(destino, membros):
 
 
 def _tar_gz(arquivos):
-    """Um `.tar.gz` na memória, reprodutível."""
+    """Um `.tar.gz` na memória, reprodutível.
+
+    Um `conteudo` de `None` é uma **pasta**, e as pastas não são
+    opcionais: o `dpkg` cria cada caminho na ordem em que aparece no
+    tar e não inventa o que falta. Sem elas a instalação para no
+    primeiro arquivo, com uma mensagem que culpa o arquivo:
+
+        unable to create '/usr/lib/python3/dist-packages/dataforge/
+        __init__.py.dpkg-new': No such file or directory
+    """
     buffer = io.BytesIO()
-    with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
+    # 'GNU_FORMAT', e nao o PAX que o Python usa por padrao desde o
+    # 3.8. O 'dpkg' le ustar e GNU, e recusa o cabecalho estendido do
+    # PAX — que o tarfile emite sozinho assim que um caminho passa de
+    # 100 caracteres, o que aqui acontece dentro de 'editor/vscode/
+    # node_modules/'. A mensagem nao ajuda nada:
+    #
+    #     corrupted filesystem tarfile in package archive:
+    #     unsupported PAX tar header type 'x'
+    with tarfile.open(fileobj=buffer, mode="w:gz",
+                      format=tarfile.GNU_FORMAT) as tar:
         for caminho_interno, conteudo, modo in arquivos:
             info = tarfile.TarInfo(caminho_interno)
-            info.size = len(conteudo)
+            if conteudo is None:
+                info.type = tarfile.DIRTYPE
+                info.size = 0
+            else:
+                info.size = len(conteudo)
             info.mode = modo
             info.mtime = 0
             info.uid = info.gid = 0
             info.uname = info.gname = "root"
-            tar.addfile(info, io.BytesIO(conteudo))
+            tar.addfile(info, io.BytesIO(conteudo or b""))
     return buffer.getvalue()
 
 
-def gerar_deb():
-    """Um `.deb` que instala a linguagem pelo pip do sistema.
+def _com_as_pastas(arquivos):
+    """Cada arquivo precedido pelas pastas que o contêm.
 
-    É deliberadamente fino: o corpo do pacote é um script `postinst` que
-    chama `pip install`. Empacotar a árvore inteira de `site-packages`
-    num `.deb` exigiria repetir o que o pip já sabe fazer, e divergiria
-    na primeira mudança de dependência.
+    A ordem importa — `dpkg` desempacota sequencialmente — e por isso é
+    ordenada por caminho, com a pasta sempre antes do que está dentro
+    dela.
+    """
+    pastas = set()
+    for caminho, _, _ in arquivos:
+        partes = caminho.split("/")[1:-1]      # sem o './' e sem o nome
+        for i in range(1, len(partes) + 1):
+            pastas.add("./" + "/".join(partes[:i]))
+    entradas = [(p, None, 0o755) for p in pastas] + list(arquivos)
+    return sorted(entradas, key=lambda e: (e[0], e[1] is not None))
+
+
+#: O comando `df` NAO entra no `.deb`.
+#:
+#: Ele existe no wheel do PyPI, onde mora numa venv e sombrea apenas o
+#: que o usuario pediu. Em `/usr/bin`, instalado por um pacote de
+#: sistema, ele passaria por cima do `df` do coreutils — o comando que
+#: mostra espaco em disco, que scripts de administracao chamam e que
+#: ninguem espera que uma linguagem substitua.
+COMANDOS = ["dataforge"]
+
+#: O lancador em `/usr/bin/dataforge`.
+#:
+#: Nao e o script que o `pip` gera: aquele carrega o `entry_points` pelo
+#: metadado, o que exige o `dist-info` intacto e o `importlib.metadata`.
+#: Este chama a funcao direto — duas linhas que nao tem como envelhecer.
+LANCADOR = """#!/usr/bin/python3
+import sys
+from dataforge.cli import main
+sys.exit(main())
+"""
+
+
+def _arvore_instalada(pasta):
+    """Instala o pacote numa pasta, do jeito que o `pip` instalaria.
+
+    A lista de arquivos vem do `pyproject.toml`, pelo proprio `pip`, e
+    nao de uma segunda lista aqui. Foi de proposito: uma lista escrita
+    a mao num empacotador divergiria na primeira vez que o wheel
+    ganhasse um arquivo — e o sintoma seria um `.deb` que instala uma
+    linguagem com um modulo faltando.
+    """
+    r = subprocess.run(
+        [sys.executable, "-m", "pip", "install", RAIZ, "--target", pasta,
+         "--no-deps", "--no-compile", "--quiet"],
+        capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit(f"o 'pip install --target' falhou:\n{r.stderr[-800:]}")
+    if not os.path.isdir(os.path.join(pasta, "dataforge")):
+        raise SystemExit("o 'pip install --target' nao criou 'dataforge/'")
+
+
+def _arquivos_do_deb(arvore):
+    """`[(caminho_no_pacote, bytes, modo)]`, e o tamanho em KB."""
+    destino = "./usr/lib/python3/dist-packages"
+    arquivos = []
+    total = 0
+    for raiz, pastas, nomes in os.walk(arvore):
+        # O '__pycache__' e compilado para o Python DESTA maquina. Num
+        # pacote 'all', a maquina que instala pode ter outra versao, e
+        # um .pyc de versao errada e ignorado — 29 MB de peso morto.
+        pastas[:] = [d for d in sorted(pastas) if d != "__pycache__"]
+        # 'bin/' sao os lancadores do pip, substituidos pelo LANCADOR.
+        if os.path.relpath(raiz, arvore).split(os.sep)[0] == "bin":
+            continue
+        for nome in sorted(nomes):
+            caminho = os.path.join(raiz, nome)
+            if os.path.islink(caminho):
+                continue
+            with open(caminho, "rb") as f:
+                dados = f.read()
+            relativo = os.path.relpath(caminho, arvore).replace(os.sep, "/")
+            modo = 0o755 if os.access(caminho, os.X_OK) else 0o644
+            arquivos.append((f"{destino}/{relativo}", dados, modo))
+            total += len(dados)
+
+    for comando in COMANDOS:
+        arquivos.append((f"./usr/bin/{comando}", LANCADOR.encode(), 0o755))
+        total += len(LANCADOR)
+
+    with open(os.path.join(RAIZ, "LICENSE"), "rb") as f:
+        licenca = f.read()
+    doc = "./usr/share/doc/dataforge"
+    arquivos.append((f"{doc}/copyright", licenca, 0o644))
+    arquivos.append((
+        f"{doc}/README.Debian",
+        f"DataForge {__version__}\n\n"
+        f"A linguagem esta em /usr/lib/python3/dist-packages/dataforge.\n"
+        f"O comando e 'dataforge'; comece por 'dataforge repl'.\n\n"
+        f"O apelido 'df' do PyPI nao e instalado: em /usr/bin ele\n"
+        f"sombrearia o df do coreutils.\n\n"
+        f"https://dataforge-lang.vercel.app/docs\n".encode(), 0o644))
+    total += len(licenca)
+    return arquivos, max(1, total // 1024)
+
+
+def gerar_deb():
+    """Um `.deb` que instala a linguagem, e nao um que a baixa.
+
+    A primeira versao era um `postinst` de tres linhas chamando
+    `pip install dataforge-lang=={versao}`. Dois problemas, e o segundo
+    e o que importa:
+
+    1. `dataforge-lang` **nao esta no PyPI** — 404. O `postinst` saia
+       com erro, e o `dpkg` deixava o pacote meio configurado.
+    2. Mesmo que estivesse: um pacote de 1,2 KB cujo corpo e um
+       download nao instala nada em maquina sem rede, e passa por cima
+       da politica de quem escolheu uma distro justamente para nao ter
+       `pip install` como raiz.
+
+    O `dpkg-deb --info` do CI passava nas duas versoes: ele confere que
+    o `ar` esta bem formado. O pacote estava bem formado e vazio —
+    `data.tar.gz` tinha **um** arquivo, um README.
     """
     os.makedirs(SAIDA, exist_ok=True)
     destino = os.path.join(SAIDA, f"dataforge_{__version__}_all.deb")
+
+    with tempfile.TemporaryDirectory() as arvore:
+        _arvore_instalada(arvore)
+        arquivos, kb = _arquivos_do_deb(arvore)
 
     modelo = os.path.join(RAIZ, "packaging", "debian", "control.template")
     with open(modelo, encoding="utf-8") as f:
@@ -105,37 +243,44 @@ def gerar_deb():
                    # envelhece sem ninguem ver: o '.deb' e gerado no
                    # release, e ninguem le a descricao dele duas vezes.
                    .replace("{MODULOS}", str(_modulos()))
-                   .replace("{SIMBOLOS}", str(_simbolos())))
+                   .replace("{SIMBOLOS}", str(_simbolos()))
+                   .replace("{TAMANHO}", str(kb)))
 
-    postinst = f"""#!/bin/sh
+    # Sem isto, cada 'dataforge' recompila a arvore inteira: o
+    # dist-packages nao e escrivel pelo usuario, entao o .pyc nunca fica
+    # gravado e o custo se repete a cada chamada.
+    postinst = """#!/bin/sh
 set -e
-# Instala no Python do sistema. Falhar aqui NAO pode deixar o pacote
-# meio instalado, entao o erro e explicito.
-python3 -m pip install --upgrade --break-system-packages \\
-    "dataforge-lang=={__version__}" 2>/dev/null \\
-  || python3 -m pip install --upgrade "dataforge-lang=={__version__}"
-echo "DataForge {__version__} instalado. Comece por: dataforge repl"
+if command -v py3compile >/dev/null 2>&1; then
+    py3compile -p dataforge 2>/dev/null || true
+fi
+exit 0
 """
     prerm = """#!/bin/sh
 set -e
-python3 -m pip uninstall -y dataforge-lang 2>/dev/null || true
+if command -v py3clean >/dev/null 2>&1; then
+    py3clean -p dataforge 2>/dev/null || true
+fi
+exit 0
 """
+
+    # O 'md5sums' e o que faz 'dpkg --verify' e 'debsums' funcionarem.
+    md5 = "".join(
+        f"{hashlib.md5(dados).hexdigest()}  {caminho[2:]}\n"
+        for caminho, dados, _ in arquivos
+        if not caminho.startswith("./usr/share/doc/"))
 
     controle = _tar_gz([
         ("./control", control.encode(), 0o644),
+        ("./md5sums", md5.encode(), 0o644),
         ("./postinst", postinst.encode(), 0o755),
         ("./prerm", prerm.encode(), 0o755),
-    ])
-    dados = _tar_gz([
-        ("./usr/share/doc/dataforge/README.Debian",
-         b"DataForge e instalado pelo pip no postinst.\n"
-         b"Veja https://dataforge-lang.vercel.app/docs\n", 0o644),
     ])
 
     _ar(destino, [
         ("debian-binary", b"2.0\n"),
         ("control.tar.gz", controle),
-        ("data.tar.gz", dados),
+        ("data.tar.gz", _tar_gz(_com_as_pastas(arquivos))),
     ])
     return destino
 

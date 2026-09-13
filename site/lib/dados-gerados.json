@@ -9274,5 +9274,10 @@
    "TAU"
   ]
  },
- "totalBuiltins": 228
+ "totalBuiltins": 228,
+ "contagem": {
+  "testes": 1573,
+  "exemplos": 44,
+  "arquivosDf": 334
+ }
 }

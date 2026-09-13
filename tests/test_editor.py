@@ -315,15 +315,31 @@ def test_o_destacador_do_site_nao_inventa_palavra():
     assert not inventadas, f"a linguagem nao tem: {sorted(inventadas)}"
 
 
-def test_a_pasta_da_extensao_usa_a_versao_atual():
-    """A pasta dizia 4.2.0 depois de a linguagem virar 1.0.0.
+def test_a_pasta_da_extensao_casa_com_o_que_a_loja_instala():
+    """A pasta local precisa ter o MESMO nome que a da loja.
 
-    Ela é derivada de __version__ agora: escrever a versão em dois
-    lugares garante que um dia eles divirjam.
+    Duas divergências já aconteceram, e a segunda é a cara:
+
+    1. A pasta dizia `4.2.0` depois de a linguagem virar 1.0.0 — a
+       versão estava escrita à mão.
+    2. O publisher era `dataforge` aqui e virou `EstevamSouza` na loja
+       (o nome que a conta realmente tem). Com nomes diferentes, quem
+       instalasse pela loja **e** pelo `dataforge editor` ficaria com
+       duas pastas da mesma extensão, e o VS Code carregaria as duas:
+       colorização dobrada e cada comando registrado duas vezes.
+
+    Os três pedaços saem do `package.json`, que é o mesmo arquivo que o
+    `vsce` publica.
     """
+    from dataforge.cli import _obter_nome_extensao
+
+    pkg = carregar("package.json")
+    esperado = f"{pkg['publisher'].lower()}.{pkg['name']}-{pkg['version']}"
+    assert _obter_nome_extensao() == esperado
+
     from dataforge import __version__
-    from dataforge.cli import NOME_EXTENSAO
-    assert NOME_EXTENSAO.endswith(__version__)
+    assert pkg["version"] == __version__, (
+        "a extensao e a linguagem precisam andar na mesma versao")
 
 
 def test_o_tema_de_icone_de_arquivo_existe():

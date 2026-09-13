@@ -144,6 +144,55 @@ def coletar_builtins():
     return resultado
 
 
+def contar_o_repositorio():
+    """Os números que a landing anuncia, contados aqui.
+
+    Estavam escritos à mão em `Aprender.tsx` — `378 testes`,
+    `190 exercícios`, `286 arquivos .df` — sob a legenda "números
+    conferidos na última execução da suíte". Nenhum dos quatro era
+    verdade: a suíte tinha 2368 testes e os exercícios eram 231.
+
+    Uma legenda que afirma verificação sobre um número escrito à mão é
+    pior que não ter número: quem lê confia.
+
+    Os testes são contados pelos `def test_`, e não pela execução do
+    pytest — contá-los de verdade exigiria rodar a suíte dentro de um
+    gerador de dados do site. É um limite e está dito no rótulo:
+    "funções de teste".
+    """
+    import re
+
+    def contar(padrao, dentro):
+        total = 0
+        for raiz, pastas, nomes in os.walk(os.path.join(REPO, dentro)):
+            pastas[:] = [d for d in pastas
+                         if d not in {"node_modules", "__pycache__",
+                                      "forge_modules", ".git"}]
+            for nome in nomes:
+                if re.fullmatch(padrao, nome):
+                    total += 1
+        return total
+
+    funcoes_de_teste = 0
+    for raiz, _, nomes in os.walk(os.path.join(REPO, "tests")):
+        for nome in nomes:
+            if nome.endswith(".py"):
+                with open(os.path.join(raiz, nome), encoding="utf-8") as f:
+                    funcoes_de_teste += len(
+                        re.findall(r"^def test_", f.read(), re.M))
+
+    arquivos_df = 0
+    for dentro in ("exercicios", "examples", "projetos", "packages",
+                   "dataforge", "doc"):
+        arquivos_df += contar(r".*\.df", dentro)
+
+    return {
+        "testes": funcoes_de_teste,
+        "exemplos": contar(r".*\.df", "examples"),
+        "arquivosDf": arquivos_df,
+    }
+
+
 def main():
     modulos = coletar_modulos()
     builtins = coletar_builtins()
@@ -153,6 +202,7 @@ def main():
         "palavras": sorted(KEYWORDS),
         "builtins": builtins,
         "totalBuiltins": sum(len(v) for v in builtins.values()),
+        "contagem": contar_o_repositorio(),
     }
 
     destino = os.path.join(SITE, "lib", "dados-gerados.json")
@@ -166,6 +216,9 @@ def main():
     print(f"  {len(dados['exercicios'])} módulos de exercício, {total_exerc} exercícios")
     print(f"  {len(dados['palavras'])} palavras reservadas")
     print(f"  {dados['totalBuiltins']} embutidas em {len(builtins)} grupos")
+    c = dados["contagem"]
+    print(f"  {c['testes']} funcoes de teste, {c['exemplos']} exemplos, "
+          f"{c['arquivosDf']} arquivos .df")
 
 
 if __name__ == "__main__":
