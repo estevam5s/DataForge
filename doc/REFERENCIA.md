@@ -306,6 +306,30 @@ cadeia de herança.
 
 Regra de conveniência: **um `Integer` é aceito onde se espera `Float`**.
 
+#### Tipo de outro módulo
+
+Um tipo importado é nomeado como qualquer coisa importada — com o apelido do
+módulo na frente — e vale nas **quatro** posições:
+
+```dataforge
+adopt ./modelo as M
+
+action criar(id: Integer) -> M.Pedido:      // retorno
+    yield M.Pedido(id, "x")
+
+action ler(p: M.Pedido) -> Integer:         // parâmetro
+    yield p.id
+
+record Envelope:
+    pedido: M.Pedido                        // campo
+
+p: M.Pedido := criar(7)                     // variável
+```
+
+A verificação compara o **último segmento**: um record não carrega o apelido de
+quem o importou, e o mesmo `Pedido` é `M.Pedido` aqui, `P.Pedido` no vizinho e
+`Pedido` em casa.
+
 ### 3.3 Conversão
 
 Formas disponíveis (`valor` e `x` são espaços reservados):

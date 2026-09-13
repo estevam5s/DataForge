@@ -931,3 +931,127 @@ def test_adopt_seletivo_aceita_caminho_relativo(tmp_path):
         assert r.returncode == 0, f"{forma}\n{r.stdout}{r.stderr}"
         assert r.stdout.strip() == "5", f"falhou em:\n{forma}\n{r.stdout}"
 
+
+
+# ══════════════════════════════════════════════════════════════
+#  Tipo qualificado: 'M.Pedido'
+# ══════════════════════════════════════════════════════════════
+
+def _rodar(caminho):
+    """Roda um .df num processo proprio e devolve a saida."""
+    r = subprocess.run(
+        [sys.executable, "-m", "dataforge", "run", caminho, "--no-color"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        cwd=RAIZ, env={**os.environ, "PYTHONPATH": RAIZ})
+    assert r.returncode == 0, r.stdout + r.stderr
+    return r.stdout
+
+
+def test_um_tipo_de_outro_modulo_pode_ser_declarado(tmp_path):
+    """Dava para CRIAR o valor e não dava para DECLARAR o tipo dele.
+
+    As três posições de tipo recusavam um nome qualificado:
+
+        action criar() -> M.Pedido:     Expected ':' after signature
+        action ver(p: M.Pedido):        Expected IDENTIFIER, got DOT
+        p: M.Pedido := M.Pedido(3)      Unexpected token: COLON
+
+    Num arquivo só isso não aparece — todo tipo é local. Num projeto
+    modular a maioria dos tipos mora em outro arquivo, e quem quisesse
+    tipar tinha de desistir do tipo. Pior: o analisador já traduz
+    `-> Pedido` do outro arquivo para `M.Pedido` deste, então ele
+    falava um vocabulário que ninguém podia escrever.
+    """
+    (tmp_path / "modelo.df").write_text("""
+record Pedido:
+    id: Integer
+    nome: String
+
+enum Estado:
+    Novo
+    Fechado
+
+blueprint Caixa:
+    self.itens := []
+
+relay Pedido, Estado, Caixa
+""", encoding="utf-8")
+
+    (tmp_path / "main.df").write_text("""
+adopt ./modelo as M
+
+action criar(id: Integer) -> M.Pedido:
+    yield M.Pedido(id, "x")
+
+action ler(p: M.Pedido) -> Integer:
+    yield p.id
+
+record Envelope:
+    pedido: M.Pedido
+    estado: M.Estado
+
+p: M.Pedido := criar(7)
+out ler(p)
+out Envelope(p, M.Estado.Novo).pedido.id
+out typeof(p)
+""", encoding="utf-8")
+
+    saida = _rodar(str(tmp_path / "main.df"))
+    assert saida.strip().splitlines() == ["7", "7", "Pedido"], saida
+
+    # E o analisador nao acusa 'Unknown type'.
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.typechecker import check_program
+
+    caminho = str(tmp_path / "main.df")
+    fonte = open(caminho, encoding="utf-8").read()
+    diags = check_program(parse(tokenize(fonte, caminho), caminho), caminho)
+    assert [d.message for d in diags if d.severity == "error"] == []
+
+
+def test_o_tipo_qualificado_ainda_cobra_o_tipo_errado(tmp_path):
+    """A calibragem: aceitar 'M.Pedido' não pode virar aceitar tudo."""
+    (tmp_path / "modelo.df").write_text(
+        "record Pedido:\n    id: Integer\n\nrecord Nota:\n    n: Integer\n\n"
+        "relay Pedido, Nota\n", encoding="utf-8")
+    (tmp_path / "main.df").write_text("""
+adopt ./modelo as M
+
+action ler(p: M.Pedido) -> Integer:
+    yield p.id
+
+monitor:
+    _ := ler(M.Nota(1))
+handle Error as e:
+    out e.type
+""", encoding="utf-8")
+    assert "TypeError" in _rodar(str(tmp_path / "main.df"))
+
+
+def test_o_formatador_nao_reescreve_o_caminho_de_um_adopt():
+    """`adopt ./sub/prof as P` virava `adopt./ sub / prof as P`.
+
+    Para o formatador aquilo são os tokens DOT SLASH IDENT SLASH IDENT,
+    e a regra "um espaço em volta de `/`" reescrevia o caminho. O
+    código continuava rodando — o lexer cola os segmentos — mas o texto
+    ficava errado e `fmt --check` reprovava para sempre o arquivo que
+    estava certo. Num projeto modular, isso é **toda** linha de import:
+    801 de 801 num projeto gerado de 27 mil linhas.
+    """
+    from dataforge.formatter import format_source
+
+    casos = {
+        "adopt ./mod as M": "adopt ./mod as M",
+        "adopt ./sub/prof as P": "adopt ./sub/prof as P",
+        "adopt ../src/x as X": "adopt ../src/x as X",
+        "adopt ./minha-lib as L": "adopt ./minha-lib as L",
+        "adopt {sqrt as raiz} from Arcane.Math": "adopt {sqrt as raiz} from Arcane.Math",
+        "adopt Arcane.Math.{sqrt, floor}": "adopt Arcane.Math.{sqrt, floor}",
+        # O espaco a mais continua sendo colapsado.
+        "adopt   Arcane.Math   as   Math": "adopt Arcane.Math as Math",
+    }
+    for entrada, esperado in casos.items():
+        saida = format_source(entrada + "\n")
+        assert saida == esperado + "\n", (entrada, saida)
+        assert format_source(saida) == saida, entrada

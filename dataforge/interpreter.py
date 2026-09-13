@@ -6353,6 +6353,14 @@ class Interpreter:
             return value
         actual = self._type_of(value)
 
+        # Um tipo QUALIFICADO ('M.Pedido') e o mesmo tipo de sempre
+        # visto de outro arquivo. Um record nao carrega o apelido de
+        # quem o importou — e nem poderia: o mesmo 'Pedido' e 'M.Pedido'
+        # aqui, 'P.Pedido' no vizinho e 'Pedido' em casa. A comparacao
+        # e pelo ultimo segmento, que e o nome de verdade.
+        if expected not in self.TYPE_ALIASES and "." in expected:
+            expected = expected.rsplit(".", 1)[1]
+
         if expected == "Number":
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise TypeError_(

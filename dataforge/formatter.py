@@ -44,6 +44,11 @@ ABRE_BLOCO = {
 }
 
 
+#: A linha de import, que so precisa de espacos colapsados.
+_E_ADOPT = re.compile(r"^adopt\b")
+_ESPACOS = re.compile(r"[ \t]+")
+
+
 class Formatter:
     """Formata código DataForge a partir do texto original."""
 
@@ -96,7 +101,22 @@ class Formatter:
                 linhas_saida.append(self.indent * nivel + nua)
                 continue
 
-            corpo = self._formatar_linha(nua)
+            # O caminho de um 'adopt' NAO passa pelo normalizador de
+            # espacos. Para ele, './sub/prof' sao os tokens DOT SLASH
+            # IDENT SLASH IDENT, e a regra "um espaco em volta de '/'"
+            # transforma
+            #
+            #     adopt ./sub/prof as P
+            #
+            # em 'adopt./ sub / prof as P'. Continua rodando — o lexer
+            # cola os segmentos — mas o texto esta errado, e
+            # 'fmt --check' passa a reprovar para sempre o arquivo que
+            # estava certo. Num projeto modular isso e TODA linha de
+            # import.
+            if _E_ADOPT.match(nua):
+                corpo = _ESPACOS.sub(" ", nua)
+            else:
+                corpo = self._formatar_linha(nua)
             linhas_saida.append((self.indent * nivel + corpo).rstrip())
 
         texto = "\n".join(linhas_saida)

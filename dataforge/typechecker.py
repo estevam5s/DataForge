@@ -1582,6 +1582,15 @@ class TypeChecker:
         for nome in superficie.nomes():
             membro = superficie.obter(nome)
             qualificado = f"{alias}.{nome}"
+            if membro.especie in ("record", "blueprint", "enum"):
+                # Ele passa a ser um NOME DE TIPO escrivivel:
+                # 'action criar() -> M.Pedido:' e o jeito de tipar num
+                # projeto modular, e sem esta linha o analisador
+                # respondia "Unknown type 'M.Pedido'" com a lista dos
+                # sete embutidos — sugerindo 'Integer' para quem pediu
+                # um record que ele mesmo acabou de registrar duas
+                # linhas abaixo.
+                self.known_types.add(qualificado)
             if membro.especie == "record":
                 # Sem os tipos dos campos: a superfície guarda o nome, e
                 # inventar um tipo daria erro onde não há.

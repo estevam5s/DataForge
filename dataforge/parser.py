@@ -1191,8 +1191,8 @@ class Parser:
         # Optional return type: -> Type
         return_type = ""
         if self.match(TokenType.ARROW):
-            return_type = self.expect(
-                TokenType.IDENTIFIER, "Expected a return type after '->'").value
+            return_type = self._parse_nome_de_tipo(
+                "Expected a return type after '->'")
 
         # Allow action signatures without body (trait/abstract methods)
         if self.current().type in (TokenType.NEWLINE, TokenType.EOF, TokenType.DEDENT):
@@ -1619,8 +1619,8 @@ class Parser:
                                 "Expected a field name in the record").value
             self.expect(TokenType.COLON,
                         f"Field '{campo}' needs a type: '{campo}: Tipo'")
-            tipo = self.expect(TokenType.IDENTIFIER,
-                               f"Expected the type of field '{campo}'").value
+            tipo = self._parse_nome_de_tipo(
+                f"Expected the type of field '{campo}'")
             padrao = None
             if self.match(TokenType.ASSIGN):
                 padrao = self.parse_expression()
@@ -2266,10 +2266,9 @@ class Parser:
 
         tipo = ""
         if self.match(TokenType.COLON):
-            tipo = self.expect(
-                TokenType.IDENTIFIER,
+            tipo = self._parse_nome_de_tipo(
                 f"Static field '{name}' needs a type after ':', as in "
-                f"'static {name}: Integer := 0'").value
+                f"'static {name}: Integer := 0'")
 
         self.expect(TokenType.ASSIGN,
                     f"Static field '{name}' needs a value: "
@@ -2402,9 +2401,9 @@ class Parser:
         if (self.current().type == TokenType.COLON
                 and isinstance(expr, ast.Identifier)
                 and self.peek().type == TokenType.IDENTIFIER
-                and self.peek(2).type == TokenType.ASSIGN):
+                and self._anotacao_termina_em_assign()):
             self.advance()  # ':'
-            declared = self.advance().value
+            declared = self._parse_nome_de_tipo("Expected a type after ':'")
             self.advance()  # ':='
             value = self.parse_expression()
             self.match(TokenType.NEWLINE)
@@ -2882,8 +2881,8 @@ class Parser:
                 # A ':' type annotation is only unambiguous inside parentheses;
                 # without them 'lambda n: n' means the body starts at ':'.
                 if has_parens and self.match(TokenType.COLON):
-                    param_types[name] = self.expect(
-                        TokenType.IDENTIFIER, "Expected a type name after ':'").value
+                    param_types[name] = self._parse_nome_de_tipo(
+                        "Expected a type name after ':'")
                 if self.match(TokenType.ASSIGN):
                     defaults[name] = self.parse_or()
                 if not self.match(TokenType.COMMA):
@@ -3137,6 +3136,50 @@ class Parser:
 
     # ── Helper: parse parameters ───────────────────────────
 
+    def _anotacao_termina_em_assign(self):
+        """'x: M.Pedido := …' e anotacao; 'x: y' sozinho nao e.
+
+        A conferencia era 'peek(2) e ASSIGN', o que so enxerga um nome
+        de tipo de UMA palavra. Com 'M.Pedido' os tokens sao
+        COLON IDENT DOT IDENT ASSIGN, o ':=' esta duas casas mais
+        adiante, e a linha caia em "Unexpected token: COLON".
+        """
+        i = 2
+        while (self.peek(i).type == TokenType.DOT
+               and self.peek(i + 1).type == TokenType.IDENTIFIER):
+            i += 2
+        return self.peek(i).type == TokenType.ASSIGN
+
+    def _parse_nome_de_tipo(self, mensagem):
+        """Um nome de tipo, que pode ser QUALIFICADO: 'M.Pedido'.
+
+        Num projeto de um arquivo todo tipo e local, e um IDENTIFIER
+        bastava. Num projeto modular a maioria dos tipos mora em outro
+        arquivo, e a forma de nomea-los e a mesma de nomear qualquer
+        coisa importada — 'M.Pedido'. O parser recusava as tres
+        posicoes:
+
+            action criar() -> M.Pedido:        Expected ':' after signature
+            action ver(p: M.Pedido):           Expected IDENTIFIER, got DOT
+            p: M.Pedido := M.Pedido(3)         Unexpected token: COLON
+
+        Ou seja: dava para CRIAR o valor e nao dava para DECLARAR o
+        tipo dele. Quem quisesse tipar um sistema de muitos modulos
+        tinha de desistir do tipo — e o analisador, que ja traduz
+        '-> Pedido' do outro arquivo para 'M.Pedido' deste, falava um
+        vocabulario que ninguem podia escrever.
+
+        O ponto so e consumido quando o que vem depois e um nome
+        colado a ele: 'M . Pedido' com espaco nao e um tipo, e sim o
+        comeco de outra coisa.
+        """
+        nome = self.expect(TokenType.IDENTIFIER, mensagem).value
+        while (self.current().type == TokenType.DOT
+               and self.peek().type == TokenType.IDENTIFIER):
+            self.advance()
+            nome += "." + self.advance().value
+        return nome
+
     def _parse_params(self):
         """Parse a parameter list: (a, b: Integer, c := default)."""
         params = []
@@ -3146,8 +3189,8 @@ class Parser:
             name = self.expect(TokenType.IDENTIFIER).value
             params.append(name)
             if self.match(TokenType.COLON):
-                types[name] = self.expect(
-                    TokenType.IDENTIFIER, "Expected a type name after ':'").value
+                types[name] = self._parse_nome_de_tipo(
+                    "Expected a type name after ':'")
             if self.match(TokenType.ASSIGN):
                 defaults[name] = self.parse_expression()
             self.match(TokenType.COMMA)
