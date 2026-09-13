@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 28`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[218](#218-uma-aplicacao-de-dados-com-a-vitrine)", "**Uma aplicacao de dados com a Vitrine**", ""]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[220](#220-uma-aplicacao-de-dados-com-a-vitrine)", "**Uma aplicacao de dados com a Vitrine**", ""]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "218 · Uma aplicacao de dados com a Vitrine"},
+  {"h2": "220 · Uma aplicacao de dados com a Vitrine"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 218 — Uma aplicacao de dados com a Vitrine
+//  Exercicio 220 — Uma aplicacao de dados com a Vitrine
 //
 //  Um programa de cima para baixo que vira uma pagina web, e um teste
 //  que confere o que ela faz sem abrir navegador nenhum.
@@ -203,7 +203,7 @@ assert r["status"] is 200
 assert "<!DOCTYPE html>" in r["body"]
 assert r["headers"]["X-Content-Type-Options"] is "nosniff"
 
-out "218 ok — vitrine"`, lang: 'df', title: `exercicios/28-vitrine/218_vitrine.df` },
+out "218 ok — vitrine"`, lang: 'df', title: `exercicios/28-vitrine/220_vitrine.df` },
   {"h3": "Conceitos"},
   { code: `adopt Arcane.Vitrine as V
 
@@ -240,10 +240,10 @@ dataforge vitrine dev        # http://127.0.0.1:8501
 dataforge vitrine doctor     # se não subir, ele diz por quê`, lang: 'bash' },
   {"p": "O segundo sobe em `http://127.0.0.1:8501` um painel com quatro métricas, quatro gráficos, abas, filtro na barra lateral e exportação para CSV."},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/28-vitrine/218_vitrine.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/28-vitrine/220_vitrine.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '218-uma-aplicacao-de-dados-com-a-vitrine', text: "218 · Uma aplicacao de dados com a Vitrine", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-modelo-de-execucao', text: "O modelo de execução", level: 3 as const }, { id: 'para-que-serve', text: "Para que serve", level: 3 as const }, { id: 'o-que-o-exercicio-cobre', text: "O que o exercício cobre", level: 3 as const }, { id: 'tres-armadilhas', text: "Três armadilhas", level: 3 as const }, { id: 'para-ver-no-navegador', text: "Para ver no navegador", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '220-uma-aplicacao-de-dados-com-a-vitrine', text: "220 · Uma aplicacao de dados com a Vitrine", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-modelo-de-execucao', text: "O modelo de execução", level: 3 as const }, { id: 'para-que-serve', text: "Para que serve", level: 3 as const }, { id: 'o-que-o-exercicio-cobre', text: "O que o exercício cobre", level: 3 as const }, { id: 'tres-armadilhas', text: "Três armadilhas", level: 3 as const }, { id: 'para-ver-no-navegador', text: "Para ver no navegador", level: 3 as const }];
 
 export default function Pagina() {
   return (

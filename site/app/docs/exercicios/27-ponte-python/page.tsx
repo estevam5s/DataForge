@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 27`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[217](#217-a-ponte-para-o-python)", "**A ponte para o Python**", "use uma biblioteca Python de dentro do DataForge, e faca"]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[219](#219-a-ponte-para-o-python)", "**A ponte para o Python**", "use uma biblioteca Python de dentro do DataForge, e faca"]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "217 · A ponte para o Python"},
+  {"h2": "219 · A ponte para o Python"},
   {"p": "**Enunciado.** use uma biblioteca Python de dentro do DataForge, e faca"},
   { code: `// o programa continuar funcionando quando ela nao estiver instalada.
 
@@ -128,7 +128,7 @@ handle e:
     out $"erro do Python, capturado aqui: {e.type}"
 
 out ""
-out "ok"`, lang: 'df', title: `exercicios/27-ponte-python/217_ponte_python.df` },
+out "ok"`, lang: 'df', title: `exercicios/27-ponte-python/219_ponte_python.df` },
   {"h3": "Conceitos"},
   { code: `adopt Python.numpy as np              // o módulo inteiro
 adopt Python.numpy.linalg as la       // um submódulo
@@ -202,10 +202,10 @@ ok`, lang: 'text' },
   {"list": ["Rode `dataforge check` num arquivo que importe um pacote ausente.", "Escreva uma ação que só usa numpy quando ele existe, e caia num laço"]},
   {"p": "quando não existe. Rode os dois caminhos."},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/27-ponte-python/217_ponte_python.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/27-ponte-python/219_ponte_python.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '217-a-ponte-para-o-python', text: "217 · A ponte para o Python", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'para-que-serve', text: "Para que serve", level: 3 as const }, { id: 'a-ponte-nao-converte', text: "A ponte não converte", level: 3 as const }, { id: 'perguntar-antes-de-depender', text: "Perguntar antes de depender", level: 3 as const }, { id: 'explorar-de-dentro-da-linguagem', text: "Explorar de dentro da linguagem", level: 3 as const }, { id: 'quando-o-pacote-nao-esta-la', text: "Quando o pacote não está lá", level: 3 as const }, { id: 'o-que-a-ponte-nao-protege', text: "O que a ponte não protege", level: 3 as const }, { id: 'a-promessa-de-zero-dependencias-continua-inteira', text: "A promessa de zero dependências continua inteira", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '219-a-ponte-para-o-python', text: "219 · A ponte para o Python", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'para-que-serve', text: "Para que serve", level: 3 as const }, { id: 'a-ponte-nao-converte', text: "A ponte não converte", level: 3 as const }, { id: 'perguntar-antes-de-depender', text: "Perguntar antes de depender", level: 3 as const }, { id: 'explorar-de-dentro-da-linguagem', text: "Explorar de dentro da linguagem", level: 3 as const }, { id: 'quando-o-pacote-nao-esta-la', text: "Quando o pacote não está lá", level: 3 as const }, { id: 'o-que-a-ponte-nao-protege', text: "O que a ponte não protege", level: 3 as const }, { id: 'a-promessa-de-zero-dependencias-continua-inteira', text: "A promessa de zero dependências continua inteira", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
 
 export default function Pagina() {
   return (

@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 26`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[213](#213-medir-o-crescimento-nao-o-relogio)", "**Medir o crescimento, nao o relogio**", "escreva duas versoes do mesmo problema e compare as ordens."], ["[214](#214-trocar-tempo-exponencial-por-memoria-linear)", "**Trocar tempo exponencial por memoria linear**", "faca fib(35) responder, sem esperar."], ["[215](#215-a-estrutura-certa)", "**A estrutura certa**", "escolha entre cluster e vault pela operacao que voce faz."], ["[216](#216-complexidade-de-espaco)", "**Complexidade de espaco**", "processe mais dados do que cabem na memoria."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[215](#215-medir-o-crescimento-nao-o-relogio)", "**Medir o crescimento, nao o relogio**", "escreva duas versoes do mesmo problema e compare as ordens."], ["[216](#216-trocar-tempo-exponencial-por-memoria-linear)", "**Trocar tempo exponencial por memoria linear**", "faca fib(35) responder, sem esperar."], ["[217](#217-a-estrutura-certa)", "**A estrutura certa**", "escolha entre cluster e vault pela operacao que voce faz."], ["[218](#218-complexidade-de-espaco)", "**Complexidade de espaco**", "processe mais dados do que cabem na memoria."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "213 · Medir o crescimento, nao o relogio"},
+  {"h2": "215 · Medir o crescimento, nao o relogio"},
   {"p": "**Enunciado.** escreva duas versoes do mesmo problema e compare as ordens."},
   { code: `// Um algoritmo que funciona com dez itens pode nao terminar com um
 // milhao. 'dataforge big-o' le a arvore e diz a classe de cada acao,
@@ -102,7 +102,7 @@ assert razao_grande bigger 1.0,
 //       ⚠ O(n^2): dobrar a entrada quadruplica o tempo.
 //   ● comuns          O(n)    tempo   O(n) espaco
 
-out "ok"`, lang: 'df', title: `exercicios/26-complexidade/213_medir_o_crescimento.df` },
+out "ok"`, lang: 'df', title: `exercicios/26-complexidade/215_medir_o_crescimento.df` },
   {"h3": "Conceitos"},
   {"p": "Um algoritmo que funciona com dez itens pode não terminar com um milhão. `dataforge big-o` lê a árvore e diz a classe de cada ação, sem rodar nada — e diz **também o porquê**."},
   { code: `▲ comuns_lento    O(n^2)  tempo   O(n) espaco
@@ -120,7 +120,7 @@ out "ok"`, lang: 'df', title: `exercicios/26-complexidade/213_medir_o_cresciment
   {"p": "**cresce**. As duas coisas respondem perguntas diferentes."},
   {"h3": "Relacionados"},
   {"list": ["[214 — Memoização](214_memoizacao.md)", "[215 — A estrutura certa](215_estrutura_certa.md)"]},
-  {"h2": "214 · Trocar tempo exponencial por memoria linear"},
+  {"h2": "216 · Trocar tempo exponencial por memoria linear"},
   {"p": "**Enunciado.** faca fib(35) responder, sem esperar."},
   { code: `// Fibonacci ingenuo e O(2^n): cada chamada gera duas, e quase todas
 // recalculam o que ja foi calculado. Guardar o resultado derruba para
@@ -192,7 +192,7 @@ assert len(cache) is 89, "um por chamada, de 2 a 90"
 // Trocar O(2^n) de tempo por O(n) de memoria quase sempre vale. A
 // excecao e quando a memoria e o gargalo — ver o exercicio 216.
 
-out "ok"`, lang: 'df', title: `exercicios/26-complexidade/214_memoizacao.df` },
+out "ok"`, lang: 'df', title: `exercicios/26-complexidade/216_memoizacao.df` },
   {"h3": "Conceitos"},
   {"p": "Fibonacci ingênuo é O(2ⁿ): cada chamada gera duas, e quase todas recalculam o que já foi calculado. `fib(40)` faz mais de um bilhão de chamadas."},
   {"p": "Guardar o resultado derruba para O(n):"},
@@ -219,7 +219,7 @@ action fib(n):
   {"p": "os dois."},
   {"h3": "Relacionados"},
   {"list": ["[213 — Medir o crescimento](213_medir_o_crescimento.md)", "[216 — Complexidade de espaço](216_espaco.md)"]},
-  {"h2": "215 · A estrutura certa"},
+  {"h2": "217 · A estrutura certa"},
   {"p": "**Enunciado.** escolha entre cluster e vault pela operacao que voce faz."},
   { code: `// Escolher a estrutura costuma render mais que otimizar o algoritmo. A
 // tabela que decide cabe em tres linhas:
@@ -306,7 +306,7 @@ inverso := fila.reversed()  // O(n), uma vez
 assert inverso.pop() is 0, "tirar do fim e O(1)"
 assert len(inverso) is 499, "e a fila continua"
 
-out "ok"`, lang: 'df', title: `exercicios/26-complexidade/215_estrutura_certa.df` },
+out "ok"`, lang: 'df', title: `exercicios/26-complexidade/217_estrutura_certa.df` },
   {"h3": "A tabela que decide"},
   {"table": {"head": ["Você faz", "Use", "Custo"], "rows": [["procurar por posição", "`Cluster`", "O(1)"], ["procurar por chave", "`Vault`", "O(1)"], ["procurar por **valor**", "`Cluster`", "**O(n)**"]]}},
   {"p": "A terceira linha é onde se perde. `999999 in lista` percorre a lista inteira; `mapa.has(\"999999\")` calcula um hash e vai direto."},
@@ -328,7 +328,7 @@ assert razao bigger 5,
   { code: `por_valor := Crucible.timed(lambda => -1 in lista, 50)`, lang: 'df' },
   {"p": "O segundo argumento é o número de repetições. Uma busca sozinha leva microssegundos, e o custo de **medir** dominaria o resultado — o que se mede então é o relógio, não o código."},
   {"p": "E procure por algo que **não existe** (`-1`, `\"nao-existe\"`): procurar um valor que está no meio mede meia lista, e o número depende de onde ele caiu."},
-  {"h2": "216 · Complexidade de espaco"},
+  {"h2": "218 · Complexidade de espaco"},
   {"p": "**Enunciado.** processe mais dados do que cabem na memoria."},
   { code: `// Tempo nao e o unico recurso. Um algoritmo O(n log n) que aloca uma
 // copia pode perder para um O(n^2) que trabalha no lugar, quando a
@@ -408,7 +408,7 @@ assert com_lista["total_ms"] / com_preguica["total_ms"] bigger 10,
 //   RAM. A compreensao e mais legivel e materializa tudo. Use a
 //   segunda ate ela nao caber, e entao troque.
 
-out "ok"`, lang: 'df', title: `exercicios/26-complexidade/216_espaco.df` },
+out "ok"`, lang: 'df', title: `exercicios/26-complexidade/218_espaco.df` },
   {"h3": "Conceitos"},
   {"p": "Tempo não é o único recurso. Um algoritmo O(n log n) que aloca uma cópia pode perder para um O(n²) que trabalha no lugar, quando a memória é o gargalo."},
   { code: `stream action pares(xs):
@@ -428,10 +428,10 @@ out pares(range(1000000)).take(3)     // O(1) de espaço`, lang: 'df' },
   {"h3": "Relacionados"},
   {"list": ["[214 — Memoização](214_memoizacao.md)", "[Complexidade de espaço](https://dataforge-lang.vercel.app/docs/big-o/espaco)"]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/26-complexidade/213_medir_o_crescimento.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/26-complexidade/215_medir_o_crescimento.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '213-medir-o-crescimento-nao-o-relogio', text: "213 · Medir o crescimento, nao o relogio", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '214-trocar-tempo-exponencial-por-memoria-linear', text: "214 · Trocar tempo exponencial por memoria linear", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '215-a-estrutura-certa', text: "215 · A estrutura certa", level: 2 as const }, { id: 'a-tabela-que-decide', text: "A tabela que decide", level: 3 as const }, { id: 'por-que-100-mil-e-nao-3-mil', text: "Por que 100 mil, e não 3 mil", level: 3 as const }, { id: 'a-margem-e-por-que-ela-importa', text: "A margem, e por que ela importa", level: 3 as const }, { id: 'medir-uma-vez-e-o-erro-mais-comum', text: "Medir uma vez é o erro mais comum", level: 3 as const }, { id: '216-complexidade-de-espaco', text: "216 · Complexidade de espaco", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '215-medir-o-crescimento-nao-o-relogio', text: "215 · Medir o crescimento, nao o relogio", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '216-trocar-tempo-exponencial-por-memoria-linear', text: "216 · Trocar tempo exponencial por memoria linear", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '217-a-estrutura-certa', text: "217 · A estrutura certa", level: 2 as const }, { id: 'a-tabela-que-decide', text: "A tabela que decide", level: 3 as const }, { id: 'por-que-100-mil-e-nao-3-mil', text: "Por que 100 mil, e não 3 mil", level: 3 as const }, { id: 'a-margem-e-por-que-ela-importa', text: "A margem, e por que ela importa", level: 3 as const }, { id: 'medir-uma-vez-e-o-erro-mais-comum', text: "Medir uma vez é o erro mais comum", level: 3 as const }, { id: '218-complexidade-de-espaco', text: "218 · Complexidade de espaco", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }];
 
 export default function Pagina() {
   return (

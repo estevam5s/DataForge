@@ -5060,3 +5060,80 @@ def test_index_by_aceita_o_nome_do_campo():
     itens = [{"id": 1, "cat": "x"}, {"id": 2, "cat": "y"}]
     assert C["index_by"](itens, "cat") == {"x": itens[0], "y": itens[1]}
     assert C["index_by"](itens, lambda i: i["id"]) == {1: itens[0], 2: itens[1]}
+
+
+def test_nenhum_exercicio_divide_o_numero_com_outro():
+    """O número é a identidade do exercício, e ele aparece na página.
+
+    Três estavam repetidos entre módulos — 157, 198 e 229 —, e dois
+    módulos se sobrepunham (o 31 ia até 229, o 32 começava em 227).
+    O site mostra o número, então **a mesma página anunciava dois
+    exercícios diferentes com o mesmo número**: `/docs/exercicios/16`
+    dizia "157 · O que o check pega através do adopt" e
+    `/docs/exercicios/17` dizia "157 · Datas e horas".
+
+    A numeração é global e sequencial: módulo por módulo, 001 em
+    diante. Um módulo novo continua de onde o anterior parou.
+    """
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    por_numero = {}
+    esperado = 1
+    fora_de_ordem = []
+
+    for pasta in sorted(glob.glob(os.path.join(raiz, "exercicios", "*"))):
+        arquivos = sorted(glob.glob(os.path.join(pasta, "[0-9]*.df")))
+        for caminho in arquivos:
+            nome = os.path.basename(caminho)
+            numero = int(nome[:3])
+            if numero in por_numero:
+                raise AssertionError(
+                    f"o número {numero:03d} é de dois exercícios:\n"
+                    f"  {os.path.relpath(por_numero[numero], raiz)}\n"
+                    f"  {os.path.relpath(caminho, raiz)}\n"
+                    f"  O site mostra o número; dois com o mesmo fazem a "
+                    f"mesma página anunciar coisas diferentes.")
+            por_numero[numero] = caminho
+            if numero != esperado:
+                fora_de_ordem.append(
+                    f"{os.path.relpath(caminho, raiz)} é {numero:03d}, "
+                    f"e deveria ser {esperado:03d}")
+            esperado = numero + 1
+
+    assert not fora_de_ordem, (
+        "a numeração tem buraco ou salto:\n  " + "\n  ".join(fora_de_ordem[:8])
+        + "\n  A sequência é global: o módulo novo continua de onde o "
+          "anterior parou.")
+
+
+def test_o_numero_no_cabecalho_e_o_do_arquivo():
+    """`// Exercicio 157 —` num arquivo chamado `158_…` engana duas vezes.
+
+    O site lê o número do CABEÇALHO e o nome do arquivo do disco; os
+    dois divergindo fazem o link levar a um exercício e o título dizer
+    outro.
+    """
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    erradas = []
+    for caminho in sorted(glob.glob(os.path.join(raiz, "exercicios", "*",
+                                                 "[0-9]*.df"))):
+        nome = os.path.basename(caminho)
+        do_arquivo = nome[:3]
+        texto = open(caminho, encoding="utf-8").read()
+        achado = re.search(r"Exerc[ií]cio\s+(\d+)", texto)
+        if achado and achado.group(1) != do_arquivo:
+            erradas.append(f"{nome}: o cabeçalho diz {achado.group(1)}")
+        md = caminho[:-3] + ".md"
+        if os.path.isfile(md):
+            achado_md = re.search(r"Exerc[ií]cio\s+(\d+)",
+                                  open(md, encoding="utf-8").read())
+            if achado_md and achado_md.group(1) != do_arquivo:
+                erradas.append(f"{os.path.basename(md)}: "
+                               f"o título diz {achado_md.group(1)}")
+
+    assert not erradas, "número do cabeçalho diferente do arquivo:\n  " + \
+        "\n  ".join(erradas)

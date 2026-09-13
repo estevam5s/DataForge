@@ -9,6 +9,23 @@ import { Renderer } from '@/components/Renderer';
 export const metadata: Metadata = {
   title: "Lavra",
   description: "A consulta tipada do DataForge: o cliente diz exatamente quais campos quer, e recebe exatamente aqueles.",
+  openGraph: {
+    type: 'article',
+    locale: 'pt_BR',
+    url: "https://dataforge-lang.vercel.app/docs/lavra",
+    siteName: 'DataForge',
+    title: "Lavra",
+    description: "A consulta tipada do DataForge: o cliente diz exatamente quais campos quer, e recebe exatamente aqueles.",
+    images: [{ url: "/og-lavra.png", width: 1200, height: 630,
+               type: 'image/png', alt: "Lavra" }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Lavra",
+    description: "A consulta tipada do DataForge: o cliente diz exatamente quais campos quer, e recebe exatamente aqueles.",
+    images: ["/og-lavra.png"],
+  },
+  alternates: { canonical: "https://dataforge-lang.vercel.app/docs/lavra" },
 };
 
 const blocos: Bloco[] = [

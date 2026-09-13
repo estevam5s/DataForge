@@ -3,10 +3,41 @@ import type { Metadata } from 'next';
 import { CodeBlock } from '@/components/CodeBlock';
 import { Callout, Card, CardGrid, DocPage, H2, H3, Table } from '@/components/Doc';
 
+const DESCRICAO =
+  'A documentação do DataForge: mais de 190 páginas, 234 exercícios que ' +
+  'verificam o próprio resultado com assert, e cada trecho de código ' +
+  'compilado a cada mudança. Linguagem, biblioteca, frameworks e ferramentas.';
+
 export const metadata: Metadata = {
   title: 'Introdução',
-  description:
-    'DataForge é uma linguagem interpretada com vocabulário próprio, tipos verificados, pattern matching estrutural e pipelines nativos.',
+  description: DESCRICAO,
+  // A '/docs' é a segunda página mais compartilhada, e merece o card
+  // próprio: quem manda o link da documentação está mandando outra
+  // coisa que não a página inicial.
+  openGraph: {
+    type: 'article',
+    locale: 'pt_BR',
+    url: 'https://dataforge-lang.vercel.app/docs',
+    siteName: 'DataForge',
+    title: 'Documentação do DataForge',
+    description: DESCRICAO,
+    images: [
+      {
+        url: '/og-docs.png',
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+        alt: 'Documentação do DataForge',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Documentação do DataForge',
+    description: DESCRICAO,
+    images: ['/og-docs.png'],
+  },
+  alternates: { canonical: 'https://dataforge-lang.vercel.app/docs' },
 };
 
 const headings = [

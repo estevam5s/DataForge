@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 30`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[223](#223-receber-arquivo)", "**Receber arquivo**", ""], ["[224](#224-o-servidor-empurra-sse-e-websocket)", "**O servidor empurra: SSE e WebSocket**", ""]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[225](#225-receber-arquivo)", "**Receber arquivo**", ""], ["[226](#226-o-servidor-empurra-sse-e-websocket)", "**O servidor empurra: SSE e WebSocket**", ""]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "223 · Receber arquivo"},
+  {"h2": "225 · Receber arquivo"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 223 — Receber arquivo
+//  Exercicio 225 — Receber arquivo
 //
 //  O corpo de um pedido era interpretado como JSON ou formulario
 //  simples. Um '<input type="file">' chegava como texto ilegivel, e
@@ -136,7 +136,7 @@ handle Error as e:
 
 IO.delete(acao["caminho"])
 
-out "223 ok — upload"`, lang: 'df', title: `exercicios/30-tempo-real/223_upload.df` },
+out "223 ok — upload"`, lang: 'df', title: `exercicios/30-tempo-real/225_upload.df` },
   {"h3": "O problema"},
   {"p": "O corpo de um pedido era interpretado como JSON ou como formulário simples. Um `<input type=\"file\">` chegava como **texto ilegível**, e com isso toda tela que recebe planilha, foto ou documento ficava de fora do framework."},
   {"h3": "Conceitos"},
@@ -165,9 +165,9 @@ route POST "/importar":
   {"p": "`os.path.basename(\"../../x\")` devolve `x` — a travessia fica neutralizada. Mas um cliente que manda `../../.ssh/authorized_keys` está quebrado ou é hostil, e aceitar como `authorized_keys` **esconde isso de quem lê o log**."},
   {"h3": "Armadilha"},
   {"p": "O limite de corpo do Kiln (`limite_corpo`, 10 MB por padrão) é verificado **antes** de o corpo ser lido na memória. Um upload maior que isso é recusado com 413 sem chegar à rota — ajuste `Kiln.config(app, \"limite_corpo\", …)` antes de aumentar o limite do `salvar_upload`."},
-  {"h2": "224 · O servidor empurra: SSE e WebSocket"},
+  {"h2": "226 · O servidor empurra: SSE e WebSocket"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 224 — O servidor empurra: SSE e WebSocket
+//  Exercicio 226 — O servidor empurra: SSE e WebSocket
 //
 //  | Precisa                          | Use        |
 //  |----------------------------------|------------|
@@ -269,7 +269,7 @@ Kiln.stop(app)
 outra := Kiln.sala("teste")
 assert outra.quantos() is 0
 
-out "224 ok — sse e websocket"`, lang: 'df', title: `exercicios/30-tempo-real/224_sse_e_websocket.df` },
+out "224 ok — sse e websocket"`, lang: 'df', title: `exercicios/30-tempo-real/226_sse_e_websocket.df` },
   {"h3": "Qual dos três usar"},
   {"table": {"head": ["Precisa", "Use", "Por quê"], "rows": [["o servidor avisa, o cliente só ouve", "**SSE**", "HTTP comum, reconecta sozinho, passa em qualquer proxy"], ["os dois falam", "**WebSocket**", "duas vias, quadro binário"], ["um arquivo grande sem carregar na memória", "**`Kiln.stream`**", "cada pedaço sai enquanto o próximo é calculado"]]}},
   {"p": "**SSE primeiro, sempre que servir.** Ele é HTTP comum: um proxy velho no caminho não o quebra, e o navegador reconecta sem uma linha de código."},
@@ -328,10 +328,10 @@ Kiln.get(app, "/ws", lambda req: Kiln.render(app, "chat"))`, lang: 'df' },
   {"h3": "Armadilha"},
   {"p": "Uma mensagem grande chega **partida** em vários quadros de continuação, e um `recv` pode devolver menos bytes do que se pediu. O `Soquete` junta os dois casos; tratar o retorno curto como o quadro inteiro corromperia a mensagem seguinte, e o sintoma é uma conexão que funciona e de repente para."},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/30-tempo-real/223_upload.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/30-tempo-real/225_upload.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '223-receber-arquivo', text: "223 · Receber arquivo", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'campos-e-arquivos-ficam-separados', text: "Campos e arquivos ficam separados", level: 3 as const }, { id: 'as-tres-recusas-de-salvarupload', text: "As três recusas de `salvar_upload`", level: 3 as const }, { id: 'por-que-recusar-e-nao-sanear', text: "Por que recusar, e não sanear", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }, { id: '224-o-servidor-empurra-sse-e-websocket', text: "224 · O servidor empurra: SSE e WebSocket", level: 2 as const }, { id: 'qual-dos-tres-usar', text: "Qual dos três usar", level: 3 as const }, { id: 'sse', text: "SSE", level: 3 as const }, { id: 'kilnstream', text: "`Kiln.stream`", level: 3 as const }, { id: 'websocket', text: "WebSocket", level: 3 as const }, { id: 'o-metodo-ws', text: "O método `WS`", level: 3 as const }, { id: 'fechar-com-aperto-de-mao', text: "`fechar` com aperto de mão", level: 3 as const }, { id: 'testar', text: "Testar", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '225-receber-arquivo', text: "225 · Receber arquivo", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'campos-e-arquivos-ficam-separados', text: "Campos e arquivos ficam separados", level: 3 as const }, { id: 'as-tres-recusas-de-salvarupload', text: "As três recusas de `salvar_upload`", level: 3 as const }, { id: 'por-que-recusar-e-nao-sanear', text: "Por que recusar, e não sanear", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }, { id: '226-o-servidor-empurra-sse-e-websocket', text: "226 · O servidor empurra: SSE e WebSocket", level: 2 as const }, { id: 'qual-dos-tres-usar', text: "Qual dos três usar", level: 3 as const }, { id: 'sse', text: "SSE", level: 3 as const }, { id: 'kilnstream', text: "`Kiln.stream`", level: 3 as const }, { id: 'websocket', text: "WebSocket", level: 3 as const }, { id: 'o-metodo-ws', text: "O método `WS`", level: 3 as const }, { id: 'fechar-com-aperto-de-mao', text: "`fechar` com aperto de mão", level: 3 as const }, { id: 'testar', text: "Testar", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }];
 
 export default function Pagina() {
   return (

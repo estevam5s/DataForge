@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 25`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[209](#209-a-primeira-suite)", "**A primeira suite**", "escreva testes que dizem o que quebrou, e nao so que quebrou."], ["[210](#210-isolamento-entre-trials)", "**Isolamento entre trials**", "prove que um teste nao contamina o proximo."], ["[211](#211-os-matchers)", "**Os matchers**", "cobre valores de todas as formas, e leia o que a falha diz."], ["[212](#212-dubles-e-fixtures)", "**Dubles e fixtures**", "teste uma regra de negocio sem tocar no banco."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[211](#211-a-primeira-suite)", "**A primeira suite**", "escreva testes que dizem o que quebrou, e nao so que quebrou."], ["[212](#212-isolamento-entre-trials)", "**Isolamento entre trials**", "prove que um teste nao contamina o proximo."], ["[213](#213-os-matchers)", "**Os matchers**", "cobre valores de todas as formas, e leia o que a falha diz."], ["[214](#214-dubles-e-fixtures)", "**Dubles e fixtures**", "teste uma regra de negocio sem tocar no banco."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "209 · A primeira suite"},
+  {"h2": "211 · A primeira suite"},
   {"p": "**Enunciado.** escreva testes que dizem o que quebrou, e nao so que quebrou."},
   { code: `// 'assert' responde "passou?" e nada mais. Quando falha, ele diz que
 // uma expressao deu falso — nao o que se esperava, o que veio, nem
@@ -63,7 +63,7 @@ assert resumo["passou"] is 5, "cinco passaram"
 assert resumo["pendente"] is 1, "um adiado"
 assert resumo["falhou"] is 0, "nenhum falhou"
 assert resumo["verde"] is yes, "a suite esta verde"
-out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/209_primeira_suite.df` },
+out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/211_primeira_suite.df` },
   {"h3": "Conceitos"},
   {"p": "`assert` responde \"passou?\" e nada mais. Quando falha, ele diz que uma expressão deu falso — não o que se esperava, o que veio, nem qual dos quarenta casos era."},
   { code: `crucible "Calculadora":
@@ -83,7 +83,7 @@ out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/209_primeira_suite.
   {"list": ["Um `only` esquecido faz o CI rodar um teste e reportar verde."]},
   {"h3": "Relacionados"},
   {"list": ["[210 — Isolamento](210_isolamento.md)", "[211 — Os matchers](211_matchers.md)"]},
-  {"h2": "210 · Isolamento entre trials"},
+  {"h2": "212 · Isolamento entre trials"},
   {"p": "**Enunciado.** prove que um teste nao contamina o proximo."},
   { code: `// A garantia central do Crucible: cada trial roda no proprio quadro de
 // escopo, com o setup refeito. Um teste que passa sozinho e falha na
@@ -149,7 +149,7 @@ crucible "Aleatorio":
 
 aleatorio := Crucible.run({"aleatorio": yes, "semente": 42})
 assert aleatorio["verde"] is yes, "a ordem nao muda o resultado"
-out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/210_isolamento.df` },
+out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/212_isolamento.df` },
   {"h3": "Conceitos"},
   {"p": "A garantia central do Crucible: cada trial roda no **próprio quadro de escopo**, com o `setup` refeito. Um teste que passa sozinho e falha na suíte seria bug do framework, não do teste."},
   { code: `crucible "Isolamento":
@@ -173,7 +173,7 @@ out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/210_isolamento.df` 
   {"p": "garantir a limpeza."},
   {"h3": "Relacionados"},
   {"list": ["[212 — Dublês e fixtures](212_dubles_e_fixtures.md)"]},
-  {"h2": "211 · Os matchers"},
+  {"h2": "213 · Os matchers"},
   {"p": "**Enunciado.** cobre valores de todas as formas, e leia o que a falha diz."},
   { code: `// Sao 59 matchers. A forma curta cobre igualdade e comparacao; a
 // encadeada, o resto. As duas viram a mesma cobranca.
@@ -251,7 +251,7 @@ out "motivo:", resultado["motivo"]
 out "diferenca:", resultado["diferenca"]
 assert resultado["estado"] is "falhou", "falhou de proposito"
 assert '"b"' in resultado["diferenca"], "aponta a chave que difere"
-out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/211_matchers.df` },
+out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/213_matchers.df` },
   {"h3": "Conceitos"},
   {"p": "São 59 matchers, em nove grupos: igualdade, verdade, tipos, números, texto, coleções, erros, desempenho e saída. `dataforge crucible --matchers` lista todos."},
   {"p": "Duas formas, e as duas viram a mesma cobrança:"},
@@ -268,7 +268,7 @@ expect(2 + 2).to_be(4)            // encadeada`, lang: 'df' },
   {"list": ["`to_raise` precisa de uma **ação**, não de um valor: `expect(lambda => …)`."]},
   {"h3": "Relacionados"},
   {"list": ["[209 — A primeira suíte](209_primeira_suite.md)"]},
-  {"h2": "212 · Dubles e fixtures"},
+  {"h2": "214 · Dubles e fixtures"},
   {"p": "**Enunciado.** teste uma regra de negocio sem tocar no banco."},
   { code: `// Um servico que constroi a propria conexao exige subir PostgreSQL
 // para testar uma validacao de nome. Um que recebe o repositorio por
@@ -344,7 +344,7 @@ resumo := Crucible.run()
 out Crucible.report()
 assert resumo["verde"] is yes, "todos passam"
 assert resumo["passou"] is 5, "cinco trials"
-out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/212_dubles_e_fixtures.df` },
+out "ok"`, lang: 'df', title: `exercicios/25-testes-crucible/214_dubles_e_fixtures.df` },
   {"h3": "Conceitos"},
   {"p": "Um serviço que constrói a própria conexão exige subir PostgreSQL para testar uma validação de nome. Um que **recebe** o repositório por parâmetro se testa com um dublê, em microssegundos."},
   { code: `repo := Crucible.mock("repositorio")
@@ -366,10 +366,10 @@ expect repo.chamado_com("salvar", "Ana") is yes`, lang: 'df' },
   {"h3": "Relacionados"},
   {"list": ["[210 — Isolamento](210_isolamento.md)", "[206 — Relações](../24-banco-de-dados/206_relacoes_sem_n_mais_um.md)"]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/25-testes-crucible/209_primeira_suite.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/25-testes-crucible/211_primeira_suite.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '209-a-primeira-suite', text: "209 · A primeira suite", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '210-isolamento-entre-trials', text: "210 · Isolamento entre trials", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '211-os-matchers', text: "211 · Os matchers", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '212-dubles-e-fixtures', text: "212 · Dubles e fixtures", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '211-a-primeira-suite', text: "211 · A primeira suite", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '212-isolamento-entre-trials', text: "212 · Isolamento entre trials", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '213-os-matchers', text: "213 · Os matchers", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '214-dubles-e-fixtures', text: "214 · Dubles e fixtures", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }];
 
 export default function Pagina() {
   return (

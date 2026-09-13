@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 19`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[169](#169-acoes-assincronas)", "**Acoes assincronas**", "declare acoes async e aguarde o resultado com await."], ["[170](#170-threads-e-paralelismo)", "**Threads e paralelismo**", "execute trabalho em segundo plano."], ["[171](#171-canais-entre-threads)", "**Canais entre threads**", "passe valores entre threads com seguranca."], ["[172](#172-liberacao-garantida)", "**Liberacao garantida**", "garanta limpeza mesmo quando algo falha."], ["[173](#173-erros-e-retentativas)", "**Erros e retentativas**", "trate falhas temporarias com retry e propagacao controlada."], ["[174](#174-projeto-fila-de-trabalho)", "**Projeto: fila de trabalho**", "monte um sistema de tarefas com fila, trabalhadores e relatorio."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[170](#170-acoes-assincronas)", "**Acoes assincronas**", "declare acoes async e aguarde o resultado com await."], ["[171](#171-threads-e-paralelismo)", "**Threads e paralelismo**", "execute trabalho em segundo plano."], ["[172](#172-canais-entre-threads)", "**Canais entre threads**", "passe valores entre threads com seguranca."], ["[173](#173-liberacao-garantida)", "**Liberacao garantida**", "garanta limpeza mesmo quando algo falha."], ["[174](#174-erros-e-retentativas)", "**Erros e retentativas**", "trate falhas temporarias com retry e propagacao controlada."], ["[175](#175-projeto-fila-de-trabalho)", "**Projeto: fila de trabalho**", "monte um sistema de tarefas com fila, trabalhadores e relatorio."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "169 · Acoes assincronas"},
+  {"h2": "170 · Acoes assincronas"},
   {"p": "**Enunciado.** declare acoes async e aguarde o resultado com await."},
   { code: `// Uma acao async representa trabalho que pode demorar
 async action buscar_usuario(id):
@@ -115,7 +115,7 @@ assert tempo_juntas smaller tempo_sequencial, "quatro esperas juntas custam meno
 // A tarefa nao e o valor: usar uma sem 'await' e o engano mais comum.
 pendente := buscar_usuario(9)
 assert typeof(pendente) isnt "Vault", "a chamada devolve a tarefa"
-assert await pendente is {"id": 9, "nome": "Usuario 9", "ativo": yes}, "o await entrega o vault"`, lang: 'df', title: `exercicios/19-concorrencia/169_async_await.df` },
+assert await pendente is {"id": 9, "nome": "Usuario 9", "ativo": yes}, "o await entrega o vault"`, lang: 'df', title: `exercicios/19-concorrencia/170_async_await.df` },
   {"h3": "Conceitos"},
   { code: `async action buscar_usuario(id):
     yield {"id": id, "nome": $"Usuario {id}"}
@@ -173,7 +173,7 @@ uma a uma: 0.4s`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Escreva uma cadeia de três ações async que dependem uma da outra.", "Combine `await` com `retry` para uma busca que pode falhar temporariamente.", "Troque `T.sleep(0.1)` por uma conta pesada e meça de novo: o ganho some, e"]},
   {"p": "esse é o limite do GIL aparecendo."},
-  {"h2": "170 · Threads e paralelismo"},
+  {"h2": "171 · Threads e paralelismo"},
   {"p": "**Enunciado.** execute trabalho em segundo plano."},
   { code: `adopt Arcane.Time as Time
 
@@ -291,7 +291,7 @@ wait 400
 
 out ""
 out $"com Conc.contador(): {atomico.valor()} — e sempre 2000"
-assert atomico.valor() is 2000, "o contador atomico nao perde nada"`, lang: 'df', title: `exercicios/19-concorrencia/170_threads.df` },
+assert atomico.valor() is 2000, "o contador atomico nao perde nada"`, lang: 'df', title: `exercicios/19-concorrencia/171_threads.df` },
   {"h3": "`thread`"},
   { code: `thread:
     cycle i from 1 to 3:
@@ -376,7 +376,7 @@ com Conc.contador(): 2000 — e sempre 2000`, lang: 'text' },
   {"list": ["Ponha carga na máquina (`yes > /dev/null &` algumas vezes) e rode de"]},
   {"p": "novo: a corrida aparece mais."},
   {"list": ["Troque o `Conc.contador()` pelo vault e veja o `assert` do fim falhar."]},
-  {"h2": "171 · Canais entre threads"},
+  {"h2": "172 · Canais entre threads"},
   {"p": "**Enunciado.** passe valores entre threads com seguranca."},
   { code: `// Um canal e uma fila com trava: seguro entre threads
 channel fila
@@ -465,7 +465,7 @@ persist yes:
     t := tarefas.receive()
     given t is void:
         halt
-    out $"  executando: {t}"`, lang: 'df', title: `exercicios/19-concorrencia/171_canais.df` },
+    out $"  executando: {t}"`, lang: 'df', title: `exercicios/19-concorrencia/172_canais.df` },
   {"h3": "O que é um canal"},
   { code: `channel fila
 fila.send(valor)
@@ -524,7 +524,7 @@ cada thread trabalhou no proprio escopo e reportou pelo canal
   executando: publicar`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Monte um pool: N threads consumindo da mesma fila de tarefas.", "Use dois canais — um de entrada, um de saída — para um pipeline concorrente."]},
-  {"h2": "172 · Liberacao garantida"},
+  {"h2": "173 · Liberacao garantida"},
   {"p": "**Enunciado.** garanta limpeza mesmo quando algo falha."},
   { code: `adopt Arcane.IO as IO
 
@@ -617,7 +617,7 @@ handle e:
 
 out ""
 out trilha
-assert trilha is ["interna limpou", "externa limpou", "topo tratou"], "de dentro para fora"`, lang: 'df', title: `exercicios/19-concorrencia/172_defer_recursos.df` },
+assert trilha is ["interna limpou", "externa limpou", "topo tratou"], "de dentro para fora"`, lang: 'df', title: `exercicios/19-concorrencia/173_defer_recursos.df` },
   {"h3": "O problema"},
   { code: `action processar():
     arquivo := abrir("dados.txt")
@@ -673,7 +673,7 @@ o arquivo temporario nao sobreviveu a nenhum dos caminhos
 [interna limpou, externa limpou, topo tratou]`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Combine `defer` com `DB.close` numa ação que abre banco.", "Escreva `com_arquivo(caminho, acao)` que abre, chama e fecha com `defer`."]},
-  {"h2": "173 · Erros e retentativas"},
+  {"h2": "174 · Erros e retentativas"},
   {"p": "**Enunciado.** trate falhas temporarias com retry e propagacao controlada."},
   { code: `adopt Arcane.Logging as Log
 
@@ -772,7 +772,7 @@ cycle m in ["timeout ao conectar", "senha invalida", "servico indisponivel", "40
     out $"  {m.pad_end(26)} -> {classificar_erro(m)}"
 
 assert classificar_erro("timeout ao conectar") is "tentar de novo", "temporario"
-assert classificar_erro("senha invalida") is "desistir", "permanente"`, lang: 'df', title: `exercicios/19-concorrencia/173_erros_concorrentes.df` },
+assert classificar_erro("senha invalida") is "desistir", "permanente"`, lang: 'df', title: `exercicios/19-concorrencia/174_erros_concorrentes.df` },
   {"h3": "`retry`"},
   { code: `retry 5:
     resultado := chamada_instavel()
@@ -832,7 +832,7 @@ espera["ms"] := espera["ms"] * 2`, lang: 'df' },
   404 nao encontrado         -> desistir`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Escreva `retry_inteligente(acao, n)` que só repete erros temporários.", "Acrescente um limite total de tempo além do número de tentativas."]},
-  {"h2": "174 · Projeto: fila de trabalho"},
+  {"h2": "175 · Projeto: fila de trabalho"},
   {"p": "**Enunciado.** monte um sistema de tarefas com fila, trabalhadores e relatorio."},
   { code: `adopt Arcane.Collections as Col
 adopt Arcane.Time as Time
@@ -956,7 +956,7 @@ given len(falhadas) bigger 0:
         t := h["tarefa"]
         fila.push(t, 0)
         out $"  {t.nome} volta com prioridade maxima"
-    assert fila.size() is 1, "uma tarefa reenfileirada"`, lang: 'df', title: `exercicios/19-concorrencia/174_projeto_worker.df` },
+    assert fila.size() is 1, "uma tarefa reenfileirada"`, lang: 'df', title: `exercicios/19-concorrencia/175_projeto_worker.df` },
   {"h3": "A arquitetura"},
   { code: `MODELO       enum Estado, record Tarefa
 FILA         Col.priority_queue
@@ -1024,10 +1024,10 @@ ordem de execucao (prioridade): [1, 1, 5, 7, 8, 9]
   {"h3": "Experimente"},
   {"list": ["Acrescente um contador de tentativas e descarte após 3 falhas.", "Use `thread` + `channel` para processar várias tarefas em paralelo.", "Persista o histórico com `Arcane.Database`."]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/19-concorrencia/169_async_await.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/19-concorrencia/170_async_await.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '169-acoes-assincronas', text: "169 · Acoes assincronas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'para-que-serve', text: "Para que serve", level: 3 as const }, { id: 'o-que-acelera-e-o-que-nao', text: "O que acelera e o que não", level: 3 as const }, { id: 'a-tarefa-nao-e-o-valor', text: "A tarefa não é o valor", level: 3 as const }, { id: 'compor', text: "Compor", level: 3 as const }, { id: 'erros', text: "Erros", level: 3 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '170-threads-e-paralelismo', text: "170 · Threads e paralelismo", level: 2 as const }, { id: 'thread', text: "`thread`", level: 3 as const }, { id: 'parallel', text: "`parallel`", level: 3 as const }, { id: 'a-condicao-de-corrida', text: "A condição de corrida", level: 3 as const }, { id: 'como-evitar', text: "Como evitar", level: 3 as const }, { id: 'regra-pratica', text: "Regra prática", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '171-canais-entre-threads', text: "171 · Canais entre threads", level: 2 as const }, { id: 'o-que-e-um-canal', text: "O que é um canal", level: 3 as const }, { id: 'o-padrao-que-resolve-a-corrida', text: "O padrão que resolve a corrida", level: 3 as const }, { id: 'recolher-tudo', text: "Recolher tudo", level: 3 as const }, { id: 'fila-de-trabalho', text: "Fila de trabalho", level: 3 as const }, { id: 'limitacao-a-conhecer', text: "Limitação a conhecer", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '172-liberacao-garantida', text: "172 · Liberacao garantida", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'defer', text: "`defer`", level: 3 as const }, { id: 'declare-junto-de-quem-adquire', text: "Declare junto de quem adquire", level: 3 as const }, { id: 'lifo-o-ultimo-declarado-roda-primeiro', text: "LIFO: o último declarado roda primeiro", level: 3 as const }, { id: 'em-cadeia', text: "Em cadeia", level: 3 as const }, { id: 'defer-ou-ensure', text: "`defer` ou `ensure`?", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '173-erros-e-retentativas', text: "173 · Erros e retentativas", level: 2 as const }, { id: 'retry', text: "`retry`", level: 3 as const }, { id: 'nem-todo-erro-merece-retry', text: "Nem todo erro merece retry", level: 3 as const }, { id: 'espera-crescente', text: "Espera crescente", level: 3 as const }, { id: 'registrar-e-repassar', text: "Registrar e repassar", level: 3 as const }, { id: 'regra-de-ouro', text: "Regra de ouro", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '174-projeto-fila-de-trabalho', text: "174 · Projeto: fila de trabalho", level: 2 as const }, { id: 'a-arquitetura', text: "A arquitetura", level: 3 as const }, { id: 'fila-de-prioridade', text: "Fila de prioridade", level: 3 as const }, { id: 'estado-como-enum', text: "Estado como enum", level: 3 as const }, { id: 'retentativa-por-tarefa', text: "Retentativa por tarefa", level: 3 as const }, { id: 'registrar-o-resultado-nao-so-o-sucesso', text: "Registrar o resultado, não só o sucesso", level: 3 as const }, { id: 'reenfileirar-com-prioridade-maxima', text: "Reenfileirar com prioridade máxima", level: 3 as const }, { id: 'histograma-em-texto', text: "Histograma em texto", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '170-acoes-assincronas', text: "170 · Acoes assincronas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'para-que-serve', text: "Para que serve", level: 3 as const }, { id: 'o-que-acelera-e-o-que-nao', text: "O que acelera e o que não", level: 3 as const }, { id: 'a-tarefa-nao-e-o-valor', text: "A tarefa não é o valor", level: 3 as const }, { id: 'compor', text: "Compor", level: 3 as const }, { id: 'erros', text: "Erros", level: 3 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '171-threads-e-paralelismo', text: "171 · Threads e paralelismo", level: 2 as const }, { id: 'thread', text: "`thread`", level: 3 as const }, { id: 'parallel', text: "`parallel`", level: 3 as const }, { id: 'a-condicao-de-corrida', text: "A condição de corrida", level: 3 as const }, { id: 'como-evitar', text: "Como evitar", level: 3 as const }, { id: 'regra-pratica', text: "Regra prática", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '172-canais-entre-threads', text: "172 · Canais entre threads", level: 2 as const }, { id: 'o-que-e-um-canal', text: "O que é um canal", level: 3 as const }, { id: 'o-padrao-que-resolve-a-corrida', text: "O padrão que resolve a corrida", level: 3 as const }, { id: 'recolher-tudo', text: "Recolher tudo", level: 3 as const }, { id: 'fila-de-trabalho', text: "Fila de trabalho", level: 3 as const }, { id: 'limitacao-a-conhecer', text: "Limitação a conhecer", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '173-liberacao-garantida', text: "173 · Liberacao garantida", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'defer', text: "`defer`", level: 3 as const }, { id: 'declare-junto-de-quem-adquire', text: "Declare junto de quem adquire", level: 3 as const }, { id: 'lifo-o-ultimo-declarado-roda-primeiro', text: "LIFO: o último declarado roda primeiro", level: 3 as const }, { id: 'em-cadeia', text: "Em cadeia", level: 3 as const }, { id: 'defer-ou-ensure', text: "`defer` ou `ensure`?", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '174-erros-e-retentativas', text: "174 · Erros e retentativas", level: 2 as const }, { id: 'retry', text: "`retry`", level: 3 as const }, { id: 'nem-todo-erro-merece-retry', text: "Nem todo erro merece retry", level: 3 as const }, { id: 'espera-crescente', text: "Espera crescente", level: 3 as const }, { id: 'registrar-e-repassar', text: "Registrar e repassar", level: 3 as const }, { id: 'regra-de-ouro', text: "Regra de ouro", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '175-projeto-fila-de-trabalho', text: "175 · Projeto: fila de trabalho", level: 2 as const }, { id: 'a-arquitetura', text: "A arquitetura", level: 3 as const }, { id: 'fila-de-prioridade', text: "Fila de prioridade", level: 3 as const }, { id: 'estado-como-enum', text: "Estado como enum", level: 3 as const }, { id: 'retentativa-por-tarefa', text: "Retentativa por tarefa", level: 3 as const }, { id: 'registrar-o-resultado-nao-so-o-sucesso', text: "Registrar o resultado, não só o sucesso", level: 3 as const }, { id: 'reenfileirar-com-prioridade-maxima', text: "Reenfileirar com prioridade máxima", level: 3 as const }, { id: 'histograma-em-texto', text: "Histograma em texto", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
 
 export default function Pagina() {
   return (

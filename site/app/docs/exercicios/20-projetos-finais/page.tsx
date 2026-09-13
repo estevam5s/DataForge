@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 20`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[175](#175-projeto-ferramenta-de-linha-de-comando)", "**Projeto: ferramenta de linha de comando**", "escreva um utilitario que analisa arquivos e imprime um relatorio."], ["[176](#176-projeto-analise-de-dados)", "**Projeto: analise de dados**", "carregue, limpe, agregue e visualize um conjunto de dados."], ["[177](#177-projeto-mini-linguagem)", "**Projeto: mini linguagem**", "escreva um interpretador de expressoes dentro do DataForge."], ["[178](#178-projeto-sistema-de-biblioteca)", "**Projeto: sistema de biblioteca**", "integre records, enums, banco, validacao e relatorios."], ["[179](#179-revisao-todos-os-conceitos)", "**Revisao: todos os conceitos**", "um programa que exercita cada recurso da linguagem."], ["[180](#180-encerramento-e-proximos-passos)", "**Encerramento e proximos passos**", "o que voce aprendeu, o que a linguagem ainda nao faz e para onde ir."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[176](#176-projeto-ferramenta-de-linha-de-comando)", "**Projeto: ferramenta de linha de comando**", "escreva um utilitario que analisa arquivos e imprime um relatorio."], ["[177](#177-projeto-analise-de-dados)", "**Projeto: analise de dados**", "carregue, limpe, agregue e visualize um conjunto de dados."], ["[178](#178-projeto-mini-linguagem)", "**Projeto: mini linguagem**", "escreva um interpretador de expressoes dentro do DataForge."], ["[179](#179-projeto-sistema-de-biblioteca)", "**Projeto: sistema de biblioteca**", "integre records, enums, banco, validacao e relatorios."], ["[180](#180-revisao-todos-os-conceitos)", "**Revisao: todos os conceitos**", "um programa que exercita cada recurso da linguagem."], ["[181](#181-encerramento-e-proximos-passos)", "**Encerramento e proximos passos**", "o que voce aprendeu, o que a linguagem ainda nao faz e para onde ir."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "175 · Projeto: ferramenta de linha de comando"},
+  {"h2": "176 · Projeto: ferramenta de linha de comando"},
   {"p": "**Enunciado.** escreva um utilitario que analisa arquivos e imprime um relatorio."},
   { code: `adopt Arcane.IO as IO
 adopt Arcane.Text as Text
@@ -127,7 +127,7 @@ cycle nome in IO.list_dir(pasta):
     IO.delete(IO.join(pasta, nome))
 IO.delete(pasta)
 out ""
-out "  (pasta temporaria removida)"`, lang: 'df', title: `exercicios/20-projetos-finais/175_cli_arquivos.df` },
+out "  (pasta temporaria removida)"`, lang: 'df', title: `exercicios/20-projetos-finais/176_cli_arquivos.df` },
   {"h3": "O que ele faz"},
   {"p": "1. Lê cada arquivo da pasta 2. Extrai nome, extensão, tamanho e contagem de linhas 3. Agrupa por extensão com um histograma 4. Encontra o maior e o menor 5. Busca um termo em todos os arquivos"},
   {"h3": "Modelo primeiro"},
@@ -183,7 +183,7 @@ cycle l in conteudo.lines():
     notas.txt:3: linha 3`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Aceite o caminho e o termo de busca como argumentos.", "Percorra subpastas recursivamente.", "Acrescente `--json` para saída legível por máquina."]},
-  {"h2": "176 · Projeto: analise de dados"},
+  {"h2": "177 · Projeto: analise de dados"},
   {"p": "**Enunciado.** carregue, limpe, agregue e visualize um conjunto de dados."},
   { code: `adopt Arcane.Analytics as An
 adopt Arcane.Math as Math
@@ -317,7 +317,7 @@ out $"  crescimento no periodo: {crescimento}%"
 out $"  ticket medio: R$ {round(Math.mean(valores), 2)}"
 
 assert melhor["nome"] is "Carla", "Carla vendeu mais"
-assert crescimento bigger 0, "houve crescimento"`, lang: 'df', title: `exercicios/20-projetos-finais/176_analise_dados.df` },
+assert crescimento bigger 0, "houve crescimento"`, lang: 'df', title: `exercicios/20-projetos-finais/177_analise_dados.df` },
   {"h3": "As cinco etapas"},
   { code: `1. MODELAR      record Venda
 2. DESCREVER    média, mediana, desvio, quartis
@@ -375,7 +375,7 @@ An.predict_linear(modelo, 5)          // extrapola`, lang: 'df' },
   previsao para o mes 5: R$ 47660.0`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Acrescente uma coluna de custo e calcule a margem.", "Compare o crescimento de cada vendedor separadamente.", "Exporte o relatório como CSV com `Serde.records_to_csv`."]},
-  {"h2": "177 · Projeto: mini linguagem"},
+  {"h2": "178 · Projeto: mini linguagem"},
   {"p": "**Enunciado.** escreva um interpretador de expressoes dentro do DataForge."},
   { code: `adopt Arcane.Text as Text
 
@@ -564,7 +564,7 @@ assert arvore["op"] is "+", "soma na raiz"
 assert arvore["dir"]["op"] is "*", "multiplicacao mais funda: precedencia correta"
 
 out ""
-out "  a multiplicacao ficou mais funda na arvore — precedencia respeitada"`, lang: 'df', title: `exercicios/20-projetos-finais/177_interpretador.df` },
+out "  a multiplicacao ficou mais funda na arvore — precedencia respeitada"`, lang: 'df', title: `exercicios/20-projetos-finais/178_interpretador.df` },
   {"h3": "Por que este exercício"},
   {"p": "Uma linguagem capaz de implementar outra linguagem é uma linguagem completa. Este é o mesmo desenho do interpretador do próprio DataForge, em escala reduzida."},
   {"h3": "As três fases"},
@@ -640,7 +640,7 @@ calcular("x + y", ambiente)     // 14.0`, lang: 'df' },
   a multiplicacao ficou mais funda na arvore — precedencia respeitada`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Acrescente `^` para potência (associando à **direita**).", "Adicione chamadas de função: `sqrt(16)`, `max(1, 2)`.", "Implemente atribuição: `x = 5` e depois `x + 1`.", "Escreva um \"compilador\" que gera notação polonesa reversa a partir da árvore."]},
-  {"h2": "178 · Projeto: sistema de biblioteca"},
+  {"h2": "179 · Projeto: sistema de biblioteca"},
   {"p": "**Enunciado.** integre records, enums, banco, validacao e relatorios."},
   { code: `adopt Arcane.Database as DB
 adopt Arcane.Time as Time
@@ -819,7 +819,7 @@ assert emprestados is 2, "dois emprestados"
 
 DB.close(conn)
 out ""
-out "  (conexao fechada)"`, lang: 'df', title: `exercicios/20-projetos-finais/178_sistema_completo.df` },
+out "  (conexao fechada)"`, lang: 'df', title: `exercicios/20-projetos-finais/179_sistema_completo.df` },
   {"h3": "A arquitetura"},
   { code: `MODELO         record Livro, record Emprestimo, enum Situacao
 REGRAS         situacao_do, multa_de, validar_livro   ← puras
@@ -885,7 +885,7 @@ steady MULTA_POR_DIA := 2.5`, lang: 'df' },
   multas acumuladas: R$ 15.0`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Acrescente devolução, com registro da data.", "Use `Arcane.Time` para calcular os dias a partir de datas reais.", "Exponha como API HTTP reaproveitando as regras.", "Escreva `tests/regras_test.df` cobrindo prazo, atraso e multa."]},
-  {"h2": "179 · Revisao: todos os conceitos"},
+  {"h2": "180 · Revisao: todos os conceitos"},
   {"p": "**Enunciado.** um programa que exercita cada recurso da linguagem."},
   { code: `adopt Arcane.Text as Text
 adopt Arcane.Collections as Col
@@ -1063,7 +1063,7 @@ assert descrever(500) is "inteiro grande", "pattern com guarda"
 assert(spawn Quadrado(4)).area() is 16, "heranca"
 
 out ""
-out Text.box("Tudo verificado")`, lang: 'df', title: `exercicios/20-projetos-finais/179_revisao_geral.df` },
+out Text.box("Tudo verificado")`, lang: 'df', title: `exercicios/20-projetos-finais/180_revisao_geral.df` },
   {"h3": "O roteiro"},
   {"table": {"head": ["#", "Tema", "Recursos"], "rows": [["1", "Tipos", "anotações, `steady`, `typeof`"], ["2", "Operadores", "`~/`, `**`, encadeamento, `in`, `??`"], ["3", "Fluxo", "ternário, `cycle`, `skip`"], ["4", "Coleções", "compreensões, fatiamento"], ["5", "Desestruturação", "`...resto`, spread"], ["6", "Ações", "alta ordem, lambda, padrões"], ["7", "Records/enums", "métodos, `with`"], ["8", "Blueprints", "herança, polimorfismo"], ["9", "Pattern matching", "tipo, sequência, record, vault, guarda"], ["10", "Erros", "`guard`, `defer`, `monitor`, `ensure`"], ["11", "Pipelines", "`sift`, `morph`, `distill`"], ["12", "Generators", "`stream action`, `emit`, infinito"], ["13", "Stdlib", "`Arcane.Collections`"], ["14", "Concorrência", "`thread`, `channel`"]]}},
   {"h3": "Combinações que valem notar"},
@@ -1099,7 +1099,7 @@ fib().take(8)`, lang: 'df' },
   {"table": {"head": ["Titubeou em", "Volte para"], "rows": [["tipos, `typeof`", "módulo 11"], ["records, enums", "módulo 12"], ["desestruturação, spread", "módulo 13"], ["`match` com padrões", "módulo 14"], ["`stream action`", "módulo 15"], ["`adopt`, `relay`", "módulo 16"]]}},
   {"h3": "Experimente"},
   {"list": ["Comente um bloco e preveja o que quebra nos `assert`.", "Reescreva o pipeline como compreensão, e vice-versa.", "Acrescente um bloco 15 usando um recurso que faltou."]},
-  {"h2": "180 · Encerramento e proximos passos"},
+  {"h2": "181 · Encerramento e proximos passos"},
   {"p": "**Enunciado.** o que voce aprendeu, o que a linguagem ainda nao faz e para onde ir."},
   { code: `adopt Arcane.Text as Text
 adopt Arcane.Collections as Col
@@ -1223,7 +1223,7 @@ out ""
 out "  Rode a suite inteira com:"
 out "    python3 exercicios/run_all.py"
 out ""
-out "  Contribua: o roadmap esta em doc/ANALISE_E_ROADMAP.md"`, lang: 'df', title: `exercicios/20-projetos-finais/180_proximos_passos.df` },
+out "  Contribua: o roadmap esta em doc/ANALISE_E_ROADMAP.md"`, lang: 'df', title: `exercicios/20-projetos-finais/181_proximos_passos.df` },
   {"h3": "O que você percorreu"},
   {"p": "180 exercícios em 20 módulos, do `out \"Ola\"` a um interpretador de expressões com lexer, parser e avaliador próprios."},
   {"p": "**Módulos 1–10: a base**"},
@@ -1265,10 +1265,10 @@ python3 -m pytest tests/ -q           # a suíte do interpretador`, lang: 'bash'
   {"list": ["Verificação de exaustividade em `match` sobre enum", "Contrato de trait no analisador estático", "Novas funções nos módulos `Arcane.*`", "Mais exercícios"]},
   {"p": "Cada recurso novo pede: sintaxe documentada, teste de regressão, exercício didático e a suíte existente continuando verde."},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/20-projetos-finais/175_cli_arquivos.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/20-projetos-finais/176_cli_arquivos.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '175-projeto-ferramenta-de-linha-de-comando', text: "175 · Projeto: ferramenta de linha de comando", level: 2 as const }, { id: 'o-que-ele-faz', text: "O que ele faz", level: 3 as const }, { id: 'modelo-primeiro', text: "Modelo primeiro", level: 3 as const }, { id: 'formatacao-legivel', text: "Formatação legível", level: 3 as const }, { id: 'colunas-alinhadas', text: "Colunas alinhadas", level: 3 as const }, { id: 'histograma-proporcional', text: "Histograma proporcional", level: 3 as const }, { id: 'busca-com-numero-de-linha', text: "Busca com número de linha", level: 3 as const }, { id: 'limpeza', text: "Limpeza", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '176-projeto-analise-de-dados', text: "176 · Projeto: analise de dados", level: 2 as const }, { id: 'as-cinco-etapas', text: "As cinco etapas", level: 3 as const }, { id: 'modelar-antes-de-analisar', text: "Modelar antes de analisar", level: 3 as const }, { id: 'media-e-mediana-contam-historias-diferentes', text: "Média e mediana contam histórias diferentes", level: 3 as const }, { id: 'quartis-e-outliers', text: "Quartis e outliers", level: 3 as const }, { id: 'histograma-proporcional', text: "Histograma proporcional", level: 3 as const }, { id: 'correlacao-e-regressao', text: "Correlação e regressão", level: 3 as const }, { id: 'media-movel', text: "Média móvel", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '177-projeto-mini-linguagem', text: "177 · Projeto: mini linguagem", level: 2 as const }, { id: 'por-que-este-exercicio', text: "Por que este exercício", level: 3 as const }, { id: 'as-tres-fases', text: "As três fases", level: 3 as const }, { id: 'fase-1-lexer', text: "Fase 1 — Lexer", level: 3 as const }, { id: 'fase-2-parser-de-descida-recursiva', text: "Fase 2 — Parser de descida recursiva", level: 3 as const }, { id: 'fase-3-avaliador', text: "Fase 3 — Avaliador", level: 3 as const }, { id: 'erros-em-cada-fase', text: "Erros em cada fase", level: 3 as const }, { id: 'ambiente-de-variaveis', text: "Ambiente de variáveis", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '178-projeto-sistema-de-biblioteca', text: "178 · Projeto: sistema de biblioteca", level: 2 as const }, { id: 'a-arquitetura', text: "A arquitetura", level: 3 as const }, { id: 'regras-puras', text: "Regras puras", level: 3 as const }, { id: 'constantes-com-nome', text: "Constantes com nome", level: 3 as const }, { id: 'validar-e-converter-na-fronteira', text: "Validar e converter na fronteira", level: 3 as const }, { id: 'regra-de-negocio-no-banco', text: "Regra de negócio no banco", level: 3 as const }, { id: 'agrupar-por-expressao', text: "Agrupar por expressão", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '179-revisao-todos-os-conceitos', text: "179 · Revisao: todos os conceitos", level: 2 as const }, { id: 'o-roteiro', text: "O roteiro", level: 3 as const }, { id: 'combinacoes-que-valem-notar', text: "Combinações que valem notar", level: 3 as const }, { id: 'autoavaliacao', text: "Autoavaliação", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '180-encerramento-e-proximos-passos', text: "180 · Encerramento e proximos passos", level: 2 as const }, { id: 'o-que-voce-percorreu', text: "O que você percorreu", level: 3 as const }, { id: 'o-que-a-linguagem-tem-hoje', text: "O que a linguagem tem hoje", level: 3 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 3 as const }, { id: 'o-ciclo-de-trabalho', text: "O ciclo de trabalho", level: 3 as const }, { id: 'desafios-para-continuar', text: "Desafios para continuar", level: 3 as const }, { id: 'documentacao', text: "Documentação", level: 3 as const }, { id: 'rodando-tudo', text: "Rodando tudo", level: 3 as const }, { id: 'contribuir', text: "Contribuir", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '176-projeto-ferramenta-de-linha-de-comando', text: "176 · Projeto: ferramenta de linha de comando", level: 2 as const }, { id: 'o-que-ele-faz', text: "O que ele faz", level: 3 as const }, { id: 'modelo-primeiro', text: "Modelo primeiro", level: 3 as const }, { id: 'formatacao-legivel', text: "Formatação legível", level: 3 as const }, { id: 'colunas-alinhadas', text: "Colunas alinhadas", level: 3 as const }, { id: 'histograma-proporcional', text: "Histograma proporcional", level: 3 as const }, { id: 'busca-com-numero-de-linha', text: "Busca com número de linha", level: 3 as const }, { id: 'limpeza', text: "Limpeza", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '177-projeto-analise-de-dados', text: "177 · Projeto: analise de dados", level: 2 as const }, { id: 'as-cinco-etapas', text: "As cinco etapas", level: 3 as const }, { id: 'modelar-antes-de-analisar', text: "Modelar antes de analisar", level: 3 as const }, { id: 'media-e-mediana-contam-historias-diferentes', text: "Média e mediana contam histórias diferentes", level: 3 as const }, { id: 'quartis-e-outliers', text: "Quartis e outliers", level: 3 as const }, { id: 'histograma-proporcional', text: "Histograma proporcional", level: 3 as const }, { id: 'correlacao-e-regressao', text: "Correlação e regressão", level: 3 as const }, { id: 'media-movel', text: "Média móvel", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '178-projeto-mini-linguagem', text: "178 · Projeto: mini linguagem", level: 2 as const }, { id: 'por-que-este-exercicio', text: "Por que este exercício", level: 3 as const }, { id: 'as-tres-fases', text: "As três fases", level: 3 as const }, { id: 'fase-1-lexer', text: "Fase 1 — Lexer", level: 3 as const }, { id: 'fase-2-parser-de-descida-recursiva', text: "Fase 2 — Parser de descida recursiva", level: 3 as const }, { id: 'fase-3-avaliador', text: "Fase 3 — Avaliador", level: 3 as const }, { id: 'erros-em-cada-fase', text: "Erros em cada fase", level: 3 as const }, { id: 'ambiente-de-variaveis', text: "Ambiente de variáveis", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '179-projeto-sistema-de-biblioteca', text: "179 · Projeto: sistema de biblioteca", level: 2 as const }, { id: 'a-arquitetura', text: "A arquitetura", level: 3 as const }, { id: 'regras-puras', text: "Regras puras", level: 3 as const }, { id: 'constantes-com-nome', text: "Constantes com nome", level: 3 as const }, { id: 'validar-e-converter-na-fronteira', text: "Validar e converter na fronteira", level: 3 as const }, { id: 'regra-de-negocio-no-banco', text: "Regra de negócio no banco", level: 3 as const }, { id: 'agrupar-por-expressao', text: "Agrupar por expressão", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '180-revisao-todos-os-conceitos', text: "180 · Revisao: todos os conceitos", level: 2 as const }, { id: 'o-roteiro', text: "O roteiro", level: 3 as const }, { id: 'combinacoes-que-valem-notar', text: "Combinações que valem notar", level: 3 as const }, { id: 'autoavaliacao', text: "Autoavaliação", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '181-encerramento-e-proximos-passos', text: "181 · Encerramento e proximos passos", level: 2 as const }, { id: 'o-que-voce-percorreu', text: "O que você percorreu", level: 3 as const }, { id: 'o-que-a-linguagem-tem-hoje', text: "O que a linguagem tem hoje", level: 3 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 3 as const }, { id: 'o-ciclo-de-trabalho', text: "O ciclo de trabalho", level: 3 as const }, { id: 'desafios-para-continuar', text: "Desafios para continuar", level: 3 as const }, { id: 'documentacao', text: "Documentação", level: 3 as const }, { id: 'rodando-tudo', text: "Rodando tudo", level: 3 as const }, { id: 'contribuir', text: "Contribuir", level: 3 as const }];
 
 export default function Pagina() {
   return (

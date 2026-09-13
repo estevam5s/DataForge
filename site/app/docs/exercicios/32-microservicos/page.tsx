@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 32`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[227](#227-chamada-entre-servicos-que-nao-mente)", "**Chamada entre servicos que nao mente**", ""], ["[228](#228-saga-nao-existe-transacao-que-atravesse-a-rede)", "**Saga: nao existe transacao que atravesse a rede**", ""]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[230](#230-chamada-entre-servicos-que-nao-mente)", "**Chamada entre servicos que nao mente**", ""], ["[231](#231-saga-nao-existe-transacao-que-atravesse-a-rede)", "**Saga: nao existe transacao que atravesse a rede**", ""]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "227 · Chamada entre servicos que nao mente"},
+  {"h2": "230 · Chamada entre servicos que nao mente"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 227 — Chamada entre servicos que nao mente
+//  Exercicio 230 — Chamada entre servicos que nao mente
 //
 //  Uma chamada de acao ou funciona, ou levanta. Uma chamada de REDE
 //  tem um terceiro estado: NAO SE SABE. Ela pode ter chegado e a
@@ -210,7 +210,7 @@ saude := Malha.saude()
 assert len(saude) bigger_eq 1
 
 Kiln.stop(servico_estoque)
-out "227 ok — malha"`, lang: 'df', title: `exercicios/32-microservicos/227_malha.df` },
+out "227 ok — malha"`, lang: 'df', title: `exercicios/32-microservicos/230_malha.df` },
   {"h3": "O terceiro estado"},
   {"p": "Uma chamada de ação tem dois desfechos: devolve, ou levanta. Uma chamada de **rede** tem três, e o terceiro é o que quebra sistemas:"},
   {"table": {"head": ["Desfecho", "Como se vê"], "rows": [["funcionou", "`ok` é `yes`, `status` 2xx"], ["falhou, e se sabe", "`ok` é `no`, `status` 4xx/5xx"], ["**não se sabe**", "`ok` é `no`, `status` **0**"]]}},
@@ -262,9 +262,9 @@ server api on 8080:
   {"p": "Sem isso, cada serviço inicia um rastro próprio e a corrente se quebra exatamente no ponto onde ela serviria."},
   {"h3": "Qual o próximo problema"},
   {"p": "Este exercício cobre o cliente. O que ele **não** resolve está em `228`: duas escritas em serviços diferentes que precisam acontecer juntas — e não podem, porque não há transação que atravesse a rede."},
-  {"h2": "228 · Saga: nao existe transacao que atravesse a rede"},
+  {"h2": "231 · Saga: nao existe transacao que atravesse a rede"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 228 — Saga: nao existe transacao que atravesse a rede
+//  Exercicio 231 — Saga: nao existe transacao que atravesse a rede
 //
 //  'BEGIN' no servico de estoque nao alcanca o de cobranca. Se o
 //  pedido reserva o produto e a cobranca falha, o produto fica preso
@@ -507,7 +507,7 @@ assert linhas[2]["passo"] is "despachar"
 // compensar.
 assert len(linhas) is len(s7.diario)
 
-out "228 ok — saga"`, lang: 'df', title: `exercicios/32-microservicos/228_saga.df` },
+out "228 ok — saga"`, lang: 'df', title: `exercicios/32-microservicos/231_saga.df` },
   {"h3": "O problema, em uma frase"},
   {"p": "`BEGIN` no serviço de estoque não alcança o de cobrança."},
   { code: `  serviço de estoque          serviço de cobrança
@@ -577,10 +577,10 @@ assert situacoes is ["feito", "feito", "falhou", "desfeito", "desfeito"]`, lang:
   {"h3": "O que a saga não faz"},
   {"p": "**Não há isolamento.** Entre `reservar` e `cobrar`, outro pedido vê o estoque já reservado. Uma saga troca atomicidade por disponibilidade, e essa troca é o ponto, não um defeito: quem precisa de isolamento precisa de um banco (módulo 29), não de microserviços."},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/32-microservicos/227_malha.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/32-microservicos/230_malha.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '227-chamada-entre-servicos-que-nao-mente', text: "227 · Chamada entre servicos que nao mente", level: 2 as const }, { id: 'o-terceiro-estado', text: "O terceiro estado", level: 3 as const }, { id: 'por-que-um-cliente-por-servico-e-nao-por-chamada', text: "Por que um cliente por serviço, e não por chamada", level: 3 as const }, { id: 'retry-so-o-que-e-seguro', text: "Retry: só o que é seguro", level: 3 as const }, { id: 'o-disjuntor-e-a-conta-que-engana', text: "O disjuntor, e a conta que engana", level: 3 as const }, { id: 'o-rastro-atravessa-a-fronteira', text: "O rastro atravessa a fronteira", level: 3 as const }, { id: 'qual-o-proximo-problema', text: "Qual o próximo problema", level: 3 as const }, { id: '228-saga-nao-existe-transacao-que-atravesse-a-rede', text: "228 · Saga: nao existe transacao que atravesse a rede", level: 2 as const }, { id: 'o-problema-em-uma-frase', text: "O problema, em uma frase", level: 3 as const }, { id: 'o-desenho', text: "O desenho", level: 3 as const }, { id: 'tres-coisas-que-a-diferenciam-de-um-monitor-com-ensure', text: "Três coisas que a diferenciam de um `monitor` com `ensure`", level: 3 as const }, { id: 'conferir-antes-de-executar', text: "`conferir()` — antes de executar", level: 3 as const }, { id: 'o-diario-e-por-que-a-cada-passo', text: "O diário, e por que a cada passo", level: 3 as const }, { id: 'o-que-a-saga-nao-faz', text: "O que a saga não faz", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '230-chamada-entre-servicos-que-nao-mente', text: "230 · Chamada entre servicos que nao mente", level: 2 as const }, { id: 'o-terceiro-estado', text: "O terceiro estado", level: 3 as const }, { id: 'por-que-um-cliente-por-servico-e-nao-por-chamada', text: "Por que um cliente por serviço, e não por chamada", level: 3 as const }, { id: 'retry-so-o-que-e-seguro', text: "Retry: só o que é seguro", level: 3 as const }, { id: 'o-disjuntor-e-a-conta-que-engana', text: "O disjuntor, e a conta que engana", level: 3 as const }, { id: 'o-rastro-atravessa-a-fronteira', text: "O rastro atravessa a fronteira", level: 3 as const }, { id: 'qual-o-proximo-problema', text: "Qual o próximo problema", level: 3 as const }, { id: '231-saga-nao-existe-transacao-que-atravesse-a-rede', text: "231 · Saga: nao existe transacao que atravesse a rede", level: 2 as const }, { id: 'o-problema-em-uma-frase', text: "O problema, em uma frase", level: 3 as const }, { id: 'o-desenho', text: "O desenho", level: 3 as const }, { id: 'tres-coisas-que-a-diferenciam-de-um-monitor-com-ensure', text: "Três coisas que a diferenciam de um `monitor` com `ensure`", level: 3 as const }, { id: 'conferir-antes-de-executar', text: "`conferir()` — antes de executar", level: 3 as const }, { id: 'o-diario-e-por-que-a-cada-passo', text: "O diário, e por que a cada passo", level: 3 as const }, { id: 'o-que-a-saga-nao-faz', text: "O que a saga não faz", level: 3 as const }];
 
 export default function Pagina() {
   return (

@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 29`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[219](#219-um-crud-completo-com-o-banco-fazendo-o-trabalho)", "**Um CRUD completo, com o banco fazendo o trabalho**", ""], ["[220](#220-um-pdv-a-venda-inteira-ou-nenhuma)", "**Um PDV: a venda inteira, ou nenhuma**", ""], ["[221](#221-relatorio-busca-e-o-indice-que-falta)", "**Relatorio, busca e o indice que falta**", ""], ["[222](#222-migracoes-mudar-o-schema-sem-perder-dado)", "**Migracoes: mudar o schema sem perder dado**", ""]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[221](#221-um-crud-completo-com-o-banco-fazendo-o-trabalho)", "**Um CRUD completo, com o banco fazendo o trabalho**", ""], ["[222](#222-um-pdv-a-venda-inteira-ou-nenhuma)", "**Um PDV: a venda inteira, ou nenhuma**", ""], ["[223](#223-relatorio-busca-e-o-indice-que-falta)", "**Relatorio, busca e o indice que falta**", ""], ["[224](#224-migracoes-mudar-o-schema-sem-perder-dado)", "**Migracoes: mudar o schema sem perder dado**", ""]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "219 · Um CRUD completo, com o banco fazendo o trabalho"},
+  {"h2": "221 · Um CRUD completo, com o banco fazendo o trabalho"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 219 — Um CRUD completo, com o banco fazendo o trabalho
+//  Exercicio 221 — Um CRUD completo, com o banco fazendo o trabalho
 //
 //  Uma livraria: cadastro, listagem paginada, busca, edicao e
 //  exclusao. O que separa um exemplo de um sistema e onde a regra
@@ -130,7 +130,7 @@ monitor:
 handle Error as e:
     assert "CHECK" in e.message or "constraint" in e.message
 
-out "219 ok — crud completo"`, lang: 'df', title: `exercicios/29-banco-e-crud/219_crud_completo.df` },
+out "219 ok — crud completo"`, lang: 'df', title: `exercicios/29-banco-e-crud/221_crud_completo.df` },
   {"h3": "Conceitos"},
   { code: `adopt Arcane.Database as Banco
 
@@ -158,9 +158,9 @@ Banco.delete(db, "livros", {"isbn": "978-3"})`, lang: 'df' },
   {"table": {"head": ["Parte", "Ideia"], "rows": [["1", "o schema com `UNIQUE`, `REFERENCES` e `CHECK`"], ["2", "`upsert` — cadastrar duas vezes atualiza, não duplica"], ["3", "leitura paginada, e a junção que traz o nome do autor"], ["4", "`update` com condição"], ["5", "`delete`, e a chave estrangeira recusando apagar um autor com livro"], ["6", "o `CHECK` recusando preço negativo"]]}},
   {"h3": "Continua em"},
   {"p": "[220 — PDV e transações](220_pdv_e_transacoes.df), onde três escritas precisam valer juntas."},
-  {"h2": "220 · Um PDV: a venda inteira, ou nenhuma"},
+  {"h2": "222 · Um PDV: a venda inteira, ou nenhuma"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 220 — Um PDV: a venda inteira, ou nenhuma
+//  Exercicio 222 — Um PDV: a venda inteira, ou nenhuma
 //
 //  Gravar a venda, baixar o estoque e lancar o pagamento sao tres
 //  escritas que precisam valer JUNTAS. Sem transacao, um erro no meio
@@ -317,7 +317,7 @@ assert Banco.count(db, "vendas") is 2
 // o leite nao saiu do estoque
 assert Banco.query_one(db, "SELECT estoque FROM produtos WHERE sku='LEI-1L'")["estoque"] is 2
 
-out "220 ok — pdv e transacoes"`, lang: 'df', title: `exercicios/29-banco-e-crud/220_pdv_e_transacoes.df` },
+out "220 ok — pdv e transacoes"`, lang: 'df', title: `exercicios/29-banco-e-crud/222_pdv_e_transacoes.df` },
   {"h3": "O problema"},
   {"p": "Sem transação, um erro no meio deixa a venda registrada com o estoque intacto — ou o estoque baixado sem venda nenhuma. Ninguém descobre até o inventário, e aí não há como saber quais vendas foram afetadas."},
   { code: `       grava a venda   ✓
@@ -352,9 +352,9 @@ handle Error as e:
   {"table": {"head": ["Parte", "Ideia"], "rows": [["1", "a venda como uma unidade, dentro de `transacao`"], ["2", "uma venda que dá certo"], ["3", "uma que falha **no meio**, e não deixa rastro"], ["4", "`savepoint` para recusar um item sem perder a venda"]]}},
   {"h3": "Armadilha"},
   {"p": "Todo `insert` e `update` deste módulo confirma sozinho — **exceto** dentro de uma transação. Foi um bug real: o primeiro `insert` de dentro confirmava a transação inteira, e o `rollback` depois não tinha o que desfazer. A venda ficava gravada com o estoque intacto, que é exatamente o que a transação existe para evitar."},
-  {"h2": "221 · Relatorio, busca e o indice que falta"},
+  {"h2": "223 · Relatorio, busca e o indice que falta"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 221 — Relatorio, busca e o indice que falta
+//  Exercicio 223 — Relatorio, busca e o indice que falta
 //
 //  Tres coisas que toda tela de gestao pede, e as tres tem uma versao
 //  ingenua que funciona com cem linhas e morre com cem mil.
@@ -489,7 +489,7 @@ assert e["tabelas"][0]["tabela"] is "vendas"
 assert e["tabelas"][0]["linhas"] is 91
 assert Banco.integrity(db)["ok"]
 
-out "221 ok — relatorios e busca"`, lang: 'df', title: `exercicios/29-banco-e-crud/221_relatorios_e_busca.df` },
+out "221 ok — relatorios e busca"`, lang: 'df', title: `exercicios/29-banco-e-crud/223_relatorios_e_busca.df` },
   {"h3": "Conceitos"},
   { code: `Banco.aggregate(db, "vendas",
                 {"receita": ["sum", "valor"], "vendas": ["count", "*"]},
@@ -536,9 +536,9 @@ Banco.create_index(db, "vendas", ["vendedor"])
   {"p": "`SCAN` lê a tabela inteira. Num cadastro de 200 mil linhas é a diferença entre 2 ms e 2 s, e a resposta quase sempre é um índice."},
   {"h3": "Armadilha"},
   {"p": "`Banco.stats` **não** conta as tabelas-sombra do FTS5 (`_data`, `_idx`, `_docsize`, `_config`). Contá-las faria um banco de duas tabelas parecer ter dez — e foi o que acontecia."},
-  {"h2": "222 · Migracoes: mudar o schema sem perder dado"},
+  {"h2": "224 · Migracoes: mudar o schema sem perder dado"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 222 — Migracoes: mudar o schema sem perder dado
+//  Exercicio 224 — Migracoes: mudar o schema sem perder dado
 //
 //  Num sistema em producao o banco tem dado dentro. Trocar o
 //  'create_table' no codigo nao muda a tabela que ja existe, e apagar
@@ -658,7 +658,7 @@ sql := Banco.schema_sql(db, "clientes")
 assert "CREATE TABLE" in sql
 assert "nome" in sql
 
-out "222 ok — migracoes"`, lang: 'df', title: `exercicios/29-banco-e-crud/222_migracoes.df` },
+out "222 ok — migracoes"`, lang: 'df', title: `exercicios/29-banco-e-crud/224_migracoes.df` },
   {"h3": "Conceitos"},
   { code: `steady MIGRACOES := [
     {"version": 1, "description": "clientes",
@@ -690,10 +690,10 @@ V.subir(porta := 8501)`, lang: 'df' },
   {"h3": "Para produção"},
   {"p": "O SQLite não desfaz DDL dentro de transação de forma confiável em todas as versões. Faça backup antes de migrar em produção — `Banco.backup(db, \"antes-da-v7.db\")` é uma chamada."},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/29-banco-e-crud/219_crud_completo.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/29-banco-e-crud/221_crud_completo.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '219-um-crud-completo-com-o-banco-fazendo-o-trabalho', text: "219 · Um CRUD completo, com o banco fazendo o trabalho", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'por-que-a-regra-vai-no-banco', text: "Por que a regra vai no banco", level: 3 as const }, { id: 'unique-nao-e-enfeite', text: "`UNIQUE` não é enfeite", level: 3 as const }, { id: 'paginacao', text: "Paginação", level: 3 as const }, { id: 'o-que-este-exercicio-mostra', text: "O que este exercício mostra", level: 3 as const }, { id: 'continua-em', text: "Continua em", level: 3 as const }, { id: '220-um-pdv-a-venda-inteira-ou-nenhuma', text: "220 · Um PDV: a venda inteira, ou nenhuma", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'por-que-increment-e-nao-ler-somar-escrever', text: "Por que `increment` e não ler-somar-escrever", level: 3 as const }, { id: 'savepoint-quando-a-regra-e-vende-o-que-tem', text: "`savepoint`: quando a regra é \"vende o que tem\"", level: 3 as const }, { id: 'o-que-este-exercicio-mostra', text: "O que este exercício mostra", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }, { id: '221-relatorio-busca-e-o-indice-que-falta', text: "221 · Relatorio, busca e o indice que falta", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'relatorio-sem-escrever-sql', text: "Relatório sem escrever SQL", level: 3 as const }, { id: 'o-nome-de-coluna-e-conferido', text: "O nome de coluna é conferido", level: 3 as const }, { id: 'busca-textual-contra-like', text: "Busca textual contra `LIKE`", level: 3 as const }, { id: 'o-plano-da-consulta', text: "O plano da consulta", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }, { id: '222-migracoes-mudar-o-schema-sem-perder-dado', text: "222 · Migracoes: mudar o schema sem perder dado", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'e-idempotente-e-isso-e-o-ponto', text: "É idempotente, e isso é o ponto", level: 3 as const }, { id: 'toda-migracao-deveria-ter-down', text: "Toda migração deveria ter `down`", level: 3 as const }, { id: 'o-que-este-exercicio-mostra', text: "O que este exercício mostra", level: 3 as const }, { id: 'para-producao', text: "Para produção", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '221-um-crud-completo-com-o-banco-fazendo-o-trabalho', text: "221 · Um CRUD completo, com o banco fazendo o trabalho", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'por-que-a-regra-vai-no-banco', text: "Por que a regra vai no banco", level: 3 as const }, { id: 'unique-nao-e-enfeite', text: "`UNIQUE` não é enfeite", level: 3 as const }, { id: 'paginacao', text: "Paginação", level: 3 as const }, { id: 'o-que-este-exercicio-mostra', text: "O que este exercício mostra", level: 3 as const }, { id: 'continua-em', text: "Continua em", level: 3 as const }, { id: '222-um-pdv-a-venda-inteira-ou-nenhuma', text: "222 · Um PDV: a venda inteira, ou nenhuma", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'por-que-increment-e-nao-ler-somar-escrever', text: "Por que `increment` e não ler-somar-escrever", level: 3 as const }, { id: 'savepoint-quando-a-regra-e-vende-o-que-tem', text: "`savepoint`: quando a regra é \"vende o que tem\"", level: 3 as const }, { id: 'o-que-este-exercicio-mostra', text: "O que este exercício mostra", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }, { id: '223-relatorio-busca-e-o-indice-que-falta', text: "223 · Relatorio, busca e o indice que falta", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'relatorio-sem-escrever-sql', text: "Relatório sem escrever SQL", level: 3 as const }, { id: 'o-nome-de-coluna-e-conferido', text: "O nome de coluna é conferido", level: 3 as const }, { id: 'busca-textual-contra-like', text: "Busca textual contra `LIKE`", level: 3 as const }, { id: 'o-plano-da-consulta', text: "O plano da consulta", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }, { id: '224-migracoes-mudar-o-schema-sem-perder-dado', text: "224 · Migracoes: mudar o schema sem perder dado", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'e-idempotente-e-isso-e-o-ponto', text: "É idempotente, e isso é o ponto", level: 3 as const }, { id: 'toda-migracao-deveria-ter-down', text: "Toda migração deveria ter `down`", level: 3 as const }, { id: 'o-que-este-exercicio-mostra', text: "O que este exercício mostra", level: 3 as const }, { id: 'para-producao', text: "Para produção", level: 3 as const }];
 
 export default function Pagina() {
   return (

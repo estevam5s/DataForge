@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 24`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[201](#201-conectar-e-consultar)", "**Conectar e consultar**", "abra um banco, crie uma tabela e leia de volta."], ["[202](#202-construtor-de-consultas)", "**Construtor de consultas**", "monte consultas encadeando chamadas, sem escrever SQL."], ["[203](#203-injecao-de-sql-e-por-que-ela-nao-acontece-aqui)", "**Injecao de SQL, e por que ela nao acontece aqui**", "tente derrubar uma tabela por um campo de busca."], ["[204](#204-transacoes)", "**Transacoes**", "transfira saldo entre contas, e garanta que nao suma dinheiro."], ["[205](#205-modelos-e-validacao)", "**Modelos e validacao**", "declare um modelo, e deixe que ele recuse dado invalido."], ["[206](#206-relacoes-e-o-problema-do-n1)", "**Relacoes, e o problema do N+1**", "carregue os pedidos de cem usuarios em duas consultas."], ["[207](#207-migracoes)", "**Migracoes**", "evolua o esquema sem perder o que ja esta gravado."], ["[208](#208-pool-de-conexoes)", "**Pool de conexoes**", "reaproveite conexoes, e garanta que elas voltem."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[203](#203-conectar-e-consultar)", "**Conectar e consultar**", "abra um banco, crie uma tabela e leia de volta."], ["[204](#204-construtor-de-consultas)", "**Construtor de consultas**", "monte consultas encadeando chamadas, sem escrever SQL."], ["[205](#205-injecao-de-sql-e-por-que-ela-nao-acontece-aqui)", "**Injecao de SQL, e por que ela nao acontece aqui**", "tente derrubar uma tabela por um campo de busca."], ["[206](#206-transacoes)", "**Transacoes**", "transfira saldo entre contas, e garanta que nao suma dinheiro."], ["[207](#207-modelos-e-validacao)", "**Modelos e validacao**", "declare um modelo, e deixe que ele recuse dado invalido."], ["[208](#208-relacoes-e-o-problema-do-n1)", "**Relacoes, e o problema do N+1**", "carregue os pedidos de cem usuarios em duas consultas."], ["[209](#209-migracoes)", "**Migracoes**", "evolua o esquema sem perder o que ja esta gravado."], ["[210](#210-pool-de-conexoes)", "**Pool de conexoes**", "reaproveite conexoes, e garanta que elas voltem."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "201 · Conectar e consultar"},
+  {"h2": "203 · Conectar e consultar"},
   {"p": "**Enunciado.** abra um banco, crie uma tabela e leia de volta."},
   { code: `// O Forge fala com cinco motores pela mesma interface. Trocar o motor
 // troca a URL, e mais nada — e por isso o exercicio usa ':memory:',
@@ -60,7 +60,7 @@ vazio := Forge.primeiro(db, "select * from produtos where nome = ?", ["nada"])
 assert vazio is void, "sem resultado devolve void, nao erro"
 
 Forge.fechar(db)
-out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/201_conectar.df` },
+out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/203_conectar.df` },
   {"h3": "Conceitos"},
   {"p": "O **Forge** fala com cinco motores pela mesma interface: PostgreSQL, MySQL, MariaDB, MongoDB, Redis e SQLite. Trocar o motor troca a URL, e mais nada."},
   { code: `db := Forge.conectar("postgres://usuario:senha@localhost/app")
@@ -80,7 +80,7 @@ db := Forge.conectar(":memory:")          // SQLite, sem arquivo`, lang: 'df' },
   {"p": "não importa; num servidor, importa muito — ver o exercício 208."},
   {"h3": "Relacionados"},
   {"list": ["[202 — Construtor de consultas](202_construtor_de_consultas.md)", "[205 — Modelos e validação](205_modelos_e_validacao.md)", "[208 — Pool de conexões](208_pool_e_conexoes.md)"]},
-  {"h2": "202 · Construtor de consultas"},
+  {"h2": "204 · Construtor de consultas"},
   {"p": "**Enunciado.** monte consultas encadeando chamadas, sem escrever SQL."},
   { code: `// O construtor resolve tres coisas que o SQL a mao nao resolve: o
 // dialeto de cada banco, a condicao que so as vezes existe, e o
@@ -142,7 +142,7 @@ action procurar(db, cidade):
 assert procurar(db, "") is 3, "sem filtro, todos"
 assert procurar(db, "Recife") is 1, "com filtro, um"
 
-out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/202_construtor_de_consultas.df` },
+out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/204_construtor_de_consultas.df` },
   {"h3": "Conceitos"},
   {"p": "Escrever SQL à mão continua valendo. O construtor resolve três coisas que o SQL à mão não resolve:"},
   {"p": "1. **Dialeto.** `?` no SQLite e MySQL, `$1` no PostgreSQL. A mesma consulta roda nos dois. 2. **Condição opcional.** Um filtro que só existe quando o usuário preencheu o campo — o código mais chato e mais propenso a erro que existe. 3. **Identificador citado.** Uma coluna chamada `order` quebraria a consulta."},
@@ -163,7 +163,7 @@ out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/202_construtor_de_co
   {"p": "tabela inteira na memória."},
   {"h3": "Relacionados"},
   {"list": ["[201 — Conectar e consultar](201_conectar.md)", "[203 — Injeção de SQL](203_injecao_de_sql.md)"]},
-  {"h2": "203 · Injecao de SQL, e por que ela nao acontece aqui"},
+  {"h2": "205 · Injecao de SQL, e por que ela nao acontece aqui"},
   {"p": "**Enunciado.** tente derrubar uma tabela por um campo de busca."},
   { code: `// Injecao de SQL e o bug mais explorado da historia do software. O
 // Forge o torna impossivel POR CONSTRUCAO: o construtor nao tem como
@@ -207,7 +207,7 @@ handle QueryError as e:
     assert "operator" in e.message, "a mensagem explica"
 
 assert "usuarios" in Forge.tabelas(db), "a tabela continua viva no fim"
-out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/203_injecao_de_sql.df` },
+out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/205_injecao_de_sql.df` },
   {"h3": "Conceitos"},
   {"p": "Injeção de SQL é o bug mais explorado da história do software. Ele acontece quando um valor vindo do usuário entra no **texto** da consulta:"},
   { code: `-- o que o programa monta, concatenando:
@@ -224,7 +224,7 @@ select * from usuarios where nome = ''; drop table usuarios; --'`, lang: 'text' 
   {"p": "permite. Se eles vierem do usuário, valide contra uma lista fechada."},
   {"h3": "Relacionados"},
   {"list": ["[202 — Construtor de consultas](202_construtor_de_consultas.md)", "[Segurança](https://dataforge-lang.vercel.app/docs/seguranca)"]},
-  {"h2": "204 · Transacoes"},
+  {"h2": "206 · Transacoes"},
   {"p": "**Enunciado.** transfira saldo entre contas, e garanta que nao suma dinheiro."},
   { code: `// Uma transferencia sao duas escritas. Se a segunda falhar depois da
 // primeira, o dinheiro desaparece. A transacao garante que as duas
@@ -279,7 +279,7 @@ assert saldo_de(db, 1) is 70.0, "a conta de origem esta intacta"
 Forge.de(db, "contas").onde("id", 1).incrementar("saldo", 5.0)
 assert saldo_de(db, 1) is 75.0, "somou no banco"
 
-out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/204_transacoes.df` },
+out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/206_transacoes.df` },
   {"h3": "Conceitos"},
   {"p": "Uma transferência são duas escritas: tirar de uma conta, pôr na outra. Se a segunda falhar depois da primeira, o dinheiro desaparece."},
   {"p": "A transação garante que as duas aconteçam, ou nenhuma:"},
@@ -299,7 +299,7 @@ A grava 110         B grava 120     ← os 10 de A sumiram`, lang: 'text' },
   {"p": "serialização — e para tentar de novo. É o preço da garantia."},
   {"h3": "Relacionados"},
   {"list": ["[201 — Conectar e consultar](201_conectar.md)", "[208 — Pool de conexões](208_pool_e_conexoes.md)"]},
-  {"h2": "205 · Modelos e validacao"},
+  {"h2": "207 · Modelos e validacao"},
   {"p": "**Enunciado.** declare um modelo, e deixe que ele recuse dado invalido."},
   { code: `// Um modelo descreve a tabela E o que vale nela. A validacao junta
 // TODOS os problemas antes de reclamar: um formulario que aponta um
@@ -371,7 +371,7 @@ Usuario.criar_ou_atualizar({"email": "ana@exemplo.com"}, {"nome": "Ana Maria"})
 assert Usuario.contar() is 1, "continua uma"
 assert Usuario.buscar(1)["nome"] is "Ana Maria", "mas foi atualizada"
 
-out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/205_modelos_e_validacao.df` },
+out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/207_modelos_e_validacao.df` },
   {"h3": "Conceitos"},
   {"p": "Um modelo descreve a tabela **e** o que vale nela:"},
   { code: `Usuario := Forge.modelo("Usuario", {
@@ -391,7 +391,7 @@ out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/205_modelos_e_valida
   {"p": "migrar depois de declará-las."},
   {"h3": "Relacionados"},
   {"list": ["[206 — Relações](206_relacoes_sem_n_mais_um.md)", "[207 — Migrações](207_migracoes.md)"]},
-  {"h2": "206 · Relacoes, e o problema do N+1"},
+  {"h2": "208 · Relacoes, e o problema do N+1"},
   {"p": "**Enunciado.** carregue os pedidos de cem usuarios em duas consultas."},
   { code: `// Buscar cem usuarios e ler 'usuario.pedidos' de cada um faz cento e
 // uma consultas. Isso nao aparece em desenvolvimento, com tres linhas
@@ -453,7 +453,7 @@ handle SchemaError as e:
     out "recusado:", e.message
     assert "inventada" in e.message, "a mensagem nomeia o erro"
 
-out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/206_relacoes_sem_n_mais_um.df` },
+out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/208_relacoes_sem_n_mais_um.df` },
   {"h3": "Conceitos"},
   {"p": "Buscar cem usuários e ler `usuario.pedidos` de cada um faz **cento e uma** consultas: uma para os usuários, e uma por usuário."},
   {"p": "Isso não aparece em desenvolvimento, com três linhas na tabela. Aparece em produção, com dez mil — e é o bug de ORM mais comum que existe."},
@@ -470,7 +470,7 @@ com_pedidos := Usuario.com(Usuario.todos(), "pedidos")`, lang: 'df' },
   {"p": "`\"indice\": yes` no campo."},
   {"h3": "Relacionados"},
   {"list": ["[205 — Modelos e validação](205_modelos_e_validacao.md)", "[213 — Medir o crescimento](../26-complexidade/213_medir_o_crescimento.md)"]},
-  {"h2": "207 · Migracoes"},
+  {"h2": "209 · Migracoes"},
   {"p": "**Enunciado.** evolua o esquema sem perder o que ja esta gravado."},
   { code: `// Duas formas. A simples compara o modelo com a tabela; a completa usa
 // passos numerados, com historico NO BANCO — um arquivo versionado diz
@@ -550,7 +550,7 @@ handle MigrationError as e:
     out "sem volta:", e.message
     assert "003" in e.message, "diz qual"
 
-out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/207_migracoes.df` },
+out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/209_migracoes.df` },
   {"h3": "Conceitos"},
   {"p": "Duas formas."},
   {"p": "**A diferença** compara o modelo com a tabela real e cria o que falta:"},
@@ -571,7 +571,7 @@ m.subir()`, lang: 'df' },
   {"p": "arquivos, que diverge assim que alguém mexe no banco à mão."},
   {"h3": "Relacionados"},
   {"list": ["[205 — Modelos e validação](205_modelos_e_validacao.md)"]},
-  {"h2": "208 · Pool de conexoes"},
+  {"h2": "210 · Pool de conexoes"},
   {"p": "**Enunciado.** reaproveite conexoes, e garanta que elas voltem."},
   { code: `// Abrir conexao custa: TCP, autenticacao, negociacao. Numa rota web
 // isso acontece por requisicao e passa a dominar o tempo de resposta.
@@ -621,7 +621,7 @@ assert pequeno.pegar() isnt void, "depois de devolver, funciona"
 
 pool.fechar()
 pequeno.fechar()
-out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/208_pool_e_conexoes.df` },
+out "ok"`, lang: 'df', title: `exercicios/24-banco-de-dados/210_pool_e_conexoes.df` },
   {"h3": "Conceitos"},
   {"p": "Abrir conexão custa: TCP, autenticação, negociação. Numa rota web isso acontece por requisição e passa a dominar o tempo de resposta."},
   { code: `pool := Forge.pool("postgres://localhost/app", 5)
@@ -640,10 +640,10 @@ with Forge.conexao(pool) as db:
   {"h3": "Relacionados"},
   {"list": ["[204 — Transações](204_transacoes.md)"]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/24-banco-de-dados/201_conectar.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/24-banco-de-dados/203_conectar.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '201-conectar-e-consultar', text: "201 · Conectar e consultar", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '202-construtor-de-consultas', text: "202 · Construtor de consultas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '203-injecao-de-sql-e-por-que-ela-nao-acontece-aqui', text: "203 · Injecao de SQL, e por que ela nao acontece aqui", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '204-transacoes', text: "204 · Transacoes", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '205-modelos-e-validacao', text: "205 · Modelos e validacao", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '206-relacoes-e-o-problema-do-n1', text: "206 · Relacoes, e o problema do N+1", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '207-migracoes', text: "207 · Migracoes", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '208-pool-de-conexoes', text: "208 · Pool de conexoes", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '203-conectar-e-consultar', text: "203 · Conectar e consultar", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '204-construtor-de-consultas', text: "204 · Construtor de consultas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '205-injecao-de-sql-e-por-que-ela-nao-acontece-aqui', text: "205 · Injecao de SQL, e por que ela nao acontece aqui", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '206-transacoes', text: "206 · Transacoes", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '207-modelos-e-validacao', text: "207 · Modelos e validacao", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '208-relacoes-e-o-problema-do-n1', text: "208 · Relacoes, e o problema do N+1", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '209-migracoes', text: "209 · Migracoes", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '210-pool-de-conexoes', text: "210 · Pool de conexoes", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }];
 
 export default function Pagina() {
   return (

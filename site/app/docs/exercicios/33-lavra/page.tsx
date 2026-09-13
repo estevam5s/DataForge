@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 33`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[229](#229-lavra-o-esquema-e-a-consulta)", "**Lavra: o esquema e a consulta**", "declare um esquema a partir de records e peca exatamente os campos que quer."], ["[230](#230-lavra-o-n1-os-limites-e-a-paginacao)", "**Lavra: o N+1, os limites e a paginacao**", "conte as idas ao banco e prove que o lote as junta numa so."], ["[231](#231-lavra-contratos-mudancas-servidor-e-federacao)", "**Lavra: contratos, mudancas, servidor e federacao**", "sirva o esquema por HTTP e componha dois servicos num so."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[232](#232-lavra-o-esquema-e-a-consulta)", "**Lavra: o esquema e a consulta**", "declare um esquema a partir de records e peca exatamente os campos que quer."], ["[233](#233-lavra-o-n1-os-limites-e-a-paginacao)", "**Lavra: o N+1, os limites e a paginacao**", "conte as idas ao banco e prove que o lote as junta numa so."], ["[234](#234-lavra-contratos-mudancas-servidor-e-federacao)", "**Lavra: contratos, mudancas, servidor e federacao**", "sirva o esquema por HTTP e componha dois servicos num so."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "229 · Lavra: o esquema e a consulta"},
+  {"h2": "232 · Lavra: o esquema e a consulta"},
   {"p": "**Enunciado.** declare um esquema a partir de records e peca exatamente os campos que quer."},
   { code: `adopt Arcane.Lavra as Lavra
 
@@ -123,7 +123,7 @@ out errado["erros"][0]["mensagem"], "|", errado["erros"][0]["extra"]["dica"]
 assert "nomee" in errado["erros"][0]["mensagem"]
 assert "nome" in errado["erros"][0]["extra"]["dica"], "sugere o parecido"
 
-out "229 ok"`, lang: 'df', title: `exercicios/33-lavra/229_lavra_basico.df` },
+out "229 ok"`, lang: 'df', title: `exercicios/33-lavra/232_lavra_basico.df` },
   {"h3": "O problema que o Lavra resolve"},
   {"p": "Uma rota REST devolve o que o **servidor** decidiu devolver:"},
   { code: `GET /usuarios/1
@@ -180,7 +180,7 @@ Lavra.campo(esq, "Usuario", "pedidos", "[Pedido!]!", resolve := pedidos_de)`, la
   {"h3": "Para experimentar"},
   {"list": ["Peça `email` e veja-o aparecer; tire-o e veja-o sumir. É a diferença inteira.", "Troque `Integer!` por `Integer` no argumento `id` e chame sem passá-lo.", "Declare `Lavra.tipo(esq, Usuario, esconder := [\"email\"])` e tente pedir"]},
   {"p": "`email`. O campo deixa de existir para quem consulta — é a garantia mais barata que existe."},
-  {"h2": "230 · Lavra: o N+1, os limites e a paginacao"},
+  {"h2": "233 · Lavra: o N+1, os limites e a paginacao"},
   {"p": "**Enunciado.** conte as idas ao banco e prove que o lote as junta numa so."},
   { code: `adopt Arcane.Lavra as Lavra
 
@@ -303,7 +303,7 @@ assert parcial["dados"]["pedidos"][0]["cliente"]["nome"] is "Ana", "o resto veio
 assert parcial["dados"]["pedidos"][0]["cliente"]["risco"] is void
 assert len(parcial["erros"]) is 1
 
-out "230 ok"`, lang: 'df', title: `exercicios/33-lavra/230_lavra_n1_e_limites.df` },
+out "230 ok"`, lang: 'df', title: `exercicios/33-lavra/233_lavra_n1_e_limites.df` },
   {"h3": "O N+1, em uma frase"},
   {"p": "Uma consulta que pede 20 pedidos e, de cada um, o cliente, faz **21** consultas ao banco: uma para os pedidos e uma por cliente."},
   { code: `busca:
@@ -358,7 +358,7 @@ a consulta tem profundidade 3, e o limite é 2
   {"list": ["Tire o `Lavra.pedir` e busque direto no resolvedor. Veja `idas` ir para 20.", "Devolva `[clientes[i] cycle i in reversed(ids)]` no lote. O Lavra recusa, e"]},
   {"p": "diz por quê — porque esse é o único sintoma que a falha tem."},
   {"list": ["Baixe `itens` para 5 e peça os 20 pedidos."]},
-  {"h2": "231 · Lavra: contratos, mudancas, servidor e federacao"},
+  {"h2": "234 · Lavra: contratos, mudancas, servidor e federacao"},
   {"p": "**Enunciado.** sirva o esquema por HTTP e componha dois servicos num so."},
   { code: `adopt Arcane.Lavra as Lavra
 adopt Arcane.Web as Web
@@ -495,7 +495,7 @@ out mapa["tipos"]["Conta"], mapa["tipos"]["Venda"]
 assert mapa["tipos"]["Conta"] is "contas"
 assert mapa["tipos"]["Venda"] is "vendas"
 
-out "231 ok"`, lang: 'df', title: `exercicios/33-lavra/231_lavra_servidor_e_federacao.df` },
+out "231 ok"`, lang: 'df', title: `exercicios/33-lavra/234_lavra_servidor_e_federacao.df` },
   {"h3": "Contratos"},
   {"p": "Um **contrato** são campos que vários tipos prometem ter:"},
   { code: `Lavra.tipo(esq, Artigo, cumpre := ["Conteudo"])
@@ -555,10 +555,10 @@ contas vendas
   {"p": "não promete `minutos`."},
   {"list": ["Junte dois esquemas com um tipo de mesmo nome e leia a mensagem.", "Chame `GET /lavra` no navegador: o esquema em texto é o que se versiona."]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/33-lavra/229_lavra_basico.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/33-lavra/232_lavra_basico.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '229-lavra-o-esquema-e-a-consulta', text: "229 · Lavra: o esquema e a consulta", level: 2 as const }, { id: 'o-problema-que-o-lavra-resolve', text: "O problema que o Lavra resolve", level: 3 as const }, { id: 'o-esquema-nasce-dos-seus-records', text: "O esquema nasce dos seus records", level: 3 as const }, { id: 'a-notacao-de-tipo', text: "A notação de tipo", level: 3 as const }, { id: 'campo-calculado', text: "Campo calculado", level: 3 as const }, { id: 'conferir-fecha-o-esquema', text: "`conferir` fecha o esquema", level: 3 as const }, { id: 'apelidos', text: "Apelidos", level: 3 as const }, { id: 'variaveis', text: "Variáveis", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'para-experimentar', text: "Para experimentar", level: 3 as const }, { id: '230-lavra-o-n1-os-limites-e-a-paginacao', text: "230 · Lavra: o N+1, os limites e a paginacao", level: 2 as const }, { id: 'o-n1-em-uma-frase', text: "O N+1, em uma frase", level: 3 as const }, { id: 'o-lote-em-uma-frase', text: "O lote, em uma frase", level: 3 as const }, { id: 'por-que-o-teste-conta-a-ida-e-nao-o-resultado', text: "Por que o teste conta a IDA, e não o resultado", level: 3 as const }, { id: 'duas-decisoes-do-lote', text: "Duas decisões do lote", level: 3 as const }, { id: 'os-limites', text: "Os limites", level: 3 as const }, { id: 'paginacao-por-cursor', text: "Paginação por cursor", level: 3 as const }, { id: 'o-erro-parcial', text: "O erro parcial", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'para-experimentar', text: "Para experimentar", level: 3 as const }, { id: '231-lavra-contratos-mudancas-servidor-e-federacao', text: "231 · Lavra: contratos, mudancas, servidor e federacao", level: 2 as const }, { id: 'contratos', text: "Contratos", level: 3 as const }, { id: 'mudancas', text: "Mudanças", level: 3 as const }, { id: 'servir-por-http', text: "Servir por HTTP", level: 3 as const }, { id: 'federacao', text: "Federação", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'para-experimentar', text: "Para experimentar", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '232-lavra-o-esquema-e-a-consulta', text: "232 · Lavra: o esquema e a consulta", level: 2 as const }, { id: 'o-problema-que-o-lavra-resolve', text: "O problema que o Lavra resolve", level: 3 as const }, { id: 'o-esquema-nasce-dos-seus-records', text: "O esquema nasce dos seus records", level: 3 as const }, { id: 'a-notacao-de-tipo', text: "A notação de tipo", level: 3 as const }, { id: 'campo-calculado', text: "Campo calculado", level: 3 as const }, { id: 'conferir-fecha-o-esquema', text: "`conferir` fecha o esquema", level: 3 as const }, { id: 'apelidos', text: "Apelidos", level: 3 as const }, { id: 'variaveis', text: "Variáveis", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'para-experimentar', text: "Para experimentar", level: 3 as const }, { id: '233-lavra-o-n1-os-limites-e-a-paginacao', text: "233 · Lavra: o N+1, os limites e a paginacao", level: 2 as const }, { id: 'o-n1-em-uma-frase', text: "O N+1, em uma frase", level: 3 as const }, { id: 'o-lote-em-uma-frase', text: "O lote, em uma frase", level: 3 as const }, { id: 'por-que-o-teste-conta-a-ida-e-nao-o-resultado', text: "Por que o teste conta a IDA, e não o resultado", level: 3 as const }, { id: 'duas-decisoes-do-lote', text: "Duas decisões do lote", level: 3 as const }, { id: 'os-limites', text: "Os limites", level: 3 as const }, { id: 'paginacao-por-cursor', text: "Paginação por cursor", level: 3 as const }, { id: 'o-erro-parcial', text: "O erro parcial", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'para-experimentar', text: "Para experimentar", level: 3 as const }, { id: '234-lavra-contratos-mudancas-servidor-e-federacao', text: "234 · Lavra: contratos, mudancas, servidor e federacao", level: 2 as const }, { id: 'contratos', text: "Contratos", level: 3 as const }, { id: 'mudancas', text: "Mudanças", level: 3 as const }, { id: 'servir-por-http', text: "Servir por HTTP", level: 3 as const }, { id: 'federacao', text: "Federação", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'para-experimentar', text: "Para experimentar", level: 3 as const }];
 
 export default function Pagina() {
   return (

@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 17`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[157](#157-datas-e-horas)", "**Datas e horas**", "crie, formate e compare datas com Arcane.Time."], ["[158](#158-aritmetica-com-datas)", "**Aritmetica com datas**", "some e subtraia periodos, e calcule diferencas."], ["[159](#159-cronometragem-e-desempenho)", "**Cronometragem e desempenho**", "meca quanto tempo o codigo leva."], ["[160](#160-sistema-e-ambiente)", "**Sistema e ambiente**", "consulte o sistema operacional e as variaveis de ambiente."], ["[161](#161-executando-processos)", "**Executando processos**", "rode comandos externos e trate a saida."], ["[162](#162-registro-de-eventos)", "**Registro de eventos**", "registre o que acontece com niveis, campos e destino em arquivo."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[158](#158-datas-e-horas)", "**Datas e horas**", "crie, formate e compare datas com Arcane.Time."], ["[159](#159-aritmetica-com-datas)", "**Aritmetica com datas**", "some e subtraia periodos, e calcule diferencas."], ["[160](#160-cronometragem-e-desempenho)", "**Cronometragem e desempenho**", "meca quanto tempo o codigo leva."], ["[161](#161-sistema-e-ambiente)", "**Sistema e ambiente**", "consulte o sistema operacional e as variaveis de ambiente."], ["[162](#162-executando-processos)", "**Executando processos**", "rode comandos externos e trate a saida."], ["[163](#163-registro-de-eventos)", "**Registro de eventos**", "registre o que acontece com niveis, campos e destino em arquivo."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "157 · Datas e horas"},
+  {"h2": "158 · Datas e horas"},
   {"p": "**Enunciado.** crie, formate e compare datas com Arcane.Time."},
   { code: `adopt Arcane.Time as Time
 
@@ -60,7 +60,7 @@ assert Time.is_leap_year(2026) is no, "2026 nao e"
 
 // Semana, trimestre e dia do ano
 out $"trimestre: {Time.quarter(natal)}  dia do ano: {Time.day_of_year(natal)}"
-assert Time.quarter(natal) is 4, "dezembro e do quarto trimestre"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/157_datas_basico.df` },
+assert Time.quarter(natal) is 4, "dezembro e do quarto trimestre"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/158_datas_basico.df` },
   {"h3": "Conceitos"},
   {"p": "`Arcane.Time` trabalha com datas como vaults marcados com `__type__: \"DateTime\"`. Isso as faz circular pelo runtime como qualquer valor — dá para guardar numa lista, passar por pipeline, serializar."},
   {"p": "**Construir**"},
@@ -101,7 +101,7 @@ mes: dezembro
 trimestre: 4  dia do ano: 359`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Descubra em que dia da semana você nasceu.", "Liste todas as sextas-feiras 13 de um ano."]},
-  {"h2": "158 · Aritmetica com datas"},
+  {"h2": "159 · Aritmetica com datas"},
   {"p": "**Enunciado.** some e subtraia periodos, e calcule diferencas."},
   { code: `adopt Arcane.Time as Time
 
@@ -158,7 +158,7 @@ out $"inicio do mes: {Time.to_date_string(Time.start_of_month(base))}"
 out $"fim do mes:    {Time.to_date_string(Time.end_of_month(base))}"
 assert Time.day(Time.start_of_month(base)) is 1, "primeiro dia"
 assert Time.day(Time.end_of_month(base)) is 31, "janeiro tem 31"
-assert Time.days_in_month(2024, 2) is 29, "fevereiro bissexto"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/158_datas_aritmetica.df` },
+assert Time.days_in_month(2024, 2) is 29, "fevereiro bissexto"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/159_datas_aritmetica.df` },
   {"h3": "Somar períodos"},
   { code: `Time.add_days(d, 10)
 Time.add_weeks(d, 2)
@@ -200,7 +200,7 @@ de 01/01 a 31/12: 364 dias
 1 dia, 2h30: 1d 2h = 95400.0 segundos`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Calcule quantos dias úteis há entre duas datas (pule `is_weekend`).", "Gere as datas de vencimento de 12 parcelas mensais."]},
-  {"h2": "159 · Cronometragem e desempenho"},
+  {"h2": "160 · Cronometragem e desempenho"},
   {"p": "**Enunciado.** meca quanto tempo o codigo leva."},
   { code: `adopt Arcane.Time as Time
 
@@ -268,7 +268,7 @@ assert len(tempos) is 5, "cinco medicoes"
 crono.reset()
 assert crono.elapsed() is 0.0, "zerado"
 out ""
-out "cronometro zerado"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/159_cronometro.df` },
+out "cronometro zerado"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/160_cronometro.df` },
   {"h3": "`measure` — a forma direta"},
   { code: `medida := Time.measure(trabalho_pesado)
 out medida.result      // o que a ação devolveu
@@ -321,7 +321,7 @@ cronometro zerado`, lang: 'text' },
   {"p": "(os tempos variam a cada máquina)"},
   {"h3": "Experimente"},
   {"list": ["Compare busca linear com `Arcane.Collections.binary_search` numa lista grande.", "Meça um pipeline contra o laço equivalente.", "Use `stopwatch` para medir só a parte de I/O de um programa."]},
-  {"h2": "160 · Sistema e ambiente"},
+  {"h2": "161 · Sistema e ambiente"},
   {"p": "**Enunciado.** consulte o sistema operacional e as variaveis de ambiente."},
   { code: `adopt Arcane.OS as OS
 adopt Arcane.Text as Text
@@ -405,7 +405,7 @@ out $"python3 em: {python ?? "(nao encontrado)"}"
 // Terminal
 tam := OS.terminal_size()
 out $"terminal: {tam.columns}x{tam.lines}"
-assert tam.columns bigger 0, "largura do terminal"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/160_sistema_e_ambiente.df` },
+assert tam.columns bigger 0, "largura do terminal"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/161_sistema_e_ambiente.df` },
   {"h3": "Conceitos"},
   {"p": "`Arcane.OS` é **somente leitura por padrão**. As duas exceções — `set_env` e `chdir` — estão marcadas como tal na documentação do módulo. Nada aqui apaga arquivo ou mata processo."},
   {"h3": "Identificar o sistema"},
@@ -455,7 +455,7 @@ plataforma: macOS
   {"p": "(os valores dependem da sua máquina)"},
   {"h3": "Experimente"},
   {"list": ["Escreva um relatório que muda de formato conforme `OS.terminal_size()`.", "Leia a configuração de variáveis de ambiente com padrões sensatos."]},
-  {"h2": "161 · Executando processos"},
+  {"h2": "162 · Executando processos"},
   {"p": "**Enunciado.** rode comandos externos e trate a saida."},
   { code: `adopt Arcane.Process as Proc
 adopt Arcane.OS as OS
@@ -544,7 +544,7 @@ assert resultado.stdout.trim() is "zebra", "a saida de um virou a entrada do out
 lento := Proc.run(DEMORA, timeout := 1)
 out ""
 out $"com timeout: ok={lento.ok}"
-assert lento.ok is no, "o comando estourou o tempo"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/161_processos.df` },
+assert lento.ok is no, "o comando estourou o tempo"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/162_processos.df` },
   {"h3": "Segurança primeiro"},
   {"p": "Por padrão, `Arcane.Process` **não passa pelo shell**:"},
   { code: `Proc.run("echo ola")                    // sem shell
@@ -611,7 +611,7 @@ com timeout: ok=no`, lang: 'text' },
   {"p": "Idêntico nos três sistemas — e é por isso que o exercício decide os comandos **uma vez**, no topo."},
   {"h3": "Experimente"},
   {"list": ["Rode `git log --oneline -5` e mostre os commits formatados.", "Rode o exercício no outro sistema operacional e veja o que muda.", "Escreva `action tem_git()` usando `Proc.exists`.", "Compare `run` com `shell := yes` e sem, num comando com `*`."]},
-  {"h2": "162 · Registro de eventos"},
+  {"h2": "163 · Registro de eventos"},
   {"p": "**Enunciado.** registre o que acontece com niveis, campos e destino em arquivo."},
   { code: `adopt Arcane.Logging as Log
 adopt Arcane.IO as IO
@@ -687,7 +687,7 @@ out $"o arquivo tem {len(conteudo.lines())} linhas"
 assert len(conteudo.lines()) is 2, "duas linhas no arquivo"
 assert "linha gravada" in conteudo, "conteudo gravado"
 IO.delete(caminho)
-out "arquivo temporario removido"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/162_logging_estruturado.df` },
+out "arquivo temporario removido"`, lang: 'df', title: `exercicios/17-tempo-e-sistema/163_logging_estruturado.df` },
   {"h3": "Por que não usar `out`"},
   {"p": "`out` serve para falar com quem está olhando o terminal agora. Log serve para responder perguntas depois: *o que aconteceu às 3h da manhã?*"},
   {"p": "A diferença prática está em três coisas que `out` não tem: **nível**, **campos estruturados** e **destino configurável**."},
@@ -729,10 +729,10 @@ contagem: {DEBUG: 1, INFO: 1, WARN: 1, ERROR: 1}
   {"h3": "Experimente"},
   {"list": ["Ligue `as_json` e mande para arquivo; leia de volta com `Serde.from_json_lines`.", "Escreva um logger que também conta erros por código.", "Use `keep(yes)` num teste para verificar que um aviso foi emitido."]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/17-tempo-e-sistema/157_datas_basico.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/17-tempo-e-sistema/158_datas_basico.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '157-datas-e-horas', text: "157 · Datas e horas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'comparacao', text: "Comparação", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '158-aritmetica-com-datas', text: "158 · Aritmetica com datas", level: 2 as const }, { id: 'somar-periodos', text: "Somar períodos", level: 3 as const }, { id: 'o-caso-dificil-addmonths', text: "O caso difícil: `add_months`", level: 3 as const }, { id: 'diferencas', text: "Diferenças", level: 3 as const }, { id: 'humanizar', text: "Humanizar", level: 3 as const }, { id: 'limites-de-periodo', text: "Limites de período", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '159-cronometragem-e-desempenho', text: "159 · Cronometragem e desempenho", level: 2 as const }, { id: 'measure-a-forma-direta', text: "`measure` — a forma direta", level: 3 as const }, { id: 'stopwatch-controle-manual', text: "`stopwatch` — controle manual", level: 3 as const }, { id: 'medir-para-decidir', text: "Medir para decidir", level: 3 as const }, { id: 'medir-varias-vezes', text: "Medir várias vezes", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '160-sistema-e-ambiente', text: "160 · Sistema e ambiente", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'identificar-o-sistema', text: "Identificar o sistema", level: 3 as const }, { id: 'ternario-encadeado', text: "Ternário encadeado", level: 3 as const }, { id: 'variaveis-de-ambiente', text: "Variáveis de ambiente", level: 3 as const }, { id: 'disco', text: "Disco", level: 3 as const }, { id: 'which', text: "`which`", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '161-executando-processos', text: "161 · Executando processos", level: 2 as const }, { id: 'seguranca-primeiro', text: "Segurança primeiro", level: 3 as const }, { id: 'o-resultado', text: "O resultado", level: 3 as const }, { id: 'atalhos', text: "Atalhos", level: 3 as const }, { id: 'enviar-entrada', text: "Enviar entrada", level: 3 as const }, { id: 'encadear', text: "Encadear", level: 3 as const }, { id: 'tempo-limite', text: "Tempo limite", level: 3 as const }, { id: 'processos-em-segundo-plano', text: "Processos em segundo plano", level: 3 as const }, { id: 'o-comando-externo-e-onde-o-programa-deixa-de-ser-portatil', text: "O comando externo é onde o programa deixa de ser portátil", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '162-registro-de-eventos', text: "162 · Registro de eventos", level: 2 as const }, { id: 'por-que-nao-usar-out', text: "Por que não usar `out`", level: 3 as const }, { id: 'os-seis-niveis', text: "Os seis níveis", level: 3 as const }, { id: 'campos-estruturados', text: "Campos estruturados", level: 3 as const }, { id: 'contexto-fixo', text: "Contexto fixo", level: 3 as const }, { id: 'json-para-maquina', text: "JSON para máquina", level: 3 as const }, { id: 'guardar-em-memoria', text: "Guardar em memória", level: 3 as const }, { id: 'arquivo', text: "Arquivo", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '158-datas-e-horas', text: "158 · Datas e horas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'comparacao', text: "Comparação", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '159-aritmetica-com-datas', text: "159 · Aritmetica com datas", level: 2 as const }, { id: 'somar-periodos', text: "Somar períodos", level: 3 as const }, { id: 'o-caso-dificil-addmonths', text: "O caso difícil: `add_months`", level: 3 as const }, { id: 'diferencas', text: "Diferenças", level: 3 as const }, { id: 'humanizar', text: "Humanizar", level: 3 as const }, { id: 'limites-de-periodo', text: "Limites de período", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '160-cronometragem-e-desempenho', text: "160 · Cronometragem e desempenho", level: 2 as const }, { id: 'measure-a-forma-direta', text: "`measure` — a forma direta", level: 3 as const }, { id: 'stopwatch-controle-manual', text: "`stopwatch` — controle manual", level: 3 as const }, { id: 'medir-para-decidir', text: "Medir para decidir", level: 3 as const }, { id: 'medir-varias-vezes', text: "Medir várias vezes", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '161-sistema-e-ambiente', text: "161 · Sistema e ambiente", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'identificar-o-sistema', text: "Identificar o sistema", level: 3 as const }, { id: 'ternario-encadeado', text: "Ternário encadeado", level: 3 as const }, { id: 'variaveis-de-ambiente', text: "Variáveis de ambiente", level: 3 as const }, { id: 'disco', text: "Disco", level: 3 as const }, { id: 'which', text: "`which`", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '162-executando-processos', text: "162 · Executando processos", level: 2 as const }, { id: 'seguranca-primeiro', text: "Segurança primeiro", level: 3 as const }, { id: 'o-resultado', text: "O resultado", level: 3 as const }, { id: 'atalhos', text: "Atalhos", level: 3 as const }, { id: 'enviar-entrada', text: "Enviar entrada", level: 3 as const }, { id: 'encadear', text: "Encadear", level: 3 as const }, { id: 'tempo-limite', text: "Tempo limite", level: 3 as const }, { id: 'processos-em-segundo-plano', text: "Processos em segundo plano", level: 3 as const }, { id: 'o-comando-externo-e-onde-o-programa-deixa-de-ser-portatil', text: "O comando externo é onde o programa deixa de ser portátil", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '163-registro-de-eventos', text: "163 · Registro de eventos", level: 2 as const }, { id: 'por-que-nao-usar-out', text: "Por que não usar `out`", level: 3 as const }, { id: 'os-seis-niveis', text: "Os seis níveis", level: 3 as const }, { id: 'campos-estruturados', text: "Campos estruturados", level: 3 as const }, { id: 'contexto-fixo', text: "Contexto fixo", level: 3 as const }, { id: 'json-para-maquina', text: "JSON para máquina", level: 3 as const }, { id: 'guardar-em-memoria', text: "Guardar em memória", level: 3 as const }, { id: 'arquivo', text: "Arquivo", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
 
 export default function Pagina() {
   return (

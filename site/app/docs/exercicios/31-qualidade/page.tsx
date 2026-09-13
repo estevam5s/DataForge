@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 31`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[225](#225-cobertura-o-que-os-testes-nao-exercitaram)", "**Cobertura: o que os testes NAO exercitaram**", ""], ["[226](#226-instantaneo-banco-isolado-e-teste-instavel)", "**Instantaneo, banco isolado e teste instavel**", ""], ["[229](#229-depurar-sem-out)", "**Depurar sem 'out'**", ""]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[227](#227-cobertura-o-que-os-testes-nao-exercitaram)", "**Cobertura: o que os testes NAO exercitaram**", ""], ["[228](#228-instantaneo-banco-isolado-e-teste-instavel)", "**Instantaneo, banco isolado e teste instavel**", ""], ["[229](#229-depurar-sem-out)", "**Depurar sem 'out'**", ""]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "225 · Cobertura: o que os testes NAO exercitaram"},
+  {"h2": "227 · Cobertura: o que os testes NAO exercitaram"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 225 — Cobertura: o que os testes NAO exercitaram
+//  Exercicio 227 — Cobertura: o que os testes NAO exercitaram
 //
 //  Uma suite verde nao diz nada sobre o que ela nao toca. Num sistema
 //  de 200 arquivos, o codigo que ninguem exercitou e exatamente onde
@@ -132,7 +132,7 @@ assert baixo["exit_code"] is 0
 assert "0.0%" in relatorio  // o main.df, que nenhum teste importa
 
 IO.remove_tree(raiz)
-out "225 ok — cobertura"`, lang: 'df', title: `exercicios/31-qualidade/225_cobertura.df` },
+out "225 ok — cobertura"`, lang: 'df', title: `exercicios/31-qualidade/227_cobertura.df` },
   {"h3": "O problema"},
   {"p": "Uma suíte verde não diz nada sobre o que ela não exercita. Num sistema de 200 arquivos, o código que ninguém tocou é exatamente onde o bug mora — e `13 passaram` não distingue \"o sistema está testado\" de \"os treze caminhos fáceis estão testados\"."},
   {"h3": "Como se pede"},
@@ -160,9 +160,9 @@ dataforge crucible --cobertura`, lang: 'bash' },
   {"p": "É de **linha**, e não de ramo: `given a and b` conta como coberta mesmo que `b` nunca tenha sido avaliado. Medir ramo exigiria instrumentar a avaliação de expressão, o que dobraria o custo — e cobertura de linha já responde a pergunta que importa, que é \"existe código que ninguém testou\"."},
   {"h3": "Uma advertência"},
   {"p": "Cobertura alta não é qualidade. Um teste que chama tudo e não verifica nada dá 100%. O número serve para achar o que está a **zero**, e é aí que ele vale quase tudo o que custa."},
-  {"h2": "226 · Instantaneo, banco isolado e teste instavel"},
+  {"h2": "228 · Instantaneo, banco isolado e teste instavel"},
   { code: `// ════════════════════════════════════════════════════════════
-//  Exercicio 226 — Instantaneo, banco isolado e teste instavel
+//  Exercicio 228 — Instantaneo, banco isolado e teste instavel
 //
 //  Tres ferramentas do Crucible para o que um teste comum nao alcanca
 //  bem: resultado grande, estado que sobra entre testes, e falha que
@@ -283,7 +283,7 @@ assert r["falhou"] is 0, $"{r["falhou"]} falharam"
 assert r["erro"] is 0
 assert r["passou"] is 7
 
-out "226 ok — instantaneo e isolamento"`, lang: 'df', title: `exercicios/31-qualidade/226_instantaneo_e_isolamento.df` },
+out "226 ok — instantaneo e isolamento"`, lang: 'df', title: `exercicios/31-qualidade/228_instantaneo_e_isolamento.df` },
   {"h3": "Instantâneo"},
   { code: `trial "o relatorio nao muda sem aviso":
     Crucible.snapshot("relatorio", gerar_relatorio())`, lang: 'df' },
@@ -529,10 +529,10 @@ dataforge debug conta.df --parar=42   # só na linha 42`, lang: 'bash' },
   {"list": ["**as 228 embutidas não aparecem** no painel de variáveis. Elas vivem"]},
   {"p": "no escopo global, e despejá-las enterra as três variáveis que você parou para ver."},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/31-qualidade/225_cobertura.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/31-qualidade/227_cobertura.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '225-cobertura-o-que-os-testes-nao-exercitaram', text: "225 · Cobertura: o que os testes NAO exercitaram", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'como-se-pede', text: "Como se pede", level: 3 as const }, { id: 'o-que-faz-o-numero-significar-algo', text: "O que faz o número significar algo", level: 3 as const }, { id: 'a-informacao-que-resolve', text: "A informação que resolve", level: 3 as const }, { id: 'o-que-ela-nao-mede', text: "O que ela NÃO mede", level: 3 as const }, { id: 'uma-advertencia', text: "Uma advertência", level: 3 as const }, { id: '226-instantaneo-banco-isolado-e-teste-instavel', text: "226 · Instantaneo, banco isolado e teste instavel", level: 2 as const }, { id: 'instantaneo', text: "Instantâneo", level: 3 as const }, { id: 'banco-que-se-desfaz', text: "Banco que se desfaz", level: 3 as const }, { id: 'teste-instavel', text: "Teste instável", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }, { id: 'continua-em', text: "Continua em", level: 3 as const }, { id: '229-depurar-sem-out', text: "229 · Depurar sem 'out'", level: 2 as const }, { id: 'por-que-nao-out', text: "Por que não `out`", level: 3 as const }, { id: 'o-que-este-exercicio-exercita', text: "O que este exercício exercita", level: 3 as const }, { id: 'epilha-quem-chamou-quem', text: "`e.pilha` — quem chamou quem", level: 3 as const }, { id: 'as-duas-linhas-e-as-duas-estao-certas', text: "As duas linhas, e as duas estão certas", level: 3 as const }, { id: 'handle-runtimeerror-nao-pega-um-trigger', text: "`handle RuntimeError` não pega um `trigger`", level: 3 as const }, { id: 'defer-mostra-sem-sujar-o-caminho-de-saida', text: "`defer` mostra sem sujar o caminho de saída", level: 3 as const }, { id: 'o-depurador-de-verdade', text: "O depurador de verdade", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '227-cobertura-o-que-os-testes-nao-exercitaram', text: "227 · Cobertura: o que os testes NAO exercitaram", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'como-se-pede', text: "Como se pede", level: 3 as const }, { id: 'o-que-faz-o-numero-significar-algo', text: "O que faz o número significar algo", level: 3 as const }, { id: 'a-informacao-que-resolve', text: "A informação que resolve", level: 3 as const }, { id: 'o-que-ela-nao-mede', text: "O que ela NÃO mede", level: 3 as const }, { id: 'uma-advertencia', text: "Uma advertência", level: 3 as const }, { id: '228-instantaneo-banco-isolado-e-teste-instavel', text: "228 · Instantaneo, banco isolado e teste instavel", level: 2 as const }, { id: 'instantaneo', text: "Instantâneo", level: 3 as const }, { id: 'banco-que-se-desfaz', text: "Banco que se desfaz", level: 3 as const }, { id: 'teste-instavel', text: "Teste instável", level: 3 as const }, { id: 'armadilha', text: "Armadilha", level: 3 as const }, { id: 'continua-em', text: "Continua em", level: 3 as const }, { id: '229-depurar-sem-out', text: "229 · Depurar sem 'out'", level: 2 as const }, { id: 'por-que-nao-out', text: "Por que não `out`", level: 3 as const }, { id: 'o-que-este-exercicio-exercita', text: "O que este exercício exercita", level: 3 as const }, { id: 'epilha-quem-chamou-quem', text: "`e.pilha` — quem chamou quem", level: 3 as const }, { id: 'as-duas-linhas-e-as-duas-estao-certas', text: "As duas linhas, e as duas estão certas", level: 3 as const }, { id: 'handle-runtimeerror-nao-pega-um-trigger', text: "`handle RuntimeError` não pega um `trigger`", level: 3 as const }, { id: 'defer-mostra-sem-sujar-o-caminho-de-saida', text: "`defer` mostra sem sujar o caminho de saída", level: 3 as const }, { id: 'o-depurador-de-verdade', text: "O depurador de verdade", level: 3 as const }];
 
 export default function Pagina() {
   return (

@@ -1533,3 +1533,104 @@ def test_o_rotulo_do_exercicio_e_o_mesmo_na_barra_e_na_pagina():
         assert ex._rotulo(nome) == da_barra[nome], (
             f"{nome}: a pagina diz {ex._rotulo(nome)!r} e a barra "
             f"{da_barra[nome]!r}")
+
+
+def test_a_previa_compartilhada_e_uma_imagem_que_as_redes_aceitam():
+    """O `og:image` era um **SVG**.
+
+    Nenhuma rede que mostra prévia aceita SVG — nem Facebook, nem
+    LinkedIn, nem WhatsApp, Discord ou Telegram. O link era
+    compartilhado e aparecia sem imagem nenhuma, que é pior do que não
+    ter metadado: o card fica cinza e vazio.
+
+    Três números que as redes cobram:
+
+        proporção   1.91:1     o banner é 2.98:1 e seria cortado
+        tamanho     1200x630   o que Facebook e LinkedIn pedem
+        peso        < 300 KB   acima disso o WhatsApp desiste da prévia
+    """
+    from PIL import Image
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    publico = os.path.join(raiz, "site", "public")
+
+    for nome in ("og.png", "og-docs.png", "og-lavra.png"):
+        caminho = os.path.join(publico, nome)
+        assert os.path.isfile(caminho), (
+            f"{nome} não existe — rode 'python3 tools/gerar_og.py'")
+        im = Image.open(caminho)
+        assert im.format == "PNG", f"{nome} é {im.format}; as redes pedem PNG"
+        assert im.size == (1200, 630), (
+            f"{nome} é {im.size[0]}x{im.size[1]}, e o card pede 1200x630 — "
+            f"qualquer outra proporção é recortada")
+        peso = os.path.getsize(caminho)
+        assert peso < 300 * 1024, (
+            f"{nome} tem {peso // 1024} KB; acima de 300 KB o WhatsApp "
+            f"costuma desistir da prévia")
+
+    # E o que o site DECLARA aponta para elas.
+    layout = open(os.path.join(raiz, "site", "app", "layout.tsx"),
+                  encoding="utf-8").read()
+    assert "/og.png" in layout, "o layout não aponta mais para a prévia"
+    assert ".svg'" not in layout.split("openGraph")[1].split("}")[0], (
+        "voltou um SVG para o og:image — nenhuma rede o mostra")
+
+
+def test_a_descricao_compartilhada_diz_para_que_a_linguagem_serve():
+    """É ela que decide o clique no feed.
+
+    "Tipos verificados, pattern matching estrutural e pipelines
+    nativos" é uma lista de recursos para quem já conhece. Quem vê o
+    card no LinkedIn não conhece.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    layout = open(os.path.join(raiz, "site", "app", "layout.tsx"),
+                  encoding="utf-8").read()
+
+    inicio = layout.index("const DESCRICAO_LONGA")
+    longa = layout[inicio:layout.index(";", inicio)]
+
+    # Tem de dizer o PROPÓSITO, e não só a lista de recursos.
+    for palavra in ("criada para", "português"):
+        assert palavra in longa, f"a descrição não diz '{palavra}'"
+    # E citar o que sustenta a linguagem.
+    for peca in ("Kiln", "Vitrine", "Lavra", "Crucible", "Arcane"):
+        assert peca in longa, f"a descrição não cita {peca}"
+
+    # O LinkedIn corta perto de 300 caracteres na prévia, mas guarda a
+    # descrição inteira; o limite prático é o do Open Graph.
+    texto = longa.replace("'", "").replace("+", "")
+    assert 400 < len(texto) < 1400, (
+        f"a descrição tem {len(texto)} caracteres — curta demais não diz "
+        f"nada, longa demais é cortada em todo lugar")
+
+
+def test_o_dado_estruturado_descreve_a_linguagem():
+    """O Open Graph diz o que MOSTRAR; o JSON-LD diz o que a coisa É.
+
+    O LinkedIn usa para completar o card quando quem publica não
+    escreveu nada — que é o caso mais comum: alguém cola o link e
+    aperta publicar.
+    """
+    import json
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    saida = os.path.join(raiz, "site", "out", "index.html")
+    if not os.path.isfile(saida):
+        pytest.skip("o site não foi construído neste checkout")
+
+    html = open(saida, encoding="utf-8").read()
+    achado = re.search(
+        r'<script type="application/ld\+json"[^>]*>(.*?)</script>', html, re.S)
+    assert achado, "a página não traz dado estruturado"
+
+    dado = json.loads(achado.group(1))
+    tipos = {n["@type"] for n in dado["@graph"]}
+    assert {"SoftwareApplication", "WebSite", "TechArticle"} <= tipos
+
+    app = next(n for n in dado["@graph"]
+               if n["@type"] == "SoftwareApplication")
+    assert app["name"] == "DataForge"
+    assert app["image"].endswith(".png"), "a imagem do JSON-LD também é PNG"
+    assert len(app["featureList"]) >= 10

@@ -45,6 +45,40 @@ def escrever(pagina):
     # comecar. Sem ele, uma correcao a mao some no proximo
     # 'gerar_conteudo.py' sem nada explicando — foi o que aconteceu com
     # a contagem de simbolos desta pagina.
+    # A previa PROPRIA, quando a pagina merece uma.
+    #
+    # Sem 'openGraph' aqui, o Next herda o do layout — que e o card do
+    # site inteiro, e e o certo para a maioria das paginas. Declarar um
+    # vazio seria pior: no Next, o 'openGraph' do filho SUBSTITUI o do
+    # pai, entao uma pagina com openGraph sem imagem ficaria sem imagem
+    # nenhuma.
+    og = ""
+    if pagina.get('og'):
+        titulo = json.dumps(pagina['title'], ensure_ascii=False)
+        descricao = json.dumps(pagina.get('description', ''),
+                               ensure_ascii=False)
+        url = json.dumps("https://dataforge-lang.vercel.app" + href,
+                         ensure_ascii=False)
+        imagem = json.dumps("/" + pagina['og'], ensure_ascii=False)
+        og = f"""
+  openGraph: {{
+    type: 'article',
+    locale: 'pt_BR',
+    url: {url},
+    siteName: 'DataForge',
+    title: {titulo},
+    description: {descricao},
+    images: [{{ url: {imagem}, width: 1200, height: 630,
+               type: 'image/png', alt: {titulo} }}],
+  }},
+  twitter: {{
+    card: 'summary_large_image',
+    title: {titulo},
+    description: {descricao},
+    images: [{imagem}],
+  }},
+  alternates: {{ canonical: {url} }},"""
+
     fonte_py = pagina.get('fonte', 'site/scripts/conteudo/')
     tsx = f'''// GERADO por 'site/scripts/gerar_conteudo.py'. Nao edite aqui.
 // A fonte e '{fonte_py}' — mude la e rode o gerador.
@@ -56,7 +90,7 @@ import {{ Renderer }} from '@/components/Renderer';
 
 export const metadata: Metadata = {{
   title: {json.dumps(pagina['title'], ensure_ascii=False)},
-  description: {json.dumps(pagina.get('description', ''), ensure_ascii=False)},
+  description: {json.dumps(pagina.get('description', ''), ensure_ascii=False)},{og}
 }};
 
 const blocos: Bloco[] = [

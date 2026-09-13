@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 22`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[191](#191-o-primeiro-servidor)", "**O primeiro servidor**", "declare um servidor com duas rotas e responda texto e HTML."], ["[192](#192-parametros-de-caminho-e-query-string)", "**Parametros de caminho e query string**", "leia :id do caminho e ?campo= da query."], ["[193](#193-uma-api-restful-completa)", "**Uma API RESTful completa**", "os cinco verbos sobre um mesmo recurso, com os status certos."], ["[194](#194-paginas-html-com-template)", "**Paginas HTML com template**", "renderize uma pagina a partir de um template com laco."], ["[195](#195-middleware-autenticacao-e-limite-de-taxa)", "**Middleware, autenticacao e limite de taxa**", "proteja rotas e limite pedidos por IP."], ["[196](#196-paginas-de-erro-redirecionamento-e-arquivos-estaticos)", "**Paginas de erro, redirecionamento e arquivos estaticos**", "personalize o 404, redirecione uma rota antiga e sirva CSS."], ["[197](#197-subir-o-servidor-de-verdade)", "**Subir o servidor de verdade**", "acenda o forno, faca um pedido pela rede e apague."], ["[198](#198-a-api-vista-de-fora-openapi-insomnia-e-curl)", "**A API vista de fora: OpenAPI, Insomnia e curl**", "exporte as rotas de um servidor Kiln para as ferramentas"]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[192](#192-o-primeiro-servidor)", "**O primeiro servidor**", "declare um servidor com duas rotas e responda texto e HTML."], ["[193](#193-parametros-de-caminho-e-query-string)", "**Parametros de caminho e query string**", "leia :id do caminho e ?campo= da query."], ["[194](#194-uma-api-restful-completa)", "**Uma API RESTful completa**", "os cinco verbos sobre um mesmo recurso, com os status certos."], ["[195](#195-paginas-html-com-template)", "**Paginas HTML com template**", "renderize uma pagina a partir de um template com laco."], ["[196](#196-middleware-autenticacao-e-limite-de-taxa)", "**Middleware, autenticacao e limite de taxa**", "proteja rotas e limite pedidos por IP."], ["[197](#197-paginas-de-erro-redirecionamento-e-arquivos-estaticos)", "**Paginas de erro, redirecionamento e arquivos estaticos**", "personalize o 404, redirecione uma rota antiga e sirva CSS."], ["[198](#198-subir-o-servidor-de-verdade)", "**Subir o servidor de verdade**", "acenda o forno, faca um pedido pela rede e apague."], ["[199](#199-a-api-vista-de-fora-openapi-insomnia-e-curl)", "**A API vista de fora: OpenAPI, Insomnia e curl**", "exporte as rotas de um servidor Kiln para as ferramentas"]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "191 · O primeiro servidor"},
+  {"h2": "192 · O primeiro servidor"},
   {"p": "**Enunciado.** declare um servidor com duas rotas e responda texto e HTML."},
   { code: `// 'server' declara a aplicacao; 'route' declara uma rota; 'respond'
 // envia a resposta e encerra a rota, como 'yield' encerra uma acao.
@@ -45,7 +45,7 @@ assert pong["body"] is "pong", "o texto chega inteiro"
 assert len(Kiln.routes(ola)) is 2, "duas rotas registradas"
 
 // Um caminho que nao existe da 404 — sem precisar escrever isso.
-assert Kiln.test(ola, "GET", "/nada")["status"] is 404, "404 automatico"`, lang: 'df', title: `exercicios/22-web-kiln/191_primeiro_servidor.df` },
+assert Kiln.test(ola, "GET", "/nada")["status"] is 404, "404 automatico"`, lang: 'df', title: `exercicios/22-web-kiln/192_primeiro_servidor.df` },
   {"h3": "Conceitos"},
   {"p": "O **Kiln** é o framework web do DataForge. O nome vem do forno onde a peça ganha a forma final: a requisição entra crua e sai como resposta."},
   {"p": "Três palavras novas, todas contextuais — fora de um bloco `server` elas continuam sendo nomes livres:"},
@@ -65,7 +65,7 @@ assert Kiln.test(ola, "GET", "/nada")["status"] is 404, "404 automatico"`, lang:
   {"p": "de variável — o parser não vai reconhecer a rota."},
   {"list": ["Esquecer o `ignite`. O programa monta o servidor, não sobe nada e termina.", "Usar `yield` no corpo de uma rota. Funciona, mas `respond` já monta a"]},
   {"p": "resposta com o status e o tipo certos."},
-  {"h2": "192 · Parametros de caminho e query string"},
+  {"h2": "193 · Parametros de caminho e query string"},
   {"p": "**Enunciado.** leia :id do caminho e ?campo= da query."},
   { code: `// Dentro de uma rota voce ja tem seis nomes prontos: 'req', 'params',
 // 'query', 'body', 'headers' e 'session'. Escrever
@@ -92,7 +92,7 @@ assert longo["body"]["formato"] is "longo", "a query e lida"
 
 fundo := Kiln.test(api, "GET", "/arquivos/notas/2026/marco.txt")
 out "curinga:", fundo["body"]["caminho"]
-assert fundo["body"]["caminho"] is "notas/2026/marco.txt", "'*' pega tudo"`, lang: 'df', title: `exercicios/22-web-kiln/192_parametros_e_query.df` },
+assert fundo["body"]["caminho"] is "notas/2026/marco.txt", "'*' pega tudo"`, lang: 'df', title: `exercicios/22-web-kiln/193_parametros_e_query.df` },
   {"h3": "Conceitos"},
   {"p": "Um padrão de rota tem duas formas de capturar:"},
   {"table": {"head": ["Padrão", "Casa", "Resultado"], "rows": [["`/users/:id`", "`/users/42`", "`params[\"id\"]` é `\"42\"`"], ["`/files/*caminho`", "`/files/a/b.txt`", "`params[\"caminho\"]` é `\"a/b.txt\"`"]]}},
@@ -107,7 +107,7 @@ assert fundo["body"]["caminho"] is "notas/2026/marco.txt", "'*' pega tudo"`, lan
   {"p": "**`??` combina bem com query ausente.** `query[\"f\"] ?? \"curto\"` cobre o caso de o visitante não ter passado o campo."},
   {"h3": "Erros comuns"},
   {"list": ["Comparar `params[\"id\"] is 42`. É `\"42\"`, texto. Use `int(params[\"id\"])`.", "Esperar que `query[\"tag\"]` seja sempre lista. Com um valor só, é texto."]},
-  {"h2": "193 · Uma API RESTful completa"},
+  {"h2": "194 · Uma API RESTful completa"},
   {"p": "**Enunciado.** os cinco verbos sobre um mesmo recurso, com os status certos."},
   { code: `// REST nao e so usar POST e GET: cada situacao tem seu status. 201 para
 // criado, 204 para apagado sem corpo, 404 para inexistente, 405 quando
@@ -216,7 +216,7 @@ assert Kiln.test(loja, "GET", "/itens/999")["status"] is 404, "404 do recurso"
 // O caminho existe, o verbo nao: 405, com a lista do que e aceito.
 recusa := Kiln.test(loja, "PATCH", "/itens/1")
 out "verbo errado:", recusa["status"], recusa["headers"]["Allow"]
-assert recusa["status"] is 405, "405, nao 404 — o caminho existe"`, lang: 'df', title: `exercicios/22-web-kiln/193_crud_restful.df` },
+assert recusa["status"] is 405, "405, nao 404 — o caminho existe"`, lang: 'df', title: `exercicios/22-web-kiln/194_crud_restful.df` },
   {"h3": "Conceitos"},
   {"p": "REST não é só usar `POST` e `GET`. Cada situação tem seu status, e usar o certo é o que faz a API ser previsível para quem a consome:"},
   {"table": {"head": ["Situação", "Status", "Quem decide"], "rows": [["leitura com sucesso", "200", "você"], ["criado", "**201**", "você"], ["apagado, sem corpo", "**204**", "você"], ["recurso inexistente", "404", "o Kiln, se a rota não casar"], ["caminho existe, verbo não", "**405** + `Allow`", "o Kiln"]]}},
@@ -237,7 +237,7 @@ route DELETE "/itens/:id":
   {"p": "existia\"."},
   {"list": ["Devolver corpo no 204. Por definição, 204 é \"sem conteúdo\".", "Confiar em `body` sem conferir. Se o cliente mandou texto onde você esperava"]},
   {"p": "um vault, `body[\"nome\"]` falha — e vira 500."},
-  {"h2": "194 · Paginas HTML com template"},
+  {"h2": "195 · Paginas HTML com template"},
   {"p": "**Enunciado.** renderize uma pagina a partir de um template com laco."},
   { code: `// 'render' le um arquivo da pasta declarada em 'views' e devolve HTML.
 // A sintaxe do template e pequena de proposito: {{nome}} escreve,
@@ -283,7 +283,7 @@ assert "<article>" in pagina["body"], "as tags do template ficam"
 
 vazio := Kiln.test(site, "GET", "/vazio")
 assert "Nada na forja" in vazio["body"], "{{^}} cobre a lista vazia"
-assert "article" not in vazio["body"], "sem itens, sem artigos"`, lang: 'df', title: `exercicios/22-web-kiln/194_paginas_html.df` },
+assert "article" not in vazio["body"], "sem itens, sem artigos"`, lang: 'df', title: `exercicios/22-web-kiln/195_paginas_html.df` },
   {"h3": "Conceitos"},
   {"p": "`views` diz onde ficam os templates; `render` lê um deles e devolve HTML:"},
   { code: `server site on 8080:
@@ -303,7 +303,7 @@ assert "article" not in vazio["body"], "sem itens, sem artigos"`, lang: 'df', ti
   {"p": "com o nome do bloco em vez de renderizar metade da página."},
   {"list": ["Esquecer o `views`. Sem a pasta declarada, `render` diz exatamente isso.", "Usar `{{&campo}}` com texto vindo do usuário. É abrir a porta que o escape"]},
   {"p": "fecha."},
-  {"h2": "195 · Middleware, autenticacao e limite de taxa"},
+  {"h2": "196 · Middleware, autenticacao e limite de taxa"},
   {"p": "**Enunciado.** proteja rotas e limite pedidos por IP."},
   { code: `// Middleware roda antes de toda rota. Se ele devolve uma resposta, a
 // cadeia para ali — e assim que autenticacao e limite de taxa cortam o
@@ -344,7 +344,7 @@ assert certo["body"]["usuario"] is "Ana", "o middleware passou o usuario adiante
 excedido := Kiln.test(privado, "GET", "/eu", void, {"Authorization": "Bearer tk-bia"})
 out "quarto pedido:", excedido["status"]
 assert excedido["status"] is 429, "o quarto pedido no minuto e recusado"
-assert "Retry-After" in excedido["headers"], "e o cliente sabe quando voltar"`, lang: 'df', title: `exercicios/22-web-kiln/195_middleware_e_auth.df` },
+assert "Retry-After" in excedido["headers"], "e o cliente sabe quando voltar"`, lang: 'df', title: `exercicios/22-web-kiln/196_middleware_e_auth.df` },
   {"h3": "Conceitos"},
   {"p": "Middleware roda **antes** de toda rota do servidor:"},
   { code: `server privado on 8080:
@@ -361,7 +361,7 @@ assert "Retry-After" in excedido["headers"], "e o cliente sabe quando voltar"`, 
   {"p": "o pedido."},
   {"list": ["Confiar no `rate_limit` em produção com vários processos: a contagem é por"]},
   {"p": "processo, em memória."},
-  {"h2": "196 · Paginas de erro, redirecionamento e arquivos estaticos"},
+  {"h2": "197 · Paginas de erro, redirecionamento e arquivos estaticos"},
   {"p": "**Enunciado.** personalize o 404, redirecione uma rota antiga e sirva CSS."},
   { code: `// Um 404 em JSON serve para uma API; para um site, o visitante merece
 // uma pagina. Kiln.on_error troca a resposta de um status inteiro.
@@ -406,7 +406,7 @@ assert css["status"] is 200, "o arquivo do disco e servido"
 // classica de servidor de arquivos, e o Kiln recusa antes de abrir.
 fuga := Kiln.test(site, "GET", "/static/../../../etc/passwd")
 out "travessia de diretorio:", fuga["status"]
-assert fuga["status"] is 403, "sair da pasta e proibido"`, lang: 'df', title: `exercicios/22-web-kiln/196_erros_e_estaticos.df` },
+assert fuga["status"] is 403, "sair da pasta e proibido"`, lang: 'df', title: `exercicios/22-web-kiln/197_erros_e_estaticos.df` },
   {"h3": "Conceitos"},
   { code: `server site on 8080:
     assets "/static" from "./www"
@@ -425,7 +425,7 @@ Kiln.on_error(site, 404, minha_pagina_404)`, lang: 'df' },
   {"p": "página de erro, buscadores indexam a página de erro."},
   {"list": ["Servir a pasta do projeto inteiro em `assets`. Sirva só o que é público —"]},
   {"p": "o `.git` e o `.env` moram no mesmo disco."},
-  {"h2": "197 · Subir o servidor de verdade"},
+  {"h2": "198 · Subir o servidor de verdade"},
   {"p": "**Enunciado.** acenda o forno, faca um pedido pela rede e apague."},
   { code: `// Ate aqui usamos Kiln.test, que executa a rota sem abrir socket. Agora
 // o servidor de verdade: 'Kiln.serve' sobe em segundo plano e devolve a
@@ -481,7 +481,7 @@ out "forno apagado"
 
 // Em um programa de verdade, a ultima linha seria:
 //     ignite contador on 8080
-// que sobe e fica servindo ate voce apertar Ctrl-C.`, lang: 'df', title: `exercicios/22-web-kiln/197_servidor_de_verdade.df` },
+// que sobe e fica servindo ate voce apertar Ctrl-C.`, lang: 'df', title: `exercicios/22-web-kiln/198_servidor_de_verdade.df` },
   {"h3": "Conceitos"},
   {"p": "Três formas de rodar, para três momentos:"},
   {"table": {"head": ["Forma", "Faz", "Quando"], "rows": [["`Kiln.test(app, verbo, caminho)`", "executa a rota, sem socket", "teste"], ["`Kiln.serve(app, porta)`", "sobe em segundo plano, devolve a porta", "script, teste de integração"], ["`ignite app on 8080`", "sobe e bloqueia até Ctrl-C", "produção"]]}},
@@ -496,7 +496,7 @@ Kiln.stop(contador)`, lang: 'df' },
   {"h3": "Erros comuns"},
   {"list": ["Usar `ignite` num teste. Ele bloqueia, e o teste nunca termina.", "Esquecer `Kiln.stop`. A porta fica ocupada até o processo morrer.", "Guardar sessão em memória e rodar vários processos. Cada um tem a sua, e o"]},
   {"p": "visitante desloga a cada pedido."},
-  {"h2": "198 · A API vista de fora: OpenAPI, Insomnia e curl"},
+  {"h2": "199 · A API vista de fora: OpenAPI, Insomnia e curl"},
   {"p": "**Enunciado.** exporte as rotas de um servidor Kiln para as ferramentas"},
   { code: `// que quem consome a API de fato usa.
 
@@ -596,7 +596,7 @@ assert "| \`GET\` | \`/produtos\` |" in tabela, "a tabela de rotas"
 assert "# API da Loja" in tabela, "o titulo"
 
 out ""
-out "ok"`, lang: 'df', title: `exercicios/22-web-kiln/198_api_rest_export.df` },
+out "ok"`, lang: 'df', title: `exercicios/22-web-kiln/199_api_rest_export.df` },
   {"h3": "Conceitos"},
   { code: `adopt Arcane.API as API
 
@@ -643,10 +643,10 @@ ok`, lang: 'text' },
   {"p": "sai com o que o código faz."},
   {"list": ["Gere o OpenAPI e cole em `editor.swagger.io`."]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/22-web-kiln/191_primeiro_servidor.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/22-web-kiln/192_primeiro_servidor.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '191-o-primeiro-servidor', text: "191 · O primeiro servidor", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '192-parametros-de-caminho-e-query-string', text: "192 · Parametros de caminho e query string", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '193-uma-api-restful-completa', text: "193 · Uma API RESTful completa", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '194-paginas-html-com-template', text: "194 · Paginas HTML com template", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '195-middleware-autenticacao-e-limite-de-taxa', text: "195 · Middleware, autenticacao e limite de taxa", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '196-paginas-de-erro-redirecionamento-e-arquivos-estaticos', text: "196 · Paginas de erro, redirecionamento e arquivos estaticos", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '197-subir-o-servidor-de-verdade', text: "197 · Subir o servidor de verdade", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '198-a-api-vista-de-fora-openapi-insomnia-e-curl', text: "198 · A API vista de fora: OpenAPI, Insomnia e curl", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'por-que-nao-escrever-a-documentacao-a-mao', text: "Por que não escrever a documentação à mão", level: 3 as const }, { id: 'aponte-para-o-appdf-nao-para-o-maindf', text: "Aponte para o `app.df`, não para o `main.df`", level: 3 as const }, { id: 'as-traducoes-que-importam', text: "As traduções que importam", level: 3 as const }, { id: 'o-que-ele-nao-infere', text: "O que ele **não** infere", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '192-o-primeiro-servidor', text: "192 · O primeiro servidor", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '193-parametros-de-caminho-e-query-string', text: "193 · Parametros de caminho e query string", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '194-uma-api-restful-completa', text: "194 · Uma API RESTful completa", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '195-paginas-html-com-template', text: "195 · Paginas HTML com template", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '196-middleware-autenticacao-e-limite-de-taxa', text: "196 · Middleware, autenticacao e limite de taxa", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '197-paginas-de-erro-redirecionamento-e-arquivos-estaticos', text: "197 · Paginas de erro, redirecionamento e arquivos estaticos", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '198-subir-o-servidor-de-verdade', text: "198 · Subir o servidor de verdade", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '199-a-api-vista-de-fora-openapi-insomnia-e-curl', text: "199 · A API vista de fora: OpenAPI, Insomnia e curl", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'por-que-nao-escrever-a-documentacao-a-mao', text: "Por que não escrever a documentação à mão", level: 3 as const }, { id: 'aponte-para-o-appdf-nao-para-o-maindf', text: "Aponte para o `app.df`, não para o `main.df`", level: 3 as const }, { id: 'as-traducoes-que-importam', text: "As traduções que importam", level: 3 as const }, { id: 'o-que-ele-nao-infere', text: "O que ele **não** infere", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
 
 export default function Pagina() {
   return (

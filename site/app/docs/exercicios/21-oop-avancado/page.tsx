@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 21`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[181](#181-campos-declarados)", "**Campos declarados**", "declare campos com tipo e padrao no corpo do blueprint."], ["[182](#182-metodos-estaticos)", "**Metodos estaticos**", "crie metodos que pertencem ao blueprint, nao a instancia."], ["[183](#183-propriedades-com-get-e-set)", "**Propriedades com get e set**", "exponha um valor calculado, e valide na atribuicao."], ["[184](#184-visibilidade-private-e-protected)", "**Visibilidade: private e protected**", "proteja o estado interno de um objeto."], ["[185](#185-sobrecarga-de-operadores)", "**Sobrecarga de operadores**", "faca '+' e '==' funcionarem no seu proprio tipo."], ["[186](#186-blueprints-abstratos-e-contratos-de-trait)", "**Blueprints abstratos e contratos de trait**", "declare o que um tipo precisa ter, e deixe o compilador cobrar."], ["[187](#187-heranca-e-root)", "**Heranca e 'root'**", "estenda um comportamento sem reescrever o do pai."], ["[188](#188-composicao-no-lugar-de-heranca)", "**Composicao no lugar de heranca**", "monte comportamento juntando objetos, nao estendendo."], ["[189](#189-quando-usar-record-e-quando-usar-blueprint)", "**Quando usar record e quando usar blueprint**", "compare os dois, e escolha pelo que o dado precisa."], ["[190](#190-polimorfismo)", "**Polimorfismo**", "trate tipos diferentes pela interface comum."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[182](#182-campos-declarados)", "**Campos declarados**", "declare campos com tipo e padrao no corpo do blueprint."], ["[183](#183-metodos-estaticos)", "**Metodos estaticos**", "crie metodos que pertencem ao blueprint, nao a instancia."], ["[184](#184-propriedades-com-get-e-set)", "**Propriedades com get e set**", "exponha um valor calculado, e valide na atribuicao."], ["[185](#185-visibilidade-private-e-protected)", "**Visibilidade: private e protected**", "proteja o estado interno de um objeto."], ["[186](#186-sobrecarga-de-operadores)", "**Sobrecarga de operadores**", "faca '+' e '==' funcionarem no seu proprio tipo."], ["[187](#187-blueprints-abstratos-e-contratos-de-trait)", "**Blueprints abstratos e contratos de trait**", "declare o que um tipo precisa ter, e deixe o compilador cobrar."], ["[188](#188-heranca-e-root)", "**Heranca e 'root'**", "estenda um comportamento sem reescrever o do pai."], ["[189](#189-composicao-no-lugar-de-heranca)", "**Composicao no lugar de heranca**", "monte comportamento juntando objetos, nao estendendo."], ["[190](#190-quando-usar-record-e-quando-usar-blueprint)", "**Quando usar record e quando usar blueprint**", "compare os dois, e escolha pelo que o dado precisa."], ["[191](#191-polimorfismo)", "**Polimorfismo**", "trate tipos diferentes pela interface comum."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "181 · Campos declarados"},
+  {"h2": "182 · Campos declarados"},
   {"p": "**Enunciado.** declare campos com tipo e padrao no corpo do blueprint."},
   { code: `// Antes do 4.1, todo campo nascia no setup. Declara-los no corpo diz o
 // que o objeto tem antes de dizer como ele nasce — e o padrao evita o
@@ -52,7 +52,7 @@ blueprint Funcionario extends Pessoa:
 f := spawn Funcionario()
 assert f.idade is 0, "o campo do pai foi herdado"
 assert f.salario is 0.0, "e o proprio tambem existe"
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/181_campos_declarados.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/182_campos_declarados.df` },
   {"h3": "Conceitos"},
   {"p": "Até o 4.0, todo campo nascia por atribuição no `setup`. Isso funciona, mas esconde a forma do objeto: para saber o que ele tem, era preciso ler o corpo do construtor inteiro."},
   { code: `blueprint Contador:
@@ -71,7 +71,7 @@ out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/181_campos_declarados.
   {"p": "precisa ser novo a cada objeto (uma lista, por exemplo), atribua no `setup`."},
   {"h3": "Relacionados"},
   {"list": ["[182 — Métodos estáticos](182_metodos_estaticos.md)", "[184 — Visibilidade](184_visibilidade.md)", "[189 — Records vs blueprints](189_records_vs_blueprints.md)"]},
-  {"h2": "182 · Metodos estaticos"},
+  {"h2": "183 · Metodos estaticos"},
   {"p": "**Enunciado.** crie metodos que pertencem ao blueprint, nao a instancia."},
   { code: `// Um metodo estatico nao usa 'self'. Serve para o que e da familia toda:
 // construtores alternativos, conversoes, constantes calculadas.
@@ -108,7 +108,7 @@ handle e:
     out "recusado, como esperado"
     assert e.message.contains("spawn"), "a mensagem diz o que fazer"
 
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/182_metodos_estaticos.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/183_metodos_estaticos.df` },
   {"h3": "Conceitos"},
   {"p": "Um método estático não recebe `self`. Ele é chamado no blueprint:"},
   { code: `blueprint Temperatura:
@@ -134,7 +134,7 @@ gelo := Temperatura.de_fahrenheit(32)`, lang: 'df' },
   {"p": "instâncias — e mudá-lo muda para todas."},
   {"h3": "Relacionados"},
   {"list": ["[181 — Campos declarados](181_campos_declarados.md)", "[183 — Propriedades](183_propriedades.md)"]},
-  {"h2": "183 · Propriedades com get e set"},
+  {"h2": "184 · Propriedades com get e set"},
   {"p": "**Enunciado.** exponha um valor calculado, e valide na atribuicao."},
   { code: `// Uma propriedade e lida como campo mas roda codigo. O ganho: dá para
 // validar na escrita, e mudar a implementacao sem mexer em quem usa.
@@ -194,7 +194,7 @@ monitor:
 handle e:
     assert e.message.contains("read-only"), "diz que falta o set"
 
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/183_propriedades.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/184_propriedades.df` },
   {"h3": "Conceitos"},
   {"p": "Uma propriedade é **lida e escrita como campo, mas roda código**:"},
   { code: `blueprint Retangulo:
@@ -220,7 +220,7 @@ out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/183_propriedades.df` }
   {"p": "de leitura. Se a conta é cara, um método com nome é mais honesto."},
   {"h3": "Relacionados"},
   {"list": ["[184 — Visibilidade](184_visibilidade.md)", "[182 — Métodos estáticos](182_metodos_estaticos.md)"]},
-  {"h2": "184 · Visibilidade: private e protected"},
+  {"h2": "185 · Visibilidade: private e protected"},
   {"p": "**Enunciado.** proteja o estado interno de um objeto."},
   { code: `// 'private' e visivel so dentro do blueprint. 'protected' alcanca
 // tambem os herdeiros. O que fica publico e a promessa que voce
@@ -277,7 +277,7 @@ blueprint ContaPremium extends Conta:
 p := spawn ContaPremium("Bruna")
 assert p.saudacao() is "Bem-vinda, Bruna", "protected alcanca o filho"
 
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/184_visibilidade.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/185_visibilidade.df` },
   {"h3": "Conceitos"},
   { code: `blueprint Conta:
     private saldo: Float := 0.0      // só dentro de Conta
@@ -298,7 +298,7 @@ out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/184_visibilidade.df` }
   {"p": "ao ponto de partida. Exponha comportamento (`depositar`), não estado (`saldo`)."},
   {"h3": "Relacionados"},
   {"list": ["[183 — Propriedades](183_propriedades.md)", "[187 — Herança e root](187_heranca_e_root.md)"]},
-  {"h2": "185 · Sobrecarga de operadores"},
+  {"h2": "186 · Sobrecarga de operadores"},
   {"p": "**Enunciado.** faca '+' e '==' funcionarem no seu proprio tipo."},
   { code: `// Sobrecarregar operador so vale quando a operacao e obvia: somar dois
 // vetores, comparar dois dinheiros. Se alguem precisa ler a
@@ -348,7 +348,7 @@ assert a isnt b, "isnt deriva do =="
 out "comprimento de (3,4):", b.comprimento
 assert b.comprimento is 5.0, "3-4-5"
 
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/185_sobrecarga_operadores.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/186_sobrecarga_operadores.df` },
   {"h3": "Conceitos"},
   { code: `blueprint Vetor:
     operator + (o):
@@ -370,7 +370,7 @@ out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/185_sobrecarga_operado
   {"p": "`2 * vetor` não funciona se só `Vetor` define `*`; escreva `vetor * 2`."},
   {"h3": "Relacionados"},
   {"list": ["[189 — Records vs blueprints](189_records_vs_blueprints.md)", "[186 — Abstratos e traits](186_abstratos_e_traits.md)"]},
-  {"h2": "186 · Blueprints abstratos e contratos de trait"},
+  {"h2": "187 · Blueprints abstratos e contratos de trait"},
   {"p": "**Enunciado.** declare o que um tipo precisa ter, e deixe o compilador cobrar."},
   { code: `// Um blueprint abstrato nao pode ser spawnado: ele existe para ser
 // herdado. Um metodo abstrato e uma exigencia — quem herdar precisa
@@ -440,7 +440,7 @@ blueprint Peso with Comparavel:
 
 assert(spawn Peso(1)).comparar(spawn Peso(2)) is -1, "o contrato foi cumprido"
 
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/186_abstratos_e_traits.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/187_abstratos_e_traits.df` },
   {"h3": "Conceitos"},
   { code: `abstract blueprint Forma:
     abstract action area()       // exigência: o herdeiro implementa
@@ -464,7 +464,7 @@ out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/186_abstratos_e_traits
   {"list": ["Trait não guarda estado. Para compartilhar campos, use herança ou composição."]},
   {"h3": "Relacionados"},
   {"list": ["[188 — Composição](188_composicao.md)", "[190 — Polimorfismo](190_polimorfismo.md)"]},
-  {"h2": "187 · Heranca e 'root'"},
+  {"h2": "188 · Heranca e 'root'"},
   {"p": "**Enunciado.** estenda um comportamento sem reescrever o do pai."},
   { code: `// 'root' chama a versao do pai. Serve para acrescentar sem duplicar —
 // e o que distingue estender de reimplementar.
@@ -509,7 +509,7 @@ blueprint Base:
 
 assert(spawn Base()).identidade() is "base", "o final funciona normalmente"
 
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/187_heranca_e_root.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/188_heranca_e_root.df` },
   {"h3": "Conceitos"},
   { code: `blueprint Artigo extends Documento:
     action cabecalho():
@@ -529,7 +529,7 @@ out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/187_heranca_e_root.df`
   {"p": "a modelagem foi longe demais."},
   {"h3": "Relacionados"},
   {"list": ["[188 — Composição](188_composicao.md)", "[184 — Visibilidade](184_visibilidade.md)"]},
-  {"h2": "188 · Composicao no lugar de heranca"},
+  {"h2": "189 · Composicao no lugar de heranca"},
   {"p": "**Enunciado.** monte comportamento juntando objetos, nao estendendo."},
   { code: `// Heranca amarra o filho ao pai para sempre. Composicao troca a peca
 // quando precisar. A regra pratica: heranca quando A *e* um B;
@@ -585,7 +585,7 @@ assert eletrico.ficha().contains("150"), "a potencia veio do motor"
 eletrico.motor := spawn MotorCombustao(100)
 assert eletrico.dar_partida().contains("ronco"), "o mesmo carro, outro motor"
 
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/188_composicao.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/189_composicao.df` },
   {"h3": "Conceitos"},
   {"p": "A regra prática que decide:"},
   {"list": ["**Herança** quando A *é* um B — um Artigo é um Documento.", "**Composição** quando A *tem* um B — um Carro tem um Motor."]},
@@ -608,7 +608,7 @@ out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/188_composicao.df` },
   {"p": "cinco objetos separados."},
   {"h3": "Relacionados"},
   {"list": ["[186 — Abstratos e traits](186_abstratos_e_traits.md)", "[190 — Polimorfismo](190_polimorfismo.md)"]},
-  {"h2": "189 · Quando usar record e quando usar blueprint"},
+  {"h2": "190 · Quando usar record e quando usar blueprint"},
   {"p": "**Enunciado.** compare os dois, e escolha pelo que o dado precisa."},
   { code: `// record: imutavel, igualdade estrutural, sem estado que muda.
 // blueprint: identidade propria, estado que evolui, comportamento.
@@ -663,7 +663,7 @@ c1.depositar(50)
 assert c1.numero is "001", "e cada uma evolui por conta propria"
 
 out "record para valor, blueprint para identidade"
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/189_records_vs_blueprints.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/190_records_vs_blueprints.df` },
   {"h3": "Conceitos"},
   {"p": "A pergunta que decide: **dois desses, com os mesmos valores, são a mesma coisa?**"},
   {"table": {"head": ["", "`record`", "`blueprint`"], "rows": [["Igualdade", "estrutural — mesmos valores, mesmo record", "por identidade"], ["Mutação", "imutável; `with` cria cópia", "estado evolui"], ["Uso típico", "valor: ponto, dinheiro, data", "entidade: conta, usuário, sessão"]]}},
@@ -680,7 +680,7 @@ out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/189_records_vs_bluepri
   {"p": "perde a identidade — duas contas iguais viram uma."},
   {"h3": "Relacionados"},
   {"list": ["[181 — Campos declarados](181_campos_declarados.md)", "[185 — Sobrecarga de operadores](185_sobrecarga_operadores.md)"]},
-  {"h2": "190 · Polimorfismo"},
+  {"h2": "191 · Polimorfismo"},
   {"p": "**Enunciado.** trate tipos diferentes pela interface comum."},
   { code: `// O ganho do polimorfismo nao e evitar 'given': e poder acrescentar um
 // tipo novo sem tocar em quem usa. O codigo que percorre a lista abaixo
@@ -753,7 +753,7 @@ blueprint ComoMarkdown with Exportavel:
 formatos.append(spawn ComoMarkdown(dados))
 assert len(formatos) is 4, "o laco acima funcionaria igual"
 
-out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/190_polimorfismo.df` },
+out "ok"`, lang: 'df', title: `exercicios/21-oop-avancado/191_polimorfismo.df` },
   {"h3": "Conceitos"},
   { code: `formatos := [spawn ComoJson(dados), spawn ComoCsv(dados), spawn ComoTexto(dados)]
 
@@ -776,10 +776,10 @@ orif tipo is "csv":
   {"h3": "Relacionados"},
   {"list": ["[186 — Abstratos e traits](186_abstratos_e_traits.md)", "[188 — Composição](188_composicao.md)"]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/21-oop-avancado/181_campos_declarados.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/21-oop-avancado/182_campos_declarados.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '181-campos-declarados', text: "181 · Campos declarados", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '182-metodos-estaticos', text: "182 · Metodos estaticos", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '183-propriedades-com-get-e-set', text: "183 · Propriedades com get e set", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '184-visibilidade-private-e-protected', text: "184 · Visibilidade: private e protected", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '185-sobrecarga-de-operadores', text: "185 · Sobrecarga de operadores", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '186-blueprints-abstratos-e-contratos-de-trait', text: "186 · Blueprints abstratos e contratos de trait", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '187-heranca-e-root', text: "187 · Heranca e 'root'", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '188-composicao-no-lugar-de-heranca', text: "188 · Composicao no lugar de heranca", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '189-quando-usar-record-e-quando-usar-blueprint', text: "189 · Quando usar record e quando usar blueprint", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '190-polimorfismo', text: "190 · Polimorfismo", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '182-campos-declarados', text: "182 · Campos declarados", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '183-metodos-estaticos', text: "183 · Metodos estaticos", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '184-propriedades-com-get-e-set', text: "184 · Propriedades com get e set", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '185-visibilidade-private-e-protected', text: "185 · Visibilidade: private e protected", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '186-sobrecarga-de-operadores', text: "186 · Sobrecarga de operadores", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '187-blueprints-abstratos-e-contratos-de-trait', text: "187 · Blueprints abstratos e contratos de trait", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '188-heranca-e-root', text: "188 · Heranca e 'root'", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '189-composicao-no-lugar-de-heranca', text: "189 · Composicao no lugar de heranca", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '190-quando-usar-record-e-quando-usar-blueprint', text: "190 · Quando usar record e quando usar blueprint", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }, { id: '191-polimorfismo', text: "191 · Polimorfismo", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'armadilhas', text: "Armadilhas", level: 3 as const }, { id: 'relacionados', text: "Relacionados", level: 3 as const }];
 
 export default function Pagina() {
   return (

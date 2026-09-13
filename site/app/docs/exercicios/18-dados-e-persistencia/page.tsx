@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 18`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[163](#163-serializacao-de-dados)", "**Serializacao de dados**", "converta estruturas para JSON, CSV, TOML e de volta."], ["[164](#164-arquivos-e-diretorios)", "**Arquivos e diretorios**", "leia, escreva e organize arquivos com Arcane.IO."], ["[165](#165-banco-de-dados)", "**Banco de dados**", "crie tabelas, insira e consulte com Arcane.Database."], ["[166](#166-servidor-http)", "**Servidor HTTP**", "monte uma API REST com rotas e JSON."], ["[167](#167-cliente-http-e-urls)", "**Cliente HTTP e URLs**", "monte URLs, trate respostas e prepare requisicoes."], ["[168](#168-projeto-crud-com-persistencia)", "**Projeto: CRUD com persistencia**", "junte banco, validacao e relatorio num sistema completo."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[164](#164-serializacao-de-dados)", "**Serializacao de dados**", "converta estruturas para JSON, CSV, TOML e de volta."], ["[165](#165-arquivos-e-diretorios)", "**Arquivos e diretorios**", "leia, escreva e organize arquivos com Arcane.IO."], ["[166](#166-banco-de-dados)", "**Banco de dados**", "crie tabelas, insira e consulte com Arcane.Database."], ["[167](#167-servidor-http)", "**Servidor HTTP**", "monte uma API REST com rotas e JSON."], ["[168](#168-cliente-http-e-urls)", "**Cliente HTTP e URLs**", "monte URLs, trate respostas e prepare requisicoes."], ["[169](#169-projeto-crud-com-persistencia)", "**Projeto: CRUD com persistencia**", "junte banco, validacao e relatorio num sistema completo."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "163 · Serializacao de dados"},
+  {"h2": "164 · Serializacao de dados"},
   {"p": "**Enunciado.** converta estruturas para JSON, CSV, TOML e de volta."},
   { code: `adopt Arcane.Serialization as Serde
 
@@ -88,7 +88,7 @@ assert len(Serde.from_json_lines(linhas)) is 2, "roundtrip jsonl"
 
 // Formatos disponiveis
 out ""
-out $"formatos: {Serde.formats()}"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/163_serializacao.df` },
+out $"formatos: {Serde.formats()}"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/164_serializacao.df` },
   {"h3": "Por que isso importa"},
   {"p": "Todo programa que não é um exercício conversa com o mundo: lê um arquivo, chama uma API, grava um relatório. Serialização é essa fronteira, e o módulo `Arcane.Serialization` cobre os formatos que aparecem na prática."},
   {"h3": "JSON"},
@@ -149,7 +149,7 @@ Ana,30,vendas
 Bruno,25,ti`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Leia um CSV, transforme com pipeline e grave como JSON.", "Escreva `carregar_config(caminho)` com TOML e valores padrão."]},
-  {"h2": "164 · Arquivos e diretorios"},
+  {"h2": "165 · Arquivos e diretorios"},
   {"p": "**Enunciado.** leia, escreva e organize arquivos com Arcane.IO."},
   { code: `adopt Arcane.IO as IO
 adopt Arcane.Serialization as Serde
@@ -232,7 +232,7 @@ cycle nome in IO.list_dir(pasta):
 IO.delete(pasta)
 assert IO.exists(pasta) is no, "pasta removida"
 out ""
-out "tudo limpo"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/164_arquivos.df` },
+out "tudo limpo"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/165_arquivos.df` },
   {"h3": "Texto"},
   { code: `IO.write(caminho, texto)      // cria ou substitui
 IO.append(caminho, texto)     // acrescenta ao fim
@@ -290,7 +290,7 @@ arquivos .txt: 2
 tudo limpo`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Escreva `action tamanho_da_pasta(p)` somando o tamanho de todos os arquivos.", "Faça um backup que copia só os arquivos alterados."]},
-  {"h2": "165 · Banco de dados"},
+  {"h2": "166 · Banco de dados"},
   {"p": "**Enunciado.** crie tabelas, insira e consulte com Arcane.Database."},
   { code: `adopt Arcane.Database as DB
 
@@ -376,7 +376,7 @@ out $"colunas: {DB.columns(conn, "produtos")}"
 
 DB.close(conn)
 out ""
-out "conexao fechada"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/165_banco_sqlite.df` },
+out "conexao fechada"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/166_banco_sqlite.df` },
   {"h3": "Conectar"},
   { code: `conn := DB.memory()                  // em memória: some ao terminar
 conn := DB.connect("dados.db")       // arquivo SQLite`, lang: 'df' },
@@ -435,7 +435,7 @@ colunas: [id, nome, preco, estoque]
 conexao fechada`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Crie uma tabela de vendas com chave estrangeira e faça um JOIN.", "Envolva uma transferência entre contas numa transação com `monitor`.", "Compare `execute` num laço com `execute_many` para 1000 registros."]},
-  {"h2": "166 · Servidor HTTP"},
+  {"h2": "167 · Servidor HTTP"},
   {"p": "**Enunciado.** monte uma API REST com rotas e JSON."},
   { code: `adopt Arcane.Http as Http
 adopt Arcane.Serialization as Serde
@@ -536,7 +536,7 @@ out ""
 out $"tarefas iniciais: {len(tarefas)}"
 out ""
 out "Para subir de verdade, acrescente ao final:"
-out "    Http.listen(app, 3000)"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/166_http_servidor.df` },
+out "    Http.listen(app, 3000)"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/167_http_servidor.df` },
   {"h3": "Montar a aplicação"},
   { code: `app := Http.create("API de Tarefas")
 Http.cors(app)         // libera chamadas de outra origem
@@ -583,7 +583,7 @@ tarefas iniciais: 2`, lang: 'text' },
   { code: `  curl localhost:3000/api/tarefas
   curl -X POST localhost:3000/api/tarefas -H 'Content-Type: application/json' -d '{"titulo":"Nova"}'`, lang: 'bash' },
   {"list": ["Troque a lista em memória por `Arcane.Database`.", "Acrescente paginação com `req[\"query\"][\"pagina\"]`."]},
-  {"h2": "167 · Cliente HTTP e URLs"},
+  {"h2": "168 · Cliente HTTP e URLs"},
   {"p": "**Enunciado.** monte URLs, trate respostas e prepare requisicoes."},
   { code: `adopt Arcane.Web as Web
 adopt Arcane.Serialization as Serde
@@ -674,7 +674,7 @@ out processar({"status": 200, "body": "isso nao e json"})
 
 assert processar({"status": 200, "body": '{"a": 1}'}).ok is yes, "sucesso"
 assert processar({"status": 500, "body": ""}).ok is no, "erro http"
-assert processar({"status": 200, "body": "quebrado"}).ok is no, "json invalido"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/167_http_cliente.df` },
+assert processar({"status": 200, "body": "quebrado"}).ok is no, "json invalido"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/168_http_cliente.df` },
   {"h3": "Codificação de URL"},
   { code: `Web.encode_url("busca com espacos")     // "busca%20com%20espacos"
 Web.decode_url(texto)`, lang: 'df' },
@@ -733,7 +733,7 @@ corpo: {"acao": "criar", "dados": {"nome": "Ana"}}
 {ok: no, erro: resposta nao e JSON valido}`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Escreva `com_retentativa(url, tentativas)` usando `retry`, só para 5xx.", "Acrescente cabeçalhos de autenticação ao montador de requisição."]},
-  {"h2": "168 · Projeto: CRUD com persistencia"},
+  {"h2": "169 · Projeto: CRUD com persistencia"},
   {"p": "**Enunciado.** junte banco, validacao e relatorio num sistema completo."},
   { code: `adopt Arcane.Database as DB
 adopt Arcane.Text as Text
@@ -877,7 +877,7 @@ assert DB.count(conn, "alunos") is 2, "dois restantes"
 
 DB.close(conn)
 out ""
-out "conexao fechada"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/168_projeto_crud.df` },
+out "conexao fechada"`, lang: 'df', title: `exercicios/18-dados-e-persistencia/169_projeto_crud.df` },
   {"h3": "A arquitetura"},
   { code: `MODELO         record Aluno, enum Conceito, conceito_de
 VALIDACAO      validar — pura, sem banco
@@ -950,10 +950,10 @@ media da turma: 7.0
   {"h3": "Experimente"},
   {"list": ["Acrescente busca por nome com `LIKE` e parâmetro.", "Exponha o CRUD como API HTTP reaproveitando `validar`.", "Escreva `tests/validacao_test.df` cobrindo cada regra."]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/18-dados-e-persistencia/163_serializacao.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/18-dados-e-persistencia/164_serializacao.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '163-serializacao-de-dados', text: "163 · Serializacao de dados", level: 2 as const }, { id: 'por-que-isso-importa', text: "Por que isso importa", level: 3 as const }, { id: 'json', text: "JSON", level: 3 as const }, { id: 'jsonpath-navegar-sem-quebrar', text: "`json_path` — navegar sem quebrar", level: 3 as const }, { id: 'csv', text: "CSV", level: 3 as const }, { id: 'toml', text: "TOML", level: 3 as const }, { id: 'achatar-e-desachatar', text: "Achatar e desachatar", level: 3 as const }, { id: 'json-lines', text: "JSON Lines", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '164-arquivos-e-diretorios', text: "164 · Arquivos e diretorios", level: 2 as const }, { id: 'texto', text: "Texto", level: 3 as const }, { id: 'formatos-estruturados', text: "Formatos estruturados", level: 3 as const }, { id: 'caminhos', text: "Caminhos", level: 3 as const }, { id: 'diretorios', text: "Diretórios", level: 3 as const }, { id: 'copiar-renomear-apagar', text: "Copiar, renomear, apagar", level: 3 as const }, { id: 'filtrar-por-extensao', text: "Filtrar por extensão", level: 3 as const }, { id: 'limpeza-garantida', text: "Limpeza garantida", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '165-banco-de-dados', text: "165 · Banco de dados", level: 2 as const }, { id: 'conectar', text: "Conectar", level: 3 as const }, { id: 'parametros-sempre', text: "Parâmetros, sempre", level: 3 as const }, { id: 'as-operacoes', text: "As operações", level: 3 as const }, { id: 'executemany', text: "`execute_many`", level: 3 as const }, { id: 'transacoes', text: "Transações", level: 3 as const }, { id: 'introspeccao', text: "Introspecção", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '166-servidor-http', text: "166 · Servidor HTTP", level: 2 as const }, { id: 'montar-a-aplicacao', text: "Montar a aplicação", level: 3 as const }, { id: 'rotas', text: "Rotas", level: 3 as const }, { id: 'o-par-requisicaoresposta', text: "O par requisição/resposta", level: 3 as const }, { id: 'codigos-que-importam', text: "Códigos que importam", level: 3 as const }, { id: 'validacao-fora-da-rota', text: "Validação fora da rota", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '167-cliente-http-e-urls', text: "167 · Cliente HTTP e URLs", level: 2 as const }, { id: 'codificacao-de-url', text: "Codificação de URL", level: 3 as const }, { id: 'montar-a-query-string', text: "Montar a query string", level: 3 as const }, { id: 'classificar-respostas-com-match', text: "Classificar respostas com `match`", level: 3 as const }, { id: 'tratar-a-resposta-em-camadas', text: "Tratar a resposta em camadas", level: 3 as const }, { id: 'o-padrao-de-resultado', text: "O padrão de resultado", level: 3 as const }, { id: 'chamadas-de-verdade', text: "Chamadas de verdade", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '168-projeto-crud-com-persistencia', text: "168 · Projeto: CRUD com persistencia", level: 2 as const }, { id: 'a-arquitetura', text: "A arquitetura", level: 3 as const }, { id: 'modelo-e-armazenamento-sao-coisas-diferentes', text: "Modelo e armazenamento são coisas diferentes", level: 3 as const }, { id: 'validar-antes-de-tocar-no-banco', text: "Validar antes de tocar no banco", level: 3 as const }, { id: 'o-padrao-de-resultado', text: "O padrão de resultado", level: 3 as const }, { id: 'enum-com-valor-numerico', text: "Enum com valor numérico", level: 3 as const }, { id: 'grafico-em-texto', text: "Gráfico em texto", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '164-serializacao-de-dados', text: "164 · Serializacao de dados", level: 2 as const }, { id: 'por-que-isso-importa', text: "Por que isso importa", level: 3 as const }, { id: 'json', text: "JSON", level: 3 as const }, { id: 'jsonpath-navegar-sem-quebrar', text: "`json_path` — navegar sem quebrar", level: 3 as const }, { id: 'csv', text: "CSV", level: 3 as const }, { id: 'toml', text: "TOML", level: 3 as const }, { id: 'achatar-e-desachatar', text: "Achatar e desachatar", level: 3 as const }, { id: 'json-lines', text: "JSON Lines", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '165-arquivos-e-diretorios', text: "165 · Arquivos e diretorios", level: 2 as const }, { id: 'texto', text: "Texto", level: 3 as const }, { id: 'formatos-estruturados', text: "Formatos estruturados", level: 3 as const }, { id: 'caminhos', text: "Caminhos", level: 3 as const }, { id: 'diretorios', text: "Diretórios", level: 3 as const }, { id: 'copiar-renomear-apagar', text: "Copiar, renomear, apagar", level: 3 as const }, { id: 'filtrar-por-extensao', text: "Filtrar por extensão", level: 3 as const }, { id: 'limpeza-garantida', text: "Limpeza garantida", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '166-banco-de-dados', text: "166 · Banco de dados", level: 2 as const }, { id: 'conectar', text: "Conectar", level: 3 as const }, { id: 'parametros-sempre', text: "Parâmetros, sempre", level: 3 as const }, { id: 'as-operacoes', text: "As operações", level: 3 as const }, { id: 'executemany', text: "`execute_many`", level: 3 as const }, { id: 'transacoes', text: "Transações", level: 3 as const }, { id: 'introspeccao', text: "Introspecção", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '167-servidor-http', text: "167 · Servidor HTTP", level: 2 as const }, { id: 'montar-a-aplicacao', text: "Montar a aplicação", level: 3 as const }, { id: 'rotas', text: "Rotas", level: 3 as const }, { id: 'o-par-requisicaoresposta', text: "O par requisição/resposta", level: 3 as const }, { id: 'codigos-que-importam', text: "Códigos que importam", level: 3 as const }, { id: 'validacao-fora-da-rota', text: "Validação fora da rota", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '168-cliente-http-e-urls', text: "168 · Cliente HTTP e URLs", level: 2 as const }, { id: 'codificacao-de-url', text: "Codificação de URL", level: 3 as const }, { id: 'montar-a-query-string', text: "Montar a query string", level: 3 as const }, { id: 'classificar-respostas-com-match', text: "Classificar respostas com `match`", level: 3 as const }, { id: 'tratar-a-resposta-em-camadas', text: "Tratar a resposta em camadas", level: 3 as const }, { id: 'o-padrao-de-resultado', text: "O padrão de resultado", level: 3 as const }, { id: 'chamadas-de-verdade', text: "Chamadas de verdade", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '169-projeto-crud-com-persistencia', text: "169 · Projeto: CRUD com persistencia", level: 2 as const }, { id: 'a-arquitetura', text: "A arquitetura", level: 3 as const }, { id: 'modelo-e-armazenamento-sao-coisas-diferentes', text: "Modelo e armazenamento são coisas diferentes", level: 3 as const }, { id: 'validar-antes-de-tocar-no-banco', text: "Validar antes de tocar no banco", level: 3 as const }, { id: 'o-padrao-de-resultado', text: "O padrão de resultado", level: 3 as const }, { id: 'enum-com-valor-numerico', text: "Enum com valor numérico", level: 3 as const }, { id: 'grafico-em-texto', text: "Gráfico em texto", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
 
 export default function Pagina() {
   return (

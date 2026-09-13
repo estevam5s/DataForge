@@ -1,0 +1,125 @@
+// Exercicio 233 — Lavra: o N+1, os limites e a paginacao
+// Enunciado: conte as idas ao banco e prove que o lote as junta numa so.
+
+adopt Arcane.Lavra as Lavra
+
+record Cliente:
+    id: Integer
+    nome: String
+
+record Pedido:
+    id: Integer
+    cliente_id: Integer
+
+clientes := {1: Cliente(1, "Ana"), 2: Cliente(2, "Bia")}
+pedidos := [Pedido(n, 1 given n % 2 is 1 otherwise 2) cycle n in range(1, 21)]
+
+// ── 1. O problema do N+1 ──
+//
+// Uma consulta que pede 20 pedidos e, de cada um, o cliente, faz 21
+// idas ao banco: uma para os pedidos e uma por cliente. O servidor
+// parece rapido e o banco morre.
+//
+// Aqui a lista 'idas' CONTA — sem contar, um lote que devolve o valor
+// certo e mesmo assim consulta vinte vezes passaria despercebido.
+idas := []
+
+action buscar_clientes(ids):
+    idas.append(len(ids))
+    yield [clientes[i] cycle i in ids]
+
+esq := Lavra.esquema("n1")
+Lavra.tipo(esq, Cliente)
+Lavra.tipo(esq, Pedido)
+Lavra.campo(esq, "Cliente", "nome", "String!")
+Lavra.campo(esq, "Pedido", "id", "Integer!")
+
+// O resolvedor nao BUSCA — ele PEDE. Os pedidos da mesma volta sao
+// juntados num so.
+// Este precisa do 'ctx' — e o ctx e o TERCEIRO. Nao da para pular o do
+// meio, entao o '_args' diz que ele esta ali de proposito.
+action cliente_do_pedido(p, _args, ctx):
+    yield Lavra.pedir(ctx, "clientes", p.cliente_id)
+
+Lavra.campo(esq, "Pedido", "cliente", "Cliente!", resolve := cliente_do_pedido)
+Lavra.busca(esq, "pedidos", "[Pedido!]!",
+    args := {"limite": {"tipo": "Integer", "padrao": 20}},
+    resolve := lambda r, a, c => pedidos[0:a["limite"]])
+Lavra.conferir(esq)
+
+// O lote vive no CONTEXTO, e morre com a consulta. Um lote de processo
+// guardaria o cliente depois que ele mudou, e serviria o valor velho
+// para outra pessoa.
+ctx := Lavra.contexto({})
+_ := Lavra.lote(ctx, "clientes", buscar_clientes)
+
+r := Lavra.executar(esq, """
+busca:
+    pedidos:
+        id
+        cliente:
+            nome
+    """, contexto := ctx)
+
+out $"20 pedidos, {len(idas)} ida(s) ao banco"
+assert len(r["dados"]["pedidos"]) is 20, "os vinte vieram"
+assert len(idas) is 1, "UMA ida — sem o lote seriam 20"
+assert idas[0] is 2, "e ela levou as duas chaves distintas"
+out r["extensoes"]["lotes"]
+
+// ── 2. Os limites ──
+//
+// Um grafo com ciclo deixa pedir 'pedido.cliente.pedidos.cliente…'
+// para sempre. E a forma mais barata de derrubar um servidor de
+// consulta, e descobrir isso RESOLVENDO ja e tarde.
+_ := Lavra.limites(esq, profundidade := 2)
+
+fundo := Lavra.executar(esq, """
+busca:
+    pedidos:
+        cliente:
+            nome
+""")
+out fundo["erros"][0]["mensagem"]
+assert fundo["dados"] is void, "recusada antes de resolver"
+assert "profundidade" in fundo["erros"][0]["mensagem"]
+
+_ := Lavra.limites(esq, profundidade := 12)
+
+// ── 3. Paginacao por cursor ──
+//
+// Paginar por posicao ('pule 3, traga 3') quebra do jeito mais dificil
+// de ver: se alguem insere uma linha entre a pagina 1 e a 2, um item
+// DESAPARECE — ele desceu para a posicao que ja foi lida.
+p1 := Lavra.pagina(pedidos, primeiros := 3)
+assert len(p1["itens"]) is 3
+assert p1["info"]["tem_proxima"], "ha mais"
+
+p2 := Lavra.pagina(pedidos, primeiros := 3, depois := p1["info"]["cursor_fim"])
+out [i.id cycle i in p2["itens"]]
+assert p2["itens"][0].id is 4, "continua exatamente onde parou"
+assert p2["total"] is 20, "o total nao depende da pagina"
+
+// ── 4. O erro parcial ──
+//
+// Quem pediu dois campos e teve problema em um recebe UM — e nao zero.
+Lavra.campo(esq, "Cliente", "risco", "String",
+    resolve := lambda c, a, ctx => Lavra.erro("o servico de risco caiu"))
+
+ctx2 := Lavra.contexto({})
+_ := Lavra.lote(ctx2, "clientes", buscar_clientes)
+
+parcial := Lavra.executar(esq, """
+busca:
+    pedidos(limite: 1):
+        cliente:
+            nome
+            risco
+    """, contexto := ctx2)
+
+out parcial["erros"][0]["caminho"], "|", parcial["erros"][0]["mensagem"]
+assert parcial["dados"]["pedidos"][0]["cliente"]["nome"] is "Ana", "o resto veio"
+assert parcial["dados"]["pedidos"][0]["cliente"]["risco"] is void
+assert len(parcial["erros"]) is 1
+
+out "230 ok"

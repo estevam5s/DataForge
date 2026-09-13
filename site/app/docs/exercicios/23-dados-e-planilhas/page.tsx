@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 23`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[198](#198-gravar-e-ler-uma-planilha)", "**Gravar e ler uma planilha**", "transforme uma lista de vaults num .xlsx e leia de volta."], ["[199](#199-relatorio-com-varias-abas-e-formulas)", "**Relatorio com varias abas e formulas**", "monte um relatorio com formulas que o Excel calcula ao abrir."], ["[200](#200-do-banco-para-a-planilha-passando-pela-analise)", "**Do banco para a planilha, passando pela analise**", "consulte o banco, analise os numeros e exporte a planilha."]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[200](#200-gravar-e-ler-uma-planilha)", "**Gravar e ler uma planilha**", "transforme uma lista de vaults num .xlsx e leia de volta."], ["[201](#201-relatorio-com-varias-abas-e-formulas)", "**Relatorio com varias abas e formulas**", "monte um relatorio com formulas que o Excel calcula ao abrir."], ["[202](#202-do-banco-para-a-planilha-passando-pela-analise)", "**Do banco para a planilha, passando pela analise**", "consulte o banco, analise os numeros e exporte a planilha."]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
-  {"h2": "198 · Gravar e ler uma planilha"},
+  {"h2": "200 · Gravar e ler uma planilha"},
   {"p": "**Enunciado.** transforme uma lista de vaults num .xlsx e leia de volta."},
   { code: `// Um .xlsx e um ZIP de arquivos XML. O Arcane.Excel escreve e le esse
 // formato sem nenhuma dependencia externa — o arquivo abre no Excel, no
@@ -54,7 +54,7 @@ assert len(de_volta) is 3, "tres registros"
 assert de_volta[0]["produto"] is "Martelo", "ida e volta sem perda"
 
 // Uma coluna inteira, pelo titulo.
-assert Xls.column(livro, "Vendas", "qtd") is [12, 3, 27], "coluna pelo nome"`, lang: 'df', title: `exercicios/23-dados-e-planilhas/198_primeira_planilha.df` },
+assert Xls.column(livro, "Vendas", "qtd") is [12, 3, 27], "coluna pelo nome"`, lang: 'df', title: `exercicios/23-dados-e-planilhas/200_primeira_planilha.df` },
   {"h3": "Conceitos"},
   {"p": "Um `.xlsx` é um ZIP de arquivos XML. O `Arcane.Excel` escreve e lê esse formato **sem nenhuma dependência externa** — o arquivo abre no Excel, no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas."},
   { code: `adopt Arcane.Excel as Xls
@@ -71,7 +71,7 @@ livro := Xls.read("/tmp/vendas.xlsx")`, lang: 'df' },
   {"list": ["Esperar que `records` pule uma linha de totais. Para ele, é uma linha como"]},
   {"p": "qualquer outra."},
   {"list": ["Usar `frame` como nome de variável. É palavra reservada; use outro nome."]},
-  {"h2": "199 · Relatorio com varias abas e formulas"},
+  {"h2": "201 · Relatorio com varias abas e formulas"},
   {"p": "**Enunciado.** monte um relatorio com formulas que o Excel calcula ao abrir."},
   { code: `// Formulas nao sao calculadas aqui: sao gravadas no arquivo e o Excel as
 // resolve ao abrir. Isso e o que se quer num relatorio — quem receber
@@ -123,7 +123,7 @@ assert Xls.get_formula(vendas, "A1") is void, "celula sem formula devolve void"
 
 resumo := Xls.records(lido, "Resumo")
 out "resumo:", resumo
-assert resumo[1]["valor"] is 42, "12 + 3 + 27 unidades"`, lang: 'df', title: `exercicios/23-dados-e-planilhas/199_relatorio_com_formulas.df` },
+assert resumo[1]["valor"] is 42, "12 + 3 + 27 unidades"`, lang: 'df', title: `exercicios/23-dados-e-planilhas/201_relatorio_com_formulas.df` },
   {"h3": "Conceitos"},
   { code: `Xls.formula(aba, "D5", "SUM(D2:D4)")
 Xls.bold_row(aba, 4)
@@ -138,7 +138,7 @@ Xls.freeze(aba, "A2")`, lang: 'df' },
   {"p": "mostra `=SUM(...)` em vez de calcular."},
   {"list": ["Contar as linhas errado. `D5` é a quinta linha; em `Xls.cell(aba, 4, 3)` os"]},
   {"p": "índices começam em zero."},
-  {"h2": "200 · Do banco para a planilha, passando pela analise"},
+  {"h2": "202 · Do banco para a planilha, passando pela analise"},
   {"p": "**Enunciado.** consulte o banco, analise os numeros e exporte a planilha."},
   { code: `// Este e o caminho completo de um trabalho de dados: os dados moram no
 // banco, a analise responde a pergunta, e a planilha e o que se manda
@@ -226,7 +226,7 @@ assert de_volta[0]["receita"] is void, "formula nao tem valor gravado"
 assert Xls.get_formula(Xls.sheet(conferencia, "Vendas"), "E7") is "SUM(E2:E6)",
 "a formula do total"
 
-DB.close(banco)`, lang: 'df', title: `exercicios/23-dados-e-planilhas/200_planilha_banco_e_analise.df` },
+DB.close(banco)`, lang: 'df', title: `exercicios/23-dados-e-planilhas/202_planilha_banco_e_analise.df` },
   {"h3": "Conceitos"},
   {"p": "Este é o caminho completo de um trabalho de dados, e as três peças conversam:"},
   { code: `registros := DB.query(banco, "SELECT * FROM vendas")
@@ -244,10 +244,10 @@ Xls.sheet(livro, "Vendas", registros)       // vira planilha`, lang: 'df' },
   {"p": "cabeçalho; o banco tem só os dados."},
   {"list": ["Esquecer `DB.close`. Com `:memory:` não faz diferença; com arquivo, faz."]},
   {"hr": true},
-  {"p": "Rode um isolado com `dataforge run exercicios/23-dados-e-planilhas/198_primeira_planilha.df`."},
+  {"p": "Rode um isolado com `dataforge run exercicios/23-dados-e-planilhas/200_primeira_planilha.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '198-gravar-e-ler-uma-planilha', text: "198 · Gravar e ler uma planilha", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '199-relatorio-com-varias-abas-e-formulas', text: "199 · Relatorio com varias abas e formulas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '200-do-banco-para-a-planilha-passando-pela-analise', text: "200 · Do banco para a planilha, passando pela analise", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '200-gravar-e-ler-uma-planilha', text: "200 · Gravar e ler uma planilha", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '201-relatorio-com-varias-abas-e-formulas', text: "201 · Relatorio com varias abas e formulas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }, { id: '202-do-banco-para-a-planilha-passando-pela-analise', text: "202 · Do banco para a planilha, passando pela analise", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-observar', text: "O que observar", level: 3 as const }, { id: 'erros-comuns', text: "Erros comuns", level: 3 as const }];
 
 export default function Pagina() {
   return (

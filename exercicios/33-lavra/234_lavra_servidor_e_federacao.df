@@ -1,0 +1,139 @@
+// Exercicio 234 — Lavra: contratos, mudancas, servidor e federacao
+// Enunciado: sirva o esquema por HTTP e componha dois servicos num so.
+
+adopt Arcane.Lavra as Lavra
+adopt Arcane.Web as Web
+adopt Arcane.Serialization as Serde
+
+// ── 1. Contrato: campos que varios tipos prometem ter ──
+record Artigo:
+    id: Integer
+    titulo: String
+
+record Video:
+    id: Integer
+    titulo: String
+    minutos: Integer
+
+esq := Lavra.esquema("cms")
+
+Lavra.tipo(esq, Artigo, cumpre := ["Conteudo"])
+Lavra.tipo(esq, Video, cumpre := ["Conteudo"])
+Lavra.campo(esq, "Artigo", "titulo", "String!")
+Lavra.campo(esq, "Video", "titulo", "String!")
+Lavra.campo(esq, "Video", "minutos", "Integer!")
+
+// O contrato precisa saber, na hora, QUAL tipo concreto e aquele valor.
+action que_tipo(valor):
+    yield "Video" given "minutos" in valor.fields otherwise "Artigo"
+
+Lavra.contrato(esq, "Conteudo", {"id": "Integer", "titulo": "String"},
+    resolve_tipo := que_tipo)
+
+acervo := [Artigo(1, "Sobre a forja"), Video(2, "Como fundir", 12)]
+Lavra.busca(esq, "acervo", "[Conteudo!]!", resolve := lambda r, a, c => acervo)
+
+// ── 2. Mudanca: a escrita aparece no NOME da operacao ──
+//
+// Quem le a consulta sabe, sem abrir o resolvedor, se aquilo muda
+// alguma coisa. Uma entrada e um tipo DIFERENTE do de saida: o Artigo
+// que sai tem 'id', o que entra nao.
+Lavra.entrada(esq, {"titulo": "String"}, nome := "NovoArtigo")
+Lavra.campo(esq, "NovoArtigo", "titulo", "String!")
+
+action criar_artigo(_raiz, args):
+    novo := Artigo(len(acervo) + 1, args["dados"]["titulo"])
+    acervo.append(novo)
+    yield novo
+
+Lavra.mudanca(esq, "criarArtigo", "Artigo!", args := {"dados": "NovoArtigo!"},
+    resolve := criar_artigo)
+
+Lavra.conferir(esq)
+
+r := Lavra.executar(esq, """
+busca:
+    acervo:
+        titulo
+        ... em Video:
+            minutos
+""")
+out r["dados"]
+assert r["dados"]["acervo"][1]["minutos"] is 12, "o trecho condicional casou"
+assert "minutos" not in r["dados"]["acervo"][0], "o artigo nao tem minutos"
+
+m := Lavra.executar(esq, """
+mudanca:
+    criarArtigo(dados: {titulo: "Recem-forjado"}):
+        id
+        titulo
+""")
+assert m["dados"]["criarArtigo"]["titulo"] is "Recem-forjado"
+assert len(acervo) is 3, "a mudanca mudou mesmo"
+
+// ── 3. Servir por HTTP ──
+//
+// Uma rota, um metodo: POST executa, GET devolve o esquema em texto.
+// Nao ha uma rota por busca — a consulta ja diz o que quer, e uma
+// rota por campo desfaria a razao de o Lavra existir.
+par := Lavra.em_segundo_plano(esq)
+app := par[0]
+porta := par[1]
+defer:
+    Lavra.parar(app)
+
+base := $"http://127.0.0.1:{porta}/lavra"
+
+resposta := Web.post(base, {"consulta": "busca:\n    acervo:\n        titulo"})
+corpo := Serde.from_json(resposta["body"])
+out resposta["status"], len(corpo["dados"]["acervo"])
+assert resposta["status"] is 200
+assert len(corpo["dados"]["acervo"]) is 3
+
+// Um erro de consulta responde 200 — o HTTP falou, e a resposta tem
+// 'dados' e 'erros'. E o que permite dados parciais.
+ruim := Web.post(base, {"consulta": "busca:\n    naoExiste"})
+assert ruim["status"] is 200
+assert Serde.from_json(ruim["body"])["dados"] is void
+
+esquema_em_texto := Web.get(base)
+assert "tipo Video cumpre Conteudo:" in esquema_em_texto["body"], "o GET versiona o esquema"
+
+// ── 4. Federacao: dois servicos, um esquema ──
+contas := Lavra.esquema("contas")
+Lavra.tipo(contas, {"id": "Integer", "nome": "String"}, nome := "Conta")
+Lavra.campo(contas, "Conta", "nome", "String!")
+Lavra.busca(contas, "conta", "Conta", args := {"id": "Integer!"},
+    resolve := lambda r, a, c => {"id": a["id"], "nome": "Ana"})
+
+vendas := Lavra.esquema("vendas")
+Lavra.tipo(vendas, {"id": "Integer", "total": "Float"}, nome := "Venda")
+Lavra.campo(vendas, "Venda", "total", "Float!")
+Lavra.busca(vendas, "venda", "Venda", args := {"id": "Integer!"},
+    resolve := lambda r, a, c => {"id": a["id"], "total": 9.9})
+
+portao := Lavra.portao()
+Lavra.juntar(portao, "contas", contas)
+Lavra.juntar(portao, "vendas", vendas)
+
+// O campo que atravessa a fronteira e declarado como extensao.
+Lavra.estender(portao, "Conta", "vendas", "[Venda!]!",
+    resolve := lambda conta, a, ctx => [{"id":1, "total":9.9}])
+
+f := Lavra.executar(portao.esquema, """
+busca:
+    conta(id: 1):
+        nome
+        vendas:
+            total
+""")
+out f["dados"]
+assert f["dados"]["conta"]["vendas"][0]["total"] is 9.9
+
+// De onde vem cada tipo — a resposta para "quem declara isto?"
+mapa := Lavra.mapa(portao)
+out mapa["tipos"]["Conta"], mapa["tipos"]["Venda"]
+assert mapa["tipos"]["Conta"] is "contas"
+assert mapa["tipos"]["Venda"] is "vendas"
+
+out "231 ok"

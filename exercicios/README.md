@@ -321,12 +321,12 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 157 | [`157_datas_basico.df`](17-tempo-e-sistema/157_datas_basico.df) · [doc](17-tempo-e-sistema/157_datas_basico.md) | Datas e horas |
-| 158 | [`158_datas_aritmetica.df`](17-tempo-e-sistema/158_datas_aritmetica.df) · [doc](17-tempo-e-sistema/158_datas_aritmetica.md) | Aritmetica com datas |
-| 159 | [`159_cronometro.df`](17-tempo-e-sistema/159_cronometro.df) · [doc](17-tempo-e-sistema/159_cronometro.md) | Cronometragem e desempenho |
-| 160 | [`160_sistema_e_ambiente.df`](17-tempo-e-sistema/160_sistema_e_ambiente.df) · [doc](17-tempo-e-sistema/160_sistema_e_ambiente.md) | Sistema e ambiente |
-| 161 | [`161_processos.df`](17-tempo-e-sistema/161_processos.df) · [doc](17-tempo-e-sistema/161_processos.md) | Executando processos |
-| 162 | [`162_logging_estruturado.df`](17-tempo-e-sistema/162_logging_estruturado.df) · [doc](17-tempo-e-sistema/162_logging_estruturado.md) | Registro de eventos |
+| 158 | [`158_datas_basico.df`](17-tempo-e-sistema/158_datas_basico.df) · [doc](17-tempo-e-sistema/158_datas_basico.md) | Datas e horas |
+| 159 | [`159_datas_aritmetica.df`](17-tempo-e-sistema/159_datas_aritmetica.df) · [doc](17-tempo-e-sistema/159_datas_aritmetica.md) | Aritmetica com datas |
+| 160 | [`160_cronometro.df`](17-tempo-e-sistema/160_cronometro.df) · [doc](17-tempo-e-sistema/160_cronometro.md) | Cronometragem e desempenho |
+| 161 | [`161_sistema_e_ambiente.df`](17-tempo-e-sistema/161_sistema_e_ambiente.df) · [doc](17-tempo-e-sistema/161_sistema_e_ambiente.md) | Sistema e ambiente |
+| 162 | [`162_processos.df`](17-tempo-e-sistema/162_processos.df) · [doc](17-tempo-e-sistema/162_processos.md) | Executando processos |
+| 163 | [`163_logging_estruturado.df`](17-tempo-e-sistema/163_logging_estruturado.df) · [doc](17-tempo-e-sistema/163_logging_estruturado.md) | Registro de eventos |
 
 ## 18 — Dados e persistencia
 
@@ -334,12 +334,12 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 163 | [`163_serializacao.df`](18-dados-e-persistencia/163_serializacao.df) · [doc](18-dados-e-persistencia/163_serializacao.md) | Serializacao de dados |
-| 164 | [`164_arquivos.df`](18-dados-e-persistencia/164_arquivos.df) · [doc](18-dados-e-persistencia/164_arquivos.md) | Arquivos e diretorios |
-| 165 | [`165_banco_sqlite.df`](18-dados-e-persistencia/165_banco_sqlite.df) · [doc](18-dados-e-persistencia/165_banco_sqlite.md) | Banco de dados |
-| 166 | [`166_http_servidor.df`](18-dados-e-persistencia/166_http_servidor.df) · [doc](18-dados-e-persistencia/166_http_servidor.md) | Servidor HTTP |
-| 167 | [`167_http_cliente.df`](18-dados-e-persistencia/167_http_cliente.df) · [doc](18-dados-e-persistencia/167_http_cliente.md) | Cliente HTTP e URLs |
-| 168 | [`168_projeto_crud.df`](18-dados-e-persistencia/168_projeto_crud.df) · [doc](18-dados-e-persistencia/168_projeto_crud.md) | Projeto: CRUD com persistencia |
+| 164 | [`164_serializacao.df`](18-dados-e-persistencia/164_serializacao.df) · [doc](18-dados-e-persistencia/164_serializacao.md) | Serializacao de dados |
+| 165 | [`165_arquivos.df`](18-dados-e-persistencia/165_arquivos.df) · [doc](18-dados-e-persistencia/165_arquivos.md) | Arquivos e diretorios |
+| 166 | [`166_banco_sqlite.df`](18-dados-e-persistencia/166_banco_sqlite.df) · [doc](18-dados-e-persistencia/166_banco_sqlite.md) | Banco de dados |
+| 167 | [`167_http_servidor.df`](18-dados-e-persistencia/167_http_servidor.df) · [doc](18-dados-e-persistencia/167_http_servidor.md) | Servidor HTTP |
+| 168 | [`168_http_cliente.df`](18-dados-e-persistencia/168_http_cliente.df) · [doc](18-dados-e-persistencia/168_http_cliente.md) | Cliente HTTP e URLs |
+| 169 | [`169_projeto_crud.df`](18-dados-e-persistencia/169_projeto_crud.df) · [doc](18-dados-e-persistencia/169_projeto_crud.md) | Projeto: CRUD com persistencia |
 
 ## 19 — Concorrencia
 
@@ -347,12 +347,12 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 169 | [`169_async_await.df`](19-concorrencia/169_async_await.df) · [doc](19-concorrencia/169_async_await.md) | Acoes assincronas |
-| 170 | [`170_threads.df`](19-concorrencia/170_threads.df) · [doc](19-concorrencia/170_threads.md) | Threads e paralelismo |
-| 171 | [`171_canais.df`](19-concorrencia/171_canais.df) · [doc](19-concorrencia/171_canais.md) | Canais entre threads |
-| 172 | [`172_defer_recursos.df`](19-concorrencia/172_defer_recursos.df) · [doc](19-concorrencia/172_defer_recursos.md) | Liberacao garantida |
-| 173 | [`173_erros_concorrentes.df`](19-concorrencia/173_erros_concorrentes.df) · [doc](19-concorrencia/173_erros_concorrentes.md) | Erros e retentativas |
-| 174 | [`174_projeto_worker.df`](19-concorrencia/174_projeto_worker.df) · [doc](19-concorrencia/174_projeto_worker.md) | Projeto: fila de trabalho |
+| 170 | [`170_async_await.df`](19-concorrencia/170_async_await.df) · [doc](19-concorrencia/170_async_await.md) | Acoes assincronas |
+| 171 | [`171_threads.df`](19-concorrencia/171_threads.df) · [doc](19-concorrencia/171_threads.md) | Threads e paralelismo |
+| 172 | [`172_canais.df`](19-concorrencia/172_canais.df) · [doc](19-concorrencia/172_canais.md) | Canais entre threads |
+| 173 | [`173_defer_recursos.df`](19-concorrencia/173_defer_recursos.df) · [doc](19-concorrencia/173_defer_recursos.md) | Liberacao garantida |
+| 174 | [`174_erros_concorrentes.df`](19-concorrencia/174_erros_concorrentes.df) · [doc](19-concorrencia/174_erros_concorrentes.md) | Erros e retentativas |
+| 175 | [`175_projeto_worker.df`](19-concorrencia/175_projeto_worker.df) · [doc](19-concorrencia/175_projeto_worker.md) | Projeto: fila de trabalho |
 
 ## 20 — Projetos finais
 
@@ -360,12 +360,12 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 175 | [`175_cli_arquivos.df`](20-projetos-finais/175_cli_arquivos.df) · [doc](20-projetos-finais/175_cli_arquivos.md) | Projeto: ferramenta de linha de comando |
-| 176 | [`176_analise_dados.df`](20-projetos-finais/176_analise_dados.df) · [doc](20-projetos-finais/176_analise_dados.md) | Projeto: analise de dados |
-| 177 | [`177_interpretador.df`](20-projetos-finais/177_interpretador.df) · [doc](20-projetos-finais/177_interpretador.md) | Projeto: mini linguagem |
-| 178 | [`178_sistema_completo.df`](20-projetos-finais/178_sistema_completo.df) · [doc](20-projetos-finais/178_sistema_completo.md) | Projeto: sistema de biblioteca |
-| 179 | [`179_revisao_geral.df`](20-projetos-finais/179_revisao_geral.df) · [doc](20-projetos-finais/179_revisao_geral.md) | Revisao: todos os conceitos |
-| 180 | [`180_proximos_passos.df`](20-projetos-finais/180_proximos_passos.df) · [doc](20-projetos-finais/180_proximos_passos.md) | Encerramento e proximos passos |
+| 176 | [`176_cli_arquivos.df`](20-projetos-finais/176_cli_arquivos.df) · [doc](20-projetos-finais/176_cli_arquivos.md) | Projeto: ferramenta de linha de comando |
+| 177 | [`177_analise_dados.df`](20-projetos-finais/177_analise_dados.df) · [doc](20-projetos-finais/177_analise_dados.md) | Projeto: analise de dados |
+| 178 | [`178_interpretador.df`](20-projetos-finais/178_interpretador.df) · [doc](20-projetos-finais/178_interpretador.md) | Projeto: mini linguagem |
+| 179 | [`179_sistema_completo.df`](20-projetos-finais/179_sistema_completo.df) · [doc](20-projetos-finais/179_sistema_completo.md) | Projeto: sistema de biblioteca |
+| 180 | [`180_revisao_geral.df`](20-projetos-finais/180_revisao_geral.df) · [doc](20-projetos-finais/180_revisao_geral.md) | Revisao: todos os conceitos |
+| 181 | [`181_proximos_passos.df`](20-projetos-finais/181_proximos_passos.df) · [doc](20-projetos-finais/181_proximos_passos.md) | Encerramento e proximos passos |
 
 ## 21 — Oop avancado
 
@@ -373,16 +373,16 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 181 | [`181_campos_declarados.df`](21-oop-avancado/181_campos_declarados.df) · [doc](21-oop-avancado/181_campos_declarados.md) | Campos declarados |
-| 182 | [`182_metodos_estaticos.df`](21-oop-avancado/182_metodos_estaticos.df) · [doc](21-oop-avancado/182_metodos_estaticos.md) | Metodos estaticos |
-| 183 | [`183_propriedades.df`](21-oop-avancado/183_propriedades.df) · [doc](21-oop-avancado/183_propriedades.md) | Propriedades com get e set |
-| 184 | [`184_visibilidade.df`](21-oop-avancado/184_visibilidade.df) · [doc](21-oop-avancado/184_visibilidade.md) | Visibilidade: private e protected |
-| 185 | [`185_sobrecarga_operadores.df`](21-oop-avancado/185_sobrecarga_operadores.df) · [doc](21-oop-avancado/185_sobrecarga_operadores.md) | Sobrecarga de operadores |
-| 186 | [`186_abstratos_e_traits.df`](21-oop-avancado/186_abstratos_e_traits.df) · [doc](21-oop-avancado/186_abstratos_e_traits.md) | Blueprints abstratos e contratos de trait |
-| 187 | [`187_heranca_e_root.df`](21-oop-avancado/187_heranca_e_root.df) · [doc](21-oop-avancado/187_heranca_e_root.md) | Heranca e 'root' |
-| 188 | [`188_composicao.df`](21-oop-avancado/188_composicao.df) · [doc](21-oop-avancado/188_composicao.md) | Composicao no lugar de heranca |
-| 189 | [`189_records_vs_blueprints.df`](21-oop-avancado/189_records_vs_blueprints.df) · [doc](21-oop-avancado/189_records_vs_blueprints.md) | Quando usar record e quando usar blueprint |
-| 190 | [`190_polimorfismo.df`](21-oop-avancado/190_polimorfismo.df) · [doc](21-oop-avancado/190_polimorfismo.md) | Polimorfismo |
+| 182 | [`182_campos_declarados.df`](21-oop-avancado/182_campos_declarados.df) · [doc](21-oop-avancado/182_campos_declarados.md) | Campos declarados |
+| 183 | [`183_metodos_estaticos.df`](21-oop-avancado/183_metodos_estaticos.df) · [doc](21-oop-avancado/183_metodos_estaticos.md) | Metodos estaticos |
+| 184 | [`184_propriedades.df`](21-oop-avancado/184_propriedades.df) · [doc](21-oop-avancado/184_propriedades.md) | Propriedades com get e set |
+| 185 | [`185_visibilidade.df`](21-oop-avancado/185_visibilidade.df) · [doc](21-oop-avancado/185_visibilidade.md) | Visibilidade: private e protected |
+| 186 | [`186_sobrecarga_operadores.df`](21-oop-avancado/186_sobrecarga_operadores.df) · [doc](21-oop-avancado/186_sobrecarga_operadores.md) | Sobrecarga de operadores |
+| 187 | [`187_abstratos_e_traits.df`](21-oop-avancado/187_abstratos_e_traits.df) · [doc](21-oop-avancado/187_abstratos_e_traits.md) | Blueprints abstratos e contratos de trait |
+| 188 | [`188_heranca_e_root.df`](21-oop-avancado/188_heranca_e_root.df) · [doc](21-oop-avancado/188_heranca_e_root.md) | Heranca e 'root' |
+| 189 | [`189_composicao.df`](21-oop-avancado/189_composicao.df) · [doc](21-oop-avancado/189_composicao.md) | Composicao no lugar de heranca |
+| 190 | [`190_records_vs_blueprints.df`](21-oop-avancado/190_records_vs_blueprints.df) · [doc](21-oop-avancado/190_records_vs_blueprints.md) | Quando usar record e quando usar blueprint |
+| 191 | [`191_polimorfismo.df`](21-oop-avancado/191_polimorfismo.df) · [doc](21-oop-avancado/191_polimorfismo.md) | Polimorfismo |
 
 ## 22 — Web kiln
 
@@ -390,14 +390,14 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 191 | [`191_primeiro_servidor.df`](22-web-kiln/191_primeiro_servidor.df) · [doc](22-web-kiln/191_primeiro_servidor.md) | O primeiro servidor |
-| 192 | [`192_parametros_e_query.df`](22-web-kiln/192_parametros_e_query.df) · [doc](22-web-kiln/192_parametros_e_query.md) | Parametros de caminho e query string |
-| 193 | [`193_crud_restful.df`](22-web-kiln/193_crud_restful.df) · [doc](22-web-kiln/193_crud_restful.md) | Uma API RESTful completa |
-| 194 | [`194_paginas_html.df`](22-web-kiln/194_paginas_html.df) · [doc](22-web-kiln/194_paginas_html.md) | Paginas HTML com template |
-| 195 | [`195_middleware_e_auth.df`](22-web-kiln/195_middleware_e_auth.df) · [doc](22-web-kiln/195_middleware_e_auth.md) | Middleware, autenticacao e limite de taxa |
-| 196 | [`196_erros_e_estaticos.df`](22-web-kiln/196_erros_e_estaticos.df) · [doc](22-web-kiln/196_erros_e_estaticos.md) | Paginas de erro, redirecionamento e arquivos estaticos |
-| 197 | [`197_servidor_de_verdade.df`](22-web-kiln/197_servidor_de_verdade.df) · [doc](22-web-kiln/197_servidor_de_verdade.md) | Subir o servidor de verdade |
-| 198 | [`198_api_rest_export.df`](22-web-kiln/198_api_rest_export.df) · [doc](22-web-kiln/198_api_rest_export.md) | A API vista de fora: OpenAPI, Insomnia e curl |
+| 192 | [`192_primeiro_servidor.df`](22-web-kiln/192_primeiro_servidor.df) · [doc](22-web-kiln/192_primeiro_servidor.md) | O primeiro servidor |
+| 193 | [`193_parametros_e_query.df`](22-web-kiln/193_parametros_e_query.df) · [doc](22-web-kiln/193_parametros_e_query.md) | Parametros de caminho e query string |
+| 194 | [`194_crud_restful.df`](22-web-kiln/194_crud_restful.df) · [doc](22-web-kiln/194_crud_restful.md) | Uma API RESTful completa |
+| 195 | [`195_paginas_html.df`](22-web-kiln/195_paginas_html.df) · [doc](22-web-kiln/195_paginas_html.md) | Paginas HTML com template |
+| 196 | [`196_middleware_e_auth.df`](22-web-kiln/196_middleware_e_auth.df) · [doc](22-web-kiln/196_middleware_e_auth.md) | Middleware, autenticacao e limite de taxa |
+| 197 | [`197_erros_e_estaticos.df`](22-web-kiln/197_erros_e_estaticos.df) · [doc](22-web-kiln/197_erros_e_estaticos.md) | Paginas de erro, redirecionamento e arquivos estaticos |
+| 198 | [`198_servidor_de_verdade.df`](22-web-kiln/198_servidor_de_verdade.df) · [doc](22-web-kiln/198_servidor_de_verdade.md) | Subir o servidor de verdade |
+| 199 | [`199_api_rest_export.df`](22-web-kiln/199_api_rest_export.df) · [doc](22-web-kiln/199_api_rest_export.md) | A API vista de fora: OpenAPI, Insomnia e curl |
 
 ## 23 — Dados e planilhas
 
@@ -405,9 +405,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 198 | [`198_primeira_planilha.df`](23-dados-e-planilhas/198_primeira_planilha.df) · [doc](23-dados-e-planilhas/198_primeira_planilha.md) | Gravar e ler uma planilha |
-| 199 | [`199_relatorio_com_formulas.df`](23-dados-e-planilhas/199_relatorio_com_formulas.df) · [doc](23-dados-e-planilhas/199_relatorio_com_formulas.md) | Relatorio com varias abas e formulas |
-| 200 | [`200_planilha_banco_e_analise.df`](23-dados-e-planilhas/200_planilha_banco_e_analise.df) · [doc](23-dados-e-planilhas/200_planilha_banco_e_analise.md) | Do banco para a planilha, passando pela analise |
+| 200 | [`200_primeira_planilha.df`](23-dados-e-planilhas/200_primeira_planilha.df) · [doc](23-dados-e-planilhas/200_primeira_planilha.md) | Gravar e ler uma planilha |
+| 201 | [`201_relatorio_com_formulas.df`](23-dados-e-planilhas/201_relatorio_com_formulas.df) · [doc](23-dados-e-planilhas/201_relatorio_com_formulas.md) | Relatorio com varias abas e formulas |
+| 202 | [`202_planilha_banco_e_analise.df`](23-dados-e-planilhas/202_planilha_banco_e_analise.df) · [doc](23-dados-e-planilhas/202_planilha_banco_e_analise.md) | Do banco para a planilha, passando pela analise |
 
 ## 24 — Banco de dados
 
@@ -415,14 +415,14 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 201 | [`201_conectar.df`](24-banco-de-dados/201_conectar.df) · [doc](24-banco-de-dados/201_conectar.md) | Conectar e consultar |
-| 202 | [`202_construtor_de_consultas.df`](24-banco-de-dados/202_construtor_de_consultas.df) · [doc](24-banco-de-dados/202_construtor_de_consultas.md) | Construtor de consultas |
-| 203 | [`203_injecao_de_sql.df`](24-banco-de-dados/203_injecao_de_sql.df) · [doc](24-banco-de-dados/203_injecao_de_sql.md) | Injecao de SQL, e por que ela nao acontece aqui |
-| 204 | [`204_transacoes.df`](24-banco-de-dados/204_transacoes.df) · [doc](24-banco-de-dados/204_transacoes.md) | Transacoes |
-| 205 | [`205_modelos_e_validacao.df`](24-banco-de-dados/205_modelos_e_validacao.df) · [doc](24-banco-de-dados/205_modelos_e_validacao.md) | Modelos e validacao |
-| 206 | [`206_relacoes_sem_n_mais_um.df`](24-banco-de-dados/206_relacoes_sem_n_mais_um.df) · [doc](24-banco-de-dados/206_relacoes_sem_n_mais_um.md) | Relacoes, e o problema do N+1 |
-| 207 | [`207_migracoes.df`](24-banco-de-dados/207_migracoes.df) · [doc](24-banco-de-dados/207_migracoes.md) | Migracoes |
-| 208 | [`208_pool_e_conexoes.df`](24-banco-de-dados/208_pool_e_conexoes.df) · [doc](24-banco-de-dados/208_pool_e_conexoes.md) | Pool de conexoes |
+| 203 | [`203_conectar.df`](24-banco-de-dados/203_conectar.df) · [doc](24-banco-de-dados/203_conectar.md) | Conectar e consultar |
+| 204 | [`204_construtor_de_consultas.df`](24-banco-de-dados/204_construtor_de_consultas.df) · [doc](24-banco-de-dados/204_construtor_de_consultas.md) | Construtor de consultas |
+| 205 | [`205_injecao_de_sql.df`](24-banco-de-dados/205_injecao_de_sql.df) · [doc](24-banco-de-dados/205_injecao_de_sql.md) | Injecao de SQL, e por que ela nao acontece aqui |
+| 206 | [`206_transacoes.df`](24-banco-de-dados/206_transacoes.df) · [doc](24-banco-de-dados/206_transacoes.md) | Transacoes |
+| 207 | [`207_modelos_e_validacao.df`](24-banco-de-dados/207_modelos_e_validacao.df) · [doc](24-banco-de-dados/207_modelos_e_validacao.md) | Modelos e validacao |
+| 208 | [`208_relacoes_sem_n_mais_um.df`](24-banco-de-dados/208_relacoes_sem_n_mais_um.df) · [doc](24-banco-de-dados/208_relacoes_sem_n_mais_um.md) | Relacoes, e o problema do N+1 |
+| 209 | [`209_migracoes.df`](24-banco-de-dados/209_migracoes.df) · [doc](24-banco-de-dados/209_migracoes.md) | Migracoes |
+| 210 | [`210_pool_e_conexoes.df`](24-banco-de-dados/210_pool_e_conexoes.df) · [doc](24-banco-de-dados/210_pool_e_conexoes.md) | Pool de conexoes |
 
 ## 25 — Testes crucible
 
@@ -430,10 +430,10 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 209 | [`209_primeira_suite.df`](25-testes-crucible/209_primeira_suite.df) · [doc](25-testes-crucible/209_primeira_suite.md) | A primeira suite |
-| 210 | [`210_isolamento.df`](25-testes-crucible/210_isolamento.df) · [doc](25-testes-crucible/210_isolamento.md) | Isolamento entre trials |
-| 211 | [`211_matchers.df`](25-testes-crucible/211_matchers.df) · [doc](25-testes-crucible/211_matchers.md) | Os matchers |
-| 212 | [`212_dubles_e_fixtures.df`](25-testes-crucible/212_dubles_e_fixtures.df) · [doc](25-testes-crucible/212_dubles_e_fixtures.md) | Dubles e fixtures |
+| 211 | [`211_primeira_suite.df`](25-testes-crucible/211_primeira_suite.df) · [doc](25-testes-crucible/211_primeira_suite.md) | A primeira suite |
+| 212 | [`212_isolamento.df`](25-testes-crucible/212_isolamento.df) · [doc](25-testes-crucible/212_isolamento.md) | Isolamento entre trials |
+| 213 | [`213_matchers.df`](25-testes-crucible/213_matchers.df) · [doc](25-testes-crucible/213_matchers.md) | Os matchers |
+| 214 | [`214_dubles_e_fixtures.df`](25-testes-crucible/214_dubles_e_fixtures.df) · [doc](25-testes-crucible/214_dubles_e_fixtures.md) | Dubles e fixtures |
 
 ## 26 — Complexidade
 
@@ -441,10 +441,10 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 213 | [`213_medir_o_crescimento.df`](26-complexidade/213_medir_o_crescimento.df) · [doc](26-complexidade/213_medir_o_crescimento.md) | Medir o crescimento, nao o relogio |
-| 214 | [`214_memoizacao.df`](26-complexidade/214_memoizacao.df) · [doc](26-complexidade/214_memoizacao.md) | Trocar tempo exponencial por memoria linear |
-| 215 | [`215_estrutura_certa.df`](26-complexidade/215_estrutura_certa.df) · [doc](26-complexidade/215_estrutura_certa.md) | A estrutura certa |
-| 216 | [`216_espaco.df`](26-complexidade/216_espaco.df) · [doc](26-complexidade/216_espaco.md) | Complexidade de espaco |
+| 215 | [`215_medir_o_crescimento.df`](26-complexidade/215_medir_o_crescimento.df) · [doc](26-complexidade/215_medir_o_crescimento.md) | Medir o crescimento, nao o relogio |
+| 216 | [`216_memoizacao.df`](26-complexidade/216_memoizacao.df) · [doc](26-complexidade/216_memoizacao.md) | Trocar tempo exponencial por memoria linear |
+| 217 | [`217_estrutura_certa.df`](26-complexidade/217_estrutura_certa.df) · [doc](26-complexidade/217_estrutura_certa.md) | A estrutura certa |
+| 218 | [`218_espaco.df`](26-complexidade/218_espaco.df) · [doc](26-complexidade/218_espaco.md) | Complexidade de espaco |
 
 ## 27 — Ponte python
 
@@ -452,7 +452,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 217 | [`217_ponte_python.df`](27-ponte-python/217_ponte_python.df) · [doc](27-ponte-python/217_ponte_python.md) | A ponte para o Python |
+| 219 | [`219_ponte_python.df`](27-ponte-python/219_ponte_python.df) · [doc](27-ponte-python/219_ponte_python.md) | A ponte para o Python |
 
 ## 28 — Vitrine
 
@@ -460,7 +460,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 218 | [`218_vitrine.df`](28-vitrine/218_vitrine.df) · [doc](28-vitrine/218_vitrine.md) | Uma aplicacao de dados com a Vitrine |
+| 220 | [`220_vitrine.df`](28-vitrine/220_vitrine.df) · [doc](28-vitrine/220_vitrine.md) | Uma aplicacao de dados com a Vitrine |
 
 ## 29 — Banco e crud
 
@@ -468,10 +468,10 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 219 | [`219_crud_completo.df`](29-banco-e-crud/219_crud_completo.df) · [doc](29-banco-e-crud/219_crud_completo.md) | Um CRUD completo, com o banco fazendo o trabalho |
-| 220 | [`220_pdv_e_transacoes.df`](29-banco-e-crud/220_pdv_e_transacoes.df) · [doc](29-banco-e-crud/220_pdv_e_transacoes.md) | Um PDV: a venda inteira, ou nenhuma |
-| 221 | [`221_relatorios_e_busca.df`](29-banco-e-crud/221_relatorios_e_busca.df) · [doc](29-banco-e-crud/221_relatorios_e_busca.md) | Relatorio, busca e o indice que falta |
-| 222 | [`222_migracoes.df`](29-banco-e-crud/222_migracoes.df) · [doc](29-banco-e-crud/222_migracoes.md) | Migracoes: mudar o schema sem perder dado |
+| 221 | [`221_crud_completo.df`](29-banco-e-crud/221_crud_completo.df) · [doc](29-banco-e-crud/221_crud_completo.md) | Um CRUD completo, com o banco fazendo o trabalho |
+| 222 | [`222_pdv_e_transacoes.df`](29-banco-e-crud/222_pdv_e_transacoes.df) · [doc](29-banco-e-crud/222_pdv_e_transacoes.md) | Um PDV: a venda inteira, ou nenhuma |
+| 223 | [`223_relatorios_e_busca.df`](29-banco-e-crud/223_relatorios_e_busca.df) · [doc](29-banco-e-crud/223_relatorios_e_busca.md) | Relatorio, busca e o indice que falta |
+| 224 | [`224_migracoes.df`](29-banco-e-crud/224_migracoes.df) · [doc](29-banco-e-crud/224_migracoes.md) | Migracoes: mudar o schema sem perder dado |
 
 ## 30 — Tempo real
 
@@ -479,8 +479,8 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 223 | [`223_upload.df`](30-tempo-real/223_upload.df) · [doc](30-tempo-real/223_upload.md) | Receber arquivo |
-| 224 | [`224_sse_e_websocket.df`](30-tempo-real/224_sse_e_websocket.df) · [doc](30-tempo-real/224_sse_e_websocket.md) | O servidor empurra: SSE e WebSocket |
+| 225 | [`225_upload.df`](30-tempo-real/225_upload.df) · [doc](30-tempo-real/225_upload.md) | Receber arquivo |
+| 226 | [`226_sse_e_websocket.df`](30-tempo-real/226_sse_e_websocket.df) · [doc](30-tempo-real/226_sse_e_websocket.md) | O servidor empurra: SSE e WebSocket |
 
 ## 31 — Qualidade
 
@@ -488,8 +488,8 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 225 | [`225_cobertura.df`](31-qualidade/225_cobertura.df) · [doc](31-qualidade/225_cobertura.md) | Cobertura: o que os testes NAO exercitaram |
-| 226 | [`226_instantaneo_e_isolamento.df`](31-qualidade/226_instantaneo_e_isolamento.df) · [doc](31-qualidade/226_instantaneo_e_isolamento.md) | Instantaneo, banco isolado e teste instavel |
+| 227 | [`227_cobertura.df`](31-qualidade/227_cobertura.df) · [doc](31-qualidade/227_cobertura.md) | Cobertura: o que os testes NAO exercitaram |
+| 228 | [`228_instantaneo_e_isolamento.df`](31-qualidade/228_instantaneo_e_isolamento.df) · [doc](31-qualidade/228_instantaneo_e_isolamento.md) | Instantaneo, banco isolado e teste instavel |
 | 229 | [`229_depurar.df`](31-qualidade/229_depurar.df) · [doc](31-qualidade/229_depurar.md) | Depurar sem 'out' |
 
 ## 32 — Microservicos
@@ -498,8 +498,8 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 227 | [`227_malha.df`](32-microservicos/227_malha.df) · [doc](32-microservicos/227_malha.md) | Chamada entre servicos que nao mente |
-| 228 | [`228_saga.df`](32-microservicos/228_saga.df) · [doc](32-microservicos/228_saga.md) | Saga: nao existe transacao que atravesse a rede |
+| 230 | [`230_malha.df`](32-microservicos/230_malha.df) · [doc](32-microservicos/230_malha.md) | Chamada entre servicos que nao mente |
+| 231 | [`231_saga.df`](32-microservicos/231_saga.df) · [doc](32-microservicos/231_saga.md) | Saga: nao existe transacao que atravesse a rede |
 
 ## 33 — Lavra
 
@@ -507,9 +507,9 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
-| 229 | [`229_lavra_basico.df`](33-lavra/229_lavra_basico.df) · [doc](33-lavra/229_lavra_basico.md) | Lavra: o esquema e a consulta |
-| 230 | [`230_lavra_n1_e_limites.df`](33-lavra/230_lavra_n1_e_limites.df) · [doc](33-lavra/230_lavra_n1_e_limites.md) | Lavra: o N+1, os limites e a paginacao |
-| 231 | [`231_lavra_servidor_e_federacao.df`](33-lavra/231_lavra_servidor_e_federacao.df) · [doc](33-lavra/231_lavra_servidor_e_federacao.md) | Lavra: contratos, mudancas, servidor e federacao |
+| 232 | [`232_lavra_basico.df`](33-lavra/232_lavra_basico.df) · [doc](33-lavra/232_lavra_basico.md) | Lavra: o esquema e a consulta |
+| 233 | [`233_lavra_n1_e_limites.df`](33-lavra/233_lavra_n1_e_limites.df) · [doc](33-lavra/233_lavra_n1_e_limites.md) | Lavra: o N+1, os limites e a paginacao |
+| 234 | [`234_lavra_servidor_e_federacao.df`](33-lavra/234_lavra_servidor_e_federacao.df) · [doc](33-lavra/234_lavra_servidor_e_federacao.md) | Lavra: contratos, mudancas, servidor e federacao |
 
 ---
 

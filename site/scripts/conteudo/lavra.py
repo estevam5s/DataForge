@@ -29,6 +29,7 @@ PAGINAS = [
 "href": "/docs/lavra",
 "title": "Lavra",
 "description": "A consulta tipada do DataForge: o cliente diz exatamente quais campos quer, e recebe exatamente aqueles.",
+"og": "og-lavra.png",
 "blocos": [
  {"p": "**Lavra** é a consulta tipada do DataForge. O cliente diz **exatamente** o que precisa, numa consulta, e recebe exatamente aquilo — nem um campo a mais, nem uma segunda chamada para buscar o que faltou."},
  consulta("""
