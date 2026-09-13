@@ -1,6 +1,7 @@
 import type { Bloco } from '@/lib/content';
 import { CodeBlock } from './CodeBlock';
 import { CorridaBusca, CurvasBigO, EscalaBigO } from './BigO';
+import { Diagrama3D } from './Diagrama3D';
 import { Callout, Card, CardGrid, H2, H3 } from './Doc';
 import { Inline } from './Inline';
 
@@ -15,6 +16,9 @@ const COMPONENTES = {
   'curvas-big-o': CurvasBigO,
   'escala-big-o': EscalaBigO,
   'corrida-busca': CorridaBusca,
+  'diagrama-pipeline': () => <Diagrama3D tipo="pipeline" />,
+  'diagrama-consulta': () => <Diagrama3D tipo="consulta" />,
+  'diagrama-lote': () => <Diagrama3D tipo="lote" />,
 } as const;
 
 /** Converte a lista de blocos de uma página no markup correspondente. */

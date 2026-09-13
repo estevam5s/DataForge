@@ -22,7 +22,8 @@ export type Bloco =
    * páginas são dados, e dado não importa componente. Um nome que não
    * existe no mapa não renderiza nada em vez de quebrar a página.
    */
-  | { componente: 'curvas-big-o' | 'escala-big-o' | 'corrida-busca' }
+  | { componente: 'curvas-big-o' | 'escala-big-o' | 'corrida-busca'
+      | 'diagrama-pipeline' | 'diagrama-consulta' | 'diagrama-lote' }
   | { hr: true };
 
 export type Pagina = {

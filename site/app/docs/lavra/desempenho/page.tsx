@@ -34,6 +34,7 @@ _ := Lavra.lote(ctx, "clientes", buscar_clientes)
 r := Lavra.executar(esq, consulta, contexto := ctx)
 out r["extensoes"]["lotes"]`, lang: 'df' },
   { code: `{clientes: {chamadas: 1, chaves: 50, economia: 49}}`, lang: 'text' },
+  {"componente": "diagrama-lote"},
   {"p": "Cinquenta pedidos, **uma** ida ao banco. O `economia` está ali para ser olhado: um lote que devolve o valor certo e mesmo assim consulta cinquenta vezes passaria em qualquer teste que só olhasse o resultado."},
   {"h3": "Duas decisões do lote"},
   {"list": ["**Ele vive no contexto, não no módulo.** Um lote de processo guardaria o cliente depois que ele mudou, e serviria o valor velho para outra pessoa. O contexto morre com a consulta, que é exatamente a vida útil que um cache de leitura pode ter aqui.", "**A ordem da resposta é a ordem do pedido.** A função recebe as chaves e devolve os valores na MESMA ordem — ou um vault de chave → valor, que não depende de ordem nenhuma."]},

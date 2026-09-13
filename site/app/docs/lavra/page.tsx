@@ -20,6 +20,7 @@ const blocos: Bloco[] = [
             numero
             total`, lang: 'lavra' },
   {"p": "Uma rota REST devolve o que o **servidor** decidiu devolver. Quem precisa de menos carrega o resto; quem precisa de mais faz outra chamada. Numa tela de celular com rede ruim, as duas coisas custam."},
+  {"componente": "diagrama-consulta"},
   {"h2": "O nome"},
   {"p": "**Lavra** é a extração de um veio de minério — e `lavrar` também é redigir um documento. As duas coisas que este módulo faz: um esquema é *lavrado*, e a consulta *lavra* dele exatamente o minério que quer. Segue a metáfora da forja, como [Kiln](/docs/kiln), [Crucible](/docs/crucible) e [Vitrine](/docs/vitrine)."},
   {"h2": "O esquema nasce dos seus records"},

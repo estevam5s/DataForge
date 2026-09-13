@@ -29,6 +29,7 @@ Lavra.campo(esq, "Usuario", "pedidos", "[Pedido!]!",
     ↓  lote         — a fila vira uma consulta só
     ↓  coagir       — o valor vira o tipo declarado
 resposta: dados, erros, extensoes`, lang: 'text' },
+  {"componente": "diagrama-pipeline"},
   {"p": "A validação vem **antes** de executar de propósito. Executar e descobrir no meio que o campo não existe já custou tudo o que veio antes — inclusive escritas, numa `mudanca`."},
   {"h2": "O contexto"},
   {"p": "O contexto é o que atravessa a consulta inteira: quem pediu, a conexão do banco, o rastro. Ele é montado **por pedido** e morre com ele."},

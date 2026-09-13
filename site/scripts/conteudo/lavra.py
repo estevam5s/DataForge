@@ -40,6 +40,7 @@ busca:
             total
 """),
  {"p": "Uma rota REST devolve o que o **servidor** decidiu devolver. Quem precisa de menos carrega o resto; quem precisa de mais faz outra chamada. Numa tela de celular com rede ruim, as duas coisas custam."},
+ {"componente": "diagrama-consulta"},
 
  {"h2": "O nome"},
  {"p": "**Lavra** é a extração de um veio de minério — e `lavrar` também é redigir um documento. As duas coisas que este módulo faz: um esquema é *lavrado*, e a consulta *lavra* dele exatamente o minério que quer. Segue a metáfora da forja, como [Kiln](/docs/kiln), [Crucible](/docs/crucible) e [Vitrine](/docs/vitrine)."},
@@ -464,6 +465,7 @@ texto da consulta
     ↓  coagir       — o valor vira o tipo declarado
 resposta: dados, erros, extensoes
 """, "text"),
+ {"componente": "diagrama-pipeline"},
  {"p": "A validação vem **antes** de executar de propósito. Executar e descobrir no meio que o campo não existe já custou tudo o que veio antes — inclusive escritas, numa `mudanca`."},
 
  {"h2": "O contexto"},
@@ -586,6 +588,7 @@ r := Lavra.executar(esq, consulta, contexto := ctx)
 out r["extensoes"]["lotes"]
 """),
  cod("""{clientes: {chamadas: 1, chaves: 50, economia: 49}}""", "text"),
+ {"componente": "diagrama-lote"},
  {"p": "Cinquenta pedidos, **uma** ida ao banco. O `economia` está ali para ser olhado: um lote que devolve o valor certo e mesmo assim consulta cinquenta vezes passaria em qualquer teste que só olhasse o resultado."},
 
  {"h3": "Duas decisões do lote"},
