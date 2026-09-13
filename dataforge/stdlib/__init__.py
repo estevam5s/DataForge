@@ -41,6 +41,7 @@ from .arcane_observar import ArcaneObservar
 from .arcane_ponte import ArcanePonte
 from .arcane_decimal import ArcaneDecimal
 from .arcane_api import ArcaneAPI
+from .lavra import ArcaneLavra
 from .vitrine import ArcaneVitrine
 from .arcane_malha import ArcaneMalha
 
@@ -131,6 +132,11 @@ _MODULES = {
     "Parquet": ArcaneLago,
     "Arcane.API": ArcaneAPI,
     "API": ArcaneAPI,
+
+    # ── Lavra — a consulta tipada ──
+    "Arcane.Lavra": ArcaneLavra,
+    "Lavra": ArcaneLavra,
+    "Consulta": ArcaneLavra,
 
     # ── Vitrine — dashboards e aplicacoes de dados ──
     "Arcane.Vitrine": ArcaneVitrine,

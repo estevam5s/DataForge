@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Trinta e nove módulos e 1349 símbolos, sem uma única dependência externa.",
+  description: "Quarenta módulos e 1390 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os trinta e nove módulos"
+    "h2": "Os quarenta módulos"
   },
   {
-    "p": "São **1349 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1390 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -109,6 +109,11 @@ const blocos: Bloco[] = [
           "[`Arcane.OS`](/docs/biblioteca/os)",
           "43",
           "Sistema operacional, ambiente, disco e processo atual."
+        ],
+        [
+          "`Arcane.Lavra`",
+          "41",
+          "A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços."
         ],
         [
           "[`Arcane.Test`](/docs/biblioteca/test)",
@@ -294,13 +299,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-trinta-e-nove-modulos', text: "Os trinta e nove módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-quarenta-modulos', text: "Os quarenta módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Trinta e nove módulos e 1349 símbolos, sem uma única dependência externa."}
+      description={"Quarenta módulos e 1390 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

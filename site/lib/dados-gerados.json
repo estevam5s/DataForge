@@ -4102,6 +4102,218 @@
     }
    ]
   },
+  "lavra": {
+   "nome": "Arcane.Lavra",
+   "desc": "A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços.",
+   "curto": "Lavra",
+   "funcoes": [
+    {
+     "nome": "assinatura",
+     "sig": "(esq, nome, tipo_do_campo, resolve, args, descricao, custo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "busca",
+     "sig": "(esq, nome, tipo_do_campo, resolve, args, descricao, custo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "campo",
+     "sig": "(esq, tipo_nome, nome, tipo_do_campo, resolve, args, descricao, obsoleto, custo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cliente",
+     "sig": "(url, cabecalhos, tempo_limite)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir",
+     "sig": "(esq)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contexto",
+     "sig": "(dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contrato",
+     "sig": "(esq, nome, campos, descricao, resolve_tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "descrever",
+     "sig": "(esq)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "diretiva",
+     "sig": "(esq, nome, decidir)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "em_segundo_plano",
+     "sig": "(esquema, porta, host, caminho, contexto_de)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "entrada",
+     "sig": "(esq, alvo, nome, descricao, campos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "enum",
+     "sig": "(esq, nome, valores, descricao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "erro",
+     "sig": "(mensagem, codigo, extra)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escalar",
+     "sig": "(esq, nome, serializa, desserializa, descricao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esquema",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "estender",
+     "sig": "(p, tipo_nome, campo_nome, tipo_do_campo, resolve, args, descricao, custo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "executar",
+     "sig": "(esq, texto, variaveis, contexto, raiz, operacao, validar_antes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fonte",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "introspeccao",
+     "sig": "(esq, ligada)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "juntar",
+     "sig": "(p, servico, esquema)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limites",
+     "sig": "(esq, profundidade, complexidade, itens)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "local",
+     "sig": "(esquema, contexto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lote",
+     "sig": "(ctx, nome, buscar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lotes",
+     "sig": "(ctx)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mapa",
+     "sig": "(p)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "montar",
+     "sig": "(app, esquema, caminho, contexto_de, permitir_get, introspeccao_publica)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "montar_assinaturas",
+     "sig": "(app, esquema, caminho, contexto_de)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mudanca",
+     "sig": "(esq, nome, tipo_do_campo, resolve, args, descricao, custo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pagina",
+     "sig": "(itens, primeiros, depois, total)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parar",
+     "sig": "(app)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pedir",
+     "sig": "(ctx, nome, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "portao",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "preencher",
+     "sig": "(ctx, nome, chave, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "recusar",
+     "sig": "(mensagem, extra)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "servir",
+     "sig": "(esquema, porta, host, caminho, contexto_de, silencioso)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "texto_do_esquema",
+     "sig": "(esq)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tipo",
+     "sig": "(esq, alvo, nome, descricao, cumpre, campos, esconder)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tipo_pagina",
+     "sig": "(esq, nome_do_item, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "uniao",
+     "sig": "(esq, nome, membros, descricao, resolve_tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "validar",
+     "sig": "(esq, texto, operacao)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "logging": {
    "nome": "Arcane.Logging",
    "desc": "Registro estruturado de eventos, com níveis e destinos.",
@@ -8931,6 +9143,32 @@
     "temDoc": true,
     "codigo": "// ════════════════════════════════════════════════════════════\n//  Exercicio 228 — Saga: nao existe transacao que atravesse a rede\n//\n//  'BEGIN' no servico de estoque nao alcanca o de cobranca. Se o\n//  pedido reserva o produto e a cobranca falha, o produto fica preso\n//  para sempre — e nao ha 'rollback' que chegue la.\n//\n//  A unica resposta correta e COMPENSAR: cada passo declara como se\n//  desfaz, e uma falha no meio desfaz em ordem inversa o que ja\n//  aconteceu.\n// ════════════════════════════════════════════════════════════\n\nadopt Arcane.Malha as Malha\n\n// ── Os \"servicos\", com o estado que eles guardam ────────────\n\nestoque := {\"CAF-500\": 10}\nreservas := {}\ncobrancas := {}\ndespachos := []\nchaves_vistas := {}\n\naction reservar(estado, chave):\n    sku := estado[\"sku\"]\n    given estoque[sku] smaller estado[\"quantidade\"]:\n        trigger $\"estoque insuficiente de {sku}\"\n    estoque[sku] := estoque[sku] - estado[\"quantidade\"]\n    reservas[chave] := estado[\"quantidade\"]\n    yield {\"reserva\": chave}\n\naction liberar(estado, chave):\n    given chave in reservas:\n        estoque[estado[\"sku\"]] := estoque[estado[\"sku\"]] + reservas[chave]\n        reservas.delete(chave)\n\naction cobrar(estado, chave):\n    // A chave de idempotencia faz o trabalho aqui: repetir a saga\n    // depois de uma queda NAO cobra duas vezes.\n    given chave in chaves_vistas:\n        yield {\"cobranca\": chaves_vistas[chave], \"repetida\": yes}\n    valor := estado[\"quantidade\"] * 32.5\n    given valor bigger estado[\"limite\"]:\n        trigger $\"limite excedido: {valor} bigger {estado['limite']}\"\n    cobrancas[chave] := valor\n    chaves_vistas[chave] := valor\n    yield {\"cobranca\": valor}\n\naction estornar(_estado, chave):\n    given chave in cobrancas:\n        cobrancas.delete(chave)\n        chaves_vistas.delete(chave)\n\naction despachar(estado, chave):\n    despachos.append({\"sku\": estado[\"sku\"], \"chave\": chave})\n    yield {\"despacho\": len(despachos)}\n\naction cancelar_despacho(_estado, _chave):\n    despachos.clear()\n\n// ── 1. O caminho feliz ──────────────────────────────────────\n\ns := Malha.saga(\"checkout\")\ns.passo(\"reservar\", reservar, liberar)\ns.passo(\"cobrar\", cobrar, estornar)\ns.passo(\"despachar\", despachar, cancelar_despacho)\n\n// ANTES de rodar: nenhum passo que escreve pode ficar sem compensacao.\n// Um passo assim nao falha em teste feliz — ele so aparece no dia em\n// que o passo seguinte falha, e ai ja escreveu.\nassert s.conferir() is []\n\nr := s.executar({\"sku\": \"CAF-500\", \"quantidade\": 2, \"limite\": 100.0})\n\nassert r[\"ok\"]\nassert r[\"concluidos\"] is [\"reservar\", \"cobrar\", \"despachar\"]\nassert r[\"desfeitos\"] is []\nassert r[\"orfas\"] is []\nassert estoque[\"CAF-500\"] is 8\nassert len(cobrancas) is 1\nassert len(despachos) is 1\n\n// O estado ATRAVESSA os passos: 'cobrar' viu o que 'reservar' devolveu.\nassert r[\"estado\"][\"cobranca\"] is 65.0\nassert \"reserva\" in r[\"estado\"]\n\n// ── 2. A falha no meio, e a ordem do desfazimento ───────────\n\nestoque := {\"CAF-500\": 10}\nreservas := {}\ncobrancas := {}\nchaves_vistas := {}\ndespachos := []\nordem := []\n\naction reservar2(estado, chave):\n    estoque[\"CAF-500\"] := estoque[\"CAF-500\"] - estado[\"quantidade\"]\n    reservas[chave] := estado[\"quantidade\"]\n    yield void\n\naction liberar2(_estado, chave):\n    ordem.append(\"liberar\")\n    estoque[\"CAF-500\"] := estoque[\"CAF-500\"] + reservas[chave]\n    reservas.delete(chave)\n\naction cobrar2(_estado, chave):\n    cobrancas[chave] := 99.0\n    yield void\n\naction estornar2(_estado, chave):\n    ordem.append(\"estornar\")\n    cobrancas.delete(chave)\n\naction despachar2(_estado, _chave):\n    trigger \"transportadora fora do ar\"\n\ns2 := Malha.saga(\"checkout\")\ns2.passo(\"reservar\", reservar2, liberar2)\ns2.passo(\"cobrar\", cobrar2, estornar2)\ns2.passo(\"despachar\", despachar2, cancelar_despacho)\n\nr2 := s2.executar({\"sku\": \"CAF-500\", \"quantidade\": 3})\n\n// Ela NAO levanta: levantar perderia a informacao de quanto conseguiu\n// desfazer, que e exatamente o que se precisa saber.\nassert not r2[\"ok\"]\nassert r2[\"falhou_em\"] is \"despachar\"\nassert \"transportadora\" in r2[\"erro\"]\n\n// Ordem INVERSA. Estornar a cobranca antes de liberar o estoque\n// deixaria uma janela em que o cliente nao tem dinheiro nem produto.\nassert r2[\"desfeitos\"] is [\"cobrar\", \"reservar\"]\nassert ordem is [\"estornar\", \"liberar\"]\n\n// E o mundo voltou ao que era.\nassert estoque[\"CAF-500\"] is 10\nassert len(reservas) is 0\nassert len(cobrancas) is 0\nassert len(despachos) is 0\n\n// O passo que FALHOU nao e compensado: ele nao concluiu, e desfazer o\n// que nao aconteceu e o outro lado do mesmo bug.\nassert \"despachar\" not in r2[\"desfeitos\"]\n\n// ── 3. Uma compensacao que falha nao pode ser engolida ──────\n//\n// Um estorno que nao passa deixa o sistema inconsistente, e isso\n// precisa chegar a um humano.\n\naction estornar_quebrado(_estado, _chave):\n    trigger \"gateway recusou o estorno\"\n\nliberou := {\"sim\": no}\n\naction liberar3(_estado, _chave):\n    liberou[\"sim\"] := yes\n\ns3 := Malha.saga(\"checkout\")\ns3.passo(\"reservar\", reservar2, liberar3)\ns3.passo(\"cobrar\", cobrar2, estornar_quebrado)\ns3.passo(\"despachar\", despachar2, cancelar_despacho)\n\nr3 := s3.executar({\"sku\": \"CAF-500\", \"quantidade\": 1})\n\nassert not r3[\"ok\"]\nassert len(r3[\"orfas\"]) is 1\nassert r3[\"orfas\"][0][\"passo\"] is \"cobrar\"\nassert \"gateway\" in r3[\"orfas\"][0][\"erro\"]\n\n// A compensacao seguinte AINDA rodou: o estoque preso por um estorno\n// que nao passou seria um segundo problema criado pelo primeiro.\nassert liberou[\"sim\"]\nassert r3[\"desfeitos\"] is [\"reservar\"]\n\n// ── 4. Idempotencia: repetir a saga nao cobra duas vezes ────\n//\n// Uma saga que cai no meio precisa poder ser repetida. Sem chave\n// estavel, repetir cobra de novo.\n\nestoque := {\"CAF-500\": 10}\nreservas := {}\ncobrancas := {}\nchaves_vistas := {}\ndespachos := []\n\n// O MESMO identificador — e o que torna a chave de cada passo estavel\n// entre execucoes.\nacao := \"pedido-4711\"\n\ns4 := Malha.saga(\"checkout\", acao)\ns4.passo(\"reservar\", reservar, liberar)\ns4.passo(\"cobrar\", cobrar, estornar)\n\nassert s4.chave_de(\"cobrar\") is \"pedido-4711:cobrar\"\n\na := s4.executar({\"sku\": \"CAF-500\", \"quantidade\": 2, \"limite\": 100.0})\nassert a[\"ok\"]\nassert len(cobrancas) is 1\n\n// Repete a saga inteira, como faria quem reprocessa uma fila.\ns5 := Malha.saga(\"checkout\", acao)\ns5.passo(\"reservar\", reservar, liberar)\ns5.passo(\"cobrar\", cobrar, estornar)\nb := s5.executar({\"sku\": \"CAF-500\", \"quantidade\": 2, \"limite\": 100.0})\n\nassert b[\"ok\"]\nassert b[\"estado\"][\"repetida\"]  // 'cobrar' reconheceu a chave\nassert len(cobrancas) is 1  // NAO cobrou duas vezes\n\n// A reserva, porem, aconteceu DE NOVO — ela e indexada pela mesma\n// chave, mas o estoque foi debitado duas vezes. Idempotencia e uma\n// promessa que cada servico faz por si: a saga da a chave, quem honra\n// e o outro lado.\nassert estoque[\"CAF-500\"] is 6\n\n// ── 5. O passo que escreve sem compensacao ──────────────────\n\ns6 := Malha.saga(\"risco\")\ns6.passo(\"consultar\", lambda e, c: {\"score\": 700}, escreve := no)\ns6.passo(\"marcar\", lambda e, c: void)\n\n// 'consultar' e uma leitura e declara isso; 'marcar' escreve e nao\n// disse como se desfaz.\nassert s6.conferir() is [\"marcar\"]\n\n// ── 6. O diario: onde isso parou ────────────────────────────\n\nlinhas := []\n\ns7 := Malha.saga(\"checkout\", \"p-1\", lambda linha: linhas.append(linha))\ns7.passo(\"reservar\", reservar2, liberar2)\ns7.passo(\"cobrar\", cobrar2, estornar2)\ns7.passo(\"despachar\", despachar2, cancelar_despacho)\ns7.executar({\"sku\": \"CAF-500\", \"quantidade\": 1})\n\nsituacoes := [linha[\"situacao\"] cycle linha in linhas]\nassert situacoes is [\"feito\", \"feito\", \"falhou\", \"desfeito\", \"desfeito\"]\nassert linhas[0][\"passo\"] is \"reservar\"\nassert linhas[2][\"passo\"] is \"despachar\"\n\n// O diario e gravado a CADA passo, e nao no fim: uma queda do processo\n// no meio da saga perderia o que ja foi feito, e ninguem saberia o que\n// compensar.\nassert len(linhas) is len(s7.diario)\n\nout \"228 ok — saga\"\n"
    }
+  ],
+  "33-lavra": [
+   {
+    "num": "229",
+    "titulo": "Lavra: o esquema e a consulta",
+    "enunciado": "declare um esquema a partir de records e peca exatamente os campos que quer.",
+    "arquivo": "229_lavra_basico.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 229 — Lavra: o esquema e a consulta\n// Enunciado: declare um esquema a partir de records e peca exatamente os campos que quer.\n\nadopt Arcane.Lavra as Lavra\n\n// ── 1. Os records que o programa JA tem ──\n//\n// O esquema nasce deles. Nao ha um arquivo de esquema ao lado para\n// divergir do codigo: o record ja diz nome, campo e tipo.\nrecord Usuario:\n    id: Integer\n    nome: String\n    email: String\n\nrecord Pedido:\n    id: Integer\n    numero: String\n    total: Float\n    usuario_id: Integer\n\nusuarios := [Usuario(1, \"Ana\", \"ana@forja.co\"), Usuario(2, \"Bia\", \"bia@forja.co\")]\npedidos := [Pedido(10, \"P-1\", 99.9, 1), Pedido(11, \"P-2\", 15.0, 1),\n    Pedido(12, \"P-3\", 42.0, 2)]\n\n// ── 2. O esquema ──\nesq := Lavra.esquema(\"loja\")\n\nLavra.tipo(esq, Usuario)\nLavra.tipo(esq, Pedido)\n\n// '!' promete que o campo nunca e void. '[Pedido!]!' e uma lista que\n// nunca e void, de itens que nunca sao void.\nLavra.campo(esq, \"Usuario\", \"id\", \"Integer!\")\nLavra.campo(esq, \"Usuario\", \"nome\", \"String!\")\nLavra.campo(esq, \"Pedido\", \"total\", \"Float!\")\n\naction pedidos_de(u):\n    yield [p cycle p in pedidos given p.usuario_id is u.id]\n\n// Um campo CALCULADO: ele nao existe no record, e quem responde por\n// ele e o resolvedor.\nLavra.campo(esq, \"Usuario\", \"pedidos\", \"[Pedido!]!\", resolve := pedidos_de)\n\naction achar_usuario(_raiz, args):\n    achados := [u cycle u in usuarios given u.id is args[\"id\"]]\n    yield achados[0] given len(achados) bigger 0 otherwise void\n\nLavra.busca(esq, \"usuario\", \"Usuario\", args := {\"id\": \"Integer!\"},\n    resolve := achar_usuario)\nLavra.busca(esq, \"usuarios\", \"[Usuario!]!\", resolve := lambda r, a, c => usuarios)\n\n// 'conferir' fecha o esquema: todo tipo citado existe. Ele falha AQUI,\n// e nao na primeira consulta que por acaso pedir aquele campo.\nLavra.conferir(esq)\n\n// ── 3. A consulta ──\n//\n// Indentada, como a linguagem. O ':' no fim marca \"isto tem selecao\n// dentro\", igual a 'given', 'cycle' e 'action'.\nr := Lavra.executar(esq, \"\"\"\nbusca:\n    usuario(id: 1):\n        nome\n        pedidos:\n            numero\n            total\n\"\"\")\n\nout r[\"dados\"]\nassert len(r[\"erros\"]) is 0, \"sem erros\"\nassert r[\"dados\"][\"usuario\"][\"nome\"] is \"Ana\", \"o nome veio\"\nassert len(r[\"dados\"][\"usuario\"][\"pedidos\"]) is 2, \"os dois pedidos da Ana\"\n\n// O que NAO foi pedido nao vem. E a razao de o Lavra existir: uma rota\n// REST devolve o que o servidor decidiu devolver.\nassert \"email\" not in r[\"dados\"][\"usuario\"], \"nao pedi email\"\nassert \"id\" not in r[\"dados\"][\"usuario\"][\"pedidos\"][0], \"nao pedi id\"\n\n// ── 4. Apelido: o mesmo campo, duas vezes ──\ndois := Lavra.executar(esq, \"\"\"\nbusca:\n    ana: usuario(id: 1):\n        nome\n    bia: usuario(id: 2):\n        nome\n\"\"\")\nout dois[\"dados\"]\nassert dois[\"dados\"][\"ana\"][\"nome\"] is \"Ana\"\nassert dois[\"dados\"][\"bia\"][\"nome\"] is \"Bia\"\n\n// ── 5. Variaveis: a consulta e uma so, o valor muda ──\ncom_variavel := Lavra.executar(esq, \"\"\"\nbusca Um($id: Integer!):\n    usuario(id: $id):\n        nome\n    \"\"\", variaveis := {\"id\": 2})\nassert com_variavel[\"dados\"][\"usuario\"][\"nome\"] is \"Bia\"\n\n// ── 6. O erro diz QUAL campo ──\nerrado := Lavra.executar(esq, \"\"\"\nbusca:\n    usuario(id: 1):\n        nomee\n\"\"\")\nout errado[\"erros\"][0][\"mensagem\"], \"|\", errado[\"erros\"][0][\"extra\"][\"dica\"]\nassert \"nomee\" in errado[\"erros\"][0][\"mensagem\"]\nassert \"nome\" in errado[\"erros\"][0][\"extra\"][\"dica\"], \"sugere o parecido\"\n\nout \"229 ok\"\n"
+   },
+   {
+    "num": "230",
+    "titulo": "Lavra: o N+1, os limites e a paginacao",
+    "enunciado": "conte as idas ao banco e prove que o lote as junta numa so.",
+    "arquivo": "230_lavra_n1_e_limites.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 230 — Lavra: o N+1, os limites e a paginacao\n// Enunciado: conte as idas ao banco e prove que o lote as junta numa so.\n\nadopt Arcane.Lavra as Lavra\n\nrecord Cliente:\n    id: Integer\n    nome: String\n\nrecord Pedido:\n    id: Integer\n    cliente_id: Integer\n\nclientes := {1: Cliente(1, \"Ana\"), 2: Cliente(2, \"Bia\")}\npedidos := [Pedido(n, 1 given n % 2 is 1 otherwise 2) cycle n in range(1, 21)]\n\n// ── 1. O problema do N+1 ──\n//\n// Uma consulta que pede 20 pedidos e, de cada um, o cliente, faz 21\n// idas ao banco: uma para os pedidos e uma por cliente. O servidor\n// parece rapido e o banco morre.\n//\n// Aqui a lista 'idas' CONTA — sem contar, um lote que devolve o valor\n// certo e mesmo assim consulta vinte vezes passaria despercebido.\nidas := []\n\naction buscar_clientes(ids):\n    idas.append(len(ids))\n    yield [clientes[i] cycle i in ids]\n\nesq := Lavra.esquema(\"n1\")\nLavra.tipo(esq, Cliente)\nLavra.tipo(esq, Pedido)\nLavra.campo(esq, \"Cliente\", \"nome\", \"String!\")\nLavra.campo(esq, \"Pedido\", \"id\", \"Integer!\")\n\n// O resolvedor nao BUSCA — ele PEDE. Os pedidos da mesma volta sao\n// juntados num so.\n// Este precisa do 'ctx' — e o ctx e o TERCEIRO. Nao da para pular o do\n// meio, entao o '_args' diz que ele esta ali de proposito.\naction cliente_do_pedido(p, _args, ctx):\n    yield Lavra.pedir(ctx, \"clientes\", p.cliente_id)\n\nLavra.campo(esq, \"Pedido\", \"cliente\", \"Cliente!\", resolve := cliente_do_pedido)\nLavra.busca(esq, \"pedidos\", \"[Pedido!]!\",\n    args := {\"limite\": {\"tipo\": \"Integer\", \"padrao\": 20}},\n    resolve := lambda r, a, c => pedidos[0:a[\"limite\"]])\nLavra.conferir(esq)\n\n// O lote vive no CONTEXTO, e morre com a consulta. Um lote de processo\n// guardaria o cliente depois que ele mudou, e serviria o valor velho\n// para outra pessoa.\nctx := Lavra.contexto({})\n_ := Lavra.lote(ctx, \"clientes\", buscar_clientes)\n\nr := Lavra.executar(esq, \"\"\"\nbusca:\n    pedidos:\n        id\n        cliente:\n            nome\n    \"\"\", contexto := ctx)\n\nout $\"20 pedidos, {len(idas)} ida(s) ao banco\"\nassert len(r[\"dados\"][\"pedidos\"]) is 20, \"os vinte vieram\"\nassert len(idas) is 1, \"UMA ida — sem o lote seriam 20\"\nassert idas[0] is 2, \"e ela levou as duas chaves distintas\"\nout r[\"extensoes\"][\"lotes\"]\n\n// ── 2. Os limites ──\n//\n// Um grafo com ciclo deixa pedir 'pedido.cliente.pedidos.cliente…'\n// para sempre. E a forma mais barata de derrubar um servidor de\n// consulta, e descobrir isso RESOLVENDO ja e tarde.\n_ := Lavra.limites(esq, profundidade := 2)\n\nfundo := Lavra.executar(esq, \"\"\"\nbusca:\n    pedidos:\n        cliente:\n            nome\n\"\"\")\nout fundo[\"erros\"][0][\"mensagem\"]\nassert fundo[\"dados\"] is void, \"recusada antes de resolver\"\nassert \"profundidade\" in fundo[\"erros\"][0][\"mensagem\"]\n\n_ := Lavra.limites(esq, profundidade := 12)\n\n// ── 3. Paginacao por cursor ──\n//\n// Paginar por posicao ('pule 3, traga 3') quebra do jeito mais dificil\n// de ver: se alguem insere uma linha entre a pagina 1 e a 2, um item\n// DESAPARECE — ele desceu para a posicao que ja foi lida.\np1 := Lavra.pagina(pedidos, primeiros := 3)\nassert len(p1[\"itens\"]) is 3\nassert p1[\"info\"][\"tem_proxima\"], \"ha mais\"\n\np2 := Lavra.pagina(pedidos, primeiros := 3, depois := p1[\"info\"][\"cursor_fim\"])\nout [i.id cycle i in p2[\"itens\"]]\nassert p2[\"itens\"][0].id is 4, \"continua exatamente onde parou\"\nassert p2[\"total\"] is 20, \"o total nao depende da pagina\"\n\n// ── 4. O erro parcial ──\n//\n// Quem pediu dois campos e teve problema em um recebe UM — e nao zero.\nLavra.campo(esq, \"Cliente\", \"risco\", \"String\",\n    resolve := lambda c, a, ctx => Lavra.erro(\"o servico de risco caiu\"))\n\nctx2 := Lavra.contexto({})\n_ := Lavra.lote(ctx2, \"clientes\", buscar_clientes)\n\nparcial := Lavra.executar(esq, \"\"\"\nbusca:\n    pedidos(limite: 1):\n        cliente:\n            nome\n            risco\n    \"\"\", contexto := ctx2)\n\nout parcial[\"erros\"][0][\"caminho\"], \"|\", parcial[\"erros\"][0][\"mensagem\"]\nassert parcial[\"dados\"][\"pedidos\"][0][\"cliente\"][\"nome\"] is \"Ana\", \"o resto veio\"\nassert parcial[\"dados\"][\"pedidos\"][0][\"cliente\"][\"risco\"] is void\nassert len(parcial[\"erros\"]) is 1\n\nout \"230 ok\"\n"
+   },
+   {
+    "num": "231",
+    "titulo": "Lavra: contratos, mudancas, servidor e federacao",
+    "enunciado": "sirva o esquema por HTTP e componha dois servicos num so.",
+    "arquivo": "231_lavra_servidor_e_federacao.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 231 — Lavra: contratos, mudancas, servidor e federacao\n// Enunciado: sirva o esquema por HTTP e componha dois servicos num so.\n\nadopt Arcane.Lavra as Lavra\nadopt Arcane.Web as Web\nadopt Arcane.Serialization as Serde\n\n// ── 1. Contrato: campos que varios tipos prometem ter ──\nrecord Artigo:\n    id: Integer\n    titulo: String\n\nrecord Video:\n    id: Integer\n    titulo: String\n    minutos: Integer\n\nesq := Lavra.esquema(\"cms\")\n\nLavra.tipo(esq, Artigo, cumpre := [\"Conteudo\"])\nLavra.tipo(esq, Video, cumpre := [\"Conteudo\"])\nLavra.campo(esq, \"Artigo\", \"titulo\", \"String!\")\nLavra.campo(esq, \"Video\", \"titulo\", \"String!\")\nLavra.campo(esq, \"Video\", \"minutos\", \"Integer!\")\n\n// O contrato precisa saber, na hora, QUAL tipo concreto e aquele valor.\naction que_tipo(valor):\n    yield \"Video\" given \"minutos\" in valor.fields otherwise \"Artigo\"\n\nLavra.contrato(esq, \"Conteudo\", {\"id\": \"Integer\", \"titulo\": \"String\"},\n    resolve_tipo := que_tipo)\n\nacervo := [Artigo(1, \"Sobre a forja\"), Video(2, \"Como fundir\", 12)]\nLavra.busca(esq, \"acervo\", \"[Conteudo!]!\", resolve := lambda r, a, c => acervo)\n\n// ── 2. Mudanca: a escrita aparece no NOME da operacao ──\n//\n// Quem le a consulta sabe, sem abrir o resolvedor, se aquilo muda\n// alguma coisa. Uma entrada e um tipo DIFERENTE do de saida: o Artigo\n// que sai tem 'id', o que entra nao.\nLavra.entrada(esq, {\"titulo\": \"String\"}, nome := \"NovoArtigo\")\nLavra.campo(esq, \"NovoArtigo\", \"titulo\", \"String!\")\n\naction criar_artigo(_raiz, args):\n    novo := Artigo(len(acervo) + 1, args[\"dados\"][\"titulo\"])\n    acervo.append(novo)\n    yield novo\n\nLavra.mudanca(esq, \"criarArtigo\", \"Artigo!\", args := {\"dados\": \"NovoArtigo!\"},\n    resolve := criar_artigo)\n\nLavra.conferir(esq)\n\nr := Lavra.executar(esq, \"\"\"\nbusca:\n    acervo:\n        titulo\n        ... em Video:\n            minutos\n\"\"\")\nout r[\"dados\"]\nassert r[\"dados\"][\"acervo\"][1][\"minutos\"] is 12, \"o trecho condicional casou\"\nassert \"minutos\" not in r[\"dados\"][\"acervo\"][0], \"o artigo nao tem minutos\"\n\nm := Lavra.executar(esq, \"\"\"\nmudanca:\n    criarArtigo(dados: {titulo: \"Recem-forjado\"}):\n        id\n        titulo\n\"\"\")\nassert m[\"dados\"][\"criarArtigo\"][\"titulo\"] is \"Recem-forjado\"\nassert len(acervo) is 3, \"a mudanca mudou mesmo\"\n\n// ── 3. Servir por HTTP ──\n//\n// Uma rota, um metodo: POST executa, GET devolve o esquema em texto.\n// Nao ha uma rota por busca — a consulta ja diz o que quer, e uma\n// rota por campo desfaria a razao de o Lavra existir.\npar := Lavra.em_segundo_plano(esq)\napp := par[0]\nporta := par[1]\ndefer:\n    Lavra.parar(app)\n\nbase := $\"http://127.0.0.1:{porta}/lavra\"\n\nresposta := Web.post(base, {\"consulta\": \"busca:\\n    acervo:\\n        titulo\"})\ncorpo := Serde.from_json(resposta[\"body\"])\nout resposta[\"status\"], len(corpo[\"dados\"][\"acervo\"])\nassert resposta[\"status\"] is 200\nassert len(corpo[\"dados\"][\"acervo\"]) is 3\n\n// Um erro de consulta responde 200 — o HTTP falou, e a resposta tem\n// 'dados' e 'erros'. E o que permite dados parciais.\nruim := Web.post(base, {\"consulta\": \"busca:\\n    naoExiste\"})\nassert ruim[\"status\"] is 200\nassert Serde.from_json(ruim[\"body\"])[\"dados\"] is void\n\nesquema_em_texto := Web.get(base)\nassert \"tipo Video cumpre Conteudo:\" in esquema_em_texto[\"body\"], \"o GET versiona o esquema\"\n\n// ── 4. Federacao: dois servicos, um esquema ──\ncontas := Lavra.esquema(\"contas\")\nLavra.tipo(contas, {\"id\": \"Integer\", \"nome\": \"String\"}, nome := \"Conta\")\nLavra.campo(contas, \"Conta\", \"nome\", \"String!\")\nLavra.busca(contas, \"conta\", \"Conta\", args := {\"id\": \"Integer!\"},\n    resolve := lambda r, a, c => {\"id\": a[\"id\"], \"nome\": \"Ana\"})\n\nvendas := Lavra.esquema(\"vendas\")\nLavra.tipo(vendas, {\"id\": \"Integer\", \"total\": \"Float\"}, nome := \"Venda\")\nLavra.campo(vendas, \"Venda\", \"total\", \"Float!\")\nLavra.busca(vendas, \"venda\", \"Venda\", args := {\"id\": \"Integer!\"},\n    resolve := lambda r, a, c => {\"id\": a[\"id\"], \"total\": 9.9})\n\nportao := Lavra.portao()\nLavra.juntar(portao, \"contas\", contas)\nLavra.juntar(portao, \"vendas\", vendas)\n\n// O campo que atravessa a fronteira e declarado como extensao.\nLavra.estender(portao, \"Conta\", \"vendas\", \"[Venda!]!\",\n    resolve := lambda conta, a, ctx => [{\"id\":1, \"total\":9.9}])\n\nf := Lavra.executar(portao.esquema, \"\"\"\nbusca:\n    conta(id: 1):\n        nome\n        vendas:\n            total\n\"\"\")\nout f[\"dados\"]\nassert f[\"dados\"][\"conta\"][\"vendas\"][0][\"total\"] is 9.9\n\n// De onde vem cada tipo — a resposta para \"quem declara isto?\"\nmapa := Lavra.mapa(portao)\nout mapa[\"tipos\"][\"Conta\"], mapa[\"tipos\"][\"Venda\"]\nassert mapa[\"tipos\"][\"Conta\"] is \"contas\"\nassert mapa[\"tipos\"][\"Venda\"] is \"vendas\"\n\nout \"231 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -9276,15 +9514,15 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 1607,
+  "testes": 1646,
   "exemplos": 44,
-  "arquivosDf": 334
+  "arquivosDf": 337
  },
  "mundo": {
   "estrelas": 0,
   "versao": "v1.0.0",
   "publicado": "2026-09-12",
-  "baixados": 16,
+  "baixados": 26,
   "instalacoes": 14
  }
 }

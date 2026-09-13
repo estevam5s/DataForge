@@ -48,6 +48,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | [`Arcane.Malha`](#arcanemalha) | `Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
+| [`Arcane.Lavra`](#arcanelavra) | `Lavra` | 41 | A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços. |
 | [`Arcane.Vitrine`](#arcanevitrine) | `Vitrine` | 113 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | [`Arcane.API`](#arcaneapi) | `API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
 | [`Arcane.Decimal`](#arcanedecimal) | `Decimal / Exato` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
@@ -1817,6 +1818,63 @@ adopt Arcane.Malha as Malha
 | `servicos()` |
 | `terminar_contexto()` |
 | `vale_repetir(resposta)` |
+
+
+---
+
+## Arcane.Lavra
+
+A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços.
+
+```dataforge
+adopt Arcane.Lavra as Lavra
+```
+
+**Funções (41)**
+
+| Assinatura |
+|------------|
+| `assinatura(esq, nome, tipo_do_campo, resolve=None, args=None, descricao='', custo=1)` |
+| `busca(esq, nome, tipo_do_campo, resolve=None, args=None, descricao='', custo=1)` |
+| `campo(esq, tipo_nome, nome, tipo_do_campo, resolve=None, args=None, descricao='', obsoleto='', custo=1)` |
+| `cliente(url, cabecalhos=None, tempo_limite=10.0)` |
+| `conferir(esq)` |
+| `contexto(dados=None)` |
+| `contrato(esq, nome, campos, descricao='', resolve_tipo=None)` |
+| `descrever(esq)` |
+| `diretiva(esq, nome, decidir)` |
+| `em_segundo_plano(esquema, porta=0, host='127.0.0.1', caminho='/lavra', contexto_de=None)` |
+| `entrada(esq, alvo, nome=None, descricao='', campos=None)` |
+| `enum(esq, nome, valores, descricao='')` |
+| `erro(mensagem, codigo='erro', extra=None)` |
+| `escalar(esq, nome, serializa=None, desserializa=None, descricao='')` |
+| `esquema(nome='lavra')` |
+| `estender(p, tipo_nome, campo_nome, tipo_do_campo, resolve=None, args=None, descricao='', custo=1)` |
+| `executar(esq, texto, variaveis=None, contexto=None, raiz=None, operacao=None, validar_antes=True)` |
+| `fonte(nome='fonte')` |
+| `introspeccao(esq, ligada=True)` |
+| `juntar(p, servico, esquema)` |
+| `ler(texto)` |
+| `limites(esq, profundidade=None, complexidade=None, itens=None)` |
+| `local(esquema, contexto=None)` |
+| `lote(ctx, nome, buscar)` |
+| `lotes(ctx)` |
+| `mapa(p)` |
+| `montar(app, esquema, caminho='/lavra', contexto_de=None, permitir_get=True, introspeccao_publica=True)` |
+| `montar_assinaturas(app, esquema, caminho='/lavra/assinar', contexto_de=None)` |
+| `mudanca(esq, nome, tipo_do_campo, resolve=None, args=None, descricao='', custo=1)` |
+| `pagina(itens, primeiros=None, depois=None, total=None)` |
+| `parar(app)` |
+| `pedir(ctx, nome, chave)` |
+| `portao(nome='portao')` |
+| `preencher(ctx, nome, chave, valor)` |
+| `recusar(mensagem='sem permissão', extra=None)` |
+| `servir(esquema, porta=8080, host='127.0.0.1', caminho='/lavra', contexto_de=None, silencioso=False)` |
+| `texto_do_esquema(esq)` |
+| `tipo(esq, alvo, nome=None, descricao='', cumpre=None, campos=None, esconder=None)` |
+| `tipo_pagina(esq, nome_do_item, nome=None)` |
+| `uniao(esq, nome, membros, descricao='', resolve_tipo=None)` |
+| `validar(esq, texto, operacao=None)` |
 
 
 ---

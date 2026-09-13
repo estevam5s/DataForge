@@ -3,11 +3,29 @@ Arcane.Web - Web & Networking Module
 """
 
 import json
+import urllib.error
 import urllib.request
 import urllib.parse
 import http.server
 import threading
 import socket
+
+
+def _resposta(status, cabecalhos, corpo, erro=None):
+    """A resposta HTTP como vault, venha ela de um 200 ou de um 404."""
+    if isinstance(corpo, (bytes, bytearray)):
+        corpo = corpo.decode("utf-8", "replace")
+    saida = {
+        "status": status,
+        "headers": dict(cabecalhos or {}),
+        "body": corpo,
+        "json": lambda: json.loads(corpo),
+        "ok": 200 <= (status or 0) < 300,
+    }
+    if erro is not None:
+        saida["error"] = str(erro)
+        saida["erro"] = str(erro)
+    return saida
 
 
 class ArcaneWeb:
@@ -66,18 +84,30 @@ class ArcaneWeb:
 
             req = urllib.request.Request(url, data=data, headers=headers, method=method)
             with urllib.request.urlopen(req, timeout=30) as response:
-                body = response.read().decode('utf-8')
-                return {
-                    "status": response.status,
-                    "headers": dict(response.headers),
-                    "body": body,
-                    "json": lambda: json.loads(body),
-                }
+                return _resposta(response.status, response.headers,
+                                 response.read())
+        except urllib.error.HTTPError as erro:
+            # Um 404, um 400 e um 500 sao RESPOSTA, e nao falha de rede.
+            #
+            # O 'urlopen' levanta para todo 4xx e 5xx, e o 'except
+            # Exception' abaixo transformava os tres em 'status: 0' com
+            # o corpo vazio. Quem chamava nao tinha como distinguir "o
+            # servidor recusou" de "a rede nao chegou la", e o corpo do
+            # erro — que e onde a API diz o que houve — sumia.
+            #
+            # 'status: 0' e o caso honesto de "nao se sabe", que e o
+            # terceiro desfecho de toda chamada de rede. Gastá-lo com
+            # uma resposta que CHEGOU faz quem chama repetir um pedido
+            # que o servidor ja recusou.
+            return _resposta(erro.code, erro.headers, erro.read(),
+                             erro=erro.reason)
         except Exception as e:
             return {
                 "status": 0,
                 "error": str(e),
+                "erro": str(e),
                 "body": "",
+                "headers": {},
             }
 
     @staticmethod

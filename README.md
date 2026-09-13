@@ -30,9 +30,9 @@ Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
 generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
 pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **39 módulos** de biblioteca padrão com **1349 símbolos**.
+(**Forge**) e **40 módulos** de biblioteca padrão com **1390 símbolos**.
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [231 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [234 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
@@ -99,7 +99,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 39 módulos com 1349 símbolos + 228 funções globais |
+| **Bateria inclusa** | 40 módulos com 1390 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -473,7 +473,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-39 módulos, 1349 símbolos, mais 228 funções globais sem import.
+40 módulos, 1390 símbolos, mais 228 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -492,6 +492,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Async` | 46 | Promessas, filas, agendamento e execução concorrente. |
 | `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | `Arcane.OS` | 43 | Sistema operacional, ambiente, disco e processo atual. |
+| `Arcane.Lavra` | 41 | A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços. |
 | `Arcane.Test` | 34 | Asserções e organização de suítes de teste. |
 | `Arcane.Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | `Arcane.IO` | 30 | Arquivos, diretórios, JSON, CSV e shell. |
@@ -656,16 +657,16 @@ no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas.
 |---------|---------|
 | [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
 | [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 39 módulos |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 40 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
 | [**doc/ESTABILIDADE.md**](doc/ESTABILIDADE.md) | o que pode quebrar entre versões — e o teste que garante |
 | [**CHANGELOG.md**](CHANGELOG.md) | o que mudou depois da 1.0.0 |
 | [**CONTRIBUTING.md**](CONTRIBUTING.md) | como mandar o primeiro patch |
-| [**exercicios/**](exercicios/) | 231 exercícios; os módulos 11-26 com `.md` explicativo |
+| [**exercicios/**](exercicios/) | 234 exercícios; os módulos 11-26 com `.md` explicativo |
 | [**examples/**](examples/) | 43 programas maiores |
 
-### Os 231 exercícios
+### Os 234 exercícios
 
 ```bash
 python3 exercicios/run_all.py        # todos
@@ -707,7 +708,7 @@ sugestões.
 pip install -e ".[dev]"
 
 python3 -m pytest tests/ -q       # mais de 1300 testes
-python3 exercicios/run_all.py     # 231 exercícios
+python3 exercicios/run_all.py     # 234 exercícios
 ```
 
 Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).
@@ -733,7 +734,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/docgen.py` | `dataforge doc` | 218 |
 | `dataforge/project.py` | `forge.toml` | 184 |
 | `dataforge/builtins.py` | 228 funções globais | 1224 |
-| `dataforge/stdlib/` | os 39 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
+| `dataforge/stdlib/` | os 40 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
 
 ---
 

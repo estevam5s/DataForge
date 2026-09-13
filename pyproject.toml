@@ -50,6 +50,7 @@ packages = [
     "dataforge",
     "dataforge.stdlib",
     "dataforge.stdlib.forge",
+    "dataforge.stdlib.lavra",
     "dataforge.stdlib.vitrine",
     "dataforge.editor",
 ]

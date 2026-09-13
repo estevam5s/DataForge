@@ -157,6 +157,21 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Lavra — consulta',
+    badge: 'novo',
+    items: [
+      { title: 'Visão geral', href: '/docs/lavra' },
+      { title: 'O esquema', href: '/docs/lavra/esquema' },
+      { title: 'A consulta', href: '/docs/lavra/consulta' },
+      { title: 'Resolvedores', href: '/docs/lavra/resolvedores' },
+      { title: 'Desempenho', href: '/docs/lavra/desempenho' },
+      { title: 'Segurança', href: '/docs/lavra/seguranca' },
+      { title: 'O servidor', href: '/docs/lavra/servidor' },
+      { title: 'Federação', href: '/docs/lavra/federacao' },
+      { title: 'Na prática', href: '/docs/lavra/pratica' },
+    ],
+  },
+  {
     title: 'Técnicas',
     items: [
       { title: 'Análise estática', href: '/docs/tecnicas/analise-estatica' },
@@ -292,6 +307,7 @@ export const nav: NavSection[] = [
       { title: '30 · Tempo real', href: '/docs/exercicios/30-tempo-real' },
       { title: '31 · Qualidade', href: '/docs/exercicios/31-qualidade' },
       { title: '32 · Microserviços', href: '/docs/exercicios/32-microservicos' },
+      { title: '33 · Lavra', href: '/docs/exercicios/33-lavra' },
     ],
   },
   {

@@ -6,13 +6,43 @@ import { tokenize, classePorTipo } from '@/lib/highlight';
 type Props = {
   code: string;
   /** 'df' realça DataForge; 'bash'/'powershell', 'toml', 'json' e 'text' têm tratamento próprio. */
-  lang?: 'df' | 'bash' | 'powershell' | 'toml' | 'json' | 'text' | 'sql' | 'javascript' | 'yaml';
+  lang?: 'df' | 'lavra' | 'bash' | 'powershell' | 'toml' | 'json' | 'text' | 'sql' | 'javascript' | 'yaml';
   /** Rótulo exibido no topo do bloco — normalmente o nome do arquivo. */
   title?: string;
 };
 
 /** Realce leve para linguagens que não são DataForge. */
 function realceSimples(code: string, lang: string) {
+  if (lang === 'lavra') {
+    // A linguagem de CONSULTA do Lavra. Ela é pequena o bastante para
+    // caber aqui: três palavras de operação, o nome do campo, os
+    // argumentos e as diretivas. Um destacador separado seria mais um
+    // arquivo para envelhecer.
+    const PALAVRA = /^(busca|mudanca|assinatura|trecho|em)$/;
+    return code.split('\n').map((linha, i) => {
+      const fim = i < code.split('\n').length - 1 ? '\n' : '';
+      const comentario = linha.match(/(^|\s)(#.*|\/\/.*)$/);
+      const corpo = comentario ? linha.slice(0, comentario.index! + comentario[1].length) : linha;
+      const pedacos = corpo.split(/(\s+|[(),:@$]|"[^"]*")/).filter(Boolean);
+      return (
+        <span key={i}>
+          {pedacos.map((p, k) => {
+            let cls = '';
+            if (PALAVRA.test(p)) cls = 'tk-keyword';
+            else if (p.startsWith('"')) cls = 'tk-string';
+            else if (/^(yes|no|void)$/.test(p)) cls = 'tk-literal';
+            else if (/^-?\d/.test(p)) cls = 'tk-number';
+            else if (/^[(),:]$/.test(p)) cls = 'tk-punct';
+            else if (p === '@' || p === '$') cls = 'tk-operator';
+            else if (/^[A-Za-z_][\w]*$/.test(p)) cls = 'tk-function';
+            return cls ? <span key={k} className={cls}>{p}</span> : <span key={k}>{p}</span>;
+          })}
+          {comentario && <span className="tk-comment">{comentario[2]}</span>}
+          {fim}
+        </span>
+      );
+    });
+  }
   if (lang === 'bash' || lang === 'powershell') {
     return code.split('\n').map((linha, i) => {
       const comentario = linha.match(/(^|\s)(#.*)$/);
@@ -153,7 +183,7 @@ export function CodeBlock({ code, lang = 'df', title }: Props) {
     <figure className="code-surface group my-6 overflow-hidden rounded-xl border border-line">
       <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-2">
         <span className="font-mono text-[11.5px] uppercase tracking-[0.9px] text-white/40">
-          {title ?? (lang === 'df' ? 'dataforge' : lang)}
+          {title ?? (lang === 'df' ? 'dataforge' : lang === 'lavra' ? 'consulta lavra' : lang)}
         </span>
         <button
           onClick={copiar}

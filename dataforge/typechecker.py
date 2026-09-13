@@ -1798,6 +1798,34 @@ class TypeChecker:
         return "Boolean"
 
     def ex_TernaryExpression(self, node, escopo):
+        # ── A armadilha da precedência ──────────────────────
+        #
+        #     lambda x => "sim" given x bigger 3 otherwise "nao"
+        #
+        # O corpo do lambda é `"sim"`, e o ternário recebe o LAMBDA
+        # como valor-se-verdadeiro. O `x` da condição está FORA do
+        # lambda, e a mensagem que saía era "Undefined name 'x'" —
+        # apontando o parâmetro que a própria linha acabou de declarar,
+        # como se ele não existisse.
+        #
+        # É a mesma família do pipeline dentro de lambda, que já ganhou
+        # mensagem própria. Aqui o sinal é seguro: um lambda como
+        # valor-se-verdadeiro de um ternário é raríssimo, e um cujo
+        # parâmetro aparece na CONDIÇÃO é sempre este engano.
+        alvo = node.then_value
+        if isinstance(alvo, ast.LambdaExpression):
+            params = set(getattr(alvo, "params", None) or [])
+            usados = (_nomes_usados(node.condition)
+                      | _nomes_usados(node.else_value))
+            vazando = sorted(params & usados)
+            if vazando:
+                self.error(
+                    f"'{vazando[0]}' is a parameter of the lambda and is "
+                    f"used outside it", node,
+                    "the lambda body binds tighter than 'given': wrap it — "
+                    "lambda x => (a given c otherwise b)",
+                    "lambda-precedencia")
+                return UNKNOWN
         self.infer(node.condition, escopo)
         a = self.infer(node.then_value, escopo)
         b = self.infer(node.else_value, escopo)
@@ -2381,6 +2409,22 @@ class TypeChecker:
         if parecido:
             return f"Did you mean '{parecido}'?"
         return f"Known types: Integer, Float, String, Boolean, Cluster, Vault, Void"
+
+
+def _nomes_usados(no, achados=None):
+    """Todo Identifier que aparece nesta subárvore."""
+    achados = set() if achados is None else achados
+    if isinstance(no, ast.Identifier):
+        achados.add(no.name)
+    for campo in getattr(no, "__dataclass_fields__", ()):
+        valor = getattr(no, campo, None)
+        if isinstance(valor, ast.ASTNode):
+            _nomes_usados(valor, achados)
+        elif isinstance(valor, (list, tuple)):
+            for item in valor:
+                if isinstance(item, ast.ASTNode):
+                    _nomes_usados(item, achados)
+    return achados
 
 
 def check_program(program, filename="<stdin>", strict=False, source=None):

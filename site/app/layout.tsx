@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     siteName: 'DataForge',
     title: 'DataForge — documentação da linguagem',
     description:
-      'Tipos verificados, pattern matching estrutural, pipelines nativos e 39 módulos de biblioteca padrão.',
+      'Tipos verificados, pattern matching estrutural, pipelines nativos e 40 módulos de biblioteca padrão.',
     images: [{ url: '/marca/og.svg', width: 1200, height: 630,
                alt: 'DataForge — linguagem de programação' }],
   },

@@ -148,6 +148,12 @@ def classificar(bloco):
     # que o CodeBlock espera. Aceitar so 'dataforge' fazia TODO bloco
     # gerado ser classificado como outra linguagem e nunca conferido:
     # o verificador dizia verde sobre codigo que ele nao tinha olhado.
+    # A linguagem de CONSULTA do Lavra tem leitor proprio, e e conferida
+    # com ele. Passar por cima faria a documentacao de um modulo inteiro
+    # ficar sem verificacao nenhuma — que e a situacao que este arquivo
+    # existe para nao permitir.
+    if bloco["lingua"] == "lavra":
+        return "lavra"
     if bloco["lingua"] and bloco["lingua"] not in ("dataforge", "df"):
         return "outro"
 
@@ -269,6 +275,18 @@ def _e_esqueleto(linhas):
     return False
 
 
+def conferir_consulta_lavra(codigo):
+    """Le o bloco com o leitor do Arcane.Lavra. Devolve o erro, ou None."""
+    from dataforge.stdlib.lavra.consulta import ErroDeConsulta, ler
+    try:
+        documento = ler(codigo)
+    except ErroDeConsulta as erro:
+        return str(erro)
+    if not documento.operacoes and not documento.trechos:
+        return "o bloco nao tem operacao nem trecho"
+    return None
+
+
 def preparar(codigo, tipo):
     """Envolve o fragmento no contexto em que ele será usado."""
     if tipo == "misto-kiln":
@@ -341,7 +359,7 @@ def falhas_de_linha_isolada(bloco):
 
 def main():
     blocos = blocos_das_paginas()
-    contagem = {"dataforge": 0, "fragmento-kiln": 0,
+    contagem = {"dataforge": 0, "fragmento-kiln": 0, "lavra": 0,
                 "fragmento-crucible": 0, "fragmento-monitor": 0,
                 "fragmento-blueprint": 0, "fragmento-match": 0,
                 "misto-kiln": 0, "outro": 0}
@@ -358,6 +376,13 @@ def main():
 
         if tipo == "outro":
             continue
+        if tipo == "lavra":
+            erro = conferir_consulta_lavra(bloco["codigo"])
+            if erro:
+                falhas.append((bloco, tipo, erro))
+            elif "--lista" in sys.argv:
+                print(f"  {VERDE}✓{LIMPO} {bloco['rota']}:{bloco['linha']}")
+            continue
         try:
             parse(tokenize(preparar(bloco["codigo"], tipo)))
         except Exception as erro:
@@ -373,6 +398,7 @@ def main():
     print(f"    {contagem['fragmento-match']} fragmentos de match")
     print(f"    {contagem['fragmento-crucible']} fragmentos de suite")
     print(f"    {contagem['fragmento-monitor']} fragmentos de monitor")
+    print(f"    {contagem['lavra']} consultas Lavra")
     print(f"    {contagem['misto-kiln']} blocos com rota solta")
     print(f"    {contagem['outro']} shell, saída ou outra linguagem")
     if isoladas:
@@ -385,6 +411,7 @@ def main():
                       + contagem["fragmento-match"]
                       + contagem["fragmento-crucible"]
                       + contagem["fragmento-monitor"]
+                      + contagem["lavra"]
                       + contagem["misto-kiln"])
         print(f"\n  {VERDE}os {conferidos} blocos de DataForge compilam{LIMPO}\n")
         return 0

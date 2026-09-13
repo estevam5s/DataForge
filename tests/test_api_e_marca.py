@@ -345,6 +345,12 @@ def test_todo_bloco_de_codigo_da_documentacao_compila():
         tipo = modulo.classificar(bloco)
         if tipo == "outro":
             continue
+        if tipo == "lavra":
+            # A linguagem de consulta do Lavra tem leitor proprio.
+            erro = modulo.conferir_consulta_lavra(bloco["codigo"])
+            if erro:
+                falhas.append(f"{bloco['rota']}:{bloco['linha']} — {erro}")
+            continue
         try:
             parse(tokenize(modulo.preparar(bloco["codigo"], tipo)))
         except Exception as erro:
@@ -1464,7 +1470,7 @@ def test_a_pagina_de_exercicio_mostra_o_exercicio():
     """As 32 páginas de `/docs/exercicios` paravam na tabela.
 
     Título e enunciado, e nada do código. Quem chegava por busca via a
-    PROMESSA de 231 exercícios e nenhum deles — para ler um, era
+    PROMESSA de 234 exercícios e nenhum deles — para ler um, era
     preciso clonar o repositório. O código é a resposta e o teste ao
     mesmo tempo; escondê-lo esvazia a seção inteira.
     """

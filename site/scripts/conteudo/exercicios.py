@@ -54,6 +54,7 @@ ASSUNTOS = {
     "30-tempo-real": "upload, SSE e WebSocket no Kiln",
     "31-qualidade": "check, lint, cobertura e o que o CI cobra",
     "32-microservicos": "Arcane.Malha: retry, disjuntor, rastro e saga",
+    "33-lavra": "esquema, consulta, lote contra o N+1, servidor e federação",
 }
 
 
@@ -136,166 +137,11 @@ def _markdown_para_blocos(texto, nivel_base=3):
             i += 1
             mapa = {"dataforge": "df", "df": "df", "bash": "bash", "sh": "bash",
                     "json": "json", "toml": "toml", "sql": "sql", "text": "text",
-                    "yaml": "yaml", "javascript": "javascript"}
-            blocos.append({"code": "\n".join(corpo).rstrip(),
-                           "lang": mapa.get(lang, "text")})
-            continue
-
-        if nua.startswith("#"):
-            fechar()
-            nivel = len(nua) - len(nua.lstrip("#"))
-            titulo = nua.lstrip("#").strip()
-            # '##' do arquivo vira o nível abaixo do título do exercício.
-            chave = "h3" if nivel_base + nivel - 2 <= 3 else "h4"
-            if chave == "h4":
-                blocos.append({"p": f"**{titulo}**"})
-            else:
-                blocos.append({"h3": titulo})
-            i += 1
-            continue
-
-        if _TABELA.match(nua) and i + 1 < len(linhas) and _SEPARADOR.match(
-                linhas[i + 1].strip()):
-            fechar()
-            cabeca = [c.strip() for c in nua.strip("|").split("|")]
-            i += 2
-            corpo = []
-            while i < len(linhas) and _TABELA.match(linhas[i].strip()):
-                corpo.append([c.strip()
-                              for c in linhas[i].strip().strip("|").split("|")])
-                i += 1
-            blocos.append({"table": {"head": cabeca, "rows": corpo}})
-            continue
-
-        if nua.startswith(("- ", "* ")):
-            fechar()
-            itens = []
-            while i < len(linhas) and linhas[i].strip().startswith(("- ", "* ")):
-                itens.append(linhas[i].strip()[2:].strip())
-                i += 1
-            blocos.append({"list": itens})
-            continue
-
-        if not nua:
-            fechar()
-            i += 1
-            continue
-
-        paragrafo.append(nua)
-        i += 1
-
-    fechar()
-    return blocos
-
-
-def _explicacao(caminho_df):
-    """Os blocos do .md ao lado, sem o título e sem o 'Enunciado'."""
-    caminho = caminho_df[:-3] + ".md"
-    if not os.path.isfile(caminho):
-        return []
-    texto = open(caminho, encoding="utf-8").read()
-    # Fora o '# Exercicio N — ...' e a secao '## Enunciado', que a
-    # pagina ja mostrou logo acima.
-    texto = re.sub(r"^#\s+[^\n]*\n", "", texto)
-    texto = re.sub(r"##\s+Enunciado\s*\n.*?(?=\n##\s|\Z)", "", texto,
-                   flags=re.S)
-    return _markdown_para_blocos(texto.strip())
-
-
-def _modulos():
-    saida = []
-    for pasta in sorted(glob.glob(os.path.join(EXERCICIOS, "*"))):
-        nome = os.path.basename(pasta)
-        if not os.path.isdir(pasta) or not nome[:2].isdigit():
-            continue
-        arquivos = sorted(
-            a for a in glob.glob(os.path.join(pasta, "*.df"))
-            if os.path.basename(a)[0].isdigit())
-        if arquivos:
-            saida.append((nome, [_cabecalho(a) for a in arquivos], arquivos))
-    return saida
-
-
-def _cabecalho(caminho):
-    """(numero, titulo, enunciado) das duas primeiras linhas de comentário."""
-    numero = titulo = enunciado = ""
-    with open(caminho, encoding="utf-8") as f:
-        for linha in f:
-            linha = linha.strip()
-            if not linha.startswith("//"):
-                if linha:
-                    break
-                continue
-            texto = linha.lstrip("/").strip()
-            m = re.match(r"Exercicio\s+(\d+)\s+[—-]\s+(.+)", texto)
-            if m:
-                numero, titulo = m.group(1), m.group(2)
-            elif texto.lower().startswith("enunciado:"):
-                enunciado = texto.split(":", 1)[1].strip()
-            if numero and enunciado:
-                break
-    return numero, titulo, enunciado
-
-
-def _corpo(caminho):
-    """O .df sem as duas linhas de cabeçalho, que a página já mostra."""
-    linhas = open(caminho, encoding="utf-8").read().split("\n")
-    i = 0
-    while i < len(linhas) and (
-            linhas[i].strip().startswith("//") or not linhas[i].strip()):
-        texto = linhas[i].strip().lstrip("/").strip()
-        if texto and not (re.match(r"Exercicio\s+\d+\s+[—-]", texto)
-                          or texto.lower().startswith("enunciado:")):
-            break
-        i += 1
-    return "\n".join(linhas[i:]).strip()
-
-
-#: Um bloco de código no .md, com a linguagem que a cerca declara.
-_CERCA = re.compile(r"^```(\w*)\s*$")
-_TABELA = re.compile(r"^\|(.+)\|\s*$")
-_SEPARADOR = re.compile(r"^\|[\s:|-]+\|\s*$")
-
-
-def _markdown_para_blocos(texto, nivel_base=3):
-    """Converte o .md explicativo para os blocos que o site renderiza.
-
-    Não é um parser de Markdown: é o subconjunto que estes arquivos
-    usam — título, parágrafo, cerca de código, tabela e lista. O que
-    não casar com nada vira parágrafo, que é o pior caso aceitável:
-    o texto aparece, só sem a formatação.
-
-    A alternativa era linkar para o arquivo no GitHub, e aí a
-    explicação de 13 módulos de exercício simplesmente não estaria no
-    site — que é o que acontecia.
-    """
-    blocos = []
-    linhas = texto.split("\n")
-    i = 0
-    paragrafo = []
-
-    def fechar():
-        if paragrafo:
-            blocos.append({"p": " ".join(paragrafo).strip()})
-            paragrafo.clear()
-
-    while i < len(linhas):
-        linha = linhas[i]
-        nua = linha.strip()
-
-        cerca = _CERCA.match(nua)
-        if cerca:
-            fechar()
-            lang = cerca.group(1) or "text"
-            corpo = []
-            i += 1
-            while i < len(linhas) and not linhas[i].strip().startswith("```"):
-                corpo.append(linhas[i])
-                i += 1
-            i += 1
-            mapa = {"dataforge": "df", "df": "df", "bash": "bash", "sh": "bash",
-                    "json": "json", "toml": "toml", "sql": "sql", "text": "text",
-                    "yaml": "yaml", "javascript": "javascript"}
+                    "yaml": "yaml", "javascript": "javascript",
+                    # A linguagem de consulta do Lavra NAO e DataForge.
+                    # Marcá-la como tal faria o verificador tentar
+                    # compilá-la, e reprovar um exemplo correto.
+                    "lavra": "lavra"}
             blocos.append({"code": "\n".join(corpo).rstrip(),
                            "lang": mapa.get(lang, "text")})
             continue
@@ -423,6 +269,7 @@ TITULOS = {
     "30-tempo-real": "Tempo real",
     "31-qualidade": "Qualidade",
     "32-microservicos": "Microserviços",
+    "33-lavra": "Lavra",
 }
 
 
@@ -507,7 +354,7 @@ def _pagina_modulo(nome, itens, caminhos):
     # ── O corpo: cada exercício, por inteiro ──────────────────────
     #
     # Antes a página parava na tabela acima: título e enunciado, e nada
-    # do código. Quem chegava por busca via a PROMESSA de 231 exercícios
+    # do código. Quem chegava por busca via a PROMESSA de 234 exercícios
     # e nenhum deles — para ler um, era preciso clonar o repositório.
     # O código é a resposta e o teste ao mesmo tempo; escondê-lo
     # esvazia a seção inteira.

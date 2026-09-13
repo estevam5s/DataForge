@@ -57,6 +57,7 @@ DESCRICOES = {
     "Arcane.Observar": ("Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados.", "Observar / Observe"),
     "Arcane.Lago": ("Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação.", "Lago / Parquet"),
     "Arcane.Malha": ("Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido.", "Malha"),
+    "Arcane.Lavra": ("A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços.", "Lavra"),
     "Arcane.Vitrine": ("O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln.", "Vitrine"),
     "Arcane.API": ("A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas.", "API"),
     "Arcane.Decimal": ("Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão.", "Decimal / Exato"),

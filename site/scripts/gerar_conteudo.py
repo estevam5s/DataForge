@@ -34,6 +34,7 @@ MODULOS = [
     "devops",
     "api_publica",
     "crucible_doc",
+    "lavra",
     "vitrine",
     "versoes",
 ]
