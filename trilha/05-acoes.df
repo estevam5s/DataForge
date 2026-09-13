@@ -1,0 +1,136 @@
+// ═══════════════════════════════════════════════════════════
+//  5. Acoes (as funcoes)
+// ═══════════════════════════════════════════════════════════
+//
+// 'action' declara, 'yield' devolve E ENCERRA. Para produzir uma
+// sequencia, o capitulo 16 mostra 'stream action' + 'emit'.
+
+// ── 5.1 Acao simples ──
+action somar(a, b):
+    yield a + b
+assert somar(2, 3) is 5
+
+// ── 5.2 Com tipos, que o analisador cobra ──
+//
+// Os tipos sao OPCIONAIS, e quando estao la o 'dataforge check' os
+// verifica ANTES de rodar — inclusive atravessando 'adopt'.
+action multiplicar(a: Integer, b: Integer) -> Integer:
+    yield a * b
+assert multiplicar(3, 4) is 12
+
+// ── 5.3 Valor padrao ──
+action saudar(nome := "Visitante") -> String:
+    yield $"Ola, {nome}"
+assert saudar()       is "Ola, Visitante"
+assert saudar("Ana")  is "Ola, Ana"
+
+// ── 5.4 Argumentos nomeados ──
+action criar_usuario(nome: String, idade: Integer) -> Vault:
+    yield {"nome": nome, "idade": idade}
+u := criar_usuario(nome := "Ana", idade := 30)
+assert u["nome"] is "Ana"
+// Nomeado deixa a chamada legivel e imune a ordem:
+assert criar_usuario(idade := 30, nome := "Ana") is u
+
+// ── 5.5 Muitos argumentos: um Cluster, e nao '*args' ──
+//
+// NAO ha parametro variadico. '...' e spread/rest, e vive em
+// colecao e desestruturacao — nunca na lista de parametros.
+//
+// Isso e uma escolha, e ela cobra algo em troca: a assinatura passa
+// a dizer o que a acao recebe. '*numeros' aceita qualquer aridade e
+// nao documenta nada; 'numeros: Cluster' e conferido pelo
+// analisador, que acusa a chamada errada antes de rodar.
+action somar_todos(numeros: Cluster) -> Integer:
+    total := 0
+    cycle n in numeros:
+        total += n
+    yield total
+assert somar_todos([1, 2, 3, 4]) is 10
+assert somar_todos([]) is 0
+
+// '...' na CHAMADA existe, e espalha em parametros POSICIONAIS:
+action tres(a: Integer, b: Integer, c: Integer) -> Integer:
+    yield a + b + c
+valores := [5, 10, 15]
+assert tres(...valores) is 30
+
+// ── 5.6 Opcoes nomeadas: um vault ──
+//
+// Nao ha '**kwargs'. Um vault explicito diz o que a acao aceita, e
+// nao esconde erro de digitacao — ver 5.7.
+action configurar(opcoes: Vault) -> Vault:
+    padrao := {"porta": 8080, "debug": no}
+    yield {...padrao, ...opcoes}
+c := configurar({"debug": yes})
+assert c["porta"] is 8080
+assert c["debug"] is yes
+
+// ── 5.7 Recusar a chave errada ──
+//
+// 'configurar({"portta": 9000})' com merge silencioso deixaria a
+// porta em 8080 e ninguem saberia. Conferir e barato:
+action configurar_estrito(opcoes: Vault) -> Vault:
+    padrao := {"porta": 8080, "debug": no}
+    cycle chave in opcoes:
+        given chave not in padrao:
+            trigger $"opcao desconhecida: '{chave}'"
+    yield {...padrao, ...opcoes}
+
+recusou := no
+monitor:
+    configurar_estrito({"portta": 9000})
+handle Error as e:
+    recusou := yes
+assert recusou
+
+// ── 5.8 Lambda ──
+//
+// Duas formas: ':' com uma expressao, ou '=>'.
+dobro := lambda x: x * 2
+assert dobro(21) is 42
+somar2 := lambda a, b => a + b
+assert somar2(1, 2) is 3
+
+// ── 5.9 Documentacao ──
+//
+// O comentario ACIMA da acao e o que 'dataforge doc' publica.
+//
+/// Calcula o valor total de uma compra.
+///
+/// 'preco' e o unitario; 'quantidade' e quantos.
+action calcular_total(preco: Float, quantidade: Integer) -> Float:
+    yield preco * quantidade
+assert calcular_total(2.5, 4) is 10.0
+
+// ── 5.10 Acao e valor ──
+//
+// Ela pode ser guardada, passada e devolvida.
+action aplicar(f, valor):
+    yield f(valor)
+assert aplicar(dobro, 10) is 20
+
+action multiplicador(fator: Integer):
+    yield lambda x: x * fator
+triplo := multiplicador(3)
+assert triplo(5) is 15
+
+// ── 5.11 Recursao, e o teto de quadros ──
+//
+// O teto e mil quadros, e uma travessia legitima o alcanca. A saida
+// e 'yield f(…)' como retorno INTEIRO: o compilador o transforma em
+// salto, e a recursao deixa de ter teto (testado com 200 mil).
+action fatorial(n: Integer) -> Integer:
+    given n smaller_eq 1:
+        yield 1
+    yield n * fatorial(n - 1)
+assert fatorial(5) is 120
+
+// Esta versao e de CAUDA — nao ha conta depois da chamada:
+action soma_ate(n: Integer, acumulado: Integer) -> Integer:
+    given n is 0:
+        yield acumulado
+    yield soma_ate(n - 1, acumulado + n)
+assert soma_ate(5000, 0) is 12502500    // 5 mil quadros, sem estourar
+
+out "5. Acoes — ok"

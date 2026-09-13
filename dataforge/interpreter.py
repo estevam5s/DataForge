@@ -590,6 +590,13 @@ class DFError:
         self.line = getattr(original, 'line', 0)
         self.column = getattr(original, 'column', 0)
 
+    #: O que o 'trigger' levantou, como DADO.
+    #:
+    #: Nos dois idiomas, como a pilha: '.type' e '.message' sao em
+    #: ingles e os extras em portugues, e obrigar a escolher aqui so
+    #: faria a metade errada dar AttributeError.
+    VALOR = ("valor", "value")
+
     def __getattr__(self, nome):
         """Os campos extras do erro original, lidos pelo nome.
 
@@ -599,6 +606,12 @@ class DFError:
         """
         if nome in DFError.PILHA:
             return self._pilha_como_dado()
+        if nome in DFError.VALOR:
+            # 'void' quando o erro nao veio de um 'trigger': um '1 / 0'
+            # nao foi levantado por ninguem com um valor, e devolver a
+            # mensagem ali faria '.valor' significar duas coisas
+            # conforme a origem.
+            return getattr(self.original, "valor", None)
         if nome.startswith("_") or nome not in DFError.EXTRAS:
             raise AttributeError(nome)
         valor = getattr(self.original, nome, None)
@@ -3214,7 +3227,18 @@ class Interpreter:
 
     def exec_TriggerStatement(self, node: ast.TriggerStatement, env):
         value = self.evaluate(node.value, env)
-        raise TriggerError(self._to_str(value), node.line, node.column)
+        erro = TriggerError(self._to_str(value), node.line, node.column)
+        # O valor ORIGINAL viaja junto. Antes so a renderizacao dele
+        # sobrevivia: 'trigger SaldoInsuficiente(100, 250)' chegava ao
+        # 'handle' como o texto "SaldoInsuficiente(saldo: 100, ...)", e
+        # quem tratava precisava extrair por regex o que o programa ja
+        # tinha como dado.
+        #
+        # E a mensagem nao muda — quem so le 'e.message' nao percebe
+        # diferenca, e quase todo 'trigger' do repositorio levanta um
+        # texto, onde os dois sao o mesmo.
+        erro.valor = value
+        raise erro
 
     def exec_DeleteStatement(self, node: ast.DeleteStatement, env):
         if isinstance(node.target, ast.Identifier):
@@ -5144,7 +5168,18 @@ class Interpreter:
         # Casos em que a mensagem do Python nao ajuda quem le.
         if isinstance(e, ValueError):
             baixo = texto.lower()
-            if "empty" in baixo:
+            # 'empty separator' vem de 'split("")', e a colecao ali
+            # nao tem nada de vazia. Sem esta linha ele caia no ramo
+            # abaixo e a mensagem mandava conferir 'len(xs)' de uma
+            # string de tres letras — pior que o erro do Python cru,
+            # porque nomeia a coisa errada.
+            if "separator" in baixo:
+                classe = ValueError_
+                texto = "The separator is empty."
+                nota = "split needs something to split ON"
+                dica = ('to get one item per character, use a comprehension:'
+                        '  [c cycle c in texto]')
+            elif "empty" in baixo:
                 classe = EmptyCollectionError
                 texto = "This collection is empty."
                 nota = "min, max, first, last and mean need at least one item"
@@ -5154,6 +5189,14 @@ class Interpreter:
                 dica = "use int_ou(x, padrao) when the input may not be a number"
             elif "not in list" in baixo or "not in" in baixo:
                 classe = ValueNotFoundError
+                # A mensagem do CPython aqui e 'list.remove(x): x not in
+                # list' — com 'list' NU, e nao entre aspas, que e a
+                # forma que '_traduzir_tipos' sabe trocar. Ela chegava
+                # inteira a quem escreve DataForge e mandava procurar
+                # por 'list' numa documentacao que so fala de Cluster.
+                texto = "This item is not in the collection."
+                nota = ("remove, index and pop with a value need the item "
+                        "to be there")
                 dica = "check with  xs.contains(item)  before removing or indexing"
             elif "slice step" in baixo or "step argument" in baixo:
                 classe = SliceError
@@ -6085,6 +6128,9 @@ class Interpreter:
         "vault": "Vault", "dict": "Vault", "Vault": "Vault", "map": "Vault",
         "void": "Void", "Void": "Void", "none": "Void",
         "action": "Action", "Action": "Action", "function": "Action",
+        "set": "Set", "Set": "Set",
+        "frozen": "Frozen", "Frozen": "Frozen",
+        "bytes": "Bytes", "Bytes": "Bytes",
         "any": "Any", "Any": "Any",
     }
 
@@ -6118,6 +6164,23 @@ class Interpreter:
             return "Cluster"
         if isinstance(value, dict):
             return "Vault"
+        # Os quatro abaixo caiam no 'type(value).__name__' la embaixo e
+        # respondiam com a palavra do PYTHON — 'set', 'tuple', 'bytes'.
+        # Nenhuma delas existe nesta linguagem, e quem le nao tem onde
+        # procurar. Nao era so o 'typeof': '_check_type' usa esta
+        # funcao para dizer o que CHEGOU, entao um erro de tipo tambem
+        # dizia 'got tuple'.
+        #
+        # 'freeze' e EMBUTIDA — nao precisa nem de 'adopt' para chegar
+        # la: 'typeof(freeze([1, 2]))' respondia 'tuple'.
+        if isinstance(value, (set, frozenset)):
+            return "Set"
+        if isinstance(value, tuple):
+            # O que 'freeze' devolve. A linguagem nao tem tupla; tem um
+            # Cluster congelado, e e assim que ele se chama.
+            return "Frozen"
+        if isinstance(value, (bytes, bytearray)):
+            return "Bytes"
         if value is None:
             return "Void"
         if isinstance(value, DFInstance):

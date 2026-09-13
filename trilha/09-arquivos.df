@@ -1,0 +1,132 @@
+// ═══════════════════════════════════════════════════════════
+//  9. Arquivos e diretorios
+// ═══════════════════════════════════════════════════════════
+
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+adopt Arcane.Serialization as Serde
+
+// ── 9.0 Uma pasta PROPRIA para trabalhar ──
+//
+// 'OS.temp_dir()' e o temporario DO SISTEMA. Escrever direto nele
+// deixa lixo, e 'IO.remove_tree(OS.temp_dir())' destroi o
+// temporario de todo processo da maquina. Sempre uma subpasta com
+// nome unico.
+base := $"{OS.temp_dir()}/df-trilha-09-{randint(100000, 999999)}"
+IO.mkdir(base)
+defer:
+    IO.remove_tree(base)
+
+arquivo := IO.join(base, "dados.txt")
+
+// ── 9.1 e 9.2 Escrever ──
+//
+// Nao ha 'with open(...)': a leitura e a escrita sao de uma vez, e o
+// arquivo nunca fica aberto esperando alguem lembrar de fechar.
+// UTF-8 e o padrao, e nao um parametro que se esquece.
+IO.write(arquivo, "Ola, DataForge!")
+assert IO.exists(arquivo)
+assert IO.read(arquivo) is "Ola, DataForge!"
+
+// Acrescentar ao final:
+IO.append(arquivo, "\nsegunda linha")
+assert "segunda linha" in IO.read(arquivo)
+
+// ── 9.3 Ler linha a linha ──
+linhas := IO.read(arquivo).lines()
+assert len(linhas) is 2
+assert linhas[0] is "Ola, DataForge!"
+
+// Para arquivo GRANDE, ler tudo na memoria e o erro classico. O
+// fluxo preguicoso entrega uma linha por vez:
+IO.write(IO.join(base, "muitas.txt"), "a\nb\nc\nd")
+contadas := 0
+cycle linha in IO.open(IO.join(base, "muitas.txt")):
+    contadas += 1
+assert contadas is 4
+
+// ── 9.4 Caminhos ──
+//
+// 'IO.join' usa o separador do sistema — '\' no Windows, '/' nos
+// outros. Concatenar com '+' produz caminho que so funciona na sua
+// maquina.
+p := IO.join("a", "b", "c.txt")
+assert IO.basename(p) is "c.txt"
+assert IO.ext(p)      is ".txt"
+assert "b" in IO.dirname(p)
+
+// ── 9.5 Diretorios ──
+pasta := IO.join(base, "data", "bruto")
+IO.mkdir(pasta)                       // cria a arvore inteira
+assert IO.exists(pasta)
+
+IO.write(IO.join(pasta, "um.txt"), "1")
+IO.write(IO.join(pasta, "dois.txt"), "2")
+assert sorted(IO.list_dir(pasta)) is ["dois.txt", "um.txt"]
+assert IO.size(IO.join(pasta, "um.txt")) is 1
+
+// ── 9.6 JSON ──
+dados := {"nome": "Ana", "idade": 30, "tags": ["a", "b"]}
+json := IO.join(base, "usuario.json")
+IO.write_json(json, dados)
+lido := IO.read_json(json)
+assert lido["nome"] is "Ana"
+assert lido["tags"] is ["a", "b"]
+
+// Sem tocar em disco, texto <-> dado:
+texto := Serde.to_json(dados)
+assert Serde.from_json(texto)["idade"] is 30
+assert "\n" in Serde.json_pretty(dados)
+
+// Um JSON que chega de fora pode estar quebrado. 'from_json_safe'
+// nao levanta: devolve {ok, value, error}. A forma importa — ela
+// distingue "veio vazio" de "nao deu para ler", e um padrao devolvido
+// calado apagaria essa diferenca.
+r := Serde.from_json_safe("{quebrado", {})
+assert r["ok"] is no
+assert r["value"] is {}
+assert "double quotes" in r["error"]
+
+bom := Serde.from_json_safe("{\"a\": 1}", {})
+assert bom["ok"]
+assert bom["value"]["a"] is 1
+
+// ── 9.7 CSV ──
+csv := IO.join(base, "usuarios.csv")
+IO.write_csv(csv, [["id", "nome"], [1, "Ana"], [2, "Bruno"]])
+tabela := IO.read_csv(csv)
+assert tabela[0] is ["id", "nome"]
+assert tabela[2][1] is "Bruno"
+
+// Com cabecalho virando chave, que e o que quase todo CSV quer:
+registros := Serde.csv_to_records(IO.read(csv))
+assert registros[0]["nome"] is "Ana"
+assert len(registros) is 2
+
+// ── 9.8 Bytes ──
+//
+// Nao ha tipo 'bytes' na superficie: uma sequencia de bytes e um
+// Cluster de inteiros de 0 a 255, que se percorre, fatia e compara
+// como qualquer outro.
+//
+// 'encode' e 'decode' sao EMBUTIDAS e fazem a ida e a volta.
+// ('Serde.to_bytes' / 'from_bytes' sao outra coisa: serializam um
+// VALOR inteiro, e nao convertem texto.)
+assert encode("Hi") is [72, 105]
+assert decode([72, 105]) is "Hi"
+assert encode("é") is [195, 169]          // UTF-8: dois bytes
+assert ord("A") is 65
+assert char(65) is "A"
+
+bin := IO.join(base, "bytes.dat")
+IO.write(bin, decode([72, 105]))
+assert IO.read(bin) is "Hi"
+
+// ── 9.9 Apagar ──
+IO.delete(arquivo)
+assert not IO.exists(arquivo)
+
+// O 'defer' la em cima apaga 'base' na saida — inclusive se uma
+// linha daqui levantar. E o que substitui o 'finally' para recurso.
+
+out "9. Arquivos e diretorios — ok"

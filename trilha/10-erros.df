@@ -1,0 +1,182 @@
+// ═══════════════════════════════════════════════════════════
+//  10. Excecoes e tratamento de erros
+// ═══════════════════════════════════════════════════════════
+//
+//   monitor  → try          handle  → except
+//   ensure   → finally      trigger → raise
+//
+// Nao ha 'else' do try: o que so roda quando nada falhou fica no
+// fim do 'monitor'.
+
+// ── 10.1 monitor / handle ──
+resultado := ""
+monitor:
+    _ := int("nao e numero")
+handle Error as e:
+    resultado := "invalido"
+assert resultado is "invalido"
+
+// O erro carrega tipo, mensagem e a pilha:
+monitor:
+    _ := int("xyz")
+handle Error as e:
+    assert e.type isnt ""
+    assert e.message isnt ""
+
+// ── 10.2 ensure ──
+//
+// Ele roda SEMPRE: saindo bem, saindo com erro, e saindo por 'yield'.
+ordem := []
+action dividir(a: Integer, b: Integer):
+    monitor:
+        ordem.append("tentou")
+        yield a / b
+    handle Error as e:
+        ordem.append("pegou")
+        yield void
+    ensure:
+        ordem.append("fechou")
+
+assert dividir(10, 2) is 5.0
+assert ordem is ["tentou", "fechou"]
+
+ordem := []
+assert dividir(1, 0) is void
+assert ordem is ["tentou", "pegou", "fechou"]
+
+// ARMADILHA: 'monitor' SEM 'handle' nao engole o erro. Ele so
+// garante o 'ensure' — e isso e util de proposito.
+limpou := no
+vazou := no
+monitor:
+    monitor:
+        trigger "falhou"
+    ensure:
+        limpou := yes
+handle Error as e:
+    vazou := yes
+assert limpou
+assert vazou
+
+// ── 10.3 trigger, e os tipos de erro ──
+//
+// ARMADILHA: 'trigger' levanta TriggerError, e nao RuntimeError.
+// 'handle RuntimeError' NAO o pega. Para pegar qualquer coisa,
+// 'handle Error'.
+pegou_runtime := no
+pegou_qualquer := no
+monitor:
+    monitor:
+        trigger "saldo insuficiente"
+    handle RuntimeError as e:
+        pegou_runtime := yes
+handle Error as e:
+    pegou_qualquer := yes
+assert not pegou_runtime
+assert pegou_qualquer
+
+// Pegar pelo tipo certo:
+tipo := ""
+monitor:
+    trigger "saldo insuficiente"
+handle TriggerError as e:
+    tipo := e.type
+assert tipo is "TriggerError"
+
+// ── 10.4 Erro de dominio: um record com o motivo ──
+//
+// Nao ha hierarquia de excecao do usuario. O que substitui e melhor
+// para quem trata: um record com os CAMPOS do problema, levantado
+// com 'trigger'. Uma classe vazia so carrega o nome; o record leva o
+// saldo, o valor pedido e a diferenca.
+record SaldoInsuficiente:
+    saldo: Float
+    pedido: Float
+    action falta() -> Float:
+        yield self.pedido - self.saldo
+
+action sacar(saldo: Float, valor: Float) -> Float:
+    given valor bigger saldo:
+        trigger SaldoInsuficiente(saldo, valor)
+    yield saldo - valor
+
+assert sacar(100.0, 30.0) is 70.0
+
+faltou := 0.0
+monitor:
+    sacar(100.0, 250.0)
+handle Error as e:
+    // O valor levantado volta em 'e.value'.
+    faltou := e.value.falta()
+assert faltou is 150.0
+
+// Distinguir um problema do outro: 'match' sobre o valor.
+action classificar_falha(f) -> String:
+    match f:
+        point SaldoInsuficiente(saldo, pedido):
+            yield $"faltam {pedido - saldo}"
+        point String as texto:
+            yield $"erro: {texto}"
+        default:
+            yield "desconhecido"
+
+assert classificar_falha(SaldoInsuficiente(10.0, 30.0)) is "faltam 20.0"
+assert classificar_falha("qualquer") is "erro: qualquer"
+
+// ── 10.5 Encadear: preservar a causa ──
+//
+// Nao ha 'raise ... from ...'. O equivalente e levar a causa DENTRO
+// do que se levanta — e isso e mais util, porque a causa vira dado
+// que se consulta, e nao so texto na pilha.
+record FalhaAoConverter:
+    entrada: String
+    causa: String
+
+action converter(texto: String) -> Integer:
+    monitor:
+        yield int(texto)
+    handle Error as e:
+        trigger FalhaAoConverter(texto, e.message)
+
+assert converter("42") is 42
+
+causa := ""
+entrada := ""
+monitor:
+    converter("abc")
+handle Error as e:
+    entrada := e.value.entrada
+    causa := e.value.causa
+assert entrada is "abc"
+assert causa isnt ""
+
+// ── 10.6 defer: o 'finally' do recurso ──
+//
+// Ele roda na saida do QUADRO, e nao do bloco. Serve para o que
+// precisa ser desfeito independentemente de como a acao termina.
+fechados := []
+action usar_recurso(falhar: Boolean):
+    fechados.append("abriu")
+    defer:
+        fechados.append("fechou")
+    given falhar:
+        trigger "deu ruim"
+    yield "ok"
+
+assert usar_recurso(no) is "ok"
+assert fechados is ["abriu", "fechou"]
+
+fechados := []
+monitor:
+    usar_recurso(yes)
+handle Error as e:
+    _ := e
+assert fechados is ["abriu", "fechou"]
+
+// ── 10.7 Nao engula o erro ──
+//
+// 'handle' que so devolve 'void' apaga a informacao e move o
+// problema para tres camadas adiante. Se nao da para tratar,
+// deixe subir — ou levante algo que DIGA o que aconteceu.
+
+out "10. Excecoes e tratamento de erros — ok"

@@ -1033,3 +1033,115 @@ def test_a_mensagem_mostra_a_correcao():
               if d.code == "windows-path"]
     assert len(avisos) == 1
     assert "C:/temp/notas" in avisos[0].hint, "a dica precisa trazer a forma certa"
+
+# ═══════════════════════════════════════════════════════════
+#  'trigger' preserva o valor levantado
+# ═══════════════════════════════════════════════════════════
+
+def test_trigger_de_record_chega_ao_handle_como_dado():
+    """`trigger SaldoInsuficiente(100, 250)` perdia o record.
+
+    `exec_TriggerStatement` fazia `TriggerError(self._to_str(value))`:
+    o valor era **renderizado** e descartado, e o `handle` recebia o
+    texto `"SaldoInsuficiente(saldo: 100, pedido: 250)"`.
+
+    Quem trata precisava extrair por regex o que o programa já tinha
+    como dado — ou desistir e devolver um vault em vez de levantar. É
+    a forma padrão de modelar falha de domínio nas arquiteturas que a
+    linguagem documenta (DDD, camadas, SOLID), e ela não era possível.
+
+    A mensagem continua a mesma; o que muda é que `e.valor` (ou
+    `e.value`) devolve o que foi levantado.
+    """
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    programa = """
+record SaldoInsuficiente:
+    saldo: Float
+    pedido: Float
+    action falta() -> Float:
+        yield self.pedido - self.saldo
+
+action sacar(saldo: Float, valor: Float) -> Float:
+    given valor bigger saldo:
+        trigger SaldoInsuficiente(saldo, valor)
+    yield saldo - valor
+
+faltou := 0.0
+tipo := ""
+saldo := 0.0
+monitor:
+    sacar(100.0, 250.0)
+handle Error as e:
+    faltou := e.valor.falta()
+    tipo := typeof(e.valor)
+    // 'value', em ingles, e o mesmo campo — como '.pilha' / '.stack'.
+    saldo := e.value.saldo
+out faltou
+out tipo
+out saldo
+"""
+    import io as _io
+    import contextlib
+
+    saida = _io.StringIO()
+    with contextlib.redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(programa), "<t>"))
+    linhas = saida.getvalue().split()
+    assert linhas[0] == "150.0", saida.getvalue()
+    assert linhas[1] == "SaldoInsuficiente", saida.getvalue()
+    assert linhas[2] == "100.0", saida.getvalue()
+
+
+def test_trigger_de_texto_continua_com_a_mensagem_de_sempre():
+    """O valor novo não pode mudar o que já existe.
+
+    Quase todo `trigger` do repositório levanta um **texto**, e
+    `e.message` tem de continuar sendo esse texto — `e.valor` passa a
+    ser o mesmo, e não uma representação diferente.
+    """
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    import io as _io
+    import contextlib
+
+    saida = _io.StringIO()
+    with contextlib.redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(
+            'monitor:\n'
+            '    trigger "saldo insuficiente"\n'
+            'handle Error as e:\n'
+            '    out e.message\n'
+            '    out e.valor\n'
+            '    out e.type\n'), "<t>"))
+    linhas = saida.getvalue().splitlines()
+    assert linhas[0] == "saldo insuficiente"
+    assert linhas[1] == "saldo insuficiente"
+    assert linhas[2] == "TriggerError"
+
+
+def test_um_erro_que_nao_veio_de_trigger_tem_valor_void():
+    """`1 / 0` não foi levantado por ninguém com um valor.
+
+    Devolver a mensagem ali faria `e.valor` significar duas coisas
+    diferentes conforme a origem do erro, e quem escreve
+    `match e.valor:` não teria como saber qual delas recebeu.
+    """
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    import io as _io
+    import contextlib
+
+    saida = _io.StringIO()
+    with contextlib.redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(
+            'monitor:\n'
+            '    _ := 1 / 0\n'
+            'handle Error as e:\n'
+            '    out e.valor is void\n'), "<t>"))
+    assert saida.getvalue().strip() == "yes"
+

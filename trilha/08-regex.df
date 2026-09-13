@@ -1,0 +1,110 @@
+// ═══════════════════════════════════════════════════════════
+//  8. Expressoes regulares
+// ═══════════════════════════════════════════════════════════
+//
+// Sao EMBUTIDAS: nao ha 'import re'. Oito funcoes globais, todas
+// comecando por 'regex_'.
+
+// ── 8.0 Achar tudo ──
+pedidos := regex_findall("\\d+", "Pedido 123 e pedido 456")
+assert pedidos is ["123", "456"]
+
+// ── 8.1 Os simbolos ──
+//
+//   .      qualquer caractere        {n}    quantidade exata
+//   ^      inicio                    []     conjunto
+//   $      fim                       ()     grupo
+//   *      zero ou mais              \d     digito
+//   +      um ou mais                \w     caractere de palavra
+//   ?      zero ou um                \s     espaco
+//
+// CUIDADO com a barra: numa string comum ela e escape, entao o
+// padrao leva barra DUPLA — "\\d", e nao "\d".
+assert regex_test("^a.c$", "abc")
+assert regex_test("a{3}", "aaa")
+assert regex_test("[0-9]+", "42")
+assert not regex_test("^\\d+$", "12a")
+
+// ── 8.2 Validar e-mail ──
+action email_valido(email: String) -> Boolean:
+    yield regex_test("^[\\w.-]+@[\\w.-]+\\.\\w+$", email)
+
+assert email_valido("usuario@example.com")
+assert not email_valido("usuario@")
+assert not email_valido("sem-arroba.com")
+
+// ── 8.3 Substituir ──
+mascarado := regex_sub("\\d", "*", "Meu CPF e 123.456.789-00")
+assert mascarado is "Meu CPF e ***.***.***-**"
+
+// Mascarar so o miolo, preservando o comeco e o fim:
+// (Nao ha continuacao de linha com barra: uma instrucao termina no
+// fim da linha. Guarde num nome quando ficar comprida.)
+miolo := regex_sub("(\\d{3})\\.(\\d{3})", "\\1.***", "123.456.789-00")
+assert miolo is "123.***.789-00"
+
+// ── 8.4 Grupos ──
+//
+// 'regex_search' e 'regex_match' devolvem SEMPRE um vault, e nunca
+// 'void'. Quem responde se casou e a chave 'matched' — conferir por
+// 'isnt void' daria verdadeiro tambem quando nao casou.
+//
+//   {matched, groups, span, value}
+achado := regex_search("(\\d{2}) (\\d{4,5}-\\d{4})", "11 99999-1234")
+assert achado["matched"]
+assert achado["groups"][0] is "11"
+assert achado["groups"][1] is "99999-1234"
+assert achado["value"]  is "11 99999-1234"
+assert achado["span"]   is [0, 13]
+
+// 'regex_extract' entrega so os grupos, que e o caso comum:
+partes := regex_extract("(\\d{2})/(\\d{2})/(\\d{4})", "25/12/2026")
+assert partes is ["25", "12", "2026"]
+
+// ── 8.5 Contar e repartir ──
+assert regex_count("\\d", "a1b2c3") is 3
+assert regex_split("[,;]\\s*", "a, b; c") is ["a", "b", "c"]
+
+// ── 8.6 'match' casa do COMECO; 'search' em qualquer lugar ──
+assert regex_match("\\d+", "123abc")["matched"]
+assert not regex_match("\\d+", "abc123")["matched"]
+assert regex_search("\\d+", "abc123")["matched"]
+// 'regex_test' e o atalho quando so interessa o sim ou nao:
+assert regex_test("\\d+", "abc123")
+
+// ── 8.7 Onde NAO usar ──
+//
+// Regex e otima para forma textual, e pessima para regra de negocio.
+// Validar o DIGITO de um CPF nao e trabalho dela: a conta e
+// aritmetica, e escrever isso num padrao produz algo ilegivel e
+// errado.
+action cpf_bem_formado(cpf: String) -> Boolean:
+    yield regex_test("^\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}$", cpf)
+
+action cpf_valido(cpf: String) -> Boolean:
+    // A forma e regex; a regra e codigo.
+    given not cpf_bem_formado(cpf):
+        yield no
+    digitos := [int(c) cycle c in cpf given c.isdigit()]
+    given len(unique(digitos)) is 1:
+        // Um CPF de digitos iguais passa na regex e nao vale nada.
+        //
+        // (Repare que este comentario nao comeca com o numero: '//'
+        // seguido de digito e DIVISAO, e a linha viraria expressao.
+        // A armadilha do capitulo 1, mordendo aqui.)
+        yield no
+    cycle posicao in [9, 10]:
+        soma := 0
+        cycle i from 0 to posicao - 1:
+            soma += digitos[i] * (posicao + 1 - i)
+        resto := (soma * 10) % 11
+        esperado := 0 given resto is 10 otherwise resto
+        given digitos[posicao] isnt esperado:
+            yield no
+    yield yes
+
+assert cpf_bem_formado("111.111.111-11")
+assert not cpf_valido("111.111.111-11")     // a regex nao pegaria isto
+assert cpf_valido("529.982.247-25")
+
+out "8. Expressoes regulares — ok"

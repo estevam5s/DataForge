@@ -128,13 +128,24 @@ out typeof(f), f * 4''') == "Float 3"
 
 
 def test_tupla_nao_finge_ser_cluster():
-    """Ela indexa e percorre, mas não tem `append`. Dizer `Cluster` mentiria."""
+    """Ela indexa e percorre, mas não tem `append`. Dizer `Cluster` mentiria.
+
+    O nome era `tuple` — a palavra do **Python**, que esta linguagem
+    não tem em lugar nenhum. Quem lesse isso não teria onde procurar.
+    Hoje é `Frozen`, que é o que `freeze([1, 2])` também devolve: um
+    Cluster congelado, e a descrição cabe nas duas origens.
+    """
     precisa("numpy")
     assert rodar('''adopt Python.numpy as np
 adopt Arcane.Ponte as Ponte
 forma := np.zeros([2, 3]).shape
 out typeof(forma), typeof(Ponte.cluster(forma)), Ponte.cluster(forma)''') \
-        == "tuple Cluster [2, 3]"
+        == "Frozen Cluster [2, 3]"
+
+    # E o que a linguagem produz sozinha responde o mesmo nome: os
+    # dois caminhos chegam ao mesmo tipo, e um nome por caminho seria
+    # duas palavras para a mesma coisa.
+    assert rodar('out typeof(freeze([1, 2]))') == "Frozen"
 
 
 def test_o_objeto_do_python_funciona_por_protocolo():

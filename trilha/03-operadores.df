@@ -1,0 +1,105 @@
+// ═══════════════════════════════════════════════════════════
+//  3. Operadores e expressoes
+// ═══════════════════════════════════════════════════════════
+
+// ── 3.1 Aritmeticos ──
+assert 7 + 2   is 9
+assert 7 - 2   is 5
+assert 7 * 2   is 14
+assert 7 / 2   is 3.5
+assert 7 ~/ 2  is 3        // divisao INTEIRA — '~/', e nao '//'
+assert 7 % 2   is 1
+assert 7 ** 2  is 49
+
+// Por que '~/': '//' e comentario nesta linguagem. Ele so vira
+// divisao quando o que vem logo depois e digito, '(' ou uma
+// chamada — e depender dessa regra torna o codigo fragil:
+//
+//     x // 2         divisao
+//     x // nota      COMENTARIO, e a linha some
+//
+// Use '~/' sempre, e '//' so para comentar.
+
+// ── 3.2 Comparacao ──
+//
+// As palavras sao os operadores. '>' e '<' NAO existem como
+// comparacao: 'bigger' e 'smaller' evitam a confusao com os sinais
+// de generico e de tipo de retorno.
+assert 3 is 3
+assert 3 isnt 4
+assert 4 bigger 3
+assert 3 smaller 4
+assert 4 bigger_eq 4
+assert 3 smaller_eq 3
+
+// ── 3.3 Logicos ──
+assert (yes and yes)
+assert (yes or no)
+assert not no
+
+// Curto-circuito: o lado direito nao e avaliado se o esquerdo decide.
+efeitos := 0
+action conta() -> Boolean:
+    efeitos += 1
+    yield yes
+
+_ := no and conta()
+assert efeitos is 0
+_ := yes or conta()
+assert efeitos is 0
+_ := yes and conta()
+assert efeitos is 1
+
+// ── 3.4 Identidade × igualdade ──
+//
+// 'is' compara VALOR (como o '==' do Python). Para perguntar se dois
+// nomes apontam para o MESMO objeto, use 'id'.
+a := [1, 2]
+b := [1, 2]
+c := a
+assert a is b                   // mesmo conteudo
+assert id(a) isnt id(b)       // objetos diferentes
+assert id(a) is id(c)           // o mesmo objeto
+
+// ── 3.5 Associacao ──
+assert 2 in [1, 2, 3]
+assert 9 not in [1, 2, 3]
+assert "no" in "nome"
+assert "x" in {"x": 1}          // num vault, procura a CHAVE
+
+// ── 3.6 Ternario ──
+//
+// A condicao vai no MEIO: 'valor given condicao otherwise outro'.
+idade := 20
+status := "adulto" given idade bigger_eq 18 otherwise "menor"
+assert status is "adulto"
+
+// ── 3.7 Coalescencia e acesso seguro ──
+//
+// Nao ha 'walrus'. O que resolve os mesmos casos:
+//
+//   ??   usa o da direita quando o da esquerda e 'void'
+//   ?.   para de avaliar quando o alvo e 'void', em vez de levantar
+config := {"porta": 8080}
+porta := config["porta"] ?? 3000
+assert porta is 8080
+tempo := config["timeout"] ?? 30
+assert tempo is 30
+
+sem_nada := void
+assert sem_nada?.qualquer_coisa is void
+
+// O caso do walrus — calcular uma vez e usar — e uma linha antes:
+total := len([1, 2, 3])
+given total bigger 0:
+    assert total is 3
+
+// ── 3.8 Precedencia: o pipeline dentro de lambda ──
+//
+// O corpo do lambda liga MAIS FORTE que '>>'. Sem parenteses,
+// 'lambda => xs >> morph …' canaliza o LAMBDA, e nao 'xs'.
+xs := [1, 2, 3]
+f := lambda => (xs >> morph x: x * 2)
+assert f() is [2, 4, 6]
+
+out "3. Operadores e expressoes — ok"

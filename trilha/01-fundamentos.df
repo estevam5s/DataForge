@@ -1,0 +1,95 @@
+// ═══════════════════════════════════════════════════════════
+//  1. Fundamentos
+// ═══════════════════════════════════════════════════════════
+//
+// O primeiro programa, comentario, variavel, constante, entrada,
+// saida e indentacao.
+
+// ── 1.1 O primeiro programa ──
+out "Ola, mundo!"
+
+// ── 1.2 Comentarios ──
+// Uma barra dupla comenta ate o fim da linha.
+//
+// CUIDADO: '//' e comentario POR PADRAO. Ele so vira divisao
+// inteira quando o que vem depois e digito, '(' ou uma chamada.
+// Para dividir sem ambiguidade, use '~/'.
+out 7 ~/ 2                       // 3, e nao 3.5
+
+"""
+Texto entre aspas triplas e uma string de verdade, e nao um
+comentario. Solta numa linha ela e avaliada e descartada — serve
+como bloco de documentacao, mas o custo existe.
+"""
+
+// ── 1.3 Variaveis ──
+//
+// A tipagem e dinamica: o nome aponta para um valor, e pode passar
+// a apontar para outro de outro tipo.
+nome := "Maria"
+idade := 25
+altura := 1.68
+ativo := yes
+
+x := 10
+x := "DataForge"
+assert typeof(x) is "String"
+
+// ── 1.4 Constantes: 'steady', e ela e OBRIGATORIA ──
+//
+// Aqui a constante nao e convencao. 'steady' e verificado: reatribuir
+// e erro, e o analisador acusa antes de rodar.
+steady MAX_TENTATIVAS := 3
+steady API_URL := "https://api.exemplo.com"
+
+erro_de_constante := no
+monitor:
+    // Um 'steady' reatribuido levanta. O nome MAIUSCULO e so estilo;
+    // quem protege e a palavra.
+    MAX_TENTATIVAS := 4
+handle Error as e:
+    erro_de_constante := yes
+assert erro_de_constante
+
+// ── 1.5 Entrada e saida ──
+//
+// 'ask' le do teclado; 'out' escreve. Aqui nao chamamos 'ask' porque
+// a trilha roda sem ninguem digitando — a forma e esta:
+//
+//     nome := ask("Nome: ")
+//     idade := int(ask("Idade: "))
+//     preco := float(ask("Preco: "))
+//
+// A interpolacao usa o prefixo '$':
+out $"Ola, {nome}! Voce tem {idade} anos."
+assert $"{2 + 3}" is "5"
+
+// Converter o que chega como texto:
+assert int("10") is 10
+assert float("10.5") is 10.5
+
+// ── 1.6 Indentacao ──
+//
+// A indentacao delimita blocos, com QUATRO espacos por nivel. Tab e
+// erro de sintaxe — nao um aviso de estilo.
+// ARMADILHA: cada bloco tem escopo proprio, e ':=' num nome NOVO
+// cria ali dentro. Depois do bloco, esse nome nao existe mais.
+//
+//     given idade bigger_eq 18:
+//         situacao := "maior"      // nasce e morre aqui
+//     out situacao                 // erro: 'situacao' is not defined
+//
+// Num nome que JA existe, ':=' atualiza onde ele foi encontrado. As
+// duas saidas, entao: declarar antes do bloco...
+situacao := ""
+given idade bigger_eq 18:
+    situacao := "maior de idade"
+otherwise:
+    situacao := "menor de idade"
+assert situacao is "maior de idade"
+
+// ...ou o ternario, que e uma EXPRESSAO e nao abre bloco nenhum.
+outra := "maior de idade" given idade bigger_eq 18 otherwise "menor de idade"
+assert outra is situacao
+
+out "1. Fundamentos — ok"

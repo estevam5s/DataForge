@@ -1,0 +1,88 @@
+// ═══════════════════════════════════════════════════════════
+//  7. Strings
+// ═══════════════════════════════════════════════════════════
+
+// ── 7.1 Interpolacao ──
+//
+// O prefixo e '$'. Dentro das chaves vai qualquer expressao.
+nome := "Ana"
+idade := 30
+texto := $"{nome} possui {idade} anos."
+assert texto is "Ana possui 30 anos."
+assert $"{idade * 2}" is "60"
+
+// ARMADILHA: dentro de '{…}', use ASPAS NORMAIS. O lexer copia a
+// string aninhada verbatim, e escapar quebra a leitura:
+//
+//     $"item {v["id"]}"      funciona
+//     $"item {v[\"id\"]}"    "Unterminated interpolation"
+v := {"id": 7}
+assert $"item {v["id"]}" is "item 7"
+
+// ── 7.2 Metodos ──
+s := "  DataForge  "
+assert s.strip()                 is "DataForge"
+assert "abc".upper()             is "ABC"
+assert "ABC".lower()             is "abc"
+assert "a,b,c".split(",")        is ["a", "b", "c"]
+assert "banana".replace("a", "o") is "bonono"
+assert "DataForge".startswith("Data")
+assert "DataForge".endswith("Forge")
+assert "DataForge".includes("taFo")
+assert "-".join(["a", "b"])      is "a-b"
+assert "abc".index_of("b")       is 1
+// Como METODO o nome nao leva o sufixo: '.reverse()'. A funcao
+// global se chama 'reverse_str' para nao colidir com o 'reverse' de
+// cluster, mas no metodo o objeto ja diz de qual se trata.
+assert "abc".reverse()           is "cba"
+assert reverse_str("abc")        is "cba"
+assert "ana".repeat(2)           is "anaana"
+assert "7".pad_start(3, "0")     is "007"
+assert "olá mundo".title()       is "Olá Mundo"
+assert "a b  c".words()          is ["a", "b", "c"]
+
+// String e IMUTAVEL: todo metodo devolve outra.
+original := "abc"
+_ := original.upper()
+assert original is "abc"
+
+// ── 7.3 Fatiar ──
+t := "DataForge"
+assert t[0:4]   is "Data"
+assert t[:4]    is "Data"
+assert t[4:]    is "Forge"
+assert t[::-1]  is "egroFataD"
+assert t[-1]    is "e"
+assert len(t)   is 9
+
+// ── 7.4 Unicode ──
+//
+// O texto e Unicode do comeco ao fim: o codigo-fonte, os nomes e o
+// conteudo. 'len' conta CARACTERES, e nao bytes.
+mensagem := "Olá, programação! 🔥"
+assert "programação" in mensagem
+assert len("café") is 4
+assert "ÁÉÍ".lower() is "áéí"
+
+// Um nome de variavel tambem pode ter acento:
+saudação := "olá"
+assert saudação is "olá"
+
+// ── 7.5 Texto de varias linhas ──
+//
+// Aspas simples NAO cruzam linha. Para SQL, carta ou template, use
+// aspas triplas.
+consulta := """
+SELECT id, nome
+FROM clientes
+WHERE ativo = 1
+"""
+assert "SELECT" in consulta
+assert len(consulta.lines()) bigger 3
+
+// ── 7.6 Formatar numero ──
+assert str(3.14159).startswith("3.14")
+assert "{}".format("x") is "x"
+assert $"{1000000}" is "1000000"
+
+out "7. Strings — ok"

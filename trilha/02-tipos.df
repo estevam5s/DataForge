@@ -1,0 +1,93 @@
+// ═══════════════════════════════════════════════════════════
+//  2. Tipos de dados
+// ═══════════════════════════════════════════════════════════
+
+// ── 2.1 Os tipos ──
+//
+// Os nomes sao outros, e a diferenca nao e cosmetica: 'Cluster' e
+// 'Vault' dizem o que a estrutura FAZ, e nao como ela e escrita.
+//
+//   String   Integer   Float   Boolean   Void
+//   Cluster  Vault     Set     Frame     Stream
+//
+// Nao ha 'complex' nem 'frozenset' embutidos. Para numero exato em
+// dinheiro, 'Arcane.Decimal' — ver o capitulo 3.
+
+assert typeof("texto")     is "String"
+assert typeof(10)          is "Integer"
+assert typeof(1.5)         is "Float"
+assert typeof(yes)         is "Boolean"
+assert typeof(void)        is "Void"
+assert typeof([1, 2])      is "Cluster"
+assert typeof({"a": 1})    is "Vault"
+
+// ── 2.2 Conferir o tipo ──
+//
+// 'typeof' devolve o NOME; 'e_um' pergunta.
+valor := 10
+assert typeof(valor) is "Integer"
+assert e_um(valor, "Integer")
+assert not e_um(valor, "String")
+
+// ── 2.3 Conversoes ──
+assert int("10")      is 10
+assert float("10.5")  is 10.5
+assert str(100)       is "100"
+assert bool(1)        is yes
+assert bool(0)        is no
+// 'cluster' EMBRULHA, e nao reparte: cluster("abc") e ["abc"].
+assert cluster("abc") is ["abc"]
+// Um item por caractere sai de uma compreensao. E 'split("")' nao
+// serve — nao ha o que repartir num separador vazio, e a linguagem
+// diz isso em vez de devolver lista vazia.
+assert [c cycle c in "abc"] is ["a", "b", "c"]
+
+// 'int' de algo que nao e numero levanta, e nao devolve zero calado.
+converteu := yes
+monitor:
+    int("nao sou numero")
+handle Error as e:
+    converteu := no
+assert not converteu
+
+// ── 2.4 Mutabilidade ──
+//
+// Imutaveis: Integer, Float, Boolean, String, e todo 'record'.
+// Mutaveis: Cluster, Vault, Set, e toda instancia de 'blueprint'.
+
+original := [1, 2, 3]
+apelido := original            // o MESMO cluster, e nao uma copia
+apelido.append(4)
+assert len(original) is 4      // mudou nos dois
+
+copia := [...original]         // spread copia
+copia.append(5)
+assert len(original) is 4
+assert len(copia) is 5
+
+// String e imutavel: todo metodo devolve uma nova.
+s := "abc"
+assert s.upper() is "ABC"
+assert s is "abc"
+
+// 'record' e o imutavel com nome. Tentar escrever levanta.
+record Ponto:
+    x: Integer
+    y: Integer
+
+p := Ponto(1, 2)
+imutavel := no
+monitor:
+    p.x := 99
+handle Error as e:
+    imutavel := yes
+assert imutavel
+
+// Para "mudar", crie outro com 'with':
+p2 := p with {"x": 99}
+assert p2.x is 99
+assert p.x is 1
+// E a igualdade e ESTRUTURAL: dois records de mesmo conteudo sao iguais.
+assert Ponto(1, 2) is p
+
+out "2. Tipos de dados — ok"

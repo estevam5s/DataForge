@@ -4687,3 +4687,108 @@ def test_todo_runner_dos_workflows_e_uma_imagem_que_existe():
         f"runner que o GitHub não mantém mais: {mortos} — o job vai "
         f"ficar em fila para sempre, sem mensagem. Confira os rótulos "
         f"vivos em github.com/actions/runner-images")
+
+def test_split_com_separador_vazio_nao_culpa_a_colecao():
+    """`"abc".split("")` dizia **"This collection is empty"**.
+
+    A coleção não está vazia — o **separador** está. A tradução de
+    erro do Python casava por `"empty" in texto`, e a mensagem do
+    CPython para esse caso é `empty separator`: caía no ramo de
+    `min`/`max`/`first`, e a dica mandava conferir
+    `len(xs) bigger 0` de uma string de três letras.
+
+    Uma mensagem que nomeia a coisa errada é pior que a do Python
+    cru: ela manda procurar onde não está.
+    """
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    interp = Interpreter()
+    try:
+        interp.run(parse(tokenize('out "abc".split("")'), "<t>"))
+    except Exception as erro:      # noqa: BLE001 — é o erro que queremos ler
+        texto = str(getattr(erro, "message", erro))
+    else:
+        raise AssertionError("split com separador vazio deveria levantar")
+
+    assert "collection is empty" not in texto.lower(), texto
+    assert "separador" in texto.lower() or "separator" in texto.lower(), texto
+
+def test_typeof_nunca_responde_com_o_nome_de_um_tipo_do_python():
+    """`typeof(freeze([1, 2]))` respondia **"tuple"**.
+
+    `freeze` é **embutida** — não precisa de `adopt` — e `tuple` é uma
+    palavra que não existe nesta linguagem. `Arcane.Collections.set`
+    dava `"set"` pelo mesmo motivo: `_type_of` não tinha ramo para
+    nenhum dos dois e caía no `type(value).__name__`.
+
+    É o defeito que o CLAUDE.md nomeia: quem lê `tuple` não tem como
+    saber onde procurar, porque a documentação da linguagem não fala
+    disso em lugar nenhum. E não ficava só no `typeof` — `_check_type`
+    usa a mesma função para dizer o que **chegou**, então um erro de
+    tipo também dizia `got tuple`.
+
+    E `Set` não era sequer declarável: `action f(xs: Set)` tratava
+    `Set` como nome de blueprint e recusava um set legítimo.
+    """
+    from dataforge.interpreter import Interpreter
+
+    interp = Interpreter()
+    respostas = {
+        nome: interp._type_of(valor) for nome, valor in [
+            ("set", {1, 2}),
+            ("frozenset", frozenset([1, 2])),
+            ("tuple", (1, 2)),
+            ("bytes", b"abc"),
+            ("bytearray", bytearray(b"abc")),
+        ]
+    }
+    for python, dataforge in respostas.items():
+        assert dataforge != python, (
+            f"typeof devolve '{dataforge}', que e o nome do tipo no "
+            f"Python — a linguagem nao tem essa palavra")
+        assert dataforge[:1].isupper(), (
+            f"'{dataforge}' nao parece um tipo desta linguagem: os "
+            f"nomes dela comecam com maiuscula")
+
+    # E o tipo precisa ser declarável, senão o analisador o trata como
+    # nome de blueprint.
+    assert "Set" in interp.TYPE_ALIASES
+    assert interp._type_of({1, 2}) == "Set"
+
+def test_nenhuma_mensagem_de_metodo_de_colecao_cita_o_tipo_do_python():
+    """`xs.remove(99)` dizia `remove: list.remove(x): x not in list`.
+
+    A palavra `list` aparecia **duas vezes**, e `_traduzir_tipos` não
+    a pegava: ela troca o nome **entre aspas**, que é como o CPython
+    escreve na maioria dos casos, e aqui ele o escreve nu.
+
+    Um método de coleção resolve por `_ler_membro`, que devolve o
+    método ligado do Python e o invoca — então toda mensagem desses
+    métodos chega crua a quem escreve DataForge, e manda procurar por
+    `list` numa documentação que só fala de `Cluster`.
+    """
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    proibidas = ("list", "dict", "tuple", "str", "int", "NoneType")
+
+    for programa in ['xs := [1, 2, 3]\nxs.remove(99)',
+                     'xs := [1, 2, 3]\nout xs.pop(99)',
+                     'xs := [1, 2, 3]\nout xs.index(99)']:
+        interp = Interpreter()
+        try:
+            interp.run(parse(tokenize(programa), "<t>"))
+        except Exception as erro:      # noqa: BLE001
+            texto = str(getattr(erro, "message", erro))
+        else:
+            raise AssertionError(f"deveria levantar:\n{programa}")
+
+        import re
+        for palavra in proibidas:
+            assert not re.search(rf"\b{palavra}\b", texto), (
+                f"a mensagem cita '{palavra}', que e o nome do tipo no "
+                f"Python:\n  {texto}\npara:\n{programa}")
+

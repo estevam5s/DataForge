@@ -1,0 +1,126 @@
+// ═══════════════════════════════════════════════════════════
+//  4. Controle de fluxo
+// ═══════════════════════════════════════════════════════════
+
+// ── 4.1 given / orif / otherwise ──
+nota := 8
+conceito := ""
+given nota bigger_eq 9:
+    conceito := "A"
+orif nota bigger_eq 7:
+    conceito := "B"
+otherwise:
+    conceito := "C"
+assert conceito is "B"
+
+// ── 4.2 cycle: as duas formas ──
+//
+// Por FAIXA. Ela e INCLUSIVA nos dois extremos — 'from 1 to 5' da
+// cinco voltas, e nao quatro. Nao ha 'range(5)' implicito aqui.
+vistos := []
+cycle numero from 0 to 4:
+    vistos.append(numero)
+assert vistos is [0, 1, 2, 3, 4]
+
+// Com passo:
+pares := []
+cycle n from 0 to 10 step 2:
+    pares.append(n)
+assert pares is [0, 2, 4, 6, 8, 10]
+
+// De tras para frente: passo negativo.
+regressiva := []
+cycle n from 3 to 1 step -1:
+    regressiva.append(n)
+assert regressiva is [3, 2, 1]
+
+// Por COLECAO.
+soma := 0
+cycle item in [10, 20, 30]:
+    soma += item
+assert soma is 60
+
+// Com indice, quando ele importa:
+rotulos := []
+cycle par in enumerate(["a", "b"]):
+    rotulos.append($"{par[0]}:{par[1]}")
+assert rotulos is ["0:a", "1:b"]
+
+// Sobre um vault, o laco entrega a CHAVE:
+chaves := []
+cycle k in {"x": 1, "y": 2}:
+    chaves.append(k)
+assert sorted(chaves) is ["x", "y"]
+
+// ── 4.3 persist: o 'while' ──
+contador := 0
+persist contador smaller 5:
+    contador += 1
+assert contador is 5
+
+// 'perform … persist' e o do-while: o corpo roda ao menos uma vez.
+voltas := 0
+perform:
+    voltas += 1
+persist no
+assert voltas is 1
+
+// ── 4.4 halt — sair do laco ──
+achado := -1
+cycle n from 0 to 9:
+    given n is 5:
+        achado := n
+        halt
+assert achado is 5
+
+// ── 4.5 skip — pular a volta ──
+impares := []
+cycle n from 0 to 9:
+    given n % 2 is 0:
+        skip
+    impares.append(n)
+assert impares is [1, 3, 5, 7, 9]
+
+// 'halt' e 'skip' ATRAVESSAM 'monitor': eles sao sinais de controle,
+// e nao erros. Um 'handle' no meio nao os engole.
+saiu := []
+cycle n from 1 to 5:
+    monitor:
+        given n is 3:
+            halt
+        saiu.append(n)
+    handle Error as e:
+        saiu.append("nunca")
+assert saiu is [1, 2]
+
+// ── 4.6 match: casamento ESTRUTURAL ──
+//
+// Ele nao compara so valores: casa forma, tipo, sequencia, vault e
+// record, com guarda opcional.
+action classificar(valor):
+    match valor:
+        point "listar":
+            yield "comando de listagem"
+        point Integer as n when n bigger 100:
+            yield "inteiro grande"
+        point Integer:
+            yield "inteiro"
+        point [a, b]:
+            yield $"par: {a} e {b}"
+        point {"tipo": t}:
+            yield $"vault do tipo {t}"
+        default:
+            yield "desconhecido"
+
+assert classificar("listar")        is "comando de listagem"
+assert classificar(500)             is "inteiro grande"
+assert classificar(7)               is "inteiro"
+assert classificar([1, 2])          is "par: 1 e 2"
+assert classificar({"tipo": "cão"}) is "vault do tipo cão"
+assert classificar(3.5)             is "desconhecido"
+
+// A ORDEM importa, do especifico ao geral. Uma captura no topo torna
+// tudo abaixo inalcancavel — e o 'dataforge check' acusa isso
+// (point-inalcancavel) antes de rodar.
+
+out "4. Controle de fluxo — ok"
