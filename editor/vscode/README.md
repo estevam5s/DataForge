@@ -6,7 +6,7 @@
 
 **Suporte completo à linguagem [DataForge](https://dataforge-lang.vercel.app)** —
 servidor de linguagem, Big-O no editor, custo de import, cobertura de
-testes, painéis Vitrine, geradores DevOps, 49 comandos e 123 snippets.
+testes, painéis Vitrine, geradores DevOps, 50 comandos e 123 snippets.
 
 [Documentação](https://dataforge-lang.vercel.app/docs) ·
 [Exercícios](https://dataforge-lang.vercel.app/docs/exercicios) ·
@@ -125,7 +125,7 @@ passo em texto.
 
 ---
 
-## Os 49 comandos
+## Os 50 comandos
 
 Abra a paleta (`Ctrl+Shift+P`) e digite **DataForge**.
 
@@ -228,6 +228,62 @@ acredita.
 
 ---
 
+## A barra de status
+
+Antes havia um botão de rodar, e mais nada — os 50 comandos viviam na
+paleta, e **a paleta só serve a quem já sabe que o comando existe**.
+
+Agora ela responde cinco perguntas que se fazem o tempo todo:
+
+| item | pergunta |
+|---|---|
+| `🔥 DataForge 1.0.0` | qual interpretador está sendo usado? |
+| `▷` | rodar este arquivo |
+| `✓ sem erros` / `⊗ 2 ⚠ 5` | este arquivo está limpo? |
+| `📈 O(n²)` | a ação onde o cursor está custa quanto? |
+| `🧪 12/12` | os testes passam? |
+
+Três decisões:
+
+**O item principal abre um menu, e não um comando.** Ele é o índice do
+que a extensão faz — o lugar onde se *descobre*, que é o que a paleta
+não é. São seis grupos: Rodar, Conferir, Testar, Entender, Projeto e
+Ajuda.
+
+**A complexidade é a da ação do cursor, e não do arquivo.** "Este
+arquivo tem um O(n²) em algum lugar" não ajuda ninguém; "a ação onde
+você está é O(n²)" muda o que se escreve na linha seguinte.
+
+**O fundo vermelho é só para erro.** Um aviso que pinta a barra de
+vermelho ensina a ignorar o vermelho.
+
+A dica do item principal mostra o **caminho do interpretador**. Ela
+resolve a dúvida mais cara da extensão: por que o editor discorda do
+terminal — quase sempre uma instalação velha no PATH.
+
+---
+
+## Os testes no painel do editor
+
+O `dataforge test` já existia e já era bom. O que faltava era ele
+aparecer **onde se olha**: o painel de testes, com o triângulo ao lado
+de cada `trial` e o erro na linha que falhou.
+
+**Um item por `trial`, e não por arquivo.** "1 de 2 falhou" sem dizer
+qual não serve para nada.
+
+**A descoberta é por leitura, e não por execução.** Um painel que
+precisa rodar a suíte para saber o que existe não serve: rodar é o que
+se quer decidir *depois* de ver a lista.
+
+**Um processo por arquivo.** O corredor do DataForge já roda o arquivo
+inteiro, e subir um processo por teste custaria mais que os testes.
+
+Um arquivo sem nenhum `trial` não vira item — um painel com trinta
+arquivos vazios esconde os que importam.
+
+---
+
 ## Configuração
 
 | opção | padrão | |
@@ -240,6 +296,13 @@ acredita.
 | `dataforge.complexidade.avisarAcimaDe` | `O(n log n)` | a partir de onde marcar |
 | `dataforge.custoDeImport` | `true` | tamanho ao lado do `adopt` |
 | `dataforge.formatarAoSalvar` | `false` | `dataforge fmt` ao salvar |
+| `dataforge.barra.principal` | `true` | o item que abre o menu com tudo |
+| `dataforge.barra.diagnosticos` | `true` | quantos erros e avisos há no arquivo |
+| `dataforge.barra.complexidade` | `true` | o custo da ação onde o cursor está |
+| `dataforge.barra.rodar` | `true` | o botão de rodar |
+| `dataforge.barra.testes` | `true` | o resultado da última execução |
+
+Uma barra cheia é uma barra que ninguém lê — desligue o que não usar.
 
 ---
 

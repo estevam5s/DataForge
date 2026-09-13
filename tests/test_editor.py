@@ -618,3 +618,69 @@ def test_o_readme_diz_o_que_a_extensao_NAO_faz():
                   encoding="utf-8").read()
     assert "não faz" in readme.lower() or "nao faz" in readme.lower(), \
         "falta a secao do que a extensao nao faz"
+
+
+def test_a_barra_de_status_declara_o_que_mostra():
+    """Antes havia um botão de rodar, e mais nada.
+
+    Os 50 comandos viviam na paleta — e a paleta só serve a quem **já
+    sabe** que o comando existe. A barra é onde se descobre.
+    """
+    import json
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    extensao = os.path.join(raiz, "editor", "vscode")
+    manifesto = json.load(open(os.path.join(extensao, "package.json"),
+                               encoding="utf-8"))
+
+    # O comando do menu existe no manifesto — senão a paleta não o
+    # mostra e o clique na barra não faz nada.
+    comandos = {c["command"] for c in manifesto["contributes"]["commands"]}
+    assert "dataforge.menu" in comandos
+
+    # Cada item pode ser desligado: uma barra cheia é uma barra que
+    # ninguém lê, e quem trabalha em tela pequena precisa escolher.
+    opcoes = manifesto["contributes"]["configuration"]["properties"]
+    for item in ("principal", "diagnosticos", "complexidade", "rodar",
+                 "testes"):
+        chave = f"dataforge.barra.{item}"
+        assert chave in opcoes, f"{chave} nao e configuravel"
+        assert opcoes[chave]["default"] is True
+
+    fonte = open(os.path.join(extensao, "src", "barra.ts"),
+                 encoding="utf-8").read()
+    # O fundo vermelho e so para ERRO: um aviso que pinta a barra de
+    # vermelho ensina a ignorar o vermelho.
+    assert "statusBarItem.errorBackground" in fonte
+    assert "erros\n      ? new vscode.ThemeColor" in fonte
+
+    # Todo comando que o menu oferece precisa existir no manifesto.
+    import re
+    oferecidos = set(re.findall(r"'(dataforge\.[\w.]+)'\]", fonte))
+    faltando = sorted(oferecidos - comandos)
+    assert not faltando, (
+        f"o menu da barra oferece comando(s) que o manifesto nao "
+        f"declara: {faltando}")
+
+
+def test_o_painel_de_testes_usa_a_mesma_regra_do_corredor():
+    """Duas definições de "o que é arquivo de teste" divergiriam, e o
+    painel mostraria uma lista diferente da que `dataforge test` roda —
+    que é pior que não ter painel."""
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonte = open(os.path.join(raiz, "editor", "vscode", "src", "testes.ts"),
+                 encoding="utf-8").read()
+
+    # A mesma regra do testrunner: '*_test.df' ou dentro de 'tests/'.
+    assert "_test.df" in fonte and "'tests'" in fonte
+
+    corredor = open(os.path.join(raiz, "dataforge", "testrunner.py"),
+                    encoding="utf-8").read()
+    assert "_test.df" in corredor, (
+        "o corredor mudou de regra — o painel precisa acompanhar")
+
+    # Um item por TRIAL, e nao por arquivo: '1 de 2 falhou' sem dizer
+    # qual nao serve para nada.
+    assert "trial\\s+\"" in fonte or "TRIAL" in fonte
+    # Um arquivo sem trial nenhum nao vira item.
+    assert "children.size === 0" in fonte

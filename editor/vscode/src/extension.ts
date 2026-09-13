@@ -29,8 +29,10 @@ import {
   rodarEMostrarTempo,
   rodarNoTerminal,
 } from './executar';
+import { abrirMenu, Barra } from './barra';
+import * as testes from './testes';
 
-let barra: vscode.StatusBarItem;
+let barra: Barra;
 
 export function activate(contexto: vscode.ExtensionContext) {
   const saida = vscode.window.createOutputChannel('DataForge');
@@ -56,13 +58,23 @@ export function activate(contexto: vscode.ExtensionContext) {
     }
   });
 
-  // ── barra de status: o botão de rodar ──
-  barra = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-  barra.command = 'dataforge.rodar';
-  barra.text = '$(play) DataForge';
-  barra.tooltip = 'Rodar este arquivo (Ctrl+F5)';
+  // ── barra de status ──
+  //
+  // Antes havia um botão de rodar, e mais nada. Os 49 comandos viviam
+  // na paleta — e a paleta só serve a quem já sabe que o comando
+  // existe. Agora ela responde cinco perguntas que se fazem o tempo
+  // todo: qual interpretador, o arquivo está limpo, a ação do cursor
+  // custa quanto, rodar, e os testes passam.
+  barra = new Barra(contexto);
   contexto.subscriptions.push(barra);
-  atualizarBarra(vscode.window.activeTextEditor);
+  barra.atualizar();
+
+  // ── os testes no painel do editor ──
+  //
+  // O `dataforge test` já era bom; o que faltava era ele aparecer onde
+  // se olha, com o triângulo ao lado de cada `trial`.
+  testes.registrar(contexto, (passaram, total) =>
+    barra.contarTestes(passaram, total));
 
   // ── comandos ──
   const comandos: [string, (...a: any[]) => any][] = [
@@ -119,6 +131,7 @@ export function activate(contexto: vscode.ExtensionContext) {
     ['dataforge.vitrineDoctor', cmd.vitrineDoctor],
     ['dataforge.devops', cmd.devops],
     ['dataforge.devopsDoctor', cmd.devopsDoctor],
+    ['dataforge.menu', abrirMenu],
     ['dataforge.documentacao', () =>
       vscode.env.openExternal(
         vscode.Uri.parse('https://dataforge-lang.vercel.app/docs'))],
@@ -151,7 +164,7 @@ export function activate(contexto: vscode.ExtensionContext) {
       verificador.agendar(e.document)),
     vscode.workspace.onDidCloseTextDocument((d) => verificador.limpar(d)),
     vscode.window.onDidChangeActiveTextEditor((e) => {
-      atualizarBarra(e);
+      barra.atualizar();
       if (e) {
         verificador.agendar(e.document, 0);
         void anotar(e);
@@ -188,11 +201,6 @@ function comEditor(acao: (d: vscode.TextDocument) => any) {
     return;
   }
   return acao(editor.document);
-}
-
-function atualizarBarra(editor: vscode.TextEditor | undefined) {
-  if (editor?.document.languageId === 'dataforge') barra.show();
-  else barra.hide();
 }
 
 async function avisarSeFaltaOExecutavel() {

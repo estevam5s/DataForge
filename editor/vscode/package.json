@@ -83,6 +83,11 @@
     ],
     "commands": [
       {
+        "command": "dataforge.menu",
+        "title": "DataForge: o que a extensão faz",
+        "icon": "$(flame)"
+      },
+      {
         "command": "dataforge.rodar",
         "title": "Rodar arquivo",
         "category": "DataForge",
@@ -549,6 +554,31 @@
           "type": "string",
           "default": "",
           "description": "Caminho de um arquivo onde o servidor grava o que acontece. Vazio = não grava."
+        },
+        "dataforge.barra.principal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra na barra de status: o item principal, que abre o menu com tudo. Uma barra cheia é uma barra que ninguém lê — desligue o que não usar."
+        },
+        "dataforge.barra.diagnosticos": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra na barra de status: quantos erros e avisos há neste arquivo. Uma barra cheia é uma barra que ninguém lê — desligue o que não usar."
+        },
+        "dataforge.barra.complexidade": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra na barra de status: o custo da ação onde o cursor está. Uma barra cheia é uma barra que ninguém lê — desligue o que não usar."
+        },
+        "dataforge.barra.rodar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra na barra de status: o botão de rodar. Uma barra cheia é uma barra que ninguém lê — desligue o que não usar."
+        },
+        "dataforge.barra.testes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Mostra na barra de status: o resultado da última execução de testes. Uma barra cheia é uma barra que ninguém lê — desligue o que não usar."
         }
       }
     },

@@ -8,7 +8,7 @@ onde quem instala vai procurar o que a coisa faz.
 
 TITULO = "A extensão do editor"
 DESCRICAO = ("Cores, erros enquanto se digita, autocompletar, depurador com "
-             "breakpoints, Big-O acima de cada ação, 49 comandos e o painel "
+             "breakpoints, Big-O acima de cada ação, 50 comandos e o painel "
              "de bancos. O que cada coisa faz, e por quê.")
 
 BLOCOS = [
@@ -86,7 +86,32 @@ action duplicados(itens):
  {"code": """adopt Arcane.Math as Math          // o módulo inteiro
 adopt Arcane.Math.{sqrt, floor}    // dois nomes""", "lang": "df"},
 
- {"h2": "Os 49 comandos"},
+ {"h2": "A barra de status"},
+ {"p": "Antes havia um botão de rodar, e mais nada. Os 50 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
+ {"table": {"head": ["Item", "Pergunta que ele responde"], "rows": [
+   ["`🔥 DataForge 1.0.0`", "qual interpretador está sendo usado?"],
+   ["`▷`", "rodar este arquivo"],
+   ["`✓ sem erros` · `⊗ 2 ⚠ 5`", "este arquivo está limpo?"],
+   ["`📈 O(n²)`", "a ação onde o cursor está custa quanto?"],
+   ["`🧪 12/12`", "os testes passam?"],
+ ]}},
+ {"p": "**O item principal abre um menu, e não um comando.** Ele é o índice do que a extensão faz — o lugar onde se *descobre*. São seis grupos: Rodar, Conferir, Testar, Entender, Projeto e Ajuda."},
+ {"p": "**A complexidade é a da ação do cursor, e não do arquivo.** \"Este arquivo tem um O(n²) em algum lugar\" não ajuda ninguém; \"a ação onde você está é O(n²)\" muda o que se escreve na linha seguinte."},
+ {"callout": {"tipo": "dica", "titulo": "O caminho do interpretador está na dica",
+              "texto": "Ela resolve a dúvida mais cara da extensão: por que o editor discorda do terminal. Quase sempre é uma instalação velha no PATH."}},
+ {"callout": {"tipo": "nota", "titulo": "Cada item pode ser desligado",
+              "texto": "Uma barra cheia é uma barra que ninguém lê, e quem trabalha em tela pequena precisa escolher. São cinco opções em `dataforge.barra.*`."}},
+
+ {"h2": "Os testes no painel do editor"},
+ {"p": "O `dataforge test` já existia e já era bom. O que faltava era ele aparecer **onde se olha**: o painel de testes, com o triângulo ao lado de cada `trial` e o erro na linha que falhou."},
+ {"list": [
+   "**Um item por `trial`, e não por arquivo.** \"1 de 2 falhou\" sem dizer qual não serve para nada.",
+   "**A descoberta é por leitura, e não por execução.** Um painel que precisa rodar a suíte para saber o que existe não serve: rodar é o que se quer decidir *depois* de ver a lista.",
+   "**Um processo por arquivo.** O corredor já roda o arquivo inteiro, e subir um processo por teste custaria mais que os testes.",
+ ]},
+ {"p": "Um arquivo sem nenhum `trial` não vira item — um painel com trinta arquivos vazios esconde os que importam."},
+
+ {"h2": "Os 50 comandos"},
  {"p": "Tudo na paleta (`Ctrl+Shift+P`) sob **DataForge**, e na árvore **Ferramentas** da barra lateral."},
  {"h3": "Rodar e medir"},
  {"table": {"head": ["Comando", "O que faz", "Atalho"], "rows": [
@@ -213,7 +238,7 @@ dataforge dap     # Debug Adapter Protocol, no stdio""", "lang": "bash"},
 #:
 #: Manter as duas escritas à mão faria uma envelhecer — foi o que já
 #: aconteceu: a antiga dizia "coloração de sintaxe" quando a extensão já
-#: tinha LSP e 49 comandos. O site é estático (`output: 'export'`), então
+#: tinha LSP e 50 comandos. O site é estático (`output: 'export'`), então
 #: não há redirect de servidor a usar; servir a mesma página nos dois
 #: endereços é o que não quebra link nenhum e não pode divergir.
 PAGINAS = [

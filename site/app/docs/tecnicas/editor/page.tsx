@@ -8,7 +8,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "A extensão do editor",
-  description: "Cores, erros enquanto se digita, autocompletar, depurador com breakpoints, Big-O acima de cada ação, 49 comandos e o painel de bancos. O que cada coisa faz, e por quê.",
+  description: "Cores, erros enquanto se digita, autocompletar, depurador com breakpoints, Big-O acima de cada ação, 50 comandos e o painel de bancos. O que cada coisa faz, e por quê.",
 };
 
 const blocos: Bloco[] = [
@@ -57,7 +57,18 @@ action duplicados(itens):
   {"p": "Ao lado de cada `adopt`, quantos nomes ele traz ao escopo. O módulo inteiro traz tudo que ele tem; a forma seletiva traz o que você nomeou."},
   { code: `adopt Arcane.Math as Math          // o módulo inteiro
 adopt Arcane.Math.{sqrt, floor}    // dois nomes`, lang: 'df' },
-  {"h2": "Os 49 comandos"},
+  {"h2": "A barra de status"},
+  {"p": "Antes havia um botão de rodar, e mais nada. Os 50 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
+  {"table": {"head": ["Item", "Pergunta que ele responde"], "rows": [["`🔥 DataForge 1.0.0`", "qual interpretador está sendo usado?"], ["`▷`", "rodar este arquivo"], ["`✓ sem erros` · `⊗ 2 ⚠ 5`", "este arquivo está limpo?"], ["`📈 O(n²)`", "a ação onde o cursor está custa quanto?"], ["`🧪 12/12`", "os testes passam?"]]}},
+  {"p": "**O item principal abre um menu, e não um comando.** Ele é o índice do que a extensão faz — o lugar onde se *descobre*. São seis grupos: Rodar, Conferir, Testar, Entender, Projeto e Ajuda."},
+  {"p": "**A complexidade é a da ação do cursor, e não do arquivo.** \"Este arquivo tem um O(n²) em algum lugar\" não ajuda ninguém; \"a ação onde você está é O(n²)\" muda o que se escreve na linha seguinte."},
+  {"callout": {"tipo": "dica", "titulo": "O caminho do interpretador está na dica", "texto": "Ela resolve a dúvida mais cara da extensão: por que o editor discorda do terminal. Quase sempre é uma instalação velha no PATH."}},
+  {"callout": {"tipo": "nota", "titulo": "Cada item pode ser desligado", "texto": "Uma barra cheia é uma barra que ninguém lê, e quem trabalha em tela pequena precisa escolher. São cinco opções em `dataforge.barra.*`."}},
+  {"h2": "Os testes no painel do editor"},
+  {"p": "O `dataforge test` já existia e já era bom. O que faltava era ele aparecer **onde se olha**: o painel de testes, com o triângulo ao lado de cada `trial` e o erro na linha que falhou."},
+  {"list": ["**Um item por `trial`, e não por arquivo.** \"1 de 2 falhou\" sem dizer qual não serve para nada.", "**A descoberta é por leitura, e não por execução.** Um painel que precisa rodar a suíte para saber o que existe não serve: rodar é o que se quer decidir *depois* de ver a lista.", "**Um processo por arquivo.** O corredor já roda o arquivo inteiro, e subir um processo por teste custaria mais que os testes."]},
+  {"p": "Um arquivo sem nenhum `trial` não vira item — um painel com trinta arquivos vazios esconde os que importam."},
+  {"h2": "Os 50 comandos"},
   {"p": "Tudo na paleta (`Ctrl+Shift+P`) sob **DataForge**, e na árvore **Ferramentas** da barra lateral."},
   {"h3": "Rodar e medir"},
   {"table": {"head": ["Comando", "O que faz", "Atalho"], "rows": [["Rodar arquivo", "no terminal", "`Ctrl+F5`"], ["Rodar e medir o tempo", "com cronômetro", "`Ctrl+Shift+F5`"], ["Rodar com `--debug`", "tokens, AST e traceback", "—"], ["Medir várias execuções", "média, mediana e p95 — uma execução só mede o ruído", "—"], ["Medir o desempenho", "a carga de referência", "—"], ["Perfilar", "tempo **próprio** por ação (o acumulado somaria mais de 100%)", "—"], ["Observar e reexecutar ao salvar", "para quem itera", "—"], ["Abrir o REPL", "com `:type`, `:ast`, `:load`", "—"], ["Avaliar expressão", "sem criar arquivo", "—"]]}},
@@ -104,13 +115,13 @@ dataforge dap     # Debug Adapter Protocol, no stdio`, lang: 'bash' },
   {"cards": [{"href": "/docs/cli", "title": "A CLI", "desc": "Os comandos que a extensão chama, com todas as opções."}, {"href": "/docs/tecnicas/lsp", "title": "O servidor de linguagem", "desc": "Como o autocompletar e o hover são servidos do typechecker."}, {"href": "/docs/big-o", "title": "Complexidade", "desc": "O que a lente estima, e o que ela não consegue provar."}, {"href": "/docs/tecnicas/analise-estatica", "title": "Análise estática", "desc": "O que o check acha antes de rodar — e o que o faz calar."}]},
 ];
 
-const headings = [{ id: 'instalar', text: "Instalar", level: 2 as const }, { id: 'erros-enquanto-voce-digita', text: "Erros enquanto você digita", level: 2 as const }, { id: 'autocompletar-hover-ir-para-definicao', text: "Autocompletar, hover, ir-para-definição", level: 2 as const }, { id: 'depurar-f5', text: "Depurar: F5", level: 2 as const }, { id: 'depurar-no-terminal', text: "Depurar no terminal", level: 3 as const }, { id: 'big-o-acima-de-cada-acao', text: "Big-O acima de cada ação", level: 2 as const }, { id: 'custo-de-cada-import', text: "Custo de cada import", level: 2 as const }, { id: 'os-49-comandos', text: "Os 49 comandos", level: 2 as const }, { id: 'rodar-e-medir', text: "Rodar e medir", level: 3 as const }, { id: 'qualidade', text: "Qualidade", level: 3 as const }, { id: 'entender', text: "Entender", level: 3 as const }, { id: 'projeto-e-pacotes', text: "Projeto e pacotes", level: 3 as const }, { id: 'vitrine-e-devops', text: "Vitrine e DevOps", level: 3 as const }, { id: 'o-painel-de-bancos-de-dados', text: "O painel de bancos de dados", level: 2 as const }, { id: 'os-snippets', text: "Os snippets", level: 3 as const }, { id: 'cores-icones-e-indentacao', text: "Cores, ícones e indentação", level: 2 as const }, { id: 'configuracao', text: "Configuração", level: 2 as const }, { id: 'tarefas-e-o-matcher-de-problemas', text: "Tarefas e o matcher de problemas", level: 2 as const }, { id: 'outros-editores', text: "Outros editores", level: 2 as const }, { id: 'onde-continuar', text: "Onde continuar", level: 2 as const }];
+const headings = [{ id: 'instalar', text: "Instalar", level: 2 as const }, { id: 'erros-enquanto-voce-digita', text: "Erros enquanto você digita", level: 2 as const }, { id: 'autocompletar-hover-ir-para-definicao', text: "Autocompletar, hover, ir-para-definição", level: 2 as const }, { id: 'depurar-f5', text: "Depurar: F5", level: 2 as const }, { id: 'depurar-no-terminal', text: "Depurar no terminal", level: 3 as const }, { id: 'big-o-acima-de-cada-acao', text: "Big-O acima de cada ação", level: 2 as const }, { id: 'custo-de-cada-import', text: "Custo de cada import", level: 2 as const }, { id: 'a-barra-de-status', text: "A barra de status", level: 2 as const }, { id: 'os-testes-no-painel-do-editor', text: "Os testes no painel do editor", level: 2 as const }, { id: 'os-50-comandos', text: "Os 50 comandos", level: 2 as const }, { id: 'rodar-e-medir', text: "Rodar e medir", level: 3 as const }, { id: 'qualidade', text: "Qualidade", level: 3 as const }, { id: 'entender', text: "Entender", level: 3 as const }, { id: 'projeto-e-pacotes', text: "Projeto e pacotes", level: 3 as const }, { id: 'vitrine-e-devops', text: "Vitrine e DevOps", level: 3 as const }, { id: 'o-painel-de-bancos-de-dados', text: "O painel de bancos de dados", level: 2 as const }, { id: 'os-snippets', text: "Os snippets", level: 3 as const }, { id: 'cores-icones-e-indentacao', text: "Cores, ícones e indentação", level: 2 as const }, { id: 'configuracao', text: "Configuração", level: 2 as const }, { id: 'tarefas-e-o-matcher-de-problemas', text: "Tarefas e o matcher de problemas", level: 2 as const }, { id: 'outros-editores', text: "Outros editores", level: 2 as const }, { id: 'onde-continuar', text: "Onde continuar", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"A extensão do editor"}
-      description={"Cores, erros enquanto se digita, autocompletar, depurador com breakpoints, Big-O acima de cada ação, 49 comandos e o painel de bancos. O que cada coisa faz, e por quê."}
+      description={"Cores, erros enquanto se digita, autocompletar, depurador com breakpoints, Big-O acima de cada ação, 50 comandos e o painel de bancos. O que cada coisa faz, e por quê."}
       href={"/docs/tecnicas/editor"}
       headings={headings}
     >
