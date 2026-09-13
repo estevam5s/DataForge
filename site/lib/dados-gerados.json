@@ -825,7 +825,7 @@
     },
     {
      "nome": "most_common",
-     "sig": "(contagem, n)",
+     "sig": "(fonte, n)",
      "tipo": "funcao"
     },
     {
@@ -910,7 +910,7 @@
     },
     {
      "nome": "rotate",
-     "sig": "(fila, n)",
+     "sig": "(colecao, n)",
      "tipo": "funcao"
     },
     {
@@ -9514,7 +9514,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 1646,
+  "testes": 1650,
   "exemplos": 44,
   "arquivosDf": 337
  },
@@ -9523,6 +9523,6 @@
   "versao": "v1.0.0",
   "publicado": "2026-09-12",
   "baixados": 26,
-  "instalacoes": 10
+  "instalacoes": 14
  }
 }

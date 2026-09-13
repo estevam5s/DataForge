@@ -4965,3 +4965,98 @@ def test_a_verificacao_local_nao_morre_no_primeiro_passo_vermelho():
     assert "set +e" in linhas, "o script precisa seguir apos um passo vermelho"
     assert 'exit 1' in texto and 'falhou' in texto, (
         "o codigo de saida tem de vir da variavel 'falhou', no fim")
+
+
+def test_toda_colisao_entre_as_metades_de_um_modulo_e_deliberada():
+    """`Arcane.Collections` é montado de dois arquivos, e doze nomes
+    existiam nos dois — fazendo **coisas diferentes**.
+
+    A regra de junção era "o complemento vence: ele é o mais completo",
+    e ela quebrava três usos documentados, cada um com uma mensagem que
+    fala do Python e não do que a pessoa escreveu:
+
+        C.index_by(itens, "categoria")   'String' object is not callable
+        C.rotate([1, 2, 3], 1)           'Cluster' has no attribute 'rotate'
+        C.union([3, 1], [1, 2])          {1, 2, 3} — um Set, sem ordem
+
+    Nenhuma das duas versões era "a certa": elas atendem entradas
+    diferentes. Este teste exige que **toda** colisão esteja resolvida
+    de propósito — uma nova voltaria a ser decidida pela ordem do
+    merge, em silêncio, que é como estas doze chegaram aqui.
+    """
+    from dataforge.stdlib import _COMPLEMENTOS, _MODULES
+    from dataforge.stdlib.colecoes_juntas import DO_COMPLEMENTO, RESOLVIDOS
+
+    decididos = set(RESOLVIDOS) | set(DO_COMPLEMENTO)
+
+    for oficial, extras in _COMPLEMENTOS.items():
+        base = _MODULES[oficial]
+        base = base() if callable(base) and not isinstance(base, dict) else base
+        for extra in extras:
+            colisoes = {
+                nome for nome in set(base) & set(extra())
+                if not nome.startswith("__")
+            }
+            if oficial != "Arcane.Collections":
+                # Os outros módulos compostos ainda não têm colisão
+                # nenhuma; se ganharem uma, ela aparece aqui.
+                assert not colisoes, (
+                    f"{oficial} passou a ter nome repetido entre as metades: "
+                    f"{sorted(colisoes)}.\n"
+                    f"  Decida cada um em 'colecoes_juntas.py' — a ordem do "
+                    f"merge não é uma decisão.")
+                continue
+            faltando = sorted(colisoes - decididos)
+            assert not faltando, (
+                f"nome(s) repetido(s) entre as metades de {oficial} sem "
+                f"decisão: {faltando}.\n"
+                f"  Se as duas versões fazem a mesma coisa, acrescente em "
+                f"DO_COMPLEMENTO; se fazem coisas diferentes, resolva em "
+                f"RESOLVIDOS.")
+
+
+def test_as_operacoes_de_conjunto_respeitam_o_que_receberam():
+    """Cluster com cluster dá cluster, na ordem. Conjunto dá conjunto."""
+    from dataforge.stdlib import get_module
+
+    C = get_module("Arcane.Collections")
+
+    # Cluster: a ORDEM sobrevive, e o resultado continua um Cluster.
+    assert C["union"]([3, 1], [1, 2]) == [3, 1, 2]
+    assert C["intersection"]([3, 1, 2], [2, 3]) == [3, 2]
+    assert C["difference"]([3, 1, 2], [1]) == [3, 2]
+    assert C["symmetric_difference"]([1, 2], [2, 3]) == [1, 3]
+    assert C["is_subset"]([1], [1, 2]) is True
+
+    # Conjunto: a operação de conjunto, como antes.
+    assert C["union"]({1, 2}, {2, 3}) == {1, 2, 3}
+    assert C["intersection"]({1, 2}, {2, 3}) == {2}
+
+    # Um cluster de clusters não é hashável, e isso deixou de estourar.
+    assert C["union"]([[1]], [[1], [2]]) == [[1], [2]]
+
+
+def test_rotate_gira_a_fila_no_lugar_e_o_cluster_por_copia():
+    """A fila existe para ser mudada no lugar; o cluster de quem chamou,
+    não — mudá-lo por baixo é a classe de bug que este projeto persegue."""
+    from dataforge.stdlib import get_module
+
+    C = get_module("Arcane.Collections")
+
+    original = [1, 2, 3, 4]
+    assert C["rotate"](original, 1) == [2, 3, 4, 1]
+    assert original == [1, 2, 3, 4], "o cluster de quem chamou não muda"
+
+    fila = C["deque"]([1, 2, 3])
+    C["rotate"](fila, 1)
+    assert list(fila) == [3, 1, 2]
+
+
+def test_index_by_aceita_o_nome_do_campo():
+    """A forma documentada, e a que o sombreamento tinha quebrado."""
+    from dataforge.stdlib import get_module
+
+    C = get_module("Arcane.Collections")
+    itens = [{"id": 1, "cat": "x"}, {"id": 2, "cat": "y"}]
+    assert C["index_by"](itens, "cat") == {"x": itens[0], "y": itens[1]}
+    assert C["index_by"](itens, lambda i: i["id"]) == {1: itens[0], 2: itens[1]}

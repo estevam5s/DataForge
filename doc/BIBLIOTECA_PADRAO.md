@@ -1255,7 +1255,7 @@ adopt Arcane.Collections as Collections
 | `is_superset(a, b)` |
 | `last_key(v)` |
 | `merge_sorted(a, b)` |
-| `most_common(contagem, n=0)` |
+| `most_common(fonte, n=0)` |
 | `move_to_end(v, chave, para_o_fim=True)` |
 | `n_largest(itens, n, chave=None)` |
 | `n_smallest(itens, n, chave=None)` |
@@ -1272,7 +1272,7 @@ adopt Arcane.Collections as Collections
 | `push(fila, item)` |
 | `push_left(fila, item)` |
 | `queue(itens=None)` |
-| `rotate(fila, n=1)` |
+| `rotate(colecao, n=1)` |
 | `set(itens=None)` |
 | `sliding_window(itens, tamanho)` |
 | `sort_by(itens, chave)` |

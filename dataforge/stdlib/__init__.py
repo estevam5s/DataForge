@@ -238,8 +238,22 @@ def get_module(name: str):
         mod = mod()
     for extra in _COMPLEMENTOS.get(oficial, ()):
         # Um modulo montado de duas partes. O complemento vence nos
-        # nomes repetidos: ele e o mais completo.
+        # nomes repetidos — MENOS naqueles em que os dois nao fazem a
+        # mesma coisa.
+        #
+        # Eram doze desses em 'Arcane.Collections', e o sombreamento
+        # quebrava tres usos documentados:
+        #
+        #     C.index_by(itens, "categoria")  'String' object is not callable
+        #     C.rotate([1, 2, 3], 1)          'Cluster' has no attribute 'rotate'
+        #     C.union([3, 1], [1, 2])         {1, 2, 3} — um Set, sem ordem
+        #
+        # Nenhuma das duas versoes era "a certa": elas atendem entradas
+        # diferentes. 'colecoes_juntas' decide pelo que RECEBEU.
         mod = {**mod, **extra()}
+    if oficial == "Arcane.Collections":
+        from .colecoes_juntas import RESOLVIDOS
+        mod = {**mod, **RESOLVIDOS}
     if isinstance(mod, dict):
         mod.setdefault("__name__", oficial)
     return mod
