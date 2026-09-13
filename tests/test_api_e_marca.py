@@ -1537,12 +1537,23 @@ def test_o_rotulo_do_exercicio_e_o_mesmo_na_barra_e_na_pagina():
     }
     assert da_barra, "nao achei os exercicios em nav.ts"
 
+    # A BARRA não leva o número, e a página leva.
+    #
+    # São coisas diferentes de propósito: na página o número é a
+    # identidade do módulo — "o exercício 157" é como se fala dele —, e
+    # na barra ele é ruído repetido 34 vezes, empurrando o nome para a
+    # direita em toda linha.
+    #
+    # O que não pode divergir é o NOME.
     for nome, _, _ in ex.MODULOS:
         if nome not in da_barra:
             continue
-        assert ex._rotulo(nome) == da_barra[nome], (
-            f"{nome}: a pagina diz {ex._rotulo(nome)!r} e a barra "
+        da_pagina = ex._rotulo(nome).split("·", 1)[-1].strip()
+        assert da_pagina == da_barra[nome].strip(), (
+            f"{nome}: a pagina diz {da_pagina!r} e a barra "
             f"{da_barra[nome]!r}")
+        assert "·" not in da_barra[nome], (
+            f"{nome}: o numero voltou para a barra lateral")
 
 
 def test_a_previa_compartilhada_e_uma_imagem_que_as_redes_aceitam():
@@ -1644,3 +1655,77 @@ def test_o_dado_estruturado_descreve_a_linguagem():
     assert app["name"] == "DataForge"
     assert app["image"].endswith(".png"), "a imagem do JSON-LD também é PNG"
     assert len(app["featureList"]) >= 10
+
+
+def test_o_llms_txt_esta_em_dia_e_o_exemplo_dele_roda():
+    """O arquivo que um modelo lê antes de escrever DataForge.
+
+    Quem escreve nesta linguagem hoje quase sempre tem um modelo ao
+    lado. E um modelo que nunca a viu faz o que qualquer um faria:
+    chuta a sintaxe de Python. O resultado é código que não compila, e
+    a culpa parece da linguagem.
+
+    Duas coisas o tornam confiável, e as duas são cobradas aqui:
+
+    1. **Ele é gerado.** Um resumo escrito à mão envelhece na primeira
+       palavra reservada nova — e um resumo errado é pior que nenhum,
+       porque o modelo confia nele.
+
+    2. **O exemplo dele RODA.** Um trecho que não compila no arquivo
+       que existe para ensinar a compilar é o pior defeito possível.
+    """
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    r = subprocess.run(
+        [sys.executable, os.path.join(raiz, "scripts", "gerar_llms.py"),
+         "--check"],
+        capture_output=True, text=True, encoding="utf-8", cwd=raiz)
+    assert r.returncode == 0, (
+        "o llms.txt está desatualizado:\n" + (r.stdout or "") + (r.stderr or ""))
+
+    for destino in ("llms.txt", os.path.join("site", "public", "llms.txt")):
+        caminho = os.path.join(raiz, destino)
+        assert os.path.isfile(caminho), f"{destino} não existe"
+
+    texto = open(os.path.join(raiz, "llms.txt"), encoding="utf-8").read()
+
+    # As armadilhas vêm ANTES da lista de símbolos: o que faz um modelo
+    # errar não é não saber que existe 'Arcane.Excel'.
+    assert texto.index("Armadilhas") < texto.index("palavras reservadas")
+    assert "`//` e COMENTARIO" in texto
+    assert "NAO e Python com outras palavras" in texto
+
+    # O exemplo roda.
+    sys.path.insert(0, os.path.join(raiz, "scripts"))
+    import importlib
+    gerar = importlib.import_module("gerar_llms")
+
+    import contextlib
+    import io as _io
+
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    with contextlib.redirect_stdout(_io.StringIO()):
+        Interpreter().run(parse(tokenize(gerar.EXEMPLO, "llms"), "llms"))
+
+
+def test_o_llms_txt_e_servido_pelo_site():
+    """Um `llms.txt` que não responde na raiz do site não é um llms.txt.
+
+    A convenção é o endereço: `/llms.txt`. Um arquivo só no repositório
+    serve a quem já clonou — que é exatamente quem não precisa dele.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    publico = os.path.join(raiz, "site", "public", "llms.txt")
+    assert os.path.isfile(publico), (
+        "o llms.txt precisa estar em site/public/ para ser servido em "
+        "/llms.txt")
+
+    saida = os.path.join(raiz, "site", "out", "llms.txt")
+    if os.path.isfile(saida):
+        assert open(saida, encoding="utf-8").read() == \
+            open(publico, encoding="utf-8").read()

@@ -1,0 +1,289 @@
+# DataForge
+
+> Linguagem de programacao interpretada, de proposito geral, com vocabulario em portugues. Versao 1.0.0. Implementada em Python 3.10+ sem dependencia externa: lexer, parser, AST, analisador estatico e interpretador proprios. Arquivos `.df`. Licenca MIT.
+
+Site: https://dataforge-lang.vercel.app  ·  Documentacao: https://dataforge-lang.vercel.app/docs  ·  API em JSON: https://dataforge-lang.vercel.app/api
+
+## Leia isto primeiro
+
+DataForge NAO e Python com outras palavras. Escrever Python aqui produz codigo que nao compila. As diferencas que mais custam estao logo abaixo, antes de qualquer lista de simbolos.
+
+## Armadilhas (o que faz um modelo errar)
+
+- **`//` e COMENTARIO, nao divisao inteira.** Use `~/` para dividir. `//` so vira divisao quando seguido de digito, `(` ou chamada — e depender disso torna o codigo fragil. Vale nos dois sentidos: um comentario de fim de linha que comeca com uma chamada vira divisao.
+- **`yield` DEVOLVE e encerra; `emit` PRODUZ e continua.** Para uma sequencia, use `stream action` + `emit`. `yield` dentro de uma acao comum e o `return`.
+- **So espacos na indentacao.** Tab e erro (`SyncError`). Quatro espacos por nivel.
+- **`monitor` sem `handle` nao engole o erro.** Ele so garante o `ensure`.
+- **Palavras reservadas nao podem ser nomes.** As que mais pegam em portugues: `no`, `in`, `is`, `to`, `from`, `as`, `step`, `point`, `default`, `frame`, `stream`, `emit`, `record`, `enum`, `when`. Ja `range`, `cluster` e `vault` sao FUNCOES, nao reservadas.
+- **`self` dentro de metodos, sempre.** Escrever `x` em vez de `self.x` le a variavel do escopo externo.
+- **Records sao imutaveis.** `p.x := 1` e erro; use `p with {"x": 1}`.
+- **O valor inicial do `distill` vem DEPOIS do corpo.** `>> distill a, v: a + v 0 / len(x)` divide o ZERO. Use parenteses: `(xs >> distill a, v: a + v 0) / len(xs)`.
+- **Um pipeline dentro de `lambda` precisa de parenteses.** O corpo do lambda liga mais forte que `>>`. O mesmo vale para o ternario: `lambda x => (a given c otherwise b)`.
+- **`trigger` levanta `TriggerError`, nao `RuntimeError`.** Para pegar qualquer coisa, `handle Error`.
+- **Dentro de `$"{…}"`, aspas normais.** `$"item {v["id"]}"` funciona; escapar quebra a leitura.
+- **`cycle from … to` e INCLUSIVO nos dois extremos.** `cycle i from 1 to 5` roda cinco vezes.
+- **Um tipo de outro modulo se escreve qualificado.** `action criar() -> M.Pedido:` — vale em retorno, parametro, campo de record e anotacao de variavel.
+
+## Tabela de traducao
+
+| Em outra linguagem | Em DataForge |
+|---|---|
+| `=` | `:=` |
+| `const` | `steady` |
+| `print` | `out` |
+| `f-string` | `$"texto {expr}"` |
+| `if/elif/else` | `given/orif/otherwise` |
+| `ternario` | `a given cond otherwise b` |
+| `switch/match` | `match / point / when / default` |
+| `for` | `cycle x from a to b  ·  cycle x in colecao` |
+| `while` | `persist` |
+| `do..while` | `perform … persist` |
+| `break/continue` | `halt/skip` |
+| `def/return` | `action/yield` |
+| `generator` | `stream action / emit` |
+| `class/new` | `blueprint/spawn` |
+| `@dataclass(frozen)` | `record` |
+| `enum` | `enum` |
+| `self/super` | `self/root` |
+| `interface` | `trait` |
+| `import/export` | `adopt/relay` |
+| `chamar Python` | `adopt Python.numpy as np` |
+| `try/catch/finally` | `monitor/handle/ensure` |
+| `throw` | `trigger` |
+| `true/false/null` | `yes/no/void` |
+| `list comprehension` | `[expr cycle x in fonte given cond]` |
+| `filter/map/reduce` | `>> sift  ·  >> morph  ·  >> distill` |
+| `lambda` | `lambda x: expr  ·  lambda a, b => expr` |
+| `decorator` | `mark @nome` |
+| `// (divisao inteira)` | `~/   ← '//' e COMENTARIO` |
+
+## Um programa completo
+
+```dataforge
+adopt Arcane.Math as Math
+
+record Pedido:
+    id: Integer
+    total: Float
+
+    action com_desconto(p: Float) -> Float:
+        yield self.total * (1.0 - p)
+
+enum Estado:
+    Aberto
+    Pago := "pago"
+
+blueprint Carrinho:
+    self.itens := []
+
+    action por(pedido):
+        self.itens.append(pedido)
+        yield len(self.itens)
+
+action resumir(pedidos: Cluster) -> Vault:
+    total := pedidos >> distill soma, p: soma + p.total 0
+    yield {"quantos": len(pedidos), "total": total}
+
+action classificar(valor) -> String:
+    match valor:
+        point Integer as n when n bigger 100:
+            yield "grande"
+        point [a, b]:
+            yield "par"
+        point {"tipo": t}:
+            yield t
+        default:
+            yield "outro"
+
+stream action naturais():
+    n := 0
+    persist yes:
+        n += 1
+        emit n
+
+carrinho := spawn Carrinho()
+_ := carrinho.por(Pedido(1, 99.9))
+_ := carrinho.por(Pedido(2, 15.0))
+
+monitor:
+    out resumir(carrinho.itens)
+handle Error as e:
+    out e.type, e.message
+ensure:
+    out "sempre roda"
+
+out naturais().map(lambda n: n * 2).take(5)
+out [p.id cycle p in carrinho.itens given p.total bigger 50]
+```
+
+## As 81 palavras reservadas
+
+Nenhuma delas pode ser nome de variavel.
+
+```
+action      adopt       and         as          assert      async
+await       bigger      bigger_eq   blueprint   cast        channel
+cycle       default     defer       delete      distill     emit
+ensure      enum        extends     forge       frame       from
+given       guard       halt        handle      in          inspect
+is          isnt        lambda      mark        match       monitor
+morph       no          not         observe     or          orif
+otherwise   out         parallel    perform     persist     point
+predict     propagate   pulse       record      recover     relay
+retry       root        self        shadow      sift        skip
+smaller     smaller_eq  spawn       static      steady      step
+stream      thread      to          train       trait       trigger
+typeof      using       validate    void        wait        when
+with        yes         yield
+```
+
+## A biblioteca: 46 modulos
+
+Todos por `adopt`. Nenhum precisa de instalacao.
+
+| Modulo | Simbolos | Para que serve |
+|---|---|---|
+| `Arcane.API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
+| `Arcane.Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
+| `Arcane.Archive` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
+| `Arcane.Async` | 46 | Promessas, filas, agendamento e execução concorrente. |
+| `Arcane.Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
+| `Arcane.Cli` | 12 | A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo. |
+| `Arcane.Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
+| `Arcane.Color` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
+| `Arcane.Concurrent` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| `Arcane.Cortex` | 25 | Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA. |
+| `Arcane.Crucible` | 50 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
+| `Arcane.Crypto` | 48 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). |
+| `Arcane.Data` | 13 | DataFrames, séries e transformações tabulares. |
+| `Arcane.Database` | 64 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
+| `Arcane.Decimal` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
+| `Arcane.Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
+| `Arcane.Eventos` | 8 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano. |
+| `Arcane.Excel` | 29 | Planilhas . |
+| `Arcane.Forge` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
+| `Arcane.Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
+| `Arcane.Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
+| `Arcane.Http` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
+| `Arcane.IO` | 30 | Arquivos, diretórios, JSON, CSV e shell. |
+| `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
+| `Arcane.Lago` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
+| `Arcane.Lavra` | 42 | A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. |
+| `Arcane.Logging` | 14 | Registro estruturado de eventos, com níveis e destinos. |
+| `Arcane.Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
+| `Arcane.Math` | 72 | Matemática, álgebra linear e estatística básica. |
+| `Arcane.Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
+| `Arcane.OS` | 43 | Sistema operacional, ambiente, disco e processo atual. |
+| `Arcane.Observar` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
+| `Arcane.Pipeline` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
+| `Arcane.Ponte` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
+| `Arcane.Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
+| `Arcane.Qualidade` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
+| `Arcane.Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
+| `Arcane.Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
+| `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
+| `Arcane.Stream` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
+| `Arcane.Test` | 34 | Asserções e organização de suítes de teste. |
+| `Arcane.Text` | 58 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
+| `Arcane.Time` | 54 | Datas, horas, durações e cronometragem. |
+| `Arcane.Vitrine` | 113 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
+| `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |
+| `Kiln` | 73 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
+
+## As 228 funcoes embutidas
+
+Disponiveis sem `adopt`.
+
+```
+E                   EMPTY               INF                 MAX_INT
+MIN_INT             NAN                 NEWLINE             PI
+TAB                 TAU                 __expect__          abs
+accumulate          acos                append              asin
+assert_type         atan                atan2               base64_decode
+base64_encode       bool                capitalize          cast
+cbrt                ceil                center              chain
+char                char_at             choice              chunk
+clamp               class_name          cluster             coalesce
+comb                combinations        complement          compose
+concat              constantly          contains            cos
+count               count_str           curry               decode
+deep_copy           default             default_val         degrees
+drop                e_um                encode              endswith
+enumerate           env_var             every               exists
+exp                 expandtabs          factorial           filter
+find                find_first          find_last           first
+flat_map            flatten             float               floor
+format              freeze              frequencies         from_json
+gcd                 get_fields          get_methods         get_mro
+get_parent          has_field           has_method          hash
+hash_md5            hash_sha256         hypot               id
+identity            includes            index               index_of
+insert              instanceof          int                 interleave
+invert_dict         is_boolean          is_callable         is_dict
+is_empty            is_finite           is_float            is_inf
+is_integer          is_list             is_nan              is_number
+is_string           is_void             isalnum             isalpha
+isascii             isdigit             islower             isnumeric
+isspace             istitle             isupper             items
+join                keys                last                last_index_of
+lcm                 len                 lerp                lines
+linhagem            ljust               log                 log10
+log2                lower               lstrip              map
+max                 mean                median              memoize
+merge_dicts         min                 mode                none_of
+omit                once                ord                 pad_end
+pad_start           partial             partition           percentile
+perm                permutations        pick                pipe_fn
+pop                 pow                 product             radians
+randint             random              range               reduce
+regex_count         regex_extract       regex_findall       regex_match
+regex_search        regex_split         regex_sub           regex_test
+remove              removeprefix        removesuffix        repeat
+repeat_val          replace             reverse_str         reversed
+rfind               rjust               rotate              round
+rpartition          rstrip              sample              scan
+shuffle             sign                sin                 sleep
+slice               some                sorted              split
+splitlines          sqrt                startswith          stdev
+str                 strip               substring           sum
+swapcase            take                tan                 tap
+template            thaw                time                timestamp
+title               to_json             trim                type
+unique              unzip               upper               uuid
+validate            values              variance            vault
+words               zfill               zip                 zip_with
+```
+
+## As ferramentas
+
+```
+dataforge run arquivo.df          roda
+dataforge check src/              analisa antes de rodar (nomes, tipos, aridade)
+dataforge test                    roda os *_test.df, com --cobertura
+dataforge fmt .                   formata
+dataforge lint src/               estilo e higiene
+dataforge repl                    console interativo
+dataforge debug arquivo.df        depurador de terminal
+dataforge dap                     o depurador no painel do editor
+dataforge new <modelo>            9 modelos de projeto
+dataforge add <pacote>            gerenciador de pacotes (semver, lockfile)
+dataforge devops dockerfile       Dockerfile, compose, CI, k8s, Helm, nginx
+dataforge vitrine run app.df      sobe um painel de dados
+dataforge profile arquivo.df      tempo proprio por acao
+dataforge doc src/ --out=API.md   documentacao a partir dos comentarios
+```
+
+## Onde ler mais
+
+- [Introducao](https://dataforge-lang.vercel.app/docs)
+- [Referencia da linguagem](https://dataforge-lang.vercel.app/docs/referencia)
+- [A biblioteca Arcane, modulo a modulo](https://dataforge-lang.vercel.app/docs/biblioteca)
+- [Kiln — o framework web](https://dataforge-lang.vercel.app/docs/kiln)
+- [Vitrine — dashboards e aplicacoes de dados](https://dataforge-lang.vercel.app/docs/vitrine)
+- [Lavra — a consulta tipada, no espirito do GraphQL](https://dataforge-lang.vercel.app/docs/lavra)
+- [Crucible — testes](https://dataforge-lang.vercel.app/docs/crucible)
+- [Os exercicios, que verificam o proprio resultado](https://dataforge-lang.vercel.app/docs/exercicios)
+- [Os codigos de erro, com exemplo e correcao](https://dataforge-lang.vercel.app/docs/erros)
+- [A API publica em JSON](https://dataforge-lang.vercel.app/api)
+
+A API em JSON (`/api/*.json`, CORS aberto) traz a sintaxe, os simbolos, os comandos e os codigos de erro como dado — util para quem quer a lista inteira sem raspar HTML.

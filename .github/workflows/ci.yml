@@ -91,7 +91,7 @@ jobs:
       # Como na suite: o que falhou vira anotacao, e nao so log. Foi
       # aqui que o Windows caiu por tres execucoes sem que o motivo
       # aparecesse em lugar nenhum.
-      - name: os 216 exercicios
+      - name: os exercicios
         shell: bash
         run: |
           set +e
@@ -196,6 +196,7 @@ jobs:
           python tools/gerar_ref_kiln.py
           python tools/gerar_indice_exercicios.py
           python scripts/gerar_api.py
+          python scripts/gerar_llms.py
           python site/scripts/gerar_dados.py
           python site/scripts/gerar_conteudo.py
           python site/scripts/gerar_indices.py
