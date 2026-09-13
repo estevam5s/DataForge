@@ -511,9 +511,19 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 233 | [`233_lavra_n1_e_limites.df`](33-lavra/233_lavra_n1_e_limites.df) · [doc](33-lavra/233_lavra_n1_e_limites.md) | Lavra: o N+1, os limites e a paginacao |
 | 234 | [`234_lavra_servidor_e_federacao.df`](33-lavra/234_lavra_servidor_e_federacao.df) · [doc](33-lavra/234_lavra_servidor_e_federacao.md) | Lavra: contratos, mudancas, servidor e federacao |
 
+## 34 — Binario e rede
+
+*3 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 235 | [`235_bytes.df`](34-binario-e-rede/235_bytes.df) · [doc](34-binario-e-rede/235_bytes.md) | Dados binarios com Arcane.Bytes |
+| 236 | [`236_rede.df`](34-binario-e-rede/236_rede.df) · [doc](34-binario-e-rede/236_rede.md) | TCP, UDP e DNS com Arcane.Rede |
+| 237 | [`237_eventos_cli_html.df`](34-binario-e-rede/237_eventos_cli_html.df) · [doc](34-binario-e-rede/237_eventos_cli_html.md) | Eventos, linha de comando, e-mail e HTML |
+
 ---
 
-**Total: 234 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 237 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

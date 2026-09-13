@@ -225,6 +225,12 @@ export const nav: NavSection[] = [
   {
     title: 'Biblioteca Arcane',
     items: [
+      { title: 'Arcane.Bytes', href: '/docs/biblioteca/bytes' },
+      { title: 'Arcane.Rede', href: '/docs/biblioteca/rede' },
+      { title: 'Arcane.Eventos', href: '/docs/biblioteca/eventos' },
+      { title: 'Arcane.Cli', href: '/docs/biblioteca/cli' },
+      { title: 'Arcane.Email', href: '/docs/biblioteca/email' },
+      { title: 'Arcane.Html', href: '/docs/biblioteca/html' },
       { title: 'Visão geral', href: '/docs/biblioteca' },
       { title: 'Arcane.Math', href: '/docs/biblioteca/math' },
       { title: 'Arcane.Text', href: '/docs/biblioteca/text' },
@@ -308,6 +314,7 @@ export const nav: NavSection[] = [
       { title: '31 · Qualidade', href: '/docs/exercicios/31-qualidade' },
       { title: '32 · Microserviços', href: '/docs/exercicios/32-microservicos' },
       { title: '33 · Lavra', href: '/docs/exercicios/33-lavra' },
+      { title: '34 · Binário e rede', href: '/docs/exercicios/34-binario-e-rede' },
     ],
   },
   {

@@ -1,0 +1,138 @@
+// Exercicio 237 — Eventos, linha de comando, e-mail e HTML
+// Enunciado: junte as pecas que faltavam para um programa completo.
+
+adopt Arcane.Eventos as Ev
+adopt Arcane.Cli as Cli
+adopt Arcane.Email as Mail
+adopt Arcane.Html as Html
+
+// ── 1. Eventos: duas partes que nao se conhecem ──
+loja := Ev.emissor("loja")
+notas := []
+avisos := []
+
+_ := loja.ao("venda", lambda pedido: notas.append(pedido))
+_ := loja.ao("venda", lambda pedido: avisos.append($"aviso de {pedido}"))
+
+// 'emitir' devolve QUANTOS ouviram. Zero e informacao: o evento com o
+// nome errado nao falha, ele simplesmente nao chega — e essa e a falha
+// mais dificil de achar num sistema de eventos.
+assert loja.emitir("venda", "P-1") is 2
+assert loja.emitir("vendaa", "P-2") is 0, "nome errado: ninguem ouviu"
+assert notas is ["P-1"]
+
+// Um ouvinte que quebra SAI da lista. Um quebrado que continua inscrito
+// quebra a cada evento, para sempre, e some no meio do log.
+frageis := Ev.emissor()
+bons := []
+_ := frageis.ao("x", lambda v: 1 ~/ 0)
+_ := frageis.ao("x", lambda v: bons.append(v))
+assert frageis.emitir("x", 1) is 1, "o bom recebeu mesmo assim"
+assert frageis.ouvintes("x") is 1, "o quebrado saiu"
+assert len(frageis.erros) is 1
+
+// O curinga ouve tudo — para log e auditoria.
+tudo := []
+_ := loja.ao("*", lambda nome: tudo.append(nome))
+_ := loja.emitir("estorno", "P-1")
+assert tudo is ["estorno"]
+
+// ── 2. O contexto atravessa as camadas ──
+//
+// Sem passar por parametro em cada uma. E por THREAD: um vault global
+// serviria ate o segundo pedido simultaneo.
+action camada_funda():
+    yield Ev.por("pedido", "(sem)")
+
+assert Ev.com_contexto({"pedido": "P-9"}, camada_funda) is "P-9"
+assert camada_funda() is "(sem)", "fora do contexto, nao ha nada"
+
+// ── 3. A linha de comando ──
+programa := Cli.comando("relatorio", sobre := "Gera o relatorio do mes.",
+    versao := "1.0.0")
+_ := programa.opcao("mes", "inteiro", curta := "m", exigida := yes,
+    sobre := "o mes, de 1 a 12")
+_ := programa.opcao("formato", escolhas := ["csv", "json"], padrao := "csv")
+_ := programa.opcao("enviar", "sim_nao", sobre := "manda por e-mail")
+_ := programa.posicional("saida", exigido := no)
+
+lido := programa.ler(["-m", "9", "--formato", "json", "--enviar", "out.json"])
+out lido["mes"], lido["formato"], lido["enviar"], lido["saida"]
+assert lido["mes"] is 9
+assert lido["formato"] is "json"
+assert lido["enviar"]
+assert lido["saida"] is "out.json"
+
+// A ajuda e GERADA da declaracao. Escrita a mao, ela envelhece no
+// primeiro flag novo — e a ajuda errada e pior que nenhuma.
+ajuda := programa.ajuda()
+assert "-m, --mes" in ajuda
+assert "csv|json" in ajuda
+assert "exigida" in ajuda
+
+// O erro sugere o que existe, e sai com codigo 2: 1 e "rodou e deu
+// errado", 2 e "voce chamou errado".
+monitor:
+    _ := programa.ler(["--mess", "9"])
+    assert no
+handle Error as e:
+    assert "--mes" in e.message
+
+// ── 4. E-mail ──
+relatorio := Mail.mensagem("forja@exemplo.br", "chefe@exemplo.br",
+    "Relatorio de setembro")
+_ := relatorio.html("<h1>Setembro</h1><p>Total: <b>R$ 12.400</b></p>")
+_ := relatorio.copia_oculta(["auditoria@exemplo.br"])
+_ := relatorio.anexar_dados("relatorio.csv", "mes,total\n9,12400", "text/csv")
+
+previa := relatorio.prever()
+out previa["assunto"], "->", previa["para"]
+assert len(previa["para"]) is 2, "o oculto recebe"
+assert previa["texto"] is "Setembro Total: R$ 12.400", "alternativa em texto"
+
+// O Bcc NAO vira cabecalho — ele iria visivel para todo mundo, que e o
+// oposto do que significa.
+cabecalho := relatorio.como_texto().split("\n\n")[0]
+assert "auditoria" not in cabecalho
+
+// A caixa de teste tem o MESMO contrato do envio real.
+caixa := Mail.caixa()
+_ := caixa.enviar(relatorio)
+assert len(caixa.para("chefe@exemplo.br")) is 1
+
+// ── 5. HTML ──
+pagina := """
+<div class="produto" id="p1">
+  <h2>Bigorna</h2>
+  <span class="preco"><b>R$</b> <span>450,00</span></span>
+  <a href="/produto/1">Ver</a>
+</div>
+<table><tr><th>Item</th><th>Total</th></tr>
+       <tr><td>Bigorna</td><td>450</td></tr></table>
+"""
+doc := Html.ler(pagina)
+
+assert doc.achar("#p1 h2").texto is "Bigorna"
+// O texto junta com ESPACO: '<b>R$</b><span>10</span>' colado viraria
+// 'R$10'; com espaco, 'R$ 10' — que e o que a pagina mostra.
+assert doc.achar(".preco").texto is "R$ 450,00"
+
+links := doc.links("https://forja.br/loja/")
+assert links[0]["destino"] is "https://forja.br/produto/1"
+
+tabela := doc.tabela()
+assert tabela["cabecalho"] is ["Item", "Total"]
+assert tabela["linhas"] is [["Bigorna", "450"]]
+
+// 'limpar' tira o conteudo do script tambem. Um 'limpar' que so tira
+// as tags deixa o corpo do <script> como TEXTO — e ai o "texto limpo"
+// contem o codigo que se queria tirar.
+assert Html.limpar("<p>ok</p><script>roubar()</script>") is "ok"
+
+// 'podar' usa lista de PERMITIDAS. Uma lista de proibidas esquece a
+// proxima tag perigosa que o navegador inventar.
+podado := Html.podar("<p>oi</p><iframe src='x'></iframe><b>b</b>")
+assert "iframe" not in podado
+assert "<b>b</b>" in podado
+
+out "237 ok"

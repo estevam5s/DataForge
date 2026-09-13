@@ -14,7 +14,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 
 | Módulo | Nome curto | Símbolos | Para quê |
 |--------|-----------|----------|----------|
-| [`Arcane.Math`](#arcanemath) | `Math` | 51 | Matemática, álgebra linear e estatística básica. |
+| [`Arcane.Math`](#arcanemath) | `Math` | 72 | Matemática, álgebra linear e estatística básica. |
 | [`Arcane.Text`](#arcanetext) | `Text` | 58 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
 | [`Arcane.Analytics`](#arcaneanalytics) | `Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
 | [`Arcane.Functional`](#arcanefunctional) | `Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
@@ -48,6 +48,12 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | [`Arcane.Malha`](#arcanemalha) | `Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
+| [`Arcane.Bytes`](#arcanebytes) | `Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
+| [`Arcane.Rede`](#arcanerede) | `Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
+| [`Arcane.Eventos`](#arcaneeventos) | `Eventos` | 8 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano. |
+| [`Arcane.Cli`](#arcanecli) | `Cli` | 12 | A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo. |
+| [`Arcane.Email`](#arcaneemail) | `Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
+| [`Arcane.Html`](#arcanehtml) | `Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
 | [`Arcane.Lavra`](#arcanelavra) | `Lavra` | 42 | A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços. |
 | [`Arcane.Vitrine`](#arcanevitrine) | `Vitrine` | 113 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | [`Arcane.API`](#arcaneapi) | `API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
@@ -94,7 +100,7 @@ adopt Arcane.Math as Math
 | `TAU` | `6.283185307179586` |
 | `random` | `{'random': <built-in method random of Random objec…` |
 
-**Funções (45)**
+**Funções (66)**
 
 | Assinatura |
 |------------|
@@ -107,6 +113,17 @@ adopt Arcane.Math as Math
 | `ceil(x)` |
 | `clamp(value, min_val, max_val)` |
 | `comb(n, k)` |
+| `complexo(real, imaginario=0.0)` |
+| `complexo_conjugado(z)` |
+| `complexo_de_polar(r, a)` |
+| `complexo_exp(z)` |
+| `complexo_fase(z)` |
+| `complexo_log(z, base=None)` |
+| `complexo_modulo(z)` |
+| `complexo_partes(z)` |
+| `complexo_polar(z)` |
+| `complexo_raiz(z)` |
+| `complexo_texto(z)` |
 | `cos(x)` |
 | `degrees(x)` |
 | `determinant(matrix)` |
@@ -115,6 +132,16 @@ adopt Arcane.Math as Math
 | `factorial(n)` |
 | `fibonacci(n)` |
 | `floor(x)` |
+| `fracao(a, b=None)` |
+| `fracao_de_texto(t)` |
+| `fracao_dividido(a, b)` |
+| `fracao_float(f)` |
+| `fracao_limitar(f, teto)` |
+| `fracao_menos(a, b)` |
+| `fracao_partes(f)` |
+| `fracao_soma(*p)` |
+| `fracao_texto(f)` |
+| `fracao_vezes(*p)` |
 | `gcd(*inteiros)` |
 | `hypot(*coordenadas)` |
 | `identity(n)` |
@@ -1818,6 +1845,185 @@ adopt Arcane.Malha as Malha
 | `servicos()` |
 | `terminar_contexto()` |
 | `vale_repetir(resposta)` |
+
+
+---
+
+## Arcane.Bytes
+
+Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo.
+
+```dataforge
+adopt Arcane.Bytes as Bytes
+```
+
+**Funções (25)**
+
+| Assinatura |
+|------------|
+| `achar(dados, agulha, desde=0)` |
+| `base64(dados)` |
+| `bits(dados)` |
+| `concatenar(*pedacos)` |
+| `copiar(vista)` |
+| `de_base64(texto)` |
+| `de_bits(texto)` |
+| `de_hex(texto)` |
+| `de_texto(texto, codificacao='utf-8')` |
+| `desempacotar(formato, dados)` |
+| `despejo(dados, por_linha=16)` |
+| `dividir(dados, separador)` |
+| `empacotar(formato, *valores)` |
+| `escrever(ordem='>')` |
+| `fatiar(dados, inicio=0, fim=None)` |
+| `hex(dados, separador='')` |
+| `igual_em_tempo_fixo(a, b)` |
+| `inverter(dados)` |
+| `janela(dados, inicio=0, fim=None)` |
+| `ler(dados, ordem='>')` |
+| `ou_exclusivo(a, b)` |
+| `para_texto(dados, codificacao='utf-8', estrito=False)` |
+| `preencher(dados, tamanho_final, com=b'\x00', a_esquerda=False)` |
+| `tamanho(formato)` |
+| `tipos()` |
+
+
+---
+
+## Arcane.Rede
+
+TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host.
+
+```dataforge
+adopt Arcane.Rede as Rede
+```
+
+**Constantes**
+
+| Nome | Valor |
+|------|-------|
+| `prazo_padrao` | `30.0` |
+
+**Funções (15)**
+
+| Assinatura |
+|------------|
+| `Conexao(bruto, endereco=None)` |
+| `Servidor(atender, host='127.0.0.1', porta=0, fila=128, tls=None)` |
+| `certificado_de(host, porta=443, prazo=30.0)` |
+| `conectar(host, porta, prazo=30.0, tls=False, conferir=True)` |
+| `dias_ate_vencer(host, porta=443)` |
+| `esperar_porta(host, porta, prazo=30.0, intervalo=0.2)` |
+| `meu_ip()` |
+| `meu_nome()` |
+| `nome_de(ip)` |
+| `porta_aberta(host, porta, prazo=2.0)` |
+| `porta_livre()` |
+| `resolver(nome)` |
+| `servir(atender, host='127.0.0.1', porta=0, tls=None)` |
+| `servir_em_segundo_plano(atender, host='127.0.0.1', porta=0, tls=None)` |
+| `udp(host='0.0.0.0', porta=0, escutar=False)` |
+
+
+---
+
+## Arcane.Eventos
+
+Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano.
+
+```dataforge
+adopt Arcane.Eventos as Eventos
+```
+
+**Funções (8)**
+
+| Assinatura |
+|------------|
+| `Emissor(nome='emissor', teto=1000)` |
+| `Fila(trabalhador, operarios=2, nome='fila')` |
+| `com_contexto(dados, acao)` |
+| `contexto()` |
+| `emissor(nome='emissor', teto=1000)` |
+| `fila(trabalhador, operarios=2, nome='fila')` |
+| `guardar(chave, valor)` |
+| `por(chave, padrao=None)` |
+
+
+---
+
+## Arcane.Cli
+
+A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo.
+
+```dataforge
+adopt Arcane.Cli as Cli
+```
+
+**Funções (12)**
+
+| Assinatura |
+|------------|
+| `Comando(nome=None, sobre='', versao='')` |
+| `Console(prompt='> ', sobre='')` |
+| `comando(nome=None, sobre='', versao='')` |
+| `confirmar(texto, padrao=False)` |
+| `console(prompt='> ', sobre='')` |
+| `erro(texto, codigo=1)` |
+| `escolher(texto, opcoes, padrao=0)` |
+| `largura()` |
+| `limpar()` |
+| `perguntar(texto, padrao=None, valida=None)` |
+| `segredo(texto='senha')` |
+| `tem_terminal()` |
+
+
+---
+
+## Arcane.Email
+
+Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato.
+
+```dataforge
+adopt Arcane.Email as Email
+```
+
+**Funções (6)**
+
+| Assinatura |
+|------------|
+| `Caixa()` |
+| `Mensagem(de='', para=None, assunto='')` |
+| `caixa()` |
+| `enviar(mensagem_, servidor, porta=587, usuario='', senha='', seguro=True, prazo=30.0)` |
+| `mensagem(de='', para=None, assunto='')` |
+| `valido(endereco)` |
+
+
+---
+
+## Arcane.Html
+
+Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas.
+
+```dataforge
+adopt Arcane.Html as Html
+```
+
+**Funções (11)**
+
+| Assinatura |
+|------------|
+| `No(tag='', atributos=None, pai=None)` |
+| `achar(fonte, seletor)` |
+| `achar_todos(fonte, seletor)` |
+| `desescapar(texto)` |
+| `escapar(texto)` |
+| `ler(fonte)` |
+| `limpar(fonte)` |
+| `links_de(fonte, base='')` |
+| `podar(fonte, permitidas=None, links_seguros=True)` |
+| `tabela_de(fonte, seletor='table')` |
+| `texto_de(fonte)` |
 
 
 ---

@@ -1,0 +1,100 @@
+// Exercicio 236 — TCP, UDP e DNS com Arcane.Rede
+// Enunciado: fale um protocolo proprio, abaixo do HTTP.
+
+adopt Arcane.Rede as Rede
+adopt Arcane.Bytes as B
+
+// ── 1. Um servidor TCP que fala um protocolo proprio ──
+//
+// O quadro e: tamanho (4 bytes, ordem de rede) + corpo. E o formato
+// mais comum que existe, e o que resolve o problema do TCP nao ter
+// fronteira de mensagem — ele entrega um FLUXO de bytes, e nao
+// mensagens.
+action atender(conexao):
+    persist yes:
+        cabecalho := conexao.receber(4)
+        given len(cabecalho) is 0:
+            halt
+        tamanho := B.desempacotar(">u32", cabecalho)[0]
+        corpo := conexao.receber_exato(tamanho)
+        resposta := B.de_texto(B.para_texto(corpo).upper())
+        _ := conexao.enviar(B.empacotar(">u32", len(resposta)))
+        _ := conexao.enviar(resposta)
+
+servidor := Rede.servir_em_segundo_plano(atender, porta := 0)
+defer:
+    _ := servidor.parar()
+
+// ── 2. O cliente ──
+cliente := Rede.conectar("127.0.0.1", servidor.porta)
+defer:
+    _ := cliente.fechar()
+
+action pedir(texto):
+    dados := B.de_texto(texto)
+    _ := cliente.enviar(B.empacotar(">u32", len(dados)))
+    _ := cliente.enviar(dados)
+    quanto := B.desempacotar(">u32", cliente.receber_exato(4))[0]
+    yield B.para_texto(cliente.receber_exato(quanto))
+
+out pedir("forja")
+assert pedir("forja") is "FORJA"
+assert pedir("bigorna e marreta") is "BIGORNA E MARRETA"
+
+// 'receber_exato' insiste ate completar. O 'recv' devolve MENOS do que
+// se pediu com frequencia num pedaco que atravessa pacotes, e tratar o
+// retorno curto como a mensagem inteira corrompe a proxima — o sintoma
+// e uma conexao que funciona e de repente para.
+longo := "a" * 5000
+assert len(pedir(longo)) is 5000, "atravessa varios pacotes"
+
+// ── 3. UDP: manda e esquece ──
+//
+// Sem conexao, sem ordem, sem garantia. E o certo para metrica,
+// descoberta e log — onde perder um pacote custa menos que a espera de
+// confirmar cada um.
+coletor := Rede.udp(porta := 0, escutar := yes)
+defer:
+    _ := coletor.fechar()
+
+agente := Rede.udp()
+defer:
+    _ := agente.fechar()
+
+_ := agente.enviar("pedidos=42", "127.0.0.1", coletor.porta)
+chegou := coletor.receber(prazo := 3.0)
+out $"de {chegou['host']}: {B.para_texto(chegou['dados'])}"
+assert B.para_texto(chegou["dados"]) is "pedidos=42"
+
+// ── 4. DNS ──
+locais := Rede.resolver("localhost")
+assert len(locais) bigger 0
+achou := [e cycle e in locais given e["ip"] in ["127.0.0.1", "::1"]]
+assert len(achou) bigger 0
+
+// ── 5. Portas ──
+livre := Rede.porta_livre()
+assert not Rede.porta_aberta("127.0.0.1", livre, 0.2), "ninguem escuta ali"
+assert Rede.porta_aberta("127.0.0.1", servidor.porta), "o nosso, sim"
+
+// ARMADILHA: 'porta_aberta' ABRE uma conexao de verdade — nao ha como
+// perguntar sem bater na porta. Um servidor que conta conexoes vai ver
+// esta tambem.
+
+// 'esperar_porta' substitui o "dorme dois segundos e torce" de todo
+// script de integracao.
+gasto := Rede.esperar_porta("127.0.0.1", servidor.porta, prazo := 5.0)
+assert gasto smaller 1.0
+
+// ── 6. Erro de conexao diz o que significa ──
+monitor:
+    _ := Rede.conectar("127.0.0.1", livre, prazo := 2.0)
+    assert no
+handle Error as e:
+    // A PORTA nao entra na saida: ela e sorteada, e um exercicio cuja
+    // saida muda a cada execucao nao pode ser comparado — e a suite
+    // compara, para provar que a compilacao nao muda o resultado.
+    assert "RECUSADA" in e.message, "recusa e resposta: o host esta de pe"
+    out "conexao em porta vazia: RECUSADA"
+
+out "236 ok"

@@ -854,9 +854,19 @@ def test_o_deb_gerado_e_um_ar_valido(tmp_path):
 # ═══════════════════════════════════════════════════════════
 
 def _links_de(texto):
-    """As duas formas: `](/rota)` do Markdown e `"href": "/rota"`."""
+    """As duas formas: `](/rota)` do Markdown e `"href": "/rota"`.
+
+    O BLOCO DE CÓDIGO fica de fora. Uma página que ensina HTML mostra
+
+        <a href="/produto/1">Ver</a>
+
+    dentro de um exemplo, e `/produto/1` não é uma rota do site — é o
+    assunto da aula. Contá-lo como link quebrado faria a trava acusar
+    justamente a documentação que faz o seu trabalho.
+    """
     import re
 
+    texto = re.sub(r"code:\s*`(?:[^`\\]|\\.)*`", "", texto, flags=re.S)
     achados = set(re.findall(r"\]\((/[a-z0-9/_.-]+)\)", texto))
     achados |= set(re.findall(r'"href":\s*"(/[a-z0-9/_.-]+)"', texto))
     achados |= set(re.findall(r"href=\{?[\"'](/[a-z0-9/_.-]+)[\"']", texto))

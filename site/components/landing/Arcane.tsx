@@ -19,12 +19,12 @@ const total = modulos.reduce((n, [, m]) => n + m.funcoes.length, 0);
  * suíte enquanto ele estiver lá: aparecer no lugar errado é ruim,
  * desaparecer é pior. */
 const grupos: { rotulo: string; chaves: string[] }[] = [
-  { rotulo: 'Núcleo', chaves: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal'] },
+  { rotulo: 'Núcleo', chaves: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal', 'bytes'] },
   { rotulo: 'Frameworks', chaves: ['kiln', 'vitrine', 'lavra', 'crucible', 'forge', 'api'] },
   { rotulo: 'Dados', chaves: ['data', 'analytics', 'cortex', 'lago', 'pipeline', 'qualidade', 'stream'] },
-  { rotulo: 'Formatos', chaves: ['serialization', 'excel', 'archive', 'database'] },
-  { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha'] },
-  { rotulo: 'Qualidade', chaves: ['test', 'logging', 'crypto', 'observar', 'color', 'meta'] },
+  { rotulo: 'Formatos', chaves: ['serialization', 'excel', 'archive', 'database', 'html'] },
+  { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email'] },
+  { rotulo: 'Qualidade', chaves: ['test', 'logging', 'crypto', 'observar', 'color', 'meta', 'cli', 'eventos'] },
 ];
 
 /** O que nenhum grupo reivindicou. Vazio é o estado esperado. */

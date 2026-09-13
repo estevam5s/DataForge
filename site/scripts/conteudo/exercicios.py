@@ -55,6 +55,7 @@ ASSUNTOS = {
     "31-qualidade": "check, lint, cobertura e o que o CI cobra",
     "32-microservicos": "Arcane.Malha: retry, disjuntor, rastro e saga",
     "33-lavra": "esquema, consulta, lote contra o N+1, servidor e federação",
+    "34-binario-e-rede": "dados binários, TCP/UDP/DNS, eventos, CLI, e-mail e HTML",
 }
 
 
@@ -270,6 +271,7 @@ TITULOS = {
     "31-qualidade": "Qualidade",
     "32-microservicos": "Microserviços",
     "33-lavra": "Lavra",
+    "34-binario-e-rede": "Binário e rede",
 }
 
 
@@ -354,7 +356,7 @@ def _pagina_modulo(nome, itens, caminhos):
     # ── O corpo: cada exercício, por inteiro ──────────────────────
     #
     # Antes a página parava na tabela acima: título e enunciado, e nada
-    # do código. Quem chegava por busca via a PROMESSA de 234 exercícios
+    # do código. Quem chegava por busca via a PROMESSA de 237 exercícios
     # e nenhum deles — para ler um, era preciso clonar o repositório.
     # O código é a resposta e o teste ao mesmo tempo; escondê-lo
     # esvazia a seção inteira.

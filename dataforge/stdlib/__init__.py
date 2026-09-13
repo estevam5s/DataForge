@@ -41,6 +41,12 @@ from .arcane_observar import ArcaneObservar
 from .arcane_ponte import ArcanePonte
 from .arcane_decimal import ArcaneDecimal
 from .arcane_api import ArcaneAPI
+from .arcane_bytes import ArcaneBytes
+from .arcane_cli import ArcaneCli
+from .arcane_email import ArcaneEmail
+from .arcane_eventos import ArcaneEventos
+from .arcane_html import ArcaneHtml
+from .arcane_rede import ArcaneRede
 from .lavra import ArcaneLavra
 from .vitrine import ArcaneVitrine
 from .arcane_malha import ArcaneMalha
@@ -132,6 +138,27 @@ _MODULES = {
     "Parquet": ArcaneLago,
     "Arcane.API": ArcaneAPI,
     "API": ArcaneAPI,
+
+    # ── Dados binarios, rede, eventos, CLI, e-mail e HTML ──
+    "Arcane.Bytes": ArcaneBytes,
+    "Bytes": ArcaneBytes,
+    "Binario": ArcaneBytes,
+
+    "Arcane.Rede": ArcaneRede,
+    "Rede": ArcaneRede,
+    "Net": ArcaneRede,
+
+    "Arcane.Eventos": ArcaneEventos,
+    "Eventos": ArcaneEventos,
+
+    "Arcane.Cli": ArcaneCli,
+    "Cli": ArcaneCli,
+
+    "Arcane.Email": ArcaneEmail,
+    "Email": ArcaneEmail,
+
+    "Arcane.Html": ArcaneHtml,
+    "Html": ArcaneHtml,
 
     # ── Lavra — a consulta tipada ──
     "Arcane.Lavra": ArcaneLavra,

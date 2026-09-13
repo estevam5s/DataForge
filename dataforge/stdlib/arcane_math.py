@@ -2,8 +2,52 @@
 Arcane.Math - Scientific Computing & Mathematics
 """
 
+import cmath
 import math
+from fractions import Fraction
 import random
+
+
+
+def _fracao(a, b=None):
+    """Uma fracao exata. Aceita (1, 3), '1/3', 0.25 ou outra fracao."""
+    if b is not None:
+        return Fraction(int(a), int(b))
+    if isinstance(a, Fraction):
+        return a
+    if isinstance(a, str):
+        return Fraction(a)
+    if isinstance(a, float):
+        # De float vem a fracao EXATA daquele float — que para 0.1 e
+        # 3602879701896397/36028797018963968, e nao 1/10. Limitar o
+        # denominador devolve o que a pessoa quis dizer.
+        return Fraction(a).limit_denominator(1000000)
+    return Fraction(int(a))
+
+
+def _dobrar(partes, operacao):
+    if len(partes) == 1 and isinstance(partes[0], (list, tuple)):
+        partes = partes[0]
+    valores = [_fracao(p) for p in partes]
+    if not valores:
+        return Fraction(0)
+    total = valores[0]
+    for v in valores[1:]:
+        total = operacao(total, v)
+    return total
+
+
+def _complexo_texto(z):
+    """'3 + 4i', que e como se escreve — e nao o 'j' do Python."""
+    z = complex(z)
+    real = f"{z.real:g}"
+    imag = f"{abs(z.imag):g}"
+    sinal = "-" if z.imag < 0 else "+"
+    if z.imag == 0:
+        return real
+    if z.real == 0:
+        return f"{'-' if z.imag < 0 else ''}{imag}i"
+    return f"{real} {sinal} {imag}i"
 
 
 class ArcaneMath:
@@ -12,6 +56,55 @@ class ArcaneMath:
     def __new__(cls):
         return {
             "__name__": "Arcane.Math",
+
+            # ── Fracao exata ───────────────────────────────────
+            #
+            # 1/3 em float e 0.333…, e tres deles nao dao 1. A fracao
+            # guarda o numerador e o denominador, e a conta fecha:
+            #
+            #     f := Math.fracao(1, 3)
+            #     Math.fracao_texto(Math.fracao_soma(f, f, f))   "1"
+            #
+            # E diferente do Decimal: o Decimal e exato em BASE DEZ (e
+            # por isso serve para dinheiro), a fracao e exata em
+            # qualquer razao — 1/3 nao tem forma decimal finita.
+            "fracao": _fracao,
+            "fracao_de_texto": lambda t: Fraction(str(t)),
+            "fracao_soma": lambda *p: _dobrar(p, lambda a, b: a + b),
+            "fracao_menos": lambda a, b: _fracao(a) - _fracao(b),
+            "fracao_vezes": lambda *p: _dobrar(p, lambda a, b: a * b),
+            "fracao_dividido": lambda a, b: _fracao(a) / _fracao(b),
+            "fracao_texto": lambda f: str(_fracao(f)),
+            "fracao_partes": lambda f: [_fracao(f).numerator,
+                                        _fracao(f).denominator],
+            "fracao_float": lambda f: float(_fracao(f)),
+            "fracao_limitar": lambda f, teto: _fracao(f).limit_denominator(
+                int(teto)),
+
+            # ── Numero complexo ────────────────────────────────
+            #
+            # A linguagem nao tem literal complexo, entao ele e um par:
+            # 'Math.complexo(3, 4)' e 3 + 4i. Sinal e fase servem a
+            # quem trabalha com onda; a raiz de numero negativo, a quem
+            # cai nela sem querer.
+            "complexo": lambda real, imaginario=0.0: complex(
+                float(real), float(imaginario)),
+            "complexo_partes": lambda z: [z.real, z.imag],
+            # Envolvidas de proposito: uma funcao C do Python nao tem
+            # assinatura estavel entre versoes, e a doc GERADA passaria
+            # a mudar conforme o Python de quem a gera. Ha teste sobre
+            # isso ('a doc gerada nao depende da versao do Python').
+            "complexo_modulo": lambda z: abs(z),
+            "complexo_fase": lambda z: cmath.phase(z),
+            "complexo_polar": lambda z: list(cmath.polar(z)),
+            "complexo_de_polar": lambda r, a: cmath.rect(float(r), float(a)),
+            "complexo_conjugado": lambda z: complex(z).conjugate(),
+            "complexo_raiz": lambda z: cmath.sqrt(z),
+            "complexo_exp": lambda z: cmath.exp(z),
+            "complexo_log": lambda z, base=None: (
+                cmath.log(z) if base is None else cmath.log(z, base)),
+            "complexo_texto": _complexo_texto,
+
             # Constants
             "PI": math.pi,
             "E": math.e,

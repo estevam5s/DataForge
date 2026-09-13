@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Quarenta módulos e 1391 símbolos, sem uma única dependência externa.",
+  description: "Quarenta e seis módulos e 1490 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os quarenta módulos"
+    "h2": "Os quarenta e seis módulos"
   },
   {
-    "p": "São **1391 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1490 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -44,6 +44,11 @@ const blocos: Bloco[] = [
           "[`Kiln`](/docs/kiln)",
           "73",
           "Framework web: rotas, middleware, templates, sessão e arquivos estáticos."
+        ],
+        [
+          "[`Arcane.Math`](/docs/biblioteca/math)",
+          "72",
+          "Matemática, álgebra linear e estatística básica."
         ],
         [
           "`Arcane.Color`",
@@ -79,11 +84,6 @@ const blocos: Bloco[] = [
           "[`Arcane.Time`](/docs/biblioteca/time)",
           "54",
           "Datas, horas, durações e cronometragem."
-        ],
-        [
-          "[`Arcane.Math`](/docs/biblioteca/math)",
-          "51",
-          "Matemática, álgebra linear e estatística básica."
         ],
         [
           "[`Arcane.Crucible`](/docs/tecnicas/testes)",
@@ -146,6 +146,11 @@ const blocos: Bloco[] = [
           "JSON, CSV, INI, TOML, XML e conversões entre eles."
         ],
         [
+          "[`Arcane.Bytes`](/docs/biblioteca/bytes)",
+          "25",
+          "Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo."
+        ],
+        [
           "[`Arcane.Concurrent`](/docs/tecnicas/concorrencia)",
           "25",
           "Threads, processos, canal bloqueante, grupo de tarefas e prazo."
@@ -186,6 +191,11 @@ const blocos: Bloco[] = [
           "Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão."
         ],
         [
+          "[`Arcane.Rede`](/docs/biblioteca/rede)",
+          "16",
+          "TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host."
+        ],
+        [
           "[`Arcane.Process`](/docs/biblioteca/process)",
           "15",
           "Execução de processos externos, com stdout, stderr e código de saída."
@@ -206,6 +216,11 @@ const blocos: Bloco[] = [
           "Qualidade de dados: as seis dimensões, perfil, validação e limpeza."
         ],
         [
+          "[`Arcane.Cli`](/docs/biblioteca/cli)",
+          "12",
+          "A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo."
+        ],
+        [
           "[`Arcane.Meta`](/docs/biblioteca/meta)",
           "12",
           "Metadados de decorador: ler @Nome em tempo de execução."
@@ -214,6 +229,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Ponte`](/docs/tecnicas/ponte)",
           "12",
           "A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve."
+        ],
+        [
+          "[`Arcane.Html`](/docs/biblioteca/html)",
+          "11",
+          "Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas."
         ],
         [
           "[`Arcane.Pipeline`](/docs/tecnicas/pipeline)",
@@ -231,9 +251,19 @@ const blocos: Bloco[] = [
           "Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb."
         ],
         [
+          "[`Arcane.Eventos`](/docs/biblioteca/eventos)",
+          "8",
+          "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano."
+        ],
+        [
           "[`Arcane.API`](/docs/tecnicas/api)",
           "7",
           "A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas."
+        ],
+        [
+          "[`Arcane.Email`](/docs/biblioteca/email)",
+          "6",
+          "Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato."
         ]
       ]
     }
@@ -299,13 +329,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-quarenta-modulos', text: "Os quarenta módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-quarenta-e-seis-modulos', text: "Os quarenta e seis módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Quarenta módulos e 1391 símbolos, sem uma única dependência externa."}
+      description={"Quarenta e seis módulos e 1490 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

@@ -658,6 +658,205 @@
     }
    ]
   },
+  "bytes": {
+   "nome": "Arcane.Bytes",
+   "desc": "Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo.",
+   "curto": "Bytes",
+   "funcoes": [
+    {
+     "nome": "achar",
+     "sig": "(dados, agulha, desde)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "base64",
+     "sig": "(dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bits",
+     "sig": "(dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "concatenar",
+     "sig": "(pedacos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "copiar",
+     "sig": "(vista)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_base64",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_bits",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_hex",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_texto",
+     "sig": "(texto, codificacao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "desempacotar",
+     "sig": "(formato, dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "despejo",
+     "sig": "(dados, por_linha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dividir",
+     "sig": "(dados, separador)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "empacotar",
+     "sig": "(formato, valores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escrever",
+     "sig": "(ordem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fatiar",
+     "sig": "(dados, inicio, fim)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hex",
+     "sig": "(dados, separador)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "igual_em_tempo_fixo",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "inverter",
+     "sig": "(dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "janela",
+     "sig": "(dados, inicio, fim)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler",
+     "sig": "(dados, ordem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ou_exclusivo",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "para_texto",
+     "sig": "(dados, codificacao, estrito)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "preencher",
+     "sig": "(dados, tamanho_final, com, a_esquerda)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tamanho",
+     "sig": "(formato)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tipos",
+     "sig": "()",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "cli": {
+   "nome": "Arcane.Cli",
+   "desc": "A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo.",
+   "curto": "Cli",
+   "funcoes": [
+    {
+     "nome": "Comando",
+     "sig": "(nome, sobre, versao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Console",
+     "sig": "(prompt, sobre)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "comando",
+     "sig": "(nome, sobre, versao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "confirmar",
+     "sig": "(texto, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "console",
+     "sig": "(prompt, sobre)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "erro",
+     "sig": "(texto, codigo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escolher",
+     "sig": "(texto, opcoes, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "largura",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limpar",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "perguntar",
+     "sig": "(texto, padrao, valida)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "segredo",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tem_terminal",
+     "sig": "()",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "collections": {
    "nome": "Arcane.Collections",
    "desc": "Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca.",
@@ -2571,6 +2770,90 @@
     }
    ]
   },
+  "email": {
+   "nome": "Arcane.Email",
+   "desc": "Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato.",
+   "curto": "Email",
+   "funcoes": [
+    {
+     "nome": "Caixa",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Mensagem",
+     "sig": "(de, para, assunto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "caixa",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "enviar",
+     "sig": "(mensagem_, servidor, porta, usuario, senha, seguro, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mensagem",
+     "sig": "(de, para, assunto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "valido",
+     "sig": "(endereco)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "eventos": {
+   "nome": "Arcane.Eventos",
+   "desc": "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano.",
+   "curto": "Eventos",
+   "funcoes": [
+    {
+     "nome": "Emissor",
+     "sig": "(nome, teto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Fila",
+     "sig": "(trabalhador, operarios, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "com_contexto",
+     "sig": "(dados, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contexto",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "emissor",
+     "sig": "(nome, teto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fila",
+     "sig": "(trabalhador, operarios, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "guardar",
+     "sig": "(chave, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "por",
+     "sig": "(chave, padrao)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "excel": {
    "nome": "Arcane.Excel",
    "desc": "Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame.",
@@ -3153,6 +3436,68 @@
     {
      "nome": "zip_with",
      "sig": "(fn, collections)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "html": {
+   "nome": "Arcane.Html",
+   "desc": "Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas.",
+   "curto": "Html",
+   "funcoes": [
+    {
+     "nome": "No",
+     "sig": "(tag, atributos, pai)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "achar",
+     "sig": "(fonte, seletor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "achar_todos",
+     "sig": "(fonte, seletor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "desescapar",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limpar",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "links_de",
+     "sig": "(fonte, base)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "podar",
+     "sig": "(fonte, permitidas, links_seguros)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tabela_de",
+     "sig": "(fonte, seletor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "texto_de",
+     "sig": "(fonte)",
      "tipo": "funcao"
     }
    ]
@@ -4594,6 +4939,61 @@
      "tipo": "funcao"
     },
     {
+     "nome": "complexo",
+     "sig": "(real, imaginario)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_conjugado",
+     "sig": "(z)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_de_polar",
+     "sig": "(r, a)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_exp",
+     "sig": "(z)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_fase",
+     "sig": "(z)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_log",
+     "sig": "(z, base)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_modulo",
+     "sig": "(z)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_partes",
+     "sig": "(z)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_polar",
+     "sig": "(z)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_raiz",
+     "sig": "(z)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexo_texto",
+     "sig": "(z)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "cos",
      "sig": "(x)",
      "tipo": "funcao"
@@ -4631,6 +5031,56 @@
     {
      "nome": "floor",
      "sig": "(x)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao_de_texto",
+     "sig": "(t)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao_dividido",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao_float",
+     "sig": "(f)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao_limitar",
+     "sig": "(f, teto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao_menos",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao_partes",
+     "sig": "(f)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao_soma",
+     "sig": "(p)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao_texto",
+     "sig": "(f)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fracao_vezes",
+     "sig": "(p)",
      "tipo": "funcao"
     },
     {
@@ -5450,6 +5900,93 @@
     {
      "nome": "unicidade",
      "sig": "(linhas, campo)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "rede": {
+   "nome": "Arcane.Rede",
+   "desc": "TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host.",
+   "curto": "Rede",
+   "funcoes": [
+    {
+     "nome": "Conexao",
+     "sig": "(bruto, endereco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Servidor",
+     "sig": "(atender, host, porta, fila, tls)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "certificado_de",
+     "sig": "(host, porta, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conectar",
+     "sig": "(host, porta, prazo, tls, conferir)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dias_ate_vencer",
+     "sig": "(host, porta)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar_porta",
+     "sig": "(host, porta, prazo, intervalo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "meu_ip",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "meu_nome",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nome_de",
+     "sig": "(ip)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "porta_aberta",
+     "sig": "(host, porta, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "porta_livre",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "prazo_padrao",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "resolver",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "servir",
+     "sig": "(atender, host, porta, tls)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "servir_em_segundo_plano",
+     "sig": "(atender, host, porta, tls)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "udp",
+     "sig": "(host, porta, escutar)",
      "tipo": "funcao"
     }
    ]
@@ -9174,6 +9711,32 @@
     "temDoc": true,
     "codigo": "// Exercicio 234 — Lavra: contratos, mudancas, servidor e federacao\n// Enunciado: sirva o esquema por HTTP e componha dois servicos num so.\n\nadopt Arcane.Lavra as Lavra\nadopt Arcane.Web as Web\nadopt Arcane.Serialization as Serde\n\n// ── 1. Contrato: campos que varios tipos prometem ter ──\nrecord Artigo:\n    id: Integer\n    titulo: String\n\nrecord Video:\n    id: Integer\n    titulo: String\n    minutos: Integer\n\nesq := Lavra.esquema(\"cms\")\n\nLavra.tipo(esq, Artigo, cumpre := [\"Conteudo\"])\nLavra.tipo(esq, Video, cumpre := [\"Conteudo\"])\nLavra.campo(esq, \"Artigo\", \"titulo\", \"String!\")\nLavra.campo(esq, \"Video\", \"titulo\", \"String!\")\nLavra.campo(esq, \"Video\", \"minutos\", \"Integer!\")\n\n// O contrato precisa saber, na hora, QUAL tipo concreto e aquele valor.\naction que_tipo(valor):\n    yield \"Video\" given \"minutos\" in valor.fields otherwise \"Artigo\"\n\nLavra.contrato(esq, \"Conteudo\", {\"id\": \"Integer\", \"titulo\": \"String\"},\n    resolve_tipo := que_tipo)\n\nacervo := [Artigo(1, \"Sobre a forja\"), Video(2, \"Como fundir\", 12)]\nLavra.busca(esq, \"acervo\", \"[Conteudo!]!\", resolve := lambda r, a, c => acervo)\n\n// ── 2. Mudanca: a escrita aparece no NOME da operacao ──\n//\n// Quem le a consulta sabe, sem abrir o resolvedor, se aquilo muda\n// alguma coisa. Uma entrada e um tipo DIFERENTE do de saida: o Artigo\n// que sai tem 'id', o que entra nao.\nLavra.entrada(esq, {\"titulo\": \"String\"}, nome := \"NovoArtigo\")\nLavra.campo(esq, \"NovoArtigo\", \"titulo\", \"String!\")\n\naction criar_artigo(_raiz, args):\n    novo := Artigo(len(acervo) + 1, args[\"dados\"][\"titulo\"])\n    acervo.append(novo)\n    yield novo\n\nLavra.mudanca(esq, \"criarArtigo\", \"Artigo!\", args := {\"dados\": \"NovoArtigo!\"},\n    resolve := criar_artigo)\n\nLavra.conferir(esq)\n\nr := Lavra.executar(esq, \"\"\"\nbusca:\n    acervo:\n        titulo\n        ... em Video:\n            minutos\n\"\"\")\nout r[\"dados\"]\nassert r[\"dados\"][\"acervo\"][1][\"minutos\"] is 12, \"o trecho condicional casou\"\nassert \"minutos\" not in r[\"dados\"][\"acervo\"][0], \"o artigo nao tem minutos\"\n\nm := Lavra.executar(esq, \"\"\"\nmudanca:\n    criarArtigo(dados: {titulo: \"Recem-forjado\"}):\n        id\n        titulo\n\"\"\")\nassert m[\"dados\"][\"criarArtigo\"][\"titulo\"] is \"Recem-forjado\"\nassert len(acervo) is 3, \"a mudanca mudou mesmo\"\n\n// ── 3. Servir por HTTP ──\n//\n// Uma rota, um metodo: POST executa, GET devolve o esquema em texto.\n// Nao ha uma rota por busca — a consulta ja diz o que quer, e uma\n// rota por campo desfaria a razao de o Lavra existir.\npar := Lavra.em_segundo_plano(esq)\napp := par[0]\nporta := par[1]\ndefer:\n    Lavra.parar(app)\n\nbase := $\"http://127.0.0.1:{porta}/lavra\"\n\nresposta := Web.post(base, {\"consulta\": \"busca:\\n    acervo:\\n        titulo\"})\ncorpo := Serde.from_json(resposta[\"body\"])\nout resposta[\"status\"], len(corpo[\"dados\"][\"acervo\"])\nassert resposta[\"status\"] is 200\nassert len(corpo[\"dados\"][\"acervo\"]) is 3\n\n// Um erro de consulta responde 200 — o HTTP falou, e a resposta tem\n// 'dados' e 'erros'. E o que permite dados parciais.\nruim := Web.post(base, {\"consulta\": \"busca:\\n    naoExiste\"})\nassert ruim[\"status\"] is 200\nassert Serde.from_json(ruim[\"body\"])[\"dados\"] is void\n\nesquema_em_texto := Web.get(base)\nassert \"tipo Video cumpre Conteudo:\" in esquema_em_texto[\"body\"], \"o GET versiona o esquema\"\n\n// ── 4. Federacao: dois servicos, um esquema ──\ncontas := Lavra.esquema(\"contas\")\nLavra.tipo(contas, {\"id\": \"Integer\", \"nome\": \"String\"}, nome := \"Conta\")\nLavra.campo(contas, \"Conta\", \"nome\", \"String!\")\nLavra.busca(contas, \"conta\", \"Conta\", args := {\"id\": \"Integer!\"},\n    resolve := lambda r, a, c => {\"id\": a[\"id\"], \"nome\": \"Ana\"})\n\nvendas := Lavra.esquema(\"vendas\")\nLavra.tipo(vendas, {\"id\": \"Integer\", \"total\": \"Float\"}, nome := \"Venda\")\nLavra.campo(vendas, \"Venda\", \"total\", \"Float!\")\nLavra.busca(vendas, \"venda\", \"Venda\", args := {\"id\": \"Integer!\"},\n    resolve := lambda r, a, c => {\"id\": a[\"id\"], \"total\": 9.9})\n\nportao := Lavra.portao()\nLavra.juntar(portao, \"contas\", contas)\nLavra.juntar(portao, \"vendas\", vendas)\n\n// O campo que atravessa a fronteira e declarado como extensao.\nLavra.estender(portao, \"Conta\", \"vendas\", \"[Venda!]!\",\n    resolve := lambda conta, a, ctx => [{\"id\":1, \"total\":9.9}])\n\nf := Lavra.executar(portao.esquema, \"\"\"\nbusca:\n    conta(id: 1):\n        nome\n        vendas:\n            total\n\"\"\")\nout f[\"dados\"]\nassert f[\"dados\"][\"conta\"][\"vendas\"][0][\"total\"] is 9.9\n\n// De onde vem cada tipo — a resposta para \"quem declara isto?\"\nmapa := Lavra.mapa(portao)\nout mapa[\"tipos\"][\"Conta\"], mapa[\"tipos\"][\"Venda\"]\nassert mapa[\"tipos\"][\"Conta\"] is \"contas\"\nassert mapa[\"tipos\"][\"Venda\"] is \"vendas\"\n\nout \"231 ok\"\n"
    }
+  ],
+  "34-binario-e-rede": [
+   {
+    "num": "235",
+    "titulo": "Dados binarios com Arcane.Bytes",
+    "enunciado": "monte e leia um cabecalho de protocolo, byte a byte.",
+    "arquivo": "235_bytes.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 235 — Dados binarios com Arcane.Bytes\n// Enunciado: monte e leia um cabecalho de protocolo, byte a byte.\n\nadopt Arcane.Bytes as B\n\n// ── 1. A ordem dos bytes e OBRIGATORIA ──\n//\n// 'i32' sozinho nao existe aqui. Um inteiro escrito na ordem da\n// maquina e lido na ordem da rede da um numero diferente, o programa\n// nao falha, e o dado sai errado do outro lado.\nmonitor:\n    _ := B.empacotar(\"i32\", 1)\n    assert no, \"devia ter recusado\"\nhandle Error as e:\n    assert \"ORDEM DOS BYTES\" in e.message\n\nassert B.hex(B.empacotar(\">i32\", 1)) is \"00000001\", \"rede: byte mais alto primeiro\"\nassert B.hex(B.empacotar(\"<i32\", 1)) is \"01000000\", \"Intel: ao contrario\"\n\n// ── 2. Um cabecalho de protocolo ──\n//\n// \"versao (1 byte), tipo (1), tamanho (4)\" — escrito assim, e nao com\n// contas de deslocamento.\ncabecalho := B.empacotar(\">u8 u8 u32\", 1, 7, 1024)\nout B.hex(cabecalho, \" \")\nassert B.tamanho(\">u8 u8 u32\") is 6\nassert B.desempacotar(\">u8 u8 u32\", cabecalho) is [1, 7, 1024]\n\n// ── 3. O cursor anda sozinho ──\n//\n// Ler com fatias exige acertar o indice de cada campo, e um erro num\n// deles desalinha TUDO o que vem depois — entregando numeros\n// plausiveis e errados.\nmensagem := B.concatenar(cabecalho, B.de_texto(\"DataForge\"))\nleitor := B.ler(mensagem)\n\nversao := leitor.ler(\"u8\")\ntipo := leitor.ler(\"u8\")\ntamanho := leitor.ler(\"u32\")\ncorpo := leitor.resto()\n\nout $\"v{versao} tipo={tipo} tamanho={tamanho} corpo={B.para_texto(corpo)}\"\nassert versao is 1\nassert B.para_texto(corpo) is \"DataForge\"\nassert leitor.acabou\n\n// Ler alem do fim diz quanto falta, em vez de estourar calado.\ncurto := B.ler(B.de_hex(\"01\"))\nmonitor:\n    _ := curto.ler(\"u32\")\n    assert no\nhandle Error as e:\n    assert \"pede 4\" in e.message\n\n// ── 4. Escrever ──\nescritor := B.escrever()\n_ := escritor.escrever(\"u8\", 2)\n_ := escritor.escrever(\"u32\", 99)\n_ := escritor.escrever_texto(\"fim\", com_zero := yes)\nmontado := escritor.finalizar()\nassert B.ler(montado).ler(\"u8\") is 2\n\nde_volta := B.ler(montado)\n_ := de_volta.ler(\"u8\")\nassert de_volta.ler(\"u32\") is 99\nassert de_volta.ler_ate_zero() is \"fim\"\n\n// ── 5. Ver o que esta errado ──\n//\n// O despejo e o que se olha quando o protocolo nao bate: posicao,\n// hexadecimal e o texto legivel, lado a lado.\nout B.despejo(mensagem)\nassert \"DataForge\" in B.despejo(mensagem)\n\n// ── 6. Segredo se compara em tempo fixo ──\n//\n// Uma comparacao comum para no primeiro byte diferente, e o TEMPO\n// conta quantos bateram. Com isso, um atacante descobre um token byte\n// a byte.\ntoken := B.de_hex(\"deadbeef\")\nassert B.igual_em_tempo_fixo(token, B.de_hex(\"deadbeef\"))\nassert not B.igual_em_tempo_fixo(token, B.de_hex(\"deadbeff\"))\n\n// ── 7. A janela nao copia ──\n//\n// Copiar um arquivo de 200 MB para ler 8 bytes e o jeito mais facil de\n// estourar a memoria.\ngrande := B.de_texto(\"x\" * 10000)\npedaco := B.janela(grande, 100, 108)\nassert len(B.copiar(pedaco)) is 8\n\nout \"235 ok\"\n"
+   },
+   {
+    "num": "236",
+    "titulo": "TCP, UDP e DNS com Arcane.Rede",
+    "enunciado": "fale um protocolo proprio, abaixo do HTTP.",
+    "arquivo": "236_rede.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 236 — TCP, UDP e DNS com Arcane.Rede\n// Enunciado: fale um protocolo proprio, abaixo do HTTP.\n\nadopt Arcane.Rede as Rede\nadopt Arcane.Bytes as B\n\n// ── 1. Um servidor TCP que fala um protocolo proprio ──\n//\n// O quadro e: tamanho (4 bytes, ordem de rede) + corpo. E o formato\n// mais comum que existe, e o que resolve o problema do TCP nao ter\n// fronteira de mensagem — ele entrega um FLUXO de bytes, e nao\n// mensagens.\naction atender(conexao):\n    persist yes:\n        cabecalho := conexao.receber(4)\n        given len(cabecalho) is 0:\n            halt\n        tamanho := B.desempacotar(\">u32\", cabecalho)[0]\n        corpo := conexao.receber_exato(tamanho)\n        resposta := B.de_texto(B.para_texto(corpo).upper())\n        _ := conexao.enviar(B.empacotar(\">u32\", len(resposta)))\n        _ := conexao.enviar(resposta)\n\nservidor := Rede.servir_em_segundo_plano(atender, porta := 0)\ndefer:\n    _ := servidor.parar()\n\n// ── 2. O cliente ──\ncliente := Rede.conectar(\"127.0.0.1\", servidor.porta)\ndefer:\n    _ := cliente.fechar()\n\naction pedir(texto):\n    dados := B.de_texto(texto)\n    _ := cliente.enviar(B.empacotar(\">u32\", len(dados)))\n    _ := cliente.enviar(dados)\n    quanto := B.desempacotar(\">u32\", cliente.receber_exato(4))[0]\n    yield B.para_texto(cliente.receber_exato(quanto))\n\nout pedir(\"forja\")\nassert pedir(\"forja\") is \"FORJA\"\nassert pedir(\"bigorna e marreta\") is \"BIGORNA E MARRETA\"\n\n// 'receber_exato' insiste ate completar. O 'recv' devolve MENOS do que\n// se pediu com frequencia num pedaco que atravessa pacotes, e tratar o\n// retorno curto como a mensagem inteira corrompe a proxima — o sintoma\n// e uma conexao que funciona e de repente para.\nlongo := \"a\" * 5000\nassert len(pedir(longo)) is 5000, \"atravessa varios pacotes\"\n\n// ── 3. UDP: manda e esquece ──\n//\n// Sem conexao, sem ordem, sem garantia. E o certo para metrica,\n// descoberta e log — onde perder um pacote custa menos que a espera de\n// confirmar cada um.\ncoletor := Rede.udp(porta := 0, escutar := yes)\ndefer:\n    _ := coletor.fechar()\n\nagente := Rede.udp()\ndefer:\n    _ := agente.fechar()\n\n_ := agente.enviar(\"pedidos=42\", \"127.0.0.1\", coletor.porta)\nchegou := coletor.receber(prazo := 3.0)\nout $\"de {chegou['host']}: {B.para_texto(chegou['dados'])}\"\nassert B.para_texto(chegou[\"dados\"]) is \"pedidos=42\"\n\n// ── 4. DNS ──\nlocais := Rede.resolver(\"localhost\")\nassert len(locais) bigger 0\nachou := [e cycle e in locais given e[\"ip\"] in [\"127.0.0.1\", \"::1\"]]\nassert len(achou) bigger 0\n\n// ── 5. Portas ──\nlivre := Rede.porta_livre()\nassert not Rede.porta_aberta(\"127.0.0.1\", livre, 0.2), \"ninguem escuta ali\"\nassert Rede.porta_aberta(\"127.0.0.1\", servidor.porta), \"o nosso, sim\"\n\n// ARMADILHA: 'porta_aberta' ABRE uma conexao de verdade — nao ha como\n// perguntar sem bater na porta. Um servidor que conta conexoes vai ver\n// esta tambem.\n\n// 'esperar_porta' substitui o \"dorme dois segundos e torce\" de todo\n// script de integracao.\ngasto := Rede.esperar_porta(\"127.0.0.1\", servidor.porta, prazo := 5.0)\nassert gasto smaller 1.0\n\n// ── 6. Erro de conexao diz o que significa ──\nmonitor:\n    _ := Rede.conectar(\"127.0.0.1\", livre, prazo := 2.0)\n    assert no\nhandle Error as e:\n    // A PORTA nao entra na saida: ela e sorteada, e um exercicio cuja\n    // saida muda a cada execucao nao pode ser comparado — e a suite\n    // compara, para provar que a compilacao nao muda o resultado.\n    assert \"RECUSADA\" in e.message, \"recusa e resposta: o host esta de pe\"\n    out \"conexao em porta vazia: RECUSADA\"\n\nout \"236 ok\"\n"
+   },
+   {
+    "num": "237",
+    "titulo": "Eventos, linha de comando, e-mail e HTML",
+    "enunciado": "junte as pecas que faltavam para um programa completo.",
+    "arquivo": "237_eventos_cli_html.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 237 — Eventos, linha de comando, e-mail e HTML\n// Enunciado: junte as pecas que faltavam para um programa completo.\n\nadopt Arcane.Eventos as Ev\nadopt Arcane.Cli as Cli\nadopt Arcane.Email as Mail\nadopt Arcane.Html as Html\n\n// ── 1. Eventos: duas partes que nao se conhecem ──\nloja := Ev.emissor(\"loja\")\nnotas := []\navisos := []\n\n_ := loja.ao(\"venda\", lambda pedido: notas.append(pedido))\n_ := loja.ao(\"venda\", lambda pedido: avisos.append($\"aviso de {pedido}\"))\n\n// 'emitir' devolve QUANTOS ouviram. Zero e informacao: o evento com o\n// nome errado nao falha, ele simplesmente nao chega — e essa e a falha\n// mais dificil de achar num sistema de eventos.\nassert loja.emitir(\"venda\", \"P-1\") is 2\nassert loja.emitir(\"vendaa\", \"P-2\") is 0, \"nome errado: ninguem ouviu\"\nassert notas is [\"P-1\"]\n\n// Um ouvinte que quebra SAI da lista. Um quebrado que continua inscrito\n// quebra a cada evento, para sempre, e some no meio do log.\nfrageis := Ev.emissor()\nbons := []\n_ := frageis.ao(\"x\", lambda v: 1 ~/ 0)\n_ := frageis.ao(\"x\", lambda v: bons.append(v))\nassert frageis.emitir(\"x\", 1) is 1, \"o bom recebeu mesmo assim\"\nassert frageis.ouvintes(\"x\") is 1, \"o quebrado saiu\"\nassert len(frageis.erros) is 1\n\n// O curinga ouve tudo — para log e auditoria.\ntudo := []\n_ := loja.ao(\"*\", lambda nome: tudo.append(nome))\n_ := loja.emitir(\"estorno\", \"P-1\")\nassert tudo is [\"estorno\"]\n\n// ── 2. O contexto atravessa as camadas ──\n//\n// Sem passar por parametro em cada uma. E por THREAD: um vault global\n// serviria ate o segundo pedido simultaneo.\naction camada_funda():\n    yield Ev.por(\"pedido\", \"(sem)\")\n\nassert Ev.com_contexto({\"pedido\": \"P-9\"}, camada_funda) is \"P-9\"\nassert camada_funda() is \"(sem)\", \"fora do contexto, nao ha nada\"\n\n// ── 3. A linha de comando ──\nprograma := Cli.comando(\"relatorio\", sobre := \"Gera o relatorio do mes.\",\n    versao := \"1.0.0\")\n_ := programa.opcao(\"mes\", \"inteiro\", curta := \"m\", exigida := yes,\n    sobre := \"o mes, de 1 a 12\")\n_ := programa.opcao(\"formato\", escolhas := [\"csv\", \"json\"], padrao := \"csv\")\n_ := programa.opcao(\"enviar\", \"sim_nao\", sobre := \"manda por e-mail\")\n_ := programa.posicional(\"saida\", exigido := no)\n\nlido := programa.ler([\"-m\", \"9\", \"--formato\", \"json\", \"--enviar\", \"out.json\"])\nout lido[\"mes\"], lido[\"formato\"], lido[\"enviar\"], lido[\"saida\"]\nassert lido[\"mes\"] is 9\nassert lido[\"formato\"] is \"json\"\nassert lido[\"enviar\"]\nassert lido[\"saida\"] is \"out.json\"\n\n// A ajuda e GERADA da declaracao. Escrita a mao, ela envelhece no\n// primeiro flag novo — e a ajuda errada e pior que nenhuma.\najuda := programa.ajuda()\nassert \"-m, --mes\" in ajuda\nassert \"csv|json\" in ajuda\nassert \"exigida\" in ajuda\n\n// O erro sugere o que existe, e sai com codigo 2: 1 e \"rodou e deu\n// errado\", 2 e \"voce chamou errado\".\nmonitor:\n    _ := programa.ler([\"--mess\", \"9\"])\n    assert no\nhandle Error as e:\n    assert \"--mes\" in e.message\n\n// ── 4. E-mail ──\nrelatorio := Mail.mensagem(\"forja@exemplo.br\", \"chefe@exemplo.br\",\n    \"Relatorio de setembro\")\n_ := relatorio.html(\"<h1>Setembro</h1><p>Total: <b>R$ 12.400</b></p>\")\n_ := relatorio.copia_oculta([\"auditoria@exemplo.br\"])\n_ := relatorio.anexar_dados(\"relatorio.csv\", \"mes,total\\n9,12400\", \"text/csv\")\n\nprevia := relatorio.prever()\nout previa[\"assunto\"], \"->\", previa[\"para\"]\nassert len(previa[\"para\"]) is 2, \"o oculto recebe\"\nassert previa[\"texto\"] is \"Setembro Total: R$ 12.400\", \"alternativa em texto\"\n\n// O Bcc NAO vira cabecalho — ele iria visivel para todo mundo, que e o\n// oposto do que significa.\ncabecalho := relatorio.como_texto().split(\"\\n\\n\")[0]\nassert \"auditoria\" not in cabecalho\n\n// A caixa de teste tem o MESMO contrato do envio real.\ncaixa := Mail.caixa()\n_ := caixa.enviar(relatorio)\nassert len(caixa.para(\"chefe@exemplo.br\")) is 1\n\n// ── 5. HTML ──\npagina := \"\"\"\n<div class=\"produto\" id=\"p1\">\n  <h2>Bigorna</h2>\n  <span class=\"preco\"><b>R$</b> <span>450,00</span></span>\n  <a href=\"/produto/1\">Ver</a>\n</div>\n<table><tr><th>Item</th><th>Total</th></tr>\n       <tr><td>Bigorna</td><td>450</td></tr></table>\n\"\"\"\ndoc := Html.ler(pagina)\n\nassert doc.achar(\"#p1 h2\").texto is \"Bigorna\"\n// O texto junta com ESPACO: '<b>R$</b><span>10</span>' colado viraria\n// 'R$10'; com espaco, 'R$ 10' — que e o que a pagina mostra.\nassert doc.achar(\".preco\").texto is \"R$ 450,00\"\n\nlinks := doc.links(\"https://forja.br/loja/\")\nassert links[0][\"destino\"] is \"https://forja.br/produto/1\"\n\ntabela := doc.tabela()\nassert tabela[\"cabecalho\"] is [\"Item\", \"Total\"]\nassert tabela[\"linhas\"] is [[\"Bigorna\", \"450\"]]\n\n// 'limpar' tira o conteudo do script tambem. Um 'limpar' que so tira\n// as tags deixa o corpo do <script> como TEXTO — e ai o \"texto limpo\"\n// contem o codigo que se queria tirar.\nassert Html.limpar(\"<p>ok</p><script>roubar()</script>\") is \"ok\"\n\n// 'podar' usa lista de PERMITIDAS. Uma lista de proibidas esquece a\n// proxima tag perigosa que o navegador inventar.\npodado := Html.podar(\"<p>oi</p><iframe src='x'></iframe><b>b</b>\")\nassert \"iframe\" not in podado\nassert \"<b>b</b>\" in podado\n\nout \"237 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -9519,9 +10082,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 1660,
+  "testes": 1704,
   "exemplos": 44,
-  "arquivosDf": 344
+  "arquivosDf": 347
  },
  "mundo": {
   "estrelas": 0,

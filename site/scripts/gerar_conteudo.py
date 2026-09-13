@@ -35,6 +35,7 @@ MODULOS = [
     "api_publica",
     "crucible_doc",
     "lavra",
+    "plataforma",
     "vitrine",
     "versoes",
 ]

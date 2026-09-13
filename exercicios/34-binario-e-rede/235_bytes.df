@@ -1,0 +1,92 @@
+// Exercicio 235 — Dados binarios com Arcane.Bytes
+// Enunciado: monte e leia um cabecalho de protocolo, byte a byte.
+
+adopt Arcane.Bytes as B
+
+// ── 1. A ordem dos bytes e OBRIGATORIA ──
+//
+// 'i32' sozinho nao existe aqui. Um inteiro escrito na ordem da
+// maquina e lido na ordem da rede da um numero diferente, o programa
+// nao falha, e o dado sai errado do outro lado.
+monitor:
+    _ := B.empacotar("i32", 1)
+    assert no, "devia ter recusado"
+handle Error as e:
+    assert "ORDEM DOS BYTES" in e.message
+
+assert B.hex(B.empacotar(">i32", 1)) is "00000001", "rede: byte mais alto primeiro"
+assert B.hex(B.empacotar("<i32", 1)) is "01000000", "Intel: ao contrario"
+
+// ── 2. Um cabecalho de protocolo ──
+//
+// "versao (1 byte), tipo (1), tamanho (4)" — escrito assim, e nao com
+// contas de deslocamento.
+cabecalho := B.empacotar(">u8 u8 u32", 1, 7, 1024)
+out B.hex(cabecalho, " ")
+assert B.tamanho(">u8 u8 u32") is 6
+assert B.desempacotar(">u8 u8 u32", cabecalho) is [1, 7, 1024]
+
+// ── 3. O cursor anda sozinho ──
+//
+// Ler com fatias exige acertar o indice de cada campo, e um erro num
+// deles desalinha TUDO o que vem depois — entregando numeros
+// plausiveis e errados.
+mensagem := B.concatenar(cabecalho, B.de_texto("DataForge"))
+leitor := B.ler(mensagem)
+
+versao := leitor.ler("u8")
+tipo := leitor.ler("u8")
+tamanho := leitor.ler("u32")
+corpo := leitor.resto()
+
+out $"v{versao} tipo={tipo} tamanho={tamanho} corpo={B.para_texto(corpo)}"
+assert versao is 1
+assert B.para_texto(corpo) is "DataForge"
+assert leitor.acabou
+
+// Ler alem do fim diz quanto falta, em vez de estourar calado.
+curto := B.ler(B.de_hex("01"))
+monitor:
+    _ := curto.ler("u32")
+    assert no
+handle Error as e:
+    assert "pede 4" in e.message
+
+// ── 4. Escrever ──
+escritor := B.escrever()
+_ := escritor.escrever("u8", 2)
+_ := escritor.escrever("u32", 99)
+_ := escritor.escrever_texto("fim", com_zero := yes)
+montado := escritor.finalizar()
+assert B.ler(montado).ler("u8") is 2
+
+de_volta := B.ler(montado)
+_ := de_volta.ler("u8")
+assert de_volta.ler("u32") is 99
+assert de_volta.ler_ate_zero() is "fim"
+
+// ── 5. Ver o que esta errado ──
+//
+// O despejo e o que se olha quando o protocolo nao bate: posicao,
+// hexadecimal e o texto legivel, lado a lado.
+out B.despejo(mensagem)
+assert "DataForge" in B.despejo(mensagem)
+
+// ── 6. Segredo se compara em tempo fixo ──
+//
+// Uma comparacao comum para no primeiro byte diferente, e o TEMPO
+// conta quantos bateram. Com isso, um atacante descobre um token byte
+// a byte.
+token := B.de_hex("deadbeef")
+assert B.igual_em_tempo_fixo(token, B.de_hex("deadbeef"))
+assert not B.igual_em_tempo_fixo(token, B.de_hex("deadbeff"))
+
+// ── 7. A janela nao copia ──
+//
+// Copiar um arquivo de 200 MB para ler 8 bytes e o jeito mais facil de
+// estourar a memoria.
+grande := B.de_texto("x" * 10000)
+pedaco := B.janela(grande, 100, 108)
+assert len(B.copiar(pedaco)) is 8
+
+out "235 ok"
