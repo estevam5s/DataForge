@@ -16,7 +16,7 @@ class Environment:
     # escopos especificos (blocos com 'defer', modulos com 'relay'). Com
     # __slots__ eles precisam ser declarados aqui, senao o Python recusa
     # a atribuicao — e o erro aparece longe da causa.
-    __slots__ = ("parent", "name", "variables", "constants",
+    __slots__ = ("parent", "name", "variables", "constants", "embutidas",
                  "_deferred", "_exports")
 
     def __init__(self, parent=None, name: str = "<global>"):
@@ -24,6 +24,24 @@ class Environment:
         self.name = name
         self.variables: dict = {}
         self.constants: set = set()  # Names that are immutable (steady)
+        #: Os nomes que a LINGUAGEM pos aqui, e nao quem escreve.
+        #:
+        #: Eles vivem no mesmo dicionario do escopo global, e por isso
+        #: um 'len := 42' dentro de uma acao os encontrava ao subir a
+        #: cadeia e os SOBRESCREVIA — para o programa inteiro:
+        #:
+        #:     action c():
+        #:         len := 42          # parece uma variavel local
+        #:         yield len
+        #:     out c()                # 42
+        #:     out len([1, 2, 3])     # '42' is not callable
+        #:
+        #: Sao 228 nomes, e entre eles estao 'id', 'len', 'type', 'str',
+        #: 'sum', 'min', 'max', 'count', 'round', 'first', 'last' —
+        #: exatamente os que alguem usa como variavel local sem pensar.
+        #: A falha aparece longe: a acao funciona, e o programa quebra
+        #: na proxima vez que alguem chamar a embutida.
+        self.embutidas: set = set()
 
     def get(self, name: str):
         """Look up a variable, walking up the scope chain."""
@@ -84,6 +102,12 @@ class Environment:
         # Walk up to find existing variable to update
         env = self
         while env is not None:
+            # Uma EMBUTIDA nao e uma variavel de quem escreve: subir ate
+            # ela e reescreve-la apaga a funcao para o programa todo.
+            # Aqui a atribuicao para, e o nome vira local — que e o que
+            # toda linguagem com escopo de embutidas faz.
+            if name in env.embutidas:
+                break
             if name in env.variables:
                 if name in env.constants:
                     raise RuntimeError_(

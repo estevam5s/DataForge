@@ -82,7 +82,7 @@ def montar(app, esquema, caminho="/lavra", contexto_de=None,
                            "codigo": "pedido"}],
             }, 400)
 
-        ctx = Contexto(_contexto(contexto_de, req), esquema)
+        ctx = _contexto(contexto_de, req, esquema)
         resposta = executar(esquema, texto,
                             variaveis=corpo.get("variaveis")
                             or corpo.get("variables"),
@@ -104,16 +104,31 @@ def montar(app, esquema, caminho="/lavra", contexto_de=None,
     return app
 
 
-def _contexto(contexto_de, req):
+def _contexto(contexto_de, req, esquema=None):
+    """O contexto de UM pedido.
+
+    Quando `contexto_de` devolve um Contexto pronto, ele é usado
+    INTEIRO. A primeira versão pegava só o `.dados` e montava outro por
+    cima — e os LOTES ficavam para trás:
+
+        erro: não há lote chamado 'itens' nesta consulta
+
+    Quem escreve um `contexto_de` que registra os lotes está fazendo a
+    coisa certa; descartá-los silenciosamente transformava a montagem
+    correta no erro mais confuso do módulo.
+    """
     if contexto_de is None:
-        return {"pedido": req}
+        return Contexto({"pedido": req}, esquema)
     from .execucao import _chamar
-    dados = _chamar(contexto_de, req)
-    if isinstance(dados, Contexto):
-        return dados.dados
-    saida = dict(dados or {})
-    saida.setdefault("pedido", req)
-    return saida
+    pronto = _chamar(contexto_de, req)
+    if isinstance(pronto, Contexto):
+        pronto.dados.setdefault("pedido", req)
+        if esquema is not None:
+            pronto.esquema = esquema
+        return pronto
+    dados = dict(pronto or {})
+    dados.setdefault("pedido", req)
+    return Contexto(dados, esquema)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -219,7 +234,7 @@ def montar_assinaturas(app, esquema, caminho="/lavra/assinar",
 
 def _assinar(esquema, texto, pedido, soquete, contexto_de, req):
     """Roda a assinatura uma vez para descobrir a Fonte, e liga o cano."""
-    ctx = Contexto(_contexto(contexto_de, req or {}), esquema)
+    ctx = _contexto(contexto_de, req or {}, esquema)
     primeira = executar(esquema, texto,
                         variaveis=pedido.get("variaveis"),
                         contexto=ctx,

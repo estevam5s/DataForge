@@ -1,0 +1,40 @@
+// A casca web: Kiln para REST e o Lavra montado ao lado.
+//
+// Os dois convivem de proposito. Webhook, saude e download continuam
+// REST — um webhook e chamado por quem nao conhece o seu esquema.
+
+adopt Kiln
+adopt Arcane.Lavra as Lavra
+adopt ./banco as Banco
+adopt ./dominio as D
+adopt ./consulta as Consulta
+
+action montar(conexao, esq):
+    server api on 0:
+        after Kiln.cabecalhos_seguros()
+
+        route GET "/saude":
+            respond json {"ok": yes, "versao": "1.0.0"}
+
+        route GET "/pedidos/:id":
+            id := int(params["id"])
+            monitor:
+                pedido := Banco.pedido(conexao, id)
+                respond json {"id": pedido.id, "estado": pedido.estado,
+                    "total": D.em_reais(D.total_de(pedido))}
+            handle Error as e:
+                respond 404 json {"erro": e.message}
+
+        route POST "/pedidos":
+            dados := body ?? {}
+            given "itens" not in dados or len(dados["itens"]) is 0:
+                respond 400 json {"erro": "um pedido precisa de ao menos um item"}
+            itens := [D.Item(i["sku"], i["quantidade"], i["preco_centavos"])
+                cycle i in dados["itens"]]
+            id := Banco.criar_pedido(conexao, dados["cliente_id"] ?? 1, itens)
+            respond 201 json {"id": id}
+
+    Lavra.montar(api, esq, "/lavra", contexto_de := lambda _req => Consulta.contexto_de(conexao))
+    yield api
+
+relay montar

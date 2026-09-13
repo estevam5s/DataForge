@@ -215,10 +215,15 @@ class TypeChecker:
         if builtins is None:
             from .builtins import get_builtins
             builtins = get_builtins()
+        #: O que a LINGUAGEM pos no escopo global, e nao quem escreve.
+        #: Serve para nao confundir uma variavel local que sombreia uma
+        #: embutida com estado compartilhado — ver '_so_e_embutida'.
+        self._nomes_da_linguagem = set(builtins)
         for nome in builtins:
             self.global_scope.declare(nome, ANY)
         for extra in ("self", "this", "root", "__file__", "__name__", "error"):
             self.global_scope.declare(extra, ANY)
+            self._nomes_da_linguagem.add(extra)
 
         # Os 177 nomes de erro sao valores: 'to_raise(KeyError)',
         # 'e.type is KeyError'. Sem isto o analisador acusa "nome nao
@@ -1039,6 +1044,14 @@ class TypeChecker:
             # corrida. So o que vem de fora e compartilhado.
             if not escopo.has(nome):
                 continue
+            # Uma EMBUTIDA nao e estado compartilhado. 'id := int(...)'
+            # dentro de uma rota declara uma variavel local — e o nome
+            # so "existe fora" porque 'id' e uma das 228 funcoes da
+            # linguagem. Avisar ali e falso alarme no caminho mais
+            # comum: 'id', 'total', 'count' e 'max' sao nomes de
+            # variavel antes de serem nomes de funcao.
+            if self._so_e_embutida(nome, escopo):
+                continue
             self.warn(
                 f"'{nome}' e escrito dentro de '{palavra}' e vem de fora: "
                 f"duas threads podem perder atualizacoes",
@@ -1047,6 +1060,23 @@ class TypeChecker:
                 "'Arcane.Concurrent': 'contador()' para somar, 'mutex()' "
                 "para um bloco, ou 'canal()' para passar o valor adiante",
                 self._CODIGO_CORRIDA)
+
+    def _so_e_embutida(self, nome, escopo):
+        """O nome existe APENAS como função da linguagem?
+
+        Se sim, escrever nele dentro de um bloco concorrente declara uma
+        variável local — e não toca estado compartilhado nenhum. Foi o
+        interpretador que mudou: uma atribuição não sobe mais até as
+        embutidas para sobrescrevê-las.
+        """
+        if nome not in getattr(self, "_nomes_da_linguagem", ()):
+            return False
+        atual = escopo
+        while atual is not None:
+            if nome in atual.names and atual is not self.global_scope:
+                return False
+            atual = atual.parent
+        return True
 
     def _colher_escritas(self, no, saida):
         """Os nomes que este no atribui, em qualquer profundidade.

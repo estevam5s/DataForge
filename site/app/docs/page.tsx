@@ -128,7 +128,7 @@ export default function Home() {
           [<>Versão</>, <><code>1.0.0</code></>],
           [<>Extensão</>, <><code>.df</code></>],
           [<>Runtime</>, <>Python 3.10+, zero dependências</>],
-          [<>Biblioteca padrão</>, <>40 módulos, 1390 símbolos</>],
+          [<>Biblioteca padrão</>, <>40 módulos, 1391 símbolos</>],
           [<>Funções globais</>, <>228, sem <code>adopt</code></>],
           [<>Licença</>, <>MIT</>],
         ]}
@@ -329,7 +329,7 @@ dataforge version`}
           Cada um se verifica com <code>assert</code>. Vinte e dois módulos têm
           um <code>.md</code> explicativo ao lado de cada exercício.
         </Card>
-        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1390 símbolos">
+        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1391 símbolos">
           Estatística, bancos, HTTP, criptografia, Parquet, ML, streaming.
         </Card>
         <Card href="/docs/referencia/gramatica" title="Referência formal">

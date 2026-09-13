@@ -481,7 +481,7 @@ def _aplicar_cors(req, resp):
 
 def _rotear(app, req):
     for meio in app.middleware:
-        saida = meio(req)
+        saida = _chamar_middleware(meio, req)
         # Middleware que devolve resposta interrompe a cadeia: e assim
         # que autenticacao e limite de taxa cortam o pedido.
         if isinstance(saida, dict) and saida.get("__kiln__"):
@@ -550,6 +550,48 @@ def _resposta_de_erro(app, req, erro):
     if app.config.get("debug"):
         corpo["detalhe"] = mensagem
     return resposta(corpo, 500)
+
+
+def _chamar_middleware(meio, req):
+    """Chama o middleware, e explica quando ele nao e um middleware.
+
+    'Kiln.cabecalhos_seguros()', 'Kiln.comprimir()' e afins devolvem uma
+    funcao de DOIS argumentos — elas sao de saida, e vao no 'after'.
+    Escrita como 'middleware', a chamada de um argumento estourava com
+
+        ArcaneKiln._secure_headers.<locals>.depois() missing 1 required
+        positional argument: 'resp'
+
+    — o nome de uma funcao interna do modulo, num 500 generico, sobre
+    uma linha que parece certa. A troca entre 'middleware' e 'after' e o
+    engano mais facil de cometer aqui, porque os dois recebem o mesmo
+    tipo de coisa e so a aridade os distingue.
+    """
+    try:
+        return meio(req)
+    except TypeError as erro:
+        texto = str(erro)
+        if "positional argument" not in texto and "argument" not in texto:
+            raise
+        import inspect
+        try:
+            quantos = len([
+                p for p in inspect.signature(meio).parameters.values()
+                if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)])
+        except (TypeError, ValueError):
+            raise
+        if quantos != 2:
+            raise
+        nome = getattr(meio, "__qualname__", "") or getattr(meio, "__name__", "")
+        familia = nome.split(".")[-2] if "." in nome else nome
+        from ..errors import TypeError_
+        raise TypeError_(
+            "este middleware é de SAÍDA: ele recebe o pedido e a "
+            "resposta.",
+            nota="'middleware' roda ANTES da rota e recebe só o pedido; "
+                 "'after' roda depois e recebe os dois",
+            dica=f"troque por:  after {familia or 'o_seu_middleware'}(…)",
+            doc="kiln") from None
 
 
 def _servir_estatico(app, caminho):

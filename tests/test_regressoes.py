@@ -5137,3 +5137,154 @@ def test_o_numero_no_cabecalho_e_o_do_arquivo():
 
     assert not erradas, "número do cabeçalho diferente do arquivo:\n  " + \
         "\n  ".join(erradas)
+
+
+def test_o_executor_do_navegador_acha_o_modulo_vizinho():
+    """`adopt geometria` falhava no navegador.
+
+    O exercício 099 faz `adopt geometria as geo`, e o `geometria.df`
+    mora ao lado dele na pasta. No navegador não há "ao lado" — o
+    programa é um texto solto —, e o import falhava com
+
+        Module 'geometria' not found. Looked in the standard library,
+        next to example.df, and in forge_modules/
+
+    Um erro que não é do código do exercício, e que aparecia justamente
+    para quem estava aprendendo o capítulo de MÓDULOS.
+
+    A correção tem duas metades, e este teste cobre as duas: o pacote
+    da web carrega os auxiliares no **caminho de verdade**, e o
+    executor recebe a pasta de onde o programa veio.
+    """
+    import zipfile
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # ── 1. Os auxiliares estao no pacote, no caminho real ──
+    pacote = os.path.join(raiz, "site", "public", "dataforge-web.zip")
+    assert os.path.isfile(pacote), "rode scripts/gerar_runtime_web.py"
+    dentro = set(zipfile.ZipFile(pacote).namelist())
+    for esperado in ("exercicios/09-modulos/geometria.df",
+                     "exercicios/16-modulos-e-projetos/geometria.df",
+                     "exercicios/16-modulos-e-projetos/textos.df"):
+        assert esperado in dentro, f"{esperado} não foi para o pacote da web"
+
+    # Os dois 'geometria.df' DIFEREM — o do capitulo 16 tem um
+    # '_arredondar' que o exercicio 151 usa para provar o que o 'relay'
+    # esconde. Jogar os dois na raiz faria um sobrescrever o outro.
+    a = zipfile.ZipFile(pacote).read("exercicios/09-modulos/geometria.df")
+    b = zipfile.ZipFile(pacote).read(
+        "exercicios/16-modulos-e-projetos/geometria.df")
+    assert a != b, (
+        "os dois auxiliares ficaram iguais — se isso for de propósito, "
+        "o teste do 151 sobre o '_arredondar' deixou de fazer sentido")
+
+    # ── 2. O executor resolve o vizinho quando sabe a pasta ──
+    codigo = open(os.path.join(raiz, "site", "lib", "runtime.ts"),
+                  encoding="utf-8").read()
+    assert "def df_rodar(fonte, pasta=''):" in codigo, (
+        "o executor do navegador voltou a ignorar de onde o programa veio")
+    assert "df_rodar(__fonte__, __pasta__)" in codigo
+
+
+def test_todo_exercicio_que_importa_um_vizinho_tem_o_vizinho_no_pacote():
+    """A trava que liga as duas pontas.
+
+    Um exercício novo que importe um módulo ao lado, numa pasta fora da
+    lista do empacotador, volta a falhar no navegador — e só ali.
+    """
+    import glob
+    import re
+    import zipfile
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    dentro = set(zipfile.ZipFile(
+        os.path.join(raiz, "site", "public", "dataforge-web.zip")).namelist())
+
+    faltando = []
+    for caminho in sorted(glob.glob(os.path.join(raiz, "exercicios", "*",
+                                                 "[0-9]*.df"))):
+        fonte = open(caminho, encoding="utf-8").read()
+        for nome in re.findall(r"^adopt\s+([a-z_][\w]*)", fonte, re.M):
+            pasta = os.path.dirname(caminho)
+            vizinho = os.path.join(pasta, nome + ".df")
+            if not os.path.isfile(vizinho):
+                continue                      # é módulo da biblioteca
+            relativo = os.path.relpath(vizinho, raiz).replace(os.sep, "/")
+            if relativo not in dentro:
+                faltando.append(
+                    f"{os.path.relpath(caminho, raiz)} importa '{nome}', e "
+                    f"{relativo} não está no pacote da web")
+
+    assert not faltando, (
+        "\n  ".join(faltando) + "\n  Acrescente a pasta em AUXILIARES, "
+        "em scripts/gerar_runtime_web.py")
+
+
+def test_uma_variavel_local_nao_apaga_a_funcao_embutida():
+    """`len := 42` dentro de uma ação destruía `len` no programa inteiro.
+
+        action c():
+            len := 42          # parece uma variável local
+            yield len
+
+        out c()                # 42
+        out len([1, 2, 3])     # '42' is not callable
+
+    A causa: a atribuição sobe a cadeia de escopos procurando onde o
+    nome já existe — e as 228 embutidas vivem no escopo global. Ela as
+    achava e as sobrescrevia.
+
+    São exatamente os nomes que alguém usa como variável local sem
+    pensar: `id`, `len`, `type`, `str`, `sum`, `min`, `max`, `count`,
+    `round`, `first`, `last`. E a falha aparece **longe**: a ação
+    funciona, e o programa quebra na próxima vez que alguém chamar a
+    embutida — possivelmente em outro arquivo.
+    """
+    saida = run("""
+action usa_local():
+    len := 42
+    id := "x"
+    sum := yes
+    yield len
+
+out usa_local()
+out len([1, 2, 3])
+out id([1])
+out sum([1, 2, 3])
+""")
+    linhas = saida.splitlines()
+    assert linhas[0] == "42", "a local vale dentro da ação"
+    assert linhas[1] == "3", "e a embutida sobreviveu"
+    assert linhas[3] == "6"
+
+
+def test_redefinir_uma_embutida_no_topo_continua_valendo():
+    """A calibragem: proteger a embutida não pode virar proibi-la.
+
+    No nível de topo a troca é deliberada — quem escreveu `len := 7` na
+    primeira linha do arquivo sabe o que está fazendo.
+    """
+    assert run("len := 7\nout len") == "7"
+
+
+def test_a_variavel_de_fora_continua_sendo_reescrita_de_dentro():
+    """O outro lado: o contador com closure depende disso.
+
+        action contador():
+            n := 0
+            action proximo():
+                n += 1      # escreve no 'n' de FORA, e é o ponto
+                yield n
+    """
+    assert run("""
+action contador():
+    n := 0
+    action proximo():
+        n += 1
+        yield n
+    yield proximo
+
+p := contador()
+out p(), p(), p()
+""") == "1 2 3"

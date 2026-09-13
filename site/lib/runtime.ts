@@ -119,14 +119,33 @@ def _df_json(valor):
     return str(valor)
 
 
-def df_rodar(fonte):
-    """Executa um programa e devolve saída, valor e erro — nunca levanta."""
+def df_rodar(fonte, pasta=''):
+    """Executa um programa e devolve saída, valor e erro — nunca levanta.
+
+    'pasta' e de onde o programa VEIO. Ela existe por causa do 'adopt':
+    um exercicio do capitulo de modulos faz
+
+        adopt geometria as geo
+
+    e o 'geometria.df' mora ao lado dele na pasta. No navegador nao ha
+    "ao lado" — o programa e um texto solto —, e o import falhava com
+    "Module 'geometria' not found", um erro que nao e do codigo e que
+    aparecia justamente para quem estava aprendendo MODULOS.
+
+    Com a pasta, o arquivo fingido nasce no lugar certo e a resolucao
+    funciona exatamente como no disco. Sao os MESMOS arquivos: o pacote
+    da web carrega 'exercicios/09-modulos/geometria.df' no caminho de
+    verdade, e nao uma copia adaptada que divergiria na primeira
+    correcao.
+    """
     saida = io.StringIO()
     antigo = sys.stdout
     sys.stdout = saida
+    caminho = (pasta.rstrip('/') + '/programa.df') if pasta else '<stdin>'
     try:
         interpretador = Interpreter()
-        interpretador.run(parse(tokenize(fonte)))
+        interpretador.filename = caminho
+        interpretador.run(parse(tokenize(fonte, caminho), caminho))
         valor = interpretador.global_env.variables.get('__saida__')
         return json.dumps({
             'ok': True,
@@ -256,13 +275,22 @@ export async function versaoRuntime(): Promise<string> {
   return String(py.runPython('DF_VERSAO'));
 }
 
-/** Executa um programa e devolve saída e erro. */
-export async function rodar(fonte: string): Promise<Resultado> {
+/**
+ * Executa um programa e devolve saída e erro.
+ *
+ * `pasta` é de onde o programa veio — `exercicios/09-modulos`, por
+ * exemplo. Ela faz o `adopt` de um módulo vizinho funcionar: sem ela,
+ * o exercício do capítulo de módulos falha com "Module not found", que
+ * é o erro mais desanimador possível para quem está aprendendo
+ * justamente aquilo.
+ */
+export async function rodar(fonte: string, pasta = ''): Promise<Resultado> {
   const py = await prepararRuntime();
   const inicio = performance.now();
 
   py.globals.set('__fonte__', fonte);
-  const bruto = String(py.runPython('df_rodar(__fonte__)'));
+  py.globals.set('__pasta__', pasta);
+  const bruto = String(py.runPython('df_rodar(__fonte__, __pasta__)'));
   const dados = JSON.parse(bruto);
 
   return {

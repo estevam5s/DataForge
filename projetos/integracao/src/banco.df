@@ -1,0 +1,83 @@
+// A persistencia: SQLite de verdade, com transacao e migracao.
+
+adopt Arcane.Database as DB
+adopt ./dominio as D
+
+action abrir(caminho: String):
+    conexao := DB.connect(caminho)
+    _ := DB.execute(conexao, """
+        CREATE TABLE IF NOT EXISTS pedidos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cliente_id INTEGER NOT NULL,
+            estado TEXT NOT NULL DEFAULT 'aberto'
+        )""")
+    _ := DB.execute(conexao, """
+        CREATE TABLE IF NOT EXISTS itens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pedido_id INTEGER NOT NULL,
+            sku TEXT NOT NULL,
+            quantidade INTEGER NOT NULL,
+            preco_centavos INTEGER NOT NULL
+        )""")
+    yield conexao
+
+// Uma venda toca duas tabelas. Sem transacao, o pedido e gravado e os
+// itens nao — e o relatorio fecha errado sem nada denunciar.
+action criar_pedido(conexao, cliente_id: Integer, itens: Cluster) -> Integer:
+    action gravar():
+        id := DB.insert(conexao, "pedidos", {"cliente_id": cliente_id,
+                "estado": "aberto"})
+        cycle item in itens:
+            _ := DB.insert(conexao, "itens", {"pedido_id": id,
+                    "sku": item.sku, "quantidade": item.quantidade,
+                    "preco_centavos": item.preco_centavos})
+        yield id
+    yield DB.transacao(conexao, gravar)
+
+action pedido(conexao, id: Integer) -> D.Pedido:
+    linha := DB.query_one(conexao, "SELECT * FROM pedidos WHERE id = ?", [id])
+    given linha is void:
+        trigger $"pedido {id} nao existe"
+    yield D.Pedido(linha["id"], linha["cliente_id"], linha["estado"],
+        itens_de(conexao, id))
+
+action itens_de(conexao, pedido_id: Integer) -> Cluster:
+    linhas := DB.query(conexao,
+        "SELECT sku, quantidade, preco_centavos FROM itens WHERE pedido_id = ?",
+        [pedido_id])
+    yield [D.Item(l["sku"], l["quantidade"], l["preco_centavos"])
+        cycle l in linhas]
+
+action itens_de_varios(conexao, ids: Cluster) -> Vault:
+    // UMA consulta para todos os pedidos. E o que o lote do Lavra pede.
+    given len(ids) is 0:
+        yield {}
+    marcas := ", ".join(["?" cycle _ in ids])
+    linhas := DB.query(conexao,
+        $"SELECT pedido_id, sku, quantidade, preco_centavos FROM itens WHERE pedido_id IN ({marcas})",
+        ids)
+    saida := {}
+    cycle l in linhas:
+        chave := l["pedido_id"]
+        given chave not in saida:
+            saida[chave] := []
+        saida[chave].append(D.Item(l["sku"], l["quantidade"],
+                l["preco_centavos"]))
+    cycle id in ids:
+        given id not in saida:
+            saida[id] := []
+    yield saida
+
+action pedidos_do_cliente(conexao, cliente_id: Integer) -> Cluster:
+    linhas := DB.query(conexao,
+        "SELECT * FROM pedidos WHERE cliente_id = ? ORDER BY id", [cliente_id])
+    yield [D.Pedido(l["id"], l["cliente_id"], l["estado"], [])
+        cycle l in linhas]
+
+action mudar_estado(conexao, id: Integer, estado: String) -> Boolean:
+    _ := DB.execute(conexao, "UPDATE pedidos SET estado = ? WHERE id = ?",
+        [estado, id])
+    yield yes
+
+relay abrir, criar_pedido, pedido, itens_de, itens_de_varios
+relay pedidos_do_cliente, mudar_estado

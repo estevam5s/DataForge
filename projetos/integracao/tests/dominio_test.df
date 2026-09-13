@@ -1,0 +1,35 @@
+adopt Arcane.Crucible as Crucible
+adopt ../src/dominio as D
+
+crucible "o dominio, sem nada em volta":
+    trial "o total soma quantidade x preco":
+        p := D.Pedido(1, 1, "aberto",
+            [D.Item("A", 2, 1000), D.Item("B", 1, 500)])
+        assert D.total_de(p) is 2500
+
+    trial "em reais, sem erro de float":
+        // 0.1 + 0.2 em float nao da 0.3. Por isso a conta e em
+        // centavos e o Decimal so entra na hora de mostrar.
+        assert D.em_reais(10) is "R$ 0.10"
+        assert D.em_reais(20) is "R$ 0.20"
+        assert D.em_reais(30) is "R$ 0.30"
+        assert D.em_reais(250000) is "R$ 2500.00"
+
+    trial "o trait troca a politica sem tocar na conta":
+        p := D.Pedido(1, 1, "aberto", [D.Item("A", 1, 10000)])
+        assert D.total_com_desconto(p, spawn D.SemDesconto()) is 10000
+        assert D.total_com_desconto(p, spawn D.DezPorCento()) is 9000
+
+    trial "so o pedido aberto pode ser cancelado":
+        assert D.pode_cancelar(D.Pedido(1, 1, "aberto", []))
+        assert not D.pode_cancelar(D.Pedido(1, 1, "pago", []))
+
+    trial "o record e imutavel":
+        item := D.Item("A", 1, 100)
+        monitor:
+            item.quantidade := 99
+            assert no, "devia ter recusado"
+        handle Error as e:
+            assert "imutavel" in e.message or "immutable" in e.message
+
+Crucible.run()

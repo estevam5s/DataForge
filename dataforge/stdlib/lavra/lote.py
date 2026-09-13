@@ -108,20 +108,43 @@ class Lote:
 
 
 class Promessa:
-    """O valor que ainda não chegou. Cobrada quando o campo é serializado."""
+    """O valor que ainda não chegou. Cobrada quando o campo é serializado.
 
-    __slots__ = ("lote", "chave", "pronta")
+    Ela pode carregar transformações. É o que permite a um resolvedor
+    **calcular** a partir do lote sem desfazê-lo:
 
-    def __init__(self, lote, chave, pronta=False):
+        action total(pedido, _args, ctx):
+            itens := Lavra.pedir(ctx, "itens", pedido.id)
+            yield Lavra.entao(itens, lambda lista => somar(lista))
+
+    Sem isso, o resolvedor teria de cobrar a promessa na hora — e
+    cobrar é exatamente o que desfaz o lote: o primeiro item resolveria
+    a fila com uma chave só, e vinte pedidos dariam vinte idas ao
+    banco. O `entao` guarda a conta para depois, junto com o valor.
+    """
+
+    __slots__ = ("lote", "chave", "pronta", "_passos")
+
+    def __init__(self, lote, chave, pronta=False, passos=None):
         self.lote = lote
         self.chave = chave
         self.pronta = pronta
+        self._passos = list(passos or ())
+
+    def entao(self, acao):
+        """Uma promessa nova, com mais um passo. A original não muda."""
+        return Promessa(self.lote, self.chave, self.pronta,
+                        self._passos + [acao])
 
     def cobrar(self):
-        return self.lote.valor(self.chave)
+        valor = self.lote.valor(self.chave)
+        for passo in self._passos:
+            valor = passo(valor)
+        return valor
 
     def __repr__(self):
-        return f"<promessa {self.lote.nome}[{self.chave}]>"
+        conta = f" +{len(self._passos)}" if self._passos else ""
+        return f"<promessa {self.lote.nome}[{self.chave}]{conta}>"
 
 
 class Registro:

@@ -1,0 +1,58 @@
+// O dominio: records, enums, traits, blueprints e a regra de negocio.
+//
+// Nenhuma linha aqui sabe que existe web, banco ou consulta. E o que
+// permite testar a regra sem subir nada.
+
+adopt Arcane.Decimal as Dec
+
+enum Estado:
+    Aberto := "aberto"
+    Pago := "pago"
+    Cancelado := "cancelado"
+
+record Item:
+    sku: String
+    quantidade: Integer
+    preco_centavos: Integer
+
+    action total_centavos() -> Integer:
+        yield self.quantidade * self.preco_centavos
+
+record Pedido:
+    id: Integer
+    cliente_id: Integer
+    estado: String
+    itens: Cluster
+
+trait Descontavel:
+    action desconto(total: Integer) -> Integer
+
+blueprint SemDesconto with Descontavel:
+    // O '_' diz que o parametro existe por causa do contrato, e nao
+    // porque esta implementacao precisa dele.
+    action desconto(_total: Integer) -> Integer:
+        yield 0
+
+blueprint DezPorCento with Descontavel:
+    action desconto(total: Integer) -> Integer:
+        yield total ~/ 10
+
+// A conta em centavos, para nao arrastar erro de float. O Decimal
+// entra so na hora de mostrar.
+action total_de(pedido: Pedido) -> Integer:
+    yield pedido.itens >> distill soma, i: soma + i.total_centavos() 0
+
+action total_com_desconto(pedido: Pedido, politica) -> Integer:
+    bruto := total_de(pedido)
+    yield bruto - politica.desconto(bruto)
+
+action em_reais(centavos: Integer) -> String:
+    // 'de_centavos' existe exatamente para isto: o inteiro vira o
+    // decimal exato sem passar por float nenhum.
+    yield $"R$ {Dec.texto(Dec.arredondar(Dec.de_centavos(centavos), 2))}"
+
+action pode_cancelar(pedido: Pedido) -> Boolean:
+    yield pedido.estado is Estado.Aberto.value
+
+relay Estado, Item, Pedido, Descontavel, SemDesconto, DezPorCento
+relay total_de, total_com_desconto, em_reais, pode_cancelar

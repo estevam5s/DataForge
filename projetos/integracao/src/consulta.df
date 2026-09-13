@@ -1,0 +1,83 @@
+// A camada Lavra: o esquema nasce dos records do dominio.
+
+adopt Arcane.Lavra as Lavra
+adopt ./dominio as D
+adopt ./banco as Banco
+
+// A conexao NAO entra no esquema: quem a carrega e o contexto, que
+// nasce por pedido. Um esquema preso a uma conexao seria um esquema por
+// cliente — e ele e montado uma vez, na subida.
+action montar(_conexao):
+    esq := Lavra.esquema("integracao")
+
+    Lavra.tipo(esq, D.Item)
+    Lavra.campo(esq, "Item", "sku", "String!")
+    Lavra.campo(esq, "Item", "quantidade", "Integer!")
+    Lavra.campo(esq, "Item", "preco_centavos", "Integer!")
+    Lavra.campo(esq, "Item", "total", "Integer!",
+        resolve := lambda item => item.total_centavos())
+
+    Lavra.enum(esq, "Estado", D.Estado)
+
+    Lavra.tipo(esq, D.Pedido, esconder := ["itens", "estado"])
+    Lavra.campo(esq, "Pedido", "id", "Integer!")
+    Lavra.campo(esq, "Pedido", "estado", "Estado!")
+    Lavra.campo(esq, "Pedido", "itens", "[Item!]!", resolve := itens_do_pedido)
+    Lavra.campo(esq, "Pedido", "total", "Integer!", resolve := total_do_pedido)
+    Lavra.campo(esq, "Pedido", "total_em_reais", "String!",
+        resolve := reais_do_pedido)
+
+    Lavra.busca(esq, "pedido", "Pedido", args := {"id": "Integer!"},
+        resolve := uma_busca)
+    Lavra.busca(esq, "pedidosDoCliente", "[Pedido!]!",
+        args := {"cliente": "Integer!"}, resolve := por_cliente)
+
+    Lavra.mudanca(esq, "cancelar", "Pedido!", args := {"id": "Integer!"},
+        resolve := cancelar)
+
+    Lavra.limites(esq, profundidade := 6, complexidade := 500, itens := 200)
+    Lavra.conferir(esq)
+    yield esq
+
+// O lote: os itens de N pedidos numa consulta so. Sem ele, listar
+// vinte pedidos com os itens de cada um sao vinte e uma idas ao banco.
+action itens_do_pedido(pedido, _args, ctx):
+    yield Lavra.pedir(ctx, "itens", pedido.id)
+
+// 'entao' calcula a partir do que o lote VAI trazer. Cobrar a promessa
+// aqui resolveria a fila com uma chave so — e vinte pedidos voltariam a
+// ser vinte idas ao banco.
+action total_do_pedido(pedido, _args, ctx):
+    itens := Lavra.pedir(ctx, "itens", pedido.id)
+    yield Lavra.entao(itens, lambda lista =>
+        D.total_de(D.Pedido(pedido.id, pedido.cliente_id, "aberto", lista)))
+
+action reais_do_pedido(pedido, _args, ctx):
+    itens := Lavra.pedir(ctx, "itens", pedido.id)
+    yield Lavra.entao(itens, lambda lista => D.em_reais(
+            D.total_de(D.Pedido(pedido.id, pedido.cliente_id, "aberto", lista))))
+
+action uma_busca(_raiz, args, ctx):
+    monitor:
+        yield Banco.pedido(ctx["banco"], args["id"])
+    handle Error as e:
+        yield void
+
+action por_cliente(_raiz, args, ctx):
+    yield Banco.pedidos_do_cliente(ctx["banco"], args["cliente"])
+
+action cancelar(_raiz, args, ctx):
+    pedido := Banco.pedido(ctx["banco"], args["id"])
+    given not D.pode_cancelar(pedido):
+        Lavra.erro($"pedido {args['id']} esta '{pedido.estado}' e nao pode ser cancelado",
+            codigo := "regra")
+    _ := Banco.mudar_estado(ctx["banco"], args["id"], D.Estado.Cancelado.value)
+    yield Banco.pedido(ctx["banco"], args["id"])
+
+// O contexto de UMA consulta: a conexao e o lote.
+action contexto_de(conexao):
+    ctx := Lavra.contexto({"banco": conexao})
+    _ := Lavra.lote(ctx, "itens", lambda ids => Banco.itens_de_varios(conexao, ids))
+    yield ctx
+
+relay montar, contexto_de

@@ -100,6 +100,7 @@ class ArcaneLavra:
             "contexto": _api.contexto,
             "lote": _api.lote,
             "pedir": _api.pedir,
+            "entao": _api.entao,
             "preencher": _api.preencher,
             "lotes": _api.lotes,
             "recusar": _api.recusar,

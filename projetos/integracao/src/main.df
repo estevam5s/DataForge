@@ -1,0 +1,100 @@
+// O programa que amarra tudo: dominio, banco, consulta e web.
+//
+// Ele existe para PROVAR que as pecas convivem — e a unica forma de
+// saber isso e juntando-as num programa que roda.
+
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+adopt Arcane.Lavra as Lavra
+adopt Arcane.Web as Web
+adopt Arcane.Serialization as Serde
+adopt ./dominio as D
+adopt ./banco as Banco
+adopt ./consulta as Consulta
+adopt ./web as Casca
+
+base := $"{OS.temp_dir()}/df-integracao-{randint(100000, 999999)}"
+IO.mkdir(base)
+defer:
+    IO.remove_tree(base)
+
+conexao := Banco.abrir($"{base}/loja.db")
+
+// ── 1. O dominio, sem nada em volta ──
+itens := [D.Item("BIGORNA", 1, 45000), D.Item("MARRETA", 2, 7500)]
+pedido := D.Pedido(0, 1, D.Estado.Aberto.value, itens)
+
+out "total:", D.em_reais(D.total_de(pedido))
+assert D.total_de(pedido) is 60000, "45000 + 2 x 7500"
+assert D.em_reais(60000) is "R$ 600.00", "sem erro de float"
+assert D.total_com_desconto(pedido, spawn D.DezPorCento()) is 54000
+assert D.pode_cancelar(pedido), "aberto pode"
+
+// ── 2. O banco, com transacao ──
+id := Banco.criar_pedido(conexao, 1, itens)
+outro := Banco.criar_pedido(conexao, 1, [D.Item("LIMA", 3, 1200)])
+guardado := Banco.pedido(conexao, id)
+assert len(guardado.itens) is 2, "a transacao gravou os dois itens"
+assert D.total_de(guardado) is 60000, "o total sobreviveu a ida e volta"
+
+// ── 3. A consulta, com lote ──
+esq := Consulta.montar(conexao)
+ctx := Consulta.contexto_de(conexao)
+
+r := Lavra.executar(esq, """
+busca:
+    pedidosDoCliente(cliente: 1):
+        id
+        estado
+        total_em_reais
+        itens:
+            sku
+            total
+    """, contexto := ctx)
+
+out r["erros"]
+assert len(r["erros"]) is 0, "a consulta fechou"
+assert len(r["dados"]["pedidosDoCliente"]) is 2
+assert r["dados"]["pedidosDoCliente"][0]["total_em_reais"] is "R$ 600.00"
+out "lotes:", r["extensoes"]["lotes"]
+assert r["extensoes"]["lotes"]["itens"]["chamadas"] is 1,
+"dois pedidos, UMA consulta de itens"
+
+// ── 4. A regra de negocio recusa, pela consulta ──
+_ := Banco.mudar_estado(conexao, outro, D.Estado.Pago.value)
+recusa := Lavra.executar(esq, $"""
+mudanca:
+    cancelar(id: {outro}):
+        id
+    """, contexto := Consulta.contexto_de(conexao))
+out recusa["erros"][0]["mensagem"]
+assert recusa["erros"][0]["codigo"] is "regra", "a regra do dominio valeu"
+
+// ── 5. A web: REST e Lavra no mesmo servidor ──
+adopt Kiln
+api := Casca.montar(conexao, esq)
+porta := Kiln.serve(api, 0)
+defer:
+    Kiln.stop(api)
+
+alvo := $"http://127.0.0.1:{porta}"
+saude := Serde.from_json(Web.get($"{alvo}/saude")["body"])
+assert saude["ok"], "o REST responde"
+
+um := Serde.from_json(Web.get($"{alvo}/pedidos/{id}")["body"])
+out "REST:", um["total"]
+assert um["total"] is "R$ 600.00"
+
+criado := Web.post($"{alvo}/pedidos",
+    {"cliente_id": 2, "itens":[{"sku":"TORNO", "quantidade":1,
+                "preco_centavos": 250000}]})
+assert criado["status"] is 201
+
+pela_consulta := Web.post($"{alvo}/lavra",
+    {"consulta": "busca:\n    pedidosDoCliente(cliente: 2):\n        total_em_reais"})
+corpo := Serde.from_json(pela_consulta["body"])
+out "Lavra:", corpo["dados"]["pedidosDoCliente"][0]["total_em_reais"]
+assert corpo["dados"]["pedidosDoCliente"][0]["total_em_reais"] is "R$ 2500.00"
+
+// O mesmo dado, pelos dois caminhos, no mesmo servidor.
+out "tudo junto, e funciona"

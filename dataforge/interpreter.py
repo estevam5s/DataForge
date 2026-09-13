@@ -1164,8 +1164,13 @@ class Interpreter:
         set_magic_dispatcher(self._despachar_magico)
 
         # Load builtins
+        #
+        # Elas ficam MARCADAS: uma atribuicao dentro de uma acao nao
+        # pode subir ate aqui e apagar 'len' para o programa inteiro.
+        # Ver 'Environment.embutidas'.
         for name, value in get_builtins().items():
             self.global_env.set_local(name, value)
+            self.global_env.embutidas.add(name)
 
     #: Como explicar um sinal de controle que escapou ate o topo.
     _SINAIS_SOLTOS = {

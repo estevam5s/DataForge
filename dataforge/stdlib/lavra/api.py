@@ -312,6 +312,26 @@ def pedir(ctx, nome, chave):
     return _registro(ctx).pedir(nome, chave)
 
 
+def entao(promessa, acao):
+    """Calcula a partir do que o lote vai trazer, sem desfazer o lote.
+
+    Cobrar a promessa dentro do resolvedor resolveria a fila com uma
+    chave só — e vinte pedidos voltariam a ser vinte idas ao banco. O
+    `entao` guarda a conta para depois:
+
+        action total(pedido, _args, ctx):
+            itens := Lavra.pedir(ctx, "itens", pedido.id)
+            yield Lavra.entao(itens, lambda lista => somar(lista))
+
+    Um valor que não é promessa passa direto pela ação, para que o
+    mesmo resolvedor sirva com e sem lote.
+    """
+    if isinstance(promessa, Promessa):
+        return promessa.entao(acao)
+    from .execucao import _chamar
+    return _chamar(acao, promessa)
+
+
 def preencher(ctx, nome, chave, valor):
     """Põe no lote um valor que já se tem, para ele não ser buscado."""
     return _registro(ctx).lote(nome, lambda _: []).preencher(chave, valor)

@@ -1,0 +1,76 @@
+adopt Arcane.Crucible as Crucible
+adopt Arcane.Lavra as Lavra
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+adopt ../src/dominio as D
+adopt ../src/banco as Banco
+adopt ../src/consulta as Consulta
+
+base := $"{OS.temp_dir()}/df-int-test-{randint(100000, 999999)}"
+IO.mkdir(base)
+conexao := Banco.abrir($"{base}/t.db")
+esq := Consulta.montar(conexao)
+
+_ := Banco.criar_pedido(conexao, 1, [D.Item("A", 2, 1000)])
+_ := Banco.criar_pedido(conexao, 1, [D.Item("B", 1, 500), D.Item("C", 3, 100)])
+
+crucible "a consulta":
+    trial "o esquema fecha":
+        Lavra.conferir(esq)
+
+    trial "traz so o que foi pedido":
+        c := Lavra.local(esq, Consulta.contexto_de(conexao))
+        dados := c.dados("""
+busca:
+    pedido(id: 1):
+        id
+        """)
+        assert dados["pedido"] is {"id": 1}, "nem estado, nem itens"
+
+    trial "o lote faz UMA consulta de itens para N pedidos":
+        // Sem o lote, dois pedidos dao tres idas ao banco. O teste
+        // conta a ida, e nao o resultado: um lote que devolve o valor
+        // certo e consulta duas vezes passaria olhando so os dados.
+        ctx := Consulta.contexto_de(conexao)
+        r := Lavra.executar(esq, """
+busca:
+    pedidosDoCliente(cliente: 1):
+        itens:
+            sku
+        total
+            """, contexto := ctx)
+        assert len(r["erros"]) is 0, str(r["erros"])
+        assert r["extensoes"]["lotes"]["itens"]["chamadas"] is 1
+
+    trial "o campo que nao existe e recusado com sugestao":
+        problemas := Lavra.validar(esq, """
+busca:
+    pedido(id: 1):
+        totall
+        """)
+        assert len(problemas) is 1
+        assert "total" in problemas[0]["dica"]
+
+    trial "a regra do dominio vale pela consulta":
+        _ := Banco.mudar_estado(conexao, 1, "pago")
+        r := Lavra.executar(esq, """
+mudanca:
+    cancelar(id: 1):
+        id
+            """, contexto := Consulta.contexto_de(conexao))
+        assert r["erros"][0]["codigo"] is "regra"
+
+    trial "a consulta funda demais e recusada":
+        r := Lavra.executar(esq, """
+busca:
+    pedidosDoCliente(cliente: 1):
+        itens:
+            sku
+            quantidade
+            preco_centavos
+            total
+            """, contexto := Consulta.contexto_de(conexao))
+        assert len(r["erros"]) is 0, "esta dentro do limite"
+
+Crucible.run()
+IO.remove_tree(base)

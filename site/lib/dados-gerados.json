@@ -4158,6 +4158,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "entao",
+     "sig": "(promessa, acao)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "entrada",
      "sig": "(esq, alvo, nome, descricao, campos)",
      "tipo": "funcao"
@@ -9514,9 +9519,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 1655,
+  "testes": 1660,
   "exemplos": 44,
-  "arquivosDf": 337
+  "arquivosDf": 344
  },
  "mundo": {
   "estrelas": 0,
