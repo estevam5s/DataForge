@@ -237,3 +237,55 @@ export async function revisarBiblioteca(
   });
   return error ? explicar(error) : null;
 }
+
+// ═══ Tokens de publicação ══════════════════════════════════════
+//
+// O token existe em texto uma vez só, na criação. O banco guarda o
+// `sha256` dele — um vazamento não entrega a capacidade de publicar em
+// nome de ninguém. Por isso `criarToken` devolve a string e nada mais
+// a recupera depois.
+
+export type TokenDePublicacao = {
+  id: number;
+  nome: string;
+  prefixo: string;
+  criado_em: string;
+  ultimo_uso: string | null;
+  usos: number;
+  revogado_em: string | null;
+};
+
+export async function listarTokens(): Promise<Resposta<TokenDePublicacao[]>> {
+  const cliente = obterCliente();
+  if (!cliente) return { dados: [], erro: null };
+
+  const { data, error } = await cliente
+    .from('tokens_de_publicacao')
+    .select('id, nome, prefixo, criado_em, ultimo_uso, usos, revogado_em')
+    .order('criado_em', { ascending: false });
+  return {
+    dados: (data ?? []) as TokenDePublicacao[],
+    erro: error?.message ?? null,
+  };
+}
+
+/** O token em texto — a única vez que ele existe fora do banco. */
+export async function criarToken(
+  nome: string,
+): Promise<{ token: string | null; erro: string | null }> {
+  const cliente = obterCliente();
+  if (!cliente) return { token: null, erro: SEM_BANCO };
+
+  const { data, error } = await cliente.rpc('criar_token_de_publicacao', {
+    p_nome: nome,
+  });
+  if (error) return { token: null, erro: explicar(error) };
+  return { token: data as string, erro: null };
+}
+
+export async function revogarToken(id: number): Promise<string | null> {
+  const cliente = obterCliente();
+  if (!cliente) return SEM_BANCO;
+  const { error } = await cliente.rpc('revogar_token', { p_id: id });
+  return error ? explicar(error) : null;
+}

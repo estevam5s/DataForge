@@ -89,9 +89,18 @@ out B.relatorio(B.classe(quadratica, [200, 400, 800, 1600],
   {"list": [
     "**Uma classe** (`O(n²)`) — o fator bate com uma só, e a resposta é essa.",
     "**Duas classes** (`O(n)` ou `O(n log n)`) — as duas cabem, e a medição não as separa. Ficam a 0,15 de distância, e nenhuma amostra abaixo de uns cem mil itens decide entre elas. Escolher uma seria inventar precisão.",
-    "**Um intervalo** (`entre O(n log n) e O(n²)`) — o fator não bate com nenhuma, e cai entre duas. É o caso real de `s += \"x\"`, que mede 2,7 porque o CPython otimiza parte das concatenações e não todas.",
+    "**Um intervalo** (`entre O(n log n) e O(n²)`) — o fator não bate com nenhuma, e cai entre duas. É o caso real de `s += \"x\"` num laço: o custo por volta do interpretador é grande e **linear**, e mascara parte da cópia até `n` crescer o bastante.",
   ]},
   {"callout": {"tipo": "dica", "titulo": "Por que a mediana, e não a média", "texto": "Uma pausa do coletor de lixo no meio de uma amostra vira um fator absurdo, e a média o carrega para sempre — um `O(n)` seria reportado como exponencial por causa de uma coleta bem colocada. A mediana o descarta."}},
+
+  {"h3": "Onde o `+=` é caro, e onde não é"},
+  {"p": "Vale saber por que a mesma linha mede coisas diferentes conforme o lugar. O CPython tem uma otimização para `s += t` que só funciona quando a string tem **uma referência só** — e dentro do interpretador ela nunca tem, porque a variável vive no dicionário do escopo."},
+  {"table": {"head": ["Onde", "Fator", "Classe"], "rows": [
+    ["variável local de Python", "2,11", "`O(n)` — a otimização se aplica"],
+    ["string dentro de um dicionário", "4,06", "**`O(n²)`** — ela não se aplica"],
+    ["dentro do interpretador DataForge", "2,48", "entre as duas"],
+  ]}},
+  {"p": "O interpretador fica no meio porque o custo por volta dele é grande e **linear**, e ainda mascara parte da cópia nesses tamanhos. Com `n` maior a curva sobe: 3,07 em 160 mil. É por isso que [`Arcane.Text.construtor`](/docs/biblioteca) existe — ele é `O(n)` em qualquer tamanho."},
 
   {"h2": "As duas respostas lado a lado"},
   {"p": "`dataforge big-o --medir` roda o arquivo e põe a classe lida ao lado da medida:"},
@@ -114,7 +123,7 @@ out B.relatorio(B.classe(quadratica, [200, 400, 800, 1600],
   ]},
 ];
 
-const headings = [{ id: 'medir-uma-acao', text: "Medir uma ação", level: 2 as const }, { id: 'comparar-implementacoes', text: "Comparar implementações", level: 2 as const }, { id: 'descobrir-a-classe', text: "Descobrir a classe", level: 2 as const }, { id: 'tres-respostas-e-o-que-cada-uma-diz', text: "Três respostas, e o que cada uma diz", level: 3 as const }, { id: 'as-duas-respostas-lado-a-lado', text: "As duas respostas lado a lado", level: 2 as const }, { id: 'o-que-a-medicao-nao-faz', text: "O que a medição não faz", level: 2 as const }];
+const headings = [{ id: 'medir-uma-acao', text: "Medir uma ação", level: 2 as const }, { id: 'comparar-implementacoes', text: "Comparar implementações", level: 2 as const }, { id: 'descobrir-a-classe', text: "Descobrir a classe", level: 2 as const }, { id: 'tres-respostas-e-o-que-cada-uma-diz', text: "Três respostas, e o que cada uma diz", level: 3 as const }, { id: 'onde-o-e-caro-e-onde-nao-e', text: "Onde o `+=` é caro, e onde não é", level: 3 as const }, { id: 'as-duas-respostas-lado-a-lado', text: "As duas respostas lado a lado", level: 2 as const }, { id: 'o-que-a-medicao-nao-faz', text: "O que a medição não faz", level: 2 as const }];
 
 export default function Pagina() {
   return (

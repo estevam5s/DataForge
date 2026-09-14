@@ -66,11 +66,48 @@ action test_faz_o_que_promete():
     T.assert_eq(M.publica(), 42)`, lang: 'df' },
   { code: `dataforge test tests/`, lang: 'bash' },
   {"h2": "Mandar para o registro da comunidade"},
-  {"p": "O registro do site aceita pacotes de qualquer pessoa. O envio é pelo [painel](/painel/bibliotecas), com a conta que você já usa — e o que se manda é o **endereço** do tarball e o hash dele, não o arquivo."},
-  { code: `cd minha-lib
+  {"p": "O registro do site aceita pacotes de qualquer pessoa, por **dois caminhos**. Os dois chegam na mesma fila de revisão."},
+  {"table": {"head": ["Caminho", "Quando usar"], "rows": [
+    ["`dataforge publish --remoto`", "o normal — é onde você já está quando termina o pacote"],
+    ["[o formulário do painel](/painel/bibliotecas)", "a primeira vez, ou quando o tarball já está publicado e só falta registrar"],
+  ]}},
+
+  {"h3": "Pelo terminal"},
+  {"p": "Uma vez por máquina, você entra com um token criado em [/painel/tokens](/painel/tokens):"},
+  { lang: 'bash', code: `dataforge login
+# cole o token — ele é conferido antes de ser guardado
+
+dataforge whoami
+#   token     notebook
+#   pacotes   3
+#   vem de    ~/.dataforge/credenciais.json` },
+  {"p": "E a cada versão:"},
+  { lang: 'bash', code: `dataforge pack
+dataforge publish --remoto \
+  --tarball=https://github.com/voce/minha-lib/releases/download/v1.0.0/minha-lib-{versao}.tar.gz` },
+  { lang: 'text', code: `publicando minha-lib 1.0.0
+  tarball  https://github.com/voce/minha-lib/releases/download/v1.0.0/minha-lib-1.0.0.tar.gz
+  sha256   324396cab760ebf2210b7be3bc64d6288edc852f88f91349df8203654ace306a
+
+✓ minha-lib 1.0.0 enviado` },
+  {"p": "`{versao}` é trocado pelo número do `forge.toml` — assim o comando não muda a cada release. Se preferir, ponha `tarball` no manifesto e o `--tarball` deixa de ser necessário."},
+
+  {"h3": "O token"},
+  {"p": "Ele aparece **uma vez só**, na criação. O banco guarda apenas o `sha256` dele: um vazamento não entrega a capacidade de publicar em nome de ninguém — é a mesma razão de nenhum sistema sério guardar senha em texto."},
+  {"table": {"head": ["", ""], "rows": [
+    ["onde fica", "`~/.dataforge/credenciais.json`, com permissão 600"],
+    ["na CI", "a variável `DATAFORGE_TOKEN` — ela vence o arquivo e não deixa rastro em disco"],
+    ["revogar", "em [/painel/tokens](/painel/tokens); qualquer máquina que o use para na hora"],
+    ["expirar", "não expira sozinho. Um token que morre no meio de um deploy ensina a guardar o de vida mais longa que existir"],
+  ]}},
+  {"callout": {"tipo": "atencao", "titulo": "Um token publica em seu nome", "texto": "Ele não lê seus dados nem entra no painel — só publica. Mesmo assim: um por máquina, com nome que diga qual é (`notebook`, `CI do projeto X`). Uma lista de tokens idênticos torna impossível revogar o certo."}},
+
+  {"h3": "Pelo painel"},
+  { lang: 'bash', code: `cd minha-lib
 dataforge pack                              # gera o .tar.gz
-shasum -a 256 minha-lib-1.0.0.tar.gz        # o hash que o painel pede`, lang: 'bash' },
+shasum -a 256 minha-lib-1.0.0.tar.gz        # o hash que o painel pede` },
   {"p": "Hospede o `.tar.gz` onde quiser — um release do GitHub serve — e cole no painel o link `https://`, o sha256, o nome e uma descrição."},
+  {"callout": {"tipo": "nota", "titulo": "O registro guarda o endereço, não o arquivo", "texto": "Hospedar binário exige um serviço com cota, expiração e política de abuso; um release do GitHub já faz isso melhor. E o **hash** é o que torna a origem irrelevante: se o conteúdo mudar, o `dataforge add` recusa."}},
   {"table": {"head": ["Campo", "Regra", "Por quê"], "rows": [
     ["nome", "minúsculas, dígitos, `-` e `_`", "ele vira `dataforge add <nome>`, e um nome com `/` ou `..` viraria caminho ao ser extraído"],
     ["versão", "semver (`1.0.0`)", "é por estes três números que o resolvedor decide o que `^1.2` aceita"],
@@ -90,7 +127,7 @@ dataforge search .`, lang: 'bash' },
   {"p": "Basta servir estaticamente uma pasta com `index.json` e `pacotes/`. Não há servidor a manter."},
 ];
 
-const headings = [{ id: 'a-estrutura', text: "A estrutura", level: 2 as const }, { id: 'o-manifesto', text: "O manifesto", level: 2 as const }, { id: 'o-que-sai-do-pacote', text: "O que sai do pacote", level: 2 as const }, { id: 'empacotar', text: "Empacotar", level: 2 as const }, { id: 'publicar', text: "Publicar", level: 2 as const }, { id: 'versionar', text: "Versionar", level: 2 as const }, { id: 'testes', text: "Testes", level: 2 as const }, { id: 'mandar-para-o-registro-da-comunidade', text: "Mandar para o registro da comunidade", level: 2 as const }, { id: 'o-nome-e-de-quem-publicou-primeiro', text: "O nome é de quem publicou primeiro", level: 3 as const }, { id: 'todo-envio-passa-por-revisao', text: "Todo envio passa por revisão", level: 3 as const }, { id: 'um-registro-proprio', text: "Um registro próprio", level: 2 as const }];
+const headings = [{ id: 'a-estrutura', text: "A estrutura", level: 2 as const }, { id: 'o-manifesto', text: "O manifesto", level: 2 as const }, { id: 'o-que-sai-do-pacote', text: "O que sai do pacote", level: 2 as const }, { id: 'empacotar', text: "Empacotar", level: 2 as const }, { id: 'publicar', text: "Publicar", level: 2 as const }, { id: 'versionar', text: "Versionar", level: 2 as const }, { id: 'testes', text: "Testes", level: 2 as const }, { id: 'mandar-para-o-registro-da-comunidade', text: "Mandar para o registro da comunidade", level: 2 as const }, { id: 'pelo-terminal', text: "Pelo terminal", level: 3 as const }, { id: 'o-token', text: "O token", level: 3 as const }, { id: 'pelo-painel', text: "Pelo painel", level: 3 as const }, { id: 'o-nome-e-de-quem-publicou-primeiro', text: "O nome é de quem publicou primeiro", level: 3 as const }, { id: 'todo-envio-passa-por-revisao', text: "Todo envio passa por revisão", level: 3 as const }, { id: 'um-registro-proprio', text: "Um registro próprio", level: 2 as const }];
 
 export default function Pagina() {
   return (

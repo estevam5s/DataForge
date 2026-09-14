@@ -1034,6 +1034,166 @@ def pack_command():
     print(color("Para publicar no registro, veja: dataforge publish --help", "0;90"))
 
 
+def login_command(token=None):
+    """dataforge login — guarda o token de publicacao."""
+    from . import registro_remoto as reg
+
+    if not token:
+        print(color("Cole o token de publicacao.", "1;36"))
+        print(color("  Ele e criado em "
+                    "https://dataforge-lang.vercel.app/painel/tokens",
+                    "0;90"))
+        print(color("  e aparece UMA vez so — depois disso, so o hash "
+                    "dele existe.", "0;90"))
+        print()
+        try:
+            token = input("token: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            sys.exit(1)
+
+    if not token:
+        print(color("Nenhum token informado.", "1;33"))
+        sys.exit(1)
+
+    # Conferir ANTES de gravar. Sem isto, um token errado so daria erro
+    # no primeiro 'publish' — longe do comando que o causou.
+    try:
+        resposta = reg.conferir(token)
+    except reg.ErroDeRegistro as e:
+        print(color(f"✗ {e.message}", "1;31"))
+        if e.dica:
+            print(color(f"  {e.dica}", "0;90"))
+        sys.exit(1)
+
+    if not resposta.get("valido"):
+        print(color("✗ token invalido ou revogado.", "1;31"))
+        print(color("  crie outro em /painel/tokens", "0;90"))
+        sys.exit(1)
+
+    caminho = reg.gravar_token(token)
+    print(color(f"✓ entrou como '{resposta.get('token')}'", "1;32"))
+    print(color(f"  {resposta.get('pacotes', 0)} pacote(s) publicado(s)",
+                "0;90"))
+    print(color(f"  guardado em {caminho} (so voce le)", "0;90"))
+
+
+def logout_command():
+    """dataforge logout — esquece o token desta maquina."""
+    from . import registro_remoto as reg
+
+    if reg.esquecer_token():
+        print(color("✓ token esquecido nesta maquina.", "1;32"))
+        print(color("  ele continua valendo: revogue em /painel/tokens "
+                    "se ele vazou.", "0;90"))
+    else:
+        print(color("Nao havia token guardado.", "0;90"))
+
+
+def whoami_command():
+    """dataforge whoami — qual token esta em uso."""
+    from . import registro_remoto as reg
+
+    token = reg.ler_token()
+    if not token:
+        print(color("Nenhum token. Rode 'dataforge login'.", "1;33"))
+        sys.exit(1)
+
+    try:
+        resposta = reg.conferir(token)
+    except reg.ErroDeRegistro as e:
+        print(color(f"✗ {e.message}", "1;31"))
+        sys.exit(1)
+
+    if not resposta.get("valido"):
+        print(color("✗ o token guardado nao vale mais.", "1;31"))
+        print(color("  rode 'dataforge login' com um novo.", "0;90"))
+        sys.exit(1)
+
+    origem = ("a variavel DATAFORGE_TOKEN"
+              if os.environ.get("DATAFORGE_TOKEN")
+              else reg.caminho_das_credenciais())
+    print(f"  token     {color(resposta.get('token', '?'), '1;37')}")
+    print(f"  pacotes   {resposta.get('pacotes', 0)}")
+    print(color(f"  vem de    {origem}", "0;90"))
+
+
+def publicar_remoto_command(opcoes):
+    """dataforge publish --remoto — empacota e envia para a revisao."""
+    from . import packages as pk
+    from . import project as proj
+    from . import registro_remoto as reg
+
+    token = reg.ler_token()
+    if not token:
+        print(color("Nenhum token. Rode 'dataforge login' primeiro.",
+                    "1;33"))
+        print(color("  o token e criado em /painel/tokens", "0;90"))
+        sys.exit(1)
+
+    try:
+        caminho, sha, nome, versao = pk.empacotar(".")
+    except pk.ErroPacote as e:
+        print(color(f"✗ {e}", "1;31"))
+        sys.exit(1)
+
+    manifesto = proj.carregar(".")
+    secao = (manifesto.dados.get("package")
+             or manifesto.dados.get("project") or {}) if manifesto else {}
+
+    tarball = opcoes.get("tarball") or secao.get("tarball")
+    if not tarball:
+        print(color("✗ falta o endereco do tarball.", "1;31"))
+        print()
+        print("  O registro guarda o ENDERECO do pacote e o hash dele,")
+        print("  e nao o arquivo. Hospede o .tar.gz onde quiser — um")
+        print("  release do GitHub serve — e informe o link:")
+        print()
+        print(color(f"    dataforge publish --remoto \\", "0;90"))
+        print(color(f"      --tarball=https://.../{os.path.basename(caminho)}",
+                    "0;90"))
+        print()
+        print("  Ou ponha 'tarball' no forge.toml, com {versao} no lugar")
+        print("  do numero — ele e substituido a cada publicacao.")
+        sys.exit(1)
+
+    tarball = tarball.replace("{versao}", versao).replace("{version}", versao)
+
+    metadados = {
+        "nome": nome,
+        "versao": versao,
+        "descricao": secao.get("description") or secao.get("descricao") or "",
+        "tarball": tarball,
+        "sha256": sha,
+        "licenca": secao.get("license") or secao.get("licenca") or "MIT",
+        "repositorio": secao.get("repository") or secao.get("repositorio"),
+        "documentacao": secao.get("documentation") or secao.get("documentacao"),
+        "palavras": secao.get("keywords") or secao.get("palavras") or [],
+    }
+
+    print(color(f"publicando {nome} {versao}", "1;36"))
+    print(color(f"  tarball  {tarball}", "0;90"))
+    print(color(f"  sha256   {sha}", "0;90"))
+    print()
+
+    try:
+        r = reg.publicar(token, metadados)
+    except reg.ErroDeRegistro as e:
+        print(color(f"✗ {e.message}", "1;31"))
+        if e.dica:
+            print(color(f"  {e.dica}", "0;90"))
+        sys.exit(1)
+
+    print(color(f"✓ {r.get('nome')} {r.get('versao')} enviado", "1;32"))
+    print()
+    print("  Ele entra no registro depois de revisado. O 'dataforge add'")
+    print("  baixa e EXECUTA o que esta la, e por isso a revisao e feita")
+    print("  por uma pessoa — aprovar sozinho tornaria o registro um")
+    print("  canal de distribuicao de codigo.")
+    print()
+    print(color("  acompanhe em /painel/bibliotecas", "0;90"))
+
+
 def publish_command(destino=None):
     """dataforge publish — empacota e registra num indice local.
 
@@ -3815,11 +3975,28 @@ def main():
         pack_command()
 
     elif command == 'publish':
-        destino = None
-        for f in flags:
-            if f.startswith('--registry='):
-                destino = f.split('=', 1)[1]
-        publish_command(destino)
+        # Dois destinos, e eles resolvem problemas diferentes:
+        #   --registry=<pasta>  um indice estatico, para registro interno
+        #   --remoto            o registro da comunidade, com revisao
+        if '--remoto' in flags or '--remote' in flags:
+            opcoes = {}
+            for f in flags:
+                if f.startswith('--tarball='):
+                    opcoes['tarball'] = f.split('=', 1)[1]
+            publicar_remoto_command(opcoes)
+        else:
+            destino = None
+            for f in flags:
+                if f.startswith('--registry='):
+                    destino = f.split('=', 1)[1]
+            publish_command(destino)
+
+    elif command == 'login':
+        login_command(args[1] if len(args) > 1 else None)
+    elif command == 'logout':
+        logout_command()
+    elif command == 'whoami':
+        whoami_command()
 
     elif command == 'info':
         info_command(args[1:])

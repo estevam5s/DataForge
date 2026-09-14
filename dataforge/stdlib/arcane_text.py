@@ -15,10 +15,24 @@ class Construtor:
 
     `s += "x"` num laço é o caso que mais engana em qualquer linguagem
     com texto imutável. Cada `+=` aloca um texto novo e copia o
-    anterior inteiro, e o custo total vira O(n²) — o *Schlemiel the
-    Painter's Algorithm*.
+    anterior inteiro — o *Schlemiel the Painter's Algorithm*.
 
-    MEDIDO nesta linguagem, com o custo do laço já descontado:
+    Por que ele NÃO some sozinho aqui
+    ---------------------------------
+    O CPython tem uma otimização in-place para `s += t` quando a string
+    tem **uma referência só**, e ela esconde o problema em Python puro.
+    Dentro do interpretador ela não se aplica: a variável vive no
+    dicionário do escopo, e a referência nunca é única.
+
+        variável local de Python .............. fator 2,11   O(n)
+        string dentro de um dicionário ........ fator 4,06   O(n²)
+        dentro do interpretador DataForge ..... fator 2,48   entre os dois
+
+    O interpretador fica no meio porque o custo por volta dele é grande
+    e **linear**, e ainda mascara parte da cópia nesses tamanhos. Com n
+    maior a curva sobe: 3,07 em 160 mil.
+
+    MEDIDO, com o custo do laço já descontado:
 
         n         s += "x"      Construtor
         40.000        25 ms         125 ms

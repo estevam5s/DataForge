@@ -212,20 +212,37 @@ def test_texto_pode_ser_chamado_mais_de_uma_vez():
 
 
 def test_o_construtor_e_linear_e_a_concatenacao_nao():
-    """A razão de o Construtor existir, medida.
+    """A razão de o Construtor existir, medida — e no lugar certo.
 
-    Não se cobra um tempo: cobra-se que o **fator de crescimento** do
-    Construtor fique em linear, e que o do `+=` fique acima. Um limite
-    absoluto mediria a máquina.
+    A primeira versão deste teste mediu `s += "x"` sobre uma variável
+    **local de Python** e obteve fator 2,1: linear. Ela estava certa, e
+    media a coisa errada.
+
+    O CPython tem uma otimização in-place para `s += t` quando a string
+    tem **uma referência só**. Numa variável local ela tem; dentro do
+    escopo do interpretador, que é um dicionário, ela não tem — e aí
+    cada `+=` copia a string inteira.
+
+        variável local de Python .............. fator 2,11   O(n)
+        string dentro de um dicionário ........ fator 4,06   O(n²)
+        dentro do interpretador DataForge ..... fator 2,48   entre os dois
+
+    O interpretador fica no meio porque o custo por volta dele é grande
+    e **linear**, e a essas alturas ainda mascara parte da cópia; com
+    n maior a curva sobe (medido: 3,07 em 160 mil). O mecanismo é o do
+    dicionário, e é ele que o teste mede — é rápido, é estável, e é a
+    causa.
     """
     from dataforge.stdlib import get_module
     T = get_module("Arcane.Text")
 
-    def com_mais(n):
-        s = ""
+    def concat_em_escopo(n):
+        # Como o interpretador guarda: a string vive num dicionário, e
+        # a otimização in-place do CPython não se aplica.
+        env = {"s": ""}
         for _ in range(n):
-            s += "x"
-        return len(s)
+            env["s"] = env["s"] + "x"
+        return len(env["s"])
 
     def com_construtor(n):
         b = T["construtor"]()
@@ -235,10 +252,17 @@ def test_o_construtor_e_linear_e_a_concatenacao_nao():
 
     tamanhos = [20000, 40000, 80000]
     linear = B["classe"](com_construtor, tamanhos, None, 2)
-    assert linear["fator"] < 2.4, (
-        f"o construtor deixou de ser linear: fator {linear['fator']}")
+    concat = B["classe"](concat_em_escopo, tamanhos, None, 2)
 
-    concat = B["classe"](com_mais, tamanhos, None, 2)
-    assert concat["fator"] > linear["fator"], (
-        "a concatenação repetida deixou de ser mais cara que o construtor — "
-        f"construtor {linear['fator']}, '+=' {concat['fator']}")
+    # A RAZÃO entre os dois, e não um limite sobre cada um: limite
+    # absoluto mede a máquina, e reprova quando a suíte inteira disputa
+    # a CPU. É a mesma lição que CLAUDE.md registra para paralelismo.
+    razao = concat["fator"] / max(linear["fator"], 0.01)
+    assert razao > 1.4, (
+        "a concatenação repetida deixou de crescer mais rápido que o "
+        f"construtor — construtor {linear['fator']}, concat "
+        f"{concat['fator']}, razão {razao:.2f}")
+
+    assert "O(n)" in linear["classes"], (
+        f"o construtor saiu do linear: {linear['classes']} "
+        f"(fator {linear['fator']})")
