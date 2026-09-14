@@ -31,12 +31,13 @@ export type Anotacao = {
   id: string;
   rota: string;
   titulo: string | null;
-  conteudo: string;
+  /** No banco a coluna chama-se `texto`. */
+  texto: string;
   atualizado_em: string;
 };
 
 export type Progresso = {
-  id: string;
+  /** A identidade é (dono_id, exercicio) — a tabela não tem 'id'. */
   exercicio: string;
   modulo: string;
   concluido: boolean;
@@ -77,22 +78,22 @@ const TRECHOS_DEMO: Trecho[] = [
 
 const ANOTACOES_DEMO: Anotacao[] = [
   { id: 'a1', rota: '/docs/pipelines', titulo: 'Ordem do distill',
-    conteudo: 'O acumulador vem primeiro: `distill acc, v: acc + v 0`. '
-            + 'O 0 no fim é o valor inicial.',
+    texto: 'O acumulador vem primeiro: `distill acc, v: acc + v 0`. '
+         + 'O 0 no fim é o valor inicial.',
     atualizado_em: AGORA },
   { id: 'a2', rota: '/docs/fundamentos/pattern-matching', titulo: 'point maiúsculo',
-    conteudo: 'point n (minúsculo) captura; point Integer (maiúsculo) casa por tipo.',
+    texto: 'point n (minúsculo) captura; point Integer (maiúsculo) casa por tipo.',
     atualizado_em: AGORA },
 ];
 
 const PROGRESSO_DEMO: Progresso[] = [
-  { id: 'g1', exercicio: '001_ola_mundo', modulo: '01-fundamentos',
+  { exercicio: '001_ola_mundo', modulo: '01-fundamentos',
     concluido: true, tentativas: 1 },
-  { id: 'g2', exercicio: '002_variaveis', modulo: '01-fundamentos',
+  { exercicio: '002_variaveis', modulo: '01-fundamentos',
     concluido: true, tentativas: 2 },
-  { id: 'g3', exercicio: '013_condicionais', modulo: '02-controle-fluxo',
+  { exercicio: '013_condicionais', modulo: '02-controle-fluxo',
     concluido: true, tentativas: 1 },
-  { id: 'g4', exercicio: '087_sift', modulo: '08-pipelines',
+  { exercicio: '087_sift', modulo: '08-pipelines',
     concluido: false, tentativas: 3 },
 ];
 
@@ -209,7 +210,7 @@ export async function listarAnotacoes(): Promise<Resposta<Anotacao[]>> {
 
   const { data, error } = await cliente
     .from('anotacoes')
-    .select('id, rota, titulo, conteudo, atualizado_em')
+    .select('id, rota, titulo, texto, atualizado_em')
     .order('atualizado_em', { ascending: false });
   return { dados: (data as Anotacao[]) ?? [], erro: error?.message ?? null };
 }
@@ -220,7 +221,7 @@ export async function salvarAnotacao(
   const cliente = obterCliente();
   if (!cliente) {
     const nova: Anotacao = {
-      id: `a${Date.now()}`, rota, titulo, conteudo,
+      id: `a${Date.now()}`, rota, titulo, texto: conteudo,
       atualizado_em: new Date().toISOString(),
     };
     ANOTACOES_DEMO.unshift(nova);
@@ -232,7 +233,11 @@ export async function salvarAnotacao(
 
   const { data, error } = await cliente
     .from('anotacoes')
-    .insert({ rota, titulo, conteudo, usuario_id: sessao.user.id })
+    // 'dono_id' e 'texto' são os nomes do banco. Toda tabela daqui usa
+    // 'dono_id', e as políticas de RLS comparam com ele: escrever
+    // 'usuario_id' fazia a inserção falhar com "column does not exist"
+    // na tela de quem escreveu a anotação.
+    .insert({ rota, titulo, texto: conteudo, dono_id: sessao.user.id })
     .select()
     .single();
   return { dados: (data as Anotacao) ?? null, erro: error?.message ?? null };
@@ -255,7 +260,9 @@ export async function listarProgresso(): Promise<Resposta<Progresso[]>> {
 
   const { data, error } = await cliente
     .from('progresso')
-    .select('id, exercicio, modulo, concluido, tentativas');
+    // Sem 'id': a identidade da linha é (dono_id, exercicio). Pedir um
+    // 'id' que não existe derrubava a página inteira.
+    .select('exercicio, modulo, concluido, tentativas');
   return { dados: (data as Progresso[]) ?? [], erro: error?.message ?? null };
 }
 
@@ -266,23 +273,23 @@ export async function marcarExercicio(
   if (!cliente) {
     const existente = PROGRESSO_DEMO.find((p) => p.exercicio === exercicio);
     if (existente) existente.concluido = concluido;
-    else PROGRESSO_DEMO.push({
-      id: `g${Date.now()}`, exercicio, modulo, concluido, tentativas: 1,
-    });
+    else PROGRESSO_DEMO.push({ exercicio, modulo, concluido, tentativas: 1 });
     return null;
   }
 
   const { data: sessao } = await cliente.auth.getUser();
   if (!sessao.user) return 'Sessão expirada.';
 
-  // onConflict: a chave única (usuario_id, exercicio) faz o upsert
-  // atualizar em vez de duplicar
+  // onConflict: a chave primária é (dono_id, exercicio), e é ela que
+  // faz o upsert atualizar em vez de duplicar. O nome da coluna tem de
+  // ser o do banco — com 'usuario_id', o Postgres recusava o upsert
+  // inteiro e marcar um exercício como feito não funcionava.
   const { error } = await cliente.from('progresso').upsert(
     {
-      usuario_id: sessao.user.id, exercicio, modulo, concluido,
+      dono_id: sessao.user.id, exercicio, modulo, concluido,
       concluido_em: concluido ? new Date().toISOString() : null,
     },
-    { onConflict: 'usuario_id,exercicio' },
+    { onConflict: 'dono_id,exercicio' },
   );
   return error?.message ?? null;
 }

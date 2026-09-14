@@ -122,7 +122,7 @@ export default function Anotacoes() {
               </div>
               <p className="mt-3 whitespace-pre-wrap text-[14px] leading-[23px]
                             text-body">
-                {a.conteudo}
+                {a.texto}
               </p>
             </article>
           ))}
