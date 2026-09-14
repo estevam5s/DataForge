@@ -28,6 +28,10 @@ export const ROTAS_PAINEL = [
     desc: 'O que você anotou lendo a doc' },
   { href: '/painel/pacotes', titulo: 'Pacotes', icone: 'caixa',
     desc: 'O registro do DataForge' },
+  { href: '/painel/bibliotecas', titulo: 'Publicar', icone: 'enviar',
+    desc: 'Mande uma biblioteca sua para o registro' },
+  { href: '/painel/feedback', titulo: 'Feedback', icone: 'balao',
+    desc: 'Conte o que funcionou e o que não' },
   { href: '/painel/conta', titulo: 'Conta', icone: 'pessoa',
     desc: 'Perfil e sessão' },
 ];
@@ -46,6 +50,10 @@ export const ROTAS_ADMIN = [
     desc: 'O que roda sozinho' },
   { href: '/painel/admin/eventos', titulo: 'Auditoria', icone: 'olho',
     desc: 'Trilha de eventos' },
+  { href: '/painel/admin/feedback', titulo: 'Feedback', icone: 'balao',
+    desc: 'O que as pessoas escreveram' },
+  { href: '/painel/admin/bibliotecas', titulo: 'Bibliotecas', icone: 'enviar',
+    desc: 'Revisar o que a comunidade mandou' },
 ];
 
 const CAMINHOS: Record<string, string> = {
@@ -58,6 +66,8 @@ const CAMINHOS: Record<string, string> = {
   pessoa: 'M4 21v-2a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v2M12 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8z',
   sair: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   menu: 'M3 6h18M3 12h18M3 18h18',
+  balao: 'M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12z',
+  enviar: 'M12 19V5M12 5l-6 6M12 5l6 6M4 21h16',
   fechar: 'M6 6l12 12M18 6L6 18',
   raio: 'M13 2 4 14h7l-1 8 9-12h-7z',
   frasco: 'M9 3h6M10 3v6L5 18a2 2 0 0 0 1.7 3h10.6A2 2 0 0 0 19 18l-5-9V3',

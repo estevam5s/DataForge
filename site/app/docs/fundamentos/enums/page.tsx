@@ -24,6 +24,25 @@ out Status.Publicado.index    # 1           — a posição na declaração` },
 given pedido["status"] is "Publicado":     # nunca entra: caixa diferente` },
   {"p": "Um erro de digitação vira um `no` silencioso. Com enum, `Status.Publicad` é erro na hora — e o [`dataforge check`](/docs/cli/check) acha antes mesmo de rodar:"},
   { code: `Enum 'Status' has no member 'Publicad'. Members: Rascunho, Publicado, Arquivado`, lang: 'text' },
+  {"h2": "Métodos"},
+  {"p": "Um enum declara ações como um `record`, e elas são chamadas **a partir do membro**. O `self` é o membro — é ele que tem `.value`:"},
+  { code: `enum Prioridade:
+    Baixa := 1
+    Media := 5
+    Alta := 10
+
+    action urgente() -> Boolean:
+        yield self.value >= 5
+
+    action rotulo():
+        yield $"{self.name}({self.value})"
+
+assert Prioridade.Alta.urgente() is yes
+assert Prioridade.Baixa.urgente() is no
+assert Prioridade.Media.rotulo() is "Media(5)"` },
+  {"p": "É o que evita a tabela paralela: a regra que decide se uma prioridade é urgente mora **junto** do enum, e não num vault que alguém precisa lembrar de atualizar quando um membro novo aparece."},
+  { code: `urgentes := [p.name cycle p in Prioridade.members() given p.urgente()]
+assert urgentes is ["Media", "Alta"]` },
   {"h2": "Valores associados"},
   { code: `enum Prioridade:
     Baixa := 1
@@ -88,7 +107,7 @@ out pode_ir(Pedido.Novo, Pedido.Entregue)    # no` },
   {"p": "Nenhum estado inválido é representável, e nenhuma transição inválida é possível. `Entregue` com lista vazia é um estado terminal."},
 ];
 
-const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'o-problema-que-resolve', text: "O problema que resolve", level: 2 as const }, { id: 'valores-associados', text: "Valores associados", level: 2 as const }, { id: 'a-ponte-com-o-mundo-externo', text: "A ponte com o mundo externo", level: 3 as const }, { id: 'valores-numericos-como-ordem', text: "Valores numéricos como ordem", level: 3 as const }, { id: 'os-utilitarios', text: "Os utilitários", level: 2 as const }, { id: 'com-match', text: "Com match", level: 2 as const }, { id: 'maquina-de-estados', text: "Máquina de estados", level: 2 as const }];
+const headings = [{ id: 'declarar', text: "Declarar", level: 2 as const }, { id: 'o-problema-que-resolve', text: "O problema que resolve", level: 2 as const }, { id: 'metodos', text: "Métodos", level: 2 as const }, { id: 'valores-associados', text: "Valores associados", level: 2 as const }, { id: 'a-ponte-com-o-mundo-externo', text: "A ponte com o mundo externo", level: 3 as const }, { id: 'valores-numericos-como-ordem', text: "Valores numéricos como ordem", level: 3 as const }, { id: 'os-utilitarios', text: "Os utilitários", level: 2 as const }, { id: 'com-match', text: "Com match", level: 2 as const }, { id: 'maquina-de-estados', text: "Máquina de estados", level: 2 as const }];
 
 export default function Pagina() {
   return (

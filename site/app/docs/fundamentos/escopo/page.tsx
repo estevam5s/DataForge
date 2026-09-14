@@ -44,12 +44,34 @@ action sombreia():
 out sombreia(), x      # 99 10` },
   {"p": "`shadow` diz explicitamente \"este nome é meu, aqui dentro\". Sem ele, a atribuição afetaria o `x` externo."},
   {"h2": "Escopos de bloco"},
-  {"p": "Laços, condicionais e blocos `monitor` criam escopos próprios. A variável do `cycle` existe só ali dentro:"},
+  {"p": "Nem todo bloco cria escopo, e a diferença é deliberada. O **laço** cria; o `given` e o `monitor` **não**."},
+  {"table": {"head": ["Bloco", "Cria escopo?", "Por quê"], "rows": [
+    ["`cycle` · compreensão", "**sim**", "cada volta precisa do seu `i` — é o que faz um `lambda` do corpo lembrar o valor da volta em que nasceu"],
+    ["`given` / `orif` / `otherwise`", "não", "decidir um valor em dois ramos é o padrão mais comum que existe"],
+    ["`monitor` / `handle` / `ensure`", "não (o corpo)", "`handle` e `ensure` ganham filho: o nome do erro não deve vazar"],
+  ]}},
+  {"h3": "O laço cria"},
   { code: `cycle i from 1 to 3:
     dentro := i * 2
 
 # out i        # erro — 'i' não existe aqui fora` },
-  {"p": "O mesmo vale para a variável de uma [compreensão](/docs/fundamentos/compreensoes)."},
+  {"p": "É o que evita o clássico das closures: três `lambda` criados num laço de três voltas lembram **três** valores, e não o último três vezes."},
+  { code: `fs := []
+cycle i from 1 to 3:
+    fs.append(lambda => i)
+
+out [f() cycle f in fs]      # [1, 2, 3]
+assert [f() cycle f in fs] is [1, 2, 3]` },
+  {"h3": "O condicional não cria"},
+  {"p": "Um nome atribuído num ramo existe depois do bloco. Sem isso, escolher um valor entre dois caminhos exigiria declará-lo antes com um valor que nunca é usado:"},
+  { code: `given n % 2 is 0:
+    rotulo := "par"
+otherwise:
+    rotulo := "impar"
+
+out rotulo          # existe aqui` },
+  {"callout": {"tipo": "nota", "titulo": "O nome sai do ramo; o tipo, não", "texto": "Os ramos são mutuamente exclusivos, então o analisador não leva o tipo de um para o outro — ele sabe que o nome existe, e não o que ele vale. Levar o tipo faria o `check` acusar código correto num `otherwise` que nunca roda depois do ramo anterior."}},
+  {"p": "O mesmo vale para a variável de uma [compreensão](/docs/fundamentos/compreensoes), que segue a regra do laço."},
   {"h2": "Closures"},
   {"p": "Uma ação aninhada **captura** o escopo onde foi criada, e o mantém vivo mesmo depois que a ação externa terminou:"},
   { code: `action fabrica(n):
@@ -73,7 +95,7 @@ out soma5(10)           # 15 — 'n' ainda vale 5` },
   {"p": "Cada arquivo importado tem seu próprio escopo de topo, e só exporta o que o `relay` permitir. Veja [Módulos](/docs/fundamentos/modulos)."},
 ];
 
-const headings = [{ id: 'a-cadeia-de-escopos', text: "A cadeia de escopos", level: 2 as const }, { id: 'atribuir-atualiza-onde-existe', text: "Atribuir atualiza onde existe", level: 2 as const }, { id: 'shadow-uma-copia-local', text: "shadow — uma cópia local", level: 2 as const }, { id: 'escopos-de-bloco', text: "Escopos de bloco", level: 2 as const }, { id: 'closures', text: "Closures", level: 2 as const }, { id: 'self-e-this', text: "self e this", level: 2 as const }, { id: 'constantes', text: "Constantes", level: 2 as const }, { id: 'modulos', text: "Módulos", level: 2 as const }];
+const headings = [{ id: 'a-cadeia-de-escopos', text: "A cadeia de escopos", level: 2 as const }, { id: 'atribuir-atualiza-onde-existe', text: "Atribuir atualiza onde existe", level: 2 as const }, { id: 'shadow-uma-copia-local', text: "shadow — uma cópia local", level: 2 as const }, { id: 'escopos-de-bloco', text: "Escopos de bloco", level: 2 as const }, { id: 'o-laco-cria', text: "O laço cria", level: 3 as const }, { id: 'o-condicional-nao-cria', text: "O condicional não cria", level: 3 as const }, { id: 'closures', text: "Closures", level: 2 as const }, { id: 'self-e-this', text: "self e this", level: 2 as const }, { id: 'constantes', text: "Constantes", level: 2 as const }, { id: 'modulos', text: "Módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (

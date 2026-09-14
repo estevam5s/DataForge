@@ -65,6 +65,24 @@ adopt meu_pacote as M
 action test_faz_o_que_promete():
     T.assert_eq(M.publica(), 42)`, lang: 'df' },
   { code: `dataforge test tests/`, lang: 'bash' },
+  {"h2": "Mandar para o registro da comunidade"},
+  {"p": "O registro do site aceita pacotes de qualquer pessoa. O envio é pelo [painel](/painel/bibliotecas), com a conta que você já usa — e o que se manda é o **endereço** do tarball e o hash dele, não o arquivo."},
+  { code: `cd minha-lib
+dataforge pack                              # gera o .tar.gz
+shasum -a 256 minha-lib-1.0.0.tar.gz        # o hash que o painel pede`, lang: 'bash' },
+  {"p": "Hospede o `.tar.gz` onde quiser — um release do GitHub serve — e cole no painel o link `https://`, o sha256, o nome e uma descrição."},
+  {"table": {"head": ["Campo", "Regra", "Por quê"], "rows": [
+    ["nome", "minúsculas, dígitos, `-` e `_`", "ele vira `dataforge add <nome>`, e um nome com `/` ou `..` viraria caminho ao ser extraído"],
+    ["versão", "semver (`1.0.0`)", "é por estes três números que o resolvedor decide o que `^1.2` aceita"],
+    ["tarball", "só `https://`", "um link `http` num instalador é um ataque de rede esperando acontecer"],
+    ["sha256", "64 hexadecimais", "é ele que faz o `add` recusar um tarball trocado no caminho"],
+  ]}},
+  {"h3": "O nome é de quem publicou primeiro"},
+  {"p": "Depois do primeiro envio, só o autor manda versão nova daquele nome. Sem essa regra, quem chegasse depois sequestraria o nome de um pacote que outros já instalaram — e o `dataforge add` passaria a baixar outra coisa com o mesmo nome. É o ataque que mais aparece em registro de pacotes."},
+  {"h3": "Todo envio passa por revisão"},
+  {"p": "O pacote entra como **pendente** e alguém o revisa antes de entrar no registro. Não é burocracia: o `dataforge add` baixa e **executa** o que está lá, e aprovar sozinho tornaria o registro um canal de distribuição de código."},
+  {"p": "Quem revisa confere que o hash bate e que o conteúdo é `.df` e `forge.toml` — nada fora da pasta do pacote. Uma versão nova volta para a fila pelo mesmo motivo: aprovar o *nome* de uma vez tornaria a revisão inútil a partir do segundo envio."},
+  {"callout": {"tipo": "nota", "titulo": "Recusa vem com motivo", "texto": "Um pacote recusado traz o porquê, e ele aparece no seu painel. Recusar em silêncio faz a pessoa reenviar a mesma coisa."}},
   {"h2": "Um registro próprio"},
   {"p": "Para uso interno numa empresa, aponte o cliente para outro índice:"},
   { code: `export DATAFORGE_REGISTRY=https://pacotes.suaempresa.com
@@ -72,7 +90,7 @@ dataforge search .`, lang: 'bash' },
   {"p": "Basta servir estaticamente uma pasta com `index.json` e `pacotes/`. Não há servidor a manter."},
 ];
 
-const headings = [{ id: 'a-estrutura', text: "A estrutura", level: 2 as const }, { id: 'o-manifesto', text: "O manifesto", level: 2 as const }, { id: 'o-que-sai-do-pacote', text: "O que sai do pacote", level: 2 as const }, { id: 'empacotar', text: "Empacotar", level: 2 as const }, { id: 'publicar', text: "Publicar", level: 2 as const }, { id: 'versionar', text: "Versionar", level: 2 as const }, { id: 'testes', text: "Testes", level: 2 as const }, { id: 'um-registro-proprio', text: "Um registro próprio", level: 2 as const }];
+const headings = [{ id: 'a-estrutura', text: "A estrutura", level: 2 as const }, { id: 'o-manifesto', text: "O manifesto", level: 2 as const }, { id: 'o-que-sai-do-pacote', text: "O que sai do pacote", level: 2 as const }, { id: 'empacotar', text: "Empacotar", level: 2 as const }, { id: 'publicar', text: "Publicar", level: 2 as const }, { id: 'versionar', text: "Versionar", level: 2 as const }, { id: 'testes', text: "Testes", level: 2 as const }, { id: 'mandar-para-o-registro-da-comunidade', text: "Mandar para o registro da comunidade", level: 2 as const }, { id: 'o-nome-e-de-quem-publicou-primeiro', text: "O nome é de quem publicou primeiro", level: 3 as const }, { id: 'todo-envio-passa-por-revisao', text: "Todo envio passa por revisão", level: 3 as const }, { id: 'um-registro-proprio', text: "Um registro próprio", level: 2 as const }];
 
 export default function Pagina() {
   return (

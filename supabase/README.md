@@ -9,13 +9,15 @@ python3 scripts/supabase_aplicar.py 01         # só o esquema
 python3 scripts/supabase_aplicar.py --estado   # o que já existe lá
 ```
 
-Ou cole o conteúdo no SQL Editor do Supabase, na ordem `01 → 02`.
+Ou cole o conteúdo no SQL Editor do Supabase, na ordem `01 → 05`.
 
 | Arquivo | O que traz |
 |---|---|
 | `01_esquema.sql` | 10 tabelas, 25 políticas de RLS, gatilhos, a visão do placar |
 | `02_agendamentos.sql` | pg_cron, 6 tarefas, fila de envios, log de execuções |
 | `03_solucoes.sql` | esconde a solução de referência de quem ainda não resolveu |
+| `04_downloads.sql` | quantos instalaram, de onde, sem guardar IP |
+| `05_feedback_e_bibliotecas.sql` | o feedback do painel e os pacotes que a comunidade envia |
 
 ## As credenciais
 
@@ -124,3 +126,33 @@ python3 scripts/gerar_problemas.py            # verifica e publica
 
 Um problema cuja própria solução não passa nunca chega ao banco — e
 descobrir isso pelo usuário seria tarde demais.
+
+## As duas portas de escrita do 05
+
+`feedback` e `bibliotecas_enviadas` **não têm política de INSERT**. A
+escrita passa só por `enviar_feedback()` e `enviar_biblioteca()`, que são
+`security definer` — e é isso que permite validar antes de gravar.
+
+Uma tabela aberta a `authenticated` vira lixeira no dia em que alguém
+descobre o endpoint. E o limite por janela (5 feedbacks por hora, 3
+bibliotecas por dia) precisa viver no banco: no cliente ele é decoração,
+porque quem manda o POST escolhe se executa o JavaScript da página.
+
+As validações estão escritas **duas vezes de propósito** — no `CHECK` da
+tabela e no começo da função. O `CHECK` protege o dado; a função produz a
+mensagem. Sem ela, quem escreve um assunto de dois caracteres recebe
+`new row for relation "feedback" violates check constraint
+"feedback_assunto_check"`, que fala da restrição e não do que fazer.
+
+Verificado ponta a ponta, com usuário de verdade:
+
+| | |
+|---|---|
+| anônimo escreve feedback | recusado |
+| autor lê o feedback de outro | 0 linhas |
+| 6º feedback na mesma hora | recusado, com a dica de esperar |
+| nome de pacote `../escapar` | recusado, dizendo a forma aceita |
+| tarball `http://` | recusado, dizendo por quê |
+| outra pessoa reusa um nome já publicado | recusado, nomeando o dono |
+| usuário comum aprova um pacote | recusado |
+| pacote pendente no registro público | não aparece |

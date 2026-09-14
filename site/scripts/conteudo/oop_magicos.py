@@ -176,12 +176,26 @@ erro: cannot linearize the hierarchy of 'X'""", "lang": "text"},
  {"p": "Recusar é o certo: uma escolha arbitrária aqui vira um bug que só aparece quando alguém acrescenta um método meses depois."},
 
  {"h2": "`root` segue a MRO"},
- {"p": "`root.metodo()` não vai ao \"primeiro pai\": vai ao **próximo na MRO**, a partir de onde a chamada está. É o que faz uma cadeia de `root` percorrer cada blueprint exatamente uma vez, mesmo em diamante."},
- {"code": """blueprint B extends A:
+ {"p": "`root.metodo()` não vai ao \"primeiro pai\": vai ao **próximo na MRO**, *a partir de quem declarou o método que está rodando*. Essa segunda metade é a que importa, e é o que faz uma cadeia de `root` percorrer cada blueprint exatamente uma vez, mesmo em diamante."},
+ {"code": """blueprint A:
     action quem():
-        yield "B->" + root.quem()
+        yield "A"
 
-assert (spawn B()).quem() is "B->A\"""", "lang": "df"},
+blueprint B extends A:
+    action quem():
+        yield "B>" + root.quem()
+
+blueprint C extends A:
+    action quem():
+        yield "C>" + root.quem()
+
+blueprint D extends B, C:
+    action quem():
+        yield "D>" + root.quem()
+
+assert (spawn D()).quem() is "D>B>C>A\"""", "lang": "df"},
+ {"p": "Repare no `root` de **B**: ele vai para **C**, que não é mãe de B. É a MRO de quem foi instanciado que manda, e não a árvore de heranças de B — sem isso, o ramo de C seria pulado, e `A` apareceria duas vezes."},
+ {"callout": {"tipo": "nota", "titulo": "O ponto de partida é quem DECLAROU, não quem foi instanciado", "texto": "Dentro de `B.quem()` o `self` continua sendo a instância de `D`. Se `root` fosse calculado a partir dela, voltaria para `B` — e `B.quem()` chamaria a si mesmo, para sempre. Era exatamente o que acontecia com **três** níveis de herança; com dois, a conta dava certo por coincidência."}},
 
  {"h2": "Quando ela é calculada"},
  {"p": "Uma vez, na primeira consulta, e guardada. O C3 não é caro, mas a linhagem é percorrida em **toda** busca de método mágico — e aí a conta apareceria."},

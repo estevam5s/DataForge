@@ -19,6 +19,15 @@ pip install -e ".[dev]"
 python3 -m pytest tests/ -q          # 272 testes
 python3 exercicios/run_all.py        # 240 exercícios`, lang: 'bash' },
   {"p": "O estado esperado é **tudo verde**. Se algo falhar antes da sua mudança, isso é em si um achado que vale reportar."},
+  {"h2": "Contribuir sem escrever código"},
+  {"p": "Nem toda contribuição é um PR, e as duas abaixo valem tanto quanto um:"},
+  {"cards": [
+    {"href": "/painel/feedback", "title": "Mandar feedback",
+     "desc": "O que confundiu, o que faltou, o que não funcionou. Vai para quem escreve a linguagem, com a página de onde você escreveu junto."},
+    {"href": "/painel/bibliotecas", "title": "Publicar uma biblioteca",
+     "desc": "Escreveu algo reaproveitável? Mande para o registro e qualquer pessoa instala com dataforge add."},
+  ]},
+  {"p": "Um relato de \"a página X está confusa\" é mais útil que parece: metade do que se corrige na documentação vem de alguém que tentou seguir e não conseguiu. E a resposta aparece no seu painel."},
   {"h2": "Por onde começar"},
   {"p": "Os itens mais acessíveis do [roadmap](/docs/roadmap):"},
   {"list": ["**Verificação de exaustividade** em `match` sobre enum — o analisador já conhece os membros", "**Contrato de trait** no analisador estático", "**Funções novas** nos módulos `Arcane.*`", "**Mais exercícios**, especialmente nos módulos 11–20", "**Correções na documentação** — se algo aqui está errado ou confuso"]},
@@ -50,7 +59,7 @@ dataforge fmt . --check
 dataforge check .`, lang: 'bash' },
 ];
 
-const headings = [{ id: 'comecar', text: "Começar", level: 2 as const }, { id: 'por-onde-comecar', text: "Por onde começar", level: 2 as const }, { id: 'adicionar-um-recurso-a-linguagem', text: "Adicionar um recurso à linguagem", level: 2 as const }, { id: 'o-que-cada-recurso-exige', text: "O que cada recurso exige", level: 2 as const }, { id: 'cuidado-com-keywords', text: "Cuidado com KEYWORDS", level: 2 as const }, { id: 'mensagens-de-erro', text: "Mensagens de erro", level: 2 as const }, { id: 'estilo', text: "Estilo", level: 2 as const }, { id: 'antes-de-abrir-o-pr', text: "Antes de abrir o PR", level: 2 as const }];
+const headings = [{ id: 'comecar', text: "Começar", level: 2 as const }, { id: 'contribuir-sem-escrever-codigo', text: "Contribuir sem escrever código", level: 2 as const }, { id: 'por-onde-comecar', text: "Por onde começar", level: 2 as const }, { id: 'adicionar-um-recurso-a-linguagem', text: "Adicionar um recurso à linguagem", level: 2 as const }, { id: 'o-que-cada-recurso-exige', text: "O que cada recurso exige", level: 2 as const }, { id: 'cuidado-com-keywords', text: "Cuidado com KEYWORDS", level: 2 as const }, { id: 'mensagens-de-erro', text: "Mensagens de erro", level: 2 as const }, { id: 'estilo', text: "Estilo", level: 2 as const }, { id: 'antes-de-abrir-o-pr', text: "Antes de abrir o PR", level: 2 as const }];
 
 export default function Pagina() {
   return (

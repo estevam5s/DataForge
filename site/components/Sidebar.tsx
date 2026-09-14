@@ -150,21 +150,14 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 {secao.badge && <Selo texto={secao.badge} />}
                 {secao.title}
               </span>
-              <span className="flex shrink-0 items-center gap-1.5">
-                {/* Quantas páginas há ali dentro. Com 20 seções e 190
-                    rotas, saber o tamanho antes de abrir evita expandir
-                    a seção errada — e some quando ela está aberta, que
-                    é quando a contagem deixa de importar. */}
-                <span
-                  className={`text-[10px] tabular-nums transition-opacity duration-200 ${
-                    aberta ? 'opacity-0' : 'opacity-40'
-                  }`}
-                  aria-hidden="true"
-                >
-                  {secao.items.length}
-                </span>
-                <Chevron aberto={aberta} />
-              </span>
+              {/* Sem contagem ao lado da seção.
+                  Ela existia para dizer o tamanho antes de abrir, e o
+                  que entregava era uma coluna de números soltos ao lado
+                  dos títulos — ruído em toda linha, e sem relação com o
+                  que a pessoa procura. O chevron já diz que há conteúdo
+                  dentro, e o número envelhecia sozinho: o selo dos
+                  exercícios dizia 231 quando eram 240. */}
+              <Chevron aberto={aberta} />
             </button>
 
             <Painel aberto={aberta} id={idPainel}>

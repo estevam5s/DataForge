@@ -278,7 +278,6 @@ export const nav: NavSection[] = [
   },
   {
     title: 'Exercícios',
-    badge: '231',
     items: [
       { title: 'Visão geral', href: '/docs/exercicios' },
       { title: 'Fundamentos', href: '/docs/exercicios/01-fundamentos' },
