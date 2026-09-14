@@ -93,9 +93,36 @@ def _resultados_do_crucible(interp, caminho, inicio, buffer):
     if not suites and not trials:
         return None
 
-    modulo = interp.modules.get("Crucible") or interp.modules.get(
-        "Arcane.Crucible")
-    rodar = (modulo or {}).get("run")
+    # 'Crucible.run' NAO vem de 'interp.modules'.
+    #
+    # 'crucible' e 'trial' sao palavras da LINGUAGEM: um arquivo de
+    # teste normal nunca escreve 'adopt Arcane.Crucible', e entao
+    # 'interp.modules' fica vazio. A versao anterior procurava ali, nao
+    # achava, devolvia None — e o arquivo caia no caso "sem acoes
+    # 'test_', o proprio arquivo e o caso", contando como UM TESTE QUE
+    # PASSOU.
+    #
+    # Um arquivo com tres 'trial', um deles quebrado, saia com:
+    #
+    #     ✓ tests/a_test.df (1/1)
+    #     1 passaram em 1 arquivo(s)
+    #     Tudo verde.                      codigo de saida 0
+    #
+    # e 'dataforge crucible', sobre o mesmo arquivo, saia com 1. Os dois
+    # comandos discordavam, e o mais obvio era o que mentia.
+    #
+    # O repositorio inteiro passava por acidente: as suites daqui todas
+    # escrevem 'adopt Arcane.Crucible', que e o unico caminho em que a
+    # busca antiga funcionava.
+    rodar = None
+    for chave in ("Crucible", "Arcane.Crucible"):
+        candidato = (interp.modules.get(chave) or {}).get("run")
+        if callable(candidato):
+            rodar = candidato
+            break
+    if rodar is None:
+        from .stdlib import get_module
+        rodar = (get_module("Arcane.Crucible") or {}).get("run")
     if not callable(rodar):
         return None
 

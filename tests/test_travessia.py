@@ -463,3 +463,33 @@ action quebra(n):
 out P.processo(quebra, 1).esperar()
 """)
     assert "another process" in exc.value.nota
+
+
+def test_um_membro_de_enum_leva_os_metodos_do_enum():
+    """Ele atravessava como CÓPIA, e chegava sem o enum a que pertence.
+
+    O sintoma só aparecia depois da volta: `Faixa.Alta.dobro()` funciona
+    aqui, atravessa, volta, e então responde "has no member 'dobro'".
+
+    Hoje ele viaja pelo enum e pelo nome — os dois lados devolvem o
+    membro de verdade.
+    """
+    assert run(CABECA + """
+enum Faixa:
+    Baixa := 1
+    Alta := 10
+
+    action dobro():
+        yield self.value * 2
+
+action classificar(n):
+    yield Faixa.Alta given n bigger 5 otherwise Faixa.Baixa
+
+vindos := P.map_processos(classificar, [1, 9])
+out vindos[1].dobro()
+
+action usar_metodo(f):
+    yield f.dobro()
+
+out P.map_processos(usar_metodo, [Faixa.Baixa, Faixa.Alta])
+""") == "20\n[2, 20]"

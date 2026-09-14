@@ -665,13 +665,61 @@ class TypeChecker:
         return True
 
     def st_GivenBlock(self, node, escopo):
+        """Os nomes de um ramo sobrevivem ao bloco; os TIPOS, nao.
+
+        As duas metades resolvem problemas opostos, e as duas importam:
+
+            given n % 2 is 0:
+                rotulo := "par"
+            otherwise:
+                rotulo := "impar"
+            out rotulo
+
+        Sem os nomes saindo do ramo, isto virava "Undefined name
+        'rotulo'" — e o interpretador roda. Por isso cada ramo publica o
+        que declarou.
+
+        Mas os ramos sao MUTUAMENTE EXCLUSIVOS, e herdar o tipo de um
+        deles no seguinte acusa codigo certo:
+
+            given typeof(atual) is "Vault":
+                atual := atual[parte] ?? void      // aqui pode virar Void
+            otherwise:
+                atual := atual[parte]              // "Cannot index Void"
+
+        O segundo ramo nunca roda depois do primeiro. Por isso o tipo que
+        volta e UNKNOWN: e o que o analisador sabe de verdade quando dois
+        caminhos escrevem no mesmo nome, e um analisador que inventa o
+        que nao sabe ensina a ignora-lo.
+        """
         self.infer(node.condition, escopo)
-        ramos = [self.visit_block(node.body, escopo.__class__(escopo))]
+        ramos = []
+        corpos = [node.body]
         for cond, corpo in node.orif_blocks:
             self.infer(cond, escopo)
-            ramos.append(self.visit_block(corpo, Scope(escopo)))
+            corpos.append(corpo)
         if node.otherwise_body:
-            ramos.append(self.visit_block(node.otherwise_body, Scope(escopo)))
+            corpos.append(node.otherwise_body)
+
+        novos = {}
+        for corpo in corpos:
+            filho = Scope(escopo)
+            ramos.append(self.visit_block(corpo, filho))
+            for nome, tipo in filho.names.items():
+                if nome in novos and novos[nome] != tipo:
+                    novos[nome] = UNKNOWN
+                else:
+                    novos[nome] = tipo
+            for nome in filho.used:
+                escopo.used.add(nome)
+
+        for nome, tipo in novos.items():
+            if not escopo.has(nome):
+                # Declarado so dentro do bloco: o nome passa a existir,
+                # e o tipo fica em aberto — so um dos ramos roda.
+                escopo.declare(nome, UNKNOWN, node.line, node.column)
+
+        if node.otherwise_body:
             return all(ramos)
         return False
 

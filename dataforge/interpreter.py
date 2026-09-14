@@ -171,6 +171,21 @@ class DFAction:
         interp = DFAction._interpreter
         self.arquivo = getattr(interp, "filename", "") if interp else ""
 
+        #: O membro de enum ao qual este metodo ja esta ligado.
+        #:
+        #: Um metodo de enum e lido a partir do MEMBRO ('Cor.Verde.hex'),
+        #: e e o membro que precisa virar 'self' — e ele que tem
+        #: '.value'. A ligacao viaja na acao porque entre ler o membro e
+        #: chama-lo nao ha nada que carregue o dono.
+        self.self_do_enum = None
+
+        #: O blueprint que DECLAROU este metodo, ou None.
+        #:
+        #: E o que 'root' precisa saber: com tres niveis de heranca, o
+        #: blueprint da instancia nao diz de onde continuar a busca, e
+        #: 'root' voltava para o mesmo metodo, para sempre.
+        self.dono = None
+
     def __call__(self, *args, **kwargs):
         """Allow DFAction to be called like a Python function."""
         if DFAction._interpreter is None:
@@ -719,13 +734,23 @@ class DFRecordInstance:
 class DFEnumMember:
     """Um membro de enum. Compara por identidade dentro do enum."""
 
-    __slots__ = ('enum_name', 'name', 'value', 'index')
+    #: 'enum' e preenchido pela declaracao, logo depois de o DFEnum
+    #: existir — ele nao pode ser argumento porque os membros nascem
+    #: ANTES do enum que os contem.
+    #:
+    #: Sem ele, um metodo declarado no enum ficava inalcancavel: o
+    #: parser aceitava 'action hex()', o interpretador o guardava em
+    #: 'DFEnum.methods', e 'Cor.Verde.hex()' respondia "has no member
+    #: 'hex'. Use .name, .value or .index". Codigo que se escreve, que
+    #: compila, e que nunca roda.
+    __slots__ = ('enum_name', 'name', 'value', 'index', 'enum')
 
-    def __init__(self, enum_name, name, value, index):
+    def __init__(self, enum_name, name, value, index, enum=None):
         self.enum_name = enum_name
         self.name = name
         self.value = value
         self.index = index
+        self.enum = enum
 
     def __eq__(self, other):
         if isinstance(other, DFEnumMember):
@@ -1082,23 +1107,80 @@ class DFTarefa:
 
 
 class _RootProxy:
-    """Proxy for 'root' (super) calls - resolves methods from parent blueprints."""
-    def __init__(self, instance, parent_blueprint, interpreter):
+    """'root' — o membro procurado no RESTO da linhagem.
+
+    Ele guarda uma FATIA da MRO, e nao um blueprint: 'root' significa
+    "o proximo depois de quem esta rodando", e quem esta rodando muda a
+    cada salto.
+
+    Antes ele guardava o pai da classe da INSTANCIA, e com tres niveis
+    isso virava laco infinito:
+
+        blueprint A:            action v(): yield "A"
+        blueprint B extends A:  action v(): yield "B>" + root.v()
+        blueprint C extends B:  action v(): yield "C>" + root.v()
+
+        spawn C().v()    ->  o teto de mil quadros, estourado
+
+    'C.v' achava 'B.v' certo. Mas dentro de 'B.v' o 'self' continua
+    sendo a instancia de C, entao 'root' voltava a ser o pai de C — o
+    proprio B — e 'B.v' chamava a si mesmo para sempre. Com dois niveis
+    funcionava, e por isso passou: toda heranca de dois niveis do
+    repositorio esta certa.
+
+    A fatia vem da MRO da instancia, cortada DEPOIS do blueprint que
+    declarou o metodo em execucao ('__dono__'). E o mesmo que o
+    'super()' do Python faz, e e o unico jeito que funciona com heranca
+    multipla: o proximo da MRO nao e necessariamente uma mae direta.
+    """
+
+    __slots__ = ("instance", "restante", "interpreter")
+
+    def __init__(self, instance, restante, interpreter):
         self.instance = instance
-        self.parent = parent_blueprint
+        self.restante = list(restante)
         self.interpreter = interpreter
 
+    @property
+    def parent(self):
+        """O primeiro da fatia — o que 'root' significa hoje."""
+        return self.restante[0] if self.restante else None
+
     def get(self, name):
-        if name in self.parent.methods:
-            return self.parent.methods[name]
-        if name in self.parent.statics:
-            return self.parent.statics[name]
-        for p in self.parent.parents:
-            if name in p.methods:
-                return p.methods[name]
-            if name in p.statics:
-                return p.statics[name]
-        raise NameError_(f"Parent has no member '{name}'")
+        for bp in self.restante:
+            if name in bp.methods:
+                return bp.methods[name]
+            if name in bp.statics:
+                return bp.statics[name]
+        raise NameError_(
+            f"Parent has no member '{name}'.",
+            nota=("'root' searches the rest of the lineage: "
+                  + " → ".join(bp.name for bp in self.restante)
+                  if self.restante else "there is no parent after this one"),
+            dica="check the name, or declare the member in the parent",
+            doc="oop")
+
+
+
+def _carimbar_dono(blueprint):
+    """Cada metodo passa a saber QUAL blueprint o declarou.
+
+    O carimbo e aqui, sobre o blueprint pronto, e nao em cada um dos
+    lugares que criam uma DFAction: metodo, operador, getter e setter
+    sao quatro, e um quinto que aparecesse depois ficaria de fora sem
+    dar erro — so faria 'root' voltar a procurar no lugar errado.
+    """
+    for acao in blueprint.methods.values():
+        if isinstance(acao, DFAction) and acao.dono is None:
+            acao.dono = blueprint
+    for acao in blueprint.operators.values():
+        if isinstance(acao, DFAction) and acao.dono is None:
+            acao.dono = blueprint
+    for prop in blueprint.properties.values():
+        for acao in (prop or {}).values():
+            if isinstance(acao, DFAction) and acao.dono is None:
+                acao.dono = blueprint
+    return blueprint
 
 
 # ── Interpreter ────────────────────────────────────────────
@@ -1368,10 +1450,10 @@ class Interpreter:
             # Find 'self' in scope to get the instance's parent
             if env.has('self'):
                 instance = env.get('self')
-                if isinstance(instance, DFInstance) and instance.blueprint.parents:
-                    # Return a proxy dict that resolves parent methods
-                    parent = instance.blueprint.parents[0]
-                    return _RootProxy(instance, parent, self)
+                if isinstance(instance, DFInstance):
+                    restante = self._linhagem_acima(instance, env)
+                    if restante:
+                        return _RootProxy(instance, restante, self)
         try:
             return env.get(node.name)
         except NameError_ as e:
@@ -1860,6 +1942,55 @@ class Interpreter:
                 erro.args = (erro.format(),)
             raise
 
+    def _metodo_do_enum(self, membro, nome):
+        """O metodo do enum, com 'self' ja ligado neste membro.
+
+        'Cor.Verde.hex()' precisa que 'self' seja o MEMBRO, e nao o
+        enum: e o membro que tem '.value'. Um metodo sem 'self' ligado
+        leria o nome do escopo de fora, e devolveria o valor errado
+        sem dar erro.
+        """
+        enum = getattr(membro, "enum", None)
+        acao = (getattr(enum, "methods", {}) or {}).get(nome)
+        if not isinstance(acao, DFAction):
+            return None
+        ligado = DFAction(
+            name=acao.name, params=acao.params, defaults=acao.defaults,
+            body=acao.body, closure=acao.closure, is_async=acao.is_async,
+            param_types=acao.param_types, return_type=acao.return_type,
+            is_generator=acao.is_generator, type_params=acao.type_params)
+        ligado.arquivo = acao.arquivo
+        ligado.self_do_enum = membro
+        return ligado
+
+    @staticmethod
+    def _metodos_do_enum(membro):
+        enum = getattr(membro, "enum", None)
+        nomes = sorted((getattr(enum, "methods", {}) or {}))
+        if not nomes:
+            return ""
+        return f"this enum declares: {', '.join(nomes)}"
+
+    def _linhagem_acima(self, instance, env):
+        """O que vem DEPOIS de quem declarou o metodo que esta rodando.
+
+        '__dono__' e ligado junto de 'self' quando o metodo e chamado, e
+        guarda o blueprint que o DECLAROU — que nao e o da instancia
+        assim que ha tres niveis de heranca.
+
+        Sem dono conhecido — um metodo criado a mao, um 'self.f := …' —
+        recua para o comportamento antigo: as maes diretas da instancia.
+        E o que 'root' sempre significou ali, e mudar isso sem saber de
+        quem e o metodo seria adivinhar.
+        """
+        mro = instance.blueprint.linhagem()
+        dono = env.get('__dono__') if env.has('__dono__') else None
+        if dono is not None:
+            for i, bp in enumerate(mro):
+                if bp is dono:
+                    return mro[i + 1:]
+        return list(instance.blueprint.parents)
+
     def _ler_membro_cru(self, obj, node, env, membro=None):
         membro = membro if membro is not None else node.member
         # Handle root (super) proxy
@@ -1894,10 +2025,15 @@ class Interpreter:
                 return obj.index
             if membro == 'enum_name':
                 return obj.enum_name
+            metodo = self._metodo_do_enum(obj, membro)
+            if metodo is not None:
+                return metodo
             raise NameError_(
                 f"Enum member '{obj}' has no member '{membro}'. "
                 f"Use .name, .value or .index",
-                node.line, node.column)
+                node.line, node.column,
+                nota=self._metodos_do_enum(obj),
+                doc="tipos")
 
         if isinstance(obj, DFEnum):
             enum_methods = {
@@ -3538,18 +3674,46 @@ class Interpreter:
     # ── Control Flow ───────────────────────────────────────
 
     def exec_GivenBlock(self, node: ast.GivenBlock, env):
+        """given / orif / otherwise.
+
+        O corpo roda no MESMO escopo, como o do 'monitor', e pelo mesmo
+        motivo: decidir um valor em dois ramos e o padrao mais comum que
+        existe, e com escopo proprio ele nao funcionava.
+
+            given n % 2 is 0:
+                rotulo := "par"
+            otherwise:
+                rotulo := "impar"
+            out rotulo          // 'rotulo' is not defined
+
+        O 'monitor' ja tinha essa decisao tomada e escrita; o 'given'
+        ficou de fora, e a linguagem respondia coisas diferentes para a
+        mesma pergunta. Quem batia nisso declarava 'rotulo := ""' antes
+        do bloco — um valor que nunca e usado, so para o nome existir.
+
+        A mudanca so ACRESCENTA: um nome que ja existia fora continuava
+        sendo atualizado de qualquer jeito, porque 'Environment.set' sobe
+        a cadeia. O que muda e o nome que nascia aqui dentro, e que antes
+        morria com o bloco.
+
+        O 'cycle' continua com escopo proprio, e isso e de proposito: e o
+        que faz cada volta ter o seu 'i', e um 'lambda' criado no corpo
+        lembrar o valor da volta em que nasceu. Sem isso as tres closures
+        de um laco de tres voltas veriam todas o ultimo valor — o
+        classico que o Python tem e que aqui nao acontece.
+        """
         # '_verdade' e nao 'bool': uma instancia com '__bool__' decide
         # por si, e uma com '__len__' segue a regra do tamanho zero.
         condition = self._verdade(self.evaluate(node.condition, env), node)
         if condition:
-            return self.exec_block(node.body, env.child("<given>"))
+            return self.exec_block(node.body, env)
 
         for orif_cond, orif_body in node.orif_blocks:
             if self._verdade(self.evaluate(orif_cond, env), node):
-                return self.exec_block(orif_body, env.child("<orif>"))
+                return self.exec_block(orif_body, env)
 
         if node.otherwise_body:
-            return self.exec_block(node.otherwise_body, env.child("<otherwise>"))
+            return self.exec_block(node.otherwise_body, env)
 
         return None
 
@@ -4129,6 +4293,7 @@ class Interpreter:
             traits=traits_adotados,
         )
         blueprint.origem_abstrata = origem_abstrata
+        _carimbar_dono(blueprint)
 
         # Contrato de trait: conferido aqui, na declaracao, e nao na chamada.
         # Descobrir que falta um metodo so quando alguem o chama, em producao,
@@ -4209,6 +4374,7 @@ class Interpreter:
             statics={}, env=env, properties=properties,
             is_abstract=True, abstract_methods=abstratos,
         )
+        _carimbar_dono(blueprint)
         env.set_local(node.name, blueprint)
         return blueprint
 
@@ -4246,6 +4412,8 @@ class Interpreter:
                 param_types=getattr(decl, 'param_types', None),
                 return_type=getattr(decl, 'return_type', ""))
         enum = DFEnum(node.name, membros, metodos, enum_env)
+        for membro in membros.values():
+            membro.enum = enum
         enum_env.set_local(node.name, enum)
         env.set_local(node.name, enum)
         return enum
@@ -5607,6 +5775,11 @@ class Interpreter:
 
     def _call_action(self, action: DFAction, args, kwargs, node, env, instance=None):
         """Call a user-defined action (function)."""
+        if instance is None:
+            # Metodo de enum lido a partir do membro: o 'self' dele veio
+            # junto, porque o caminho da leitura ate a chamada nao tem
+            # onde guardar o dono.
+            instance = getattr(action, "self_do_enum", None)
         self._check_arity(action, args, kwargs, node)
 
         if getattr(action, 'is_generator', False):
@@ -5719,6 +5892,8 @@ class Interpreter:
         if instance is not None:
             call_env.set_local("self", instance)
             call_env.set_local("this", instance)
+            if getattr(action, "dono", None) is not None:
+                call_env.set_local("__dono__", action.dono)
         return call_env
 
     def _corpo_da_acao(self, action: DFAction, args, kwargs, node, instance=None):
@@ -5755,6 +5930,8 @@ class Interpreter:
         if instance is not None:
             call_env.set_local("self", instance)
             call_env.set_local("this", instance)
+            if getattr(action, "dono", None) is not None:
+                call_env.set_local("__dono__", action.dono)
 
         # Execute body, guarding against runaway recursion
         self._depth += 1
@@ -5840,6 +6017,8 @@ class Interpreter:
             if instance is not None:
                 call_env.set_local("self", instance)
                 call_env.set_local("this", instance)
+                if getattr(action, "dono", None) is not None:
+                    call_env.set_local("__dono__", action.dono)
 
             try:
                 yield from interpretador._lazy_block(action.body, call_env)

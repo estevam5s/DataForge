@@ -365,7 +365,16 @@ Estas são as que mais custam tempo:
     não tem teto (testado com 200 mil), ou um `cycle` com pilha
     explícita. A mensagem do erro traz as duas.
 
-24. **`remove` e `pop` mudam de sentido conforme a coleção.** Num
+24. **`given` compartilha o escopo; `cycle` não.** Um nome atribuído
+    num ramo de `given`/`orif`/`otherwise` existe depois do bloco — é
+    como se decide um valor em dois caminhos, e o `monitor` sempre
+    funcionou assim. O corpo de um `cycle` tem escopo próprio, e isso é
+    **de propósito**: é o que dá a cada volta o seu `i`, e faz um
+    `lambda` criado no corpo lembrar o valor da volta em que nasceu.
+    Sem isso as três closures de um laço de três voltas veriam todas o
+    último valor — o clássico que o Python tem e que aqui não acontece.
+
+25. **`remove` e `pop` mudam de sentido conforme a coleção.** Num
     `Cluster` o segundo argumento é o **valor**; num `Vault`, a
     **chave**. `remove` apaga **no lugar** e é silencioso quando não
     acha; `pop` devolve o valor e por isso **levanta** — devolver `void`
@@ -1481,6 +1490,74 @@ O que **ainda não existe** (não invente que existe):
   é `P.map_processos`, que usa processos de verdade — ver "A travessia
   de processo", abaixo. Até ela ser consertada, essa frase apontava
   para algo que não funcionava.
+
+### Quatro defeitos que só um projeto grande mostra
+
+Achados gerando um projeto de 60 domínios com herança, records, enums,
+traits, pipelines e testes — nenhum deles aparece num arquivo de 40
+linhas, e os quatro passavam na suíte inteira.
+
+**1. `dataforge test` dizia "Tudo verde" com um `trial` reprovado.**
+`crucible` e `trial` são palavras da **linguagem**: um arquivo de teste
+normal nunca escreve `adopt Arcane.Crucible`. O corredor procurava
+`Crucible.run` em `interp.modules` — vazio nesse caso —, desistia, e o
+arquivo caía no ramo "sem ações `test_`, o próprio arquivo é o caso":
+
+```
+✓ tests/a_test.df (1/1)
+1 passaram em 1 arquivo(s)
+Tudo verde.                       código de saída 0
+```
+
+`dataforge crucible`, sobre o mesmo arquivo, saía com 1. O repositório
+inteiro passava **por acidente**: todas as suítes daqui escrevem o
+`adopt`, que era o único caminho em que a busca antiga funcionava. O
+projeto de 60 domínios relatava 60 testes onde havia 180.
+
+**2. `root` entrava em laço infinito com três níveis de herança.** Ele
+era o pai da classe da **instância**, e não de quem declarou o método:
+dentro de `B.v`, o `self` ainda é a instância de `C`, então `root`
+voltava a ser `B` e `B.v` chamava a si mesmo. Com dois níveis a conta
+dava certo — e **toda herança do repositório tem dois níveis**. Hoje
+`_RootProxy` guarda uma fatia da MRO cortada depois de `__dono__`, o
+blueprint que declarou o método em execução; com isso o diamante
+resolve por C3, como o `super()` do Python.
+
+**3. Um método declarado num `enum` não podia ser chamado.** O parser
+aceitava, o interpretador guardava em `DFEnum.methods`, e
+`Cor.Verde.hex()` respondia "has no member 'hex'. Use .name, .value or
+.index". Código que se escreve, que passa no `check`, e que nunca roda —
+pior que um recurso que não existe. O membro não conhecia o enum a que
+pertence (ele nasce **antes** dele); hoje conhece, e o `self` do método
+é o membro, que é quem tem `.value`.
+
+**4. `given` não publicava o nome, e `monitor` publicava.** O padrão
+mais comum que existe não funcionava:
+
+```dataforge
+given n % 2 is 0:
+    rotulo := "par"
+otherwise:
+    rotulo := "impar"
+out rotulo          // 'rotulo' is not defined
+```
+
+A decisão já estava tomada e escrita na docstring de
+`exec_MonitorBlock` — "em Python, Java e JavaScript, `try` não cria
+escopo" —, e o `given` ficou de fora.
+
+A correção tem duas metades, e as duas importam. O **nome** sai do ramo;
+o **tipo** não. Os ramos são mutuamente exclusivos, e herdar o tipo de
+um no seguinte acusa código certo — `packages/modelo` tem exatamente
+esse caso, e virou "Cannot index a value of type Void" num `otherwise`
+que nunca roda depois do ramo anterior. O tipo que volta é `UNKNOWN`,
+que é o que o analisador sabe de verdade.
+
+E ela precisou de **três** arquivos: `interpreter.py`, `typechecker.py`
+e `compilador.py`. Esquecer o terceiro fez o `check` aprovar e a
+execução falhar — o construtor compilado espelha `exec_GivenBlock`, e
+divergir dele faz a linguagem responder duas coisas conforme a
+compilação de fechamentos esteja ligada. O teste roda os dois modos.
 
 ### A travessia de processo — o único caminho para mais de um núcleo
 

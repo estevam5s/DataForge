@@ -5353,3 +5353,261 @@ def test_a_embutida_continua_protegida_de_dentro_de_uma_acao():
         Interpreter().run(parse(tokenize(fonte), "<t>"))
     assert saida.getvalue().split() == ["42", "3"], (
         "a embutida 'len' foi apagada por uma atribuição dentro da ação")
+
+
+def test_o_corredor_reprova_um_trial_quebrado_sem_adopt_do_crucible():
+    """`dataforge test` dizia "Tudo verde" com um `trial` reprovado.
+
+    `crucible` e `trial` são palavras da **linguagem**: um arquivo de
+    teste normal nunca escreve `adopt Arcane.Crucible`. O corredor
+    procurava `Crucible.run` em `interp.modules` — que nesse caso está
+    vazio —, desistia, e o arquivo caía no ramo "sem ações `test_`, o
+    próprio arquivo é o caso":
+
+        ✓ tests/a_test.df (1/1)
+        1 passaram em 1 arquivo(s)
+        Tudo verde.                       código de saída 0
+
+    `dataforge crucible`, sobre o mesmo arquivo, saía com 1. Os dois
+    comandos discordavam, e o mais óbvio era o que mentia.
+
+    O repositório inteiro passava por acidente: todas as suítes daqui
+    escrevem `adopt Arcane.Crucible`, que era o único caminho em que a
+    busca antiga funcionava. Achado gerando um projeto de 60 domínios —
+    ele relatava **60 testes** onde havia 180.
+    """
+    import subprocess
+    import tempfile
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonte = (
+        'crucible "tres casos":\n'
+        '    trial "passa":\n'
+        '        assert 1 is 1\n'
+        '\n'
+        '    trial "QUEBRA":\n'
+        '        assert 1 is 2, "este tem de reprovar"\n'
+        '\n'
+        '    trial "passa de novo":\n'
+        '        assert 2 is 2\n')
+
+    with tempfile.TemporaryDirectory() as pasta:
+        testes = os.path.join(pasta, "tests")
+        os.makedirs(testes)
+        with open(os.path.join(testes, "a_test.df"), "w",
+                  encoding="utf-8") as f:
+            f.write(fonte)
+
+        r = subprocess.run(
+            [sys.executable, "-m", "dataforge", "test", "tests/"],
+            cwd=pasta, capture_output=True, text=True, timeout=120,
+            encoding="utf-8", errors="replace",
+            env={**os.environ, "PYTHONPATH": raiz})
+
+    saida = r.stdout + r.stderr
+    assert r.returncode != 0, (
+        f"o corredor saiu com 0 numa suíte com um trial reprovado:\n{saida}")
+    assert "QUEBRA" in saida, (
+        f"o relatório não diz QUAL trial caiu:\n{saida}")
+    assert "2 passaram" in saida and "1 falharam" in saida, (
+        f"a contagem é por arquivo, e não por trial:\n{saida}")
+
+
+def test_root_atravessa_tres_niveis_de_heranca():
+    """`root` era o pai da classe da INSTÂNCIA, e não de quem declarou.
+
+    Com dois níveis funcionava. Com três, laço infinito:
+
+        blueprint A:            action v(): yield "A"
+        blueprint B extends A:  action v(): yield "B>" + root.v()
+        blueprint C extends B:  action v(): yield "C>" + root.v()
+
+        spawn C().v()    ->  Call stack exceeded 1000 frames in 'v'
+
+    `C.v` achava `B.v` certo. Mas dentro de `B.v` o `self` continua
+    sendo a instância de C, então `root` voltava a ser o pai de C — o
+    próprio B — e `B.v` chamava a si mesmo para sempre.
+
+    Passou despercebido porque **toda herança do repositório tem dois
+    níveis**, que é o único caso em que a conta antiga dava certo.
+    """
+    import io
+    from contextlib import redirect_stdout
+
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    fonte = (
+        'blueprint A:\n    action v():\n        yield "A"\n\n'
+        'blueprint B extends A:\n    action v():\n'
+        '        yield "B>" + root.v()\n\n'
+        'blueprint C extends B:\n    action v():\n'
+        '        yield "C>" + root.v()\n\n'
+        'out (spawn C()).v()\n')
+    saida = io.StringIO()
+    with redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(fonte), "<t>"))
+    assert saida.getvalue().strip() == "C>B>A"
+
+
+def test_root_segue_a_MRO_no_diamante():
+    """`root` é "o próximo da linhagem", e não "a mãe".
+
+    Com herança múltipla os dois diferem: em `D extends B, C`, o `root`
+    de `B` é **C**, que não é mãe de B. É o que o `super()` do Python
+    faz, e é o único que não pula nem repete um ramo do diamante.
+    """
+    import io
+    from contextlib import redirect_stdout
+
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    fonte = (
+        'blueprint A:\n    action v():\n        yield "A"\n\n'
+        'blueprint B extends A:\n    action v():\n'
+        '        yield "B>" + root.v()\n\n'
+        'blueprint C extends A:\n    action v():\n'
+        '        yield "C>" + root.v()\n\n'
+        'blueprint D extends B, C:\n    action v():\n'
+        '        yield "D>" + root.v()\n\n'
+        'out (spawn D()).v()\n')
+    saida = io.StringIO()
+    with redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(fonte), "<t>"))
+    assert saida.getvalue().strip() == "D>B>C>A", (
+        "o diamante não seguiu a MRO — 'A' apareceu antes de 'C', ou "
+        "um ramo foi visitado duas vezes")
+
+
+def test_um_metodo_declarado_num_enum_pode_ser_chamado():
+    """O parser aceitava, o interpretador guardava, e ninguém alcançava.
+
+        enum Cor:
+            Verde := "#0f0"
+
+            action hex():
+                yield self.value
+
+        Cor.Verde.hex()   ->  "has no member 'hex'. Use .name, .value…"
+
+    Um recurso assim é pior que um que não existe: o código compila,
+    passa no `check`, e o método nunca roda. O membro não conhecia o
+    enum a que pertence — ele nasce antes dele —, então não havia por
+    onde chegar em `DFEnum.methods`.
+
+    O `self` tem de ser o **membro**, e não o enum: é ele que tem
+    `.value`.
+    """
+    import io
+    from contextlib import redirect_stdout
+
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    fonte = (
+        'enum Prioridade:\n'
+        '    Baixa := 1\n'
+        '    Alta := 10\n'
+        '\n'
+        '    action urgente():\n'
+        '        yield self.value >= 5\n'
+        '\n'
+        '    action rotulo():\n'
+        '        yield $"{self.name}({self.value})"\n'
+        '\n'
+        'assert Prioridade.Alta.urgente() is yes\n'
+        'assert Prioridade.Baixa.urgente() is no\n'
+        'assert Prioridade.Alta.rotulo() is "Alta(10)"\n'
+        'assert Prioridade.Alta.value is 10\n'
+        'assert Prioridade.Alta.name is "Alta"\n'
+        'assert Prioridade.Alta.index is 1\n'
+        'out "ok"\n')
+    saida = io.StringIO()
+    with redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(fonte), "<t>"))
+    assert saida.getvalue().strip() == "ok"
+
+
+def test_um_nome_atribuido_num_ramo_do_given_existe_depois():
+    """Decidir um valor em dois caminhos é o padrão mais comum que há.
+
+        given n % 2 is 0:
+            rotulo := "par"
+        otherwise:
+            rotulo := "impar"
+        out rotulo          ->  'rotulo' is not defined
+
+    O `monitor` já rodava no mesmo escopo — a decisão estava tomada e
+    escrita no código —, e o `given` ficou de fora: a linguagem
+    respondia coisas diferentes para a mesma pergunta. Quem batia nisso
+    declarava `rotulo := ""` antes do bloco, um valor que nunca é usado.
+
+    O teste roda com a compilação de fechamentos LIGADA e DESLIGADA: foi
+    exatamente aí que a correção divergiu na primeira tentativa — o
+    interpretador passou a compartilhar o escopo e `compilador.py`
+    continuou criando filho, então o `check` aprovava e a execução
+    falhava.
+    """
+    import io
+    from contextlib import redirect_stdout
+
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    fonte = (
+        'n := 7\n'
+        'given n % 2 is 0:\n'
+        '    rotulo := "par"\n'
+        'orif n is 7:\n'
+        '    rotulo := "sete"\n'
+        'otherwise:\n'
+        '    rotulo := "impar"\n'
+        'out rotulo\n')
+
+    for compilar in (True, False):
+        interp = Interpreter()
+        interp.compilar_corpos = compilar
+        saida = io.StringIO()
+        with redirect_stdout(saida):
+            interp.run(parse(tokenize(fonte), "<t>"))
+        assert saida.getvalue().strip() == "sete", (
+            f"com compilar_corpos={compilar} o ramo não publicou o nome")
+
+
+def test_o_check_nao_leva_o_tipo_de_um_ramo_para_o_outro():
+    """Os ramos de um `given` são mutuamente exclusivos.
+
+    Publicar o NOME entre ramos é necessário; publicar o TIPO acusa
+    código certo:
+
+        given typeof(atual) is "Vault":
+            atual := atual[parte] ?? void     // pode virar Void aqui
+        otherwise:
+            atual := atual[parte]             // "Cannot index Void"
+
+    O segundo ramo nunca roda depois do primeiro. `packages/modelo` tem
+    exatamente esse código, e ele passou a ser acusado assim que os
+    ramos passaram a dividir o escopo.
+    """
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.typechecker import check_program
+
+    fonte = (
+        'action descer(dados, parte):\n'
+        '    atual := dados\n'
+        '    given typeof(atual) is "Vault":\n'
+        '        atual := atual[parte] ?? void\n'
+        '    otherwise:\n'
+        '        atual := atual[parte]\n'
+        '    yield atual\n')
+    erros = [d for d in check_program(parse(tokenize(fonte), "t.df"), "t.df")
+             if d.severity == "error"]
+    assert not erros, (
+        "falso alarme: o tipo de um ramo vazou para o outro\n  " +
+        "\n  ".join(d.format("t.df", color=False) for d in erros))

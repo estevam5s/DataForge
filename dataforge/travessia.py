@@ -365,8 +365,9 @@ class Empacotador:
     # ── valores ──────────────────────────────────────────
 
     def valor(self, v):
-        from .interpreter import (DFAction, DFBlueprint, DFEnum, DFInstance,
-                                  DFRecord, DFRecordInstance)
+        from .interpreter import (DFAction, DFBlueprint, DFEnum,
+                                  DFEnumMember, DFInstance, DFRecord,
+                                  DFRecordInstance)
 
         if isinstance(v, _SIMPLES):
             return v
@@ -385,6 +386,18 @@ class Empacotador:
         if isinstance(v, DFInstance):
             return _Ref("inst", self.declaracao(v.blueprint),
                         {k: self.valor(x) for k, x in v.fields.items()})
+        if isinstance(v, DFEnumMember):
+            # Pelo ENUM e pelo nome, e nao por copia. Um membro copiado
+            # chega do outro lado sem o enum a que pertence, e o metodo
+            # declarado nele fica inalcancavel — 'Faixa.Alta.dobro()'
+            # respondia "has no member 'dobro'" DEPOIS de atravessar, e
+            # so depois.
+            #
+            # Pelo enum, os dois lados devolvem o membro de verdade: o
+            # mesmo objeto no processo que o declarou.
+            enum = getattr(v, "enum", None)
+            if enum is not None:
+                return _Ref("membro", self.declaracao(enum), v.name)
 
         if isinstance(v, dict):
             nome = v.get("__name__")
@@ -675,6 +688,9 @@ class Abridor:
             tipo = self.declaracao(r.indice)
             return DFRecordInstance(
                 tipo, {k: self.valor(x) for k, x in r.dados.items()})
+        if r.especie == "membro":
+            enum = self.declaracao(r.indice)
+            return enum.members[r.dados]
         if r.especie == "inst":
             bp = self.declaracao(r.indice)
             inst = DFInstance(bp)
@@ -741,7 +757,8 @@ class Abridor:
         env.variables[c["nome"]] = enum
         self.raiz.variables.setdefault(c["nome"], enum)
         for nome, valor, i in c["membros"]:
-            membros[nome] = DFEnumMember(c["nome"], nome, self.valor(valor), i)
+            membros[nome] = DFEnumMember(c["nome"], nome, self.valor(valor), i,
+                                         enum)
         for n, i in c["metodos"].items():
             enum.methods[n] = self.declaracao(i)
         return enum

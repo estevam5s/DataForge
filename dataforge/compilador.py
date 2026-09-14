@@ -353,8 +353,15 @@ def _devolver(interp, no):
 def _condicional(interp, no):
     """`given` / `orif` / `otherwise`.
 
-    Cada ramo ganha o próprio escopo filho, como em `exec_GivenBlock`:
-    uma variável declarada dentro do `given` não vaza para fora.
+    Os ramos rodam no MESMO escopo, como em `exec_GivenBlock` — um nome
+    atribuído dentro do `given` existe depois dele, que é como se decide
+    um valor em dois caminhos.
+
+    Este construtor espelha `exec_GivenBlock`, e divergir dele faz a
+    linguagem responder duas coisas diferentes conforme a compilação de
+    fechamentos esteja ligada ou não. Foi o que aconteceu: o
+    interpretador passou a compartilhar o escopo e aqui continuou
+    criando filho, então o `check` aprovava e a execução falhava.
     """
     condicao = compilar_expressao(interp, no.condition)
     corpo = compilar_bloco(interp, no.body)
@@ -367,12 +374,12 @@ def _condicional(interp, no):
 
     def executar(env):
         if verdade(condicao(env), no):
-            return corpo(env.child("<given>"))
+            return corpo(env)
         for cond, ramo in ramos:
             if verdade(cond(env), no):
-                return ramo(env.child("<orif>"))
+                return ramo(env)
         if senao is not None:
-            return senao(env.child("<otherwise>"))
+            return senao(env)
         return None
     return executar
 
