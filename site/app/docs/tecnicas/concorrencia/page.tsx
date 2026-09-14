@@ -5,7 +5,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Concorrência",
-  description: "async/await, threads, canais e o que ainda não existe.",
+  description: "async/await, threads, canais, travas — e os processos, que são o único caminho para mais de um núcleo.",
 };
 
 const blocos: Bloco[] = [
@@ -74,7 +74,7 @@ out contador["valor"]     # deveria ser 2000. Frequentemente é menos.` },
   {"p": "`contador[\"valor\"] + 1` são três passos — ler, somar, escrever. Se as duas threads leem 5 ao mesmo tempo, ambas escrevem 6. Um incremento se perdeu."},
   {"p": "Rode várias vezes: o número muda. É o tipo de bug que passa em teste e quebra em produção sob carga."},
   {"h2": "channel — a via segura"},
-  {"p": "DataForge 4.0 **não tem mutex nem lock**. A solução não é sincronizar o acesso — é não compartilhar:"},
+  {"p": "Há duas saídas, e a ordem importa: a primeira é **não compartilhar**. `Arcane.Concurrent` tem `mutex`, `semaforo`, `barreira`, `contador` e canal bloqueante — mas uma trava protege o acesso e não o desenho, e um programa em que cada thread trabalha no próprio escopo não precisa de nenhuma delas."},
   { code: `channel parciais
 
 thread:
@@ -100,6 +100,29 @@ persist yes:
 
 out total     # 2000, sempre` },
   {"p": "Cada thread trabalha no próprio escopo. Ninguém escreve onde outro lê. Essa ideia tem nome — *\"não comunique compartilhando memória; compartilhe memória comunicando\"* — e é o lema de Go."},
+  {"h2": "Quando compartilhar é inevitável"},
+  {"p": "Nem todo acumulador cabe num canal. Para esses, `Arcane.Concurrent` tem as travas — e `com_trava` solta a trava **mesmo quando o corpo estoura**, que é a diferença entre um erro e um programa parado para sempre."},
+  { code: `adopt Arcane.Concurrent as P
+
+trava := P.mutex()
+total := {"valor": 0}
+
+action somar(n):
+    yield P.com_trava(trava, lambda => total.set("valor", total["valor"] + n))
+
+P.map(somar, range(1, 1001))
+out total["valor"]          // 500500, sempre` },
+  {"p": "Para o caso mais comum — somar — há `contador`, que não precisa de trava nenhuma escrita à mão:"},
+  { code: `adopt Arcane.Concurrent as P
+
+visitas := P.contador()
+
+action registrar(_):
+    yield visitas.somar(1)
+
+P.map(registrar, range(0, 10000))
+out visitas.valor()         // 10000` },
+  {"callout": {"tipo": "atencao", "titulo": "Nada disso é aplicado sozinho", "texto": "A linguagem não sincroniza por você. O `check` **avisa** (`escrita-concorrente`) quando um `thread`, um `parallel` ou uma `route` escreve num nome que vem de fora — e a rota é o caso que mais engana, porque ali a thread é invisível: o Kiln atende um pedido por thread. Medido: seis pedidos simultâneos numa rota que lê, espera e escreve entregaram **1 de 6**."}},
   {"h2": "Regra prática"},
   {"table": {"head": ["Situação", "Seguro?"], "rows": [["threads só leem dados compartilhados", "sim"], ["cada thread escreve numa variável própria", "sim"], ["threads enviam por `channel`", "sim"], ["duas threads escrevem na mesma variável", "**não**"], ["`lista.append` de duas threads", "**não**"]]}},
   {"h2": "parallel"},
@@ -107,18 +130,99 @@ out total     # 2000, sempre` },
     saidas.append(tarefa_a())
     saidas.append(tarefa_b())` },
   {"p": "**Cada instrução** do bloco vai para uma thread — não uma thread para o bloco inteiro. É uma limitação conhecida; enquanto isso, mantenha cada linha autossuficiente."},
+  {"h2": "Vários núcleos, de verdade"},
+  {"p": "Tudo acima acontece em **um núcleo**. `async`, `thread` e `parallel` usam threads do Python, e duas threads do Python nunca executam bytecode ao mesmo tempo — é o GIL. Para trabalho que **espera**, isso não importa: a thread solta o GIL enquanto espera, e dez downloads acontecem juntos. Para trabalho que **calcula**, oito threads levam o mesmo tempo que uma."},
+  {"p": "O caminho para os outros núcleos é um só, e ele usa **processos**:"},
+  { code: `adopt Arcane.Concurrent as P
+
+action cpu(n):
+    s := 0
+    cycle i from 1 to n:
+        s += i * i
+    yield s
+
+blocos := [200000, 200000, 200000, 200000, 200000, 200000, 200000, 200000]
+
+out P.nucleos()                       // 10
+out sum(P.map_processos(cpu, blocos)) // usa os 8` },
+  {"p": "Medido nesta máquina de 10 núcleos, com os mesmos oito blocos:"},
+  {"table": {"head": ["Como", "Tempo", "Ganho"], "rows": [
+    ["em série", "1607 ms", "—"],
+    ["`P.map` — threads", "1654 ms", "**0,97x**"],
+    ["`P.map_processos` — processos", "466 ms", "**3,45x**"]]}},
+  {"p": "As threads não só deixaram de ganhar: ficaram um pouco **mais lentas** que a série, pelo custo de trocar de contexto sem nada a ganhar em troca. Esse é o resultado esperado, e ele é a razão de `map_processos` existir."},
+  {"h3": "O que atravessa para o outro processo"},
+  {"p": "Um processo recebe o trabalho por **cópia**. O que viaja não é a ação — é a **declaração** dela, mais os nomes que ela lê e não cria, mais tudo o que esses nomes alcançam: outras ações, `record`, `enum`, `blueprint`, e os módulos, que o outro lado carrega de novo pelo nome."},
+  { code: `adopt Arcane.Concurrent as P
+adopt Arcane.Math as M
+
+steady TAXA := 0.08
+
+record Pedido:
+    cliente: String
+    valor: Float
+
+action imposto(v):
+    yield v * TAXA
+
+action com_imposto(p):
+    yield Pedido(p.cliente, M.round(p.valor + imposto(p.valor), 2))
+
+pedidos := [Pedido("ana", 100.0), Pedido("bia", 250.0)]
+out P.map_processos(com_imposto, pedidos)` },
+  {"p": "A `steady`, o `record`, o módulo e a segunda ação atravessam junto, sem que nada disso precise ser dito. O `record` que volta é o **mesmo tipo** declarado aqui — `with` funciona sobre ele."},
+  {"h3": "O que não atravessa"},
+  {"p": "Uma conexão de banco, um arquivo aberto, um socket, um mutex, um canal e uma tarefa existem no processo que os abriu. Copiá-los não faria sentido: o outro lado ganharia um número de descritor que lá não aponta para nada."},
+  { code: `adopt Arcane.Concurrent as P
+adopt Arcane.Database as DB
+
+// a conexao e aberta DENTRO da acao: cada processo abre a sua
+action contar(arquivo):
+    banco := DB.connect(arquivo)
+    yield DB.count(banco, "pedidos")
+
+out P.map_processos(contar, ["a.db", "b.db", "c.db"])` },
+  {"p": "Quando um nome desses é mesmo usado lá dentro, a mensagem o chama pelo nome e diz o que ele guarda — não `cannot pickle`, e não o nome de um objeto interno da biblioteca:"},
+  { lang: 'text', code: `erro[DF1001]: 'db' cannot cross into another process
+  = nota: it holds a connection to a database, which exists only in
+          the process that opened it
+  = dica: open it INSIDE the action — each process opens its own — or
+          use 'map', which uses threads and shares memory` },
+  {"callout": {"tipo": "dica", "titulo": "Quando vale pagar a travessia", "texto": "Copiar os dados de ida e de volta custa. A conta vira a favor dos processos a partir de **alguns milissegundos de trabalho por item** — abaixo disso, `map` com threads é mais rápido mesmo em trabalho de CPU, porque não há fronteira a cruzar."}},
+  {"h3": "Um pool que sobrevive entre chamadas"},
+  {"p": "`map_processos` abre um pool, usa e fecha. Iniciar um processo custa **mais de cem milissegundos** — aceitável uma vez num script, inaceitável por pedido num servidor web. `P.pool_processos()` paga esse custo uma vez:"},
+  { code: `adopt Arcane.Concurrent as P
+
+pool := P.pool_processos()
+
+// a primeira chamada paga a partida; a segunda nao
+out pool.map(pesado, blocos)
+out pool.map(pesado, outros)
+
+// uma chamada so, disparada e esperada depois
+tarefa := pool.enviar(pesado, bloco)
+out tarefa.esperar()
+
+pool.fechar()` },
+  {"table": {"head": ["Chamada", "Tempo"], "rows": [
+    ["a primeira — abre os processos", "180 ms"],
+    ["a segunda — reaproveita", "**82 ms**"]]}},
+  {"p": "`fechar()` é explícito de propósito. Os processos ficam vivos até ele — e um pool aberto por engano dentro de um laço deixaria a máquina cheia de processos ociosos. Depois de fechado, o pool recusa e diz por quê."},
+  {"p": "Para uma chamada avulsa, sem pool, há `P.processo(acao, …)`: é o `thread` da linguagem, num núcleo de verdade. Ele abre e fecha um processo por chamada, então para várias seguidas o pool é o caminho."},
+  {"h3": "O erro que acontece do outro lado"},
+  {"p": "Ele volta como erro daqui, dizendo onde aconteceu. A pilha e a linha ficam no outro processo — nada disso sobrevive à cópia —, mas a mensagem e a dica chegam inteiras, inclusive o *did you mean*."},
   {"h2": "O que ainda não existe"},
-  {"list": ["`Mutex`, `Semaphore`, `Atomic`", "`receive` bloqueante — hoje devolve `void` na hora se a fila estiver vazia", "cancelamento de tarefa e `await` com prazo", "`parallel` tratando blocos em vez de instruções"]},
+  {"list": ["cancelamento de tarefa e `await` com prazo", "`parallel` tratando blocos em vez de instruções", "depurar uma thread sem parar as outras"]},
   {"p": "Tudo isso está no [roadmap](/docs/roadmap)."},
 ];
 
-const headings = [{ id: 'async-await', text: "async / await", level: 2 as const }, { id: 'onde-esta-o-ganho', text: "Onde está o ganho", level: 3 as const }, { id: 'o-que-async-acelera-e-o-que-nao-acelera', text: "O que async acelera, e o que não acelera", level: 3 as const }, { id: 'erros-atravessam-o-await', text: "Erros atravessam o await", level: 3 as const }, { id: 'thread', text: "thread", level: 2 as const }, { id: 'a-condicao-de-corrida', text: "A condição de corrida", level: 2 as const }, { id: 'channel-a-via-segura', text: "channel — a via segura", level: 2 as const }, { id: 'regra-pratica', text: "Regra prática", level: 2 as const }, { id: 'parallel', text: "parallel", level: 2 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 2 as const }];
+const headings = [{ id: 'async-await', text: "async / await", level: 2 as const }, { id: 'onde-esta-o-ganho', text: "Onde está o ganho", level: 3 as const }, { id: 'o-que-async-acelera-e-o-que-nao-acelera', text: "O que async acelera, e o que não acelera", level: 3 as const }, { id: 'erros-atravessam-o-await', text: "Erros atravessam o await", level: 3 as const }, { id: 'thread', text: "thread", level: 2 as const }, { id: 'a-condicao-de-corrida', text: "A condição de corrida", level: 2 as const }, { id: 'channel-a-via-segura', text: "channel — a via segura", level: 2 as const }, { id: 'quando-compartilhar-e-inevitavel', text: "Quando compartilhar é inevitável", level: 2 as const }, { id: 'regra-pratica', text: "Regra prática", level: 2 as const }, { id: 'parallel', text: "parallel", level: 2 as const }, { id: 'varios-nucleos-de-verdade', text: "Vários núcleos, de verdade", level: 2 as const }, { id: 'o-que-atravessa-para-o-outro-processo', text: "O que atravessa para o outro processo", level: 3 as const }, { id: 'o-que-nao-atravessa', text: "O que não atravessa", level: 3 as const }, { id: 'um-pool-que-sobrevive-entre-chamadas', text: "Um pool que sobrevive entre chamadas", level: 3 as const }, { id: 'o-erro-que-acontece-do-outro-lado', text: "O erro que acontece do outro lado", level: 3 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Concorrência"}
-      description={"async/await, threads, canais e o que ainda não existe."}
+      description={"async/await, threads, canais, travas — e os processos, que são o único caminho para mais de um núcleo."}
       href={"/docs/tecnicas/concorrencia"}
       headings={headings}
     >

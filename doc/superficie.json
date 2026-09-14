@@ -912,6 +912,8 @@
       "mutex",
       "nucleos",
       "para_cada",
+      "pool_processos",
+      "processo",
       "repetir_a_cada",
       "rodar",
       "semaforo",

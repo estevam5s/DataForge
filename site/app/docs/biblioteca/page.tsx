@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Quarenta e seis módulos e 1490 símbolos, sem uma única dependência externa.",
+  description: "Quarenta e seis módulos e 1492 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os quarenta e seis módulos"
   },
   {
-    "p": "São **1490 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1492 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -141,6 +141,11 @@ const blocos: Bloco[] = [
           "Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface."
         ],
         [
+          "[`Arcane.Concurrent`](/docs/tecnicas/concorrencia)",
+          "27",
+          "Threads, processos, canal bloqueante, grupo de tarefas e prazo."
+        ],
+        [
           "[`Arcane.Serialization`](/docs/biblioteca/serialization)",
           "26",
           "JSON, CSV, INI, TOML, XML e conversões entre eles."
@@ -149,11 +154,6 @@ const blocos: Bloco[] = [
           "[`Arcane.Bytes`](/docs/biblioteca/bytes)",
           "25",
           "Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo."
-        ],
-        [
-          "[`Arcane.Concurrent`](/docs/tecnicas/concorrencia)",
-          "25",
-          "Threads, processos, canal bloqueante, grupo de tarefas e prazo."
         ],
         [
           "[`Arcane.Cortex`](/docs/biblioteca/cortex)",
@@ -335,7 +335,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Quarenta e seis módulos e 1490 símbolos, sem uma única dependência externa."}
+      description={"Quarenta e seis módulos e 1492 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

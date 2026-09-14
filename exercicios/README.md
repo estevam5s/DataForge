@@ -521,9 +521,19 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 236 | [`236_rede.df`](34-binario-e-rede/236_rede.df) · [doc](34-binario-e-rede/236_rede.md) | TCP, UDP e DNS com Arcane.Rede |
 | 237 | [`237_eventos_cli_html.df`](34-binario-e-rede/237_eventos_cli_html.df) · [doc](34-binario-e-rede/237_eventos_cli_html.md) | Eventos, linha de comando, e-mail e HTML |
 
+## 35 — Paralelismo
+
+*3 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 238 | [`238_varios_nucleos.df`](35-paralelismo/238_varios_nucleos.df) · [doc](35-paralelismo/238_varios_nucleos.md) | Varios nucleos, de verdade |
+| 239 | [`239_o_que_atravessa.df`](35-paralelismo/239_o_que_atravessa.df) · [doc](35-paralelismo/239_o_que_atravessa.md) | O que atravessa para o outro processo |
+| 240 | [`240_pipeline_em_blocos.df`](35-paralelismo/240_pipeline_em_blocos.df) · [doc](35-paralelismo/240_pipeline_em_blocos.md) | Um pipeline que usa a maquina inteira |
+
 ---
 
-**Total: 237 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 240 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

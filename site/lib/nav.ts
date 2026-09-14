@@ -315,6 +315,7 @@ export const nav: NavSection[] = [
       { title: 'Microserviços', href: '/docs/exercicios/32-microservicos' },
       { title: 'Lavra', href: '/docs/exercicios/33-lavra' },
       { title: 'Binário e rede', href: '/docs/exercicios/34-binario-e-rede' },
+      { title: 'Paralelismo', href: '/docs/exercicios/35-paralelismo' },
     ],
   },
   {

@@ -40,15 +40,15 @@ atualizacoes — e o bug so aparece sob carga.
 """
 
 import concurrent.futures as futuros
-import pickle
-import multiprocessing
+import concurrent.futures.process  # noqa: F401
 import os
 import queue
 import threading
 import time
 
-from ..errors import (ConcurrencyError, DeadlockError, TimeoutError_,
-                      ThreadError, TypeError_)
+from ..errors import (ConcurrencyError, DeadlockError, RuntimeError_,
+                      TimeoutError_, ThreadError, TypeError_)
+from ..travessia import _ErroDoFilho
 
 
 #: Quantos trabalhadores por padrao.
@@ -58,6 +58,31 @@ from ..errors import (ConcurrencyError, DeadlockError, TimeoutError_,
 #: de contexto.
 PADRAO_THREADS = min(32, (os.cpu_count() or 4) * 4)
 PADRAO_PROCESSOS = os.cpu_count() or 4
+
+
+def _traduzir_erro_do_filho(e):
+    """O erro que aconteceu no outro processo, de volta como erro daqui.
+
+    A pilha, a linha de codigo e o arquivo ficam do outro lado — nada
+    disso sobrevive a copia. O que volta e a mensagem ja montada, e ela
+    diz ONDE aconteceu: sem isso, um erro de uma acao que roda em oito
+    processos parece ter acontecido na linha do 'map_processos', que e
+    a unica linha que este processo executou.
+    """
+    from ..errors import DataForgeError
+
+    classes = {c.__name__: c for c in _descendentes(DataForgeError)}
+    classe = classes.get(e.tipo) or classes.get(e.tipo + "_") or RuntimeError_
+    nota = e.nota or ""
+    aviso = "this happened inside another process, started by 'map_processos'"
+    return classe(e.texto, nota=(nota + "\n" + aviso) if nota else aviso,
+                  dica=e.dica, doc="tecnicas/concorrencia")
+
+
+def _descendentes(classe):
+    yield classe
+    for filha in classe.__subclasses__():
+        yield from _descendentes(filha)
 
 
 class Tarefa:
@@ -114,6 +139,135 @@ class Tarefa:
     def __repr__(self):
         estado = "pronta" if self.pronta() else "rodando"
         return f"<tarefa {self.nome or '?'} {estado}>"
+
+
+class TarefaDeProcesso(Tarefa):
+    """Uma tarefa que roda em OUTRO processo.
+
+    Ela existe porque o que atravessa a fronteira e codificado: o
+    resultado precisa ser traduzido de volta com a tabela de
+    declaracoes deste processo, e o erro precisa deixar de falar do
+    outro lado antes de chegar a quem escreveu.
+    """
+
+    __slots__ = ("_empacotador",)
+
+    def __init__(self, futuro, empacotador, nome=""):
+        super().__init__(futuro, nome)
+        self._empacotador = empacotador
+
+    def esperar(self, prazo=None):
+        from ..travessia import _ErroDoFilho, desempacotar
+        try:
+            cru = super().esperar(prazo)
+        except _ErroDoFilho as e:
+            raise _traduzir_erro_do_filho(e) from None
+        return desempacotar(self._empacotador, cru)
+
+
+class PoolDeProcessos:
+    """Processos que ficam de pe entre uma chamada e a proxima.
+
+    'map_processos' abre um pool, usa e fecha. Iniciar um processo
+    custa mais de cem milissegundos — aceitavel uma vez num script,
+    inaceitavel por pedido num servidor web. Um pool aberto no comeco
+    do programa paga isso uma vez.
+
+    O preco e simetrico: os processos ficam vivos ate 'fechar()'. Por
+    isso ele e explicito, e nao automatico — um pool aberto por engano
+    dentro de um laco deixaria a maquina cheia de processos ociosos.
+    """
+
+    __slots__ = ("_pool", "trabalhadores", "_fechado")
+
+    def __init__(self, trabalhadores=None):
+        self.trabalhadores = trabalhadores or PADRAO_PROCESSOS
+        self._pool = futuros.ProcessPoolExecutor(
+            max_workers=self.trabalhadores)
+        self._fechado = False
+
+    def _conferir(self):
+        if self._fechado:
+            raise ConcurrencyError(
+                "this pool is closed.",
+                nota="'fechar()' ends the processes, and they do not "
+                     "come back",
+                dica="open another with 'P.pool_processos()', or close it "
+                     "only when the program is ending",
+                doc="tecnicas/concorrencia")
+
+    def map(self, acao, itens, lote=None):
+        """A acao sobre cada item, nos processos ja abertos."""
+        self._conferir()
+        lista = list(itens)
+        if not lista:
+            return []
+        pacote, traduzidos, emp = _empacotar_ou_explicar(acao, lista)
+        from ..travessia import Chamada, desempacotar
+        tamanho = lote or max(1, len(lista) // (self.trabalhadores * 4))
+        crus = self._colher(
+            lambda: list(self._pool.map(Chamada(pacote.marca, pacote),
+                                        traduzidos, chunksize=tamanho)))
+        return [desempacotar(emp, x) for x in crus]
+
+    def enviar(self, acao, *args):
+        """Dispara UMA chamada num processo e devolve a tarefa.
+
+        E o 'thread' da linguagem, num nucleo de verdade: dispara e
+        segue, e 'esperar()' entrega o resultado quando ele vier.
+        """
+        self._conferir()
+        pacote, traduzidos, emp = _empacotar_ou_explicar(acao, list(args))
+        from ..travessia import Chamada
+        futuro = self._pool.submit(Chamada(pacote.marca, pacote),
+                                   traduzidos[0] if traduzidos else None)
+        return TarefaDeProcesso(futuro, emp, getattr(acao, "name", ""))
+
+    def fechar(self, esperar=True):
+        """Encerra os processos. Depois disto o pool nao serve mais."""
+        if not self._fechado:
+            self._pool.shutdown(wait=esperar)
+            self._fechado = True
+        return True
+
+    def aberto(self):
+        return not self._fechado
+
+    def _colher(self, acao):
+        try:
+            return acao()
+        except _ErroDoFilho as e:
+            raise _traduzir_erro_do_filho(e) from None
+        except futuros.process.BrokenProcessPool as e:
+            self._fechado = True
+            raise ConcurrencyError(
+                f"a worker process died: {e}",
+                nota="the pool cannot be reused after this — a broken "
+                     "pool refuses everything that comes next",
+                dica="open another with 'P.pool_processos()', and check "
+                     "for memory that grows per item",
+                doc="tecnicas/concorrencia") from None
+
+    def __repr__(self):
+        estado = "aberto" if self.aberto() else "fechado"
+        return f"<pool de {self.trabalhadores} processos, {estado}>"
+
+
+def _empacotar_ou_explicar(acao, itens):
+    """Empacota, e traduz a recusa para o vocabulario de quem escreve."""
+    from ..travessia import NaoAtravessa, empacotar
+
+    try:
+        return empacotar(acao, itens)
+    except NaoAtravessa as e:
+        raise ConcurrencyError(
+            f"this action cannot cross into another process: {e.mensagem}",
+            nota=e.nota or ("a process receives the data by copy, and what "
+                            "exists only in this process cannot be copied"),
+            dica=e.dica or ("pass what the action needs as arguments — or "
+                            "use 'map', which uses threads and shares "
+                            "memory"),
+            doc="tecnicas/concorrencia") from None
 
 
 class Grupo:
@@ -303,6 +457,8 @@ class ArcaneConcurrent(dict):
             # ── mapear ──
             "map": cls._map,
             "map_processos": cls._map_processos,
+            "pool_processos": cls._pool_processos,
+            "processo": cls._processo,
             "para_cada": cls._para_cada,
             "lotes": cls._lotes,
 
@@ -424,30 +580,77 @@ class ArcaneConcurrent(dict):
         GIL). Para calculo, oito threads levam o mesmo tempo que uma;
         so processos usam os oito nucleos.
 
+        O que atravessa nao e a acao: e a DECLARACAO dela, mais os
+        nomes que ela le e nao cria. Copiar a acao era impossivel — o
+        fechamento dela alcanca o escopo global, e la moram modulos e
+        funcoes anonimas que o pickle nao copia. Ver 'travessia.py'.
+
         O custo e serializar os dados de ida e volta: vale a partir de
         alguns milissegundos de trabalho por item.
         """
         lista = list(itens)
         if not lista:
             return []
+
+        from ..travessia import Chamada, desempacotar, instalar
+
+        pacote, traduzidos, emp = _empacotar_ou_explicar(acao, lista)
+
+        n = trabalhadores or min(PADRAO_PROCESSOS, len(lista))
+        # Lotes grandes o bastante para o custo de atravessar a
+        # fronteira nao dominar, e pequenos o bastante para o ultimo
+        # processo nao ficar com todo o resto: quatro lotes por
+        # trabalhador e o meio termo usual.
+        lote = max(1, len(lista) // (n * 4))
         try:
-            n = trabalhadores or min(PADRAO_PROCESSOS, len(lista))
-            with futuros.ProcessPoolExecutor(max_workers=n) as pool:
-                return list(pool.map(acao, lista))
-        except (TypeError, AttributeError, OSError, pickle.PicklingError) as e:
-            # 'PicklingError' nao deriva de TypeError. Ate o Python 3.13
-            # a falha chegava aqui como TypeError, e a partir do 3.14 ela
-            # vem tipada — sem esta linha, a mensagem crua do pickle
-            # escapava para o usuario, falando de '_CallItem' e de
-            # 'serializing tuple item', que nao existem em DataForge.
+            with futuros.ProcessPoolExecutor(
+                    max_workers=n, initializer=instalar,
+                    initargs=(pacote,)) as pool:
+                crus = list(pool.map(Chamada(pacote.marca), traduzidos,
+                                     chunksize=lote))
+        except _ErroDoFilho as e:
+            raise _traduzir_erro_do_filho(e) from None
+        except futuros.process.BrokenProcessPool as e:
             raise ConcurrencyError(
-                f"this action cannot cross into another process: {e}",
-                nota="a process receives the data by copy, and a closure "
-                     "over the local scope does not travel",
-                dica=("declare the action at the top level of the file, "
-                      "and pass everything it needs as arguments — or use "
-                      "'map', which uses threads and shares memory"),
+                f"a worker process died: {e}",
+                nota="the action was interrupted in the middle — a "
+                     "process that dies takes no error message with it",
+                dica="check for memory use that grows per item, and for "
+                     "a library that calls into C code",
                 doc="tecnicas/concorrencia") from None
+
+        return [desempacotar(emp, x) for x in crus]
+
+    @staticmethod
+    def _pool_processos(trabalhadores=None):
+        """Processos que ficam de pe entre uma chamada e a proxima.
+
+        Iniciar um processo custa mais de cem milissegundos. Num
+        script isso acontece uma vez; num servidor, a cada pedido —
+        e ai a conta nao fecha. Um pool aberto no comeco paga o custo
+        uma vez so.
+
+            pool := P.pool_processos()
+            out pool.map(pesado, blocos)
+            pool.fechar()
+        """
+        return PoolDeProcessos(trabalhadores)
+
+    @staticmethod
+    def _processo(acao, *args):
+        """Dispara UMA chamada em outro processo e devolve a tarefa.
+
+        E o 'thread' da linguagem num nucleo de verdade: dispara e
+        segue. Para varias chamadas seguidas, abra um pool — este
+        abre e fecha um processo por chamada.
+        """
+        pool = PoolDeProcessos(1)
+        tarefa = pool.enviar(acao, *args)
+        # O pool fecha SEM esperar: 'shutdown(wait=False)' nao mata o
+        # que ja foi enviado, e sem ele o processo ficaria vivo depois
+        # de a tarefa terminar — um por chamada, ate o programa sair.
+        pool._pool.shutdown(wait=False)
+        return tarefa
 
     @staticmethod
     def _para_cada(acao, itens, trabalhadores=None):

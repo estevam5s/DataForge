@@ -375,12 +375,17 @@ def test_map_processos_calcula_certo():
 
 
 def test_map_processos_explica_o_que_nao_atravessa():
-    """Uma lambda local não pode ser serializada — e a mensagem tem de
-    dizer isso, não 'cannot pickle'."""
+    """Uma função anônima do PYTHON não tem nome para o outro lado
+    procurar — e a mensagem tem de dizer isso, não 'cannot pickle'.
+
+    Uma ação de DataForge, inclusive um ``lambda``, atravessa: o que
+    viaja é a declaração dela, não o fechamento. Ver ``travessia.py``.
+    """
     with pytest.raises(ConcurrencyError) as exc:
         P["map_processos"](lambda x: x, [1, 2])
     assert "another process" in str(exc.value)
-    assert "top level" in exc.value.dica
+    assert "no name the other process could look up" in str(exc.value)
+    assert "wrap it in an action" in exc.value.dica
 
 
 # ═══ Informacao ════════════════════════════════════════════

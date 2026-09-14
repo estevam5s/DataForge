@@ -5288,3 +5288,68 @@ action contador():
 p := contador()
 out p(), p(), p()
 """) == "1 2 3"
+
+
+def test_um_contador_chamado_como_uma_embutida_termina_o_laco():
+    """`count := 5` seguido de `count := count - 1` num `persist`.
+
+    A marca que protege as 228 embutidas de serem apagadas por dentro
+    de uma ação tinha um buraco: ela também parava a subida quando a
+    atribuição acontecia **no mesmo escopo onde a embutida vive**.
+
+    O efeito era um laço infinito, sem nenhum erro:
+
+        count := 5              # grava, e continua marcado
+        persist count bigger 0:
+            count := count - 1  # cria um 'count' DO BLOCO
+        # o de fora nunca sai de 5
+
+    `examples/04_loops.df` — do commit inicial — imprimia `5` até a
+    máquina ser desligada. Havia um processo dele com **sete horas**
+    nesta máquina.
+
+    Os nomes que pegam são justamente os de contador e acumulador:
+    `count`, `sum`, `min`, `max`, `first`, `last`.
+    """
+    import io
+    from contextlib import redirect_stdout
+
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    for nome in ("count", "sum", "min", "max", "first", "last"):
+        fonte = (f"{nome} := 3\n"
+                 f"persist {nome} bigger 0:\n"
+                 f"    {nome} := {nome} - 1\n"
+                 f"out {nome}\n")
+        saida = io.StringIO()
+        with redirect_stdout(saida):
+            Interpreter().run(parse(tokenize(fonte), "<t>"))
+        assert saida.getvalue().strip() == "0", (
+            f"o laço com '{nome}' não chegou a zero — ele não termina")
+
+
+def test_a_embutida_continua_protegida_de_dentro_de_uma_acao():
+    """A saída acima não pode reabrir o buraco que a marca fechou.
+
+    Uma atribuição **dentro de uma ação** ainda é local: ela não sobe
+    até o escopo global e apaga a embutida para o programa inteiro.
+    """
+    import io
+    from contextlib import redirect_stdout
+
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    fonte = ("action c():\n"
+             "    len := 42\n"
+             "    yield len\n"
+             "out c()\n"
+             "out len([1, 2, 3])\n")
+    saida = io.StringIO()
+    with redirect_stdout(saida):
+        Interpreter().run(parse(tokenize(fonte), "<t>"))
+    assert saida.getvalue().split() == ["42", "3"], (
+        "a embutida 'len' foi apagada por uma atribuição dentro da ação")

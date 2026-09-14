@@ -41,7 +41,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 50 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | [`Arcane.Iter`](#arcaneiter) | `Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
-| [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 27 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | [`Arcane.Archive`](#arcanearchive) | `Archive / Zip` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
 | [`Arcane.Pipeline`](#arcanepipeline) | `Pipeline / Fluxo` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
@@ -1619,7 +1619,7 @@ Threads, processos, canal bloqueante, grupo de tarefas e prazo.
 adopt Arcane.Concurrent as Concurrent
 ```
 
-**Funções (25)**
+**Funções (27)**
 
 | Assinatura |
 |------------|
@@ -1641,6 +1641,8 @@ adopt Arcane.Concurrent as Concurrent
 | `mutex()` |
 | `nucleos()` |
 | `para_cada(acao, itens, trabalhadores=None)` |
+| `pool_processos(trabalhadores=None)` |
+| `processo(acao, *args)` |
 | `repetir_a_cada(acao, segundos, vezes=0)` |
 | `rodar(acao, *args)` |
 | `semaforo(quantos=1)` |

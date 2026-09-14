@@ -64,7 +64,7 @@ const COMPONENTES: Componente[] = [
   {
     id: 'exemplos',
     nome: 'Exemplos e exercícios',
-    desc: '43 programas comentados e 237 exercícios com solução',
+    desc: '43 programas comentados e 240 exercícios com solução',
     tamanho: '1,1 MB',
     flag: '--com-exemplos',
   },

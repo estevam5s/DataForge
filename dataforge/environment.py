@@ -107,6 +107,26 @@ class Environment:
             # Aqui a atribuicao para, e o nome vira local — que e o que
             # toda linguagem com escopo de embutidas faz.
             if name in env.embutidas:
+                if env is self:
+                    # A atribuicao acontece NO MESMO escopo onde a
+                    # embutida vive: quem escreve esta tomando o nome
+                    # para si, ali, de proposito. A marca sai junto.
+                    #
+                    # Sem esta saida, 'count := 5' no topo do arquivo
+                    # gravava o 5 e continuava marcado como embutida —
+                    # e entao 'count := count - 1' dentro de um
+                    # 'persist' nao achava o nome ao subir, criava um
+                    # 'count' local do bloco, e o de fora ficava em 5
+                    # PARA SEMPRE. O laco nunca terminava, sem nenhum
+                    # erro: 'examples/04_loops.df' imprimia '5' ate a
+                    # maquina ser desligada.
+                    #
+                    # Sao 228 nomes, e 'count', 'sum', 'min', 'max',
+                    # 'first' e 'last' sao justamente os que alguem usa
+                    # como contador ou acumulador sem pensar.
+                    env.embutidas.discard(name)
+                    env.variables[name] = value
+                    return
                 break
             if name in env.variables:
                 if name in env.constants:

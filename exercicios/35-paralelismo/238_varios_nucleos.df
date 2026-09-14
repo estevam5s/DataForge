@@ -1,0 +1,65 @@
+// Exercicio 238 — Varios nucleos, de verdade
+// Enunciado: meca a diferenca entre thread e processo em trabalho de CPU.
+
+adopt Arcane.Concurrent as P
+adopt Arcane.Time as Time
+
+// ── O problema ──────────────────────────────────────────────
+//
+// 'async', 'thread' e 'parallel' usam threads do Python, e duas
+// threads do Python nunca executam bytecode ao mesmo tempo — e o GIL.
+//
+//     trabalho que ESPERA (rede, disco, banco)  ->  thread
+//     trabalho que CALCULA (numeros, imagem)    ->  processo
+//
+// Para o primeiro caso a thread e perfeita: ela solta o GIL enquanto
+// espera, e dez downloads acontecem juntos. Para o segundo, oito
+// threads levam o mesmo tempo que uma.
+
+out $"nucleos disponiveis: {P.nucleos()}"
+
+action cpu(n):
+    soma := 0
+    cycle i from 1 to n:
+        soma += i * i
+    yield soma
+
+steady BLOCOS := [150000, 150000, 150000, 150000]
+
+action cronometrar(f):
+    inicio := Time.monotonic()
+    valor := f()
+    yield {"ms": (Time.monotonic() - inicio) * 1000, "valor": valor}
+
+serie := cronometrar(lambda => [cpu(b) cycle b in BLOCOS])
+threads := cronometrar(lambda => P.map(cpu, BLOCOS))
+processos := cronometrar(lambda => P.map_processos(cpu, BLOCOS))
+
+// ── O resultado tem de ser o mesmo pelos tres caminhos ──────
+
+assert serie["valor"] is threads["valor"], "as threads mudaram o resultado"
+assert serie["valor"] is processos["valor"], "os processos mudaram o resultado"
+
+out $"serie:     {round(serie['ms'])} ms"
+out $"threads:   {round(threads['ms'])} ms"
+out $"processos: {round(processos['ms'])} ms"
+
+ganho_threads := serie["ms"] / threads["ms"]
+ganho_processos := serie["ms"] / processos["ms"]
+
+out $"threads   x{round(ganho_threads, 2)}"
+out $"processos x{round(ganho_processos, 2)}"
+
+// ── O que os numeros provam ─────────────────────────────────
+//
+// A comparacao e sempre com a SERIE medida na mesma maquina. Um
+// limite absoluto ("menos de 200 ms") mediria a maquina, e nao o
+// paralelismo — e reprovaria num runner ocupado que esta certissimo.
+
+given P.nucleos() >= 4:
+    assert ganho_processos bigger 1.2,
+    "os processos nao ganharam da serie: a travessia voltou a rodar num nucleo so"
+    assert ganho_threads < 1.5,
+    "as threads ganharam em trabalho de CPU — se o GIL sumiu, este exercicio e que mudou"
+
+out "ok"

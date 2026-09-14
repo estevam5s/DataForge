@@ -1,0 +1,97 @@
+// Exercicio 239 — O que atravessa para o outro processo
+// Enunciado: descubra o que viaja junto com a acao, e o que fica.
+
+adopt Arcane.Concurrent as P
+adopt Arcane.Math as M
+adopt Arcane.Database as DB
+
+// ── O que viaja ─────────────────────────────────────────────
+//
+// Um processo recebe o trabalho por COPIA. O que atravessa nao e a
+// acao — e a DECLARACAO dela, mais os nomes que ela le e nao cria, e
+// tudo o que esses nomes alcancam. Nada disso precisa ser dito.
+
+steady TAXA := 0.08
+
+record Pedido:
+    cliente: String
+    valor: Float
+
+enum Faixa:
+    Comum
+    Alta
+
+record Nota:
+    cliente: String
+    total: Float
+    faixa: Faixa
+
+action imposto(v):
+    yield v * TAXA
+
+action faixa_de(v):
+    yield Faixa.Alta given v bigger 200 otherwise Faixa.Comum
+
+action emitir(p: Pedido) -> Nota:
+    total := M.round(p.valor + imposto(p.valor), 2)
+    yield Nota(p.cliente, total, faixa_de(total))
+
+pedidos := [Pedido("ana", 100.0), Pedido("bia", 250.0), Pedido("caio", 30.0)]
+notas := P.map_processos(emitir, pedidos)
+
+cycle n in notas:
+    out n
+
+assert len(notas) is 3, "um item se perdeu na travessia"
+assert notas[0].total is 108.0, "a steady TAXA nao atravessou"
+assert notas[1].faixa is Faixa.Alta, "o enum nao atravessou"
+assert notas[2].faixa is Faixa.Comum, "o enum nao atravessou"
+
+// O tipo que VOLTA e o mesmo declarado aqui — e por isso 'with',
+// que confere os campos contra o record, aceita o resultado.
+copia := notas[0] with {"cliente": "outro"}
+assert copia.cliente is "outro", "o record voltou como outro tipo"
+assert copia.total is notas[0].total, "'with' nao preservou o resto"
+
+// ── O que NAO viaja ─────────────────────────────────────────
+//
+// Uma conexao de banco, um arquivo aberto, um socket, um mutex, um
+// canal e uma tarefa existem no processo que os abriu. Copia-los nao
+// faria sentido: o outro lado ganharia um descritor que la nao aponta
+// para nada.
+
+banco := DB.connect(":memory:")
+
+action usa_o_banco_de_fora(n):
+    yield len(DB.query(banco, "select 1")) + n
+
+monitor:
+    P.map_processos(usa_o_banco_de_fora, [1, 2])
+    assert no, "devia ter recusado"
+handle Error as e:
+    out e.message
+    assert "banco" in e.message, "a mensagem tem de citar a VARIAVEL pelo nome"
+
+// ── E o que fazer a respeito ────────────────────────────────
+//
+// Abrir o recurso DENTRO da acao: cada processo abre o seu.
+
+action abre_o_proprio(n):
+    meu := DB.connect(":memory:")
+    DB.execute(meu, "create table t (n integer)")
+    DB.execute(meu, "insert into t values (?)", [n])
+    yield DB.count(meu, "t") * n
+
+assert P.map_processos(abre_o_proprio, [2, 3, 4]) is [2, 3, 4]
+
+// Um recurso que a acao NAO usa nao atrapalha: a analise so cobra o
+// nome quando ele faz falta de verdade.
+_trava := P.mutex()
+_canal := P.canal()
+
+action nao_usa_nada_de_fora(n):
+    yield n * 10
+
+assert P.map_processos(nao_usa_nada_de_fora, [1, 2, 3]) is [10, 20, 30]
+
+out "ok"

@@ -1,0 +1,76 @@
+// Exercicio 240 — Um pipeline que usa a maquina inteira
+// Enunciado: divida, calcule em paralelo, junte — e prove que bate.
+
+adopt Arcane.Concurrent as P
+adopt Arcane.Time as Time
+
+// ── O desenho ───────────────────────────────────────────────
+//
+//     dividir  ->  map_processos  ->  juntar
+//
+// Cada bloco tem de ser autossuficiente: ele atravessa para outro
+// processo, faz a conta la, e volta com um resumo pequeno. O que
+// atravessa custa — mandar o bloco e receber UM numero e barato;
+// mandar o bloco e receber outro bloco nao e.
+
+steady TOTAL := 60000
+steady BLOCOS := 6
+
+action dividir(quantos, em):
+    tamanho := quantos ~/ em
+    yield [{"de":i * tamanho + 1, "ate":(i + 1) * tamanho}
+        cycle i in range(0, em)]
+
+// O bloco vira um RESUMO, e nao uma lista: e o resumo que volta.
+action resumir(bloco):
+    soma := 0
+    primos := 0
+    cycle n from bloco["de"] to bloco["ate"]:
+        soma += n
+        given e_primo(n):
+            primos += 1
+    yield {"soma": soma, "primos": primos}
+
+action e_primo(n):
+    given n < 2:
+        yield no
+    given n % 2 is 0:
+        yield n is 2
+    d := 3
+    persist d * d <= n:
+        given n % d is 0:
+            yield no
+        d += 2
+    yield yes
+
+blocos := dividir(TOTAL, BLOCOS)
+assert len(blocos) is BLOCOS, "a divisao errou a contagem"
+assert blocos[0]["de"] is 1
+assert blocos[BLOCOS - 1]["ate"] is TOTAL, "o ultimo bloco nao fecha o total"
+
+inicio := Time.monotonic()
+resumos := P.map_processos(resumir, blocos)
+ms := (Time.monotonic() - inicio) * 1000
+
+soma := sum([r["soma"] cycle r in resumos])
+primos := sum([r["primos"] cycle r in resumos])
+
+out $"{BLOCOS} blocos de {TOTAL ~/ BLOCOS} em {round(ms)} ms"
+out $"soma:   {soma}"
+out $"primos: {primos}"
+
+// ── A conferencia ───────────────────────────────────────────
+//
+// Um pipeline paralelo que nao e conferido contra a resposta fechada
+// e um gerador de numeros plausiveis. A soma de 1 a n tem formula:
+
+esperado := TOTAL * (TOTAL + 1) ~/ 2
+assert soma is esperado, $"a soma deu {soma}, e devia ser {esperado}"
+assert primos is 6057, "a contagem de primos ate 60000 e conhecida"
+
+// A ordem da entrada e a da saida — sem isso, quem chama teria de
+// reassociar bloco e resumo, e e ai que se erra.
+assert resumos[0]["soma"] < resumos[BLOCOS - 1]["soma"],
+"os resumos voltaram fora de ordem"
+
+out "ok"

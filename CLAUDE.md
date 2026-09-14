@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2160 testes
-python3 exercicios/run_all.py                        # 237 exercícios
+python3 exercicios/run_all.py                        # 240 exercícios
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
 ```
@@ -50,6 +50,7 @@ dataforge/
   compilador.py    330   a árvore vira fechamentos, uma vez (1,5× a 1,8×)
   ponte.py         290   'adopt Python.numpy' — a ponte para o Python
   cauda.py         170   'yield f(…)' vira salto, e a recursão deixa de ter teto
+  travessia.py     964   o que uma ação leva consigo para outro núcleo
   typechecker.py  1752   análise estática: nomes, aridade, tipos, alcance
   resolucao.py     190   onde mora o módulo de um 'adopt' — a única cópia
   superficie.py    300   o que um .df oferece, sem executá-lo
@@ -66,7 +67,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                46 módulos (1490 símbolos), incluindo:
+  stdlib/                46 módulos (1492 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -78,7 +79,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        237 exercícios em 34 módulos + run_all.py
+exercicios/        240 exercícios em 34 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1256,7 +1257,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1490 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1492 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -1400,7 +1401,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 237 exercícios em 34 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 240 exercícios em 34 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 
@@ -1477,7 +1478,87 @@ O que **ainda não existe** (não invente que existe):
   Chamar uma ação `async` começa o trabalho numa thread e devolve uma
   tarefa; `await` espera. Rede, disco, banco e `sleep` se sobrepõem de
   fato. Trabalho de CPU não: o GIL continua no caminho, e a resposta ali
-  é `Arcane.Concurrent`, que usa processos.
+  é `P.map_processos`, que usa processos de verdade — ver "A travessia
+  de processo", abaixo. Até ela ser consertada, essa frase apontava
+  para algo que não funcionava.
+
+### A travessia de processo — o único caminho para mais de um núcleo
+
+`map_processos` era a única forma de usar mais de um núcleo, e ela
+**falhava sempre**. A mensagem culpava quem escreveu:
+
+```
+erro[DF1001]: this action cannot cross into another process: Can't get
+              local object 'ArcaneConcurrent.__new__.<locals>.<lambda>'
+  dica: declare a ação no topo do arquivo
+```
+
+A ação estava no topo do arquivo. O objeto que o `pickle` não copiava
+era **um lambda da própria biblioteca**, alcançado pela cadeia de
+escopos: uma `DFAction` guarda o fechamento, no topo o fechamento é o
+global, e o global tem os 228 embutidos e os módulos já adotados.
+
+`travessia.py` não copia o fechamento: copia a **declaração**.
+
+| Vai | Como |
+|---|---|
+| a ação | a árvore do corpo, os parâmetros, os padrões |
+| o que ela lê e não cria | `nomes_livres` varre o corpo **em ordem** |
+| record, enum, blueprint, outras ações | tabela de declarações, por índice |
+| um módulo da stdlib | **pelo nome** — o filho o carrega de novo |
+| os dados | pela mesma tabela: mil pedidos levam um índice, não mil cópias do tipo |
+
+Do outro lado, um interpretador novo remonta tudo num escopo próprio.
+Medido, 8 blocos de CPU em 10 núcleos: série 1607 ms, threads 1654 ms
+(**0,97x** — o GIL), processos 466 ms (**3,45x**).
+
+Quatro decisões que valem lembrar:
+
+1. **O pacote vai uma vez por processo**, no `initializer` do pool, e o
+   que o pool mapeia é só a **marca**. Mandado junto de cada lote, um
+   record de trinta campos seria copiado tantas vezes quantos forem os
+   lotes — mais dado atravessando do que trabalho sendo feito.
+
+2. **A varredura de nomes livres captura de mais, de propósito**, e por
+   isso um nome que não atravessa **não levanta na hora**: o motivo
+   fica guardado, e só vira erro quando o filho reclama daquele nome.
+   Levantar cedo faria um banco aberto no arquivo impedir uma ação que
+   nem o menciona de usar os outros núcleos.
+
+3. **A ordem é o que a torna precisa.** `total := 0` antes de
+   `total + x` liga o nome, e dali em diante ele é local. Uma
+   atribuição **composta** (`total += x`) lê antes de ligar, e por isso
+   conta como leitura — sem essa distinção, um acumulador de fora
+   viraria "'total' is not defined" dentro do processo filho.
+
+4. **O tipo que volta é o MESMO deste processo.** O empacotador guarda
+   o objeto original junto do índice, e o resultado é decodificado com
+   ele. Se o filho devolvesse uma cópia do `record`, `with` — que
+   confere os campos contra o tipo — recusaria o próprio resultado.
+   Guardar o objeto também é o que impede `id()` de ser reaproveitado
+   por outro depois de uma coleta, que é o bug do cache da Vitrine.
+
+O erro que acontece lá dentro volta como erro daqui, com `nota`
+dizendo que aconteceu em outro processo — a pilha e a linha não
+sobrevivem à cópia, e sem essa nota o erro parece ter acontecido na
+linha do `map_processos`, a única que este processo executou.
+
+**E há um pool que sobrevive entre chamadas.** `map_processos` abre,
+usa e fecha; iniciar um processo custa mais de cem milissegundos, o
+que num servidor acontece *por pedido*. `P.pool_processos()` paga uma
+vez — medido: 180 ms na primeira chamada, **82 ms na segunda**. O
+`fechar()` é explícito porque o contrário deixa processos ociosos, e
+`P.processo(acao, …)` é a chamada avulsa: o `thread` da linguagem, num
+núcleo de verdade.
+
+O pool reaproveitado é o único que manda o pacote **junto do lote**, e
+não pelo `initializer`: quando a próxima ação aparece, os processos já
+estão de pé, e `initializer` não roda de novo. O filho ainda o abre
+uma vez só — `_ABERTOS` é por marca.
+
+`tests/test_travessia.py` são 30 testes, e dois **medem**: cobram razão
+contra a série da mesma máquina, e o do paralelismo só com quatro
+núcleos ou mais. Os exercícios 238–240 demonstram os três lados.
 
 ### Chamada de cauda
 

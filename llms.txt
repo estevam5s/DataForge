@@ -151,7 +151,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Cli` | 12 | A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo. |
 | `Arcane.Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | `Arcane.Color` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
-| `Arcane.Concurrent` | 25 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| `Arcane.Concurrent` | 27 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | `Arcane.Cortex` | 25 | Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA. |
 | `Arcane.Crucible` | 50 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | `Arcane.Crypto` | 48 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). |
