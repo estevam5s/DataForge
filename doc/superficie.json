@@ -6,6 +6,7 @@
     "Arcane.Analytics",
     "Arcane.Archive",
     "Arcane.Async",
+    "Arcane.Bench",
     "Arcane.Bytes",
     "Arcane.Cli",
     "Arcane.Collections",
@@ -51,6 +52,7 @@
     "Archive",
     "Async",
     "Banco",
+    "Bench",
     "Binario",
     "Bridge",
     "Bytes",
@@ -718,6 +720,15 @@
       "task",
       "then",
       "timeout"
+    ],
+    "Arcane.Bench": [
+      "classe",
+      "comparar",
+      "curva",
+      "medir",
+      "relatorio",
+      "repetir",
+      "tabela"
     ],
     "Arcane.Bytes": [
       "achar",
@@ -1932,6 +1943,7 @@
       "char_count",
       "closest",
       "constant_case",
+      "construtor",
       "currency",
       "dedent",
       "diff",

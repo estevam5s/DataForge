@@ -658,6 +658,48 @@
     }
    ]
   },
+  "bench": {
+   "nome": "Arcane.Bench",
+   "desc": "Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em tamanhos crescentes dizendo qual O() descreve o que aconteceu.",
+   "curto": "Bench",
+   "funcoes": [
+    {
+     "nome": "classe",
+     "sig": "(acao, tamanhos, preparar, repeticoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "comparar",
+     "sig": "(implementacoes, argumento, repeticoes, aquecer)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "curva",
+     "sig": "(acao, tamanhos, preparar, repeticoes, aquecer)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "medir",
+     "sig": "(acao, argumento, repeticoes, aquecer)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "relatorio",
+     "sig": "(resultado)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "repetir",
+     "sig": "(acao, vezes, argumento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tabela",
+     "sig": "(resultado)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "bytes": {
    "nome": "Arcane.Bytes",
    "desc": "Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo.",
@@ -6610,6 +6652,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "construtor",
+     "sig": "(inicial)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "currency",
      "sig": "(amount, symbol, decimals)",
      "tipo": "funcao"
@@ -10118,7 +10165,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 1747,
+  "testes": 1765,
   "exemplos": 44,
   "arquivosDf": 350
  },

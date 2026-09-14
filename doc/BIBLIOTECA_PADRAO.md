@@ -15,7 +15,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | Módulo | Nome curto | Símbolos | Para quê |
 |--------|-----------|----------|----------|
 | [`Arcane.Math`](#arcanemath) | `Math` | 72 | Matemática, álgebra linear e estatística básica. |
-| [`Arcane.Text`](#arcanetext) | `Text` | 58 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
+| [`Arcane.Text`](#arcanetext) | `Text` | 59 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
 | [`Arcane.Analytics`](#arcaneanalytics) | `Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
 | [`Arcane.Functional`](#arcanefunctional) | `Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
 | [`Arcane.Database`](#arcanedatabase) | `Database / DB` | 64 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
@@ -50,6 +50,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Malha`](#arcanemalha) | `Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
 | [`Arcane.Bytes`](#arcanebytes) | `Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
 | [`Arcane.Rede`](#arcanerede) | `Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
+| [`Arcane.Bench`](#arcanebench) | `Bench` | 7 | Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em tamanhos crescentes dizendo qual O() descreve o que aconteceu. |
 | [`Arcane.Eventos`](#arcaneeventos) | `Eventos` | 8 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano. |
 | [`Arcane.Cli`](#arcanecli) | `Cli` | 12 | A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo. |
 | [`Arcane.Email`](#arcaneemail) | `Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
@@ -182,7 +183,7 @@ Manipulação de texto, formatação, tabelas e conversão de caixa.
 adopt Arcane.Text as Text
 ```
 
-**Funções (58)**
+**Funções (59)**
 
 | Assinatura |
 |------------|
@@ -192,6 +193,7 @@ adopt Arcane.Text as Text
 | `char_count(text, include_spaces=True)` |
 | `closest(query, candidates, n=3)` |
 | `constant_case(text)` |
+| `construtor(inicial='')` |
 | `currency(amount, symbol='$', decimals=2)` |
 | `dedent(text)` |
 | `diff(a, b)` |
@@ -1925,6 +1927,29 @@ adopt Arcane.Rede as Rede
 | `servir(atender, host='127.0.0.1', porta=0, tls=None)` |
 | `servir_em_segundo_plano(atender, host='127.0.0.1', porta=0, tls=None)` |
 | `udp(host='0.0.0.0', porta=0, escutar=False)` |
+
+
+---
+
+## Arcane.Bench
+
+Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em tamanhos crescentes dizendo qual O() descreve o que aconteceu.
+
+```dataforge
+adopt Arcane.Bench as Bench
+```
+
+**Funções (7)**
+
+| Assinatura |
+|------------|
+| `classe(acao, tamanhos=None, preparar=None, repeticoes=3)` |
+| `comparar(implementacoes, argumento=None, repeticoes=5, aquecer=1)` |
+| `curva(acao, tamanhos, preparar=None, repeticoes=3, aquecer=1)` |
+| `medir(acao, argumento=None, repeticoes=5, aquecer=1)` |
+| `relatorio(resultado)` |
+| `repetir(acao, vezes, argumento=None)` |
+| `tabela(resultado)` |
 
 
 ---

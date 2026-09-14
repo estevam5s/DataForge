@@ -8,7 +8,7 @@ onde quem instala vai procurar o que a coisa faz.
 
 TITULO = "A extensão do editor"
 DESCRICAO = ("Cores, erros enquanto se digita, autocompletar, depurador com "
-             "breakpoints, Big-O acima de cada ação, 50 comandos e o painel "
+             "breakpoints, Big-O acima de cada ação, 52 comandos e o painel "
              "de bancos. O que cada coisa faz, e por quê.")
 
 BLOCOS = [
@@ -47,7 +47,7 @@ dataforge editor remove     # desinstala de todos""", "lang": "bash"},
    ["formatar", "o mesmo `dataforge fmt`"],
    ["correção rápida", "onde há uma sugestão a aplicar"],
    ["realçar ocorrências", "o nome sob o cursor, nas outras posições"]]}},
- {"p": "Os nomes do **próprio arquivo** vêm antes dos 1492 símbolos da stdlib — é o que se procura em nove de cada dez vezes."},
+ {"p": "Os nomes do **próprio arquivo** vêm antes dos 1500 símbolos da stdlib — é o que se procura em nove de cada dez vezes."},
  {"callout": {"tipo": "nota", "titulo": "Um erro, uma vez", "texto": "Com o servidor ligado, ele assume os diagnósticos e a verificação-ao-salvar se desliga. Com os dois, o mesmo erro apareceria duas vezes no painel de problemas — e um deles ficaria desatualizado, o que é pior que não estar lá."}},
 
  {"h2": "Depurar: F5"},
@@ -87,7 +87,7 @@ action duplicados(itens):
 adopt Arcane.Math.{sqrt, floor}    // dois nomes""", "lang": "df"},
 
  {"h2": "A barra de status"},
- {"p": "Antes havia um botão de rodar, e mais nada. Os 50 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
+ {"p": "Antes havia um botão de rodar, e mais nada. Os 52 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
  {"table": {"head": ["Item", "Pergunta que ele responde"], "rows": [
    ["`🔥 DataForge 1.0.0`", "qual interpretador está sendo usado?"],
    ["`▷`", "rodar este arquivo"],
@@ -111,7 +111,7 @@ adopt Arcane.Math.{sqrt, floor}    // dois nomes""", "lang": "df"},
  ]},
  {"p": "Um arquivo sem nenhum `trial` não vira item — um painel com trinta arquivos vazios esconde os que importam."},
 
- {"h2": "Os 50 comandos"},
+ {"h2": "Os 52 comandos"},
  {"p": "Tudo na paleta (`Ctrl+Shift+P`) sob **DataForge**, e na árvore **Ferramentas** da barra lateral."},
  {"h3": "Rodar e medir"},
  {"table": {"head": ["Comando", "O que faz", "Atalho"], "rows": [
@@ -238,7 +238,7 @@ dataforge dap     # Debug Adapter Protocol, no stdio""", "lang": "bash"},
 #:
 #: Manter as duas escritas à mão faria uma envelhecer — foi o que já
 #: aconteceu: a antiga dizia "coloração de sintaxe" quando a extensão já
-#: tinha LSP e 50 comandos. O site é estático (`output: 'export'`), então
+#: tinha LSP e 52 comandos. O site é estático (`output: 'export'`), então
 #: não há redirect de servidor a usar; servir a mesma página nos dois
 #: endereços é o que não quebra link nenhum e não pode divergir.
 PAGINAS = [

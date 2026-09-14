@@ -183,6 +183,7 @@ export const nav: NavSection[] = [
       { title: 'Documentação', href: '/docs/tecnicas/documentacao' },
       { title: 'Estrutura de projeto', href: '/docs/tecnicas/projeto' },
       { title: 'Concorrência', href: '/docs/tecnicas/concorrencia' },
+      { title: 'Benchmark', href: '/docs/tecnicas/bench' },
       { title: 'Streams', href: '/docs/tecnicas/streams' },
       { title: 'Serialização', href: '/docs/tecnicas/serializacao' },
       { title: 'Arquivos', href: '/docs/tecnicas/arquivos' },

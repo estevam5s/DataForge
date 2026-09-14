@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
 import { Sidebar } from '@/components/Sidebar';
 import { SidebarRolagem } from '@/components/SidebarRolagem';
 
@@ -54,9 +53,15 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           </div>
         </aside>
 
+        {/* Sem <Footer /> aqui: ele é renderizado por `DocPage`, DENTRO
+            da linha que contém o índice "Nesta página".
+            `position: sticky` só gruda enquanto está no container dele,
+            e com o rodapé fora dessa linha o índice desgrudava na
+            última tela. As 273 páginas de /docs passam por `DocPage`,
+            então nenhuma fica sem rodapé — e duas cópias apareceriam se
+            ele ficasse nos dois lugares. */}
         <div className="min-w-0 flex-1">
           <main id="conteudo">{children}</main>
-          <Footer />
         </div>
       </div>
     </div>

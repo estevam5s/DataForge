@@ -80,6 +80,8 @@ const GRUPOS: Grupo[] = [
     icone: 'graph',
     itens: [
       { titulo: 'Analisar Big-O', descricao: 'classe por ação', comando: 'dataforge.complexidade', icone: 'graph', precisaDeArquivo: true },
+      { titulo: 'Medir Big-O', descricao: 'o analisado contra o medido', comando: 'dataforge.bigoMedido', icone: 'pulse', precisaDeArquivo: true },
+      { titulo: 'Curvas de Big-O', descricao: 'o desenho que dá escala', comando: 'dataforge.bigoCurvas', icone: 'graph-line', precisaDeArquivo: false },
       { titulo: 'Tabela de referência', descricao: 'as classes e o que custam', comando: 'dataforge.escalaBigO', icone: 'list-ordered' },
       { titulo: 'Custo dos imports', descricao: 'o que cada adopt pesa', comando: 'dataforge.custo', icone: 'package', precisaDeArquivo: true },
       { titulo: 'Perfilar', descricao: 'tempo por ação', comando: 'dataforge.perfilar', icone: 'dashboard', precisaDeArquivo: true },

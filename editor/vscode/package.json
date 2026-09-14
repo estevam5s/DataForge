@@ -368,6 +368,16 @@
         "command": "dataforge.devopsDoctor",
         "title": "DevOps: o que falta para subir?",
         "category": "DataForge"
+      },
+      {
+        "command": "dataforge.bigoMedido",
+        "title": "Big-O: medir e comparar com o analisado",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.bigoCurvas",
+        "title": "Big-O: ver as curvas",
+        "category": "DataForge"
       }
     ],
     "menus": {

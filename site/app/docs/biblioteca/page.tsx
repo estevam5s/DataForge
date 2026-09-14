@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Quarenta e seis módulos e 1492 símbolos, sem uma única dependência externa.",
+  description: "Quarenta e sete módulos e 1500 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os quarenta e seis módulos"
+    "h2": "Os quarenta e sete módulos"
   },
   {
-    "p": "São **1492 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1500 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -72,7 +72,7 @@ const blocos: Bloco[] = [
         ],
         [
           "[`Arcane.Text`](/docs/biblioteca/text)",
-          "58",
+          "59",
           "Manipulação de texto, formatação, tabelas e conversão de caixa."
         ],
         [
@@ -261,6 +261,11 @@ const blocos: Bloco[] = [
           "A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas."
         ],
         [
+          "`Arcane.Bench`",
+          "7",
+          "Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em tamanhos crescentes dizendo qual O() descreve o que aconteceu."
+        ],
+        [
           "[`Arcane.Email`](/docs/biblioteca/email)",
           "6",
           "Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato."
@@ -329,13 +334,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-quarenta-e-seis-modulos', text: "Os quarenta e seis módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-quarenta-e-sete-modulos', text: "Os quarenta e sete módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Quarenta e seis módulos e 1492 símbolos, sem uma única dependência externa."}
+      description={"Quarenta e sete módulos e 1500 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

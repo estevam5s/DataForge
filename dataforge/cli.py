@@ -423,7 +423,8 @@ GRUPOS = [
             "Le a arvore e conta estrutura: lacos aninhados, recursao,\n"
             "e o custo das funcoes embutidas que aparecem. Diz a classe\n"
             "E o porque — 'O(n^2)' sozinho nao ajuda a melhorar nada.",
-            opcoes=[("--verbose, -v", "mostra o porque e o que fazer"),
+            opcoes=[("--medir", "roda e compara com a classe MEDIDA"),
+                    ("--verbose, -v", "mostra o porque e o que fazer"),
                     ("--escala", "a tabela do que cada classe custa"),
                     ("--json", "saida estruturada, para o editor"),
                     ("--strict", "sai com erro se algo passar de O(n log n)")],
@@ -2600,6 +2601,111 @@ def bench_command(alvo, repeticoes=10):
                 "0;90"))
 
 
+def _bigo_medido(alvo):
+    """dataforge big-o --medir — o que o analisador LE contra o que ACONTECE.
+
+    As duas respostas erram de formas opostas, e ver as duas lado a
+    lado e a unica maneira de saber em qual acreditar:
+
+        a analise    ve 'cycle dentro de cycle' e diz O(n^2) — mesmo
+                     que o laco interno rode tres vezes
+        a medida     ve o tempo com cache, GIL e interpretador dentro,
+                     e nao sabe o que acontece com n dez vezes maior
+
+    Quando as duas concordam, a classe esta estabelecida. Quando
+    divergem, a divergencia E o resultado: ou o codigo tem um caso
+    melhor que a estrutura sugere, ou ha um custo escondido numa
+    chamada que a arvore nao mostra.
+
+    So acoes de UM parametro entram. Com dois, nao ha como saber qual
+    deles e o 'n' — e adivinhar produziria uma curva sobre o argumento
+    errado, que e pior que nao medir.
+    """
+    import io
+    from contextlib import redirect_stdout
+
+    from .complexidade import analisar_arquivo
+    from .interpreter import DFAction
+    from .stdlib.arcane_bench import ArcaneBench
+
+    fonte, motivo = _ler(alvo)
+    if motivo:
+        print(color(f"Erro: {alvo}: {motivo}", "1;31"))
+        sys.exit(1)
+
+    try:
+        arvore = parse(tokenize(fonte, alvo), alvo)
+    except DataForgeError as e:
+        print(color(f"✗ {alvo}: {e.format()}", "1;31"))
+        sys.exit(1)
+
+    estaticas = {a.nome: a for a in analisar_arquivo(alvo)}
+
+    interp = Interpreter()
+    try:
+        with redirect_stdout(io.StringIO()):
+            interp.run(arvore, alvo)
+    except DataForgeError as e:
+        print(color(f"✗ o programa falhou ao carregar: {e.message}", "1;31"))
+        sys.exit(1)
+
+    bench = ArcaneBench()
+    candidatas = [(nome, valor)
+                  for nome, valor in interp.global_env.variables.items()
+                  if isinstance(valor, DFAction)
+                  and len(valor.params) == 1
+                  and not nome.startswith("_")]
+
+    if not candidatas:
+        print(color("Nenhuma acao de um parametro para medir.", "1;33"))
+        print(color("  Com dois parametros nao ha como saber qual e o 'n'.",
+                    "0;90"))
+        return
+
+    print(color(f"medindo {os.path.basename(alvo)} — "
+                f"{len(candidatas)} acao(oes)", "1;36"))
+    print()
+    print(f"  {'acao':<24} {'analisado':<14} {'medido':<26} ")
+    print(f"  {'─' * 24} {'─' * 14} {'─' * 26}")
+
+    divergiram = []
+    for nome, acao in sorted(candidatas):
+        estatica = estaticas.get(nome)
+        lida = estatica.tempo.texto() if estatica else "?"
+
+        # Tamanhos pequenos: a acao pode ser quadratica, e uma lista de
+        # cem mil num O(n^2) nao termina hoje.
+        try:
+            with redirect_stdout(io.StringIO()):
+                r = bench["classe"](
+                    lambda xs: acao(xs), [200, 400, 800, 1600],
+                    lambda n: list(range(n)), 2)
+        except Exception as e:                          # noqa: BLE001
+            print(f"  {nome:<24} {lida:<14} "
+                  + color(f"nao mediu: {type(e).__name__}", "0;90"))
+            continue
+
+        medida = " ou ".join(r["classes"])
+        igual = any(c.replace(" ", "") == lida.replace(" ", "")
+                    for c in r["classes"])
+        cor = "1;32" if igual else "1;33"
+        print(f"  {nome:<24} {lida:<14} " + color(f"{medida:<26}", cor)
+              + color(f" fator {r['fator']:.2f}", "0;90"))
+        if not igual:
+            divergiram.append((nome, lida, medida))
+
+    if divergiram:
+        print()
+        print(color("  onde as duas discordam:", "1;33"))
+        for nome, lida, medida in divergiram:
+            print(color(f"    {nome}: a arvore diz {lida}, o relogio diz "
+                        f"{medida}", "0;90"))
+        print(color("    a arvore conta estrutura e nao sabe quantas voltas "
+                    "cada laco da;", "0;90"))
+        print(color("    o relogio ve o que houve e nao sabe o que vem "
+                    "depois. As duas servem.", "0;90"))
+
+
 def bigo_command(alvos, opcoes):
     """dataforge big-o — a complexidade de cada acao, sem rodar o codigo."""
     import json as _json
@@ -2607,6 +2713,13 @@ def bigo_command(alvos, opcoes):
 
     if opcoes.get("escala"):
         return _tabela_de_escala()
+
+    if opcoes.get("medir"):
+        alvo = (alvos or [None])[0]
+        if not alvo or not os.path.exists(alvo):
+            print(color(f"Erro: arquivo nao encontrado: {alvo}", "1;31"))
+            sys.exit(1)
+        return _bigo_medido(alvo)
 
     arquivos = _expandir(alvos or ["."])
     if not arquivos:
@@ -3738,6 +3851,7 @@ def main():
             "json": '--json' in flags,
             "escala": '--escala' in flags or '--scale' in flags,
             "estrito": '--strict' in flags or '--estrito' in flags,
+            "medir": '--medir' in flags or '--measure' in flags,
         }
         bigo_command(args[1:], opcoes)
     elif command in ('custo', 'cost'):

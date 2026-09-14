@@ -266,7 +266,7 @@
     },
     "modulos": {
       "name": "support.class.module.dataforge",
-      "match": "\\b(Arcane|Serialization|Collections|Concurrent|Functional|Analytics|Qualidade|Consulta|Corrente|Crucible|Database|Observar|Paralelo|Pipeline|Archive|Binario|Decimal|Eventos|Logging|Network|Observe|Parquet|Process|Quality|Vitrine|Bridge|Cortex|Crypto|Painel|Server|Stream|Async|Banco|Bytes|Color|Email|Exato|Excel|Fluxo|Forge|Lavra|Malha|Ponte|Regex|Serde|Data|Html|Http|Iter|Kiln|Lago|Lake|Math|Mesh|Meta|Rede|Test|Text|Time|Xlsx|API|Cli|Cor|Log|Net|Web|Zip|DB|IO|OS)\\b(?=\\s*\\.)"
+      "match": "\\b(Arcane|Serialization|Collections|Concurrent|Functional|Analytics|Qualidade|Consulta|Corrente|Crucible|Database|Observar|Paralelo|Pipeline|Archive|Binario|Decimal|Eventos|Logging|Network|Observe|Parquet|Process|Quality|Vitrine|Bridge|Cortex|Crypto|Painel|Server|Stream|Async|Banco|Bench|Bytes|Color|Email|Exato|Excel|Fluxo|Forge|Lavra|Malha|Ponte|Regex|Serde|Data|Html|Http|Iter|Kiln|Lago|Lake|Math|Mesh|Meta|Rede|Test|Text|Time|Xlsx|API|Cli|Cor|Log|Net|Web|Zip|DB|IO|OS)\\b(?=\\s*\\.)"
     },
     "chamadas": {
       "name": "entity.name.function.call.dataforge",

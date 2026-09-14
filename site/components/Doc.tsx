@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { neighbours, sectionOf } from '@/lib/nav';
 import { Toc, type Heading } from './Toc';
 import { Inline } from './Inline';
+import { Footer } from './Footer';
 
 /** Transforma um texto de título no id usado pela âncora. */
 export function slugify(texto: string) {
@@ -146,8 +147,20 @@ export function DocPage({
   const secao = sectionOf(href);
 
   return (
-    <div className="flex w-full min-w-0 gap-10">
-      <article className="entra-conteudo min-w-0 flex-1 px-1 py-8 sm:px-2 lg:py-10">
+    /* O RODAPÉ FICA DENTRO DESTA LINHA, na coluna do texto.
+     *
+     * `position: sticky` só gruda enquanto o elemento está dentro do
+     * container dele. Com o rodapé fora deste flex, o container
+     * terminava onde o artigo terminava — e o "Nesta página"
+     * desgrudava na última tela, que é justamente onde quem leu tudo
+     * ainda quer pular para outra seção.
+     *
+     * É a mesma correção que a barra ESQUERDA já tinha recebido (ver o
+     * comentário em `app/docs/layout.tsx`); a da direita ficou de fora.
+     */
+    <div className="flex w-full min-w-0 items-stretch gap-10">
+      <div className="min-w-0 flex-1">
+      <article className="entra-conteudo min-w-0 px-1 py-8 sm:px-2 lg:py-10">
         <div className="max-w-content">
           {secao && !secao.standalone && (
             <p className="nav-label mb-3 text-accent">{secao.title}</p>
@@ -190,8 +203,10 @@ export function DocPage({
           </nav>
         </div>
       </article>
+        <Footer />
+      </div>
 
-      <aside className="hidden w-[220px] shrink-0 xl:block">
+      <aside className="hidden w-[220px] shrink-0 self-stretch xl:block">
         <div className="sticky top-[100px] max-h-[calc(100vh-130px)] overflow-y-auto py-10">
           <Toc headings={headings} />
         </div>

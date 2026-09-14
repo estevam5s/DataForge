@@ -6,7 +6,7 @@
 
 **Suporte completo à linguagem [DataForge](https://dataforge-lang.vercel.app)** —
 servidor de linguagem, Big-O no editor, custo de import, cobertura de
-testes, painéis Vitrine, geradores DevOps, 50 comandos e 123 snippets.
+testes, painéis Vitrine, geradores DevOps, 52 comandos e 123 snippets.
 
 [Documentação](https://dataforge-lang.vercel.app/docs) ·
 [Exercícios](https://dataforge-lang.vercel.app/docs/exercicios) ·
@@ -125,7 +125,7 @@ passo em texto.
 
 ---
 
-## Os 50 comandos
+## Os 52 comandos
 
 Abra a paleta (`Ctrl+Shift+P`) e digite **DataForge**.
 
@@ -230,7 +230,7 @@ acredita.
 
 ## A barra de status
 
-Antes havia um botão de rodar, e mais nada — os 50 comandos viviam na
+Antes havia um botão de rodar, e mais nada — os 52 comandos viviam na
 paleta, e **a paleta só serve a quem já sabe que o comando existe**.
 
 Agora ela responde cinco perguntas que se fazem o tempo todo:

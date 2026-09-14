@@ -44,6 +44,7 @@ from .arcane_api import ArcaneAPI
 from .arcane_bytes import ArcaneBytes
 from .arcane_cli import ArcaneCli
 from .arcane_email import ArcaneEmail
+from .arcane_bench import ArcaneBench
 from .arcane_eventos import ArcaneEventos
 from .arcane_html import ArcaneHtml
 from .arcane_rede import ArcaneRede
@@ -148,6 +149,8 @@ _MODULES = {
     "Rede": ArcaneRede,
     "Net": ArcaneRede,
 
+    "Arcane.Bench": ArcaneBench,
+    "Bench": ArcaneBench,
     "Arcane.Eventos": ArcaneEventos,
     "Eventos": ArcaneEventos,
 

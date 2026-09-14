@@ -15,6 +15,7 @@ import { anotar } from './custo';
 import { ArvoreDeConexoes, Item } from './conexoes';
 import { ArvoreDeFerramentas } from './ferramentas';
 import { LenteDeComplexidade, acoesDe, explicar } from './complexidade';
+import { abrirCurvas, medirComplexidade } from './bigo';
 import { criarProjeto } from './projetos';
 import { esquecerExecutavel, exigirExecutavel, raizDe, rodar } from './dataforge';
 import { Verificador } from './diagnosticos';
@@ -131,6 +132,8 @@ export function activate(contexto: vscode.ExtensionContext) {
     ['dataforge.vitrineDoctor', cmd.vitrineDoctor],
     ['dataforge.devops', cmd.devops],
     ['dataforge.devopsDoctor', cmd.devopsDoctor],
+    ['dataforge.bigoMedido', medirComplexidade],
+    ['dataforge.bigoCurvas', abrirCurvas],
     ['dataforge.menu', abrirMenu],
     ['dataforge.documentacao', () =>
       vscode.env.openExternal(
