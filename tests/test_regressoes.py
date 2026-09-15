@@ -5942,3 +5942,97 @@ def test_o_check_cala_quando_nao_pode_provar():
     """
     erros = _erros_de('action f(x):\n    yield "v: " + x\n')
     assert not erros, [d.message for d in erros]
+
+
+# ─── O parser nao para no primeiro erro ────────────────────
+# Quatro erros de sintaxe num arquivo davam UMA mensagem, e ela apontava
+# a linha 2 para um descuido da linha 1. Quem escreve corrigia, compilava,
+# descobria o segundo, corrigia, compilava — uma volta por erro.
+#
+# A recuperacao anda ate o fim da instrucao e segue lendo. O que ela NAO
+# pode fazer e sair do bloco por engano: um erro dentro do corpo de uma
+# acao nao pode fazer o parser achar que a acao terminou, ou o resto do
+# arquivo vira um segundo mar de erros falsos.
+
+def _erros_de_sintaxe(fonte, arquivo="t.df"):
+    with pytest.raises(ParseError) as capturado:
+        parse(tokenize(fonte, arquivo), arquivo)
+    erro = capturado.value
+    return [erro] + list(erro.outros)
+
+
+def test_os_erros_de_sintaxe_saem_todos_de_uma_vez():
+    erros = _erros_de_sintaxe(
+        'x := := 1\n'
+        'out "um"\n'
+        'y := * 3\n'
+        'out "dois"\n')
+    assert [e.line for e in erros] == [1, 3], [
+        (e.line, e.message) for e in erros]
+
+
+def test_a_recuperacao_nao_sai_do_bloco():
+    """O erro esta no corpo da acao; o que vem depois dele e valido."""
+    erros = _erros_de_sintaxe(
+        'action f():\n'
+        '    x := := 1\n'
+        '    yield 1\n'
+        'out "depois"\n'
+        'y := * 2\n')
+    assert [e.line for e in erros] == [2, 5], [
+        (e.line, e.message) for e in erros]
+
+
+def test_uma_linha_errada_da_UM_erro():
+    """A cascata e o eco, nao o diagnostico.
+
+    Sem a deduplicacao por linha, um descuido rendia cinco mensagens
+    sobre a mesma linha e empurrava os outros arquivos para fora da tela.
+    """
+    erros = _erros_de_sintaxe('x := := := := 1\nout "fim"\n')
+    assert len(erros) == 1, [(e.line, e.message) for e in erros]
+
+
+def test_o_primeiro_erro_continua_sendo_o_que_a_excecao_carrega():
+    """Compatibilidade: todo 'except ParseError' que ja existia le a
+    mensagem do PRIMEIRO erro, como antes. Os demais pegam carona.
+    """
+    erros = _erros_de_sintaxe('x := := 1\ny := * 2\n')
+    with pytest.raises(ParseError) as capturado:
+        parse(tokenize('x := := 1\ny := * 2\n', "t.df"), "t.df")
+    assert capturado.value.line == 1
+    assert capturado.value.line == erros[0].line
+
+
+def test_o_nome_do_arquivo_chega_a_todos_os_erros_da_leva():
+    """Um erro sem nome de arquivo sai como '<stdin>' e sem o trecho
+    desenhado — e aí a leva não economiza a abertura do arquivo, que é
+    a única coisa que ela existe para economizar.
+    """
+    erros = _erros_de_sintaxe('x := := 1\ny := * 2\n', "meu.df")
+    assert all(e.filename == "meu.df" for e in erros), [
+        e.filename for e in erros]
+
+
+def test_a_cascata_tem_teto():
+    """Depois de um certo ponto o que se le e o eco de um erro, e uma
+    tela de cascata esconde o primeiro — o unico confiavel.
+    """
+    fonte = "".join(f'x{i} := := {i}\n' for i in range(40))
+    erros = _erros_de_sintaxe(fonte)
+    assert len(erros) <= 12, len(erros)
+    assert len(erros) >= 5, "recuperou de poucos para ser util"
+
+
+def test_um_arquivo_de_lixo_termina():
+    """A rede de seguranca: se a recuperacao nao andasse, o laco daria o
+    MESMO erro para sempre. Este teste trava em vez de falhar, e por isso
+    ele existe.
+    """
+    erros = _erros_de_sintaxe(")\n" * 30)
+    assert erros
+
+
+def test_o_arquivo_valido_continua_passando_sem_erro():
+    programa = parse(tokenize('x := 1\nout x\n', "t.df"), "t.df")
+    assert len(programa.body) == 2

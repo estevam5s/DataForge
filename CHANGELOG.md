@@ -16,6 +16,21 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **O parser não para mais no primeiro erro de sintaxe.** Quatro erros
+  num arquivo davam **uma** mensagem, e ela apontava a linha 2 para um
+  descuido da linha 1 — porque um `+` pendurado no fim de uma linha só se
+  revela quando o `:=` da seguinte aparece. Quem escrevia corrigia,
+  compilava, descobria o segundo, corrigia, compilava: uma volta por
+  erro. Agora a leitura se recupera no fim da instrução e segue, e
+  `dataforge run` e `dataforge check` mostram a leva inteira, cada erro
+  com o seu próprio trecho desenhado. A recuperação conta `INDENT` e
+  `DEDENT` para **não sair do bloco** por engano — sem isso, um erro no
+  corpo de uma ação faria o resto do arquivo virar um segundo mar de
+  erros falsos. Guarda **um erro por linha** (a cascata é o eco, não o
+  diagnóstico) com teto de 12, e a exceção continua carregando o
+  **primeiro** erro, então todo `except ParseError` que já existia
+  funciona como antes.
+
 - **A ponte para o Python** — `adopt Python.numpy as np` traz qualquer
   biblioteca do Python. Os valores atravessam **sem conversão**: um
   `ndarray` continua um `ndarray`, e por isso `a * 2` é a conta

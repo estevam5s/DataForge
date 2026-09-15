@@ -53,6 +53,15 @@ class DataForgeError(Exception):
         self.stack = []        # list[Frame], preenchida pelo interpretador
         self.source_line = ""  # texto da linha que falhou
         self.filename = ""
+        #: Os OUTROS erros da mesma leitura.
+        #:
+        #: Um parser que para no primeiro erro de sintaxe obriga a
+        #: corrigir-compilar-corrigir uma vez por erro. Quem le tem os
+        #: quatro na tela; o erro que viaja continua sendo UM, e os
+        #: demais pegam carona aqui — assim todo 'except DataForgeError'
+        #: que ja existia continua vendo o primeiro, e quem desenha pode
+        #: mostrar a leva inteira.
+        self.outros = []       # list[DataForgeError]
         super().__init__(self.format())
 
     def format(self):
@@ -211,6 +220,15 @@ class DataForgeError(Exception):
                 linhas.append(
                     f"    em {tinta(quadro.name, '1;37'):<30} "
                     f"{tinta(f'{arquivo}:{quadro.line}', APAGADO)}")
+
+        # ── Os outros erros da mesma leitura ──
+        # Cada um com o seu proprio trecho desenhado: uma lista de
+        # "linha 12, linha 40, linha 53" sem o codigo obriga a abrir o
+        # arquivo tres vezes, e ai a leva nao economiza nada.
+        for outro in self.outros:
+            linhas.append("")
+            linhas.append(outro.render(color=color, source_lines=source_lines,
+                                       debug=debug))
 
         return "\n".join(linhas)
 

@@ -675,7 +675,14 @@ def check_file(filepath: str, strict: bool = False, only_syntax: bool = False):
         tokens = tokenize(source, filepath)
         tree = parse(tokens, filepath)
     except DataForgeError as e:
-        print(color(f"✗ {filepath}: {e.format()}", "1;31"))
+        # A leva inteira. O parser recupera do erro de sintaxe e segue,
+        # e mostrar um de cada vez faz quem escreve compilar uma vez por
+        # erro — era o ciclo que este relatorio existe para encurtar.
+        leva = [e] + list(getattr(e, "outros", ()))
+        for um in leva:
+            print(color(f"✗ {filepath}: {um.format()}", "1;31"))
+        if len(leva) > 1:
+            print(color(f"\n✗ {len(leva)} erros de sintaxe", "1;31"))
         sys.exit(1)
 
     if only_syntax:
@@ -731,8 +738,12 @@ def check_command(alvos, strict=False, only_syntax=False):
         try:
             arvore = parse(tokenize(fonte, caminho), caminho)
         except DataForgeError as e:
-            print(color(f"\u2717 {caminho}: {e.format()}", "1;31"))
-            total_erros += 1
+            # A leva inteira, e nao so o primeiro: o parser recupera e
+            # segue, e mostrar um de cada vez faz o usuario compilar uma
+            # vez por erro de sintaxe.
+            for um in [e] + list(getattr(e, "outros", ())):
+                print(color(f"\u2717 {caminho}: {um.format()}", "1;31"))
+                total_erros += 1
             continue
 
         if only_syntax:

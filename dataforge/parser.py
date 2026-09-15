@@ -29,12 +29,64 @@ class Parser:
         self._em_trial = 0
         #  _no_with — 'with' abre os dados do render, nao 'record with {…}'
         self._no_with = 0
+        #: Os erros de sintaxe ja encontrados nesta leitura.
+        #:
+        #: Um parser que para no primeiro obriga a
+        #: corrigir-compilar-corrigir uma vez por erro. Quatro erros num
+        #: arquivo davam UMA mensagem, e ela apontava a linha 2 para um
+        #: descuido da linha 1 — porque o '+' pendurado no fim da linha 1
+        #: so revela o problema quando o ':=' da linha 2 aparece.
+        self._erros = []
+        #: Quantos reportar antes de desistir. Depois de um certo ponto o
+        #: que se le nao sao erros: e o eco de um deles, e uma tela de
+        #: cascata esconde o primeiro, que e o unico confiavel.
+        self._limite_de_erros = 12
 
     # ── Helpers ────────────────────────────────────────────
 
     def error(self, message: str):
         tok = self.current()
         raise ParseError(message, tok.line, tok.column)
+
+    def _registrar(self, erro):
+        """Guarda o erro, uma vez por linha.
+
+        Uma linha errada costuma produzir varios erros em cascata: o
+        primeiro e o diagnostico, os seguintes sao o eco. Guardar so o
+        primeiro de cada linha e o que faz a leva ser legivel — sem
+        isso, um 'given' sem ':' rendia cinco mensagens sobre a mesma
+        linha e empurrava os outros arquivos para fora da tela.
+        """
+        if any(o.line == erro.line for o in self._erros):
+            return
+        if len(self._erros) < self._limite_de_erros:
+            self._erros.append(erro)
+
+    def _ressincronizar(self):
+        """Anda ate o proximo ponto seguro depois de um erro.
+
+        O ponto seguro e o fim da instrucao: a NEWLINE no MESMO nivel de
+        recuo em que se estava. Contar INDENT e DEDENT e o que impede a
+        recuperacao de sair do bloco por engano — um erro dentro do corpo
+        de uma acao nao pode fazer o parser achar que a acao terminou, ou
+        o resto do arquivo vira um segundo mar de erros falsos.
+
+        Ao encontrar o DEDENT que fecha o bloco de FORA, para sem
+        consumi-lo: quem o consome e o laco de 'parse_block'.
+        """
+        profundidade = 0
+        while not self.at_end():
+            tipo = self.current().type
+            if tipo is TokenType.INDENT:
+                profundidade += 1
+            elif tipo is TokenType.DEDENT:
+                if profundidade == 0:
+                    return
+                profundidade -= 1
+            elif tipo is TokenType.NEWLINE and profundidade == 0:
+                self.advance()
+                return
+            self.advance()
 
     def current(self) -> Token:
         if self.pos < len(self.tokens):
@@ -108,10 +160,27 @@ class Parser:
         self.skip_newlines()
         program = ast.Program(body=[], line=1, column=1)
         while not self.at_end():
-            stmt = self.parse_statement()
+            marca = self.pos
+            try:
+                stmt = self.parse_statement()
+            except ParseError as erro:
+                self._registrar(erro)
+                self._ressincronizar()
+                # A rede de seguranca: se a recuperacao nao andou, o
+                # proximo laco daria o MESMO erro para sempre. Acontece
+                # quando o token que ofende e justamente a borda em que
+                # '_ressincronizar' para de proposito.
+                if self.pos == marca:
+                    self.advance()
+                self.skip_newlines()
+                continue
             if stmt is not None:
                 program.body.append(stmt)
             self.skip_newlines()
+        if self._erros:
+            primeiro = self._erros[0]
+            primeiro.outros = self._erros[1:]
+            raise primeiro
         return program
 
     # ── Block parsing ──────────────────────────────────────
@@ -122,7 +191,16 @@ class Parser:
         self.expect(TokenType.INDENT, "Expected indented block")
         stmts = []
         while self.current().type not in (TokenType.DEDENT, TokenType.EOF):
-            stmt = self.parse_statement()
+            marca = self.pos
+            try:
+                stmt = self.parse_statement()
+            except ParseError as erro:
+                self._registrar(erro)
+                self._ressincronizar()
+                if self.pos == marca:
+                    self.advance()
+                self.skip_newlines()
+                continue
             if stmt is not None:
                 stmts.append(stmt)
             self.skip_newlines()
@@ -3224,6 +3302,7 @@ def parse(tokens: list[Token], filename: str = "<stdin>") -> ast.Program:
     try:
         return parser.parse()
     except DataForgeError as erro:
-        if not erro.filename:
-            erro.filename = filename
+        for um in [erro] + list(getattr(erro, "outros", ())):
+            if not um.filename:
+                um.filename = filename
         raise
