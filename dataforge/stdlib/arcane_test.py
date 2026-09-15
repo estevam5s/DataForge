@@ -6,6 +6,7 @@ Mini test framework for DataForge with assertions, test suites, and reporting.
 import time
 import math
 import traceback
+from ..builtins import _df_type as _nome_do_tipo
 
 
 class ArcaneTest:
@@ -321,7 +322,7 @@ class ArcaneTest:
             if obj.blueprint.name != blueprint_name:
                 raise AssertionError(msg or f"Expected instance of {blueprint_name}, got {obj.blueprint.name}")
         else:
-            raise AssertionError(msg or f"Not an instance: {type(obj).__name__}")
+            raise AssertionError(msg or f"Not an instance: {_nome_do_tipo(obj)}")
 
     @staticmethod
     def _assert_deep_eq(a, b, msg=None):

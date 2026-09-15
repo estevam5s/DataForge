@@ -34,6 +34,7 @@ lado — que e a falha mais cara desta area inteira.
 import base64
 import binascii
 import struct
+from ..builtins import _df_type as _nome_do_tipo
 
 
 class ErroDeBytes(Exception):
@@ -149,7 +150,7 @@ def _como_bytes(valor):
     if isinstance(valor, (list, tuple)):
         return bytes(valor)
     raise ErroDeBytes(
-        f"esperava bytes e veio {type(valor).__name__}")
+        f"esperava Bytes e veio {_nome_do_tipo(valor)}")
 
 
 # ══════════════════════════════════════════════════════════════

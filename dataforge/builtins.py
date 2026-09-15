@@ -441,7 +441,7 @@ def _df_sorted(iterable, chave=None, reverse=False):
     if not callable(chave):
         raise TypeError(
             f"o segundo argumento de 'sorted' deve ser uma acao que "
-            f"devolve o criterio, nao {type(chave).__name__}. "
+            f"devolve o criterio, nao {_df_type(chave)}. "
             f'Exemplo: sorted(pessoas, lambda p => p["idade"])')
     return sorted(iterable, key=chave, reverse=reverse)
 
@@ -969,7 +969,7 @@ def _df_id_fn(obj):
     return id(obj)
 
 def _df_inspect(obj):
-    return f"<inspect type={type(obj).__name__} value={obj!r}>"
+    return f"<inspect type={_df_type(obj)} value={obj!r}>"
 
 def _df_to_json(obj, indent=None):
     def default_serializer(o):

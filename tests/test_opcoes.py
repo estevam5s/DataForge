@@ -85,10 +85,17 @@ def test_uma_chave_com_underscore_passa():
 
 
 def test_o_que_nao_e_vault_e_recusado_dizendo_o_que_veio():
+    """E o que veio é dito em `Cluster`, não em `list`.
+
+    Este teste fixava `"list"` — o nome do Python. Era a própria suíte
+    pedindo a mensagem errada: quem escreve DataForge nunca viu `list`,
+    e `opcoes.ler` responde por TODO vault de opções da biblioteca.
+    """
     with pytest.raises(OpcaoDesconhecida) as falha:
         ler([1, 2, 3], CONHECIDAS, "Malha.cliente")
     assert "vault" in str(falha.value)
-    assert "list" in str(falha.value)
+    assert "Cluster" in str(falha.value)
+    assert "list" not in str(falha.value)
 
 
 def test_ler_devolve_uma_copia():

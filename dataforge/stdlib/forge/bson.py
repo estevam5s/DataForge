@@ -17,6 +17,7 @@ import struct
 import time
 
 from ...errors import SerializationError
+from ...builtins import _df_type as _nome_do_tipo
 
 
 # ── tipos ──
@@ -158,7 +159,7 @@ def _campo(nome, valor):
         return bytes([REGEX]) + chave + _cstr(valor.pattern) + _cstr(opcoes)
 
     raise SerializationError(
-        f"BSON has no type for {type(valor).__name__}.",
+        f"BSON has no type for {_nome_do_tipo(valor)}.",
         nota=f"the value was: {valor!r}"[:120],
         dica="convert it to text, number, cluster or vault first",
         doc="banco-de-dados")
@@ -168,7 +169,7 @@ def codificar(documento):
     """Um vault vira BSON."""
     if not isinstance(documento, dict):
         raise SerializationError(
-            f"BSON encodes a Vault, not {type(documento).__name__}.",
+            f"BSON encodes a Vault, not {_nome_do_tipo(documento)}.",
             doc="banco-de-dados")
     corpo = b"".join(_campo(k, v) for k, v in documento.items())
     return struct.pack("<i", len(corpo) + 5) + corpo + b"\x00"

@@ -5726,3 +5726,162 @@ def test_a_dica_do_record_lista_campos_e_metodos_em_execucao():
     assert "norma" in mensagem, (
         "a dica lista so os campos, e omite o metodo que a pessoa queria: "
         + mensagem)
+
+
+# ─── Nenhuma mensagem cita tipo do Python — a trava DE VERDADE ──
+# A trava antiga lia o TEXTO de 'interpreter.py' procurando
+# 'type(x).__name__' numa f-string. Ela fecha a porta de quem escreve a
+# mensagem a mao, e nao a de quem a herda: metade das mensagens do
+# CPython nomeia o tipo SEM aspas, '_traduzir_tipos' so trocava a forma
+# entre aspas, e os 47 modulos da stdlib nunca foram olhados.
+#
+# O que chegava a quem abria um banco com o argumento errado:
+#   "connect: expected str, bytes or os.PathLike object, not dict"
+# Cinco palavras, nenhuma delas existente nesta linguagem.
+#
+# Esta trava CHAMA as funcoes e le a mensagem que sai. E o unico jeito:
+# o texto que vaza nao esta escrito em arquivo nenhum do repositorio.
+
+#: Nomes de tipo do Python que nao podem aparecer numa mensagem.
+#: 'set' fica fora: e o nome de uma funcao da stdlib ('Xls.set'), e foi
+#: o unico falso alarme do repositorio na primeira versao desta lista.
+_TIPOS_PROIBIDOS = (
+    "NoneType", "bytearray", "os.PathLike", "dict", "list", "tuple",
+    "frozenset", "int", "str", "float", "complex", "bool", "bytes",
+)
+
+
+def _mensagens_de_erro_da_stdlib():
+    """Chama a stdlib com o argumento errado e devolve o que ela diz."""
+    import re as _re2
+
+    fonte = '''
+adopt Arcane.Serialization as S
+adopt Arcane.Math as M
+adopt Arcane.Time as T
+adopt Arcane.Database as B
+adopt Arcane.Crypto as C
+adopt Arcane.Regex as R
+
+action tentar(f):
+    monitor:
+        f()
+    handle Error as e:
+        out e.message
+
+tentar(lambda => S.from_json(42))
+tentar(lambda => M.sqrt("a"))
+tentar(lambda => M.floor([]))
+tentar(lambda => M.log(void))
+tentar(lambda => T.parse(42, "x"))
+tentar(lambda => B.connect({"a": 1}))
+tentar(lambda => C.sha256(42))
+tentar(lambda => R.match(42, "a"))
+tentar(lambda => len(42))
+tentar(lambda => abs("x"))
+tentar(lambda => 1 smaller "a")
+tentar(lambda => [1, 2] + "x")
+'''
+    return [l for l in run(fonte).split("\n") if l.strip()]
+
+
+def test_nenhuma_mensagem_da_stdlib_cita_tipo_do_python():
+    culpadas = []
+    for mensagem in _mensagens_de_erro_da_stdlib():
+        for proibido in _TIPOS_PROIBIDOS:
+            # Palavra inteira: 'Integer' contem 'int', e nao e o Python.
+            import re as _re3
+            if _re3.search(r"\b" + _re3.escape(proibido) + r"\b", mensagem):
+                culpadas.append(f"{proibido!r} em: {mensagem}")
+                break
+    assert not culpadas, (
+        "mensagem em vocabulario do Python — traduza em "
+        "'_traduzir_tipos', e se a forma for nova acrescente a moldura:\n  "
+        + "\n  ".join(culpadas))
+
+
+def test_nenhuma_mensagem_da_stdlib_cita_funcao_do_python():
+    """'strptime() argument 1 must be…' — a implementacao, nao a chamada.
+
+    Quem escreveu chamou 'Time.parse'. O nome do Python e ruido, e o
+    nome chamado ja vai no prefixo do contexto.
+    """
+    culpadas = [m for m in _mensagens_de_erro_da_stdlib()
+                if "strptime" in m or "strftime" in m]
+    assert not culpadas, culpadas
+
+
+@pytest.mark.parametrize("bruta,esperado", [
+    ("expected str, bytes or os.PathLike object, not dict",
+     "expected String, Bytes or path object, not Vault"),
+    ("the JSON object must be str, bytes or bytearray, not int",
+     "the JSON object must be String or Bytes, not Integer"),
+    ('can only concatenate str (not "int") to str',
+     'can only concatenate String (not "Integer") to String'),
+    ("must be real number, not str", "must be real number, not String"),
+])
+def test_traduz_as_molduras_sem_aspas(bruta, esperado):
+    from dataforge.interpreter import _traduzir_tipos
+    assert _traduzir_tipos(bruta) == esperado
+
+
+@pytest.mark.parametrize("legitima", [
+    # O medo escrito na docstring antiga, e ele e justificado: trocar a
+    # palavra SOLTA estragaria cada um destes.
+    "file not found: list.txt",
+    "the file 'dict.json' was not found",
+    "add it to list, or remove the declaration",
+    "vault keys must be immutable: text, number or record",
+    "expected 2 arguments, got 1",
+    "Module 'Arcane.Mathh' not found. Standard library: API, Analytics",
+])
+def test_a_traducao_nao_estraga_texto_legitimo(legitima):
+    from dataforge.interpreter import _traduzir_tipos
+    assert _traduzir_tipos(legitima) == legitima
+
+
+def test_nenhuma_mensagem_da_arvore_INTEIRA_cita_tipo_do_python():
+    """A trava irmã, estendida aos 47 módulos da stdlib.
+
+    A original lia só `interpreter.py`, e por isso nove mensagens
+    escritas à mão na stdlib nunca foram olhadas: `Arcane.Bytes` dizia
+    "esperava bytes e veio dict", `Arcane.Decimal` "precisa de um
+    Decimal, e veio str", e `opcoes.ler` — que responde por TODO vault
+    de opções da biblioteca — "e recebeu list".
+
+    O uso legítimo de `type(x).__name__` é nomear uma **exceção do
+    Python** (que não tem nome nesta linguagem) ou um **nó da AST**
+    (despacho e `--debug`). Qualquer outro sujeito é um valor do
+    programa, e o tipo de um valor se diz em `_df_type`.
+    """
+    import glob
+    import re as _re4
+
+    #: O sujeito cujo nome de classe pode aparecer cru.
+    PERMITIDO = _re4.compile(r"^(e|erro|err|exc|excecao|no|node|stmt|statement)"
+                             r"(\.\w+)?$")
+    dentro_de_fstring = _re4.compile(r'f"[^"]*\{type\(([^)]*)\)\.__name__\}')
+
+    culpados = []
+    for caminho in sorted(glob.glob("dataforge/**/*.py", recursive=True)):
+        if "__pycache__" in caminho:
+            continue
+        for numero, linha in enumerate(
+                open(caminho, encoding="utf-8").read().split("\n"), 1):
+            if "#" in linha.split("type(")[0]:
+                continue
+            if "type(" not in linha or "__name__" not in linha:
+                continue
+            if "_traduzir_tipos(" in linha:
+                continue        # a propria tradutora
+            achado = dentro_de_fstring.search(linha)
+            if not achado:
+                continue
+            if PERMITIDO.match(achado.group(1).strip()):
+                continue
+            culpados.append(f"{caminho}:{numero}: {linha.strip()[:70]}")
+
+    assert not culpados, (
+        "mensagem nomeando o tipo do Python de um VALOR — use "
+        "'_df_type(x)' (importe como '_nome_do_tipo'):\n  "
+        + "\n  ".join(culpados))

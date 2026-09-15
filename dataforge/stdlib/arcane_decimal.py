@@ -52,6 +52,7 @@ buscar desapareceria em silêncio. Converta o lado que falta.
 """
 
 import decimal
+from ..builtins import _df_type as _nome_do_tipo
 
 #: Os modos de arredondamento, com os nomes da linguagem.
 #:
@@ -149,7 +150,7 @@ class ArcaneDecimal:
             return valor
         raise _erro(
             f"'Decimal.{onde}' precisa de um Decimal, e veio "
-            f"{type(valor).__name__}.",
+            f"{_nome_do_tipo(valor)}.",
             dica='converta antes:  Decimal.de(x)')
 
     @classmethod

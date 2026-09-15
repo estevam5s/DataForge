@@ -68,6 +68,7 @@ funciona.
 """
 
 import pickle
+from .builtins import _df_type as _nome_do_tipo
 
 #: O que ja e um valor, e nao precisa de traducao.
 _SIMPLES = (type(None), bool, int, float, complex, str, bytes, bytearray)
@@ -619,7 +620,7 @@ def _motivo(v):
     if callable(v):
         return ("it holds a function built at run time, and a function "
                 "like that has no name the other process could look up")
-    return f"it holds a value that cannot be copied ({type(v).__name__})"
+    return f"it holds a value that cannot be copied ({_nome_do_tipo(v)})"
 
 
 def _dica(v):

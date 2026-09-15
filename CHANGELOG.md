@@ -64,6 +64,33 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Corrigido
 
+- **A metade das mensagens do CPython passava sem tradução.** A regra é
+  que nenhuma mensagem cita tipo do Python — `int`, `str`, `dict` e
+  `NoneType` não existem nesta linguagem, e uma mensagem nesses termos
+  manda a pessoa procurar na documentação errada. `_traduzir_tipos` só
+  trocava o nome **entre aspas**, e o CPython o escreve nu com a mesma
+  frequência: quem abria um banco com o argumento errado recebia
+  `expected str, bytes or os.PathLike object, not dict` — cinco palavras,
+  nenhuma delas existente aqui. Agora a tradução reconhece a **moldura**
+  (`, not dict`, `must be str`, `expected str`, `can only concatenate
+  str`) em vez da palavra solta, que é o que permite estendê-la sem
+  estragar texto legítimo: `file not found: list.txt` continua intacto.
+  O nome da **implementação** também sai — `strptime() argument 1 must
+  be…` virava a resposta de `Time.parse`, e quem escreveu nunca ouviu
+  falar de `strptime`.
+
+- **Nove mensagens escritas à mão na stdlib nomeavam o tipo do Python.**
+  A trava existia e lia só `interpreter.py`, então `Arcane.Bytes` dizia
+  "esperava bytes e veio dict", `Arcane.Decimal` "precisa de um Decimal,
+  e veio str", e `opcoes.ler` — que responde por **todo** vault de opções
+  da biblioteca — "e recebeu list". Todas passaram a usar `_df_type`, que
+  é a mesma fonte que o `typeof` usa. A trava agora varre a árvore
+  inteira, e permite o nome cru só onde o sujeito é uma **exceção do
+  Python** ou um **nó da AST** — os dois casos em que não há nome nesta
+  linguagem. E há uma segunda trava, **comportamental**: ela chama a
+  stdlib com o argumento errado e lê a mensagem que sai, porque o texto
+  que vazava não está escrito em arquivo nenhum do repositório.
+
 - **O método de um `record` ficava fora do analisador, nas duas
   direções.** `p.naoExiste()` passava no `check` e só estourava em
   execução — a conferência existia para o campo (`p.clientte`) e para as

@@ -47,6 +47,7 @@ import gzip
 import struct
 
 from ..errors import ValueError_
+from ..builtins import _df_type as _nome_do_tipo
 
 MARCA = b"PAR1"
 
@@ -496,7 +497,7 @@ def escrever(caminho, linhas, compressao="gzip", por_grupo=LINHAS_POR_GRUPO):
         if not isinstance(linha, dict):
             raise ValueError_(
                 f"cada linha precisa ser um vault; veio "
-                f"{type(linha).__name__}.", doc="tecnicas/parquet")
+                f"{_nome_do_tipo(linha)}.", doc="tecnicas/parquet")
         for chave in linha:
             if chave not in colunas:
                 colunas.append(chave)

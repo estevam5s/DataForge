@@ -49,6 +49,7 @@ import time
 from ..errors import (ConcurrencyError, DeadlockError, RuntimeError_,
                       TimeoutError_, ThreadError, TypeError_)
 from ..travessia import _ErroDoFilho
+from ..builtins import _df_type as _nome_do_tipo
 
 
 #: Quantos trabalhadores por padrao.
@@ -526,7 +527,7 @@ class ArcaneConcurrent(dict):
                       "'map' ou 'para_cada'"),
                 doc="tecnicas/concorrencia")
         raise TypeError_(
-            f"{funcao} espera uma tarefa, e recebeu {type(valor).__name__}{onde}.",
+            f"{funcao} espera uma tarefa, e recebeu {_nome_do_tipo(valor)}{onde}.",
             dica="uma tarefa vem de 'rodar', de 'grupo.enviar' ou de 'lotes'",
             doc="tecnicas/concorrencia")
 

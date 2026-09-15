@@ -35,6 +35,7 @@ publicado com o nome errado.
 """
 
 import difflib
+from ..builtins import _df_type as _nome_do_tipo
 
 
 class OpcaoDesconhecida(ValueError):
@@ -64,7 +65,7 @@ def ler(opcoes, conhecidas, onde=""):
     if not isinstance(opcoes, dict):
         raise OpcaoDesconhecida(
             f"{onde or 'esta funcao'} espera um vault de opcoes, "
-            f"e recebeu {type(opcoes).__name__}.")
+            f"e recebeu {_nome_do_tipo(opcoes)}.")
 
     estranhas = [k for k in opcoes
                  if not str(k).startswith("_") and k not in conhecidas]

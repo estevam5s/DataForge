@@ -4,6 +4,7 @@ Tree-walking interpreter that executes AST nodes.
 """
 
 import numbers as _numeros
+import re as _re
 import sys
 import threading
 import time
@@ -549,22 +550,100 @@ _TIPOS_DO_PYTHON = (
     # A forma sem aspas aparece em "object of type 'int' has no len()"
     # e em "descriptor 'x' for 'str' objects".
     ("NoneType", "Void"),
+    # Aspas DUPLAS: 'can only concatenate str (not "int") to str'.
+    ('"bool"', "Boolean"), ('"int"', "Integer"), ('"float"', "Float"),
+    ('"str"', "String"), ('"bytes"', "Bytes"), ('"list"', "Cluster"),
+    ('"tuple"', "Cluster"), ('"dict"', "Vault"), ('"set"', "Set"),
+    ('"NoneType"', "Void"),
 )
+
+#: O mesmo mapa, para o nome escrito SEM aspas.
+_NOMES_NUS = {
+    "NoneType": "Void", "bool": "Boolean", "int": "Integer",
+    "float": "Float", "complex": "Complex", "str": "String",
+    "bytes": "Bytes", "bytearray": "Bytes", "list": "Cluster",
+    "tuple": "Cluster", "dict": "Vault", "set": "Set",
+    "frozenset": "Set", "os.PathLike": "path",
+}
+
+#: As MOLDURAS exatas em que o CPython escreve o nome de tipo sem aspas.
+#:
+#: Reconhecer a moldura inteira — e nao a palavra solta — e o que permite
+#: estender a traducao sem estragar texto legitimo. Era o medo escrito na
+#: docstring antiga, e ele e justificado: uma mensagem sobre um arquivo
+#: chamado 'list.txt' contem a palavra, e trocar a palavra solta a
+#: transformaria em 'Cluster.txt'. Nenhuma das molduras abaixo casa com
+#: "file not found: list.txt", e ", not dict" casa com todas as que
+#: importam.
+#:
+#: Sem elas, a metade das mensagens do CPython que NAO usa aspas passava
+#: inteira: 'expected str, bytes or os.PathLike object, not dict' era o
+#: que a linguagem respondia a quem abria um banco com o argumento
+#: errado, e nenhuma daquelas cinco palavras existe aqui.
+_MOLDURAS_NUAS = (
+    # ", not dict"  —  a virgula e o que separa isto de "not found: list"
+    r",\s*not\s+(?P<tipos>[\w.]+)",
+    # "must be str, bytes or bytearray"
+    r"\bmust be\s+(?P<tipos>[\w.]+(?:,\s*[\w.]+)*(?:\s+or\s+[\w.]+)?)",
+    # "expected str, bytes or os.PathLike"
+    r"\bexpected\s+(?P<tipos>[\w.]+(?:,\s*[\w.]+)*(?:\s+or\s+[\w.]+)?)",
+    # 'can only concatenate str (not "int") to str' — a moldura leva o
+    # rabo ate o fim, senao o ultimo 'str' ficava para tras. 'to' sozinho
+    # nao serve de pista: "add it to list" viraria "add it to Cluster".
+    r"\bcan only concatenate\s+(?P<tipos>[\w.]+"
+    r"(?:\s*\(not\s*\"?[\w.]+\"?\))?\s*to\s+[\w.]+)",
+)
+
+_MOLDURAS_NUAS = tuple(_re.compile(p) for p in _MOLDURAS_NUAS)
+
+#: A palavra de tipo dentro de uma moldura. Os nomes mais longos
+#: primeiro, senao 'os.PathLike' seria comido pelo alternativo curto.
+_PALAVRA_NUA = _re.compile(
+    r"\b(" + "|".join(sorted((_re.escape(n) for n in _NOMES_NUS),
+                             key=len, reverse=True)) + r")\b")
+
+
+def _traduzir_um_nome(encontrado):
+    return _NOMES_NUS.get(encontrado.group(1), encontrado.group(1))
+
+
+def _traduzir_moldura(encontrado):
+    """Troca os nomes DENTRO de uma moldura, e so ali."""
+    inteiro = encontrado.group(0)
+    tipos = encontrado.group("tipos")
+
+    # Uma LISTA so de nomes de tipo e reescrita por inteiro, porque a
+    # traducao pode juntar dois nomes num: 'bytes or bytearray' vira
+    # 'Bytes or Bytes', e repetir o mesmo nome na mesma frase parece
+    # defeito — a informacao que a repeticao carregava (sao dois tipos
+    # do Python) nao existe nesta linguagem.
+    nomes = _re.split(r",\s*|\s+or\s+", tipos)
+    if len(nomes) > 1 and all(n in _NOMES_NUS for n in nomes):
+        unicos = list(dict.fromkeys(_NOMES_NUS[n] for n in nomes))
+        traduzido = (unicos[0] if len(unicos) == 1 else
+                     ", ".join(unicos[:-1]) + " or " + unicos[-1])
+    else:
+        traduzido = _PALAVRA_NUA.sub(_traduzir_um_nome, tipos)
+    return inteiro.replace(tipos, traduzido, 1)
 
 
 def _traduzir_tipos(texto):
     """Troca os nomes de tipo do Python pelos da linguagem.
 
-    Conservadora de proposito: so substitui o nome ENTRE ASPAS, que e
-    como o CPython o escreve nessas mensagens. Trocar a palavra solta
-    estragaria um texto legitimo — uma mensagem sobre um arquivo
-    chamado 'list', ou sobre a funcao 'set' da propria stdlib.
+    Duas passadas, e as duas conservadoras. A primeira troca o nome ENTRE
+    ASPAS, que e como o CPython o escreve em boa parte das mensagens. A
+    segunda cuida das que o escrevem NU, e para nao estragar texto
+    legitimo ela exige a MOLDURA inteira: ", not dict" e "must be str"
+    sao trocados, "file not found: list.txt" nao.
     """
     if not texto:
         return texto
     for py, df in _TIPOS_DO_PYTHON:
         if py in texto:
-            texto = texto.replace(py, f"'{df}'" if py.startswith("'") else df)
+            aspas = py[0] if py[0] in "'\"" else ""
+            texto = texto.replace(py, f"{aspas}{df}{aspas}" if aspas else df)
+    for moldura in _MOLDURAS_NUAS:
+        texto = moldura.sub(_traduzir_moldura, texto)
     return texto
 
 
@@ -5575,6 +5654,13 @@ class Interpreter:
             nota = _traduzir_tipos(nota)
 
         if contexto:
+            # O CPython abre a mensagem com a IMPLEMENTACAO que falhou:
+            #   "strptime() argument 1 must be String, not Integer"
+            # Quem escreve DataForge chamou 'Time.parse', nunca ouviu
+            # falar de 'strptime', e o nome chamado ja vai no 'contexto'
+            # logo abaixo — entao o nome do Python e ruido que manda
+            # procurar na documentacao errada, como o nome de tipo.
+            texto = _re.sub(r"^\w+\(\)\s+", "", texto)
             texto = f"{contexto}: {texto}"
 
         linha = getattr(node, "line", 0)
