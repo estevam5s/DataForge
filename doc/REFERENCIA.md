@@ -998,7 +998,8 @@ Um falso alarme é pior que um silêncio.
 | `await <expr>` | espera a tarefa terminar e entrega o valor |
 | `await [t1, t2, …]` | espera **todas**; elas já corriam desde a chamada |
 | `thread: bloco` | roda o bloco em uma thread daemon |
-| `parallel: bloco` | roda **cada instrução** do bloco em uma thread, com join de 30 s |
+| `parallel: bloco` | roda cada **tarefa** numa thread e **espera todas**; um erro volta na linha do bloco |
+| `thread:` dentro de `parallel` | agrupa instruções numa tarefa só, que roda em ordem |
 | `channel nome` | cria uma fila FIFO com trava |
 | `nome.send(v)` / `nome.receive()` | escreve / lê — devolve `void` **na hora** se vazio |
 | `nome.receive(ms)` | espera até `ms` milissegundos pelo próximo item; expirado, `void` |

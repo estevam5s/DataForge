@@ -659,7 +659,9 @@ O que resta, em ordem de impacto.
   `receive(void)`. O padrão continua não esperando, porque trocá-lo faria
   programa existente travar em vez de falhar.
 - `TaskGroup` e cancelamento.
-- `parallel` tratando **blocos** em vez de instruções.
+- ~~`parallel` tratando **blocos** em vez de instruções~~ — **feito**, sem
+  palavra nova: um `thread:` dentro de `parallel` é uma tarefa. Instrução
+  solta continua sendo uma tarefa cada, então nada existente mudou.
 
 ### Web
 

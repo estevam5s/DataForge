@@ -5537,7 +5537,19 @@ class Interpreter:
         return {"__type__": "Stream", "data": data if isinstance(data, list) else [data]}
 
     def exec_ParallelBlock(self, node: ast.ParallelBlock, env):
-        """Roda cada instrucao numa thread, espera TODAS, e so entao segue.
+        """Roda cada TAREFA numa thread, espera TODAS, e so entao segue.
+
+        Uma tarefa e uma instrucao solta, ou um bloco 'thread:' inteiro:
+
+            parallel:
+                thread:
+                    dados := baixar("a")
+                    salvar(dados)          em ordem, na mesma thread
+                thread:
+                    dados := baixar("b")
+                    salvar(dados)
+                registrar("inicio")        uma tarefa sozinha
+
 
         Um erro numa das instrucoes era IMPRESSO e engolido:
         o 'except Exception' imprimia '[Parallel Error] …', e o programa
@@ -5572,7 +5584,17 @@ class Interpreter:
 
         def rodar(stmt, escopo, ordem):
             try:
-                self.execute(stmt, escopo)
+                if isinstance(stmt, ast.ThreadBlock):
+                    # Um 'thread:' DENTRO de 'parallel' e uma TAREFA: o
+                    # bloco inteiro roda nesta thread, em sequencia, e e
+                    # esperado como as outras. Sem isto, cada instrucao
+                    # era uma thread, e duas coisas que precisam acontecer
+                    # em ordem ('conectar' e depois 'baixar') nao tinham
+                    # como ficar juntas. Fora do 'parallel', 'thread:'
+                    # continua disparando e seguindo.
+                    self.exec_block(stmt.body, escopo)
+                else:
+                    self.execute(stmt, escopo)
             except DataForgeError as erro:
                 self._attach_stack(erro)
                 with trava:

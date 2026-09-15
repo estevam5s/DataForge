@@ -8760,7 +8760,7 @@
     "enunciado": "rode varias tarefas ao mesmo tempo.",
     "arquivo": "114_parallel.df",
     "temDoc": false,
-    "codigo": "// Exercicio 114 — parallel\n// Enunciado: rode varias tarefas ao mesmo tempo.\n\nadopt Arcane.Math as Math\n\nsaidas := []\n\nparallel:\n    saidas.append(\"tarefa A: \" + str(Math.factorial(10)))\n    saidas.append(\"tarefa B: \" + str(Math.fibonacci(20)))\n    saidas.append(\"tarefa C: \" + str(Math.is_prime(9973)))\n\nwait 200\ncycle s in sorted(saidas):\n    out s\n\nassert len(saidas) is 3, \"tres tarefas concluidas\"\n"
+    "codigo": "// Exercicio 114 — parallel\n// Enunciado: rode varias tarefas ao mesmo tempo.\n\nadopt Arcane.Math as Math\n\nsaidas := []\n\nparallel:\n    saidas.append(\"tarefa A: \" + str(Math.factorial(10)))\n    saidas.append(\"tarefa B: \" + str(Math.fibonacci(20)))\n    saidas.append(\"tarefa C: \" + str(Math.is_prime(9973)))\n\nwait 200\ncycle s in sorted(saidas):\n    out s\n\nassert len(saidas) is 3, \"tres tarefas concluidas\"\n\n// ── Um bloco inteiro como UMA tarefa ─────────────────────────────\n//\n// Cada instrucao solta de 'parallel' e uma thread. Quando duas coisas\n// precisam acontecer EM ORDEM — buscar e depois somar —, junte-as num\n// 'thread:' dentro do 'parallel': o bloco vira uma tarefa so, as tarefas\n// rodam juntas, e o 'parallel' espera todas.\n\nresultados := []\n\nparallel:\n    thread:\n        dados := [1, 2, 3]\n        resultados.append({\"tarefa\": \"A\", \"soma\": dados >> distill a, v: a + v 0})\n    thread:\n        dados := [10, 20, 30]\n        resultados.append({\"tarefa\": \"B\", \"soma\": dados >> distill a, v: a + v 0})\n\n// Sem 'wait': o 'parallel' so termina quando os dois blocos terminam.\nout \"\"\ncycle r in sorted(resultados, lambda r => r[\"tarefa\"]):\n    out $\"bloco {r[\"tarefa\"]}: soma {r[\"soma\"]}\"\nassert len(resultados) is 2, \"o parallel esperou os dois blocos\"\n"
    },
    {
     "num": "115",
@@ -10165,7 +10165,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 1868,
+  "testes": 1872,
   "exemplos": 44,
   "arquivosDf": 350
  },
@@ -10173,7 +10173,7 @@
   "estrelas": 0,
   "versao": "v1.0.0",
   "publicado": "2026-09-12",
-  "baixados": 31,
-  "instalacoes": 2
+  "baixados": 36,
+  "instalacoes": 1
  }
 }

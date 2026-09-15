@@ -16,6 +16,14 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **`parallel` por bloco.** Cada instrução de `parallel` era uma thread, e
+  duas coisas que precisam acontecer em ordem — buscar e depois salvar —
+  não tinham como ficar juntas. Agora um `thread:` **dentro** de `parallel`
+  é uma tarefa só: o bloco roda em ordem, as tarefas rodam juntas, e o
+  `parallel` espera todas. Sem palavra nova, e sem mudar nada que existia:
+  instrução solta continua sendo uma tarefa cada, e `thread:` fora de
+  `parallel` continua disparando e seguindo.
+
 - **O canal sabe esperar.** `receive()` devolvia `void` na hora, e esperar
   por um item exigia um laço de `sleep` — que gasta CPU, acorda tarde e
   piora com muitos consumidores, justamente quando um canal serve para

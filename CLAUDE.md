@@ -1597,7 +1597,8 @@ O que **ainda não existe** (não invente que existe):
   vazia, e isso é contrato (dois exercícios o afirmam). Para esperar:
   `receive(ms)` ou `receive(void)`. Trocar o padrão não daria erro em
   programa nenhum, daria travamento.
-- **`parallel`** roda **cada instrução** numa thread, não um bloco por thread.
+- **`parallel`** roda cada **tarefa** numa thread: uma instrução solta é uma
+  tarefa, e um `thread:` aninhado agrupa várias numa tarefa que roda em ordem.
   Ele **espera todas** e, se alguma falhou, levanta o erro **na linha do
   bloco**, com os demais em `.outros` — então `monitor/handle` o pega.
   `thread:` não espera: o erro do corpo é **desenhado na hora** na saída de

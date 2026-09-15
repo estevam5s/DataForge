@@ -6643,3 +6643,64 @@ def test_o_tratador_de_erro_do_kiln_que_falha_e_avisado():
                 'out r["status"]\n')
     assert saida.splitlines()[-1] == "404", "o padrao continua respondendo"
     assert "tratador de 404 falhou" in saida
+
+
+# ─── 'parallel' por bloco ──────────────────────────────────
+# Cada instrução de 'parallel' era uma thread, e duas coisas que precisam
+# acontecer em ordem — conectar e depois baixar — não tinham como ficar
+# juntas. Um 'thread:' dentro de 'parallel' agora é UMA tarefa.
+
+def test_um_bloco_thread_dentro_de_parallel_roda_em_ordem():
+    saida = run('channel c\n'
+                'parallel:\n'
+                '    thread:\n'
+                '        c.send("A1")\n'
+                '        c.send("A2")\n'
+                '        c.send("A3")\n'
+                'out c.receive(), c.receive(), c.receive()\n')
+    assert saida == "A1 A2 A3"
+
+
+def test_os_blocos_rodam_juntos():
+    """Duas tarefas de 300 ms terminam antes de 600 ms somados.
+
+    Comparado com a SÉRIE medida no mesmo teste, e com trabalho grande o
+    bastante para o custo de criar a thread virar ruído — as duas lições
+    que as travas de tempo do repositório registram.
+    """
+    import time
+
+    def medir(fonte):
+        inicio = time.monotonic()
+        run(fonte)
+        return time.monotonic() - inicio
+
+    serie = medir('sleep(300)\nsleep(300)\n')
+    junto = medir('parallel:\n'
+                  '    thread:\n        sleep(150)\n        sleep(150)\n'
+                  '    thread:\n        sleep(150)\n        sleep(150)\n')
+    assert serie / junto > 1.5, f"serie {serie:.2f}s, parallel {junto:.2f}s"
+
+
+def test_o_erro_de_um_bloco_chega_ao_handle_e_interrompe_o_resto_do_bloco():
+    saida = run('rastro := []\n'
+                'monitor:\n'
+                '    parallel:\n'
+                '        thread:\n'
+                '            rastro.append("antes")\n'
+                '            out 1 / 0\n'
+                '            rastro.append("depois")\n'
+                'handle Error as e:\n'
+                '    out rastro, e.type\n')
+    assert saida == "[antes] DivisionByZeroError"
+
+
+def test_thread_fora_de_parallel_continua_disparando_e_seguindo():
+    """A mudança vale só DENTRO de 'parallel'."""
+    saida = run('channel c\n'
+                'thread:\n'
+                '    sleep(100)\n'
+                '    c.send("tarde")\n'
+                'out c.receive() ?? "a principal nao esperou"\n'
+                'out c.receive(void)\n')
+    assert saida == "a principal nao esperou\ntarde"

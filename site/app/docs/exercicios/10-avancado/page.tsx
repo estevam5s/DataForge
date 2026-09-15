@@ -78,7 +78,30 @@ wait 200
 cycle s in sorted(saidas):
     out s
 
-assert len(saidas) is 3, "tres tarefas concluidas"`, lang: 'df', title: `exercicios/10-avancado/114_parallel.df` },
+assert len(saidas) is 3, "tres tarefas concluidas"
+
+// ── Um bloco inteiro como UMA tarefa ─────────────────────────────
+//
+// Cada instrucao solta de 'parallel' e uma thread. Quando duas coisas
+// precisam acontecer EM ORDEM — buscar e depois somar —, junte-as num
+// 'thread:' dentro do 'parallel': o bloco vira uma tarefa so, as tarefas
+// rodam juntas, e o 'parallel' espera todas.
+
+resultados := []
+
+parallel:
+    thread:
+        dados := [1, 2, 3]
+        resultados.append({"tarefa": "A", "soma": dados >> distill a, v: a + v 0})
+    thread:
+        dados := [10, 20, 30]
+        resultados.append({"tarefa": "B", "soma": dados >> distill a, v: a + v 0})
+
+// Sem 'wait': o 'parallel' so termina quando os dois blocos terminam.
+out ""
+cycle r in sorted(resultados, lambda r => r["tarefa"]):
+    out $"bloco {r["tarefa"]}: soma {r["soma"]}"
+assert len(resultados) is 2, "o parallel esperou os dois blocos"`, lang: 'df', title: `exercicios/10-avancado/114_parallel.df` },
   {"h2": "115 · defer com recursos reais"},
   {"p": "**Enunciado.** garanta que o arquivo seja apagado mesmo apos erro."},
   { code: `adopt Arcane.IO as IO
