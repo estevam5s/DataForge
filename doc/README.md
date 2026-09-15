@@ -9,6 +9,7 @@
 | [**REFERENCIA.md**](REFERENCIA.md) | Consultar gramática, palavras-chave, precedência e semântica |
 | [**BIBLIOTECA_PADRAO.md**](BIBLIOTECA_PADRAO.md) | Assinaturas de todos os módulos `Arcane.*` |
 | [**ANALISE_E_ROADMAP.md**](ANALISE_E_ROADMAP.md) | Estado técnico do projeto e o que falta implementar |
+| [**METAS_DO_TODO.md**](METAS_DO_TODO.md) | As metas do `TODO.md` cruzadas com o que já existe: o que está feito, o que foi decidido não fazer, e os cinco que cabem |
 | [**KILN.md**](KILN.md) | O framework web: rotas, templates, middleware e o que ele não tem |
 | [**VITRINE.md**](VITRINE.md) | O framework de dashboards: um programa de cima para baixo vira uma página web |
 | [**OOP.md**](OOP.md) | Orientação a objetos: blueprints, traits, propriedades e métodos mágicos |
@@ -16,8 +17,8 @@
 
 Além destes:
 
-- [`../exercicios/`](../exercicios) — 218 exercícios; os dos módulos 11-23 com `.md` explicativo
-- [`../examples/`](../examples) — 43 programas maiores
+- [`../exercicios/`](../exercicios) — 240 exercícios; os dos módulos 11-23 com `.md` explicativo
+- [`../examples/`](../examples) — 44 programas maiores
 - [`../CLAUDE.md`](../CLAUDE.md) — contexto para trabalhar no interpretador
 
 ## Manutenção
