@@ -849,6 +849,40 @@ Sem a casca, `o.semCampo` saía na linha certa e `o.semMetodo()` em `0:0`
 `blueprint`. O compilador de fechamentos liga em `_chamar_metodo` e por
 isso herda a casca; há teste nos dois modos.
 
+### O idioma das mensagens
+
+**O runtime fala português, e `DF_IDIOMA=en` volta ao inglês.** Medido
+antes: `interpreter.py` tinha 234 mensagens em inglês contra 55 em
+português, e `cli.py` o inverso — 200 contra 15. Quem escreve em pt-BR
+recebia `dataforge check` em português e o erro de execução em inglês, na
+mesma sessão e sobre o mesmo arquivo.
+
+`idioma.py` resolve isso **sem reescrever as 530 strings**. O texto nasce
+em inglês onde sempre nasceu e é traduzido na hora de desenhar, por um
+catálogo de moldes com grupos nomeados.
+
+| Decisão | Porque |
+|---|---|
+| a tradução é no **desenho**, não em `error.message` | `e.message` é o que um `handle` compara e o que 2600 testes comparam; traduzir ali muda o comportamento de programa já escrito, e o que interessa a um programa é a identidade do erro |
+| o que não tem tradução **sai em inglês** | ninguém traduz 530 mensagens numa tacada, e um erro é mais útil legível em inglês que ilegível em português |
+| **a suíte roda em inglês** (`tests/conftest.py`) | um teste que afirma "Division by zero" checa a *estrutura* do relatório; deixar o idioma solto o faria reprovar a cada tradução nova, o que ensinaria a não traduzir |
+| há um **piso de cobertura** (`test_idioma.py`) | sem medida a camada fica pela metade sem ninguém ver, porque o que falta sai em inglês legível — o fallback certo é também o que esconde o buraco |
+
+Duas armadilhas que só apareceram medindo:
+
+1. **As variantes entre módulos são molde próprio.** A aridade local diz
+   `takes N but M were given`; a que atravessa um `adopt` diz
+   `takes N, got M`. Traduzir uma e esquecer a outra deixa em inglês
+   justamente a metade que mais aparece num sistema modular.
+2. **O rótulo da seta é traduzido nu.** Ele é composto com um espaço à
+   frente (`f" {self.rotulo}"`), e a âncora `^` do catálogo não casaria
+   depois disso.
+
+E foi um teste desta camada que achou um vazamento que o passo anterior
+não pegou: `non-int`, em `can't multiply sequence by non-int`. O CPython
+cola o nome do tipo num prefixo, o hífen é fronteira de palavra, e a
+moldura de `, not X` não chega ali.
+
 ### Silenciar uma regra, de propósito
 
 `// df: permitir <regra>` na linha, ou na de cima, silencia aquela

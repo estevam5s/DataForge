@@ -64,14 +64,27 @@ class DataForgeError(Exception):
         self.outros = []       # list[DataForgeError]
         super().__init__(self.format())
 
-    def format(self):
+    def _tr(self, texto):
+        """O texto no idioma em vigor. Sem traducao, devolve o original."""
+        from .idioma import traduzir
+        return traduzir(texto)
+
+    def format(self, traduzido=False):
+        """A linha unica do erro.
+
+        O padrao e o ORIGINAL, e nao o idioma em vigor, porque
+        'super().__init__(self.format())' alimenta 'str(e)': e o que um
+        'handle' compara e o que a suite compara. Quem desenha pede
+        'traduzido=True'.
+        """
         loc = ""
         if self.line:
             loc = f" [line {self.line}"
             if self.column:
                 loc += f", col {self.column}"
             loc += "]"
-        return f"{self.__class__.__name__}{loc}: {self.message}"
+        mensagem = self._tr(self.message) if traduzido else self.message
+        return f"{self.__class__.__name__}{loc}: {mensagem}"
 
     def friendly_name(self):
         """Nome do erro sem o sublinhado interno."""
@@ -144,7 +157,9 @@ class DataForgeError(Exception):
 
         # ── Cabecalho ──
         titulo = tinta(f"erro[{self.codigo}]", VERMELHO)
-        primeira, *resto_msg = self.message.split("\n")
+        # O DESENHO fala o idioma em vigor. 'self.message' fica como
+        # nasceu: e o que um 'handle' compara.
+        primeira, *resto_msg = self._tr(self.message).split("\n")
         linhas.append(f"{titulo}: {tinta(primeira, '1;37')}")
 
         # ── Onde ──
@@ -178,7 +193,9 @@ class DataForgeError(Exception):
                     if self.column:
                         largura = max(1, self.span or 1)
                         marca = ' ' * (self.column - 1) + '^' * largura
-                        rotulo = f" {self.rotulo}" if self.rotulo else ""
+                        # Traduz o rotulo NU: com o espaco a frente, a
+                        # ancora '^' do catalogo nao casaria.
+                        rotulo = f" {self._tr(self.rotulo)}" if self.rotulo else ""
                         linhas.append(
                             f"{margem} {barra} "
                             f"{tinta(marca + rotulo, VERMELHO)}")
@@ -196,11 +213,11 @@ class DataForgeError(Exception):
 
         # ── Nota, dica e doc ──
         if self.nota:
-            for i, parte in enumerate(self.nota.split("\n")):
+            for i, parte in enumerate(self._tr(self.nota).split("\n")):
                 marcador = tinta("nota:", CIANO) if i == 0 else "     "
                 linhas.append(f"{margem} {tinta('=', AZUL)} {marcador} {parte}")
         if self.dica:
-            for i, parte in enumerate(self.dica.split("\n")):
+            for i, parte in enumerate(self._tr(self.dica).split("\n")):
                 marcador = tinta("dica:", AMARELO) if i == 0 else "     "
                 linhas.append(f"{margem} {tinta('=', AZUL)} {marcador} {parte}")
         if self.doc:

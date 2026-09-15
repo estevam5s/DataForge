@@ -16,6 +16,17 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **As mensagens saem em português, e `DF_IDIOMA=en` volta ao inglês.** O
+  runtime falava inglês e a CLI falava português: medido, `interpreter.py`
+  tinha 234 mensagens em inglês contra 55 em português, e `cli.py` o
+  inverso. Quem escreve em pt-BR recebia `dataforge check` em português e
+  o erro de execução em inglês, na mesma sessão. `dataforge/idioma.py`
+  traduz **na hora de desenhar**, por um catálogo de 86 moldes — o texto
+  nasce em inglês onde sempre nasceu, e `error.message` não muda, porque é
+  o que um `handle` compara. O que ainda não tem tradução **sai em
+  inglês**, que é o único fallback honesto, e um teste mede a cobertura
+  para que a lista cresça em vez de parar pela metade.
+
 - **O parser não para mais no primeiro erro de sintaxe.** Quatro erros
   num arquivo davam **uma** mensagem, e ela apontava a linha 2 para um
   descuido da linha 1 — porque um `+` pendurado no fim de uma linha só se

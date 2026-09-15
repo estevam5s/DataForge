@@ -587,6 +587,11 @@ _MOLDURAS_NUAS = (
     r"\bmust be\s+(?P<tipos>[\w.]+(?:,\s*[\w.]+)*(?:\s+or\s+[\w.]+)?)",
     # "expected str, bytes or os.PathLike"
     r"\bexpected\s+(?P<tipos>[\w.]+(?:,\s*[\w.]+)*(?:\s+or\s+[\w.]+)?)",
+    # "by non-int of type 'String'" — o CPython cola o nome do tipo num
+    # prefixo, e o hifen e fronteira de palavra, entao a moldura de
+    # ", not X" nao chega ali. Exigir o prefixo 'non-' e o que separa
+    # isto de "non-empty" e "non-standard", que nao sao tipo nenhum.
+    r"\bnon-(?P<tipos>int|str|float|bool|bytes|list|dict|tuple|set|complex)\b",
     # 'can only concatenate str (not "int") to str' — a moldura leva o
     # rabo ate o fim, senao o ultimo 'str' ficava para tras. 'to' sozinho
     # nao serve de pista: "add it to list" viraria "add it to Cluster".

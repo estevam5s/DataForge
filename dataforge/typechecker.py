@@ -89,9 +89,13 @@ class Diagnostic:
         rotulo = 'erro' if self.severity == 'error' else 'aviso'
         if color:
             rotulo = f"\033[{cores[self.severity]}m{rotulo}\033[0m"
-        cabecalho = f"{filename}:{self.line}:{self.column}: {rotulo}: {self.message}"
+        # O desenho fala o idioma em vigor; 'self.message' fica como
+        # nasceu, que e o que a suite e as ferramentas comparam.
+        from .idioma import traduzir
+        cabecalho = (f"{filename}:{self.line}:{self.column}: {rotulo}: "
+                     f"{traduzir(self.message)}")
         if self.hint:
-            cabecalho += f"\n    sugestão: {self.hint}"
+            cabecalho += f"\n    sugestão: {traduzir(self.hint)}"
         return cabecalho
 
     def __repr__(self):
