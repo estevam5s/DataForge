@@ -136,7 +136,7 @@ INTEIRAS = (
      "'{b}' não tem o membro '{m}'"),
     (r"Enum '(?P<e>.+)' has no member '(?P<m>.+)'\. Members: (?P<tem>.*)",
      "O enum '{e}' não tem o membro '{m}'. Membros: {tem}"),
-    (r"Cannot access member '(?P<m>.+)' on an? (?P<t>\w+)\.",
+    (r"Cannot access member '(?P<m>.+)' on (?:an? )?(?P<t>.+?)\.",
      "Não se acessa o membro '{m}' em {t}."),
     (r"Cannot read '(?P<m>.+)': the value is Void\.",
      "Não se lê '{m}': o valor é void."),
@@ -229,6 +229,8 @@ PEDACOS = (
      "'{op}' não se aplica entre {a} e {b}"),
 
     (r"^first: ", "o primeiro: "),
+    (r"\ba caught error \((?P<t>\w+)\)", "um erro capturado ({t})"),
+    (r"\bcaught error \((?P<t>\w+)\)", "erro capturado ({t})"),
     (r"to catch the error with 'handle', use 'parallel', which waits for "
      r"its statements",
      "para pegar o erro com 'handle', use 'parallel', que espera as "
@@ -312,11 +314,15 @@ def traduzir(texto, para=None):
         return texto
     if (para or atual()) == "en":
         return texto
+    mudou = texto
     for padrao, molde in _INTEIRAS:
         achado = padrao.fullmatch(texto)
         if achado:
-            return molde.format(**achado.groupdict())
-    mudou = texto
+            # Os pedacos rodam TAMBEM sobre o resultado: um campo do molde
+            # pode carregar um trecho que tem traducao propria — "a caught
+            # error (TriggerError)" dentro de "Cannot access member …".
+            mudou = molde.format(**achado.groupdict())
+            break
     for padrao, molde in _PEDACOS:
         mudou = padrao.sub(
             lambda m: molde.format(**m.groupdict()), mudou)

@@ -701,6 +701,15 @@ class DFError:
     #: faria a metade errada dar AttributeError.
     VALOR = ("valor", "value")
 
+    #: Os OUTROS erros que viajam com este.
+    #:
+    #: Um 'parallel' em que duas instrucoes falham, um 'defer' que quebra
+    #: numa acao que ja estava falhando: ha mais de um erro, e so o
+    #: primeiro chega ao 'handle'. Sem isto, os demais eram desenhados no
+    #: terminal e INALCANCAVEIS de dentro do programa — que e justamente
+    #: quem precisa decidir o que fazer com eles.
+    OUTROS = ("outros", "others")
+
     def __getattr__(self, nome):
         """Os campos extras do erro original, lidos pelo nome.
 
@@ -710,6 +719,13 @@ class DFError:
         """
         if nome in DFError.PILHA:
             return self._pilha_como_dado()
+        if nome in DFError.OUTROS:
+            # Cada um como o mesmo valor que o 'handle' recebe, com '.type'
+            # e '.message': um Cluster de erros que o programa le igual ao
+            # primeiro.
+            return [DFError(type(o).__name__.rstrip('_'),
+                            getattr(o, "message", str(o)), o)
+                    for o in (getattr(self.original, "outros", None) or [])]
         if nome in DFError.VALOR:
             # 'void' quando o erro nao veio de um 'trigger': um '1 / 0'
             # nao foi levantado por ninguem com um valor, e devolver a
@@ -5652,6 +5668,10 @@ class Interpreter:
             return f"the builtin '{valor.name}'"
         if isinstance(valor, DFTarefa):
             return f"the running task '{valor.nome}'"
+        if isinstance(valor, DFError):
+            # Era "DFError", a classe do Python — o mesmo vazamento que a
+            # trava de tipos proibe. Na linguagem, e o valor de um 'handle'.
+            return f"a caught error ({valor.type})"
         for tipo, nome in self._NOMES_DE_TIPO.items():
             if type(valor) is tipo:
                 return nome
@@ -6517,14 +6537,66 @@ class Interpreter:
         return erro
 
     def _run_deferred(self, env):
-        """Run all deferred blocks registered in the environment, in LIFO order."""
-        if hasattr(env, '_deferred') and env._deferred:
-            for body, defer_env in reversed(env._deferred):
-                try:
-                    self.exec_block(body, defer_env.child("<defer>"))
-                except Exception:
-                    pass  # Deferred blocks should not propagate errors
-            env._deferred.clear()
+        """Roda os 'defer' do escopo, do ultimo para o primeiro.
+
+        Um erro dentro de um 'defer' era ENGOLIDO — 'except Exception:
+        pass'. O 'defer' e onde se fecha arquivo, se desfaz transacao e se
+        libera trava, entao o erro que sumia era justamente o de uma
+        limpeza que nao aconteceu: o arquivo ficava aberto, o programa
+        terminava com codigo 0, e nada dizia que a linha seguinte do
+        'defer' nunca rodou.
+
+        Tres regras, e a segunda e a que exige cuidado:
+
+        1. TODOS os 'defer' rodam, mesmo que um falhe. Uma limpeza que
+           quebra nao pode impedir a seguinte — e o que o 'defer' promete.
+        2. Se a acao JA esta saindo por erro, esse erro continua sendo o
+           que viaja, e o do 'defer' vai em '.outros'. Levantar o do
+           'defer' no lugar apagaria a causa: quem le ve "nao consegui
+           fechar o arquivo" e nunca ve por que a gravacao falhou.
+        3. Se a acao saiu bem, o erro do 'defer' e levantado. Com mais de
+           um, o primeiro a falhar viaja e os demais pegam carona.
+
+        "Saindo por erro" se le em 'sys.exc_info()': os chamadores rodam
+        isto dentro de 'finally', e ali ele traz a excecao em voo. Um
+        'yield' ja foi capturado antes do 'finally', entao a saida normal
+        chega aqui sem excecao nenhuma.
+        """
+        if not (hasattr(env, '_deferred') and env._deferred):
+            return
+        import sys as _sys
+
+        falhas = []
+        for body, defer_env in reversed(env._deferred):
+            try:
+                self.exec_block(body, defer_env.child("<defer>"))
+            except DataForgeError as erro:
+                falhas.append(self._attach_stack(erro))
+            except ControlSignal:
+                # 'halt'/'skip'/'yield' dentro de um 'defer' nao tem para
+                # onde ir: a acao ja esta saindo. Ignora-los e o
+                # comportamento de sempre, e nao esconde erro nenhum.
+                pass
+            except Exception as ex:                       # noqa: BLE001
+                falhas.append(self._attach_stack(
+                    self._traduzir_excecao(ex, body[0] if body else None)))
+        env._deferred.clear()
+        if not falhas:
+            return
+
+        em_voo = _sys.exc_info()[1]
+        if isinstance(em_voo, DataForgeError):
+            em_voo.outros = list(getattr(em_voo, "outros", [])) + falhas
+            return
+        if isinstance(em_voo, BaseException) and not isinstance(
+                em_voo, ControlSignal):
+            # Excecao do Python em voo: ela vira erro da linguagem mais
+            # acima, e nao ha onde pendurar as nossas. Nao substituir e o
+            # que importa.
+            return
+        primeiro = falhas[0]
+        primeiro.outros = list(getattr(primeiro, "outros", [])) + falhas[1:]
+        raise primeiro
 
     def _eval_lambda(self, param_name, body_expr, value, env):
         """Evaluate a lambda-like expression for pipelines."""

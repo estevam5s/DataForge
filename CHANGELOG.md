@@ -92,6 +92,24 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Mudado
 
+- **Um erro dentro de `defer` não é mais descartado.** Era
+  `except Exception: pass`, e isso estava escrito como decisão (na
+  referência e no capítulo 17 da trilha). O `defer` é onde se fecha arquivo
+  e se desfaz transação, então o erro que sumia era o de uma limpeza que
+  não aconteceu — e o programa terminava com código 0. Agora vale o modelo
+  do try-with-resources: **todos** os `defer` rodam mesmo que um falhe; se
+  a ação saiu bem, o erro do `defer` viaja; se a ação já estava falhando,
+  viaja o erro **original**, com o do `defer` em `e.outros`. A preocupação
+  registrada — um erro de fechamento sequestrar o resultado — continua
+  atendida no caminho em que ela importa.
+
+  **Quebra código** que contava com o descarte. No repositório inteiro, só
+  o exemplo da trilha que demonstrava o descarte dependia disso.
+
+- **`e.outros`** traz os demais erros de um `handle`: a leva de um
+  `parallel` e os erros de `defer` anexados. Eles eram desenhados no
+  terminal e inalcançáveis de dentro do programa.
+
 - **`void` não vira mais texto.** `"Olá, " + nome`, com `nome` valendo
   `void`, devolvia `"Olá, void"` — a palavra `void` impressa onde devia
   ir o nome, e sem nada denunciando. É o `"undefined"` do JavaScript, e

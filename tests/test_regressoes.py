@@ -6522,3 +6522,75 @@ def test_nenhuma_thread_da_linguagem_imprime_erro_e_segue():
     # A CHAMADA, e nao o texto: a docstring que explica o bug cita a forma
     # antiga, e uma trava sobre o texto a acusaria.
     assert not re.search(r'print\(f?"\[(Parallel|Thread) Error\]', fonte)
+
+
+# ─── O erro dentro de um 'defer' não some ──────────────────
+# Era 'except Exception: pass'. O 'defer' é onde se fecha arquivo e se
+# desfaz transação, então o erro que sumia era o de uma limpeza que não
+# aconteceu — e o programa terminava com código 0. A regra agora é a do
+# try-with-resources do Java.
+#
+# Isto REVERTE uma decisão que estava escrita na trilha ("deixar um erro
+# de fechamento sequestrar o resultado da ação seria pior"). A preocupação
+# era legítima e continua atendida: quando a ação já falhou, o erro
+# original é o que viaja.
+
+def test_erro_no_defer_de_uma_acao_que_saiu_bem_viaja():
+    saida = run('action f():\n'
+                '    defer:\n'
+                '        trigger "nao fechou"\n'
+                '    yield "ok"\n'
+                'monitor:\n'
+                '    out f()\n'
+                'handle Error as e:\n'
+                '    out "pegou:", e.message\n')
+    assert saida == "pegou: nao fechou"
+
+
+def test_quando_a_acao_ja_falhou_o_erro_original_e_o_que_viaja():
+    """Levantar o erro do fechamento no lugar apagaria a causa."""
+    saida = run('action f():\n'
+                '    defer:\n'
+                '        trigger "nao fechou"\n'
+                '    trigger "a gravacao falhou"\n'
+                'monitor:\n'
+                '    f()\n'
+                'handle Error as e:\n'
+                '    out e.message\n'
+                '    out e.outros[0].message\n')
+    assert saida == "a gravacao falhou\nnao fechou"
+
+
+def test_todos_os_defer_rodam_mesmo_que_um_falhe():
+    saida = run('rastro := []\n'
+                'action f():\n'
+                '    defer:\n'
+                '        rastro.append("A")\n'
+                '    defer:\n'
+                '        trigger "B quebrou"\n'
+                '    defer:\n'
+                '        rastro.append("C")\n'
+                '    yield 1\n'
+                'monitor:\n'
+                '    f()\n'
+                'handle Error as e:\n'
+                '    out rastro, e.message\n')
+    assert saida == "[C, A] B quebrou"
+
+
+def test_outros_e_alcancavel_de_dentro_do_programa():
+    """A leva de um 'parallel' era desenhada e inalcançável por 'handle'."""
+    saida = run('monitor:\n'
+                '    parallel:\n'
+                '        out [1][5]\n'
+                '        out 1 / 0\n'
+                'handle Error as e:\n'
+                '    out len(e.outros), e.outros[0].type\n')
+    assert saida == "1 DivisionByZeroError"
+
+
+def test_a_mensagem_sobre_um_erro_capturado_nao_diz_DFError():
+    with pytest.raises(DataForgeError) as capturado:
+        run('monitor:\n    trigger "x"\nhandle Error as e:\n    out e.zzz\n')
+    assert "DFError" not in capturado.value.message
+    assert "caught error" in capturado.value.message

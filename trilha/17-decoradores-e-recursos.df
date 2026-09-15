@@ -160,15 +160,36 @@ handle Error as e:
 
 assert rastro is ["fechou", "deu errado"]
 
-// ARMADILHA: erro DENTRO de um 'defer' e descartado. Ele roda na
-// saida, quando ja nao ha a quem contar — e deixar um erro de
-// fechamento sequestrar o resultado da acao seria pior.
+// E um erro DENTRO do 'defer'? Ele NAO some.
+//
+// O 'defer' e onde se fecha arquivo e se desfaz transacao. Um erro ali
+// que desaparecesse deixaria o arquivo aberto e o programa terminando
+// com codigo 0 — por isso ele viaja, como qualquer erro.
 action defer_que_quebra() -> String:
     defer:
-        trigger "ninguem ve"
+        trigger "nao consegui fechar"
     yield "voltou inteiro"
 
-assert defer_que_quebra() is "voltou inteiro"
+monitor:
+    _ := defer_que_quebra()
+    assert no, "nao chega aqui: o erro do defer viajou"
+handle Error as e:
+    assert e.message is "nao consegui fechar"
+
+// Mas se a acao JA estava falhando, o erro ORIGINAL continua sendo o
+// que viaja, e o do 'defer' vai junto em 'e.outros'. Levantar o do
+// fechamento no lugar apagaria a causa: quem le veria "nao consegui
+// fechar" e nunca saberia por que a gravacao falhou.
+action gravar_e_quebrar():
+    defer:
+        trigger "nao consegui fechar"
+    trigger "a gravacao falhou"
+
+monitor:
+    gravar_e_quebrar()
+handle Error as e:
+    assert e.message is "a gravacao falhou", "a causa nao some"
+    assert e.outros[0].message is "nao consegui fechar", "e o do defer vem junto"
 
 // ── 17.7 'defer' x 'ensure' ──
 //

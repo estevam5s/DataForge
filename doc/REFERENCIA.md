@@ -572,8 +572,23 @@ defer:
     bloco
 ```
 
-Agenda o bloco para rodar na saída da ação, em ordem LIFO. Erros dentro de um
-bloco `defer` são descartados.
+Agenda o bloco para rodar na saída da ação, em ordem LIFO — inclusive quando a
+ação sai por erro, que é o ponto de um `defer`.
+
+Um erro **dentro** de um `defer` não é descartado. Todos os `defer` rodam mesmo
+que um falhe, e depois:
+
+| A ação saiu… | O que viaja |
+|---|---|
+| normalmente | o erro do `defer` — o primeiro, com os demais em `.outros` |
+| por um erro | o erro **original**, com os do `defer` anexados em `.outros` |
+
+A segunda linha é a que exige cuidado: levantar o erro do fechamento no lugar do
+original apagaria a causa, e quem lê veria "não consegui fechar o arquivo" sem
+nunca ver por que a gravação falhou. É o modelo do `try-with-resources` do Java.
+
+Até esta versão o erro era descartado nos dois casos. Isso fazia um arquivo não
+fechado, ou uma transação não desfeita, terminar o programa com código 0.
 
 ### 6.7 Limite de recursão, e as duas saídas
 

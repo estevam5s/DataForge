@@ -279,6 +279,11 @@ Estas são as que mais custam tempo:
 3. **Só espaços na indentação.** Tab é `SyncError`. 4 espaços por nível.
 
 4. **`monitor` sem `handle` não engole o erro.** Ele só garante o `ensure`.
+   **Nem `defer` engole:** um erro dentro dele viaja. Se a ação já estava
+   falhando, viaja o erro **original** e o do `defer` vai em `e.outros` —
+   é o modelo do try-with-resources. Até a correção era descartado nos dois
+   casos, e isso estava escrito na trilha como decisão; foi revertido porque
+   um arquivo não fechado terminava o programa com código 0.
 
 5. **`halt`, `skip` e `yield` atravessam `monitor`.** São `ControlSignal`
    (derivam de `BaseException`). Nunca capture `BaseException` no interpretador.
