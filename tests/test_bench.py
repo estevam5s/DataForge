@@ -137,18 +137,26 @@ def test_classe_exige_tres_tamanhos():
 @pytest.mark.parametrize("nome,acao,tamanhos,esperada", [
     ("quadratica",
      lambda n: sum(1 for _ in range(n) for _ in range(n)),
-     [150, 300, 600], "O(n^2)"),
+     [400, 800, 1600], "O(n^2)"),
 ])
 def test_a_classe_medida_bate_com_a_conhecida(nome, acao, tamanhos, esperada):
     """O único que se cobra exato é o O(n²).
 
     Ele tem fator 4,0, e o vizinho mais próximo (O(n log n), 2,15) está
-    a quase dois de distância — nenhuma máquina carregada transforma um
-    no outro. Já O(n) e O(n log n) são cobrados como PAR nos testes
-    sintéticos acima: cobrar um deles exato aqui seria um teste que
-    reprova sozinho num runner ocupado.
+    a quase dois de distância. Já O(n) e O(n log n) são cobrados como PAR
+    nos testes sintéticos acima: cobrar um deles exato aqui seria um teste
+    que reprova sozinho num runner ocupado.
+
+    Esta docstring dizia que "nenhuma máquina carregada transforma um no
+    outro", e 'scripts/verificar_tudo.sh' mediu **2,923** — "entre
+    O(n log n) e O(n²)". Os tamanhos eram [150, 300, 600] com 2
+    repetições: a medida INTEIRA levava ~20 ms, e alguns milissegundos de
+    escalonamento achatam a razão. É a lição que o CLAUDE.md já tinha
+    escrito para o paralelismo — a razão não basta se o trabalho for
+    pequeno. Com [400, 800, 1600] e o mínimo de 3 a medida leva ~200 ms, e
+    um soluço de escalonamento vira ruído em vez de mudar a classe.
     """
-    r = B["classe"](acao, tamanhos, None, 2)
+    r = B["classe"](acao, tamanhos, None, 3)
     assert esperada in r["classes"], (
         f"{nome}: fator medido {r['fator']}, classes {r['classes']}")
 
