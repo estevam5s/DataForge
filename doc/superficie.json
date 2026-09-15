@@ -670,11 +670,16 @@
       "acrescentar",
       "compactar",
       "compactar_tar",
+      "comprimir",
       "conferir",
+      "de_gzip",
+      "descomprimir",
       "extrair",
       "extrair_tar",
+      "gzip",
       "ler_de",
-      "listar"
+      "listar",
+      "taxa"
     ],
     "Arcane.Async": [
       "all",
@@ -1043,6 +1048,10 @@
       "hmac",
       "hmac_verify",
       "informacao_do_cofre",
+      "jwt_algoritmos",
+      "jwt_assinar",
+      "jwt_ler",
+      "jwt_verificar",
       "mask",
       "md5",
       "pbkdf2",

@@ -47,7 +47,35 @@ import tarfile
 import zipfile
 
 from . import cifra
+from ..builtins import _df_type as _nome_do_tipo
 from ..errors import FileNotFoundError_, UnsafeArchiveError, ValueError_
+
+
+def _erro_de_compressao(mensagem, nota="", dica=""):
+    """O mesmo 'ValueError_' que o resto do modulo levanta."""
+    return ValueError_(mensagem, 0, 0, nota=nota, dica=dica)
+
+
+def _para_bytes(valor, onde):
+    """Texto vira UTF-8; Bytes e Cluster de numeros passam.
+
+    Um Cluster conta porque e assim que a linguagem entrega bytes lidos
+    ('Bytes.de_hex', 'encode'), e recusa-lo obrigaria a converter no meio
+    do caminho.
+    """
+    if isinstance(valor, bytes):
+        return valor
+    if isinstance(valor, str):
+        return valor.encode("utf-8")
+    if isinstance(valor, (list, tuple, bytearray)):
+        try:
+            return bytes(valor)
+        except (TypeError, ValueError):
+            pass
+    raise _erro_de_compressao(
+        f"'{onde}' precisa de Bytes ou texto, e recebeu "
+        f"{_nome_do_tipo(valor)}.",
+        dica="use  str(x)  ou  Bytes.de_texto(x)  antes")
 
 
 #: A marca do formato. A versao esta nela para um formato futuro poder
@@ -291,10 +319,23 @@ class ArcaneCofre(dict):
 
 
 class ArcaneArchive(dict):
-    """Zip e tar — criar, listar, conferir e extrair com seguranca."""
+    """Zip, tar e compressao de bytes — criar, listar, conferir e extrair."""
 
     def __new__(cls):
         return {
+            # ── Comprimir um VALOR, e nao um arquivo ──
+            #
+            # 'compactar' faz arquivo .zip; isto comprime bytes ou texto na
+            # memoria, que e o que um corpo de HTTP, um campo de banco ou
+            # uma mensagem de fila precisam. Faltava, e sem isso a unica
+            # forma de encolher um payload era escrever um zip em disco e
+            # le-lo de volta.
+            "comprimir": cls._comprimir,
+            "descomprimir": cls._descomprimir,
+            "gzip": cls._gzip,
+            "de_gzip": cls._de_gzip,
+            "taxa": cls._taxa,
+
             "compactar": cls._compactar,
             "extrair": cls._extrair,
             "listar": cls._listar,
@@ -304,6 +345,81 @@ class ArcaneArchive(dict):
             "compactar_tar": cls._compactar_tar,
             "extrair_tar": cls._extrair_tar,
         }
+
+    # ── comprimir um valor ──────────────────────────────────
+
+    @staticmethod
+    def _comprimir(dados, nivel=6):
+        """Deflate cru (zlib). Devolve Bytes.
+
+        'nivel' vai de 0 (so empacota) a 9 (menor e mais lento). 6 e o
+        padrao do zlib, e o ponto em que a curva de ganho achata.
+        """
+        import zlib
+
+        if not 0 <= int(nivel) <= 9:
+            raise _erro_de_compressao(
+                f"o nivel de compressao vai de 0 a 9, e veio {nivel}.",
+                dica="6 e o padrao; 9 comprime mais e custa mais tempo")
+        return zlib.compress(_para_bytes(dados, "Archive.comprimir"),
+                             int(nivel))
+
+    @staticmethod
+    def _descomprimir(dados, como_texto=False):
+        """O contrario de 'comprimir'. Com 'yes', devolve texto."""
+        import zlib
+
+        try:
+            cru = zlib.decompress(_para_bytes(dados, "Archive.descomprimir"))
+        except Exception as erro:                         # noqa: BLE001
+            raise _erro_de_compressao(
+                f"estes bytes nao sao deflate: {erro}",
+                nota="'de_gzip' le o formato gzip, que tem cabecalho "
+                     "proprio e NAO e o mesmo",
+                dica="confira de onde os bytes vieram") from None
+        return cru.decode("utf-8") if como_texto else cru
+
+    @staticmethod
+    def _gzip(dados, nivel=6):
+        """Formato gzip — o que um HTTP 'Content-Encoding: gzip' espera.
+
+        Diferente de 'comprimir': o gzip tem cabecalho e CRC proprios.
+        Mandar deflate cru onde se prometeu gzip da um corpo que o
+        navegador recusa, e a mensagem dele nao diz por que.
+        """
+        import gzip as _gz
+
+        return _gz.compress(_para_bytes(dados, "Archive.gzip"), int(nivel))
+
+    @staticmethod
+    def _de_gzip(dados, como_texto=False):
+        """O contrario de 'gzip'. Com 'yes', devolve texto."""
+        import gzip as _gz
+
+        try:
+            cru = _gz.decompress(_para_bytes(dados, "Archive.de_gzip"))
+        except Exception as erro:                         # noqa: BLE001
+            raise _erro_de_compressao(
+                f"estes bytes nao sao gzip: {erro}",
+                nota="'descomprimir' le deflate cru, que nao tem cabecalho",
+                dica="confira de onde os bytes vieram") from None
+        return cru.decode("utf-8") if como_texto else cru
+
+    @staticmethod
+    def _taxa(original, comprimido):
+        """Quanto encolheu, como vault: 'antes', 'depois', 'taxa', 'porcento'.
+
+        A taxa e 'depois / antes': 0,25 quer dizer um quarto do tamanho.
+        Texto repetitivo encolhe muito; um JPEG ja comprimido pode CRESCER,
+        e ai a taxa passa de 1 — o que e a informacao mais util aqui,
+        porque comprimir de novo o que ja esta comprimido e desperdicio.
+        """
+        antes = len(_para_bytes(original, "Archive.taxa"))
+        depois = len(_para_bytes(comprimido, "Archive.taxa"))
+        taxa = (depois / antes) if antes else 1.0
+        return {"antes": antes, "depois": depois,
+                "taxa": round(taxa, 4),
+                "porcento": round((1 - taxa) * 100, 2)}
 
     # ── zip ─────────────────────────────────────────────────
 

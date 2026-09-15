@@ -12,7 +12,7 @@ PAGINAS = [
 {
 "href": "/api",
 "title": "Referência da API",
-"description": "Sete endpoints JSON com a linguagem inteira: sintaxe, 1514 símbolos, 45 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
+"description": "Sete endpoints JSON com a linguagem inteira: sintaxe, 1523 símbolos, 45 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
 "blocos": [
  {"p": "Tudo que esta documentação mostra está disponível como **JSON**, servido do próprio site, com `Access-Control-Allow-Origin: *`. Serve para gerar realce de sintaxe, autocompletar num editor que não fale LSP, uma folha de consulta, um bot, ou um site como este."},
  {"code": """curl -s https://dataforge-lang.vercel.app/api/index.json""", "lang": "bash"},
@@ -38,7 +38,7 @@ PAGINAS = [
    ["`/api/index.json`", "< 1 KB", "o índice — comece por aqui"],
    ["`/api/sintaxe.json`", "10 KB", "81 palavras reservadas, 19 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"],
    ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"],
-   ["`/api/modulos.json`", "112 KB", "48 módulos e **1514 símbolos**, com assinatura e resumo de cada um"],
+   ["`/api/modulos.json`", "112 KB", "48 módulos e **1523 símbolos**, com assinatura e resumo de cada um"],
    ["`/api/comandos.json`", "22 KB", "45 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"],
    ["`/api/erros.json`", "68 KB", "177 códigos de erro, com explicação, exemplo que provoca e como corrigir"],
    ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
@@ -186,7 +186,7 @@ doc := API.openapi(minha_api, {"titulo": "Loja", "versao": "2.0"})""", "lang": "
  {"h2": "Onde continuar"},
  {"cards": [
    {"href": "/docs/tecnicas/api", "title": "OpenAPI", "desc": "O contrato da SUA API, gerado das rotas do Kiln."},
-   {"href": "/docs/biblioteca", "title": "Biblioteca Arcane", "meta": "1514 símbolos", "desc": "O mesmo que /api/modulos.json, para ler."},
+   {"href": "/docs/biblioteca", "title": "Biblioteca Arcane", "meta": "1523 símbolos", "desc": "O mesmo que /api/modulos.json, para ler."},
    {"href": "/docs/erros", "title": "Códigos de erro", "meta": "177", "desc": "O mesmo que /api/erros.json."},
    {"href": "/docs/pacotes/registro", "title": "O registro", "desc": "Como publicar um pacote, e por que ele é estático."}]},
 ]},

@@ -34,7 +34,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.OS`](#arcaneos) | `OS` | 43 | Sistema operacional, ambiente, disco e processo atual. |
 | [`Arcane.Process`](#arcaneprocess) | `Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | [`Arcane.Logging`](#arcanelogging) | `Logging / Log` | 14 | Registro estruturado de eventos, com níveis e destinos. |
-| [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 48 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). |
+| [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 52 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token. |
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
@@ -42,7 +42,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Iter`](#arcaneiter) | `Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
 | [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 27 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
-| [`Arcane.Archive`](#arcanearchive) | `Archive / Zip` | 8 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
+| [`Arcane.Archive`](#arcanearchive) | `Archive / Zip` | 13 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. Comprime e descomprime VALORES em memória, em deflate cru ou em gzip, com a taxa medida. |
 | [`Arcane.Pipeline`](#arcanepipeline) | `Pipeline / Fluxo` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
@@ -1179,13 +1179,13 @@ adopt Arcane.Logging as Logging
 
 ## Arcane.Crypto
 
-Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305).
+Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token.
 
 ```dataforge
 adopt Arcane.Crypto as Crypto
 ```
 
-**Funções (48)**
+**Funções (52)**
 
 | Assinatura |
 |------------|
@@ -1216,6 +1216,10 @@ adopt Arcane.Crypto as Crypto
 | `hmac(chave, mensagem, algoritmo='sha256')` |
 | `hmac_verify(chave, mensagem, assinatura, algoritmo='sha256')` |
 | `informacao_do_cofre(caminho)` |
+| `jwt_algoritmos()` |
+| `jwt_assinar(carga, chave, algoritmo='HS256', expira_em=0)` |
+| `jwt_ler(token)` |
+| `jwt_verificar(token, chave, algoritmo='HS256')` |
 | `mask(texto, visiveis=4, caractere='*')` |
 | `md5(v)` |
 | `pbkdf2(senha, sal, iteracoes=200000, algoritmo='sha256')` |
@@ -1659,24 +1663,29 @@ adopt Arcane.Concurrent as Concurrent
 
 ## Arcane.Archive
 
-Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb.
+Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. Comprime e descomprime VALORES em memória, em deflate cru ou em gzip, com a taxa medida.
 
 ```dataforge
 adopt Arcane.Archive as Archive
 ```
 
-**Funções (8)**
+**Funções (13)**
 
 | Assinatura |
 |------------|
 | `acrescentar(arquivo, caminho, nome='')` |
 | `compactar(origem, destino, nivel=6)` |
 | `compactar_tar(origem, destino, compressao='gz')` |
+| `comprimir(dados, nivel=6)` |
 | `conferir(arquivo)` |
+| `de_gzip(dados, como_texto=False)` |
+| `descomprimir(dados, como_texto=False)` |
 | `extrair(arquivo, destino='.', senha='')` |
 | `extrair_tar(arquivo, destino='.')` |
+| `gzip(dados, nivel=6)` |
 | `ler_de(arquivo, nome, senha='')` |
 | `listar(arquivo)` |
+| `taxa(original, comprimido)` |
 
 
 ---

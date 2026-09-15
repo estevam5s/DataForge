@@ -16,6 +16,26 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **JWT em `Arcane.Crypto`** — `jwt_assinar`, `jwt_verificar` e `jwt_ler`,
+  com `HS256`/`HS384`/`HS512`. Mora ali porque um JWT **é** um HMAC sobre
+  dois pedaços de base64url, e as duas peças já estavam no módulo. Três
+  decisões: **quem decide o algoritmo é quem verifica**, e não o token — ler
+  o `alg` do token é a falha clássica da área, e é como se aceita um
+  `alg: none` forjado; `jwt_verificar` **devolve vault** (`valido`, `carga`,
+  `motivo`) em vez de levantar, porque token inválido é o caso normal de um
+  servidor; e um token **vencido entrega a carga**, para quem renova saber
+  de quem era. Interopera: o vetor conhecido do `jwt.io` é aceito, e há
+  teste para isso — um JWT que só esta biblioteca entende não é um JWT.
+
+- **Compressão de valor em `Arcane.Archive`** — `comprimir`/`descomprimir`
+  (deflate cru), `gzip`/`de_gzip` e `taxa`. O módulo fazia zip e tar de
+  **arquivo**, e não havia como encolher um valor na memória — que é o que
+  um corpo de HTTP, um campo de banco ou uma mensagem de fila pedem.
+  Deflate e gzip são formatos **diferentes**, e a mensagem de erro de cada
+  um diz isso: mandar deflate onde se prometeu `Content-Encoding: gzip` dá
+  um corpo que o navegador recusa sem explicar. A `taxa` passa de 1 quando
+  o dado não encolhe, que é a informação mais útil ali.
+
 - **`Arcane.Url`** — o 48º módulo, e a primeira das lacunas do `TODO.md`
   medidas contra o que já existia. Ler um endereço em partes, montar de
   volta, resolver relativo como um navegador (`juntar`), trocar parâmetros

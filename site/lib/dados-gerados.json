@@ -376,7 +376,7 @@
   },
   "archive": {
    "nome": "Arcane.Archive",
-   "desc": "Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb.",
+   "desc": "Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. Comprime e descomprime VALORES em memória, em deflate cru ou em gzip, com a taxa medida.",
    "curto": "Archive / Zip",
    "funcoes": [
     {
@@ -395,8 +395,23 @@
      "tipo": "funcao"
     },
     {
+     "nome": "comprimir",
+     "sig": "(dados, nivel)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "conferir",
      "sig": "(arquivo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_gzip",
+     "sig": "(dados, como_texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "descomprimir",
+     "sig": "(dados, como_texto)",
      "tipo": "funcao"
     },
     {
@@ -410,6 +425,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "gzip",
+     "sig": "(dados, nivel)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "ler_de",
      "sig": "(arquivo, nome, senha)",
      "tipo": "funcao"
@@ -417,6 +437,11 @@
     {
      "nome": "listar",
      "sig": "(arquivo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "taxa",
+     "sig": "(original, comprimido)",
      "tipo": "funcao"
     }
    ]
@@ -2091,7 +2116,7 @@
   },
   "crypto": {
    "nome": "Arcane.Crypto",
-   "desc": "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305).",
+   "desc": "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token.",
    "curto": "Crypto",
    "funcoes": [
     {
@@ -2227,6 +2252,26 @@
     {
      "nome": "informacao_do_cofre",
      "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "jwt_algoritmos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "jwt_assinar",
+     "sig": "(carga, chave, algoritmo, expira_em)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "jwt_ler",
+     "sig": "(token)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "jwt_verificar",
+     "sig": "(token, chave, algoritmo)",
      "tipo": "funcao"
     },
     {
@@ -10242,7 +10287,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 1928,
+  "testes": 1950,
   "exemplos": 44,
   "arquivosDf": 350
  },

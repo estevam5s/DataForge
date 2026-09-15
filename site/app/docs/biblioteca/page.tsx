@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Quarenta e oito módulos e 1514 símbolos, sem uma única dependência externa.",
+  description: "Quarenta e oito módulos e 1523 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os quarenta e oito módulos"
   },
   {
-    "p": "São **1514 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1523 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -86,14 +86,14 @@ const blocos: Bloco[] = [
           "Datas, horas, durações e cronometragem."
         ],
         [
+          "[`Arcane.Crypto`](/docs/biblioteca/crypto)",
+          "52",
+          "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token."
+        ],
+        [
           "[`Arcane.Crucible`](/docs/tecnicas/testes)",
           "50",
           "Framework de testes: suítes, matchers, fixtures, dublês e benchmark."
-        ],
-        [
-          "[`Arcane.Crypto`](/docs/biblioteca/crypto)",
-          "48",
-          "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305)."
         ],
         [
           "[`Arcane.Async`](/docs/biblioteca/async)",
@@ -211,6 +211,11 @@ const blocos: Bloco[] = [
           "Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor."
         ],
         [
+          "[`Arcane.Archive`](/docs/tecnicas/arquivos)",
+          "13",
+          "Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. Comprime e descomprime VALORES em memória, em deflate cru ou em gzip, com a taxa medida."
+        ],
+        [
           "[`Arcane.Data`](/docs/biblioteca/data)",
           "13",
           "DataFrames, séries e transformações tabulares."
@@ -249,11 +254,6 @@ const blocos: Bloco[] = [
           "[`Arcane.Web`](/docs/biblioteca/web)",
           "11",
           "Cliente HTTP, URL encoding e JSON."
-        ],
-        [
-          "[`Arcane.Archive`](/docs/tecnicas/arquivos)",
-          "8",
-          "Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb."
         ],
         [
           "[`Arcane.Eventos`](/docs/biblioteca/eventos)",
@@ -345,7 +345,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Quarenta e oito módulos e 1514 símbolos, sem uma única dependência externa."}
+      description={"Quarenta e oito módulos e 1523 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >
