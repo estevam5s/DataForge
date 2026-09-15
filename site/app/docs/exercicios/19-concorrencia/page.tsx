@@ -465,7 +465,43 @@ persist yes:
     t := tarefas.receive()
     given t is void:
         halt
-    out $"  executando: {t}"`, lang: 'df', title: `exercicios/19-concorrencia/172_canais.df` },
+    out $"  executando: {t}"
+
+// ── Esperar pelo item, em vez de perguntar ──────────────────────
+//
+// Ate aqui, 'receive()' devolve void na hora quando o canal esta vazio,
+// e por isso o laco acima para no primeiro void. Isso so funciona porque
+// as threads JA terminaram de enviar ('wait 400'). Com um produtor que
+// ainda esta trabalhando, o void chegaria antes do item — e o 'wait' e
+// um chute de quanto tempo basta.
+//
+// 'receive(ms)' espera ate aquele prazo; 'receive(void)' espera o que
+// for preciso. A thread dorme ate o item chegar, sem gastar CPU num laco.
+
+channel pedidos
+
+thread:
+    sleep(120)
+    pedidos.send("pedido 1")
+    sleep(120)
+    pedidos.send("pedido 2")
+    pedidos.send("fim")
+
+out ""
+out "── consumidor que espera ──"
+recebidos := []
+persist yes:
+    p := pedidos.receive(5000)
+    given p is void or p is "fim":
+        halt
+    out $"  chegou: {p}"
+    recebidos.append(p)
+
+assert recebidos is ["pedido 1", "pedido 2"], "esperou os dois, sem 'wait'"
+
+// O prazo expira e devolve void — o mesmo void de antes
+assert pedidos.receive(50) is void, "prazo curto num canal vazio"
+out "o consumidor esperou cada item, sem adivinhar quanto tempo bastava"`, lang: 'df', title: `exercicios/19-concorrencia/172_canais.df` },
   {"h3": "O que é um canal"},
   { code: `channel fila
 fila.send(valor)
@@ -502,9 +538,14 @@ persist yes:
         halt
     executar(t)`, lang: 'df' },
   {"p": "Cada tarefa vai para exatamente um consumidor — a trava garante isso."},
-  {"h3": "Limitação a conhecer"},
-  {"p": "`receive` **não bloqueia**: devolve `void` na hora se a fila estiver vazia. Isso significa que você precisa de um `wait` para dar tempo às threads produzirem, como neste exercício."},
-  {"p": "Um `receive` bloqueante (que espera até chegar algo) está no roadmap. Hoje, para sincronização precisa, prefira estruturar o programa de forma que o `wait` seja suficiente — ou processe em lote."},
+  {"h3": "Perguntar ou esperar"},
+  {"p": "`receive()` **não espera**: devolve `void` na hora se a fila estiver vazia. É por isso que a primeira parte do exercício precisa de um `wait` — ele dá tempo às threads, e é um chute de quanto tempo basta."},
+  {"p": "Para esperar pelo item, passe o prazo:"},
+  { code: `fila.receive()          // void na hora, se vazio
+fila.receive(2000)      // espera até 2 segundos; depois, void
+fila.receive(void)      // espera o que for preciso`, lang: 'df' },
+  {"p": "A última parte do exercício usa `receive(5000)`: o consumidor dorme até cada pedido chegar, sem gastar CPU num laço e sem adivinhar quanto tempo basta. O prazo é em **milissegundos**, a mesma unidade de `sleep`."},
+  {"p": "O padrão sem argumento continua não esperando **de propósito**: mudá-lo não daria erro em programa nenhum, daria **travamento** — o pior tipo de falha, porque não deixa mensagem nem pilha para investigar."},
   {"h3": "Saída esperada"},
   { code: `primeiro
 segundo
@@ -1027,7 +1068,7 @@ ordem de execucao (prioridade): [1, 1, 5, 7, 8, 9]
   {"p": "Rode um isolado com `dataforge run exercicios/19-concorrencia/170_async_await.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '170-acoes-assincronas', text: "170 · Acoes assincronas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'para-que-serve', text: "Para que serve", level: 3 as const }, { id: 'o-que-acelera-e-o-que-nao', text: "O que acelera e o que não", level: 3 as const }, { id: 'a-tarefa-nao-e-o-valor', text: "A tarefa não é o valor", level: 3 as const }, { id: 'compor', text: "Compor", level: 3 as const }, { id: 'erros', text: "Erros", level: 3 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '171-threads-e-paralelismo', text: "171 · Threads e paralelismo", level: 2 as const }, { id: 'thread', text: "`thread`", level: 3 as const }, { id: 'parallel', text: "`parallel`", level: 3 as const }, { id: 'a-condicao-de-corrida', text: "A condição de corrida", level: 3 as const }, { id: 'como-evitar', text: "Como evitar", level: 3 as const }, { id: 'regra-pratica', text: "Regra prática", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '172-canais-entre-threads', text: "172 · Canais entre threads", level: 2 as const }, { id: 'o-que-e-um-canal', text: "O que é um canal", level: 3 as const }, { id: 'o-padrao-que-resolve-a-corrida', text: "O padrão que resolve a corrida", level: 3 as const }, { id: 'recolher-tudo', text: "Recolher tudo", level: 3 as const }, { id: 'fila-de-trabalho', text: "Fila de trabalho", level: 3 as const }, { id: 'limitacao-a-conhecer', text: "Limitação a conhecer", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '173-liberacao-garantida', text: "173 · Liberacao garantida", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'defer', text: "`defer`", level: 3 as const }, { id: 'declare-junto-de-quem-adquire', text: "Declare junto de quem adquire", level: 3 as const }, { id: 'lifo-o-ultimo-declarado-roda-primeiro', text: "LIFO: o último declarado roda primeiro", level: 3 as const }, { id: 'em-cadeia', text: "Em cadeia", level: 3 as const }, { id: 'defer-ou-ensure', text: "`defer` ou `ensure`?", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '174-erros-e-retentativas', text: "174 · Erros e retentativas", level: 2 as const }, { id: 'retry', text: "`retry`", level: 3 as const }, { id: 'nem-todo-erro-merece-retry', text: "Nem todo erro merece retry", level: 3 as const }, { id: 'espera-crescente', text: "Espera crescente", level: 3 as const }, { id: 'registrar-e-repassar', text: "Registrar e repassar", level: 3 as const }, { id: 'regra-de-ouro', text: "Regra de ouro", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '175-projeto-fila-de-trabalho', text: "175 · Projeto: fila de trabalho", level: 2 as const }, { id: 'a-arquitetura', text: "A arquitetura", level: 3 as const }, { id: 'fila-de-prioridade', text: "Fila de prioridade", level: 3 as const }, { id: 'estado-como-enum', text: "Estado como enum", level: 3 as const }, { id: 'retentativa-por-tarefa', text: "Retentativa por tarefa", level: 3 as const }, { id: 'registrar-o-resultado-nao-so-o-sucesso', text: "Registrar o resultado, não só o sucesso", level: 3 as const }, { id: 'reenfileirar-com-prioridade-maxima', text: "Reenfileirar com prioridade máxima", level: 3 as const }, { id: 'histograma-em-texto', text: "Histograma em texto", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '170-acoes-assincronas', text: "170 · Acoes assincronas", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'para-que-serve', text: "Para que serve", level: 3 as const }, { id: 'o-que-acelera-e-o-que-nao', text: "O que acelera e o que não", level: 3 as const }, { id: 'a-tarefa-nao-e-o-valor', text: "A tarefa não é o valor", level: 3 as const }, { id: 'compor', text: "Compor", level: 3 as const }, { id: 'erros', text: "Erros", level: 3 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '171-threads-e-paralelismo', text: "171 · Threads e paralelismo", level: 2 as const }, { id: 'thread', text: "`thread`", level: 3 as const }, { id: 'parallel', text: "`parallel`", level: 3 as const }, { id: 'a-condicao-de-corrida', text: "A condição de corrida", level: 3 as const }, { id: 'como-evitar', text: "Como evitar", level: 3 as const }, { id: 'regra-pratica', text: "Regra prática", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '172-canais-entre-threads', text: "172 · Canais entre threads", level: 2 as const }, { id: 'o-que-e-um-canal', text: "O que é um canal", level: 3 as const }, { id: 'o-padrao-que-resolve-a-corrida', text: "O padrão que resolve a corrida", level: 3 as const }, { id: 'recolher-tudo', text: "Recolher tudo", level: 3 as const }, { id: 'fila-de-trabalho', text: "Fila de trabalho", level: 3 as const }, { id: 'perguntar-ou-esperar', text: "Perguntar ou esperar", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '173-liberacao-garantida', text: "173 · Liberacao garantida", level: 2 as const }, { id: 'o-problema', text: "O problema", level: 3 as const }, { id: 'defer', text: "`defer`", level: 3 as const }, { id: 'declare-junto-de-quem-adquire', text: "Declare junto de quem adquire", level: 3 as const }, { id: 'lifo-o-ultimo-declarado-roda-primeiro', text: "LIFO: o último declarado roda primeiro", level: 3 as const }, { id: 'em-cadeia', text: "Em cadeia", level: 3 as const }, { id: 'defer-ou-ensure', text: "`defer` ou `ensure`?", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '174-erros-e-retentativas', text: "174 · Erros e retentativas", level: 2 as const }, { id: 'retry', text: "`retry`", level: 3 as const }, { id: 'nem-todo-erro-merece-retry', text: "Nem todo erro merece retry", level: 3 as const }, { id: 'espera-crescente', text: "Espera crescente", level: 3 as const }, { id: 'registrar-e-repassar', text: "Registrar e repassar", level: 3 as const }, { id: 'regra-de-ouro', text: "Regra de ouro", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '175-projeto-fila-de-trabalho', text: "175 · Projeto: fila de trabalho", level: 2 as const }, { id: 'a-arquitetura', text: "A arquitetura", level: 3 as const }, { id: 'fila-de-prioridade', text: "Fila de prioridade", level: 3 as const }, { id: 'estado-como-enum', text: "Estado como enum", level: 3 as const }, { id: 'retentativa-por-tarefa', text: "Retentativa por tarefa", level: 3 as const }, { id: 'registrar-o-resultado-nao-so-o-sucesso', text: "Registrar o resultado, não só o sucesso", level: 3 as const }, { id: 'reenfileirar-com-prioridade-maxima', text: "Reenfileirar com prioridade máxima", level: 3 as const }, { id: 'histograma-em-texto', text: "Histograma em texto", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
 
 export default function Pagina() {
   return (

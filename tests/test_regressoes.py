@@ -6315,3 +6315,113 @@ def test_o_check_e_a_execucao_concordam_sobre_o_contrato():
     with pytest.raises(DataForgeError) as capturado:
         run(fonte)
     assert "does not implement" in capturado.value.message
+
+
+# ─── O canal que espera ────────────────────────────────────
+# 'receive()' devolvia void na hora, e esperar exigia um laço de 'sleep':
+# gasta CPU, acorda tarde, e piora com muitos consumidores — justamente
+# quando um canal serve para algo. Era um item do roadmap.
+#
+# O padrão NÃO mudou, e de propósito: dois exercícios afirmam
+# 'fila.receive() is void' para o canal vazio. Trocar o padrão por espera
+# não daria erro, daria TRAVAMENTO — sem mensagem e sem pilha.
+
+def test_receive_sem_argumento_continua_sem_esperar():
+    """O contrato antigo. Um canal vazio devolve void NA HORA."""
+    from dataforge.interpreter import DFChannel
+
+    canal = DFChannel("c")
+    assert canal.receive() is None
+    canal.send("a")
+    canal.send("b")
+    assert canal.receive() == "a", "FIFO"
+    assert canal.receive() == "b"
+
+
+def test_receive_com_prazo_espera_e_devolve_void_ao_expirar():
+    """O piso: esperou de verdade. Máquina lenta só reforça."""
+    import time
+    from dataforge.interpreter import DFChannel
+
+    prazo_ms = 200
+    canal = DFChannel("c")
+    inicio = time.monotonic()
+    assert canal.receive(prazo_ms) is None
+    assert (time.monotonic() - inicio) * 1000 >= prazo_ms * 0.8
+
+
+def test_receive_acorda_quando_outra_thread_envia():
+    """Acorda pelo aviso, e não pelo fim do prazo.
+
+    Só receber o valor não prova nada: sem o 'notify', 'wait_for' ainda
+    esperaria o prazo inteiro e acharia o item no fim. O que prova é ter
+    voltado muito antes do prazo — um teste de PRAZO, em que o limite é o
+    que o próprio teste configurou, e não a velocidade da máquina.
+    """
+    import threading
+    import time
+    from dataforge.interpreter import DFChannel
+
+    prazo_ms = 10_000
+    canal = DFChannel("c")
+    threading.Timer(0.1, lambda: canal.send("chegou")).start()
+    inicio = time.monotonic()
+    assert canal.receive(prazo_ms) == "chegou"
+    assert (time.monotonic() - inicio) * 1000 < prazo_ms / 4
+
+
+def test_receive_void_espera_o_que_for_preciso():
+    import threading
+    from dataforge.interpreter import DFChannel
+
+    canal = DFChannel("c")
+    threading.Timer(0.1, lambda: canal.send(42)).start()
+    assert canal.receive(None) == 42
+
+
+def test_nenhum_item_e_entregue_duas_vezes_com_varios_consumidores():
+    """Quatro consumidores, mil itens: cada um sai exatamente uma vez.
+
+    É o que a trava garante e o que um laço de 'sleep' sem trava perderia
+    — dois consumidores vendo a fila com um item e os dois tirando.
+    """
+    import threading
+    from dataforge.interpreter import DFChannel
+
+    canal = DFChannel("c")
+    recebidos = []
+    trava = threading.Lock()
+
+    def consumir():
+        while True:
+            item = canal.receive(2000)
+            if item is None or item == "fim":
+                return
+            with trava:
+                recebidos.append(item)
+
+    consumidores = [threading.Thread(target=consumir) for _ in range(4)]
+    for t in consumidores:
+        t.start()
+    for i in range(1000):
+        canal.send(i)
+    for _ in consumidores:
+        canal.send("fim")
+    for t in consumidores:
+        t.join()
+
+    assert sorted(recebidos) == list(range(1000))
+
+
+def test_o_canal_diz_quantos_itens_tem():
+    assert run('channel c\nc.send(1)\nc.send(2)\nout len(c), c.pending()') == "2 2"
+
+
+def test_receive_com_prazo_pela_linguagem():
+    fonte = ('channel fila\n'
+             'thread:\n'
+             '    sleep(100)\n'
+             '    fila.send("chegou")\n'
+             'out fila.receive(void)\n'
+             'out fila.receive()\n')
+    assert run(fonte) == "chegou\nvoid"

@@ -3,6 +3,7 @@ DataForge Interpreter
 Tree-walking interpreter that executes AST nodes.
 """
 
+import collections as _collections
 import numbers as _numeros
 import re as _re
 import sys
@@ -991,22 +992,64 @@ class BoundRecordMethod:
 
 
 class DFChannel:
-    """Thread-safe communication channel."""
+    """Canal entre linhas de execucao. FIFO, e seguro entre threads.
+
+    'receive()' NAO bloqueia, e isso e contrato: dois exercicios do
+    repositorio afirmam 'fila.receive() is void' para o canal vazio, e ha
+    laco escrito contando com isso. Trocar o padrao por espera nao daria
+    erro — daria TRAVAMENTO, que e a pior falha possivel, porque nao ha
+    mensagem nem pilha para investigar.
+
+    A espera entra por argumento, entao quem a quer pede:
+
+        fila.receive()            devolve void na hora, se estiver vazio
+        fila.receive(2000)        espera ate 2 segundos; depois, void
+        fila.receive(void)        espera o que for preciso
+
+    A fila e uma 'deque' e a espera e uma 'Condition': um 'sleep' em laco
+    gastaria CPU e acordaria tarde, e a diferenca aparece justamente com
+    muitos consumidores, que e quando um canal serve para algo.
+    """
 
     def __init__(self, name):
         self.name = name
-        self._queue = []
-        self._lock = threading.Lock()
+        self._queue = _collections.deque()
+        self._cheio = threading.Condition()
 
     def send(self, value):
-        with self._lock:
+        with self._cheio:
             self._queue.append(value)
+            # 'notify' e nao 'notify_all': um item atende um consumidor,
+            # e acordar dez para nove voltarem a dormir e desperdicio que
+            # cresce com o numero deles.
+            self._cheio.notify()
 
-    def receive(self):
-        with self._lock:
+    def receive(self, espera=0):
+        """Tira o proximo item. Ver a docstring da classe para a espera."""
+        with self._cheio:
             if self._queue:
-                return self._queue.pop(0)
+                return self._queue.popleft()
+            if espera == 0:
+                return None
+            # 'void' (None) quer dizer "o que for preciso". Um numero e o
+            # teto em MILISSEGUNDOS, a mesma unidade de 'sleep'.
+            limite = None if espera is None else max(0.0, espera / 1000.0)
+            if self._cheio.wait_for(lambda: bool(self._queue), timeout=limite):
+                return self._queue.popleft()
             return None
+
+    def pending(self):
+        """Quantos itens estao na fila agora.
+
+        E uma FOTO: com outra thread enviando, o numero pode mudar entre
+        esta chamada e a proxima linha. Serve para medir e para registrar,
+        nao para decidir se o proximo 'receive' vai achar algo.
+        """
+        with self._cheio:
+            return len(self._queue)
+
+    def __len__(self):
+        return self.pending()
 
     def __repr__(self):
         return f"<channel '{self.name}'>"

@@ -16,6 +16,19 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **O canal sabe esperar.** `receive()` devolvia `void` na hora, e esperar
+  por um item exigia um laço de `sleep` — que gasta CPU, acorda tarde e
+  piora com muitos consumidores, justamente quando um canal serve para
+  algo. Agora `receive(ms)` espera até aquele prazo e `receive(void)` espera
+  o que for preciso, dormindo numa `Condition` até o `send` avisar. Medido:
+  um consumidor acorda em ~155 ms quando o item é enviado aos 150 ms.
+  `len(canal)` e `canal.pending()` dizem quantos itens há.
+
+  **O padrão sem argumento continua sem esperar**, e de propósito: dois
+  exercícios afirmam `fila.receive() is void` para o canal vazio. Trocar o
+  padrão não daria erro em programa nenhum — daria **travamento**, a pior
+  falha possível, porque não deixa mensagem nem pilha.
+
 - **O contrato de trait é cobrado antes de rodar.** Era o item de topo do
   roadmap. O interpretador já o conferia no lugar certo — na **declaração**
   do blueprint, e não na chamada do método —, mas só em execução: um

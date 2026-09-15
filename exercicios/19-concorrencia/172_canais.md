@@ -69,15 +69,27 @@ persist yes:
 
 Cada tarefa vai para exatamente um consumidor — a trava garante isso.
 
-## Limitação a conhecer
+## Perguntar ou esperar
 
-`receive` **não bloqueia**: devolve `void` na hora se a fila estiver vazia. Isso
-significa que você precisa de um `wait` para dar tempo às threads produzirem,
-como neste exercício.
+`receive()` **não espera**: devolve `void` na hora se a fila estiver vazia. É por
+isso que a primeira parte do exercício precisa de um `wait` — ele dá tempo às
+threads, e é um chute de quanto tempo basta.
 
-Um `receive` bloqueante (que espera até chegar algo) está no roadmap. Hoje, para
-sincronização precisa, prefira estruturar o programa de forma que o `wait` seja
-suficiente — ou processe em lote.
+Para esperar pelo item, passe o prazo:
+
+```dataforge
+fila.receive()          // void na hora, se vazio
+fila.receive(2000)      // espera até 2 segundos; depois, void
+fila.receive(void)      // espera o que for preciso
+```
+
+A última parte do exercício usa `receive(5000)`: o consumidor dorme até cada
+pedido chegar, sem gastar CPU num laço e sem adivinhar quanto tempo basta.
+O prazo é em **milissegundos**, a mesma unidade de `sleep`.
+
+O padrão sem argumento continua não esperando **de propósito**: mudá-lo não
+daria erro em programa nenhum, daria **travamento** — o pior tipo de falha,
+porque não deixa mensagem nem pilha para investigar.
 
 ## Saída esperada
 

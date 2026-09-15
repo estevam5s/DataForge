@@ -985,7 +985,10 @@ Um falso alarme é pior que um silêncio.
 | `thread: bloco` | roda o bloco em uma thread daemon |
 | `parallel: bloco` | roda **cada instrução** do bloco em uma thread, com join de 30 s |
 | `channel nome` | cria uma fila FIFO com trava |
-| `nome.send(v)` / `nome.receive()` | escreve / lê (devolve `void` se vazio) |
+| `nome.send(v)` / `nome.receive()` | escreve / lê — devolve `void` **na hora** se vazio |
+| `nome.receive(ms)` | espera até `ms` milissegundos pelo próximo item; expirado, `void` |
+| `nome.receive(void)` | espera o que for preciso |
+| `len(nome)` / `nome.pending()` | quantos itens há agora — uma foto, não uma promessa |
 | `wait <ms>` | dorme pelo número de milissegundos |
 | `stream <expr>` | cria um stream a partir de uma coleção |
 | `observe v in fonte: bloco` | itera a fonte; aceita `halt` e `skip` |

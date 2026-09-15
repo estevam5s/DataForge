@@ -234,7 +234,9 @@ PALAVRAS = {
                'adopt Arcane.Time as T\nresultados := []\nthread:\n'
                '    resultados.append(1)\nwait 50\nout len(resultados)'),
     "channel": ("fila com trava, para passar valor entre threads",
-                'channel fila\nfila.send("oi")\nout fila.receive()'),
+                'channel fila\nfila.send("oi")\nout fila.receive()\n\n'
+                '// com prazo: espera ate 200 ms pelo proximo item\n'
+                'out fila.receive(200)'),
     "parallel": ("roda CADA INSTRUÇÃO do bloco numa thread",
                  'saidas := []\nparallel:\n    saidas.append(1)\n    saidas.append(2)\n'
                  'wait 80\nout len(saidas)'),

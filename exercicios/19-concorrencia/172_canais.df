@@ -89,3 +89,39 @@ persist yes:
     given t is void:
         halt
     out $"  executando: {t}"
+
+// ── Esperar pelo item, em vez de perguntar ──────────────────────
+//
+// Ate aqui, 'receive()' devolve void na hora quando o canal esta vazio,
+// e por isso o laco acima para no primeiro void. Isso so funciona porque
+// as threads JA terminaram de enviar ('wait 400'). Com um produtor que
+// ainda esta trabalhando, o void chegaria antes do item — e o 'wait' e
+// um chute de quanto tempo basta.
+//
+// 'receive(ms)' espera ate aquele prazo; 'receive(void)' espera o que
+// for preciso. A thread dorme ate o item chegar, sem gastar CPU num laco.
+
+channel pedidos
+
+thread:
+    sleep(120)
+    pedidos.send("pedido 1")
+    sleep(120)
+    pedidos.send("pedido 2")
+    pedidos.send("fim")
+
+out ""
+out "── consumidor que espera ──"
+recebidos := []
+persist yes:
+    p := pedidos.receive(5000)
+    given p is void or p is "fim":
+        halt
+    out $"  chegou: {p}"
+    recebidos.append(p)
+
+assert recebidos is ["pedido 1", "pedido 2"], "esperou os dois, sem 'wait'"
+
+// O prazo expira e devolve void — o mesmo void de antes
+assert pedidos.receive(50) is void, "prazo curto num canal vazio"
+out "o consumidor esperou cada item, sem adivinhar quanto tempo bastava"

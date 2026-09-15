@@ -1588,7 +1588,10 @@ O que **ainda não existe** (não invente que existe):
   **recusado** de propósito.
 - **Cálculo de fórmula em planilha** — o `Arcane.Excel` grava a fórmula e o
   Excel a resolve ao abrir. Também não lê o `.xls` binário antigo.
-- **`receive` bloqueante** — devolve `void` na hora se a fila está vazia.
+- **`receive` sem prazo não espera** — devolve `void` na hora se a fila está
+  vazia, e isso é contrato (dois exercícios o afirmam). Para esperar:
+  `receive(ms)` ou `receive(void)`. Trocar o padrão não daria erro em
+  programa nenhum, daria travamento.
 - **`parallel`** roda **cada instrução** numa thread, não um bloco por thread.
 - **`frame`, `train`, `predict`** são **açúcar fino** sobre `Arcane.Analytics`
   e `Arcane.Cortex` — não reimplementam nada. `frame` devolve o

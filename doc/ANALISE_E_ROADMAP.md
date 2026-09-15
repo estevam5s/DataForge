@@ -655,7 +655,9 @@ O que resta, em ordem de impacto.
 ### Concorrência (roadmap §8)
 
 - `Mutex`, `Semaphore`, `Atomic` — hoje só `channel` é seguro.
-- `receive` bloqueante.
+- ~~`receive` bloqueante~~ — **feito**, por argumento: `receive(ms)` e
+  `receive(void)`. O padrão continua não esperando, porque trocá-lo faria
+  programa existente travar em vez de falhar.
 - `TaskGroup` e cancelamento.
 - `parallel` tratando **blocos** em vez de instruções.
 
