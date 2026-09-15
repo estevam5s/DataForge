@@ -155,6 +155,21 @@ class ActionSignature:
         self.defaults = set(decl.defaults or {})
         self.param_types = dict(getattr(decl, 'param_types', {}) or {})
         self.return_type = canonical(getattr(decl, 'return_type', '') or UNKNOWN)
+        # Um DECORADOR substitui a acao, e com ela o tipo que volta. O
+        # '-> String' de 'eco' continua escrito, e 'mark @repetir(3)' faz
+        # a chamada devolver um Cluster: o tipo declarado deixa de ser
+        # promessa e passa a ser historia.
+        #
+        # 'trilha/17' tem exatamente esse caso, e 'eco("oi") is
+        # ["oi","oi","oi"]' PASSA em execucao — era o analisador que
+        # estava errado ao dizer que a comparacao nunca da certo.
+        #
+        # Nao ha como saber qual decorador substitui: um que devolve
+        # 'void' nao substitui nada (e o que permite '@Rota("/x")' so
+        # anotar), e um que devolve acao substitui. Diante de duas
+        # respostas possiveis, o analisador cala.
+        if getattr(decl, 'decorators', None):
+            self.return_type = UNKNOWN
         self.is_generator = getattr(decl, 'is_generator', False)
         self.line = decl.line
 
@@ -188,6 +203,11 @@ class TypeChecker:
         #: faria 'P(norma := 1)' e 'p with {"norma": 1}' passarem, que e
         #: trocar um falso alarme por um silencio — pior troca.
         self.record_methods = {}  # nome -> set(metodos)
+        #: nome -> ('Cluster', tamanho) | ('Vault', {chaves})
+        self._literais_fixos = {}
+        #: Dentro do lado esquerdo de um '??', onde a chave
+        #: ausente e legitima — ver 'ex_CoalesceOp'.
+        self._sob_coalesce = 0
         self.record_defaults = {}
         self.enums = {}          # nome -> [membros]
         self.blueprints = {}     # nome -> set(membros proprios)
@@ -306,8 +326,153 @@ class TypeChecker:
         # Antes de conferir qualquer acesso: a escrita pode estar DEPOIS
         # da leitura no arquivo.
         self._recolher_campos_externos(program, escopo)
+        self._recolher_literais_fixos(program)
         self.visit_block(program.body, escopo)
         return self._sem_os_silenciados(program)
+
+    # ── o que um literal garante ────────────────────────────
+
+    #: Os metodos que mudam o TAMANHO ou as CHAVES de uma colecao.
+    #:
+    #: Lista propria, e nao a `_MUTAM` do aviso de concorrencia: aquela
+    #: exclui `append` de proposito, porque o GIL protege a operacao
+    #: inteira e avisar sobre ela seria falso alarme. Aqui `append`
+    #: importa — ele muda o tamanho, e um `xs[3]` que era erro deixa de
+    #: ser. As duas listas respondem perguntas diferentes, e fundi-las
+    #: estragaria uma das duas.
+    _MUDAM_O_TAMANHO = frozenset({
+        "append", "push", "extend", "insert", "remove", "pop", "clear",
+        "delete", "discard", "update", "merge_in", "setdefault",
+        "sort", "reverse", "shuffle", "add",
+    })
+
+    def _recolher_literais_fixos(self, program):
+        """Quais nomes guardam um literal que ninguem mexe.
+
+        Com isso, `xs := [1, 2, 3]` seguido de `xs[10]` e um erro
+        DEMONSTRAVEL, e nao um palpite. Sem isso, o indice fora do
+        alcance so aparece quando aquela linha executa — e num ramo raro
+        isso significa producao.
+
+        A coleta e por NOME e vale para o arquivo inteiro, o que e
+        conservador na direcao certa: se o nome e reusado em outro escopo,
+        o fato cai, e a conferencia cala. Provar por escopo exigiria
+        acompanhar o fluxo, e um analisador que erra aqui acusa codigo
+        que funciona.
+
+        O nome perde a garantia se QUALQUER destas coisas acontece em
+        qualquer lugar do arquivo:
+
+        | o que | por que |
+        |---|---|
+        | recebe valor duas vezes | o segundo pode ter outro tamanho |
+        | e passado como argumento | quem recebe pode mexer nele |
+        | chamam nele um metodo que muda o tamanho | deixa de ser o literal |
+        | escrevem num indice ou chave dele | idem para vault |
+        | e nome de parametro, ou variavel de laco | o valor vem de fora |
+        """
+        vezes = {}
+        literal = {}
+        perdidos = set()
+
+        def marcar(no):
+            if isinstance(no, ast.Identifier):
+                perdidos.add(no.name)
+
+        def andar(no):
+            if isinstance(no, ast.Assignment):
+                alvo = no.target
+                if isinstance(alvo, ast.Identifier):
+                    vezes[alvo.name] = vezes.get(alvo.name, 0) + 1
+                    if getattr(no, "compound_op", None):
+                        perdidos.add(alvo.name)
+                    elif isinstance(no.value, (ast.ListLiteral, ast.DictLiteral)):
+                        literal[alvo.name] = no.value
+                else:
+                    # 'xs[0] := …' e 'v["k"] := …' mudam o conteudo.
+                    base = alvo
+                    while isinstance(base, (ast.IndexAccess, ast.MemberAccess)):
+                        base = getattr(base, "object", None)
+                    marcar(base)
+
+            # Passar adiante e abrir mao da garantia.
+            for campo in ("args", "elements", "values"):
+                for item in (getattr(no, campo, None) or []):
+                    alvo = getattr(item, "value", item)
+                    marcar(alvo)
+            for valor in (getattr(no, "kwargs", None) or {}).values():
+                marcar(valor)
+
+            if isinstance(no, ast.MethodCall) and \
+                    no.method in self._MUDAM_O_TAMANHO:
+                base = no.object
+                while isinstance(base, (ast.IndexAccess, ast.MemberAccess)):
+                    base = getattr(base, "object", None)
+                marcar(base)
+
+            # Nome que vem de fora nunca e o literal daqui.
+            for campo in ("params", "vars"):
+                for nome in (getattr(no, campo, None) or []):
+                    if isinstance(nome, str):
+                        perdidos.add(nome)
+            for campo in ("var", "name"):
+                valor = getattr(no, campo, None)
+                if isinstance(valor, str) and isinstance(
+                        no, (ast.CycleIn, ast.CycleFromTo)):
+                    perdidos.add(valor)
+
+            for filho in self._filhos(no):
+                andar(filho)
+
+        andar(program)
+
+        for nome, no in literal.items():
+            if vezes.get(nome) != 1 or nome in perdidos:
+                continue
+            if isinstance(no, ast.ListLiteral):
+                # Um spread torna o tamanho desconhecido.
+                if any(isinstance(e, ast.SpreadElement) for e in no.elements):
+                    continue
+                self._literais_fixos[nome] = ("Cluster", len(no.elements))
+            else:
+                chaves = set()
+                for chave, _ in no.pairs:
+                    if not isinstance(chave, ast.StringLiteral):
+                        chaves = None
+                        break
+                    chaves.add(chave.value)
+                if chaves is None:
+                    continue      # chave calculada: nao sei quais existem
+                self._literais_fixos[nome] = ("Vault", chaves)
+
+    @staticmethod
+    def _filhos(no):
+        """Os nós filhos, sem saber o nome de cada campo.
+
+        Uma lista de campos por tipo de nó apodreceria: um recurso novo na
+        linguagem deixaria de ser varrido, e a falta não dá erro — só faz
+        a garantia valer onde não devia.
+        """
+        import dataclasses
+
+        if not dataclasses.is_dataclass(no):
+            return
+        for campo in dataclasses.fields(no):
+            valor = getattr(no, campo.name, None)
+            if isinstance(valor, ast.ASTNode):
+                yield valor
+            elif isinstance(valor, (list, tuple)):
+                for item in valor:
+                    if isinstance(item, ast.ASTNode):
+                        yield item
+                    elif isinstance(item, (list, tuple)):
+                        for dentro in item:
+                            if isinstance(dentro, ast.ASTNode):
+                                yield dentro
+            elif isinstance(valor, dict):
+                for item in valor.values():
+                    if isinstance(item, ast.ASTNode):
+                        yield item
 
     # ── silenciar uma linha, de propósito ────────────────────
 
@@ -917,6 +1082,7 @@ class TypeChecker:
                     self.error(
                         f"'cycle from/to' needs numbers, got {tipo}", parte,
                         "Use integers in the range bounds", "cycle-range-type")
+        self._conferir_faixa(node)
         interno = Scope(escopo, "loop")
         interno.declare(node.var, "Integer", node.line, node.column)
         self._loop_depth += 1
@@ -925,6 +1091,43 @@ class TypeChecker:
         finally:
             self._loop_depth -= 1
         return False
+
+    def _conferir_faixa(self, node):
+        """Um `cycle from/to` que não pode rodar, ou não pode parar.
+
+        Só com os três valores escritos à mão: com uma variável no meio,
+        não há o que provar, e acusar ali seria o falso alarme que ensina
+        a desligar a verificação.
+
+        A faixa é INCLUSIVA nos dois extremos, então `from 1 to 1` roda
+        uma vez — é `from 5 to 1` sem passo negativo que nunca roda, e é
+        um erro de digitação tão comum quanto silencioso: o corpo
+        simplesmente não executa, e nada aparece.
+        """
+        inicio = self._inteiro_literal(node.start)
+        fim = self._inteiro_literal(node.end)
+        passo = 1 if node.step is None else self._inteiro_literal(node.step)
+        if inicio is None or fim is None or passo is None:
+            return
+
+        if passo == 0:
+            self.error(
+                "'cycle … step 0' never ends", node,
+                "A step of zero never reaches the end; use 1, or -1 to "
+                "count down", "cycle-vazio")
+            return
+        if passo > 0 and inicio > fim:
+            self.warn(
+                f"This loop never runs: it counts up from {inicio} to {fim}",
+                node,
+                f"To count down, say  step -1  — or swap the bounds to "
+                f"from {fim} to {inicio}", "cycle-vazio")
+        elif passo < 0 and inicio < fim:
+            self.warn(
+                f"This loop never runs: it counts down from {inicio} "
+                f"to {fim}", node,
+                f"To count up, drop the negative step — or swap the "
+                f"bounds to from {fim} to {inicio}", "cycle-vazio")
 
     def st_CycleIn(self, node, escopo):
         tipo = self.infer(node.collection, escopo)
@@ -1853,6 +2056,23 @@ class TypeChecker:
         """O tipo pode definir operadores próprios (add, mul, ...)?"""
         return tipo in self.blueprints or tipo in self.records
 
+    @staticmethod
+    def _inteiro_literal(no):
+        """O valor, se o nó for um inteiro escrito à mão. Senão, `None`.
+
+        Trata o sinal: `step -1` chega como `UnaryOp('-')` em volta de um
+        literal, e ignorar isso faria a checagem calar justamente no laço
+        decrescente, que é o caso em que ela mais serve.
+        """
+        if isinstance(no, ast.IntegerLiteral):
+            return no.value
+        if isinstance(no, ast.UnaryOp) and no.op in ('-', '+'):
+            dentro = TypeChecker._inteiro_literal(no.operand)
+            if dentro is None:
+                return None
+            return -dentro if no.op == '-' else dentro
+        return None
+
     def ex_UnaryOp(self, node, escopo):
         tipo = self.infer(node.operand, escopo)
         if tipo not in (UNKNOWN, ANY) and tipo not in NUMERIC:
@@ -1885,7 +2105,66 @@ class TypeChecker:
                     self.error(
                         f"Cannot order {esq} against {dir_}", node,
                         "Compare values of the same comparable type", "compare-types")
+        elif node.op in ('is', 'isnt', '==', '!='):
+            self._conferir_igualdade(node, esq, dir_)
         return "Boolean"
+
+    #: O que uma comparacao de igualdade entre tipos diferentes pode ser
+    #: de propósito. Cada entrada aqui é uma razão para CALAR.
+    #:
+    #:  Void      'x is void' é o idioma de "veio algo?", e o mais comum
+    #:            que existe. Acusá-lo tornaria a regra inútil no ato.
+    #:  numérico  '1 is 1.0' é verdadeiro: Integer e Float se comparam.
+    #:  Boolean   'yes is 1' é verdadeiro — um booleano É um inteiro por
+    #:            dentro, e quem escreve isso pode estar contando com
+    #:            aquilo.
+    _IGUALDADE_LIVRE = frozenset({"Void", "Boolean"})
+
+    def _e_concreto(self, tipo):
+        """O nome designa um tipo de verdade, e não um lugar para um tipo.
+
+        `Integer` é concreto; o `T` de um genérico não é. A diferença
+        importa porque toda conferência que compara dois tipos precisa
+        calar diante do segundo — e o parâmetro de tipo chega aqui com
+        cara de tipo, que é o que torna o engano fácil.
+        """
+        return (tipo in self.known_types or tipo in self.records
+                or tipo in self.enums or tipo in self.blueprints)
+
+    def _conferir_igualdade(self, node, esq, dir_):
+        """`1 is "1"` é sempre `no`, e quem escreveu não queria isso.
+
+        A comparação de igualdade entre dois tipos diferentes não é erro —
+        ela responde, e a resposta é sempre a mesma. É por isso que é
+        aviso: o programa roda, e roda errado em silêncio, que é a pior
+        combinação e a que nenhuma ferramenta mencionava.
+        """
+        if UNKNOWN in (esq, dir_) or ANY in (esq, dir_):
+            return
+        if esq == dir_:
+            return
+        # So tipos CONCRETOS. Um parametro de tipo — o 'T' de
+        # 'action primeiro<T>(…) -> T' — nao e um tipo: e um nome que
+        # representa qualquer um, e 'primeiro([1,2,3]) is 1' e verdadeiro.
+        # Sem esta linha, a trilha do repositorio ganhava dois alarmes
+        # falsos no capitulo que ENSINA generics.
+        if not self._e_concreto(esq) or not self._e_concreto(dir_):
+            return
+        if esq in NUMERIC and dir_ in NUMERIC:
+            return
+        if self._IGUALDADE_LIVRE & {esq, dir_}:
+            return
+        # Um record ou blueprint decide a própria igualdade com '__eq__',
+        # e comparar dois tipos dele pode ter resposta.
+        if self._overloads(esq) or self._overloads(dir_):
+            return
+
+        sempre = "no" if node.op in ('is', '==') else "yes"
+        self.warn(
+            f"Comparing {esq} with {dir_} is always '{sempre}'", node,
+            f"They are different types, so '{node.op}' never changes its "
+            f"answer. Convert one side — 'str(x)', 'int(x)' — or compare "
+            f"'typeof(x)'", "igualdade-impossivel")
 
     def ex_LogicalOp(self, node, escopo):
         self.infer(node.left, escopo)
@@ -1935,7 +2214,20 @@ class TypeChecker:
         return a if a == b else UNKNOWN
 
     def ex_CoalesceOp(self, node, escopo):
-        self.infer(node.left, escopo)
+        """`v["k"] ?? padrao` — e o `??` resgata a chave ausente.
+
+        O interpretador trata o lado esquerdo de um `??` com indulgencia:
+        `v["b"] ?? "padrao"` devolve `"padrao"` em vez de levantar. Logo a
+        conferencia de chave constante tem de CALAR aqui — e este e o caso
+        que mais importa, porque `?? padrao` e exatamente o que a dica
+        daquele erro recomenda. Um analisador que acusa o conserto que ele
+        proprio sugere e um analisador que se desliga.
+        """
+        self._sob_coalesce += 1
+        try:
+            self.infer(node.left, escopo)
+        finally:
+            self._sob_coalesce -= 1
         return self.infer(node.right, escopo)
 
     def ex_TypeofExpression(self, node, escopo):
@@ -2045,7 +2337,70 @@ class TypeChecker:
         if alvo in ("Integer", "Float", "Boolean", "Void"):
             self.error(f"Cannot index a value of type {alvo}", node,
                        "Indexing needs a Cluster, Vault or String", "index-type")
+        self._conferir_indice_constante(node)
         return UNKNOWN
+
+    def _conferir_indice_constante(self, node):
+        """`xs[10]` num cluster de três, e `v["b"]` num vault sem `b`.
+
+        Os dois erros já aparecem — na primeira vez que aquela linha
+        executa. Num arquivo de quarenta linhas isso é imediato; num ramo
+        raro de um sistema, é produção. A informação para provar existe
+        desde a atribuição, e era só não jogá-la fora.
+
+        Confere a fonte de duas formas: o literal escrito ali mesmo
+        (`[1, 2, 3][9]`) e o nome que guarda um literal que ninguém mexe —
+        ver `_recolher_literais_fixos`, que é onde mora a prudência.
+        """
+        if self._sob_coalesce:
+            return
+        origem = node.object
+        fato = None
+        if isinstance(origem, ast.Identifier):
+            fato = self._literais_fixos.get(origem.name)
+            onde = f"'{origem.name}'"
+        elif isinstance(origem, ast.ListLiteral):
+            if not any(isinstance(e, ast.SpreadElement) for e in origem.elements):
+                fato = ("Cluster", len(origem.elements))
+            onde = "this cluster"
+        elif isinstance(origem, ast.DictLiteral):
+            chaves = {c.value for c, _ in origem.pairs
+                      if isinstance(c, ast.StringLiteral)}
+            if len(chaves) == len(origem.pairs):
+                fato = ("Vault", chaves)
+            onde = "this vault"
+        if fato is None:
+            return
+
+        especie, conteudo = fato
+        if especie == "Cluster":
+            indice = self._inteiro_literal(node.index)
+            if indice is None:
+                return
+            # O índice negativo conta do fim, e -n é válido num cluster
+            # de n. Tratar o negativo como sempre fora acusaria 'xs[-1]',
+            # que é a forma normal de pegar o último.
+            if -conteudo <= indice < conteudo:
+                return
+            self.error(
+                f"Index {indice} is out of range: {onde} has "
+                f"{conteudo} item(s)", node,
+                (f"valid indexes go from 0 to {conteudo - 1}, or -1 to "
+                 f"-{conteudo} from the end") if conteudo else
+                "it is empty, so no index is valid", "indice-fora-do-alcance")
+        else:
+            if not isinstance(node.index, ast.StringLiteral):
+                return
+            chave = node.index.value
+            if chave in conteudo:
+                return
+            listadas = ", ".join(f'"{c}"' for c in sorted(conteudo))
+            self.error(
+                f'Key "{chave}" is not in {onde}', node,
+                (self._hint_nome(chave, conteudo)
+                 or (f"it has: {listadas}" if conteudo else "it is empty"))
+                + '. Use  v["k"] ?? padrao  when the key may be absent',
+                "chave-ausente")
 
     def ex_SliceAccess(self, node, escopo):
         alvo = self.infer(node.object, escopo)

@@ -287,6 +287,13 @@ class ArcaneDatabase:
             "rollback": cls._rollback,
             "transaction": cls._transaction,
             "in_transaction": cls._in_transaction,
+            # 'transacao' e APELIDO de 'transaction', e o unico par
+            # pt/en entre os 64 simbolos deste modulo. Ele existe porque
+            # foi o nome que a documentacao e os cinco usos do
+            # repositorio adotaram, e tirar um nome publico quebraria os
+            # cinco. Fica aqui EXPLICITO para nao parecer descuido: quem
+            # ler a lista de simbolos ve dois nomes e precisa saber que
+            # sao a mesma coisa.
             "transacao": cls._transaction,
             "savepoint": cls._savepoint,
 

@@ -6106,3 +6106,143 @@ def test_sleep_conta_em_milissegundos():
     sleep = get_builtins()["sleep"]
     assinatura = inspect.signature(getattr(sleep, "func", sleep))
     assert "milissegundos" in assinatura.parameters, assinatura
+
+
+# ─── O que o analisador passou a provar ─────────────────────
+# Medido numa bateria de dez erros que um analisador maduro pega: o
+# 'check' pegava TRES. Os quatro que faltavam tinham em comum o fato de
+# a informacao para prova-los ja existir no arquivo — e ser jogada fora.
+
+def test_indice_constante_fora_do_alcance():
+    erros = _erros_de('xs := [1, 2, 3]\nout xs[10]\n')
+    assert len(erros) == 1, [d.message for d in erros]
+    assert erros[0].code == "indice-fora-do-alcance"
+
+
+def test_indice_negativo_valido_nao_e_acusado():
+    """`xs[-1]` é a forma normal de pegar o último.
+
+    Tratar todo negativo como fora do alcance acusaria o idioma mais
+    comum de acesso — o falso alarme que ensina a desligar a regra.
+    """
+    assert not _erros_de('xs := [1, 2, 3]\nout xs[-1], xs[-3]\n')
+    erros = _erros_de('xs := [1, 2, 3]\nout xs[-4]\n')
+    assert len(erros) == 1, [d.message for d in erros]
+
+
+def test_chave_ausente_em_vault_literal():
+    erros = _erros_de('v := {"nome": "Ana"}\nout v["nomee"]\n')
+    assert len(erros) == 1, [d.message for d in erros]
+    assert erros[0].code == "chave-ausente"
+    assert "nome" in (erros[0].hint or ""), "sem sugestao de nome parecido"
+
+
+def test_o_coalesce_resgata_a_chave_ausente():
+    """`v["k"] ?? padrao` é o que a dica daquele erro RECOMENDA.
+
+    O interpretador trata o lado esquerdo de um `??` com indulgência:
+    `v["b"] ?? "p"` devolve `"p"` em vez de levantar. Um analisador que
+    acusa o conserto que ele próprio sugere é um analisador que se
+    desliga.
+    """
+    assert not _erros_de('v := {"a": 1}\nout v["b"] ?? "p"\n')
+    assert run('v := {"a": 1}\nout v["b"] ?? "p"') == "p"
+
+
+@pytest.mark.parametrize("fonte", [
+    # passa a colecao adiante: quem recebe pode mexer
+    'xs := [1, 2]\naction f(c):\n    c.append(3)\nf(xs)\nout xs[2]\n',
+    # muda o tamanho no lugar
+    'xs := [1, 2]\nxs.append(3)\nout xs[2]\n',
+    # recebe valor duas vezes
+    'xs := [1]\nxs := [1, 2, 3]\nout xs[2]\n',
+    # a chave nasce em execucao
+    'v := {"a": 1}\nv["b"] := 2\nout v["b"]\n',
+])
+def test_o_fato_do_literal_cai_quando_alguem_mexe(fonte):
+    """A prudência é o que torna a regra utilizável.
+
+    Cada um destes casos faz o tamanho (ou o conjunto de chaves) deixar de
+    ser conhecido, e a conferência tem de calar — senão ela acusa código
+    que funciona, que é pior que não conferir nada.
+    """
+    assert not _erros_de(fonte), [d.message for d in _erros_de(fonte)]
+
+
+@pytest.mark.parametrize("fonte,conta", [
+    ('cycle i from 5 to 1:\n    out i\n', 1),
+    ('cycle i from 1 to 5 step -1:\n    out i\n', 1),
+    # legitimos: a faixa e INCLUSIVA, entao 'from 1 to 1' roda uma vez
+    ('cycle i from 1 to 5:\n    out i\n', 0),
+    ('cycle i from 5 to 1 step -1:\n    out i\n', 0),
+    ('cycle i from 1 to 1:\n    out i\n', 0),
+    # com uma variavel no meio nao ha o que provar
+    ('n := 5\ncycle i from n to 1:\n    out i\n', 0),
+])
+def test_o_laco_que_nunca_roda_e_avisado(fonte, conta):
+    from dataforge.typechecker import check_program
+    avisos = [d for d in check_program(parse(tokenize(fonte, "t.df"), "t.df"))
+              if d.code == "cycle-vazio"]
+    assert len(avisos) == conta, [d.message for d in avisos]
+
+
+def test_o_passo_zero_e_erro():
+    """Ele não é um laço vazio: é um laço que não termina."""
+    erros = _erros_de('cycle i from 1 to 5 step 0:\n    out i\n')
+    assert len(erros) == 1, [d.message for d in erros]
+    assert "never ends" in erros[0].message
+
+
+@pytest.mark.parametrize("fonte,conta", [
+    ('x := 1 is "1"\n', 1),
+    ('x := "a" != [1]\n', 1),
+    # 'x is void' e o idioma de "veio algo?", e o mais comum que existe
+    ('x := void\ny := x is void\n', 0),
+    # Integer e Float se comparam, e 'yes is 1' e verdadeiro
+    ('x := 1 is 1.0\n', 0),
+    ('x := yes is 1\n', 0),
+    ('x := "a" is "b"\n', 0),
+    # sem tipo conhecido nao ha o que provar
+    ('action f(v):\n    yield v is "x"\n', 0),
+])
+def test_a_igualdade_impossivel_e_avisada(fonte, conta):
+    from dataforge.typechecker import check_program
+    avisos = [d for d in check_program(parse(tokenize(fonte, "t.df"), "t.df"))
+              if d.code == "igualdade-impossivel"]
+    assert len(avisos) == conta, [d.message for d in avisos]
+
+
+def test_um_parametro_de_tipo_nao_e_um_tipo():
+    """O `T` de `action primeiro<T>(…) -> T` chega com cara de tipo.
+
+    `primeiro([1,2,3]) is 1` é verdadeiro, e a comparação foi acusada de
+    nunca dar certo — dois alarmes falsos no capítulo da trilha que
+    ENSINA generics.
+    """
+    fonte = ('action primeiro<T>(itens: Cluster) -> T:\n'
+             '    yield itens[0]\n'
+             'out primeiro([1, 2, 3]) is 1\n')
+    from dataforge.typechecker import check_program
+    assert not [d for d in check_program(parse(tokenize(fonte, "t.df"), "t.df"))
+                if d.code == "igualdade-impossivel"]
+
+
+def test_o_tipo_declarado_de_uma_acao_decorada_nao_vale():
+    """Um decorador substitui a ação, e com ela o tipo que volta.
+
+    `action eco(x: String) -> String` com `mark @repetir(3)` devolve um
+    Cluster, e `eco("oi") is ["oi","oi","oi"]` **passa** em execução — era
+    o analisador que estava errado. Não há como saber qual decorador
+    substitui: um que devolve `void` não substitui nada. Diante de duas
+    respostas possíveis, o analisador cala.
+    """
+    fonte = ('action repetir(n):\n'
+             '    yield lambda f => lambda x => [f(x) cycle _ in range(n)]\n'
+             'mark @repetir(3)\n'
+             'action eco(x: String) -> String:\n'
+             '    yield x\n'
+             'out eco("oi") is ["oi", "oi", "oi"]\n')
+    from dataforge.typechecker import check_program
+    avisos = [d for d in check_program(parse(tokenize(fonte, "t.df"), "t.df"))
+              if d.code == "igualdade-impossivel"]
+    assert not avisos, [d.message for d in avisos]

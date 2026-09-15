@@ -233,7 +233,50 @@ O `check` acusa quando consegue provar que o lado é `Void`; quando não
 consegue — um parâmetro sem tipo, por exemplo — cala, e o erro aparece na
 execução.
 
-### 2.4 A ambiguidade de `//`
+### 2.4 Divisão, resto e arredondamento com negativos
+
+As três operam como em Python, e as três surpreendem quem espera o
+comportamento de C ou de JavaScript. Nenhuma estava documentada, e as três
+dão resultado **errado em silêncio** para quem supôs o contrário.
+
+| Conta | DataForge | O que muita gente espera |
+|---|---|---|
+| `-7 ~/ 2` | **-4** | -3 |
+| `7 ~/ -2` | **-4** | -3 |
+| `-7 % 2` | **1** | -1 |
+| `7 % -2` | **-1** | 1 |
+| `round(2.5)` | **2.0** | 3.0 |
+| `round(3.5)` | **4.0** | 4.0 |
+
+**`~/` arredonda para baixo, não para o zero.** `-7 ~/ 2` é -4 porque -3,5
+arredondado para baixo é -4. Para truncar em direção ao zero, divida e
+converta: `int(-7 / 2)` dá -3.
+
+**O resto tem o sinal do DIVISOR.** `-7 % 2` é 1, não -1. A vantagem é que
+`x % n` com `n` positivo nunca é negativo, o que faz `lista[i % len(lista)]`
+funcionar com `i` negativo sem nenhuma guarda. A desvantagem é que o resto
+de um negativo não é o que o papel sugere.
+
+Os dois combinam: `a` é sempre `(a ~/ b) * b + (a % b)`.
+
+**`round` arredonda o empate para o PAR.** `round(2.5)` é 2,0 e
+`round(3.5)` é 4,0 — não é um bug, é o arredondamento bancário, que evita o
+viés de sempre subir. Ela devolve **`Float`** mesmo sem casas decimais.
+
+Para dinheiro, nenhuma das três serve: use `Arcane.Decimal`, que arredonda
+meio-para-cima, não passa por flutuante nenhum, e **recusa** ser misturado
+com `Float` numa conta — para a garantia não se perder em silêncio.
+
+```dataforge
+adopt Arcane.Decimal as Dec
+
+out -7 ~/ 2                  # -4
+out -7 % 2                   # 1
+out round(2.5)               # 2.0
+out Dec.texto(Dec.arredondar(Dec.de("2.5"), 0))   # "3"
+```
+
+### 2.5 A ambiguidade de `//`
 
 `//` abre comentário **e** é divisão inteira. O lexer decide pelo contexto:
 
@@ -250,7 +293,7 @@ x := 3  // marcar como caminho  // comentário
 
 **Recomendação: use `~/`.** É inequívoco e não depende de heurística.
 
-### 2.5 Comparações encadeadas
+### 2.6 Comparações encadeadas
 
 ```dataforge
 nota := 7.5
@@ -260,7 +303,7 @@ out 1 smaller 5 smaller 10
 
 O termo do meio é avaliado uma única vez.
 
-### 2.6 Formato na interpolação
+### 2.7 Formato na interpolação
 
 Depois de `:` vem o formato, com a mini-linguagem do `format`:
 
@@ -274,7 +317,7 @@ O `:` que abre o corpo de um `lambda` ou de um `morph` **não** é
 formato: ele é distinguido por não ter espaço depois e por o que vem
 em seguida parecer formato.
 
-### 2.7 `is not` e `not in`
+### 2.8 `is not` e `not in`
 
 `is not` e `not in` são **um operador cada**, escritos com dois tokens:
 

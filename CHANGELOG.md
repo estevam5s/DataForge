@@ -16,6 +16,35 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **O analisador prova mais quatro coisas antes de rodar.** Medido numa
+  bateria de dez erros que um analisador maduro pega, o `check` pegava
+  **três**; hoje pega nove, e o `lint` o décimo. Os quatro que faltavam
+  tinham em comum o fato de a informação para provar já existir no arquivo:
+  `xs[10]` num cluster de três (`indice-fora-do-alcance`), `v["cidad"]` num
+  vault sem a chave e com sugestão de nome parecido (`chave-ausente`),
+  `cycle i from 5 to 1` que nunca roda e `step 0` que nunca termina
+  (`cycle-vazio`), e `1 is "1"`, que é sempre `no`
+  (`igualdade-impossivel`).
+
+  A prudência é o recurso. Um nome perde a garantia do literal se em
+  qualquer lugar do arquivo ele recebe valor duas vezes, é passado como
+  argumento, tem um método que muda o tamanho chamado nele, ou tem índice
+  ou chave escritos. E há três silêncios deliberados, cada um um falso
+  alarme evitado no caminho mais comum: `v["k"] ?? padrao` não é acusado (é
+  o conserto que a própria dica recomenda), um parâmetro de tipo genérico
+  não é um tipo, e o tipo declarado de uma ação **decorada** não vale —
+  `mark @repetir(3)` sobre `-> String` devolve um `Cluster`, e a
+  comparação que o analisador chamava de impossível passa em execução.
+  Nos 369 arquivos `.df` do repositório: **zero** alarme novo.
+
+- **A §2.4 da referência documenta divisão, resto e arredondamento com
+  negativos.** `-7 ~/ 2` é **-4** (arredonda para baixo, não para o zero),
+  `-7 % 2` é **1** (o resto tem o sinal do divisor), e `round(2.5)` é
+  **2.0** (empate vai para o par). As três operam como em Python, as três
+  surpreendem quem espera C ou JavaScript, e nenhuma estava escrita — o que
+  as tornava erro silencioso para quem supôs o contrário. Cada afirmação da
+  seção é verificada por um `.df` que roda.
+
 - **As 228 embutidas se explicam.** 202 delas — 88% — não tinham
   docstring nenhuma, e o hover mostrava a assinatura do invólucro
   (`len(*args, **kwargs)`) com a frase "Wraps a Python callable as a

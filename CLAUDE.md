@@ -20,11 +20,22 @@ analisador estático e interpretador de árvore próprios.
 ### Verificação rápida — rode antes e depois de mexer
 
 ```bash
-python3 -m pytest tests/ -q                          # mais de 2160 testes
+python3 -m pytest tests/ -q                          # mais de 2700 testes
 python3 exercicios/run_all.py                        # 240 exercícios
+python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
+for d in examples exercicios projetos packages trilha; do dataforge check "$d"; done
 ```
+
+O portão completo é `bash scripts/verificar_tudo.sh`: ele roda o acima,
+**regera tudo e confere o diff**, compila o site e a extensão, e pede cada
+arquivo do release para ver se ele baixa de verdade.
+
+Duas destas linhas faltavam nesta lista e o buraco era real: a `trilha/`
+tem 18 capítulos com `assert` e um `run_all.py` próprio, e o `check` sobre
+`projetos/` já deixou passar um traceback do analisador por meses — ver
+"Um analisador que morre com traceback do Python", abaixo.
 
 **Cuidado com instalação velha no PATH.** Há três lugares onde o
 DataForge pode estar instalado (`.venv/`, `~/.dataforge/`, o Python do
@@ -53,6 +64,10 @@ dataforge/
   travessia.py     964   o que uma ação leva consigo para outro núcleo
   typechecker.py  1752   análise estática: nomes, aridade, tipos, alcance
   resolucao.py     190   onde mora o módulo de um 'adopt' — a única cópia
+  idioma.py        330   o idioma das mensagens — pt-BR, e 'DF_IDIOMA=en'
+  docs_links.py    220   onde mora a doc de cada palavra, módulo e comando
+  lsp.py          1100   o servidor de linguagem: hover, completar, ir-para
+  exemplos_palavras.py   um exemplo que RODA para cada uma das 100 palavras
   superficie.py    300   o que um .df oferece, sem executá-lo
   formatter.py     280   dataforge fmt
   linter.py        394   dataforge lint
@@ -899,6 +914,51 @@ exercício também.
 Os códigos vêm do campo `code` do diagnóstico, que já existia. O LSP
 lê o comentário do **texto do editor**, e não do disco: num arquivo não
 salvo, ler do disco silenciaria a regra errada — ou nenhuma.
+
+### O que ele prova a partir de um literal
+
+Quatro checagens que existiam como erro de **execução** e passaram a
+aparecer antes de rodar. Medido numa bateria de dez erros que um analisador
+maduro pega, o `check` pegava três; hoje pega nove, e o `lint` o décimo.
+
+| Acusa | Código |
+|---|---|
+| `xs[10]` num cluster de três | `indice-fora-do-alcance` |
+| `v["cidad"]` num vault sem a chave, com sugestão | `chave-ausente` |
+| `cycle i from 5 to 1` — nunca roda; `step 0` — nunca termina | `cycle-vazio` |
+| `1 is "1"` — sempre `no` | `igualdade-impossivel` |
+
+As duas primeiras dependem de `_recolher_literais_fixos`, e **a prudência
+dela é o recurso**. O nome perde a garantia se em qualquer lugar do arquivo
+ele recebe valor duas vezes, é passado como argumento, tem um método que
+muda o tamanho chamado nele, tem um índice ou chave escritos, ou é nome de
+parâmetro ou de variável de laço. A coleta é por NOME e vale para o arquivo
+inteiro — conservador na direção certa.
+
+`_MUDAM_O_TAMANHO` é uma lista **própria**, e não a `_MUTAM` do aviso de
+concorrência: aquela exclui `append` de propósito, porque o GIL protege a
+operação inteira. Aqui `append` importa, porque muda o tamanho. As duas
+respondem perguntas diferentes, e fundi-las estragaria uma.
+
+Três silêncios que só apareceram rodando o `check` no repositório, e cada
+um seria um falso alarme no caminho mais comum:
+
+1. **`v["k"] ?? padrao` não é acusado.** O interpretador trata o lado
+   esquerdo de um `??` com indulgência, e `??` é exatamente o que a dica
+   daquele erro recomenda. Um analisador que acusa o conserto que ele
+   próprio sugere é um analisador que se desliga.
+2. **Um parâmetro de tipo não é um tipo.** O `T` de
+   `action primeiro<T>(…) -> T` chega com cara de tipo, e
+   `primeiro([1,2,3]) is 1` é verdadeiro. Sem `_e_concreto`, a trilha
+   ganhava dois alarmes no capítulo que **ensina** generics.
+3. **O tipo declarado de uma ação decorada não vale.** `mark @repetir(3)`
+   sobre `action eco(x) -> String` faz a chamada devolver um `Cluster`, e
+   `eco("oi") is ["oi","oi","oi"]` **passa** em execução. Não há como saber
+   qual decorador substitui — um que devolve `void` não substitui nada —,
+   e diante de duas respostas o analisador cala.
+
+E `xs[-1]` continua livre: tratar todo negativo como fora do alcance
+acusaria a forma normal de pegar o último item.
 
 ### O analisador estático é otimista de propósito
 
