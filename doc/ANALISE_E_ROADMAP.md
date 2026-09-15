@@ -649,10 +649,22 @@ O que resta, em ordem de impacto.
 
 ### 5.0 — Runtime
 
-- **IR e VM de bytecode**: hoje é interpretador de árvore com compilação
-  para fechamentos (1,23× a 1,80×). Um protótipo de VM escrita em Python deu
-  7,9× e um de fechamentos com a semântica inteira deu 6,5× — mesma ordem de
-  grandeza. Medir de novo antes de investir.
+- **IR e VM de bytecode** — medido de novo, e a conclusão mudou de lugar.
+  O ganho da compilação para fechamentos sobre a árvore continua em 1,5× a
+  1,7×, mas **esse número não era o problema**: o perfil mostrou que o custo
+  dominante não estava no despacho de nó, e sim em trabalho repetido que
+  nenhuma VM removeria — 146 lambdas reconstruídos a cada acesso a método de
+  coleção, o pipeline fora do compilador, e a máquina de chamada refazendo
+  por chamada o que é da ação. Corrigidos esses quatro pontos, a carga de
+  coleção ficou **2,9× mais rápida** e a de método **1,3×**, sem uma linha
+  de bytecode.
+
+  Uma VM separada duplicaria a semântica inteira (7 mil linhas de
+  interpretador) para disputar o mesmo teto de ~6,5× que o protótipo de
+  fechamentos já mostrou, e cada divergência entre as duas viraria bug. O
+  caminho que resta com melhor relação custo/benefício continua sendo o que
+  o `compilador.py` já faz: cobrir mais nós (a lista está ordenada por
+  frequência real no arquivo) e encurtar o que roda por chamada.
 - **Cache de compilação** — hoje os fechamentos são montados a cada processo.
 - ~~**Empacotamento**: gerar um executável com runtime embutido.~~ **Feito**:
   `scripts/gerar_binario.py` e o fluxo `binarios` produzem um executável por

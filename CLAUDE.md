@@ -495,10 +495,24 @@ trabalho. Subir a espera de 0,06 s para 0,25 s resolveu: a série vira
 
 ### Otimizar: meça antes
 
-Três gargalos já foram medidos e resolvidos (`cProfile`, não intuição):
+Sete gargalos já foram medidos e resolvidos (`cProfile`, não intuição):
 despacho por string (virou tabela por classe), alocação de escopo por
-volta de laço (reaproveitado quando o corpo não captura) e construção
-de AST em tempo de execução (`x += 1` montava dois nós por volta).
+volta de laço (reaproveitado quando o corpo não captura), construção
+de AST em tempo de execução (`x += 1` montava dois nós por volta), e
+quatro na máquina de chamada e no acesso a membro:
+
+| O que era | Medido |
+|---|---|
+| as tabelas de método de texto, vault e cluster eram **literais dentro de `_ler_membro_cru`**: 146 lambdas construídos a cada `xs.append(i)` ou `"a".upper()` | 200 mil `append`: **0,77 s → 0,33 s** |
+| o pipeline não era compilado: escopo novo e `evaluate` pela árvore por elemento | com o resto, o mesmo laço em **0,27 s** |
+| `_check_arity` rodava três compreensões em toda chamada, inclusive na posicional exata | `fib(24)`: 0,48 s → 0,42 s |
+| `Environment` alocava **dois sets vazios** por escopo, e `f"<action {nome}>"` era montado por chamada | idem |
+
+E uma armadilha achada medindo: `getattr(obj, "x", None)` num **slot
+nunca atribuído** custa 7× mais que num atributo presente, porque levanta
+e captura um `AttributeError` por dentro. Foi o que a primeira versão do
+`if call_env._deferred` fez, e o ganho da otimização anterior foi embora
+nisso. O slot passou a nascer com `None`.
 
 A carga de referência está em `tests/test_desempenho.py`; use
 `dataforge profile` num programa real antes de mexer em qualquer coisa.

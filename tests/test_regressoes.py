@@ -6862,3 +6862,102 @@ def test_um_ramo_com_guarda_nao_cobre_o_caso():
 ])
 def test_o_match_completo_nao_e_avisado(corpo):
     assert not _avisos_de_match(corpo)
+
+
+# ─── O estágio de pipeline com ação nomeada ─────────────────
+# 'morph dobrar' ia por um caminho PARALELO à chamada normal: sem
+# conferir aridade, sem conferir o tipo dos parâmetros nem o do retorno,
+# sem empilhar quadro e sem o corpo compilado. A mesma ação respondia
+# duas coisas conforme fosse chamada com parênteses ou por um '>>'.
+
+_DOBRAR = 'action dobrar(n: Integer) -> Integer:\n    yield n * 2\n'
+
+
+def test_o_tipo_do_parametro_vale_no_pipeline():
+    with pytest.raises(DataForgeError) as capturado:
+        run(_DOBRAR + 'out ["x"] >> morph dobrar\n')
+    assert "declared as Integer" in capturado.value.message
+
+
+def test_a_aridade_vale_no_pipeline():
+    with pytest.raises(DataForgeError) as capturado:
+        run('action dois(a, b):\n    yield a + b\nout [1, 2] >> morph dois\n')
+    assert "missing argument" in capturado.value.message
+
+
+def test_o_erro_de_dentro_de_um_estagio_traz_a_pilha():
+    with pytest.raises(DataForgeError) as capturado:
+        run('action quebrar(n):\n    yield n / 0\nout [1] >> morph quebrar\n')
+    assert [q.name for q in capturado.value.stack] == ["quebrar"], \
+        capturado.value.stack
+
+
+def test_o_pipeline_com_acao_nomeada_continua_funcionando():
+    assert run(_DOBRAR + 'out [1, 2, 3] >> morph dobrar') == "[2, 4, 6]"
+    assert run('action par(n):\n    yield n % 2 is 0\n'
+               'out [1, 2, 3, 4] >> sift par') == "[2, 4]"
+    assert run('action somar(a, b):\n    yield a + b\n'
+               'out [1, 2, 3] >> distill somar 0') == "6"
+
+
+# ─── O pipeline compilado é o mesmo do interpretador ────────
+
+@pytest.mark.parametrize("fonte", [
+    'out [1, 2, 3, 4, 5] >> sift n: n % 2 is 0 >> morph n: n * 10',
+    'out [1, 2, 3] >> distill acc, v: acc + v 0',
+    'out [1, 2, 3] >> distill acc, v: acc + v',
+    'out ["a", "bb"] >> morph s: len(s) >> distill a, v: a + v 0',
+    'out [] >> sift n: n bigger 1',
+    # um lambda criado no estágio precisa do escopo DAQUELE item, senão
+    # todos veriam o último — a mesma regra do 'cycle'
+    'fs := [1, 2, 3] >> morph n: lambda => n * 2\nout [f() for_each in [0]] '
+    'given no otherwise [fs[0](), fs[1](), fs[2]()]',
+])
+def test_o_pipeline_compilado_devolve_o_mesmo(fonte):
+    import io
+    from contextlib import redirect_stdout
+
+    from dataforge.interpreter import Interpreter
+
+    saidas = []
+    for compilar in (True, False):
+        interp = Interpreter()
+        interp.compilar_corpos = compilar
+        buffer = io.StringIO()
+        try:
+            with redirect_stdout(buffer):
+                interp.run(parse(tokenize(fonte, "t.df"), "t.df"))
+            saidas.append(buffer.getvalue())
+        except DataForgeError as erro:
+            saidas.append(f"erro: {erro.message}")
+    assert saidas[0] == saidas[1], saidas
+
+
+def test_o_lambda_criado_num_morph_ve_o_proprio_item():
+    assert run('fs := [1, 2, 3] >> morph n: lambda => n * 2\n'
+               'out fs[0](), fs[1](), fs[2]()') == "2 4 6"
+
+
+# ─── As tabelas de método não se montam por chamada ─────────
+
+def test_os_metodos_embutidos_moram_no_modulo():
+    """Eram literais de dicionário DENTRO de '_ler_membro_cru': a cada
+    'xs.append(i)' o interpretador construía a tabela inteira — 76 lambdas
+    para texto, 51 para cluster — escolhia uma e jogava o resto fora.
+    Medido: 0,5 s num laço de 200 mil 'append', o maior custo por operação
+    do interpretador.
+    """
+    import inspect
+    import re
+
+    from dataforge import interpreter as mod
+
+    assert len(mod._METODOS_DE_TEXTO) > 60
+    assert len(mod._METODOS_DE_CLUSTER) > 40
+    assert len(mod._METODOS_DE_VAULT) > 15
+
+    fonte = inspect.getsource(mod.Interpreter._ler_membro_cru)
+    # Uma tabela montada aqui dentro volta a custar por chamada. As de
+    # enum e de stream continuam locais: elas capturam 'self'.
+    montadas = re.findall(r"(\w+_methods) = \{", fonte)
+    assert montadas == ["enum_methods", "stream_methods"], montadas

@@ -499,6 +499,124 @@ def _persist(interp, no):
 
 # ── Montagem ─────────────────────────────────────────────────
 
+def _pipeline(interp, no):
+    """`xs >> sift x: … >> morph x: … >> distill a, v: … 0`.
+
+    Espelha `eval_PipelineExpression`, e o custo que ele pagava estava em
+    cada ELEMENTO: um escopo filho novo e a expressão reavaliada pela
+    árvore. Num `distill` sobre 200 mil itens, 600 mil idas ao `evaluate`
+    dentro de um corpo que já estava compilado.
+
+    O escopo por elemento só é reaproveitado quando a expressão não
+    captura escopo — um `lambda` criado dentro de um `morph` precisa do
+    seu, senão todos veriam o último item. É a mesma regra, e a mesma
+    função, que o `cycle` usa.
+
+    A ação nomeada (`morph dobrar`) continua indo por `_call_func`, que
+    passa pela chamada normal da linguagem.
+    """
+    from .environment import Environment
+
+    fonte = compilar_expressao(interp, no.source)
+    percorrer = interp._percorrer
+    conferir = interp._conferir_fonte_do_pipeline
+    chamar = interp._call_func
+    captura = interp._corpo_captura_escopo
+    etapas = []
+
+    for op in no.operations:
+        if isinstance(op, ast.SiftOperation):
+            if op.func_ref:
+                nome, alvo = op.func_ref, op
+
+                def etapa(dados, env, nome=nome, alvo=alvo):
+                    funcao = env.get(nome)
+                    return [x for x in dados if chamar(funcao, [x], alvo, env)]
+            else:
+                corpo = compilar_expressao(interp, op.condition)
+                etapa = _por_elemento(op.param, corpo, captura([op.condition]),
+                                      "<lambda>", filtrar=True)
+        elif isinstance(op, ast.MorphOperation):
+            if op.func_ref:
+                nome, alvo = op.func_ref, op
+
+                def etapa(dados, env, nome=nome, alvo=alvo):
+                    funcao = env.get(nome)
+                    return [chamar(funcao, [x], alvo, env) for x in dados]
+            else:
+                corpo = compilar_expressao(interp, op.expression)
+                etapa = _por_elemento(op.param, corpo, captura([op.expression]),
+                                      "<lambda>", filtrar=False)
+        elif isinstance(op, ast.DistillOperation):
+            inicial = (compilar_expressao(interp, op.initial)
+                       if op.initial is not None else None)
+            if op.func_ref:
+                nome, alvo = op.func_ref, op
+
+                def etapa(dados, env, nome=nome, alvo=alvo, inicial=inicial):
+                    funcao = env.get(nome)
+                    acc = inicial(env) if inicial is not None else dados[0]
+                    for x in dados[0 if inicial is not None else 1:]:
+                        acc = chamar(funcao, [acc, x], alvo, env)
+                    return acc
+            else:
+                corpo = compilar_expressao(interp, op.expression)
+                acumulador, valor = op.acc_param, op.val_param
+                reusa = not captura([op.expression])
+
+                def etapa(dados, env, corpo=corpo, acumulador=acumulador,
+                          valor=valor, inicial=inicial, reusa=reusa):
+                    acc = inicial(env) if inicial is not None else dados[0]
+                    local = Environment(parent=env, name="<distill>")
+                    for x in dados[0 if inicial is not None else 1:]:
+                        if not reusa:
+                            local = Environment(parent=env, name="<distill>")
+                        variaveis = local.variables
+                        variaveis[acumulador] = acc
+                        variaveis[valor] = x
+                        acc = corpo(local)
+                    return acc
+        else:
+            return None                     # algo novo: recua inteiro
+        etapas.append(etapa)
+
+    def avaliar(env):
+        dados = percorrer(fonte(env), no)
+        conferir(dados, no)
+        for etapa in etapas:
+            dados = etapa(dados, env)
+        return dados
+    return avaliar
+
+
+def _por_elemento(param, corpo, captura, nome_do_escopo, filtrar):
+    """Uma etapa `sift`/`morph` escrita como expressão sobre `param`."""
+    from .environment import Environment
+
+    if filtrar:
+        def etapa(dados, env):
+            local = Environment(parent=env, name=nome_do_escopo)
+            saida = []
+            for x in dados:
+                if captura:
+                    local = Environment(parent=env, name=nome_do_escopo)
+                local.variables[param] = x
+                if corpo(local):
+                    saida.append(x)
+            return saida
+    else:
+        def etapa(dados, env):
+            local = Environment(parent=env, name=nome_do_escopo)
+            saida = []
+            for x in dados:
+                if captura:
+                    local = Environment(parent=env, name=nome_do_escopo)
+                local.variables[param] = x
+                saida.append(corpo(local))
+            return saida
+    return etapa
+
+
 _EXPRESSOES = {
     ast.IntegerLiteral: _constante,
     ast.FloatLiteral: _constante,
@@ -517,6 +635,7 @@ _EXPRESSOES = {
     ast.ListLiteral: _lista,
     ast.DictLiteral: _vault,
     ast.InterpolatedString: _texto_interpolado,
+    ast.PipelineExpression: _pipeline,
 }
 
 #: Uma expressao SOLTA e instrucao: nao ha no proprio para ela, o nó da

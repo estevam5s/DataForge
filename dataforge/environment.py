@@ -6,6 +6,17 @@ Manages variable scopes, constants, and name resolution.
 from .errors import NameError_, RuntimeError_
 
 
+#: O conjunto vazio que todo escopo novo compartilha.
+#:
+#: Cada 'Environment' alocava DOIS sets vazios no construtor — 'constants'
+#: e 'embutidas' — e escopo nasce em toda chamada de acao e em todo laco.
+#: Medido no 'fib(24)': 150 mil chamadas, 300 mil sets que quase nunca
+#: recebem nada. Imutavel de proposito: quem precisar escrever troca pelo
+#: seu proprio set antes (ver 'define_steady'), e um 'add' esquecido falha
+#: alto em vez de escrever no conjunto de todos.
+_VAZIO = frozenset()
+
+
 class Environment:
     """A scope environment for variable/function lookups."""
 
@@ -23,7 +34,7 @@ class Environment:
         self.parent = parent
         self.name = name
         self.variables: dict = {}
-        self.constants: set = set()  # Names that are immutable (steady)
+        self.constants = _VAZIO     # Names that are immutable (steady)
         #: Os nomes que a LINGUAGEM pos aqui, e nao quem escreve.
         #:
         #: Eles vivem no mesmo dicionario do escopo global, e por isso
@@ -41,7 +52,11 @@ class Environment:
         #: exatamente os que alguem usa como variavel local sem pensar.
         #: A falha aparece longe: a acao funciona, e o programa quebra
         #: na proxima vez que alguem chamar a embutida.
-        self.embutidas: set = set()
+        self.embutidas = _VAZIO
+        #: Os 'defer' deste escopo, criada no primeiro. Inicializado aqui
+        #: porque ler um slot NUNCA atribuido levanta por dentro — e a
+        #: chamada de acao pergunta isto em toda saida.
+        self._deferred = None
 
     def get(self, name: str):
         """Look up a variable, walking up the scope chain."""
@@ -154,6 +169,8 @@ class Environment:
         if name in self.constants:
             raise RuntimeError_(f"Cannot reassign steady (constant) '{name}'")
         self.variables[name] = value
+        if self.constants is _VAZIO:
+            self.constants = set()
         self.constants.add(name)
 
     def define_shadow(self, name: str, value):

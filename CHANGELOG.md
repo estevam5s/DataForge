@@ -131,6 +131,17 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Mudado
 
+- **Desempenho, medido com `cProfile` e não com intuição.** As tabelas de
+  método de texto, vault e cluster eram literais **dentro** de
+  `_ler_membro_cru`: 146 lambdas construídos a cada `xs.append(i)` ou
+  `"a".upper()`, para escolher um e jogar o resto fora. Agora moram no
+  módulo. O pipeline (`sift`/`morph`/`distill`) passou a ser compilado para
+  fechamentos, e a máquina de chamada deixou de refazer por chamada o que é
+  da ação (nome do escopo, aridade na forma posicional exata, dois sets
+  vazios por escopo). Medido: um laço de 200 mil `append` + `distill` caiu
+  de **0,77 s para 0,27 s** (2,9×), 200 mil chamadas de método de **0,64 s
+  para 0,49 s**, e `fib(24)` de **0,48 s para 0,42 s**.
+
 - **Um erro dentro de `defer` não é mais descartado.** Era
   `except Exception: pass`, e isso estava escrito como decisão (na
   referência e no capítulo 17 da trilha). O `defer` é onde se fecha arquivo
@@ -181,6 +192,14 @@ cada número significa, e o que pode quebrar entre versões, está em
   divide e compara como um.
 
 ### Corrigido
+
+- **Um estágio de pipeline com ação nomeada não conferia nada.**
+  `["x"] >> morph dobrar`, com `action dobrar(n: Integer) -> Integer`,
+  devolvia `[xx]` em silêncio: era um caminho paralelo à chamada normal, sem
+  aridade, sem tipo de parâmetro nem de retorno, e sem empilhar quadro (o
+  erro saía sem pilha). Uma ação de dois parâmetros num `morph` dizia
+  `'b' is not defined` em vez de nomear a aridade. A mesma ação respondia
+  duas coisas conforme fosse chamada com parênteses ou por um `>>`.
 
 - **O `check` acusava toda chamada de genérico com parâmetro `T`.**
   `eco<T>(x: T)` chamado com um texto dava "espera T, e recebeu String" —

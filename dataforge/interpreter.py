@@ -4,6 +4,7 @@ Tree-walking interpreter that executes AST nodes.
 """
 
 import collections as _collections
+from functools import partial as _functools_partial
 import numbers as _numeros
 import re as _re
 import sys
@@ -125,6 +126,190 @@ def _dict_delete(d, key):
     """Delete key from dict and return value."""
     return d.pop(key, None)
 
+#: Os metodos embutidos de vault, texto e cluster — montados UMA vez.
+#:
+#: Eles moravam DENTRO de '_ler_membro_cru', como literais de dicionario
+#: cheios de lambdas que capturavam 'obj'. A cada 'xs.append(i)', a cada
+#: '"a".upper()', o interpretador construia a tabela inteira — 76 lambdas
+#: para texto, 51 para cluster — escolhia uma e jogava o resto fora. Medido
+#: num laco de 200 mil 'append': 0,5 s so nisso, o maior custo por operacao
+#: do interpretador, e nada a ver com arvore ou bytecode.
+#:
+#: Agora cada lambda recebe o objeto como primeiro argumento, e o acesso
+#: liga so o escolhido ('_ligar_ao_objeto'). O comportamento e o mesmo,
+#: inclusive a mensagem de aridade: o nome continua '<lambda>'.
+_METODOS_DE_VAULT = {
+    'keys': lambda obj: list(obj.keys()),
+    'values': lambda obj: list(obj.values()),
+    'items': lambda obj: [list(p) for p in obj.items()],
+    'has': lambda obj, key: key in obj,
+    'contains': lambda obj, key: key in obj,
+    'get': lambda obj, key, default=None: obj.get(key, default),
+    'set': lambda obj, key, val: _dict_set(obj, key, val),
+    'delete': lambda obj, key: _dict_delete(obj, key),
+    'length': lambda obj: len(obj),
+    'merge': lambda obj, other: {**obj, **other},
+    'update': lambda obj, other: (obj.update(other), obj)[-1],
+    'clear': lambda obj: (obj.clear(), obj)[-1],
+    'copy': lambda obj: dict(obj),
+    'pick': lambda obj, *ks: {k: obj[k] for k in ks if k in obj},
+    'omit': lambda obj, *ks: {k: v for k, v in obj.items() if k not in ks},
+    'invert': lambda obj: {v: k for k, v in obj.items()},
+    'map_values': lambda obj, f: {k: f(v) for k, v in obj.items()},
+    'filter_keys': lambda obj, f: {k: v for k, v in obj.items() if f(k)},
+    'to_pairs': lambda obj: [list(p) for p in obj.items()],
+}
+
+_METODOS_DE_TEXTO = {
+    'length': lambda obj: len(obj),
+    'upper': lambda obj: obj.upper(),
+    'lower': lambda obj: obj.lower(),
+    'strip': lambda obj, chars=None: obj.strip(chars),
+    'lstrip': lambda obj, chars=None: obj.lstrip(chars),
+    'rstrip': lambda obj, chars=None: obj.rstrip(chars),
+    'title': lambda obj: obj.title(),
+    'capitalize': lambda obj: obj.capitalize(),
+    'swapcase': lambda obj: obj.swapcase(),
+    'center': lambda obj, w, f=" ": obj.center(w, f),
+    'ljust': lambda obj, w, f=" ": obj.ljust(w, f),
+    'rjust': lambda obj, w, f=" ": obj.rjust(w, f),
+    'zfill': lambda obj, w: obj.zfill(w),
+    'split': lambda obj, sep=" ": obj.split(sep),
+    'replace': lambda obj, old, new, count=-1: obj.replace(old, new) if count == -1 else obj.replace(old, new, count),
+    'startswith': lambda obj, prefix: obj.startswith(prefix),
+    'endswith': lambda obj, suffix: obj.endswith(suffix),
+    'find': lambda obj, sub, start=0: obj.find(sub, start),
+    'rfind': lambda obj, sub, start=0: obj.rfind(sub, start),
+    'index_of': lambda obj, sub, start=0: obj.find(sub, start),
+    'last_index_of': lambda obj, sub: obj.rfind(sub),
+    'char_at': lambda obj, i: obj[i] if 0 <= i < len(obj) else "",
+    'substring': lambda obj, start, end=None: obj[start:end],
+    'slice': lambda obj, start, end=None: obj[start:end],
+    'contains': lambda obj, sub: sub in obj,
+    'includes': lambda obj, sub: sub in obj,
+    'isalpha': lambda obj: obj.isalpha(),
+    'isdigit': lambda obj: obj.isdigit(),
+    'isalnum': lambda obj: obj.isalnum(),
+    'isspace': lambda obj: obj.isspace(),
+    'isupper': lambda obj: obj.isupper(),
+    'islower': lambda obj: obj.islower(),
+    'istitle': lambda obj: obj.istitle(),
+    'isnumeric': lambda obj: obj.isnumeric(),
+    'repeat': lambda obj, n: obj * n,
+    'reverse': lambda obj: obj[::-1],
+    'trim': lambda obj: obj.strip(),
+    'pad_start': lambda obj, l, f=" ": obj.rjust(l, f),
+    'pad_end': lambda obj, l, f=" ": obj.ljust(l, f),
+    'concat': lambda obj, *args: obj + "".join(str(a) for a in args),
+    'count': lambda obj, sub: obj.count(sub),
+    'expandtabs': lambda obj, ts=8: obj.expandtabs(ts),
+    'partition': lambda obj, sep: list(obj.partition(sep)),
+    'rpartition': lambda obj, sep: list(obj.rpartition(sep)),
+    'splitlines': lambda obj, keepends=False: obj.splitlines(keepends),
+    'removeprefix': lambda obj, pfx: obj[len(pfx):] if obj.startswith(pfx) else obj,
+    'removesuffix': lambda obj, sfx: obj[:-len(sfx)] if sfx and obj.endswith(sfx) else obj,
+    'words': lambda obj: obj.split(),
+    'lines': lambda obj: obj.splitlines(),
+    'encode': lambda obj, enc="utf-8": list(obj.encode(enc)),
+    'format': lambda obj, *a, **kw: obj.format(*a, **kw),
+    'join': lambda obj, it: obj.join(str(x) for x in it),
+    # O resto da linguagem e snake_case ('index_of', 'pad_start',
+    # 'char_at'). Estes nomes vieram do Python e destoavam: quem
+    # escrevia o obvio 'starts_with' recebia "membro nao existe".
+    'starts_with': lambda obj, prefix: obj.startswith(prefix),
+    'ends_with': lambda obj, suffix: obj.endswith(suffix),
+    'is_alpha': lambda obj: obj.isalpha(),
+    'is_digit': lambda obj: obj.isdigit(),
+    'is_alnum': lambda obj: obj.isalnum(),
+    'is_space': lambda obj: obj.isspace(),
+    'is_upper': lambda obj: obj.isupper(),
+    'is_lower': lambda obj: obj.islower(),
+    'is_title': lambda obj: obj.istitle(),
+    'is_numeric': lambda obj: obj.isnumeric(),
+    'is_empty': lambda obj: len(obj) == 0,
+    'split_lines': lambda obj, keepends=False: obj.splitlines(keepends),
+    'remove_prefix': lambda obj, pfx: obj[len(pfx):] if obj.startswith(pfx) else obj,
+    'remove_suffix': lambda obj, sfx: obj[:-len(sfx)] if sfx and obj.endswith(sfx) else obj,
+    'expand_tabs': lambda obj, ts=8: obj.expandtabs(ts),
+    'trim_start': lambda obj: obj.lstrip(),
+    'trim_end': lambda obj: obj.rstrip(),
+    'to_upper': lambda obj: obj.upper(),
+    'to_lower': lambda obj: obj.lower(),
+    'title_case': lambda obj: obj.title(),
+    'swap_case': lambda obj: obj.swapcase(),
+    'count_of': lambda obj, sub: obj.count(sub),
+    'chars': lambda obj: list(obj),
+    'bytes': lambda obj, enc="utf-8": list(obj.encode(enc)),
+}
+
+_METODOS_DE_CLUSTER = {
+    'length': lambda obj: len(obj),
+    'append': lambda obj, item: obj.append(item),
+    'push': lambda obj, item: obj.append(item),
+    'pop': lambda obj, idx=-1: obj.pop(idx),
+    'insert': lambda obj, idx, item: obj.insert(idx, item),
+    'remove': lambda obj, item: obj.remove(item),
+    # Sem 'chave', ordenar vaults ou records era impossivel
+    # pela lista — so pela funcao global 'sorted'.
+    'sort': lambda obj, chave=None, reverso=False: (
+        obj.sort(key=chave, reverse=reverso), obj)[-1],
+    'sorted': lambda obj, chave=None, reverso=False:
+        sorted(obj, key=chave, reverse=reverso),
+    'is_empty': lambda obj: len(obj) == 0,
+    'sum_of': lambda obj, f: sum(f(x) for x in obj),
+    'group_by': lambda obj, f: _agrupar_por(obj, f),
+    'partition': lambda obj, f: [
+        [x for x in obj if f(x)], [x for x in obj if not f(x)]],
+    'zip_with': lambda obj, outra: [list(t) for t in zip(obj, outra)],
+    'index_where': lambda obj, f: next(
+        (i for i, x in enumerate(obj) if f(x)), -1),
+    'find_last': lambda obj, f: next(
+        (x for x in reversed(obj) if f(x)), None),
+    'none': lambda obj, f: not any(f(x) for x in obj),
+    'sliding': lambda obj, n: [obj[i:i+n] for i in range(len(obj)-n+1)]
+        if n <= len(obj) else [],
+    'intersperse': lambda obj, sep: _intercalar(obj, sep),
+    'compact': lambda obj: [x for x in obj if x is not None],
+    'tally': lambda obj: _freq_list(obj),
+    'reverse': lambda obj: (obj.reverse(), obj)[-1],
+    'contains': lambda obj, item: item in obj,
+    'includes': lambda obj, item: item in obj,
+    'index': lambda obj, item: obj.index(item),
+    'index_of': lambda obj, item: obj.index(item),
+    'count': lambda obj, item: obj.count(item),
+    'first': lambda obj: obj[0] if obj else None,
+    'last': lambda obj: obj[-1] if obj else None,
+    'take': lambda obj, n: obj[:n],
+    'drop': lambda obj, n: obj[n:],
+    'slice': lambda obj, s=None, e=None: obj[s:e],
+    'flatten': lambda obj: _flatten_deep(obj),
+    'unique': lambda obj: _unique_list(obj),
+    'chunk': lambda obj, s: [obj[i:i+s] for i in range(0, len(obj), s)],
+    'rotate': lambda obj, n: obj[n%len(obj):] + obj[:n%len(obj)] if obj else [],
+    'reversed': lambda obj: list(reversed(obj)),
+    'join': lambda obj, sep=", ": sep.join(str(x) for x in obj),
+    'map': lambda obj, f: [f(x) for x in obj],
+    'filter': lambda obj, f: [x for x in obj if f(x)],
+    'reduce': lambda obj, f, init=None: _reduce_list(obj, f, init),
+    'every': lambda obj, f: all(f(x) for x in obj),
+    'some': lambda obj, f: any(f(x) for x in obj),
+    'find': lambda obj, f: next((x for x in obj if f(x)), None),
+    'sum': lambda obj: sum(obj),
+    'min': lambda obj: min(obj),
+    'max': lambda obj: max(obj),
+    'mean': lambda obj: sum(obj) / len(obj) if obj else 0,
+    'clear': lambda obj: (obj.clear(), obj)[-1],
+    'copy': lambda obj: list(obj),
+    'extend': lambda obj, other: (obj.extend(other), obj)[-1],
+    'frequencies': lambda obj: _freq_list(obj),
+}
+
+
+def _ligar_ao_objeto(metodo, obj):
+    """O metodo da tabela, com o objeto ja no primeiro argumento."""
+    return _functools_partial(metodo, obj)
+
+
 class DFAction:
     """A user-defined function (action)."""
     _interpreter = None  # Set during Interpreter.__init__
@@ -148,6 +333,8 @@ class DFAction:
         #: com limite deixa de aceitar qualquer valor: o valor tem de
         #: servir onde se espera o limite.
         self.type_bounds = dict(type_bounds or {})
+        #: "<action nome>", montado na primeira chamada e nao em todas.
+        self.nome_do_escopo = None
 
         # O corpo compilado para fechamentos, montado na primeira
         # chamada. Fica aqui e nao no no da arvore porque o
@@ -1405,6 +1592,7 @@ class Interpreter:
         # Elas ficam MARCADAS: uma atribuicao dentro de uma acao nao
         # pode subir ate aqui e apagar 'len' para o programa inteiro.
         # Ver 'Environment.embutidas'.
+        self.global_env.embutidas = set()
         for name, value in get_builtins().items():
             self.global_env.set_local(name, value)
             self.global_env.embutidas.add(name)
@@ -2336,29 +2524,9 @@ class Interpreter:
             if "__name__" in obj and membro in obj:
                 return obj[membro]
             # Check dict methods
-            dict_methods = {
-                'keys': lambda: list(obj.keys()),
-                'values': lambda: list(obj.values()),
-                'items': lambda: [list(p) for p in obj.items()],
-                'has': lambda key: key in obj,
-                'contains': lambda key: key in obj,
-                'get': lambda key, default=None: obj.get(key, default),
-                'set': lambda key, val: _dict_set(obj, key, val),
-                'delete': lambda key: _dict_delete(obj, key),
-                'length': lambda: len(obj),
-                'merge': lambda other: {**obj, **other},
-                'update': lambda other: (obj.update(other), obj)[-1],
-                'clear': lambda: (obj.clear(), obj)[-1],
-                'copy': lambda: dict(obj),
-                'pick': lambda *ks: {k: obj[k] for k in ks if k in obj},
-                'omit': lambda *ks: {k: v for k, v in obj.items() if k not in ks},
-                'invert': lambda: {v: k for k, v in obj.items()},
-                'map_values': lambda f: {k: f(v) for k, v in obj.items()},
-                'filter_keys': lambda f: {k: v for k, v in obj.items() if f(k)},
-                'to_pairs': lambda: [list(p) for p in obj.items()],
-            }
+            dict_methods = _METODOS_DE_VAULT
             if membro in dict_methods:
-                return BuiltinFunction(membro, dict_methods[membro])
+                return BuiltinFunction(membro, _ligar_ao_objeto(dict_methods[membro], obj))
             if membro == 'length':
                 return len(obj)
             # Fall back to key access
@@ -2367,155 +2535,15 @@ class Interpreter:
             raise self._erro_membro(obj, membro, node)
         elif isinstance(obj, str):
             # String methods - comprehensive
-            string_methods = {
-                'length': lambda: len(obj),
-                'upper': lambda: obj.upper(),
-                'lower': lambda: obj.lower(),
-                'strip': lambda chars=None: obj.strip(chars),
-                'lstrip': lambda chars=None: obj.lstrip(chars),
-                'rstrip': lambda chars=None: obj.rstrip(chars),
-                'title': lambda: obj.title(),
-                'capitalize': lambda: obj.capitalize(),
-                'swapcase': lambda: obj.swapcase(),
-                'center': lambda w, f=" ": obj.center(w, f),
-                'ljust': lambda w, f=" ": obj.ljust(w, f),
-                'rjust': lambda w, f=" ": obj.rjust(w, f),
-                'zfill': lambda w: obj.zfill(w),
-                'split': lambda sep=" ": obj.split(sep),
-                'replace': lambda old, new, count=-1: obj.replace(old, new) if count == -1 else obj.replace(old, new, count),
-                'startswith': lambda prefix: obj.startswith(prefix),
-                'endswith': lambda suffix: obj.endswith(suffix),
-                'find': lambda sub, start=0: obj.find(sub, start),
-                'rfind': lambda sub, start=0: obj.rfind(sub, start),
-                'index_of': lambda sub, start=0: obj.find(sub, start),
-                'last_index_of': lambda sub: obj.rfind(sub),
-                'char_at': lambda i: obj[i] if 0 <= i < len(obj) else "",
-                'substring': lambda start, end=None: obj[start:end],
-                'slice': lambda start, end=None: obj[start:end],
-                'contains': lambda sub: sub in obj,
-                'includes': lambda sub: sub in obj,
-                'isalpha': lambda: obj.isalpha(),
-                'isdigit': lambda: obj.isdigit(),
-                'isalnum': lambda: obj.isalnum(),
-                'isspace': lambda: obj.isspace(),
-                'isupper': lambda: obj.isupper(),
-                'islower': lambda: obj.islower(),
-                'istitle': lambda: obj.istitle(),
-                'isnumeric': lambda: obj.isnumeric(),
-                'repeat': lambda n: obj * n,
-                'reverse': lambda: obj[::-1],
-                'trim': lambda: obj.strip(),
-                'pad_start': lambda l, f=" ": obj.rjust(l, f),
-                'pad_end': lambda l, f=" ": obj.ljust(l, f),
-                'concat': lambda *args: obj + "".join(str(a) for a in args),
-                'count': lambda sub: obj.count(sub),
-                'expandtabs': lambda ts=8: obj.expandtabs(ts),
-                'partition': lambda sep: list(obj.partition(sep)),
-                'rpartition': lambda sep: list(obj.rpartition(sep)),
-                'splitlines': lambda keepends=False: obj.splitlines(keepends),
-                'removeprefix': lambda pfx: obj[len(pfx):] if obj.startswith(pfx) else obj,
-                'removesuffix': lambda sfx: obj[:-len(sfx)] if sfx and obj.endswith(sfx) else obj,
-                'words': lambda: obj.split(),
-                'lines': lambda: obj.splitlines(),
-                'encode': lambda enc="utf-8": list(obj.encode(enc)),
-                'format': lambda *a, **kw: obj.format(*a, **kw),
-                'join': lambda it: obj.join(str(x) for x in it),
-                # O resto da linguagem e snake_case ('index_of', 'pad_start',
-                # 'char_at'). Estes nomes vieram do Python e destoavam: quem
-                # escrevia o obvio 'starts_with' recebia "membro nao existe".
-                'starts_with': lambda prefix: obj.startswith(prefix),
-                'ends_with': lambda suffix: obj.endswith(suffix),
-                'is_alpha': lambda: obj.isalpha(),
-                'is_digit': lambda: obj.isdigit(),
-                'is_alnum': lambda: obj.isalnum(),
-                'is_space': lambda: obj.isspace(),
-                'is_upper': lambda: obj.isupper(),
-                'is_lower': lambda: obj.islower(),
-                'is_title': lambda: obj.istitle(),
-                'is_numeric': lambda: obj.isnumeric(),
-                'is_empty': lambda: len(obj) == 0,
-                'split_lines': lambda keepends=False: obj.splitlines(keepends),
-                'remove_prefix': lambda pfx: obj[len(pfx):] if obj.startswith(pfx) else obj,
-                'remove_suffix': lambda sfx: obj[:-len(sfx)] if sfx and obj.endswith(sfx) else obj,
-                'expand_tabs': lambda ts=8: obj.expandtabs(ts),
-                'trim_start': lambda: obj.lstrip(),
-                'trim_end': lambda: obj.rstrip(),
-                'to_upper': lambda: obj.upper(),
-                'to_lower': lambda: obj.lower(),
-                'title_case': lambda: obj.title(),
-                'swap_case': lambda: obj.swapcase(),
-                'count_of': lambda sub: obj.count(sub),
-                'chars': lambda: list(obj),
-                'bytes': lambda enc="utf-8": list(obj.encode(enc)),
-            }
+            string_methods = _METODOS_DE_TEXTO
             if membro in string_methods:
-                return BuiltinFunction(membro, string_methods[membro])
+                return BuiltinFunction(membro, _ligar_ao_objeto(string_methods[membro], obj))
             if membro == 'length':
                 return len(obj)
         elif isinstance(obj, list):
-            list_methods = {
-                'length': lambda: len(obj),
-                'append': lambda item: obj.append(item),
-                'push': lambda item: obj.append(item),
-                'pop': lambda idx=-1: obj.pop(idx),
-                'insert': lambda idx, item: obj.insert(idx, item),
-                'remove': lambda item: obj.remove(item),
-                # Sem 'chave', ordenar vaults ou records era impossivel
-                # pela lista — so pela funcao global 'sorted'.
-                'sort': lambda chave=None, reverso=False: (
-                    obj.sort(key=chave, reverse=reverso), obj)[-1],
-                'sorted': lambda chave=None, reverso=False:
-                    sorted(obj, key=chave, reverse=reverso),
-                'is_empty': lambda: len(obj) == 0,
-                'sum_of': lambda f: sum(f(x) for x in obj),
-                'group_by': lambda f: _agrupar_por(obj, f),
-                'partition': lambda f: [
-                    [x for x in obj if f(x)], [x for x in obj if not f(x)]],
-                'zip_with': lambda outra: [list(t) for t in zip(obj, outra)],
-                'index_where': lambda f: next(
-                    (i for i, x in enumerate(obj) if f(x)), -1),
-                'find_last': lambda f: next(
-                    (x for x in reversed(obj) if f(x)), None),
-                'none': lambda f: not any(f(x) for x in obj),
-                'sliding': lambda n: [obj[i:i+n] for i in range(len(obj)-n+1)]
-                    if n <= len(obj) else [],
-                'intersperse': lambda sep: _intercalar(obj, sep),
-                'compact': lambda: [x for x in obj if x is not None],
-                'tally': lambda: _freq_list(obj),
-                'reverse': lambda: (obj.reverse(), obj)[-1],
-                'contains': lambda item: item in obj,
-                'includes': lambda item: item in obj,
-                'index': lambda item: obj.index(item),
-                'index_of': lambda item: obj.index(item),
-                'count': lambda item: obj.count(item),
-                'first': lambda: obj[0] if obj else None,
-                'last': lambda: obj[-1] if obj else None,
-                'take': lambda n: obj[:n],
-                'drop': lambda n: obj[n:],
-                'slice': lambda s=None, e=None: obj[s:e],
-                'flatten': lambda: _flatten_deep(obj),
-                'unique': lambda: _unique_list(obj),
-                'chunk': lambda s: [obj[i:i+s] for i in range(0, len(obj), s)],
-                'rotate': lambda n: obj[n%len(obj):] + obj[:n%len(obj)] if obj else [],
-                'reversed': lambda: list(reversed(obj)),
-                'join': lambda sep=", ": sep.join(str(x) for x in obj),
-                'map': lambda f: [f(x) for x in obj],
-                'filter': lambda f: [x for x in obj if f(x)],
-                'reduce': lambda f, init=None: _reduce_list(obj, f, init),
-                'every': lambda f: all(f(x) for x in obj),
-                'some': lambda f: any(f(x) for x in obj),
-                'find': lambda f: next((x for x in obj if f(x)), None),
-                'sum': lambda: sum(obj),
-                'min': lambda: min(obj),
-                'max': lambda: max(obj),
-                'mean': lambda: sum(obj) / len(obj) if obj else 0,
-                'clear': lambda: (obj.clear(), obj)[-1],
-                'copy': lambda: list(obj),
-                'extend': lambda other: (obj.extend(other), obj)[-1],
-                'frequencies': lambda: _freq_list(obj),
-            }
+            list_methods = _METODOS_DE_CLUSTER
             if membro in list_methods:
-                return BuiltinFunction(membro, list_methods[membro])
+                return BuiltinFunction(membro, _ligar_ao_objeto(list_methods[membro], obj))
             if membro == 'length':
                 return len(obj)
         elif isinstance(obj, DFAction):
@@ -2760,6 +2788,17 @@ class Interpreter:
         pelos fechamentos que ja montou, e so entao pergunta o resultado.
         Chamar 'eval_MethodCall' o faria percorrer a arvore de novo.
         """
+        # A chamada de metodo numa instancia vem PRIMEIRO: e o caso comum
+        # de todo codigo orientado a objeto, e chegava aqui depois de tres
+        # testes que nunca casam com ela (proxy, record, modulo). Os tipos
+        # sao disjuntos, entao a ordem nao muda o resultado.
+        if type(obj) is DFInstance:
+            method = obj.get(node.method)
+            if isinstance(method, DFAction):
+                return self._call_action(method, args, kwargs, node, env, instance=obj)
+            if callable(method):
+                return self._invocar(method, args, kwargs, node, node.method)
+
         # Handle root (super) proxy calls
         if isinstance(obj, _RootProxy):
             method = obj.get(node.method)
@@ -2967,14 +3006,14 @@ class Interpreter:
                 if op.func_ref:
                     # Named function reference: sift func_name
                     func = env.get(op.func_ref)
-                    data = [item for item in data if self._call_func(func, [item], op)]
+                    data = [item for item in data if self._call_func(func, [item], op, env)]
                 else:
                     data = [item for item in data if self._eval_lambda(op.param, op.condition, item, env)]
             elif isinstance(op, ast.MorphOperation):
                 if op.func_ref:
                     # Named function reference: morph func_name
                     func = env.get(op.func_ref)
-                    data = [self._call_func(func, [item], op) for item in data]
+                    data = [self._call_func(func, [item], op, env) for item in data]
                 else:
                     data = [self._eval_lambda(op.param, op.expression, item, env) for item in data]
             elif isinstance(op, ast.DistillOperation):
@@ -2984,7 +3023,7 @@ class Interpreter:
                     acc = self.evaluate(op.initial, env) if op.initial else data[0]
                     start = 0 if op.initial is not None else 1
                     for item in data[start:]:
-                        acc = self._call_func(func, [acc, item], op)
+                        acc = self._call_func(func, [acc, item], op, env)
                     data = acc
                 else:
                     acc = self.evaluate(op.initial, env) if op.initial else data[0]
@@ -2997,23 +3036,26 @@ class Interpreter:
                     data = acc
         return data
 
-    def _call_func(self, func, args, node):
-        """Call a DFAction or Python callable with given args."""
+    def _call_func(self, func, args, node, env=None):
+        """Chama a acao nomeada de um estagio do pipeline: 'morph dobrar'.
+
+        Era um caminho PARALELO a chamada normal: montava o escopo, rodava
+        o corpo pela arvore e devolvia. Sem conferir aridade, sem conferir
+        o tipo dos parametros nem o do retorno, sem empilhar quadro — e
+        sem o corpo compilado. Medido:
+
+            action dobrar(n: Integer) -> Integer: ...
+            dobrar("x")                     recusado: declared as Integer
+            ["x", "y"] >> morph dobrar      [xx, yy], calado
+
+        e uma acao de dois parametros num 'morph' dizia "'b' is not
+        defined" em vez de nomear a aridade. A mesma acao respondia duas
+        coisas conforme fosse chamada com parenteses ou por um '>>'.
+        """
         if isinstance(func, DFAction):
-            local = func.closure.child(func.name)
-            for i, param in enumerate(func.params):
-                if i < len(args):
-                    local.set_local(param, args[i])
-                elif param in func.defaults:
-                    local.set_local(param, self.evaluate(func.defaults[param], func.closure))
-            try:
-                self.exec_block(func.body, local)
-                return None
-            except YieldSignal as ys:
-                return ys.value
-            finally:
-                self._run_deferred(local)
-        elif callable(func):
+            return self._call_action(func, list(args), {}, node,
+                                     env if env is not None else func.closure)
+        if callable(func):
             return func(*args)
         raise TypeError_("Value is not callable in a pipeline stage", node.line, node.column)
 
@@ -5503,7 +5545,7 @@ class Interpreter:
     def exec_DeferStatement(self, node: ast.DeferStatement, env):
         """Defer: schedule block to run at scope exit.
         Stores the deferred block in the environment's _deferred list."""
-        if not hasattr(env, '_deferred'):
+        if env._deferred is None:
             env._deferred = []
         env._deferred.append((node.body, env))
 
@@ -6291,34 +6333,48 @@ class Interpreter:
         linha da chamada — e chamar '_call_action' de novo cairia no
         despacho e criaria outra tarefa, para sempre.
         """
-        call_env = action.closure.child(f"<action {action.name}>")
+        nome_do_escopo = action.nome_do_escopo
+        if nome_do_escopo is None:
+            nome_do_escopo = action.nome_do_escopo = f"<action {action.name}>"
+        call_env = Environment(parent=action.closure, name=nome_do_escopo)
+        variaveis = call_env.variables
 
         # Bind parameters
         params = action.params
-        for i, param in enumerate(params):
-            if i < len(args):
-                value = args[i]
-            elif param in kwargs:
-                value = kwargs[param]
-            elif param in action.defaults:
-                value = self.evaluate(action.defaults[param], call_env)
-            else:
-                value = None
-            declared = action.param_types.get(param)
-            if declared:
-                self._check_type(
-                    value, declared,
-                    f"parameter '{param}' of action '{action.name}'", node,
-                    getattr(action, "type_params", ()),
-                getattr(action, "type_bounds", None))
-            call_env.set_local(param, value)
+        if not kwargs and not action.param_types and len(args) == len(params):
+            # O caminho de quase toda chamada: posicional, exata e sem
+            # tipo declarado. O escopo acabou de nascer, entao nao ha
+            # 'steady' nele para 'set_local' conferir, e nenhum padrao a
+            # avaliar — atribuir direto e o mesmo resultado sem as tres
+            # consultas por parametro.
+            for param, value in zip(params, args):
+                variaveis[param] = value
+        else:
+            for i, param in enumerate(params):
+                if i < len(args):
+                    value = args[i]
+                elif param in kwargs:
+                    value = kwargs[param]
+                elif param in action.defaults:
+                    value = self.evaluate(action.defaults[param], call_env)
+                else:
+                    value = None
+                declared = action.param_types.get(param)
+                if declared:
+                    self._check_type(
+                        value, declared,
+                        f"parameter '{param}' of action '{action.name}'", node,
+                        getattr(action, "type_params", ()),
+                        getattr(action, "type_bounds", None))
+                variaveis[param] = value
 
-        # Bind 'self' and 'this' for instance methods
+        # Bind 'self' and 'this' for instance methods — direto no dicionario,
+        # pela mesma razao dos parametros: o escopo acabou de nascer.
         if instance is not None:
-            call_env.set_local("self", instance)
-            call_env.set_local("this", instance)
-            if getattr(action, "dono", None) is not None:
-                call_env.set_local("__dono__", action.dono)
+            variaveis["self"] = instance
+            variaveis["this"] = instance
+            if action.dono is not None:
+                variaveis["__dono__"] = action.dono
 
         # Execute body, guarding against runaway recursion
         self._depth += 1
@@ -6359,8 +6415,11 @@ class Interpreter:
             self._call_stack.pop()
             self.filename = arquivo_de_quem_chamou
             # Deferred blocks run on every exit path, including an error —
-            # that is the whole point of 'defer'.
-            self._run_deferred(call_env)
+            # that is the whole point of 'defer'. A leitura direta do slot
+            # evita uma chamada de metodo por chamada de acao em quem nunca
+            # escreveu 'defer', que e quase todo mundo.
+            if call_env._deferred:
+                self._run_deferred(call_env)
         if action.return_type:
             self._check_type(
                 result, action.return_type,
@@ -6598,7 +6657,7 @@ class Interpreter:
         'yield' ja foi capturado antes do 'finally', entao a saida normal
         chega aqui sem excecao nenhuma.
         """
-        if not (hasattr(env, '_deferred') and env._deferred):
+        if not getattr(env, '_deferred', None):
             return
         import sys as _sys
 
@@ -7035,6 +7094,11 @@ class Interpreter:
     def _check_arity(self, action, args, kwargs, node):
         """Reject calls with too few or too many arguments."""
         params = action.params
+        # O caso de quase toda chamada: so posicionais, e exatamente um por
+        # parametro. Nada falta, nada sobra, nenhum nome desconhecido — e
+        # as tres compreensoes abaixo rodavam mesmo assim, em TODA chamada.
+        if not kwargs and len(args) == len(params):
+            return
         required = [p for p in params if p not in action.defaults]
         supplied = set(params[:len(args)]) | set(kwargs)
         missing = [p for p in required if p not in supplied]

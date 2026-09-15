@@ -10165,7 +10165,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 1897,
+  "testes": 1904,
   "exemplos": 44,
   "arquivosDf": 350
  },
@@ -10173,7 +10173,7 @@
   "estrelas": 0,
   "versao": "v1.0.0",
   "publicado": "2026-09-12",
-  "baixados": 36,
-  "instalacoes": 1
+  "baixados": 37,
+  "instalacoes": 2
  }
 }
