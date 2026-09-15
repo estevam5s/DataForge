@@ -42,6 +42,7 @@ from .arcane_ponte import ArcanePonte
 from .arcane_decimal import ArcaneDecimal
 from .arcane_api import ArcaneAPI
 from .arcane_bytes import ArcaneBytes
+from .arcane_url import ArcaneUrl
 from .arcane_cli import ArcaneCli
 from .arcane_email import ArcaneEmail
 from .arcane_bench import ArcaneBench
@@ -144,6 +145,10 @@ _MODULES = {
     "Arcane.Bytes": ArcaneBytes,
     "Bytes": ArcaneBytes,
     "Binario": ArcaneBytes,
+
+    "Arcane.Url": ArcaneUrl,
+    "Url": ArcaneUrl,
+    "Endereco": ArcaneUrl,
 
     "Arcane.Rede": ArcaneRede,
     "Rede": ArcaneRede,

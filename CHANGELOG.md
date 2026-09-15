@@ -16,6 +16,19 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **`Arcane.Url`** — o 48º módulo, e a primeira das lacunas do `TODO.md`
+  medidas contra o que já existia. Ler um endereço em partes, montar de
+  volta, resolver relativo como um navegador (`juntar`), trocar parâmetros
+  preservando os outros (`com_query`, e `void` ali **apaga** o parâmetro),
+  query string em vault ou em cluster quando a chave repete, e escape para
+  caminho e para valor. Todo programa que fala HTTP mexe com URL, e isso
+  vivia dentro do Kiln e do `Arcane.Http`, fora do alcance de quem escreve.
+  Três decisões: a **porta** sai `Integer` (texto faria `porta + 1`
+  concatenar) ou `void` quando a URL não a disse; `origem` **não leva
+  credencial**, porque é o campo que vai para log e para CORS; e `montar`
+  recusa campo que não conhece, porque `caminh` montaria um endereço sem
+  caminho sem nada denunciando.
+
 - **O `match` avisa o caso esquecido além do enum.** Booleano (`point yes`
   sem `point no`), sequência (`point [cabeça, ...resto]` sem `point []` — a
   recursão que quebra na lista vazia) e a família de um `abstract

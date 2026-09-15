@@ -190,7 +190,7 @@ MODULOS_COM_PAGINA = frozenset({
     "analytics", "async", "bytes", "cli", "collections", "cortex", "crypto",
     "data", "database", "email", "eventos", "excel", "functional", "html",
     "http", "io", "logging", "math", "meta", "os", "process", "rede",
-    "regex", "serialization", "test", "text", "time", "web",
+    "regex", "serialization", "test", "text", "time", "url", "web",
 })
 
 

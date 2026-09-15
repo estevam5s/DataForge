@@ -23,7 +23,7 @@ const grupos: { rotulo: string; chaves: string[] }[] = [
   { rotulo: 'Frameworks', chaves: ['kiln', 'vitrine', 'lavra', 'crucible', 'forge', 'api'] },
   { rotulo: 'Dados', chaves: ['data', 'analytics', 'cortex', 'lago', 'pipeline', 'qualidade', 'stream'] },
   { rotulo: 'Formatos', chaves: ['serialization', 'excel', 'archive', 'database', 'html'] },
-  { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email'] },
+  { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email', 'url'] },
   { rotulo: 'Qualidade', chaves: ['test', 'bench', 'logging', 'crypto', 'observar', 'color', 'meta', 'cli', 'eventos'] },
 ];
 

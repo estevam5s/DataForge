@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Quarenta e sete módulos e 1500 símbolos, sem uma única dependência externa.",
+  description: "Quarenta e oito módulos e 1514 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os quarenta e sete módulos"
+    "h2": "Os quarenta e oito módulos"
   },
   {
-    "p": "São **1500 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1514 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -206,6 +206,11 @@ const blocos: Bloco[] = [
           "Registro estruturado de eventos, com níveis e destinos."
         ],
         [
+          "[`Arcane.Url`](/docs/biblioteca/url)",
+          "14",
+          "Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor."
+        ],
+        [
           "[`Arcane.Data`](/docs/biblioteca/data)",
           "13",
           "DataFrames, séries e transformações tabulares."
@@ -334,13 +339,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-quarenta-e-sete-modulos', text: "Os quarenta e sete módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-quarenta-e-oito-modulos', text: "Os quarenta e oito módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Quarenta e sete módulos e 1500 símbolos, sem uma única dependência externa."}
+      description={"Quarenta e oito módulos e 1514 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

@@ -7195,6 +7195,83 @@
     }
    ]
   },
+  "url": {
+   "nome": "Arcane.Url",
+   "desc": "Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor.",
+   "curto": "Url",
+   "funcoes": [
+    {
+     "nome": "campos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "com_query",
+     "sig": "(endereco, novos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "desescapar",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_absoluto",
+     "sig": "(endereco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_tudo",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "host_de",
+     "sig": "(endereco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "juntar",
+     "sig": "(base, relativo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler",
+     "sig": "(endereco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "montar",
+     "sig": "(partes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "query",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "query_lista",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "query_texto",
+     "sig": "(dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sem_query",
+     "sig": "(endereco)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "vitrine": {
    "nome": "Arcane.Vitrine",
    "desc": "O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln.",
@@ -10165,7 +10242,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 1904,
+  "testes": 1928,
   "exemplos": 44,
   "arquivosDf": 350
  },

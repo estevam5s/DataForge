@@ -128,7 +128,7 @@ export default function Home() {
           [<>Versão</>, <><code>1.0.0</code></>],
           [<>Extensão</>, <><code>.df</code></>],
           [<>Runtime</>, <>Python 3.10+, zero dependências</>],
-          [<>Biblioteca padrão</>, <>47 módulos, 1500 símbolos</>],
+          [<>Biblioteca padrão</>, <>48 módulos, 1514 símbolos</>],
           [<>Funções globais</>, <>228, sem <code>adopt</code></>],
           [<>Licença</>, <>MIT</>],
         ]}
@@ -185,7 +185,7 @@ export default function Home() {
       <H3>Verificável</H3>
       <p>
         Cada afirmação desta documentação corresponde a código que roda. São{' '}
-        <strong>2696 testes</strong>, 240 exercícios que verificam o próprio
+        <strong>2838 testes</strong>, 240 exercícios que verificam o próprio
         resultado com <code>assert</code>, e 44 programas de exemplo. Os
         trechos desta documentação são compilados a cada mudança — 1213 deles.
       </p>
@@ -329,7 +329,7 @@ dataforge version`}
           Cada um se verifica com <code>assert</code>. Vinte e dois módulos têm
           um <code>.md</code> explicativo ao lado de cada exercício.
         </Card>
-        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1500 símbolos">
+        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1514 símbolos">
           Estatística, bancos, HTTP, criptografia, Parquet, ML, streaming.
         </Card>
         <Card href="/docs/referencia/gramatica" title="Referência formal">

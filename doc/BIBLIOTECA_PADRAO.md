@@ -48,6 +48,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | [`Arcane.Malha`](#arcanemalha) | `Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
+| [`Arcane.Url`](#arcaneurl) | `Url` | 14 | Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor. |
 | [`Arcane.Bytes`](#arcanebytes) | `Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
 | [`Arcane.Rede`](#arcanerede) | `Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
 | [`Arcane.Bench`](#arcanebench) | `Bench` | 7 | Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em tamanhos crescentes dizendo qual O() descreve o que aconteceu. |
@@ -1849,6 +1850,36 @@ adopt Arcane.Malha as Malha
 | `servicos()` |
 | `terminar_contexto()` |
 | `vale_repetir(resposta)` |
+
+
+---
+
+## Arcane.Url
+
+Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor.
+
+```dataforge
+adopt Arcane.Url as Url
+```
+
+**Funções (14)**
+
+| Assinatura |
+|------------|
+| `campos()` |
+| `com_query(endereco, novos)` |
+| `desescapar(texto)` |
+| `e_absoluto(endereco)` |
+| `escapar(texto)` |
+| `escapar_tudo(texto)` |
+| `host_de(endereco)` |
+| `juntar(base, relativo)` |
+| `ler(endereco)` |
+| `montar(partes)` |
+| `query(texto)` |
+| `query_lista(texto)` |
+| `query_texto(dados)` |
+| `sem_query(endereco)` |
 
 
 ---

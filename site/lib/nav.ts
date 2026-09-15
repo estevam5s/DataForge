@@ -226,6 +226,7 @@ export const nav: NavSection[] = [
   {
     title: 'Biblioteca Arcane',
     items: [
+      { title: 'Arcane.Url', href: '/docs/biblioteca/url' },
       { title: 'Arcane.Bytes', href: '/docs/biblioteca/bytes' },
       { title: 'Arcane.Rede', href: '/docs/biblioteca/rede' },
       { title: 'Arcane.Eventos', href: '/docs/biblioteca/eventos' },
