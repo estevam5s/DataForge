@@ -33,7 +33,11 @@ from dataforge import __version__, marca  # noqa: E402
 
 marca.preparar_saida()
 
-SAIDA = os.path.join(RAIZ, "dist", "pacotes")
+#: Onde o .deb e escrito. 'DF_PACOTES_SAIDA' troca o destino, e e o que os
+#: testes usam: tres deles geravam o pacote em 'dist/pacotes/' do proprio
+#: repositorio, e dois liam 'debs[0]' — um .deb de versao antiga deixado
+#: ali seria lido no lugar do que acabou de ser gerado.
+SAIDA = os.environ.get("DF_PACOTES_SAIDA") or os.path.join(RAIZ, "dist", "pacotes")
 
 
 def _oficiais():

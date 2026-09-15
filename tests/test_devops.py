@@ -743,7 +743,7 @@ def test_a_descricao_do_deb_nao_traz_numero_escrito_a_mao():
         f"chave que o gerador preencha")
 
 
-def test_o_deb_gerado_traz_a_contagem_real():
+def test_o_deb_gerado_traz_a_contagem_real(tmp_path):
     """Conferido no pacote CONSTRUÍDO — o modelo estar certo não prova
     que a substituição aconteceu."""
     import glob
@@ -759,10 +759,11 @@ def test_o_deb_gerado_traz_a_contagem_real():
 
     r = subprocess.run([_sys.executable, "packaging/gerar_pacotes.py"],
                        capture_output=True, text=True, encoding="utf-8",
-                       errors="replace", cwd=raiz)
+                       errors="replace", cwd=raiz,
+                       env={**os.environ, "DF_PACOTES_SAIDA": str(tmp_path)})
     assert r.returncode == 0, r.stdout + r.stderr
 
-    debs = glob.glob(os.path.join(raiz, "dist", "pacotes", "*.deb"))
+    debs = glob.glob(os.path.join(str(tmp_path), "*.deb"))
     assert debs, "nenhum .deb foi gerado"
     dados = open(debs[0], "rb").read()
     assert dados[:8] == b"!<arch>\n", "o .deb não é um arquivo 'ar' válido"

@@ -817,11 +817,12 @@ def test_o_deb_gerado_e_um_ar_valido(tmp_path):
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     r = subprocess.run(
         [sys.executable, os.path.join(raiz, "packaging", "gerar_pacotes.py")],
-        capture_output=True, text=True, encoding="utf-8", cwd=raiz, timeout=120)
+        capture_output=True, text=True, encoding="utf-8", cwd=raiz, timeout=120,
+        env={**os.environ, "DF_PACOTES_SAIDA": str(tmp_path)})
     assert r.returncode == 0, r.stdout + r.stderr
 
     import glob
-    debs = glob.glob(os.path.join(raiz, "dist", "pacotes", "*.deb"))
+    debs = glob.glob(os.path.join(str(tmp_path), "*.deb"))
     assert debs, "nenhum .deb foi gerado"
 
     dados = open(debs[0], "rb").read()
@@ -1233,7 +1234,7 @@ def test_todo_arquivo_oferecido_no_download_e_construido_por_alguem():
         f"o release carrega um arquivo que ninguem encontra")
 
 
-def test_o_deb_instala_a_linguagem_e_nao_um_pip_install():
+def test_o_deb_instala_a_linguagem_e_nao_um_pip_install(tmp_path):
     """O `.deb` publicado tinha **1.194 bytes**.
 
     O corpo dele era um `postinst` chamando
@@ -1267,12 +1268,13 @@ def test_o_deb_instala_a_linguagem_e_nao_um_pip_install():
     # um teste sobre o texto do gerador nao veria um wheel vazio.
     r = subprocess.run([_sys.executable, "packaging/gerar_pacotes.py"],
                        cwd=raiz, capture_output=True, text=True,
-                       encoding="utf-8", errors="replace")
+                       encoding="utf-8", errors="replace",
+                       env={**os.environ, "DF_PACOTES_SAIDA": str(tmp_path)})
     assert r.returncode == 0, r.stderr[-800:]
 
     import glob
     import tarfile
-    debs = glob.glob(os.path.join(raiz, "dist", "pacotes", "*.deb"))
+    debs = glob.glob(os.path.join(str(tmp_path), "*.deb"))
     assert debs, "o gerador nao escreveu .deb nenhum"
     deb = max(debs, key=os.path.getmtime)
 
