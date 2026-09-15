@@ -5611,3 +5611,118 @@ def test_o_check_nao_leva_o_tipo_de_um_ramo_para_o_outro():
     assert not erros, (
         "falso alarme: o tipo de um ramo vazou para o outro\n  " +
         "\n  ".join(d.format("t.df", color=False) for d in erros))
+
+
+# ─── O membro de um record, nas duas formas ────────────────
+# O analisador conferia 'p.campo' e NAO conferia 'p.metodo()'. Era um
+# quarto da conferencia faltando, e justamente na forma que mais se
+# escreve: 'p.naoExiste()' passava no 'check' e estourava em execucao.
+#
+# A mesma raiz produzia o defeito inverso, que e o pior dos dois:
+# 'self.records[nome]' guarda so os CAMPOS, entao um metodo legitimo
+# lido como valor ('f := p.norma') era acusado de nao existir. Um falso
+# alarme no codigo certo e o que ensina a desligar a verificacao.
+
+_RECORD_COM_METODO = (
+    'record Ponto:\n'
+    '    x: Integer\n'
+    '    y: Integer\n'
+    '    action norma():\n'
+    '        yield self.x + self.y\n'
+    'p := Ponto(3, 4)\n'
+)
+
+
+def _erros_de(fonte):
+    from dataforge.typechecker import check_program
+    return [d for d in check_program(parse(tokenize(fonte, "t.df"), "t.df"), "t.df")
+            if d.severity == "error"]
+
+
+def test_metodo_inexistente_de_record_e_acusado_antes_de_rodar():
+    erros = _erros_de(_RECORD_COM_METODO + 'out p.naoExiste()\n')
+    assert len(erros) == 1, [d.message for d in erros]
+    assert "naoExiste" in erros[0].message
+    # A dica lista os metodos junto dos campos: quem errou 'norma' tem de
+    # ver 'norma' na lista, e nao apenas 'x, y'.
+    assert "norma" in (erros[0].hint or "")
+
+
+def test_metodo_de_record_com_nome_parecido_ganha_sugestao():
+    erros = _erros_de(_RECORD_COM_METODO + 'out p.normaa()\n')
+    assert len(erros) == 1, [d.message for d in erros]
+    assert "norma" in (erros[0].hint or "")
+
+
+def test_metodo_legitimo_de_record_nao_e_acusado():
+    """As duas formas de usar um metodo de record, e a de campo."""
+    erros = _erros_de(_RECORD_COM_METODO +
+                      'f := p.norma\n'
+                      'out f()\n'
+                      'out p.norma()\n'
+                      'out p.x\n')
+    assert not erros, (
+        "falso alarme num metodo de record que existe\n  " +
+        "\n  ".join(d.format("t.df", color=False) for d in erros))
+
+
+def test_metodo_de_record_continua_fora_do_construtor_e_do_with():
+    """A razao de os metodos morarem num mapa SEPARADO dos campos.
+
+    'self.records' governa tres outras conferencias. Um metodo no mesmo
+    dicionario faria estas duas passarem — trocar um falso alarme por um
+    silencio e a pior das trocas.
+    """
+    erros = _erros_de(_RECORD_COM_METODO + 'q := Ponto(1, 2, 3)\n')
+    assert erros, "o construtor aceitou um valor a mais por causa do metodo"
+
+    erros = _erros_de(_RECORD_COM_METODO + 'q := p with {"norma": 1}\n')
+    assert erros, "'with' aceitou um metodo como se fosse campo"
+
+
+def test_metodo_legitimo_de_record_roda():
+    assert run(_RECORD_COM_METODO +
+               'out p.norma()\n'
+               'f := p.norma\n'
+               'out f()\n') == "7\n7"
+
+
+# ─── A chamada de metodo inexistente tem posicao ───────────
+# '_ler_membro' tinha uma casca cujo unico proposito era a POSICAO, e
+# '_chamar_metodo' nao tinha a equivalente. Quem decide que o nome nao
+# existe e o objeto ('DFRecordInstance.get', 'DFInstance.get'), e ele
+# levanta sem linha: nao conhece o arquivo.
+#
+# O efeito era as duas metades do mesmo erro saindo diferentes:
+# 'o.semCampo' na linha certa, 'o.semMetodo()' em '0:0' — sem linha, sem
+# coluna e sem o trecho desenhado, para record E para blueprint.
+
+_FONTE_SEM_POSICAO = (
+    'record R:\n'
+    '    x: Integer\n'
+    'blueprint B:\n'
+    '    action m():\n'
+    '        yield 1\n'
+    # O parametro sem tipo e o que impede o 'check' de provar o erro:
+    # ele tem de chegar a execucao para que a posicao seja testada.
+    'action usar(o):\n'
+    '    yield o.semMetodo()\n'
+)
+
+
+@pytest.mark.parametrize("construir", ['R(1)', 'spawn B()'])
+def test_chamada_de_metodo_inexistente_reporta_a_linha(construir):
+    with pytest.raises(DataForgeError) as capturado:
+        run(_FONTE_SEM_POSICAO + f'out usar({construir})\n')
+    erro = capturado.value
+    assert erro.line == 7, f"linha {erro.line}, esperada 7 (o 'yield o.semMetodo()')"
+    assert erro.column, "a coluna ficou em zero"
+
+
+def test_a_dica_do_record_lista_campos_e_metodos_em_execucao():
+    with pytest.raises(DataForgeError) as capturado:
+        run(_RECORD_COM_METODO + 'out p.naoExiste()\n')
+    mensagem = capturado.value.message
+    assert "norma" in mensagem, (
+        "a dica lista so os campos, e omite o metodo que a pessoa queria: "
+        + mensagem)

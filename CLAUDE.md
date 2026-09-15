@@ -830,6 +830,25 @@ A primeira versão olhava `self.x := …` só dentro de métodos, e deu **32
 falsos alarmes** num exemplo que funciona há meses. `test_membros_de_instancia.py`
 roda o `check` sobre os 320 arquivos do repositório justamente por isso.
 
+**A conferência vale para as duas formas, e nos dois tipos.** `p.campo` e
+`p.metodo()` são o mesmo erro, e por muito tempo só a primeira era
+conferida em `record`: `p.naoExiste()` passava no `check` e estourava em
+execução. A mesma raiz dava o defeito inverso — `self.records[nome]`
+guarda só os **campos**, então `f := p.norma` era acusado de não existir.
+Os métodos moram em `self.record_methods`, separados **de propósito**: no
+mesmo dicionário, `Ponto(norma := 1)` e `p with {"norma": 1}` passariam,
+porque é `self.records` que governa a aridade do construtor e as chaves
+do `with`. Trocar um falso alarme por um silêncio é a pior das trocas.
+
+E o erro dessa chamada **tem posição**. `_chamar_metodo` é uma casca em
+volta de `_chamar_metodo_cru` cujo único propósito é a linha, como a de
+`_ler_membro`: quem decide que o nome não existe é o objeto
+(`DFRecordInstance.get`, `DFInstance.get`), e ele não conhece o arquivo.
+Sem a casca, `o.semCampo` saía na linha certa e `o.semMetodo()` em `0:0`
+— sem linha, sem coluna e sem o trecho desenhado, em `record` e em
+`blueprint`. O compilador de fechamentos liga em `_chamar_metodo` e por
+isso herda a casca; há teste nos dois modos.
+
 ### Silenciar uma regra, de propósito
 
 `// df: permitir <regra>` na linha, ou na de cima, silencia aquela

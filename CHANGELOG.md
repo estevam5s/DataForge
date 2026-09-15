@@ -64,6 +64,30 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Corrigido
 
+- **O método de um `record` ficava fora do analisador, nas duas
+  direções.** `p.naoExiste()` passava no `check` e só estourava em
+  execução — a conferência existia para o campo (`p.clientte`) e para as
+  duas formas em `blueprint`, e faltava justamente na que mais se
+  escreve. A mesma raiz produzia o defeito inverso, que é pior: um
+  método legítimo passado adiante como valor (`f := p.norma`) era
+  **acusado de não existir**, porque o mapa de membros do record guardava
+  só os campos. Os métodos passaram a morar num mapa separado — no mesmo
+  dicionário, `Ponto(norma := 1)` e `p with {"norma": 1}` começariam a
+  passar, que é trocar um falso alarme por um silêncio.
+
+- **A chamada de um método inexistente saía sem linha nem coluna.**
+  `o.semCampo` era reportado no lugar certo e `o.semMetodo()` em `0:0`,
+  sem o trecho desenhado — para `record` e para `blueprint`. Quem decide
+  que o nome não existe é o objeto, e ele não conhece o arquivo; a
+  leitura de membro já tinha uma casca cujo único propósito era a
+  posição, e a chamada não tinha a equivalente. Num arquivo de 200
+  linhas a segunda forma não dizia onde.
+
+- **A dica do erro de `record` listava só os campos.** Quem escrevia
+  `normaa` era mandado procurar entre `x, y`, sem o `norma` que queria —
+  um nome válido ali, omitido pela própria mensagem que deveria
+  sugeri-lo.
+
 - **`obj.metodo(…)` avaliava o objeto duas vezes** quando o método não
   era de nenhum tipo conhecido por nome. O resultado saía certo; o que
   se repetia era o **efeito colateral** — uma consulta ao banco, uma

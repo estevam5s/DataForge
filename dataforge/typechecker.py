@@ -176,6 +176,14 @@ class TypeChecker:
         self.global_scope = Scope(kind="global")
         self.actions = {}        # nome -> ActionSignature
         self.records = {}        # nome -> {campo: tipo}
+        #: Os METODOS de cada record, separados dos campos.
+        #:
+        #: Separados porque 'self.records' governa outras tres coisas: a
+        #: aridade do construtor, os nomes aceitos por 'P(x := 1)' e as
+        #: chaves aceitas por 'p with {…}'. Um metodo no mesmo dicionario
+        #: faria 'P(norma := 1)' e 'p with {"norma": 1}' passarem, que e
+        #: trocar um falso alarme por um silencio — pior troca.
+        self.record_methods = {}  # nome -> set(metodos)
         self.record_defaults = {}
         self.enums = {}          # nome -> [membros]
         self.blueprints = {}     # nome -> set(membros proprios)
@@ -374,6 +382,7 @@ class TypeChecker:
                 escopo.declare(stmt.name, "Action", stmt.line, stmt.column)
             elif isinstance(stmt, ast.RecordDeclaration):
                 self.records[stmt.name] = {c: canonical(t) for c, t, _ in stmt.fields}
+                self.record_methods[stmt.name] = set(stmt.methods or ())
                 self.record_defaults[stmt.name] = {c for c, _, d in stmt.fields if d is not None}
                 self.known_types.add(stmt.name)
                 escopo.declare(stmt.name, "Record", stmt.line, stmt.column)
@@ -2037,10 +2046,19 @@ class TypeChecker:
 
         if alvo in self.records:
             campos = self.records[alvo]
+            # Um metodo de record e um nome valido aqui, e ele nao mora em
+            # 'campos'. Sem esta linha, 'f := p.norma' — passar o metodo
+            # adiante como valor, que a linguagem permite e o interpretador
+            # faz — era acusado de "has no field 'norma'": um falso alarme
+            # no codigo certo, que e o defeito que ensina a desligar a
+            # verificacao inteira.
+            metodos = self.record_methods.get(alvo, set())
+            if node.member in metodos:
+                return UNKNOWN
             if node.member not in campos and node.member not in ('fields', 'record_name'):
                 self.error(
                     f"Record '{alvo}' has no field '{node.member}'", node,
-                    self._hint_nome(node.member, campos) or
+                    self._hint_nome(node.member, set(campos) | metodos) or
                     f"Fields: {', '.join(campos)}", "unknown-field")
                 return UNKNOWN
             return campos.get(node.member, UNKNOWN)
@@ -2161,6 +2179,23 @@ class TypeChecker:
             self._conferir_membro_de_instancia(
                 alvo, ast.MemberAccess(object=node.object, member=node.method,
                                        line=node.line, column=node.column))
+        # 'p.naoExiste()' num record. O acesso a campo era conferido e a
+        # CHAMADA nao — um quarto da conferencia faltando, e justamente na
+        # forma que mais se escreve. O erro existia em execucao; aqui ele
+        # passa a aparecer antes de rodar, como no blueprint ao lado.
+        #
+        # Um campo pode guardar uma acao, e 'p.f()' com 'f' entre os campos
+        # e legitimo: so acusa quem nao esta em nenhum dos dois.
+        elif alvo in self.records:
+            campos = self.records[alvo]
+            metodos = self.record_methods.get(alvo, set())
+            if node.method not in campos and node.method not in metodos:
+                nomes = set(campos) | metodos
+                self.error(
+                    f"Record '{alvo}' has no field or method '{node.method}'",
+                    node,
+                    self._hint_nome(node.method, nomes) or
+                    f"It has: {', '.join(sorted(nomes))}", "unknown-field")
         return UNKNOWN
 
     def _conferir_chamada_de_modulo(self, node, escopo=None):

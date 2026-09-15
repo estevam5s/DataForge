@@ -701,9 +701,14 @@ class DFRecordInstance:
             return self.values[name]
         if name in self.record.methods:
             return self.record.methods[name]
+        # A dica lista campos E metodos. Listar so os campos manda quem
+        # errou 'normaa' procurar entre 'x, y' — omitindo justamente o
+        # 'norma' que ele queria, que e um nome valido aqui.
+        tem = list(self.record.field_names) + [
+            m for m in self.record.methods if m not in self.record.field_names]
         raise NameError_(
             f"Record '{self.record.name}' has no field or method '{name}'. "
-            f"It has: {', '.join(self.record.field_names)}")
+            f"It has: {', '.join(tem)}")
 
     def replace(self, changes: dict):
         """Cópia com campos trocados — a base do operador 'with'."""
@@ -2516,12 +2521,34 @@ class Interpreter:
             node, env)
 
     def _chamar_metodo(self, obj, args, kwargs, node, env):
-        """A chamada de metodo com o objeto e os argumentos JA avaliados.
+        """'obj.metodo(...)' com o objeto e os argumentos JA avaliados.
 
-        Separado de 'eval_MethodCall' pelo mesmo motivo que '_comparar':
-        o compilador de closures avalia as partes pelos fechamentos que
-        ja montou, e so entao pergunta o resultado. Chamar
-        'eval_MethodCall' o faria percorrer a arvore de novo.
+        Esta casca existe para a POSICAO, pelo mesmo motivo que a de
+        '_ler_membro' — e a simetria e o ponto. Quem decide que o nome
+        nao existe e o objeto ('DFRecordInstance.get', 'DFInstance.get'),
+        e ele levanta com a mensagem boa e sem linha: quem levanta nao
+        conhece o arquivo.
+
+        A leitura tinha a casca e a chamada nao, entao as duas metades do
+        mesmo erro sairam diferentes: 'o.semCampo' era reportado na linha
+        certa e 'o.semMetodo()' em '0:0' — sem linha, sem coluna e sem o
+        trecho desenhado, para record E para blueprint. Num arquivo de
+        200 linhas a segunda forma nao diz onde.
+        """
+        try:
+            return self._chamar_metodo_cru(obj, args, kwargs, node, env)
+        except DataForgeError as erro:
+            if not erro.line:
+                erro.line, erro.column = node.line, node.column
+                erro.span = len(str(node.method))
+                erro.args = (erro.format(),)
+            raise
+
+    def _chamar_metodo_cru(self, obj, args, kwargs, node, env):
+        """A chamada em si. Separada de 'eval_MethodCall' pelo mesmo
+        motivo que '_comparar': o compilador de closures avalia as partes
+        pelos fechamentos que ja montou, e so entao pergunta o resultado.
+        Chamar 'eval_MethodCall' o faria percorrer a arvore de novo.
         """
         # Handle root (super) proxy calls
         if isinstance(obj, _RootProxy):
