@@ -90,7 +90,56 @@ cada número significa, e o que pode quebrar entre versões, está em
   **milissegundos**. Há trava para as três coisas: nenhuma sem docstring,
   nenhuma reusando a frase do invólucro, e a armadilha do `sleep` fechada.
 
+### Mudado
+
+- **`void` não vira mais texto.** `"Olá, " + nome`, com `nome` valendo
+  `void`, devolvia `"Olá, void"` — a palavra `void` impressa onde devia
+  ir o nome, e sem nada denunciando. É o `"undefined"` do JavaScript, e
+  era a última armadilha de corrupção silenciosa que nem o `check` nem o
+  `lint` mencionavam. Agora é erro, e o `check` o acusa quando consegue
+  provar que o lado é `Void` (calando quando não consegue, como sempre).
+  **Número, booleano e coleção continuam coagindo** — ali os dois lados
+  existem, e o texto é o que quem escreveu quis dizer. As duas saídas:
+  `nome ?? ""` para dar um padrão, ou `$"Olá, {nome}"`, que é um pedido
+  explícito e **continua desenhando `void`**. A coerção inteira passou a
+  estar documentada na [§2.3 da referência](doc/REFERENCIA.md), onde
+  antes `+` aparecia só como "soma".
+  Nos 369 arquivos `.df` do repositório isto acertou **uma** linha, num
+  exemplo que demonstrava imprimir cada tipo.
+
+- **`frame`, `train` e `predict` fazem alguma coisa.** As três devolviam
+  um vault com `__type__` e paravam ali. Agora `frame` devolve o Frame
+  do `Arcane.Analytics` e `train`/`predict` chamam o `Arcane.Cortex`.
+  **Se você dependia do vault com `__type__`, isso mudou** — mas ele não
+  fazia nada, então não havia o que depender.
+
+- **`async`/`await` é concorrente de verdade.** A palavra era aceita,
+  guardada e nunca lida: chamar uma ação `async` não deixava nada mais
+  rápido. Agora a chamada começa o trabalho numa thread e `await`
+  espera. Seis esperas de 200 ms custam 200 ms, não 1,2 s.
+
+- **`typeof` de um número de biblioteca** responde `Integer`/`Float` em
+  vez do nome do tipo de lá. `np.int64` faz conta de inteiro, e
+  `given typeof(x) is "Integer"` seria falso para um valor que soma,
+  divide e compara como um.
+
 ### Corrigido
+
+- **Um erro dentro de `parallel` ou `thread` era engolido.** Os dois
+  faziam `except Exception` e imprimiam `[Parallel Error] …` ou
+  `[Thread Error] …` — uma linha sem trecho de código nem pilha — e o
+  programa **seguia**. O código de saída era **0**, e `monitor/handle` não
+  conseguia pegar o erro. Um CI rodando o arquivo passava verde com metade
+  do trabalho perdida.
+
+  `parallel` é estruturado, então o erro tem para onde voltar: ele espera
+  **todas** as instruções e levanta o primeiro erro na linha do bloco, com
+  os demais em `.outros`, na **ordem das instruções**. `handle` agora o
+  pega. `thread:` não espera, então o erro é **desenhado na hora** na saída
+  de erro e o programa termina com código diferente de zero. Saíram junto o
+  `join(timeout=30)`, que **abandonava** as threads depois de 30 s, e o
+  traceback do Python que `halt`/`skip`/`yield` produziam dentro de uma
+  thread.
 
 - **`cbrt` de um número negativo devolvia um complexo.** `cbrt(-8)` dava
   `(1.0000000000000002+1.7320508075688772j)` em vez de `-2`, porque
@@ -137,8 +186,6 @@ cada número significa, e o que pode quebrar entre versões, está em
   para o tema do DataForge, e escolher o idioma das mensagens — que passa
   por `DF_IDIOMA` em tudo o que a extensão roda, para o sublinhado no
   editor e a saída do terminal não falarem idiomas diferentes.
-
-### Corrigido
 
 - **O hover de embutida mostrava o invólucro, não a função.** As 228
   embutidas são `BuiltinFunction`, e o cartão exibia `len(*args, **kwargs)`
@@ -200,41 +247,6 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 - **Compilação para fechamentos** — a árvore é percorrida uma vez e vira
   funções Python. De 1,23× a 1,80× conforme a carga, medido.
-
-### Mudado
-
-- **`void` não vira mais texto.** `"Olá, " + nome`, com `nome` valendo
-  `void`, devolvia `"Olá, void"` — a palavra `void` impressa onde devia
-  ir o nome, e sem nada denunciando. É o `"undefined"` do JavaScript, e
-  era a última armadilha de corrupção silenciosa que nem o `check` nem o
-  `lint` mencionavam. Agora é erro, e o `check` o acusa quando consegue
-  provar que o lado é `Void` (calando quando não consegue, como sempre).
-  **Número, booleano e coleção continuam coagindo** — ali os dois lados
-  existem, e o texto é o que quem escreveu quis dizer. As duas saídas:
-  `nome ?? ""` para dar um padrão, ou `$"Olá, {nome}"`, que é um pedido
-  explícito e **continua desenhando `void`**. A coerção inteira passou a
-  estar documentada na [§2.3 da referência](doc/REFERENCIA.md), onde
-  antes `+` aparecia só como "soma".
-  Nos 369 arquivos `.df` do repositório isto acertou **uma** linha, num
-  exemplo que demonstrava imprimir cada tipo.
-
-- **`frame`, `train` e `predict` fazem alguma coisa.** As três devolviam
-  um vault com `__type__` e paravam ali. Agora `frame` devolve o Frame
-  do `Arcane.Analytics` e `train`/`predict` chamam o `Arcane.Cortex`.
-  **Se você dependia do vault com `__type__`, isso mudou** — mas ele não
-  fazia nada, então não havia o que depender.
-
-- **`async`/`await` é concorrente de verdade.** A palavra era aceita,
-  guardada e nunca lida: chamar uma ação `async` não deixava nada mais
-  rápido. Agora a chamada começa o trabalho numa thread e `await`
-  espera. Seis esperas de 200 ms custam 200 ms, não 1,2 s.
-
-- **`typeof` de um número de biblioteca** responde `Integer`/`Float` em
-  vez do nome do tipo de lá. `np.int64` faz conta de inteiro, e
-  `given typeof(x) is "Integer"` seria falso para um valor que soma,
-  divide e compara como um.
-
-### Corrigido
 
 - **A metade das mensagens do CPython passava sem tradução.** A regra é
   que nenhuma mensagem cita tipo do Python — `int`, `str`, `dict` e
