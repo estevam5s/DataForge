@@ -575,6 +575,16 @@ defer:
 Agenda o bloco para rodar na saída da ação, em ordem LIFO — inclusive quando a
 ação sai por erro, que é o ponto de um `defer`.
 
+**Onde ele é escrito não muda quando roda.** Um `defer` dentro de um `cycle`,
+de um `persist` ou de um `given` roda na saída da **ação**, e não no fim do
+bloco. No topo do programa, roda no fim do programa; dentro de um `thread:` ou
+de uma tarefa de `parallel`, ao fim daquele trabalho — é onde o recurso deixa
+de ser usado.
+
+O bloco roda no escopo em que foi escrito, e isso decide o que ele vê: o `i` de
+um `cycle` é uma variável **por volta**, e cada `defer` vê o seu; o `n` de um
+`persist` é uma variável só, que o corpo muda, e todos veem o valor final.
+
 Um erro **dentro** de um `defer` não é descartado. Todos os `defer` rodam mesmo
 que um falhe, e depois:
 

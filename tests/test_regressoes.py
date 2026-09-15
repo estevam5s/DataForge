@@ -6961,3 +6961,122 @@ def test_os_metodos_embutidos_moram_no_modulo():
     # enum e de stream continuam locais: elas capturam 'self'.
     montadas = re.findall(r"(\w+_methods) = \{", fonte)
     assert montadas == ["enum_methods", "stream_methods"], montadas
+
+
+# ─── Onde um 'defer' roda ──────────────────────────────────
+# Ele se registrava no escopo em que APARECE, e só o escopo da ação era
+# consultado na saída. 'given' e 'monitor' funcionavam por acidente — eles
+# compartilham o escopo da ação. 'cycle' e 'persist' têm escopo próprio, e
+# ali o 'defer' ia para um lugar que ninguém olhava:
+#
+#     action f():
+#         cycle i from 1 to 2:
+#             defer:
+#                 fechar(arquivo)     nunca rodava
+#
+# Fechar arquivo por volta é o uso mais óbvio de 'defer' num laço, e era
+# justamente o que não acontecia — calado.
+
+def test_defer_dentro_de_laco_roda_na_saida_da_acao():
+    assert run('rastro := []\n'
+               'action f():\n'
+               '    cycle i from 1 to 3:\n'
+               '        defer:\n'
+               '            rastro.append(i)\n'
+               '    yield 1\n'
+               'f()\nout rastro\n') == "[3, 2, 1]"
+
+
+def test_defer_dentro_de_persist_tambem_roda():
+    """E vê o valor que a variável TEM na saída, não o da volta.
+
+    A diferença com o `cycle` é real e vale saber: o `i` de um `cycle` é
+    uma variável por volta, e cada `defer` vê o seu; o `n` de um `persist`
+    é **uma** variável da ação, que o corpo muda — os dois `defer` veem o
+    valor final dela. `[0, 0]`, e não `[1, 2]`.
+    """
+    assert run('rastro := []\n'
+               'action f():\n'
+               '    n := 2\n'
+               '    persist n bigger 0:\n'
+               '        defer:\n'
+               '            rastro.append(n)\n'
+               '        n -= 1\n'
+               '    yield 1\n'
+               'f()\nout rastro\n') == "[0, 0]"
+
+
+@pytest.mark.parametrize("bloco", [
+    # given e monitor sempre funcionaram: compartilham o escopo da ação
+    'given yes:\n        defer:\n            rastro.append("x")\n',
+    'monitor:\n        defer:\n            rastro.append("x")\n',
+    # e o topo da ação, o caso de sempre
+    'defer:\n        rastro.append("x")\n',
+])
+def test_os_lugares_que_ja_funcionavam_continuam(bloco):
+    assert run(f'rastro := []\naction f():\n    {bloco}    yield 1\n'
+               'f()\nout rastro\n') == "[x]"
+
+
+def test_defer_no_topo_do_programa_roda_no_fim():
+    """Não há ação nenhuma ali, e ele nunca rodava."""
+    assert run('defer:\n    out "fechou"\nout "corpo"\n') == "corpo\nfechou"
+
+
+def test_defer_no_topo_roda_mesmo_quando_o_programa_falha():
+    """É o ponto de um 'defer'."""
+    import io
+    from contextlib import redirect_stdout
+
+    from dataforge.interpreter import Interpreter
+
+    buffer = io.StringIO()
+    interp = Interpreter()
+    with pytest.raises(DataForgeError):
+        with redirect_stdout(buffer):
+            interp.run(parse(tokenize(
+                'defer:\n    out "fechou"\ntrigger "quebrou"\n', "t.df"), "t.df"))
+    assert "fechou" in buffer.getvalue()
+
+
+def test_o_defer_do_laco_ve_o_valor_da_volta_em_que_nasceu():
+    """Ele roda no escopo onde foi ESCRITO, e não na fronteira."""
+    assert run('rastro := []\n'
+               'action f():\n'
+               '    cycle i from 1 to 2:\n'
+               '        defer:\n'
+               '            rastro.append($"volta {i}")\n'
+               '    yield 1\n'
+               'f()\nout rastro\n') == "[volta 2, volta 1]"
+
+
+def test_defer_no_laco_roda_quando_a_acao_sai_por_erro_ou_halt():
+    assert run('rastro := []\n'
+               'action f():\n'
+               '    cycle i from 1 to 5:\n'
+               '        defer:\n'
+               '            rastro.append(i)\n'
+               '        given i is 3:\n'
+               '            halt\n'
+               '    yield "ok"\n'
+               'out f(), rastro\n') == "ok [3, 2, 1]"
+
+
+def test_defer_numa_thread_roda_quando_a_thread_termina():
+    """A fronteira é onde o recurso daquele trabalho deixa de ser usado."""
+    assert run('channel c\n'
+               'thread:\n'
+               '    defer:\n'
+               '        c.send("fechou")\n'
+               '    c.send("rodou")\n'
+               'out c.receive(2000), c.receive(2000)\n') == "rodou fechou"
+
+
+def test_defer_numa_tarefa_de_parallel_roda_quando_a_tarefa_termina():
+    assert run('channel c\n'
+               'parallel:\n'
+               '    thread:\n'
+               '        defer:\n'
+               '            c.send("fechou")\n'
+               '        c.send("rodou")\n'
+               'out c.receive(2000), c.receive(2000)\n') == "rodou fechou"

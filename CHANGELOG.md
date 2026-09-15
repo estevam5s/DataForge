@@ -226,6 +226,21 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Corrigido
 
+- **Um `defer` dentro de um laço nunca rodava.** Ele se registrava no
+  escopo em que aparece, e só o escopo da **ação** era consultado na saída.
+  `given` e `monitor` funcionavam por acidente — compartilham o escopo da
+  ação; `cycle` e `persist` têm o próprio, e ali o `defer` ia para um lugar
+  que ninguém olhava. Fechar um arquivo por volta é o uso mais óbvio de
+  `defer` num laço, e era exatamente o que não acontecia, calado. No topo
+  do programa, idem: não há ação nenhuma, e ele nunca rodava.
+
+  Agora o `defer` procura a fronteira que **promete** rodá-lo: a ação, e —
+  para quem dispara trabalho — a `thread` ou a tarefa de `parallel`, que é
+  quando o recurso daquele trabalho deixa de ser usado; no topo, o fim do
+  programa, inclusive quando ele sai por erro. O bloco continua rodando no
+  escopo em que foi escrito, então o `defer` de um `cycle` vê o `i` da volta
+  em que nasceu.
+
 - **Um estágio de pipeline com ação nomeada não conferia nada.**
   `["x"] >> morph dobrar`, com `action dobrar(n: Integer) -> Integer`,
   devolvia `[xx]` em silêncio: era um caminho paralelo à chamada normal, sem

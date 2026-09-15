@@ -279,6 +279,12 @@ Estas são as que mais custam tempo:
 3. **Só espaços na indentação.** Tab é `SyncError`. 4 espaços por nível.
 
 4. **`monitor` sem `handle` não engole o erro.** Ele só garante o `ensure`.
+   **`defer` roda na saída da AÇÃO, onde quer que esteja escrito** — dentro
+   de um `cycle`, de um `persist`, no topo do programa (no fim dele), ou numa
+   `thread`/tarefa de `parallel` (ao fim daquele trabalho). Ele se registrava
+   no escopo em que aparece, e só o da ação era consultado: um `defer` num
+   laço **nunca rodava**, calado, e fechar arquivo por volta é o uso mais
+   óbvio que existe.
    **Nem `defer` engole:** um erro dentro dele viaja. Se a ação já estava
    falhando, viaja o erro **original** e o do `defer` vai em `e.outros` —
    é o modelo do try-with-resources. Até a correção era descartado nos dois

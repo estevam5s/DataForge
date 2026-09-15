@@ -1624,7 +1624,12 @@ class Interpreter:
         """Execute a full program."""
         if filename:
             self.filename = filename
-        resultado = _com_pilha_propria(lambda: self._rodar(program))
+        try:
+            resultado = _com_pilha_propria(lambda: self._rodar(program))
+        finally:
+            # Os 'defer' escritos no topo rodam no fim do programa, inclusive
+            # quando ele sai por erro — que e o ponto de um 'defer'.
+            self._run_deferred(self.global_env)
         self._cobrar_falhas_de_thread()
         return resultado
 
@@ -5329,7 +5334,10 @@ class Interpreter:
 
         def thread_func():
             try:
-                self.exec_block(node.body, thread_env)
+                try:
+                    self.exec_block(node.body, thread_env)
+                finally:
+                    self._run_deferred(thread_env)
             except ControlSignal as sinal:
                 self._registrar_falha_de_thread(RuntimeError_(
                     f"'{self._palavra_do_sinal(sinal)}' cannot leave a "
@@ -5542,12 +5550,49 @@ class Interpreter:
         except (DataForgeError, Exception):           # noqa: BLE001
             pass
 
+    #: Os escopos que RODAM os 'defer' registrados dentro deles.
+    #:
+    #: Um 'defer' se registrava no escopo onde aparece, e so o escopo da
+    #: ACAO era consultado na saida. O resultado, calado:
+    #:
+    #:     action f():
+    #:         cycle i from 1 to 2:
+    #:             defer:
+    #:                 fechar(arquivo)     nunca rodava
+    #:
+    #: 'given' e 'monitor' funcionavam por acidente — eles compartilham o
+    #: escopo da acao. 'cycle' e 'persist' tem escopo proprio, e ali o
+    #: 'defer' ia para um lugar que ninguem olhava. No topo do programa,
+    #: idem: nao ha acao nenhuma, e ele nunca rodava.
+    #:
+    #: A fronteira e onde o 'defer' PROMETE rodar: a saida da acao, e —
+    #: para quem dispara trabalho — a saida da thread ou da tarefa, que
+    #: e quando o recurso daquele trabalho deixa de ser usado.
+    _FRONTEIRAS_DE_DEFER = ("<action ", "<thread>", "<parallel>", "<global>")
+
+    def _escopo_do_defer(self, env):
+        """O escopo que vai rodar este 'defer'."""
+        atual = env
+        while atual is not None:
+            nome = getattr(atual, "name", "") or ""
+            if nome.startswith(self._FRONTEIRAS_DE_DEFER):
+                return atual
+            if atual.parent is None:
+                return atual          # o global, com qualquer nome
+            atual = atual.parent
+        return env
+
     def exec_DeferStatement(self, node: ast.DeferStatement, env):
-        """Defer: schedule block to run at scope exit.
-        Stores the deferred block in the environment's _deferred list."""
-        if env._deferred is None:
-            env._deferred = []
-        env._deferred.append((node.body, env))
+        """Agenda o bloco para a saida da acao (ou da thread, ou do programa).
+
+        O bloco roda no escopo em que foi ESCRITO — e por isso o par
+        guardado leva 'env', e nao a fronteira: um 'defer' dentro de um
+        laco precisa ver o 'i' daquela volta.
+        """
+        alvo = self._escopo_do_defer(env)
+        if alvo._deferred is None:
+            alvo._deferred = []
+        alvo._deferred.append((node.body, env))
 
     def exec_ObserveBlock(self, node: ast.ObserveBlock, env):
         """observe var in fonte: reage a cada item que chega.
@@ -5636,17 +5681,10 @@ class Interpreter:
 
         def rodar(stmt, escopo, ordem):
             try:
-                if isinstance(stmt, ast.ThreadBlock):
-                    # Um 'thread:' DENTRO de 'parallel' e uma TAREFA: o
-                    # bloco inteiro roda nesta thread, em sequencia, e e
-                    # esperado como as outras. Sem isto, cada instrucao
-                    # era uma thread, e duas coisas que precisam acontecer
-                    # em ordem ('conectar' e depois 'baixar') nao tinham
-                    # como ficar juntas. Fora do 'parallel', 'thread:'
-                    # continua disparando e seguindo.
-                    self.exec_block(stmt.body, escopo)
-                else:
-                    self.execute(stmt, escopo)
+                try:
+                    _rodar_tarefa(stmt, escopo)
+                finally:
+                    self._run_deferred(escopo)
             except DataForgeError as erro:
                 self._attach_stack(erro)
                 with trava:
@@ -5670,6 +5708,16 @@ class Interpreter:
                 self._attach_stack(erro)
                 with trava:
                     falhas.append((ordem, erro))
+
+        def _rodar_tarefa(stmt, escopo):
+            if isinstance(stmt, ast.ThreadBlock):
+                # Um 'thread:' DENTRO de 'parallel' e uma TAREFA: o bloco
+                # inteiro roda nesta thread, em sequencia, e e esperado como
+                # as outras. Fora do 'parallel', 'thread:' continua
+                # disparando e seguindo.
+                self.exec_block(stmt.body, escopo)
+            else:
+                self.execute(stmt, escopo)
 
         for ordem, stmt in enumerate(node.blocks):
             t = threading.Thread(
