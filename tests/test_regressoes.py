@@ -6594,3 +6594,52 @@ def test_a_mensagem_sobre_um_erro_capturado_nao_diz_DFError():
         run('monitor:\n    trigger "x"\nhandle Error as e:\n    out e.zzz\n')
     assert "DFError" not in capturado.value.message
     assert "caught error" in capturado.value.message
+
+
+# ─── O que falha sem derrubar tambem nao some ──────────────
+# Três lugares que, com razão, não podem derrubar o que está em volta — e
+# que, sem razão, descartavam o erro em silêncio.
+
+def test_repetir_a_cada_conta_e_avisa_a_falha_sem_parar(capsys):
+    """Uma tarefa periódica segue depois de uma falha; ela só não some.
+
+    Cada mensagem DIFERENTE é avisada uma vez: a mesma falha a cada 20 ms
+    inundaria o terminal e esconderia o resto.
+    """
+    saida = run('adopt Arcane.Concurrent as P\n'
+                'action tarefa():\n'
+                '    trigger "o disco encheu"\n'
+                'r := P.repetir_a_cada(tarefa, 0.02, 5)\n'
+                'sleep(500)\n'
+                'out r["vezes"](), r["falhas"](), r["ultimo_erro"]()\n')
+    assert saida == "5 5 o disco encheu"
+    avisos = capsys.readouterr().err
+    assert avisos.count("o disco encheu") == 1, avisos
+
+
+def test_o_after_do_kiln_que_falha_e_avisado(capsys):
+    """A resposta segue — e um 'after' quebrado deixa de parecer um que
+    funciona, sem o cabeçalho e sem motivo."""
+    saida = run('adopt Kiln\n'
+                'action carimbar(req, res):\n'
+                '    trigger "nao consegui carimbar"\n'
+                'server api on 0:\n'
+                '    after carimbar\n'
+                '    route GET "/":\n'
+                '        respond "ok"\n'
+                'r := Kiln.test(api, "GET", "/")\n'
+                'out r["status"]\n')
+    assert saida.splitlines()[-1] == "200"
+    assert "nao consegui carimbar" in saida
+
+
+def test_o_tratador_de_erro_do_kiln_que_falha_e_avisado():
+    saida = run('adopt Kiln\n'
+                'server api on 0:\n'
+                '    route GET "/":\n'
+                '        respond "ok"\n'
+                'Kiln.on_error(api, 404, lambda req => 1 / 0)\n'
+                'r := Kiln.test(api, "GET", "/nada")\n'
+                'out r["status"]\n')
+    assert saida.splitlines()[-1] == "404", "o padrao continua respondendo"
+    assert "tratador de 404 falhou" in saida

@@ -321,8 +321,9 @@ class _Handler(BaseHTTPRequestHandler):
                 trocada = depois(req, resp)
                 if isinstance(trocada, dict) and trocada.get("__kiln__"):
                     resp = trocada
-            except Exception:
-                pass        # middleware de saida nao pode derrubar a resposta
+            except Exception as falha:                     # noqa: BLE001
+                # nao derruba a resposta — mas nao some mais
+                _avisar_falha(req, "o 'after'", falha)
 
         resp["headers"].setdefault(
             "X-Response-Time",
@@ -519,13 +520,28 @@ def _normalizar(saida):
     return resposta(saida)
 
 
+def _avisar_falha(req, onde, erro):
+    """Uma parte do Kiln que falhou e NAO pode derrubar a resposta.
+
+    O 'after' e o tratador de erro personalizado rodam quando a resposta
+    ja esta decidida, e deixar um erro deles virar outro 500 esconderia a
+    resposta certa. Isso continua. O que mudou e que o erro era descartado
+    em silencio — 'except Exception: pass' —, e um 'after' que nunca
+    funcionava parecia um 'after' que funcionava: o cabecalho que ele
+    punha simplesmente nao aparecia, e nada dizia por que.
+    """
+    mensagem = getattr(erro, "message", None) or str(erro)
+    print(f"\033[1;33m[kiln] {req.get('method', '?')} {req.get('path', '?')}: "
+          f"{onde} falhou, e a resposta seguiu sem ele:\033[0m {mensagem}")
+
+
 def _erro(app, req, status, mensagem, cabecalhos=None):
     tratador = app.tratadores.get(status)
     if tratador is not None:
         try:
             return _normalizar(tratador(req))
-        except Exception:
-            pass
+        except Exception as falha:                         # noqa: BLE001
+            _avisar_falha(req, f"o tratador de {status}", falha)
     corpo = {"erro": mensagem, "status": status}
     return resposta(corpo, status, cabecalhos)
 
@@ -543,8 +559,8 @@ def _resposta_de_erro(app, req, erro):
         try:
             req["state"]["erro"] = mensagem
             return _normalizar(tratador(req))
-        except Exception:
-            pass
+        except Exception as falha:                         # noqa: BLE001
+            _avisar_falha(req, "o tratador de 500", falha)
 
     corpo = {"erro": "erro interno", "status": 500}
     if app.config.get("debug"):
@@ -1746,8 +1762,8 @@ class ArcaneKiln:
                 trocada = depois(req, resp)
                 if isinstance(trocada, dict) and trocada.get("__kiln__"):
                     resp = trocada
-            except Exception:
-                pass        # middleware de saida nao derruba a resposta
+            except Exception as falha:                     # noqa: BLE001
+                _avisar_falha(req, "o 'after'", falha)
         corpo = resp["body"]
         # Um arquivo servido do disco volta em bytes. Num teste isso
         # obriga a decodificar a mao toda vez; quando o tipo e textual,

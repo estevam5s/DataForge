@@ -143,6 +143,17 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Corrigido
 
+- **Três lugares que não podem derrubar o que está em volta deixaram de
+  descartar o erro.** O `after` do Kiln e o tratador de erro personalizado
+  (`Kiln.on_error`) rodam com a resposta já decidida, e continuam sem
+  derrubá-la — mas um `after` quebrado parecia um que funcionava, sem o
+  cabeçalho e sem motivo; agora ele avisa no terminal. E
+  `P.repetir_a_cada` fazia `except BaseException: pass` a cada volta, para
+  sempre: uma limpeza agendada que falhava toda vez parecia uma que rodava.
+  A repetição segue depois de uma falha, avisa **uma vez por mensagem
+  diferente** (a mesma falha a cada 100 ms inundaria o terminal), e o vault
+  devolvido ganhou `falhas()` e `ultimo_erro()` para o programa perguntar.
+
 - **Segurança: o middleware do `Arcane.Http` deixava passar pedido
   recusado.** Um middleware que **levantava** era pulado
   (`except Exception: pass`) e o handler rodava. Com uma autenticação que

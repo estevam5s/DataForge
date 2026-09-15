@@ -812,7 +812,8 @@ class ArcaneConcurrent(dict):
         empilham.
         """
         parar = threading.Event()
-        contagem = {"n": 0}
+        contagem = {"n": 0, "falhas": 0, "ultimo_erro": None}
+        ja_avisados = set()
 
         def laco():
             while not parar.is_set():
@@ -820,8 +821,26 @@ class ArcaneConcurrent(dict):
                     return
                 try:
                     acao()
-                except BaseException:               # noqa: BLE001
-                    pass
+                except Exception as erro:             # noqa: BLE001
+                    # A repeticao SEGUE: uma tarefa periodica que morre na
+                    # primeira falha de rede nao serve para nada. O que
+                    # mudou e que o erro era 'except BaseException: pass'
+                    # — uma limpeza agendada que falhava toda volta
+                    # parecia uma limpeza que rodava.
+                    #
+                    # Cada mensagem DIFERENTE e avisada uma vez: a mesma
+                    # falha a cada 100 ms inundaria o terminal e esconderia
+                    # o resto. A contagem e o ultimo erro ficam no vault
+                    # devolvido, para o programa perguntar.
+                    mensagem = getattr(erro, "message", None) or str(erro)
+                    contagem["falhas"] += 1
+                    contagem["ultimo_erro"] = mensagem
+                    if mensagem not in ja_avisados:
+                        ja_avisados.add(mensagem)
+                        import sys
+                        print(f"[repetir_a_cada] a volta {contagem['n'] + 1} "
+                              f"falhou, e a repeticao segue: {mensagem}",
+                              file=sys.stderr, flush=True)
                 contagem["n"] += 1
                 parar.wait(segundos)
 
@@ -829,6 +848,8 @@ class ArcaneConcurrent(dict):
         t.start()
         return {"parar": lambda: (parar.set(), True)[1],
                 "vezes": lambda: contagem["n"],
+                "falhas": lambda: contagem["falhas"],
+                "ultimo_erro": lambda: contagem["ultimo_erro"],
                 "viva": lambda: t.is_alive()}
 
 
