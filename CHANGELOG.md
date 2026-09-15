@@ -16,6 +16,25 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **O contrato de trait é cobrado antes de rodar.** Era o item de topo do
+  roadmap. O interpretador já o conferia no lugar certo — na **declaração**
+  do blueprint, e não na chamada do método —, mas só em execução: um
+  blueprint que esquecia um método do trait passava limpo no `check` e
+  derrubava o programa ao ser declarado. Num projeto grande, o arquivo que o
+  declara pode ser importado só num ramo, e aí o erro chega em produção.
+
+  A conferência estática precisou de um conjunto de membros **diferente** do
+  que já existia. Para `p.metodo`, o método abstrato de um trait conta: o
+  trait promete que o membro existe, e quem escreve pode chamá-lo. Para o
+  contrato, contar a promessa como cumprimento faz a regra aprovar
+  exatamente o que ela deveria recusar — e foi o primeiro jeito que
+  escrevi, com o teste do blueprint incompleto passando. Daí
+  `_membros_implementados` ao lado de `_membros_com_heranca`.
+
+  Cala nos três casos legítimos: o método veio da mãe, o blueprint é
+  `abstract` (promete e não entrega de propósito), ou o trait vem de outro
+  arquivo e não se sabe o que ele exige.
+
 - **O analisador prova mais quatro coisas antes de rodar.** Medido numa
   bateria de dez erros que um analisador maduro pega, o `check` pegava
   **três**; hoje pega nove, e o `lint` o décimo. Os quatro que faltavam

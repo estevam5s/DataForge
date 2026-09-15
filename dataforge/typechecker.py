@@ -205,6 +205,9 @@ class TypeChecker:
         self.record_methods = {}  # nome -> set(metodos)
         #: nome -> ('Cluster', tamanho) | ('Vault', {chaves})
         self._literais_fixos = {}
+        #: trait -> os metodos que ele EXIGE (declarados sem corpo).
+        #: Um metodo com corpo e implementacao padrao, e nao exigencia.
+        self.trait_exigidos = {}
         #: Dentro do lado esquerdo de um '??', onde a chave
         #: ausente e legitima — ver 'ex_CoalesceOp'.
         self._sob_coalesce = 0
@@ -561,6 +564,12 @@ class TypeChecker:
                 escopo.declare(stmt.name, "Enum", stmt.line, stmt.column)
             elif isinstance(stmt, (ast.BlueprintDeclaration, ast.TraitDeclaration)):
                 self.blueprints[stmt.name] = self._membros_de(stmt)
+                if isinstance(stmt, ast.TraitDeclaration):
+                    # Sem corpo = exigencia; com corpo = implementacao
+                    # padrao, que o blueprint herda e nao precisa escrever.
+                    self.trait_exigidos[stmt.name] = {
+                        m.name for m in stmt.methods
+                        if isinstance(m, ast.ActionDeclaration) and not m.body}
                 if isinstance(stmt, ast.BlueprintDeclaration):
                     self.maes[stmt.name] = [
                         p if isinstance(p, str) else getattr(p, "name", "")
@@ -692,6 +701,28 @@ class TypeChecker:
         for mae in self.maes.get(nome, ()):
             membros |= self._membros_com_heranca(mae, vistos)
         return membros
+
+    def _membros_implementados(self, nome, vistos=None):
+        """Os membros que existem DE FATO na linhagem.
+
+        Diferente de `_membros_com_heranca` num ponto só, e o ponto é
+        tudo: o método abstrato de um trait **não** conta. Para
+        `p.desserializar` ele conta — o trait promete que o membro existe,
+        e quem escreve pode chamá-lo. Para o contrato, contar a promessa
+        como cumprimento faz a conferência aprovar exatamente o que ela
+        deveria recusar, e foi o primeiro jeito que escrevi.
+        """
+        vistos = vistos or set()
+        if nome in vistos or nome not in self.blueprints:
+            return set()
+        vistos.add(nome)
+
+        proprios = set(self.blueprints[nome])
+        # Num trait, o que não tem corpo é exigência, e não implementação.
+        proprios -= self.trait_exigidos.get(nome, set())
+        for mae in self.maes.get(nome, ()):
+            proprios |= self._membros_implementados(mae, vistos)
+        return proprios
 
     def _blueprint_e_fechado(self, nome, vistos=None):
         """Dá para afirmar que este blueprint não ganha membro em tempo de execução?
@@ -1691,7 +1722,52 @@ class TypeChecker:
         finally:
             self._em_membro = anterior
             self._genericos_do_blueprint = genericos_antes
+        self._conferir_contrato_de_trait(node)
         return False
+
+    def _conferir_contrato_de_trait(self, node):
+        """Um blueprint concreto implementa tudo o que prometeu.
+
+        O interpretador já cobrava isto, e cobrava no lugar certo — na
+        **declaração**, não na chamada. Mas cobrava em **execução**: um
+        blueprint que esquece um método do trait passava no `check` e
+        derrubava o programa ao ser declarado. Num projeto grande, o
+        arquivo que declara o blueprint pode ser importado só num ramo, e
+        aí o erro chega em produção.
+
+        Cala pelas mesmas razões de sempre: um blueprint `abstract`
+        promete e não entrega de propósito, um trait que não vimos pode
+        exigir qualquer coisa, e uma linhagem aberta pode trazer o método
+        de onde não estamos olhando.
+        """
+        if getattr(node, "is_abstract", False):
+            return
+        traits = [t for t in (getattr(node, "traits", None) or [])]
+        if not traits:
+            return
+        if not self._blueprint_e_fechado(node.name):
+            return
+
+        membros = self._membros_implementados(node.name)
+        faltando = {}
+        for trait in traits:
+            exigidos = self.trait_exigidos.get(trait)
+            if exigidos is None:
+                return        # trait de outro arquivo: nao sei o que exige
+            for metodo in sorted(exigidos):
+                if metodo not in membros:
+                    faltando.setdefault(metodo, trait)
+
+        if not faltando:
+            return
+        lista = ", ".join(f"{m}() (de '{t}')" for m, t in sorted(faltando.items()))
+        plural = "methods" if len(faltando) > 1 else "method"
+        self.error(
+            f"Blueprint '{node.name}' does not implement "
+            f"{len(faltando)} trait {plural}: {lista}", node,
+            f"Write {'them' if len(faltando) > 1 else 'it'} in "
+            f"'{node.name}', or declare the blueprint 'abstract'",
+            "contrato-de-trait")
 
     def st_TraitDeclaration(self, node, escopo):
         interno = Scope(escopo, "trait")

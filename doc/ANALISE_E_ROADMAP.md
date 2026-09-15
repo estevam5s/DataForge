@@ -609,10 +609,19 @@ O que resta, em ordem de impacto.
 
 ### 4.1 — Confiança
 
-- **Verificação de exaustividade** em `match` sobre enum: avisar quando um membro
-  ficou de fora. É o item de melhor relação custo/benefício que sobrou.
-- **Contrato de trait**: falhar na declaração quando o blueprint não implementa
-  os métodos do trait, em vez de só na chamada.
+- ~~**Verificação de exaustividade** em `match` sobre enum~~ — **feito**. O
+  `check` avisa quando um membro fica de fora, e nomeia qual.
+- ~~**Contrato de trait**~~ — **feito, e nas duas metades**. O interpretador
+  já cobrava na **declaração** (não na chamada), mas só em execução: um
+  blueprint que esquecia um método do trait passava no `check` e derrubava o
+  programa ao ser declarado — num projeto grande, o arquivo pode ser
+  importado só num ramo, e aí o erro chega em produção.
+  A conferência estática precisou de um conjunto de membros **diferente** do
+  que já existia: para `p.metodo` o método abstrato de um trait conta (o
+  trait promete que o membro existe, e quem escreve pode chamá-lo), e para o
+  contrato contar a promessa como cumprimento faz a regra aprovar
+  exatamente o que ela deveria recusar. Daí `_membros_implementados` ao lado
+  de `_membros_com_heranca`.
 - **Generics** — `Cluster<T>`, `Vault<K,V>`, ações genéricas.
 
 ### 4.2 — Ferramental

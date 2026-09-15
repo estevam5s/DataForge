@@ -6246,3 +6246,72 @@ def test_o_tipo_declarado_de_uma_acao_decorada_nao_vale():
     avisos = [d for d in check_program(parse(tokenize(fonte, "t.df"), "t.df"))
               if d.code == "igualdade-impossivel"]
     assert not avisos, [d.message for d in avisos]
+
+
+# ─── O contrato de trait, antes de rodar ────────────────────
+# O interpretador já cobrava isto, e no lugar certo — na DECLARAÇÃO, não
+# na chamada. Mas cobrava em execução: um blueprint que esquece um método
+# do trait passava no 'check' e derrubava o programa ao ser declarado. Num
+# projeto grande o arquivo pode ser importado só num ramo, e aí o erro
+# chega em produção. Era o item de topo do roadmap.
+
+_TRAIT = ('trait S:\n'
+          '    action obrigatorio()\n'
+          '    action com_padrao():\n'
+          '        yield "padrao"\n')
+
+
+def test_o_metodo_do_trait_que_falta_e_acusado_antes_de_rodar():
+    erros = _erros_de(_TRAIT + 'blueprint A(x) with S:\n    yield_nada := 1\n')
+    assert len(erros) == 1, [d.message for d in erros]
+    assert erros[0].code == "contrato-de-trait"
+    assert "obrigatorio" in erros[0].message
+    # O método COM corpo é implementação padrão, e não exigência.
+    assert "com_padrao" not in erros[0].message
+
+
+@pytest.mark.parametrize("corpo", [
+    # implementa
+    'blueprint A(x) with S:\n    action obrigatorio():\n        yield 1\n',
+    # herda a implementacao da mae
+    ('blueprint Base:\n    action obrigatorio():\n        yield 2\n'
+     'blueprint B extends Base with S:\n    action outro():\n        yield 3\n'),
+    # 'abstract' promete e nao entrega, de proposito
+    'abstract blueprint C with S:\n    action parcial():\n        yield 4\n',
+])
+def test_o_contrato_cala_quando_esta_cumprido(corpo):
+    erros = [d for d in _erros_de(_TRAIT + corpo)
+             if d.code == "contrato-de-trait"]
+    assert not erros, [d.message for d in erros]
+
+
+def test_a_promessa_do_trait_nao_conta_como_cumprimento():
+    """A diferença entre `_membros_com_heranca` e `_membros_implementados`.
+
+    Para `p.desserializar` o método abstrato do trait CONTA — o trait
+    promete que o membro existe, e quem escreve pode chamá-lo. Para o
+    contrato, contar a promessa como cumprimento faz a conferência
+    aprovar exatamente o que ela deveria recusar; foi o primeiro jeito
+    que escrevi, e o teste de um blueprint incompleto passava.
+    """
+    from dataforge.typechecker import TypeChecker
+
+    fonte = _TRAIT + 'blueprint A(x) with S:\n    action outro():\n        yield 1\n'
+    t = TypeChecker(filename="t.df")
+    t.check(parse(tokenize(fonte, "t.df"), "t.df"))
+    assert "obrigatorio" in t._membros_com_heranca("A")
+    assert "obrigatorio" not in t._membros_implementados("A")
+
+
+def test_o_check_e_a_execucao_concordam_sobre_o_contrato():
+    """As duas metades do mesmo erro não podem discordar.
+
+    Antes, o `check` aprovava e a execução recusava. Um analisador que
+    diverge do runtime é pior que um que cala: ele afirma o contrário.
+    """
+    fonte = _TRAIT + 'blueprint A(x) with S:\n    action outro():\n        yield 1\n'
+    erros = [d for d in _erros_de(fonte) if d.code == "contrato-de-trait"]
+    assert erros, "o check aprovou"
+    with pytest.raises(DataForgeError) as capturado:
+        run(fonte)
+    assert "does not implement" in capturado.value.message
