@@ -147,7 +147,7 @@ class Scope:
 
 class ActionSignature:
     __slots__ = ('name', 'params', 'defaults', 'param_types', 'return_type',
-                 'is_generator', 'line')
+                 'is_generator', 'line', 'type_params', 'type_bounds')
 
     def __init__(self, decl):
         self.name = decl.name
@@ -170,6 +170,18 @@ class ActionSignature:
         # respostas possiveis, o analisador cala.
         if getattr(decl, 'decorators', None):
             self.return_type = UNKNOWN
+        #: '<T>' e '<T extends X>'. Um 'T' NAO e um tipo: e um lugar para
+        #: um. Tratado como nome de tipo, 'eco<T>(x: T)' chamado com um
+        #: texto era acusado de "espera T, e recebeu String" — em TODA
+        #: chamada de todo generico com parametro do tipo T.
+        self.type_params = set(getattr(decl, 'type_params', None) or ())
+        self.type_bounds = dict(getattr(decl, 'type_bounds', None) or {})
+        if self.return_type in self.type_params:
+            # 'primeiro<T>(l) -> T' devolve o que entrou, e o analisador
+            # nao acompanha qual T foi: o limite, se houver, e o que se
+            # sabe com certeza; sem limite, nada.
+            self.return_type = canonical(
+                self.type_bounds.get(self.return_type) or UNKNOWN)
         self.is_generator = getattr(decl, 'is_generator', False)
         self.line = decl.line
 
@@ -237,6 +249,7 @@ class TypeChecker:
         # pode usa-los como tipo; fora dali, eles nao existem.
         self._genericos_do_blueprint = set()
         self._genericos_da_acao = set()
+        self._limites_do_blueprint = {}
         self._action_depth = 0
         self._loop_depth = 0
         self._current_return = None
@@ -783,7 +796,7 @@ class TypeChecker:
                 self.error(
                     f"Unknown type '{node.declared_type}'", node,
                     self._hint_tipo(node.declared_type), "unknown-type")
-            elif not compatible(declarado, tipo):
+            elif not self._compativel(declarado, tipo):
                 self.error(
                     f"Declared as {declarado} but the value is {tipo}", node,
                     f"Change the annotation to {tipo} or fix the value",
@@ -844,7 +857,7 @@ class TypeChecker:
         elif (self._current_return
               and self._current_return not in (UNKNOWN, ANY)
               and self._current_return not in self._genericos_em_escopo()):
-            if not compatible(self._current_return, tipo):
+            if not self._compativel(self._current_return, tipo):
                 self.error(
                     f"Action declares '-> {self._current_return}' but yields {tipo}",
                     node,
@@ -1648,9 +1661,23 @@ class TypeChecker:
         escopo.declare(node.name, "Action", node.line, node.column)
 
         interno = Scope(escopo, "action")
+        limites = {**self._limites_do_blueprint,
+                   **(getattr(node, "type_bounds", None) or {})}
+        genericos_aqui = (set(getattr(node, "type_params", None) or [])
+                          | self._genericos_do_blueprint)
         for param in node.params:
-            interno.declare(param, canonical(assinatura.param_types.get(param, UNKNOWN)),
-                            node.line, node.column)
+            tipo = canonical(assinatura.param_types.get(param, UNKNOWN))
+            if tipo in genericos_aqui:
+                # Dentro do corpo, um 'T extends Number' E um Number — e o
+                # que permite 'a bigger b', que era acusado de "Cannot
+                # order T against T". Sem limite, nao se sabe nada.
+                tipo = canonical(limites.get(tipo) or UNKNOWN)
+            interno.declare(param, tipo, node.line, node.column)
+
+        for nome_t, limite in (getattr(node, "type_bounds", None) or {}).items():
+            if not self._e_concreto(canonical(limite)):
+                self.error(f"Unknown type '{limite}' in '<{nome_t} extends {limite}>'",
+                           node, self._hint_tipo(limite), "unknown-type")
 
         # Os parametros de tipo ('<T>') valem como nome de tipo dentro
         # desta acao — e so dentro dela. Sem isto, 'action primeiro<T>(l)
@@ -1669,6 +1696,9 @@ class TypeChecker:
         retorno_anterior = self._current_return
         genericos_anteriores = self._genericos_da_acao
         self._current_return = assinatura.return_type
+        if canonical(getattr(node, "return_type", "") or "") in self._genericos_do_blueprint:
+            self._current_return = canonical(
+                limites.get(canonical(node.return_type)) or UNKNOWN)
         self._genericos_da_acao = set(getattr(node, "type_params", None) or [])
         self._action_depth += 1
         self._hoist(node.body, interno)
@@ -1713,15 +1743,22 @@ class TypeChecker:
         self._hoist(node.body, interno, registrar_acoes=False)
         anterior = self._em_membro
         genericos_antes = self._genericos_do_blueprint
+        limites_antes = self._limites_do_blueprint
         self._em_membro = True
         # Os '<T>' deste blueprint valem nos metodos dele — e so ali.
         self._genericos_do_blueprint = set(
             getattr(node, "type_params", None) or [])
+        self._limites_do_blueprint = dict(getattr(node, "type_bounds", None) or {})
+        for nome_t, limite in self._limites_do_blueprint.items():
+            if not self._e_concreto(canonical(limite)):
+                self.error(f"Unknown type '{limite}' in '<{nome_t} extends {limite}>'",
+                           node, self._hint_tipo(limite), "unknown-type")
         try:
             self.visit_block(node.body, interno)
         finally:
             self._em_membro = anterior
             self._genericos_do_blueprint = genericos_antes
+            self._limites_do_blueprint = limites_antes
         self._conferir_contrato_de_trait(node)
         return False
 
@@ -1793,7 +1830,7 @@ class TypeChecker:
                            self._hint_tipo(tipo), "unknown-type")
             if padrao is not None:
                 obtido = self.infer(padrao, escopo)
-                if not compatible(alvo, obtido):
+                if not self._compativel(alvo, obtido):
                     self.error(
                         f"Default value of '{campo}' is {obtido}, expected {alvo}",
                         node, f"Use a {alvo} as the default", "type-mismatch")
@@ -2127,6 +2164,38 @@ class TypeChecker:
             return UNKNOWN
 
         return UNKNOWN
+
+    def _compativel(self, esperado, obtido):
+        """'compatible', mais a herança: a filha serve onde se espera a mãe.
+
+        A função solta compara NOMES, e por isso 'usar(b: Base)' recebendo
+        uma 'Filha' era acusado de erro — "espera Base, e recebeu Filha".
+        É polimorfismo básico, o motivo de a herança existir, e o 'check'
+        o recusava; a execução, que olha a MRO, aceitava.
+
+        Um trait adotado conta como mãe, pelo mesmo motivo: é o que um
+        parâmetro 'm: Medivel' quer dizer.
+
+        Cala quando a linhagem de 'obtido' passa por algo que este arquivo
+        não viu: a mãe de outro módulo pode herdar de 'esperado', e acusar
+        ali seria o falso alarme de sempre.
+        """
+        if compatible(esperado, obtido):
+            return True
+        if obtido not in self.blueprints:
+            return False
+        if esperado in self._linhagem(obtido):
+            return True
+        return not self._blueprint_e_fechado(obtido)
+
+    def _linhagem(self, nome, vistos=None):
+        """Todas as mães e traits de um blueprint, transitivamente."""
+        vistos = vistos if vistos is not None else set()
+        for mae in self.maes.get(nome, ()):
+            if mae not in vistos:
+                vistos.add(mae)
+                self._linhagem(mae, vistos)
+        return vistos
 
     def _overloads(self, tipo):
         """O tipo pode definir operadores próprios (add, mul, ...)?"""
@@ -2737,7 +2806,7 @@ class TypeChecker:
             if not esperado:
                 continue
             obtido = self.infer(argumento, escopo)
-            if obtido and not compatible(esperado, obtido):
+            if obtido and not self._compativel(esperado, obtido):
                 nome = membro.parametros[indice]
                 self.error(
                     f"Parameter '{nome}' of '{node.object.name}."
@@ -2753,7 +2822,7 @@ class TypeChecker:
             if not esperado:
                 continue
             obtido = self.infer(valor, escopo)
-            if obtido and not compatible(esperado, obtido):
+            if obtido and not self._compativel(esperado, obtido):
                 self.error(
                     f"Parameter '{nome}' of '{node.object.name}."
                     f"{node.method}' expects {esperado} but got {obtido}",
@@ -2876,10 +2945,20 @@ class TypeChecker:
             if indice >= len(assinatura.params):
                 break
             declarado = canonical(assinatura.param_types.get(assinatura.params[indice], UNKNOWN))
+            if declarado in assinatura.type_params:
+                limite = assinatura.type_bounds.get(declarado)
+                obtido = self.infer(arg, escopo)
+                if limite and not self._compativel(canonical(limite), obtido):
+                    self.error(
+                        f"Parameter '{assinatura.params[indice]}' of '{nome}' is a "
+                        f"{declarado}, and {declarado} extends {limite} — but got "
+                        f"{obtido}", arg,
+                        f"Pass a {limite}", "generic-bound")
+                continue
             if declarado in (UNKNOWN, ANY):
                 continue
             obtido = self.infer(arg, escopo)
-            if not compatible(declarado, obtido):
+            if not self._compativel(declarado, obtido):
                 self.error(
                     f"Parameter '{assinatura.params[indice]}' of '{nome}' expects "
                     f"{declarado} but got {obtido}", arg,
@@ -2916,7 +2995,7 @@ class TypeChecker:
             campo = list(campos)[indice]
             esperado = campos[campo]
             obtido = self.infer(arg, escopo)
-            if not compatible(esperado, obtido):
+            if not self._compativel(esperado, obtido):
                 self.error(
                     f"Field '{campo}' of record '{nome}' expects {esperado} "
                     f"but got {obtido}", arg, f"Pass a {esperado}", "field-type")

@@ -16,6 +16,13 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **Generics com limite: `<T extends X>`.** O limite pode ser tipo
+  embutido, blueprint, trait ou record, e — diferente do `<T>` solto, que
+  só documenta — é **verificado**: o `check` confere o argumento na chamada
+  (inclusive através de `adopt`), e a execução confere o valor. Dentro do
+  corpo, `T extends Number` é um `Number` para o analisador, o que permite
+  `a bigger b`.
+
 - **Breakpoint condicional, contagem e logpoint.** No editor, as três
   opções da margem — "Edit Condition", "Hit Count", "Log Message" — que o
   VS Code escondia porque o adaptador respondia que não as suportava. No
@@ -166,6 +173,20 @@ cada número significa, e o que pode quebrar entre versões, está em
   divide e compara como um.
 
 ### Corrigido
+
+- **O `check` acusava toda chamada de genérico com parâmetro `T`.**
+  `eco<T>(x: T)` chamado com um texto dava "espera T, e recebeu String" —
+  o `T` era tratado como nome de tipo. A documentação dizia que essa ação
+  aceita qualquer valor, e o analisador a contradizia.
+
+- **A filha não servia onde se espera a mãe, no `check`.** `usar(b: Base)`
+  recebendo uma `Filha` era erro. A execução aceitava; o analisador
+  comparava só nomes.
+
+- **Um trait não servia como tipo.** `tamanho(m: Medivel)` com uma instância
+  que adota `Medivel` levantava em execução, e `instanceof(x, "Medivel")` e
+  `e_um(x, "Medivel")` respondiam `no` — as três olhavam a MRO, que não
+  inclui trait.
 
 - **Três lugares que não podem derrubar o que está em volta deixaram de
   descartar o erro.** O `after` do Kiln e o tratador de erro personalizado

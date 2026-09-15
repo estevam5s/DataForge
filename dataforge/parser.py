@@ -29,6 +29,7 @@ class Parser:
         self._em_trial = 0
         #  _no_with — 'with' abre os dados do render, nao 'record with {…}'
         self._no_with = 0
+        self._ultimos_limites = {}
         #: Os erros de sintaxe ja encontrados nesta leitura.
         #:
         #: Um parser que para no primeiro obriga a
@@ -1261,6 +1262,7 @@ class Parser:
         name = self.expect(TokenType.IDENTIFIER, "Expected action name").value
         # 'action primeiro<T>(lista) -> T:' — acao generica.
         tipos = self._parse_parametros_de_tipo()
+        limites = dict(self._ultimos_limites) if tipos else {}
 
         self.expect(TokenType.LPAREN, "Expected '(' after action name")
         params, defaults, param_types = self._parse_params()
@@ -1278,7 +1280,7 @@ class Parser:
             return ast.ActionDeclaration(
                 name=name, params=params, defaults=defaults, body=[],
                 is_async=is_async, decorators=decorators or [],
-                type_params=tipos,
+                type_params=tipos, type_bounds=limites,
                 param_types=param_types, return_type=return_type,
                 is_generator=is_generator,
                 line=tok.line, column=tok.column
@@ -1293,7 +1295,7 @@ class Parser:
             return ast.ActionDeclaration(
                 name=name, params=params, defaults=defaults, body=[],
                 is_async=is_async, decorators=decorators or [],
-                type_params=tipos,
+                type_params=tipos, type_bounds=limites,
                 param_types=param_types, return_type=return_type,
                 is_generator=is_generator, is_abstract=True,
                 line=tok.line, column=tok.column
@@ -1305,7 +1307,7 @@ class Parser:
         return ast.ActionDeclaration(
             name=name, params=params, defaults=defaults, body=body,
             is_async=is_async, decorators=decorators or [],
-            type_params=tipos,
+            type_params=tipos, type_bounds=limites,
             param_types=param_types, return_type=return_type,
             is_generator=is_generator,
             line=tok.line, column=tok.column
@@ -1351,13 +1353,26 @@ class Parser:
         salvo = self.pos
         self.advance()
         tipos = []
+        limites = {}
+        self._ultimos_limites = {}
         while True:
             atual = self.current()
             if atual.type is not TokenType.IDENTIFIER or \
                     not str(atual.value or "")[:1].isupper():
                 self.pos = salvo
                 return []
-            tipos.append(self.advance().value)
+            nome = self.advance().value
+            tipos.append(nome)
+            # '<T extends Number>' — o limite. Diferente do '<T>' solto,
+            # que so documenta, um limite e VERIFICAVEL: o 'check' confere
+            # o argumento na chamada, e a execucao confere o valor.
+            if self.current().type is TokenType.EXTENDS:
+                self.advance()
+                limite = self.current()
+                if limite.type is not TokenType.IDENTIFIER:
+                    self.error(f"Expected a type after '{nome} extends'")
+                limites[nome] = self._parse_nome_de_tipo(
+                    f"Expected a type after '{nome} extends'")
             if self.match(TokenType.COMMA):
                 continue
             break
@@ -1366,6 +1381,9 @@ class Parser:
             self.pos = salvo
             return []
         self.advance()
+        # Guardado aqui, e lido LOGO depois por quem chamou: o corpo da
+        # declaracao pode ter outro generico, e ele sobrescreveria isto.
+        self._ultimos_limites = limites
         return tipos
 
     def parse_blueprint(self, abstrato: bool = False):
@@ -1378,6 +1396,7 @@ class Parser:
         tok = self.advance()  # consume 'blueprint'
         name = self.expect(TokenType.IDENTIFIER).value
         tipos = self._parse_parametros_de_tipo()
+        limites = dict(self._ultimos_limites) if tipos else {}
         parents = []
         traits = []
         constructor_params = []
@@ -1427,6 +1446,7 @@ class Parser:
             name=name, parents=parents, body=body, traits=traits,
             constructor_params=constructor_params,
             fields_decl=campos, is_abstract=abstrato, type_params=tipos,
+            type_bounds=limites,
             line=tok.line, column=tok.column
         )
 

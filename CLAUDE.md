@@ -363,10 +363,14 @@ Estas são as que mais custam tempo:
     avaliado uma vez, na declaração, e sem a cópia todas compartilhariam
     a mesma. Padrões imutáveis (número, texto) não são copiados.
 
-20. **`<T>` não é verificado em execução.** O parâmetro de tipo é aceito
-    pelo analisador e documenta a relação entre entrada e saída, mas a
-    linguagem é dinâmica: `action eco<T>(x: T) -> T` aceita qualquer
-    valor. Um tipo **concreto** continua sendo cobrado.
+20. **`<T>` solto não é verificado; `<T extends X>` é.** O parâmetro de
+    tipo sem limite documenta a relação entre entrada e saída, e
+    `action eco<T>(x: T) -> T` aceita qualquer valor. Com limite, ele é
+    cobrado nas duas metades: o `check` confere o argumento na chamada
+    (`generic-bound`), e a execução confere o valor. Dentro do corpo, um
+    `T extends Number` **é** um `Number` para o analisador — é o que deixa
+    escrever `a bigger b`. O limite pode ser tipo embutido, blueprint,
+    trait ou record, e atravessa `adopt`.
 
 21. **Um decorador que devolve `void` não substitui o alvo.** É o que
     permite `@Rota("/x")` só anotar. Se ele devolvesse `void` e isso
@@ -1553,9 +1557,9 @@ com valores, pattern matching estrutural completo, generators preguiçosos
 
 O que **ainda não existe** (não invente que existe):
 
-- **Generics com restrição** — `<T>` existe e o analisador o aceita,
-  mas não há `<T extends Comparable>`: o parâmetro de tipo documenta a
-  relação entre entrada e saída, e não é verificado em execução.
+- **Generics de coleção** — `Cluster<Integer>` e `Vault<String, Pedido>`
+  como tipo de parâmetro. `<T>` e `<T extends X>` em ações e blueprints
+  existem e são verificados; o tipo **do conteúdo** de uma coleção, não.
 - **Exaustividade além do enum** — o `match` avisa quando um membro de
   enum fica de fora, mas não confere sequências nem records.
 - **Watchpoint** — parar quando uma variável MUDA. Breakpoint condicional,

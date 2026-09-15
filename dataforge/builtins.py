@@ -137,10 +137,29 @@ def _df_linhagem(obj):
     return [bp.name for bp in blueprint.linhagem()]
 
 
+def _adota_trait(obj, nome):
+    """Algum blueprint da linhagem do objeto adota o trait com esse nome?
+
+    'linhagem' lista BLUEPRINTS, e trait nao e um: 'e_um(caixa, "Medivel")'
+    e 'instanceof(caixa, "Medivel")' respondiam 'no' para uma Caixa que
+    adota Medivel. Perguntar "isto sabe medir?" e o uso mais comum de um
+    trait, e era o que as duas funcoes respondiam errado.
+    """
+    obter_mro = getattr(obj, "get_mro", None)
+    if obter_mro is None:
+        return False
+    for bp in obter_mro():
+        for trait in (getattr(bp, "traits", None) or ()):
+            if getattr(trait, "name", trait) == nome:
+                return True
+    return False
+
+
 def _df_e_um(obj, nome):
-    """O objeto e daquele tipo, ou descende dele?"""
+    """O objeto e daquele tipo, descende dele, ou adota o trait?"""
     alvo = nome if isinstance(nome, str) else getattr(nome, "name", str(nome))
-    return alvo == _df_type(obj) or alvo in _df_linhagem(obj)
+    return (alvo == _df_type(obj) or alvo in _df_linhagem(obj)
+            or _adota_trait(obj, alvo))
 
 def _df_str(obj):
     """O valor como texto. 'void' e "void", e honra 'toString'."""
@@ -1370,10 +1389,12 @@ def _df_instanceof(instance, blueprint):
         obter_mro = getattr(instance, "get_mro", None)
         if obter_mro is None:
             return False
-        return any(getattr(bp, "name", None) == blueprint
-                   for bp in obter_mro())
+        return (any(getattr(bp, "name", None) == blueprint
+                    for bp in obter_mro())
+                or _adota_trait(instance, blueprint))
     if hasattr(instance, 'isinstance_of'):
-        return instance.isinstance_of(blueprint)
+        return (instance.isinstance_of(blueprint)
+                or _adota_trait(instance, getattr(blueprint, "name", "")))
     return False
 
 def _df_has_method(instance, name):

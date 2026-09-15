@@ -622,7 +622,9 @@ O que resta, em ordem de impacto.
   contrato contar a promessa como cumprimento faz a regra aprovar
   exatamente o que ela deveria recusar. Daí `_membros_implementados` ao lado
   de `_membros_com_heranca`.
-- **Generics** — `Cluster<T>`, `Vault<K,V>`, ações genéricas.
+- ~~**Ações e blueprints genéricos, com limite**~~ — **feito**: `<T>` e
+  `<T extends X>`, com o limite cobrado no `check` e em execução. Falta
+  `Cluster<T>` e `Vault<K,V>` como tipo de parâmetro.
 
 ### 4.2 — Ferramental
 

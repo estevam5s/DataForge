@@ -1298,11 +1298,13 @@ decl_static    = "static" identificador ":=" expressão ;
 
 decl_ação      = { "mark" "@" identificador [ "(" args ")" ] }
                  [ "async" | "stream" ] "action" identificador
-                 "(" [ params ] ")" [ "->" tipo ] ":" bloco ;
+                 [ genéricos ] "(" [ params ] ")" [ "->" tipo ] ":" bloco ;
+genéricos      = "<" genérico { "," genérico } ">" ;
+genérico       = Identificador [ "extends" tipo ] ;
 params         = param { "," param } ;
 param          = identificador [ ":" tipo ] [ ":=" expressão ] ;
 
-decl_blueprint = "blueprint" identificador [ "(" nomes ")" ]
+decl_blueprint = "blueprint" identificador [ genéricos ] [ "(" nomes ")" ]
                  [ "extends" nomes ] [ "with" nomes ] ":" bloco ;
 decl_trait     = "trait" identificador ":" bloco ;
 

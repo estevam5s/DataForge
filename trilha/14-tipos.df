@@ -127,15 +127,41 @@ assert trocou
 
 // ── 14.7 Generico ──
 //
-// '<T>' existe e o analisador o aceita. Ele NAO e verificado em
-// execucao — a linguagem e dinamica, e o parametro de tipo documenta
-// a relacao entre entrada e saida. Um tipo CONCRETO continua sendo
-// cobrado.
+// '<T>' sozinho NAO e verificado — a linguagem e dinamica, e o parametro
+// de tipo documenta a relacao entre entrada e saida.
 action primeiro<T>(itens: Cluster) -> T:
     yield itens[0]
 
 assert primeiro([1, 2, 3]) is 1
 assert primeiro(["a"]) is "a"
+
+// Com um LIMITE, ele e verificado: 'T extends Number' so aceita numero,
+// no 'check' e na execucao. Dentro do corpo, T e um Number — por isso
+// 'a bigger b' vale.
+action maior<T extends Number>(a: T, b: T) -> T:
+    yield a given a bigger b otherwise b
+
+assert maior(3, 8) is 8
+assert maior(2.5, 1) is 2.5
+
+monitor:
+    _ := maior("a", "b")    // df: permitir generic-bound
+    assert no, "nao chega aqui"
+handle Error as e:
+    assert "extends Number" in e.message
+
+// O limite pode ser um trait: "qualquer coisa que saiba se medir".
+trait Medivel:
+    action medida()
+
+blueprint Regua(cm) with Medivel:
+    action medida():
+        yield self.cm
+
+action mais_comprida<T extends Medivel>(a: T, b: T) -> T:
+    yield a given a.medida() bigger b.medida() otherwise b
+
+assert mais_comprida(spawn Regua(30), spawn Regua(15)).medida() is 30
 
 // ── 14.8 O que o 'check' pega antes de rodar ──
 //

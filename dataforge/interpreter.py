@@ -131,7 +131,7 @@ class DFAction:
 
     def __init__(self, name, params, defaults, body, closure, is_async=False,
                  param_types=None, return_type="", is_generator=False,
-                 type_params=None):
+                 type_params=None, type_bounds=None):
         self.name = name
         self.params = params
         self.defaults = defaults
@@ -144,6 +144,10 @@ class DFAction:
         # <T> de 'action primeiro<T>(l) -> T' — nomes que valem como
         # tipo dentro desta acao, e aceitam qualquer valor.
         self.type_params = tuple(type_params or ())
+        #: <T extends Number> — o limite de cada parametro de tipo. Um 'T'
+        #: com limite deixa de aceitar qualquer valor: o valor tem de
+        #: servir onde se espera o limite.
+        self.type_bounds = dict(type_bounds or {})
 
         # O corpo compilado para fechamentos, montado na primeira
         # chamada. Fica aqui e nao no no da arvore porque o
@@ -2168,7 +2172,8 @@ class Interpreter:
             name=acao.name, params=acao.params, defaults=acao.defaults,
             body=acao.body, closure=acao.closure, is_async=acao.is_async,
             param_types=acao.param_types, return_type=acao.return_type,
-            is_generator=acao.is_generator, type_params=acao.type_params)
+            is_generator=acao.is_generator, type_params=acao.type_params,
+            type_bounds=getattr(acao, 'type_bounds', None))
         ligado.arquivo = acao.arquivo
         ligado.self_do_enum = membro
         return ligado
@@ -4222,6 +4227,7 @@ class Interpreter:
             return_type=getattr(node, 'return_type', ""),
             is_generator=getattr(node, 'is_generator', False),
             type_params=getattr(node, 'type_params', None),
+            type_bounds=getattr(node, 'type_bounds', None),
         )
         env.set_local(node.name, action)
 
@@ -4425,6 +4431,10 @@ class Interpreter:
                     # metodo seria um blueprint inexistente.
                     type_params=(list(getattr(stmt, 'type_params', None) or [])
                                  + list(getattr(node, 'type_params', None) or [])),
+                    # o limite do metodo vence o do blueprint, se os dois
+                    # usarem o mesmo nome — o mais proximo manda.
+                    type_bounds={**(getattr(node, 'type_bounds', None) or {}),
+                                 **(getattr(stmt, 'type_bounds', None) or {})},
                 )
                 action.is_abstract = getattr(stmt, 'is_abstract', False)
                 action.owner = node.name
@@ -6239,7 +6249,8 @@ class Interpreter:
             self._check_type(
                 result, action.return_type,
                 f"return value of action '{action.name}'", node,
-                getattr(action, "type_params", ()))
+                getattr(action, "type_params", ()),
+                getattr(action, "type_bounds", None))
         return result
 
     def _ligar_parametros(self, action, args, kwargs, node, instance=None):
@@ -6260,7 +6271,8 @@ class Interpreter:
                 self._check_type(
                     value, declared,
                     f"parameter '{param}' of action '{action.name}'", node,
-                    getattr(action, "type_params", ()))
+                    getattr(action, "type_params", ()),
+                getattr(action, "type_bounds", None))
             call_env.set_local(param, value)
 
         if instance is not None:
@@ -6297,7 +6309,8 @@ class Interpreter:
                 self._check_type(
                     value, declared,
                     f"parameter '{param}' of action '{action.name}'", node,
-                    getattr(action, "type_params", ()))
+                    getattr(action, "type_params", ()),
+                getattr(action, "type_bounds", None))
             call_env.set_local(param, value)
 
         # Bind 'self' and 'this' for instance methods
@@ -6352,7 +6365,8 @@ class Interpreter:
             self._check_type(
                 result, action.return_type,
                 f"return value of action '{action.name}'", node,
-                getattr(action, "type_params", ()))
+                getattr(action, "type_params", ()),
+                getattr(action, "type_bounds", None))
         return result
 
     def _iniciar_tarefa(self, action, args, kwargs, node, instance):
@@ -6949,7 +6963,7 @@ class Interpreter:
         return type(value).__name__
 
     def _check_type(self, value, declared: str, what: str, node,
-                    parametros_de_tipo=()):
+                    parametros_de_tipo=(), limites=None):
         """Enforce a declared type annotation. Unknown names name a blueprint.
 
         Um parametro de tipo ('T' de 'action primeiro<T>(l) -> T') aceita
@@ -6959,7 +6973,23 @@ class Interpreter:
         faz ao compilar — os tipos somem.
         """
         expected = self.TYPE_ALIASES.get(declared, declared)
-        if expected == "Any" or expected in parametros_de_tipo:
+        if expected in parametros_de_tipo:
+            limite = (limites or {}).get(expected)
+            if not limite:
+                return value
+            # Um 'T' com limite e verificavel, e por isso e verificado. O
+            # '<T>' solto continua aceitando tudo: ele documenta a relacao
+            # entre entrada e saida, e nao promete nada sobre o valor.
+            try:
+                return self._check_type(value, limite, what, node)
+            except TypeError_:
+                raise TypeError_(
+                    f"{what} is a {expected}, and {expected} extends "
+                    f"{limite} — but got {self._type_of(value)}",
+                    node.line, node.column,
+                    nota=f"declared as <{expected} extends {limite}>",
+                    dica=f"pass a value that is a {limite}") from None
+        if expected == "Any":
             return value
         actual = self._type_of(value)
 
@@ -6980,12 +7010,27 @@ class Interpreter:
             return value  # an Integer widens to Float
         if expected == actual:
             return value
-        if isinstance(value, DFInstance):
-            for bp in value.get_mro():
-                if bp.name == expected:
-                    return value
+        if isinstance(value, DFInstance) and self._descende_de(value, expected):
+            return value
         raise TypeError_(
             f"{what} declared as {expected} but got {actual}", node.line, node.column)
+
+    @staticmethod
+    def _descende_de(instancia, nome):
+        """A instancia e daquele blueprint, de uma mae, ou adota o trait?
+
+        So a MRO era olhada, e trait nao esta nela: 'tamanho(m: Medivel)'
+        recebendo uma 'Caixa' que adota 'Medivel' levantava "declared as
+        Medivel but got Caixa". Um trait como tipo de parametro e o motivo
+        de o trait existir, e era o unico uso dele que a execucao recusava.
+        """
+        for bp in instancia.get_mro():
+            if bp.name == nome:
+                return True
+            for trait in (getattr(bp, "traits", None) or ()):
+                if (getattr(trait, "name", trait)) == nome:
+                    return True
+        return False
 
     def _check_arity(self, action, args, kwargs, node):
         """Reject calls with too few or too many arguments."""

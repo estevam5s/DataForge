@@ -6704,3 +6704,100 @@ def test_thread_fora_de_parallel_continua_disparando_e_seguindo():
                 'out c.receive() ?? "a principal nao esperou"\n'
                 'out c.receive(void)\n')
     assert saida == "a principal nao esperou\ntarde"
+
+
+# ─── Generics com limite, e o que o <T> solto estragava ─────
+
+_GENERICOS = '''trait Medivel:
+    action medida()
+blueprint Caixa(n) with Medivel:
+    action medida():
+        yield self.n
+blueprint Pedra:
+    action peso():
+        yield 9
+action maior<T extends Number>(a: T, b: T) -> T:
+    yield a given a bigger b otherwise b
+action maior_medida<T extends Medivel>(a: T, b: T) -> T:
+    yield a given a.medida() bigger b.medida() otherwise b
+action eco<T>(x: T) -> T:
+    yield x
+'''
+
+
+def test_o_generico_solto_nao_e_acusado_em_toda_chamada():
+    """'eco<T>(x: T)' chamado com um texto era "espera T, e recebeu String".
+
+    Em TODA chamada de todo genérico com parâmetro do tipo T. A armadilha
+    20 do CLAUDE.md diz que essa ação aceita qualquer valor, e o 'check'
+    a contradizia — ninguém esbarrou porque o repositório não chamava um
+    genérico assim.
+    """
+    erros = _erros_de(_GENERICOS + 'out eco("a"), eco([1]), eco(3)\n')
+    assert not erros, [d.message for d in erros]
+
+
+def test_dentro_do_corpo_T_extends_Number_e_um_Number():
+    """'a bigger b' era "Cannot order T against T"."""
+    erros = _erros_de(_GENERICOS)
+    assert not erros, [d.message for d in erros]
+
+
+@pytest.mark.parametrize("chamada", [
+    'out maior("a", "b")',
+    'out maior_medida(spawn Pedra(), spawn Pedra())',
+])
+def test_o_limite_e_cobrado_antes_de_rodar(chamada):
+    erros = _erros_de(_GENERICOS + chamada + "\n")
+    assert erros and all(d.code == "generic-bound" for d in erros), \
+        [d.message for d in erros]
+
+
+@pytest.mark.parametrize("chamada,esperado", [
+    ('out maior(3, 7), maior(2.5, 1)', "7 2.5"),
+    ('out maior_medida(spawn Caixa(2), spawn Caixa(5)).medida()', "5"),
+    ('out eco("qualquer coisa")', "qualquer coisa"),
+])
+def test_o_que_satisfaz_o_limite_passa_e_roda(chamada, esperado):
+    assert not _erros_de(_GENERICOS + chamada + "\n")
+    assert run(_GENERICOS + chamada + "\n") == esperado
+
+
+def test_o_limite_e_cobrado_em_execucao():
+    """Diferente do <T> solto, um limite é verificável — então é verificado."""
+    with pytest.raises(DataForgeError) as capturado:
+        run(_GENERICOS + 'x := "a"\nout maior(x, x)\n')
+    assert "T extends Number" in capturado.value.message
+
+
+def test_um_limite_desconhecido_e_acusado():
+    erros = _erros_de('action f<T extends Numbr>(x: T):\n    yield x\n')
+    assert erros and "Numbr" in erros[0].message
+
+
+def test_a_filha_serve_onde_se_espera_a_mae():
+    """'usar(b: Base)' recebendo 'Filha' era "espera Base, e recebeu Filha".
+
+    Polimorfismo básico, e o 'check' o recusava; a execução, que olha a
+    MRO, aceitava.
+    """
+    fonte = ('blueprint Base:\n    action x():\n        yield 1\n'
+             'blueprint Filha extends Base:\n    action y():\n        yield 2\n'
+             'blueprint Outro:\n    action z():\n        yield 3\n'
+             'action usar(b: Base):\n    yield b.x()\n')
+    assert not _erros_de(fonte + 'out usar(spawn Filha())\n')
+    assert _erros_de(fonte + 'out usar(spawn Outro())\n'), \
+        "um blueprint sem parentesco deixou de ser acusado"
+
+
+def test_um_trait_serve_de_tipo_de_parametro_em_execucao():
+    """'tamanho(m: Medivel)' com uma Caixa que adota Medivel levantava
+    "declared as Medivel but got Caixa" — a MRO não inclui trait."""
+    assert run(_GENERICOS + 'action tamanho(m: Medivel):\n'
+               '    yield m.medida()\nout tamanho(spawn Caixa(4))\n') == "4"
+
+
+def test_instanceof_e_e_um_reconhecem_o_trait():
+    assert run(_GENERICOS + 'c := spawn Caixa(1)\n'
+               'out instanceof(c, "Medivel"), e_um(c, "Medivel"), '
+               'e_um(spawn Pedra(), "Medivel")\n') == "yes yes no"

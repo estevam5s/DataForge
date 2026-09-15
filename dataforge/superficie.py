@@ -425,6 +425,26 @@ def _nomes_de_pares(pares):
     return saida
 
 
+def _tipos_sem_genericos(stmt):
+    """Os tipos dos parâmetros, com cada '<T>' trocado pelo que ele promete.
+
+    'T extends Number' atravessa como 'Number', que é o que o outro
+    arquivo pode cobrar. Um 'T' sem limite SAI da tabela: levado como
+    nome, ele virava um tipo que o arquivo de quem chama não conhece, e o
+    melhor que a conferência podia fazer era calar por acaso.
+    """
+    genericos = set(getattr(stmt, "type_params", None) or ())
+    limites = getattr(stmt, "type_bounds", None) or {}
+    saida = {}
+    for nome, tipo in (getattr(stmt, "param_types", {}) or {}).items():
+        if tipo in genericos:
+            if limites.get(tipo):
+                saida[nome] = limites[tipo]
+            continue
+        saida[nome] = tipo
+    return saida
+
+
 def _de_acao(stmt):
     """`params` e uma lista de nomes; `defaults`, um vault por nome.
 
@@ -441,7 +461,7 @@ def _de_acao(stmt):
                   linha=getattr(stmt, "line", 0),
                   retorno=str(getattr(stmt, "return_type", "") or ""),
                   parametros=fixos,
-                  tipos=dict(getattr(stmt, "param_types", {}) or {}))
+                  tipos=_tipos_sem_genericos(stmt))
 
 
 def _de_record(stmt):

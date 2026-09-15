@@ -156,7 +156,10 @@ def _assinatura_de_acao(no):
         partes.append(texto)
     generico = ""
     if getattr(no, "type_params", None):
-        generico = "<" + ", ".join(no.type_params) + ">"
+        limites = getattr(no, "type_bounds", None) or {}
+        generico = "<" + ", ".join(
+            f"{t} extends {limites[t]}" if limites.get(t) else t
+            for t in no.type_params) + ">"
     retorno = f" -> {no.return_type}" if getattr(no, "return_type", "") else ""
     prefixo = "stream action " if getattr(no, "is_stream", False) else \
               "async action " if getattr(no, "is_async", False) else "action "

@@ -351,6 +351,7 @@ class ActionDeclaration(ASTNode):
     is_async: bool = False
     decorators: list = field(default_factory=list)
     type_params: list = field(default_factory=list)
+    type_bounds: dict = field(default_factory=dict)  # 'T' -> limite de <T extends X>
     param_types: dict = field(default_factory=dict)
     return_type: str = ""
     is_generator: bool = False
@@ -375,6 +376,7 @@ class BlueprintDeclaration(ASTNode):
     field_decorators: dict = field(default_factory=dict)
     # <T>, <K, V> — nomes de tipo validos dentro desta declaracao
     type_params: list = field(default_factory=list)
+    type_bounds: dict = field(default_factory=dict)  # 'T' -> limite de <T extends X>
 
 
 @dataclass
@@ -690,6 +692,7 @@ class RecordDeclaration(ASTNode):
     decorators: list = field(default_factory=list)
     field_decorators: dict = field(default_factory=dict)
     type_params: list = field(default_factory=list)
+    type_bounds: dict = field(default_factory=dict)  # 'T' -> limite de <T extends X>
 
 
 @dataclass
