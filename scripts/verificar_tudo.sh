@@ -119,6 +119,7 @@ for gerador in \
     tools/gerar_og.py \
     scripts/gerar_llms.py \
     tools/gerar_gramatica.py \
+    tools/gerar_tema.py \
     tools/gerar_doc_stdlib.py \
     tools/gerar_ref_kiln.py \
     tools/gerar_ref_vitrine.py \

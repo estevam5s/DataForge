@@ -71,10 +71,21 @@ def test_toda_palavra_reservada_tem_exemplo():
 
     Uma palavra nova em `tokens.py` sem exemplo aqui deixa o hover pela
     metade — e ninguém percebe, porque o hover continua aparecendo.
+
+    **As contextuais contam.** Esta trava lia só `KEYWORDS`, e as onze
+    palavras do Kiln mais `operator` e `slots` não estão lá — elas são
+    reconhecidas pelo texto, que é o que permite a quem escreve continuar
+    usando `route` e `render` como nome. O resultado é que treze palavras
+    ficaram sem hover nenhum, e justamente as do código web, que é onde
+    mais gente começa. Uma trava que mede metade do alvo é pior que
+    nenhuma: ela dá a impressão de que o alvo está coberto.
     """
-    faltando = sorted(set(KEYWORDS) - set(PALAVRAS))
+    from dataforge.tokens import CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN
+
+    todas = set(KEYWORDS) | set(CONTEXTUAIS_KILN) | set(CONTEXTUAIS_BLUEPRINT)
+    faltando = sorted(todas - set(PALAVRAS))
     assert not faltando, (
-        f"palavras reservadas sem exemplo no hover: {faltando}\n"
+        f"palavras sem exemplo no hover: {faltando}\n"
         f"  acrescente em 'dataforge/exemplos_palavras.py'")
 
 
@@ -91,9 +102,10 @@ _CONTEXTUAIS_DE_OOP = {"abstract", "final", "get", "set",
 
 def test_nenhum_exemplo_sobra_na_tabela():
     """Uma entrada que não é palavra da linguagem é ruído que envelhece."""
-    from dataforge.tokens import CONTEXTUAIS_KILN
+    from dataforge.tokens import CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN
 
-    validas = set(KEYWORDS) | set(CONTEXTUAIS_KILN) | _CONTEXTUAIS_DE_OOP
+    validas = (set(KEYWORDS) | set(CONTEXTUAIS_KILN)
+               | set(CONTEXTUAIS_BLUEPRINT) | _CONTEXTUAIS_DE_OOP)
     sobrando = sorted(set(PALAVRAS) - validas)
     assert not sobrando, f"exemplos de coisas que nao sao palavras: {sobrando}"
 

@@ -267,4 +267,106 @@ PALAVRAS = {
     "mark": ("aplica um decorador à ação seguinte",
              'action dobrar(f):\n    yield lambda x: f(x) * 2\n\n'
              'mark @dobrar\naction valor(x):\n    yield x\n\nout valor(21)'),
+    # ── Kiln: as onze palavras do framework web ──
+    #
+    # Elas sao CONTEXTUAIS: o parser as reconhece pelo texto, e so onde
+    # fazem sentido. Por isso nao estao em 'KEYWORDS' — e por isso
+    # escaparam da trava de cobertura por muito tempo, deixando o hover
+    # muda justamente sobre o codigo web, que e onde mais gente comeca.
+    #
+    # Nenhum exemplo SOBE um servidor: 'server' monta e 'ignite' acende,
+    # e os exemplos param no primeiro. 'Kiln.test' exercita a rota sem
+    # abrir socket, que e o que os torna executaveis num teste.
+    "server": (
+        "declara a aplicacao web — monta, e nao sobe",
+        'adopt Kiln\n\nserver site on 0:\n    route GET "/":\n'
+        '        respond "oi"\n\nout Kiln.test(site, "GET", "/")["body"]'),
+    "route": (
+        "declara uma rota: metodo, caminho e o que responder",
+        'adopt Kiln\n\nserver api on 0:\n    route GET "/soma/:a/:b":\n'
+        '        respond json {"total": int(params["a"]) + int(params["b"])}\n\n'
+        'out Kiln.test(api, "GET", "/soma/2/3")["body"]["total"]'),
+    "respond": (
+        "envia a resposta e encerra a rota, como 'yield' encerra uma acao",
+        'adopt Kiln\n\nserver api on 0:\n    route GET "/texto":\n'
+        '        respond "puro"\n    route GET "/dados":\n'
+        '        respond json {"ok": yes}\n    route GET "/pagina":\n'
+        '        respond html "<h1>oi</h1>"\n\n'
+        'out Kiln.test(api, "GET", "/dados")["body"]["ok"]'),
+    "render": (
+        "desenha um template da pasta de 'views', com os dados do 'with'",
+        'adopt Kiln\nadopt Arcane.IO as IO\nadopt Arcane.OS as OS\n\n'
+        'pasta := IO.join(OS.temp_dir(), "df-render-exemplo")\n'
+        'IO.mkdir(pasta)\n'
+        'IO.write_file(IO.join(pasta, "oi.html"), "<h1>{titulo}</h1>")\n\n'
+        'server site on 0:\n    views pasta\n    route GET "/":\n'
+        '        render "oi.html" with {"titulo": "Forja"}\n\n'
+        'out Kiln.test(site, "GET", "/")["body"]'),
+    "views": (
+        "diz de qual pasta o 'render' le os templates",
+        'adopt Kiln\nadopt Arcane.IO as IO\nadopt Arcane.OS as OS\n\n'
+        'pasta := IO.join(OS.temp_dir(), "df-views-exemplo")\n'
+        'IO.mkdir(pasta)\n'
+        'IO.write_file(IO.join(pasta, "p.html"), "<p>{q}</p>")\n\n'
+        'server site on 0:\n    views pasta\n    route GET "/":\n'
+        '        render "p.html" with {"q": "pronto"}\n\n'
+        'out Kiln.test(site, "GET", "/")["body"]'),
+    "redirect": (
+        "manda o visitante para outro caminho — 302 por padrao",
+        'adopt Kiln\n\nserver site on 0:\n    route GET "/antigo":\n'
+        '        redirect "/novo"\n    route GET "/novo":\n'
+        '        respond "cheguei"\n\n'
+        'r := Kiln.test(site, "GET", "/antigo")\n'
+        'out r["status"], r["headers"]["Location"]'),
+    "middleware": (
+        "roda ANTES de toda rota — autenticacao, limite, log",
+        'adopt Kiln\n\nserver api on 0:\n    middleware Kiln.logger()\n'
+        '    route GET "/":\n        respond "passou"\n\n'
+        'out Kiln.test(api, "GET", "/")["body"]'),
+    "after": (
+        "roda DEPOIS da rota, com a resposta pronta em maos",
+        'adopt Kiln\n\naction marcar(req, res):\n'
+        '    res["headers"]["X-Forja"] := "1"\n    yield res\n\n'
+        'server api on 0:\n    after marcar\n    route GET "/":\n'
+        '        respond "ok"\n\n'
+        'out Kiln.test(api, "GET", "/")["status"]'),
+    "mount": (
+        "junta outro 'server' sob um prefixo de caminho",
+        'adopt Kiln\n\nserver interno on 0:\n    route GET "/saude":\n'
+        '        respond "viva"\n\nserver principal on 0:\n'
+        '    mount interno at "/admin"\n    route GET "/":\n'
+        '        respond "raiz"\n\n'
+        'out Kiln.test(principal, "GET", "/admin/saude")["body"]'),
+    "assets": (
+        "serve arquivos de uma pasta sob um caminho publico",
+        'adopt Kiln\nadopt Arcane.IO as IO\nadopt Arcane.OS as OS\n\n'
+        'pasta := IO.join(OS.temp_dir(), "df-assets-exemplo")\n'
+        'IO.mkdir(pasta)\n'
+        'IO.write_file(IO.join(pasta, "e.css"), "body{margin:0}")\n\n'
+        'server site on 0:\n    assets "/static" from pasta\n'
+        '    route GET "/":\n        respond "raiz"\n\n'
+        'out Kiln.test(site, "GET", "/static/e.css")["status"]'),
+    "ignite": (
+        "acende o forno: e ele que abre o socket e fica atendendo",
+        'adopt Kiln\n\nserver site on 0:\n    route GET "/":\n'
+        '        respond "oi"\n\n'
+        '// O exemplo para aqui de proposito: \'ignite\' BLOQUEIA, e um\n'
+        '// exemplo que nunca termina nao serve de exemplo. Troque o\n'
+        '// \'no\' por \'yes\' e o servidor sobe de verdade.\n'
+        'given no:\n    ignite site at "0.0.0.0" on 8080\n\n'
+        'out Kiln.test(site, "GET", "/")["body"]'),
+
+    # ── Dois modificadores de blueprint ──
+    "operator": (
+        "sobrecarrega um operador para o seu tipo",
+        'blueprint Dinheiro(centavos):\n    operator + (outro):\n'
+        '        yield spawn Dinheiro(self.centavos + outro.centavos)\n\n'
+        'total := spawn Dinheiro(150) + spawn Dinheiro(250)\n'
+        'out total.centavos'),
+    "slots": (
+        "fecha a lista de campos: o que nao esta ali nao pode ser criado",
+        'blueprint Ponto:\n    slots x, y\n    action setup():\n'
+        '        self.x := 0\n        self.y := 0\n\n'
+        'p := spawn Ponto()\np.x := 3\nout p.x\n\n'
+        'monitor:\n    p.z := 9\nhandle Error as e:\n    out "recusou z"'),
 }

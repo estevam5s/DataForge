@@ -32,6 +32,7 @@ import {
 } from './executar';
 import { abrirMenu, Barra } from './barra';
 import * as testes from './testes';
+import * as aprender from './aprender';
 
 let barra: Barra;
 
@@ -138,6 +139,11 @@ export function activate(contexto: vscode.ExtensionContext) {
     ['dataforge.documentacao', () =>
       vscode.env.openExternal(
         vscode.Uri.parse('https://dataforge-lang.vercel.app/docs'))],
+    // ── aprender: o passo seguinte ao hover ──
+    ['dataforge.abrirDocDoSimbolo', aprender.abrirDocDoSimbolo],
+    ['dataforge.palavrasReservadas', aprender.palavrasReservadas],
+    ['dataforge.temaDeCores', aprender.temaDeCores],
+    ['dataforge.idioma', aprender.idioma],
   ];
   for (const [nome, fn] of comandos) {
     contexto.subscriptions.push(vscode.commands.registerCommand(nome, fn));

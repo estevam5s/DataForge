@@ -55,6 +55,9 @@ import traceback
 from . import ast_nodes as ast
 from .builtins import get_builtins
 from .errors import DataForgeError
+from .builtins import _df_type
+from .docs_links import (link_markdown, pagina_de_modulo,
+                         pagina_de_palavra)
 from .exemplos_palavras import PALAVRAS
 from .formatter import format_source
 from .lexer import tokenize
@@ -477,15 +480,40 @@ def _itens_de_modulo():
     return saida
 
 
+def _desembrulhar(valor):
+    """A funcao de VERDADE por tras de uma embutida.
+
+    As 228 embutidas sao 'BuiltinFunction', um involucro cujo '__call__'
+    e '(*args, **kwargs)' e cuja docstring e "Wraps a Python callable as a
+    DataForge built-in.". O hover mostrava exatamente isso — a mesma
+    assinatura inutil e a mesma frase sobre o involucro para todas as 228,
+    o que e pior que nao ter hover: parece que a linguagem nao sabe o que
+    as proprias funcoes fazem.
+    """
+    return getattr(valor, "func", valor)
+
+
 def _assinatura_de_python(valor, nome):
     """A assinatura de uma embutida ou de um simbolo da stdlib."""
-    if not callable(valor):
-        return type(valor).__name__
+    alvo = _desembrulhar(valor)
+    if not callable(alvo):
+        return _df_type(alvo)
     try:
         import inspect
-        return nome + str(inspect.signature(valor))
+        return nome + str(inspect.signature(alvo))
     except (TypeError, ValueError):
         return nome + "(…)"
+
+
+def _doc_do_valor(valor):
+    """A docstring da funcao de verdade, ja limpa.
+
+    Nome distinto do '_doc_de(no, linhas)' que le o comentario de cima de
+    uma declaracao: os dois respondem "qual e a doc disto", e chamar os
+    dois de '_doc_de' fez o segundo sombrear o primeiro e derrubou o
+    servidor inteiro — onze testes de LSP de uma vez.
+    """
+    return (getattr(_desembrulhar(valor), "__doc__", "") or "").strip()
 
 
 #: Montados uma vez: eles nao mudam entre pedidos, e sao ~1200 itens.
@@ -516,8 +544,7 @@ def _simbolos_do_modulo(nome_oficial):
             "kind": K_ACAO if callable(valor) else
                     K_MODULO if isinstance(valor, dict) else K_CONSTANTE,
             "detail": _assinatura_de_python(valor, chave),
-            "documentation": (getattr(valor, "__doc__", "") or
-                              "").strip().split("\n")[0],
+            "documentation": _doc_do_valor(valor).split("\n")[0],
         })
     return saida
 
@@ -644,9 +671,11 @@ def hover(analise, linha, coluna):
             modulo = get_module(oficial)
             if palavra in modulo:
                 valor = modulo[palavra]
-                doc = (getattr(valor, "__doc__", "") or "").strip()
+                doc = _doc_do_valor(valor)
                 return (f"```dataforge\n{oficial}.{_assinatura_de_python(valor, palavra)}\n```"
-                        + (f"\n\n{doc}" if doc else ""))
+                        + (f"\n\n{doc}" if doc else "")
+                        + _rodape(pagina_de_modulo(oficial),
+                                  f"a documentação de {oficial}"))
 
     # Modulo
     if palavra in analise.modulos or get_module(palavra) is not None:
@@ -654,16 +683,19 @@ def hover(analise, linha, coluna):
         descricao, curto = DESCRICOES.get(oficial, ("", ""))
         quantos = len([k for k in get_module(oficial) if not k.startswith("__")])
         return (f"```dataforge\nadopt {oficial}\n```\n\n{descricao}\n\n"
-                f"*{quantos} símbolos · nome curto: `{curto}`*")
+                f"*{quantos} símbolos · nome curto: `{curto}`*"
+                + _rodape(pagina_de_modulo(oficial),
+                          f"os {quantos} símbolos de {oficial}"))
 
     # Embutida
     embutidas = get_builtins()
     if palavra in embutidas:
         valor = embutidas[palavra]
-        doc = (getattr(valor, "__doc__", "") or "").strip()
+        doc = _doc_do_valor(valor)
         return (f"```dataforge\n{_assinatura_de_python(valor, palavra)}\n```"
                 + (f"\n\n{doc}" if doc else "")
-                + "\n\n*função embutida — não precisa de `adopt`*")
+                + "\n\n*função embutida — não precisa de `adopt`*"
+                + _rodape("referencia", "as 228 embutidas"))
 
     # Palavra reservada
     ficha = PALAVRAS.get(palavra)
@@ -673,16 +705,55 @@ def hover(analise, linha, coluna):
             if palavra in CONTEXTUAIS_KILN else ""
         return (f"**{palavra}** — {explicacao}\n\n"
                 f"```dataforge\n{exemplo}\n```\n\n"
-                f"*palavra reservada{contexto}*")
+                f"*palavra reservada{contexto}*"
+                + _vizinhas(palavra)
+                + _rodape(pagina_de_palavra(palavra)))
 
     if palavra in _O_QUE_A_PALAVRA_FAZ:
         return (f"```dataforge\n{palavra}\n```\n\n"
-                f"{_O_QUE_A_PALAVRA_FAZ[palavra]}\n\n*palavra reservada*")
+                f"{_O_QUE_A_PALAVRA_FAZ[palavra]}\n\n*palavra reservada*"
+                + _rodape(pagina_de_palavra(palavra)))
     if palavra in KEYWORDS or palavra in CONTEXTUAIS_KILN:
         contexto = " (só dentro de um bloco `server`)" \
             if palavra in CONTEXTUAIS_KILN else ""
-        return f"```dataforge\n{palavra}\n```\n\n*palavra reservada{contexto}*"
+        return (f"```dataforge\n{palavra}\n```\n\n"
+                f"*palavra reservada{contexto}*"
+                + _rodape(pagina_de_palavra(palavra)))
     return None
+
+
+def _rodape(pagina, rotulo="ler a documentação"):
+    """A linha de link no pé do cartao. Vazia quando nao ha destino.
+
+    Ela e o passo que faltava: o cartao dizia o que a palavra faz e
+    mostrava um exemplo, e quem queria entender o assunto tinha de sair do
+    editor e procurar no site. Quem faz isso tres vezes para de fazer.
+    """
+    link = link_markdown(pagina, rotulo)
+    return f"\n\n---\n\n{link}" if link else ""
+
+
+def _vizinhas(palavra):
+    """As palavras do mesmo assunto.
+
+    'given' sem 'orif' e 'otherwise' ensina um terco do condicional. O
+    agrupamento sai da MESMA tabela de destinos — uma segunda lista de
+    "assuntos" divergiria dela na primeira mudanca.
+    """
+    from .docs_links import PAGINA_DE_PALAVRA
+
+    pagina = PAGINA_DE_PALAVRA.get(palavra)
+    if not pagina:
+        return ""
+    irmas = sorted(p for p, alvo in PAGINA_DE_PALAVRA.items()
+                   if alvo == pagina and p != palavra)
+    if not irmas:
+        return ""
+    # Um cartao de hover e pequeno: seis nomes cabem, quinze viram parede.
+    mostra = irmas[:6]
+    resto = f" (+{len(irmas) - len(mostra)})" if len(irmas) > len(mostra) else ""
+    return ("\n\nno mesmo assunto: "
+            + ", ".join(f"`{p}`" for p in mostra) + resto)
 
 
 def definicao(analise, linha, coluna):

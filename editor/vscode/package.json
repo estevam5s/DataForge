@@ -378,6 +378,26 @@
         "command": "dataforge.bigoCurvas",
         "title": "Big-O: ver as curvas",
         "category": "DataForge"
+      },
+      {
+        "command": "dataforge.abrirDocDoSimbolo",
+        "title": "Abrir a documentação do símbolo sob o cursor",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.palavrasReservadas",
+        "title": "As 100 palavras da linguagem",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.temaDeCores",
+        "title": "Usar o tema de cores do DataForge",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.idioma",
+        "title": "Idioma das mensagens (português / inglês)",
+        "category": "DataForge"
       }
     ],
     "menus": {
@@ -425,6 +445,11 @@
           "command": "dataforge.explicarErro",
           "when": "resourceLangId == dataforge",
           "group": "dataforge@4"
+        },
+        {
+          "command": "dataforge.abrirDocDoSimbolo",
+          "when": "editorLangId == dataforge",
+          "group": "navigation@9"
         }
       ],
       "explorer/context": [
@@ -487,6 +512,11 @@
         "key": "ctrl+alt+t",
         "mac": "cmd+alt+t",
         "when": "resourceLangId == dataforge"
+      },
+      {
+        "command": "dataforge.abrirDocDoSimbolo",
+        "key": "shift+f1",
+        "when": "editorTextFocus && editorLangId == dataforge"
       }
     ],
     "viewsContainers": {
@@ -589,6 +619,21 @@
           "type": "boolean",
           "default": true,
           "description": "Mostra na barra de status: o resultado da última execução de testes. Uma barra cheia é uma barra que ninguém lê — desligue o que não usar."
+        },
+        "dataforge.idioma": {
+          "type": "string",
+          "enum": [
+            "automatico",
+            "pt",
+            "en"
+          ],
+          "enumDescriptions": [
+            "deixa o DataForge decidir (português, hoje)",
+            "português",
+            "inglês — o texto original, que é o que aparece nas buscas"
+          ],
+          "default": "automatico",
+          "markdownDescription": "Idioma das mensagens do runtime e do analisador (`DF_IDIOMA`). Vale para tudo o que a extensão rodar: o sublinhado no editor e a saída do terminal falam o mesmo idioma."
         }
       }
     },
@@ -708,6 +753,18 @@
             }
           }
         ]
+      }
+    ],
+    "themes": [
+      {
+        "label": "DataForge Escuro",
+        "uiTheme": "vs-dark",
+        "path": "./themes/dataforge-escuro.json"
+      },
+      {
+        "label": "DataForge Claro",
+        "uiTheme": "vs",
+        "path": "./themes/dataforge-claro.json"
       }
     ]
   },

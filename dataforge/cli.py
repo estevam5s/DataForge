@@ -3062,6 +3062,86 @@ def _peso_do_modulo(nome):
     return 0
 
 
+def palavras_command(args, flags=()):
+    """dataforge palavras [termo] [--json] — as 100 palavras da linguagem.
+
+    Existia a pagina do site e existia o hover do editor, e nao existia
+    forma de ver a lista sem sair do terminal. Quem esta aprendendo
+    pergunta "o que eu posso escrever aqui", e a resposta estava em dois
+    lugares que exigem outra janela.
+
+    O '--json' e o que a extensao do VS Code consome: ela nao repete a
+    tabela, que e a razao de a tabela viver num arquivo so.
+    """
+    import json as _json
+
+    from .docs_links import url as _url
+    from .exemplos_palavras import PALAVRAS
+    from .tokens import CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN, KEYWORDS
+    from .docs_links import pagina_de_palavra
+
+    # As flags chegam separadas: 'main' as tira de 'args' antes de
+    # despachar, e um comando que procurasse '--json' em 'args' nunca
+    # o acharia — e falharia calado, devolvendo a tabela de sempre.
+    como_json = "--json" in flags
+    termo = next((a for a in args if not a.startswith("-")), "").lower()
+
+    def especie(p):
+        if p in CONTEXTUAIS_KILN:
+            return "contextual (Kiln)"
+        if p in CONTEXTUAIS_BLUEPRINT:
+            return "contextual (blueprint)"
+        if p in KEYWORDS:
+            return "reservada"
+        return "contextual"
+
+    itens = []
+    for palavra in sorted(PALAVRAS):
+        explicacao, exemplo = PALAVRAS[palavra]
+        if termo and termo not in palavra.lower() and termo not in explicacao.lower():
+            continue
+        itens.append({
+            "palavra": palavra,
+            "explicacao": explicacao,
+            "exemplo": exemplo,
+            "especie": especie(palavra),
+            "doc": _url(pagina_de_palavra(palavra)),
+        })
+
+    if como_json:
+        print(_json.dumps(itens, ensure_ascii=False, indent=2))
+        return
+
+    if not itens:
+        print(color(f"Nenhuma palavra menciona '{termo}'.", "1;33"))
+        print("  Sem termo, 'dataforge palavras' lista as 100.")
+        sys.exit(1)
+
+    # Uma palavra: a ficha inteira, com o exemplo. Varias: a tabela.
+    if len(itens) == 1:
+        um = itens[0]
+        print()
+        print(f"  {color(um['palavra'], '1;37')} — {um['explicacao']}")
+        print(f"  {color(um['especie'], '0;90')}")
+        print()
+        for linha in um["exemplo"].split("\n"):
+            print(f"    {color(linha, '1;36')}")
+        print()
+        print(f"  {color(um['doc'], '0;90')}")
+        print()
+        return
+
+    print()
+    print(f"  {len(itens)} palavra(s)"
+          + (f" para {color(termo, '1;37')}" if termo else ""))
+    print()
+    for um in itens:
+        print(f"    {color(um['palavra'].ljust(12), '1;37')} {um['explicacao']}")
+    print()
+    print(color("  'dataforge palavras <uma>' mostra o exemplo que roda.", "0;90"))
+    print()
+
+
 def erros_command(filtro=""):
     """dataforge erros [termo] — o catalogo inteiro, por familia.
 
@@ -4046,6 +4126,8 @@ def main():
         custo_command(args[1:])
     elif command in ('erros', 'errors'):
         erros_command(args[1] if len(args) > 1 else "")
+    elif command in ('palavras', 'keywords'):
+        palavras_command(args[1:], flags)
 
     elif command == 'tree':
         tree_command()

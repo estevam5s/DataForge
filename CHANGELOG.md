@@ -16,6 +16,50 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **Dois temas de cor**, `DataForge Escuro` e `DataForge Claro`, **gerados
+  da gramática**. O gerador recusa rodar se um dos 43 escopos ficar sem
+  cor — a mesma trava da gramática, pelo mesmo motivo: um tema escrito à
+  mão pinta o que o autor lembrou, e o que ele esquece herda a cor do tema
+  anterior. As onze palavras do Kiln têm cor própria (elas são
+  contextuais, e quem lê precisa ver que aquele `route` é a palavra do
+  framework), o pipeline `>>` não tem a cor de `+`, e o claro não é o
+  escuro invertido: o amarelo da marca dá contraste 1,3:1 sobre branco
+  onde a WCAG pede 4,5:1.
+
+- **O hover leva à documentação.** Ele dizia o que a palavra faz e
+  mostrava um exemplo; faltava o passo seguinte, que é ir ler. Agora cada
+  cartão traz o link da página certa e as **palavras do mesmo assunto** —
+  `given` sem `orif` e `otherwise` ensina um terço do condicional. Os
+  destinos vivem num lugar só (`docs_links.py`) e são **conferidos contra
+  as páginas que existem**: um link quebrado num hover gasta a confiança
+  de quem clicou.
+
+- **Treze palavras não tinham hover nenhum** — as onze do Kiln mais
+  `operator` e `slots`. Elas são contextuais e não estão em `KEYWORDS`, e
+  a trava de cobertura lia só `KEYWORDS`: ficaram de fora justamente as do
+  código web, que é onde mais gente começa. As 100 têm ficha agora, cada
+  uma com um exemplo que **roda** na suíte.
+
+- **`dataforge palavras`** — as 100 palavras no terminal, com o exemplo
+  que roda e o endereço da doc. `--json` é o que a extensão consome, para
+  não repetir a tabela.
+
+- **Quatro comandos no editor**: abrir a documentação do símbolo sob o
+  cursor (`Shift+F1`, resolvido pelo próprio hover do LSP, sem segunda
+  cópia do mapa), as 100 palavras num seletor com inserir/ver/ler, trocar
+  para o tema do DataForge, e escolher o idioma das mensagens — que passa
+  por `DF_IDIOMA` em tudo o que a extensão roda, para o sublinhado no
+  editor e a saída do terminal não falarem idiomas diferentes.
+
+### Corrigido
+
+- **O hover de embutida mostrava o invólucro, não a função.** As 228
+  embutidas são `BuiltinFunction`, e o cartão exibia `len(*args, **kwargs)`
+  com a docstring "Wraps a Python callable as a DataForge built-in" —
+  igual para todas as 228. Isso é pior que não ter hover: parece que a
+  linguagem não sabe o que as próprias funções fazem. Agora mostra
+  `len(obj)` e a documentação de verdade, no hover e no autocompletar.
+
 - **As mensagens saem em português, e `DF_IDIOMA=en` volta ao inglês.** O
   runtime falava inglês e a CLI falava português: medido, `interpreter.py`
   tinha 234 mensagens em inglês contra 55 em português, e `cli.py` o

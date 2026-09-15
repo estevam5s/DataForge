@@ -64,6 +64,7 @@ projetos/*/dist/
 .supabase.local
 github.txt
 supabase.md
+.md
 # extensão do VS Code: saída do TypeScript e dependências
 editor/vscode/out/
 editor/vscode/node_modules/

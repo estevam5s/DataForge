@@ -797,6 +797,9 @@ action sem_tipo(x):
 relay Produto, criar, com_preco, quantos, sem_tipo
 """)
 
+// As mensagens saem em portugues: e o idioma padrao do runtime e do
+// analisador. 'DF_IDIOMA=en' devolve o texto original, que e a forma que
+// aparece nas buscas na internet.
 action conferir(codigo):
     IO.write($"{pasta}/src/main.df", codigo)
     r := Proc.run(["dataforge", "check", $"{pasta}/src/main.df"])
@@ -813,9 +816,9 @@ p := L.criar("CAF", "Cafe")
 out p.nomee
 """)
 
-assert "has no field" in saida
+assert "não tem o campo" in saida
 assert "nomee" in saida
-assert "Did you mean 'nome'" in saida
+assert "quis dizer 'nome'" in saida
 
 // ── 2. Aridade ──────────────────────────────────────────────
 
@@ -824,7 +827,7 @@ saida := conferir("""adopt ./loja as L
 L.criar("CAF")
 """)
 
-assert "takes 2 argument" in saida
+assert "recebe 2 argumento" in saida
 // E diz ONDE a acao foi declarada — no outro arquivo.
 assert "loja.df" in saida
 
@@ -835,7 +838,7 @@ saida := conferir("""adopt ./loja as L
 L.apagar("CAF")
 """)
 
-assert "has no 'apagar'" in saida
+assert "não tem 'apagar'" in saida
 // A mensagem lista o que EXISTE: sem isso, a pessoa adivinha.
 assert "criar" in saida
 
@@ -849,8 +852,8 @@ saida := conferir("""adopt ./loja as L
 L.criar("CAF", 42)
 """)
 
-assert "expects String" in saida
-assert "got Integer" in saida
+assert "espera String" in saida
+assert "recebeu Integer" in saida
 
 // ── 5. E DENTRO de uma acao, que e onde o codigo vive ───────
 //
@@ -881,8 +884,8 @@ action fazer(n: Integer):
     yield L.criar(n, "Cafe")
 """)
 
-assert "expects String" in saida
-assert "got Integer" in saida
+assert "espera String" in saida
+assert "recebeu Integer" in saida
 
 // ── 6. O que o faz CALAR — e isto importa igual ─────────────
 //
@@ -934,7 +937,7 @@ Q.qualquer_coisa(1, 2, 3)
 
 // Nao acusa a chamada: a superficie de um arquivo que nao compila
 // fica ABERTA, e o analisador volta a calar.
-assert "has no" not in saida
+assert "não tem" not in saida
 
 IO.remove_tree(pasta)
 out "157 ok — o check atravessa o adopt"`, lang: 'df', title: `exercicios/16-modulos-e-projetos/157_check_entre_modulos.df` },

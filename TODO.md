@@ -1,1 +1,5 @@
-Deve criar framework de seguranca ofensiva, contendo muitas funcionalidades, modulos, bibliotecas, metodos, etc ...
+/goal Implemente integralmente todo o conteúdo do arquivo `dataforge_completo_avancado_dataforge.md` na linguagem **DataForge**, adaptando cada recurso, API, conceito e funcionalidade para a **sintaxe própria, palavras reservadas, tipos, módulos e arquitetura nativa do DataForge**, sem copiar a sintaxe do Node.js. A implementação deve ser completa, integrada ao compilador/runtime/ecossistema do DataForge, mantendo todos os recursos especificados no arquivo, incluindo APIs, I/O, HTTP, streams, concorrência, threads, processos, rede, criptografia, testes, diagnóstico, performance, banco de dados, Web APIs, WebAssembly, DevOps, escalabilidade e demais recursos avançados, com documentação e exemplos exclusivamente na sintaxe DataForge ultrathink
+
+Deve melhorar a extensao do vscode para ser mais completa e avancada. Deve tambem colocar funcionalidade da extensao do vscode no Status bar do vscode
+
+Com base no arquivo "bibliotecas.md", deve implementar voltado para a linguagem Dataforge com sua propria sintaxe e palavras reservadas ultrathink

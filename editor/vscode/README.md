@@ -6,7 +6,7 @@
 
 **Suporte completo à linguagem [DataForge](https://dataforge-lang.vercel.app)** —
 servidor de linguagem, Big-O no editor, custo de import, cobertura de
-testes, painéis Vitrine, geradores DevOps, 52 comandos e 123 snippets.
+testes, painéis Vitrine, geradores DevOps, 56 comandos e 123 snippets.
 
 [Documentação](https://dataforge-lang.vercel.app/docs) ·
 [Exercícios](https://dataforge-lang.vercel.app/docs/exercicios) ·
@@ -125,13 +125,18 @@ passo em texto.
 
 ---
 
-## Os 52 comandos
+## Os 56 comandos
 
 Abra a paleta (`Ctrl+Shift+P`) e digite **DataForge**.
 
 **Executar** — rodar · rodar e medir · rodar com `--debug` · medir N
 execuções · depurar · observar e reexecutar · avaliar expressão ·
 perfilar (tempo por ação) · medir desempenho (bench)
+
+**Aprender** — **abrir a documentação do símbolo sob o cursor**
+(`Shift+F1`) · **as 100 palavras da linguagem** (com o exemplo que roda,
+e o botão de inserir) · **usar o tema de cores do DataForge** ·
+**idioma das mensagens** (português / inglês)
 
 **Qualidade** — verificar erros · formatar · lint · corrigir o que dá ·
 rodar os testes · rodar o Crucible · **cobertura** (quais linhas os
@@ -187,6 +192,7 @@ item apagado ensina quando ele serve.
 | `Ctrl+Shift+F5` | rodar e medir |
 | `Ctrl+Alt+O` | analisar complexidade |
 | `Ctrl+Alt+T` | rodar os testes |
+| `Shift+F1` | abrir a documentação do símbolo sob o cursor |
 
 No macOS, `Cmd` no lugar de `Ctrl`.
 
@@ -228,9 +234,33 @@ acredita.
 
 ---
 
+## Dois temas de cor
+
+`DataForge Escuro` e `DataForge Claro`, na lista de temas do VS Code — ou
+pela paleta, em *usar o tema de cores do DataForge*.
+
+Eles são **gerados da gramática**, e o gerador recusa rodar se um dos 43
+escopos ficar sem cor. Um tema escrito à mão pinta o que o autor lembrou,
+e o que ele esquece herda a cor do tema anterior: o sintoma é `record` e
+`enum` saindo cinza no meio de código colorido — o mesmo defeito que a
+gramática gerada existe para não ter.
+
+Três escolhas que se notam ao usar:
+
+- as **onze palavras do Kiln** têm cor própria. Elas são contextuais, e
+  quem lê precisa ver num relance que aquele `route` é a palavra do
+  framework e não o nome de uma variável — que continua permitido.
+- o **pipeline** (`>>`) não tem a cor de `+`. É a sintaxe que mais
+  distingue a linguagem, e ela merece o destaque.
+- o **claro não é o escuro invertido**. O amarelo da marca dá contraste
+  1,3:1 sobre branco, onde a WCAG pede 4,5:1; ali ele vira `#8A6A00`. É a
+  mesma decisão que a Vitrine já tinha tomado.
+
+---
+
 ## A barra de status
 
-Antes havia um botão de rodar, e mais nada — os 52 comandos viviam na
+Antes havia um botão de rodar, e mais nada — os 56 comandos viviam na
 paleta, e **a paleta só serve a quem já sabe que o comando existe**.
 
 Agora ela responde cinco perguntas que se fazem o tempo todo:
@@ -289,6 +319,7 @@ arquivos vazios esconde os que importam.
 | opção | padrão | |
 |---|---|---|
 | `dataforge.caminho` | `""` | onde está o executável, se não estiver no PATH |
+| `dataforge.idioma` | `automatico` | idioma das mensagens (`pt` ou `en`) — vale para o sublinhado E para o terminal |
 | `dataforge.verificar` | `true` | sublinhar erros |
 | `dataforge.servidor.ativo` | `true` | o servidor de linguagem |
 | `dataforge.servidor.log` | `""` | `verbose` para depurar o próprio LSP |

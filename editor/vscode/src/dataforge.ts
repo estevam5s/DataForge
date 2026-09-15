@@ -59,6 +59,23 @@ export function esquecerExecutavel() {
   achado = null;
 }
 
+/**
+ * O ambiente dos processos que a extensão dispara.
+ *
+ * `DF_IDIOMA` decide o idioma das mensagens do runtime e do analisador.
+ * Ele entra AQUI, e não em cada chamada, porque senão o sublinhado do
+ * editor e a saída do terminal sairiam em idiomas diferentes — na mesma
+ * sessão, sobre o mesmo arquivo, que é exatamente o defeito que a camada
+ * de idioma existe para corrigir.
+ */
+function ambiente(): NodeJS.ProcessEnv {
+  const escolhido = vscode.workspace
+    .getConfiguration('dataforge')
+    .get<string>('idioma');
+  if (!escolhido || escolhido === 'automatico') return process.env;
+  return { ...process.env, DF_IDIOMA: escolhido };
+}
+
 /** Roda um comando e devolve a saída. Rejeita se o processo falhar. */
 export function rodar(
   comando: string,
@@ -70,7 +87,7 @@ export function rodar(
     execFile(
       comando,
       args,
-      { timeout: prazo, cwd, maxBuffer: 12 * 1024 * 1024 },
+      { timeout: prazo, cwd, maxBuffer: 12 * 1024 * 1024, env: ambiente() },
       (falha, saida, erro) => {
         const codigo = falha ? ((falha as any).code ?? 1) : 0;
         // Código de saída ≠ 0 NÃO é motivo para rejeitar: `check` sai

@@ -684,3 +684,97 @@ def test_o_painel_de_testes_usa_a_mesma_regra_do_corredor():
     assert "trial\\s+\"" in fonte or "TRIAL" in fonte
     # Um arquivo sem trial nenhum nao vira item.
     assert "children.size === 0" in fonte
+
+
+# ─── O tema de cores ───────────────────────────────────────
+# A gramática é gerada de `tokens.py` e sabe 43 escopos. Um tema escrito à
+# mão pinta os que o autor lembrou, e os esquecidos herdam a cor do tema do
+# usuário — o sintoma é `record` e `enum` saindo cinza no meio de código
+# colorido, que é o mesmo defeito que a gramática gerada existe para não
+# ter. Por isso o tema também é gerado, e com a mesma trava.
+
+def _temas():
+    import importlib.util
+
+    caminho = os.path.join(RAIZ, "tools", "gerar_tema.py")
+    especificacao = importlib.util.spec_from_file_location("gerar_tema", caminho)
+    modulo = importlib.util.module_from_spec(especificacao)
+    especificacao.loader.exec_module(modulo)
+    return modulo
+
+
+def test_o_tema_versionado_e_o_que_o_gerador_produz():
+    """A mesma trava da gramática, pelo mesmo motivo.
+
+    Editar o JSON à mão funciona até alguém rodar o gerador, e aí a
+    correção desaparece sem nada explicando.
+    """
+    gerar = _temas()
+    for escuro, nome in ((True, "dataforge-escuro.json"),
+                         (False, "dataforge-claro.json")):
+        caminho = os.path.join(RAIZ, "editor", "vscode", "themes", nome)
+        assert os.path.isfile(caminho), f"falta {nome} — rode tools/gerar_tema.py"
+        with open(caminho, encoding="utf-8") as f:
+            versionado = json.load(f)
+        assert versionado == gerar.montar(escuro), (
+            f"{nome} divergiu do gerador — rode 'python3 tools/gerar_tema.py'")
+
+
+def test_todo_escopo_da_gramatica_tem_cor():
+    """A trava propriamente dita: ela recusa gerar, e aqui ela é cobrada.
+
+    Vale nos dois sentidos. Um escopo sem cor sai cinza; uma cor para
+    escopo que a gramática não emite é uma linha que nunca pinta nada, e
+    envelhece em silêncio.
+    """
+    gerar = _temas()
+    da_gramatica = gerar.escopos_da_gramatica()
+    na_tabela = set(gerar.PAPEL_DO_ESCOPO)
+    assert da_gramatica == na_tabela, (
+        f"sem cor: {sorted(da_gramatica - na_tabela)}\n"
+        f"sobrando: {sorted(na_tabela - da_gramatica)}")
+
+
+def test_todo_papel_do_tema_tem_cor_nos_dois_modos():
+    gerar = _temas()
+    papeis = set(gerar.PAPEL_DO_ESCOPO.values())
+    faltando = sorted(papeis - set(gerar.CORES))
+    assert not faltando, faltando
+    for papel in sorted(papeis):
+        escuro, claro, _ = gerar.CORES[papel]
+        for cor in (escuro, claro):
+            assert re.fullmatch(r"#[0-9A-Fa-f]{6}", cor), f"{papel}: {cor!r}"
+
+
+def test_os_dois_temas_estao_declarados_no_package_json():
+    """Um tema que existe no disco e não está no manifesto não aparece na
+    lista do usuário — e o arquivo fica lá, parecendo pronto.
+    """
+    with open(os.path.join(RAIZ, "editor", "vscode", "package.json"),
+              encoding="utf-8") as f:
+        pkg = json.load(f)
+    temas = pkg["contributes"]["themes"]
+    caminhos = {t["path"] for t in temas}
+    assert caminhos == {"./themes/dataforge-escuro.json",
+                        "./themes/dataforge-claro.json"}, caminhos
+    # O tema da JANELA tem de acompanhar o do código: 'vs' num tema
+    # escuro faz bordas e icones do VS Code brigarem com o fundo.
+    por_rotulo = {t["label"]: t["uiTheme"] for t in temas}
+    assert por_rotulo["DataForge Escuro"] == "vs-dark"
+    assert por_rotulo["DataForge Claro"] == "vs"
+
+
+def test_o_amarelo_da_marca_nao_aparece_no_tema_claro():
+    """`#FED403` sobre branco dá contraste 1,3:1; a WCAG pede 4,5:1.
+
+    É a mesma decisão que a Vitrine tomou, e o tema claro a repetiria se
+    ninguém a cobrasse — inverter um tema escuro é o caminho mais curto e
+    o mais errado.
+    """
+    caminho = os.path.join(RAIZ, "editor", "vscode", "themes",
+                           "dataforge-claro.json")
+    with open(caminho, encoding="utf-8") as f:
+        claro = f.read()
+    assert "#FED403" not in claro, (
+        "o amarelo da marca esta no tema claro — use #8A6A00, "
+        "como a Vitrine faz")

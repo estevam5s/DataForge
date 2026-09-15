@@ -1,0 +1,294 @@
+{
+  "name": "DataForge Claro",
+  "type": "light",
+  "semanticHighlighting": true,
+  "colors": {
+    "editor.background": "#FBF9F2",
+    "editor.foreground": "#2A2520",
+    "editorLineNumber.foreground": "#B5AE9B",
+    "editorLineNumber.activeForeground": "#8A6A00",
+    "editorCursor.foreground": "#8A6A00",
+    "editor.selectionBackground": "#EDE4C4",
+    "editor.lineHighlightBackground": "#F4F0E2",
+    "editorIndentGuide.background1": "#E6E0CC",
+    "editorIndentGuide.activeBackground1": "#C9BF9E",
+    "editorBracketMatch.background": "#EDE4C4",
+    "editorBracketMatch.border": "#8A6A00",
+    "editorWhitespace.foreground": "#E6E0CC",
+    "sideBar.background": "#F4F0E2",
+    "activityBar.background": "#F4F0E2",
+    "activityBar.foreground": "#8A6A00",
+    "statusBar.background": "#EFE9D6",
+    "statusBar.foreground": "#5C5445",
+    "titleBar.activeBackground": "#F4F0E2",
+    "titleBar.activeForeground": "#2A2520",
+    "tab.activeBackground": "#FBF9F2",
+    "tab.activeBorderTop": "#8A6A00",
+    "tab.inactiveBackground": "#F0EBDA",
+    "panel.background": "#F4F0E2",
+    "terminal.background": "#FBF9F2",
+    "terminal.foreground": "#2A2520",
+    "editorError.foreground": "#B03A28",
+    "editorWarning.foreground": "#8F6200",
+    "editorInfo.foreground": "#005A87",
+    "focusBorder": "#C9BF9E",
+    "list.activeSelectionBackground": "#EDE4C4",
+    "list.activeSelectionForeground": "#6B5200"
+  },
+  "tokenColors": [
+    {
+      "name": "DataForge · acao",
+      "scope": [
+        "entity.name.function.dataforge"
+      ],
+      "settings": {
+        "foreground": "#00527A",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "DataForge · chamada",
+      "scope": [
+        "entity.name.function.call.dataforge"
+      ],
+      "settings": {
+        "foreground": "#00527A"
+      }
+    },
+    {
+      "name": "DataForge · comentario",
+      "scope": [
+        "comment.line.double-slash.dataforge",
+        "comment.line.number-sign.dataforge"
+      ],
+      "settings": {
+        "foreground": "#8A8371",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "DataForge · constante",
+      "scope": [
+        "constant.language.dataforge",
+        "constant.language.http.dataforge"
+      ],
+      "settings": {
+        "foreground": "#B0491F"
+      }
+    },
+    {
+      "name": "DataForge · controle",
+      "scope": [
+        "keyword.control.conditional.dataforge",
+        "keyword.control.flow.dataforge",
+        "keyword.control.loop.dataforge"
+      ],
+      "settings": {
+        "foreground": "#8A6A00",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "DataForge · declaracao",
+      "scope": [
+        "storage.type.dataforge"
+      ],
+      "settings": {
+        "foreground": "#8A6A00",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "DataForge · decorador",
+      "scope": [
+        "entity.name.function.decorator.dataforge"
+      ],
+      "settings": {
+        "foreground": "#6A3BA8",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "DataForge · embutida",
+      "scope": [
+        "support.function.builtin.dataforge"
+      ],
+      "settings": {
+        "foreground": "#00695C"
+      }
+    },
+    {
+      "name": "DataForge · escape",
+      "scope": [
+        "constant.character.escape.dataforge"
+      ],
+      "settings": {
+        "foreground": "#A8502A"
+      }
+    },
+    {
+      "name": "DataForge · excecao",
+      "scope": [
+        "keyword.control.exception.dataforge"
+      ],
+      "settings": {
+        "foreground": "#B03A28",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "DataForge · importacao",
+      "scope": [
+        "keyword.control.import.dataforge"
+      ],
+      "settings": {
+        "foreground": "#00695C"
+      }
+    },
+    {
+      "name": "DataForge · kiln",
+      "scope": [
+        "keyword.other.kiln.dataforge"
+      ],
+      "settings": {
+        "foreground": "#7B3FA0",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "DataForge · modificador",
+      "scope": [
+        "storage.modifier.dataforge"
+      ],
+      "settings": {
+        "foreground": "#6B6047",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "name": "DataForge · modulo",
+      "scope": [
+        "support.class.module.dataforge"
+      ],
+      "settings": {
+        "foreground": "#00695C",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "DataForge · numero",
+      "scope": [
+        "constant.numeric.binary.dataforge",
+        "constant.numeric.float.dataforge",
+        "constant.numeric.hex.dataforge",
+        "constant.numeric.integer.dataforge"
+      ],
+      "settings": {
+        "foreground": "#A8502A"
+      }
+    },
+    {
+      "name": "DataForge · operador",
+      "scope": [
+        "keyword.operator.arithmetic.dataforge",
+        "keyword.operator.arrow.dataforge",
+        "keyword.operator.assignment.dataforge",
+        "keyword.operator.comparison.dataforge",
+        "keyword.operator.nullish.dataforge",
+        "keyword.operator.spread.dataforge"
+      ],
+      "settings": {
+        "foreground": "#5C5445"
+      }
+    },
+    {
+      "name": "DataForge · operador-palavra",
+      "scope": [
+        "keyword.operator.word.dataforge"
+      ],
+      "settings": {
+        "foreground": "#8F6200"
+      }
+    },
+    {
+      "name": "DataForge · palavra",
+      "scope": [
+        "keyword.other.async.dataforge",
+        "keyword.other.data.dataforge",
+        "keyword.other.meta.dataforge",
+        "keyword.other.oop.dataforge"
+      ],
+      "settings": {
+        "foreground": "#8F6200"
+      }
+    },
+    {
+      "name": "DataForge · pipeline",
+      "scope": [
+        "keyword.operator.pipeline.dataforge"
+      ],
+      "settings": {
+        "foreground": "#8A6A00",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "name": "DataForge · pontuacao",
+      "scope": [
+        "punctuation.section.embedded.dataforge"
+      ],
+      "settings": {
+        "foreground": "#5C5445"
+      }
+    },
+    {
+      "name": "DataForge · primeiro-plano",
+      "scope": [
+        "meta.embedded.expression.dataforge"
+      ],
+      "settings": {
+        "foreground": "#2A2520"
+      }
+    },
+    {
+      "name": "DataForge · propriedade",
+      "scope": [
+        "variable.other.property.dataforge"
+      ],
+      "settings": {
+        "foreground": "#2A2520"
+      }
+    },
+    {
+      "name": "DataForge · texto",
+      "scope": [
+        "string.interpolated.dataforge",
+        "string.quoted.double.dataforge",
+        "string.quoted.single.dataforge",
+        "string.quoted.triple.dataforge"
+      ],
+      "settings": {
+        "foreground": "#3F6B2A"
+      }
+    },
+    {
+      "name": "DataForge · tipo",
+      "scope": [
+        "entity.name.type.dataforge"
+      ],
+      "settings": {
+        "foreground": "#005A87"
+      }
+    },
+    {
+      "name": "DataForge · tipo-embutido",
+      "scope": [
+        "support.type.dataforge"
+      ],
+      "settings": {
+        "foreground": "#005A87",
+        "fontStyle": "italic"
+      }
+    }
+  ]
+}
