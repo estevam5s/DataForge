@@ -176,6 +176,12 @@ INTEIRAS = (
     (r"Variable '(?P<n>.+)' is assigned but never read",
      "A variável '{n}' recebe valor e nunca é lida"),
 
+    # ── Concorrencia ──
+    (r"'(?P<p>\w+)' cannot leave a '(?P<b>parallel|thread)' block\.",
+     "'{p}' não pode sair de um bloco '{b}'."),
+    (r"(?P<n>\d+) thread\(s\) failed\. The errors? (?:is|are) shown above\.",
+     "{n} thread(s) falharam. O erro está desenhado acima."),
+
     # ── O que atravessa a fronteira de modulo ──
     # Estas sao variantes proprias, e nao as mesmas do arquivo unico: a
     # aridade entre modulos diz "takes N, got M" onde a local diz "takes
@@ -221,6 +227,18 @@ PEDACOS = (
     (r"'(?P<op>\S+)' not supported between instances of '(?P<a>\w+)' and "
      r"'(?P<b>\w+)'",
      "'{op}' não se aplica entre {a} e {b}"),
+
+    (r"^first: ", "o primeiro: "),
+    (r"to catch the error with 'handle', use 'parallel', which waits for "
+     r"its statements",
+     "para pegar o erro com 'handle', use 'parallel', que espera as "
+     "instruções"),
+    (r"each statement of 'parallel' runs in its own thread, so there is no "
+     r"loop or action around it to end",
+     "cada instrução de 'parallel' roda na própria thread, e não há laço "
+     "nem ação em volta para encerrar"),
+    (r"decide inside the statement, or move the loop out of 'parallel'",
+     "decida dentro da instrução, ou tire o laço de dentro do 'parallel'"),
 
     # ── Os rotulos da seta, sob o trecho de codigo ──
     (r"^key read here$", "a chave foi lida aqui"),

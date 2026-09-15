@@ -6425,3 +6425,100 @@ def test_receive_com_prazo_pela_linguagem():
              'out fila.receive(void)\n'
              'out fila.receive()\n')
     assert run(fonte) == "chegou\nvoid"
+
+
+# ─── Um erro numa thread chega a quem escreveu ───────────────
+# 'parallel' e 'thread' faziam 'except Exception: print("[… Error] …")'.
+# O erro virava uma linha de texto sem trecho nem pilha, o programa
+# SEGUIA, o codigo de saida era 0, e 'monitor/handle' nao conseguia pegar
+# nada. Um CI rodando o arquivo passava verde com metade do trabalho
+# perdida. Era a unica construcao da linguagem em que um erro nao chegava
+# a quem escreveu.
+
+def _rodar_df_por_processo(fonte, pasta):
+    """Pelo executavel, porque o que importa e o codigo de saida."""
+    import subprocess
+
+    caminho = os.path.join(str(pasta), "p.df")
+    with open(caminho, "w", encoding="utf-8") as f:
+        f.write(fonte)
+    return subprocess.run(
+        [sys.executable, "-m", "dataforge", "run", caminho],
+        capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "DF_IDIOMA": "en"}, timeout=60,
+        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def test_erro_em_parallel_reprova_o_programa(tmp_path):
+    r = _rodar_df_por_processo(
+        'parallel:\n    out "a"\n    out 1 / 0\nout "depois"\n', tmp_path)
+    assert r.returncode != 0, "saiu com 0 depois de um erro no parallel"
+    assert "Division by zero" in r.stdout + r.stderr
+    # Linha INTEIRA: o trecho desenhado no erro contem 'out "depois"'.
+    assert "depois" not in r.stdout.splitlines(), "o programa seguiu depois do erro"
+
+
+def test_handle_pega_o_erro_de_dentro_do_parallel():
+    """'parallel' é estruturado: o erro tem para onde voltar."""
+    saida = run('monitor:\n'
+                '    parallel:\n'
+                '        out 1 / 0\n'
+                'handle Error as e:\n'
+                '    out "pegou"\n')
+    assert saida == "pegou"
+
+
+def test_parallel_espera_as_outras_antes_de_levantar():
+    """Levantar na hora deixaria uma thread escrevendo depois do 'handle'."""
+    saida = run('channel c\n'
+                'monitor:\n'
+                '    parallel:\n'
+                '        out 1 / 0\n'
+                '        c.send(sleep(150) ?? "terminou")\n'
+                'handle Error as e:\n'
+                '    out c.receive()\n')
+    assert saida == "terminou"
+
+
+def test_todos_os_erros_do_parallel_vem_na_ordem_das_instrucoes():
+    """A ordem das INSTRUÇÕES, e não a de término — que é sorteio do
+    escalonador, e faria o relatório mudar de ordem a cada execução."""
+    with pytest.raises(DataForgeError) as capturado:
+        run('parallel:\n'
+            '    out [1][5]\n'
+            '    out 1 / 0\n')
+    erros = [capturado.value] + list(capturado.value.outros)
+    assert [e.line for e in erros] == [2, 3]
+
+
+def test_halt_dentro_de_parallel_vira_erro_da_linguagem():
+    with pytest.raises(DataForgeError) as capturado:
+        run('cycle i from 1 to 3:\n    parallel:\n        halt\n')
+    assert "cannot leave a 'parallel' block" in capturado.value.message
+
+
+def test_erro_em_thread_e_desenhado_e_reprova_o_programa(tmp_path):
+    """'thread' não espera, então o erro não tem para onde voltar.
+
+    Ele é desenhado NA HORA — guardar para o fim não serve, porque se a
+    principal estiver esperando o item que a thread ia mandar, o fim
+    nunca chega — e o programa termina com código diferente de zero.
+    """
+    r = _rodar_df_por_processo(
+        'thread:\n    out 1 / 0\nwait 300\nout "seguiu"\n', tmp_path)
+    assert r.returncode != 0, "saiu com 0 com uma thread morta"
+    assert "Division by zero" in r.stderr, "o erro nao foi desenhado"
+    assert "p.df:2" in r.stderr, "o erro saiu sem o local"
+    # O recibo sai pelo caminho comum de erro da CLI.
+    assert "1 thread(s) failed" in r.stdout + r.stderr
+
+
+def test_nenhuma_thread_da_linguagem_imprime_erro_e_segue():
+    """A trava da causa: o padrão 'except …: print(…Error…)'."""
+    fonte = open(os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), "dataforge", "interpreter.py"),
+        encoding="utf-8").read()
+    import re
+    # A CHAMADA, e nao o texto: a docstring que explica o bug cita a forma
+    # antiga, e uma trava sobre o texto a acusaria.
+    assert not re.search(r'print\(f?"\[(Parallel|Thread) Error\]', fonte)

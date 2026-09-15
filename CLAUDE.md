@@ -1593,6 +1593,14 @@ O que **ainda não existe** (não invente que existe):
   `receive(ms)` ou `receive(void)`. Trocar o padrão não daria erro em
   programa nenhum, daria travamento.
 - **`parallel`** roda **cada instrução** numa thread, não um bloco por thread.
+  Ele **espera todas** e, se alguma falhou, levanta o erro **na linha do
+  bloco**, com os demais em `.outros` — então `monitor/handle` o pega.
+  `thread:` não espera: o erro do corpo é **desenhado na hora** na saída de
+  erro, e o programa termina com código diferente de zero.
+  Até esta correção os dois faziam `except Exception` e imprimiam uma linha:
+  o programa seguia, saía com **0**, e nenhum `handle` via o erro — um CI
+  passava verde com metade do trabalho perdida. O `parallel` também
+  abandonava as threads depois de 30 s, calado.
 - **`frame`, `train`, `predict`** são **açúcar fino** sobre `Arcane.Analytics`
   e `Arcane.Cortex` — não reimplementam nada. `frame` devolve o
   `AnalyticsFrame` de verdade; `train "floresta" using {…}` chama o treinador

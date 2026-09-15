@@ -1361,6 +1361,9 @@ class Interpreter:
         # aqui: construir um interpretador nao deve mexer no de outro
         # que ja esteja rodando.
         self._primeira_execucao = True
+        #: Erros de corpos de 'thread:' — ver 'exec_ThreadBlock'.
+        self._falhas_de_thread = []
+        self._trava_das_falhas = threading.Lock()
         self.filename = "<stdin>"
         # A DataForge frame costs several Python frames; give the interpreter
         # room so its own depth guard reports the error instead of CPython.
@@ -1413,7 +1416,33 @@ class Interpreter:
         """Execute a full program."""
         if filename:
             self.filename = filename
-        return _com_pilha_propria(lambda: self._rodar(program))
+        resultado = _com_pilha_propria(lambda: self._rodar(program))
+        self._cobrar_falhas_de_thread()
+        return resultado
+
+    def _cobrar_falhas_de_thread(self):
+        """Uma thread que falhou nao pode terminar o programa com codigo 0.
+
+        O erro dela ja foi desenhado quando aconteceu. Este e o recibo:
+        curto, na linha do 'thread:', e o bastante para o CI reprovar.
+        """
+        with self._trava_das_falhas:
+            falhas = list(self._falhas_de_thread)
+            self._falhas_de_thread.clear()
+        if not falhas:
+            return
+        erro, node = falhas[0]
+        n = len(falhas)
+        resumo = RuntimeError_(
+            f"{n} thread(s) failed. The error{'s' if n > 1 else ''} "
+            f"{'are' if n > 1 else 'is'} shown above.",
+            getattr(node, "line", 0), getattr(node, "column", 0),
+            nota=f"first: {erro.message}",
+            dica="to catch the error with 'handle', use 'parallel', which "
+                 "waits for its statements",
+            doc="tecnicas/concorrencia")
+        resumo.filename = self.filename
+        raise resumo
 
     def _rodar(self, program: ast.Program):
         if self._primeira_execucao:
@@ -5209,17 +5238,67 @@ class Interpreter:
     # ── Concurrency ────────────────────────────────────────
 
     def exec_ThreadBlock(self, node: ast.ThreadBlock, env):
+        """Dispara o corpo numa thread e segue sem esperar.
+
+        Um erro no corpo era impresso como '[Thread Error] …' — uma linha
+        sem trecho de codigo, sem pilha — e o programa terminava com codigo
+        0. O CI passava verde com a thread morta.
+
+        'thread' NAO e estruturado: quando o corpo falha, quem o disparou
+        ja esta em outra linha, e nao ha onde levantar o erro. Por isso
+        duas coisas, e as duas importam:
+
+        1. o erro e DESENHADO na hora, completo, na saida de erro. Guardar
+           para o fim nao serve: se a principal estiver esperando o item
+           que esta thread ia enviar, o fim nunca chega, e o programa
+           trava sem mensagem nenhuma — a pior falha possivel.
+        2. ao terminar o programa, 'run' levanta um erro dizendo quantas
+           threads falharam, e o codigo de saida deixa de ser 0.
+
+        Quem precisa pegar o erro com 'handle' quer 'parallel', que espera.
+        """
         thread_env = env.child("<thread>")
 
         def thread_func():
             try:
                 self.exec_block(node.body, thread_env)
-            except Exception as e:
-                print(f"[Thread Error] {e}")
+            except ControlSignal as sinal:
+                self._registrar_falha_de_thread(RuntimeError_(
+                    f"'{self._palavra_do_sinal(sinal)}' cannot leave a "
+                    f"'thread' block.",
+                    node.line, node.column,
+                    nota="the body runs in another thread, so there is no "
+                         "loop or action around it to end",
+                    doc="tecnicas/concorrencia"), node)
+            except DataForgeError as erro:
+                self._registrar_falha_de_thread(erro, node)
+            except Exception as ex:                       # noqa: BLE001
+                self._registrar_falha_de_thread(
+                    self._traduzir_excecao(ex, node), node)
 
         t = threading.Thread(target=thread_func, daemon=True)
         t.start()
         return t
+
+    def _palavra_do_sinal(self, sinal):
+        return self._SINAIS_SOLTOS.get(
+            type(sinal).__name__, ("this",))[0]
+
+    def _registrar_falha_de_thread(self, erro, node):
+        """Desenha o erro agora e guarda para o codigo de saida."""
+        self._attach_stack(erro)
+        if not getattr(erro, "filename", ""):
+            erro.filename = self.filename
+        with self._trava_das_falhas:
+            self._falhas_de_thread.append((erro, node))
+        try:
+            import sys as _sys
+            cor = _sys.stderr.isatty()
+            print(erro.render(color=cor), file=_sys.stderr, flush=True)
+        except Exception:                                 # noqa: BLE001
+            # Desenhar nao pode derrubar a thread de novo; o erro ja esta
+            # guardado, e 'run' vai reporta-lo.
+            pass
 
     def exec_ChannelDeclaration(self, node: ast.ChannelDeclaration, env):
         ch = DFChannel(node.name)
@@ -5442,26 +5521,85 @@ class Interpreter:
         return {"__type__": "Stream", "data": data if isinstance(data, list) else [data]}
 
     def exec_ParallelBlock(self, node: ast.ParallelBlock, env):
-        """Parallel: run sub-blocks in threads."""
+        """Roda cada instrucao numa thread, espera TODAS, e so entao segue.
+
+        Um erro numa das instrucoes era IMPRESSO e engolido:
+        o 'except Exception' imprimia '[Parallel Error] …', e o programa
+        seguia. O codigo de saida era 0, 'monitor/handle' nao conseguia
+        pegar o erro, e um CI rodando o arquivo passava verde. Era a unica
+        construcao da linguagem em que um erro nao chegava a quem escreveu.
+
+        'parallel' e ESTRUTURADO — o bloco so termina quando todas terminam
+        —, entao o erro tem para onde voltar: ele e levantado aqui, na
+        linha do bloco, depois que as outras instrucoes terminam. Esperar
+        as outras antes de levantar e o que impede uma thread de continuar
+        escrevendo depois que o 'handle' de fora ja rodou.
+
+        Com mais de um erro, o primeiro viaja e os outros pegam carona em
+        '.outros' — o mesmo mecanismo da leva de erros de sintaxe, e o
+        'render' desenha todos.
+
+        Duas coisas sairam junto:
+
+        - o 'join(timeout=30)'. Depois de 30 s ele ABANDONAVA as threads e
+          seguia, calado, com o trabalho pela metade. Uma instrucao que
+          nao termina e um bug de quem escreveu, igual a um laco infinito
+          em serie — e trava-lo e mais honesto que perder o resultado.
+        - 'halt', 'skip' e 'yield' dentro de uma das instrucoes morriam
+          como traceback do Python na thread. Eles nao podem sair do bloco
+          — cada instrucao roda na propria thread, e nao ha um laco ou uma
+          acao para eles encerrarem —, entao viram erro da linguagem.
+        """
         threads = []
-        results = []
+        falhas = []
+        trava = threading.Lock()
 
-        # Group sequential statements into "blocks" separated by action declarations
-        for stmt in node.blocks:
-            thread_env = env.child("<parallel>")
+        def rodar(stmt, escopo, ordem):
+            try:
+                self.execute(stmt, escopo)
+            except DataForgeError as erro:
+                self._attach_stack(erro)
+                with trava:
+                    falhas.append((ordem, erro))
+            except ControlSignal as sinal:
+                erro = RuntimeError_(
+                    f"'{self._palavra_do_sinal(sinal)}' cannot leave a "
+                    f"'parallel' block.",
+                    getattr(stmt, 'line', 0), getattr(stmt, 'column', 0),
+                    nota="each statement of 'parallel' runs in its own "
+                         "thread, so there is no loop or action around it "
+                         "to end",
+                    dica="decide inside the statement, or move the loop "
+                         "out of 'parallel'",
+                    doc="tecnicas/concorrencia")
+                erro.filename = self.filename
+                with trava:
+                    falhas.append((ordem, erro))
+            except Exception as ex:                       # noqa: BLE001
+                erro = self._traduzir_excecao(ex, stmt)
+                self._attach_stack(erro)
+                with trava:
+                    falhas.append((ordem, erro))
 
-            def run_stmt(s=stmt, e=thread_env):
-                try:
-                    return self.execute(s, e)
-                except Exception as ex:
-                    print(f"[Parallel Error] {ex}")
-
-            t = threading.Thread(target=run_stmt, daemon=True)
+        for ordem, stmt in enumerate(node.blocks):
+            t = threading.Thread(
+                target=rodar, args=(stmt, env.child("<parallel>"), ordem),
+                daemon=True)
             threads.append(t)
             t.start()
 
         for t in threads:
-            t.join(timeout=30)
+            t.join()
+
+        if falhas:
+            # A ordem das INSTRUCOES, e nao a de termino: qual thread
+            # falhou primeiro e sorteio do escalonador, e um relatorio que
+            # muda de ordem a cada execucao parece dois bugs diferentes.
+            falhas.sort(key=lambda par: par[0])
+            primeiro = falhas[0][1]
+            primeiro.outros = list(getattr(primeiro, "outros", [])) + [
+                erro for _, erro in falhas[1:]]
+            raise primeiro
 
     # ═══════════════════════════════════════════════════════
     #  INTERNAL HELPERS
