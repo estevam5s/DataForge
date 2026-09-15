@@ -95,10 +95,17 @@ class _DFRequestHandler(BaseHTTPRequestHandler):
                 req["json"] = None
 
         # Build response helper
-        response_data = {"status": 200, "headers": {"Content-Type": "application/json"}, "body": ""}
+        response_data = {"status": 200, "headers": {"Content-Type": "application/json"}, "body": "",
+                         "enviado": False}
 
-        def send(data, status=200):
-            response_data["status"] = status
+        # 'status' e 'void' por padrao, e nao 200. Com 200, a sequencia
+        # natural 'res.status(401)' seguida de 'res.send("recusado")'
+        # respondia 200: o 'send' atropelava o status escolhido uma linha
+        # acima, e um pedido recusado saia como aceito.
+        def send(data, status=None):
+            response_data["enviado"] = True
+            if status is not None:
+                response_data["status"] = status
             if isinstance(data, dict) or isinstance(data, list):
                 response_data["body"] = json.dumps(data, ensure_ascii=False, indent=2)
                 response_data["headers"]["Content-Type"] = "application/json"
@@ -109,13 +116,17 @@ class _DFRequestHandler(BaseHTTPRequestHandler):
                 else:
                     response_data["headers"]["Content-Type"] = "text/plain; charset=utf-8"
 
-        def send_json(data, status=200):
-            response_data["status"] = status
+        def send_json(data, status=None):
+            response_data["enviado"] = True
+            if status is not None:
+                response_data["status"] = status
             response_data["body"] = json.dumps(data, ensure_ascii=False, indent=2)
             response_data["headers"]["Content-Type"] = "application/json"
 
-        def send_html(html, status=200):
-            response_data["status"] = status
+        def send_html(html, status=None):
+            response_data["enviado"] = True
+            if status is not None:
+                response_data["status"] = status
             response_data["body"] = html
             response_data["headers"]["Content-Type"] = "text/html; charset=utf-8"
 
@@ -133,12 +144,37 @@ class _DFRequestHandler(BaseHTTPRequestHandler):
             "status": status,
         }
 
-        # Run middleware
+        # ── Middleware ─────────────────────────────────────────
+        #
+        # Um middleware que LEVANTAVA era pulado — 'except Exception:
+        # pass' — e o handler rodava. Com um middleware de autenticacao
+        # que recusa levantando, que e a forma mais natural de recusar,
+        # um pedido SEM credencial recebia 200 e os dados da rota. Medido
+        # contra um servidor de verdade antes da correcao.
+        #
+        # E um middleware que RESPONDIA ('res.status(401)' e 'res.send')
+        # nao interrompia nada: o handler rodava em seguida, com os
+        # efeitos dele — apagar, cobrar — num pedido que ja tinha sido
+        # recusado.
+        #
+        # As duas regras agora, e as duas falham FECHADO:
+        #   levantou  -> 500, o handler nao roda, o erro vai ao terminal
+        #   respondeu -> a resposta dele e a final, o handler nao roda
+        # O Kiln ja se comportava assim; este modulo e o que divergia.
         for mw in self.router.middleware:
             try:
                 mw(req, res)
-            except Exception:
-                pass
+            except Exception as e:                        # noqa: BLE001
+                detalhe = getattr(e, "message", None) or str(e)
+                print(f"\033[1;31m[http] {req.get('method', '?')} "
+                      f"{req.get('path', '?')} recusado pelo middleware:"
+                      f"\033[0m {detalhe}")
+                self._send_json(500, {"error": "Internal Server Error",
+                                      "detail": detalhe})
+                return
+            if response_data["enviado"]:
+                self._responder(response_data)
+                return
 
         # Run handler
         #
@@ -184,7 +220,11 @@ class _DFRequestHandler(BaseHTTPRequestHandler):
                                   "detail": detalhe})
             return
 
-        # Send response
+        self._responder(response_data)
+
+    def _responder(self, response_data):
+        """Escreve a resposta montada. Um lugar so, para o middleware que
+        responde e o handler sairem pelo mesmo caminho."""
         self.send_response(response_data["status"])
         for k, v in response_data["headers"].items():
             self.send_header(k, v)

@@ -143,6 +143,19 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Corrigido
 
+- **Segurança: o middleware do `Arcane.Http` deixava passar pedido
+  recusado.** Um middleware que **levantava** era pulado
+  (`except Exception: pass`) e o handler rodava. Com uma autenticação que
+  recusa levantando — a forma mais natural de recusar —, um pedido **sem
+  credencial recebia 200 e os dados da rota**. E um middleware que
+  **respondia** `401` não interrompia nada: o handler rodava depois, com os
+  efeitos dele (apagar, cobrar), e a resposta ainda saía `200`, porque
+  `send` tinha `status=200` por padrão e atropelava o `res.status(401)` da
+  linha anterior. Os três foram medidos contra um servidor de verdade.
+  Agora o middleware falha **fechado**: levantou, é `500` e o handler não
+  roda; respondeu, a resposta dele é a final. O Kiln, o framework
+  principal, já se comportava assim — era este módulo que divergia.
+
 - **Um erro dentro de `parallel` ou `thread` era engolido.** Os dois
   faziam `except Exception` e imprimiam `[Parallel Error] …` ou
   `[Thread Error] …` — uma linha sem trecho de código nem pilha — e o
