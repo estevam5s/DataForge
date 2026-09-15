@@ -6801,3 +6801,64 @@ def test_instanceof_e_e_um_reconhecem_o_trait():
     assert run(_GENERICOS + 'c := spawn Caixa(1)\n'
                'out instanceof(c, "Medivel"), e_um(c, "Medivel"), '
                'e_um(spawn Pedra(), "Medivel")\n') == "yes yes no"
+
+
+# ─── Exaustividade além do enum ────────────────────────────
+
+def _avisos_de_match(fonte):
+    from dataforge.typechecker import check_program
+    return [d.message for d in check_program(parse(tokenize(fonte, "t.df"), "t.df"))
+            if d.code == "match-incompleto"]
+
+
+_FORMAS = ('abstract blueprint Forma:\n    action area()\n'
+           'blueprint Circulo(r) extends Forma:\n    action area():\n        yield 1\n'
+           'blueprint Quadrado(l) extends Forma:\n    action area():\n        yield 2\n'
+           'blueprint Triangulo(b) extends Forma:\n    action area():\n        yield 3\n')
+
+
+@pytest.mark.parametrize("corpo,trecho", [
+    # a recursao que quebra na lista vazia
+    ('action soma(xs):\n    match xs:\n        point [c, ...r]:\n'
+     '            yield c + soma(r)\n', "inclusive o vazio"),
+    ('action f(b):\n    match b:\n        point yes:\n            yield 1\n',
+     "não cobre no"),
+    (_FORMAS + 'action f(x):\n    match x:\n        point Circulo(r):\n'
+     '            yield 1\n        point Quadrado:\n            yield 2\n',
+     "Triangulo"),
+])
+def test_o_match_incompleto_e_avisado(corpo, trecho):
+    avisos = _avisos_de_match(corpo)
+    assert len(avisos) == 1 and trecho in avisos[0], avisos
+
+
+def test_um_ramo_com_guarda_nao_cobre_o_caso():
+    """'point Cor.Azul when x' deixa passar o Azul em que x não vale.
+
+    Contá-lo como cobertura fazia a checagem de enum calar sobre um membro
+    que ficou, de fato, de fora.
+    """
+    avisos = _avisos_de_match(
+        'enum Cor:\n    A\n    B\n'
+        'action f(c, x):\n    match c:\n        point Cor.A:\n            yield 1\n'
+        '        point Cor.B when x:\n            yield 2\n')
+    assert avisos and "Cor.B" in avisos[0], avisos
+
+
+@pytest.mark.parametrize("corpo", [
+    # or cobre os dois membros
+    'enum Cor:\n    A\n    B\naction f(c):\n    match c:\n'
+    '        point Cor.A or Cor.B:\n            yield 1\n',
+    # vazio + cabeca/resto e a recursao completa
+    'action f(xs):\n    match xs:\n        point []:\n            yield 0\n'
+    '        point [x, ...r]:\n            yield x\n',
+    # a raiz abstrata cobre a familia inteira
+    _FORMAS + 'action f(x):\n    match x:\n        point Forma:\n            yield 1\n',
+    # sem 'resto', tratar so pares e legitimo quando o dado e sempre par
+    'action f(xs):\n    match xs:\n        point [a, b]:\n            yield a\n',
+    # default e captura cobrem o resto
+    'action f(b):\n    match b:\n        point yes:\n            yield 1\n'
+    '        default:\n            yield 0\n',
+])
+def test_o_match_completo_nao_e_avisado(corpo):
+    assert not _avisos_de_match(corpo)

@@ -1560,8 +1560,10 @@ O que **ainda não existe** (não invente que existe):
 - **Generics de coleção** — `Cluster<Integer>` e `Vault<String, Pedido>`
   como tipo de parâmetro. `<T>` e `<T extends X>` em ações e blueprints
   existem e são verificados; o tipo **do conteúdo** de uma coleção, não.
-- **Exaustividade além do enum** — o `match` avisa quando um membro de
-  enum fica de fora, mas não confere sequências nem records.
+- **Exaustividade de padrão aninhado** — o `match` avisa o que fica de
+  fora em enum, booleano, sequência (`[x, ...resto]` sem `[]`) e na família
+  de um `abstract blueprint`; ele não desce em padrões aninhados
+  (`[Cor.A, x]`), e um ramo com **guarda** nunca conta como cobertura.
 - **Watchpoint** — parar quando uma variável MUDA. Breakpoint condicional,
   contagem e logpoint existem (`b 12 se x bigger 3` no terminal; as três
   opções da margem no editor), e o `dataforge dap` para cada thread de

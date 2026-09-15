@@ -250,6 +250,9 @@ class TypeChecker:
         self._genericos_do_blueprint = set()
         self._genericos_da_acao = set()
         self._limites_do_blueprint = {}
+        #: Blueprints 'abstract' deste arquivo — a raiz de uma hierarquia
+        #: que o 'match' pode conferir por completo.
+        self.abstratos = set()
         self._action_depth = 0
         self._loop_depth = 0
         self._current_return = None
@@ -583,6 +586,9 @@ class TypeChecker:
                     self.trait_exigidos[stmt.name] = {
                         m.name for m in stmt.methods
                         if isinstance(m, ast.ActionDeclaration) and not m.body}
+                if isinstance(stmt, ast.BlueprintDeclaration) and \
+                        getattr(stmt, "is_abstract", False):
+                    self.abstratos.add(stmt.name)
                 if isinstance(stmt, ast.BlueprintDeclaration):
                     self.maes[stmt.name] = [
                         p if isinstance(p, str) else getattr(p, "name", "")
@@ -1022,52 +1028,180 @@ class TypeChecker:
         return isinstance(padrao, ast.CapturePattern)
 
     def _conferir_exaustividade(self, node, escopo):
-        """Um 'match' sobre enum que deixou membro de fora.
+        """Um 'match' que deixou um caso de fora.
 
-        Sem isto, esquecer um membro devolve 'void' em silencio — e
-        'void' costuma atravessar meia dezena de chamadas antes de
-        virar erro em outro lugar, longe da causa.
+        Sem isto, o caso esquecido devolve 'void' em silencio — e 'void'
+        costuma atravessar meia dezena de chamadas antes de virar erro em
+        outro lugar, longe da causa.
 
-        So fala quando consegue PROVAR: e preciso saber de que enum se
-        trata, e todo 'point' precisa ser um membro dele. Um 'default'
-        ou uma captura solta cobrem o resto, e ai nao ha o que dizer.
+        Quatro formas, e todas so falam quando conseguem PROVAR:
+
+          enum         'point Cor.Verde' sem 'Cor.Azul'
+          booleano     'point yes' sem 'point no'
+          sequencia    'point [x, ...resto]' sem 'point []' — a recursao
+                       que quebra na lista vazia, o caso classico
+          hierarquia   'point Circulo', 'point Quadrado' sob um blueprint
+                       'abstract' que tem um 'Triangulo' concreto
+
+        Um 'default' ou uma captura solta cobrem o resto. Um 'point' COM
+        GUARDA nao cobre nada: 'point Cor.Azul when x' deixa passar o Azul
+        em que 'x' nao vale — contar esse ramo fazia a checagem de enum
+        calar sobre um caso que ficou, de fato, de fora.
         """
         if getattr(node, "default_body", None):
             return
-
-        membros_vistos = []
-        enums = set()
+        padroes = []
         for caso in node.points:
-            padrao = caso[0] if isinstance(caso, tuple) else caso.pattern
-            dono, membro = self._membro_de_enum(padrao)
-            if dono is None:
-                # Um padrao que nao e membro de enum — captura, tipo,
-                # sequencia. Nao da para concluir nada.
+            if isinstance(caso, tuple):
+                return                  # forma antiga: nada a inspecionar
+            if caso.guard is not None:
+                continue
+            padrao = caso.pattern
+            if isinstance(padrao, (ast.CapturePattern, ast.WildcardPattern)):
                 return
-            enums.add(dono)
-            membros_vistos.append(membro)
+            if isinstance(padrao, ast.OrPattern):
+                padroes.extend(padrao.options)
+            else:
+                padroes.append(padrao)
 
+        # A forma do match e decidida pelos ramos COM guarda tambem: um
+        # match de enum em que todo ramo tem guarda continua sendo de enum.
+        todos = []
+        for caso in node.points:
+            p_ = caso.pattern
+            todos.extend(p_.options if isinstance(p_, ast.OrPattern) else [p_])
+
+        for conferir in (self._exaustividade_de_enum,
+                         self._exaustividade_booleana,
+                         self._exaustividade_de_sequencia,
+                         self._exaustividade_de_hierarquia):
+            if conferir(node, padroes, todos):
+                return
+
+    def _avisar_incompleto(self, node, texto, dica):
+        self.warn(texto, node, dica, "match-incompleto")
+
+    def _exaustividade_de_enum(self, node, padroes, todos):
+        enums = set()
+        for padrao in todos:
+            dono, _ = self._membro_de_enum(padrao)
+            if dono is None:
+                return False
+            enums.add(dono)
         # Um match sobre DOIS enums diferentes nao e um match sobre um
         # enum: e outra coisa, e nao cabe cobrar exaustividade.
         if len(enums) != 1:
-            return
+            return True
         nome_enum = enums.pop()
-        todos = self.enums.get(nome_enum)
-        if not todos:
-            return
+        membros = self.enums.get(nome_enum)
+        if not membros:
+            return True
+        vistos = {self._membro_de_enum(p)[1] for p in padroes}
+        faltando = [m for m in membros if m not in vistos]
+        if faltando:
+            lista = ", ".join(f"{nome_enum}.{m}" for m in faltando)
+            # Um aviso por membro viraria ruido num enum de dez.
+            self._avisar_incompleto(
+                node,
+                f"'match' não cobre {len(faltando)} membro(s) de "
+                f"'{nome_enum}': {lista}",
+                "Trate cada um, ou acrescente 'default:' para o resto")
+        return True
 
-        faltando = [m for m in todos if m not in membros_vistos]
-        if not faltando:
-            return
+    def _exaustividade_booleana(self, node, padroes, todos):
+        if not todos or not all(isinstance(p, ast.LiteralPattern)
+                                and isinstance(p.value, bool) for p in todos):
+            return False
+        vistos = {p.value for p in padroes}
+        faltando = [nome for valor, nome in ((True, "yes"), (False, "no"))
+                    if valor not in vistos]
+        if faltando:
+            self._avisar_incompleto(
+                node, f"'match' não cobre {' nem '.join(faltando)}",
+                "Um booleano tem dois valores: trate os dois, ou use "
+                "'default:'")
+        return True
 
-        lista = ", ".join(f"{nome_enum}.{m}" for m in faltando)
-        # Um aviso por membro viraria ruido num enum de dez.
-        self.warn(
-            f"'match' não cobre {len(faltando)} membro(s) de "
-            f"'{nome_enum}': {lista}",
-            node,
-            "Trate cada um, ou acrescente 'default:' para o resto",
-            "match-incompleto")
+    @staticmethod
+    def _irrefutavel(padrao):
+        """Casa com qualquer valor naquela posição?"""
+        return isinstance(padrao, (ast.CapturePattern, ast.WildcardPattern))
+
+    def _exaustividade_de_sequencia(self, node, padroes, todos):
+        if not todos or not all(isinstance(p, ast.SequencePattern) for p in todos):
+            return False
+        exatos = set()        # tamanhos cobertos exatamente
+        a_partir = None       # 'resto' cobre todo tamanho >= este
+        for padrao in padroes:
+            if not all(self._irrefutavel(e) for e in padrao.elements):
+                continue      # '[0, x]' nao cobre todo cluster de dois
+            fixos = len(padrao.elements)
+            if padrao.rest_index >= 0 or padrao.rest_name:
+                a_partir = fixos if a_partir is None else min(a_partir, fixos)
+            else:
+                exatos.add(fixos)
+        if a_partir is None:
+            # Sem 'resto', nenhum conjunto finito de tamanhos cobre todo
+            # cluster — mas avisar aqui acusaria o match que so trata
+            # pares, que e legitimo quando o dado e sempre par. Calar.
+            return True
+        faltando = [n for n in range(a_partir) if n not in exatos]
+        if faltando:
+            tamanhos = ", ".join(str(n) for n in faltando)
+            vazio = " — inclusive o vazio" if 0 in faltando else ""
+            self._avisar_incompleto(
+                node,
+                f"'match' não cobre cluster(s) de {tamanhos} item(ns){vazio}",
+                "Acrescente 'point []:' (e os tamanhos menores que faltam), "
+                "ou use 'default:'. Numa recursão, é o caso que para")
+        return True
+
+    def _exaustividade_de_hierarquia(self, node, padroes, todos):
+        """'point Circulo' e 'point Quadrado' sob um 'abstract blueprint Forma'.
+
+        Um blueprint 'abstract' e a raiz de uma familia: ninguem o
+        instancia, e o que chega ao 'match' e sempre uma das filhas
+        concretas. Se todas as filhas concretas DESTE ARQUIVO nao estao
+        cobertas, falta um caso. Uma filha declarada em outro arquivo o
+        analisador nao ve — por isso e aviso, e nao erro.
+        """
+        if not todos or not all(isinstance(p, ast.TypePattern)
+                                and p.type_name in self.blueprints for p in todos):
+            return False
+        cobertos = set()
+        for padrao in padroes:
+            subs = list(padrao.sub_patterns) + list(padrao.field_patterns.values())
+            if all(self._irrefutavel(s) for s in subs):
+                cobertos.add(padrao.type_name)
+
+        # A raiz: um abstrato que esta na linhagem de TODOS os padroes.
+        candidatas = None
+        for padrao in todos:
+            linhagem = self._linhagem(padrao.type_name) | {padrao.type_name}
+            abstratas = linhagem & self.abstratos
+            candidatas = abstratas if candidatas is None else candidatas & abstratas
+        if not candidatas:
+            return True
+        # A mais proxima: a que tem menos ancestrais abstratos acima dela
+        # contados de baixo — na pratica, a de linhagem mais longa.
+        raiz = max(candidatas, key=lambda r: len(self._linhagem(r)))
+
+        concretas = sorted(
+            nome for nome in self.blueprints
+            if nome not in self.abstratos
+            and nome not in self.trait_exigidos
+            and "." not in nome
+            and raiz in self._linhagem(nome))
+        faltando = [c for c in concretas
+                    if not ({c} | self._linhagem(c)) & cobertos]
+        if faltando:
+            self._avisar_incompleto(
+                node,
+                f"'match' não cobre {len(faltando)} tipo(s) de '{raiz}': "
+                f"{', '.join(faltando)}",
+                f"'{raiz}' é abstract, e cada filha concreta chega a este "
+                f"match: trate as que faltam, ou use 'default:'")
+        return True
 
     def _membro_de_enum(self, padrao):
         """('Cor', 'Azul') se o padrao for 'point Cor.Azul'; senao (None, None).

@@ -16,6 +16,14 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **O `match` avisa o caso esquecido além do enum.** Booleano (`point yes`
+  sem `point no`), sequência (`point [cabeça, ...resto]` sem `point []` — a
+  recursão que quebra na lista vazia) e a família de um `abstract
+  blueprint` (`point Circulo` e `point Quadrado` com um `Triangulo`
+  concreto no arquivo). E dois furos da checagem de enum: `or` a fazia
+  desistir, e um ramo com **guarda** contava como cobertura — `point Cor.Azul
+  when x` deixa passar o Azul em que `x` não vale.
+
 - **Generics com limite: `<T extends X>`.** O limite pode ser tipo
   embutido, blueprint, trait ou record, e — diferente do `<T>` solto, que
   só documenta — é **verificado**: o `check` confere o argumento na chamada

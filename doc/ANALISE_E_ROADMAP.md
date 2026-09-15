@@ -609,6 +609,10 @@ O que resta, em ordem de impacto.
 
 ### 4.1 — Confiança
 
+- ~~**Exaustividade além do enum**~~ — **feito**: booleano, sequência
+  (`[x, ...resto]` sem `[]`) e a família de um `abstract blueprint`, e um
+  ramo com guarda deixou de contar como cobertura. Não desce em padrão
+  aninhado.
 - ~~**Verificação de exaustividade** em `match` sobre enum~~ — **feito**. O
   `check` avisa quando um membro fica de fora, e nomeia qual.
 - ~~**Contrato de trait**~~ — **feito, e nas duas metades**. O interpretador
