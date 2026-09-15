@@ -738,3 +738,162 @@ def test_a_configuracao_inicial_do_f5_roda_de_verdade(tmp_path):
         assert fim["body"]["exitCode"] == 0
     finally:
         c.fechar()
+
+
+# ═══════════════════════════════════════════════════════════
+#  Parada condicional, contagem e logpoint
+# ═══════════════════════════════════════════════════════════
+#
+# O painel do editor tem "Edit Condition", "Hit Count" e "Log Message" em
+# toda parada. O adaptador respondia 'supportsConditionalBreakpoints:
+# false', e o VS Code escondia as três opções — o que é honesto, e pior
+# que ter.
+
+@pytest.fixture
+def laco(tmp_path):
+    arquivo = tmp_path / "laco.df"
+    arquivo.write_text('''total := 0
+cycle i from 1 to 10:
+    total := total + i
+out total
+''', encoding="utf-8")
+    return str(arquivo)
+
+
+def _preparar_com(cliente, programa, paradas):
+    r = cliente.chamar("initialize", adapterID="dataforge")
+    assert r["success"], r
+    cliente.esperar_evento("initialized")
+    resposta = cliente.chamar("setBreakpoints",
+                              source={"path": os.path.abspath(programa)},
+                              breakpoints=paradas)
+    cliente.chamar("configurationDone")
+    cliente.chamar("launch", program=os.path.abspath(programa))
+    return resposta["body"]["breakpoints"]
+
+
+def _valor_de_i(cliente, numero_da_thread=1):
+    quadro = cliente.chamar("stackTrace", threadId=numero_da_thread)[
+        "body"]["stackFrames"][0]["id"]
+    return cliente.chamar("evaluate", expression="i",
+                          frameId=quadro)["body"]["result"]
+
+
+def test_o_adaptador_anuncia_as_tres_formas(cliente):
+    corpo = cliente.chamar("initialize", adapterID="dataforge")["body"]
+    assert corpo["supportsConditionalBreakpoints"] is True
+    assert corpo["supportsHitConditionalBreakpoints"] is True
+    assert corpo["supportsLogPoints"] is True
+
+
+def test_a_parada_condicional_so_dispara_quando_a_expressao_vale(cliente, laco):
+    _preparar_com(cliente, laco, [{"line": 3, "condition": "i bigger 7"}])
+    i, _ = cliente.esperar_evento("stopped")
+    assert _valor_de_i(cliente) == "8"
+    cliente.chamar("continue", threadId=1)
+    cliente.esperar_evento("stopped", depois_de=i + 1)
+    assert _valor_de_i(cliente) == "9"
+
+
+def test_a_contagem_dispara_a_cada_n_passagens(cliente, laco):
+    _preparar_com(cliente, laco, [{"line": 3, "hitCondition": "% 4"}])
+    i, _ = cliente.esperar_evento("stopped")
+    assert _valor_de_i(cliente) == "4"
+    cliente.chamar("continue", threadId=1)
+    cliente.esperar_evento("stopped", depois_de=i + 1)
+    assert _valor_de_i(cliente) == "8"
+
+
+def test_o_logpoint_escreve_no_console_e_nao_para(cliente, laco):
+    _preparar_com(cliente, laco, [{"line": 3, "logMessage": "i vale {i}"}])
+    cliente.esperar_evento("terminated")
+    with cliente._trava:
+        saidas = [e["body"]["output"] for e in cliente.eventos
+                  if e["event"] == "output"
+                  and e["body"].get("category") == "console"]
+        paradas = [e for e in cliente.eventos if e["event"] == "stopped"]
+    assert not paradas, "o logpoint parou o programa"
+    assert "i vale 1\n" in saidas and "i vale 10\n" in saidas, saidas
+
+
+def test_uma_contagem_que_nao_se_entende_e_recusada_na_margem(cliente, laco):
+    """E não vira uma parada que nunca dispara sem nada dizendo por quê."""
+    confirmadas = _preparar_com(cliente, laco,
+                                [{"line": 3, "hitCondition": "muitas"}])
+    assert confirmadas[0]["verified"] is False
+    assert "contagem" in confirmadas[0]["message"]
+    cliente.esperar_evento("terminated")
+
+
+def test_uma_condicao_que_quebra_para_e_diz_por_que(cliente, laco):
+    """Calar faria a parada nunca disparar, e a pessoa concluiria que o
+    código não passa por ali — a conclusão errada, com toda a confiança."""
+    _preparar_com(cliente, laco, [{"line": 3, "condition": "naoExiste bigger 1"}])
+    _, e = cliente.esperar_evento("stopped")
+    assert "naoExiste" in e["body"].get("description", ""), e["body"]
+
+
+# ═══════════════════════════════════════════════════════════
+#  Várias threads
+# ═══════════════════════════════════════════════════════════
+#
+# O adaptador tinha UM estado de parada. Com duas threads batendo em
+# paradas, a segunda sobrescrevia a foto da primeira — o painel mostrava
+# a pilha de uma e as variáveis da outra —, e soltar uma soltava as duas.
+
+@pytest.fixture
+def duas_threads(tmp_path):
+    arquivo = tmp_path / "duas.df"
+    arquivo.write_text('''parallel:
+    thread:
+        i := "da primeira"
+        out i
+    thread:
+        i := "da segunda"
+        out i
+out "fim"
+''', encoding="utf-8")
+    return str(arquivo)
+
+
+def _todas_as_paradas(cliente, quantas, prazo=10.0):
+    limite = time.time() + prazo
+    while time.time() < limite:
+        with cliente._trava:
+            paradas = [e for e in cliente.eventos if e["event"] == "stopped"]
+        if len(paradas) >= quantas:
+            return paradas
+        time.sleep(0.01)
+    raise AssertionError(f"chegaram {len(paradas)} de {quantas} paradas")
+
+
+def test_duas_threads_param_cada_uma_na_sua_parada(cliente, duas_threads):
+    _preparar_com(cliente, duas_threads, [{"line": 4}, {"line": 7}])
+    paradas = _todas_as_paradas(cliente, 2)
+    numeros = {p["body"]["threadId"] for p in paradas}
+    assert len(numeros) == 2, f"as duas paradas vieram da mesma thread: {numeros}"
+    assert all(p["body"]["allThreadsStopped"] is False for p in paradas)
+
+    listadas = {t["id"] for t in cliente.chamar("threads")["body"]["threads"]}
+    assert numeros <= listadas, f"'threads' nao lista as paradas: {listadas}"
+
+    # Cada uma com a sua foto: o 'i' de uma não é o da outra.
+    valores = {_valor_de_i(cliente, n) for n in numeros}
+    assert valores == {'"da primeira"', '"da segunda"'} or \
+        valores == {"da primeira", "da segunda"}, valores
+
+
+def test_soltar_uma_thread_nao_solta_a_outra(cliente, duas_threads):
+    _preparar_com(cliente, duas_threads, [{"line": 4}, {"line": 7}])
+    paradas = _todas_as_paradas(cliente, 2)
+    primeira, segunda = (p["body"]["threadId"] for p in paradas[:2])
+
+    cliente.chamar("continue", threadId=primeira)
+    time.sleep(0.4)
+    # A outra continua parada: a pilha dela ainda responde, e o programa
+    # não terminou.
+    assert cliente.chamar("stackTrace", threadId=segunda)["body"]["stackFrames"]
+    assert "terminated" not in cliente.nomes_dos_eventos()
+
+    cliente.chamar("continue", threadId=segunda)
+    cliente.esperar_evento("terminated")

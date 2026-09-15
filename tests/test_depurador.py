@@ -205,3 +205,35 @@ def test_erro_em_execucao_mostra_o_erro_e_desliga(tmp_path):
     """O depurador não pode ficar instalado depois de o programa cair."""
     saida, codigo = _depurar(tmp_path, ["c", "c"], fonte="x := 1 / 0\n")
     assert codigo == 1
+
+
+# ═══════════════════════════════════════════════════════════
+#  Parada condicional no terminal
+# ═══════════════════════════════════════════════════════════
+
+def test_b_com_se_so_para_quando_a_expressao_vale(tmp_path):
+    saida, codigo = _depurar(tmp_path, ["b 7 se i is 2", "c", "v i", "c"])
+    assert codigo == 0
+    assert "parada na linha 7 (se i is 2)" in saida
+    assert "i = 2" in saida
+
+
+def test_b_com_vezes_conta_as_passagens(tmp_path):
+    saida, _ = _depurar(tmp_path, ["b 7 vezes == 3", "c", "v i", "c"])
+    assert "i = 3" in saida
+
+
+def test_b_com_log_imprime_e_nao_para(tmp_path):
+    saida, codigo = _depurar(tmp_path, ["b 7 log i={i}", "c"])
+    assert codigo == 0
+    assert "i=1" in saida and "i=3" in saida
+
+
+def test_uma_contagem_invalida_e_recusada_com_explicacao(tmp_path):
+    saida, _ = _depurar(tmp_path, ["b 7 vezes muitas", "c"])
+    assert "não é uma contagem" in saida
+
+
+def test_paradas_mostra_a_condicao(tmp_path):
+    saida, _ = _depurar(tmp_path, ["b 7 se total bigger 2", "paradas", "q"])
+    assert "[se total bigger 2]" in saida

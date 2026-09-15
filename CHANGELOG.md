@@ -16,6 +16,22 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **Breakpoint condicional, contagem e logpoint.** No editor, as três
+  opções da margem — "Edit Condition", "Hit Count", "Log Message" — que o
+  VS Code escondia porque o adaptador respondia que não as suportava. No
+  terminal, `b 12 se x bigger 3`, `b 12 vezes % 10` e `b 12 log x={x}`. O
+  logpoint usa a interpolação da própria linguagem, com o mesmo formato de
+  `$"…"`. Uma condição que não dá para avaliar **para e diz por quê**:
+  calar faria a parada nunca disparar, e a pessoa concluiria que o código
+  não passa por ali. Uma contagem que não se entende é recusada na margem.
+
+- **O depurador do editor para cada thread sozinha.** O adaptador tinha um
+  só estado de parada: com duas threads batendo em paradas, a segunda
+  sobrescrevia a foto da primeira — a pilha de uma com as variáveis da
+  outra — e soltar uma soltava as duas. Agora cada thread de `thread` e
+  `parallel` para, mostra a própria pilha e anda sozinha, e o painel lista
+  as threads vivas.
+
 - **`parallel` por bloco.** Cada instrução de `parallel` era uma thread, e
   duas coisas que precisam acontecer em ordem — buscar e depois salvar —
   não tinham como ficar juntas. Agora um `thread:` **dentro** de `parallel`

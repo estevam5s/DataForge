@@ -44,6 +44,74 @@ def _cor(texto, codigo):
     return f"\033[{codigo}m{texto}\033[0m"
 
 
+class Condicao:
+    """O que decide se uma parada dispara, além da linha.
+
+    Três formas, combináveis, e as três com o nome que o VS Code usa:
+
+        condicao   'x bigger 100'  — só para quando a expressão vale
+        vezes      '>= 5', '% 10'  — conta as passagens pela linha
+        log        'x vale {x}'    — imprime e NÃO para
+
+    A contagem só anda quando a condição vale: "a quinta vez que x passou
+    de 100" é o que se quer dizer com as duas juntas, e contar todas as
+    passagens daria outra pergunta.
+
+    Um número sozinho em 'vezes' quer dizer "a partir da N-ésima": parar
+    SÓ na N-ésima e nunca mais deixaria a pessoa sem parada no resto do
+    laço, que é quase sempre onde o bug está.
+    """
+
+    __slots__ = ("condicao", "vezes", "log", "contagem",
+                 "_arvore", "_operador", "_alvo", "_trava")
+
+    def __init__(self, condicao="", vezes="", log=""):
+        import re
+        import threading
+
+        self.condicao = (condicao or "").strip()
+        self.vezes = (vezes or "").strip()
+        self.log = log or ""
+        self.contagem = 0
+        self._arvore = None
+        self._trava = threading.Lock()
+        self._operador, self._alvo = None, None
+        if self.vezes:
+            achado = re.fullmatch(r"(>=|>|==|%)?\s*(\d+)", self.vezes)
+            if not achado:
+                raise ValueError(
+                    f"'{self.vezes}' não é uma contagem — use um número, "
+                    f"'>= N', '> N', '== N' ou '% N'")
+            self._operador = achado.group(1) or ">="
+            self._alvo = int(achado.group(2))
+            if self._operador == "%" and self._alvo == 0:
+                raise ValueError("'% 0' nunca dispara")
+
+    @property
+    def vazia(self):
+        return not (self.condicao or self.vezes or self.log)
+
+    def _contagem_dispara(self):
+        with self._trava:
+            self.contagem += 1
+            n = self.contagem
+        if self._operador is None:
+            return True
+        return {">=": n >= self._alvo, ">": n > self._alvo,
+                "==": n == self._alvo, "%": n % self._alvo == 0
+                }[self._operador]
+
+    def descrever(self):
+        partes = []
+        if self.condicao:
+            partes.append(f"se {self.condicao}")
+        if self.vezes:
+            partes.append(f"vezes {self.vezes}")
+        if self.log:
+            partes.append(f"log {self.log!r}")
+        return ", ".join(partes)
+
+
 class Depurador:
     """Para, mostra e anda.
 
@@ -57,7 +125,20 @@ class Depurador:
         self.arquivo = arquivo
         self.linhas = fonte.split("\n")
         self.paradas = set(paradas)
+        #: linha -> Condicao. A linha continua em 'paradas' — uma parada
+        #: sem condição não tem entrada aqui.
+        self.condicoes = {}
         self.observadas = []           # expressões a mostrar a cada parada
+        #: Por que a última parada aconteceu: 'breakpoint', 'step' ou o
+        #: texto de uma condição que não deu para avaliar.
+        self.motivo = "step"
+        import threading as _threading
+        #: Por thread: avaliar uma condição chama 'evaluate', que pode
+        #: chamar 'execute' — que é a sombra. Sem esta marca, uma condição
+        #: que chama uma ação com uma parada dentro pararia no meio da
+        #: própria avaliação.
+        self._local = _threading.local()
+        self._trava_do_terminal = _threading.RLock()
         self.modo = PASSO if not paradas else CONTINUAR
         self.profundidade_alvo = None
         self.ultima_linha = None
@@ -78,7 +159,7 @@ class Depurador:
         self.original = self.interp.execute
 
         def executar(no, env):
-            if not self.saindo:
+            if not self.saindo and not getattr(self._local, "avaliando", False):
                 self._antes(no, env)
             return self.original(no, env)
 
@@ -116,9 +197,12 @@ class Depurador:
 
         profundidade = self._profundidade()
         parar = False
+        self.motivo = "step"
 
-        if linha in self.paradas:
+        if linha in self.paradas and self._parada_dispara(linha, env):
             parar = True
+            if self.motivo == "step":
+                self.motivo = "breakpoint"
         elif self.modo == PASSO:
             parar = True
         elif self.modo == PROXIMO:
@@ -133,13 +217,94 @@ class Depurador:
             self.quadro_atual = env
             self._parar(no, env, linha)
 
+    def _parada_dispara(self, linha, env):
+        """A linha tem parada; ela dispara AGORA?"""
+        condicao = self.condicoes.get(linha)
+        if condicao is None or condicao.vazia:
+            return True
+
+        if condicao.condicao:
+            try:
+                valor = self._avaliar_cru(condicao.condicao, env)
+            except Exception as erro:                   # noqa: BLE001
+                # Uma condição que não dá para avaliar PARA, e diz por
+                # quê. Calar faria a parada nunca disparar, e a pessoa
+                # concluiria que o código não passa por ali — a conclusão
+                # errada, tirada com toda a confiança.
+                self.motivo = ("a condição da parada falhou: "
+                               + (getattr(erro, "message", None) or str(erro)))
+                return True
+            if not self.interp._verdade(valor):
+                return False
+
+        if not condicao._contagem_dispara():
+            return False
+
+        if condicao.log:
+            self._registrar_log(self._texto_do_log(condicao.log, env), linha)
+            return False
+        return True
+
+    def _avaliar_cru(self, expressao, env):
+        """Avalia sem tocar em nada da depuração, e LEVANTA se falhar."""
+        from .lexer import tokenize
+        from .parser import parse
+
+        self._local.avaliando = True
+        try:
+            arvore = parse(tokenize(expressao, "<condição>"), "<condição>")
+            if not arvore.body:
+                return None
+            return self.interp.evaluate(arvore.body[0], env)
+        finally:
+            self._local.avaliando = False
+
+    def _texto_do_log(self, molde, env):
+        """'x vale {x}' pela interpolação da própria linguagem.
+
+        Reusar '$"…"' dá ao logpoint exatamente as regras que quem escreve
+        já conhece — inclusive o formato, '{preco:.2f}'. Uma segunda
+        implementação de '{…}' divergiria na primeira expressão com
+        chave dentro.
+        """
+        texto = molde.replace("\\", "\\\\").replace('"', '\\"')
+        try:
+            return self.interp._to_str(self._avaliar_cru(f'$"{texto}"', env))
+        except Exception as erro:                       # noqa: BLE001
+            return (f"{molde}  ← não deu para avaliar: "
+                    f"{getattr(erro, 'message', None) or erro}")
+
+    def _registrar_log(self, texto, linha):
+        print(f"{_cor('◆', '1;35')} {_cor(f'{self.arquivo}:{linha}', '0;90')} {texto}")
+
+    def definir_parada(self, linha, condicao="", vezes="", log=""):
+        """Liga a parada, com ou sem condição. Levanta se a contagem é inválida."""
+        c = Condicao(condicao, vezes, log)
+        self.paradas.add(linha)
+        if c.vazia:
+            self.condicoes.pop(linha, None)
+        else:
+            self.condicoes[linha] = c
+        return c
+
     # ── a interface ─────────────────────────────────────────
 
     def _parar(self, no, env, linha):
+        # Um terminal é UMA conversa. Duas threads paradas ao mesmo tempo
+        # disputariam o mesmo 'input()' e embaralhariam as respostas; com a
+        # trava, a segunda espera a primeira ser solta. Parar cada thread
+        # de forma independente é o que o 'dataforge dap' faz, onde o
+        # painel mostra uma de cada vez.
+        with self._trava_do_terminal:
+            return self._parar_no_terminal(no, env, linha)
+
+    def _parar_no_terminal(self, no, env, linha):
         marca = "●" if linha in self.paradas else "→"
         print()
         print(f"{_cor(marca, '1;33')} {_cor(f'{self.arquivo}:{linha}', '1;37')}"
               f"  {_cor(type(no).__name__, '0;90')}")
+        if self.motivo not in ("step", "breakpoint"):
+            print(f"  {_cor(self.motivo, '1;31')}")
         self._listar(linha, 2)
         for expressao in self.observadas:
             print(f"  {_cor('olho', '0;90')} {expressao} = "
@@ -224,13 +389,45 @@ class Depurador:
                 print(f"  {_cor(f'{n:>4}', '0;90')} {marca} {_cor(texto, '0;90')}")
 
     def _alternar_parada(self, resto, linha_atual):
-        alvo = int(resto) if resto.isdigit() else linha_atual
-        if alvo in self.paradas:
-            self.paradas.discard(alvo)
-            print(_cor(f"  parada removida da linha {alvo}", "0;90"))
+        """'b', 'b 12', 'b 12 se x bigger 3', 'b 12 vezes >= 5', 'b 12 log x={x}'.
+
+        Sem condição, alterna. Com condição, sempre LIGA — alternar uma
+        parada condicional desligaria justamente a que se acabou de pedir.
+        """
+        import re
+
+        numero, _, extra = resto.partition(" ")
+        if numero.isdigit():
+            alvo, extra = int(numero), extra.strip()
         else:
-            self.paradas.add(alvo)
-            print(_cor(f"  ● parada na linha {alvo}", "1;31"))
+            alvo, extra = linha_atual, resto.strip()
+
+        if not extra:
+            if alvo in self.paradas:
+                self.paradas.discard(alvo)
+                self.condicoes.pop(alvo, None)
+                print(_cor(f"  parada removida da linha {alvo}", "0;90"))
+            else:
+                self.paradas.add(alvo)
+                print(_cor(f"  ● parada na linha {alvo}", "1;31"))
+            return
+
+        achado = re.fullmatch(r"(se|if|vezes|log)\s+(.+)", extra)
+        if not achado:
+            print(_cor("  use: b <linha> se <expr> | vezes <n> | log <texto>",
+                       "1;31"))
+            return
+        tipo, valor = achado.group(1), achado.group(2).strip()
+        try:
+            c = self.definir_parada(
+                alvo,
+                condicao=valor if tipo in ("se", "if") else "",
+                vezes=valor if tipo == "vezes" else "",
+                log=valor if tipo == "log" else "")
+        except ValueError as erro:
+            print(_cor(f"  {erro}", "1;31"))
+            return
+        print(_cor(f"  ● parada na linha {alvo} ({c.descrever()})", "1;31"))
 
     def _mostrar_paradas(self):
         if not self.paradas:
@@ -241,7 +438,9 @@ class Depurador:
             # e valido a partir do Python 3.12, e a linguagem promete
             # 3.10+. O arquivo inteiro deixava de importar la.
             texto = self.linhas[n - 1].strip() if n <= len(self.linhas) else ""
-            print(f"  {_cor('●', '1;31')} {n:>4}  {texto}")
+            condicao = self.condicoes.get(n)
+            extra = _cor(f"  [{condicao.descrever()}]", "0;90") if condicao else ""
+            print(f"  {_cor('●', '1;31')} {n:>4}  {texto}{extra}")
 
     def _avaliar(self, expressao, env):
         """Avalia no QUADRO onde paramos, não no global.
@@ -335,6 +534,9 @@ class Depurador:
 
   {_cor('paradas', '1;37')}
     {_cor('b', '1;36')} [linha]   liga/desliga (sem número, a linha atual)
+    {_cor('b', '1;36')} 12 se <expr>      só para quando a expressão vale
+    {_cor('b', '1;36')} 12 vezes >= 5     conta as passagens ('N', '>', '==', '%')
+    {_cor('b', '1;36')} 12 log x={{x}}      imprime e não para
     {_cor('paradas', '1;36')}     lista as que existem
 
     {_cor('q', '1;36')}           encerra

@@ -1558,13 +1558,11 @@ O que **ainda não existe** (não invente que existe):
   relação entre entrada e saída, e não é verificado em execução.
 - **Exaustividade além do enum** — o `match` avisa quando um membro de
   enum fica de fora, mas não confere sequências nem records.
-- **Depurador de mais de uma thread, e breakpoint condicional.** O
-  depurador existe — `dataforge debug` no terminal, `dataforge dap` no
-  painel do editor, com breakpoint, pilha, variáveis em árvore e
-  avaliação no quadro escolhido. O que não existe: parar uma thread de
-  `thread`/`parallel` sem parar as outras (o depurador sombreia
-  `execute` no interpretador inteiro), breakpoint condicional e
-  watchpoint.
+- **Watchpoint** — parar quando uma variável MUDA. Breakpoint condicional,
+  contagem e logpoint existem (`b 12 se x bigger 3` no terminal; as três
+  opções da margem no editor), e o `dataforge dap` para cada thread de
+  `thread`/`parallel` sozinha. No **terminal** as paradas de threads
+  diferentes se enfileiram: um terminal é uma conversa só.
 - **Bytecode** — continua sendo interpretador de árvore. O que existe é
   **compilação para fechamentos** (`compilador.py`): a árvore é percorrida
   uma vez e vira funções Python, o que tira o despacho do caminho quente.

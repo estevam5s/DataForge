@@ -66,3 +66,12 @@ adaptado, e não como referência de uso.
 
 `engenharia_dados_python.md` · `conteudos-servidor.md` ·
 `servidor-framework-web.md` · `tasks.md`
+
+Os cinco abaixo são a fonte das metas abertas em `TODO.md` — o que ainda
+**não** foi implementado. Eles descrevem recursos na forma de outras
+linguagens (Node.js, Python), e implementá-los significa adaptar cada um à
+sintaxe da DataForge. Não use a sintaxe deles como referência:
+
+`dataforge_completo_avancado_dataforge.md` · `dataforge_do_basico_ao_avancado.md` ·
+`dataforge_arquitetura_avan_ada_e_big_o (1).md` · `dataforge-stream-framework.md` ·
+`dataforge-stream-devops.md`

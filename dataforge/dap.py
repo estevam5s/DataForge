@@ -178,51 +178,186 @@ class _Referencias:
         self._por_numero.clear()
 
 
-class DepuradorDAP(Depurador):
-    """O depurador com a interface trocada.
+#: Os quadros de todas as threads dividem um espaço de números, porque o
+#: protocolo manda de volta só o inteiro. O id é thread × FATOR +
+#: profundidade — uma recursão de dez mil quadros teria de acontecer
+#: para duas threads colidirem, e o teto de quadros da linguagem é mil.
+FATOR_DE_QUADRO = 10_000
 
-    Ele herda a decisão de parar — que é a parte que custou — e só
-    substitui `_parar`: em vez de um laço de `input()`, um evento e uma
-    espera.
+
+class _Thread:
+    """O estado de parada de UMA thread do programa.
+
+    Antes havia um só — um '_parado_em', um 'Event', um 'modo' para o
+    interpretador inteiro. Com duas threads batendo em paradas, a segunda
+    sobrescrevia a foto da primeira: o painel mostrava a pilha de uma e
+    as variáveis da outra, e soltar uma soltava as duas.
     """
+
+    __slots__ = ("id", "nome", "objeto", "parado_em", "pilha", "liberado",
+                 "modo", "profundidade_alvo", "ultima_linha", "quadro_atual",
+                 "motivo", "escopos", "pedir_pausa")
+
+    def __init__(self, numero, objeto, modo):
+        self.id = numero
+        self.nome = "programa" if numero == 1 else f"thread {numero}"
+        self.objeto = objeto
+        self.parado_em = None           # (no, env, linha) enquanto parada
+        self.pilha = []                 # a foto, tirada na thread certa
+        self.liberado = threading.Event()
+        self.modo = modo
+        self.profundidade_alvo = None
+        self.ultima_linha = None
+        self.quadro_atual = None
+        self.motivo = "step"
+        #: profundidade de chamada -> o escopo visto nela. Ver o cabeçalho
+        #: do módulo: o 'Frame' não carrega o escopo.
+        self.escopos = {}
+        self.pedir_pausa = False
+
+
+def _por_thread(nome):
+    """Um atributo do 'Depurador' que vale para a thread que o lê.
+
+    A decisão de parar mora em 'Depurador._antes', e ela lê e escreve
+    'self.modo', 'self.ultima_linha', 'self.profundidade_alvo'. Trocá-los
+    por propriedades que olham a thread atual é o que deixa a decisão ser
+    HERDADA em vez de copiada — duas cópias da parte mais difícil do
+    depurador divergiriam na primeira correção.
+
+    Fora de uma thread do programa (no '__init__', que roda na thread do
+    protocolo), o valor vai para '_fora', e é de lá que a primeira thread
+    do programa herda o modo inicial.
+    """
+    def ler(self):
+        estado = self._threads.get(threading.get_ident())
+        if estado is not None:
+            return getattr(estado, nome)
+        return self._fora.get(nome)
+
+    def escrever(self, valor):
+        estado = self._threads.get(threading.get_ident())
+        if estado is not None:
+            setattr(estado, nome, valor)
+        else:
+            self._fora[nome] = valor
+
+    return property(ler, escrever)
+
+
+class DepuradorDAP(Depurador):
+    """O depurador com a interface trocada, e uma parada por thread.
+
+    Ele herda a decisão de parar — que é a parte que custou — e substitui
+    `_parar`: em vez de um laço de `input()`, um evento e uma espera, na
+    thread que parou. As outras seguem rodando.
+    """
+
+    modo = _por_thread("modo")
+    profundidade_alvo = _por_thread("profundidade_alvo")
+    ultima_linha = _por_thread("ultima_linha")
+    quadro_atual = _por_thread("quadro_atual")
+    motivo = _por_thread("motivo")
 
     def __init__(self, canal, interpretador, arquivo, fonte, paradas=(),
                  parar_na_entrada=False):
+        self._threads = {}              # ident do Python -> _Thread
+        self._fora = {}
+        self._proximo_id = 1
+        self._trava_estado = threading.RLock()
         super().__init__(interpretador, arquivo, fonte, paradas)
         self.canal = canal
         self.caminho = os.path.abspath(arquivo)
+        # Vai para '_fora': é o modo com que a PRIMEIRA thread do programa
+        # nasce. As que nascem depois começam correndo — parar cada thread
+        # nova na primeira instrução seria um 'stopOnEntry' que ninguém
+        # pediu, uma vez por 'parallel'.
         self.modo = PASSO if parar_na_entrada else CONTINUAR
         self.refs = _Referencias()
-
-        #: profundidade de chamada -> o escopo visto nela. Ver o
-        #: cabeçalho do módulo: o `Frame` não carrega o escopo, e
-        #: acrescentá-lo custaria em toda chamada de todo programa.
-        self.escopos_por_profundidade = {}
-
-        self._liberado = threading.Event()
-        self._parado_em = None          # (no, env, linha) enquanto parado
-        self._pilha_parada = []         # a foto, tirada na thread certa
-        self._pedir_pausa = False
         self._encerrar = False
-        self._trava_estado = threading.RLock()
+
+    # ── as threads ──────────────────────────────────────────
+
+    def _registrar_thread(self):
+        ident = threading.get_ident()
+        estado = self._threads.get(ident)
+        if estado is not None:
+            return estado
+        with self._trava_estado:
+            numero = self._proximo_id
+            self._proximo_id += 1
+            modo = (self._fora.get("modo") or CONTINUAR) if numero == 1 else CONTINUAR
+            estado = _Thread(numero, threading.current_thread(), modo)
+            if numero > 1 and any(t.pedir_pausa for t in self._threads.values()):
+                estado.pedir_pausa = True
+            self._threads[ident] = estado
+        if numero > 1:
+            self.canal.evento("thread", {"reason": "started", "threadId": numero})
+        return estado
+
+    def _thread_por_id(self, numero):
+        with self._trava_estado:
+            for estado in self._threads.values():
+                if estado.id == numero:
+                    return estado
+        return None
+
+    def _alguma_parada(self, exceto=None):
+        with self._trava_estado:
+            for estado in self._threads.values():
+                if estado is not exceto and estado.parado_em is not None:
+                    return estado
+        return None
+
+    def threads(self):
+        """As threads vivas, e o aviso das que terminaram.
+
+        Antes era sempre uma, "programa": o depurador sombreia 'execute'
+        no interpretador inteiro, e apresentar N threads sem poder
+        pará-las uma a uma seria prometer o que não cumpria. Agora cada
+        uma para e anda sozinha, e a lista pode dizer a verdade.
+        """
+        vivas, mortas = [], []
+        with self._trava_estado:
+            for ident, estado in list(self._threads.items()):
+                if estado.id == 1 or estado.objeto.is_alive() \
+                        or estado.parado_em is not None:
+                    vivas.append(estado)
+                else:
+                    mortas.append(ident)
+            for ident in mortas:
+                morta = self._threads.pop(ident)
+                self.canal.evento("thread", {"reason": "exited",
+                                             "threadId": morta.id})
+        if not vivas:
+            return [{"id": 1, "name": "programa"}]
+        return [{"id": t.id, "name": t.nome}
+                for t in sorted(vivas, key=lambda t: t.id)]
 
     # ── o que o laço do DAP pergunta ────────────────────────
 
     @property
     def parado(self):
-        with self._trava_estado:
-            return self._parado_em is not None
+        return self._alguma_parada() is not None
 
-    def quadro_parado(self):
-        with self._trava_estado:
-            return self._parado_em
+    def quadro_parado(self, numero=None):
+        estado = (self._thread_por_id(numero) if numero is not None
+                  else self._alguma_parada_preferindo_a_primeira())
+        return estado.parado_em if estado is not None else None
+
+    def _alguma_parada_preferindo_a_primeira(self):
+        primeira = self._thread_por_id(1)
+        if primeira is not None and primeira.parado_em is not None:
+            return primeira
+        return self._alguma_parada()
 
     # ── decidir se para ─────────────────────────────────────
 
     def _antes(self, no, env):
-        """Anota o escopo desta profundidade, e atende `pause`."""
+        """Registra a thread, anota o escopo desta profundidade, atende `pause`."""
+        estado = self._registrar_thread()
         profundidade = self._profundidade()
-        anotar = self.escopos_por_profundidade
+        anotar = estado.escopos
         anotar[profundidade] = env
         # Ao voltar de uma chamada, o que estava mais fundo morreu. Sem
         # esta limpeza, a pilha mostraria escopos de ações que já
@@ -230,89 +365,129 @@ class DepuradorDAP(Depurador):
         if len(anotar) > profundidade + 1:
             for fundo in [d for d in anotar if d > profundidade]:
                 del anotar[fundo]
+        if estado.id > 1 and estado.nome == f"thread {estado.id}":
+            linha = getattr(no, "line", 0)
+            if linha:
+                estado.nome = f"thread {estado.id} (linha {linha})"
 
         if self._encerrar:
             raise _Encerrar()
-        if self._pedir_pausa:
-            self._pedir_pausa = False
-            self.modo = PASSO
+        if estado.pedir_pausa:
+            estado.pedir_pausa = False
+            estado.modo = PASSO
         return super()._antes(no, env)
 
     # ── parar: o evento, e a espera ─────────────────────────
 
-    def _parar(self, no, env, linha, motivo="step"):
-        if linha in self.paradas:
-            motivo = "breakpoint"
+    def _parar(self, no, env, linha, motivo=None):
+        estado = self._registrar_thread()
+        razao = self.motivo if motivo is None else motivo
+        descricao = None
+        if razao not in ("step", "breakpoint", "pause", "entry"):
+            # O texto de uma condição que não deu para avaliar. O DAP só
+            # aceita razões fixas, e a explicação vai em 'description'.
+            descricao, razao = razao, "breakpoint"
         with self._trava_estado:
-            self._parado_em = (no, env, linha)
+            estado.parado_em = (no, env, linha)
             # A pilha é POR THREAD, e quem responde 'stackTrace' é a
             # thread do protocolo: lá ela está vazia. A foto tem de ser
             # tirada AQUI, na thread que está executando.
-            self._pilha_parada = list(
-                getattr(self.interp, "_call_stack", ()) or [])
-            self.refs.limpar()
-        self._liberado.clear()
-        self.canal.evento("stopped", {
-            "reason": motivo,
-            "threadId": 1,
-            "allThreadsStopped": True,
-            "line": linha,
-        })
-        # Bloquear, e não girar num 'sleep': o tempo do programa precisa
-        # parar de verdade. Um laço de espera deixaria o interpretador
-        # andar e um 'persist yes' queimaria CPU enquanto a pessoa olha
-        # o painel.
-        self._liberado.wait()
+            estado.pilha = list(getattr(self.interp, "_call_stack", ()) or [])
+            # As referências só são descartadas se ninguém mais estiver
+            # parado: limpar aqui apagaria o painel de variáveis de uma
+            # thread que a pessoa ainda está olhando.
+            if self._alguma_parada(exceto=estado) is None:
+                self.refs.limpar()
+        estado.liberado.clear()
+        corpo = {"reason": razao, "threadId": estado.id,
+                 "allThreadsStopped": False, "line": linha}
+        if descricao:
+            corpo["description"] = descricao
+            corpo["text"] = descricao
+        self.canal.evento("stopped", corpo)
+        # Bloquear, e não girar num 'sleep': o tempo desta thread precisa
+        # parar de verdade.
+        estado.liberado.wait()
         with self._trava_estado:
-            self._parado_em = None
+            estado.parado_em = None
         if self._encerrar:
             raise _Encerrar()
 
-    def seguir(self, modo):
-        """Solta o programa no modo pedido."""
-        quadro = self.quadro_parado()
-        self.modo = modo
+    def _registrar_log(self, texto, linha):
+        """O logpoint vai para o console do editor, e o programa segue."""
+        self.canal.evento("output", {
+            "category": "console",
+            "output": f"{texto}\n",
+            "source": {"name": os.path.basename(self.caminho),
+                       "path": self.caminho},
+            "line": linha,
+        })
+
+    def seguir(self, modo, numero=None):
+        """Solta UMA thread no modo pedido."""
+        estado = (self._thread_por_id(numero) if numero is not None
+                  else self._alguma_parada_preferindo_a_primeira())
+        if estado is None:
+            # Ainda não há thread do programa: o modo vale para a primeira.
+            self._fora["modo"] = modo
+            return
+        estado.modo = modo
         if modo in (PROXIMO, SAIR_DO_QUADRO):
-            # Pela mesma razão da pilha: 'self._profundidade()' aqui
-            # leria a da thread do protocolo, que é zero — e 'próximo'
-            # pararia na primeira instrução de dentro da chamada, que é
-            # exatamente o que 'entrar' faz.
+            # Pela mesma razão da pilha: a profundidade tem de ser a da
+            # foto, e não a da thread do protocolo, que é zero.
             with self._trava_estado:
-                self.profundidade_alvo = len(self._pilha_parada)
+                estado.profundidade_alvo = len(estado.pilha)
         if modo == PASSO:
             # Um passo a partir da linha onde já estamos precisa poder
             # parar na MESMA linha do corpo de um laço.
-            self.ultima_linha = None
-        if quadro is not None:
-            self.canal.evento("continued", {"threadId": 1,
-                                            "allThreadsContinued": True})
-        self._liberado.set()
+            estado.ultima_linha = None
+        if estado.parado_em is not None:
+            self.canal.evento("continued", {"threadId": estado.id,
+                                            "allThreadsContinued": False})
+        estado.liberado.set()
 
-    def pausar(self):
-        self._pedir_pausa = True
+    def pausar(self, numero=None):
+        with self._trava_estado:
+            alvos = ([self._thread_por_id(numero)] if numero is not None
+                     else list(self._threads.values()))
+            if not [a for a in alvos if a is not None]:
+                # Nada rodando ainda: a primeira thread nasce em passo.
+                self._fora["modo"] = PASSO
+            for alvo in alvos:
+                if alvo is not None:
+                    alvo.pedir_pausa = True
 
     def encerrar(self):
         self._encerrar = True
-        self._liberado.set()
+        with self._trava_estado:
+            for estado in self._threads.values():
+                estado.liberado.set()
 
     # ── a pilha ─────────────────────────────────────────────
 
-    def pilha(self):
-        """Os quadros, do mais interno para o mais externo.
+    def pilha(self, numero=None):
+        """Os quadros de UMA thread, do mais interno para o mais externo.
 
-        O `id` de cada um é a profundidade: é o que o painel manda de
-        volta em `scopes`, e o que liga o quadro ao escopo anotado.
+        O `id` de cada um é thread × FATOR + profundidade: é o que o
+        painel manda de volta em `scopes`, e o que liga o quadro ao
+        escopo anotado naquela thread.
         """
-        parado = self.quadro_parado()
-        if parado is None:
+        estado = (self._thread_por_id(numero) if numero is not None
+                  else self._alguma_parada_preferindo_a_primeira())
+        if estado is None or estado.parado_em is None:
             return []
-        _, _, linha = parado
+        _, _, linha = estado.parado_em
         with self._trava_estado:
-            chamadas = list(self._pilha_parada)
+            chamadas = list(estado.pilha)
+        base = estado.id * FATOR_DE_QUADRO
+        # O quadro de topo é "(programa)" — nome de QUADRO, entre
+        # parênteses, e não o nome da thread. Numa thread de 'parallel',
+        # "(thread 2)".
+        topo = "(programa)" if estado.id == 1 else f"(thread {estado.id})"
 
         quadros = [{
-            "id": len(chamadas),
-            "name": chamadas[-1].name if chamadas else "(programa)",
+            "id": base + len(chamadas),
+            "name": chamadas[-1].name if chamadas else topo,
             "line": linha,
             "column": 1,
             "source": {"name": os.path.basename(self.caminho),
@@ -322,9 +497,9 @@ class DepuradorDAP(Depurador):
         # precisa para levar o cursor ao lugar certo ao clicar.
         for indice in range(len(chamadas) - 1, -1, -1):
             quadro = chamadas[indice]
-            de_fora = chamadas[indice - 1].name if indice > 0 else "(programa)"
+            de_fora = chamadas[indice - 1].name if indice > 0 else topo
             quadros.append({
-                "id": indice,
+                "id": base + indice,
                 "name": de_fora,
                 "line": getattr(quadro, "line", 0),
                 "column": getattr(quadro, "column", 0) or 1,
@@ -338,7 +513,11 @@ class DepuradorDAP(Depurador):
         return quadros
 
     def escopo_do_quadro(self, id_do_quadro):
-        return self.escopos_por_profundidade.get(id_do_quadro)
+        numero, profundidade = divmod(int(id_do_quadro or 0), FATOR_DE_QUADRO)
+        estado = self._thread_por_id(numero)
+        if estado is None:
+            return None
+        return estado.escopos.get(profundidade)
 
     # ── variáveis ───────────────────────────────────────────
 
@@ -496,6 +675,8 @@ class Sessao:
         self.thread = None
         self.caminho = None
         self.pedidas = {}          # arquivo -> linhas que o editor marcou
+        #: arquivo -> {linha: (condicao, vezes, log)}
+        self.condicoes_pedidas = {}
         self.terminou = False
         self.codigo = 0
 
@@ -540,7 +721,9 @@ class Sessao:
             "supportsSetVariable": False,
             "supportsTerminateRequest": True,
             "supportsStepBack": False,
-            "supportsConditionalBreakpoints": False,
+            "supportsConditionalBreakpoints": True,
+            "supportsHitConditionalBreakpoints": True,
+            "supportsLogPoints": True,
             "supportsDelayedStackTraceLoading": False,
             "exceptionBreakpointFilters": [],
         })
@@ -552,14 +735,16 @@ class Sessao:
     def req_setBreakpoints(self, pedido):
         args = pedido.get("arguments", {})
         fonte = (args.get("source") or {}).get("path") or ""
-        pedidas = [b.get("line", 0) for b in (args.get("breakpoints") or [])]
-        if not pedidas:
-            pedidas = list(args.get("lines") or [])
+        brutas = list(args.get("breakpoints") or [])
+        if not brutas:
+            brutas = [{"line": n} for n in (args.get("lines") or [])]
 
         executaveis = self._linhas_executaveis(fonte)
         confirmados = []
         linhas = set()
-        for linha in pedidas:
+        condicoes = {}
+        for bruta in brutas:
+            linha = bruta.get("line", 0)
             #: Uma parada em comentário ou linha vazia nunca disparava, e
             #: o editor a mostrava acesa — o pior dos dois mundos. Aqui
             #: ela é MOVIDA para a próxima linha executável, e o painel
@@ -572,14 +757,46 @@ class Sessao:
                     "message": "não há instrução nesta linha nem abaixo dela",
                 })
                 continue
+            trio = (bruta.get("condition") or "", bruta.get("hitCondition") or "",
+                    bruta.get("logMessage") or "")
+            if any(trio):
+                # Conferido AQUI, e não na primeira passagem: uma contagem
+                # que não se entende tem de aparecer na margem do editor
+                # como parada inválida, com o motivo, e não virar uma
+                # parada que nunca dispara sem nada dizendo por quê.
+                try:
+                    from .depurador import Condicao
+                    Condicao(*trio)
+                except ValueError as erro:
+                    confirmados.append({"verified": False, "line": destino,
+                                        "message": str(erro)})
+                    continue
+                condicoes[destino] = trio
             linhas.add(destino)
             confirmados.append({"verified": True, "line": destino})
 
         if fonte:
             self.pedidas[os.path.abspath(fonte)] = linhas
+            self.condicoes_pedidas[os.path.abspath(fonte)] = condicoes
         if self.depurador is not None:
-            self.depurador.paradas = set(linhas)
+            self._aplicar_paradas(self.depurador, linhas, condicoes)
         self.canal.responder(pedido, {"breakpoints": confirmados})
+
+    @staticmethod
+    def _aplicar_paradas(depurador, linhas, condicoes):
+        """Troca as paradas de uma vez. A contagem de uma parada que já
+        existia com a MESMA condição é mantida: o editor reenvia a lista
+        inteira a cada clique na margem, e zerar a contagem de todas por
+        causa de uma parada nova faria 'vezes >= 5' recomeçar do zero."""
+        antigas = dict(depurador.condicoes)
+        depurador.paradas = set(linhas)
+        depurador.condicoes = {}
+        for linha, (condicao, vezes, log) in condicoes.items():
+            nova = depurador.definir_parada(linha, condicao, vezes, log)
+            velha = antigas.get(linha)
+            if velha is not None and (velha.condicao, velha.vezes, velha.log) == \
+                    (nova.condicao, nova.vezes, nova.log):
+                depurador.condicoes[linha] = velha
 
     def _linhas_executaveis(self, caminho):
         """As linhas em que faz sentido parar, tiradas do parser.
@@ -655,6 +872,8 @@ class Sessao:
         d = DepuradorDAP(self.canal, interpretador, caminho, fonte,
                          paradas=self.pedidas.get(caminho, set()),
                          parar_na_entrada=bool(args.get("stopOnEntry")))
+        self._aplicar_paradas(d, self.pedidas.get(caminho, set()),
+                              self.condicoes_pedidas.get(caminho, {}))
         self.depurador = d
         self.canal.responder(pedido)
 
@@ -695,9 +914,10 @@ class Sessao:
             self.canal.responder(pedido, sucesso=False,
                                  mensagem="nada está rodando")
             return
-        self.canal.responder(pedido, {"allThreadsContinued": True}
+        numero = pedido.get("arguments", {}).get("threadId")
+        self.canal.responder(pedido, {"allThreadsContinued": False}
                              if modo == CONTINUAR else None)
-        self.depurador.seguir(modo)
+        self.depurador.seguir(modo, numero)
 
     def req_continue(self, pedido):
         self._seguir(pedido, CONTINUAR)
@@ -716,24 +936,22 @@ class Sessao:
             self.canal.responder(pedido, sucesso=False,
                                  mensagem="nada está rodando")
             return
-        self.depurador.pausar()
+        self.depurador.pausar(pedido.get("arguments", {}).get("threadId"))
         self.canal.responder(pedido)
 
     # ── olhar ───────────────────────────────────────────────
 
     def req_threads(self, pedido):
-        # Uma thread só. O DataForge tem `thread` e `parallel`, mas o
-        # depurador sombreia `execute` no interpretador inteiro, e
-        # apresentar N threads sem poder pará-las uma a uma seria uma
-        # interface que promete o que não cumpre.
-        self.canal.responder(pedido, {
-            "threads": [{"id": 1, "name": "programa"}]})
+        lista = (self.depurador.threads() if self.depurador is not None
+                 else [{"id": 1, "name": "programa"}])
+        self.canal.responder(pedido, {"threads": lista})
 
     def req_stackTrace(self, pedido):
         if self.depurador is None:
             self.canal.responder(pedido, {"stackFrames": [], "totalFrames": 0})
             return
-        quadros = self.depurador.pilha()
+        quadros = self.depurador.pilha(
+            pedido.get("arguments", {}).get("threadId"))
         self.canal.responder(pedido, {"stackFrames": quadros,
                                       "totalFrames": len(quadros)})
 

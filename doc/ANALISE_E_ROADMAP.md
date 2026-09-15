@@ -680,10 +680,13 @@ O que resta, em ordem de impacto.
 - **HTTP/2 e TLS no Kiln** — o `http.server` do Python não tem, e
   implementá-los seria reescrever um servidor de produção. Em produção
   pública, nginx ou Caddy na frente.
-- **Depurador de mais de uma thread** — `dataforge debug` e `dataforge dap`
-  param, mostram e andam, mas sombreiam `execute` no interpretador inteiro:
-  parar uma thread de `thread`/`parallel` sem parar as outras exigiria estado
-  por thread no depurador. Falta também breakpoint condicional e watchpoint.
+- ~~**Depurador de mais de uma thread**~~ e ~~**breakpoint condicional**~~ —
+  **feitos**. O `dataforge dap` tem estado de parada POR THREAD: cada uma
+  para, mostra a própria pilha e anda sozinha, e `threads` lista as vivas.
+  A decisão de parar continua herdada de `depurador.py` — os atributos que
+  ela lê viraram propriedades que olham a thread atual, em vez de a
+  decisão ser copiada. Condição, contagem (`>= N`, `% N`) e logpoint valem
+  no terminal e no editor. Falta **watchpoint**.
 - **Sessão compartilhada entre processos** — hoje a sessão da Vitrine vive na
   memória do processo, o que limita a aplicação a um processo com proxy na
   frente. Escalar horizontalmente exige um armazenamento comum primeiro.
