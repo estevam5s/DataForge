@@ -16,6 +16,32 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Acrescentado
 
+- **As 228 embutidas se explicam.** 202 delas — 88% — não tinham
+  docstring nenhuma, e o hover mostrava a assinatura do invólucro
+  (`len(*args, **kwargs)`) com a frase "Wraps a Python callable as a
+  DataForge built-in", igual para todas. São as funções que todo iniciante
+  toca primeiro e as únicas que não pedem `adopt`. Agora todas têm, e as
+  que escondem uma armadilha a declaram: `round` arredonda o empate para o
+  **par** (2,5 dá 2,0), `stdev` é **amostral** (divide por n-1), `hash`
+  trabalha sobre o **texto** do valor (então `hash(1)` e `hash("1")`
+  coincidem), `count` sem o item devolve o **tamanho**, `freeze` de um
+  vault devolve pares e **não** um vault, e `sleep` conta em
+  **milissegundos**. Há trava para as três coisas: nenhuma sem docstring,
+  nenhuma reusando a frase do invólucro, e a armadilha do `sleep` fechada.
+
+### Corrigido
+
+- **`cbrt` de um número negativo devolvia um complexo.** `cbrt(-8)` dava
+  `(1.0000000000000002+1.7320508075688772j)` em vez de `-2`, porque
+  `x ** (1/3)` de um negativo é complexo — e o número complexo era
+  entregue calado a um programa que ia fazer conta com ele. Todo cubo tem
+  uma raiz real.
+
+- **`sleep` dizia uma unidade e usava outra.** O parâmetro se chamava
+  `seconds` e o corpo dividia por mil: quem lesse a assinatura no hover
+  escreveria `sleep(2)` esperando dois segundos e receberia dois
+  milissegundos.
+
 - **Dois temas de cor**, `DataForge Escuro` e `DataForge Claro`, **gerados
   da gramática**. O gerador recusa rodar se um dos 43 escopos ficar sem
   cor — a mesma trava da gramática, pelo mesmo motivo: um tema escrito à

@@ -6036,3 +6036,73 @@ def test_um_arquivo_de_lixo_termina():
 def test_o_arquivo_valido_continua_passando_sem_erro():
     programa = parse(tokenize('x := 1\nout x\n', "t.df"), "t.df")
     assert len(programa.body) == 2
+
+
+# ─── Toda embutida se explica ───────────────────────────────
+# 202 das 228 nao tinham docstring. O hover mostrava a assinatura do
+# INVOLUCRO e a frase "Wraps a Python callable as a DataForge built-in" —
+# a mesma para todas, o que e pior que nao ter hover: parece que a
+# linguagem nao sabe o que as proprias funcoes fazem.
+#
+# As embutidas sao o que todo iniciante toca primeiro, e as unicas que
+# nao pedem 'adopt'. Se alguma coisa na linguagem tem de se explicar, sao
+# elas.
+
+def test_toda_embutida_tem_docstring():
+    from dataforge.builtins import get_builtins
+
+    def doc_de(valor):
+        alvo = getattr(valor, "func", valor)
+        return (getattr(alvo, "__doc__", "") or "").strip()
+
+    embutidas = get_builtins()
+    sem = sorted(nome for nome, valor in embutidas.items()
+                 if callable(valor) and not doc_de(valor))
+    assert not sem, (
+        f"{len(sem)} embutida(s) sem docstring — o hover e o "
+        f"autocompletar ficam mudos sobre elas:\n  " + "\n  ".join(sem))
+
+
+def test_a_docstring_da_embutida_nao_e_a_do_involucro():
+    """A frase do `BuiltinFunction` não conta como documentação.
+
+    Ela é verdadeira e inútil: descreve o mecanismo, e quem para o mouse
+    quer saber o que a função faz.
+    """
+    from dataforge.builtins import BuiltinFunction, get_builtins
+
+    do_involucro = (BuiltinFunction.__doc__ or "").strip()
+    culpadas = []
+    for nome, valor in get_builtins().items():
+        alvo = getattr(valor, "func", valor)
+        if (getattr(alvo, "__doc__", "") or "").strip() == do_involucro:
+            culpadas.append(nome)
+    assert not culpadas, culpadas
+
+
+def test_a_raiz_cubica_de_um_negativo_e_negativa():
+    """`cbrt(-8)` devolvia `(1.0000000000000002+1.7320508075688772j)`.
+
+    `x ** (1/3)` de um negativo é complexo, e o número complexo era
+    entregue calado a um programa que ia fazer conta com ele. Todo cubo
+    tem uma raiz real.
+    """
+    assert run("out cbrt(-8)") == "-2.0"
+    assert run("out cbrt(-27)") == "-3.0"
+    assert run("out cbrt(8)") == "2.0"
+    assert run("out cbrt(0)") == "0.0"
+
+
+def test_sleep_conta_em_milissegundos():
+    """E o parâmetro diz isso.
+
+    Ele se chamava `seconds` e o corpo dividia por mil: a assinatura que o
+    hover mostra dizia uma unidade e o corpo usava outra.
+    """
+    import inspect
+
+    from dataforge.builtins import get_builtins
+
+    sleep = get_builtins()["sleep"]
+    assinatura = inspect.signature(getattr(sleep, "func", sleep))
+    assert "milissegundos" in assinatura.parameters, assinatura
