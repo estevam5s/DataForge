@@ -5885,3 +5885,60 @@ def test_nenhuma_mensagem_da_arvore_INTEIRA_cita_tipo_do_python():
         "mensagem nomeando o tipo do Python de um VALOR — use "
         "'_df_type(x)' (importe como '_nome_do_tipo'):\n  "
         + "\n  ".join(culpados))
+
+
+# ─── 'void' nao vira texto ─────────────────────────────────
+# '"Ola, " + nome' com 'nome' void devolvia '"Ola, void"': a palavra
+# 'void' impressa onde devia ir o nome, numa nota fiscal ou num e-mail,
+# e nem o 'check' nem o 'lint' diziam nada. E o '"undefined"' do
+# JavaScript, e era a ultima armadilha de corrupcao silenciosa da
+# linguagem.
+#
+# Numero e booleano continuam coagindo: ali os dois lados existem.
+
+@pytest.mark.parametrize("expressao", [
+    '"valor: " + n',
+    'n + "valor"',
+    # a composta passa pelo mesmo '_operar'
+    's := "a"\ns += n\nout s',
+])
+def test_void_em_texto_e_recusado_em_execucao(expressao):
+    with pytest.raises(DataForgeError) as capturado:
+        run(f"n := void\n{expressao}\n")
+    assert "Void" in capturado.value.message
+    assert capturado.value.line, "o erro saiu sem linha"
+
+
+@pytest.mark.parametrize("fonte,esperado", [
+    ('out "num: " + 42', "num: 42"),
+    ('out "bool: " + yes', "bool: yes"),
+    ('out "lista: " + [1, 2]', "lista: [1, 2]"),
+    ('out "float: " + 1.5', "float: 1.5"),
+])
+def test_o_resto_continua_coagindo(fonte, esperado):
+    assert run(fonte) == esperado
+
+
+def test_a_interpolacao_continua_desenhando_void():
+    """A saida de quem quer o comportamento antigo, e a incoerencia
+    aparente: '$"{x}"' e um pedido EXPLICITO de mostrar o que houver.
+    """
+    assert run('n := void\nout $"valor: {n}"') == "valor: void"
+
+
+def test_o_padrao_com_coalescencia_e_a_outra_saida():
+    assert run('n := void\nout "valor: " + (n ?? "-")') == "valor: -"
+
+
+def test_o_check_prova_void_em_texto_quando_pode():
+    erros = _erros_de('n := void\nout "valor: " + n\n')
+    assert len(erros) == 1, [d.message for d in erros]
+    assert erros[0].code == "void-em-texto"
+
+
+def test_o_check_cala_quando_nao_pode_provar():
+    """Um parametro sem tipo pode ser qualquer coisa. Acusar ali seria
+    o falso alarme que ensina a desligar a verificacao.
+    """
+    erros = _erros_de('action f(x):\n    yield "v: " + x\n')
+    assert not erros, [d.message for d in erros]

@@ -46,6 +46,21 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Mudado
 
+- **`void` não vira mais texto.** `"Olá, " + nome`, com `nome` valendo
+  `void`, devolvia `"Olá, void"` — a palavra `void` impressa onde devia
+  ir o nome, e sem nada denunciando. É o `"undefined"` do JavaScript, e
+  era a última armadilha de corrupção silenciosa que nem o `check` nem o
+  `lint` mencionavam. Agora é erro, e o `check` o acusa quando consegue
+  provar que o lado é `Void` (calando quando não consegue, como sempre).
+  **Número, booleano e coleção continuam coagindo** — ali os dois lados
+  existem, e o texto é o que quem escreveu quis dizer. As duas saídas:
+  `nome ?? ""` para dar um padrão, ou `$"Olá, {nome}"`, que é um pedido
+  explícito e **continua desenhando `void`**. A coerção inteira passou a
+  estar documentada na [§2.3 da referência](doc/REFERENCIA.md), onde
+  antes `+` aparecia só como "soma".
+  Nos 369 arquivos `.df` do repositório isto acertou **uma** linha, num
+  exemplo que demonstrava imprimir cada tipo.
+
 - **`frame`, `train` e `predict` fazem alguma coisa.** As três devolviam
   um vault com `__type__` e paravam ali. Agora `frame` devolve o Frame
   do `Arcane.Analytics` e `train`/`predict` chamam o `Arcane.Cortex`.

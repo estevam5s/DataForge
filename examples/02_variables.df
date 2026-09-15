@@ -14,7 +14,12 @@ out "Language: " + name
 out "Version: " + version
 out "Pi: " + pi
 out "Awesome? " + is_awesome
-out "Nothing: " + nothing
+// 'void' is the one type '+' will not turn into text: a value that is
+// missing would print the word "void" where the real one belongs, and
+// that is a bug with no error message. Say it on purpose instead —
+// interpolation renders whatever is there:
+out $"Nothing: {nothing}"
+// ...or give it a default:  "Nothing: " + (nothing ?? "-")
 
 // Constants (immutable)
 steady MAX_USERS := 1000

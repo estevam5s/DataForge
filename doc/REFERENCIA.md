@@ -142,6 +142,7 @@ uma atribuição comum.
 | `:=` | atribuição | atribui/declara |
 | `+=` `-=` `*=` `/=` `%=` | atribuição | composta |
 | `+` `-` `*` `/` `%` | aritmética | soma, subtração, produto, divisão, resto |
+| `+` com `String` | texto | concatena e converte o outro lado — **menos `void`** (ver 2.3) |
 | `**` | aritmética | potência (associa à direita) |
 | `~/` | aritmética | divisão inteira (**preferido**) |
 | `??` | coalescência | valor alternativo quando o esquerdo é `void` |
@@ -195,7 +196,44 @@ out 2 + 3 * 4      # 14
 > `2 ** 3 ** 2  // 512, não 64` seria lida como divisão inteira — exatamente a
 > ambiguidade descrita a seguir.
 
-### 2.3 A ambiguidade de `//`
+### 2.3 O que `+` faz com texto
+
+Quando **um dos lados é `String`**, o outro é convertido e o resultado é
+texto. É o que faz `"Versão: " + 2` dar `"Versão: 2"` sem pedir `str()`.
+
+| Outro lado | `"n: " + x` | Por quê |
+|---|---|---|
+| `Integer` `Float` | `"n: 42"` | o valor existe, e o texto dele é o que se quis dizer |
+| `Boolean` | `"n: yes"` | idem |
+| `Cluster` `Vault` | `"n: [1, 2]"` | a forma desenhada, a mesma do `out` |
+| `record` `enum` | o `toString`, se houver | o tipo decide como se lê |
+| **`Void`** | **erro** | ver abaixo |
+
+**`void` não vira texto.** `"Olá, " + nome`, com `nome` valendo `void`,
+devolvia `"Olá, void"` — a palavra `void` impressa onde devia ir o nome,
+numa nota fiscal ou num e-mail, e sem nada denunciando. É o `"undefined"`
+do JavaScript, e era a única armadilha de corrupção silenciosa que nem o
+`check` nem o `lint` mencionavam. Um campo que não veio não é texto: é
+uma pergunta sem resposta, e a linguagem recusa respondê-la por você.
+
+As duas saídas, e a diferença entre elas é intenção:
+
+```dataforge
+nome := v["nome"] ?? void
+
+out "Olá, " + nome              // erro: Cannot add Void to text
+out "Olá, " + (nome ?? "")      // "Olá, " — o padrão é escolha sua
+out $"Olá, {nome}"              // "Olá, void" — pedido explícito
+```
+
+A **interpolação continua desenhando `void`**, e isso não é incoerência:
+`$"{x}"` é um pedido para mostrar o que houver ali, útil em log e em
+depuração. `+` entre texto e um valor ausente é quase sempre um descuido.
+O `check` acusa quando consegue provar que o lado é `Void`; quando não
+consegue — um parâmetro sem tipo, por exemplo — cala, e o erro aparece na
+execução.
+
+### 2.4 A ambiguidade de `//`
 
 `//` abre comentário **e** é divisão inteira. O lexer decide pelo contexto:
 
@@ -212,7 +250,7 @@ x := 3  // marcar como caminho  // comentário
 
 **Recomendação: use `~/`.** É inequívoco e não depende de heurística.
 
-### 2.4 Comparações encadeadas
+### 2.5 Comparações encadeadas
 
 ```dataforge
 nota := 7.5
@@ -222,7 +260,7 @@ out 1 smaller 5 smaller 10
 
 O termo do meio é avaliado uma única vez.
 
-### 2.5 Formato na interpolação
+### 2.6 Formato na interpolação
 
 Depois de `:` vem o formato, com a mini-linguagem do `format`:
 
@@ -236,7 +274,7 @@ O `:` que abre o corpo de um `lambda` ou de um `morph` **não** é
 formato: ele é distinguido por não ter espaço depois e por o que vem
 em seguida parecer formato.
 
-### 2.6 `is not` e `not in`
+### 2.7 `is not` e `not in`
 
 `is not` e `not in` são **um operador cada**, escritos com dois tokens:
 

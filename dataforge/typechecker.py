@@ -1793,6 +1793,18 @@ class TypeChecker:
             return esq if self._overloads(esq) else dir_
 
         if op == '+':
+            # 'void' em texto e erro, e aqui ele e PROVAVEL antes de rodar.
+            # '"Ola, " + nome' devolvia '"Ola, void"' — a palavra 'void'
+            # impressa onde devia ir o nome, e o analisador calava porque
+            # o resultado era um 'String' legitimo. O tipo estava certo e
+            # o programa errado.
+            if "String" in (esq, dir_) and "Void" in (esq, dir_):
+                self.error(
+                    "Cannot add Void to text", node,
+                    'Give it a default:  x ?? ""  — or render it on '
+                    'purpose with  $"{x}", which keeps the word "void"',
+                    "void-em-texto")
+                return "String"
             if "String" in (esq, dir_):
                 return "String"
             if esq == "Cluster" and dir_ == "Cluster":

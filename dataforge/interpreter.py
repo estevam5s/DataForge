@@ -1740,6 +1740,39 @@ class Interpreter:
         try:
             if op == '+':
                 if isinstance(left, str) or isinstance(right, str):
+                    # 'void' em texto e recusado. Todo o resto coage.
+                    #
+                    # '"Ola, " + nome' com 'nome' void devolvia
+                    # '"Ola, void"' — a palavra 'void' impressa na nota
+                    # fiscal, e nem o 'check' nem o 'lint' diziam nada.
+                    # E o '"undefined"' do JavaScript, e era a unica
+                    # armadilha de corrupcao silenciosa que a linguagem
+                    # ainda tinha: um campo que nao veio nao vira texto,
+                    # vira erro.
+                    #
+                    # Numero e booleano continuam coagindo ('42 + "x"' e
+                    # '"42x"'): ali os dois lados existem, e o resultado
+                    # e o que quem escreveu quis dizer. O que nao existe
+                    # e que nao pode virar texto em silencio.
+                    #
+                    # A interpolacao NAO passa por aqui, e de proposito:
+                    # '$"Ola, {nome}"' e um pedido explicito de desenhar
+                    # o valor, e continua escrevendo 'void'. E tambem a
+                    # saida de quem quer o comportamento antigo.
+                    lado = 'left' if left is None else (
+                        'right' if right is None else None)
+                    if lado:
+                        raise TypeError_(
+                            "Cannot add Void to text.",
+                            node.line, node.column,
+                            nota=f"the {lado} side evaluated to 'void'",
+                            dica=("a missing value does not become text. "
+                                  "Give it a default:\n"
+                                  '    "Ola, " + (nome ?? "")\n'
+                                  "or render it on purpose, which keeps "
+                                  "the word 'void':\n"
+                                  '    $"Ola, {nome}"'),
+                            doc="operadores")
                     return self._to_str(left) + self._to_str(right)
                 return left + right
             elif op == '-':
