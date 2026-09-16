@@ -2513,6 +2513,31 @@ class Parser:
                 f"'{nome}' was given twice in the same call. "
                 f"Remove one of them.")
 
+    def _recusar_parametro_repetido(self, params, nome):
+        """`action f(a, a)` — o primeiro nao tinha como ser lido.
+
+        `f(1, 2)` devolvia 2, e o parametro de cima ficava inalcancavel:
+        um dos dois nomes foi escrito por engano. E o irmao do argumento
+        nomeado repetido, do lado da declaracao.
+        """
+        if nome in params:
+            self.error(
+                f"'{nome}' is declared twice in the same parameter list. "
+                f"Rename one of them.")
+
+    def _recusar_obrigatorio_depois_de_padrao(self, nome, defaults):
+        """`action f(a := 1, b)` — a declaracao se contradiz.
+
+        O padrao de `a` nunca pode ser usado: `f(2)` deixa `b` sem valor, e
+        `f(2, 3)` passa por cima do padrao. Os dois jeitos de chamar estao
+        errados, e a declaracao passava limpa.
+        """
+        if defaults:
+            anterior = list(defaults)[-1]
+            self.error(
+                f"'{nome}' has no default but comes after '{anterior}', "
+                f"which has one. Move it before '{anterior}'.")
+
     def parse_expression_statement(self):
         """Parse an expression, an assignment, or a typed declaration."""
         if self._looks_like_destructuring():
@@ -2926,6 +2951,31 @@ class Parser:
 
         return expr
 
+    def _alvo_de_spawn(self, tok):
+        """O nome e os argumentos de um `spawn`, sem comer o resto.
+
+        Devolve `None` quando o que vem depois do `spawn` não é um nome —
+        aí o caminho antigo assume, e nada que funcionava deixa de
+        funcionar.
+        """
+        if self.current().type != TokenType.IDENTIFIER:
+            return None
+        alvo = ast.Identifier(name=self.advance().value,
+                              line=tok.line, column=tok.column)
+        # 'spawn Modulo.Blueprint(...)': o caminho pontilhado é o nome do
+        # que se constrói.
+        while self.current().type == TokenType.DOT:
+            self.advance()
+            alvo = ast.MemberAccess(object=alvo, member=self.expect_member_name(),
+                                    line=tok.line, column=tok.column)
+        args, kwargs = [], {}
+        if self.current().type == TokenType.LPAREN:
+            self.advance()
+            args, kwargs = self._parse_call_args()
+            self.expect(TokenType.RPAREN)
+        return ast.SpawnExpression(class_name=alvo, args=args, kwargs=kwargs,
+                                   line=tok.line, column=tok.column)
+
     def parse_primary(self):
         """Parse primary expressions (literals, identifiers, grouped)."""
         tok = self.current()
@@ -3008,6 +3058,15 @@ class Parser:
         # Spawn/Forge: spawn/forge ClassName(args)
         if tok.type in (TokenType.SPAWN, TokenType.FORGE):
             self.advance()
+            # O 'spawn' leva o NOME e os argumentos do construtor, e para
+            # ali. Com 'parse_postfix' ele comia a cadeia inteira, e
+            # 'spawn B().f()' virava 'spawn (B().f())': o que chegava para
+            # construir era o resultado de um método, e a mensagem culpava
+            # a ação. Devolvendo daqui, o pós-fixo de quem nos chamou
+            # aplica '.f()' sobre a instância — que é o que está escrito.
+            restrito = self._alvo_de_spawn(tok)
+            if restrito is not None:
+                return restrito
             class_expr = self.parse_postfix()
             if isinstance(class_expr, ast.FunctionCall):
                 return ast.SpawnExpression(
@@ -3036,6 +3095,7 @@ class Parser:
             has_parens = bool(self.match(TokenType.LPAREN))
             while self.current().type == TokenType.IDENTIFIER:
                 name = self.advance().value
+                self._recusar_parametro_repetido(params, name)
                 params.append(name)
                 # A ':' type annotation is only unambiguous inside parentheses;
                 # without them 'lambda n: n' means the body starts at ':'.
@@ -3044,6 +3104,8 @@ class Parser:
                         "Expected a type name after ':'")
                 if self.match(TokenType.ASSIGN):
                     defaults[name] = self.parse_or()
+                else:
+                    self._recusar_obrigatorio_depois_de_padrao(name, defaults)
                 if not self.match(TokenType.COMMA):
                     break
             if has_parens:
@@ -3346,12 +3408,15 @@ class Parser:
         types = {}
         while self.current().type != TokenType.RPAREN:
             name = self.expect(TokenType.IDENTIFIER).value
+            self._recusar_parametro_repetido(params, name)
             params.append(name)
             if self.match(TokenType.COLON):
                 types[name] = self._parse_nome_de_tipo(
                     "Expected a type name after ':'")
             if self.match(TokenType.ASSIGN):
                 defaults[name] = self.parse_expression()
+            else:
+                self._recusar_obrigatorio_depois_de_padrao(name, defaults)
             self.match(TokenType.COMMA)
         return params, defaults, types
 

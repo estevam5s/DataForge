@@ -346,8 +346,47 @@ class TypeChecker:
         # da leitura no arquivo.
         self._recolher_campos_externos(program, escopo)
         self._recolher_literais_fixos(program)
+        self._avisar_declaracao_repetida(program.body)
         self.visit_block(program.body, escopo)
         return self._sem_os_silenciados(program)
+
+    #: Os nós que declaram um nome no topo do arquivo.
+    _DECLARAM_NOME = ("ActionDeclaration", "RecordDeclaration",
+                      "BlueprintDeclaration", "EnumDeclaration",
+                      "TraitDeclaration")
+
+    def _avisar_declaracao_repetida(self, corpo):
+        """Duas declarações com o mesmo nome no topo do mesmo arquivo.
+
+        A segunda vence, e a primeira não tem como ser alcançada — é
+        engano de copiar e colar, e num arquivo de mil linhas as duas
+        ficam longe uma da outra. O campo repetido de um `record` e o
+        membro repetido de um `enum` já eram acusados; a declaração
+        inteira, não.
+
+        É **aviso**, e não erro, por duas razões: o Python aceita calado,
+        então quem chega de lá não está fazendo nada exótico; e um arquivo
+        gerado pode legitimamente redeclarar. Mas o aviso é o suficiente
+        para achar o engano.
+
+        Só o **topo** do arquivo. Dentro de um ramo de `given`, declarar o
+        mesmo nome nos dois caminhos é como se escolhe a implementação, e
+        acusar isso proibiria o uso certo.
+        """
+        onde = {}
+        for no in corpo or []:
+            if type(no).__name__ not in self._DECLARAM_NOME:
+                continue
+            nome = getattr(no, "name", "")
+            if not nome:
+                continue
+            if nome in onde:
+                self.warn(
+                    f"'{nome}' já foi declarado na linha {onde[nome]}",
+                    no, "a segunda declaração vence, e a primeira não tem "
+                        "como ser alcançada", "declaracao-repetida")
+            else:
+                onde[nome] = no.line
 
     # ── o que um literal garante ────────────────────────────
 
@@ -1902,7 +1941,44 @@ class TypeChecker:
             self._genericos_do_blueprint = genericos_antes
             self._limites_do_blueprint = limites_antes
         self._conferir_contrato_de_trait(node)
+        self._conferir_membros_repetidos(node)
         return False
+
+    def _conferir_membros_repetidos(self, node):
+        """Dois métodos com o mesmo nome, ou um método com o nome de um campo.
+
+        O segundo vencia, calado, e o de cima não tinha como ser chamado.
+        O campo repetido de um `record` e o membro repetido de um `enum` já
+        eram acusados — o método de um `blueprint`, não.
+
+        O caso do campo é o pior dos dois: em `blueprint B(x)` com
+        `action x()`, o campo vence sempre, e `b.x` devolve o valor. O
+        método existe no arquivo e **nunca roda**.
+
+        Cala para propriedade (`get x` e `set x` são o mesmo nome de
+        propósito) e para método sobrescrito na filha, que é o ponto da
+        herança: isto olha um blueprint por vez.
+        """
+        campos = set(node.constructor_params or [])
+        vistos = {}
+        for membro in node.body or []:
+            if type(membro).__name__ != "ActionDeclaration":
+                continue
+            nome = getattr(membro, "name", "")
+            if not nome or nome.startswith("__"):
+                continue
+            if nome in campos:
+                self.error(
+                    f"'{nome}' is both a field and a method of '{node.name}'",
+                    membro, "the field wins, so the method can never be "
+                            "called — rename one of them", "membro-repetido")
+            elif nome in vistos:
+                self.error(
+                    f"Duplicate method '{nome}' in blueprint '{node.name}'",
+                    membro, f"the one on line {vistos[nome]} can never be "
+                            f"called — remove one of them", "membro-repetido")
+            else:
+                vistos[nome] = membro.line
 
     def _conferir_contrato_de_trait(self, node):
         """Um blueprint concreto implementa tudo o que prometeu.

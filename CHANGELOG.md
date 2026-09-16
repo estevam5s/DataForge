@@ -226,6 +226,29 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Corrigido
 
+- **`spawn B().f()` significava outra coisa.** O `spawn` consumia a cadeia
+  inteira de pós-fixos, então a linha era lida como `spawn (B().f())`: o que
+  chegava para construir era o resultado de um método, e a mensagem culpava a
+  ação — *"'<action f>' is not a blueprint, so it cannot be spawned"*. É a
+  forma mais natural que existe (`new B().f()` em quase toda linguagem), e o
+  parêntese que consertava não estava em mensagem nenhuma. Agora o `spawn`
+  leva o nome e os argumentos do construtor, e o que vem depois é aplicado
+  sobre a instância.
+- **Cinco declarações que se contradizem**, todas aceitas em silêncio:
+  `action f(a, a)` — o primeiro parâmetro não tinha como ser lido, e
+  `f(1, 2)` devolvia 2;
+  `action f(a := 1, b)` — o padrão nunca podia ser usado, porque `f(2)` deixa
+  `b` sem valor e `f(2, 3)` passa por cima dele;
+  dois métodos com o mesmo nome no mesmo blueprint — o segundo vencia, e o
+  campo repetido de um `record` e o membro repetido de um `enum` já eram
+  acusados;
+  um método com o nome de um campo do cabeçalho (`blueprint B(x)` com
+  `action x()`) — o **campo** vence, e o método existe no arquivo sem nunca
+  rodar;
+  e duas declarações de topo com o mesmo nome no mesmo arquivo, que agora são
+  **aviso** (`declaracao-repetida`) — a segunda vence, e a primeira não tem
+  como ser alcançada.
+
 - **Quatro enganos que passavam calados**, achados numa bateria de dez
   erros novos contra o analisador:
   `f() := 2` respondia **"'f' é palavra reservada e não pode receber

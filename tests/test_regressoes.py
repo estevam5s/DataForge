@@ -7165,3 +7165,104 @@ def test_um_trait_declarado_continua_funcionando():
     assert run('trait T:\n    action m()\n'
                'blueprint B with T:\n    action m():\n        yield 7\n'
                'out (spawn B()).m()\n') == "7"
+
+
+# ══════════════════════════════════════════════════════════════════
+#  Sexta bateria: a declaração que se contradiz
+# ══════════════════════════════════════════════════════════════════
+
+def test_spawn_seguido_de_metodo_constroi_e_depois_chama():
+    """'spawn B().f()' era lido como 'spawn (B().f())'.
+
+    O `spawn` consumia a cadeia inteira de pós-fixos, então o que ele
+    recebia para construir era o resultado de `B().f` — e a mensagem
+    culpava a ação: "'<action f>' is not a blueprint". A forma é a mais
+    natural que existe (`new B().f()` em quase toda linguagem), e o
+    parêntese que consertava não estava em mensagem nenhuma.
+    """
+    assert run('blueprint B:\n    action f():\n        yield 7\n'
+               'out spawn B().f()\n') == "7"
+    # Com argumentos, e com o módulo na frente, continua construindo o certo.
+    assert run('blueprint B(n):\n    action dobro():\n        yield self.n * 2\n'
+               'out spawn B(4).dobro()\n') == "8"
+    assert run('blueprint B(n):\n    action f():\n        yield self.n\n'
+               'b := spawn B(1)\nout b.f()\n') == "1"
+
+
+def test_spawn_encadeado_com_indice_e_membro():
+    assert run('blueprint B:\n    action lista():\n        yield [10, 20]\n'
+               'out spawn B().lista()[1]\n') == "20"
+
+
+@pytest.mark.parametrize("fonte", [
+    'action f(a, a):\n    yield a\nout f(1, 2)\n',
+    'blueprint B:\n    action m(x, x):\n        yield x\nout 1\n',
+    'out (lambda a, a: a)(1, 2)\n',
+])
+def test_um_parametro_declarado_duas_vezes_e_recusado(fonte):
+    """'action f(a, a)' passava limpo e 'f(1, 2)' devolvia 2: o primeiro
+    parâmetro não tinha como ser lido, e um dos dois nomes foi escrito
+    por engano."""
+    erros = _erros_de_sintaxe(fonte)
+    assert "twice" in erros[0].message, erros[0].message
+
+
+def test_um_parametro_obrigatorio_depois_de_um_com_padrao():
+    """'action f(a := 1, b)' aceita, e o padrão nunca pode ser usado:
+    `f(2)` deixa `b` sem valor, e `f(2, 3)` passa por cima do padrão.
+    A declaração se contradiz, e a contradição estava calada."""
+    erros = _erros_de_sintaxe('action f(a := 1, b):\n    yield [a, b]\n'
+                              'out f(2, 3)\n')
+    assert "default" in erros[0].message, erros[0].message
+    # A ordem certa continua valendo.
+    assert run('action f(a, b := 2):\n    yield [a, b]\nout f(1)\n') == "[1, 2]"
+
+
+def test_um_metodo_declarado_duas_vezes_no_mesmo_blueprint():
+    """O segundo vencia, calado. O campo repetido de um record e o membro
+    repetido de um enum já eram acusados; o método, não."""
+    fonte = ('blueprint B:\n    action f():\n        yield 1\n'
+             '    action f():\n        yield 2\n')
+    erros = [d for d in _erros_de(fonte) if d.code == "membro-repetido"]
+    assert erros, [d.message for d in _erros_de(fonte)]
+    assert "f" in erros[0].message
+
+
+def test_um_metodo_com_o_nome_de_um_campo_e_recusado():
+    """'blueprint B(x)' com 'action x()': o campo vence e o método não tem
+    como ser chamado — `b.x` devolve o valor, sempre."""
+    fonte = ('blueprint B(x):\n    action x():\n        yield 9\n')
+    erros = [d for d in _erros_de(fonte) if d.code == "membro-repetido"]
+    assert erros, [d.message for d in _erros_de(fonte)]
+
+
+def test_uma_declaracao_repetida_no_mesmo_arquivo_e_avisada():
+    """Duas `action f` no topo do mesmo arquivo: a segunda vence e a
+    primeira não tem como ser alcançada. É engano de copiar e colar, e
+    ele cresce calado num arquivo grande."""
+    from dataforge.typechecker import check_program
+
+    for fonte in (
+        'action f():\n    yield 1\naction f():\n    yield 2\nout f()\n',
+        'record P:\n    x: Integer\nrecord P:\n    y: Integer\nout P(1)\n',
+        'blueprint B:\n    action m():\n        yield 1\n'
+        'blueprint B:\n    action m():\n        yield 2\nout 1\n',
+    ):
+        ds = check_program(parse(tokenize(fonte, "t.df"), "t.df"), "t.df")
+        repetidas = [d for d in ds if d.code == "declaracao-repetida"]
+        assert len(repetidas) == 1, [d.message for d in ds]
+        assert not [d for d in ds if d.severity == "error"], \
+            [d.message for d in ds]
+
+
+def test_um_metodo_sobrescrito_na_filha_nao_e_declaracao_repetida():
+    """A guarda: sobrescrever é o ponto da herança."""
+    from dataforge.typechecker import check_program
+
+    fonte = ('blueprint A:\n    action m():\n        yield 1\n'
+             'blueprint B extends A:\n    action m():\n        yield 2\n'
+             'out (spawn B()).m()\n')
+    ds = check_program(parse(tokenize(fonte, "t.df"), "t.df"), "t.df")
+    assert not [d for d in ds if d.code == "declaracao-repetida"], \
+        [d.message for d in ds]
+    assert run(fonte) == "2"

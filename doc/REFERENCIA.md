@@ -511,7 +511,15 @@ fluxo, não erros.
 [ async ] action nome "(" [ params ] ")" [ "->" tipo ] ":" bloco
 ```
 
-Um parâmetro é `nome [":" tipo] [":=" padrão]`.
+Um parâmetro é `nome [":" tipo] [":=" padrão]`, e a lista obedece a duas
+regras, as duas conferidas na leitura do arquivo:
+
+| Recusado | Porque |
+|---|---|
+| o mesmo nome duas vezes (`action f(a, a)`) | o primeiro não tem como ser lido, e `f(1, 2)` devolveria o segundo |
+| um parâmetro sem padrão depois de um com padrão (`action f(a := 1, b)`) | o padrão nunca poderia ser usado: `f(2)` deixa `b` sem valor e `f(2, 3)` passa por cima dele |
+
+Valem também para `lambda`.
 
 ### 6.2 Retorno
 
@@ -687,6 +695,29 @@ Se ambos existirem, os parâmetros são atribuídos primeiro e depois `setup` ro
 
 Instanciar: `spawn Nome(args)` ou `forge Nome(args)`. Chamar o blueprint
 diretamente (`Nome(args)`) também instancia.
+
+**O `spawn` leva o nome e os argumentos, e para ali.** O que vem depois é
+aplicado sobre a instância, então `spawn B().f()` constrói e depois chama —
+como se lê. Até a 1.0.0 ele consumia a cadeia inteira, e a mesma linha
+significava `spawn (B().f())`.
+
+```dataforge
+blueprint Caixa(n):
+    action dobro():
+        yield self.n * 2
+
+out spawn Caixa(4).dobro()      // 8
+out spawn Caixa(4).n            // 4
+```
+
+### 7.2.1 Um nome por membro
+
+Dois métodos com o mesmo nome no mesmo blueprint, ou um método com o nome de
+um campo do cabeçalho, são recusados pela análise. Nos dois casos o segundo
+vence em silêncio, e o outro não tem como ser chamado — no caso do campo, é o
+campo que vence, e o método existe no arquivo sem nunca rodar.
+
+Sobrescrever na filha é outra coisa, e continua sendo o ponto da herança.
 
 ### 7.3 self e root
 

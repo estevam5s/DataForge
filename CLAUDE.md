@@ -412,6 +412,24 @@ Estas são as que mais custam tempo:
     chave não estava lá". `omit` devolve **cópia** e não mexe no
     original.
 
+26. **Uma declaração que se contradiz agora é recusada na leitura.**
+    Quatro formas passavam limpas e não tinham leitura possível:
+    `action f(a, a)` (o primeiro `a` era inalcançável, e `f(1, 2)` dava
+    2), `action f(a := 1, b)` (o padrão nunca podia ser usado), dois
+    métodos com o mesmo nome num blueprint, e um método com o nome de um
+    campo do cabeçalho — nesse último o **campo vence**, e o método
+    existe no arquivo sem nunca rodar. Duas declarações de topo com o
+    mesmo nome no mesmo arquivo viraram **aviso** (`declaracao-repetida`):
+    o Python aceita calado, mas a primeira não tem como ser alcançada.
+
+27. **`spawn` leva o nome e os argumentos, e para ali.** Ele chamava
+    `parse_postfix`, então `spawn B().f()` era `spawn (B().f())` e a
+    mensagem culpava a ação (`'<action f>' is not a blueprint`). Hoje o
+    `spawn` devolve a instância de dentro de `parse_primary`, e o
+    pós-fixo de quem chamou aplica `.f()` sobre ela. `_alvo_de_spawn`
+    devolve `None` quando o que vem depois não é um nome, e aí o caminho
+    antigo assume — nada que funcionava deixou de funcionar.
+
 ---
 
 ## Convenções ao mexer no interpretador
