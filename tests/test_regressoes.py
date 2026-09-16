@@ -7310,3 +7310,177 @@ def test_a_reflexao_do_blueprint_continua_igual():
                'b := spawn B(9)\n'
                'out has_field(b, "a"), has_method(b, "m"), '
                'get_fields(b), get_methods(b)\n') == 'yes yes [a] [m]'
+
+
+# ══════════════════════════════════════════════════════════════════
+#  A tarefa 'async' que ninguém colhe
+# ══════════════════════════════════════════════════════════════════
+
+def test_uma_tarefa_async_que_falha_e_ninguem_espera_nao_some():
+    """Era a última das três a engolir erro em silêncio.
+
+    `thread` e `parallel` já foram corrigidos: o erro é desenhado e o
+    programa sai com código diferente de zero. A tarefa `async` ficou de
+    fora — quem chamava uma ação `async` sem `await` perdia o erro
+    inteiro, e o programa terminava com **código 0**.
+
+    É o mesmo defeito que fez o Node passar a derrubar o processo numa
+    promessa rejeitada sem tratamento: o trabalho que falhou desaparece,
+    e o CI fica verde sobre metade do sistema quebrado.
+    """
+    fonte = ('async action quebrar():\n'
+             '    trigger "falhei"\n'
+             't := quebrar()\n'
+             'out "segue"\n')
+    with pytest.raises(DataForgeError) as capturado:
+        run(fonte)
+    assert "async" in capturado.value.message.lower()
+
+
+def test_uma_tarefa_colhida_com_await_nao_e_cobrada_duas_vezes():
+    """A guarda: quem deu `await` já recebeu o erro, e `handle` o pegou.
+    Cobrá-lo de novo no fim faria um programa correto falhar."""
+    assert run('async action quebrar():\n'
+               '    trigger "falhei"\n'
+               'monitor:\n'
+               '    out await quebrar()\n'
+               'handle Error as e:\n'
+               '    out $"peguei: {e.message}"\n') == "peguei: falhei"
+
+
+def test_uma_tarefa_que_termina_bem_sem_await_nao_e_cobrada():
+    """Começar trabalho e não esperar o resultado é legítimo — o que não
+    pode sumir é a FALHA."""
+    assert run('async action trabalhar():\n'
+               '    yield 1\n'
+               't := trabalhar()\n'
+               'out "ok"\n') == "ok"
+
+
+def test_os_ganchos_veem_o_ciclo_de_vida_de_uma_tarefa():
+    """O que o Node chama de *async hooks*, e o problema que resolvem:
+    uma tarefa nasce numa thread e termina em outra, e no meio disso não
+    havia onde pendurar um cronômetro, um id de pedido ou um contador."""
+    fonte = ('adopt Arcane.Async as A\n'
+             'A.sem_ganchos()\n'
+             'registro := []\n'
+             'A.ao_criar(lambda t: registro.append($"criou {t["nome"]}"))\n'
+             'A.ao_terminar(lambda t: registro.append($"ok {t["nome"]}"))\n'
+             'A.ao_falhar(lambda t: registro.append($"erro {t["erro"]}"))\n'
+             'async action somar(a, b):\n'
+             '    yield a + b\n'
+             'async action quebrar():\n'
+             '    trigger "de proposito"\n'
+             'out await somar(2, 3)\n'
+             'monitor:\n'
+             '    out await quebrar()\n'
+             'handle Error as e:\n'
+             '    out "peguei"\n'
+             'A.esperar_todas(1)\n'
+             'out registro\n'
+             'A.sem_ganchos()\n')
+    saida = run(fonte).splitlines()
+    assert saida[0] == "5"
+    assert saida[1] == "peguei"
+    assert "criou somar" in saida[2]
+    assert "ok somar" in saida[2]
+    assert "erro de proposito" in saida[2]
+
+
+def test_um_gancho_que_quebra_nao_derruba_a_tarefa():
+    """Observação que quebra o observado é pior que não observar."""
+    fonte = ('adopt Arcane.Async as A\n'
+             'A.sem_ganchos()\n'
+             'A.ao_criar(lambda t: t["naoExiste"])\n'
+             'async action f():\n'
+             '    yield 7\n'
+             'out await f()\n'
+             'A.sem_ganchos()\n')
+    assert run(fonte) == "7"
+
+
+def test_vivas_responde_por_que_o_programa_nao_termina():
+    fonte = ('adopt Arcane.Async as A\n'
+             'adopt Arcane.Time as T\n'
+             'A.sem_ganchos()\n'
+             'async action demorar():\n'
+             '    T.sleep(0.3)\n'
+             '    yield 1\n'
+             't := demorar()\n'
+             'out len(A.vivas())\n'
+             'out await t\n')
+    assert run(fonte) == "1\n1"
+
+
+# ══════════════════════════════════════════════════════════════════
+#  A causa de um erro embrulhado
+# ══════════════════════════════════════════════════════════════════
+
+def test_um_trigger_dentro_de_handle_guarda_a_causa():
+    """Embrulhar um erro apagava o original, e embrulhar é a norma.
+
+        handle Error as e:
+            trigger $"nao deu para carregar '{caminho}'"
+
+    A mensagem de fora dizia o QUE falhou e perdia o PORQUÊ: o erro
+    original — a chave ausente, o arquivo que não existe, a conexão
+    recusada — sumia inteiro, e quem depura vê só a camada de cima.
+
+    É o mesmo que o `raise … from e` do Python resolve, e o `Caused by`
+    do Java.
+    """
+    fonte = ('action carregar(caminho):\n'
+             '    monitor:\n'
+             '        v := {"nome": "Ana"}\n'
+             '        yield v["idade"]\n'
+             '    handle Error as e:\n'
+             '        trigger $"nao deu para carregar {caminho}"\n'
+             'monitor:\n'
+             '    out carregar("clientes.json")\n'
+             'handle Error as e:\n'
+             '    out e.message\n'
+             '    out e.causa.type\n'
+             '    out e.causa.message\n')
+    saida = run(fonte).splitlines()
+    assert saida[0] == "nao deu para carregar clientes.json"
+    assert saida[1] == "KeyError"
+    assert 'idade' in saida[2]
+
+
+def test_a_causa_aparece_no_desenho_do_erro():
+    """Sem isso, a cadeia existe e ninguém a vê."""
+    fonte = ('action carregar():\n'
+             '    monitor:\n'
+             '        v := {"nome": "Ana"}\n'
+             '        yield v["idade"]\n'
+             '    handle Error as e:\n'
+             '        trigger "nao deu para carregar"\n'
+             'out carregar()\n')
+    with pytest.raises(DataForgeError) as capturado:
+        run(fonte)
+    desenho = capturado.value.render(color=False)
+    assert "causado por" in desenho.lower()
+    assert "idade" in desenho
+
+
+def test_um_trigger_fora_de_handle_nao_inventa_causa():
+    """A guarda: só o que estava sendo tratado vira causa."""
+    fonte = ('monitor:\n'
+             '    trigger "sozinho"\n'
+             'handle Error as e:\n'
+             '    out e.causa\n')
+    assert run(fonte) == "void"
+
+
+def test_a_causa_nao_atravessa_um_handle_que_ja_terminou():
+    """Depois que o `handle` acaba, o erro tratado não é mais a causa de
+    nada — senão todo `trigger` posterior herdaria um erro antigo."""
+    fonte = ('monitor:\n'
+             '    trigger "primeiro"\n'
+             'handle Error as e:\n'
+             '    out "tratei"\n'
+             'monitor:\n'
+             '    trigger "segundo"\n'
+             'handle Error as e:\n'
+             '    out e.causa\n')
+    assert run(fonte) == "tratei\nvoid"

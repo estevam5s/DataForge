@@ -462,6 +462,21 @@
      "tipo": "funcao"
     },
     {
+     "nome": "ao_criar",
+     "sig": "(funcao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ao_falhar",
+     "sig": "(funcao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ao_terminar",
+     "sig": "(funcao)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "batch",
      "sig": "(fn)",
      "tipo": "funcao"
@@ -524,6 +539,11 @@
     {
      "nome": "emitter",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar_todas",
+     "sig": "(prazo)",
      "tipo": "funcao"
     },
     {
@@ -627,6 +647,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "sem_ganchos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
      "nome": "send",
      "sig": "(ch, value)",
      "tipo": "funcao"
@@ -679,6 +704,11 @@
     {
      "nome": "timeout",
      "sig": "(ms, fn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vivas",
+     "sig": "()",
      "tipo": "funcao"
     }
    ]
@@ -10287,7 +10317,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2032,
+  "testes": 2044,
   "exemplos": 44,
   "arquivosDf": 350
  },

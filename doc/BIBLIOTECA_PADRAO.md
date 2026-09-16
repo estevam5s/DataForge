@@ -26,7 +26,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Regex`](#arcaneregex) | `Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | [`Arcane.IO`](#arcaneio) | `IO` | 30 | Arquivos, diretórios, JSON, CSV e shell. |
 | [`Arcane.Http`](#arcanehttp) | `Http / Server` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
-| [`Arcane.Async`](#arcaneasync) | `Async` | 46 | Promessas, filas, agendamento e execução concorrente. |
+| [`Arcane.Async`](#arcaneasync) | `Async` | 52 | Promessas, filas, agendamento e execução concorrente. |
 | [`Arcane.Data`](#arcanedata) | `Data` | 13 | DataFrames, séries e transformações tabulares. |
 | [`Arcane.Web`](#arcaneweb) | `Web / Network` | 11 | Cliente HTTP, URL encoding e JSON. |
 | [`Arcane.Cortex`](#arcanecortex) | `Cortex` | 25 | Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA. |
@@ -836,12 +836,15 @@ Promessas, filas, agendamento e execução concorrente.
 adopt Arcane.Async as Async
 ```
 
-**Funções (46)**
+**Funções (52)**
 
 | Assinatura |
 |------------|
 | `all(promises)` |
 | `any(promises)` |
+| `ao_criar(funcao)` |
+| `ao_falhar(funcao)` |
+| `ao_terminar(funcao)` |
 | `batch(fn)` |
 | `buffer_op(size)` |
 | `catch(promise, callback)` |
@@ -855,6 +858,7 @@ adopt Arcane.Async as Async
 | `emit(emitter, event, *data)` |
 | `emit_event(emitter, event, *data)` |
 | `emitter()` |
+| `esperar_todas(prazo=None)` |
 | `event_emitter()` |
 | `filter_op(fn)` |
 | `from_list(lst)` |
@@ -875,6 +879,7 @@ adopt Arcane.Async as Async
 | `resolve(value)` |
 | `retry_task(fn, max_retries=3, delay_ms=100)` |
 | `scan_op(fn, initial)` |
+| `sem_ganchos()` |
 | `send(ch, value)` |
 | `sequential(*fns)` |
 | `settled(promises)` |
@@ -886,6 +891,7 @@ adopt Arcane.Async as Async
 | `task(fn)` |
 | `then(promise, callback)` |
 | `timeout(ms, fn)` |
+| `vivas()` |
 
 
 ---

@@ -879,9 +879,47 @@ O nome ligado pelo `handle` expõe:
 | `.line`, `.column` | posição de origem |
 | `.pilha` (ou `.stack`) | os quadros de chamada, como dado |
 | `.nota`, `.dica`, `.codigo`, `.doc` | o que a mensagem trazia além do texto |
+| `.causa` | o erro que estava sendo tratado quando este foi levantado, ou `void` |
+| `.outros` | os outros erros que viajam com este (um `parallel` com duas falhas, um `defer` que quebra) |
 | `.campos`, `.caminho`, `.corpo`, `.tabela`, `.coluna`… | os extras do erro específico |
 
 Ele se comporta como texto ao ser concatenado ou comparado com uma `String`.
+
+#### A causa: por que o erro de fora não apaga o de dentro
+
+Embrulhar um erro é a norma — o `handle` pega o erro técnico e o
+`trigger` levanta o erro do domínio:
+
+```dataforge
+action carregar(caminho):
+    monitor:
+        v := {"nome": "Ana"}
+        yield v["idade"]
+    handle Error as e:
+        trigger $"nao deu para carregar {caminho}"
+```
+
+A mensagem de fora diz **o quê** falhou. Sem a causa, o **porquê** —
+a chave ausente, o arquivo que não existe, a conexão recusada —
+desaparecia, e quem depura via só a camada de cima.
+
+Um `trigger` escrito **dentro de um `handle`** guarda o erro tratado em
+`.causa`, e o relatório desenha a cadeia inteira:
+
+```
+erro[DF0701]: nao deu para carregar clientes.json
+  ┌─ app.df:6:9
+  …
+  causado por:
+  erro[DF0602]: A chave "idade" não está neste vault.
+    ┌─ app.df:4:15
+    = nota: o vault tem 1 chave(s): "nome"
+    = dica: use  valor ?? padrao  para um padrão
+```
+
+É o `raise … from e` do Python e o `Caused by` do Java. Um `trigger`
+**fora** de um `handle` não inventa causa: `.causa` é `void`, e o teste
+de presença funciona.
 
 #### A pilha, como dado
 

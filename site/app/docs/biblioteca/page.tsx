@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Quarenta e oito módulos e 1523 símbolos, sem uma única dependência externa.",
+  description: "Quarenta e oito módulos e 1529 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os quarenta e oito módulos"
   },
   {
-    "p": "São **1523 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1529 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -86,6 +86,11 @@ const blocos: Bloco[] = [
           "Datas, horas, durações e cronometragem."
         ],
         [
+          "[`Arcane.Async`](/docs/biblioteca/async)",
+          "52",
+          "Promessas, filas, agendamento e execução concorrente."
+        ],
+        [
           "[`Arcane.Crypto`](/docs/biblioteca/crypto)",
           "52",
           "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token."
@@ -94,11 +99,6 @@ const blocos: Bloco[] = [
           "[`Arcane.Crucible`](/docs/tecnicas/testes)",
           "50",
           "Framework de testes: suítes, matchers, fixtures, dublês e benchmark."
-        ],
-        [
-          "[`Arcane.Async`](/docs/biblioteca/async)",
-          "46",
-          "Promessas, filas, agendamento e execução concorrente."
         ],
         [
           "`Arcane.Iter`",
@@ -345,7 +345,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Quarenta e oito módulos e 1523 símbolos, sem uma única dependência externa."}
+      description={"Quarenta e oito módulos e 1529 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

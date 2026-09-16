@@ -226,6 +226,31 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Adicionado
 
+- **Ganchos de ciclo de vida para tarefas `async`** — `Async.ao_criar`,
+  `ao_terminar`, `ao_falhar`, `sem_ganchos`, `vivas()` e
+  `esperar_todas()`. Uma tarefa nasce numa thread e termina em outra, e
+  no meio disso não havia onde pendurar um cronômetro, um id de pedido
+  ou um contador. `vivas()` responde "por que este programa não
+  termina?". Um gancho que levanta **não** derruba a tarefa: observação
+  que quebra o observado é pior que não observar.
+- **`.causa` num erro capturado**, e a cadeia desenhada no relatório.
+
+### Corrigido
+
+- **Uma tarefa `async` que falha e ninguém espera não some mais.** Era a
+  última das três a engolir erro em silêncio — `thread` e `parallel` já
+  desenhavam o erro e reprovavam a saída, e a tarefa `async` saía com
+  **código 0** levando o erro junto. É o mesmo defeito que fez o Node
+  passar a derrubar o processo numa promessa rejeitada sem tratamento.
+  Disparar e esquecer continua valendo quando dá certo; o que não pode
+  sumir é a falha.
+- **Embrulhar um erro apagava o original.** `handle Error as e:` seguido
+  de `trigger "não deu para carregar"` produzia uma mensagem que dizia o
+  **quê** e perdia o **porquê**: a chave ausente, o arquivo que não
+  existe, a conexão recusada sumiam inteiros. Agora o erro tratado vira
+  `.causa` do novo, e o relatório desenha a cadeia com o trecho, a nota
+  e a dica de cada camada.
+
 - **JavaScript e TypeScript viram DataForge.** `dataforge converter` já
   lia Python pelo `ast`; agora lê `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`,
   `.tsx`, `.mts` e `.cts` por um **tokenizador e um parser próprios** —

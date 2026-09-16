@@ -201,10 +201,52 @@ handle e:
     assert saida == "pego na chamada"
 
 
-def test_tarefa_esquecida_nao_derruba_o_programa():
-    assert rodar('''
+def test_uma_tarefa_esquecida_QUE_FALHA_e_cobrada_no_fim():
+    """Esta decisão foi **revertida**, e vale registrar por quê.
+
+    A versão anterior deste teste afirmava o contrário: a tarefa
+    esquecida falhava, o erro sumia, e o programa saía com código 0.
+    Isso era inconsistente dentro da própria linguagem — `thread` e
+    `parallel` já desenham o erro e reprovam a saída —, e é o mesmo
+    defeito que fez o Node passar a derrubar o processo numa promessa
+    rejeitada sem tratamento.
+
+    O custo de manter era concreto: um CI verde sobre trabalho perdido.
+    O custo de mudar é um programa que dispara e esquece de propósito
+    passar a falhar — e esse programa já estava perdendo o erro.
+
+    Quem quer mesmo ignorar a falha, trata dentro da própria ação.
+    """
+    with pytest.raises(DataForgeError) as capturado:
+        rodar('''
 async action falhar():
     trigger "ninguem vai ver"
+
+esquecida := falhar()
+out "segui em frente"''')
+    assert "await" in str(capturado.value.dica)
+
+
+def test_disparar_e_esquecer_continua_valendo_quando_da_certo():
+    """Começar trabalho e não esperar o resultado é legítimo. O que não
+    pode sumir é a FALHA."""
+    assert rodar('''
+async action trabalhar():
+    yield 1
+
+esquecida := trabalhar()
+out "segui em frente"''') == "segui em frente"
+
+
+def test_a_falha_esquecida_pode_ser_tratada_dentro_da_acao():
+    """A saída para quem quer mesmo ignorar: o erro não fica órfão
+    porque ele nem chega a sair da tarefa."""
+    assert rodar('''
+async action falhar():
+    monitor:
+        trigger "tratado aqui dentro"
+    handle Error as e:
+        yield "cuidei disso"
 
 esquecida := falhar()
 out "segui em frente"''') == "segui em frente"

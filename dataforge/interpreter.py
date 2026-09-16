@@ -901,6 +901,13 @@ class DFError:
     #: quem precisa decidir o que fazer com eles.
     OUTROS = ("outros", "others")
 
+    #: O erro que estava sendo tratado quando este nasceu.
+    #:
+    #: 'void' quando nao ha — e nao um erro vazio: quem pergunta
+    #: 'e.causa' quer saber SE houve, e um objeto falso ali faria todo
+    #: teste de presenca dar verdadeiro.
+    CAUSA = ("causa", "cause")
+
     def __getattr__(self, nome):
         """Os campos extras do erro original, lidos pelo nome.
 
@@ -917,6 +924,12 @@ class DFError:
             return [DFError(type(o).__name__.rstrip('_'),
                             getattr(o, "message", str(o)), o)
                     for o in (getattr(self.original, "outros", None) or [])]
+        if nome in DFError.CAUSA:
+            causa = getattr(self.original, "causa", None)
+            if causa is None:
+                return None
+            return DFError(type(causa).__name__.rstrip("_"),
+                           getattr(causa, "message", str(causa)), causa)
         if nome in DFError.VALOR:
             # 'void' quando o erro nao veio de um 'trigger': um '1 / 0'
             # nao foi levantado por ninguem com um valor, e devolver a
@@ -1371,6 +1384,56 @@ class _PorThread(threading.local):
         self.acao = None
 
 
+class _Ganchos:
+    """Os ganchos do ciclo de vida de uma tarefa `async`.
+
+    O que o Node chama de *async hooks*, e o problema que eles resolvem:
+    uma tarefa nasce numa thread, termina em outra, e no meio disso não
+    há onde pendurar um cronômetro, um id de requisição ou um contador.
+    Sem isso, medir "quanto tempo as tarefas deste pedido levaram" exige
+    instrumentar cada ação à mão.
+
+    Três decisões:
+
+    1. **Um gancho que levanta não derruba a tarefa.** Ele é observação,
+       e observação que quebra o observado é pior que não observar. O
+       erro dele é engolido de propósito — é o único lugar do
+       interpretador onde isso é certo.
+    2. **Eles rodam na thread da tarefa**, e não numa fila. Um gancho
+       que precisa saber em que thread está — e é justamente esse o caso
+       de quem propaga contexto — não teria como descobrir depois.
+    3. **A lista é global ao processo**, como a de `defer`: ganchos
+       existem para diagnóstico e rastro, e um registro por escopo faria
+       o gancho sumir quando a ação que o registrou terminasse.
+    """
+
+    __slots__ = ("criada", "terminou", "falhou")
+
+    def __init__(self):
+        self.criada = []
+        self.terminou = []
+        self.falhou = []
+
+    def registrar(self, quando, funcao):
+        getattr(self, quando).append(funcao)
+
+    def limpar(self):
+        self.criada.clear()
+        self.terminou.clear()
+        self.falhou.clear()
+
+    def disparar(self, quando, tarefa):
+        for funcao in tuple(getattr(self, quando)):
+            try:
+                funcao(tarefa)
+            except BaseException:                         # noqa: BLE001
+                pass
+
+
+#: Os ganchos deste processo. 'Arcane.Async' os expoe a quem escreve.
+_GANCHOS = _Ganchos()
+
+
 class DFTarefa:
     """Uma ação 'async' em andamento.
 
@@ -1391,10 +1454,22 @@ class DFTarefa:
     poderiam liberar.
     """
 
-    __slots__ = ("nome", "_thread", "_valor", "_erro", "_pronto", "_colhida")
+    # '__weakref__' esta aqui porque a lista de tarefas vivas e FRACA:
+    # sem ele, um objeto com '__slots__' nao aceita referencia fraca, e
+    # a alternativa — guardar forte — faria toda tarefa ja colhida viver
+    # ate o fim do programa.
+    __slots__ = ("nome", "_thread", "_valor", "_erro", "_pronto", "_colhida",
+                 "_dono", "_no", "__weakref__")
 
-    def __init__(self, nome, trabalho):
+    #: Toda tarefa viva deste processo, para o relatorio do fim e para
+    #: 'Async.vivas()'. Lista fraca: uma tarefa colhida e esquecida nao
+    #: pode segurar memoria ate o programa acabar.
+    _VIVAS = __import__("weakref").WeakSet()
+
+    def __init__(self, nome, trabalho, dono=None, no=None):
         self.nome = nome
+        self._dono = dono
+        self._no = no
         self._valor = None
         self._erro = None
         self._colhida = False
@@ -1411,8 +1486,12 @@ class DFTarefa:
                 self._erro = erro
             finally:
                 self._pronto.set()
+                _GANCHOS.disparar(
+                    "falhou" if self._erro is not None else "terminou", self)
 
         _reservar_pilha()
+        DFTarefa._VIVAS.add(self)
+        _GANCHOS.disparar("criada", self)
         self._thread = threading.Thread(
             target=correr, name=f"df-async-{nome}", daemon=True)
         self._thread.start()
@@ -1434,6 +1513,19 @@ class DFTarefa:
 
     def falhou(self) -> bool:
         return self._pronto.is_set() and self._erro is not None
+
+    def orfa(self) -> bool:
+        """Falhou, e ninguem deu 'await' nela.
+
+        É a versão desta linguagem da promessa rejeitada sem tratamento:
+        o trabalho quebrou, o erro não chegou a lugar nenhum, e sem esta
+        conta o programa sairia com código 0.
+        """
+        return self.falhou() and not self._colhida
+
+    @property
+    def erro(self):
+        return self._erro
 
     def __repr__(self):
         if not self._pronto.is_set():
@@ -1630,8 +1722,61 @@ class Interpreter:
             # Os 'defer' escritos no topo rodam no fim do programa, inclusive
             # quando ele sai por erro — que e o ponto de um 'defer'.
             self._run_deferred(self.global_env)
+        self._cobrar_tarefas_orfas()
         self._cobrar_falhas_de_thread()
         return resultado
+
+    #: Quanto esperar, no fim do programa, por uma tarefa que ainda roda.
+    #: Curto de proposito: o objetivo e colher quem ja falhou, nao virar
+    #: um 'join' que segura a saida.
+    PRAZO_DAS_ORFAS = 0.05
+
+    def _cobrar_tarefas_orfas(self):
+        """Uma tarefa 'async' que falhou e ninguem colheu nao pode sumir.
+
+        Era a ultima das tres a engolir erro em silencio: 'thread' e
+        'parallel' ja desenham o erro e reprovam a saida, e a tarefa
+        'async' saia com codigo 0 levando o erro junto. E o mesmo defeito
+        que fez o Node passar a derrubar o processo numa promessa
+        rejeitada sem tratamento — o trabalho quebra, o erro nao chega a
+        lugar nenhum, e o CI fica verde.
+
+        Quem deu 'await' NAO e cobrado aqui: ele ja recebeu o erro, e um
+        'handle' pode te-lo tratado. Cobrar de novo faria um programa
+        correto falhar.
+        """
+        # So as tarefas DESTE interpretador, e cada uma cobrada uma vez.
+        # A lista de vivas e do processo — util para 'Async.vivas()' —, e
+        # sem o dono um teste cobraria a tarefa orfa do teste anterior.
+        orfas = []
+        for tarefa in list(DFTarefa._VIVAS):
+            if tarefa._dono is not self:
+                continue
+            if not tarefa.pronta():
+                tarefa._pronto.wait(self.PRAZO_DAS_ORFAS)
+            if tarefa.orfa():
+                orfas.append(tarefa)
+                tarefa._colhida = True
+        if not orfas:
+            return
+
+        primeira = orfas[0]
+        erro = primeira.erro
+        mensagem = getattr(erro, "message", None) or str(erro)
+        n = len(orfas)
+        nomes = ", ".join(sorted({t.nome for t in orfas})[:4])
+        resumo = RuntimeError_(
+            f"{n} async task(s) failed and nobody awaited them: {nomes}",
+            getattr(primeira._no, "line", 0),
+            getattr(primeira._no, "column", 0),
+            nota=f"first: {mensagem}",
+            dica="use  await  to receive the value AND the error, or wrap "
+                 "the call in 'monitor' inside the action itself",
+            doc="biblioteca/async")
+        resumo.filename = self.filename
+        for outra in orfas[1:]:
+            resumo.outros.append(outra.erro)
+        raise resumo
 
     def _cobrar_falhas_de_thread(self):
         """Uma thread que falhou nao pode terminar o programa com codigo 0.
@@ -3759,6 +3904,18 @@ class Interpreter:
         # diferenca, e quase todo 'trigger' do repositorio levanta um
         # texto, onde os dois sao o mesmo.
         erro.valor = value
+        # O erro que estava sendo TRATADO vira a causa deste. Sem isso,
+        # 'handle Error as e: trigger "nao deu para carregar"' apagava o
+        # original — e embrulhar erro e a norma, nao a excecao.
+        em_tratamento = getattr(self, "_erro_em_tratamento", None)
+        if em_tratamento is not None and em_tratamento is not erro:
+            # O arquivo da causa precisa estar certo ANTES de desenhar:
+            # sem ele o trecho sai de '<stdin>', e o desenho aponta uma
+            # linha que nao e daquele arquivo.
+            if not getattr(em_tratamento, "filename", "") or \
+                    em_tratamento.filename == "<stdin>":
+                em_tratamento.filename = self.filename
+            erro.causa = em_tratamento
         raise erro
 
     def exec_DeleteStatement(self, node: ast.DeleteStatement, env):
@@ -5028,9 +5185,17 @@ class Interpreter:
             tinha = clausula.error_name in env.variables
             anterior = env.variables.get(clausula.error_name)
             env.set_local(clausula.error_name, self._error_value(e))
+            # Enquanto o corpo do 'handle' roda, ESTE e o erro em
+            # tratamento: um 'trigger' ali dentro o guarda como causa. O
+            # valor anterior e restaurado no fim, e nao zerado, porque
+            # 'handle' dentro de 'handle' e legitimo — e o de fora
+            # continua sendo a causa do que vier depois dele.
+            anterior_em_tratamento = getattr(self, "_erro_em_tratamento", None)
+            self._erro_em_tratamento = e if isinstance(e, DataForgeError) else None
             try:
                 return self.exec_block(clausula.body, env)
             finally:
+                self._erro_em_tratamento = anterior_em_tratamento
                 if tinha:
                     env.variables[clausula.error_name] = anterior
                 else:
@@ -6522,7 +6687,8 @@ class Interpreter:
         """
         return DFTarefa(
             action.name,
-            lambda: self._corpo_da_acao(action, args, kwargs, node, instance))
+            lambda: self._corpo_da_acao(action, args, kwargs, node, instance),
+            dono=self, no=node)
 
     def _make_stream(self, action, args, kwargs, node, instance):
         """Um 'stream action' devolve um DFStream verdadeiramente preguiçoso."""

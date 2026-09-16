@@ -70,12 +70,102 @@ class ArcaneAsync:
             "parallel": cls._parallel,
             "sequential": cls._sequential,
 
+            # Ganchos do ciclo de vida de uma tarefa 'async'
+            "ao_criar": cls._ao_criar,
+            "ao_terminar": cls._ao_terminar,
+            "ao_falhar": cls._ao_falhar,
+            "sem_ganchos": cls._sem_ganchos,
+            "vivas": cls._vivas,
+            "esperar_todas": cls._esperar_todas,
+
             # Signal (reactive state)
             "signal": cls._signal,
             "computed": cls._computed,
             "effect": cls._effect,
             "batch": cls._batch,
         }
+
+    # ── Ganchos: o ciclo de vida de uma tarefa ────────────
+    #
+    # Uma tarefa 'async' nasce numa thread, termina em outra, e no meio
+    # disso nao ha onde pendurar um cronometro, um id de requisicao ou um
+    # contador. Medir "quanto tempo as tarefas deste pedido levaram"
+    # exigia instrumentar cada acao a mao.
+    #
+    # Um gancho que levanta NAO derruba a tarefa: ele e observacao, e
+    # observacao que quebra o observado e pior que nao observar.
+
+    @staticmethod
+    def _ganchos():
+        from ..interpreter import _GANCHOS
+        return _GANCHOS
+
+    @staticmethod
+    def _descrever(tarefa):
+        """A tarefa como vault — o gancho recebe dado, nao o objeto."""
+        return {
+            "nome": tarefa.nome,
+            "pronta": tarefa.pronta(),
+            "falhou": tarefa.falhou(),
+            "erro": (getattr(tarefa.erro, "message", None) or str(tarefa.erro))
+                    if tarefa.falhou() else "",
+        }
+
+    @classmethod
+    def _registrar(cls, quando, funcao):
+        if not callable(funcao):
+            from ..errors import RuntimeError_
+            raise RuntimeError_(
+                f"'Async.ao_{quando}' precisa de uma acao para chamar.", 0, 0,
+                dica="Async.ao_falhar(lambda t: out t[\"nome\"])",
+                doc="biblioteca/async")
+        cls._ganchos().registrar(
+            quando, lambda tarefa: funcao(cls._descrever(tarefa)))
+        return funcao
+
+    @classmethod
+    def _ao_criar(cls, funcao):
+        """Chamada quando uma tarefa 'async' comeca."""
+        return cls._registrar("criada", funcao)
+
+    @classmethod
+    def _ao_terminar(cls, funcao):
+        """Chamada quando uma tarefa termina bem."""
+        return cls._registrar("terminou", funcao)
+
+    @classmethod
+    def _ao_falhar(cls, funcao):
+        """Chamada quando uma tarefa termina com erro.
+
+        Roda MESMO que ninguem de 'await' — e o lugar de registrar a
+        falha que, sem isso, so apareceria no relatorio do fim.
+        """
+        return cls._registrar("falhou", funcao)
+
+    @classmethod
+    def _sem_ganchos(cls):
+        """Tira todos os ganchos. Util entre testes."""
+        cls._ganchos().limpar()
+        return True
+
+    @staticmethod
+    def _vivas():
+        """As tarefas que ainda nao terminaram, como cluster de vaults.
+
+        E a resposta para "por que este programa nao termina?".
+        """
+        from ..interpreter import DFTarefa
+        return [ArcaneAsync._descrever(t)
+                for t in list(DFTarefa._VIVAS) if not t.pronta()]
+
+    @staticmethod
+    def _esperar_todas(prazo=None):
+        """Espera toda tarefa viva terminar. Devolve quantas esperou."""
+        from ..interpreter import DFTarefa
+        vivas = [t for t in list(DFTarefa._VIVAS) if not t.pronta()]
+        for tarefa in vivas:
+            tarefa._pronto.wait(prazo)
+        return len(vivas)
 
     # ── Promise ──────────────────────────────────────────
 

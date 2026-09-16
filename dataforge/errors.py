@@ -62,7 +62,26 @@ class DataForgeError(Exception):
         #: que ja existia continua vendo o primeiro, e quem desenha pode
         #: mostrar a leva inteira.
         self.outros = []       # list[DataForgeError]
+        #: O erro que ESTAVA sendo tratado quando este nasceu.
+        #:
+        #: Embrulhar um erro e a norma — 'handle' pega o erro tecnico e
+        #: 'trigger' levanta o erro do dominio —, e sem a causa a
+        #: mensagem de fora diz O QUE falhou e perde o PORQUE. A chave
+        #: ausente, o arquivo que nao existe, a conexao recusada: tudo
+        #: sumia, e quem depura via so a camada de cima.
+        #:
+        #: E o 'raise … from e' do Python e o 'Caused by' do Java.
+        self.causa = None      # DataForgeError | None
         super().__init__(self.format())
+
+    def cadeia(self):
+        """Este erro e a fila de causas abaixo dele, do topo para baixo."""
+        fila, visto, atual = [], set(), self
+        while atual is not None and id(atual) not in visto:
+            fila.append(atual)
+            visto.add(id(atual))
+            atual = getattr(atual, "causa", None)
+        return fila
 
     def _tr(self, texto):
         """O texto no idioma em vigor. Sem traducao, devolve o original."""
@@ -237,6 +256,20 @@ class DataForgeError(Exception):
                 linhas.append(
                     f"    em {tinta(quadro.name, '1;37'):<30} "
                     f"{tinta(f'{arquivo}:{quadro.line}', APAGADO)}")
+
+        # ── A causa ──
+        # Embrulhar um erro e a norma, e sem esta secao a mensagem de
+        # fora diz o QUE falhou e perde o PORQUE. Ela vem DEPOIS da
+        # pilha porque a leitura util e de fora para dentro: primeiro o
+        # que o programa tentava fazer, depois o que impediu.
+        causa = getattr(self, "causa", None)
+        if causa is not None:
+            linhas.append("")
+            linhas.append(tinta("  causado por:", CIANO))
+            desenho = causa.render(color=color, source_lines=None,
+                                   debug=debug)
+            for linha in desenho.split("\n"):
+                linhas.append(f"  {linha}" if linha.strip() else linha)
 
         # ── Os outros erros da mesma leitura ──
         # Cada um com o seu proprio trecho desenhado: uma lista de
