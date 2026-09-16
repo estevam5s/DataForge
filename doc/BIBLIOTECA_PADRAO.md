@@ -779,7 +779,7 @@ adopt Arcane.IO as IO
 | `open(path, mode='r')` |
 | `path(path)` |
 | `read(path)` |
-| `read_csv(path)` |
+| `read_csv(path, cabecalho=False)` |
 | `read_file(path)` |
 | `read_json(path)` |
 | `remove_tree(path)` |

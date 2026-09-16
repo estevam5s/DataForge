@@ -3818,7 +3818,7 @@
     },
     {
      "nome": "read_csv",
-     "sig": "(path)",
+     "sig": "(path, cabecalho)",
      "tipo": "funcao"
     },
     {
@@ -10317,7 +10317,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2044,
+  "testes": 2049,
   "exemplos": 44,
   "arquivosDf": 350
  },

@@ -180,16 +180,60 @@ class ArcaneIO:
             json.dump(data, f, indent=indent, ensure_ascii=False)
 
     @staticmethod
-    def _read_csv(path):
+    def _read_csv(path, cabecalho=False):
+        """As linhas do CSV.
+
+        Sem argumento, um cluster de clusters — a primeira linha e o
+        cabecalho como qualquer outra. Com 'cabecalho := yes', a primeira
+        linha vira as CHAVES e cada linha seguinte vira um vault, que e a
+        forma com que o resto da linguagem trabalha: e o que 'read_json'
+        devolve e o que 'Database.query' devolve.
+
+        O padrao continua sendo a forma antiga porque mudar o que uma
+        funcao DEVOLVE quebra em silencio: 'linhas[0][0]' passaria a ler
+        uma chave de vault por indice.
+        """
         with open(path, "r", encoding="utf-8") as f:
-            reader = csv.reader(f)
-            return [row for row in reader]
+            linhas = [row for row in csv.reader(f)]
+        if not cabecalho:
+            return linhas
+        if not linhas:
+            return []
+        chaves = linhas[0]
+        return [dict(zip(chaves, linha)) for linha in linhas[1:]]
 
     @staticmethod
     def _write_csv(path, data):
+        """Grava as linhas. Aceita cluster de clusters E cluster de vaults.
+
+        O vault DESTRUIA os dados: a lista ia direto para o escritor, que
+        itera cada linha — e iterar um vault da as CHAVES. Gravar
+        '[{"nome": "Ana"}, {"nome": "Bruno"}]' escrevia 'nome' duas vezes
+        e perdia os valores, sem erro nenhum.
+
+        Perder dado em silencio e a pior falha possivel numa funcao de
+        gravar arquivo, e o vault e a forma natural de linha aqui.
+        """
+        linhas = list(data or [])
+        if linhas and isinstance(linhas[0], dict):
+            # A ordem das chaves e a do PRIMEIRO vault: um CSV cujas
+            # colunas mudam de ordem no meio do arquivo nao e um CSV.
+            chaves = list(linhas[0].keys())
+            for linha in linhas[1:]:
+                for chave in linha:
+                    if chave not in chaves:
+                        chaves.append(chave)
+            with open(path, "w", encoding="utf-8", newline="") as f:
+                escritor = csv.writer(f)
+                escritor.writerow(chaves)
+                for linha in linhas:
+                    escritor.writerow(
+                        ["" if linha.get(c) is None else linha.get(c)
+                         for c in chaves])
+            return
         with open(path, "w", encoding="utf-8", newline="") as f:
             writer = csv.writer(f)
-            writer.writerows(data)
+            writer.writerows(linhas)
 
     @staticmethod
     def _size(path):

@@ -226,6 +226,43 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Adicionado
 
+- **Vinte e duas páginas novas de documentação**, em sete rotas que não
+  existiam:
+  **`/docs/modulos`** (5) — o sistema de módulos em nível de
+  especificação, comparado a CommonJS e a ECMAScript: o algoritmo exato
+  de resolução, carga única e estado compartilhado, ciclos, a superfície
+  que o analisador lê, e a camada de template ao lado de EJS e
+  Handlebars.
+  **`/docs/bibliotecas`** (7) — do primeiro arquivo ao pacote publicado:
+  estrutura, contrato, testes, semver, publicação e manutenção.
+  **`/docs/dados`** (3) e **`/docs/sqlite`** — análise, ETL com
+  idempotência e falha parcial, qualidade de dados, e o banco que vem
+  junto.
+  **`/docs/vm`** — como um `.df` executa, e por que não há VM de
+  bytecode (o teto medido é ~6,5×).
+  **`/docs/arquivos`**, **`/docs/repl`**, **`/docs/testes`** e
+  **`/docs/api`** — sistema de arquivos, o console, a rota única de
+  testes, e REST/RESTful com os códigos de status e idempotência.
+- **`IO.read_csv(caminho, yes)`** devolve um cluster de vaults, usando a
+  primeira linha como chaves — a forma com que o resto da linguagem
+  trabalha.
+
+### Corrigido
+
+- **`IO.write_csv` destruía um cluster de vaults, em silêncio.** Ele
+  passava a lista direto para o escritor de CSV, que itera cada linha — e
+  iterar um vault dá as **chaves**. Gravar dois registros escrevia o
+  cabeçalho duas vezes e perdia todos os valores, sem erro nenhum. Perder
+  dado calado é a pior falha possível numa função de gravar arquivo, e o
+  vault é a forma natural de linha aqui: é o que `read_json` devolve e o
+  que `Database.query` devolve.
+- **`adopt minha-lib` não compilava.** O lexer entrega o hífen como
+  subtração, o loop de segmento parava ali, e o parser reclamava do `as`
+  seguinte. O caminho relativo (`adopt ./minha-lib`) já colava o hífen; o
+  nome nu, não — ou seja, `dataforge init minha-lib` criava um pacote que
+  a linguagem não conseguia importar pelo nome, que é justamente como o
+  teste de uma biblioteca precisa importá-la.
+
 - **Ganchos de ciclo de vida para tarefas `async`** — `Async.ao_criar`,
   `ao_terminar`, `ao_falhar`, `sem_ganchos`, `vivas()` e
   `esperar_todas()`. Uma tarefa nasce numa thread e termina em outra, e

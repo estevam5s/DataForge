@@ -44,6 +44,8 @@ export const nav: NavSection[] = [
       { title: 'Blueprints', href: '/docs/blueprints' },
       { title: 'Tratamento de erros', href: '/docs/erros' },
       { title: 'Pipelines', href: '/docs/pipelines' },
+      { title: 'Sistema de arquivos', href: '/docs/arquivos' },
+      { title: 'O REPL', href: '/docs/repl' },
     ],
   },
   {
@@ -65,6 +67,28 @@ export const nav: NavSection[] = [
       { title: 'Generics', href: '/docs/fundamentos/generics' },
       { title: 'Escopo', href: '/docs/fundamentos/escopo' },
       { title: 'Módulos', href: '/docs/fundamentos/modulos' },
+    ],
+  },
+  {
+    title: 'Módulos e empacotamento',
+    items: [
+      { title: 'O sistema de módulos', href: '/docs/modulos' },
+      { title: 'Resolução', href: '/docs/modulos/resolucao' },
+      { title: 'Carga, ordem e ciclos', href: '/docs/modulos/carga' },
+      { title: 'A superfície de um módulo', href: '/docs/modulos/superficie' },
+      { title: 'Templates e visão', href: '/docs/modulos/templates' },
+    ],
+  },
+  {
+    title: 'Bibliotecas',
+    items: [
+      { title: 'Escrever uma biblioteca', href: '/docs/bibliotecas' },
+      { title: 'Estrutura', href: '/docs/bibliotecas/estrutura' },
+      { title: 'O contrato', href: '/docs/bibliotecas/contrato' },
+      { title: 'Testes de biblioteca', href: '/docs/bibliotecas/testes' },
+      { title: 'Versão e compatibilidade', href: '/docs/bibliotecas/versao' },
+      { title: 'Publicar', href: '/docs/bibliotecas/publicar' },
+      { title: 'Manter', href: '/docs/bibliotecas/manutencao' },
     ],
   },
   {
@@ -102,9 +126,22 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Dados, ETL e SQLite',
+    items: [
+      { title: 'Análise de dados', href: '/docs/dados' },
+      { title: 'ETL', href: '/docs/dados/etl' },
+      { title: 'Qualidade de dados', href: '/docs/dados/qualidade' },
+      { title: 'SQLite', href: '/docs/sqlite' },
+      { title: 'Data Lake', href: '/docs/tecnicas/lago' },
+      { title: 'Parquet', href: '/docs/tecnicas/parquet' },
+      { title: 'Aprendizado de máquina', href: '/docs/tecnicas/ml' },
+    ],
+  },
+  {
     title: 'Crucible — testes',
     items: [
-      { title: 'Visão geral', href: '/docs/crucible' },
+      { title: 'Testes: visão geral', href: '/docs/testes' },
+      { title: 'Crucible', href: '/docs/crucible' },
       { title: 'Os matchers', href: '/docs/crucible/matchers' },
       { title: 'Fixtures e ganchos', href: '/docs/crucible/fixtures' },
       { title: 'Dublês', href: '/docs/crucible/dubles' },
@@ -134,6 +171,7 @@ export const nav: NavSection[] = [
   {
     title: 'Kiln — framework web',
     items: [
+      { title: 'APIs: REST e RESTful', href: '/docs/api' },
       { title: 'Visão geral', href: '/docs/kiln' },
       { title: 'Rotas e parâmetros', href: '/docs/kiln/rotas' },
       { title: 'Respostas', href: '/docs/kiln/respostas' },
@@ -374,6 +412,7 @@ export const nav: NavSection[] = [
       { title: 'Sistema de tipos', href: '/docs/referencia/tipos' },
       { title: 'Hierarquia de erros', href: '/docs/referencia/erros' },
       { title: 'Funções embutidas', href: '/docs/referencia/embutidas' },
+      { title: 'A máquina: como um .df executa', href: '/docs/vm' },
       { title: 'Arquitetura do runtime', href: '/docs/referencia/arquitetura' },
       { title: 'API pública (JSON)', href: '/api' },
     ],

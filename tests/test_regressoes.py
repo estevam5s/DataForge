@@ -7484,3 +7484,78 @@ def test_a_causa_nao_atravessa_um_handle_que_ja_terminou():
              'handle Error as e:\n'
              '    out e.causa\n')
     assert run(fonte) == "tratei\nvoid"
+
+
+# ══════════════════════════════════════════════════════════════════
+#  CSV: o vault que virava o nome das chaves
+# ══════════════════════════════════════════════════════════════════
+
+def test_write_csv_grava_um_cluster_de_vaults():
+    """`IO.write_csv` DESTRUÍA os dados, sem erro.
+
+    Ele passava a lista direto para o escritor de CSV, que itera cada
+    linha. Iterar um vault dá as **chaves** — então
+
+        IO.write_csv(a, [{"nome": "Ana"}, {"nome": "Bruno"}])
+
+    gravava `nome` duas vezes, e os valores sumiam. Perder dado em
+    silêncio é a pior falha possível numa função de gravar arquivo, e o
+    vault é a forma natural de linha nesta linguagem: é o que
+    `read_json` devolve e o que `Database.query` devolve.
+    """
+    import tempfile
+
+    fonte = ('adopt Arcane.IO as IO\n'
+             f'a := "{tempfile.mkdtemp()}/d.csv"\n'
+             'IO.write_csv(a, [{"nome": "Ana", "idade": 30}, '
+             '{"nome": "Bruno", "idade": 25}])\n'
+             'out IO.read(a).strip()\n')
+    assert run(fonte) == "nome,idade\nAna,30\nBruno,25"
+
+
+def test_read_csv_devolve_vaults_quando_se_pede_o_cabecalho():
+    import tempfile
+
+    fonte = ('adopt Arcane.IO as IO\n'
+             f'a := "{tempfile.mkdtemp()}/d.csv"\n'
+             'IO.write_csv(a, [{"nome": "Ana", "idade": 30}])\n'
+             'linhas := IO.read_csv(a, yes)\n'
+             'out linhas[0]["nome"], linhas[0]["idade"]\n')
+    assert run(fonte) == "Ana 30"
+
+
+def test_o_cluster_de_clusters_continua_funcionando():
+    """A guarda: a forma antiga é a que a trilha e os exercícios usam."""
+    import tempfile
+
+    fonte = ('adopt Arcane.IO as IO\n'
+             f'a := "{tempfile.mkdtemp()}/d.csv"\n'
+             'IO.write_csv(a, [["id", "nome"], [1, "Ana"]])\n'
+             'linhas := IO.read_csv(a)\n'
+             'out linhas[0][0], linhas[1][1]\n')
+    assert run(fonte) == "id Ana"
+
+
+def test_um_pacote_com_hifen_no_nome_pode_ser_importado():
+    """`dataforge init minha-lib` cria um pacote chamado `minha-lib`, e
+    `adopt minha-lib` **não compilava**: o lexer entrega o hífen como
+    subtração, o loop de segmento parava ali, e o parser reclamava do
+    `as` seguinte.
+
+    O caminho relativo (`adopt ./minha-lib`) já colava o hífen; o nome
+    nu, não. Ou seja: a linguagem criava um pacote que ela mesma não
+    conseguia importar pelo nome — que é justamente como o teste de uma
+    biblioteca precisa importá-la.
+    """
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    arvore = parse(tokenize('adopt minha-lib as V\nout 1\n', "t.df"), "t.df")
+    adopts = [n for n in arvore.body if type(n).__name__ == "AdoptStatement"]
+    assert adopts and adopts[0].module == "minha-lib", adopts[0].module
+
+
+def test_a_subtracao_continua_sendo_subtracao():
+    """A guarda: `a - b` não pode virar um módulo chamado 'a-b'."""
+    assert run('a := 10\nb := 4\nout a - b\n') == "6"
+    assert run('a := 10\nb := 4\nout a-b\n') == "6"

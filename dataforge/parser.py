@@ -1056,11 +1056,19 @@ class Parser:
                 module=caminho_relativo, alias=alias, selection=selecao,
                 line=tok.line, column=tok.column)
 
-        partes = [self.expect(TokenType.IDENTIFIER,
-                              "Expected the module name after 'adopt'.\n"
-                              "    Use a name (adopt Arcane.Math), a relative "
-                              "path (adopt ./util) or a selection "
-                              "(adopt {a, b} from M).").value]
+        # O nome NU tambem cola o hifen: 'dataforge init minha-lib' cria um
+        # pacote chamado 'minha-lib', e 'adopt minha-lib' nao compilava —
+        # a linguagem criava um pacote que ela mesma nao conseguia
+        # importar pelo nome, que e justamente como o teste de uma
+        # biblioteca precisa importa-la. O caminho relativo ja colava.
+        if self.current().type is TokenType.IDENTIFIER:
+            partes = [self._segmento_de_caminho()]
+        else:
+            partes = [self.expect(TokenType.IDENTIFIER,
+                                  "Expected the module name after 'adopt'.\n"
+                                  "    Use a name (adopt Arcane.Math), a relative "
+                                  "path (adopt ./util) or a selection "
+                                  "(adopt {a, b} from M).").value]
         selecao = None
         while self.match(TokenType.DOT):
             # adopt Arcane.Math.{sqrt, floor}
