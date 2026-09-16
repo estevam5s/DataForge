@@ -4389,12 +4389,43 @@ class Interpreter:
     def exec_BlueprintDeclaration(self, node: ast.BlueprintDeclaration, env):
         parents = []
         for pname in node.parents:
+            # Uma mae que nao existe era IGNORADA em silencio: o blueprint
+            # nascia sem ela, e a falta aparecia paginas depois como "has no
+            # member 'x'" — longe da causa, e apontando a chamada em vez da
+            # declaracao. O 'check' ja acusava; a execucao, nao.
+            #
+            # O trait e a excecao: ele e lido como texto em 'traits', e o
+            # nome dele pode nao existir como valor.
+            if pname == node.name:
+                # Dizer "nao existe" aqui e verdade (o nome ainda nao esta
+                # ligado) e confunde: o problema e o 'extends' apontar para
+                # o proprio blueprint.
+                raise TypeError_(
+                    f"Blueprint '{node.name}' cannot extend itself.",
+                    node.line, node.column,
+                    dica="a blueprint inherits from ANOTHER one; remove the "
+                         "'extends', or name the real parent",
+                    doc="oop")
             try:
                 parent = env.get(pname)
-                if isinstance(parent, DFBlueprint):
-                    parents.append(parent)
             except NameError_:
-                pass  # Trait or not found
+                if pname in (getattr(node, "traits", None) or ()):
+                    continue
+                raise NameError_(
+                    f"Blueprint '{node.name}' extends '{pname}', which does "
+                    f"not exist.",
+                    node.line, node.column,
+                    nota="the parent has to be declared before the child",
+                    dica=f"declare 'blueprint {pname}' first, or remove the "
+                         f"'extends'",
+                    doc="oop") from None
+            if isinstance(parent, DFBlueprint):
+                parents.append(parent)
+            elif pname not in (getattr(node, "traits", None) or ()):
+                raise TypeError_(
+                    f"Blueprint '{node.name}' extends '{pname}', which is "
+                    f"{self._nome_do_tipo(parent)} and not a blueprint.",
+                    node.line, node.column, doc="oop")
 
         bp_env = env.child(f"<blueprint {node.name}>")
         methods, statics = {}, {}

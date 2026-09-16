@@ -7080,3 +7080,88 @@ def test_defer_numa_tarefa_de_parallel_roda_quando_a_tarefa_termina():
                '            c.send("fechou")\n'
                '        c.send("rodou")\n'
                'out c.receive(2000), c.receive(2000)\n') == "rodou fechou"
+
+
+# ─── Quatro enganos que passavam calados ───────────────────
+
+def test_atribuir_ao_resultado_de_uma_chamada_diz_o_que_e():
+    """Dizia "'f' é palavra reservada e não pode receber valor", e 'f' não é
+    reservada: renomear não conserta nada. O problema é o alvo."""
+    erros = _erros_de_sintaxe('f := 1\nf() := 2\n')
+    assert "result of a call" in erros[0].message
+    assert "reserved" not in erros[0].message
+
+
+@pytest.mark.parametrize("fonte,trecho", [
+    ('42 := 1\n', "a number"),
+    ('"a" := 1\n', "a text"),
+    ('a := 1\nb := 2\na + b := 3\n', "a calculation"),
+    ('xs := [1,2]\nxs[0:1] := 3\n', "a slice"),
+])
+def test_cada_alvo_invalido_diz_o_que_ele_e(fonte, trecho):
+    erros = _erros_de_sintaxe(fonte)
+    assert trecho in erros[0].message, erros[0].message
+    assert "reserved" not in erros[0].message
+
+
+def test_a_palavra_reservada_continua_sendo_nomeada():
+    """A mensagem certa para o caso certo."""
+    erros = _erros_de_sintaxe('no := 1\n')
+    assert "reserved keyword" in erros[0].message
+
+
+@pytest.mark.parametrize("fonte", [
+    'action f(a, b):\n    yield a + b\nout f(a := 1, a := 2, b := 3)\n',
+    'record P:\n    x: Integer\n    y: Integer\np := P(x := 1, x := 2, y := 3)\n',
+])
+def test_um_argumento_nomeado_duas_vezes_e_recusado(fonte):
+    """O segundo apagava o primeiro: 'P(x := 1, x := 2)' construía com 2, e
+    um dos dois valores foi escrito por engano — adivinhar qual não dá."""
+    erros = _erros_de_sintaxe(fonte)
+    assert "twice" in erros[0].message
+
+
+def test_uma_chave_repetida_no_mesmo_vault_e_avisada():
+    from dataforge.typechecker import check_program
+
+    avisos = [d for d in check_program(
+        parse(tokenize('v := {"a": 1, "a": 2}\nout v\n', "t.df"), "t.df"))
+        if d.code == "chave-repetida"]
+    assert len(avisos) == 1
+    # A regra não muda: a última vence. O aviso é sobre o engano de escrever
+    # a mesma chave duas vezes no MESMO literal.
+    assert run('v := {"a": 1, "a": 2}\nout v["a"]') == "2"
+
+
+def test_uma_chave_calculada_nao_dispara_o_aviso():
+    from dataforge.typechecker import check_program
+
+    fonte = 'k := "a"\nv := {k: 1, "a": 2}\nout v\n'
+    assert not [d for d in check_program(parse(tokenize(fonte, "t.df"), "t.df"))
+                if d.code == "chave-repetida"]
+
+
+def test_um_blueprint_nao_pode_herdar_de_si_mesmo():
+    fonte = ('blueprint Ciclo extends Ciclo:\n    action x():\n        yield 1\n')
+    erros = [d for d in _erros_de(fonte) if d.code == "heranca-circular"]
+    assert erros, [d.message for d in _erros_de(fonte)]
+    with pytest.raises(DataForgeError) as capturado:
+        run(fonte)
+    assert "cannot extend itself" in capturado.value.message
+
+
+def test_uma_mae_que_nao_existe_para_a_execucao():
+    """Era IGNORADA em silêncio: o blueprint nascia sem ela, e a falta
+    aparecia páginas depois como "has no member", longe da causa."""
+    with pytest.raises(DataForgeError) as capturado:
+        run('blueprint A extends NaoExiste:\n    action x():\n        yield 1\n'
+            'out spawn A()\n')
+    assert "does not exist" in capturado.value.message
+
+
+def test_um_trait_declarado_continua_funcionando():
+    """A guarda: o trait é lido como texto, e o nome dele pode não existir
+    como valor — recusá-lo aqui quebraria todo blueprint com trait."""
+    assert run('trait T:\n    action m()\n'
+               'blueprint B with T:\n    action m():\n        yield 7\n'
+               'out (spawn B()).m()\n') == "7"

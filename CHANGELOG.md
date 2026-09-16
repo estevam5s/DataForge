@@ -226,6 +226,24 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Corrigido
 
+- **Quatro enganos que passavam calados**, achados numa bateria de dez
+  erros novos contra o analisador:
+  `f() := 2` respondia **"'f' é palavra reservada e não pode receber
+  valor"** — `f` não é reservada, e renomear não conserta nada: o problema é
+  atribuir ao resultado de uma chamada. Cada alvo inválido agora diz o que
+  ele é (chamada, número, texto, conta, fatia), e a mensagem de palavra
+  reservada ficou para quem é de fato reservada — `"a" := 1` também
+  acusava "'a' é palavra reservada".
+  `f(a := 1, a := 2)` **descartava o primeiro valor** em silêncio, e
+  `P(x := 1, x := 2)` construía o record com o segundo: num vault a última
+  chave vencer é regra, numa chamada é engano, e adivinhar qual dos dois
+  valores sobra não dá.
+  `{"a": 1, "a": 2}` ganhou aviso (`chave-repetida`) — a regra não muda, mas
+  a mesma chave duas vezes no mesmo literal é sempre engano.
+  `blueprint Ciclo extends Ciclo` passava limpo, e **uma mãe que não existe
+  era ignorada em execução**: o blueprint nascia sem ela, e a falta aparecia
+  páginas depois como "has no member", longe da causa.
+
 - **Um `defer` dentro de um laço nunca rodava.** Ele se registrava no
   escopo em que aparece, e só o escopo da **ação** era consultado na saída.
   `given` e `monitor` funcionavam por acidente — compartilham o escopo da

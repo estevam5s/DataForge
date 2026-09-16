@@ -1870,6 +1870,14 @@ class TypeChecker:
             if pai not in self.blueprints and pai not in self.known_types:
                 self.error(f"Unknown parent blueprint '{pai}'", node,
                            self._hint_nome(pai, self.blueprints), "unknown-parent")
+            elif pai == node.name:
+                # 'blueprint Ciclo extends Ciclo' passava limpo, e em
+                # execucao a mae era ignorada: o blueprint nascia sem mae
+                # nenhuma e a declaracao dizia o contrario.
+                self.error(
+                    f"Blueprint '{node.name}' cannot extend itself", node,
+                    "a blueprint inherits from ANOTHER one; remove the "
+                    "'extends', or name the real parent", "heranca-circular")
         for trait in getattr(node, 'traits', []) or []:
             if trait not in self.blueprints:
                 self.error(f"Unknown trait '{trait}'", node,
@@ -2210,6 +2218,7 @@ class TypeChecker:
         return "Cluster"
 
     def ex_DictLiteral(self, node, escopo):
+        self._avisar_chave_repetida(node)
         for chave, valor in node.pairs:
             if isinstance(chave, ast.SpreadElement):
                 self.infer(chave.value, escopo)
@@ -3151,6 +3160,27 @@ class TypeChecker:
                 return UNKNOWN
             return nome
         return UNKNOWN
+
+    def _avisar_chave_repetida(self, node):
+        """`{"a": 1, "a": 2}` fica com o 2, e o 1 desaparece calado.
+
+        A regra da linguagem é essa e não muda — mas escrever a mesma chave
+        duas vezes no MESMO literal é sempre engano, e é o tipo de engano
+        que se lê por cima.
+        """
+        vistas, repetidas = set(), []
+        for chave, _ in node.pairs:
+            if not isinstance(chave, ast.StringLiteral):
+                continue
+            if chave.value in vistas and chave.value not in repetidas:
+                repetidas.append(chave.value)
+            vistas.add(chave.value)
+        if repetidas:
+            lista = ", ".join(f'"{c}"' for c in repetidas)
+            self.warn(
+                f"a chave {lista} aparece duas vezes neste vault", node,
+                "a última vence, e a primeira desaparece sem erro — "
+                "apague uma das duas", "chave-repetida")
 
     def ex_WithExpression(self, node, escopo):
         base = self.infer(node.source, escopo)

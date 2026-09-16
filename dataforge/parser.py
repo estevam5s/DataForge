@@ -4,7 +4,7 @@ Converts a token stream into an Abstract Syntax Tree (AST).
 Implements recursive descent parsing with indentation-based scoping.
 """
 
-from .tokens import Token, TokenType
+from .tokens import KEYWORDS, Token, TokenType
 from .errors import DataForgeError, ParseError
 from . import ast_nodes as ast
 
@@ -950,6 +950,7 @@ class Parser:
                                                   TokenType.ASSIGN)):
                     chave = self.advance().value
                     self.advance()                 # ':' ou ':='
+                    self._recusar_nomeado_repetido(kwargs, chave)
                     kwargs[chave] = self.parse_expression()
                 elif self.current().type is TokenType.SPREAD:
                     marca = self.advance()
@@ -2467,6 +2468,51 @@ class Parser:
             targets=alvos, value=valor, is_mapping=is_mapping,
             line=tok.line, column=tok.column)
 
+    #: O que cada alvo invalido e, e o que fazer.
+    #:
+    #: Uma mensagem que so diz "alvo invalido" deixa a pessoa procurando o
+    #: erro de sintaxe que nao existe: a sintaxe esta certa, o alvo e que
+    #: nao e um lugar onde se guarda valor.
+    _ALVOS_INVALIDOS = {
+        "FunctionCall": ("the result of a call",
+                         "store the result first:  x := f(…)"),
+        "MethodCall": ("the result of a call",
+                       "store the result first:  x := obj.m(…)"),
+        "IntegerLiteral": ("a number", "assign to a name:  x := 1"),
+        "FloatLiteral": ("a number", "assign to a name:  x := 1.5"),
+        "StringLiteral": ("a text", 'assign to a name:  x := "a"'),
+        "BooleanLiteral": ("a boolean", "assign to a name:  x := yes"),
+        "VoidLiteral": ("void", "assign to a name:  x := void"),
+        "ListLiteral": ("a cluster written here",
+                        "to unpack, drop the brackets:  a, b := [1, 2]"),
+        "DictLiteral": ("a vault written here",
+                        'to unpack, use  {nome, idade} := pessoa'),
+        "BinaryOp": ("the result of a calculation",
+                     "assign to a name:  x := a + b"),
+        "ComparisonOp": ("the result of a comparison",
+                         "':=' assigns; 'is' compares"),
+        "SliceAccess": ("a slice",
+                        "assign one position:  xs[0] := v"),
+    }
+
+    def _porque_nao_da_para_atribuir(self, expr):
+        que_e, dica = self._ALVOS_INVALIDOS.get(
+            type(expr).__name__, ("this", "assign to a name, a field, or an index"))
+        return (f"Cannot assign to {que_e}. {dica[0].upper()}{dica[1:]}.")
+
+    def _recusar_nomeado_repetido(self, kwargs, nome):
+        """`f(a := 1, a := 2)` — o segundo apagava o primeiro, em silencio.
+
+        Num vault isso e legitimo (a ultima chave vence, e a linguagem diz
+        isso), mas numa CHAMADA nao ha leitura possivel: um dos dois valores
+        foi escrito por engano, e adivinhar qual e o que nao se pode fazer.
+        'P(x := 1, x := 2)' construia o record com 2 e ninguem sabia.
+        """
+        if nome in kwargs:
+            self.error(
+                f"'{nome}' was given twice in the same call. "
+                f"Remove one of them.")
+
     def parse_expression_statement(self):
         """Parse an expression, an assignment, or a typed declaration."""
         if self._looks_like_destructuring():
@@ -2474,26 +2520,41 @@ class Parser:
 
         start = self.current()
 
-        # A keyword immediately followed by ':=' is a reserved-word mistake.
-        # Catch it here so the message names the word instead of pointing at
-        # whatever the keyword's own parser choked on.
+        # Uma palavra RESERVADA seguida de ':=' e erro de nome, e a mensagem
+        # a nomeia em vez de apontar para o que o parser daquela palavra
+        # engasgou.
+        #
+        # A condicao exige que ela esteja em KEYWORDS: antes bastava nao ser
+        # identificador, e por isso '"a" := 1' respondia "'a' e palavra
+        # reservada" — 'a' e o conteudo de um TEXTO, e nao uma palavra da
+        # linguagem. Quem lesse aquilo trocaria o nome de uma variavel que
+        # nao existe.
         if (start.type not in (TokenType.IDENTIFIER, TokenType.SELF)
-                and start.text and self.peek().type == TokenType.ASSIGN):
+                and start.text in KEYWORDS
+                and self.peek().type == TokenType.ASSIGN):
             self.error(
                 f"'{start.text}' is a reserved keyword and cannot be assigned to. "
                 f"Pick another name.")
 
         expr = self.parse_expression()
 
-        # A keyword on the left of ':=' is a reserved-word mistake, not a
-        # mysterious "invalid target" at runtime.
+        # Um alvo que nao pode receber valor. Aqui ha DUAS causas, e elas
+        # pediam mensagens diferentes: a palavra reservada, e o alvo que
+        # nao e um lugar onde se guarda algo.
+        #
+        # Este ramo dizia "palavra reservada" para as duas. 'f() := 2'
+        # respondia "'f' e palavra reservada e nao pode receber valor.
+        # Escolha outro nome." — e 'f' nao e reservada, e renomear nao
+        # conserta nada: o problema e atribuir ao RESULTADO de uma chamada.
         if self.current().type == TokenType.ASSIGN and not isinstance(
                 expr, (ast.Identifier, ast.MemberAccess, ast.IndexAccess)):
-            word = start.text
-            if word:
+            palavra = start.text
+            if (start.type not in (TokenType.IDENTIFIER, TokenType.SELF)
+                    and palavra in KEYWORDS):
                 self.error(
-                    f"'{word}' is a reserved keyword and cannot be assigned to. "
+                    f"'{palavra}' is a reserved keyword and cannot be assigned to. "
                     f"Pick another name.")
+            self.error(self._porque_nao_da_para_atribuir(expr))
 
         # Typed declaration: name: Type := value
         if (self.current().type == TokenType.COLON
@@ -3305,6 +3366,7 @@ class Parser:
                 name = self.advance().value
                 self.advance()  # skip :=
                 value = self.parse_expression()
+                self._recusar_nomeado_repetido(kwargs, name)
                 kwargs[name] = value
             elif self.current().type == TokenType.SPREAD:
                 stok = self.advance()
