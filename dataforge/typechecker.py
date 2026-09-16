@@ -1000,6 +1000,7 @@ class TypeChecker:
                 ramos.append(self.visit_block(corpo, Scope(escopo)))
                 continue
             interno = Scope(escopo)
+            self._conferir_capturas_repetidas(caso.pattern)
             self._declare_pattern(caso.pattern, interno)
             if caso.guard is not None:
                 self.infer(caso.guard, interno)
@@ -1259,6 +1260,70 @@ class TypeChecker:
         if objeto.name not in self.enums:
             return None, None
         return objeto.name, expressao.member
+
+    def _conferir_capturas_repetidas(self, padrao):
+        """O mesmo nome ligado duas vezes no MESMO padrão.
+
+        `point [a, a]` diz "dois itens iguais", e era lido como "dois
+        itens quaisquer, e fique com o segundo" — `[1, 2]` casava, com
+        `a` valendo 2. Em Rust e no `match` do Python repetir um nome no
+        mesmo padrão é erro justamente por isso.
+
+        É a mesma família do argumento nomeado repetido e do parâmetro
+        declarado duas vezes: um nome ligado duas vezes, calado.
+
+        **O `or` é a exceção**, e ele é o motivo de a conta ser por
+        ramo: `point [a] or {"v": a}` liga `a` uma vez em cada lado, e
+        exatamente um lado casa. Recusar isso proibiria a forma que
+        existe para unificar dois formatos.
+        """
+        vistos = {}
+        for nome, no in self._capturas_de(padrao):
+            if nome in vistos:
+                self.error(
+                    f"'{nome}' é capturado duas vezes no mesmo padrão",
+                    no, "um nome por padrão: o segundo apagava o primeiro, "
+                        "e o padrão casava com valores diferentes",
+                    "captura-repetida")
+                return
+            vistos[nome] = no
+
+    def _capturas_de(self, padrao):
+        """Os nomes que este padrão liga, com o nó de cada um.
+
+        Num `or`, o MAIOR dos ramos — e não a soma: os ramos são
+        alternativas, e somar acusaria o uso correto.
+        """
+        if padrao is None:
+            return []
+        saida = []
+        if getattr(padrao, "binding", ""):
+            saida.append((padrao.binding, padrao))
+        if isinstance(padrao, ast.CapturePattern):
+            saida.append((padrao.name, padrao))
+        elif isinstance(padrao, ast.SequencePattern):
+            for sub in padrao.elements:
+                saida += self._capturas_de(sub)
+            if padrao.rest_name:
+                saida.append((padrao.rest_name, padrao))
+        elif isinstance(padrao, ast.MappingPattern):
+            for _, sub in padrao.pairs:
+                saida += self._capturas_de(sub)
+            if padrao.rest_name:
+                saida.append((padrao.rest_name, padrao))
+        elif isinstance(padrao, ast.TypePattern):
+            for sub in padrao.sub_patterns:
+                saida += self._capturas_de(sub)
+            for sub in padrao.field_patterns.values():
+                saida += self._capturas_de(sub)
+        elif isinstance(padrao, ast.OrPattern):
+            maior = []
+            for opcao in padrao.options:
+                desta = self._capturas_de(opcao)
+                if len(desta) > len(maior):
+                    maior = desta
+            saida += maior
+        return saida
 
     def _declare_pattern(self, padrao, escopo):
         if padrao is None:

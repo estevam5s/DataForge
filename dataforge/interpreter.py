@@ -824,6 +824,70 @@ def _traduzir_moldura(encontrado):
     return inteiro.replace(tipos, traduzido, 1)
 
 
+#: Os recados do CPython que chegam ao usuario inteiros.
+#:
+#: '_traduzir_tipos' troca os NOMES de tipo, e isso resolve a maioria.
+#: Sobram as mensagens cuja FRASE e do Python: elas falam de funcoes que
+#: nao existem aqui ('int()', 'math domain'), e nenhuma diz o que fazer.
+#:
+#: 'int(texto)' e o caso que mais importa: e o erro mais comum de todo
+#: programa que le entrada — formulario, CSV, argumento de linha de
+#: comando. Responder "invalid literal for int() with base 10" a quem
+#: digitou 'abc' num campo de idade nao ajuda ninguem.
+#:
+#: Cada entrada e (padrao, mensagem, dica). Os grupos nomeados do padrao
+#: entram nas duas por '{nome}'.
+_RECADOS_CRUS = (
+    (r"invalid literal for int\(\) with base \d+: (?P<valor>.+)",
+     "não dá para ler {valor} como número inteiro",
+     "confira a entrada antes de converter:\n"
+     "    given texto.is_digit():\n"
+     "        n := int(texto)"),
+    (r"could not convert string to float: (?P<valor>.+)",
+     "não dá para ler {valor} como número decimal",
+     "troque a vírgula por ponto, ou confira a entrada antes:\n"
+     '    n := float(texto.replace(",", "."))'),
+    (r"^math domain error$",
+     "esta conta não tem resposta real",
+     "raiz de número negativo e logaritmo de zero ou negativo não têm\n"
+     "resposta nos números desta linguagem — confira o valor antes"),
+    (r"object cannot be interpreted as an integer",
+     "aqui é preciso um número inteiro",
+     "converta antes com  int(x)"),
+    (r"object is not iterable",
+     "este valor não pode ser percorrido item a item",
+     "só cluster, vault, texto e stream podem — confira com  typeof(x)"),
+    (r"^string index out of range$",
+     "esta posição não existe neste texto",
+     "confira o tamanho com  len(texto)  antes de indexar"),
+    (r"^list index out of range$",
+     "esta posição não existe neste cluster",
+     "confira o tamanho com  len(xs)  antes de indexar"),
+)
+
+_RECADOS_CRUS = tuple(
+    (_re.compile(padrao), mensagem, dica)
+    for padrao, mensagem, dica in _RECADOS_CRUS)
+
+
+def _refazer_recado(texto):
+    """A mensagem do Python vira a desta linguagem, com dica.
+
+    Devolve `(mensagem, dica)` ou `None` quando o texto nao e um dos
+    recados conhecidos — e ai o caminho de sempre continua valendo. A
+    tabela e curta de proposito: cobrir todo o CPython seria mentira, e
+    o que nao esta aqui sai como estava, legivel em ingles.
+    """
+    if not texto:
+        return None
+    for padrao, mensagem, dica in _RECADOS_CRUS:
+        achado = padrao.search(texto)
+        if achado:
+            campos = achado.groupdict()
+            return mensagem.format(**campos), dica.format(**campos)
+    return None
+
+
 def _traduzir_tipos(texto):
     """Troca os nomes de tipo do Python pelos da linguagem.
 
@@ -6206,6 +6270,17 @@ class Interpreter:
         # linguagem. Quem le DataForge nunca viu 'int', 'str', 'dict'
         # nem 'NoneType', e uma mensagem nesses termos manda a pessoa
         # procurar na documentacao errada.
+        # A FRASE inteira, antes dos nomes: um recado conhecido do
+        # CPython vira mensagem desta linguagem, com dica. O que nao
+        # estiver na tabela segue o caminho de sempre.
+        refeito = _refazer_recado(texto)
+        if refeito:
+            texto, dica_nova = refeito
+            dica = dica or dica_nova
+            # O 'contexto' — o nome que a pessoa chamou — CONTINUA: ele e
+            # o que liga a frase a linha que ela escreveu. Sem ele,
+            # "esta conta nao tem resposta real" nao diz qual conta.
+
         texto = _traduzir_tipos(texto)
         if nota:
             nota = _traduzir_tipos(nota)

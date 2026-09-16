@@ -7559,3 +7559,81 @@ def test_a_subtracao_continua_sendo_subtracao():
     """A guarda: `a - b` não pode virar um módulo chamado 'a-b'."""
     assert run('a := 10\nb := 4\nout a - b\n') == "6"
     assert run('a := 10\nb := 4\nout a-b\n') == "6"
+
+
+# ══════════════════════════════════════════════════════════════════
+#  Os recados crus do Python
+# ══════════════════════════════════════════════════════════════════
+
+@pytest.mark.parametrize("fonte,proibido", [
+    ('out int("abc")', "invalid literal"),
+    ('out float("x")', "could not convert"),
+    ('out sqrt(-1)', "math domain"),
+    ('out range("a")', "cannot be interpreted"),
+    ('out join(", ", 5)', "not iterable"),
+    ('out "ab"[9]', "string index out of range"),
+    ('out [1, 2][9]', "list index out of range"),
+])
+def test_o_recado_do_python_nao_chega_ao_usuario(fonte, proibido):
+    """`int("abc")` respondia *invalid literal for int() with base 10*.
+
+    A frase é do CPython, fala de uma função que não existe nesta
+    linguagem, e não diz o que fazer. E é o erro mais comum que existe
+    num programa que lê entrada — todo formulário, todo CSV, todo
+    argumento de linha de comando passa por um `int(texto)`.
+
+    Os nomes de tipo já eram traduzidos; a **frase inteira** não era.
+    """
+    with pytest.raises(DataForgeError) as capturado:
+        run(fonte)
+    erro = capturado.value
+    inteiro = f"{erro.message} {erro.nota} {erro.dica}"
+    assert proibido not in inteiro, f"vazou o recado do Python: {erro.message}"
+    assert erro.dica, "uma mensagem sem dica não diz o que fazer"
+
+
+def test_a_conversao_que_funciona_continua_funcionando():
+    assert run('out int("42"), float("3.5"), int(3.9)') == "42 3.5 3"
+
+
+def test_o_mesmo_nome_capturado_duas_vezes_num_padrao_e_recusado():
+    """`point [a, a]` casava com `[1, 2]`, e `a` valia 2.
+
+    O padrão diz "dois itens **iguais**", e era lido como "dois itens
+    quaisquer, e fique com o segundo". Em Rust e no `match` do Python
+    repetir um nome no mesmo padrão é erro justamente por isso.
+
+    É a mesma família do argumento nomeado repetido e do parâmetro
+    declarado duas vezes: um nome ligado duas vezes, calado, com o
+    segundo vencendo.
+    """
+    from dataforge.typechecker import check_program
+
+    fonte = ('action f(v):\n'
+             '    match v:\n'
+             '        point [a, a]:\n'
+             '            yield a\n'
+             '        default:\n'
+             '            yield 0\n'
+             'out f([1, 2])\n')
+    erros = [d for d in check_program(parse(tokenize(fonte, "t.df"), "t.df"),
+                                      "t.df")
+             if d.code == "captura-repetida"]
+    assert erros, [d.message for d in check_program(
+        parse(tokenize(fonte, "t.df"), "t.df"), "t.df")]
+    assert "a" in erros[0].message
+
+
+def test_o_mesmo_nome_em_padroes_DIFERENTES_continua_valendo():
+    """A guarda: cada `point` é um padrão próprio, e reusar o nome entre
+    eles é o normal — é o que faz `point [x]` e `point {"v": x}` lerem
+    igual."""
+    assert run('action f(v):\n'
+               '    match v:\n'
+               '        point [x]:\n'
+               '            yield x\n'
+               '        point {"v": x}:\n'
+               '            yield x\n'
+               '        default:\n'
+               '            yield 0\n'
+               'out f([7]), f({"v": 9})\n') == "7 9"
