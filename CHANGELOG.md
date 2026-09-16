@@ -14,6 +14,24 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Corrigido
+
+- **`point [a, a]` casava com `[1, 2]`.** O padrão diz "dois itens
+  **iguais**", e era lido como "dois itens quaisquer, e fique com o
+  segundo". É a mesma família do argumento nomeado repetido e do
+  parâmetro declarado duas vezes: um nome ligado duas vezes, calado. O
+  `or` continua livre — `point [a] or {"v": a}` liga `a` uma vez em cada
+  ramo, e exatamente um ramo casa.
+- **Sete recados do CPython chegavam ao usuário inteiros.**
+  `int("abc")` respondia *invalid literal for int() with base 10* — uma
+  frase que fala de uma função que não existe nesta linguagem e não diz
+  o que fazer. É o erro mais comum de todo programa que lê entrada: todo
+  formulário, todo CSV, todo argumento de linha de comando passa por um
+  `int(texto)`. Os nomes de tipo já eram traduzidos; a **frase inteira**
+  não era. Agora `int`, `float`, `math domain error`, "cannot be
+  interpreted as an integer", "not iterable" e os dois "index out of
+  range" viram mensagem desta linguagem, com dica.
+
 ### Acrescentado
 
 - **JWT em `Arcane.Crypto`** — `jwt_assinar`, `jwt_verificar` e `jwt_ler`,
