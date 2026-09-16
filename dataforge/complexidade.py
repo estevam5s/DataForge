@@ -452,6 +452,30 @@ class Analisador:
         divide = self._divide_pela_metade(no.body, curto)
 
         if resultado.chamadas_proprias >= 2:
+            # Memoizacao: o proprio aviso do O(2^n) manda guardar os
+            # resultados num vault, e quem seguia o conselho recebia o
+            # mesmo O(2^n) de volta. Com o cache, cada argumento distinto
+            # e calculado UMA vez — as repeticoes saem pelo 'yield' de
+            # cima —, e o total e linear no numero de argumentos.
+            if self._memoiza(no.body):
+                memo = corpo.maior(Ordem.constante()).vezes(Ordem.linear(
+                    f"'{curto}' guarda o que ja calculou: cada argumento "
+                    f"distinto roda uma vez"))
+                memo.motivos.insert(0, "memoizacao: o cache corta a repeticao")
+                return memo
+
+            # Descer por partes DIFERENTES da estrutura nao multiplica o
+            # trabalho: percorrer uma arvore ('f(no.esq)' e 'f(no.dir)')
+            # visita cada no uma vez. A forma e identica a do fibonacci
+            # ingenuo, e por isso a travessia mais comum que existe saia
+            # como exponencial.
+            partes = self._partes_distintas(no.body, curto)
+            if partes >= resultado.chamadas_proprias:
+                galhos = corpo.maior(Ordem.constante()).vezes(Ordem.linear(
+                    f"'{curto}' desce por partes diferentes da estrutura: "
+                    f"cada uma e visitada uma vez"))
+                return galhos
+
             if divide:
                 # Divisao e conquista: o custo e o trabalho por nivel
                 # vezes log n niveis.
@@ -678,6 +702,27 @@ class Analisador:
         for arg in no.args or []:
             base = base.maior(self._expressao(arg))
 
+        # O que o ARQUIVO declara vence a tabela dos embutidos. A tabela e
+        # um atalho para o que a linguagem oferece, e 'ordenar', 'unique',
+        # 'count', 'join' e 'index' sao nomes que qualquer um escreve: com
+        # a tabela na frente, a acao da pessoa era cobrada pelo preco de
+        # outra coisa.
+        #
+        # E foi assim que o MERGE SORT saiu como O(n log^2 n): a acao se
+        # chama 'ordenar', cada chamada recursiva cobrava o O(n log n) do
+        # embutido, e a regra da divisao e conquista multiplicava aquilo
+        # por log n de novo. Errar a classe do merge sort e o pior lugar
+        # possivel para um analisador de Big-O errar.
+        if nome in self.acoes:
+            # A chamada a si mesma nao custa aqui: quem responde por ela e
+            # '_com_recursao', que olha a forma da recursao inteira.
+            if self.atual and nome == self.atual.nome:
+                return base
+            interna = self._ordem_conhecida(nome)
+            if interna is not None:
+                return base.maior(interna)
+            return base
+
         if nome in CUSTOS:
             n, log = CUSTOS[nome]
             if n or log:
@@ -685,13 +730,6 @@ class Analisador:
                     f"'{nome}()' na linha {getattr(no, 'line', 0)} custa "
                     f"{Ordem(POLINOMIAL, n, log).texto()}"])
                 return base.maior(custo)
-            return base
-
-        # Chamada a outra acao do arquivo: usa a ordem dela.
-        if nome in self.acoes and self.atual and nome != self.atual.nome:
-            interna = self._ordem_conhecida(nome)
-            if interna is not None:
-                return base.maior(interna)
         return base
 
     def _metodo(self, no):
@@ -802,7 +840,65 @@ class Analisador:
         return "a colecao"
 
     def _contar_chamadas(self, corpo, nome):
-        """Quantas vezes o corpo chama a acao pelo proprio nome."""
+        """Quantas vezes o corpo chama a acao pelo proprio nome — no PIOR
+        caminho, e nao somando a arvore inteira.
+
+        A diferenca separa O(log n) de O(2^n). Numa busca binaria
+        recursiva as duas chamadas estao em ramos mutuamente exclusivos:
+
+            given xs[meio] smaller alvo:
+                yield busca(xs, alvo, meio + 1, alto)
+            yield busca(xs, alvo, baixo, meio - 1)
+
+        Uma ou outra roda, nunca as duas. Somando a arvore davam 2, e 2
+        chamadas sem divisao visivel e a formula do exponencial: a busca
+        binaria saia como O(2^n), com aviso grave mandando memoizar o
+        algoritmo que a pessoa acabou de acertar.
+
+        A conta e por caminho: uma sequencia SOMA, um 'given' pega o
+        MAIOR entre os ramos, e um ramo que encerra (com 'yield' ou
+        'trigger') exclui o que vem depois dele. Nunca subestima um
+        caminho que existe de verdade — o fibonacci ingenuo, cujas duas
+        chamadas estao na MESMA expressao, continua dando 2.
+        """
+        return self._chamadas_no_caminho(list(corpo or []), nome)
+
+    def _chamadas_no_caminho(self, instrucoes, nome):
+        if not instrucoes:
+            return 0
+        primeira, resto = instrucoes[0], instrucoes[1:]
+
+        if isinstance(primeira, ast.GivenBlock):
+            ramos = [primeira.body]
+            for ramo in getattr(primeira, "orif_blocks", []) or []:
+                ramos.append(ramo[1] if isinstance(ramo, (list, tuple))
+                             else getattr(ramo, "body", []))
+            tem_otherwise = bool(getattr(primeira, "otherwise_body", None))
+            if tem_otherwise:
+                ramos.append(primeira.otherwise_body)
+
+            opcoes = []
+            for corpo_do_ramo in ramos:
+                dentro = self._chamadas_no_caminho(list(corpo_do_ramo or []),
+                                                   nome)
+                if self._encerra(corpo_do_ramo):
+                    opcoes.append(dentro)
+                else:
+                    opcoes.append(dentro
+                                  + self._chamadas_no_caminho(resto, nome))
+            if not tem_otherwise:
+                # Nenhum ramo tomado: o resto roda sozinho.
+                opcoes.append(self._chamadas_no_caminho(resto, nome))
+            # A condicao de cada ramo e avaliada de qualquer jeito.
+            nas_condicoes = self._chamadas_na_arvore(
+                [primeira.condition], nome)
+            return nas_condicoes + max(opcoes or [0])
+
+        return (self._chamadas_na_arvore([primeira], nome)
+                + self._chamadas_no_caminho(resto, nome))
+
+    def _chamadas_na_arvore(self, corpo, nome):
+        """As chamadas na subarvore inteira, sem olhar o fluxo."""
         contagem = 0
         for no in self._andar(corpo):
             if isinstance(no, ast.FunctionCall) and \
@@ -812,12 +908,31 @@ class Analisador:
                 contagem += 1
         return contagem
 
+    @staticmethod
+    def _encerra(corpo):
+        """O bloco termina a acao — nada depois dele roda naquele caminho."""
+        for no in reversed(list(corpo or [])):
+            return isinstance(no, (ast.YieldStatement, ast.TriggerStatement))
+        return False
+
     def _divide_pela_metade(self, corpo, nome):
         """A recursao passa metade da entrada adiante?
 
         E o que separa O(log n) de O(n), e O(n log n) de O(2^n). A
         marca e um '~/ 2', '/ 2' ou uma fatia no argumento da chamada.
+
+        Ela tambem segue o NOME que guarda a bisseccao. A busca binaria
+        recursiva nao passa '~/ 2' adiante — ela passa 'meio + 1':
+
+            meio := (baixo + alto) ~/ 2
+            yield busca(xs, alvo, meio + 1, alto)
+
+        Olhando so o argumento, a divisao ficava invisivel e a busca
+        binaria era classificada como linear. O nome so entra na conta se
+        ele proprio nasceu de uma divisao por 2 ou mais, no corpo desta
+        acao: nao e o nome que decide, e a expressao que o criou.
         """
+        bisseccao = self._nomes_de_bisseccao(corpo)
         for no in self._andar(corpo):
             chamada = None
             if isinstance(no, ast.FunctionCall) and \
@@ -830,6 +945,98 @@ class Analisador:
             for arg in chamada.args or []:
                 if self._e_metade(arg):
                     return True
+                if bisseccao and self._menciona(arg, bisseccao):
+                    return True
+        return False
+
+    def _memoiza(self, corpo):
+        """O corpo guarda o que ja calculou, e devolve cedo quando tem?
+
+        O par que caracteriza a memoizacao: uma consulta a uma colecao
+        que leva a um 'yield' imediato, e uma escrita naquela MESMA
+        colecao. Uma sem a outra nao e cache — ler sem gravar recalcula
+        sempre, e gravar sem ler nunca aproveita.
+        """
+        consultadas = set()
+        for no in self._andar(corpo):
+            if not isinstance(no, ast.GivenBlock):
+                continue
+            if not self._encerra(no.body):
+                continue
+            for dentro in self._andar([no.condition]):
+                alvo = None
+                if isinstance(dentro, ast.MethodCall) and \
+                        dentro.method in ("has", "contains", "includes"):
+                    alvo = getattr(dentro.object, "name", None)
+                elif isinstance(dentro, ast.BinaryOp) and dentro.op == "in":
+                    alvo = getattr(dentro.right, "name", None)
+                if alvo:
+                    consultadas.add(alvo)
+        if not consultadas:
+            return False
+
+        for no in self._andar(corpo):
+            if not isinstance(no, ast.Assignment):
+                continue
+            alvo = getattr(no, "target", None)
+            nome = getattr(getattr(alvo, "object", None), "name", None)
+            if nome and nome in consultadas:
+                return True
+        return False
+
+    def _partes_distintas(self, corpo, nome):
+        """Quantas PARTES diferentes de um argumento a recursao recebe.
+
+        'f(no.esq)' e 'f(no.dir)' sao duas; 'f(no.esq)' duas vezes e uma
+        so, e essa repeticao e o que faz o trabalho dobrar por nivel.
+        """
+        vistos = set()
+        for no in self._andar(corpo):
+            chamada = None
+            if isinstance(no, ast.FunctionCall) and \
+                    getattr(no.callee, "name", "") == nome:
+                chamada = no
+            elif isinstance(no, ast.MethodCall) and no.method == nome:
+                chamada = no
+            if chamada is None:
+                continue
+            for arg in chamada.args or []:
+                caminho = self._caminho_de_membro(arg)
+                if caminho:
+                    vistos.add(caminho)
+        return len(vistos)
+
+    def _caminho_de_membro(self, no):
+        """'atual.esq' -> 'atual.esq'; o que nao for um caminho, None."""
+        if isinstance(no, ast.MemberAccess):
+            base = self._caminho_de_membro(no.object)
+            return f"{base}.{no.member}" if base else None
+        if isinstance(no, ast.Identifier):
+            return no.name
+        if isinstance(no, ast.IndexAccess):
+            base = self._caminho_de_membro(getattr(no, "object", None))
+            indice = getattr(no, "index", None)
+            marca = getattr(indice, "value", getattr(indice, "name", "?"))
+            return f"{base}[{marca}]" if base else None
+        return None
+
+    def _nomes_de_bisseccao(self, corpo):
+        """Os nomes que, neste corpo, recebem uma divisao por 2 ou mais."""
+        nomes = set()
+        for no in self._andar(corpo):
+            if not isinstance(no, ast.Assignment):
+                continue
+            alvo = getattr(getattr(no, "target", None), "name", None) \
+                or getattr(no, "name", None)
+            valor = getattr(no, "value", None)
+            if alvo and valor is not None and self._e_metade(valor):
+                nomes.add(alvo)
+        return nomes
+
+    def _menciona(self, no, nomes):
+        for filho in self._andar([no]):
+            if isinstance(filho, ast.Identifier) and filho.name in nomes:
+                return True
         return False
 
     def _e_metade(self, no):

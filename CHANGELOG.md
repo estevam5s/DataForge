@@ -224,7 +224,45 @@ cada número significa, e o que pode quebrar entre versões, está em
   `given typeof(x) is "Integer"` seria falso para um valor que soma,
   divide e compara como um.
 
+### Adicionado
+
+- **Sete páginas novas de complexidade**, em `/docs/big-o`: recorrências e
+  o Teorema Mestre, análise amortizada, Ω/Θ e limites inferiores,
+  estruturas avançadas (heap, união-busca, deque, contador), complexidade
+  em paralelo, a constante que decide, e complexidade em dados e I/O.
+  Todo número citado foi **medido nesta máquina**: 118x entre buscar num
+  cluster e num vault, 2,02x ao dobrar o número de `append` (que é o que
+  prova o amortizado), 15x entre ordenar tudo e um heap de 10, 16,6x
+  entre varrer a tabela e usar índice, 6,4x entre N+1 e uma consulta, e
+  4,71x com processos em 10 núcleos.
+- **`/docs/primeiros-passos` e `/docs/fundamentos/anotacoes-de-tipo`**
+  quase dobraram: a linguagem em cinco minutos, um programa inteiro, o
+  que um erro mostra, testes, REPL, editor e as seis armadilhas de quem
+  chega; e do lado dos tipos, genéricos com limite, trait como tipo, o
+  tipo atravessando o `adopt`, e a tabela do que faz o analisador calar.
+
 ### Corrigido
+
+- **Quatro classes erradas no `dataforge big-o`**, todas medidas contra
+  algoritmos conhecidos. O **merge sort** saía como `O(n log^2 n)`: a ação
+  se chama `ordenar`, que está na tabela de custos dos embutidos, e o
+  preço dela era cobrado das chamadas recursivas e multiplicado de novo.
+  A **busca binária recursiva** saía como `O(2^n)` — as duas chamadas
+  estão em ramos mutuamente exclusivos e eram somadas, e a bisseção mora
+  no `meio := (baixo + alto) ~/ 2`, que ninguém seguia. O **fibonacci
+  memoizado** saía como `O(2^n)`, com o aviso mandando memoizar o que já
+  estava memoizado. E **percorrer uma árvore** saía como `O(2^n)`, embora
+  `f(no.esq)` e `f(no.dir)` desçam por galhos diferentes.
+- **`has_field`, `get_fields`, `has_method` e `get_methods` mentiam sobre
+  todo record.** `has_field(p, "x")` respondia `no` para um campo que
+  existe, e `get_fields(p)` devolvia vazio: os quatro procuravam a forma
+  de uma instância de blueprint. Uma pergunta de reflexão respondida
+  errado é pior que uma que levanta — quem escreve
+  `given has_field(p, "email")` segue pelo ramo errado, calado.
+- **`xs: Cluster<Integer>`** respondia `Era esperado IDENTIFIER, got LT` e
+  ainda arrastava a linha seguinte para um segundo erro. Agora diz o que
+  não existe e o que escrever: o tipo do conteúdo de uma coleção não é
+  verificado, anote como `Cluster`.
 
 - **`spawn B().f()` significava outra coisa.** O `spawn` consumia a cadeia
   inteira de pós-fixos, então a linha era lida como `spawn (B().f())`: o que

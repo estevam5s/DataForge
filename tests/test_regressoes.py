@@ -7266,3 +7266,47 @@ def test_um_metodo_sobrescrito_na_filha_nao_e_declaracao_repetida():
     assert not [d for d in ds if d.code == "declaracao-repetida"], \
         [d.message for d in ds]
     assert run(fonte) == "2"
+
+
+def test_cluster_de_integer_diz_o_que_nao_existe():
+    """`xs: Cluster<Integer>` é a forma que quem vem de outra linguagem
+    escreve primeiro. A mensagem antiga era do parser cru — "Era esperado
+    IDENTIFIER, got LT" — e não dizia nem que a forma não existe, nem o
+    que escrever no lugar."""
+    erros = _erros_de_sintaxe('action f(xs: Cluster<Integer>):\n    yield 1\n')
+    assert "does not exist" in erros[0].message, erros[0].message
+    assert "Cluster" in erros[0].message
+
+
+def test_o_generico_de_verdade_continua_passando():
+    """A guarda: `<T extends Number>` é outro `<`, e ele é legítimo."""
+    assert run('action maior<T extends Number>(a: T, b: T) -> T:\n'
+               '    yield a given a bigger b otherwise b\n'
+               'out maior(3, 7)\n') == "7"
+
+
+def test_a_reflexao_enxerga_um_record():
+    """`has_field(p, "x")` devolvia `no` para um campo que EXISTE, e
+    `get_fields(p)` devolvia vazio — para todo record da linguagem.
+
+    Os quatro embutidos procuravam `.fields` e `.blueprint`, que são a
+    forma de uma instância de blueprint; um record guarda `.values` e
+    `.record`. Nenhum deles levantava: respondiam a resposta errada,
+    calados, que é o pior jeito de errar numa pergunta de reflexão —
+    quem escreve `given has_field(p, "email")` segue pelo ramo errado.
+    """
+    fonte = ('record P:\n    x: Integer\n    y: Integer\n'
+             '    action norma():\n        yield self.x + self.y\n'
+             'p := P(1, 2)\n'
+             'out has_field(p, "x"), has_field(p, "z"), '
+             'has_method(p, "norma"), has_method(p, "nada")\n'
+             'out get_fields(p), get_methods(p)\n')
+    assert run(fonte) == 'yes no yes no\n[x, y] [norma]'
+
+
+def test_a_reflexao_do_blueprint_continua_igual():
+    """A guarda: a forma que já funcionava não podia mudar."""
+    assert run('blueprint B(a):\n    action m():\n        yield 1\n'
+               'b := spawn B(9)\n'
+               'out has_field(b, "a"), has_method(b, "m"), '
+               'get_fields(b), get_methods(b)\n') == 'yes yes [a] [m]'

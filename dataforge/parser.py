@@ -3399,6 +3399,16 @@ class Parser:
                and self.peek().type == TokenType.IDENTIFIER):
             self.advance()
             nome += "." + self.advance().value
+        # 'xs: Cluster<Integer>' e a forma que quem vem de outra linguagem
+        # escreve primeiro, e ela nao existe: o tipo do CONTEUDO de uma
+        # colecao nao e verificado. A mensagem antiga era do parser cru
+        # ("Era esperado IDENTIFIER, got LT") e ainda arrastava a linha
+        # seguinte para um segundo erro, entao o arquivo terminava com dois
+        # erros de sintaxe e nenhum deles dizia o que fazer.
+        if self.current().type == TokenType.LT:
+            self.error(
+                f"'{nome}<…>' does not exist: the type of what is INSIDE a "
+                f"collection is not checked. Annotate as '{nome}'.")
         return nome
 
     def _parse_params(self):

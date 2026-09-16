@@ -1397,32 +1397,56 @@ def _df_instanceof(instance, blueprint):
                 or _adota_trait(instance, getattr(blueprint, "name", "")))
     return False
 
+#: O molde de um valor: o que declarou os campos e os metodos dele.
+#:
+#: Uma instancia de blueprint guarda '.fields' e '.blueprint'; um RECORD
+#: guarda '.values' e '.record'. Os quatro embutidos abaixo so conheciam a
+#: primeira forma, entao 'has_field(p, "x")' respondia 'no' para um campo
+#: que existe e 'get_fields(p)' devolvia vazio — para todo record da
+#: linguagem, calado. Uma pergunta de reflexao respondida errado e pior
+#: que uma que levanta: quem escreve 'given has_field(p, "email")' segue
+#: pelo ramo errado sem nada denunciar.
+def _campos_de(instance):
+    """Os campos de uma instância, seja ela de blueprint ou de record."""
+    if hasattr(instance, 'fields'):
+        return instance.fields
+    if hasattr(instance, 'values'):
+        return instance.values
+    return None
+
+
+def _molde_de(instance):
+    """Quem declarou os métodos: o blueprint, ou o record."""
+    return getattr(instance, 'blueprint', None) or getattr(
+        instance, 'record', None)
+
+
 def _df_has_method(instance, name):
     """Check if instance has a given method."""
     if hasattr(instance, 'has_method'):
         return instance.has_method(name)
-    return False
+    molde = _molde_de(instance)
+    return bool(molde) and name in getattr(molde, 'methods', {})
 
 def _df_has_field(instance, name):
     """Check if instance has a given field."""
-    if hasattr(instance, 'fields'):
-        return name in instance.fields
-    return False
+    campos = _campos_de(instance)
+    return name in campos if campos is not None else False
 
 def _df_get_fields(instance):
     """Get all field names of an instance."""
-    if hasattr(instance, 'fields'):
-        return list(instance.fields.keys())
-    return []
+    campos = _campos_de(instance)
+    return list(campos.keys()) if campos is not None else []
 
 def _df_get_methods(instance):
     """Get all method names of an instance's blueprint."""
-    if hasattr(instance, 'blueprint'):
-        methods = list(instance.blueprint.methods.keys())
-        for parent in instance.blueprint.parents:
-            methods.extend(k for k in parent.methods.keys() if k not in methods)
-        return methods
-    return []
+    molde = _molde_de(instance)
+    if molde is None:
+        return []
+    methods = list(getattr(molde, 'methods', {}).keys())
+    for parent in getattr(molde, 'parents', ()):
+        methods.extend(k for k in parent.methods.keys() if k not in methods)
+    return methods
 
 def _df_get_mro(instance):
     """Get Method Resolution Order of an instance."""

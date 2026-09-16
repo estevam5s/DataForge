@@ -122,6 +122,13 @@ export const nav: NavSection[] = [
       { title: 'Custo das estruturas', href: '/docs/big-o/estruturas' },
       { title: 'Melhor, médio e pior', href: '/docs/big-o/casos' },
       { title: 'Complexidade de espaço', href: '/docs/big-o/espaco' },
+      { title: 'Recorrências e Teorema Mestre', href: '/docs/big-o/recorrencias' },
+      { title: 'Análise amortizada', href: '/docs/big-o/amortizada' },
+      { title: 'Ω, Θ e limites inferiores', href: '/docs/big-o/limites' },
+      { title: 'Estruturas avançadas', href: '/docs/big-o/estruturas-avancadas' },
+      { title: 'Complexidade em paralelo', href: '/docs/big-o/paralelo' },
+      { title: 'A constante que decide', href: '/docs/big-o/constantes' },
+      { title: 'Complexidade em dados e I/O', href: '/docs/big-o/dados' },
     ],
   },
   {

@@ -333,3 +333,169 @@ def test_analisa_os_exemplos_sem_estourar():
     for caminho in glob.glob(os.path.join(raiz, "examples", "*.df")):
         with open(caminho, encoding="utf-8") as f:
             analisar_fonte(f.read(), caminho)
+
+
+# ═══ O nome do arquivo vence o da tabela ═══════════════════
+
+MERGE_SORT = '''
+action intercalar(a, b):
+    saida := []
+    i := 0
+    j := 0
+    persist i smaller len(a) and j smaller len(b):
+        given a[i] smaller_eq b[j]:
+            saida.append(a[i])
+            i += 1
+        otherwise:
+            saida.append(b[j])
+            j += 1
+    yield [...saida, ...a[i:], ...b[j:]]
+
+action ordenar(xs):
+    given len(xs) smaller_eq 1:
+        yield xs
+    meio := len(xs) ~/ 2
+    yield intercalar(ordenar(xs[0:meio]), ordenar(xs[meio:]))
+'''
+
+
+def test_merge_sort_e_n_log_n_e_nao_n_log_quadrado():
+    """O algoritmo mais conhecido da divisão e conquista.
+
+    Ele saía como **O(n log^2 n)** porque a ação se chama `ordenar`, e
+    `ordenar` está na tabela de custos dos embutidos como O(n log n): as
+    duas chamadas recursivas cobravam o preço do embutido, e a regra da
+    divisão e conquista multiplicava aquilo por log n de novo.
+
+    Errar a classe do merge sort num analisador de Big-O é o pior lugar
+    possível para errar — é o exemplo que todo mundo usa para conferir.
+    """
+    assert tempo(MERGE_SORT, "ordenar") == "O(n log n)"
+
+
+def test_uma_acao_do_arquivo_vence_o_embutido_de_mesmo_nome():
+    """`action unique(xs)` é a do arquivo, não a embutida.
+
+    A tabela de custos é um atalho para o que a linguagem oferece; um
+    nome DECLARADO no arquivo é o que vai ser chamado, e cobrar por ele o
+    preço de outra coisa inventa um número.
+    """
+    fonte = ('action unique(xs):\n'
+             '    yield xs[0]\n'
+             'action usar(ys):\n'
+             '    yield unique(ys)\n')
+    assert tempo(fonte, "usar") == "O(1)"
+    # E sem a declaração, o embutido continua valendo:
+    assert tempo('action usar(ys):\n    yield unique(ys)\n', "usar") == "O(n)"
+
+
+BUSCA_BINARIA_RECURSIVA = '''
+action busca(xs, alvo, baixo, alto):
+    given baixo bigger alto:
+        yield -1
+    meio := (baixo + alto) ~/ 2
+    given xs[meio] is alvo:
+        yield meio
+    given xs[meio] smaller alvo:
+        yield busca(xs, alvo, meio + 1, alto)
+    yield busca(xs, alvo, baixo, meio - 1)
+'''
+
+
+def test_busca_binaria_recursiva_e_log_n_e_nao_exponencial():
+    """Ela saía como **O(2^n)**, com o aviso grave mandando memoizar.
+
+    Duas contagens erradas se somavam. A primeira: as duas chamadas
+    recursivas estão em ramos **mutuamente exclusivos** — uma ou outra
+    roda, nunca as duas —, e elas eram contadas como 2 porque a varredura
+    olhava a árvore inteira sem olhar o fluxo. A segunda: a bisseção está
+    em `meio := (baixo + alto) ~/ 2`, e a chamada passa `meio + 1`; quem
+    procurava o `~/ 2` olhava só o argumento, e não o nome que o guarda.
+
+    Dizer que uma busca binária é exponencial é o erro mais caro que este
+    analisador podia cometer: ele acusa, com aviso grave, o algoritmo que
+    a pessoa acabou de acertar.
+    """
+    assert tempo(BUSCA_BINARIA_RECURSIVA, "busca") == "O(log n)"
+
+
+def test_fibonacci_ingenuo_continua_exponencial():
+    """A guarda do lado oposto: aqui as duas chamadas rodam MESMO, na
+    mesma expressão, e a entrada não se divide."""
+    assert tempo('action fib(n):\n'
+                 '    given n smaller 2:\n'
+                 '        yield n\n'
+                 '    yield fib(n - 1) + fib(n - 2)\n', "fib") == "O(2^n)"
+
+
+def test_duas_chamadas_no_mesmo_caminho_continuam_contando_duas():
+    """Um ramo que NÃO encerra não exclui o que vem depois."""
+    fonte = ('action f(n):\n'
+             '    given n smaller 2:\n'
+             '        yield n\n'
+             '    given n % 2 is 0:\n'
+             '        a := f(n - 1)\n'
+             '    b := f(n - 2)\n'
+             '    yield b\n')
+    assert tempo(fonte, "f") == "O(2^n)"
+
+
+FIB_MEMO = '''
+cache := {}
+
+action fib_memo(n):
+    given n smaller 2:
+        yield n
+    given cache.has(str(n)):
+        yield cache[str(n)]
+    valor := fib_memo(n - 1) + fib_memo(n - 2)
+    cache[str(n)] := valor
+    yield valor
+'''
+
+
+def test_o_fibonacci_memoizado_nao_e_exponencial():
+    """O analisador **recomenda** memoizar e depois acusava o resultado.
+
+    O aviso do O(2^n) diz, com todas as letras: "guarde os resultados já
+    calculados num vault (memoizacao): quase sempre derruba para O(n)".
+    Quem seguia o conselho recebia o mesmo O(2^n) e o mesmo aviso grave —
+    uma ferramenta contradizendo o próprio conselho ensina a ignorá-la.
+
+    Com o cache, cada argumento distinto é calculado **uma vez**: as
+    chamadas repetidas saem pelo `yield` de cima.
+    """
+    assert tempo(FIB_MEMO, "fib_memo") == "O(n)"
+
+
+ARVORE = '''
+action em_ordem(atual, saida):
+    given atual is void:
+        yield saida
+    em_ordem(atual.esq, saida)
+    saida.append(atual.valor)
+    em_ordem(atual.dir, saida)
+    yield saida
+'''
+
+
+def test_percorrer_uma_arvore_e_linear_e_nao_exponencial():
+    """Duas chamadas, sobre partes DIFERENTES da estrutura.
+
+    `em_ordem(atual.esq, …)` e `em_ordem(atual.dir, …)` descem por
+    galhos distintos: cada nó é visitado uma vez, e o total é O(n) nos
+    nós. A forma é idêntica à do fibonacci ingênuo — duas chamadas, sem
+    `~/ 2` à vista —, e por isso a travessia mais comum que existe era
+    classificada como exponencial.
+    """
+    assert tempo(ARVORE, "em_ordem") == "O(n)"
+
+
+def test_a_mesma_parte_duas_vezes_continua_exponencial():
+    """A guarda: partes distintas é o que torna linear. O MESMO galho
+    duas vezes dobra o trabalho a cada nível, como o fibonacci."""
+    fonte = ('action f(atual):\n'
+             '    given atual is void:\n'
+             '        yield 0\n'
+             '    yield f(atual.esq) + f(atual.esq)\n')
+    assert tempo(fonte, "f") == "O(2^n)"

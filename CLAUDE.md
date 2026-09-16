@@ -1328,6 +1328,41 @@ socket — um cliente HTTP testado só com dublê não prova nada sobre o que
 acontece quando o outro lado demora, fecha a conexão ou devolve
 `Retry-After`. Os exercícios 227 e 228 sobem dois serviços.
 
+## O analisador de complexidade
+
+`complexidade.py` responde `dataforge big-o`: ele lê a árvore e conta
+estrutura — laços aninhados, se o contador dobra ou soma, quantas vezes
+uma ação chama a si mesma, e o custo de cada embutido que aparece.
+
+**Errar a classe é pior que não ter a ferramenta**, porque ela erra com
+confiança e o relatório é curto o bastante para ser lido como verdade.
+Quatro erros de classificação foram medidos e corrigidos, e os quatro
+tinham a mesma raiz: contar **forma** sem olhar **fluxo**.
+
+| Era | Devia ser | A causa |
+|---|---|---|
+| merge sort `O(n log^2 n)` | `O(n log n)` | `ordenar` está na tabela de custos dos embutidos, e a ação do usuário com esse nome era cobrada pelo preço dela — depois multiplicado de novo pela regra da divisão e conquista |
+| busca binária recursiva `O(2^n)` | `O(log n)` | as duas chamadas estão em ramos **mutuamente exclusivos**, e eram somadas; e a bisseção mora em `meio := (baixo + alto) ~/ 2`, não no argumento da chamada |
+| fibonacci **memoizado** `O(2^n)` | `O(n)` | o aviso do `O(2^n)` manda memoizar, e quem seguia o conselho recebia o mesmo aviso de volta |
+| percorrer árvore `O(2^n)` | `O(n)` | `f(no.esq)` e `f(no.dir)` descem por partes **diferentes**: cada nó é visitado uma vez |
+
+Três regras saíram disso, e elas valem ao mexer ali:
+
+1. **O que o arquivo declara vence a tabela dos embutidos.** `ordenar`,
+   `unique`, `count`, `join` e `index` são nomes que qualquer um escreve.
+2. **Chamada recursiva se conta por caminho, não por subárvore.**
+   `_chamadas_no_caminho` soma numa sequência, pega o **maior** entre os
+   ramos de um `given`, e trata um ramo que encerra como exclusivo do que
+   vem depois. Nunca subestima um caminho que existe: o fibonacci
+   ingênuo, cujas duas chamadas estão na mesma expressão, continua dando 2.
+3. **Duas chamadas não são exponenciais por si só.** São exponenciais
+   quando repetem o mesmo trabalho. Cache e partes distintas quebram isso,
+   e os dois são reconhecíveis na árvore.
+
+`tests/test_complexidade.py` confere algoritmos **conhecidos**, cuja
+classe não está em disputa — é a única defesa contra um analisador que
+concorda consigo mesmo.
+
 ## O depurador, e o DAP
 
 `depurador.py` é a máquina: onde parar, como andar, e em que
