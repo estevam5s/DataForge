@@ -6,7 +6,7 @@
 
 **Suporte completo à linguagem [DataForge](https://dataforge-lang.vercel.app)** —
 servidor de linguagem, Big-O no editor, custo de import, cobertura de
-testes, painéis Vitrine, geradores DevOps, 56 comandos e 123 snippets.
+testes, painéis Vitrine, geradores DevOps, 63 comandos e 123 snippets.
 
 [Documentação](https://dataforge-lang.vercel.app/docs) ·
 [Exercícios](https://dataforge-lang.vercel.app/docs/exercicios) ·
@@ -125,7 +125,7 @@ passo em texto.
 
 ---
 
-## Os 56 comandos
+## Os 63 comandos
 
 Abra a paleta (`Ctrl+Shift+P`) e digite **DataForge**.
 
@@ -142,6 +142,19 @@ e o botão de inserir) · **usar o tema de cores do DataForge** ·
 rodar os testes · rodar o Crucible · **cobertura** (quais linhas os
 testes rodaram) · **cobertura mínima** (reprova abaixo de N%) · analisar
 complexidade · tabela de referência do Big-O · *por que isto é assim?*
+
+**Servidor** — **subir o servidor** (Kiln ou Vitrine, descobrindo a
+entrada pelo `forge.toml` ou pelo arquivo aberto) · **parar** ·
+**reiniciar** · **abrir no navegador**. O servidor ganha terminal
+próprio e um indicador na barra de status: o terminal do `run` é
+reaproveitado entre execuções, e um servidor morando nele seria morto
+pela próxima execução sem avisar.
+
+**Converter** — **este arquivo**, **a seleção** ou **uma pasta inteira**
+de Python, JavaScript ou TypeScript para DataForge. O resultado abre ao
+lado, e a notificação conta quantos `TODO(converter)` ficaram — uma
+tradução com doze buracos anunciada como "pronta" ensina a confiar no
+que não devia. Converter a seleção não grava arquivo nenhum.
 
 **Vitrine** — subir o painel recarregando ao salvar · *por que não
 sobe?* (o diagnóstico, da causa mais provável para a menos)
@@ -260,7 +273,7 @@ Três escolhas que se notam ao usar:
 
 ## A barra de status
 
-Antes havia um botão de rodar, e mais nada — os 56 comandos viviam na
+Antes havia um botão de rodar, e mais nada — os 63 comandos viviam na
 paleta, e **a paleta só serve a quem já sabe que o comando existe**.
 
 Agora ela responde cinco perguntas que se fazem o tempo todo:
@@ -324,6 +337,9 @@ arquivos vazios esconde os que importam.
 | `dataforge.servidor.ativo` | `true` | o servidor de linguagem |
 | `dataforge.servidor.log` | `""` | `verbose` para depurar o próprio LSP |
 | `dataforge.complexidade.mostrar` | `true` | Big-O acima das ações |
+| `dataforge.servidor.porta` | `8000` | a porta em que o servidor sobe |
+| `dataforge.servidor.host` | `127.0.0.1` | onde ele escuta — dentro de um container use `0.0.0.0`, senão o log diz "no ar" e o navegador não recebe nada |
+| `dataforge.servidor.abrirNavegador` | `true` | abrir o navegador depois de subir |
 | `dataforge.complexidade.avisarAcimaDe` | `O(n log n)` | a partir de onde marcar |
 | `dataforge.custoDeImport` | `true` | tamanho ao lado do `adopt` |
 | `dataforge.formatarAoSalvar` | `false` | `dataforge fmt` ao salvar |

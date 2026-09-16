@@ -1816,6 +1816,12 @@ def api_command(args, flags=()):
     return 0
 
 
+#: O que o 'converter' sabe ler. O '.py' passa pelo 'ast' do Python; o
+#: resto, pelo parser proprio de 'migrar_js.py'.
+_CONVERSIVEIS = (".py", ".js", ".mjs", ".cjs", ".jsx",
+                 ".ts", ".tsx", ".mts", ".cts")
+
+
 def converter_command(args, flags=()):
     """dataforge converter — Python vira DataForge.
 
@@ -1831,6 +1837,16 @@ def converter_command(args, flags=()):
     """
     from .marca import cor as _cor
     from .migrar import converter_fonte
+    from .migrar_js import ErroDeLeitura as _ErroDeLeituraJS
+    from .migrar_js import converter_fonte as _converter_js
+
+    #: A extensao decide o tradutor. Sao dois arquivos e duas entradas
+    #: com a MESMA assinatura, e por isso o resto do comando nao muda.
+    def _traduzir(fonte, caminho):
+        if caminho.endswith((".js", ".mjs", ".cjs", ".jsx",
+                             ".ts", ".tsx", ".mts", ".cts")):
+            return _converter_js(fonte, caminho)
+        return converter_fonte(fonte, caminho)
 
     if not args:
         print(_cor("Erro: informe o arquivo ou a pasta.", "1;31"))
@@ -1856,7 +1872,7 @@ def converter_command(args, flags=()):
                                           "node_modules", "venv", "build",
                                           "dist", ".tox", ".mypy_cache")]
                 alvos += [os.path.join(raiz, a) for a in sorted(arquivos)
-                          if a.endswith(".py")]
+                          if a.endswith(_CONVERSIVEIS)]
         elif os.path.isfile(alvo):
             alvos.append(alvo)
         else:
@@ -1864,7 +1880,7 @@ def converter_command(args, flags=()):
             return 1
 
     if not alvos:
-        print(_cor("Nenhum arquivo .py encontrado.", "1;33"))
+        print(_cor("Nenhum arquivo .py, .js ou .ts encontrado.", "1;33"))
         return 1
 
     if saida_pedida and len(alvos) > 1:
@@ -1891,15 +1907,20 @@ def converter_command(args, flags=()):
             continue
 
         try:
-            texto, pendencias = converter_fonte(fonte, caminho)
+            texto, pendencias = _traduzir(fonte, caminho)
         except SyntaxError as erro:
-            # Traduzir Python quebrado produziria lixo com aparencia de
+            # Traduzir codigo quebrado produziria lixo com aparencia de
             # traducao. Melhor recusar e dizer onde.
             problemas.append(
                 (curto_nome, f"Python invalido na linha {erro.lineno}: "
                              f"{erro.msg}"))
             print(f"  {_cor('✗', '1;31')} {curto_nome}  "
                   f"{_cor(f'linha {erro.lineno}: {erro.msg}', '0;90')}")
+            continue
+        except _ErroDeLeituraJS as erro:
+            problemas.append((curto_nome, str(erro)))
+            print(f"  {_cor('✗', '1;31')} {curto_nome}  "
+                  f"{_cor(str(erro), '0;90')}")
             continue
 
         destino = saida_pedida or (os.path.splitext(caminho)[0] + ".df")
@@ -1942,9 +1963,9 @@ def converter_command(args, flags=()):
         print(_cor(f"  {total_pendencias} ponto(s) precisam de voce — "
                    f"procure por 'TODO(converter)'.", "1;33"))
         print()
-        print(_cor("  A traducao nunca e completa: Python tem construcoes",
+        print(_cor("  A traducao nunca e completa: a linguagem de origem",
                    "0;90"))
-        print(_cor("  que esta linguagem nao tem, e adivinhar seria pior.",
+        print(_cor("  tem construcoes que esta nao tem, e adivinhar seria pior.",
                    "0;90"))
     elif convertidos:
         print(_cor("  Nada ficou pendente.", "0;90"))

@@ -226,6 +226,25 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ### Adicionado
 
+- **JavaScript e TypeScript viram DataForge.** `dataforge converter` já
+  lia Python pelo `ast`; agora lê `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`,
+  `.tsx`, `.mts` e `.cts` por um **tokenizador e um parser próprios** —
+  a regra de zero dependência vale aqui também. Traduz `class` para
+  `blueprint`, `interface` para `trait`, `switch` para `match`,
+  `try/catch/finally` para `monitor/handle/ensure`, template literal
+  para interpolação, seta para `lambda` (e para uma ação nomeada quando
+  o corpo é um bloco, porque o `lambda` daqui é uma expressão só), e
+  aproveita as anotações de tipo do TypeScript. O que não tem
+  equivalente honesto vira `TODO(converter)` com o código original ao
+  lado. 44 testes, e quase todos **executam** o que saiu em vez de
+  comparar texto.
+- **Sete comandos novos na extensão do VS Code.** Converter este
+  arquivo, a seleção ou uma pasta inteira — o resultado abre ao lado e a
+  notificação conta as pendências. E **subir, parar, reiniciar e abrir**
+  o servidor (Kiln ou Vitrine), com terminal próprio, descoberta da
+  entrada pelo `forge.toml` e indicador na barra de status. Três opções
+  novas: `dataforge.servidor.porta`, `.host` e `.abrirNavegador`.
+
 - **Sete páginas novas de complexidade**, em `/docs/big-o`: recorrências e
   o Teorema Mestre, análise amortizada, Ω/Θ e limites inferiores,
   estruturas avançadas (heap, união-busca, deque, contador), complexidade

@@ -398,6 +398,46 @@
         "command": "dataforge.idioma",
         "title": "Idioma das mensagens (português / inglês)",
         "category": "DataForge"
+      },
+      {
+        "command": "dataforge.converterArquivo",
+        "title": "Converter este arquivo para DataForge",
+        "category": "DataForge",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "dataforge.converterSelecao",
+        "title": "Converter a seleção para DataForge",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.converterPasta",
+        "title": "Converter uma pasta inteira para DataForge",
+        "category": "DataForge"
+      },
+      {
+        "command": "dataforge.servidorIniciar",
+        "title": "Servidor: subir",
+        "category": "DataForge",
+        "icon": "$(radio-tower)"
+      },
+      {
+        "command": "dataforge.servidorParar",
+        "title": "Servidor: parar",
+        "category": "DataForge",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "dataforge.servidorReiniciar",
+        "title": "Servidor: reiniciar",
+        "category": "DataForge",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "dataforge.servidorAbrir",
+        "title": "Servidor: abrir no navegador",
+        "category": "DataForge",
+        "icon": "$(globe)"
       }
     ],
     "menus": {
@@ -634,6 +674,21 @@
           ],
           "default": "automatico",
           "markdownDescription": "Idioma das mensagens do runtime e do analisador (`DF_IDIOMA`). Vale para tudo o que a extensão rodar: o sublinhado no editor e a saída do terminal falam o mesmo idioma."
+        },
+        "dataforge.servidor.porta": {
+          "type": "number",
+          "default": 8000,
+          "description": "A porta em que o servidor sobe."
+        },
+        "dataforge.servidor.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "O endereço em que o servidor escuta. Dentro de um container use 0.0.0.0 — o padrão responde só a si mesmo, e o log diz 'no ar' enquanto o navegador não recebe nada."
+        },
+        "dataforge.servidor.abrirNavegador": {
+          "type": "boolean",
+          "default": true,
+          "description": "Abrir o navegador depois de subir o servidor."
         }
       }
     },

@@ -30,6 +30,11 @@ import {
   rodarEMostrarTempo,
   rodarNoTerminal,
 } from './executar';
+import { converterArquivo, converterPasta, converterSelecao }
+  from './converter';
+import { prepararIndicador, pararTudo, servidorAbrirNavegador,
+         servidorIniciar, servidorParar, servidorReiniciar }
+  from './kiln';
 import { abrirMenu, Barra } from './barra';
 import * as testes from './testes';
 import * as aprender from './aprender';
@@ -144,6 +149,15 @@ export function activate(contexto: vscode.ExtensionContext) {
     ['dataforge.palavrasReservadas', aprender.palavrasReservadas],
     ['dataforge.temaDeCores', aprender.temaDeCores],
     ['dataforge.idioma', aprender.idioma],
+    // ── converter de outra linguagem ──
+    ['dataforge.converterArquivo', converterArquivo],
+    ['dataforge.converterSelecao', converterSelecao],
+    ['dataforge.converterPasta', converterPasta],
+    // ── o servidor ──
+    ['dataforge.servidorIniciar', servidorIniciar],
+    ['dataforge.servidorParar', () => servidorParar()],
+    ['dataforge.servidorReiniciar', servidorReiniciar],
+    ['dataforge.servidorAbrir', servidorAbrirNavegador],
   ];
   for (const [nome, fn] of comandos) {
     contexto.subscriptions.push(vscode.commands.registerCommand(nome, fn));
@@ -194,10 +208,13 @@ export function activate(contexto: vscode.ExtensionContext) {
     void anotar(vscode.window.activeTextEditor);
   }
 
+  prepararIndicador(contexto);
+
   void avisarSeFaltaOExecutavel();
 }
 
 export function deactivate() {
+  pararTudo();
   fecharTerminal();
 }
 
