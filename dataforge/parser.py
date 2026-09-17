@@ -2640,6 +2640,72 @@ class Parser:
 
         return expr
 
+    #: Os verbos de quadro, reconhecidos SO depois de um '>>'.
+    #:
+    #: Eles nao entram em KEYWORDS de proposito. 'agrupar', 'ordenar',
+    #: 'onde' e 'pegar' sao nomes bons demais para tirar de quem escreve
+    #: — e o repositorio ja removeu sete palavras reservadas por serem
+    #: caras sem entregar nada. E o mesmo tratamento das onze palavras do
+    #: Kiln: contextuais, e livres em todo o resto.
+    VERBOS_DE_QUADRO = {
+        "onde":    "expressao",   # filtra, com as colunas como nomes nus
+        "pegar":   "colunas",     # escolhe colunas
+        "sem":     "colunas",     # descarta colunas
+        "agrupar": "colunas",     # agrupa
+        "resumir": "expressao",   # agrega, recebendo um vault
+        "ordenar": "ordem",       # ordena, com 'desc' opcional
+    }
+
+    def _e_verbo_de_quadro(self):
+        tok = self.current()
+        return (tok.type is TokenType.IDENTIFIER
+                and tok.value in self.VERBOS_DE_QUADRO)
+
+    def _parse_verbo_de_quadro(self):
+        """`>> onde valor bigger 50`, `>> agrupar "cidade"`, `>> ordenar v desc`."""
+        tok = self.advance()
+        verbo = tok.value
+        forma = self.VERBOS_DE_QUADRO[verbo]
+
+        if forma == "expressao":
+            return ast.QuadroOperation(
+                verbo=verbo, expressao=self.parse_or(),
+                line=tok.line, column=tok.column)
+
+        if forma == "ordem":
+            coluna = self._nome_de_coluna()
+            # 'desc' tambem e contextual: so aqui, e so depois do nome.
+            decrescente = (self.current().type is TokenType.IDENTIFIER
+                           and self.current().value in ("desc", "decrescente"))
+            if decrescente:
+                self.advance()
+            return ast.QuadroOperation(
+                verbo=verbo, colunas=[coluna], decrescente=decrescente,
+                line=tok.line, column=tok.column)
+
+        colunas = [self._nome_de_coluna()]
+        while self.match(TokenType.COMMA):
+            colunas.append(self._nome_de_coluna())
+        return ast.QuadroOperation(verbo=verbo, colunas=colunas,
+                                   line=tok.line, column=tok.column)
+
+    def _nome_de_coluna(self):
+        """Uma coluna se escreve nua (`valor`) ou entre aspas (`"valor"`).
+
+        As duas formas existem porque nem todo cabecalho de CSV e um
+        identificador valido: 'Valor Total' e 'preco/kg' sao nomes de
+        coluna comuns, e so a forma com aspas os alcanca.
+        """
+        tok = self.current()
+        if tok.type is TokenType.STRING:
+            return self.advance().value
+        if tok.type in (TokenType.IDENTIFIER, TokenType.INTEGER):
+            return str(self.advance().value)
+        self.error(
+            "era esperado o nome de uma coluna aqui.\n"
+            '    Escreva-o nu (agrupar cidade) ou entre aspas '
+            '(agrupar "Valor Total").')
+
     def parse_pipeline_op(self):
         """Parse sift/morph/distill pipeline operation.
         Supports both inline lambda and named function reference:
@@ -2648,6 +2714,9 @@ class Parser:
           distill acc, val: expr   OR    distill func_name initial_value
         """
         tok = self.current()
+
+        if self._e_verbo_de_quadro():
+            return self._parse_verbo_de_quadro()
 
         if self.match(TokenType.SIFT):
             name = self.expect(TokenType.IDENTIFIER).value

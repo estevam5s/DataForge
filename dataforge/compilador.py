@@ -525,6 +525,13 @@ def _pipeline(interp, no):
     etapas = []
 
     for op in no.operations:
+        if isinstance(op, ast.QuadroOperation):
+            # Um verbo de quadro RECUA para o interpretador: devolver
+            # None aqui e como os casos dificeis ficam de fora sem
+            # duplicar regra. O ganho da compilacao esta no custo POR
+            # ELEMENTO, e um verbo de quadro e uma chamada so por
+            # estagio — nao ha laco para tirar do caminho quente.
+            return None
         if isinstance(op, ast.SiftOperation):
             if op.func_ref:
                 nome, alvo = op.func_ref, op

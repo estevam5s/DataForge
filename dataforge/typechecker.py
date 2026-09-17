@@ -2688,6 +2688,9 @@ class TypeChecker:
         resultado = "Cluster"
         for op in node.operations:
             interno = Scope(escopo)
+            if isinstance(op, ast.QuadroOperation):
+                resultado = self._verbo_de_quadro(op, escopo)
+                continue
             if isinstance(op, ast.SiftOperation):
                 if op.func_ref:
                     self._check_ref(op.func_ref, op, escopo, 1)
@@ -2711,6 +2714,32 @@ class TypeChecker:
                     self.infer(op.initial, escopo)
                 resultado = UNKNOWN
         return resultado
+
+    #: O que cada verbo de quadro DEVOLVE. 'agrupar' e o unico que nao
+    #: devolve quadro: ele devolve um agrupamento, que so vira tabela
+    #: depois de um 'resumir'.
+    _DEVOLVE_DO_VERBO = {
+        "onde": "Quadro", "pegar": "Quadro", "sem": "Quadro",
+        "ordenar": "Quadro", "resumir": "Quadro", "agrupar": "Grupo",
+    }
+
+    def _verbo_de_quadro(self, op, escopo):
+        """Confere um `>> onde …` e devolve o tipo que ele produz.
+
+        A expressão de um `onde` NÃO é inferida no escopo de fora: os
+        nomes dela são COLUNAS, e o analisador não sabe quais colunas um
+        quadro tem em tempo de análise. Inferir ali acusaria
+        `onde valor bigger 50` com "'valor' is not defined" — um falso
+        alarme no caminho mais comum do verbo, que é exatamente o que
+        ensina a desligar a verificação inteira.
+
+        O que ele confere é o que consegue provar: que 'agrupar' é
+        seguido de 'resumir', e que o verbo existe.
+        """
+        if op.verbo == "resumir" and op.expressao is not None:
+            # O vault de agregações é expressão comum: ele se infere.
+            self.infer(op.expressao, escopo)
+        return self._DEVOLVE_DO_VERBO.get(op.verbo, UNKNOWN)
 
     def _check_ref(self, nome, node, escopo, aridade):
         if not escopo.has(nome):

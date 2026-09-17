@@ -22,7 +22,7 @@ import './globals.css';
  */
 const DESCRICAO_CURTA =
   'Uma linguagem de programação completa, em português: interpretador, ' +
-  'analisador estático, 48 módulos de biblioteca, dois frameworks web e ' +
+  'analisador estático, 49 módulos de biblioteca, dois frameworks web e ' +
   'uma consulta tipada própria.';
 
 const DESCRICAO_LONGA =
@@ -32,12 +32,12 @@ const DESCRICAO_LONGA =
   'Ela é interpretada, tipada opcionalmente e implementada em Python 3.10+ ' +
   'sem dependência externa: lexer, parser, AST, analisador estático e ' +
   'interpretador próprios. ' +
-  'Traz 48 módulos de biblioteca padrão (Arcane), o framework web Kiln, ' +
+  'Traz 49 módulos de biblioteca padrão (Arcane), o framework web Kiln, ' +
   'a Vitrine para dashboards, o Crucible para testes, o Lavra — uma ' +
   'consulta tipada no espírito do GraphQL — e a Malha para microsserviços. ' +
   'Vem com CLI, gerenciador de pacotes, formatador, linter, depurador, ' +
   'LSP e extensão do VS Code. ' +
-  'Tudo o que a documentação afirma é código que roda: 240 exercícios que ' +
+  'Tudo o que a documentação afirma é código que roda: 241 exercícios que ' +
   'verificam o próprio resultado e mais de 2.400 testes.';
 
 export const metadata: Metadata = {
@@ -144,7 +144,7 @@ const DADO_ESTRUTURADO = {
         'Pipelines nativos (sift, morph, distill)',
         'Records imutáveis, enums com valor e traits',
         'Generators preguiçosos, inclusive infinitos',
-        '48 módulos de biblioteca padrão (Arcane)',
+        '49 módulos de biblioteca padrão (Arcane)',
         'Kiln — framework web com WebSocket e SSE',
         'Vitrine — dashboards e aplicações de dados',
         'Lavra — consulta tipada, no espírito do GraphQL',
@@ -169,7 +169,7 @@ const DADO_ESTRUTURADO = {
       '@id': 'https://dataforge-lang.vercel.app/docs#doc',
       headline: 'Documentação do DataForge',
       description:
-        'Mais de 190 páginas, 240 exercícios que verificam o próprio ' +
+        'Mais de 190 páginas, 241 exercícios que verificam o próprio ' +
         'resultado, e cada trecho de código compilado a cada mudança.',
       url: 'https://dataforge-lang.vercel.app/docs',
       image: 'https://dataforge-lang.vercel.app/og-docs.png',

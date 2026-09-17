@@ -2501,7 +2501,7 @@ class Interpreter:
                 palavra = {'bigger': 'bigger', 'smaller': 'smaller',
                            'bigger_eq': 'bigger_eq',
                            'smaller_eq': 'smaller_eq'}[op]
-                raise TypeError_(
+                erro = TypeError_(
                     f"'{palavra}' between {self._nome_do_tipo(left)} and "
                     f"{self._nome_do_tipo(right)} has no answer.",
                     node.line, node.column,
@@ -2509,7 +2509,13 @@ class Interpreter:
                     dica=("'is' and 'isnt' compare anything; ordering needs "
                           "two values of the same kind — convert one side "
                           "first"),
-                    doc="operadores") from None
+                    doc="operadores")
+                # A marca deixa este erro RECONHECIVEL sem comparar texto
+                # de mensagem: o 'onde' de um quadro precisa distinguir
+                # "comparei com o desconhecido" de qualquer outra falha,
+                # e casar a frase quebraria na primeira traducao.
+                erro.ordem_sem_resposta = True
+                raise erro from None
         elif op == '==':
             return left == right
         elif op == '!=':
@@ -3208,15 +3214,28 @@ class Interpreter:
 
     def eval_PipelineExpression(self, node: ast.PipelineExpression, env):
         data = self.evaluate(node.source, env)
-        # Um objeto que declara '__iter__' e fonte legitima, como no
-        # 'cycle' e na compreensao. Sem isto o pipeline era o unico dos
-        # tres que recusava, com uma mensagem que nomeia a classe
-        # interna do interpretador ("'DFInstance' object is not
-        # iterable") — uma palavra que quem escreve DataForge nunca viu.
-        data = self._percorrer(data, node)
-        self._conferir_fonte_do_pipeline(data, node)
+
+        # Um verbo de quadro trabalha sobre o QUADRO, e nao sobre a lista
+        # de linhas: 'agrupar' precisa das colunas, e converter para
+        # cluster aqui perderia exatamente isso. Os verbos e o
+        # 'sift/morph/distill' convivem no mesmo pipeline porque a
+        # conversao virou preguicosa — cada estagio pede a forma de que
+        # precisa, na hora em que precisa.
+        tem_verbo = any(isinstance(o, ast.QuadroOperation)
+                        for o in node.operations)
+        if not tem_verbo:
+            # Um objeto que declara '__iter__' e fonte legitima, como no
+            # 'cycle' e na compreensao. Sem isto o pipeline era o unico
+            # dos tres que recusava, com uma mensagem que nomeia a classe
+            # interna do interpretador ("'DFInstance' object is not
+            # iterable") — uma palavra que quem escreve nunca viu.
+            data = self._percorrer(data, node)
+            self._conferir_fonte_do_pipeline(data, node)
+
         for op in node.operations:
-            if isinstance(op, ast.SiftOperation):
+            if isinstance(op, ast.QuadroOperation):
+                data = self._verbo_de_quadro(op, data, env)
+            elif isinstance(op, ast.SiftOperation):
                 if op.func_ref:
                     # Named function reference: sift func_name
                     func = env.get(op.func_ref)
@@ -3249,6 +3268,100 @@ class Interpreter:
                         acc = self.evaluate(op.expression, local)
                     data = acc
         return data
+
+    # ── os verbos de quadro ─────────────────────────────────
+
+    def _verbo_de_quadro(self, op, valor, env):
+        """`>> onde …`, `>> pegar …`, `>> agrupar …` e os outros tres.
+
+        A fonte pode ser um quadro OU um cluster de vaults: o segundo e o
+        que sai de 'IO.read_csv(c, yes)' e de 'Database.query', e obrigar
+        a converter na mao faria o verbo valer menos justamente onde o
+        dado entra.
+        """
+        from .stdlib.arcane_quadro import Grupo, Quadro
+
+        # 'resumir' e o UNICO que aceita um agrupamento — ele e o passo
+        # que fecha o 'agrupar'. Converter antes de olhar o verbo
+        # recusava justamente o par que o documento pede.
+        if op.verbo == "resumir":
+            pedido = self.evaluate(op.expressao, env)
+            alvo = valor if isinstance(valor, Grupo) \
+                else self._como_quadro(valor, op)
+            return alvo.resumir(pedido)
+
+        quadro = self._como_quadro(valor, op)
+
+        if op.verbo == "onde":
+            return quadro.onde(
+                lambda linha: self._testar_na_linha(op.expressao, linha, env))
+        if op.verbo == "pegar":
+            return quadro.pegar(*op.colunas)
+        if op.verbo == "sem":
+            return quadro.sem(*op.colunas)
+        if op.verbo == "ordenar":
+            return quadro.ordenar(op.colunas, op.decrescente)
+        if op.verbo == "agrupar":
+            return quadro.agrupar(op.colunas)
+        raise RuntimeError_(
+            f"verbo de quadro desconhecido: '{op.verbo}'",
+            getattr(op, "line", 0), getattr(op, "column", 0),
+            doc="dados/quadro")
+
+    def _como_quadro(self, valor, op):
+        """O valor como quadro — aceitando o cluster de vaults."""
+        from .stdlib.arcane_quadro import Grupo, Quadro
+
+        if isinstance(valor, Quadro):
+            return valor
+        if isinstance(valor, Grupo):
+            # 'agrupar' seguido de algo que nao e 'resumir' nao tem
+            # leitura: o grupo nao tem forma retangular ate agregar.
+            raise RuntimeError_(
+                f"'{op.verbo}' não se aplica a um agrupamento",
+                getattr(op, "line", 0), getattr(op, "column", 0),
+                nota="depois de 'agrupar' vem 'resumir'",
+                dica='… >> agrupar cidade >> resumir {"valor": "soma"}',
+                doc="dados/quadro")
+        if isinstance(valor, list) and all(isinstance(x, dict) for x in valor):
+            return Quadro.de_vaults(valor)
+        raise RuntimeError_(
+            f"'{op.verbo}' precisa de um quadro",
+            getattr(op, "line", 0), getattr(op, "column", 0),
+            nota=f"recebi {self._nome_do_tipo(valor)}",
+            dica="use Quadro.de_vaults(linhas), ou um cluster de vaults",
+            doc="dados/quadro")
+
+    def _testar_na_linha(self, expressao, linha, env):
+        """Avalia a expressão de um `onde` com as COLUNAS em escopo.
+
+        É o que faz `>> onde valor bigger 50` ler como se lê. A coluna
+        vence um nome de fora com o mesmo nome — dentro de um `onde`, um
+        nome nu é uma coluna, e essa é a regra do verbo. O escopo de fora
+        continua alcançável para tudo o que não for coluna: um limite
+        guardado numa variável funciona em `onde valor bigger limite`.
+        """
+        local = env.child("<onde>")
+        for coluna, valor in linha.items():
+            local.set_local(str(coluna), valor)
+        try:
+            return self._verdade(self.evaluate(expressao, local))
+        except TypeError_ as erro:
+            # Comparar com o DESCONHECIDO nao da nem sim nem nao, e a
+            # linha nao passa — e a logica de tres valores do SQL, e a
+            # de toda ferramenta de dados que existe.
+            #
+            # Levantar aqui seria a outra escolha defensavel, e ela torna
+            # o verbo inutil: todo conjunto real tem ausencia, e o
+            # primeiro 'onde' de todo programa morreria na primeira
+            # linha vazia. Quem QUER contar a ausencia escreve
+            # 'onde valor is void'.
+            #
+            # So esta falha e engolida. Uma coluna que nao existe, uma
+            # acao que quebra, uma divisao por zero — tudo o mais sobe.
+            if getattr(erro, "ordem_sem_resposta", False):
+                return False
+            raise
 
     def _call_func(self, func, args, node, env=None):
         """Chama a acao nomeada de um estagio do pipeline: 'morph dobrar'.

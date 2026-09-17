@@ -202,6 +202,25 @@ class SiftOperation(ASTNode):
     func_ref: str = ""  # Named function reference
 
 @dataclass
+class QuadroOperation(ASTNode):
+    """Um verbo de quadro num pipeline: `>> onde …`, `>> agrupar …`.
+
+    Um nó só para os seis verbos, com `verbo` dizendo qual — eles
+    compartilham a forma (nomes de coluna, ou uma expressão) e um nó por
+    verbo daria seis classes quase iguais.
+
+    As palavras são CONTEXTUAIS, como as do Kiln: elas só valem logo
+    depois de um `>>`, e continuam livres como nome de variável em todo o
+    resto da linguagem. `agrupar` e `ordenar` são nomes bons demais para
+    tirar de quem escreve.
+    """
+    verbo: str = ""              # onde · pegar · sem · agrupar · resumir · ordenar
+    colunas: list = field(default_factory=list)
+    expressao: Any = None        # 'onde' e 'resumir'
+    decrescente: bool = False    # só 'ordenar'
+
+
+@dataclass
 class MorphOperation(ASTNode):
     """morph var: expression  OR  morph func_name"""
     param: str = ""

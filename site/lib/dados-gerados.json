@@ -5959,6 +5959,63 @@
     }
    ]
   },
+  "quadro": {
+   "nome": "Arcane.Quadro",
+   "desc": "A tabela de dados: colunas nomeadas e linhas como vault. Filtrar, agrupar, resumir, juntar, pivotar, limpar a ausência e a duplicata, converter tipos, normalizar, codificar e descrever — colunar por dentro, imutável por fora.",
+   "curto": "Quadro",
+   "funcoes": [
+    {
+     "nome": "Grupo",
+     "sig": "(quadro, chaves)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Quadro",
+     "sig": "(colunas, dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "agregacoes",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ausente",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_colunas",
+     "sig": "(vault)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_csv",
+     "sig": "(caminho, separador, tipos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_json",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_vaults",
+     "sig": "(linhas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tipos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vazio",
+     "sig": "(colunas)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "qualidade": {
    "nome": "Arcane.Qualidade",
    "desc": "Qualidade de dados: as seis dimensões, perfil, validação e limpeza.",
@@ -9972,6 +10029,16 @@
     "temDoc": true,
     "codigo": "// Exercicio 240 — Um pipeline que usa a maquina inteira\n// Enunciado: divida, calcule em paralelo, junte — e prove que bate.\n\nadopt Arcane.Concurrent as P\nadopt Arcane.Time as Time\n\n// ── O desenho ───────────────────────────────────────────────\n//\n//     dividir  ->  map_processos  ->  juntar\n//\n// Cada bloco tem de ser autossuficiente: ele atravessa para outro\n// processo, faz a conta la, e volta com um resumo pequeno. O que\n// atravessa custa — mandar o bloco e receber UM numero e barato;\n// mandar o bloco e receber outro bloco nao e.\n\nsteady TOTAL := 60000\nsteady BLOCOS := 6\n\naction dividir(quantos, em):\n    tamanho := quantos ~/ em\n    yield [{\"de\":i * tamanho + 1, \"ate\":(i + 1) * tamanho}\n        cycle i in range(0, em)]\n\n// O bloco vira um RESUMO, e nao uma lista: e o resumo que volta.\naction resumir(bloco):\n    soma := 0\n    primos := 0\n    cycle n from bloco[\"de\"] to bloco[\"ate\"]:\n        soma += n\n        given e_primo(n):\n            primos += 1\n    yield {\"soma\": soma, \"primos\": primos}\n\naction e_primo(n):\n    given n < 2:\n        yield no\n    given n % 2 is 0:\n        yield n is 2\n    d := 3\n    persist d * d <= n:\n        given n % d is 0:\n            yield no\n        d += 2\n    yield yes\n\nblocos := dividir(TOTAL, BLOCOS)\nassert len(blocos) is BLOCOS, \"a divisao errou a contagem\"\nassert blocos[0][\"de\"] is 1\nassert blocos[BLOCOS - 1][\"ate\"] is TOTAL, \"o ultimo bloco nao fecha o total\"\n\ninicio := Time.monotonic()\nresumos := P.map_processos(resumir, blocos)\nms := (Time.monotonic() - inicio) * 1000\n\nsoma := sum([r[\"soma\"] cycle r in resumos])\nprimos := sum([r[\"primos\"] cycle r in resumos])\n\nout $\"{BLOCOS} blocos de {TOTAL ~/ BLOCOS} em {round(ms)} ms\"\nout $\"soma:   {soma}\"\nout $\"primos: {primos}\"\n\n// ── A conferencia ───────────────────────────────────────────\n//\n// Um pipeline paralelo que nao e conferido contra a resposta fechada\n// e um gerador de numeros plausiveis. A soma de 1 a n tem formula:\n\nesperado := TOTAL * (TOTAL + 1) ~/ 2\nassert soma is esperado, $\"a soma deu {soma}, e devia ser {esperado}\"\nassert primos is 6057, \"a contagem de primos ate 60000 e conhecida\"\n\n// A ordem da entrada e a da saida — sem isso, quem chama teria de\n// reassociar bloco e resumo, e e ai que se erra.\nassert resumos[0][\"soma\"] < resumos[BLOCOS - 1][\"soma\"],\n\"os resumos voltaram fora de ordem\"\n\nout \"ok\"\n"
    }
+  ],
+  "36-quadro-e-dados": [
+   {
+    "num": "241",
+    "titulo": "O quadro, e os seis verbos do pipeline",
+    "enunciado": "carregue um conjunto com ausencia, limpe-o, agrupe e",
+    "arquivo": "241_quadro_e_verbos.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 241 — O quadro, e os seis verbos do pipeline\n// Enunciado: carregue um conjunto com ausencia, limpe-o, agrupe e\n// responda tres perguntas. Sem sair da linguagem.\n\nadopt Arcane.Quadro as Q\n\n// Um quadro nasce do que o resto da linguagem ja produz: um cluster de\n// vaults. E o que 'IO.read_csv(caminho, yes)' devolve, e o que\n// 'Database.query' devolve.\nvendas := Q.de_vaults([\n    {\"produto\": \"cafe\",   \"regiao\": \"sul\",   \"valor\": 120.0, \"qtd\": 4},\n    {\"produto\": \"cafe\",   \"regiao\": \"norte\", \"valor\": 90.0,  \"qtd\": 3},\n    {\"produto\": \"cha\",    \"regiao\": \"sul\",   \"valor\": 60.0,  \"qtd\": 2},\n    {\"produto\": \"cha\",    \"regiao\": \"norte\", \"valor\": void,  \"qtd\": 1},\n    {\"produto\": \"acucar\", \"regiao\": \"sul\",   \"valor\": 30.0,  \"qtd\": 5}\n])\n\nassert typeof(vendas) is \"Quadro\", \"o tipo tem o nome da linguagem\"\nassert vendas.forma() is [5, 4], \"cinco linhas, quatro colunas\"\n\n// ── 1. Olhar antes de calcular ──────────────────────────────\n//\n// 'perfil' e o primeiro comando a rodar num conjunto que voce nao\n// conhece. Uma media sobre dados com buraco nao avisa que tinha buraco.\n\nperfil := vendas.perfil()\nso_valor := perfil.onde(lambda l: l[\"coluna\"] is \"valor\")\nassert so_valor.coluna(\"ausentes\") is [1], \"uma venda sem valor\"\nassert so_valor.coluna(\"tipo\") is [\"Float\"], \"a coluna e decimal\"\n\n// ── 2. A logica de tres valores ─────────────────────────────\n//\n// Comparar com o desconhecido nao da nem sim nem nao, e a linha nao\n// passa. E o que o SQL faz, e o que toda ferramenta de dados faz.\n\nacima := vendas >> onde valor bigger 50\nassert acima.altura() is 3, \"a linha sem valor fica de fora\"\n\n// E quem QUER a ausencia pergunta por ela.\nsem_valor := vendas >> onde valor is void\nassert sem_valor.altura() is 1, \"e ela continua alcancavel\"\n\n// ── 3. A coluna se escreve nua, e o escopo de fora continua ──\n\nlimite := 100.0\ncaras := vendas >> onde valor bigger limite\nassert caras.altura() is 1, \"'limite' vem de fora; 'valor' e coluna\"\n\n// ── 4. Agrupar e resumir ────────────────────────────────────\n\nresumo := vendas\n    >> onde valor bigger 0\n    >> agrupar produto\n    >> resumir {\"valor\": \"soma\"}\n    >> ordenar valor desc\n\nassert resumo.coluna(\"produto\") is [\"cafe\", \"cha\", \"acucar\"], \"do maior ao menor\"\nassert resumo.coluna(\"valor\") is [210.0, 60.0, 30.0], \"as somas\"\n\n// 'contagem' e 'contagem_valida' respondem perguntas DIFERENTES:\n// quantas linhas ha, e quantas tem valor.\ncontas := vendas.agrupar(\"produto\")\n    .resumir({\"valor\": [\"contagem\", \"contagem_valida\"]})\ncha := contas.onde(lambda l: l[\"produto\"] is \"cha\")\nassert cha.coluna(\"valor_contagem\") is [2], \"duas linhas de cha\"\nassert cha.coluna(\"valor_contagem_valida\") is [1], \"uma delas sem valor\"\n\n// ── 5. Limpar ───────────────────────────────────────────────\n\nlimpo := vendas.preencher({\"valor\": \"media\"})\nassert limpo.nulos()[\"valor\"] is 0, \"nao sobrou ausencia\"\nassert limpo.coluna(\"valor\")[3] is 75.0, \"a media das quatro que havia\"\n\n// ── 6. Juntar ───────────────────────────────────────────────\n\ngerentes := Q.de_vaults([{\"regiao\": \"sul\", \"gerente\": \"Ana\"}])\n\ndentro := vendas.juntar(gerentes, \"regiao\")\nesquerda := vendas.juntar(gerentes, \"regiao\", \"esquerda\")\nassert dentro.altura() is 3, \"so o que casa\"\nassert esquerda.altura() is 5, \"e as cinco, com void onde nao casou\"\nassert esquerda.nulos()[\"gerente\"] is 2, \"as duas do norte\"\n\n// ── 7. O quadro fala o protocolo da linguagem ───────────────\n//\n// Nada no 'cycle', no 'len' ou no '>>' sabe o que e um quadro. Eles\n// funcionam porque iterar um quadro da LINHAS como vault.\n\ntotal := 0\ncycle linha in vendas:\n    total += linha[\"qtd\"]\nassert total is 15, \"o cycle percorre linhas\"\nassert len(vendas) is 5, \"len conta linhas\"\nassert vendas[\"qtd\"] is [4, 3, 2, 1, 5], \"indexar por texto da a coluna\"\nassert vendas[0][\"produto\"] is \"cafe\", \"indexar por numero da a linha\"\n\n// E os verbos convivem com sift e morph no mesmo pipeline.\nnomes := vendas >> onde regiao is \"sul\" >> morph l: l[\"produto\"]\nassert nomes is [\"cafe\", \"cha\", \"acucar\"], \"os tres do sul\"\n\n// ── 8. Todo verbo devolve um quadro NOVO ────────────────────\n\nassert vendas.altura() is 5, \"o original nunca muda\"\n\nout \"241 ok — quadro, verbos, ausencia, agrupamento e juncao\"\n"
+   }
   ]
  },
  "palavras": [
@@ -10317,15 +10384,15 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2049,
+  "testes": 2127,
   "exemplos": 44,
-  "arquivosDf": 350
+  "arquivosDf": 351
  },
  "mundo": {
   "estrelas": 0,
   "versao": "v1.0.0",
   "publicado": "2026-09-12",
   "baixados": 37,
-  "instalacoes": 2
+  "instalacoes": 4
  }
 }

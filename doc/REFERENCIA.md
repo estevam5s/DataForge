@@ -157,7 +157,7 @@ uma atribuição comum.
 | `bigger_eq` / `>=` | comparação | maior ou igual |
 | `smaller_eq` / `<=` | comparação | menor ou igual |
 | `and` `or` `not` | lógica | conjunção, disjunção, negação |
-| `>>` | pipeline | encadeia `sift` / `morph` / `distill` |
+| `>>` | pipeline | encadeia `sift` / `morph` / `distill`, e os seis verbos de quadro (`onde`, `pegar`, `sem`, `ordenar`, `agrupar`, `resumir`) |
 | `.` | acesso | membro |
 | `[]` | acesso | índice ou fatia |
 | `()` | chamada | invocação |
@@ -1003,6 +1003,54 @@ out dados
 ```
 
 Sem valor inicial, `distill` usa o primeiro elemento como acumulador.
+
+#### Os seis verbos de quadro
+
+Sobre um [`Quadro`](https://dataforge-lang.vercel.app/docs/dados/quadro) —
+ou sobre um cluster de vaults, que é o que `IO.read_csv(c, yes)` e
+`Database.query` devolvem — o mesmo `>>` aceita mais seis operações:
+
+| Operação | Forma | Devolve |
+|----------|-------|---------|
+| `onde` | `onde <expressão>` | quadro |
+| `pegar` | `pegar col [, col…]` | quadro |
+| `sem` | `sem col [, col…]` | quadro |
+| `ordenar` | `ordenar col [desc]` | quadro |
+| `agrupar` | `agrupar col [, col…]` | **agrupamento** |
+| `resumir` | `resumir <vault>` | quadro |
+
+```dataforge
+adopt Arcane.Quadro as Q
+vendas := Q.de_vaults([{"produto": "cafe", "valor": 120.0},
+                       {"produto": "cha", "valor": 60.0}])
+
+resumo := vendas
+    >> onde valor bigger 50
+    >> agrupar produto
+    >> resumir {"valor": "soma"}
+    >> ordenar valor desc
+```
+
+Três regras governam os seis:
+
+1. **As palavras são contextuais**, como as onze do Kiln: valem só logo
+   depois de um `>>`, e continuam livres como nome em todo o resto. Uma
+   coluna se escreve nua (`agrupar cidade`) ou entre aspas
+   (`agrupar "Valor Total"`), porque nem todo cabeçalho de CSV é um
+   identificador válido.
+
+2. **Dentro de um `onde`, um nome nu é uma COLUNA**, e ela vence um nome
+   de fora com o mesmo nome. O escopo externo continua alcançável para
+   tudo o que não for coluna — `onde valor bigger limite` funciona.
+
+3. **Comparar com `void` não faz a linha passar**, em vez de levantar. É
+   a lógica de três valores do SQL: o desconhecido não é nem maior nem
+   menor. Só essa falha é engolida — uma coluna que não existe, uma ação
+   que quebra ou uma divisão por zero continuam subindo.
+
+`agrupar` é o único que não devolve quadro: um agrupamento não tem forma
+retangular até alguém dizer "média de quê". Depois dele vem `resumir`, e
+qualquer outro verbo ali diz isso.
 
 #### Dentro de `lambda`, com parênteses
 

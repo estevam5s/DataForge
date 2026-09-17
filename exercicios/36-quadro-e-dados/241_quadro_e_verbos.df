@@ -1,0 +1,105 @@
+// Exercicio 241 — O quadro, e os seis verbos do pipeline
+// Enunciado: carregue um conjunto com ausencia, limpe-o, agrupe e
+// responda tres perguntas. Sem sair da linguagem.
+
+adopt Arcane.Quadro as Q
+
+// Um quadro nasce do que o resto da linguagem ja produz: um cluster de
+// vaults. E o que 'IO.read_csv(caminho, yes)' devolve, e o que
+// 'Database.query' devolve.
+vendas := Q.de_vaults([
+    {"produto": "cafe",   "regiao": "sul",   "valor": 120.0, "qtd": 4},
+    {"produto": "cafe",   "regiao": "norte", "valor": 90.0,  "qtd": 3},
+    {"produto": "cha",    "regiao": "sul",   "valor": 60.0,  "qtd": 2},
+    {"produto": "cha",    "regiao": "norte", "valor": void,  "qtd": 1},
+    {"produto": "acucar", "regiao": "sul",   "valor": 30.0,  "qtd": 5}
+])
+
+assert typeof(vendas) is "Quadro", "o tipo tem o nome da linguagem"
+assert vendas.forma() is [5, 4], "cinco linhas, quatro colunas"
+
+// ── 1. Olhar antes de calcular ──────────────────────────────
+//
+// 'perfil' e o primeiro comando a rodar num conjunto que voce nao
+// conhece. Uma media sobre dados com buraco nao avisa que tinha buraco.
+
+perfil := vendas.perfil()
+so_valor := perfil.onde(lambda l: l["coluna"] is "valor")
+assert so_valor.coluna("ausentes") is [1], "uma venda sem valor"
+assert so_valor.coluna("tipo") is ["Float"], "a coluna e decimal"
+
+// ── 2. A logica de tres valores ─────────────────────────────
+//
+// Comparar com o desconhecido nao da nem sim nem nao, e a linha nao
+// passa. E o que o SQL faz, e o que toda ferramenta de dados faz.
+
+acima := vendas >> onde valor bigger 50
+assert acima.altura() is 3, "a linha sem valor fica de fora"
+
+// E quem QUER a ausencia pergunta por ela.
+sem_valor := vendas >> onde valor is void
+assert sem_valor.altura() is 1, "e ela continua alcancavel"
+
+// ── 3. A coluna se escreve nua, e o escopo de fora continua ──
+
+limite := 100.0
+caras := vendas >> onde valor bigger limite
+assert caras.altura() is 1, "'limite' vem de fora; 'valor' e coluna"
+
+// ── 4. Agrupar e resumir ────────────────────────────────────
+
+resumo := vendas
+    >> onde valor bigger 0
+    >> agrupar produto
+    >> resumir {"valor": "soma"}
+    >> ordenar valor desc
+
+assert resumo.coluna("produto") is ["cafe", "cha", "acucar"], "do maior ao menor"
+assert resumo.coluna("valor") is [210.0, 60.0, 30.0], "as somas"
+
+// 'contagem' e 'contagem_valida' respondem perguntas DIFERENTES:
+// quantas linhas ha, e quantas tem valor.
+contas := vendas.agrupar("produto")
+    .resumir({"valor": ["contagem", "contagem_valida"]})
+cha := contas.onde(lambda l: l["produto"] is "cha")
+assert cha.coluna("valor_contagem") is [2], "duas linhas de cha"
+assert cha.coluna("valor_contagem_valida") is [1], "uma delas sem valor"
+
+// ── 5. Limpar ───────────────────────────────────────────────
+
+limpo := vendas.preencher({"valor": "media"})
+assert limpo.nulos()["valor"] is 0, "nao sobrou ausencia"
+assert limpo.coluna("valor")[3] is 75.0, "a media das quatro que havia"
+
+// ── 6. Juntar ───────────────────────────────────────────────
+
+gerentes := Q.de_vaults([{"regiao": "sul", "gerente": "Ana"}])
+
+dentro := vendas.juntar(gerentes, "regiao")
+esquerda := vendas.juntar(gerentes, "regiao", "esquerda")
+assert dentro.altura() is 3, "so o que casa"
+assert esquerda.altura() is 5, "e as cinco, com void onde nao casou"
+assert esquerda.nulos()["gerente"] is 2, "as duas do norte"
+
+// ── 7. O quadro fala o protocolo da linguagem ───────────────
+//
+// Nada no 'cycle', no 'len' ou no '>>' sabe o que e um quadro. Eles
+// funcionam porque iterar um quadro da LINHAS como vault.
+
+total := 0
+cycle linha in vendas:
+    total += linha["qtd"]
+assert total is 15, "o cycle percorre linhas"
+assert len(vendas) is 5, "len conta linhas"
+assert vendas["qtd"] is [4, 3, 2, 1, 5], "indexar por texto da a coluna"
+assert vendas[0]["produto"] is "cafe", "indexar por numero da a linha"
+
+// E os verbos convivem com sift e morph no mesmo pipeline.
+nomes := vendas >> onde regiao is "sul" >> morph l: l["produto"]
+assert nomes is ["cafe", "cha", "acucar"], "os tres do sul"
+
+// ── 8. Todo verbo devolve um quadro NOVO ────────────────────
+
+assert vendas.altura() is 5, "o original nunca muda"
+
+out "241 ok — quadro, verbos, ausencia, agrupamento e juncao"

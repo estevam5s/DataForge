@@ -129,9 +129,12 @@ export const nav: NavSection[] = [
     title: 'Dados, ETL e SQLite',
     items: [
       { title: 'Análise de dados', href: '/docs/dados' },
+      { title: 'Quadro — a tabela', href: '/docs/dados/quadro' },
+      { title: 'Os verbos do pipeline', href: '/docs/dados/verbos' },
       { title: 'ETL', href: '/docs/dados/etl' },
       { title: 'Qualidade de dados', href: '/docs/dados/qualidade' },
       { title: 'SQLite', href: '/docs/sqlite' },
+      { title: 'O mapa do ecossistema', href: '/docs/dados/mapa' },
       { title: 'Data Lake', href: '/docs/tecnicas/lago' },
       { title: 'Parquet', href: '/docs/tecnicas/parquet' },
       { title: 'Aprendizado de máquina', href: '/docs/tecnicas/ml' },
@@ -362,6 +365,7 @@ export const nav: NavSection[] = [
       { title: 'Lavra', href: '/docs/exercicios/33-lavra' },
       { title: 'Binário e rede', href: '/docs/exercicios/34-binario-e-rede' },
       { title: 'Paralelismo', href: '/docs/exercicios/35-paralelismo' },
+      { title: 'Quadro e dados', href: '/docs/exercicios/36-quadro-e-dados' },
     ],
   },
   {

@@ -14,6 +14,40 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado
+
+- **`Arcane.Quadro` — a tabela de dados**, e o 49º módulo. Colunas
+  nomeadas e linhas como vault, colunar por dentro e imutável por fora:
+  `pegar`, `sem`, `onde`, `ordenar`, `distintas`, `com`, `mapear`,
+  `converter`, `inferir_tipos`, `nulos`, `sem_nulos`, `preencher`,
+  `agrupar`, `resumir` (14 agregações), `contar_valores`,
+  `tabela_cruzada`, `pivotar`, `despivotar`, `juntar` (os quatro JOIN do
+  SQL), `empilhar`, `normalizar`, `padronizar`, `codificar`,
+  `discretizar`, `descrever`, `correlacao`, `perfil`, `fora_da_curva`,
+  e entrada/saída por CSV e JSON. 74 testes.
+- **Seis verbos novos no operador `>>`** — `onde`, `pegar`, `sem`,
+  `ordenar`, `agrupar` e `resumir` —, atravessando os cinco lugares de
+  sempre mais o compilador. Eles são **contextuais**, como as onze
+  palavras do Kiln: valem só depois de um `>>` e continuam livres como
+  nome. Dentro de um `onde`, uma coluna se escreve **nua**
+  (`onde valor bigger 50`), e ela vence um nome de fora com o mesmo nome.
+- **Três páginas novas** em `/docs/dados`: o Quadro, os verbos, e o
+  **mapa do ecossistema** — as 32 áreas de dados cruzadas com o que
+  existe, marcando o que é nativo, o que atravessa a ponte para o Python,
+  e o que não existe por decisão, com o motivo de cada um.
+- Exercício **241**, no módulo novo `36-quadro-e-dados`.
+
+### Corrigido
+
+- **Havia dois DataFrames que divergiam.**
+  `Arcane.Analytics.DataFrame` e `Arcane.Data.Frame` eram classes
+  independentes, com `group_by`, `describe`, `normalize`, `merge` e
+  `pivot` implementados duas vezes — e `describe` devolvia **chaves
+  diferentes** conforme o módulo adotado (`25%`/`50%`/`75%` numa,
+  `median` na outra). Duas respostas para "descreva estes dados" na mesma
+  linguagem. `Quadro.descrever` é o contrato único; as duas antigas
+  continuam funcionando, porque quebrar código que existe seria pior.
+
 ### Corrigido
 
 - **`point [a, a]` casava com `[1, 2]`.** O padrão diz "dois itens

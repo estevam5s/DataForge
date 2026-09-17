@@ -36,6 +36,7 @@ from .arcane_arquivo_seguro import ArcaneArchive, ArcaneCofre
 from .arcane_pipeline import ArcanePipeline
 from .arcane_qualidade import ArcaneQualidade
 from .arcane_lago import ArcaneLago
+from .arcane_quadro import ArcaneQuadro
 from .arcane_fluxo import ArcaneStream
 from .arcane_observar import ArcaneObservar
 from .arcane_ponte import ArcanePonte
@@ -135,6 +136,8 @@ _MODULES = {
     "Observar": ArcaneObservar,
     "Observe": ArcaneObservar,
     "Arcane.Lago": ArcaneLago,
+    "Arcane.Quadro": ArcaneQuadro,
+    "Quadro": ArcaneQuadro,
     "Lago": ArcaneLago,
     "Lake": ArcaneLago,
     "Parquet": ArcaneLago,

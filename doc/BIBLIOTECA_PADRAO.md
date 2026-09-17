@@ -46,6 +46,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Pipeline`](#arcanepipeline) | `Pipeline / Fluxo` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
+| [`Arcane.Quadro`](#arcanequadro) | `Quadro` | 10 | A tabela de dados: colunas nomeadas e linhas como vault. Filtrar, agrupar, resumir, juntar, pivotar, limpar a ausência e a duplicata, converter tipos, normalizar, codificar e descrever — colunar por dentro, imutável por fora. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | [`Arcane.Malha`](#arcanemalha) | `Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
 | [`Arcane.Url`](#arcaneurl) | `Url` | 14 | Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor. |
@@ -1787,6 +1788,32 @@ adopt Arcane.Observar as Observar
 | `salvar(painel, caminho='')` |
 | `trechos(painel)` |
 | `valor(painel, nome)` |
+
+
+---
+
+## Arcane.Quadro
+
+A tabela de dados: colunas nomeadas e linhas como vault. Filtrar, agrupar, resumir, juntar, pivotar, limpar a ausência e a duplicata, converter tipos, normalizar, codificar e descrever — colunar por dentro, imutável por fora.
+
+```dataforge
+adopt Arcane.Quadro as Quadro
+```
+
+**Funções (10)**
+
+| Assinatura |
+|------------|
+| `Grupo(quadro, chaves)` |
+| `Quadro(colunas=None, dados=None)` |
+| `agregacoes()` |
+| `ausente(valor)` |
+| `de_colunas(vault)` |
+| `de_csv(caminho, separador=',', tipos=True)` |
+| `de_json(caminho)` |
+| `de_vaults(linhas)` |
+| `tipos()` |
+| `vazio(colunas=None)` |
 
 
 ---

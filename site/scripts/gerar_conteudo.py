@@ -22,6 +22,7 @@ MODULOS = [
     "bibliotecas",
     "plataforma_runtime",
     "dados_etl",
+    "dados_quadro",
     "testes_api",
     "oop_avancado",
     "oop_magicos",

@@ -137,7 +137,7 @@ typeof      using       validate    void        wait        when
 with        yes         yield
 ```
 
-## A biblioteca: 48 modulos
+## A biblioteca: 49 modulos
 
 Todos por `adopt`. Nenhum precisa de instalacao.
 
@@ -179,6 +179,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Pipeline` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
 | `Arcane.Ponte` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
 | `Arcane.Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
+| `Arcane.Quadro` | 10 | A tabela de dados: colunas nomeadas e linhas como vault. |
 | `Arcane.Qualidade` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
 | `Arcane.Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
 | `Arcane.Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |

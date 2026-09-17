@@ -531,9 +531,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 239 | [`239_o_que_atravessa.df`](35-paralelismo/239_o_que_atravessa.df) · [doc](35-paralelismo/239_o_que_atravessa.md) | O que atravessa para o outro processo |
 | 240 | [`240_pipeline_em_blocos.df`](35-paralelismo/240_pipeline_em_blocos.df) · [doc](35-paralelismo/240_pipeline_em_blocos.md) | Um pipeline que usa a maquina inteira |
 
+## 36 — Quadro e dados
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 241 | [`241_quadro_e_verbos.df`](36-quadro-e-dados/241_quadro_e_verbos.df) · [doc](36-quadro-e-dados/241_quadro_e_verbos.md) | O quadro, e os seis verbos do pipeline |
+
 ---
 
-**Total: 240 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 241 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 240 exercícios
+python3 exercicios/run_all.py                        # 241 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -82,7 +82,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                48 módulos (1529 símbolos), incluindo:
+  stdlib/                49 módulos (1539 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -94,7 +94,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        240 exercícios em 34 módulos + run_all.py
+exercicios/        241 exercícios em 34 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1328,6 +1328,66 @@ socket — um cliente HTTP testado só com dublê não prova nada sobre o que
 acontece quando o outro lado demora, fecha a conexão ou devolve
 `Retry-After`. Os exercícios 227 e 228 sobem dois serviços.
 
+## Quadro — a tabela de dados, e os seis verbos
+
+`arcane_quadro.py` é a resposta única a "tabela de dados". Havia **duas**
+antes — `Arcane.Analytics.DataFrame` e `Arcane.Data.Frame`, classes
+independentes com `group_by`, `describe`, `normalize`, `merge` e `pivot`
+implementados duas vezes —, e elas **divergiam**: `describe` devolvia
+chaves diferentes conforme o módulo adotado (`25%`/`50%`/`75%` numa,
+`median` na outra). As duas continuam funcionando; quebrar código que
+existe seria pior.
+
+Cinco decisões que valem lembrar:
+
+| Decisão | Porque |
+|---|---|
+| a linha é um **vault** | é o que `IO.read_csv(c, yes)` e `Database.query` já devolvem, e o que o `>>` já percorre |
+| por dentro é **colunar** | `descrever`, `normalizar` e `correlacao` viram uma passada por coluna |
+| todo verbo devolve um quadro **novo** | como `record`/`with`: o pipeline fica reexecutável |
+| a ausência tem **um nome só** | `void`, texto vazio e NaN são a mesma coisa; separá-los é de onde vem metade do bug de limpeza |
+| coluna que não existe é **erro, com sugestão** | devolver coluna vazia calada é o jeito mais rápido de um relatório sair errado |
+
+`__iter__`, `__len__` e `__getitem__` são o que fazem `cycle`, `len`,
+`>>` e a indexação funcionarem **sem que nenhum deles saiba o que é um
+quadro** — o mesmo protocolo da ponte para o Python. Trocar protocolo por
+`isinstance` em qualquer um desses quebraria o quadro inteiro.
+
+### Os seis verbos
+
+`onde`, `pegar`, `sem`, `ordenar`, `agrupar` e `resumir` são operações do
+`>>`, e atravessam os cinco lugares de sempre mais o compilador. Eles
+**não** entram em `KEYWORDS`: são contextuais, como as onze do Kiln,
+reconhecidos só logo depois de um `>>` (`Parser.VERBOS_DE_QUADRO`).
+`agrupar` e `ordenar` são nomes bons demais para tirar de quem escreve, e
+o repositório já removeu sete palavras reservadas por serem caras sem
+entregar nada.
+
+Três detalhes que custaram, e que vão se perder se não estiverem aqui:
+
+1. **A conversão do pipeline virou preguiçosa.** `eval_PipelineExpression`
+   convertia a fonte em lista na entrada; um verbo de quadro precisa do
+   **quadro** (`agrupar` precisa das colunas). Hoje cada estágio pede a
+   forma de que precisa, e é isso que deixa
+   `>> onde … >> morph l: …` conviverem no mesmo pipeline.
+
+2. **`resumir` é tratado ANTES de converter para quadro.** Ele é o único
+   que aceita um agrupamento — converter antes de olhar o verbo recusava
+   justamente o par `agrupar` + `resumir`, que é o caso central.
+
+3. **`onde` usa a lógica de três valores do SQL.** Comparar com `void`
+   não faz a linha passar, em vez de levantar. A outra escolha é a que a
+   linguagem faz em toda expressão comum e está certa lá; aqui tornaria o
+   verbo inutilizável, porque todo conjunto real tem ausência. Só essa
+   falha é engolida, e ela é reconhecida por uma **marca no objeto de
+   erro** (`erro.ordem_sem_resposta`), nunca comparando o texto da
+   mensagem — que quebraria na primeira tradução.
+
+O analisador **não** infere a expressão de um `onde` no escopo de fora:
+os nomes dela são colunas, e ele não sabe quais colunas um quadro tem.
+Inferir ali acusaria `onde valor bigger 50` com "'valor' is not defined"
+— um falso alarme no caminho mais comum do verbo.
+
 ## O analisador de complexidade
 
 `complexidade.py` responde `dataforge big-o`: ele lê a árvore e conta
@@ -1461,7 +1521,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1529 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1539 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -1605,7 +1665,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 240 exercícios em 34 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 241 exercícios em 34 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 
