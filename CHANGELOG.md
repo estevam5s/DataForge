@@ -14,6 +14,17 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — watchpoint no depurador
+
+- **A vigia para quando um valor MUDA.** No terminal, `w <expr>`,
+  `vigias` e `desvigiar N`; na linha de comando,
+  `dataforge debug p.df --vigiar=total` (repetível); no editor, data
+  breakpoint (`supportsDataBreakpoints`, motivo `data breakpoint` com o
+  antes e o depois). É conferida depois de cada instrução e para na linha
+  que mudou; a mutação no lugar (`xs.append`) e o campo mudado dentro de
+  um método contam. Uma vigia criada numa ação só olha aquela ação. Sem
+  vigia, nada é avaliado a mais.
+
 ### Adicionado — o tipo do conteúdo das coleções
 
 - **`Cluster<T>`, `Vault<K, V>` e `Set<T>`**, aninháveis

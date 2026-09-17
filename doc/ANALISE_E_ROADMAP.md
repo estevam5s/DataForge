@@ -704,7 +704,10 @@ O que resta, em ordem de impacto.
   A decisão de parar continua herdada de `depurador.py` — os atributos que
   ela lê viraram propriedades que olham a thread atual, em vez de a
   decisão ser copiada. Condição, contagem (`>= N`, `% N`) e logpoint valem
-  no terminal e no editor. Falta **watchpoint**.
+  no terminal e no editor. O **watchpoint** também: `w total` no terminal,
+  `--vigiar=total` na linha de comando e data breakpoint no painel do
+  editor param quando o valor muda — inclusive `xs.append` e o campo
+  mudado dentro de um método.
 - **Sessão compartilhada entre processos** — hoje a sessão da Vitrine vive na
   memória do processo, o que limita a aplicação a um processo com proxy na
   frente. Escalar horizontalmente exige um armazenamento comum primeiro.

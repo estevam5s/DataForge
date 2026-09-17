@@ -1530,6 +1530,22 @@ Quatro coisas que o DAP precisou resolver, e o sintoma de cada uma:
 | o laço do protocolo vive em outra thread | um adaptador que só responde quando já está parado não atende `pause` — e pausar é a única saída de um laço infinito |
 | `_Encerrar` deriva de `BaseException` | o interpretador embrulha toda `Exception` num `RuntimeError_`, e `disconnect` viraria uma mensagem de erro no meio do programa |
 
+**A vigia (watchpoint) é conferida DEPOIS de cada instrução**, e só
+enquanto houver alguma: sem vigia, o `executar` sombreado não avalia
+nada. Três decisões, e o que cada uma evita:
+
+| Decisão | Sem ela |
+|---|---|
+| a comparação é por **foto estrutural** (`impressao`), não por referência nem por texto | `xs.append(1)` não troca a referência, e uma instância sem `__str__` imprime o mesmo texto com qualquer saldo — nada pararia |
+| a parada mostra a linha que **acabou de rodar** | a pergunta é "quem mudou isto?"; a linha seguinte manda procurar no lugar errado |
+| a vigia criada numa ação só é conferida **dentro** daquele escopo (`_dentro_de`) | o escopo de uma ação que já voltou é reaproveitado, e `acc := 200` lá fora parava como se fosse o `acc` da ação |
+
+No DAP, `dataBreakpointInfo` resolve a leitura **na hora** — o número do
+painel morre na próxima parada — e guarda sob o `dataId`;
+`setDataBreakpoints` troca todas as vigias do editor de uma vez, porque o
+protocolo manda a lista inteira. O motivo da parada é `data breakpoint`,
+com "de quanto para quanto" em `description`.
+
 Uma parada em linha não executável é **movida** para a próxima, e a
 pergunta "o que é linha executável" é respondida por
 `cobertura.linhas_executaveis` — a mesma função. Duas definições
@@ -1779,10 +1795,9 @@ O que **ainda não existe** (não invente que existe):
   fora em enum, booleano, sequência (`[x, ...resto]` sem `[]`) e na família
   de um `abstract blueprint`; ele não desce em padrões aninhados
   (`[Cor.A, x]`), e um ramo com **guarda** nunca conta como cobertura.
-- **Watchpoint** — parar quando uma variável MUDA. Breakpoint condicional,
-  contagem e logpoint existem (`b 12 se x bigger 3` no terminal; as três
-  opções da margem no editor), e o `dataforge dap` para cada thread de
-  `thread`/`parallel` sozinha. No **terminal** as paradas de threads
+- **Watchpoint de leitura** — a vigia para quando um valor MUDA (`w total`
+  no terminal, `--vigiar=expr`, data breakpoint no editor); parar quando
+  um valor é só LIDO não existe. No **terminal** as paradas de threads
   diferentes se enfileiram: um terminal é uma conversa só.
 - **Bytecode** — continua sendo interpretador de árvore. O que existe é
   **compilação para fechamentos** (`compilador.py`): a árvore é percorrida

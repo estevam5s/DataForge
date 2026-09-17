@@ -112,6 +112,80 @@ class Condicao:
         return ", ".join(partes)
 
 
+#: O valor de uma vigia cuja expressao ainda nao da para avaliar — a
+#: variavel nao existe, o objeto e void. Nao e 'None': 'void' e um valor
+#: legitimo, e confundir os dois esconderia a mudanca de void para algo.
+INDISPONIVEL = ("<indisponivel>",)
+
+
+def impressao(valor, _profundidade=0, _vistos=None):
+    """Uma foto do valor que muda quando o valor MUDA.
+
+    Comparar a referencia nao serve: 'xs.append(1)' muda a lista e a
+    referencia continua a mesma. Comparar o texto ('_to_str') tambem nao:
+    uma instancia sem '__str__' imprime '<Conta instance>' com qualquer
+    saldo. A foto desce na estrutura — itens, chaves, campos —, com teto
+    de profundidade e de tamanho, porque o depurador confere a vigia a
+    cada instrucao, e uma lista de um milhao de itens nao pode custar um
+    milhao de comparacoes por passo sem aviso.
+    """
+    if valor is None or isinstance(valor, (bool, int, float, str, bytes)):
+        return (type(valor).__name__, valor)
+    if _profundidade > 6:
+        return ("fundo", id(valor))
+    _vistos = set() if _vistos is None else _vistos
+    if id(valor) in _vistos:
+        return ("ciclo", id(valor))
+    _vistos.add(id(valor))
+    teto = 5000
+    abaixo = _profundidade + 1
+    if isinstance(valor, (list, tuple)):
+        return ("L", len(valor), tuple(impressao(v, abaixo, _vistos)
+                                       for v in valor[:teto]))
+    if isinstance(valor, dict):
+        return ("V", len(valor), tuple((repr(k), impressao(v, abaixo, _vistos))
+                                       for k, v in list(valor.items())[:teto]))
+    if isinstance(valor, (set, frozenset)):
+        return ("S", len(valor), tuple(sorted(repr(v) for v in list(valor)[:teto])))
+    campos = getattr(valor, "fields", None)
+    if isinstance(campos, dict):                       # instancia de blueprint
+        return ("I", id(valor), impressao(dict(campos), abaixo, _vistos))
+    valores = getattr(valor, "values", None)
+    if isinstance(valores, dict):                      # record
+        return ("R", impressao(dict(valores), abaixo, _vistos))
+    return ("O", id(valor))
+
+
+def _dentro_de(env, escopo):
+    """'env' e 'escopo' ou um escopo aninhado nele?"""
+    while env is not None:
+        if env is escopo:
+            return True
+        env = env.parent
+    return False
+
+
+class Vigia:
+    """Uma expressao observada, presa ao escopo onde foi criada.
+
+    O escopo importa: 'acc' dentro de 'somar' e outra variavel que 'acc'
+    no topo. Uma vigia sem escopo olha o global.
+    """
+
+    __slots__ = ("expressao", "escopo", "arvore", "foto", "texto", "mudancas",
+                 "ler", "origem")
+
+    def __init__(self, expressao, escopo=None, arvore=None, ler=None, origem=""):
+        self.expressao = expressao
+        self.origem = origem      # "dap": as do editor sao trocadas em bloco
+        self.escopo = escopo
+        self.arvore = arvore
+        self.ler = ler            # alternativa a 'arvore': o DAP le por chave
+        self.foto = INDISPONIVEL
+        self.texto = "(não existe)"
+        self.mudancas = 0
+
+
 class Depurador:
     """Para, mostra e anda.
 
@@ -129,6 +203,9 @@ class Depurador:
         #: sem condição não tem entrada aqui.
         self.condicoes = {}
         self.observadas = []           # expressões a mostrar a cada parada
+        #: As vigias: param quando o valor MUDA. Conferidas depois de cada
+        #: instrucao, e so enquanto houver alguma.
+        self.vigias = []
         #: Por que a última parada aconteceu: 'breakpoint', 'step' ou o
         #: texto de uma condição que não deu para avaliar.
         self.motivo = "step"
@@ -139,6 +216,7 @@ class Depurador:
         #: própria avaliação.
         self._local = _threading.local()
         self._trava_do_terminal = _threading.RLock()
+        self._trava_das_vigias = _threading.RLock()
         self.modo = PASSO if not paradas else CONTINUAR
         self.profundidade_alvo = None
         self.ultima_linha = None
@@ -159,9 +237,23 @@ class Depurador:
         self.original = self.interp.execute
 
         def executar(no, env):
-            if not self.saindo and not getattr(self._local, "avaliando", False):
+            livre = not self.saindo and not getattr(self._local, "avaliando", False)
+            if livre:
                 self._antes(no, env)
-            return self.original(no, env)
+            if not self.vigias:
+                return self.original(no, env)
+            # A vigia e conferida DEPOIS da instrucao: e ela que mudou o
+            # valor, e a parada mostra a linha dela. 'yield', 'halt' e
+            # 'skip' saem como sinal, e tambem podem ter mudado algo.
+            try:
+                resultado = self.original(no, env)
+            except ControlSignal:
+                if livre and self.vigias:
+                    self._conferir_vigias(no, env)
+                raise
+            if livre and self.vigias:
+                self._conferir_vigias(no, env)
+            return resultado
 
         self.interp.execute = executar
 
@@ -277,6 +369,110 @@ class Depurador:
     def _registrar_log(self, texto, linha):
         print(f"{_cor('◆', '1;35')} {_cor(f'{self.arquivo}:{linha}', '0;90')} {texto}")
 
+    # ── vigias ──────────────────────────────────────────────
+
+    def vigiar(self, expressao, escopo=None):
+        """Passa a parar quando o valor da expressao mudar. Levanta ValueError."""
+        from .lexer import tokenize
+        from .parser import parse
+        texto = (expressao or "").strip()
+        try:
+            arvore = parse(tokenize(texto, "<vigia>"), "<vigia>")
+        except DataForgeError as erro:
+            raise ValueError(f"'{texto}' nao e uma expressao: "
+                             f"{getattr(erro, 'message', erro)}") from None
+        if len(arvore.body) != 1 or type(arvore.body[0]).__name__ in (
+                "Assignment", "OutStatement", "ActionDeclaration"):
+            raise ValueError(f"'{texto}' nao e uma expressao que se possa vigiar")
+        vigia = Vigia(texto, escopo, arvore.body[0])
+        self._fotografar(vigia)
+        with self._trava_das_vigias:
+            self.vigias.append(vigia)
+        return vigia
+
+    def vigiar_leitura(self, descricao, ler, escopo=None, origem=""):
+        """Uma vigia que le por uma funcao, e nao por expressao — o DAP
+        aponta uma variavel de um escopo, ou um item de uma colecao."""
+        vigia = Vigia(descricao, escopo, None, ler, origem)
+        self._fotografar(vigia)
+        with self._trava_das_vigias:
+            self.vigias.append(vigia)
+        return vigia
+
+    def desvigiar(self, numero):
+        """Tira a vigia de numero N (1, 2, …). Devolve se havia."""
+        with self._trava_das_vigias:
+            if 1 <= int(numero) <= len(self.vigias):
+                self.vigias.pop(int(numero) - 1)
+                return True
+        return False
+
+    def _ler_vigia(self, vigia):
+        if vigia.ler is not None:
+            return vigia.ler()
+        escopo = vigia.escopo if vigia.escopo is not None else self.interp.global_env
+        self._local.avaliando = True
+        try:
+            return self.interp.evaluate(vigia.arvore, escopo)
+        finally:
+            self._local.avaliando = False
+
+    def _fotografar(self, vigia):
+        """(foto, texto) do valor agora — ou INDISPONIVEL."""
+        try:
+            valor = self._ler_vigia(vigia)
+        except (DataForgeError, Exception):            # noqa: BLE001
+            vigia.foto, vigia.texto = INDISPONIVEL, "(não existe)"
+            return
+        vigia.foto = impressao(valor)
+        texto = self.interp._to_str(valor)
+        vigia.texto = texto if len(texto) <= 60 else texto[:57] + "…"
+
+    def _conferir_vigias(self, no, env):
+        """Alguma vigia mudou com a instrucao que acabou de rodar? Para."""
+        mudaram = []
+        with self._trava_das_vigias:
+            for numero, vigia in enumerate(list(self.vigias), start=1):
+                if vigia.escopo is not None and not _dentro_de(env, vigia.escopo):
+                    # a vigia de uma acao so vale enquanto a acao roda: um
+                    # escopo que ja saiu pode ser reaproveitado, e o mesmo
+                    # nome la fora e OUTRA variavel
+                    continue
+                antes_foto, antes_texto = vigia.foto, vigia.texto
+                self._fotografar(vigia)
+                if vigia.foto == antes_foto:
+                    continue
+                vigia.mudancas += 1
+                if antes_foto is INDISPONIVEL:
+                    mudaram.append(f"vigia {numero}: {vigia.expressao} passou a "
+                                   f"existir, e vale {vigia.texto}")
+                elif vigia.foto is INDISPONIVEL:
+                    mudaram.append(f"vigia {numero}: {vigia.expressao} deixou de "
+                                   f"existir (valia {antes_texto})")
+                else:
+                    mudaram.append(f"vigia {numero}: {vigia.expressao} mudou de "
+                                   f"{antes_texto} para {vigia.texto}")
+        if not mudaram:
+            return
+        linha = getattr(no, "line", 0) or (self.ultima_linha or 0)
+        self.ultima_linha = linha
+        self.quadro_atual = env
+        self._parar_por_vigia(no, env, linha, "; ".join(mudaram))
+
+    def _parar_por_vigia(self, no, env, linha, texto):
+        self.motivo = texto
+        self._parar(no, env, linha)
+
+    def _mostrar_vigias(self):
+        with self._trava_das_vigias:
+            vigias = list(self.vigias)
+        if not vigias:
+            print(_cor("  nenhuma vigia", "0;90"))
+            return
+        for numero, vigia in enumerate(vigias, start=1):
+            print(f"  {numero}  {vigia.expressao} = {_cor(vigia.texto, '1;32')}"
+                  f"{_cor(f'  ({vigia.mudancas} mudança(s))', '0;90')}")
+
     def definir_parada(self, linha, condicao="", vezes="", log=""):
         """Liga a parada, com ou sem condição. Levanta se a contagem é inválida."""
         c = Condicao(condicao, vezes, log)
@@ -299,11 +495,15 @@ class Depurador:
             return self._parar_no_terminal(no, env, linha)
 
     def _parar_no_terminal(self, no, env, linha):
-        marca = "●" if linha in self.paradas else "→"
+        marca = ("◉" if str(self.motivo).startswith("vigia ")
+                 else "●" if linha in self.paradas else "→")
         print()
         print(f"{_cor(marca, '1;33')} {_cor(f'{self.arquivo}:{linha}', '1;37')}"
               f"  {_cor(type(no).__name__, '0;90')}")
-        if self.motivo not in ("step", "breakpoint"):
+        if str(self.motivo).startswith("vigia "):
+            for trecho in str(self.motivo).split("; "):
+                print(f"  {_cor(trecho, '1;35')}")
+        elif self.motivo not in ("step", "breakpoint"):
             print(f"  {_cor(self.motivo, '1;31')}")
         self._listar(linha, 2)
         for expressao in self.observadas:
@@ -348,6 +548,24 @@ class Depurador:
             self._alternar_parada(resto, linha)
         elif palavra in ("paradas",):
             self._mostrar_paradas()
+        elif palavra in ("w", "vigiar", "watch"):
+            if not resto:
+                print(_cor("  vigiar <expressão>", "0;90"))
+            else:
+                try:
+                    vigia = self.vigiar(resto, env)
+                except ValueError as erro:
+                    print(_cor(f"  {erro}", "1;31"))
+                else:
+                    print(_cor(f"  ◉ vigia {len(self.vigias)}: {vigia.expressao} "
+                               f"= {vigia.texto} — para quando mudar", "1;35"))
+        elif palavra in ("vigias", "watches"):
+            self._mostrar_vigias()
+        elif palavra in ("desvigiar", "unwatch"):
+            if resto.isdigit() and self.desvigiar(int(resto)):
+                print(_cor(f"  vigia {resto} removida", "0;90"))
+            else:
+                print(_cor("  desvigiar <número> — veja 'vigias'", "1;31"))
         elif palavra in ("l", "listar"):
             self._listar(linha, int(resto) if resto.isdigit() else 5)
         elif palavra in ("v", "ver"):
@@ -539,11 +757,16 @@ class Depurador:
     {_cor('b', '1;36')} 12 log x={{x}}      imprime e não para
     {_cor('paradas', '1;36')}     lista as que existem
 
+  {_cor('vigias', '1;37')}  (param quando um valor MUDA)
+    {_cor('w', '1;36')} <expr>    vigia a expressão, no quadro onde você está
+    {_cor('vigias', '1;36')}      lista as vigias, com o valor e quantas mudanças
+    {_cor('desvigiar', '1;36')} N tira a vigia N
+
     {_cor('q', '1;36')}           encerra
 """)
 
 
-def depurar(caminho, paradas=(), argv=()):
+def depurar(caminho, paradas=(), argv=(), vigias=()):
     """Roda o programa sob o depurador."""
     from .interpreter import Interpreter
     from .lexer import tokenize
@@ -566,12 +789,20 @@ def depurar(caminho, paradas=(), argv=()):
     interpretador = Interpreter()
     interpretador.script_args = list(argv)
     d = Depurador(interpretador, os.path.basename(caminho), fonte, paradas)
+    for expressao in vigias:
+        try:
+            d.vigiar(expressao)
+        except ValueError as erro:
+            print(_cor(f"  {erro}", "1;31"), file=sys.stderr)
+            return 1
 
     print(f"{_cor('depurador do DataForge', '1;37')} — "
           f"{_cor('h', '1;36')} para a ajuda, {_cor('c', '1;36')} para correr")
     if paradas:
         print(_cor(f"  paradas: {', '.join(str(p) for p in sorted(paradas))}",
                    "0;90"))
+    if vigias:
+        print(_cor(f"  vigias: {', '.join(vigias)}", "0;90"))
 
     d.ligar()
     try:

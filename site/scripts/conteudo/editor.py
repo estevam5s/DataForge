@@ -69,6 +69,17 @@ cliente.saldo
  {"code": """dataforge debug conta.df --parar=42""", "lang": "bash"},
  {"p": "Dentro dele: `p` passo, `n` próximo, `f` sai da ação, `c` continua, `vars` lista o escopo, `pilha` mostra quem chamou quem, e qualquer expressão é avaliada no quadro onde você parou."},
 
+ {"h3": "Parar quando um valor muda"},
+ {"p": "Uma parada por linha responde \"o programa passou aqui?\". Quem depura um valor errado quer saber outra coisa: **quem mudou isto?** A vigia responde. Ela é conferida depois de cada instrução, e a parada mostra a linha que mudou o valor, com o antes e o depois."},
+ {"code": """dataforge debug conta.df --vigiar=total --vigiar='pedido.itens'
+
+# ou, já parado:
+w total          vigia no quadro onde você está
+vigias           lista, com o valor e quantas mudanças
+desvigiar 1      tira a vigia 1""", "lang": "bash"},
+ {"p": "A mutação no lugar conta — `xs.append(1)` muda a lista sem trocar a referência —, e o campo mudado dentro de um método também, com a parada na linha do método. Uma vigia criada dentro de uma ação olha **aquela** ação: o mesmo nome lá fora é outra variável."},
+ {"p": "No editor, clique com o botão direito numa variável do painel e escolha **Break on Value Change**. É o *data breakpoint* do protocolo: o painel mostra o motivo `data breakpoint` e, na descrição, de quanto para quanto o valor foi."},
+
  {"h2": "Big-O acima de cada ação"},
  {"p": "Uma lente sobre a declaração, com a complexidade estimada — e um aviso quando ela passa do limite que você configurou."},
  {"code": """// O(n²) — dois laços aninhados sobre a mesma entrada

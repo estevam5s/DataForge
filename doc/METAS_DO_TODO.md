@@ -85,8 +85,9 @@ capítulos:
    e hoje a linguagem ao menos **diz isso**: `xs: Cluster<Integer>`
    responde que a forma não existe e o que escrever no lugar, em vez de
    um erro de sintaxe cru.
-3. **Watchpoint no depurador** — parar quando uma variável muda. O resto
-   do depurador (condição, contagem, logpoint, por thread) existe.
+3. ~~**Watchpoint no depurador**~~ — **feito**: `w expr` no terminal,
+   `dataforge debug --vigiar=expr`, e data breakpoint no editor. Para
+   quando o valor muda, inclusive por mutação no lugar e dentro de método.
 4. **Sessão da Vitrine compartilhada entre processos**, para escalar
    horizontalmente sem proxy grudando o visitante num processo.
 

@@ -379,11 +379,11 @@ class DepuradorDAP(Depurador):
 
     # ── parar: o evento, e a espera ─────────────────────────
 
-    def _parar(self, no, env, linha, motivo=None):
+    def _parar(self, no, env, linha, motivo=None, descricao=None):
         estado = self._registrar_thread()
         razao = self.motivo if motivo is None else motivo
-        descricao = None
-        if razao not in ("step", "breakpoint", "pause", "entry"):
+        if razao not in ("step", "breakpoint", "pause", "entry",
+                         "data breakpoint"):
             # O texto de uma condição que não deu para avaliar. O DAP só
             # aceita razões fixas, e a explicação vai em 'description'.
             descricao, razao = razao, "breakpoint"
@@ -546,7 +546,9 @@ class DepuradorDAP(Depurador):
                     "global" if e_global else "bloco")
                 saida.append({
                     "name": nome,
-                    "variablesReference": self.refs.novo(("vars", proprias)),
+                    # o escopo vai junto: um data breakpoint pedido sobre
+                    # esta variavel precisa ler o escopo, e nao a copia
+                    "variablesReference": self.refs.novo(("vars", proprias, atual)),
                     # O global fica recolhido: é o maior, e é o que menos
                     # interessa quando se parou dentro de uma ação.
                     "expensive": e_global,
@@ -559,7 +561,7 @@ class DepuradorDAP(Depurador):
         carga = self.refs.obter(referencia)
         if carga is None:
             return []
-        especie, alvo = carga
+        especie, alvo = carga[0], carga[1]
         if especie == "vars":
             return [self._variavel(nome, alvo[nome])
                     for nome in sorted(alvo)]
@@ -596,6 +598,73 @@ class DepuradorDAP(Depurador):
             return [self._variavel(k, v) for k, v in list(campos.items())[
                 :TETO_DE_FILHOS]]
         return []
+
+    # ── data breakpoints: a vigia, vista do editor ─────────
+
+    def _parar_por_vigia(self, no, env, linha, texto):
+        self._parar(no, env, linha, motivo="data breakpoint", descricao=texto)
+
+    def info_de_dado(self, referencia, nome):
+        """(dataId, descricao) de uma variavel do painel — ou None.
+
+        O editor manda o numero do painel e o nome; o numero morre na
+        proxima parada, entao a leitura e resolvida AGORA e guardada sob
+        o dataId, que o 'setDataBreakpoints' devolve depois.
+        """
+        carga = self.refs.obter(referencia)
+        if carga is None:
+            return None
+        if carga[0] == "vars":
+            escopo = carga[2]
+            if nome not in getattr(escopo, "variables", {}):
+                return None
+            ler = (lambda e=escopo, n=nome: e.variables[n])
+            # o global vale sempre; o de uma acao, enquanto ela roda
+            limite = escopo if getattr(escopo, "parent", None) is not None else None
+            descricao = nome
+        else:
+            recipiente = carga[1]
+            ler, descricao = self._leitor_de_filho(recipiente, nome)
+            if ler is None:
+                return None
+            limite = None
+        self._dados_seq = getattr(self, "_dados_seq", 0) + 1
+        dado = f"df{self._dados_seq}:{descricao}"
+        if not hasattr(self, "_dados"):
+            self._dados = {}
+        self._dados[dado] = (descricao, ler, limite)
+        return dado, descricao
+
+    def _leitor_de_filho(self, recipiente, nome):
+        if isinstance(recipiente, dict):
+            for chave in recipiente:
+                if str(chave) == nome:
+                    return (lambda r=recipiente, k=chave: r[k]), f"[{chave!r}]"
+            return None, None
+        if isinstance(recipiente, (list, tuple)) and nome.startswith("[") \
+                and nome[1:-1].isdigit():
+            i = int(nome[1:-1])
+            return (lambda r=recipiente, i=i: r[i]), nome
+        campos = getattr(recipiente, "fields", None) or getattr(recipiente, "values", None)
+        if isinstance(campos, dict) and nome in campos:
+            return (lambda c=campos, n=nome: c[n]), f".{nome}"
+        return None, None
+
+    def definir_dados(self, ids):
+        """Troca TODAS as vigias do editor: o protocolo manda a lista inteira."""
+        with self._trava_das_vigias:
+            self.vigias[:] = [v for v in self.vigias if v.origem != "dap"]
+        saida = []
+        for dado in ids:
+            conhecido = getattr(self, "_dados", {}).get(dado)
+            if conhecido is None:
+                saida.append({"verified": False,
+                              "message": "esta variavel ja nao existe"})
+                continue
+            descricao, ler, limite = conhecido
+            self.vigiar_leitura(descricao, ler, limite, origem="dap")
+            saida.append({"verified": True, "description": descricao})
+        return saida
 
     def _texto(self, valor):
         try:
@@ -724,6 +793,7 @@ class Sessao:
             "supportsConditionalBreakpoints": True,
             "supportsHitConditionalBreakpoints": True,
             "supportsLogPoints": True,
+            "supportsDataBreakpoints": True,
             "supportsDelayedStackTraceLoading": False,
             "exceptionBreakpointFilters": [],
         })
@@ -962,6 +1032,34 @@ class Sessao:
         quadro = pedido.get("arguments", {}).get("frameId", 0)
         self.canal.responder(pedido,
                              {"scopes": self.depurador.escopos(quadro)})
+
+    def req_dataBreakpointInfo(self, pedido):
+        args = pedido.get("arguments", {})
+        info = None
+        if self.depurador is not None:
+            info = self.depurador.info_de_dado(args.get("variablesReference", 0),
+                                               str(args.get("name", "")))
+        if info is None:
+            self.canal.responder(pedido, {
+                "dataId": None,
+                "description": "só variáveis de um quadro parado podem ser vigiadas"})
+            return
+        dado, descricao = info
+        self.canal.responder(pedido, {
+            "dataId": dado,
+            "description": f"parar quando {descricao} mudar",
+            "accessTypes": ["write"],
+            "canPersist": False,
+        })
+
+    def req_setDataBreakpoints(self, pedido):
+        ids = [b.get("dataId") for b in
+               (pedido.get("arguments", {}).get("breakpoints") or [])]
+        if self.depurador is None:
+            corpo = [{"verified": False} for _ in ids]
+        else:
+            corpo = self.depurador.definir_dados(ids)
+        self.canal.responder(pedido, {"breakpoints": corpo})
 
     def req_variables(self, pedido):
         if self.depurador is None:

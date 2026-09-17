@@ -357,9 +357,11 @@ GRUPOS = [
             "'pilha' mostra quem chamou quem, e qualquer expressao e\n"
             "avaliada no quadro onde voce parou.\n"
             "\nSem '--parar', ele para na primeira instrucao.",
-            opcoes=[("--parar=N,M", "paradas ja nas linhas N e M")],
+            opcoes=[("--parar=N,M", "paradas ja nas linhas N e M"),
+                    ("--vigiar=EXPR", "para quando o valor de EXPR mudar (repetivel)")],
             exemplos=[("dataforge debug conta.df", "para no comeco"),
-                      ("dataforge debug conta.df --parar=42", "so na linha 42")],
+                      ("dataforge debug conta.df --parar=42", "so na linha 42"),
+                      ("dataforge debug conta.df --vigiar=saldo", "para quando 'saldo' mudar")],
             veja=("run", "check")),
         Cmd("dap", "dataforge dap",
             "Adaptador de depuracao para o editor",
@@ -3972,15 +3974,19 @@ def main():
     elif command == 'debug':
         from .depurador import depurar
         paradas = []
+        vigias = []
         for f in flags:
             if f.startswith('--parar='):
                 paradas += [int(x) for x in f.split('=', 1)[1].split(',')
                             if x.strip().isdigit()]
+            elif f.startswith('--vigiar='):
+                # uma por flag: a expressao pode ter virgula dentro
+                vigias.append(f.split('=', 1)[1])
         resto = [a for a in args[1:] if not a.startswith('--')]
         if not resto:
-            print("uso: dataforge debug <arquivo.df> [--parar=12,40]")
+            print("uso: dataforge debug <arquivo.df> [--parar=12,40] [--vigiar=expr]")
             sys.exit(1)
-        sys.exit(depurar(resto[0], paradas, resto[1:]))
+        sys.exit(depurar(resto[0], paradas, resto[1:], vigias=vigias))
 
     elif command == 'lsp':
         # Nada de print aqui: stdout E o canal do protocolo, e um

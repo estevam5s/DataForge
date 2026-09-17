@@ -520,8 +520,9 @@ handle Error as e:
   {"h3": "O depurador de verdade"},
   {"p": "Quando você tem terminal ou editor:"},
   { code: `dataforge debug conta.df              # para na primeira instrução
-dataforge debug conta.df --parar=42   # só na linha 42`, lang: 'bash' },
-  {"p": "Dentro dele: `p` passo, `n` próximo, `f` sai da ação, `c` continua, `vars` lista o escopo, `pilha` mostra quem chamou quem — e **qualquer expressão** é avaliada no quadro onde você parou."},
+dataforge debug conta.df --parar=42   # só na linha 42
+dataforge debug conta.df --vigiar=saldo   # para quando 'saldo' mudar`, lang: 'bash' },
+  {"p": "Dentro dele: `p` passo, `n` próximo, `f` sai da ação, `c` continua, `vars` lista o escopo, `pilha` mostra quem chamou quem — e **qualquer expressão** é avaliada no quadro onde você parou. `w saldo` vigia o valor: a próxima parada é na linha que o **mudou**, com o antes e o depois."},
   {"p": "No VS Code, clique na margem e aperte **F5**. Os breakpoints, a pilha, as variáveis em árvore e o console de avaliação ficam no painel. O adaptador é `dataforge dap`, que fala Debug Adapter Protocol — o mesmo protocolo do Neovim, do Helix e do Emacs."},
   {"p": "Duas coisas que o depurador faz e que não são óbvias:"},
   {"list": ["**uma parada em comentário é movida** para a próxima linha executável,"]},
