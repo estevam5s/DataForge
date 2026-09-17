@@ -14,6 +14,22 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — fila persistente
+
+- **`Eventos.fila_persistente(caminho, trabalhador, opcoes)`** — a fila de
+  trabalho que sobrevive ao processo, num SQLite (o `sqlite3` da
+  biblioteca padrão, sem dependência nova). Reserva atômica com **prazo**:
+  a tarefa de um processo que morreu no meio — inclusive por `kill -9` —
+  volta a ficar disponível quando a reserva vence. **Recuo exponencial**
+  com teto e tremor (`recuo`, `fator`, `recuo_maximo`, `tremor`),
+  **atraso** e **hora marcada** (`publicar(item, {"atraso": 60})`,
+  `agendar(item, quando)`), `prioridade`, `chave` contra tarefa repetida,
+  e **carta morta** depois de `tentativas` falhas, com o último erro e o
+  histórico de todos (`mortas()`, `reprocessar(id)`, `descartar_mortas()`).
+  Várias filas no mesmo arquivo (`nome`), e operários em threads ou
+  `processar()` síncrono. É entrega "pelo menos uma vez": o trabalhador
+  deve ser idempotente. 15 testes, um deles matando um processo de verdade.
+
 ### Corrigido — o .deb de 1.194 bytes
 
 - **O `.deb` publicado na `v1.0.0` estava vazio porque a tag era mais

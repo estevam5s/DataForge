@@ -84,7 +84,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                54 módulos (1623 símbolos), incluindo:
+  stdlib/                54 módulos (1625 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -94,6 +94,9 @@ dataforge/
     arcane_injecao.py    contêiner: único, transitório, por escopo; ciclo e cativo
     arcane_padroes.py    os padrões que pedem mecanismo (comandos, máquina, pool…)
     arcane_memoria.py    referência fraca, mapa fraco, coletor
+    arcane_eventos.py    emissor, contexto por thread, fila em memória e
+                         fila_persistente (SQLite: reserva com prazo, recuo,
+                         agendamento, carta morta)
     arcane_excel.py      planilhas .xlsx, sem dependência externa (29)
     arcane_arquivo_seguro.py  cofre de arquivo + zip/tar seguro (56)
     cifra.py             ChaCha20-Poly1305 puro (RFC 8439)
@@ -1597,7 +1600,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1623 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1625 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.

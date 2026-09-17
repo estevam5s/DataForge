@@ -30,7 +30,7 @@ Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
 generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
 pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **54 módulos** de biblioteca padrão com **1623 símbolos**.
+(**Forge**) e **54 módulos** de biblioteca padrão com **1625 símbolos**.
 
 [Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [251 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
@@ -99,7 +99,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 54 módulos com 1623 símbolos + 228 funções globais |
+| **Bateria inclusa** | 54 módulos com 1625 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -473,7 +473,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-54 módulos, 1623 símbolos, mais 228 funções globais sem import.
+54 módulos, 1625 símbolos, mais 228 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -524,8 +524,8 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
 | `Arcane.Pipeline` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
 | `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |
+| `Arcane.Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
 | `Arcane.Quadro` | 10 | A tabela de dados: colunas nomeadas e linhas como vault. Filtrar, agrupar, resumir, juntar, pivotar, limpar a ausência e a duplicata, converter tipos, normalizar, codificar e descrever — colunar por dentro, imutável por fora. |
-| `Arcane.Eventos` | 8 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano. |
 | `Arcane.Memoria` | 8 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
 | `Arcane.API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
 | `Arcane.Bench` | 7 | Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em tamanhos crescentes dizendo qual O() descreve o que aconteceu. |

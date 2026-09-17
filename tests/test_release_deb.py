@@ -51,7 +51,7 @@ def test_o_release_recusa_tag_que_nao_e_a_versao_da_linguagem(tag, deve_passar):
     corpo = _passo("a tag e a versao da linguagem")
     r = subprocess.run(
         ["bash", "-c", corpo], cwd=RAIZ, capture_output=True, text=True,
-        encoding="utf-8",
+        encoding="utf-8", errors="replace",
         env={**os.environ, "GITHUB_REF_NAME": tag.format(versao=__version__),
              "PYTHONPATH": RAIZ})
     assert (r.returncode == 0) is deve_passar, r.stdout + r.stderr
@@ -114,6 +114,7 @@ def test_o_script_de_publicacao_para_sem_gh_autenticado(tmp_path):
     r = subprocess.run(
         ["bash", os.path.join(RAIZ, "scripts", "publicar_release.sh"), "--executar"],
         cwd=RAIZ, capture_output=True, text=True, encoding="utf-8",
+        errors="replace",
         env={**os.environ, "PATH": f"{tmp_path}:{os.environ['PATH']}",
              "PY": sys.executable})
     assert r.returncode != 0

@@ -58,7 +58,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Injecao`](#arcaneinjecao) | `Injecao / DI` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | [`Arcane.Padroes`](#arcanepadroes) | `Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
 | [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 8 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
-| [`Arcane.Eventos`](#arcaneeventos) | `Eventos` | 8 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano. |
+| [`Arcane.Eventos`](#arcaneeventos) | `Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
 | [`Arcane.Cli`](#arcanecli) | `Cli` | 12 | A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo. |
 | [`Arcane.Email`](#arcaneemail) | `Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
 | [`Arcane.Html`](#arcanehtml) | `Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
@@ -2203,22 +2203,24 @@ adopt Arcane.Memoria as Memoria
 
 ## Arcane.Eventos
 
-Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano.
+Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta.
 
 ```dataforge
 adopt Arcane.Eventos as Eventos
 ```
 
-**Funções (8)**
+**Funções (10)**
 
 | Assinatura |
 |------------|
 | `Emissor(nome='emissor', teto=1000)` |
 | `Fila(trabalhador, operarios=2, nome='fila')` |
+| `FilaPersistente(caminho, trabalhador=None, opcoes=None)` |
 | `com_contexto(dados, acao)` |
 | `contexto()` |
 | `emissor(nome='emissor', teto=1000)` |
 | `fila(trabalhador, operarios=2, nome='fila')` |
+| `fila_persistente(caminho, trabalhador=None, opcoes=None)` |
 | `guardar(chave, valor)` |
 | `por(chave, padrao=None)` |
 

@@ -2936,7 +2936,7 @@
   },
   "eventos": {
    "nome": "Arcane.Eventos",
-   "desc": "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano.",
+   "desc": "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta.",
    "curto": "Eventos",
    "funcoes": [
     {
@@ -2947,6 +2947,11 @@
     {
      "nome": "Fila",
      "sig": "(trabalhador, operarios, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "FilaPersistente",
+     "sig": "(caminho, trabalhador, opcoes)",
      "tipo": "funcao"
     },
     {
@@ -2967,6 +2972,11 @@
     {
      "nome": "fila",
      "sig": "(trabalhador, operarios, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fila_persistente",
+     "sig": "(caminho, trabalhador, opcoes)",
      "tipo": "funcao"
     },
     {
@@ -10921,7 +10931,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2225,
+  "testes": 2246,
   "exemplos": 44,
   "arquivosDf": 361
  },

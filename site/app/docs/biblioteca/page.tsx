@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "54 módulos e 1623 símbolos, sem uma única dependência externa.",
+  description: "54 módulos e 1625 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os 54 módulos"
   },
   {
-    "p": "São **1623 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1625 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -271,14 +271,14 @@ const blocos: Bloco[] = [
           "Cliente HTTP, URL encoding e JSON."
         ],
         [
+          "[`Arcane.Eventos`](/docs/biblioteca/eventos)",
+          "10",
+          "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta."
+        ],
+        [
           "`Arcane.Quadro`",
           "10",
           "A tabela de dados: colunas nomeadas e linhas como vault. Filtrar, agrupar, resumir, juntar, pivotar, limpar a ausência e a duplicata, converter tipos, normalizar, codificar e descrever — colunar por dentro, imutável por fora."
-        ],
-        [
-          "[`Arcane.Eventos`](/docs/biblioteca/eventos)",
-          "8",
-          "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano."
         ],
         [
           "`Arcane.Memoria`",
@@ -375,7 +375,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"54 módulos e 1623 símbolos, sem uma única dependência externa."}
+      description={"54 módulos e 1625 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

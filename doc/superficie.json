@@ -1217,10 +1217,12 @@
     "Arcane.Eventos": [
       "Emissor",
       "Fila",
+      "FilaPersistente",
       "com_contexto",
       "contexto",
       "emissor",
       "fila",
+      "fila_persistente",
       "guardar",
       "por"
     ],

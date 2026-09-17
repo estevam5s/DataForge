@@ -160,7 +160,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Database` | 64 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
 | `Arcane.Decimal` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
 | `Arcane.Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
-| `Arcane.Eventos` | 8 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano. |
+| `Arcane.Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
 | `Arcane.Excel` | 29 | Planilhas . |
 | `Arcane.Forge` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | `Arcane.Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
