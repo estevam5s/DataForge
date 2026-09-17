@@ -222,15 +222,36 @@ def _colher(programa, linhas):
         elif isinstance(no, ast.BlueprintDeclaration):
             pais = f" extends {', '.join(no.parents)}" if no.parents else ""
             traits = f" with {', '.join(no.traits)}" if no.traits else ""
+            usando = f" using {no.metaclass}" if getattr(no, "metaclass", "") else ""
+            mods = " ".join(m for m, sim in (
+                ("abstract", no.is_abstract), ("final", getattr(no, "is_final", False)),
+                ("sealed", getattr(no, "is_sealed", False)),
+                ("meta", getattr(no, "is_meta", False))) if sim)
             s = Simbolo(no.name, "blueprint", no.line, no.column,
-                        f"blueprint {no.name}{pais}{traits}",
+                        f"{mods + ' ' if mods else ''}blueprint {no.name}"
+                        f"{pais}{traits}{usando}",
                         _doc_de(no, linhas), [], _fim_do_bloco(no))
             for filho in no.body or []:
                 if isinstance(filho, ast.ActionDeclaration):
+                    marcas = " ".join(m for m in (
+                        getattr(filho, "visibility", "public"),
+                        "static" if filho.is_static else "",
+                        "abstract" if filho.is_abstract else "",
+                        "final" if filho.is_final else "",
+                        "override" if getattr(filho, "is_override", False) else "",
+                        "overload" if getattr(filho, "is_overload", False) else "",
+                        "exclusive" if getattr(filho, "is_exclusive", False) else "")
+                        if m and m != "public")
                     s.filhos.append(Simbolo(
                         filho.name, "metodo", filho.line, filho.column,
-                        _assinatura_de_acao(filho), _doc_de(filho, linhas),
+                        (marcas + " " if marcas else "") + _assinatura_de_acao(filho),
+                        _doc_de(filho, linhas),
                         list(filho.params), _fim_do_bloco(filho)))
+                elif isinstance(filho, ast.PropertyDeclaration):
+                    s.filhos.append(Simbolo(
+                        filho.name, "propriedade", filho.line, filho.column,
+                        f"{'lazy ' if getattr(filho, 'is_lazy', False) else ''}"
+                        f"{filho.kind} {filho.name}()", _doc_de(filho, linhas)))
             for campo in getattr(no, "fields_decl", []) or []:
                 nome = campo[0] if isinstance(campo, (tuple, list)) else campo
                 s.filhos.append(Simbolo(str(nome), "campo", no.line, no.column))
@@ -257,6 +278,21 @@ def _colher(programa, linhas):
                 s.filhos.append(Simbolo(str(nome), "membro_enum",
                                         no.line, no.column,
                                         f"{no.name}.{nome}"))
+
+        elif isinstance(no, ast.ContractDeclaration):
+            pais = f" extends {', '.join(no.parents)}" if no.parents else ""
+            s = Simbolo(no.name, "contrato", no.line, no.column,
+                        f"contract {no.name}{pais}", _doc_de(no, linhas), [],
+                        _fim_do_bloco(no))
+            for membro in no.members:
+                if isinstance(membro, ast.ActionDeclaration):
+                    s.filhos.append(Simbolo(
+                        membro.name, "metodo", membro.line, membro.column,
+                        _assinatura_de_acao(membro), "", list(membro.params)))
+                else:
+                    s.filhos.append(Simbolo(membro.name, "propriedade",
+                                            membro.line, membro.column,
+                                            f"get {membro.name}()"))
 
         elif isinstance(no, ast.TraitDeclaration):
             s = Simbolo(no.name, "trait", no.line, no.column,
@@ -605,6 +641,7 @@ _ICONE = {
     "acao": K_ACAO, "metodo": K_METODO, "blueprint": K_CLASSE,
     "record": K_ESTRUTURA if False else K_CLASSE, "enum": K_ENUM,
     "membro_enum": K_MEMBRO_ENUM, "campo": K_CAMPO, "trait": K_INTERFACE,
+    "contrato": K_INTERFACE, "propriedade": K_PROPRIEDADE,
     "variavel": K_VARIAVEL, "constante": K_CONSTANTE, "parametro": K_VARIAVEL,
 }
 
@@ -612,6 +649,7 @@ _ESQUEMA = {
     "acao": S_ACAO, "metodo": S_METODO, "blueprint": S_CLASSE,
     "record": S_ESTRUTURA, "enum": S_ENUM, "membro_enum": S_MEMBRO_ENUM,
     "campo": S_CAMPO, "trait": S_INTERFACE, "variavel": S_VARIAVEL,
+    "contrato": S_INTERFACE, "propriedade": S_CAMPO,
     "constante": S_CONSTANTE, "parametro": S_VARIAVEL,
 }
 
@@ -768,6 +806,119 @@ def definicao(analise, linha, coluna):
     return {"uri": analise.uri,
             "range": _faixa(alvo.linha, alvo.coluna,
                             alvo.linha, alvo.coluna + len(alvo.nome))}
+
+
+def _tipos_do_arquivo(analise):
+    """nome -> (no, [maes e contratos]) dos blueprints, contratos e traits."""
+    tipos = {}
+    if analise.programa is None:
+        return tipos
+    pilha = list(analise.programa.body or [])
+    while pilha:
+        no = pilha.pop()
+        if isinstance(no, ast.BlueprintDeclaration):
+            tipos[no.name] = (no, [p.rsplit(".", 1)[-1] for p in
+                                   list(no.parents or []) + list(no.traits or [])])
+            pilha.extend(no.body or [])
+        elif isinstance(no, ast.ContractDeclaration):
+            tipos[no.name] = (no, [p.rsplit(".", 1)[-1] for p in no.parents or []])
+        elif isinstance(no, ast.TraitDeclaration):
+            tipos[no.name] = (no, [])
+    return tipos
+
+
+def _descendentes(tipos, nome):
+    saida, pendentes = [], [nome]
+    while pendentes:
+        atual = pendentes.pop(0)
+        for outro, (_no, maes) in tipos.items():
+            if atual in maes and outro not in saida and outro != nome:
+                saida.append(outro)
+                pendentes.append(outro)
+    return saida
+
+
+def _metodos_de(no):
+    corpo = no.members if isinstance(no, ast.ContractDeclaration) else \
+        (no.body if isinstance(no, ast.BlueprintDeclaration) else no.methods)
+    return [m for m in corpo or [] if isinstance(m, ast.ActionDeclaration)]
+
+
+def implementacoes(analise, linha, coluna):
+    """'Ir para a implementacao': quem herda ou cumpre este tipo, ou quem
+    escreve este metodo numa filha.
+
+    Num contrato, a resposta sao os blueprints que o adotam — inclusive
+    atraves de outro contrato que o estende. Num metodo, sao as versoes
+    dele nas descendentes do tipo onde o cursor esta.
+    """
+    palavra, _, _ = _palavra_em(analise.linha_de(linha), coluna)
+    if not palavra:
+        return []
+    tipos = _tipos_do_arquivo(analise)
+
+    def local(no):
+        return {"uri": analise.uri,
+                "range": _faixa(no.line, no.column, no.line, no.column + len(no.name))}
+
+    if palavra in tipos:
+        return [local(tipos[n][0]) for n in _descendentes(tipos, palavra)
+                if isinstance(tipos[n][0], ast.BlueprintDeclaration)]
+
+    dono = None
+    for nome, (no, _maes) in tipos.items():
+        if no.line <= linha <= _fim_do_bloco(no) and any(
+                m.name == palavra for m in _metodos_de(no)):
+            if dono is None or no.line >= tipos[dono][0].line:
+                dono = nome
+    candidatos = _descendentes(tipos, dono) if dono else list(tipos)
+    achados = []
+    for nome in candidatos:
+        no = tipos[nome][0]
+        if not isinstance(no, ast.BlueprintDeclaration):
+            continue
+        for m in _metodos_de(no):
+            if m.name == palavra and not m.is_abstract:
+                achados.append(local(m))
+    return achados
+
+
+def hierarquia_preparar(analise, linha, coluna):
+    palavra, _, _ = _palavra_em(analise.linha_de(linha), coluna)
+    tipos = _tipos_do_arquivo(analise)
+    if palavra not in tipos:
+        return None
+    return [_item_de_hierarquia(analise, tipos, palavra)]
+
+
+def _item_de_hierarquia(analise, tipos, nome):
+    no = tipos[nome][0]
+    especie = K_INTERFACE if not isinstance(no, ast.BlueprintDeclaration) else K_CLASSE
+    return {
+        "name": nome,
+        "kind": S_INTERFACE if especie == K_INTERFACE else S_CLASSE,
+        "detail": ("contract" if isinstance(no, ast.ContractDeclaration)
+                   else "trait" if isinstance(no, ast.TraitDeclaration) else "blueprint"),
+        "uri": analise.uri,
+        "range": _faixa(no.line, 1, _fim_do_bloco(no), 200),
+        "selectionRange": _faixa(no.line, no.column, no.line, no.column + len(nome)),
+        "data": {"nome": nome},
+    }
+
+
+def hierarquia_acima(analise, item):
+    tipos = _tipos_do_arquivo(analise)
+    nome = (item.get("data") or {}).get("nome") or item.get("name")
+    if nome not in tipos:
+        return []
+    return [_item_de_hierarquia(analise, tipos, m) for m in tipos[nome][1] if m in tipos]
+
+
+def hierarquia_abaixo(analise, item):
+    tipos = _tipos_do_arquivo(analise)
+    nome = (item.get("data") or {}).get("nome") or item.get("name")
+    return [_item_de_hierarquia(analise, tipos, n) for n, (_no, maes) in tipos.items()
+            if nome in maes]
 
 
 def referencias(analise, linha, coluna):
@@ -1083,6 +1234,8 @@ class Servidor:
                 "signatureHelpProvider": {"triggerCharacters": ["(", ","]},
                 "codeActionProvider": {"codeActionKinds": ["quickfix"]},
                 "documentHighlightProvider": True,
+                "implementationProvider": True,
+                "typeHierarchyProvider": True,
             },
             "serverInfo": {"name": "dataforge-lsp", "version": __version__},
         }
@@ -1158,6 +1311,22 @@ class Servidor:
     def m_textDocument_definition(self, p, ident):
         analise, linha, coluna = self._onde(p)
         return definicao(analise, linha, coluna)
+
+    def m_textDocument_implementation(self, p, ident):
+        analise, linha, coluna = self._onde(p)
+        return implementacoes(analise, linha, coluna)
+
+    def m_textDocument_prepareTypeHierarchy(self, p, ident):
+        analise, linha, coluna = self._onde(p)
+        return hierarquia_preparar(analise, linha, coluna)
+
+    def m_typeHierarchy_supertypes(self, p, ident):
+        item = p.get("item") or {}
+        return hierarquia_acima(self._para_consultar(item.get("uri", "")), item)
+
+    def m_typeHierarchy_subtypes(self, p, ident):
+        item = p.get("item") or {}
+        return hierarquia_abaixo(self._para_consultar(item.get("uri", "")), item)
 
     def m_textDocument_references(self, p, ident):
         analise, linha, coluna = self._onde(p)

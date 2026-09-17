@@ -1,0 +1,72 @@
+// Exercicio 249 — Portas, adaptadores e o conteiner
+// Enunciado: um caso de uso de cadastro que nao conhece banco nem e-mail,
+// montado por um conteiner — e trocado por dubles no teste.
+
+adopt Arcane.Injecao as DI
+
+// ── portas (o dominio) ──
+contract Usuarios:
+    action existe(email: String) -> Boolean
+    action gravar(email: String)
+
+contract Avisos:
+    action enviar(para: String, texto: String)
+
+blueprint Cadastro(usuarios: Usuarios, avisos: Avisos):
+    action registrar(email: String):
+        expects "@" in email, "e-mail invalido"
+        given self.usuarios.existe(email):
+            yield "ja existe"
+        self.usuarios.gravar(email)
+        self.avisos.enviar(email, "bem-vindo")
+        yield "criado"
+
+// ── adaptadores (a borda) ──
+blueprint UsuariosMemoria with Usuarios:
+    emails := []
+    action existe(email: String) -> Boolean:
+        yield email in self.emails
+    action gravar(email: String):
+        self.emails.append(email)
+
+blueprint AvisosFalsos with Avisos:
+    enviados := []
+    action enviar(para: String, _texto: String):
+        self.enviados.append(para)
+
+// ── composicao: um lugar so ──
+c := DI.conteiner()
+c.unico(Usuarios, UsuariosMemoria)
+c.unico(Avisos, AvisosFalsos)
+c.transitorio(Cadastro)
+
+cadastro := c.resolver(Cadastro)
+assert cadastro.registrar("ana@x.com") is "criado"
+assert cadastro.registrar("ana@x.com") is "ja existe"
+assert c.resolver(Avisos).enviados is ["ana@x.com"]
+assert c.conferir() is []
+
+// ── o grafo que o conteiner monta ──
+assert c.grafo()["Cadastro"] is ["Usuarios", "Avisos"]
+
+// ── escopo: um por pedido ──
+blueprint Transacao:
+    aberta := yes
+    action fechar():
+        self.aberta := no
+
+c.por_escopo(Transacao)
+pedido := c.escopo("pedido 1")
+t := pedido.resolver(Transacao)
+assert t is pedido.resolver(Transacao)
+pedido.fechar()
+assert not t.aberta
+
+// ── o que ele recusa ──
+monitor:
+    DI.conteiner().resolver(Cadastro)
+    assert no
+handle DependencyResolutionError as e:
+    assert "Usuarios" in e.message
+
+out "249 ok"

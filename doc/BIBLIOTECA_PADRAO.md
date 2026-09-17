@@ -53,6 +53,11 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Bytes`](#arcanebytes) | `Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
 | [`Arcane.Rede`](#arcanerede) | `Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
 | [`Arcane.Bench`](#arcanebench) | `Bench` | 7 | Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em tamanhos crescentes dizendo qual O() descreve o que aconteceu. |
+| [`Arcane.Reflexo`](#arcanereflexo) | `Reflexo` | 38 | Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid. |
+| [`Arcane.Objetos`](#arcaneobjetos) | `Objetos` | 13 | Cópia rasa e funda, congelamento, igualdade estrutural, hash coerente, ordenação por campos e serialização polimórfica que só reconstrói os tipos autorizados e resolve ciclos. |
+| [`Arcane.Injecao`](#arcaneinjecao) | `Injecao / DI` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
+| [`Arcane.Padroes`](#arcanepadroes) | `Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
+| [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 8 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
 | [`Arcane.Eventos`](#arcaneeventos) | `Eventos` | 8 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano. |
 | [`Arcane.Cli`](#arcanecli) | `Cli` | 12 | A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo. |
 | [`Arcane.Email`](#arcaneemail) | `Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
@@ -2023,6 +2028,175 @@ adopt Arcane.Bench as Bench
 | `relatorio(resultado)` |
 | `repetir(acao, vezes, argumento=None)` |
 | `tabela(resultado)` |
+
+
+---
+
+## Arcane.Reflexo
+
+Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid.
+
+```dataforge
+adopt Arcane.Reflexo as Reflexo
+```
+
+**Funções (38)**
+
+| Assinatura |
+|------------|
+| `anotacoes(alvo, membro=None)` |
+| `blueprints()` |
+| `campos(alvo)` |
+| `contratos(alvo)` |
+| `criar_blueprint(nome, definicao=None)` |
+| `cumpre(obj, contrato)` |
+| `definir_metodo(molde, nome, acao)` |
+| `descende(a, b)` |
+| `descendentes(alvo)` |
+| `diagrama(moldes, opcoes=None)` |
+| `documentacao(alvo)` |
+| `e_instancia(valor, molde)` |
+| `escrever(obj, nome, valor)` |
+| `especie(alvo)` |
+| `estaticos(alvo)` |
+| `faltando(obj, contrato)` |
+| `herdeiros(alvo)` |
+| `hierarquia(alvo)` |
+| `inspecionar(obj)` |
+| `instanciar(molde, args=None, nomeados=None)` |
+| `invocar(obj, nome, args=None, nomeados=None)` |
+| `ler(obj, nome)` |
+| `maes(alvo)` |
+| `membros(alvo)` |
+| `meta(alvo)` |
+| `meta_instancia(alvo)` |
+| `metodos(alvo)` |
+| `modificadores(alvo, membro)` |
+| `molde(alvo)` |
+| `mro(alvo)` |
+| `nome(alvo)` |
+| `operadores(alvo)` |
+| `procurar(nome)` |
+| `propriedades(alvo)` |
+| `sugerir(alvo, nome)` |
+| `tem(obj, nome)` |
+| `tipo(valor)` |
+| `traits(alvo)` |
+
+
+---
+
+## Arcane.Objetos
+
+Cópia rasa e funda, congelamento, igualdade estrutural, hash coerente, ordenação por campos e serialização polimórfica que só reconstrói os tipos autorizados e resolve ciclos.
+
+```dataforge
+adopt Arcane.Objetos as Objetos
+```
+
+**Funções (13)**
+
+| Assinatura |
+|------------|
+| `clonar(obj)` |
+| `clonar_fundo(obj)` |
+| `comparar_por(campos)` |
+| `congelado(obj)` |
+| `congelar(obj, fundo=False)` |
+| `de_json(texto, tipos)` |
+| `de_vault(dado, tipos, opcoes=None)` |
+| `hash(obj)` |
+| `identico(a, b)` |
+| `igual(a, b)` |
+| `ordenar(itens, campos)` |
+| `para_json(obj, opcoes=None, indent=None)` |
+| `para_vault(obj, opcoes=None)` |
+
+
+---
+
+## Arcane.Injecao
+
+Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira.
+
+```dataforge
+adopt Arcane.Injecao as Injecao
+```
+
+**Constantes**
+
+| Nome | Valor |
+|------|-------|
+| `ESCOPOS` | `['unico', 'transitorio', 'por_escopo']` |
+
+**Funções (4)**
+
+| Assinatura |
+|------------|
+| `Fornece(contrato)` |
+| `Injetar(alvo=None)` |
+| `Servico(escopo='transitorio')` |
+| `conteiner(nome='raiz')` |
+
+
+---
+
+## Arcane.Padroes
+
+Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento.
+
+```dataforge
+adopt Arcane.Padroes as Padroes
+```
+
+**Funções (20)**
+
+| Assinatura |
+|------------|
+| `adaptar(alvo, mapa)` |
+| `barramento()` |
+| `cadeia(manipuladores)` |
+| `comandos(limite=100)` |
+| `compartilhado(fabrica)` |
+| `composto(valor=None)` |
+| `construtor(molde, obrigatorios=None)` |
+| `especificacao(predicado, nome='especificacao')` |
+| `estrategias(padrao=None)` |
+| `maquina(inicial, transicoes)` |
+| `mediador()` |
+| `memento(obj)` |
+| `observavel()` |
+| `pool(fabrica, tamanho=4, limpar=None)` |
+| `prototipos()` |
+| `proxy(alvo, interceptar)` |
+| `repositorio(campo_id='id')` |
+| `restaurar(obj, memento)` |
+| `unico(fabrica)` |
+| `visitar(obj, visitante)` |
+
+
+---
+
+## Arcane.Memoria
+
+O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado.
+
+```dataforge
+adopt Arcane.Memoria as Memoria
+```
+
+**Funções (8)**
+
+| Assinatura |
+|------------|
+| `ao_descartar(obj, acao)` |
+| `coletar(geracao=2)` |
+| `estatisticas()` |
+| `fraca(obj)` |
+| `mapa_fraco()` |
+| `referencias(obj)` |
+| `tamanho(obj)` |
+| `vivos(molde)` |
 
 
 ---

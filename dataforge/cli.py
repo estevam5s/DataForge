@@ -431,6 +431,23 @@ GRUPOS = [
             exemplos=[("dataforge big-o src/ -v", ""),
                       ("dataforge big-o --escala", "a tabela de referencia")],
             veja=("profile", "bench")),
+        Cmd("oop", "dataforge oop [alvo]",
+            "Metricas de orientacao a objeto e os cheiros de SOLID",
+            "Mede cada blueprint sem rodar: WMC, DIT, NOC, CBO, RFC, LCOM,\n"
+            "fan-in, fan-out, instabilidade e indice de manutenibilidade.\n"
+            "\nCada limite ultrapassado vira um cheiro com o principio que\n"
+            "ele fere e o que fazer: god blueprint (SRP), contrato gordo\n"
+            "(ISP), switch de tipo (OCP), sobrescrita que recusa (LSP),\n"
+            "dependencia concreta (DIP), heranca funda, baixa coesao,\n"
+            "modelo anemico, inveja de recurso e dependencia circular.",
+            opcoes=[("--diagrama", "o diagrama de classes em Mermaid"),
+                    ("--hierarquia", "a arvore de heranca"),
+                    ("--json", "saida estruturada"),
+                    ("--strict", "sai com erro se houver cheiro")],
+            exemplos=[("dataforge oop src/", "metricas e cheiros"),
+                      ("dataforge oop src/ --diagrama > classes.mmd",
+                       "o diagrama para o README")],
+            veja=("big-o", "stats", "check")),
         Cmd("custo", "dataforge custo [alvo]",
             "Mostra o que cada 'adopt' traz junto",
             "Uma linha de import nao parece cara. Um modulo de 200\n"
@@ -3003,6 +3020,33 @@ def _tabela_de_escala():
     print()
 
 
+def oop_command(alvos, flags=()):
+    """dataforge oop — metricas CK e cheiros de SOLID, lendo a arvore."""
+    import json as _json
+    from . import oop_analise
+
+    arquivos = _expandir(alvos or ["."])
+    if not arquivos:
+        print(color("Nenhum arquivo .df encontrado.", "1;33"))
+        return 1
+    tipos, problemas = oop_analise.analisar(arquivos)
+    if "--json" in flags:
+        print(_json.dumps(oop_analise.como_json(tipos, problemas),
+                          ensure_ascii=False, indent=2))
+    elif "--diagrama" in flags or "--diagram" in flags:
+        print(oop_analise.diagrama(tipos), end="")
+    elif "--hierarquia" in flags or "--hierarchy" in flags:
+        print(oop_analise.hierarquia(tipos))
+    else:
+        print(oop_analise.relatorio(tipos, problemas, cor=color))
+    if problemas:
+        return 1
+    if ("--strict" in flags or "--estrito" in flags) and \
+            any(t.cheiros for t in tipos.values()):
+        return 1
+    return 0
+
+
 def custo_command(alvos):
     """dataforge custo — o que cada 'adopt' traz junto.
 
@@ -4145,6 +4189,8 @@ def main():
         bigo_command(args[1:], opcoes)
     elif command in ('custo', 'cost'):
         custo_command(args[1:])
+    elif command in ('oop', 'metricas-oop'):
+        sys.exit(oop_command(args[1:], flags))
     elif command in ('erros', 'errors'):
         erros_command(args[1] if len(args) > 1 else "")
     elif command in ('palavras', 'keywords'):

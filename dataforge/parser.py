@@ -45,8 +45,8 @@ class Parser:
 
     # ── Helpers ────────────────────────────────────────────
 
-    def error(self, message: str):
-        tok = self.current()
+    def error(self, message: str, tok=None):
+        tok = tok or self.current()
         raise ParseError(message, tok.line, tok.column)
 
     def _registrar(self, erro):
@@ -758,11 +758,41 @@ class Parser:
         if tt == TokenType.BLUEPRINT:
             return self.parse_blueprint()
 
-        # ── abstract blueprint ──
-        if (tt == TokenType.IDENTIFIER and self.current().value == "abstract"
-                and self.peek(1).type == TokenType.BLUEPRINT):
-            self.advance()                      # consome 'abstract'
-            return self.parse_blueprint(abstrato=True)
+        # ── abstract / final / sealed / meta blueprint ──
+        if tt == TokenType.IDENTIFIER and self._modificadores_antes_de_blueprint():
+            return self.parse_blueprint_com_modificadores()
+
+        # ── contract Nome: ── (contextual: so quando um nome vem depois)
+        if (tt == TokenType.IDENTIFIER and tok.value == "contract"
+                and self.peek(1).type == TokenType.IDENTIFIER
+                and self.peek(2).type in (TokenType.COLON, TokenType.LT,
+                                          TokenType.EXTENDS)):
+            return self.parse_contract()
+
+        # ── augment Nome: ──
+        if (tt == TokenType.IDENTIFIER and tok.value == "augment"
+                and self.peek(1).type == TokenType.IDENTIFIER
+                and self.peek(2).type == TokenType.COLON):
+            return self.parse_augment()
+
+        # ── overload action f(...) ── (no topo do arquivo)
+        if (tt == TokenType.IDENTIFIER and tok.value == "overload"
+                and self.peek(1).type == TokenType.ACTION):
+            self.advance()
+            decl = self.parse_action()
+            decl.is_overload = True
+            return decl
+
+        # ── invariant fora de um blueprint: lido, para a mensagem certa ──
+        if tt == TokenType.IDENTIFIER and self._abre_condicao("invariant"):
+            return self._parse_condicao_com_mensagem(ast.InvariantStatement,
+                                                     "invariant")
+
+        # ── expects cond / promises cond ──
+        if tt == TokenType.IDENTIFIER and self._abre_condicao("expects"):
+            return self.parse_expects()
+        if tt == TokenType.IDENTIFIER and self._abre_condicao("promises"):
+            return self.parse_promises()
 
         # ── record ──
         if tt == TokenType.RECORD:
@@ -1313,12 +1343,22 @@ class Parser:
         self.match(TokenType.NEWLINE)
 
         body = self.parse_block()
+        # 'promises' no topo do corpo sai do corpo: ele nao roda onde esta
+        # escrito, roda na SAIDA. Deixa-lo no corpo o faria rodar antes do
+        # trabalho, e a pos-condicao testaria o estado de ANTES.
+        promessas = [s for s in body if isinstance(s, ast.PromisesStatement)]
+        if promessas:
+            body = [s for s in body if not isinstance(s, ast.PromisesStatement)]
+            if is_generator:
+                self.error(f"'promises' has no single result to check in a "
+                           f"stream action: '{name}' emits many. Check each "
+                           f"item where it is produced.", promessas[0])
         return ast.ActionDeclaration(
             name=name, params=params, defaults=defaults, body=body,
             is_async=is_async, decorators=decorators or [],
             type_params=tipos, type_bounds=limites,
             param_types=param_types, return_type=return_type,
-            is_generator=is_generator,
+            is_generator=is_generator, postconditions=promessas,
             line=tok.line, column=tok.column
         )
 
@@ -1395,12 +1435,58 @@ class Parser:
         self._ultimos_limites = limites
         return tipos
 
-    def parse_blueprint(self, abstrato: bool = False):
-        """blueprint Name [(params)] [extends Parent] [with Trait]: block
+    #: As palavras que podem vir ANTES de 'blueprint', em qualquer ordem.
+    MODIFICADORES_DE_BLUEPRINT = ("abstract", "final", "sealed", "meta")
+
+    def _modificadores_antes_de_blueprint(self):
+        """'abstract sealed blueprint X' — as palavras, ou None.
+
+        So devolve alguma coisa quando a sequencia TERMINA em
+        'blueprint'. Assim 'final := 3' e 'meta.x' continuam sendo nomes
+        comuns: a palavra so vira modificador quando o que vem depois
+        confirma a intencao.
+        """
+        i = 0
+        palavras = []
+        while True:
+            tok = self.peek(i)
+            if tok.type == TokenType.BLUEPRINT:
+                return palavras if palavras else None
+            if (tok.type == TokenType.IDENTIFIER
+                    and tok.value in self.MODIFICADORES_DE_BLUEPRINT
+                    and tok.value not in palavras):
+                palavras.append(tok.value)
+                i += 1
+                continue
+            return None
+
+    def parse_blueprint_com_modificadores(self):
+        """Consome 'abstract'/'final'/'sealed'/'meta' e le o blueprint."""
+        palavras = self._modificadores_antes_de_blueprint() or []
+        primeiro = self.current()
+        for _ in palavras:
+            self.advance()
+        if "abstract" in palavras and "final" in palavras:
+            self.error("A blueprint cannot be both 'abstract' and 'final': "
+                       "abstract needs a child to be used, and final "
+                       "forbids children. Pick one.", primeiro)
+        if "final" in palavras and "sealed" in palavras:
+            self.error("'final' already forbids every child, so 'sealed' "
+                       "adds nothing. Keep one of them.", primeiro)
+        return self.parse_blueprint(abstrato="abstract" in palavras,
+                                    modificadores=palavras)
+
+    def parse_blueprint(self, abstrato: bool = False, modificadores=()):
+        """blueprint Name [<T>] [(params)] [extends Pai] [with Trait] [using Meta]: bloco
         OR blueprint Name [(Parent)]: block  (backward compat)
 
         Com abstrato=True veio de 'abstract blueprint Nome:' — nao pode
         ser instanciado com spawn, so herdado.
+
+        Os parametros do cabecalho aceitam tipo e padrao, como os de uma
+        acao: 'blueprint Caixa<T>(valor: T, rotulo := "")'. Sem isso, o
+        generico mais comum que existe — uma caixa que guarda um T —
+        era erro de sintaxe no primeiro ':'.
         """
         tok = self.advance()  # consume 'blueprint'
         name = self.expect(TokenType.IDENTIFIER).value
@@ -1409,24 +1495,45 @@ class Parser:
         parents = []
         traits = []
         constructor_params = []
+        tipos_do_cabecalho = {}
+        padroes_do_cabecalho = {}
+        metaclasse = ""
 
         # Parse optional parenthesized list
         paren_names = []
         if self.match(TokenType.LPAREN):
             while self.current().type != TokenType.RPAREN:
-                paren_names.append(self.expect(TokenType.IDENTIFIER).value)
+                nome_param = self.expect(TokenType.IDENTIFIER).value
+                self._recusar_parametro_repetido(paren_names, nome_param)
+                paren_names.append(nome_param)
+                if self.match(TokenType.COLON):
+                    tipos_do_cabecalho[nome_param] = self._parse_nome_de_tipo(
+                        f"Expected the type of '{nome_param}' after ':'")
+                if self.match(TokenType.ASSIGN):
+                    padroes_do_cabecalho[nome_param] = self.parse_expression()
+                elif padroes_do_cabecalho:
+                    self._recusar_obrigatorio_depois_de_padrao(
+                        nome_param, padroes_do_cabecalho)
                 self.match(TokenType.COMMA)
             self.expect(TokenType.RPAREN)
 
         # Check what follows to determine meaning of parenthesized names
-        if self.current().type == TokenType.EXTENDS:
+        if tipos_do_cabecalho or padroes_do_cabecalho:
+            # Com tipo ou padrao nao ha ambiguidade: sao parametros.
+            constructor_params = paren_names
+            if self.current().type == TokenType.EXTENDS:
+                self.advance()
+                parents.append(self._nome_pontuado())
+                while self.match(TokenType.COMMA):
+                    parents.append(self._nome_pontuado())
+        elif self.current().type == TokenType.EXTENDS:
             # New style: params in parens, extends for parent
             constructor_params = paren_names
             self.advance()  # consume 'extends'
-            parents.append(self.expect(TokenType.IDENTIFIER).value)
+            parents.append(self._nome_pontuado())
             while self.match(TokenType.COMMA):
-                parents.append(self.expect(TokenType.IDENTIFIER).value)
-        elif self.current().type == TokenType.WITH:
+                parents.append(self._nome_pontuado())
+        elif self.current().type in (TokenType.WITH, TokenType.USING):
             # New style: params in parens, with for traits
             constructor_params = paren_names
         elif self.current().type == TokenType.COLON and paren_names:
@@ -1440,24 +1547,52 @@ class Parser:
             else:
                 parents = paren_names
 
-        # Parse 'with' for traits (can appear after extends too)
-        if self.current().type == TokenType.WITH:
-            self.advance()  # consume 'with'
-            traits.append(self.expect(TokenType.IDENTIFIER).value)
-            while self.match(TokenType.COMMA):
-                traits.append(self.expect(TokenType.IDENTIFIER).value)
+        # 'with' (traits e contratos) e 'using' (metaclasse), em qualquer ordem
+        while self.current().type in (TokenType.WITH, TokenType.USING):
+            if self.match(TokenType.WITH):
+                traits.append(self._nome_pontuado())
+                while self.match(TokenType.COMMA):
+                    traits.append(self._nome_pontuado())
+            else:
+                usando = self.advance()
+                if metaclasse:
+                    self.error(f"Blueprint '{name}' names two metaclasses. "
+                               f"A blueprint is governed by one 'using'.",
+                               usando)
+                metaclasse = self._nome_pontuado(
+                    "Expected the metaclass after 'using', as in "
+                    "'blueprint Usuario using Registro:'")
 
         self.expect(TokenType.COLON, "Expected ':' after blueprint header")
         self.match(TokenType.NEWLINE)
         body, campos = self.parse_blueprint_body()
+        modificadores_de_campo = self._ultimos_mods_de_campo
+        decoradores_de_campo = self._ultimos_decos_de_campo
 
         return ast.BlueprintDeclaration(
             name=name, parents=parents, body=body, traits=traits,
             constructor_params=constructor_params,
             fields_decl=campos, is_abstract=abstrato, type_params=tipos,
             type_bounds=limites,
+            is_final="final" in modificadores,
+            is_sealed="sealed" in modificadores,
+            is_meta="meta" in modificadores,
+            metaclass=metaclasse,
+            constructor_types=tipos_do_cabecalho,
+            constructor_defaults=padroes_do_cabecalho,
+            field_modifiers=modificadores_de_campo,
+            field_decorators=decoradores_de_campo,
             line=tok.line, column=tok.column
         )
+
+    def _nome_pontuado(self, mensagem="Expected a name"):
+        """'Forma' ou 'Geo.Forma' — um nome que pode vir de um modulo."""
+        partes = [self.expect(TokenType.IDENTIFIER, mensagem).value]
+        while (self.current().type == TokenType.DOT
+               and self.peek(1).type == TokenType.IDENTIFIER):
+            self.advance()
+            partes.append(self.advance().value)
+        return ".".join(partes)
 
     # ── Corpo do blueprint ───────────────────────────────────
 
@@ -1473,39 +1608,82 @@ class Parser:
         TokenType.IS: "==", TokenType.ISNT: "!=",
     }
 
+    #: Os modificadores de membro, na ordem em que a doc os apresenta.
+    MODIFICADORES_DE_MEMBRO = (
+        "private", "protected", "internal", "abstract", "final", "override",
+        "overload", "exclusive", "readonly", "lazy")
+
+    #: O que cada modificador aceita modificar. Um 'lazy' num campo, ou um
+    #: 'readonly' numa acao, e recusado na leitura — calar faria a palavra
+    #: parecer valer sem valer nada.
+    _MODIFICADOR_SERVE = {
+        "private": {"action", "field", "property"},
+        "protected": {"action", "field", "property"},
+        "internal": {"action", "field", "property"},
+        "abstract": {"action", "blueprint"},
+        "final": {"action", "blueprint"},
+        "override": {"action", "property"},
+        "overload": {"action"},
+        "exclusive": {"action"},
+        "readonly": {"field"},
+        "lazy": {"property"},
+    }
+
     def parse_blueprint_body(self):
         """Le o corpo de um blueprint.
 
         Devolve (instrucoes, campos_declarados). Reconhece, alem de acoes:
 
             nome: Tipo [:= padrao]     campo declarado
-            private action f(): ...    visibilidade
+            private action f(): ...    visibilidade (private/protected/internal)
             static action f(): ...     metodo de classe
+            static steady MAX := 3     constante de classe
             abstract action f()        sem corpo, obriga o herdeiro
             final action f(): ...      nao pode ser sobrescrito
+            override action f(): ...   tem de sobrescrever algo
+            overload action f(x: T)    uma variante, escolhida na chamada
+            exclusive action f(): ...  uma thread por vez neste objeto
+            readonly nome := valor     so a construcao escreve
             get area(): ...            propriedade de leitura
+            lazy get total(): ...      calculada uma vez por objeto
             set area(v): ...           propriedade de escrita
             operator + (o): ...        sobrecarga
+            invariant cond, "msg"      vale depois de toda operacao publica
+            @Anotacao                  sobre qualquer membro, inclusive campo
+
+        Os modificadores e os decoradores de CAMPO ficam em
+        '_ultimos_mods_de_campo' e '_ultimos_decos_de_campo', lidos por
+        quem chamou logo depois: a tupla de campo tem quatro posicoes e e
+        desempacotada em muitos lugares, e crescer a tupla quebraria
+        todos eles.
         """
         self.skip_newlines()
         self.expect(TokenType.INDENT, "A blueprint needs an indented body")
 
-        corpo, campos = [], []
-        while self.current().type not in (TokenType.DEDENT, TokenType.EOF):
-            self.skip_newlines()
-            if self.current().type in (TokenType.DEDENT, TokenType.EOF):
-                break
+        mods_antes = getattr(self, "_mods_de_campo", None)
+        decos_antes = getattr(self, "_decos_de_campo", None)
+        self._mods_de_campo, self._decos_de_campo = {}, {}
+        try:
+            corpo, campos = [], []
+            while self.current().type not in (TokenType.DEDENT, TokenType.EOF):
+                self.skip_newlines()
+                if self.current().type in (TokenType.DEDENT, TokenType.EOF):
+                    break
 
-            item, campo = self.parse_membro_blueprint()
-            if campo is not None:
-                campos.append(campo)
-            if item is not None:
-                corpo.append(item)
-            self.skip_newlines()
+                item, campo = self.parse_membro_blueprint()
+                if campo is not None:
+                    campos.append(campo)
+                if item is not None:
+                    corpo.append(item)
+                self.skip_newlines()
 
-        if self.current().type == TokenType.DEDENT:
-            self.advance()
-        return corpo, campos
+            if self.current().type == TokenType.DEDENT:
+                self.advance()
+            self._ultimos_mods_de_campo = self._mods_de_campo
+            self._ultimos_decos_de_campo = self._decos_de_campo
+            return corpo, campos
+        finally:
+            self._mods_de_campo, self._decos_de_campo = mods_antes, decos_antes
 
     @staticmethod
     def _texto_e(token, *palavras):
@@ -1523,14 +1701,17 @@ class Parser:
             return False
         prox = self.peek(1)
         if prox.type in (TokenType.ACTION, TokenType.STATIC,
-                         TokenType.BLUEPRINT):
+                         TokenType.BLUEPRINT, TokenType.ASYNC):
             return True
-        if self._texto_e(prox, "get", "set", "operator", "private",
-                         "protected", "abstract", "final"):
+        if prox.type == TokenType.STREAM and self.peek(2).type == TokenType.ACTION:
             return True
-        # 'private nome: Tipo' — campo com visibilidade
+        if self._texto_e(prox, "get", "set", "operator",
+                         *self.MODIFICADORES_DE_MEMBRO,
+                         *self.MODIFICADORES_DE_BLUEPRINT):
+            return True
+        # 'private nome: Tipo' e 'readonly nome := valor' — campo
         return (prox.type == TokenType.IDENTIFIER
-                and self.peek(2).type == TokenType.COLON)
+                and self.peek(2).type in (TokenType.COLON, TokenType.ASSIGN))
 
     def _e_propriedade(self):
         """'get nome(' ou 'set nome(' — e ai sim uma propriedade."""
@@ -1538,36 +1719,138 @@ class Parser:
                 and self.peek(1).type == TokenType.IDENTIFIER
                 and self.peek(2).type == TokenType.LPAREN)
 
+    #: O que pode comecar a expressao de um 'invariant'/'expects'/'promises'.
+    #: A lista e POSITIVA de proposito: 'expects := 1', 'expects(x)' e
+    #: 'expects.campo' continuam sendo um nome comum.
+    _COMECA_CONDICAO = frozenset({
+        TokenType.IDENTIFIER, TokenType.SELF, TokenType.NOT,
+        TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING,
+        TokenType.INTERP_STRING, TokenType.BOOLEAN, TokenType.VOID,
+        TokenType.TYPEOF,
+    })
+
+    def _abre_condicao(self, palavra):
+        return (self._palavra(palavra)
+                and self.peek(1).type in self._COMECA_CONDICAO)
+
+    def _parse_condicao_com_mensagem(self, no, rotulo):
+        """'<palavra> cond [, "mensagem"]' — o formato das tres clausulas."""
+        tok = self.advance()                    # a palavra
+        condicao = self.parse_expression()
+        mensagem = None
+        if self.match(TokenType.COMMA):
+            mensagem = self.parse_expression()
+        self.match(TokenType.NEWLINE)
+        return no(condition=condicao, message=mensagem,
+                  line=tok.line, column=tok.column)
+
+    def parse_expects(self):
+        """expects cond [, "mensagem"] — pre-condicao."""
+        return self._parse_condicao_com_mensagem(ast.ExpectsStatement, "expects")
+
+    def parse_promises(self):
+        """promises cond [, "mensagem"] — pos-condicao; aceita before(expr)."""
+        self._em_promessa = getattr(self, "_em_promessa", 0) + 1
+        try:
+            return self._parse_condicao_com_mensagem(ast.PromisesStatement,
+                                                     "promises")
+        finally:
+            self._em_promessa -= 1
+
     def parse_membro_blueprint(self):
         """Um membro do corpo. Devolve (instrucao, campo) — um dos dois e None."""
         visibilidade = "public"
-        estatico = abstrato = final = False
+        estatico = False
+        flags = []
+        inicio = self.current()
+
+        # Decoradores sobre o membro — inclusive sobre um CAMPO, que e onde
+        # '@Coluna("email")' e '@Injetar' mais servem.
+        decoradores = []
+        while (self.current().type is TokenType.AT
+               or (self.current().type is TokenType.MARK
+                   and self.peek(1).type is TokenType.AT)):
+            if self.current().type is TokenType.MARK:
+                self.advance()
+            decoradores.append(self.parse_um_decorador())
+            self.skip_newlines()
 
         # Modificadores, em qualquer ordem: 'private static action f()'.
         # Sao palavras contextuais: reconhecidas pelo texto, e so quando o
         # que vem em seguida confirma que sao modificador. Assim
         # 'final := 10' continua sendo uma variavel chamada 'final'.
         while True:
-            if self._e_modificador("private"):
-                visibilidade = "private"; self.advance()
-            elif self._e_modificador("protected"):
-                visibilidade = "protected"; self.advance()
-            elif self._e_modificador("abstract"):
-                abstrato = True; self.advance()
-            elif self._e_modificador("final"):
-                final = True; self.advance()
-            elif (self.current().type == TokenType.STATIC
-                  and (self.peek(1).type == TokenType.ACTION
-                       or self._texto_e(self.peek(1), "get", "set"))):
-                estatico = True; self.advance()
-            else:
-                break
+            achou = False
+            for palavra in self.MODIFICADORES_DE_MEMBRO:
+                if self._e_modificador(palavra):
+                    tok_mod = self.advance()
+                    if palavra in ("private", "protected", "internal"):
+                        if visibilidade != "public":
+                            self.error(
+                                f"A member has one visibility; "
+                                f"'{visibilidade}' and '{palavra}' were both "
+                                f"written.", tok_mod)
+                        visibilidade = palavra
+                    elif palavra in flags:
+                        self.error(f"'{palavra}' was written twice.", tok_mod)
+                    else:
+                        flags.append(palavra)
+                    achou = True
+                    break
+            if achou:
+                continue
+            if (self.current().type == TokenType.STATIC
+                    and (self.peek(1).type in (TokenType.ACTION, TokenType.STEADY,
+                                               TokenType.ASYNC)
+                         or self._texto_e(self.peek(1), "get", "set"))):
+                estatico = True
+                self.advance()
+                continue
+            break
 
         t = self.current().type
 
+        def recusar_se_nao_serve(especie):
+            for palavra in flags + ([visibilidade] if visibilidade != "public" else []):
+                if especie not in self._MODIFICADOR_SERVE[palavra]:
+                    nomes = {"action": "an action", "field": "a field",
+                             "property": "a property", "blueprint": "a blueprint",
+                             "invariant": "an invariant"}
+                    serve = ", ".join(sorted(self._MODIFICADOR_SERVE[palavra]))
+                    self.error(f"'{palavra}' cannot modify {nomes[especie]}; "
+                               f"it applies to: {serve}.", inicio)
+
+        # invariant cond, "mensagem"
+        if self._abre_condicao("invariant"):
+            if flags or visibilidade != "public" or estatico or decoradores:
+                self.error("'invariant' takes no modifier or decorator: it "
+                           "always holds, for every public operation.", inicio)
+            return self._parse_condicao_com_mensagem(
+                ast.InvariantStatement, "invariant"), None
+
+        # blueprint aninhado, com os proprios modificadores
+        if t == TokenType.BLUEPRINT or self._modificadores_antes_de_blueprint():
+            recusar_se_nao_serve("blueprint")
+            if t == TokenType.BLUEPRINT:
+                decl = self.parse_blueprint(abstrato="abstract" in flags,
+                                            modificadores=flags)
+            else:
+                decl = self.parse_blueprint_com_modificadores()
+            decl.decorators = decoradores + list(decl.decorators or [])
+            return decl, None
+
         # get nome(): ...   |   set nome(valor): ...
         if self._e_propriedade():
-            return self.parse_property(visibilidade), None
+            recusar_se_nao_serve("property")
+            prop = self.parse_property(visibilidade)
+            prop.is_lazy = "lazy" in flags
+            prop.is_override = "override" in flags
+            if prop.is_lazy and prop.kind != "get":
+                self.error(f"'lazy' applies to a 'get': 'lazy get "
+                           f"{prop.name}()'. A setter has nothing to cache.",
+                           inicio)
+            prop.decorators = decoradores
+            return prop, None
 
         # operator + (outro): ...
         # 'operator' seguido de ':=', '(' ou '.' e uma variavel chamada
@@ -1577,15 +1860,39 @@ class Parser:
                 TokenType.ASSIGN, TokenType.LPAREN, TokenType.DOT,
                 TokenType.NEWLINE, TokenType.COLON, TokenType.COMMA,
                 TokenType.RPAREN, TokenType.LBRACKET):
+            if flags or visibilidade != "public":
+                self.error("An 'operator' takes no modifier: it is public by "
+                           "nature, because the language calls it.", inicio)
             return self.parse_operator(), None
 
-        # action / abstract action
-        if t == TokenType.ACTION:
-            decl = self.parse_action(sem_corpo=abstrato)
+        # action / abstract action / async action / stream action
+        if t in (TokenType.ACTION, TokenType.ASYNC) or (
+                t == TokenType.STREAM and self.peek(1).type == TokenType.ACTION):
+            recusar_se_nao_serve("action")
+            abstrato = "abstract" in flags
+            if t == TokenType.ACTION:
+                decl = self.parse_action(sem_corpo=abstrato)
+            elif t == TokenType.ASYNC:
+                decl = self.parse_async_action()
+            else:
+                self.advance()
+                decl = self.parse_action(is_generator=True, sem_corpo=abstrato)
             decl.visibility = visibilidade
             decl.is_static = estatico
-            decl.is_abstract = abstrato
-            decl.is_final = final
+            decl.is_abstract = abstrato or bool(getattr(decl, "is_abstract", False))
+            decl.is_final = "final" in flags
+            decl.is_override = "override" in flags
+            decl.is_overload = "overload" in flags
+            decl.is_exclusive = "exclusive" in flags
+            if decl.is_abstract and decl.is_final:
+                self.error(f"'{decl.name}' cannot be abstract and final: "
+                           f"abstract asks a child to write it, final "
+                           f"forbids that.", inicio)
+            if decl.is_exclusive and estatico:
+                self.error(f"'exclusive' locks the OBJECT, and a static "
+                           f"action has none. Use Arcane.Concurrent.mutex "
+                           f"for class-wide exclusion.", inicio)
+            decl.decorators = decoradores + list(decl.decorators or [])
             return decl, None
 
         # slots ["a", "b"]  —  restringe os campos da instancia
@@ -1622,28 +1929,59 @@ class Parser:
             return ast.SlotsDeclaration(names=nomes, line=tok.line,
                                         column=tok.column), None
 
-        # static x := valor
-        if t == TokenType.STATIC:
+        # static x := valor   |   static steady MAX := valor
+        if t == TokenType.STATIC or (estatico and t == TokenType.STEADY):
+            if flags or visibilidade != "public":
+                self.error("A static field takes no other modifier.", inicio)
+            if estatico:
+                # 'static' ja foi consumido no laco dos modificadores
+                return self._parse_static_depois_da_palavra(inicio), None
             return self.parse_statement(), None
 
         # nome: Tipo [:= padrao] — campo declarado
         if t == TokenType.IDENTIFIER and self.peek(1).type == TokenType.COLON:
+            recusar_se_nao_serve("field")
             nome_tok = self.advance()
             self.advance()                      # ':'
-            tipo = self.expect(
-                TokenType.IDENTIFIER,
+            tipo = self._parse_nome_de_tipo(
                 f"Field '{nome_tok.value}' needs a type, as in "
-                f"'{nome_tok.value}: String'").value
+                f"'{nome_tok.value}: String'")
             padrao = None
             if self.match(TokenType.ASSIGN):
                 padrao = self.parse_expression()
             self.match(TokenType.NEWLINE)
+            self._registrar_campo(nome_tok.value, flags, decoradores)
             return None, (nome_tok.value, tipo, padrao, visibilidade)
+
+        # nome := padrao — campo sem tipo, com modificador ou decorador
+        if (t == TokenType.IDENTIFIER and self.peek(1).type == TokenType.ASSIGN
+                and (flags or visibilidade != "public" or decoradores)):
+            recusar_se_nao_serve("field")
+            stmt = self.parse_statement()
+            stmt.visibility = visibilidade
+            self._registrar_campo(stmt.target.name, flags, decoradores)
+            return stmt, None
+
+        if flags or visibilidade != "public" or estatico:
+            palavras = " ".join(([visibilidade] if visibilidade != "public" else [])
+                                + flags + (["static"] if estatico else []))
+            self.error(f"'{palavras}' must be followed by a member: an action, "
+                       f"a field, a property or a blueprint.", inicio)
+        if decoradores:
+            self.error("A decorator inside a blueprint needs a member below "
+                       "it: an action, a field or a property.", inicio)
 
         # qualquer outra instrucao (out, given, corpo de construtor…)
         return self.parse_statement(), None
 
-    def parse_property(self, visibilidade="public"):
+    def _registrar_campo(self, nome, flags, decoradores):
+        """Guarda os modificadores e os decoradores de um campo."""
+        if flags:
+            self._mods_de_campo[nome] = set(flags)
+        if decoradores:
+            self._decos_de_campo[nome] = list(decoradores)
+
+    def parse_property(self, visibilidade="public", sem_corpo=False):
         """get nome() [-> Tipo]: bloco   |   set nome(valor): bloco"""
         tok = self.advance()                    # 'get' ou 'set'
         tipo = tok.value
@@ -1665,8 +2003,17 @@ class Parser:
 
         tipo_retorno = ""
         if self.match(TokenType.ARROW):
-            tipo_retorno = self.expect(TokenType.IDENTIFIER,
-                                       "Expected the return type after '->'").value
+            tipo_retorno = self._parse_nome_de_tipo(
+                "Expected the return type after '->'")
+
+        # Num contrato, a propriedade e so a assinatura: 'get nome() -> T'.
+        if sem_corpo and self.current().type in (TokenType.NEWLINE,
+                                                 TokenType.DEDENT, TokenType.EOF):
+            self.match(TokenType.NEWLINE)
+            return ast.PropertyDeclaration(
+                name=nome, kind=tipo, param=parametro, body=[],
+                visibility=visibilidade, return_type=tipo_retorno,
+                is_abstract=True, line=tok.line, column=tok.column)
 
         self.expect(TokenType.COLON, f"Expected ':' after the property '{nome}'")
         self.match(TokenType.NEWLINE)
@@ -1701,6 +2048,96 @@ class Parser:
         return ast.OperatorDeclaration(
             symbol=simbolo, param=parametro, body=corpo,
             line=tok.line, column=tok.column)
+
+    def parse_contract(self):
+        """contract Nome<T> [extends A, B]: assinaturas
+
+        Cada membro e uma assinatura sem corpo:
+
+            contract Repositorio<T>:
+                action salvar(item: T)
+                action buscar(id: Integer) -> T
+                get total() -> Integer
+
+        Um corpo e recusado na LEITURA. Implementacao padrao e o que o
+        trait faz; deixar o contrato ter corpo apagaria a unica
+        diferenca entre os dois, e com ela o motivo de ter os dois.
+        """
+        tok = self.advance()                    # 'contract'
+        nome = self.expect(TokenType.IDENTIFIER, "Expected the contract name").value
+        tipos = self._parse_parametros_de_tipo()
+        limites = dict(self._ultimos_limites) if tipos else {}
+        pais = []
+        if self.match(TokenType.EXTENDS):
+            pais.append(self._nome_pontuado())
+            while self.match(TokenType.COMMA):
+                pais.append(self._nome_pontuado())
+        self.expect(TokenType.COLON, f"Expected ':' after 'contract {nome}'")
+        self.match(TokenType.NEWLINE)
+        self.skip_newlines()
+        self.expect(TokenType.INDENT, f"Contract '{nome}' needs an indented body "
+                                      f"with at least one signature")
+        membros = []
+        while self.current().type not in (TokenType.DEDENT, TokenType.EOF):
+            self.skip_newlines()
+            if self.current().type in (TokenType.DEDENT, TokenType.EOF):
+                break
+            atual = self.current()
+            if atual.type == TokenType.ACTION or (
+                    atual.type in (TokenType.ASYNC, TokenType.STREAM)
+                    and self.peek(1).type == TokenType.ACTION):
+                geradora = atual.type == TokenType.STREAM
+                assincrona = atual.type == TokenType.ASYNC
+                if geradora or assincrona:
+                    self.advance()
+                assinatura = self.parse_action(sem_corpo=True,
+                                               is_generator=geradora,
+                                               is_async=assincrona)
+                if assinatura.body:
+                    self.error(
+                        f"'{nome}.{assinatura.name}' has a body, and a contract "
+                        f"only declares. Move the code to a trait, or to the "
+                        f"blueprint that fulfills '{nome}'.", atual)
+                assinatura.is_abstract = True
+                membros.append(assinatura)
+            elif self._e_propriedade():
+                membros.append(self.parse_property(sem_corpo=True))
+                if membros[-1].body:
+                    self.error(f"The property '{membros[-1].name}' of contract "
+                               f"'{nome}' has a body; a contract only declares.",
+                               atual)
+            elif atual.type == TokenType.STRING:
+                # uma linha de documentacao, como no topo de uma acao
+                self.advance()
+                self.match(TokenType.NEWLINE)
+            else:
+                self.error(f"A contract holds signatures: 'action nome(…)' or "
+                           f"'get nome()'. Found '{atual.value}'.", atual)
+            self.skip_newlines()
+        if self.current().type == TokenType.DEDENT:
+            self.advance()
+        if not membros and not pais:
+            self.error(f"Contract '{nome}' declares nothing. Add a signature, "
+                       f"or extend other contracts.", tok)
+        return ast.ContractDeclaration(name=nome, parents=pais, members=membros,
+                                       type_params=tipos, type_bounds=limites,
+                                       line=tok.line, column=tok.column)
+
+    def parse_augment(self):
+        """augment Nome: membros — acrescenta a um blueprint que ja existe.
+
+        O corpo e o de um blueprint. O que ele NAO pode fazer e decidido
+        em execucao, onde o blueprint existe: substituir um membro,
+        mexer num 'final', ou atravessar o arquivo de um 'sealed'.
+        """
+        tok = self.advance()                    # 'augment'
+        nome = self._nome_pontuado("Expected the blueprint to augment")
+        self.expect(TokenType.COLON, f"Expected ':' after 'augment {nome}'")
+        self.match(TokenType.NEWLINE)
+        corpo, campos = self.parse_blueprint_body()
+        return ast.AugmentDeclaration(name=nome, body=corpo, fields_decl=campos,
+                                      field_modifiers=self._ultimos_mods_de_campo,
+                                      line=tok.line, column=tok.column)
 
     def parse_record(self):
         """record Nome: campo: Tipo [:= padrao] ... [action metodo(): ...]"""
@@ -2369,6 +2806,16 @@ class Parser:
         quem escrevia os dois juntos tropecava no primeiro.
         """
         tok = self.advance()                    # 'static'
+        return self._parse_static_depois_da_palavra(tok)
+
+    def _parse_static_depois_da_palavra(self, tok):
+        """O resto de 'static [steady] nome [: Tipo] := valor'.
+
+        'static steady MAX := 3' e uma CONSTANTE de classe: le-se por
+        'Blueprint.MAX' como qualquer estatico, e escrever nela e
+        recusado — a mesma promessa do 'steady' de uma variavel.
+        """
+        constante = bool(self.match(TokenType.STEADY))
         name = self.expect(TokenType.IDENTIFIER).value
 
         tipo = ""
@@ -2383,7 +2830,7 @@ class Parser:
         value = self.parse_expression()
         self.match(TokenType.NEWLINE)
         return ast.StaticDeclaration(name=name, value=value,
-                                     declared_type=tipo,
+                                     declared_type=tipo, is_steady=constante,
                                      line=tok.line, column=tok.column)
 
     # ── Expression statement / assignment ──────────────────
@@ -3056,6 +3503,18 @@ class Parser:
     def parse_primary(self):
         """Parse primary expressions (literals, identifiers, grouped)."""
         tok = self.current()
+
+        # before(expr) — so dentro de 'promises', onde tem sentido: o
+        # valor da expressao na ENTRADA da acao. Fora dali, 'before' e um
+        # nome como outro qualquer.
+        if (getattr(self, "_em_promessa", 0) and tok.type == TokenType.IDENTIFIER
+                and tok.value == "before" and self.peek(1).type == TokenType.LPAREN):
+            self.advance()
+            self.advance()
+            interna = self.parse_expression()
+            self.expect(TokenType.RPAREN, "Expected ')' to close 'before('")
+            return ast.BeforeExpression(expression=interna,
+                                        line=tok.line, column=tok.column)
 
         # Integer
         if tok.type == TokenType.INTEGER:

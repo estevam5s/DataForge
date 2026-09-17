@@ -103,6 +103,8 @@ PAPEL_DO_ESCOPO = {
     # ── Declarações e tipos ──
     "storage.type.dataforge": "declaracao",
     "storage.modifier.dataforge": "modificador",
+    "storage.modifier.oop.dataforge": "modificador",
+    "keyword.other.contract.dataforge": "palavra",
     "entity.name.type.dataforge": "tipo",
     "support.type.dataforge": "tipo-embutido",
 

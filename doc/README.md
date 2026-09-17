@@ -12,12 +12,12 @@
 | [**METAS_DO_TODO.md**](METAS_DO_TODO.md) | As metas do `TODO.md` cruzadas com o que já existe: o que está feito, o que foi decidido não fazer, e os cinco que cabem |
 | [**KILN.md**](KILN.md) | O framework web: rotas, templates, middleware e o que ele não tem |
 | [**VITRINE.md**](VITRINE.md) | O framework de dashboards: um programa de cima para baixo vira uma página web |
-| [**OOP.md**](OOP.md) | Orientação a objetos: blueprints, traits, propriedades e métodos mágicos |
+| [**OOP.md**](OOP.md) | Orientação a objetos como sistema: modelo, modificadores, contratos, metaclasses, reflexão, DI, SOLID — e o mapa do que existe |
 | [**ESTABILIDADE.md**](ESTABILIDADE.md) | O que pode quebrar entre versões, e o que não — verificado por teste |
 
 Além destes:
 
-- [`../exercicios/`](../exercicios) — 241 exercícios; os dos módulos 11-23 com `.md` explicativo
+- [`../exercicios/`](../exercicios) — 251 exercícios; os dos módulos 11-23 com `.md` explicativo
 - [`../examples/`](../examples) — 44 programas maiores
 - [`../CLAUDE.md`](../CLAUDE.md) — contexto para trabalhar no interpretador
 

@@ -1,0 +1,74 @@
+// Exercicio 248 — Copia, imutabilidade e serializacao que nao confia no dado
+// Enunciado: persista um pedido com cliente e itens (e um ciclo), recarregue
+// so os tipos esperados, e passe uma configuracao congelada adiante.
+
+adopt Arcane.Objetos as O
+
+blueprint Cliente(nome):
+    pedidos := []
+    private cpf := "000"
+
+blueprint Item(produto, preco):
+    quantidade := 1
+
+blueprint Pedido(cliente):
+    itens := []
+    invariant len(self.itens) smaller_eq 50
+
+    action total():
+        yield sum([i.preco * i.quantidade cycle i in self.itens])
+
+ana := spawn Cliente("Ana")
+p := spawn Pedido(ana)
+p.itens.append(spawn Item("caneta", 3.0))
+p.itens.append(spawn Item("caderno", 12.5))
+ana.pedidos.append(p)  // ciclo: cliente -> pedido -> cliente
+
+// ── serializar ──
+dado := O.para_vault(ana)
+assert dado["$tipo"] is "Cliente"
+assert not("cpf" in dado)  // private nao sai
+assert dado["pedidos"][0]["cliente"]["$ref"] is dado["$id"]
+
+texto := O.para_json(ana)
+volta := O.de_json(texto, [Cliente, Pedido, Item])
+assert volta.pedidos[0].total() is 15.5
+assert volta.pedidos[0].cliente is volta  // o ciclo voltou como ciclo
+
+// ── o dado nao escolhe o tipo ──
+monitor:
+    O.de_vault({"$tipo": "Administrador", "poderes": "todos"}, [Cliente, Pedido, Item])
+    assert no
+handle UnsafeDeserializationError:
+    out "tipo nao autorizado: recusado"
+
+// ── invariante conferida na chegada ──
+itens_demais := [{"$tipo":"Item", "produto":"x", "preco":1} cycle i in range(60)]
+monitor:
+    O.de_vault({"$tipo": "Pedido", "itens": itens_demais}, [Pedido, Item])
+    assert no
+handle InvariantError:
+    out "dado que viola a regra: recusado na chegada"
+
+// ── copia e igualdade ──
+copia := O.clonar_fundo(p)
+copia.itens[0].quantidade := 10
+assert p.itens[0].quantidade is 1
+assert not O.igual(copia, p)
+assert O.igual(O.clonar_fundo(p), p)
+
+// ── congelar ──
+blueprint Config:
+    porta := 8080
+    hosts := ["a"]
+cfg := O.congelar(spawn Config())
+monitor:
+    cfg.porta := 80
+    assert no
+handle FrozenObjectError:
+    out "config congelada"
+editavel := O.clonar(cfg)
+editavel.porta := 80
+assert editavel.porta is 80 and cfg.porta is 8080
+
+out "248 ok"

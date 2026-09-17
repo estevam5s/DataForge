@@ -26,6 +26,7 @@ MODULOS = [
     "testes_api",
     "oop_avancado",
     "oop_magicos",
+    "oop_meta",
     "exercicios",
     "lsp",
     "editor",

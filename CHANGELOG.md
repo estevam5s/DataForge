@@ -14,6 +14,89 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — OOP como sistema
+
+- **Treze palavras contextuais novas**, todas livres como nome fora do
+  lugar delas (`readonly := 3` continua sendo uma variável):
+  `internal`, `readonly`, `override`, `overload`, `exclusive`, `lazy` e
+  `invariant` no corpo de blueprint; `sealed` e `meta` antes de
+  `blueprint`; `contract` e `augment` no topo; `expects` e `promises` no
+  corpo de ação. Nenhuma entrou em `KEYWORDS`.
+- **`contract`** — só assinaturas, com herança entre contratos, propriedade
+  exigida (`get total() -> Integer`), aridade conferida na declaração e
+  valendo como tipo de parâmetro inclusive pelo que herda.
+- **Design por contrato**: `expects` (pré-condição), `promises` (pós,
+  com `outcome` e `before(…)`) e `invariant` — conferida depois da
+  construção e de cada método público chamado de fora. Os erros já
+  existiam no catálogo (`PreconditionError`, `PostconditionError`,
+  `InvariantError`) e nada os levantava.
+- **Modificadores**: `internal` (visível no arquivo), `readonly` (só a
+  construção escreve), `override` (com sugestão do nome certo),
+  `exclusive` (uma thread por vez no objeto, trava reentrante), `lazy get`,
+  `static steady` (constante de classe), `final blueprint` e
+  `sealed blueprint`.
+- **`overload`** em ação de topo, método e construtor: escolha por aridade
+  e tipo, o tipo exato vence o compatível, empate é erro.
+- **Metaclasses**: `meta blueprint` + `using`, com dez ganchos de nome fixo
+  (`on_forge`, `on_extend`, `on_spawn`, `on_ready`, `on_read`,
+  `on_missing`, `on_write`, `on_call`, `on_serialize`, `on_deserialize`),
+  herdadas, e recusando gancho desconhecido e metaclasses em conflito.
+- **`augment`** — acrescentar a um blueprint existente sem substituir nada,
+  sem tocar `final` e sem atravessar o arquivo de um `sealed`.
+- **Cabeçalho com tipo e padrão** (`blueprint Caixa<T>(valor: T, rotulo := "")`),
+  **blueprints aninhados** (`spawn Loja.Item()`), **decoradores em campo e
+  propriedade**, e **`teardown`/`__del__`** que rodam de verdade.
+- **Cinco módulos**: `Arcane.Reflexo` (introspecção e invocação que
+  respeitam a visibilidade, tipos criados em execução, diagrama em
+  Mermaid), `Arcane.Objetos` (cópia, congelamento, igualdade estrutural,
+  serialização polimórfica que só reconstrói tipos autorizados e resolve
+  ciclos), `Arcane.Injecao` (contêiner único/transitório/por escopo, com
+  detecção de ciclo e de dependência cativa), `Arcane.Padroes` (os padrões
+  que pedem mecanismo) e `Arcane.Memoria` (referência fraca, coletor).
+- **`dataforge oop`** — métricas de Chidamber e Kemerer (WMC, DIT, NOC,
+  CBO, RFC, LCOM), fan-in/out, instabilidade e manutenibilidade, e treze
+  cheiros ligados ao princípio SOLID que ferem; `--diagrama`,
+  `--hierarquia`, `--json`, `--strict`.
+- **O `check` prova** override sem alvo, herança de `final`, contrato
+  incompleto ou com aridade incompatível, `readonly` escrito fora da
+  construção, gancho desconhecido, sobrecarga duplicada e `spawn` de
+  contrato; e **avisa** `substituicao-quebrada` (Liskov).
+- **LSP**: ir para implementação e hierarquia de tipos.
+- Doze códigos de erro (DF0917–DF0928, DF0319), onze páginas em
+  `/docs/oop`, e o módulo de exercícios `37-oop-sistema` (242–251).
+
+### Corrigido — OOP
+
+- **Metade dos 95 métodos mágicos da documentação não rodava.**
+  `__getattr__`, `__setattr__`, `__delattr__`, `__getattribute__`, os
+  descritores, `__new__`, `__del__`, `__init_subclass__`, `__int__`,
+  `__float__`, `__round__`, `__abs__`, `__reversed__`, `__format__` e
+  `__hash__` estavam na tabela e em lugar nenhum do interpretador — e
+  `int(obj)` respondia com `'DFInstance'`, um nome do Python. A instância
+  agora responde aos protocolos do host, e por isso os embutidos e a
+  biblioteca inteira os honram sem saber deles.
+- **`private action` podia ser chamada de fora.** A leitura de campo
+  conferia a visibilidade; a chamada de método, não.
+- **`private x := 1` sem tipo não compilava**, e `blueprint Caixa<T>(valor: T)`
+  também não.
+- **Chamar o blueprint como função (`Nome()`) nascia sem os padrões dos
+  campos** que `spawn Nome()` tinha: eram dois caminhos de construção, e
+  hoje é um.
+- **`obj with {…}` numa instância estourava** tentando atribuir a uma
+  propriedade sem escrita.
+- **`__exit__(tipo, erro, pilha)` dava "missing argument(s)"** no fim do
+  bloco `with`.
+- **O analisador não contava `porta := 80` no corpo como campo**, e
+  acusava `obj.porta` como membro inexistente — dentro do arquivo e
+  através de `adopt`.
+
+### Desempenho
+
+- O acesso a membro ganhou um caminho direto para blueprint sem
+  propriedade, descritor, gancho ou mágico de acesso, decidido uma vez
+  por blueprint. Um laço de chamada de método, leitura de campo e `spawn`
+  que levava 4,47 s leva cerca de 3,8 s — mesmo pagando pelos recursos novos.
+
 ### Adicionado
 
 - **`Arcane.Quadro` — a tabela de dados**, e o 49º módulo. Colunas

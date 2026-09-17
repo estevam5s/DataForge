@@ -287,6 +287,15 @@ def _ler(caminho, profundidade, vistos):
             definidos[stmt.name] = Membro(
                 stmt.name, "trait", 0, None,
                 linha=getattr(stmt, "line", 0))
+        elif tipo == "ContractDeclaration":
+            # Um contrato atravessa o 'adopt' como TIPO: 'repo: M.Repositorio'
+            # e 'with M.Repositorio' precisam dele. Sem este ramo o nome
+            # caia no "relay de algo que este leitor nao viu", e o
+            # analisador calava sobre o modulo inteiro.
+            definidos[stmt.name] = Membro(
+                stmt.name, "trait", 0, 0,
+                campos=[m.name for m in getattr(stmt, "members", ()) or ()],
+                linha=getattr(stmt, "line", 0))
         elif tipo == "SteadyDeclaration":
             # Uma constante do topo e um membro como qualquer outro.
             #
@@ -482,12 +491,22 @@ def _de_blueprint(stmt):
                   (getattr(stmt, "constructor_params", []) or [])]
     metodos = {}
     membros = set(parametros)
+    dinamico = bool(getattr(stmt, "metaclass", ""))
+    sobrecarregado = set()
     for filho in (getattr(stmt, "body", []) or []):
         nome = getattr(filho, "name", None)
         if nome:
             membros.add(nome)
             if type(filho).__name__ == "ActionDeclaration":
                 metodos[nome] = filho
+                if getattr(filho, "is_overload", False):
+                    sobrecarregado.add(nome)
+                if nome in ("__getattr__", "__getattribute__"):
+                    dinamico = True
+        elif type(filho).__name__ == "Assignment" and \
+                type(getattr(filho, "target", None)).__name__ == "Identifier":
+            # 'porta := 80' solto no corpo e campo, como no analisador
+            membros.add(filho.target.name)
     for campo in (getattr(stmt, "fields_decl", []) or []):
         membros.add(campo[0] if isinstance(campo, (list, tuple))
                     else getattr(campo, "name", campo))
@@ -496,11 +515,16 @@ def _de_blueprint(stmt):
     # pode estar em outro arquivo, e a regra de "calar quando a mae nao
     # foi vista" ja existe no analisador de instancia.
     herda = bool(getattr(stmt, "parents", None) or
-                 getattr(stmt, "traits", None))
+                 getattr(stmt, "traits", None)) or dinamico
 
     setup = metodos.get("setup") or metodos.get("initiate")
-    if parametros:
+    if setup is not None and setup.name in sobrecarregado:
+        minimo, maximo = 0, None
+    elif parametros:
+        padroes = getattr(stmt, "constructor_defaults", None) or {}
         minimo, maximo = 0, len(parametros)
+        if padroes and not setup:
+            maximo = len(parametros)
     elif setup is not None:
         acao = _de_acao(setup)
         minimo, maximo = acao.minimo, acao.maximo

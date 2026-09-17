@@ -1,0 +1,66 @@
+// Exercicio 247 — Um validador generico escrito com reflexao
+// Enunciado: valide qualquer objeto pelas anotacoes dos campos, sem que o
+// validador conheca o tipo — e confirme que a reflexao nao fura 'private'.
+
+adopt Arcane.Reflexo as R
+
+action Obrigatorio(alvo):
+    yield void
+action Tamanho(minimo, maximo):
+    yield lambda alvo => void
+
+blueprint Usuario:
+    @Obrigatorio
+    @Tamanho(3, 20)
+    nome := ""
+
+    @Obrigatorio
+    email := ""
+
+    private senha := "segredo"
+
+    action saudar():
+        yield "olá, " + self.nome
+
+// O validador so conhece anotacoes, nunca 'Usuario'.
+action validar(obj):
+    problemas := []
+    cycle campo in R.campos(obj):
+        given campo["visibilidade"] isnt "public":
+            skip
+        valor := R.ler(obj, campo["nome"])
+        cycle marca in campo["anotacoes"]:
+            given marca["nome"] is "Obrigatorio" and valor is "":
+                problemas.append($"{campo['nome']} é obrigatório")
+            orif marca["nome"] is "Tamanho" and valor isnt "":
+                minimo, maximo := marca["args"]
+                given len(valor) smaller minimo or len(valor) bigger maximo:
+                    problemas.append($"{campo['nome']} fora de {minimo}..{maximo}")
+    yield problemas
+
+u := spawn Usuario()
+assert validar(u) is ["nome é obrigatório", "email é obrigatório"]
+R.escrever(u, "nome", "Al")
+R.escrever(u, "email", "al@x.com")
+assert validar(u) is ["nome fora de 3..20"]
+u.nome := "Alice"
+assert validar(u) is []
+
+// invocacao por nome
+assert R.invocar(u, "saudar") is "olá, Alice"
+assert R.tem(u, "saudar")
+assert "senha" in [c["nome"] cycle c in R.campos(Usuario)]  // saber que existe…
+monitor:
+    R.ler(u, "senha")  // …nao e poder ler
+    assert no
+handle TypeError as e:
+    assert "private" in e.message
+
+// sugestao de nome parecido, como dado
+assert R.sugerir(u, "sadar") is ["saudar"]
+
+// o diagrama sai da mesma informacao
+diagrama := R.diagrama([Usuario])
+assert "-senha" in diagrama and "+saudar()" in diagrama
+
+out "247 ok"

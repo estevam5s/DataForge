@@ -15,6 +15,7 @@ import asyncio
 from . import ast_nodes as ast
 from .environment import Environment
 from . import magicos
+from . import objetos
 from .builtins import (BuiltinFunction, get_builtins,
                        set_magic_dispatcher, set_stringifier)
 from .caminhos import curto as _curto
@@ -34,6 +35,10 @@ from .errors import (
     SliceError, ValueNotFoundError, SortKeyError, NegativeSizeError,
     PrivateAccessError, ProtectedAccessError, AbstractInstantiationError,
     TraitContractError, FinalOverrideError, ReadOnlyPropertyError,
+    FinalBlueprintError, SealedBlueprintError, OverrideTargetError,
+    AmbiguousOverloadError, MetaclassError, AugmentError, InternalAccessError,
+    SignatureMismatchError, UnknownTraitError, PreconditionError,
+    PostconditionError, InvariantError,
     RecordMutationError, UnknownFieldError, EnumMemberError, EnumValueError,
     ModuleNotFoundError_, CircularImportError, IOError_, FileNotFoundError_,
     PermissionError_, SerializationError, RegexError, DateTimeError,
@@ -379,6 +384,11 @@ class DFAction:
         #: 'root' voltava para o mesmo metodo, para sempre.
         self.dono = None
 
+        #: O que esta acao tem de especial — sobrecarga, pos-condicao,
+        #: trava — ou None. E a UNICA leitura que uma chamada comum paga
+        #: por esses recursos: ver 'objetos.py'.
+        self.extras = None
+
     def __call__(self, *args, **kwargs):
         """Allow DFAction to be called like a Python function."""
         if DFAction._interpreter is None:
@@ -437,6 +447,74 @@ class DFBlueprint:
         #: apareceria.
         self._mro = None
 
+        # ── OOP 1.2 ──
+        self.e_final = False            # 'final blueprint'
+        self.e_selado = False           # 'sealed blueprint'
+        self.e_meta = False             # 'meta blueprint'
+        self.e_contrato = False         # 'contract'
+        self.e_trait = False            # 'trait'
+        #: O arquivo que declarou — e o que 'sealed' e 'internal' comparam.
+        self.arquivo = ""
+        #: 'static steady' — nomes de estaticos que nao aceitam escrita
+        self.constantes = set()
+        #: campos 'readonly' da linhagem inteira
+        self.somente_leitura = frozenset()
+        #: membros nao publicos da linhagem: so eles pagam a conferencia
+        #: de acesso. A busca de visibilidade sobe pelos pais, e fazer
+        #: isso em toda leitura de campo publico era custo sem motivo.
+        self.nao_publicos = frozenset()
+        #: invariantes e ganchos de metaclasse, ou None — ver objetos.Vigias
+        self.vigias = None
+        #: a metaclasse: o 'meta blueprint' nomeado em 'using' (ou herdado)
+        self.meta_blueprint = None
+        #: as filhas diretas, por referencia fraca: um blueprint criado e
+        #: descartado em tempo de execucao nao pode ficar vivo so por ter
+        #: sido filha de alguem.
+        self.herdeiros = []
+        #: '@Coluna("x")' sobre um campo — nome -> [{nome, args, kwargs}]
+        self.metadados_de_campo = {}
+        #: contrato: nome -> a acao-assinatura, para conferir aridade
+        self.assinaturas = {}
+        #: contrato: propriedades exigidas ('get total() -> Integer')
+        self.propriedades_exigidas = set()
+        #: todos os traits e contratos adotados, inclusive os que um
+        #: contrato herda de outro — e o que 'x: Contrato' confere
+        self.contratos_todos = frozenset()
+        self.tipos_do_cabecalho = {}
+        self.padroes_do_cabecalho = {}
+        #: 'teardown' ou '__del__': quando existe, a instancia nasce da
+        #: subclasse que sabe morrer — as outras nao pagam por isso
+        self.finalizador = None
+        #: campos cujo padrao e um DESCRITOR (__get__/__set__)
+        self.descritores = {}
+        #: o metodo magico ja procurado na linhagem, ou None
+        self.cache_magico = {}
+        #: '__getattribute__' / '__setattr__' declarados na linhagem
+        self.leitura_magica = False
+        self.escrita_magica = False
+        #: a instancia unica de um 'meta blueprint' — o 'self' dos ganchos
+        self.instancia_meta = None
+        #: O acesso a membro nao tem nada de especial: nem propriedade, nem
+        #: descritor, nem gancho, nem '__getattribute__'. E a pergunta que
+        #: o caminho quente faz UMA vez, em vez de cinco. Nasce 'no' — o
+        #: caminho completo e sempre correto, so mais lento.
+        self.leitura_simples = False
+        self.escrita_simples = False
+        #: 'setup', 'initiate' ou '__init__', achado uma vez
+        self.construtor = None
+
+    def recalcular_acesso(self):
+        """Recalcula os atalhos depois que o blueprint muda."""
+        props = any(bp.properties for bp in self.linhagem())
+        especial = (self.leitura_magica or self.vigias is not None or props
+                    or bool(self.descritores))
+        self.leitura_simples = not especial
+        self.escrita_simples = not (especial or self.escrita_magica
+                                    or bool(self.somente_leitura))
+        self.construtor = next(
+            (self.methods[n] for n in ("setup", "initiate", "__init__")
+             if isinstance(self.methods.get(n), DFAction)), None)
+
     def slots_efetivos(self):
         """Os slots deste blueprint e dos ancestrais, juntos.
 
@@ -482,9 +560,24 @@ class DFBlueprint:
         for pai in self.parents:
             v = pai.visibilidade_de(nome)
             if v != "public":
-                # private do pai nao vaza para o filho; protected sim
-                return "protected" if v == "protected" else "private"
+                # private do pai nao vaza para o filho; protected sim.
+                # 'internal' e do ARQUIVO, nao da linhagem: continua
+                # internal, e quem decide e onde o codigo esta escrito.
+                return v if v in ("protected", "internal") else "private"
         return "public"
+
+    def esquecer_caches(self):
+        """Um membro mudou em execucao: o que foi calculado perde a validade."""
+        self.cache_magico = {}
+        self.leitura_magica = self.leitura_magica or any(
+            "__getattribute__" in bp.methods for bp in self.linhagem())
+        self.escrita_magica = self.escrita_magica or any(
+            "__setattr__" in bp.methods for bp in self.linhagem())
+        self.recalcular_acesso()
+        for ref in list(self.herdeiros):
+            filha = ref()
+            if filha is not None:
+                filha.esquecer_caches()
 
     def declarante_de(self, nome):
         """O blueprint da linhagem que DECLAROU este membro.
@@ -597,7 +690,7 @@ class DFInstance:
     interpretador nao precisar saber qual dos dois esta em uso.
     """
 
-    __slots__ = ("blueprint", "_valores", "_indice")
+    __slots__ = ("blueprint", "_valores", "_indice", "_estado", "__weakref__")
 
     #: Marcador de slot ainda nao preenchido. Nao pode ser None:
     #: 'self.x := void' e uma atribuicao legitima, e confundir os dois
@@ -615,6 +708,9 @@ class DFInstance:
         self._indice = indice
         self._valores = ([DFInstance._VAZIO] * len(indice)
                          if indice is not None else {})
+        #: None ate alguem congelar, travar ou construir com 'readonly' —
+        #: ver objetos.EstadoDoObjeto
+        self._estado = None
 
     @property
     def fields(self):
@@ -718,6 +814,234 @@ class DFInstance:
 
     def __repr__(self):
         return f"<{self.blueprint.name} instance>"
+
+    # ── Os protocolos do Python, respondidos pelos metodos magicos ──
+    #
+    # 'int(obj)', 'round(obj)', 'sorted(objs)' e 'hash(obj)' sao
+    # chamadas do PYTHON: os embutidos da linguagem sao funcoes do host,
+    # e a stdlib inteira tambem. Responder aqui, uma vez, faz o
+    # '__int__' do blueprint valer em todas elas — e nao so nos lugares
+    # que alguem lembrou de adaptar. Era por isso que metade dos 95
+    # metodos magicos da documentacao nao rodava: cada embutido precisava
+    # saber deles, e nenhum sabia.
+    #
+    # O que NAO esta aqui, de proposito: '__len__', '__bool__' e
+    # '__iter__'. O interpretador pergunta 'if obj:' sobre instancias em
+    # dezenas de lugares, e um '__len__' no Python mudaria a verdade de
+    # todo objeto que declara tamanho. Esses tres ja sao atendidos pela
+    # propria linguagem ('len', 'given', 'cycle').
+
+    def _magico_py(self, nome, *args):
+        interp = DFAction._interpreter
+        if interp is None:
+            return _SEM_MAGICO
+        acao = Interpreter._achar_magico(self, nome)
+        if acao is None:
+            return _SEM_MAGICO
+        return interp._call_action(acao, list(args), {}, interp._no_interno(),
+                                   None, instance=self)
+
+    def _recusar_conversao(self, tipo, magico):
+        raise TypeError(
+            f"an instance of '{self.blueprint.name}' cannot become {tipo}: "
+            f"declare 'action {magico}()' in the blueprint")
+
+    def __int__(self):
+        for nome in ("__int__", "__index__"):
+            r = self._magico_py(nome)
+            if r is not _SEM_MAGICO:
+                return int(r)
+        self._recusar_conversao("Integer", "__int__")
+
+    def __index__(self):
+        r = self._magico_py("__index__")
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("an index", "__index__")
+        return int(r)
+
+    def __float__(self):
+        r = self._magico_py("__float__")
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("Float", "__float__")
+        return float(r)
+
+    def __complex__(self):
+        r = self._magico_py("__complex__")
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("Complex", "__complex__")
+        return complex(r)
+
+    def __round__(self, casas=None):
+        r = (self._magico_py("__round__") if casas is None
+             else self._magico_py("__round__", casas))
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("a rounded number", "__round__")
+        return r
+
+    def __floor__(self):
+        r = self._magico_py("__floor__")
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("a floor", "__floor__")
+        return r
+
+    def __ceil__(self):
+        r = self._magico_py("__ceil__")
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("a ceiling", "__ceil__")
+        return r
+
+    def __trunc__(self):
+        r = self._magico_py("__trunc__")
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("a truncated number", "__trunc__")
+        return r
+
+    def __abs__(self):
+        r = self._magico_py("__abs__")
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("an absolute value", "__abs__")
+        return r
+
+    def __reversed__(self):
+        r = self._magico_py("__reversed__")
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("a reversed sequence", "__reversed__")
+        return iter(r)
+
+    def __format__(self, especificador):
+        r = self._magico_py("__format__", especificador)
+        if r is _SEM_MAGICO:
+            if not especificador:
+                return DFAction._interpreter._to_str(self) \
+                    if DFAction._interpreter else repr(self)
+            self._recusar_conversao(f"text formatted with '{especificador}'",
+                                    "__format__")
+        return str(r)
+
+    def __bytes__(self):
+        r = self._magico_py("__bytes__")
+        if r is _SEM_MAGICO:
+            self._recusar_conversao("Bytes", "__bytes__")
+        return r if isinstance(r, bytes) else str(r).encode("utf-8")
+
+    def __hash__(self):
+        r = self._magico_py("__hash__")
+        if r is _SEM_MAGICO:
+            return object.__hash__(self)
+        return hash(r)
+
+    def __eq__(self, outro):
+        if self is outro:
+            return True
+        r = self._magico_py("__eq__", outro)
+        if r is not _SEM_MAGICO:
+            return bool(r)
+        c = self._magico_py("__cmp__", outro)
+        if c is not _SEM_MAGICO and isinstance(c, (int, float)):
+            return c == 0
+        return False
+
+    def __ne__(self, outro):
+        r = self._magico_py("__ne__", outro)
+        if r is not _SEM_MAGICO:
+            return bool(r)
+        return not self.__eq__(outro)
+
+    def _comparar_py(self, nome, outro, de_cmp):
+        r = self._magico_py(nome, outro)
+        if r is not _SEM_MAGICO and r is not NotImplemented:
+            return bool(r)
+        c = self._magico_py("__cmp__", outro)
+        if c is not _SEM_MAGICO and isinstance(c, (int, float)):
+            return de_cmp(c)
+        return NotImplemented
+
+    def __lt__(self, outro):
+        return self._comparar_py("__lt__", outro, lambda c: c < 0)
+
+    def __le__(self, outro):
+        return self._comparar_py("__le__", outro, lambda c: c <= 0)
+
+    def __gt__(self, outro):
+        return self._comparar_py("__gt__", outro, lambda c: c > 0)
+
+    def __ge__(self, outro):
+        return self._comparar_py("__ge__", outro, lambda c: c >= 0)
+
+    def __copy__(self):
+        for nome in ("__copy__", "__clone__"):
+            r = self._magico_py(nome)
+            if r is not _SEM_MAGICO:
+                return r
+        return copiar_instancia(self, fundo=False)
+
+    def __deepcopy__(self, memo):
+        for nome in ("__deepcopy__", "__clone__"):
+            r = self._magico_py(nome)
+            if r is not _SEM_MAGICO:
+                return r
+        return copiar_instancia(self, fundo=True, memo=memo)
+
+
+def copiar_instancia(original, fundo=False, memo=None):
+    """Uma instancia nova do mesmo blueprint, com os mesmos campos.
+
+    Nao roda 'setup': a copia nao NASCE, ela e duplicada — e o que o
+    Python faz, e o unico jeito de copiar um objeto cujo construtor pede
+    argumentos que a copia nao tem. Congelamento e trava NAO sao
+    copiados: a copia existe justamente para ser mexida.
+    """
+    import copy as _copy
+    classe = type(original)
+    copia = classe.__new__(classe)
+    DFInstance.__init__(copia, original.blueprint)
+    if memo is not None:
+        memo[id(original)] = copia
+    for nome, valor in original.fields.items():
+        if fundo:
+            valor = _copy.deepcopy(valor, memo if memo is not None else {})
+        copia.set(nome, valor)
+    return copia
+
+
+class DFInstanceFinal(DFInstance):
+    """A instancia de um blueprint que declara 'teardown' ou '__del__'.
+
+    Uma subclasse, e nao um '__del__' em toda instancia: o coletor do
+    Python trata objeto com finalizador de outro jeito, e um programa
+    com um milhao de objetos sem finalizador nao pode pagar por isso.
+    """
+
+    __slots__ = ()
+
+    def __del__(self):
+        import sys as _sys
+        if _sys.is_finalizing():
+            # No fim do processo o interpretador ja pode estar desmontado;
+            # rodar codigo do usuario ali daria erro sobre nada.
+            return
+        interp = DFAction._interpreter
+        acao = getattr(self.blueprint, "finalizador", None)
+        if interp is None or acao is None:
+            return
+        try:
+            interp._call_action(acao, [], {}, interp._no_interno(), None,
+                                instance=self)
+        except BaseException as erro:          # um finalizador nunca propaga
+            try:
+                mensagem = getattr(erro, "message", None) or str(erro)
+                _sys.stderr.write(
+                    f"aviso: o finalizador de '{self.blueprint.name}' falhou: "
+                    f"{mensagem}\n")
+            except Exception:
+                pass
+
+
+#: As classes de instancia que podem ter vigias — o teste do caminho quente.
+_COM_VIGIAS = frozenset((DFInstance, DFInstanceFinal))
+
+#: Os nomes que 'obj.' responde sem olhar os campos.
+_EMBUTIDOS_DA_INSTANCIA = frozenset(("blueprint_name", "fields", "methods"))
 
 
 #: O nome que o Python usa -> o nome que a linguagem usa.
@@ -1446,6 +1770,12 @@ class _PorThread(threading.local):
         # A acao cujo quadro esta em execucao NESTA thread. So o
         # trampolim da chamada de cauda precisa dela, e so ele a escreve.
         self.acao = None
+        # Um gancho de metaclasse rodando: os ganchos nao disparam uns aos
+        # outros, senao um 'on_read' que le um campo leria para sempre.
+        self.em_gancho = False
+        # '__getattribute__'/'__setattr__' rodando, por objeto: dentro
+        # deles, 'self.x' e o acesso cru, como 'object.__getattribute__'.
+        self.magicos_ativos = set()
 
 
 class _Ganchos:
@@ -2095,11 +2425,21 @@ class Interpreter:
         bp = getattr(valor, "blueprint", None)
         if bp is None:
             return None
+        cache = getattr(bp, "cache_magico", None)
+        if cache is not None:
+            try:
+                return cache[nome]
+            except KeyError:
+                pass
+        achado = None
         for ancestral in bp.linhagem():
             acao = ancestral.methods.get(nome)
             if acao is not None:
-                return acao
-        return None
+                achado = acao
+                break
+        if cache is not None:
+            cache[nome] = achado
+        return achado
 
     def _tem_magico(self, valor, nome):
         return self._achar_magico(valor, nome) is not None
@@ -2614,8 +2954,103 @@ class Interpreter:
                     return mro[i + 1:]
         return list(instance.blueprint.parents)
 
+    def _ler_da_instancia(self, obj, membro, node, env):
+        """'obj.membro' numa instancia de blueprint.
+
+        A ordem e a de uma linguagem com descritor: '__getattribute__'
+        intercepta tudo; depois a propriedade e o descritor, que vivem na
+        CLASSE; depois o campo; e so quando nada existe, '__getattr__' e
+        o 'on_missing' da metaclasse.
+        """
+        bp = obj.blueprint
+        if bp.leitura_magica:
+            ativos = self._por_thread.magicos_ativos
+            chave = (id(obj), "__getattribute__")
+            if chave not in ativos:
+                acao = self._achar_magico(obj, "__getattribute__")
+                ativos.add(chave)
+                try:
+                    return self._call_action(acao, [membro], {}, node, env,
+                                             instance=obj)
+                finally:
+                    ativos.discard(chave)
+
+        if membro in bp.nao_publicos:
+            self._conferir_acesso(bp, membro, env, node)
+
+        # Propriedade: 'p.area' roda o corpo do 'get area()'
+        prop = bp.buscar_propriedade(membro)
+        if prop is not None:
+            if 'get' not in prop:
+                raise TypeError_(
+                    f"'{bp.name}.{membro}' is write-only: it "
+                    f"has a 'set' but no 'get'.",
+                    node.line, node.column)
+            if prop.get('lazy'):
+                estado = objetos.estado_de(obj)
+                if estado.cache is None:
+                    estado.cache = {}
+                if membro in estado.cache:
+                    valor = estado.cache[membro]
+                else:
+                    valor = estado.cache[membro] = self._call(
+                        prop['get'], [], {}, node, env, instancia=obj)
+            else:
+                valor = self._call(prop['get'], [], {}, node, env, instancia=obj)
+        elif bp.descritores and membro in bp.descritores:
+            descritor = bp.descritores[membro]
+            valor = self._chamar_magico(descritor, "__get__", [obj, bp], node)
+            if valor is _SEM_MAGICO:
+                valor = descritor
+        else:
+            try:
+                valor = obj.get(membro)
+            except NameError_:
+                valor = self._membro_ausente(obj, membro, node, env)
+
+        vigias = bp.vigias
+        if vigias is not None and "on_read" in vigias.ganchos:
+            trocado = self._gancho_de_vigia(vigias, "on_read", [obj, membro, valor], node)
+            if trocado is not None and trocado is not _SEM_MAGICO:
+                valor = trocado
+        return valor
+
+    def _membro_ausente(self, obj, membro, node, env):
+        """O membro nao existe: '__getattr__', 'on_missing', ou o erro."""
+        acao = self._achar_magico(obj, "__getattr__")
+        if acao is not None:
+            chave = (id(obj), "__getattr__", membro)
+            ativos = self._por_thread.magicos_ativos
+            if chave not in ativos:
+                ativos.add(chave)
+                try:
+                    return self._call_action(acao, [membro], {}, node, env,
+                                             instance=obj)
+                finally:
+                    ativos.discard(chave)
+        vigias = obj.blueprint.vigias
+        if vigias is not None and "on_missing" in vigias.ganchos:
+            achado = self._gancho_de_vigia(vigias, "on_missing", [obj, membro], node)
+            if achado is not _SEM_MAGICO:
+                return achado
+        return obj.get(membro)          # levanta o erro de sempre
+
     def _ler_membro_cru(self, obj, node, env, membro=None):
         membro = membro if membro is not None else node.member
+        # O caso de quase todo acesso: 'obj.campo' num blueprint sem nada de
+        # especial. Primeiro, e sem passar pelas seis perguntas de tipo que
+        # vem abaixo — nenhuma delas casa com uma instancia.
+        if type(obj) is DFInstance:
+            bp = obj.blueprint
+            if bp.leitura_simples and membro not in bp.nao_publicos \
+                    and membro not in _EMBUTIDOS_DA_INSTANCIA:
+                valores = obj._valores
+                if obj._indice is None and membro in valores:
+                    return valores[membro]
+                try:
+                    return obj.get(membro)
+                except NameError_:
+                    return self._membro_ausente(obj, membro, node, env)
         # Handle root (super) proxy
         if isinstance(obj, _RootProxy):
             return obj.get(membro)
@@ -2711,19 +3146,7 @@ class Interpreter:
             if membro == 'methods':
                 return list(obj.blueprint.methods.keys())
 
-            # Propriedade: 'p.area' roda o corpo do 'get area()'
-            prop = obj.blueprint.buscar_propriedade(membro)
-            if prop is not None and 'get' in prop:
-                self._conferir_acesso(obj.blueprint, membro, env, node)
-                return self._call(prop['get'], [], {}, node, env, instancia=obj)
-            if prop is not None:
-                raise TypeError_(
-                    f"'{obj.blueprint.name}.{membro}' is write-only: it "
-                    f"has a 'set' but no 'get'.",
-                    node.line, node.column)
-
-            self._conferir_acesso(obj.blueprint, membro, env, node)
-            return obj.get(membro)
+            return self._ler_da_instancia(obj, membro, node, env)
 
         elif isinstance(obj, DFBlueprint):
             if membro in obj.statics:
@@ -3013,9 +3436,23 @@ class Interpreter:
         # testes que nunca casam com ela (proxy, record, modulo). Os tipos
         # sao disjuntos, entao a ordem nao muda o resultado.
         if type(obj) is DFInstance:
-            method = obj.get(node.method)
+            nome = node.method
+            if nome in obj.blueprint.nao_publicos:
+                self._conferir_acesso(obj.blueprint, nome, env, node)
+            # 'on_read' e leitura de CAMPO: a busca do metodo para chama-lo
+            # nao passa por ele, senao todo 'obj.f()' seria tambem uma
+            # leitura de 'f' no registro de quem audita.
+            if obj.blueprint.leitura_magica:
+                method = self._ler_da_instancia(obj, nome, node, env)
+            else:
+                try:
+                    method = obj.get(nome)
+                except NameError_:
+                    method = self._membro_ausente(obj, nome, node, env)
             if isinstance(method, DFAction):
                 return self._call_action(method, args, kwargs, node, env, instance=obj)
+            if isinstance(method, DFInstance):
+                return self._call(method, args, kwargs, node, env)
             if callable(method):
                 return self._invocar(method, args, kwargs, node, node.method)
 
@@ -3045,9 +3482,23 @@ class Interpreter:
             return self._call(obj[node.method], args, kwargs, node, env)
 
         if isinstance(obj, DFInstance):
-            method = obj.get(node.method)
+            nome = node.method
+            if nome in obj.blueprint.nao_publicos:
+                self._conferir_acesso(obj.blueprint, nome, env, node)
+            # 'on_read' e leitura de CAMPO: a busca do metodo para chama-lo
+            # nao passa por ele, senao todo 'obj.f()' seria tambem uma
+            # leitura de 'f' no registro de quem audita.
+            if obj.blueprint.leitura_magica:
+                method = self._ler_da_instancia(obj, nome, node, env)
+            else:
+                try:
+                    method = obj.get(nome)
+                except NameError_:
+                    method = self._membro_ausente(obj, nome, node, env)
             if isinstance(method, DFAction):
                 return self._call_action(method, args, kwargs, node, env, instance=obj)
+            if isinstance(method, DFInstance):
+                return self._call(method, args, kwargs, node, env)
             if callable(method):
                 return self._invocar(method, args, kwargs, node, node.method)
         elif isinstance(obj, DFBlueprint):
@@ -3125,7 +3576,28 @@ class Interpreter:
                 f"    'spawn' builds an object from a blueprint; "
                 f"'{nome}' is {self._nome_do_tipo(blueprint)}.",
                 node.line, node.column)
+        args = self._eval_args(node.args, env)
+        kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
+        return self._instanciar(blueprint, args, kwargs, node, env)
 
+    #: Os nomes do construtor, na ordem em que sao procurados.
+    CONSTRUTORES = ("setup", "initiate", "__init__")
+
+    def _instanciar(self, blueprint, args, kwargs, node, env):
+        """Constroi uma instancia. O UNICO caminho — 'spawn', 'Nome(…)', DI.
+
+        Eram dois, e divergiam: chamar o blueprint como funcao nao copiava
+        o padrao dos campos declarados, e um 'Nome()' nascia com campos que
+        o 'spawn Nome()' tinha. Um caminho so e o que impede a proxima
+        divergencia.
+        """
+        if blueprint.e_contrato:
+            raise AbstractInstantiationError(
+                f"'{blueprint.name}' is a contract and cannot be spawned.",
+                node.line, node.column,
+                nota="a contract only declares what a blueprint promises",
+                dica=f"spawn a blueprint declared  with {blueprint.name}",
+                doc="oop/contratos")
         if blueprint.is_abstract:
             faltando = blueprint.pendencias_abstratas()
             detalhe = ""
@@ -3138,8 +3610,41 @@ class Interpreter:
                 f"    Spawn a blueprint that extends it instead.",
                 node.line, node.column)
 
-        instance = DFInstance(blueprint)
+        vigias = blueprint.vigias
+        if vigias is not None and "on_spawn" in vigias.ganchos:
+            entregue = self._gancho_de_vigia(vigias, "on_spawn",
+                                             [blueprint, list(args)], node)
+            if entregue is not None and entregue is not _SEM_MAGICO:
+                return entregue
 
+        # '__new__' decide antes de existir objeto: devolver um pronto (o
+        # unico, o do cache, o do pool) dispensa a construcao.
+        criador = blueprint.methods.get("__new__")
+        if isinstance(criador, DFAction):
+            pronto = self._call_action(criador, list(args), dict(kwargs), node, env)
+            if pronto is not None:
+                return pronto
+
+        classe = DFInstanceFinal if blueprint.finalizador is not None else DFInstance
+        instance = classe(blueprint)
+        estado = None
+        if blueprint.somente_leitura or vigias is not None:
+            estado = objetos.estado_de(instance)
+            estado.construindo = True
+        try:
+            self._construir(instance, blueprint, args, kwargs, node, env)
+        finally:
+            if estado is not None:
+                estado.construindo = False
+
+        if vigias is not None:
+            if vigias.invariantes:
+                self._conferir_invariantes(instance, node)
+            if "on_ready" in vigias.ganchos:
+                self._gancho_de_vigia(vigias, "on_ready", [instance], node)
+        return instance
+
+    def _construir(self, instance, blueprint, args, kwargs, node, env):
         # Campos declarados no corpo comecam com o padrao (ou void).
         #
         # O padrao e COPIADO quando for mutavel: 'itens: Cluster := []'
@@ -3148,20 +3653,27 @@ class Interpreter:
         # 'a.itens.append(1)' de uma apareceria em todas as outras. E a
         # armadilha do argumento mutavel padrao do Python, e aqui ela
         # nao tem justificativa nenhuma.
+        descritores = blueprint.descritores
         for nome_campo, _tipo, padrao, _visib in blueprint.fields_decl:
-            instance.fields[nome_campo] = self._copiar_padrao(padrao)
-        args = self._eval_args(node.args, env)
-        kwargs = {k: self.evaluate(v, env) for k, v in node.kwargs.items()}
+            if descritores and nome_campo in descritores:
+                continue
+            self._gravar_campo_cru(instance, nome_campo, self._copiar_padrao(padrao))
 
-        # Os parametros do blueprint viram campos.
-        for i, param in enumerate(blueprint.constructor_params):
-            instance.fields[param] = args[i] if i < len(args) else None
-
-        if blueprint.constructor_params and 'setup' in blueprint.methods:
-            # 'setup' ainda roda: um blueprint pode declarar parametros e
-            # ainda inicializar campos derivados explicitamente.
-            self._call_action(blueprint.methods['setup'], args, kwargs,
-                              node, env, instance=instance)
+        parametros = blueprint.constructor_params
+        construtor = blueprint.construtor
+        valores = {}
+        if parametros:
+            valores = self._ligar_cabecalho(blueprint, args, kwargs, node,
+                                            construtor is not None)
+            for param in parametros:
+                self._gravar_campo_cru(instance, param, valores[param])
+            if construtor is not None:
+                # o construtor ainda roda: um blueprint pode declarar
+                # parametros e ainda inicializar campos derivados
+                self._call_action(construtor, args,
+                                  {k: v for k, v in kwargs.items()
+                                   if k in construtor.params},
+                                  node, env, instance=instance)
 
         # O corpo do construtor roda SEMPRE que existir — inclusive num
         # blueprint sem parametros.
@@ -3174,22 +3686,61 @@ class Interpreter:
             ctor_env = blueprint.env.child(f"<{blueprint.name}.__init__>")
             ctor_env.set_local("this", instance)
             ctor_env.set_local("self", instance)
-            for i, param in enumerate(blueprint.constructor_params):
-                ctor_env.set_local(param, args[i] if i < len(args) else None)
+            for param in parametros:
+                ctor_env.set_local(param, valores.get(param))
             try:
                 self.exec_block(blueprint.constructor_body, ctor_env)
             except YieldSignal:
                 pass  # construtor nao devolve; se devolver, ignoramos
 
-        if blueprint.constructor_params:
-            pass
-        # Call setup (constructor) if exists (traditional style)
-        elif 'setup' in blueprint.methods:
-            self._call_action(blueprint.methods['setup'], args, kwargs, node, env, instance=instance)
-        elif 'initiate' in blueprint.methods:
-            self._call_action(blueprint.methods['initiate'], args, kwargs, node, env, instance=instance)
+        if not parametros and construtor is not None:
+            self._call_action(construtor, args, kwargs, node, env, instance=instance)
 
-        return instance
+    def _ligar_cabecalho(self, blueprint, args, kwargs, node, tem_construtor):
+        """Os parametros do cabecalho: posicao, nome, padrao e tipo."""
+        parametros = blueprint.constructor_params
+        if len(args) > len(parametros) and not tem_construtor:
+            raise ArityError(
+                f"'{blueprint.name}' takes {len(parametros)} argument(s) but "
+                f"{len(args)} were given.",
+                node.line, node.column,
+                nota=f"the header declares ({', '.join(parametros)})",
+                doc="oop/blueprints")
+        valores = {}
+        tipos = blueprint.tipos_do_cabecalho
+        padroes = blueprint.padroes_do_cabecalho
+        for i, param in enumerate(parametros):
+            if i < len(args):
+                valor = args[i]
+            elif param in kwargs:
+                valor = kwargs[param]
+            elif param in padroes:
+                valor = self._copiar_padrao(self.evaluate(padroes[param], blueprint.env))
+            else:
+                valor = None
+            if tipos and param in tipos:
+                self._check_type(valor, tipos[param],
+                                 f"parameter '{param}' of '{blueprint.name}'", node,
+                                 getattr(blueprint, "type_params", ()),
+                                 getattr(blueprint, "type_bounds", None))
+            valores[param] = valor
+        return valores
+
+    @staticmethod
+    def _gravar_campo_cru(instance, nome, valor):
+        """Escreve sem passar por visibilidade, readonly nem gancho.
+
+        E a escrita da CONSTRUCAO: o padrao de um campo 'private
+        readonly' precisa chegar la, e nenhuma das regras de fora vale
+        para o proprio blueprint montando o objeto.
+        """
+        try:
+            instance.set(nome, valor)
+        except UndefinedMemberError:
+            # um campo declarado fora dos 'slots': a declaracao do campo e
+            # a dos slots discordam, e o erro certo aparece na primeira
+            # leitura, com a lista de slots na mensagem
+            pass
 
     def eval_TypeofExpression(self, node: ast.TypeofExpression, env):
         """typeof x — o nome DataForge do tipo, igual ao usado nas anotações."""
@@ -4101,7 +4652,44 @@ class Interpreter:
         elif isinstance(node.target, ast.IndexAccess):
             obj = self.evaluate(node.target.object, env)
             idx = self.evaluate(node.target.index, env)
+            if isinstance(obj, DFInstance):
+                if self._chamar_magico(obj, "__delitem__", [idx], node) is not _SEM_MAGICO:
+                    return None
+                raise NotIndexableError(
+                    f"'{obj.blueprint.name}' does not support 'delete obj[…]'.",
+                    node.line, node.column,
+                    dica="declare  action __delitem__(chave):  in the blueprint",
+                    doc="oop/magicos")
             del obj[idx]
+        elif isinstance(node.target, ast.MemberAccess):
+            obj = self.evaluate(node.target.object, env)
+            membro = node.target.member
+            if isinstance(obj, DFInstance):
+                if self._chamar_magico(obj, "__delattr__", [membro], node) is not _SEM_MAGICO:
+                    return None
+                bp = obj.blueprint
+                if bp.descritores and membro in bp.descritores and \
+                        self._chamar_magico(bp.descritores[membro], "__delete__",
+                                            [obj], node) is not _SEM_MAGICO:
+                    return None
+                if membro in bp.nao_publicos:
+                    self._conferir_acesso(bp, membro, env, node.target)
+                objetos.conferir_escrita(obj, membro, node.target) \
+                    if (obj._estado is not None or bp.somente_leitura) else None
+                if obj._indice is None and membro in obj._valores:
+                    del obj._valores[membro]
+                    return None
+                if obj._indice is not None and membro in obj._indice:
+                    obj._valores[obj._indice[membro]] = DFInstance._VAZIO
+                    return None
+                raise UndefinedMemberError(
+                    f"'{bp.name}' has no field '{membro}' to delete.",
+                    node.line, node.column, doc="oop")
+            if isinstance(obj, dict):
+                obj.pop(membro, None)
+                return None
+            raise RuntimeError_(f"Cannot delete a member of {self._nome_do_tipo(obj)}.",
+                                node.line, node.column)
         else:
             raise RuntimeError_("Cannot delete this expression", node.line, node.column)
 
@@ -4203,22 +4791,62 @@ class Interpreter:
                 f"\"registro with {{'{membro}': valor}}\".",
                 node.line, node.column)
 
+        if type(obj) is DFInstance and obj.blueprint.escrita_simples \
+                and obj._estado is None and membro not in obj.blueprint.nao_publicos:
+            obj.set(membro, value)
+            return _SEM_MAGICO
         if isinstance(obj, DFInstance):
+            bp = obj.blueprint
+            if bp.escrita_magica:
+                chave = (id(obj), "__setattr__")
+                ativos = self._por_thread.magicos_ativos
+                if chave not in ativos:
+                    acao = self._achar_magico(obj, "__setattr__")
+                    ativos.add(chave)
+                    try:
+                        self._call_action(acao, [membro, value], {}, node, env,
+                                          instance=obj)
+                    finally:
+                        ativos.discard(chave)
+                    return _SEM_MAGICO
+            if membro in bp.nao_publicos:
+                self._conferir_acesso(bp, membro, env, alvo)
             # Propriedade com 'set': a atribuicao roda o corpo do setter
-            prop = obj.blueprint.buscar_propriedade(membro)
+            prop = bp.buscar_propriedade(membro)
             if prop is not None:
                 if 'set' not in prop:
-                    raise TypeError_(
-                        f"'{obj.blueprint.name}.{membro}' is read-only: it "
+                    raise ReadOnlyPropertyError(
+                        f"'{bp.name}.{membro}' is read-only: it "
                         f"has a 'get' but no 'set'.\n"
                         f"    Add one:  set {membro}(valor): …",
                         node.line, node.column)
-                self._conferir_acesso(obj.blueprint, membro, env, alvo)
                 self._call(prop['set'], [value], {}, node, env, instancia=obj)
+                if prop.get('lazy') and obj._estado is not None and obj._estado.cache:
+                    obj._estado.cache.pop(membro, None)
                 return value
-            self._conferir_acesso(obj.blueprint, membro, env, alvo)
+            if bp.descritores and membro in bp.descritores:
+                resposta = self._chamar_magico(bp.descritores[membro], "__set__",
+                                               [obj, value], node)
+                if resposta is not _SEM_MAGICO:
+                    return _SEM_MAGICO
+            if obj._estado is not None or bp.somente_leitura:
+                objetos.conferir_escrita(obj, membro, alvo)
+            vigias = bp.vigias
+            if vigias is not None and "on_write" in vigias.ganchos:
+                trocado = self._gancho_de_vigia(vigias, "on_write",
+                                                [obj, membro, value], node)
+                if trocado is not None and trocado is not _SEM_MAGICO:
+                    value = trocado
             obj.set(membro, value)
         elif isinstance(obj, DFBlueprint):
+            if membro in obj.constantes:
+                raise ConstantReassignmentError(
+                    f"'{obj.name}.{membro}' is a class constant and cannot be "
+                    f"reassigned.",
+                    node.line, node.column,
+                    nota=f"it was declared  static steady {membro} := …",
+                    dica="declare it  static  without 'steady' if it has to change",
+                    doc="oop/estaticos")
             obj.statics[membro] = value
         elif isinstance(obj, dict):
             obj[membro] = value
@@ -4610,6 +5238,23 @@ class Interpreter:
             type_params=getattr(node, 'type_params', None),
             type_bounds=getattr(node, 'type_bounds', None),
         )
+        self._extras_da_declaracao(action, node)
+        if getattr(node, 'is_overload', False):
+            anterior = env.variables.get(node.name)
+            if anterior is not None and not (
+                    isinstance(anterior, DFAction) and anterior.extras is not None
+                    and anterior.extras.variantes):
+                raise AmbiguousOverloadError(
+                    f"'{node.name}' already exists and is not an overload group.",
+                    node.line, node.column,
+                    nota="every declaration of an overloaded action is marked "
+                         "'overload', including the first",
+                    dica=f"write  overload action {node.name}(…)  in all of them",
+                    doc="oop/sobrecarga")
+            action = self._aplicar_decoradores(action, node, env)
+            grupo = self._grupo_de_sobrecarga(node.name, action, anterior, node)
+            env.set_local(node.name, grupo)
+            return grupo
         env.set_local(node.name, action)
 
         valor = self._aplicar_decoradores(action, node, env)
@@ -4720,6 +5365,20 @@ class Interpreter:
         except (AttributeError, TypeError):
             pass
 
+    def _valor_pontuado(self, nome, env):
+        """'Forma' ou 'Geo.Forma' — o valor de um nome que pode vir de modulo."""
+        partes = nome.split(".")
+        valor = env.get(partes[0])
+        for parte in partes[1:]:
+            if isinstance(valor, dict) and parte in valor:
+                valor = valor[parte]
+            elif isinstance(valor, DFBlueprint) and parte in valor.statics:
+                valor = valor.statics[parte]
+            else:
+                raise NameError_(f"'{nome}' does not exist: '{parte}' is not "
+                                 f"in '{'.'.join(partes[:partes.index(parte)])}'.")
+        return valor
+
     def exec_BlueprintDeclaration(self, node: ast.BlueprintDeclaration, env):
         parents = []
         for pname in node.parents:
@@ -4741,7 +5400,7 @@ class Interpreter:
                          "'extends', or name the real parent",
                     doc="oop")
             try:
-                parent = env.get(pname)
+                parent = self._valor_pontuado(pname, env)
             except NameError_:
                 if pname in (getattr(node, "traits", None) or ()):
                     continue
@@ -4754,12 +5413,15 @@ class Interpreter:
                          f"'extends'",
                     doc="oop") from None
             if isinstance(parent, DFBlueprint):
+                self._conferir_mae(node, parent)
                 parents.append(parent)
             elif pname not in (getattr(node, "traits", None) or ()):
                 raise TypeError_(
                     f"Blueprint '{node.name}' extends '{pname}', which is "
                     f"{self._nome_do_tipo(parent)} and not a blueprint.",
                     node.line, node.column, doc="oop")
+
+        meta_bp = self._metaclasse_de(node, parents, env)
 
         bp_env = env.child(f"<blueprint {node.name}>")
         methods, statics = {}, {}
@@ -4770,6 +5432,11 @@ class Interpreter:
         constructor_body = []
         #: 'x := valor' no corpo — campo com padrao, sem tipo declarado.
         campos_sem_tipo = []
+        constantes = set()
+        invariantes = []
+        descritores = {}
+        contratos = set()
+        adotados = []
 
         # Herda dos pais, na ordem INVERSA da declaracao.
         #
@@ -4790,16 +5457,21 @@ class Interpreter:
             operators.update(parent.operators)
             static_methods |= parent.static_methods
             final_methods |= parent.final_methods
+            constantes |= parent.constantes
+            descritores.update(parent.descritores)
+            contratos |= parent.contratos_todos
 
-        # Traits: so preenchem o que ainda nao existe
+        # Traits e contratos: so preenchem o que ainda nao existe
         traits_adotados = list(getattr(node, 'traits', []))
         for tname in traits_adotados:
             try:
-                trait = env.get(tname)
+                trait = self._valor_pontuado(tname, env)
             except NameError_:
                 continue
             if not isinstance(trait, DFBlueprint):
                 continue
+            adotados.append(trait)
+            contratos |= trait.contratos_todos | {trait.name}
             for mname, mval in trait.methods.items():
                 if mname not in methods:
                     methods[mname] = mval
@@ -4810,6 +5482,15 @@ class Interpreter:
                     abstract_methods.add(n)
                     origem_abstrata[n] = tname
 
+        #: o que ja existia ANTES do corpo — e o que um 'override' pode mirar
+        herdados = set(methods) | set(abstract_methods)
+        for parent in parents:
+            for ancestral in parent.linhagem():
+                herdados |= ancestral.abstract_methods
+        propriedades_herdadas = set(properties) | {
+            p for t in adotados for p in t.propriedades_exigidas}
+        declarados_aqui = set()
+
         for stmt in node.body:
             if isinstance(stmt, ast.SlotsDeclaration):
                 slots_declarados = list(stmt.names)
@@ -4817,46 +5498,47 @@ class Interpreter:
             if isinstance(stmt, ast.ActionDeclaration):
                 nome = stmt.name
                 # 'final' do pai nao pode ser sobrescrito
-                if nome in final_methods:
+                if nome in final_methods and nome not in declarados_aqui:
                     dono = next((bp.name for bp in
                                  (p for pa in parents for p in pa.linhagem())
                                  if nome in bp.methods), "the parent")
-                    raise TypeError_(
+                    raise FinalOverrideError(
                         f"'{node.name}.{nome}' cannot override "
                         f"'{dono}.{nome}', which is declared final",
-                        stmt.line, stmt.column)
+                        stmt.line, stmt.column, doc="oop/modificadores")
+
+                if getattr(stmt, 'is_override', False) and nome not in herdados:
+                    self._erro_override(node, stmt, nome, herdados)
 
                 if getattr(stmt, 'is_abstract', False):
                     abstract_methods.add(nome)
                 else:
                     abstract_methods.discard(nome)
 
-                action = DFAction(
-                    name=nome, params=stmt.params,
-                    defaults=stmt.defaults, body=stmt.body,
-                    closure=bp_env, is_async=stmt.is_async,
-                    param_types=getattr(stmt, 'param_types', None),
-                    return_type=getattr(stmt, 'return_type', ""),
-                    # O <T> do blueprint vale dentro dos metodos dele:
-                    # 'blueprint Pilha<T>' com 'action por(x: T)' e o
-                    # caso normal de um generico, e sem isto o T do
-                    # metodo seria um blueprint inexistente.
-                    type_params=(list(getattr(stmt, 'type_params', None) or [])
-                                 + list(getattr(node, 'type_params', None) or [])),
-                    # o limite do metodo vence o do blueprint, se os dois
-                    # usarem o mesmo nome — o mais proximo manda.
-                    type_bounds={**(getattr(node, 'type_bounds', None) or {}),
-                                 **(getattr(stmt, 'type_bounds', None) or {})},
-                )
-                action.is_abstract = getattr(stmt, 'is_abstract', False)
-                action.owner = node.name
+                action = self._acao_de_metodo(stmt, node, bp_env)
 
                 # Decoradores do metodo. Sem isto, '@Rota("/x")' dentro
                 # de um blueprint seria ignorado — e e justamente ai que
                 # ele mais serve, para um controlador declarar as rotas
                 # ao lado dos metodos que as atendem.
                 action = self._aplicar_decoradores(action, stmt, bp_env)
+
+                if getattr(stmt, 'is_overload', False):
+                    anterior = methods.get(nome) if nome in declarados_aqui else \
+                        (methods.get(nome) if isinstance(methods.get(nome), DFAction)
+                         and methods[nome].extras is not None
+                         and methods[nome].extras.variantes else None)
+                    action = self._grupo_de_sobrecarga(nome, action, anterior, stmt)
+                elif nome in declarados_aqui and isinstance(methods.get(nome), DFAction) \
+                        and methods[nome].extras is not None and methods[nome].extras.variantes:
+                    raise AmbiguousOverloadError(
+                        f"'{node.name}.{nome}' mixes 'overload' variants with a "
+                        f"plain action of the same name.",
+                        stmt.line, stmt.column,
+                        dica="mark every variant with 'overload', or rename one",
+                        doc="oop/sobrecarga")
                 methods[nome] = action
+                declarados_aqui.add(nome)
 
                 visibility[nome] = getattr(stmt, 'visibility', 'public')
                 if getattr(stmt, 'is_static', False):
@@ -4866,16 +5548,28 @@ class Interpreter:
                     final_methods.add(nome)
 
             elif isinstance(stmt, ast.PropertyDeclaration):
+                if getattr(stmt, 'is_override', False) and \
+                        stmt.name not in propriedades_herdadas:
+                    self._erro_override(node, stmt, stmt.name,
+                                        propriedades_herdadas, "property")
                 acao = DFAction(
                     name=stmt.name,
                     params=[stmt.param] if stmt.kind == 'set' else [],
                     defaults={}, body=stmt.body, closure=bp_env,
                     return_type=getattr(stmt, 'return_type', ""))
                 acao.owner = node.name
-                properties.setdefault(stmt.name, {})
-                properties[stmt.name] = {**properties[stmt.name],
-                                         stmt.kind: acao}
+                acao.visibilidade = getattr(stmt, 'visibility', 'public')
+                atual = dict(properties.get(stmt.name) or {})
+                atual[stmt.kind] = acao
+                if getattr(stmt, 'is_lazy', False):
+                    atual['lazy'] = True
+                properties[stmt.name] = atual
+                declarados_aqui.add(stmt.name)
                 visibility[stmt.name] = getattr(stmt, 'visibility', 'public')
+                decos = getattr(stmt, 'decorators', None) or []
+                if decos:
+                    self._gravar_metadados_de_membro(
+                        stmt.name, decos, bp_env, acao)
 
             elif isinstance(stmt, ast.OperatorDeclaration):
                 acao = DFAction(name=f"operator{stmt.symbol}",
@@ -4885,7 +5579,31 @@ class Interpreter:
                 operators[stmt.symbol] = acao
 
             elif isinstance(stmt, ast.StaticDeclaration):
-                statics[stmt.name] = self.evaluate(stmt.value, bp_env)
+                if stmt.name in constantes and stmt.name not in declarados_aqui:
+                    raise ConstantReassignmentError(
+                        f"'{node.name}.{stmt.name}' is a class constant of the "
+                        f"parent and cannot be redeclared.",
+                        stmt.line, stmt.column, doc="oop/estaticos")
+                valor_estatico = self.evaluate(stmt.value, bp_env)
+                if getattr(stmt, 'declared_type', ""):
+                    self._check_type(valor_estatico, stmt.declared_type,
+                                     f"static field '{stmt.name}'", stmt)
+                statics[stmt.name] = valor_estatico
+                if getattr(stmt, 'is_steady', False):
+                    constantes.add(stmt.name)
+                declarados_aqui.add(stmt.name)
+
+            elif isinstance(stmt, ast.InvariantStatement):
+                invariantes.append((stmt, bp_env, node.name))
+
+            elif isinstance(stmt, (ast.BlueprintDeclaration, ast.RecordDeclaration,
+                                   ast.EnumDeclaration, ast.ContractDeclaration,
+                                   ast.TraitDeclaration)):
+                # Declaracao aninhada: vira membro estatico do blueprint de
+                # fora. 'spawn Pedido.Item()' e o jeito de dizer que Item so
+                # existe em funcao de Pedido — e de nao poluir o arquivo.
+                self.execute(stmt, bp_env)
+                statics[stmt.name] = bp_env.get(stmt.name)
 
             elif isinstance(stmt, ast.Assignment):
                 # 'x := valor' e um CAMPO com padrao, sempre — venha o
@@ -4912,7 +5630,8 @@ class Interpreter:
                 # que e explicito e continua funcionando.
                 if isinstance(stmt.target, ast.Identifier):
                     campos_sem_tipo.append(
-                        (stmt.target.name, None, stmt.value, "public"))
+                        (stmt.target.name, None, stmt.value,
+                         getattr(stmt, 'visibility', 'public')))
                 else:
                     # 'self.x := …' — vai para o construtor.
                     constructor_body.append(stmt)
@@ -4927,10 +5646,18 @@ class Interpreter:
             valor = self.evaluate(padrao, bp_env) if padrao is not None else None
             campos.append((nome, tipo, valor, visib))
             visibility[nome] = visib
+            if isinstance(valor, DFInstance) and (
+                    self._achar_magico(valor, "__get__") is not None
+                    or self._achar_magico(valor, "__set__") is not None):
+                descritores[nome] = valor
         for parent in parents:
             declarados = {c[0] for c in campos}
             campos = [c for c in parent.fields_decl
                       if c[0] not in declarados] + campos
+
+        for nome_param, tipo_param in (getattr(node, 'constructor_types', None) or {}).items():
+            if nome_param not in visibility:
+                visibility.setdefault(nome_param, "public")
 
         blueprint = DFBlueprint(
             name=node.name, parents=parents,
@@ -4947,22 +5674,358 @@ class Interpreter:
             traits=traits_adotados,
         )
         blueprint.origem_abstrata = origem_abstrata
+        blueprint.e_final = getattr(node, 'is_final', False)
+        blueprint.e_selado = getattr(node, 'is_sealed', False)
+        blueprint.e_meta = getattr(node, 'is_meta', False)
+        blueprint.arquivo = self.filename or ""
+        blueprint.constantes = constantes
+        blueprint.descritores = descritores
+        blueprint.contratos_todos = frozenset(contratos)
+        blueprint.tipos_do_cabecalho = dict(getattr(node, 'constructor_types', None) or {})
+        blueprint.padroes_do_cabecalho = dict(getattr(node, 'constructor_defaults', None) or {})
+        blueprint.type_params = list(getattr(node, 'type_params', None) or [])
+        blueprint.type_bounds = dict(getattr(node, 'type_bounds', None) or {})
+        blueprint.meta_blueprint = meta_bp
+        modificadores = getattr(node, 'field_modifiers', None) or {}
+        proprios_readonly = {n for n, m in modificadores.items() if 'readonly' in m}
+        blueprint.somente_leitura = frozenset(
+            proprios_readonly.union(*(p.somente_leitura for p in parents)))
+        blueprint.nao_publicos = frozenset(
+            {n for n, v in visibility.items() if v != "public"}.union(
+                *(p.nao_publicos for p in parents)))
+        blueprint.finalizador = next(
+            (methods[n] for n in ("teardown", "__del__")
+             if isinstance(methods.get(n), DFAction)), None)
+        blueprint.leitura_magica = "__getattribute__" in methods
+        blueprint.escrita_magica = "__setattr__" in methods
+        for nome_campo, decos in (getattr(node, 'field_decorators', None) or {}).items():
+            self._gravar_metadados_de_membro(nome_campo, decos, bp_env, None,
+                                             blueprint)
+        for parent in parents:
+            for nome_campo, marcas in parent.metadados_de_campo.items():
+                blueprint.metadados_de_campo.setdefault(nome_campo, list(marcas))
+        blueprint.vigias = self._montar_vigias(blueprint, parents, invariantes,
+                                               meta_bp)
+        blueprint.recalcular_acesso()
         _carimbar_dono(blueprint)
+
+        if blueprint.e_meta:
+            objetos.conferir_ganchos(blueprint)
 
         # Contrato de trait: conferido aqui, na declaracao, e nao na chamada.
         # Descobrir que falta um metodo so quando alguem o chama, em producao,
         # e tarde demais.
         if not blueprint.is_abstract:
             self._conferir_contrato(blueprint, node, env)
+            self._conferir_assinaturas(blueprint, adotados, node)
+
+        import weakref as _weakref
+        for parent in parents:
+            parent.herdeiros.append(_weakref.ref(blueprint))
+        self._registrar_blueprint(blueprint)
 
         bp_env.set_local(node.name, blueprint)
 
+        # Os ganchos do nascimento da classe, na ordem do Python: o nome de
+        # cada descritor, depois a mae ('__init_subclass__'), depois a
+        # metaclasse — e so entao os decoradores, que recebem a classe
+        # pronta.
+        for nome_campo, descritor in descritores.items():
+            if nome_campo in {c[0] for c in getattr(node, 'fields_decl', [])} | \
+                    {c[0] for c in campos_sem_tipo}:
+                self._chamar_magico(descritor, "__set_name__",
+                                    [blueprint, nome_campo], node)
+        for parent in parents:
+            gancho = Interpreter._achar_magico_no_molde(parent, "__init_subclass__")
+            if gancho is not None:
+                self._call_action(gancho, [blueprint], {}, node, env)
+        valor = blueprint
+        if meta_bp is not None:
+            for parent in parents:
+                if parent.meta_blueprint is not None:
+                    self._chamar_gancho(parent.meta_blueprint, "on_extend",
+                                        [parent, blueprint], node)
+            devolvido = self._chamar_gancho(meta_bp, "on_forge", [blueprint], node)
+            if devolvido is not None and devolvido is not _SEM_MAGICO:
+                valor = devolvido
+
         # Decoradores do blueprint. Um deles pode devolver outro valor
         # (uma fabrica, um proxy) e e esse que fica com o nome.
-        valor = self._aplicar_decoradores(blueprint, node, env)
+        bp_env.set_local(node.name, valor)
+        valor = self._aplicar_decoradores(valor, node, env)
         bp_env.set_local(node.name, valor)
         env.set_local(node.name, valor)
         return valor
+
+    # ── Declaracao: as pecas ─────────────────────────────────
+
+    def _conferir_mae(self, node, mae):
+        """'final' e 'sealed' decidem quem pode herdar; 'contract' nao se herda."""
+        if mae.e_contrato:
+            raise TypeError_(
+                f"Blueprint '{node.name}' extends '{mae.name}', which is a "
+                f"contract.",
+                node.line, node.column,
+                nota="a contract is adopted, not inherited: it has no code to "
+                     "inherit",
+                dica=f"write  blueprint {node.name} with {mae.name}:",
+                doc="oop/contratos")
+        if mae.e_final:
+            raise FinalBlueprintError(
+                f"Blueprint '{node.name}' cannot extend '{mae.name}', which is "
+                f"declared final.",
+                node.line, node.column,
+                nota=f"'final blueprint {mae.name}' closes the hierarchy",
+                dica=f"keep a {mae.name} in a field instead of inheriting from "
+                     f"it — composition works where inheritance was forbidden",
+                doc="oop/modificadores")
+        if mae.e_selado and (mae.arquivo or "") != (self.filename or ""):
+            raise SealedBlueprintError(
+                f"Blueprint '{node.name}' cannot extend '{mae.name}' from this "
+                f"file.",
+                node.line, node.column,
+                nota=f"'sealed blueprint {mae.name}' only accepts children "
+                     f"declared in {mae.arquivo or 'its own file'}",
+                dica="declare the child next to the parent, or remove 'sealed'",
+                doc="oop/modificadores")
+
+    def _metaclasse_de(self, node, maes, env):
+        """A metaclasse do blueprint: a de 'using', ou a herdada.
+
+        Duas metaclasses so convivem se uma descende da outra. Sem essa
+        regra, uma filha governada por 'Auditoria' de uma mae governada
+        por 'Registro' teria de escolher qual regra ignorar — e ignorar
+        a da mae quebra o que a mae prometeu a quem a usa.
+        """
+        propria = None
+        nome = getattr(node, "metaclass", "") or ""
+        if nome:
+            try:
+                propria = self._valor_pontuado(nome, env)
+            except NameError_:
+                raise MetaclassError(
+                    f"Blueprint '{node.name}' uses '{nome}', which does not "
+                    f"exist.", node.line, node.column,
+                    dica=f"declare 'meta blueprint {nome}:' before it",
+                    doc="oop/metaclasses") from None
+            if not isinstance(propria, DFBlueprint) or not propria.e_meta:
+                raise MetaclassError(
+                    f"'{nome}' is not a metaclass.", node.line, node.column,
+                    nota="'using' names a 'meta blueprint' — the blueprint that "
+                         "governs how others are built",
+                    dica=f"declare it as  meta blueprint {nome}:",
+                    doc="oop/metaclasses")
+        for mae in maes:
+            herdada = mae.meta_blueprint
+            if herdada is None:
+                continue
+            if propria is None:
+                propria = herdada
+            elif herdada is not propria and herdada not in propria.linhagem():
+                raise MetaclassError(
+                    f"Blueprint '{node.name}' uses '{propria.name}', but its "
+                    f"parent '{mae.name}' is governed by '{herdada.name}'.",
+                    node.line, node.column,
+                    nota="a child keeps the rules of its parent's metaclass",
+                    dica=f"make '{propria.name}' extend '{herdada.name}'",
+                    doc="oop/metaclasses")
+        return propria
+
+    def _acao_de_metodo(self, stmt, node, bp_env):
+        """A DFAction de um metodo, com os extras de contrato e trava."""
+        action = DFAction(
+            name=stmt.name, params=stmt.params,
+            defaults=stmt.defaults, body=stmt.body,
+            closure=bp_env, is_async=stmt.is_async,
+            param_types=getattr(stmt, 'param_types', None),
+            return_type=getattr(stmt, 'return_type', ""),
+            is_generator=getattr(stmt, 'is_generator', False),
+            # O <T> do blueprint vale dentro dos metodos dele:
+            # 'blueprint Pilha<T>' com 'action por(x: T)' e o
+            # caso normal de um generico, e sem isto o T do
+            # metodo seria um blueprint inexistente.
+            type_params=(list(getattr(stmt, 'type_params', None) or [])
+                         + list(getattr(node, 'type_params', None) or [])),
+            # o limite do metodo vence o do blueprint, se os dois
+            # usarem o mesmo nome — o mais proximo manda.
+            type_bounds={**(getattr(node, 'type_bounds', None) or {}),
+                         **(getattr(stmt, 'type_bounds', None) or {})},
+        )
+        action.is_abstract = getattr(stmt, 'is_abstract', False)
+        action.owner = node.name
+        action.visibilidade = getattr(stmt, 'visibility', 'public')
+        self._extras_da_declaracao(action, stmt)
+        return action
+
+    def _extras_da_declaracao(self, action, stmt):
+        """Pos-condicoes e 'exclusive' viram extras da acao."""
+        promessas = list(getattr(stmt, 'postconditions', None) or [])
+        exclusiva = bool(getattr(stmt, 'is_exclusive', False))
+        if not promessas and not exclusiva:
+            return
+        if stmt.is_async and (promessas or exclusiva):
+            palavra = "promises" if promessas else "exclusive"
+            raise TypeError_(
+                f"'{stmt.name}' is async, and '{palavra}' needs the result "
+                f"in hand.", stmt.line, stmt.column,
+                nota="an async action returns a task at once; the work "
+                     "finishes later, on another thread",
+                dica="check the result where it is awaited, or use "
+                     "Arcane.Concurrent.mutex inside the action",
+                doc="oop/contratos")
+        extras = objetos.Extras()
+        extras.promessas = promessas
+        extras.antes = [n for p in promessas for n in objetos.nos_before(p)]
+        extras.exclusivo = exclusiva
+        action.extras = extras
+
+    def _grupo_de_sobrecarga(self, nome, variante, anterior, stmt):
+        """Junta a variante ao grupo de 'overload' com esse nome."""
+        if anterior is None or anterior.extras is None or not anterior.extras.variantes:
+            grupo = DFAction(name=nome, params=[], defaults={}, body=[],
+                             closure=variante.closure)
+            grupo.extras = objetos.Extras()
+            grupo.extras.variantes = []
+            grupo.extras.grupo = nome
+            grupo.owner = getattr(variante, "owner", None)
+            grupo.visibilidade = getattr(variante, "visibilidade", "public")
+        else:
+            grupo = DFAction(name=nome, params=[], defaults={}, body=[],
+                             closure=anterior.closure)
+            grupo.extras = objetos.Extras()
+            grupo.extras.variantes = list(anterior.extras.variantes)
+            grupo.extras.grupo = nome
+            grupo.owner = getattr(variante, "owner", None)
+            grupo.visibilidade = getattr(anterior, "visibilidade", "public")
+        substituida = False
+        for i, outra in enumerate(grupo.extras.variantes):
+            if objetos.mesma_assinatura(outra, variante):
+                if getattr(outra, "owner", None) != getattr(variante, "owner", None):
+                    # a filha sobrescreve a variante herdada com a mesma forma
+                    grupo.extras.variantes[i] = variante
+                    substituida = True
+                    break
+                raise AmbiguousOverloadError(
+                    f"Two overloads of '{nome}' have the same signature: "
+                    f"{objetos.assinatura(variante)}.",
+                    stmt.line, stmt.column,
+                    nota="no call could ever choose between them",
+                    dica="change a parameter type, or remove one of them",
+                    doc="oop/sobrecarga")
+        if not substituida:
+            grupo.extras.variantes.append(variante)
+        return grupo
+
+    def _erro_override(self, node, stmt, nome, candidatos, especie="action"):
+        import difflib
+        perto = difflib.get_close_matches(nome, sorted(candidatos), n=1, cutoff=0.6)
+        raise OverrideTargetError(
+            f"'{node.name}.{nome}' is marked override, but no parent, trait or "
+            f"contract has a {'property' if especie == 'property' else 'method'} "
+            f"'{nome}'.",
+            stmt.line, stmt.column,
+            nota="'override' promises that this member replaces an inherited one",
+            dica=(f"did you mean '{perto[0]}'?" if perto
+                  else "remove 'override', or fix the name to match the parent"),
+            doc="oop/modificadores")
+
+    def _gravar_metadados_de_membro(self, nome, decoradores, env, alvo=None,
+                                    blueprint=None):
+        """'@Coluna("email")' sobre um membro: anotacao, lida por Reflexo/Meta.
+
+        Num CAMPO o decorador nao embrulha nada — nao ha valor para
+        embrulhar na declaracao. Ele grava, e quem precisa le: o ORM, o
+        conteiner de injecao, o validador.
+        """
+        for deco in decoradores:
+            args = [self.evaluate(a, env) for a in (deco.args or [])]
+            kwargs = {k: self.evaluate(v, env)
+                      for k, v in (deco.kwargs or {}).items()}
+            if alvo is not None:
+                self._gravar_metadado(alvo, deco.name, args, kwargs)
+            if blueprint is not None:
+                blueprint.metadados_de_campo.setdefault(nome, []).append(
+                    {"nome": deco.name, "args": list(args), "kwargs": dict(kwargs)})
+
+    def _montar_vigias(self, blueprint, maes, invariantes, meta_bp):
+        """Invariantes da linhagem e ganchos da metaclasse, ou None."""
+        todas = []
+        for mae in maes:
+            if mae.vigias is not None:
+                for item in mae.vigias.invariantes:
+                    if item not in todas:
+                        todas.append(item)
+        todas.extend(invariantes)
+        ganchos = {}
+        instancia = None
+        if meta_bp is not None:
+            for nome in objetos.GANCHOS_DE_META:
+                acao = Interpreter._achar_magico_no_molde(meta_bp, nome)
+                if acao is not None:
+                    ganchos[nome] = acao
+            if ganchos:
+                instancia = self._instancia_de_meta(meta_bp)
+        if not todas and not ganchos:
+            return None
+        return objetos.Vigias(todas, ganchos, instancia)
+
+    def _instancia_de_meta(self, meta_bp):
+        """A instancia unica do meta blueprint — o 'self' dos ganchos.
+
+        Uma so, e compartilhada por todos os blueprints que ele governa:
+        e o que deixa um registro de classes morar em 'self.classes'.
+        """
+        if meta_bp.instancia_meta is None:
+            meta_bp.instancia_meta = self._instanciar(
+                meta_bp, [], {}, self._no_interno(), meta_bp.env)
+        return meta_bp.instancia_meta
+
+    def _chamar_gancho(self, meta_bp, nome, args, node):
+        """Roda um gancho da metaclasse; _SEM_MAGICO quando ela nao o tem."""
+        acao = Interpreter._achar_magico_no_molde(meta_bp, nome)
+        if acao is None:
+            return _SEM_MAGICO
+        por_thread = self._por_thread
+        if getattr(por_thread, "em_gancho", False):
+            # um gancho que le um campo do objeto nao dispara o gancho de
+            # novo: seria recursao sem fim, e nenhum 'on_read' quer isso
+            return _SEM_MAGICO
+        por_thread.em_gancho = True
+        try:
+            return self._call_action(acao, list(args), {}, node, None,
+                                     instance=self._instancia_de_meta(meta_bp))
+        finally:
+            por_thread.em_gancho = False
+
+    def _gancho_de_vigia(self, vigias, nome, args, node):
+        acao = vigias.ganchos.get(nome)
+        if acao is None:
+            return _SEM_MAGICO
+        por_thread = self._por_thread
+        if getattr(por_thread, "em_gancho", False):
+            return _SEM_MAGICO
+        por_thread.em_gancho = True
+        try:
+            return self._call_action(acao, list(args), {}, node, None,
+                                     instance=vigias.meta)
+        finally:
+            por_thread.em_gancho = False
+
+    def _registrar_blueprint(self, blueprint):
+        import weakref as _weakref
+        registro = getattr(self, "blueprints_declarados", None)
+        if registro is None:
+            registro = self.blueprints_declarados = []
+        registro.append(_weakref.ref(blueprint))
+
+    @staticmethod
+    def _achar_magico_no_molde(molde, nome):
+        """O metodo na linhagem de um BLUEPRINT (e nao de uma instancia)."""
+        for ancestral in molde.linhagem():
+            acao = ancestral.methods.get(nome)
+            if acao is not None:
+                return acao
+        return None
 
     def _conferir_contrato(self, blueprint, node, env):
         """Um blueprint concreto precisa implementar tudo o que prometeu."""
@@ -4977,13 +6040,375 @@ class Interpreter:
         linhas = [f"    {nome}()  — declarado em '{origem}'"
                   for nome, origem in itens]
         plural = "methods" if len(itens) > 1 else "method"
-        raise TypeError_(
+        raise TraitContractError(
             f"Blueprint '{node.name}' does not implement {len(itens)} "
             f"abstract {plural}:\n" + "\n".join(linhas) +
             f"\n    Implement {'them' if len(itens) > 1 else 'it'}, or mark "
             f"'{node.name}' as 'abstract blueprint' if it is not meant to be "
             f"spawned directly.",
             node.line, node.column)
+
+    def _conferir_assinaturas(self, blueprint, adotados, node):
+        """O que um CONTRATO exige alem do nome: aridade e propriedades.
+
+        Um metodo com o nome certo que pede um argumento a mais quebra
+        todo codigo escrito contra o contrato — e o nome certo e o que
+        faz a quebra passar despercebida ate a primeira chamada.
+        """
+        campos = {c[0] for c in blueprint.fields_decl} | set(blueprint.constructor_params)
+        for contrato in adotados:
+            if not contrato.e_contrato:
+                continue
+            for nome, assinatura in contrato.assinaturas.items():
+                impl = blueprint.methods.get(nome)
+                if not isinstance(impl, DFAction) or getattr(impl, "is_abstract", False):
+                    continue
+                if impl.extras is not None and impl.extras.variantes:
+                    if not any(self._aridade_compativel(v, assinatura)
+                               for v in impl.extras.variantes):
+                        self._erro_de_assinatura(blueprint, contrato, nome,
+                                                 impl.extras.variantes[0],
+                                                 assinatura, node)
+                    continue
+                if not self._aridade_compativel(impl, assinatura):
+                    self._erro_de_assinatura(blueprint, contrato, nome, impl,
+                                             assinatura, node)
+            for prop in contrato.propriedades_exigidas:
+                tem = blueprint.buscar_propriedade(prop)
+                if (tem is not None and 'get' in tem) or prop in campos:
+                    continue
+                raise TraitContractError(
+                    f"Blueprint '{node.name}' does not provide the property "
+                    f"'{prop}' required by contract '{contrato.name}'.",
+                    node.line, node.column,
+                    dica=f"declare  get {prop}():  or a field named '{prop}'",
+                    doc="oop/contratos")
+
+    @staticmethod
+    def _aridade_compativel(impl, assinatura):
+        imin, imax = objetos.aridade(impl)
+        smin, smax = objetos.aridade(assinatura)
+        return imin <= smin and imax >= smax
+
+    def _erro_de_assinatura(self, blueprint, contrato, nome, impl, assinatura, node):
+        raise SignatureMismatchError(
+            f"'{blueprint.name}.{nome}' does not match the signature required "
+            f"by contract '{contrato.name}'.",
+            node.line, node.column,
+            nota=f"the contract declares  {objetos.assinatura(assinatura)}\n"
+                 f"      the blueprint has   {objetos.assinatura(impl)}",
+            dica="accept every argument the contract passes — extra parameters "
+                 "need a default",
+            doc="oop/contratos")
+
+    def exec_ContractDeclaration(self, node, env):
+        """Um contrato e um blueprint que so promete, e nunca nasce."""
+        maes = []
+        for nome in node.parents:
+            try:
+                mae = self._valor_pontuado(nome, env)
+            except NameError_:
+                raise UnknownTraitError(
+                    f"Contract '{node.name}' extends '{nome}', which does not "
+                    f"exist.", node.line, node.column,
+                    dica=f"declare 'contract {nome}:' first",
+                    doc="oop/contratos") from None
+            if not isinstance(mae, DFBlueprint) or not mae.e_contrato:
+                raise TypeError_(
+                    f"Contract '{node.name}' extends '{nome}', which is not a "
+                    f"contract.", node.line, node.column,
+                    nota="a contract extends only other contracts",
+                    dica="a blueprint adopts a contract with 'with'",
+                    doc="oop/contratos")
+            maes.append(mae)
+
+        assinaturas, exigidas, abstratos, origem = {}, set(), set(), {}
+        contratos = set()
+        for mae in maes:
+            assinaturas.update(mae.assinaturas)
+            exigidas |= mae.propriedades_exigidas
+            abstratos |= mae.abstract_methods
+            origem.update(getattr(mae, "origem_abstrata", {}))
+            contratos |= mae.contratos_todos | {mae.name}
+        for membro in node.members:
+            if isinstance(membro, ast.PropertyDeclaration):
+                exigidas.add(membro.name)
+                continue
+            acao = DFAction(
+                name=membro.name, params=membro.params, defaults=membro.defaults,
+                body=[], closure=env, is_async=membro.is_async,
+                param_types=getattr(membro, "param_types", None),
+                return_type=getattr(membro, "return_type", ""),
+                is_generator=getattr(membro, "is_generator", False),
+                type_params=(list(getattr(membro, "type_params", None) or [])
+                             + list(node.type_params or [])))
+            acao.is_abstract = True
+            acao.owner = node.name
+            assinaturas[membro.name] = acao
+            abstratos.add(membro.name)
+            origem[membro.name] = node.name
+
+        contrato = DFBlueprint(name=node.name, parents=[], methods={},
+                               statics={}, env=env, is_abstract=True,
+                               abstract_methods=abstratos)
+        contrato.e_contrato = True
+        contrato.assinaturas = assinaturas
+        contrato.propriedades_exigidas = exigidas
+        contrato.origem_abstrata = origem
+        contrato.contratos_todos = frozenset(contratos)
+        contrato.arquivo = self.filename or ""
+        contrato.type_params = list(node.type_params or [])
+        self._registrar_blueprint(contrato)
+        env.set_local(node.name, contrato)
+        valor = self._aplicar_decoradores(contrato, node, env)
+        env.set_local(node.name, valor)
+        return valor
+
+    def exec_AugmentDeclaration(self, node, env):
+        """augment Nome: acrescenta membros, sem substituir nenhum."""
+        try:
+            alvo = self._valor_pontuado(node.name, env)
+        except NameError_:
+            raise AugmentError(
+                f"Cannot augment '{node.name}': it does not exist.",
+                node.line, node.column,
+                dica=f"declare 'blueprint {node.name}' before augmenting it",
+                doc="oop/augment") from None
+        if not isinstance(alvo, DFBlueprint) or alvo.e_contrato or alvo.e_meta:
+            raise AugmentError(
+                f"Cannot augment '{node.name}': only a blueprint accepts "
+                f"'augment'.", node.line, node.column,
+                nota=f"'{node.name}' is {self._nome_do_tipo(alvo)}",
+                dica="to grow a contract, declare a new one that extends it",
+                doc="oop/augment")
+        if alvo.e_final:
+            raise AugmentError(
+                f"Cannot augment '{alvo.name}': it is declared final.",
+                node.line, node.column,
+                nota="final promises the blueprint is complete",
+                dica="write an action that receives the object instead",
+                doc="oop/augment")
+        mesmo_arquivo = (alvo.arquivo or "") == (self.filename or "")
+        if alvo.e_selado and not mesmo_arquivo:
+            raise AugmentError(
+                f"Cannot augment '{alvo.name}' from this file: it is sealed.",
+                node.line, node.column,
+                dica=f"augment it in {alvo.arquivo or 'its own file'}",
+                doc="oop/augment")
+
+        # Do mesmo arquivo, o escopo e o do blueprint — os membros privados
+        # dele ficam visiveis, como se estivessem escritos la. De outro
+        # arquivo, NAO: um 'augment' nao pode virar a porta dos fundos para
+        # o que o autor marcou como private.
+        nome_escopo = (f"<blueprint {alvo.name}>" if mesmo_arquivo
+                       else f"<augment {alvo.name}>")
+        escopo = env.child(nome_escopo)
+        escopo.set_local(alvo.name, alvo)
+
+        def ja_existe(nome):
+            return (nome in alvo.statics or nome in alvo.properties
+                    or nome in {c[0] for c in alvo.fields_decl}
+                    or (nome in alvo.methods
+                        and not getattr(alvo.methods[nome], "is_abstract", False))
+                    or any(nome in bp.methods for bp in alvo.linhagem()[1:]
+                           if not getattr(bp.methods.get(nome), "is_abstract", False)))
+
+        def recusar(nome, stmt):
+            raise AugmentError(
+                f"'augment {alvo.name}' cannot replace '{nome}', which already "
+                f"exists.", stmt.line, stmt.column,
+                nota="augment only adds; replacing is what inheritance is for",
+                dica=f"declare a child blueprint that overrides '{nome}'",
+                doc="oop/augment")
+
+        novos_nao_publicos = set()
+        for stmt in node.body:
+            if isinstance(stmt, ast.ActionDeclaration):
+                if ja_existe(stmt.name):
+                    recusar(stmt.name, stmt)
+                acao = self._acao_de_metodo(stmt, ast.BlueprintDeclaration(
+                    name=alvo.name, type_params=getattr(alvo, "type_params", [])),
+                    escopo)
+                acao = self._aplicar_decoradores(acao, stmt, escopo)
+                acao.dono = alvo
+                alvo.methods[stmt.name] = acao
+                alvo.abstract_methods.discard(stmt.name)
+                alvo.visibility[stmt.name] = stmt.visibility
+                if stmt.visibility != "public":
+                    novos_nao_publicos.add(stmt.name)
+                if stmt.is_static:
+                    alvo.static_methods.add(stmt.name)
+                    alvo.statics[stmt.name] = acao
+            elif isinstance(stmt, ast.PropertyDeclaration):
+                if stmt.name in alvo.methods or \
+                        (alvo.buscar_propriedade(stmt.name) or {}).get(stmt.kind):
+                    recusar(stmt.name, stmt)
+                acao = DFAction(name=stmt.name,
+                                params=[stmt.param] if stmt.kind == 'set' else [],
+                                defaults={}, body=stmt.body, closure=escopo,
+                                return_type=stmt.return_type)
+                acao.dono = alvo
+                acao.owner = alvo.name
+                alvo.properties.setdefault(stmt.name, {})[stmt.kind] = acao
+                if stmt.is_lazy:
+                    alvo.properties[stmt.name]['lazy'] = True
+                alvo.visibility[stmt.name] = stmt.visibility
+                if stmt.visibility != "public":
+                    novos_nao_publicos.add(stmt.name)
+            elif isinstance(stmt, ast.OperatorDeclaration):
+                if stmt.symbol in alvo.operators:
+                    recusar(f"operator {stmt.symbol}", stmt)
+                acao = DFAction(name=f"operator{stmt.symbol}", params=[stmt.param],
+                                defaults={}, body=stmt.body, closure=escopo)
+                acao.dono = alvo
+                alvo.operators[stmt.symbol] = acao
+            elif isinstance(stmt, ast.StaticDeclaration):
+                if ja_existe(stmt.name):
+                    recusar(stmt.name, stmt)
+                alvo.statics[stmt.name] = self.evaluate(stmt.value, escopo)
+                if stmt.is_steady:
+                    alvo.constantes.add(stmt.name)
+            else:
+                raise AugmentError(
+                    f"'augment {alvo.name}' accepts actions, properties, operators "
+                    f"and static fields.", stmt.line, stmt.column,
+                    nota="a new instance field would leave the objects that "
+                         "already exist without it",
+                    dica="declare the field in the blueprint itself",
+                    doc="oop/augment")
+        if novos_nao_publicos:
+            alvo.nao_publicos = frozenset(alvo.nao_publicos | novos_nao_publicos)
+        if node.fields_decl:
+            raise AugmentError(
+                f"'augment {alvo.name}' cannot add the field "
+                f"'{node.fields_decl[0][0]}'.", node.line, node.column,
+                nota="the objects that already exist would not have it",
+                dica="declare the field in the blueprint itself",
+                doc="oop/augment")
+        alvo.finalizador = alvo.finalizador or next(
+            (alvo.methods[n] for n in ("teardown", "__del__")
+             if isinstance(alvo.methods.get(n), DFAction)), None)
+        alvo.leitura_magica = alvo.leitura_magica or "__getattribute__" in alvo.methods
+        alvo.escrita_magica = alvo.escrita_magica or "__setattr__" in alvo.methods
+        alvo.esquecer_caches()
+        return alvo
+
+    # ── Contratos em execucao: invariant, expects, promises ──
+
+    def exec_InvariantStatement(self, node, env):
+        raise RuntimeError_(
+            "'invariant' only has meaning in the body of a blueprint.",
+            node.line, node.column,
+            nota="an invariant describes an object, and is checked after every "
+                 "public operation on it",
+            dica="inside an action, use  expects  for the input or  assert",
+            doc="oop/contratos")
+
+    def exec_ExpectsStatement(self, node, env):
+        if self._verdade(self.evaluate(node.condition, env)):
+            return None
+        quadro = self._call_stack[-1].name if self._call_stack else "the program"
+        mensagem = (self._to_str(self.evaluate(node.message, env))
+                    if node.message is not None else "")
+        raise PreconditionError(
+            f"Precondition of '{quadro}' failed"
+            + (f": {mensagem}" if mensagem else "."),
+            node.line, node.column,
+            nota="'expects' checks what the CALLER must provide — the "
+                 "mistake is in the call, not in the action",
+            dica="check the arguments at the call site",
+            doc="oop/contratos")
+
+    def exec_PromisesStatement(self, node, env):
+        raise RuntimeError_(
+            "'promises' has to be at the top level of an action body.",
+            node.line, node.column,
+            nota="it runs when the action returns, with 'outcome' bound to the "
+                 "returned value — inside a block it would have no single exit",
+            dica="move it next to the other statements at the start of the action",
+            doc="oop/contratos")
+
+    def eval_BeforeExpression(self, node, env):
+        try:
+            antes = env.get("__antes__")
+        except NameError_:
+            antes = None
+        if not isinstance(antes, dict) or id(node) not in antes:
+            raise RuntimeError_(
+                "'before(…)' only has meaning inside 'promises'.",
+                node.line, node.column, doc="oop/contratos")
+        return antes[id(node)]
+
+    def _conferir_promessas(self, action, extras, args, kwargs, node,
+                            instance, resultado, antes):
+        estado = (objetos.estado_de(instance)
+                  if instance is not None and instance.__class__ in _COM_VIGIAS
+                  else None)
+        if estado is not None:
+            estado.profundidade += 1
+        try:
+            self._avaliar_promessas(action, extras, args, kwargs, node,
+                                    instance, resultado, antes)
+        finally:
+            if estado is not None:
+                estado.profundidade -= 1
+
+    def _avaliar_promessas(self, action, extras, args, kwargs, node,
+                           instance, resultado, antes):
+        escopo = self._ligar_parametros(action, args, kwargs, node, instance)
+        escopo.set_local("outcome", resultado)
+        escopo.set_local("__antes__", antes or {})
+        for promessa in extras.promessas:
+            if self._verdade(self.evaluate(promessa.condition, escopo)):
+                continue
+            mensagem = (self._to_str(self.evaluate(promessa.message, escopo))
+                        if promessa.message is not None else "")
+            erro = PostconditionError(
+                f"Postcondition of '{action.name}' failed"
+                + (f": {mensagem}" if mensagem else "."),
+                promessa.line, promessa.column,
+                nota=f"the action returned {self._to_str(resultado)} — 'promises' "
+                     f"checks what the ACTION guarantees, so the mistake is inside it",
+                dica="fix the action body; the caller did its part",
+                doc="oop/contratos")
+            erro.filename = getattr(action, "arquivo", "") or self.filename
+            raise erro
+
+    def _conferir_invariantes(self, obj, node, depois_de=""):
+        vigias = obj.blueprint.vigias
+        if vigias is None or not vigias.invariantes:
+            return
+        # Conferir conta como estar DENTRO do objeto: uma invariante que
+        # chama 'self.area()' dispararia a conferencia de novo, e de novo —
+        # recursao sem fim sobre o caso mais natural de se escrever.
+        estado = objetos.estado_de(obj)
+        estado.profundidade += 1
+        try:
+            self._avaliar_invariantes(obj, node, depois_de, vigias)
+        finally:
+            estado.profundidade -= 1
+
+    def _avaliar_invariantes(self, obj, node, depois_de, vigias):
+        for stmt, escopo_bp, dono in vigias.invariantes:
+            escopo = escopo_bp.child(f"<invariant {dono}>")
+            escopo.set_local("self", obj)
+            escopo.set_local("this", obj)
+            if self._verdade(self.evaluate(stmt.condition, escopo)):
+                continue
+            mensagem = (self._to_str(self.evaluate(stmt.message, escopo))
+                        if stmt.message is not None else "")
+            quando = (f"after '{depois_de}'" if depois_de else "after construction")
+            erro = InvariantError(
+                f"'{obj.blueprint.name}' broke an invariant {quando}"
+                + (f": {mensagem}" if mensagem else "."),
+                getattr(node, "line", 0) or stmt.line,
+                getattr(node, "column", 0) or stmt.column,
+                nota=f"the invariant declared in '{dono}' at line {stmt.line} "
+                     f"no longer holds",
+                dica="an invariant must hold after every public operation; "
+                     "the operation above left the object inconsistent",
+                doc="oop/contratos")
+            raise erro
 
     def exec_TraitDeclaration(self, node: ast.TraitDeclaration, env):
         """Um trait e um blueprint so com contrato.
@@ -5028,7 +6453,10 @@ class Interpreter:
             statics={}, env=env, properties=properties,
             is_abstract=True, abstract_methods=abstratos,
         )
+        blueprint.e_trait = True
+        blueprint.arquivo = self.filename or ""
         _carimbar_dono(blueprint)
+        self._registrar_blueprint(blueprint)
         env.set_local(node.name, blueprint)
         return blueprint
 
@@ -5826,6 +7254,31 @@ class Interpreter:
             raise TriggerError(self._to_str(value), node.line, node.column)
         raise TriggerError("Propagated error", node.line, node.column)
 
+    def _sair_do_contexto(self, recurso, erro, node):
+        """'__exit__' com o que ele aceitar: nada, ou (tipo, erro, pilha).
+
+        A forma de tres argumentos e a do Python, e a de nenhum e a mais
+        comum aqui. Aceitar so uma obrigava a escrever parametros que
+        ninguem usa — ou dava "missing argument(s)" no fim do bloco.
+        """
+        for nome in ("__exit__", "__aexit__"):
+            acao = self._achar_magico(recurso, nome)
+            if acao is None:
+                continue
+            capturado = None
+            if erro is not None:
+                capturado = DFError(type(erro).__name__.rstrip("_"),
+                                    getattr(erro, "message", str(erro)), erro)
+            if len(acao.params) >= 3:
+                args = ([capturado.type, capturado, None] if capturado is not None
+                        else [None, None, None])
+            elif len(acao.params) == 1:
+                args = [capturado]
+            else:
+                args = []
+            return self._call_action(acao, args, {}, node, None, instance=recurso)
+        return _SEM_MAGICO
+
     def exec_WithBlock(self, node: ast.WithBlock, env):
         """with <recurso> [as <nome>]: corpo — abre, usa e fecha.
 
@@ -5846,7 +7299,10 @@ class Interpreter:
         # protocolo de contexto do Python, e o que faz um blueprint
         # proprio servir de recurso gerenciado.
         if isinstance(recurso, DFInstance):
-            entregue = self._chamar_magico(recurso, "__enter__", [], node)
+            entrar = "__enter__" if self._tem_magico(recurso, "__enter__") else "__aenter__"
+            entregue = self._chamar_magico(recurso, entrar, [], node)
+            if isinstance(entregue, DFTarefa):
+                entregue = entregue.aguardar()
             if entregue is not _SEM_MAGICO:
                 valor = entregue
             interno = Environment(parent=env, name="<with>")
@@ -5854,15 +7310,19 @@ class Interpreter:
             anterior_i = env.variables.get(node.name) if tinha_i else None
             if node.name:
                 env.set_local(node.name, valor)
+            erro_do_corpo = None
             try:
                 return self.exec_block(node.body, env)
+            except DataForgeError as erro:
+                erro_do_corpo = erro
+                raise
             finally:
                 if node.name:
                     if tinha_i:
                         env.variables[node.name] = anterior_i
                     else:
                         env.variables.pop(node.name, None)
-                saida = self._chamar_magico(recurso, "__exit__", [], node)
+                saida = self._sair_do_contexto(recurso, erro_do_corpo, node)
                 if saida is _SEM_MAGICO:
                     self._fechar_recurso(recurso, node)
 
@@ -6195,6 +7655,19 @@ class Interpreter:
         # e a comparacao dava Base != Derivada.
         dono = blueprint.declarante_de(membro)
 
+        if visib == "internal":
+            if (dono.arquivo or "") == (self.filename or ""):
+                return
+            raise InternalAccessError(
+                f"'{dono.name}.{membro}' is internal to "
+                f"{_curto(dono.arquivo) if dono.arquivo else 'its file'} and was "
+                f"accessed from {_curto(self.filename) if self.filename else 'another file'}.",
+                node.line, node.column,
+                nota="'internal' opens a member to the file that declares the "
+                     "blueprint, and to no other",
+                dica="expose a public action that does what this file needs",
+                doc="oop/modificadores")
+
         de_dentro = self._blueprint_do_escopo(env)
         if de_dentro is None:
             onde = "outside any blueprint"
@@ -6237,6 +7710,19 @@ class Interpreter:
         disponiveis = sorted(
             set(blueprint.statics) | set(blueprint.methods) |
             set(blueprint.properties) | {c[0] for c in blueprint.fields_decl})
+        de_instancia = ({c[0] for c in blueprint.fields_decl}
+                        | set(blueprint.constructor_params))
+        if node.member in de_instancia:
+            # "Did you mean 'classes'?" para quem escreveu 'classes' era a
+            # sugestao mais inutil possivel: o nome existe, so que no OBJETO.
+            raise NameError_(
+                f"'{node.member}' is a field of each '{blueprint.name}' object, "
+                f"not of the blueprint itself.",
+                node.line, node.column,
+                dica=(f"spawn one and read it there:  (spawn {blueprint.name}(…))."
+                      f"{node.member}\n    or declare it  static {node.member} := …  "
+                      f"if it belongs to the blueprint"),
+                doc="oop/estaticos")
         perto = difflib.get_close_matches(node.member, disponiveis, n=1, cutoff=0.6)
 
         msg = f"Blueprint '{blueprint.name}' has no member '{node.member}'."
@@ -6553,29 +8039,8 @@ class Interpreter:
                 doc="oop/magicos")
 
         if isinstance(callee, DFBlueprint):
-            # Calling a blueprint = spawn
-            instance = DFInstance(callee)
-            if callee.constructor_params:
-                # Inline constructor — assign params to fields + run body
-                for i, pname in enumerate(callee.constructor_params):
-                    val = args[i] if i < len(args) else None
-                    instance.set(pname, val)
-                if 'setup' in callee.methods:
-                    self._call_action(callee.methods['setup'], args, kwargs, node, env,
-                                      instance=instance)
-                if callee.constructor_body:
-                    ctor_env = env.child(f"<constructor {callee.name}>")
-                    ctor_env.set_local("self", instance)
-                    ctor_env.set_local("this", instance)
-                    for i, pname in enumerate(callee.constructor_params):
-                        ctor_env.set_local(pname, instance.fields.get(pname))
-                    for stmt in callee.constructor_body:
-                        self.execute(stmt, ctor_env)
-            elif 'setup' in callee.methods:
-                self._call_action(callee.methods['setup'], args, kwargs, node, env, instance=instance)
-            elif 'initiate' in callee.methods:
-                self._call_action(callee.methods['initiate'], args, kwargs, node, env, instance=instance)
-            return instance
+            # Chamar o blueprint e construir — pelo mesmo caminho do 'spawn'.
+            return self._instanciar(callee, list(args), dict(kwargs), node, env)
 
         if callable(callee):
             # Por '_invocar', e nao por um 'try' proprio: este ramo
@@ -6638,6 +8103,12 @@ class Interpreter:
             # junto, porque o caminho da leitura ate a chamada nao tem
             # onde guardar o dono.
             instance = getattr(action, "self_do_enum", None)
+        # Sobrecarga, contrato, trava, invariante e metaclasse. Duas
+        # leituras de atributo para quem nao usa nada disso — ver objetos.py.
+        if action.extras is not None or (
+                instance is not None and instance.__class__ in _COM_VIGIAS
+                and instance.blueprint.vigias is not None):
+            return self._chamada_especial(action, args, kwargs, node, env, instance)
         self._check_arity(action, args, kwargs, node)
 
         if getattr(action, 'is_generator', False):
@@ -6653,6 +8124,95 @@ class Interpreter:
             return self._corpo_com_salto(action, args, kwargs, node, instance)
 
         return self._corpo_da_acao(action, args, kwargs, node, instance)
+
+    def _despachar_acao(self, action, args, kwargs, node, instance=None):
+        """O despacho de '_call_action', sem o desvio do caminho especial."""
+        self._check_arity(action, args, kwargs, node)
+        if getattr(action, 'is_generator', False):
+            return self._make_stream(action, args, kwargs, node, instance)
+        if getattr(action, 'is_async', False):
+            return self._iniciar_tarefa(action, args, kwargs, node, instance)
+        if action.tem_cauda is None:
+            from .cauda import analisar
+            action.tem_cauda = analisar(action)
+        if action.tem_cauda:
+            return self._corpo_com_salto(action, args, kwargs, node, instance)
+        return self._corpo_da_acao(action, args, kwargs, node, instance)
+
+    def _chamada_especial(self, action, args, kwargs, node, env, instance):
+        """A chamada de uma acao com extras, ou num objeto vigiado.
+
+        A ordem importa, e cada passo tem um motivo:
+
+          1. a sobrecarga escolhe a variante — antes de tudo, porque os
+             extras que valem sao os DELA;
+          2. 'on_call' da metaclasse, so para chamada de fora do objeto;
+          3. a trava do 'exclusive', antes de ler o 'before(…)', senao o
+             valor de entrada podia ser de outra thread;
+          4. o corpo;
+          5. as promessas, com 'outcome' e os 'before' guardados;
+          6. as invariantes — so quando a chamada mais de fora termina:
+             dentro de um metodo o objeto passa por estados intermediarios,
+             e cobrar ali recusaria todo metodo que faz duas escritas.
+        """
+        extras = action.extras
+        if extras is not None and extras.variantes:
+            action = objetos.resolver_sobrecarga(self, action, args, kwargs, node)
+            extras = action.extras
+
+        vigias = None
+        if instance is not None and instance.__class__ in _COM_VIGIAS:
+            vigias = instance.blueprint.vigias
+        if extras is None and vigias is None:
+            return self._despachar_acao(action, args, kwargs, node, instance)
+
+        estado = None
+        externo = False
+        if vigias is not None:
+            estado = objetos.estado_de(instance)
+            externo = estado.profundidade == 0 and not estado.construindo
+            if externo and "on_call" in vigias.ganchos \
+                    and not action.name.startswith("__"):
+                self._gancho_de_vigia(vigias, "on_call",
+                                      [instance, action.name, list(args)], node)
+
+        trava = None
+        if extras is not None and extras.exclusivo and instance is not None:
+            trava = objetos.trava_de(instance)
+            trava.acquire()
+        try:
+            antes = None
+            if extras is not None and extras.antes:
+                escopo = self._ligar_parametros(action, args, kwargs, node, instance)
+                antes = {id(n): self.evaluate(n.expression, escopo)
+                         for n in extras.antes}
+            if estado is not None:
+                estado.profundidade += 1
+            try:
+                resultado = self._despachar_acao(action, args, kwargs, node, instance)
+            finally:
+                if estado is not None:
+                    estado.profundidade -= 1
+            if extras is not None and extras.promessas:
+                self._conferir_promessas(action, extras, args, kwargs, node,
+                                         instance, resultado, antes)
+            if (externo and vigias.invariantes and not estado.construindo
+                    and getattr(action, "visibilidade", "public") == "public"):
+                self._conferir_invariantes(instance, node, action.name)
+            return resultado
+        finally:
+            if trava is not None:
+                trava.release()
+
+    def _serve_ao_tipo(self, valor, tipo, acao=None):
+        """O valor passa pela anotacao? Sem levantar."""
+        try:
+            self._check_type(valor, tipo, "overload", self._no_interno(),
+                             getattr(acao, "type_params", ()),
+                             getattr(acao, "type_bounds", None))
+            return True
+        except TypeError_:
+            return False
 
     def _corpo_com_salto(self, action, args, kwargs, node, instance=None):
         """O corpo de uma acao que chama a si mesma em cauda.
@@ -7361,9 +8921,18 @@ class Interpreter:
         if isinstance(base, dict):
             return {**base, **mudancas}
         if isinstance(base, DFInstance):
-            copia = DFInstance(base.blueprint)
-            copia.fields = dict(base.fields)
-            copia.fields.update(mudancas)
+            # 'fields' e uma vista: atribuir a ela estourava. A copia nasce
+            # pelo mesmo caminho de Objetos.clonar, e as mudancas passam
+            # pelas regras de escrita — so o 'readonly' fica livre, porque
+            # 'with' e a construcao de um objeto novo.
+            copia = copiar_instancia(base)
+            estado = objetos.estado_de(copia)
+            estado.construindo = True
+            try:
+                for chave, valor in mudancas.items():
+                    self._escrever_membro(copia, chave, valor, node, env)
+            finally:
+                estado.construindo = False
             return copia
         raise TypeError_(
             f"'with' does not apply to {self._type_of(base)}: "
@@ -7522,7 +9091,10 @@ class Interpreter:
             for trait in (getattr(bp, "traits", None) or ()):
                 if (getattr(trait, "name", trait)) == nome:
                     return True
-        return False
+        # um contrato que o contrato adotado estende tambem vale:
+        # 'with Repositorio' onde 'contract Repositorio extends Leitura'
+        # serve onde se pede Leitura
+        return nome in getattr(instancia.blueprint, "contratos_todos", ())
 
     def _check_arity(self, action, args, kwargs, node):
         """Reject calls with too few or too many arguments."""

@@ -916,6 +916,25 @@ blueprint Filho extends Base:
 """,
        "Escolha outro nome, ou remova o 'final' da mae se ele nao se justifica."),
 
+    _e("DF0319", "InternalAccessError", "TypeError_",
+       "Acesso a membro 'internal' de outro arquivo", "oop/modificadores",
+       """
+'internal' abre o membro para o arquivo em que o blueprint foi
+declarado, e so para ele. E a visibilidade de um modulo: as pecas de
+dentro conversam, e quem adota o arquivo ve so o que e publico.
+""",
+       """
+// banco.df
+blueprint Conexao:
+    internal action bruta():
+        yield "sql"
+
+// app.df
+adopt ./banco as B
+(spawn B.Conexao()).bruta()       // erro
+""",
+       "Exponha uma acao publica que faca o que o outro arquivo precisa."),
+
     _e("DF0318", "TraitContractError", "TypeError_",
        "Contrato de trait nao cumprido", "referencia/traits",
        """
@@ -1694,6 +1713,201 @@ action listar():
     yield []
 """,
        "Confira o nome do decorador e o que ele devolve."),
+
+    _e("DF0917", "FinalBlueprintError", "ObjectError",
+       "Heranca de blueprint final", "oop/modificadores",
+       """
+'final blueprint' fecha a hierarquia: ninguem herda dele. E a forma de
+dizer que o comportamento esta completo e que uma filha so poderia
+quebrar o que ele promete.
+""",
+       """
+final blueprint Dinheiro(centavos):
+    action somar(o):
+        yield spawn Dinheiro(self.centavos + o.centavos)
+
+blueprint Moeda extends Dinheiro:     // erro
+    x := 1
+""",
+       "Use composicao: guarde um Dinheiro num campo em vez de herdar dele."),
+
+    _e("DF0918", "SealedBlueprintError", "ObjectError",
+       "Heranca de blueprint selado fora do arquivo", "oop/modificadores",
+       """
+'sealed blueprint' so aceita filhas declaradas no MESMO arquivo. A
+familia fica fechada e conhecida — e o que deixa um 'match' saber que
+cobriu todos os casos.
+""",
+       """
+// formas.df
+sealed blueprint Forma:
+    abstract action area()
+
+// outro.df
+adopt ./formas as F
+blueprint Hexagono extends F.Forma:     // erro
+    action area():
+        yield 0
+""",
+       "Declare a filha no arquivo da mae, ou tire o 'sealed' se a familia e aberta."),
+
+    _e("DF0919", "OverrideTargetError", "ObjectError",
+       "'override' sem nada para sobrescrever", "oop/modificadores",
+       """
+'override' e uma promessa: este membro substitui um da mae, de um trait
+ou de um contrato. Quando nao ha o que substituir — o nome foi digitado
+errado, ou a mae mudou — a promessa e falsa, e o metodo nunca seria
+chamado por quem conhece a mae.
+""",
+       """
+blueprint Animal:
+    action falar():
+        yield "..."
+
+blueprint Gato extends Animal:
+    override action fala():      // erro: a mae tem 'falar'
+        yield "miau"
+""",
+       "Corrija o nome para o da mae, ou tire o 'override'."),
+
+    _e("DF0920", "OverloadResolutionError", "ObjectError",
+       "Nenhuma sobrecarga aceita os argumentos", "oop/sobrecarga",
+       """
+Uma acao 'overload' tem variantes, e a chamada escolhe pela quantidade
+e pelo tipo dos argumentos. Nenhuma variante aceitou os que vieram.
+""",
+       """
+overload action area(r: Float):
+    yield 3.14 * r * r
+overload action area(l: Float, a: Float):
+    yield l * a
+
+area("dez")     // erro
+""",
+       "Passe argumentos que uma das variantes aceite, ou acrescente a variante que falta."),
+
+    _e("DF0921", "AmbiguousOverloadError", "OverloadResolutionError",
+       "Mais de uma sobrecarga serve igualmente bem", "oop/sobrecarga",
+       """
+Duas variantes aceitam os argumentos com a mesma precisao. Escolher uma
+em silencio faria o resultado depender da ordem em que foram escritas.
+""",
+       """
+overload action f(x: Integer, y):
+    yield 1
+overload action f(x, y: Integer):
+    yield 2
+
+f(1, 2)     // erro: as duas servem
+""",
+       "Declare os tipos que desempatam, ou junte as variantes numa so."),
+
+    _e("DF0922", "ReadOnlyFieldError", "ObjectError",
+       "Campo 'readonly' alterado depois da construcao", "oop/modificadores",
+       """
+Um campo 'readonly' recebe valor enquanto o objeto nasce — no padrao, no
+cabecalho, no 'setup' — e depois disso nao muda. E a identidade de uma
+entidade, a data de criacao, o que nao pode mudar sem virar outra coisa.
+""",
+       """
+blueprint Pedido:
+    readonly id := 0
+    action setup(id):
+        self.id := id         // ok: construindo
+
+p := spawn Pedido(7)
+p.id := 8                     // erro
+""",
+       "Crie outro objeto, ou tire o 'readonly' se o campo pode mudar de verdade."),
+
+    _e("DF0923", "FrozenObjectError", "ObjectError",
+       "Objeto congelado", "oop/objetos",
+       """
+'Objetos.congelar(obj)' torna a instancia imutavel: nenhum campo aceita
+escrita depois disso. E o jeito de passar um objeto a outra thread, ou a
+codigo que nao se controla, com a garantia de que ele volta igual.
+""",
+       """
+adopt Arcane.Objetos as Objetos
+c := spawn Config()
+Objetos.congelar(c)
+c.porta := 81          // erro
+""",
+       "Trabalhe numa copia: Objetos.clonar(c) devolve uma instancia nao congelada."),
+
+    _e("DF0924", "MetaclassError", "ObjectError",
+       "Metaclasse invalida", "oop/metaclasses",
+       """
+A metaclasse nomeada em 'using' nao e um 'meta blueprint', declara um
+gancho que nao existe, ou conflita com a metaclasse herdada da mae.
+""",
+       """
+meta blueprint Registro:
+    action on_forje(molde):     // erro: o gancho e 'on_forge'
+        out molde
+""",
+       "Use um dos ganchos: on_forge, on_extend, on_spawn, on_ready, on_read, "
+       "on_missing, on_write, on_call, on_serialize, on_deserialize."),
+
+    _e("DF0925", "AugmentError", "ObjectError",
+       "'augment' recusado", "oop/augment",
+       """
+'augment' acrescenta membros a um blueprint que ja existe. Ele nao
+substitui um membro existente, nao mexe num blueprint 'final', e nao
+atravessa o arquivo de um 'sealed' — cada um desses quebraria uma
+promessa que o blueprint original fez.
+""",
+       """
+final blueprint Id(valor):
+    action texto():
+        yield str(self.valor)
+
+augment Id:              // erro: final
+    action dobro():
+        yield self.valor * 2
+""",
+       "Escreva uma acao que recebe o objeto, ou tire o 'final' do original."),
+
+    _e("DF0926", "DependencyResolutionError", "ObjectError",
+       "Dependencia sem registro no conteiner", "oop/injecao",
+       """
+O conteiner precisou construir um objeto e um parametro do construtor
+pede um tipo que ninguem registrou.
+""",
+       """
+adopt Arcane.Injecao as DI
+c := DI.conteiner()
+c.unico(Servico)          // Servico pede um Repositorio
+c.resolver(Servico)       // erro: Repositorio nao esta registrado
+""",
+       "Registre o tipo que falta, ou de um padrao ao parametro para torna-lo opcional."),
+
+    _e("DF0927", "CircularDependencyError", "DependencyResolutionError",
+       "Dependencia circular", "oop/injecao",
+       """
+A construcao de A precisa de B, e a de B precisa de A. Nao ha ordem que
+construa os dois, e a mensagem mostra a cadeia inteira para saber por
+onde quebra-la.
+""",
+       """
+blueprint A(b: B):
+    x := 1
+blueprint B(a: A):
+    x := 1
+""",
+       "Quebre o ciclo com c.preguicoso(Tipo), ou extraia o que os dois dividem."),
+
+    _e("DF0928", "UnsafeDeserializationError", "ObjectError",
+       "Tipo nao autorizado na desserializacao", "oop/objetos",
+       """
+'Objetos.de_vault' so reconstroi os tipos que voce listou. Um dado que
+vem de fora com '$tipo' apontando para outro blueprint e recusado: e
+assim que uma desserializacao vira execucao de codigo alheio.
+""",
+       """
+Objetos.de_vault(json_de_fora, [Pedido])   // o dado pede 'Admin': erro
+""",
+       "Liste o tipo, se ele e esperado; se nao e, o dado nao e confiavel."),
 
     # ═══ 10xx — concorrencia ══════════════════════════════
 

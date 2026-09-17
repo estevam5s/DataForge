@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "Quarenta e nove módulos e 1539 símbolos, sem uma única dependência externa.",
+  description: "54 módulos e 1623 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os quarenta e nove módulos"
+    "h2": "Os 54 módulos"
   },
   {
-    "p": "São **1539 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1623 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -116,6 +116,11 @@ const blocos: Bloco[] = [
           "A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços."
         ],
         [
+          "`Arcane.Reflexo`",
+          "38",
+          "Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid."
+        ],
+        [
           "[`Arcane.Test`](/docs/biblioteca/test)",
           "34",
           "Asserções e organização de suítes de teste."
@@ -164,6 +169,11 @@ const blocos: Bloco[] = [
           "`Arcane.Malha`",
           "23",
           "Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido."
+        ],
+        [
+          "`Arcane.Padroes`",
+          "20",
+          "Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento."
         ],
         [
           "[`Arcane.Observar`](/docs/tecnicas/observar)",
@@ -221,6 +231,11 @@ const blocos: Bloco[] = [
           "DataFrames, séries e transformações tabulares."
         ],
         [
+          "`Arcane.Objetos`",
+          "13",
+          "Cópia rasa e funda, congelamento, igualdade estrutural, hash coerente, ordenação por campos e serialização polimórfica que só reconstrói os tipos autorizados e resolve ciclos."
+        ],
+        [
           "[`Arcane.Qualidade`](/docs/tecnicas/qualidade)",
           "13",
           "Qualidade de dados: as seis dimensões, perfil, validação e limpeza."
@@ -266,6 +281,11 @@ const blocos: Bloco[] = [
           "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, e fila de trabalho que roda em segundo plano."
         ],
         [
+          "`Arcane.Memoria`",
+          "8",
+          "O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado."
+        ],
+        [
           "[`Arcane.API`](/docs/tecnicas/api)",
           "7",
           "A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas."
@@ -279,6 +299,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Email`](/docs/biblioteca/email)",
           "6",
           "Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato."
+        ],
+        [
+          "`Arcane.Injecao`",
+          "5",
+          "Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira."
         ]
       ]
     }
@@ -344,13 +369,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-quarenta-e-nove-modulos', text: "Os quarenta e nove módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-54-modulos', text: "Os 54 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"Quarenta e nove módulos e 1539 símbolos, sem uma única dependência externa."}
+      description={"54 módulos e 1623 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

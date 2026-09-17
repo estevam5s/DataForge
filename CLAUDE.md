@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 241 exercícios
+python3 exercicios/run_all.py                        # 251 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -66,6 +66,8 @@ dataforge/
   resolucao.py     190   onde mora o módulo de um 'adopt' — a única cópia
   idioma.py        330   o idioma das mensagens — pt-BR, e 'DF_IDIOMA=en'
   docs_links.py    220   onde mora a doc de cada palavra, módulo e comando
+  objetos.py       330   OOP fora do caminho quente: sobrecarga, vigias, estado por objeto
+  oop_analise.py   560   dataforge oop — métricas CK e cheiros de SOLID
   lsp.py          1100   o servidor de linguagem: hover, completar, ir-para
   exemplos_palavras.py   um exemplo que RODA para cada uma das 100 palavras
   superficie.py    300   o que um .df oferece, sem executá-lo
@@ -82,11 +84,16 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                49 módulos (1539 símbolos), incluindo:
+  stdlib/                54 módulos (1623 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
     vitrine/             Vitrine — dashboards e data apps (113 símbolos)
+    arcane_reflexo.py    reflexão que respeita a visibilidade, diagrama Mermaid
+    arcane_objetos.py    cópia, congelar, serialização que só aceita tipos listados
+    arcane_injecao.py    contêiner: único, transitório, por escopo; ciclo e cativo
+    arcane_padroes.py    os padrões que pedem mecanismo (comandos, máquina, pool…)
+    arcane_memoria.py    referência fraca, mapa fraco, coletor
     arcane_excel.py      planilhas .xlsx, sem dependência externa (29)
     arcane_arquivo_seguro.py  cofre de arquivo + zip/tar seguro (56)
     cifra.py             ChaCha20-Poly1305 puro (RFC 8439)
@@ -94,7 +101,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        241 exercícios em 34 módulos + run_all.py
+exercicios/        251 exercícios em 37 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -430,6 +437,26 @@ Estas são as que mais custam tempo:
     devolve `None` quando o que vem depois não é um nome, e aí o caminho
     antigo assume — nada que funcionava deixou de funcionar.
 
+28. **`promises` sai do corpo.** O parser tira todo `promises` do topo
+    da ação e o guarda em `postconditions`: ele roda na SAÍDA, com
+    `outcome` e com `before(expr)` avaliado na entrada. Um `promises`
+    dentro de um `given` não tem saída única e é recusado.
+
+29. **A invariante só é cobrada quando a chamada mais de fora termina.**
+    `estado.profundidade` conta as chamadas abertas no objeto; conferir
+    invariante e promessa também soma 1 — sem isso, `invariant
+    self.area() bigger_eq 0` chamava `area`, que conferia a invariante,
+    que chamava `area`. Método `private` não dispara a conferência.
+
+30. **`Objetos.de_vault` exige a lista de tipos**, e não roda `setup`.
+    O dado nunca escolhe o blueprint; as invariantes são conferidas na
+    chegada.
+
+31. **Treze palavras de OOP são contextuais**, e nenhuma é reservada:
+    `readonly := 3` é variável. Cada uma só vale onde o que vem depois
+    confirma (`_e_modificador`, `_abre_condicao`,
+    `_modificadores_antes_de_blueprint`).
+
 ---
 
 ## Convenções ao mexer no interpretador
@@ -648,6 +675,7 @@ Os apelidos (`Zip`, `Cor`, `Banco`) são traduzidos para o nome oficial por
 | `dataforge devops` | `devops_cli.py` | Dockerfile, compose, CI, k8s, Helm, nginx, SBOM, `doctor` |
 | `dataforge vitrine` | `vitrine_cli.py` | `run`, `dev` (hot reload), `doctor`, `new`. Sem `build` nem `deploy` — e os dois explicam por quê |
 | `dataforge stats` | `cli.py` | inventário: ações, blueprints, o arquivo e a ação mais longos |
+| `dataforge oop` | `oop_analise.py` | WMC, DIT, NOC, CBO, RFC, LCOM, instabilidade, MI; cheiros com o princípio SOLID; `--diagrama`, `--hierarquia` |
 | `dataforge profile` | `cli.py` | tempo **próprio** por ação (o acumulado somaria mais de 100%) |
 | `dataforge fix` | `cli.py` | formata e aponta o que exige julgamento |
 | `dataforge add/remove` | `packages.py` | instala e desinstala dependências |
@@ -1006,6 +1034,54 @@ um seria um falso alarme no caminho mais comum:
 
 E `xs[-1]` continua livre: tratar todo negativo como fora do alcance
 acusaria a forma normal de pegar o último item.
+
+### OOP como sistema — o custo zero, e onde ele mora
+
+Contratos, sobrecarga, invariantes, metaclasses, `exclusive` e `lazy`
+não podem custar nada a quem não os usa. Três `None` garantem isso, e são
+a primeira coisa a conferir ao mexer ali:
+
+| Leitura | Quando não é `None` |
+|---|---|
+| `DFAction.extras` | `overload`, `promises`, `exclusive` |
+| `DFBlueprint.vigias` | invariante na linhagem, ou metaclasse com gancho |
+| `DFInstance._estado` | objeto congelado, travado, com `lazy`, ou construindo com `readonly` |
+
+E dois atalhos por blueprint, recalculados por `recalcular_acesso()`:
+`leitura_simples` e `escrita_simples` dizem que não há propriedade,
+descritor, gancho nem `__getattribute__`/`__setattr__`. Com eles o acesso
+a campo **ficou mais rápido que antes dos recursos** (4,47 s → cerca de 3,8 s na
+carga de método/campo/`spawn`). Quem acrescenta um jeito novo de
+interceptar acesso precisa derrubar o atalho ali — senão o recurso novo
+não roda para os blueprints "simples", e nada avisa.
+
+`augment` e `Reflexo.definir_metodo` mudam o blueprint depois de pronto:
+os dois chamam `esquecer_caches()`, que recalcula o atalho e o cache de
+métodos mágicos **das filhas também**.
+
+Quatro decisões que valem lembrar:
+
+1. **Um caminho de construção só.** `spawn`, `Nome(…)`, DI e reflexão
+   passam por `_instanciar`. Eram dois, e `Nome()` nascia sem os padrões
+   dos campos que `spawn Nome()` tinha.
+2. **A instância responde aos protocolos do Python** (`__int__`,
+   `__hash__`, `__eq__`, `__lt__`, `__copy__`…) delegando aos métodos
+   mágicos. É o que fez metade dos 95 mágicos da doc passar a rodar sem
+   adaptar embutido nenhum. **Não** há `__len__`, `__bool__` nem
+   `__iter__` ali: o interpretador pergunta `if obj:` sobre instâncias,
+   e um `__len__` mudaria a verdade de todo objeto que declara tamanho.
+3. **`DFInstanceFinal` só para quem tem `teardown`/`__del__`.** O coletor
+   trata objeto com finalizador de outro jeito, e um milhão de objetos
+   sem finalizador não paga por isso. `type(obj) is DFInstance` no caminho
+   rápido deixa a subclasse no caminho completo — correto, só mais lento.
+4. **O `check` registra blueprint declarado dentro de bloco.** O hoisting
+   só olha o topo e o corpo de ações; um `blueprint` dentro de `monitor`
+   ficava sem linhagem, e `override` e contrato acusavam o que existe.
+   `st_BlueprintDeclaration` chama `_hoist([node])` quando não o conhece.
+
+A travessia de processo leva `extras`, `nao_publicos`, `somente_leitura`
+e `constantes`: sem isso um grupo de `overload` chegava ao filho como uma
+ação de corpo vazio, e `private` deixava de valer lá.
 
 ### O analisador estático é otimista de propósito
 
@@ -1521,7 +1597,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1539 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1623 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -1665,7 +1741,8 @@ python3 scripts/gerar_tarball.py
 | `tests/test_vitrine.py` | `pytest` | a Vitrine: árvore, interação, estado, cache, autenticação, gráficos, escape, HTTP — e um ciclo completo por socket |
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
-| `exercicios/run_all.py` | script | 241 exercícios em 34 módulos, cada um com `assert` |
+| `tests/test_oop_avancada.py` | `pytest` | contratos, modificadores, sobrecarga, metaclasses, reflexão, DI, padrões, memória, métricas, LSP — e **executa cada bloco `df`** das páginas de `/docs/oop` e da §7 da referência |
+| `exercicios/run_all.py` | script | 251 exercícios em 37 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

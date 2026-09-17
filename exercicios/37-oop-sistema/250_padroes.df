@@ -1,0 +1,70 @@
+// Exercicio 250 — Padroes com mecanismo: comando, estado e especificacao
+// Enunciado: um editor de pedido com desfazer, um fluxo de aprovacao que
+// recusa transicao invalida, e regras de negocio combinaveis.
+
+adopt Arcane.Padroes as P
+
+// ── Command: desfazer e refazer ──
+blueprint Carrinho:
+    itens := []
+
+blueprint Adicionar(carrinho, item):
+    action executar():
+        self.carrinho.itens.append(self.item)
+    action desfazer():
+        self.carrinho.itens.pop()
+
+carrinho := spawn Carrinho()
+historico := P.comandos()
+historico.executar(spawn Adicionar(carrinho, "caneta"))
+historico.executar(spawn Adicionar(carrinho, "caderno"))
+historico.desfazer()
+assert carrinho.itens is ["caneta"]
+historico.refazer()
+assert carrinho.itens is ["caneta", "caderno"]
+
+// ── State: transicoes com guarda ──
+fluxo := P.maquina("rascunho", {
+        "enviar": {"de":["rascunho"], "para": "em_analise",
+            "guarda": lambda ctx => len(ctx.itens) bigger 0},
+        "aprovar": {"de":["em_analise"], "para": "aprovado"},
+        "recusar": {"de":["em_analise"], "para": "rascunho"},
+    })
+assert not fluxo.pode("aprovar")
+fluxo.ir("enviar", carrinho)
+fluxo.ir("recusar")
+fluxo.ir("enviar", carrinho)
+fluxo.ir("aprovar")
+assert fluxo.historico is ["rascunho", "em_analise", "rascunho", "em_analise", "aprovado"]
+monitor:
+    fluxo.ir("enviar", carrinho)
+    assert no
+handle StateError:
+    out "aprovado nao volta para analise"
+
+// ── Specification + Repository ──
+record Produto:
+    id: Integer
+    preco: Float
+    estoque: Integer
+
+repo := P.repositorio()
+repo.salvar(Produto(1, 5.0, 10))
+repo.salvar(Produto(2, 80.0, 0))
+repo.salvar(Produto(3, 120.0, 3))
+
+caro := P.especificacao(lambda p => p.preco bigger 50, "caro")
+disponivel := P.especificacao(lambda p => p.estoque bigger 0, "disponivel")
+vitrine := repo.filtrar(caro.e(disponivel))
+assert [p.id cycle p in vitrine] is [3]
+assert [p.id cycle p in repo.filtrar(caro.nao().ou(disponivel.nao()))] is [1, 2]
+
+// ── Observer com prioridade ──
+auditoria := []
+eventos := P.observavel()
+eventos.assinar(lambda d => auditoria.append("log"), 0)
+eventos.assinar(lambda d => auditoria.append("seguranca"), 10)
+eventos.notificar("pedido aprovado")
+assert auditoria is ["seguranca", "log"]
+
+out "250 ok"

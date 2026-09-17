@@ -112,6 +112,20 @@ class TokenType(Enum):
     PROTECTED = auto()       # protected (blueprint e herdeiros)
     OPERATOR = auto()        # operator (sobrecarga)
     FINAL = auto()           # final    (nao pode ser sobrescrito)
+    # ── OOP 1.2 (contextuais) ──
+    INTERNAL = auto()        # internal  (so o proprio arquivo)
+    READONLY = auto()        # readonly  (so a construcao escreve)
+    OVERRIDE = auto()        # override  (tem de sobrescrever algo)
+    OVERLOAD = auto()        # overload  (variante por aridade e tipo)
+    EXCLUSIVE = auto()       # exclusive (uma thread por vez no objeto)
+    LAZY = auto()            # lazy      (propriedade calculada uma vez)
+    INVARIANT = auto()       # invariant (vale depois de toda operacao)
+    SEALED = auto()          # sealed    (so herda quem esta no arquivo)
+    META = auto()            # meta      (blueprint que governa outros)
+    CONTRACT = auto()        # contract  (so assinaturas)
+    AUGMENT = auto()         # augment   (acrescenta a um blueprint)
+    EXPECTS = auto()         # expects   (pre-condicao)
+    PROMISES = auto()        # promises  (pos-condicao)
 
     # ── Error Handling ────────────────────────────────────
     MONITOR = auto()         # monitor (try)
@@ -351,6 +365,25 @@ CONTEXTUAIS_BLUEPRINT = {
     "final":     TokenType.FINAL,
     "abstract":  TokenType.ABSTRACT,
     "slots":     TokenType.SLOTS,
+    # ── OOP 1.2 ──
+    # Modificadores de membro: so dentro do corpo de um blueprint, e so
+    # quando o que vem depois confirma ('readonly := 1' e uma variavel).
+    "internal":  TokenType.INTERNAL,
+    "readonly":  TokenType.READONLY,
+    "override":  TokenType.OVERRIDE,
+    "overload":  TokenType.OVERLOAD,
+    "exclusive": TokenType.EXCLUSIVE,
+    "lazy":      TokenType.LAZY,
+    "invariant": TokenType.INVARIANT,
+    # Antes de 'blueprint': 'sealed blueprint', 'meta blueprint'.
+    "sealed":    TokenType.SEALED,
+    "meta":      TokenType.META,
+    # No topo do arquivo, seguidos de um nome: 'contract Repo:'.
+    "contract":  TokenType.CONTRACT,
+    "augment":   TokenType.AUGMENT,
+    # No corpo de uma acao, seguidos de uma expressao.
+    "expects":   TokenType.EXPECTS,
+    "promises":  TokenType.PROMISES,
 }
 
 

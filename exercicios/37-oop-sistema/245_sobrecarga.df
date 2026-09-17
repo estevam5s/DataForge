@@ -1,0 +1,54 @@
+// Exercicio 245 — Sobrecarga que diz o que aceita
+// Enunciado: uma formatacao de valores com variantes por tipo e aridade,
+// um construtor com duas formas, e as duas recusas da resolucao.
+
+overload action formatar(valor: Integer):
+    yield $"{valor}"
+overload action formatar(valor: Float):
+    yield $"{valor:.2f}"
+overload action formatar(valor: Float, casas: Integer):
+    yield str(round(valor, casas))
+overload action formatar(valor: Boolean):
+    yield "sim" given valor otherwise "não"
+
+assert formatar(3) is "3"  // Integer vence Float: e exato
+assert formatar(2.5) is "2.50"
+assert formatar(2.567, 1) is "2.6"
+assert formatar(yes) is "sim"
+
+blueprint Intervalo:
+    inicio := 0
+    fim := 0
+
+    overload action setup(fim: Integer):
+        self.fim := fim
+    overload action setup(inicio: Integer, fim: Integer):
+        self.inicio := inicio
+        self.fim := fim
+
+    action tamanho():
+        yield self.fim - self.inicio
+
+assert(spawn Intervalo(10)).tamanho() is 10
+assert(spawn Intervalo(3, 10)).tamanho() is 7
+
+// nenhuma variante aceita texto: a mensagem lista as que existem
+monitor:
+    formatar("dez")
+    assert no
+handle OverloadResolutionError as e:
+    assert "formatar(valor: Integer)" in e.nota
+
+// duas variantes igualmente boas: escolher pela ordem seria arbitrario
+overload action juntar(a: Integer, b):
+    yield "primeira"
+overload action juntar(a, b: Integer):
+    yield "segunda"
+monitor:
+    juntar(1, 2)
+    assert no
+handle AmbiguousOverloadError:
+    out "empate recusado"
+assert juntar(1, "x") is "primeira"
+
+out "245 ok"

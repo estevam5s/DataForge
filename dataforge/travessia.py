@@ -476,6 +476,22 @@ class Empacotador:
             "arquivo": a.arquivo,
             "livres": self._livres(a.body, ligados, a.closure,
                                    extra=a.defaults),
+            # sobrecarga, promessas e trava viajam: sem eles um grupo de
+            # 'overload' chegaria do outro lado como uma acao de corpo vazio
+            "extras": self._extras(a),
+            "visibilidade": getattr(a, "visibilidade", "public"),
+        }
+
+    def _extras(self, a):
+        extras = getattr(a, "extras", None)
+        if extras is None:
+            return None
+        return {
+            "variantes": ([self.declaracao(v) for v in extras.variantes]
+                          if extras.variantes else None),
+            "promessas": list(extras.promessas),
+            "exclusivo": extras.exclusivo,
+            "grupo": extras.grupo,
         }
 
     def _record(self, r):
@@ -507,7 +523,8 @@ class Empacotador:
             "statics": {n: self.valor(v) for n, v in b.statics.items()},
             "constructor_params": b.constructor_params,
             "constructor_body": b.constructor_body,
-            "properties": {n: {k: self.declaracao(v) for k, v in p.items()}
+            "properties": {n: {k: (self.declaracao(v) if k in ("get", "set") else v)
+                               for k, v in p.items()}
                            for n, p in b.properties.items()},
             "operators": {n: self.declaracao(v)
                           for n, v in b.operators.items()},
@@ -520,6 +537,16 @@ class Empacotador:
             "traits": list(b.traits),
             "slots": list(b.slots) if b.slots is not None else None,
             "livres": self._livres(b.constructor_body, ligados, b.env),
+            "oop": {
+                "somente_leitura": set(b.somente_leitura),
+                "nao_publicos": set(b.nao_publicos),
+                "constantes": set(b.constantes),
+                "e_final": b.e_final, "e_selado": b.e_selado,
+                "arquivo": b.arquivo,
+                "contratos_todos": set(b.contratos_todos),
+                "tipos_do_cabecalho": dict(b.tipos_do_cabecalho),
+                "padroes_do_cabecalho": dict(b.padroes_do_cabecalho),
+            },
         }
 
     def _livres(self, corpo, ligados, escopo, extra=None):
@@ -730,10 +757,22 @@ class Abridor:
             param_types=c["param_types"], return_type=c["return_type"],
             is_generator=c["is_generator"], type_params=c["type_params"])
         acao.arquivo = c["arquivo"]
+        acao.visibilidade = c.get("visibilidade", "public")
         self._pronto[indice] = acao
         env.variables[c["nome"]] = acao
         for n, v in c["livres"].items():
             env.variables[n] = self.valor(v)
+        extras = c.get("extras")
+        if extras is not None:
+            from .objetos import Extras, nos_before
+            e = Extras()
+            e.variantes = ([self.declaracao(i) for i in extras["variantes"]]
+                           if extras["variantes"] else None)
+            e.promessas = extras["promessas"]
+            e.antes = [n for p in e.promessas for n in nos_before(p)]
+            e.exclusivo = extras["exclusivo"]
+            e.grupo = extras["grupo"]
+            acao.extras = e
         return acao
 
     def _montar_record(self, indice, c):
@@ -786,11 +825,28 @@ class Abridor:
         for n, i in c["operators"].items():
             bp.operators[n] = self.declaracao(i)
         for n, p in c["properties"].items():
-            bp.properties[n] = {k: self.declaracao(i) for k, i in p.items()}
+            bp.properties[n] = {k: (self.declaracao(i) if k in ("get", "set") else i)
+                                for k, i in p.items()}
         for n, v in c["statics"].items():
             bp.statics[n] = self.valor(v)
         for n, v in c["livres"].items():
             env.variables[n] = self.valor(v)
+        oop = c.get("oop") or {}
+        bp.somente_leitura = frozenset(oop.get("somente_leitura", ()))
+        bp.nao_publicos = frozenset(oop.get("nao_publicos", ()))
+        bp.constantes = set(oop.get("constantes", ()))
+        bp.e_final = oop.get("e_final", False)
+        bp.e_selado = oop.get("e_selado", False)
+        bp.arquivo = oop.get("arquivo", "")
+        bp.contratos_todos = frozenset(oop.get("contratos_todos", ()))
+        bp.tipos_do_cabecalho = oop.get("tipos_do_cabecalho", {})
+        bp.padroes_do_cabecalho = oop.get("padroes_do_cabecalho", {})
+        for acao in bp.methods.values():
+            if getattr(acao, "dono", None) is None:
+                acao.dono = bp
+        bp.finalizador = next((bp.methods[n] for n in ("teardown", "__del__")
+                               if n in bp.methods), None)
+        bp.recalcular_acesso()
         return bp
 
 

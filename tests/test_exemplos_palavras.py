@@ -97,7 +97,10 @@ def test_toda_palavra_reservada_tem_exemplo():
 #: contextuais no Kiln. Eles aparecem no hover porque a pessoa vai
 #: digitá-los, mesmo não sendo reservados.
 _CONTEXTUAIS_DE_OOP = {"abstract", "final", "get", "set",
-                       "private", "protected"}
+                       "private", "protected", "internal", "readonly",
+                       "override", "overload", "exclusive", "lazy",
+                       "invariant", "sealed", "meta", "contract", "augment",
+                       "expects", "promises"}
 
 
 def test_nenhum_exemplo_sobra_na_tabela():

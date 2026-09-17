@@ -253,6 +253,21 @@ class TypeChecker:
         #: Blueprints 'abstract' deste arquivo — a raiz de uma hierarquia
         #: que o 'match' pode conferir por completo.
         self.abstratos = set()
+        # ── OOP 1.2 ──
+        #: 'final blueprint', 'sealed blueprint', 'meta blueprint', 'contract'
+        self.finais = set()
+        self.selados = set()
+        self.metas = set()
+        self.contratos = set()
+        #: blueprint -> {metodo: ActionSignature} — o que um override confere
+        self.assinaturas_de_metodo = {}
+        #: blueprint -> campos 'readonly'
+        self.somente_leitura = {}
+        #: acoes de topo com 'overload' — a aridade de uma nao vale para a outra
+        self.sobrecarregadas = set()
+        #: blueprints cujo membro pode nascer em execucao: '__getattr__',
+        #: '__getattribute__', ou governados por metaclasse
+        self.dinamicos = set()
         self._action_depth = 0
         self._loop_depth = 0
         self._current_return = None
@@ -353,7 +368,7 @@ class TypeChecker:
     #: Os nós que declaram um nome no topo do arquivo.
     _DECLARAM_NOME = ("ActionDeclaration", "RecordDeclaration",
                       "BlueprintDeclaration", "EnumDeclaration",
-                      "TraitDeclaration")
+                      "TraitDeclaration", "ContractDeclaration")
 
     def _avisar_declaracao_repetida(self, corpo):
         """Duas declarações com o mesmo nome no topo do mesmo arquivo.
@@ -379,6 +394,10 @@ class TypeChecker:
                 continue
             nome = getattr(no, "name", "")
             if not nome:
+                continue
+            if getattr(no, "is_overload", False) and nome in self.sobrecarregadas:
+                # 'overload action f' declarado duas vezes e o recurso, e nao
+                # engano: cada declaracao e uma variante
                 continue
             if nome in onde:
                 self.warn(
@@ -605,8 +624,29 @@ class TypeChecker:
         for stmt in statements:
             if isinstance(stmt, ast.ActionDeclaration):
                 if registrar_acoes:
-                    self.actions[stmt.name] = ActionSignature(stmt)
+                    if getattr(stmt, "is_overload", False) or \
+                            stmt.name in self.sobrecarregadas:
+                        # a aridade de uma variante nao vale para a outra;
+                        # a chamada e conferida em execucao, pela resolucao
+                        self.sobrecarregadas.add(stmt.name)
+                        self.actions.pop(stmt.name, None)
+                    else:
+                        self.actions[stmt.name] = ActionSignature(stmt)
                 escopo.declare(stmt.name, "Action", stmt.line, stmt.column)
+            elif isinstance(stmt, ast.ContractDeclaration):
+                exigidos = {m.name for m in stmt.members}
+                self.blueprints[stmt.name] = set(exigidos)
+                self.trait_exigidos[stmt.name] = set(exigidos)
+                self.contratos.add(stmt.name)
+                self.maes[stmt.name] = list(stmt.parents or [])
+                self.assinaturas_de_metodo[stmt.name] = {
+                    m.name: ActionSignature(m) for m in stmt.members
+                    if isinstance(m, ast.ActionDeclaration)}
+                self.known_types.add(stmt.name)
+                escopo.declare(stmt.name, "Blueprint", stmt.line, stmt.column)
+            elif isinstance(stmt, ast.AugmentDeclaration):
+                if stmt.name in self.blueprints:
+                    self.blueprints[stmt.name] |= self._membros_de(stmt)
             elif isinstance(stmt, ast.RecordDeclaration):
                 self.records[stmt.name] = {c: canonical(t) for c, t, _ in stmt.fields}
                 self.record_methods[stmt.name] = set(stmt.methods or ())
@@ -633,8 +673,29 @@ class TypeChecker:
                         p if isinstance(p, str) else getattr(p, "name", "")
                         for p in (list(stmt.parents or [])
                                   + list(stmt.traits or []))]
+                    if getattr(stmt, "is_final", False):
+                        self.finais.add(stmt.name)
+                    if getattr(stmt, "is_sealed", False):
+                        self.selados.add(stmt.name)
+                    if getattr(stmt, "is_meta", False):
+                        self.metas.add(stmt.name)
+                    if getattr(stmt, "metaclass", "") or any(
+                            isinstance(m, ast.ActionDeclaration)
+                            and m.name in ("__getattr__", "__getattribute__")
+                            for m in stmt.body):
+                        self.dinamicos.add(stmt.name)
+                    self.assinaturas_de_metodo[stmt.name] = {
+                        m.name: ActionSignature(m) for m in stmt.body
+                        if isinstance(m, ast.ActionDeclaration)
+                        and not getattr(m, "is_overload", False)}
+                    self.somente_leitura[stmt.name] = {
+                        n for n, mods in (getattr(stmt, "field_modifiers", None) or {}).items()
+                        if "readonly" in mods}
                 self.known_types.add(stmt.name)
                 escopo.declare(stmt.name, "Blueprint", stmt.line, stmt.column)
+        for stmt in statements:
+            if isinstance(stmt, ast.AugmentDeclaration) and stmt.name in self.blueprints:
+                self.blueprints[stmt.name] |= self._membros_de(stmt)
 
     # ── O que um blueprint tem ─────────────────────────────
     #
@@ -655,13 +716,22 @@ class TypeChecker:
         '_membros_com_heranca', que precisa da tabela inteira montada.
         """
         membros = set()
-        corpo = (stmt.body if isinstance(stmt, ast.BlueprintDeclaration)
+        corpo = (stmt.body if isinstance(stmt, (ast.BlueprintDeclaration,
+                                                ast.AugmentDeclaration))
                  else stmt.methods)
 
         for sub in corpo:
             if isinstance(sub, (ast.ActionDeclaration, ast.StaticDeclaration,
-                                ast.PropertyDeclaration)):
+                                ast.PropertyDeclaration, ast.BlueprintDeclaration,
+                                ast.RecordDeclaration, ast.EnumDeclaration,
+                                ast.ContractDeclaration, ast.TraitDeclaration)):
                 membros.add(sub.name)
+            elif isinstance(sub, ast.Assignment) and \
+                    isinstance(sub.target, ast.Identifier):
+                # 'porta := 80' solto no corpo e um CAMPO com padrao — o
+                # interpretador o trata assim desde que deixou de virar
+                # estatico, e o analisador nao tinha acompanhado
+                membros.add(sub.target.name)
 
         if isinstance(stmt, ast.BlueprintDeclaration):
             membros.update(stmt.constructor_params or [])
@@ -1894,7 +1964,7 @@ class TypeChecker:
 
     def st_ActionDeclaration(self, node, escopo):
         assinatura = ActionSignature(node)
-        if not self._em_membro:
+        if not self._em_membro and node.name not in self.sobrecarregadas:
             self.actions.setdefault(node.name, assinatura)
         escopo.declare(node.name, "Action", node.line, node.column)
 
@@ -1942,6 +2012,17 @@ class TypeChecker:
         self._hoist(node.body, interno)
         try:
             sempre_retorna = self.visit_block(node.body, interno)
+            promessas = getattr(node, "postconditions", None) or []
+            if promessas:
+                # 'outcome' e o valor devolvido, com o tipo que a acao
+                # declara; 'before(…)' le o escopo da entrada, que e o mesmo
+                saida = Scope(interno, "promises")
+                saida.declare("outcome", canonical(assinatura.return_type),
+                              node.line, node.column)
+                for promessa in promessas:
+                    self.infer(promessa.condition, saida)
+                    if promessa.message is not None:
+                        self.infer(promessa.message, saida)
         finally:
             self._action_depth -= 1
             self._current_return = retorno_anterior
@@ -1964,6 +2045,11 @@ class TypeChecker:
         return False
 
     def st_BlueprintDeclaration(self, node, escopo):
+        if node.name not in self.maes:
+            # Declarado dentro de um bloco ('monitor', 'given'), que nao passa
+            # pelo hoisting do topo: sem registrar aqui, a linhagem dele seria
+            # desconhecida e o 'override' e o contrato acusariam o que existe.
+            self._hoist([node], escopo, registrar_acoes=False)
         interno = Scope(escopo, "blueprint")
         interno.declare("self", node.name, node.line, node.column)
         interno.declare("this", node.name, node.line, node.column)
@@ -1971,6 +2057,18 @@ class TypeChecker:
         for param in node.constructor_params or []:
             interno.declare(param, UNKNOWN, node.line, node.column)
         for pai in node.parents:
+            if "." in pai:
+                continue                    # vem de modulo: a execucao confere
+            if pai in self.finais:
+                self.error(
+                    f"'{node.name}' cannot extend '{pai}', which is declared final",
+                    node, f"keep a {pai} in a field instead — composition works "
+                          f"where inheritance was forbidden", "heranca-final")
+            elif pai in self.contratos:
+                self.error(
+                    f"'{node.name}' extends the contract '{pai}'", node,
+                    f"a contract is adopted: blueprint {node.name} with {pai}:",
+                    "contrato-como-mae")
             if pai not in self.blueprints and pai not in self.known_types:
                 self.error(f"Unknown parent blueprint '{pai}'", node,
                            self._hint_nome(pai, self.blueprints), "unknown-parent")
@@ -1983,9 +2081,28 @@ class TypeChecker:
                     "a blueprint inherits from ANOTHER one; remove the "
                     "'extends', or name the real parent", "heranca-circular")
         for trait in getattr(node, 'traits', []) or []:
+            if "." in trait:
+                continue
             if trait not in self.blueprints:
                 self.error(f"Unknown trait '{trait}'", node,
                            self._hint_nome(trait, self.blueprints), "unknown-trait")
+        meta = getattr(node, "metaclass", "") or ""
+        if meta and "." not in meta:
+            if meta not in self.blueprints:
+                self.error(f"Unknown metaclass '{meta}'", node,
+                           self._hint_nome(meta, self.metas) or
+                           f"declare 'meta blueprint {meta}:'", "unknown-metaclass")
+            elif meta not in self.metas:
+                self.error(f"'{meta}' is not a metaclass", node,
+                           f"declare it as 'meta blueprint {meta}:'",
+                           "metaclasse-invalida")
+        for campo, tipo in (getattr(node, "constructor_types", None) or {}).items():
+            alvo = canonical(tipo)
+            if (alvo not in self.known_types and alvo != UNKNOWN
+                    and tipo not in (getattr(node, "type_params", None) or [])
+                    and "." not in tipo):
+                self.error(f"Unknown type '{tipo}' for '{campo}'", node,
+                           self._hint_tipo(tipo), "unknown-type")
         self._hoist(node.body, interno, registrar_acoes=False)
         anterior = self._em_membro
         genericos_antes = self._genericos_do_blueprint
@@ -2007,7 +2124,221 @@ class TypeChecker:
             self._limites_do_blueprint = limites_antes
         self._conferir_contrato_de_trait(node)
         self._conferir_membros_repetidos(node)
+        self._conferir_oop(node)
         return False
+
+    # ── OOP 1.2: override, sobrecarga, readonly, metaclasse, contrato ──
+
+    _CONSTRUTORES = ("setup", "initiate", "__init__")
+
+    def _exigidos_de(self, trait, vistos=None):
+        """O que um trait ou contrato exige, inclusive o que ele herda."""
+        vistos = vistos or set()
+        if trait in vistos:
+            return set()
+        vistos.add(trait)
+        exigidos = self.trait_exigidos.get(trait)
+        if exigidos is None:
+            return None
+        todos = set(exigidos)
+        for mae in self.maes.get(trait, ()):
+            if mae in self.contratos:
+                herdados = self._exigidos_de(mae, vistos)
+                if herdados is None:
+                    return None
+                todos |= herdados
+        return todos
+
+    def _assinatura_herdada(self, blueprint, metodo, vistos=None):
+        """A assinatura do metodo na mae mais proxima que o declara."""
+        vistos = vistos or set()
+        for mae in self.maes.get(blueprint, ()):
+            if mae in vistos:
+                continue
+            vistos.add(mae)
+            tabela = self.assinaturas_de_metodo.get(mae, {})
+            if metodo in tabela:
+                return mae, tabela[metodo]
+            achado = self._assinatura_herdada(mae, metodo, vistos)
+            if achado is not None:
+                return achado
+        return None
+
+    @staticmethod
+    def _aridade(sig):
+        return len(sig.params) - len(sig.defaults), len(sig.params)
+
+    def _conferir_oop(self, node):
+        fechado = self._blueprint_e_fechado(node.name)
+        herdados = set()
+        for mae in self.maes.get(node.name, ()):
+            herdados |= self._membros_com_heranca(mae)
+            exigidos = self._exigidos_de(mae)
+            if exigidos:
+                herdados |= exigidos
+
+        # meta blueprint: os ganchos existem
+        if getattr(node, "is_meta", False):
+            from .objetos import GANCHOS_DE_META
+            for membro in node.body:
+                nome = getattr(membro, "name", "")
+                if isinstance(membro, ast.ActionDeclaration) and \
+                        nome.startswith("on_") and nome not in GANCHOS_DE_META:
+                    self.error(f"'{nome}' is not a metaclass hook", membro,
+                               self._hint_nome(nome, GANCHOS_DE_META) or
+                               "the hooks are: " + ", ".join(GANCHOS_DE_META),
+                               "gancho-desconhecido")
+
+        readonly = self.somente_leitura.get(node.name, set())
+        variantes = {}
+        for membro in node.body:
+            nome = getattr(membro, "name", "")
+            e_acao = isinstance(membro, ast.ActionDeclaration)
+            if isinstance(membro, (ast.ActionDeclaration, ast.PropertyDeclaration)) \
+                    and getattr(membro, "is_override", False) and fechado \
+                    and nome not in herdados:
+                self.error(
+                    f"'{node.name}.{nome}' is marked override, but nothing it "
+                    f"inherits has '{nome}'", membro,
+                    self._hint_nome(nome, herdados) or
+                    "remove 'override', or fix the name to match the parent",
+                    "override-sem-alvo")
+
+            if not e_acao:
+                continue
+
+            if getattr(membro, "is_overload", False):
+                sig = ActionSignature(membro)
+                for outra in variantes.get(nome, []):
+                    if self._aridade(outra) == self._aridade(sig) and all(
+                            canonical(outra.param_types.get(a, UNKNOWN)) ==
+                            canonical(sig.param_types.get(b, UNKNOWN))
+                            for a, b in zip(outra.params, sig.params)):
+                        self.error(
+                            f"Two overloads of '{node.name}.{nome}' have the same "
+                            f"signature", membro,
+                            f"the one on line {outra.line} can never be chosen — "
+                            f"change a parameter type or remove one",
+                            "sobrecarga-duplicada")
+                variantes.setdefault(nome, []).append(sig)
+                continue
+
+            # readonly escrito fora da construcao
+            if readonly and nome not in self._CONSTRUTORES and \
+                    not getattr(membro, "is_static", False):
+                for campo in sorted(self._campos_atribuidos(membro.body) & readonly):
+                    self.error(
+                        f"'{node.name}.{campo}' is readonly and '{nome}' writes it "
+                        f"after construction", membro,
+                        "assign it in the default, the header or 'setup' — or "
+                        "remove 'readonly'", "readonly-fora-da-construcao")
+
+            # Liskov: a filha aceita tudo o que a mae aceitava?
+            if nome.startswith("__") or nome in self._CONSTRUTORES or \
+                    getattr(membro, "is_static", False) or not fechado:
+                continue
+            achado = self._assinatura_herdada(node.name, nome)
+            if achado is None:
+                continue
+            mae, da_mae = achado
+            filha = ActionSignature(membro)
+            fmin, fmax = self._aridade(filha)
+            mmin, mmax = self._aridade(da_mae)
+            if fmin <= mmin and fmax >= mmax:
+                continue
+            if mae in self.contratos:
+                self.error(
+                    f"'{node.name}.{nome}' does not match the signature of contract "
+                    f"'{mae}'", membro,
+                    f"the contract passes {mmin} to {mmax} argument(s); accept all "
+                    f"of them — extra parameters need a default",
+                    "assinatura-incompativel")
+            else:
+                self.warn(
+                    f"'{node.name}.{nome}' accepts {fmin}–{fmax} argument(s), but "
+                    f"'{mae}.{nome}' accepted {mmin}–{mmax}", membro,
+                    f"code written for {mae} breaks when it receives a "
+                    f"{node.name} (Liskov substitution) — keep the parent's "
+                    f"parameters, and give the new ones a default",
+                    "substituicao-quebrada")
+
+    def st_ContractDeclaration(self, node, escopo):
+        if node.name not in self.contratos:
+            self._hoist([node], escopo, registrar_acoes=False)
+        interno = Scope(escopo, "contract")
+        interno.declare("self", node.name, node.line, node.column)
+        for mae in node.parents or []:
+            if "." in mae:
+                continue
+            if mae not in self.blueprints:
+                self.error(f"Unknown contract '{mae}'", node,
+                           self._hint_nome(mae, self.contratos), "unknown-trait")
+            elif mae not in self.contratos:
+                self.error(f"Contract '{node.name}' extends '{mae}', which is not "
+                           f"a contract", node,
+                           "a contract extends only other contracts",
+                           "contrato-como-mae")
+        anterior = self._em_membro
+        genericos_antes = self._genericos_do_blueprint
+        self._em_membro = True
+        self._genericos_do_blueprint = set(node.type_params or [])
+        try:
+            for membro in node.members:
+                if isinstance(membro, ast.ActionDeclaration):
+                    self.visit(membro, interno)
+        finally:
+            self._em_membro = anterior
+            self._genericos_do_blueprint = genericos_antes
+        return False
+
+    def st_AugmentDeclaration(self, node, escopo):
+        if node.name in self.finais:
+            self.error(f"Cannot augment '{node.name}': it is declared final", node,
+                       "write an action that receives the object instead",
+                       "augment-final")
+        if node.name in self.contratos:
+            self.error(f"Cannot augment the contract '{node.name}'", node,
+                       "declare a new contract that extends it", "augment-final")
+        elif node.name not in self.blueprints and "." not in node.name \
+                and not escopo.has(node.name):
+            self.error(f"Cannot augment '{node.name}': it does not exist", node,
+                       self._hint_nome(node.name, self.blueprints), "unknown-blueprint")
+        interno = Scope(escopo, "blueprint")
+        interno.declare("self", node.name, node.line, node.column)
+        interno.declare("this", node.name, node.line, node.column)
+        interno.declare("root", ANY, node.line, node.column)
+        anterior = self._em_membro
+        self._em_membro = True
+        try:
+            self.visit_block(node.body, interno)
+        finally:
+            self._em_membro = anterior
+        return False
+
+    def st_InvariantStatement(self, node, escopo):
+        if not self._em_membro:
+            self.error("'invariant' only has meaning in the body of a blueprint",
+                       node, "inside an action, use 'expects' or 'assert'",
+                       "invariant-fora")
+        self.infer(node.condition, escopo)
+        if node.message is not None:
+            self.infer(node.message, escopo)
+        return False
+
+    def st_ExpectsStatement(self, node, escopo):
+        self.infer(node.condition, escopo)
+        if node.message is not None:
+            self.infer(node.message, escopo)
+        return False
+
+    def st_PromisesStatement(self, node, escopo):
+        self.error("'promises' has to be at the top level of an action body", node,
+                   "it runs when the action returns; move it next to the "
+                   "first statements of the action", "promises-fora-do-topo")
+        return False
+
+    def ex_BeforeExpression(self, node, escopo):
+        return self.infer(node.expression, escopo)
 
     def _conferir_membros_repetidos(self, node):
         """Dois métodos com o mesmo nome, ou um método com o nome de um campo.
@@ -2031,6 +2362,8 @@ class TypeChecker:
                 continue
             nome = getattr(membro, "name", "")
             if not nome or nome.startswith("__"):
+                continue
+            if getattr(membro, "is_overload", False):
                 continue
             if nome in campos:
                 self.error(
@@ -2071,7 +2404,7 @@ class TypeChecker:
         membros = self._membros_implementados(node.name)
         faltando = {}
         for trait in traits:
-            exigidos = self.trait_exigidos.get(trait)
+            exigidos = self._exigidos_de(trait)
             if exigidos is None:
                 return        # trait de outro arquivo: nao sei o que exige
             for metodo in sorted(exigidos):
@@ -2964,6 +3297,8 @@ class TypeChecker:
         membro = node.member
         if membro.startswith("__") or membro in self._SEMPRE_NA_INSTANCIA:
             return
+        if self._linhagem_dinamica(tipo):
+            return               # '__getattr__' ou metaclasse: nada a provar
 
         membros = self._membros_com_heranca(tipo)
         if membro in membros:
@@ -2981,6 +3316,15 @@ class TypeChecker:
             or (f"It has: {', '.join(sorted(membros)[:8])}"
                 + ("…" if len(membros) > 8 else "")),
             "unknown-member")
+
+    def _linhagem_dinamica(self, tipo, vistos=None):
+        vistos = vistos or set()
+        if tipo in vistos:
+            return False
+        vistos.add(tipo)
+        if tipo in self.dinamicos:
+            return True
+        return any(self._linhagem_dinamica(m, vistos) for m in self.maes.get(tipo, ()))
 
     def ex_SafeMemberAccess(self, node, escopo):
         self.infer(node.object, escopo)
@@ -3328,6 +3672,10 @@ class TypeChecker:
                 self.error(f"Unknown blueprint '{nome}'", node,
                            self._hint_nome(nome, self.blueprints), "unknown-blueprint")
                 return UNKNOWN
+            if nome in self.contratos:
+                self.error(f"'{nome}' is a contract and cannot be spawned", node,
+                           f"spawn a blueprint declared 'with {nome}'",
+                           "spawn-de-contrato")
             return nome
         return UNKNOWN
 

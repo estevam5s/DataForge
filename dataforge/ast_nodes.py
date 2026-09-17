@@ -374,10 +374,17 @@ class ActionDeclaration(ASTNode):
     param_types: dict = field(default_factory=dict)
     return_type: str = ""
     is_generator: bool = False
-    visibility: str = "public"   # public | private | protected
+    visibility: str = "public"   # public | private | protected | internal
     is_static: bool = False
     is_abstract: bool = False
     is_final: bool = False
+    # ── OOP 1.2 ──
+    is_override: bool = False    # 'override action f()' — tem de sobrescrever algo
+    is_overload: bool = False    # 'overload action f(x: Integer)' — uma variante
+    is_exclusive: bool = False   # 'exclusive action f()' — uma thread por vez
+    # 'promises cond' do topo do corpo, tirados dali pelo parser: rodam
+    # na SAIDA da acao, com 'outcome' ligado ao valor devolvido.
+    postconditions: list = field(default_factory=list)
 
 @dataclass
 class BlueprintDeclaration(ASTNode):
@@ -396,6 +403,68 @@ class BlueprintDeclaration(ASTNode):
     # <T>, <K, V> — nomes de tipo validos dentro desta declaracao
     type_params: list = field(default_factory=list)
     type_bounds: dict = field(default_factory=dict)  # 'T' -> limite de <T extends X>
+    # ── OOP 1.2 ──
+    is_final: bool = False       # 'final blueprint' — ninguem herda
+    is_sealed: bool = False      # 'sealed blueprint' — so herda quem esta no mesmo arquivo
+    is_meta: bool = False        # 'meta blueprint' — governa a criacao de outros
+    metaclass: str = ""          # 'using Meta' no cabecalho
+    constructor_types: dict = field(default_factory=dict)     # 'x' -> 'Integer'
+    constructor_defaults: dict = field(default_factory=dict)  # 'x' -> expressao
+    # campo -> {'readonly', 'internal', …} — os modificadores de cada campo
+    field_modifiers: dict = field(default_factory=dict)
+
+
+@dataclass
+class ContractDeclaration(ASTNode):
+    """contract Nome<T> [extends A, B]: assinaturas
+
+    O que um blueprint PROMETE, sem nada do COMO. Diferente do trait,
+    que pode trazer implementacao padrao, um contrato so declara — e e
+    isso que o deixa ser segregado em pedacos pequenos sem arrastar
+    codigo junto.
+    """
+    name: str = ""
+    parents: list = field(default_factory=list)       # outros contratos
+    members: list = field(default_factory=list)       # ActionDeclaration / PropertyDeclaration sem corpo
+    type_params: list = field(default_factory=list)
+    type_bounds: dict = field(default_factory=dict)
+    decorators: list = field(default_factory=list)
+
+
+@dataclass
+class AugmentDeclaration(ASTNode):
+    """augment Nome: membros — acrescenta a um blueprint que ja existe."""
+    name: str = ""
+    body: list = field(default_factory=list)
+    fields_decl: list = field(default_factory=list)
+    field_modifiers: dict = field(default_factory=dict)
+
+
+@dataclass
+class InvariantStatement(ASTNode):
+    """invariant cond [, "mensagem"] — vale depois de toda operacao publica."""
+    condition: Any = None
+    message: Any = None
+
+
+@dataclass
+class ExpectsStatement(ASTNode):
+    """expects cond [, "mensagem"] — pre-condicao: quem chamou errou."""
+    condition: Any = None
+    message: Any = None
+
+
+@dataclass
+class PromisesStatement(ASTNode):
+    """promises cond [, "mensagem"] — pos-condicao: a acao errou."""
+    condition: Any = None
+    message: Any = None
+
+
+@dataclass
+class BeforeExpression(ASTNode):
+    """before(expr) — o valor de expr na ENTRADA da acao, dentro de 'promises'."""
+    expression: Any = None
 
 
 @dataclass
@@ -410,6 +479,9 @@ class PropertyDeclaration(ASTNode):
     body: list = field(default_factory=list)
     visibility: str = "public"
     return_type: str = ""
+    is_lazy: bool = False        # 'lazy get total()' — calcula uma vez por objeto
+    is_override: bool = False
+    is_abstract: bool = False    # assinatura sem corpo, num contrato
 
 
 @dataclass
@@ -433,6 +505,7 @@ class StaticDeclaration(ASTNode):
     name: str = ""
     value: Any = None
     declared_type: str = ""
+    is_steady: bool = False      # 'static steady MAX := 3' — constante de classe
 
 
 # ═══════════════════════════════════════════════════════════

@@ -365,6 +365,73 @@ PALAVRAS = {
         '        yield spawn Dinheiro(self.centavos + outro.centavos)\n\n'
         'total := spawn Dinheiro(150) + spawn Dinheiro(250)\n'
         'out total.centavos'),
+    "internal": (
+        "membro visível só no arquivo que declara o blueprint",
+        'blueprint Conexao:\n    internal action bruta():\n        yield "sql"\n\n'
+        'out (spawn Conexao()).bruta()   // ok: mesmo arquivo'),
+    "readonly": (
+        "campo que só a construção escreve; depois disso não muda",
+        'blueprint Pedido(numero):\n    readonly criado_em := 2026\n\n'
+        'p := spawn Pedido(7)\nout p.criado_em\n'
+        'monitor:\n    p.criado_em := 2030\nhandle ReadOnlyFieldError:\n'
+        '    out "recusado"'),
+    "override": (
+        "promete que o membro substitui um herdado — e o check confere",
+        'blueprint Animal:\n    action som():\n        yield "..."\n\n'
+        'blueprint Gato extends Animal:\n    override action som():\n'
+        '        yield "miau"\n\nout (spawn Gato()).som()'),
+    "overload": (
+        "variantes da mesma ação, escolhidas pela aridade e pelos tipos",
+        'overload action area(r: Float):\n    yield 3.14 * r * r\n\n'
+        'overload action area(largura: Float, altura: Float):\n'
+        '    yield largura * altura\n\nout area(2.0), area(2.0, 3.0)'),
+    "exclusive": (
+        "método que só uma thread roda por vez no mesmo objeto",
+        'blueprint Contador:\n    n := 0\n    exclusive action somar():\n'
+        '        self.n := self.n + 1\n\nc := spawn Contador()\n'
+        'parallel:\n    thread:\n        cycle i from 1 to 100:\n'
+        '            c.somar()\n    thread:\n        cycle i from 1 to 100:\n'
+        '            c.somar()\nout c.n   // 200, sempre'),
+    "lazy": (
+        "propriedade calculada na primeira leitura e guardada",
+        'blueprint Relatorio(dados):\n    lazy get total():\n'
+        '        out "somando…"\n        yield sum(self.dados)\n\n'
+        'r := spawn Relatorio([1, 2, 3])\nout r.total\nout r.total   // não soma de novo'),
+    "invariant": (
+        "condição que o objeto mantém depois de toda operação pública",
+        'blueprint Conta:\n    saldo := 0\n    invariant self.saldo bigger_eq 0, "saldo negativo"\n'
+        '    action sacar(v):\n        self.saldo -= v\n\n'
+        'monitor:\n    (spawn Conta()).sacar(10)\nhandle InvariantError as e:\n    out e.message'),
+    "sealed": (
+        "blueprint que só aceita filhas no mesmo arquivo",
+        'abstract sealed blueprint Forma:\n    abstract action area()\n\n'
+        'blueprint Quadrado(lado) extends Forma:\n    action area():\n'
+        '        yield self.lado ** 2\n\nout (spawn Quadrado(3)).area()'),
+    "meta": (
+        "o blueprint que governa como outros nascem — a metaclasse",
+        'meta blueprint Registro:\n    nomes := []\n    action on_forge(molde):\n'
+        '        self.nomes.append(typeof(molde))\n\n'
+        'blueprint Usuario using Registro:\n    nome := ""\n\n'
+        'out spawn Usuario()'),
+    "contract": (
+        "só assinaturas: o que um blueprint promete, sem o como",
+        'contract Repositorio:\n    action salvar(item)\n    get total() -> Integer\n\n'
+        'blueprint Memoria with Repositorio:\n    itens := []\n'
+        '    action salvar(item):\n        self.itens.append(item)\n'
+        '    get total():\n        yield len(self.itens)\n\n'
+        'r := spawn Memoria()\nr.salvar("a")\nout r.total'),
+    "augment": (
+        "acrescenta membros a um blueprint que já existe",
+        'blueprint Ponto(x, y):\n    action soma():\n        yield self.x + self.y\n\n'
+        'augment Ponto:\n    action dobro():\n        yield self.soma() * 2\n\n'
+        'out (spawn Ponto(1, 2)).dobro()'),
+    "expects": (
+        "pré-condição: o que quem chama precisa garantir",
+        'action raiz(x):\n    expects x bigger_eq 0, "x negativo"\n    yield sqrt(x)\n\n'
+        'out raiz(9)\nmonitor:\n    raiz(-1)\nhandle PreconditionError as e:\n    out e.message'),
+    "promises": (
+        "pós-condição: o que a ação garante ao devolver ('outcome')",
+        'action dobro(x):\n    promises outcome is x * 2\n    yield x + x\n\nout dobro(21)'),
     "slots": (
         "fecha a lista de campos: o que nao esta ali nao pode ser criado",
         'blueprint Ponto:\n    slots x, y\n    action setup():\n'

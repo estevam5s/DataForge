@@ -53,6 +53,11 @@ from .arcane_rede import ArcaneRede
 from .lavra import ArcaneLavra
 from .vitrine import ArcaneVitrine
 from .arcane_malha import ArcaneMalha
+from .arcane_reflexo import ArcaneReflexo
+from .arcane_objetos import ArcaneObjetos
+from .arcane_injecao import ArcaneInjecao
+from .arcane_padroes import ArcanePadroes
+from .arcane_memoria import ArcaneMemoria
 
 _MODULES = {
     "Arcane.IO": ArcaneIO,
@@ -183,6 +188,17 @@ _MODULES = {
 
     # ── Malha — chamada entre servicos ──
     "Arcane.Malha": ArcaneMalha,
+    "Arcane.Reflexo": ArcaneReflexo,
+    "Reflexo": ArcaneReflexo,
+    "Arcane.Objetos": ArcaneObjetos,
+    "Objetos": ArcaneObjetos,
+    "Arcane.Injecao": ArcaneInjecao,
+    "Injecao": ArcaneInjecao,
+    "DI": ArcaneInjecao,
+    "Arcane.Padroes": ArcanePadroes,
+    "Padroes": ArcanePadroes,
+    "Arcane.Memoria": ArcaneMemoria,
+    "Memoria": ArcaneMemoria,
     "Malha": ArcaneMalha,
     "Mesh": ArcaneMalha,
 

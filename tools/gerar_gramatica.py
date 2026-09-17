@@ -53,6 +53,16 @@ GRUPOS = {
         "protected", "get", "set", "operator", "extends", "with",
     ],
     "keyword.other.oop.dataforge": ["spawn", "self", "root", "delete"],
+    # Os modificadores e as declaracoes de OOP sao contextuais: pintados
+    # como palavra, mas so porque quase nunca aparecem como nome. A cor
+    # errada num 'readonly := 3' e um preco menor que a palavra sem cor.
+    "storage.modifier.oop.dataforge": [
+        "internal", "sealed", "meta", "readonly", "override", "overload",
+        "exclusive", "lazy",
+    ],
+    "keyword.other.contract.dataforge": [
+        "contract", "augment", "invariant", "expects", "promises",
+    ],
     "keyword.other.async.dataforge": [
         "async", "await", "thread", "parallel", "pulse", "observe",
     ],

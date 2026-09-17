@@ -3878,6 +3878,38 @@
     }
    ]
   },
+  "injecao": {
+   "nome": "Arcane.Injecao",
+   "desc": "Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira.",
+   "curto": "Injecao / DI",
+   "funcoes": [
+    {
+     "nome": "ESCOPOS",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "Fornece",
+     "sig": "(contrato)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Injetar",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Servico",
+     "sig": "(escopo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conteiner",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "iter": {
    "nome": "Arcane.Iter",
    "desc": "Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize.",
@@ -5217,7 +5249,7 @@
     },
     {
      "nome": "hypot",
-     "sig": "(…)",
+     "sig": "(coordinates)",
      "tipo": "funcao"
     },
     {
@@ -5353,6 +5385,53 @@
     {
      "nome": "zeros",
      "sig": "(rows, cols)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "memoria": {
+   "nome": "Arcane.Memoria",
+   "desc": "O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado.",
+   "curto": "Memoria",
+   "funcoes": [
+    {
+     "nome": "ao_descartar",
+     "sig": "(obj, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "coletar",
+     "sig": "(geracao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "estatisticas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fraca",
+     "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mapa_fraco",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "referencias",
+     "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tamanho",
+     "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vivos",
+     "sig": "(molde)",
      "tipo": "funcao"
     }
    ]
@@ -5646,6 +5725,78 @@
     }
    ]
   },
+  "objetos": {
+   "nome": "Arcane.Objetos",
+   "desc": "Cópia rasa e funda, congelamento, igualdade estrutural, hash coerente, ordenação por campos e serialização polimórfica que só reconstrói os tipos autorizados e resolve ciclos.",
+   "curto": "Objetos",
+   "funcoes": [
+    {
+     "nome": "clonar",
+     "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "clonar_fundo",
+     "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "comparar_por",
+     "sig": "(campos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "congelado",
+     "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "congelar",
+     "sig": "(obj, fundo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_json",
+     "sig": "(texto, tipos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_vault",
+     "sig": "(dado, tipos, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hash",
+     "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "identico",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "igual",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ordenar",
+     "sig": "(itens, campos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "para_json",
+     "sig": "(obj, opcoes, indent)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "para_vault",
+     "sig": "(obj, opcoes)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "observar": {
    "nome": "Arcane.Observar",
    "desc": "Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados.",
@@ -5744,6 +5895,113 @@
     {
      "nome": "valor",
      "sig": "(painel, nome)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "padroes": {
+   "nome": "Arcane.Padroes",
+   "desc": "Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento.",
+   "curto": "Padroes",
+   "funcoes": [
+    {
+     "nome": "adaptar",
+     "sig": "(alvo, mapa)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "barramento",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cadeia",
+     "sig": "(manipuladores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "comandos",
+     "sig": "(limite)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compartilhado",
+     "sig": "(fabrica)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "composto",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "construtor",
+     "sig": "(molde, obrigatorios)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "especificacao",
+     "sig": "(predicado, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "estrategias",
+     "sig": "(padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "maquina",
+     "sig": "(inicial, transicoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mediador",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "memento",
+     "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "observavel",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pool",
+     "sig": "(fabrica, tamanho, limpar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "prototipos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "proxy",
+     "sig": "(alvo, interceptar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "repositorio",
+     "sig": "(campo_id)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "restaurar",
+     "sig": "(obj, memento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "unico",
+     "sig": "(fabrica)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "visitar",
+     "sig": "(obj, visitante)",
      "tipo": "funcao"
     }
    ]
@@ -6171,6 +6429,203 @@
     {
      "nome": "udp",
      "sig": "(host, porta, escutar)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "reflexo": {
+   "nome": "Arcane.Reflexo",
+   "desc": "Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid.",
+   "curto": "Reflexo",
+   "funcoes": [
+    {
+     "nome": "anotacoes",
+     "sig": "(alvo, membro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "blueprints",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "campos",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contratos",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "criar_blueprint",
+     "sig": "(nome, definicao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cumpre",
+     "sig": "(obj, contrato)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "definir_metodo",
+     "sig": "(molde, nome, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "descende",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "descendentes",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "diagrama",
+     "sig": "(moldes, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "documentacao",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_instancia",
+     "sig": "(valor, molde)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escrever",
+     "sig": "(obj, nome, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "especie",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "estaticos",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "faltando",
+     "sig": "(obj, contrato)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "herdeiros",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hierarquia",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "inspecionar",
+     "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "instanciar",
+     "sig": "(molde, args, nomeados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "invocar",
+     "sig": "(obj, nome, args, nomeados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler",
+     "sig": "(obj, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "maes",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "membros",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "meta",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "meta_instancia",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "metodos",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modificadores",
+     "sig": "(alvo, membro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "molde",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mro",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nome",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "operadores",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "procurar",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "propriedades",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sugerir",
+     "sig": "(alvo, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tem",
+     "sig": "(obj, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tipo",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "traits",
+     "sig": "(alvo)",
      "tipo": "funcao"
     }
    ]
@@ -10039,6 +10494,88 @@
     "temDoc": true,
     "codigo": "// Exercicio 241 — O quadro, e os seis verbos do pipeline\n// Enunciado: carregue um conjunto com ausencia, limpe-o, agrupe e\n// responda tres perguntas. Sem sair da linguagem.\n\nadopt Arcane.Quadro as Q\n\n// Um quadro nasce do que o resto da linguagem ja produz: um cluster de\n// vaults. E o que 'IO.read_csv(caminho, yes)' devolve, e o que\n// 'Database.query' devolve.\nvendas := Q.de_vaults([\n    {\"produto\": \"cafe\",   \"regiao\": \"sul\",   \"valor\": 120.0, \"qtd\": 4},\n    {\"produto\": \"cafe\",   \"regiao\": \"norte\", \"valor\": 90.0,  \"qtd\": 3},\n    {\"produto\": \"cha\",    \"regiao\": \"sul\",   \"valor\": 60.0,  \"qtd\": 2},\n    {\"produto\": \"cha\",    \"regiao\": \"norte\", \"valor\": void,  \"qtd\": 1},\n    {\"produto\": \"acucar\", \"regiao\": \"sul\",   \"valor\": 30.0,  \"qtd\": 5}\n])\n\nassert typeof(vendas) is \"Quadro\", \"o tipo tem o nome da linguagem\"\nassert vendas.forma() is [5, 4], \"cinco linhas, quatro colunas\"\n\n// ── 1. Olhar antes de calcular ──────────────────────────────\n//\n// 'perfil' e o primeiro comando a rodar num conjunto que voce nao\n// conhece. Uma media sobre dados com buraco nao avisa que tinha buraco.\n\nperfil := vendas.perfil()\nso_valor := perfil.onde(lambda l: l[\"coluna\"] is \"valor\")\nassert so_valor.coluna(\"ausentes\") is [1], \"uma venda sem valor\"\nassert so_valor.coluna(\"tipo\") is [\"Float\"], \"a coluna e decimal\"\n\n// ── 2. A logica de tres valores ─────────────────────────────\n//\n// Comparar com o desconhecido nao da nem sim nem nao, e a linha nao\n// passa. E o que o SQL faz, e o que toda ferramenta de dados faz.\n\nacima := vendas >> onde valor bigger 50\nassert acima.altura() is 3, \"a linha sem valor fica de fora\"\n\n// E quem QUER a ausencia pergunta por ela.\nsem_valor := vendas >> onde valor is void\nassert sem_valor.altura() is 1, \"e ela continua alcancavel\"\n\n// ── 3. A coluna se escreve nua, e o escopo de fora continua ──\n\nlimite := 100.0\ncaras := vendas >> onde valor bigger limite\nassert caras.altura() is 1, \"'limite' vem de fora; 'valor' e coluna\"\n\n// ── 4. Agrupar e resumir ────────────────────────────────────\n\nresumo := vendas\n    >> onde valor bigger 0\n    >> agrupar produto\n    >> resumir {\"valor\": \"soma\"}\n    >> ordenar valor desc\n\nassert resumo.coluna(\"produto\") is [\"cafe\", \"cha\", \"acucar\"], \"do maior ao menor\"\nassert resumo.coluna(\"valor\") is [210.0, 60.0, 30.0], \"as somas\"\n\n// 'contagem' e 'contagem_valida' respondem perguntas DIFERENTES:\n// quantas linhas ha, e quantas tem valor.\ncontas := vendas.agrupar(\"produto\")\n    .resumir({\"valor\": [\"contagem\", \"contagem_valida\"]})\ncha := contas.onde(lambda l: l[\"produto\"] is \"cha\")\nassert cha.coluna(\"valor_contagem\") is [2], \"duas linhas de cha\"\nassert cha.coluna(\"valor_contagem_valida\") is [1], \"uma delas sem valor\"\n\n// ── 5. Limpar ───────────────────────────────────────────────\n\nlimpo := vendas.preencher({\"valor\": \"media\"})\nassert limpo.nulos()[\"valor\"] is 0, \"nao sobrou ausencia\"\nassert limpo.coluna(\"valor\")[3] is 75.0, \"a media das quatro que havia\"\n\n// ── 6. Juntar ───────────────────────────────────────────────\n\ngerentes := Q.de_vaults([{\"regiao\": \"sul\", \"gerente\": \"Ana\"}])\n\ndentro := vendas.juntar(gerentes, \"regiao\")\nesquerda := vendas.juntar(gerentes, \"regiao\", \"esquerda\")\nassert dentro.altura() is 3, \"so o que casa\"\nassert esquerda.altura() is 5, \"e as cinco, com void onde nao casou\"\nassert esquerda.nulos()[\"gerente\"] is 2, \"as duas do norte\"\n\n// ── 7. O quadro fala o protocolo da linguagem ───────────────\n//\n// Nada no 'cycle', no 'len' ou no '>>' sabe o que e um quadro. Eles\n// funcionam porque iterar um quadro da LINHAS como vault.\n\ntotal := 0\ncycle linha in vendas:\n    total += linha[\"qtd\"]\nassert total is 15, \"o cycle percorre linhas\"\nassert len(vendas) is 5, \"len conta linhas\"\nassert vendas[\"qtd\"] is [4, 3, 2, 1, 5], \"indexar por texto da a coluna\"\nassert vendas[0][\"produto\"] is \"cafe\", \"indexar por numero da a linha\"\n\n// E os verbos convivem com sift e morph no mesmo pipeline.\nnomes := vendas >> onde regiao is \"sul\" >> morph l: l[\"produto\"]\nassert nomes is [\"cafe\", \"cha\", \"acucar\"], \"os tres do sul\"\n\n// ── 8. Todo verbo devolve um quadro NOVO ────────────────────\n\nassert vendas.altura() is 5, \"o original nunca muda\"\n\nout \"241 ok — quadro, verbos, ausencia, agrupamento e juncao\"\n"
    }
+  ],
+  "37-oop-sistema": [
+   {
+    "num": "242",
+    "titulo": "Contratos pequenos, e quem depende de qual",
+    "enunciado": "modele um armazenamento de documentos em que quem so LE",
+    "arquivo": "242_contratos_e_segregacao.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 242 — Contratos pequenos, e quem depende de qual\n// Enunciado: modele um armazenamento de documentos em que quem so LE\n// nao dependa de quem ESCREVE, e confira que um blueprint que promete\n// um contrato cumpre a assinatura inteira.\n\ncontract Leitura:\n    action buscar(id: Integer)\n    get total() -> Integer\n\ncontract Escrita:\n    action salvar(id: Integer, texto: String)\n\ncontract Armazem extends Leitura, Escrita:\n    action apagar(id: Integer)\n\nblueprint ArmazemMemoria with Armazem:\n    private docs := {}\n\n    action buscar(id: Integer):\n        yield self.docs[id] ?? void\n\n    action salvar(id: Integer, texto: String):\n        self.docs[id] := texto\n\n    action apagar(id: Integer):\n        self.docs.remove(id)\n\n    get total():\n        yield len(self.docs)\n\n// Quem so exibe depende de Leitura — e nada mais.\naction exibir(fonte: Leitura, id: Integer) -> String:\n    yield fonte.buscar(id) ?? \"(vazio)\"\n\na := spawn ArmazemMemoria()\na.salvar(1, \"ata da reunião\")\nassert exibir(a, 1) is \"ata da reunião\"\nassert exibir(a, 2) is \"(vazio)\"\nassert a.total is 1\n\n// O contrato vale como tipo — inclusive o que ele herda.\naction arquivar(destino: Escrita):\n    destino.salvar(99, \"arquivado\")\narquivar(a)\nassert a.total is 2\n\n// Uma implementacao que pede argumento a menos e recusada na declaracao.\nmonitor:\n    blueprint Quebrado with Escrita:\n        action salvar(id: Integer):\n            yield id\n    assert no, \"devia ter recusado\"\nhandle SignatureMismatchError as e:\n    assert \"Escrita\" in e.message\n\n// E uma que esquece um metodo tambem.\nmonitor:\n    blueprint Esquecido with Leitura:\n        total := 0\n    assert no, \"devia ter recusado\"\nhandle TraitContractError as e:\n    assert \"buscar\" in e.message\n\n// Um contrato nao nasce.\nmonitor:\n    spawn Leitura()\n    assert no\nhandle AbstractInstantiationError:\n    out \"contrato nao se instancia\"\n\nout \"242 ok\"\n"
+   },
+   {
+    "num": "243",
+    "titulo": "O que cada modificador promete",
+    "enunciado": "modele uma conta com identidade imutavel, limite de classe,",
+    "arquivo": "243_modificadores.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 243 — O que cada modificador promete\n// Enunciado: modele uma conta com identidade imutavel, limite de classe,\n// estado privado e uma familia fechada de tipos de conta.\n\nabstract sealed blueprint Conta:\n    readonly numero := 0\n    static steady LIMITE_DIARIO := 5000\n    private saldo := 0.0\n    protected historico := []\n\n    action setup(numero):\n        self.numero := numero\n\n    abstract action tarifa(valor)\n\n    action depositar(valor):\n        self.saldo += valor\n        self.historico.append(valor)\n        yield self.saldo\n\n    final action extrato():\n        yield $\"{self.numero}: {self.saldo}\"\n\n    internal action auditoria():\n        yield len(self.historico)\n\nblueprint Corrente extends Conta:\n    override action tarifa(valor):\n        yield valor * 0.01\n\nfinal blueprint Poupanca extends Conta:\n    override action tarifa(valor):\n        yield 0\n\nc := spawn Corrente(101)\nc.depositar(200)\nassert c.extrato() is \"101: 200.0\"\nassert c.tarifa(100) is 1.0\nassert c.auditoria() is 1  // internal: mesmo arquivo\nassert Conta.LIMITE_DIARIO is 5000\n\n// readonly: so a construcao escreve\nmonitor:\n    c.numero := 999\n    assert no\nhandle ReadOnlyFieldError:\n    out \"o numero de uma conta nao muda\"\n\n// private: nem leitura, nem chamada de fora\nmonitor:\n    out c.saldo\n    assert no\nhandle TypeError as e:\n    assert \"private\" in e.message\n\n// static steady: constante de classe\nmonitor:\n    Conta.LIMITE_DIARIO := 1\n    assert no\nhandle ConstantReassignmentError:\n    out \"limite e constante\"\n\n// final: ninguem herda de Poupanca\nmonitor:\n    blueprint PoupancaPlus extends Poupanca:\n        bonus := 1\n    assert no\nhandle FinalBlueprintError:\n    out \"poupanca e final\"\n\n// final action: a filha nao troca o extrato\nmonitor:\n    blueprint Fraude extends Conta:\n        override action tarifa(v):\n            yield 0\n        action extrato():\n            yield \"tudo certo\"\n    assert no\nhandle FinalOverrideError:\n    out \"extrato e final\"\n\n// override: o nome errado e pego na declaracao\nmonitor:\n    blueprint Digitada extends Conta:\n        override action tarifaa(v):\n            yield 0\n    assert no\nhandle OverrideTargetError as e:\n    assert \"tarifa\" in e.dica\n\nout \"243 ok\"\n"
+   },
+   {
+    "num": "244",
+    "titulo": "De quem e o erro?",
+    "enunciado": "um estoque com pre-condicao, pos-condicao e invariante, e",
+    "arquivo": "244_design_por_contrato.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 244 — De quem e o erro?\n// Enunciado: um estoque com pre-condicao, pos-condicao e invariante, e\n// uma operacao defeituosa que o contrato denuncia.\n\nblueprint Estoque:\n    itens := {}\n    invariant len([q cycle q in self.itens.values() given q smaller 0]) is 0, \"quantidade negativa\"\n\n    action entrar(produto, n):\n        expects n bigger 0, \"entrada precisa ser positiva\"\n        promises self.quantidade(produto) is before(self.quantidade(produto)) + n\n        self.itens[produto] := self.quantidade(produto) + n\n        yield self.itens[produto]\n\n    action sair(produto, n):\n        expects n bigger 0, \"saida precisa ser positiva\"\n        self.itens[produto] := self.quantidade(produto) - n\n        yield self.itens[produto]\n\n    action entrar_com_bug(produto, n):\n        promises self.quantidade(produto) is before(self.quantidade(produto)) + n, \"somou errado\"\n        self.itens[produto] := self.quantidade(produto) + n - 1\n\n    action quantidade(produto):\n        yield self.itens[produto] ?? 0\n\ne := spawn Estoque()\nassert e.entrar(\"caneta\", 10) is 10\nassert e.sair(\"caneta\", 4) is 6\n\n// pre-condicao: quem CHAMOU errou\nmonitor:\n    e.entrar(\"caneta\", 0)\n    assert no\nhandle PreconditionError as erro:\n    assert \"positiva\" in erro.message\n\n// pos-condicao: a ACAO errou\nmonitor:\n    e.entrar_com_bug(\"lapis\", 5)\n    assert no\nhandle PostconditionError as erro:\n    assert \"somou errado\" in erro.message\n\n// invariante: a operacao deixou o objeto inconsistente\nmonitor:\n    e.sair(\"caneta\", 100)\n    assert no\nhandle InvariantError as erro:\n    assert \"negativa\" in erro.message\n\n// Os tres sao ContractError: um handle so pega a familia inteira.\nmonitor:\n    e.sair(\"caneta\", -1)\nhandle ContractError as erro:\n    out \"contrato:\", erro.type\n\nout \"244 ok\"\n"
+   },
+   {
+    "num": "245",
+    "titulo": "Sobrecarga que diz o que aceita",
+    "enunciado": "uma formatacao de valores com variantes por tipo e aridade,",
+    "arquivo": "245_sobrecarga.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 245 — Sobrecarga que diz o que aceita\n// Enunciado: uma formatacao de valores com variantes por tipo e aridade,\n// um construtor com duas formas, e as duas recusas da resolucao.\n\noverload action formatar(valor: Integer):\n    yield $\"{valor}\"\noverload action formatar(valor: Float):\n    yield $\"{valor:.2f}\"\noverload action formatar(valor: Float, casas: Integer):\n    yield str(round(valor, casas))\noverload action formatar(valor: Boolean):\n    yield \"sim\" given valor otherwise \"não\"\n\nassert formatar(3) is \"3\"  // Integer vence Float: e exato\nassert formatar(2.5) is \"2.50\"\nassert formatar(2.567, 1) is \"2.6\"\nassert formatar(yes) is \"sim\"\n\nblueprint Intervalo:\n    inicio := 0\n    fim := 0\n\n    overload action setup(fim: Integer):\n        self.fim := fim\n    overload action setup(inicio: Integer, fim: Integer):\n        self.inicio := inicio\n        self.fim := fim\n\n    action tamanho():\n        yield self.fim - self.inicio\n\nassert(spawn Intervalo(10)).tamanho() is 10\nassert(spawn Intervalo(3, 10)).tamanho() is 7\n\n// nenhuma variante aceita texto: a mensagem lista as que existem\nmonitor:\n    formatar(\"dez\")\n    assert no\nhandle OverloadResolutionError as e:\n    assert \"formatar(valor: Integer)\" in e.nota\n\n// duas variantes igualmente boas: escolher pela ordem seria arbitrario\noverload action juntar(a: Integer, b):\n    yield \"primeira\"\noverload action juntar(a, b: Integer):\n    yield \"segunda\"\nmonitor:\n    juntar(1, 2)\n    assert no\nhandle AmbiguousOverloadError:\n    out \"empate recusado\"\nassert juntar(1, \"x\") is \"primeira\"\n\nout \"245 ok\"\n"
+   },
+   {
+    "num": "246",
+    "titulo": "Uma metaclasse que registra, valida e audita",
+    "enunciado": "todo modelo de dominio precisa de 'id', ganha nome de tabela",
+    "arquivo": "246_metaclasses.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 246 — Uma metaclasse que registra, valida e audita\n// Enunciado: todo modelo de dominio precisa de 'id', ganha nome de tabela\n// automaticamente, e cada escrita de campo fica registrada.\n\nadopt Arcane.Reflexo as R\n\nmeta blueprint Modelo:\n    tabelas := {}\n    escritas := []\n\n    action on_forge(molde):\n        campos := [c[\"nome\"] cycle c in R.campos(molde)]\n        given not(\"id\" in campos):\n            trigger $\"{R.nome(molde)} precisa declarar 'id'\"\n        self.tabelas[R.nome(molde)] := R.nome(molde).lower() + \"s\"\n\n    action on_write(obj, nome, valor):\n        self.escritas.append($\"{R.nome(obj)}.{nome}\")\n\n    action on_missing(obj, nome):\n        yield void\n\nblueprint Entidade using Modelo:\n    id := 0\n\nblueprint Cliente extends Entidade:\n    nome := \"\"\n\nblueprint Pedido extends Entidade:\n    total := 0.0\n\nmeta_obj := R.meta_instancia(Pedido)\nassert meta_obj.tabelas is {\"Entidade\": \"entidades\", \"Cliente\": \"clientes\", \"Pedido\": \"pedidos\"}\n\nc := spawn Cliente()\nc.nome := \"Ana\"\nc.id := 7\nassert meta_obj.escritas is [\"Cliente.nome\", \"Cliente.id\"]\nassert c.telefone is void  // on_missing: campo opcional\n\n// a validacao roda na DECLARACAO\nmonitor:\n    blueprint SemId using Modelo:\n        texto := \"\"\n    assert no\nhandle Error as e:\n    assert \"precisa declarar 'id'\" in e.message\n\n// um gancho com nome errado nunca rodaria — por isso e recusado\nmonitor:\n    meta blueprint Errada:\n        action on_forje(m):\n            yield void\n    assert no\nhandle MetaclassError as e:\n    assert \"on_forge\" in e.dica\n\nout \"246 ok\"\n"
+   },
+   {
+    "num": "247",
+    "titulo": "Um validador generico escrito com reflexao",
+    "enunciado": "valide qualquer objeto pelas anotacoes dos campos, sem que o",
+    "arquivo": "247_reflexao.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 247 — Um validador generico escrito com reflexao\n// Enunciado: valide qualquer objeto pelas anotacoes dos campos, sem que o\n// validador conheca o tipo — e confirme que a reflexao nao fura 'private'.\n\nadopt Arcane.Reflexo as R\n\naction Obrigatorio(alvo):\n    yield void\naction Tamanho(minimo, maximo):\n    yield lambda alvo => void\n\nblueprint Usuario:\n    @Obrigatorio\n    @Tamanho(3, 20)\n    nome := \"\"\n\n    @Obrigatorio\n    email := \"\"\n\n    private senha := \"segredo\"\n\n    action saudar():\n        yield \"olá, \" + self.nome\n\n// O validador so conhece anotacoes, nunca 'Usuario'.\naction validar(obj):\n    problemas := []\n    cycle campo in R.campos(obj):\n        given campo[\"visibilidade\"] isnt \"public\":\n            skip\n        valor := R.ler(obj, campo[\"nome\"])\n        cycle marca in campo[\"anotacoes\"]:\n            given marca[\"nome\"] is \"Obrigatorio\" and valor is \"\":\n                problemas.append($\"{campo['nome']} é obrigatório\")\n            orif marca[\"nome\"] is \"Tamanho\" and valor isnt \"\":\n                minimo, maximo := marca[\"args\"]\n                given len(valor) smaller minimo or len(valor) bigger maximo:\n                    problemas.append($\"{campo['nome']} fora de {minimo}..{maximo}\")\n    yield problemas\n\nu := spawn Usuario()\nassert validar(u) is [\"nome é obrigatório\", \"email é obrigatório\"]\nR.escrever(u, \"nome\", \"Al\")\nR.escrever(u, \"email\", \"al@x.com\")\nassert validar(u) is [\"nome fora de 3..20\"]\nu.nome := \"Alice\"\nassert validar(u) is []\n\n// invocacao por nome\nassert R.invocar(u, \"saudar\") is \"olá, Alice\"\nassert R.tem(u, \"saudar\")\nassert \"senha\" in [c[\"nome\"] cycle c in R.campos(Usuario)]  // saber que existe…\nmonitor:\n    R.ler(u, \"senha\")  // …nao e poder ler\n    assert no\nhandle TypeError as e:\n    assert \"private\" in e.message\n\n// sugestao de nome parecido, como dado\nassert R.sugerir(u, \"sadar\") is [\"saudar\"]\n\n// o diagrama sai da mesma informacao\ndiagrama := R.diagrama([Usuario])\nassert \"-senha\" in diagrama and \"+saudar()\" in diagrama\n\nout \"247 ok\"\n"
+   },
+   {
+    "num": "248",
+    "titulo": "Copia, imutabilidade e serializacao que nao confia no dado",
+    "enunciado": "persista um pedido com cliente e itens (e um ciclo), recarregue",
+    "arquivo": "248_objetos_e_serializacao.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 248 — Copia, imutabilidade e serializacao que nao confia no dado\n// Enunciado: persista um pedido com cliente e itens (e um ciclo), recarregue\n// so os tipos esperados, e passe uma configuracao congelada adiante.\n\nadopt Arcane.Objetos as O\n\nblueprint Cliente(nome):\n    pedidos := []\n    private cpf := \"000\"\n\nblueprint Item(produto, preco):\n    quantidade := 1\n\nblueprint Pedido(cliente):\n    itens := []\n    invariant len(self.itens) smaller_eq 50\n\n    action total():\n        yield sum([i.preco * i.quantidade cycle i in self.itens])\n\nana := spawn Cliente(\"Ana\")\np := spawn Pedido(ana)\np.itens.append(spawn Item(\"caneta\", 3.0))\np.itens.append(spawn Item(\"caderno\", 12.5))\nana.pedidos.append(p)  // ciclo: cliente -> pedido -> cliente\n\n// ── serializar ──\ndado := O.para_vault(ana)\nassert dado[\"$tipo\"] is \"Cliente\"\nassert not(\"cpf\" in dado)  // private nao sai\nassert dado[\"pedidos\"][0][\"cliente\"][\"$ref\"] is dado[\"$id\"]\n\ntexto := O.para_json(ana)\nvolta := O.de_json(texto, [Cliente, Pedido, Item])\nassert volta.pedidos[0].total() is 15.5\nassert volta.pedidos[0].cliente is volta  // o ciclo voltou como ciclo\n\n// ── o dado nao escolhe o tipo ──\nmonitor:\n    O.de_vault({\"$tipo\": \"Administrador\", \"poderes\": \"todos\"}, [Cliente, Pedido, Item])\n    assert no\nhandle UnsafeDeserializationError:\n    out \"tipo nao autorizado: recusado\"\n\n// ── invariante conferida na chegada ──\nitens_demais := [{\"$tipo\":\"Item\", \"produto\":\"x\", \"preco\":1} cycle i in range(60)]\nmonitor:\n    O.de_vault({\"$tipo\": \"Pedido\", \"itens\": itens_demais}, [Pedido, Item])\n    assert no\nhandle InvariantError:\n    out \"dado que viola a regra: recusado na chegada\"\n\n// ── copia e igualdade ──\ncopia := O.clonar_fundo(p)\ncopia.itens[0].quantidade := 10\nassert p.itens[0].quantidade is 1\nassert not O.igual(copia, p)\nassert O.igual(O.clonar_fundo(p), p)\n\n// ── congelar ──\nblueprint Config:\n    porta := 8080\n    hosts := [\"a\"]\ncfg := O.congelar(spawn Config())\nmonitor:\n    cfg.porta := 80\n    assert no\nhandle FrozenObjectError:\n    out \"config congelada\"\neditavel := O.clonar(cfg)\neditavel.porta := 80\nassert editavel.porta is 80 and cfg.porta is 8080\n\nout \"248 ok\"\n"
+   },
+   {
+    "num": "249",
+    "titulo": "Portas, adaptadores e o conteiner",
+    "enunciado": "um caso de uso de cadastro que nao conhece banco nem e-mail,",
+    "arquivo": "249_injecao_hexagonal.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 249 — Portas, adaptadores e o conteiner\n// Enunciado: um caso de uso de cadastro que nao conhece banco nem e-mail,\n// montado por um conteiner — e trocado por dubles no teste.\n\nadopt Arcane.Injecao as DI\n\n// ── portas (o dominio) ──\ncontract Usuarios:\n    action existe(email: String) -> Boolean\n    action gravar(email: String)\n\ncontract Avisos:\n    action enviar(para: String, texto: String)\n\nblueprint Cadastro(usuarios: Usuarios, avisos: Avisos):\n    action registrar(email: String):\n        expects \"@\" in email, \"e-mail invalido\"\n        given self.usuarios.existe(email):\n            yield \"ja existe\"\n        self.usuarios.gravar(email)\n        self.avisos.enviar(email, \"bem-vindo\")\n        yield \"criado\"\n\n// ── adaptadores (a borda) ──\nblueprint UsuariosMemoria with Usuarios:\n    emails := []\n    action existe(email: String) -> Boolean:\n        yield email in self.emails\n    action gravar(email: String):\n        self.emails.append(email)\n\nblueprint AvisosFalsos with Avisos:\n    enviados := []\n    action enviar(para: String, _texto: String):\n        self.enviados.append(para)\n\n// ── composicao: um lugar so ──\nc := DI.conteiner()\nc.unico(Usuarios, UsuariosMemoria)\nc.unico(Avisos, AvisosFalsos)\nc.transitorio(Cadastro)\n\ncadastro := c.resolver(Cadastro)\nassert cadastro.registrar(\"ana@x.com\") is \"criado\"\nassert cadastro.registrar(\"ana@x.com\") is \"ja existe\"\nassert c.resolver(Avisos).enviados is [\"ana@x.com\"]\nassert c.conferir() is []\n\n// ── o grafo que o conteiner monta ──\nassert c.grafo()[\"Cadastro\"] is [\"Usuarios\", \"Avisos\"]\n\n// ── escopo: um por pedido ──\nblueprint Transacao:\n    aberta := yes\n    action fechar():\n        self.aberta := no\n\nc.por_escopo(Transacao)\npedido := c.escopo(\"pedido 1\")\nt := pedido.resolver(Transacao)\nassert t is pedido.resolver(Transacao)\npedido.fechar()\nassert not t.aberta\n\n// ── o que ele recusa ──\nmonitor:\n    DI.conteiner().resolver(Cadastro)\n    assert no\nhandle DependencyResolutionError as e:\n    assert \"Usuarios\" in e.message\n\nout \"249 ok\"\n"
+   },
+   {
+    "num": "250",
+    "titulo": "Padroes com mecanismo: comando, estado e especificacao",
+    "enunciado": "um editor de pedido com desfazer, um fluxo de aprovacao que",
+    "arquivo": "250_padroes.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 250 — Padroes com mecanismo: comando, estado e especificacao\n// Enunciado: um editor de pedido com desfazer, um fluxo de aprovacao que\n// recusa transicao invalida, e regras de negocio combinaveis.\n\nadopt Arcane.Padroes as P\n\n// ── Command: desfazer e refazer ──\nblueprint Carrinho:\n    itens := []\n\nblueprint Adicionar(carrinho, item):\n    action executar():\n        self.carrinho.itens.append(self.item)\n    action desfazer():\n        self.carrinho.itens.pop()\n\ncarrinho := spawn Carrinho()\nhistorico := P.comandos()\nhistorico.executar(spawn Adicionar(carrinho, \"caneta\"))\nhistorico.executar(spawn Adicionar(carrinho, \"caderno\"))\nhistorico.desfazer()\nassert carrinho.itens is [\"caneta\"]\nhistorico.refazer()\nassert carrinho.itens is [\"caneta\", \"caderno\"]\n\n// ── State: transicoes com guarda ──\nfluxo := P.maquina(\"rascunho\", {\n        \"enviar\": {\"de\":[\"rascunho\"], \"para\": \"em_analise\",\n            \"guarda\": lambda ctx => len(ctx.itens) bigger 0},\n        \"aprovar\": {\"de\":[\"em_analise\"], \"para\": \"aprovado\"},\n        \"recusar\": {\"de\":[\"em_analise\"], \"para\": \"rascunho\"},\n    })\nassert not fluxo.pode(\"aprovar\")\nfluxo.ir(\"enviar\", carrinho)\nfluxo.ir(\"recusar\")\nfluxo.ir(\"enviar\", carrinho)\nfluxo.ir(\"aprovar\")\nassert fluxo.historico is [\"rascunho\", \"em_analise\", \"rascunho\", \"em_analise\", \"aprovado\"]\nmonitor:\n    fluxo.ir(\"enviar\", carrinho)\n    assert no\nhandle StateError:\n    out \"aprovado nao volta para analise\"\n\n// ── Specification + Repository ──\nrecord Produto:\n    id: Integer\n    preco: Float\n    estoque: Integer\n\nrepo := P.repositorio()\nrepo.salvar(Produto(1, 5.0, 10))\nrepo.salvar(Produto(2, 80.0, 0))\nrepo.salvar(Produto(3, 120.0, 3))\n\ncaro := P.especificacao(lambda p => p.preco bigger 50, \"caro\")\ndisponivel := P.especificacao(lambda p => p.estoque bigger 0, \"disponivel\")\nvitrine := repo.filtrar(caro.e(disponivel))\nassert [p.id cycle p in vitrine] is [3]\nassert [p.id cycle p in repo.filtrar(caro.nao().ou(disponivel.nao()))] is [1, 2]\n\n// ── Observer com prioridade ──\nauditoria := []\neventos := P.observavel()\neventos.assinar(lambda d => auditoria.append(\"log\"), 0)\neventos.assinar(lambda d => auditoria.append(\"seguranca\"), 10)\neventos.notificar(\"pedido aprovado\")\nassert auditoria is [\"seguranca\", \"log\"]\n\nout \"250 ok\"\n"
+   },
+   {
+    "num": "251",
+    "titulo": "Nascer, viver sob threads, e morrer limpo",
+    "enunciado": "um contador de acessos seguro sob concorrencia, um cache que",
+    "arquivo": "251_ciclo_de_vida_e_concorrencia.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 251 — Nascer, viver sob threads, e morrer limpo\n// Enunciado: um contador de acessos seguro sob concorrencia, um cache que\n// nao segura os objetos, e um recurso que se libera sozinho.\n\nadopt Arcane.Memoria as Mem\n\n// ── exclusive: o monitor do objeto ──\nblueprint Contador:\n    acessos := 0\n    exclusive action registrar():\n        atual := self.acessos\n        self.acessos := atual + 1\n    exclusive action registrar_dois():\n        self.registrar()  // reentrante: nao espera por si\n        self.registrar()\n\ncontador := spawn Contador()\nparallel:\n    thread:\n        cycle i from 1 to 300:\n            contador.registrar()\n    thread:\n        cycle i from 1 to 150:\n            contador.registrar_dois()\n    thread:\n        cycle i from 1 to 300:\n            contador.registrar()\nassert contador.acessos is 900\n\n// ── lazy: calcular uma vez por objeto ──\nblueprint Relatorio(linhas):\n    calculos := 0\n    lazy get total():\n        self.calculos += 1\n        yield sum(self.linhas)\n\nr := spawn Relatorio([1, 2, 3, 4])\nassert r.total is 10 and r.total is 10\nassert r.calculos is 1\n\n// ── teardown: o recurso se libera quando o ultimo nome solta ──\nliberados := []\nblueprint Conexao(nome):\n    action teardown():\n        liberados.append(self.nome)\n\na := spawn Conexao(\"principal\")\n_outra := a\na := void\nassert liberados is []  // '_outra' ainda segura\n_outra := void\nassert liberados is [\"principal\"]\n\n// ── referencia fraca: o cache que nao vaza ──\ncache := Mem.mapa_fraco()\nsessao := spawn Conexao(\"sessao\")\ncache.definir(sessao, \"dados caros de calcular\")\nassert cache.tamanho is 1\nsessao := void\nassert cache.tamanho is 0\nassert \"sessao\" in liberados\n\n// ── quantos existem ──\n_lote := [spawn Conexao($\"c{i}\") cycle i in range(5)]\nassert Mem.vivos(Conexao) is 5\n_lote := void\nassert Mem.vivos(Conexao) is 0\n\nout \"251 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -10384,9 +10921,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2127,
+  "testes": 2225,
   "exemplos": 44,
-  "arquivosDf": 351
+  "arquivosDf": 361
  },
  "mundo": {
   "estrelas": 0,

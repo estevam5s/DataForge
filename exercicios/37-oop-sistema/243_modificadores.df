@@ -1,0 +1,91 @@
+// Exercicio 243 — O que cada modificador promete
+// Enunciado: modele uma conta com identidade imutavel, limite de classe,
+// estado privado e uma familia fechada de tipos de conta.
+
+abstract sealed blueprint Conta:
+    readonly numero := 0
+    static steady LIMITE_DIARIO := 5000
+    private saldo := 0.0
+    protected historico := []
+
+    action setup(numero):
+        self.numero := numero
+
+    abstract action tarifa(valor)
+
+    action depositar(valor):
+        self.saldo += valor
+        self.historico.append(valor)
+        yield self.saldo
+
+    final action extrato():
+        yield $"{self.numero}: {self.saldo}"
+
+    internal action auditoria():
+        yield len(self.historico)
+
+blueprint Corrente extends Conta:
+    override action tarifa(valor):
+        yield valor * 0.01
+
+final blueprint Poupanca extends Conta:
+    override action tarifa(valor):
+        yield 0
+
+c := spawn Corrente(101)
+c.depositar(200)
+assert c.extrato() is "101: 200.0"
+assert c.tarifa(100) is 1.0
+assert c.auditoria() is 1  // internal: mesmo arquivo
+assert Conta.LIMITE_DIARIO is 5000
+
+// readonly: so a construcao escreve
+monitor:
+    c.numero := 999
+    assert no
+handle ReadOnlyFieldError:
+    out "o numero de uma conta nao muda"
+
+// private: nem leitura, nem chamada de fora
+monitor:
+    out c.saldo
+    assert no
+handle TypeError as e:
+    assert "private" in e.message
+
+// static steady: constante de classe
+monitor:
+    Conta.LIMITE_DIARIO := 1
+    assert no
+handle ConstantReassignmentError:
+    out "limite e constante"
+
+// final: ninguem herda de Poupanca
+monitor:
+    blueprint PoupancaPlus extends Poupanca:
+        bonus := 1
+    assert no
+handle FinalBlueprintError:
+    out "poupanca e final"
+
+// final action: a filha nao troca o extrato
+monitor:
+    blueprint Fraude extends Conta:
+        override action tarifa(v):
+            yield 0
+        action extrato():
+            yield "tudo certo"
+    assert no
+handle FinalOverrideError:
+    out "extrato e final"
+
+// override: o nome errado e pego na declaracao
+monitor:
+    blueprint Digitada extends Conta:
+        override action tarifaa(v):
+            yield 0
+    assert no
+handle OverrideTargetError as e:
+    assert "tarifa" in e.dica
+
+out "243 ok"

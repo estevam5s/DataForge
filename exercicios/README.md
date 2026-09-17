@@ -539,9 +539,26 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 241 | [`241_quadro_e_verbos.df`](36-quadro-e-dados/241_quadro_e_verbos.df) · [doc](36-quadro-e-dados/241_quadro_e_verbos.md) | O quadro, e os seis verbos do pipeline |
 
+## 37 — Oop sistema
+
+*10 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 242 | [`242_contratos_e_segregacao.df`](37-oop-sistema/242_contratos_e_segregacao.df) · [doc](37-oop-sistema/242_contratos_e_segregacao.md) | Contratos pequenos, e quem depende de qual |
+| 243 | [`243_modificadores.df`](37-oop-sistema/243_modificadores.df) · [doc](37-oop-sistema/243_modificadores.md) | O que cada modificador promete |
+| 244 | [`244_design_por_contrato.df`](37-oop-sistema/244_design_por_contrato.df) · [doc](37-oop-sistema/244_design_por_contrato.md) | De quem e o erro? |
+| 245 | [`245_sobrecarga.df`](37-oop-sistema/245_sobrecarga.df) · [doc](37-oop-sistema/245_sobrecarga.md) | Sobrecarga que diz o que aceita |
+| 246 | [`246_metaclasses.df`](37-oop-sistema/246_metaclasses.df) · [doc](37-oop-sistema/246_metaclasses.md) | Uma metaclasse que registra, valida e audita |
+| 247 | [`247_reflexao.df`](37-oop-sistema/247_reflexao.df) · [doc](37-oop-sistema/247_reflexao.md) | Um validador generico escrito com reflexao |
+| 248 | [`248_objetos_e_serializacao.df`](37-oop-sistema/248_objetos_e_serializacao.df) · [doc](37-oop-sistema/248_objetos_e_serializacao.md) | Copia, imutabilidade e serializacao que nao confia no dado |
+| 249 | [`249_injecao_hexagonal.df`](37-oop-sistema/249_injecao_hexagonal.df) · [doc](37-oop-sistema/249_injecao_hexagonal.md) | Portas, adaptadores e o conteiner |
+| 250 | [`250_padroes.df`](37-oop-sistema/250_padroes.df) · [doc](37-oop-sistema/250_padroes.md) | Padroes com mecanismo: comando, estado e especificacao |
+| 251 | [`251_ciclo_de_vida_e_concorrencia.df`](37-oop-sistema/251_ciclo_de_vida_e_concorrencia.df) · [doc](37-oop-sistema/251_ciclo_de_vida_e_concorrencia.md) | Nascer, viver sob threads, e morrer limpo |
+
 ---
 
-**Total: 241 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 251 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

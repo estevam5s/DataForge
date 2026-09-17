@@ -1,0 +1,58 @@
+// Exercicio 246 — Uma metaclasse que registra, valida e audita
+// Enunciado: todo modelo de dominio precisa de 'id', ganha nome de tabela
+// automaticamente, e cada escrita de campo fica registrada.
+
+adopt Arcane.Reflexo as R
+
+meta blueprint Modelo:
+    tabelas := {}
+    escritas := []
+
+    action on_forge(molde):
+        campos := [c["nome"] cycle c in R.campos(molde)]
+        given not("id" in campos):
+            trigger $"{R.nome(molde)} precisa declarar 'id'"
+        self.tabelas[R.nome(molde)] := R.nome(molde).lower() + "s"
+
+    action on_write(obj, nome, valor):
+        self.escritas.append($"{R.nome(obj)}.{nome}")
+
+    action on_missing(obj, nome):
+        yield void
+
+blueprint Entidade using Modelo:
+    id := 0
+
+blueprint Cliente extends Entidade:
+    nome := ""
+
+blueprint Pedido extends Entidade:
+    total := 0.0
+
+meta_obj := R.meta_instancia(Pedido)
+assert meta_obj.tabelas is {"Entidade": "entidades", "Cliente": "clientes", "Pedido": "pedidos"}
+
+c := spawn Cliente()
+c.nome := "Ana"
+c.id := 7
+assert meta_obj.escritas is ["Cliente.nome", "Cliente.id"]
+assert c.telefone is void  // on_missing: campo opcional
+
+// a validacao roda na DECLARACAO
+monitor:
+    blueprint SemId using Modelo:
+        texto := ""
+    assert no
+handle Error as e:
+    assert "precisa declarar 'id'" in e.message
+
+// um gancho com nome errado nunca rodaria — por isso e recusado
+monitor:
+    meta blueprint Errada:
+        action on_forje(m):
+            yield void
+    assert no
+handle MetaclassError as e:
+    assert "on_forge" in e.dica
+
+out "246 ok"

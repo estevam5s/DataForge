@@ -127,6 +127,19 @@ SIGNIFICADOS = {
     "no": ("falso", "false"),
 }
 
+#: Onde cada palavra de OOP vale, quando nao e o corpo de um blueprint.
+_ONDE_OOP = {
+    "sealed": "antes de 'blueprint'",
+    "meta": "antes de 'blueprint'",
+    "abstract": "antes de 'blueprint' ou de um membro",
+    "final": "antes de 'blueprint' ou de um membro",
+    "contract": "topo do arquivo",
+    "augment": "topo do arquivo",
+    "overload": "antes de 'action'",
+    "expects": "corpo de uma ação",
+    "promises": "topo do corpo de uma ação",
+}
+
 SIGNIFICADOS_CONTEXTUAIS = {
     "get": ("abre uma propriedade de leitura", "@property"),
     "set": ("abre uma propriedade de escrita", "@x.setter"),
@@ -137,6 +150,19 @@ SIGNIFICADOS_CONTEXTUAIS = {
     "slots": ("os únicos campos que a instância pode ter; economiza memória",
               "slots"),
     "abstract": ("sem implementação; obriga o herdeiro", "abstract"),
+    "internal": ("visível só no arquivo que declara", "internal"),
+    "readonly": ("só a construção escreve o campo", "readonly / final field"),
+    "override": ("tem de sobrescrever um membro herdado", "@Override / override"),
+    "overload": ("variante escolhida por aridade e tipo", "overload"),
+    "exclusive": ("uma thread por vez no objeto", "synchronized"),
+    "lazy": ("propriedade calculada uma vez", "@cached_property / lazy"),
+    "invariant": ("condição mantida depois de toda operação", "invariant (Eiffel)"),
+    "sealed": ("só aceita filhas no mesmo arquivo", "sealed"),
+    "meta": ("blueprint que governa a criação de outros", "metaclass"),
+    "contract": ("só assinaturas, adotado com 'with'", "interface / Protocol"),
+    "augment": ("acrescenta membros a um blueprint existente", "extension / partial"),
+    "expects": ("pré-condição", "require (Eiffel)"),
+    "promises": ("pós-condição, com 'outcome' e 'before(…)'", "ensure (Eiffel)"),
     "server": ("declara uma aplicação web", "Flask() / express()"),
     "route": ("declara uma rota", "@app.route"),
     "respond": ("responde e encerra a rota", "return jsonify(…)"),
@@ -191,7 +217,7 @@ def sintaxe():
             "descricao": descricao,
             "equivalente": equivalente,
             "onde": ("bloco server" if palavra in CONTEXTUAIS_KILN
-                     else "corpo de blueprint"),
+                     else _ONDE_OOP.get(palavra, "corpo de blueprint")),
         })
 
     return {

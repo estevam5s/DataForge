@@ -158,7 +158,8 @@
     {
       "name": "DataForge · modificador",
       "scope": [
-        "storage.modifier.dataforge"
+        "storage.modifier.dataforge",
+        "storage.modifier.oop.dataforge"
       ],
       "settings": {
         "foreground": "#B8A87E",
@@ -214,6 +215,7 @@
       "name": "DataForge · palavra",
       "scope": [
         "keyword.other.async.dataforge",
+        "keyword.other.contract.dataforge",
         "keyword.other.data.dataforge",
         "keyword.other.meta.dataforge",
         "keyword.other.oop.dataforge"

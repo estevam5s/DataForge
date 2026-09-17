@@ -1,0 +1,58 @@
+// Exercicio 244 — De quem e o erro?
+// Enunciado: um estoque com pre-condicao, pos-condicao e invariante, e
+// uma operacao defeituosa que o contrato denuncia.
+
+blueprint Estoque:
+    itens := {}
+    invariant len([q cycle q in self.itens.values() given q smaller 0]) is 0, "quantidade negativa"
+
+    action entrar(produto, n):
+        expects n bigger 0, "entrada precisa ser positiva"
+        promises self.quantidade(produto) is before(self.quantidade(produto)) + n
+        self.itens[produto] := self.quantidade(produto) + n
+        yield self.itens[produto]
+
+    action sair(produto, n):
+        expects n bigger 0, "saida precisa ser positiva"
+        self.itens[produto] := self.quantidade(produto) - n
+        yield self.itens[produto]
+
+    action entrar_com_bug(produto, n):
+        promises self.quantidade(produto) is before(self.quantidade(produto)) + n, "somou errado"
+        self.itens[produto] := self.quantidade(produto) + n - 1
+
+    action quantidade(produto):
+        yield self.itens[produto] ?? 0
+
+e := spawn Estoque()
+assert e.entrar("caneta", 10) is 10
+assert e.sair("caneta", 4) is 6
+
+// pre-condicao: quem CHAMOU errou
+monitor:
+    e.entrar("caneta", 0)
+    assert no
+handle PreconditionError as erro:
+    assert "positiva" in erro.message
+
+// pos-condicao: a ACAO errou
+monitor:
+    e.entrar_com_bug("lapis", 5)
+    assert no
+handle PostconditionError as erro:
+    assert "somou errado" in erro.message
+
+// invariante: a operacao deixou o objeto inconsistente
+monitor:
+    e.sair("caneta", 100)
+    assert no
+handle InvariantError as erro:
+    assert "negativa" in erro.message
+
+// Os tres sao ContractError: um handle so pega a familia inteira.
+monitor:
+    e.sair("caneta", -1)
+handle ContractError as erro:
+    out "contrato:", erro.type
+
+out "244 ok"

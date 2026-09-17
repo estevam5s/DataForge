@@ -1,0 +1,71 @@
+// Exercicio 242 — Contratos pequenos, e quem depende de qual
+// Enunciado: modele um armazenamento de documentos em que quem so LE
+// nao dependa de quem ESCREVE, e confira que um blueprint que promete
+// um contrato cumpre a assinatura inteira.
+
+contract Leitura:
+    action buscar(id: Integer)
+    get total() -> Integer
+
+contract Escrita:
+    action salvar(id: Integer, texto: String)
+
+contract Armazem extends Leitura, Escrita:
+    action apagar(id: Integer)
+
+blueprint ArmazemMemoria with Armazem:
+    private docs := {}
+
+    action buscar(id: Integer):
+        yield self.docs[id] ?? void
+
+    action salvar(id: Integer, texto: String):
+        self.docs[id] := texto
+
+    action apagar(id: Integer):
+        self.docs.remove(id)
+
+    get total():
+        yield len(self.docs)
+
+// Quem so exibe depende de Leitura — e nada mais.
+action exibir(fonte: Leitura, id: Integer) -> String:
+    yield fonte.buscar(id) ?? "(vazio)"
+
+a := spawn ArmazemMemoria()
+a.salvar(1, "ata da reunião")
+assert exibir(a, 1) is "ata da reunião"
+assert exibir(a, 2) is "(vazio)"
+assert a.total is 1
+
+// O contrato vale como tipo — inclusive o que ele herda.
+action arquivar(destino: Escrita):
+    destino.salvar(99, "arquivado")
+arquivar(a)
+assert a.total is 2
+
+// Uma implementacao que pede argumento a menos e recusada na declaracao.
+monitor:
+    blueprint Quebrado with Escrita:
+        action salvar(id: Integer):
+            yield id
+    assert no, "devia ter recusado"
+handle SignatureMismatchError as e:
+    assert "Escrita" in e.message
+
+// E uma que esquece um metodo tambem.
+monitor:
+    blueprint Esquecido with Leitura:
+        total := 0
+    assert no, "devia ter recusado"
+handle TraitContractError as e:
+    assert "buscar" in e.message
+
+// Um contrato nao nasce.
+monitor:
+    spawn Leitura()
+    assert no
+handle AbstractInstantiationError:
+    out "contrato nao se instancia"
+
+out "242 ok"

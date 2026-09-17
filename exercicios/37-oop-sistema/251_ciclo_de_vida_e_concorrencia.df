@@ -1,0 +1,69 @@
+// Exercicio 251 — Nascer, viver sob threads, e morrer limpo
+// Enunciado: um contador de acessos seguro sob concorrencia, um cache que
+// nao segura os objetos, e um recurso que se libera sozinho.
+
+adopt Arcane.Memoria as Mem
+
+// ── exclusive: o monitor do objeto ──
+blueprint Contador:
+    acessos := 0
+    exclusive action registrar():
+        atual := self.acessos
+        self.acessos := atual + 1
+    exclusive action registrar_dois():
+        self.registrar()  // reentrante: nao espera por si
+        self.registrar()
+
+contador := spawn Contador()
+parallel:
+    thread:
+        cycle i from 1 to 300:
+            contador.registrar()
+    thread:
+        cycle i from 1 to 150:
+            contador.registrar_dois()
+    thread:
+        cycle i from 1 to 300:
+            contador.registrar()
+assert contador.acessos is 900
+
+// ── lazy: calcular uma vez por objeto ──
+blueprint Relatorio(linhas):
+    calculos := 0
+    lazy get total():
+        self.calculos += 1
+        yield sum(self.linhas)
+
+r := spawn Relatorio([1, 2, 3, 4])
+assert r.total is 10 and r.total is 10
+assert r.calculos is 1
+
+// ── teardown: o recurso se libera quando o ultimo nome solta ──
+liberados := []
+blueprint Conexao(nome):
+    action teardown():
+        liberados.append(self.nome)
+
+a := spawn Conexao("principal")
+_outra := a
+a := void
+assert liberados is []  // '_outra' ainda segura
+_outra := void
+assert liberados is ["principal"]
+
+// ── referencia fraca: o cache que nao vaza ──
+cache := Mem.mapa_fraco()
+sessao := spawn Conexao("sessao")
+cache.definir(sessao, "dados caros de calcular")
+assert cache.tamanho is 1
+sessao := void
+assert cache.tamanho is 0
+assert "sessao" in liberados
+
+// ── quantos existem ──
+_lote := [spawn Conexao($"c{i}") cycle i in range(5)]
+assert Mem.vivos(Conexao) is 5
+_lote := void
+assert Mem.vivos(Conexao) is 0
+
+out "251 ok"

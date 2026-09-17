@@ -36,12 +36,15 @@ const blocos: Bloco[] = [
     get extrato():
         yield $"{self.titular}: {self.saldo}"`, lang: 'df' },
   {"list": ["**Campos declarados** com tipo e padrão — [campos e visibilidade](/docs/oop/campos)", "**`private` e `protected`** que valem de verdade, não por convenção", "**Propriedades** `get`/`set` — [propriedades](/docs/oop/propriedades)", "**Métodos estáticos** — [estáticos](/docs/oop/estaticos)", "**Sobrecarga de operadores** — [operadores](/docs/oop/operadores)", "**Abstratos e contratos** conferidos na declaração — [abstratos](/docs/oop/abstratos)", "**`final`** para impedir sobrescrita"]},
+  {"h2": "O sistema completo"},
+  {"p": "Depois do 4.1 vieram as peças que um sistema grande pede — cada uma com erro próprio, conferência no `check` e página com exemplos que rodam:"},
+  {"cards": [{"href": "/docs/oop/modificadores", "title": "Modificadores", "desc": "internal, readonly, override, sealed, exclusive, lazy e static steady"}, {"href": "/docs/oop/contratos", "title": "Contratos", "desc": "contract, invariant, expects e promises"}, {"href": "/docs/oop/sobrecarga", "title": "Sobrecarga", "desc": "overload por aridade e tipo, com empate recusado"}, {"href": "/docs/oop/metaclasses", "title": "Metaclasses", "desc": "meta blueprint, using e os dez ganchos"}, {"href": "/docs/oop/augment", "title": "augment", "desc": "acrescentar a um blueprint que já existe"}, {"href": "/docs/oop/reflexao", "title": "Reflexão", "desc": "Arcane.Reflexo: introspecção, invocação e diagrama"}, {"href": "/docs/oop/objetos", "title": "Objetos", "desc": "cópia, congelamento e serialização segura"}, {"href": "/docs/oop/injecao", "title": "Injeção de dependência", "desc": "Arcane.Injecao: único, transitório, por escopo"}, {"href": "/docs/oop/padroes", "title": "Padrões de projeto", "desc": "os 23 clássicos, e a arquitetura hexagonal"}, {"href": "/docs/oop/memoria", "title": "Ciclo de vida e memória", "desc": "teardown, referências fracas e o coletor"}, {"href": "/docs/oop/metricas", "title": "Métricas e cheiros", "desc": "dataforge oop: CK, instabilidade e SOLID"}]},
   {"h2": "Por onde começar"},
   {"p": "Se você já usa blueprint, comece por [campos e visibilidade](/docs/oop/campos) — é o que muda mais o código do dia a dia. Se está modelando algo novo, [modelagem](/docs/oop/modelagem) discute as escolhas antes da sintaxe."},
   {"p": "Os dez exercícios do [módulo 21](/docs/exercicios) percorrem tudo isso na ordem, cada um rodando e com `.md` explicando o conceito."},
 ];
 
-const headings = [{ id: 'o-que-o-41-trouxe', text: "O que o 4.1 trouxe", level: 2 as const }, { id: 'por-onde-comecar', text: "Por onde começar", level: 2 as const }];
+const headings = [{ id: 'o-que-o-41-trouxe', text: "O que o 4.1 trouxe", level: 2 as const }, { id: 'o-sistema-completo', text: "O sistema completo", level: 2 as const }, { id: 'por-onde-comecar', text: "Por onde começar", level: 2 as const }];
 
 export default function Pagina() {
   return (

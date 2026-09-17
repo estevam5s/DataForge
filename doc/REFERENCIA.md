@@ -107,6 +107,29 @@ blueprint Conta:
         yield self.saldo
 ```
 
+As palavras de OOP que vieram depois seguem a mesma regra, cada uma no seu
+lugar — e sempre só quando o que vem em seguida confirma:
+
+| Palavra | Onde vale | Confirmada por |
+|---|---|---|
+| `internal` `readonly` `override` `overload` `exclusive` `lazy` | corpo de blueprint | um membro depois (`readonly id := 0`, `lazy get total()`) |
+| `invariant` | corpo de blueprint | uma expressão depois |
+| `abstract` `final` `sealed` `meta` | antes de `blueprint` | a palavra `blueprint` no fim da sequência |
+| `contract` `augment` | topo do arquivo | um nome e `:` (`contract Repo:`) |
+| `overload` | antes de `action`, no topo | a palavra `action` |
+| `expects` `promises` | corpo de uma ação | uma expressão depois |
+| `before(…)` e `outcome` | dentro de `promises` | — |
+
+```dataforge
+readonly := 3                  // uma variável chamada 'readonly'
+contract := "assinado"         // e outra chamada 'contract'
+expects := [1, 2]
+
+blueprint Pedido:
+    readonly id := 0           // aqui 'readonly' é modificador
+    invariant self.id bigger_eq 0
+```
+
 Foi uma decisão deliberada: `get`, `set` e `final` são nomes bons demais
 para tirar de quem escreve. O parser só os trata como palavra-chave quando
 o que vem em seguida confirma a intenção — `get nome(` é propriedade,
@@ -666,9 +689,34 @@ A pilha vira um `Cluster` no monte, e o teto passa a ser a memória.
 ### 7.1 Declaração
 
 ```
-blueprint Nome [ "(" params ")" ] [ extends Pai {"," Pai} ] [ with Trait {"," Trait} ] ":"
+[ abstract | final | sealed | meta ]… blueprint Nome [ "<" T [extends X] ">" ]
+    [ "(" param [":" Tipo] [":=" padrão] {"," …} ")" ]
+    [ extends Pai {"," Pai} ] [ with Trait|Contrato {"," …} ] [ using Metaclasse ] ":"
     corpo
 ```
+
+Os parâmetros do cabeçalho aceitam **tipo e padrão**, como os de uma ação,
+e o tipo é conferido no `spawn`:
+
+```dataforge
+blueprint Caixa<T>(valor: T, rotulo := "caixa"):
+    action obter() -> T:
+        yield self.valor
+
+c := spawn Caixa(5)
+assert c.obter() is 5
+assert c.rotulo is "caixa"
+```
+
+| Antes de `blueprint` | Efeito |
+|---|---|
+| `abstract` | não se instancia; a filha completa os `abstract action` |
+| `final` | ninguém herda dele (`FinalBlueprintError`) |
+| `sealed` | só herda quem está no **mesmo arquivo** (`SealedBlueprintError`) |
+| `meta` | é uma metaclasse — ver §7.13 |
+
+`abstract final` é recusado na leitura (um pede filhas, o outro as proíbe), e
+`final sealed` também (o segundo não acrescenta nada).
 
 ### 7.2 Construção
 
@@ -719,6 +767,20 @@ campo que vence, e o método existe no arquivo sem nunca rodar.
 
 Sobrescrever na filha é outra coisa, e continua sendo o ponto da herança.
 
+### 7.2.2 Blueprints aninhados
+
+Um `blueprint`, `record`, `enum` ou `contract` declarado no corpo de outro
+vira membro **estático** dele:
+
+```dataforge
+blueprint Loja:
+    blueprint Item(nome):
+        action rotulo():
+            yield "item " + self.nome
+
+assert (spawn Loja.Item("caneta")).rotulo() is "item caneta"
+```
+
 ### 7.3 self e root
 
 - `self` (ou `this`) é a instância atual.
@@ -732,8 +794,12 @@ trait Nome:
 ```
 
 Métodos do trait só são copiados para o blueprint se ele **não** definir o
-próprio. Não há verificação de que o contrato foi cumprido — use
-`has_method(x, "nome")` quando isso importar.
+próprio. Um método **sem corpo** é exigência: um blueprint concreto que não o
+implementa é recusado na declaração (`TraitContractError`) e pelo `check`.
+
+A diferença para `contract` (§7.9): o trait pode trazer implementação padrão;
+o contrato só declara, confere a aridade de quem implementa e pode estender
+outros contratos.
 
 ### 7.5 Métodos especiais
 
@@ -799,6 +865,19 @@ os mais usados:
 | `__enter__` | 'with obj as x:' — o que 'x' recebe |
 | `__exit__` | o fim do bloco, mesmo com erro |
 
+Os de **conversão** e **ordem** valem também nas funções embutidas e na
+biblioteca, porque a instância responde aos protocolos do host: `int(obj)`,
+`round(obj)`, `abs(obj)`, `hash(obj)`, `sorted([objs])`, `min`/`max` e uma
+instância como **chave de vault** usam `__int__`, `__round__`, `__abs__`,
+`__hash__`, `__lt__` e `__eq__`. `__getattr__` responde por membro que não
+existe; `__getattribute__` e `__setattr__` interceptam toda leitura e escrita
+(dentro deles, `self.x` é o acesso cru); `__get__`/`__set__`/`__delete__`/
+`__set_name__` fazem de um campo um **descritor**; `__new__` pode devolver um
+objeto pronto; `__init_subclass__` roda quando alguém herda; `__del__` (ou
+`teardown`) roda quando o objeto é descartado; `__copy__`, `__deepcopy__` e
+`__clone__` respondem a `Objetos.clonar`/`clonar_fundo` e a `deep_copy`;
+`__exit__` aceita nenhum argumento ou três (tipo, erro, pilha).
+
 Ver também `slots` (§7.6) e a MRO por linearização C3 (§7.7).
 
 ### 7.6 `slots`
@@ -833,6 +912,226 @@ ambígua e o C3 **recusa**, em vez de escolher em silêncio.
 `root` segue a MRO — vai ao **próximo** na lista a partir de onde a chamada
 está, e não ao "primeiro pai". É o que faz uma cadeia de `root` percorrer cada
 blueprint exatamente uma vez, mesmo em diamante.
+
+### 7.8 Modificadores de membro
+
+```
+membro   = { @Decorador } { modificador } ( action | get | set | campo | blueprint )
+modificador = private | protected | internal | static | abstract | final
+            | override | overload | exclusive | readonly | lazy
+```
+
+| Modificador | Vale em | Efeito |
+|---|---|---|
+| `private` | ação, campo, propriedade | só o blueprint que declarou |
+| `protected` | ação, campo, propriedade | o blueprint e os herdeiros |
+| `internal` | ação, campo, propriedade | o **arquivo** que declarou (`InternalAccessError`) |
+| `static` | ação, campo | do blueprint, não da instância |
+| `static steady` | campo | constante de classe: escrever é `ConstantReassignmentError` |
+| `abstract` | ação | sem corpo; obriga a filha |
+| `final` | ação | a filha não sobrescreve (`FinalOverrideError`) |
+| `override` | ação, propriedade | tem de substituir um membro herdado, de trait ou de contrato (`OverrideTargetError`) |
+| `overload` | ação | uma variante — §7.10 |
+| `exclusive` | ação | uma thread por vez **neste objeto**; a trava é reentrante |
+| `readonly` | campo | só a construção escreve (`ReadOnlyFieldError`) |
+| `lazy` | `get` | calculado na primeira leitura e guardado por objeto |
+
+A visibilidade vale para leitura, escrita **e chamada**: `obj.privado()` de
+fora é recusado como `obj.privado` sempre foi. Um `private x := 1` sem tipo
+é campo, como `x := 1`.
+
+"Construção" para `readonly` é o padrão do campo, o cabeçalho, o `setup` e o
+corpo solto do blueprint — e tudo o que eles chamam enquanto o objeto nasce.
+`p with {"id": 2}` cria **outro** objeto, e por isso pode mudar um `readonly`.
+
+```dataforge
+blueprint Pedido(numero):
+    readonly criado := 2026
+    static steady LIMITE := 10
+    private itens := []
+    internal action bruto():
+        yield self.itens
+
+    exclusive action acrescentar(item):
+        self.itens.append(item)
+        yield len(self.itens)
+
+    lazy get resumo():
+        yield $"pedido {self.numero}"
+
+p := spawn Pedido(1)
+assert p.acrescentar("a") is 1
+assert p.resumo is "pedido 1"
+assert Pedido.LIMITE is 10
+```
+
+### 7.9 Contratos e design por contrato
+
+`contract` declara **só assinaturas**; um corpo é recusado na leitura — a
+implementação padrão é o papel do `trait`. Um contrato estende outros, é
+adotado com `with`, e vale como tipo de parâmetro (inclusive o que ele herda).
+
+```dataforge
+contract Leitura<T>:
+    action buscar(id: Integer) -> T
+
+contract Repositorio<T> extends Leitura:
+    action salvar(item: T)
+    get total() -> Integer
+
+blueprint Memoria with Repositorio:
+    itens := {}
+    action buscar(id: Integer):
+        yield self.itens[id] ?? void
+    action salvar(item):
+        self.itens[item] := item
+    get total():
+        yield len(self.itens)
+
+action contar(r: Leitura) -> Integer:
+    yield 1
+
+assert contar(spawn Memoria()) is 1
+```
+
+Na declaração, um blueprint concreto precisa: ter cada método (ou
+`TraitContractError`), aceitar **todos** os argumentos que o contrato passa —
+parâmetros a mais precisam de padrão — (ou `SignatureMismatchError`), e ter
+cada propriedade exigida como `get` ou como campo.
+
+As três cláusulas de contrato:
+
+| Cláusula | Onde | Falha como | Quem errou |
+|---|---|---|---|
+| `expects cond [, msg]` | corpo de ação, onde estiver | `PreconditionError` | quem chamou |
+| `promises cond [, msg]` | topo do corpo de ação | `PostconditionError` | a ação |
+| `invariant cond [, msg]` | corpo de blueprint | `InvariantError` | a operação que acabou de rodar |
+
+`promises` roda na **saída**, com `outcome` ligado ao valor devolvido e
+`before(expr)` valendo o que `expr` valia na **entrada**. A invariante é
+conferida depois da construção e depois de cada método **público** chamado de
+fora do objeto — dentro de um método o objeto pode passar por estados
+intermediários. Todas as invariantes da linhagem valem.
+
+```dataforge
+blueprint Conta:
+    saldo := 0
+    invariant self.saldo bigger_eq 0, "saldo negativo"
+
+    action depositar(v):
+        expects v bigger 0, "depósito precisa ser positivo"
+        promises self.saldo is before(self.saldo) + v
+        self.saldo += v
+        yield self.saldo
+
+c := spawn Conta()
+assert c.depositar(10) is 10
+```
+
+### 7.10 Sobrecarga
+
+Todas as variantes são marcadas `overload`, no blueprint ou no topo do
+arquivo. A chamada filtra pela aridade e pelos nomes, confere os tipos
+declarados, e vence a variante que declara **mais** tipos. Um empate é
+`AmbiguousOverloadError`; nenhuma serve, `OverloadResolutionError` com as
+assinaturas na nota. Duas variantes com a mesma assinatura são recusadas na
+declaração. Uma filha pode acrescentar variantes, ou substituir a de mesma
+assinatura.
+
+```dataforge
+overload action area(r: Float):
+    yield 3.0 * r * r
+overload action area(largura: Float, altura: Float):
+    yield largura * altura
+
+assert area(2.0) is 12.0
+assert area(2.0, 3.0) is 6.0
+```
+
+### 7.11 `augment`
+
+Acrescenta ações, propriedades, operadores e estáticos a um blueprint que já
+existe — inclusive aos objetos já criados. Não substitui membro (`AugmentError`),
+não toca `final`, não atravessa o arquivo de um `sealed`, e não acrescenta
+campo de instância (os objetos que já existem não o teriam). Escrito no
+**mesmo arquivo**, o corpo enxerga os `private`; de outro arquivo, não.
+
+```dataforge
+blueprint Ponto(x, y):
+    action soma():
+        yield self.x + self.y
+
+augment Ponto:
+    action dobro():
+        yield self.soma() * 2
+
+assert (spawn Ponto(1, 2)).dobro() is 6
+```
+
+### 7.12 Decoradores em membros
+
+`@Nome(args)` vale sobre ação, propriedade **e campo**. No campo ele é
+anotação — grava, não embrulha — e é lido por `Reflexo.anotacoes(Bp, "campo")`,
+por `Arcane.Injecao` (`@Injetar`) e por quem mais precisar.
+
+### 7.13 Metaclasses
+
+`meta blueprint` declara uma metaclasse, e `using` a aplica. Ela é herdada, e
+duas metaclasses só convivem na mesma linhagem se uma descende da outra
+(`MetaclassError`). Os ganchos são métodos com nome fixo — um `on_…`
+desconhecido é recusado, com sugestão:
+
+| Gancho | Quando | Devolver algo |
+|---|---|---|
+| `on_forge(molde)` | o blueprint acabou de ser montado | substitui o blueprint |
+| `on_extend(mae, filha)` | um governado ganhou filha | — |
+| `on_spawn(molde, args)` | antes de construir | entrega esse objeto no lugar |
+| `on_ready(obj)` | o objeto nasceu, invariantes conferidas | — |
+| `on_read(obj, nome, valor)` | toda leitura de membro | troca o valor lido |
+| `on_missing(obj, nome)` | leitura de membro inexistente | é o valor lido |
+| `on_write(obj, nome, valor)` | toda escrita de campo | troca o valor gravado |
+| `on_call(obj, nome, args)` | chamada de método vinda de fora | — |
+| `on_serialize(obj, vault)` | `Objetos.para_vault` | substitui o vault |
+| `on_deserialize(molde, vault)` | `Objetos.de_vault` | substitui o vault |
+
+A metaclasse tem **uma** instância, compartilhada por tudo que ela governa —
+é o `self` dos ganchos, e é onde ela guarda estado. `Reflexo.meta(Bp)` devolve
+a metaclasse, e `Reflexo.meta_instancia(Bp)` o objeto. Um gancho não dispara
+outro gancho.
+
+```dataforge
+adopt Arcane.Reflexo as R
+
+meta blueprint Registro:
+    nomes := []
+    action on_forge(molde):
+        self.nomes.append(R.nome(molde))
+
+blueprint Modelo using Registro:
+    id := 0
+blueprint Usuario extends Modelo:
+    nome := ""
+
+assert R.meta_instancia(Usuario).nomes is ["Modelo", "Usuario"]
+```
+
+### 7.14 Ciclo de vida
+
+`spawn` (ou chamar o blueprint) é um caminho só: `on_spawn` → `__new__` →
+padrões dos campos → cabeçalho → `setup`/`initiate`/`__init__` → corpo solto →
+invariantes → `on_ready`. `teardown` (ou `__del__`) roda quando o último nome
+solta o objeto; um erro ali é impresso como aviso e nunca propaga. Só os
+blueprints que declaram finalizador pagam por ele.
+
+### 7.15 Reflexão, objetos, injeção, padrões e memória
+
+A biblioteca completa o que a sintaxe declara:
+`Arcane.Reflexo` (introspecção e invocação que **respeitam** a visibilidade,
+tipos criados em execução, diagrama em Mermaid), `Arcane.Objetos` (cópia,
+congelamento, igualdade estrutural, serialização que só reconstrói tipos
+autorizados), `Arcane.Injecao` (contêiner com único/transitório/por escopo),
+`Arcane.Padroes` e `Arcane.Memoria`. Ver
+[OOP avançado](https://dataforge-lang.vercel.app/docs/oop/reflexao).
 
 ---
 
@@ -1397,8 +1696,8 @@ disparam `ImportError_`.
 programa       = { instrução } ;
 
 instrução      = decl_var | decl_destr | decl_steady | decl_shadow | decl_static
-               | decl_ação | decl_blueprint | decl_trait
-               | decl_record | decl_enum
+               | decl_ação | decl_blueprint | decl_trait | decl_contract
+               | decl_augment | decl_record | decl_enum | expects | promises
                | adopt | relay
                | condicional | seleção_match | laço
                | bloco_erro | concorrência
@@ -1421,19 +1720,42 @@ decl_enum      = "enum" identificador ":" NEWLINE INDENT
 membro_enum    = identificador [ ":=" expressão ] NEWLINE ;
 decl_steady    = "steady" identificador ":=" expressão ;
 decl_shadow    = "shadow" identificador ":=" expressão ;
-decl_static    = "static" identificador ":=" expressão ;
+decl_static    = "static" [ "steady" ] identificador [ ":" tipo ] ":=" expressão ;
 
 decl_ação      = { "mark" "@" identificador [ "(" args ")" ] }
-                 [ "async" | "stream" ] "action" identificador
+                 [ "overload" ] [ "async" | "stream" ] "action" identificador
                  [ genéricos ] "(" [ params ] ")" [ "->" tipo ] ":" bloco ;
 genéricos      = "<" genérico { "," genérico } ">" ;
 genérico       = Identificador [ "extends" tipo ] ;
 params         = param { "," param } ;
 param          = identificador [ ":" tipo ] [ ":=" expressão ] ;
 
-decl_blueprint = "blueprint" identificador [ genéricos ] [ "(" nomes ")" ]
-                 [ "extends" nomes ] [ "with" nomes ] ":" bloco ;
+decl_blueprint = { "abstract" | "final" | "sealed" | "meta" }
+                 "blueprint" identificador [ genéricos ] [ "(" [ params ] ")" ]
+                 [ "extends" nomes ] [ "with" nomes ] [ "using" nome ]
+                 ":" NEWLINE INDENT { membro } DEDENT ;
+membro         = { decorador } { modificador }
+                 ( decl_ação | propriedade | campo | decl_blueprint | decl_static )
+               | "operator" operador "(" identificador ")" ":" bloco
+               | "slots" nomes
+               | "invariant" expressão [ "," expressão ]
+               | instrução ;
+modificador    = "private" | "protected" | "internal" | "static" | "abstract"
+               | "final" | "override" | "overload" | "exclusive"
+               | "readonly" | "lazy" ;
+propriedade    = ( "get" | "set" ) identificador "(" [ identificador ] ")"
+                 [ "->" tipo ] ":" bloco ;
+campo          = identificador ( ":" tipo [ ":=" expressão ] | ":=" expressão ) ;
 decl_trait     = "trait" identificador ":" bloco ;
+decl_contract  = "contract" identificador [ genéricos ] [ "extends" nomes ] ":"
+                 NEWLINE INDENT { assinatura } DEDENT ;
+assinatura     = [ "async" | "stream" ] "action" identificador [ genéricos ]
+                 "(" [ params ] ")" [ "->" tipo ] NEWLINE
+               | "get" identificador "(" ")" [ "->" tipo ] NEWLINE ;
+decl_augment   = "augment" nome ":" NEWLINE INDENT { membro } DEDENT ;
+expects        = "expects" expressão [ "," expressão ] ;
+promises       = "promises" expressão [ "," expressão ] ;   (* no topo da ação *)
+before         = "before" "(" expressão ")" ;                (* dentro de promises *)
 
 adopt          = "adopt" caminho [ "as" identificador ]
                | "adopt" caminho "." seleção
