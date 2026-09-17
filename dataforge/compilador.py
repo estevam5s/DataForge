@@ -697,7 +697,13 @@ def compilar_instrucao(interp, no):
     def protegido(env):
         try:
             return pronto(env)
-        except (DataForgeError, ControlSignal):
+        except DataForgeError as erro:
+            # a mesma posicao que 'execute' da — os dois caminhos concordam
+            if not erro.line:
+                erro.line, erro.column = no.line, no.column
+                erro.args = (erro.format(),)
+            raise
+        except ControlSignal:
             raise
         except Exception as erro:
             raise traduzir(erro, no) from None

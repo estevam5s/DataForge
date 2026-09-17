@@ -165,6 +165,29 @@ INTEIRAS = (
     (r"Circular import detected: (?P<cadeia>.+)",
      "Import circular: {cadeia}"),
 
+    # ── O conteudo das colecoes: Cluster<T>, Vault<K, V>, Set<T> ──
+    # O tipo tem '<', ',' e espaco dentro, e por isso nao casa com o '\w+'
+    # dos moldes de baixo — cada forma com conteudo tem o seu.
+    (r"(?P<w>.+) declared as (?P<d>(?:Cluster|Vault|Set)<.+>), but "
+     r"(?P<onde>.+) is (?P<o>\w+)(?P<resto>(?: — .*)?)",
+     "{w} tem o tipo {d}, mas {onde} é {o}{resto}"),
+    (r"(?P<w>.+) declared as (?P<d>(?:Cluster|Vault|Set)<.+>) but got (?P<o>\w+)",
+     "{w} tem o tipo {d}, e recebeu {o}"),
+    (r"(?P<c>(?:Cluster|Vault|Set)<.+>) only holds (?P<t>.+), and (?P<op>.+) "
+     r"got (?P<o>\w+)\.",
+     "{c} só guarda {t}, e {op} recebeu {o}."),
+    (r"(?P<c>(?:Cluster|Vault|Set)<.+>) cannot hold (?P<o>\w+): (?P<r>.+) is (?P<o2>\w+)",
+     "{c} não guarda {o}: {r} é {o2}"),
+    (r"'(?P<b>\w+)<…>' is not a collection type: only Cluster<T>, Vault<K, V> "
+     r"and Set<T> declare the type of what is inside\. Annotate as '(?P<b2>\w+)'\.",
+     "'{b}<…>' não é uma coleção: só Cluster<T>, Vault<K, V> e Set<T> declaram "
+     "o tipo do que está dentro. Anote como '{b2}'."),
+    (r"(?P<f>(?:Cluster|Vault|Set)<[^>]+>) takes one type — got (?P<n>\d+) in '(?P<t>.+)'\.",
+     "{f} leva um tipo — e '{t}' tem {n}."),
+    (r"(?P<f>Vault<K, V>) takes two types: the key and the value — got (?P<n>\d+) "
+     r"in '(?P<t>.+)'\.",
+     "{f} leva dois tipos, a chave e o valor — e '{t}' tem {n}."),
+
     # ── Tipos declarados ──
     (r"Declared as (?P<d>\w+) but the value is (?P<o>\w+)",
      "Declarado como {d}, e o valor é {o}"),
@@ -210,6 +233,24 @@ PEDACOS = (
     (r"^It has: ", "Tem: "),
     (r"^Members: ", "Membros: "),
     (r"Pick another name\.?", "Escolha outro nome."),
+    (r"^variable '(?P<n>[^']+)'", "a variável '{n}'"),
+    (r"^parameter '(?P<p>[^']+)' of action '(?P<f>[^']+)'",
+     "o parâmetro '{p}' da ação '{f}'"),
+    (r"^return value of action '(?P<f>[^']+)'", "o valor devolvido pela ação '{f}'"),
+    (r"^field '(?P<c>[^']+)' of '(?P<b>[^']+)'", "o campo '{c}' de '{b}'"),
+    (r"the value at key (?P<k>\S+)", "o valor na chave {k}"),
+    (r"the value of the key (?P<k>\S+)", "o valor da chave {k}"),
+    (r"the key (?P<k>\S+)", "a chave {k}"),
+    (r"the item of (?P<m>\w+)", "o item de {m}"),
+    (r"the assigned (?P<o>item|value)", "o valor atribuído"),
+    (r"(?<!\w)an item(?!\w)", "um item"),
+    (r"every item has to be a (?P<t>.+?)(?:;| —) (?:widen the annotation \(Any accepts "
+     r"everything\) or fix the value|fix the value, or widen the annotation \(Any "
+     r"accepts everything\))",
+     "todo item precisa ser {t} — corrija o valor, ou alargue a anotação (Any aceita tudo)"),
+    (r"every key has to be a (?P<t>.+)", "toda chave precisa ser {t}"),
+    (r"insert a (?P<t>.+), or widen the annotation \(Any accepts everything\)",
+     "insira um {t}, ou alargue a anotação (Any aceita tudo)"),
 
     # ── O que o CPython escreve, e que sobrevive a '_traduzir_tipos' ──
     # Ela troca o NOME do tipo; a frase em volta continua inglesa.

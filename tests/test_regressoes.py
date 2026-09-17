@@ -7268,14 +7268,17 @@ def test_um_metodo_sobrescrito_na_filha_nao_e_declaracao_repetida():
     assert run(fonte) == "2"
 
 
-def test_cluster_de_integer_diz_o_que_nao_existe():
-    """`xs: Cluster<Integer>` é a forma que quem vem de outra linguagem
-    escreve primeiro. A mensagem antiga era do parser cru — "Era esperado
-    IDENTIFIER, got LT" — e não dizia nem que a forma não existe, nem o
-    que escrever no lugar."""
-    erros = _erros_de_sintaxe('action f(xs: Cluster<Integer>):\n    yield 1\n')
-    assert "does not exist" in erros[0].message, erros[0].message
-    assert "Cluster" in erros[0].message
+def test_generico_que_nao_e_colecao_diz_o_que_existe():
+    """`xs: Cluster<Integer>` passou a existir (ver test_colecoes_tipadas).
+
+    O que continua valendo desta trava e a MENSAGEM: um `<…>` depois de um
+    tipo que nao e colecao dizia, no parser cru, "Era esperado IDENTIFIER,
+    got LT" — nem que a forma nao existe, nem o que escrever no lugar.
+    """
+    parse(tokenize('action f(xs: Cluster<Integer>):\n    yield 1\n', 't.df'), 't.df')
+    erros = _erros_de_sintaxe('action f(xs: Integer<String>):\n    yield 1\n')
+    assert "Cluster<T>" in erros[0].message, erros[0].message
+    assert "Annotate as 'Integer'" in erros[0].message
 
 
 def test_o_generico_de_verdade_continua_passando():

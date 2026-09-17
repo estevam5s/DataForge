@@ -1770,9 +1770,11 @@ com valores, pattern matching estrutural completo, generators preguiçosos
 
 O que **ainda não existe** (não invente que existe):
 
-- **Generics de coleção** — `Cluster<Integer>` e `Vault<String, Pedido>`
-  como tipo de parâmetro. `<T>` e `<T extends X>` em ações e blueprints
-  existem e são verificados; o tipo **do conteúdo** de uma coleção, não.
+- **Variância declarada, e generic de blueprint cobrado** —
+  `Cluster<T>`, `Vault<K, V>` e `Set<T>` existem (fronteira, inserção e
+  `check`; ver `colecoes_tipadas.py`). O que falta é `Caixa<Integer>` num
+  blueprint próprio ser cobrado, e variância declarada. `<T>` e
+  `<T extends X>` em ações e blueprints existem e são verificados.
 - **Exaustividade de padrão aninhado** — o `match` avisa o que fica de
   fora em enum, booleano, sequência (`[x, ...resto]` sem `[]`) e na família
   de um `abstract blueprint`; ele não desce em padrões aninhados

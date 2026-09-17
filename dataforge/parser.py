@@ -3905,6 +3905,24 @@ class Parser:
         while (self.peek(i).type == TokenType.DOT
                and self.peek(i + 1).type == TokenType.IDENTIFIER):
             i += 2
+        # 'x: Cluster<Vault<String, Integer>> := …' — pula o generico
+        # inteiro, contando '>>' como dois fechamentos: o lexer o entrega
+        # como o operador de pipeline.
+        if self.peek(i).type == TokenType.LT:
+            profundidade = 0
+            while True:
+                tipo = self.peek(i).type
+                if tipo == TokenType.LT:
+                    profundidade += 1
+                elif tipo == TokenType.GT:
+                    profundidade -= 1
+                elif tipo == TokenType.PIPE:
+                    profundidade -= 2
+                elif tipo in (TokenType.NEWLINE, TokenType.EOF, TokenType.ASSIGN):
+                    return False
+                i += 1
+                if profundidade <= 0:
+                    break
         return self.peek(i).type == TokenType.ASSIGN
 
     def _parse_nome_de_tipo(self, mensagem):
@@ -3935,17 +3953,47 @@ class Parser:
                and self.peek().type == TokenType.IDENTIFIER):
             self.advance()
             nome += "." + self.advance().value
-        # 'xs: Cluster<Integer>' e a forma que quem vem de outra linguagem
-        # escreve primeiro, e ela nao existe: o tipo do CONTEUDO de uma
-        # colecao nao e verificado. A mensagem antiga era do parser cru
-        # ("Era esperado IDENTIFIER, got LT") e ainda arrastava a linha
-        # seguinte para um segundo erro, entao o arquivo terminava com dois
-        # erros de sintaxe e nenhum deles dizia o que fazer.
+        # 'Cluster<Integer>', 'Vault<String, Cluster<Integer>>', 'Set<T>':
+        # o tipo do CONTEUDO. Ate aqui era recusado com a frase "o tipo do
+        # que esta dentro nao e verificado" — agora e verificado na
+        # fronteira, na insercao e pelo 'check'. Ver colecoes_tipadas.py.
         if self.current().type == TokenType.LT:
-            self.error(
-                f"'{nome}<…>' does not exist: the type of what is INSIDE a "
-                f"collection is not checked. Annotate as '{nome}'.")
+            nome = self._parse_argumentos_de_colecao(nome)
         return nome
+
+    def _parse_argumentos_de_colecao(self, base):
+        from .colecoes_tipadas import COLECOES, FORMA
+        inicio = self.current()
+        if base not in COLECOES:
+            self.error(
+                f"'{base}<…>' is not a collection type: only Cluster<T>, "
+                f"Vault<K, V> and Set<T> declare the type of what is inside. "
+                f"Annotate as '{base}'.", inicio)
+        self.advance()                                   # '<'
+        argumentos = []
+        while True:
+            argumentos.append(self._parse_nome_de_tipo(
+                f"Expected a type inside '{base}<…>'"))
+            if not self.match(TokenType.COMMA):
+                break
+        # '>>' fecha dois de uma vez: 'Cluster<Cluster<Integer>>'. O lexer
+        # nao tem como saber que ali nao e o pipeline, entao quem fecha o
+        # de dentro deixa um '>' pendente para o de fora.
+        if getattr(self, "_fechamento_pendente", 0):
+            self._fechamento_pendente -= 1
+        elif self.current().type == TokenType.GT:
+            self.advance()
+        elif self.current().type == TokenType.PIPE:
+            self.advance()
+            self._fechamento_pendente = getattr(self, "_fechamento_pendente", 0) + 1
+        else:
+            self.error(f"Expected '>' to close '{base}<…>'")
+        if len(argumentos) != COLECOES[base]:
+            quantos = "one type" if COLECOES[base] == 1 else "two types: the key and the value"
+            self.error(
+                f"{FORMA[base]} takes {quantos} — got {len(argumentos)} in "
+                f"'{base}<{', '.join(argumentos)}>'.", inicio)
+        return f"{base}<{', '.join(argumentos)}>"
 
     def _parse_params(self):
         """Parse a parameter list: (a, b: Integer, c := default)."""

@@ -23,7 +23,7 @@ const blocos: Bloco[] = [
   {"h2": "Verdadeiro e falso"},
   {"p": "São falsos: `void`, `no`, `0`, `0.0`, `\"\"`, `[]` e `{}`. Todo o resto é verdadeiro."},
   {"h2": "O que ainda não existe"},
-  {"p": "**Generics** — `Cluster<T>`, `Vault<K,V>` e ações genéricas estão no [roadmap](/docs/roadmap). Hoje, o conteúdo de uma coleção se valida com código."},
+  {"p": "**Variância declarada** e **generics de blueprint cobrados em execução** (`Caixa<Integer>`). O tipo do conteúdo de `Cluster<T>`, `Vault<K, V>` e `Set<T>` existe — ver [anotações de tipo](/docs/fundamentos/anotacoes-de-tipo)."},
 ];
 
 const headings = [{ id: 'tipos-internos', text: "Tipos internos", level: 2 as const }, { id: 'compatibilidade', text: "Compatibilidade", level: 2 as const }, { id: 'onde-a-checagem-acontece', text: "Onde a checagem acontece", level: 2 as const }, { id: 'semantica-de-valores', text: "Semântica de valores", level: 2 as const }, { id: 'verdadeiro-e-falso', text: "Verdadeiro e falso", level: 2 as const }, { id: 'o-que-ainda-nao-existe', text: "O que ainda não existe", level: 2 as const }];

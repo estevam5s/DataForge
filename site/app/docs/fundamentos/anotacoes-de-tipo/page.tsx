@@ -75,17 +75,21 @@ registrar("gravado")` },
 x := "agora texto"      // passa: 'Any' aceita tudo` },
   {"p": "`Any` serve para o valor que realmente muda de forma — o que volta de um JSON, o que uma rota recebe no corpo. Usá-lo por comodidade em toda parte dá o mesmo resultado de não anotar nada, com mais ruído."},
 
-  {"h2": "Coleções: o recipiente, não o conteúdo"},
+  {"h2": "Coleções: o recipiente, e o conteúdo"},
   { code: `notas: Cluster := [7.5, 8.0]      // "é uma lista" — nada diz sobre os itens` },
-  {"p": "`Cluster<Float>` e `Vault<String, Pedido>` **não existem**, e a linguagem diz isso em vez de dar um erro de sintaxe cru:"},
-  { code: `'Cluster<…>' does not exist: the type of what is INSIDE a collection
-is not checked. Annotate as 'Cluster'.`, lang: 'text' },
-  {"p": "Enquanto o tipo de conteúdo não existe, o conteúdo se valida com código — e a validação fica onde o dado entra, não espalhada por quem o usa:"},
-  { code: `action todos_numeros(valores: Cluster) -> Boolean:
-    cycle v in valores:
-        given typeof(v) isnt "Integer" and typeof(v) isnt "Float":
-            yield no
-    yield yes` },
+  {"p": "`Cluster<T>`, `Vault<K, V>` e `Set<T>` declaram também o tipo do que está **dentro**, e aninham: `Vault<String, Cluster<Integer>>`. O conteúdo é conferido em três momentos:"},
+  {"list": ["**na fronteira** — declaração, parâmetro, retorno e campo conferem cada item, e o erro diz **qual** (`item 2`, `o valor na chave \"b\"`);", "**na inserção** — a coleção que **nasce** na declaração (literal, compreensão, padrão de campo) recusa `append`, `insert`, `extend`, `xs[i] :=`, `+=`, `v[k] :=`, `set` e `update` fora do tipo;", "**antes de rodar** — o `check` prova o que um literal garante (`tipo-do-conteudo`)."]},
+  { code: `notas: Cluster<Float> := [7.5, 8]      // um Integer serve onde se pede Float
+notas.append(9.5)
+
+estoque: Vault<String, Integer> := {"caneta": 10}
+estoque["lapis"] := 4
+
+monitor:
+    notas.append("dez")
+handle TypeError as e:
+    out e.message      // Cluster<Float> só guarda Float, e append recebeu String.` },
+  {"callout": {"tipo": "nota", "titulo": "Por que só a coleção que nasce ali é guardada", "texto": "Uma coleção que já existia é conferida na entrada e **continua sendo o mesmo objeto**. Copiá-la para poder guardar mudaria, em silêncio, toda ação que recebe uma lista para modificar: `acrescentar(xs: Cluster<Integer>, n)` passaria a acrescentar numa cópia que ninguém vê."}},
 
   {"h2": "Genéricos: `<T>` e `<T extends X>`"},
   {"p": "Um parâmetro de tipo liga a entrada à saída. Sem limite, ele **documenta** a relação e não é cobrado — a linguagem é dinâmica, e `action eco<T>(x: T) -> T` aceita qualquer valor. **Com** limite, ele é cobrado nas duas metades:"},
@@ -181,13 +185,13 @@ app.df:13:1: erro: Unknown type 'Intger'
   {"p": "Detalhes em [Análise estática](/docs/tecnicas/analise-estatica)."},
 
   {"h2": "Os enganos mais comuns"},
-  {"table": {"head": ["O que se escreve", "O que acontece", "A forma certa"], "rows": [["`xs: Cluster<Integer>`", "não existe — erro de leitura do arquivo", "`xs: Cluster`, e valide o conteúdo"], ["`n: Integer := \"3\"`", "erro: texto não vira número sozinho", "`n: Integer := int(\"3\")`"], ["`preco: Float := 19.99` para dinheiro", "arredondamento binário, calado", "`Dec.de(\"19.99\")`"], ["`lambda n: Integer: n + 1`", "sem parênteses, o `:` começa o corpo", "`lambda (n: Integer): n + 1`"], ["`-> String` com um `given` sem `otherwise`", "aviso: pode terminar sem `yield`", "feche com um `yield` final, ou `-> Void`"], ["`typeof(v) is Integer`", "compara com um nome, não com texto", "`typeof(v) is \"Integer\"`"]]}},
+  {"table": {"head": ["O que se escreve", "O que acontece", "A forma certa"], "rows": [["`alias: Cluster<Integer> := outra_lista` e depois `alias.append(\"x\")`", "conferida na entrada, e não guardada: é a mesma lista de antes", "declare a coleção onde ela nasce: `xs: Cluster<Integer> := []`"], ["`n: Integer := \"3\"`", "erro: texto não vira número sozinho", "`n: Integer := int(\"3\")`"], ["`preco: Float := 19.99` para dinheiro", "arredondamento binário, calado", "`Dec.de(\"19.99\")`"], ["`lambda n: Integer: n + 1`", "sem parênteses, o `:` começa o corpo", "`lambda (n: Integer): n + 1`"], ["`-> String` com um `given` sem `otherwise`", "aviso: pode terminar sem `yield`", "feche com um `yield` final, ou `-> Void`"], ["`typeof(v) is Integer`", "compara com um nome, não com texto", "`typeof(v) is \"Integer\"`"]]}},
 
   {"h2": "Para onde ir agora"},
   {"cards": [{"href": "/docs/fundamentos/generics", "title": "Generics", "desc": "`<T>`, `<T extends X>` e o que é cobrado em cada um."}, {"href": "/docs/fundamentos/records", "title": "Records", "desc": "Campos sempre tipados, imutabilidade e `with`."}, {"href": "/docs/tecnicas/analise-estatica", "title": "Análise estática", "desc": "O que o `check` prova, e por que ele cala quando cala."}, {"href": "/docs/cli/check", "title": "dataforge check", "desc": "O comando, as opções e os códigos de diagnóstico."}]},
 ];
 
-const headings = [{ id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'o-que-e-verificado', text: "O que é verificado", level: 2 as const }, { id: 'por-que-na-fronteira', text: "Por que na fronteira", level: 2 as const }, { id: 'os-nomes-aceitos', text: "Os nomes aceitos", level: 2 as const }, { id: 'a-regra-de-alargamento', text: "A regra de alargamento", level: 2 as const }, { id: 'void-a-acao-que-nao-devolve', text: "`Void`: a ação que não devolve", level: 2 as const }, { id: 'any-desliga-a-conferencia-de-proposito', text: "`Any` desliga a conferência, de propósito", level: 2 as const }, { id: 'colecoes-o-recipiente-nao-o-conteudo', text: "Coleções: o recipiente, não o conteúdo", level: 2 as const }, { id: 'genericos-t-e-t-extends-x', text: "Genéricos: `<T>` e `<T extends X>`", level: 2 as const }, { id: 'os-seus-tipos-tambem-sao-tipos', text: "Os seus tipos também são tipos", level: 2 as const }, { id: 'o-tipo-atravessa-o-adopt', text: "O tipo atravessa o `adopt`", level: 2 as const }, { id: 'quando-o-analisador-cala', text: "Quando o analisador cala", level: 2 as const }, { id: 'em-execucao-perguntar-pelo-tipo', text: "Em execução: perguntar pelo tipo", level: 2 as const }, { id: 'a-checagem-estatica', text: "A checagem estática", level: 2 as const }, { id: 'os-enganos-mais-comuns', text: "Os enganos mais comuns", level: 2 as const }, { id: 'para-onde-ir-agora', text: "Para onde ir agora", level: 2 as const }];
+const headings = [{ id: 'a-forma', text: "A forma", level: 2 as const }, { id: 'o-que-e-verificado', text: "O que é verificado", level: 2 as const }, { id: 'por-que-na-fronteira', text: "Por que na fronteira", level: 2 as const }, { id: 'os-nomes-aceitos', text: "Os nomes aceitos", level: 2 as const }, { id: 'a-regra-de-alargamento', text: "A regra de alargamento", level: 2 as const }, { id: 'void-a-acao-que-nao-devolve', text: "`Void`: a ação que não devolve", level: 2 as const }, { id: 'any-desliga-a-conferencia-de-proposito', text: "`Any` desliga a conferência, de propósito", level: 2 as const }, { id: 'colecoes-o-recipiente-e-o-conteudo', text: "Coleções: o recipiente, e o conteúdo", level: 2 as const }, { id: 'genericos-t-e-t-extends-x', text: "Genéricos: `<T>` e `<T extends X>`", level: 2 as const }, { id: 'os-seus-tipos-tambem-sao-tipos', text: "Os seus tipos também são tipos", level: 2 as const }, { id: 'o-tipo-atravessa-o-adopt', text: "O tipo atravessa o `adopt`", level: 2 as const }, { id: 'quando-o-analisador-cala', text: "Quando o analisador cala", level: 2 as const }, { id: 'em-execucao-perguntar-pelo-tipo', text: "Em execução: perguntar pelo tipo", level: 2 as const }, { id: 'a-checagem-estatica', text: "A checagem estática", level: 2 as const }, { id: 'os-enganos-mais-comuns', text: "Os enganos mais comuns", level: 2 as const }, { id: 'para-onde-ir-agora', text: "Para onde ir agora", level: 2 as const }];
 
 export default function Pagina() {
   return (

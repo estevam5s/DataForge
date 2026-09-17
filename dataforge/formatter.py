@@ -270,6 +270,10 @@ class Formatter:
         anterior = None
         antes_do_anterior = None
         colchetes = 0
+        # 'Cluster<Vault<String, Integer>>' e um tipo, e nao duas
+        # comparacoes: dentro dele '<', '>' e '>>' nao respiram.
+        genericos = 0
+        abriu_generico = False
 
         for token in tokens:
             if token.type in (TokenType.NEWLINE, TokenType.EOF,
@@ -282,7 +286,22 @@ class Formatter:
             elif token.type is TokenType.RBRACKET:
                 colchetes = max(0, colchetes - 1)
             texto_token = self._render(token)
-            if partes and self._precisa_espaco(
+            generico = (
+                (token.type is TokenType.LT and anterior is not None
+                 and anterior.type is TokenType.IDENTIFIER
+                 and anterior.value in ("Cluster", "Vault", "Set"))
+                or (genericos > 0 and token.type in (TokenType.GT, TokenType.PIPE))
+                or abriu_generico)
+            abriu_generico = False
+            if token.type is TokenType.LT and generico and not (
+                    genericos > 0 and anterior.type is not TokenType.IDENTIFIER):
+                genericos += 1
+                abriu_generico = True
+            elif genericos > 0 and token.type is TokenType.GT:
+                genericos -= 1
+            elif genericos > 0 and token.type is TokenType.PIPE:
+                genericos = max(0, genericos - 2)
+            if partes and not generico and self._precisa_espaco(
                     anterior, token, antes_do_anterior, colchetes > 0):
                 partes.append(" ")
             partes.append(texto_token)

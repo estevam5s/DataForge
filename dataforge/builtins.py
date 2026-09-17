@@ -77,6 +77,16 @@ _NOMES_DE_TIPO = {
 }
 
 
+def _registrar_colecoes_tipadas():
+    """As colecoes tipadas sao Cluster, Vault e Set para quem pergunta o tipo."""
+    from .colecoes_tipadas import ClusterTipado, VaultTipado, SetTipado
+    _NOMES_DE_TIPO.update({ClusterTipado: "Cluster", VaultTipado: "Vault",
+                           SetTipado: "Set"})
+
+
+_registrar_colecoes_tipadas()
+
+
 def _df_type(obj):
     """O tipo, no vocabulario do DataForge.
 

@@ -16,6 +16,7 @@ from . import ast_nodes as ast
 from .environment import Environment
 from . import magicos
 from . import objetos
+from .colecoes_tipadas import partir as _partir_tipo, tipar as _tipar_colecao
 from .builtins import (BuiltinFunction, get_builtins,
                        set_magic_dispatcher, set_stringifier)
 from .caminhos import curto as _curto
@@ -1039,6 +1040,48 @@ class DFInstanceFinal(DFInstance):
 
 #: As classes de instancia que podem ter vigias — o teste do caminho quente.
 _COM_VIGIAS = frozenset((DFInstance, DFInstanceFinal))
+
+def _posicionar(erro, node):
+    """Da ao erro a posicao do no, e redesenha a mensagem com ela."""
+    erro.line = getattr(node, "line", 0) or 0
+    erro.column = getattr(node, "column", 0) or 0
+    erro.args = (erro.format(),)
+
+
+#: As expressoes que CRIAM a colecao: so ela nasce tipada numa declaracao.
+#: Uma colecao que ja existia e conferida, e continua sendo o mesmo objeto.
+_NASCE_AQUI = (ast.ListLiteral, ast.DictLiteral, ast.ListComprehension,
+               ast.VaultComprehension)
+
+#: Os embutidos que sempre devolvem uma colecao NOVA: 'cluster(xs)' copia.
+_CRIAM_COLECAO = frozenset({"cluster", "vault"})
+
+#: E as funcoes de modulo que tambem sempre criam: (modulo, funcao).
+_MODULOS_QUE_CRIAM = frozenset({("Arcane.Collections", "set")})
+
+
+def _nasce_aqui(no, env):
+    """A expressao cria a colecao, em vez de apontar para uma que ja existia?
+
+    A pergunta e SINTATICA de proposito: um literal, uma compreensao, ou
+    uma funcao conhecida por sempre devolver uma colecao nova. Uma chamada
+    qualquer pode devolver uma lista guardada em outro lugar, e tipa-la
+    seria copiar — e a copia mudaria em silencio quem ja a segurava.
+    """
+    if isinstance(no, _NASCE_AQUI):
+        return True
+    try:
+        if (isinstance(no, ast.FunctionCall) and isinstance(no.callee, ast.Identifier)
+                and no.callee.name in _CRIAM_COLECAO):
+            return isinstance(env.get(no.callee.name), BuiltinFunction)
+        if (isinstance(no, ast.MethodCall) and isinstance(no.object, ast.Identifier)):
+            modulo = env.get(no.object.name)
+            return (isinstance(modulo, dict)
+                    and (modulo.get("__name__"), no.method) in _MODULOS_QUE_CRIAM)
+    except NameError_:
+        return False
+    return False
+
 
 #: Os nomes que 'obj.' responde sem olhar os campos.
 _EMBUTIDOS_DA_INSTANCIA = frozenset(("blueprint_name", "fields", "methods"))
@@ -2281,9 +2324,16 @@ class Interpreter:
                     node.line, node.column)
         try:
             return metodo(node, env)
-        except (DataForgeError, ControlSignal):
-            # Ja e da linguagem, ou e desvio de fluxo: passa reto. Um
-            # 'raise' aqui nao mexe no traceback nem na origem.
+        except DataForgeError as erro:
+            # Ja e da linguagem: passa reto. So ganha a posicao da
+            # instrucao quando nao tem nenhuma — o erro levantado longe do
+            # codigo (a colecao tipada recusando um 'xs[0] :=') nao conhece
+            # a linha, e sem ela sairia em 0:0, sem o trecho desenhado.
+            if not erro.line:
+                _posicionar(erro, node)
+            raise
+        except ControlSignal:
+            # Desvio de fluxo: passa reto, sem mexer no traceback.
             raise
         except Exception as e:
             # Rede final. Qualquer coisa que o Python levante e que nao
@@ -3559,12 +3609,11 @@ class Interpreter:
         campo. Copia profunda seria cara e surpreendente — quem poe uma
         estrutura aninhada como padrao provavelmente quer compartilha-la.
         """
-        if isinstance(valor, list):
-            return list(valor)
-        if isinstance(valor, dict):
-            return dict(valor)
-        if isinstance(valor, set):
-            return set(valor)
+        if isinstance(valor, (list, dict, set)):
+            # 'copy' e o da classe: a colecao tipada devolve outra tipada,
+            # e cada instancia ganha a sua com a mesma guarda
+            return valor.copy() if type(valor) not in (list, dict, set) \
+                else type(valor)(valor)
         return valor
 
     def eval_SpawnExpression(self, node: ast.SpawnExpression, env):
@@ -4873,6 +4922,8 @@ class Interpreter:
         declared = getattr(node, 'declared_type', "")
         if declared:
             self._check_type(value, declared, f"variable '{self._target_name(node.target)}'", node)
+            if "<" in declared and _nasce_aqui(node.value, env):
+                value = _tipar_colecao(value, declared)
 
         if isinstance(node.target, ast.Identifier):
             env.set(node.target.name, value)
@@ -5644,6 +5695,10 @@ class Interpreter:
         for nome, tipo, padrao, visib in (list(getattr(node, 'fields_decl', []))
                                           + campos_sem_tipo):
             valor = self.evaluate(padrao, bp_env) if padrao is not None else None
+            if tipo and "<" in tipo and valor is not None:
+                self._check_type(valor, tipo, f"field '{nome}' of '{node.name}'", node)
+                if _nasce_aqui(padrao, bp_env):
+                    valor = _tipar_colecao(valor, tipo)
             campos.append((nome, tipo, valor, visib))
             visibility[nome] = visib
             if isinstance(valor, DFInstance) and (
@@ -9033,6 +9088,9 @@ class Interpreter:
         ser verificado em tempo de execucao. E o mesmo que o TypeScript
         faz ao compilar — os tipos somem.
         """
+        if "<" in declared:
+            return self._check_conteudo(value, declared, what, node,
+                                        parametros_de_tipo, limites)
         expected = self.TYPE_ALIASES.get(declared, declared)
         if expected in parametros_de_tipo:
             limite = (limites or {}).get(expected)
@@ -9075,6 +9133,63 @@ class Interpreter:
             return value
         raise TypeError_(
             f"{what} declared as {expected} but got {actual}", node.line, node.column)
+
+    def _check_conteudo(self, value, declared, what, node,
+                        parametros_de_tipo=(), limites=None):
+        """'Cluster<T>', 'Vault<K, V>', 'Set<T>': a colecao, e cada item.
+
+        O item errado e nomeado pela POSICAO (ou pela chave): numa lista de
+        mil, "got String" sem dizer onde obrigaria a procurar a mao.
+        """
+        base, argumentos = _partir_tipo(declared)
+        esperado_base = self.TYPE_ALIASES.get(base, base)
+        try:
+            self._check_type(value, esperado_base, what, node)
+        except TypeError_:
+            raise TypeError_(
+                f"{what} declared as {declared} but got {self._type_of(value)}",
+                node.line, node.column, doc="tipos") from None
+
+        def conferir(item, tipo, onde):
+            try:
+                self._check_type(item, tipo, onde, node,
+                                 parametros_de_tipo, limites)
+            except TypeError_ as erro:
+                interno = ("" if "<" not in tipo else f" — {erro.message}")
+                raise TypeError_(
+                    f"{what} declared as {declared}, but {onde} is "
+                    f"{self._type_of(item)}{interno}",
+                    node.line, node.column,
+                    dica=f"every item has to be a {tipo}; widen the "
+                         f"annotation (Any accepts everything) or fix the value",
+                    doc="tipos") from None
+
+        if esperado_base in ("Cluster", "Set"):
+            if argumentos[0] in ("Any",):
+                return value
+            for indice, item in enumerate(value):
+                conferir(item, argumentos[0],
+                         f"item {indice}" if esperado_base == "Cluster" else "an item")
+        elif esperado_base == "Vault":
+            chave_t, valor_t = argumentos
+            for chave, item in value.items():
+                if chave_t != "Any":
+                    try:
+                        self._check_type(chave, chave_t, what, node)
+                    except TypeError_:
+                        raise TypeError_(
+                            f"{what} declared as {declared}, but the key "
+                            f"{self._to_repr(chave)} is {self._type_of(chave)}",
+                            node.line, node.column,
+                            dica=f"every key has to be a {chave_t}",
+                            doc="tipos") from None
+                if valor_t != "Any":
+                    conferir(item, valor_t, f"the value at key {self._to_repr(chave)}")
+        return value
+
+    def _to_repr(self, valor):
+        """O valor como aparece no codigo: texto entre aspas."""
+        return f'"{valor}"' if isinstance(valor, str) else self._to_str(valor)
 
     @staticmethod
     def _descende_de(instancia, nome):

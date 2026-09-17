@@ -55,12 +55,32 @@ ALIASES = {
 
 
 def canonical(nome: str) -> str:
+    if "<" in nome:
+        base, argumentos = partir_tipo(nome)
+        return juntar_tipo(ALIASES.get(base, base),
+                           [canonical(a) for a in argumentos])
     return ALIASES.get(nome, nome)
+
+
+def base_do_tipo(nome: str) -> str:
+    """'Cluster<Integer>' -> 'Cluster'. O resto das conferencias fala da base."""
+    return partir_tipo(nome)[0] if "<" in nome else nome
 
 
 def compatible(esperado: str, obtido: str) -> bool:
     """O valor de tipo 'obtido' serve onde se espera 'esperado'?"""
     if UNKNOWN in (esperado, obtido) or ANY in (esperado, obtido):
+        return True
+    if "<" in esperado or "<" in obtido:
+        # A base decide. O conteudo so decide quando OS DOIS lados o
+        # conhecem: 'Cluster' sozinho e um cluster de conteudo que nao se
+        # sabe, e acusa-lo seria o falso alarme de sempre.
+        be, ae = partir_tipo(esperado)
+        bo, ao = partir_tipo(obtido)
+        if not compatible(be, bo):
+            return False
+        if ae and ao and len(ae) == len(ao):
+            return all(compatible(x, y) for x, y in zip(ae, ao))
         return True
     if esperado == obtido:
         return True
@@ -69,6 +89,9 @@ def compatible(esperado: str, obtido: str) -> bool:
     if esperado == "Float" and obtido == "Integer":
         return True          # um inteiro serve onde se espera decimal
     return False
+
+
+from .colecoes_tipadas import partir as partir_tipo, juntar as juntar_tipo  # noqa: E402
 
 
 class Diagnostic:
@@ -907,15 +930,34 @@ class TypeChecker:
         declarado = canonical(getattr(node, 'declared_type', '') or '')
 
         if declarado:
-            if declarado not in self.known_types and declarado != UNKNOWN:
+            falta = self._tipo_desconhecido(declarado)
+            if falta:
                 self.error(
-                    f"Unknown type '{node.declared_type}'", node,
-                    self._hint_tipo(node.declared_type), "unknown-type")
+                    f"Unknown type '{falta}'"
+                    + (f" in '{node.declared_type}'" if falta != node.declared_type else ""),
+                    node, self._hint_tipo(falta), "unknown-type")
             elif not self._compativel(declarado, tipo):
                 self.error(
                     f"Declared as {declarado} but the value is {tipo}", node,
                     f"Change the annotation to {tipo} or fix the value",
                     "type-mismatch")
+            else:
+                self._conferir_conteudo(declarado, node.value, escopo)
+
+        # 'xs[0] := "x"' num Cluster<Integer> conhecido
+        if isinstance(node.target, ast.IndexAccess) and \
+                isinstance(node.target.object, ast.Identifier):
+            do_alvo = escopo.lookup(node.target.object.name)
+            if isinstance(do_alvo, str) and "<" in do_alvo:
+                base, argumentos = partir_tipo(do_alvo)
+                if base == "Cluster":
+                    self._conferir_item(argumentos[0], node.value, escopo,
+                                        do_alvo, "the assigned item")
+                elif base == "Vault":
+                    self._conferir_item(argumentos[0], node.target.index, escopo,
+                                        do_alvo, "the key")
+                    self._conferir_item(argumentos[1], node.value, escopo,
+                                        do_alvo, "the assigned value")
 
         if isinstance(node.target, ast.Identifier):
             nome = node.target.name
@@ -1995,11 +2037,10 @@ class TypeChecker:
         genericos |= self._genericos_do_blueprint
 
         for tipo in assinatura.param_types.values():
-            alvo = canonical(tipo)
-            if (alvo not in self.known_types and alvo != UNKNOWN
-                    and tipo not in genericos):
-                self.error(f"Unknown parameter type '{tipo}'", node,
-                           self._hint_tipo(tipo), "unknown-type")
+            falta = self._tipo_desconhecido(tipo, genericos)
+            if falta:
+                self.error(f"Unknown parameter type '{falta}'", node,
+                           self._hint_tipo(falta), "unknown-type")
 
         retorno_anterior = self._current_return
         genericos_anteriores = self._genericos_da_acao
@@ -2097,12 +2138,10 @@ class TypeChecker:
                            f"declare it as 'meta blueprint {meta}:'",
                            "metaclasse-invalida")
         for campo, tipo in (getattr(node, "constructor_types", None) or {}).items():
-            alvo = canonical(tipo)
-            if (alvo not in self.known_types and alvo != UNKNOWN
-                    and tipo not in (getattr(node, "type_params", None) or [])
-                    and "." not in tipo):
-                self.error(f"Unknown type '{tipo}' for '{campo}'", node,
-                           self._hint_tipo(tipo), "unknown-type")
+            falta = self._tipo_desconhecido(tipo, getattr(node, "type_params", None) or ())
+            if falta:
+                self.error(f"Unknown type '{falta}' for '{campo}'", node,
+                           self._hint_tipo(falta), "unknown-type")
         self._hoist(node.body, interno, registrar_acoes=False)
         anterior = self._em_membro
         genericos_antes = self._genericos_do_blueprint
@@ -2441,9 +2480,10 @@ class TypeChecker:
                            node, "Remove the repeated field", "duplicate-field")
             vistos.add(campo)
             alvo = canonical(tipo)
-            if alvo not in self.known_types:
-                self.error(f"Unknown type '{tipo}' for field '{campo}'", node,
-                           self._hint_tipo(tipo), "unknown-type")
+            falta = self._tipo_desconhecido(tipo)
+            if falta:
+                self.error(f"Unknown type '{falta}' for field '{campo}'", node,
+                           self._hint_tipo(falta), "unknown-type")
             if padrao is not None:
                 obtido = self.infer(padrao, escopo)
                 if not self._compativel(alvo, obtido):
@@ -3330,12 +3370,29 @@ class TypeChecker:
         self.infer(node.object, escopo)
         return UNKNOWN
 
+    #: Os metodos que INSEREM, e onde esta o que eles inserem.
+    _INSEREM = {"append": 0, "push": 0, "insert": 1, "add": 0}
+
     def ex_MethodCall(self, node, escopo):
         alvo = self.infer(node.object, escopo)
         for a in node.args:
             self.infer(a.value if isinstance(a, ast.SpreadElement) else a, escopo)
         for v in node.kwargs.values():
             self.infer(v, escopo)
+
+        # 'xs.append("x")' num Cluster<Integer>: o literal prova o erro
+        if isinstance(alvo, str) and "<" in alvo:
+            base, argumentos = partir_tipo(alvo)
+            posicao = self._INSEREM.get(node.method)
+            if base in ("Cluster", "Set") and posicao is not None \
+                    and len(node.args) > posicao:
+                self._conferir_item(argumentos[0], node.args[posicao], escopo,
+                                    alvo, f"the item of {node.method}")
+            elif base == "Cluster" and node.method == "extend" and node.args:
+                self._conferir_conteudo(alvo, node.args[0], escopo)
+            elif base == "Vault" and node.method == "set" and len(node.args) >= 2:
+                self._conferir_item(argumentos[0], node.args[0], escopo, alvo, "the key")
+                self._conferir_item(argumentos[1], node.args[1], escopo, alvo, "the value")
 
         # 'P.criar(1, 2, 3)' num modulo local: existe, e com quantos?
         if isinstance(node.object, ast.Identifier):
@@ -3620,6 +3677,8 @@ class TypeChecker:
                     f"Parameter '{assinatura.params[indice]}' of '{nome}' expects "
                     f"{declarado} but got {obtido}", arg,
                     f"Pass a {declarado}", "argument-type")
+            else:
+                self._conferir_conteudo(declarado, arg, escopo)
 
         if assinatura.is_generator:
             return "Stream"
@@ -3724,6 +3783,63 @@ class TypeChecker:
         if parecido:
             return f"Did you mean '{parecido}'?"
         return ""
+
+    def _tipo_conhecido(self, tipo, genericos=()):
+        """Todo nome dentro de 'Vault<String, Cluster<Pedido>>' existe?"""
+        if "<" not in tipo:
+            alvo = canonical(tipo)
+            return (alvo in self.known_types or alvo == UNKNOWN
+                    or tipo in genericos or "." in tipo)
+        base, argumentos = partir_tipo(tipo)
+        return (self._tipo_conhecido(base, genericos)
+                and all(self._tipo_conhecido(a, genericos) for a in argumentos))
+
+    def _tipo_desconhecido(self, tipo, genericos=()):
+        """O primeiro nome que nao existe — o que a dica deve corrigir."""
+        if "<" not in tipo:
+            return None if self._tipo_conhecido(tipo, genericos) else tipo
+        base, argumentos = partir_tipo(tipo)
+        for parte in (base,) + tuple(argumentos):
+            falta = self._tipo_desconhecido(parte, genericos)
+            if falta:
+                return falta
+        return None
+
+    def _conferir_conteudo(self, esperado, valor, escopo, onde="value"):
+        """O literal cabe no 'Cluster<T>' / 'Vault<K, V>' declarado?
+
+        So acusa o que PROVA: um item cujo tipo foi inferido e nao serve.
+        Um item de tipo desconhecido — uma chamada, um nome de fora —
+        cala, pelo mesmo motivo de todo o resto do analisador.
+        """
+        if not isinstance(esperado, str) or "<" not in esperado:
+            return
+        base, argumentos = partir_tipo(canonical(esperado))
+        if base in ("Cluster", "Set") and isinstance(valor, ast.ListLiteral):
+            for indice, item in enumerate(valor.elements):
+                if isinstance(item, ast.SpreadElement):
+                    continue
+                self._conferir_item(argumentos[0], item, escopo, esperado,
+                                    f"item {indice}")
+        elif base == "Vault" and isinstance(valor, ast.DictLiteral):
+            for chave, item in valor.pairs:
+                if isinstance(chave, ast.SpreadElement):
+                    continue
+                rotulo = (f'the key "{chave.value}"' if isinstance(chave, ast.StringLiteral)
+                          else "a key")
+                self._conferir_item(argumentos[0], chave, escopo, esperado, rotulo)
+                self._conferir_item(argumentos[1], item, escopo, esperado,
+                                    f"the value of {rotulo}")
+
+    def _conferir_item(self, tipo, no, escopo, colecao, rotulo):
+        if "<" in tipo:
+            self._conferir_conteudo(tipo, no, escopo)
+        obtido = self.infer(no, escopo)
+        if obtido in (UNKNOWN, ANY) or self._compativel(tipo, obtido):
+            return
+        self.error(f"{colecao} cannot hold {obtido}: {rotulo} is {obtido}", no,
+                   f"every item has to be a {tipo} — fix the value, or widen the "
+                   f"annotation (Any accepts everything)", "tipo-do-conteudo")
 
     def _hint_tipo(self, nome):
         parecido = self._similar(nome, self.known_types)

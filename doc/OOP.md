@@ -254,7 +254,7 @@ conferido; **◐** existe em parte; **✗** não existe, com o motivo.
 | 5 | abstração, contratos, design por contrato | ✓ | `contract`, `expects`/`promises`/`invariant` |
 | 6 | herança simples/multinível, `super`, final, diamante | ✓ | `extends`, `root`, C3 |
 | 7 | polimorfismo de inclusão, paramétrico e ad-hoc; dispatch dinâmico | ✓ | sobrescrita, `<T>`, `overload` |
-| 7 | covariância/contravariância declaradas | ✗ | a linguagem é de tipagem dinâmica e não tem generics de coleção (`Cluster<T>`); variância só faria sentido com eles |
+| 7 | covariância/contravariância declaradas | ✗ | a linguagem é de tipagem dinâmica; `Cluster<T>` e `Vault<K, V>` conferem o conteúdo, mas a variância entre eles não é declarável |
 | 7 | duck typing / structural typing | ✓ | chamada por protocolo; `Reflexo.cumpre` confere forma |
 | 8 | interfaces: múltiplas, genéricas, compostas, verificação estática e em execução | ✓ | `contract … extends`, `with A, B`, `check` + declaração |
 | 8 | default methods | ✓ | em `trait` (o contrato não tem corpo por decisão) |
@@ -271,7 +271,8 @@ conferido; **◐** existe em parte; **✗** não existe, com o motivo.
 | 16 | traits, mixins, requisitos, múltiplos | ✓ | `trait`, `with A, B` |
 | 16 | aliases e resolução explícita de conflito entre traits | ◐ | a ordem em `with` decide e o blueprint pode sobrescrever; não há sintaxe de alias |
 | 17 | generics: classes, métodos, interfaces, constraints, inferência | ✓ | `<T>`, `<T extends X>` |
-| 17 | lower bounds, especialização, generics de coleção | ✗ | ver §7 acima; `Cluster<T>` está no roadmap |
+| 17 | generics de coleção | ✓ | `Cluster<T>`, `Vault<K, V>`, `Set<T>` — fronteira, inserção e `check` (REFERENCIA §3.2) |
+| 17 | lower bounds, especialização | ✗ | ver §7 acima |
 | 18 | nominal e estrutural, narrowing, optional, enums, records, aliases | ✓ | anotações, `?.`/`??`, `match`, `record`, `enum` |
 | 18 | union e intersection types | ✗ | a anotação aceita um tipo; `Any` e `match` cobrem os casos |
 | 19–20 | SOLID e princípios complementares | ✓ | §7 deste guia; `dataforge oop` |

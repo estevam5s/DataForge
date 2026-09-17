@@ -276,7 +276,7 @@ assert round(media(notas), 2) is 8.33, "media"`, lang: 'df', title: `exercicios/
   {"h3": "Conceitos"},
   {"p": "Uma anotação de coleção descreve **o recipiente**, não o conteúdo:"},
   { code: `notas: Cluster := [7.5, 8.0]      // "é uma lista" — nada diz sobre os itens`, lang: 'df' },
-  {"p": "DataForge 4.0 ainda não tem `Cluster<Float>` (tipos parametrizados estão no roadmap). Enquanto isso, o conteúdo se valida com código — e escrever essa validação é um exercício útil por si só."},
+  {"p": "Quando o conteúdo é uma regra de **tipo**, a anotação resolve: `notas: Cluster<Float> := [7.5, 8.0]` confere cada item e recusa um `append` fora do tipo. Este exercício é sobre o que a anotação **não** alcança — uma regra de valor (nota entre 0 e 10), ou dados que chegam de fora como texto —, e escrever essa validação é útil por si só."},
   {"h3": "Duas estratégias"},
   {"p": "**Verificar tudo antes de usar:**"},
   { code: `action todos_numeros(valores: Cluster) -> Boolean:

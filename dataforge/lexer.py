@@ -305,7 +305,45 @@ class Lexer:
         i = len(self.tokens) - 1
         while i >= 0 and self.tokens[i].type == TokenType.NEWLINE:
             i -= 1
-        return i >= 0 and self.tokens[i].type in self.FIM_INCOMPLETO
+        if i < 0 or self.tokens[i].type not in self.FIM_INCOMPLETO:
+            return False
+        if self.tokens[i].type in (TokenType.GT, TokenType.PIPE):
+            return not self._fecha_colecao_tipada(i)
+        return True
+
+    #: As colecoes cujo '<' abre um tipo, e nao uma comparacao.
+    _COLECOES_TIPADAS = frozenset({"Cluster", "Vault", "Set"})
+
+    def _fecha_colecao_tipada(self, fim):
+        """O '>' (ou '>>') no fim da linha fecha um 'Cluster<…>' dela?
+
+        'tags: Cluster<String>' termina em '>', e '>' no fim da linha e o
+        sinal de que a expressao continua abaixo — e o que deixa quebrar
+        uma comparacao ou um pipeline em duas linhas. Sem esta pergunta,
+        o campo de um record engolia a linha seguinte. So conta um '<'
+        colado a Cluster, Vault ou Set: 'a < b' com espaco continua sendo
+        comparacao.
+        """
+        linha = self.tokens[fim].line
+        saldo = 0
+        abriu = False
+        j = fim
+        while j >= 0 and self.tokens[j].line == linha:
+            tok = self.tokens[j]
+            if tok.type == TokenType.GT:
+                saldo -= 1
+            elif tok.type == TokenType.PIPE:
+                saldo -= 2
+            elif tok.type == TokenType.LT:
+                saldo += 1
+                anterior = self.tokens[j - 1] if j > 0 else None
+                if (anterior is not None and anterior.type == TokenType.IDENTIFIER
+                        and anterior.value in self._COLECOES_TIPADAS
+                        and anterior.line == tok.line
+                        and anterior.column + len(anterior.value) == tok.column):
+                    abriu = True
+            j -= 1
+        return abriu and saldo == 0
 
     def handle_indentation(self):
         """Process indentation at the start of a logical line.

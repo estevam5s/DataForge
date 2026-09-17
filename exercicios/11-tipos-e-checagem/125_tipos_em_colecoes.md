@@ -13,9 +13,11 @@ Uma anotação de coleção descreve **o recipiente**, não o conteúdo:
 notas: Cluster := [7.5, 8.0]      // "é uma lista" — nada diz sobre os itens
 ```
 
-DataForge 4.0 ainda não tem `Cluster<Float>` (tipos parametrizados estão no
-roadmap). Enquanto isso, o conteúdo se valida com código — e escrever essa
-validação é um exercício útil por si só.
+Quando o conteúdo é uma regra de **tipo**, a anotação resolve:
+`notas: Cluster<Float> := [7.5, 8.0]` confere cada item e recusa um `append`
+fora do tipo. Este exercício é sobre o que a anotação **não** alcança — uma
+regra de valor (nota entre 0 e 10), ou dados que chegam de fora como texto —,
+e escrever essa validação é útil por si só.
 
 ## Duas estratégias
 

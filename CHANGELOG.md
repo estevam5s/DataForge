@@ -14,6 +14,26 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — o tipo do conteúdo das coleções
+
+- **`Cluster<T>`, `Vault<K, V>` e `Set<T>`**, aninháveis
+  (`Vault<String, Cluster<Integer>>`). Até aqui o parser recusava a forma.
+  O conteúdo é conferido **na fronteira** — declaração, parâmetro, retorno,
+  campo —, com o item ou a chave nomeados na mensagem; **na inserção**, para
+  a coleção que nasce na declaração (`append`, `insert`, `extend`,
+  `xs[i] :=`, `+=`, `v[k] :=`, `set`, `update`, `add`); e **pelo `check`**,
+  quando um literal prova o erro (`tipo-do-conteudo`), inclusive um tipo
+  interno desconhecido. Uma coleção que já existia é conferida e continua
+  sendo o mesmo objeto — sem cópia. Mensagens em pt-BR.
+- O lexer deixou de tratar o `>`/`>>` que fecha `Cluster<…>` no fim da
+  linha como continuação de expressão, e o formatador não espaça o genérico.
+
+### Corrigido — posição de erro
+
+- Um erro da linguagem levantado longe do código (sem linha) ganha a
+  posição da instrução que o disparou, no interpretador e no compilador de
+  fechamentos. Antes saía em `0:0`, sem o trecho desenhado.
+
 ### Adicionado — fila persistente
 
 - **`Eventos.fila_persistente(caminho, trabalhador, opcoes)`** — a fila de

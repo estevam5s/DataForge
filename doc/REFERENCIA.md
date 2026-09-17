@@ -410,6 +410,34 @@ cadeia de herança.
 
 Regra de conveniência: **um `Integer` é aceito onde se espera `Float`**.
 
+#### O tipo do conteúdo: `Cluster<T>`, `Vault<K, V>`, `Set<T>`
+
+```dataforge
+notas: Cluster<Float> := [7.5, 8]
+estoque: Vault<String, Cluster<Integer>> := {"sul": [4, 2]}
+
+action media(xs: Cluster<Float>) -> Float:
+    yield sum(xs) / len(xs)
+
+notas.append(9.0)
+estoque["norte"] := [1]
+assert round(media(notas), 2) is 8.17
+```
+
+O conteúdo é conferido **na fronteira** (declaração, parâmetro, retorno, campo
+— o erro diz qual item, ou qual chave), **na inserção** e **pelo `check`**
+(`tipo-do-conteudo`, quando um literal prova o erro). Só `Cluster`, `Vault` e
+`Set` aceitam `<…>`; `Vault` leva dois tipos. `Any` dentro desliga a conferência
+daquela posição.
+
+A guarda de inserção (`append`, `insert`, `extend`, `xs[i] :=`, `+=`,
+`v[k] :=`, `set`, `update`, `add`) vale para a coleção que **nasce** na
+declaração: um literal, uma compreensão, `cluster(…)`/`vault(…)`,
+`Collections.set(…)` ou o padrão de um campo. Uma coleção que já existia é
+conferida na entrada e **continua sendo o mesmo objeto** — sem cópia, porque a
+cópia mudaria em silêncio quem já a segurava. `typeof` continua respondendo
+`Cluster`, `Vault` e `Set`.
+
 #### Tipo de outro módulo
 
 Um tipo importado é nomeado como qualquer coisa importada — com o apelido do
