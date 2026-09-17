@@ -408,7 +408,7 @@ out V.metricas()["media_ms"]`, lang: 'df' },
 V.configurar("validade_sessao", 1800)
 V.subir(porta := 8501, host := "127.0.0.1")`, lang: 'df' },
   {"p": "Com nginx ou Caddy na frente, para TLS e compressão — a Vitrine roda sobre o `http.server`, que não tem nenhum dos dois. `GET /__vitrine__/saude` e `/__vitrine__/metricas` vêm prontas para o balanceador e o monitoramento."},
-  {"p": "E a sessão vive na memória do processo: **um** processo por aplicação. Dois processos fazem dois pedidos da mesma pessoa caírem em memórias diferentes."},
+  {"p": "Com mais de um processo, a sessão precisa de um lugar comum: `V.app(\"Painel\", sessoes_em := V.sessoes_em_banco(\"sessoes.db\"))`. Sem isso, dois pedidos da mesma pessoa caem em memórias diferentes."},
   {"h2": "Onde continuar"},
   {"cards": [{"href": "/docs/tecnicas/banco-de-dados/crud", "title": "O CRUD completo", "desc": "Cinco sistemas com o mesmo esqueleto."}, {"href": "/docs/tecnicas/banco-de-dados/relatorios", "title": "Relatórios e busca", "desc": "Agregação, FTS5 e o plano de consulta."}, {"href": "/docs/vitrine/graficos", "title": "Gráficos", "desc": "Sete tipos, em SVG escrito no servidor."}, {"href": "/docs/tecnicas/cobertura", "title": "Cobertura", "desc": "O que os testes deste projeto não exercitam."}]},
 ];

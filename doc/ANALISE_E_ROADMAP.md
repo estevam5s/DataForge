@@ -684,7 +684,7 @@ O que resta, em ordem de impacto.
 ### Web
 
 - ~~**Framework de dashboards**~~ — **feito**. `Arcane.Vitrine`: um programa
-  de cima para baixo vira uma página web, com 113 símbolos, gráficos em SVG
+  de cima para baixo vira uma página web, com 115 símbolos, gráficos em SVG
   escritos no servidor, estado por sessão, cache com TTL e LRU, autenticação,
   temas e uma sonda que testa sem navegador. Roda sobre o Kiln.
 - ~~**WebSocket no Kiln**~~ — **feito**. `kiln_tempo_real.py` fala o RFC 6455
@@ -708,9 +708,11 @@ O que resta, em ordem de impacto.
   `--vigiar=total` na linha de comando e data breakpoint no painel do
   editor param quando o valor muda — inclusive `xs.append` e o campo
   mudado dentro de um método.
-- **Sessão compartilhada entre processos** — hoje a sessão da Vitrine vive na
-  memória do processo, o que limita a aplicação a um processo com proxy na
-  frente. Escalar horizontalmente exige um armazenamento comum primeiro.
+- ~~**Sessão compartilhada entre processos**~~ — **feita**. A sessão da
+  Vitrine mora num armazém: a memória por padrão, um SQLite
+  (`V.sessoes_em_banco`), uma pasta (`V.sessoes_em_arquivos`) ou um
+  blueprint com `carregar`/`gravar`/`apagar`. Gravada uma vez por pedido,
+  por chave, só com o que mudou.
 
 ### Decisão pendente
 

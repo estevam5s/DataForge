@@ -84,11 +84,11 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                54 módulos (1625 símbolos), incluindo:
+  stdlib/                54 módulos (1627 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
-    vitrine/             Vitrine — dashboards e data apps (113 símbolos)
+    vitrine/             Vitrine — dashboards e data apps (115 símbolos)
     arcane_reflexo.py    reflexão que respeita a visibilidade, diagrama Mermaid
     arcane_objetos.py    cópia, congelar, serialização que só aceita tipos listados
     arcane_injecao.py    contêiner: único, transitório, por escopo; ciclo e cativo
@@ -1195,6 +1195,7 @@ chamada de ação num módulo da biblioteca.
 | `graficos.py` | sete tipos, montados como dado |
 | `render.py` | a árvore vira HTML; o SVG e os ~4 KB de cliente moram aqui |
 | `estado.py` | `V.estado` (sessão), `V.geral` (processo), `V.cache` (TTL + LRU) |
+| `sessoes.py` | onde a sessão mora: memória, SQLite, arquivos ou um blueprint |
 | `runtime.py` | `Aplicacao` — sessões, ciclo do pedido, servidor sobre o Kiln |
 | `teste.py` | a `Sonda`: clica, digita e pergunta, sem navegador |
 | `extras.py` | validação de campo, tradução por sessão, componentes por nome |
@@ -1265,6 +1266,24 @@ Nove decisões que valem lembrar:
    CDN quebra qualquer app em rede fechada — que é onde painel de dados
    costuma rodar. Há teste proibindo `http://`, `https://` e `cdn` no
    CSS e no JS.
+
+**A sessão pode morar fora do processo** (`sessoes.py`). A página
+continua falando com um dicionário: o armazém abre a sessão no começo do
+pedido e `Aplicacao._confirmar` grava no fim de `executar`, **só o que
+mudou** — cada valor é codificado e comparado com a foto tirada ao
+abrir. Gravar no `definir` perderia `itens.append(x)`, que não passa por
+ele. A gravação é por chave, e um valor que não atravessa processo
+(record, instância) vira falha **na página**, sem impedir o resto de ser
+gravado. Três armadilhas que custaram:
+
+| O quê | Sem isso |
+|---|---|
+| `PRAGMA journal_mode=WAL` com retentativa (`_insistir`) | trocar para WAL ignora o `timeout`: dois processos subindo juntos — o caso de uso — davam `database is locked` na hora |
+| id desconhecido vira sessão **nova** | o id plantado no cookie virava sessão (fixação), e agora ela sobrevive ao processo |
+| só id de 32 hexadecimais chega ao armazém | em `EmArquivos` o id é nome de arquivo, e `../x` escreveria fora da pasta |
+
+`encerrar_sessao` marca `sessao.encerrada`: sem isso, a gravação do fim
+do pedido recriava a sessão que acabou de ser apagada.
 
 `site/app/docs/vitrine/referencia/page.tsx` é **gerado** por
 `tools/gerar_ref_vitrine.py`, que recusa rodar se um símbolo do módulo
@@ -1616,7 +1635,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1625 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1627 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -1817,9 +1836,11 @@ O que **ainda não existe** (não invente que existe):
   documentação mentindo sobre a linguagem.
   A Vitrine, porém, não os usa: o "tempo real" dela é
   `V.atualizar_a_cada(n)`, que é por pergunta e não por empurrão.
-- **Sessão da Vitrine vive na memória do processo.** Com mais de um
-  processo, dois pedidos da mesma pessoa caem em memórias diferentes.
-  Um processo por aplicação, com proxy na frente, é a forma testada.
+- **`V.estado.somar` não é atômico entre processos.** A sessão da
+  Vitrine pode morar num armazém comum (`sessoes_em :=
+  V.sessoes_em_banco(…)`), gravado por chave no fim do pedido: na mesma
+  chave, vence a última gravação. A sessão do **Kiln** continua na
+  memória do processo.
 - **Literal decimal exato** — não há sufixo nem sintaxe: `19.99` no código é
   `Float`, com o arredondamento binário de sempre. Para exatidão use
   `Arcane.Decimal`, e prefira a forma com aspas (`Dec.de("19.99")`), que não

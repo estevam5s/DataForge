@@ -14,6 +14,23 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — a sessão da Vitrine entre processos
+
+- **`sessoes_em`**: a sessão mora num armazém. `V.sessoes_em_banco(caminho)`
+  (SQLite em WAL; aceita a conexão do `Arcane.Database`),
+  `V.sessoes_em_arquivos(pasta)` (um JSON por sessão, com trava do sistema e
+  troca atômica) ou qualquer blueprint com `carregar`, `gravar` e `apagar`.
+  Dois processos atrás de um balanceador passam a ver a mesma sessão — o
+  contador continua e o login não cai.
+- A sessão é gravada uma vez por pedido, **por chave** e só com o que mudou,
+  inclusive mutação no lugar. Um valor que não atravessa processo é
+  recusado na página, com a chave e o tipo.
+
+### Corrigido — fixação de sessão na Vitrine
+
+- Um `vitrine_sid` que a aplicação não conhece deixou de virar sessão com
+  aquele id: vira uma sessão nova, com id sorteado.
+
 ### Adicionado — watchpoint no depurador
 
 - **A vigia para quando um valor MUDA.** No terminal, `w <expr>`,

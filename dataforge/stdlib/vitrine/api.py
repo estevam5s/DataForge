@@ -32,6 +32,7 @@ from . import teste as T
 from .estado import Cache, Estado, Geral
 from .nucleo import Contexto
 from .runtime import Aplicacao, _Navegar, _Parar, _Reexecutar
+from . import sessoes as _sessoes
 
 _TRAVA = threading.RLock()
 _ATUAL = {"app": None}
@@ -296,11 +297,24 @@ def depois(funcao):
 
 
 def sessoes():
-    return len(_app().sessoes)
+    return _app().armazem_de_sessao().contar()
 
 
 def encerrar_sessao():
-    _app().encerrar_sessao(_ctx().sessao.id)
+    sessao = _ctx().sessao
+    # marcada, para o fim do pedido nao grava-la de volta
+    sessao.encerrada = True
+    _app().encerrar_sessao(sessao.id)
+
+
+def sessoes_em_banco(caminho):
+    """As sessoes num SQLite que todo processo abre. Aceita a conexao do Database."""
+    return _sessoes.EmBanco(caminho)
+
+
+def sessoes_em_arquivos(pasta):
+    """As sessoes num JSON por sessao, numa pasta que os processos dividem."""
+    return _sessoes.EmArquivos(C._str(pasta))
 
 
 # ═══════════════════════════════════════════════════════════
@@ -519,6 +533,8 @@ class ArcaneVitrine:
             "depois": depois,
             "sessoes": sessoes,
             "encerrar_sessao": encerrar_sessao,
+            "sessoes_em_banco": sessoes_em_banco,
+            "sessoes_em_arquivos": sessoes_em_arquivos,
             "tarefa": tarefa,
             "agendar": agendar,
             "atualizar_a_cada": atualizar_a_cada,

@@ -8360,6 +8360,16 @@
      "tipo": "funcao"
     },
     {
+     "nome": "sessoes_em_arquivos",
+     "sig": "(pasta)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sessoes_em_banco",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "subir",
      "sig": "(porta, host, recarregar, silencioso)",
      "tipo": "funcao"
@@ -10931,7 +10941,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2246,
+  "testes": 2300,
   "exemplos": 44,
   "arquivosDf": 361
  },

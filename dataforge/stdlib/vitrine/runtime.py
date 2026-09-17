@@ -34,6 +34,7 @@ from . import render
 from .componentes import _str
 from .estado import Cache, Geral
 from .nucleo import Contexto, No, Sessao
+from . import sessoes as _sessoes
 
 _KILN = None
 
@@ -71,11 +72,19 @@ class Aplicacao:
             "limite_upload": 8 * 1024 * 1024,
             "manifesto": False,
             "segredo": "",
+            #: Onde as sessoes moram. 'void' e a memoria deste processo;
+            #: V.sessoes_em_banco / V.sessoes_em_arquivos as dividem
+            #: entre processos. Ver sessoes.py.
+            "sessoes_em": None,
         }
         self.config.update({k: v for k, v in config.items() if v is not None})
 
         self.paginas = []                 # [(caminho, acao, vault)]
-        self.sessoes = {}
+        self._memoria = _sessoes.EmMemoria()
+        #: As sessoes DESTE processo, quando elas moram na memoria.
+        self.sessoes = self._memoria.sessoes
+        self._armazem = (None, self._memoria)   # (o que foi pedido, o armazem)
+        self._vencidas_em = 0.0
         self.geral = Geral()
         self.cache = Cache()
         self.antes = []                   # middleware da Vitrine
@@ -152,31 +161,56 @@ class Aplicacao:
     #  Sessões
     # ═══════════════════════════════════════════════════════
 
-    def sessao(self, identificador=None):
+    def armazem_de_sessao(self):
+        """O armazem que 'sessoes_em' pede — resolvido uma vez por valor."""
+        pedido = self.config.get("sessoes_em")
         with self._trava:
-            self._limpar_vencidas()
-            if identificador and identificador in self.sessoes:
-                sessao = self.sessoes[identificador]
-                sessao.tocada_em = time.time()
-                return sessao
-            nova = Sessao(identificador or uuid.uuid4().hex)
-            self.sessoes[nova.id] = nova
-            return nova
+            if self._armazem[0] is not pedido:
+                armazem = _sessoes.resolver(pedido) or self._memoria
+                self._armazem = (pedido, armazem)
+            return self._armazem[1]
 
-    def _limpar_vencidas(self):
+    def sessao(self, identificador=None):
+        """A sessao do id, ou uma NOVA com id sorteado.
+
+        Um id que o armazem nao conhece nao vira sessao com aquele id:
+        seria fixacao de sessao — quem planta o cookie escolhe o id que
+        a vitima vai usar depois do login.
+        """
+        armazem = self.armazem_de_sessao()
+        with self._trava:
+            self._limpar_vencidas(armazem)
+        if _sessoes.id_valido(identificador):
+            sessao = armazem.abrir(identificador)
+            if sessao is not None:
+                return sessao
+        with self._trava:
+            return armazem.nova()
+
+    def confirmar_sessao(self, sessao):
+        """Grava o que o pedido mudou. Devolve as recusas [(chave, tipo)]."""
+        return self.armazem_de_sessao().confirmar(sessao)
+
+    #: Entre processos a limpeza e uma consulta ao banco ou uma volta na
+    #: pasta; por pedido, ela custaria mais que o pedido.
+    INTERVALO_DE_LIMPEZA = 60.0
+
+    def _limpar_vencidas(self, armazem):
         validade = self.config.get("validade_sessao") or 0
         if validade <= 0:
             return
         # Sem isto, um app público acumula uma sessão por visitante para
         # sempre — um vazamento de memória que só aparece depois de
         # semanas no ar, quando ninguém mais lembra de onde veio.
-        vencidas = [i for i, s in self.sessoes.items() if s.expirou(validade)]
-        for i in vencidas:
-            del self.sessoes[i]
+        if armazem.compartilhado:
+            agora = time.time()
+            if agora - self._vencidas_em < self.INTERVALO_DE_LIMPEZA:
+                return
+            self._vencidas_em = agora
+        armazem.vencer(validade)
 
     def encerrar_sessao(self, identificador):
-        with self._trava:
-            self.sessoes.pop(identificador, None)
+        self.armazem_de_sessao().encerrar(identificador)
 
     # ═══════════════════════════════════════════════════════
     #  A execução de uma página
@@ -225,7 +259,26 @@ class Aplicacao:
             Contexto.terminar()
             for no in ctx.limpar_depois:
                 self._limpar_formulario(sessao, no)
+            self._confirmar(ctx, sessao)
         return ctx
+
+    def _confirmar(self, ctx, sessao):
+        """No fim do pedido, e so aqui: a pagina fala com um dicionario."""
+        try:
+            recusas = self.confirmar_sessao(sessao)
+        except Exception as erro:                            # noqa: BLE001
+            # o armazem fora do ar nao pode derrubar a pagina ja montada
+            mensagem = f"a sessao nao foi gravada: {erro}"
+            ctx.falhas.append({"mensagem": mensagem, "detalhe": ""})
+            self.registrar("erro", mensagem, {"pagina": ctx.pagina})
+            return
+        for chave, tipo in recusas:
+            mensagem = (f"V.estado '{chave}' guarda um {tipo}, que nao atravessa "
+                        f"processo: a sessao compartilhada guarda numero, texto, "
+                        f"logico, void, Cluster, Vault, Set e bytes. Guarde os "
+                        f"campos num vault.")
+            ctx.falhas.append({"mensagem": mensagem, "detalhe": ""})
+            self.registrar("aviso", mensagem, {"pagina": ctx.pagina})
 
     #: Quantas vezes uma página pode se reexecutar numa interação.
     #: Um 'V.recarregar()' incondicional é um laço infinito, e o teto
@@ -366,7 +419,7 @@ class Aplicacao:
             "execucoes": m["execucoes"],
             "erros": m["erros"],
             "media_ms": round(m["ms_total"] / execucoes, 2),
-            "sessoes": len(self.sessoes),
+            "sessoes": self.armazem_de_sessao().contar(),
             "paginas": len(self.paginas),
             "no_ar_s": round(time.time() - m["inicio"], 1),
             "cache": self.cache.estatisticas(),
@@ -376,7 +429,7 @@ class Aplicacao:
         """O que um balanceador pergunta antes de mandar tráfego."""
         return {"estado": "ok", "no_ar_s": round(
             time.time() - self._metricas["inicio"], 1),
-            "sessoes": len(self.sessoes), "versao": self.config.get("versao", "")}
+            "sessoes": self.armazem_de_sessao().contar(), "versao": self.config.get("versao", "")}
 
     # ═══════════════════════════════════════════════════════
     #  Plugins

@@ -88,8 +88,9 @@ capítulos:
 3. ~~**Watchpoint no depurador**~~ — **feito**: `w expr` no terminal,
    `dataforge debug --vigiar=expr`, e data breakpoint no editor. Para
    quando o valor muda, inclusive por mutação no lugar e dentro de método.
-4. **Sessão da Vitrine compartilhada entre processos**, para escalar
-   horizontalmente sem proxy grudando o visitante num processo.
+4. ~~**Sessão da Vitrine compartilhada entre processos**~~ — **feito**:
+   `sessoes_em := V.sessoes_em_banco(…)`, `V.sessoes_em_arquivos(…)` ou um
+   blueprint com `carregar`/`gravar`/`apagar`.
 
 ---
 

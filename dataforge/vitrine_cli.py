@@ -294,8 +294,9 @@ def _explicar_ausencia(sub):
         print("    GET /__vitrine__/saude          para o balanceador")
         print("    GET /__vitrine__/metricas       para o monitoramento")
         print()
-        print("  E o essencial: um processo por aplicação, com nginx ou")
-        print("  Caddy na frente — não há TLS nem HTTP/2 aqui.")
+        print("  E o essencial: nginx ou Caddy na frente — não há TLS nem")
+        print("  HTTP/2 aqui. Com mais de um processo, as sessões num lugar")
+        print("  comum: sessoes_em := V.sessoes_em_banco(\"sessoes.db\").")
     print()
     return 1
 

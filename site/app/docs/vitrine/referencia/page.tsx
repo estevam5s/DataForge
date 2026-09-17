@@ -7,12 +7,12 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Referência da Vitrine",
-  description: "Os 113 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte.",
+  description: "Os 115 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte.",
 };
 
 const blocos: Bloco[] = [
   {
-    "p": "Esta página é gerada a partir de `dataforge/stdlib/vitrine/`. São **113 símbolos**, e o gerador recusa rodar se algum deles ficar de fora."
+    "p": "Esta página é gerada a partir de `dataforge/stdlib/vitrine/`. São **115 símbolos**, e o gerador recusa rodar se algum deles ficar de fora."
   },
   {
     "p": "Em todos os exemplos, `V` é o apelido de `adopt Arcane.Vitrine as V`."
@@ -549,6 +549,14 @@ const blocos: Bloco[] = [
           "Descarta a sessão de agora."
         ],
         [
+          "`V.sessoes_em_banco(caminho)`",
+          "As sessões num SQLite que vários processos abrem (`sessoes_em := …`)."
+        ],
+        [
+          "`V.sessoes_em_arquivos(pasta)`",
+          "As sessões num JSON por sessão, numa pasta que os processos dividem."
+        ],
+        [
           "`V.tarefa(acao, *args)`",
           "Roda numa thread e devolve na hora. A página não espera."
         ],
@@ -796,7 +804,7 @@ export default function Page() {
   return (
     <DocPage
       title="Referência da Vitrine"
-      description="Os 113 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte."
+      description="Os 115 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte."
       href="/docs/vitrine/referencia"
       headings={headings}
     >

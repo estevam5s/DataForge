@@ -593,15 +593,53 @@ Em produção pública, ponha um nginx ou Caddy na frente. A Vitrine roda
 sobre o Kiln, que roda sobre o `http.server` do Python: não há HTTP/2, TLS
 nem streaming de resposta.
 
-E a sessão vive **na memória do processo**. Com mais de um processo, dois
-pedidos da mesma pessoa caem em memórias diferentes. Um processo por
-aplicação, com o proxy na frente, é a forma testada.
+### Mais de um processo: a sessão num lugar comum
+
+Por padrão a sessão vive **na memória do processo**. Com dois processos
+atrás de um balanceador, o segundo pedido da mesma pessoa cai numa memória
+que nunca a viu: o contador volta a 1 e o login "cai". Dê às sessões um
+lugar que todos os processos veem:
+
+```dataforge
+V.app("Painel", sessoes_em := V.sessoes_em_banco("/dados/sessoes.db"))
+// ou: V.sessoes_em_arquivos("/dados/sessoes")
+// ou: a conexão que o app já tem — V.sessoes_em_banco(Database.connect("app.db"))
+```
+
+A página continua falando com um dicionário: a sessão é aberta no começo
+do pedido e gravada **uma vez**, no fim, só com o que mudou — inclusive
+`itens.append(x)`, que não passa por `definir`. A gravação é **por chave**:
+duas abas mexendo em chaves diferentes não apagam uma à outra; na mesma
+chave, vence a última.
+
+O que atravessa processo: número, texto, lógico, `void`, `Cluster`,
+`Vault`, `Set`, bytes e `Decimal`. Um record ou uma instância é recusado
+**na página**, com a chave e o tipo — guarde os campos num vault.
+
+Um id que o armazém não conhece vira uma sessão **nova**, com id sorteado:
+aceitar o id que o cliente inventou é fixação de sessão.
+
+Para Redis, Postgres ou o que for, qualquer blueprint com três métodos serve:
+
+```dataforge
+blueprint SessoesNoRedis:
+    action carregar(id):        // o vault da sessão, ou void
+        ...
+    action gravar(id, dados):   // o vault inteiro, a cada pedido
+        ...
+    action apagar(id):
+        ...
+
+V.app("Painel", sessoes_em := spawn SessoesNoRedis())
+```
+
+`vencer(segundos)` e `contar()` são opcionais.
 
 ---
 
 ## Referência
 
-Os 113 símbolos, com assinatura extraída do código-fonte:
+Os 115 símbolos, com assinatura extraída do código-fonte:
 <https://dataforge-lang.vercel.app/docs/vitrine/referencia>.
 
 Um painel completo que roda e se testa sozinho está em

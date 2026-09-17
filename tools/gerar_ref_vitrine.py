@@ -62,7 +62,8 @@ GRUPOS = [
         "pode", "exigir_login", "exigir_permissao"]),
     ("Operação", [
         "registrar", "logs", "metricas", "saude", "plugin", "antes",
-        "depois", "sessoes", "encerrar_sessao", "tarefa", "agendar",
+        "depois", "sessoes", "encerrar_sessao", "sessoes_em_banco",
+        "sessoes_em_arquivos", "tarefa", "agendar",
         "atualizar_a_cada"]),
     ("Exportar", [
         "exportar_csv", "exportar_json", "html_da_pagina",
@@ -182,6 +183,8 @@ RESUMOS = {
     "depois": "Middleware de saída, com o contexto já montado.",
     "sessoes": "Quantas sessões estão vivas.",
     "encerrar_sessao": "Descarta a sessão de agora.",
+    "sessoes_em_banco": "As sessões num SQLite que vários processos abrem (`sessoes_em := …`).",
+    "sessoes_em_arquivos": "As sessões num JSON por sessão, numa pasta que os processos dividem.",
     "tarefa": "Roda numa thread e devolve na hora. A página não espera.",
     "agendar": "Roda de tempos em tempos, enquanto o processo viver.",
     "atualizar_a_cada": "A página se recarrega sozinha nesse intervalo.",

@@ -77,7 +77,13 @@ V.plugin("tema-empresa", tema_da_empresa)`, lang: 'df' },
   {"p": "Um plugin é uma ação que recebe a aplicação e acrescenta algo. Registrar duas vezes o mesmo nome é **erro**, e não substituição silenciosa: quase sempre é um `adopt` duplicado, e descobrir isso por um comportamento que sumiu é caro."},
   {"h2": "O que colocar na frente"},
   {"callout": {"tipo": "atencao", "titulo": "Em produção pública, ponha um nginx ou Caddy na frente", "texto": "A Vitrine roda sobre o Kiln, que roda sobre o `http.server` do Python: não há HTTP/2, TLS nem streaming de resposta. O proxy cuida de TLS, compressão e arquivos estáticos; a Vitrine cuida da aplicação."}},
-  {"p": "E a sessão vive **na memória do processo**. Com mais de um processo, dois pedidos da mesma pessoa caem em memórias diferentes — para escalar horizontalmente, uma sessão compartilhada precisa existir primeiro. Um processo por aplicação, com o proxy na frente, é a forma testada."},
+  {"h3": "Mais de um processo: a sessão num lugar comum"},
+  {"p": "Por padrão a sessão vive **na memória do processo**. Com dois processos atrás de um balanceador, o segundo pedido da mesma pessoa cai numa memória que nunca a viu: o contador volta a 1 e o login \"cai\". Dê às sessões um lugar que todos os processos veem:"},
+  { code: `V.app("Painel", sessoes_em := V.sessoes_em_banco("/dados/sessoes.db"))
+// ou: V.sessoes_em_arquivos("/dados/sessoes")`, lang: 'df' },
+  {"p": "A página continua falando com um dicionário: a sessão é aberta no começo do pedido e gravada **uma vez**, no fim, só com o que mudou — inclusive `itens.append(x)`, que não passa por `definir`. A gravação é **por chave**: duas abas mexendo em chaves diferentes não apagam uma à outra; na mesma chave, vence a última."},
+  {"table": {"head": ["Armazém", "Quem vê"], "rows": [["o padrão", "este processo"], ["`V.sessoes_em_banco(caminho)`", "todo processo que abre o mesmo SQLite — aceita também a conexão do `Arcane.Database`"], ["`V.sessoes_em_arquivos(pasta)`", "todo processo que vê a mesma pasta"], ["um blueprint com `carregar`, `gravar` e `apagar`", "o que ele decidir: Redis, Postgres…"]]}},
+  {"callout": {"tipo": "atencao", "titulo": "O que atravessa processo", "texto": "Número, texto, lógico, `void`, `Cluster`, `Vault`, `Set`, bytes e `Decimal`. Um record ou uma instância é recusado **na página**, com a chave e o tipo — guarde os campos num vault. E um id que o armazém não conhece vira uma sessão **nova**, com id sorteado: aceitar o id que o cliente inventou é fixação de sessão."}},
   {"h2": "Atualização automática"},
   { code: `action acompanhar():
     V.atualizar_a_cada(15)
@@ -87,7 +93,7 @@ V.plugin("tema-empresa", tema_da_empresa)`, lang: 'df' },
   {"p": "Para um painel que muda a cada segundos, perguntar é suficiente e não quebra atrás de proxy nenhum. Para um fluxo de eventos contínuo — cotação, log ao vivo, progresso de um trabalho longo — é o Kiln direto que serve."},
 ];
 
-const headings = [{ id: 'a-linha-de-comando', text: "A linha de comando", level: 2 as const }, { id: 'subir', text: "Subir", level: 2 as const }, { id: 'hot-reload', text: "Hot reload", level: 2 as const }, { id: 'configuracao', text: "Configuração", level: 2 as const }, { id: 'tema', text: "Tema", level: 3 as const }, { id: 'observabilidade', text: "Observabilidade", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'trabalho-fora-do-pedido', text: "Trabalho fora do pedido", level: 2 as const }, { id: 'plugins', text: "Plugins", level: 2 as const }, { id: 'o-que-colocar-na-frente', text: "O que colocar na frente", level: 2 as const }, { id: 'atualizacao-automatica', text: "Atualização automática", level: 2 as const }];
+const headings = [{ id: 'a-linha-de-comando', text: "A linha de comando", level: 2 as const }, { id: 'subir', text: "Subir", level: 2 as const }, { id: 'hot-reload', text: "Hot reload", level: 2 as const }, { id: 'configuracao', text: "Configuração", level: 2 as const }, { id: 'tema', text: "Tema", level: 3 as const }, { id: 'observabilidade', text: "Observabilidade", level: 2 as const }, { id: 'middleware', text: "Middleware", level: 2 as const }, { id: 'trabalho-fora-do-pedido', text: "Trabalho fora do pedido", level: 2 as const }, { id: 'plugins', text: "Plugins", level: 2 as const }, { id: 'o-que-colocar-na-frente', text: "O que colocar na frente", level: 2 as const }, { id: 'mais-de-um-processo-a-sessao-num-lugar-comum', text: "Mais de um processo: a sessão num lugar comum", level: 3 as const }, { id: 'atualizacao-automatica', text: "Atualização automática", level: 2 as const }];
 
 export default function Pagina() {
   return (

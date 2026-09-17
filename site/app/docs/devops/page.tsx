@@ -62,7 +62,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \\
 
   Para produção:
     · há um proxy reverso na frente (TLS, compressão, HTTP/2)
-    · a sessão vive na memória do processo: UM processo por aplicação
+    · a sessão do Kiln vive na memória do processo: UM processo por aplicação
     · 'Kiln.secure_headers()' como middleware de saída
 
   4 coisa(s) a resolver:

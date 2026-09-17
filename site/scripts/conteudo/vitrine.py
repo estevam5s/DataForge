@@ -143,7 +143,7 @@ V.subir(porta := 8501)""", "lang": "df"},
    {"href": "/docs/vitrine/testes", "title": "Testes", "meta": "sem navegador", "desc": "A sonda clica, digita e pergunta — e o pedido HTTP sem socket."},
    {"href": "/docs/vitrine/producao", "title": "Produção", "meta": "hot reload, métricas, plugins", "desc": "Subir, observar, e o que colocar na frente."},
    {"href": "/docs/vitrine/projeto", "title": "Um projeto completo", "meta": "banco, ETL, painel, testes", "desc": "Análise de vendas de ponta a ponta, do CSV ao gráfico."},
-   {"href": "/docs/vitrine/referencia", "title": "Referência", "meta": "113 símbolos", "desc": "Tudo o que sai de `adopt Arcane.Vitrine`, em uma tabela."}]},
+   {"href": "/docs/vitrine/referencia", "title": "Referência", "meta": "115 símbolos", "desc": "Tudo o que sai de `adopt Arcane.Vitrine`, em uma tabela."}]},
 ]},
 
 # ══════════════════════════════════════════════════════════════
@@ -764,7 +764,13 @@ V.plugin("tema-empresa", tema_da_empresa)""", "lang": "df"},
 
  {"h2": "O que colocar na frente"},
  {"callout": {"tipo": "atencao", "titulo": "Em produção pública, ponha um nginx ou Caddy na frente", "texto": "A Vitrine roda sobre o Kiln, que roda sobre o `http.server` do Python: não há HTTP/2, TLS nem streaming de resposta. O proxy cuida de TLS, compressão e arquivos estáticos; a Vitrine cuida da aplicação."}},
- {"p": "E a sessão vive **na memória do processo**. Com mais de um processo, dois pedidos da mesma pessoa caem em memórias diferentes — para escalar horizontalmente, uma sessão compartilhada precisa existir primeiro. Um processo por aplicação, com o proxy na frente, é a forma testada."},
+ {"h3": "Mais de um processo: a sessão num lugar comum"},
+ {"p": "Por padrão a sessão vive **na memória do processo**. Com dois processos atrás de um balanceador, o segundo pedido da mesma pessoa cai numa memória que nunca a viu: o contador volta a 1 e o login \"cai\". Dê às sessões um lugar que todos os processos veem:"},
+ {"code": """V.app("Painel", sessoes_em := V.sessoes_em_banco("/dados/sessoes.db"))
+// ou: V.sessoes_em_arquivos("/dados/sessoes")""", "lang": "df"},
+ {"p": "A página continua falando com um dicionário: a sessão é aberta no começo do pedido e gravada **uma vez**, no fim, só com o que mudou — inclusive `itens.append(x)`, que não passa por `definir`. A gravação é **por chave**: duas abas mexendo em chaves diferentes não apagam uma à outra; na mesma chave, vence a última."},
+ {"table": {"head": ["Armazém", "Quem vê"], "rows": [["o padrão", "este processo"], ["`V.sessoes_em_banco(caminho)`", "todo processo que abre o mesmo SQLite — aceita também a conexão do `Arcane.Database`"], ["`V.sessoes_em_arquivos(pasta)`", "todo processo que vê a mesma pasta"], ["um blueprint com `carregar`, `gravar` e `apagar`", "o que ele decidir: Redis, Postgres…"]]}},
+ {"callout": {"tipo": "atencao", "titulo": "O que atravessa processo", "texto": "Número, texto, lógico, `void`, `Cluster`, `Vault`, `Set`, bytes e `Decimal`. Um record ou uma instância é recusado **na página**, com a chave e o tipo — guarde os campos num vault. E um id que o armazém não conhece vira uma sessão **nova**, com id sorteado: aceitar o id que o cliente inventou é fixação de sessão."}},
 
  {"h2": "Atualização automática"},
  {"code": """action acompanhar():
@@ -1197,7 +1203,7 @@ out V.metricas()["media_ms"]""", "lang": "df"},
 V.configurar("validade_sessao", 1800)
 V.subir(porta := 8501, host := "127.0.0.1")""", "lang": "df"},
  {"p": "Com nginx ou Caddy na frente, para TLS e compressão — a Vitrine roda sobre o `http.server`, que não tem nenhum dos dois. `GET /__vitrine__/saude` e `/__vitrine__/metricas` vêm prontas para o balanceador e o monitoramento."},
- {"p": "E a sessão vive na memória do processo: **um** processo por aplicação. Dois processos fazem dois pedidos da mesma pessoa caírem em memórias diferentes."},
+ {"p": "Com mais de um processo, a sessão precisa de um lugar comum: `V.app(\"Painel\", sessoes_em := V.sessoes_em_banco(\"sessoes.db\"))`. Sem isso, dois pedidos da mesma pessoa caem em memórias diferentes."},
 
  {"h2": "Onde continuar"},
  {"cards": [

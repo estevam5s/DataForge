@@ -194,7 +194,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Text` | 59 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
 | `Arcane.Time` | 54 | Datas, horas, durações e cronometragem. |
 | `Arcane.Url` | 14 | Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor. |
-| `Arcane.Vitrine` | 113 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
+| `Arcane.Vitrine` | 115 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |
 | `Kiln` | 73 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 

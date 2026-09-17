@@ -63,7 +63,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Email`](#arcaneemail) | `Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
 | [`Arcane.Html`](#arcanehtml) | `Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
 | [`Arcane.Lavra`](#arcanelavra) | `Lavra` | 42 | A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços. |
-| [`Arcane.Vitrine`](#arcanevitrine) | `Vitrine` | 113 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
+| [`Arcane.Vitrine`](#arcanevitrine) | `Vitrine` | 115 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | [`Arcane.API`](#arcaneapi) | `API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
 | [`Arcane.Decimal`](#arcanedecimal) | `Decimal / Exato` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
 | [`Arcane.Ponte`](#arcaneponte) | `Ponte / Bridge` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
@@ -2379,7 +2379,7 @@ adopt Arcane.Vitrine as Vitrine
 | `i18n` | `<dataforge.stdlib.vitrine.extras.Traducao object a…` |
 | `paleta` | `['#FED403', '#0F62FE', '#24A148', '#FA4D56', '#8A3…` |
 
-**Funções (109)**
+**Funções (111)**
 
 | Assinatura |
 |------------|
@@ -2476,6 +2476,8 @@ adopt Arcane.Vitrine as Vitrine
 | `saude()` |
 | `servir(porta=0, host='127.0.0.1')` |
 | `sessoes()` |
+| `sessoes_em_arquivos(pasta)` |
+| `sessoes_em_banco(caminho)` |
 | `subir(porta=8501, host='127.0.0.1', recarregar=False, silencioso=False)` |
 | `subtitulo(conteudo)` |
 | `sucesso(mensagem)` |

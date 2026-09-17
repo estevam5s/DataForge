@@ -435,7 +435,10 @@ def _doctor(p):
             "há um proxy reverso na frente (TLS, compressão, HTTP/2)"
             if not os.path.isfile(os.path.join(p.raiz, "deploy", "nginx.conf"))
             else "o nginx.conf está gerado — confira o domínio e o certificado",
-            "a sessão vive na memória do processo: UM processo por aplicação",
+            "a sessão vive na memória do processo: com mais de um, "
+            "'sessoes_em := V.sessoes_em_banco(\"sessoes.db\")'"
+            if p.usa_vitrine else
+            "a sessão do Kiln vive na memória do processo: UM processo por aplicação",
             "'V.configurar(\"producao\", yes)' esconde o stack trace da página"
             if p.usa_vitrine else
             "'Kiln.secure_headers()' como middleware de saída",
