@@ -40,6 +40,26 @@ marca.preparar_saida()
 SAIDA = os.environ.get("DF_PACOTES_SAIDA") or os.path.join(RAIZ, "dist", "pacotes")
 
 
+#: Abaixo disto o `.deb` nao tem a linguagem dentro.
+#:
+#: O publicado na 1.0.0 tinha 1.194 bytes, e o gerador que o produziu
+#: terminava com codigo 0: nada recusava. O real tem 6,5 MB; o piso fica
+#: em 2 MB para o pacote poder emagrecer sem falso alarme, e bem acima de
+#: um pacote que perdeu a biblioteca (~300 KB).
+TAMANHO_MINIMO_DO_DEB = 2 * 1024 * 1024
+
+
+def conferir_tamanho(caminho):
+    """Recusa, com codigo de saida, um `.deb` pequeno demais."""
+    tamanho = os.path.getsize(caminho)
+    if tamanho < TAMANHO_MINIMO_DO_DEB:
+        raise SystemExit(
+            f"o .deb tem {tamanho} bytes, e o piso e "
+            f"{TAMANHO_MINIMO_DO_DEB} — ele nao tem a linguagem dentro. "
+            f"Confira o 'pip install --target' em '_arvore_instalada'.")
+    return tamanho
+
+
 def _oficiais():
     """Os nomes oficiais dos modulos, sem contar apelido duas vezes."""
     from dataforge.stdlib import get_module, list_modules
@@ -325,7 +345,7 @@ def main():
           f"{' (versao atualizada)' if mudou else ''}")
 
     deb = gerar_deb()
-    tamanho = os.path.getsize(deb)
+    tamanho = conferir_tamanho(deb)
     print(f"  {os.path.relpath(deb, RAIZ)}  ({tamanho} bytes)")
 
     # Conferir que o .deb e um 'ar' valido, e nao so um arquivo com o

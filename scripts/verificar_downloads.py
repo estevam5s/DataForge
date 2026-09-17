@@ -52,6 +52,48 @@ SITE = "https://dataforge-lang.vercel.app"
 #: usuário baixaria uma página HTML com o nome `.exe`.
 MINIMO = 100 * 1024
 
+#: O piso de cada tipo de arquivo.
+#:
+#: O MINIMO geral separa um binario de uma pagina de erro, e nao separa
+#: um pacote inteiro de um pacote sem a linguagem dentro. O `.deb`
+#: publicado da 1.0.0 tinha 1.194 bytes; um que perdesse so a biblioteca
+#: teria uns 300 KB e passaria pelo MINIMO calado. O pacote real tem
+#: 6,5 MB — o piso fica bem abaixo disso, para crescer sem mexer aqui, e
+#: bem acima de qualquer pacote pela metade.
+#:
+#: Texto (o PKGBUILD, as somas) nao tem piso: ele e pequeno por natureza,
+#: e a unica coisa a recusar ali e HTML no lugar do arquivo.
+PISOS = (
+    (".deb", 2 * 1024 * 1024),
+    (".tar.gz", MINIMO),
+    (".zip", MINIMO),
+    (".exe", MINIMO),
+)
+
+
+def piso_de(nome):
+    """O tamanho abaixo do qual o arquivo com este nome e suspeito."""
+    for final, piso in PISOS:
+        if nome.endswith(final):
+            return piso
+    return 0
+
+
+def avaliar(nome, tamanho, tipo):
+    """`(ok, detalhe)` para um arquivo ja baixado — sem rede.
+
+    Separada de `conferir` para a regra poder ser testada: a rede e o
+    que o teste nao controla, e a regra e o que ele precisa provar.
+    """
+    if "text/html" in (tipo or ""):
+        return False, "devolveu HTML, e nao um arquivo"
+    piso = piso_de(nome)
+    if tamanho and tamanho < piso:
+        return False, (f"so {tamanho / 1024:.1f} KB — o piso de "
+                       f"'{nome}' e {piso // 1024} KB; o pacote veio sem o "
+                       f"conteudo, ou e uma pagina de erro")
+    return True, f"{tamanho / (1024 * 1024):.1f} MB"
+
 
 def _cor(texto, codigo):
     if not sys.stdout.isatty() or os.environ.get("NO_COLOR"):
@@ -70,7 +112,7 @@ def arquivos_da_pagina():
     return sorted({n.replace("${VERSAO}", __version__) for n in achados})
 
 
-def conferir(url):
+def conferir(url, nome=""):
     """`(ok, detalhe)` para um endereço.
 
     Segue redirecionamento — o rewrite do Vercel e o do GitHub para o
@@ -88,21 +130,16 @@ def conferir(url):
         if erro.code != 405:
             return False, f"HTTP {erro.code}"
         # Servidor que recusa HEAD: pedir o primeiro byte basta.
-        return _conferir_por_range(url)
+        return _conferir_por_range(url, nome)
     except (urllib.error.URLError, TimeoutError) as erro:
         return None, f"sem resposta: {erro}"
 
     if codigo != 200:
         return False, f"HTTP {codigo}"
-    if tamanho and tamanho < MINIMO:
-        return False, (f"so {tamanho // 1024} KB — pequeno demais para um "
-                       f"binario; provavelmente e uma pagina de erro")
-    if "text/html" in tipo:
-        return False, "devolveu HTML, e nao um arquivo"
-    return True, f"{tamanho / (1024 * 1024):.1f} MB"
+    return avaliar(nome or url.rsplit("/", 1)[-1], tamanho, tipo)
 
 
-def _conferir_por_range(url):
+def _conferir_por_range(url, nome=""):
     pedido = urllib.request.Request(
         url, headers={"User-Agent": "dataforge-check", "Range": "bytes=0-1023"})
     try:
@@ -117,10 +154,9 @@ def _conferir_por_range(url):
     if corpo.lstrip()[:15].lower().startswith((b"<!doctype", b"<html")):
         return False, "devolveu HTML, e nao um arquivo"
     total = faixa.split("/")[-1] if "/" in faixa else ""
-    if total.isdigit() and int(total) < MINIMO:
-        return False, f"so {int(total) // 1024} KB"
-    return True, f"{int(total) / (1024 * 1024):.1f} MB" if total.isdigit() \
-        else "existe"
+    if total.isdigit():
+        return avaliar(nome or url.rsplit("/", 1)[-1], int(total), "")
+    return True, "existe"
 
 
 def main():
@@ -138,7 +174,7 @@ def main():
     ruins = []
     sem_rede = 0
     for nome in nomes:
-        ok, detalhe = conferir(f"{site}/baixar/{nome}")
+        ok, detalhe = conferir(f"{site}/baixar/{nome}", nome)
         if ok is None:
             sem_rede += 1
             marca = _cor("?", "1;33")

@@ -1207,8 +1207,10 @@ def test_todo_arquivo_oferecido_no_download_e_construido_por_alguem():
     # ingênuo o traria de volta.
     sem_comentario = "\n".join(
         l for l in fluxo.splitlines() if not l.lstrip().startswith("#"))
-    matriz = sem_comentario[sem_comentario.index("      matrix:"):
-                            sem_comentario.index("    steps:")]
+    # os 'steps' DEPOIS da matriz: o job que confere a versao vem antes
+    # do 'construir' e tem os seus proprios
+    inicio = sem_comentario.index("      matrix:")
+    matriz = sem_comentario[inicio:sem_comentario.index("    steps:", inicio)]
     alvos = re.findall(r"nome:\s*(\S+)", matriz)
     assert alvos, "a matriz do release.yml mudou de forma"
 

@@ -14,6 +14,22 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Corrigido — o .deb de 1.194 bytes
+
+- **O `.deb` publicado na `v1.0.0` estava vazio porque a tag era mais
+  velha que a correção.** O gerador já montava o pacote inteiro (6,5 MB)
+  desde `be61b47`; a tag `v1.0.0` aponta para `05977e9`, anterior a ele, e
+  o CI empacotou o código da tag. Três travas para não repetir:
+  o `release.yml` ganhou o job `versao`, que recusa uma tag diferente de
+  `__version__` (ou `pyproject.toml` divergindo) **antes** de construir;
+  `gerar_pacotes.py` recusa terminar com um `.deb` abaixo de 2 MB; e
+  `verificar_downloads.py` passou a ter piso **por tipo de arquivo** —
+  o piso geral de 100 KB deixava passar um `.deb` sem a biblioteca.
+- `scripts/publicar_release.sh` é o caminho de publicação escrito: confere
+  `gh` autenticado, árvore limpa e igual ao `origin/main`, tag nova e igual
+  à versão, o `.deb` local acima do piso; marca, espera o workflow e
+  confere o tamanho do `.deb` **publicado**. Sem `--executar`, só mostra.
+
 ### Adicionado — OOP como sistema
 
 - **Treze palavras contextuais novas**, todas livres como nome fora do
