@@ -44,7 +44,7 @@ Cada linha foi conferida pelos símbolos do módulo, e não pelo nome dele.
 | cache | `Arcane.Vitrine.cache`, `Arcane.Functional.memoize`, `Kiln.cache` |
 | microservices, RPC com retry e circuit breaker | `Arcane.Malha` (retry, disjuntor, saga, propagação de rastro) |
 | GraphQL (esquema, resolvedor por campo, consulta) | `Arcane.Lavra` — 42 símbolos: esquema, tipo, campo, diretiva, assinatura, introspecção, lote e federação |
-| ETL, pipelines, Airflow, PySpark, Dask | `Arcane.Lavra`, `Arcane.Lago`, `Arcane.Pipeline`, `parallel` |
+| ETL, pipelines, Airflow, PySpark, Dask | `Arcane.Pipeline` (DAG, retry, incremental), `Arcane.Lago`, `Arcane.Analytics`, `parallel` |
 | IA, scikit-learn | `Arcane.Cortex`, `train`/`predict` |
 | DevOps, cloud, produção | `dataforge devops` (Dockerfile, compose, CI, k8s, Helm, SBOM) |
 | CLI, argparse, readline, console | `Arcane.Cli`, `dataforge repl` |
