@@ -9,7 +9,7 @@ Este documento é o **mapa**: cada área de capacidade dos dois documentos,
 cruzada com o que a linguagem já tem. Ele foi feito medindo — lendo os
 símbolos dos 48 módulos, não a memória de quem escreveu.
 
-Atualizado em 2026-09-15, com 48 módulos e 1.523 símbolos.
+Atualizado em 2026-09-17, com 48 módulos e 1.529 símbolos.
 
 ---
 
@@ -43,6 +43,7 @@ Cada linha foi conferida pelos símbolos do módulo, e não pelo nome dele.
 | middleware, authentication, authorization | `Kiln` (middleware, `after`, sessão, CSRF) + JWT |
 | cache | `Arcane.Vitrine.cache`, `Arcane.Functional.memoize`, `Kiln.cache` |
 | microservices, RPC com retry e circuit breaker | `Arcane.Malha` (retry, disjuntor, saga, propagação de rastro) |
+| GraphQL (esquema, resolvedor por campo, consulta) | `Arcane.Lavra` — 42 símbolos: esquema, tipo, campo, diretiva, assinatura, introspecção, lote e federação |
 | ETL, pipelines, Airflow, PySpark, Dask | `Arcane.Lavra`, `Arcane.Lago`, `Arcane.Pipeline`, `parallel` |
 | IA, scikit-learn | `Arcane.Cortex`, `train`/`predict` |
 | DevOps, cloud, produção | `dataforge devops` (Dockerfile, compose, CI, k8s, Helm, SBOM) |
@@ -79,13 +80,14 @@ capítulos:
    tem fila em memória; o que falta é a que sobrevive ao processo morrer,
    com tentativa, atraso e carta morta. É a peça que todo sistema com
    e-mail ou relatório precisa.
-2. **GraphQL** (capítulo 40). Um esquema, um resolvedor por campo e uma
-   consulta — dá para fazer sobre o Kiln sem dependência.
-3. **`Cluster<T>` e `Vault<K, V>`** como tipo de parâmetro. `<T>` e
-   `<T extends X>` existem; o tipo do **conteúdo** de uma coleção, não.
-4. **Watchpoint no depurador** — parar quando uma variável muda. O resto
+2. **`Cluster<T>` e `Vault<K, V>`** como tipo de parâmetro. `<T>` e
+   `<T extends X>` existem; o tipo do **conteúdo** de uma coleção, não —
+   e hoje a linguagem ao menos **diz isso**: `xs: Cluster<Integer>`
+   responde que a forma não existe e o que escrever no lugar, em vez de
+   um erro de sintaxe cru.
+3. **Watchpoint no depurador** — parar quando uma variável muda. O resto
    do depurador (condição, contagem, logpoint, por thread) existe.
-5. **Sessão da Vitrine compartilhada entre processos**, para escalar
+4. **Sessão da Vitrine compartilhada entre processos**, para escalar
    horizontalmente sem proxy grudando o visitante num processo.
 
 ---
@@ -94,5 +96,5 @@ capítulos:
 
 As duas primeiras tabelas citam **símbolos**, e símbolo que sai da
 biblioteca quebra `tests/test_estabilidade.py`. A terceira é a única que
-precisa de revisão à mão, e ela é curta de propósito: cinco itens é uma
+precisa de revisão à mão, e ela é curta de propósito: quatro itens é uma
 lista de trabalho, cem é um desabafo.
