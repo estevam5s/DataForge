@@ -8,13 +8,13 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "38 · Sistema de tipos",
-  description: "1 exercícios: .",
+  description: "2 exercícios: .",
 };
 
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 38`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[252](#252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco)", "**Tipos nomeados: alias, uniao, intersecao, refinamento e opaco**", ""]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[252](#252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco)", "**Tipos nomeados: alias, uniao, intersecao, refinamento e opaco**", ""], ["[253](#253-generics-tipos-indexados-e-o-sistema-de-traits)", "**Generics, tipos indexados e o sistema de traits**", ""]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
   {"h2": "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco"},
   { code: `// Um 'type' da nome a um tipo. As cinco formas sao a MESMA declaracao:
@@ -193,17 +193,268 @@ cadastrar(Cpf("12345678901")) // aceito`, lang: 'df' },
   {"h3": "O que o `check` prova antes de rodar"},
   {"p": "Sobre um **literal**, o analisador decide: `x: Positivo := -1` é acusado com `tipo-refinado` antes de a primeira linha rodar. Sobre um valor que vem de uma chamada, de um arquivo ou da rede, ele **cala** — um falso alarme ensina a desligar o analisador."},
   {"p": "Dentro de um `monitor` os erros viram avisos, que é o que você vê ao rodar o `check` neste exercício: as falhas aqui são de propósito."},
+  {"h2": "253 · Generics, tipos indexados e o sistema de traits"},
+  { code: `// O que um parametro de tipo faz, e o que ele NAO faz:
+//
+//   <T>              documenta a relacao entre entrada e saida
+//   <T extends X>    documenta E cobra, no check e na execucao
+//   Vetor<3>         o argumento e um VALOR, e o tamanho entra no tipo
+
+adopt Arcane.Collections as C
+
+// ── acao generica: um T, dois tipos ──
+action primeiro<T>(xs: Cluster<T>) -> T:
+    yield xs[0]
+
+action maior<T extends Number>(a: T, b: T) -> T:
+    yield a given a bigger b otherwise b
+
+assert primeiro([1, 2, 3]) is 1
+assert primeiro(["a", "b"]) is "a"
+assert maior(2, 7) is 7
+assert maior(1.5, 0.5) is 1.5
+
+// o limite e cobrado; o parametro solto nao
+monitor:
+    maior("dois", "sete")
+    assert no
+handle TypeError as e:
+    assert "Number" in e.message
+
+// ── record generico: o argumento chega ao campo ──
+record Caixa<T>:
+    valor: T
+
+record Par<A, B>:
+    esquerda: A
+    direita: B
+
+action girar(p: Par<Integer, String>) -> Par<String, Integer>:
+    yield Par(p.direita, p.esquerda)
+
+assert Caixa(7).valor is 7
+assert Caixa("oi").valor is "oi"
+
+g := girar(Par(1, "um"))
+assert g.esquerda is "um" and g.direita is 1
+
+monitor:
+    errada: Caixa<Integer> := Caixa("texto")
+    assert no
+handle TypeError as e:
+    assert "Caixa<Integer>" in e.message
+    assert "valor" in e.message           // o campo culpado aparece
+
+// com limite, o record cobra na construcao
+record Medida<T extends Number>:
+    quanto: T
+    action dobro():
+        yield self.quanto * 2
+
+assert Medida(2.5).dobro() is 5.0
+
+monitor:
+    Medida("dois")
+    assert no
+handle TypeError as e:
+    assert "Number" in e.message
+
+// ── enum generico ──
+enum Talvez<T>:
+    Nada
+    Algo
+
+action achar<T>(xs: Cluster<T>, alvo: T) -> Talvez<T>:
+    cycle x in xs:
+        given x is alvo:
+            yield Talvez.Algo
+    yield Talvez.Nada
+
+assert achar([1, 2, 3], 2).name is "Algo"
+assert achar([1], 9).name is "Nada"
+
+// ── blueprint generico: a colecao de T aceita qualquer T ──
+blueprint Pilha<T>:
+    itens: Cluster<T> := []
+
+    action por(x):
+        self.itens.append(x)
+        yield self
+
+    action tirar():
+        yield self.itens.pop(len(self.itens) - 1)
+
+p := spawn Pilha()
+p.por(1)
+p.por(2)
+assert p.tirar() is 2
+assert len(p.itens) is 1
+
+// cada instancia tem a sua colecao
+outra := spawn Pilha()
+assert len(outra.itens) is 0
+
+// ── tipo indexado: o tamanho faz parte do tipo ──
+type Vetor<N> := Cluster<Float> where len(valor) is N
+
+action somar(a: Vetor<2>, b: Vetor<2>) -> Vetor<2>:
+    yield [a[0] + b[0], a[1] + b[1]]
+
+assert somar([1.0, 2.0], [3.0, 4.0]) is [4.0, 6.0]
+
+v: Vetor<3> := [1.0, 2.0, 3.0]
+assert len(v) is 3
+
+monitor:
+    curto: Vetor<3> := [1.0, 2.0]
+    assert no
+handle TypeError as e:
+    assert "len(valor) is N" in e.message
+
+// ── trait: exigencia, padrao e heranca ──
+trait Legivel:
+    action ler()                          // exigencia: sem corpo
+    action descrever():                   // padrao: vem de graca
+        yield $"leio: {self.ler()}"
+
+trait Editavel extends Legivel:
+    action escrever(x)
+
+blueprint Nota extends Editavel:
+    texto := ""
+    action ler():
+        yield self.texto
+    action escrever(x):
+        self.texto := x
+
+n := spawn Nota()
+n.escrever("oi")
+assert n.ler() is "oi"
+assert n.descrever() is "leio: oi"        // o padrao herdado do trait da mae
+
+// quem implementa metade e recusado, e a mensagem diz de onde vem a exigencia
+monitor:
+    blueprint Meio extends Editavel:
+        action escrever(x):
+            yield x
+    assert no
+handle TraitContractError as e:
+    assert "ler" in e.message
+    assert "Legivel" in e.message         // quem exigiu, nao quem repassou
+
+// ── trait generico, tipo e constante associados ──
+trait Coletor:
+    type Item := Any
+    steady LIMITE := 3
+    action pegar() -> Item
+
+blueprint Fila extends Coletor:
+    type Item := Integer                  // preenchido por quem implementa
+    itens := [10, 20]
+    action pegar() -> Item:
+        yield self.itens[0]
+
+f := spawn Fila()
+assert f.pegar() is 10
+assert Fila.LIMITE is 3
+assert Fila.Item is "Integer"
+
+// o tipo associado vale como qualquer anotacao
+blueprint Errada extends Coletor:
+    type Item := Integer
+    action pegar() -> Item:
+        yield "nao e numero"
+
+monitor:
+    (spawn Errada()).pegar()
+    assert no
+handle TypeError as e:
+    assert "Integer" in e.message and "String" in e.message
+
+// ── despacho dinamico: o metodo vem do objeto ──
+trait Forma:
+    action area()
+
+blueprint Quadrado extends Forma:
+    lado := 2
+    action area():
+        yield self.lado ** 2
+
+blueprint Circulo extends Forma:
+    raio := 1
+    action area():
+        yield 3.14 * self.raio ** 2
+
+action somar_areas(formas: Cluster<Forma>) -> Float:
+    total := 0.0
+    cycle forma in formas:
+        total += forma.area()
+    yield total
+
+assert round(somar_areas([spawn Quadrado(), spawn Circulo()]), 2) is 7.14
+
+// e a intersecao cobra os dois lados de uma vez
+trait Serial:
+    action serializar()
+
+type Auditavel := Serial & Forma
+
+blueprint Lancamento extends Serial, Forma:
+    action serializar():
+        yield "L"
+    action area():
+        yield 1
+
+action registrar(x: Auditavel) -> String:
+    yield x.serializar()
+
+assert registrar(spawn Lancamento()) is "L"
+
+monitor:
+    registrar(spawn Quadrado())           // tem area, nao tem serializar
+    assert no
+handle TypeError as e:
+    assert "Serial" in e.message
+
+out "253 ok"`, lang: 'df', title: `exercicios/38-tipos/253_genericos_e_traits.df` },
+  {"p": "Três perguntas, e as respostas que este exercício demonstra."},
+  {"h3": "1. O que um `<T>` promete?"},
+  {"p": "Nada sobre o valor — e isso é de propósito. Ele descreve a **relação**: `action primeiro<T>(xs: Cluster<T>) -> T` diz que o que sai é do mesmo tipo do que estava dentro. É por isso que `primeiro([1,2,3])` e `primeiro([\"a\",\"b\"])` são os dois válidos."},
+  {"p": "Com `extends`, o parâmetro passa a ser **verificável**, e então é verificado nas duas metades: o `check` acusa a chamada antes de rodar, e a execução confere o valor."},
+  {"table": {"head": ["Forma", "Documenta", "Cobra"], "rows": [["`<T>`", "sim", "não"], ["`<T extends Number>`", "sim", "sim, nos dois lados"]]}},
+  {"p": "Dentro da declaração, um `T extends Number` **é** um `Number`: é o que permite escrever `self.quanto * 2` sem o analisador reclamar."},
+  {"h3": "2. Onde o argumento chega?"},
+  {"p": "No **campo**. `Caixa<Integer>` recusa `Caixa(\"texto\")`, e a mensagem nomeia o campo culpado:"},
+  { code: `field 'valor' of Caixa<Integer> in variable 'errada' declared as Integer but got String`, lang: 'text' },
+  {"p": "Sem isso, o parâmetro viraria comentário — o tipo prometeria uma coisa e aceitaria outra."},
+  {"p": "Uma coleção anotada com o parâmetro (`itens: Cluster<T> := []`) **não** guarda o conteúdo: `T` aceita qualquer coisa, e um `Pilha<T>` que recusasse `append(1)` não serviria para nada. Uma coleção com tipo concreto (`Cluster<Integer>`) continua guardando."},
+  {"h3": "3. O tamanho pode fazer parte do tipo?"},
+  {"p": "Pode, e é o que `Vetor<3>` faz. O argumento de um genérico pode ser um **número**, e ele entra na regra do tipo:"},
+  { code: `type Vetor<N> := Cluster<Float> where len(valor) is N
+
+action somar(a: Vetor<2>, b: Vetor<2>) -> Vetor<2>:
+    yield [a[0] + b[0], a[1] + b[1]]`, lang: 'df' },
+  {"p": "É a forma prática dos tipos dependentes: a ação passa a recusar uma coordenada de três casas na fronteira, e o `check` prova o erro de um literal antes de rodar."},
+  {"h3": "Traits: exigência, padrão e herança"},
+  {"p": "Um método **sem corpo** é exigência; **com corpo** é implementação padrão, que quem adota recebe. `trait Editavel extends Legivel` soma as duas coisas da mãe."},
+  {"p": "A mensagem de quem implementa metade nomeia **quem declarou** a exigência (`Legivel`), e não quem a repassou (`Editavel`). Numa cadeia de traits, o nome errado manda procurar no arquivo errado."},
+  {"p": "Um trait também declara:"},
+  {"list": ["**tipo associado** — `type Item := Any`, preenchido por quem"]},
+  {"p": "implementa (`type Item := Integer`) e conferido como qualquer anotação;"},
+  {"list": ["**constante associada** — `steady LIMITE := 3`, que vira membro"]},
+  {"p": "(`Fila.LIMITE`)."},
+  {"p": "E para exigir dois traits ao mesmo tempo, a interseção: `type Auditavel := Serial & Forma`. Um objeto que tem só metade é recusado na fronteira, dizendo qual metade falta."},
   {"hr": true},
   {"p": "Rode um isolado com `dataforge run exercicios/38-tipos/252_tipos_nomeados.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco', text: "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco", level: 2 as const }, { id: 'transparente-confere-opaco-embrulha', text: "Transparente confere, opaco embrulha", level: 3 as const }, { id: 'a-regra-roda-na-fronteira', text: "A regra roda na fronteira", level: 3 as const }, { id: 'o-que-o-check-prova-antes-de-rodar', text: "O que o `check` prova antes de rodar", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco', text: "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco", level: 2 as const }, { id: 'transparente-confere-opaco-embrulha', text: "Transparente confere, opaco embrulha", level: 3 as const }, { id: 'a-regra-roda-na-fronteira', text: "A regra roda na fronteira", level: 3 as const }, { id: 'o-que-o-check-prova-antes-de-rodar', text: "O que o `check` prova antes de rodar", level: 3 as const }, { id: '253-generics-tipos-indexados-e-o-sistema-de-traits', text: "253 · Generics, tipos indexados e o sistema de traits", level: 2 as const }, { id: '1-o-que-um-t-promete', text: "1. O que um `<T>` promete?", level: 3 as const }, { id: '2-onde-o-argumento-chega', text: "2. Onde o argumento chega?", level: 3 as const }, { id: '3-o-tamanho-pode-fazer-parte-do-tipo', text: "3. O tamanho pode fazer parte do tipo?", level: 3 as const }, { id: 'traits-exigencia-padrao-e-heranca', text: "Traits: exigência, padrão e herança", level: 3 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"38 · Sistema de tipos"}
-      description={"1 exercícios: ."}
+      description={"2 exercícios: ."}
       href={"/docs/exercicios/38-tipos"}
       headings={headings}
     >

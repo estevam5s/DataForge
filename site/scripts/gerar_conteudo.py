@@ -43,6 +43,7 @@ MODULOS = [
     "crucible_doc",
     "lavra",
     "tipos_nomeados",
+    "tipos_genericos",
     "plataforma",
     "vitrine",
     "versoes",

@@ -14,6 +14,37 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — generics no resto do sistema de tipos
+
+- **`record Caixa<T>`, `enum Talvez<T>` e `trait Comparavel<T>`** passaram a
+  existir: antes eram erro de sintaxe. `<T extends X>` é cobrado nas duas
+  metades (o `check` na construção, com `generic-bound`, e a execução no
+  valor), e o argumento chega ao **campo**: `Caixa<Integer>` recusa um texto
+  lá dentro, nomeando o campo.
+- **Tipos indexados**: o argumento de um genérico pode ser um **número**
+  (`Vetor<3>`), e a regra do tipo o enxerga —
+  `type Vetor<N> := Cluster<Float> where len(valor) is N`. O `check` prova o
+  tamanho de um literal antes de rodar.
+- **`trait B extends A`**: um trait herda exigências e implementações padrão.
+  A mensagem de quem não implementa nomeia quem **declarou** a exigência, e
+  não quem a repassou.
+- **Tipo associado e constante associada** em trait: `type Item := Any` e
+  `steady LIMITE := 3`. Quem implementa preenche o tipo, e ele vale como
+  anotação (`-> Item`) e como membro (`Fila.Item`).
+- Documentação: [`/docs/tipos/genericos`](https://dataforge-lang.vercel.app/docs/tipos/genericos),
+  [`/docs/tipos/traits`](https://dataforge-lang.vercel.app/docs/tipos/traits),
+  `doc/REFERENCIA.md` §7.4 e o exercício 253.
+
+### Corrigido
+
+- Uma coleção tipada por **parâmetro de tipo** deixou de guardar:
+  `blueprint Pilha<T>` com `itens: Cluster<T> := []` recusava `append(1)` —
+  o genérico não servia para o único uso que ele tem.
+- O formatador não espaça mais o genérico de uma **declaração**:
+  `action f<T>(x)` e `record Par<A, B>` saíam como `action f < T > (x)`.
+- `self.campo` de um campo `T extends Number` conta como `Number` dentro da
+  declaração: `self.quanto * 2` acusava "Cannot multiply T by Integer".
+
 ### Adicionado — `type`: o sistema de tipos nomeados
 
 - **`type Nome := …`** em cinco formas: alias (`Integer`), alias genérico

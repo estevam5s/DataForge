@@ -673,8 +673,12 @@ class DFBlueprint:
         """Metodos abstratos herdados que ninguem implementou ainda."""
         faltando = {}
         for bp in reversed(self.linhagem()):
+            # 'trait Editavel extends Legivel': quem EXIGE 'ler' e o
+            # Legivel. Culpar quem repassou manda procurar no arquivo
+            # errado — e num sistema de traits a cadeia e comprida.
+            de_onde = getattr(bp, "origem_das_exigencias", None) or {}
             for nome in bp.abstract_methods:
-                faltando[nome] = bp.name
+                faltando[nome] = de_onde.get(nome, bp.name)
             for nome, acao in bp.methods.items():
                 if nome in faltando and not getattr(acao, "is_abstract", False):
                     faltando.pop(nome)
@@ -1413,13 +1417,17 @@ class DFError:
 class DFRecord:
     """Um tipo record: dados imutáveis, com igualdade estrutural."""
 
-    def __init__(self, name, fields, methods, env):
+    def __init__(self, name, fields, methods, env, type_params=(), type_bounds=None):
         self.name = name
         self.fields = fields        # [(nome, tipo, default_node|None)]
         self.field_names = [f[0] for f in fields]
         self.field_types = {f[0]: f[1] for f in fields}
         self.methods = methods      # nome -> DFAction
         self.env = env
+        #: 'record Caixa<T>' — o parametro documenta a relacao entre os
+        #: campos, e o LIMITE ('<T extends Number>') e cobrado de verdade.
+        self.type_params = tuple(type_params or ())
+        self.type_bounds = dict(type_bounds or {})
 
     def __repr__(self):
         return f"<record '{self.name}'>"
@@ -5490,6 +5498,9 @@ class Interpreter:
         #: 'x := valor' no corpo — campo com padrao, sem tipo declarado.
         campos_sem_tipo = []
         constantes = set()
+        #: 'type Item := Integer' no corpo — o tipo associado do trait,
+        #: preenchido por quem implementa.
+        associados_do_corpo = {}
         invariantes = []
         descritores = {}
         contratos = set()
@@ -5534,10 +5545,17 @@ class Interpreter:
                     methods[mname] = mval
             for pname, pval in trait.properties.items():
                 properties.setdefault(pname, pval)
+            for nome_associado, tipo_associado in (
+                    getattr(trait, "tipos_associados", None) or {}).items():
+                associados_do_corpo.setdefault(nome_associado, tipo_associado)
+                statics.setdefault(nome_associado, tipo_associado)
+            herdadas_do_trait = getattr(trait, "origem_das_exigencias", None) or {}
             for n in trait.abstract_methods:
                 if n not in methods:
                     abstract_methods.add(n)
-                    origem_abstrata[n] = tname
+                    # 'Editavel extends Legivel': quem exige 'ler' é o
+                    # Legivel, e é o nome dele que ajuda quem lê o erro.
+                    origem_abstrata[n] = herdadas_do_trait.get(n, tname)
 
         #: o que ja existia ANTES do corpo — e o que um 'override' pode mirar
         herdados = set(methods) | set(abstract_methods)
@@ -5551,6 +5569,15 @@ class Interpreter:
         for stmt in node.body:
             if isinstance(stmt, ast.SlotsDeclaration):
                 slots_declarados = list(stmt.names)
+                continue
+            # 'type Item := Integer' — o tipo associado. Ele existe como
+            # nome de tipo (para as anotacoes dos metodos) e como membro
+            # estatico ('Fila.Item'), que e como se pergunta por ele.
+            if isinstance(stmt, ast.TypeDeclaration):
+                self.exec_TypeDeclaration(stmt, bp_env)
+                associados_do_corpo[stmt.name] = (
+                    stmt.partes[0] if stmt.partes else "Any")
+                statics[stmt.name] = associados_do_corpo[stmt.name]
                 continue
             if isinstance(stmt, ast.ActionDeclaration):
                 nome = stmt.name
@@ -5702,9 +5729,12 @@ class Interpreter:
                                           + campos_sem_tipo):
             valor = self.evaluate(padrao, bp_env) if padrao is not None else None
             if tipo and "<" in tipo and valor is not None:
-                self._check_type(valor, tipo, f"field '{nome}' of '{node.name}'", node)
+                parametros_do_molde = tuple(getattr(node, "type_params", ()) or ())
+                self._check_type(valor, tipo, f"field '{nome}' of '{node.name}'",
+                                 node, parametros_do_molde,
+                                 getattr(node, "type_bounds", None))
                 if _nasce_aqui(padrao, bp_env):
-                    valor = _tipar_colecao(valor, tipo)
+                    valor = _tipar_colecao(valor, tipo, parametros_do_molde)
             campos.append((nome, tipo, valor, visib))
             visibility[nome] = visib
             if isinstance(valor, DFInstance) and (
@@ -6534,6 +6564,8 @@ class Interpreter:
         escopo = Environment(parent=tipo.escopo or self.global_env,
                              name=f"<type {tipo.nome}>")
         escopo.set_local("valor", _TiposNomeados.desembrulhar(valor))
+        for parametro, ligado in tipo.ligacoes.items():
+            escopo.set_local(parametro, ligado)
         return self._verdade(self.evaluate(tipo.regra, escopo))
 
     def _checar_tipo_nomeado(self, tipo, value, declared, what, node,
@@ -6566,6 +6598,44 @@ class Interpreter:
         return self._conferir_base_e_regra(tipo, value, what, node,
                                            parametros_de_tipo, limites)
 
+    def _generico_do_usuario(self, base):
+        """O record, enum ou blueprint com esse nome — se ele for genérico."""
+        nome = base.rsplit(".", 1)[-1]
+        alvo = self.global_env.variables.get(nome)
+        if alvo is None:
+            return None
+        if getattr(alvo, "type_params", ()):
+            return alvo
+        return None
+
+    def _conferir_generico_do_usuario(self, alvo, value, declared, what, node):
+        """'Caixa<Integer>': o valor é um Caixa, e o conteúdo dele confere.
+
+        O argumento chega ao CAMPO: um record genérico sem esta conferência
+        prometeria 'Caixa<Integer>' e aceitaria um texto lá dentro — o
+        parâmetro viraria comentário.
+        """
+        base, argumentos = _partir_tipo(declared)
+        self._check_type(value, base.rsplit(".", 1)[-1], what, node)
+        troca = dict(zip(alvo.type_params, argumentos))
+        if isinstance(alvo, DFRecord) and isinstance(value, DFRecordInstance):
+            for campo, tipo_do_campo in alvo.field_types.items():
+                esperado = troca.get(tipo_do_campo)
+                if not esperado or campo not in value.values:
+                    continue
+                self._check_type(
+                    value.values[campo], esperado,
+                    f"field '{campo}' of {declared} in {what}", node)
+        elif isinstance(value, DFInstance):
+            for campo, valor_do_campo in list(value.fields.items()):
+                esperado = troca.get(
+                    (getattr(alvo, "tipos_dos_campos", None) or {}).get(campo))
+                if esperado:
+                    self._check_type(
+                        valor_do_campo, esperado,
+                        f"field '{campo}' of {declared} in {what}", node)
+        return value
+
     def _checar_composto_anonimo(self, value, declared, what, node,
                                  parametros_de_tipo=(), limites=None):
         """'x: Integer | String' — a união sem nome, conferida igual."""
@@ -6596,8 +6666,44 @@ class Interpreter:
         exigencia — quem adotar o trait precisa implementar.
         """
         methods, properties, abstratos = {}, {}, set()
+        estaticos = {}
+        associados = {}
+        origem_das_exigencias = {}
+
+        # 'trait Editavel extends Legivel' — o que a mãe exige continua
+        # exigido, e o que ela implementa vem junto. Sem isto, herdar um
+        # trait era uma promessa que ninguém cobrava.
+        maes = []
+        for nome_da_mae in getattr(node, "parents", None) or []:
+            mae = env.get(nome_da_mae) if env.has(nome_da_mae) else None
+            if mae is None or not isinstance(mae, DFBlueprint):
+                raise NameError_(
+                    f"'trait {node.name} extends {nome_da_mae}': "
+                    f"'{nome_da_mae}' is not a trait declared before this one.",
+                    node.line, node.column,
+                    dica="declare the parent trait above, or fix the name",
+                    doc="oop/contratos")
+            maes.append(mae)
+            methods.update(mae.methods)
+            properties.update(mae.properties or {})
+            estaticos.update(mae.statics or {})
+            associados.update(getattr(mae, "tipos_associados", None) or {})
+            da_mae = getattr(mae, "origem_das_exigencias", None) or {}
+            for exigido in mae.abstract_methods or ():
+                origem_das_exigencias[exigido] = da_mae.get(exigido, mae.name)
+            abstratos |= set(mae.abstract_methods or ())
 
         for stmt in node.methods:
+            # 'type Item := Any' — o tipo associado; 'steady MAXIMO := 3'
+            # — a constante associada. Quem implementa o trait recebe os
+            # dois, e pode redeclarar o tipo com o que ele é de verdade.
+            if isinstance(stmt, ast.TypeDeclaration):
+                self.exec_TypeDeclaration(stmt, env)
+                associados[stmt.name] = stmt.partes[0] if stmt.partes else "Any"
+                continue
+            if isinstance(stmt, ast.SteadyDeclaration):
+                estaticos[stmt.name] = self.evaluate(stmt.value, env)
+                continue
             if isinstance(stmt, ast.PropertyDeclaration):
                 acao = DFAction(
                     name=stmt.name,
@@ -6614,6 +6720,7 @@ class Interpreter:
             vazio = not stmt.body or getattr(stmt, 'is_abstract', False)
             if vazio:
                 abstratos.add(stmt.name)
+                origem_das_exigencias[stmt.name] = node.name
 
             action = DFAction(
                 name=stmt.name, params=stmt.params,
@@ -6629,10 +6736,17 @@ class Interpreter:
 
         blueprint = DFBlueprint(
             name=node.name, parents=[], methods=methods,
-            statics={}, env=env, properties=properties,
+            statics=estaticos, env=env, properties=properties,
             is_abstract=True, abstract_methods=abstratos,
         )
         blueprint.e_trait = True
+        blueprint.tipos_associados = associados
+        blueprint.origem_das_exigencias = origem_das_exigencias
+        blueprint.type_params = tuple(getattr(node, "type_params", ()) or ())
+        blueprint.type_bounds = dict(getattr(node, "type_bounds", None) or {})
+        #: Os traits de onde ele herdou — o 'check' e a mensagem de
+        #: exigência não encontrada precisam saber de onde veio cada uma.
+        blueprint.traits_herdados = [m.name for m in maes]
         blueprint.arquivo = self.filename or ""
         _carimbar_dono(blueprint)
         self._registrar_blueprint(blueprint)
@@ -6652,7 +6766,9 @@ class Interpreter:
                 body=decl.body, closure=rec_env,
                 param_types=getattr(decl, 'param_types', None),
                 return_type=getattr(decl, 'return_type', ""))
-        record = DFRecord(node.name, node.fields, metodos, rec_env)
+        record = DFRecord(node.name, node.fields, metodos, rec_env,
+                          type_params=getattr(node, "type_params", ()),
+                          type_bounds=getattr(node, "type_bounds", None))
         rec_env.set_local(node.name, record)
 
         valor = self._aplicar_decoradores(record, node, env)
@@ -6709,7 +6825,8 @@ class Interpreter:
                     node.line, node.column)
             if tipo:
                 self._check_type(valor, tipo,
-                                 f"field '{nome}' of record '{record.name}'", node)
+                                 f"field '{nome}' of record '{record.name}'", node,
+                                 record.type_params, record.type_bounds)
             valores[nome] = valor
         return DFRecordInstance(record, valores)
 
@@ -9235,6 +9352,12 @@ class Interpreter:
             return self._checar_composto_anonimo(
                 value, declared, what, node, parametros_de_tipo, limites)
         if "<" in declared:
+            base_declarada = _partir_tipo(declared)[0]
+            if base_declarada not in self.TYPE_ALIASES:
+                proprio = self._generico_do_usuario(base_declarada)
+                if proprio is not None:
+                    return self._conferir_generico_do_usuario(
+                        proprio, value, declared, what, node)
             return self._check_conteudo(value, declared, what, node,
                                         parametros_de_tipo, limites)
         expected = self.TYPE_ALIASES.get(declared, declared)

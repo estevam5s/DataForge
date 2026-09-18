@@ -2276,6 +2276,10 @@ class Parser:
         """record Nome: campo: Tipo [:= padrao] ... [action metodo(): ...]"""
         tok = self.advance()  # record
         nome = self.expect(TokenType.IDENTIFIER, "Expected the record name").value
+        tipos = self._parse_parametros_de_tipo()
+        limites = dict(self._ultimos_limites)
+        if tipos:
+            self._tipos_genericos[nome] = len(tipos)
         self.expect(TokenType.COLON, "Expected ':' after the record name")
         self.match(TokenType.NEWLINE)
         self.skip_newlines()
@@ -2311,12 +2315,17 @@ class Parser:
             self.error(f"Record '{nome}' has no fields. "
                        f"Declare at least one as 'campo: Tipo'.")
         return ast.RecordDeclaration(name=nome, fields=campos, methods=metodos,
+                                     type_params=tipos, type_bounds=limites,
                                      line=tok.line, column=tok.column)
 
     def parse_enum(self):
         """enum Nome: MEMBRO [:= valor] ... [action metodo(): ...]"""
         tok = self.advance()  # enum
         nome = self.expect(TokenType.IDENTIFIER, "Expected the enum name").value
+        tipos_do_enum = self._parse_parametros_de_tipo()
+        limites_do_enum = dict(self._ultimos_limites)
+        if tipos_do_enum:
+            self._tipos_genericos[nome] = len(tipos_do_enum)
         self.expect(TokenType.COLON, "Expected ':' after the enum name")
         self.match(TokenType.NEWLINE)
         self.skip_newlines()
@@ -2347,6 +2356,8 @@ class Parser:
         if not membros:
             self.error(f"Enum '{nome}' has no members.")
         return ast.EnumDeclaration(name=nome, members=membros, methods=metodos,
+                                   type_params=tipos_do_enum,
+                                   type_bounds=limites_do_enum,
                                    line=tok.line, column=tok.column)
 
     def parse_emit(self):
@@ -2363,13 +2374,28 @@ class Parser:
                                  line=tok.line, column=tok.column)
 
     def parse_trait(self):
-        """trait Name: method_signatures"""
+        """trait Nome [<T>] [extends Outro, …]: assinaturas e padrões."""
         tok = self.advance()  # consume 'trait'
         name = self.expect(TokenType.IDENTIFIER).value
+        tipos = self._parse_parametros_de_tipo()
+        limites = dict(self._ultimos_limites)
+        if tipos:
+            self._tipos_genericos[name] = len(tipos)
+        # 'trait Editavel extends Legivel' — um trait herda exigências e
+        # implementações padrão de outro, como um contrato herda de outro.
+        pais = []
+        if self.match(TokenType.EXTENDS):
+            while True:
+                pais.append(self._parse_nome_de_tipo(
+                    "Expected the name of the trait after 'extends'"))
+                if not self.match(TokenType.COMMA):
+                    break
         self.expect(TokenType.COLON)
         self.match(TokenType.NEWLINE)
         methods = self.parse_block()
-        return ast.TraitDeclaration(name=name, methods=methods, line=tok.line, column=tok.column)
+        return ast.TraitDeclaration(name=name, methods=methods, parents=pais,
+                                    type_params=tipos, type_bounds=limites,
+                                    line=tok.line, column=tok.column)
 
     def parse_given(self):
         """given condition: block [orif condition: block]* [otherwise: block]"""
@@ -4135,8 +4161,17 @@ class Parser:
         self.advance()                                   # '<'
         argumentos = []
         while True:
-            argumentos.append(self._parse_nome_de_tipo(
-                f"Expected a type inside '{base}<…>'"))
+            atual = self.current()
+            # 'Vetor<3>' — o argumento e um VALOR, e nao um tipo. Vale so
+            # para um generico declarado neste arquivo: 'Cluster<3>' nao
+            # quer dizer nada, e continua sendo erro.
+            if proprio is not None and atual.type in (TokenType.INTEGER,
+                                                      TokenType.FLOAT):
+                self.advance()
+                argumentos.append(str(atual.value))
+            else:
+                argumentos.append(self._parse_nome_de_tipo(
+                    f"Expected a type inside '{base}<…>'"))
             if not self.match(TokenType.COMMA):
                 break
         # '>>' fecha dois de uma vez: 'Cluster<Cluster<Integer>>'. O lexer

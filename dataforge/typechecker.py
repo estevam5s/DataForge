@@ -187,6 +187,15 @@ def avaliar_puro(no, ambiente):
     return _SEM_VALOR
 
 
+def _e_numero(texto):
+    """'3' e '2.5' são valores; 'Integer' é um tipo."""
+    try:
+        float(str(texto).strip())
+        return True
+    except ValueError:
+        return False
+
+
 def _como_texto(valor):
     """O valor na mensagem, no vocabulário da linguagem."""
     if valor is None:
@@ -408,6 +417,10 @@ class TypeChecker:
         #: Os 'type' declarados: nome -> o nó da declaração. Serve para
         #: resolver a anotação, provar o literal e recusar o ciclo.
         self.tipos_nomeados = {}
+        #: nome -> (parametros, limites) de record, enum, trait e blueprint
+        #: genéricos. É o que distingue 'T documenta' de '<T extends X>
+        #: cobra'.
+        self.genericos_de_tipo = {}
         # Os '<T>' do blueprint que esta sendo analisado. Um metodo dele
         # pode usa-los como tipo; fora dali, eles nao existem.
         self._genericos_do_blueprint = set()
@@ -812,6 +825,9 @@ class TypeChecker:
                     self.blueprints[stmt.name] |= self._membros_de(stmt)
             elif isinstance(stmt, ast.RecordDeclaration):
                 self.records[stmt.name] = {c: canonical(t) for c, t, _ in stmt.fields}
+                self.genericos_de_tipo[stmt.name] = (
+                    tuple(getattr(stmt, "type_params", ()) or ()),
+                    dict(getattr(stmt, "type_bounds", None) or {}))
                 self.record_methods[stmt.name] = set(stmt.methods or ())
                 self.record_defaults[stmt.name] = {c for c, _, d in stmt.fields if d is not None}
                 self.known_types.add(stmt.name)
@@ -823,10 +839,16 @@ class TypeChecker:
                 self.known_types.add(stmt.name)
             elif isinstance(stmt, ast.EnumDeclaration):
                 self.enums[stmt.name] = [m for m, _ in stmt.members]
+                self.genericos_de_tipo[stmt.name] = (
+                    tuple(getattr(stmt, "type_params", ()) or ()),
+                    dict(getattr(stmt, "type_bounds", None) or {}))
                 self.known_types.add(stmt.name)
                 escopo.declare(stmt.name, "Enum", stmt.line, stmt.column)
             elif isinstance(stmt, (ast.BlueprintDeclaration, ast.TraitDeclaration)):
                 self.blueprints[stmt.name] = self._membros_de(stmt)
+                self.genericos_de_tipo[stmt.name] = (
+                    tuple(getattr(stmt, "type_params", ()) or ()),
+                    dict(getattr(stmt, "type_bounds", None) or {}))
                 if isinstance(stmt, ast.TraitDeclaration):
                     # Sem corpo = exigencia; com corpo = implementacao
                     # padrao, que o blueprint herda e nao precisa escrever.
@@ -861,6 +883,18 @@ class TypeChecker:
                         if "readonly" in mods}
                 self.known_types.add(stmt.name)
                 escopo.declare(stmt.name, "Blueprint", stmt.line, stmt.column)
+        # Um trait que herda de outro leva os membros e as exigencias dele.
+        # Numa segunda passada: a mae pode estar declarada depois.
+        for stmt in statements:
+            if isinstance(stmt, ast.TraitDeclaration):
+                for mae in getattr(stmt, "parents", None) or []:
+                    self.blueprints[stmt.name] = (
+                        self.blueprints.get(stmt.name, set())
+                        | self.blueprints.get(mae, set()))
+                    self.trait_exigidos[stmt.name] = (
+                        self.trait_exigidos.get(stmt.name, set())
+                        | self.trait_exigidos.get(mae, set()))
+                    self.maes.setdefault(stmt.name, []).append(mae)
         for stmt in statements:
             if isinstance(stmt, ast.AugmentDeclaration) and stmt.name in self.blueprints:
                 self.blueprints[stmt.name] |= self._membros_de(stmt)
@@ -892,7 +926,9 @@ class TypeChecker:
             if isinstance(sub, (ast.ActionDeclaration, ast.StaticDeclaration,
                                 ast.PropertyDeclaration, ast.BlueprintDeclaration,
                                 ast.RecordDeclaration, ast.EnumDeclaration,
-                                ast.ContractDeclaration, ast.TraitDeclaration)):
+                                ast.ContractDeclaration, ast.TraitDeclaration,
+                                ast.TypeDeclaration)):
+                # 'type Item := Integer' e um membro: 'Fila.Item' responde.
                 membros.add(sub.name)
             elif isinstance(sub, ast.Assignment) and \
                     isinstance(sub.target, ast.Identifier):
@@ -1110,14 +1146,39 @@ class TypeChecker:
     def _provar_nomeado(self, declarado, valor, escopo, o_que):
         """A regra de um refinamento, sobre um literal — antes de rodar."""
         declaracao = self._declaracao_de_tipo(declarado)
-        if declaracao is not None and declaracao.regra is not None:
-            self._provar_regra(declaracao, valor, escopo, o_que)
+        if declaracao is None or declaracao.regra is None:
+            return
+        self._provar_regra(declaracao, valor, escopo, o_que,
+                           self._ligacoes_do_tipo(declaracao, declarado))
 
-    def _provar_regra(self, declaracao, valor, escopo, o_que):
+    def _ligacoes_do_tipo(self, declaracao, usado):
+        """'Vetor<3>' — o que cada parâmetro vale aqui.
+
+        Um argumento que é NÚMERO entra na prova como número: é o que faz
+        o `check` acusar 'Vetor<3> := [1.0, 2.0]' antes de rodar.
+        """
+        parametros = tuple(getattr(declaracao, "type_params", ()) or ())
+        if not parametros or "<" not in str(usado):
+            return {}
+        ligacoes = {}
+        for parametro, argumento in zip(parametros, partir_tipo(usado)[1]):
+            texto = argumento.strip()
+            try:
+                ligacoes[parametro] = int(texto)
+            except ValueError:
+                try:
+                    ligacoes[parametro] = float(texto)
+                except ValueError:
+                    continue
+        return ligacoes
+
+    def _provar_regra(self, declaracao, valor, escopo, o_que, ligacoes=None):
         constante = valor_constante(valor)
         if constante is _SEM_VALOR:
             return
-        resposta = avaliar_puro(declaracao.regra, {"valor": constante})
+        ambiente = {"valor": constante}
+        ambiente.update(ligacoes or {})
+        resposta = avaliar_puro(declaracao.regra, ambiente)
         if resposta is _SEM_VALOR or resposta:
             return
         self.error(
@@ -1130,6 +1191,13 @@ class TypeChecker:
     def st_TypeDeclaration(self, node, escopo):
         """'type Nome := …' — o nome existe, as partes existem, e não há ciclo."""
         anterior = self.tipos_nomeados.get(node.name)
+        # Dentro de um trait ou blueprint, 'type Item := …' é um membro
+        # ASSOCIADO: ele existe justamente para ser preenchido por quem
+        # implementa, e acusar isso proibiria o recurso.
+        if self._em_membro:
+            self.tipos_nomeados.setdefault(node.name, node)
+            self.known_types.add(node.name)
+            return False
         if anterior is not None and anterior is not node:
             self.error(
                 f"Type '{node.name}' is declared twice in this file", node,
@@ -1157,6 +1225,12 @@ class TypeChecker:
             escopo_da_regra = Scope(escopo)
             escopo_da_regra.declare("valor", canonical(node.partes[0]),
                                     node.line, node.column)
+            # 'type Vetor<N> := … where len(valor) is N' — o parâmetro é
+            # um nome comum dentro da regra, e vale o que a anotação
+            # passar ('Vetor<3>').
+            for parametro in node.type_params or ():
+                escopo_da_regra.declare(parametro, UNKNOWN,
+                                        node.line, node.column)
             self.infer(node.regra, escopo_da_regra)
         return False
 
@@ -2714,6 +2788,9 @@ class TypeChecker:
     def st_TraitDeclaration(self, node, escopo):
         interno = Scope(escopo, "trait")
         interno.declare("self", node.name, node.line, node.column)
+        # 'trait Comparavel<T>' — o 'T' e um tipo valido DENTRO do trait.
+        for parametro in getattr(node, "type_params", ()) or ():
+            self.known_types.add(parametro)
         anterior = self._em_membro
         self._em_membro = True
         try:
@@ -2724,26 +2801,36 @@ class TypeChecker:
 
     def st_RecordDeclaration(self, node, escopo):
         vistos = set()
+        genericos = tuple(getattr(node, "type_params", ()) or ())
         for campo, tipo, padrao in node.fields:
             if campo in vistos:
                 self.error(f"Duplicate field '{campo}' in record '{node.name}'",
                            node, "Remove the repeated field", "duplicate-field")
             vistos.add(campo)
             alvo = canonical(tipo)
-            falta = self._tipo_desconhecido(tipo)
+            falta = self._tipo_desconhecido(tipo, genericos)
             if falta:
                 self.error(f"Unknown type '{falta}' for field '{campo}'", node,
                            self._hint_tipo(falta), "unknown-type")
             if padrao is not None:
                 obtido = self.infer(padrao, escopo)
+                if alvo in genericos:
+                    continue
                 if not self._compativel(alvo, obtido):
                     self.error(
                         f"Default value of '{campo}' is {obtido}, expected {alvo}",
                         node, f"Use a {alvo} as the default", "type-mismatch")
         interno = Scope(escopo, "record")
         interno.declare("self", node.name, node.line, node.column)
+        limites = dict(getattr(node, "type_bounds", None) or {})
         for campo, tipo, _ in node.fields:
-            interno.declare(campo, canonical(tipo), node.line, node.column)
+            # 'T extends Number' É um Number dentro da declaração: é o que
+            # deixa escrever 'self.quanto * 2'. Um 'T' solto é UNKNOWN,
+            # que é o que o analisador sabe de verdade.
+            anotado = canonical(tipo)
+            if tipo in genericos:
+                anotado = canonical(limites.get(tipo, UNKNOWN))
+            interno.declare(campo, anotado, node.line, node.column)
         anterior = self._em_membro
         self._em_membro = True
         try:
@@ -3604,7 +3691,7 @@ class TypeChecker:
                     self._hint_nome(node.member, set(campos) | metodos) or
                     f"Fields: {', '.join(campos)}", "unknown-field")
                 return UNKNOWN
-            return campos.get(node.member, UNKNOWN)
+            return self._tipo_de_campo(alvo, campos.get(node.member, UNKNOWN))
 
         if isinstance(node.object, ast.Identifier):
             nome = node.object.name
@@ -4055,6 +4142,7 @@ class TypeChecker:
 
     def _check_record_call(self, nome, node, escopo):
         campos = self.records[nome]
+        genericos = self.genericos_de_tipo.get(nome, ((), {}))
         opcionais = self.record_defaults.get(nome, set())
         obrigatorios = [c for c in campos if c not in opcionais]
         posicionais = len(node.args)
@@ -4074,12 +4162,24 @@ class TypeChecker:
             self.error(
                 f"Record '{nome}' has no field(s): {', '.join(desconhecidos)}",
                 node, f"Fields: {', '.join(campos)}", "unknown-field")
+        parametros, limites = genericos
         for indice, arg in enumerate(node.args):
             if indice >= len(campos):
                 break
             campo = list(campos)[indice]
             esperado = campos[campo]
             obtido = self.infer(arg, escopo)
+            if esperado in parametros:
+                # '<T>' solto documenta e aceita tudo; '<T extends X>' e
+                # verificavel, e por isso e verificado — as duas metades,
+                # aqui e na execucao.
+                limite = limites.get(esperado)
+                if limite and not self._compativel(canonical(limite), obtido):
+                    self.error(
+                        f"Field '{campo}' of record '{nome}' is a {esperado}, "
+                        f"and {esperado} extends {limite} — but got {obtido}",
+                        arg, f"Pass a {limite}", "generic-bound")
+                continue
             if not self._compativel(esperado, obtido):
                 self.error(
                     f"Field '{campo}' of record '{nome}' expects {esperado} "
@@ -4153,6 +4253,28 @@ class TypeChecker:
             return f"Did you mean '{parecido}'?"
         return ""
 
+    def _tipo_de_campo(self, dono, tipo):
+        """O tipo de um campo, traduzido quando ele é um parâmetro.
+
+        'record Medida<T extends Number>' com 'quanto: T': dentro da
+        declaração, 'self.quanto' É um Number — é o que deixa escrever
+        'self.quanto * 2'. Um 'T' solto vira UNKNOWN, que é o que o
+        analisador sabe de verdade; tratá-lo como tipo faria
+        "Cannot multiply T by Integer" num código que roda.
+        """
+        parametros, limites = self.genericos_de_tipo.get(dono, ((), {}))
+        if tipo in parametros:
+            return canonical(limites.get(tipo, UNKNOWN))
+        return tipo
+
+    def _e_parametro_de_tipo(self, tipo):
+        """'T' de um '<T>' declarado em qualquer lugar deste arquivo."""
+        return any(tipo in parametros
+                   for parametros, _ in self.genericos_de_tipo.values()) or \
+            any(tipo in (a.type_params or ())
+                for a in self.actions.values()
+                if getattr(a, "type_params", None))
+
     def _tipo_conhecido(self, tipo, genericos=()):
         """Todo nome dentro de 'Vault<String, Cluster<Pedido>>' existe?"""
         if "|" in tipo or "&" in tipo:
@@ -4164,7 +4286,8 @@ class TypeChecker:
                     or tipo in genericos or "." in tipo)
         base, argumentos = partir_tipo(tipo)
         return (self._tipo_conhecido(base, genericos)
-                and all(self._tipo_conhecido(a, genericos) for a in argumentos))
+                and all(self._tipo_conhecido(a, genericos)
+                        or _e_numero(a) for a in argumentos))
 
     def _tipo_desconhecido(self, tipo, genericos=()):
         """O primeiro nome que nao existe — o que a dica deve corrigir."""
@@ -4178,6 +4301,9 @@ class TypeChecker:
             return None if self._tipo_conhecido(tipo, genericos) else tipo
         base, argumentos = partir_tipo(tipo)
         for parte in (base,) + tuple(argumentos):
+            # 'Vetor<3>': o 3 e um VALOR — o tamanho faz parte do tipo.
+            if _e_numero(parte):
+                continue
             falta = self._tipo_desconhecido(parte, genericos)
             if falta:
                 return falta
@@ -4210,6 +4336,11 @@ class TypeChecker:
                                     f"the value of {rotulo}")
 
     def _conferir_item(self, tipo, no, escopo, colecao, rotulo):
+        # 'Cluster<T>' com 'T' de '<T>': o parametro documenta a relacao,
+        # e aceita qualquer valor. Cobrar aqui acusaria 'primeiro([1])',
+        # que e o uso certo do generico.
+        if self._e_parametro_de_tipo(tipo):
+            return
         if "<" in tipo:
             self._conferir_conteudo(tipo, no, escopo)
         obtido = self.infer(no, escopo)

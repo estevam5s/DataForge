@@ -274,6 +274,9 @@ class Formatter:
         # comparacoes: dentro dele '<', '>' e '>>' nao respiram.
         genericos = 0
         abriu_generico = False
+        #: 'action g<T>(x)' — o '(' vem colado no '>' que fechou o
+        #: generico, como viria colado no nome se nao houvesse generico.
+        fechou_generico = False
 
         for token in tokens:
             if token.type in (TokenType.NEWLINE, TokenType.EOF,
@@ -287,18 +290,20 @@ class Formatter:
                 colchetes = max(0, colchetes - 1)
             texto_token = self._render(token)
             generico = (
-                (token.type is TokenType.LT and anterior is not None
-                 and anterior.type is TokenType.IDENTIFIER
-                 and anterior.value in ("Cluster", "Vault", "Set"))
+                (token.type is TokenType.LT
+                 and self._abre_generico(anterior, antes_do_anterior))
                 or (genericos > 0 and token.type in (TokenType.GT, TokenType.PIPE))
-                or abriu_generico)
+                or abriu_generico
+                or (fechou_generico and token.type is TokenType.LPAREN))
             abriu_generico = False
+            fechou_generico = False
             if token.type is TokenType.LT and generico and not (
                     genericos > 0 and anterior.type is not TokenType.IDENTIFIER):
                 genericos += 1
                 abriu_generico = True
             elif genericos > 0 and token.type is TokenType.GT:
                 genericos -= 1
+                fechou_generico = genericos == 0
             elif genericos > 0 and token.type is TokenType.PIPE:
                 genericos = max(0, genericos - 2)
             if partes and not generico and self._precisa_espaco(
@@ -433,6 +438,36 @@ class Formatter:
                 except Exception:
                     pos = resto.find(marcador, pos + 1)
         return ""
+
+    #: Depois destas palavras, um nome seguido de '<' e a declaracao de
+    #: um generico: 'record Par<A, B>', 'action f<T>', 'type Vetor<N>'.
+    _DECLARAM_GENERICO = ("record", "enum", "trait", "blueprint", "action",
+                          "type", "contract")
+    #: Nestas posicoes, um NOME seguido de '<' e uma anotacao de tipo.
+    _ANTES_DE_ANOTACAO = (TokenType.COLON, TokenType.ARROW, TokenType.COMMA,
+                          TokenType.LT, TokenType.VBAR, TokenType.AMP,
+                          TokenType.LPAREN)
+
+    def _abre_generico(self, anterior, antes):
+        """O '<' abre um generico, ou e uma comparacao?
+
+        Os dois se distinguem pelo que vem ANTES: o nome de uma
+        declaracao ('record Par<'), uma colecao tipada ('Cluster<') ou
+        uma posicao de anotacao (': Caixa<', '-> Vetor<'). Fora disso,
+        'a < b' continua sendo comparacao, e continua respirando.
+        """
+        if anterior is None or anterior.type is not TokenType.IDENTIFIER:
+            return False
+        if anterior.value in ("Cluster", "Vault", "Set"):
+            return True
+        if antes is None:
+            return False
+        # 'record' e 'action' sao palavras reservadas; 'type' e
+        # contextual e chega como IDENTIFIER. O que vale e o TEXTO.
+        if str(antes.value or "") in self._DECLARAM_GENERICO:
+            return True
+        return (antes.type in self._ANTES_DE_ANOTACAO
+                and str(anterior.value or "")[:1].isupper())
 
     @staticmethod
     def _render(token):

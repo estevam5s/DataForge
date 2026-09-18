@@ -64,10 +64,11 @@ class TipoNomeado:
     """
 
     __slots__ = ("nome", "especie", "partes", "parametros", "regra",
-                 "regra_texto", "opaco", "escopo", "arquivo")
+                 "regra_texto", "opaco", "escopo", "arquivo", "ligacoes")
 
     def __init__(self, nome, especie, partes, parametros=(), regra=None,
-                 regra_texto="", opaco=False, escopo=None, arquivo=""):
+                 regra_texto="", opaco=False, escopo=None, arquivo="",
+                 ligacoes=None):
         self.nome = nome
         self.especie = especie
         self.partes = tuple(partes)
@@ -77,6 +78,9 @@ class TipoNomeado:
         self.opaco = opaco
         self.escopo = escopo                # onde a regra é avaliada
         self.arquivo = arquivo
+        #: 'Vetor<3>' — o que cada parâmetro vale nesta ocorrência. É o
+        #: que faz o TAMANHO fazer parte do tipo: a regra enxerga 'N'.
+        self.ligacoes = dict(ligacoes or {})
 
     @property
     def base(self):
@@ -250,7 +254,25 @@ def especializar(molde, argumentos):
         nome=f"{molde.nome}<{', '.join(argumentos)}>", especie=molde.especie,
         partes=partes, parametros=(), regra=molde.regra,
         regra_texto=molde.regra_texto, opaco=molde.opaco,
-        escopo=molde.escopo, arquivo=molde.arquivo)
+        escopo=molde.escopo, arquivo=molde.arquivo,
+        ligacoes={p: _como_valor(a) for p, a in troca.items()})
+
+
+def _como_valor(argumento):
+    """'3' vira o número 3; 'Integer' continua sendo o texto do tipo.
+
+    É a diferença entre `Vetor<3>` e `Par<Integer>`: no primeiro o
+    argumento é um VALOR, e a regra do tipo faz conta com ele.
+    """
+    texto = str(argumento).strip()
+    try:
+        return int(texto)
+    except ValueError:
+        pass
+    try:
+        return float(texto)
+    except ValueError:
+        return texto
 
 
 def _trocar(tipo, troca):

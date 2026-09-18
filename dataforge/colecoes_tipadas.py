@@ -259,9 +259,17 @@ class SetTipado(set):
 TIPADAS = (ClusterTipado, VaultTipado, SetTipado)
 
 
-def tipar(valor, tipo):
-    """A colecao tipada com o conteudo de 'valor'. Quem chama ja conferiu."""
+def tipar(valor, tipo, parametros=()):
+    """A colecao tipada com o conteudo de 'valor'. Quem chama ja conferiu.
+
+    'parametros' sao os '<T>' da declaracao em volta. Uma colecao cujo
+    item e um parametro de tipo NAO e guardada: 'blueprint Pilha<T>' com
+    'itens: Cluster<T> := []' recusaria 'append(1)', e o generico
+    deixaria de servir para o unico uso que ele tem.
+    """
     base, argumentos = partir(tipo)
+    if parametros and any(a in parametros for a in argumentos):
+        return valor
     if base == "Cluster" and isinstance(valor, list):
         if isinstance(valor, ClusterTipado) and valor._tipo == tipo:
             return valor

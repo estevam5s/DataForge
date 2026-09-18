@@ -495,9 +495,12 @@ class OperatorDeclaration(ASTNode):
 
 @dataclass
 class TraitDeclaration(ASTNode):
-    """trait Name:"""
+    """trait Name [<T>] [extends Outro]:"""
     name: str = ""
     methods: list = field(default_factory=list)
+    parents: list = field(default_factory=list)      # 'trait B extends A'
+    type_params: list = field(default_factory=list)
+    type_bounds: dict = field(default_factory=dict)
 
 @dataclass
 class TypeDeclaration(ASTNode):
@@ -809,6 +812,8 @@ class EnumDeclaration(ASTNode):
     name: str = ""
     members: list = field(default_factory=list)    # [(nome, valor_expr|None)]
     methods: dict = field(default_factory=dict)
+    type_params: list = field(default_factory=list)
+    type_bounds: dict = field(default_factory=dict)
 
 
 @dataclass

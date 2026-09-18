@@ -854,13 +854,27 @@ assert (spawn Loja.Item("caneta")).rotulo() is "item caneta"
 ### 7.4 Traits
 
 ```ebnf
-trait Nome:
+trait Nome [<T>] [extends Outro, …]:
+    type Associado := Tipo
+    steady CONSTANTE := valor
     action assinatura()
 ```
 
 Métodos do trait só são copiados para o blueprint se ele **não** definir o
 próprio. Um método **sem corpo** é exigência: um blueprint concreto que não o
 implementa é recusado na declaração (`TraitContractError`) e pelo `check`.
+
+`trait B extends A` soma as exigências e as implementações padrão de `A`. A
+mensagem de quem não implementa nomeia **quem declarou** a exigência, e não
+quem a repassou.
+
+Um trait pode declarar **tipo associado** (`type Item := Any`) e
+**constante associada** (`steady LIMITE := 3`). Quem implementa preenche o
+tipo (`type Item := Integer`) e o recebe como membro (`Fila.Item`); a
+anotação `-> Item` é conferida como qualquer outra.
+
+Um parâmetro de tipo (`trait Comparavel<T>`) documenta a relação; ele não é
+cobrado sem `extends`.
 
 A diferença para `contract` (§7.9): o trait pode trazer implementação padrão;
 o contrato só declara, confere a aridade de quem implementa e pode estender
@@ -1778,10 +1792,10 @@ alvos_pos      = alvo_destr { "," alvo_destr } ;
 alvos_nom      = alvo_destr { "," alvo_destr } ;
 alvo_destr     = [ "..." ] identificador ;
 
-decl_record    = "record" identificador ":" NEWLINE INDENT
+decl_record    = "record" identificador [ genéricos ] ":" NEWLINE INDENT
                  { campo_record | decl_ação } DEDENT ;
 campo_record   = identificador ":" tipo [ ":=" expressão ] NEWLINE ;
-decl_enum      = "enum" identificador ":" NEWLINE INDENT
+decl_enum      = "enum" identificador [ genéricos ] ":" NEWLINE INDENT
                  { membro_enum | decl_ação } DEDENT ;
 membro_enum    = identificador [ ":=" expressão ] NEWLINE ;
 decl_steady    = "steady" identificador ":=" expressão ;
@@ -1795,7 +1809,7 @@ decl_tipo      = [ "opaque" ] "type" Identificador [ genéricos ] ":=" tipo_comp
                  [ "where" expressão ] NEWLINE ;
 tipo_comp      = tipo { "|" tipo } | tipo { "&" tipo } ;
 genéricos      = "<" genérico { "," genérico } ">" ;
-genérico       = Identificador [ "extends" tipo ] ;
+genérico       = Identificador [ "extends" tipo ] | NÚMERO ;
 params         = param { "," param } ;
 param          = identificador [ ":" tipo ] [ ":=" expressão ] ;
 
@@ -1815,7 +1829,8 @@ modificador    = "private" | "protected" | "internal" | "static" | "abstract"
 propriedade    = ( "get" | "set" ) identificador "(" [ identificador ] ")"
                  [ "->" tipo ] ":" bloco ;
 campo          = identificador ( ":" tipo [ ":=" expressão ] | ":=" expressão ) ;
-decl_trait     = "trait" identificador ":" bloco ;
+decl_trait     = "trait" identificador [ genéricos ] [ "extends" nomes ]
+                 ":" bloco ;
 decl_contract  = "contract" identificador [ genéricos ] [ "extends" nomes ] ":"
                  NEWLINE INDENT { assinatura } DEDENT ;
 assinatura     = [ "async" | "stream" ] "action" identificador [ genéricos ]
