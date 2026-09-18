@@ -568,9 +568,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 255 | [`255_resultado_e_reflexao.df`](38-tipos/255_resultado_e_reflexao.df) · [doc](38-tipos/255_resultado_e_reflexao.md) | A falha como valor, e a reflexao de tipos |
 | 256 | [`256_posse_e_recursos.df`](38-tipos/256_posse_e_recursos.df) · [doc](38-tipos/256_posse_e_recursos.md) | Posse, emprestimo e liberacao deterministica |
 
+## 39 — Concorrencia avancada
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 257 | [`257_stm_e_atomicos.df`](39-concorrencia-avancada/257_stm_e_atomicos.df) · [doc](39-concorrencia-avancada/257_stm_e_atomicos.md) | Memoria transacional, CAS e estruturas sem trava |
+
 ---
 
-**Total: 256 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 257 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

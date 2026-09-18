@@ -41,7 +41,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 50 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | [`Arcane.Iter`](#arcaneiter) | `Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
-| [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 27 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 33 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | [`Arcane.Archive`](#arcanearchive) | `Archive / Zip` | 13 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. Comprime e descomprime VALORES em memória, em deflate cru ou em gzip, com a taxa medida. |
 | [`Arcane.Pipeline`](#arcanepipeline) | `Pipeline / Fluxo` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
@@ -59,6 +59,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Padroes`](#arcanepadroes) | `Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
 | [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 10 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
 | [`Arcane.Posse`](#arcaneposse) | `Posse` | 16 | Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo. |
+| [`Arcane.Stm`](#arcanestm) | `Stm / Transacional` | 13 | Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. Variavel transacional, 'atomicamente' com validacao otimista e repeticao no conflito, 'retentar' que espera em vez de girar, 'ou_entao' para compor duas operacoes bloqueantes, e estatisticas de conflito. |
 | [`Arcane.Resultado`](#arcaneresultado) | `Resultado / Result` | 13 | A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'. |
 | [`Arcane.Tipos`](#arcanetipos) | `Tipos` | 10 | Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de um valor ('Cluster<Integer>', 'Tuple<Integer, String>') e os campos de um record ou instancia com o tipo de cada um. |
 | [`Arcane.Eventos`](#arcaneeventos) | `Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
@@ -1641,10 +1642,12 @@ Threads, processos, canal bloqueante, grupo de tarefas e prazo.
 adopt Arcane.Concurrent as Concurrent
 ```
 
-**Funções (27)**
+**Funções (33)**
 
 | Assinatura |
 |------------|
+| `anel(capacidade=16)` |
+| `atomico(inicial=None)` |
 | `barreira(quantas)` |
 | `canal(capacidade=0)` |
 | `com_prazo(acao, segundos)` |
@@ -1656,6 +1659,8 @@ adopt Arcane.Concurrent as Concurrent
 | `esperar_primeira(tarefas, prazo=None)` |
 | `esperar_todas(tarefas, prazo=None)` |
 | `evento()` |
+| `executor(trabalhadores=4)` |
+| `fila_sem_trava(itens=None)` |
 | `grupo(trabalhadores=None, nome='')` |
 | `lotes(acao, itens, tamanho=10, trabalhadores=None)` |
 | `map(acao, itens, trabalhadores=None, prazo=None)` |
@@ -1663,8 +1668,10 @@ adopt Arcane.Concurrent as Concurrent
 | `mutex()` |
 | `nucleos()` |
 | `para_cada(acao, itens, trabalhadores=None)` |
+| `pilha_sem_trava(itens=None)` |
 | `pool_processos(trabalhadores=None)` |
 | `processo(acao, *args)` |
+| `promessa()` |
 | `repetir_a_cada(acao, segundos, vezes=0)` |
 | `rodar(acao, *args)` |
 | `semaforo(quantos=1)` |
@@ -2234,6 +2241,35 @@ adopt Arcane.Posse as Posse
 | `escopo()` |
 | `estado(alvo)` |
 | `fraco(alvo)` |
+
+
+---
+
+## Arcane.Stm
+
+Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. Variavel transacional, 'atomicamente' com validacao otimista e repeticao no conflito, 'retentar' que espera em vez de girar, 'ou_entao' para compor duas operacoes bloqueantes, e estatisticas de conflito.
+
+```dataforge
+adopt Arcane.Stm as Stm
+```
+
+**Funções (13)**
+
+| Assinatura |
+|------------|
+| `Variavel(valor=None, nome='')` |
+| `atomicamente(acao, tentativas=1000)` |
+| `definir(var, novo)` |
+| `em_transacao()` |
+| `escrever(var, valor)` |
+| `estatisticas()` |
+| `ler(var)` |
+| `modificar(var, acao)` |
+| `ou_entao(primeira, segunda)` |
+| `retentar()` |
+| `valor(var)` |
+| `variavel(valor=None, nome='')` |
+| `zerar_estatisticas()` |
 
 
 ---

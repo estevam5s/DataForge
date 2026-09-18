@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "57 módulos e 1668 símbolos, sem uma única dependência externa.",
+  description: "58 módulos e 1687 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os 57 módulos"
+    "h2": "Os 58 módulos"
   },
   {
-    "p": "São **1668 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1687 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -126,6 +126,11 @@ const blocos: Bloco[] = [
           "Asserções e organização de suítes de teste."
         ],
         [
+          "[`Arcane.Concurrent`](/docs/tecnicas/concorrencia)",
+          "33",
+          "Threads, processos, canal bloqueante, grupo de tarefas e prazo."
+        ],
+        [
           "[`Arcane.Regex`](/docs/biblioteca/regex)",
           "32",
           "Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone)."
@@ -144,11 +149,6 @@ const blocos: Bloco[] = [
           "[`Arcane.Forge`](/docs/tecnicas/banco-de-dados)",
           "28",
           "Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface."
-        ],
-        [
-          "[`Arcane.Concurrent`](/docs/tecnicas/concorrencia)",
-          "27",
-          "Threads, processos, canal bloqueante, grupo de tarefas e prazo."
         ],
         [
           "[`Arcane.Serialization`](/docs/biblioteca/serialization)",
@@ -249,6 +249,11 @@ const blocos: Bloco[] = [
           "`Arcane.Resultado`",
           "13",
           "A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'."
+        ],
+        [
+          "`Arcane.Stm`",
+          "13",
+          "Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. Variavel transacional, 'atomicamente' com validacao otimista e repeticao no conflito, 'retentar' que espera em vez de girar, 'ou_entao' para compor duas operacoes bloqueantes, e estatisticas de conflito."
         ],
         [
           "[`Arcane.Cli`](/docs/biblioteca/cli)",
@@ -384,13 +389,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-57-modulos', text: "Os 57 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-58-modulos', text: "Os 58 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"57 módulos e 1668 símbolos, sem uma única dependência externa."}
+      description={"58 módulos e 1687 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

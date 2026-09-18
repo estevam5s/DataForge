@@ -28,6 +28,7 @@ const grupos: { rotulo: string; chaves: string[] }[] = [
   { rotulo: 'Objetos', chaves: ['reflexo', 'objetos', 'injecao', 'padroes'] },
   { rotulo: 'Tipos', chaves: ['tipos', 'resultado'] },
   { rotulo: 'Memória', chaves: ['posse', 'memoria'] },
+  { rotulo: 'Transacional', chaves: ['stm'] },
 ];
 
 /** O que nenhum grupo reivindicou. Vazio é o estado esperado. */

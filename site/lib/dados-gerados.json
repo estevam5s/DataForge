@@ -1619,6 +1619,16 @@
    "curto": "Concurrent / Paralelo",
    "funcoes": [
     {
+     "nome": "anel",
+     "sig": "(capacidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "atomico",
+     "sig": "(inicial)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "barreira",
      "sig": "(quantas)",
      "tipo": "funcao"
@@ -1674,6 +1684,16 @@
      "tipo": "funcao"
     },
     {
+     "nome": "executor",
+     "sig": "(trabalhadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fila_sem_trava",
+     "sig": "(itens)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "grupo",
      "sig": "(trabalhadores, nome)",
      "tipo": "funcao"
@@ -1709,6 +1729,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "pilha_sem_trava",
+     "sig": "(itens)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "pool_processos",
      "sig": "(trabalhadores)",
      "tipo": "funcao"
@@ -1716,6 +1741,11 @@
     {
      "nome": "processo",
      "sig": "(acao, args)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "promessa",
+     "sig": "()",
      "tipo": "funcao"
     },
     {
@@ -7113,6 +7143,78 @@
     }
    ]
   },
+  "stm": {
+   "nome": "Arcane.Stm",
+   "desc": "Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. Variavel transacional, 'atomicamente' com validacao otimista e repeticao no conflito, 'retentar' que espera em vez de girar, 'ou_entao' para compor duas operacoes bloqueantes, e estatisticas de conflito.",
+   "curto": "Stm / Transacional",
+   "funcoes": [
+    {
+     "nome": "Variavel",
+     "sig": "(valor, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "atomicamente",
+     "sig": "(acao, tentativas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "definir",
+     "sig": "(var, novo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "em_transacao",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escrever",
+     "sig": "(var, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "estatisticas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler",
+     "sig": "(var)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modificar",
+     "sig": "(var, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ou_entao",
+     "sig": "(primeira, segunda)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "retentar",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "valor",
+     "sig": "(var)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "variavel",
+     "sig": "(valor, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "zerar_estatisticas",
+     "sig": "()",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "stream": {
    "nome": "Arcane.Stream",
    "desc": "Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo.",
@@ -10864,6 +10966,16 @@
     "temDoc": true,
     "codigo": "// Exercicio 256 — Posse, emprestimo e liberacao deterministica\n//\n// Num mundo com coletor, \"vazar memoria\" quase nunca e o problema: o\n// coletor resolve. O que ele NAO resolve e o RECURSO — o arquivo que\n// nao fecha, a conexao que fica aberta — porque ele nao promete QUANDO\n// passa. E o defeito irmao: duas partes escrevendo no mesmo objeto\n// porque nenhuma sabe quem e o dono.\n\nadopt Arcane.Posse as P\nadopt Arcane.Memoria as Mem\nadopt Arcane.Concurrent as C\n\n// ── dono: um valor, um dono, um finalizador ──\nfechados := []\nd := P.dono(\"conexao\", lambda x => fechados.append(x))\n\nassert d.usar(lambda x => len(x)) is 7\nassert d.vivo()\n\nd.soltar()                          // roda AGORA, e nao quando der\nassert not d.vivo()\nassert fechados is [\"conexao\"]\n\nd.soltar()                          // idempotente\nd.soltar()\nassert len(fechados) is 1\n\n// usar depois de soltar diz o que aconteceu\nmonitor:\n    d.usar(lambda x => x)\n    assert no\nhandle RuntimeError as e:\n    assert \"soltou\" in e.message\n\n// ── com: o RAII, inclusive quando o corpo falha ──\nsoltos := []\nvalor := P.com(P.dono(\"a\", lambda x => soltos.append(x)), lambda x => len(x))\nassert valor is 1 and soltos is [\"a\"]\n\nmonitor:\n    P.com(P.dono(\"b\", lambda x => soltos.append(x)),\n          lambda x => trigger \"falhou no meio\")\nhandle Error as e:\n    assert e.message is \"falhou no meio\"\n\nassert soltos is [\"a\", \"b\"]         // o caminho de erro tambem solta\n\n// ── mover: quem move, perde ──\na := P.dono([1, 2])\nb := a.mover()\n\nassert a.movido()                   // perguntar o estado e legitimo\nassert b.usar(lambda x => len(x)) is 2\n\nmonitor:\n    a.usar(lambda x => len(x))\n    assert no\nhandle RuntimeError as e:\n    assert \"moveu\" in e.message\n\n// ── copia e clone sao coisas diferentes ──\noriginal := P.dono([1, 2])\n\nrasa := original.copiar()           // o MESMO valor\nrasa.mudar(lambda x => x.append(3))\n\nfunda := original.clonar(lambda x => [...x])\nfunda.mudar(lambda x => x.append(9))\n\nassert original.usar(lambda x => len(x)) is 3\nassert funda.usar(lambda x => len(x)) is 4\n\n// ── emprestimo: muitos leem OU um escreve ──\nc := P.celula({\"n\": 0})\n\nassert c.ler(lambda v => v[\"n\"]) is 0\nc.escrever(lambda v => v.set(\"n\", 5))\nassert c.ler(lambda v => v[\"n\"]) is 5\nassert c.emprestimos() is 0\n\n// duas leituras: pode\nassert c.ler(lambda v => c.ler(lambda w => 1)) is 1\n\n// escrever no meio de uma leitura: nao\nmonitor:\n    c.ler(lambda v => c.escrever(lambda w => w.set(\"n\", 9)))\n    assert no\nhandle RuntimeError as e:\n    assert \"lendo\" in e.message\n\n// o emprestimo nao sobrevive ao escopo\nfugitivo := P.dono([1]).emprestar()\nmonitor:\n    fugitivo.ler()\n    assert no\nhandle RuntimeError as e:\n    assert \"escopo\" in e.message\n\n// ── compartilhado: a contagem decide quando solta ──\ncacheados := []\num := P.compartilhado(\"cache\", lambda x => cacheados.append(x))\ndois := um.clonar()\ntres := um.clonar()\n\nassert um.contar() is 3\ndois.soltar()\nassert um.contar() is 2 and cacheados is []\ntres.soltar()\num.soltar()\nassert um.contar() is 0 and cacheados is [\"cache\"]\n\n// atomico: a mesma coisa, valida entre threads\nraiz := P.atomico(\"recurso\")\ncopias := []\n\naction clonar_uma(i):\n    copias.append(raiz.clonar())\n\nC.para_cada(clonar_uma, [i cycle i in range(1, 51)])\nassert raiz.contar() is 51\n\n// ── o ciclo vaza, e a fraca o quebra ──\nvazados := []\npai := P.compartilhado({\"nome\": \"pai\"}, lambda x => vazados.append(\"pai\"))\nfilho := P.compartilhado({\"nome\": \"filho\"}, lambda x => vazados.append(\"filho\"))\n\npai.usar(lambda v => v.set(\"filho\", filho.clonar()))\nfilho.usar(lambda v => v.set(\"pai\", pai.clonar()))     // forte: o ciclo\n\npai.soltar()\nfilho.soltar()\nassert vazados is []                // ninguem chegou a zero\n\n// agora com a volta fraca\nquebrados := []\np2 := P.compartilhado({\"nome\": \"pai\"}, lambda x => quebrados.append(\"pai\"))\nf2 := P.compartilhado({\"nome\": \"filho\"}, lambda x => quebrados.append(\"filho\"))\n\np2.usar(lambda v => v.set(\"filho\", f2.clonar()))\nf2.usar(lambda v => v.set(\"pai\", P.fraco(p2)))         // FRACA: nao conta\n\nf2.soltar()\np2.soltar()\nassert quebrados is [\"pai\", \"filho\"]   // o de fora, e o que ele possuia\n\n// a fraca responde Talvez: ela nao promete que o valor existe\nforte := P.compartilhado({\"id\": 1})\nfraca := P.fraco(forte)\nassert fraca.vivo() and fraca.obter().tem()\nforte.soltar()\nassert not fraca.vivo() and not fraca.obter().tem()\n\n// ── layout: o que da para medir ──\nblueprint Compacta:\n    slots x, y\n    x := 1\n    y := 2\n\nblueprint Solta:\n    x := 1\n    y := 2\n\ncom_slots := Mem.layout(Compacta)\nsem_slots := Mem.layout(Solta)\n\nassert com_slots[\"slots\"] and not sem_slots[\"slots\"]\nassert com_slots[\"campos\"] is [\"x\", \"y\"]\nassert com_slots[\"bytes\"] smaller sem_slots[\"bytes\"]\nassert Mem.comparar_layout(Compacta, Solta)[\"menor\"] is \"Compacta\"\n\nout \"256 ok\"\n"
    }
+  ],
+  "39-concorrencia-avancada": [
+   {
+    "num": "257",
+    "titulo": "Memoria transacional, CAS e estruturas sem trava",
+    "enunciado": "",
+    "arquivo": "257_stm_e_atomicos.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 257 — Memoria transacional, CAS e estruturas sem trava\n//\n// O problema esta medido neste repositorio: duas threads somando na\n// mesma variavel entregaram 40.425 de 80.000, em silencio.\n//\n// O mutex resolve UMA secao critica. O que ele nao resolve e COMPOR:\n// transferir de uma conta para outra sao duas escritas que precisam\n// acontecer juntas — e com mutex isso vira ordem de aquisicao, que\n// ninguem consegue verificar.\n\nadopt Arcane.Stm as T\nadopt Arcane.Concurrent as C\nadopt Arcane.Collections as Col\n\n// ── o incremento que nao se perde ──\ntotal := T.variavel(0)\n\naction somar_muitas(i):\n    cycle _ in range(0, 200):\n        T.atomicamente(lambda => T.escrever(total, T.ler(total) + 1))\n\nC.para_cada(somar_muitas, [i cycle i in range(1, 41)])\nassert T.valor(total) is 8000          // 40 threads x 200, nada perdido\n\n// ── atomicidade: metade escrita nao existe ──\na := T.variavel(10)\nb := T.variavel(10)\n\naction quebrar_no_meio():\n    T.escrever(a, 999)\n    trigger \"no meio\"\n\nmonitor:\n    T.atomicamente(quebrar_no_meio)\n    assert no\nhandle Error as e:\n    assert e.message is \"no meio\"\n\nassert T.valor(a) is 10 and T.valor(b) is 10\n\n// ── isolamento: a transacao le a propria escrita ──\nx := T.variavel(1)\n\naction ler_e_escrever():\n    primeiro := T.ler(x)\n    T.escrever(x, 5)\n    yield [primeiro, T.ler(x)]\n\nassert T.atomicamente(ler_e_escrever) is [1, 5]\nassert T.valor(x) is 5\n\n// ── composicao: aninhar e achatar ──\np := T.variavel(1)\nq := T.variavel(1)\n\naction dobrar_p():\n    T.escrever(p, T.ler(p) * 2)\n\naction dobrar_q():\n    T.escrever(q, T.ler(q) * 2)\n\naction as_duas():\n    dobrar_p()                          // ja e transacional\n    dobrar_q()                          // esta tambem\n\nT.atomicamente(as_duas)                 // e as duas viram UMA\nassert T.valor(p) is 2 and T.valor(q) is 2\n\n// ── esperar sem girar ──\nfila := T.variavel([])\nreserva := T.variavel([\"de reserva\"])\n\naction da_fila():\n    itens := T.ler(fila)\n    given len(itens) is 0:\n        T.retentar()                    // vazia: dorme ate mudar\n    yield itens[0]\n\naction da_reserva():\n    yield T.ler(reserva)[0]\n\nassert T.atomicamente(lambda => T.ou_entao(da_fila, da_reserva)) is \"de reserva\"\n\n// ler fora de transacao e recusado: nao teria garantia nenhuma\nmonitor:\n    T.escrever(x, 9)\n    assert no\nhandle RuntimeError as e:\n    assert \"transa\" in e.message\n\n// ── CAS: a troca condicional ──\natomo := C.atomico(10)\nassert atomo.comparar_e_trocar(10, 20)      // ainda era 10\nassert not atomo.comparar_e_trocar(10, 30)  // ja nao e\nassert atomo.trocar(99) is 20               // devolve o ANTERIOR\nassert atomo.pegar() is 99\n\n// o contador sem trava, escrito com CAS\ncontador := C.atomico(0)\n\naction incrementar():\n    persist yes:\n        atual := contador.pegar()\n        given contador.comparar_e_trocar(atual, atual + 1):\n            halt\n\naction trabalhar(i):\n    cycle _ in range(0, 200):\n        incrementar()\n\nC.para_cada(trabalhar, [i cycle i in range(1, 11)])\nassert contador.pegar() is 2000\n\n// ── estruturas sem trava ──\nf := C.fila_sem_trava()\n\naction produzir(i):\n    cycle j in range(0, 100):\n        f.por(i * 1000 + j)\n\nC.para_cada(produzir, [i cycle i in range(1, 9)])\nassert f.tamanho() is 800\n\nvistos := []\npersist f.tamanho() bigger 0:\n    item := f.tirar()\n    given item isnt void:\n        vistos.append(item)\n\nassert len(vistos) is 800\nassert len(Col.set(vistos)) is 800      // nada duplicado\n\npilha := C.pilha_sem_trava()\npilha.por(1)\npilha.por(2)\nassert pilha.tirar() is 2 and pilha.tirar() is 1\nassert pilha.tirar() is void            // vazia: void, e nao erro\n\nanel := C.anel(3)\ncycle i from 1 to 5:\n    anel.por(i)\nassert anel.tudo() is [3, 4, 5]         // o mais velho sai quando enche\n\n// ── executor e promessa ──\nexecutor := C.executor(4)\n\naction dobro(n):\n    yield n * 2\n\ntarefas := [executor.submeter(dobro, i) cycle i in range(1, 4)]\nassert [C.esperar(t) cycle t in tarefas] is [2, 4, 6]\nassert executor.mapear(dobro, [10, 20]) is [20, 40]\nexecutor.fechar()\nassert not executor.aberto()\n\npromessa := C.promessa()\n\naction cumprir_depois(i):\n    promessa.cumprir(\"pronto\")\n\nC.rodar(cumprir_depois, 1)\nassert promessa.esperar(3000) is \"pronto\"\n\n// uma promessa que falha leva a falha a quem espera\nruim := C.promessa()\nruim.falhar(\"deu ruim\")\nmonitor:\n    ruim.esperar(1000)\n    assert no\nhandle Error as e:\n    assert \"deu ruim\" in e.message\n\nout \"257 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -11209,9 +11321,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2413,
+  "testes": 2434,
   "exemplos": 44,
-  "arquivosDf": 366
+  "arquivosDf": 367
  },
  "mundo": {
   "estrelas": 0,

@@ -1,0 +1,173 @@
+// Exercicio 257 — Memoria transacional, CAS e estruturas sem trava
+//
+// O problema esta medido neste repositorio: duas threads somando na
+// mesma variavel entregaram 40.425 de 80.000, em silencio.
+//
+// O mutex resolve UMA secao critica. O que ele nao resolve e COMPOR:
+// transferir de uma conta para outra sao duas escritas que precisam
+// acontecer juntas — e com mutex isso vira ordem de aquisicao, que
+// ninguem consegue verificar.
+
+adopt Arcane.Stm as T
+adopt Arcane.Concurrent as C
+adopt Arcane.Collections as Col
+
+// ── o incremento que nao se perde ──
+total := T.variavel(0)
+
+action somar_muitas(i):
+    cycle _ in range(0, 200):
+        T.atomicamente(lambda => T.escrever(total, T.ler(total) + 1))
+
+C.para_cada(somar_muitas, [i cycle i in range(1, 41)])
+assert T.valor(total) is 8000          // 40 threads x 200, nada perdido
+
+// ── atomicidade: metade escrita nao existe ──
+a := T.variavel(10)
+b := T.variavel(10)
+
+action quebrar_no_meio():
+    T.escrever(a, 999)
+    trigger "no meio"
+
+monitor:
+    T.atomicamente(quebrar_no_meio)
+    assert no
+handle Error as e:
+    assert e.message is "no meio"
+
+assert T.valor(a) is 10 and T.valor(b) is 10
+
+// ── isolamento: a transacao le a propria escrita ──
+x := T.variavel(1)
+
+action ler_e_escrever():
+    primeiro := T.ler(x)
+    T.escrever(x, 5)
+    yield [primeiro, T.ler(x)]
+
+assert T.atomicamente(ler_e_escrever) is [1, 5]
+assert T.valor(x) is 5
+
+// ── composicao: aninhar e achatar ──
+p := T.variavel(1)
+q := T.variavel(1)
+
+action dobrar_p():
+    T.escrever(p, T.ler(p) * 2)
+
+action dobrar_q():
+    T.escrever(q, T.ler(q) * 2)
+
+action as_duas():
+    dobrar_p()                          // ja e transacional
+    dobrar_q()                          // esta tambem
+
+T.atomicamente(as_duas)                 // e as duas viram UMA
+assert T.valor(p) is 2 and T.valor(q) is 2
+
+// ── esperar sem girar ──
+fila := T.variavel([])
+reserva := T.variavel(["de reserva"])
+
+action da_fila():
+    itens := T.ler(fila)
+    given len(itens) is 0:
+        T.retentar()                    // vazia: dorme ate mudar
+    yield itens[0]
+
+action da_reserva():
+    yield T.ler(reserva)[0]
+
+assert T.atomicamente(lambda => T.ou_entao(da_fila, da_reserva)) is "de reserva"
+
+// ler fora de transacao e recusado: nao teria garantia nenhuma
+monitor:
+    T.escrever(x, 9)
+    assert no
+handle RuntimeError as e:
+    assert "transa" in e.message
+
+// ── CAS: a troca condicional ──
+atomo := C.atomico(10)
+assert atomo.comparar_e_trocar(10, 20)      // ainda era 10
+assert not atomo.comparar_e_trocar(10, 30)  // ja nao e
+assert atomo.trocar(99) is 20               // devolve o ANTERIOR
+assert atomo.pegar() is 99
+
+// o contador sem trava, escrito com CAS
+contador := C.atomico(0)
+
+action incrementar():
+    persist yes:
+        atual := contador.pegar()
+        given contador.comparar_e_trocar(atual, atual + 1):
+            halt
+
+action trabalhar(i):
+    cycle _ in range(0, 200):
+        incrementar()
+
+C.para_cada(trabalhar, [i cycle i in range(1, 11)])
+assert contador.pegar() is 2000
+
+// ── estruturas sem trava ──
+f := C.fila_sem_trava()
+
+action produzir(i):
+    cycle j in range(0, 100):
+        f.por(i * 1000 + j)
+
+C.para_cada(produzir, [i cycle i in range(1, 9)])
+assert f.tamanho() is 800
+
+vistos := []
+persist f.tamanho() bigger 0:
+    item := f.tirar()
+    given item isnt void:
+        vistos.append(item)
+
+assert len(vistos) is 800
+assert len(Col.set(vistos)) is 800      // nada duplicado
+
+pilha := C.pilha_sem_trava()
+pilha.por(1)
+pilha.por(2)
+assert pilha.tirar() is 2 and pilha.tirar() is 1
+assert pilha.tirar() is void            // vazia: void, e nao erro
+
+anel := C.anel(3)
+cycle i from 1 to 5:
+    anel.por(i)
+assert anel.tudo() is [3, 4, 5]         // o mais velho sai quando enche
+
+// ── executor e promessa ──
+executor := C.executor(4)
+
+action dobro(n):
+    yield n * 2
+
+tarefas := [executor.submeter(dobro, i) cycle i in range(1, 4)]
+assert [C.esperar(t) cycle t in tarefas] is [2, 4, 6]
+assert executor.mapear(dobro, [10, 20]) is [20, 40]
+executor.fechar()
+assert not executor.aberto()
+
+promessa := C.promessa()
+
+action cumprir_depois(i):
+    promessa.cumprir("pronto")
+
+C.rodar(cumprir_depois, 1)
+assert promessa.esperar(3000) is "pronto"
+
+// uma promessa que falha leva a falha a quem espera
+ruim := C.promessa()
+ruim.falhar("deu ruim")
+monitor:
+    ruim.esperar(1000)
+    assert no
+handle Error as e:
+    assert "deu ruim" in e.message
+
+out "257 ok"

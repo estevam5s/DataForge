@@ -14,6 +14,30 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.Stm`, atômicos com CAS e estruturas sem trava
+
+- **`Arcane.Stm`**: memória transacional. `variavel` e `atomicamente`,
+  com validação otimista e repetição no conflito; erro no meio desfaz o
+  rascunho e **sobe**; a transação lê a própria escrita; aninhar é
+  achatar, e é isso que permite **compor** duas operações transacionais
+  numa terceira — o que o mutex não dá. `retentar()` dorme até uma
+  variável lida mudar, e `ou_entao` tenta a segunda quando a primeira
+  pede para esperar. `estatisticas()` mostra confirmadas, conflitos e
+  esperas.
+- **`C.atomico(v)`**: `comparar_e_trocar` (CAS), `trocar`, `somar`,
+  `pegar_e_somar`, `atualizar` — a peça com que se escreve um contador
+  sem trava.
+- **`C.fila_sem_trava()`, `C.pilha_sem_trava()`, `C.anel(n)`**:
+  estruturas cujo caminho comum não pega trava (o `append`/`popleft` do
+  `deque` acontece inteiro em C). O anel descarta o **mais velho** ao
+  encher.
+- **`C.executor(n)`** (pool que fica de pé) e **`C.promessa()`** (o
+  resultado que alguém vai cumprir, com falha que chega a quem espera).
+- Documentação: [`/docs/concorrencia/stm`](https://dataforge-lang.vercel.app/docs/concorrencia/stm),
+  [`/docs/concorrencia/sem-trava`](https://dataforge-lang.vercel.app/docs/concorrencia/sem-trava),
+  o mapa em [`/docs/concorrencia/mapa`](https://dataforge-lang.vercel.app/docs/concorrencia/mapa)
+  e o exercício 257.
+
 ### Adicionado — `Arcane.Posse`: posse, empréstimo e liberação determinística
 
 - **`P.dono(valor, ao_soltar)`**: um dono, um finalizador, uma vez.

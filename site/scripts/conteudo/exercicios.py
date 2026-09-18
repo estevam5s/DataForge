@@ -276,6 +276,7 @@ TITULOS = {
     "36-quadro-e-dados": "Quadro e dados",
     "37-oop-sistema": "OOP como sistema",
     "38-tipos": "Sistema de tipos",
+    "39-concorrencia-avancada": "Concorrência avançada",
 }
 
 
@@ -360,7 +361,7 @@ def _pagina_modulo(nome, itens, caminhos):
     # ── O corpo: cada exercício, por inteiro ──────────────────────
     #
     # Antes a página parava na tabela acima: título e enunciado, e nada
-    # do código. Quem chegava por busca via a PROMESSA de 256 exercícios
+    # do código. Quem chegava por busca via a PROMESSA de 257 exercícios
     # e nenhum deles — para ler um, era preciso clonar o repositório.
     # O código é a resposta e o teste ao mesmo tempo; escondê-lo
     # esvazia a seção inteira.

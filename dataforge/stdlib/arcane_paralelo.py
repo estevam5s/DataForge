@@ -412,6 +412,281 @@ class Canal:
                 yield item
 
 
+class Atomico:
+    """Um valor com troca condicional — o CAS.
+
+    A diferenca para o `Contador`: ele guarda QUALQUER valor, e a peca
+    central e `comparar_e_trocar`, que so escreve se o valor ainda for o
+    que quem chamou leu. E com ela que se escreve um contador sem trava,
+    uma pilha sem trava e um pedaco de STM.
+
+    Sobre "sem trava" aqui: a trava existe e e curta. No CPython, o que
+    torna a operacao indivisivel de verdade e o GIL — e uma peca que
+    prometesse ausencia de trava sem poder garanti-la seria pior que uma
+    que diz onde ela esta.
+    """
+
+    __slots__ = ("_valor", "_trava")
+
+    def __init__(self, inicial=None):
+        self._valor = inicial
+        self._trava = threading.Lock()
+
+    def pegar(self):
+        with self._trava:
+            return self._valor
+
+    def definir(self, novo):
+        with self._trava:
+            self._valor = novo
+            return novo
+
+    def trocar(self, novo):
+        """Escreve e devolve o valor ANTERIOR."""
+        with self._trava:
+            anterior, self._valor = self._valor, novo
+            return anterior
+
+    def comparar_e_trocar(self, esperado, novo):
+        """Troca so se o valor ainda for o esperado. Devolve se trocou."""
+        with self._trava:
+            if self._valor is esperado or self._valor == esperado:
+                self._valor = novo
+                return True
+            return False
+
+    def somar(self, quanto=1):
+        """Soma e devolve o NOVO valor — o 'fetch-add' com a ordem certa."""
+        with self._trava:
+            self._valor += quanto
+            return self._valor
+
+    def pegar_e_somar(self, quanto=1):
+        """Soma e devolve o valor ANTERIOR."""
+        with self._trava:
+            anterior = self._valor
+            self._valor += quanto
+            return anterior
+
+    def atualizar(self, acao):
+        """Aplica a acao ao valor, repetindo enquanto alguem trocar."""
+        while True:
+            atual = self.pegar()
+            novo = acao(atual)
+            if self.comparar_e_trocar(atual, novo):
+                return novo
+
+    def __repr__(self):                                    # pragma: no cover
+        return f"<atomico {self._valor!r}>"
+
+
+class FilaSemTrava:
+    """Uma fila entre threads sem trava no caminho comum.
+
+    O `deque` do Python tem `append` e `popleft` indivisiveis por causa
+    do GIL — nao ha janela entre ler e escrever, porque a operacao
+    inteira acontece em C. E o mesmo raciocinio ja medido no
+    repositorio: quatro threads com 5 mil `append` cada entregaram
+    20.000 de 20.000.
+    """
+
+    __slots__ = ("_itens",)
+
+    def __init__(self, itens=None):
+        from collections import deque
+        self._itens = deque(itens or [])
+
+    def por(self, item):
+        self._itens.append(item)
+        return item
+
+    def tirar(self):
+        """O primeiro, ou `void` quando vazia. Nunca bloqueia."""
+        try:
+            return self._itens.popleft()
+        except IndexError:
+            return None
+
+    def espiar(self):
+        try:
+            return self._itens[0]
+        except IndexError:
+            return None
+
+    def tamanho(self):
+        return len(self._itens)
+
+    def vazia(self):
+        return not self._itens
+
+    def tudo(self):
+        return list(self._itens)
+
+
+class PilhaSemTrava:
+    """Pilha com o mesmo raciocinio da fila: `append`/`pop` no fim."""
+
+    __slots__ = ("_itens",)
+
+    def __init__(self, itens=None):
+        from collections import deque
+        self._itens = deque(itens or [])
+
+    def por(self, item):
+        self._itens.append(item)
+        return item
+
+    def tirar(self):
+        try:
+            return self._itens.pop()
+        except IndexError:
+            return None
+
+    def espiar(self):
+        try:
+            return self._itens[-1]
+        except IndexError:
+            return None
+
+    def tamanho(self):
+        return len(self._itens)
+
+    def vazia(self):
+        return not self._itens
+
+    def tudo(self):
+        return list(self._itens)
+
+
+class Anel:
+    """Um buffer circular de tamanho fixo: o mais velho sai quando enche.
+
+    E a estrutura de uma janela de metricas, de um log em memoria e de
+    um produtor rapido com consumidor lento — onde perder o mais VELHO e
+    melhor que parar o produtor.
+    """
+
+    __slots__ = ("_itens", "_capacidade")
+
+    def __init__(self, capacidade=16):
+        from collections import deque
+        self._capacidade = max(1, int(capacidade))
+        self._itens = deque(maxlen=self._capacidade)
+
+    def por(self, item):
+        """Guarda. Devolve o que saiu, ou `void` se nao saiu nada."""
+        saiu = self._itens[0] if len(self._itens) == self._capacidade else None
+        self._itens.append(item)
+        return saiu
+
+    def tirar(self):
+        try:
+            return self._itens.popleft()
+        except IndexError:
+            return None
+
+    def tudo(self):
+        return list(self._itens)
+
+    def tamanho(self):
+        return len(self._itens)
+
+    def capacidade(self):
+        return self._capacidade
+
+    def cheio(self):
+        return len(self._itens) == self._capacidade
+
+    def vazio(self):
+        return not self._itens
+
+
+class Executor:
+    """Um grupo de threads que fica de pe e recebe trabalho.
+
+    `rodar` abre uma thread por chamada; num servidor isso acontece por
+    pedido. O executor paga a partida uma vez.
+    """
+
+    __slots__ = ("_pool", "_trabalhadores", "_aberto")
+
+    def __init__(self, trabalhadores=4):
+        self._trabalhadores = max(1, int(trabalhadores))
+        self._pool = futuros.ThreadPoolExecutor(max_workers=self._trabalhadores)
+        self._aberto = True
+
+    def submeter(self, acao, *args):
+        self._exigir_aberto()
+        return Tarefa(self._pool.submit(acao, *args),
+                      getattr(acao, "name", ""))
+
+    def mapear(self, acao, itens):
+        self._exigir_aberto()
+        return list(self._pool.map(acao, list(itens)))
+
+    def trabalhadores(self):
+        return self._trabalhadores
+
+    def aberto(self):
+        return self._aberto
+
+    def fechar(self, esperar=True):
+        if not self._aberto:
+            return False
+        self._aberto = False
+        self._pool.shutdown(wait=bool(esperar))
+        return True
+
+    def _exigir_aberto(self):
+        if not self._aberto:
+            raise ConcurrencyError(
+                "este executor ja foi fechado.", 0, 0,
+                dica="abra outro com C.executor(n)",
+                doc="concorrencia/sem-trava")
+
+
+class Promessa:
+    """Um resultado que ainda nao existe, e que ALGUEM vai cumprir.
+
+    A diferenca para a tarefa: a tarefa nasce de um trabalho que ja
+    comecou; a promessa nasce vazia, e quem a cumpre pode ser outra
+    parte do programa — um evento, uma resposta de rede, um clique.
+    """
+
+    __slots__ = ("_futuro",)
+
+    def __init__(self):
+        self._futuro = futuros.Future()
+
+    def cumprir(self, valor=None):
+        if self._futuro.done():
+            return False
+        self._futuro.set_result(valor)
+        return True
+
+    def falhar(self, motivo="falhou"):
+        if self._futuro.done():
+            return False
+        self._futuro.set_exception(
+            RuntimeError_(str(motivo), 0, 0, doc="concorrencia/sem-trava"))
+        return True
+
+    def cumprida(self):
+        return self._futuro.done()
+
+    def esperar(self, prazo=None):
+        try:
+            return self._futuro.result(prazo / 1000 if prazo else None)
+        except futuros.TimeoutError:
+            raise TimeoutError_(
+                "a promessa nao foi cumprida no prazo.", 0, 0,
+                doc="concorrencia/sem-trava") from None
+
+    def tarefa(self):
+        """A mesma espera, como Tarefa — para usar com 'esperar_todas'."""
+        return Tarefa(self._futuro, "promessa")
+
+
 class Contador:
     """Um numero que varias threads somam sem perder atualizacao.
 
@@ -471,6 +746,12 @@ class ArcaneConcurrent(dict):
             "barreira": cls._barreira,
             "condicao": cls._condicao,
             "contador": cls._contador,
+            "atomico": cls._atomico,
+            "fila_sem_trava": cls._fila_sem_trava,
+            "pilha_sem_trava": cls._pilha_sem_trava,
+            "anel": cls._anel,
+            "executor": cls._executor,
+            "promessa": cls._promessa,
             "trava_leitura_escrita": cls._rwlock,
 
             # ── canal ──
@@ -739,6 +1020,31 @@ class ArcaneConcurrent(dict):
     @staticmethod
     def _contador(inicial=0):
         return Contador(inicial)
+
+    @staticmethod
+    def _atomico(inicial=None):
+        """Um valor com troca condicional (CAS) e soma indivisivel."""
+        return Atomico(inicial)
+
+    @staticmethod
+    def _fila_sem_trava(itens=None):
+        return FilaSemTrava(itens)
+
+    @staticmethod
+    def _pilha_sem_trava(itens=None):
+        return PilhaSemTrava(itens)
+
+    @staticmethod
+    def _anel(capacidade=16):
+        return Anel(capacidade)
+
+    @staticmethod
+    def _executor(trabalhadores=4):
+        return Executor(trabalhadores)
+
+    @staticmethod
+    def _promessa():
+        return Promessa()
 
     @staticmethod
     def _rwlock():

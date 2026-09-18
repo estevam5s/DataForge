@@ -50,6 +50,7 @@ from .arcane_bench import ArcaneBench
 from .arcane_eventos import ArcaneEventos
 from .arcane_posse import ArcanePosse
 from .arcane_resultado import ArcaneResultado
+from .arcane_stm import ArcaneStm
 from .arcane_tipos import ArcaneTipos
 from .arcane_html import ArcaneHtml
 from .arcane_rede import ArcaneRede
@@ -171,6 +172,9 @@ _MODULES = {
     "Eventos": ArcaneEventos,
     "Arcane.Posse": ArcanePosse,
     "Posse": ArcanePosse,
+    "Arcane.Stm": ArcaneStm,
+    "Stm": ArcaneStm,
+    "Transacional": ArcaneStm,
     "Arcane.Resultado": ArcaneResultado,
     "Resultado": ArcaneResultado,
     "Result": ArcaneResultado,

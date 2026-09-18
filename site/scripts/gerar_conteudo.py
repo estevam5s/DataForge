@@ -48,6 +48,7 @@ MODULOS = [
     "tipos_resultado",
     "tipos_mapa",
     "memoria_posse",
+    "concorrencia_stm",
     "plataforma",
     "vitrine",
     "versoes",

@@ -230,6 +230,15 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Concorrência avançada',
+    badge: 'novo',
+    items: [
+      { title: 'Memória transacional', href: '/docs/concorrencia/stm', badge: 'novo' },
+      { title: 'Atômicos e sem trava', href: '/docs/concorrencia/sem-trava', badge: 'novo' },
+      { title: 'Concorrência: o mapa', href: '/docs/concorrencia/mapa', badge: 'novo' },
+    ],
+  },
+  {
     title: 'Memória e recursos',
     badge: 'novo',
     items: [
@@ -403,6 +412,7 @@ export const nav: NavSection[] = [
       { title: 'Quadro e dados', href: '/docs/exercicios/36-quadro-e-dados' },
       { title: 'OOP como sistema', href: '/docs/exercicios/37-oop-sistema' },
       { title: 'Sistema de tipos', href: '/docs/exercicios/38-tipos', badge: 'novo' },
+      { title: 'Concorrência avançada', href: '/docs/exercicios/39-concorrencia-avancada', badge: 'novo' },
     ],
   },
   {
