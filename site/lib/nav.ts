@@ -224,6 +224,7 @@ export const nav: NavSection[] = [
       { title: 'Tuplas', href: '/docs/tipos/tuplas', badge: 'novo' },
       { title: 'Resultado e Talvez', href: '/docs/tipos/resultado', badge: 'novo' },
       { title: 'Reflexão de tipos', href: '/docs/tipos/reflexao', badge: 'novo' },
+      { title: 'Fundamentos e tipos: o mapa', href: '/docs/tipos/mapa', badge: 'novo' },
       { title: 'Generics', href: '/docs/tipos/genericos', badge: 'novo' },
       { title: 'Sistema de traits', href: '/docs/tipos/traits', badge: 'novo' },
     ],

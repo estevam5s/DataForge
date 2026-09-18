@@ -1,0 +1,121 @@
+"""O mapa da Edição Deep Tech, partes 1 e 2: o que existe, e o que não.
+
+Esta página não tem bloco executável de propósito: ela é um mapa, e cada
+linha aponta para a página que tem o exemplo que roda.
+"""
+
+PAGINAS = [
+# ════════════════════════════════════════════════════════════════════
+{
+"href": "/docs/tipos/mapa",
+"title": "Fundamentos e tipos: o mapa",
+"description": "Item por item das partes 1 e 2 da referência Deep Tech, cruzado com o DataForge: o que existe e onde está, o que tem outro nome, e o que não existe por decisão.",
+"blocos": [
+ {"p": "Esta página cruza as duas primeiras partes de uma referência de linguagem madura — **fundamentos** e **sistema de tipos avançado** — com o que o DataForge tem hoje. Cada linha aponta para onde está o exemplo que roda, e o que **não** existe está dito com o motivo."},
+ {"callout": {"tipo": "nota", "titulo": "Por que a coluna 'não existe' importa", "texto": "Uma tabela que só lista o que existe deixa o leitor supor o resto. Aqui, item sem resposta é item **respondido**: ou tem outro nome, ou tem uma decisão por trás. Nenhuma linha fica em branco."}},
+
+ {"h2": "1 · O caminho feliz"},
+ {"table": {"head": ["Item", "No DataForge", "Onde"], "rows": [
+   ["instalação, toolchain", "instalador POSIX, PowerShell, Docker, pip", "[Instalação](/docs/instalacao)"],
+   ["compilador", "**não existe**: é interpretador de árvore, com compilação para fechamentos (1,5× a 1,8×)", "[Arquitetura](/docs/referencia/arquitetura)"],
+   ["gerenciador de versões", "**não existe** como `dfup`: a venv de `~/.dataforge` e o `pip` fazem o papel", "[Instalação](/docs/instalacao)"],
+   ["primeiro projeto, estrutura", "`dataforge new` com 9 modelos; `forge.toml`", "[Projetos](/docs/projetos)"],
+   ["compilar e executar", "`dataforge run`, `--time`, `--debug`", "[CLI](/docs/cli)"],
+   ["debug básico", "`dataforge debug` no terminal; `dataforge dap` no editor, com watchpoint", "[Editor e depurador](/docs/editor)"],
+   ["LSP: autocomplete, ir-para, rename, diagnostics, code actions", "todos, em `lsp.py`", "[LSP](/docs/tecnicas/lsp)"],
+   ["integração com IDE e terminal", "`dataforge editor` (VS Code e derivados), `dataforge repl`", "[Editor](/docs/editor)"]]}},
+
+ {"h2": "2 · Sintaxe e tipos básicos"},
+ {"table": {"head": ["Item", "No DataForge", "Onde"], "rows": [
+   ["literais, identificadores, variáveis", "`x := 1`", "[Variáveis](/docs/variaveis)"],
+   ["constantes", "`steady PI := 3.14`", "[Variáveis](/docs/variaveis)"],
+   ["shadowing, escopo léxico", "`shadow x := 2`; `given` publica o nome, `cycle` não", "[Variáveis](/docs/variaveis)"],
+   ["inteiros, ponto flutuante, booleanos", "`Integer`, `Float`, `Boolean` — e `Number` para os dois primeiros", "[Tipos](/docs/tipos)"],
+   ["caracteres", "**não existe** tipo próprio: um caractere é um texto de tamanho 1", "[Tipos](/docs/tipos)"],
+   ["strings, bytes", "`String` com `$\"{}\"`; `Bytes` e `Arcane.Bytes`", "[Textos](/docs/textos)"],
+   ["**tuplas**", "`(1, \"a\")`, com `Tuple<A, B>` conferindo posição e tamanho", "[Tuplas](/docs/tipos/tuplas)"],
+   ["arrays, slices", "`Cluster` com `xs[1:3]` e `xs[::-1]`", "[Coleções](/docs/colecoes)"],
+   ["structs, enums", "`record` (imutável, igualdade estrutural) e `enum` com valor e método", "[Records e enums](/docs/fundamentos/records)"],
+   ["maps, sets", "`Vault` e `Set`, com conteúdo tipado", "[Coleções](/docs/colecoes)"],
+   ["**Option/Maybe**", "`void` com `??` e `?.`; e `Talvez` para quando `void` é ambíguo", "[Resultado e Talvez](/docs/tipos/resultado)"],
+   ["**Result**", "`Arcane.Resultado`: `ok`/`falha` com `mapear`, `entao`, `todos`", "[Resultado e Talvez](/docs/tipos/resultado)"],
+   ["inferência de tipos", "o analisador infere para **acusar**, não para exigir: a anotação é opcional", "[Anotações](/docs/fundamentos/anotacoes-de-tipo)"],
+   ["conversões, casting seguro", "`cast x as Integer`, `str/int/float/bool`; `R.tentar` para o que pode falhar", "[Tipos](/docs/tipos)"],
+   ["operadores, precedência, expressões, blocos", "19 operadores; `~/` é divisão inteira", "[Operadores](/docs/operadores)"],
+   ["pattern matching básico", "`match` / `point` / `default`", "[Pattern matching](/docs/fundamentos/pattern-matching)"]]}},
+
+ {"h2": "3 · Controle de fluxo"},
+ {"table": {"head": ["Item", "No DataForge", "Onde"], "rows": [
+   ["`if` / `else`", "`given` / `orif` / `otherwise` — e o ternário `a given c otherwise b`", "[Condicionais](/docs/condicionais)"],
+   ["`match` / `switch`", "`match` com `point`, `when` e `default`; exaustividade avisada", "[Pattern matching](/docs/fundamentos/pattern-matching)"],
+   ["`for` / `while` / `loop`", "`cycle … from … to … step`, `cycle … in`, `persist`, `perform … persist`", "[Laços](/docs/lacos)"],
+   ["`break` / `continue` / `return`", "`halt` / `skip` / `yield`", "[Laços](/docs/lacos)"],
+   ["guard clauses", "`guard cond otherwise: …`", "[Condicionais](/docs/condicionais)"],
+   ["pattern matching avançado, desestruturação, guards", "tipo, sequência, vault, record, enum; `a, b := t`; `when`", "[Pattern matching](/docs/fundamentos/pattern-matching)"]]}},
+
+ {"h2": "4 · Funções"},
+ {"table": {"head": ["Item", "No DataForge", "Onde"], "rows": [
+   ["declaração, parâmetros, retorno", "`action nome(a, b) -> Tipo:` com `yield`", "[Ações](/docs/acoes)"],
+   ["argumentos nomeados, valores padrão", "`f(1, b := 5)`; `action f(a, b := 2)`", "[Ações](/docs/acoes)"],
+   ["funções genéricas", "`action f<T>(x: T) -> T`, com `<T extends X>` cobrado", "[Generics](/docs/tipos/genericos)"],
+   ["alta ordem, closures, lambdas", "ação como valor; `lambda x: expr` e `lambda a, b => expr`", "[Ações](/docs/acoes)"],
+   ["recursão", "teto de mil quadros; `yield f(…)` vira salto e não tem teto", "[Ações](/docs/acoes)"],
+   ["funções `inline`", "**não existe**: o ganho vem da compilação para fechamentos, que já elimina o despacho", "[Arquitetura](/docs/referencia/arquitetura)"],
+   ["funções `const` e `comptime`", "**não existem**: o que é resolvido antes de rodar é a **prova** do `check` sobre literais, e não a execução", "[Análise estática](/docs/tecnicas/analise-estatica)"],
+   ["funções `unsafe`", "**não existe**: não há ponteiro cru nem aritmética de endereço para isolar", "—"],
+   ["assíncronas, callbacks", "`async action` com `await` (concorrência de E/S de verdade); ação como valor", "[Concorrência](/docs/tecnicas/concorrencia)"]]}},
+
+ {"h2": "5 · Módulos e ferramentas"},
+ {"table": {"head": ["Item", "No DataForge", "Onde"], "rows": [
+   ["módulos, imports, exports, namespaces", "`adopt`, `adopt {a as b} from M`, `relay`; apelido com `as`", "[Módulos](/docs/modulos)"],
+   ["pacotes e gerenciador", "`dataforge add/install/remove/search/pack/publish`, com semver e lockfile", "[Pacotes](/docs/pacotes)"],
+   ["manifesto, dependências, lockfile", "`forge.toml` e `forge.lock`", "[Pacotes](/docs/pacotes)"],
+   ["workspaces", "**não existe**: um `forge.toml` por projeto; o caminho relativo (`adopt ./lib`) cobre o monorepo simples", "[Módulos](/docs/modulos)"],
+   ["testes unitários e de integração", "`crucible`/`trial`, `dataforge test`, com cobertura e `--minimo`", "[Testes](/docs/tecnicas/testes)"],
+   ["benchmarks", "`bench` no Crucible e `Arcane.Bench`", "[Testes](/docs/tecnicas/testes)"],
+   ["documentação automática", "`dataforge doc`", "[CLI](/docs/cli)"],
+   ["formatador, linter, diagnósticos", "`dataforge fmt` (idempotente), `lint`, `check` com 177 códigos", "[Formatação](/docs/tecnicas/formatacao)"],
+   ["profiling, debugging", "`dataforge profile` (tempo próprio por ação), `debug`, `dap`", "[Complexidade](/docs/big-o)"]]}},
+
+ {"h2": "6 · Paradigmas"},
+ {"table": {"head": ["Item", "No DataForge", "Onde"], "rows": [
+   ["procedural, funcional, orientado a objetos", "os três, sem escolher um: pipeline `>>`, `blueprint`, ação solta", "[Primeiros passos](/docs/primeiros-passos)"],
+   ["traits, implementações", "`trait` com padrão, `extends`, tipo e constante associados, `contract`", "[Traits](/docs/tipos/traits)"],
+   ["generics, composição", "`<T>` nas cinco declarações; composição por trait e por campo", "[Generics](/docs/tipos/genericos)"],
+   ["imutabilidade, funções puras", "`record`, `freeze`, `Tuple`, `steady`; pureza é convenção, não imposição", "[Records](/docs/fundamentos/records)"],
+   ["tratamento de erros, propagação", "`monitor`/`handle`/`ensure`, `trigger`, `propagate`, `retry`, `defer`", "[Erros](/docs/erros)"],
+   ["`Result`, `Option`", "`Arcane.Resultado` e `Talvez`", "[Resultado e Talvez](/docs/tipos/resultado)"],
+   ["erros customizados", "a hierarquia é **fixa** (177 códigos): o que muda é a mensagem, ou o `detalhe` de um `Resultado` — um tipo de erro por caso faria `handle` virar adivinhação", "[Erros](/docs/erros)"]]}},
+
+ {"h2": "7 a 11 · O sistema de tipos avançado"},
+ {"table": {"head": ["Item", "No DataForge", "Onde"], "rows": [
+   ["funções, structs, enums e traits genéricos", "`action f<T>`, `record R<T>`, `enum E<T>`, `trait T<X>`, `blueprint B<T>`", "[Generics](/docs/tipos/genericos)"],
+   ["restrições, bounds, type constraints", "`<T extends Number>`, cobrado no `check` (`generic-bound`) e na execução", "[Generics](/docs/tipos/genericos)"],
+   ["inferência genérica", "o argumento decide; o parâmetro solto aceita tudo, por decisão", "[Generics](/docs/tipos/genericos)"],
+   ["monomorfização, especialização", "**não existem**: não há geração de código; o caminho para variar por tipo é `overload`", "[Sobrecarga](/docs/oop/sobrecarga)"],
+   ["tipos dependentes, indexados", "refinamento (`where`) e argumento **numérico** (`Vetor<3>`), que a regra enxerga", "[Generics](/docs/tipos/genericos)"],
+   ["GADTs, provas formais", "**não existem**: o `where` é **verificado** (literal no `check`, valor na fronteira), e não provado", "[Tipos nomeados](/docs/tipos-nomeados)"],
+   ["invariantes verificáveis", "`invariant` em blueprint, `expects`/`promises` em ação, refinamento em tipo", "[Contratos](/docs/oop/contratos)"],
+   ["type-level programming, type functions", "alias genérico (`type Par<T> := Cluster<T>`) e const generic", "[Generics](/docs/tipos/genericos)"],
+   ["const generics", "`Vetor<3>`: o argumento é um valor, ligado na regra do tipo", "[Generics](/docs/tipos/genericos)"],
+   ["metadados de tipos, reflexão", "`Arcane.Tipos`: espécie, base, regra, `satisfaz`, `forma`, `campos`", "[Reflexão](/docs/tipos/reflexao)"],
+   ["validação em tempo de compilação", "o `check` prova sobre literais: `tipo-refinado`, `tipo-uniao`, `tipo-opaco`…", "[Tipos nomeados](/docs/tipos-nomeados)"],
+   ["union, intersection types", "`String \\| Integer` e `Serial & Ordenavel`, com nome ou direto na anotação", "[Tipos nomeados](/docs/tipos-nomeados)"],
+   ["opaque types, newtypes", "`opaque type Cpf := String where …`: nominal, só nasce validado", "[Tipos nomeados](/docs/tipos-nomeados)"],
+   ["type aliases, tipos abstratos", "`type Id := Integer`; `abstract blueprint` e `trait` para o abstrato", "[Tipos nomeados](/docs/tipos-nomeados)"],
+   ["encapsulamento de representação", "o tipo opaco, com `.valor` como única porta de saída", "[Tipos nomeados](/docs/tipos-nomeados)"],
+   ["garantias de ABI, compatibilidade binária, type erasure", "**não se aplicam**: não há binário nem layout fixo — a anotação é conferência em execução", "[Visão geral do sistema de tipos](/docs/tipos/visao-geral)"],
+   ["associated types, constants, functions", "`type Item := Any` e `steady LIMITE := 3` no trait; ação estática no blueprint", "[Traits](/docs/tipos/traits)"],
+   ["implementações condicionais", "**não existem**: o mais próximo é `augment` (acrescentar a um blueprint) e `overload`", "[Augment](/docs/oop/augment)"],
+   ["trait inheritance, trait objects", "`trait B extends A`; um parâmetro anotado com o trait **é** o trait object", "[Traits](/docs/tipos/traits)"],
+   ["dynamic dispatch, static dispatch, vtables", "despacho dinâmico sempre, com cache de método por blueprint; não há vtable declarável", "[Traits](/docs/tipos/traits)"]]}},
+
+ {"h2": "Como ler esta tabela"},
+ {"p": "Três respostas diferentes aparecem aqui, e elas não são a mesma coisa:"},
+ {"table": {"head": ["Resposta", "Significa"], "rows": [
+   ["o nome no DataForge", "existe, e o vocabulário é outro — `given` por `if`, `record` por `struct`"],
+   ["**não existe**", "foi decidido não ter, e o motivo está na linha: quase sempre porque a peça pertence a uma linguagem compilada"],
+   ["**não se aplica**", "a pergunta não tem sentido aqui: ABI e layout binário não existem num interpretador de árvore"]]}},
+ {"callout": {"tipo": "atencao", "titulo": "O que fica de fora, e o que vem depois", "texto": "As partes 3 a 15 da referência Deep Tech — ownership, borrow checker, STM, `comptime`, FFI de ponteiro cru, LLVM, SIMD, alocadores, bare-metal — descrevem uma linguagem **compilada com controle de memória manual**. O DataForge é interpretado, com coleta automática e zero dependência: as peças equivalentes que existem são `Arcane.Concurrent` (mutex, semáforo, canal, contador atômico), `Arcane.Memoria` (referência fraca, coletor), a travessia de processo para usar mais de um núcleo, e a ponte para o Python quando o que falta é uma biblioteca nativa."}},
+]},
+]

@@ -253,6 +253,8 @@ dataforge version`}
         head={['Área', 'Recursos']}
         rows={[
           [<><strong>Tipos</strong></>, <>anotações opcionais verificadas, <code>typeof</code>, <code>cast</code>, análise estática</>],
+          [<><strong><Link href="/docs/tipos/visao-geral">Sistema de tipos</Link></strong></>, <><Link href="/docs/tipos-nomeados">alias, união, interseção, refinamento e tipo opaco</Link>; <Link href="/docs/tipos/genericos">generics com limite, em ação, blueprint, record, enum e trait</Link>; tipos indexados (<code>Vetor&lt;3&gt;</code>); <Link href="/docs/tipos/tuplas">tuplas</Link>; <Link href="/docs/tipos/reflexao">reflexão</Link></>],
+          [<><strong><Link href="/docs/tipos/resultado">Resultado</Link></strong></>, <>a falha como valor: <code>ok</code>/<code>falha</code> com <code>mapear</code>, <code>entao</code> e <code>todos</code>; <code>Talvez</code> para onde <code>void</code> é ambíguo</>],
           [<><strong>Dados</strong></>, <>records imutáveis, enums, clusters, vaults, compreensões</>],
           [<><strong>Fluxo</strong></>, <><code>given</code>/<code>orif</code>/<code>otherwise</code>, <code>match</code> estrutural, quatro laços</>],
           [<><strong>Ações</strong></>, <>padrões, tipos, closures, lambdas, decoradores, <code>defer</code></>],
@@ -284,20 +286,33 @@ dataforge version`}
           bloqueio para laço quente. Uma VM de bytecode é o próximo salto.
         </li>
         <li>
-          <strong>Generics com restrição</strong> — <code>&lt;T&gt;</code>{' '}
-          existe e o analisador o aceita, mas não há{' '}
-          <code>&lt;T extends Comparable&gt;</code>: o parâmetro documenta a
-          relação entre entrada e saída, e não é verificado em execução.
+          <strong>Variância declarada</strong> —{' '}
+          <code>&lt;T extends Number&gt;</code> é cobrado nas duas metades, e{' '}
+          <code>Cluster&lt;T&gt;</code> é conferido item a item, mas não há{' '}
+          <code>in</code>/<code>out</code> para declarar covariância: uma{' '}
+          <code>Cluster&lt;Filha&gt;</code> não é aceita onde se pede{' '}
+          <code>Cluster&lt;Mae&gt;</code>.
         </li>
         <li>
-          <strong>Exaustividade além de enum</strong> — o <code>match</code>{' '}
-          avisa quando um membro de enum fica de fora, mas não confere
-          sequências nem records.
+          <strong>Exaustividade em padrão aninhado</strong> — o{' '}
+          <code>match</code> avisa o que falta em enum, booleano, sequência e
+          na família de um <code>abstract blueprint</code>; ele não desce em{' '}
+          <code>[Cor.A, x]</code>, e um ramo com guarda nunca conta como
+          cobertura.
         </li>
         <li>
-          <strong>Depurador gráfico</strong> — <code>dataforge debug</code>{' '}
-          existe e para, anda e inspeciona no terminal, mas ainda não fala o
-          protocolo que poria os controles na barra do editor.
+          <strong>Prova formal de refinamento</strong> — um{' '}
+          <code>where</code> é <em>verificado</em>: o <code>check</code>{' '}
+          decide sobre literais, e o resto é conferido na fronteira, em
+          execução. Não há prova de que a regra nunca falha, e isso pediria um
+          provador, não um analisador.
+        </li>
+        <li>
+          <strong>Memória manual e FFI de ponteiro</strong> — não há{' '}
+          <em>ownership</em>, <em>borrow checker</em>, alocador próprio nem{' '}
+          ponteiro cru: a coleta é automática. Para mais de um núcleo existe{' '}
+          a travessia de processo; para biblioteca nativa, a{' '}
+          <Link href="/docs/tecnicas/ponte">ponte para o Python</Link>.
         </li>
         <li>
           <strong>Ecossistema</strong> — o registro tem 20 pacotes, todos deste
@@ -307,9 +322,15 @@ dataforge version`}
       </ul>
 
       <p>
-        O que <em>deixou</em> de faltar desde a última revisão: LSP,
-        depurador, exaustividade de enum, contrato de trait e o gerenciador de
-        pacotes — todos existem hoje.
+        O que <em>deixou</em> de faltar desde a última revisão: LSP,{' '}
+        <Link href="/docs/editor">depurador no editor (DAP) com watchpoint</Link>,{' '}
+        <Link href="/docs/tipos/genericos">generics com limite</Link>,{' '}
+        conteúdo de coleção verificado,{' '}
+        <Link href="/docs/tipos-nomeados">tipos nomeados</Link>,{' '}
+        <Link href="/docs/tipos/tuplas">tuplas</Link>, contrato de trait e o
+        gerenciador de pacotes — todos existem hoje. O mapa item por item,
+        com o que existe e o que não, está em{' '}
+        <Link href="/docs/tipos/mapa">Fundamentos e tipos: o mapa</Link>.
       </p>
 
       <p>
@@ -331,6 +352,10 @@ dataforge version`}
         </Card>
         <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1650 símbolos">
           Estatística, bancos, HTTP, criptografia, Parquet, ML, streaming.
+        </Card>
+        <Card href="/docs/tipos/visao-geral" title="Sistema de tipos" meta="novo">
+          Alias, união, interseção, refinamento e tipo opaco; generics em
+          record, enum e trait; tuplas, tipos indexados e reflexão.
         </Card>
         <Card href="/docs/referencia/gramatica" title="Referência formal">
           Gramática EBNF, palavras reservadas, precedência e semântica.

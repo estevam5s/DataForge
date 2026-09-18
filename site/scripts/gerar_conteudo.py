@@ -46,6 +46,7 @@ MODULOS = [
     "tipos_genericos",
     "tipos_tuplas",
     "tipos_resultado",
+    "tipos_mapa",
     "plataforma",
     "vitrine",
     "versoes",
