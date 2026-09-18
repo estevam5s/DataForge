@@ -464,6 +464,74 @@ class Fraco:
         return f"<fraco {'vivo' if self.vivo() else 'morto'}>"
 
 
+class Escopo:
+    """Vários recursos, uma saída — e a ordem INVERSA da entrada.
+
+    É a forma prática do que uma linguagem com destrutores chama de
+    *lifetime*: o recurso vive enquanto o escopo vive. A ordem importa e
+    é a inversa de propósito — o que foi aberto por último costuma
+    depender do que veio antes, e fechar na ordem da entrada quebraria a
+    transação antes de a conexão dela sair.
+    """
+
+    __slots__ = ("_itens", "_solto", "_trava")
+
+    def __init__(self):
+        self._itens = []
+        self._solto = False
+        self._trava = threading.RLock()
+
+    def guardar(self, alvo):
+        """Entrega o recurso ao escopo, e o devolve para ser usado."""
+        if self._solto:
+            raise RuntimeError_(
+                "este escopo já foi solto: o que entrar agora não sai mais.",
+                0, 0, dica="abra outro escopo", doc="memoria/posse")
+        with self._trava:
+            self._itens.append(alvo)
+        return alvo
+
+    def dono(self, valor=None, ao_soltar=None, nome="valor"):
+        """Cria o dono JÁ guardado — o caminho que não dá para esquecer."""
+        return self.guardar(Dono(valor, ao_soltar, str(nome)))
+
+    def quantos(self):
+        return len(self._itens)
+
+    def vivo(self):
+        return not self._solto
+
+    def soltar(self):
+        """Solta tudo, do último para o primeiro. Erro num não para os outros."""
+        with self._trava:
+            if self._solto:
+                return 0
+            self._solto = True
+            itens = list(reversed(self._itens))
+            self._itens = []
+        soltos, falhas = 0, []
+        for item in itens:
+            soltador = getattr(item, "soltar", None)
+            if not callable(soltador):
+                continue
+            try:
+                soltador()
+                soltos += 1
+            except Exception as erro:                      # noqa: BLE001
+                # Um recurso que falha ao fechar não pode deixar os
+                # outros abertos: é o mesmo raciocínio do 'defer'.
+                falhas.append(erro)
+        if falhas:
+            raise RuntimeError_(
+                f"{len(falhas)} recurso(s) falharam ao soltar; os demais "
+                f"foram soltos assim mesmo.", 0, 0,
+                nota=str(falhas[0]), doc="memoria/posse")
+        return soltos
+
+    def __repr__(self):                                    # pragma: no cover
+        return f"<escopo {len(self._itens)} recurso(s)>"
+
+
 # ═════════════════════════════════════════════════════════════
 #  As portas de entrada
 # ═════════════════════════════════════════════════════════════
@@ -491,6 +559,20 @@ def com(alvo, acao):
 
 def celula(valor=None):
     return Celula(valor)
+
+
+def escopo():
+    """Um escopo que solta tudo o que recebeu, na ordem inversa."""
+    return Escopo()
+
+
+def com_escopo(acao):
+    """Abre um escopo, roda o corpo e solta tudo — inclusive no erro."""
+    alvo = Escopo()
+    try:
+        return acao(alvo)
+    finally:
+        alvo.soltar()
 
 
 def compartilhado(valor=None, ao_soltar=None):
@@ -542,6 +624,11 @@ class ArcanePosse:
             "dono": dono,
             "com": com,
             "Dono": Dono,
+
+            # ── escopo ──
+            "escopo": escopo,
+            "com_escopo": com_escopo,
+            "Escopo": Escopo,
 
             # ── empréstimo ──
             "celula": celula,

@@ -211,6 +211,35 @@ out d.vivo(), d.usar(lambda x => len(x))
 ''') == "yes 2"
 
 
+def test_o_escopo_solta_tudo_na_ordem_inversa():
+    assert rodar('''
+adopt Arcane.Posse as P
+saida := []
+
+e := P.escopo()
+e.dono("conexao", lambda x => saida.append(x))
+e.dono("transacao", lambda x => saida.append(x))
+arquivo := e.guardar(P.dono("arquivo", lambda x => saida.append(x)))
+
+out e.quantos(), arquivo.usar(lambda x => len(x))
+out e.soltar(), saida
+out e.vivo(), e.soltar()
+''') == "3 7\n3 [arquivo, transacao, conexao]\nno 0"
+
+
+def test_com_escopo_solta_ate_quando_o_corpo_falha():
+    assert rodar('''
+adopt Arcane.Posse as P
+saida := []
+
+monitor:
+    P.com_escopo(lambda e => e.dono("a", lambda x => saida.append(x))
+                              .usar(lambda x => trigger "no meio"))
+handle Error as e:
+    out e.message, saida
+''') == "no meio [a]"
+
+
 # ── contagem de referência ───────────────────────────────────
 
 def test_o_compartilhado_solta_quando_o_ultimo_sai():

@@ -234,7 +234,9 @@ export const nav: NavSection[] = [
     badge: 'novo',
     items: [
       { title: 'Posse e empréstimo', href: '/docs/memoria/posse', badge: 'novo' },
+      { title: 'Escopo de recursos', href: '/docs/memoria/escopo', badge: 'novo' },
       { title: 'Memória e layout', href: '/docs/memoria/layout', badge: 'novo' },
+      { title: 'Memória determinística: o mapa', href: '/docs/memoria/mapa', badge: 'novo' },
     ],
   },
   {

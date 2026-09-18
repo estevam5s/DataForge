@@ -6181,6 +6181,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "Escopo",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
      "nome": "Fraco",
      "sig": "(compartilhado)",
      "tipo": "funcao"
@@ -6201,6 +6206,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "com_escopo",
+     "sig": "(acao)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "compartilhado",
      "sig": "(valor, ao_soltar)",
      "tipo": "funcao"
@@ -6213,6 +6223,11 @@
     {
      "nome": "e_dono",
      "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escopo",
+     "sig": "()",
      "tipo": "funcao"
     },
     {
@@ -11194,7 +11209,7 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2411,
+  "testes": 2413,
   "exemplos": 44,
   "arquivosDf": 366
  },

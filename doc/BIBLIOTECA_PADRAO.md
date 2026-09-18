@@ -58,7 +58,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Injecao`](#arcaneinjecao) | `Injecao / DI` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | [`Arcane.Padroes`](#arcanepadroes) | `Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
 | [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 10 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
-| [`Arcane.Posse`](#arcaneposse) | `Posse` | 13 | Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo. |
+| [`Arcane.Posse`](#arcaneposse) | `Posse` | 16 | Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo. |
 | [`Arcane.Resultado`](#arcaneresultado) | `Resultado / Result` | 13 | A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'. |
 | [`Arcane.Tipos`](#arcanetipos) | `Tipos` | 10 | Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de um valor ('Cluster<Integer>', 'Tuple<Integer, String>') e os campos de um record ou instancia com o tipo de cada um. |
 | [`Arcane.Eventos`](#arcaneeventos) | `Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
@@ -2214,7 +2214,7 @@ Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com libera
 adopt Arcane.Posse as Posse
 ```
 
-**Funções (13)**
+**Funções (16)**
 
 | Assinatura |
 |------------|
@@ -2222,13 +2222,16 @@ adopt Arcane.Posse as Posse
 | `Compartilhado(valor=None, ao_soltar=None, _nucleo=None, atomico=False)` |
 | `Dono(valor, ao_soltar=None, nome='valor')` |
 | `Emprestimo(valor, exclusivo=False)` |
+| `Escopo()` |
 | `Fraco(compartilhado)` |
 | `atomico(valor=None, ao_soltar=None)` |
 | `celula(valor=None)` |
 | `com(alvo, acao)` |
+| `com_escopo(acao)` |
 | `compartilhado(valor=None, ao_soltar=None)` |
 | `dono(valor=None, ao_soltar=None, nome='valor')` |
 | `e_dono(valor)` |
+| `escopo()` |
 | `estado(alvo)` |
 | `fraco(alvo)` |
 
