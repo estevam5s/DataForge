@@ -1,0 +1,161 @@
+// Exercicio 252 — Tipos nomeados: alias, uniao, intersecao, refinamento e opaco
+//
+// Um 'type' da nome a um tipo. As cinco formas sao a MESMA declaracao:
+// o que muda e o que vem depois do ':='.
+//
+// A regra de ouro: tipo transparente CONFERE, tipo opaco EMBRULHA.
+
+// ── alias: um nome para o que ja existe ──
+type Id := Integer
+type Ids := Cluster<Id>
+
+x: Id := 7
+lista: Ids := [1, 2, 3]
+
+assert typeof(x) is "Integer"        // o alias nao cria tipo novo
+assert len(lista) is 3
+
+// o nome que a pessoa escreveu aparece na mensagem
+monitor:
+    errado: Id := "sete"
+    assert no
+handle TypeError as e:
+    assert "Id" in e.message and "Integer" in e.message
+
+// ── alias generico: uma funcao de tipo ──
+type Par<T> := Cluster<T>
+
+p: Par<Integer> := [1, 2]
+assert len(p) is 2
+
+monitor:
+    misturado: Par<Integer> := [1, "dois"]
+    assert no
+handle TypeError as e:
+    assert "Integer" in e.message
+
+// ── uniao: um destes, e nada mais ──
+type Json := String | Integer | Boolean | Void
+
+a: Json := "oi"
+b: Json := 3
+c: Json := void
+assert $"{a} {b} {c}" is "oi 3 void"
+
+monitor:
+    d: Json := [1]
+    assert no
+handle TypeError as e:
+    assert "String" in e.message and "Integer" in e.message
+
+// a uniao tambem vale sem nome, direto na anotacao
+action tamanho(v: Integer | String) -> Integer:
+    yield len($"{v}")
+
+assert tamanho(42) is 2
+assert tamanho("abc") is 3
+
+// ── intersecao: os dois ao mesmo tempo ──
+trait Serial:
+    action serializar()
+
+trait Ordenavel:
+    action comparar(outro)
+
+type Auditavel := Serial & Ordenavel
+
+blueprint Lancamento extends Serial, Ordenavel:
+    valor := 10
+    action serializar():
+        yield $"L{self.valor}"
+    action comparar(outro):
+        yield self.valor - outro.valor
+
+blueprint Rascunho extends Serial:
+    action serializar():
+        yield "rascunho"
+
+action registrar(item: Auditavel) -> String:
+    yield item.serializar()
+
+assert registrar(spawn Lancamento()) is "L10"
+
+monitor:
+    registrar(spawn Rascunho())          // so serializa: falta comparar
+    assert no
+handle TypeError as e:
+    assert "Ordenavel" in e.message
+
+// ── refinamento: o tipo com uma regra ──
+type Positivo := Integer where valor bigger 0
+type Email := String where "@" in valor
+
+record Produto:
+    nome: String
+    preco: Positivo
+
+action desconto(preco: Positivo, por_cento: Positivo) -> Positivo:
+    yield preco - (preco * por_cento ~/ 100)
+
+assert desconto(200, 10) is 180
+assert Produto("caneta", 3).preco is 3
+
+contato: Email := "ana@exemplo.com"
+assert "@" in contato
+
+// a regra vale na fronteira: campo, parametro e retorno
+monitor:
+    Produto("brinde", 0)
+    assert no
+handle TypeError as e:
+    assert "Positivo" in e.message
+    assert "valor bigger 0" in e.message   // a regra aparece na mensagem
+
+monitor:
+    desconto(100, 200)                     // devolveria -100
+    assert no
+handle TypeError as e:
+    assert "return value" in e.message
+
+// ── opaco: so nasce validado, e e nominal ──
+opaque type Cpf := String where len(valor) is 11
+opaque type Metros := Float where valor bigger_eq 0.0
+
+documento := Cpf("12345678901")
+distancia := Metros(2.5)
+
+assert typeof(documento) is "Cpf"
+assert documento.valor is "12345678901"    // o dado de dentro
+assert $"{documento}" is "12345678901"     // texto, pelo valor
+assert distancia.valor * 2 is 5.0
+assert distancia bigger Metros(1.0)        // ordem, pelo valor
+
+action cadastrar(quem: Cpf) -> String:
+    yield quem.valor
+
+assert cadastrar(documento) is "12345678901"
+
+// um texto com onze digitos NAO e um Cpf: e isso que o opaco protege
+monitor:
+    cadastrar("12345678901")
+    assert no
+handle TypeError as e:
+    assert "Cpf" in e.message
+
+// e o construtor valida
+monitor:
+    Cpf("123")
+    assert no
+handle TypeError as e:
+    assert "Cpf" in e.message
+
+// igualdade e serializacao olham o valor de dentro
+adopt Arcane.Serialization as S
+adopt Arcane.Collections as C
+
+outro := Cpf("12345678901")
+assert documento is outro
+assert S.to_json({"cpf": documento}) is "{\"cpf\": \"12345678901\"}"
+assert len(C.set([documento, outro])) is 1
+
+out "252 ok"

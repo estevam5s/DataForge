@@ -64,7 +64,8 @@ from .lexer import tokenize
 from .parser import parse
 from .stdlib import get_module, list_modules
 from .stdlib.catalogo import DESCRICOES
-from .tokens import CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN, KEYWORDS
+from .tokens import (CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN,
+                     CONTEXTUAIS_TIPO, KEYWORDS)
 from .typechecker import check_program
 
 #: Como o LSP numera severidade.
@@ -475,7 +476,7 @@ _ABREM_BLOCO = {"given", "orif", "otherwise", "cycle", "persist", "perform",
 def _itens_de_palavra():
     saida = []
     for palavra in sorted(set(KEYWORDS) | set(CONTEXTUAIS_BLUEPRINT) |
-                          set(CONTEXTUAIS_KILN)):
+                          set(CONTEXTUAIS_KILN) | set(CONTEXTUAIS_TIPO)):
         item = {"label": palavra, "kind": K_PALAVRA,
                 "detail": (PALAVRAS[palavra][0] if palavra in PALAVRAS
                            else _O_QUE_A_PALAVRA_FAZ.get(

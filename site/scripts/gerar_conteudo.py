@@ -42,6 +42,7 @@ MODULOS = [
     "api_publica",
     "crucible_doc",
     "lavra",
+    "tipos_nomeados",
     "plataforma",
     "vitrine",
     "versoes",

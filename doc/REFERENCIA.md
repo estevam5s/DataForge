@@ -462,7 +462,44 @@ A verificação compara o **último segmento**: um record não carrega o apelido
 quem o importou, e o mesmo `Pedido` é `M.Pedido` aqui, `P.Pedido` no vizinho e
 `Pedido` em casa.
 
-### 3.3 Conversão
+### 3.3 Tipos nomeados
+
+`type` dá nome a um tipo; `opaque type` cria um tipo **nominal**, que só
+nasce pela validação. `type`, `opaque` e `where` são **contextuais**:
+`type := 3` e uma coluna chamada `where` continuam valendo.
+
+```dataforge
+type Id := Integer                                   // alias
+type Par<T> := Cluster<T>                            // alias genérico
+type Json := String | Integer | Boolean | Void       // união
+type Auditavel := Serial & Ordenavel                 // interseção
+type Positivo := Integer where valor bigger 0        // refinamento
+opaque type Cpf := String where len(valor) is 11     // opaco
+```
+
+| Forma | O valor | `typeof` responde | Conferido |
+|---|---|---|---|
+| alias | o mesmo de baixo | o tipo de baixo | como o de baixo |
+| união | qualquer um dos membros | o tipo do valor | um dos membros serve |
+| interseção | o que é tudo aquilo | o tipo do valor | todas as partes |
+| refinamento | o mesmo de baixo | o tipo de baixo | base, e depois a regra |
+| opaco | um valor próprio (`.valor` desembrulha) | o nome do tipo | nominal: só `Nome(…)` cria |
+
+A regra de um refinamento vale em **toda fronteira** — declaração,
+parâmetro, retorno e campo —, e a base é conferida antes dela. A união
+e a interseção também podem ser escritas direto na anotação
+(`x: Integer | String`), sem nome; `|` e `&` não se misturam na mesma
+anotação.
+
+O `check` prova o que um literal permite provar, com código próprio:
+`tipo-refinado`, `tipo-uniao`, `tipo-intersecao`, `tipo-opaco`,
+`tipo-circular`. Um valor vindo de chamada, arquivo ou rede não é
+acusado.
+
+Um tipo atravessa o `adopt`: `relay Positivo, Cpf` o exporta, e o outro
+arquivo escreve `T.Positivo`.
+
+### 3.4 Conversão
 
 Formas disponíveis (`valor` e `x` são espaços reservados):
 
@@ -1725,7 +1762,8 @@ programa       = { instrução } ;
 
 instrução      = decl_var | decl_destr | decl_steady | decl_shadow | decl_static
                | decl_ação | decl_blueprint | decl_trait | decl_contract
-               | decl_augment | decl_record | decl_enum | expects | promises
+               | decl_augment | decl_record | decl_enum | decl_tipo
+               | expects | promises
                | adopt | relay
                | condicional | seleção_match | laço
                | bloco_erro | concorrência
@@ -1753,6 +1791,9 @@ decl_static    = "static" [ "steady" ] identificador [ ":" tipo ] ":=" expressã
 decl_ação      = { "mark" "@" identificador [ "(" args ")" ] }
                  [ "overload" ] [ "async" | "stream" ] "action" identificador
                  [ genéricos ] "(" [ params ] ")" [ "->" tipo ] ":" bloco ;
+decl_tipo      = [ "opaque" ] "type" Identificador [ genéricos ] ":=" tipo_comp
+                 [ "where" expressão ] NEWLINE ;
+tipo_comp      = tipo { "|" tipo } | tipo { "&" tipo } ;
 genéricos      = "<" genérico { "," genérico } ">" ;
 genérico       = Identificador [ "extends" tipo ] ;
 params         = param { "," param } ;

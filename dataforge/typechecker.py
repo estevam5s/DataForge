@@ -62,6 +62,142 @@ def canonical(nome: str) -> str:
     return ALIASES.get(nome, nome)
 
 
+class _SemValor:
+    """O que este módulo devolve quando NÃO conseguiu decidir.
+
+    'None' não serve: 'void' é um valor legítimo da linguagem, e
+    confundir "não sei" com "vale void" faria o analisador acusar código
+    certo — que é o pior defeito que ele pode ter.
+    """
+
+    def __repr__(self):                                    # pragma: no cover
+        return "<sem valor>"
+
+
+_SEM_VALOR = _SemValor()
+
+#: As funções que a prova de um refinamento pode chamar. É uma lista
+#: FECHADA: a regra é código de quem escreveu, e o analisador não pode
+#: executar código arbitrário para decidir se acusa ou cala.
+_PURAS = {
+    "len": len, "abs": abs, "min": min, "max": max, "round": round,
+    "sum": sum, "int": int, "float": float, "str": str,
+    "upper": lambda t: t.upper(), "lower": lambda t: t.lower(),
+}
+
+_ARITMETICA = {
+    "+": lambda a, b: a + b, "-": lambda a, b: a - b,
+    "*": lambda a, b: a * b, "/": lambda a, b: a / b,
+    "%": lambda a, b: a % b, "**": lambda a, b: a ** b,
+    "~/": lambda a, b: a // b,
+}
+
+_ORDEM = {
+    "is": lambda a, b: a == b, "isnt": lambda a, b: a != b,
+    "bigger": lambda a, b: a > b, "smaller": lambda a, b: a < b,
+    "bigger_eq": lambda a, b: a >= b, "smaller_eq": lambda a, b: a <= b,
+}
+
+
+def valor_constante(no):
+    """O valor de um literal, ou `_SEM_VALOR`. Nada é executado aqui."""
+    if isinstance(no, ast.IntegerLiteral) or isinstance(no, ast.FloatLiteral) \
+            or isinstance(no, ast.StringLiteral):
+        return no.value
+    if isinstance(no, ast.BooleanLiteral):
+        return bool(no.value)
+    if isinstance(no, ast.VoidLiteral):
+        return None
+    if isinstance(no, ast.UnaryOp) and no.op == "-":
+        interno = valor_constante(no.operand)
+        return _SEM_VALOR if interno is _SEM_VALOR else -interno
+    if isinstance(no, ast.ListLiteral):
+        itens = [valor_constante(i) for i in no.elements]
+        return _SEM_VALOR if any(i is _SEM_VALOR for i in itens) else itens
+    if isinstance(no, ast.DictLiteral):
+        pares = {}
+        for chave, valor in no.pairs:
+            k, v = valor_constante(chave), valor_constante(valor)
+            if k is _SEM_VALOR or v is _SEM_VALOR or isinstance(k, (list, dict)):
+                return _SEM_VALOR
+            pares[k] = v
+        return pares
+    return _SEM_VALOR
+
+
+def avaliar_puro(no, ambiente):
+    """A regra de um refinamento sobre um valor conhecido.
+
+    Só entende o que é PURO — literal, nome do ambiente, conta,
+    comparação, 'and'/'or'/'not', índice e as funções de `_PURAS`.
+    Qualquer outra coisa devolve `_SEM_VALOR`, e o analisador cala.
+    """
+    constante = valor_constante(no)
+    if constante is not _SEM_VALOR:
+        return constante
+    if isinstance(no, ast.Identifier):
+        return ambiente.get(no.name, _SEM_VALOR)
+    if isinstance(no, ast.NotOp):
+        interno = avaliar_puro(no.operand, ambiente)
+        return _SEM_VALOR if interno is _SEM_VALOR else not interno
+    if isinstance(no, ast.LogicalOp):
+        esquerda = avaliar_puro(no.left, ambiente)
+        if esquerda is _SEM_VALOR:
+            return _SEM_VALOR
+        if no.op == "and" and not esquerda:
+            return esquerda
+        if no.op == "or" and esquerda:
+            return esquerda
+        return avaliar_puro(no.right, ambiente)
+    if isinstance(no, (ast.BinaryOp, ast.ComparisonOp)):
+        esquerda = avaliar_puro(no.left, ambiente)
+        direita = avaliar_puro(no.right, ambiente)
+        if esquerda is _SEM_VALOR or direita is _SEM_VALOR:
+            return _SEM_VALOR
+        operacao = (_ORDEM if isinstance(no, ast.ComparisonOp)
+                    else _ARITMETICA).get(no.op)
+        if operacao is None:
+            return _SEM_VALOR
+        try:
+            return operacao(esquerda, direita)
+        except Exception:                                  # noqa: BLE001
+            # Comparar texto com número, dividir por zero: quem decide
+            # isso é a execução, com a mensagem dela.
+            return _SEM_VALOR
+    if isinstance(no, ast.IndexAccess):
+        alvo = avaliar_puro(no.object, ambiente)
+        indice = avaliar_puro(no.index, ambiente)
+        if alvo is _SEM_VALOR or indice is _SEM_VALOR:
+            return _SEM_VALOR
+        try:
+            return alvo[indice]
+        except Exception:                                  # noqa: BLE001
+            return _SEM_VALOR
+    if isinstance(no, ast.FunctionCall) and isinstance(no.callee, ast.Identifier):
+        funcao = _PURAS.get(no.callee.name)
+        if funcao is None or no.kwargs:
+            return _SEM_VALOR
+        argumentos = [avaliar_puro(a, ambiente) for a in no.args]
+        if any(a is _SEM_VALOR for a in argumentos):
+            return _SEM_VALOR
+        try:
+            return funcao(*argumentos)
+        except Exception:                                  # noqa: BLE001
+            return _SEM_VALOR
+    return _SEM_VALOR
+
+
+def _como_texto(valor):
+    """O valor na mensagem, no vocabulário da linguagem."""
+    if valor is None:
+        return "void"
+    if valor is True:
+        return "yes"
+    if valor is False:
+        return "no"
+    return repr(valor) if isinstance(valor, str) else str(valor)
+
+
 def base_do_tipo(nome: str) -> str:
     """'Cluster<Integer>' -> 'Cluster'. O resto das conferencias fala da base."""
     return partir_tipo(nome)[0] if "<" in nome else nome
@@ -92,6 +228,7 @@ def compatible(esperado: str, obtido: str) -> bool:
 
 
 from .colecoes_tipadas import partir as partir_tipo, juntar as juntar_tipo  # noqa: E402
+from .tipos_nomeados import separar_uniao  # noqa: E402
 
 
 class Diagnostic:
@@ -268,6 +405,9 @@ class TypeChecker:
         #: mesma mensagem cinco vezes.
         self._ciclo_relatado = False
         self.known_types = set(ALIASES.values())
+        #: Os 'type' declarados: nome -> o nó da declaração. Serve para
+        #: resolver a anotação, provar o literal e recusar o ciclo.
+        self.tipos_nomeados = {}
         # Os '<T>' do blueprint que esta sendo analisado. Um metodo dele
         # pode usa-los como tipo; fora dali, eles nao existem.
         self._genericos_do_blueprint = set()
@@ -676,6 +816,11 @@ class TypeChecker:
                 self.record_defaults[stmt.name] = {c for c, _, d in stmt.fields if d is not None}
                 self.known_types.add(stmt.name)
                 escopo.declare(stmt.name, "Record", stmt.line, stmt.column)
+            elif isinstance(stmt, ast.TypeDeclaration):
+                # O nome existe a partir daqui, e a ordem no arquivo não
+                # importa: um 'type' declarado embaixo é usado em cima.
+                self.tipos_nomeados.setdefault(stmt.name, stmt)
+                self.known_types.add(stmt.name)
             elif isinstance(stmt, ast.EnumDeclaration):
                 self.enums[stmt.name] = [m for m, _ in stmt.members]
                 self.known_types.add(stmt.name)
@@ -925,6 +1070,111 @@ class TypeChecker:
         self.infer(node, escopo)
         return False
 
+    def _nome_do_alvo(self, node):
+        alvo = getattr(node, "target", None)
+        return getattr(alvo, "name", "") or "the value"
+
+    def _acusar_tipo(self, declarado, obtido, node, o_que):
+        """A mensagem certa para o tipo certo — e o código que se silencia."""
+        partes = self._partes_do_tipo(declarado)
+        if partes is None:
+            self.error(
+                f"Declared as {declarado} but the value is {obtido}", node,
+                f"Change the annotation to {obtido} or fix the value",
+                "type-mismatch")
+            return
+        especie, nomes, opaco = partes
+        if opaco:
+            self.error(
+                f"{o_que} declared as {declarado} but the value is {obtido}",
+                node, f"{declarado} is opaque — build it with {declarado}(…)",
+                "tipo-opaco")
+        elif especie == "uniao":
+            self.error(
+                f"{o_que} declared as {declarado} ({' | '.join(nomes)}) but "
+                f"the value is {obtido}", node,
+                f"Pass one of: {' | '.join(nomes)}", "tipo-uniao")
+        elif especie == "intersecao":
+            self.error(
+                f"{o_que} declared as {declarado} ({' & '.join(nomes)}) but "
+                f"the value is {obtido}", node,
+                f"{obtido} has to be all of: {' & '.join(nomes)}",
+                "tipo-intersecao")
+        else:
+            self.error(
+                f"{o_que} declared as {declarado} (a {nomes[0]}) but the "
+                f"value is {obtido}", node,
+                f"Change the annotation to {obtido} or fix the value",
+                "type-mismatch")
+
+    def _provar_nomeado(self, declarado, valor, escopo, o_que):
+        """A regra de um refinamento, sobre um literal — antes de rodar."""
+        declaracao = self._declaracao_de_tipo(declarado)
+        if declaracao is not None and declaracao.regra is not None:
+            self._provar_regra(declaracao, valor, escopo, o_que)
+
+    def _provar_regra(self, declaracao, valor, escopo, o_que):
+        constante = valor_constante(valor)
+        if constante is _SEM_VALOR:
+            return
+        resposta = avaliar_puro(declaracao.regra, {"valor": constante})
+        if resposta is _SEM_VALOR or resposta:
+            return
+        self.error(
+            f"{o_que} declared as {declaracao.name}, and "
+            f"{_como_texto(constante)} breaks its rule: "
+            f"{declaracao.regra_texto}", valor,
+            f"{declaracao.name} is a {declaracao.partes[0]} where "
+            f"{declaracao.regra_texto}", "tipo-refinado")
+
+    def st_TypeDeclaration(self, node, escopo):
+        """'type Nome := …' — o nome existe, as partes existem, e não há ciclo."""
+        anterior = self.tipos_nomeados.get(node.name)
+        if anterior is not None and anterior is not node:
+            self.error(
+                f"Type '{node.name}' is declared twice in this file", node,
+                "The second declaration is the one that runs — rename one",
+                "declaracao-repetida")
+        self.tipos_nomeados[node.name] = node
+        self.known_types.add(node.name)
+
+        genericos = tuple(node.type_params or ())
+        for parte in node.partes:
+            falta = self._tipo_desconhecido(parte, genericos)
+            if falta and falta != node.name:
+                self.error(
+                    f"Unknown type '{falta}' in 'type {node.name}'", node,
+                    self._hint_tipo(falta), "unknown-type")
+        cadeia = self._ciclo_de_tipo(node.name)
+        if cadeia:
+            self.error(
+                f"Type '{node.name}' is defined in terms of itself: "
+                f"{' → '.join(cadeia)}", node,
+                "A type needs a concrete base — break the chain with a "
+                "record, a blueprint or a builtin type",
+                "tipo-circular")
+        if node.regra is not None:
+            escopo_da_regra = Scope(escopo)
+            escopo_da_regra.declare("valor", canonical(node.partes[0]),
+                                    node.line, node.column)
+            self.infer(node.regra, escopo_da_regra)
+        return False
+
+    def _ciclo_de_tipo(self, nome, vistos=None):
+        """A cadeia 'A → B → A', ou vazio. Em largura: a mais curta."""
+        vistos = vistos or []
+        if nome in vistos:
+            return vistos + [nome]
+        declaracao = self.tipos_nomeados.get(nome)
+        if declaracao is None:
+            return []
+        for parte in declaracao.partes:
+            base = partir_tipo(canonical(parte))[0] if "<" in parte else parte
+            achado = self._ciclo_de_tipo(base, vistos + [nome])
+            if achado:
+                return achado
+        return []
+
     def st_Assignment(self, node, escopo):
         tipo = self.infer(node.value, escopo)
         declarado = canonical(getattr(node, 'declared_type', '') or '')
@@ -937,12 +1187,12 @@ class TypeChecker:
                     + (f" in '{node.declared_type}'" if falta != node.declared_type else ""),
                     node, self._hint_tipo(falta), "unknown-type")
             elif not self._compativel(declarado, tipo):
-                self.error(
-                    f"Declared as {declarado} but the value is {tipo}", node,
-                    f"Change the annotation to {tipo} or fix the value",
-                    "type-mismatch")
+                self._acusar_tipo(declarado, tipo, node.value or node,
+                                  f"variable '{self._nome_do_alvo(node)}'")
             else:
                 self._conferir_conteudo(declarado, node.value, escopo)
+                self._provar_nomeado(declarado, node.value, escopo,
+                                     f"variable '{self._nome_do_alvo(node)}'")
 
         # 'xs[0] := "x"' num Cluster<Integer> conhecido
         if isinstance(node.target, ast.IndexAccess) and \
@@ -2758,8 +3008,11 @@ class TypeChecker:
         return tipo
 
     def ex_BinaryOp(self, node, escopo):
-        esq = self.infer(node.left, escopo)
-        dir_ = self.infer(node.right, escopo)
+        # Um 'type' transparente CONTA como o tipo de baixo: 'Positivo' é
+        # um Integer, e sem esta tradução 'x + y' virava "Cannot add
+        # Positivo and Positivo" — um falso alarme sobre código certo.
+        esq = self._para_a_base(self.infer(node.left, escopo))
+        dir_ = self._para_a_base(self.infer(node.right, escopo))
         op = node.op
 
         if UNKNOWN in (esq, dir_) or ANY in (esq, dir_):
@@ -2837,6 +3090,10 @@ class TypeChecker:
         não viu: a mãe de outro módulo pode herdar de 'esperado', e acusar
         ali seria o falso alarme de sempre.
         """
+        if self.tipos_nomeados:
+            decidido = self._compativel_nomeado(esperado, obtido)
+            if decidido is not None:
+                return decidido
         if compatible(esperado, obtido):
             return True
         if obtido not in self.blueprints:
@@ -2844,6 +3101,88 @@ class TypeChecker:
         if esperado in self._linhagem(obtido):
             return True
         return not self._blueprint_e_fechado(obtido)
+
+    def _compativel_nomeado(self, esperado, obtido):
+        """O lado esperado é um 'type'? Então quem decide é ele. None = não é.
+
+        Um tipo OPACO é nominal: só serve o que veio do construtor, e o
+        que o analisador sabe disso é o tipo inferido ('Cpf' sai de
+        'Cpf(…)'). Um transparente vale pela base — é o que faz um alias
+        não atrapalhar nada.
+        """
+        if esperado == obtido:
+            return True
+        partes = self._partes_do_tipo(esperado)
+        if partes is None:
+            return None
+        especie, nomes, opaco = partes
+        if opaco:
+            return obtido in (UNKNOWN, ANY, esperado, base_do_tipo(esperado))
+        if especie == "uniao":
+            return any(self._compativel(n, obtido) for n in nomes)
+        if especie == "intersecao":
+            # Provar interseção exige a linhagem inteira dos dois lados;
+            # quando não dá para provar, o analisador cala.
+            return all(self._compativel(n, obtido) for n in nomes) or \
+                obtido in (UNKNOWN, ANY)
+        return self._compativel(nomes[0], obtido)
+
+    def _ordenavel(self, tipo):
+        """O tipo que decide a ordem: o de baixo, opaco ou não."""
+        declaracao = self._declaracao_de_tipo(tipo)
+        if declaracao is not None and declaracao.opaco:
+            return canonical(declaracao.partes[0])
+        return self._para_a_base(tipo)
+
+    def _para_a_base(self, tipo, vistos=()):
+        """'Positivo' -> 'Integer'. Um tipo opaco NÃO se desfaz: ele é
+        nominal, e tratá-lo como o de baixo desligaria a proteção."""
+        declaracao = self._declaracao_de_tipo(tipo)
+        if declaracao is None or declaracao.opaco or tipo in vistos:
+            return tipo
+        if declaracao.especie != "alias":
+            return UNKNOWN          # união e interseção: o que se sabe é pouco
+        return self._para_a_base(
+            canonical(self._trocar_parametros(declaracao,
+                                              declaracao.partes[0], tipo)),
+            vistos + (tipo,))
+
+    def _partes_do_tipo(self, nome):
+        """(especie, partes, opaco) de um 'type' — inclusive 'Par<Integer>'.
+
+        Vale também para a união escrita direto na anotação
+        ('Integer | String'), que é a mesma coisa sem nome.
+        """
+        if isinstance(nome, str) and ("|" in nome or "&" in nome):
+            especie, partes = separar_uniao(nome)
+            if especie != "alias":
+                return especie, partes, False
+        declaracao = self._declaracao_de_tipo(nome)
+        if declaracao is None:
+            return None
+        partes = [self._trocar_parametros(declaracao, p, nome)
+                  for p in declaracao.partes]
+        return declaracao.especie, partes, declaracao.opaco
+
+    def _declaracao_de_tipo(self, nome):
+        if not isinstance(nome, str) or not self.tipos_nomeados:
+            return None
+        achado = self.tipos_nomeados.get(nome)
+        if achado is not None:
+            return achado
+        if "<" in nome:
+            return self.tipos_nomeados.get(partir_tipo(nome)[0])
+        return None
+
+    def _trocar_parametros(self, declaracao, parte, usado):
+        """'type Par<T> := Cluster<T>' visto como 'Par<Integer>'."""
+        if not declaracao.type_params or "<" not in usado:
+            return parte
+        argumentos = partir_tipo(usado)[1]
+        troca = dict(zip(declaracao.type_params, argumentos))
+        for parametro, valor in troca.items():
+            parte = re.sub(rf"\b{re.escape(parametro)}\b", valor, parte)
+        return parte
 
     def _linhagem(self, nome, vistos=None):
         """Todas as mães e traits de um blueprint, transitivamente."""
@@ -2887,8 +3226,10 @@ class TypeChecker:
         return "Boolean"
 
     def ex_ComparisonOp(self, node, escopo):
-        esq = self.infer(node.left, escopo)
-        dir_ = self.infer(node.right, escopo)
+        # Um 'type' transparente vale pela base; um opaco compara com
+        # outro do MESMO tipo, delegando ao que ele embrulha.
+        esq = self._ordenavel(self.infer(node.left, escopo))
+        dir_ = self._ordenavel(self.infer(node.right, escopo))
         if node.op in ('bigger', 'smaller', 'bigger_eq', 'smaller_eq'):
             if UNKNOWN not in (esq, dir_) and ANY not in (esq, dir_):
                 if esq in NUMERIC and dir_ in NUMERIC:
@@ -3622,6 +3963,10 @@ class TypeChecker:
         if nome in self.records:
             return self._check_record_call(nome, node, escopo)
 
+        opaco = self._declaracao_de_tipo(nome)
+        if opaco is not None and opaco.opaco:
+            return self._check_chamada_de_opaco(opaco, node, escopo)
+
         if not escopo.has(nome):
             self.error(f"Undefined action '{nome}'", node,
                        self._hint_nome(nome, self._visible_names(escopo)),
@@ -3672,17 +4017,41 @@ class TypeChecker:
             if declarado in (UNKNOWN, ANY):
                 continue
             obtido = self.infer(arg, escopo)
+            rotulo = f"parameter '{assinatura.params[indice]}' of '{nome}'"
             if not self._compativel(declarado, obtido):
-                self.error(
-                    f"Parameter '{assinatura.params[indice]}' of '{nome}' expects "
-                    f"{declarado} but got {obtido}", arg,
-                    f"Pass a {declarado}", "argument-type")
+                if self._declaracao_de_tipo(declarado) is not None:
+                    self._acusar_tipo(declarado, obtido, arg, rotulo.capitalize())
+                else:
+                    self.error(
+                        f"Parameter '{assinatura.params[indice]}' of '{nome}' expects "
+                        f"{declarado} but got {obtido}", arg,
+                        f"Pass a {declarado}", "argument-type")
             else:
                 self._conferir_conteudo(declarado, arg, escopo)
+                self._provar_nomeado(declarado, arg, escopo, rotulo.capitalize())
 
         if assinatura.is_generator:
             return "Stream"
         return assinatura.return_type
+
+    def _check_chamada_de_opaco(self, declaracao, node, escopo):
+        """'Cpf("…")' — um argumento, do tipo de baixo, e sai um Cpf."""
+        nome = declaracao.name
+        if len(node.args) != 1 or node.kwargs:
+            self.error(
+                f"'{nome}' takes exactly one value: the {declaracao.partes[0]} "
+                f"it wraps", node, f"Write {nome}(valor)", "arity")
+            return nome
+        base = canonical(declaracao.partes[0])
+        obtido = self.infer(node.args[0], escopo)
+        if not self._compativel(base, obtido):
+            self.error(
+                f"'{nome}' wraps a {base} but got {obtido}", node.args[0],
+                f"Pass a {base}", "tipo-opaco")
+        else:
+            self._provar_regra(declaracao, node.args[0], escopo,
+                               f"'{nome}(…)'")
+        return nome
 
     def _check_record_call(self, nome, node, escopo):
         campos = self.records[nome]
@@ -3786,6 +4155,9 @@ class TypeChecker:
 
     def _tipo_conhecido(self, tipo, genericos=()):
         """Todo nome dentro de 'Vault<String, Cluster<Pedido>>' existe?"""
+        if "|" in tipo or "&" in tipo:
+            _, partes = separar_uniao(tipo)
+            return all(self._tipo_conhecido(p, genericos) for p in partes)
         if "<" not in tipo:
             alvo = canonical(tipo)
             return (alvo in self.known_types or alvo == UNKNOWN
@@ -3796,6 +4168,12 @@ class TypeChecker:
 
     def _tipo_desconhecido(self, tipo, genericos=()):
         """O primeiro nome que nao existe — o que a dica deve corrigir."""
+        if "|" in tipo or "&" in tipo:
+            for parte in separar_uniao(tipo)[1]:
+                falta = self._tipo_desconhecido(parte, genericos)
+                if falta:
+                    return falta
+            return None
         if "<" not in tipo:
             return None if self._tipo_conhecido(tipo, genericos) else tipo
         base, argumentos = partir_tipo(tipo)

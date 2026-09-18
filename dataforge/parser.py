@@ -21,6 +21,10 @@ class Parser:
         #  _no_membership  — 'in' pertence ao cabecalho de cycle/observe
         self._no_ternary = 0
         self._no_membership = 0
+        #: Os 'type Nome<T> := …' ja lidos NESTE arquivo. É o que deixa
+        #: 'Par<Integer>' ser anotação sem abrir a porta para
+        #: 'Integer<String>', que continua sendo erro.
+        self._tipos_genericos = {}
         #  _em_server / _em_rota — onde as palavras do Kiln valem
         self._em_server = 0
         self._em_rota = 0
@@ -710,6 +714,11 @@ class Parser:
             if producao is not None:
                 return producao()
 
+        # ── 'type Nome := …' e 'opaque type Nome := …' ──
+        if tt == TokenType.IDENTIFIER and tok.value in ("type", "opaque") \
+                and self._abre_tipo():
+            return self.parse_declaracao_de_tipo()
+
         # ── Crucible: 'crucible "nome":' abre a suite ──
         if tt == TokenType.IDENTIFIER and tok.value == "crucible" \
                 and self._abre_crucible():
@@ -1380,6 +1389,130 @@ class Parser:
                 is_async=True, line=tok.line, column=tok.column
             )
         self.error("Expected 'action' or ':' after 'async'")
+
+    def _abre_tipo(self):
+        """'type' e 'opaque' so viram palavra quando a linha confirma.
+
+        'type := 3', 'action type(x)', 'opaque.valor' e 'v["type"]'
+        continuam sendo codigo comum: a declaracao exige um NOME logo
+        depois, e um ':=' (ou um '<' de generico) depois dele.
+        """
+        i = 0
+        if self.peek(i).value == "opaque":
+            if self.peek(i + 1).type is not TokenType.IDENTIFIER \
+                    or self.peek(i + 1).value != "type":
+                return False
+            i += 1
+        if self.peek(i + 1).type is not TokenType.IDENTIFIER:
+            return False
+        depois = self.peek(i + 2).type
+        # NEWLINE e EOF entram de proposito: 'type Id' sozinho nao e
+        # expressao nenhuma, e cair aqui rende "faltou ':='" em vez de
+        # "Unexpected token".
+        return depois in (TokenType.ASSIGN, TokenType.LT,
+                          TokenType.NEWLINE, TokenType.EOF)
+
+    def parse_declaracao_de_tipo(self):
+        """type Nome := Base | Outro where regra   ·   opaque type Nome := …"""
+        from .tipos_nomeados import separar_uniao
+        tok = self.current()
+        opaco = False
+        if tok.value == "opaque":
+            self.advance()
+            opaco = True
+        self.advance()                                   # 'type'
+        nome = self.expect(TokenType.IDENTIFIER,
+                           "Expected the type name after 'type'").value
+        parametros = self._parse_parametros_de_tipo()
+        if parametros:
+            self._tipos_genericos[nome] = len(parametros)
+        self.expect(TokenType.ASSIGN,
+                    f"Expected ':=' after 'type {nome}' — a type is declared "
+                    f"like a value: 'type {nome} := Integer'")
+        tipo = self._parse_tipo_composto(f"Expected a type after 'type {nome} :='")
+        especie, partes = separar_uniao(tipo)
+
+        regra = regra_texto = None
+        if self.current().type is TokenType.IDENTIFIER \
+                and self.current().value == "where":
+            self.advance()
+            if self.current().type in (TokenType.NEWLINE, TokenType.EOF):
+                self.error("Expected a rule after 'where', written about "
+                           "'valor' — as in 'where valor bigger 0'")
+            inicio = self.pos
+            regra = self.parse_expression()
+            regra_texto = self._texto_dos_tokens(inicio, self.pos)
+            if not regra_texto:
+                self.error("Expected a rule after 'where', written about "
+                           "'valor' — as in 'where valor bigger 0'")
+        self.match(TokenType.NEWLINE)
+        return ast.TypeDeclaration(
+            name=nome, especie=especie, partes=partes, type_params=parametros,
+            regra=regra, regra_texto=regra_texto or "", opaco=opaco,
+            line=tok.line, column=tok.column)
+
+    #: Onde NAO cabe espaco ao remontar o texto de uma regra.
+    _SEM_ESPACO_ANTES = {")", "]", ",", ":", "."}
+    _SEM_ESPACO_DEPOIS = {"(", "[", "."}
+    #: Depois destes, '(' e '[' sao chamada e indice — e colam.
+    _COLAM_ABERTURA = (TokenType.IDENTIFIER, TokenType.RPAREN,
+                       TokenType.RBRACKET, TokenType.STRING)
+
+    def _texto_dos_tokens(self, inicio, fim):
+        """A regra do 'where', como ela foi escrita — para a mensagem.
+
+        A mensagem de um refinamento mostra a regra ('valor bigger 0'), e
+        sem ela o erro diria apenas que o valor nao serve, sem dizer por
+        que. Remontar dos tokens custa nada e nao exige guardar a fonte.
+        """
+        pedacos = []
+        anterior = None
+        for indice in range(inicio, min(fim, len(self.tokens))):
+            token = self.tokens[indice]
+            if token.type in (TokenType.NEWLINE, TokenType.EOF,
+                              TokenType.INDENT, TokenType.DEDENT):
+                continue
+            texto = token.value
+            if token.type is TokenType.STRING:
+                texto = f'"{texto}"'
+            texto = str(texto)
+            colado = (texto in ("(", "[") and anterior is not None
+                      and anterior in self._COLAM_ABERTURA)
+            if pedacos and not colado and texto not in self._SEM_ESPACO_ANTES \
+                    and pedacos[-1] not in self._SEM_ESPACO_DEPOIS:
+                pedacos.append(" ")
+            pedacos.append(texto)
+            anterior = token.type
+        return "".join(pedacos).strip()
+
+    def _parse_tipo_composto(self, mensagem):
+        """O tipo de uma declaracao. A uniao vale em toda anotacao, e
+        quem a le e o proprio '_parse_nome_de_tipo'."""
+        return self._parse_nome_de_tipo(mensagem)
+
+    def _juntar_tipos(self, primeiro):
+        """'A | B' e 'A & B'.
+
+        Os dois nao se misturam: 'A | B & C' seria lido de duas formas, e
+        o parser recusa em vez de escolher uma calado. A linguagem nao
+        tem parenteses de tipo — quem precisa do outro agrupamento
+        declara um 'type' para a metade e usa o nome dele aqui.
+        """
+        partes = [primeiro]
+        simbolo = None
+        while self.current().type in (TokenType.VBAR, TokenType.AMP):
+            atual = self.current()
+            if simbolo is not None and atual.type is not simbolo:
+                self.error(
+                    "'|' and '&' cannot be mixed in the same type: write a "
+                    "'type' for one of the halves and use its name here.",
+                    atual)
+            simbolo = atual.type
+            self.advance()
+            partes.append(self._parse_nome_de_tipo(
+                f"Expected a type after '{atual.value}'"))
+        juncao = " | " if simbolo is TokenType.VBAR else " & "
+        return juncao.join(partes) if len(partes) > 1 else partes[0]
 
     def _parse_parametros_de_tipo(self):
         """<T>, <K, V> — os parametros de tipo de um generico.
@@ -3923,6 +4056,32 @@ class Parser:
                 i += 1
                 if profundidade <= 0:
                     break
+        # 'x: Integer | String := 1' — a uniao faz parte da anotacao, e
+        # sem isto a linha inteira caia em "Unexpected token: COLON".
+        while self.peek(i).type in (TokenType.VBAR, TokenType.AMP):
+            i += 1
+            if self.peek(i).type is not TokenType.IDENTIFIER:
+                return False
+            i += 1
+            while (self.peek(i).type == TokenType.DOT
+                   and self.peek(i + 1).type == TokenType.IDENTIFIER):
+                i += 2
+            if self.peek(i).type == TokenType.LT:
+                profundidade = 0
+                while True:
+                    tipo = self.peek(i).type
+                    if tipo == TokenType.LT:
+                        profundidade += 1
+                    elif tipo == TokenType.GT:
+                        profundidade -= 1
+                    elif tipo == TokenType.PIPE:
+                        profundidade -= 2
+                    elif tipo in (TokenType.NEWLINE, TokenType.EOF,
+                                  TokenType.ASSIGN):
+                        return False
+                    i += 1
+                    if profundidade <= 0:
+                        break
         return self.peek(i).type == TokenType.ASSIGN
 
     def _parse_nome_de_tipo(self, mensagem):
@@ -3959,15 +4118,19 @@ class Parser:
         # fronteira, na insercao e pelo 'check'. Ver colecoes_tipadas.py.
         if self.current().type == TokenType.LT:
             nome = self._parse_argumentos_de_colecao(nome)
+        if self.current().type in (TokenType.VBAR, TokenType.AMP):
+            return self._juntar_tipos(nome)
         return nome
 
     def _parse_argumentos_de_colecao(self, base):
         from .colecoes_tipadas import COLECOES, FORMA
         inicio = self.current()
-        if base not in COLECOES:
+        proprio = self._tipos_genericos.get(base.rsplit(".", 1)[-1])
+        if base not in COLECOES and proprio is None:
             self.error(
                 f"'{base}<…>' is not a collection type: only Cluster<T>, "
-                f"Vault<K, V> and Set<T> declare the type of what is inside. "
+                f"Vault<K, V> and Set<T> declare the type of what is inside — "
+                f"or a 'type {base}<T> := …' declared in this file. "
                 f"Annotate as '{base}'.", inicio)
         self.advance()                                   # '<'
         argumentos = []
@@ -3988,10 +4151,14 @@ class Parser:
             self._fechamento_pendente = getattr(self, "_fechamento_pendente", 0) + 1
         else:
             self.error(f"Expected '>' to close '{base}<…>'")
-        if len(argumentos) != COLECOES[base]:
-            quantos = "one type" if COLECOES[base] == 1 else "two types: the key and the value"
+        esperados = COLECOES.get(base, proprio)
+        if len(argumentos) != esperados:
+            quantos = ("one type" if esperados == 1 else
+                       "two types: the key and the value" if base in COLECOES
+                       else f"{esperados} types")
+            forma = FORMA.get(base, f"{base}<…>")
             self.error(
-                f"{FORMA[base]} takes {quantos} — got {len(argumentos)} in "
+                f"{forma} takes {quantos} — got {len(argumentos)} in "
                 f"'{base}<{', '.join(argumentos)}>'.", inicio)
         return f"{base}<{', '.join(argumentos)}>"
 

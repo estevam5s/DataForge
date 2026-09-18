@@ -105,6 +105,7 @@ PAPEL_DO_ESCOPO = {
     "storage.modifier.dataforge": "modificador",
     "storage.modifier.oop.dataforge": "modificador",
     "keyword.other.contract.dataforge": "palavra",
+    "keyword.other.tipo.dataforge": "palavra",
     "entity.name.type.dataforge": "tipo",
     "support.type.dataforge": "tipo-embutido",
 

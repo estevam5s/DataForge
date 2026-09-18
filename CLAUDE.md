@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 251 exercícios
+python3 exercicios/run_all.py                        # 252 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -64,6 +64,7 @@ dataforge/
   travessia.py     964   o que uma ação leva consigo para outro núcleo
   typechecker.py  1752   análise estática: nomes, aridade, tipos, alcance
   resolucao.py     190   onde mora o módulo de um 'adopt' — a única cópia
+  tipos_nomeados.py 340  'type': alias, uniao, intersecao, refinamento, opaco
   idioma.py        330   o idioma das mensagens — pt-BR, e 'DF_IDIOMA=en'
   docs_links.py    220   onde mora a doc de cada palavra, módulo e comando
   objetos.py       330   OOP fora do caminho quente: sobrecarga, vigias, estado por objeto
@@ -104,7 +105,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        251 exercícios em 37 módulos + run_all.py
+exercicios/        252 exercícios em 38 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1086,6 +1087,35 @@ A travessia de processo leva `extras`, `nao_publicos`, `somente_leitura`
 e `constantes`: sem isso um grupo de `overload` chegava ao filho como uma
 ação de corpo vazio, e `private` deixava de valer lá.
 
+### `type` — o tipo que a linguagem não tinha
+
+`tipos_nomeados.py` traz alias, alias genérico, união, interseção,
+refinamento (`where`) e tipo opaco. Uma declaração só; o que muda é o que
+vem depois do `:=`. Cinco decisões que valem lembrar:
+
+| Decisão | Porque |
+|---|---|
+| transparente **confere**, opaco **embrulha** | um alias que mudasse o valor quebraria tudo que já aceita um `Integer`; um opaco que não mudasse não protegeria de nada — `cadastrar(senha)` passaria |
+| a base é conferida **antes** da regra | `len(valor)` sobre um número daria uma mensagem sobre `len`, e não sobre o tipo que a pessoa escreveu |
+| a regra vale em **toda fronteira** | declaração, parâmetro, retorno e campo. Um refinamento que só valesse na criação é uma sugestão, não um tipo |
+| `Opaco` delega por **protocolo** | texto, igualdade, ordem, hash, conta, tamanho e índice continuam funcionando sem que ninguém saiba o que é um tipo opaco — a mesma escolha da ponte para o Python |
+| `type`, `opaque` e `where` são **contextuais** | `type := 3` e uma coluna chamada `where` continuam valendo; a declaração só começa quando a linha confirma (`_abre_tipo`) |
+
+O `check` prova o que um **literal** permite (`tipo-refinado`,
+`tipo-uniao`, `tipo-intersecao`, `tipo-opaco`, `tipo-circular`) e cala no
+resto. A prova roda num avaliador **puro** com lista fechada de funções
+(`_PURAS`): a regra é código de quem escreveu, e o analisador não pode
+executar código arbitrário para decidir se acusa.
+
+Três armadilhas que apareceram escrevendo a documentação — e que só
+apareceram porque **todo bloco da doc roda**:
+
+1. `_compativel("Id", "Id")` precisa ser verdadeiro antes de resolver o
+   alias, senão um parâmetro `id: Id` recebendo um `Id` é acusado;
+2. `Positivo + Positivo` precisa contar como `Integer + Integer`
+   (`_para_a_base`), senão vira "Cannot add Positivo and Positivo";
+3. dois opacos do mesmo tipo se comparam pela base (`_ordenavel`).
+
 ### O analisador estático é otimista de propósito
 
 Quando não consegue **provar** que algo está errado, fica calado. Um falso alarme
@@ -1728,7 +1758,7 @@ rótulos usados com os que o GitHub mantém. A lista envelhece — é o
 preço de conferir algo que vive fora do repositório — mas envelhece com
 uma mensagem clara.
 
-**E a descrição do `.deb` dizia "37 modulos" quando eram 39.** Um
+**E a descrição do `.deb` dizia "38 modulos" quando eram 39.** Um
 número escrito à mão no modelo de um pacote envelhece sem ninguém ver:
 o `.deb` é gerado no release, e ninguém lê a descrição dele duas vezes.
 Hoje o modelo tem `{MODULOS}` e `{SIMBOLOS}`, e há teste que constrói o
@@ -1780,7 +1810,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
 | `tests/test_oop_avancada.py` | `pytest` | contratos, modificadores, sobrecarga, metaclasses, reflexão, DI, padrões, memória, métricas, LSP — e **executa cada bloco `df`** das páginas de `/docs/oop` e da §7 da referência |
-| `exercicios/run_all.py` | script | 251 exercícios em 37 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 252 exercícios em 38 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

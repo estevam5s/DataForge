@@ -216,6 +216,13 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Sistema de tipos',
+    badge: 'novo',
+    items: [
+      { title: 'Tipos nomeados', href: '/docs/tipos-nomeados', badge: 'novo' },
+    ],
+  },
+  {
     title: 'Lavra — consulta',
     badge: 'novo',
     items: [
@@ -378,6 +385,7 @@ export const nav: NavSection[] = [
       { title: 'Paralelismo', href: '/docs/exercicios/35-paralelismo' },
       { title: 'Quadro e dados', href: '/docs/exercicios/36-quadro-e-dados' },
       { title: 'OOP como sistema', href: '/docs/exercicios/37-oop-sistema' },
+      { title: 'Sistema de tipos', href: '/docs/exercicios/38-tipos', badge: 'novo' },
     ],
   },
   {

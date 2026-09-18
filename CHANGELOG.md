@@ -14,6 +14,29 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `type`: o sistema de tipos nomeados
+
+- **`type Nome := …`** em cinco formas: alias (`Integer`), alias genérico
+  (`Par<T> := Cluster<T>`), união (`String | Integer | Void`), interseção
+  (`Serial & Ordenavel`) e refinamento (`Integer where valor bigger 0`).
+  A união e a interseção também valem direto na anotação, sem nome.
+- **`opaque type Cpf := String where len(valor) is 11`** — o tipo
+  **nominal**: só nasce por `Cpf(…)`, que valida; um texto com onze
+  dígitos não serve no lugar. O valor delega por protocolo (texto,
+  igualdade, ordem, hash, conta, tamanho, índice) e `.valor` desembrulha.
+- A regra de um refinamento é conferida em **toda fronteira**: declaração,
+  parâmetro, retorno e campo — e a base é conferida antes dela.
+- O `check` prova o que um literal permite, com códigos próprios:
+  `tipo-refinado`, `tipo-uniao`, `tipo-intersecao`, `tipo-opaco`,
+  `tipo-circular`, mais `declaracao-repetida` e `unknown-type` com
+  sugestão. A prova roda num avaliador puro, com lista fechada de funções.
+- `relay Positivo, Cpf` exporta um tipo; o outro arquivo escreve
+  `T.Positivo`.
+- `type`, `opaque` e `where` são **contextuais**: `type := 3` continua
+  valendo. O editor, o site e o LSP as conhecem.
+- Documentação: [`/docs/tipos-nomeados`](https://dataforge-lang.vercel.app/docs/tipos-nomeados),
+  `doc/REFERENCIA.md` §3.3 e o exercício 252.
+
 ### Adicionado — a sessão da Vitrine entre processos
 
 - **`sessoes_em`**: a sessão mora num armazém. `V.sessoes_em_banco(caminho)`

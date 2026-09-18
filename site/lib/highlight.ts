@@ -49,12 +49,18 @@ const KEYWORDS = new Set([
   // e deixá-la cinza esconde justamente o que o exemplo está ensinando.
   'server', 'route', 'respond', 'render', 'redirect', 'middleware', 'after',
   'mount', 'assets', 'views', 'ignite',
+
+  // As três dos tipos nomeados ('type Id := Integer'). Mesmo raciocínio:
+  // são contextuais na linguagem, e num trecho de documentação 'type' é
+  // sempre a declaração.
+  'type', 'opaque', 'where',
 ]);
 
 /** Palavras que introduzem uma declaração — recebem ênfase própria. */
 const DECLARATIONS = new Set([
   'action', 'blueprint', 'record', 'enum', 'trait', 'adopt', 'relay',
   'steady', 'static', 'shadow', 'stream', 'async', 'server', 'route',
+  'type', 'opaque',
 ]);
 
 const LITERALS = new Set(['yes', 'no', 'void']);

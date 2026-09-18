@@ -20,7 +20,7 @@ sys.path.insert(0, RAIZ)
 from dataforge.builtins import get_builtins                       # noqa: E402
 from dataforge.stdlib import list_modules                         # noqa: E402
 from dataforge.tokens import (                                    # noqa: E402
-    CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN, KEYWORDS,
+    CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN, CONTEXTUAIS_TIPO, KEYWORDS,
 )
 
 DESTINO = os.path.join(RAIZ, "editor", "vscode", "syntaxes",
@@ -63,6 +63,7 @@ GRUPOS = {
     "keyword.other.contract.dataforge": [
         "contract", "augment", "invariant", "expects", "promises",
     ],
+    "keyword.other.tipo.dataforge": list(CONTEXTUAIS_TIPO),
     "keyword.other.async.dataforge": [
         "async", "await", "thread", "parallel", "pulse", "observe",
     ],
@@ -96,7 +97,8 @@ def _conferir_cobertura():
     gramatica passaria despercebido — a palavra so ficaria sem cor.
     """
     pintadas = {p for palavras in GRUPOS.values() for p in palavras}
-    todas = set(KEYWORDS) | set(CONTEXTUAIS_BLUEPRINT) | set(CONTEXTUAIS_KILN)
+    todas = (set(KEYWORDS) | set(CONTEXTUAIS_BLUEPRINT)
+             | set(CONTEXTUAIS_KILN) | set(CONTEXTUAIS_TIPO))
     esquecidas = todas - pintadas
     if esquecidas:
         raise SystemExit(

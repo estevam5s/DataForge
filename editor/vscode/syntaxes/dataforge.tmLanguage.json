@@ -187,6 +187,10 @@
           "match": "\\b(invariant|contract|promises|augment|expects)\\b"
         },
         {
+          "name": "keyword.other.tipo.dataforge",
+          "match": "\\b(opaque|where|type)\\b"
+        },
+        {
           "name": "keyword.other.async.dataforge",
           "match": "\\b(parallel|observe|thread|async|await|pulse)\\b"
         },

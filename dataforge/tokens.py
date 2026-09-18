@@ -27,6 +27,8 @@ class TokenType(Enum):
     POWER = auto()           # **
     FLOOR_DIV = auto()       # //
     PIPE = auto()            # >>  (pipeline)
+    VBAR = auto()            # |   (uniao de tipos: 'Integer | String')
+    AMP = auto()             # &   (intersecao de tipos: 'Serial & Ordenavel')
     ARROW = auto()           # ->  (return type annotation)
     FAT_ARROW = auto()       # =>  (lambda body)
     PLUS_ASSIGN = auto()     # +=
@@ -126,6 +128,11 @@ class TokenType(Enum):
     AUGMENT = auto()         # augment   (acrescenta a um blueprint)
     EXPECTS = auto()         # expects   (pre-condicao)
     PROMISES = auto()        # promises  (pos-condicao)
+
+    # ── Tipos nomeados (contextuais) ──
+    TYPE = auto()            # type      (alias, uniao, refinamento)
+    OPAQUE = auto()          # opaque    (o tipo que so nasce validado)
+    WHERE = auto()           # where     (a regra de um refinamento)
 
     # ── Error Handling ────────────────────────────────────
     MONITOR = auto()         # monitor (try)
@@ -384,6 +391,19 @@ CONTEXTUAIS_BLUEPRINT = {
     # No corpo de uma acao, seguidos de uma expressao.
     "expects":   TokenType.EXPECTS,
     "promises":  TokenType.PROMISES,
+}
+
+
+# ── Palavras dos tipos nomeados ──────────────────────────────
+# 'type', 'opaque' e 'where' sao nomes bons demais para reservar:
+# 'type := 3' e 'action type(x)' sao codigo legitimo, e 'where' e nome
+# de coluna em meio mundo. Elas so viram palavra quando o que vem
+# depois confirma — 'type Nome :=' abre a declaracao, e 'where' so
+# dentro dela. Ver Parser._abre_tipo.
+CONTEXTUAIS_TIPO = {
+    "type":   TokenType.TYPE,
+    "opaque": TokenType.OPAQUE,
+    "where":  TokenType.WHERE,
 }
 
 

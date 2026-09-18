@@ -500,6 +500,22 @@ class TraitDeclaration(ASTNode):
     methods: list = field(default_factory=list)
 
 @dataclass
+class TypeDeclaration(ASTNode):
+    """type Nome := Base | Outro where regra — e 'opaque type' também.
+
+    Uma declaração só para as cinco formas: o que muda é `especie`
+    (alias, uniao, intersecao), a regra opcional e o `opaco`.
+    """
+    name: str = ""
+    especie: str = "alias"
+    partes: list = field(default_factory=list)   # os nomes do lado direito
+    type_params: list = field(default_factory=list)   # 'type Par<T> := …'
+    regra: Any = None                            # a expressão do 'where'
+    regra_texto: str = ""                        # como ela foi escrita
+    opaco: bool = False
+
+
+@dataclass
 class StaticDeclaration(ASTNode):
     """static name := value"""
     name: str = ""

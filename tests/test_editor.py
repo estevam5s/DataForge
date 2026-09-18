@@ -19,7 +19,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 
 from dataforge.tokens import (  # noqa: E402
-    CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN, KEYWORDS,
+    CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN, CONTEXTUAIS_TIPO, KEYWORDS,
 )
 
 EXTENSAO = os.path.join(RAIZ, "editor", "vscode")
@@ -94,7 +94,8 @@ def _palavras_da_gramatica(gramatica):
 
 def test_toda_palavra_reservada_recebe_cor(gramatica):
     """Uma palavra sem cor passa despercebida: o codigo so fica cinza."""
-    todas = set(KEYWORDS) | set(CONTEXTUAIS_BLUEPRINT) | set(CONTEXTUAIS_KILN)
+    todas = (set(KEYWORDS) | set(CONTEXTUAIS_BLUEPRINT)
+             | set(CONTEXTUAIS_KILN) | set(CONTEXTUAIS_TIPO))
     sem_cor = todas - _palavras_da_gramatica(gramatica)
     assert not sem_cor, (
         f"sem cor na gramatica: {sorted(sem_cor)} — "
@@ -102,7 +103,8 @@ def test_toda_palavra_reservada_recebe_cor(gramatica):
 
 
 def test_gramatica_nao_pinta_palavra_inexistente(gramatica):
-    todas = set(KEYWORDS) | set(CONTEXTUAIS_BLUEPRINT) | set(CONTEXTUAIS_KILN)
+    todas = (set(KEYWORDS) | set(CONTEXTUAIS_BLUEPRINT)
+             | set(CONTEXTUAIS_KILN) | set(CONTEXTUAIS_TIPO))
     inventadas = _palavras_da_gramatica(gramatica) - todas
     assert not inventadas, f"a linguagem nao tem: {sorted(inventadas)}"
 
@@ -310,7 +312,7 @@ def test_o_destacador_do_site_conhece_toda_palavra_reservada():
                     reason="o site nao esta neste checkout")
 def test_o_destacador_do_site_nao_inventa_palavra():
     todas = (set(KEYWORDS) | set(CONTEXTUAIS_KILN)
-             | set(CONTEXTUAIS_BLUEPRINT))
+             | set(CONTEXTUAIS_BLUEPRINT) | set(CONTEXTUAIS_TIPO))
     inventadas = _palavras_do_site() - todas
     assert not inventadas, f"a linguagem nao tem: {sorted(inventadas)}"
 

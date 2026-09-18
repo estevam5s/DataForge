@@ -21,6 +21,8 @@ from .builtins import (BuiltinFunction, get_builtins,
                        set_magic_dispatcher, set_stringifier)
 from .caminhos import curto as _curto
 from .cauda import MARCA as _MARCA_CAUDA
+from . import tipos_nomeados as _TiposNomeados
+from .tipos_nomeados import ALIAS, INTERSECAO, UNIAO, Opaco
 from .errors import (
     ChamadaDeCauda,
     ControlSignal,
@@ -2077,6 +2079,10 @@ class Interpreter:
 
         self.global_env = Environment(name="<global>")
         self.modules = {}
+        #: Os 'type' declarados. Nasce vazio, e quem nao declara nenhum
+        #: nao paga nada: '_check_type' so olha para ca quando o nome
+        #: nao e um tipo embutido.
+        self.tipos_nomeados = _TiposNomeados.Registro()
         self.events = {}  # event name → list of callbacks
         # A profundidade e a pilha de quadros sao POR THREAD.
         # Compartilhadas, duas acoes 'async' rodando juntas somavam a
@@ -6465,6 +6471,124 @@ class Interpreter:
                 doc="oop/contratos")
             raise erro
 
+    def exec_TypeDeclaration(self, node: ast.TypeDeclaration, env):
+        """'type Nome := …' — registra o tipo; 'opaque' tambem cria o nome.
+
+        Um tipo transparente e so uma CONFERENCIA: nenhum valor muda de
+        forma, e por isso nada que ja funcionava deixa de funcionar. Um
+        tipo opaco e um VALOR, e o nome dele passa a ser a unica porta de
+        entrada — e ela valida.
+        """
+        tipo = _TiposNomeados.TipoNomeado(
+            nome=node.name, especie=node.especie, partes=node.partes,
+            parametros=node.type_params, regra=node.regra,
+            regra_texto=node.regra_texto, opaco=node.opaco,
+            escopo=env, arquivo=self.filename)
+        self.tipos_nomeados.declarar(tipo)
+        if node.opaco:
+            env.set_local(node.name, self._construtor_de_opaco(tipo))
+        return None
+
+    def _construtor_de_opaco(self, tipo):
+        """'Cpf(texto)' — a unica forma de existir um valor daquele tipo."""
+        def construir(valor=None):
+            valor = _TiposNomeados.desembrulhar(valor)
+            self._conferir_base_e_regra(tipo, valor, f"{tipo.nome}(…)",
+                                        self._no_interno())
+            return Opaco(valor, tipo.nome)
+        construir.__name__ = tipo.nome
+        construir.__df_tipo_opaco__ = tipo.nome
+        return construir
+
+    def _conferir_base_e_regra(self, tipo, valor, o_que, node,
+                               parametros_de_tipo=(), limites=None):
+        """A base ANTES da regra, sempre.
+
+        'len(valor)' sobre um numero levantaria um erro do interpretador,
+        e a mensagem falaria de 'len' em vez do tipo que a pessoa
+        escreveu.
+        """
+        base = tipo.base
+        try:
+            valor = self._check_type(valor, base, o_que, node,
+                                     parametros_de_tipo, limites)
+        except TypeError_ as erro:
+            # O nome que a pessoa escreveu tem de aparecer: sem isto, um
+            # 'x: Id := "a"' respondia "declared as Integer", e quem leu
+            # o codigo procura 'Id' no arquivo e nao acha nada.
+            if tipo.nome == base:
+                raise
+            raise TypeError_(
+                f"{o_que} declared as {tipo.nome} (a {base}) but got "
+                f"{self._type_of(valor)}",
+                erro.line, erro.column,
+                nota=getattr(erro, "nota", "") or f"{tipo.nome} is a {base}",
+                dica=getattr(erro, "dica", ""), doc="tipos-nomeados") from None
+        if tipo.regra is not None and not self._regra_aceita(tipo, valor):
+            raise _TiposNomeados.erro_de_regra(
+                tipo, self._to_repr(valor), o_que, node)
+        return valor
+
+    def _regra_aceita(self, tipo, valor):
+        """A regra do 'where', com 'valor' ligado ao que esta entrando."""
+        escopo = Environment(parent=tipo.escopo or self.global_env,
+                             name=f"<type {tipo.nome}>")
+        escopo.set_local("valor", _TiposNomeados.desembrulhar(valor))
+        return self._verdade(self.evaluate(tipo.regra, escopo))
+
+    def _checar_tipo_nomeado(self, tipo, value, declared, what, node,
+                             parametros_de_tipo=(), limites=None):
+        """Uniao, intersecao, refinamento e opaco — as quatro conferencias."""
+        if tipo.opaco:
+            if isinstance(value, Opaco) and value.tipo == tipo.nome:
+                return value
+            raise _TiposNomeados.erro_de_opaco(
+                tipo, self._type_of(value), what, node)
+        if tipo.especie == UNIAO:
+            for parte in tipo.partes:
+                try:
+                    return self._check_type(value, parte, what, node,
+                                            parametros_de_tipo, limites)
+                except TypeError_:
+                    continue
+            raise _TiposNomeados.erro_de_uniao(
+                tipo.nome, tipo.partes, self._type_of(value), what, node)
+        if tipo.especie == INTERSECAO:
+            for parte in tipo.partes:
+                try:
+                    self._check_type(value, parte, what, node,
+                                     parametros_de_tipo, limites)
+                except TypeError_:
+                    raise _TiposNomeados.erro_de_intersecao(
+                        tipo.nome, parte, self._type_of(value), what,
+                        node) from None
+            return value
+        return self._conferir_base_e_regra(tipo, value, what, node,
+                                           parametros_de_tipo, limites)
+
+    def _checar_composto_anonimo(self, value, declared, what, node,
+                                 parametros_de_tipo=(), limites=None):
+        """'x: Integer | String' — a união sem nome, conferida igual."""
+        especie, partes = _TiposNomeados.separar_uniao(declared)
+        anonimo = _TiposNomeados.TipoNomeado(
+            nome=declared, especie=especie, partes=partes)
+        return self._checar_tipo_nomeado(anonimo, value, declared, what, node,
+                                         parametros_de_tipo, limites)
+
+    def _tipo_declarado(self, declared):
+        """O 'type' com esse nome, ja resolvido o generico ('Par<Integer>')."""
+        if not self.tipos_nomeados:
+            return None, declared
+        achado = self.tipos_nomeados.obter(declared)
+        if achado is not None:
+            return achado, declared
+        if "<" in declared:
+            base, argumentos = _partir_tipo(declared)
+            molde = self.tipos_nomeados.obter(base)
+            if molde is not None and molde.parametros:
+                return _TiposNomeados.especializar(molde, argumentos), declared
+        return None, declared
+
     def exec_TraitDeclaration(self, node: ast.TraitDeclaration, env):
         """Um trait e um blueprint so com contrato.
 
@@ -7152,6 +7276,12 @@ class Interpreter:
             return
 
         for nome in node.names:
+            if not env.has(nome) and nome in self.tipos_nomeados:
+                # Um 'type' transparente nao e um VALOR: ele vive no
+                # registro de tipos, que e do interpretador inteiro. Sem
+                # este ramo, 'relay Positivo' acusava um nome que existe.
+                exportados.append(nome)
+                continue
             if not env.has(nome):
                 import difflib
                 visiveis = [n for n in env.variables if not n.startswith('__')]
@@ -9017,6 +9147,10 @@ class Interpreter:
         return "<expression>"
 
     def _type_of(self, value) -> str:
+        # Um valor opaco responde pelo NOME do tipo: e o que 'typeof' tem
+        # de dizer, e o que faz a mensagem de erro nomear 'Cpf'.
+        if isinstance(value, Opaco):
+            return value.tipo
         if isinstance(value, bool):
             return "Boolean"
         if isinstance(value, int):
@@ -9088,6 +9222,18 @@ class Interpreter:
         ser verificado em tempo de execucao. E o mesmo que o TypeScript
         faz ao compilar — os tipos somem.
         """
+        # Um 'type' declarado vem ANTES de tudo: ele pode dar nome a uma
+        # colecao ('type Ids := Cluster<Id>'), e aí quem manda é ele.
+        if self.tipos_nomeados and declared not in self.TYPE_ALIASES:
+            nomeado, _ = self._tipo_declarado(declared)
+            if nomeado is not None:
+                return self._checar_tipo_nomeado(
+                    nomeado, value, declared, what, node,
+                    parametros_de_tipo, limites)
+        # 'Integer | String' escrito direto na anotação, sem nome.
+        if _TiposNomeados.e_composto(declared):
+            return self._checar_composto_anonimo(
+                value, declared, what, node, parametros_de_tipo, limites)
         if "<" in declared:
             return self._check_conteudo(value, declared, what, node,
                                         parametros_de_tipo, limites)
@@ -9321,7 +9467,8 @@ class Interpreter:
 
         exportados = getattr(mod_env, '_exports', None)
         if exportados:
-            objeto = {nome: mod_env.get(nome) for nome in exportados}
+            objeto = {nome: mod_env.get(nome) for nome in exportados
+                      if mod_env.has(nome)}
         else:
             objeto = dict(mod_env.variables)
         objeto["__name__"] = module_name

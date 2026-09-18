@@ -556,9 +556,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 250 | [`250_padroes.df`](37-oop-sistema/250_padroes.df) · [doc](37-oop-sistema/250_padroes.md) | Padroes com mecanismo: comando, estado e especificacao |
 | 251 | [`251_ciclo_de_vida_e_concorrencia.df`](37-oop-sistema/251_ciclo_de_vida_e_concorrencia.df) · [doc](37-oop-sistema/251_ciclo_de_vida_e_concorrencia.md) | Nascer, viver sob threads, e morrer limpo |
 
+## 38 — Tipos
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 252 | [`252_tipos_nomeados.df`](38-tipos/252_tipos_nomeados.df) · [doc](38-tipos/252_tipos_nomeados.md) | Tipos nomeados: alias, uniao, intersecao, refinamento e opaco |
+
 ---
 
-**Total: 251 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 252 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

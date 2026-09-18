@@ -37,7 +37,7 @@ const DESCRICAO_LONGA =
   'consulta tipada no espírito do GraphQL — e a Malha para microsserviços. ' +
   'Vem com CLI, gerenciador de pacotes, formatador, linter, depurador, ' +
   'LSP e extensão do VS Code. ' +
-  'Tudo o que a documentação afirma é código que roda: 251 exercícios que ' +
+  'Tudo o que a documentação afirma é código que roda: 252 exercícios que ' +
   'verificam o próprio resultado e mais de 2.400 testes.';
 
 export const metadata: Metadata = {
@@ -169,7 +169,7 @@ const DADO_ESTRUTURADO = {
       '@id': 'https://dataforge-lang.vercel.app/docs#doc',
       headline: 'Documentação do DataForge',
       description:
-        'Mais de 190 páginas, 251 exercícios que verificam o próprio ' +
+        'Mais de 190 páginas, 252 exercícios que verificam o próprio ' +
         'resultado, e cada trecho de código compilado a cada mudança.',
       url: 'https://dataforge-lang.vercel.app/docs',
       image: 'https://dataforge-lang.vercel.app/og-docs.png',

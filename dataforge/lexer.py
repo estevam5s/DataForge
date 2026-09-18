@@ -719,6 +719,11 @@ class Lexer:
                 '.': TokenType.DOT,
                 ',': TokenType.COMMA,
                 '@': TokenType.AT,
+                # So aparecem em anotacao de tipo ('Integer | String',
+                # 'Serial & Ordenavel'). Nao ha operador bit a bit na
+                # linguagem: quem precisa deles usa Arcane.Math.
+                '|': TokenType.VBAR,
+                '&': TokenType.AMP,
                 '<': TokenType.LT,
                 '>': TokenType.GT,
                 '(': TokenType.LPAREN,

@@ -218,7 +218,8 @@
         "keyword.other.contract.dataforge",
         "keyword.other.data.dataforge",
         "keyword.other.meta.dataforge",
-        "keyword.other.oop.dataforge"
+        "keyword.other.oop.dataforge",
+        "keyword.other.tipo.dataforge"
       ],
       "settings": {
         "foreground": "#8F6200"
