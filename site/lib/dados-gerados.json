@@ -887,6 +887,128 @@
     }
    ]
   },
+  "c": {
+   "nome": "Arcane.C",
+   "desc": "Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia.",
+   "curto": "C / Nativo",
+   "funcoes": [
+    {
+     "nome": "Biblioteca",
+     "sig": "(lib, nome, caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Bloco",
+     "sig": "(quantos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Ponteiro",
+     "sig": "(endereco, tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "RetornoDeChamada",
+     "sig": "(acao, argumentos, retorno)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "alinhamento_de",
+     "sig": "(tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "alocar",
+     "sig": "(bytes_quantos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "carregar",
+     "sig": "(alvo, procurar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "copiar",
+     "sig": "(destino, origem, quantos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_bytes",
+     "sig": "(dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "do_processo",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "endianness",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "enumeracao",
+     "sig": "(pares)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "estrutura",
+     "sig": "(campos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "liberar",
+     "sig": "(bloco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "matematica",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nulo",
+     "sig": "(tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "padrao",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "para_bytes",
+     "sig": "(alvo, quantos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ponteiro",
+     "sig": "(alvo, tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "retorno_de_chamada",
+     "sig": "(acao, argumentos, retorno)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tamanho_de",
+     "sig": "(tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tipos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "uniao",
+     "sig": "(campos)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "cli": {
    "nome": "Arcane.Cli",
    "desc": "A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo.",
@@ -11155,6 +11277,16 @@
     "temDoc": true,
     "codigo": "// Exercicio 258 — comptime, macros, DSL e plugin do check\n//\n// A linguagem ja tinha decorador, metaclasse e augment — tudo em\n// EXECUCAO. Esta e a outra metade: o que acontece antes de o programa\n// rodar, e o que permite gerar codigo a partir de dado.\n\nadopt Arcane.Macro as M\nadopt Arcane.Dsl as D\n\n// ── comptime: a conta feita uma vez, na carga ──\ncomptime QUADRADOS := [i * i cycle i in range(0, 6)]\ncomptime steady MAXIMO := 2 ** 10\n\nassert QUADRADOS is [0, 1, 4, 9, 16, 25]\nassert MAXIMO is 1024\n\ncomptime:\n    action fatorial(n):\n        yield 1 given n smaller_eq 1 otherwise n * fatorial(n - 1)\n\n    TABELA := [fatorial(i) cycle i in range(0, 6)]\n\nassert TABELA is [1, 1, 2, 6, 24, 120]\n\n// a validacao estatica: se a tabela mudar, o check acusa antes de rodar\ncomptime:\n    assert len(TABELA) is 6\n\n// 'comptime' continua sendo nome comum fora da declaracao\ncomptime_qualquer := 3\nassert comptime_qualquer is 3\n\n// ── macro: a arvore como dado ──\naction somar(a, b):\n    yield a + b\n\narvore := M.arvore(somar)\nassert arvore[\"tipo\"] is \"ActionDeclaration\"\nassert arvore[\"parametros\"] is [\"a\", \"b\"]\nassert arvore[\"corpo\"][0][\"tipo\"] is \"YieldStatement\"\n\n// citar: texto vira arvore; texto: arvore vira texto\ncitada := M.citar(\"x * 2 + 1\")\nassert citada[\"tipo\"] is \"BinaryOp\"\nassert M.texto(citada) is \"x * 2 + 1\"\n\n// percorrer: cada no, uma vez\ntipos := []\n\naction anotar(nodo):\n    tipos.append(nodo[\"tipo\"])\n\nM.percorrer(arvore, anotar)\nassert len(tipos) bigger 3\nassert \"BinaryOp\" in tipos\n\n// reescrever: o corpo, trocado\naction dobro(x):\n    yield x * 2\n\naction virar_soma(nodo):\n    given nodo[\"tipo\"] is \"BinaryOp\" and nodo[\"op\"] is \"*\":\n        yield M.citar(\"x + x\")\n    yield nodo\n\ntrocada := M.reescrever(dobro, virar_soma)\nassert dobro(5) is 10\nassert trocada(5) is 10                 // corpo diferente, resultado igual\n\n// gerar: uma acao a partir de texto\ngerada := M.compilar(\"a * 10\", \"dez_vezes\", [\"a\"])\nassert gerada(4) is 40\n\n// higiene: o nome gerado nao captura o de quem chamou\ntemporario := \"do usuario\"\ncorpo := M.citar(\"temporario + 1\")\nlimpo := M.renomear(corpo, \"temporario\", M.nome_fresco(\"temporario\"))\nassert M.texto(limpo) isnt M.texto(corpo)\n\n// macro de atributo: os campos geram os metodos\nmark @M.derivar(\"texto\", \"igualdade\", \"vault\")\nblueprint Ponto:\n    x := 1\n    y := 2\n\na := spawn Ponto()\nb := spawn Ponto()\nassert $\"{a}\" is \"Ponto(x=1, y=2)\"\nassert a is b\nassert a.para_vault() is {\"x\": 1, \"y\": 2}\n\n// ── DSL: uma linguagem pequena, propria ──\nnumero := D.mapear(D.numero(), lambda t => cast t as Float)\noperador := D.ou([D.texto(\"+\"), D.texto(\"-\"), D.texto(\"*\")])\n\naction aplicar(partes):\n    esquerda := partes[0]\n    cycle par in partes[1]:\n        given par[0] is \"+\":\n            esquerda := esquerda + par[1]\n        orif par[0] is \"-\":\n            esquerda := esquerda - par[1]\n        otherwise:\n            esquerda := esquerda * par[1]\n    yield esquerda\n\nexpressao := D.mapear(D.seq([numero, D.muitos(D.seq([operador, numero]))]), aplicar)\n\nassert D.analisar(expressao, \"2+3*4\").valor() is 20.0\nassert D.analisar(expressao, \"10-4\").valor() is 6.0\n\n// a falha diz ONDE, e o que era esperado\nruim := D.analisar(D.numero(), \"abc\")\nassert ruim.falhou()\nassert ruim.erro()[\"posicao\"] is 0\nassert \"numero\" in ruim.erro()[\"esperado\"]\n\n// combinadores: alternativa, repeticao, opcional, separado\npalavra := D.ou([D.texto(\"sim\"), D.texto(\"nao\")])\nlista := D.muitos(D.seq([palavra, D.opcional(D.texto(\",\"))]))\nassert len(D.analisar(lista, \"sim,nao,sim\").valor()) is 3\n\nnomes := D.separado_por(D.nome(), D.texto(\",\"))\nassert D.analisar(nomes, \"ana,bia,caio\").valor() is [\"ana\", \"bia\", \"caio\"]\n\nout \"258 ok\"\n"
    }
+  ],
+  "41-ffi-nativo": [
+   {
+    "num": "259",
+    "titulo": "chamar C: bibliotecas, ponteiros e callbacks",
+    "enunciado": "",
+    "arquivo": "259_ffi_com_c.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 259 — chamar C: bibliotecas, ponteiros e callbacks\n//\n// A ponte para o Python resolve \"preciso de algo que alguem escreveu em\n// Python\". Este e o degrau de baixo: chamar funcao de biblioteca C — a\n// libm, a libz, o .so que a empresa mantem ha quinze anos — sem escrever\n// modulo de extensao e sem trazer dependencia.\n\nadopt Arcane.C as C\nadopt Arcane.Bytes as B\nadopt Arcane.Posse as P\n\n// ── abrir e chamar, com a assinatura declarada ──\nlibm := C.matematica()\nraiz := libm.funcao(\"sqrt\", [\"f64\"], \"f64\")\npotencia := libm.funcao(\"pow\", [\"f64\", \"f64\"], \"f64\")\n\nassert raiz(16.0) is 4.0\nassert potencia(2.0, 10.0) is 1024.0\n\nlibc := C.padrao()\ntamanho := libc.funcao(\"strlen\", [\"texto\"], \"tamanho\")\nabsoluto := libc.funcao(\"abs\", [\"i32\"], \"i32\")\n\nassert tamanho(\"dataforge\") is 9\nassert absoluto(-42) is 42\n\n// a biblioteca diz o que ela tem, antes de tentar\nassert libc.tem(\"strlen\")\nassert not libc.tem(\"nao_existe_mesmo\")\n\n// declarar o tipo e o que impede o erro silencioso: um i32 onde o C\n// espera i64 passa em quase toda chamada e corrompe memoria no resto\nmonitor:\n    C.tamanho_de(\"inteirao\")\n    assert no\nhandle RuntimeError as e:\n    assert \"inteirao\" in e.message\n\n// os dois erros mais comuns de FFI dizem o nome e o caminho de saida\nmonitor:\n    C.carregar(\"libnaoexisteaqui\")\n    assert no\nhandle RuntimeError as e:\n    assert \"libnaoexisteaqui\" in e.message\n\nmonitor:\n    libc.funcao(\"funcao_que_nao_existe\", [], \"i32\")\n    assert no\nhandle RuntimeError as e:\n    assert \"funcao_que_nao_existe\" in e.message\n\n// ── o layout de verdade: tamanho, alinhamento, deslocamento ──\nassert C.tamanho_de(\"i8\") is 1\nassert C.tamanho_de(\"i32\") is 4\nassert C.tamanho_de(\"ponteiro\") in [4, 8]\nassert C.endianness() in [\"little\", \"big\"]\n\nPonto := C.estrutura([[\"x\", \"f64\"], [\"y\", \"f64\"]])\nassert Ponto.tamanho() is 16\nassert Ponto.deslocamentos() is {\"x\": 0, \"y\": 8}\n\n// o padding aparece: um i8 antes de um i32 nao ocupa 5 bytes\nMista := C.estrutura([[\"flag\", \"i8\"], [\"valor\", \"i32\"]])\nassert Mista.tamanho() is 8\nassert Mista.deslocamentos()[\"valor\"] is 4\nassert Mista.alinhamento() is 4\n\nPar := C.estrutura([[\"x\", \"i32\"], [\"y\", \"i32\"]])\npar := Par.criar({\"x\": 3, \"y\": 4})\nassert par.ler(\"x\") is 3\npar.escrever(\"x\", 30)\nassert par.tudo() is {\"x\": 30, \"y\": 4}\n\n// a uniao ocupa o maior campo\nU := C.uniao([[\"i\", \"i32\"], [\"f\", \"f64\"]])\nassert U.tamanho() is C.tamanho_de(\"f64\")\n\n// um enum do C e inteiro com nome, e e o numero que atravessa\nCor := C.enumeracao({\"VERMELHO\": 0, \"VERDE\": 1})\nassert Cor[\"VERDE\"] is 1\n\n// ── ponteiro cru: um endereco COM TIPO ──\nbloco := C.alocar(4 * C.tamanho_de(\"i32\"))\np := C.ponteiro(bloco, \"i32\")\n\ncycle i from 0 to 3:\n    p.deslocar(i).escrever(i * 10)\n\nassert p.ler() is 0\nassert p.deslocar(2).ler() is 20\nassert [p.deslocar(i).ler() cycle i in range(0, 4)] is [0, 10, 20, 30]\nC.liberar(bloco)\n\n// o nulo e a unica conferencia que vale o custo: ler um endereco nulo\n// derruba o processo, e a pilha nao fala do DataForge\nnulo := C.nulo()\nassert nulo.e_nulo() and nulo.endereco() is 0\n\nmonitor:\n    nulo.ler()\n    assert no\nhandle RuntimeError as e:\n    assert \"nulo\" in e.message\n\n// bytes vao e voltam\ndados := C.de_bytes(\"dataforge\")\nassert B.para_texto(C.para_bytes(dados, 9)) is \"dataforge\"\nassert dados.tamanho() is 10          // o zero do fim conta\nC.liberar(dados)\n\n// para nao depender de disciplina: o bloco sai com o escopo, inclusive\n// quando o corpo falha\nmedido := P.com(P.dono(C.alocar(32), lambda b => C.liberar(b)),\n                lambda b => b.tamanho())\nassert medido is 32\n\n// ── callback: o C chamando uma acao do DataForge ──\nqsort := libc.funcao(\"qsort\",\n                     [\"ponteiro\", \"tamanho\", \"tamanho\", \"ponteiro\"], \"void\")\n\nnumeros := [42, 7, 19, 3]\narea := C.alocar(len(numeros) * C.tamanho_de(\"i32\"))\nq := C.ponteiro(area, \"i32\")\ncycle i in range(0, len(numeros)):\n    q.deslocar(i).escrever(numeros[i])\n\naction comparar(a, b):\n    yield C.ponteiro(a, \"i32\").ler() - C.ponteiro(b, \"i32\").ler()\n\ncomparador := C.retorno_de_chamada(comparar, [\"ponteiro\", \"ponteiro\"], \"i32\")\nqsort(area, 4, C.tamanho_de(\"i32\"), comparador)\n\nassert [q.deslocar(i).ler() cycle i in range(0, 4)] is [3, 7, 19, 42]\nC.liberar(area)\n\n// o tempo de vida e explicito: um callback coletado no meio de um qsort\n// derruba o processo\naction dobro(x):\n    yield x * 2\n\ncb := C.retorno_de_chamada(dobro, [\"i32\"], \"i32\")\nassert cb.vivo()\nassert cb.chamar(21) is 42\nassert cb.endereco() bigger 0\ncb.soltar()\nassert not cb.vivo()\n\nout \"259 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -11500,9 +11632,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2459,
+  "testes": 2478,
   "exemplos": 44,
-  "arquivosDf": 368
+  "arquivosDf": 369
  },
  "mundo": {
   "estrelas": 0,

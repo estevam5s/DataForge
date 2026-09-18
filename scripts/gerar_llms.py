@@ -14,7 +14,7 @@ essencial em texto, para o modelo ler antes de responder.
 
 Duas decisoes
 -------------
-1. **Ele e GERADO.** As 81 palavras reservadas, os 57 modulos e as 228
+1. **Ele e GERADO.** As 81 palavras reservadas, os 61 modulos e as 228
    embutidas saem do codigo que o interpretador executa. Um arquivo
    escrito a mao envelheceria na primeira palavra nova — e um resumo
    errado e pior que nenhum, porque o modelo confia nele.

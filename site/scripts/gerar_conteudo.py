@@ -50,6 +50,7 @@ MODULOS = [
     "memoria_posse",
     "concorrencia_stm",
     "metaprogramacao",
+    "ffi_c",
     "plataforma",
     "vitrine",
     "versoes",

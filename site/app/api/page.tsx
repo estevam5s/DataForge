@@ -8,7 +8,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Referência da API",
-  description: "Sete endpoints JSON com a linguagem inteira: sintaxe, 1718 símbolos, 45 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
+  description: "Sete endpoints JSON com a linguagem inteira: sintaxe, 1741 símbolos, 45 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
 };
 
 const blocos: Bloco[] = [
@@ -30,7 +30,7 @@ const blocos: Bloco[] = [
 }`, lang: 'json' },
   {"callout": {"tipo": "nota", "titulo": "Nada aqui é escrito à mão", "texto": "Os sete arquivos saem de `scripts/gerar_api.py`, que lê `tokens.py`, `builtins.py`, a `stdlib/`, o `cli.py` e o catálogo de erros — o mesmo código que o interpretador executa. Um símbolo novo aparece na API na próxima geração; um removido desaparece. Não há uma segunda lista para divergir."}},
   {"h2": "Os sete endpoints"},
-  {"table": {"head": ["Endpoint", "Tamanho", "O que traz"], "rows": [["`/api/index.json`", "< 1 KB", "o índice — comece por aqui"], ["`/api/sintaxe.json`", "10 KB", "81 palavras reservadas, 19 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"], ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"], ["`/api/modulos.json`", "112 KB", "60 módulos e **1718 símbolos**, com assinatura e resumo de cada um"], ["`/api/comandos.json`", "22 KB", "45 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"], ["`/api/erros.json`", "68 KB", "177 códigos de erro, com explicação, exemplo que provoca e como corrigir"], ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
+  {"table": {"head": ["Endpoint", "Tamanho", "O que traz"], "rows": [["`/api/index.json`", "< 1 KB", "o índice — comece por aqui"], ["`/api/sintaxe.json`", "10 KB", "81 palavras reservadas, 19 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"], ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"], ["`/api/modulos.json`", "112 KB", "61 módulos e **1741 símbolos**, com assinatura e resumo de cada um"], ["`/api/comandos.json`", "22 KB", "45 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"], ["`/api/erros.json`", "68 KB", "177 códigos de erro, com explicação, exemplo que provoca e como corrigir"], ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
   {"h2": "`/api/sintaxe.json`"},
   {"p": "É o que um realce de sintaxe precisa, e cada palavra vem com o **equivalente** na linguagem de onde a pessoa vem:"},
   { code: `{
@@ -155,7 +155,7 @@ const colorido = codigo.replace(palavras, '<b>$1</b>');`, lang: 'javascript' },
 doc := API.openapi(minha_api, {"titulo": "Loja", "versao": "2.0"})`, lang: 'df' },
   {"p": "Em [OpenAPI, Insomnia e Postman](/docs/tecnicas/api)."},
   {"h2": "Onde continuar"},
-  {"cards": [{"href": "/docs/tecnicas/api", "title": "OpenAPI", "desc": "O contrato da SUA API, gerado das rotas do Kiln."}, {"href": "/docs/biblioteca", "title": "Biblioteca Arcane", "meta": "1718 símbolos", "desc": "O mesmo que /api/modulos.json, para ler."}, {"href": "/docs/erros", "title": "Códigos de erro", "meta": "177", "desc": "O mesmo que /api/erros.json."}, {"href": "/docs/pacotes/registro", "title": "O registro", "desc": "Como publicar um pacote, e por que ele é estático."}]},
+  {"cards": [{"href": "/docs/tecnicas/api", "title": "OpenAPI", "desc": "O contrato da SUA API, gerado das rotas do Kiln."}, {"href": "/docs/biblioteca", "title": "Biblioteca Arcane", "meta": "1741 símbolos", "desc": "O mesmo que /api/modulos.json, para ler."}, {"href": "/docs/erros", "title": "Códigos de erro", "meta": "177", "desc": "O mesmo que /api/erros.json."}, {"href": "/docs/pacotes/registro", "title": "O registro", "desc": "Como publicar um pacote, e por que ele é estático."}]},
 ];
 
 const headings = [{ id: 'os-sete-endpoints', text: "Os sete endpoints", level: 2 as const }, { id: 'apisintaxejson', text: "`/api/sintaxe.json`", level: 2 as const }, { id: 'apimodulosjson', text: "`/api/modulos.json`", level: 2 as const }, { id: 'apierrosjson', text: "`/api/erros.json`", level: 2 as const }, { id: 'apicomandosjson', text: "`/api/comandos.json`", level: 2 as const }, { id: 'usar-tres-exemplos-que-rodam', text: "Usar: três exemplos que rodam", level: 2 as const }, { id: 'em-dataforge', text: "Em DataForge", level: 3 as const }, { id: 'no-terminal-com-jq', text: "No terminal, com jq", level: 3 as const }, { id: 'em-javascript-do-navegador', text: "Em JavaScript, do navegador", level: 3 as const }, { id: 'contrato', text: "Contrato", level: 2 as const }, { id: 'o-registro-de-pacotes-e-outro-endereco', text: "O registro de pacotes é outro endereço", level: 2 as const }, { id: 'e-o-openapi-que-e-outra-coisa', text: "E o OpenAPI, que é outra coisa", level: 2 as const }, { id: 'onde-continuar', text: "Onde continuar", level: 2 as const }];
@@ -164,7 +164,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Referência da API"}
-      description={"Sete endpoints JSON com a linguagem inteira: sintaxe, 1718 símbolos, 45 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto."}
+      description={"Sete endpoints JSON com a linguagem inteira: sintaxe, 1741 símbolos, 45 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto."}
       href={"/api"}
       headings={headings}
     >

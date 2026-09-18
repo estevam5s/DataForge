@@ -584,9 +584,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 258 | [`258_comptime_e_macros.df`](40-metaprogramacao/258_comptime_e_macros.df) · [doc](40-metaprogramacao/258_comptime_e_macros.md) | comptime, macros, DSL e plugin do check |
 
+## 41 — Ffi nativo
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 259 | [`259_ffi_com_c.df`](41-ffi-nativo/259_ffi_com_c.df) · [doc](41-ffi-nativo/259_ffi_com_c.md) | chamar C: bibliotecas, ponteiros e callbacks |
+
 ---
 
-**Total: 258 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 259 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

@@ -48,6 +48,7 @@ from .arcane_cli import ArcaneCli
 from .arcane_email import ArcaneEmail
 from .arcane_bench import ArcaneBench
 from .arcane_eventos import ArcaneEventos
+from .arcane_c import ArcaneC
 from .arcane_dsl import ArcaneDsl
 from .arcane_macro import ArcaneMacro
 from .arcane_posse import ArcanePosse
@@ -172,6 +173,9 @@ _MODULES = {
     "Bench": ArcaneBench,
     "Arcane.Eventos": ArcaneEventos,
     "Eventos": ArcaneEventos,
+    "Arcane.C": ArcaneC,
+    "C": ArcaneC,
+    "Nativo": ArcaneC,
     "Arcane.Macro": ArcaneMacro,
     "Macro": ArcaneMacro,
     "Arcane.Dsl": ArcaneDsl,

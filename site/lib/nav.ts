@@ -241,6 +241,16 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'FFI e nativo',
+    badge: 'novo',
+    items: [
+      { title: 'Chamar C', href: '/docs/ffi/c', badge: 'novo' },
+      { title: 'Ponteiros e memória crua', href: '/docs/ffi/ponteiros', badge: 'novo' },
+      { title: 'Callbacks', href: '/docs/ffi/callbacks', badge: 'novo' },
+      { title: 'FFI: o mapa', href: '/docs/ffi/mapa', badge: 'novo' },
+    ],
+  },
+  {
     title: 'Concorrência avançada',
     badge: 'novo',
     items: [
@@ -425,6 +435,7 @@ export const nav: NavSection[] = [
       { title: 'Sistema de tipos', href: '/docs/exercicios/38-tipos', badge: 'novo' },
       { title: 'Concorrência avançada', href: '/docs/exercicios/39-concorrencia-avancada', badge: 'novo' },
       { title: 'Metaprogramação', href: '/docs/exercicios/40-metaprogramacao', badge: 'novo' },
+      { title: 'FFI e nativo', href: '/docs/exercicios/41-ffi-nativo', badge: 'novo' },
     ],
   },
   {

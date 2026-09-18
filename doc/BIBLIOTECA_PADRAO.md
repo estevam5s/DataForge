@@ -58,6 +58,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Injecao`](#arcaneinjecao) | `Injecao / DI` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | [`Arcane.Padroes`](#arcanepadroes) | `Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
 | [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 10 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
+| [`Arcane.C`](#arcanec) | `C / Nativo` | 23 | Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia. |
 | [`Arcane.Macro`](#arcanemacro) | `Macro` | 13 | A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo. 'citar' transforma texto em arvore, 'reescrever' devolve uma acao com o corpo trocado, 'nome_fresco' e 'renomear' dao higiene, e 'derivar' e a macro de atributo que gera __str__, __eq__, __lt__ e para_vault a partir dos campos. |
 | [`Arcane.Dsl`](#arcanedsl) | `Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
 | [`Arcane.Posse`](#arcaneposse) | `Posse` | 16 | Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo. |
@@ -2211,6 +2212,45 @@ adopt Arcane.Memoria as Memoria
 | `referencias(obj)` |
 | `tamanho(obj)` |
 | `vivos(molde)` |
+
+
+---
+
+## Arcane.C
+
+Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia.
+
+```dataforge
+adopt Arcane.C as C
+```
+
+**Funções (23)**
+
+| Assinatura |
+|------------|
+| `Biblioteca(lib, nome, caminho)` |
+| `Bloco(quantos)` |
+| `Ponteiro(endereco=0, tipo='u8')` |
+| `RetornoDeChamada(acao, argumentos, retorno)` |
+| `alinhamento_de(tipo)` |
+| `alocar(bytes_quantos)` |
+| `carregar(alvo, procurar=True)` |
+| `copiar(destino, origem, quantos)` |
+| `de_bytes(dados)` |
+| `do_processo()` |
+| `endianness()` |
+| `enumeracao(pares)` |
+| `estrutura(campos)` |
+| `liberar(bloco)` |
+| `matematica()` |
+| `nulo(tipo='u8')` |
+| `padrao()` |
+| `para_bytes(alvo, quantos)` |
+| `ponteiro(alvo, tipo='u8')` |
+| `retorno_de_chamada(acao, argumentos=None, retorno='void')` |
+| `tamanho_de(tipo)` |
+| `tipos()` |
+| `uniao(campos)` |
 
 
 ---

@@ -14,6 +14,40 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.C`: falar com biblioteca nativa
+
+- **Chamar C**: `C.carregar(nome)`, `C.padrao()`, `C.matematica()`,
+  `C.do_processo()` abrem `.so`, `.dylib` e `.dll`; `lib.funcao(nome,
+  [tipos], retorno)` declara a assinatura e devolve uma ação chamável.
+  Roda sobre o `ctypes`, que é da biblioteca padrão do Python — **zero
+  dependência continua valendo**. `adopt Python.numpy` resolvia "uma
+  biblioteca escrita em Python"; faltava o degrau de baixo.
+- **A assinatura é declarada, não adivinhada.** A lista de tipos é
+  fechada (`i8`…`i64`, `u8`…`u64`, `f32`, `f64`, `bool`, `char`, `texto`,
+  `bytes`, `ponteiro`, `tamanho`, `void`) e um tipo inventado é recusado
+  **com a lista**. Um `i32` onde o C espera `i64` passa em quase toda
+  chamada e corrompe memória no resto — calado, e longe da causa.
+- **Layout de verdade**: `C.estrutura`, `C.uniao` e `C.enumeracao` dão
+  `tamanho()`, `alinhamento()` e `deslocamentos()` pela ABI da
+  plataforma — inclusive o padding (um `i8` antes de um `i32` ocupa 8, não
+  5). `C.tamanho_de`, `C.alinhamento_de`, `C.endianness`, `C.tipos`.
+- **Ponteiro cru é um endereço COM TIPO**: `C.ponteiro(alvo, tipo)`,
+  `ler`, `escrever`, `deslocar(n)` (itens), `deslocar_bytes(n)`,
+  `como(tipo)`, `bytes(n)`, `texto()`, `e_nulo()`. Memória à mão com
+  `C.alocar`, `C.liberar`, `C.copiar`, `C.de_bytes`, `C.para_bytes`.
+  A **única** conferência automática é o nulo, porque lê-lo derruba o
+  processo e a pilha que sobra não fala do DataForge.
+- **Callback**: `C.retorno_de_chamada(acao, [tipos], retorno)` faz o C
+  chamar uma ação DataForge — testado com o `qsort` da libc ordenando
+  memória crua por um comparador escrito na linguagem. O tempo de vida é
+  explícito (`vivo()`, `soltar()`): um callback coletado no meio de um
+  `qsort` derruba o processo.
+- Os dois erros que FFI sempre tem — biblioteca que não abre e símbolo
+  que não existe — dizem o nome, onde foi procurado e o caminho de saída
+  por sistema operacional, em vez do `OSError: dlopen(…)` cru.
+- Documentação: [`/docs/ffi/c`](https://dataforge-lang.vercel.app/docs/ffi/c),
+  `/ponteiros`, `/callbacks` e o mapa da parte 6; exercício 259.
+
 ### Adicionado — metaprogramação: `comptime`, macros, DSLs e plugins do `check`
 
 - **`comptime`**: a conta feita **na carga**, antes da primeira linha do
