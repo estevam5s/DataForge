@@ -51,6 +51,7 @@ MODULOS = [
     "concorrencia_stm",
     "metaprogramacao",
     "ffi_c",
+    "compilador_interno",
     "plataforma",
     "vitrine",
     "versoes",

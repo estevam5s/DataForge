@@ -14,6 +14,60 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — a arquitetura interna, exposta: HIR, MIR, LIR e `dataforge ir`
+
+- **`dataforge ir <arquivo>`**: o caminho de compilação inteiro, fase por
+  fase. `--fase=tokens|ast|hir|mir|analises|lir|tudo`, `--acao=<nome>` e
+  `--json`. O repositório tinha `tokens` e `ast` — a primeira fase e a
+  terceira; as quatro do meio não apareciam em lugar nenhum.
+- **`hir.py` — a árvore depois do açúcar.** Cinco açúcares são abertos
+  (`orif-aninhado`, `composta-simples`, `pertence-negado`,
+  `perform-para-persist`, `sinal-de-literal`) e **oito formas que só
+  parecem** estão listadas com o motivo ao lado — `cycle from..to` não
+  vira `range` porque `range` materializa a lista; `a ?? b` avaliaria o
+  lado esquerdo duas vezes; `mark @f` não é `g := f(g)` porque um
+  decorador que devolve `void` não substitui o alvo. A prova da
+  normalização não é a forma da árvore: exercícios do repositório rodam
+  nas duas formas e a **saída** é comparada caractere por caractere.
+  `hir.resolucao` diz, por corpo, o que é parâmetro, local, livre e
+  embutido.
+- **`mir.py` — o grafo de fluxo.** Um corpo por ação (mais `(programa)` e
+  uma por rota do Kiln), blocos básicos e arestas rotuladas (`sim`,
+  `nao`, `volta`, `halt`, `skip`, `erro`, `point`, `default`, `defer`).
+  Três decisões: ele é construído **a partir do HIR** (é o que paga a
+  normalização); a aresta de erro sai da **entrada** do `monitor`, para a
+  análise ver o pior caso honesto; e o que roda fora da ordem
+  (`thread`, `parallel`, `server`) é **opaco**, porque abrir o corpo num
+  grafo sequencial afirmaria uma ordem que não existe.
+- **Cinco análises de fluxo**: `alcancaveis`, `vivas`,
+  `talvez_nao_definidas`, `constantes` (com interseção: dois ramos que
+  discordam não deixam constante) e `escapam` (`devolvido`,
+  `fechamento`, `concorrente`, `guardado`).
+- **`talvez-nao-definida`** — o aviso que o `check` não sabia dar: o nome
+  que **só um ramo** atribui. O analisador registrava o nome do ramo, e
+  isso está certo — `given` compartilha o escopo —, mas não contava por
+  quantos caminhos ele passa. O laço conta como ramo: ele pode não rodar
+  nenhuma vez. Cala com `monitor`, `defer`, fechamento, bloco opaco, e
+  quando o nome existe **fora** — `:=` dentro de uma ação escreve o nome
+  externo quando ele existe, e sem essa regra os nove contadores por
+  fechamento do repositório seriam acusados. **Zero falso alarme** nos
+  387 arquivos do repositório.
+- **`lir.py`** — o que o compilador de fechamentos **realmente**
+  compilou, e o que recuou para a árvore, por classe de nó, com os
+  recuos **dentro de laço** em separado (os únicos que aparecem num
+  perfil). A conta sai das tabelas do próprio `compilador.py`; uma
+  segunda lista divergiria no primeiro nó novo.
+- **`Arcane.Compilador`**: as mesmas fases como **dado**, de dentro da
+  linguagem — o que permite a um [plugin do
+  `check`](https://dataforge-lang.vercel.app/docs/metaprogramacao/plugins)
+  perguntar coisas de **fluxo**, e não só de forma. `Arcane.Macro` para
+  na árvore.
+- Não há fase de código de máquina, e nada finge que há: `--fase=llvm` é
+  recusado com a lista e com o motivo.
+- Documentação:
+  [`/docs/compilador/pipeline`](https://dataforge-lang.vercel.app/docs/compilador/pipeline),
+  `/hir`, `/mir`, `/analises` e o mapa da parte 7; exercício 260.
+
 ### Adicionado — `Arcane.C`: falar com biblioteca nativa
 
 - **Chamar C**: `C.carregar(nome)`, `C.padrao()`, `C.matematica()`,

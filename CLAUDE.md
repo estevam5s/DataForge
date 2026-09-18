@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 259 exercícios
+python3 exercicios/run_all.py                        # 260 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -64,6 +64,9 @@ dataforge/
   travessia.py     964   o que uma ação leva consigo para outro núcleo
   typechecker.py  1752   análise estática: nomes, aridade, tipos, alcance
   resolucao.py     190   onde mora o módulo de um 'adopt' — a única cópia
+  hir.py           430   a arvore depois do acucar, e de onde vem cada nome
+  mir.py           900   o grafo de fluxo, e as cinco analises sobre ele
+  lir.py           170   o que o compilador de fechamentos compilou
   tipos_nomeados.py 340  'type': alias, uniao, intersecao, refinamento, opaco
   idioma.py        330   o idioma das mensagens — pt-BR, e 'DF_IDIOMA=en'
   docs_links.py    220   onde mora a doc de cada palavra, módulo e comando
@@ -85,7 +88,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                61 módulos (1741 símbolos), incluindo:
+  stdlib/                62 módulos (1760 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -115,7 +118,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        259 exercícios em 41 módulos + run_all.py
+exercicios/        260 exercícios em 42 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1165,6 +1168,63 @@ apareceram porque **todo bloco da doc roda**:
    (`_para_a_base`), senão vira "Cannot add Positivo and Positivo";
 3. dois opacos do mesmo tipo se comparam pela base (`_ordenavel`).
 
+### As representações do meio, e o que elas provam
+
+`hir.py`, `mir.py` e `lir.py` existem porque o repositório tinha lexer,
+parser, AST, analisador e um backend — e **nenhuma forma de ver** o que
+havia entre eles. `dataforge ir` mostra as seis fases; `Arcane.Compilador`
+as entrega como dado.
+
+**HIR = a AST restrita ao núcleo.** Ele usa as **mesmas classes** da
+árvore, de propósito: é o que permite provar a equivalência **rodando** as
+duas formas e comparando a saída caractere por caractere. Um
+desaçucaramento errado não levanta erro — ele muda o resultado, e nenhum
+teste de forma pega isso.
+
+Cinco açúcares são abertos. O que mais importa é a lista do que **não**
+é açúcar, com o motivo, porque é ela que impede alguém de "simplificar"
+a árvore e mudar a linguagem sem notar:
+
+| Parece açúcar | E não é, porque |
+|---|---|
+| `cycle i from 0 to 3` | `range` **materializa** a lista; um laço de um milhão viraria uma lista de um milhão |
+| `a ?? b`, `x?.y` | a forma com ternário avalia o lado esquerdo **duas vezes**, e ali costuma haver chamada |
+| ternário | é expressão, e `given` é instrução: precisaria de temporária, que muda o escopo |
+| `mark @f` | `g := f(g)` é errado — um decorador que devolve `void` **não** substitui o alvo |
+
+E `x += 1` só abre quando o alvo é um **nome**: com índice ou membro, o
+alvo seria avaliado duas vezes, e `v[sortear()] += 1` consumiria dois
+sorteios. É a mesma razão por que `Assignment.value` guarda só o lado
+direito.
+
+O `perform` vira marca + `persist`, e **não** corpo duplicado: um `halt`
+na cópia de fora não estaria dentro de laço nenhum e escaparia do laço
+inteiro.
+
+**MIR = bloco básico com aresta rotulada.** Três decisões:
+
+| Decisão | Sem ela |
+|---|---|
+| é construído **a partir do HIR** | `orif` e `perform` seriam dois casos a mais aqui, e um caso esquecido num construtor de grafo não dá erro: produz análise errada com cara de verdade |
+| a aresta de erro sai da **entrada** do `monitor` | o `handle` veria um estado que talvez não tenha acontecido; da entrada ele vê o pior caso honesto, e com um grafo três vezes menor |
+| `thread`, `parallel`, `server` são **opacos** | abrir o corpo num grafo sequencial afirmaria uma ordem que não existe — e é sobre concorrência que uma afirmação errada custa |
+
+**`talvez-nao-definida` é o único diagnóstico novo**, e o que o faz calar
+custou mais que o que o faz falar. Sem o filtro de nome **externo** ele
+acusaria os nove contadores por fechamento do repositório: `:=` dentro de
+uma ação escreve o nome de fora quando ele existe — medido. E `lidos()`
+precisou aprender que o `p` de `[p * 2 cycle p in xs]`, o parâmetro de um
+`lambda`, o `v` de um `>> morph v:` e o **nome de coluna** de um
+`>> onde valor bigger 50` não são leituras do escopo. Sem isso, toda
+compreensão do repositório seria acusada.
+
+**LIR = o backend que existe.** Não há código de máquina; há
+`compilador.py`, e a descida dele é **parcial**. O que não existia era
+saber *o que* recuou — e o inventário separa os recuos **dentro de laço**,
+os únicos que aparecem num perfil. A conta sai das tabelas do próprio
+compilador: uma segunda lista divergiria no primeiro nó novo, e o
+relatório passaria a mentir com confiança.
+
 ### O analisador estático é otimista de propósito
 
 Quando não consegue **provar** que algo está errado, fica calado. Um falso alarme
@@ -1714,7 +1774,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1741 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1760 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -1859,8 +1919,9 @@ python3 scripts/gerar_tarball.py
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
 | `tests/test_oop_avancada.py` | `pytest` | contratos, modificadores, sobrecarga, metaclasses, reflexão, DI, padrões, memória, métricas, LSP — e **executa cada bloco `df`** das páginas de `/docs/oop` e da §7 da referência |
+| `tests/test_compilador_interno.py` | `pytest` | HIR, MIR, LIR e as analises — inclusive a **equivalencia** do HIR rodando exercicios do repositorio nas duas formas e comparando a saida |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 259 exercícios em 41 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 260 exercícios em 42 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

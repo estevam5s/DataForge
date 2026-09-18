@@ -2445,6 +2445,7 @@ class TypeChecker:
         self.posse_movida, self.recursos_abertos = {}, {}
         self.posse_criada = set()
         try:
+            self._conferir_fluxo(node, interno)
             sempre_retorna = self.visit_block(node.body, interno)
             self._cobrar_recursos_soltos(interno, node)
             promessas = getattr(node, "postconditions", None) or []
@@ -2480,6 +2481,50 @@ class TypeChecker:
                 "Add a 'yield' at the end, or drop the return type",
                 "missing-return")
         return False
+
+    def _conferir_fluxo(self, node, escopo):
+        """`talvez-nao-definida`: o nome que só um caminho atribui.
+
+        ```
+        given n bigger 10:
+            rotulo := "alto"
+        yield rotulo          # e quando a condicao e falsa?
+        ```
+
+        O analisador registra o nome do ramo, e isso **está certo** — um
+        `given` compartilha o escopo, e é assim que se decide um valor em
+        dois caminhos. O que faltava era contar por quantos caminhos ele
+        passa, e essa pergunta só o grafo de fluxo responde.
+
+        A conta é do `mir.py`, e o que ela precisa daqui é a lista de
+        nomes visíveis **de fora**: `:=` dentro de uma ação escreve o
+        nome externo quando ele existe (medido), então um nome de fora
+        nunca pode ser acusado aqui. É aviso, e não erro: o caminho que
+        não define pode ser o que nunca acontece, e só quem escreveu
+        sabe.
+        """
+        if not node.body:
+            return
+        try:
+            from . import mir
+            corpo = mir.corpo_de_acao(node)
+        except Exception:
+            return                      # um grafo que nao sai nao acusa nada
+
+        externos = set()
+        alvo = escopo
+        while alvo is not None:
+            externos |= set(alvo.names)
+            alvo = alvo.parent
+
+        for nome, instrucao in mir.talvez_nao_definidas(corpo, externos):
+            self.warn(
+                f"'{nome}' may not be defined here: some path to this line "
+                f"does not assign it",
+                instrucao,
+                f"Give '{nome}' a value before the branch, or add the "
+                f"'otherwise' that covers the other path",
+                "talvez-nao-definida")
 
     def st_BlueprintDeclaration(self, node, escopo):
         if node.name not in self.maes:

@@ -476,7 +476,25 @@ GRUPOS = [
             veja=("ast",)),
         Cmd("ast", "dataforge ast <arquivo>",
             "Mostra a arvore sintatica (parser)",
-            veja=("tokens",)),
+            veja=("tokens", "ir")),
+        Cmd("ir", "dataforge ir <arquivo> [--fase=…]",
+            "Mostra o caminho inteiro: HIR, MIR, LIR e as analises",
+            "As representacoes do meio, que 'tokens' e 'ast' nao mostram.\n"
+            "\n"
+            "  hir       a arvore depois do acucar, e quanto dele o arquivo usa\n"
+            "  mir       o grafo de fluxo: bloco basico, aresta, laco, tratador\n"
+            "  analises  alcance, constantes, escapatoria e nome nao definido\n"
+            "  lir       o que o compilador de fechamentos compilou, e o que recuou\n"
+            "\n"
+            "Nao ha fase de codigo de maquina: o backend e compilador.py, e\n"
+            "o 'lir' e onde isso fica visivel.",
+            opcoes=[("--fase=<nome>", "tokens, ast, hir, mir, analises, lir ou tudo"),
+                    ("--acao=<nome>", "so o corpo desta acao, no 'mir'"),
+                    ("--json", "a mesma coisa como dado")],
+            exemplos=[("dataforge ir app.df", "o caminho inteiro"),
+                      ("dataforge ir app.df --fase=mir", "so o grafo de fluxo"),
+                      ("dataforge ir app.df --fase=lir", "o que compilou")],
+            veja=("ast", "tokens", "check")),
         Cmd("clean", "dataforge clean",
             "Limpa caches e artefatos de build",
             "Remove dist/, __pycache__ e o cache de pacotes baixados.",
@@ -665,6 +683,169 @@ def show_tokens(filepath: str):
     print(color(f"── Tokens for {filepath} ──", "1;35"))
     for tok in tokens:
         print(f"  {tok}")
+
+
+#: As fases que `dataforge ir` sabe mostrar, na ordem do caminho.
+FASES_IR = ("tokens", "ast", "hir", "mir", "analises", "lir")
+
+
+def ir_command(caminho, flags=()):
+    """`dataforge ir` — o caminho de compilacao inteiro, fase por fase.
+
+    O repositorio ja tinha `tokens` e `ast`: a primeira fase e a
+    terceira. As do meio nao apareciam em lugar nenhum, e sao elas que
+    respondem as perguntas praticas — quanto acucar este arquivo usa,
+    por onde o fluxo passa, e o que o compilador de fechamentos deixou
+    de compilar no meu laco quente.
+    """
+    from . import hir as _hir
+    from . import lir as _lir
+    from . import mir as _mir
+
+    pedida = "tudo"
+    acao = ""
+    for flag in flags:
+        if flag.startswith("--fase="):
+            pedida = flag.split("=", 1)[1].strip().lower()
+        elif flag.startswith("--acao="):
+            acao = flag.split("=", 1)[1].strip()
+
+    if pedida not in FASES_IR and pedida != "tudo":
+        print(color(f"Erro: fase '{pedida}' nao existe.", "1;31"))
+        print(f"  Fases: {', '.join(FASES_IR)}, tudo")
+        print(color("  Nao ha fase de LLVM nem de codigo de maquina: o "
+                    "backend e o compilador de fechamentos.", "0;90"))
+        return 1
+
+    if not os.path.isfile(caminho):
+        print(color(f"Erro: '{caminho}' nao existe.", "1;31"))
+        return 1
+    fonte = open(caminho, encoding="utf-8").read()
+
+    try:
+        fluxo = tokenize(fonte, caminho)
+        arvore = parse(list(fluxo), caminho)
+    except DataForgeError as erro:
+        print(erro.render(fonte) if hasattr(erro, "render") else str(erro))
+        return 1
+
+    quer = FASES_IR if pedida == "tudo" else (pedida,)
+    saida = []
+
+    if "tokens" in quer:
+        saida.append(_secao("lexer → tokens", f"{len(fluxo)} token(s)"))
+        if pedida != "tudo":
+            saida.extend(f"  {t}" for t in fluxo)
+        else:
+            saida.extend(f"  {t}" for t in fluxo[:12])
+            if len(fluxo) > 12:
+                saida.append(color(f"  … {len(fluxo) - 12} a mais "
+                                   f"(--fase=tokens mostra todos)", "0;90"))
+
+    if "ast" in quer:
+        saida.append(_secao("parser → AST",
+                            f"{len(arvore.body)} instrucao(oes) no topo"))
+        for i, instrucao in enumerate(arvore.body[:40], 1):
+            saida.append(f"  {i:>3}. {instrucao.__class__.__name__}"
+                         f"  (linha {getattr(instrucao, 'line', 0)})")
+        if len(arvore.body) > 40:
+            saida.append(color(f"  … {len(arvore.body) - 40} a mais", "0;90"))
+
+    if "hir" in quer:
+        usados = _hir.acucares_usados(arvore)
+        total = sum(usados.values())
+        saida.append(_secao("AST → HIR (desacucaramento)",
+                            f"{total} acucar(es) aberto(s)"))
+        for nome, quantas in sorted(usados.items()):
+            saida.append(f"  {nome:<24} {quantas:>4}×   "
+                         f"{_hir.ACUCARES.get(nome, '')}")
+        if not usados:
+            saida.append("  nenhum: o arquivo ja esta no nucleo")
+        saida.append("")
+        saida.append(color("  o que NAO e acucar, e por que:", "0;90"))
+        for nome, motivo in sorted(_hir.NAO_E_ACUCAR.items()):
+            saida.append(color(f"   {nome:<22} {motivo}", "0;90"))
+
+    corpos = None
+    if "mir" in quer or "analises" in quer:
+        corpos = _mir.construir(arvore)
+        if acao:
+            corpos = [c for c in corpos if c.nome == acao]
+            if not corpos:
+                print(color(f"Erro: nao ha corpo chamado '{acao}'.", "1;31"))
+                return 1
+
+    if "mir" in quer:
+        blocos = sum(len(c.blocos) for c in corpos)
+        saida.append(_secao("HIR → MIR (grafo de fluxo)",
+                            f"{len(corpos)} corpo(s), {blocos} bloco(s)"))
+        saida.append(_mir.texto(corpos))
+
+    if "analises" in quer:
+        saida.append(_secao("MIR → analises", "sobre o grafo"))
+        for corpo in corpos:
+            linhas = _mir._linhas_de_analise(corpo)
+            uteis = [x for x in linhas if "alcance:" not in x] if len(corpos) > 8 else linhas
+            if not uteis:
+                continue
+            saida.append(f"  {corpo.nome}")
+            saida.extend(linhas)
+
+    if "lir" in quer:
+        inventario = _lir.inventario(arvore)
+        saida.append(_secao("MIR → LIR (fechamentos)",
+                            f"{inventario.proporcao():.0f}% compilado"))
+        saida.append(_lir.texto(inventario))
+
+    if "--json" in flags:
+        print(_ir_como_json(caminho, arvore, fluxo, corpos))
+        return 0
+
+    print(color(f"── {caminho} ──", "1;35"))
+    print("\n".join(saida))
+    return 0
+
+
+def _secao(titulo, resumo):
+    return f"\n{color(titulo, '1;36')}   {color(resumo, '0;90')}"
+
+
+def _ir_como_json(caminho, arvore, fluxo, corpos):
+    """As mesmas fases como dado — para quem esta escrevendo ferramenta."""
+    import json
+
+    from . import hir as _hir
+    from . import lir as _lir
+    from . import mir as _mir
+
+    if corpos is None:
+        corpos = _mir.construir(arvore)
+    inventario = _lir.inventario(arvore)
+    return json.dumps({
+        "arquivo": caminho,
+        "tokens": len(fluxo),
+        "instrucoes": len(arvore.body),
+        "acucares": _hir.acucares_usados(arvore),
+        "corpos": [{
+            "nome": c.nome,
+            "parametros": list(c.parametros),
+            "entrada": c.entrada,
+            "blocos": [{
+                "id": b.id, "rotulo": b.rotulo,
+                "instrucoes": len(b.instrucoes),
+                "saidas": [{"para": d, "aresta": r} for d, r in b.saidas],
+                "terminador": b.terminador,
+                "liga": list(b.escreve),
+            } for b in c.blocos],
+            "alcancaveis": sorted(_mir.alcancaveis(c)),
+            "escapam": _mir.escapam(c),
+            "talvez_nao_definidas": [n for n, _ in _mir.talvez_nao_definidas(c)],
+        } for c in corpos],
+        "lir": {"compiladas": inventario.compiladas,
+                "recuadas": inventario.recuadas,
+                "proporcao": round(inventario.proporcao(), 1),
+                "quentes": len(inventario.quentes)},
+    }, ensure_ascii=False, indent=2)
 
 
 def show_ast(filepath: str):
@@ -4152,6 +4333,12 @@ def main():
             print(color("Error: No file specified.", "1;31"))
             sys.exit(1)
         show_ast(args[1])
+
+    elif command == 'ir':
+        if len(args) < 2:
+            print(color("Erro: informe o arquivo.", "1;31"))
+            sys.exit(1)
+        sys.exit(ir_command(args[1], flags))
 
     elif command == 'check':
         check_command([a for a in args[1:] if not a.startswith('--plugin=')],

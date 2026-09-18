@@ -50,6 +50,7 @@ from .arcane_bench import ArcaneBench
 from .arcane_eventos import ArcaneEventos
 from .arcane_c import ArcaneC
 from .arcane_dsl import ArcaneDsl
+from .arcane_compilador import ArcaneCompilador
 from .arcane_macro import ArcaneMacro
 from .arcane_posse import ArcanePosse
 from .arcane_resultado import ArcaneResultado
@@ -178,6 +179,8 @@ _MODULES = {
     "Nativo": ArcaneC,
     "Arcane.Macro": ArcaneMacro,
     "Macro": ArcaneMacro,
+    "Arcane.Compilador": ArcaneCompilador,
+    "Compilador": ArcaneCompilador,
     "Arcane.Dsl": ArcaneDsl,
     "Dsl": ArcaneDsl,
     "Arcane.Posse": ArcanePosse,

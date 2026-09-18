@@ -60,6 +60,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 10 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
 | [`Arcane.C`](#arcanec) | `C / Nativo` | 23 | Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia. |
 | [`Arcane.Macro`](#arcanemacro) | `Macro` | 13 | A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo. 'citar' transforma texto em arvore, 'reescrever' devolve uma acao com o corpo trocado, 'nome_fresco' e 'renomear' dao higiene, e 'derivar' e a macro de atributo que gera __str__, __eq__, __lt__ e para_vault a partir dos campos. |
+| [`Arcane.Compilador`](#arcanecompilador) | `Compilador` | 19 | O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore. |
 | [`Arcane.Dsl`](#arcanedsl) | `Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
 | [`Arcane.Posse`](#arcaneposse) | `Posse` | 16 | Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo. |
 | [`Arcane.Stm`](#arcanestm) | `Stm / Transacional` | 13 | Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. Variavel transacional, 'atomicamente' com validacao otimista e repeticao no conflito, 'retentar' que espera em vez de girar, 'ou_entao' para compor duas operacoes bloqueantes, e estatisticas de conflito. |
@@ -2280,6 +2281,41 @@ adopt Arcane.Macro as Macro
 | `substituir(dado, de, para)` |
 | `texto(dado)` |
 | `transformar(dado, acao)` |
+
+
+---
+
+## Arcane.Compilador
+
+O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore.
+
+```dataforge
+adopt Arcane.Compilador as Compilador
+```
+
+**Funções (19)**
+
+| Assinatura |
+|------------|
+| `acucares(fonte)` |
+| `acucares_conhecidos()` |
+| `alcance(fonte)` |
+| `arvore(fonte)` |
+| `blocos(fonte, nome=None)` |
+| `constantes(fonte, nome=None)` |
+| `corpos(fonte)` |
+| `escapam(fonte, nome=None)` |
+| `fases()` |
+| `hir(fonte)` |
+| `lir(fonte)` |
+| `mir(fonte)` |
+| `nao_e_acucar()` |
+| `onde_talvez_nao_definidas(fonte)` |
+| `resolucao(fonte)` |
+| `talvez_nao_definidas(fonte, nome=None)` |
+| `texto(fonte, fase='mir')` |
+| `tokens(fonte)` |
+| `vivas(fonte, nome=None)` |
 
 
 ---

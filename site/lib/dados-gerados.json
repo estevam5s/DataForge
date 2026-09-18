@@ -1735,6 +1735,108 @@
     }
    ]
   },
+  "compilador": {
+   "nome": "Arcane.Compilador",
+   "desc": "O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore.",
+   "curto": "Compilador",
+   "funcoes": [
+    {
+     "nome": "acucares",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "acucares_conhecidos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "alcance",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "arvore",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "blocos",
+     "sig": "(fonte, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "constantes",
+     "sig": "(fonte, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "corpos",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapam",
+     "sig": "(fonte, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fases",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hir",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lir",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mir",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nao_e_acucar",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "onde_talvez_nao_definidas",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "resolucao",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "talvez_nao_definidas",
+     "sig": "(fonte, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "texto",
+     "sig": "(fonte, fase)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tokens",
+     "sig": "(fonte)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vivas",
+     "sig": "(fonte, nome)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "concurrent": {
    "nome": "Arcane.Concurrent",
    "desc": "Threads, processos, canal bloqueante, grupo de tarefas e prazo.",
@@ -11287,6 +11389,16 @@
     "temDoc": true,
     "codigo": "// Exercicio 259 — chamar C: bibliotecas, ponteiros e callbacks\n//\n// A ponte para o Python resolve \"preciso de algo que alguem escreveu em\n// Python\". Este e o degrau de baixo: chamar funcao de biblioteca C — a\n// libm, a libz, o .so que a empresa mantem ha quinze anos — sem escrever\n// modulo de extensao e sem trazer dependencia.\n\nadopt Arcane.C as C\nadopt Arcane.Bytes as B\nadopt Arcane.Posse as P\n\n// ── abrir e chamar, com a assinatura declarada ──\nlibm := C.matematica()\nraiz := libm.funcao(\"sqrt\", [\"f64\"], \"f64\")\npotencia := libm.funcao(\"pow\", [\"f64\", \"f64\"], \"f64\")\n\nassert raiz(16.0) is 4.0\nassert potencia(2.0, 10.0) is 1024.0\n\nlibc := C.padrao()\ntamanho := libc.funcao(\"strlen\", [\"texto\"], \"tamanho\")\nabsoluto := libc.funcao(\"abs\", [\"i32\"], \"i32\")\n\nassert tamanho(\"dataforge\") is 9\nassert absoluto(-42) is 42\n\n// a biblioteca diz o que ela tem, antes de tentar\nassert libc.tem(\"strlen\")\nassert not libc.tem(\"nao_existe_mesmo\")\n\n// declarar o tipo e o que impede o erro silencioso: um i32 onde o C\n// espera i64 passa em quase toda chamada e corrompe memoria no resto\nmonitor:\n    C.tamanho_de(\"inteirao\")\n    assert no\nhandle RuntimeError as e:\n    assert \"inteirao\" in e.message\n\n// os dois erros mais comuns de FFI dizem o nome e o caminho de saida\nmonitor:\n    C.carregar(\"libnaoexisteaqui\")\n    assert no\nhandle RuntimeError as e:\n    assert \"libnaoexisteaqui\" in e.message\n\nmonitor:\n    libc.funcao(\"funcao_que_nao_existe\", [], \"i32\")\n    assert no\nhandle RuntimeError as e:\n    assert \"funcao_que_nao_existe\" in e.message\n\n// ── o layout de verdade: tamanho, alinhamento, deslocamento ──\nassert C.tamanho_de(\"i8\") is 1\nassert C.tamanho_de(\"i32\") is 4\nassert C.tamanho_de(\"ponteiro\") in [4, 8]\nassert C.endianness() in [\"little\", \"big\"]\n\nPonto := C.estrutura([[\"x\", \"f64\"], [\"y\", \"f64\"]])\nassert Ponto.tamanho() is 16\nassert Ponto.deslocamentos() is {\"x\": 0, \"y\": 8}\n\n// o padding aparece: um i8 antes de um i32 nao ocupa 5 bytes\nMista := C.estrutura([[\"flag\", \"i8\"], [\"valor\", \"i32\"]])\nassert Mista.tamanho() is 8\nassert Mista.deslocamentos()[\"valor\"] is 4\nassert Mista.alinhamento() is 4\n\nPar := C.estrutura([[\"x\", \"i32\"], [\"y\", \"i32\"]])\npar := Par.criar({\"x\": 3, \"y\": 4})\nassert par.ler(\"x\") is 3\npar.escrever(\"x\", 30)\nassert par.tudo() is {\"x\": 30, \"y\": 4}\n\n// a uniao ocupa o maior campo\nU := C.uniao([[\"i\", \"i32\"], [\"f\", \"f64\"]])\nassert U.tamanho() is C.tamanho_de(\"f64\")\n\n// um enum do C e inteiro com nome, e e o numero que atravessa\nCor := C.enumeracao({\"VERMELHO\": 0, \"VERDE\": 1})\nassert Cor[\"VERDE\"] is 1\n\n// ── ponteiro cru: um endereco COM TIPO ──\nbloco := C.alocar(4 * C.tamanho_de(\"i32\"))\np := C.ponteiro(bloco, \"i32\")\n\ncycle i from 0 to 3:\n    p.deslocar(i).escrever(i * 10)\n\nassert p.ler() is 0\nassert p.deslocar(2).ler() is 20\nassert [p.deslocar(i).ler() cycle i in range(0, 4)] is [0, 10, 20, 30]\nC.liberar(bloco)\n\n// o nulo e a unica conferencia que vale o custo: ler um endereco nulo\n// derruba o processo, e a pilha nao fala do DataForge\nnulo := C.nulo()\nassert nulo.e_nulo() and nulo.endereco() is 0\n\nmonitor:\n    nulo.ler()\n    assert no\nhandle RuntimeError as e:\n    assert \"nulo\" in e.message\n\n// bytes vao e voltam\ndados := C.de_bytes(\"dataforge\")\nassert B.para_texto(C.para_bytes(dados, 9)) is \"dataforge\"\nassert dados.tamanho() is 10          // o zero do fim conta\nC.liberar(dados)\n\n// para nao depender de disciplina: o bloco sai com o escopo, inclusive\n// quando o corpo falha\nmedido := P.com(P.dono(C.alocar(32), lambda b => C.liberar(b)),\n                lambda b => b.tamanho())\nassert medido is 32\n\n// ── callback: o C chamando uma acao do DataForge ──\nqsort := libc.funcao(\"qsort\",\n                     [\"ponteiro\", \"tamanho\", \"tamanho\", \"ponteiro\"], \"void\")\n\nnumeros := [42, 7, 19, 3]\narea := C.alocar(len(numeros) * C.tamanho_de(\"i32\"))\nq := C.ponteiro(area, \"i32\")\ncycle i in range(0, len(numeros)):\n    q.deslocar(i).escrever(numeros[i])\n\naction comparar(a, b):\n    yield C.ponteiro(a, \"i32\").ler() - C.ponteiro(b, \"i32\").ler()\n\ncomparador := C.retorno_de_chamada(comparar, [\"ponteiro\", \"ponteiro\"], \"i32\")\nqsort(area, 4, C.tamanho_de(\"i32\"), comparador)\n\nassert [q.deslocar(i).ler() cycle i in range(0, 4)] is [3, 7, 19, 42]\nC.liberar(area)\n\n// o tempo de vida e explicito: um callback coletado no meio de um qsort\n// derruba o processo\naction dobro(x):\n    yield x * 2\n\ncb := C.retorno_de_chamada(dobro, [\"i32\"], \"i32\")\nassert cb.vivo()\nassert cb.chamar(21) is 42\nassert cb.endereco() bigger 0\ncb.soltar()\nassert not cb.vivo()\n\nout \"259 ok\"\n"
    }
+  ],
+  "42-compilador": [
+   {
+    "num": "260",
+    "titulo": "dentro do compilador: HIR, MIR e o que o fluxo prova",
+    "enunciado": "",
+    "arquivo": "260_pipeline_hir_mir.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 260 — dentro do compilador: HIR, MIR e o que o fluxo prova\n//\n// A linguagem ja tinha lexer, parser, AST, analisador e um compilador de\n// fechamentos — e nenhuma forma de VER as representacoes do meio. Este\n// exercicio abre as seis fases de dentro da propria linguagem.\n\nadopt Arcane.Compilador as K\n\n// ── as fases ──\nassert K.fases() is [\"lexer\", \"parser\", \"hir\", \"mir\", \"analises\", \"lir\"]\n\nfonte := \"\"\"\naction classificar(n):\n    given n bigger 10:\n        yield \"alto\"\n    orif n smaller 0:\n        yield \"negativo\"\n    otherwise:\n        yield \"baixo\"\n\ntotal := 0\ncycle i in [1, 2, 3]:\n    total += i\nout classificar(total)\n\"\"\"\n\n// ── lexer: o token sabe onde nasceu ──\ntokens := K.tokens(fonte)\nassert len(tokens) bigger 30\nassert tokens[0][\"linha\"] is 1\nassert \"tipo\" in tokens[0] and \"coluna\" in tokens[0]\n\n// ── parser: a arvore, como dado ──\narvore := K.arvore(fonte)\nassert arvore[\"tipo\"] is \"Program\"\nassert arvore[\"corpo\"][0][\"tipo\"] is \"ActionDeclaration\"\n\n// ── HIR: o acucar que o arquivo usa ──\n// 'orif' e uma corrente de given deitada; '+=' le o alvo e escreve nele\nassert K.acucares(fonte) is {\"orif-aninhado\": 1, \"composta-simples\": 1}\n\n// e no HIR o orif deixou de existir\nde_fora := K.hir(fonte)[\"corpo\"][0][\"corpo\"][0]\nassert de_fora[\"tipo\"] is \"GivenBlock\"\nassert len(de_fora[\"orif_blocks\"]) is 0\nassert de_fora[\"otherwise_body\"][0][\"tipo\"] is \"GivenBlock\"\n\n// o que so PARECE acucar tem o motivo escrito ao lado\nmotivos := K.nao_e_acucar()\nassert \"CycleFromTo\" in motivos          // 'range' materializa a lista\nassert \"MarkDecorator\" in motivos        // decorador que devolve void nao troca\nassert len(motivos[\"TernaryExpression\"]) bigger 20\n\n// ── resolucao: de onde vem cada nome ──\nligacoes := K.resolucao(\"fora := 1\\naction f(a):\\n    b := a + 1\\n    yield b + fora + sqrt(4)\\n\")\nf := [c cycle c in ligacoes given c[\"nome\"] is \"f\"][0]\nassert f[\"parametros\"] is [\"a\"]\nassert f[\"locais\"] is [\"b\"]\nassert f[\"livres\"] is [\"fora\"]            // le e nao cria: vem de fora\nassert f[\"embutidos\"] is [\"sqrt\"]\n\n// ── MIR: bloco basico e aresta ──\nassert K.corpos(fonte) is [\"(programa)\", \"classificar\"]\n\ntopo := K.blocos(fonte, \"(programa)\")\n// o laco tem uma aresta de volta — sem ela nao e laco\nvoltas := [b[\"id\"] cycle b in topo\n           given len([s cycle s in b[\"saidas\"] given s[\"aresta\"] is \"volta\"]) bigger 0]\nassert len(voltas) is 1\n\n// o 'given' abre dois ramos, e os dois tem rotulo\nramos := K.blocos(fonte, \"classificar\")\netiquetas := unique([s[\"aresta\"] cycle b in ramos cycle s in b[\"saidas\"]])\nassert \"sim\" in etiquetas and \"nao\" in etiquetas\n\n// o monitor liga o corpo ao tratador\ncom_erro := \"monitor:\\n    x := 1\\nhandle Error as e:\\n    out e.message\\nensure:\\n    out 2\\n\"\nrotulos := [b[\"rotulo\"] cycle b in K.blocos(com_erro, \"(programa)\")]\nassert \"tratador\" in rotulos and \"ensure\" in rotulos\n\n// ── alcance: o codigo que nao pode ser atingido ──\n// os tres ramos encerram com yield, logo a juncao nao e alcancavel\nvida := K.alcance(fonte)[\"classificar\"]\nassert vida[\"vivos\"] smaller vida[\"total\"]\nassert len(vida[\"fora\"]) bigger 0\n\n// ── definida em todo caminho: o aviso que o check nao tinha ──\nassert K.talvez_nao_definidas(\"given c:\\n    x := 1\\nout x\\n\") is [\"x\"]\n\n// com o 'otherwise' cobrindo, silencio\nassert K.talvez_nao_definidas(\n    \"given c:\\n    x := 1\\notherwise:\\n    x := 2\\nout x\\n\") is []\n\n// o laco conta como ramo: ele pode nao rodar nenhuma vez\nassert K.talvez_nao_definidas(\"cycle x in xs:\\n    ultimo := x\\nout ultimo\\n\") is [\"ultimo\"]\n\n// e a analise CALA quando nao pode provar — cada silencio e um falso\n// alarme que nao acontece\nassert K.talvez_nao_definidas(\n    \"monitor:\\n    given c:\\n        x := 1\\n    out x\\nhandle Error:\\n    out 0\\n\") is []\n\n// ── propagacao de constante: a intersecao e o recurso ──\nassert K.constantes(\"x := 2\\ny := x + 1\\nout y\\n\", \"(programa)\") is {\"x\": 2, \"y\": 3}\n\n// dois ramos que discordam nao deixam constante nenhuma\nassert K.constantes(\"given c:\\n    x := 1\\notherwise:\\n    x := 2\\nout x\\n\",\n                    \"(programa)\") is {}\n\n// ── escapatoria: quem mais pode estar lendo ──\ncom_closure := \"action f():\\n\" +\n               \"    preso := 1\\n\" +\n               \"    solto := 2\\n\" +\n               \"    ler := lambda => preso + 1\\n\" +\n               \"    yield ler()\\n\"\nfugas := K.escapam(com_closure, \"f\")\nassert fugas[\"preso\"] is \"fechamento\"\nassert fugas[\"ler\"] is \"devolvido\"\nassert \"solto\" not in fugas               // vive e morre no quadro\n\n// ── LIR: o que o compilador de fechamentos fez ──\n// nao ha codigo de maquina: o backend e compilador.py, e o LIR diz\n// quanto da arvore virou fechamento e o que recuou para a arvore\ninventario := K.lir(fonte)\nassert inventario[\"total\"] is inventario[\"compiladas\"] + inventario[\"recuadas\"]\nassert inventario[\"proporcao\"] bigger 0 and inventario[\"proporcao\"] smaller_eq 100\nassert \"por_no\" in inventario\n\n// o recuo DENTRO de um laco e o unico que aparece num perfil\nquente := K.lir(\"cycle i in [1, 2]:\\n    out [x cycle x in [1]]\\n\")\nassert len(quente[\"quentes\"]) bigger_eq 0\n\n// ── a fase que nao existe ──\nmonitor:\n    K.texto(fonte, \"llvm\")\n    assert no\nhandle RuntimeError as e:\n    assert \"llvm\" in e.message\n    assert \"backend\" in e.message         // e diz qual e\n\nout \"260 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -11632,15 +11744,15 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2478,
+  "testes": 2530,
   "exemplos": 44,
-  "arquivosDf": 369
+  "arquivosDf": 370
  },
  "mundo": {
   "estrelas": 0,
   "versao": "v1.0.0",
   "publicado": "2026-09-12",
-  "baixados": 37,
+  "baixados": 38,
   "instalacoes": 4
  }
 }

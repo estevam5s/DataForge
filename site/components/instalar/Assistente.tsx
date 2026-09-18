@@ -50,7 +50,7 @@ const COMPONENTES: Componente[] = [
   {
     id: 'interpretador',
     nome: 'Interpretador e biblioteca padrão',
-    desc: 'a linguagem, os 61 módulos Arcane, e as 34 ferramentas de linha de comando',
+    desc: 'a linguagem, os 62 módulos Arcane, e as 34 ferramentas de linha de comando',
     tamanho: '4,2 MB',
     fixo: true,
   },
@@ -64,7 +64,7 @@ const COMPONENTES: Componente[] = [
   {
     id: 'exemplos',
     nome: 'Exemplos e exercícios',
-    desc: '43 programas comentados e 259 exercícios com solução',
+    desc: '43 programas comentados e 260 exercícios com solução',
     tamanho: '1,1 MB',
     flag: '--com-exemplos',
   },

@@ -251,6 +251,17 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Dentro do compilador',
+    badge: 'novo',
+    items: [
+      { title: 'O caminho de compilação', href: '/docs/compilador/pipeline', badge: 'novo' },
+      { title: 'HIR — a árvore sem açúcar', href: '/docs/compilador/hir', badge: 'novo' },
+      { title: 'MIR — o grafo de fluxo', href: '/docs/compilador/mir', badge: 'novo' },
+      { title: 'O que o fluxo prova', href: '/docs/compilador/analises', badge: 'novo' },
+      { title: 'O compilador: o mapa', href: '/docs/compilador/mapa', badge: 'novo' },
+    ],
+  },
+  {
     title: 'Concorrência avançada',
     badge: 'novo',
     items: [
@@ -436,6 +447,7 @@ export const nav: NavSection[] = [
       { title: 'Concorrência avançada', href: '/docs/exercicios/39-concorrencia-avancada', badge: 'novo' },
       { title: 'Metaprogramação', href: '/docs/exercicios/40-metaprogramacao', badge: 'novo' },
       { title: 'FFI e nativo', href: '/docs/exercicios/41-ffi-nativo', badge: 'novo' },
+      { title: 'Dentro do compilador', href: '/docs/exercicios/42-compilador', badge: 'novo' },
     ],
   },
   {

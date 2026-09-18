@@ -592,9 +592,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 259 | [`259_ffi_com_c.df`](41-ffi-nativo/259_ffi_com_c.df) · [doc](41-ffi-nativo/259_ffi_com_c.md) | chamar C: bibliotecas, ponteiros e callbacks |
 
+## 42 — Compilador
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 260 | [`260_pipeline_hir_mir.df`](42-compilador/260_pipeline_hir_mir.df) · [doc](42-compilador/260_pipeline_hir_mir.md) | dentro do compilador: HIR, MIR e o que o fluxo prova |
+
 ---
 
-**Total: 259 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 260 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->
