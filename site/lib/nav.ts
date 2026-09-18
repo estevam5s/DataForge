@@ -219,7 +219,9 @@ export const nav: NavSection[] = [
     title: 'Sistema de tipos',
     badge: 'novo',
     items: [
+      { title: 'Visão geral', href: '/docs/tipos/visao-geral', badge: 'novo' },
       { title: 'Tipos nomeados', href: '/docs/tipos-nomeados', badge: 'novo' },
+      { title: 'Tuplas', href: '/docs/tipos/tuplas', badge: 'novo' },
       { title: 'Generics', href: '/docs/tipos/genericos', badge: 'novo' },
       { title: 'Sistema de traits', href: '/docs/tipos/traits', badge: 'novo' },
     ],

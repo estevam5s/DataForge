@@ -4,7 +4,7 @@ import { CodeBlock } from '@/components/CodeBlock';
 import { Callout, Card, CardGrid, DocPage, H2, H3, Table } from '@/components/Doc';
 
 const DESCRICAO =
-  'A documentação do DataForge: mais de 190 páginas, 253 exercícios que ' +
+  'A documentação do DataForge: mais de 190 páginas, 254 exercícios que ' +
   'verificam o próprio resultado com assert, e cada trecho de código ' +
   'compilado a cada mudança. Linguagem, biblioteca, frameworks e ferramentas.';
 
@@ -185,7 +185,7 @@ export default function Home() {
       <H3>Verificável</H3>
       <p>
         Cada afirmação desta documentação corresponde a código que roda. São{' '}
-        <strong>3404 testes</strong>, 253 exercícios que verificam o próprio
+        <strong>3404 testes</strong>, 254 exercícios que verificam o próprio
         resultado com <code>assert</code>, e 44 programas de exemplo. Os
         trechos desta documentação são compilados a cada mudança — 1449 deles.
       </p>
@@ -325,7 +325,7 @@ dataforge version`}
         <Card href="/docs/variaveis" title="Visão geral" meta="13 páginas">
           A linguagem do zero, na ordem em que é usada.
         </Card>
-        <Card href="/docs/exercicios" title="253 exercícios" meta="38 áreas">
+        <Card href="/docs/exercicios" title="254 exercícios" meta="38 áreas">
           Cada um se verifica com <code>assert</code>. Vinte e dois módulos têm
           um <code>.md</code> explicativo ao lado de cada exercício.
         </Card>

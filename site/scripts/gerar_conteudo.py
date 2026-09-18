@@ -44,6 +44,7 @@ MODULOS = [
     "lavra",
     "tipos_nomeados",
     "tipos_genericos",
+    "tipos_tuplas",
     "plataforma",
     "vitrine",
     "versoes",

@@ -8,13 +8,13 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "38 · Sistema de tipos",
-  description: "2 exercícios: .",
+  description: "3 exercícios: .",
 };
 
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 38`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[252](#252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco)", "**Tipos nomeados: alias, uniao, intersecao, refinamento e opaco**", ""], ["[253](#253-generics-tipos-indexados-e-o-sistema-de-traits)", "**Generics, tipos indexados e o sistema de traits**", ""]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[252](#252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco)", "**Tipos nomeados: alias, uniao, intersecao, refinamento e opaco**", ""], ["[253](#253-generics-tipos-indexados-e-o-sistema-de-traits)", "**Generics, tipos indexados e o sistema de traits**", ""], ["[254](#254-tuplas-a-forma-de-tamanho-fixo)", "**Tuplas: a forma de tamanho fixo**", ""]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
   {"h2": "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco"},
   { code: `// Um 'type' da nome a um tipo. As cinco formas sao a MESMA declaracao:
@@ -444,17 +444,149 @@ action somar(a: Vetor<2>, b: Vetor<2>) -> Vetor<2>:
   {"list": ["**constante associada** — `steady LIMITE := 3`, que vira membro"]},
   {"p": "(`Fila.LIMITE`)."},
   {"p": "E para exigir dois traits ao mesmo tempo, a interseção: `type Auditavel := Serial & Forma`. Um objeto que tem só metade é recusado na fronteira, dizendo qual metade falta."},
+  {"h2": "254 · Tuplas: a forma de tamanho fixo"},
+  { code: `// Cluster e uma LISTA: itens do mesmo tipo, quantidade livre.
+// Tuple e uma FORMA: uma casa por tipo, quantidade fixa, imutavel.
+//
+// O contorno antigo era um cluster de dois itens — que aceita tres,
+// aceita zero, e nao promete nada sobre a casa 0.
+
+adopt Arcane.Collections as C
+adopt Arcane.Serialization as S
+
+// ── a forma, e a ambiguidade unica ──
+t := (1, "a")
+assert typeof(t) is "Tuple"
+assert len(t) is 2
+assert t[0] is 1 and t[1] is "a" and t[-1] is "a"
+
+x := (2 + 3) * 2                  // agrupamento, nao tupla
+assert x is 10 and typeof(x) is "Integer"
+
+um := (7,)                        // a virgula faz a tupla de um
+vazia := ()
+assert len(um) is 1 and len(vazia) is 0
+
+// fatia de tupla continua tupla
+assert typeof(t[0:1]) is "Tuple"
+
+// ── tres tipos parecidos, tres promessas diferentes ──
+assert typeof([1, 2]) is "Cluster"          // muda
+assert typeof(freeze([1, 2])) is "Frozen"   // cluster congelado
+assert typeof((1, 2)) is "Tuple"            // forma fixa
+
+// ── imutavel: escrever e recusado, com o motivo ──
+monitor:
+    t[0] := 9
+    assert no
+handle TypeError as e:
+    assert "immutable" in e.message
+
+// ── igualdade estrutural, hash e uso como chave ──
+a := (1, "x")
+b := (1, "x")
+grade := {}
+grade[a] := "achei"
+
+assert a is b
+assert a isnt (1, "y")
+assert grade[b] is "achei"
+assert len(C.set([a, b])) is 1
+
+// ── o tipo: a quantidade de argumentos E o tamanho ──
+par: Tuple<Integer, String> := (1, "a")
+assert par[1] is "a"
+
+monitor:
+    trocada: Tuple<Integer, String> := ("a", 1)
+    assert no
+handle TypeError as e:
+    assert "place 0" in e.message              // a casa culpada
+
+monitor:
+    grande: Tuple<Integer, String> := (1, "a", 2)
+    assert no
+handle TypeError as e:
+    assert "place(s)" in e.message             // o tamanho faz parte do tipo
+
+// ── o retorno duplo, que antes exigia cluster ou vault ──
+action dividir(a: Integer, b: Integer) -> Tuple<Integer, Integer>:
+    yield (a ~/ b, a % b)
+
+inteiro, resto := dividir(17, 5)
+assert inteiro is 3 and resto is 2
+
+monitor:
+    action errada() -> Tuple<Integer, Integer>:
+        yield (1, "dois")
+    errada()
+    assert no
+handle TypeError as e:
+    assert "return value" in e.message
+
+// ── com alias, aninhada, em record e em colecao ──
+type Coordenada := Tuple<Float, Float>
+type Segmento := Tuple<Coordenada, Coordenada>
+
+record Trecho:
+    de: Coordenada
+    para: Coordenada
+
+s: Segmento := ((0.0, 0.0), (3.0, 4.0))
+trecho := Trecho(s[0], s[1])
+pares := [(1, "um"), (2, "dois")]
+
+assert s[1][0] is 3.0
+assert trecho.para[1] is 4.0
+assert pares[1][1] is "dois"
+
+action distancia(de: Coordenada, para: Coordenada) -> Float:
+    yield ((para[0] - de[0]) ** 2 + (para[1] - de[1]) ** 2) ** 0.5
+
+assert distancia(s[0], s[1]) is 5.0
+
+monitor:
+    ruim: Coordenada := (1.0, "dois")
+    assert no
+handle TypeError as e:
+    assert "Coordenada" in e.message
+
+// ── percorrer, pertencer, serializar ──
+soma := 0
+cycle item in (1, 2, 3):
+    soma += item
+assert soma is 6
+assert 2 in (1, 2, 3)
+assert S.to_json((1, "a")) is "[1, \\"a\\"]"    // JSON nao tem tupla: vira array
+
+out "254 ok"`, lang: 'df', title: `exercicios/38-tipos/254_tuplas.df` },
+  {"p": "`Cluster` é uma **lista**: itens do mesmo tipo, quantidade livre, e ela muda. `Tuple` é uma **forma**: uma casa por tipo, quantidade fixa, e ela não muda."},
+  {"table": {"head": ["", "Muda?", "Conteúdo", "Serve para"], "rows": [["`Cluster`", "sim", "mesmo tipo, quantidade livre", "uma lista de coisas"], ["`Frozen`", "não", "mesmo tipo (`freeze([1, 2])`)", "um cluster que não muda mais"], ["`Tuple`", "não", "**um tipo por casa**", "par, coordenada, retorno duplo"]]}},
+  {"h3": "A única ambiguidade: `(1)` não é tupla"},
+  {"p": "`(1)` é o número 1 entre parênteses — sem isso, `(2 + 3) * 2` deixaria de ser 10. A tupla de um item se escreve `(7,)`, e a vazia, `()`."},
+  {"h3": "O tamanho faz parte do tipo"},
+  {"p": "Em `Tuple<Integer, String>`, a **quantidade de argumentos é o tamanho**. Uma tupla de três casas não é \"uma tupla com um item errado\": é outra forma, e a mensagem diz isso. Quando a posição é que está errada, o erro nomeia a casa (`place 0`)."},
+  {"p": "É o tipo natural do retorno duplo:"},
+  { code: `action dividir(a: Integer, b: Integer) -> Tuple<Integer, Integer>:
+    yield (a ~/ b, a % b)
+
+inteiro, resto := dividir(17, 5)`, lang: 'df' },
+  {"p": "Antes, isso obrigava a devolver um cluster (que não promete duas casas) ou um vault (que obriga a nomear o que já tem ordem)."},
+  {"h3": "Por que ela é hasheável"},
+  {"p": "Porque é imutável. É isso que permite usá-la como **chave de vault** e dentro de um `Set` — e é a razão prática de a tupla existir ao lado do cluster. Um cluster não pode ser chave: ele mudaria, e a chave mudaria com ele."},
+  {"h3": "Na fronteira do JSON"},
+  {"p": "JSON não tem tupla: `to_json((1, \"a\"))` produz `[1, \"a\"]`, e o caminho de volta traz um `Cluster`. A forma não sobrevive ao formato — quando ela importa, declare `Tuple<…>` na entrada e converta ali."},
   {"hr": true},
   {"p": "Rode um isolado com `dataforge run exercicios/38-tipos/252_tipos_nomeados.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco', text: "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco", level: 2 as const }, { id: 'transparente-confere-opaco-embrulha', text: "Transparente confere, opaco embrulha", level: 3 as const }, { id: 'a-regra-roda-na-fronteira', text: "A regra roda na fronteira", level: 3 as const }, { id: 'o-que-o-check-prova-antes-de-rodar', text: "O que o `check` prova antes de rodar", level: 3 as const }, { id: '253-generics-tipos-indexados-e-o-sistema-de-traits', text: "253 · Generics, tipos indexados e o sistema de traits", level: 2 as const }, { id: '1-o-que-um-t-promete', text: "1. O que um `<T>` promete?", level: 3 as const }, { id: '2-onde-o-argumento-chega', text: "2. Onde o argumento chega?", level: 3 as const }, { id: '3-o-tamanho-pode-fazer-parte-do-tipo', text: "3. O tamanho pode fazer parte do tipo?", level: 3 as const }, { id: 'traits-exigencia-padrao-e-heranca', text: "Traits: exigência, padrão e herança", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco', text: "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco", level: 2 as const }, { id: 'transparente-confere-opaco-embrulha', text: "Transparente confere, opaco embrulha", level: 3 as const }, { id: 'a-regra-roda-na-fronteira', text: "A regra roda na fronteira", level: 3 as const }, { id: 'o-que-o-check-prova-antes-de-rodar', text: "O que o `check` prova antes de rodar", level: 3 as const }, { id: '253-generics-tipos-indexados-e-o-sistema-de-traits', text: "253 · Generics, tipos indexados e o sistema de traits", level: 2 as const }, { id: '1-o-que-um-t-promete', text: "1. O que um `<T>` promete?", level: 3 as const }, { id: '2-onde-o-argumento-chega', text: "2. Onde o argumento chega?", level: 3 as const }, { id: '3-o-tamanho-pode-fazer-parte-do-tipo', text: "3. O tamanho pode fazer parte do tipo?", level: 3 as const }, { id: 'traits-exigencia-padrao-e-heranca', text: "Traits: exigência, padrão e herança", level: 3 as const }, { id: '254-tuplas-a-forma-de-tamanho-fixo', text: "254 · Tuplas: a forma de tamanho fixo", level: 2 as const }, { id: 'a-unica-ambiguidade-1-nao-e-tupla', text: "A única ambiguidade: `(1)` não é tupla", level: 3 as const }, { id: 'o-tamanho-faz-parte-do-tipo', text: "O tamanho faz parte do tipo", level: 3 as const }, { id: 'por-que-ela-e-hasheavel', text: "Por que ela é hasheável", level: 3 as const }, { id: 'na-fronteira-do-json', text: "Na fronteira do JSON", level: 3 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"38 · Sistema de tipos"}
-      description={"2 exercícios: ."}
+      description={"3 exercícios: ."}
       href={"/docs/exercicios/38-tipos"}
       headings={headings}
     >

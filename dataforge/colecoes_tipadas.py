@@ -36,11 +36,14 @@ por isso so acontece onde a anotacao pede.
 
 from functools import lru_cache
 
-#: As colecoes que declaram o tipo do conteudo, e quantos tipos cada uma leva.
-COLECOES = {"Cluster": 1, "Vault": 2, "Set": 1}
+#: As colecoes que declaram o tipo do conteudo, e quantos tipos cada uma
+#: leva. 'Tuple' leva QUALQUER quantidade: nela, o numero de argumentos e
+#: o proprio tamanho da tupla — 'Tuple<Integer, String>' tem duas casas.
+COLECOES = {"Cluster": 1, "Vault": 2, "Set": 1, "Tuple": None}
 
 #: Como a doc escreve cada uma — e o que a mensagem de erro mostra.
-FORMA = {"Cluster": "Cluster<T>", "Vault": "Vault<K, V>", "Set": "Set<T>"}
+FORMA = {"Cluster": "Cluster<T>", "Vault": "Vault<K, V>", "Set": "Set<T>",
+         "Tuple": "Tuple<A, B, …>"}
 
 
 @lru_cache(maxsize=512)
@@ -254,6 +257,42 @@ class SetTipado(set):
 
     def __reduce__(self):
         return (set, (set(self),))
+
+
+class Tupla(tuple):
+    """'(1, "a")' — a sequencia de tamanho fixo da linguagem.
+
+    Por que uma subclasse de 'tuple', e nao a 'tuple' crua: a tupla do
+    Python JA tinha dono aqui. 'freeze([1, 2])' devolve uma e a
+    linguagem a chama de 'Frozen' — um Cluster congelado. Sao duas
+    coisas diferentes:
+
+        Frozen   um Cluster que nao muda      itens do mesmo tipo
+        Tuple    uma FORMA: casa 0, casa 1    um tipo por casa
+
+    Herdar de 'tuple' e o que faz 'len', 'cycle', 'in', indice, fatia,
+    igualdade e hash funcionarem sem que nenhum deles saiba o que e uma
+    tupla — a mesma escolha das colecoes tipadas.
+    """
+
+    __slots__ = ()
+
+    def __getitem__(self, chave):
+        # Uma fatia de tupla e uma tupla: sem isto, 't[0:2]' voltaria
+        # como 'Frozen', e o tipo mudaria no meio de uma expressao.
+        if isinstance(chave, slice):
+            return Tupla(tuple.__getitem__(self, chave))
+        return tuple.__getitem__(self, chave)
+
+    def __add__(self, outra):
+        return Tupla(tuple.__add__(self, tuple(outra)))
+
+    def __mul__(self, vezes):
+        return Tupla(tuple.__mul__(self, vezes))
+
+    def __reduce__(self):
+        # Atravessa processo e pickle como a tupla que ela e por fora.
+        return (Tupla, (tuple(self),))
 
 
 TIPADAS = (ClusterTipado, VaultTipado, SetTipado)

@@ -14,6 +14,25 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — tuplas
+
+- **`(1, "a")`** é uma tupla: tamanho fixo, um tipo por casa, imutável e
+  hasheável — serve como chave de vault e item de `Set`. `(1)` continua
+  sendo agrupamento; `(1,)` é a tupla de um item e `()` a vazia.
+- **`Tuple<A, B, …>`**: a quantidade de argumentos **é** o tamanho. A
+  conferência nomeia a casa (`place 0`) e o tamanho errado é relatado como
+  forma errada, na execução e no `check` (`tipo-do-conteudo`).
+- É o tipo do **retorno duplo**:
+  `action dividir(a, b) -> Tuple<Integer, Integer>`, com desestruturação
+  (`inteiro, resto := dividir(17, 5)`).
+- Ela percorre, serializa (array no JSON) e atravessa processo.
+- `Tuple` e `Frozen` são coisas diferentes, e continuam sendo: `Frozen` é
+  um `Cluster` congelado, `Tuple` é uma forma. `freeze([1, 2])` segue
+  respondendo `Frozen`.
+- Documentação: [`/docs/tipos/tuplas`](https://dataforge-lang.vercel.app/docs/tipos/tuplas),
+  a visão geral em [`/docs/tipos/visao-geral`](https://dataforge-lang.vercel.app/docs/tipos/visao-geral),
+  `doc/REFERENCIA.md` §3.3 e o exercício 254.
+
 ### Adicionado — generics no resto do sistema de tipos
 
 - **`record Caixa<T>`, `enum Talvez<T>` e `trait Comparavel<T>`** passaram a

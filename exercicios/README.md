@@ -558,16 +558,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 38 — Tipos
 
-*2 exercícios · com documentação `.md`*
+*3 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
 | 252 | [`252_tipos_nomeados.df`](38-tipos/252_tipos_nomeados.df) · [doc](38-tipos/252_tipos_nomeados.md) | Tipos nomeados: alias, uniao, intersecao, refinamento e opaco |
 | 253 | [`253_genericos_e_traits.df`](38-tipos/253_genericos_e_traits.df) · [doc](38-tipos/253_genericos_e_traits.md) | Generics, tipos indexados e o sistema de traits |
+| 254 | [`254_tuplas.df`](38-tipos/254_tuplas.df) · [doc](38-tipos/254_tuplas.md) | Tuplas: a forma de tamanho fixo |
 
 ---
 
-**Total: 253 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 254 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

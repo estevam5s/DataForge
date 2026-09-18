@@ -57,6 +57,16 @@ class ListLiteral(ASTNode):
     elements: list = field(default_factory=list)
 
 @dataclass
+class TupleLiteral(ASTNode):
+    """(1, "a") — sequência de tamanho fixo e imutável.
+
+    '(1)' NÃO é tupla: é agrupamento, e essa é a única ambiguidade da
+    forma. A tupla de um item se escreve '(1,)', como em Python.
+    """
+    elements: list = field(default_factory=list)
+
+
+@dataclass
 class DictLiteral(ASTNode):
     pairs: list = field(default_factory=list)  # list of (key, value) tuples
 

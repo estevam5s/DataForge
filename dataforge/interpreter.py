@@ -16,7 +16,8 @@ from . import ast_nodes as ast
 from .environment import Environment
 from . import magicos
 from . import objetos
-from .colecoes_tipadas import partir as _partir_tipo, tipar as _tipar_colecao
+from .colecoes_tipadas import (Tupla as _Tupla, partir as _partir_tipo,
+                               tipar as _tipar_colecao)
 from .builtins import (BuiltinFunction, get_builtins,
                        set_magic_dispatcher, set_stringifier)
 from .caminhos import curto as _curto
@@ -2397,6 +2398,17 @@ class Interpreter:
         if any(isinstance(e, ast.SpreadElement) for e in node.elements):
             return self._expand_elements(node.elements, env)
         return [self.evaluate(elem, env) for elem in node.elements]
+
+    def eval_TupleLiteral(self, node: ast.TupleLiteral, env):
+        """'(1, "a")' — uma tupla do Python, que e imutavel de verdade.
+
+        Reaproveitar o tipo do Python e o que faz 'len', 'cycle', 'in',
+        indice, fatia, igualdade e hash funcionarem sem que nenhum deles
+        saiba o que e uma tupla. O mesmo raciocinio das colecoes tipadas.
+        """
+        if any(isinstance(e, ast.SpreadElement) for e in node.elements):
+            return _Tupla(self._expand_elements(node.elements, env))
+        return _Tupla(self.evaluate(elem, env) for elem in node.elements)
 
     def eval_DictLiteral(self, node: ast.DictLiteral, env):
         result = {}
@@ -4960,6 +4972,8 @@ class Interpreter:
                         node.line, node.column,
                         dica="declare  action __setitem__(chave, valor):",
                         doc="oop/magicos")
+            elif isinstance(obj, tuple):
+                self._recusar_escrita_em_tupla(node)
             else:
                 obj[idx] = value
         else:
@@ -9253,6 +9267,7 @@ class Interpreter:
         "void": "Void", "Void": "Void", "none": "Void",
         "action": "Action", "Action": "Action", "function": "Action",
         "set": "Set", "Set": "Set",
+        "tuple": "Tuple", "Tuple": "Tuple",
         "frozen": "Frozen", "Frozen": "Frozen",
         "bytes": "Bytes", "Bytes": "Bytes",
         "any": "Any", "Any": "Any",
@@ -9288,6 +9303,10 @@ class Interpreter:
             return "Float"
         if isinstance(value, str):
             return "String"
+        # 'Tupla' e a tupla da linguagem; a 'tuple' crua e o 'Frozen' —
+        # um Cluster congelado, que 'freeze' e a ponte devolvem.
+        if isinstance(value, _Tupla):
+            return "Tuple"
         if isinstance(value, list):
             return "Cluster"
         if isinstance(value, dict):
@@ -9403,6 +9422,14 @@ class Interpreter:
         raise TypeError_(
             f"{what} declared as {expected} but got {actual}", node.line, node.column)
 
+    def _recusar_escrita_em_tupla(self, node):
+        raise TypeError_(
+            "a Tuple is immutable: it has no item assignment.",
+            getattr(node, "line", 0), getattr(node, "column", 0),
+            nota="that is what separates a Tuple from a Cluster",
+            dica="build another one, or use a Cluster if it has to change",
+            doc="tipos/tuplas")
+
     def _check_conteudo(self, value, declared, what, node,
                         parametros_de_tipo=(), limites=None):
         """'Cluster<T>', 'Vault<K, V>', 'Set<T>': a colecao, e cada item.
@@ -9433,6 +9460,21 @@ class Interpreter:
                          f"annotation (Any accepts everything) or fix the value",
                     doc="tipos") from None
 
+        if esperado_base == "Tuple":
+            # Na tupla, a quantidade de argumentos E o tamanho: um item a
+            # mais nao e "um item errado", e uma tupla de outra forma.
+            if len(value) != len(argumentos):
+                raise TypeError_(
+                    f"{what} declared as {declared}, which has "
+                    f"{len(argumentos)} place(s), but got {len(value)}",
+                    node.line, node.column,
+                    nota="the size of a Tuple is part of its type",
+                    dica=f"write a Tuple with {len(argumentos)} place(s)",
+                    doc="tipos/tuplas")
+            for indice, (item, tipo) in enumerate(zip(value, argumentos)):
+                if tipo != "Any":
+                    conferir(item, tipo, f"place {indice}")
+            return value
         if esperado_base in ("Cluster", "Set"):
             if argumentos[0] in ("Any",):
                 return value
@@ -9455,6 +9497,13 @@ class Interpreter:
                 if valor_t != "Any":
                     conferir(item, valor_t, f"the value at key {self._to_repr(chave)}")
         return value
+
+    def _texto_de_tupla(self, valor):
+        """'(1, "a")' — e '(7,)' com um item, como a linguagem a escreve."""
+        dentro = ", ".join(self._to_repr(item) for item in valor)
+        if len(valor) == 1:
+            dentro += ","
+        return f"({dentro})"
 
     def _to_repr(self, valor):
         """O valor como aparece no codigo: texto entre aspas."""
@@ -9549,6 +9598,8 @@ class Interpreter:
             return f"<enum {value.name}>"
         if isinstance(value, DFStream):
             return f"<stream {value.name}>"
+        if isinstance(value, _Tupla):
+            return self._texto_de_tupla(value)
         if isinstance(value, list):
             items = ', '.join(self._to_str(i) for i in value)
             return f"[{items}]"

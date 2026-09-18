@@ -312,7 +312,7 @@ class Lexer:
         return True
 
     #: As colecoes cujo '<' abre um tipo, e nao uma comparacao.
-    _COLECOES_TIPADAS = frozenset({"Cluster", "Vault", "Set"})
+    _COLECOES_TIPADAS = frozenset({"Cluster", "Vault", "Set", "Tuple"})
 
     def _fecha_colecao_tipada(self, fim):
         """O '>' (ou '>>') no fim da linha fecha um 'Cluster<…>' dela?

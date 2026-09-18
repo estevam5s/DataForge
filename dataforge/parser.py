@@ -3883,12 +3883,28 @@ class Parser:
         if tok.type == TokenType.LBRACE:
             return self.parse_dict()
 
-        # Grouped expression: (expr)
+        # Tupla, ou agrupamento: '(1, "a")' e tupla; '(1)' e agrupamento.
         if tok.type == TokenType.LPAREN:
             self.advance()
-            expr = self.parse_expression()
-            self.expect(TokenType.RPAREN, "Expected ')'")
-            return expr
+            # '()' — a tupla vazia.
+            if self.current().type is TokenType.RPAREN:
+                self.advance()
+                return ast.TupleLiteral(elements=[], line=tok.line,
+                                        column=tok.column)
+            primeiro = self.parse_expression()
+            if self.current().type is not TokenType.COMMA:
+                self.expect(TokenType.RPAREN, "Expected ')'")
+                return primeiro
+            itens = [primeiro]
+            while self.match(TokenType.COMMA):
+                # '(7,)' — a virgula sozinha faz a tupla de um item, e e a
+                # unica forma de escreve-la: '(7)' e o numero 7.
+                if self.current().type is TokenType.RPAREN:
+                    break
+                itens.append(self.parse_expression())
+            self.expect(TokenType.RPAREN, "Expected ')' to close the tuple")
+            return ast.TupleLiteral(elements=itens, line=tok.line,
+                                    column=tok.column)
 
         # Identifier
         if tok.type == TokenType.IDENTIFIER:
@@ -4187,6 +4203,9 @@ class Parser:
         else:
             self.error(f"Expected '>' to close '{base}<…>'")
         esperados = COLECOES.get(base, proprio)
+        # 'Tuple<A, B, C>' — a aridade e livre, porque ela E o tamanho.
+        if base in COLECOES and COLECOES[base] is None:
+            esperados = len(argumentos)
         if len(argumentos) != esperados:
             quantos = ("one type" if esperados == 1 else
                        "two types: the key and the value" if base in COLECOES

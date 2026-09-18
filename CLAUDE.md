@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 253 exercícios
+python3 exercicios/run_all.py                        # 254 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -105,7 +105,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        253 exercícios em 38 módulos + run_all.py
+exercicios/        254 exercícios em 38 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -271,6 +271,9 @@ relay somar, Ponto
 | `filter/map/reduce` | `>> sift` / `>> morph` / `>> distill` |
 | lambda | `lambda x: expr` ou `lambda a, b => expr` |
 | decorator | `mark @nome` |
+| tupla | `(1, "a")` · tipo `Tuple<Integer, String>` |
+| alias / união / refinamento | `type Id := Integer` · `A \| B` · `where valor bigger 0` |
+| `newtype` / tipo opaco | `opaque type Cpf := String where …` |
 | `//` (div. inteira) | **`~/`** |
 | `Decimal` exato | `adopt Arcane.Decimal as Dec` · `Dec.de("0.1")` |
 
@@ -1087,6 +1090,21 @@ A travessia de processo leva `extras`, `nao_publicos`, `somente_leitura`
 e `constantes`: sem isso um grupo de `overload` chegava ao filho como uma
 ação de corpo vazio, e `private` deixava de valer lá.
 
+### Tuplas — a forma, ao lado da lista
+
+`(1, "a")` é uma `Tupla` (subclasse de `tuple`, em
+`colecoes_tipadas.py`), e **não** a `tuple` crua: essa já tinha dono —
+`freeze([1, 2])` devolve uma, e a linguagem a chama de `Frozen`. São
+promessas diferentes: `Frozen` é um cluster que não muda, `Tuple` é uma
+forma com um tipo por casa. Confundir as duas faria `typeof` mentir para
+os dois lados.
+
+Três detalhes: a fatia de uma tupla volta `Tupla` (senão o tipo mudava
+no meio de uma expressão); em `Tuple<A, B>` a **aridade é livre**, porque
+ela é o tamanho (`COLECOES["Tuple"] is None`); e `_COLECOES_TIPADAS` do
+lexer precisou conhecer `Tuple`, senão o campo de um record terminado em
+`>` engolia a linha seguinte.
+
 ### `type` — o tipo que a linguagem não tinha
 
 `tipos_nomeados.py` traz alias, alias genérico, união, interseção,
@@ -1810,7 +1828,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
 | `tests/test_oop_avancada.py` | `pytest` | contratos, modificadores, sobrecarga, metaclasses, reflexão, DI, padrões, memória, métricas, LSP — e **executa cada bloco `df`** das páginas de `/docs/oop` e da §7 da referência |
-| `exercicios/run_all.py` | script | 253 exercícios em 38 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 254 exercícios em 38 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

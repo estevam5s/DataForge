@@ -50,6 +50,7 @@ ALIASES = {
     "void": "Void", "none": "Void", "Void": "Void",
     "action": "Action", "function": "Action", "Action": "Action",
     "stream": "Stream", "Stream": "Stream",
+    "tuple": "Tuple", "Tuple": "Tuple",
     "any": ANY, "Any": ANY,
 }
 
@@ -1260,6 +1261,12 @@ class TypeChecker:
                     f"Unknown type '{falta}'"
                     + (f" in '{node.declared_type}'" if falta != node.declared_type else ""),
                     node, self._hint_tipo(falta), "unknown-type")
+            elif base_do_tipo(declarado) == "Tuple" and \
+                    isinstance(node.value, ast.TupleLiteral):
+                # A tupla literal é conferida PELA POSIÇÃO: "o lugar 0 é
+                # String" diz onde corrigir, e "o valor é
+                # Tuple<String, Integer>" manda comparar de cabeça.
+                self._conferir_conteudo(declarado, node.value, escopo)
             elif not self._compativel(declarado, tipo):
                 self._acusar_tipo(declarado, tipo, node.value or node,
                                   f"variable '{self._nome_do_alvo(node)}'")
@@ -3181,6 +3188,15 @@ class TypeChecker:
             decidido = self._compativel_nomeado(esperado, obtido)
             if decidido is not None:
                 return decidido
+            # 'type Coordenada := Tuple<Float, Float>' dentro de outro
+            # genérico: 'Tuple<Coordenada, Coordenada>' e
+            # 'Tuple<Tuple<Float, Float>, …>' são o MESMO tipo, e sem
+            # expandir os dois lados o analisador acusa código certo.
+            aberto_esperado = self._expandir_aliases(esperado)
+            aberto_obtido = self._expandir_aliases(obtido)
+            if (aberto_esperado, aberto_obtido) != (esperado, obtido) and \
+                    compatible(aberto_esperado, aberto_obtido):
+                return True
         if compatible(esperado, obtido):
             return True
         if obtido not in self.blueprints:
@@ -3220,6 +3236,23 @@ class TypeChecker:
         if declaracao is not None and declaracao.opaco:
             return canonical(declaracao.partes[0])
         return self._para_a_base(tipo)
+
+    def _expandir_aliases(self, tipo, vistos=()):
+        """Troca todo alias transparente pelo tipo de baixo, inclusive
+        dentro de um genérico. Um tipo opaco NÃO se abre: ele é nominal."""
+        if not isinstance(tipo, str) or not self.tipos_nomeados:
+            return tipo
+        if "<" in tipo:
+            base, argumentos = partir_tipo(tipo)
+            return juntar_tipo(self._expandir_aliases(base, vistos),
+                               [self._expandir_aliases(a, vistos)
+                                for a in argumentos])
+        declaracao = self._declaracao_de_tipo(tipo)
+        if declaracao is None or declaracao.opaco or tipo in vistos \
+                or declaracao.especie != "alias":
+            return tipo
+        return self._expandir_aliases(
+            canonical(declaracao.partes[0]), vistos + (tipo,))
 
     def _para_a_base(self, tipo, vistos=()):
         """'Positivo' -> 'Integer'. Um tipo opaco NÃO se desfaz: ele é
@@ -4241,6 +4274,18 @@ class TypeChecker:
                         f"Fields: {', '.join(campos)}", "unknown-field")
         return base
 
+    def ex_TupleLiteral(self, node, escopo):
+        """'(1, "a")' — o tipo traz a forma: 'Tuple<Integer, String>'.
+
+        Saber a forma é o que deixa o analisador provar tamanho e posição
+        antes de rodar. Um item de tipo desconhecido apaga a forma
+        inteira: metade de uma prova não prova nada.
+        """
+        partes = [self.infer(item, escopo) for item in node.elements]
+        if not partes or any(p in (UNKNOWN, ANY) for p in partes):
+            return "Tuple"
+        return juntar_tipo("Tuple", partes)
+
     def ex_FrameExpression(self, node, escopo):
         self.infer(node.data, escopo)
         return "Vault"
@@ -4319,6 +4364,18 @@ class TypeChecker:
         if not isinstance(esperado, str) or "<" not in esperado:
             return
         base, argumentos = partir_tipo(canonical(esperado))
+        if base == "Tuple" and isinstance(valor, ast.TupleLiteral):
+            if len(valor.elements) != len(argumentos):
+                self.error(
+                    f"{esperado} has {len(argumentos)} place(s), and this "
+                    f"tuple has {len(valor.elements)}", valor,
+                    "The size of a Tuple is part of its type",
+                    "tipo-do-conteudo")
+                return
+            for indice, (item, tipo) in enumerate(zip(valor.elements, argumentos)):
+                self._conferir_item(tipo, item, escopo, esperado,
+                                    f"place {indice}")
+            return
         if base in ("Cluster", "Set") and isinstance(valor, ast.ListLiteral):
             for indice, item in enumerate(valor.elements):
                 if isinstance(item, ast.SpreadElement):

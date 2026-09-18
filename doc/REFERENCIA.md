@@ -462,7 +462,35 @@ A verificação compara o **último segmento**: um record não carrega o apelido
 quem o importou, e o mesmo `Pedido` é `M.Pedido` aqui, `P.Pedido` no vizinho e
 `Pedido` em casa.
 
-### 3.3 Tipos nomeados
+### 3.3 Tuplas
+
+`(1, "a")` é uma **forma**: tamanho fixo, um tipo por casa, imutável.
+`(1)` continua sendo agrupamento; a tupla de um item é `(1,)`, e a vazia
+é `()`.
+
+```dataforge
+t := (1, "a")
+par: Tuple<Integer, String> := (1, "a")
+
+action dividir(a: Integer, b: Integer) -> Tuple<Integer, Integer>:
+    yield (a ~/ b, a % b)
+
+inteiro, resto := dividir(17, 5)
+```
+
+| | Muda? | Conteúdo |
+|---|---|---|
+| `Cluster` | sim | itens do mesmo tipo, quantidade livre |
+| `Frozen` | não | um `Cluster` congelado (`freeze([1, 2])`) |
+| `Tuple` | não | um tipo por casa, quantidade fixa |
+
+Em `Tuple<A, B, …>` a quantidade de argumentos **é** o tamanho. A
+conferência nomeia a casa (`place 0`), e o tamanho errado é relatado como
+forma errada. Escrever num índice é recusado (`TypeError`), a igualdade é
+estrutural e a tupla é hasheável — serve como chave de vault e item de
+`Set`. No JSON ela vira array, e volta como `Cluster`.
+
+### 3.4 Tipos nomeados
 
 `type` dá nome a um tipo; `opaque type` cria um tipo **nominal**, que só
 nasce pela validação. `type`, `opaque` e `where` são **contextuais**:
@@ -499,7 +527,7 @@ acusado.
 Um tipo atravessa o `adopt`: `relay Positivo, Cpf` o exporta, e o outro
 arquivo escreve `T.Positivo`.
 
-### 3.4 Conversão
+### 3.5 Conversão
 
 Formas disponíveis (`valor` e `x` são espaços reservados):
 
@@ -1808,6 +1836,7 @@ decl_ação      = { "mark" "@" identificador [ "(" args ")" ] }
 decl_tipo      = [ "opaque" ] "type" Identificador [ genéricos ] ":=" tipo_comp
                  [ "where" expressão ] NEWLINE ;
 tipo_comp      = tipo { "|" tipo } | tipo { "&" tipo } ;
+tupla          = "(" [ expressão { "," expressão } [ "," ] ] ")" ;
 genéricos      = "<" genérico { "," genérico } ">" ;
 genérico       = Identificador [ "extends" tipo ] | NÚMERO ;
 params         = param { "," param } ;
@@ -1919,6 +1948,7 @@ posfixo        = primário { "." nome | "?." nome
 índice         = expressão | [expressão] ":" [expressão] [ ":" [expressão] ] ;
 
 primário       = literal | interpolada | identificador | "(" expressão ")"
+               | tupla
                | lista | dicionário | lambda
                | compreensão_lista | compreensão_vault
                | "self" | "root"

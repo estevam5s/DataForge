@@ -1,0 +1,117 @@
+// Exercicio 254 — Tuplas: a forma de tamanho fixo
+//
+// Cluster e uma LISTA: itens do mesmo tipo, quantidade livre.
+// Tuple e uma FORMA: uma casa por tipo, quantidade fixa, imutavel.
+//
+// O contorno antigo era um cluster de dois itens — que aceita tres,
+// aceita zero, e nao promete nada sobre a casa 0.
+
+adopt Arcane.Collections as C
+adopt Arcane.Serialization as S
+
+// ── a forma, e a ambiguidade unica ──
+t := (1, "a")
+assert typeof(t) is "Tuple"
+assert len(t) is 2
+assert t[0] is 1 and t[1] is "a" and t[-1] is "a"
+
+x := (2 + 3) * 2                  // agrupamento, nao tupla
+assert x is 10 and typeof(x) is "Integer"
+
+um := (7,)                        // a virgula faz a tupla de um
+vazia := ()
+assert len(um) is 1 and len(vazia) is 0
+
+// fatia de tupla continua tupla
+assert typeof(t[0:1]) is "Tuple"
+
+// ── tres tipos parecidos, tres promessas diferentes ──
+assert typeof([1, 2]) is "Cluster"          // muda
+assert typeof(freeze([1, 2])) is "Frozen"   // cluster congelado
+assert typeof((1, 2)) is "Tuple"            // forma fixa
+
+// ── imutavel: escrever e recusado, com o motivo ──
+monitor:
+    t[0] := 9
+    assert no
+handle TypeError as e:
+    assert "immutable" in e.message
+
+// ── igualdade estrutural, hash e uso como chave ──
+a := (1, "x")
+b := (1, "x")
+grade := {}
+grade[a] := "achei"
+
+assert a is b
+assert a isnt (1, "y")
+assert grade[b] is "achei"
+assert len(C.set([a, b])) is 1
+
+// ── o tipo: a quantidade de argumentos E o tamanho ──
+par: Tuple<Integer, String> := (1, "a")
+assert par[1] is "a"
+
+monitor:
+    trocada: Tuple<Integer, String> := ("a", 1)
+    assert no
+handle TypeError as e:
+    assert "place 0" in e.message              // a casa culpada
+
+monitor:
+    grande: Tuple<Integer, String> := (1, "a", 2)
+    assert no
+handle TypeError as e:
+    assert "place(s)" in e.message             // o tamanho faz parte do tipo
+
+// ── o retorno duplo, que antes exigia cluster ou vault ──
+action dividir(a: Integer, b: Integer) -> Tuple<Integer, Integer>:
+    yield (a ~/ b, a % b)
+
+inteiro, resto := dividir(17, 5)
+assert inteiro is 3 and resto is 2
+
+monitor:
+    action errada() -> Tuple<Integer, Integer>:
+        yield (1, "dois")
+    errada()
+    assert no
+handle TypeError as e:
+    assert "return value" in e.message
+
+// ── com alias, aninhada, em record e em colecao ──
+type Coordenada := Tuple<Float, Float>
+type Segmento := Tuple<Coordenada, Coordenada>
+
+record Trecho:
+    de: Coordenada
+    para: Coordenada
+
+s: Segmento := ((0.0, 0.0), (3.0, 4.0))
+trecho := Trecho(s[0], s[1])
+pares := [(1, "um"), (2, "dois")]
+
+assert s[1][0] is 3.0
+assert trecho.para[1] is 4.0
+assert pares[1][1] is "dois"
+
+action distancia(de: Coordenada, para: Coordenada) -> Float:
+    yield ((para[0] - de[0]) ** 2 + (para[1] - de[1]) ** 2) ** 0.5
+
+assert distancia(s[0], s[1]) is 5.0
+
+monitor:
+    ruim: Coordenada := (1.0, "dois")
+    assert no
+handle TypeError as e:
+    assert "Coordenada" in e.message
+
+// ── percorrer, pertencer, serializar ──
+soma := 0
+cycle item in (1, 2, 3):
+    soma += item
+assert soma is 6
+assert 2 in (1, 2, 3)
+assert S.to_json((1, "a")) is "[1, \"a\"]"    // JSON nao tem tupla: vira array
+
+out "254 ok"
