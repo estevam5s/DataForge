@@ -26,6 +26,7 @@ const grupos: { rotulo: string; chaves: string[] }[] = [
   { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email', 'url'] },
   { rotulo: 'Qualidade', chaves: ['test', 'bench', 'logging', 'crypto', 'observar', 'color', 'meta', 'cli', 'eventos'] },
   { rotulo: 'Objetos', chaves: ['reflexo', 'objetos', 'injecao', 'padroes', 'memoria'] },
+  { rotulo: 'Tipos', chaves: ['tipos', 'resultado'] },
 ];
 
 /** O que nenhum grupo reivindicou. Vazio é o estado esperado. */

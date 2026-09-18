@@ -8,13 +8,13 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "38 · Sistema de tipos",
-  description: "3 exercícios: .",
+  description: "4 exercícios: .",
 };
 
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 38`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[252](#252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco)", "**Tipos nomeados: alias, uniao, intersecao, refinamento e opaco**", ""], ["[253](#253-generics-tipos-indexados-e-o-sistema-de-traits)", "**Generics, tipos indexados e o sistema de traits**", ""], ["[254](#254-tuplas-a-forma-de-tamanho-fixo)", "**Tuplas: a forma de tamanho fixo**", ""]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[252](#252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco)", "**Tipos nomeados: alias, uniao, intersecao, refinamento e opaco**", ""], ["[253](#253-generics-tipos-indexados-e-o-sistema-de-traits)", "**Generics, tipos indexados e o sistema de traits**", ""], ["[254](#254-tuplas-a-forma-de-tamanho-fixo)", "**Tuplas: a forma de tamanho fixo**", ""], ["[255](#255-a-falha-como-valor-e-a-reflexao-de-tipos)", "**A falha como valor, e a reflexao de tipos**", ""]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
   {"h2": "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco"},
   { code: `// Um 'type' da nome a um tipo. As cinco formas sao a MESMA declaracao:
@@ -576,17 +576,170 @@ inteiro, resto := dividir(17, 5)`, lang: 'df' },
   {"p": "Porque é imutável. É isso que permite usá-la como **chave de vault** e dentro de um `Set` — e é a razão prática de a tupla existir ao lado do cluster. Um cluster não pode ser chave: ele mudaria, e a chave mudaria com ele."},
   {"h3": "Na fronteira do JSON"},
   {"p": "JSON não tem tupla: `to_json((1, \"a\"))` produz `[1, \"a\"]`, e o caminho de volta traz um `Cluster`. A forma não sobrevive ao formato — quando ela importa, declare `Tuple<…>` na entrada e converta ali."},
+  {"h2": "255 · A falha como valor, e a reflexao de tipos"},
+  { code: `// Tres formas de lidar com o que da errado, e a pergunta de cada uma:
+//
+//   monitor/handle/trigger   o que NAO era esperado: interrompe
+//   void com ?? e ?.         a ausencia simples: segue com um padrao
+//   Arcane.Resultado         a falha ESPERADA: vira valor, e quem
+//                            chama decide
+
+adopt Arcane.Resultado as R
+adopt Arcane.Tipos as Tipos
+
+// ── ok e falha ──
+action buscar(id) -> Resultado:
+    given id smaller 0:
+        yield R.falha("id negativo", 400)
+    yield R.ok({"id": id, "nome": "Ana"})
+
+achado := buscar(7)
+perdido := buscar(-1)
+
+assert achado.deu_certo()
+assert achado.valor()["nome"] is "Ana"
+assert perdido.falhou()
+assert perdido.erro() is "id negativo"
+assert perdido.detalhe() is 400
+assert perdido.ou("ninguem") is "ninguem"     // 'ou' nunca levanta
+
+// ler o valor de uma falha e uma AFIRMACAO, e ela levanta
+monitor:
+    perdido.valor()
+    assert no
+handle RuntimeError as e:
+    assert "id negativo" in e.message
+
+// com a sua propria mensagem
+monitor:
+    perdido.exigir("o cliente nao existe")
+    assert no
+handle RuntimeError as e:
+    assert e.message is "o cliente nao existe"
+
+// ── a falha atravessa a corrente, intacta ──
+action dobro(x):
+    yield R.ok(x * 2)
+
+assert R.ok(2).mapear(lambda x => x + 1).valor() is 3
+assert R.ok(2).entao(dobro).valor() is 4
+assert R.falha("parou").mapear(lambda x => x + 1).erro() is "parou"
+assert R.falha("parou").entao(dobro).erro() is "parou"
+assert R.falha("parou").recuperar(lambda motivo => R.ok(0)).valor() is 0
+
+// ── tentar: o erro da linguagem vira valor ──
+action dividir(a, b):
+    yield a / b
+
+assert R.tentar(dividir, 10, 2).valor() is 5.0
+quebrou := R.tentar(dividir, 1, 0)
+assert quebrou.falhou() and "zero" in quebrou.erro()
+
+// ── todos: a lista pronta, ou o primeiro motivo ──
+assert R.todos([R.ok(1), R.ok(2), R.ok(3)]).valor() is [1, 2, 3]
+assert R.todos([R.ok(1), R.falha("cpf"), R.falha("email")]).erro() is "cpf"
+assert R.erros([R.ok(1), R.falha("cpf"), R.falha("email")]) is ["cpf", "email"]
+
+// ── Talvez: onde void e ambiguo ──
+config := {"tema": void}
+tem := R.chave(config, "tema")
+nao := R.chave(config, "idioma")
+
+assert tem.tem() and tem.valor() is void      // esta la, e vale void
+assert not nao.tem()                          // nao esta la
+assert nao.ou("pt-BR") is "pt-BR"
+assert R.primeiro([1, 2, 3], lambda x => x bigger 2).valor() is 3
+assert not R.primeiro([1, 2], lambda x => x bigger 9).tem()
+
+// ── reflexao: os metadados de um 'type' ──
+type Positivo := Integer where valor bigger 0
+type Json := String | Integer
+opaque type Cpf := String where len(valor) is 11
+
+assert Tipos.de("Json")["especie"] is "uniao"
+assert Tipos.de("Positivo")["especie"] is "refinamento"
+assert Tipos.de("Positivo")["regra"] is "valor bigger 0"
+assert Tipos.de("Cpf")["opaco"]
+assert Tipos.de("NaoExiste") is void
+
+// conferir sem levantar
+assert Tipos.satisfaz(5, "Positivo")
+assert not Tipos.satisfaz(-5, "Positivo")
+assert not Tipos.satisfaz("texto", "Positivo")   // a base decide primeiro
+assert not Tipos.satisfaz("12345678901", "Cpf")  // opaco e nominal
+
+// a forma ESTRUTURAL, que 'typeof' nao da
+assert typeof([1, 2]) is "Cluster"
+assert Tipos.forma([1, 2]) is "Cluster<Integer>"
+assert Tipos.forma([1, "a"]) is "Cluster<Any>"   // misturado: Any, nao o primeiro
+assert Tipos.forma((1, "a")) is "Tuple<Integer, String>"
+assert Tipos.forma({"a": 1}) is "Vault<String, Integer>"
+
+// ── juntando as duas: um validador generico ──
+record Pedido:
+    quantidade: Positivo
+    contato: String
+
+action validar(vault, esperado) -> Resultado:
+    problemas := []
+    cycle campo in esperado:
+        given not Tipos.satisfaz(vault[campo] ?? void, esperado[campo]):
+            problemas.append($"{campo} nao e {esperado[campo]}")
+    yield R.falha(problemas) given len(problemas) bigger 0 otherwise R.ok(vault)
+
+esperado := {"quantidade": "Positivo", "contato": "String"}
+
+assert validar({"quantidade": 2, "contato": "ana@x.com"}, esperado).deu_certo()
+
+ruim := validar({"quantidade": 0, "contato": 7}, esperado)
+assert ruim.falhou()
+assert len(ruim.erro()) is 2
+
+// os campos de um record, com o tipo de cada um
+p := Pedido(3, "ana@x.com")
+campos := Tipos.campos(p)
+assert campos["quantidade"]["tipo"] is "Positivo"
+assert campos["contato"]["valor"] is "ana@x.com"
+
+out "255 ok"`, lang: 'df', title: `exercicios/38-tipos/255_resultado_e_reflexao.df` },
+  {"h3": "Três formas, três perguntas"},
+  {"table": {"head": ["Forma", "Quando", "O que acontece"], "rows": [["`monitor`/`handle`/`trigger`", "o que **não era esperado**: disco cheio, rede caída, bug", "interrompe, e sobe até quem sabe tratar"], ["`void` com `??` e `?.`", "a **ausência** simples: campo opcional, cache vazio", "segue com um padrão"], ["`Arcane.Resultado`", "a falha **esperada** de uma fronteira: validação, busca, parsing", "vira valor, e quem chama decide"]]}},
+  {"p": "A regra prática: se quem chama **precisa** decidir o que fazer, devolva `Resultado`. Se ninguém ali pode fazer nada a respeito, `trigger`."},
+  {"p": "Um `Resultado` que todo mundo ignora é pior que um erro — ele passa adiante calado. Um `trigger` para o que era esperado obriga `monitor` em todo lugar, e aí ninguém lê mais nenhum."},
+  {"h3": "Ler o valor é uma afirmação"},
+  {"p": "`r.valor()` numa falha **levanta**, com o motivo dentro da mensagem: ali quem escreveu afirmou que deu certo. Quem não quer afirmar tem duas saídas que nunca levantam:"},
+  {"list": ["`r.ou(padrao)` — o valor, ou o padrão;", "`r.exigir(\"minha mensagem\")` — levanta, mas com a frase de quem chama."]},
+  {"p": "E `mapear`, `entao` e `recuperar` atravessam a falha **intacta**, o que dispensa um `given` entre cada passo da corrente."},
+  {"h3": "`tentar` não engole sinal de controle"},
+  {"p": "`R.tentar` captura `DataForgeError` — o erro da linguagem. Um `halt`, um `skip` ou um `yield` atravessa: eles derivam de `BaseException` de propósito, e transformá-los em falha faria um `halt` dentro de um `tentar` parar de sair do laço, calado."},
+  {"h3": "`Talvez`, apesar de `void`"},
+  {"p": "`void` resolve a ausência em quase todo lugar. O que ele não resolve é distinguir **\"a chave não está lá\"** de **\"a chave está lá e vale void\"** — a dúvida de todo vault de configuração:"},
+  { code: `config := {"tema": void}
+R.chave(config, "tema").tem()      // yes: está lá
+R.chave(config, "idioma").tem()    // no:  não está`, lang: 'df' },
+  {"h3": "Reflexão: o que `typeof` não responde"},
+  {"p": "`typeof` dá o **nome** do tipo. `Arcane.Tipos` dá o resto:"},
+  {"list": ["`Tipos.de(\"Positivo\")` — espécie (`alias`, `uniao`, `intersecao`,"]},
+  {"p": "`refinamento`, `opaco`), base, partes, regra;"},
+  {"list": ["`Tipos.satisfaz(valor, \"Positivo\")` — confere e **responde**, em vez"]},
+  {"p": "de levantar;"},
+  {"list": ["`Tipos.forma(valor)` — a forma **estrutural**: `Cluster<Integer>`,"]},
+  {"p": "`Tuple<Integer, String>`, `Vault<String, Integer>`. Uma coleção misturada responde `Cluster<Any>`, porque dizer o tipo do primeiro item seria mentira;"},
+  {"list": ["`Tipos.campos(valor)` — os campos de um record, instância ou vault,"]},
+  {"p": "com o tipo de cada um."},
+  {"p": "Juntando as duas peças sai um validador genérico em oito linhas: os campos vêm da reflexão, a regra vem do tipo declarado, e o relato vem do `Resultado`."},
+  {"p": "Reflexão responde **em execução**; o `dataforge check` prova antes de rodar o que um literal permite provar. As duas se completam, e nenhuma substitui a outra."},
   {"hr": true},
   {"p": "Rode um isolado com `dataforge run exercicios/38-tipos/252_tipos_nomeados.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco', text: "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco", level: 2 as const }, { id: 'transparente-confere-opaco-embrulha', text: "Transparente confere, opaco embrulha", level: 3 as const }, { id: 'a-regra-roda-na-fronteira', text: "A regra roda na fronteira", level: 3 as const }, { id: 'o-que-o-check-prova-antes-de-rodar', text: "O que o `check` prova antes de rodar", level: 3 as const }, { id: '253-generics-tipos-indexados-e-o-sistema-de-traits', text: "253 · Generics, tipos indexados e o sistema de traits", level: 2 as const }, { id: '1-o-que-um-t-promete', text: "1. O que um `<T>` promete?", level: 3 as const }, { id: '2-onde-o-argumento-chega', text: "2. Onde o argumento chega?", level: 3 as const }, { id: '3-o-tamanho-pode-fazer-parte-do-tipo', text: "3. O tamanho pode fazer parte do tipo?", level: 3 as const }, { id: 'traits-exigencia-padrao-e-heranca', text: "Traits: exigência, padrão e herança", level: 3 as const }, { id: '254-tuplas-a-forma-de-tamanho-fixo', text: "254 · Tuplas: a forma de tamanho fixo", level: 2 as const }, { id: 'a-unica-ambiguidade-1-nao-e-tupla', text: "A única ambiguidade: `(1)` não é tupla", level: 3 as const }, { id: 'o-tamanho-faz-parte-do-tipo', text: "O tamanho faz parte do tipo", level: 3 as const }, { id: 'por-que-ela-e-hasheavel', text: "Por que ela é hasheável", level: 3 as const }, { id: 'na-fronteira-do-json', text: "Na fronteira do JSON", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco', text: "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco", level: 2 as const }, { id: 'transparente-confere-opaco-embrulha', text: "Transparente confere, opaco embrulha", level: 3 as const }, { id: 'a-regra-roda-na-fronteira', text: "A regra roda na fronteira", level: 3 as const }, { id: 'o-que-o-check-prova-antes-de-rodar', text: "O que o `check` prova antes de rodar", level: 3 as const }, { id: '253-generics-tipos-indexados-e-o-sistema-de-traits', text: "253 · Generics, tipos indexados e o sistema de traits", level: 2 as const }, { id: '1-o-que-um-t-promete', text: "1. O que um `<T>` promete?", level: 3 as const }, { id: '2-onde-o-argumento-chega', text: "2. Onde o argumento chega?", level: 3 as const }, { id: '3-o-tamanho-pode-fazer-parte-do-tipo', text: "3. O tamanho pode fazer parte do tipo?", level: 3 as const }, { id: 'traits-exigencia-padrao-e-heranca', text: "Traits: exigência, padrão e herança", level: 3 as const }, { id: '254-tuplas-a-forma-de-tamanho-fixo', text: "254 · Tuplas: a forma de tamanho fixo", level: 2 as const }, { id: 'a-unica-ambiguidade-1-nao-e-tupla', text: "A única ambiguidade: `(1)` não é tupla", level: 3 as const }, { id: 'o-tamanho-faz-parte-do-tipo', text: "O tamanho faz parte do tipo", level: 3 as const }, { id: 'por-que-ela-e-hasheavel', text: "Por que ela é hasheável", level: 3 as const }, { id: 'na-fronteira-do-json', text: "Na fronteira do JSON", level: 3 as const }, { id: '255-a-falha-como-valor-e-a-reflexao-de-tipos', text: "255 · A falha como valor, e a reflexao de tipos", level: 2 as const }, { id: 'tres-formas-tres-perguntas', text: "Três formas, três perguntas", level: 3 as const }, { id: 'ler-o-valor-e-uma-afirmacao', text: "Ler o valor é uma afirmação", level: 3 as const }, { id: 'tentar-nao-engole-sinal-de-controle', text: "`tentar` não engole sinal de controle", level: 3 as const }, { id: 'talvez-apesar-de-void', text: "`Talvez`, apesar de `void`", level: 3 as const }, { id: 'reflexao-o-que-typeof-nao-responde', text: "Reflexão: o que `typeof` não responde", level: 3 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"38 · Sistema de tipos"}
-      description={"3 exercícios: ."}
+      description={"4 exercícios: ."}
       href={"/docs/exercicios/38-tipos"}
       headings={headings}
     >

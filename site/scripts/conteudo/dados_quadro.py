@@ -129,7 +129,7 @@ out vendas[0:2].altura()           // uma fatia, como quadro
    {"href": "/docs/dados/verbos", "title": "Os verbos do pipeline", "desc": "a sintaxe: `>> onde valor bigger 50 >> agrupar produto`"},
    {"href": "/docs/dados", "title": "Análise de dados", "desc": "o caminho de um conjunto até a resposta"},
    {"href": "/docs/dados/mapa", "title": "O mapa do ecossistema", "desc": "o que é nativo, o que é ponte, e o que está fora"},
-   {"href": "/docs/biblioteca", "title": "A biblioteca", "desc": "os 54 módulos, e onde cada um entra"}]},
+   {"href": "/docs/biblioteca", "title": "A biblioteca", "desc": "os 56 módulos, e onde cada um entra"}]},
 ]},
 
 {

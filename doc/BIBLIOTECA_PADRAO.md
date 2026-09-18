@@ -58,6 +58,8 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Injecao`](#arcaneinjecao) | `Injecao / DI` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | [`Arcane.Padroes`](#arcanepadroes) | `Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
 | [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 8 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
+| [`Arcane.Resultado`](#arcaneresultado) | `Resultado / Result` | 13 | A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'. |
+| [`Arcane.Tipos`](#arcanetipos) | `Tipos` | 10 | Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de um valor ('Cluster<Integer>', 'Tuple<Integer, String>') e os campos de um record ou instancia com o tipo de cada um. |
 | [`Arcane.Eventos`](#arcaneeventos) | `Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
 | [`Arcane.Cli`](#arcanecli) | `Cli` | 12 | A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo. |
 | [`Arcane.Email`](#arcaneemail) | `Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
@@ -2197,6 +2199,61 @@ adopt Arcane.Memoria as Memoria
 | `referencias(obj)` |
 | `tamanho(obj)` |
 | `vivos(molde)` |
+
+
+---
+
+## Arcane.Resultado
+
+A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'.
+
+```dataforge
+adopt Arcane.Resultado as Resultado
+```
+
+**Funções (13)**
+
+| Assinatura |
+|------------|
+| `Resultado(ok, valor=None, erro=None, detalhe=None)` |
+| `Talvez(tem, valor=None)` |
+| `algo(valor=None)` |
+| `chave(vault, nome)` |
+| `de(valor, motivo='void')` |
+| `erros(resultados)` |
+| `falha(erro='falhou', detalhe=None)` |
+| `nada()` |
+| `ok(valor=None)` |
+| `primeiro(colecao, condicao=None)` |
+| `talvez(valor)` |
+| `tentar(acao, *args)` |
+| `todos(resultados)` |
+
+
+---
+
+## Arcane.Tipos
+
+Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de um valor ('Cluster<Integer>', 'Tuple<Integer, String>') e os campos de um record ou instancia com o tipo de cada um.
+
+```dataforge
+adopt Arcane.Tipos as Tipos
+```
+
+**Funções (10)**
+
+| Assinatura |
+|------------|
+| `campos(valor)` |
+| `conferir(valor, nome)` |
+| `de(nome)` |
+| `declarados()` |
+| `e_colecao(valor)` |
+| `e_imutavel(valor)` |
+| `existe(nome)` |
+| `forma(valor, profundidade=3)` |
+| `nome_de(valor)` |
+| `satisfaz(valor, nome)` |
 
 
 ---

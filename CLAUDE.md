@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 254 exercícios
+python3 exercicios/run_all.py                        # 255 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -85,7 +85,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                54 módulos (1627 símbolos), incluindo:
+  stdlib/                56 módulos (1650 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -95,6 +95,10 @@ dataforge/
     arcane_injecao.py    contêiner: único, transitório, por escopo; ciclo e cativo
     arcane_padroes.py    os padrões que pedem mecanismo (comandos, máquina, pool…)
     arcane_memoria.py    referência fraca, mapa fraco, coletor
+    arcane_resultado.py  a falha como VALOR ('ok'/'falha'), e 'Talvez' para
+                         onde 'void' é ambíguo
+    arcane_tipos.py      reflexão de tipos: metadados de um 'type', 'satisfaz'
+                         sem levantar, a forma estrutural de um valor
     arcane_eventos.py    emissor, contexto por thread, fila em memória e
                          fila_persistente (SQLite: reserva com prazo, recuo,
                          agendamento, carta morta)
@@ -105,7 +109,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        254 exercícios em 38 módulos + run_all.py
+exercicios/        255 exercícios em 38 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1683,7 +1687,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1627 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1650 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -1828,7 +1832,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
 | `tests/test_oop_avancada.py` | `pytest` | contratos, modificadores, sobrecarga, metaclasses, reflexão, DI, padrões, memória, métricas, LSP — e **executa cada bloco `df`** das páginas de `/docs/oop` e da §7 da referência |
-| `exercicios/run_all.py` | script | 254 exercícios em 38 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 255 exercícios em 38 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

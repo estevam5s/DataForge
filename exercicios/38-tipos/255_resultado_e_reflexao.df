@@ -1,0 +1,127 @@
+// Exercicio 255 — A falha como valor, e a reflexao de tipos
+//
+// Tres formas de lidar com o que da errado, e a pergunta de cada uma:
+//
+//   monitor/handle/trigger   o que NAO era esperado: interrompe
+//   void com ?? e ?.         a ausencia simples: segue com um padrao
+//   Arcane.Resultado         a falha ESPERADA: vira valor, e quem
+//                            chama decide
+
+adopt Arcane.Resultado as R
+adopt Arcane.Tipos as Tipos
+
+// ── ok e falha ──
+action buscar(id) -> Resultado:
+    given id smaller 0:
+        yield R.falha("id negativo", 400)
+    yield R.ok({"id": id, "nome": "Ana"})
+
+achado := buscar(7)
+perdido := buscar(-1)
+
+assert achado.deu_certo()
+assert achado.valor()["nome"] is "Ana"
+assert perdido.falhou()
+assert perdido.erro() is "id negativo"
+assert perdido.detalhe() is 400
+assert perdido.ou("ninguem") is "ninguem"     // 'ou' nunca levanta
+
+// ler o valor de uma falha e uma AFIRMACAO, e ela levanta
+monitor:
+    perdido.valor()
+    assert no
+handle RuntimeError as e:
+    assert "id negativo" in e.message
+
+// com a sua propria mensagem
+monitor:
+    perdido.exigir("o cliente nao existe")
+    assert no
+handle RuntimeError as e:
+    assert e.message is "o cliente nao existe"
+
+// ── a falha atravessa a corrente, intacta ──
+action dobro(x):
+    yield R.ok(x * 2)
+
+assert R.ok(2).mapear(lambda x => x + 1).valor() is 3
+assert R.ok(2).entao(dobro).valor() is 4
+assert R.falha("parou").mapear(lambda x => x + 1).erro() is "parou"
+assert R.falha("parou").entao(dobro).erro() is "parou"
+assert R.falha("parou").recuperar(lambda motivo => R.ok(0)).valor() is 0
+
+// ── tentar: o erro da linguagem vira valor ──
+action dividir(a, b):
+    yield a / b
+
+assert R.tentar(dividir, 10, 2).valor() is 5.0
+quebrou := R.tentar(dividir, 1, 0)
+assert quebrou.falhou() and "zero" in quebrou.erro()
+
+// ── todos: a lista pronta, ou o primeiro motivo ──
+assert R.todos([R.ok(1), R.ok(2), R.ok(3)]).valor() is [1, 2, 3]
+assert R.todos([R.ok(1), R.falha("cpf"), R.falha("email")]).erro() is "cpf"
+assert R.erros([R.ok(1), R.falha("cpf"), R.falha("email")]) is ["cpf", "email"]
+
+// ── Talvez: onde void e ambiguo ──
+config := {"tema": void}
+tem := R.chave(config, "tema")
+nao := R.chave(config, "idioma")
+
+assert tem.tem() and tem.valor() is void      // esta la, e vale void
+assert not nao.tem()                          // nao esta la
+assert nao.ou("pt-BR") is "pt-BR"
+assert R.primeiro([1, 2, 3], lambda x => x bigger 2).valor() is 3
+assert not R.primeiro([1, 2], lambda x => x bigger 9).tem()
+
+// ── reflexao: os metadados de um 'type' ──
+type Positivo := Integer where valor bigger 0
+type Json := String | Integer
+opaque type Cpf := String where len(valor) is 11
+
+assert Tipos.de("Json")["especie"] is "uniao"
+assert Tipos.de("Positivo")["especie"] is "refinamento"
+assert Tipos.de("Positivo")["regra"] is "valor bigger 0"
+assert Tipos.de("Cpf")["opaco"]
+assert Tipos.de("NaoExiste") is void
+
+// conferir sem levantar
+assert Tipos.satisfaz(5, "Positivo")
+assert not Tipos.satisfaz(-5, "Positivo")
+assert not Tipos.satisfaz("texto", "Positivo")   // a base decide primeiro
+assert not Tipos.satisfaz("12345678901", "Cpf")  // opaco e nominal
+
+// a forma ESTRUTURAL, que 'typeof' nao da
+assert typeof([1, 2]) is "Cluster"
+assert Tipos.forma([1, 2]) is "Cluster<Integer>"
+assert Tipos.forma([1, "a"]) is "Cluster<Any>"   // misturado: Any, nao o primeiro
+assert Tipos.forma((1, "a")) is "Tuple<Integer, String>"
+assert Tipos.forma({"a": 1}) is "Vault<String, Integer>"
+
+// ── juntando as duas: um validador generico ──
+record Pedido:
+    quantidade: Positivo
+    contato: String
+
+action validar(vault, esperado) -> Resultado:
+    problemas := []
+    cycle campo in esperado:
+        given not Tipos.satisfaz(vault[campo] ?? void, esperado[campo]):
+            problemas.append($"{campo} nao e {esperado[campo]}")
+    yield R.falha(problemas) given len(problemas) bigger 0 otherwise R.ok(vault)
+
+esperado := {"quantidade": "Positivo", "contato": "String"}
+
+assert validar({"quantidade": 2, "contato": "ana@x.com"}, esperado).deu_certo()
+
+ruim := validar({"quantidade": 0, "contato": 7}, esperado)
+assert ruim.falhou()
+assert len(ruim.erro()) is 2
+
+// os campos de um record, com o tipo de cada um
+p := Pedido(3, "ana@x.com")
+campos := Tipos.campos(p)
+assert campos["quantidade"]["tipo"] is "Positivo"
+assert campos["contato"]["valor"] is "ana@x.com"
+
+out "255 ok"

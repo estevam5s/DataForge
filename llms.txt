@@ -137,7 +137,7 @@ typeof      using       validate    void        wait        when
 with        yes         yield
 ```
 
-## A biblioteca: 54 modulos
+## A biblioteca: 56 modulos
 
 Todos por `adopt`. Nenhum precisa de instalacao.
 
@@ -188,11 +188,13 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
 | `Arcane.Reflexo` | 38 | Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid. |
 | `Arcane.Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
+| `Arcane.Resultado` | 13 | A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'. |
 | `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | `Arcane.Stream` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
 | `Arcane.Test` | 34 | Asserções e organização de suítes de teste. |
 | `Arcane.Text` | 59 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
 | `Arcane.Time` | 54 | Datas, horas, durações e cronometragem. |
+| `Arcane.Tipos` | 10 | Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de um valor ('Cluster<Integer>', 'Tuple<Integer, String>') e os campos de um record ou instancia com o tipo de cada um. |
 | `Arcane.Url` | 14 | Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor. |
 | `Arcane.Vitrine` | 115 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |

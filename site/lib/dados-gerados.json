@@ -6807,6 +6807,78 @@
     }
    ]
   },
+  "resultado": {
+   "nome": "Arcane.Resultado",
+   "desc": "A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'.",
+   "curto": "Resultado / Result",
+   "funcoes": [
+    {
+     "nome": "Resultado",
+     "sig": "(ok, valor, erro, detalhe)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Talvez",
+     "sig": "(tem, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "algo",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chave",
+     "sig": "(vault, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de",
+     "sig": "(valor, motivo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "erros",
+     "sig": "(resultados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "falha",
+     "sig": "(erro, detalhe)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nada",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ok",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "primeiro",
+     "sig": "(colecao, condicao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "talvez",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tentar",
+     "sig": "(acao, args)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "todos",
+     "sig": "(resultados)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "serialization": {
    "nome": "Arcane.Serialization",
    "desc": "JSON, CSV, INI, TOML, XML e conversões entre eles.",
@@ -7788,6 +7860,63 @@
     {
      "nome": "year",
      "sig": "(d)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "tipos": {
+   "nome": "Arcane.Tipos",
+   "desc": "Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de um valor ('Cluster<Integer>', 'Tuple<Integer, String>') e os campos de um record ou instancia com o tipo de cada um.",
+   "curto": "Tipos",
+   "funcoes": [
+    {
+     "nome": "campos",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir",
+     "sig": "(valor, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "declarados",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_colecao",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_imutavel",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "existe",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "forma",
+     "sig": "(valor, profundidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nome_de",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "satisfaz",
+     "sig": "(valor, nome)",
      "tipo": "funcao"
     }
    ]
@@ -10621,6 +10750,14 @@
     "arquivo": "254_tuplas.df",
     "temDoc": true,
     "codigo": "// Exercicio 254 — Tuplas: a forma de tamanho fixo\n//\n// Cluster e uma LISTA: itens do mesmo tipo, quantidade livre.\n// Tuple e uma FORMA: uma casa por tipo, quantidade fixa, imutavel.\n//\n// O contorno antigo era um cluster de dois itens — que aceita tres,\n// aceita zero, e nao promete nada sobre a casa 0.\n\nadopt Arcane.Collections as C\nadopt Arcane.Serialization as S\n\n// ── a forma, e a ambiguidade unica ──\nt := (1, \"a\")\nassert typeof(t) is \"Tuple\"\nassert len(t) is 2\nassert t[0] is 1 and t[1] is \"a\" and t[-1] is \"a\"\n\nx := (2 + 3) * 2                  // agrupamento, nao tupla\nassert x is 10 and typeof(x) is \"Integer\"\n\num := (7,)                        // a virgula faz a tupla de um\nvazia := ()\nassert len(um) is 1 and len(vazia) is 0\n\n// fatia de tupla continua tupla\nassert typeof(t[0:1]) is \"Tuple\"\n\n// ── tres tipos parecidos, tres promessas diferentes ──\nassert typeof([1, 2]) is \"Cluster\"          // muda\nassert typeof(freeze([1, 2])) is \"Frozen\"   // cluster congelado\nassert typeof((1, 2)) is \"Tuple\"            // forma fixa\n\n// ── imutavel: escrever e recusado, com o motivo ──\nmonitor:\n    t[0] := 9\n    assert no\nhandle TypeError as e:\n    assert \"immutable\" in e.message\n\n// ── igualdade estrutural, hash e uso como chave ──\na := (1, \"x\")\nb := (1, \"x\")\ngrade := {}\ngrade[a] := \"achei\"\n\nassert a is b\nassert a isnt (1, \"y\")\nassert grade[b] is \"achei\"\nassert len(C.set([a, b])) is 1\n\n// ── o tipo: a quantidade de argumentos E o tamanho ──\npar: Tuple<Integer, String> := (1, \"a\")\nassert par[1] is \"a\"\n\nmonitor:\n    trocada: Tuple<Integer, String> := (\"a\", 1)\n    assert no\nhandle TypeError as e:\n    assert \"place 0\" in e.message              // a casa culpada\n\nmonitor:\n    grande: Tuple<Integer, String> := (1, \"a\", 2)\n    assert no\nhandle TypeError as e:\n    assert \"place(s)\" in e.message             // o tamanho faz parte do tipo\n\n// ── o retorno duplo, que antes exigia cluster ou vault ──\naction dividir(a: Integer, b: Integer) -> Tuple<Integer, Integer>:\n    yield (a ~/ b, a % b)\n\ninteiro, resto := dividir(17, 5)\nassert inteiro is 3 and resto is 2\n\nmonitor:\n    action errada() -> Tuple<Integer, Integer>:\n        yield (1, \"dois\")\n    errada()\n    assert no\nhandle TypeError as e:\n    assert \"return value\" in e.message\n\n// ── com alias, aninhada, em record e em colecao ──\ntype Coordenada := Tuple<Float, Float>\ntype Segmento := Tuple<Coordenada, Coordenada>\n\nrecord Trecho:\n    de: Coordenada\n    para: Coordenada\n\ns: Segmento := ((0.0, 0.0), (3.0, 4.0))\ntrecho := Trecho(s[0], s[1])\npares := [(1, \"um\"), (2, \"dois\")]\n\nassert s[1][0] is 3.0\nassert trecho.para[1] is 4.0\nassert pares[1][1] is \"dois\"\n\naction distancia(de: Coordenada, para: Coordenada) -> Float:\n    yield ((para[0] - de[0]) ** 2 + (para[1] - de[1]) ** 2) ** 0.5\n\nassert distancia(s[0], s[1]) is 5.0\n\nmonitor:\n    ruim: Coordenada := (1.0, \"dois\")\n    assert no\nhandle TypeError as e:\n    assert \"Coordenada\" in e.message\n\n// ── percorrer, pertencer, serializar ──\nsoma := 0\ncycle item in (1, 2, 3):\n    soma += item\nassert soma is 6\nassert 2 in (1, 2, 3)\nassert S.to_json((1, \"a\")) is \"[1, \\\"a\\\"]\"    // JSON nao tem tupla: vira array\n\nout \"254 ok\"\n"
+   },
+   {
+    "num": "255",
+    "titulo": "A falha como valor, e a reflexao de tipos",
+    "enunciado": "",
+    "arquivo": "255_resultado_e_reflexao.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 255 — A falha como valor, e a reflexao de tipos\n//\n// Tres formas de lidar com o que da errado, e a pergunta de cada uma:\n//\n//   monitor/handle/trigger   o que NAO era esperado: interrompe\n//   void com ?? e ?.         a ausencia simples: segue com um padrao\n//   Arcane.Resultado         a falha ESPERADA: vira valor, e quem\n//                            chama decide\n\nadopt Arcane.Resultado as R\nadopt Arcane.Tipos as Tipos\n\n// ── ok e falha ──\naction buscar(id) -> Resultado:\n    given id smaller 0:\n        yield R.falha(\"id negativo\", 400)\n    yield R.ok({\"id\": id, \"nome\": \"Ana\"})\n\nachado := buscar(7)\nperdido := buscar(-1)\n\nassert achado.deu_certo()\nassert achado.valor()[\"nome\"] is \"Ana\"\nassert perdido.falhou()\nassert perdido.erro() is \"id negativo\"\nassert perdido.detalhe() is 400\nassert perdido.ou(\"ninguem\") is \"ninguem\"     // 'ou' nunca levanta\n\n// ler o valor de uma falha e uma AFIRMACAO, e ela levanta\nmonitor:\n    perdido.valor()\n    assert no\nhandle RuntimeError as e:\n    assert \"id negativo\" in e.message\n\n// com a sua propria mensagem\nmonitor:\n    perdido.exigir(\"o cliente nao existe\")\n    assert no\nhandle RuntimeError as e:\n    assert e.message is \"o cliente nao existe\"\n\n// ── a falha atravessa a corrente, intacta ──\naction dobro(x):\n    yield R.ok(x * 2)\n\nassert R.ok(2).mapear(lambda x => x + 1).valor() is 3\nassert R.ok(2).entao(dobro).valor() is 4\nassert R.falha(\"parou\").mapear(lambda x => x + 1).erro() is \"parou\"\nassert R.falha(\"parou\").entao(dobro).erro() is \"parou\"\nassert R.falha(\"parou\").recuperar(lambda motivo => R.ok(0)).valor() is 0\n\n// ── tentar: o erro da linguagem vira valor ──\naction dividir(a, b):\n    yield a / b\n\nassert R.tentar(dividir, 10, 2).valor() is 5.0\nquebrou := R.tentar(dividir, 1, 0)\nassert quebrou.falhou() and \"zero\" in quebrou.erro()\n\n// ── todos: a lista pronta, ou o primeiro motivo ──\nassert R.todos([R.ok(1), R.ok(2), R.ok(3)]).valor() is [1, 2, 3]\nassert R.todos([R.ok(1), R.falha(\"cpf\"), R.falha(\"email\")]).erro() is \"cpf\"\nassert R.erros([R.ok(1), R.falha(\"cpf\"), R.falha(\"email\")]) is [\"cpf\", \"email\"]\n\n// ── Talvez: onde void e ambiguo ──\nconfig := {\"tema\": void}\ntem := R.chave(config, \"tema\")\nnao := R.chave(config, \"idioma\")\n\nassert tem.tem() and tem.valor() is void      // esta la, e vale void\nassert not nao.tem()                          // nao esta la\nassert nao.ou(\"pt-BR\") is \"pt-BR\"\nassert R.primeiro([1, 2, 3], lambda x => x bigger 2).valor() is 3\nassert not R.primeiro([1, 2], lambda x => x bigger 9).tem()\n\n// ── reflexao: os metadados de um 'type' ──\ntype Positivo := Integer where valor bigger 0\ntype Json := String | Integer\nopaque type Cpf := String where len(valor) is 11\n\nassert Tipos.de(\"Json\")[\"especie\"] is \"uniao\"\nassert Tipos.de(\"Positivo\")[\"especie\"] is \"refinamento\"\nassert Tipos.de(\"Positivo\")[\"regra\"] is \"valor bigger 0\"\nassert Tipos.de(\"Cpf\")[\"opaco\"]\nassert Tipos.de(\"NaoExiste\") is void\n\n// conferir sem levantar\nassert Tipos.satisfaz(5, \"Positivo\")\nassert not Tipos.satisfaz(-5, \"Positivo\")\nassert not Tipos.satisfaz(\"texto\", \"Positivo\")   // a base decide primeiro\nassert not Tipos.satisfaz(\"12345678901\", \"Cpf\")  // opaco e nominal\n\n// a forma ESTRUTURAL, que 'typeof' nao da\nassert typeof([1, 2]) is \"Cluster\"\nassert Tipos.forma([1, 2]) is \"Cluster<Integer>\"\nassert Tipos.forma([1, \"a\"]) is \"Cluster<Any>\"   // misturado: Any, nao o primeiro\nassert Tipos.forma((1, \"a\")) is \"Tuple<Integer, String>\"\nassert Tipos.forma({\"a\": 1}) is \"Vault<String, Integer>\"\n\n// ── juntando as duas: um validador generico ──\nrecord Pedido:\n    quantidade: Positivo\n    contato: String\n\naction validar(vault, esperado) -> Resultado:\n    problemas := []\n    cycle campo in esperado:\n        given not Tipos.satisfaz(vault[campo] ?? void, esperado[campo]):\n            problemas.append($\"{campo} nao e {esperado[campo]}\")\n    yield R.falha(problemas) given len(problemas) bigger 0 otherwise R.ok(vault)\n\nesperado := {\"quantidade\": \"Positivo\", \"contato\": \"String\"}\n\nassert validar({\"quantidade\": 2, \"contato\": \"ana@x.com\"}, esperado).deu_certo()\n\nruim := validar({\"quantidade\": 0, \"contato\": 7}, esperado)\nassert ruim.falhou()\nassert len(ruim.erro()) is 2\n\n// os campos de um record, com o tipo de cada um\np := Pedido(3, \"ana@x.com\")\ncampos := Tipos.campos(p)\nassert campos[\"quantidade\"][\"tipo\"] is \"Positivo\"\nassert campos[\"contato\"][\"valor\"] is \"ana@x.com\"\n\nout \"255 ok\"\n"
    }
   ]
  },
@@ -10967,9 +11104,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2365,
+  "testes": 2385,
   "exemplos": 44,
-  "arquivosDf": 364
+  "arquivosDf": 365
  },
  "mundo": {
   "estrelas": 0,

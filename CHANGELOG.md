@@ -14,6 +14,27 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.Resultado` e `Arcane.Tipos`
+
+- **`Arcane.Resultado`**: a falha como **valor**, que é a terceira forma
+  que faltava ao lado de `monitor`/`trigger` (o inesperado) e de `void`
+  com `??` (a ausência). `R.ok`/`R.falha`, com `mapear`, `entao`,
+  `recuperar`, `ou`, `exigir`, `R.tentar` (que captura o erro da
+  linguagem e **deixa passar** sinal de controle) e `R.todos` (a lista
+  pronta, ou o primeiro motivo). Ler `valor()` de uma falha levanta,
+  porque ali quem escreveu afirmou.
+- **`Talvez`** (`algo`/`nada`/`chave`/`primeiro`), para onde `void` é
+  ambíguo: distinguir "a chave não está lá" de "a chave vale void".
+- **`Arcane.Tipos`**: reflexão sobre tipos. Os metadados de um `type`
+  declarado (`especie`, `base`, `partes`, `regra`, `opaco`),
+  `satisfaz` (confere e responde, sem levantar), `conferir` (levanta o
+  erro de sempre), `forma` — a forma **estrutural** de um valor
+  (`Cluster<Integer>`, `Tuple<Integer, String>`) — e `campos`, que dá os
+  campos de um record, instância ou vault com o tipo de cada um.
+- Documentação: [`/docs/tipos/resultado`](https://dataforge-lang.vercel.app/docs/tipos/resultado),
+  [`/docs/tipos/reflexao`](https://dataforge-lang.vercel.app/docs/tipos/reflexao)
+  e o exercício 255.
+
 ### Adicionado — tuplas
 
 - **`(1, "a")`** é uma tupla: tamanho fixo, um tipo por casa, imutável e
