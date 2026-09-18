@@ -230,6 +230,14 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Memória e recursos',
+    badge: 'novo',
+    items: [
+      { title: 'Posse e empréstimo', href: '/docs/memoria/posse', badge: 'novo' },
+      { title: 'Memória e layout', href: '/docs/memoria/layout', badge: 'novo' },
+    ],
+  },
+  {
     title: 'Lavra — consulta',
     badge: 'novo',
     items: [

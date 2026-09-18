@@ -410,6 +410,8 @@ class TypeChecker:
         #: modulos, e todas elas eram invisiveis: 'P.naoExiste()' e
         #: 'P.criar(1, 2, 3)' so falhavam em execucao.
         self.superficies = {}
+        #: apelido -> nome do módulo, para saber de onde veio 'P.dono(…)'
+        self.modulos_adotados = {}
         #: Um ciclo e uma propriedade do ARQUIVO, nao de cada 'adopt'.
         #: Sem esta marca, um arquivo com cinco imports repetiria a
         #: mesma mensagem cinco vezes.
@@ -422,6 +424,18 @@ class TypeChecker:
         #: genéricos. É o que distingue 'T documenta' de '<T extends X>
         #: cobra'.
         self.genericos_de_tipo = {}
+        #: Posse: nome -> a linha em que foi movido. Enquanto estiver
+        #: aqui, usar o nome é usar o que já não se tem. Reatribuir o
+        #: nome limpa a marca — a partir dali ele é outro valor.
+        self.posse_movida = {}
+        #: nome -> o nó que criou o recurso, enquanto ninguém o soltou,
+        #: moveu, devolveu nem passou adiante.
+        self.recursos_abertos = {}
+        #: Os nomes que NASCERAM de 'Arcane.Posse' nesta ação. Só eles
+        #: entram na conta: um blueprint com um método chamado 'mover'
+        #: não tem nada a ver com posse, e acusá-lo seria o falso alarme
+        #: que ensina a desligar o analisador.
+        self.posse_criada = set()
         # Os '<T>' do blueprint que esta sendo analisado. Um metodo dele
         # pode usa-los como tipo; fora dali, eles nao existem.
         self._genericos_do_blueprint = set()
@@ -1252,6 +1266,7 @@ class TypeChecker:
 
     def st_Assignment(self, node, escopo):
         tipo = self.infer(node.value, escopo)
+        self._anotar_recurso(node, escopo)
         declarado = canonical(getattr(node, 'declared_type', '') or '')
 
         if declarado:
@@ -1337,6 +1352,8 @@ class TypeChecker:
         return self._genericos_da_acao | self._genericos_do_blueprint
 
     def st_YieldStatement(self, node, escopo):
+        # Devolver o recurso é entregar a posse: quem recebe solta.
+        self._recurso_escapou(node.value)
         tipo = self.infer(node.value, escopo) if node.value else "Void"
         if self._action_depth == 0:
             self.error("'yield' outside of an action", node,
@@ -2382,8 +2399,15 @@ class TypeChecker:
         self._genericos_da_acao = set(getattr(node, "type_params", None) or [])
         self._action_depth += 1
         self._hoist(node.body, interno)
+        # A posse é por AÇÃO: um recurso aberto numa não fala da outra, e
+        # um nome movido lá dentro não contamina o de fora.
+        posse_anterior = (self.posse_movida, self.recursos_abertos,
+                          self.posse_criada)
+        self.posse_movida, self.recursos_abertos = {}, {}
+        self.posse_criada = set()
         try:
             sempre_retorna = self.visit_block(node.body, interno)
+            self._cobrar_recursos_soltos(interno, node)
             promessas = getattr(node, "postconditions", None) or []
             if promessas:
                 # 'outcome' e o valor devolvido, com o tipo que a acao
@@ -2399,6 +2423,8 @@ class TypeChecker:
             self._action_depth -= 1
             self._current_return = retorno_anterior
             self._genericos_da_acao = genericos_anteriores
+            (self.posse_movida, self.recursos_abertos,
+             self.posse_criada) = posse_anterior
 
         declarado = assinatura.return_type
         # Um metodo de 'trait' e so a assinatura: corpo vazio, de
@@ -2878,6 +2904,7 @@ class TypeChecker:
                 self.actions.setdefault(apelido, None)
         else:
             alias = node.alias or node.module.split('.')[-1]
+            self.modulos_adotados[alias] = node.module
             escopo.declare(alias, "Module", node.line, node.column)
         # 'Python.x' nao e um modulo da stdlib nem um arquivo vizinho:
         # e a ponte. Mas o analisador pode PROVAR uma coisa util sobre
@@ -3834,7 +3861,18 @@ class TypeChecker:
     #: Os metodos que INSEREM, e onde esta o que eles inserem.
     _INSEREM = {"append": 0, "push": 0, "insert": 1, "add": 0}
 
+    #: Perguntas sobre o estado: valem em qualquer momento.
+    _PERGUNTAM_O_ESTADO = ("vivo", "movido", "solto", "contar", "fracas",
+                           "emprestimos", "estado")
+    #: Os métodos que TIRAM a posse de quem chamou.
+    _TIRAM_A_POSSE = ("mover", "soltar")
+    #: O que cria um recurso com liberação determinística.
+    _CRIAM_RECURSO = ("dono", "compartilhado", "atomico")
+
     def ex_MethodCall(self, node, escopo):
+        self._conferir_posse(node, escopo)
+        self._conferir_emprestimo(node)
+        self._recurso_escapou(*node.args, *node.kwargs.values())
         alvo = self.infer(node.object, escopo)
         for a in node.args:
             self.infer(a.value if isinstance(a, ast.SpreadElement) else a, escopo)
@@ -4069,6 +4107,7 @@ class TypeChecker:
                     self.infer(a, escopo)
             return "Expectativa"
 
+        self._recurso_escapou(*node.args, *node.kwargs.values())
         for a in node.args:
             self.infer(a.value if isinstance(a, ast.SpreadElement) else a, escopo)
         for v in node.kwargs.values():
@@ -4153,6 +4192,118 @@ class TypeChecker:
         if assinatura.is_generator:
             return "Stream"
         return assinatura.return_type
+
+    def _conferir_posse(self, node, escopo):
+        """Usar um valor depois de mover é usar o que já não se tem.
+
+        A marca é por NOME e vale a partir da linha do 'mover'. Reatribuir
+        o nome limpa: dali em diante ele é outro valor. Um nome que não
+        veio de 'P.dono(…)' nunca entra aqui — o analisador cala sobre o
+        que não viu nascer.
+        """
+        if not isinstance(node.object, ast.Identifier):
+            return
+        nome = node.object.name
+        if nome not in self.posse_criada:
+            return
+        movido_em = self.posse_movida.get(nome)
+        # Perguntar o ESTADO de um dono movido é legítimo — é a pergunta
+        # que se faz justamente depois de mover.
+        if node.method in self._PERGUNTAM_O_ESTADO:
+            return
+        if movido_em is not None:
+            self.error(
+                f"'{nome}' já foi movido com 'mover': quem move, perde a posse",
+                node,
+                f"o valor saiu daqui na linha {movido_em} — use o nome que o "
+                f"recebeu", "posse-movida")
+            return
+        if node.method in self._TIRAM_A_POSSE and nome in self.recursos_abertos:
+            del self.recursos_abertos[nome]
+            if node.method == "mover":
+                self.posse_movida[nome] = node.line
+        elif node.method == "mover":
+            self.posse_movida[nome] = node.line
+
+    #: Os métodos que entregam o valor por um TEMPO — o corpo que os
+    #: recebe é o escopo do empréstimo.
+    _EMPRESTAM = ("usar", "mudar", "ler", "escrever")
+
+    def _conferir_emprestimo(self, node):
+        """'d.usar(lambda x => x)' devolve o que foi emprestado.
+
+        O valor sai do corpo que o recebeu e passa a viver por fora, onde
+        o dono já não controla nada — é o empréstimo que escapa do
+        escopo, e é a única forma dele que dá para provar lendo o código.
+        """
+        if node.method not in self._EMPRESTAM or len(node.args) != 1:
+            return
+        corpo = node.args[0]
+        if not isinstance(corpo, ast.LambdaExpression) or not corpo.params:
+            return
+        if isinstance(corpo.body, ast.Identifier) and \
+                corpo.body.name == corpo.params[0]:
+            self.warn(
+                f"este '{node.method}' devolve o próprio valor emprestado",
+                node,
+                "o empréstimo vale enquanto o corpo roda — faça o trabalho "
+                "dentro dele, ou copie o que precisa levar",
+                "emprestimo-escapa")
+
+    def _recurso_escapou(self, *valores):
+        """O recurso saiu do alcance desta ação — e deixa de ser cobrado.
+
+        Vale para o 'yield', para o argumento de qualquer chamada e para
+        o campo de um objeto: a partir dali quem solta é outro, e este
+        arquivo não tem como saber quem.
+        """
+        for valor in valores:
+            if isinstance(valor, ast.Identifier):
+                self.recursos_abertos.pop(valor.name, None)
+
+    def _anotar_recurso(self, node, escopo):
+        """'d := P.dono(…)' — a partir daqui alguém tem de soltar."""
+        if not isinstance(node.target, ast.Identifier):
+            return
+        nome = node.target.name
+        self.posse_movida.pop(nome, None)
+        valor = node.value
+        if isinstance(valor, ast.MethodCall) and \
+                valor.method in self._CRIAM_RECURSO and \
+                isinstance(valor.object, ast.Identifier) and \
+                self._e_modulo_de_posse(valor.object.name):
+            self.recursos_abertos[nome] = node
+            self.posse_criada.add(nome)
+        else:
+            self.recursos_abertos.pop(nome, None)
+            # 'd := outra_coisa' — o nome deixou de ser aquele recurso.
+            if isinstance(valor, ast.MethodCall) and valor.method == "mover" \
+                    and isinstance(valor.object, ast.Identifier) \
+                    and valor.object.name in self.posse_criada:
+                self.posse_criada.add(nome)
+                self.recursos_abertos[nome] = node
+            else:
+                self.posse_criada.discard(nome)
+
+    def _e_modulo_de_posse(self, apelido):
+        """O apelido aponta para 'Arcane.Posse'? Só ele conta."""
+        return self.modulos_adotados.get(apelido, "") in ("Arcane.Posse", "Posse")
+
+    def _cobrar_recursos_soltos(self, escopo, node):
+        """No fim da ação, o que ninguém soltou vira aviso — não erro.
+
+        Aviso porque a análise é de um arquivo só: o recurso pode ser
+        guardado num campo, entregue a outra ação por um caminho que
+        este arquivo não vê, ou solto num 'defer'. Acusar como erro
+        ensinaria a desligar a verificação.
+        """
+        for nome, criacao in list(self.recursos_abertos.items()):
+            self.warn(
+                f"'{nome}' abre um recurso que ninguém solta nesta ação", criacao,
+                "solte com 'soltar()', entregue com 'mover()', ou use "
+                "'P.com(dono, acao)', que solta até quando o corpo falha",
+                "recurso-vazado")
+        self.recursos_abertos.clear()
 
     def _check_chamada_de_opaco(self, declaracao, node, escopo):
         """'Cpf("…")' — um argumento, do tipo de baixo, e sai um Cpf."""

@@ -1,0 +1,171 @@
+// Exercicio 256 — Posse, emprestimo e liberacao deterministica
+//
+// Num mundo com coletor, "vazar memoria" quase nunca e o problema: o
+// coletor resolve. O que ele NAO resolve e o RECURSO — o arquivo que
+// nao fecha, a conexao que fica aberta — porque ele nao promete QUANDO
+// passa. E o defeito irmao: duas partes escrevendo no mesmo objeto
+// porque nenhuma sabe quem e o dono.
+
+adopt Arcane.Posse as P
+adopt Arcane.Memoria as Mem
+adopt Arcane.Concurrent as C
+
+// ── dono: um valor, um dono, um finalizador ──
+fechados := []
+d := P.dono("conexao", lambda x => fechados.append(x))
+
+assert d.usar(lambda x => len(x)) is 7
+assert d.vivo()
+
+d.soltar()                          // roda AGORA, e nao quando der
+assert not d.vivo()
+assert fechados is ["conexao"]
+
+d.soltar()                          // idempotente
+d.soltar()
+assert len(fechados) is 1
+
+// usar depois de soltar diz o que aconteceu
+monitor:
+    d.usar(lambda x => x)
+    assert no
+handle RuntimeError as e:
+    assert "soltou" in e.message
+
+// ── com: o RAII, inclusive quando o corpo falha ──
+soltos := []
+valor := P.com(P.dono("a", lambda x => soltos.append(x)), lambda x => len(x))
+assert valor is 1 and soltos is ["a"]
+
+monitor:
+    P.com(P.dono("b", lambda x => soltos.append(x)),
+          lambda x => trigger "falhou no meio")
+handle Error as e:
+    assert e.message is "falhou no meio"
+
+assert soltos is ["a", "b"]         // o caminho de erro tambem solta
+
+// ── mover: quem move, perde ──
+a := P.dono([1, 2])
+b := a.mover()
+
+assert a.movido()                   // perguntar o estado e legitimo
+assert b.usar(lambda x => len(x)) is 2
+
+monitor:
+    a.usar(lambda x => len(x))
+    assert no
+handle RuntimeError as e:
+    assert "moveu" in e.message
+
+// ── copia e clone sao coisas diferentes ──
+original := P.dono([1, 2])
+
+rasa := original.copiar()           // o MESMO valor
+rasa.mudar(lambda x => x.append(3))
+
+funda := original.clonar(lambda x => [...x])
+funda.mudar(lambda x => x.append(9))
+
+assert original.usar(lambda x => len(x)) is 3
+assert funda.usar(lambda x => len(x)) is 4
+
+// ── emprestimo: muitos leem OU um escreve ──
+c := P.celula({"n": 0})
+
+assert c.ler(lambda v => v["n"]) is 0
+c.escrever(lambda v => v.set("n", 5))
+assert c.ler(lambda v => v["n"]) is 5
+assert c.emprestimos() is 0
+
+// duas leituras: pode
+assert c.ler(lambda v => c.ler(lambda w => 1)) is 1
+
+// escrever no meio de uma leitura: nao
+monitor:
+    c.ler(lambda v => c.escrever(lambda w => w.set("n", 9)))
+    assert no
+handle RuntimeError as e:
+    assert "lendo" in e.message
+
+// o emprestimo nao sobrevive ao escopo
+fugitivo := P.dono([1]).emprestar()
+monitor:
+    fugitivo.ler()
+    assert no
+handle RuntimeError as e:
+    assert "escopo" in e.message
+
+// ── compartilhado: a contagem decide quando solta ──
+cacheados := []
+um := P.compartilhado("cache", lambda x => cacheados.append(x))
+dois := um.clonar()
+tres := um.clonar()
+
+assert um.contar() is 3
+dois.soltar()
+assert um.contar() is 2 and cacheados is []
+tres.soltar()
+um.soltar()
+assert um.contar() is 0 and cacheados is ["cache"]
+
+// atomico: a mesma coisa, valida entre threads
+raiz := P.atomico("recurso")
+copias := []
+
+action clonar_uma(i):
+    copias.append(raiz.clonar())
+
+C.para_cada(clonar_uma, [i cycle i in range(1, 51)])
+assert raiz.contar() is 51
+
+// ── o ciclo vaza, e a fraca o quebra ──
+vazados := []
+pai := P.compartilhado({"nome": "pai"}, lambda x => vazados.append("pai"))
+filho := P.compartilhado({"nome": "filho"}, lambda x => vazados.append("filho"))
+
+pai.usar(lambda v => v.set("filho", filho.clonar()))
+filho.usar(lambda v => v.set("pai", pai.clonar()))     // forte: o ciclo
+
+pai.soltar()
+filho.soltar()
+assert vazados is []                // ninguem chegou a zero
+
+// agora com a volta fraca
+quebrados := []
+p2 := P.compartilhado({"nome": "pai"}, lambda x => quebrados.append("pai"))
+f2 := P.compartilhado({"nome": "filho"}, lambda x => quebrados.append("filho"))
+
+p2.usar(lambda v => v.set("filho", f2.clonar()))
+f2.usar(lambda v => v.set("pai", P.fraco(p2)))         // FRACA: nao conta
+
+f2.soltar()
+p2.soltar()
+assert quebrados is ["pai", "filho"]   // o de fora, e o que ele possuia
+
+// a fraca responde Talvez: ela nao promete que o valor existe
+forte := P.compartilhado({"id": 1})
+fraca := P.fraco(forte)
+assert fraca.vivo() and fraca.obter().tem()
+forte.soltar()
+assert not fraca.vivo() and not fraca.obter().tem()
+
+// ── layout: o que da para medir ──
+blueprint Compacta:
+    slots x, y
+    x := 1
+    y := 2
+
+blueprint Solta:
+    x := 1
+    y := 2
+
+com_slots := Mem.layout(Compacta)
+sem_slots := Mem.layout(Solta)
+
+assert com_slots["slots"] and not sem_slots["slots"]
+assert com_slots["campos"] is ["x", "y"]
+assert com_slots["bytes"] smaller sem_slots["bytes"]
+assert Mem.comparar_layout(Compacta, Solta)["menor"] is "Compacta"
+
+out "256 ok"

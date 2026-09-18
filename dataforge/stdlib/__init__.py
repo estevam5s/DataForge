@@ -48,6 +48,7 @@ from .arcane_cli import ArcaneCli
 from .arcane_email import ArcaneEmail
 from .arcane_bench import ArcaneBench
 from .arcane_eventos import ArcaneEventos
+from .arcane_posse import ArcanePosse
 from .arcane_resultado import ArcaneResultado
 from .arcane_tipos import ArcaneTipos
 from .arcane_html import ArcaneHtml
@@ -168,6 +169,8 @@ _MODULES = {
     "Bench": ArcaneBench,
     "Arcane.Eventos": ArcaneEventos,
     "Eventos": ArcaneEventos,
+    "Arcane.Posse": ArcanePosse,
+    "Posse": ArcanePosse,
     "Arcane.Resultado": ArcaneResultado,
     "Resultado": ArcaneResultado,
     "Result": ArcaneResultado,

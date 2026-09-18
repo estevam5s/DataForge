@@ -558,7 +558,7 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 
 ## 38 — Tipos
 
-*4 exercícios · com documentação `.md`*
+*5 exercícios · com documentação `.md`*
 
 | # | Exercício | Assunto |
 |---|-----------|---------|
@@ -566,10 +566,11 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 253 | [`253_genericos_e_traits.df`](38-tipos/253_genericos_e_traits.df) · [doc](38-tipos/253_genericos_e_traits.md) | Generics, tipos indexados e o sistema de traits |
 | 254 | [`254_tuplas.df`](38-tipos/254_tuplas.df) · [doc](38-tipos/254_tuplas.md) | Tuplas: a forma de tamanho fixo |
 | 255 | [`255_resultado_e_reflexao.df`](38-tipos/255_resultado_e_reflexao.df) · [doc](38-tipos/255_resultado_e_reflexao.md) | A falha como valor, e a reflexao de tipos |
+| 256 | [`256_posse_e_recursos.df`](38-tipos/256_posse_e_recursos.df) · [doc](38-tipos/256_posse_e_recursos.md) | Posse, emprestimo e liberacao deterministica |
 
 ---
 
-**Total: 255 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 256 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

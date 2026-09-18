@@ -14,6 +14,31 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.Posse`: posse, empréstimo e liberação determinística
+
+- **`P.dono(valor, ao_soltar)`**: um dono, um finalizador, uma vez.
+  `soltar()` roda **agora** — e não quando o coletor decidir passar;
+  `P.com(dono, acao)` solta no fim, **inclusive quando o corpo falha**,
+  que é o caminho por onde metade dos recursos vaza.
+- **`mover()`**: quem move, perde. Usar depois é erro em execução, e o
+  `check` acusa antes (`posse-movida`) quando o fluxo do arquivo prova.
+  `copiar()` (mesmo valor) e `clonar()` (cópia) são coisas diferentes.
+- **`P.celula`**: muitos leem **ou** um escreve — a regra do borrow
+  checker, cobrada quando roda. O empréstimo vive no corpo que o
+  recebeu, e pedi-lo fora dele devolve um empréstimo já encerrado.
+- **`P.compartilhado` e `P.atomico`**: contagem determinística — o
+  finalizador roda quando o **último** dono sai. O segundo vale entre
+  threads.
+- **`P.fraco`**: observa sem segurar, e responde `Talvez`. Um ciclo de
+  referências fortes vaza, e isso é **mostrado** em vez de escondido; a
+  saída é a de sempre, e está documentada.
+- Quem solta, solta o que possuía (*drop glue*).
+- **`Mem.layout` e `Mem.comparar_layout`**: o custo de um objeto,
+  medido em objetos de verdade — `slots` contra dicionário.
+- Documentação: [`/docs/memoria/posse`](https://dataforge-lang.vercel.app/docs/memoria/posse),
+  [`/docs/memoria/layout`](https://dataforge-lang.vercel.app/docs/memoria/layout)
+  e o exercício 256.
+
 ### Adicionado — `Arcane.Resultado` e `Arcane.Tipos`
 
 - **`Arcane.Resultado`**: a falha como **valor**, que é a terceira forma

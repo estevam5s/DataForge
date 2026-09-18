@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "56 módulos e 1650 símbolos, sem uma única dependência externa.",
+  description: "57 módulos e 1665 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os 56 módulos"
+    "h2": "Os 57 módulos"
   },
   {
-    "p": "São **1650 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1665 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -236,6 +236,11 @@ const blocos: Bloco[] = [
           "Cópia rasa e funda, congelamento, igualdade estrutural, hash coerente, ordenação por campos e serialização polimórfica que só reconstrói os tipos autorizados e resolve ciclos."
         ],
         [
+          "`Arcane.Posse`",
+          "13",
+          "Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo."
+        ],
+        [
           "[`Arcane.Qualidade`](/docs/tecnicas/qualidade)",
           "13",
           "Qualidade de dados: as seis dimensões, perfil, validação e limpeza."
@@ -281,6 +286,11 @@ const blocos: Bloco[] = [
           "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta."
         ],
         [
+          "`Arcane.Memoria`",
+          "10",
+          "O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado."
+        ],
+        [
           "`Arcane.Quadro`",
           "10",
           "A tabela de dados: colunas nomeadas e linhas como vault. Filtrar, agrupar, resumir, juntar, pivotar, limpar a ausência e a duplicata, converter tipos, normalizar, codificar e descrever — colunar por dentro, imutável por fora."
@@ -289,11 +299,6 @@ const blocos: Bloco[] = [
           "`Arcane.Tipos`",
           "10",
           "Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de um valor ('Cluster<Integer>', 'Tuple<Integer, String>') e os campos de um record ou instancia com o tipo de cada um."
-        ],
-        [
-          "`Arcane.Memoria`",
-          "8",
-          "O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado."
         ],
         [
           "[`Arcane.API`](/docs/tecnicas/api)",
@@ -379,13 +384,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-56-modulos', text: "Os 56 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-57-modulos', text: "Os 57 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"56 módulos e 1650 símbolos, sem uma única dependência externa."}
+      description={"57 módulos e 1665 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

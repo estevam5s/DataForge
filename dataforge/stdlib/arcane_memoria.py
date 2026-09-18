@@ -140,6 +140,69 @@ def _estatisticas():
     }
 
 
+def _layout(alvo, amostras=20):
+    """Como um objeto daquele blueprint ocupa memoria — MEDIDO.
+
+    Nao ha alinhamento nem padding para inspecionar: isso e assunto de
+    linguagem com layout fixo. O que existe aqui, e que custa caro na
+    pratica, e a diferenca entre guardar os campos num DICIONARIO por
+    objeto e guarda-los numa LISTA indexada, que e o que 'slots' faz.
+    Medido no repositorio: 64% menos memoria por objeto.
+
+    O numero sai de objetos de verdade — 'amostras' deles —, e nao de
+    uma conta sobre o codigo: um palpite sobre memoria e sempre otimista.
+    """
+    i = _i()
+    if not isinstance(alvo, i.DFBlueprint):
+        return {"nome": _nome_de(alvo), "slots": False, "campos": [],
+                "bytes": _tamanho(alvo), "amostras": 1,
+                "nota": "layout pede um blueprint; isto e um valor"}
+    interp = i.DFAction._interpreter
+    no = interp._no_interno() if interp is not None else None
+    objetos = []
+    for _ in range(max(1, int(amostras))):
+        try:
+            objetos.append(interp._instanciar(alvo, [], {}, no, interp.global_env))
+        except Exception:                                  # noqa: BLE001
+            break
+    if not objetos:
+        return {"nome": alvo.name, "slots": bool(getattr(alvo, "slots", None)),
+                "campos": list(getattr(alvo, "slots", None) or []),
+                "bytes": 0, "amostras": 0,
+                "nota": "este blueprint precisa de argumentos para nascer"}
+    total = sum(_tamanho(o) for o in objetos)
+    campos = list(getattr(alvo, "slots", None) or [])
+    if not campos and objetos:
+        campos = [c for c in getattr(objetos[0], "fields", {}) or {}]
+    return {
+        "nome": alvo.name,
+        "slots": bool(getattr(alvo, "slots", None)),
+        "campos": campos,
+        "bytes": round(total / len(objetos)),
+        "amostras": len(objetos),
+    }
+
+
+def _comparar_layout(um, outro, amostras=20):
+    """Dois blueprints, lado a lado — e quanto um economiza."""
+    a, b = _layout(um, amostras), _layout(outro, amostras)
+    maior = max(a["bytes"], b["bytes"]) or 1
+    menor = min(a["bytes"], b["bytes"])
+    return {
+        "a": a, "b": b,
+        "diferenca_bytes": abs(a["bytes"] - b["bytes"]),
+        "economia_percentual": round((maior - menor) * 100 / maior, 1),
+        "menor": a["nome"] if a["bytes"] <= b["bytes"] else b["nome"],
+    }
+
+
+def _nome_de(valor):
+    interp = _i().DFAction._interpreter
+    if interp is None:
+        return type(valor).__name__
+    return interp._type_of(valor)
+
+
 def _tamanho(obj):
     """Bytes aproximados do objeto e de tudo que so ele alcanca."""
     i = _i()
@@ -180,5 +243,7 @@ class ArcaneMemoria:
             "vivos": _vivos,
             "estatisticas": _estatisticas,
             "tamanho": _tamanho,
+            "layout": _layout,
+            "comparar_layout": _comparar_layout,
             "referencias": _referencias,
         }

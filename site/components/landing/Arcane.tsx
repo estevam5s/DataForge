@@ -25,8 +25,9 @@ const grupos: { rotulo: string; chaves: string[] }[] = [
   { rotulo: 'Formatos', chaves: ['serialization', 'excel', 'archive', 'database', 'html'] },
   { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email', 'url'] },
   { rotulo: 'Qualidade', chaves: ['test', 'bench', 'logging', 'crypto', 'observar', 'color', 'meta', 'cli', 'eventos'] },
-  { rotulo: 'Objetos', chaves: ['reflexo', 'objetos', 'injecao', 'padroes', 'memoria'] },
+  { rotulo: 'Objetos', chaves: ['reflexo', 'objetos', 'injecao', 'padroes'] },
   { rotulo: 'Tipos', chaves: ['tipos', 'resultado'] },
+  { rotulo: 'Memória', chaves: ['posse', 'memoria'] },
 ];
 
 /** O que nenhum grupo reivindicou. Vazio é o estado esperado. */

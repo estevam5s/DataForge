@@ -5415,6 +5415,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "comparar_layout",
+     "sig": "(um, outro, amostras)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "estatisticas",
      "sig": "()",
      "tipo": "funcao"
@@ -5422,6 +5427,11 @@
     {
      "nome": "fraca",
      "sig": "(obj)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "layout",
+     "sig": "(alvo, amostras)",
      "tipo": "funcao"
     },
     {
@@ -6141,6 +6151,78 @@
     {
      "nome": "versao",
      "sig": "(nome)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "posse": {
+   "nome": "Arcane.Posse",
+   "desc": "Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo.",
+   "curto": "Posse",
+   "funcoes": [
+    {
+     "nome": "Celula",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Compartilhado",
+     "sig": "(valor, ao_soltar, _nucleo, atomico)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Dono",
+     "sig": "(valor, ao_soltar, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Emprestimo",
+     "sig": "(valor, exclusivo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Fraco",
+     "sig": "(compartilhado)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "atomico",
+     "sig": "(valor, ao_soltar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "celula",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "com",
+     "sig": "(alvo, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compartilhado",
+     "sig": "(valor, ao_soltar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dono",
+     "sig": "(valor, ao_soltar, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_dono",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "estado",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fraco",
+     "sig": "(alvo)",
      "tipo": "funcao"
     }
    ]
@@ -10758,6 +10840,14 @@
     "arquivo": "255_resultado_e_reflexao.df",
     "temDoc": true,
     "codigo": "// Exercicio 255 — A falha como valor, e a reflexao de tipos\n//\n// Tres formas de lidar com o que da errado, e a pergunta de cada uma:\n//\n//   monitor/handle/trigger   o que NAO era esperado: interrompe\n//   void com ?? e ?.         a ausencia simples: segue com um padrao\n//   Arcane.Resultado         a falha ESPERADA: vira valor, e quem\n//                            chama decide\n\nadopt Arcane.Resultado as R\nadopt Arcane.Tipos as Tipos\n\n// ── ok e falha ──\naction buscar(id) -> Resultado:\n    given id smaller 0:\n        yield R.falha(\"id negativo\", 400)\n    yield R.ok({\"id\": id, \"nome\": \"Ana\"})\n\nachado := buscar(7)\nperdido := buscar(-1)\n\nassert achado.deu_certo()\nassert achado.valor()[\"nome\"] is \"Ana\"\nassert perdido.falhou()\nassert perdido.erro() is \"id negativo\"\nassert perdido.detalhe() is 400\nassert perdido.ou(\"ninguem\") is \"ninguem\"     // 'ou' nunca levanta\n\n// ler o valor de uma falha e uma AFIRMACAO, e ela levanta\nmonitor:\n    perdido.valor()\n    assert no\nhandle RuntimeError as e:\n    assert \"id negativo\" in e.message\n\n// com a sua propria mensagem\nmonitor:\n    perdido.exigir(\"o cliente nao existe\")\n    assert no\nhandle RuntimeError as e:\n    assert e.message is \"o cliente nao existe\"\n\n// ── a falha atravessa a corrente, intacta ──\naction dobro(x):\n    yield R.ok(x * 2)\n\nassert R.ok(2).mapear(lambda x => x + 1).valor() is 3\nassert R.ok(2).entao(dobro).valor() is 4\nassert R.falha(\"parou\").mapear(lambda x => x + 1).erro() is \"parou\"\nassert R.falha(\"parou\").entao(dobro).erro() is \"parou\"\nassert R.falha(\"parou\").recuperar(lambda motivo => R.ok(0)).valor() is 0\n\n// ── tentar: o erro da linguagem vira valor ──\naction dividir(a, b):\n    yield a / b\n\nassert R.tentar(dividir, 10, 2).valor() is 5.0\nquebrou := R.tentar(dividir, 1, 0)\nassert quebrou.falhou() and \"zero\" in quebrou.erro()\n\n// ── todos: a lista pronta, ou o primeiro motivo ──\nassert R.todos([R.ok(1), R.ok(2), R.ok(3)]).valor() is [1, 2, 3]\nassert R.todos([R.ok(1), R.falha(\"cpf\"), R.falha(\"email\")]).erro() is \"cpf\"\nassert R.erros([R.ok(1), R.falha(\"cpf\"), R.falha(\"email\")]) is [\"cpf\", \"email\"]\n\n// ── Talvez: onde void e ambiguo ──\nconfig := {\"tema\": void}\ntem := R.chave(config, \"tema\")\nnao := R.chave(config, \"idioma\")\n\nassert tem.tem() and tem.valor() is void      // esta la, e vale void\nassert not nao.tem()                          // nao esta la\nassert nao.ou(\"pt-BR\") is \"pt-BR\"\nassert R.primeiro([1, 2, 3], lambda x => x bigger 2).valor() is 3\nassert not R.primeiro([1, 2], lambda x => x bigger 9).tem()\n\n// ── reflexao: os metadados de um 'type' ──\ntype Positivo := Integer where valor bigger 0\ntype Json := String | Integer\nopaque type Cpf := String where len(valor) is 11\n\nassert Tipos.de(\"Json\")[\"especie\"] is \"uniao\"\nassert Tipos.de(\"Positivo\")[\"especie\"] is \"refinamento\"\nassert Tipos.de(\"Positivo\")[\"regra\"] is \"valor bigger 0\"\nassert Tipos.de(\"Cpf\")[\"opaco\"]\nassert Tipos.de(\"NaoExiste\") is void\n\n// conferir sem levantar\nassert Tipos.satisfaz(5, \"Positivo\")\nassert not Tipos.satisfaz(-5, \"Positivo\")\nassert not Tipos.satisfaz(\"texto\", \"Positivo\")   // a base decide primeiro\nassert not Tipos.satisfaz(\"12345678901\", \"Cpf\")  // opaco e nominal\n\n// a forma ESTRUTURAL, que 'typeof' nao da\nassert typeof([1, 2]) is \"Cluster\"\nassert Tipos.forma([1, 2]) is \"Cluster<Integer>\"\nassert Tipos.forma([1, \"a\"]) is \"Cluster<Any>\"   // misturado: Any, nao o primeiro\nassert Tipos.forma((1, \"a\")) is \"Tuple<Integer, String>\"\nassert Tipos.forma({\"a\": 1}) is \"Vault<String, Integer>\"\n\n// ── juntando as duas: um validador generico ──\nrecord Pedido:\n    quantidade: Positivo\n    contato: String\n\naction validar(vault, esperado) -> Resultado:\n    problemas := []\n    cycle campo in esperado:\n        given not Tipos.satisfaz(vault[campo] ?? void, esperado[campo]):\n            problemas.append($\"{campo} nao e {esperado[campo]}\")\n    yield R.falha(problemas) given len(problemas) bigger 0 otherwise R.ok(vault)\n\nesperado := {\"quantidade\": \"Positivo\", \"contato\": \"String\"}\n\nassert validar({\"quantidade\": 2, \"contato\": \"ana@x.com\"}, esperado).deu_certo()\n\nruim := validar({\"quantidade\": 0, \"contato\": 7}, esperado)\nassert ruim.falhou()\nassert len(ruim.erro()) is 2\n\n// os campos de um record, com o tipo de cada um\np := Pedido(3, \"ana@x.com\")\ncampos := Tipos.campos(p)\nassert campos[\"quantidade\"][\"tipo\"] is \"Positivo\"\nassert campos[\"contato\"][\"valor\"] is \"ana@x.com\"\n\nout \"255 ok\"\n"
+   },
+   {
+    "num": "256",
+    "titulo": "Posse, emprestimo e liberacao deterministica",
+    "enunciado": "",
+    "arquivo": "256_posse_e_recursos.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 256 — Posse, emprestimo e liberacao deterministica\n//\n// Num mundo com coletor, \"vazar memoria\" quase nunca e o problema: o\n// coletor resolve. O que ele NAO resolve e o RECURSO — o arquivo que\n// nao fecha, a conexao que fica aberta — porque ele nao promete QUANDO\n// passa. E o defeito irmao: duas partes escrevendo no mesmo objeto\n// porque nenhuma sabe quem e o dono.\n\nadopt Arcane.Posse as P\nadopt Arcane.Memoria as Mem\nadopt Arcane.Concurrent as C\n\n// ── dono: um valor, um dono, um finalizador ──\nfechados := []\nd := P.dono(\"conexao\", lambda x => fechados.append(x))\n\nassert d.usar(lambda x => len(x)) is 7\nassert d.vivo()\n\nd.soltar()                          // roda AGORA, e nao quando der\nassert not d.vivo()\nassert fechados is [\"conexao\"]\n\nd.soltar()                          // idempotente\nd.soltar()\nassert len(fechados) is 1\n\n// usar depois de soltar diz o que aconteceu\nmonitor:\n    d.usar(lambda x => x)\n    assert no\nhandle RuntimeError as e:\n    assert \"soltou\" in e.message\n\n// ── com: o RAII, inclusive quando o corpo falha ──\nsoltos := []\nvalor := P.com(P.dono(\"a\", lambda x => soltos.append(x)), lambda x => len(x))\nassert valor is 1 and soltos is [\"a\"]\n\nmonitor:\n    P.com(P.dono(\"b\", lambda x => soltos.append(x)),\n          lambda x => trigger \"falhou no meio\")\nhandle Error as e:\n    assert e.message is \"falhou no meio\"\n\nassert soltos is [\"a\", \"b\"]         // o caminho de erro tambem solta\n\n// ── mover: quem move, perde ──\na := P.dono([1, 2])\nb := a.mover()\n\nassert a.movido()                   // perguntar o estado e legitimo\nassert b.usar(lambda x => len(x)) is 2\n\nmonitor:\n    a.usar(lambda x => len(x))\n    assert no\nhandle RuntimeError as e:\n    assert \"moveu\" in e.message\n\n// ── copia e clone sao coisas diferentes ──\noriginal := P.dono([1, 2])\n\nrasa := original.copiar()           // o MESMO valor\nrasa.mudar(lambda x => x.append(3))\n\nfunda := original.clonar(lambda x => [...x])\nfunda.mudar(lambda x => x.append(9))\n\nassert original.usar(lambda x => len(x)) is 3\nassert funda.usar(lambda x => len(x)) is 4\n\n// ── emprestimo: muitos leem OU um escreve ──\nc := P.celula({\"n\": 0})\n\nassert c.ler(lambda v => v[\"n\"]) is 0\nc.escrever(lambda v => v.set(\"n\", 5))\nassert c.ler(lambda v => v[\"n\"]) is 5\nassert c.emprestimos() is 0\n\n// duas leituras: pode\nassert c.ler(lambda v => c.ler(lambda w => 1)) is 1\n\n// escrever no meio de uma leitura: nao\nmonitor:\n    c.ler(lambda v => c.escrever(lambda w => w.set(\"n\", 9)))\n    assert no\nhandle RuntimeError as e:\n    assert \"lendo\" in e.message\n\n// o emprestimo nao sobrevive ao escopo\nfugitivo := P.dono([1]).emprestar()\nmonitor:\n    fugitivo.ler()\n    assert no\nhandle RuntimeError as e:\n    assert \"escopo\" in e.message\n\n// ── compartilhado: a contagem decide quando solta ──\ncacheados := []\num := P.compartilhado(\"cache\", lambda x => cacheados.append(x))\ndois := um.clonar()\ntres := um.clonar()\n\nassert um.contar() is 3\ndois.soltar()\nassert um.contar() is 2 and cacheados is []\ntres.soltar()\num.soltar()\nassert um.contar() is 0 and cacheados is [\"cache\"]\n\n// atomico: a mesma coisa, valida entre threads\nraiz := P.atomico(\"recurso\")\ncopias := []\n\naction clonar_uma(i):\n    copias.append(raiz.clonar())\n\nC.para_cada(clonar_uma, [i cycle i in range(1, 51)])\nassert raiz.contar() is 51\n\n// ── o ciclo vaza, e a fraca o quebra ──\nvazados := []\npai := P.compartilhado({\"nome\": \"pai\"}, lambda x => vazados.append(\"pai\"))\nfilho := P.compartilhado({\"nome\": \"filho\"}, lambda x => vazados.append(\"filho\"))\n\npai.usar(lambda v => v.set(\"filho\", filho.clonar()))\nfilho.usar(lambda v => v.set(\"pai\", pai.clonar()))     // forte: o ciclo\n\npai.soltar()\nfilho.soltar()\nassert vazados is []                // ninguem chegou a zero\n\n// agora com a volta fraca\nquebrados := []\np2 := P.compartilhado({\"nome\": \"pai\"}, lambda x => quebrados.append(\"pai\"))\nf2 := P.compartilhado({\"nome\": \"filho\"}, lambda x => quebrados.append(\"filho\"))\n\np2.usar(lambda v => v.set(\"filho\", f2.clonar()))\nf2.usar(lambda v => v.set(\"pai\", P.fraco(p2)))         // FRACA: nao conta\n\nf2.soltar()\np2.soltar()\nassert quebrados is [\"pai\", \"filho\"]   // o de fora, e o que ele possuia\n\n// a fraca responde Talvez: ela nao promete que o valor existe\nforte := P.compartilhado({\"id\": 1})\nfraca := P.fraco(forte)\nassert fraca.vivo() and fraca.obter().tem()\nforte.soltar()\nassert not fraca.vivo() and not fraca.obter().tem()\n\n// ── layout: o que da para medir ──\nblueprint Compacta:\n    slots x, y\n    x := 1\n    y := 2\n\nblueprint Solta:\n    x := 1\n    y := 2\n\ncom_slots := Mem.layout(Compacta)\nsem_slots := Mem.layout(Solta)\n\nassert com_slots[\"slots\"] and not sem_slots[\"slots\"]\nassert com_slots[\"campos\"] is [\"x\", \"y\"]\nassert com_slots[\"bytes\"] smaller sem_slots[\"bytes\"]\nassert Mem.comparar_layout(Compacta, Solta)[\"menor\"] is \"Compacta\"\n\nout \"256 ok\"\n"
    }
   ]
  },
@@ -11104,9 +11194,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2385,
+  "testes": 2411,
   "exemplos": 44,
-  "arquivosDf": 365
+  "arquivosDf": 366
  },
  "mundo": {
   "estrelas": 0,

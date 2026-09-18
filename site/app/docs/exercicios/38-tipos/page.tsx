@@ -8,13 +8,13 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "38 · Sistema de tipos",
-  description: "4 exercícios: .",
+  description: "5 exercícios: .",
 };
 
 const blocos: Bloco[] = [
   { code: `python3 exercicios/run_all.py 38`, lang: 'bash' },
   {"h2": "Os exercícios"},
-  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[252](#252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco)", "**Tipos nomeados: alias, uniao, intersecao, refinamento e opaco**", ""], ["[253](#253-generics-tipos-indexados-e-o-sistema-de-traits)", "**Generics, tipos indexados e o sistema de traits**", ""], ["[254](#254-tuplas-a-forma-de-tamanho-fixo)", "**Tuplas: a forma de tamanho fixo**", ""], ["[255](#255-a-falha-como-valor-e-a-reflexao-de-tipos)", "**A falha como valor, e a reflexao de tipos**", ""]]}},
+  {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[252](#252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco)", "**Tipos nomeados: alias, uniao, intersecao, refinamento e opaco**", ""], ["[253](#253-generics-tipos-indexados-e-o-sistema-de-traits)", "**Generics, tipos indexados e o sistema de traits**", ""], ["[254](#254-tuplas-a-forma-de-tamanho-fixo)", "**Tuplas: a forma de tamanho fixo**", ""], ["[255](#255-a-falha-como-valor-e-a-reflexao-de-tipos)", "**A falha como valor, e a reflexao de tipos**", ""], ["[256](#256-posse-emprestimo-e-liberacao-deterministica)", "**Posse, emprestimo e liberacao deterministica**", ""]]}},
   {"callout": {"tipo": "dica", "titulo": "Cada um traz a explicação junto", "texto": "Neste módulo, cada exercício vem com os conceitos, a saída esperada e sugestões para experimentar — tudo abaixo, e também em `.md` ao lado do `.df` no repositório."}},
   {"h2": "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco"},
   { code: `// Um 'type' da nome a um tipo. As cinco formas sao a MESMA declaracao:
@@ -729,17 +729,207 @@ R.chave(config, "idioma").tem()    // no:  não está`, lang: 'df' },
   {"p": "com o tipo de cada um."},
   {"p": "Juntando as duas peças sai um validador genérico em oito linhas: os campos vêm da reflexão, a regra vem do tipo declarado, e o relato vem do `Resultado`."},
   {"p": "Reflexão responde **em execução**; o `dataforge check` prova antes de rodar o que um literal permite provar. As duas se completam, e nenhuma substitui a outra."},
+  {"h2": "256 · Posse, emprestimo e liberacao deterministica"},
+  { code: `// Num mundo com coletor, "vazar memoria" quase nunca e o problema: o
+// coletor resolve. O que ele NAO resolve e o RECURSO — o arquivo que
+// nao fecha, a conexao que fica aberta — porque ele nao promete QUANDO
+// passa. E o defeito irmao: duas partes escrevendo no mesmo objeto
+// porque nenhuma sabe quem e o dono.
+
+adopt Arcane.Posse as P
+adopt Arcane.Memoria as Mem
+adopt Arcane.Concurrent as C
+
+// ── dono: um valor, um dono, um finalizador ──
+fechados := []
+d := P.dono("conexao", lambda x => fechados.append(x))
+
+assert d.usar(lambda x => len(x)) is 7
+assert d.vivo()
+
+d.soltar()                          // roda AGORA, e nao quando der
+assert not d.vivo()
+assert fechados is ["conexao"]
+
+d.soltar()                          // idempotente
+d.soltar()
+assert len(fechados) is 1
+
+// usar depois de soltar diz o que aconteceu
+monitor:
+    d.usar(lambda x => x)
+    assert no
+handle RuntimeError as e:
+    assert "soltou" in e.message
+
+// ── com: o RAII, inclusive quando o corpo falha ──
+soltos := []
+valor := P.com(P.dono("a", lambda x => soltos.append(x)), lambda x => len(x))
+assert valor is 1 and soltos is ["a"]
+
+monitor:
+    P.com(P.dono("b", lambda x => soltos.append(x)),
+          lambda x => trigger "falhou no meio")
+handle Error as e:
+    assert e.message is "falhou no meio"
+
+assert soltos is ["a", "b"]         // o caminho de erro tambem solta
+
+// ── mover: quem move, perde ──
+a := P.dono([1, 2])
+b := a.mover()
+
+assert a.movido()                   // perguntar o estado e legitimo
+assert b.usar(lambda x => len(x)) is 2
+
+monitor:
+    a.usar(lambda x => len(x))
+    assert no
+handle RuntimeError as e:
+    assert "moveu" in e.message
+
+// ── copia e clone sao coisas diferentes ──
+original := P.dono([1, 2])
+
+rasa := original.copiar()           // o MESMO valor
+rasa.mudar(lambda x => x.append(3))
+
+funda := original.clonar(lambda x => [...x])
+funda.mudar(lambda x => x.append(9))
+
+assert original.usar(lambda x => len(x)) is 3
+assert funda.usar(lambda x => len(x)) is 4
+
+// ── emprestimo: muitos leem OU um escreve ──
+c := P.celula({"n": 0})
+
+assert c.ler(lambda v => v["n"]) is 0
+c.escrever(lambda v => v.set("n", 5))
+assert c.ler(lambda v => v["n"]) is 5
+assert c.emprestimos() is 0
+
+// duas leituras: pode
+assert c.ler(lambda v => c.ler(lambda w => 1)) is 1
+
+// escrever no meio de uma leitura: nao
+monitor:
+    c.ler(lambda v => c.escrever(lambda w => w.set("n", 9)))
+    assert no
+handle RuntimeError as e:
+    assert "lendo" in e.message
+
+// o emprestimo nao sobrevive ao escopo
+fugitivo := P.dono([1]).emprestar()
+monitor:
+    fugitivo.ler()
+    assert no
+handle RuntimeError as e:
+    assert "escopo" in e.message
+
+// ── compartilhado: a contagem decide quando solta ──
+cacheados := []
+um := P.compartilhado("cache", lambda x => cacheados.append(x))
+dois := um.clonar()
+tres := um.clonar()
+
+assert um.contar() is 3
+dois.soltar()
+assert um.contar() is 2 and cacheados is []
+tres.soltar()
+um.soltar()
+assert um.contar() is 0 and cacheados is ["cache"]
+
+// atomico: a mesma coisa, valida entre threads
+raiz := P.atomico("recurso")
+copias := []
+
+action clonar_uma(i):
+    copias.append(raiz.clonar())
+
+C.para_cada(clonar_uma, [i cycle i in range(1, 51)])
+assert raiz.contar() is 51
+
+// ── o ciclo vaza, e a fraca o quebra ──
+vazados := []
+pai := P.compartilhado({"nome": "pai"}, lambda x => vazados.append("pai"))
+filho := P.compartilhado({"nome": "filho"}, lambda x => vazados.append("filho"))
+
+pai.usar(lambda v => v.set("filho", filho.clonar()))
+filho.usar(lambda v => v.set("pai", pai.clonar()))     // forte: o ciclo
+
+pai.soltar()
+filho.soltar()
+assert vazados is []                // ninguem chegou a zero
+
+// agora com a volta fraca
+quebrados := []
+p2 := P.compartilhado({"nome": "pai"}, lambda x => quebrados.append("pai"))
+f2 := P.compartilhado({"nome": "filho"}, lambda x => quebrados.append("filho"))
+
+p2.usar(lambda v => v.set("filho", f2.clonar()))
+f2.usar(lambda v => v.set("pai", P.fraco(p2)))         // FRACA: nao conta
+
+f2.soltar()
+p2.soltar()
+assert quebrados is ["pai", "filho"]   // o de fora, e o que ele possuia
+
+// a fraca responde Talvez: ela nao promete que o valor existe
+forte := P.compartilhado({"id": 1})
+fraca := P.fraco(forte)
+assert fraca.vivo() and fraca.obter().tem()
+forte.soltar()
+assert not fraca.vivo() and not fraca.obter().tem()
+
+// ── layout: o que da para medir ──
+blueprint Compacta:
+    slots x, y
+    x := 1
+    y := 2
+
+blueprint Solta:
+    x := 1
+    y := 2
+
+com_slots := Mem.layout(Compacta)
+sem_slots := Mem.layout(Solta)
+
+assert com_slots["slots"] and not sem_slots["slots"]
+assert com_slots["campos"] is ["x", "y"]
+assert com_slots["bytes"] smaller sem_slots["bytes"]
+assert Mem.comparar_layout(Compacta, Solta)["menor"] is "Compacta"
+
+out "256 ok"`, lang: 'df', title: `exercicios/38-tipos/256_posse_e_recursos.df` },
+  {"p": "Num mundo com coletor, **vazar memória quase nunca é o problema**. O que o coletor não resolve é o **recurso**: o arquivo que não fecha, a conexão que fica aberta, o cadeado que ninguém solta — porque ele não promete *quando* passa."},
+  {"h3": "O que cada peça garante"},
+  {"table": {"head": ["Peça", "Garante", "Equivale a"], "rows": [["`P.dono(v, ao_soltar)`", "um dono, um finalizador, uma vez", "`Box` / `unique_ptr`"], ["`P.com(dono, acao)`", "solta no fim, **inclusive no erro**", "RAII / `with`"], ["`P.celula(v)`", "muitos leem **ou** um escreve", "`RefCell`"], ["`P.compartilhado(v)`", "solta quando o **último** sai", "`Rc`"], ["`P.atomico(v)`", "o mesmo, válido entre threads", "`Arc`"], ["`P.fraco(c)`", "observa sem segurar", "`Weak`"]]}},
+  {"h3": "Quem move, perde"},
+  {"p": "`a.mover()` transfere a posse: `a` fica movido, e usá-lo é erro — com a linha em que o valor saiu. Perguntar o **estado** (`a.movido()`, `a.vivo()`) continua valendo: é exatamente o que se pergunta depois de mover."},
+  {"p": "O `dataforge check` acusa isso **antes de rodar** (`posse-movida`) quando o fluxo do arquivo permite provar. Ele só olha nomes que nasceram de `Arcane.Posse`: um blueprint com um método chamado `mover` não tem nada a ver com posse, e acusá-lo seria o falso alarme que ensina a desligar o analisador."},
+  {"h3": "Cópia não é clone"},
+  {"list": ["`copiar()` — outro dono do **mesmo** valor. É o que se quer quando o"]},
+  {"p": "valor *é* o recurso (uma conexão)."},
+  {"list": ["`clonar()` — outro dono de uma **cópia**. É o que se quer quando o"]},
+  {"p": "valor é o dado."},
+  {"p": "Confundir os dois é como confundir `=` com `copy.deepcopy`: funciona até o dia em que alguém escreve na sua lista."},
+  {"h3": "O empréstimo tem escopo"},
+  {"p": "O valor é entregue ao corpo de `usar`, `mudar`, `ler` ou `escrever` — e vale enquanto esse corpo roda. Pedir o valor **fora** de um corpo (`emprestar()`) devolve um empréstimo já encerrado, e a mensagem diz por quê: quem guarda a referência está pedindo o que o dono não controla mais."},
+  {"p": "É o mesmo efeito prático dos *non-lexical lifetimes*, por um caminho mais simples: quem entrega sabe exatamente quando o valor volta."},
+  {"h3": "O ciclo vaza — e isso é mostrado"},
+  {"p": "Dois compartilhados que se apontam com referências **fortes** nunca chegam a zero, e nenhum finalizador roda. É o problema do `Rc` em qualquer linguagem. Aqui ele aparece como é, em vez de sumir num silêncio, e a saída é a de sempre: uma das voltas é fraca."},
+  {"p": "Quando o de fora solta, o que ele possuía é solto junto (*drop glue*) — por isso a ordem é `[\"pai\", \"filho\"]`, e não o contrário."},
+  {"h3": "O que isto não é"},
+  {"p": "Não é o borrow checker do Rust. Nada aqui vira endereço inválido: o coletor continua no caminho, e a integridade da memória nunca esteve em risco. O que a posse protege é o **protocolo** — soltar uma vez, não usar depois, não escrever no meio da leitura de outro. Não há ponteiro cru, `unsafe`, lifetime explícito nem escolha entre pilha e heap: essas peças pertencem a uma linguagem compilada com layout fixo."},
   {"hr": true},
   {"p": "Rode um isolado com `dataforge run exercicios/38-tipos/252_tipos_nomeados.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco', text: "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco", level: 2 as const }, { id: 'transparente-confere-opaco-embrulha', text: "Transparente confere, opaco embrulha", level: 3 as const }, { id: 'a-regra-roda-na-fronteira', text: "A regra roda na fronteira", level: 3 as const }, { id: 'o-que-o-check-prova-antes-de-rodar', text: "O que o `check` prova antes de rodar", level: 3 as const }, { id: '253-generics-tipos-indexados-e-o-sistema-de-traits', text: "253 · Generics, tipos indexados e o sistema de traits", level: 2 as const }, { id: '1-o-que-um-t-promete', text: "1. O que um `<T>` promete?", level: 3 as const }, { id: '2-onde-o-argumento-chega', text: "2. Onde o argumento chega?", level: 3 as const }, { id: '3-o-tamanho-pode-fazer-parte-do-tipo', text: "3. O tamanho pode fazer parte do tipo?", level: 3 as const }, { id: 'traits-exigencia-padrao-e-heranca', text: "Traits: exigência, padrão e herança", level: 3 as const }, { id: '254-tuplas-a-forma-de-tamanho-fixo', text: "254 · Tuplas: a forma de tamanho fixo", level: 2 as const }, { id: 'a-unica-ambiguidade-1-nao-e-tupla', text: "A única ambiguidade: `(1)` não é tupla", level: 3 as const }, { id: 'o-tamanho-faz-parte-do-tipo', text: "O tamanho faz parte do tipo", level: 3 as const }, { id: 'por-que-ela-e-hasheavel', text: "Por que ela é hasheável", level: 3 as const }, { id: 'na-fronteira-do-json', text: "Na fronteira do JSON", level: 3 as const }, { id: '255-a-falha-como-valor-e-a-reflexao-de-tipos', text: "255 · A falha como valor, e a reflexao de tipos", level: 2 as const }, { id: 'tres-formas-tres-perguntas', text: "Três formas, três perguntas", level: 3 as const }, { id: 'ler-o-valor-e-uma-afirmacao', text: "Ler o valor é uma afirmação", level: 3 as const }, { id: 'tentar-nao-engole-sinal-de-controle', text: "`tentar` não engole sinal de controle", level: 3 as const }, { id: 'talvez-apesar-de-void', text: "`Talvez`, apesar de `void`", level: 3 as const }, { id: 'reflexao-o-que-typeof-nao-responde', text: "Reflexão: o que `typeof` não responde", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco', text: "252 · Tipos nomeados: alias, uniao, intersecao, refinamento e opaco", level: 2 as const }, { id: 'transparente-confere-opaco-embrulha', text: "Transparente confere, opaco embrulha", level: 3 as const }, { id: 'a-regra-roda-na-fronteira', text: "A regra roda na fronteira", level: 3 as const }, { id: 'o-que-o-check-prova-antes-de-rodar', text: "O que o `check` prova antes de rodar", level: 3 as const }, { id: '253-generics-tipos-indexados-e-o-sistema-de-traits', text: "253 · Generics, tipos indexados e o sistema de traits", level: 2 as const }, { id: '1-o-que-um-t-promete', text: "1. O que um `<T>` promete?", level: 3 as const }, { id: '2-onde-o-argumento-chega', text: "2. Onde o argumento chega?", level: 3 as const }, { id: '3-o-tamanho-pode-fazer-parte-do-tipo', text: "3. O tamanho pode fazer parte do tipo?", level: 3 as const }, { id: 'traits-exigencia-padrao-e-heranca', text: "Traits: exigência, padrão e herança", level: 3 as const }, { id: '254-tuplas-a-forma-de-tamanho-fixo', text: "254 · Tuplas: a forma de tamanho fixo", level: 2 as const }, { id: 'a-unica-ambiguidade-1-nao-e-tupla', text: "A única ambiguidade: `(1)` não é tupla", level: 3 as const }, { id: 'o-tamanho-faz-parte-do-tipo', text: "O tamanho faz parte do tipo", level: 3 as const }, { id: 'por-que-ela-e-hasheavel', text: "Por que ela é hasheável", level: 3 as const }, { id: 'na-fronteira-do-json', text: "Na fronteira do JSON", level: 3 as const }, { id: '255-a-falha-como-valor-e-a-reflexao-de-tipos', text: "255 · A falha como valor, e a reflexao de tipos", level: 2 as const }, { id: 'tres-formas-tres-perguntas', text: "Três formas, três perguntas", level: 3 as const }, { id: 'ler-o-valor-e-uma-afirmacao', text: "Ler o valor é uma afirmação", level: 3 as const }, { id: 'tentar-nao-engole-sinal-de-controle', text: "`tentar` não engole sinal de controle", level: 3 as const }, { id: 'talvez-apesar-de-void', text: "`Talvez`, apesar de `void`", level: 3 as const }, { id: 'reflexao-o-que-typeof-nao-responde', text: "Reflexão: o que `typeof` não responde", level: 3 as const }, { id: '256-posse-emprestimo-e-liberacao-deterministica', text: "256 · Posse, emprestimo e liberacao deterministica", level: 2 as const }, { id: 'o-que-cada-peca-garante', text: "O que cada peça garante", level: 3 as const }, { id: 'quem-move-perde', text: "Quem move, perde", level: 3 as const }, { id: 'copia-nao-e-clone', text: "Cópia não é clone", level: 3 as const }, { id: 'o-emprestimo-tem-escopo', text: "O empréstimo tem escopo", level: 3 as const }, { id: 'o-ciclo-vaza-e-isso-e-mostrado', text: "O ciclo vaza — e isso é mostrado", level: 3 as const }, { id: 'o-que-isto-nao-e', text: "O que isto não é", level: 3 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"38 · Sistema de tipos"}
-      description={"4 exercícios: ."}
+      description={"5 exercícios: ."}
       href={"/docs/exercicios/38-tipos"}
       headings={headings}
     >
