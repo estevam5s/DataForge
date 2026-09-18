@@ -1221,10 +1221,29 @@ _RECADOS_CRUS = (
      "não dá para ler {valor} como número decimal",
      "troque a vírgula por ponto, ou confira a entrada antes:\n"
      '    n := float(texto.replace(",", "."))'),
+    # O CPython <= 3.13 dizia so 'math domain error'; o 3.14 trocou por
+    # tres frases especificas. As quatro entradas convivem porque o
+    # mesmo interpretador roda nas duas versoes, e a traducao que casa
+    # so uma delas deixa a outra chegar crua ao usuario — foi o que
+    # aconteceu: 'expected a nonnegative input, got -1.0' passou meses
+    # saindo sem dica nenhuma.
     (r"^math domain error$",
      "esta conta não tem resposta real",
      "raiz de número negativo e logaritmo de zero ou negativo não têm\n"
      "resposta nos números desta linguagem — confira o valor antes"),
+    (r"expected a nonnegative input(, got (?P<valor>\S+))?",
+     "raiz de número negativo não tem resposta real",
+     "confira o valor antes de tirar a raiz:\n"
+     "    given x bigger_eq 0:\n"
+     "        r := sqrt(x)"),
+    (r"expected a positive input(, got (?P<valor>\S+))?",
+     "esta conta pede um número maior que zero",
+     "o logaritmo de zero e de negativo não tem resposta nos números\n"
+     "desta linguagem — confira o valor antes"),
+    (r"expected a number in range from -1 up to 1(, got (?P<valor>\S+))?",
+     "esta conta só aceita valor entre -1 e 1",
+     "'acos' e 'asin' recebem um cosseno ou um seno, e os dois vivem\n"
+     "entre -1 e 1 — confira o valor antes"),
     (r"object cannot be interpreted as an integer",
      "aqui é preciso um número inteiro",
      "converta antes com  int(x)"),

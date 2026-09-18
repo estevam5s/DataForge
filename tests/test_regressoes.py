@@ -7572,6 +7572,12 @@ def test_a_subtracao_continua_sendo_subtracao():
     ('out int("abc")', "invalid literal"),
     ('out float("x")', "could not convert"),
     ('out sqrt(-1)', "math domain"),
+    # O CPython 3.14 trocou o generico 'math domain error' por tres frases
+    # especificas. A traducao casava so a antiga, e a dica sumiu — sem
+    # nenhum teste reprovar, porque o teste proibia a frase VELHA.
+    ('out sqrt(-1)', "nonnegative input"),
+    ('out log(0)', "positive input"),
+    ('out acos(2)', "in range from"),
     ('out range("a")', "cannot be interpreted"),
     ('out join(", ", 5)', "not iterable"),
     ('out "ab"[9]', "string index out of range"),
