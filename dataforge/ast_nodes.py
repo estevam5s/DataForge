@@ -513,6 +513,16 @@ class TraitDeclaration(ASTNode):
     type_bounds: dict = field(default_factory=dict)
 
 @dataclass
+class ComptimeBlock(ASTNode):
+    """comptime <instrução>   |   comptime: <bloco>
+
+    O corpo roda UMA vez, na carga, numa caixa sem E/S nem módulos — e o
+    que ele define vira constante para o resto do programa.
+    """
+    body: list = field(default_factory=list)
+
+
+@dataclass
 class TypeDeclaration(ASTNode):
     """type Nome := Base | Outro where regra — e 'opaque type' também.
 

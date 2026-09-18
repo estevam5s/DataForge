@@ -49,6 +49,7 @@ MODULOS = [
     "tipos_mapa",
     "memoria_posse",
     "concorrencia_stm",
+    "metaprogramacao",
     "plataforma",
     "vitrine",
     "versoes",

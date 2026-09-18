@@ -2927,6 +2927,103 @@
     }
    ]
   },
+  "dsl": {
+   "nome": "Arcane.Dsl",
+   "desc": "Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado.",
+   "curto": "Dsl",
+   "funcoes": [
+    {
+     "nome": "adiado",
+     "sig": "(pegar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "analisar",
+     "sig": "(analisador, entrada, tudo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ate",
+     "sig": "(parada)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "entre_aspas",
+     "sig": "(aspa)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "espaco",
+     "sig": "(obrigatorio)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exigir",
+     "sig": "(analisador, mensagem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "gramatica",
+     "sig": "(regras, inicial)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mapear",
+     "sig": "(analisador, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "muitos",
+     "sig": "(analisador, minimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nome",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "numero",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "opcional",
+     "sig": "(analisador, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ou",
+     "sig": "(analisadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "qualquer_de",
+     "sig": "(caracteres)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "separado_por",
+     "sig": "(item, separador, minimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "seq",
+     "sig": "(analisadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "simbolo",
+     "sig": "(qual)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "texto",
+     "sig": "(esperado)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "email": {
    "nome": "Arcane.Email",
    "desc": "Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato.",
@@ -4936,6 +5033,78 @@
     {
      "nome": "warn",
      "sig": "(m, campos)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "macro": {
+   "nome": "Arcane.Macro",
+   "desc": "A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo. 'citar' transforma texto em arvore, 'reescrever' devolve uma acao com o corpo trocado, 'nome_fresco' e 'renomear' dao higiene, e 'derivar' e a macro de atributo que gera __str__, __eq__, __lt__ e para_vault a partir dos campos.",
+   "curto": "Macro",
+   "funcoes": [
+    {
+     "nome": "acao",
+     "sig": "(nome, parametros, corpo, fechamento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "arvore",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "citar",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compilar",
+     "sig": "(texto_fonte, nome, parametros)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "derivar",
+     "sig": "(quais)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "derivaveis",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nome_fresco",
+     "sig": "(base)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "percorrer",
+     "sig": "(dado, visitante)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "reescrever",
+     "sig": "(alvo, transformador)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "renomear",
+     "sig": "(dado, de, para)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "substituir",
+     "sig": "(dado, de, para)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "texto",
+     "sig": "(dado)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "transformar",
+     "sig": "(dado, acao)",
      "tipo": "funcao"
     }
    ]
@@ -10976,6 +11145,16 @@
     "temDoc": true,
     "codigo": "// Exercicio 257 — Memoria transacional, CAS e estruturas sem trava\n//\n// O problema esta medido neste repositorio: duas threads somando na\n// mesma variavel entregaram 40.425 de 80.000, em silencio.\n//\n// O mutex resolve UMA secao critica. O que ele nao resolve e COMPOR:\n// transferir de uma conta para outra sao duas escritas que precisam\n// acontecer juntas — e com mutex isso vira ordem de aquisicao, que\n// ninguem consegue verificar.\n\nadopt Arcane.Stm as T\nadopt Arcane.Concurrent as C\nadopt Arcane.Collections as Col\n\n// ── o incremento que nao se perde ──\ntotal := T.variavel(0)\n\naction somar_muitas(i):\n    cycle _ in range(0, 200):\n        T.atomicamente(lambda => T.escrever(total, T.ler(total) + 1))\n\nC.para_cada(somar_muitas, [i cycle i in range(1, 41)])\nassert T.valor(total) is 8000          // 40 threads x 200, nada perdido\n\n// ── atomicidade: metade escrita nao existe ──\na := T.variavel(10)\nb := T.variavel(10)\n\naction quebrar_no_meio():\n    T.escrever(a, 999)\n    trigger \"no meio\"\n\nmonitor:\n    T.atomicamente(quebrar_no_meio)\n    assert no\nhandle Error as e:\n    assert e.message is \"no meio\"\n\nassert T.valor(a) is 10 and T.valor(b) is 10\n\n// ── isolamento: a transacao le a propria escrita ──\nx := T.variavel(1)\n\naction ler_e_escrever():\n    primeiro := T.ler(x)\n    T.escrever(x, 5)\n    yield [primeiro, T.ler(x)]\n\nassert T.atomicamente(ler_e_escrever) is [1, 5]\nassert T.valor(x) is 5\n\n// ── composicao: aninhar e achatar ──\np := T.variavel(1)\nq := T.variavel(1)\n\naction dobrar_p():\n    T.escrever(p, T.ler(p) * 2)\n\naction dobrar_q():\n    T.escrever(q, T.ler(q) * 2)\n\naction as_duas():\n    dobrar_p()                          // ja e transacional\n    dobrar_q()                          // esta tambem\n\nT.atomicamente(as_duas)                 // e as duas viram UMA\nassert T.valor(p) is 2 and T.valor(q) is 2\n\n// ── esperar sem girar ──\nfila := T.variavel([])\nreserva := T.variavel([\"de reserva\"])\n\naction da_fila():\n    itens := T.ler(fila)\n    given len(itens) is 0:\n        T.retentar()                    // vazia: dorme ate mudar\n    yield itens[0]\n\naction da_reserva():\n    yield T.ler(reserva)[0]\n\nassert T.atomicamente(lambda => T.ou_entao(da_fila, da_reserva)) is \"de reserva\"\n\n// ler fora de transacao e recusado: nao teria garantia nenhuma\nmonitor:\n    T.escrever(x, 9)\n    assert no\nhandle RuntimeError as e:\n    assert \"transa\" in e.message\n\n// ── CAS: a troca condicional ──\natomo := C.atomico(10)\nassert atomo.comparar_e_trocar(10, 20)      // ainda era 10\nassert not atomo.comparar_e_trocar(10, 30)  // ja nao e\nassert atomo.trocar(99) is 20               // devolve o ANTERIOR\nassert atomo.pegar() is 99\n\n// o contador sem trava, escrito com CAS\ncontador := C.atomico(0)\n\naction incrementar():\n    persist yes:\n        atual := contador.pegar()\n        given contador.comparar_e_trocar(atual, atual + 1):\n            halt\n\naction trabalhar(i):\n    cycle _ in range(0, 200):\n        incrementar()\n\nC.para_cada(trabalhar, [i cycle i in range(1, 11)])\nassert contador.pegar() is 2000\n\n// ── estruturas sem trava ──\nf := C.fila_sem_trava()\n\naction produzir(i):\n    cycle j in range(0, 100):\n        f.por(i * 1000 + j)\n\nC.para_cada(produzir, [i cycle i in range(1, 9)])\nassert f.tamanho() is 800\n\nvistos := []\npersist f.tamanho() bigger 0:\n    item := f.tirar()\n    given item isnt void:\n        vistos.append(item)\n\nassert len(vistos) is 800\nassert len(Col.set(vistos)) is 800      // nada duplicado\n\npilha := C.pilha_sem_trava()\npilha.por(1)\npilha.por(2)\nassert pilha.tirar() is 2 and pilha.tirar() is 1\nassert pilha.tirar() is void            // vazia: void, e nao erro\n\nanel := C.anel(3)\ncycle i from 1 to 5:\n    anel.por(i)\nassert anel.tudo() is [3, 4, 5]         // o mais velho sai quando enche\n\n// ── executor e promessa ──\nexecutor := C.executor(4)\n\naction dobro(n):\n    yield n * 2\n\ntarefas := [executor.submeter(dobro, i) cycle i in range(1, 4)]\nassert [C.esperar(t) cycle t in tarefas] is [2, 4, 6]\nassert executor.mapear(dobro, [10, 20]) is [20, 40]\nexecutor.fechar()\nassert not executor.aberto()\n\npromessa := C.promessa()\n\naction cumprir_depois(i):\n    promessa.cumprir(\"pronto\")\n\nC.rodar(cumprir_depois, 1)\nassert promessa.esperar(3000) is \"pronto\"\n\n// uma promessa que falha leva a falha a quem espera\nruim := C.promessa()\nruim.falhar(\"deu ruim\")\nmonitor:\n    ruim.esperar(1000)\n    assert no\nhandle Error as e:\n    assert \"deu ruim\" in e.message\n\nout \"257 ok\"\n"
    }
+  ],
+  "40-metaprogramacao": [
+   {
+    "num": "258",
+    "titulo": "comptime, macros, DSL e plugin do check",
+    "enunciado": "",
+    "arquivo": "258_comptime_e_macros.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 258 — comptime, macros, DSL e plugin do check\n//\n// A linguagem ja tinha decorador, metaclasse e augment — tudo em\n// EXECUCAO. Esta e a outra metade: o que acontece antes de o programa\n// rodar, e o que permite gerar codigo a partir de dado.\n\nadopt Arcane.Macro as M\nadopt Arcane.Dsl as D\n\n// ── comptime: a conta feita uma vez, na carga ──\ncomptime QUADRADOS := [i * i cycle i in range(0, 6)]\ncomptime steady MAXIMO := 2 ** 10\n\nassert QUADRADOS is [0, 1, 4, 9, 16, 25]\nassert MAXIMO is 1024\n\ncomptime:\n    action fatorial(n):\n        yield 1 given n smaller_eq 1 otherwise n * fatorial(n - 1)\n\n    TABELA := [fatorial(i) cycle i in range(0, 6)]\n\nassert TABELA is [1, 1, 2, 6, 24, 120]\n\n// a validacao estatica: se a tabela mudar, o check acusa antes de rodar\ncomptime:\n    assert len(TABELA) is 6\n\n// 'comptime' continua sendo nome comum fora da declaracao\ncomptime_qualquer := 3\nassert comptime_qualquer is 3\n\n// ── macro: a arvore como dado ──\naction somar(a, b):\n    yield a + b\n\narvore := M.arvore(somar)\nassert arvore[\"tipo\"] is \"ActionDeclaration\"\nassert arvore[\"parametros\"] is [\"a\", \"b\"]\nassert arvore[\"corpo\"][0][\"tipo\"] is \"YieldStatement\"\n\n// citar: texto vira arvore; texto: arvore vira texto\ncitada := M.citar(\"x * 2 + 1\")\nassert citada[\"tipo\"] is \"BinaryOp\"\nassert M.texto(citada) is \"x * 2 + 1\"\n\n// percorrer: cada no, uma vez\ntipos := []\n\naction anotar(nodo):\n    tipos.append(nodo[\"tipo\"])\n\nM.percorrer(arvore, anotar)\nassert len(tipos) bigger 3\nassert \"BinaryOp\" in tipos\n\n// reescrever: o corpo, trocado\naction dobro(x):\n    yield x * 2\n\naction virar_soma(nodo):\n    given nodo[\"tipo\"] is \"BinaryOp\" and nodo[\"op\"] is \"*\":\n        yield M.citar(\"x + x\")\n    yield nodo\n\ntrocada := M.reescrever(dobro, virar_soma)\nassert dobro(5) is 10\nassert trocada(5) is 10                 // corpo diferente, resultado igual\n\n// gerar: uma acao a partir de texto\ngerada := M.compilar(\"a * 10\", \"dez_vezes\", [\"a\"])\nassert gerada(4) is 40\n\n// higiene: o nome gerado nao captura o de quem chamou\ntemporario := \"do usuario\"\ncorpo := M.citar(\"temporario + 1\")\nlimpo := M.renomear(corpo, \"temporario\", M.nome_fresco(\"temporario\"))\nassert M.texto(limpo) isnt M.texto(corpo)\n\n// macro de atributo: os campos geram os metodos\nmark @M.derivar(\"texto\", \"igualdade\", \"vault\")\nblueprint Ponto:\n    x := 1\n    y := 2\n\na := spawn Ponto()\nb := spawn Ponto()\nassert $\"{a}\" is \"Ponto(x=1, y=2)\"\nassert a is b\nassert a.para_vault() is {\"x\": 1, \"y\": 2}\n\n// ── DSL: uma linguagem pequena, propria ──\nnumero := D.mapear(D.numero(), lambda t => cast t as Float)\noperador := D.ou([D.texto(\"+\"), D.texto(\"-\"), D.texto(\"*\")])\n\naction aplicar(partes):\n    esquerda := partes[0]\n    cycle par in partes[1]:\n        given par[0] is \"+\":\n            esquerda := esquerda + par[1]\n        orif par[0] is \"-\":\n            esquerda := esquerda - par[1]\n        otherwise:\n            esquerda := esquerda * par[1]\n    yield esquerda\n\nexpressao := D.mapear(D.seq([numero, D.muitos(D.seq([operador, numero]))]), aplicar)\n\nassert D.analisar(expressao, \"2+3*4\").valor() is 20.0\nassert D.analisar(expressao, \"10-4\").valor() is 6.0\n\n// a falha diz ONDE, e o que era esperado\nruim := D.analisar(D.numero(), \"abc\")\nassert ruim.falhou()\nassert ruim.erro()[\"posicao\"] is 0\nassert \"numero\" in ruim.erro()[\"esperado\"]\n\n// combinadores: alternativa, repeticao, opcional, separado\npalavra := D.ou([D.texto(\"sim\"), D.texto(\"nao\")])\nlista := D.muitos(D.seq([palavra, D.opcional(D.texto(\",\"))]))\nassert len(D.analisar(lista, \"sim,nao,sim\").valor()) is 3\n\nnomes := D.separado_por(D.nome(), D.texto(\",\"))\nassert D.analisar(nomes, \"ana,bia,caio\").valor() is [\"ana\", \"bia\", \"caio\"]\n\nout \"258 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -11321,9 +11500,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2434,
+  "testes": 2459,
   "exemplos": 44,
-  "arquivosDf": 367
+  "arquivosDf": 368
  },
  "mundo": {
   "estrelas": 0,

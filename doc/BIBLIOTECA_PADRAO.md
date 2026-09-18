@@ -58,6 +58,8 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Injecao`](#arcaneinjecao) | `Injecao / DI` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | [`Arcane.Padroes`](#arcanepadroes) | `Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
 | [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 10 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
+| [`Arcane.Macro`](#arcanemacro) | `Macro` | 13 | A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo. 'citar' transforma texto em arvore, 'reescrever' devolve uma acao com o corpo trocado, 'nome_fresco' e 'renomear' dao higiene, e 'derivar' e a macro de atributo que gera __str__, __eq__, __lt__ e para_vault a partir dos campos. |
+| [`Arcane.Dsl`](#arcanedsl) | `Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
 | [`Arcane.Posse`](#arcaneposse) | `Posse` | 16 | Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo. |
 | [`Arcane.Stm`](#arcanestm) | `Stm / Transacional` | 13 | Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. Variavel transacional, 'atomicamente' com validacao otimista e repeticao no conflito, 'retentar' que espera em vez de girar, 'ou_entao' para compor duas operacoes bloqueantes, e estatisticas de conflito. |
 | [`Arcane.Resultado`](#arcaneresultado) | `Resultado / Result` | 13 | A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'. |
@@ -2209,6 +2211,69 @@ adopt Arcane.Memoria as Memoria
 | `referencias(obj)` |
 | `tamanho(obj)` |
 | `vivos(molde)` |
+
+
+---
+
+## Arcane.Macro
+
+A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo. 'citar' transforma texto em arvore, 'reescrever' devolve uma acao com o corpo trocado, 'nome_fresco' e 'renomear' dao higiene, e 'derivar' e a macro de atributo que gera __str__, __eq__, __lt__ e para_vault a partir dos campos.
+
+```dataforge
+adopt Arcane.Macro as Macro
+```
+
+**Funções (13)**
+
+| Assinatura |
+|------------|
+| `acao(nome, parametros, corpo, fechamento=None)` |
+| `arvore(alvo)` |
+| `citar(texto)` |
+| `compilar(texto_fonte, nome='gerada', parametros=None)` |
+| `derivar(*quais)` |
+| `derivaveis()` |
+| `nome_fresco(base='temp')` |
+| `percorrer(dado, visitante)` |
+| `reescrever(alvo, transformador)` |
+| `renomear(dado, de, para)` |
+| `substituir(dado, de, para)` |
+| `texto(dado)` |
+| `transformar(dado, acao)` |
+
+
+---
+
+## Arcane.Dsl
+
+Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado.
+
+```dataforge
+adopt Arcane.Dsl as Dsl
+```
+
+**Funções (18)**
+
+| Assinatura |
+|------------|
+| `adiado(pegar)` |
+| `analisar(analisador, entrada, tudo=True)` |
+| `ate(parada)` |
+| `entre_aspas(aspa='"')` |
+| `espaco(obrigatorio=False)` |
+| `exigir(analisador, mensagem)` |
+| `gramatica(regras, inicial)` |
+| `mapear(analisador, acao)` |
+| `muitos(analisador, minimo=0)` |
+| `nome()` |
+| `numero()` |
+| `opcional(analisador, padrao=None)` |
+| `ou(analisadores)` |
+| `qualquer_de(caracteres)` |
+| `separado_por(item, separador, minimo=0)` |
+| `seq(analisadores)` |
+| `simbolo(qual)` |
+| `texto(esperado)` |
 
 
 ---

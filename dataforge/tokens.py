@@ -133,6 +133,7 @@ class TokenType(Enum):
     TYPE = auto()            # type      (alias, uniao, refinamento)
     OPAQUE = auto()          # opaque    (o tipo que so nasce validado)
     WHERE = auto()           # where     (a regra de um refinamento)
+    COMPTIME = auto()        # comptime  (calculado na carga, e congelado)
 
     # ── Error Handling ────────────────────────────────────
     MONITOR = auto()         # monitor (try)
@@ -401,9 +402,10 @@ CONTEXTUAIS_BLUEPRINT = {
 # depois confirma — 'type Nome :=' abre a declaracao, e 'where' so
 # dentro dela. Ver Parser._abre_tipo.
 CONTEXTUAIS_TIPO = {
-    "type":   TokenType.TYPE,
-    "opaque": TokenType.OPAQUE,
-    "where":  TokenType.WHERE,
+    "type":     TokenType.TYPE,
+    "opaque":   TokenType.OPAQUE,
+    "where":    TokenType.WHERE,
+    "comptime": TokenType.COMPTIME,
 }
 
 

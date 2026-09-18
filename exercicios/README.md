@@ -576,9 +576,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 257 | [`257_stm_e_atomicos.df`](39-concorrencia-avancada/257_stm_e_atomicos.df) · [doc](39-concorrencia-avancada/257_stm_e_atomicos.md) | Memoria transacional, CAS e estruturas sem trava |
 
+## 40 — Metaprogramacao
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 258 | [`258_comptime_e_macros.df`](40-metaprogramacao/258_comptime_e_macros.df) · [doc](40-metaprogramacao/258_comptime_e_macros.md) | comptime, macros, DSL e plugin do check |
+
 ---
 
-**Total: 257 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 258 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

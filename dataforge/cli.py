@@ -680,7 +680,123 @@ def show_ast(filepath: str):
         print(f"  [{i}] {type(stmt).__name__}")
 
 
-def check_file(filepath: str, strict: bool = False, only_syntax: bool = False):
+#: Onde o plugin de um projeto e declarado, alem do '--plugin='.
+#:   [check]
+#:   plugins = ["regras.df"]
+def _plugins_do_projeto(a_partir_de="."):
+    from . import project as proj
+    manifesto = proj.carregar(a_partir_de)
+    if manifesto is None:
+        return []
+    bruto = (getattr(manifesto, "dados", None) or {}).get("check", {})
+    lista = bruto.get("plugins") if isinstance(bruto, dict) else None
+    if not lista:
+        return []
+    raiz = getattr(manifesto, "raiz", ".") or "."
+    return [p if os.path.isabs(p) else os.path.join(raiz, p) for p in lista]
+
+
+def _carregar_plugins(caminhos):
+    """Cada plugin e um .df que exporta 'verificar(arvore, arquivo)'.
+
+    Um plugin que nao carrega vira DIAGNOSTICO, e nao traceback: quem
+    roda o 'check' quer o relatorio do codigo dele, e nao a pilha do
+    analisador.
+    """
+    from .interpreter import Interpreter
+
+    carregados, problemas = [], []
+    for caminho in caminhos:
+        try:
+            with open(caminho, encoding="utf-8") as arquivo:
+                fonte = arquivo.read()
+            interpretador = Interpreter()
+            interpretador.run(parse(tokenize(fonte, caminho), caminho), caminho)
+            verificar = interpretador.global_env.get("verificar") \
+                if interpretador.global_env.has("verificar") else None
+            if verificar is None:
+                problemas.append((caminho, "ele nao define 'action "
+                                           "verificar(arvore, arquivo)'"))
+                continue
+            carregados.append((caminho, verificar))
+        except Exception as erro:                          # noqa: BLE001
+            problemas.append((caminho, getattr(erro, "message", None) or str(erro)))
+    return carregados, problemas
+
+
+def _diagnosticos_dos_plugins(plugins, arvore, caminho):
+    """Roda cada plugin e traduz o que ele devolve em Diagnostic."""
+    from .stdlib.arcane_macro import arvore as como_dado
+    from .typechecker import Diagnostic
+
+    saida = []
+    como_vault = como_dado(arvore)
+    for origem, verificar in plugins:
+        try:
+            achados = verificar(como_vault, caminho)
+        except Exception as erro:                          # noqa: BLE001
+            saida.append(Diagnostic(
+                "error",
+                f"o plugin '{os.path.basename(origem)}' falhou: "
+                f"{getattr(erro, 'message', None) or erro}",
+                1, 1, "conserte o plugin, ou tire-o da lista", "plugin-falhou"))
+            continue
+        for achado in list(achados or []):
+            if not isinstance(achado, dict):
+                continue
+            severidade = str(achado.get("severidade", "erro")).lower()
+            codigo = str(achado.get("codigo", "plugin"))
+            # O codigo entra na MENSAGEM: ele nao e uma regra embutida, e
+            # quem le precisa saber de onde veio — e como silencia-la
+            # com '// df: permitir <codigo>'.
+            saida.append(Diagnostic(
+                "warning" if severidade in ("aviso", "warning") else "error",
+                f"[{codigo}] {achado.get('mensagem', '')}",
+                int(achado.get("linha", 1) or 1),
+                int(achado.get("coluna", 1) or 1),
+                str(achado.get("sugestao", "")),
+                codigo))
+    return saida
+
+
+def _sem_os_silenciados(diagnosticos, caminho):
+    """O '// df: permitir <regra>' tambem vale para a regra de um plugin.
+
+    Sem isto, a unica saida de quem discorda de um plugin seria desligar
+    o plugin inteiro — que e exatamente o que o escape existe para
+    evitar.
+    """
+    from .typechecker import TypeChecker
+    try:
+        with open(caminho, encoding="utf-8") as arquivo:
+            fonte = arquivo.read()
+    except OSError:
+        return diagnosticos
+    mapa = {}
+    for numero, linha in enumerate(fonte.split("\n"), 1):
+        achado = TypeChecker._SILENCIO.search(linha)
+        if achado:
+            mapa[numero] = {r.strip() for r in
+                            achado.group(1).replace(",", " ").split() if r.strip()}
+    if not mapa:
+        return diagnosticos
+    return [d for d in diagnosticos
+            if not (d.code and d.code in (mapa.get(d.line, set())
+                                          | mapa.get(d.line - 1, set())))]
+
+
+def _avisos_de_plugin_quebrado(problemas):
+    from .typechecker import Diagnostic
+    return [Diagnostic("error",
+                       f"o plugin '{os.path.basename(caminho)}' nao carregou: "
+                       f"{motivo}", 1, 1,
+                       "ele precisa exportar 'verificar(arvore, arquivo)'",
+                       "plugin-falhou")
+            for caminho, motivo in problemas]
+
+
+def check_file(filepath: str, strict: bool = False, only_syntax: bool = False,
+               plugins=None):
     """Analisa sintaxe e semântica sem executar o programa."""
     from .typechecker import check_program
 
@@ -709,6 +825,12 @@ def check_file(filepath: str, strict: bool = False, only_syntax: bool = False):
         return
 
     diagnosticos = check_program(tree, filepath, strict=strict)
+    carregados, problemas = _carregar_plugins(
+        list(plugins or []) or _plugins_do_projeto(os.path.dirname(filepath) or "."))
+    dos_plugins = _avisos_de_plugin_quebrado(problemas) \
+        + _diagnosticos_dos_plugins(carregados, tree, filepath)
+    diagnosticos = list(diagnosticos) + _sem_os_silenciados(dos_plugins, filepath)
+    diagnosticos.sort(key=lambda d: (d.line, d.column))
     erros = [d for d in diagnosticos if d.severity == 'error']
     avisos = [d for d in diagnosticos if d.severity == 'warning']
     usar_cor = '--no-color' not in sys.argv
@@ -727,7 +849,7 @@ def check_file(filepath: str, strict: bool = False, only_syntax: bool = False):
 
 
 
-def check_command(alvos, strict=False, only_syntax=False):
+def check_command(alvos, strict=False, only_syntax=False, plugins=None):
     """dataforge check — analisa um arquivo, uma pasta ou um padrao.
 
     Um unico arquivo mantem a saida detalhada de sempre. Com varios,
@@ -742,8 +864,12 @@ def check_command(alvos, strict=False, only_syntax=False):
         sys.exit(1)
 
     if len(arquivos) == 1:
-        check_file(arquivos[0], strict=strict, only_syntax=only_syntax)
+        check_file(arquivos[0], strict=strict, only_syntax=only_syntax,
+                   plugins=plugins)
         return
+
+    carregados, problemas = _carregar_plugins(
+        list(plugins or []) or _plugins_do_projeto())
 
     usar_cor = '--no-color' not in sys.argv
     total_erros = total_avisos = ilegiveis = 0
@@ -768,8 +894,12 @@ def check_command(alvos, strict=False, only_syntax=False):
         if only_syntax:
             continue
 
-        for d in sorted(check_program(arvore, caminho, strict=strict),
-                        key=lambda x: (x.line, x.column)):
+        do_arquivo = list(check_program(arvore, caminho, strict=strict))
+        do_arquivo += _sem_os_silenciados(
+            _avisos_de_plugin_quebrado(problemas)
+            + _diagnosticos_dos_plugins(carregados, arvore, caminho), caminho)
+        problemas = []          # o plugin quebrado é relatado uma vez só
+        for d in sorted(do_arquivo, key=lambda x: (x.line, x.column)):
             print(d.format(caminho, color=usar_cor))
             if d.severity == 'error':
                 total_erros += 1
@@ -4024,8 +4154,11 @@ def main():
         show_ast(args[1])
 
     elif command == 'check':
-        check_command(args[1:], strict='--strict' in flags,
-                      only_syntax='--syntax-only' in flags)
+        check_command([a for a in args[1:] if not a.startswith('--plugin=')],
+                      strict='--strict' in flags,
+                      only_syntax='--syntax-only' in flags,
+                      plugins=[f.split('=', 1)[1] for f in flags
+                               if f.startswith('--plugin=')])
 
     elif command == 'fmt':
         fmt_command(args[1:], checar='--check' in flags)

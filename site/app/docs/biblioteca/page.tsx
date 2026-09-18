@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "58 módulos e 1687 símbolos, sem uma única dependência externa.",
+  description: "60 módulos e 1718 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os 58 módulos"
+    "h2": "Os 60 módulos"
   },
   {
-    "p": "São **1687 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1718 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -181,6 +181,11 @@ const blocos: Bloco[] = [
           "Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados."
         ],
         [
+          "`Arcane.Dsl`",
+          "18",
+          "Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado."
+        ],
+        [
           "[`Arcane.Lago`](/docs/tecnicas/lago)",
           "18",
           "Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação."
@@ -234,6 +239,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Data`](/docs/biblioteca/data)",
           "13",
           "DataFrames, séries e transformações tabulares."
+        ],
+        [
+          "`Arcane.Macro`",
+          "13",
+          "A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo. 'citar' transforma texto em arvore, 'reescrever' devolve uma acao com o corpo trocado, 'nome_fresco' e 'renomear' dao higiene, e 'derivar' e a macro de atributo que gera __str__, __eq__, __lt__ e para_vault a partir dos campos."
         ],
         [
           "`Arcane.Objetos`",
@@ -389,13 +399,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-58-modulos', text: "Os 58 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-60-modulos', text: "Os 60 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"58 módulos e 1687 símbolos, sem uma única dependência externa."}
+      description={"60 módulos e 1718 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

@@ -714,6 +714,11 @@ class Parser:
             if producao is not None:
                 return producao()
 
+        # ── 'comptime …' — o que roda na carga ──
+        if tt == TokenType.IDENTIFIER and tok.value == "comptime" \
+                and self._abre_comptime():
+            return self.parse_comptime()
+
         # ── 'type Nome := …' e 'opaque type Nome := …' ──
         if tt == TokenType.IDENTIFIER and tok.value in ("type", "opaque") \
                 and self._abre_tipo():
@@ -1389,6 +1394,40 @@ class Parser:
                 is_async=True, line=tok.line, column=tok.column
             )
         self.error("Expected 'action' or ':' after 'async'")
+
+    def _abre_comptime(self):
+        """'comptime' so vira palavra quando abre bloco ou prefixa algo.
+
+        'comptime := 3' e 'action comptime(x)' continuam sendo codigo
+        comum: a declaracao exige ':' (bloco) ou uma instrucao logo
+        depois — e nunca ':=' nem '(' colado.
+        """
+        depois = self.peek(1)
+        if depois.type is TokenType.COLON:
+            return True
+        if depois.type in (TokenType.ASSIGN, TokenType.LPAREN,
+                           TokenType.NEWLINE, TokenType.EOF, TokenType.DOT,
+                           TokenType.COMMA, TokenType.RPAREN):
+            return False
+        if depois.type in self.COMPOUND_ASSIGN:
+            return False
+        # 'comptime NOME := …', 'comptime steady …', 'comptime assert …'
+        if depois.type is TokenType.IDENTIFIER:
+            return self.peek(2).type in (TokenType.ASSIGN, TokenType.COLON)
+        return depois.type in (TokenType.STEADY, TokenType.ASSERT,
+                               TokenType.ACTION, TokenType.STATIC)
+
+    def parse_comptime(self):
+        """comptime <instrucao>, ou 'comptime:' com bloco indentado."""
+        tok = self.advance()                      # 'comptime'
+        if self.match(TokenType.COLON):
+            self.match(TokenType.NEWLINE)
+            corpo = self.parse_block()
+            return ast.ComptimeBlock(body=corpo, line=tok.line,
+                                     column=tok.column)
+        instrucao = self.parse_statement()
+        return ast.ComptimeBlock(body=[instrucao] if instrucao else [],
+                                 line=tok.line, column=tok.column)
 
     def _abre_tipo(self):
         """'type' e 'opaque' so viram palavra quando a linha confirma.

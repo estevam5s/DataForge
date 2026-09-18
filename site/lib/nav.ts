@@ -230,6 +230,17 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Metaprogramação',
+    badge: 'novo',
+    items: [
+      { title: 'comptime', href: '/docs/metaprogramacao/comptime', badge: 'novo' },
+      { title: 'Macros', href: '/docs/metaprogramacao/macros', badge: 'novo' },
+      { title: 'DSLs', href: '/docs/metaprogramacao/dsl', badge: 'novo' },
+      { title: 'Plugins do check', href: '/docs/metaprogramacao/plugins', badge: 'novo' },
+      { title: 'Metaprogramação: o mapa', href: '/docs/metaprogramacao/mapa', badge: 'novo' },
+    ],
+  },
+  {
     title: 'Concorrência avançada',
     badge: 'novo',
     items: [
@@ -413,6 +424,7 @@ export const nav: NavSection[] = [
       { title: 'OOP como sistema', href: '/docs/exercicios/37-oop-sistema' },
       { title: 'Sistema de tipos', href: '/docs/exercicios/38-tipos', badge: 'novo' },
       { title: 'Concorrência avançada', href: '/docs/exercicios/39-concorrencia-avancada', badge: 'novo' },
+      { title: 'Metaprogramação', href: '/docs/exercicios/40-metaprogramacao', badge: 'novo' },
     ],
   },
   {

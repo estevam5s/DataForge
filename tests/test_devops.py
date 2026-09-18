@@ -620,7 +620,7 @@ def test_o_readme_traz_o_logo_da_linguagem(readme):
 
 
 def test_os_numeros_do_readme_batem_com_a_realidade(readme):
-    """Um README que diz "39 módulos" quando são 40 é um README que
+    """Um README que diz "40 módulos" quando são 40 é um README que
     ninguém confia na segunda leitura."""
     import re
 
@@ -632,7 +632,7 @@ def test_os_numeros_do_readme_batem_com_a_realidade(readme):
                    for n in oficiais)
     comandos = len({c.nome for c in COMANDOS.values()})
 
-    # O número vem antes do rótulo no texto corrido ("39 módulos") e
+    # O número vem antes do rótulo no texto corrido ("40 módulos") e
     # depois dele na tabela ("| **Comandos** | 44, …"). As duas formas
     # são aceitas: exigir uma faria o teste quebrar por causa de uma
     # reescrita que não mudou fato nenhum.

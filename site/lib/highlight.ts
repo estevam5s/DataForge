@@ -53,7 +53,7 @@ const KEYWORDS = new Set([
   // As três dos tipos nomeados ('type Id := Integer'). Mesmo raciocínio:
   // são contextuais na linguagem, e num trecho de documentação 'type' é
   // sempre a declaração.
-  'type', 'opaque', 'where',
+  'type', 'opaque', 'where', 'comptime',
 ]);
 
 /** Palavras que introduzem uma declaração — recebem ênfase própria. */

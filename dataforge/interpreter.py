@@ -2259,6 +2259,10 @@ class Interpreter:
             self._primeira_execucao = False
             from .stdlib import reiniciar_por_execucao
             reiniciar_por_execucao()
+        # 'comptime' roda ANTES do programa: é o que faz dele tempo de
+        # compilação, e não "mais cedo". O que ele define já está no
+        # escopo global quando a primeira linha do corpo executa.
+        self._rodar_comptime(program.body)
         try:
             # O corpo do programa tambem e compilado: sem isto, um laco
             # escrito no topo — que e como quase todo exemplo comeca —
@@ -6514,6 +6518,89 @@ class Interpreter:
                      "the operation above left the object inconsistent",
                 doc="oop/contratos")
             raise erro
+
+    #: O que NÃO existe dentro de um 'comptime'. Sem esta lista, "tempo
+    #: de compilação" seria só "mais cedo": um 'out' imprimiria na carga,
+    #: um 'adopt' traria E/S, e uma thread deixaria trabalho correndo por
+    #: baixo do programa que ainda não começou.
+    _FORA_DO_COMPTIME = {
+        "OutStatement": "escrever na saída",
+        "AdoptStatement": "adotar um módulo",
+        "ThreadBlock": "abrir uma thread",
+        "ParallelBlock": "rodar em paralelo",
+        "InExpression": "ler da entrada",
+        "ServerDeclaration": "subir um servidor",
+        "IgniteStatement": "subir um servidor",
+        "WaitStatement": "esperar",
+    }
+
+    def _rodar_comptime(self, corpo):
+        """Roda os blocos 'comptime' do topo, na ordem, antes do programa."""
+        for no in corpo:
+            if isinstance(no, ast.ComptimeBlock):
+                self.exec_ComptimeBlock(no, self.global_env)
+
+    def exec_ComptimeBlock(self, node: ast.ComptimeBlock, env):
+        """O corpo roda uma vez, numa caixa, e o que ele define fica.
+
+        Rodar de novo quando o programa chega na linha seria calcular
+        duas vezes — e o ponto de 'comptime' é calcular uma.
+        """
+        if getattr(node, "_ja_rodou", False):
+            return None
+        node._ja_rodou = True
+        self._recusar_impuro(node.body)
+        caixa = Environment(parent=self.global_env, name="<comptime>")
+        anterior = self.compilar_corpos
+        try:
+            # Sem compilação de corpos: o ganho não existe numa passada
+            # única, e o depurador precisa enxergar o que roda aqui.
+            self.compilar_corpos = False
+            self.exec_block(node.body, caixa)
+        except DataForgeError as erro:
+            raise RuntimeError_(
+                f"o 'comptime' falhou: {getattr(erro, 'message', erro)}",
+                node.line, node.column,
+                nota="ele roda na carga, antes da primeira linha do programa",
+                dica="conserte a conta, ou tire o 'comptime' se ela precisa "
+                     "de dado que só existe em execução",
+                doc="metaprogramacao/comptime") from None
+        finally:
+            self.compilar_corpos = anterior
+        # O que a caixa definiu vira CONSTANTE do programa.
+        for nome, valor in caixa.variables.items():
+            if nome.startswith("__"):
+                continue
+            if nome in caixa.constants:
+                self.global_env.define_steady(nome, valor)
+            else:
+                self.global_env.set_local(nome, valor)
+        return None
+
+    def _recusar_impuro(self, corpo, profundidade=0):
+        """Varre o corpo do 'comptime' e recusa o que não é conta."""
+        if profundidade > 12:
+            return
+        for no in corpo or []:
+            nome = type(no).__name__
+            motivo = self._FORA_DO_COMPTIME.get(nome)
+            if motivo:
+                raise RuntimeError_(
+                    f"'comptime' não pode {motivo}.",
+                    getattr(no, "line", 0), getattr(no, "column", 0),
+                    nota="ele é uma conta feita na carga; E/S e módulos "
+                         "pertencem ao programa",
+                    dica="mova esta linha para fora do 'comptime'",
+                    doc="metaprogramacao/comptime")
+            for campo, valor in vars(no).items():
+                if campo in ("line", "column"):
+                    continue
+                if isinstance(valor, list):
+                    self._recusar_impuro(
+                        [i for i in valor if isinstance(i, ast.ASTNode)],
+                        profundidade + 1)
+                elif isinstance(valor, ast.ASTNode):
+                    self._recusar_impuro([valor], profundidade + 1)
 
     def exec_TypeDeclaration(self, node: ast.TypeDeclaration, env):
         """'type Nome := …' — registra o tipo; 'opaque' tambem cria o nome.

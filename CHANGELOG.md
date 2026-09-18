@@ -14,6 +14,30 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — metaprogramação: `comptime`, macros, DSLs e plugins do `check`
+
+- **`comptime`**: a conta feita **na carga**, antes da primeira linha do
+  programa, e congelada. Tabela de consulta gerada, constante calculada e
+  `assert` que vira trava de build — o `dataforge check` o executa e
+  acusa com `comptime-falhou`. O corpo roda numa **caixa**: `out`,
+  `adopt`, `thread` e `parallel` são recusados com o motivo, senão
+  "tempo de compilação" seria só "mais cedo". A palavra é contextual:
+  `comptime := 3` continua valendo.
+- **`Arcane.Macro`**: a árvore como **dado**. `arvore`, `citar`, `texto`,
+  `percorrer`, `transformar`, `substituir`, `renomear`, `nome_fresco`,
+  `acao`, `compilar`, `reescrever` — e `derivar`, a macro de atributo
+  que gera `__str__`, `__eq__`, `__lt__` e `para_vault` a partir dos
+  campos. A expansão roda na carga, e a higiene é explícita.
+- **`Arcane.Dsl`**: combinadores para uma linguagem externa própria, com
+  `analisar` devolvendo `Resultado` e a falha dizendo posição, esperado e
+  trecho.
+- **Plugins do `check`**: um `.df` com `verificar(arvore, arquivo)`,
+  passado por `--plugin=` ou declarado em `forge.toml` (`[check] plugins`).
+  O código da regra aparece na mensagem, `// df: permitir <codigo>`
+  silencia, e um plugin quebrado vira **diagnóstico** — não traceback.
+- Documentação: [`/docs/metaprogramacao/comptime`](https://dataforge-lang.vercel.app/docs/metaprogramacao/comptime),
+  `/macros`, `/dsl`, `/plugins` e o mapa da parte 5; exercício 258.
+
 ### Adicionado — `Arcane.Stm`, atômicos com CAS e estruturas sem trava
 
 - **`Arcane.Stm`**: memória transacional. `variavel` e `atomicamente`,

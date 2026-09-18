@@ -884,10 +884,16 @@ class TypeChecker:
                         self.selados.add(stmt.name)
                     if getattr(stmt, "is_meta", False):
                         self.metas.add(stmt.name)
-                    if getattr(stmt, "metaclass", "") or any(
-                            isinstance(m, ast.ActionDeclaration)
-                            and m.name in ("__getattr__", "__getattribute__")
-                            for m in stmt.body):
+                    # Um blueprint DECORADO pode ganhar qualquer membro:
+                    # 'mark @M.derivar(…)' gera '__str__' e 'para_vault' na
+                    # carga, e o analisador não tem como vê-los. Calar aqui
+                    # é a mesma regra do blueprint que herda de algo não
+                    # visto — acusar seria falso alarme em código que roda.
+                    if getattr(stmt, "metaclass", "") \
+                            or getattr(stmt, "decorators", None) \
+                            or any(isinstance(m, ast.ActionDeclaration)
+                                   and m.name in ("__getattr__", "__getattribute__")
+                                   for m in stmt.body):
                         self.dinamicos.add(stmt.name)
                     self.assinaturas_de_metodo[stmt.name] = {
                         m.name: ActionSignature(m) for m in stmt.body
@@ -1202,6 +1208,39 @@ class TypeChecker:
             f"{declaracao.regra_texto}", valor,
             f"{declaracao.name} is a {declaracao.partes[0]} where "
             f"{declaracao.regra_texto}", "tipo-refinado")
+
+    def st_ComptimeBlock(self, node, escopo):
+        """'comptime' roda na CARGA — então o `check` já pode rodá-lo.
+
+        É o que transforma uma validação de `comptime` em erro **antes**
+        de o programa começar: `assert len(TABELA) is 3` com dois itens
+        falha aqui, e não na primeira execução em produção.
+        """
+        self.visit_block(node.body, escopo)
+        self._rodar_comptime_no_check(node)
+        return False
+
+    def _rodar_comptime_no_check(self, node):
+        from .interpreter import Interpreter
+        from .errors import DataForgeError
+        interpretador = getattr(self, "_comptime", None)
+        if interpretador is None:
+            interpretador = self._comptime = Interpreter()
+            interpretador.compilar_corpos = False
+        try:
+            interpretador.exec_ComptimeBlock(node, interpretador.global_env)
+        except DataForgeError as erro:
+            self.error(
+                getattr(erro, "message", str(erro)), node,
+                "o 'comptime' roda na carga: conserte a conta, ou tire o "
+                "'comptime' se ela precisa de dado de execução",
+                "comptime-falhou")
+        except Exception:                                   # noqa: BLE001
+            # Um comptime que quebra de forma inesperada não pode
+            # derrubar o analisador: ele acusa e segue.
+            self.error(
+                "o 'comptime' não pôde ser calculado aqui", node,
+                "rode o arquivo para ver o erro completo", "comptime-falhou")
 
     def st_TypeDeclaration(self, node, escopo):
         """'type Nome := …' — o nome existe, as partes existem, e não há ciclo."""
