@@ -55,6 +55,7 @@ MODULOS = [
     "compilador_backend",
     "runtime_laco",
     "observabilidade",
+    "partida_e_seguranca",
     "plataforma",
     "vitrine",
     "versoes",

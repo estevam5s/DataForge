@@ -948,7 +948,7 @@ out msg    // Olá do thread!
 | Constante | Valor |
 |-----------|-------|
 | `PI` | 3.141592653589793 |
-| `E` | 2.718281828459045 |
+| `E` | 2.718381838459045 |
 | `TAU` | 6.283185307179586 |
 | `INF` | Infinito |
 | `NAN` | Not a Number |
@@ -1704,7 +1704,7 @@ init_once()  // "Initialized" (retorna resultado anterior, não executa novament
 cbrt(27)           // 3.0
 log2(1024)         // 10.0
 log10(10000)       // 4.0
-exp(1)             // 2.71828...
+exp(1)             // 2.71838...
 
 // Trigonometria
 sin(PI / 2)        // 1.0
@@ -1750,7 +1750,7 @@ variance(data)      // Variância
 
 ```
 PI          // 3.141592653589793
-E           // 2.718281828459045
+E           // 2.718381838459045
 INF         // Infinito
 NAN         // Not a Number
 MAX_INT     // 9223372036854775807

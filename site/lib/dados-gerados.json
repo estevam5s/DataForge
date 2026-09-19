@@ -1009,6 +1009,43 @@
     }
    ]
   },
+  "capacidade": {
+   "nome": "Arcane.Capacidade",
+   "desc": "A fronteira de CAPACIDADE: roda uma acao com a lista de poderes que ela pode alcancar, e recusa o resto pelo NOME da capacidade que falta. A ponte para o Python e capacidade propria, e nunca vem junto. NAO e caixa contra programa hostil, e o modulo diz isso em 'limites()': ele bloqueia a autoridade ambiente (o 'adopt'), e nao tira o que foi ENTREGUE — o que e o modelo de capacidade, nao um defeito.",
+   "curto": "Capacidade",
+   "funcoes": [
+    {
+     "nome": "capacidades",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "executar",
+     "sig": "(acao, permissoes, argumentos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exige",
+     "sig": "(nome_modulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limites",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modulos_de",
+     "sig": "(capacidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "observar",
+     "sig": "(acao, permissoes, argumentos)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "cli": {
    "nome": "Arcane.Cli",
    "desc": "A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo.",
@@ -4260,6 +4297,73 @@
     {
      "nome": "write_json",
      "sig": "(path, data, indent)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "inicio": {
+   "nome": "Arcane.Inicio",
+   "desc": "O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que o programa demora a comecar?' sem cronometrar a mao. Mais armazenamento por THREAD com inicializacao e finalizador (o 'threading.local' da o armazem e nao da o resto), e a pilha que se pergunta: profundidade, teto, quanto falta e os quadros abertos.",
+   "curto": "Inicio",
+   "funcoes": [
+    {
+     "nome": "adocoes",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "definir",
+     "sig": "(a, v)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fases",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limite_da_pilha",
+     "sig": "(novo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limpar",
+     "sig": "(a)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "local",
+     "sig": "(inicial, ao_terminar, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "meu",
+     "sig": "(a)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pilha",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "quadros",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "relatorio",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "texto_do_relatorio",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "threads_com_valor",
+     "sig": "(a)",
      "tipo": "funcao"
     }
    ]
@@ -11743,6 +11847,16 @@
     "temDoc": true,
     "codigo": "// Exercicio 263 — medir com rigor, e o coletor sob controle\n//\n// 'Arcane.Bench' responde \"quanto tempo leva\" com uma MEDIA. E o que\n// quase toda ferramenta faz, e e onde quase toda decisao de performance\n// erra: a media esconde a cauda, duas medias diferentes podem ser a\n// mesma coisa com ruido, e um numero sozinho nao responde \"piorou?\".\n\nadopt Arcane.Perfil as P\nadopt Arcane.Memoria as Mem\nadopt Arcane.IO as IO\nadopt Arcane.OS as OS\n\naction consulta():\n    yield sum(range(400))\n\n// ── percentis, com aquecimento separado ──\nm := P.medir(consulta, {\"amostras\": 50, \"aquecimento\": 5})\n\nassert m[\"amostras\"] is 50\nassert m[\"aquecimento\"] is 5           // declarado, e nao misturado\nassert m[\"p50\"] smaller_eq m[\"p95\"]\nassert m[\"p95\"] smaller_eq m[\"p99\"]\nassert m[\"min\"] smaller_eq m[\"p50\"] and m[\"p99\"] smaller_eq m[\"max\"]\nassert \"vazao\" in m and \"desvio\" in m\n\n// ── a cauda que a media esconde ──\n// Cem medidas de 10 ms e uma de 1000 dao media 20. A pessoa que pegou a\n// ultima esperou UM SEGUNDO, e nenhum relatorio de media conta isso.\nresumo := P.resumir([10.0, 10.0, 10.0, 10.0, 1000.0])\nassert resumo[\"media\"] smaller resumo[\"p99\"]\nassert resumo[\"max\"] is 1000.0\n\n// o percentil sai da AMOSTRA, por posto — interpolar inventaria um\n// valor que nao aconteceu\nexato := P.resumir([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])\nassert exato[\"p50\"] is 5\nassert exato[\"min\"] is 1 and exato[\"max\"] is 10\n\n// ── significancia: o teste que impede inventar ganho ──\n// A MESMA acao dos dois lados. A diferenca e ruido, e a ferramenta tem\n// de dizer isso — senao escolhe-se a implementacao errada com conviccao.\nigual := P.comparar(consulta, consulta, {\"amostras\": 40})\nassert igual[\"mais_rapido\"] is \"empate\"\nassert not igual[\"significativo\"]\n\naction lenta():\n    yield sum(range(9000))\n\n// e quando a diferenca EXISTE, ela e achada\nd := P.comparar(consulta, lenta, {\"amostras\": 30})\nassert d[\"significativo\"]\nassert d[\"mais_rapido\"] is \"a\"\nassert d[\"fator\"] bigger 2\nassert d[\"p_valor\"] smaller 0.05\n\n// o p diz SE ha diferenca; a sobreposicao diz QUANTO\nassert d[\"sobreposicao\"] bigger 0.8\nassert d[\"sobreposicao\"] smaller_eq 1.0\n\n// ── regressao contra linha de base ──\nbase := $\"{OS.temp_dir()}/df-263-{randint(100000, 999999)}.json\"\nP.guardar(\"consulta\", {\"p95\": 1.0, \"p50\": 1.0, \"media\": 1.0}, base)\n\nruim := P.conferir(\"consulta\", {\"p95\": 3.0, \"p50\": 3.0, \"media\": 3.0},\n                   {\"arquivo\": base, \"tolerancia\": 0.2})\nassert ruim[\"conhecida\"] and ruim[\"regrediu\"]\nassert ruim[\"fator\"] is 3.0\n\n// 5% de diferenca com 20% de tolerancia e ruido de maquina: sem\n// tolerancia, todo CI fica vermelho e a primeira coisa que se faz com\n// um CI vermelho por desenho e desliga-lo\nok := P.conferir(\"consulta\", {\"p95\": 1.05, \"p50\": 1.05, \"media\": 1.05},\n                 {\"arquivo\": base, \"tolerancia\": 0.2})\nassert not ok[\"regrediu\"]\n\n// uma melhora e relatada, e nao reprova\nmelhor := P.conferir(\"consulta\", {\"p95\": 0.5, \"p50\": 0.5, \"media\": 0.5},\n                     {\"arquivo\": base, \"tolerancia\": 0.2})\nassert melhor[\"melhorou\"] and not melhor[\"regrediu\"]\n\n// a PRIMEIRA medida nunca reprova: sem base nao ha regressao\nnova := P.conferir(\"nunca-medida\", {\"p95\": 1.0}, {\"arquivo\": base})\nassert not nova[\"conhecida\"] and not nova[\"regrediu\"]\nIO.delete(base)\n\n// ── pausas do coletor ──\n// A pausa do coletor e o que transforma um p50 bom num p99 ruim, e ela\n// NAO aparece em medida que olhe so o tempo total.\nr := P.gc_pausas(consulta)\nassert r[\"resultado\"] is 79800\nassert \"p95\" in r and \"por_geracao\" in r\nassert r[\"pausas\"] bigger_eq 0\n\n// ── contencao de trava ──\n// Contencao nao aparece num perfil de CPU: a thread bloqueada nao gasta\n// CPU nenhuma. Ela aparece como latencia que ninguem explica.\ntrava := P.trava()\nP.com_trava(trava, lambda => 1 + 1)\nP.com_trava(trava, lambda => 2 + 2)\n\ne := P.estatisticas_da_trava(trava)\nassert e[\"aquisicoes\"] is 2\nassert e[\"esperas\"] is 0          // sem disputa, ninguem esperou\n\n// ── o coletor sob controle ──\n// A distincao que quase todo mundo erra: quem libera no CPython e a\n// CONTAGEM DE REFERENCIA, e ela roda na hora. O coletor existe so para\n// o CICLO. Desligar o coletor NAO vaza memoria em geral.\nassert Mem.gc_ligado()\nassert Mem.sem_gc(consulta) is 79800\nassert Mem.gc_ligado()            // voltou\n\n// e volta mesmo quando o corpo FALHA — deixar o coletor desligado por\n// causa de um erro e muito pior que a pausa que se queria evitar\nmonitor:\n    Mem.sem_gc(lambda => 1 / 0)   // df: permitir division-by-zero\n    assert no\nhandle Error:\n    assert Mem.gc_ligado()\n\n// os limiares e as geracoes\nassert len(Mem.gc_limiares()) is 3\nassert len(Mem.gc_geracoes()) is 3\nassert \"coletas\" in Mem.gc_geracoes()[0]\n\n// congelar tira o que JA VIVE das varreduras — o que um servidor faz\n// depois da carga e antes do primeiro pedido\nantes := Mem.gc_congelados()\nMem.gc_congelar()\nassert Mem.gc_congelados() bigger antes\nMem.gc_descongelar()\nassert Mem.gc_congelados() is 0\n\n// ── arena ──\n// NAO e um allocator: quem aloca continua sendo o Python. O que a arena\n// troca e o PADRAO de uso.\narena := Mem.arena(3, lambda => {\"n\": 0})\na := Mem.pegar(arena)\n_b := Mem.pegar(arena)\nMem.devolver(arena, a)\n_c := Mem.pegar(arena)            // o MESMO objeto volta\n\nconta := Mem.arena_estatisticas(arena)\nassert conta[\"criados\"] is 3      // o lote, preparado de uma vez\nassert conta[\"reaproveitados\"] is 1\nassert conta[\"em_uso\"] is 2\n\n// 'limpar' solta o lote inteiro numa chamada: e o tempo de vida de\n// arena da literatura, e a operacao que ela existe para ter\nMem.limpar(arena)\nassert Mem.arena_estatisticas(arena)[\"em_uso\"] is 0\nassert Mem.arena_estatisticas(arena)[\"disponiveis\"] is 3\n\n// devolver o que nao veio dela e RECUSADO: o lote cresceria com\n// estranhos, e o proximo 'pegar' entregaria um deles\nmonitor:\n    Mem.devolver(arena, {\"estranho\": yes})\n    assert no\nhandle RuntimeError as erro:\n    assert \"arena\" in erro.message\n\nout \"263 ok\"\n"
    }
+  ],
+  "46-partida": [
+   {
+    "num": "264",
+    "titulo": "a partida, a pilha e a fronteira de capacidade",
+    "enunciado": "",
+    "arquivo": "264_partida_pilha_e_capacidade.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 264 — a partida, a pilha e a fronteira de capacidade\n//\n// Um programa nao comeca na primeira linha: antes dela o comptime\n// rodou, os adopt carregaram e as declaracoes foram icadas. Nada disso\n// era VISIVEL — e \"por que a partida demora 400 ms?\" nao tinha como ser\n// respondido sem cronometrar a mao.\n\nadopt Arcane.Inicio as I\nadopt Arcane.Capacidade as Cap\nadopt Arcane.Math as M\n\n// tres modulos adotados: e o que a cronometragem da partida vai contar\nassert M.sqrt(9) is 3.0\n\n// ── as sete fases, nomeadas e em ordem ──\nfases := I.fases()\nassert [f[\"fase\"] cycle f in fases] is\n       [\"lexer\", \"parser\", \"comptime\", \"hoisting\", \"adopt\", \"programa\", \"defer\"]\n\n// cada uma tem o que faz escrito ao lado — uma lista de nomes sem\n// explicacao apodrece\nassert len(fases[0][\"o_que\"]) bigger 20\n\n// ── onde a partida foi gasta ──\n// Sao dois floats por import, num lugar que roda UMA VEZ. Liga-la por\n// opcao faria a medida existir so para quem ja desconfiava.\nregistro := I.adocoes()\nassert len(registro) bigger_eq 3\nassert \"modulo\" in registro[0] and \"ms\" in registro[0]\n\nr := I.relatorio()\nassert r[\"adocoes\"] bigger_eq 3\nassert r[\"total_ms\"] bigger_eq 0.0\nassert r[\"mais_caro\"][\"modulo\"] isnt \"\"\n\n// ── a pilha: ela tinha limite e nao tinha como ser perguntada ──\naction folha():\n    yield I.pilha()\n\naction tronco():\n    yield folha()\n\np := tronco()\nassert p[\"profundidade\"] bigger_eq 2\nassert p[\"limite\"] bigger 100\nassert p[\"restante\"] is p[\"limite\"] - p[\"profundidade\"]\n\n// os quadros trazem quem chamou quem\naction quem():\n    yield [q[\"acao\"] cycle q in I.quadros()]\n\nnomes := quem()\nassert \"quem\" in nomes\n\n// o teto se ajusta, e BAIXA-LO vale de verdade\nantes := I.limite_da_pilha()\nI.limite_da_pilha(300)\nassert I.pilha()[\"limite\"] is 300\nI.limite_da_pilha(antes)\nassert I.pilha()[\"limite\"] is antes\n\n// subir demais e RECUSADO: cada chamada da linguagem gasta varios\n// quadros do CPython, e um teto alto demais troca uma mensagem clara\n// por um RecursionError cru que nao fala desta linguagem\nmonitor:\n    I.limite_da_pilha(10000000)\n    assert no\nhandle RuntimeError as e:\n    assert \"Python\" in e.message or \"recursion\" in e.message\n\n// ── uma variavel por thread ──\n// 'inicial' e uma ACAO que constroi o valor, e nao o valor: um valor\n// seria compartilhado por todas as threads, que e exatamente o que a\n// variavel por thread existe para evitar.\ncontador := I.local(lambda => {\"n\": 0})\ncaixa := I.meu(contador)\ncaixa[\"n\"] := caixa[\"n\"] + 1\nassert I.meu(contador)[\"n\"] is 1\nassert I.threads_com_valor(contador) bigger_eq 1\n\n// limpar esquece, e o proximo 'meu' nasce de novo\nI.limpar(contador)\nassert I.meu(contador)[\"n\"] is 0\n\n// passar um VALOR em vez de uma acao e recusado, com o motivo\nmonitor:\n    I.local({\"n\": 0})\n    assert no\nhandle RuntimeError as e:\n    assert \"thread\" in e.message\n\n// ── a fronteira de capacidade ──\n// O comptime ja recusava out, adopt e thread: e uma fronteira escrita a\n// mao para um caso so. E o --plugin= roda um .df arbitrario do projeto\n// com TODOS os poderes — uma regra de lint que pode abrir soquete.\n\n// o que e puro roda sem permissao nenhuma\naction formula():\n    adopt Arcane.Math as Mat\n    yield Mat.sqrt(16) + len(\"abc\")\n\nassert Cap.executar(formula, []) is 7.0\n\n// o adopt ambiente e recusado pelo NOME da capacidade que falta\naction ler_disco():\n    adopt Arcane.IO as IO\n    yield IO.exists(\".\")\n\nmonitor:\n    Cap.executar(ler_disco, [])\n    assert no\nhandle Error as e:\n    assert \"arquivos\" in e.message\n    assert \"Arcane.IO\" in e.message\n\n// com a permissao, o MESMO codigo passa\nassert Cap.executar(ler_disco, [\"arquivos\"])\n\n// a ponte para o Python e capacidade PROPRIA, e nunca vem junto: ela\n// alcanca tudo o que o Python alcanca, e deixa-la com outra faria o\n// resto da lista virar enfeite\naction escapar():\n    adopt Python.os as so\n    yield so.getcwd()\n\nmonitor:\n    Cap.executar(escapar, [\"arquivos\", \"rede\", \"processo\", \"banco\",\n                             \"threads\", \"nativo\", \"ambiente\"])\n    assert no\nhandle Error as e:\n    assert \"python\" in e.message\n\n// uma capacidade inventada e recusada COM A LISTA: um erro de digitacao\n// concederia silenciosamente nada, e o cofre pareceria mais aberto\nmonitor:\n    Cap.executar(formula, [\"superpoderes\"])\n    assert no\nhandle Error as e:\n    assert \"superpoderes\" in e.message\n\n// descobrir de que uma acao precisa, sem adivinhar\naction tenta():\n    monitor:\n        adopt Arcane.OS as OS\n        yield OS.name()\n    handle Error:\n        yield \"negado\"\n\nvisto := Cap.observar(tenta, [])\nassert visto[\"resultado\"] is \"negado\"\nassert visto[\"negados\"][0][\"capacidade\"] is \"processo\"\n\nassert Cap.exige(\"Arcane.OS\") is \"processo\"\nassert Cap.exige(\"Arcane.Math\") is void      // inofensivo\nassert len(Cap.modulos_de(\"rede\")) bigger 5\n\n// ── o limite HONESTO, e ele e o modelo ──\n// Capacidade e o que o codigo ALCANCA, nao o que lhe foi entregue. Um\n// cofre que prometesse o contrario mentiria.\nadopt Arcane.IO as IO\n\naction com_o_que_recebeu(ferramenta):\n    yield ferramenta.exists(\".\")\n\nassert Cap.executar(com_o_que_recebeu, [], [IO])\n\n// e o modulo diz na cara o que NAO e — se a doc prometesse contencao,\n// alguem o usaria onde nao pode, e descobriria por incidente\nlimites := Cap.limites()\nassert len(limites) bigger_eq 3\nassert \"hostil\" in join(\" \", limites)\n\n// a fronteira se desfaz SEMPRE, inclusive quando o corpo falha\naction quebra():\n    yield 1 / 0        // df: permitir division-by-zero\n\nmonitor:\n    Cap.executar(quebra, [])\nhandle Error:\n    void\n\n// fora da fronteira, o adopt volta a funcionar\nadopt Arcane.IO as IO2\nassert IO2.exists(\".\")\n\nout \"264 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -12088,9 +12202,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2647,
+  "testes": 2674,
   "exemplos": 44,
-  "arquivosDf": 373
+  "arquivosDf": 374
  },
  "mundo": {
   "estrelas": 0,

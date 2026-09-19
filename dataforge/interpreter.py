@@ -2107,6 +2107,9 @@ class Interpreter:
 
         self.global_env = Environment(name="<global>")
         self.modules = {}
+        #: [(modulo, ms)] — quanto cada 'adopt' custou. E o que 'Arcane.Inicio'
+        #: le para dizer onde a partida foi gasta.
+        self.boot_adocoes = []
         #: Os 'type' declarados. Nasce vazio, e quem nao declara nenhum
         #: nao paga nada: '_check_type' so olha para ca quando o nome
         #: nao e um tipo embutido.
@@ -7294,7 +7297,13 @@ class Interpreter:
             adopt {sqrt} from Arcane.Math   — idem, com a ordem invertida
         """
         nome_modulo = node.module
+        # Quanto cada 'adopt' custou na partida. Sao dois floats por
+        # import — e e a unica forma de responder "por que o programa
+        # demora 400 ms para comecar?" sem cronometrar a mao.
+        _comeco = time.perf_counter()
         modulo = self._resolver_modulo(nome_modulo, node, env)
+        self.boot_adocoes.append(
+            (nome_modulo, (time.perf_counter() - _comeco) * 1000.0))
 
         if node.selection:
             faltando = [n for n, _ in node.selection if n not in modulo]

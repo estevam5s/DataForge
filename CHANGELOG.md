@@ -14,6 +14,57 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.Inicio`: o que roda antes da primeira linha
+
+- **As sete fases da partida**, nomeadas e em ordem (`lexer`, `parser`,
+  `comptime`, `hoisting`, `adopt`, `programa`, `defer`), cada uma com o
+  que faz escrito ao lado — uma lista de nomes sem explicação apodrece.
+- **Cada `adopt` é cronometrado.** Era a única forma de responder "por
+  que a partida demora 400 ms?" sem cronometrar à mão. A medida é
+  **sempre ligada**: são dois floats por import, num lugar que roda uma
+  vez, e ligá-la por opção a faria existir só para quem já desconfiava.
+- **Uma variável por thread com inicialização e finalizador.**
+  `threading.local` dá o armazém e não dá o resto — sem finalizador, uma
+  conexão aberta por thread fica aberta depois que ela morre, e o
+  sintoma aparece no servidor, não no código. `inicial` é uma **ação que
+  constrói** o valor, e passar um valor é recusado: um valor seria
+  compartilhado por todas as threads, que é o que a variável existe para
+  evitar.
+- **A pilha se pergunta**: `I.pilha()` (profundidade, teto, quanto
+  falta), `I.quadros()` (quem chamou quem) e `I.limite_da_pilha()`.
+  Baixar o teto vale de verdade; **subir é recusado** além do que o
+  Python aguenta — cada chamada desta linguagem gasta vários quadros do
+  CPython, e um teto alto demais troca uma mensagem clara por um
+  `RecursionError` cru que não fala desta linguagem.
+
+### Adicionado — `Arcane.Capacidade`: a fronteira de autoridade
+
+- O `comptime` já recusava `out`, `adopt` e `thread`: era uma fronteira
+  escrita à mão, para um caso só. E o `--plugin=` roda um `.df`
+  arbitrário do projeto com **todos** os poderes.
+- `Cap.executar(acao, permissoes)` recusa o `adopt` de um módulo fora da
+  lista **pelo nome da capacidade que falta**. Oito capacidades:
+  `arquivos`, `rede`, `processo`, `banco`, `threads`, `nativo`,
+  `python`, `ambiente`.
+- **A ponte para o Python é capacidade própria**, e nunca vem junto: ela
+  alcança tudo o que o Python alcança, e deixá-la com outra faria o
+  resto da lista virar enfeite.
+- Um nome inventado é **recusado com a lista** — um erro de digitação
+  concederia silenciosamente nada, e a fronteira pareceria mais aberta.
+- `Cap.observar` responde "de que esta ação precisa?": rode sem nada e
+  leia os negados.
+- **O limite está escrito em voz alta**, e `Cap.limites()` o devolve em
+  execução: **não é caixa contra programa hostil**; ele bloqueia a
+  autoridade **ambiente** e **não tira o que foi ENTREGUE** — o que é o
+  modelo de capacidade, não um defeito. Um módulo chamado *Sandbox* que
+  prometesse contenção seria usado onde não pode, e a descoberta viria
+  por incidente.
+- Documentação:
+  [`/docs/partida/inicio`](https://dataforge-lang.vercel.app/docs/partida/inicio),
+  `/por-thread`, `/pilha`, `/docs/seguranca/capacidade`, o mapa das
+  partes 13 e 15, e **o mapa de hardware** (partes 9, 14 e 16 — todas
+  "não se aplica", com o porquê de cada uma); exercício 264.
+
 ### Adicionado — `Arcane.Perfil`: percentis, significância e regressão
 
 - **A média esconde o que o usuário sente.** Cem requisições de 10 ms e

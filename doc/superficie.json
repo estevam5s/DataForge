@@ -9,6 +9,7 @@
     "Arcane.Bench",
     "Arcane.Bytes",
     "Arcane.C",
+    "Arcane.Capacidade",
     "Arcane.Cli",
     "Arcane.Collections",
     "Arcane.Color",
@@ -29,6 +30,7 @@
     "Arcane.Html",
     "Arcane.Http",
     "Arcane.IO",
+    "Arcane.Inicio",
     "Arcane.Injecao",
     "Arcane.Iter",
     "Arcane.Kiln",
@@ -74,6 +76,7 @@
     "Bridge",
     "Bytes",
     "C",
+    "Capacidade",
     "Cli",
     "Collections",
     "Color",
@@ -102,6 +105,7 @@
     "Html",
     "Http",
     "IO",
+    "Inicio",
     "Injecao",
     "Iter",
     "Kiln",
@@ -848,6 +852,14 @@
       "tipos",
       "uniao"
     ],
+    "Arcane.Capacidade": [
+      "capacidades",
+      "executar",
+      "exige",
+      "limites",
+      "modulos_de",
+      "observar"
+    ],
     "Arcane.Cli": [
       "Comando",
       "Console",
@@ -1510,6 +1522,20 @@
       "write_csv",
       "write_file",
       "write_json"
+    ],
+    "Arcane.Inicio": [
+      "adocoes",
+      "definir",
+      "fases",
+      "limite_da_pilha",
+      "limpar",
+      "local",
+      "meu",
+      "pilha",
+      "quadros",
+      "relatorio",
+      "texto_do_relatorio",
+      "threads_com_valor"
     ],
     "Arcane.Injecao": [
       "ESCOPOS",

@@ -51,6 +51,8 @@ from .arcane_eventos import ArcaneEventos
 from .arcane_c import ArcaneC
 from .arcane_dsl import ArcaneDsl
 from .arcane_compilador import ArcaneCompilador
+from .arcane_capacidade import ArcaneCapacidade
+from .arcane_inicio import ArcaneInicio
 from .arcane_laco import ArcaneLaco
 from .arcane_perfil import ArcanePerfil
 from .arcane_macro import ArcaneMacro
@@ -188,6 +190,10 @@ _MODULES = {
     "Reator": ArcaneLaco,
     "Arcane.Perfil": ArcanePerfil,
     "Perfil": ArcanePerfil,
+    "Arcane.Inicio": ArcaneInicio,
+    "Inicio": ArcaneInicio,
+    "Arcane.Capacidade": ArcaneCapacidade,
+    "Capacidade": ArcaneCapacidade,
     "Arcane.Dsl": ArcaneDsl,
     "Dsl": ArcaneDsl,
     "Arcane.Posse": ArcanePosse,

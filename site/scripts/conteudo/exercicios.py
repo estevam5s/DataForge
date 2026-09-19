@@ -283,6 +283,7 @@ TITULOS = {
     "43-backend": "Backend e otimização",
     "44-runtime": "Runtime e laço de eventos",
     "45-observabilidade": "Observabilidade e memória",
+    "46-partida": "Partida, pilha e capacidade",
 }
 
 
@@ -367,7 +368,7 @@ def _pagina_modulo(nome, itens, caminhos):
     # ── O corpo: cada exercício, por inteiro ──────────────────────
     #
     # Antes a página parava na tabela acima: título e enunciado, e nada
-    # do código. Quem chegava por busca via a PROMESSA de 263 exercícios
+    # do código. Quem chegava por busca via a PROMESSA de 264 exercícios
     # e nenhum deles — para ler um, era preciso clonar o repositório.
     # O código é a resposta e o teste ao mesmo tempo; escondê-lo
     # esvazia a seção inteira.

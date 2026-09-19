@@ -624,9 +624,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 263 | [`263_perfil_e_coletor.df`](45-observabilidade/263_perfil_e_coletor.df) · [doc](45-observabilidade/263_perfil_e_coletor.md) | medir com rigor, e o coletor sob controle |
 
+## 46 — Partida
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 264 | [`264_partida_pilha_e_capacidade.df`](46-partida/264_partida_pilha_e_capacidade.df) · [doc](46-partida/264_partida_pilha_e_capacidade.md) | a partida, a pilha e a fronteira de capacidade |
+
 ---
 
-**Total: 263 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 264 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

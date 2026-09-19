@@ -7,9 +7,9 @@ Python e do Node). Atacar "tudo" de uma vez não é um plano — é uma lista.
 
 Este documento é o **mapa**: cada área de capacidade dos dois documentos,
 cruzada com o que a linguagem já tem. Ele foi feito medindo — lendo os
-símbolos dos 64 módulos, não a memória de quem escreveu.
+símbolos dos 66 módulos, não a memória de quem escreveu.
 
-Atualizado em 2026-09-17, com 64 módulos e 1.539 símbolos.
+Atualizado em 2026-09-17, com 66 módulos e 1.539 símbolos.
 
 ---
 

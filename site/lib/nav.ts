@@ -281,6 +281,17 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Partida e segurança',
+    items: [
+      { title: 'Antes da primeira linha', href: '/docs/partida/inicio' },
+      { title: 'Uma variável por thread', href: '/docs/partida/por-thread' },
+      { title: 'A pilha', href: '/docs/partida/pilha' },
+      { title: 'Fronteira de capacidade', href: '/docs/seguranca/capacidade' },
+      { title: 'Partida e segurança: o mapa', href: '/docs/partida/mapa' },
+      { title: 'Hardware: o mapa', href: '/docs/hardware/mapa' },
+    ],
+  },
+  {
     title: 'Concorrência avançada',
     items: [
       { title: 'Memória transacional', href: '/docs/concorrencia/stm' },
@@ -467,6 +478,7 @@ export const nav: NavSection[] = [
       { title: 'Backend e otimização', href: '/docs/exercicios/43-backend' },
       { title: 'Runtime e laço de eventos', href: '/docs/exercicios/44-runtime' },
       { title: 'Observabilidade e memória', href: '/docs/exercicios/45-observabilidade' },
+      { title: 'Partida, pilha e capacidade', href: '/docs/exercicios/46-partida' },
     ],
   },
   {
