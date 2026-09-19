@@ -14,6 +14,63 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.Abi`: a superfície é o contrato
+
+- **Quebrar a superfície de um módulo é o mesmo problema que quebrar uma
+  ABI**, com outro nome e o mesmo sintoma cruel: não é erro de
+  compilação de quem publicou — o módulo novo compila, os testes passam,
+  o pacote sobe — e o erro acontece na máquina de **quem consome**,
+  depois, no dia da atualização.
+- O gerenciador de pacotes já tinha semver, `forge.lock` e verificação
+  de integridade. **Faltava o que decide o número**: nada conferia se a
+  versão nova quebra a anterior, e o bump era escolhido a olho.
+- `dataforge abi antes.df depois.df` compara duas versões e devolve o
+  veredito que a mudança **exige**: `maior`, `menor` ou `correcao`. Sai
+  com **2** quando quebra, para reprovar no CI.
+- **Onze regras nomeadas**, cada uma com o porquê e o que fazer:
+  `simbolo-removido`, `especie-trocada`, `aridade-incompativel`,
+  `parametro-renomeado`, `tipo-de-parametro`, `retorno-trocado`,
+  `campo-removido` — e as compatíveis `simbolo-novo`,
+  `parametro-opcional-novo`, `campo-novo-opcional`.
+- **`parametro-renomeado` é a regra que uma ferramenta feita para C não
+  precisaria ter**: aqui a chamada com nome existe (`somar(a := 1)`),
+  então o nome do parâmetro é contrato e não só a posição.
+- **Um terceiro balde para o que a superfície não decide.** Acrescentar
+  campo a um `record` quebra *se* ele não tiver padrão — e a superfície
+  lê a declaração sem executá-la, então não sabe qual dos dois é.
+  Acusar reprovaria um release correto; calar deixaria passar um que
+  quebra. `campo-novo-em-record` aparece em destaque e não reprova;
+  `--estrito` o trata como quebra.
+- **Uma superfície que não compila não julga**: devolve `desconhecido`
+  com o motivo. Um falso alarme aqui desliga a conferência inteira.
+- **`Abi.mapa`** — de onde vem cada nome: `modulo`, `local`, `embutido`
+  ou **`desconhecido`**. É o análogo do mapa que um ligador escreve, e a
+  linha `desconhecido` é a que paga a ferramenta.
+
+### Adicionado — `Arcane.Alvo`: onde este programa roda
+
+- `dataforge alvo app.df --alvo=navegador` responde a partir dos
+  `adopt`. **Seis alvos**: `servidor`, `cli`, `navegador`, `wasi`,
+  `funcao` (serverless) e `embarcado`.
+- **Cada ausência vem com o motivo**, e não só com um `não`: threads no
+  navegador dependem de `SharedArrayBuffer` e de isolamento de origem;
+  soquete cru não existe numa aba; o WASI não tem `fork`.
+- **O vocabulário é o mesmo** de `Arcane.Capacidade`: lá as capacidades
+  são cobradas em execução, aqui são lidas antes de rodar. Dois
+  vocabulários divergiriam no primeiro módulo novo.
+- **O limite está dito em voz alta**, e `Alvo.limites()` o devolve em
+  execução: a leitura é **estática**, de um arquivo; um módulo alcançado
+  indiretamente não aparece; e um `roda` quer dizer "não achei
+  impedimento por esta via", não "vai funcionar".
+- **WebAssembly, com precisão**: *compilar para* WASM **não existe**;
+  *rodar em* WASM **funciona**, pelo Pyodide — é rodar o CPython em
+  WebAssembly, e o interpretador inteiro vai junto. A página separa as
+  duas frases, porque a diferença aparece no tamanho do artefato.
+- Documentação:
+  [`/docs/abi/superficie`](https://dataforge-lang.vercel.app/docs/abi/superficie),
+  `/compatibilidade`, `/simbolos`, `/docs/alvos/portabilidade`,
+  `/docs/alvos/wasm` e o mapa das partes 18 e 19; exercício 265.
+
 ### Adicionado — `Arcane.Inicio`: o que roda antes da primeira linha
 
 - **As sete fases da partida**, nomeadas e em ordem (`lexer`, `parser`,

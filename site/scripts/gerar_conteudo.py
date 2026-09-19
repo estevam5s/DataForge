@@ -56,6 +56,7 @@ MODULOS = [
     "runtime_laco",
     "observabilidade",
     "partida_e_seguranca",
+    "abi_e_alvos",
     "plataforma",
     "vitrine",
     "versoes",

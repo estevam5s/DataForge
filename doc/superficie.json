@@ -1,8 +1,12 @@
 {
   "apelidos": [
     "API",
+    "Abi",
+    "Alvo",
     "Analytics",
     "Arcane.API",
+    "Arcane.Abi",
+    "Arcane.Alvo",
     "Arcane.Analytics",
     "Arcane.Archive",
     "Arcane.Async",
@@ -359,7 +363,9 @@
     "--version",
     "-V",
     "-h",
+    "abi",
     "add",
+    "alvo",
     "api",
     "ast",
     "bench",
@@ -654,6 +660,25 @@
       "postman",
       "resumo",
       "rotas"
+    ],
+    "Arcane.Abi": [
+      "comparar",
+      "compativel",
+      "mapa",
+      "quebras",
+      "regras",
+      "relatorio",
+      "superficie",
+      "veredito"
+    ],
+    "Arcane.Alvo": [
+      "alvos",
+      "conferir",
+      "conferir_todos",
+      "exigencias",
+      "limites",
+      "porque",
+      "relatorio"
     ],
     "Arcane.Analytics": [
       "DataFrame",

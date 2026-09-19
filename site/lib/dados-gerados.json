@@ -42,6 +42,95 @@
     }
    ]
   },
+  "abi": {
+   "nome": "Arcane.Abi",
+   "desc": "A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. Compara duas versoes e diz o que quebrou (simbolo removido, aridade incompativel, parametro renomeado, tipo trocado, campo novo obrigatorio) e qual bump de semver a mudanca EXIGE. Mais o mapa de simbolos: de onde vem cada nome, o analogo do mapa que um ligador escreve.",
+   "curto": "Abi",
+   "funcoes": [
+    {
+     "nome": "comparar",
+     "sig": "(antes, depois)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compativel",
+     "sig": "(antes, depois)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mapa",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "quebras",
+     "sig": "(antes, depois)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "regras",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "relatorio",
+     "sig": "(resultado)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "superficie",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "veredito",
+     "sig": "(antes, depois)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "alvo": {
+   "nome": "Arcane.Alvo",
+   "desc": "'Isso roda no navegador?', respondido a partir dos 'adopt'. Seis alvos descritos (servidor, cli, navegador, wasi, funcao serverless, embarcado) com o que cada um suporta e POR QUE nao suporta o resto, no mesmo vocabulario de capacidade do 'Arcane.Capacidade'. A leitura e ESTATICA e o modulo diz isso em 'limites()': um 'roda' quer dizer 'nao achei impedimento por esta via', e nao 'vai funcionar'.",
+   "curto": "Alvo",
+   "funcoes": [
+    {
+     "nome": "alvos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir",
+     "sig": "(caminho, alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir_todos",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exigencias",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limites",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "porque",
+     "sig": "(alvo, capacidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "relatorio",
+     "sig": "(resultado)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "analytics": {
    "nome": "Arcane.Analytics",
    "desc": "Análise de dados: estatística, regressão, clustering e gráficos ASCII.",
@@ -11857,6 +11946,16 @@
     "temDoc": true,
     "codigo": "// Exercicio 264 — a partida, a pilha e a fronteira de capacidade\n//\n// Um programa nao comeca na primeira linha: antes dela o comptime\n// rodou, os adopt carregaram e as declaracoes foram icadas. Nada disso\n// era VISIVEL — e \"por que a partida demora 400 ms?\" nao tinha como ser\n// respondido sem cronometrar a mao.\n\nadopt Arcane.Inicio as I\nadopt Arcane.Capacidade as Cap\nadopt Arcane.Math as M\n\n// tres modulos adotados: e o que a cronometragem da partida vai contar\nassert M.sqrt(9) is 3.0\n\n// ── as sete fases, nomeadas e em ordem ──\nfases := I.fases()\nassert [f[\"fase\"] cycle f in fases] is\n       [\"lexer\", \"parser\", \"comptime\", \"hoisting\", \"adopt\", \"programa\", \"defer\"]\n\n// cada uma tem o que faz escrito ao lado — uma lista de nomes sem\n// explicacao apodrece\nassert len(fases[0][\"o_que\"]) bigger 20\n\n// ── onde a partida foi gasta ──\n// Sao dois floats por import, num lugar que roda UMA VEZ. Liga-la por\n// opcao faria a medida existir so para quem ja desconfiava.\nregistro := I.adocoes()\nassert len(registro) bigger_eq 3\nassert \"modulo\" in registro[0] and \"ms\" in registro[0]\n\nr := I.relatorio()\nassert r[\"adocoes\"] bigger_eq 3\nassert r[\"total_ms\"] bigger_eq 0.0\nassert r[\"mais_caro\"][\"modulo\"] isnt \"\"\n\n// ── a pilha: ela tinha limite e nao tinha como ser perguntada ──\naction folha():\n    yield I.pilha()\n\naction tronco():\n    yield folha()\n\np := tronco()\nassert p[\"profundidade\"] bigger_eq 2\nassert p[\"limite\"] bigger 100\nassert p[\"restante\"] is p[\"limite\"] - p[\"profundidade\"]\n\n// os quadros trazem quem chamou quem\naction quem():\n    yield [q[\"acao\"] cycle q in I.quadros()]\n\nnomes := quem()\nassert \"quem\" in nomes\n\n// o teto se ajusta, e BAIXA-LO vale de verdade\nantes := I.limite_da_pilha()\nI.limite_da_pilha(300)\nassert I.pilha()[\"limite\"] is 300\nI.limite_da_pilha(antes)\nassert I.pilha()[\"limite\"] is antes\n\n// subir demais e RECUSADO: cada chamada da linguagem gasta varios\n// quadros do CPython, e um teto alto demais troca uma mensagem clara\n// por um RecursionError cru que nao fala desta linguagem\nmonitor:\n    I.limite_da_pilha(10000000)\n    assert no\nhandle RuntimeError as e:\n    assert \"Python\" in e.message or \"recursion\" in e.message\n\n// ── uma variavel por thread ──\n// 'inicial' e uma ACAO que constroi o valor, e nao o valor: um valor\n// seria compartilhado por todas as threads, que e exatamente o que a\n// variavel por thread existe para evitar.\ncontador := I.local(lambda => {\"n\": 0})\ncaixa := I.meu(contador)\ncaixa[\"n\"] := caixa[\"n\"] + 1\nassert I.meu(contador)[\"n\"] is 1\nassert I.threads_com_valor(contador) bigger_eq 1\n\n// limpar esquece, e o proximo 'meu' nasce de novo\nI.limpar(contador)\nassert I.meu(contador)[\"n\"] is 0\n\n// passar um VALOR em vez de uma acao e recusado, com o motivo\nmonitor:\n    I.local({\"n\": 0})\n    assert no\nhandle RuntimeError as e:\n    assert \"thread\" in e.message\n\n// ── a fronteira de capacidade ──\n// O comptime ja recusava out, adopt e thread: e uma fronteira escrita a\n// mao para um caso so. E o --plugin= roda um .df arbitrario do projeto\n// com TODOS os poderes — uma regra de lint que pode abrir soquete.\n\n// o que e puro roda sem permissao nenhuma\naction formula():\n    adopt Arcane.Math as Mat\n    yield Mat.sqrt(16) + len(\"abc\")\n\nassert Cap.executar(formula, []) is 7.0\n\n// o adopt ambiente e recusado pelo NOME da capacidade que falta\naction ler_disco():\n    adopt Arcane.IO as IO\n    yield IO.exists(\".\")\n\nmonitor:\n    Cap.executar(ler_disco, [])\n    assert no\nhandle Error as e:\n    assert \"arquivos\" in e.message\n    assert \"Arcane.IO\" in e.message\n\n// com a permissao, o MESMO codigo passa\nassert Cap.executar(ler_disco, [\"arquivos\"])\n\n// a ponte para o Python e capacidade PROPRIA, e nunca vem junto: ela\n// alcanca tudo o que o Python alcanca, e deixa-la com outra faria o\n// resto da lista virar enfeite\naction escapar():\n    adopt Python.os as so\n    yield so.getcwd()\n\nmonitor:\n    Cap.executar(escapar, [\"arquivos\", \"rede\", \"processo\", \"banco\",\n                             \"threads\", \"nativo\", \"ambiente\"])\n    assert no\nhandle Error as e:\n    assert \"python\" in e.message\n\n// uma capacidade inventada e recusada COM A LISTA: um erro de digitacao\n// concederia silenciosamente nada, e o cofre pareceria mais aberto\nmonitor:\n    Cap.executar(formula, [\"superpoderes\"])\n    assert no\nhandle Error as e:\n    assert \"superpoderes\" in e.message\n\n// descobrir de que uma acao precisa, sem adivinhar\naction tenta():\n    monitor:\n        adopt Arcane.OS as OS\n        yield OS.name()\n    handle Error:\n        yield \"negado\"\n\nvisto := Cap.observar(tenta, [])\nassert visto[\"resultado\"] is \"negado\"\nassert visto[\"negados\"][0][\"capacidade\"] is \"processo\"\n\nassert Cap.exige(\"Arcane.OS\") is \"processo\"\nassert Cap.exige(\"Arcane.Math\") is void      // inofensivo\nassert len(Cap.modulos_de(\"rede\")) bigger 5\n\n// ── o limite HONESTO, e ele e o modelo ──\n// Capacidade e o que o codigo ALCANCA, nao o que lhe foi entregue. Um\n// cofre que prometesse o contrario mentiria.\nadopt Arcane.IO as IO\n\naction com_o_que_recebeu(ferramenta):\n    yield ferramenta.exists(\".\")\n\nassert Cap.executar(com_o_que_recebeu, [], [IO])\n\n// e o modulo diz na cara o que NAO e — se a doc prometesse contencao,\n// alguem o usaria onde nao pode, e descobriria por incidente\nlimites := Cap.limites()\nassert len(limites) bigger_eq 3\nassert \"hostil\" in join(\" \", limites)\n\n// a fronteira se desfaz SEMPRE, inclusive quando o corpo falha\naction quebra():\n    yield 1 / 0        // df: permitir division-by-zero\n\nmonitor:\n    Cap.executar(quebra, [])\nhandle Error:\n    void\n\n// fora da fronteira, o adopt volta a funcionar\nadopt Arcane.IO as IO2\nassert IO2.exists(\".\")\n\nout \"264 ok\"\n"
    }
+  ],
+  "47-abi-e-alvos": [
+   {
+    "num": "265",
+    "titulo": "a superficie como contrato, e o alvo como restricao",
+    "enunciado": "",
+    "arquivo": "265_superficie_e_alvos.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 265 — a superficie como contrato, e o alvo como restricao\n//\n// Numa linguagem compilada, quebrar a ABI e trocar o layout de uma\n// struct ou a convencao de chamada, e o sintoma e cruel: o programa\n// CARREGA e corrompe memoria, longe da causa.\n//\n// Aqui nao ha layout binario a quebrar — e existe EXATAMENTE o mesmo\n// problema, com outro nome. A superficie de um modulo e o contrato\n// dele, e o sintoma tambem e o mesmo: nao e erro de quem publicou, e\n// erro de quem consome, depois.\n\nadopt Arcane.Abi as Abi\nadopt Arcane.Alvo as Alvo\nadopt Arcane.Capacidade as Cap\nadopt Arcane.IO as IO\nadopt Arcane.OS as OS\n\npasta := $\"{OS.temp_dir()}/df-265-{randint(100000, 999999)}\"\nIO.mkdir(pasta)\n\nV1 := \"action somar(a: Integer, b: Integer) -> Integer:\\n\" +\n      \"    yield a + b\\n\\n\" +\n      \"action saudar(nome: String) -> String:\\n\" +\n      \"    yield nome\\n\\n\" +\n      \"record Ponto:\\n\" +\n      \"    x: Integer\\n\" +\n      \"    y: Integer\\n\\n\" +\n      \"action interna():\\n\" +\n      \"    yield 1\\n\\n\" +\n      \"relay somar, saudar, Ponto\\n\"\n\nantes := $\"{pasta}/v1.df\"\nIO.write(antes, V1)\n\n// ── a superficie respeita o relay ──\n// Um modulo que DECLARA o que exporta esta dizendo que o resto e\n// interno — e o que e interno nao e contrato.\ns := Abi.superficie(antes)\nassert sorted(keys(s)) is [\"Ponto\", \"saudar\", \"somar\"]\nassert \"interna\" not in s\n\nassert s[\"somar\"][\"especie\"] is \"acao\"\nassert s[\"somar\"][\"parametros\"] is [\"a\", \"b\"]\nassert s[\"somar\"][\"tipos\"][\"a\"] is \"Integer\"\nassert s[\"somar\"][\"retorno\"] is \"Integer\"\nassert sorted(s[\"Ponto\"][\"campos\"]) is [\"x\", \"y\"]\n\n// ── nada mudou: correcao ──\nigual := $\"{pasta}/igual.df\"\nIO.write(igual, V1)\nassert Abi.comparar(antes, igual)[\"veredito\"] is \"correcao\"\n\n// ── so acrescimo: menor ──\nmaisUm := $\"{pasta}/mais.df\"\nIO.write(maisUm, V1.replace(\"relay somar, saudar, Ponto\",\n                            \"action dobrar(n):\\n    yield n * 2\\n\\n\" +\n                            \"relay somar, saudar, Ponto, dobrar\"))\nr := Abi.comparar(antes, maisUm)\nassert r[\"veredito\"] is \"menor\"\nassert r[\"quebras\"] is []\nassert r[\"compativeis\"][0][\"tipo\"] is \"simbolo-novo\"\n\n// ── tirar um simbolo: maior ──\nsemSaudar := $\"{pasta}/sem.df\"\nIO.write(semSaudar, V1.replace(\"relay somar, saudar, Ponto\",\n                               \"relay somar, Ponto\"))\nq := Abi.comparar(antes, semSaudar)\nassert q[\"veredito\"] is \"maior\"\nassert q[\"quebras\"][0][\"tipo\"] is \"simbolo-removido\"\nassert q[\"quebras\"][0][\"nome\"] is \"saudar\"\n// cada quebra diz o que fazer, e nao so o que houve\nassert len(q[\"quebras\"][0][\"dica\"]) bigger 15\n\n// ── exigir mais um argumento: maior ──\nmaisArg := $\"{pasta}/arg.df\"\nIO.write(maisArg, V1.replace(\"action somar(a: Integer, b: Integer)\",\n                             \"action somar(a: Integer, b: Integer, c: Integer)\"))\nassert Abi.veredito(antes, maisArg) is \"maior\"\n\n// mas um parametro OPCIONAL novo nao quebra: quem chamava com dois\n// continua chamando com dois\nopcional := $\"{pasta}/opc.df\"\nIO.write(opcional, V1.replace(\"action somar(a: Integer, b: Integer)\",\n                              \"action somar(a: Integer, b: Integer, c := 0)\"))\nassert Abi.veredito(antes, opcional) is \"menor\"\nassert Abi.compativel(antes, opcional)\n\n// ── renomear um parametro: maior ──\n// E a regra que uma ferramenta feita para C nao precisaria ter: nesta\n// linguagem a chamada com NOME existe, entao o nome do parametro e\n// contrato, e nao so a posicao.\nrenomeado := $\"{pasta}/ren.df\"\nIO.write(renomeado, V1.replace(\"action somar(a: Integer, b: Integer)\",\n                               \"action somar(x: Integer, b: Integer)\"))\nquebras := Abi.quebras(antes, renomeado)\nassert len([k cycle k in quebras given k[\"tipo\"] is \"parametro-renomeado\"]) is 1\n\n// ── trocar o retorno: maior ──\n// O tipo de retorno ATRAVESSA a fronteira do adopt: quem usava o valor\n// perde a conferencia, ou e acusado.\nretorno := $\"{pasta}/ret.df\"\nIO.write(retorno, V1.replace(\"-> Integer:\\n    yield a + b\", \"-> Float:\\n    yield a + b\"))\nassert len([k cycle k in Abi.quebras(antes, retorno)\n            given k[\"tipo\"] is \"retorno-trocado\"]) is 1\n\n// ── o terceiro balde: o que a superficie NAO decide ──\n// Acrescentar campo a um record quebra SE ele nao tiver padrao. A\n// superficie le a declaracao sem executa-la e nao sabe qual dos dois e.\n// Acusar quebra reprovaria um release correto; calar deixaria passar um\n// que quebra. O honesto e um terceiro balde.\ncampoNovo := $\"{pasta}/campo.df\"\nIO.write(campoNovo, V1.replace(\"    y: Integer\\n\", \"    y: Integer\\n    z: Integer\\n\"))\nc := Abi.comparar(antes, campoNovo)\nassert c[\"atencao\"][0][\"tipo\"] is \"campo-novo-em-record\"\nassert len([k cycle k in c[\"quebras\"] given k[\"nome\"] is \"Ponto\"]) is 0\n\n// ── uma superficie que nao compila NAO JULGA ──\n// Um falso alarme aqui reprova um release que esta certo.\nquebrado := $\"{pasta}/quebrado.df\"\nIO.write(quebrado, \"action mal(:\\n\")\nd := Abi.comparar(antes, quebrado)\nassert d[\"veredito\"] is \"desconhecido\"\nassert d[\"motivo\"] isnt \"\"\n\n// ── o mapa de simbolos: o analogo do mapa do ligador ──\nprog := $\"{pasta}/prog.df\"\nIO.write(prog, \"adopt Arcane.Math as M\\n\\n\" +\n               \"action calcular(n):\\n\" +\n               \"    yield M.sqrt(n) + len(\\\"abc\\\") + fantasma\\n\")\n\norigem := {e[\"nome\"]: e[\"origem\"] cycle e in Abi.mapa(prog)}\nassert origem[\"M\"] is \"modulo\"\nassert origem[\"len\"] is \"embutido\"\nassert origem[\"calcular\"] is \"local\"\nassert origem[\"fantasma\"] is \"desconhecido\"   // NINGUEM prove este nome\n\n// ── PARTE 19: onde este programa roda ──\ncomProcesso := $\"{pasta}/servidor.df\"\nIO.write(comProcesso, \"adopt Arcane.Process as P\\nadopt Arcane.IO as F\\nout 1\\n\")\n\n// as exigencias saem dos adopt, com a linha\nexigencias := Alvo.exigencias(comProcesso)\nassert sorted([e[\"capacidade\"] cycle e in exigencias]) is [\"arquivos\", \"processo\"]\nassert exigencias[0][\"linha\"] bigger 0\n\n// e o vocabulario e o MESMO do Arcane.Capacidade: dois vocabularios\n// divergiriam no primeiro modulo novo\nassert Cap.exige(\"Arcane.Process\") is \"processo\"\n\n// no servidor roda; numa aba, nao\nassert Alvo.conferir(comProcesso, \"servidor\")[\"roda\"]\naba := Alvo.conferir(comProcesso, \"navegador\")\nassert not aba[\"roda\"]\nassert len(aba[\"problemas\"]) is 2\n\n// e cada ausencia vem com o MOTIVO, nao so com um \"nao\"\nassert \"SharedArrayBuffer\" in Alvo.porque(\"navegador\", \"threads\")\nassert \"soquete cru\" in Alvo.porque(\"navegador\", \"rede\")\nassert Alvo.porque(\"servidor\", \"rede\") is \"\"   // ele tem\n\n// um programa puro roda em todo lugar\npuro := $\"{pasta}/puro.df\"\nIO.write(puro, \"adopt Arcane.Math as M\\nout M.sqrt(4)\\n\")\nassert Alvo.exigencias(puro) is []\ncycle nome in keys(Alvo.alvos()):\n    assert Alvo.conferir(puro, nome)[\"roda\"]\n\n// um alvo inventado e recusado COM A LISTA\nmonitor:\n    Alvo.conferir(puro, \"nintendo\")\n    assert no\nhandle RuntimeError as e:\n    assert \"nintendo\" in e.message\n    assert \"navegador\" in e.message\n\n// ── e a leitura e ESTATICA, e o modulo diz isso ──\n// Um \"roda\" quer dizer \"nao achei impedimento por esta via\", e nao\n// \"vai funcionar\".\nlimites := Alvo.limites()\nassert len(limites) bigger_eq 3\nassert \"adopt\" in join(\" \", limites)\n\nIO.remove_tree(pasta)\nout \"265 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -12202,9 +12301,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2674,
+  "testes": 2710,
   "exemplos": 44,
-  "arquivosDf": 374
+  "arquivosDf": 375
  },
  "mundo": {
   "estrelas": 0,

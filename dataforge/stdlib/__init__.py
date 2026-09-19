@@ -51,6 +51,8 @@ from .arcane_eventos import ArcaneEventos
 from .arcane_c import ArcaneC
 from .arcane_dsl import ArcaneDsl
 from .arcane_compilador import ArcaneCompilador
+from .arcane_abi import ArcaneAbi
+from .arcane_alvo import ArcaneAlvo
 from .arcane_capacidade import ArcaneCapacidade
 from .arcane_inicio import ArcaneInicio
 from .arcane_laco import ArcaneLaco
@@ -194,6 +196,10 @@ _MODULES = {
     "Inicio": ArcaneInicio,
     "Arcane.Capacidade": ArcaneCapacidade,
     "Capacidade": ArcaneCapacidade,
+    "Arcane.Abi": ArcaneAbi,
+    "Abi": ArcaneAbi,
+    "Arcane.Alvo": ArcaneAlvo,
+    "Alvo": ArcaneAlvo,
     "Arcane.Dsl": ArcaneDsl,
     "Dsl": ArcaneDsl,
     "Arcane.Posse": ArcanePosse,

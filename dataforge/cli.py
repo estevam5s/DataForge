@@ -477,6 +477,42 @@ GRUPOS = [
         Cmd("ast", "dataforge ast <arquivo>",
             "Mostra a arvore sintatica (parser)",
             veja=("tokens", "ir")),
+        Cmd("abi", "dataforge abi <antes.df> <depois.df>",
+            "Compara duas versoes e diz se a nova QUEBRA a anterior",
+            "A superficie de um modulo e o contrato dele: o que ele\n"
+            "exporta, com que aridade e com que tipos. Muda-la quebra\n"
+            "quem depende — em silencio, no dia da atualizacao.\n"
+            "\n"
+            "Sai com 1 quando ha quebra, para reprovar no CI. O veredito\n"
+            "e o bump de semver que a mudanca EXIGE:\n"
+            "\n"
+            "  maior     alguma coisa quebrou\n"
+            "  menor     so acrescimos compativeis\n"
+            "  correcao  a superficie nao mudou",
+            exemplos=[("dataforge abi v1/lib.df v2/lib.df", "o que mudou"),
+                      ("dataforge abi a.df b.df --json", "como dado")],
+            opcoes=[("--json", "o resultado como dado, para o CI ler"),
+                    ("--estrito", "trata como quebra o que a superficie nao "
+                                  "decide sozinha (campo novo num record)")],
+            veja=("alvo", "check")),
+        Cmd("alvo", "dataforge alvo <arquivo> [--alvo=<nome>]",
+            "Este programa roda no navegador? no WASI? numa funcao?",
+            "Le os 'adopt' e cruza com o que cada ambiente suporta.\n"
+            "\n"
+            "  servidor   maquina com sistema operacional completo\n"
+            "  cli        programa de linha de comando\n"
+            "  navegador  CPython em WebAssembly, dentro de uma aba\n"
+            "  wasi       WebAssembly fora do navegador\n"
+            "  funcao     serverless: efemero, e com o disco so de leitura\n"
+            "  embarcado  microcontrolador\n"
+            "\n"
+            "A leitura e ESTATICA: um 'roda' quer dizer 'nao achei\n"
+            "impedimento por esta via', e nao 'vai funcionar'.",
+            exemplos=[("dataforge alvo app.df", "a tabela de todos"),
+                      ("dataforge alvo app.df --alvo=navegador", "um so")],
+            opcoes=[("--alvo=<nome>", "confere um alvo, e sai com 1 se nao roda"),
+                    ("--json", "o resultado como dado")],
+            veja=("abi", "check")),
         Cmd("ir", "dataforge ir <arquivo> [--fase=…]",
             "Mostra o caminho inteiro: HIR, MIR, LIR e as analises",
             "As representacoes do meio, que 'tokens' e 'ast' nao mostram.\n"
@@ -686,6 +722,100 @@ def show_tokens(filepath: str):
     print(color(f"── Tokens for {filepath} ──", "1;35"))
     for tok in tokens:
         print(f"  {tok}")
+
+
+def abi_command(antes, depois, flags=()):
+    """`dataforge abi` — a nova versao quebra a anterior?
+
+    Sai com 1 quando ha quebra: e o que faz um CI reprovar um release
+    que subiria a versao MENOR tendo quebrado o contrato.
+    """
+    from .stdlib.arcane_abi import comparar, relatorio
+
+    for caminho in (antes, depois):
+        if not os.path.isfile(caminho):
+            print(color(f"Erro: '{caminho}' nao existe.", "1;31"))
+            return 1
+
+    try:
+        resultado = comparar(antes, depois)
+    except DataForgeError as erro:
+        print(color(f"Erro: {erro.message}", "1;31"))
+        return 1
+
+    if "--json" in flags:
+        import json as _json
+        print(_json.dumps(resultado, ensure_ascii=False, indent=2))
+        return 2 if resultado["veredito"] == "maior" else 0
+
+    print(color("── superficie ──", "1;35"))
+    print(relatorio(resultado))
+    if resultado["veredito"] == "desconhecido":
+        return 1
+    if resultado["veredito"] == "maior":
+        print()
+        print(color("  isto EXIGE subir a versao maior.", "1;31"))
+        return 2
+    if resultado.get("atencao") and "--estrito" in flags:
+        print()
+        print(color("  --estrito: os pontos indecidiveis contam como "
+                    "quebra.", "1;31"))
+        return 2
+    return 0
+
+
+def alvo_command(caminho, flags=()):
+    """`dataforge alvo` — onde este programa roda."""
+    from .stdlib.arcane_alvo import (alvos, conferir, conferir_todos,
+                                     limites, relatorio)
+
+    if not os.path.isfile(caminho):
+        print(color(f"Erro: '{caminho}' nao existe.", "1;31"))
+        return 1
+
+    pedido = ""
+    for flag in flags:
+        if flag.startswith("--alvo="):
+            pedido = flag.split("=", 1)[1].strip()
+
+    try:
+        if pedido:
+            resultado = conferir(caminho, pedido)
+        else:
+            resultado = conferir_todos(caminho)
+    except DataForgeError as erro:
+        print(color(f"Erro: {erro.message}", "1;31"))
+        return 1
+
+    if "--json" in flags:
+        import json as _json
+        print(_json.dumps(resultado, ensure_ascii=False, indent=2))
+        return 0 if (not pedido or resultado["roda"]) else 3
+
+    if pedido:
+        print(color(f"── {caminho} → {pedido} ──", "1;35"))
+        print(relatorio(resultado))
+        print()
+        for linha in limites():
+            print(color(f"  {linha}", "0;90"))
+        return 0 if resultado["roda"] else 3
+
+    print(color(f"── {caminho} ──", "1;35"))
+    descricoes = alvos()
+    for nome, veredito in resultado.items():
+        marca = color("roda", "1;32") if veredito["roda"] \
+            else color("nao roda", "1;31")
+        print(f"  {nome:<12} {marca}")
+        for problema in veredito["problemas"]:
+            print(color(f"      linha {problema['linha']}: "
+                        f"{problema['modulo']} precisa de "
+                        f"'{problema['capacidade']}'", "0;90"))
+        if not veredito["problemas"]:
+            print(color(f"      {descricoes[nome]['o_que_e']}", "0;90"))
+    print()
+    for linha in limites():
+        print(color(f"  {linha}", "0;90"))
+    return 0
 
 
 #: As fases que `dataforge ir` sabe mostrar, na ordem do caminho.
@@ -4352,6 +4482,21 @@ def main():
             print(color("Error: No file specified.", "1;31"))
             sys.exit(1)
         show_ast(args[1])
+
+    elif command == 'abi':
+        if len(args) < 3:
+            print(color("Erro: informe as duas versoes.", "1;31"))
+            print(color("      dataforge abi antes.df depois.df", "0;90"))
+            sys.exit(1)
+        sys.exit(abi_command(args[1], args[2], flags))
+
+    elif command == 'alvo':
+        if len(args) < 2:
+            print(color("Erro: informe o arquivo.", "1;31"))
+            print(color("      dataforge alvo app.df --alvo=navegador",
+                        "0;90"))
+            sys.exit(1)
+        sys.exit(alvo_command(args[1], flags))
 
     elif command == 'ir':
         if len(args) < 2:

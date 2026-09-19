@@ -67,7 +67,7 @@ com := Banco.explain(db, "SELECT * FROM vendas WHERE vendedor = ?", ["ana"])
   {"callout": {"tipo": "dica", "titulo": "Índice custa escrita", "texto": "Cada índice é uma árvore a atualizar em todo `INSERT` e `UPDATE`. Numa tabela de log com dez índices, gravar fica mais lento que ler. Meça com `explain` antes de acrescentar, e apague o que não aparece em nenhum plano."}},
   {"h2": "Um retrato do banco"},
   { code: `e := Banco.stats(db)
-// {"caminho": "loja.db", "bytes": 4915200, "total_de_linhas": 183844,
+// {"caminho": "loja.db", "bytes": 4915200, "total_de_linhas": 185344,
 //  "tabelas": [{"tabela": "vendas", "linhas": 180000,
 //               "colunas": 7, "indices": 3}, …]}
 

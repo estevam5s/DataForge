@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 264 exercícios
+python3 exercicios/run_all.py                        # 265 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -90,7 +90,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                66 módulos (1838 símbolos), incluindo:
+  stdlib/                68 módulos (1853 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -105,6 +105,8 @@ dataforge/
     arcane_perfil.py     percentis, significancia (Mann-Whitney), flame graph
     arcane_inicio.py     as fases da partida, TLS com finalizador, a pilha
     arcane_capacidade.py a fronteira de autoridade — e o que ela NAO e
+    arcane_abi.py        a superficie e o contrato: o que quebra, e que bump exige
+    arcane_alvo.py       onde este programa roda, lido dos 'adopt'
     arcane_macro.py      a arvore como dado: citar, transformar, gerar, derivar
     arcane_dsl.py        combinadores para uma linguagem externa propria
     arcane_stm.py        memoria transacional: escritas que acontecem juntas
@@ -124,7 +126,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        264 exercícios em 46 módulos + run_all.py
+exercicios/        265 exercícios em 47 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1395,6 +1397,47 @@ grep -rn "class ArcaneNOVO\b" dataforge/stdlib/
 E o que pegou foi o `check` sobre `examples/` — a mesma lição de sempre:
 comparar contra uma fonte de verdade, e não reler o código.
 
+### A superfície como contrato, e o terceiro balde
+
+`Arcane.Abi` responde "esta versão quebra a anterior?". O gerenciador de
+pacotes já tinha semver, lockfile e integridade — **faltava o que decide
+o número**, e o bump era escolhido a olho.
+
+A conta sai de `superficie.py`, o **mesmo** módulo que o `check` usa para
+atravessar arquivos. Uma segunda leitura divergiria da primeira, e aí as
+duas ferramentas passariam a discordar sobre o que um módulo oferece —
+que é o pior resultado possível para duas respostas da mesma pergunta.
+
+Três decisões, e cada uma tem um caso concreto atrás:
+
+| Decisão | Porque |
+|---|---|
+| **renomear parâmetro é quebra** | a chamada com nome existe aqui (`somar(a := 1)`), então o nome é contrato e não só a posição — uma ferramenta feita para C não teria esta regra |
+| **superfície que não compila não julga** (`desconhecido`) | um falso alarme reprova um release correto, e a segunda vez que isso acontece a conferência inteira é desligada |
+| **terceiro balde** para `campo-novo-em-record` | a superfície não carrega valor padrão, então ela **não sabe** se quebra. Acusar reprovaria o correto; calar deixaria passar o que quebra. `--estrito` decide para quem quer o alarme |
+
+E num `record` o **campo é a aridade**: comparar os dois contaria a mesma
+mudança duas vezes, com nomes diferentes — foi o que a primeira versão
+fez, e o relatório mostrava `Ponto` como quebra *e* como acréscimo
+compatível na mesma tela.
+
+### Alvo: o mesmo vocabulário, do outro lado
+
+`Arcane.Alvo` usa **as capacidades do `Arcane.Capacidade`**. Lá elas são
+cobradas em execução; aqui são lidas dos `adopt`, antes de rodar. Dois
+vocabulários divergiriam no primeiro módulo novo, e as duas respostas
+passariam a discordar.
+
+A leitura é **estática e de um arquivo**, e `limites()` diz isso em
+execução: um módulo alcançado indiretamente não aparece, e um `roda`
+quer dizer "não achei impedimento por esta via".
+
+E sobre WebAssembly, a distinção que a página faz e que vale repetir:
+**compilar para** WASM não existe; **rodar em** WASM funciona, pelo
+Pyodide, e é rodar o CPython em WebAssembly — com o interpretador
+inteiro junto. Emitir um `.wasm` parcial só para marcar a caixa não
+rodaria programa nenhum do repositório.
+
 ### O analisador estático é otimista de propósito
 
 Quando não consegue **provar** que algo está errado, fica calado. Um falso alarme
@@ -1944,7 +1987,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1838 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1853 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2089,6 +2132,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
 | `tests/test_oop_avancada.py` | `pytest` | contratos, modificadores, sobrecarga, metaclasses, reflexão, DI, padrões, memória, métricas, LSP — e **executa cada bloco `df`** das páginas de `/docs/oop` e da §7 da referência |
+| `tests/test_abi_e_alvos.py` | `pytest` | as onze regras de compatibilidade uma a uma, o terceiro balde do `record`, o mapa de simbolos achando o nome sem dono, e os seis perfis de alvo |
 | `tests/test_inicio_e_capacidade.py` | `pytest` | as fases da partida, o finalizador de thread, o teto da pilha que vale de verdade — e o teste que prova o **limite** da fronteira de capacidade |
 | `tests/test_perfil.py` | `pytest` | percentis, o flame graph das acoes, pausas do coletor — e o teste que **compara uma acao com ela mesma** e exige "empate" |
 | `tests/test_memoria_e_gc.py` | `pytest` | o coletor ligado e desligado, `sem_gc` religando mesmo com erro, congelar, arena — e a **medida** que prova a reducao de pausa |
@@ -2096,7 +2140,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_ssa_e_otimizacao.py` | `pytest` | dominancia, no phi, a propagacao condicional **comparada** com a do MIR, os tres passes provados pela saida, e o repositorio sem falso alarme |
 | `tests/test_compilador_interno.py` | `pytest` | HIR, MIR, LIR e as analises — inclusive a **equivalencia** do HIR rodando exercicios do repositorio nas duas formas e comparando a saida |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 264 exercícios em 46 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 265 exercícios em 47 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

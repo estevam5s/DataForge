@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "66 módulos e 1838 símbolos, sem uma única dependência externa.",
+  description: "68 módulos e 1853 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os 66 módulos"
+    "h2": "Os 68 módulos"
   },
   {
-    "p": "São **1838 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **1853 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -341,9 +341,19 @@ const blocos: Bloco[] = [
           "Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de um valor ('Cluster<Integer>', 'Tuple<Integer, String>') e os campos de um record ou instancia com o tipo de cada um."
         ],
         [
+          "`Arcane.Abi`",
+          "8",
+          "A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. Compara duas versoes e diz o que quebrou (simbolo removido, aridade incompativel, parametro renomeado, tipo trocado, campo novo obrigatorio) e qual bump de semver a mudanca EXIGE. Mais o mapa de simbolos: de onde vem cada nome, o analogo do mapa que um ligador escreve."
+        ],
+        [
           "[`Arcane.API`](/docs/tecnicas/api)",
           "7",
           "A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas."
+        ],
+        [
+          "`Arcane.Alvo`",
+          "7",
+          "'Isso roda no navegador?', respondido a partir dos 'adopt'. Seis alvos descritos (servidor, cli, navegador, wasi, funcao serverless, embarcado) com o que cada um suporta e POR QUE nao suporta o resto, no mesmo vocabulario de capacidade do 'Arcane.Capacidade'. A leitura e ESTATICA e o modulo diz isso em 'limites()': um 'roda' quer dizer 'nao achei impedimento por esta via', e nao 'vai funcionar'."
         ],
         [
           "`Arcane.Bench`",
@@ -429,13 +439,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-66-modulos', text: "Os 66 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-68-modulos', text: "Os 68 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"66 módulos e 1838 símbolos, sem uma única dependência externa."}
+      description={"68 módulos e 1853 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

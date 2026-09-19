@@ -632,9 +632,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 264 | [`264_partida_pilha_e_capacidade.df`](46-partida/264_partida_pilha_e_capacidade.df) · [doc](46-partida/264_partida_pilha_e_capacidade.md) | a partida, a pilha e a fronteira de capacidade |
 
+## 47 — Abi e alvos
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 265 | [`265_superficie_e_alvos.df`](47-abi-e-alvos/265_superficie_e_alvos.df) · [doc](47-abi-e-alvos/265_superficie_e_alvos.md) | a superficie como contrato, e o alvo como restricao |
+
 ---
 
-**Total: 264 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 265 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

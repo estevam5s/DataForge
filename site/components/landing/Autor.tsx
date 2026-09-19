@@ -7,7 +7,7 @@ const AUTOR = {
   nome: 'Estevam Souza',
   papel: 'Autor da linguagem',
   // A foto é ARQUIVO DO REPOSITÓRIO, e não o endereço do LinkedIn.
-  // Aquela URL é assinada e expira (`e=1838812800`): num dia qualquer
+  // Aquela URL é assinada e expira (`e=1853812800`): num dia qualquer
   // a página passaria a mostrar um buraco, sem nada explicando.
   foto: '/marca/estevam.jpg',
   github: 'https://github.com/estevam5s',

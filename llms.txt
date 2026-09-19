@@ -137,13 +137,15 @@ typeof      using       validate    void        wait        when
 with        yes         yield
 ```
 
-## A biblioteca: 66 modulos
+## A biblioteca: 68 modulos
 
 Todos por `adopt`. Nenhum precisa de instalacao.
 
 | Modulo | Simbolos | Para que serve |
 |---|---|---|
 | `Arcane.API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
+| `Arcane.Abi` | 8 | A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. |
+| `Arcane.Alvo` | 7 | 'Isso roda no navegador?', respondido a partir dos 'adopt'. |
 | `Arcane.Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
 | `Arcane.Archive` | 13 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
 | `Arcane.Async` | 52 | Promessas, filas, agendamento e execução concorrente. |

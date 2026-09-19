@@ -292,6 +292,17 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Superfície e alvos',
+    items: [
+      { title: 'A superfície é o contrato', href: '/docs/abi/superficie' },
+      { title: 'O que quebra', href: '/docs/abi/compatibilidade' },
+      { title: 'O mapa de símbolos', href: '/docs/abi/simbolos' },
+      { title: 'Onde este programa roda', href: '/docs/alvos/portabilidade' },
+      { title: 'WebAssembly, com precisão', href: '/docs/alvos/wasm' },
+      { title: 'ABI e alvos: o mapa', href: '/docs/abi/mapa' },
+    ],
+  },
+  {
     title: 'Concorrência avançada',
     items: [
       { title: 'Memória transacional', href: '/docs/concorrencia/stm' },
@@ -479,6 +490,7 @@ export const nav: NavSection[] = [
       { title: 'Runtime e laço de eventos', href: '/docs/exercicios/44-runtime' },
       { title: 'Observabilidade e memória', href: '/docs/exercicios/45-observabilidade' },
       { title: 'Partida, pilha e capacidade', href: '/docs/exercicios/46-partida' },
+      { title: 'Superfície e alvos', href: '/docs/exercicios/47-abi-e-alvos' },
     ],
   },
   {
