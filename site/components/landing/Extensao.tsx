@@ -37,7 +37,7 @@ const RECURSOS = [
     d: 'A complexidade estimada aparece como anotação sobre a declaração, e o custo do import ao lado de cada adopt.',
   },
   {
-    t: '49 comandos',
+    t: '52 comandos',
     d: 'Rodar com cronômetro, testar, cobertura, formatar, pacotes, Vitrine, DevOps e um painel dos bancos SQLite do projeto.',
   },
   {

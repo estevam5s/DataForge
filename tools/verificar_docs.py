@@ -236,9 +236,11 @@ def classificar(bloco):
     # Um bloco pode misturar código solto com uma rota: envolvê-lo
     # inteiro num 'server' quebraria o que vem antes, então o
     # tratamento é por trecho (veja preparar()).
-    if any(primeira.startswith(p) for p in FRAGMENTOS_KILN):
+    if _e_palavra_kiln(primeira):
         return "fragmento-kiln"
-    if any(re.match(rf"^\s*{p.strip()}\s", l) for l in linhas
+    if any(_e_palavra_kiln(l.lstrip())
+           and re.match(rf"^\s*{p.strip()}\s", l)
+           for l in linhas
            for p in ("route", "respond", "render", "redirect")):
         return "misto-kiln"
     if any(primeira.startswith(p) for p in FRAGMENTOS_BLUEPRINT):
@@ -287,6 +289,24 @@ def conferir_consulta_lavra(codigo):
     return None
 
 
+#: As palavras do Kiln sao CONTEXTUAIS: `route := "/x"` e uma atribuicao
+#: comum, e um trecho que DEMONSTRA isso — a documentacao tem um — nao
+#: pode ser lido como fragmento de rota: envolve-lo num 'server' faz o
+#: parser reclamar de ':=' nao ser um verbo HTTP, e o alarme e sobre
+#: codigo que roda.
+#:
+#: Ele recebe o texto COMO ESTA, sem tirar o recuo: em `preparar`, uma
+#: linha indentada nao abre um 'server' novo, e tirar o recuo aqui
+#: mudaria isso — quebrou 27 blocos que funcionavam, na primeira versao.
+def _e_palavra_kiln(texto):
+    """Comeca com uma palavra do Kiln USADA como palavra, e nao como nome?"""
+    for palavra in FRAGMENTOS_KILN:
+        if texto.startswith(palavra):
+            # ':=' ou '=' logo depois provam que ali e um NOME.
+            return not texto[len(palavra):].lstrip().startswith((":=", "="))
+    return False
+
+
 def preparar(codigo, tipo):
     """Envolve o fragmento no contexto em que ele será usado."""
     if tipo == "misto-kiln":
@@ -294,7 +314,7 @@ def preparar(codigo, tipo):
         # 'server'; o resto fica como está. É como o leitor usará.
         saida, dentro = [], False
         for linha in codigo.split("\n"):
-            abre = any(linha.startswith(p) for p in FRAGMENTOS_KILN)
+            abre = _e_palavra_kiln(linha)
             if abre and not dentro:
                 saida.append("server s on 0:")
                 dentro = True

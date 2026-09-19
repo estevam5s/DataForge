@@ -640,9 +640,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 265 | [`265_superficie_e_alvos.df`](47-abi-e-alvos/265_superficie_e_alvos.df) · [doc](47-abi-e-alvos/265_superficie_e_alvos.md) | a superficie como contrato, e o alvo como restricao |
 
+## 48 — Ecossistema
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 266 | [`266_ecossistema_e_principios.df`](48-ecossistema/266_ecossistema_e_principios.df) · [doc](48-ecossistema/266_ecossistema_e_principios.md) | o mapa que nao pode mentir, e o principio que se mede |
+
 ---
 
-**Total: 265 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 266 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

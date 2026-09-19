@@ -32,9 +32,9 @@ Tudo o que aparece em `doc/superficie.json`:
 
 - as **81 palavras reservadas** e a gramática que elas formam
 - as **228 funções embutidas** — nome e ordem dos parâmetros
-- os **68 módulos** `Arcane.*`, seus **apelidos** (`Zip`, `Cor`, `Banco`)
+- os **71 módulos** `Arcane.*`, seus **apelidos** (`Zip`, `Cor`, `Banco`)
   e cada símbolo público deles
-- os **61 comandos** da CLI e suas opções
+- os **64 comandos** da CLI e suas opções
 - os **190 códigos de erro** (`DF0101` e companhia) — o código, não o texto
 - o formato do `forge.toml` e do `forge.lock`
 

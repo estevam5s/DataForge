@@ -3399,6 +3399,58 @@
     }
    ]
   },
+  "ecossistema": {
+   "nome": "Arcane.Ecossistema",
+   "desc": "O inventario da implementacao, CONFERIDO contra ela. Cada componente do desenho do ecossistema aponta arquivos de verdade e carrega um de tres estados: 'existe', 'equivale' (ha outra peca que responde a mesma pergunta, nomeada) ou 'nao-existe' (com o porque escrito). 'conferir()' cobra as duas direcoes — todo caminho citado existe no disco, e todo modulo do nucleo aparece em algum componente —, e e isso que impede o mapa de mentir quando uma peca muda de nome. 'o_que_nao_existe()' e a resposta honesta a 'o DataForge tem backend LLVM?'.",
+   "curto": "Ecossistema",
+   "funcoes": [
+    {
+     "nome": "ESTADOS",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "arvore",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "componentes",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "equivalencias",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grupos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "numeros",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "o_que_nao_existe",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "relatorio",
+     "sig": "()",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "email": {
    "nome": "Arcane.Email",
    "desc": "Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato.",
@@ -6869,6 +6921,38 @@
     }
    ]
   },
+  "percurso": {
+   "nome": "Arcane.Percurso",
+   "desc": "O caminho inteiro de um arquivo, fase por fase, MEDIDO: lexer, parser, HIR, tipos, MIR, analises, SSA, passes e LIR, com o que cada fase produziu e quanto tempo levou. Responde 'onde o tempo vai' quando um arquivo demora a abrir no editor. Ele NAO executa o programa — executar e o que o programa faz, e um comando que mostra fases nao pode abrir soquete. Traz tambem as divergencias entre o caminho real e o desenho da referencia.",
+   "curto": "Percurso",
+   "funcoes": [
+    {
+     "nome": "desenho",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "divergencias",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fases",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "percorrer",
+     "sig": "(caminho, com_tipos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "relatorio",
+     "sig": "(resultado)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "perfil": {
    "nome": "Arcane.Perfil",
    "desc": "Medir com rigor, onde o 'Bench' da a media: percentis (p50, p95, p99, p999) com aquecimento separado, comparacao com SIGNIFICANCIA estatistica (Mann-Whitney, que nao supoe normalidade — tempo de execucao nao e normal), linha de base guardada para acusar regressao no CI, flame graph das ACOES da linguagem em SVG sem nada de fora, pausas do coletor medidas na fonte e contencao de trava.",
@@ -7168,6 +7252,43 @@
     {
      "nome": "fraco",
      "sig": "(alvo)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "principios": {
+   "nome": "Arcane.Principios",
+   "desc": "Os dez principios de design, cada um com uma prova que RODA e o numero que ela deu — duas delas rodam o analisador e uma roda o interpretador, porque 'verificacao antes de rodar' e 'custo zero quando desligado' sao coisas que se demonstram. O veredito nao e dez de dez de proposito: 5 cumpridos, 4 parciais e 1 que nao se aplica. E as nove TENSOES: onde dois principios se contradizem, qual venceu, o custo aceito e o arquivo onde a decisao mora.",
+   "curto": "Principios",
+   "funcoes": [
+    {
+     "nome": "VEREDITOS",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "conferir",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "principios",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "relatorio",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tensoes",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "veredito",
+     "sig": "()",
      "tipo": "funcao"
     }
    ]
@@ -11956,6 +12077,16 @@
     "temDoc": true,
     "codigo": "// Exercicio 265 — a superficie como contrato, e o alvo como restricao\n//\n// Numa linguagem compilada, quebrar a ABI e trocar o layout de uma\n// struct ou a convencao de chamada, e o sintoma e cruel: o programa\n// CARREGA e corrompe memoria, longe da causa.\n//\n// Aqui nao ha layout binario a quebrar — e existe EXATAMENTE o mesmo\n// problema, com outro nome. A superficie de um modulo e o contrato\n// dele, e o sintoma tambem e o mesmo: nao e erro de quem publicou, e\n// erro de quem consome, depois.\n\nadopt Arcane.Abi as Abi\nadopt Arcane.Alvo as Alvo\nadopt Arcane.Capacidade as Cap\nadopt Arcane.IO as IO\nadopt Arcane.OS as OS\n\npasta := $\"{OS.temp_dir()}/df-265-{randint(100000, 999999)}\"\nIO.mkdir(pasta)\n\nV1 := \"action somar(a: Integer, b: Integer) -> Integer:\\n\" +\n      \"    yield a + b\\n\\n\" +\n      \"action saudar(nome: String) -> String:\\n\" +\n      \"    yield nome\\n\\n\" +\n      \"record Ponto:\\n\" +\n      \"    x: Integer\\n\" +\n      \"    y: Integer\\n\\n\" +\n      \"action interna():\\n\" +\n      \"    yield 1\\n\\n\" +\n      \"relay somar, saudar, Ponto\\n\"\n\nantes := $\"{pasta}/v1.df\"\nIO.write(antes, V1)\n\n// ── a superficie respeita o relay ──\n// Um modulo que DECLARA o que exporta esta dizendo que o resto e\n// interno — e o que e interno nao e contrato.\ns := Abi.superficie(antes)\nassert sorted(keys(s)) is [\"Ponto\", \"saudar\", \"somar\"]\nassert \"interna\" not in s\n\nassert s[\"somar\"][\"especie\"] is \"acao\"\nassert s[\"somar\"][\"parametros\"] is [\"a\", \"b\"]\nassert s[\"somar\"][\"tipos\"][\"a\"] is \"Integer\"\nassert s[\"somar\"][\"retorno\"] is \"Integer\"\nassert sorted(s[\"Ponto\"][\"campos\"]) is [\"x\", \"y\"]\n\n// ── nada mudou: correcao ──\nigual := $\"{pasta}/igual.df\"\nIO.write(igual, V1)\nassert Abi.comparar(antes, igual)[\"veredito\"] is \"correcao\"\n\n// ── so acrescimo: menor ──\nmaisUm := $\"{pasta}/mais.df\"\nIO.write(maisUm, V1.replace(\"relay somar, saudar, Ponto\",\n                            \"action dobrar(n):\\n    yield n * 2\\n\\n\" +\n                            \"relay somar, saudar, Ponto, dobrar\"))\nr := Abi.comparar(antes, maisUm)\nassert r[\"veredito\"] is \"menor\"\nassert r[\"quebras\"] is []\nassert r[\"compativeis\"][0][\"tipo\"] is \"simbolo-novo\"\n\n// ── tirar um simbolo: maior ──\nsemSaudar := $\"{pasta}/sem.df\"\nIO.write(semSaudar, V1.replace(\"relay somar, saudar, Ponto\",\n                               \"relay somar, Ponto\"))\nq := Abi.comparar(antes, semSaudar)\nassert q[\"veredito\"] is \"maior\"\nassert q[\"quebras\"][0][\"tipo\"] is \"simbolo-removido\"\nassert q[\"quebras\"][0][\"nome\"] is \"saudar\"\n// cada quebra diz o que fazer, e nao so o que houve\nassert len(q[\"quebras\"][0][\"dica\"]) bigger 15\n\n// ── exigir mais um argumento: maior ──\nmaisArg := $\"{pasta}/arg.df\"\nIO.write(maisArg, V1.replace(\"action somar(a: Integer, b: Integer)\",\n                             \"action somar(a: Integer, b: Integer, c: Integer)\"))\nassert Abi.veredito(antes, maisArg) is \"maior\"\n\n// mas um parametro OPCIONAL novo nao quebra: quem chamava com dois\n// continua chamando com dois\nopcional := $\"{pasta}/opc.df\"\nIO.write(opcional, V1.replace(\"action somar(a: Integer, b: Integer)\",\n                              \"action somar(a: Integer, b: Integer, c := 0)\"))\nassert Abi.veredito(antes, opcional) is \"menor\"\nassert Abi.compativel(antes, opcional)\n\n// ── renomear um parametro: maior ──\n// E a regra que uma ferramenta feita para C nao precisaria ter: nesta\n// linguagem a chamada com NOME existe, entao o nome do parametro e\n// contrato, e nao so a posicao.\nrenomeado := $\"{pasta}/ren.df\"\nIO.write(renomeado, V1.replace(\"action somar(a: Integer, b: Integer)\",\n                               \"action somar(x: Integer, b: Integer)\"))\nquebras := Abi.quebras(antes, renomeado)\nassert len([k cycle k in quebras given k[\"tipo\"] is \"parametro-renomeado\"]) is 1\n\n// ── trocar o retorno: maior ──\n// O tipo de retorno ATRAVESSA a fronteira do adopt: quem usava o valor\n// perde a conferencia, ou e acusado.\nretorno := $\"{pasta}/ret.df\"\nIO.write(retorno, V1.replace(\"-> Integer:\\n    yield a + b\", \"-> Float:\\n    yield a + b\"))\nassert len([k cycle k in Abi.quebras(antes, retorno)\n            given k[\"tipo\"] is \"retorno-trocado\"]) is 1\n\n// ── o terceiro balde: o que a superficie NAO decide ──\n// Acrescentar campo a um record quebra SE ele nao tiver padrao. A\n// superficie le a declaracao sem executa-la e nao sabe qual dos dois e.\n// Acusar quebra reprovaria um release correto; calar deixaria passar um\n// que quebra. O honesto e um terceiro balde.\ncampoNovo := $\"{pasta}/campo.df\"\nIO.write(campoNovo, V1.replace(\"    y: Integer\\n\", \"    y: Integer\\n    z: Integer\\n\"))\nc := Abi.comparar(antes, campoNovo)\nassert c[\"atencao\"][0][\"tipo\"] is \"campo-novo-em-record\"\nassert len([k cycle k in c[\"quebras\"] given k[\"nome\"] is \"Ponto\"]) is 0\n\n// ── uma superficie que nao compila NAO JULGA ──\n// Um falso alarme aqui reprova um release que esta certo.\nquebrado := $\"{pasta}/quebrado.df\"\nIO.write(quebrado, \"action mal(:\\n\")\nd := Abi.comparar(antes, quebrado)\nassert d[\"veredito\"] is \"desconhecido\"\nassert d[\"motivo\"] isnt \"\"\n\n// ── o mapa de simbolos: o analogo do mapa do ligador ──\nprog := $\"{pasta}/prog.df\"\nIO.write(prog, \"adopt Arcane.Math as M\\n\\n\" +\n               \"action calcular(n):\\n\" +\n               \"    yield M.sqrt(n) + len(\\\"abc\\\") + fantasma\\n\")\n\norigem := {e[\"nome\"]: e[\"origem\"] cycle e in Abi.mapa(prog)}\nassert origem[\"M\"] is \"modulo\"\nassert origem[\"len\"] is \"embutido\"\nassert origem[\"calcular\"] is \"local\"\nassert origem[\"fantasma\"] is \"desconhecido\"   // NINGUEM prove este nome\n\n// ── PARTE 19: onde este programa roda ──\ncomProcesso := $\"{pasta}/servidor.df\"\nIO.write(comProcesso, \"adopt Arcane.Process as P\\nadopt Arcane.IO as F\\nout 1\\n\")\n\n// as exigencias saem dos adopt, com a linha\nexigencias := Alvo.exigencias(comProcesso)\nassert sorted([e[\"capacidade\"] cycle e in exigencias]) is [\"arquivos\", \"processo\"]\nassert exigencias[0][\"linha\"] bigger 0\n\n// e o vocabulario e o MESMO do Arcane.Capacidade: dois vocabularios\n// divergiriam no primeiro modulo novo\nassert Cap.exige(\"Arcane.Process\") is \"processo\"\n\n// no servidor roda; numa aba, nao\nassert Alvo.conferir(comProcesso, \"servidor\")[\"roda\"]\naba := Alvo.conferir(comProcesso, \"navegador\")\nassert not aba[\"roda\"]\nassert len(aba[\"problemas\"]) is 2\n\n// e cada ausencia vem com o MOTIVO, nao so com um \"nao\"\nassert \"SharedArrayBuffer\" in Alvo.porque(\"navegador\", \"threads\")\nassert \"soquete cru\" in Alvo.porque(\"navegador\", \"rede\")\nassert Alvo.porque(\"servidor\", \"rede\") is \"\"   // ele tem\n\n// um programa puro roda em todo lugar\npuro := $\"{pasta}/puro.df\"\nIO.write(puro, \"adopt Arcane.Math as M\\nout M.sqrt(4)\\n\")\nassert Alvo.exigencias(puro) is []\ncycle nome in keys(Alvo.alvos()):\n    assert Alvo.conferir(puro, nome)[\"roda\"]\n\n// um alvo inventado e recusado COM A LISTA\nmonitor:\n    Alvo.conferir(puro, \"nintendo\")\n    assert no\nhandle RuntimeError as e:\n    assert \"nintendo\" in e.message\n    assert \"navegador\" in e.message\n\n// ── e a leitura e ESTATICA, e o modulo diz isso ──\n// Um \"roda\" quer dizer \"nao achei impedimento por esta via\", e nao\n// \"vai funcionar\".\nlimites := Alvo.limites()\nassert len(limites) bigger_eq 3\nassert \"adopt\" in join(\" \", limites)\n\nIO.remove_tree(pasta)\nout \"265 ok\"\n"
    }
+  ],
+  "48-ecossistema": [
+   {
+    "num": "266",
+    "titulo": "o mapa que nao pode mentir, e o principio que se mede",
+    "enunciado": "",
+    "arquivo": "266_ecossistema_e_principios.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 266 — o mapa que nao pode mentir, e o principio que se mede\n//\n// As tres ultimas partes da referencia Deep Tech sao as de SINTESE: o\n// desenho do ecossistema, os dez principios de design e a visao de\n// implementacao. Sao as tres coisas que um projeto costuma escrever\n// como prosa — e prosa nao roda, nao reprova e envelhece calada.\n//\n// Este exercicio mostra as tres feitas de outro jeito: derivadas do\n// codigo e CONFERIDAS contra ele.\n\nadopt Arcane.Ecossistema as Eco\nadopt Arcane.Principios as Prin\nadopt Arcane.Percurso as Perc\nadopt Arcane.IO as IO\nadopt Arcane.OS as OS\n\nout \"== 1. o mapa, conferido nas duas direcoes ==\"\n\n// A conferencia cobra DUAS coisas, e a segunda e a que importa:\n//   faltando  -> caminho citado no mapa que nao existe mais no disco\n//   orfaos    -> modulo do nucleo que nao aparece em componente nenhum\n//\n// Sem a segunda, um modulo novo nasce FORA do mapa e o inventario fica\n// incompleto em silencio. Foi ela que pegou o primeiro erro deste\n// modulo: o mapa citava 'arcane_concurrent.py', e o arquivo se chama\n// 'arcane_paralelo.py' — so a CLASSE se chama ArcaneConcurrent.\nc := Eco.conferir()\nassert c[\"ok\"] is yes\nassert len(c[\"faltando\"]) is 0\nassert len(c[\"orfaos\"]) is 0\nout $\"   {c['citados']} caminhos conferidos, 0 orfaos\"\n\n// As tres marcas, e a terceira e a que da valor ao mapa\nassert len(Eco.ESTADOS) is 3\nassert \"nao-existe\" in Eco.ESTADOS\n\nn := Eco.numeros()\nassert n[\"existem\"] + n[\"equivalem\"] + n[\"nao_existem\"] is n[\"componentes\"]\nout $\"   {n['componentes']} componentes: {n['existem']} existem, \" +\n    $\"{n['equivalem']} equivalem, {n['nao_existem']} nao existem\"\n\nout \"\"\nout \"== 2. toda ausencia tem motivo escrito ==\"\n\n// Um mapa que marca tudo como pronto nao e um mapa, e publicidade.\nfaltam := Eco.o_que_nao_existe()\nassert len(faltam) bigger 0\ncycle f in faltam:\n    assert f[\"porque\"] is not \"\"\n    assert f[\"aqui\"] is not \"\"\n\n// A maior ausencia, e a razao dela\nllvm := [f cycle f in faltam given f[\"no\"] is \"LLVM Backend\"][0]\nassert \"fechamentos\" in llvm[\"aqui\"]\nout $\"   {len(faltam)} ausencias nomeadas, cada uma com o porque\"\n\nout \"\"\nout \"== 3. o principio que se MEDE ==\"\n\n// A prova nao repete o texto do principio: ela roda o analisador sobre\n// quatro trechos com defeito conhecido e conta quantos ele pega ANTES\n// de o programa rodar.\np := Prin.conferir(\"compile-time-first\")[0]\nassert p[\"veredito\"] is \"parcial\"\nassert \"4 de 4\" in p[\"medido\"]\nout $\"   {p['medido']}\"\n\n// E o veredito NAO e dez de dez, de proposito: um relatorio que\n// aprovasse os dez seria a prova de que ninguem o leu.\nv := Prin.veredito()\nassert v[\"total\"] is 10\nassert v[\"cumprido\"] + v[\"parcial\"] + v[\"nao-se-aplica\"] is 10\nassert v[\"parcial\"] bigger 0\nout $\"   {v['cumprido']} cumpridos, {v['parcial']} parciais, \" +\n    $\"{v['nao-se-aplica']} nao se aplica\"\n\nout \"\"\nout \"== 4. a tensao e o conteudo ==\"\n\n// Um principio isolado nao informa nada: todo mundo e a favor de\n// seguranca e de velocidade. O que informa e ONDE dois se contradizem\n// e qual venceu — e essa decisao esta sempre num arquivo.\nts := Prin.tensoes()\nassert len(ts) bigger_eq 9\ncycle t in ts:\n    assert len(t[\"entre\"]) is 2\n    assert t[\"custo\"] is not \"\"      // toda escolha tem preco declarado\n    assert t[\"onde\"] is not \"\"       // e mora num arquivo\nout $\"   {len(ts)} tensoes, todas com custo e arquivo\"\n\nout \"\"\nout \"== 5. o percurso, e a fase que NAO roda ==\"\n\npasta := $\"{OS.temp_dir()}/df-266-{randint(100000, 999999)}\"\nIO.mkdir(pasta)\nalvo := $\"{pasta}/exemplo.df\"\nIO.write(alvo, \"action fatorial(n):\\n\" +\n               \"    given n smaller_eq 1:\\n\" +\n               \"        yield 1\\n\" +\n               \"    yield n * fatorial(n - 1)\\n\" +\n               \"out fatorial(10)\\n\")\n\nr := Perc.percorrer(alvo)\nassert len(r[\"fases\"]) is 10\nassert r[\"ms\"] bigger 0\n\n// A ultima fase e NOMEADA e nao percorrida. Executar e o que o\n// programa faz: um arquivo de verdade abre soquete e escreve em disco,\n// e um comando que mostra fases nao pode ter efeito no mundo.\nultima := r[\"fases\"][9]\nassert ultima[\"fase\"] is \"execucao\"\nassert ultima[\"percorrida\"] is no\nassert ultima[\"ms\"] is 0.0\n\n// Apagar a fase do mapa faria o desenho parecer completo. Ela fica.\nassert \"nao percorrida\" in ultima[\"saiu\"]\n\npercorridas := [f cycle f in r[\"fases\"] given f[\"percorrida\"]]\nassert len(percorridas) is 9\ncycle f in percorridas:\n    assert f[\"ms\"] bigger_eq 0.0\n    assert f[\"saiu\"] is not \"\"\n\nout $\"   9 fases percorridas em {r['ms']} ms; a mais cara: {r['mais_cara']}\"\n\n// E as divergencias em relacao ao desenho do documento\nd := Perc.divergencias()\nassert len(d) bigger_eq 5\ncycle x in d:\n    assert x[\"porque\"] is not \"\"\nout $\"   {len(d)} divergencias do desenho, com motivo\"\n\nIO.remove_tree(pasta)\n\nout \"\"\nout \"Tudo verde: o mapa bate com o disco, e os principios foram medidos.\"\n"
+   }
   ]
  },
  "palavras": [
@@ -12301,9 +12432,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2710,
+  "testes": 2754,
   "exemplos": 44,
-  "arquivosDf": 375
+  "arquivosDf": 376
  },
  "mundo": {
   "estrelas": 0,

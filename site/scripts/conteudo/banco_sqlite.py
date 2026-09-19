@@ -461,7 +461,7 @@ com := Banco.explain(db, "SELECT * FROM vendas WHERE vendedor = ?", ["ana"])
 
  {"h2": "Um retrato do banco"},
  {"code": """e := Banco.stats(db)
-// {"caminho": "loja.db", "bytes": 4915200, "total_de_linhas": 185344,
+// {"caminho": "loja.db", "bytes": 4915200, "total_de_linhas": 187344,
 //  "tabelas": [{"tabela": "vendas", "linhas": 180000,
 //               "colunas": 7, "indices": 3}, …]}
 

@@ -1,0 +1,136 @@
+// Exercicio 266 — o mapa que nao pode mentir, e o principio que se mede
+//
+// As tres ultimas partes da referencia Deep Tech sao as de SINTESE: o
+// desenho do ecossistema, os dez principios de design e a visao de
+// implementacao. Sao as tres coisas que um projeto costuma escrever
+// como prosa — e prosa nao roda, nao reprova e envelhece calada.
+//
+// Este exercicio mostra as tres feitas de outro jeito: derivadas do
+// codigo e CONFERIDAS contra ele.
+
+adopt Arcane.Ecossistema as Eco
+adopt Arcane.Principios as Prin
+adopt Arcane.Percurso as Perc
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+out "== 1. o mapa, conferido nas duas direcoes =="
+
+// A conferencia cobra DUAS coisas, e a segunda e a que importa:
+//   faltando  -> caminho citado no mapa que nao existe mais no disco
+//   orfaos    -> modulo do nucleo que nao aparece em componente nenhum
+//
+// Sem a segunda, um modulo novo nasce FORA do mapa e o inventario fica
+// incompleto em silencio. Foi ela que pegou o primeiro erro deste
+// modulo: o mapa citava 'arcane_concurrent.py', e o arquivo se chama
+// 'arcane_paralelo.py' — so a CLASSE se chama ArcaneConcurrent.
+c := Eco.conferir()
+assert c["ok"] is yes
+assert len(c["faltando"]) is 0
+assert len(c["orfaos"]) is 0
+out $"   {c['citados']} caminhos conferidos, 0 orfaos"
+
+// As tres marcas, e a terceira e a que da valor ao mapa
+assert len(Eco.ESTADOS) is 3
+assert "nao-existe" in Eco.ESTADOS
+
+n := Eco.numeros()
+assert n["existem"] + n["equivalem"] + n["nao_existem"] is n["componentes"]
+out $"   {n['componentes']} componentes: {n['existem']} existem, " +
+$"{n['equivalem']} equivalem, {n['nao_existem']} nao existem"
+
+out ""
+out "== 2. toda ausencia tem motivo escrito =="
+
+// Um mapa que marca tudo como pronto nao e um mapa, e publicidade.
+faltam := Eco.o_que_nao_existe()
+assert len(faltam) bigger 0
+cycle f in faltam:
+    assert f["porque"] is not ""
+    assert f["aqui"] is not ""
+
+// A maior ausencia, e a razao dela
+llvm := [f cycle f in faltam given f["no"] is "LLVM Backend"][0]
+assert "fechamentos" in llvm["aqui"]
+out $"   {len(faltam)} ausencias nomeadas, cada uma com o porque"
+
+out ""
+out "== 3. o principio que se MEDE =="
+
+// A prova nao repete o texto do principio: ela roda o analisador sobre
+// quatro trechos com defeito conhecido e conta quantos ele pega ANTES
+// de o programa rodar.
+p := Prin.conferir("compile-time-first")[0]
+assert p["veredito"] is "parcial"
+assert "4 de 4" in p["medido"]
+out $"   {p['medido']}"
+
+// E o veredito NAO e dez de dez, de proposito: um relatorio que
+// aprovasse os dez seria a prova de que ninguem o leu.
+v := Prin.veredito()
+assert v["total"] is 10
+assert v["cumprido"] + v["parcial"] + v["nao-se-aplica"] is 10
+assert v["parcial"] bigger 0
+out $"   {v['cumprido']} cumpridos, {v['parcial']} parciais, " +
+$"{v['nao-se-aplica']} nao se aplica"
+
+out ""
+out "== 4. a tensao e o conteudo =="
+
+// Um principio isolado nao informa nada: todo mundo e a favor de
+// seguranca e de velocidade. O que informa e ONDE dois se contradizem
+// e qual venceu — e essa decisao esta sempre num arquivo.
+ts := Prin.tensoes()
+assert len(ts) bigger_eq 9
+cycle t in ts:
+    assert len(t["entre"]) is 2
+    assert t["custo"] is not ""  // toda escolha tem preco declarado
+    assert t["onde"] is not ""  // e mora num arquivo
+out $"   {len(ts)} tensoes, todas com custo e arquivo"
+
+out ""
+out "== 5. o percurso, e a fase que NAO roda =="
+
+pasta := $"{OS.temp_dir()}/df-266-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+alvo := $"{pasta}/exemplo.df"
+IO.write(alvo, "action fatorial(n):\n" +
+    "    given n smaller_eq 1:\n" +
+    "        yield 1\n" +
+    "    yield n * fatorial(n - 1)\n" +
+    "out fatorial(10)\n")
+
+r := Perc.percorrer(alvo)
+assert len(r["fases"]) is 10
+assert r["ms"] bigger 0
+
+// A ultima fase e NOMEADA e nao percorrida. Executar e o que o
+// programa faz: um arquivo de verdade abre soquete e escreve em disco,
+// e um comando que mostra fases nao pode ter efeito no mundo.
+ultima := r["fases"][9]
+assert ultima["fase"] is "execucao"
+assert ultima["percorrida"] is no
+assert ultima["ms"] is 0.0
+
+// Apagar a fase do mapa faria o desenho parecer completo. Ela fica.
+assert "nao percorrida" in ultima["saiu"]
+
+percorridas := [f cycle f in r["fases"] given f["percorrida"]]
+assert len(percorridas) is 9
+cycle f in percorridas:
+    assert f["ms"] bigger_eq 0.0
+    assert f["saiu"] is not ""
+
+out $"   9 fases percorridas em {r['ms']} ms; a mais cara: {r['mais_cara']}"
+
+// E as divergencias em relacao ao desenho do documento
+d := Perc.divergencias()
+assert len(d) bigger_eq 5
+cycle x in d:
+    assert x["porque"] is not ""
+out $"   {len(d)} divergencias do desenho, com motivo"
+
+IO.remove_tree(pasta)
+
+out ""
+out "Tudo verde: o mapa bate com o disco, e os principios foram medidos."

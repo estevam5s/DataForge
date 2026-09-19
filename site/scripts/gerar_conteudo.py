@@ -57,6 +57,7 @@ MODULOS = [
     "observabilidade",
     "partida_e_seguranca",
     "abi_e_alvos",
+    "ecossistema",
     "plataforma",
     "vitrine",
     "versoes",

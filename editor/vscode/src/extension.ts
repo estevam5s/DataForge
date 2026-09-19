@@ -67,7 +67,7 @@ export function activate(contexto: vscode.ExtensionContext) {
 
   // ── barra de status ──
   //
-  // Antes havia um botão de rodar, e mais nada. Os 49 comandos viviam
+  // Antes havia um botão de rodar, e mais nada. Os 52 comandos viviam
   // na paleta — e a paleta só serve a quem já sabe que o comando
   // existe. Agora ela responde cinco perguntas que se fazem o tempo
   // todo: qual interpretador, o arquivo está limpo, a ação do cursor

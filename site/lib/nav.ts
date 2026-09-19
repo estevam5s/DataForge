@@ -303,6 +303,18 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Ecossistema e design',
+    items: [
+      { title: 'O ecossistema, conferido', href: '/docs/ecossistema/componentes' },
+      { title: 'O que não existe', href: '/docs/ecossistema/ausencias' },
+      { title: 'Os dez princípios', href: '/docs/ecossistema/principios' },
+      { title: 'As tensões', href: '/docs/ecossistema/tensoes' },
+      { title: 'Onde o tempo vai', href: '/docs/ecossistema/percurso' },
+      { title: 'Referência rápida', href: '/docs/ecossistema/referencia' },
+      { title: 'Ecossistema: o mapa', href: '/docs/ecossistema/mapa' },
+    ],
+  },
+  {
     title: 'Concorrência avançada',
     items: [
       { title: 'Memória transacional', href: '/docs/concorrencia/stm' },
@@ -491,6 +503,7 @@ export const nav: NavSection[] = [
       { title: 'Observabilidade e memória', href: '/docs/exercicios/45-observabilidade' },
       { title: 'Partida, pilha e capacidade', href: '/docs/exercicios/46-partida' },
       { title: 'Superfície e alvos', href: '/docs/exercicios/47-abi-e-alvos' },
+      { title: 'Ecossistema e design', href: '/docs/exercicios/48-ecossistema' },
     ],
   },
   {

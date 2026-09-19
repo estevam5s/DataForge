@@ -26,6 +26,7 @@
     "Arcane.Database",
     "Arcane.Decimal",
     "Arcane.Dsl",
+    "Arcane.Ecossistema",
     "Arcane.Email",
     "Arcane.Eventos",
     "Arcane.Excel",
@@ -51,10 +52,12 @@
     "Arcane.Objetos",
     "Arcane.Observar",
     "Arcane.Padroes",
+    "Arcane.Percurso",
     "Arcane.Perfil",
     "Arcane.Pipeline",
     "Arcane.Ponte",
     "Arcane.Posse",
+    "Arcane.Principios",
     "Arcane.Process",
     "Arcane.Quadro",
     "Arcane.Qualidade",
@@ -98,6 +101,7 @@
     "Database",
     "Decimal",
     "Dsl",
+    "Ecossistema",
     "Email",
     "Endereco",
     "Eventos",
@@ -136,10 +140,12 @@
     "Painel",
     "Paralelo",
     "Parquet",
+    "Percurso",
     "Perfil",
     "Pipeline",
     "Ponte",
     "Posse",
+    "Principios",
     "Process",
     "Quadro",
     "Qualidade",
@@ -381,6 +387,7 @@
     "deps",
     "devops",
     "doc",
+    "ecossistema",
     "editor",
     "erros",
     "eval",
@@ -403,6 +410,8 @@
     "ops",
     "outdated",
     "pack",
+    "percurso",
+    "principios",
     "profile",
     "publish",
     "remove",
@@ -1345,6 +1354,17 @@
       "simbolo",
       "texto"
     ],
+    "Arcane.Ecossistema": [
+      "ESTADOS",
+      "arvore",
+      "componentes",
+      "conferir",
+      "equivalencias",
+      "grupos",
+      "numeros",
+      "o_que_nao_existe",
+      "relatorio"
+    ],
     "Arcane.Email": [
       "Caixa",
       "Mensagem",
@@ -2054,6 +2074,13 @@
       "unico",
       "visitar"
     ],
+    "Arcane.Percurso": [
+      "desenho",
+      "divergencias",
+      "fases",
+      "percorrer",
+      "relatorio"
+    ],
     "Arcane.Perfil": [
       "chama_svg",
       "chama_texto",
@@ -2116,6 +2143,14 @@
       "escopo",
       "estado",
       "fraco"
+    ],
+    "Arcane.Principios": [
+      "VEREDITOS",
+      "conferir",
+      "principios",
+      "relatorio",
+      "tensoes",
+      "veredito"
     ],
     "Arcane.Process": [
       "capture",

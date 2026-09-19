@@ -513,6 +513,67 @@ GRUPOS = [
             opcoes=[("--alvo=<nome>", "confere um alvo, e sai com 1 se nao roda"),
                     ("--json", "o resultado como dado")],
             veja=("abi", "check")),
+        Cmd("percurso", "dataforge percurso <arquivo>",
+            "Onde o tempo vai: as fases em ordem, medidas",
+            "O 'ir' mostra cada fase; o 'percurso' mostra TODAS em\n"
+            "ordem, com o que cada uma produziu e quanto levou — que e\n"
+            "a pergunta quando um arquivo demora a abrir no editor.\n"
+            "\n"
+            "Ele NAO executa o programa: executar e o que o programa\n"
+            "faz, e um arquivo de verdade abre soquete e escreve em\n"
+            "disco. A ultima fase e nomeada e marcada como nao\n"
+            "percorrida, para que a ausencia tenha lugar.\n"
+            "\n"
+            "Cada fase e medida UMA vez, com os imports aquecidos:\n"
+            "serve para comparar as fases entre si, e nao maquinas.",
+            exemplos=[("dataforge percurso app.df", "a tabela de fases"),
+                      ("dataforge percurso app.df --desenho",
+                       "o caminho desenhado, com as ausencias")],
+            opcoes=[("--json", "o resultado como dado"),
+                    ("--desenho", "o caminho real desenhado"),
+                    ("--sem-tipos", "pula a analise estatica, a fase mais "
+                                    "cara num projeto com muitos 'adopt'")],
+            veja=("ir", "ecossistema")),
+        Cmd("ecossistema", "dataforge ecossistema",
+            "O inventario da implementacao, conferido contra o disco",
+            "O desenho do ecossistema com uma marca por componente:\n"
+            "\n"
+            "  [+]  existe, com esse papel\n"
+            "  [~]  equivale: outra peca responde a mesma pergunta\n"
+            "  [-]  nao existe, e o porque esta escrito\n"
+            "\n"
+            "Ele CONFERE as duas direcoes: todo caminho citado existe\n"
+            "no disco, e todo modulo do nucleo aparece em algum\n"
+            "componente. Sem a segunda, um modulo novo nasce fora do\n"
+            "mapa e o inventario fica incompleto em silencio.\n"
+            "\n"
+            "Sai com 1 quando o mapa e o disco discordam.",
+            exemplos=[("dataforge ecossistema", "o inventario inteiro"),
+                      ("dataforge ecossistema --ausencias",
+                       "so o que nao existe, com o motivo")],
+            opcoes=[("--json", "o inventario como dado"),
+                    ("--ausencias", "so o que nao existe e o que esta no "
+                                    "lugar")],
+            veja=("principios", "percurso")),
+        Cmd("principios", "dataforge principios",
+            "Os dez principios de design, com a prova de cada um",
+            "Cada principio carrega a frase do documento, o que ela\n"
+            "significa AQUI, o veredito e uma prova que RODA — duas\n"
+            "delas chamam o analisador e uma abre um interpretador.\n"
+            "\n"
+            "O veredito nao e dez de dez de proposito: ha parciais e\n"
+            "ha um que nao se aplica, com o motivo.\n"
+            "\n"
+            "E as TENSOES: onde dois principios se contradizem, qual\n"
+            "venceu, o custo aceito e o arquivo onde isso mora. Uma\n"
+            "lista de principios diz o que se quer; a tensao diz o que\n"
+            "se escolheu quando nao era possivel querer as duas coisas.",
+            exemplos=[("dataforge principios", "os dez, medidos"),
+                      ("dataforge principios --tensoes",
+                       "so onde dois se contradizem")],
+            opcoes=[("--json", "o resultado como dado"),
+                    ("--tensoes", "so as tensoes")],
+            veja=("ecossistema", "percurso")),
         Cmd("ir", "dataforge ir <arquivo> [--fase=…]",
             "Mostra o caminho inteiro: HIR, MIR, LIR e as analises",
             "As representacoes do meio, que 'tokens' e 'ast' nao mostram.\n"
@@ -815,6 +876,105 @@ def alvo_command(caminho, flags=()):
     print()
     for linha in limites():
         print(color(f"  {linha}", "0;90"))
+    return 0
+
+
+def percurso_command(caminho, flags=()):
+    """`dataforge percurso` — as fases em ordem, e onde o tempo vai."""
+    from .stdlib.arcane_percurso import (desenho, divergencias, percorrer,
+                                         relatorio)
+
+    if "--desenho" in flags:
+        print(color("── o caminho real ──", "1;35"))
+        print(desenho())
+        print()
+        print(color("  onde ele difere do desenho da referencia:", "1;36"))
+        for d in divergencias():
+            print(f"   {color(d['no_desenho'], '1;37')}")
+            print(f"      aqui:   {d['aqui']}")
+            print(color(f"      porque: {d['porque']}", "0;90"))
+        return 0
+
+    if not os.path.isfile(caminho):
+        print(color(f"Erro: '{caminho}' nao existe.", "1;31"))
+        return 1
+
+    try:
+        resultado = percorrer(caminho, com_tipos="--sem-tipos" not in flags)
+    except DataForgeError as erro:
+        print(color(f"Erro: {erro.message}", "1;31"))
+        return 1
+
+    if "--json" in flags:
+        import json as _json
+        print(_json.dumps(resultado, ensure_ascii=False, indent=2))
+        return 0
+
+    print(color(f"── {caminho} ──", "1;35"))
+    print(relatorio(resultado))
+    return 0
+
+
+def ecossistema_command(flags=()):
+    """`dataforge ecossistema` — o inventario, conferido contra o disco.
+
+    Sai com 1 quando o mapa e o disco discordam: e o que faz um CI
+    reprovar um inventario que passou a mentir.
+    """
+    from .stdlib.arcane_ecossistema import (arvore, conferir, numeros,
+                                            o_que_nao_existe, relatorio)
+
+    if "--json" in flags:
+        import json as _json
+        from .stdlib.arcane_ecossistema import componentes, equivalencias
+        print(_json.dumps({"componentes": componentes(),
+                           "numeros": numeros(),
+                           "nao_existem": o_que_nao_existe(),
+                           "equivalem": equivalencias(),
+                           "conferido": conferir()},
+                          ensure_ascii=False, indent=2))
+        return 0 if conferir()["ok"] else 1
+
+    if "--ausencias" in flags:
+        print(color("── o que nao existe, e o que esta no lugar ──", "1;35"))
+        for c in o_que_nao_existe():
+            print(f"  {color(c['no'], '1;37')}  ({c['grupo']})")
+            print(f"      seria:    {c['o_que_e']}")
+            print(f"      no lugar: {c['aqui']}")
+            print(color(f"      porque:   {c['porque']}", "0;90"))
+        return 0
+
+    print(color("── o ecossistema ──", "1;35"))
+    print(relatorio())
+    return 0 if conferir()["ok"] else 1
+
+
+def principios_command(flags=()):
+    """`dataforge principios` — os dez, com a prova de cada um."""
+    from .stdlib.arcane_principios import (conferir, relatorio, tensoes,
+                                           veredito)
+
+    if "--json" in flags:
+        import json as _json
+        print(_json.dumps({"principios": conferir(), "tensoes": tensoes(),
+                           "veredito": veredito()},
+                          ensure_ascii=False, indent=2))
+        return 0
+
+    if "--tensoes" in flags:
+        print(color("── onde dois principios se contradizem ──", "1;35"))
+        for t in tensoes():
+            print(f"  {color(t['entre'][0], '1;37')}  x  "
+                  f"{color(t['entre'][1], '1;37')}")
+            print(f"      escolha: {t['escolha']}")
+            print(color(f"      porque:  {t['porque']}", "0;90"))
+            print(color(f"      custo:   {t['custo']}", "0;90"))
+            print(color(f"      onde:    {t['onde']}", "0;90"))
+            print()
+        return 0
+
+    print(color("── os principios, medidos ──", "1;35"))
+    print(relatorio())
     return 0
 
 
@@ -4311,7 +4471,7 @@ def editor_command(args, flags=()):
     print()
     # A mensagem dizia apenas "cores, snippets, indentacao e dobra". Foi
     # escrita quando a extensao era so uma gramatica; hoje ela traz LSP,
-    # depurador e 49 comandos, e prometer menos do que se entrega faz a
+    # depurador e 52 comandos, e prometer menos do que se entrega faz a
     # pessoa nao procurar o que esta la.
     for titulo, detalhe in (
             ("cores e snippets", "as 81 palavras reservadas, e 4 espacos de indentacao"),
@@ -4319,7 +4479,7 @@ def editor_command(args, flags=()):
             ("autocompletar e ir-para-definicao", "servidor de linguagem proprio"),
             ("depurar com F5", "breakpoints na margem, pilha e variaveis no painel"),
             ("Big-O acima de cada acao", "e o custo ao lado de cada import"),
-            ("49 comandos", "rodar, testar, cobertura, pacotes, Vitrine, DevOps")):
+            ("52 comandos", "rodar, testar, cobertura, pacotes, Vitrine, DevOps")):
         print("  " + color("·", "1;33") + f" {titulo}")
         print(color(f"      {detalhe}", "0;90"))
     print()
@@ -4503,6 +4663,20 @@ def main():
             print(color("Erro: informe o arquivo.", "1;31"))
             sys.exit(1)
         sys.exit(ir_command(args[1], flags))
+
+    elif command == 'percurso':
+        if len(args) < 2 and '--desenho' not in flags:
+            print(color("Erro: informe o arquivo.", "1;31"))
+            print(color("      dataforge percurso app.df", "0;90"))
+            print(color("      dataforge percurso --desenho", "0;90"))
+            sys.exit(1)
+        sys.exit(percurso_command(args[1] if len(args) > 1 else "", flags))
+
+    elif command == 'ecossistema':
+        sys.exit(ecossistema_command(flags))
+
+    elif command == 'principios':
+        sys.exit(principios_command(flags))
 
     elif command == 'check':
         check_command([a for a in args[1:] if not a.startswith('--plugin=')],

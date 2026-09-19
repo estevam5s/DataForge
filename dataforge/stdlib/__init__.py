@@ -53,6 +53,9 @@ from .arcane_dsl import ArcaneDsl
 from .arcane_compilador import ArcaneCompilador
 from .arcane_abi import ArcaneAbi
 from .arcane_alvo import ArcaneAlvo
+from .arcane_ecossistema import ArcaneEcossistema
+from .arcane_principios import ArcanePrincipios
+from .arcane_percurso import ArcanePercurso
 from .arcane_capacidade import ArcaneCapacidade
 from .arcane_inicio import ArcaneInicio
 from .arcane_laco import ArcaneLaco
@@ -200,6 +203,12 @@ _MODULES = {
     "Abi": ArcaneAbi,
     "Arcane.Alvo": ArcaneAlvo,
     "Alvo": ArcaneAlvo,
+    "Arcane.Ecossistema": ArcaneEcossistema,
+    "Ecossistema": ArcaneEcossistema,
+    "Arcane.Principios": ArcanePrincipios,
+    "Principios": ArcanePrincipios,
+    "Arcane.Percurso": ArcanePercurso,
+    "Percurso": ArcanePercurso,
     "Arcane.Dsl": ArcaneDsl,
     "Dsl": ArcaneDsl,
     "Arcane.Posse": ArcanePosse,

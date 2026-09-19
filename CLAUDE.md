@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 265 exercícios
+python3 exercicios/run_all.py                        # 266 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -90,7 +90,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                68 módulos (1853 símbolos), incluindo:
+  stdlib/                71 módulos (1873 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -107,6 +107,9 @@ dataforge/
     arcane_capacidade.py a fronteira de autoridade — e o que ela NAO e
     arcane_abi.py        a superficie e o contrato: o que quebra, e que bump exige
     arcane_alvo.py       onde este programa roda, lido dos 'adopt'
+    arcane_ecossistema.py o inventario da implementacao, CONFERIDO contra ela
+    arcane_principios.py  os dez principios com prova que roda, e as 9 tensoes
+    arcane_percurso.py    as fases de um arquivo, medidas — e a que NAO roda
     arcane_macro.py      a arvore como dado: citar, transformar, gerar, derivar
     arcane_dsl.py        combinadores para uma linguagem externa propria
     arcane_stm.py        memoria transacional: escritas que acontecem juntas
@@ -126,7 +129,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        265 exercícios em 47 módulos + run_all.py
+exercicios/        266 exercícios em 48 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1972,7 +1975,7 @@ em `editor/vscode/` na raiz.
 
 O resultado era silencioso e total: zero arquivo da extensão no wheel, e
 `dataforge editor` instalado por pip respondia "os arquivos da extensao
-nao foram encontrados". Cores, snippets, LSP, depurador, os 49 comandos
+nao foram encontrados". Cores, snippets, LSP, depurador, os 52 comandos
 — nada chegava a quem instalasse pela forma recomendada.
 
 Dois testes *conferiam o texto do `pyproject.toml`* e **passavam**.
@@ -1987,7 +1990,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1853 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1873 símbolos, 52 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2010,6 +2013,67 @@ senão o `next build` com `output: 'export'` falha.
 E o `metadataBase` apontava para `dataforge-lang.dev`, que **não
 responde** — era o único lugar do repositório que citava esse domínio.
 Todo canônico e todo Open Graph iam para um endereço inexistente.
+
+## O mapa do ecossistema, os princípios e o percurso
+
+As três últimas partes da referência Deep Tech são as de **síntese** — e
+são as que mais facilmente viram prosa que envelhece calada. Três
+decisões ao mexer em `arcane_ecossistema.py`, `arcane_principios.py` e
+`arcane_percurso.py`:
+
+**1. `conferir()` cobra as duas direções, e a segunda é a que importa.**
+`faltando` acusa caminho citado que sumiu do disco; `orfaos` acusa módulo
+de `dataforge/` que não aparece em componente nenhum. Sem a segunda, um
+módulo novo nasce **fora** do mapa e o inventário fica incompleto em
+silêncio. Ela pagou por si antes do primeiro teste existir: o mapa citava
+`arcane_concurrent.py`, e o arquivo se chama `arcane_paralelo.py` — só a
+classe se chama `ArcaneConcurrent`. É a mesma lição já registrada aqui
+(conferir o **nome do arquivo**, não a memória), agora com trava.
+
+Ao criar um módulo no núcleo, ele entra em `ARVORE` **ou** em
+`NAO_E_COMPONENTE`. O `dataforge ecossistema` sai com 1 se não entrar.
+
+**2. Um princípio que não se aplica é informação, não um problema.**
+`custo-zero` é `nao-se-aplica`: a frase do documento — *abstrações
+compilam para código equivalente ao manual* — não tem como valer sem
+backend nativo, e forçá-la a valer seria redefini-la em silêncio. O campo
+`aqui` escreve a leitura que vale ("custa zero para quem não usa"), e a
+prova a mede nos três sentinelas. Os `VEREDITOS` são três e a lista é
+fechada: um quarto valor seria onde "mais ou menos" se esconderia.
+
+E o veredito **não é dez de dez** (5 cumpridos, 4 parciais, 1 que não se
+aplica). Um relatório que aprovasse os dez seria a prova de que ninguém o
+leu — há teste cobrando que exista pelo menos um parcial.
+
+**3. O percurso não executa o programa, e o import não pode ser cobrado
+da fase que o toca.**
+
+`percorrer()` vai do lexer ao LIR e para. A décima fase é nomeada, medida
+em zero e marcada `percorrida = False`: executar é o que o programa faz,
+e um arquivo de verdade abre soquete e escreve em disco. O teste prova
+isso pelo efeito — o programa medido escreve num arquivo, e o arquivo não
+pode existir depois.
+
+E os imports lentos são aquecidos **antes** de qualquer cronômetro.
+Medido: `lir` importa `compilador` e abre um interpretador por dentro, e
+num arquivo de 12 tokens aparecia com **6,8 ms e 93,8%** do total contra
+0,05 ms de trabalho real. O total caiu de 7,3 ms para **0,5 ms** e a fase
+apontada mudou de `lir` para `tipos`.
+
+> Uma ferramenta que responde "onde o tempo vai" e aponta a fase errada é
+> **pior que nenhuma**: a pessoa vai otimizar o lugar que ela indicou.
+
+A trava (`test_o_import_nao_e_cobrado_da_fase_que_o_toca`) é estrutural,
+e não um limite de tempo: o `lir` de um arquivo minúsculo não pode ser a
+fase dominante. Um limite absoluto mediria a máquina.
+
+**E o verificador de documentação aprendeu uma palavra contextual.**
+`tools/verificar_docs.py` envolvia num `server` todo bloco que começasse
+com `route `, e por isso reprovava o trecho que **demonstra** que `route`
+é um nome livre (`route := "/pedidos"`). Hoje `_e_palavra_kiln` recusa a
+leitura quando vem `:=` ou `=` logo depois. Ele recebe o texto **com o
+recuo**: tirar o recuo ali fez uma linha indentada abrir um `server` novo
+e quebrou 27 blocos que funcionavam.
 
 ## O que é gerado — não edite à mão
 
@@ -2140,7 +2204,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_ssa_e_otimizacao.py` | `pytest` | dominancia, no phi, a propagacao condicional **comparada** com a do MIR, os tres passes provados pela saida, e o repositorio sem falso alarme |
 | `tests/test_compilador_interno.py` | `pytest` | HIR, MIR, LIR e as analises — inclusive a **equivalencia** do HIR rodando exercicios do repositorio nas duas formas e comparando a saida |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 265 exercícios em 47 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 266 exercícios em 48 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 
@@ -2165,6 +2229,20 @@ com valores, pattern matching estrutural completo, generators preguiçosos
 
 O que **ainda não existe** (não invente que existe):
 
+- **Gerenciador de versões, e workspace** — não há como manter duas
+  versões lado a lado, alternar entre elas, nem fixar a versão por
+  projeto: trocar de versão é reinstalar. E não há comando que resolva a
+  árvore de vários pacotes de uma vez; cada pacote tem o seu
+  `forge.toml`. As duas ausências são nomeadas em
+  `Arcane.Ecossistema.o_que_nao_existe()` — que é a lista a consultar
+  antes de afirmar que algo existe, porque ela é **conferida** contra o
+  disco.
+- **Alocador próprio** — o alocador é o do CPython, e trocá-lo exigiria
+  estar fora dele. O que existe é controle do **coletor**
+  (`Arcane.Memoria`: ligar, desligar, limiares, congelar, arena) e
+  medição da pausa dele (`Arcane.Perfil.gc_pausas`). "Controlar memória"
+  e "controlar o coletor" são coisas diferentes, e o projeto prefere
+  nomear a diferença.
 - **Variância declarada, e generic de blueprint cobrado** —
   `Cluster<T>`, `Vault<K, V>` e `Set<T>` existem (fronteira, inserção e
   `check`; ver `colecoes_tipadas.py`). O que falta é `Caixa<Integer>` num
