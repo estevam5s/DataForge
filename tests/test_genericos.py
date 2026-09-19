@@ -340,3 +340,270 @@ def test_o_repositorio_continua_limpo():
                            encoding="utf-8", errors="replace",
                            env={**os.environ, "NO_COLOR": "1"})
         assert r.returncode == 0, f"{pasta}: {r.stdout[-600:]}"
+
+
+# ── A anotação genérica de um blueprint próprio ──────────────
+#
+# Era ERRO DE SINTAXE, e três defeitos moravam atrás disso:
+#
+# 1. `parse_blueprint` não registrava os parâmetros de tipo. `type`,
+#    `record`, `enum` e `trait` registram; o blueprint lia os dele e
+#    jogava fora. Dava uma assimetria sem explicação —
+#    `Par<Integer, String>` num record anotava, e `Caixa<Integer>` num
+#    blueprint respondia "não é um tipo de coleção", sugerindo escrever
+#    `type Caixa<T> := …`, que é o caminho errado.
+#
+# 2. O ramo de blueprint da conferência era CÓDIGO MORTO: ele lia
+#    `alvo.tipos_dos_campos`, atributo que nunca existiu. `getattr` com
+#    padrão devolvia `{}` e o laço não conferia nada.
+#
+# 3. Escrever o argumento de tipo DESLIGAVA a conferência de membro —
+#    escrever MAIS informação de tipo comprava MENOS verificação.
+
+GUARDA = """blueprint Guarda<T>(valor: T):
+    action guardar(v: T):
+        self.valor := v
+    action ler() -> T:
+        yield self.valor
+"""
+
+
+def test_a_anotacao_generica_de_blueprint_e_aceita():
+    """O runtime já estava pronto; faltava poder ESCREVER a anotação."""
+    assert rodar(GUARDA + "c: Guarda<Integer> := spawn Guarda(7)\n"
+                          "out c.ler()\n") == "7"
+
+
+def test_record_e_blueprint_respondem_IGUAL_a_mesma_forma():
+    """A assimetria era o defeito: mesma forma, respostas diferentes."""
+    assert rodar("""record Par<A, B>:
+    um: A
+    dois: B
+
+p: Par<Integer, String> := Par(1, "a")
+out p.um
+""") == "1"
+    assert rodar(GUARDA + "c: Guarda<Integer> := spawn Guarda(1)\n"
+                          "out c.ler()\n") == "1"
+
+
+def test_a_aridade_do_generico_de_blueprint_e_cobrada():
+    e = erro_de(GUARDA + "c: Guarda<Integer, String> := spawn Guarda(1)\n")
+    assert "takes one type" in e.message
+
+
+def test_um_blueprint_sem_generico_continua_recusando_a_anotacao():
+    """A mensagem que já existia não pode ter sido perdida."""
+    e = erro_de("blueprint Simples:\n"
+                "    action f():\n"
+                "        yield 1\n"
+                "c: Simples<Integer> := spawn Simples()\n")
+    assert "not a collection type" in e.message
+
+
+# ── O ramo que era código morto ──────────────────────────────
+
+def test_o_conteudo_errado_e_recusado_na_fronteira():
+    e = erro_de(GUARDA + 'c: Guarda<Integer> := spawn Guarda("texto")\n')
+    assert "field 'valor' of Guarda<Integer>" in e.message
+    assert "declared as Integer but got String" in e.message
+
+
+def test_o_campo_do_CORPO_tambem_conta():
+    e = erro_de("""blueprint Guarda<T>:
+    guardado: T
+
+c := spawn Guarda()
+c.guardado := "texto"
+d: Guarda<Integer> := c
+""")
+    assert "field 'guardado'" in e.message
+
+
+def test_o_campo_HERDADO_tambem_conta():
+    """Um campo herdado é tão declarado quanto um próprio — e a mãe é
+    quem costuma declarar o genérico."""
+    e = erro_de("""blueprint Raiz<T>:
+    do_pai: T
+
+blueprint Guarda<T> extends Raiz:
+    proprio: T
+
+c := spawn Guarda()
+c.do_pai := "texto"
+d: Guarda<Integer> := c
+""")
+    assert "field 'do_pai'" in e.message
+
+
+def test_a_filha_vence_a_mae_no_tipo_do_campo():
+    """A primeira versão empilhava, e a mãe sobrescrevia a filha.
+
+    O `campo: T` da filha virava o `campo: String` da mãe, e a
+    conferência passava a falar do tipo errado.
+    """
+    interp = Interpreter()
+    interp.run(parse(tokenize(
+        "blueprint Raiz<T>:\n"
+        "    campo: String\n"
+        "blueprint Filha<T> extends Raiz:\n"
+        "    campo: T\n", "<t>"), "<t>"))
+    tipos = Interpreter._tipos_de_campo_do_molde(
+        interp.global_env.get("Filha"))
+    assert tipos["campo"] == "T", tipos
+
+
+def test_campo_AINDA_SEM_VALOR_nao_da_falso_alarme():
+    """`spawn Guarda()` deixa os campos em `void`.
+
+    A primeira versão acusava "declared as Integer but got Void" em TODO
+    blueprint genérico anotado: o recurso inteiro ficava inutilizável, e
+    o falso alarme era no caminho mais comum que existe.
+    """
+    assert rodar("""blueprint Guarda<T>:
+    guardado: T
+
+c: Guarda<Integer> := spawn Guarda()
+c.guardado := 7
+out c.guardado
+""") == "7"
+
+
+def test_o_record_continua_cobrado_como_antes():
+    """A mudança não pode ter mexido no caminho que já funcionava."""
+    e = erro_de("""record Par<A, B>:
+    um: A
+    dois: B
+
+p: Par<Integer, String> := Par("texto", 99)
+""")
+    assert "field 'um' of Par<Integer, String>" in e.message
+
+
+# ── O silêncio: o argumento de tipo desligava a conferência ──
+
+def test_o_argumento_de_tipo_nao_desliga_a_conferencia_de_metodo():
+    """Escrever MAIS tipo não pode comprar MENOS verificação."""
+    com = erros(GUARDA + "c: Guarda<Integer> := spawn Guarda(1)\n"
+                         "out c.naoExiste()\n")
+    sem = erros(GUARDA + "c: Guarda := spawn Guarda(1)\n"
+                         "out c.naoExiste()\n")
+    assert len(com) == len(sem) == 1, (com, sem)
+
+
+def test_o_argumento_de_tipo_nao_desliga_a_conferencia_em_record():
+    """O defeito já existia aqui, desde que record aceitou a anotação."""
+    base = "record Par<A, B>:\n    um: A\n    dois: B\n\n"
+    com = erros(base + 'p: Par<Integer, String> := Par(1, "a")\n'
+                       "out p.naoExiste\n")
+    sem = erros(base + 'p: Par := Par(1, "a")\n'
+                       "out p.naoExiste\n")
+    assert len(com) == len(sem) == 1, (com, sem)
+
+
+def test_o_campo_certo_continua_passando():
+    """A correção não pode acusar o que existe."""
+    assert not erros("""record Par<A, B>:
+    um: A
+    dois: B
+
+p: Par<Integer, String> := Par(1, "a")
+out p.um
+""")
+
+
+# ── O `check` acusa a linha que CAUSA ───────────────────────
+
+def test_o_check_acusa_o_argumento_generico_na_causa():
+    """O erro existia, e aparecia uma linha depois, sobre outro nome.
+
+    Em execução o parâmetro de um `T` sem limite não é conferido: o campo
+    recebia o texto calado, e a queixa saía na leitura seguinte — *"a
+    variável 'n' declared as Integer but got String"*. Quem lê vai
+    depurar o `n`, que está certo.
+    """
+    fonte = (GUARDA + "c: Guarda<Integer> := spawn Guarda(1)\n"
+                      'c.guardar("texto")\n')
+    achados = diagnosticos(fonte, "generic-argument")
+    assert len(achados) == 1, erros(fonte)
+    assert achados[0].line == 7, f"acusou a linha {achados[0].line}, não a 7"
+    assert "T is Integer" in achados[0].message
+    assert "got String" in achados[0].message
+
+
+def test_o_check_CALA_sem_a_anotacao():
+    """Sem anotação não há vínculo, e concluir seria inventar."""
+    assert not diagnosticos(
+        GUARDA + 'c := spawn Guarda(1)\nc.guardar("texto")\n',
+        "generic-argument")
+
+
+def test_o_check_deixa_passar_o_argumento_certo():
+    assert not diagnosticos(
+        GUARDA + "c: Guarda<Integer> := spawn Guarda(1)\nc.guardar(2)\n",
+        "generic-argument")
+
+
+def test_o_limite_continua_cobrado_em_execucao_no_blueprint():
+    e = erro_de("""blueprint Medida<T extends Number>(quanto: T):
+    action dobro() -> T:
+        yield self.quanto * 2
+
+m: Medida<Integer> := spawn Medida("texto")
+""")
+    assert "extends Number" in e.message
+
+
+# ── Variância: a decisão, medida ────────────────────────────
+
+def test_a_covariancia_sai_de_graca_da_conferencia_estrutural():
+    """`Guarda<Integer>` serve onde se espera `Guarda<Number>`.
+
+    E isso não vem de uma declaração de variância: vem de a conferência
+    olhar os VALORES reais na fronteira. Um Integer é um Number.
+    """
+    assert rodar(GUARDA + "inteira: Guarda<Integer> := spawn Guarda(7)\n"
+                          "larga: Guarda<Number> := inteira\n"
+                          "out larga.ler()\n") == "7"
+
+
+def test_e_o_incompativel_e_recusado_sem_variancia_declarada():
+    """O outro lado da mesma conferência — e é o que a torna sólida."""
+    e = erro_de(GUARDA + "inteira: Guarda<Integer> := spawn Guarda(7)\n"
+                         "errada: Guarda<String> := inteira\n")
+    assert "declared as String but got Integer" in e.message
+
+
+def test_nao_ha_palavra_de_variancia_na_linguagem():
+    """E não deve haver: ela não teria o que decidir.
+
+    A conferência é estrutural na fronteira, então a resposta de
+    assignability já está certa sem ela — provado pelos dois testes
+    acima. `covariant`/`contravariant` seriam a oitava e a nona palavra
+    reservada removida por serem caras sem entregar nada.
+    """
+    from dataforge import tokens
+
+    for palavra in ("covariant", "contravariant", "covariante",
+                    "contravariante"):
+        assert palavra not in tokens.KEYWORDS
+
+
+def test_a_regra_nova_pode_ser_silenciada_pelo_nome():
+    """Um analisador sem escape obriga a escolher entre conviver com um
+    alarme e desligar a verificação inteira — e a segunda é o que
+    acontece. A regra tem nome, então o escape vem de graça."""
+    fonte = (GUARDA + "c: Guarda<Integer> := spawn Guarda(1)\n"
+                      'c.guardar("texto")  // df: permitir generic-argument\n')
+    # `source=` e como o LSP passa o texto do editor: sem ela o
+    # verificador leria o arquivo do DISCO, e aqui nao ha arquivo.
+    todos = check_program(parse(tokenize(fonte, "t.df"), "t.df"), "t.df",
+                          source=fonte)
+    assert not [d for d in todos if d.code == "generic-argument"]
+
+    # E sem o comentario ela continua acusando — senao o teste acima
+    # passaria por acidente.
+    sem = fonte.replace("  // df: permitir generic-argument", "")
+    todos = check_program(parse(tokenize(sem, "t.df"), "t.df"), "t.df",
+                          source=sem)
+    assert [d for d in todos if d.code == "generic-argument"]

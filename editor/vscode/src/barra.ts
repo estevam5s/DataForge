@@ -5,7 +5,7 @@ import { executavel, rodar } from './dataforge';
 /**
  * A barra de status: o que a extensão sabe, sempre visível.
  *
- * Antes havia um botão de rodar, e mais nada. Os 52 comandos viviam na
+ * Antes havia um botão de rodar, e mais nada. Os 56 comandos viviam na
  * paleta — e a paleta só serve a quem já sabe que o comando existe.
  *
  * Cinco itens, e cada um responde uma pergunta que se faz o tempo todo:

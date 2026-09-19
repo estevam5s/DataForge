@@ -627,15 +627,55 @@ O que resta, em ordem de impacto.
   exatamente o que ela deveria recusar. Daí `_membros_implementados` ao lado
   de `_membros_com_heranca`.
 - ~~**Ações e blueprints genéricos, com limite**~~ — **feito**: `<T>` e
-  `<T extends X>`, com o limite cobrado no `check` e em execução. Falta
-  `Cluster<T>` e `Vault<K,V>` como tipo de parâmetro.
+  `<T extends X>`, com o limite cobrado no `check` e em execução.
+  `Cluster<T>` e `Vault<K, V>` como tipo de parâmetro também.
+- ~~**`Caixa<Integer>` num blueprint próprio**~~ — **feito**, e atrás
+  dele havia **três** defeitos calados:
+
+  | O quê | Efeito |
+  |---|---|
+  | `parse_blueprint` não registrava os parâmetros de tipo | `Caixa<Integer>` era **erro de sintaxe**, e a mensagem sugeria `type Caixa<T> := …` — o caminho errado. `record`, `enum`, `trait` e `type` registravam; só o blueprint não |
+  | o ramo de blueprint da conferência lia `alvo.tipos_dos_campos`, atributo que nunca existiu | **código morto**: `getattr` com padrão devolvia `{}`, e o parâmetro de tipo virava comentário |
+  | a busca de membro era por `alvo in self.records` | escrever o argumento de tipo **desligava** a conferência de membro. `p: Par<Integer, String>` e depois `p.naoExiste` passava limpo — escrever **mais** tipo comprava **menos** verificação |
+
+  O terceiro já valia para `record`, que aceitava a anotação desde
+  sempre. E o `check` passou a acusar `c.guardar("texto")` **na linha que
+  causa** (`generic-argument`): o erro já existia em execução e aparecia
+  uma linha depois, sobre outro nome — *"a variável 'n' declared as
+  Integer but got String"*. Quem lê vai depurar o `n`.
+
+- **Variância declarada** — **não se aplica**, e isso foi medido. A
+  conferência é **estrutural sobre os valores reais** em cada fronteira:
+  `Caixa<Integer>` numa anotação `Caixa<Number>` passa (um Integer é um
+  Number) e numa `Caixa<String>` é recusada. A resposta de assignability
+  já está certa sem nenhuma declaração — `covariant` e `contravariant`
+  não teriam o que decidir, e seriam a oitava e a nona palavra reservada
+  removida por serem caras sem entregar nada.
+
+  O preço da escolha estrutural, nomeado: ela custa uma passada pelos
+  campos em cada atribuição anotada, e não decide nada antes de rodar
+  para valores que não vê.
 
 ### 4.2 — Ferramental
 
-- **LSP**: autocomplete, ir-para-definição, renomear, hover com tipos. O
-  `typechecker` já produz diagnósticos com linha e coluna — falta o servidor.
-- **Debugger**: breakpoints, passo a passo, inspeção de variáveis.
-- **Cobertura de testes** no `dataforge test`.
+Os três estavam pedidos aqui, e os três existem. Ficaram anos nesta lista
+depois de prontos — foi o que ensinou a cobrar cada linha de "o que falta"
+contra o código antes de acreditar nela.
+
+- ~~**LSP**~~ — **feito**: `dataforge lsp` (`lsp.py`) com hover,
+  completar, ir-para-definição e diagnóstico, e a extensão do VS Code o
+  instala. Ele lê o comentário `// df: permitir <regra>` do **texto do
+  editor**, e não do disco: num arquivo não salvo, ler do disco
+  silenciaria a regra errada.
+- ~~**Debugger**~~ — **feito**, em duas interfaces: `dataforge debug`
+  (`depurador.py`) no terminal, que serve por ssh, e `dataforge dap`
+  (`dap.py`) no painel do editor, com estado de parada **por thread**,
+  breakpoint condicional, logpoint e watchpoint.
+- ~~**Cobertura de testes**~~ — **feito**: `dataforge test --cobertura`
+  e `--minimo=80`. O denominador sai do parser (quais linhas são
+  executáveis) e o numerador de `execute` sombreado — as duas metades
+  têm um jeito próprio de mentir, e `cobertura.py` existe para que
+  nenhuma delas minta.
 
 ### 4.3 — Ecossistema
 
@@ -643,9 +683,26 @@ O que resta, em ordem de impacto.
   lockfile com integridade, registro estático.
 - ~~**Publicação**~~ — **feito**. `dataforge pack` e `dataforge publish`, com
   tarball reprodutível e versionamento semântico.
-- **Registro hospedado com autenticação** — hoje publicar é abrir um PR no
-  repositório do registro. Basta para começar; não escala para milhares de
-  pacotes nem permite revogar uma versão comprometida.
+- ~~**Registro hospedado com autenticação**~~ — **feito**, e estava
+  invisível. `registro_remoto.py` fala com um serviço de verdade:
+  `dataforge login` guarda o token em `~/.dataforge/credenciais.json`
+  com modo 600 (num arquivo do projeto ele acabaria commitado, que é a
+  forma mais comum de vazar credencial de registro que existe),
+  `dataforge publish --remoto` envia por chamada autenticada, e o pacote
+  entra na fila de revisão. O `add` continua lendo o índice **estático**,
+  que é o que permite instalar sem depender de um serviço de pé.
+
+  **O tarball não sobe**: o que se envia é o endereço dele e o sha256.
+  Hospedar binário exige cota, expiração e política de abuso; um release
+  do GitHub já faz isso melhor, e o hash é o que torna a origem
+  irrelevante — se o conteúdo mudar, o `add` recusa.
+
+  E o defeito que isso escondia: `login`, `logout` e `whoami` eram
+  **despachados e não estavam no catálogo de comandos**. Funcionavam, e
+  não apareciam no `help`, nem em `dataforge help login`, nem em
+  `/api/comandos.json`. Um recurso que ninguém consegue descobrir é um
+  recurso que não existe. Hoje há trava:
+  `test_todo_comando_DESPACHADO_esta_no_catalogo`.
 
 ### 5.0 — Runtime
 
@@ -672,11 +729,28 @@ O que resta, em ordem de impacto.
 
 ### Concorrência (roadmap §8)
 
-- `Mutex`, `Semaphore`, `Atomic` — hoje só `channel` é seguro.
+- ~~`Mutex`, `Semaphore`, `Atomic`~~ — **feitos**. `Arcane.Concurrent`
+  tem `mutex`, `semaforo`, `atomico`, `barreira`, `condicao`,
+  `trava_leitura_escrita`, `contador`, `evento`, `fila_sem_trava` e
+  `pilha_sem_trava`. **Nada é aplicado sozinho**: usá-los é escolha de
+  quem escreve, e é por isso que o `check` avisa sobre escrita
+  concorrente em vez de recusá-la — recusar proibiria o acumulador
+  protegido por mutex, que é o uso correto.
 - ~~`receive` bloqueante~~ — **feito**, por argumento: `receive(ms)` e
   `receive(void)`. O padrão continua não esperando, porque trocá-lo faria
   programa existente travar em vez de falhar.
-- `TaskGroup` e cancelamento.
+- ~~`TaskGroup` e cancelamento~~ — **feitos**. `P.grupo()` devolve um
+  `Grupo` com `rodar`, `esperar_todas` (na ordem em que foram
+  disparadas, e o erro sobe **depois** de esperar as outras — subir na
+  hora deixaria as demais rodando sem dono), `resultados` (o que deu
+  certo e o que deu errado, sem levantar) e `fechar`. A tarefa tem
+  `cancelar`.
+
+  O limite é honesto e está na docstring de `com_prazo`: **a ação não é
+  interrompida**. O Python não permite matar uma thread de fora sem
+  risco de deixar estado pela metade; o que o prazo garante é que *quem
+  chamou* não fica preso. Prometer cancelamento de verdade aqui seria
+  prometer o que a plataforma não dá.
 - ~~`parallel` tratando **blocos** em vez de instruções~~ — **feito**, sem
   palavra nova: um `thread:` dentro de `parallel` é uma tarefa. Instrução
   solta continua sendo uma tarefa cada, então nada existente mudou.

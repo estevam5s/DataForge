@@ -266,8 +266,42 @@ GRUPOS = [
             veja=("publish",)),
         Cmd("publish", "dataforge publish --registry=<pasta>",
             "Publica o pacote num registro",
-            "O registro e uma pasta com index.json e pacotes/.",
-            veja=("pack",)),
+            "Dois destinos, e eles resolvem problemas diferentes:\n"
+            "\n"
+            "  --registry=<pasta>  um indice estatico, para um registro\n"
+            "                      interno de empresa — espera um PR\n"
+            "  --remoto            o registro da comunidade, por chamada\n"
+            "                      autenticada, e o pacote entra na fila\n"
+            "                      de revisao\n"
+            "\n"
+            "O tarball NAO sobe: o que se envia e o endereco dele e o\n"
+            "sha256. Hospedar binario exige cota, expiracao e politica de\n"
+            "abuso; um release do GitHub ja faz isso melhor, e o hash e o\n"
+            "que torna a origem irrelevante.",
+            opcoes=[("--registry=<pasta>", "um indice estatico numa pasta"),
+                    ("--remoto", "o registro da comunidade, com revisao"),
+                    ("--tarball=<url>", "o endereco do tarball ja hospedado")],
+            exemplos=[("dataforge publish --registry=../registro", "interno"),
+                      ("dataforge publish --remoto", "a comunidade")],
+            veja=("pack", "login")),
+        Cmd("login", "dataforge login [token]",
+            "Guarda o token de publicacao no registro da comunidade",
+            "O token e criado no painel do site e aparece UMA vez. Ele\n"
+            "fica em '~/.dataforge/credenciais.json', com modo 600: num\n"
+            "arquivo do projeto ele acabaria commitado, que e a forma\n"
+            "mais comum de vazar credencial de registro que existe.\n"
+            "\n"
+            "O 'login' CONFERE o token antes de gravar — sem isso o erro\n"
+            "so apareceria no primeiro 'publish', longe da causa.",
+            exemplos=[("dataforge login", "pede o token e confere"),
+                      ("dataforge login df_pat_…", "sem perguntar")],
+            veja=("publish", "whoami", "logout")),
+        Cmd("logout", "dataforge logout",
+            "Esquece o token guardado",
+            veja=("login",)),
+        Cmd("whoami", "dataforge whoami",
+            "Diz de quem e o token guardado, e o que ele alcanca",
+            veja=("login",)),
     ]),
 
     ("Analise", [
@@ -419,7 +453,8 @@ GRUPOS = [
                       ("dataforge crucible --tag=rapido", "so os rapidos"),
                       ("dataforge crucible --formato=junit --out=r.xml",
                        "para o CI")],
-            veja=("test", "bench")),
+            veja=("test", "bench"),
+            apelidos=("cr",)),
         Cmd("big-o", "dataforge big-o [alvo]",
             "Calcula a complexidade de cada acao, sem rodar o codigo",
             "Le a arvore e conta estrutura: lacos aninhados, recursao,\n"
@@ -432,7 +467,8 @@ GRUPOS = [
                     ("--strict", "sai com erro se algo passar de O(n log n)")],
             exemplos=[("dataforge big-o src/ -v", ""),
                       ("dataforge big-o --escala", "a tabela de referencia")],
-            veja=("profile", "bench")),
+            veja=("profile", "bench"),
+            apelidos=("bigo", "complexidade",)),
         Cmd("oop", "dataforge oop [alvo]",
             "Metricas de orientacao a objeto e os cheiros de SOLID",
             "Mede cada blueprint sem rodar: WMC, DIT, NOC, CBO, RFC, LCOM,\n"
@@ -449,20 +485,34 @@ GRUPOS = [
             exemplos=[("dataforge oop src/", "metricas e cheiros"),
                       ("dataforge oop src/ --diagrama > classes.mmd",
                        "o diagrama para o README")],
-            veja=("big-o", "stats", "check")),
+            veja=("big-o", "stats", "check"),
+            apelidos=("metricas-oop",)),
         Cmd("custo", "dataforge custo [alvo]",
             "Mostra o que cada 'adopt' traz junto",
             "Uma linha de import nao parece cara. Um modulo de 200\n"
             "simbolos entra inteiro no processo.",
             exemplos=[("dataforge custo src/", "")],
-            veja=("big-o",)),
+            veja=("big-o",),
+            apelidos=("cost",)),
+        Cmd("palavras", "dataforge palavras [termo]",
+            "Lista as palavras da linguagem, com um exemplo de cada",
+            "Sao 113: as 81 reservadas mais as contextuais. Cada uma traz\n"
+            "o que faz e um exemplo que RODA — eles saem de\n"
+            "'exemplos_palavras.py', e ha teste executando todos.\n"
+            "\n"
+            "Com termo, procura no nome e na descricao.",
+            exemplos=[("dataforge palavras", "todas"),
+                      ("dataforge palavras cycle", "so o que fala de laco")],
+            apelidos=("keywords",),
+            veja=("erros", "explain")),
         Cmd("erros", "dataforge erros [termo]",
             "Lista o catalogo de erros da linguagem",
             "Sao 177 codigos em 15 familias. Sem termo, lista tudo\n"
             "agrupado; com termo, procura no titulo e na explicacao.",
             exemplos=[("dataforge erros", "o catalogo inteiro"),
                       ("dataforge erros banco", "so o que fala de banco")],
-            veja=("explain",)),
+            veja=("explain",),
+            apelidos=("errors",)),
         Cmd("doc", "dataforge doc [alvo]",
             "Gera documentacao Markdown a partir dos comentarios",
             opcoes=[("--out=<arquivo>", "escreve num arquivo")],
@@ -4471,7 +4521,7 @@ def editor_command(args, flags=()):
     print()
     # A mensagem dizia apenas "cores, snippets, indentacao e dobra". Foi
     # escrita quando a extensao era so uma gramatica; hoje ela traz LSP,
-    # depurador e 52 comandos, e prometer menos do que se entrega faz a
+    # depurador e 56 comandos, e prometer menos do que se entrega faz a
     # pessoa nao procurar o que esta la.
     for titulo, detalhe in (
             ("cores e snippets", "as 81 palavras reservadas, e 4 espacos de indentacao"),
@@ -4479,7 +4529,7 @@ def editor_command(args, flags=()):
             ("autocompletar e ir-para-definicao", "servidor de linguagem proprio"),
             ("depurar com F5", "breakpoints na margem, pilha e variaveis no painel"),
             ("Big-O acima de cada acao", "e o custo ao lado de cada import"),
-            ("52 comandos", "rodar, testar, cobertura, pacotes, Vitrine, DevOps")):
+            ("56 comandos", "rodar, testar, cobertura, pacotes, Vitrine, DevOps")):
         print("  " + color("·", "1;33") + f" {titulo}")
         print(color(f"      {detalhe}", "0;90"))
     print()

@@ -114,6 +114,49 @@ p.por(2)
 assert p.tirar() is 2
 assert len(p.itens) is 1""", "lang": "df"},
 
+ {"h3": "A anotação `Caixa<Integer>`, e o que ela cobra"},
+ {"p": "Anotar a variável **vincula** o parâmetro de tipo, e daí em diante a conferência tem contra o que comparar."},
+ {"code": """blueprint Caixa<T>(valor: T):
+    action guardar(v: T):
+        self.valor := v
+    action ler() -> T:
+        yield self.valor
+
+// A anotacao vincula T, e a fronteira confere o conteudo
+inteira: Caixa<Integer> := spawn Caixa(7)
+assert inteira.ler() is 7
+
+monitor:
+    errada: Caixa<Integer> := spawn Caixa("texto")
+    assert no
+handle TypeError as e:
+    assert "field 'valor' of Caixa<Integer>" in e.message
+    assert "declared as Integer but got String" in e.message
+
+out "o vinculo e cobrado na fronteira" """, "lang": "df"},
+ {"p": "A conferência olha os campos do cabeçalho **e** do corpo, **e os herdados** — um campo que vem da mãe é tão declarado quanto um próprio, e a mãe é quem costuma declarar o genérico."},
+ {"table": {"head": ["Onde", "O que é cobrado"], "rows": [
+   ["a fronteira (a atribuição anotada)", "todo campo cujo tipo declarado é um parâmetro, inclusive o herdado"],
+   ["o `check`, na chamada de método", "`c.guardar(\"texto\")` com `c: Caixa<Integer>` — acusado **na linha que causa**, com o código `generic-argument`"],
+   ["a execução, com limite", "`<T extends Number>` é cobrado no valor, com ou sem anotação"],
+   ["a aridade dos argumentos", "`Caixa<Integer, String>` num `<T>` é recusado na leitura"]]}},
+ {"callout": {"tipo": "atencao", "titulo": "Por que o `check` importa aqui: o erro aparecia no lugar errado", "texto": "Um parâmetro de `T` **sem limite** não é conferido em execução. O campo recebia o texto calado, e a queixa saía na leitura seguinte — *\"a variável 'n' declared as Integer but got String\"*, uma linha depois e sobre **outro nome**. Quem lê a mensagem vai depurar o `n`, que está certo."}},
+ {"callout": {"tipo": "perigo", "titulo": "Três defeitos moravam atrás desta anotação", "texto": "Ela era **erro de sintaxe**: `parse_blueprint` lia os parâmetros de tipo e não os registrava — `record`, `enum`, `trait` e `type` registravam, só o blueprint não, e a mensagem sugeria escrever `type Caixa<T> := …`, que é o caminho errado. O ramo de blueprint da conferência era **código morto**, lendo um atributo que nunca existiu. E escrever o argumento de tipo **desligava** a conferência de membro: `p: Par<Integer, String>` e depois `p.naoExiste` passava limpo — escrever **mais** informação de tipo comprava **menos** verificação."}},
+
+ {"h3": "O limite: o objeto não carrega o vínculo"},
+ {"p": "O vínculo vive na **anotação**, não na instância. Uma escrita posterior em campo com um valor que o analisador não consegue ver não é conferida:"},
+ {"code": """blueprint Caixa<T>:
+    guardado: T
+
+action de_fora():
+    yield "texto"
+
+c: Caixa<Integer> := spawn Caixa()
+c.guardado := de_fora()        // passa: o vinculo nao viaja com o objeto
+assert c.guardado is "texto"
+out "e um silencio, e ele esta escrito" """, "lang": "df"},
+ {"p": "Fazer o objeto carregar o vínculo custaria estado **por instância**, e a linguagem trata isso como uma decisão de [custo zero](/docs/ecossistema/principios): contrato, invariante e estado por objeto vivem atrás de três sentinelas `None` justamente para não cobrar de quem não usa. O silêncio está nomeado em [o que falta](/docs/ecossistema/mapa) em vez de escondido."},
+
  {"h2": "Tipos indexados: quando o parâmetro é um número"},
  {"p": "`Vetor<3>` é um tipo cujo **argumento é um valor**. O parâmetro entra na regra do tipo, e o tamanho passa a fazer parte dele: é a forma prática dos tipos dependentes, e resolve o problema real de \"esta ação só aceita coordenada de duas casas\"."},
  {"code": """type Vetor<N> := Cluster<Float> where len(valor) is N
@@ -137,7 +180,7 @@ handle TypeError as e:
  {"table": {"head": ["Não existe", "Por quê"], "rows": [
    ["monomorfização", "não há compilação para código de máquina: o DataForge interpreta a árvore, e o genérico é uma conferência na fronteira"],
    ["especialização por tipo (`impl<Integer>`)", "exigiria despacho por tipo em tempo de compilação; o caminho aqui é sobrecarga (`overload`), que decide na chamada"],
-   ["variância declarada (`in`/`out`)", "ainda não: `Cluster<T>` é conferido item a item, e não há subtipagem de coleção declarada"],
+   ["variância declarada (`covariant`/`contravariant`)", "**não se aplica** — e isso foi medido. A conferência é estrutural sobre os valores reais em cada fronteira, então ela já dá a resposta certa: `Caixa<Integer>` passa numa anotação `Caixa<Number>` e é recusada numa `Caixa<String>`. Uma palavra de variância não teria o que decidir, e seria a oitava reservada removida por ser cara sem entregar nada"],
    ["`<T>` cobrado sem limite", "de propósito — o parâmetro solto documenta, e cobrar o que não foi declarado seria inventar uma regra que o código não escreveu"]]}},
 ]},
 
@@ -162,6 +205,27 @@ d := spawn Documento()
 assert d.ler() is "vazio"
 assert d.descrever() is "leio: vazio" """, "lang": "df"},
  {"callout": {"tipo": "nota", "titulo": "Trait ou contract?", "texto": "`trait` pode trazer implementação; `contract` só declara, confere a aridade de quem implementa e pode estender outros contratos. Quando você quer só a forma, use `contract`; quando quer forma **e** comportamento padrão, use `trait`."}},
+
+ {"h3": "A prova de que a variância não tem o que decidir"},
+ {"code": """blueprint Caixa<T>(valor: T):
+    action ler() -> T:
+        yield self.valor
+
+inteira: Caixa<Integer> := spawn Caixa(7)
+
+// Covariancia, de graca: um Integer E um Number
+larga: Caixa<Number> := inteira
+assert larga.ler() is 7
+
+// E o incompativel e recusado — sem nenhuma declaracao de variancia
+monitor:
+    errada: Caixa<String> := inteira
+    assert no
+handle TypeError as e:
+    assert "declared as String but got Integer" in e.message
+
+out "a conferencia estrutural ja responde assignability" """, "lang": "df"},
+ {"p": "O preço da escolha estrutural, nomeado: ela custa uma passada pelos campos **em cada atribuição anotada**, e não decide nada antes de rodar para um valor que o analisador não vê. Um sistema nominal decide estaticamente e de graça — e precisa da declaração de variância para isso."},
 
  {"h2": "Um trait herda de outro"},
  {"p": "`trait Editavel extends Legivel` soma as exigências e as implementações padrão. A mensagem de quem não implementa aponta **onde a exigência nasceu**, e não quem a repassou — numa cadeia de traits, o nome errado manda procurar no arquivo errado."},

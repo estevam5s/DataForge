@@ -121,7 +121,16 @@ cycle f in percorridas:
     assert f["ms"] bigger_eq 0.0
     assert f["saiu"] is not ""
 
-out $"   9 fases percorridas em {r['ms']} ms; a mais cara: {r['mais_cara']}"
+// A fase mais cara e uma MEDIDA, e nao se imprime uma medida num
+// exercicio: ela muda entre execucoes, e o repositorio compara a saida
+// caractere por caractere com a compilacao ligada e desligada. A
+// primeira versao imprimia o nome dela e reprovava de forma
+// intermitente — 'otimizar' numa execucao, 'tipos' na outra.
+//
+// O que se AFIRMA e estavel: ela e uma das nove percorridas.
+nomes := [f["fase"] cycle f in percorridas]
+assert r["mais_cara"] in nomes
+out $"   9 fases percorridas, e a mais cara e uma delas"
 
 // E as divergencias em relacao ao desenho do documento
 d := Perc.divergencias()

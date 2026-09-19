@@ -1975,7 +1975,7 @@ em `editor/vscode/` na raiz.
 
 O resultado era silencioso e total: zero arquivo da extensão no wheel, e
 `dataforge editor` instalado por pip respondia "os arquivos da extensao
-nao foram encontrados". Cores, snippets, LSP, depurador, os 52 comandos
+nao foram encontrados". Cores, snippets, LSP, depurador, os 56 comandos
 — nada chegava a quem instalasse pela forma recomendada.
 
 Dois testes *conferiam o texto do `pyproject.toml`* e **passavam**.
@@ -1990,7 +1990,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1873 símbolos, 52 comandos, 177 códigos de erro, o inventário
+sintaxe, 1873 símbolos, 56 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2013,6 +2013,99 @@ senão o `next build` com `output: 'export'` falha.
 E o `metadataBase` apontava para `dataforge-lang.dev`, que **não
 responde** — era o único lugar do repositório que citava esse domínio.
 Todo canônico e todo Open Graph iam para um endereço inexistente.
+
+## Genéricos de blueprint — três defeitos atrás de uma anotação
+
+`Caixa<Integer>` era **erro de sintaxe**, e isso escondia três coisas.
+Ao mexer em genérico, são as três a conferir:
+
+**1. `parse_blueprint` não registrava os parâmetros de tipo.** `type`,
+`record`, `enum` e `trait` fazem `self._tipos_genericos[nome] = len(...)`;
+o blueprint **lia** os dele e jogava fora. O efeito era uma assimetria
+sem explicação — `Par<Integer, String>` num record anotava e
+`Caixa<Integer>` num blueprint respondia "não é um tipo de coleção",
+sugerindo `type Caixa<T> := …`, que é o caminho errado. Quem acrescentar
+uma declaração que aceite `<T>` precisa registrar ali.
+
+**2. O ramo de blueprint da conferência era CÓDIGO MORTO.**
+`_conferir_generico_do_usuario` lia `alvo.tipos_dos_campos` — atributo
+que nunca existiu. Os nomes reais são `tipos_do_cabecalho` (parâmetros do
+cabeçalho) e `fields_decl` (campos do corpo). `getattr` com padrão
+devolvia `{}`, o laço não conferia nada, e o parâmetro de tipo virava
+comentário. **A falta não dava erro em lugar nenhum**, que é o que a fez
+sobreviver: a única forma de notá-la era anotar um blueprint genérico, e
+isso era erro de sintaxe. É o mesmo padrão já registrado aqui — `getattr`
+com padrão devolvendo `"pass"` para tudo no corredor de testes.
+
+`_tipos_de_campo_do_molde` junta os dois e percorre a linhagem. **A ordem
+importa**: o ancestral entra primeiro e o molde por último, para a filha
+vencer. A primeira versão empilhava e a mãe sobrescrevia a filha — o
+`campo: T` da filha virava o `campo: String` da mãe, e a conferência
+passava a falar do tipo errado.
+
+**E `void` não pode dar falso alarme.** Campo ainda sem valor é `void`, e
+recusá-lo proibiria `spawn Caixa()` — a forma mais comum de criar um. A
+primeira versão acusava "declared as Integer but got Void" em **todo**
+blueprint genérico anotado. O preço, nomeado: um campo que guarda `void`
+de propósito passa sem conferência.
+
+**3. Escrever o argumento de tipo DESLIGAVA a conferência de membro.**
+A busca é `alvo in self.records` / `self.blueprints`, e com os argumentos
+a chave vira `'Par<Integer, String>'`: nenhum ramo casava, e
+`ex_MemberAccess`/`ex_MethodCall` caíam no `return UNKNOWN`. Então
+`p: Par<Integer, String>` e depois `p.naoExiste` passava limpo.
+
+> Escrever **mais** informação de tipo comprava **menos** verificação, em
+> silêncio. Este já valia para `record` desde que ele aceitou a anotação.
+
+`_molde_do_tipo` tira os argumentos **só quando a base é um molde
+conhecido**: uma `Cluster<Integer>` precisa deles, e é o ramo que confere
+`xs.append("x")` que os lê.
+
+### O `check` acusa a linha que causa
+
+Um parâmetro de `T` **sem limite** não é conferido em execução: o campo
+recebia o texto calado e a queixa saía na leitura seguinte — *"a variável
+'n' declared as Integer but got String"*, uma linha depois e sobre outro
+nome. Quem lê vai depurar o `n`, que está certo.
+
+`_conferir_argumento_generico` resolve `T` pelo argumento da anotação e
+cobra o literal (`generic-argument`). Ele **cala** sem anotação (não há
+vínculo) e quando a aridade não fecha (casar listas de tamanhos
+diferentes pareia o argumento errado com o parâmetro errado — e o parser
+já acusa a aridade).
+
+### Variância declarada não se aplica — medido
+
+A conferência é **estrutural sobre os valores reais** em cada fronteira.
+Medido: `Caixa<Integer>` numa anotação `Caixa<Number>` **passa** (um
+Integer é um Number) e numa `Caixa<String>` é **recusada**. A resposta de
+assignability já está certa sem declaração nenhuma.
+
+`covariant`/`contravariant` seriam palavras que não decidem nada — e o
+repositório já removeu sete reservadas por serem caras sem entregar nada.
+`test_nao_ha_palavra_de_variancia_na_linguagem` registra a decisão.
+
+O preço da escolha estrutural, nomeado: ela custa uma passada pelos
+campos em cada atribuição anotada, e não decide nada antes de rodar para
+um valor que o analisador não vê.
+
+### Um comando que não está no catálogo não existe
+
+Fora do tema, achado na mesma passada: **quatro** comandos eram
+despachados em `main` e não tinham entrada em `GRUPOS` — `login`,
+`logout`, `whoami` (a publicação autenticada no registro da comunidade,
+que fala com um serviço de verdade) e `palavras` (as 113 palavras da
+linguagem, com um exemplo que roda para cada). Mais seis apelidos não
+declarados (`bigo`, `complexidade`, `cost`, `cr`, `errors`,
+`metricas-oop`).
+
+Eles funcionavam e não apareciam em `dataforge help`, nem em
+`dataforge help login`, nem em `/api/comandos.json` — e a contagem de
+comandos do site estava errada. `test_veja_tambem_so_cita_comando_que_existe`
+confere a direção contrária (que o catálogo não **invente** comando);
+`test_todo_comando_DESPACHADO_esta_no_catalogo` confere que ele não
+**esqueça** nenhum, lendo os `elif command ==` do próprio `cli.py`.
 
 ## O mapa do ecossistema, os princípios e o percurso
 
@@ -2243,11 +2336,14 @@ O que **ainda não existe** (não invente que existe):
   medição da pausa dele (`Arcane.Perfil.gc_pausas`). "Controlar memória"
   e "controlar o coletor" são coisas diferentes, e o projeto prefere
   nomear a diferença.
-- **Variância declarada, e generic de blueprint cobrado** —
-  `Cluster<T>`, `Vault<K, V>` e `Set<T>` existem (fronteira, inserção e
-  `check`; ver `colecoes_tipadas.py`). O que falta é `Caixa<Integer>` num
-  blueprint próprio ser cobrado, e variância declarada. `<T>` e
-  `<T extends X>` em ações e blueprints existem e são verificados.
+- **O vínculo genérico carregado pelo objeto** — `Caixa<Integer>` num
+  blueprint próprio **existe e é cobrado** desde a correção descrita em
+  "Genéricos de blueprint", abaixo: na fronteira (a atribuição anotada,
+  incluindo campo herdado), pelo `check` quando o literal prova
+  (`generic-argument`), e em execução quando há limite. O que **não**
+  existe é o objeto carregar o vínculo: `c.guardado := valor_de_fora`
+  não é conferido, porque fazê-lo custaria estado por instância.
+  **Variância declarada não se aplica** — ver abaixo, com a medida.
 - **Exaustividade de padrão aninhado** — o `match` avisa o que fica de
   fora em enum, booleano, sequência (`[x, ...resto]` sem `[]`) e na família
   de um `abstract blueprint`; ele não desce em padrões aninhados

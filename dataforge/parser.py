@@ -1664,6 +1664,20 @@ class Parser:
         name = self.expect(TokenType.IDENTIFIER).value
         tipos = self._parse_parametros_de_tipo()
         limites = dict(self._ultimos_limites) if tipos else {}
+        # Sem esta linha, 'Caixa<Integer>' era ERRO DE SINTAXE.
+        #
+        # 'type', 'record', 'enum' e 'trait' registram os parametros de
+        # tipo aqui; o blueprint LIA os dele e nao registrava. O efeito
+        # era uma assimetria sem explicacao: 'Par<Integer, String>' num
+        # record anotava, e 'Caixa<Integer>' num blueprint respondia
+        # "nao e um tipo de colecao" — e a mensagem sugeria escrever
+        # 'type Caixa<T> := …', que e o caminho errado.
+        #
+        # O runtime ja estava pronto: '_conferir_generico_do_usuario'
+        # tem o ramo de DFInstance desde sempre. Faltava so poder
+        # ESCREVER a anotacao.
+        if tipos:
+            self._tipos_genericos[name] = len(tipos)
         parents = []
         traits = []
         constructor_params = []

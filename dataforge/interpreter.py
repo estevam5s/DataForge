@@ -6763,14 +6763,74 @@ class Interpreter:
                     value.values[campo], esperado,
                     f"field '{campo}' of {declared} in {what}", node)
         elif isinstance(value, DFInstance):
+            declarados = Interpreter._tipos_de_campo_do_molde(alvo)
             for campo, valor_do_campo in list(value.fields.items()):
-                esperado = troca.get(
-                    (getattr(alvo, "tipos_dos_campos", None) or {}).get(campo))
+                # 'void' e campo AINDA SEM VALOR, e recusa-lo proibiria
+                # 'spawn Caixa()' — a forma mais comum de criar um. A
+                # primeira versao acusava 'declared as Integer but got
+                # Void' em todo blueprint generico anotado, e o recurso
+                # inteiro ficava inutilizavel.
+                #
+                # O preco: um campo que guarda 'void' DE PROPOSITO passa
+                # sem conferencia. Nao ha como separar os dois casos sem
+                # o objeto carregar "este campo foi escrito", e um falso
+                # alarme no caminho comum e pior que esse silencio.
+                if valor_do_campo is None:
+                    continue
+                esperado = troca.get(declarados.get(campo))
                 if esperado:
                     self._check_type(
                         valor_do_campo, esperado,
                         f"field '{campo}' of {declared} in {what}", node)
         return value
+
+    @staticmethod
+    def _tipos_de_campo_do_molde(molde):
+        """campo -> tipo declarado, do blueprint e da linhagem dele.
+
+        Este ramo era CODIGO MORTO. Ele lia `alvo.tipos_dos_campos`, um
+        atributo que nunca existiu: os nomes reais sao
+        `tipos_do_cabecalho` (os parametros do cabecalho) e `fields_decl`
+        (os campos do corpo). `getattr` com padrao devolvia `{}`, o laco
+        nao conferia nada, e `Caixa<Integer>` recebendo um texto passava
+        calada — o parametro de tipo virava comentario.
+
+        E a falta nao dava erro em lugar nenhum, que e o que a fez
+        sobreviver: a unica forma de nota-la era anotar um blueprint
+        generico, e isso era erro de sintaxe (ver `parse_blueprint`).
+
+        A linhagem entra porque um campo herdado e tao declarado quanto
+        um proprio, e a mae e quem costuma declarar o generico.
+        """
+        # A ordem importa: o ANCESTRAL entra primeiro e o molde por
+        # ultimo, para que o que a filha declara VENCA o que ela herda.
+        # A primeira versao empilhava e a mae sobrescrevia a filha —
+        # 'campo: T' na filha virava o 'campo: String' da mae, e a
+        # conferencia passava a falar do tipo errado.
+        ordem = []
+        vistos = set()
+
+        def visitar(atual):
+            if atual is None or id(atual) in vistos:
+                return
+            vistos.add(id(atual))
+            for mae in getattr(atual, "parents", None) or []:
+                visitar(mae)
+            ordem.append(atual)
+
+        visitar(molde)
+
+        tipos = {}
+        for atual in ordem:
+            for campo, tipo in (getattr(atual, "tipos_do_cabecalho",
+                                        None) or {}).items():
+                tipos[campo] = tipo
+            for declarado in getattr(atual, "fields_decl", None) or ():
+                if isinstance(declarado, (list, tuple)) and len(declarado) >= 2:
+                    nome, tipo = declarado[0], declarado[1]
+                    if tipo:
+                        tipos[nome] = tipo
+        return tipos
 
     def _checar_composto_anonimo(self, value, declared, what, node,
                                  parametros_de_tipo=(), limites=None):

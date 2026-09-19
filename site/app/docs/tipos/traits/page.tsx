@@ -27,6 +27,26 @@ d := spawn Documento()
 assert d.ler() is "vazio"
 assert d.descrever() is "leio: vazio" `, lang: 'df' },
   {"callout": {"tipo": "nota", "titulo": "Trait ou contract?", "texto": "`trait` pode trazer implementação; `contract` só declara, confere a aridade de quem implementa e pode estender outros contratos. Quando você quer só a forma, use `contract`; quando quer forma **e** comportamento padrão, use `trait`."}},
+  {"h3": "A prova de que a variância não tem o que decidir"},
+  { code: `blueprint Caixa<T>(valor: T):
+    action ler() -> T:
+        yield self.valor
+
+inteira: Caixa<Integer> := spawn Caixa(7)
+
+// Covariancia, de graca: um Integer E um Number
+larga: Caixa<Number> := inteira
+assert larga.ler() is 7
+
+// E o incompativel e recusado — sem nenhuma declaracao de variancia
+monitor:
+    errada: Caixa<String> := inteira
+    assert no
+handle TypeError as e:
+    assert "declared as String but got Integer" in e.message
+
+out "a conferencia estrutural ja responde assignability" `, lang: 'df' },
+  {"p": "O preço da escolha estrutural, nomeado: ela custa uma passada pelos campos **em cada atribuição anotada**, e não decide nada antes de rodar para um valor que o analisador não vê. Um sistema nominal decide estaticamente e de graça — e precisa da declaração de variância para isso."},
   {"h2": "Um trait herda de outro"},
   {"p": "`trait Editavel extends Legivel` soma as exigências e as implementações padrão. A mensagem de quem não implementa aponta **onde a exigência nasceu**, e não quem a repassou — numa cadeia de traits, o nome errado manda procurar no arquivo errado."},
   { code: `trait Legivel:
@@ -154,7 +174,7 @@ assert round(somar_areas([spawn Quadrado(), spawn Circulo()]), 2) is 7.14`, lang
   {"callout": {"tipo": "atencao", "titulo": "O que o trait NÃO faz", "texto": "Ele não declara campo obrigatório nem construtor. O que ele cobra é método e propriedade — e quem implementa decide como guardar o estado. Um trait que exigisse campo obrigaria um layout, e aí seria herança com outro nome."}},
 ];
 
-const headings = [{ id: 'um-trait-herda-de-outro', text: "Um trait herda de outro", level: 2 as const }, { id: 'tipo-associado-e-constante-associada', text: "Tipo associado e constante associada", level: 2 as const }, { id: 'trait-generico', text: "Trait genérico", level: 2 as const }, { id: 'exigir-dois-traits-ao-mesmo-tempo', text: "Exigir dois traits ao mesmo tempo", level: 2 as const }, { id: 'despacho-dinamico-por-padrao', text: "Despacho: dinâmico por padrão", level: 2 as const }];
+const headings = [{ id: 'a-prova-de-que-a-variancia-nao-tem-o-que-decidir', text: "A prova de que a variância não tem o que decidir", level: 3 as const }, { id: 'um-trait-herda-de-outro', text: "Um trait herda de outro", level: 2 as const }, { id: 'tipo-associado-e-constante-associada', text: "Tipo associado e constante associada", level: 2 as const }, { id: 'trait-generico', text: "Trait genérico", level: 2 as const }, { id: 'exigir-dois-traits-ao-mesmo-tempo', text: "Exigir dois traits ao mesmo tempo", level: 2 as const }, { id: 'despacho-dinamico-por-padrao', text: "Despacho: dinâmico por padrão", level: 2 as const }];
 
 export default function Pagina() {
   return (

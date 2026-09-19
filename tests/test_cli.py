@@ -49,6 +49,43 @@ def test_veja_tambem_so_cita_comando_que_existe():
                     f"{c.nome} aponta para '{referido}', que nao existe"
 
 
+def test_todo_comando_DESPACHADO_esta_no_catalogo():
+    """Um comando que funciona e nao aparece no help nao existe.
+
+    Quatro estavam assim: `login`, `logout`, `whoami` — a publicacao
+    autenticada no registro da comunidade, que fala com um servico de
+    verdade — e `palavras`, que lista as 113 palavras da linguagem com
+    um exemplo de cada. Os quatro eram despachados em `main` e nao
+    tinham entrada em `GRUPOS`, entao:
+
+      * `dataforge help` nao os listava;
+      * `dataforge help login` nao respondia;
+      * `/api/comandos.json` os omitia;
+      * a contagem de comandos do site estava errada.
+
+    Mais seis APELIDOS que o despacho aceitava sem declarar (`bigo`,
+    `complexidade`, `cost`, `cr`, `errors`, `metricas-oop`).
+
+    Nenhum teste pegava: `test_veja_tambem_so_cita_comando_que_existe`
+    confere a direcao contraria — que o catalogo nao INVENTE comando.
+    Esta confere que ele nao ESQUECA nenhum.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonte = open(os.path.join(raiz, "dataforge", "cli.py"),
+                 encoding="utf-8").read()
+    nomes = set(re.findall(r"command == ['\"]([a-z0-9:_-]+)['\"]", fonte))
+    for lista in re.findall(r"command in \(([^)]*)\)", fonte):
+        nomes |= set(re.findall(r"['\"]([a-z0-9:_-]+)['\"]", lista))
+
+    assert len(nomes) > 40, "a leitura do despacho parou de achar comandos"
+    fora = sorted(n for n in nomes if n not in cli.COMANDOS)
+    assert not fora, (
+        "comando(s) que o despacho aceita e o catalogo nao conhece — "
+        f"eles nao aparecem no help nem na API: {fora}")
+
+
 def test_help_geral_lista_todos_os_comandos():
     texto = sem_cor(cli.ajuda_geral())
     for _grupo, comandos in cli.GRUPOS:

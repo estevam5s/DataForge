@@ -625,7 +625,7 @@ def test_o_readme_diz_o_que_a_extensao_NAO_faz():
 def test_a_barra_de_status_declara_o_que_mostra():
     """Antes havia um botão de rodar, e mais nada.
 
-    Os 52 comandos viviam na paleta — e a paleta só serve a quem **já
+    Os 56 comandos viviam na paleta — e a paleta só serve a quem **já
     sabe** que o comando existe. A barra é onde se descobre.
     """
     import json

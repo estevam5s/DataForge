@@ -74,25 +74,67 @@ Cada linha foi conferida pelos símbolos do módulo, e não pelo nome dele.
 ## Não existe, e cabe — em ordem de valor
 
 Medido pelo que um programa real pede primeiro, não pela ordem dos
-capítulos:
+capítulos. **Cada item traz como conferir que ele ainda falta** — a
+revisão à mão é o que fez a versão anterior desta lista envelhecer
+inteira: os quatro itens dela estavam feitos.
 
-1. **Fila de trabalho com persistência** (capítulo 47). `Arcane.Eventos`
-   tem fila em memória; o que falta é a que sobrevive ao processo morrer,
-   com tentativa, atraso e carta morta. É a peça que todo sistema com
-   e-mail ou relatório precisa.
-2. **`Cluster<T>` e `Vault<K, V>`** como tipo de parâmetro. `<T>` e
-   `<T extends X>` existem; o tipo do **conteúdo** de uma coleção, não —
-   e hoje a linguagem ao menos **diz isso**: `xs: Cluster<Integer>`
-   responde que a forma não existe e o que escrever no lugar, em vez de
-   um erro de sintaxe cru.
-3. ~~**Watchpoint no depurador**~~ — **feito**: `w expr` no terminal,
-   `dataforge debug --vigiar=expr`, e data breakpoint no editor. Para
-   quando o valor muda, inclusive por mutação no lugar e dentro de método.
-4. ~~**Sessão da Vitrine compartilhada entre processos**~~ — **feito**:
-   `sessoes_em := V.sessoes_em_banco(…)`, `V.sessoes_em_arquivos(…)` ou um
-   blueprint com `carregar`/`gravar`/`apagar`.
+1. **Exaustividade em padrão aninhado.** O `match` avisa o que fica de
+   fora em enum, booleano, sequência e na família de um
+   `abstract blueprint`. Ele não desce em padrão aninhado.
+
+       enum Cor: A / B
+       match par:
+           point [Cor.A, x]:   ← 'Cor.B' fica de fora, e nada avisa
+
+2. **Watchpoint de leitura.** A vigia para quando um valor **muda** (`w
+   total`, `--vigiar=expr`, data breakpoint no editor). Parar quando ele
+   é só **lido** não existe — e é o que se quer quando a pergunta é
+   "quem está consultando isto?".
+
+3. **Cache de compilação.** Os fechamentos são montados a cada processo.
+   Num servidor que reinicia, é trabalho repetido a cada partida.
+
+4. **Literal decimal exato.** `19.99` no código é `Float`, com o
+   arredondamento binário de sempre; a exatidão exige
+   `Dec.de("19.99")`. Um sufixo (`19.99d`) resolveria, e mexe no lexer.
+
+5. **Vínculo genérico carregado pelo objeto.** `Caixa<Integer>` é
+   conferido na **fronteira** (a atribuição anotada) e pelo `check`
+   quando o literal prova. Uma escrita posterior em campo
+   (`c.guardado := valor_de_fora`) não é conferida: o objeto não carrega
+   o vínculo, e fazê-lo carregar custa estado por instância — ver
+   "custo zero" em `ecossistema/principios`.
+
+6. **Gerenciador de versões, e workspace.** Trocar de versão é
+   reinstalar; não há como fixar a versão por projeto nem resolver a
+   árvore de vários pacotes de uma vez.
 
 ---
+
+## Feito desde a versão anterior desta lista
+
+Os quatro itens que estavam aqui saíram, e é por isso que o documento
+ganhou a coluna "como conferir":
+
+| Estava pedindo | Onde está |
+|---|---|
+| fila de trabalho com persistência | `Arcane.Eventos.fila_persistente` — SQLite, com reserva com prazo, recuo, agendamento e carta morta |
+| `Cluster<T>` e `Vault<K, V>` como tipo de parâmetro | existe, conferido na fronteira, na inserção e pelo `check` |
+| watchpoint no depurador | `w expr`, `--vigiar=expr`, data breakpoint |
+| sessão da Vitrine entre processos | `V.sessoes_em_banco`, `V.sessoes_em_arquivos` |
+
+E fora desta lista, medido na mesma passada: **LSP**, **depurador**,
+**cobertura de testes**, **`Mutex`/`Semaphore`/`Atomic`**, **`TaskGroup`
+e cancelamento** e **registro hospedado com autenticação** — todos
+pedidos em `ANALISE_E_ROADMAP.md` e todos já existentes.
+
+> A lição, e ela vale mais que a lista: **uma lista de "o que falta"
+> defasada é a pior espécie de documento envelhecido**, porque é
+> justamente a que alguém consulta para decidir no que trabalhar. Quatro
+> comandos deste repositório existiam, funcionavam e não apareciam no
+> `help` — `login`, `logout`, `whoami` e `palavras` — e um deles fala com
+> um serviço de verdade. Hoje há trava:
+> `test_todo_comando_DESPACHADO_esta_no_catalogo`.
 
 ## Como este documento não envelhece
 

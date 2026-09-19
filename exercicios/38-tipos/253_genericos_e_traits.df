@@ -222,4 +222,64 @@ monitor:
 handle TypeError as e:
     assert "Serial" in e.message
 
+// ── A anotacao generica de um blueprint proprio ──────────────
+//
+// 'Guarda<Integer>' era ERRO DE SINTAXE, e tres defeitos moravam atras
+// disso: o parser nao registrava os parametros de tipo do blueprint (os
+// quatro irmaos registram), o ramo de blueprint da conferencia lia um
+// atributo que nunca existiu — codigo morto —, e escrever o argumento
+// de tipo DESLIGAVA a conferencia de membro.
+
+blueprint Guarda<T>(guardado: T):
+    action guardar(v: T):
+        self.guardado := v
+    action ler() -> T:
+        yield self.guardado
+
+// A anotacao vincula T, e a fronteira confere o conteudo
+inteira: Guarda<Integer> := spawn Guarda(7)
+assert inteira.ler() is 7
+
+monitor:
+    errada: Guarda<Integer> := spawn Guarda("texto")
+    assert no
+handle TypeError as e:
+    assert "field 'guardado' of Guarda<Integer>" in e.message
+    assert "declared as Integer but got String" in e.message
+
+// O campo HERDADO conta: quem declara o generico costuma ser a mae
+blueprint Raiz<T>:
+    do_pai: T
+
+blueprint Dupla<T> extends Raiz:
+    proprio: T
+
+d := spawn Dupla()
+d.do_pai := "texto"
+monitor:
+    conferida: Dupla<Integer> := d
+    assert no
+handle TypeError as e:
+    assert "field 'do_pai'" in e.message
+
+// E um campo AINDA SEM VALOR nao da falso alarme: recusar 'void' aqui
+// proibiria 'spawn Dupla()', que e a forma mais comum de criar um.
+vazia: Dupla<Integer> := spawn Dupla()
+vazia.proprio := 1
+assert vazia.proprio is 1
+
+// ── Variancia: ela nao tem o que decidir aqui ───────────────
+//
+// A conferencia e ESTRUTURAL sobre os valores reais em cada fronteira.
+// Por isso ela ja da covariancia correta de graca...
+larga: Guarda<Number> := inteira
+assert larga.ler() is 7
+
+// ...e recusa o incompativel, sem nenhuma palavra 'covariant'.
+monitor:
+    trocada: Guarda<String> := inteira
+    assert no
+handle TypeError as e:
+    assert "declared as String but got Integer" in e.message
+
 out "253 ok"

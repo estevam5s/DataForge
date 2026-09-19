@@ -3885,8 +3885,34 @@ class TypeChecker:
                                "Use whole numbers in the slice", "slice-type")
         return alvo if alvo in ("Cluster", "String") else UNKNOWN
 
+    def _molde_do_tipo(self, tipo):
+        """'Caixa<Integer>' -> 'Caixa', quando 'Caixa' e declarado aqui.
+
+        Sem isto, ESCREVER o argumento de tipo DESLIGAVA a conferencia de
+        membro. `p: Par<Integer, String>` e depois `p.naoExiste` passava
+        limpo, porque a busca era `alvo in self.records` e a chave e
+        'Par' — com os argumentos, nenhum ramo casava e a funcao caia no
+        `return UNKNOWN`.
+
+        O defeito ja existia para `record`, que podia ser anotado assim
+        desde sempre; ligar o `blueprint` a mesma anotacao o estenderia.
+        E ele e da pior especie: escrever MAIS informacao de tipo compra
+        MENOS verificacao, em silencio.
+
+        So tira os argumentos quando a base e um molde conhecido: uma
+        `Cluster<Integer>` precisa deles — e o ramo que confere
+        `xs.append("x")` le exatamente esses.
+        """
+        if not isinstance(tipo, str) or "<" not in tipo:
+            return tipo
+        base = base_do_tipo(tipo)
+        if base in self.records or base in self.blueprints:
+            return base
+        return tipo
+
     def ex_MemberAccess(self, node, escopo):
-        alvo = self.infer(node.object, escopo)
+        alvo = self._molde_do_tipo(
+            self.infer(node.object, escopo))
 
         if alvo in self.records:
             campos = self.records[alvo]
@@ -4047,6 +4073,15 @@ class TypeChecker:
                 self._conferir_item(argumentos[0], node.args[0], escopo, alvo, "the key")
                 self._conferir_item(argumentos[1], node.args[1], escopo, alvo, "the value")
 
+        # 'c.guardar("texto")' num Caixa<Integer>: o literal prova o erro.
+        self._conferir_argumento_generico(alvo, node, escopo)
+
+        # Os argumentos de tipo ja foram usados acima (é o ramo das
+        # coleções que os lê). Daqui para baixo fala-se do MOLDE, e sem
+        # esta linha 'c: Caixa<Integer>' desligava a conferência de
+        # método — ver `_molde_do_tipo`.
+        alvo = self._molde_do_tipo(alvo)
+
         # 'P.criar(1, 2, 3)' num modulo local: existe, e com quantos?
         if isinstance(node.object, ast.Identifier):
             resultado = self._conferir_chamada_de_modulo(node, escopo)
@@ -4080,6 +4115,52 @@ class TypeChecker:
                     self._hint_nome(node.method, nomes) or
                     f"It has: {', '.join(sorted(nomes))}", "unknown-field")
         return UNKNOWN
+
+    def _conferir_argumento_generico(self, tipo, node, escopo):
+        """'c.guardar("texto")' num `Caixa<Integer>` — acusado na causa.
+
+        O erro JA existia em execução, e aparecia no lugar errado: o
+        parâmetro de um `T` sem limite não é conferido, o campo recebia o
+        texto calado, e a queixa saía na leitura seguinte —
+        *"a variável 'n' declared as Integer but got String"*, uma linha
+        depois e sobre outro nome. Quem lê vai depurar o `n`.
+
+        Aqui o `check` resolve `T` pelo argumento da anotação e cobra o
+        literal, na linha que causa. Ele **cala** quando não consegue
+        concluir: sem anotação de tipo não há vínculo, e um `T` que não
+        aparece na lista de parâmetros do molde não é substituível.
+        """
+        if not isinstance(tipo, str) or "<" not in tipo:
+            return
+        base, argumentos = partir_tipo(tipo)
+        parametros, _limites = self.genericos_de_tipo.get(base, ((), {}))
+        # Aridade diferente é outro erro, e o parser já o acusa. Concluir
+        # daqui com listas de tamanhos diferentes casaria o argumento
+        # errado com o parâmetro errado.
+        if not parametros or len(parametros) != len(argumentos):
+            return
+        assinatura = self.assinaturas_de_metodo.get(base, {}).get(node.method)
+        if assinatura is None:
+            return
+
+        troca = dict(zip(parametros, argumentos))
+        for indice, arg in enumerate(node.args):
+            if indice >= len(assinatura.params) \
+                    or isinstance(arg, ast.SpreadElement):
+                continue
+            nome_do_parametro = assinatura.params[indice]
+            declarado = assinatura.param_types.get(nome_do_parametro, UNKNOWN)
+            esperado = troca.get(declarado)
+            if not esperado:
+                continue
+            obtido = self.infer(arg, escopo)
+            if not self._compativel(canonical(esperado), obtido):
+                self.error(
+                    f"Parameter '{nome_do_parametro}' of '{node.method}' is a "
+                    f"{declarado}, and this is a {tipo} — so {declarado} is "
+                    f"{esperado}, but got {obtido}", arg,
+                    f"Pass a {esperado}, or annotate as "
+                    f"{base}<{obtido}>", "generic-argument")
 
     def _conferir_chamada_de_modulo(self, node, escopo=None):
         """`P.criar(1, 2, 3)` quando `P` é um módulo local lido.
