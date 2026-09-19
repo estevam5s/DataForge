@@ -137,14 +137,14 @@ export function Assistente() {
       const sufixo = flags.length ? `; ${flags.join(' ')}` : '';
       partes.push(
         flags.length
-          ? `irm https://dataforge-lang.vercel.app/instalar.ps1 | iex${sufixo ? '' : ''}`
+          ? `[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://dataforge-lang.vercel.app/instalar.ps1 | iex${sufixo ? '' : ''}`
           : base.comando,
       );
       if (flags.length) {
         return [
           ...(usaPadrao ? [] : [`$env:DATAFORGE_PREFIX="${caminhoFinal}"`]),
           `$env:DATAFORGE_EXTRAS="${flags.join(' ')}"`,
-          'irm https://dataforge-lang.vercel.app/instalar.ps1 | iex',
+          '[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://dataforge-lang.vercel.app/instalar.ps1 | iex',
         ].join('\n');
       }
       return partes.join('\n');

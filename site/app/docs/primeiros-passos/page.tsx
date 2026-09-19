@@ -14,7 +14,7 @@ const blocos: Bloco[] = [
   {"p": "**A forma mais rápida**, macOS e Linux:"},
   { code: `curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | sh`, lang: 'bash' },
   {"p": "No Windows, PowerShell:"},
-  { code: `irm https://dataforge-lang.vercel.app/instalar.ps1 | iex`, lang: 'powershell' },
+  { code: `[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://dataforge-lang.vercel.app/instalar.ps1 | iex`, lang: 'powershell' },
   {"p": "Os dois criam um ambiente próprio em `~/.dataforge` — não tocam no Python do sistema e não pedem `sudo`. Se preferir clonar o repositório e instalar em modo editável:"},
   { code: `git clone https://github.com/estevam5s/DataForge.git
 cd DataForge

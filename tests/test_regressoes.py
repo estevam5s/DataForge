@@ -1119,6 +1119,158 @@ def test_tarball_publicado_traz_os_exemplos():
     assert any("/exercicios/" in n for n in nomes), "sem exercicios/"
 
 
+def test_o_comando_do_windows_negocia_tls_12():
+    """`irm | iex` falhava ANTES de baixar o script, em todo Windows.
+
+    `powershell.exe` é o Windows PowerShell 5.1 — o que existe em toda
+    instalação de Windows 10 e 11 — e ele negocia
+    `[Net.ServicePointManager]::SecurityProtocol = Ssl3, Tls`, isto é,
+    **TLS 1.0**. O host do site recusa TLS 1.0 e 1.1 (medido em
+    `test_o_site_recusa_tls_velho`), então o `irm` morre com
+
+        Invoke-RestMethod : The request was aborted:
+        Could not create SSL/TLS secure channel.
+
+    e o conteúdo do instalador nunca chega a rodar. É por isso que o
+    Chocolatey, o Scoop e o rustup publicam a linha do `SecurityProtocol`
+    ANTES do download — o problema não está no script, está no comando
+    que a página manda copiar.
+
+    Este teste cobra a linha em todo lugar que publica o comando: mudar
+    a página e esquecer a documentação deixaria metade dos usuários com
+    o comando quebrado.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    import re
+
+    encontrados = 0
+    for pasta, _sub, arquivos in os.walk(os.path.join(raiz, "site")):
+        if "node_modules" in pasta or f"{os.sep}out{os.sep}" in pasta + os.sep:
+            continue
+        for nome in arquivos:
+            if not nome.endswith((".tsx", ".ts", ".py", ".md")):
+                continue
+            caminho = os.path.join(pasta, nome)
+            texto = open(caminho, encoding="utf-8", errors="replace").read()
+            linhas = texto.splitlines()
+            for i, linha in enumerate(linhas):
+                if "instalar.ps1" not in linha or "irm " not in linha:
+                    continue
+                encontrados += 1
+                # O comando pode estar quebrado em varias linhas de fonte
+                # (concatenacao de string), entao a janela e o que vale.
+                janela = "\n".join(linhas[max(0, i - 3):i + 2])
+                assert re.search(r"SecurityProtocol|Tls12|3072", janela), (
+                    f"{os.path.relpath(caminho, raiz)}: o comando do "
+                    f"Windows nao negocia TLS 1.2, e o irm falha antes "
+                    f"de baixar:\n    {linha.strip()}")
+    assert encontrados >= 3, (
+        "o comando do Windows sumiu das paginas — ou este teste deixou "
+        "de o encontrar")
+
+
+def test_o_instalador_do_windows_negocia_tls_12_por_dentro():
+    """O script tambem baixa, e paga o mesmo preco se nao ajustar."""
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ps = open(os.path.join(raiz, "scripts", "instalar.ps1"),
+              encoding="utf-8").read()
+    assert "SecurityProtocol" in ps, (
+        "instalar.ps1 chama Invoke-WebRequest sem ajustar o protocolo")
+    assert ps.index("SecurityProtocol") < ps.index("Invoke-WebRequest"), (
+        "o ajuste precisa vir ANTES do primeiro download")
+
+
+def test_ha_um_caminho_para_quem_esta_no_cmd():
+    """`irm` e `iex` sao cmdlets: no cmd.exe nao existem.
+
+    A pagina oferecia so a forma de PowerShell, e quem colava no Prompt
+    de Comando recebia `'irm' nao e reconhecido como um comando`. Um
+    instalador que so funciona no terminal "certo" e um instalador que
+    nao funciona.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    achou = False
+    for pasta, _sub, arquivos in os.walk(os.path.join(raiz, "site")):
+        if "node_modules" in pasta:
+            continue
+        for nome in arquivos:
+            if not nome.endswith((".tsx", ".py")):
+                continue
+            texto = open(os.path.join(pasta, nome), encoding="utf-8",
+                         errors="replace").read()
+            if "powershell -NoProfile" in texto and "instalar.ps1" in texto:
+                achou = True
+    assert achou, ("nenhuma pagina mostra como instalar a partir do "
+                   "cmd.exe (powershell -NoProfile -Command \"...\")")
+
+
+def test_o_atalho_cmd_sobrevive_a_acento_no_nome_do_usuario():
+    """`C:\\Users\\João\\.dataforge` escrito em ASCII vira `Jo?o`.
+
+    O atalho `.cmd` guarda o caminho do executavel. Gravado com
+    `-Encoding ASCII`, todo acento vira `?` — e no Brasil o nome de
+    usuario com acento e o caso comum, nao a excecao. O comando
+    `dataforge` passava a existir e a nao achar nada.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ps = open(os.path.join(raiz, "scripts", "instalar.ps1"),
+              encoding="utf-8").read()
+    assert "-Encoding ASCII" not in ps, (
+        "o atalho .cmd nao pode ser gravado em ASCII: acento no nome do "
+        "usuario vira '?' e o caminho deixa de existir")
+
+
+def test_o_instalador_do_windows_nao_fecha_o_terminal_de_quem_chamou():
+    """`exit 1` dentro de `iex` encerra a SESSAO, nao o script.
+
+    Quem rodou `irm … | iex` e teve um erro via a janela fechar sem ler
+    a mensagem — que e justamente a hora em que a mensagem importa.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ps = open(os.path.join(raiz, "scripts", "instalar.ps1"),
+              encoding="utf-8").read()
+    import re
+    funcao = re.search(r"function Erro\(\$m\)\s*\{[^}]*\}", ps)
+    assert funcao, "a funcao Erro sumiu"
+    assert "exit 1" not in funcao.group(0), (
+        "Erro usa 'exit', que fecha a sessao de quem rodou 'irm | iex'; "
+        "use 'throw' e deixe o erro subir")
+
+
+def test_o_site_recusa_tls_velho():
+    """A causa do defeito, medida no territorio — e nao presumida."""
+    import socket
+    import ssl
+    alvo = "dataforge-lang.vercel.app"
+
+    def fala(versao):
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        try:
+            ctx.set_ciphers("ALL:@SECLEVEL=0")
+            ctx.minimum_version = versao
+            ctx.maximum_version = versao
+        except (ValueError, ssl.SSLError):
+            pytest.skip("o OpenSSL local nao oferece esta versao")
+        try:
+            with socket.create_connection((alvo, 443), 8) as cru:
+                with ctx.wrap_socket(cru, server_hostname=alvo) as seguro:
+                    return seguro.version()
+        except ssl.SSLError:
+            return None
+        except OSError:
+            pytest.skip("sem rede")
+
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        assert fala(ssl.TLSVersion.TLSv1) is None, (
+            "o host passou a aceitar TLS 1.0 — o motivo do ajuste no "
+            "instalador mudou, e a doc precisa mudar junto")
+        assert fala(ssl.TLSVersion.TLSv1_2) is not None
+
+
 def test_instalador_aceita_as_opcoes_que_o_site_monta():
     """O assistente do site monta o comando com estas flags."""
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

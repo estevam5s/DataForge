@@ -261,13 +261,18 @@ dataforge version`}
           [<><strong>Erros</strong></>, <><code>handle</code> tipado, <code>guard</code>, <code>retry</code>, <code>propagate</code>, stack traces</>],
           [<><strong>Fluxos</strong></>, <>pipelines, <code>stream action</code> com avaliação preguiçosa</>],
           [<><strong>Módulos</strong></>, <><code>adopt</code> seletivo, <code>relay</code>, detecção de ciclos, <code>forge.toml</code></>],
-          [<><strong>Ferramentas</strong></>, <>40 comandos: <code>check</code>, <code>test</code>, <code>fmt</code>, <code>lint</code>, <code>big-o</code>, <code>debug</code>, <code>lsp</code>, <code>repl</code></>],
+          [<><strong>Ferramentas</strong></>, <>47 comandos: <code>check</code>, <code>test</code>, <code>fmt</code>, <code>lint</code>, <code>big-o</code>, <code>debug</code>, <code>ir</code>, <code>lsp</code>, <code>repl</code></>],
           [<><strong>Editor</strong></>, <><Link href="/docs/tecnicas/lsp">servidor de linguagem</Link>: autocompletar, hover, ir-para-definição, renomear</>],
           [<><strong>Web</strong></>, <><Link href="/docs/kiln">Kiln</Link> — rotas, middleware, CSRF, cache, gzip, idempotência</>],
           [<><strong>Testes</strong></>, <><Link href="/docs/crucible">Crucible</Link> — 59 matchers, fixtures, dublês, benchmark</>],
           [<><strong>Banco</strong></>, <><Link href="/docs/banco-de-dados">Forge</Link> — SQLite, Postgres, MySQL, Redis e Mongo por protocolo próprio</>],
           [<><strong>Dados</strong></>, <><Link href="/docs/tecnicas/parquet">Parquet</Link>, <Link href="/docs/tecnicas/lago">Data Lake</Link>, <Link href="/docs/tecnicas/pipeline">pipelines</Link>, <Link href="/docs/tecnicas/streaming">streaming</Link>, <Link href="/docs/tecnicas/ml">ML</Link></>],
           [<><strong>Pacotes</strong></>, <>semver, lockfile, verificação de integridade, registro estático</>],
+          [<><strong><Link href="/docs/memoria/posse">Memória</Link></strong></>, <>posse exclusiva com liberação determinística, empréstimo com escopo, contagem determinística e referência fraca — cobrados pelo <code>check</code></>],
+          [<><strong><Link href="/docs/concorrencia/stm">Concorrência avançada</Link></strong></>, <>memória transacional (<code>atomicamente</code>, <code>retentar</code>, <code>ou_entao</code>), <Link href="/docs/concorrencia/sem-trava">atômicos com CAS</Link>, fila e pilha sem trava</>],
+          [<><strong><Link href="/docs/metaprogramacao/comptime">Metaprogramação</Link></strong></>, <><code>comptime</code> na carga, <Link href="/docs/metaprogramacao/macros">macros sobre a árvore</Link>, <Link href="/docs/metaprogramacao/dsl">combinadores de DSL</Link> e <Link href="/docs/metaprogramacao/plugins">plugins do <code>check</code></Link></>],
+          [<><strong><Link href="/docs/ffi/c">FFI</Link></strong></>, <>biblioteca nativa com assinatura declarada, <Link href="/docs/ffi/ponteiros">ponteiro cru</Link>, struct com layout de verdade e <Link href="/docs/ffi/callbacks">callback</Link> — o C chamando uma ação da linguagem</>],
+          [<><strong><Link href="/docs/compilador/pipeline">O compilador, por dentro</Link></strong></>, <><code>dataforge ir</code> mostra as seis fases: <Link href="/docs/compilador/hir">HIR</Link>, <Link href="/docs/compilador/mir">MIR</Link>, <Link href="/docs/compilador/ssa">SSA com nó φ</Link>, <Link href="/docs/compilador/analises">as análises de fluxo</Link> e o que o backend compilou</>],
         ]}
       />
 
@@ -353,9 +358,17 @@ dataforge version`}
         <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1765 símbolos">
           Estatística, bancos, HTTP, criptografia, Parquet, ML, streaming.
         </Card>
-        <Card href="/docs/tipos/visao-geral" title="Sistema de tipos" meta="novo">
+        <Card href="/docs/tipos/visao-geral" title="Sistema de tipos">
           Alias, união, interseção, refinamento e tipo opaco; generics em
           record, enum e trait; tuplas, tipos indexados e reflexão.
+        </Card>
+        <Card href="/docs/ffi/c" title="FFI e nativo">
+          Abrir um <code>.so</code>, declarar a assinatura, ler o layout de
+          uma struct e deixar o C chamar uma ação sua.
+        </Card>
+        <Card href="/docs/compilador/pipeline" title="Dentro do compilador">
+          As seis fases, o grafo de fluxo, SSA com nó φ e o que o backend
+          realmente compilou — tudo inspecionável.
         </Card>
         <Card href="/docs/referencia/gramatica" title="Referência formal">
           Gramática EBNF, palavras reservadas, precedência e semântica.

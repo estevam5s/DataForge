@@ -19,7 +19,7 @@ const blocos: Bloco[] = [
   {"callout": {"tipo": "dica", "titulo": "Ler antes de executar", "texto": "Canalizar um script da internet direto para o `sh` pede confiança na origem. Para conferir o que ele faz antes: `curl -fsSL https://dataforge-lang.vercel.app/instalar.sh -o instalar.sh`, leia, e então `sh instalar.sh`."}},
 
   {"h3": "Windows (PowerShell)"},
-  { code: `irm https://dataforge-lang.vercel.app/instalar.ps1 | iex`, lang: 'powershell' },
+  { code: `[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://dataforge-lang.vercel.app/instalar.ps1 | iex`, lang: 'powershell' },
   {"p": "O instalador acrescenta o DataForge ao PATH do usuário. Abra um terminal novo depois."},
 
   {"h2": "Sem Python na máquina"},

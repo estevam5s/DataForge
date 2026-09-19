@@ -20,6 +20,23 @@
 
 $ErrorActionPreference = 'Stop'
 
+# TLS 1.2, antes de qualquer download.
+#
+# 'powershell.exe' e o Windows PowerShell 5.1 — o que existe em toda
+# instalacao de Windows 10 e 11 — e ele negocia
+# 'SecurityProtocol = Ssl3, Tls', isto e, TLS 1.0. O host do site recusa
+# TLS 1.0 e 1.1 (medido), entao TODO download falha com
+#
+#     The request was aborted: Could not create SSL/TLS secure channel.
+#
+# E o mesmo motivo pelo qual o comando publicado na pagina traz esta
+# linha: sem ela o 'irm' morre antes de o script chegar a rodar. No
+# PowerShell 7 a linha e inofensiva — quem negocia ali e o sistema.
+try {
+    [Net.ServicePointManager]::SecurityProtocol =
+        [Net.ServicePointManager]::SecurityProtocol -bor 3072
+} catch { }
+
 $Versao  = if ($env:DATAFORGE_VERSION) { $env:DATAFORGE_VERSION } else { '1.0.0' }
 $Prefixo = if ($env:DATAFORGE_PREFIX)  { $env:DATAFORGE_PREFIX }  else { "$HOME\.dataforge" }
 $Site    = if ($env:DATAFORGE_SITE)    { $env:DATAFORGE_SITE }    else { 'https://dataforge-lang.vercel.app' }
@@ -32,7 +49,10 @@ $AbrirDocs   = $Extras -match '--abrir-docs'
 function Info($m)  { Write-Host "==> " -ForegroundColor Cyan -NoNewline; Write-Host $m }
 function Ok($m)    { Write-Host "  ok " -ForegroundColor Green -NoNewline; Write-Host $m }
 function Aviso($m) { Write-Host "  !  " -ForegroundColor Yellow -NoNewline; Write-Host $m }
-function Erro($m)  { Write-Host "erro: $m" -ForegroundColor Red; exit 1 }
+# 'throw', e nao 'exit': quem rodou 'irm … | iex' esta na PROPRIA
+# sessao, e um 'exit' ali fecha a janela — levando junto a mensagem que
+# explica o que houve, que e justamente o que a pessoa precisa ler.
+function Erro($m)  { Write-Host "erro: $m" -ForegroundColor Red; throw $m }
 
 Write-Host ""
 Write-Host "  DataForge" -ForegroundColor Cyan -NoNewline
@@ -98,7 +118,7 @@ $baixou = $false
 foreach ($url in $origens) {
     try {
         Invoke-WebRequest -Uri $url -OutFile $Arquivo -UseBasicParsing
-        Ok "baixado de $([System.Uri]$url).Host"
+        Ok "baixado de $(([System.Uri]$url).Host)"
         $baixou = $true
         break
     } catch { }
@@ -126,7 +146,7 @@ foreach ($nome in @('dataforge', 'df')) {
     @"
 @echo off
 "$Prefixo\venv\Scripts\dataforge.exe" %*
-"@ | Set-Content -Path "$Prefixo\bin\$nome.cmd" -Encoding ASCII
+"@ | Set-Content -Path "$Prefixo\bin\$nome.cmd" -Encoding OEM
 }
 Ok "comandos: dataforge, df"
 

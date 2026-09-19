@@ -46,7 +46,7 @@ export default function Pagina() {
             />
             <Bloco
               titulo="Windows (PowerShell)"
-              comando="irm https://dataforge-lang.vercel.app/instalar.ps1 | iex"
+              comando="[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://dataforge-lang.vercel.app/instalar.ps1 | iex"
             />
             <Bloco
               titulo="Com pip, num ambiente virtual seu"

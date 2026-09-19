@@ -70,7 +70,19 @@ const FORMAS: { grupo: string; itens: Forma[] }[] = [
         id: 'win-ps',
         titulo: 'PowerShell, em um comando',
         para: 'Quem já vive no terminal.',
-        comando: 'irm https://dataforge-lang.vercel.app/instalar.ps1 | iex',
+        nota: 'O `3072` na frente não é enfeite: é o código do TLS 1.2. O `powershell.exe` de todo Windows 10 e 11 é o 5.1, que negocia TLS 1.0 por padrão, e o host do site só aceita 1.2 — sem essa metade, o `irm` falha com «Could not create SSL/TLS secure channel» antes de baixar qualquer coisa.',
+        comando: '[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://dataforge-lang.vercel.app/instalar.ps1 | iex',
+        pronto: true,
+      },
+      {
+        id: 'win-cmd',
+        titulo: 'Prompt de Comando (cmd)',
+        para: 'Quem abriu o cmd.exe, e não o PowerShell.',
+        comando:
+          'powershell -NoProfile -ExecutionPolicy Bypass -Command ' +
+          '"[Net.ServicePointManager]::SecurityProtocol = 3072; ' +
+          'irm https://dataforge-lang.vercel.app/instalar.ps1 | iex"',
+        nota: 'O `irm` e o `iex` são cmdlets do PowerShell: colados direto no cmd.exe dão «\'irm\' não é reconhecido como um comando». Esta linha chama o PowerShell de dentro do cmd e faz exatamente a mesma coisa.',
         pronto: true,
       },
       {

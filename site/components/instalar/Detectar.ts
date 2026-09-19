@@ -69,7 +69,7 @@ export const COMANDOS: Record<Sistema, { shell: string; comando: string }> = {
   },
   windows: {
     shell: 'PowerShell',
-    comando: 'irm https://dataforge-lang.vercel.app/instalar.ps1 | iex',
+    comando: '[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://dataforge-lang.vercel.app/instalar.ps1 | iex',
   },
   desconhecido: {
     shell: 'Terminal',
