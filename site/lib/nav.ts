@@ -271,6 +271,16 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Observabilidade e memória',
+    items: [
+      { title: 'Percentis, e a cauda', href: '/docs/observabilidade/perfil' },
+      { title: 'A diferença é real?', href: '/docs/observabilidade/comparar' },
+      { title: 'Flame graph e pausas', href: '/docs/observabilidade/chamadas' },
+      { title: 'O coletor sob controle', href: '/docs/memoria/coletor' },
+      { title: 'Observabilidade: o mapa', href: '/docs/observabilidade/mapa' },
+    ],
+  },
+  {
     title: 'Concorrência avançada',
     items: [
       { title: 'Memória transacional', href: '/docs/concorrencia/stm' },
@@ -456,6 +466,7 @@ export const nav: NavSection[] = [
       { title: 'Dentro do compilador', href: '/docs/exercicios/42-compilador' },
       { title: 'Backend e otimização', href: '/docs/exercicios/43-backend' },
       { title: 'Runtime e laço de eventos', href: '/docs/exercicios/44-runtime' },
+      { title: 'Observabilidade e memória', href: '/docs/exercicios/45-observabilidade' },
     ],
   },
   {

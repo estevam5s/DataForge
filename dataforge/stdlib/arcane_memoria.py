@@ -30,6 +30,8 @@ import gc
 import sys
 import weakref
 
+from ..errors import RuntimeError_
+
 
 def _i():
     from .. import interpreter as i
@@ -230,6 +232,172 @@ def _referencias(obj):
     return max(0, sys.getrefcount(obj) - 3)
 
 
+# ── O coletor sob controle (parte 10) ─────────────────────────
+#
+# A distincao que quase todo mundo erra: no CPython, quem libera e a
+# CONTAGEM DE REFERENCIA, e ela roda na hora. O coletor existe so para o
+# CICLO — 'a' apontando para 'b' que aponta para 'a'. Desligar o coletor
+# NAO vaza memoria em geral: so deixa o ciclo para tras.
+#
+# E por isso que desliga-lo num trecho curto e sensivel a latencia e uma
+# tecnica segura, e nao uma gambiarra. O que ela compra esta medido em
+# 'tests/test_memoria_e_gc.py'.
+
+
+def _gc_ligado():
+    return gc.isenabled()
+
+
+def _gc_ligar():
+    gc.enable()
+    return True
+
+
+def _gc_desligar():
+    gc.disable()
+    return True
+
+
+def _sem_gc(acao):
+    """Roda a acao com o coletor desligado, e RELIGA mesmo se ela falhar.
+
+    O 'finally' nao e detalhe: deixar o coletor desligado por causa de um
+    erro e muito pior que a pausa que se queria evitar — e o programa
+    seguiria assim ate terminar, sem nada denunciando.
+    """
+    estava = gc.isenabled()
+    gc.disable()
+    try:
+        return acao()
+    finally:
+        if estava:
+            gc.enable()
+
+
+def _gc_limiares(*valores):
+    """Le os limiares, ou ajusta os tres de uma vez."""
+    if not valores:
+        return list(gc.get_threshold())
+    if len(valores) != 3:
+        raise RuntimeError_(
+            f"the collector has three generations: pass three thresholds, "
+            f"got {len(valores)}. Read them with gc_limiares().",
+            doc="memoria/coletor")
+    gc.set_threshold(*[int(v) for v in valores])
+    return list(gc.get_threshold())
+
+
+def _gc_congelar():
+    """Tira o que ja vive das varreduras — para sempre.
+
+    E o que um servidor faz depois da carga e antes do primeiro pedido:
+    tudo o que foi importado e montado nunca mais e varrido. O ganho e
+    proporcional ao tamanho do que ja esta vivo.
+    """
+    gc.freeze()
+    return gc.get_freeze_count()
+
+
+def _gc_descongelar():
+    gc.unfreeze()
+    return gc.get_freeze_count()
+
+
+def _gc_congelados():
+    return gc.get_freeze_count()
+
+
+def _gc_geracoes():
+    """Quantas coletas houve em cada geracao, e quanto cada uma rendeu."""
+    return [{"geracao": i,
+             "coletas": e.get("collections", 0),
+             "colecionados": e.get("collected", 0),
+             "incolecionaveis": e.get("uncollectable", 0)}
+            for i, e in enumerate(gc.get_stats())]
+
+
+# ── Arena (parte 10) ──────────────────────────────────────────
+
+class Arena:
+    """Um lote preparado de uma vez, reaproveitado em vez de realocado.
+
+    Nao e um allocator: quem aloca continua sendo o Python. O que a
+    arena troca e o PADRAO de uso — em vez de criar e descartar por
+    volta, um lote e preparado, emprestado e devolvido. O ganho aparece
+    quando o objeto e caro de montar, nao quando ele e um vault de tres
+    chaves.
+
+    'limpar' e a operacao que ela existe para ter: soltar o lote inteiro
+    numa chamada, que e o tempo de vida de arena da literatura.
+    """
+
+    __slots__ = ("_fabrica", "_livres", "_emprestados", "_criados",
+                 "_entregues", "_reaproveitados", "_cresceu")
+
+    def __init__(self, quantos, fabrica):
+        self._fabrica = fabrica
+        self._livres = [fabrica() for _ in range(max(0, int(quantos)))]
+        self._emprestados = {}
+        self._criados = len(self._livres)
+        self._entregues = 0
+        self._reaproveitados = 0
+        self._cresceu = 0
+
+    def pegar(self):
+        if self._livres:
+            item = self._livres.pop()
+        else:
+            # Travar seria pior; crescer CALADO esconderia que a arena
+            # foi dimensionada errada. Por isso ela cresce e CONTA.
+            item = self._fabrica()
+            self._criados += 1
+            self._cresceu += 1
+        self._emprestados[id(item)] = item
+        self._entregues += 1
+        return item
+
+    def devolver(self, item):
+        if id(item) not in self._emprestados:
+            raise RuntimeError_(
+                "this object did not come from this arena. Giving back what "
+                "was not taken would grow the pool with strangers, and the "
+                "next 'pegar' would hand one of them out.",
+                doc="memoria/coletor")
+        del self._emprestados[id(item)]
+        self._livres.append(item)
+        self._reaproveitados += 1
+        return True
+
+    def limpar(self):
+        """Devolve o lote inteiro de uma vez."""
+        quantos = len(self._emprestados)
+        self._livres.extend(self._emprestados.values())
+        self._emprestados.clear()
+        return quantos
+
+    def estatisticas(self):
+        return {
+            "criados": self._criados,
+            "entregues": self._entregues,
+            "reaproveitados": self._reaproveitados,
+            "em_uso": len(self._emprestados),
+            "disponiveis": len(self._livres),
+            "cresceu": self._cresceu,
+        }
+
+
+def _arena(quantos, fabrica):
+    return Arena(quantos, fabrica)
+
+
+def _de_arena(alvo, onde):
+    if not isinstance(alvo, Arena):
+        raise RuntimeError_(
+            f"Memoria.{onde} expects an arena, made with Memoria.arena().",
+            doc="memoria/coletor")
+    return alvo
+
+
 class ArcaneMemoria:
     """Referencias fracas, finalizacao e o coletor."""
 
@@ -246,4 +414,23 @@ class ArcaneMemoria:
             "layout": _layout,
             "comparar_layout": _comparar_layout,
             "referencias": _referencias,
+
+            # ── o coletor sob controle ──
+            "gc_ligado": _gc_ligado,
+            "gc_ligar": _gc_ligar,
+            "gc_desligar": _gc_desligar,
+            "sem_gc": _sem_gc,
+            "gc_limiares": _gc_limiares,
+            "gc_congelar": _gc_congelar,
+            "gc_descongelar": _gc_descongelar,
+            "gc_congelados": _gc_congelados,
+            "gc_geracoes": _gc_geracoes,
+
+            # ── arena ──
+            "arena": _arena,
+            "pegar": lambda a: _de_arena(a, "pegar").pegar(),
+            "devolver": lambda a, i: _de_arena(a, "devolver").devolver(i),
+            "limpar": lambda a: _de_arena(a, "limpar").limpar(),
+            "arena_estatisticas":
+                lambda a: _de_arena(a, "arena_estatisticas").estatisticas(),
         }

@@ -37,7 +37,7 @@ route GET "/painel":
   ]}},
   {"p": "Para um site de um processo — que é a maioria — isso é exatamente o certo, e é a razão de não haver configuração nenhuma. Para mais de um processo, guarde a sessão no banco e use `Kiln.sign`."},
   {"h2": "Token assinado"},
-  { code: `token := Kiln.sign({"usuario": "ana", "ate": 1790000000}, SEGREDO)
+  { code: `token := Kiln.sign({"usuario": "ana", "ate": 1820000000}, SEGREDO)
 dados := Kiln.unsign(token, SEGREDO)     // void se foi adulterado` },
   {"p": "O conteúdo vai legível no token (base64, não criptografia) com uma assinatura HMAC-SHA256. Qualquer alteração invalida — a comparação é feita em tempo constante, para que o tempo de resposta não vaze o prefixo correto."},
   {"p": "**Não ponha segredo dentro do token.** Quem o tem, lê. Ponha o identificador do usuário e a validade; o resto vem do banco."},

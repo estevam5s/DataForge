@@ -14,6 +14,62 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.Perfil`: percentis, significância e regressão
+
+- **A média esconde o que o usuário sente.** Cem requisições de 10 ms e
+  uma de 1000 ms dão média 20 ms; `Arcane.Bench` respondia só isso.
+  `P.medir` devolve a distribuição: `p50`, `p90`, `p95`, `p99`, `p999`,
+  `min`, `max`, `desvio` e `vazao`, com o **aquecimento separado e
+  declarado** — as primeiras execuções medem a partida, não o programa.
+- **O percentil sai da amostra por posto**, sem interpolar: interpolar
+  inventa um valor que não aconteceu, e num P99 de latência o que se
+  quer é uma medida que existiu.
+- **`P.comparar` com significância estatística.** Comparar uma ação com
+  ela mesma **não pode** dar "3% mais rápida" — é o que separa medição
+  de superstição, e é o primeiro teste do arquivo. A conta é
+  **Mann-Whitney U** (com correção de empates), e **não** o teste t:
+  tempo de execução não é normal, e um teste que supõe normalidade
+  responde com confiança sobre uma suposição falsa. As duas medições são
+  **intercaladas**, senão uma queda de clock no meio vira "B é mais
+  lenta".
+- **`sobreposicao`**: o `p` diz *se* há diferença; ela diz **quanto**.
+- **Regressão contra linha de base** (`P.guardar`/`P.conferir`), com duas
+  escolhas que mantêm o CI utilizável: **a primeira medida nunca
+  reprova** (um CI que nasce vermelho por desenho é desligado), e a
+  **tolerância é obrigatória** (sem ela, todo CI fica vermelho por ruído
+  de máquina).
+- **Flame graph das AÇÕES**, pelo mesmo gancho do `dataforge profile`,
+  por tempo **próprio** — somar o acumulado daria mais de 100%.
+  `P.chama_svg` sai **sem nada de fora** (a regra da Vitrine) e
+  `P.chama_texto` no formato dobrado que o `flamegraph.pl` consome.
+- **`P.gc_pausas`**: a pausa do coletor é o que transforma um P50 bom num
+  P99 ruim, e não aparece em medida que olhe só o tempo total.
+- **`P.trava`**: contenção **não aparece num perfil de CPU** — a thread
+  bloqueada não gasta CPU nenhuma. A distinção entre "peguei na hora" e
+  "esperei" vem de uma tentativa sem bloqueio antes da aquisição real.
+
+### Adicionado — o coletor sob controle, e a arena
+
+- **A distinção que quase todo mundo erra**: no CPython quem libera é a
+  contagem de referência, e ela roda na hora; o **coletor** existe só
+  para o **ciclo**. Desligá-lo **não vaza memória em geral** — só deixa
+  o ciclo para trás, e é por isso que a técnica é segura num trecho curto.
+- **`Mem.sem_gc`** religa **mesmo se o corpo falhar**: deixar o coletor
+  desligado por causa de um erro é pior que a pausa que se queria evitar.
+- `Mem.gc_ligar/gc_desligar/gc_ligado`, `gc_limiares` (os três, lidos e
+  ajustados), `gc_congelar` (tira o que já vive das varreduras — o que um
+  servidor faz antes do primeiro pedido) e `gc_geracoes`.
+- **A afirmação é medida**: 6000 ciclos alocados dão 3 pausas e 1,84 ms
+  com o coletor ligado, e **0 pausas** com ele desligado.
+- **`Mem.arena`** — não é um allocator (quem aloca é o CPython): é o
+  **padrão de uso** que muda. Ela **cresce e conta** quando acaba (travar
+  seria pior, crescer calado esconderia o dimensionamento), **recusa**
+  devolver o que não veio dela, e `limpar` solta o lote numa chamada.
+- Documentação:
+  [`/docs/observabilidade/perfil`](https://dataforge-lang.vercel.app/docs/observabilidade/perfil),
+  `/comparar`, `/chamadas`, `/docs/memoria/coletor` e o mapa das partes
+  17, 10 e 11; exercício 263.
+
 ### Adicionado — `Arcane.Laco`: laço de eventos, escalonador e fibras
 
 - **O modelo que faltava.** `async/await` é **uma thread por tarefa**, e

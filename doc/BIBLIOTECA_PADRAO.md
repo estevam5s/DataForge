@@ -57,11 +57,12 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Objetos`](#arcaneobjetos) | `Objetos` | 13 | Cópia rasa e funda, congelamento, igualdade estrutural, hash coerente, ordenação por campos e serialização polimórfica que só reconstrói os tipos autorizados e resolve ciclos. |
 | [`Arcane.Injecao`](#arcaneinjecao) | `Injecao / DI` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | [`Arcane.Padroes`](#arcanepadroes) | `Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
-| [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 10 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado. |
+| [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 24 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, instâncias vivas por blueprint, tamanho e layout. E o COLETOR sob controle: ligar, desligar, 'sem_gc' num trecho sensível a latência (que religa mesmo se o corpo falhar), limiares por geração, 'congelar' o que já vive para tirá-lo das varreduras, e a conta por geração. Mais a arena: um lote preparado de uma vez e reaproveitado, com 'limpar' soltando tudo numa chamada. |
 | [`Arcane.C`](#arcanec) | `C / Nativo` | 23 | Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia. |
 | [`Arcane.Macro`](#arcanemacro) | `Macro` | 13 | A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo. 'citar' transforma texto em arvore, 'reescrever' devolve uma acao com o corpo trocado, 'nome_fresco' e 'renomear' dao higiene, e 'derivar' e a macro de atributo que gera __str__, __eq__, __lt__ e para_vault a partir dos campos. |
 | [`Arcane.Compilador`](#arcanecompilador) | `Compilador` | 24 | O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore. |
 | [`Arcane.Laco`](#arcanelaco) | `Laco / Reator` | 25 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'. |
+| [`Arcane.Perfil`](#arcaneperfil) | `Perfil` | 16 | Medir com rigor, onde o 'Bench' da a media: percentis (p50, p95, p99, p999) com aquecimento separado, comparacao com SIGNIFICANCIA estatistica (Mann-Whitney, que nao supoe normalidade — tempo de execucao nao e normal), linha de base guardada para acusar regressao no CI, flame graph das ACOES da linguagem em SVG sem nada de fora, pausas do coletor medidas na fonte e contencao de trava. |
 | [`Arcane.Dsl`](#arcanedsl) | `Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
 | [`Arcane.Posse`](#arcaneposse) | `Posse` | 16 | Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo. |
 | [`Arcane.Stm`](#arcanestm) | `Stm / Transacional` | 13 | Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. Variavel transacional, 'atomicamente' com validacao otimista e repeticao no conflito, 'retentar' que espera em vez de girar, 'ou_entao' para compor duas operacoes bloqueantes, e estatisticas de conflito. |
@@ -2194,24 +2195,38 @@ adopt Arcane.Padroes as Padroes
 
 ## Arcane.Memoria
 
-O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, coleta forçada, instâncias vivas por blueprint e tamanho aproximado.
+O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, instâncias vivas por blueprint, tamanho e layout. E o COLETOR sob controle: ligar, desligar, 'sem_gc' num trecho sensível a latência (que religa mesmo se o corpo falhar), limiares por geração, 'congelar' o que já vive para tirá-lo das varreduras, e a conta por geração. Mais a arena: um lote preparado de uma vez e reaproveitado, com 'limpar' soltando tudo numa chamada.
 
 ```dataforge
 adopt Arcane.Memoria as Memoria
 ```
 
-**Funções (10)**
+**Funções (24)**
 
 | Assinatura |
 |------------|
 | `ao_descartar(obj, acao)` |
+| `arena(quantos, fabrica)` |
+| `arena_estatisticas(a)` |
 | `coletar(geracao=2)` |
 | `comparar_layout(um, outro, amostras=20)` |
+| `devolver(a, i)` |
 | `estatisticas()` |
 | `fraca(obj)` |
+| `gc_congelados()` |
+| `gc_congelar()` |
+| `gc_descongelar()` |
+| `gc_desligar()` |
+| `gc_geracoes()` |
+| `gc_ligado()` |
+| `gc_ligar()` |
+| `gc_limiares(*valores)` |
 | `layout(alvo, amostras=20)` |
+| `limpar(a)` |
 | `mapa_fraco()` |
+| `pegar(a)` |
 | `referencias(obj)` |
+| `sem_gc(acao)` |
 | `tamanho(obj)` |
 | `vivos(molde)` |
 
@@ -2363,6 +2378,38 @@ adopt Arcane.Laco as Laco
 | `quando_escrever(laco, soquete, acao)` |
 | `quando_ler(laco, soquete, acao)` |
 | `rodar(laco, voltas=None)` |
+
+
+---
+
+## Arcane.Perfil
+
+Medir com rigor, onde o 'Bench' da a media: percentis (p50, p95, p99, p999) com aquecimento separado, comparacao com SIGNIFICANCIA estatistica (Mann-Whitney, que nao supoe normalidade — tempo de execucao nao e normal), linha de base guardada para acusar regressao no CI, flame graph das ACOES da linguagem em SVG sem nada de fora, pausas do coletor medidas na fonte e contencao de trava.
+
+```dataforge
+adopt Arcane.Perfil as Perfil
+```
+
+**Funções (16)**
+
+| Assinatura |
+|------------|
+| `chama_svg(perfil, largura=1200, altura_linha=18)` |
+| `chama_texto(perfil)` |
+| `com_trava(alvo, acao)` |
+| `comecar_perfil(interp)` |
+| `comparar(a, b, opcoes=None)` |
+| `conferir(nome, medida, opcoes=None)` |
+| `estatisticas_da_trava(alvo)` |
+| `gc_pausas(acao)` |
+| `guardar(nome, medida, arquivo='perfil-base.json')` |
+| `mann_whitney(a, b)` |
+| `medir(acao, opcoes=None)` |
+| `perfilar(acao, interp=None)` |
+| `relatorio(medida)` |
+| `resumir(valores, casas=4)` |
+| `terminar_perfil(coleta)` |
+| `trava()` |
 
 
 ---

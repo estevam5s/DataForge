@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 262 exercícios
+python3 exercicios/run_all.py                        # 263 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -90,7 +90,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                63 módulos (1790 símbolos), incluindo:
+  stdlib/                64 módulos (1820 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -102,6 +102,7 @@ dataforge/
     arcane_memoria.py    referência fraca, mapa fraco, coletor
     arcane_c.py          FFI: biblioteca nativa, ponteiro cru, struct, callback
     arcane_laco.py       laco de eventos, escalonador e fibras — UMA thread
+    arcane_perfil.py     percentis, significancia (Mann-Whitney), flame graph
     arcane_macro.py      a arvore como dado: citar, transformar, gerar, derivar
     arcane_dsl.py        combinadores para uma linguagem externa propria
     arcane_stm.py        memoria transacional: escritas que acontecem juntas
@@ -121,7 +122,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        262 exercícios em 44 módulos + run_all.py
+exercicios/        263 exercícios em 45 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1314,6 +1315,54 @@ comparava tempo com número fixo. A prova certa não é o relógio — é a
 **rede de segurança**: se o laço só parar por causa dela, é porque dormiu
 e ninguém o acordou.
 
+### Medir sem inventar ganho
+
+`Arcane.Perfil` existe porque `Bench` responde com **média**, e a média
+esconde a cauda — que é o que o usuário sente. Três coisas valem lembrar
+ao mexer ali:
+
+1. **O teste que mais importa não é nenhum número: é o que compara uma
+   ação COM ELA MESMA e exige "empate".** Uma ferramenta que responde
+   "3% mais rápida" a isso é pior que nenhuma ferramenta, porque é assim
+   que se escolhe a implementação errada com convicção.
+
+2. **Mann-Whitney, e não teste t.** Tempo de execução não é normal: cauda
+   longa à direita, piso duro à esquerda, picos de escalonamento. Um
+   teste que supõe normalidade responde com confiança sobre uma suposição
+   falsa. E a correção de empates importa: com relógio de resolução
+   grossa, metade da amostra empata.
+
+3. **As duas medições são intercaladas.** Medir A inteiro e depois B
+   inteiro faz uma queda de clock no meio virar "B é mais lenta" — o
+   erro mede o **momento**, não a implementação.
+
+E duas escolhas que mantêm o CI utilizável: **a primeira medida nunca
+reprova** (um CI que nasce vermelho por desenho é desligado no mesmo dia)
+e a **tolerância é obrigatória** (sem ela, todo CI fica vermelho por
+ruído de máquina, o que dá no mesmo).
+
+O percentil sai da amostra **por posto**: interpolar inventa um valor que
+não aconteceu, e num P99 o que se quer é uma medida que existiu.
+
+### O coletor, e a distinção que quase todo mundo erra
+
+No CPython quem libera é a **contagem de referência**, e ela roda na
+hora. O **coletor** existe só para o **ciclo**. Por isso `Mem.sem_gc`
+não vaza memória em geral — só deixa o ciclo para trás —, e é o que
+torna a técnica segura num trecho curto sensível a latência.
+
+O `finally` que religa **não é detalhe**: deixar o coletor desligado por
+causa de um erro é pior que a pausa que se queria evitar, e o programa
+seguiria assim até terminar sem nada denunciando. Há teste com um corpo
+que falha.
+
+**Medido**, 6000 ciclos alocados: 3 pausas e 1,84 ms com o coletor
+ligado, **0 pausas** com ele desligado. Sem essa medida a frase seria fé.
+
+E `Mem.arena` **não é um allocator**: quem aloca continua sendo o Python.
+O que ela troca é o **padrão de uso**, e o ganho só aparece quando o
+objeto é caro de montar — meça com `P.comparar` antes de manter.
+
 ### O analisador estático é otimista de propósito
 
 Quando não consegue **provar** que algo está errado, fica calado. Um falso alarme
@@ -1863,7 +1912,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1790 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1820 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2008,11 +2057,13 @@ python3 scripts/gerar_tarball.py
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
 | `tests/test_oop_avancada.py` | `pytest` | contratos, modificadores, sobrecarga, metaclasses, reflexão, DI, padrões, memória, métricas, LSP — e **executa cada bloco `df`** das páginas de `/docs/oop` e da §7 da referência |
+| `tests/test_perfil.py` | `pytest` | percentis, o flame graph das acoes, pausas do coletor — e o teste que **compara uma acao com ela mesma** e exige "empate" |
+| `tests/test_memoria_e_gc.py` | `pytest` | o coletor ligado e desligado, `sem_gc` religando mesmo com erro, congelar, arena — e a **medida** que prova a reducao de pausa |
 | `tests/test_laco.py` | `pytest` | o reator: que ele **dorme** em vez de girar, prazo em ordem, contrapressao, o erro que nao o derruba, fibras intercaladas — e **120 conexoes numa thread**, com a identidade da thread conferida dentro do retorno de chamada |
 | `tests/test_ssa_e_otimizacao.py` | `pytest` | dominancia, no phi, a propagacao condicional **comparada** com a do MIR, os tres passes provados pela saida, e o repositorio sem falso alarme |
 | `tests/test_compilador_interno.py` | `pytest` | HIR, MIR, LIR e as analises — inclusive a **equivalencia** do HIR rodando exercicios do repositorio nas duas formas e comparando a saida |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 262 exercícios em 44 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 263 exercícios em 45 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

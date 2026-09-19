@@ -54,6 +54,7 @@ MODULOS = [
     "compilador_interno",
     "compilador_backend",
     "runtime_laco",
+    "observabilidade",
     "plataforma",
     "vitrine",
     "versoes",

@@ -1,0 +1,162 @@
+// Exercicio 263 — medir com rigor, e o coletor sob controle
+//
+// 'Arcane.Bench' responde "quanto tempo leva" com uma MEDIA. E o que
+// quase toda ferramenta faz, e e onde quase toda decisao de performance
+// erra: a media esconde a cauda, duas medias diferentes podem ser a
+// mesma coisa com ruido, e um numero sozinho nao responde "piorou?".
+
+adopt Arcane.Perfil as P
+adopt Arcane.Memoria as Mem
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+action consulta():
+    yield sum(range(400))
+
+// ── percentis, com aquecimento separado ──
+m := P.medir(consulta, {"amostras": 50, "aquecimento": 5})
+
+assert m["amostras"] is 50
+assert m["aquecimento"] is 5           // declarado, e nao misturado
+assert m["p50"] smaller_eq m["p95"]
+assert m["p95"] smaller_eq m["p99"]
+assert m["min"] smaller_eq m["p50"] and m["p99"] smaller_eq m["max"]
+assert "vazao" in m and "desvio" in m
+
+// ── a cauda que a media esconde ──
+// Cem medidas de 10 ms e uma de 1000 dao media 20. A pessoa que pegou a
+// ultima esperou UM SEGUNDO, e nenhum relatorio de media conta isso.
+resumo := P.resumir([10.0, 10.0, 10.0, 10.0, 1000.0])
+assert resumo["media"] smaller resumo["p99"]
+assert resumo["max"] is 1000.0
+
+// o percentil sai da AMOSTRA, por posto — interpolar inventaria um
+// valor que nao aconteceu
+exato := P.resumir([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+assert exato["p50"] is 5
+assert exato["min"] is 1 and exato["max"] is 10
+
+// ── significancia: o teste que impede inventar ganho ──
+// A MESMA acao dos dois lados. A diferenca e ruido, e a ferramenta tem
+// de dizer isso — senao escolhe-se a implementacao errada com conviccao.
+igual := P.comparar(consulta, consulta, {"amostras": 40})
+assert igual["mais_rapido"] is "empate"
+assert not igual["significativo"]
+
+action lenta():
+    yield sum(range(9000))
+
+// e quando a diferenca EXISTE, ela e achada
+d := P.comparar(consulta, lenta, {"amostras": 30})
+assert d["significativo"]
+assert d["mais_rapido"] is "a"
+assert d["fator"] bigger 2
+assert d["p_valor"] smaller 0.05
+
+// o p diz SE ha diferenca; a sobreposicao diz QUANTO
+assert d["sobreposicao"] bigger 0.8
+assert d["sobreposicao"] smaller_eq 1.0
+
+// ── regressao contra linha de base ──
+base := $"{OS.temp_dir()}/df-263-{randint(100000, 999999)}.json"
+P.guardar("consulta", {"p95": 1.0, "p50": 1.0, "media": 1.0}, base)
+
+ruim := P.conferir("consulta", {"p95": 3.0, "p50": 3.0, "media": 3.0},
+                   {"arquivo": base, "tolerancia": 0.2})
+assert ruim["conhecida"] and ruim["regrediu"]
+assert ruim["fator"] is 3.0
+
+// 5% de diferenca com 20% de tolerancia e ruido de maquina: sem
+// tolerancia, todo CI fica vermelho e a primeira coisa que se faz com
+// um CI vermelho por desenho e desliga-lo
+ok := P.conferir("consulta", {"p95": 1.05, "p50": 1.05, "media": 1.05},
+                 {"arquivo": base, "tolerancia": 0.2})
+assert not ok["regrediu"]
+
+// uma melhora e relatada, e nao reprova
+melhor := P.conferir("consulta", {"p95": 0.5, "p50": 0.5, "media": 0.5},
+                     {"arquivo": base, "tolerancia": 0.2})
+assert melhor["melhorou"] and not melhor["regrediu"]
+
+// a PRIMEIRA medida nunca reprova: sem base nao ha regressao
+nova := P.conferir("nunca-medida", {"p95": 1.0}, {"arquivo": base})
+assert not nova["conhecida"] and not nova["regrediu"]
+IO.delete(base)
+
+// ── pausas do coletor ──
+// A pausa do coletor e o que transforma um p50 bom num p99 ruim, e ela
+// NAO aparece em medida que olhe so o tempo total.
+r := P.gc_pausas(consulta)
+assert r["resultado"] is 79800
+assert "p95" in r and "por_geracao" in r
+assert r["pausas"] bigger_eq 0
+
+// ── contencao de trava ──
+// Contencao nao aparece num perfil de CPU: a thread bloqueada nao gasta
+// CPU nenhuma. Ela aparece como latencia que ninguem explica.
+trava := P.trava()
+P.com_trava(trava, lambda => 1 + 1)
+P.com_trava(trava, lambda => 2 + 2)
+
+e := P.estatisticas_da_trava(trava)
+assert e["aquisicoes"] is 2
+assert e["esperas"] is 0          // sem disputa, ninguem esperou
+
+// ── o coletor sob controle ──
+// A distincao que quase todo mundo erra: quem libera no CPython e a
+// CONTAGEM DE REFERENCIA, e ela roda na hora. O coletor existe so para
+// o CICLO. Desligar o coletor NAO vaza memoria em geral.
+assert Mem.gc_ligado()
+assert Mem.sem_gc(consulta) is 79800
+assert Mem.gc_ligado()            // voltou
+
+// e volta mesmo quando o corpo FALHA — deixar o coletor desligado por
+// causa de um erro e muito pior que a pausa que se queria evitar
+monitor:
+    Mem.sem_gc(lambda => 1 / 0)   // df: permitir division-by-zero
+    assert no
+handle Error:
+    assert Mem.gc_ligado()
+
+// os limiares e as geracoes
+assert len(Mem.gc_limiares()) is 3
+assert len(Mem.gc_geracoes()) is 3
+assert "coletas" in Mem.gc_geracoes()[0]
+
+// congelar tira o que JA VIVE das varreduras — o que um servidor faz
+// depois da carga e antes do primeiro pedido
+antes := Mem.gc_congelados()
+Mem.gc_congelar()
+assert Mem.gc_congelados() bigger antes
+Mem.gc_descongelar()
+assert Mem.gc_congelados() is 0
+
+// ── arena ──
+// NAO e um allocator: quem aloca continua sendo o Python. O que a arena
+// troca e o PADRAO de uso.
+arena := Mem.arena(3, lambda => {"n": 0})
+a := Mem.pegar(arena)
+_b := Mem.pegar(arena)
+Mem.devolver(arena, a)
+_c := Mem.pegar(arena)            // o MESMO objeto volta
+
+conta := Mem.arena_estatisticas(arena)
+assert conta["criados"] is 3      // o lote, preparado de uma vez
+assert conta["reaproveitados"] is 1
+assert conta["em_uso"] is 2
+
+// 'limpar' solta o lote inteiro numa chamada: e o tempo de vida de
+// arena da literatura, e a operacao que ela existe para ter
+Mem.limpar(arena)
+assert Mem.arena_estatisticas(arena)["em_uso"] is 0
+assert Mem.arena_estatisticas(arena)["disponiveis"] is 3
+
+// devolver o que nao veio dela e RECUSADO: o lote cresceria com
+// estranhos, e o proximo 'pegar' entregaria um deles
+monitor:
+    Mem.devolver(arena, {"estranho": yes})
+    assert no
+handle RuntimeError as erro:
+    assert "arena" in erro.message
+
+out "263 ok"

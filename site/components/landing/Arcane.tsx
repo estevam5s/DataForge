@@ -33,6 +33,7 @@ const grupos: { rotulo: string; chaves: string[] }[] = [
   { rotulo: 'Nativo', chaves: ['c'] },
   { rotulo: 'Compilador', chaves: ['compilador'] },
   { rotulo: 'Runtime', chaves: ['laco'] },
+  { rotulo: 'Perfil', chaves: ['perfil'] },
 ];
 
 /** O que nenhum grupo reivindicou. Vazio é o estado esperado. */

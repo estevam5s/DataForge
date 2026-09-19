@@ -616,9 +616,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 262 | [`262_laco_e_fibras.df`](44-runtime/262_laco_e_fibras.df) · [doc](44-runtime/262_laco_e_fibras.md) | o laco de eventos, o escalonador e as fibras |
 
+## 45 — Observabilidade
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 263 | [`263_perfil_e_coletor.df`](45-observabilidade/263_perfil_e_coletor.df) · [doc](45-observabilidade/263_perfil_e_coletor.md) | medir com rigor, e o coletor sob controle |
+
 ---
 
-**Total: 262 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 263 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->
