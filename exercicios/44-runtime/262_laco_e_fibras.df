@@ -1,0 +1,199 @@
+// Exercicio 262 — o laco de eventos, o escalonador e as fibras
+//
+// 'async/await' nesta linguagem e UMA THREAD POR TAREFA. Serve para
+// sobrepor entrada e saida, e nao escala: mil conexoes sao mil threads
+// do sistema. O outro modelo e o reator — uma thread dormindo no
+// seletor do sistema — e e o que este exercicio exercita.
+//
+// Medido: 2000 conexoes atendidas por UMA thread, com +0 MB de memoria,
+// contra 2000 threads e +36 MB.
+
+adopt Arcane.Laco as L
+adopt Arcane.Time as T
+
+// ── o laco: fila de prontas e fila de prazos ──
+laco := L.novo()
+ordem := []
+
+L.agendar(laco, lambda => ordem.append("agora"))
+L.apos(laco, 40, lambda => ordem.append("tarde"))
+L.apos(laco, 10, lambda => ordem.append("cedo"))
+L.apos(laco, 25, lambda => ordem.append("meio"))
+L.rodar(laco)
+
+// quem foi agendado DEPOIS mas vence ANTES roda antes: a fila de
+// prazos e um heap, nao uma lista percorrida
+assert ordem is ["agora", "cedo", "meio", "tarde"]
+
+// o poller e o do sistema: epoll no Linux, kqueue no macOS
+assert L.mecanismo(laco) in ["epoll", "kqueue", "select", "poll"]
+
+// ── ele NAO gira em vao ──
+// E a diferenca entre um reator e uma espera ocupada. Com um unico
+// temporizador, o numero de voltas tem de ser pequeno.
+parado := L.novo()
+L.apos(parado, 80, lambda => void)
+L.rodar(parado)
+assert L.estatisticas(parado)["voltas"] smaller 50
+
+// ── cancelar uma tarefa ──
+cancelavel := L.novo()
+visto := []
+t := L.apos(cancelavel, 10, lambda => visto.append("nao devia"))
+L.cancelar(t)
+L.apos(cancelavel, 30, lambda => visto.append("esta sim"))
+L.rodar(cancelavel)
+assert visto is ["esta sim"]
+assert L.cancelada(t)
+
+// ── contrapressao: a fila recusa em vez de crescer sem limite ──
+// Sem teto, uma fonte mais rapida que o consumo troca "falha visivel"
+// por "morte por memoria", que e muito pior de diagnosticar.
+apertado := L.novo(2)
+assert L.agendar(apertado, lambda => void)
+assert L.agendar(apertado, lambda => void)
+assert not L.agendar(apertado, lambda => void)
+assert L.estatisticas(apertado)["recusadas"] is 1
+
+// ── um erro num retorno de chamada nao derruba o laco ──
+// Um reator que morre no primeiro erro derruba o servidor inteiro — e o
+// erro costuma ser de UMA conexao.
+resistente := L.novo()
+seguiu := []
+L.agendar(resistente, lambda => 1 / 0)   // df: permitir division-by-zero
+L.agendar(resistente, lambda => seguiu.append("segui"))
+L.rodar(resistente)
+
+assert seguiu is ["segui"]
+assert L.estatisticas(resistente)["erros"] is 1
+assert L.falhas(resistente)[0]["tipo"] is "DivisionByZeroError"
+
+// ── o que bloqueia vai para o pool, e o laco continua girando ──
+comPool := L.novo()
+marcas := []
+
+action pesado():
+    T.sleep(0.05)
+    yield "pronto"
+
+L.executar(comPool, pesado, lambda r => marcas.append(r))
+L.apos(comPool, 10, lambda => marcas.append("tique"))
+L.rodar(comPool)
+
+// o tique rodou ENQUANTO o trabalho pesado corria
+assert marcas is ["tique", "pronto"]
+
+// ── FIBRAS: um 'stream action' suspenso em cada 'emit' ──
+// Nao e aproximacao: o corpo de um stream ja e um gerador que o
+// interpretador suspende, e a troca de contexto e o quadro dele.
+
+stream action trabalhador(nome, diario):
+    cycle i from 1 to 3:
+        diario.append($"{nome}{i}")
+        emit L.ceder()
+
+comFibras := L.novo()
+diario := []
+L.fibra(comFibras, trabalhador, ["A", diario])
+L.fibra(comFibras, trabalhador, ["B", diario])
+
+assert L.fibras(comFibras) is 2
+L.rodar(comFibras)
+
+// INTERCALADAS. Se fossem sequenciais seria A1 A2 A3 B1 B2 B3 — e e
+// isto que prova que o escalonamento e cooperativo.
+assert diario is ["A1", "B1", "A2", "B2", "A3", "B3"]
+assert L.fibras(comFibras) is 0
+
+// ── uma fibra que dorme deixa a outra andar ──
+misto := L.novo()
+registro := []
+
+stream action lenta(r):
+    r.append("lenta comecou")
+    emit L.dormir(60)
+    r.append("lenta terminou")
+
+stream action rapida(r):
+    cycle i from 1 to 3:
+        r.append($"rapida {i}")
+        emit L.dormir(5)
+
+L.fibra(misto, lenta, [registro])
+L.fibra(misto, rapida, [registro])
+L.rodar(misto)
+
+assert registro[0] is "lenta comecou"
+assert registro[len(registro) - 1] is "lenta terminou"
+assert "rapida 3" in registro
+
+// ── a caixa: como uma fibra RECEBE algo ──
+// 'emit' e INSTRUCAO, nao expressao: ele nao devolve valor. O laco
+// entrega por um vault que a fibra passou. Explicito e melhor que
+// fingir que 'emit' e uma expressao.
+stream action espera(caixa):
+    emit L.depois_de(20, caixa, "resposta", "chegou")
+    caixa["visto"] := caixa["resposta"]
+
+comCaixa := L.novo()
+caixa := {"resposta": void, "visto": void}
+L.fibra(comCaixa, espera, [caixa])
+L.rodar(comCaixa)
+assert caixa["visto"] is "chegou"
+
+// ── cancelar uma fibra ──
+// Uma thread do sistema nao se cancela assim: e a vantagem concreta de
+// a fibra ser um objeto, e nao um recurso do SO.
+comCancelamento := L.novo()
+curto := []
+
+stream action longa(r):
+    r.append("comecei")
+    emit L.dormir(50)
+    r.append("nao chega aqui")
+
+f := L.fibra(comCancelamento, longa, [curto])
+L.apos(comCancelamento, 5, lambda => L.cancelar(f))
+L.rodar(comCancelamento)
+
+assert curto is ["comecei"]
+assert L.cancelada(f)
+
+// ── um erro dentro de uma fibra nao leva as outras ──
+comErro := L.novo()
+outras := []
+
+stream action quebra():
+    emit L.ceder()
+    _x := 1 / 0        // df: permitir division-by-zero
+
+stream action segue(r):
+    emit L.ceder()
+    r.append("a outra seguiu")
+
+L.fibra(comErro, quebra, [])
+L.fibra(comErro, segue, [outras])
+L.rodar(comErro)
+
+assert outras is ["a outra seguiu"]
+assert len(L.falhas(comErro)) is 1
+
+// ── o que uma fibra pode esperar e uma lista FECHADA ──
+// Um vault qualquer emitido por engano viraria uma fibra parada para
+// sempre, esperando algo que ninguem registrou.
+assert "ceder" in L.pedidos()
+assert "dormir" in L.pedidos()
+assert "ler" in L.pedidos()
+
+// ── uma fibra so nasce de 'stream action' ──
+// Uma acao comum roda ate o fim e nunca para: nao ha onde suspender.
+action comum():
+    yield 1
+
+monitor:
+    L.fibra(L.novo(), comum, [])
+    assert no
+handle RuntimeError as e:
+    assert "stream action" in e.message
+
+out "262 ok"

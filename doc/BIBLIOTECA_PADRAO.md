@@ -61,6 +61,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.C`](#arcanec) | `C / Nativo` | 23 | Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia. |
 | [`Arcane.Macro`](#arcanemacro) | `Macro` | 13 | A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo. 'citar' transforma texto em arvore, 'reescrever' devolve uma acao com o corpo trocado, 'nome_fresco' e 'renomear' dao higiene, e 'derivar' e a macro de atributo que gera __str__, __eq__, __lt__ e para_vault a partir dos campos. |
 | [`Arcane.Compilador`](#arcanecompilador) | `Compilador` | 24 | O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore. |
+| [`Arcane.Laco`](#arcanelaco) | `Laco / Reator` | 25 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'. |
 | [`Arcane.Dsl`](#arcanedsl) | `Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
 | [`Arcane.Posse`](#arcaneposse) | `Posse` | 16 | Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo. |
 | [`Arcane.Stm`](#arcanestm) | `Stm / Transacional` | 13 | Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. Variavel transacional, 'atomicamente' com validacao otimista e repeticao no conflito, 'retentar' que espera em vez de girar, 'ou_entao' para compor duas operacoes bloqueantes, e estatisticas de conflito. |
@@ -2321,6 +2322,47 @@ adopt Arcane.Compilador as Compilador
 | `texto(fonte, fase='mir')` |
 | `tokens(fonte)` |
 | `vivas(fonte, nome=None)` |
+
+
+---
+
+## Arcane.Laco
+
+O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'.
+
+```dataforge
+adopt Arcane.Laco as Laco
+```
+
+**Funções (25)**
+
+| Assinatura |
+|------------|
+| `a_cada(laco, ms, acao, rotulo='')` |
+| `agendar(laco, acao, rotulo='')` |
+| `apos(laco, ms, acao, rotulo='')` |
+| `cancelada(alvo)` |
+| `cancelar(alvo)` |
+| `ceder()` |
+| `depois_de(ms, caixa, chave, valor='pronto')` |
+| `dormir(ms)` |
+| `escrever(soquete)` |
+| `esperar(outra)` |
+| `esquecer(laco, soquete)` |
+| `estatisticas(laco)` |
+| `executar(laco, trabalho, depois=None)` |
+| `falhas(laco)` |
+| `fechar(laco)` |
+| `fibra(laco, acao, argumentos=None, nome='')` |
+| `fibras(laco)` |
+| `ler(soquete, caixa, chave, quanto=65536)` |
+| `mecanismo(laco)` |
+| `novo(teto=None)` |
+| `parar(laco)` |
+| `pedidos()` |
+| `quando_escrever(laco, soquete, acao)` |
+| `quando_ler(laco, soquete, acao)` |
+| `rodar(laco, voltas=None)` |
 
 
 ---

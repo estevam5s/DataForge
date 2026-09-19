@@ -4895,6 +4895,138 @@
     }
    ]
   },
+  "laco": {
+   "nome": "Arcane.Laco",
+   "desc": "O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'.",
+   "curto": "Laco / Reator",
+   "funcoes": [
+    {
+     "nome": "a_cada",
+     "sig": "(laco, ms, acao, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "agendar",
+     "sig": "(laco, acao, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "apos",
+     "sig": "(laco, ms, acao, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cancelada",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cancelar",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ceder",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "depois_de",
+     "sig": "(ms, caixa, chave, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dormir",
+     "sig": "(ms)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escrever",
+     "sig": "(soquete)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar",
+     "sig": "(outra)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esquecer",
+     "sig": "(laco, soquete)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "estatisticas",
+     "sig": "(laco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "executar",
+     "sig": "(laco, trabalho, depois)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "falhas",
+     "sig": "(laco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fechar",
+     "sig": "(laco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fibra",
+     "sig": "(laco, acao, argumentos, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fibras",
+     "sig": "(laco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler",
+     "sig": "(soquete, caixa, chave, quanto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mecanismo",
+     "sig": "(laco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "novo",
+     "sig": "(teto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "parar",
+     "sig": "(laco)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pedidos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "quando_escrever",
+     "sig": "(laco, soquete, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "quando_ler",
+     "sig": "(laco, soquete, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rodar",
+     "sig": "(laco, voltas)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "lago": {
    "nome": "Arcane.Lago",
    "desc": "Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação.",
@@ -11422,7 +11554,7 @@
     "enunciado": "",
     "arquivo": "260_pipeline_hir_mir.df",
     "temDoc": true,
-    "codigo": "// Exercicio 260 — dentro do compilador: HIR, MIR e o que o fluxo prova\n//\n// A linguagem ja tinha lexer, parser, AST, analisador e um compilador de\n// fechamentos — e nenhuma forma de VER as representacoes do meio. Este\n// exercicio abre as seis fases de dentro da propria linguagem.\n\nadopt Arcane.Compilador as K\n\n// ── as fases ──\nassert K.fases() is [\"lexer\", \"parser\", \"hir\", \"mir\", \"analises\", \"lir\"]\n\nfonte := \"\"\"\naction classificar(n):\n    given n bigger 10:\n        yield \"alto\"\n    orif n smaller 0:\n        yield \"negativo\"\n    otherwise:\n        yield \"baixo\"\n\ntotal := 0\ncycle i in [1, 2, 3]:\n    total += i\nout classificar(total)\n\"\"\"\n\n// ── lexer: o token sabe onde nasceu ──\ntokens := K.tokens(fonte)\nassert len(tokens) bigger 30\nassert tokens[0][\"linha\"] is 1\nassert \"tipo\" in tokens[0] and \"coluna\" in tokens[0]\n\n// ── parser: a arvore, como dado ──\narvore := K.arvore(fonte)\nassert arvore[\"tipo\"] is \"Program\"\nassert arvore[\"corpo\"][0][\"tipo\"] is \"ActionDeclaration\"\n\n// ── HIR: o acucar que o arquivo usa ──\n// 'orif' e uma corrente de given deitada; '+=' le o alvo e escreve nele\nassert K.acucares(fonte) is {\"orif-aninhado\": 1, \"composta-simples\": 1}\n\n// e no HIR o orif deixou de existir\nde_fora := K.hir(fonte)[\"corpo\"][0][\"corpo\"][0]\nassert de_fora[\"tipo\"] is \"GivenBlock\"\nassert len(de_fora[\"orif_blocks\"]) is 0\nassert de_fora[\"otherwise_body\"][0][\"tipo\"] is \"GivenBlock\"\n\n// o que so PARECE acucar tem o motivo escrito ao lado\nmotivos := K.nao_e_acucar()\nassert \"CycleFromTo\" in motivos          // 'range' materializa a lista\nassert \"MarkDecorator\" in motivos        // decorador que devolve void nao troca\nassert len(motivos[\"TernaryExpression\"]) bigger 20\n\n// ── resolucao: de onde vem cada nome ──\nligacoes := K.resolucao(\"fora := 1\\naction f(a):\\n    b := a + 1\\n    yield b + fora + sqrt(4)\\n\")\nf := [c cycle c in ligacoes given c[\"nome\"] is \"f\"][0]\nassert f[\"parametros\"] is [\"a\"]\nassert f[\"locais\"] is [\"b\"]\nassert f[\"livres\"] is [\"fora\"]            // le e nao cria: vem de fora\nassert f[\"embutidos\"] is [\"sqrt\"]\n\n// ── MIR: bloco basico e aresta ──\nassert K.corpos(fonte) is [\"(programa)\", \"classificar\"]\n\ntopo := K.blocos(fonte, \"(programa)\")\n// o laco tem uma aresta de volta — sem ela nao e laco\nvoltas := [b[\"id\"] cycle b in topo\n           given len([s cycle s in b[\"saidas\"] given s[\"aresta\"] is \"volta\"]) bigger 0]\nassert len(voltas) is 1\n\n// o 'given' abre dois ramos, e os dois tem rotulo\nramos := K.blocos(fonte, \"classificar\")\netiquetas := unique([s[\"aresta\"] cycle b in ramos cycle s in b[\"saidas\"]])\nassert \"sim\" in etiquetas and \"nao\" in etiquetas\n\n// o monitor liga o corpo ao tratador\ncom_erro := \"monitor:\\n    x := 1\\nhandle Error as e:\\n    out e.message\\nensure:\\n    out 2\\n\"\nrotulos := [b[\"rotulo\"] cycle b in K.blocos(com_erro, \"(programa)\")]\nassert \"tratador\" in rotulos and \"ensure\" in rotulos\n\n// ── alcance: o codigo que nao pode ser atingido ──\n// os tres ramos encerram com yield, logo a juncao nao e alcancavel\nvida := K.alcance(fonte)[\"classificar\"]\nassert vida[\"vivos\"] smaller vida[\"total\"]\nassert len(vida[\"fora\"]) bigger 0\n\n// ── definida em todo caminho: o aviso que o check nao tinha ──\nassert K.talvez_nao_definidas(\"given c:\\n    x := 1\\nout x\\n\") is [\"x\"]\n\n// com o 'otherwise' cobrindo, silencio\nassert K.talvez_nao_definidas(\n    \"given c:\\n    x := 1\\notherwise:\\n    x := 2\\nout x\\n\") is []\n\n// o laco conta como ramo: ele pode nao rodar nenhuma vez\nassert K.talvez_nao_definidas(\"cycle x in xs:\\n    ultimo := x\\nout ultimo\\n\") is [\"ultimo\"]\n\n// e a analise CALA quando nao pode provar — cada silencio e um falso\n// alarme que nao acontece\nassert K.talvez_nao_definidas(\n    \"monitor:\\n    given c:\\n        x := 1\\n    out x\\nhandle Error:\\n    out 0\\n\") is []\n\n// ── propagacao de constante: a intersecao e o recurso ──\nassert K.constantes(\"x := 2\\ny := x + 1\\nout y\\n\", \"(programa)\") is {\"x\": 2, \"y\": 3}\n\n// dois ramos que discordam nao deixam constante nenhuma\nassert K.constantes(\"given c:\\n    x := 1\\notherwise:\\n    x := 2\\nout x\\n\",\n                    \"(programa)\") is {}\n\n// ── escapatoria: quem mais pode estar lendo ──\ncom_closure := \"action f():\\n\" +\n               \"    preso := 1\\n\" +\n               \"    solto := 2\\n\" +\n               \"    ler := lambda => preso + 1\\n\" +\n               \"    yield ler()\\n\"\nfugas := K.escapam(com_closure, \"f\")\nassert fugas[\"preso\"] is \"fechamento\"\nassert fugas[\"ler\"] is \"devolvido\"\nassert \"solto\" not in fugas               // vive e morre no quadro\n\n// ── LIR: o que o compilador de fechamentos fez ──\n// nao ha codigo de maquina: o backend e compilador.py, e o LIR diz\n// quanto da arvore virou fechamento e o que recuou para a arvore\ninventario := K.lir(fonte)\nassert inventario[\"total\"] is inventario[\"compiladas\"] + inventario[\"recuadas\"]\nassert inventario[\"proporcao\"] bigger 0 and inventario[\"proporcao\"] smaller_eq 100\nassert \"por_no\" in inventario\n\n// o recuo DENTRO de um laco e o unico que aparece num perfil\nquente := K.lir(\"cycle i in [1, 2]:\\n    out [x cycle x in [1]]\\n\")\nassert len(quente[\"quentes\"]) bigger_eq 0\n\n// ── a fase que nao existe ──\nmonitor:\n    K.texto(fonte, \"llvm\")\n    assert no\nhandle RuntimeError as e:\n    assert \"llvm\" in e.message\n    assert \"backend\" in e.message         // e diz qual e\n\nout \"260 ok\"\n"
+    "codigo": "// Exercicio 260 — dentro do compilador: HIR, MIR e o que o fluxo prova\n//\n// A linguagem ja tinha lexer, parser, AST, analisador e um compilador de\n// fechamentos — e nenhuma forma de VER as representacoes do meio. Este\n// exercicio abre as seis fases de dentro da propria linguagem.\n\nadopt Arcane.Compilador as K\n\n// ── as fases ──\nassert K.fases() is [\"lexer\", \"parser\", \"hir\", \"mir\", \"analises\",\n                     \"ssa\", \"otimizado\", \"lir\"]\n\nfonte := \"\"\"\naction classificar(n):\n    given n bigger 10:\n        yield \"alto\"\n    orif n smaller 0:\n        yield \"negativo\"\n    otherwise:\n        yield \"baixo\"\n\ntotal := 0\ncycle i in [1, 2, 3]:\n    total += i\nout classificar(total)\n\"\"\"\n\n// ── lexer: o token sabe onde nasceu ──\ntokens := K.tokens(fonte)\nassert len(tokens) bigger 30\nassert tokens[0][\"linha\"] is 1\nassert \"tipo\" in tokens[0] and \"coluna\" in tokens[0]\n\n// ── parser: a arvore, como dado ──\narvore := K.arvore(fonte)\nassert arvore[\"tipo\"] is \"Program\"\nassert arvore[\"corpo\"][0][\"tipo\"] is \"ActionDeclaration\"\n\n// ── HIR: o acucar que o arquivo usa ──\n// 'orif' e uma corrente de given deitada; '+=' le o alvo e escreve nele\nassert K.acucares(fonte) is {\"orif-aninhado\": 1, \"composta-simples\": 1}\n\n// e no HIR o orif deixou de existir\nde_fora := K.hir(fonte)[\"corpo\"][0][\"corpo\"][0]\nassert de_fora[\"tipo\"] is \"GivenBlock\"\nassert len(de_fora[\"orif_blocks\"]) is 0\nassert de_fora[\"otherwise_body\"][0][\"tipo\"] is \"GivenBlock\"\n\n// o que so PARECE acucar tem o motivo escrito ao lado\nmotivos := K.nao_e_acucar()\nassert \"CycleFromTo\" in motivos          // 'range' materializa a lista\nassert \"MarkDecorator\" in motivos        // decorador que devolve void nao troca\nassert len(motivos[\"TernaryExpression\"]) bigger 20\n\n// ── resolucao: de onde vem cada nome ──\nligacoes := K.resolucao(\"fora := 1\\naction f(a):\\n    b := a + 1\\n    yield b + fora + sqrt(4)\\n\")\nf := [c cycle c in ligacoes given c[\"nome\"] is \"f\"][0]\nassert f[\"parametros\"] is [\"a\"]\nassert f[\"locais\"] is [\"b\"]\nassert f[\"livres\"] is [\"fora\"]            // le e nao cria: vem de fora\nassert f[\"embutidos\"] is [\"sqrt\"]\n\n// ── MIR: bloco basico e aresta ──\nassert K.corpos(fonte) is [\"(programa)\", \"classificar\"]\n\ntopo := K.blocos(fonte, \"(programa)\")\n// o laco tem uma aresta de volta — sem ela nao e laco\nvoltas := [b[\"id\"] cycle b in topo\n           given len([s cycle s in b[\"saidas\"] given s[\"aresta\"] is \"volta\"]) bigger 0]\nassert len(voltas) is 1\n\n// o 'given' abre dois ramos, e os dois tem rotulo\nramos := K.blocos(fonte, \"classificar\")\netiquetas := unique([s[\"aresta\"] cycle b in ramos cycle s in b[\"saidas\"]])\nassert \"sim\" in etiquetas and \"nao\" in etiquetas\n\n// o monitor liga o corpo ao tratador\ncom_erro := \"monitor:\\n    x := 1\\nhandle Error as e:\\n    out e.message\\nensure:\\n    out 2\\n\"\nrotulos := [b[\"rotulo\"] cycle b in K.blocos(com_erro, \"(programa)\")]\nassert \"tratador\" in rotulos and \"ensure\" in rotulos\n\n// ── alcance: o codigo que nao pode ser atingido ──\n// os tres ramos encerram com yield, logo a juncao nao e alcancavel\nvida := K.alcance(fonte)[\"classificar\"]\nassert vida[\"vivos\"] smaller vida[\"total\"]\nassert len(vida[\"fora\"]) bigger 0\n\n// ── definida em todo caminho: o aviso que o check nao tinha ──\nassert K.talvez_nao_definidas(\"given c:\\n    x := 1\\nout x\\n\") is [\"x\"]\n\n// com o 'otherwise' cobrindo, silencio\nassert K.talvez_nao_definidas(\n    \"given c:\\n    x := 1\\notherwise:\\n    x := 2\\nout x\\n\") is []\n\n// o laco conta como ramo: ele pode nao rodar nenhuma vez\nassert K.talvez_nao_definidas(\"cycle x in xs:\\n    ultimo := x\\nout ultimo\\n\") is [\"ultimo\"]\n\n// e a analise CALA quando nao pode provar — cada silencio e um falso\n// alarme que nao acontece\nassert K.talvez_nao_definidas(\n    \"monitor:\\n    given c:\\n        x := 1\\n    out x\\nhandle Error:\\n    out 0\\n\") is []\n\n// ── propagacao de constante: a intersecao e o recurso ──\nassert K.constantes(\"x := 2\\ny := x + 1\\nout y\\n\", \"(programa)\") is {\"x\": 2, \"y\": 3}\n\n// dois ramos que discordam nao deixam constante nenhuma\nassert K.constantes(\"given c:\\n    x := 1\\notherwise:\\n    x := 2\\nout x\\n\",\n                    \"(programa)\") is {}\n\n// ── escapatoria: quem mais pode estar lendo ──\ncom_closure := \"action f():\\n\" +\n               \"    preso := 1\\n\" +\n               \"    solto := 2\\n\" +\n               \"    ler := lambda => preso + 1\\n\" +\n               \"    yield ler()\\n\"\nfugas := K.escapam(com_closure, \"f\")\nassert fugas[\"preso\"] is \"fechamento\"\nassert fugas[\"ler\"] is \"devolvido\"\nassert \"solto\" not in fugas               // vive e morre no quadro\n\n// ── LIR: o que o compilador de fechamentos fez ──\n// nao ha codigo de maquina: o backend e compilador.py, e o LIR diz\n// quanto da arvore virou fechamento e o que recuou para a arvore\ninventario := K.lir(fonte)\nassert inventario[\"total\"] is inventario[\"compiladas\"] + inventario[\"recuadas\"]\nassert inventario[\"proporcao\"] bigger 0 and inventario[\"proporcao\"] smaller_eq 100\nassert \"por_no\" in inventario\n\n// o recuo DENTRO de um laco e o unico que aparece num perfil\nquente := K.lir(\"cycle i in [1, 2]:\\n    out [x cycle x in [1]]\\n\")\nassert len(quente[\"quentes\"]) bigger_eq 0\n\n// ── a fase que nao existe ──\nmonitor:\n    K.texto(fonte, \"llvm\")\n    assert no\nhandle RuntimeError as e:\n    assert \"llvm\" in e.message\n    assert \"backend\" in e.message         // e diz qual e\n\nout \"260 ok\"\n"
    }
   ],
   "43-backend": [
@@ -11433,6 +11565,16 @@
     "arquivo": "261_ssa_e_otimizacao.df",
     "temDoc": true,
     "codigo": "// Exercicio 261 — SSA, o no phi, e a otimizacao que foi MEDIDA\n//\n// A parte 8 de uma referencia Deep Tech e sobre backend LLVM. Aqui a\n// resposta honesta e em boa medida \"nao se aplica\": o DataForge e\n// interpretado, e nao ha codigo de maquina. O que transfere e teoria de\n// compilador, nao de LLVM — e e o que este exercicio exercita.\n\nadopt Arcane.Compilador as K\n\n// ── as fases, agora oito ──\nassert K.fases() is [\"lexer\", \"parser\", \"hir\", \"mir\", \"analises\",\n                     \"ssa\", \"otimizado\", \"lir\"]\n\n// ── SSA: uma definicao por nome ──\ndiamante := \"given c:\\n    x := 1\\notherwise:\\n    x := 2\\nout x\\n\"\nforma := K.ssa(diamante)[0]\n\n// onde os dois caminhos se juntam aparece um phi, dizendo de onde vem\nfis := [f cycle b in forma[\"blocos\"] cycle f in b[\"fis\"]]\nassert len(fis) is 1\nassert fis[0][\"nome\"] is \"x\"\nassert len(fis[0][\"fontes\"]) is 2\n\n// um nome com uma definicao so nao precisa de phi\nassert K.ssa(\"x := 1\\nout x\\n\")[0][\"blocos\"][0][\"fis\"] is []\n\n// o laco tem phi na cabeca: o nome volta pela aresta de tras\ncomLaco := K.ssa(\"t := 0\\ncycle i in [1, 2]:\\n    t := t + i\\nout t\\n\")[0]\ncabeca := [b cycle b in comLaco[\"blocos\"] given b[\"rotulo\"] is \"condicao\"][0]\nassert len([f cycle f in cabeca[\"fis\"] given f[\"nome\"] is \"t\"]) is 1\n\n// cada leitura diz QUAL versao esta lendo — e e essa a pergunta que o\n// MIR sozinho nao responde\nsequencia := K.ssa(\"x := 1\\nx := 2\\nout x\\n\")[0]\nescritas := [i[\"escreve\"][\"versao\"] cycle b in sequencia[\"blocos\"]\n             cycle i in b[\"instrucoes\"] given i[\"escreve\"] isnt void]\nlidas := [i[\"le\"][\"x\"] cycle b in sequencia[\"blocos\"]\n          cycle i in b[\"instrucoes\"] given \"x\" in i[\"le\"]]\nassert escritas is [1, 2]\nassert lidas is [2]                  // o 'out' le a segunda\n\n// ── por que SSA paga: a propagacao fica CONDICIONAL ──\nmorto := \"x := 1\\n\" +\n         \"given x bigger 5:\\n\" +\n         \"    y := \\\"nunca\\\"\\n\" +\n         \"otherwise:\\n\" +\n         \"    y := \\\"sempre\\\"\\n\" +\n         \"out y\\n\"\n\n// o ramo que nunca roda e nomeado, com o bloco e o rotulo\nmortos := K.ramos_mortos(morto)\nassert len(mortos) is 1\nassert mortos[0][\"rotulo\"] is \"sim\"\n\n// e por isso o valor de 'y' SE CONCLUI: a juncao tem um caminho vivo so\nassert \"sempre\" in values(K.provadas(morto, \"(programa)\"))\n\n// uma condicao que nao se prova nao mata nada — e esse e o caso de\n// quase todo codigo, e o silencio certo\nassert K.ramos_mortos(\"given entrada:\\n    y := 1\\notherwise:\\n    y := 2\\n\") is []\n\n// 'persist yes:' com 'halt' e o laco infinito legitimo: a saida fica\n// \"morta\" no grafo e nao ha nada de errado nisso\ninfinito := \"n := 0\\npersist yes:\\n    n += 1\\n    given n bigger 2:\\n        halt\\n\"\nassert len([m cycle m in K.ramos_mortos(infinito) given m[\"rotulo\"] is \"corpo\"]) is 0\n\n// ── os passes de otimizacao ──\nassert len(keys(K.passes())) is 3\nassert \"ramo-morto\" in K.passes()\nassert \"inalcancavel\" in K.passes()\n\n// duas dobras: '3 * 4' vira 12, e depois '2 + 12' vira 14\nassert K.otimizar(\"x := 2 + 3 * 4\\n\")[\"dobra-de-constante\"] is 2\nassert K.otimizar(morto)[\"ramo-morto\"] bigger 0\n\n// o que vem depois de um 'yield' sai do corpo\ndepois_do_yield := \"action f():\\n    yield 1\\n    out \\\"nunca\\\"\\n\"\nassert K.otimizar(depois_do_yield)[\"inalcancavel\"] bigger 0\n\n// ── nada que possa falhar e dobrado ──\n// '1 / 0' dobrado moveria o erro para a CARGA, longe da linha que o\n// causa. Sem dobrar, ele estoura onde esta escrito:\nmonitor:\n    _x := 1 / 0       // df: permitir division-by-zero\n    assert no\nhandle Error as e:\n    assert e.type is \"DivisionByZeroError\"\n    assert e.line is 84\n\n// e texto com numero nao dobra: mudaria a mensagem de erro\nassert K.otimizar(\"x := \\\"a\\\" + 1\\n\")[\"dobra-de-constante\"] is 0\n\n// ── LIR: o que o backend REALMENTE compila ──\n// Nao ha codigo de maquina. O backend e compilador.py, e a descida dele\n// e PARCIAL: o que nao esta nas tabelas recua para a arvore.\ninventario := K.lir(morto)\nassert inventario[\"total\"] is inventario[\"compiladas\"] + inventario[\"recuadas\"]\nassert inventario[\"proporcao\"] bigger 50\n\n// ── a fase que nao existe, e que muita gente tenta primeiro ──\nmonitor:\n    K.texto(morto, \"llvm\")\n    assert no\nhandle RuntimeError as e:\n    assert \"llvm\" in e.message\n    assert \"backend\" in e.message\n\nout \"261 ok\"\n"
+   }
+  ],
+  "44-runtime": [
+   {
+    "num": "262",
+    "titulo": "o laco de eventos, o escalonador e as fibras",
+    "enunciado": "",
+    "arquivo": "262_laco_e_fibras.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 262 — o laco de eventos, o escalonador e as fibras\n//\n// 'async/await' nesta linguagem e UMA THREAD POR TAREFA. Serve para\n// sobrepor entrada e saida, e nao escala: mil conexoes sao mil threads\n// do sistema. O outro modelo e o reator — uma thread dormindo no\n// seletor do sistema — e e o que este exercicio exercita.\n//\n// Medido: 2000 conexoes atendidas por UMA thread, com +0 MB de memoria,\n// contra 2000 threads e +36 MB.\n\nadopt Arcane.Laco as L\nadopt Arcane.Time as T\n\n// ── o laco: fila de prontas e fila de prazos ──\nlaco := L.novo()\nordem := []\n\nL.agendar(laco, lambda => ordem.append(\"agora\"))\nL.apos(laco, 40, lambda => ordem.append(\"tarde\"))\nL.apos(laco, 10, lambda => ordem.append(\"cedo\"))\nL.apos(laco, 25, lambda => ordem.append(\"meio\"))\nL.rodar(laco)\n\n// quem foi agendado DEPOIS mas vence ANTES roda antes: a fila de\n// prazos e um heap, nao uma lista percorrida\nassert ordem is [\"agora\", \"cedo\", \"meio\", \"tarde\"]\n\n// o poller e o do sistema: epoll no Linux, kqueue no macOS\nassert L.mecanismo(laco) in [\"epoll\", \"kqueue\", \"select\", \"poll\"]\n\n// ── ele NAO gira em vao ──\n// E a diferenca entre um reator e uma espera ocupada. Com um unico\n// temporizador, o numero de voltas tem de ser pequeno.\nparado := L.novo()\nL.apos(parado, 80, lambda => void)\nL.rodar(parado)\nassert L.estatisticas(parado)[\"voltas\"] smaller 50\n\n// ── cancelar uma tarefa ──\ncancelavel := L.novo()\nvisto := []\nt := L.apos(cancelavel, 10, lambda => visto.append(\"nao devia\"))\nL.cancelar(t)\nL.apos(cancelavel, 30, lambda => visto.append(\"esta sim\"))\nL.rodar(cancelavel)\nassert visto is [\"esta sim\"]\nassert L.cancelada(t)\n\n// ── contrapressao: a fila recusa em vez de crescer sem limite ──\n// Sem teto, uma fonte mais rapida que o consumo troca \"falha visivel\"\n// por \"morte por memoria\", que e muito pior de diagnosticar.\napertado := L.novo(2)\nassert L.agendar(apertado, lambda => void)\nassert L.agendar(apertado, lambda => void)\nassert not L.agendar(apertado, lambda => void)\nassert L.estatisticas(apertado)[\"recusadas\"] is 1\n\n// ── um erro num retorno de chamada nao derruba o laco ──\n// Um reator que morre no primeiro erro derruba o servidor inteiro — e o\n// erro costuma ser de UMA conexao.\nresistente := L.novo()\nseguiu := []\nL.agendar(resistente, lambda => 1 / 0)   // df: permitir division-by-zero\nL.agendar(resistente, lambda => seguiu.append(\"segui\"))\nL.rodar(resistente)\n\nassert seguiu is [\"segui\"]\nassert L.estatisticas(resistente)[\"erros\"] is 1\nassert L.falhas(resistente)[0][\"tipo\"] is \"DivisionByZeroError\"\n\n// ── o que bloqueia vai para o pool, e o laco continua girando ──\ncomPool := L.novo()\nmarcas := []\n\naction pesado():\n    T.sleep(0.05)\n    yield \"pronto\"\n\nL.executar(comPool, pesado, lambda r => marcas.append(r))\nL.apos(comPool, 10, lambda => marcas.append(\"tique\"))\nL.rodar(comPool)\n\n// o tique rodou ENQUANTO o trabalho pesado corria\nassert marcas is [\"tique\", \"pronto\"]\n\n// ── FIBRAS: um 'stream action' suspenso em cada 'emit' ──\n// Nao e aproximacao: o corpo de um stream ja e um gerador que o\n// interpretador suspende, e a troca de contexto e o quadro dele.\n\nstream action trabalhador(nome, diario):\n    cycle i from 1 to 3:\n        diario.append($\"{nome}{i}\")\n        emit L.ceder()\n\ncomFibras := L.novo()\ndiario := []\nL.fibra(comFibras, trabalhador, [\"A\", diario])\nL.fibra(comFibras, trabalhador, [\"B\", diario])\n\nassert L.fibras(comFibras) is 2\nL.rodar(comFibras)\n\n// INTERCALADAS. Se fossem sequenciais seria A1 A2 A3 B1 B2 B3 — e e\n// isto que prova que o escalonamento e cooperativo.\nassert diario is [\"A1\", \"B1\", \"A2\", \"B2\", \"A3\", \"B3\"]\nassert L.fibras(comFibras) is 0\n\n// ── uma fibra que dorme deixa a outra andar ──\nmisto := L.novo()\nregistro := []\n\nstream action lenta(r):\n    r.append(\"lenta comecou\")\n    emit L.dormir(60)\n    r.append(\"lenta terminou\")\n\nstream action rapida(r):\n    cycle i from 1 to 3:\n        r.append($\"rapida {i}\")\n        emit L.dormir(5)\n\nL.fibra(misto, lenta, [registro])\nL.fibra(misto, rapida, [registro])\nL.rodar(misto)\n\nassert registro[0] is \"lenta comecou\"\nassert registro[len(registro) - 1] is \"lenta terminou\"\nassert \"rapida 3\" in registro\n\n// ── a caixa: como uma fibra RECEBE algo ──\n// 'emit' e INSTRUCAO, nao expressao: ele nao devolve valor. O laco\n// entrega por um vault que a fibra passou. Explicito e melhor que\n// fingir que 'emit' e uma expressao.\nstream action espera(caixa):\n    emit L.depois_de(20, caixa, \"resposta\", \"chegou\")\n    caixa[\"visto\"] := caixa[\"resposta\"]\n\ncomCaixa := L.novo()\ncaixa := {\"resposta\": void, \"visto\": void}\nL.fibra(comCaixa, espera, [caixa])\nL.rodar(comCaixa)\nassert caixa[\"visto\"] is \"chegou\"\n\n// ── cancelar uma fibra ──\n// Uma thread do sistema nao se cancela assim: e a vantagem concreta de\n// a fibra ser um objeto, e nao um recurso do SO.\ncomCancelamento := L.novo()\ncurto := []\n\nstream action longa(r):\n    r.append(\"comecei\")\n    emit L.dormir(50)\n    r.append(\"nao chega aqui\")\n\nf := L.fibra(comCancelamento, longa, [curto])\nL.apos(comCancelamento, 5, lambda => L.cancelar(f))\nL.rodar(comCancelamento)\n\nassert curto is [\"comecei\"]\nassert L.cancelada(f)\n\n// ── um erro dentro de uma fibra nao leva as outras ──\ncomErro := L.novo()\noutras := []\n\nstream action quebra():\n    emit L.ceder()\n    _x := 1 / 0        // df: permitir division-by-zero\n\nstream action segue(r):\n    emit L.ceder()\n    r.append(\"a outra seguiu\")\n\nL.fibra(comErro, quebra, [])\nL.fibra(comErro, segue, [outras])\nL.rodar(comErro)\n\nassert outras is [\"a outra seguiu\"]\nassert len(L.falhas(comErro)) is 1\n\n// ── o que uma fibra pode esperar e uma lista FECHADA ──\n// Um vault qualquer emitido por engano viraria uma fibra parada para\n// sempre, esperando algo que ninguem registrou.\nassert \"ceder\" in L.pedidos()\nassert \"dormir\" in L.pedidos()\nassert \"ler\" in L.pedidos()\n\n// ── uma fibra so nasce de 'stream action' ──\n// Uma acao comum roda ate o fim e nunca para: nao ha onde suspender.\naction comum():\n    yield 1\n\nmonitor:\n    L.fibra(L.novo(), comum, [])\n    assert no\nhandle RuntimeError as e:\n    assert \"stream action\" in e.message\n\nout \"262 ok\"\n"
    }
   ]
  },
@@ -11779,9 +11921,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2567,
+  "testes": 2602,
   "exemplos": 44,
-  "arquivosDf": 371
+  "arquivosDf": 372
  },
  "mundo": {
   "estrelas": 0,

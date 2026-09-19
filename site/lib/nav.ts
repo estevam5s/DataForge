@@ -262,6 +262,15 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Runtime e laço de eventos',
+    items: [
+      { title: 'O laço de eventos', href: '/docs/runtime/laco' },
+      { title: 'O escalonador', href: '/docs/runtime/escalonador' },
+      { title: 'Fibras', href: '/docs/runtime/fibras' },
+      { title: 'O runtime: o mapa', href: '/docs/runtime/mapa' },
+    ],
+  },
+  {
     title: 'Concorrência avançada',
     items: [
       { title: 'Memória transacional', href: '/docs/concorrencia/stm' },
@@ -446,6 +455,7 @@ export const nav: NavSection[] = [
       { title: 'FFI e nativo', href: '/docs/exercicios/41-ffi-nativo' },
       { title: 'Dentro do compilador', href: '/docs/exercicios/42-compilador' },
       { title: 'Backend e otimização', href: '/docs/exercicios/43-backend' },
+      { title: 'Runtime e laço de eventos', href: '/docs/exercicios/44-runtime' },
     ],
   },
   {

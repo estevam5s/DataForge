@@ -137,7 +137,7 @@ typeof      using       validate    void        wait        when
 with        yes         yield
 ```
 
-## A biblioteca: 62 modulos
+## A biblioteca: 63 modulos
 
 Todos por `adopt`. Nenhum precisa de instalacao.
 
@@ -172,6 +172,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.IO` | 30 | Arquivos, diretórios, JSON, CSV e shell. |
 | `Arcane.Injecao` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
+| `Arcane.Laco` | 25 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. |
 | `Arcane.Lago` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | `Arcane.Lavra` | 42 | A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. |
 | `Arcane.Logging` | 14 | Registro estruturado de eventos, com níveis e destinos. |

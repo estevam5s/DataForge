@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 261 exercícios
+python3 exercicios/run_all.py                        # 262 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -90,7 +90,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                62 módulos (1765 símbolos), incluindo:
+  stdlib/                63 módulos (1790 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -101,6 +101,7 @@ dataforge/
     arcane_padroes.py    os padrões que pedem mecanismo (comandos, máquina, pool…)
     arcane_memoria.py    referência fraca, mapa fraco, coletor
     arcane_c.py          FFI: biblioteca nativa, ponteiro cru, struct, callback
+    arcane_laco.py       laco de eventos, escalonador e fibras — UMA thread
     arcane_macro.py      a arvore como dado: citar, transformar, gerar, derivar
     arcane_dsl.py        combinadores para uma linguagem externa propria
     arcane_stm.py        memoria transacional: escritas que acontecem juntas
@@ -120,7 +121,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        261 exercícios em 43 módulos + run_all.py
+exercicios/        262 exercícios em 44 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1274,6 +1275,45 @@ velocidade — e a regra que mais recusa é "nada que possa falhar é
 dobrado": `1 / 0` dobrado moveria o erro para a **carga**, longe da linha
 que o causa.
 
+### O laço de eventos, e por que a fibra não é green thread
+
+`Arcane.Laco` é o reator: **uma** thread dormindo no `selectors` do
+sistema. Ele existe porque `async/await` é thread por tarefa e o Kiln é
+thread por pedido — os dois servem, e nenhum dos dois escala.
+
+Medido, servidor de linha, uma requisição por conexão:
+
+| Conexões | Laço | Thread por conexão |
+|---|---|---|
+| 1000 | 73 ms · **1 thread** · +1 MB | 83 ms · 1000 threads · +36 MB |
+| 2000 | 151 ms · **1 thread** · +0 MB | 161 ms · 2000 threads · +36 MB |
+
+**O tempo quase empata, e esse é o número honesto.** O que muda é a forma
+da conta: plano contra linear. Publicar só o caso em que o outro modelo
+já quebrou seria escolher a medida.
+
+**A fibra é real, e sai de máquina que já existia.** `_lazy_stmt` no
+interpretador já é um gerador Python que suspende o corpo de um
+`stream action` em cada `emit` — o escalonador só precisa dirigi-lo. Mas
+ela é **sem pilha**: um `emit` dentro de uma ação **chamada** não
+suspende. É a limitação de toda corrotina *stackless*, e é por isso que
+a doc diz **fibra** e não *green thread*: pilha própria exigiria
+assembly ou extensão em C.
+
+Quatro decisões, e o que cada uma evita:
+
+| Decisão | Sem ela |
+|---|---|
+| a conta de trabalhos no pool segura o laço vivo | `rodar` terminava ANTES de o resultado voltar, e `executar` era uma forma elaborada de jogar trabalho fora — foi o primeiro teste a falhar |
+| autocano (*socketpair*) registrado no seletor | `agendar` de outra thread ficava na fila até o próximo prazo, que pode não existir: um seletor acorda por **descritor** |
+| erro num retorno de chamada é contado, não propagado | um reator que morre no primeiro erro derruba o servidor inteiro por causa de **uma** conexão |
+| teto opcional na fila de prontas | sem teto, fonte mais rápida que o consumo troca falha visível por morte por memória |
+
+E a trava do repositório pegou o meu teste: `test_agendar_de_outra_thread`
+comparava tempo com número fixo. A prova certa não é o relógio — é a
+**rede de segurança**: se o laço só parar por causa dela, é porque dormiu
+e ninguém o acordou.
+
 ### O analisador estático é otimista de propósito
 
 Quando não consegue **provar** que algo está errado, fica calado. Um falso alarme
@@ -1823,7 +1863,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1765 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1790 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -1968,10 +2008,11 @@ python3 scripts/gerar_tarball.py
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
 | `tests/test_oop_avancada.py` | `pytest` | contratos, modificadores, sobrecarga, metaclasses, reflexão, DI, padrões, memória, métricas, LSP — e **executa cada bloco `df`** das páginas de `/docs/oop` e da §7 da referência |
+| `tests/test_laco.py` | `pytest` | o reator: que ele **dorme** em vez de girar, prazo em ordem, contrapressao, o erro que nao o derruba, fibras intercaladas — e **120 conexoes numa thread**, com a identidade da thread conferida dentro do retorno de chamada |
 | `tests/test_ssa_e_otimizacao.py` | `pytest` | dominancia, no phi, a propagacao condicional **comparada** com a do MIR, os tres passes provados pela saida, e o repositorio sem falso alarme |
 | `tests/test_compilador_interno.py` | `pytest` | HIR, MIR, LIR e as analises — inclusive a **equivalencia** do HIR rodando exercicios do repositorio nas duas formas e comparando a saida |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 261 exercícios em 43 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 262 exercícios em 44 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

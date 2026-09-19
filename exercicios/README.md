@@ -608,9 +608,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 261 | [`261_ssa_e_otimizacao.df`](43-backend/261_ssa_e_otimizacao.df) · [doc](43-backend/261_ssa_e_otimizacao.md) | SSA, o no phi, e a otimizacao que foi MEDIDA |
 
+## 44 — Runtime
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 262 | [`262_laco_e_fibras.df`](44-runtime/262_laco_e_fibras.df) · [doc](44-runtime/262_laco_e_fibras.md) | o laco de eventos, o escalonador e as fibras |
+
 ---
 
-**Total: 261 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 262 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

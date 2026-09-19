@@ -14,6 +14,50 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.Laco`: laço de eventos, escalonador e fibras
+
+- **O modelo que faltava.** `async/await` é **uma thread por tarefa**, e
+  o Kiln atende **um pedido por thread**: serve para sobrepor E/S, e não
+  escala. `Arcane.Laco` é o reator — **uma** thread dormindo no seletor
+  do sistema (`epoll` no Linux, `kqueue` no macOS e BSD, `select` no
+  Windows) e acordando quando um descritor tem trabalho.
+- **O número, medido**: 2000 conexões simultâneas atendidas por **uma**
+  thread com **+0 MB**, contra 2000 threads e **+36 MB**. O tempo quase
+  empata (~1,1×) — o que muda é a **forma da conta**: o custo do laço é
+  plano, o do modelo de threads é linear (~36 KB por thread). O 1,1× está
+  publicado: esconder o caso em que os dois empatam seria escolher a
+  medida que favorece.
+- **Não gira em vão**, e há teste: com um temporizador a 200 ms, menos de
+  50 voltas. Espera ocupada daria milhões.
+- **Escalonador**: `agendar` (FIFO), `apos` e `a_cada` (heap de prazos,
+  com desempate estável), `cancelar` para tarefa e fibra, e
+  **contrapressão** por teto opcional — sem teto, uma fonte mais rápida
+  que o consumo troca falha visível por morte por memória.
+- **`L.executar`** manda o que bloqueia para um pool e devolve pela fila.
+  Sem isso, um `sleep` dentro do laço trava **toda** conexão aberta. E
+  `agendar` de outra thread **acorda** o laço por autocano
+  (*socketpair*): um seletor acorda por descritor, e uma fila em memória
+  não é um descritor.
+- **Um erro num retorno de chamada não derruba o laço** — é contado,
+  guardado com tipo e texto, e o laço segue. Um reator que morre no
+  primeiro erro derruba o servidor inteiro por causa de **uma** conexão.
+- **Fibras de verdade, sobre máquina que já existia.** Um `stream
+  action` já é um gerador do Python que o interpretador suspende em cada
+  `emit`: é esse o ponto de parada, e a troca de contexto é o quadro do
+  gerador. Duas fibras cedendo produzem `A1 B1 A2 B2 A3 B3` — se fossem
+  sequenciais seria `A1 A2 A3 B1 B2 B3`.
+- **Sem pilha, e com esse nome**: um `emit` dentro de uma ação
+  **chamada** não suspende a fibra. É a limitação de toda corrotina
+  *stackless*, e é por isso que a doc diz **fibra** e não *green thread*.
+  Como `emit` é instrução e não expressão, o laço entrega pela **caixa**
+  — um vault que a fibra passou.
+- Não existem, e está dito com o motivo: *work stealing* (o GIL come o
+  ganho), `io_uring` (exigiria extensão em C), IOCP (no Windows o
+  `selectors` usa `select`, com teto de 512 descritores).
+- Documentação:
+  [`/docs/runtime/laco`](https://dataforge-lang.vercel.app/docs/runtime/laco),
+  `/escalonador`, `/fibras` e o mapa da parte 12; exercício 262.
+
 ### Adicionado — SSA, propagação condicional, e a otimização **medida**
 
 - **`ssa.py`**: dominância, dominador imediato, fronteira de dominância e

@@ -53,6 +53,7 @@ MODULOS = [
     "ffi_c",
     "compilador_interno",
     "compilador_backend",
+    "runtime_laco",
     "plataforma",
     "vitrine",
     "versoes",
