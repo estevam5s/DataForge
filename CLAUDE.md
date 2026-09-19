@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 260 exercícios
+python3 exercicios/run_all.py                        # 261 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -67,6 +67,8 @@ dataforge/
   hir.py           430   a arvore depois do acucar, e de onde vem cada nome
   mir.py           900   o grafo de fluxo, e as cinco analises sobre ele
   lir.py           170   o que o compilador de fechamentos compilou
+  ssa.py           520   uma definicao por nome, no phi, propagacao condicional
+  otimizar.py      300   tres passes sobre o HIR — medidos, e por isso desligados
   tipos_nomeados.py 340  'type': alias, uniao, intersecao, refinamento, opaco
   idioma.py        330   o idioma das mensagens — pt-BR, e 'DF_IDIOMA=en'
   docs_links.py    220   onde mora a doc de cada palavra, módulo e comando
@@ -88,7 +90,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                62 módulos (1760 símbolos), incluindo:
+  stdlib/                62 módulos (1765 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -118,7 +120,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        260 exercícios em 42 módulos + run_all.py
+exercicios/        261 exercícios em 43 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1225,6 +1227,53 @@ os únicos que aparecem num perfil. A conta sai das tabelas do próprio
 compilador: uma segunda lista divergiria no primeiro nó novo, e o
 relatório passaria a mentir com confiança.
 
+### SSA, e a otimização que NÃO rendeu
+
+`ssa.py` numera os nomes e põe o nó **φ** nas junções. O ganho concreto
+não é elegância: é que a propagação de constante fica **condicional** —
+ela não avalia o ramo cuja condição prova falsa, e aí a junção conclui o
+que a propagação sobre o MIR perde. Há teste comparando as duas no mesmo
+programa; sem ele, "mais forte" seria só uma afirmação.
+
+Daí saiu `ramo-morto`, e os dois silêncios dele foram **medidos**:
+
+| Cala sobre | Porque |
+|---|---|
+| a cabeça de um laço (rótulo `condicao`) | `persist yes:` com `halt` é o laço infinito legítimo, e todo `stream action` vive disso. **29 acusações** no repositório sem esta linha, todas em generator infinito |
+| um `match` | a última instrução é a expressão casada, não uma condição: `match 1:` tem valor provável e isso não diz qual `point` casa |
+| condição que lê nome de fora | `:=` numa ação escreve o de fora, e o valor não é deste corpo |
+
+**Dois defeitos meus, nesta ordem, e os dois calados.** A condição da
+fronteira de dominância saiu **invertida** — perguntava "`b` domina
+`atual`?" onde a pergunta é "`atual` é o dominador imediato de `b`?" — e
+o resultado foi um φ em todo bloco de todo laço, para nomes que nem se
+juntavam ali. E `lir.py` não contava **compreensão** nem **pipeline** como
+laço, o que escondia os recuos que mais custam do relatório que existe
+para achá-los. Um grafo errado não dá erro: produz análise com cara de
+verdade.
+
+**E o resultado da otimização é o achado desta parte.** O inventário do
+LIR apontou dez nós que recuavam dentro de laço; todos ganharam
+construtor, com a semântica **extraída** para auxiliares
+(`_aplicar_unario`, `_pertence`, `_escrever_indice`) em vez de copiada.
+Medido:
+
+| Carga | Ganho |
+|---|---|
+| feita **dos nós que o inventário aponta** | 1,33× |
+| 59 exercícios **reais** do repositório | **1,01× — nada** |
+
+O que recua é dominado por nós que rodam **uma vez** (declaração,
+`adopt`, `assert` de topo). Os que rodam em laço são poucos por volta, e
+o trabalho da volta já estava compilado: leitura de nome, conta binária,
+chamada, leitura por índice. Otimizar o que sobra é otimizar 3% de 3%.
+
+Por isso os três passes de `otimizar.py` ficam **desligados por padrão**.
+Eles valem pela informação (`dataforge ir --fase=otimizado`), não pela
+velocidade — e a regra que mais recusa é "nada que possa falhar é
+dobrado": `1 / 0` dobrado moveria o erro para a **carga**, longe da linha
+que o causa.
+
 ### O analisador estático é otimista de propósito
 
 Quando não consegue **provar** que algo está errado, fica calado. Um falso alarme
@@ -1774,7 +1823,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1760 símbolos, 45 comandos, 177 códigos de erro, o inventário
+sintaxe, 1765 símbolos, 45 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -1919,9 +1968,10 @@ python3 scripts/gerar_tarball.py
 | `tests/test_excel.py` | `pytest` | `.xlsx`: o arquivo gerado é um ZIP válido, os tipos sobrevivem à ida e volta, `describe(frame)` |
 | `tests/test_editor.py` | `pytest` | a gramática do VS Code está em dia com `tokens.py`; os snippets são DataForge válido |
 | `tests/test_oop_avancada.py` | `pytest` | contratos, modificadores, sobrecarga, metaclasses, reflexão, DI, padrões, memória, métricas, LSP — e **executa cada bloco `df`** das páginas de `/docs/oop` e da §7 da referência |
+| `tests/test_ssa_e_otimizacao.py` | `pytest` | dominancia, no phi, a propagacao condicional **comparada** com a do MIR, os tres passes provados pela saida, e o repositorio sem falso alarme |
 | `tests/test_compilador_interno.py` | `pytest` | HIR, MIR, LIR e as analises — inclusive a **equivalencia** do HIR rodando exercicios do repositorio nas duas formas e comparando a saida |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 260 exercícios em 42 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 261 exercícios em 43 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

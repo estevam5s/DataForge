@@ -24,7 +24,8 @@ const blocos: Bloco[] = [
 adopt Arcane.Compilador as K
 
 // ── as fases ──
-assert K.fases() is ["lexer", "parser", "hir", "mir", "analises", "lir"]
+assert K.fases() is ["lexer", "parser", "hir", "mir", "analises",
+                     "ssa", "otimizado", "lir"]
 
 fonte := """
 action classificar(n):

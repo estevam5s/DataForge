@@ -258,7 +258,11 @@ export const nav: NavSection[] = [
       { title: 'HIR — a árvore sem açúcar', href: '/docs/compilador/hir', badge: 'novo' },
       { title: 'MIR — o grafo de fluxo', href: '/docs/compilador/mir', badge: 'novo' },
       { title: 'O que o fluxo prova', href: '/docs/compilador/analises', badge: 'novo' },
+      { title: 'SSA e o nó φ', href: '/docs/compilador/ssa', badge: 'novo' },
+      { title: 'Otimização, medida', href: '/docs/compilador/otimizacao', badge: 'novo' },
+      { title: 'O backend, e o que não é', href: '/docs/compilador/backend', badge: 'novo' },
       { title: 'O compilador: o mapa', href: '/docs/compilador/mapa', badge: 'novo' },
+      { title: 'Backend: o mapa', href: '/docs/compilador/mapa-backend', badge: 'novo' },
     ],
   },
   {
@@ -448,6 +452,7 @@ export const nav: NavSection[] = [
       { title: 'Metaprogramação', href: '/docs/exercicios/40-metaprogramacao', badge: 'novo' },
       { title: 'FFI e nativo', href: '/docs/exercicios/41-ffi-nativo', badge: 'novo' },
       { title: 'Dentro do compilador', href: '/docs/exercicios/42-compilador', badge: 'novo' },
+      { title: 'Backend e otimização', href: '/docs/exercicios/43-backend', badge: 'novo' },
     ],
   },
   {

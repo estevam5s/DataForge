@@ -2855,22 +2855,32 @@ class Interpreter:
         # quebraria 'adopt Python.numpy' num pipeline.
 
     def eval_UnaryOp(self, node: ast.UnaryOp, env):
-        operand = self.evaluate(node.operand, env)
+        return self._aplicar_unario(self.evaluate(node.operand, env),
+                                    node.op, node)
 
+    def _aplicar_unario(self, operand, op, node):
+        """`-x`, `+x`, `~x` — com o valor ja avaliado.
+
+        A decisao mora aqui, e nao em `eval_UnaryOp`, para o compilador
+        de fechamentos poder chamar a MESMA regra em vez de escrever a
+        segunda copia dela. E a regra que a trava pede: quando um
+        `eval_` avalia as partes e depois decide, a decisao sai para um
+        auxiliar que recebe os valores prontos.
+        """
         if isinstance(operand, DFInstance):
-            nome = magicos.POR_UNARIO.get(node.op)
+            nome = magicos.POR_UNARIO.get(op)
             if nome:
                 resultado = self._chamar_magico(operand, nome, [], node)
                 if resultado is not _SEM_MAGICO:
                     return resultado
 
-        if node.op == '-':
+        if op == '-':
             return -operand
-        if node.op == '+':
+        if op == '+':
             return +operand
-        if node.op == '~':
+        if op == '~':
             return ~operand
-        raise RuntimeError_(f"Unknown unary operator: {node.op}", node.line, node.column)
+        raise RuntimeError_(f"Unknown unary operator: {op}", node.line, node.column)
 
     #: 'is' e '==' sao o mesmo operador para efeito de sobrecarga.
     _SIMBOLO_COMPARACAO = {
@@ -4983,26 +4993,29 @@ class Interpreter:
             if devolvido is not _SEM_MAGICO:
                 return devolvido
         elif isinstance(node.target, ast.IndexAccess):
-            obj = self.evaluate(node.target.object, env)
-            idx = self.evaluate(node.target.index, env)
-            if isinstance(obj, DFInstance):
-                feito = self._chamar_magico(
-                    obj, "__setitem__", [idx, value], node)
-                if feito is _SEM_MAGICO:
-                    raise NotIndexableError(
-                        f"'{obj.blueprint.name}' does not accept "
-                        f"'obj[chave] := valor'.",
-                        node.line, node.column,
-                        dica="declare  action __setitem__(chave, valor):",
-                        doc="oop/magicos")
-            elif isinstance(obj, tuple):
-                self._recusar_escrita_em_tupla(node)
-            else:
-                obj[idx] = value
+            self._escrever_indice(self.evaluate(node.target.object, env),
+                                  self.evaluate(node.target.index, env),
+                                  value, node)
         else:
             raise RuntimeError_("Invalid assignment target", node.line, node.column)
 
         return value
+
+    def _escrever_indice(self, obj, idx, value, node):
+        """`v["k"] := x` e `xs[i] := x` — com objeto e indice prontos."""
+        if isinstance(obj, DFInstance):
+            feito = self._chamar_magico(obj, "__setitem__", [idx, value], node)
+            if feito is _SEM_MAGICO:
+                raise NotIndexableError(
+                    f"'{obj.blueprint.name}' does not accept "
+                    f"'obj[chave] := valor'.",
+                    node.line, node.column,
+                    dica="declare  action __setitem__(chave, valor):",
+                    doc="oop/magicos")
+        elif isinstance(obj, tuple):
+            self._recusar_escrita_em_tupla(node)
+        else:
+            obj[idx] = value
 
     def exec_SteadyDeclaration(self, node: ast.SteadyDeclaration, env):
         value = self.evaluate(node.value, env)
@@ -9181,8 +9194,12 @@ class Interpreter:
         return esquerda
 
     def eval_MembershipOp(self, node, env):
-        elemento = self.evaluate(node.element, env)
-        recipiente = self.evaluate(node.container, env)
+        return self._pertence(self.evaluate(node.element, env),
+                              self.evaluate(node.container, env),
+                              node.negated, node)
+
+    def _pertence(self, elemento, recipiente, negado, node):
+        """`x in xs` — com os dois valores ja avaliados."""
         if recipiente is None:
             raise TypeError_(
                 "Cannot test membership in void", node.line, node.column)
@@ -9211,7 +9228,7 @@ class Interpreter:
             raise TypeError_(
                 f"Cannot test membership in {self._type_of(recipiente)}",
                 node.line, node.column)
-        return (not presente) if node.negated else presente
+        return (not presente) if negado else presente
 
     def eval_SafeMemberAccess(self, node, env):
         obj = self.evaluate(node.object, env)

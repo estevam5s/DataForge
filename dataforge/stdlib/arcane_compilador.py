@@ -44,12 +44,15 @@ Quatro decisões
 from .. import hir as _hir
 from .. import lir as _lir
 from .. import mir as _mir
+from .. import otimizar as _ot
+from .. import ssa as _ssa
 from ..errors import DataForgeError, RuntimeError_
 from ..lexer import tokenize
 from ..parser import parse
 
 #: As fases do caminho, na ordem. É o que `dataforge ir --fase=` aceita.
-FASES = ("lexer", "parser", "hir", "mir", "analises", "lir")
+FASES = ("lexer", "parser", "hir", "mir", "analises", "ssa", "otimizado",
+         "lir")
 
 
 def _arvore(fonte, nome="<compilador>"):
@@ -228,6 +231,88 @@ def _por_corpo(fonte, nome, calcular):
     return {c.nome: calcular(c) for c in lista}
 
 
+def ssa(fonte, nome=None):
+    """Um vault por corpo, com os φ e as versões de cada leitura.
+
+    SSA responde a pergunta que o MIR não responde: **qual** atribuição
+    esta leitura vê. É ela que torna a propagação de constante
+    condicional, e por isso `ramos_mortos` sai daqui.
+    """
+    saida = []
+    for corpo in _corpos(fonte):
+        if nome is not None and corpo.nome != nome:
+            continue
+        forma = _ssa.construir(corpo)
+        saida.append({
+            "nome": forma.nome,
+            "parametros": list(forma.parametros),
+            "entrada": forma.entrada,
+            "blocos": [{
+                "id": b.id,
+                "rotulo": b.rotulo,
+                "terminador": b.terminador,
+                "fis": [{"nome": f.nome, "versao": f.versao,
+                         "fontes": {str(k): v
+                                    for k, v in sorted(f.fontes.items())}}
+                        for f in b.fis],
+                "instrucoes": [{
+                    "no": i.no.__class__.__name__,
+                    "linha": i.linha,
+                    "le": dict(sorted(i.le.items())),
+                    "escreve": ({"nome": i.escreve[0], "versao": i.escreve[1]}
+                                if i.escreve else None),
+                } for i in b.instrucoes],
+                "saidas": [{"para": d, "aresta": r} for d, r in b.saidas],
+            } for b in forma.blocos],
+        })
+    return saida
+
+
+def provadas(fonte, nome=None):
+    """`{"nome#versao": valor}` — o que a propagação condicional conclui."""
+    saida = {}
+    for corpo in _corpos(fonte):
+        if nome is not None and corpo.nome != nome:
+            continue
+        fixas, _mortos = _ssa.constantes_condicionais(_ssa.construir(corpo))
+        for (chave, versao), valor in fixas.items():
+            saida[f"{corpo.nome}:{chave}#{versao}"] = valor
+    return saida
+
+
+def ramos_mortos(fonte):
+    """Os blocos que a propagação condicional prova que nunca rodam."""
+    achados = []
+    for corpo in _corpos(fonte):
+        forma = _ssa.construir(corpo)
+        _fixas, mortos = _ssa.constantes_condicionais(forma)
+        for id_ in sorted(mortos):
+            bloco = forma.bloco(id_)
+            achados.append({"corpo": corpo.nome, "bloco": id_,
+                            "rotulo": bloco.rotulo,
+                            "linha": bloco.instrucoes[0].linha
+                            if bloco.instrucoes else 0})
+    return achados
+
+
+def passes():
+    """Os passes de otimização, com o que cada um faz."""
+    return dict(_ot.PASSES)
+
+
+def otimizar(fonte, quais=None):
+    """`{passe: quantas vezes}` — o que dá para tirar deste arquivo.
+
+    A conta é o valor; o ganho de tempo, **medido**, é 1,01× em código
+    real, e está escrito na doc com esse número. Os passes ficam
+    desligados por padrão.
+    """
+    _arvore_otimizada, contagem = _ot.otimizar(_arvore(fonte), quais)
+    for passe in _ot.PASSES:
+        contagem.setdefault(passe, 0)
+    return contagem
+
+
 def lir(fonte):
     """O que o compilador de fechamentos compilou, e o que recuou."""
     inventario = _lir.inventario(_arvore(fonte))
@@ -257,6 +342,11 @@ def texto(fonte, fase="mir"):
         return "\n".join(f"  {i.__class__.__name__}" for i in raiz.body)
     if fase == "hir":
         return _hir.texto(_hir.normalizar(raiz))
+    if fase == "ssa":
+        return _ssa.texto([_ssa.construir(c) for c in _mir.construir(raiz)],
+                          com_constantes=True)
+    if fase == "otimizado":
+        return _ot.texto(raiz)
     if fase == "lir":
         return _lir.texto(_lir.inventario(raiz))
     return _mir.texto(_mir.construir(raiz), com_analises=(fase == "analises"))
@@ -294,6 +384,15 @@ class ArcaneCompilador:
             "vivas": vivas,
             "talvez_nao_definidas": talvez_nao_definidas,
             "onde_talvez_nao_definidas": onde_talvez_nao_definidas,
+
+            # ── SSA ──
+            "ssa": ssa,
+            "provadas": provadas,
+            "ramos_mortos": ramos_mortos,
+
+            # ── otimizacao ──
+            "passes": passes,
+            "otimizar": otimizar,
 
             # ── LIR ──
             "lir": lir,

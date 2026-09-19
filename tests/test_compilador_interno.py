@@ -221,12 +221,18 @@ def test_o_hir_e_equivalente_nos_exercicios_do_repositorio():
             vistos |= usados
     assert len(escolhidos) >= 3, "nenhum exercício usa açúcar?"
 
+    comparados = 0
     for caminho, fonte in escolhidos:
         esperado = _saida_de(fonte, caminho)
         if esperado is None:
             continue
+        # um exercício que imprime tempo medido não tem saída reprodutível
+        if _saida_de(fonte, caminho) != esperado:
+            continue
         obtido = _saida_de(hir_mod.normalizar(arvore(fonte, caminho)), caminho)
         assert obtido == esperado, f"o HIR de {os.path.basename(caminho)} divergiu"
+        comparados += 1
+    assert comparados >= 2, "nenhum exercício comparável sobrou"
 
 
 def _saida_de(fonte_ou_no, caminho):

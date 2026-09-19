@@ -600,9 +600,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 260 | [`260_pipeline_hir_mir.df`](42-compilador/260_pipeline_hir_mir.df) · [doc](42-compilador/260_pipeline_hir_mir.md) | dentro do compilador: HIR, MIR e o que o fluxo prova |
 
+## 43 — Backend
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 261 | [`261_ssa_e_otimizacao.df`](43-backend/261_ssa_e_otimizacao.df) · [doc](43-backend/261_ssa_e_otimizacao.md) | SSA, o no phi, e a otimizacao que foi MEDIDA |
+
 ---
 
-**Total: 260 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 261 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

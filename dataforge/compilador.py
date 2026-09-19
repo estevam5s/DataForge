@@ -31,8 +31,8 @@ continua funcionando sem tocar aqui; só não fica mais rápido.
 """
 
 from . import ast_nodes as ast
-from .errors import (ControlSignal, DataForgeError, HaltSignal, SkipSignal,
-                     TypeError_, YieldSignal)
+from .errors import (ControlSignal, DataForgeError, HaltSignal, IndexError_,
+                     RuntimeError_, SkipSignal, TypeError_, YieldSignal)
 
 
 # ── Expressões ───────────────────────────────────────────────
@@ -313,6 +313,8 @@ def _atribuicao(interp, no):
         return None
     if isinstance(no.target, ast.MemberAccess):
         return _atribuicao_em_membro(interp, no)
+    if isinstance(no.target, ast.IndexAccess):
+        return _atribuicao_em_indice(interp, no)
     if not isinstance(no.target, ast.Identifier):
         return None
 
@@ -624,6 +626,147 @@ def _por_elemento(param, corpo, captura, nome_do_escopo, filtrar):
     return etapa
 
 
+# ── O que o inventario do LIR apontou ────────────────────────
+#
+# 'dataforge ir --fase=lir' conta, por classe de no, o que recuou para o
+# interpretador de arvore — e separa os recuos DENTRO de laco, os unicos
+# que aparecem num perfil. Medido nos 388 arquivos do repositorio, a
+# lista de quem mais recuava em laco era esta, e nenhum destes nos tinha
+# construtor. Nao foi intuicao: foi o relatorio.
+#
+# Cada um delega ao MESMO auxiliar que o `eval_`/`exec_` usa. Tres deles
+# (`_aplicar_unario`, `_pertence`, `_escrever_indice`) foram extraidos
+# no interpretador para isso, em vez de copiados para ca.
+
+def _unario(interp, no):
+    """`-x` — com a sobrecarga de operador de instancia intacta."""
+    if no.op not in ('-', '+', '~'):
+        return None
+    operando = compilar_expressao(interp, no.operand)
+    aplicar = interp._aplicar_unario
+    op = no.op
+    return lambda env: aplicar(operando(env), op, no)
+
+
+def _pertence(interp, no):
+    """`x in xs` — sempre dentro de laco ou de condicao de laco."""
+    elemento = compilar_expressao(interp, no.element)
+    recipiente = compilar_expressao(interp, no.container)
+    dentro = interp._pertence
+    negado = no.negated
+    return lambda env: dentro(elemento(env), recipiente(env), negado, no)
+
+
+def _ternario(interp, no):
+    """`a given c otherwise b` — o unico jeito de decidir numa expressao."""
+    condicao = compilar_expressao(interp, no.condition)
+    entao = compilar_expressao(interp, no.then_value)
+    senao = compilar_expressao(interp, no.else_value)
+    return lambda env: entao(env) if condicao(env) else senao(env)
+
+
+def _coalesce(interp, no):
+    """`a ?? b` — com a indulgencia do lado esquerdo preservada.
+
+    A leniencia e ESTREITA de proposito, e a estreiteza e decidida aqui,
+    uma vez, em vez de num `isinstance` por avaliacao: so leitura por
+    indice ou membro imediatamente a esquerda, e so `IndexError_`.
+    """
+    esquerda = compilar_expressao(interp, no.left)
+    direita = compilar_expressao(interp, no.right)
+    indulgente = isinstance(no.left, (ast.IndexAccess, ast.MemberAccess))
+
+    def avaliar(env):
+        try:
+            valor = esquerda(env)
+        except IndexError_:
+            if indulgente:
+                return direita(env)
+            raise
+        return direita(env) if valor is None else valor
+    return avaliar
+
+
+def _typeof(interp, no):
+    tipo_de = interp._type_of
+    operando = compilar_expressao(interp, no.operand)
+    return lambda env: tipo_de(operando(env))
+
+
+def _fatia(interp, no):
+    """`xs[1:3]` e `xs[::-1]`."""
+    objeto = compilar_expressao(interp, no.object)
+    inicio = compilar_expressao(interp, no.start) if no.start is not None else None
+    fim = compilar_expressao(interp, no.stop) if no.stop is not None else None
+    passo = compilar_expressao(interp, no.step) if no.step is not None else None
+    fatiar = interp.eval_SliceAccess
+
+    def avaliar(env):
+        alvo = objeto(env)
+        try:
+            return alvo[inicio(env) if inicio else None:
+                        fim(env) if fim else None:
+                        passo(env) if passo else None]
+        except TypeError:
+            # a mensagem inteira — nota, dica e doc — mora no interpretador
+            return fatiar(no, env)
+    return avaliar
+
+
+def _atribuicao_em_indice(interp, no):
+    """`v["k"] := x` — o alvo que mais recuava em laco, e de longe."""
+    alvo = no.target
+    objeto = compilar_expressao(interp, alvo.object)
+    indice = compilar_expressao(interp, alvo.index)
+    valor = compilar_expressao(interp, no.value)
+    escrever = interp._escrever_indice
+
+    def executar(env):
+        pronto = valor(env)
+        escrever(objeto(env), indice(env), pronto, no)
+        return pronto
+    return executar
+
+
+def _constante_nomeada(interp, no):
+    """`steady PI := 3.14`."""
+    valor = compilar_expressao(interp, no.value)
+    nome = no.name
+
+    def executar(env):
+        pronto = valor(env)
+        env.define_steady(nome, pronto)
+        return pronto
+    return executar
+
+
+def _afirmar(interp, no):
+    """`assert c` — 2402 recuos no repositorio, o maior numero absoluto."""
+    condicao = compilar_expressao(interp, no.condition)
+    mensagem = compilar_expressao(interp, no.message) if no.message else None
+    para_texto = interp._to_str
+
+    def executar(env):
+        if not condicao(env):
+            texto = para_texto(mensagem(env)) if mensagem else "Assertion failed"
+            raise RuntimeError_(texto, no.line, no.column)
+    return executar
+
+
+def _parar(interp, no):
+    """`halt` — o sinal, sem passar pelo despacho."""
+    def executar(env):
+        raise HaltSignal()
+    return executar
+
+
+def _pular(interp, no):
+    """`skip`."""
+    def executar(env):
+        raise SkipSignal()
+    return executar
+
+
 _EXPRESSOES = {
     ast.IntegerLiteral: _constante,
     ast.FloatLiteral: _constante,
@@ -643,6 +786,12 @@ _EXPRESSOES = {
     ast.DictLiteral: _vault,
     ast.InterpolatedString: _texto_interpolado,
     ast.PipelineExpression: _pipeline,
+    ast.UnaryOp: _unario,
+    ast.MembershipOp: _pertence,
+    ast.TernaryExpression: _ternario,
+    ast.CoalesceOp: _coalesce,
+    ast.TypeofExpression: _typeof,
+    ast.SliceAccess: _fatia,
 }
 
 #: Uma expressao SOLTA e instrucao: nao ha no proprio para ela, o nó da
@@ -657,6 +806,10 @@ _INSTRUCOES = {
     ast.CycleIn: _cycle_em,
     ast.PersistBlock: _persist,
     ast.OutStatement: _imprimir,
+    ast.SteadyDeclaration: _constante_nomeada,
+    ast.AssertStatement: _afirmar,
+    ast.HaltStatement: _parar,
+    ast.SkipStatement: _pular,
 }
 
 

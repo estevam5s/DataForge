@@ -2517,6 +2517,8 @@ class TypeChecker:
             externos |= set(alvo.names)
             alvo = alvo.parent
 
+        self._conferir_ramo_morto(corpo, externos)
+
         for nome, instrucao in mir.talvez_nao_definidas(corpo, externos):
             self.warn(
                 f"'{nome}' may not be defined here: some path to this line "
@@ -2525,6 +2527,74 @@ class TypeChecker:
                 f"Give '{nome}' a value before the branch, or add the "
                 f"'otherwise' that covers the other path",
                 "talvez-nao-definida")
+
+    def _conferir_ramo_morto(self, corpo, externos):
+        """`ramo-morto`: o ramo cuja condicao se PROVA falsa.
+
+        ```
+        limite := 5
+        given limite bigger 10:      # nunca roda
+            yield "alto"
+        ```
+
+        A prova vem da propagacao condicional sobre SSA, e nao de olhar
+        o literal: e a forma que aparece em codigo de verdade — numero
+        magico virando constante nomeada, e a comparacao ficando sempre
+        falsa depois de alguem mexer no numero.
+
+        O que a faz **calar**:
+
+        | Cala quando | Porque |
+        |---|---|
+        | a condicao le nome de fora do corpo | o valor nao e deste corpo, e `:=` numa acao escreve o de fora |
+        | o corpo tem fechamento, `monitor`, `defer` ou bloco opaco | o mesmo motivo de `talvez-nao-definida`: a ordem nao e a do grafo |
+        | a condicao nao se prova | e o caso de quase todo codigo, e e o silencio certo |
+        | o rotulo do bloco morto nao e `sim`/`nao` | `halt`, `skip`, `volta` e `point` nao se provam por valor |
+
+        E aviso, e nao erro: um ramo que nunca roda pode ser uma guarda
+        deixada de proposito, e so quem escreveu sabe.
+        """
+        if corpo.tem_monitor or corpo.tem_defer or corpo.tem_closure \
+                or corpo.tem_opaco:
+            return
+        try:
+            from . import mir, ssa
+            forma = ssa.construir(corpo)
+            _fixas, mortos = ssa.constantes_condicionais(forma)
+        except Exception:
+            return
+        if not mortos:
+            return
+
+        for bloco in forma.blocos:
+            if bloco.terminador != "ramo" or not bloco.instrucoes:
+                continue
+            # 'persist yes:' com 'halt' dentro e o laco infinito legitimo, e
+            # 'stream action' vive disso: a saida do laco fica "morta" no
+            # grafo e nao ha nada de errado. A cabeca de um laco e o unico
+            # bloco com rotulo 'condicao', e por isso ela fica de fora.
+            # Medido: sem esta linha, 29 acusacoes no repositorio, todas
+            # em generator infinito.
+            if bloco.rotulo == "condicao":
+                continue
+            condicao = bloco.instrucoes[-1]
+            # Um nome que vem de fora nao tem valor provavel AQUI.
+            if set(mir.lidos(condicao.no)) & set(externos):
+                continue
+            morre = sorted({r for d, r in bloco.saidas
+                            if d in mortos and r in ("sim", "nao")})
+            vivos = [d for d, r in bloco.saidas if d not in mortos]
+            if len(morre) != 1 or not vivos:
+                continue
+            lado = "the 'given' body" if morre[0] == "sim" \
+                else "the 'otherwise' body"
+            self.warn(
+                f"this condition is always "
+                f"{'no' if morre[0] == 'sim' else 'yes'}: {lado} never runs",
+                condicao.no,
+                "Drop the branch that cannot run, or fix the value the "
+                "condition compares against",
+                "ramo-morto")
 
     def st_BlueprintDeclaration(self, node, escopo):
         if node.name not in self.maes:

@@ -280,6 +280,7 @@ TITULOS = {
     "40-metaprogramacao": "Metaprogramação",
     "41-ffi-nativo": "FFI e nativo",
     "42-compilador": "Dentro do compilador",
+    "43-backend": "Backend e otimização",
 }
 
 
@@ -364,7 +365,7 @@ def _pagina_modulo(nome, itens, caminhos):
     # ── O corpo: cada exercício, por inteiro ──────────────────────
     #
     # Antes a página parava na tabela acima: título e enunciado, e nada
-    # do código. Quem chegava por busca via a PROMESSA de 260 exercícios
+    # do código. Quem chegava por busca via a PROMESSA de 261 exercícios
     # e nenhum deles — para ler um, era preciso clonar o repositório.
     # O código é a resposta e o teste ao mesmo tempo; escondê-lo
     # esvazia a seção inteira.

@@ -52,6 +52,7 @@ MODULOS = [
     "metaprogramacao",
     "ffi_c",
     "compilador_interno",
+    "compilador_backend",
     "plataforma",
     "vitrine",
     "versoes",

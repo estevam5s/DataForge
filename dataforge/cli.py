@@ -484,11 +484,14 @@ GRUPOS = [
             "  hir       a arvore depois do acucar, e quanto dele o arquivo usa\n"
             "  mir       o grafo de fluxo: bloco basico, aresta, laco, tratador\n"
             "  analises  alcance, constantes, escapatoria e nome nao definido\n"
+            "  ssa       uma definicao por nome, com os nos phi das juncoes\n"
+            "  otimizado o que os passes conseguem tirar deste arquivo\n"
             "  lir       o que o compilador de fechamentos compilou, e o que recuou\n"
             "\n"
             "Nao ha fase de codigo de maquina: o backend e compilador.py, e\n"
             "o 'lir' e onde isso fica visivel.",
-            opcoes=[("--fase=<nome>", "tokens, ast, hir, mir, analises, lir ou tudo"),
+            opcoes=[("--fase=<nome>", "tokens, ast, hir, mir, analises, ssa, "
+                                      "otimizado, lir ou tudo"),
                     ("--acao=<nome>", "so o corpo desta acao, no 'mir'"),
                     ("--json", "a mesma coisa como dado")],
             exemplos=[("dataforge ir app.df", "o caminho inteiro"),
@@ -686,7 +689,8 @@ def show_tokens(filepath: str):
 
 
 #: As fases que `dataforge ir` sabe mostrar, na ordem do caminho.
-FASES_IR = ("tokens", "ast", "hir", "mir", "analises", "lir")
+FASES_IR = ("tokens", "ast", "hir", "mir", "analises", "ssa",
+            "otimizado", "lir")
 
 
 def ir_command(caminho, flags=()):
@@ -790,6 +794,21 @@ def ir_command(caminho, flags=()):
                 continue
             saida.append(f"  {corpo.nome}")
             saida.extend(linhas)
+
+    if "ssa" in quer:
+        from . import ssa as _ssa
+        formas = [_ssa.construir(c) for c in (corpos or _mir.construir(arvore))]
+        fis = sum(len(b.fis) for f in formas for b in f.blocos)
+        saida.append(_secao("MIR → SSA (uma definicao por nome)",
+                            f"{fis} no(s) φ"))
+        saida.append(_ssa.texto(formas, com_constantes=True))
+
+    if "otimizado" in quer:
+        from . import otimizar as _ot
+        contagem = _ot.relatorio_de(arvore)
+        saida.append(_secao("HIR → otimizado (passes)",
+                            f"{sum(contagem.values())} oportunidade(s)"))
+        saida.append(_ot.texto(arvore))
 
     if "lir" in quer:
         inventario = _lir.inventario(arvore)

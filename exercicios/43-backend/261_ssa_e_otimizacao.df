@@ -1,0 +1,108 @@
+// Exercicio 261 — SSA, o no phi, e a otimizacao que foi MEDIDA
+//
+// A parte 8 de uma referencia Deep Tech e sobre backend LLVM. Aqui a
+// resposta honesta e em boa medida "nao se aplica": o DataForge e
+// interpretado, e nao ha codigo de maquina. O que transfere e teoria de
+// compilador, nao de LLVM — e e o que este exercicio exercita.
+
+adopt Arcane.Compilador as K
+
+// ── as fases, agora oito ──
+assert K.fases() is ["lexer", "parser", "hir", "mir", "analises",
+                     "ssa", "otimizado", "lir"]
+
+// ── SSA: uma definicao por nome ──
+diamante := "given c:\n    x := 1\notherwise:\n    x := 2\nout x\n"
+forma := K.ssa(diamante)[0]
+
+// onde os dois caminhos se juntam aparece um phi, dizendo de onde vem
+fis := [f cycle b in forma["blocos"] cycle f in b["fis"]]
+assert len(fis) is 1
+assert fis[0]["nome"] is "x"
+assert len(fis[0]["fontes"]) is 2
+
+// um nome com uma definicao so nao precisa de phi
+assert K.ssa("x := 1\nout x\n")[0]["blocos"][0]["fis"] is []
+
+// o laco tem phi na cabeca: o nome volta pela aresta de tras
+comLaco := K.ssa("t := 0\ncycle i in [1, 2]:\n    t := t + i\nout t\n")[0]
+cabeca := [b cycle b in comLaco["blocos"] given b["rotulo"] is "condicao"][0]
+assert len([f cycle f in cabeca["fis"] given f["nome"] is "t"]) is 1
+
+// cada leitura diz QUAL versao esta lendo — e e essa a pergunta que o
+// MIR sozinho nao responde
+sequencia := K.ssa("x := 1\nx := 2\nout x\n")[0]
+escritas := [i["escreve"]["versao"] cycle b in sequencia["blocos"]
+             cycle i in b["instrucoes"] given i["escreve"] isnt void]
+lidas := [i["le"]["x"] cycle b in sequencia["blocos"]
+          cycle i in b["instrucoes"] given "x" in i["le"]]
+assert escritas is [1, 2]
+assert lidas is [2]                  // o 'out' le a segunda
+
+// ── por que SSA paga: a propagacao fica CONDICIONAL ──
+morto := "x := 1\n" +
+         "given x bigger 5:\n" +
+         "    y := \"nunca\"\n" +
+         "otherwise:\n" +
+         "    y := \"sempre\"\n" +
+         "out y\n"
+
+// o ramo que nunca roda e nomeado, com o bloco e o rotulo
+mortos := K.ramos_mortos(morto)
+assert len(mortos) is 1
+assert mortos[0]["rotulo"] is "sim"
+
+// e por isso o valor de 'y' SE CONCLUI: a juncao tem um caminho vivo so
+assert "sempre" in values(K.provadas(morto, "(programa)"))
+
+// uma condicao que nao se prova nao mata nada — e esse e o caso de
+// quase todo codigo, e o silencio certo
+assert K.ramos_mortos("given entrada:\n    y := 1\notherwise:\n    y := 2\n") is []
+
+// 'persist yes:' com 'halt' e o laco infinito legitimo: a saida fica
+// "morta" no grafo e nao ha nada de errado nisso
+infinito := "n := 0\npersist yes:\n    n += 1\n    given n bigger 2:\n        halt\n"
+assert len([m cycle m in K.ramos_mortos(infinito) given m["rotulo"] is "corpo"]) is 0
+
+// ── os passes de otimizacao ──
+assert len(keys(K.passes())) is 3
+assert "ramo-morto" in K.passes()
+assert "inalcancavel" in K.passes()
+
+// duas dobras: '3 * 4' vira 12, e depois '2 + 12' vira 14
+assert K.otimizar("x := 2 + 3 * 4\n")["dobra-de-constante"] is 2
+assert K.otimizar(morto)["ramo-morto"] bigger 0
+
+// o que vem depois de um 'yield' sai do corpo
+depois_do_yield := "action f():\n    yield 1\n    out \"nunca\"\n"
+assert K.otimizar(depois_do_yield)["inalcancavel"] bigger 0
+
+// ── nada que possa falhar e dobrado ──
+// '1 / 0' dobrado moveria o erro para a CARGA, longe da linha que o
+// causa. Sem dobrar, ele estoura onde esta escrito:
+monitor:
+    _x := 1 / 0       // df: permitir division-by-zero
+    assert no
+handle Error as e:
+    assert e.type is "DivisionByZeroError"
+    assert e.line is 84
+
+// e texto com numero nao dobra: mudaria a mensagem de erro
+assert K.otimizar("x := \"a\" + 1\n")["dobra-de-constante"] is 0
+
+// ── LIR: o que o backend REALMENTE compila ──
+// Nao ha codigo de maquina. O backend e compilador.py, e a descida dele
+// e PARCIAL: o que nao esta nas tabelas recua para a arvore.
+inventario := K.lir(morto)
+assert inventario["total"] is inventario["compiladas"] + inventario["recuadas"]
+assert inventario["proporcao"] bigger 50
+
+// ── a fase que nao existe, e que muita gente tenta primeiro ──
+monitor:
+    K.texto(morto, "llvm")
+    assert no
+handle RuntimeError as e:
+    assert "llvm" in e.message
+    assert "backend" in e.message
+
+out "261 ok"

@@ -14,6 +14,56 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — SSA, propagação condicional, e a otimização **medida**
+
+- **`ssa.py`**: dominância, dominador imediato, fronteira de dominância e
+  nó **φ**. Cada nome é numerado, cada versão tem exatamente uma
+  definição, e cada leitura diz **qual** versão está lendo — a pergunta
+  que o MIR sozinho não responde. As instruções **não** são reescritas
+  em três endereços: a versão é anexada, porque reescrever criaria uma
+  segunda semântica para manter em sincronia com o interpretador.
+- **Propagação condicional de constante**: ela **não avalia** o ramo cuja
+  condição prova falsa, e por isso a junção conclui o que a propagação
+  sobre o MIR perde. Há teste rodando as duas análises sobre o mesmo
+  programa — sem ele, "mais forte" seria só uma afirmação.
+- **`ramo-morto`** no `check`: o ramo cuja condição se **prova** falsa. A
+  prova vem do SSA, e não de olhar o literal — `limite := 5` seguido de
+  `given limite bigger 10` é a forma que aparece em código de verdade.
+  Dois silêncios **medidos**: `persist yes:` com `halt` é o laço infinito
+  legítimo (sem essa exceção, 29 acusações no repositório, todas em
+  generator infinito), e um `match` sobre valor constante não diz qual
+  `point` casa.
+- **`otimizar.py`** — três passes sobre o HIR: `dobra-de-constante`,
+  `ramo-morto` e `inalcancavel`. Nada que possa falhar é dobrado: `1 / 0`
+  moveria o erro para a **carga**, `"a" + 1` mudaria a mensagem,
+  `2 ** 1000000` montaria meio milhão de dígitos no carregamento.
+- **Dez nós novos no compilador de fechamentos**, escolhidos pelo
+  inventário do LIR e não por intuição: `UnaryOp`, `MembershipOp`,
+  `TernaryExpression`, `CoalesceOp`, `TypeofExpression`, `SliceAccess`,
+  `SteadyDeclaration`, `AssertStatement`, `HaltStatement`,
+  `SkipStatement` — mais `v["k"] := x`, que era o alvo que mais recuava
+  dentro de laço. Três auxiliares (`_aplicar_unario`, `_pertence`,
+  `_escrever_indice`) foram **extraídos** no interpretador para que a
+  semântica fosse reusada, e não copiada.
+- **O resultado, medido e desconfortável**: **1,33×** numa carga feita dos
+  nós que o inventário aponta, e **1,01× — nada** em 59 exercícios reais.
+  O que recua é dominado por nós que rodam uma vez, e o trabalho da volta
+  já estava compilado. Os passes ficam **desligados por padrão**, e o
+  número está na documentação com esse nome.
+- **`dataforge ir --fase=ssa|otimizado`**, e `Arcane.Compilador` ganhou
+  `ssa`, `provadas`, `ramos_mortos`, `passes` e `otimizar`.
+- Corrigido, de passagem: a condição da fronteira de dominância estava
+  **invertida** na primeira versão (perguntava "`b` domina `atual`?" onde
+  a pergunta é "`atual` é o dominador imediato de `b`?"), e produzia um φ
+  em todo bloco de todo laço. E `lir.py` não contava **compreensão** nem
+  **pipeline** como laço — eram os recuos que mais custavam, e estavam
+  escondidos do próprio relatório que existe para achá-los.
+- Não há LLVM, código de máquina, target triple nem passe em C++, e há
+  uma página dizendo isso com o motivo de cada um.
+- Documentação:
+  [`/docs/compilador/ssa`](https://dataforge-lang.vercel.app/docs/compilador/ssa),
+  `/otimizacao`, `/backend` e o mapa da parte 8; exercício 261.
+
 ### Adicionado — a arquitetura interna, exposta: HIR, MIR, LIR e `dataforge ir`
 
 - **`dataforge ir <arquivo>`**: o caminho de compilação inteiro, fase por

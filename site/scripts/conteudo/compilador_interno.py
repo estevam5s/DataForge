@@ -42,7 +42,8 @@ Erro: fase 'llvm' nao existe.
 
 fonte := "action f(n):\\n    given n:\\n        yield 1\\n    orif n is 0:\\n        yield 2\\n"
 
-assert K.fases() is ["lexer", "parser", "hir", "mir", "analises", "lir"]
+assert K.fases() is ["lexer", "parser", "hir", "mir", "analises",
+                    "ssa", "otimizado", "lir"]
 assert K.acucares(fonte) is {"orif-aninhado": 1}
 assert K.corpos(fonte) is ["(programa)", "f"]
 assert K.lir(fonte)["proporcao"] bigger 0""", "lang": "df"},

@@ -36,6 +36,12 @@ from . import ast_nodes as ast
 __all__ = ["Inventario", "inventario", "texto", "classes_compilaveis"]
 
 
+#: O que roda o corpo mais de uma vez. A COMPREENSAO e o PIPELINE contam:
+#: o corpo deles roda uma vez por item, e a primeira versao desta lista
+#: olhava so as palavras de laco — o que escondia o recuo que mais custa.
+_LACOS = (ast.CycleIn, ast.CycleFromTo, ast.PersistBlock, ast.PerformBlock,
+          ast.ListComprehension, ast.VaultComprehension, ast.PipelineExpression)
+
 #: Nós que o compilador nunca vê como instrução nem como expressão: eles
 #: são o CORPO de outra coisa (um `handle`, um `point`, um parâmetro), e
 #: contá-los como "recuo" inflaria o denominador com o que não é código.
@@ -120,10 +126,10 @@ def inventario(programa):
                     return
             else:
                 contar(valor, em_laco)
-            dentro = em_laco or isinstance(valor, (ast.CycleIn,
-                                                   ast.CycleFromTo,
-                                                   ast.PersistBlock,
-                                                   ast.PerformBlock))
+            # A COMPREENSAO e um laco, e esquecer isso escondia o maior
+            # recuo de todos: o corpo dela roda uma vez por item, e a
+            # primeira versao desta conta olhava so as palavras de laco.
+            dentro = em_laco or isinstance(valor, _LACOS)
             for campo in dataclasses.fields(valor):
                 andar(getattr(valor, campo.name), dentro)
         elif isinstance(valor, (list, tuple)):
