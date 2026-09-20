@@ -19,6 +19,7 @@ sobre o que ele recebe.
 
 import glob
 import os
+import re
 import subprocess
 import sys
 import zipfile
@@ -82,10 +83,19 @@ def test_nenhum_pacote_declarado_deixou_de_existir():
 @pytest.fixture(scope="module")
 def wheel(tmp_path_factory):
     """Constrói o wheel. É lento, e é o único jeito de saber."""
-    try:
-        import build                                    # noqa: F401
-    except ImportError:
-        pytest.skip("o módulo 'build' não está instalado")
+    # 'import build' NÃO responde se a ferramenta está instalada, e foi
+    # por isso que este arquivo deu 11 ERROS por job no CI durante meses
+    # sem ninguém ver: o `pip install -e .` deixa uma pasta `build/` na
+    # raiz, ela é importável como pacote de namespace, o `import` passa,
+    # e o `python -m build` morre com "'build' is a package and cannot be
+    # directly executed". A pergunta certa é pelo `__main__`, que a pasta
+    # não tem. (Erro não aparece com `pytest -rf`, que lista só FAILED —
+    # a outra metade do buraco, corrigida no ci.yml.)
+    import importlib.util
+
+    if importlib.util.find_spec("build.__main__") is None:
+        pytest.skip("o módulo 'build' não está instalado — "
+                    "'pip install -e \".[dev]\"'")
 
     destino = tmp_path_factory.mktemp("wheel")
     r = subprocess.run([sys.executable, "-m", "build", "--wheel",
@@ -269,3 +279,20 @@ def test_a_libcrypt_viaja_dentro_do_binario():
                     gerador.index("def construir")]
     assert re.search(r'platform\.system\(\)\s*!=\s*"Linux"', corpo), (
         "a busca pela libcrypt tem de ser so no Linux")
+
+
+def test_o_BUILD_esta_nas_dependencias_de_desenvolvimento():
+    """Sem ele, este arquivo inteiro vira 'skip' e ninguém nota.
+
+    Todo teste daqui depende de construir o wheel de verdade — é o que
+    separa "o pyproject está escrito certo" de "o pacote tem os
+    arquivos". Se o `build` sair das dependências, a proteção some em
+    silêncio: a suíte continua verde com este arquivo pulado.
+    """
+    texto = open(os.path.join(RAIZ, "pyproject.toml"), encoding="utf-8").read()
+    dev = re.search(r"^dev\s*=\s*\[(.*?)\]", texto, re.M | re.S)
+    assert dev, "não achei a lista 'dev' de optional-dependencies"
+    assert "build" in dev.group(1), (
+        "o 'build' saiu das dependências de desenvolvimento — sem ele "
+        "'tests/test_empacotamento.py' não roda, e foi exatamente esse "
+        "o buraco que deixou 11 erros invisíveis no CI")

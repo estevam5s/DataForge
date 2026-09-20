@@ -26,7 +26,15 @@ dependencies = []
 [project.optional-dependencies]
 # Pillow nao entra no runtime: ele so serve a 'tools/vetorizar_logo.py',
 # que desenha o favicon e os icones, e ao teste que confere o resultado.
-dev = ["pytest>=7.0", "Pillow>=10.0"]
+#
+# 'build' faltava, e o buraco era grande: 'tests/test_empacotamento.py'
+# CONSTROI o wheel e olha dentro dele — existe porque dois testes
+# conferiam o TEXTO do pyproject e passavam enquanto a extensao do VS
+# Code nao entrava no pacote. Sem o 'build' instalado ele nao roda: sao
+# 11 erros por job, e o '-rf' do pytest lista apenas FAILED, entao eles
+# nunca apareceram no resumo. O teste que guarda o empacotamento nunca
+# rodou no CI.
+dev = ["pytest>=7.0", "Pillow>=10.0", "build>=1.0"]
 
 [project.urls]
 Homepage = "https://github.com/estevam5s/DataForge"

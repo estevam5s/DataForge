@@ -70,7 +70,12 @@ jobs:
           # '-v' para que o ultimo teste iniciado apareca nomeado: quando
           # o processo morre (estouro de pilha, por exemplo) nao existe
           # linha 'FAILED' nenhuma, e sem o nome o log nao diz quem caiu.
-          python -m pytest tests/ -v -rf --tb=short -p no:randomly > "$saida" 2>&1
+          # '-rfE': o 'f' lista o que FALHOU e o 'E' o que deu ERRO.
+          # Com '-rf' sozinho, 11 erros de coleta ficaram invisiveis no
+          # resumo por meses — o grep abaixo nao achava linha nenhuma e
+          # caia no ramo "processo morto", que anunciava um teste que
+          # tinha passado.
+          python -m pytest tests/ -v -rfE --tb=short -p no:randomly > "$saida" 2>&1
           codigo=$?
           cat "$saida"
           if [ $codigo -ne 0 ]; then

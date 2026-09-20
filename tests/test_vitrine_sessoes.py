@@ -373,10 +373,12 @@ def _esperar(porta, processo=None, prazo=30):
         saida, erro = processo.communicate(timeout=10)
         pedaco = (erro or b"").decode("utf-8", "replace").strip() \
             or (saida or b"").decode("utf-8", "replace").strip()
-        detalhe = ("\n  o processo saiu com "
-                   f"{processo.returncode} e disse:\n"
-                   + "\n".join("    " + linha
-                                for linha in pedaco.splitlines()[-25:]))
+        # NUMA LINHA. O resumo do pytest corta no primeiro '\n' e a
+        # anotação do job é montada do resumo: a primeira versão desta
+        # mensagem punha o motivo nas linhas seguintes, e a reprovação
+        # chegou ao CI dizendo só "nao subiu" — outra vez.
+        detalhe = (f" | o processo saiu com {processo.returncode} e disse: "
+                   + " ⏎ ".join(pedaco.splitlines())[-1200:])
     raise AssertionError(f"o servidor na porta {porta} nao subiu{detalhe}")
 
 
