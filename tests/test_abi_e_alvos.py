@@ -65,7 +65,13 @@ def escrever(pasta, nome, fonte):
         f.write(fonte)
     from dataforge import superficie
     superficie.limpar_cache()
-    return caminho
+    # O caminho entra numa string DE DATAFORGE, e ali a barra invertida
+    # é escape: 'C:\\Users\\runneradmin\\Temp' chega com um retorno de
+    # carro e uma tabulação no lugar das pastas. O sintoma no Windows
+    # era um 'Index 0 is out of range' — o arquivo não foi achado, a
+    # comparação não teve o que comparar, e o erro apareceu três
+    # chamadas depois. O Windows aceita '/'.
+    return caminho.replace(os.sep, "/")
 
 
 V1 = '''action somar(a: Integer, b: Integer) -> Integer:

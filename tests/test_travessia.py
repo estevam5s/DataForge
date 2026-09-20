@@ -291,6 +291,20 @@ def test_processos_usam_mais_de_um_nucleo_e_threads_nao():
     As threads entram na conta porque sao a metade que prova a outra:
     elas nao passam de ~1x com trabalho de CPU, por causa do GIL, e e
     isso que torna os processos o unico caminho.
+
+    **O tamanho do bloco subiu de 150 mil para 300 mil**, e a razao e
+    o metodo de partida. Enquanto o Linux usava 'fork', o trabalhador
+    nascia de graca; desde que ele passou a nascer limpo — por causa da
+    conexao SQLite que o fork herdava —, a partida virou um custo fixo
+    e visivel. Medido no CI com blocos de 150 mil: 1,21x a 1,42x no
+    Linux e **1,02x** no Windows, contra 2,37x nesta maquina. O que
+    reprovava nao era o paralelismo: era a partida ocupando metade da
+    medida.
+
+    Duas coisas mudaram por isso. O 'forkserver' passou a ser o metodo
+    no Linux (um servidor limpo que importa o interpretador UMA vez, e
+    de onde cada trabalhador sai por fork) e o bloco dobrou, para que a
+    conta meca o trabalho. Medido aqui com 300 mil: 3,16x.
     """
     fonte = CABECA + """
 adopt Arcane.Time as Time
@@ -301,7 +315,7 @@ action cpu(n):
         s += i * i
     yield s
 
-blocos := [150000, 150000, 150000, 150000]
+blocos := [300000, 300000, 300000, 300000]
 
 t := Time.monotonic()
 serie := [cpu(b) cycle b in blocos]

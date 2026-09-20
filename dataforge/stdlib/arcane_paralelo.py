@@ -78,9 +78,50 @@ PADRAO_THREADS = min(32, (os.cpu_count() or 4) * 4)
 #: O preco e a partida: 'spawn' sobe um Python novo. A travessia ja
 #: pagava isso por desenho — o filho remonta tudo num interpretador
 #: proprio —, e 'P.pool_processos()' existe para pagar uma vez.
+#: O contexto, decidido uma vez: 'get_context' e barato, mas o
+#: 'set_forkserver_preload' nao deve ser refeito a cada chamada.
+_CONTEXTO = None
+
+
 def _contexto():
+    """Como o processo filho nasce — e por que nao e 'fork'.
+
+    **'fork' esta fora.** Ele entrega ao filho a memoria do pai, e com
+    ela uma conexao SQLite que chega "funcionando" sem ter passado por
+    'travessia.py'. O resultado era a linguagem respondendo DUAS coisas
+    conforme o sistema: no Linux o filho usava a conexao herdada, no
+    macOS o mesmo programa acusava o recurso pelo nome. Usar uma
+    conexao SQLite depois de um fork e comportamento indefinido, dito
+    pelo proprio SQLite.
+
+    **'forkserver' e o certo onde existe.** Um servidor e iniciado
+    limpo (sem a memoria do pai), importa o 'dataforge' UMA vez por
+    causa do 'preload', e cada trabalhador sai de um fork dele — a
+    correcao do spawn com o custo de partida do fork.
+
+    A diferenca e medida, e nao teorica: com 'spawn', todo trabalhador
+    importa o interpretador inteiro, e num bloco pequeno a partida
+    COME o ganho. O CI do Linux entregou 1,2x a 1,4x onde esta maquina
+    dava 2,4x, e o Windows — que so tem spawn — 1,02x.
+
+    **O Windows fica com 'spawn'**, que e o unico metodo que ele tem.
+    """
+    global _CONTEXTO
+    if _CONTEXTO is not None:
+        return _CONTEXTO
     import multiprocessing
-    return multiprocessing.get_context("spawn")
+    if "forkserver" in multiprocessing.get_all_start_methods():
+        ctx = multiprocessing.get_context("forkserver")
+        try:
+            # O import do interpretador acontece no servidor, e nao em
+            # cada trabalhador.
+            ctx.set_forkserver_preload(["dataforge"])
+        except (AttributeError, ValueError):       # pragma: no cover
+            pass
+    else:
+        ctx = multiprocessing.get_context("spawn")
+    _CONTEXTO = ctx
+    return ctx
 
 
 PADRAO_PROCESSOS = os.cpu_count() or 4

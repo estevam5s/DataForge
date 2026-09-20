@@ -49,6 +49,29 @@ Quatro decisões
    transacional lida solta seria um valor sem garantia nenhuma, com
    cara de garantia. Para ler sem transação existe `valor(var)`, que diz
    no nome que é uma foto.
+
+5. **Otimismo puro não garante PROGRESSO, e por isso há um plano B.**
+   Validar-e-repetir garante que ninguém escreve errado; não garante que
+   alguém termina. Uma transação lenta que disputa a mesma variável com
+   transações rápidas perde a corrida toda vez: as outras avançam, ela
+   repete para sempre. É inanição (*livelock*), e ela não aparece na
+   máquina de quem desenvolve — aparece onde há mais threads que
+   núcleos.
+
+   Foi o que o CI mostrou: 40 threads somando 200 vezes na mesma
+   variável, em runner de poucos núcleos, estouraram as **mil**
+   tentativas nos quatro Pythons do Linux. Aqui, com dez núcleos, a
+   transação mais azarada precisou de 15.
+
+   Depois de `_PESSIMISTA` tentativas perdidas, a transação passa a
+   rodar **segurando a trava do commit**: ninguém mais publica enquanto
+   ela roda, a validação não tem como falhar, e ela termina. É a
+   *transação irrevogável* dos STM que levam progresso a sério.
+
+   O preço é real e está documentado: enquanto uma transação
+   pessimista roda, as outras esperam para confirmar. Por isso ela é o
+   fim da fila, e não o começo — quem não disputa nada nunca chega lá,
+   e a passagem é contada em `estatisticas()`.
 """
 
 import threading
@@ -66,7 +89,14 @@ _TRAVA = threading.RLock()
 _MUDOU = threading.Condition(_TRAVA)
 
 _ESTATISTICAS = {"confirmadas": 0, "conflitos": 0, "retentativas": 0,
-                 "esperas": 0}
+                 "esperas": 0, "pessimistas": 0}
+
+#: Quantas corridas perdidas antes de a transação parar de apostar.
+#: Dezesseis é alto o bastante para que o caminho rápido seja a regra
+#: (uma disputa normal fecha em uma ou duas) e baixo o bastante para
+#: que a inanição termine em milissegundos, e não em mil repetições do
+#: corpo inteiro.
+_PESSIMISTA = 16
 
 
 class _PedirRetentativa(BaseException):
@@ -220,27 +250,45 @@ def atomicamente(acao, tentativas=1000):
                 dica="divida o estado em variáveis menores, ou faça menos "
                      "trabalho dentro da transação",
                 doc="concorrencia/stm")
-        transacao = _Transacao()
-        _LOCAL.transacao = transacao
-        esperar_por = None
+
+        # Depois de perder muitas corridas, esta transação para de
+        # apostar: ela roda segurando a trava do commit, e ninguém
+        # publica no meio dela. É o que transforma "talvez termine" em
+        # "termina" — ver a decisão 5, no topo.
+        pessimista = tentativa > _PESSIMISTA
+        if pessimista:
+            _ESTATISTICAS["pessimistas"] += 1
+            _TRAVA.acquire()
         try:
-            resultado = acao()
-        except _PedirRetentativa:
-            esperar_por = dict(transacao.lidas)
-        except BaseException:
-            # Atomicidade: o rascunho morre com o erro, e o erro sobe.
-            _LOCAL.transacao = None
-            raise
+            transacao = _Transacao()
+            _LOCAL.transacao = transacao
+            esperar_por = None
+            confirmou = False
+            try:
+                # Atomicidade: se o corpo levantar, o rascunho morre com
+                # ele e o erro sobe — o 'finally' abaixo só desfaz a
+                # transação da thread.
+                resultado = acao()
+            except _PedirRetentativa:
+                esperar_por = dict(transacao.lidas)
+            finally:
+                if _atual() is transacao:
+                    _LOCAL.transacao = None
+            if esperar_por is None:
+                confirmou = _confirmar(transacao)
         finally:
-            if _atual() is transacao:
-                _LOCAL.transacao = None
+            # 'retentar()' dentro de uma transação pessimista sairia
+            # daqui segurando a trava, e a espera por uma mudança que
+            # depende dela seria um impasse.
+            if pessimista:
+                _TRAVA.release()
 
         if esperar_por is not None:
             _ESTATISTICAS["esperas"] += 1
             _esperar_mudanca(esperar_por)
             continue
 
-        if _confirmar(transacao):
+        if confirmou:
             return resultado
         _ESTATISTICAS["conflitos"] += 1
         _ESTATISTICAS["retentativas"] += 1

@@ -391,7 +391,7 @@ def test_a_lista_de_colunas_vem_na_nota():
 # ═══ Entrada e saída ═══════════════════════════════════════
 
 def test_ida_e_volta_por_csv_preserva_os_valores(tmp_path):
-    alvo = str(tmp_path / "v.csv")
+    alvo = str(tmp_path / "v.csv").replace("\\", "/")
     saida = rodar(f'v.para_csv("{alvo}")\n'
                   f'lido := Q.de_csv("{alvo}")\n'
                   'out lido.altura(), lido.colunas(), lido.coluna("qtd")')
@@ -400,7 +400,7 @@ def test_ida_e_volta_por_csv_preserva_os_valores(tmp_path):
 
 def test_o_csv_traz_tudo_como_texto_e_a_inferencia_conserta(tmp_path):
     """Somar coluna de texto é o primeiro engano de quem chega."""
-    alvo = str(tmp_path / "n.csv")
+    alvo = str(tmp_path / "n.csv").replace("\\", "/")
     fonte = (f'q := Q.de_vaults([{{"n": 1}}, {{"n": 2}}])\n'
              f'q.para_csv("{alvo}")\n'
              f'sem := Q.de_csv("{alvo}", ",", no)\n'
@@ -410,7 +410,7 @@ def test_o_csv_traz_tudo_como_texto_e_a_inferencia_conserta(tmp_path):
 
 
 def test_a_ausencia_vira_celula_vazia_no_csv(tmp_path):
-    alvo = str(tmp_path / "a.csv")
+    alvo = str(tmp_path / "a.csv").replace("\\", "/")
     rodar(f'v.para_csv("{alvo}")')
     texto = io.open(alvo, encoding="utf-8").read()
     assert "norte,," in texto

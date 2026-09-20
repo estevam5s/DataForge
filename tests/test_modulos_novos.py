@@ -186,12 +186,28 @@ def test_udp_manda_e_esquece():
 
 
 def test_o_erro_de_conexao_diz_o_que_significa():
+    """Recusa e espera são coisas diferentes, e a mensagem separa as duas.
+
+    No Unix, uma porta fechada responde RST e o erro é *conexão
+    recusada* — uma resposta, e das úteis: o host está de pé.
+
+    No Windows não. O firewall do sistema **descarta** o SYN de uma
+    porta que ninguém abriu em vez de recusá-la, e o `connect` fica
+    esperando até o prazo. A espera ali é a verdade — não há resposta
+    nenhuma —, e exigir a palavra "RECUSADA" seria exigir que a
+    linguagem mentisse sobre o que aconteceu. O que o teste cobra é
+    que a mensagem seja uma das duas, e não um `OSError` cru.
+    """
     from dataforge.stdlib.arcane_rede import ErroDeRede
 
     livre = R["porta_livre"]()
     with pytest.raises(ErroDeRede) as erro:
         R["conectar"]("127.0.0.1", livre, prazo=2)
-    assert "RECUSADA" in str(erro.value)
+    texto = str(erro.value)
+    if sys.platform == "win32":
+        assert "RECUSADA" in texto or "prazo acabou" in texto, texto
+    else:
+        assert "RECUSADA" in texto, texto
 
 
 def test_esperar_porta_diz_por_que_nao_abriu():

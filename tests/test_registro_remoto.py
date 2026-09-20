@@ -51,6 +51,31 @@ def test_o_arquivo_de_credencial_nao_e_legivel_por_outros(tmp_path, monkeypatch)
     monkeypatch.delenv("DATAFORGE_TOKEN", raising=False)
     caminho = reg.gravar_token("dfp_segredo")
 
+    if os.name == "nt":
+        # No Windows o modo não é a pergunta: 'chmod' ali só mexe no
+        # somente-leitura, e um arquivo 0o666 pode estar perfeitamente
+        # restrito por ACL. Quem responde é o 'icacls'.
+        import subprocess
+
+        try:
+            r = subprocess.run(["icacls", caminho], capture_output=True,
+                               text=True, timeout=20,
+                               encoding="utf-8", errors="replace")
+        except (OSError, subprocess.SubprocessError):      # pragma: no cover
+            pytest.skip("o 'icacls' não respondeu nesta máquina")
+        assert r.returncode == 0, r.stdout + r.stderr
+        # 'BUILTIN\\Us' cobre 'Users' e 'Usuários' de uma vez: a saída do
+        # 'icacls' vem na página de código do console, e um acento lido
+        # como UTF-8 chega trocado — comparar a palavra inteira falharia
+        # em português e passaria calado.
+        abertos = [linha for linha in r.stdout.splitlines()
+                   if "Everyone" in linha or "Todos" in linha
+                   or "BUILTIN\\Us" in linha]
+        assert not abertos, (
+            "a credencial está ao alcance de outras contas da máquina:\n"
+            + "\n".join(abertos))
+        return
+
     modo = os.stat(caminho).st_mode & 0o777
     assert modo == 0o600, f"o arquivo está {oct(modo)}, e devia estar 0o600"
 

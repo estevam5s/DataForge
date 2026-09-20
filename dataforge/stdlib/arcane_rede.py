@@ -322,10 +322,29 @@ class Datagrama:
         self._s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if escutar:
             self._s.bind((host, int(porta)))
-        self.porta = self._s.getsockname()[1]
+        self.porta = self._porta_do_sistema()
+
+    def _porta_do_sistema(self):
+        """A porta, ou 0 enquanto o socket nao estiver ligado a uma.
+
+        `getsockname` num socket UDP que ainda nao foi ligado devolve
+        `('0.0.0.0', 0)` no Unix e levanta **WSAEINVAL (10022)** no
+        Windows — e o construtor de um emissor (`udp()`, sem
+        `escutar`) morria ali antes de mandar o primeiro byte.
+
+        Um socket de saida ganha a porta quando envia; por isso o
+        numero e reconsultado em `enviar`, e nao so aqui.
+        """
+        try:
+            return self._s.getsockname()[1]
+        except OSError:
+            return 0
 
     def enviar(self, dados, host, porta):
-        return self._s.sendto(_bytes(dados), (host, int(porta)))
+        enviados = self._s.sendto(_bytes(dados), (host, int(porta)))
+        if not self.porta:
+            self.porta = self._porta_do_sistema()
+        return enviados
 
     def receber(self, quantos=65535, prazo=PRAZO_PADRAO):
         """Devolve `{dados, host, porta}` — de quem veio importa."""

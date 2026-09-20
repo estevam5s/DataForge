@@ -6843,11 +6843,23 @@ def test_um_bloco_thread_dentro_de_parallel_roda_em_ordem():
 
 
 def test_os_blocos_rodam_juntos():
-    """Duas tarefas de 300 ms terminam antes de 600 ms somados.
+    """Quatro tarefas de 300 ms terminam antes de 1,2 s somados.
 
     Comparado com a SÉRIE medida no mesmo teste, e com trabalho grande o
     bastante para o custo de criar a thread virar ruído — as duas lições
     que as travas de tempo do repositório registram.
+
+    **Eram duas tarefas, e o CI do macOS reprovou com 1,47x**: série
+    0,63 s contra 0,48 s. A espera estava certa (0,30 s), e os 0,18 s de
+    diferença são a partida das threads mais o preparo do programa —
+    num runner de três núcleos e compartilhado, esse custo fixo não é
+    ruído: ele é um terço da medida.
+
+    A saída não é afrouxar o limite, que é o que transforma uma trava em
+    decoração. É dar à medida um numerador maior: com **quatro** tarefas
+    em vez de duas, a série dobra e o custo fixo continua o mesmo, então
+    a razão esperada sai de 2x para ~2,4x sem o teste ficar mais lento
+    que 1,7 s.
     """
     import time
 
@@ -6856,10 +6868,9 @@ def test_os_blocos_rodam_juntos():
         run(fonte)
         return time.monotonic() - inicio
 
-    serie = medir('sleep(300)\nsleep(300)\n')
+    serie = medir('sleep(300)\n' * 4)
     junto = medir('parallel:\n'
-                  '    thread:\n        sleep(150)\n        sleep(150)\n'
-                  '    thread:\n        sleep(150)\n        sleep(150)\n')
+                  + '    thread:\n        sleep(300)\n' * 4)
     assert serie / junto > 1.5, f"serie {serie:.2f}s, parallel {junto:.2f}s"
 
 
@@ -7674,6 +7685,25 @@ def test_a_causa_nao_atravessa_um_handle_que_ja_terminou():
 #  CSV: o vault que virava o nome das chaves
 # ══════════════════════════════════════════════════════════════════
 
+def _pasta_temporaria():
+    """Uma pasta temporária com barra NORMAL, para entrar num `.df`.
+
+    Um caminho do Windows dentro de uma string da linguagem perde as
+    pastas: em `C:\\Users\\runneradmin\\Temp` o `\\r` é um retorno de
+    carro e o `\\t` é uma tabulação, exatamente como em Python. O
+    sintoma no CI foi `[Errno 22] Invalid argument` em cinco testes, com
+    o caminho impresso já mutilado.
+
+    O Windows aceita `/` em toda chamada de arquivo, então trocar a
+    barra resolve nos três sistemas. Quem escreve DataForge recebe o
+    recado no próprio erro — ver
+    `test_o_caminho_com_caractere_de_controle_se_EXPLICA`.
+    """
+    import tempfile
+
+    return tempfile.mkdtemp().replace(os.sep, "/")
+
+
 def test_write_csv_grava_um_cluster_de_vaults():
     """`IO.write_csv` DESTRUÍA os dados, sem erro.
 
@@ -7690,7 +7720,7 @@ def test_write_csv_grava_um_cluster_de_vaults():
     import tempfile
 
     fonte = ('adopt Arcane.IO as IO\n'
-             f'a := "{tempfile.mkdtemp()}/d.csv"\n'
+             f'a := "{_pasta_temporaria()}/d.csv"\n'
              'IO.write_csv(a, [{"nome": "Ana", "idade": 30}, '
              '{"nome": "Bruno", "idade": 25}])\n'
              'out IO.read(a).strip()\n')
@@ -7701,7 +7731,7 @@ def test_read_csv_devolve_vaults_quando_se_pede_o_cabecalho():
     import tempfile
 
     fonte = ('adopt Arcane.IO as IO\n'
-             f'a := "{tempfile.mkdtemp()}/d.csv"\n'
+             f'a := "{_pasta_temporaria()}/d.csv"\n'
              'IO.write_csv(a, [{"nome": "Ana", "idade": 30}])\n'
              'linhas := IO.read_csv(a, yes)\n'
              'out linhas[0]["nome"], linhas[0]["idade"]\n')
@@ -7713,7 +7743,7 @@ def test_o_cluster_de_clusters_continua_funcionando():
     import tempfile
 
     fonte = ('adopt Arcane.IO as IO\n'
-             f'a := "{tempfile.mkdtemp()}/d.csv"\n'
+             f'a := "{_pasta_temporaria()}/d.csv"\n'
              'IO.write_csv(a, [["id", "nome"], [1, "Ana"]])\n'
              'linhas := IO.read_csv(a)\n'
              'out linhas[0][0], linhas[1][1]\n')
@@ -7827,3 +7857,94 @@ def test_o_mesmo_nome_em_padroes_DIFERENTES_continua_valendo():
                '        default:\n'
                '            yield 0\n'
                'out f([7]), f({"v": 9})\n') == "7 9"
+
+
+def test_o_caminho_com_caractere_de_controle_se_EXPLICA():
+    """`[Errno 22] Invalid argument` não diz nada sobre a causa.
+
+    Quem escreve `IO.read("C:\\temp\\dados.csv")` numa string acha que
+    está passando um caminho, e está passando um caminho com uma
+    tabulação no meio: o `\\t` é escape em toda linguagem com strings
+    escapadas, e esta não é exceção. No Windows o sistema recusa, e a
+    mensagem dele — *Invalid argument* — não aponta para nada.
+
+    Em macOS e Linux é pior: a tabulação é um caractere de nome de
+    arquivo válido, então **não há erro nenhum** — o arquivo é criado
+    com outro nome, e a pessoa vai procurá-lo onde ele não está.
+
+    O erro não pode ser reproduzido com um arquivo de verdade fora do
+    Windows, então a tradução é exercitada direto: é ela que decide a
+    mensagem.
+    """
+    from dataforge.interpreter import Interpreter
+
+    class _No:
+        line, column = 3, 1
+
+    bruto = OSError(22, "Invalid argument")
+    bruto.filename = "C:\\Users\rteste\\Local\tmp\\v.csv"
+    erro = Interpreter()._traduzir_excecao(bruto, _No(), "para_csv")
+
+    assert type(erro).__name__ == "IOError_"
+    assert "control character" in erro.message, erro.message
+    # O caminho aparece com os escapes VISÍVEIS: impresso cru, o
+    # retorno de carro apaga a linha e a pessoa vê um caminho que
+    # parece certo.
+    assert "\\t" in erro.message and "\\r" in erro.message, erro.message
+    assert "forward slashes" in (erro.dica or ""), erro.dica
+
+    # E um caminho normal não ganha a explicação: um recado que aparece
+    # sempre é um recado que ninguém lê.
+    outro = OSError(2, "No such file or directory")
+    outro.filename = "/tmp/limpo.csv"
+    erro2 = Interpreter()._traduzir_excecao(outro, _No(), "para_csv")
+    assert "control character" not in erro2.message
+
+
+def test_nenhum_script_procura_um_programa_com_o_comando_which():
+    """`which` não existe no Windows, e o `subprocess.run` levanta.
+
+    `packaging/gerar_pacotes.py` fazia `subprocess.run(["which",
+    "dpkg-deb"])` só para decidir se imprimia uma linha de conferência.
+    No Windows isso é `FileNotFoundError`, e o gerador morria com
+    traceback **depois** de ter montado o `.deb` inteiro: três testes
+    reprovavam mostrando a primeira linha do stdout, que falava de um
+    PKGBUILD que estava certo.
+
+    `shutil.which` responde a mesma pergunta nos três sistemas, e
+    conhece `PATHEXT` — ou seja, acha `dpkg-deb.exe` também.
+    """
+    import ast
+    import glob
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    alvos = []
+    for pasta in ("dataforge", "tools", "scripts", "packaging", "tests",
+                  "exercicios"):
+        alvos += glob.glob(os.path.join(raiz, pasta, "**", "*.py"),
+                           recursive=True)
+
+    # Pela ÁRVORE, e não por texto: a primeira versão desta trava
+    # acusou o próprio parágrafo acima, que cita o comando para
+    # explicá-lo. Uma trava que não sabe distinguir código de prosa
+    # cobra que ninguém escreva sobre o defeito.
+    ruins = []
+    for caminho in alvos:
+        try:
+            arvore = ast.parse(open(caminho, encoding="utf-8").read())
+        except SyntaxError:                                # pragma: no cover
+            continue
+        for no in ast.walk(arvore):
+            if not isinstance(no, ast.Call) or not no.args:
+                continue
+            primeiro = no.args[0]
+            if not isinstance(primeiro, (ast.List, ast.Tuple)) \
+                    or not primeiro.elts:
+                continue
+            inicial = primeiro.elts[0]
+            if isinstance(inicial, ast.Constant) and inicial.value == "which":
+                ruins.append(f"{os.path.relpath(caminho, raiz)}:{no.lineno}")
+
+    assert not ruins, (
+        "'which' é um comando do Unix — use shutil.which:\n  "
+        + "\n  ".join(ruins))

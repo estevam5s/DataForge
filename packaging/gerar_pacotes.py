@@ -20,6 +20,7 @@ Uso
 import hashlib
 import io
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -209,9 +210,20 @@ COMANDOS = ["dataforge"]
 #: metadado, o que exige o `dist-info` intacto e o `importlib.metadata`.
 #: Este chama a funcao direto — duas linhas que nao tem como envelhecer.
 LANCADOR = """#!/usr/bin/python3
+import multiprocessing
 import sys
+
 from dataforge.cli import main
-sys.exit(main())
+
+# O 'if' NAO e formalidade. 'map_processos' usa o metodo 'spawn' nos
+# tres sistemas (ver 'arcane_paralelo._contexto'), e o filho de um
+# spawn IMPORTA o modulo principal para reconstruir o estado. Sem a
+# guarda, esse import roda o programa de novo dentro de cada
+# trabalhador — e a mensagem do Python fala de 'bootstrapping phase',
+# tres camadas longe de um usuario que so chamou 'dataforge run'.
+if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    sys.exit(main())
 """
 
 
@@ -299,7 +311,11 @@ def gerar_deb():
     os.makedirs(SAIDA, exist_ok=True)
     destino = os.path.join(SAIDA, f"dataforge_{__version__}_all.deb")
 
-    with tempfile.TemporaryDirectory() as arvore:
+    # 'ignore_cleanup_errors': no Windows o 'pip install --target'
+    # deixa arquivo somente-leitura, e apagar a arvore levanta
+    # PermissionError DEPOIS de o pacote estar pronto — a falha seria na
+    # limpeza, e o .deb ja construido nao chegaria a ser escrito.
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as arvore:
         _arvore_instalada(arvore)
         arquivos, kb = _arquivos_do_deb(arvore)
         _conferir_conteudo(arquivos)
@@ -639,7 +655,11 @@ def main():
     # nome certo. Publicar um pacote quebrado e pior que nao publicar.
     with open(deb, "rb") as f:
         assert f.read(8) == b"!<arch>\n", "o .deb nao e um arquivo 'ar'"
-    if subprocess.run(["which", "dpkg-deb"], capture_output=True).returncode == 0:
+    # 'which' e um comando do Unix: no Windows ele nao existe, e o
+    # 'subprocess.run' levanta FileNotFoundError — o gerador morria com
+    # traceback DEPOIS de ter escrito o .deb inteiro, e tres testes
+    # reprovavam mostrando a primeira linha do stdout.
+    if shutil.which("dpkg-deb"):
         r = subprocess.run(["dpkg-deb", "--info", deb],
                            capture_output=True, text=True)
         print(f"  dpkg-deb: {'ok' if r.returncode == 0 else r.stderr[:80]}")

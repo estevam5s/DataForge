@@ -330,3 +330,38 @@ def test_todo_script_que_a_pagina_manda_CANALIZAR_e_servido_como_texto():
     assert not binarios, (
         "Content-Type binário num script canalizado:\n  "
         + "\n  ".join(binarios))
+
+
+def test_todo_lancador_ESCRITO_A_MAO_tem_a_guarda_do_main():
+    """Com `spawn`, o filho IMPORTA o módulo principal.
+
+    `map_processos` usa `spawn` nos três sistemas desde que o `fork` do
+    Linux passou a entregar ao filho uma conexão SQLite herdada por
+    memória. O preço vem junto: o processo filho reconstrói o estado
+    **importando** o módulo `__main__`, e um lançador sem
+    `if __name__ == "__main__"` roda o programa inteiro de novo dentro
+    de cada trabalhador.
+
+    O que o `pip` gera já tem a guarda. O que é escrito à mão aqui —
+    o lançador do `.deb` e a entrada do executável congelado — não
+    tinha, e o erro que chega a quem instalou pelo pacote fala de
+    *bootstrapping phase* e de `freeze_support()`: vocabulário do
+    multiprocessing do Python, três camadas longe de quem só chamou
+    `dataforge run`.
+    """
+    import gerar_pacotes                                  # noqa: E402
+
+    assert 'if __name__ == "__main__":' in gerar_pacotes.LANCADOR, (
+        "o lançador do .deb roda 'main()' no nível do módulo — com spawn, "
+        "cada trabalhador reexecuta a CLI")
+
+    entrada = open(os.path.join(RAIZ, "scripts", "_entrada_binario.py"),
+                   encoding="utf-8").read()
+    assert 'if __name__ == "__main__":' in entrada
+    # No executável congelado a guarda não basta: o filho re-executa o
+    # próprio .exe, e quem o faz voltar ao pool é o freeze_support.
+    assert "freeze_support()" in entrada, (
+        "sem 'multiprocessing.freeze_support()', o .exe do Windows "
+        "reentra na CLI em cada trabalhador de 'map_processos'")
+    assert entrada.index("freeze_support()") < entrada.index("main())"), (
+        "'freeze_support' tem de vir ANTES de main(): depois dela já é tarde")

@@ -101,11 +101,50 @@ def gravar_token(token):
     # 600: um arquivo de credencial legível por outros usuários da
     # máquina é uma credencial compartilhada sem que ninguém tenha
     # decidido isso.
-    try:
-        os.chmod(caminho, 0o600)
-    except OSError:
-        pass
+    _so_para_o_dono(caminho)
     return caminho
+
+
+def _so_para_o_dono(caminho):
+    """Tira o arquivo do alcance dos outros usuários da máquina.
+
+    No Unix isso é o modo 600. **No Windows, `os.chmod` não faz isso**:
+    ele liga e desliga o atributo de somente-leitura, e mais nada — o
+    arquivo continua legível por qualquer conta da máquina. A promessa
+    ficava escrita no comentário e não valia no sistema em que mais
+    gente compartilha o computador.
+
+    A restrição de verdade ali é a ACL, e quem a escreve é o `icacls`
+    que vem com o sistema: `/inheritance:r` corta o que a pasta
+    concedia, e `/grant:r <usuário>:F` deixa só o dono. O Python não
+    expõe isso na biblioteca padrão.
+
+    Devolve `True` quando conseguiu restringir — quem chama não
+    precisa saber por qual dos dois caminhos.
+    """
+    if os.name != "nt":
+        try:
+            os.chmod(caminho, 0o600)
+            return True
+        except OSError:
+            return False
+
+    import subprocess
+
+    dono = os.environ.get("USERNAME") or os.environ.get("USER") or ""
+    if not dono:
+        return False
+    try:
+        r = subprocess.run(
+            ["icacls", caminho, "/inheritance:r", "/grant:r", f"{dono}:F"],
+            capture_output=True, text=True, timeout=20,
+            # O 'icacls' escreve na pagina de codigo do console, e nao
+            # em UTF-8: sem dizer a codificacao, o Python leria cp1252 e
+            # um nome de usuario com acento estouraria a leitura.
+            encoding="utf-8", errors="replace")
+        return r.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 
 def esquecer_token():

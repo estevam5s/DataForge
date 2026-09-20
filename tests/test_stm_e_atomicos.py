@@ -72,11 +72,12 @@ def test_a_transacao_nao_perde_incremento_sob_concorrencia():
     programa imprime um número plausível e errado. Um teste que reprova
     mostrando um número sem dizer o que falhou custa uma tarde.
 
-    Medido aqui, com `sys.setswitchinterval` no mínimo para forçar o
-    intercalamento: 8000 de 8000, com 7765 conflitos detectados e
-    repetidos, e a transação mais azarada precisou de 15 tentativas — o
-    teto de 1000 não chega perto. O STM está certo; o que faltava era a
-    falha se anunciar.
+    E quando ela se anunciou, disse outra coisa: *"a transação não
+    fechou em 1000 tentativas"*, nos quatro Pythons do Linux. Aqui, com
+    dez núcleos, a mais azarada precisou de 15; lá, com poucos núcleos
+    para 40 threads, uma transação perde a corrida mil vezes seguidas.
+    Isso é inanição, e a resposta está em `_PESSIMISTA` — ver
+    `test_a_transacao_lenta_TERMINA_mesmo_perdendo_toda_corrida`.
     """
     saida = rodar('''
 adopt Arcane.Stm as T
@@ -431,3 +432,77 @@ def test_o_repositorio_continua_limpo():
                            encoding="utf-8", errors="replace",
                            env={**os.environ, "NO_COLOR": "1"})
         assert r.returncode == 0, f"{pasta}: {r.stdout[-600:]}"
+
+
+def test_a_transacao_lenta_TERMINA_mesmo_perdendo_toda_corrida():
+    """Otimismo puro garante que ninguém erra, não que alguém termina.
+
+    Uma transação longa que disputa a mesma variável com transações
+    curtas perde **toda** corrida: quando ela chega ao fim, o valor que
+    leu já mudou. As outras avançam; ela repete para sempre. É inanição,
+    e o sintoma no CI foi *"a transação não fechou em 1000 tentativas"*
+    nos quatro Pythons do Linux — em máquina com núcleo sobrando ela não
+    aparece, que é o que a fez passar meses aqui.
+
+    A prova não depende de temporização de máquina: a transação lenta
+    dorme 5 ms **dentro** do corpo, e quatro threads confirmam sem
+    parar. Medido, com teto de 60 tentativas:
+
+        sem o plano B  ->  estourou o teto     (2205 ms)
+        com o plano B  ->  terminou            (565 ms)
+
+    O plano B é a transação irrevogável: depois de `_PESSIMISTA`
+    corridas perdidas, ela roda segurando a trava do commit e a
+    validação não tem como falhar.
+    """
+    import threading
+    import time
+
+    from dataforge.stdlib import arcane_stm as T
+
+    def medir(teto_pessimista):
+        original = T._PESSIMISTA
+        T._PESSIMISTA = teto_pessimista
+        try:
+            var = T.variavel(0)
+            parar = threading.Event()
+            fora = []
+
+            def rapida():
+                while not parar.is_set():
+                    T.atomicamente(lambda: T.escrever(var, T.ler(var) + 1))
+
+            def lenta():
+                def corpo():
+                    v = T.ler(var)
+                    time.sleep(0.005)
+                    T.escrever(var, v + 1)
+                try:
+                    T.atomicamente(corpo, tentativas=60)
+                    fora.append(True)
+                except DataForgeError:
+                    fora.append(False)
+
+            rapidas = [threading.Thread(target=rapida, daemon=True)
+                       for _ in range(4)]
+            for t in rapidas:
+                t.start()
+            alvo = threading.Thread(target=lenta)
+            alvo.start()
+            alvo.join()
+            parar.set()
+            for t in rapidas:
+                t.join()
+            return fora[0]
+        finally:
+            T._PESSIMISTA = original
+
+    # Sem o plano B (teto inalcançável), a lenta morre de fome.
+    assert medir(10 ** 9) is False, (
+        "a inanição não se reproduziu — sem ela, o teste abaixo não "
+        "prova nada; ajuste a disputa em vez de apagar a trava")
+
+    # Com ele, termina.
+    assert medir(16) is True, (
+        "uma transação lenta não terminou nem com o plano B: o caminho "
+        "pessimista parou de garantir progresso")

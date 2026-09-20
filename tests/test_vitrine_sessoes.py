@@ -343,15 +343,41 @@ def _porta_livre():
         return s.getsockname()[1]
 
 
-def _esperar(porta, prazo=20):
+def _esperar(porta, processo=None, prazo=30):
+    """Espera a porta abrir — e, se não abrir, diz o que o processo disse.
+
+    A versão anterior só sabia dizer *"o servidor na porta 49475 nao
+    subiu"*. Ela reprovou nos dois macOS do CI, e a mensagem não tem uma
+    palavra sobre a causa: o processo filho escreve o erro dele no
+    `stderr`, que o teste segurava num cano até o `kill` do `finally`.
+
+    Duas coisas mudaram. Um processo que já **morreu** não é esperado
+    até o fim do prazo — se ele saiu, esperar trinta segundos por uma
+    porta que ninguém vai abrir só atrasa a mesma falha. E o que ele
+    escreveu entra na mensagem.
+    """
     fim = time.time() + prazo
     while time.time() < fim:
+        if processo is not None and processo.poll() is not None:
+            break
         try:
             with socket.create_connection(("127.0.0.1", porta), timeout=0.2):
                 return
         except OSError:
             time.sleep(0.05)
-    raise AssertionError(f"o servidor na porta {porta} nao subiu")
+
+    detalhe = ""
+    if processo is not None:
+        if processo.poll() is None:
+            processo.kill()
+        saida, erro = processo.communicate(timeout=10)
+        pedaco = (erro or b"").decode("utf-8", "replace").strip() \
+            or (saida or b"").decode("utf-8", "replace").strip()
+        detalhe = ("\n  o processo saiu com "
+                   f"{processo.returncode} e disse:\n"
+                   + "\n".join("    " + linha
+                                for linha in pedaco.splitlines()[-25:]))
+    raise AssertionError(f"o servidor na porta {porta} nao subiu{detalhe}")
 
 
 @pytest.mark.parametrize("forma", ["banco", "arquivos"])
@@ -376,8 +402,8 @@ V.subir(porta := 8501, silencioso := yes)
         env={**os.environ, "VITRINE_PORTA": str(p), "NO_COLOR": "1"},
         stdout=subprocess.PIPE, stderr=subprocess.PIPE) for p in portas]
     try:
-        for p in portas:
-            _esperar(p)
+        for processo, p in zip(processos, portas):
+            _esperar(p, processo)
         jar = http.cookiejar.CookieJar()
         abrir = urllib.request.build_opener(
             urllib.request.HTTPCookieProcessor(jar)).open
@@ -390,7 +416,11 @@ V.subir(porta := 8501, silencioso := yes)
         assert len({pid for _, pid in vistos}) == 2, "nao foram dois processos"
     finally:
         for proc in processos:
-            proc.kill()
-            proc.wait(timeout=10)
-            proc.stdout.close()
-            proc.stderr.close()
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=10)
+            # O '_esperar' pode ter consumido os canos com
+            # 'communicate' — fechar duas vezes é erro.
+            for cano in (proc.stdout, proc.stderr):
+                if cano is not None and not cano.closed:
+                    cano.close()

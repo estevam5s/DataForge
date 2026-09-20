@@ -8410,6 +8410,30 @@ class Interpreter:
                     contexto = ""     # o nome ja esta no texto
             else:
                 classe = classe or TypeError_
+        elif isinstance(e, OSError):
+            # Um caminho com um caractere de CONTROLE no meio nao veio
+            # do disco: veio do lexer. Em "C:\temp\dados.csv" o '\t' e
+            # uma tabulacao e o '\d' fica como estava, entao o caminho
+            # que chega ao sistema e outro — e a mensagem do Windows
+            # para isso e 'Invalid argument', que nao aponta para nada.
+            #
+            # Custou tres testes do repositorio no Windows, e la eu
+            # tinha o caminho impresso para comparar. Quem escreve um
+            # caminho do Windows numa string nao tem.
+            alvo = str(getattr(e, "filename", "") or "")
+            if any(ord(c) < 32 for c in alvo):
+                classe = classe or IOError_
+                visivel = "".join(
+                    {"\t": "\\t", "\n": "\\n", "\r": "\\r"}.get(c, c)
+                    if ord(c) < 32 else c
+                    for c in alvo)
+                texto = (f"This path has a control character in it: "
+                         f"'{visivel}'.")
+                nota = ("in a string, '\\t' is a tab and '\\n' is a line "
+                        "break — a Windows path loses its folders this way")
+                dica = ('write the path with forward slashes '
+                        '("C:/temp/dados.csv"), which Windows accepts, or '
+                        'double every backslash')
 
         if classe is None:
             classe = RuntimeError_
