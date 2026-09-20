@@ -412,7 +412,13 @@ class ArcaneHttp:
     def _listen(app, port=3000, host="0.0.0.0"):
         """Start the HTTP server."""
         _DFRequestHandler.router = app["_router"]
-        server = HTTPServer((host, port), _DFRequestHandler)
+        # A MESMA classe do Kiln, e nao uma segunda copia da regra: subir
+        # um servidor nao pode esperar uma busca reversa de DNS. Medido:
+        # com um resolvedor de 3 s, o servidor padrao leva 3015 ms para
+        # ligar e este 0,1 ms — e no intervalo a porta esta ligada e NAO
+        # escutando, o que nao produz erro nenhum para ver.
+        from .kiln import _ServidorKiln
+        server = _ServidorKiln((host, port), _DFRequestHandler)
         app["_server"] = server
 
         name = app.get("name", "DataForge App")

@@ -56,7 +56,9 @@ class ArcaneWeb:
             def log_message(self, format, *args):
                 pass  # Suppress output
 
-        server = http.server.HTTPServer((host, port), QuietHandler)
+        # A mesma classe do Kiln: subir nao pode esperar DNS reverso.
+        from .kiln import _ServidorKiln
+        server = _ServidorKiln((host, port), QuietHandler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         print(f"[Arcane.Web] Server started on {host}:{port}")

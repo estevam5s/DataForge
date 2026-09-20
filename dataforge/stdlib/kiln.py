@@ -31,6 +31,7 @@ import time
 import traceback
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import socketserver
 
 # ─────────────────────────────────────────────────────────────
 #  Requisicao e resposta
@@ -267,6 +268,34 @@ class App:
 # ─────────────────────────────────────────────────────────────
 #  Servidor
 # ─────────────────────────────────────────────────────────────
+
+class _ServidorKiln(ThreadingHTTPServer):
+    """O servidor, sem a busca REVERSA de DNS na partida.
+
+    `HTTPServer.server_bind` chama `socket.getfqdn(host)` depois do
+    `bind` e antes do `listen`, só para preencher `self.server_name` —
+    um campo que este framework não usa. E `getfqdn` é uma consulta de
+    rede: numa máquina sem resolvedor reverso alcançável ela espera o
+    tempo do sistema, e nesse intervalo a porta está **ligada e não
+    escutando**. Quem tenta conectar recebe recusa, repete, e não há
+    erro nenhum para ver — o processo está vivo e calado.
+
+    Foi o que o CI do macOS mostrou: dois processos subindo o mesmo
+    programa, nenhum abrindo a porta em trinta segundos, nas duas formas
+    de armazém — inclusive na que não toca em banco nenhum, o que
+    derrubou a suspeita de impasse no SQLite.
+
+    Um servidor não pode depender de DNS para **subir**. O nome fica
+    sendo o host pedido, que é o que um servidor local tem a dizer sobre
+    si mesmo.
+    """
+
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        host, porta = self.server_address[:2]
+        self.server_name = host
+        self.server_port = porta
+
 
 class _Handler(BaseHTTPRequestHandler):
     """Ponte entre o http.server e o App."""
@@ -1681,7 +1710,7 @@ class ArcaneKiln:
             app.montar(prefixo, filho)
 
         handler = type("KilnHandler", (_Handler,), {"app": app})
-        servidor = ThreadingHTTPServer((host, int(porta)), handler)
+        servidor = _ServidorKiln((host, int(porta)), handler)
         servidor.daemon_threads = True
         app.servidor = servidor
 
@@ -1705,7 +1734,7 @@ class ArcaneKiln:
         for prefixo, filho in app.config.pop("__grupos__", []):
             app.montar(prefixo, filho)
         handler = type("KilnHandler", (_Handler,), {"app": app})
-        servidor = ThreadingHTTPServer((host, int(porta)), handler)
+        servidor = _ServidorKiln((host, int(porta)), handler)
         servidor.daemon_threads = True
         app.servidor = servidor
         threading.Thread(target=servidor.serve_forever, daemon=True).start()

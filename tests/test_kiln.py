@@ -915,3 +915,92 @@ def test_o_cors_vale_tambem_na_resposta_de_erro():
     assert r["status"] == 404
     cabs = {k.lower(): v for k, v in (r.get("headers") or {}).items()}
     assert cabs.get("access-control-allow-origin") == "*"
+
+
+def test_subir_o_servidor_nao_espera_uma_busca_de_DNS():
+    """`HTTPServer.server_bind` chama `getfqdn` ENTRE o bind e o listen.
+
+    O campo que ele preenche (`server_name`) não é usado por este
+    framework, e a consulta é de rede: numa máquina sem resolvedor
+    reverso alcançável ela espera o tempo do sistema. Nesse intervalo a
+    porta está **ligada e não escutando** — quem tenta conectar recebe
+    recusa, repete, e não há erro nenhum para ver.
+
+    Foi o que derrubou dois jobs do macOS no CI: dois processos subindo o
+    mesmo programa, nenhum abrindo a porta em trinta segundos, nas duas
+    formas de armazém de sessão — inclusive na que não toca em banco
+    nenhum, o que derrubou a suspeita de impasse no SQLite.
+
+    A prova não depende da máquina: o resolvedor é substituído por um que
+    dorme um tempo conhecido, e as duas comparações são **sem unidade** —
+    a razão entre os dois servidores medidos no mesmo instante, e o
+    quanto do atraso injetado cada um pagou. Um teto fixo em segundos
+    mediria esta máquina, que é o que a trava do repositório proíbe.
+    """
+    import socket
+    import time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from dataforge.stdlib.kiln import _ServidorKiln
+
+    ESPERA = 3.0
+    original = socket.getfqdn
+
+    def lento(*args, **kwargs):
+        time.sleep(ESPERA)
+        return original(*args, **kwargs)
+
+    socket.getfqdn = lento
+    try:
+        medidas = {}
+        for classe in (ThreadingHTTPServer, _ServidorKiln):
+            inicio = time.perf_counter()
+            servidor = classe(("127.0.0.1", 0), BaseHTTPRequestHandler)
+            medidas[classe.__name__] = time.perf_counter() - inicio
+            servidor.server_close()
+    finally:
+        socket.getfqdn = original
+
+    # O de fábrica pagou o atraso INTEIRO: é a prova de que o defeito
+    # existe, e sem ela a razão abaixo não diria nada.
+    assert medidas["ThreadingHTTPServer"] / ESPERA > 0.8, (
+        f"o resolvedor lento não foi exercitado: {medidas}")
+
+    # E o nosso não pagou nada. A razão é entre duas medidas do MESMO
+    # instante, então máquina lenta atrasa as duas igualmente.
+    razao = medidas["ThreadingHTTPServer"] / max(medidas["_ServidorKiln"],
+                                                 1e-9)
+    assert razao > 20, (
+        f"subir o servidor voltou a depender de DNS: {razao:.1f}x de "
+        f"diferença, medidas {medidas}")
+
+
+def test_todo_servidor_da_biblioteca_usa_a_classe_SEM_dns():
+    """Uma segunda cópia da regra reintroduziria a espera.
+
+    São três lugares que sobem um servidor HTTP — o Kiln, o
+    `Arcane.HTTP` e o `Arcane.Web` —, e a classe é uma só.
+    """
+    import ast
+    import glob
+    import os
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ruins = []
+    for caminho in glob.glob(os.path.join(raiz, "dataforge", "**", "*.py"),
+                             recursive=True):
+        arvore = ast.parse(open(caminho, encoding="utf-8").read())
+        for no in ast.walk(arvore):
+            if not isinstance(no, ast.Call):
+                continue
+            nome = no.func
+            texto = (getattr(nome, "attr", None)
+                     or getattr(nome, "id", None) or "")
+            if texto in ("HTTPServer", "ThreadingHTTPServer"):
+                ruins.append(
+                    f"{os.path.relpath(caminho, raiz)}:{no.lineno}")
+
+    assert not ruins, (
+        "servidor construído direto do 'http.server' — ele espera "
+        "'getfqdn' entre o bind e o listen; use '_ServidorKiln':\n  "
+        + "\n  ".join(ruins))
