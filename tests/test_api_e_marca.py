@@ -2023,3 +2023,165 @@ def test_cada_lado_cresce_para_FORA_da_pagina():
     assert "Math.min(maximo, Math.max(minimo" in fonte, (
         "a largura deixou de ser limitada — arrastar até o fim comeria "
         "a coluna de texto")
+
+
+# ═══════════════════════════════════════════════════════════
+#  Turnstile: a proteção anti-robô da entrada do painel
+# ═══════════════════════════════════════════════════════════
+
+#: A chave de SITE é pública por desenho — ela vai no HTML de toda
+#: página que mostra o widget. A SECRETA não pode estar em lugar
+#: nenhum daqui, e o teste abaixo não a nomeia (nomeá-la seria
+#: commitá-la): ele recusa qualquer chave com a forma de uma chave do
+#: Turnstile que não seja a de site declarada.
+CHAVE_DE_SITE_PUBLICA = "0x4AAAAAAE90dNHbqVbe4OI8"
+
+
+def test_a_chave_SECRETA_do_turnstile_nao_esta_no_repositorio():
+    """A secreta mora no painel do Supabase, e em nenhum outro lugar.
+
+    Quem valida o desafio é o servidor que recebe a senha — o do
+    Supabase. A chave secreta é o que autoriza aquela chamada ao
+    `/siteverify` da Cloudflare: com ela, qualquer um resolve desafios
+    em nome deste projeto.
+
+    O teste não escreve a chave secreta (isso a commitaria). Ele
+    procura pela **forma** de uma chave do Turnstile e aceita só a de
+    site, que é pública.
+    """
+    import glob
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    padrao = re.compile(r"0x4AAAAAA[A-Za-z0-9]{10,}")
+
+    alvos = []
+    for pasta in ("site/app", "site/components", "site/lib", "site/scripts",
+                  "dataforge", "scripts", "tools", "doc", "tests"):
+        alvos += glob.glob(os.path.join(raiz, pasta, "**", "*.*"), recursive=True)
+    alvos += [os.path.join(raiz, "site", "README.md"),
+              os.path.join(raiz, "site", "vercel.json"),
+              os.path.join(raiz, "CLAUDE.md")]
+
+    # '__pycache__' fica de fora: o .pyc guarda as constantes deste
+    # próprio arquivo, e a primeira versão da trava acusou a si mesma.
+    intrusas = {}
+    for caminho in alvos:
+        if not os.path.isfile(caminho) or "/node_modules/" in caminho:
+            continue
+        if "__pycache__" in caminho or caminho.endswith((".pyc", ".png",
+                                                         ".ico", ".gz",
+                                                         ".woff", ".woff2")):
+            continue
+        try:
+            texto = open(caminho, encoding="utf-8", errors="ignore").read()
+        except OSError:                                    # pragma: no cover
+            continue
+        for achada in padrao.findall(texto):
+            if achada != CHAVE_DE_SITE_PUBLICA:
+                intrusas.setdefault(achada[:14] + "…", set()).add(
+                    os.path.relpath(caminho, raiz))
+
+    assert not intrusas, (
+        "chave do Turnstile que NÃO é a de site (pública) no "
+        f"repositório — se for a secreta, rotacione-a agora: {intrusas}")
+
+
+def test_o_token_do_captcha_chega_as_TRES_rotas_de_autenticacao():
+    """Entrar não é a única porta.
+
+    Criar conta e recuperar senha **mandam e-mail**: um robô com uma
+    lista de endereços transforma o projeto em remetente de spam sem
+    precisar acertar senha nenhuma. As três passam o token.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "lib", "supabase", "auth.tsx")
+    if not os.path.isfile(caminho):
+        pytest.skip("o site não está neste checkout")
+    fonte = open(caminho, encoding="utf-8").read()
+
+    assert fonte.count("captchaToken") >= 3, (
+        "alguma das três rotas (entrar, registrar, recuperar) deixou de "
+        "mandar o token")
+    for chamada in ("signInWithPassword", "signUp", "resetPasswordForEmail"):
+        i = fonte.index(chamada)
+        trecho = fonte[i: i + 500]
+        assert "captchaToken" in trecho, (
+            f"'{chamada}' não manda o token do captcha")
+
+
+def test_o_token_e_REINICIADO_depois_de_cada_tentativa():
+    """O token é de uso único, e o defeito que isso causa é cruel.
+
+    A pessoa erra a senha, corrige, envia de novo — e recebe um erro
+    sobre captcha, que não tem nada a ver com o que ela acabou de
+    fazer. O widget precisa ser reiniciado depois de **toda**
+    tentativa, tenha ela dado certo ou não.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "components", "painel", "Entrar.tsx")
+    if not os.path.isfile(caminho):
+        pytest.skip("o site não está neste checkout")
+    fonte = open(caminho, encoding="utf-8").read()
+
+    assert "reiniciar()" in fonte, "o widget não é reiniciado"
+
+    # E o reinício vem ANTES do 'return' do caminho de erro: depois
+    # dele, uma tentativa que falha deixaria o token queimado.
+    i_reinicio = fonte.index("reiniciar()")
+    i_erro = fonte.index("setErro(resultado)")
+    assert i_reinicio < i_erro, (
+        "o token só é reiniciado no caminho de sucesso — quem errou a "
+        "senha ficaria com um token queimado na segunda tentativa")
+
+
+def test_a_falha_do_captcha_e_dita_em_portugues():
+    """O Supabase devolve o recado da Cloudflare quase cru.
+
+    "captcha protection: request disallowed (timeout-or-duplicate)"
+    fala de um serviço que quem está entrando não sabe que existe, num
+    idioma que pode não ser o dele, e não diz o que fazer.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "lib", "turnstile.ts")
+    if not os.path.isfile(caminho):
+        pytest.skip("o site não está neste checkout")
+    fonte = open(caminho, encoding="utf-8").read()
+
+    for causa in ("timeout-or-duplicate", "missing-input-response",
+                  "invalid-input-response"):
+        assert causa in fonte, f"a falha '{causa}' não tem tradução"
+
+    cliente = open(os.path.join(raiz, "site", "lib", "supabase", "cliente.ts"),
+                   encoding="utf-8").read()
+    assert "traduzirFalhaDeCaptcha" in cliente, (
+        "a tradução existe e ninguém a chama — o recado cru continua "
+        "chegando a quem entra")
+
+
+def test_o_captcha_falha_ABERTO_no_cliente():
+    """Se o widget não carrega, o botão não pode morrer.
+
+    Rede corporativa que bloqueia a Cloudflare, domínio ainda não
+    liberado na chave, extensão de navegador que corta scripts de
+    terceiro: em qualquer um desses o widget não aparece, e um botão
+    que depende dele deixa a porta trancada **sem ninguém do outro
+    lado para explicar**.
+
+    Quem recusa de verdade é o servidor do Supabase, que vai responder
+    com uma mensagem clara. O cliente falha aberto; o servidor falha
+    fechado — e essa é a ordem certa, porque só um dos dois é
+    confiável.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "components", "painel", "Entrar.tsx")
+    if not os.path.isfile(caminho):
+        pytest.skip("o site não está neste checkout")
+    fonte = open(caminho, encoding="utf-8").read()
+
+    assert "captchaFalhou" in fonte, (
+        "não há como o formulário saber que o widget falhou")
+    i = fonte.index("disabled={enviando")
+    condicao = fonte[i: i + 120]
+    assert "!captchaFalhou" in condicao, (
+        f"o botão continua morto quando o widget falha: {condicao}")

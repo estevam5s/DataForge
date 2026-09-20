@@ -99,3 +99,47 @@ print(len(existentes), 'rotas |', 'OK' if not q else f'{len(q)} QUEBRADOS')
 for a, o in sorted(q.items()): print('  QUEBRADO', a, '←', o[0])
 PY
 ```
+
+## Turnstile — a proteção anti-robô da entrada do painel
+
+O painel entra por **Supabase Auth**, e o site é exportado como arquivos
+estáticos: não há servidor nosso entre o navegador e o Supabase. Isso decide
+onde a proteção pode existir.
+
+| Chave | Onde mora | Quem a vê |
+|---|---|---|
+| **site** (`0x4AAAAAAE90dNHbqVbe4OI8`) | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, com este valor como padrão em `lib/turnstile.ts` | todo mundo — ela vai no HTML, **por desenho** |
+| **secret** | painel do **Supabase** → Authentication → Attack Protection → CAPTCHA | ninguém: nem este repositório, nem a Vercel |
+
+### As duas metades, e por que uma sozinha não vale nada
+
+O widget no formulário é a metade visível. A que **recusa** é a outra: com a
+proteção ligada no projeto do Supabase, `signInWithPassword`, `signUp` e
+`resetPasswordForEmail` passam a **exigir** `options.captchaToken`, e o
+servidor do Supabase confere o token com a Cloudflare (`/siteverify`) antes de
+olhar a senha.
+
+Sem esse segundo passo o widget é **decoração**: um robô não abre esta página
+— ele chama o endpoint de autenticação do Supabase direto, e nada no caminho
+dele passa pelo nosso JavaScript. É por isso que o token vai em
+`options.captchaToken` e não num `fetch` nosso: não há `fetch` nosso que
+pudesse recusar o login.
+
+### Ligar (uma vez, no painel do Supabase)
+
+1. Authentication → **Attack Protection** → *Enable CAPTCHA protection*
+2. Provider: **Turnstile by Cloudflare**
+3. Cole a **chave secreta** (a que **não** está neste repositório)
+4. Salve — as três rotas de autenticação passam a exigir o token
+
+Para trocar a chave de site sem mexer no código, defina
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` no projeto da Vercel; sem nenhuma chave, o
+widget não é renderizado e o formulário funciona como antes.
+
+### O detalhe que quebra em produção
+
+O token é de **uso único** e expira em ~5 minutos. `Entrar.tsx` chama
+`widget.current?.reiniciar()` depois de **toda** tentativa, tenha ela dado
+certo ou não. Sem isso acontece o defeito clássico: a pessoa erra a senha,
+corrige, envia de novo — e recebe um erro sobre captcha, que não tem nada a
+ver com o que ela acabou de fazer.

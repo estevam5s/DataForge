@@ -28,10 +28,11 @@ type Estado = {
   recarregarPerfil: () => Promise<void>;
   /** Sem credenciais do Supabase: o painel roda com dados de exemplo. */
   demonstracao: boolean;
-  entrar: (email: string, senha: string) => Promise<string | null>;
-  registrar: (email: string, senha: string, nome: string) => Promise<string | null>;
+  /** `captcha` é o token do Turnstile; o SUPABASE é quem o confere. */
+  entrar: (email: string, senha: string, captcha?: string | null) => Promise<string | null>;
+  registrar: (email: string, senha: string, nome: string, captcha?: string | null) => Promise<string | null>;
   sair: () => Promise<void>;
-  recuperar: (email: string) => Promise<string | null>;
+  recuperar: (email: string, captcha?: string | null) => Promise<string | null>;
 };
 
 const Contexto = createContext<Estado | null>(null);
@@ -111,21 +112,33 @@ export function ProvedorAuth({ children }: { children: React.ReactNode }) {
   }, [carregarPerfil]);
 
   /** Devolve a mensagem de erro, ou null quando deu certo. */
-  const entrar = useCallback(async (email: string, senha: string) => {
-    const cliente = obterCliente();
-    if (!cliente) return null;
-    const { error } = await cliente.auth.signInWithPassword({ email, password: senha });
-    return error ? traduzirErro(error.message) : null;
-  }, []);
+  const entrar = useCallback(
+    async (email: string, senha: string, captcha?: string | null) => {
+      const cliente = obterCliente();
+      if (!cliente) return null;
+      // O token vai em 'options.captchaToken' — e não num fetch nosso.
+      // Quem precisa recusar é quem recebe a senha: o site é estático,
+      // não há servidor nosso no caminho, e um robô nem abriria esta
+      // página. Ver 'lib/turnstile.ts'.
+      const { error } = await cliente.auth.signInWithPassword({
+        email,
+        password: senha,
+        options: captcha ? { captchaToken: captcha } : undefined,
+      });
+      return error ? traduzirErro(error.message) : null;
+    }, []);
 
   const registrar = useCallback(
-    async (email: string, senha: string, nome: string) => {
+    async (email: string, senha: string, nome: string, captcha?: string | null) => {
       const cliente = obterCliente();
       if (!cliente) return null;
       const { error } = await cliente.auth.signUp({
         email,
         password: senha,
-        options: { data: { nome } },
+        options: {
+          data: { nome },
+          ...(captcha ? { captchaToken: captcha } : {}),
+        },
       });
       return error ? traduzirErro(error.message) : null;
     }, []);
@@ -137,13 +150,17 @@ export function ProvedorAuth({ children }: { children: React.ReactNode }) {
     setPerfil(null);
   }, []);
 
-  const recuperar = useCallback(async (email: string) => {
+  const recuperar = useCallback(async (email: string, captcha?: string | null) => {
     const cliente = obterCliente();
     if (!cliente) return null;
+    // A recuperação é o alvo mais barato de todos: ela MANDA e-mail, e
+    // um robô com uma lista de endereços transforma o projeto em
+    // remetente de spam sem precisar acertar senha nenhuma.
     const { error } = await cliente.auth.resetPasswordForEmail(email, {
       redirectTo: typeof window !== 'undefined'
         ? `${window.location.origin}/painel/`
         : undefined,
+      ...(captcha ? { captchaToken: captcha } : {}),
     });
     return error ? traduzirErro(error.message) : null;
   }, []);

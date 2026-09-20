@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Logo } from '@/components/Logo';
+import { Turnstile, type ControleTurnstile } from '@/components/Turnstile';
+import { TURNSTILE_LIGADO } from '@/lib/turnstile';
 import { useAuth } from '@/lib/supabase/auth';
 
 type Modo = 'entrar' | 'registrar' | 'recuperar';
@@ -22,6 +24,9 @@ export function Entrar() {
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaFalhou, setCaptchaFalhou] = useState(false);
+  const widget = useRef<ControleTurnstile>(null);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -30,9 +35,17 @@ export function Entrar() {
     setEnviando(true);
 
     let resultado: string | null = null;
-    if (modo === 'entrar') resultado = await entrar(email, senha);
-    else if (modo === 'registrar') resultado = await registrar(email, senha, nome);
-    else resultado = await recuperar(email);
+    if (modo === 'entrar') resultado = await entrar(email, senha, captcha);
+    else if (modo === 'registrar') resultado = await registrar(email, senha, nome, captcha);
+    else resultado = await recuperar(email, captcha);
+
+    // O token é de USO ÚNICO: valeu a tentativa, deu certo ou não.
+    // Sem reiniciar aqui, o segundo envio — com a senha certa, depois
+    // de um erro de digitação — falharia por 'timeout-or-duplicate',
+    // e a pessoa veria uma mensagem sobre captcha onde acabou de
+    // corrigir a senha.
+    widget.current?.reiniciar();
+    setCaptcha(null);
 
     setEnviando(false);
     if (resultado) {
@@ -95,14 +108,38 @@ export function Entrar() {
               </p>
             )}
 
+            {/* A verificação fica ACIMA do botão: descobri-la depois de
+                clicar em "Entrar" e ver o botão desabilitado é a forma
+                mais rápida de alguém achar que o site quebrou. */}
+            <Turnstile
+              acao={modo}
+              controle={widget}
+              aoMudarToken={setCaptcha}
+              aoFalhar={(motivo) => {
+                // FALHA ABERTA, aqui. Se o script não carrega — rede
+                // corporativa que bloqueia a Cloudflare, domínio ainda
+                // não liberado na chave, extensão de navegador — o
+                // botão NÃO pode morrer: quem recusa de verdade é o
+                // servidor do Supabase, e um painel que não abre por
+                // causa disso é uma porta trancada por acidente, sem
+                // ninguém do outro lado para explicar.
+                setCaptchaFalhou(true);
+                setAviso(`${motivo}. Você pode tentar entrar mesmo assim.`);
+              }}
+            />
+
             <button
               type="submit"
-              disabled={enviando}
+              disabled={enviando || (TURNSTILE_LIGADO && !captcha && !captchaFalhou)}
               className="w-full rounded-lg bg-accent px-4 py-2.5 text-[14.5px]
                          font-semibold text-white transition-opacity
                          hover:opacity-90 disabled:opacity-50"
             >
-              {enviando ? 'Aguarde…' : botao}
+              {enviando
+                ? 'Aguarde…'
+                : TURNSTILE_LIGADO && !captcha && !captchaFalhou
+                  ? 'Conclua a verificação'
+                  : botao}
             </button>
           </form>
 

@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+import { traduzirFalhaDeCaptcha } from '../turnstile';
+
 /**
  * Cliente do Supabase.
  *
@@ -64,5 +66,10 @@ export function traduzirErro(mensagem: string): string {
   for (const [ingles, portugues] of Object.entries(mapa)) {
     if (mensagem.includes(ingles)) return portugues;
   }
+  // O recado do captcha vem quase cru do Supabase e fala de um serviço
+  // que quem está entrando não sabe que existe:
+  // "captcha protection: request disallowed (timeout-or-duplicate)".
+  const captcha = traduzirFalhaDeCaptcha(mensagem);
+  if (captcha) return captcha;
   return mensagem;
 }
