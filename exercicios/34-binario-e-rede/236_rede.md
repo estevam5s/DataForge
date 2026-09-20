@@ -88,12 +88,19 @@ Recusa e prazo esgotado são coisas **diferentes**: a primeira significa que o
 host respondeu; a segunda, que ninguém respondeu. Confundi-las manda a pessoa
 procurar no lugar errado.
 
+**E qual das duas aparece depende do sistema.** No Unix, uma porta fechada
+responde `RST` e o erro é a recusa. No **Windows**, o firewall *descarta* o
+pacote em vez de recusá-lo, e o que se tem é a espera — ali a segunda
+mensagem é a verdade, e exigir a primeira seria exigir que a linguagem
+mentisse sobre o que aconteceu. Por isso o exercício aceita as duas: o que
+ele cobra é que a mensagem **separe** os dois casos.
+
 ## Saída esperada
 
 ```
 FORJA
 de 127.0.0.1: pedidos=42
-conexao em porta vazia: RECUSADA
+conexao em porta vazia: RECUSADA, ou espera onde o firewall cala
 236 ok
 ```
 
