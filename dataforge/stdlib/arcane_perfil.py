@@ -41,7 +41,8 @@ O que cada número responde
 |---|---|
 | `p50` | o caso comum |
 | `p95`, `p99` | o que o usuário reclama |
-| `p_valor` | a diferença é real, ou é ruído? |
+| `p_valor` | a ordem das amostras é acidente? |
+| `efeito` | **quanto** mudou na mediana — e daí? |
 | `sobreposicao` | **quanto** é a diferença (tamanho do efeito) |
 | `fator` | quantas vezes, na mediana |
 
@@ -79,7 +80,7 @@ CONFERIR = {"arquivo": "perfil-base.json", "tolerancia": 0.15,
             "criterio": "p95"}
 
 COMPARAR = {"amostras": 30, "aquecimento": 3, "argumento": None,
-            "alfa": 0.05}
+            "alfa": 0.05, "efeito_minimo": 0.01}
 
 
 # ── resumo de uma amostra ─────────────────────────────────────
@@ -223,32 +224,67 @@ def comparar(a, b, opcoes=None):
 
     # Intercalar as duas medições é o que tira a deriva da máquina da
     # conta: medir A inteiro e depois B inteiro faz uma queda de clock no
-    # meio virar "B é mais lenta".
+    # meio virar "B é mais lenta". A ordem dentro da volta alterna pelo
+    # mesmo motivo — ver o comentário no laço.
     tempos_a, tempos_b = [], []
     for _ in range(aquecimento):
         _chamar(a, argumento)
         _chamar(b, argumento)
-    for _ in range(max(1, amostras)):
-        inicio = time.perf_counter()
-        _chamar(a, argumento)
-        tempos_a.append((time.perf_counter() - inicio) * 1000.0)
-        inicio = time.perf_counter()
-        _chamar(b, argumento)
-        tempos_b.append((time.perf_counter() - inicio) * 1000.0)
+    for volta in range(max(1, amostras)):
+        # A ORDEM alterna. Intercalar tira a deriva da máquina da conta,
+        # mas medir sempre 'a' antes de 'b' põe outra no lugar: quem vai
+        # primeiro paga a entrada da volta (cache, preditor de desvio,
+        # o próprio despertar do processo) e quem vem depois aproveita.
+        # É um viés SISTEMÁTICO, e por isso ele não some com mais
+        # amostras — ele fica mais significativo.
+        #
+        # Medido comparando uma ação com ela mesma: sem alternar, uma
+        # rodada em quarenta acusava 10% de diferença com p < 0,05.
+        primeiro, segundo = (a, b) if volta % 2 == 0 else (b, a)
+        caixa = {}
+        for quem, acao in (("primeiro", primeiro), ("segundo", segundo)):
+            inicio = time.perf_counter()
+            _chamar(acao, argumento)
+            caixa[quem] = (time.perf_counter() - inicio) * 1000.0
+        if volta % 2 == 0:
+            tempos_a.append(caixa["primeiro"])
+            tempos_b.append(caixa["segundo"])
+        else:
+            tempos_b.append(caixa["primeiro"])
+            tempos_a.append(caixa["segundo"])
 
     resumo_a, resumo_b = resumir(tempos_a), resumir(tempos_b)
     _u, p, sobreposicao = mann_whitney(tempos_a, tempos_b)
     alfa = float(config.get("alfa", COMPARAR["alfa"]))
-    significativo = p < alfa
+    efeito_minimo = float(config.get("efeito_minimo",
+                                     COMPARAR["efeito_minimo"]))
 
-    if not significativo:
-        mais_rapido, fator = "empate", 1.0
-    elif resumo_a["p50"] <= resumo_b["p50"]:
-        mais_rapido = "a"
-        fator = (resumo_b["p50"] / resumo_a["p50"]) if resumo_a["p50"] else 0.0
+    if resumo_a["p50"] <= resumo_b["p50"]:
+        ganhador = "a"
+        bruto = (resumo_b["p50"] / resumo_a["p50"]) if resumo_a["p50"] else 0.0
     else:
-        mais_rapido = "b"
-        fator = (resumo_a["p50"] / resumo_b["p50"]) if resumo_b["p50"] else 0.0
+        ganhador = "b"
+        bruto = (resumo_a["p50"] / resumo_b["p50"]) if resumo_b["p50"] else 0.0
+
+    # Duas perguntas, e as DUAS precisam de sim. O p responde "a ordem
+    # das amostras é acidente?"; o efeito responde "e daí?".
+    #
+    # Sem a segunda, o p sozinho reprova por desenho: alfa de 0,05
+    # SIGNIFICA que uma em vinte comparações de coisas iguais cruza o
+    # limiar. Medido aqui, comparando uma ação com ela mesma com quatro
+    # threads queimando CPU: 2 em 40 deram p < 0,05 — e nas duas a razão
+    # das medianas era **1,0000**. A ferramenta diria "diferença real"
+    # sobre uma diferença de zero por cento.
+    #
+    # Um por cento é o piso do que alguém pode agir: abaixo disso, a
+    # resposta honesta é empate, e quem precisar de mais sensibilidade
+    # baixa o 'efeito_minimo' sabendo o que está comprando.
+    significativo = p < alfa and bruto >= 1.0 + efeito_minimo
+
+    if significativo:
+        mais_rapido, fator = ganhador, bruto
+    else:
+        mais_rapido, fator = "empate", 1.0
 
     return {
         "mais_rapido": mais_rapido,
@@ -256,6 +292,11 @@ def comparar(a, b, opcoes=None):
         "significativo": significativo,
         "p_valor": round(p, 6),
         "alfa": alfa,
+        "efeito_minimo": efeito_minimo,
+        # O efeito MEDIDO, significativo ou não: sem ele, quem vê
+        # "empate" não sabe se as medianas empataram ou se a diferença
+        # ficou abaixo do piso.
+        "efeito": round(bruto - 1.0, 4),
         "sobreposicao": round(sobreposicao, 4),
         "a": resumo_a,
         "b": resumo_b,

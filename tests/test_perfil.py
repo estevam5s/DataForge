@@ -107,6 +107,26 @@ def test_comparar_uma_acao_com_ela_mesma_nao_acha_diferenca(P):
     Duas medidas da MESMA ação diferem por ruído. Uma ferramenta que
     responde "a segunda é 3% mais rápida" está lendo ruído — e é assim
     que se escolhe a implementação errada.
+
+    **Ele reprovou no CI com `p=0.0363, fator=1.0`**, e o número diz
+    tudo: a ferramenta chamou de diferença real uma diferença de zero
+    por cento. Duas causas, e as duas são da ferramenta:
+
+    1. **O p sozinho reprova por desenho.** Alfa de 0,05 *significa*
+       que uma em vinte comparações de coisas iguais cruza o limiar.
+       Medido aqui, com quatro threads queimando CPU: 2 em 40 deram
+       `p < 0,05`, e nas duas a razão das medianas era 1,0000. Hoje a
+       resposta exige as duas perguntas — a ordem é acidente? **e** o
+       efeito importa? —, com piso de 1% na mediana.
+
+    2. **A ordem dentro da volta era fixa.** Intercalar tira a deriva
+       da máquina, mas medir sempre `a` antes de `b` põe outro viés no
+       lugar: quem vai primeiro paga a entrada da volta. É
+       sistemático, então não some com mais amostras — fica mais
+       significativo. Sem alternar, uma rodada em quarenta acusava
+       **10%** de diferença entre uma ação e ela mesma.
+
+    Depois das duas: 0 em 120 rodadas, ociosa e sob carga.
     """
     def tarefa():
         return sum(range(300))
@@ -116,6 +136,9 @@ def test_comparar_uma_acao_com_ela_mesma_nao_acha_diferenca(P):
         f"achou diferença onde não há: p={veredito['p_valor']:.4f}, "
         f"fator={veredito['fator']}")
     assert veredito["mais_rapido"] == "empate"
+    # E 'empate' não esconde o número: quem lê precisa saber se as
+    # medianas empataram ou se a diferença ficou abaixo do piso.
+    assert abs(veredito["efeito"]) < 0.5, veredito["efeito"]
 
 
 def test_comparar_acha_a_diferenca_quando_ela_existe(P):

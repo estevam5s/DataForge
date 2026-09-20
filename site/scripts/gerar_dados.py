@@ -26,7 +26,8 @@ from dataforge.tokens import KEYWORDS                          # noqa: E402
 
 #: A tabela vive em 'dataforge/stdlib/catalogo.py'. Ela ja esteve
 #: escrita aqui tambem, e as duas copias divergiram.
-from dataforge.stdlib.catalogo import DESCRICOES, nome_curto  # noqa: E402
+from dataforge.stdlib.catalogo import (DESCRICOES, assinatura_fixa,  # noqa: E402
+                                       nome_curto)
 
 
 
@@ -36,6 +37,20 @@ def assinatura(valor):
         return "{ … }"          # sub-namespace, como Math.random
     if not callable(valor):
         return ""               # constante, como Math.PI
+    if inspect.isbuiltin(valor):
+        # Funcao escrita em C. Duas razoes para NAO perguntar ao
+        # CPython aqui, e a tabela de 'catalogo.py' existe para as duas:
+        #
+        # 1. a resposta muda com a versao. 'math.hypot' nao tinha
+        #    assinatura no 3.13 e ganhou uma no 3.14 — o arquivo gerado
+        #    passava a depender de QUEM rodou o gerador, e o job do CI
+        #    que compara o versionado com o gerado reprovava sozinho.
+        # 2. o nome vem em ingles e do CPython ('coordinates'), e a
+        #    documentacao em Markdown ja mostra o declarado
+        #    ('coordenadas'). Duas respostas para a mesma pergunta.
+        fixa = assinatura_fixa(getattr(valor, "__name__", ""))
+        if fixa:
+            return fixa
     try:
         params = list(inspect.signature(valor).parameters)
     except (TypeError, ValueError):

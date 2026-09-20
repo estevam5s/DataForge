@@ -157,3 +157,37 @@ ASSINATURAS = {
 def assinatura_fixa(simbolo):
     """A assinatura declarada, ou None se o simbolo nao esta na tabela."""
     return ASSINATURAS.get(simbolo)
+
+
+def resumo_do_simbolo(valor):
+    """A primeira linha ÚTIL da documentação de um símbolo.
+
+    Uma função escrita em C guarda a assinatura dentro da própria
+    docstring quando o CPython não a expõe por introspecção:
+
+        3.13   'hypot(*coordinates) -> value\\n\\nMultidimensional…'
+        3.14   'Multidimensional…'
+
+    Ou seja, a primeira linha muda com a versão do Python — e o arquivo
+    gerado passava a depender de quem rodou o gerador, com o job do CI
+    que compara o versionado com o gerado reprovando sozinho. Pior que
+    isso: no 3.13 o resumo publicado era `hypot(*coordinates) -> value`,
+    que repete a assinatura em inglês em vez de dizer o que a função faz.
+
+    Pular a linha de assinatura resolve os dois de uma vez, e o critério
+    é estreito de propósito: ela precisa começar com o nome do próprio
+    símbolo seguido de '('.
+    """
+    import inspect
+
+    texto = (inspect.getdoc(valor) or "").strip()
+    if not texto:
+        return ""
+    linhas = texto.split("\n")
+    nome = getattr(valor, "__name__", "")
+    if nome and linhas[0].startswith(nome + "("):
+        for linha in linhas[1:]:
+            if linha.strip():
+                return linha.strip()
+        return ""
+    return linhas[0].strip()

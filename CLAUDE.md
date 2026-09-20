@@ -2337,6 +2337,107 @@ problema que isso resolve.
 
 O mesmo vale para `site/lib/highlight.ts`: há teste comparando com `tokens.py`.
 
+## O que só quebra fora desta máquina
+
+A suíte local **não é o que o CI roda**, e a diferença não é detalhe: o
+CI ficou vermelho em todas as execuções por dias enquanto eu relatava
+"tudo verde". Três coisas causam isso, e todas têm o mesmo formato —
+uma decisão do ambiente que o repositório não contém.
+
+**As anotações do CI são legíveis sem autenticação**, e é por onde
+começar quando `gh` não está logado:
+
+```bash
+curl -s "https://api.github.com/repos/estevam5s/DataForge/commits/<sha>/check-runs" \
+  | python3 -c "…"      # cada check-run tem /annotations com o resumo do job
+```
+
+O `ci.yml` emite `::error title=…::` com a cauda do log justamente para
+isso: saber que algo divergiu sem saber **o quê** é metade de um
+diagnóstico.
+
+### Medida que mede a máquina
+
+Três reprovaram assim de uma vez, e cada uma ensina uma forma
+diferente do mesmo erro:
+
+| O que reprovou | O que estava sendo medido |
+|---|---|
+| `processos nao ganharam da serie: 1.02x` | a **partida** dos processos, não o paralelismo |
+| `parallel` com 1,47x no macOS | a criação de duas threads, num runner de três núcleos |
+| "o construtor virou quadrático" | o **texto** do rótulo: a faixa *"entre O(n log n) e O(n²)"* contém `n²` para dizer que ficou **abaixo** dele |
+
+A saída nunca é afrouxar o limite — é dar à medida um numerador maior
+(quatro tarefas em vez de duas; blocos de 300 mil em vez de 150 mil) ou
+cobrar a grandeza certa (o **fator** de crescimento, que já é uma razão:
+dobrando o n, linear dá ~2 e quadrático ~4).
+
+### O `spawn` cobra o `if __name__`, e o `forkserver` é o meio-termo
+
+`map_processos` não pode usar `fork`: o filho herdaria a memória do pai,
+e com ela uma conexão SQLite que chega "funcionando" sem passar por
+`travessia.py` — a linguagem respondia **duas coisas** conforme o
+sistema. Mas trocar por `spawn` cobra dois preços que só aparecem
+instalado:
+
+1. **o filho IMPORTA o módulo principal.** O que o `pip` gera tem a
+   guarda; o lançador do `.deb` e a entrada do `.exe` são escritos à
+   mão aqui e não tinham. Sem ela, cada trabalhador reexecuta a CLI, e
+   a mensagem fala de *bootstrapping phase* — vocabulário do
+   multiprocessing, três camadas longe de quem chamou `dataforge run`.
+   No executável congelado a guarda não basta: é preciso
+   `multiprocessing.freeze_support()` **antes** de `main()`.
+2. **todo trabalhador importa o interpretador inteiro.** Medido, partida
+   de 4: spawn 59/54/60 ms, `forkserver` 52/16/18 ms. O `forkserver`
+   nasce limpo (é isso que o separa do `fork`), faz o import **uma** vez
+   pelo `set_forkserver_preload`, e cada trabalhador sai de um fork
+   dele. O Windows fica com `spawn`, que é o único método que ele tem.
+
+### Otimismo não garante progresso
+
+O STM valida-e-repete: ninguém escreve errado. **Terminar é outra
+promessa.** Uma transação longa que disputa a mesma variável com
+transações curtas perde toda corrida, e repete para sempre — inanição,
+que não aparece em máquina com núcleo sobrando e aparece com 40 threads
+em runner pequeno (*"não fechou em 1000 tentativas"*, nos quatro Pythons
+do Linux).
+
+Depois de `_PESSIMISTA` corridas perdidas a transação passa a rodar
+**segurando a trava do commit**: é a transação irrevogável, e a
+validação não tem como falhar. A prova não depende de relógio — uma
+transação que dorme 5 ms dentro do corpo contra quatro que confirmam sem
+parar: sem o plano B estoura o teto, com ele termina.
+
+### Windows: cinco coisas que não existem aqui
+
+| Sintoma | Causa |
+|---|---|
+| `[Errno 22] Invalid argument` com o caminho mutilado | `"C:\temp"` numa string: `\t` é tabulação, `\r` é retorno de carro. Em macOS e Linux é **pior** — o nome é válido, e o arquivo nasce em outro lugar sem erro nenhum |
+| traceback depois de o pacote estar pronto | `subprocess.run(["which", …])` — `which` é do Unix; use `shutil.which`, que também conhece `PATHEXT` |
+| `WSAEINVAL (10022)` | `getsockname` num socket UDP ainda **não ligado**; no Unix devolve 0 |
+| a conexão "expira" onde devia ser recusada | o firewall do Windows **descarta** o SYN de uma porta fechada em vez de recusá-la. A espera ali é a verdade |
+| credencial legível por outras contas | `os.chmod` no Windows só liga o somente-leitura. A restrição é ACL: `icacls /inheritance:r /grant:r <dono>:F` |
+
+E a saída de um programa do Windows não é UTF-8: todo `subprocess` com
+`text=True` declara `encoding` — há trava sobre isso
+(`test_nenhum_subprocess_decide_a_codificacao_pelo_sistema`), e ela
+pegou as duas chamadas novas ao `icacls` no mesmo dia.
+
+### O host também é configuração, e nenhum teste o lê
+
+A página publica `irm https://…/diagnostico.ps1 | iex`, e o
+`site/vercel.json` declarava o `Content-Type` do `instalar.ps1` e **não**
+o do `diagnostico.ps1`. O `Invoke-RestMethod` decide pelo tipo: com
+texto devolve a string, com `application/octet-stream` devolve os
+**bytes** — e o `iex` recebe um `Byte[]`, não tem o que executar e
+**não dá erro**.
+
+Foi assim que o harness da máquina virtual falhou calado (o
+`http.server` do Python serve `.ps1` como octet-stream), e eu corrigi o
+harness sem olhar o `vercel.json`. Todo script que a página manda
+canalizar precisa do tipo declarado ali — há trava em
+`tests/test_windows.py`.
+
 ## Instaladores
 
 | Arquivo | Para |

@@ -34,6 +34,8 @@ from dataforge.builtins import get_builtins                      # noqa: E402
 from dataforge.cli import GRUPOS                                 # noqa: E402
 from dataforge.diagnosticos import CATALOGO                      # noqa: E402
 from dataforge.stdlib import get_module, list_modules            # noqa: E402
+from dataforge.stdlib.catalogo import (assinatura_fixa,          # noqa: E402
+                                       resumo_do_simbolo)
 from dataforge.tokens import (                                   # noqa: E402
     CONTEXTUAIS_BLUEPRINT, CONTEXTUAIS_KILN, KEYWORDS, VERBOS_KILN,
 )
@@ -263,11 +265,18 @@ def modulos():
         for chave, valor in sorted(modulo.items()):
             if chave == "__name__":
                 continue
-            try:
-                assinatura = str(inspect.signature(valor))
-            except (TypeError, ValueError):
-                assinatura = ""
-            resumo = (inspect.getdoc(valor) or "").split("\n")[0]
+            # A tabela declarada vem ANTES da introspeccao para funcao
+            # escrita em C: a resposta do CPython muda com a versao
+            # ('math.hypot' ganhou assinatura no 3.14) e vem com o nome
+            # em ingles, enquanto a doc em Markdown mostra o declarado.
+            assinatura = (assinatura_fixa(getattr(valor, "__name__", ""))
+                          if inspect.isbuiltin(valor) else None)
+            if not assinatura:
+                try:
+                    assinatura = str(inspect.signature(valor))
+                except (TypeError, ValueError):
+                    assinatura = ""
+            resumo = resumo_do_simbolo(valor)
             simbolos.append({"nome": chave, "assinatura": assinatura,
                              "resumo": resumo})
 

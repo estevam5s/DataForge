@@ -6079,12 +6079,12 @@
     },
     {
      "nome": "gcd",
-     "sig": "(integers)",
+     "sig": "(*inteiros)",
      "tipo": "funcao"
     },
     {
      "nome": "hypot",
-     "sig": "(coordinates)",
+     "sig": "(*coordenadas)",
      "tipo": "funcao"
     },
     {
@@ -6109,7 +6109,7 @@
     },
     {
      "nome": "log",
-     "sig": "(…)",
+     "sig": "(x, base=e)",
      "tipo": "funcao"
     },
     {
@@ -6134,7 +6134,7 @@
     },
     {
      "nome": "max",
-     "sig": "(…)",
+     "sig": "(*valores)",
      "tipo": "funcao"
     },
     {
@@ -6149,7 +6149,7 @@
     },
     {
      "nome": "min",
-     "sig": "(…)",
+     "sig": "(*valores)",
      "tipo": "funcao"
     },
     {
@@ -6159,7 +6159,7 @@
     },
     {
      "nome": "perm",
-     "sig": "(n, k)",
+     "sig": "(n, k=void)",
      "tipo": "funcao"
     },
     {
@@ -6179,7 +6179,7 @@
     },
     {
      "nome": "round",
-     "sig": "(number, ndigits)",
+     "sig": "(numero, casas=void)",
      "tipo": "funcao"
     },
     {
