@@ -2356,6 +2356,53 @@ O `ci.yml` emite `::error title=…::` com a cauda do log justamente para
 isso: saber que algo divergiu sem saber **o quê** é metade de um
 diagnóstico.
 
+### O resumo do pytest não mostra ERRO, e a mensagem vive numa linha
+
+Duas limitações do relatório, e as duas escondiam defeito real:
+
+| O quê | O efeito |
+|---|---|
+| `pytest -rf` lista o que **falhou**, não o que deu **erro** | 11 erros de `test_empacotamento.py` em todo job, por meses, invisíveis no resumo. O `ci.yml` não achava linha nenhuma e caía no ramo "processo morto", que anuncia um teste **que passou**. Hoje é `-rfE` |
+| o resumo corta no primeiro `\n` | a anotação do job é montada do resumo, então o motivo tem de caber numa linha. Três reprovações do Windows chegaram dizendo `packaging\arch\PKGBUILD` — a primeira linha de um stdout de **sucesso** |
+
+Quando um teste roda um subprocesso, a mensagem junta `stdout` e `stderr`
+numa linha com `⏎` e guarda a **cauda** (`_uma_linha`). Foi assim que o
+traceback do Windows finalmente apareceu — e ele dizia
+`ValueError: path is on mount 'C:', start on mount 'D:'`: o runner clona
+o repositório em `D:`, o `tmp_path` do pytest fica em `C:`, e
+`os.path.relpath` entre unidades **levanta**. O `.deb` estava pronto; quem
+estourava era a linha que o anuncia.
+
+### O que é gerado fora do repositório não existe no CI
+
+`editor/vscode/out/` é gitignored, e o único `tsc` dos dois workflows
+tinha `--noEmit` — que confere tipos e **não escreve nada**. Resultado:
+nenhum job compilava a extensão, e todo pacote feito em máquina limpa
+(wheel, sdist, `.deb`, binário) saía com o manifesto da extensão e zero
+JavaScript. `dataforge editor` instala, o VS Code carrega, e nada
+acontece.
+
+Aqui passava porque esta cópia de trabalho tem o `out/` de meses atrás —
+a mesma forma do defeito do tarball: **o layout que só funciona de
+dentro**. Hoje o job `extensao` compila e constrói o wheel em cima
+(é o único lugar do CI onde node e Python se encontram), o `release.yml`
+compila antes do PyInstaller e do `.deb`, e `gerar_tarball.py` **recusa**
+gerar sem os três `.js`.
+
+### Insistir não desfaz um impasse
+
+`PRAGMA journal_mode=WAL` pede a trava exclusiva e não respeita o
+`timeout` do driver, e por isso a troca já vivia dentro de um laço de
+retentativa. Dois processos subindo juntos — o caso de uso — ficavam
+**vivos e calados** pelos 30 s do prazo, cada um segurando o que o outro
+precisa. O sintoma foi um servidor que "não subiu" no macOS do CI, morto
+pelo `kill` do próprio teste.
+
+Retentativa repete; o que desfaz é a pergunta que faltava: **o modo já é
+WAL?** Quem trocou foi o primeiro processo, uma vez, e o arquivo guarda
+isso — a pergunta é refeita **dentro** da retentativa, senão a corrida
+volta pela janela entre a leitura e a troca.
+
 ### Medida que mede a máquina
 
 Três reprovaram assim de uma vez, e cada uma ensina uma forma
@@ -2371,6 +2418,24 @@ A saída nunca é afrouxar o limite — é dar à medida um numerador maior
 (quatro tarefas em vez de duas; blocos de 300 mil em vez de 150 mil) ou
 cobrar a grandeza certa (o **fator** de crescimento, que já é uma razão:
 dobrando o n, linear dá ~2 e quadrático ~4).
+
+E quando nem isso basta, há o **ponto de calibração**: um algoritmo
+conhecidamente linear, medido no mesmo instante. Se ele não dá ~2, a
+máquina não está medindo, e o teste diz isso e pula. Medido, com seis
+threads queimando CPU: o linear foi de 1,98 para 3,30–4,90 e o
+quadrático de 4,17 para 9,66–14,26 — mais repetições não salvam, porque
+o `Bench` já usa o **menor** tempo de N e a disputa sustentada atinge
+todas. A calibração não deixa de proteger nada: se o código virasse
+quadrático, a referência continuaria em 2.
+
+**E o `p` sozinho reprova por desenho.** Alfa de 0,05 *significa* que
+uma em vinte comparações de coisas iguais cruza o limiar: o teste que
+compara uma ação com ela mesma falharia 5% das vezes por definição.
+`Arcane.Perfil.comparar` passou a exigir as duas perguntas — *a ordem
+das amostras é acidente?* (o p) e *e daí?* (o efeito, com piso) — e a
+**alternar a ordem dentro da volta**, porque quem mede primeiro paga a
+entrada dela: é viés sistemático, e por isso não desaparece com mais
+amostras.
 
 ### O `spawn` cobra o `if __name__`, e o `forkserver` é o meio-termo
 
