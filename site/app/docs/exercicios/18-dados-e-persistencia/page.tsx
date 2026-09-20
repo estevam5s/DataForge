@@ -24,7 +24,7 @@ dados := {
     "app": "DataForge",
     "versao": 4,
     "ativo": yes,
-    "tags":["linguagem", "dados"],
+    "tags": ["linguagem", "dados"],
     "autor": {"nome": "Ana", "email": "ana@x.com"}
 }
 
@@ -186,7 +186,7 @@ assert IO.basename(alvo) is "notas.txt", "basename"
 assert IO.ext(alvo) is ".txt", "extensao"
 
 // JSON direto em arquivo
-config := {"tema": "escuro", "fonte": 14, "plugins":["a", "b"]}
+config := {"tema": "escuro", "fonte": 14, "plugins": ["a", "b"]}
 json_alvo := IO.join(pasta, "config.json")
 IO.write_json(json_alvo, config)
 lido := IO.read_json(json_alvo)
@@ -793,7 +793,7 @@ action inserir(nome, email, nota):
             [nome.trim(), email.trim().lower(), nota])
         yield {"ok": yes}
     handle e:
-        yield {"ok": no, "erros":["email ja cadastrado"]}
+        yield {"ok": no, "erros": ["email ja cadastrado"]}
 
 action buscar_todos():
     linhas := DB.query(conn, "SELECT id, nome, email, nota FROM alunos ORDER BY nota DESC")
@@ -801,7 +801,7 @@ action buscar_todos():
 
 action atualizar_nota(id, nova):
     given nova smaller 0 or nova bigger 10:
-        yield {"ok": no, "erros":["nota fora da faixa"]}
+        yield {"ok": no, "erros": ["nota fora da faixa"]}
     DB.execute(conn, "UPDATE alunos SET nota = ? WHERE id = ?", [nova, id])
     yield {"ok": yes}
 

@@ -56,7 +56,7 @@ assert isqrt(17) is 4, "raiz inteira"
 // Um Cluster E uma lista do Python, e um Vault E um dicionario. Nao ha
 // conversao na ida — por isso passar uma colecao grande nao custa nada.
 
-v := {"nome": "Ana", "notas":[9, 8, 10]}
+v := {"nome": "Ana", "notas": [9, 8, 10]}
 texto := json.dumps(v)
 de_volta := json.loads(texto)
 

@@ -25,7 +25,7 @@ adopt Arcane.Compilador as K
 
 // ── as fases ──
 assert K.fases() is ["lexer", "parser", "hir", "mir", "analises",
-                     "ssa", "otimizado", "lir"]
+    "ssa", "otimizado", "lir"]
 
 fonte := """
 action classificar(n):
@@ -65,8 +65,8 @@ assert de_fora["otherwise_body"][0]["tipo"] is "GivenBlock"
 
 // o que so PARECE acucar tem o motivo escrito ao lado
 motivos := K.nao_e_acucar()
-assert "CycleFromTo" in motivos          // 'range' materializa a lista
-assert "MarkDecorator" in motivos        // decorador que devolve void nao troca
+assert "CycleFromTo" in motivos  // 'range' materializa a lista
+assert "MarkDecorator" in motivos  // decorador que devolve void nao troca
 assert len(motivos["TernaryExpression"]) bigger 20
 
 // ── resolucao: de onde vem cada nome ──
@@ -74,7 +74,7 @@ ligacoes := K.resolucao("fora := 1\\naction f(a):\\n    b := a + 1\\n    yield b
 f := [c cycle c in ligacoes given c["nome"] is "f"][0]
 assert f["parametros"] is ["a"]
 assert f["locais"] is ["b"]
-assert f["livres"] is ["fora"]            // le e nao cria: vem de fora
+assert f["livres"] is ["fora"]  // le e nao cria: vem de fora
 assert f["embutidos"] is ["sqrt"]
 
 // ── MIR: bloco basico e aresta ──
@@ -83,7 +83,7 @@ assert K.corpos(fonte) is ["(programa)", "classificar"]
 topo := K.blocos(fonte, "(programa)")
 // o laco tem uma aresta de volta — sem ela nao e laco
 voltas := [b["id"] cycle b in topo
-           given len([s cycle s in b["saidas"] given s["aresta"] is "volta"]) bigger 0]
+    given len([s cycle s in b["saidas"] given s["aresta"] is "volta"]) bigger 0]
 assert len(voltas) is 1
 
 // o 'given' abre dois ramos, e os dois tem rotulo
@@ -122,18 +122,18 @@ assert K.constantes("x := 2\\ny := x + 1\\nout y\\n", "(programa)") is {"x": 2, 
 
 // dois ramos que discordam nao deixam constante nenhuma
 assert K.constantes("given c:\\n    x := 1\\notherwise:\\n    x := 2\\nout x\\n",
-                    "(programa)") is {}
+    "(programa)") is {}
 
 // ── escapatoria: quem mais pode estar lendo ──
 com_closure := "action f():\\n" +
-               "    preso := 1\\n" +
-               "    solto := 2\\n" +
-               "    ler := lambda => preso + 1\\n" +
-               "    yield ler()\\n"
+"    preso := 1\\n" +
+"    solto := 2\\n" +
+"    ler := lambda => preso + 1\\n" +
+"    yield ler()\\n"
 fugas := K.escapam(com_closure, "f")
 assert fugas["preso"] is "fechamento"
 assert fugas["ler"] is "devolvido"
-assert "solto" not in fugas               // vive e morre no quadro
+assert "solto" not in fugas  // vive e morre no quadro
 
 // ── LIR: o que o compilador de fechamentos fez ──
 // nao ha codigo de maquina: o backend e compilador.py, e o LIR diz
@@ -153,7 +153,7 @@ monitor:
     assert no
 handle RuntimeError as e:
     assert "llvm" in e.message
-    assert "backend" in e.message         // e diz qual e
+    assert "backend" in e.message  // e diz qual e
 
 out "260 ok"`, lang: 'df', title: `exercicios/42-compilador/260_pipeline_hir_mir.df` },
   {"p": "A linguagem já tinha lexer, parser, AST, analisador estático e um compilador de fechamentos. O que faltava era **ver** as representações do meio: `dataforge tokens` mostrava a primeira fase, `dataforge ast` a terceira, e as outras quatro não apareciam em lugar nenhum."},

@@ -21,6 +21,44 @@ const blocos: Bloco[] = [
   {"h3": "Windows (PowerShell)"},
   { code: `[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://dataforge-lang.vercel.app/instalar.ps1 | iex`, lang: 'powershell' },
   {"p": "O instalador acrescenta o DataForge ao PATH do usuário. Abra um terminal novo depois."},
+  {"callout": {"tipo": "atencao", "titulo": "O `3072` não é enfeite", "texto": "É o código do TLS 1.2. O `powershell.exe` de todo Windows 10 e 11 é o **5.1**, e ele negocia TLS 1.0 por padrão; o host do site recusa abaixo de 1.2. Sem essa metade, o `irm` falha com *«Could not create SSL/TLS secure channel»* **antes de baixar qualquer coisa** — e a mensagem não menciona TLS versão nenhuma."}},
+
+  {"h3": "Windows: as outras seis formas"},
+  {"p": "O `irm | iex` é a mais curta, e não é a melhor para todo mundo. As alternativas, com o que cada uma exige:"},
+  {"table": {"head": ["Forma", "Precisa de", "Quando usar"], "rows": [
+    ["`winget install EstevamSouza.DataForge`", "Windows 11 (ou o winget instalado)", "**confere o SHA-256 sozinho** — é a única em que a verificação é automática"],
+    ["`choco install dataforge`", "Chocolatey, e terminal como administrador", "a máquina já usa `choco`; instala para todos os usuários"],
+    ["`scoop install dataforge`", "Scoop", "**sem administrador**, e sem escrever em `Program Files` nem no registro"],
+    ["instalador gráfico `.exe`", "nada", "não precisa de Python: o runtime vem dentro"],
+    ["`.zip` portátil", "nada", "roda de onde estiver, inclusive de um pendrive"],
+    ["baixar, ler, executar", "nada", "quem não executa script remoto sem olhar — e está certo"]]}},
+  {"p": "As três primeiras dependem de aprovação **fora** deste repositório (um PR no `microsoft/winget-pkgs`, moderação no chocolatey.org, entrada num bucket do Scoop). Os manifestos já existem e são gerados em `packaging/windows/` — a [página de download](/download) diz o estado de cada uma."},
+
+  {"h3": "A forma auditável"},
+  {"p": "`irm … | iex` executa o que vier, e quem colou a linha não viu o que veio. Em etapas:"},
+  { code: `[Net.ServicePointManager]::SecurityProtocol = 3072
+irm https://dataforge-lang.vercel.app/instalar.ps1 -OutFile instalar.ps1
+notepad instalar.ps1        # leia
+.\\instalar.ps1`, lang: 'powershell' },
+
+  {"h3": "Não funcionou? O diagnóstico"},
+  {"p": "Ele confere as **seis** coisas que quebram uma instalação no Windows e diz qual delas está errada — porque *\"a instalação falhou\"* não é uma informação. Ele **não instala nada**."},
+  { code: `[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://dataforge-lang.vercel.app/diagnostico.ps1 | iex`, lang: 'powershell' },
+  {"table": {"head": ["Ele confere", "O que costuma estar errado"], "rows": [
+    ["a versão do PowerShell", "o 5.1 tem duas armadilhas que o 7 não tem: TLS 1.0 e saída cp1252"],
+    ["o TLS negociado", "a causa número um — e o erro não menciona TLS"],
+    ["a política de execução", "`Restricted` recusa script baixado; `irm … | iex` não passa por arquivo"],
+    ["se o site responde", "um proxy de empresa falha aqui com TLS 1.2 perfeitamente habilitado"],
+    ["se há Python", "**não é um problema**: o `.exe` e o `.zip` embutem o runtime"],
+    ["o PATH", "instalado e invisível: o PATH só vale em terminal aberto **depois**"]]}},
+  {"callout": {"tipo": "nota", "titulo": "A armadilha do `python` da Microsoft Store", "texto": "Um `python.exe` em `WindowsApps` que **abre a loja** em vez de rodar. O diagnóstico o reconhece pelo caminho e diz isso, em vez de relatar «Python encontrado» e deixar a instalação falhar depois."}},
+
+  {"h3": "Instalar de outra origem (mirror, ou antes de publicar)"},
+  {"p": "`DATAFORGE_SITE` troca a origem do download, e `DATAFORGE_PREFIX` troca o destino. Serve para um espelho interno — e é o que permite **testar uma correção antes de publicá-la**:"},
+  { code: `$env:DATAFORGE_SITE = 'http://10.0.2.2:8799'
+$env:DATAFORGE_PREFIX = "$env:USERPROFILE\\.dataforge"
+.\\instalar.ps1`, lang: 'powershell' },
+  {"p": "No macOS e no Linux é o mesmo, mais o `--local`, que instala da cópia em disco sem baixar nada: `sh scripts/instalar.sh --local`."},
 
   {"h2": "Sem Python na máquina"},
   {"p": "O instalador acima cria um ambiente com o Python que encontrar. Se não houver Python 3.10 ou mais novo, ele passa sozinho para o **executável** — um arquivo único que já traz o interpretador dentro. Para pedir esse caminho de propósito:"},
@@ -135,7 +173,7 @@ python3 exercicios/run_all.py        # 267 exercícios`, lang: 'bash' },
   {"p": "Se usou ambiente virtual, apagar a pasta `.venv` também resolve."},
 ];
 
-const headings = [{ id: 'instalacao-em-um-comando', text: "Instalação em um comando", level: 2 as const }, { id: 'macos-e-linux', text: "macOS e Linux", level: 3 as const }, { id: 'windows-powershell', text: "Windows (PowerShell)", level: 3 as const }, { id: 'sem-python-na-maquina', text: "Sem Python na máquina", level: 2 as const }, { id: 'ajustar-a-instalacao', text: "Ajustar a instalação", level: 3 as const }, { id: 'o-editor-junto', text: "O editor, junto", level: 2 as const }, { id: 'docker', text: "Docker", level: 2 as const }, { id: 'construir-a-imagem-voce-mesmo', text: "Construir a imagem você mesmo", level: 3 as const }, { id: 'baixar-o-tarball-direto', text: "Baixar o tarball direto", level: 2 as const }, { id: 'a-partir-do-codigo-fonte', text: "A partir do código-fonte", level: 2 as const }, { id: 'requisitos', text: "Requisitos", level: 3 as const }, { id: 'se-voce-ainda-nao-tem-python', text: "Se você ainda não tem Python", level: 3 as const }, { id: 'clonar-e-instalar', text: "Clonar e instalar", level: 3 as const }, { id: 'ambiente-virtual', text: "Ambiente virtual", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }, { id: 'editor', text: "Editor", level: 2 as const }, { id: 'verificar-a-instalacao', text: "Verificar a instalação", level: 2 as const }, { id: 'problemas-comuns', text: "Problemas comuns", level: 2 as const }, { id: 'command-not-found-dataforge', text: "`command not found: dataforge`", level: 3 as const }, { id: 'no-module-named-dataforge', text: "`No module named dataforge`", level: 3 as const }, { id: 'syncerror-tab-character-detected', text: "`SyncError: Tab character detected`", level: 3 as const }, { id: 'syncerror-indentation-mismatch', text: "`SyncError: Indentation mismatch`", level: 3 as const }, { id: 'erro-de-build-no-pip-install', text: "Erro de build no `pip install`", level: 3 as const }, { id: 'desinstalar', text: "Desinstalar", level: 2 as const }];
+const headings = [{ id: 'instalacao-em-um-comando', text: "Instalação em um comando", level: 2 as const }, { id: 'macos-e-linux', text: "macOS e Linux", level: 3 as const }, { id: 'windows-powershell', text: "Windows (PowerShell)", level: 3 as const }, { id: 'windows-as-outras-seis-formas', text: "Windows: as outras seis formas", level: 3 as const }, { id: 'a-forma-auditavel', text: "A forma auditável", level: 3 as const }, { id: 'nao-funcionou-o-diagnostico', text: "Não funcionou? O diagnóstico", level: 3 as const }, { id: 'instalar-de-outra-origem-mirror-ou-antes-de-publicar', text: "Instalar de outra origem (mirror, ou antes de publicar)", level: 3 as const }, { id: 'sem-python-na-maquina', text: "Sem Python na máquina", level: 2 as const }, { id: 'ajustar-a-instalacao', text: "Ajustar a instalação", level: 3 as const }, { id: 'o-editor-junto', text: "O editor, junto", level: 2 as const }, { id: 'docker', text: "Docker", level: 2 as const }, { id: 'construir-a-imagem-voce-mesmo', text: "Construir a imagem você mesmo", level: 3 as const }, { id: 'baixar-o-tarball-direto', text: "Baixar o tarball direto", level: 2 as const }, { id: 'a-partir-do-codigo-fonte', text: "A partir do código-fonte", level: 2 as const }, { id: 'requisitos', text: "Requisitos", level: 3 as const }, { id: 'se-voce-ainda-nao-tem-python', text: "Se você ainda não tem Python", level: 3 as const }, { id: 'clonar-e-instalar', text: "Clonar e instalar", level: 3 as const }, { id: 'ambiente-virtual', text: "Ambiente virtual", level: 2 as const }, { id: 'instalar', text: "Instalar", level: 2 as const }, { id: 'editor', text: "Editor", level: 2 as const }, { id: 'verificar-a-instalacao', text: "Verificar a instalação", level: 2 as const }, { id: 'problemas-comuns', text: "Problemas comuns", level: 2 as const }, { id: 'command-not-found-dataforge', text: "`command not found: dataforge`", level: 3 as const }, { id: 'no-module-named-dataforge', text: "`No module named dataforge`", level: 3 as const }, { id: 'syncerror-tab-character-detected', text: "`SyncError: Tab character detected`", level: 3 as const }, { id: 'syncerror-indentation-mismatch', text: "`SyncError: Indentation mismatch`", level: 3 as const }, { id: 'erro-de-build-no-pip-install', text: "Erro de build no `pip install`", level: 3 as const }, { id: 'desinstalar', text: "Desinstalar", level: 2 as const }];
 
 export default function Pagina() {
   return (

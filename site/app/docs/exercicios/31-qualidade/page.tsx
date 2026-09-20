@@ -187,8 +187,8 @@ Banco.insert_many(db, "livros", [
 
 action relatorio():
     linhas := Banco.aggregate(db, "livros",
-        {"quantos":["count", "*"],
-            "total":["sum", "preco"]})
+        {"quantos": ["count", "*"],
+            "total": ["sum", "preco"]})
     yield {"acervo": linhas[0]["quantos"], "valor": linhas[0]["total"]}
 
 // ── 2. Instantaneo ──────────────────────────────────────────

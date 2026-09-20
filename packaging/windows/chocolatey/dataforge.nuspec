@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>dataforge</id>
+    <version>1.0.0</version>
+    <title>DataForge</title>
+    <authors>Estevam Souza</authors>
+    <projectUrl>https://dataforge-lang.vercel.app</projectUrl>
+    <licenseUrl>https://github.com/estevam5s/DataForge/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/estevam5s/DataForge</projectSourceUrl>
+    <docsUrl>https://dataforge-lang.vercel.app/docs</docsUrl>
+    <bugTrackerUrl>https://github.com/estevam5s/DataForge/issues</bugTrackerUrl>
+    <tags>dataforge programming-language interpreter cli</tags>
+    <summary>Linguagem interpretada com 71 modulos de biblioteca padrao.</summary>
+    <description>
+Linguagem de proposito geral com lexer, parser, analisador estatico e
+interpretador proprios. O instalador embute o runtime: nao e preciso ter
+Python na maquina.
+    </description>
+    <releaseNotes>https://github.com/estevam5s/DataForge/releases/tag/v1.0.0</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

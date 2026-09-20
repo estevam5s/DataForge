@@ -267,14 +267,31 @@ def cache_isolado(tmp_path, monkeypatch):
     return cache
 
 
+#: Exercícios cuja saída NÃO é determinística: eles medem tempo, sorteiam
+#: ou contam o que threads fizeram. Comparar duas execuções deles não diz
+#: nada sobre o cache — diz que concorrência é concorrência.
+#:
+#: A primeira versão deste teste varria um a cada 37 e topou com o 257,
+#: que soma em 40 threads: ele reprovou no CI com um número diferente em
+#: cada execução, e o cache estava certo.
+_NAO_DETERMINISTICOS = ("concorrencia", "paralelismo", "async", "threads",
+                        "perfil", "observabilidade", "runtime", "bench",
+                        "desempenho", "stm")
+
+
 def test_a_arvore_do_cache_da_o_MESMO_resultado(cache_isolado):
     """A prova que importa: um cache que devolve a árvore errada é pior
     que nenhum cache, porque o programa roda — e roda outra coisa."""
     import glob
 
     diferentes = []
-    for caminho in sorted(glob.glob(os.path.join(
-            RAIZ, "exercicios", "*", "*.df")))[::37]:
+    escolhidos = [
+        c for c in sorted(glob.glob(os.path.join(
+            RAIZ, "exercicios", "*", "*.df")))
+        if not any(marca in c.lower() for marca in _NAO_DETERMINISTICOS)
+    ][::29]
+    assert len(escolhidos) >= 5, "a amostra ficou vazia"
+    for caminho in escolhidos:
         fonte = open(caminho, encoding="utf-8").read()
         saidas = []
         for do_cache in (False, True):

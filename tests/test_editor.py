@@ -223,15 +223,59 @@ def test_snippets_usam_a_sintaxe_da_linguagem():
 
 # ── Empacotamento ────────────────────────────────────────────
 
-def test_extensao_entra_no_tarball_que_o_site_serve():
-    """Sem isto, 'dataforge editor' falharia em quem instalou por curl."""
-    import importlib.util
-    caminho = os.path.join(RAIZ, "scripts", "gerar_tarball.py")
-    spec = importlib.util.spec_from_file_location("gerar_tarball", caminho)
-    modulo = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(modulo)
-    destinos = [dentro for _, dentro in modulo.EMBUTIR]
-    assert "dataforge/editor/vscode" in destinos
+def test_o_tarball_do_site_INSTALA_e_traz_a_extensao():
+    """O tarball tem de ter TUDO que o `pyproject.toml` pede.
+
+    Este teste conferia a tabela `EMBUTIR` do gerador — o mecanismo — e
+    passava enquanto o tarball publicado **não instalava**. O
+    `pyproject.toml` mapeia:
+
+        packages = [… "dataforge.editor"]
+        [tool.setuptools.package-dir]
+        "dataforge.editor" = "editor"
+
+    e o gerador punha a extensão em `dataforge/editor/vscode` **sem**
+    incluir a raiz `editor/`. Resultado: todo `pip install` do tarball
+    morria com *"error: package directory 'editor' does not exist"* — e
+    era o tarball que o site serve, então o instalador oficial falhava em
+    todas as máquinas.
+
+    No repositório `pip install .` funcionava, porque ali a pasta existe:
+    a divergência entre os dois layouts era invisível de dentro. O CI
+    reprovava, e a mensagem estava num job que ninguém lia.
+
+    Agora o teste pergunta o que importa: **todo destino de
+    `package-dir` existe na raiz do tarball?**
+    """
+    import re
+    import tarfile
+
+    tar = os.path.join(RAIZ, "site", "public", "dist")
+    achados = [f for f in os.listdir(tar) if f.endswith(".tar.gz")]
+    assert achados, "o tarball que o site serve não foi gerado"
+    caminho = os.path.join(tar, sorted(achados)[-1])
+
+    with tarfile.open(caminho) as arquivo:
+        nomes = arquivo.getnames()
+    # 'dataforge-1.0.0/editor/vscode/package.json' -> 'editor/vscode/…'
+    sem_prefixo = {n.split("/", 1)[1] for n in nomes if "/" in n}
+
+    pyproject = open(os.path.join(RAIZ, "pyproject.toml"),
+                     encoding="utf-8").read()
+    mapeados = re.findall(r'^"[\w.]+"\s*=\s*"([^"]+)"$', pyproject, re.M)
+    assert mapeados, "não achei nenhum 'package-dir' no pyproject.toml"
+
+    faltando = [pasta for pasta in mapeados
+                if not any(n == pasta or n.startswith(pasta + "/")
+                           for n in sem_prefixo)]
+    assert not faltando, (
+        f"o tarball não tem {faltando}, e o 'pyproject.toml' declara essa "
+        f"pasta em [tool.setuptools.package-dir] — o 'pip install' dele vai "
+        f"morrer com \"package directory does not exist\"")
+
+    # E a extensão está lá de verdade, e não só a pasta.
+    assert "editor/vscode/package.json" in sem_prefixo
+    assert any(n.startswith("editor/vscode/syntaxes/") for n in sem_prefixo)
 
 
 def test_pyproject_empacota_os_arquivos_da_extensao():

@@ -13,7 +13,7 @@ adopt Arcane.API as API
 
 server Loja on 8080:
     route GET "/produtos":
-        respond json {"produtos":[], "total": 0}
+        respond json {"produtos": [], "total": 0}
 
     route POST "/produtos":
         respond json {"criado": yes}

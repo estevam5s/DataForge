@@ -63,6 +63,29 @@ vermelho="${esc}[1;31m"; verde="${esc}[1;32m"; amarelo="${esc}[1;33m"
 ciano="${esc}[1;36m"; apagado="${esc}[0;90m"; fim="${esc}[0m"
 
 info()  { printf "${ciano}==>${fim} %s\n" "$1"; }
+
+#: '--local' instala desta copia. Lido aqui, antes de qualquer uso.
+FONTE_LOCAL=0
+for _arg in "$@"; do
+    case "$_arg" in
+        --local) FONTE_LOCAL=1 ;;
+    esac
+done
+
+#: A raiz do repositorio, deduzida do proprio script.
+RAIZ_DO_SCRIPT="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd || echo ".")"
+
+instalar_atalhos() {
+    mkdir -p "$PREFIXO/bin"
+    for nome in dataforge df; do
+        cat > "$PREFIXO/bin/$nome" <<ATALHO
+#!/usr/bin/env sh
+exec "$PREFIXO/venv/bin/dataforge" "\$@"
+ATALHO
+        chmod +x "$PREFIXO/bin/$nome"
+    done
+    ok "comandos: dataforge, df"
+}
 ok()    { printf "${verde}  ✓${fim} %s\n" "$1"; }
 #: '/Users/ana/.zshrc' -> '~/.zshrc'. Caminho absoluto numa mensagem
 #: rouba a atencao do que importa.
@@ -254,6 +277,37 @@ No Debian/Ubuntu falta o pacote:
     PIP="$PREFIXO/venv/bin/pip"
     "$PIP" install --quiet --upgrade pip >/dev/null 2>&1 || true
 
+    # '--local' (ou DATAFORGE_FONTE=<pasta>): instala DESTA copia, sem
+    # baixar nada.
+    #
+    # A CI passava '--local' e o script nao conhecia a opcao: ele caia no
+    # caminho normal e instalava o tarball PUBLICADO. O teste do
+    # instalador media o que ja estava no ar, e nao o commit em prova —
+    # entao ele nao podia pegar uma regressao antes da publicacao, e
+    # reprovava mesmo com a correcao ja commitada.
+    #
+    # Foi assim que 'package directory editor does not exist' ficou
+    # vermelho por dias: o defeito estava no tarball do site, e o commit
+    # que o corrigia continuava reprovando.
+    if [ "$FONTE_LOCAL" = "1" ]; then
+        FONTE="${DATAFORGE_FONTE:-$RAIZ_DO_SCRIPT}"
+        [ -f "$FONTE/pyproject.toml" ] || erro "'--local' precisa de um
+pyproject.toml em $FONTE. Rode o instalador de dentro do repositorio, ou
+aponte DATAFORGE_FONTE para ele."
+        ok "instalando desta copia ($(curto "$FONTE"))"
+    else
+        instalar_do_tarball
+    fi
+
+    info "instalando"
+    "$PIP" install --quiet "$FONTE" || erro "a instalação falhou"
+    ok "pacote instalado"
+    instalar_atalhos
+    depois_de_instalar
+}
+
+#: Baixa e extrai o tarball, deixando o caminho em $FONTE.
+instalar_do_tarball() {
     info "baixando o DataForge $VERSAO"
     ARQUIVO="$(mktemp -d)/dataforge.tar.gz"
 
@@ -279,20 +333,12 @@ Confira sua conexão, ou instale pelo PyPI:
     mkdir -p "$FONTE"
     tar -xzf "$ARQUIVO" -C "$FONTE" --strip-components=1
     ok "código baixado"
+}
 
-    info "instalando"
-    "$PIP" install --quiet "$FONTE" || erro "a instalação falhou"
-    ok "pacote instalado"
-
-    mkdir -p "$PREFIXO/bin"
-    for nome in dataforge df; do
-        cat > "$PREFIXO/bin/$nome" <<ATALHO
-#!/usr/bin/env sh
-exec "$PREFIXO/venv/bin/dataforge" "\$@"
-ATALHO
-        chmod +x "$PREFIXO/bin/$nome"
-    done
-    ok "comandos: dataforge, df"
+#: O resto da instalacao: PATH, editor, exemplos. Os dois caminhos
+#: (tarball e '--local') passam por aqui — foi o que a primeira versao
+#: do '--local' pulou, e o PATH deixou de ser configurado.
+depois_de_instalar() {
 
     VERIFICADA="$("$PREFIXO/bin/dataforge" version 2>&1 | head -1)"
     printf "\n${verde}  %s instalado${fim}\n\n" "$VERIFICADA"

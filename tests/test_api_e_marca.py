@@ -808,6 +808,58 @@ def test_o_pkgbuild_do_arch_esta_na_versao_da_linguagem():
         f"{__version__} — rode packaging/gerar_pacotes.py")
 
 
+def test_o_pacote_e_conferido_pelo_CONTEUDO_e_nao_por_bytes():
+    """O piso de bytes confundia duas coisas muito diferentes.
+
+    Com a extensão do VS Code compilada o `.deb` tem ~6,5 MB; **sem
+    ela**, ~1,3 MB — e `editor/vscode/out/` é gitignored, porque é
+    artefato de build. Numa máquina limpa (a CI) o pacote nasce
+    legitimamente menor, e o piso de 2 MB o recusava: **três testes
+    falhavam desde que o piso existe**, e a mensagem culpava o
+    `pip install --target`, que estava certo.
+
+    O que o piso queria pegar era o pacote VAZIO — a versão publicada na
+    1.0.0 tinha 1.194 bytes. Isso continua pego. O resto virou uma
+    pergunta sobre conteúdo: a linguagem está lá dentro?
+    """
+    import sys as _sys
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _sys.path.insert(0, os.path.join(raiz, "packaging"))
+    import gerar_pacotes as g
+
+    base = "./usr/lib/python3/dist-packages"
+
+    def arvore(com_extensao):
+        itens = [(f"{base}/{n}", b"x" * 100, 0o644) for n in g.ESSENCIAIS]
+        itens += [(f"{base}/dataforge/stdlib/m{i}.py", b"x" * 100, 0o644)
+                  for i in range(g.MINIMO_DE_MODULOS_NO_PACOTE + 5)]
+        if com_extensao:
+            itens += [(f"{base}/dataforge/editor/vscode/out/a{i}.js",
+                       b"x" * 9000, 0o644) for i in range(37)]
+        return itens
+
+    # Passa nos dois ambientes: é o ponto.
+    assert g._conferir_conteudo(arvore(True))
+    assert g._conferir_conteudo(arvore(False))
+
+    # E recusa o que importa recusar.
+    with pytest.raises(SystemExit) as erro:
+        g._conferir_conteudo([a for a in arvore(False)
+                              if "interpreter.py" not in a[0]])
+    assert "interpreter.py" in str(erro.value)
+
+    with pytest.raises(SystemExit) as erro:
+        g._conferir_conteudo([(f"{base}/{n}", b"x", 0o644)
+                              for n in g.ESSENCIAIS])
+    assert "pela metade" in str(erro.value)
+
+    # O piso continua pegando o pacote de 1.194 bytes que foi publicado.
+    assert g.TAMANHO_MINIMO_DO_DEB > 100 * 1024
+    assert g.TAMANHO_MINIMO_DO_DEB < 1024 * 1024, (
+        "o piso voltou a recusar um pacote sem a extensão compilada")
+
+
 def test_o_deb_gerado_e_um_ar_valido(tmp_path):
     """Publicar um pacote quebrado é pior que não publicar."""
     import io as _io
@@ -1438,7 +1490,14 @@ def test_o_download_nao_chama_de_pendente_o_que_ja_esta_publicado():
     assert "espera: 'não há'" in fonte, (
         "o Mac Intel precisa de etiqueta propria: 'na próxima versão' "
         "prometeria um binario que nao vem")
-    assert pendentes == ["Executável — Intel", "Arch Linux e derivadas"], (
+    # As tres primeiras dependem de aprovacao FORA deste repositorio: um
+    # PR aceito no 'microsoft/winget-pkgs', moderacao no chocolatey.org e
+    # entrada num bucket do Scoop. Os manifestos existem e sao gerados
+    # ('packaging/windows/'), e por isso a pagina mostra o comando com a
+    # espera dita — prometer 'winget install' antes do PR seria oferecer
+    # um comando que responde "No package found".
+    assert pendentes == ["winget", "Chocolatey", "Scoop",
+                         "Executável — Intel", "Arch Linux e derivadas"], (
         f"o que está pendente mudou: {pendentes} — confira se ainda é "
         f"verdade antes de ajustar este teste")
 

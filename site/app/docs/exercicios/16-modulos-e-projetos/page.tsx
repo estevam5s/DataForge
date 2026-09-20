@@ -284,7 +284,7 @@ manifesto := {
         "name": "meu-app",
         "version": "0.1.0",
         "description": "Exemplo de manifesto",
-        "authors":["voce"],
+        "authors": ["voce"],
         "license": "MIT",
         "entry": "src/main.df",
         "dataforge": ">=4.0"
@@ -296,7 +296,7 @@ manifesto := {
     },
     "lint": {
         "strict": no,
-        "ignore":["magic-number"]
+        "ignore": ["magic-number"]
     }
 }
 

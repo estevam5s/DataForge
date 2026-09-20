@@ -725,14 +725,14 @@ action cadastrar(titulo, autor, ano):
 action emprestar(livro_id, leitor, dias):
     ja := DB.query_one(conn, "SELECT id FROM emprestimos WHERE livro_id = ?", [livro_id])
     given ja isnt void:
-        yield {"ok": no, "erros":["livro ja emprestado"]}
+        yield {"ok": no, "erros": ["livro ja emprestado"]}
     DB.execute(conn, "INSERT INTO emprestimos (livro_id, leitor, dias) VALUES (?, ?, ?)",
         [livro_id, leitor, dias])
     yield {"ok": yes}
 
 action livros():
     yield DB.query(conn, "SELECT id, titulo, autor, ano FROM livros ORDER BY titulo")
-    >> morph l: Livro(l["id"], l["titulo"], l["autor"], l["ano"])
+        >> morph l: Livro(l["id"], l["titulo"], l["autor"], l["ano"])
 
 action emprestimo_de(livro_id):
     linha := DB.query_one(conn,
@@ -1021,9 +1021,9 @@ ensure:
 out ""
 out "11. pipelines"
 total := nums
->> sift n: n % 2 is 0
->> morph n: n * 10
->> distill acc, v: acc + v 0
+    >> sift n: n % 2 is 0
+    >> morph n: n * 10
+    >> distill acc, v: acc + v 0
 out $"   pares x10 somados: {total}"
 
 // ── 12. Generators ──

@@ -17,11 +17,11 @@ d := P.dono("conexao", lambda x => fechados.append(x))
 assert d.usar(lambda x => len(x)) is 7
 assert d.vivo()
 
-d.soltar()                          // roda AGORA, e nao quando der
+d.soltar()  // roda AGORA, e nao quando der
 assert not d.vivo()
 assert fechados is ["conexao"]
 
-d.soltar()                          // idempotente
+d.soltar()  // idempotente
 d.soltar()
 assert len(fechados) is 1
 
@@ -39,17 +39,17 @@ assert valor is 1 and soltos is ["a"]
 
 monitor:
     P.com(P.dono("b", lambda x => soltos.append(x)),
-          lambda x => trigger "falhou no meio")
+        lambda x => trigger "falhou no meio")
 handle Error as e:
     assert e.message is "falhou no meio"
 
-assert soltos is ["a", "b"]         // o caminho de erro tambem solta
+assert soltos is ["a", "b"]  // o caminho de erro tambem solta
 
 // ── mover: quem move, perde ──
 a := P.dono([1, 2])
 b := a.mover()
 
-assert a.movido()                   // perguntar o estado e legitimo
+assert a.movido()  // perguntar o estado e legitimo
 assert b.usar(lambda x => len(x)) is 2
 
 monitor:
@@ -61,7 +61,7 @@ handle RuntimeError as e:
 // ── copia e clone sao coisas diferentes ──
 original := P.dono([1, 2])
 
-rasa := original.copiar()           // o MESMO valor
+rasa := original.copiar()  // o MESMO valor
 rasa.mudar(lambda x => x.append(3))
 
 funda := original.clonar(lambda x => [...x])
@@ -125,11 +125,11 @@ pai := P.compartilhado({"nome": "pai"}, lambda x => vazados.append("pai"))
 filho := P.compartilhado({"nome": "filho"}, lambda x => vazados.append("filho"))
 
 pai.usar(lambda v => v.set("filho", filho.clonar()))
-filho.usar(lambda v => v.set("pai", pai.clonar()))     // forte: o ciclo
+filho.usar(lambda v => v.set("pai", pai.clonar()))  // forte: o ciclo
 
 pai.soltar()
 filho.soltar()
-assert vazados is []                // ninguem chegou a zero
+assert vazados is []  // ninguem chegou a zero
 
 // agora com a volta fraca
 quebrados := []
@@ -137,11 +137,11 @@ p2 := P.compartilhado({"nome": "pai"}, lambda x => quebrados.append("pai"))
 f2 := P.compartilhado({"nome": "filho"}, lambda x => quebrados.append("filho"))
 
 p2.usar(lambda v => v.set("filho", f2.clonar()))
-f2.usar(lambda v => v.set("pai", P.fraco(p2)))         // FRACA: nao conta
+f2.usar(lambda v => v.set("pai", P.fraco(p2)))  // FRACA: nao conta
 
 f2.soltar()
 p2.soltar()
-assert quebrados is ["pai", "filho"]   // o de fora, e o que ele possuia
+assert quebrados is ["pai", "filho"]  // o de fora, e o que ele possuia
 
 // a fraca responde Talvez: ela nao promete que o valor existe
 forte := P.compartilhado({"id": 1})

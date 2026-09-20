@@ -24,7 +24,7 @@ assert achado.valor()["nome"] is "Ana"
 assert perdido.falhou()
 assert perdido.erro() is "id negativo"
 assert perdido.detalhe() is 400
-assert perdido.ou("ninguem") is "ninguem"     // 'ou' nunca levanta
+assert perdido.ou("ninguem") is "ninguem"  // 'ou' nunca levanta
 
 // ler o valor de uma falha e uma AFIRMACAO, e ela levanta
 monitor:
@@ -68,8 +68,8 @@ config := {"tema": void}
 tem := R.chave(config, "tema")
 nao := R.chave(config, "idioma")
 
-assert tem.tem() and tem.valor() is void      // esta la, e vale void
-assert not nao.tem()                          // nao esta la
+assert tem.tem() and tem.valor() is void  // esta la, e vale void
+assert not nao.tem()  // nao esta la
 assert nao.ou("pt-BR") is "pt-BR"
 assert R.primeiro([1, 2, 3], lambda x => x bigger 2).valor() is 3
 assert not R.primeiro([1, 2], lambda x => x bigger 9).tem()
@@ -88,13 +88,13 @@ assert Tipos.de("NaoExiste") is void
 // conferir sem levantar
 assert Tipos.satisfaz(5, "Positivo")
 assert not Tipos.satisfaz(-5, "Positivo")
-assert not Tipos.satisfaz("texto", "Positivo")   // a base decide primeiro
+assert not Tipos.satisfaz("texto", "Positivo")  // a base decide primeiro
 assert not Tipos.satisfaz("12345678901", "Cpf")  // opaco e nominal
 
 // a forma ESTRUTURAL, que 'typeof' nao da
 assert typeof([1, 2]) is "Cluster"
 assert Tipos.forma([1, 2]) is "Cluster<Integer>"
-assert Tipos.forma([1, "a"]) is "Cluster<Any>"   // misturado: Any, nao o primeiro
+assert Tipos.forma([1, "a"]) is "Cluster<Any>"  // misturado: Any, nao o primeiro
 assert Tipos.forma((1, "a")) is "Tuple<Integer, String>"
 assert Tipos.forma({"a": 1}) is "Vault<String, Integer>"
 

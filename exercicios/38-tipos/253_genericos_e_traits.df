@@ -49,7 +49,7 @@ monitor:
     assert no
 handle TypeError as e:
     assert "Caixa<Integer>" in e.message
-    assert "valor" in e.message           // o campo culpado aparece
+    assert "valor" in e.message  // o campo culpado aparece
 
 // com limite, o record cobra na construcao
 record Medida<T extends Number>:
@@ -119,8 +119,8 @@ handle TypeError as e:
 
 // ── trait: exigencia, padrao e heranca ──
 trait Legivel:
-    action ler()                          // exigencia: sem corpo
-    action descrever():                   // padrao: vem de graca
+    action ler()  // exigencia: sem corpo
+    action descrever():  // padrao: vem de graca
         yield $"leio: {self.ler()}"
 
 trait Editavel extends Legivel:
@@ -136,7 +136,7 @@ blueprint Nota extends Editavel:
 n := spawn Nota()
 n.escrever("oi")
 assert n.ler() is "oi"
-assert n.descrever() is "leio: oi"        // o padrao herdado do trait da mae
+assert n.descrever() is "leio: oi"  // o padrao herdado do trait da mae
 
 // quem implementa metade e recusado, e a mensagem diz de onde vem a exigencia
 monitor:
@@ -146,7 +146,7 @@ monitor:
     assert no
 handle TraitContractError as e:
     assert "ler" in e.message
-    assert "Legivel" in e.message         // quem exigiu, nao quem repassou
+    assert "Legivel" in e.message  // quem exigiu, nao quem repassou
 
 // ── trait generico, tipo e constante associados ──
 trait Coletor:
@@ -155,7 +155,7 @@ trait Coletor:
     action pegar() -> Item
 
 blueprint Fila extends Coletor:
-    type Item := Integer                  // preenchido por quem implementa
+    type Item := Integer  // preenchido por quem implementa
     itens := [10, 20]
     action pegar() -> Item:
         yield self.itens[0]
@@ -217,7 +217,7 @@ action registrar(x: Auditavel) -> String:
 assert registrar(spawn Lancamento()) is "L"
 
 monitor:
-    registrar(spawn Quadrado())           // tem area, nao tem serializar
+    registrar(spawn Quadrado())  // tem area, nao tem serializar
     assert no
 handle TypeError as e:
     assert "Serial" in e.message

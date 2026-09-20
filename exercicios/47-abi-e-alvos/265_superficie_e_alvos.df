@@ -19,15 +19,15 @@ pasta := $"{OS.temp_dir()}/df-265-{randint(100000, 999999)}"
 IO.mkdir(pasta)
 
 V1 := "action somar(a: Integer, b: Integer) -> Integer:\n" +
-      "    yield a + b\n\n" +
-      "action saudar(nome: String) -> String:\n" +
-      "    yield nome\n\n" +
-      "record Ponto:\n" +
-      "    x: Integer\n" +
-      "    y: Integer\n\n" +
-      "action interna():\n" +
-      "    yield 1\n\n" +
-      "relay somar, saudar, Ponto\n"
+"    yield a + b\n\n" +
+"action saudar(nome: String) -> String:\n" +
+"    yield nome\n\n" +
+"record Ponto:\n" +
+"    x: Integer\n" +
+"    y: Integer\n\n" +
+"action interna():\n" +
+"    yield 1\n\n" +
+"relay somar, saudar, Ponto\n"
 
 antes := $"{pasta}/v1.df"
 IO.write(antes, V1)
@@ -53,8 +53,8 @@ assert Abi.comparar(antes, igual)["veredito"] is "correcao"
 // ── so acrescimo: menor ──
 maisUm := $"{pasta}/mais.df"
 IO.write(maisUm, V1.replace("relay somar, saudar, Ponto",
-                            "action dobrar(n):\n    yield n * 2\n\n" +
-                            "relay somar, saudar, Ponto, dobrar"))
+        "action dobrar(n):\n    yield n * 2\n\n" +
+        "relay somar, saudar, Ponto, dobrar"))
 r := Abi.comparar(antes, maisUm)
 assert r["veredito"] is "menor"
 assert r["quebras"] is []
@@ -63,7 +63,7 @@ assert r["compativeis"][0]["tipo"] is "simbolo-novo"
 // ── tirar um simbolo: maior ──
 semSaudar := $"{pasta}/sem.df"
 IO.write(semSaudar, V1.replace("relay somar, saudar, Ponto",
-                               "relay somar, Ponto"))
+        "relay somar, Ponto"))
 q := Abi.comparar(antes, semSaudar)
 assert q["veredito"] is "maior"
 assert q["quebras"][0]["tipo"] is "simbolo-removido"
@@ -74,14 +74,14 @@ assert len(q["quebras"][0]["dica"]) bigger 15
 // ── exigir mais um argumento: maior ──
 maisArg := $"{pasta}/arg.df"
 IO.write(maisArg, V1.replace("action somar(a: Integer, b: Integer)",
-                             "action somar(a: Integer, b: Integer, c: Integer)"))
+        "action somar(a: Integer, b: Integer, c: Integer)"))
 assert Abi.veredito(antes, maisArg) is "maior"
 
 // mas um parametro OPCIONAL novo nao quebra: quem chamava com dois
 // continua chamando com dois
 opcional := $"{pasta}/opc.df"
 IO.write(opcional, V1.replace("action somar(a: Integer, b: Integer)",
-                              "action somar(a: Integer, b: Integer, c := 0)"))
+        "action somar(a: Integer, b: Integer, c := 0)"))
 assert Abi.veredito(antes, opcional) is "menor"
 assert Abi.compativel(antes, opcional)
 
@@ -91,7 +91,7 @@ assert Abi.compativel(antes, opcional)
 // contrato, e nao so a posicao.
 renomeado := $"{pasta}/ren.df"
 IO.write(renomeado, V1.replace("action somar(a: Integer, b: Integer)",
-                               "action somar(x: Integer, b: Integer)"))
+        "action somar(x: Integer, b: Integer)"))
 quebras := Abi.quebras(antes, renomeado)
 assert len([k cycle k in quebras given k["tipo"] is "parametro-renomeado"]) is 1
 
@@ -101,7 +101,7 @@ assert len([k cycle k in quebras given k["tipo"] is "parametro-renomeado"]) is 1
 retorno := $"{pasta}/ret.df"
 IO.write(retorno, V1.replace("-> Integer:\n    yield a + b", "-> Float:\n    yield a + b"))
 assert len([k cycle k in Abi.quebras(antes, retorno)
-            given k["tipo"] is "retorno-trocado"]) is 1
+        given k["tipo"] is "retorno-trocado"]) is 1
 
 // ── o terceiro balde: o que a superficie NAO decide ──
 // Acrescentar campo a um record quebra SE ele nao tiver padrao. A
@@ -125,14 +125,14 @@ assert d["motivo"] isnt ""
 // ── o mapa de simbolos: o analogo do mapa do ligador ──
 prog := $"{pasta}/prog.df"
 IO.write(prog, "adopt Arcane.Math as M\n\n" +
-               "action calcular(n):\n" +
-               "    yield M.sqrt(n) + len(\"abc\") + fantasma\n")
+    "action calcular(n):\n" +
+    '    yield M.sqrt(n) + len("abc") + fantasma\n')
 
 origem := {e["nome"]: e["origem"] cycle e in Abi.mapa(prog)}
 assert origem["M"] is "modulo"
 assert origem["len"] is "embutido"
 assert origem["calcular"] is "local"
-assert origem["fantasma"] is "desconhecido"   // NINGUEM prove este nome
+assert origem["fantasma"] is "desconhecido"  // NINGUEM prove este nome
 
 // ── PARTE 19: onde este programa roda ──
 comProcesso := $"{pasta}/servidor.df"
@@ -156,7 +156,7 @@ assert len(aba["problemas"]) is 2
 // e cada ausencia vem com o MOTIVO, nao so com um "nao"
 assert "SharedArrayBuffer" in Alvo.porque("navegador", "threads")
 assert "soquete cru" in Alvo.porque("navegador", "rede")
-assert Alvo.porque("servidor", "rede") is ""   // ele tem
+assert Alvo.porque("servidor", "rede") is ""  // ele tem
 
 // um programa puro roda em todo lugar
 puro := $"{pasta}/puro.df"

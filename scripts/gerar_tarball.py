@@ -31,10 +31,24 @@ from dataforge import __version__ as VERSAO  # noqa: E402
 INCLUIR = ["dataforge", "pyproject.toml", "README.md", "LICENSE",
            "CLAUDE.md", "doc", "examples", "exercicios"]
 
-# A extensao do VS Code entra *dentro* do pacote, e nao ao lado dele:
-# assim o pip a instala junto e 'dataforge editor' funciona em qualquer
-# maquina, sem repositorio e sem rede.
-EMBUTIR = [("editor/vscode", "dataforge/editor/vscode")]
+# A extensao do VS Code entra no MESMO lugar em que ela mora no
+# repositorio: 'editor/vscode', na raiz.
+#
+# Ela acaba DENTRO do pacote instalado de todo jeito — quem faz isso e o
+# 'pyproject.toml':
+#
+#     packages = [… "dataforge.editor"]
+#     [tool.setuptools.package-dir]
+#     "dataforge.editor" = "editor"
+#
+# A versao anterior a punha direto em 'dataforge/editor/vscode' e NAO
+# incluia a raiz 'editor/'. O efeito: o 'pip install' do tarball morria
+# com "error: package directory 'editor' does not exist" — e era o
+# tarball que o site serve, entao o instalador oficial falhava em todas
+# as maquinas. No repositorio 'pip install .' funcionava, porque ali a
+# pasta existe: a divergencia entre os dois layouts era invisivel de
+# dentro.
+EMBUTIR = [("editor/vscode", "editor/vscode")]
 IGNORAR = {"__pycache__", ".pyc", ".DS_Store", ".pytest_cache", "dist", ".egg-info"}
 
 
@@ -135,7 +149,9 @@ def main():
     # atualizada. Agora a copia publicada e gerada aqui, sempre.
     problemas = []
     for origem, destino in [("scripts/instalar.sh", "site/public/instalar.sh"),
-                            ("scripts/instalar.ps1", "site/public/instalar.ps1")]:
+                            ("scripts/instalar.ps1", "site/public/instalar.ps1"),
+                            ("scripts/diagnostico.ps1",
+                             "site/public/diagnostico.ps1")]:
         fonte = RAIZ / origem
         if not fonte.exists():
             continue

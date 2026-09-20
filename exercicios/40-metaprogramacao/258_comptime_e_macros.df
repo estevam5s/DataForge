@@ -65,7 +65,7 @@ action virar_soma(nodo):
 
 trocada := M.reescrever(dobro, virar_soma)
 assert dobro(5) is 10
-assert trocada(5) is 10                 // corpo diferente, resultado igual
+assert trocada(5) is 10  // corpo diferente, resultado igual
 
 // gerar: uma acao a partir de texto
 gerada := M.compilar("a * 10", "dez_vezes", ["a"])

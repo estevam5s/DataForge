@@ -8,12 +8,12 @@ adopt Arcane.Quadro as Q
 // vaults. E o que 'IO.read_csv(caminho, yes)' devolve, e o que
 // 'Database.query' devolve.
 vendas := Q.de_vaults([
-    {"produto": "cafe",   "regiao": "sul",   "valor": 120.0, "qtd": 4},
-    {"produto": "cafe",   "regiao": "norte", "valor": 90.0,  "qtd": 3},
-    {"produto": "cha",    "regiao": "sul",   "valor": 60.0,  "qtd": 2},
-    {"produto": "cha",    "regiao": "norte", "valor": void,  "qtd": 1},
-    {"produto": "acucar", "regiao": "sul",   "valor": 30.0,  "qtd": 5}
-])
+        {"produto": "cafe", "regiao": "sul", "valor": 120.0, "qtd": 4},
+        {"produto": "cafe", "regiao": "norte", "valor": 90.0, "qtd": 3},
+        {"produto": "cha", "regiao": "sul", "valor": 60.0, "qtd": 2},
+        {"produto": "cha", "regiao": "norte", "valor": void, "qtd": 1},
+        {"produto": "acucar", "regiao": "sul", "valor": 30.0, "qtd": 5}
+    ])
 
 assert typeof(vendas) is "Quadro", "o tipo tem o nome da linguagem"
 assert vendas.forma() is [5, 4], "cinco linhas, quatro colunas"
@@ -73,7 +73,7 @@ assert limpo.coluna("valor")[3] is 75.0, "a media das quatro que havia"
 
 // ── 6. Juntar ───────────────────────────────────────────────
 
-gerentes := Q.de_vaults([{"regiao": "sul", "gerente": "Ana"}])
+gerentes := Q.de_vaults([{"regiao":"sul", "gerente":"Ana"}])
 
 dentro := vendas.juntar(gerentes, "regiao")
 esquerda := vendas.juntar(gerentes, "regiao", "esquerda")

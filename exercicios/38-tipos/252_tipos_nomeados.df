@@ -12,7 +12,7 @@ type Ids := Cluster<Id>
 x: Id := 7
 lista: Ids := [1, 2, 3]
 
-assert typeof(x) is "Integer"        // o alias nao cria tipo novo
+assert typeof(x) is "Integer"  // o alias nao cria tipo novo
 assert len(lista) is 3
 
 // o nome que a pessoa escreveu aparece na mensagem
@@ -81,7 +81,7 @@ action registrar(item: Auditavel) -> String:
 assert registrar(spawn Lancamento()) is "L10"
 
 monitor:
-    registrar(spawn Rascunho())          // so serializa: falta comparar
+    registrar(spawn Rascunho())  // so serializa: falta comparar
     assert no
 handle TypeError as e:
     assert "Ordenavel" in e.message
@@ -109,10 +109,10 @@ monitor:
     assert no
 handle TypeError as e:
     assert "Positivo" in e.message
-    assert "valor bigger 0" in e.message   // a regra aparece na mensagem
+    assert "valor bigger 0" in e.message  // a regra aparece na mensagem
 
 monitor:
-    desconto(100, 200)                     // devolveria -100
+    desconto(100, 200)  // devolveria -100
     assert no
 handle TypeError as e:
     assert "return value" in e.message
@@ -125,10 +125,10 @@ documento := Cpf("12345678901")
 distancia := Metros(2.5)
 
 assert typeof(documento) is "Cpf"
-assert documento.valor is "12345678901"    // o dado de dentro
-assert $"{documento}" is "12345678901"     // texto, pelo valor
+assert documento.valor is "12345678901"  // o dado de dentro
+assert $"{documento}" is "12345678901"  // texto, pelo valor
 assert distancia.valor * 2 is 5.0
-assert distancia bigger Metros(1.0)        // ordem, pelo valor
+assert distancia bigger Metros(1.0)  // ordem, pelo valor
 
 action cadastrar(quem: Cpf) -> String:
     yield quem.valor
@@ -155,7 +155,7 @@ adopt Arcane.Collections as C
 
 outro := Cpf("12345678901")
 assert documento is outro
-assert S.to_json({"cpf": documento}) is "{\"cpf\": \"12345678901\"}"
+assert S.to_json({"cpf": documento}) is '{"cpf": "12345678901"}'
 assert len(C.set([documento, outro])) is 1
 
 out "252 ok"

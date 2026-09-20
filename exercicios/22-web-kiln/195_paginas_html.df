@@ -33,7 +33,7 @@ server site on 0:
         render "lista.html" with {"titulo": "Forja", "produtos": produtos}
 
     route GET "/vazio":
-        render "lista.html" with {"titulo": "Vazio", "produtos":[]}
+        render "lista.html" with {"titulo": "Vazio", "produtos": []}
 
 pagina := Kiln.test(site, "GET", "/")
 out pagina["body"]

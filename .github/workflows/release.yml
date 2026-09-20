@@ -226,7 +226,8 @@ jobs:
   # ── Os pacotes de distribuicao ──
   distros:
     name: .deb e PKGBUILD
-    needs: [versao]
+    # 'construir' entra porque o sha256 do .exe do Windows sai de la.
+    needs: [versao, construir]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -234,6 +235,35 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -e .
+
+      # Os manifestos do Windows (winget, Chocolatey, Scoop) carregam o
+      # SHA-256 do instalador, e sem ele o gerenciador RECUSA a
+      # instalacao com uma mensagem sobre integridade — a pessoa conclui
+      # que o arquivo foi adulterado.
+      #
+      # O hash so existe depois de o job 'construir' produzir o .exe, e
+      # por isso ele e baixado aqui. Sem este passo o gerador emite um
+      # placeholder e avisa; 'tests/test_windows.py' cobra que este
+      # passo exista, porque um aviso no log de CI ninguem le duas vezes.
+      - uses: actions/download-artifact@v4
+        with:
+          name: dataforge-windows-x64
+          path: artefatos-windows
+        continue-on-error: true
+
+      - name: o sha256 do instalador do Windows
+        shell: bash
+        run: |
+          exe=$(find artefatos-windows -name '*windows-x64-setup.exe' \
+                -print -quit 2>/dev/null || true)
+          if [ -n "$exe" ]; then
+            sha=$(shasum -a 256 "$exe" | cut -d' ' -f1)
+            echo "DF_SHA_WINDOWS=$sha" >> "$GITHUB_ENV"
+            echo "  sha256 do .exe: $sha"
+          else
+            echo "::warning::o .exe do Windows nao chegou aqui; os"\
+                 " manifestos sairao com placeholder"
+          fi
 
       - name: gerar
         run: python packaging/gerar_pacotes.py

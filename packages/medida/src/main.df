@@ -101,11 +101,11 @@ action temperatura(valor, de, para):
 //  seria tecnicamente certo e completamente inútil: quem escreveu em
 //  metros quer ler em centímetros, não em pés.
 steady ESCADAS := {
-    "distancia":["mm", "cm", "m", "km"],
-    "massa":["mg", "g", "kg", "tonelada"],
-    "volume":["ml", "l", "m3"],
-    "tempo":["ms", "s", "min", "h", "dia", "semana"],
-    "dados":["b", "kb", "mb", "gb", "tb"]
+    "distancia": ["mm", "cm", "m", "km"],
+    "massa": ["mg", "g", "kg", "tonelada"],
+    "volume": ["ml", "l", "m3"],
+    "tempo": ["ms", "s", "min", "h", "dia", "semana"],
+    "dados": ["b", "kb", "mb", "gb", "tb"]
 }
 
 action formatar(valor, unidade, casas := 2):

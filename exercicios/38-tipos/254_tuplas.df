@@ -15,10 +15,10 @@ assert typeof(t) is "Tuple"
 assert len(t) is 2
 assert t[0] is 1 and t[1] is "a" and t[-1] is "a"
 
-x := (2 + 3) * 2                  // agrupamento, nao tupla
+x := (2 + 3) * 2  // agrupamento, nao tupla
 assert x is 10 and typeof(x) is "Integer"
 
-um := (7,)                        // a virgula faz a tupla de um
+um := (7,)  // a virgula faz a tupla de um
 vazia := ()
 assert len(um) is 1 and len(vazia) is 0
 
@@ -26,9 +26,9 @@ assert len(um) is 1 and len(vazia) is 0
 assert typeof(t[0:1]) is "Tuple"
 
 // ── tres tipos parecidos, tres promessas diferentes ──
-assert typeof([1, 2]) is "Cluster"          // muda
-assert typeof(freeze([1, 2])) is "Frozen"   // cluster congelado
-assert typeof((1, 2)) is "Tuple"            // forma fixa
+assert typeof([1, 2]) is "Cluster"  // muda
+assert typeof(freeze([1, 2])) is "Frozen"  // cluster congelado
+assert typeof((1, 2)) is "Tuple"  // forma fixa
 
 // ── imutavel: escrever e recusado, com o motivo ──
 monitor:
@@ -44,7 +44,7 @@ grade := {}
 grade[a] := "achei"
 
 assert a is b
-assert a isnt (1, "y")
+assert a isnt(1, "y")
 assert grade[b] is "achei"
 assert len(C.set([a, b])) is 1
 
@@ -56,32 +56,32 @@ monitor:
     trocada: Tuple<Integer, String> := ("a", 1)
     assert no
 handle TypeError as e:
-    assert "place 0" in e.message              // a casa culpada
+    assert "place 0" in e.message  // a casa culpada
 
 monitor:
     grande: Tuple<Integer, String> := (1, "a", 2)
     assert no
 handle TypeError as e:
-    assert "place(s)" in e.message             // o tamanho faz parte do tipo
+    assert "place(s)" in e.message  // o tamanho faz parte do tipo
 
 // ── o retorno duplo, que antes exigia cluster ou vault ──
 action dividir(a: Integer, b: Integer) -> Tuple<Integer, Integer>:
-    yield (a ~/ b, a % b)
+    yield(a ~/ b, a % b)
 
 inteiro, resto := dividir(17, 5)
 assert inteiro is 3 and resto is 2
 
 monitor:
     action errada() -> Tuple<Integer, Integer>:
-        yield (1, "dois")
+        yield(1, "dois")
     errada()
     assert no
 handle TypeError as e:
     assert "return value" in e.message
 
 // ── com alias, aninhada, em record e em colecao ──
-type Coordenada := Tuple<Float, Float>
-type Segmento := Tuple<Coordenada, Coordenada>
+type Coordenada := Tuple < Float, Float >
+type Segmento := Tuple < Coordenada, Coordenada >
 
 record Trecho:
     de: Coordenada
@@ -96,7 +96,7 @@ assert trecho.para[1] is 4.0
 assert pares[1][1] is "dois"
 
 action distancia(de: Coordenada, para: Coordenada) -> Float:
-    yield ((para[0] - de[0]) ** 2 + (para[1] - de[1]) ** 2) ** 0.5
+    yield((para[0] - de[0]) ** 2 + (para[1] - de[1]) ** 2) ** 0.5
 
 assert distancia(s[0], s[1]) is 5.0
 
@@ -108,10 +108,10 @@ handle TypeError as e:
 
 // ── percorrer, pertencer, serializar ──
 soma := 0
-cycle item in (1, 2, 3):
+cycle item in(1, 2, 3):
     soma += item
 assert soma is 6
-assert 2 in (1, 2, 3)
-assert S.to_json((1, "a")) is "[1, \"a\"]"    // JSON nao tem tupla: vira array
+assert 2 in(1, 2, 3)
+assert S.to_json((1, "a")) is '[1, "a"]'  // JSON nao tem tupla: vira array
 
 out "254 ok"

@@ -77,7 +77,7 @@ assert L.estatisticas(apertado)["recusadas"] is 1
 // erro costuma ser de UMA conexao.
 resistente := L.novo()
 seguiu := []
-L.agendar(resistente, lambda => 1 / 0)   // df: permitir division-by-zero
+L.agendar(resistente, lambda => 1 / 0)  // df: permitir division-by-zero
 L.agendar(resistente, lambda => seguiu.append("segui"))
 L.rodar(resistente)
 
@@ -182,7 +182,7 @@ outras := []
 
 stream action quebra():
     emit L.ceder()
-    _x := 1 / 0        // df: permitir division-by-zero
+    _x := 1 / 0  // df: permitir division-by-zero
 
 stream action segue(r):
     emit L.ceder()

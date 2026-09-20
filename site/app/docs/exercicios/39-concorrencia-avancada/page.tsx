@@ -37,7 +37,7 @@ action somar_muitas(i):
         T.atomicamente(lambda => T.escrever(total, T.ler(total) + 1))
 
 C.para_cada(somar_muitas, [i cycle i in range(1, 41)])
-assert T.valor(total) is 8000          // 40 threads x 200, nada perdido
+assert T.valor(total) is 8000  // 40 threads x 200, nada perdido
 
 // ── atomicidade: metade escrita nao existe ──
 a := T.variavel(10)
@@ -77,10 +77,10 @@ action dobrar_q():
     T.escrever(q, T.ler(q) * 2)
 
 action as_duas():
-    dobrar_p()                          // ja e transacional
-    dobrar_q()                          // esta tambem
+    dobrar_p()  // ja e transacional
+    dobrar_q()  // esta tambem
 
-T.atomicamente(as_duas)                 // e as duas viram UMA
+T.atomicamente(as_duas)  // e as duas viram UMA
 assert T.valor(p) is 2 and T.valor(q) is 2
 
 // ── esperar sem girar ──
@@ -90,7 +90,7 @@ reserva := T.variavel(["de reserva"])
 action da_fila():
     itens := T.ler(fila)
     given len(itens) is 0:
-        T.retentar()                    // vazia: dorme ate mudar
+        T.retentar()  // vazia: dorme ate mudar
     yield itens[0]
 
 action da_reserva():
@@ -107,9 +107,9 @@ handle RuntimeError as e:
 
 // ── CAS: a troca condicional ──
 atomo := C.atomico(10)
-assert atomo.comparar_e_trocar(10, 20)      // ainda era 10
+assert atomo.comparar_e_trocar(10, 20)  // ainda era 10
 assert not atomo.comparar_e_trocar(10, 30)  // ja nao e
-assert atomo.trocar(99) is 20               // devolve o ANTERIOR
+assert atomo.trocar(99) is 20  // devolve o ANTERIOR
 assert atomo.pegar() is 99
 
 // o contador sem trava, escrito com CAS
@@ -145,18 +145,18 @@ persist f.tamanho() bigger 0:
         vistos.append(item)
 
 assert len(vistos) is 800
-assert len(Col.set(vistos)) is 800      // nada duplicado
+assert len(Col.set(vistos)) is 800  // nada duplicado
 
 pilha := C.pilha_sem_trava()
 pilha.por(1)
 pilha.por(2)
 assert pilha.tirar() is 2 and pilha.tirar() is 1
-assert pilha.tirar() is void            // vazia: void, e nao erro
+assert pilha.tirar() is void  // vazia: void, e nao erro
 
 anel := C.anel(3)
 cycle i from 1 to 5:
     anel.por(i)
-assert anel.tudo() is [3, 4, 5]         // o mais velho sai quando enche
+assert anel.tudo() is [3, 4, 5]  // o mais velho sai quando enche
 
 // ── executor e promessa ──
 executor := C.executor(4)

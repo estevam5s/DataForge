@@ -17,7 +17,7 @@ action test_math():
     // isso: '2 + 2' e constante e a comparacao se prova. Ele fica no
     // exemplo de proposito — e o formato de uma afirmacao manual, e o
     // ramo de falha faz parte do que se esta demonstrando.
-    given result == 4:          // df: permitir ramo-morto
+    given result == 4:  // df: permitir ramo-morto
         emit("  ✓ 2 + 2 = 4")
     otherwise:
         emit("  ✗ Math is broken!")

@@ -1,0 +1,6 @@
+# Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.
+PackageIdentifier: EstevamSouza.DataForge
+PackageVersion: 1.0.0
+DefaultLocale: pt-BR
+ManifestType: version
+ManifestVersion: 1.6.0

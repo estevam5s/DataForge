@@ -58,6 +58,31 @@ from ..builtins import _df_type as _nome_do_tipo
 #: um esta parado. Para calculo, mais que nucleos so acrescenta troca
 #: de contexto.
 PADRAO_THREADS = min(32, (os.cpu_count() or 4) * 4)
+#: O processo filho nasce por SPAWN, e nao por fork — nos tres sistemas.
+#:
+#: No Linux o padrao e 'fork', e ele copia a memoria do pai: uma conexao
+#: de banco, um arquivo aberto ou um soquete chegam ao filho "funcionando"
+#: sem passar por 'travessia.py'. Tres problemas, e o terceiro e o que
+#: decide:
+#:
+#:   1. o modelo da travessia e copiar a DECLARACAO, e nao a memoria — o
+#:      fork entrega a memoria por acidente e torna a garantia
+#:      inverificavel;
+#:   2. uma conexao SQLite usada depois de um fork e comportamento
+#:      indefinido, e o proprio SQLite documenta isso;
+#:   3. a linguagem passava a responder DUAS coisas conforme o sistema:
+#:      no macOS ela recusava o recurso que nao atravessa, e no Linux
+#:      seguia calada. 'test_o_recurso_que_a_acao_usa_e_acusado_pelo_NOME'
+#:      falhava so no ubuntu, e o motivo nao estava em lugar nenhum.
+#:
+#: O preco e a partida: 'spawn' sobe um Python novo. A travessia ja
+#: pagava isso por desenho — o filho remonta tudo num interpretador
+#: proprio —, e 'P.pool_processos()' existe para pagar uma vez.
+def _contexto():
+    import multiprocessing
+    return multiprocessing.get_context("spawn")
+
+
 PADRAO_PROCESSOS = os.cpu_count() or 4
 
 
@@ -184,7 +209,7 @@ class PoolDeProcessos:
     def __init__(self, trabalhadores=None):
         self.trabalhadores = trabalhadores or PADRAO_PROCESSOS
         self._pool = futuros.ProcessPoolExecutor(
-            max_workers=self.trabalhadores)
+            max_workers=self.trabalhadores, mp_context=_contexto())
         self._fechado = False
 
     def _conferir(self):
@@ -887,7 +912,7 @@ class ArcaneConcurrent(dict):
         try:
             with futuros.ProcessPoolExecutor(
                     max_workers=n, initializer=instalar,
-                    initargs=(pacote,)) as pool:
+                    initargs=(pacote,), mp_context=_contexto()) as pool:
                 crus = list(pool.map(Chamada(pacote.marca), traduzidos,
                                      chunksize=lote))
         except _ErroDoFilho as e:

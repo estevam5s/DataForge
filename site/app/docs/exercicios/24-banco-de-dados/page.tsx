@@ -105,9 +105,9 @@ assert Forge.de(db, "usuarios").contar() is 3, "tres inseridos de uma vez"
 
 // Filtros encadeados
 maduros := Forge.de(db, "usuarios")
-.onde("idade", ">=", 30)
-.ordenar("idade", "desc")
-.buscar()
+    .onde("idade", ">=", 30)
+    .ordenar("idade", "desc")
+    .buscar()
 out [u["nome"] cycle u in maduros]
 assert len(maduros) is 2, "dois com 30 ou mais"
 assert maduros[0]["nome"] is "Cid", "o mais velho primeiro"
@@ -136,8 +136,8 @@ assert pagina["tem_proxima"] is yes, "ha uma segunda"
 // 'quando' aplica o filtro so se a condicao valer
 action procurar(db, cidade):
     yield Forge.de(db, "usuarios")
-    .quando(cidade, lambda c => c.onde("cidade", cidade))
-    .contar()
+        .quando(cidade, lambda c => c.onde("cidade", cidade))
+        .contar()
 
 assert procurar(db, "") is 3, "sem filtro, todos"
 assert procurar(db, "Recife") is 1, "com filtro, um"
@@ -312,11 +312,11 @@ db := Forge.conectar(":memory:")
 Usuario := Forge.modelo("Usuario", {
         "id": {"tipo": "Serial"},
         "email": {"tipo": "Texto", "obrigatorio": yes, "unico": yes,
-            "validacoes":["email"]},
+            "validacoes": ["email"]},
         "nome": {"tipo": "Texto", "obrigatorio": yes,
-            "validacoes":[["minimo", 2]]},
+            "validacoes": [["minimo", 2]]},
         "idade": {"tipo": "Inteiro", "padrao": 0,
-            "validacoes":[["minimo", 0], ["maximo", 130]]},
+            "validacoes": [["minimo", 0], ["maximo", 130]]},
         "ativo": {"tipo": "Booleano", "padrao": yes},
         "perfil": {"tipo": "Json"}
     }, {"conexao": db, "marcas_de_tempo": yes})

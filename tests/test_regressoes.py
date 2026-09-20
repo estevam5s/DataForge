@@ -896,7 +896,8 @@ def _raiz():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-@pytest.mark.parametrize("nome", ["instalar.sh", "instalar.ps1"])
+@pytest.mark.parametrize("nome", ["instalar.sh", "instalar.ps1",
+                                 "diagnostico.ps1"])
 def test_instalador_publicado_e_igual_ao_do_repositorio(nome):
     raiz = _raiz()
     origem = os.path.join(raiz, "scripts", nome)
@@ -2556,6 +2557,27 @@ def test_a_tabela_de_assinaturas_nao_tem_entrada_morta():
     assert not mortas, f"entradas que nao correspondem a nenhum simbolo: {mortas}"
 
 
+def _desenha_de_verdade(fonte, amostra):
+    """O script tem traço de tabela em STRING (e não só em comentário)?"""
+    import io as _io
+    import tokenize as _tokenize
+
+    try:
+        pedacos = list(_tokenize.generate_tokens(
+            _io.StringIO(fonte).readline))
+    except (SyntaxError, _tokenize.TokenError):
+        # Não deu para ler: volta a olhar o arquivo inteiro, que é o
+        # comportamento conservador — antes um falso alarme que um
+        # silêncio sobre um script que morre no Windows.
+        return any(c in fonte for c in amostra)
+    for pedaco in pedacos:
+        if pedaco.type == _tokenize.COMMENT:
+            continue
+        if any(c in pedaco.string for c in amostra):
+            return True
+    return False
+
+
 def test_todo_script_que_desenha_prepara_a_saida():
     """Quem imprime traço de tabela precisa sobreviver ao cp1252.
 
@@ -2578,9 +2600,16 @@ def test_todo_script_que_desenha_prepara_a_saida():
         if '__name__ == "__main__"' not in fonte and \
                 "__name__ == '__main__'" not in fonte:
             continue
-        if not any(c in fonte for c in amostra):
-            continue
         if "preparar_saida" in fonte:
+            continue
+        # Só o que o script pode IMPRIMIR conta: um traço dentro de um
+        # COMENTÁRIO nunca chega ao terminal, e acusá-lo é falso alarme.
+        #
+        # A primeira versão lia o arquivo inteiro, e um comentário com
+        # '…' em 'gerar_tarball.py' passou a reprovar um script que só
+        # imprime ASCII. Um teste que acusa comentário ensina a escrever
+        # comentário pior.
+        if not _desenha_de_verdade(fonte, amostra):
             continue
         ruins.append(os.path.relpath(caminho, raiz))
 

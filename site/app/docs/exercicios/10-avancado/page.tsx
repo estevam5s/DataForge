@@ -203,12 +203,12 @@ assert raiz.esq.valor is 30, "filho esquerdo"`, lang: 'df', title: `exercicios/1
   {"h2": "118 · Maquina de estados"},
   {"p": "**Enunciado.** modele o ciclo de vida de um pedido."},
   { code: `steady TRANSICOES := {
-    "novo":["pago", "cancelado"],
-    "pago":["enviado", "reembolsado"],
-    "enviado":["entregue"],
-    "entregue":[],
-    "cancelado":[],
-    "reembolsado":[]
+    "novo": ["pago", "cancelado"],
+    "pago": ["enviado", "reembolsado"],
+    "enviado": ["entregue"],
+    "entregue": [],
+    "cancelado": [],
+    "reembolsado": []
 }
 
 blueprint Pedido:

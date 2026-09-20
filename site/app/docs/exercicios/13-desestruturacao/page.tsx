@@ -441,7 +441,7 @@ out $"saldo formatado: {moeda(saldo)}"
 assert moeda(1234.5) is "R$ 1234.5", "acao dentro da interpolacao"
 
 // Acesso a campos e indices
-usuario := {"nome": "Bruno", "tags":["admin", "dev"]}
+usuario := {"nome": "Bruno", "tags": ["admin", "dev"]}
 out $"{usuario["nome"]} e {usuario["tags"][0]}"
 assert $"{usuario["tags"][0]}" is "admin", "indice dentro da chave"
 

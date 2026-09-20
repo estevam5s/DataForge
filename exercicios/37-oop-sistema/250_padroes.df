@@ -25,10 +25,10 @@ assert carrinho.itens is ["caneta", "caderno"]
 
 // ── State: transicoes com guarda ──
 fluxo := P.maquina("rascunho", {
-        "enviar": {"de":["rascunho"], "para": "em_analise",
+        "enviar": {"de": ["rascunho"], "para": "em_analise",
             "guarda": lambda ctx => len(ctx.itens) bigger 0},
-        "aprovar": {"de":["em_analise"], "para": "aprovado"},
-        "recusar": {"de":["em_analise"], "para": "rascunho"},
+        "aprovar": {"de": ["em_analise"], "para": "aprovado"},
+        "recusar": {"de": ["em_analise"], "para": "rascunho"},
     })
 assert not fluxo.pode("aprovar")
 fluxo.ir("enviar", carrinho)

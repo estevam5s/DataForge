@@ -392,9 +392,9 @@ Banco.insert_many(db, "vendas", dados)
 // ── 1. Relatorio agrupado, sem escrever SQL ─────────────────
 
 por_vendedor := Banco.aggregate(db, "vendas", {
-        "receita":["sum", "valor"],
-        "vendas":["count", "*"],
-        "ticket":["avg", "valor"]
+        "receita": ["sum", "valor"],
+        "vendas": ["count", "*"],
+        "ticket": ["avg", "valor"]
     }, group_by := "vendedor", order_by := "receita DESC")
 
 assert len(por_vendedor) is 3
@@ -405,12 +405,12 @@ assert "vendedor" in por_vendedor[0]
 assert por_vendedor[0]["vendas"] is 30
 
 // dois grupos ao mesmo tempo
-cruzado := Banco.aggregate(db, "vendas", {"receita":["sum", "valor"]},
+cruzado := Banco.aggregate(db, "vendas", {"receita": ["sum", "valor"]},
     group_by := ["categoria", "vendedor"])
 assert len(cruzado) is 9  // 3 x 3
 
 // com filtro
-so_bebida := Banco.aggregate(db, "vendas", {"total":["sum", "valor"]},
+so_bebida := Banco.aggregate(db, "vendas", {"total": ["sum", "valor"]},
     where := {"categoria": "bebida"})
 assert so_bebida[0]["total"] smaller_eq por_vendedor[0]["receita"] * 3
 
@@ -427,7 +427,7 @@ assert quantas[0]["quantidade"] is 30
 // frente, e por isso ele e conferido.
 
 monitor:
-    Banco.aggregate(db, "vendas", {"n":["count", "*"]},
+    Banco.aggregate(db, "vendas", {"n": ["count", "*"]},
         order_by := "valor; DROP TABLE vendas")
     assert no
 handle Error as e:
@@ -435,7 +435,7 @@ handle Error as e:
 assert Banco.table_exists(db, "vendas")
 
 monitor:
-    Banco.aggregate(db, "vendas", {"x":["mediana", "valor"]})
+    Banco.aggregate(db, "vendas", {"x": ["mediana", "valor"]})
     assert no
 handle Error as e:
     assert "agregacao conhecida" in e.message

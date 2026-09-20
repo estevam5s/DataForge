@@ -155,7 +155,7 @@ assert IO.exists(caminho) is no, "arquivo removido"
 out "arquivo temporario removido"`, lang: 'df', title: `exercicios/09-modulos/106_io_arquivos.df` },
   {"h2": "107 · JSON"},
   {"p": "**Enunciado.** serialize e desserialize estruturas."},
-  { code: `original := {"nome": "Ana", "tags":["a", "b"], "ativo": yes, "nota": 9.5}
+  { code: `original := {"nome": "Ana", "tags": ["a", "b"], "ativo": yes, "nota": 9.5}
 
 texto := to_json(original)
 out texto

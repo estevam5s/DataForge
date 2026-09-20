@@ -15,7 +15,7 @@ assert M.sqrt(9) is 3.0
 // ── as sete fases, nomeadas e em ordem ──
 fases := I.fases()
 assert [f["fase"] cycle f in fases] is
-       ["lexer", "parser", "comptime", "hoisting", "adopt", "programa", "defer"]
+["lexer", "parser", "comptime", "hoisting", "adopt", "programa", "defer"]
 
 // cada uma tem o que faz escrito ao lado — uma lista de nomes sem
 // explicacao apodrece
@@ -125,7 +125,7 @@ action escapar():
 
 monitor:
     Cap.executar(escapar, ["arquivos", "rede", "processo", "banco",
-                             "threads", "nativo", "ambiente"])
+            "threads", "nativo", "ambiente"])
     assert no
 handle Error as e:
     assert "python" in e.message
@@ -151,7 +151,7 @@ assert visto["resultado"] is "negado"
 assert visto["negados"][0]["capacidade"] is "processo"
 
 assert Cap.exige("Arcane.OS") is "processo"
-assert Cap.exige("Arcane.Math") is void      // inofensivo
+assert Cap.exige("Arcane.Math") is void  // inofensivo
 assert len(Cap.modulos_de("rede")) bigger 5
 
 // ── o limite HONESTO, e ele e o modelo ──
@@ -172,7 +172,7 @@ assert "hostil" in join(" ", limites)
 
 // a fronteira se desfaz SEMPRE, inclusive quando o corpo falha
 action quebra():
-    yield 1 / 0        // df: permitir division-by-zero
+    yield 1 / 0  // df: permitir division-by-zero
 
 monitor:
     Cap.executar(quebra, [])

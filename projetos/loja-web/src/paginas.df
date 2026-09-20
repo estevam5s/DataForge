@@ -57,7 +57,7 @@ action relatorio(app, conexao, usuario):
     produtos := Banco.listar(conexao, void)
     precos := [p["preco"] cycle p in produtos]
     valor := [p["preco"] * p["estoque"] cycle p in produtos]
-    >> distill a, v: a + v 0
+        >> distill a, v: a + v 0
 
     // O valor inicial do distill vem depois do corpo: escrever
     // '>> distill a, v: a + v 0 / len(precos)' divide o ZERO, nao a
@@ -68,7 +68,7 @@ action relatorio(app, conexao, usuario):
     cycle c in Banco.categorias(conexao):
         soma := [p["preco"] * p["estoque"] cycle p in produtos
             given p["categoria"] is c["categoria"]]
-        >> distill a, v: a + v 0
+            >> distill a, v: a + v 0
         por_categoria.append({
                 "categoria": c["categoria"],
                 "n": c["n"],

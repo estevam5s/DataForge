@@ -24,8 +24,13 @@ action somar(i):
     cycle _ in range(0, 200):
         T.atomicamente(lambda => T.escrever(total, T.ler(total) + 1))
 
-C.para_cada(somar, [i cycle i in range(1, 41)])
+// 'para_cada' COLETA os erros em vez de levantar — e por isso eles
+// tem de ser conferidos. Uma acao que morre no meio deixa parte dos
+// incrementos para tras, e o total sai plausivel e errado.
+r := C.para_cada(somar, [i cycle i in range(1, 41)])
+assert len(r["erros"]) is 0, "nenhuma thread pode ter falhado"
 assert T.valor(total) is 8000          // 40 threads, 200 somas, nada perdido`, lang: 'df' },
+  {"callout": {"tipo": "atencao", "titulo": "Confira os erros de `para_cada`", "texto": "Ele **coleta** as falhas em vez de levantar na primeira — é o contrato certo para trabalho em lote, onde parar no primeiro e-mail que falha é pior que seguir e relatar. O preço: uma ação que morre no meio deixa parte do trabalho feito, e o número final fica **plausível e errado**. Este teste já reprovou no CI mostrando `3504` em vez de `8000`, e não havia como saber por quê."}},
   {"table": {"head": ["Símbolo", "O que faz"], "rows": [["`T.variavel(v)`", "cria a variável transacional"], ["`T.atomicamente(acao)`", "roda a ação como transação: tudo, ou nada"], ["`T.ler(v)` · `T.escrever(v, x)`", "só valem **dentro** de uma transação"], ["`T.modificar(v, f)`", "`escrever(v, f(ler(v)))` — a forma que não esquece o ler"], ["`T.valor(v)`", "uma **foto**, fora de transação, sem promessa nenhuma"], ["`T.retentar()`", "desiste e **espera** alguma variável lida mudar"], ["`T.ou_entao(a, b)`", "tenta a primeira; se ela pedir para esperar, tenta a segunda"], ["`T.estatisticas()`", "confirmadas, conflitos, retentativas, esperas"]]}},
   {"h2": "Atomicidade: metade escrita não existe"},
   { code: `adopt Arcane.Stm as T

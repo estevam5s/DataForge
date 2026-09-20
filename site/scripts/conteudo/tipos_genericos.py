@@ -143,8 +143,8 @@ out "o vinculo e cobrado na fronteira" """, "lang": "df"},
  {"callout": {"tipo": "atencao", "titulo": "Por que o `check` importa aqui: o erro aparecia no lugar errado", "texto": "Um parâmetro de `T` **sem limite** não é conferido em execução. O campo recebia o texto calado, e a queixa saía na leitura seguinte — *\"a variável 'n' declared as Integer but got String\"*, uma linha depois e sobre **outro nome**. Quem lê a mensagem vai depurar o `n`, que está certo."}},
  {"callout": {"tipo": "perigo", "titulo": "Três defeitos moravam atrás desta anotação", "texto": "Ela era **erro de sintaxe**: `parse_blueprint` lia os parâmetros de tipo e não os registrava — `record`, `enum`, `trait` e `type` registravam, só o blueprint não, e a mensagem sugeria escrever `type Caixa<T> := …`, que é o caminho errado. O ramo de blueprint da conferência era **código morto**, lendo um atributo que nunca existiu. E escrever o argumento de tipo **desligava** a conferência de membro: `p: Par<Integer, String>` e depois `p.naoExiste` passava limpo — escrever **mais** informação de tipo comprava **menos** verificação."}},
 
- {"h3": "O limite: o objeto não carrega o vínculo"},
- {"p": "O vínculo vive na **anotação**, não na instância. Uma escrita posterior em campo com um valor que o analisador não consegue ver não é conferida:"},
+ {"h3": "O objeto carrega o vínculo"},
+ {"p": "O vínculo não vive só na anotação: ele é **carimbado no objeto** na primeira atribuição anotada. Daí em diante, toda escrita de campo é conferida — e não apenas a fronteira."},
  {"code": """blueprint Caixa<T>:
     guardado: T
 
@@ -152,10 +152,37 @@ action de_fora():
     yield "texto"
 
 c: Caixa<Integer> := spawn Caixa()
-c.guardado := de_fora()        // passa: o vinculo nao viaja com o objeto
-assert c.guardado is "texto"
-out "e um silencio, e ele esta escrito" """, "lang": "df"},
- {"p": "Fazer o objeto carregar o vínculo custaria estado **por instância**, e a linguagem trata isso como uma decisão de [custo zero](/docs/ecossistema/principios): contrato, invariante e estado por objeto vivem atrás de três sentinelas `None` justamente para não cobrar de quem não usa. O silêncio está nomeado em [o que falta](/docs/ecossistema/mapa) em vez de escondido."},
+c.guardado := 7
+
+// A escrita POSTERIOR tambem e conferida, com valor que o
+// analisador nao pode ver
+monitor:
+    c.guardado := de_fora()
+    assert no
+handle TypeError as e:
+    assert "field 'guardado' of Caixa<Integer>" in e.message
+
+out "o vinculo viaja com o objeto" """, "lang": "df"},
+ {"callout": {"tipo": "nota", "titulo": "E ele custa zero para quem não o usa", "texto": "`DFInstance._tipos` nasce em `None`, como os três sentinelas de OOP — e o caminho rápido de escrita de campo tem `_tipos is None` na condição. Um objeto que nunca passou por uma anotação genérica não paga uma única conferência a mais. O slot **nasce** com `None` em vez de ficar ausente porque `getattr` num slot nunca atribuído custa 7× mais: ele levanta e captura um `AttributeError` por dentro."}},
+
+ {"h3": "O primeiro carimbo vence"},
+ {"p": "Alargar é legítimo — `Caixa<Integer>` numa anotação `Caixa<Number>` passa. Mas o alargamento **não afrouxa** o objeto:"},
+ {"code": """blueprint Caixa<T>:
+    guardado: T
+
+inteira: Caixa<Integer> := spawn Caixa()
+inteira.guardado := 7
+
+larga: Caixa<Number> := inteira        // legitimo: alargar a vista
+
+monitor:
+    larga.guardado := 3.5              // ...mas o objeto continua Integer
+    assert no
+handle TypeError as e:
+    assert "declared as Integer" in e.message
+
+out "o primeiro carimbo vence" """, "lang": "df"},
+ {"p": "Se o segundo carimbo vencesse, escrever um `Float` por `larga` quebraria a vista `inteira`, que continua apontando para o mesmo objeto. **É a insegurança clássica da covariância com objeto mutável** — e a regra do primeiro carimbo a fecha sem proibir o alargamento."},
 
  {"h2": "Tipos indexados: quando o parâmetro é um número"},
  {"p": "`Vetor<3>` é um tipo cujo **argumento é um valor**. O parâmetro entra na regra do tipo, e o tamanho passa a fazer parte dele: é a forma prática dos tipos dependentes, e resolve o problema real de \"esta ação só aceita coordenada de duas casas\"."},

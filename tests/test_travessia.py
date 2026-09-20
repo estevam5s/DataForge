@@ -385,6 +385,20 @@ def test_o_pool_reaproveita_os_processos():
     ai a conta nao fecha. A comparacao e entre a PRIMEIRA chamada, que
     paga a partida, e a segunda, que nao: sao as duas medidas na mesma
     maquina, no mesmo instante.
+
+    O tamanho do bloco e escolhido, e nao arbitrario: e o que faz a
+    PARTIDA dominar a primeira chamada. Medido nesta maquina, com pool
+    de 4 e spawn:
+
+        40000 por bloco ....  2,59x   (1a 137 ms, 2a  53 ms)
+         8000 por bloco ....  8,90x   (1a  94 ms, 2a  11 ms)
+         2000 por bloco .... 28,64x   (1a  87 ms, 2a   3 ms)
+
+    Com 40000 o trabalho de CPU dominava, a razao encostava no limite e
+    o teste reprovava no CI com **1,08** — o pool estava certo, e a
+    medida media a carga. Com 2000 a segunda chamada vira 3 ms, e ai o
+    ruido do relogio e que decide. 8000 e o meio: margem de sete vezes
+    sobre o limite, e uma segunda chamada ainda mensuravel.
     """
     saida = run(CABECA + """
 adopt Arcane.Time as Time
@@ -396,7 +410,7 @@ action cpu(n):
     yield s
 
 pool := P.pool_processos(4)
-blocos := [40000, 40000, 40000, 40000]
+blocos := [8000, 8000, 8000, 8000]
 
 t := Time.monotonic()
 a := pool.map(cpu, blocos)

@@ -86,7 +86,7 @@ out "REST:", um["total"]
 assert um["total"] is "R$ 600.00"
 
 criado := Web.post($"{alvo}/pedidos",
-    {"cliente_id": 2, "itens":[{"sku":"TORNO", "quantidade":1,
+    {"cliente_id": 2, "itens": [{"sku":"TORNO", "quantidade":1,
                 "preco_centavos": 250000}]})
 assert criado["status"] is 201
 

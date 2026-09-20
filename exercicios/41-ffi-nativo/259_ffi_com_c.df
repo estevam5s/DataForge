@@ -105,18 +105,18 @@ handle RuntimeError as e:
 // bytes vao e voltam
 dados := C.de_bytes("dataforge")
 assert B.para_texto(C.para_bytes(dados, 9)) is "dataforge"
-assert dados.tamanho() is 10          // o zero do fim conta
+assert dados.tamanho() is 10  // o zero do fim conta
 C.liberar(dados)
 
 // para nao depender de disciplina: o bloco sai com o escopo, inclusive
 // quando o corpo falha
 medido := P.com(P.dono(C.alocar(32), lambda b => C.liberar(b)),
-                lambda b => b.tamanho())
+    lambda b => b.tamanho())
 assert medido is 32
 
 // ── callback: o C chamando uma acao do DataForge ──
 qsort := libc.funcao("qsort",
-                     ["ponteiro", "tamanho", "tamanho", "ponteiro"], "void")
+    ["ponteiro", "tamanho", "tamanho", "ponteiro"], "void")
 
 numeros := [42, 7, 19, 3]
 area := C.alocar(len(numeros) * C.tamanho_de("i32"))

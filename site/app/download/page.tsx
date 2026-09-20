@@ -86,11 +86,61 @@ const FORMAS: { grupo: string; itens: Forma[] }[] = [
         pronto: true,
       },
       {
+        id: 'win-winget',
+        titulo: 'winget',
+        para: 'Já vem no Windows 11. Nada para instalar antes.',
+        comando: 'winget install EstevamSouza.DataForge',
+        nota: 'O `winget` confere o SHA-256 do instalador contra o manifesto antes de executar — é a única das formas do Windows em que a verificação de integridade é automática. `winget upgrade EstevamSouza.DataForge` atualiza, e `winget uninstall` remove.',
+        pronto: false,
+        espera: 'o manifesto está no repositório (`packaging/windows/winget/`) e depende de um PR aceito no `microsoft/winget-pkgs`',
+      },
+      {
+        id: 'win-choco',
+        titulo: 'Chocolatey',
+        para: 'Quem já usa `choco` — e é o que a maioria das empresas usa.',
+        comando: 'choco install dataforge',
+        nota: 'Roda o instalador em modo silencioso (`/VERYSILENT /NORESTART`) e **não reinicia** a máquina. Precisa de terminal como administrador, porque o Chocolatey instala para todos os usuários.',
+        pronto: false,
+        espera: 'o `nuspec` está em `packaging/windows/chocolatey/` e depende de aprovação no chocolatey.org',
+      },
+      {
+        id: 'win-scoop',
+        titulo: 'Scoop',
+        para: 'Quem NÃO quer administrador nem mexer no PATH do sistema.',
+        comando: 'scoop install dataforge',
+        nota: 'É o único dos três que instala sem administrador: ele usa o `.zip` portátil e põe o `dataforge` no seu PATH de usuário. Nada é escrito em `Program Files` nem no registro da máquina.',
+        pronto: false,
+        espera: 'o manifesto está em `packaging/windows/scoop/` e depende de entrar num bucket',
+      },
+      {
         id: 'win-zip',
         titulo: 'Executável em .zip',
         para: 'Quem quer descompactar onde escolher, sem instalador.',
         arquivo: `${RELEASES}/dataforge-windows-x64.zip`,
         tamanho: '~12 MB',
+        nota: 'Portátil: descompacte, e `dataforge.exe` funciona de onde estiver — inclusive de um pendrive. Nada no registro, nada no PATH.',
+        pronto: true,
+      },
+      {
+        id: 'win-auditavel',
+        titulo: 'Baixar, LER, e só então executar',
+        para: 'Quem não executa script remoto sem olhar — e está certo.',
+        comando:
+          '[Net.ServicePointManager]::SecurityProtocol = 3072\n' +
+          'irm https://dataforge-lang.vercel.app/instalar.ps1 -OutFile instalar.ps1\n' +
+          'notepad instalar.ps1        # leia\n' +
+          '.\\instalar.ps1',
+        nota: '`irm … | iex` executa o que vier — e quem colou a linha não viu o que veio. Estas quatro linhas fazem o mesmo em etapas: baixam, abrem para leitura, e só executam depois. O script tem ~200 linhas e não pede administrador.',
+        pronto: true,
+      },
+      {
+        id: 'win-diagnostico',
+        titulo: 'Não funcionou? O diagnóstico',
+        para: 'Diz o que está errado, em vez de falhar.',
+        comando:
+          '[Net.ServicePointManager]::SecurityProtocol = 3072; ' +
+          'irm https://dataforge-lang.vercel.app/diagnostico.ps1 | iex',
+        nota: 'Confere as seis coisas que quebram uma instalação no Windows: a versão do PowerShell, o TLS que ele negocia, a política de execução, se o site responde, se há Python, e se o PATH já tem o `dataforge`. Ele **não instala nada** — só olha e relata.',
         pronto: true,
       },
     ],

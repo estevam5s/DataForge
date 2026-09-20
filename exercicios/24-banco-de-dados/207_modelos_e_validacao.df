@@ -12,11 +12,11 @@ db := Forge.conectar(":memory:")
 Usuario := Forge.modelo("Usuario", {
         "id": {"tipo": "Serial"},
         "email": {"tipo": "Texto", "obrigatorio": yes, "unico": yes,
-            "validacoes":["email"]},
+            "validacoes": ["email"]},
         "nome": {"tipo": "Texto", "obrigatorio": yes,
-            "validacoes":[["minimo", 2]]},
+            "validacoes": [["minimo", 2]]},
         "idade": {"tipo": "Inteiro", "padrao": 0,
-            "validacoes":[["minimo", 0], ["maximo", 130]]},
+            "validacoes": [["minimo", 0], ["maximo", 130]]},
         "ativo": {"tipo": "Booleano", "padrao": yes},
         "perfil": {"tipo": "Json"}
     }, {"conexao": db, "marcas_de_tempo": yes})

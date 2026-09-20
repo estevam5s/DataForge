@@ -17,7 +17,7 @@ action consulta():
 m := P.medir(consulta, {"amostras": 50, "aquecimento": 5})
 
 assert m["amostras"] is 50
-assert m["aquecimento"] is 5           // declarado, e nao misturado
+assert m["aquecimento"] is 5  // declarado, e nao misturado
 assert m["p50"] smaller_eq m["p95"]
 assert m["p95"] smaller_eq m["p99"]
 assert m["min"] smaller_eq m["p50"] and m["p99"] smaller_eq m["max"]
@@ -62,7 +62,7 @@ base := $"{OS.temp_dir()}/df-263-{randint(100000, 999999)}.json"
 P.guardar("consulta", {"p95": 1.0, "p50": 1.0, "media": 1.0}, base)
 
 ruim := P.conferir("consulta", {"p95": 3.0, "p50": 3.0, "media": 3.0},
-                   {"arquivo": base, "tolerancia": 0.2})
+    {"arquivo": base, "tolerancia": 0.2})
 assert ruim["conhecida"] and ruim["regrediu"]
 assert ruim["fator"] is 3.0
 
@@ -70,12 +70,12 @@ assert ruim["fator"] is 3.0
 // tolerancia, todo CI fica vermelho e a primeira coisa que se faz com
 // um CI vermelho por desenho e desliga-lo
 ok := P.conferir("consulta", {"p95": 1.05, "p50": 1.05, "media": 1.05},
-                 {"arquivo": base, "tolerancia": 0.2})
+    {"arquivo": base, "tolerancia": 0.2})
 assert not ok["regrediu"]
 
 // uma melhora e relatada, e nao reprova
 melhor := P.conferir("consulta", {"p95": 0.5, "p50": 0.5, "media": 0.5},
-                     {"arquivo": base, "tolerancia": 0.2})
+    {"arquivo": base, "tolerancia": 0.2})
 assert melhor["melhorou"] and not melhor["regrediu"]
 
 // a PRIMEIRA medida nunca reprova: sem base nao ha regressao
@@ -100,7 +100,7 @@ P.com_trava(trava, lambda => 2 + 2)
 
 e := P.estatisticas_da_trava(trava)
 assert e["aquisicoes"] is 2
-assert e["esperas"] is 0          // sem disputa, ninguem esperou
+assert e["esperas"] is 0  // sem disputa, ninguem esperou
 
 // ── o coletor sob controle ──
 // A distincao que quase todo mundo erra: quem libera no CPython e a
@@ -108,12 +108,12 @@ assert e["esperas"] is 0          // sem disputa, ninguem esperou
 // o CICLO. Desligar o coletor NAO vaza memoria em geral.
 assert Mem.gc_ligado()
 assert Mem.sem_gc(consulta) is 79800
-assert Mem.gc_ligado()            // voltou
+assert Mem.gc_ligado()  // voltou
 
 // e volta mesmo quando o corpo FALHA — deixar o coletor desligado por
 // causa de um erro e muito pior que a pausa que se queria evitar
 monitor:
-    Mem.sem_gc(lambda => 1 / 0)   // df: permitir division-by-zero
+    Mem.sem_gc(lambda => 1 / 0)  // df: permitir division-by-zero
     assert no
 handle Error:
     assert Mem.gc_ligado()
@@ -138,10 +138,10 @@ arena := Mem.arena(3, lambda => {"n": 0})
 a := Mem.pegar(arena)
 _b := Mem.pegar(arena)
 Mem.devolver(arena, a)
-_c := Mem.pegar(arena)            // o MESMO objeto volta
+_c := Mem.pegar(arena)  // o MESMO objeto volta
 
 conta := Mem.arena_estatisticas(arena)
-assert conta["criados"] is 3      // o lote, preparado de uma vez
+assert conta["criados"] is 3  // o lote, preparado de uma vez
 assert conta["reaproveitados"] is 1
 assert conta["em_uso"] is 2
 

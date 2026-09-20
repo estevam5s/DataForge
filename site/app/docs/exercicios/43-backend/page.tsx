@@ -26,7 +26,7 @@ adopt Arcane.Compilador as K
 
 // ── as fases, agora oito ──
 assert K.fases() is ["lexer", "parser", "hir", "mir", "analises",
-                     "ssa", "otimizado", "lir"]
+    "ssa", "otimizado", "lir"]
 
 // ── SSA: uma definicao por nome ──
 diamante := "given c:\\n    x := 1\\notherwise:\\n    x := 2\\nout x\\n"
@@ -50,19 +50,19 @@ assert len([f cycle f in cabeca["fis"] given f["nome"] is "t"]) is 1
 // MIR sozinho nao responde
 sequencia := K.ssa("x := 1\\nx := 2\\nout x\\n")[0]
 escritas := [i["escreve"]["versao"] cycle b in sequencia["blocos"]
-             cycle i in b["instrucoes"] given i["escreve"] isnt void]
+    cycle i in b["instrucoes"] given i["escreve"] isnt void]
 lidas := [i["le"]["x"] cycle b in sequencia["blocos"]
-          cycle i in b["instrucoes"] given "x" in i["le"]]
+    cycle i in b["instrucoes"] given "x" in i["le"]]
 assert escritas is [1, 2]
-assert lidas is [2]                  // o 'out' le a segunda
+assert lidas is [2]  // o 'out' le a segunda
 
 // ── por que SSA paga: a propagacao fica CONDICIONAL ──
 morto := "x := 1\\n" +
-         "given x bigger 5:\\n" +
-         "    y := \\"nunca\\"\\n" +
-         "otherwise:\\n" +
-         "    y := \\"sempre\\"\\n" +
-         "out y\\n"
+"given x bigger 5:\\n" +
+'    y := "nunca"\\n' +
+"otherwise:\\n" +
+'    y := "sempre"\\n' +
+"out y\\n"
 
 // o ramo que nunca roda e nomeado, com o bloco e o rotulo
 mortos := K.ramos_mortos(morto)
@@ -91,21 +91,21 @@ assert K.otimizar("x := 2 + 3 * 4\\n")["dobra-de-constante"] is 2
 assert K.otimizar(morto)["ramo-morto"] bigger 0
 
 // o que vem depois de um 'yield' sai do corpo
-depois_do_yield := "action f():\\n    yield 1\\n    out \\"nunca\\"\\n"
+depois_do_yield := 'action f():\\n    yield 1\\n    out "nunca"\\n'
 assert K.otimizar(depois_do_yield)["inalcancavel"] bigger 0
 
 // ── nada que possa falhar e dobrado ──
 // '1 / 0' dobrado moveria o erro para a CARGA, longe da linha que o
 // causa. Sem dobrar, ele estoura onde esta escrito:
 monitor:
-    _x := 1 / 0       // df: permitir division-by-zero
+    _x := 1 / 0  // df: permitir division-by-zero
     assert no
 handle Error as e:
     assert e.type is "DivisionByZeroError"
     assert e.line is 84
 
 // e texto com numero nao dobra: mudaria a mensagem de erro
-assert K.otimizar("x := \\"a\\" + 1\\n")["dobra-de-constante"] is 0
+assert K.otimizar('x := "a" + 1\\n')["dobra-de-constante"] is 0
 
 // ── LIR: o que o backend REALMENTE compila ──
 // Nao ha codigo de maquina. O backend e compilador.py, e a descida dele

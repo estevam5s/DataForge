@@ -60,7 +60,25 @@ def erro_de(fonte):
 # ── STM: o que o mutex não compõe ────────────────────────────
 
 def test_a_transacao_nao_perde_incremento_sob_concorrencia():
-    assert rodar('''
+    """40 threads somando na MESMA variável: nada pode se perder.
+
+    O teste imprime os erros de `para_cada` ANTES do total, e a razão é
+    uma falha real deste teste no CI: ele reprovou com `'3504' == '8000'`
+    e não havia como saber por quê.
+
+    `para_cada` COLETA os erros em vez de levantar — é o contrato dele,
+    porque parar na primeira falha é pior para trabalho em lote. Mas uma
+    ação que morre no meio deixa parte dos incrementos para trás, e o
+    programa imprime um número plausível e errado. Um teste que reprova
+    mostrando um número sem dizer o que falhou custa uma tarde.
+
+    Medido aqui, com `sys.setswitchinterval` no mínimo para forçar o
+    intercalamento: 8000 de 8000, com 7765 conflitos detectados e
+    repetidos, e a transação mais azarada precisou de 15 tentativas — o
+    teto de 1000 não chega perto. O STM está certo; o que faltava era a
+    falha se anunciar.
+    """
+    saida = rodar('''
 adopt Arcane.Stm as T
 adopt Arcane.Concurrent as C
 
@@ -70,9 +88,12 @@ action somar(i):
     cycle _ in range(0, 200):
         T.atomicamente(lambda => T.escrever(total, T.ler(total) + 1))
 
-C.para_cada(somar, [i cycle i in range(1, 41)])
+r := C.para_cada(somar, [i cycle i in range(1, 41)])
+cycle e in r["erros"]:
+    out $"ERRO na thread {e['item']}: {e['erro']}"
 out T.valor(total)
-''') == "8000"
+''')
+    assert saida.splitlines()[-1] == "8000", saida
 
 
 def test_a_transferencia_e_atomica_e_a_soma_nao_muda():

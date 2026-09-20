@@ -43,14 +43,34 @@ SAIDA = os.environ.get("DF_PACOTES_SAIDA") or os.path.join(RAIZ, "dist", "pacote
 #: Abaixo disto o `.deb` nao tem a linguagem dentro.
 #:
 #: O publicado na 1.0.0 tinha 1.194 bytes, e o gerador que o produziu
-#: terminava com codigo 0: nada recusava. O real tem 6,5 MB; o piso fica
-#: em 2 MB para o pacote poder emagrecer sem falso alarme, e bem acima de
-#: um pacote que perdeu a biblioteca (~300 KB).
-TAMANHO_MINIMO_DO_DEB = 2 * 1024 * 1024
+#: terminava com codigo 0: nada recusava.
+#:
+#: O piso ficava em 2 MB, e media a coisa errada. Com a extensao do VS
+#: Code compilada o pacote tem ~6,5 MB; SEM ela, ~1,3 MB — e
+#: 'editor/vscode/out/' e gitignored, porque e artefato de build. Numa
+#: maquina limpa (a CI, por exemplo) o pacote nasce legitimamente menor,
+#: e o piso de 2 MB o recusava: tres testes falhavam desde que ele
+#: existe, e a mensagem culpava o 'pip install --target', que estava
+#: certo.
+#:
+#: O piso agora pega o que ele sempre quis pegar — o pacote VAZIO — e
+#: quem cobra o conteudo e '_conferir_conteudo', que olha se a
+#: linguagem esta lá dentro em vez de contar bytes.
+TAMANHO_MINIMO_DO_DEB = 600 * 1024
+
+#: O minimo de modulos da biblioteca que o pacote tem de carregar. Um
+#: numero exato envelheceria a cada modulo novo; o que importa e que a
+#: 'stdlib' nao chegou vazia.
+MINIMO_DE_MODULOS_NO_PACOTE = 40
+
+#: Os arquivos sem os quais o pacote nao instala uma linguagem.
+ESSENCIAIS = ("dataforge/interpreter.py", "dataforge/parser.py",
+              "dataforge/lexer.py", "dataforge/cli.py",
+              "dataforge/stdlib/__init__.py")
 
 
 def conferir_tamanho(caminho):
-    """Recusa, com codigo de saida, um `.deb` pequeno demais."""
+    """Recusa, com codigo de saida, um `.deb` vazio."""
     tamanho = os.path.getsize(caminho)
     if tamanho < TAMANHO_MINIMO_DO_DEB:
         raise SystemExit(
@@ -58,6 +78,31 @@ def conferir_tamanho(caminho):
             f"{TAMANHO_MINIMO_DO_DEB} — ele nao tem a linguagem dentro. "
             f"Confira o 'pip install --target' em '_arvore_instalada'.")
     return tamanho
+
+
+def _conferir_conteudo(arquivos):
+    """A linguagem esta DENTRO? A pergunta que o piso de bytes nao faz.
+
+    Contar bytes confunde 'perdeu a biblioteca' com 'nao compilou a
+    extensao do editor'. Aqui a conferencia e pelo que tem de estar lá:
+    os cinco arquivos sem os quais nada roda, e uma 'stdlib' que nao
+    chegou vazia.
+    """
+    nomes = {caminho.split("dist-packages/", 1)[-1] for caminho, _, _ in arquivos}
+    faltando = [e for e in ESSENCIAIS if e not in nomes]
+    if faltando:
+        raise SystemExit(
+            f"o .deb nao tem {', '.join(faltando)} — ele nao instala uma "
+            f"linguagem. Confira o 'pip install --target' em "
+            f"'_arvore_instalada'.")
+    modulos = len([n for n in nomes
+                   if n.startswith("dataforge/stdlib/") and n.endswith(".py")])
+    if modulos < MINIMO_DE_MODULOS_NO_PACOTE:
+        raise SystemExit(
+            f"o .deb tem {modulos} arquivos em 'dataforge/stdlib/', e o "
+            f"minimo e {MINIMO_DE_MODULOS_NO_PACOTE} — a biblioteca "
+            f"chegou pela metade.")
+    return modulos
 
 
 def _oficiais():
@@ -257,6 +302,7 @@ def gerar_deb():
     with tempfile.TemporaryDirectory() as arvore:
         _arvore_instalada(arvore)
         arquivos, kb = _arquivos_do_deb(arvore)
+        _conferir_conteudo(arquivos)
 
     modelo = os.path.join(RAIZ, "packaging", "debian", "control.template")
     with open(modelo, encoding="utf-8") as f:
@@ -324,6 +370,239 @@ def atualizar_pkgbuild():
     return caminho, novo != texto
 
 
+# ═══ Windows: winget, Chocolatey e Scoop ═══════════════════
+#
+# Sao TRES manifestos para o mesmo instalador, e nenhum deles e opcional
+# se a intenca e que alguem no Windows instale a linguagem: o winget vem
+# no Windows 11, o Chocolatey e o que uma empresa ja tem, e o Scoop e o
+# que quem nao quer administrador usa.
+#
+# Todos saem daqui, do MESMO lugar, porque a versao escrita a mao em tres
+# arquivos divergiria no primeiro release — e o sintoma seria um 'winget
+# install' que baixa um .exe que nao existe mais.
+
+#: O identificador do pacote em cada gerenciador. Mudar um destes depois
+#: de publicado quebra quem ja instalou: o winget e o choco identificam o
+#: pacote instalado por este nome.
+ID_WINGET = "EstevamSouza.DataForge"
+ID_CHOCO = "dataforge"
+ID_SCOOP = "dataforge"
+
+#: O que ainda nao existe, dito aqui: o release constroi so x64. Num
+#: Windows ARM o x64 roda por emulacao (o Windows 11 faz isso sozinho), e
+#: e por isso que o manifesto declara 'x64' e nao 'neutral' — declarar
+#: neutral prometeria um binario nativo que ninguem constroi.
+ARQUITETURAS = ("x64",)
+
+PLACEHOLDER_SHA = "0" * 64
+
+
+def _sha_do_windows():
+    """O sha256 do .exe do release, se ele estiver por aqui.
+
+    A ordem: a variavel de ambiente (e como o release passa), depois um
+    SHA256SUMS.txt local. Sem nenhum dos dois, devolve o placeholder E
+    avisa — um manifesto com hash falso publicado e pior que nenhum
+    manifesto, porque o gerenciador recusa a instalacao com uma mensagem
+    sobre integridade e a pessoa pensa que o arquivo foi adulterado.
+    """
+    da_variavel = os.environ.get("DF_SHA_WINDOWS", "").strip().lower()
+    if len(da_variavel) == 64:
+        return da_variavel, True
+    for pasta in (SAIDA, os.path.join(RAIZ, "dist")):
+        caminho = os.path.join(pasta, "SHA256SUMS.txt")
+        if not os.path.isfile(caminho):
+            continue
+        with open(caminho, encoding="utf-8") as arquivo:
+            for linha in arquivo:
+                partes = linha.split()
+                if len(partes) >= 2 and partes[1].lstrip("*").endswith(
+                        f"windows-x64-setup.exe"):
+                    return partes[0].lower(), True
+    return PLACEHOLDER_SHA, False
+
+
+def _url_do_exe():
+    return (f"https://github.com/estevam5s/DataForge/releases/download/"
+            f"v{__version__}/DataForge-{__version__}-windows-x64-setup.exe")
+
+
+def gerar_manifestos_do_windows():
+    """winget (tres arquivos), Chocolatey (nuspec + install) e Scoop."""
+    sha, real = _sha_do_windows()
+    url = _url_do_exe()
+    escritos = []
+
+    def escrever(relativo, texto):
+        caminho = os.path.join(RAIZ, "packaging", "windows", relativo)
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        with open(caminho, "w", encoding="utf-8", newline="\n") as arquivo:
+            arquivo.write(texto)
+        escritos.append(os.path.relpath(caminho, RAIZ))
+
+    # ── winget ──────────────────────────────────────────────
+    #
+    # Sao tres arquivos, e o formato exige os tres: o 'version' aponta o
+    # pacote, o 'installer' descreve o binario, o 'locale' e o texto que
+    # a pessoa le em 'winget show'.
+    pasta = f"winget/{ID_WINGET}"
+    escrever(f"{pasta}/{ID_WINGET}.yaml", f"""# Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.
+PackageIdentifier: {ID_WINGET}
+PackageVersion: {__version__}
+DefaultLocale: pt-BR
+ManifestType: version
+ManifestVersion: 1.6.0
+""")
+    escrever(f"{pasta}/{ID_WINGET}.installer.yaml", f"""# Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.
+PackageIdentifier: {ID_WINGET}
+PackageVersion: {__version__}
+InstallerType: inno
+Scope: machine
+InstallModes:
+  - interactive
+  - silent
+  - silentWithProgress
+UpgradeBehavior: install
+ReleaseDate: {time.strftime('%Y-%m-%d')}
+Installers:
+  - Architecture: x64
+    InstallerUrl: {url}
+    InstallerSha256: {sha.upper()}
+ManifestType: installer
+ManifestVersion: 1.6.0
+""")
+    escrever(f"{pasta}/{ID_WINGET}.locale.pt-BR.yaml", f"""# Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.
+PackageIdentifier: {ID_WINGET}
+PackageVersion: {__version__}
+PackageLocale: pt-BR
+Publisher: Estevam Souza
+PublisherUrl: https://dataforge-lang.vercel.app
+PackageName: DataForge
+PackageUrl: https://dataforge-lang.vercel.app
+License: MIT
+LicenseUrl: https://github.com/estevam5s/DataForge/blob/main/LICENSE
+ShortDescription: Linguagem de programacao interpretada, com {_modulos()} modulos de biblioteca padrao.
+Description: >-
+  Linguagem de proposito geral com lexer, parser, analisador estatico e
+  interpretador proprios. Traz {_modulos()} modulos de biblioteca
+  ({_simbolos()} simbolos), dois frameworks web, depurador, LSP e
+  gerenciador de pacotes. O instalador embute o runtime: nao e preciso
+  ter Python na maquina.
+Moniker: dataforge
+Tags:
+  - programming-language
+  - interpreter
+  - cli
+  - data
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
+""")
+
+    # ── Chocolatey ──────────────────────────────────────────
+    escrever(f"chocolatey/{ID_CHOCO}.nuspec", f"""<?xml version="1.0" encoding="utf-8"?>
+<!-- Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>{ID_CHOCO}</id>
+    <version>{__version__}</version>
+    <title>DataForge</title>
+    <authors>Estevam Souza</authors>
+    <projectUrl>https://dataforge-lang.vercel.app</projectUrl>
+    <licenseUrl>https://github.com/estevam5s/DataForge/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/estevam5s/DataForge</projectSourceUrl>
+    <docsUrl>https://dataforge-lang.vercel.app/docs</docsUrl>
+    <bugTrackerUrl>https://github.com/estevam5s/DataForge/issues</bugTrackerUrl>
+    <tags>dataforge programming-language interpreter cli</tags>
+    <summary>Linguagem interpretada com {_modulos()} modulos de biblioteca padrao.</summary>
+    <description>
+Linguagem de proposito geral com lexer, parser, analisador estatico e
+interpretador proprios. O instalador embute o runtime: nao e preciso ter
+Python na maquina.
+    </description>
+    <releaseNotes>https://github.com/estevam5s/DataForge/releases/tag/v{__version__}</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\\**" target="tools" />
+  </files>
+</package>
+""")
+    escrever("chocolatey/tools/chocolateyinstall.ps1", f"""# Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.
+$ErrorActionPreference = 'Stop'
+
+# 'checksum' nao e opcional: sem ele o Chocolatey instala o que baixou,
+# seja o que for. Com ele, um arquivo trocado no meio do caminho para a
+# instalacao com uma mensagem sobre integridade.
+$pacote = @{{
+  packageName    = '{ID_CHOCO}'
+  fileType       = 'exe'
+  url64bit       = '{url}'
+  checksum64     = '{sha}'
+  checksumType64 = 'sha256'
+  # Os silenciosos do Inno Setup. '/NORESTART' porque reiniciar a
+  # maquina de quem rodou um 'choco install' e inaceitavel.
+  silentArgs     = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-'
+  validExitCodes = @(0)
+}}
+
+Install-ChocolateyPackage @pacote
+""")
+    escrever("chocolatey/tools/chocolateyuninstall.ps1", """# Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.
+$ErrorActionPreference = 'Stop'
+
+# O Inno Setup deixa o proprio desinstalador; o registro e que diz onde.
+$chave = Get-ChildItem -Path @(
+  'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+  'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall'
+) -ErrorAction SilentlyContinue |
+  Where-Object { $_.GetValue('DisplayName') -like 'DataForge*' } |
+  Select-Object -First 1
+
+if (-not $chave) {
+  Write-Host 'DataForge nao esta instalado por aqui.'
+  return
+}
+
+$desinstalador = $chave.GetValue('UninstallString')
+Uninstall-ChocolateyPackage -PackageName 'dataforge' -FileType 'exe' `
+  -SilentArgs '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -File $desinstalador
+""")
+
+    # ── Scoop ───────────────────────────────────────────────
+    #
+    # O Scoop instala SEM administrador, e e o unico dos tres que faz
+    # isso. Por isso ele nao usa o .exe do Inno (que escreve em
+    # 'Program Files'): usa o ZIP portatil.
+    zip = (f"https://github.com/estevam5s/DataForge/releases/download/"
+           f"v{__version__}/dataforge-windows-x64.zip")
+    escrever(f"scoop/{ID_SCOOP}.json", f"""{{
+  "_comentario": "Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.",
+  "version": "{__version__}",
+  "description": "Linguagem interpretada com {_modulos()} modulos de biblioteca padrao.",
+  "homepage": "https://dataforge-lang.vercel.app",
+  "license": "MIT",
+  "architecture": {{
+    "64bit": {{
+      "url": "{zip}",
+      "hash": "{sha if real else PLACEHOLDER_SHA}"
+    }}
+  }},
+  "bin": [["dataforge.exe", "dataforge"], ["dataforge.exe", "df"]],
+  "checkver": {{
+    "github": "https://github.com/estevam5s/DataForge"
+  }},
+  "autoupdate": {{
+    "architecture": {{
+      "64bit": {{
+        "url": "https://github.com/estevam5s/DataForge/releases/download/v$version/dataforge-windows-x64.zip"
+      }}
+    }}
+  }}
+}}
+""")
+    return escritos, real
+
+
 def main():
     import re
 
@@ -343,6 +622,14 @@ def main():
     caminho, mudou = atualizar_pkgbuild()
     print(f"  {os.path.relpath(caminho, RAIZ)}"
           f"{' (versao atualizada)' if mudou else ''}")
+
+    escritos, sha_real = gerar_manifestos_do_windows()
+    for caminho in escritos:
+        print(f"  {caminho}")
+    if not sha_real:
+        print("  aviso: o sha256 do .exe do Windows e um PLACEHOLDER.")
+        print("         o release o preenche (DF_SHA_WINDOWS), e ha teste")
+        print("         proibindo publicar manifesto com placeholder.")
 
     deb = gerar_deb()
     tamanho = conferir_tamanho(deb)

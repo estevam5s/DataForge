@@ -23,6 +23,13 @@ from .tokens import TokenType
 
 INDENTACAO = "    "
 
+#: Tokens que, abrindo uma linha, dizem que ela CONTINUA a anterior.
+#:
+#: '>>' e o pipeline; '.' e a cadeia de metodos. Nos dois casos o lexer
+#: junta as linhas numa expressao so, e sem esta lista a continuacao
+#: perdia a indentacao.
+_CONTINUAM_A_LINHA = frozenset({TokenType.PIPE, TokenType.DOT})
+
 # Operadores que recebem um espaço de cada lado
 BINARIOS = {
     '+', '-', '*', '/', '%', '**', '//', '~/', ':=', '==', '!=', '<', '>',
@@ -211,7 +218,24 @@ class Formatter:
             ultima_linha = token.line
 
             if inicio_de_linha or token.line not in profundidade:
-                profundidade.setdefault(token.line, nivel + abertos)
+                # Uma linha que COMECA com '>>' ou com '.' continua a
+                # anterior, e ganha um nivel.
+                #
+                # O lexer nao emite NEWLINE nem INDENT ali — para ele o
+                # pipeline e uma expressao so —, entao a profundidade
+                # saia 0 e o formatador encostava o '>>' na margem:
+                #
+                #     resumo := vendas
+                #     >> onde valor bigger 0
+                #
+                # Ainda compila, e le como uma instrucao nova. O
+                # pipeline e a forma que a linguagem mais mostra, e o
+                # formatador a desalinhava — 'fmt' PIORAVA o arquivo, e
+                # 'fmt --check' reprovava o original bem escrito.
+                continuacao = (primeiro_da_linha and not inicio_de_linha
+                               and token.type in _CONTINUAM_A_LINHA)
+                profundidade.setdefault(
+                    token.line, nivel + abertos + (1 if continuacao else 0))
                 inicio_de_linha = False
 
             # O lexer NAO emite INDENT dentro de colchete, chave ou
@@ -284,6 +308,13 @@ class Formatter:
                 continue
             # A profundidade de colchete distingue a fatia do vault: o
             # ':' de 'xs[1:4]' esta dentro de '[', o de '{"a": 1}' nao.
+            #
+            # A decisao de espaco usa a profundidade ANTES deste token.
+            # Contando o '[' primeiro, '{"k": ["x"]}' ficava
+            # '{"k":["x"]}': no proprio '[' a conta ja valia 1, a regra
+            # do ':' se achava dentro de uma fatia e engolia o espaco.
+            # O ':' esta fora do colchete — e o '[' que vem depois dele.
+            colchete_antes = colchetes
             if token.type is TokenType.LBRACKET:
                 colchetes += 1
             elif token.type is TokenType.RBRACKET:
@@ -307,7 +338,8 @@ class Formatter:
             elif genericos > 0 and token.type is TokenType.PIPE:
                 genericos = max(0, genericos - 2)
             if partes and not generico and self._precisa_espaco(
-                    anterior, token, antes_do_anterior, colchetes > 0):
+                    anterior, token, antes_do_anterior,
+                    colchete_antes > 0):
                 partes.append(" ")
             partes.append(texto_token)
             antes_do_anterior = anterior

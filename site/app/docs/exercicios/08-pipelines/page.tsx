@@ -70,17 +70,17 @@ out concatenado`, lang: 'df', title: `exercicios/08-pipelines/089_distill.df` },
   { code: `vendas := [120, 45, 300, 80, 500, 15, 250]
 
 total_grandes := vendas
->> sift v: v bigger_eq 100
->> morph v: v * 1.1
->> distill acc, v: acc + v 0
+    >> sift v: v bigger_eq 100
+    >> morph v: v * 1.1
+    >> distill acc, v: acc + v 0
 
 out "total das vendas grandes com 10%:", round(total_grandes, 2)
 assert round(total_grandes, 2) is 1287.0, "pipeline completo"
 
 nomes := ["ana", "BRUNO", "carla", "di"]
 formatados := nomes
->> sift n: n.length() bigger 2
->> morph n: n.capitalize()
+    >> sift n: n.length() bigger 2
+    >> morph n: n.capitalize()
 out formatados
 assert formatados is ["Ana", "Bruno", "Carla"], "pipeline de texto"`, lang: 'df', title: `exercicios/08-pipelines/090_pipeline_encadeado.df` },
   {"h2": "091 · Pipeline com acao nomeada"},
@@ -223,8 +223,8 @@ assert round(mean(valores), 1) is 950.0, "ticket medio"`, lang: 'df', title: `ex
 adopt Arcane.Regex as Regex
 
 limpos := bruto
->> morph e: e.trim().lower()
->> sift e: Regex.is_email(e)
+    >> morph e: e.trim().lower()
+    >> sift e: Regex.is_email(e)
 
 out limpos
 assert limpos is ["ana@exemplo.com", "bruno@teste.org", "carla@x.com"], "emails limpos"

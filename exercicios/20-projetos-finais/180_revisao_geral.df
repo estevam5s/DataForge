@@ -135,9 +135,9 @@ ensure:
 out ""
 out "11. pipelines"
 total := nums
->> sift n: n % 2 is 0
->> morph n: n * 10
->> distill acc, v: acc + v 0
+    >> sift n: n % 2 is 0
+    >> morph n: n * 10
+    >> distill acc, v: acc + v 0
 out $"   pares x10 somados: {total}"
 
 // ── 12. Generators ──

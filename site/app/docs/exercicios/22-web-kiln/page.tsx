@@ -271,7 +271,7 @@ server site on 0:
         render "lista.html" with {"titulo": "Forja", "produtos": produtos}
 
     route GET "/vazio":
-        render "lista.html" with {"titulo": "Vazio", "produtos":[]}
+        render "lista.html" with {"titulo": "Vazio", "produtos": []}
 
 pagina := Kiln.test(site, "GET", "/")
 out pagina["body"]
@@ -511,7 +511,7 @@ adopt Arcane.API as API
 
 server Loja on 8080:
     route GET "/produtos":
-        respond json {"produtos":[], "total": 0}
+        respond json {"produtos": [], "total": 0}
 
     route POST "/produtos":
         respond json {"criado": yes}
