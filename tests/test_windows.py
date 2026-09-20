@@ -262,3 +262,71 @@ def test_o_id_do_winget_e_o_mesmo_na_pagina_e_no_manifesto():
     assert f"winget install {g.ID_WINGET}" in pagina
     assert f"PackageIdentifier: {g.ID_WINGET}" in _ler(
         f"winget/{g.ID_WINGET}/{g.ID_WINGET}.yaml")
+
+
+def test_todo_script_que_a_pagina_manda_CANALIZAR_e_servido_como_texto():
+    """`irm .../x.ps1 | iex` não executa nada se o tipo for binário.
+
+    O `Invoke-RestMethod` decide o que devolver pelo `Content-Type`: com
+    um tipo textual devolve a string do script, e com
+    `application/octet-stream` devolve os **bytes**. O `iex` recebe um
+    `Byte[]`, não tem o que executar, e **não dá erro** — o terminal
+    volta ao prompt como se tivesse funcionado.
+
+    Foi exatamente o que aconteceu com o harness que eu mesmo escrevi
+    para testar na máquina virtual: o `http.server` do Python serve
+    `.ps1` como octet-stream, a VM nunca reportou nada, e o silêncio
+    parecia problema de rede.
+
+    A Vercel faz a mesma coisa: `instalar.ps1` tinha o cabeçalho
+    declarado em `vercel.json` e `diagnostico.ps1` não — e a página
+    manda canalizar os dois. Como é um arquivo de configuração de host,
+    nada no repositório denunciava.
+    """
+    import json
+
+    config = os.path.join(RAIZ, "site", "vercel.json")
+    vercel = json.load(open(config, encoding="utf-8"))
+    cabecalhos = vercel.get("headers") or []
+
+    tipo_de = {}
+    for entrada in cabecalhos:
+        for c in entrada.get("headers", []):
+            if c["key"].lower() == "content-type":
+                tipo_de[entrada["source"]] = c["value"].lower()
+
+    pagina = open(os.path.join(RAIZ, "site", "app", "download", "page.tsx"),
+                  encoding="utf-8").read()
+    docs = os.path.join(RAIZ, "site", "app", "docs", "instalacao", "page.tsx")
+    if os.path.isfile(docs):
+        pagina += open(docs, encoding="utf-8").read()
+
+    # O que a página manda canalizar: 'irm .../x.ps1 | iex' e
+    # 'curl .../x.sh | sh'.
+    canalizados = set(re.findall(
+        r"dataforge-lang\.vercel\.app(/[\w.-]+\.(?:ps1|sh))\b[^\n]*\|", pagina))
+    assert canalizados, (
+        "nenhum comando canalizado na página — se a forma mudou, ajuste "
+        "este padrão em vez de deixar a trava passar vazia")
+
+    sem_tipo = []
+    binarios = []
+    for rota in sorted(canalizados):
+        arquivo = os.path.join(RAIZ, "site", "public", rota.lstrip("/"))
+        if not os.path.isfile(arquivo):
+            continue        # coberto por outra trava (o arquivo publicado)
+        tipo = tipo_de.get(rota)
+        if tipo is None:
+            sem_tipo.append(rota)
+        elif not (tipo.startswith("text/")
+                  or "charset=utf-8" in tipo):
+            binarios.append(f"{rota} ({tipo})")
+
+    assert not sem_tipo, (
+        "a página manda canalizar estes arquivos e 'site/vercel.json' não "
+        "declara o Content-Type deles — a edge serve como "
+        "application/octet-stream, e o 'iex' recebe bytes:\n  "
+        + "\n  ".join(sem_tipo))
+    assert not binarios, (
+        "Content-Type binário num script canalizado:\n  "
+        + "\n  ".join(binarios))
