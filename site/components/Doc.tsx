@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { neighbours, sectionOf } from '@/lib/nav';
 import { Toc, type Heading } from './Toc';
+import { Redimensionavel } from './Redimensionavel';
 import { Inline } from './Inline';
 import { Footer } from './Footer';
 
@@ -206,11 +207,22 @@ export function DocPage({
         <Footer />
       </div>
 
-      <aside className="hidden w-[220px] shrink-0 self-stretch xl:block">
+      {/* O índice também é redimensionável, e pelo lado de dentro: um
+          título longo cabia em 220 px na base e não cabe em toda
+          página. */}
+      <Redimensionavel
+        id="docs-indice"
+        lado="direita"
+        padrao={220}
+        minimo={170}
+        maximo={420}
+        rotulo="Largura do índice desta página"
+        className="hidden xl:block"
+      >
         <div className="sticky top-[100px] max-h-[calc(100vh-130px)] overflow-y-auto py-10">
           <Toc headings={headings} />
         </div>
-      </aside>
+      </Redimensionavel>
     </div>
   );
 }

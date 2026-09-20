@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { SidebarRolagem } from '@/components/SidebarRolagem';
+import { Redimensionavel } from '@/components/Redimensionavel';
 
 /**
  * Chrome da documentação.
@@ -30,7 +31,19 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
             a coluna de conteúdo para o sticky ter até onde grudar.
             Com `items-start` no pai, ele encolheria para o próprio
             tamanho e a barra pararia de acompanhar na primeira rolada. */}
-        <aside className="hidden w-[248px] shrink-0 self-stretch lg:block">
+        {/* A largura é de quem lê: um nome como
+            `Arcane.Arquivo_Seguro.abrir_zip_seguro` não cabe em 248 px e
+            vira reticências, e num monitor largo sobra tela. Ver
+            `components/Redimensionavel.tsx`. */}
+        <Redimensionavel
+          id="docs-lateral"
+          lado="esquerda"
+          padrao={248}
+          minimo={200}
+          maximo={520}
+          rotulo="Largura da barra de navegação"
+          className="hidden lg:block"
+        >
           <div className="sticky top-[84px] flex max-h-[calc(100vh-100px)] flex-col rounded-2xl border border-line/70 bg-surface/50 backdrop-blur-sm">
             <SidebarRolagem>
               <Sidebar />
@@ -51,7 +64,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
               </Link>
             </div>
           </div>
-        </aside>
+        </Redimensionavel>
 
         {/* Sem <Footer /> aqui: ele é renderizado por `DocPage`, DENTRO
             da linha que contém o índice "Nesta página".

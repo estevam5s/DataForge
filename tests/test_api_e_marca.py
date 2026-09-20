@@ -1840,7 +1840,12 @@ def test_o_indice_lateral_gruda_ate_o_fim_da_pagina():
             f"rodapés — ele foi movido para dentro de DocPage, e uma cópia "
             f"no layout faria os dois aparecerem")
 
-        i_aside = html.find("w-[220px]")
+        # A marca é o 'data-redimensionavel', e não mais a classe de
+        # largura: desde que o índice virou redimensionável a largura
+        # vai no `style`, e procurar 'w-[220px]' não acharia nada — o
+        # `continue` abaixo esvaziaria a trava em silêncio, que é o
+        # jeito mais rápido de uma trava virar decoração.
+        i_aside = html.find('data-redimensionavel="docs-indice"')
         i_footer = html.find("<footer")
         if i_aside < 0:
             continue        # página sem índice lateral
@@ -1851,3 +1856,170 @@ def test_o_indice_lateral_gruda_ate_o_fim_da_pagina():
 
     if conferidas == 0:
         pytest.skip("as páginas esperadas não estão no export")
+
+
+# ═══════════════════════════════════════════════════════════
+#  A largura das barras é de quem lê
+# ═══════════════════════════════════════════════════════════
+
+def _fonte_do_redimensionavel(com_comentarios=False):
+    """O componente, por padrão SEM os comentários.
+
+    A primeira versão destas travas acusou o próprio parágrafo que
+    explica o defeito ("ler `localStorage` no render quebra a
+    hidratação"). Uma trava que não distingue código de prosa cobra que
+    ninguém escreva sobre o assunto — é a mesma lição que
+    `test_nenhum_script_procura_um_programa_com_o_comando_which` já
+    tinha aprendido, ali resolvida lendo a árvore.
+
+    Aqui não há árvore de TypeScript à mão, então a limpeza é textual:
+    bloco `/* … */` e linha `//`. Ela erraria num `//` dentro de string
+    — e não há nenhuma neste arquivo, que é o que o teste abaixo cobra.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "site", "components", "Redimensionavel.tsx")
+    if not os.path.isfile(caminho):
+        pytest.skip("o site não está neste checkout")
+    fonte = open(caminho, encoding="utf-8").read()
+    if com_comentarios:
+        return fonte
+
+    assert "://" not in fonte, (
+        "o arquivo ganhou uma URL, e a limpeza de comentários abaixo "
+        "cortaria a linha dela — leia com um analisador de verdade")
+    sem_bloco = re.sub(r"/\*.*?\*/", "", fonte, flags=re.S)
+    return "\n".join(linha.split("//")[0] for linha in sem_bloco.splitlines())
+
+
+def test_as_DUAS_barras_da_doc_sao_redimensionaveis():
+    """Largura fixa é uma aposta sobre o conteúdo alheio.
+
+    `Arcane.Arquivo_Seguro.abrir_zip_seguro` não cabe em 248 px e vira
+    reticências; num monitor de 27" sobra tela dos dois lados. A barra
+    de navegação e o índice "Nesta página" têm um puxador cada, em
+    lados opostos — o da esquerda cresce para a direita, o da direita
+    cresce para a esquerda.
+
+    O teste olha o HTML **exportado**: é a estrutura que chega ao
+    navegador que decide, e não o JSX.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pagina = os.path.join(raiz, "site", "out", "docs", "index.html")
+    if not os.path.isfile(pagina):
+        pytest.skip("o site não foi exportado neste checkout")
+
+    html = open(pagina, encoding="utf-8").read()
+    for marca in ('data-redimensionavel="docs-lateral"',
+                  'data-redimensionavel="docs-indice"'):
+        assert marca in html, f"{marca} sumiu do HTML exportado"
+
+    assert html.count('role="separator"') >= 2, (
+        "cada barra precisa do seu puxador")
+    # A largura inicial vai no style: sem ela, a barra nasceria com a
+    # largura do conteúdo antes de o JavaScript rodar.
+    assert "width:248px" in html and "width:220px" in html, html[:0]
+
+
+def test_o_puxador_funciona_pelo_TECLADO_e_se_anuncia():
+    """Uma barra que só responde ao arrasto não existe para quem navega
+    por teclado — e um `separator` sem régua ARIA é anunciado como
+    "separador", sem dizer largura nenhuma.
+
+    A acessibilidade aqui não é camada por cima: é o que o elemento é.
+    """
+    fonte = _fonte_do_redimensionavel()
+
+    for exigido in ('role="separator"', 'aria-orientation="vertical"',
+                    "aria-valuenow", "aria-valuemin", "aria-valuemax",
+                    "aria-valuetext", "tabIndex={0}", "onKeyDown"):
+        assert exigido in fonte, f"o puxador perdeu {exigido}"
+
+    for tecla in ("ArrowRight", "ArrowLeft", "Home", "End"):
+        assert tecla in fonte, f"o teclado perdeu {tecla}"
+
+    assert "onDoubleClick" in fonte, (
+        "sem o clique duplo, quem arrastou demais não tem como voltar "
+        "ao padrão sem adivinhar o número")
+
+
+def test_a_largura_guardada_e_lida_DEPOIS_da_hidratacao():
+    """Ler `localStorage` no render quebra a hidratação.
+
+    O servidor gera o HTML sem saber o que este navegador guardou; se o
+    primeiro render do cliente usar outro valor, o React descarta a
+    árvore inteira e re-renderiza — e no meio disso a página pisca.
+
+    A leitura tem de estar dentro de um efeito, e toda leitura e
+    escrita dentro de `try`: em janela privada, com dados do site
+    bloqueados, o acessador **lança**, e uma barra lateral não pode
+    derrubar a documentação por causa disso.
+    """
+    fonte = _fonte_do_redimensionavel()
+
+    assert "useEffect" in fonte
+    antes_do_efeito = fonte[: fonte.index("useEffect(")]
+    assert "localStorage" not in antes_do_efeito, (
+        "o armazenamento é lido antes do primeiro efeito — isso roda no "
+        "render e quebra a hidratação")
+
+    # Cada acesso ao armazenamento está protegido.
+    assert fonte.count("try {") >= 2, (
+        "leitura e escrita precisam cada uma do seu 'try': em janela "
+        "privada o acessador lança")
+
+
+def test_o_arrasto_nao_re_renderiza_a_arvore_a_cada_pixel():
+    """Com 190 rotas e seções animadas, um `setState` por evento de
+    ponteiro faz o arrasto engasgar.
+
+    Durante o movimento o que muda é uma propriedade CSS escrita direto
+    no elemento; o estado do React só é atualizado quando o dedo sai.
+    """
+    fonte = _fonte_do_redimensionavel()
+
+    i_mover = fonte.index("const mover = ")
+    corpo = fonte[i_mover: fonte.index("const soltar = ")]
+    assert "style.width" in corpo, (
+        "o arrasto deixou de escrever a largura direto no DOM")
+    assert "setLargura" not in corpo, (
+        "voltou a re-renderizar a cada pixel arrastado")
+
+
+def test_cada_lado_cresce_para_FORA_da_pagina():
+    """Um sinal trocado faz a barra encolher quando se puxa para fora.
+
+    É o defeito mais fácil de cometer aqui e o mais difícil de ver numa
+    revisão: as duas barras usam a mesma conta, com o sinal invertido,
+    e ler `inicioX - e.clientX` não diz para que lado a barra cresce.
+
+    Não há navegador nesta suíte, então o que se prova é a **conta** —
+    lida do componente, e não copiada, senão as duas poderiam divergir
+    e o teste continuaria verde.
+    """
+    fonte = _fonte_do_redimensionavel()
+
+    linhas = [l.strip() for l in fonte.splitlines() if "const delta" in l]
+    assert len(linhas) == 1, f"a conta do arrasto mudou de forma: {linhas}"
+    expressao = linhas[0]
+
+    # A leitura é literal: se a expressão mudar, o teste para de saber o
+    # que está exercitando e diz isso em vez de aprovar.
+    assert "lado === 'esquerda' ? e.clientX - inicioX : inicioX - e.clientX" \
+        in expressao, expressao
+
+    def delta(lado, inicio_x, client_x):
+        return client_x - inicio_x if lado == "esquerda" else inicio_x - client_x
+
+    # Puxar para FORA da página (a direita, na barra esquerda; a
+    # esquerda, no índice da direita) aumenta a largura.
+    assert delta("esquerda", 300, 360) > 0, "a barra esquerda encolheu ao ser puxada para a direita"
+    assert delta("esquerda", 300, 240) < 0
+    assert delta("direita", 1200, 1140) > 0, "o índice encolheu ao ser puxado para a esquerda"
+    assert delta("direita", 1200, 1260) < 0
+
+    # E os limites existem nos dois sentidos.
+    assert "Math.min(maximo, Math.max(minimo" in fonte, (
+        "a largura deixou de ser limitada — arrastar até o fim comeria "
+        "a coluna de texto")
