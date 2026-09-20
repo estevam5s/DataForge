@@ -39,9 +39,16 @@ assert exato["min"] is 1 and exato["max"] is 10
 // ── significancia: o teste que impede inventar ganho ──
 // A MESMA acao dos dois lados. A diferenca e ruido, e a ferramenta tem
 // de dizer isso — senao escolhe-se a implementacao errada com conviccao.
-igual := P.comparar(consulta, consulta, {"amostras": 40})
+// O piso de efeito vai EXPLICITO aqui: alfa de 0,05 significa que uma
+// em vinte comparacoes de coisas iguais cruza o limiar do p, e sem um
+// piso este exercicio seria uma aposta que perde uma vez em vinte. Com
+// 20%, ruido de maquina nao tem como virar "diferenca real".
+igual := P.comparar(consulta, consulta,
+                    {"amostras": 40, "efeito_minimo": 0.20})
 assert igual["mais_rapido"] is "empate"
 assert not igual["significativo"]
+// e o numero medido continua disponivel, significativo ou nao
+assert igual["efeito"] smaller 0.20
 
 action lenta():
     yield sum(range(9000))

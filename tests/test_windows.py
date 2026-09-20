@@ -365,3 +365,50 @@ def test_todo_lancador_ESCRITO_A_MAO_tem_a_guarda_do_main():
         "reentra na CLI em cada trabalhador de 'map_processos'")
     assert entrada.index("freeze_support()") < entrada.index("main())"), (
         "'freeze_support' tem de vir ANTES de main(): depois dela já é tarde")
+
+
+def test_nenhum_caminho_CURTO_pode_derrubar_o_empacotador():
+    """No Windows, `relpath` entre unidades diferentes levanta.
+
+    O runner do CI clona o repositório em `D:` e o `tmp_path` do pytest
+    fica em `C:`. Com `DF_PACOTES_SAIDA` apontando para a outra unidade,
+    `os.path.relpath(deb, RAIZ)` não tem resposta possível:
+
+        ValueError: path is on mount 'C:', start on mount 'D:'
+
+    E a linha que estourava era a que **anuncia** o pacote — o `.deb`
+    estava pronto, com os 6,7 MB conferidos. Um caminho curto é
+    conveniência de leitura, e nunca vale derrubar o trabalho por ele:
+    `_curto` devolve o caminho inteiro quando não dá.
+
+    Três testes reprovavam mostrando a primeira linha do stdout, que
+    fala de um PKGBUILD correto. Foi o diagnóstico de uma linha só — o
+    `_uma_linha` — que finalmente trouxe o traceback para a anotação.
+    """
+    import ast
+    import glob
+
+    ruins = []
+    for caminho in glob.glob(os.path.join(RAIZ, "packaging", "**", "*.py"),
+                             recursive=True):
+        arvore = ast.parse(open(caminho, encoding="utf-8").read())
+        for no in ast.walk(arvore):
+            if not isinstance(no, ast.Call) or len(no.args) < 2:
+                continue
+            alvo = no.func
+            nome = (f"{getattr(getattr(alvo, 'value', None), 'attr', '')}."
+                    f"{getattr(alvo, 'attr', '')}")
+            if nome != "path.relpath":
+                continue
+            # A base é o que decide: uma pasta de DENTRO da árvore
+            # temporária nunca cruza unidade; a raiz do repositório, com
+            # um destino que veio de fora, cruza.
+            base = no.args[1]
+            if isinstance(base, ast.Name) and base.id == "RAIZ":
+                ruins.append(
+                    f"{os.path.relpath(caminho, RAIZ)}:{no.lineno}")
+
+    assert not ruins, (
+        "'os.path.relpath(x, RAIZ)' pode levantar ValueError no Windows "
+        "quando 'x' está em outra unidade — use '_curto':\n  "
+        + "\n  ".join(ruins))

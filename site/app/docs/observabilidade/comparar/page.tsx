@@ -20,9 +20,13 @@ action consulta():
 
 // a MESMA acao dos dois lados: a diferenca e ruido, e a ferramenta
 // tem de dizer isso
-v := P.comparar(consulta, consulta, {"amostras": 40})
+v := P.comparar(consulta, consulta,
+                {"amostras": 40, "efeito_minimo": 0.20})
 assert v["mais_rapido"] is "empate"
-assert not v["significativo"]`, lang: 'df' },
+assert not v["significativo"]
+
+// e o efeito MEDIDO continua visivel, significativo ou nao
+assert v["efeito"] smaller 0.20`, lang: 'df' },
   { code: `adopt Arcane.Perfil as P
 
 action rapida():
@@ -39,8 +43,11 @@ assert d["p_valor"] smaller 0.05`, lang: 'df' },
   {"h2": "Por que Mann-Whitney, e não o teste t"},
   {"p": "Tempo de execução **não é normal**: tem cauda longa à direita, piso duro à esquerda (nada roda em tempo negativo) e picos de escalonamento do sistema. Um teste t supõe normalidade e responde com confiança sobre uma suposição falsa."},
   {"p": "O U de Mann-Whitney não supõe nada sobre a forma — ele compara **ordens**. E a correção de empates importa quando o relógio tem resolução grossa e muitas amostras dão o mesmo valor."},
-  {"table": {"head": ["Campo", "O que diz"], "rows": [["`p_valor`", "a chance de ver esta diferença se as duas fossem iguais"], ["`significativo`", "`p_valor` abaixo de `alfa` (padrão 0,05)"], ["`sobreposicao`", "o **tamanho do efeito**: a chance de um sorteio de A ser menor que um de B. É o que `p` **não** diz"], ["`fator`", "quantas vezes, na mediana — e só quando é significativo"], ["`a`, `b`", "a distribuição completa de cada lado"]]}},
-  {"callout": {"tipo": "atencao", "titulo": "As duas medições são intercaladas, e isso não é detalhe", "texto": "Medir A inteiro e depois B inteiro faz uma queda de clock no meio da sessão virar \"B é mais lenta\". Alternar A, B, A, B espalha a deriva da máquina igualmente pelos dois lados — é a diferença entre comparar duas implementações e comparar dois momentos."}},
+  {"table": {"head": ["Campo", "O que diz"], "rows": [["`p_valor`", "a chance de ver esta diferença se as duas fossem iguais"], ["`efeito`", "**quanto** mudou na mediana, medido — significativo ou não"], ["`efeito_minimo`", "o piso abaixo do qual a resposta é empate (padrão 1%)"], ["`significativo`", "`p_valor` abaixo de `alfa` **e** efeito acima do piso"], ["`sobreposicao`", "a chance de um sorteio de A ser menor que um de B"], ["`fator`", "quantas vezes, na mediana — e só quando é significativo"], ["`a`, `b`", "a distribuição completa de cada lado"]]}},
+  {"h2": "Por que o p-valor sozinho não serve"},
+  {"p": "**Alfa de 0,05 significa que uma em vinte comparações de coisas iguais cruza o limiar.** Não é defeito do teste: é a definição dele. Uma ferramenta que decide só pelo `p` chama de diferença real uma diferença de zero por cento, uma vez a cada vinte — e quem lê o relatório não tem como saber qual das vinte é."},
+  {"p": "Medido nesta implementação, comparando uma ação com ela mesma com quatro threads queimando CPU: **2 em 40** deram `p < 0,05`, e nas duas a razão das medianas era **1,0000**. Por isso a resposta exige as duas perguntas — *a ordem das amostras é acidente?* e *e daí?* — e o piso do efeito é o que responde a segunda."},
+  {"callout": {"tipo": "atencao", "titulo": "As duas medições são intercaladas, e a ordem alterna", "texto": "Medir A inteiro e depois B inteiro faz uma queda de clock no meio da sessão virar \"B é mais lenta\". Mas intercalar sempre na mesma ordem põe outro viés no lugar: quem vai primeiro paga a entrada da volta — cache, preditor de desvio, o próprio despertar do processo — e quem vem depois aproveita. É um viés **sistemático**, então não desaparece com mais amostras: fica mais significativo. Medido, sem alternar: uma rodada em quarenta acusava 10% de diferença entre uma ação e ela mesma."}},
   {"h2": "Regressão: piorou desde a semana passada?"},
   {"p": "Um número sozinho não responde isso. A linha de base fica num arquivo, e o `conferir` compara."},
   { code: `adopt Arcane.Perfil as P
@@ -68,7 +75,7 @@ IO.delete(base)`, lang: 'df' },
   {"callout": {"tipo": "nota", "titulo": "Duas escolhas que mantêm o CI utilizável", "texto": "**A primeira medida nunca reprova** — reprovar ali faria todo CI novo nascer vermelho, e a primeira coisa que se faz com um CI vermelho por desenho é desligá-lo. E **a tolerância é obrigatória**: sem ela, todo CI fica vermelho por ruído de máquina, o que dá no mesmo."}},
 ];
 
-const headings = [{ id: 'por-que-mann-whitney-e-nao-o-teste-t', text: "Por que Mann-Whitney, e não o teste t", level: 2 as const }, { id: 'regressao-piorou-desde-a-semana-passada', text: "Regressão: piorou desde a semana passada?", level: 2 as const }];
+const headings = [{ id: 'por-que-mann-whitney-e-nao-o-teste-t', text: "Por que Mann-Whitney, e não o teste t", level: 2 as const }, { id: 'por-que-o-p-valor-sozinho-nao-serve', text: "Por que o p-valor sozinho não serve", level: 2 as const }, { id: 'regressao-piorou-desde-a-semana-passada', text: "Regressão: piorou desde a semana passada?", level: 2 as const }];
 
 export default function Pagina() {
   return (

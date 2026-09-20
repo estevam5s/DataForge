@@ -81,6 +81,29 @@ def conferir_tamanho(caminho):
     return tamanho
 
 
+def _curto(caminho, base=None):
+    """O caminho relativo a base, ou ele inteiro quando nao da.
+
+    No Windows, 'os.path.relpath' entre UNIDADES diferentes levanta
+    ValueError: nao existe caminho relativo de 'D:\\a\\DataForge' para
+    'C:\\Users\\...\\Temp'. O runner do CI clona o repositorio em D: e
+    o 'tmp_path' do pytest fica em C:, entao 'DF_PACOTES_SAIDA' apontava
+    para a outra unidade.
+
+    O .deb era construido INTEIRO, e o gerador morria na linha que o
+    ANUNCIA:
+
+        ValueError: path is on mount 'C:', start on mount 'D:'
+
+    Um caminho curto e conveniencia de leitura; nunca vale derrubar o
+    trabalho por ele.
+    """
+    try:
+        return os.path.relpath(caminho, base if base is not None else RAIZ)
+    except ValueError:
+        return caminho
+
+
 def _conferir_conteudo(arquivos):
     """A linguagem esta DENTRO? A pergunta que o piso de bytes nao faz.
 
@@ -460,7 +483,7 @@ def gerar_manifestos_do_windows():
         os.makedirs(os.path.dirname(caminho), exist_ok=True)
         with open(caminho, "w", encoding="utf-8", newline="\n") as arquivo:
             arquivo.write(texto)
-        escritos.append(os.path.relpath(caminho, RAIZ))
+        escritos.append(_curto(caminho))
 
     # ── winget ──────────────────────────────────────────────
     #
@@ -642,7 +665,7 @@ def main():
         return 0
 
     caminho, mudou = atualizar_pkgbuild()
-    print(f"  {os.path.relpath(caminho, RAIZ)}"
+    print(f"  {_curto(caminho)}"
           f"{' (versao atualizada)' if mudou else ''}")
 
     escritos, sha_real = gerar_manifestos_do_windows()
@@ -655,7 +678,7 @@ def main():
 
     deb = gerar_deb()
     tamanho = conferir_tamanho(deb)
-    print(f"  {os.path.relpath(deb, RAIZ)}  ({tamanho} bytes)")
+    print(f"  {_curto(deb)}  ({tamanho} bytes)")
 
     # Conferir que o .deb e um 'ar' valido, e nao so um arquivo com o
     # nome certo. Publicar um pacote quebrado e pior que nao publicar.
