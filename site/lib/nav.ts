@@ -204,6 +204,7 @@ export const nav: NavSection[] = [
     items: [
       { title: 'Visão geral', href: '/docs/vitrine' },
       { title: 'Componentes', href: '/docs/vitrine/componentes' },
+      { title: 'Painel profissional', href: '/docs/vitrine/painel' },
       { title: 'Layout', href: '/docs/vitrine/layout' },
       { title: 'Estado e cache', href: '/docs/vitrine/estado' },
       { title: 'Gráficos', href: '/docs/vitrine/graficos' },

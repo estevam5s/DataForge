@@ -57,7 +57,95 @@ ESCURO = {
     "largura": "1160px",
 }
 
-PRONTOS = {"claro": CLARO, "escuro": ESCURO}
+#: O tema do painel: quase preto azulado, painéis um degrau acima do
+#: fundo e a marca em âmbar. Ele existe porque um painel de operação
+#: costuma ficar aberto o dia inteiro numa tela grande, e ali o que
+#: cansa é o fundo claro — não a falta de cor.
+MEIA_NOITE = {
+    **ESCURO,
+    "nome": "meia-noite",
+    "fundo": "#080A0F",
+    "fundo_alt": "#0E1118",
+    "superficie": "#111521",
+    "borda": "#1E2433",
+    "texto": "#EDF1F7",
+    "texto_fraco": "#8C97AB",
+    "primaria": "#F5B301",
+    "primaria_texto": "#0B0D12",
+    "sucesso": "#3DD68C",
+    "erro": "#FF6B6B",
+    "aviso": "#FFC53D",
+    "info": "#5B9BFF",
+    "raio": "10px",
+    "largura": "1440px",
+}
+
+#: Azul profundo, para quem quer o painel escuro sem o preto.
+OCEANO = {
+    **ESCURO,
+    "nome": "oceano",
+    "fundo": "#0A1424",
+    "fundo_alt": "#0F1B2E",
+    "superficie": "#122138",
+    "borda": "#1D3050",
+    "texto": "#E6EEF9",
+    "texto_fraco": "#8BA3C0",
+    "primaria": "#4CC9F0",
+    "primaria_texto": "#06101E",
+    "info": "#7BB6FF",
+}
+
+#: Contraste alto, dentro do nível AAA da WCAG. Não é um tema bonito —
+#: é o que alguém escolhe quando o bonito não dá para ler.
+CONTRASTE = {
+    **CLARO,
+    "nome": "contraste",
+    "fundo": "#FFFFFF",
+    "fundo_alt": "#F2F2F2",
+    "superficie": "#FFFFFF",
+    "borda": "#000000",
+    "texto": "#000000",
+    "texto_fraco": "#333333",
+    "primaria": "#00458A",
+    "primaria_texto": "#FFFFFF",
+    "sucesso": "#005C29",
+    "erro": "#9B0016",
+    "aviso": "#6B4400",
+    "info": "#00458A",
+    "raio": "4px",
+}
+
+#: Papel: claro, quente e de baixo contraste azul — para leitura longa.
+PAPEL = {
+    **CLARO,
+    "nome": "papel",
+    "fundo": "#FBF7EF",
+    "fundo_alt": "#F3EDE1",
+    "superficie": "#FFFCF6",
+    "borda": "#E0D6C4",
+    "texto": "#2A2520",
+    "texto_fraco": "#6B6157",
+    "primaria": "#8A5A17",
+    "info": "#1F5FA8",
+}
+
+PRONTOS = {"claro": CLARO, "escuro": ESCURO, "meia-noite": MEIA_NOITE,
+           "meia_noite": MEIA_NOITE, "oceano": OCEANO,
+           "contraste": CONTRASTE, "papel": PAPEL}
+
+#: Um tema escuro pedido como texto vale para os dois modos; a página
+#: não volta ao claro quando o sistema está claro. Quem pede
+#: "meia-noite" está pedindo meia-noite.
+ESCUROS = {"escuro", "meia-noite", "meia_noite", "oceano"}
+
+#: A densidade muda espaçamento e tamanho de fonte sem tocar nas cores.
+#: Um painel de operação cabe um terço mais de linha na mesma tela com
+#: `compacta`, e é a diferença entre rolar e não rolar.
+DENSIDADES = {
+    "compacta": {"escala": "13.5px", "respiro": "0.78"},
+    "normal": {"escala": "15px", "respiro": "1"},
+    "folgada": {"escala": "16px", "respiro": "1.2"},
+}
 
 #: A cor primária do tema claro é #B28600, e não o #FED403 da marca,
 #: porque amarelo sobre branco dá contraste 1,3:1 — a WCAG pede 4,5:1
@@ -70,12 +158,18 @@ def resolver(pedido):
     if pedido is None:
         return dict(CLARO), dict(ESCURO)
     if isinstance(pedido, str):
+        if pedido.lower() == "automatico":
+            return dict(CLARO), dict(ESCURO)
         base = PRONTOS.get(pedido.lower())
         if base is None:
+            import difflib
             from ...errors import RuntimeError_
+            perto = difflib.get_close_matches(pedido.lower(), sorted(PRONTOS), n=1)
             raise RuntimeError_(
                 f"tema '{pedido}' nao existe.", 0, 0,
-                nota="os prontos sao: claro, escuro, automatico",
+                nota=(f"voce quis dizer '{perto[0]}'?" if perto else
+                      "os prontos: " + ", ".join(sorted(set(
+                          p for p in PRONTOS if "_" not in p)) | {"automatico"})),
                 dica='para um tema seu, passe um vault: '
                      'V.tema({"primaria": "#0F62FE"})',
                 doc="tecnicas/vitrine")
@@ -90,3 +184,24 @@ def resolver(pedido):
 
 def variaveis(tema):
     return "".join(f"--v-{c}:{v};" for c, v in tema.items() if c != "nome")
+
+
+def nomes():
+    """Os temas prontos, sem os apelidos com sublinhado."""
+    return sorted({t["nome"] for t in PRONTOS.values()})
+
+
+def e_escuro(pedido):
+    """Se este tema pede o modo escuro fixo.
+
+    Sem esta pergunta, `V.app(tema := "meia-noite")` no modo automático
+    voltaria ao claro numa máquina configurada como clara — e o tema
+    escolhido explicitamente deixaria de valer.
+    """
+    return isinstance(pedido, str) and pedido.lower() in ESCUROS
+
+
+def densidade(nome="normal"):
+    """As variáveis CSS de uma densidade."""
+    escolhida = DENSIDADES.get(str(nome), DENSIDADES["normal"])
+    return "".join(f"--v-{c}:{v};" for c, v in escolhida.items())

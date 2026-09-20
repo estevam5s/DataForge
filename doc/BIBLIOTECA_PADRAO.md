@@ -80,7 +80,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Email`](#arcaneemail) | `Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
 | [`Arcane.Html`](#arcanehtml) | `Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
 | [`Arcane.Lavra`](#arcanelavra) | `Lavra` | 42 | A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços. |
-| [`Arcane.Vitrine`](#arcanevitrine) | `Vitrine` | 115 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
+| [`Arcane.Vitrine`](#arcanevitrine) | `Vitrine` | 213 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | [`Arcane.API`](#arcaneapi) | `API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
 | [`Arcane.Decimal`](#arcanedecimal) | `Decimal / Exato` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
 | [`Arcane.Ponte`](#arcaneponte) | `Ponte / Bridge` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
@@ -2923,13 +2923,15 @@ adopt Arcane.Vitrine as Vitrine
 | `geral` | `<dataforge.stdlib.vitrine.estado.Geral object at 0…` |
 | `i18n` | `<dataforge.stdlib.vitrine.extras.Traducao object a…` |
 | `paleta` | `['#FED403', '#0F62FE', '#24A148', '#FA4D56', '#8A3…` |
+| `tipos_de_grafico` | `['linha', 'barras', 'area', 'dispersao', 'pizza', …` |
 
-**Funções (111)**
+**Funções (208)**
 
 | Assinatura |
 |------------|
 | `abas(rotulos)` |
 | `agendar(acao, a_cada, *args)` |
+| `ajuda(alvo)` |
 | `antes(funcao)` |
 | `app(titulo='Vitrine', **config)` |
 | `area_de_texto(rotulo, valor='', linhas=4, dica='', chave=None)` |
@@ -2938,100 +2940,196 @@ adopt Arcane.Vitrine as Vitrine
 | `audio(origem, formato='audio/mpeg')` |
 | `autenticacao(verificador, papeis=None)` |
 | `autenticado()` |
+| `autocompletar(rotulo, opcoes, valor='', dica='', chave=None)` |
+| `avaliacao(rotulo, tipo='estrelas', maximo=5, valor=0, chave=None)` |
 | `aviso(mensagem)` |
 | `baixar(rotulo, conteudo, nome='dados.txt', tipo='text/plain')` |
+| `barra_superior(titulo='', itens=None, ativo='', logo='', subtitulo='')` |
 | `botao(rotulo, tipo='primario', chave=None, largura='')` |
+| `busca(rotulo='Buscar', dica='', chave=None)` |
 | `cabecalho(conteudo, nivel=3)` |
 | `cache(*args, **kwargs)` |
 | `caixa(rotulo, valor=False, chave=None)` |
+| `camera(rotulo='Foto', chave=None)` |
 | `caminho()` |
 | `campo_validado(rotulo, regra, mensagem='', valor='', tipo='texto', dica='', chave=None)` |
 | `carregando(mensagem='Carregando…')` |
 | `cartao(titulo='', subtitulo='')` |
+| `chat(altura=None)` |
+| `chat_entrada(dica='Escreva uma mensagem…', chave=None, desabilitado=False)` |
+| `chat_mensagem(quem='assistente', conteudo='', avatar='', hora='')` |
+| `citacao(conteudo, autor='')` |
 | `codigo(conteudo, linguagem='dataforge')` |
+| `coluna(nome, titulo='', tipo='texto', formato='', largura=0, alinhar='', casas=None, ajuda='', editavel=False, opcoes=None, minimo=None, maximo=None, prefixo='', sufixo='', cores=None, oculta=False)` |
 | `colunas(quantidade, larguras=None, espacamento='medio')` |
+| `comemorar(tipo='balao')` |
+| `compacto(valor, casas=1)` |
 | `componente(nome, acao=None)` |
 | `componentes()` |
+| `conexao(nome, arquivo='', tipo='sqlite', **opcoes)` |
+| `conexao_de(nome, bruta, tipo='externa')` |
+| `conexoes()` |
 | `configurar(chave=None, valor=None, **pares)` |
 | `configurar_pagina(titulo='', icone='', **pares)` |
 | `container(borda=False, altura=None)` |
 | `cor(rotulo, valor='#FED403', chave=None)` |
 | `data(rotulo, valor='', chave=None)` |
+| `data_br(valor)` |
 | `depois(funcao)` |
 | `desenhar(g)` |
 | `deslizante(rotulo, minimo=0, maximo=100, valor=None, passo=1, chave=None)` |
+| `deslizante_opcoes(rotulo, opcoes, indice=0, chave=None)` |
+| `dialogo(titulo, aberto=None, largura=520, chave=None)` |
 | `divisor()` |
+| `editor(dados, colunas=None, acrescentar=True, remover=True, altura=None, chave=None)` |
+| `email(rotulo='E-mail', valor='', dica='', chave=None)` |
 | `encerrar_sessao()` |
 | `entrada(rotulo, valor='', dica='', tipo='texto', chave=None)` |
 | `entrar(usuario, senha)` |
 | `erro(mensagem)` |
 | `escolha(rotulo, opcoes, indice=0, chave=None)` |
 | `escolhas(rotulo, opcoes, padrao=None, chave=None)` |
+| `escrever(*valores)` |
 | `espacador()` |
 | `espaco(altura=16)` |
+| `esqueleto(linhas=3, altura=14, largura='100%')` |
+| `estatisticas(dados, colunas=None)` |
+| `excecao(erro, detalhe='')` |
 | `exigir_login(mensagem='Entre para continuar.')` |
 | `exigir_permissao(permissao, mensagem='')` |
 | `expandir(rotulo, aberto=False)` |
 | `exportar_csv(dados, nome='dados.csv', rotulo='Baixar CSV', separador=',')` |
+| `exportar_excel(dados, nome='dados.xlsx', rotulo='Baixar Excel', aba='Dados')` |
 | `exportar_json(dados, nome='dados.json', rotulo='Baixar JSON')` |
+| `exportar_svg(grafico, nome='grafico.svg', rotulo='Baixar SVG')` |
+| `faixa(rotulo, minimo=0, maximo=100, valor=None, passo=1, chave=None)` |
+| `fechar_conexoes()` |
+| `fluxo(gerador, velocidade=18)` |
+| `formatar(valor, formato='', casas=None)` |
+| `formula(expressao, bloco=True)` |
 | `formulario(nome, limpar=False)` |
+| `fragmento(chave, a_cada=0)` |
+| `fragmentos()` |
 | `frame(dados, colunas=None, altura=None)` |
+| `galeria(imagens, colunas=3, legendas=None)` |
+| `grade(dados, colunas=None, busca=True, paginar=25, selecionar='', ordenar_por='', decrescente=False, destacar=None, totais=None, altura=None, densidade='normal', numerar=False, chave=None, vazio='sem dados')` |
 | `grafico(tipo='linha', dados=None)` |
 | `grafico_area(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_area_empilhada(dados, x='', y=None, titulo='', altura=None, cores=None, **kw)` |
+| `grafico_bala(valor, alvo, minimo=0, maximo=None, rotulo='', faixas=None, titulo='', altura=None, cores=None, formato='', **kw)` |
 | `grafico_barras(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_barras_100(dados, x='', y=None, titulo='', altura=None, cores=None, **kw)` |
 | `grafico_barras_h(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_bolhas(dados, x='', y='', tamanho='', rotulo='', titulo='', altura=None, cores=None, formato='', **kw)` |
+| `grafico_caixa(dados, y=None, titulo='', altura=None, cores=None, formato='', **kw)` |
+| `grafico_calendario(dados, data='', valor='', ano=None, titulo='', altura=None, cores=None, escala=None, **kw)` |
+| `grafico_cascata(dados, x='', y='', titulo='', altura=None, cores=None, formato='', total=True, **kw)` |
+| `grafico_combo(dados, x='', barras=None, linhas=None, titulo='', altura=None, cores=None, formato='', direita=None, empilhado=False, **kw)` |
 | `grafico_dispersao(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_dispersao_xy(dados, x='', y='', titulo='', altura=None, cores=None, formato='', tendencia=False, **kw)` |
+| `grafico_funil(dados, x='', y='', titulo='', altura=None, cores=None, formato='', **kw)` |
+| `grafico_gantt(tarefas, titulo='', altura=None, cores=None, **kw)` |
 | `grafico_linha(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_mapa(pontos, titulo='', altura=None, cores=None, formato='', **kw)` |
+| `grafico_pareto(dados, x='', y='', titulo='', altura=None, cores=None, formato='', corte=80, **kw)` |
 | `grafico_pizza(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_radar(dados, x='', y=None, titulo='', altura=None, cores=None, **kw)` |
+| `grafico_rede(ligacoes, titulo='', altura=None, cores=None, **kw)` |
 | `grafico_rosca(dados, x='', y='', titulo='', altura=None, **kw)` |
+| `grafico_sankey(ligacoes, titulo='', altura=None, cores=None, formato='', **kw)` |
+| `grafico_treemap(dados, rotulo='', valor='', titulo='', altura=None, cores=None, formato='', **kw)` |
+| `grafico_velas(dados, data='', abertura='abertura', maxima='maxima', minima='minima', fechamento='fechamento', titulo='', altura=None, cores=None, formato='', **kw)` |
+| `guardar_no_chat(quem, conteudo, chave='__chat__')` |
 | `histograma(dados, campo='', faixas=10, titulo='', altura=None)` |
+| `historico_de_chat(chave='__chat__')` |
+| `hora(rotulo, valor='09:00', passo=60, chave=None)` |
 | `html(conteudo)` |
 | `html_da_pagina()` |
+| `icone(nome, tamanho=18, cor='')` |
+| `icones()` |
+| `iframe(origem, altura=420, titulo='Conteúdo incorporado')` |
 | `imagem(origem, legenda='', largura=None)` |
+| `indicador(rotulo, valor, variacao=None, cor='', ajuda='', nota='', mini=None, alvo=None, formato='', icone='')` |
+| `indicadores(itens, colunas=0)` |
 | `informacao(mensagem)` |
 | `interruptor(rotulo, valor=False, chave=None)` |
 | `json(dados, expandido=True)` |
 | `lateral()` |
+| `legenda(conteudo)` |
 | `linha(alinhar='inicio', espacamento='medio')` |
 | `link(rotulo, destino, nova_aba=False)` |
+| `logo(origem, destino='/', largura=132)` |
 | `logs(quantos=100, nivel='')` |
+| `malha(colunas=3, espacamento='medio', minimo=240)` |
+| `mapa_de_calor(dados, x='', y='', valor='', titulo='', altura=None, cores=None, formato='', escala=None, **kw)` |
 | `markdown(conteudo)` |
 | `markdown_para_html(texto)` |
+| `medidor(valor, minimo=0, maximo=100, titulo='', faixas=None, altura=None, formato='', rotulo='', cores=None, **kw)` |
 | `menu(rotulo='Páginas')` |
 | `metrica(rotulo, valor, variacao=None, ajuda='')` |
 | `metricas()` |
+| `mini_grafico(valores, tipo='linha', cor='', altura=34, largura=120, mostrar_valor=False)` |
+| `modo_servidor()` |
+| `moeda(valor, simbolo='R$', casas=2)` |
 | `montar()` |
+| `mudancas()` |
+| `mudou(chave)` |
 | `navegar(destino)` |
 | `numero(rotulo, valor=0, minimo=None, maximo=None, passo=1, chave=None)` |
+| `numero_br(valor, casas=0)` |
 | `opcao(rotulo, opcoes, indice=0, chave=None)` |
 | `pagina(caminho, acao=None, titulo='', icone='', oculta=False)` |
 | `paginas()` |
+| `painel(titulo='', subtitulo='', cor='', icone='', compacto=False, altura=None)` |
 | `parametro(nome, padrao='')` |
 | `parametros()` |
 | `parar()` |
 | `parar_servidor()` |
+| `passos(rotulos, atual=0, concluidos=None)` |
+| `pdf(origem, altura=640, pagina=1)` |
 | `pedir(app, metodo, caminho, corpo=None, cabecalhos=None)` |
+| `percentual(valor, casas=1, ja_e_percentual=True)` |
+| `periodo(rotulo, inicio='', fim='', chave=None)` |
+| `pilulas(rotulo, opcoes, padrao=None, varios=False, chave=None)` |
 | `plugin(nome, instalar)` |
 | `pode(permissao)` |
+| `popover(rotulo, icone='', largura=300)` |
 | `progresso(fracao, rotulo='')` |
 | `recarregar()` |
+| `recurso(*args, **kwargs)` |
 | `registrar(mensagem, nivel='info', extra=None)` |
+| `regra(coluna_alvo, condicao, valor=None, cor='aviso', coluna_pintada='')` |
 | `rodar(acao=None, porta=8501, host='127.0.0.1', recarregar=False, silencioso=False)` |
+| `rolagem(altura=320, borda=True)` |
 | `sair()` |
 | `saude()` |
+| `segmentado(rotulo, opcoes, indice=0, chave=None)` |
+| `segredo(chave, padrao='')` |
+| `segredos(recarregar=False)` |
+| `segredos_mascarados()` |
+| `seletor_de_tema(rotulo='Tema')` |
+| `selo(texto, cor='neutro', icone='')` |
+| `selos(itens, cor='neutro')` |
+| `senha(rotulo='Senha', dica='', chave=None)` |
+| `separador(texto='', icone='')` |
 | `servir(porta=0, host='127.0.0.1')` |
 | `sessoes()` |
 | `sessoes_em_arquivos(pasta)` |
 | `sessoes_em_banco(caminho)` |
+| `status(rotulo, estado='rodando', aberto=True)` |
 | `subir(porta=8501, host='127.0.0.1', recarregar=False, silencioso=False)` |
 | `subtitulo(conteudo)` |
 | `sucesso(mensagem)` |
 | `t(chave, **valores)` |
 | `tabela(dados, colunas=None, altura=None)` |
+| `tags(rotulo, valor=None, sugestoes=None, chave=None)` |
 | `tarefa(acao, *args)` |
+| `tema(qual=None, densidade=None)` |
+| `temas()` |
 | `testar(pagina_ou_app, caminho='/')` |
 | `texto(*partes)` |
 | `titulo(conteudo, icone='')` |
+| `toast(mensagem, icone='', nivel='info', segundos=4)` |
 | `traduzir(chave, **valores)` |
 | `usar(nome, *args, **kwargs)` |
 | `usuario()` |

@@ -352,12 +352,19 @@ def link(rotulo, destino, nova_aba=False):
 
 
 def baixar(rotulo, conteudo, nome="dados.txt", tipo="text/plain"):
-    """Um botão que entrega um arquivo ao visitante."""
+    """Um botão que entrega um arquivo ao visitante.
+
+    **Bytes passam intactos.** Um `.xlsx` ou um `.png` que virasse
+    texto sairia como a impressão do objeto — `b'PK\\x03\\x04…'` — e o
+    arquivo baixado abriria corrompido, sem nada dando erro nem aqui
+    nem no navegador.
+    """
     ctx = _ctx()
     k = ctx.chave_para("baixar", rotulo)
+    corpo = conteudo if isinstance(conteudo, (bytes, bytearray)) \
+        else _str(conteudo)
     ctx.sessao.definir(f"__baixar__{k}",
-                       {"conteudo": _str(conteudo), "nome": nome,
-                        "tipo": tipo})
+                       {"conteudo": corpo, "nome": nome, "tipo": tipo})
     _por("baixar", {"rotulo": _str(rotulo), "nome": nome, "chave": k},
          chave=k)
 

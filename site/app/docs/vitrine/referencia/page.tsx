@@ -7,12 +7,12 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Referência da Vitrine",
-  description: "Os 115 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte.",
+  description: "Os 213 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte.",
 };
 
 const blocos: Bloco[] = [
   {
-    "p": "Esta página é gerada a partir de `dataforge/stdlib/vitrine/`. São **115 símbolos**, e o gerador recusa rodar se algum deles ficar de fora."
+    "p": "Esta página é gerada a partir de `dataforge/stdlib/vitrine/`. São **213 símbolos**, e o gerador recusa rodar se algum deles ficar de fora."
   },
   {
     "p": "Em todos os exemplos, `V` é o apelido de `adopt Arcane.Vitrine as V`."
@@ -73,6 +73,10 @@ const blocos: Bloco[] = [
         [
           "`V.montar()`",
           "O app Kiln por baixo — para acrescentar rota ou middleware."
+        ],
+        [
+          "`V.modo_servidor()`",
+          "`yes` quando quem chamou quer o servidor **no ar** — é o que faz o mesmo arquivo servir com `dataforge vitrine dev` e ser testável com `dataforge run`."
         ]
       ]
     }
@@ -122,6 +126,46 @@ const blocos: Bloco[] = [
         [
           "`V.espaco(altura=16)`",
           "Espaço vertical em pixels."
+        ],
+        [
+          "`V.escrever(*valores)`",
+          "Mostra o que vier, escolhendo o componente **pelo valor**."
+        ],
+        [
+          "`V.legenda(conteudo)`",
+          "Texto pequeno e discreto — a nota sob um gráfico."
+        ],
+        [
+          "`V.citacao(conteudo, autor='')`",
+          "Um bloco citado, com autor opcional."
+        ],
+        [
+          "`V.selo(texto, cor='neutro', icone='')`",
+          "Uma etiqueta curta, na cor do tema."
+        ],
+        [
+          "`V.selos(itens, cor='neutro')`",
+          "Vários selos numa linha só."
+        ],
+        [
+          "`V.formula(expressao, bloco=True)`",
+          "Fração, potência, índice e as letras gregas."
+        ],
+        [
+          "`V.ajuda(alvo)`",
+          "A assinatura e a documentação de uma ação, na página."
+        ],
+        [
+          "`V.fluxo(gerador, velocidade=18)`",
+          "Consome um gerador de texto e mostra o resultado."
+        ],
+        [
+          "`V.icone(nome, tamanho=18, cor='')`",
+          "Um dos 48 ícones desenhados no módulo."
+        ],
+        [
+          "`V.icones()`",
+          "Os nomes de todos os ícones."
         ]
       ]
     }
@@ -187,6 +231,66 @@ const blocos: Bloco[] = [
         [
           "`V.arquivo(rotulo, tipos=None, varios=False, chave=None)`",
           "Envio de arquivo. Devolve `void` até alguém mandar um."
+        ],
+        [
+          "`V.hora(rotulo, valor='09:00', passo=60, chave=None)`",
+          "Um horário. Devolve `\"14:30\"`."
+        ],
+        [
+          "`V.periodo(rotulo, inicio='', fim='', chave=None)`",
+          "Duas datas. Devolve `[inicio, fim]`, já em ordem."
+        ],
+        [
+          "`V.faixa(rotulo, minimo=0, maximo=100, valor=None, passo=1, chave=None)`",
+          "Dois cursores na mesma trilha. Devolve `[menor, maior]`."
+        ],
+        [
+          "`V.deslizante_opcoes(rotulo, opcoes, indice=0, chave=None)`",
+          "Um cursor sobre rótulos. Devolve o rótulo."
+        ],
+        [
+          "`V.pilulas(rotulo, opcoes, padrao=None, varios=False, chave=None)`",
+          "Botões arredondados, um ou vários. O filtro que fica visível."
+        ],
+        [
+          "`V.segmentado(rotulo, opcoes, indice=0, chave=None)`",
+          "Um grupo colado, com um segmento aceso."
+        ],
+        [
+          "`V.avaliacao(rotulo, tipo='estrelas', maximo=5, valor=0, chave=None)`",
+          "Estrelas, corações ou polegares. Devolve `0` sem nota."
+        ],
+        [
+          "`V.tags(rotulo, valor=None, sugestoes=None, chave=None)`",
+          "Etiquetas que se acrescenta digitando. Devolve um cluster."
+        ],
+        [
+          "`V.autocompletar(rotulo, opcoes, valor='', dica='', chave=None)`",
+          "Campo de texto com sugestões — que **não** restringem."
+        ],
+        [
+          "`V.senha(rotulo='Senha', dica='', chave=None)`",
+          "`V.entrada` com o tipo senha."
+        ],
+        [
+          "`V.busca(rotulo='Buscar', dica='', chave=None)`",
+          "`V.entrada` com o tipo busca."
+        ],
+        [
+          "`V.email(rotulo='E-mail', valor='', dica='', chave=None)`",
+          "`V.entrada` com o tipo e-mail."
+        ],
+        [
+          "`V.camera(rotulo='Foto', chave=None)`",
+          "Tira uma foto pela câmera. Exige HTTPS e permissão."
+        ],
+        [
+          "`V.mudou(chave)`",
+          "`yes` quando o campo dessa chave chegou diferente agora."
+        ],
+        [
+          "`V.mudancas()`",
+          "As chaves que mudaram nesta execução."
         ]
       ]
     }
@@ -220,6 +324,58 @@ const blocos: Bloco[] = [
         [
           "`V.vault(dados)`",
           "Um vault como lista de chave e valor."
+        ],
+        [
+          "`V.grade(dados, colunas=None, busca=True, paginar=25, selecionar='', ordenar_por='', decrescente=False, destacar=None, totais=None, altura=None, densidade='normal', numerar=False, chave=None, vazio='sem dados')`",
+          "A tabela de trabalho: pagina, ordena e filtra **no servidor**."
+        ],
+        [
+          "`V.editor(dados, colunas=None, acrescentar=True, remover=True, altura=None, chave=None)`",
+          "Uma tabela que se edita na tela. Devolve as linhas novas."
+        ],
+        [
+          "`V.coluna(nome, titulo='', tipo='texto', formato='', largura=0, alinhar='', casas=None, ajuda='', editavel=False, opcoes=None, minimo=None, maximo=None, prefixo='', sufixo='', cores=None, oculta=False)`",
+          "A configuração de uma coluna da grade, como vault."
+        ],
+        [
+          "`V.regra(coluna_alvo, condicao, valor=None, cor='aviso', coluna_pintada='')`",
+          "Uma regra de formatação condicional para a grade."
+        ],
+        [
+          "`V.indicador(rotulo, valor, variacao=None, cor='', ajuda='', nota='', mini=None, alvo=None, formato='', icone='')`",
+          "O cartão de um número: faixa de cor, nota, meta e série."
+        ],
+        [
+          "`V.indicadores(itens, colunas=0)`",
+          "Vários indicadores numa faixa que se ajusta à largura."
+        ],
+        [
+          "`V.estatisticas(dados, colunas=None)`",
+          "Contagem, ausências, média, desvio, quartis."
+        ],
+        [
+          "`V.formatar(valor, formato='', casas=None)`",
+          "Aplica um formato conhecido pelo nome."
+        ],
+        [
+          "`V.moeda(valor, simbolo='R$', casas=2)`",
+          "`1091947.91` vira `R$ 1.091.947,91`."
+        ],
+        [
+          "`V.numero_br(valor, casas=0)`",
+          "Separador de milhar e vírgula decimal."
+        ],
+        [
+          "`V.percentual(valor, casas=1, ja_e_percentual=True)`",
+          "`12.5` vira `12,5%`."
+        ],
+        [
+          "`V.compacto(valor, casas=1)`",
+          "`1234567` vira `1,2 mi`."
+        ],
+        [
+          "`V.data_br(valor)`",
+          "`2026-09-20` vira `20/09/2026`."
         ]
       ]
     }
@@ -277,6 +433,62 @@ const blocos: Bloco[] = [
         [
           "`V.baixar(rotulo, conteudo, nome='dados.txt', tipo='text/plain')`",
           "Um botão que entrega um arquivo ao visitante."
+        ],
+        [
+          "`V.pdf(origem, altura=640, pagina=1)`",
+          "Mostra um PDF na própria página."
+        ],
+        [
+          "`V.iframe(origem, altura=420, titulo='Conteúdo incorporado')`",
+          "Incorpora outra página, em `sandbox`."
+        ],
+        [
+          "`V.logo(origem, destino='/', largura=132)`",
+          "A marca, no alto da barra lateral."
+        ],
+        [
+          "`V.galeria(imagens, colunas=3, legendas=None)`",
+          "Várias imagens numa grade."
+        ],
+        [
+          "`V.toast(mensagem, icone='', nivel='info', segundos=4)`",
+          "Um aviso flutuante, que aparece e some sozinho."
+        ],
+        [
+          "`V.esqueleto(linhas=3, altura=14, largura='100%')`",
+          "O contorno cinza do que ainda não chegou."
+        ],
+        [
+          "`V.comemorar(tipo='balao')`",
+          "Balões, neve ou confete, por alguns segundos."
+        ],
+        [
+          "`V.excecao(erro, detalhe='')`",
+          "Um erro desenhado como erro: tipo, mensagem e rastro."
+        ],
+        [
+          "`V.status(rotulo, estado='rodando', aberto=True)`",
+          "Uma caixa com estado, que se escreve por dentro."
+        ],
+        [
+          "`V.chat(altura=None)`",
+          "A área de uma conversa."
+        ],
+        [
+          "`V.chat_mensagem(quem='assistente', conteudo='', avatar='', hora='')`",
+          "Uma bolha. Devolve a área, para escrever dentro."
+        ],
+        [
+          "`V.chat_entrada(dica='Escreva uma mensagem…', chave=None, desabilitado=False)`",
+          "A caixa de escrever. Devolve o texto enviado, ou `void`."
+        ],
+        [
+          "`V.historico_de_chat(chave='__chat__')`",
+          "A lista de mensagens guardada na sessão."
+        ],
+        [
+          "`V.guardar_no_chat(quem, conteudo, chave='__chat__')`",
+          "Acrescenta ao histórico e devolve a lista inteira."
         ]
       ]
     }
@@ -330,6 +542,46 @@ const blocos: Bloco[] = [
         [
           "`V.espacador()`",
           "Empurra o que vem depois para a outra ponta de uma `linha`."
+        ],
+        [
+          "`V.malha(colunas=3, espacamento='medio', minimo=240)`",
+          "Uma grade que se reorganiza pela **largura**, não pelo número."
+        ],
+        [
+          "`V.painel(titulo='', subtitulo='', cor='', icone='', compacto=False, altura=None)`",
+          "O bloco de painel: faixa de cor, título discreto, conteúdo."
+        ],
+        [
+          "`V.barra_superior(titulo='', itens=None, ativo='', logo='', subtitulo='')`",
+          "Marca, navegação e o canto dos filtros."
+        ],
+        [
+          "`V.dialogo(titulo, aberto=None, largura=520, chave=None)`",
+          "Uma janela por cima da página. O estado é de quem escreve."
+        ],
+        [
+          "`V.popover(rotulo, icone='', largura=300)`",
+          "Um botão que abre um cartãozinho."
+        ],
+        [
+          "`V.passos(rotulos, atual=0, concluidos=None)`",
+          "A trilha de um processo, com o passo aceso."
+        ],
+        [
+          "`V.separador(texto='', icone='')`",
+          "Uma linha com um rótulo no meio."
+        ],
+        [
+          "`V.rolagem(altura=320, borda=True)`",
+          "Uma caixa com rolagem própria, de altura fixa."
+        ],
+        [
+          "`V.fragmento(chave, a_cada=0)`",
+          "Um pedaço que se redesenha **sozinho**, sem a página junto."
+        ],
+        [
+          "`V.fragmentos()`",
+          "As chaves dos fragmentos montados nesta execução."
         ]
       ]
     }
@@ -387,12 +639,100 @@ const blocos: Bloco[] = [
         [
           "`V.paleta`",
           "As dez cores padrão, como cluster."
+        ],
+        [
+          "`V.tipos_de_grafico`",
+          "Os nomes de todos os tipos, como cluster."
+        ],
+        [
+          "`V.grafico_combo(dados, x='', barras=None, linhas=None, titulo='', altura=None, cores=None, formato='', direita=None, empilhado=False, …)`",
+          "Barras e linhas juntas, com **duas** escalas."
+        ],
+        [
+          "`V.grafico_barras_100(dados, x='', y=None, titulo='', altura=None, cores=None, …)`",
+          "Barras em que cada categoria soma 100%."
+        ],
+        [
+          "`V.grafico_area_empilhada(dados, x='', y=None, titulo='', altura=None, cores=None, …)`",
+          "Áreas somadas: o todo e as partes."
+        ],
+        [
+          "`V.grafico_funil(dados, x='', y='', titulo='', altura=None, cores=None, formato='', …)`",
+          "Quanto sobra em cada etapa, com as duas conversões."
+        ],
+        [
+          "`V.grafico_treemap(dados, rotulo='', valor='', titulo='', altura=None, cores=None, formato='', …)`",
+          "Retângulos proporcionais, para itens demais."
+        ],
+        [
+          "`V.grafico_cascata(dados, x='', y='', titulo='', altura=None, cores=None, formato='', total=True, …)`",
+          "De onde veio a diferença entre o começo e o fim."
+        ],
+        [
+          "`V.grafico_pareto(dados, x='', y='', titulo='', altura=None, cores=None, formato='', corte=80, …)`",
+          "Barras em ordem, com a curva do acumulado."
+        ],
+        [
+          "`V.grafico_radar(dados, x='', y=None, titulo='', altura=None, cores=None, …)`",
+          "Eixos saindo do centro — vale até umas oito pontas."
+        ],
+        [
+          "`V.grafico_caixa(dados, y=None, titulo='', altura=None, cores=None, formato='', …)`",
+          "Mediana, quartis e os pontos fora da curva."
+        ],
+        [
+          "`V.grafico_bolhas(dados, x='', y='', tamanho='', rotulo='', titulo='', altura=None, cores=None, formato='', …)`",
+          "Três grandezas: posição, posição e **área**."
+        ],
+        [
+          "`V.grafico_dispersao_xy(dados, x='', y='', titulo='', altura=None, cores=None, formato='', tendencia=False, …)`",
+          "Dispersão com o eixo x numérico, e a tendência."
+        ],
+        [
+          "`V.grafico_velas(dados, data='', abertura='abertura', maxima='maxima', minima='minima', fechamento='fechamento', titulo='', altura=None, cores=None, formato='', …)`",
+          "Abertura, máxima, mínima e fechamento."
+        ],
+        [
+          "`V.grafico_sankey(ligacoes, titulo='', altura=None, cores=None, formato='', …)`",
+          "Para onde o dinheiro (ou o usuário) foi."
+        ],
+        [
+          "`V.grafico_gantt(tarefas, titulo='', altura=None, cores=None, …)`",
+          "Barras no tempo — o cronograma."
+        ],
+        [
+          "`V.grafico_mapa(pontos, titulo='', altura=None, cores=None, formato='', …)`",
+          "Pontos por latitude e longitude. **Sem** mapa por baixo."
+        ],
+        [
+          "`V.grafico_rede(ligacoes, titulo='', altura=None, cores=None, …)`",
+          "Nós e arestas, dispostos em círculo."
+        ],
+        [
+          "`V.grafico_calendario(dados, data='', valor='', ano=None, titulo='', altura=None, cores=None, escala=None, …)`",
+          "Um ano em quadradinhos, uma semana por coluna."
+        ],
+        [
+          "`V.mapa_de_calor(dados, x='', y='', valor='', titulo='', altura=None, cores=None, formato='', escala=None, …)`",
+          "Uma matriz colorida: hora × dia, produto × região."
+        ],
+        [
+          "`V.medidor(valor, minimo=0, maximo=100, titulo='', faixas=None, altura=None, formato='', rotulo='', cores=None, …)`",
+          "Um ponteiro numa escala, com faixas coloridas."
+        ],
+        [
+          "`V.grafico_bala(valor, alvo, minimo=0, maximo=None, rotulo='', faixas=None, titulo='', altura=None, cores=None, formato='', …)`",
+          "O valor, a meta e as faixas numa linha só."
+        ],
+        [
+          "`V.mini_grafico(valores, tipo='linha', cor='', altura=34, largura=120, mostrar_valor=False)`",
+          "Uma série miúda, do tamanho de uma linha de texto."
         ]
       ]
     }
   },
   {
-    "h2": "Estado e cache"
+    "h2": "Estado, cache e conexões"
   },
   {
     "table": {
@@ -412,6 +752,38 @@ const blocos: Bloco[] = [
         [
           "`V.cache(*args, …args)`",
           "`mark @V.cache` sobre uma ação, e ela para de recalcular."
+        ],
+        [
+          "`V.recurso(*args, …args)`",
+          "`mark @V.recurso` guarda o **objeto** — conexão, modelo."
+        ],
+        [
+          "`V.conexao(nome, arquivo='', tipo='sqlite', **opcoes)`",
+          "Abre (ou devolve) uma conexão do processo, com cache."
+        ],
+        [
+          "`V.conexao_de(nome, bruta, tipo='externa')`",
+          "Registra uma conexão que **você** abriu."
+        ],
+        [
+          "`V.conexoes()`",
+          "Os nomes das conexões vivas."
+        ],
+        [
+          "`V.fechar_conexoes()`",
+          "Fecha todas. Devolve quantas eram."
+        ],
+        [
+          "`V.segredos(recarregar=False)`",
+          "Todos os segredos, como vault."
+        ],
+        [
+          "`V.segredo(chave, padrao='')`",
+          "Um segredo. O **ambiente vence o arquivo**."
+        ],
+        [
+          "`V.segredos_mascarados()`",
+          "As chaves, com o valor escondido."
         ]
       ]
     }
@@ -572,7 +944,7 @@ const blocos: Bloco[] = [
     }
   },
   {
-    "h2": "Exportar"
+    "h2": "Exportar e aparência"
   },
   {
     "table": {
@@ -590,12 +962,32 @@ const blocos: Bloco[] = [
           "O mesmo, em JSON."
         ],
         [
+          "`V.exportar_svg(grafico, nome='grafico.svg', rotulo='Baixar SVG')`",
+          "O gráfico como arquivo SVG — o mesmo que a página desenha."
+        ],
+        [
+          "`V.exportar_excel(dados, nome='dados.xlsx', rotulo='Baixar Excel', aba='Dados')`",
+          "Uma planilha `.xlsx` de verdade, sem dependência."
+        ],
+        [
           "`V.html_da_pagina()`",
           "A página atual como HTML."
         ],
         [
           "`V.markdown_para_html(texto)`",
           "Converte Markdown sem pôr nada na página."
+        ],
+        [
+          "`V.tema(qual=None, densidade=None)`",
+          "Lê ou troca o tema e a densidade da aplicação."
+        ],
+        [
+          "`V.temas()`",
+          "Os seis temas prontos."
+        ],
+        [
+          "`V.seletor_de_tema(rotulo='Tema')`",
+          "Desenha a troca de tema e devolve o escolhido."
         ]
       ]
     }
@@ -798,13 +1190,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'aplicacao-e-servidor', text: "Aplicação e servidor", level: 2 as const }, { id: 'texto', text: "Texto", level: 2 as const }, { id: 'entrada', text: "Entrada", level: 2 as const }, { id: 'dados', text: "Dados", level: 2 as const }, { id: 'retorno-ao-usuario', text: "Retorno ao usuário", level: 2 as const }, { id: 'layout', text: "Layout", level: 2 as const }, { id: 'graficos', text: "Gráficos", level: 2 as const }, { id: 'estado-e-cache', text: "Estado e cache", level: 2 as const }, { id: 'navegacao', text: "Navegação", level: 2 as const }, { id: 'seguranca', text: "Segurança", level: 2 as const }, { id: 'operacao', text: "Operação", level: 2 as const }, { id: 'exportar', text: "Exportar", level: 2 as const }, { id: 'validacao-e-idioma', text: "Validação e idioma", level: 2 as const }, { id: 'componentes-proprios', text: "Componentes próprios", level: 2 as const }, { id: 'testes', text: "Testes", level: 2 as const }, { id: 'os-metodos-da-sonda', text: "Os métodos da sonda", level: 2 as const }, { id: 'as-rotas-que-vem-prontas', text: "As rotas que vêm prontas", level: 2 as const }];
+const headings = [{ id: 'aplicacao-e-servidor', text: "Aplicação e servidor", level: 2 as const }, { id: 'texto', text: "Texto", level: 2 as const }, { id: 'entrada', text: "Entrada", level: 2 as const }, { id: 'dados', text: "Dados", level: 2 as const }, { id: 'retorno-ao-usuario', text: "Retorno ao usuário", level: 2 as const }, { id: 'layout', text: "Layout", level: 2 as const }, { id: 'graficos', text: "Gráficos", level: 2 as const }, { id: 'estado-cache-e-conexoes', text: "Estado, cache e conexões", level: 2 as const }, { id: 'navegacao', text: "Navegação", level: 2 as const }, { id: 'seguranca', text: "Segurança", level: 2 as const }, { id: 'operacao', text: "Operação", level: 2 as const }, { id: 'exportar-e-aparencia', text: "Exportar e aparência", level: 2 as const }, { id: 'validacao-e-idioma', text: "Validação e idioma", level: 2 as const }, { id: 'componentes-proprios', text: "Componentes próprios", level: 2 as const }, { id: 'testes', text: "Testes", level: 2 as const }, { id: 'os-metodos-da-sonda', text: "Os métodos da sonda", level: 2 as const }, { id: 'as-rotas-que-vem-prontas', text: "As rotas que vêm prontas", level: 2 as const }];
 
 export default function Page() {
   return (
     <DocPage
       title="Referência da Vitrine"
-      description="Os 115 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte."
+      description="Os 213 símbolos do módulo, agrupados por assunto, com a assinatura extraída do código-fonte."
       href="/docs/vitrine/referencia"
       headings={headings}
     >

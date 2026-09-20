@@ -24,6 +24,14 @@ import math
 
 from . import tema as _tema
 
+#: O que os módulos de componente acrescentam à folha e ao cliente.
+#: A alternativa — um arquivo só com tudo — faria o desenho de um
+#: componente e o estilo dele morarem a mil linhas de distância. Quem
+#: preenche estas listas é `render_extra.py`, importado no fim deste
+#: arquivo.
+EXTRA_CSS = []
+EXTRA_JS = []
+
 
 def _e(valor):
     """Texto seguro para ir ao HTML."""
@@ -47,6 +55,12 @@ def pagina(ctx, config):
     titulo = _a(config.get("titulo", "Vitrine"))
     icone = config.get("icone", "")
     modo = config.get("modo_tema", "automatico")
+    # Um tema escuro PEDIDO PELO NOME vale sempre. Deixá-lo no
+    # automático faria `V.app(tema := "meia-noite")` voltar ao claro
+    # numa máquina configurada como clara — e o tema escolhido
+    # explicitamente deixaria de valer sem nada denunciando.
+    if modo == "automatico" and _tema.e_escuro(config.get("tema")):
+        modo = "escuro"
 
     cabeca = [
         '<!DOCTYPE html><html lang="%s"><head>' % _a(config.get("idioma", "pt-BR")),
@@ -65,7 +79,8 @@ def pagina(ctx, config):
     if config.get("manifesto"):
         cabeca.append('<link rel="manifest" href="/__vitrine__/manifesto.json">')
 
-    cabeca.append(f"<style>{estilo(claro, escuro, modo)}</style>")
+    cabeca.append(
+        f"<style>{estilo(claro, escuro, modo, config.get('densidade'))}</style>")
     if config.get("css"):
         cabeca.append(f"<style>{config['css']}</style>")
     cabeca.append("</head>")
@@ -87,9 +102,16 @@ def corpo_html(ctx, config):
     partes = ['<a class="v-pular" href="#v-conteudo">Ir para o conteúdo</a>',
               '<div id="v-raiz">']
 
-    if ctx.barra_lateral.filhos:
+    marca = config.get("logo")
+    if ctx.barra_lateral.filhos or marca:
         partes.append('<aside class="v-lateral" aria-label="Filtros e navegação">'
                       '<div class="v-lateral-int">')
+        if marca:
+            partes.append(
+                f'<a class="v-lateral-logo" href="{_a(marca["destino"])}">'
+                f'<img src="{_a(marca["origem"])}" '
+                f'alt="{_a(config.get("titulo", ""))}" '
+                f'style="width:{int(marca["largura"])}px"></a>')
         partes.append(_filhos(ctx.barra_lateral))
         partes.append("</div></aside>")
 
@@ -624,14 +646,71 @@ def _d_grafico(no):
 
     tipo = p.get("grafico", "linha")
     desenho = _SVG.get(tipo, _svg_linha)(p, series, categorias)
-    legenda = ""
-    if p.get("legenda") and len(series) > 1:
-        cores = p.get("cores") or ["#FED403"]
-        legenda = '<div class="v-legenda">' + "".join(
+    onde = p.get("legenda_em", "baixo")
+    if tipo in _POR_CATEGORIA and p.get("legenda"):
+        legenda = _legenda_de_categorias(p, series, categorias)
+    elif p.get("legenda") and len(series) > 1:
+        legenda = _legenda(p, series)
+    else:
+        legenda = ""
+    # A legenda ao lado só quando há espaço para as duas colunas. Num
+    # painel estreito ela come a coluna do desenho e o gráfico some —
+    # o que aparece é uma lista de cores sem nada a que se referir.
+    cabe_ao_lado = float(p.get("largura_css") or _L) >= 620
+    classe = "v-grafico" + (
+        " v-leg-direita" if legenda and onde == "direita" and cabe_ao_lado
+        else "")
+    return f'<div class="{classe}">{titulo}{desenho}{legenda}</div>'
+
+
+#: Os gráficos em que a legenda nomeia as CATEGORIAS, e não as séries.
+#: Numa pizza há uma série só, e o que precisa de nome é cada fatia.
+_POR_CATEGORIA = ("pizza", "rosca", "funil", "treemap")
+
+
+def _legenda_de_categorias(p, series, categorias):
+    """A legenda de uma pizza: nome, valor e percentual, em HTML.
+
+    Ela traz os dois números de propósito. O percentual é o que a fatia
+    mostra; o valor é o que a pessoa vai copiar para um relatório —
+    mostrar um só obriga a abrir a tabela ao lado.
+    """
+    cores = p.get("cores") or ["#FED403"]
+    valores = [v if isinstance(v, (int, float)) else 0.0
+               for v in (series[0]["valores"] if series else [])]
+    total = sum(abs(v) for v in valores) or 1.0
+    itens = []
+    for i, categoria in enumerate(categorias):
+        valor = valores[i] if i < len(valores) else 0.0
+        itens.append(
             f'<span class="v-legenda-item">'
             f'<i style="background:{_a(cores[i % len(cores)])}"></i>'
-            f'{_e(s["nome"])}</span>' for i, s in enumerate(series)) + "</div>"
-    return f'<div class="v-grafico">{titulo}{desenho}{legenda}</div>'
+            f'<span class="v-leg-nome">{_e(categoria)}</span>'
+            f'<b class="v-leg-valor">{_e(formatar_valor(p, valor))}</b>'
+            f'<em class="v-leg-pct">{abs(valor) / total * 100:.1f}%</em>'
+            f"</span>")
+    return '<div class="v-legenda v-legenda-cat">' + "".join(itens) + "</div>"
+
+
+def _legenda(p, series):
+    """A legenda, com o total da série quando ela cabe.
+
+    O valor ao lado do nome é o que transforma a legenda de enfeite em
+    leitura: num gráfico de seis linhas, a pergunta seguinte à "qual é
+    qual" é sempre "quanto deu cada uma".
+    """
+    cores = p.get("cores") or ["#FED403"]
+    itens = []
+    for i, serie in enumerate(series):
+        valores = [v for v in serie.get("valores", [])
+                   if isinstance(v, (int, float))]
+        total = (f'<b class="v-leg-valor">{_e(_numero_curto(sum(valores)))}</b>'
+                 if valores and p.get("legenda_valor") else "")
+        itens.append(
+            f'<span class="v-legenda-item">'
+            f'<i style="background:{_a(cores[i % len(cores)])}"></i>'
+            f'{_e(serie["nome"])}{total}</span>')
+    return '<div class="v-legenda">' + "".join(itens) + "</div>"
 
 
 #: A moldura do SVG. As coordenadas são as do desenho, e o CSS estica a
@@ -645,16 +724,56 @@ def _area_util(altura):
             altura - _MARGEM["cima"] - _MARGEM["baixo"])
 
 
-def _moldura(altura, dentro):
+def escala_do_texto(props):
+    """O quanto o texto precisa crescer para não encolher na tela.
+
+    É a mesma conta de `_moldura`, exposta porque três desenhos
+    precisam dela em **geometria**, e não só em tamanho de fonte: a
+    margem que cabe um rótulo, o número de marcas que não se
+    sobrepõem, e o texto que tem de caber dentro do buraco da rosca.
+    """
+    largura = float((props or {}).get("largura_css") or _L)
+    return min(2.6, max(1.0, _L / max(120.0, largura)))
+
+
+def _moldura(altura, dentro, props=None):
+    """O SVG em volta do desenho, com a compensação de escala.
+
+    O desenho é feito num sistema de 800 unidades e o CSS o encolhe
+    para caber no container. Num painel de um terço da tela o fator é
+    0,45, e um rótulo de 11px chega ao olho com 5px — ilegível, e sem
+    nada que denuncie, porque o gráfico continua bonito de longe.
+
+    `--v-fs` desfaz isso: o texto é desenhado maior em unidades do
+    viewBox na exata medida em que vai encolher. O teto de 2,6× existe
+    porque, num container muito estreito, compensar por inteiro faria
+    o rótulo ocupar metade do gráfico — ali o certo é o texto ficar um
+    pouco menor, e não o gráfico sumir atrás dele.
+    """
+    escala = escala_do_texto(props)
     return (f'<svg class="v-svg" viewBox="0 0 {_L} {altura}" '
-            f'preserveAspectRatio="none" role="img">{dentro}</svg>')
+            f'preserveAspectRatio="none" role="img" '
+            f'style="--v-fs:{11 * escala:.1f}px;'
+            f'--v-fs-fatia:{12 * escala:.1f}px;'
+            f'--v-fs-centro:{20 * escala:.1f}px">{dentro}</svg>')
 
 
-def _escala(series, props, empilhado=False):
+def _escala(series, props, empilhado=False, ancorar_no_zero=True):
     """O topo e o piso do eixo Y, arredondados para um número redondo.
 
     Um eixo que vai até 1 237 não ajuda ninguém a ler o gráfico; até
     1 500, com marcas de 500 em 500, ajuda.
+
+    `ancorar_no_zero` é a diferença entre uma barra e uma linha, e ela
+    não é estética:
+
+    - numa **barra**, o que significa é o COMPRIMENTO. Cortar o eixo
+      faz uma barra parecer o dobro da outra quando ela é 3% maior —
+      é o gráfico enganoso clássico, e por isso aqui o zero é forçado.
+    - numa **linha**, o que significa é a POSIÇÃO e a inclinação.
+      Forçar o zero num patrimônio que vai de 1,02 a 1,13 milhão
+      desenha uma reta horizontal: o gráfico existe para mostrar a
+      variação, e a variação some.
     """
     valores = []
     if empilhado:
@@ -669,7 +788,17 @@ def _escala(series, props, empilhado=False):
     maior = props.get("max_y")
     menor = props.get("min_y")
     maior = float(maior) if maior is not None else max(valores)
-    menor = float(menor) if menor is not None else min(min(valores), 0.0)
+    if menor is not None:
+        menor = float(menor)
+    elif ancorar_no_zero:
+        menor = min(min(valores), 0.0)
+    else:
+        # Uma folga de 8% embaixo: encostar a série no eixo esconde o
+        # ponto mais baixo, que costuma ser o que se foi olhar.
+        piso_real = min(valores)
+        menor = piso_real - (maior - piso_real) * 0.08
+        if piso_real >= 0 and menor < 0:
+            menor = 0.0
     if maior == menor:
         maior = menor + 1
     passo = _passo_bonito((maior - menor) / 4)
@@ -688,29 +817,126 @@ def _passo_bonito(cru):
     return 10 * potencia
 
 
-def _grade(piso, topo, passo, altura, mostrar=True):
+def formatar_valor(props, valor):
+    """O número como o gráfico pediu que ele fosse escrito.
+
+    O eixo, a dica e o rótulo do ponto passam todos por aqui: um
+    gráfico que diz `1,2 M` no eixo e `1200000` na dica obriga quem lê
+    a converter de cabeça para conferir se é o mesmo número.
+    """
+    nome = (props or {}).get("formato") or ""
+    if not nome:
+        return _numero_curto(valor)
+    from . import dados as _dados
+    return _dados.formatar(valor, nome, (props or {}).get("casas"))
+
+
+def _grade(piso, topo, passo, altura, mostrar=True, props=None):
     largura_util, altura_util = _area_util(altura)
-    partes = []
+    marcas = []
     valor = piso
     while valor <= topo + passo / 2:
-        y = _MARGEM["cima"] + altura_util * (1 - (valor - piso) / (topo - piso))
+        marcas.append(valor)
+        valor += passo
+    rotulos = _rotulos_distintos(marcas, props)
+
+    partes = []
+    for i, marca in enumerate(marcas):
+        y = _MARGEM["cima"] + altura_util * (1 - (marca - piso) / (topo - piso))
         if mostrar:
             partes.append(
                 f'<line class="v-grade" x1="{_MARGEM["esq"]}" y1="{y:.1f}" '
                 f'x2="{_L - _MARGEM["dir"]}" y2="{y:.1f}"/>')
         partes.append(
             f'<text class="v-eixo" x="{_MARGEM["esq"] - 8}" y="{y + 4:.1f}" '
-            f'text-anchor="end">{_e(_numero_curto(valor))}</text>')
-        valor += passo
+            f'text-anchor="end">{_e(rotulos[i])}</text>')
     return "".join(partes)
 
 
-def _rotulos_x(categorias, altura):
+def _rotulos_distintos(marcas, props):
+    """Os rótulos do eixo, com casas decimais suficientes para diferir.
+
+    Um eixo que vai de 1,02 a 1,13 milhão escrevia `1,1 mi` em **todas**
+    as marcas: o formato compacto tem uma casa, e a variação inteira
+    cabe dentro dela. Um eixo cujas marcas são todas iguais não é um
+    eixo — é uma coluna de ruído ao lado do gráfico.
+
+    O laço sobe as casas só até elas bastarem, e para em três: além
+    disso o rótulo fica mais comprido que a informação que ele traz, e
+    a resposta certa passa a ser mudar de unidade.
+    """
+    base = dict(props or {})
+    for casas in range(0, 4):
+        tentativa = dict(base)
+        if casas:
+            tentativa["casas"] = casas
+        rotulos = [formatar_valor(tentativa, m) for m in marcas]
+        if len(set(rotulos)) == len(rotulos):
+            return rotulos
+        if base.get("casas") is not None:
+            # Quem pediu um número de casas explicitamente mandou nele.
+            return rotulos
+    return rotulos
+
+
+def decoracoes(props, altura, piso, topo, categorias=()):
+    """Faixas de meta, linhas de referência e anotações.
+
+    Elas são desenhadas **antes** das séries pela ordem em que este
+    resultado é concatenado nos desenhos: uma linha de meta por cima do
+    dado esconde justamente o ponto em que a meta foi cruzada.
+    """
+    partes = []
+    for faixa in (props.get("faixas") or []):
+        y1 = _y_de(min(faixa["de"], faixa["ate"]), piso, topo, altura)
+        y2 = _y_de(max(faixa["de"], faixa["ate"]), piso, topo, altura)
+        partes.append(
+            f'<rect x="{_MARGEM["esq"]}" y="{min(y1, y2):.1f}" '
+            f'width="{_L - _MARGEM["esq"] - _MARGEM["dir"]}" '
+            f'height="{abs(y2 - y1):.1f}" fill="{_a(faixa.get("cor") or "#8A3FFC")}" '
+            f'fill-opacity="0.10"/>')
+    for linha in (props.get("referencias") or []):
+        y = _y_de(linha["valor"], piso, topo, altura)
+        cor = linha.get("cor") or "#FA4D56"
+        partes.append(
+            f'<line x1="{_MARGEM["esq"]}" y1="{y:.1f}" '
+            f'x2="{_L - _MARGEM["dir"]}" y2="{y:.1f}" stroke="{_a(cor)}" '
+            f'stroke-width="1.5" stroke-dasharray="6 4"/>')
+        if linha.get("rotulo"):
+            partes.append(
+                f'<text class="v-eixo" x="{_L - _MARGEM["dir"] - 4}" '
+                f'y="{y - 5:.1f}" text-anchor="end" fill="{_a(cor)}">'
+                f'{_e(linha["rotulo"])}</text>')
+    lista = list(categorias)
+    largura_util, _ = _area_util(altura)
+    for nota in (props.get("anotacoes") or []):
+        if nota["categoria"] not in lista:
+            continue
+        i = lista.index(nota["categoria"])
+        n = len(lista)
+        x = _MARGEM["esq"] + (largura_util * (i + 0.5) / n if n else 0)
+        cor = nota.get("cor") or "#8A3FFC"
+        partes.append(
+            f'<line x1="{x:.1f}" y1="{_MARGEM["cima"]}" x2="{x:.1f}" '
+            f'y2="{altura - _MARGEM["baixo"]}" stroke="{_a(cor)}" '
+            f'stroke-width="1" stroke-dasharray="3 3"/>'
+            f'<text class="v-eixo" x="{x:.1f}" y="{_MARGEM["cima"] + 10}" '
+            f'text-anchor="middle" fill="{_a(cor)}">{_e(nota["texto"])}</text>')
+    return "".join(partes)
+
+
+def _rotulos_x(categorias, altura, props=None):
     largura_util, _ = _area_util(altura)
     n = len(categorias)
     # Com muitas categorias, mostrar todas vira uma mancha preta. Um a
     # cada k continua dizendo onde o eixo começa e termina.
-    salto = max(1, math.ceil(n / 12))
+    #
+    # E o quanto cabe depende da largura REAL: num painel estreito o
+    # texto é desenhado maior para não encolher, e doze rótulos que
+    # cabiam na página inteira passam a se sobrepor.
+    cabem = max(4, int(12 * min(1.0, float(
+        (props or {}).get("largura_css") or _L) / _L)))
+    salto = max(1, math.ceil(n / cabem))
     partes = []
     for i, c in enumerate(categorias):
         if i % salto and i != n - 1:
@@ -731,37 +957,114 @@ def _y_de(valor, piso, topo, altura):
 def _svg_linha(props, series, categorias, preencher=False):
     altura = int(props.get("altura", 280))
     largura_util, _ = _area_util(altura)
-    piso, topo, passo = _escala(series, props)
+    empilhado = bool(props.get("empilhado")) and preencher
+    # A área é preenchida a partir da base, e o preenchimento afirma
+    # magnitude: ali o zero continua obrigatório. A linha, não.
+    piso, topo, passo = _escala(series, props, empilhado,
+                                ancorar_no_zero=preencher)
     cores = props.get("cores") or ["#FED403"]
     n = len(categorias)
-    partes = [_grade(piso, topo, passo, altura, props.get("grade", True))]
+    partes = [_grade(piso, topo, passo, altura, props.get("grade", True), props)]
+    partes.append(decoracoes(props, altura, piso, topo, categorias))
+    tracejadas = props.get("tracejadas") or []
+    acumulado = [0.0] * n
 
     for indice, serie in enumerate(series):
         cor = cores[indice % len(cores)]
-        pontos = []
+        pontos, base_da_area = [], []
         for i, valor in enumerate(serie["valores"][:n]):
             x = _MARGEM["esq"] + (largura_util * i / (n - 1) if n > 1
                                   else largura_util / 2)
-            pontos.append((x, _y_de(valor, piso, topo, altura)))
-        if not pontos:
+            if not presente(valor):
+                # Um `None` na lista é o vão: o traço para aqui e
+                # recomeça no próximo ponto que existir.
+                pontos.append(None)
+                base_da_area.append(None)
+                continue
+            if empilhado:
+                base_da_area.append((x, _y_de(acumulado[i], piso, topo, altura)))
+                acumulado[i] += valor
+                pontos.append((x, _y_de(acumulado[i], piso, topo, altura)))
+            else:
+                pontos.append((x, _y_de(valor, piso, topo, altura)))
+        if not any(p for p in pontos):
             continue
-        caminho = (_curva(pontos) if props.get("suave")
-                   else " ".join(f"{'M' if i == 0 else 'L'}{x:.1f},{y:.1f}"
-                                 for i, (x, y) in enumerate(pontos)))
-        if preencher:
-            base = _y_de(max(piso, 0), piso, topo, altura)
+        caminho = _tracado(pontos, props.get("suave"))
+        cheios = [p for p in pontos if p]
+        if preencher and cheios:
+            if empilhado:
+                volta = " ".join(f"L{x:.1f},{y:.1f}"
+                                 for x, y in reversed(
+                                     [b for b in base_da_area if b]))
+                fecho = f'{caminho} {volta} Z'
+            else:
+                chao = _y_de(max(piso, 0), piso, topo, altura)
+                fecho = (f'{caminho} L{cheios[-1][0]:.1f},{chao:.1f} '
+                         f'L{cheios[0][0]:.1f},{chao:.1f} Z')
             partes.append(
-                f'<path d="{caminho} L{pontos[-1][0]:.1f},{base:.1f} '
-                f'L{pontos[0][0]:.1f},{base:.1f} Z" fill="{_a(cor)}" '
-                f'fill-opacity="0.18" stroke="none"/>')
+                f'<path d="{fecho}" fill="{_a(cor)}" '
+                f'fill-opacity="{0.55 if empilhado else 0.18}" stroke="none"/>')
+        risco = (' stroke-dasharray="7 5"'
+                 if "*" in tracejadas or serie["nome"] in tracejadas else "")
         partes.append(f'<path d="{caminho}" fill="none" stroke="{_a(cor)}" '
                       f'stroke-width="2.5" stroke-linejoin="round" '
-                      f'stroke-linecap="round"/>')
-        for x, y in pontos:
-            partes.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" '
-                          f'fill="{_a(cor)}"/>')
-    partes.append(_rotulos_x(categorias, altura))
-    return _moldura(altura, "".join(partes))
+                      f'stroke-linecap="round"{risco}/>')
+        if props.get("marcadores", True):
+            for i, ponto in enumerate(pontos):
+                if not ponto:
+                    continue
+                x, y = ponto
+                bruto = serie["valores"][i] if i < len(serie["valores"]) else 0
+                rotulo = categorias[i] if i < len(categorias) else ""
+                partes.append(
+                    f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.2" '
+                    f'fill="{_a(cor)}" class="v-ponto"><title>{_e(rotulo)} — '
+                    f'{_e(serie["nome"])}: {_e(formatar_valor(props, bruto))}'
+                    f"</title></circle>")
+        if props.get("rotulos"):
+            for i, ponto in enumerate(pontos):
+                if not ponto:
+                    continue
+                x, y = ponto
+                bruto = serie["valores"][i] if i < len(serie["valores"]) else 0
+                partes.append(
+                    f'<text class="v-eixo" x="{x:.1f}" y="{y - 8:.1f}" '
+                    f'text-anchor="middle">'
+                    f"{_e(formatar_valor(props, bruto))}</text>")
+    partes.append(_rotulos_x(categorias, altura, props))
+    return _moldura(altura, "".join(partes), props)
+
+
+def _tracado(pontos, suave=False):
+    """O caminho de uma série, com os vãos preservados.
+
+    Cada trecho contínuo vira um `M…L…` próprio. Ligar os dois lados
+    de um vão desenharia uma reta entre dois meses que não se tocam —
+    é a mesma mentira do zero, com outra forma.
+    """
+    trechos, atual = [], []
+    for ponto in pontos:
+        if ponto is None:
+            if atual:
+                trechos.append(atual)
+                atual = []
+            continue
+        atual.append(ponto)
+    if atual:
+        trechos.append(atual)
+    pedacos = []
+    for trecho in trechos:
+        if len(trecho) == 1:
+            x, y = trecho[0]
+            # Um ponto sozinho não tem traço; o marcador o mostra.
+            pedacos.append(f"M{x:.1f},{y:.1f}")
+        elif suave:
+            pedacos.append(_curva(trecho))
+        else:
+            pedacos.append(" ".join(
+                f"{'M' if i == 0 else 'L'}{x:.1f},{y:.1f}"
+                for i, (x, y) in enumerate(trecho)))
+    return " ".join(pedacos)
 
 
 def _curva(pontos):
@@ -794,17 +1097,27 @@ def _svg_barras(props, series, categorias):
     altura = int(props.get("altura", 280))
     largura_util, _ = _area_util(altura)
     empilhado = bool(props.get("empilhado"))
+    cem = bool(props.get("cem_por_cento"))
+    if cem:
+        # A normalização é feita aqui, e não no construtor do gráfico: o
+        # dado que entrou continua sendo o que a dica mostra, e é o que
+        # a pessoa reconhece ao passar o cursor.
+        series = _em_percentual(series, len(categorias))
+        props = {**props, "min_y": 0, "max_y": 100}
     piso, topo, passo = _escala(series, props, empilhado)
     cores = props.get("cores") or ["#FED403"]
     n = len(categorias)
     grupo = largura_util / max(1, n)
-    partes = [_grade(piso, topo, passo, altura, props.get("grade", True))]
+    partes = [_grade(piso, topo, passo, altura, props.get("grade", True), props)]
+    partes.append(decoracoes(props, altura, piso, topo, categorias))
     base = _y_de(max(piso, 0), piso, topo, altura)
 
     for i in range(n):
         acumulado = 0.0
         for indice, serie in enumerate(series):
             valor = serie["valores"][i] if i < len(serie["valores"]) else 0
+            if not presente(valor):
+                continue
             cor = cores[indice % len(cores)]
             if empilhado:
                 y0 = _y_de(acumulado, piso, topo, altura)
@@ -820,50 +1133,183 @@ def _svg_barras(props, series, categorias):
             partes.append(
                 f'<rect x="{x:.1f}" y="{cima:.1f}" width="{larg:.1f}" '
                 f'height="{max(alt, 0.5):.1f}" fill="{_a(cor)}" rx="2">'
-                f'<title>{_e(categorias[i])}: {_e(_numero_curto(valor))}</title>'
+                f'<title>{_e(categorias[i])} — {_e(serie["nome"])}: '
+                f'{_e(formatar_valor(props, valor))}</title>'
                 f"</rect>")
             if props.get("rotulos") and not empilhado:
                 partes.append(
                     f'<text class="v-eixo" x="{x + larg / 2:.1f}" '
                     f'y="{cima - 5:.1f}" text-anchor="middle">'
-                    f"{_e(_numero_curto(valor))}</text>")
-    partes.append(_rotulos_x(categorias, altura))
-    return _moldura(altura, "".join(partes))
+                    f"{_e(formatar_valor(props, valor))}</text>")
+    partes.append(_rotulos_x(categorias, altura, props))
+    return _moldura(altura, "".join(partes), props)
+
+
+def presente(valor):
+    """Se há número aqui. `void` não é zero, e a diferença aparece."""
+    return isinstance(valor, (int, float)) and not isinstance(valor, bool)
+
+
+def _em_percentual(series, n):
+    """Cada categoria passa a somar 100. Uma coluna toda zero fica zero.
+
+    Dividir por zero ali daria `nan`, e um `nan` num atributo de SVG
+    não levanta: a barra simplesmente não é desenhada, e a categoria
+    some do gráfico sem nada denunciando.
+    """
+    totais = []
+    for i in range(n):
+        totais.append(sum(abs(s["valores"][i]) for s in series
+                          if i < len(s["valores"])
+                          and presente(s["valores"][i])) or 0.0)
+    saida = []
+    for serie in series:
+        valores = []
+        for i in range(n):
+            bruto = serie["valores"][i] if i < len(serie["valores"]) else 0
+            if not presente(bruto):
+                valores.append(None)
+                continue
+            valores.append(bruto / totais[i] * 100 if totais[i] else 0.0)
+        saida.append({"nome": serie["nome"], "valores": valores})
+    return saida
 
 
 def _svg_barras_h(props, series, categorias):
-    altura = max(int(props.get("altura", 280)), 26 * len(categorias) + 40)
+    """Barras deitadas, uma faixa por categoria e uma barra por série.
+
+    A versão anterior desenhava **só a primeira série** — um gráfico de
+    planejado contra realizado saía mostrando o planejado e nada mais,
+    com a legenda prometendo os dois. Desenhar menos do que a legenda
+    anuncia é pior que recusar o segundo: ninguém confere um gráfico
+    contra a fonte quando ele parece completo.
+    """
+    quantas = max(1, len(series))
+    escala_texto = escala_do_texto(props)
+    linha_altura = (14 * escala_texto) * quantas + 16
+    altura = max(int(props.get("altura", 280)),
+                 int(linha_altura * len(categorias) + 40 + 14 * escala_texto))
     cores = props.get("cores") or ["#FED403"]
-    valores = [s["valores"] for s in series]
-    maior = max((max(v) if v else 0) for v in valores) or 1
-    esq = 120
-    largura_util = _L - esq - 60
+    todos = [v for s in series for v in s["valores"] if presente(v)]
+    maior = max(todos) if todos else 0
+    menor = min(min(todos), 0.0) if todos else 0.0
+    faixa = (maior - menor) or 1.0
+    escala = escala_texto
+    esq = _largura_do_rotulo(categorias, escala)
+    # A direita reserva espaço para a última marca do eixo, que cresce
+    # junto com o texto.
+    largura_util = _L - esq - 56 * escala
+    zero = esq + largura_util * (0 - menor) / faixa
     partes = []
-    passo_y = (altura - 20) / max(1, len(categorias))
-    for i, categoria in enumerate(categorias):
-        valor = valores[0][i] if i < len(valores[0]) else 0
-        larg = max(1.0, largura_util * (valor / maior))
-        y = 10 + passo_y * i + passo_y * 0.2
+    # A faixa do eixo é reservada ANTES de repartir as linhas. Sem
+    # isso, a última barra e os números do eixo dividiam o mesmo
+    # pedaço de altura e saíam um por cima do outro.
+    rodape = 14 + 12 * escala
+    passo_y = (altura - 14 - rodape) / max(1, len(categorias))
+
+    marcas = _marcas_horizontais(menor, maior, props, largura_util)
+    for numero, marca in enumerate(marcas):
+        x = esq + largura_util * (marca - menor) / faixa
+        if props.get("grade", True):
+            partes.append(f'<line class="v-grade" x1="{x:.1f}" y1="14" '
+                          f'x2="{x:.1f}" y2="{altura - rodape:.1f}"/>')
+        # A marca da ponta é ancorada para dentro: centrada, metade
+        # dela cai fora do desenho, e o que se vê é um número cortado.
+        ancora = ("start" if numero == 0 else
+                  ("end" if numero == len(marcas) - 1 else "middle"))
         partes.append(
-            f'<text class="v-eixo" x="{esq - 8}" y="{y + passo_y * 0.42:.1f}" '
-            f'text-anchor="end">{_e(categoria)}</text>'
-            f'<rect x="{esq}" y="{y:.1f}" width="{larg:.1f}" '
-            f'height="{passo_y * 0.6:.1f}" rx="3" fill="{_a(cores[0])}"/>'
-            f'<text class="v-eixo" x="{esq + larg + 8:.1f}" '
-            f'y="{y + passo_y * 0.42:.1f}">{_e(_numero_curto(valor))}</text>')
-    return _moldura(altura, "".join(partes))
+            f'<text class="v-eixo" x="{x:.1f}" y="{altura - rodape * 0.22:.1f}" '
+            f'text-anchor="{ancora}">{_e(formatar_valor(props, marca))}</text>')
+
+    for i, categoria in enumerate(categorias):
+        topo_faixa = 14 + passo_y * i
+        partes.append(
+            f'<text class="v-eixo" x="{esq - 8}" '
+            f'y="{topo_faixa + passo_y / 2 + 4:.1f}" text-anchor="end">'
+            f"{_e(_encurtar(categoria, 22))}</text>")
+        espessura = min(15.0, (passo_y * 0.72) / quantas)
+        for indice, serie in enumerate(series):
+            valor = serie["valores"][i] if i < len(serie["valores"]) else 0
+            if not presente(valor):
+                continue
+            x = esq + largura_util * (min(valor, 0) - menor) / faixa
+            larg = max(1.0, largura_util * abs(valor) / faixa)
+            y = topo_faixa + (passo_y - espessura * quantas) / 2 + espessura * indice
+            partes.append(
+                f'<rect x="{x:.1f}" y="{y:.1f}" width="{larg:.1f}" '
+                f'height="{max(2.0, espessura - 2):.1f}" rx="2" '
+                f'fill="{_a(cores[indice % len(cores)])}">'
+                f'<title>{_e(categoria)} — {_e(serie["nome"])}: '
+                f'{_e(formatar_valor(props, valor))}</title></rect>')
+            if quantas == 1 or props.get("rotulos"):
+                partes.append(
+                    f'<text class="v-eixo" x="{x + larg + 6:.1f}" '
+                    f'y="{y + espessura / 2 + 2:.1f}">'
+                    f"{_e(formatar_valor(props, valor))}</text>")
+    if menor < 0:
+        partes.append(f'<line x1="{zero:.1f}" y1="14" x2="{zero:.1f}" '
+                      f'y2="{altura - rodape:.1f}" class="v-grade"/>')
+    return _moldura(altura, "".join(partes), props)
+
+
+def _largura_do_rotulo(categorias, escala=1.0):
+    """Quanto reservar à esquerda. Um rótulo cortado não é rótulo.
+
+    A conta multiplica pela escala do texto: num painel estreito a
+    fonte é desenhada maior para não encolher, e a margem calculada
+    para 11px deixava "Financeiras" começando fora do desenho.
+    """
+    maior = max((len(str(c)) for c in categorias), default=0)
+    bruta = 10 + min(maior, 22) * 7.0 * escala
+    # O teto é uma fração do desenho: metade da largura só para rótulo
+    # não sobra gráfico nenhum, e aí o certo é encurtar o texto.
+    return int(max(64, min(_L * 0.34, bruta)))
+
+
+def _encurtar(texto, limite):
+    texto = str(texto)
+    return texto if len(texto) <= limite else texto[:limite - 1] + "…"
+
+
+def _marcas_horizontais(menor, maior, props=None, largura_util=None):
+    """Marcas redondas para um eixo deitado — quantas de fato couberem.
+
+    Cinco marcas de `R$ 2.500,00` cabem na página inteira e se
+    sobrepõem num painel de um terço, onde o texto é desenhado maior
+    justamente para não encolher. A conta é feita com a **largura da
+    etiqueta**, e não com um número fixo de divisões: `R$ 10.000,00` e
+    `7` não ocupam o mesmo espaço, e chutar um número serve mal aos
+    dois.
+    """
+    if maior == menor:
+        maior = menor + 1
+    escala = escala_do_texto(props)
+    exemplo = formatar_valor(props, maior)
+    # 0,58 em do glifo médio, em unidades do viewBox.
+    etiqueta = max(28.0, len(exemplo) * 11.0 * 0.58 * escala)
+    disponivel = float(largura_util or (_L - _MARGEM["esq"] - _MARGEM["dir"]))
+    divisoes = max(1, min(5, int(disponivel / (etiqueta * 1.45))))
+    passo = _passo_bonito((maior - menor) / divisoes)
+    inicio = math.floor(menor / passo) * passo
+    marcas, valor = [], inicio
+    while valor <= maior + passo / 2 and len(marcas) < 12:
+        marcas.append(valor)
+        valor += passo
+    return marcas
 
 
 def _svg_dispersao(props, series, categorias):
     altura = int(props.get("altura", 280))
     largura_util, _ = _area_util(altura)
-    piso, topo, passo = _escala(series, props)
+    piso, topo, passo = _escala(series, props, ancorar_no_zero=False)
     cores = props.get("cores") or ["#FED403"]
     n = len(categorias)
     partes = [_grade(piso, topo, passo, altura, props.get("grade", True))]
     for indice, serie in enumerate(series):
         cor = cores[indice % len(cores)]
         for i, valor in enumerate(serie["valores"][:n]):
+            if not presente(valor):
+                continue
             x = _MARGEM["esq"] + (largura_util * i / (n - 1) if n > 1
                                   else largura_util / 2)
             y = _y_de(valor, piso, topo, altura)
@@ -871,20 +1317,29 @@ def _svg_dispersao(props, series, categorias):
                           f'fill="{_a(cor)}" fill-opacity="0.75">'
                           f'<title>{_e(categorias[i])}: '
                           f"{_e(_numero_curto(valor))}</title></circle>")
-    partes.append(_rotulos_x(categorias, altura))
-    return _moldura(altura, "".join(partes))
+    partes.append(_rotulos_x(categorias, altura, props))
+    return _moldura(altura, "".join(partes), props)
 
 
 def _svg_pizza(props, series, categorias, buraco=0.0):
     altura = int(props.get("altura", 280))
     cores = props.get("cores") or ["#FED403"]
-    valores = [max(0.0, float(v)) for v in series[0]["valores"]]
+    # Numa pizza, ausência é fatia de tamanho zero: tirar o item
+    # desalinharia os valores dos rótulos, que vêm em outra lista.
+    valores = [max(0.0, float(v)) if presente(v) else 0.0
+               for v in series[0]["valores"]]
     total = sum(valores)
     if total <= 0:
         return _moldura(altura, '<text class="v-eixo" x="400" y="140" '
-                                'text-anchor="middle">sem dados</text>')
-    cx, cy = 260.0, altura / 2
-    raio = min(altura / 2 - 16, 110)
+                                'text-anchor="middle">sem dados</text>', props)
+    # Centrada, e não empurrada para a esquerda: a legenda saiu do SVG
+    # e virou HTML. Desenhá-la aqui significava posicionar texto em
+    # unidades do viewBox — que encolhem — ao lado de um texto cuja
+    # altura de linha não encolhia junto, e as linhas se sobrepunham
+    # em qualquer painel estreito. Em HTML ela quebra, alinha e é
+    # legível por leitor de tela sem nada disso.
+    cx, cy = _L / 2, altura / 2
+    raio = min(altura / 2 - 14, 128)
     angulo = -math.pi / 2
     partes = []
     for i, valor in enumerate(valores):
@@ -907,20 +1362,53 @@ def _svg_pizza(props, series, categorias, buraco=0.0):
                 f'text-anchor="middle">{valor / total * 100:.0f}%</text>')
         angulo = fim
 
-    for i, categoria in enumerate(categorias):
-        y = cy - raio + 14 + i * 22
-        if y > altura - 8:
-            break
+    if buraco > 0:
+        centro = props.get("centro") or {}
+        # O padrão é a forma COMPACTA, e não o valor por extenso: o
+        # buraco de uma rosca cabe seis ou sete caracteres, e
+        # `R$ 1.126.601,00` sai com metade do tamanho de `R$ 1,1 mi`.
+        # Quem quiser o número inteiro passa o texto que quiser.
+        if centro.get("valor"):
+            principal = centro["valor"]
+        else:
+            from . import dados as _dados
+            principal = _dados.compacto(total)
+            if (props.get("formato") or "") == "moeda":
+                principal = "R$ " + principal
+        acima = centro.get("rotulo", "")
+        # O tamanho sai do BURACO, e não da escala do resto: um total
+        # de doze dígitos com a fonte compensada atravessava a rosca e
+        # saía dos dois lados. O número é o que mais importa na tela, e
+        # um número cortado ao meio não vale nada.
+        vao = 2 * raio * buraco * 0.86
+        tamanho = max(11.0, min(54.0, vao / max(4, len(principal)) * 1.85))
+        if acima:
+            # O rótulo acompanha o valor, com um piso: a 42% de um
+            # número que já teve de encolher para caber, ele saía com
+            # três pixels na tela — desenhado, ocupando espaço, e
+            # ilegível. Quem não couber é encurtado, não diminuído.
+            menor = max(tamanho * 0.5, 10.0)
+            cabem = max(6, int(vao / (menor * 0.52)))
+            partes.append(
+                f'<text class="v-centro-rotulo" x="{cx}" '
+                f'y="{cy - tamanho * 0.66:.1f}" text-anchor="middle" '
+                f'style="font-size:{menor:.1f}px">'
+                f"{_e(_encurtar(acima, cabem))}</text>")
         partes.append(
-            f'<rect x="440" y="{y - 10:.1f}" width="12" height="12" rx="2" '
-            f'fill="{_a(cores[i % len(cores)])}"/>'
-            f'<text class="v-eixo" x="460" y="{y:.1f}">{_e(categoria)} — '
-            f"{_e(_numero_curto(valores[i]))}</text>")
-    return _moldura(altura, "".join(partes))
+            f'<text class="v-centro-valor" x="{cx}" '
+            f'y="{cy + tamanho * (0.5 if acima else 0.36):.1f}" '
+            f'text-anchor="middle" style="font-size:{tamanho:.1f}px">'
+            f"{_e(principal)}</text>")
+
+    return _moldura(altura, "".join(partes), props)
 
 
 def _svg_rosca(props, series, categorias):
-    return _svg_pizza(props, series, categorias, buraco=0.55)
+    # O buraco cresce quando há um total escrito nele: o número é o que
+    # mais importa na tela, e num anel fino ele sai pequeno demais para
+    # ser lido de longe — que é como um painel é lido.
+    return _svg_pizza(props, series, categorias,
+                      buraco=0.64 if props.get("centro") else 0.55)
 
 
 def _fatia(cx, cy, raio, inicio, fim, cor, buraco=0.0):
@@ -1170,9 +1658,9 @@ def _destino_seguro(destino):
 #  CSS e JavaScript
 # ═══════════════════════════════════════════════════════════
 
-def estilo(claro, escuro, modo="automatico"):
-    variaveis_claro = _tema.variaveis(claro)
-    variaveis_escuro = _tema.variaveis(escuro)
+def estilo(claro, escuro, modo="automatico", densidade=None):
+    variaveis_claro = _tema.variaveis(claro) + _tema.densidade(densidade or "normal")
+    variaveis_escuro = _tema.variaveis(escuro) + _tema.densidade(densidade or "normal")
     regras = [f":root{{{variaveis_claro}}}"]
     if modo == "escuro":
         regras = [f":root{{{variaveis_escuro}}}"]
@@ -1180,20 +1668,27 @@ def estilo(claro, escuro, modo="automatico"):
         regras.append(f"@media (prefers-color-scheme:dark){{"
                       f':root:not([data-tema="claro"]){{{variaveis_escuro}}}}}')
         regras.append(f'[data-tema="escuro"]{{{variaveis_escuro}}}')
-    return "".join(regras) + _CSS
+    return "".join(regras) + _CSS + "".join(EXTRA_CSS)
 
 
 _CSS = """
 *{box-sizing:border-box}
 body{margin:0;background:var(--v-fundo);color:var(--v-texto);
- font-family:var(--v-fonte);font-size:15px;line-height:1.55;
+ font-family:var(--v-fonte);font-size:var(--v-escala,15px);line-height:1.55;
  -webkit-font-smoothing:antialiased}
+/* A densidade encolhe ou folga o respiro dos blocos sem tocar em cor
+   nenhuma: é o mesmo painel, com mais linhas na mesma tela. */
+.v-cartao,.v-painel,.v-indicador,.v-grafico{
+ padding:calc(15px * var(--v-respiro,1)) calc(17px * var(--v-respiro,1))}
+.v-campo{margin:calc(14px * var(--v-respiro,1)) 0}
 #v-raiz{display:flex;min-height:100vh}
 .v-main{flex:1;min-width:0}
 .v-largura{max-width:var(--v-largura);margin:0 auto;padding:28px 24px 72px}
 .v-lateral{width:288px;flex:0 0 288px;background:var(--v-fundo-alt);
  border-right:1px solid var(--v-borda);min-height:100vh}
 .v-lateral-int{padding:22px 18px;position:sticky;top:0}
+.v-lateral-logo{display:block;margin-bottom:18px}
+.v-lateral-logo img{max-width:100%;height:auto;display:block}
 .v-topo{display:flex;align-items:center;gap:10px;padding-bottom:14px;
  margin-bottom:18px;border-bottom:1px solid var(--v-borda)}
 .v-marca{font-weight:650;letter-spacing:-.01em}
@@ -1394,8 +1889,10 @@ fieldset.v-campo>legend{padding:0}
  letter-spacing:-.01em}
 .v-svg{width:100%;height:auto;display:block;overflow:visible}
 .v-grade{stroke:var(--v-borda);stroke-width:1}
-.v-eixo{fill:var(--v-texto-fraco);font-size:11px;font-family:var(--v-fonte)}
-.v-fatia{fill:#fff;font-size:12px;font-weight:600;font-family:var(--v-fonte)}
+.v-eixo{fill:var(--v-texto-fraco);font-size:var(--v-fs,11px);
+ font-family:var(--v-fonte)}
+.v-fatia{fill:#fff;font-size:var(--v-fs-fatia,12px);font-weight:600;
+ font-family:var(--v-fonte)}
 .v-legenda{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;
  font-size:.82rem;color:var(--v-texto-fraco)}
 .v-legenda-item{display:flex;align-items:center;gap:6px}
@@ -1429,7 +1926,8 @@ fieldset.v-campo>legend{padding:0}
 def script(config):
     """O cliente inteiro. Uma função, sem dependência, sem build."""
     intervalo = int(config.get("atualizar_a_cada") or 0)
-    return _JS.replace("__INTERVALO__", str(intervalo * 1000))
+    return (_JS.replace("__INTERVALO__", str(intervalo * 1000))
+            + "".join(EXTRA_JS))
 
 
 _JS = r"""
@@ -1447,7 +1945,12 @@ function coletar(){
   var fora={};
   document.querySelectorAll('[data-v-campo]').forEach(function(el){
     var k=el.dataset.vCampo;
-    if(el.dataset.vVarios){
+    if(el.dataset.vParte!==undefined){
+      // Um campo em duas metades — o período e a faixa. A posição
+      // vem no atributo porque a ordem no HTML não é contrato.
+      if(!Array.isArray(fora[k]))fora[k]=[];
+      fora[k][Number(el.dataset.vParte)]=valorDe(el);
+    }else if(el.dataset.vVarios){
       (fora[k]=fora[k]||[]);
       if(el.checked)fora[k].push(el.value);
     }else if(el.type==='radio'){
@@ -1457,34 +1960,48 @@ function coletar(){
   for(var k in campos)fora[k]=campos[k];
   return fora;
 }
-function enviar(evento,extra){
-  if(ocupado){pendente=[evento,extra];return;}
+function trocarFragmento(chave,html){
+  // Só este pedaço volta ao lugar. O foco, a rolagem e o resto da
+  // página ficam exatamente onde estavam — é o ponto do fragmento.
+  var alvo=document.querySelector('[data-v-frag="'+chave+'"]');
+  if(!alvo)return false;
+  alvo.outerHTML=html;return true;
+}
+function enviar(evento,extra,frag){
+  if(ocupado){pendente=[evento,extra,frag];return;}
   ocupado=true;document.body.classList.add('v-ocupado');
   fetch('/__vitrine__/acao',{method:'POST',
     headers:{'Content-Type':'application/json','X-Vitrine':'1'},
     body:JSON.stringify({evento:evento||'',campos:coletar(),
-      extra:extra||null,caminho:location.pathname+location.search})})
+      extra:extra||null,fragmento:frag||'',
+      caminho:location.pathname+location.search})})
   .then(function(r){return r.json()})
   .then(function(d){
     if(d.redirecionar){location.href=d.redirecionar;return;}
-    if(d.html!==undefined){
-      var foco=document.activeElement,id=foco&&foco.id,
-          pos=foco&&foco.selectionStart;
+    var foco=document.activeElement,id=foco&&foco.id,
+        pos=foco&&foco.selectionStart;
+    // O servidor decide se respondeu a página ou um fragmento: pedir
+    // um fragmento não garante recebê-lo (o pedaço pode ter sumido da
+    // árvore), e nesse caso o miolo inteiro vem junto.
+    if(d.fragmento&&d.html!==undefined&&trocarFragmento(d.fragmento,d.html)){
+      campos={};
+    }else if(d.html!==undefined){
       R.outerHTML=d.html;R=document.getElementById('v-raiz');
-      if(id){var novo=document.getElementById(id);
-        if(novo){novo.focus();
-          try{if(pos!=null)novo.setSelectionRange(pos,pos)}catch(e){}}}
+      campos={};
     }
+    if(id){var novo=document.getElementById(id);
+      if(novo&&novo!==document.activeElement){novo.focus();
+        try{if(pos!=null)novo.setSelectionRange(pos,pos)}catch(e){}}}
     if(d.titulo)document.title=d.titulo;
-    campos={};
   })
   .catch(function(e){console.error('[vitrine]',e)})
   .finally(function(){
     ocupado=false;document.body.classList.remove('v-ocupado');
-    if(pendente){var p=pendente;pendente=null;enviar(p[0],p[1]);}
+    if(pendente){var p=pendente;pendente=null;enviar(p[0],p[1],p[2]);}
   });
 }
-window.Vitrine={atualizar:function(){enviar('')},enviar:enviar};
+window.Vitrine={atualizar:function(){enviar('')},enviar:enviar,
+  campo:function(k,v){campos[k]=v},campos:campos};
 
 document.addEventListener('click',function(ev){
   var b=ev.target.closest('[data-v-evento]');
@@ -1595,3 +2112,15 @@ if(periodo>0)setInterval(function(){
 },periodo);
 })();
 """
+
+
+# ═══════════════════════════════════════════════════════════
+#  Os componentes que vieram depois
+# ═══════════════════════════════════════════════════════════
+#
+# O import fica AQUI EMBAIXO de propósito: `render_extra` escreve em
+# `_DESENHO`, `_SVG`, `EXTRA_CSS` e `EXTRA_JS`, que só existem depois
+# de este arquivo ser lido inteiro. Pô-lo no topo daria um módulo
+# meio-carregado e um `AttributeError` que não fala de nada.
+
+from . import render_extra as _extra   # noqa: E402,F401

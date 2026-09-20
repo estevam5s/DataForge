@@ -9234,6 +9234,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "ajuda",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "antes",
      "sig": "(funcao)",
      "tipo": "funcao"
@@ -9274,6 +9279,16 @@
      "tipo": "funcao"
     },
     {
+     "nome": "autocompletar",
+     "sig": "(rotulo, opcoes, valor, dica, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "avaliacao",
+     "sig": "(rotulo, tipo, maximo, valor, chave)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "aviso",
      "sig": "(mensagem)",
      "tipo": "funcao"
@@ -9284,8 +9299,18 @@
      "tipo": "funcao"
     },
     {
+     "nome": "barra_superior",
+     "sig": "(titulo, itens, ativo, logo, subtitulo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "botao",
      "sig": "(rotulo, tipo, chave, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "busca",
+     "sig": "(rotulo, dica, chave)",
      "tipo": "funcao"
     },
     {
@@ -9301,6 +9326,11 @@
     {
      "nome": "caixa",
      "sig": "(rotulo, valor, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "camera",
+     "sig": "(rotulo, chave)",
      "tipo": "funcao"
     },
     {
@@ -9324,13 +9354,48 @@
      "tipo": "funcao"
     },
     {
+     "nome": "chat",
+     "sig": "(altura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chat_entrada",
+     "sig": "(dica, chave, desabilitado)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chat_mensagem",
+     "sig": "(quem, conteudo, avatar, hora)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "citacao",
+     "sig": "(conteudo, autor)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "codigo",
      "sig": "(conteudo, linguagem)",
      "tipo": "funcao"
     },
     {
+     "nome": "coluna",
+     "sig": "(nome, titulo, tipo, formato, largura, alinhar, casas, ajuda, editavel, opcoes, minimo, maximo, prefixo, sufixo, cores, oculta)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "colunas",
      "sig": "(quantidade, larguras, espacamento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "comemorar",
+     "sig": "(tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compacto",
+     "sig": "(valor, casas)",
      "tipo": "funcao"
     },
     {
@@ -9340,6 +9405,21 @@
     },
     {
      "nome": "componentes",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conexao",
+     "sig": "(nome, arquivo, tipo, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conexao_de",
+     "sig": "(nome, bruta, tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conexoes",
      "sig": "()",
      "tipo": "funcao"
     },
@@ -9369,6 +9449,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "data_br",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "depois",
      "sig": "(funcao)",
      "tipo": "funcao"
@@ -9384,8 +9469,28 @@
      "tipo": "funcao"
     },
     {
+     "nome": "deslizante_opcoes",
+     "sig": "(rotulo, opcoes, indice, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dialogo",
+     "sig": "(titulo, aberto, largura, chave)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "divisor",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "editor",
+     "sig": "(dados, colunas, acrescentar, remover, altura, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "email",
+     "sig": "(rotulo, valor, dica, chave)",
      "tipo": "funcao"
     },
     {
@@ -9419,6 +9524,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "escrever",
+     "sig": "(valores)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "espacador",
      "sig": "()",
      "tipo": "funcao"
@@ -9429,9 +9539,24 @@
      "tipo": "funcao"
     },
     {
+     "nome": "esqueleto",
+     "sig": "(linhas, altura, largura)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "estado",
      "sig": "",
      "tipo": "const"
+    },
+    {
+     "nome": "estatisticas",
+     "sig": "(dados, colunas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "excecao",
+     "sig": "(erro, detalhe)",
+     "tipo": "funcao"
     },
     {
      "nome": "exigir_login",
@@ -9454,8 +9579,43 @@
      "tipo": "funcao"
     },
     {
+     "nome": "exportar_excel",
+     "sig": "(dados, nome, rotulo, aba)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "exportar_json",
      "sig": "(dados, nome, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exportar_svg",
+     "sig": "(grafico, nome, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "faixa",
+     "sig": "(rotulo, minimo, maximo, valor, passo, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fechar_conexoes",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fluxo",
+     "sig": "(gerador, velocidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "formatar",
+     "sig": "(valor, formato, casas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "formula",
+     "sig": "(expressao, bloco)",
      "tipo": "funcao"
     },
     {
@@ -9464,14 +9624,34 @@
      "tipo": "funcao"
     },
     {
+     "nome": "fragmento",
+     "sig": "(chave, a_cada)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "fragmentos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
      "nome": "frame",
      "sig": "(dados, colunas, altura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "galeria",
+     "sig": "(imagens, colunas, legendas)",
      "tipo": "funcao"
     },
     {
      "nome": "geral",
      "sig": "",
      "tipo": "const"
+    },
+    {
+     "nome": "grade",
+     "sig": "(dados, colunas, busca, paginar, selecionar, ordenar_por, decrescente, destacar, totais, altura, densidade, numerar, chave, vazio)",
+     "tipo": "funcao"
     },
     {
      "nome": "grafico",
@@ -9484,8 +9664,23 @@
      "tipo": "funcao"
     },
     {
+     "nome": "grafico_area_empilhada",
+     "sig": "(dados, x, y, titulo, altura, cores, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_bala",
+     "sig": "(valor, alvo, minimo, maximo, rotulo, faixas, titulo, altura, cores, formato, kw)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "grafico_barras",
      "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_barras_100",
+     "sig": "(dados, x, y, titulo, altura, cores, kw)",
      "tipo": "funcao"
     },
     {
@@ -9494,8 +9689,48 @@
      "tipo": "funcao"
     },
     {
+     "nome": "grafico_bolhas",
+     "sig": "(dados, x, y, tamanho, rotulo, titulo, altura, cores, formato, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_caixa",
+     "sig": "(dados, y, titulo, altura, cores, formato, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_calendario",
+     "sig": "(dados, data, valor, ano, titulo, altura, cores, escala, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_cascata",
+     "sig": "(dados, x, y, titulo, altura, cores, formato, total, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_combo",
+     "sig": "(dados, x, barras, linhas, titulo, altura, cores, formato, direita, empilhado, kw)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "grafico_dispersao",
      "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_dispersao_xy",
+     "sig": "(dados, x, y, titulo, altura, cores, formato, tendencia, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_funil",
+     "sig": "(dados, x, y, titulo, altura, cores, formato, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_gantt",
+     "sig": "(tarefas, titulo, altura, cores, kw)",
      "tipo": "funcao"
     },
     {
@@ -9504,8 +9739,28 @@
      "tipo": "funcao"
     },
     {
+     "nome": "grafico_mapa",
+     "sig": "(pontos, titulo, altura, cores, formato, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_pareto",
+     "sig": "(dados, x, y, titulo, altura, cores, formato, corte, kw)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "grafico_pizza",
      "sig": "(dados, x, y, titulo, altura, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_radar",
+     "sig": "(dados, x, y, titulo, altura, cores, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_rede",
+     "sig": "(ligacoes, titulo, altura, cores, kw)",
      "tipo": "funcao"
     },
     {
@@ -9514,8 +9769,38 @@
      "tipo": "funcao"
     },
     {
+     "nome": "grafico_sankey",
+     "sig": "(ligacoes, titulo, altura, cores, formato, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_treemap",
+     "sig": "(dados, rotulo, valor, titulo, altura, cores, formato, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grafico_velas",
+     "sig": "(dados, data, abertura, maxima, minima, fechamento, titulo, altura, cores, formato, kw)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "guardar_no_chat",
+     "sig": "(quem, conteudo, chave)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "histograma",
      "sig": "(dados, campo, faixas, titulo, altura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "historico_de_chat",
+     "sig": "(chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hora",
+     "sig": "(rotulo, valor, passo, chave)",
      "tipo": "funcao"
     },
     {
@@ -9534,8 +9819,33 @@
      "tipo": "const"
     },
     {
+     "nome": "icone",
+     "sig": "(nome, tamanho, cor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "icones",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "iframe",
+     "sig": "(origem, altura, titulo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "imagem",
      "sig": "(origem, legenda, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "indicador",
+     "sig": "(rotulo, valor, variacao, cor, ajuda, nota, mini, alvo, formato, icone)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "indicadores",
+     "sig": "(itens, colunas)",
      "tipo": "funcao"
     },
     {
@@ -9559,6 +9869,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "legenda",
+     "sig": "(conteudo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "linha",
      "sig": "(alinhar, espacamento)",
      "tipo": "funcao"
@@ -9569,8 +9884,23 @@
      "tipo": "funcao"
     },
     {
+     "nome": "logo",
+     "sig": "(origem, destino, largura)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "logs",
      "sig": "(quantos, nivel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "malha",
+     "sig": "(colunas, espacamento, minimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mapa_de_calor",
+     "sig": "(dados, x, y, valor, titulo, altura, cores, formato, escala, kw)",
      "tipo": "funcao"
     },
     {
@@ -9581,6 +9911,11 @@
     {
      "nome": "markdown_para_html",
      "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "medidor",
+     "sig": "(valor, minimo, maximo, titulo, faixas, altura, formato, rotulo, cores, kw)",
      "tipo": "funcao"
     },
     {
@@ -9599,8 +9934,33 @@
      "tipo": "funcao"
     },
     {
+     "nome": "mini_grafico",
+     "sig": "(valores, tipo, cor, altura, largura, mostrar_valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modo_servidor",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "moeda",
+     "sig": "(valor, simbolo, casas)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "montar",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mudancas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mudou",
+     "sig": "(chave)",
      "tipo": "funcao"
     },
     {
@@ -9611,6 +9971,11 @@
     {
      "nome": "numero",
      "sig": "(rotulo, valor, minimo, maximo, passo, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "numero_br",
+     "sig": "(valor, casas)",
      "tipo": "funcao"
     },
     {
@@ -9626,6 +9991,11 @@
     {
      "nome": "paginas",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "painel",
+     "sig": "(titulo, subtitulo, cor, icone, compacto, altura)",
      "tipo": "funcao"
     },
     {
@@ -9654,8 +10024,33 @@
      "tipo": "funcao"
     },
     {
+     "nome": "passos",
+     "sig": "(rotulos, atual, concluidos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pdf",
+     "sig": "(origem, altura, pagina)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "pedir",
      "sig": "(app, metodo, caminho, corpo, cabecalhos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "percentual",
+     "sig": "(valor, casas, ja_e_percentual)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "periodo",
+     "sig": "(rotulo, inicio, fim, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pilulas",
+     "sig": "(rotulo, opcoes, padrao, varios, chave)",
      "tipo": "funcao"
     },
     {
@@ -9669,6 +10064,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "popover",
+     "sig": "(rotulo, icone, largura)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "progresso",
      "sig": "(fracao, rotulo)",
      "tipo": "funcao"
@@ -9679,13 +10079,28 @@
      "tipo": "funcao"
     },
     {
+     "nome": "recurso",
+     "sig": "(args, kwargs)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "registrar",
      "sig": "(mensagem, nivel, extra)",
      "tipo": "funcao"
     },
     {
+     "nome": "regra",
+     "sig": "(coluna_alvo, condicao, valor, cor, coluna_pintada)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "rodar",
      "sig": "(acao, porta, host, recarregar, silencioso)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "rolagem",
+     "sig": "(altura, borda)",
      "tipo": "funcao"
     },
     {
@@ -9696,6 +10111,51 @@
     {
      "nome": "saude",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "segmentado",
+     "sig": "(rotulo, opcoes, indice, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "segredo",
+     "sig": "(chave, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "segredos",
+     "sig": "(recarregar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "segredos_mascarados",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "seletor_de_tema",
+     "sig": "(rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "selo",
+     "sig": "(texto, cor, icone)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "selos",
+     "sig": "(itens, cor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "senha",
+     "sig": "(rotulo, dica, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "separador",
+     "sig": "(texto, icone)",
      "tipo": "funcao"
     },
     {
@@ -9716,6 +10176,11 @@
     {
      "nome": "sessoes_em_banco",
      "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "status",
+     "sig": "(rotulo, estado, aberto)",
      "tipo": "funcao"
     },
     {
@@ -9744,8 +10209,23 @@
      "tipo": "funcao"
     },
     {
+     "nome": "tags",
+     "sig": "(rotulo, valor, sugestoes, chave)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "tarefa",
      "sig": "(acao, args)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tema",
+     "sig": "(qual, densidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "temas",
+     "sig": "()",
      "tipo": "funcao"
     },
     {
@@ -9759,8 +10239,18 @@
      "tipo": "funcao"
     },
     {
+     "nome": "tipos_de_grafico",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
      "nome": "titulo",
      "sig": "(conteudo, icone)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "toast",
+     "sig": "(mensagem, icone, nivel, segundos)",
      "tipo": "funcao"
     },
     {
@@ -12442,9 +12932,9 @@
  },
  "totalBuiltins": 228,
  "contagem": {
-  "testes": 2864,
-  "exemplos": 44,
-  "arquivosDf": 377
+  "testes": 2955,
+  "exemplos": 45,
+  "arquivosDf": 378
  },
  "mundo": {
   "estrelas": 0,

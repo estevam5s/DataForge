@@ -175,6 +175,36 @@ class Contexto:
         #: que muda o título não deveria mudar o das outras.
         self.config_local = {}
 
+        #: As chaves cujo valor CHEGOU diferente do que estava guardado.
+        #: É o que faz `V.mudou(...)` responder sem callback: o modelo
+        #: roda tudo de novo, e sem esta marca não haveria como saber
+        #: se o campo mudou agora ou já estava assim.
+        self.mudados = set()
+
+        #: Avisos flutuantes desta execução — `V.toast(...)`.
+        self.avisos = []
+
+        #: A largura em que o que está sendo montado vai aparecer, em
+        #: pixels de tela. É uma PILHA porque o layout aninha: uma
+        #: coluna dentro de um painel dentro de uma malha.
+        #:
+        #: Ela existe por um defeito concreto: o gráfico é desenhado
+        #: num sistema de 800 unidades e depois encolhido para caber no
+        #: container. Num painel de um terço da tela, o fator é 0,45 —
+        #: e um rótulo de 11px chega ao olho com 5px. Sem alguém dizer
+        #: ao desenho quanto ele vai encolher, não há como compensar:
+        #: o servidor não mede a tela.
+        self.larguras = [1100]
+
+        #: A pilha dos fragmentos abertos. Um componente montado aqui
+        #: dentro pertence ao fragmento do topo, e é isso que permite
+        #: responder a um clique redesenhando só aquele pedaço.
+        self.fragmentos = []
+        #: chave de componente -> chave do fragmento que o contém.
+        self.dono_do_fragmento = {}
+        #: chave do fragmento -> o nó dele, nesta montagem.
+        self.nos_de_fragmento = {}
+
     # ── A pilha ──────────────────────────────────────────────
 
     @property
@@ -196,6 +226,21 @@ class Contexto:
         self.topo.acrescentar(no)
         return no
 
+    # ── Quanto espaço há aqui ────────────────────────────────
+
+    @property
+    def largura(self):
+        """A largura de tela do lugar em que estamos montando."""
+        return self.larguras[-1]
+
+    def estreitar(self, pixels):
+        self.larguras.append(max(120.0, float(pixels)))
+        return self.larguras[-1]
+
+    def alargar(self):
+        if len(self.larguras) > 1:
+            self.larguras.pop()
+
     # ── Identidade estável ───────────────────────────────────
 
     def chave_para(self, tipo, rotulo="", chave=None):
@@ -209,10 +254,14 @@ class Contexto:
         chave de cada `V.entrada(...)`.
         """
         if chave:
-            return str(chave)
-        self.contador += 1
-        crua = f"{tipo}:{rotulo}:{self.contador}"
-        return hashlib.sha256(crua.encode()).hexdigest()[:12]
+            final = str(chave)
+        else:
+            self.contador += 1
+            crua = f"{tipo}:{rotulo}:{self.contador}"
+            final = hashlib.sha256(crua.encode()).hexdigest()[:12]
+        if self.fragmentos:
+            self.dono_do_fragmento[final] = self.fragmentos[-1]
+        return final
 
     # ── Entrada do usuário ───────────────────────────────────
 
@@ -224,7 +273,14 @@ class Contexto:
         mesmo instante em que se digita.
         """
         if chave in self.sessao.entrada:
-            return self.sessao.entrada[chave]
+            novo = self.sessao.entrada[chave]
+            anterior = self.sessao.obter(f"__campo__{chave}")
+            # A comparação é feita aqui, e não na gravação: é o único
+            # ponto por onde o valor recém-chegado e o guardado passam
+            # juntos. Sem isso, 'V.mudou' teria de adivinhar.
+            if anterior != novo:
+                self.mudados.add(chave)
+            return novo
         if self.sessao.existe(f"__campo__{chave}"):
             return self.sessao.obter(f"__campo__{chave}")
         return padrao

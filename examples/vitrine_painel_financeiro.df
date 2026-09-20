@@ -1,0 +1,335 @@
+// ════════════════════════════════════════════════════════════
+//  Vitrine — um painel financeiro de verdade
+//
+//  Este arquivo existe para responder uma pergunta concreta: dá para
+//  montar, em DataForge, o painel denso que hoje se monta em
+//  Streamlit ou numa planilha — barra de navegação no topo, coluna de
+//  indicadores, rosca com o total no meio, barras deitadas de
+//  planejado contra realizado, linha do acumulado contra o previsto e
+//  barras empilhadas por grupo?
+//
+//  Dá, e sem nenhuma dependência: todo gráfico aqui é SVG escrito no
+//  servidor, e o cliente inteiro são uns poucos kilobytes.
+//
+//  Para ver no navegador:
+//      dataforge vitrine dev examples/vitrine_painel_financeiro.df
+//
+//  ou, sem o comando do framework (o '--' separa o que é do programa
+//  do que é do 'dataforge'):
+//      dataforge run examples/vitrine_painel_financeiro.df -- --servir
+//
+//  Sem esse argumento ele roda os próprios testes e termina — que é o
+//  que faz este arquivo entrar na suíte.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Vitrine as V
+
+V.app("Gestão financeira",
+    icone := "💰",
+    descricao := "Patrimônio, fluxo e planejamento",
+    tema := "meia-noite",
+    densidade := "compacta")
+
+steady MESES := ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago",
+    "Set", "Out", "Nov", "Dez"]
+
+// Oito meses de realizado; o resto do ano ainda não aconteceu, e
+// inventar número para ele seria mentir no gráfico.
+steady FECHADOS := 8
+
+// ── Os dados ────────────────────────────────────────────────
+//
+// O 'mark @V.cache' faz a leitura acontecer UMA vez por argumento, e
+// não a cada clique. Num painel que lê de um banco, é a diferença
+// entre uma página que responde e uma que trava.
+
+mark @V.cache
+action movimento_do_ano(ano):
+    // O ano entra na conta, e nao so na chave do cache: um seletor que
+    // nao muda nada na tela e pior que nenhum seletor — quem clica
+    // conclui que o painel travou.
+    base := 30000 + (int(ano) - 2026) * 1800
+    linhas := []
+    cycle i from 0 to 11:
+        fechado := i < FECHADOS given ano is "2026" otherwise yes
+        // Um serrilhado determinístico: o mesmo mês dá sempre o mesmo
+        // número, senão o gráfico dançaria a cada clique e ninguém
+        // conseguiria comparar duas telas.
+        onda := ((i * 37) % 23) - 8
+        receitas := base + onda * 420
+        despesas := 20000 + ((i * 53) % 17) * 260
+        linhas.append({
+                "mes": MESES[i],
+                "receitas": receitas given fechado otherwise 0,
+                "despesas": despesas given fechado otherwise 0,
+                "investimentos": (receitas - despesas) given fechado otherwise 0,
+                "fechado": fechado
+            })
+    yield linhas
+
+mark @V.cache
+action carteira_de(ano):
+    peso := 1.0 + (int(ano) - 2026) * 0.12
+    yield [
+        {"classe": "Ações Brasil", "valor": 303561.0 * peso, "ideal": 30.0},
+        {"classe": "Reserva de emergência", "valor": 306937.0 * peso, "ideal": 20.0},
+        {"classe": "Fundos imobiliários", "valor": 377733.0 * peso, "ideal": 30.0},
+        {"classe": "Renda fixa e liquidez", "valor": 115439.0 * peso, "ideal": 10.0},
+        {"classe": "Criptomoedas", "valor": 15287.0 * peso, "ideal": 5.0},
+        {"classe": "Fundos diversos", "valor": 7644.0 * peso, "ideal": 5.0}
+    ]
+
+mark @V.cache
+action orcamento_de(ano):
+    reajuste := 1.0 + (int(ano) - 2026) * 0.07
+    yield [
+        {"grupo": "Habitação", "planejado": 9000.0 * reajuste,
+            "realizado": 8620.0 * reajuste},
+        {"grupo": "Saúde", "planejado": 4200.0 * reajuste,
+            "realizado": 5310.0 * reajuste},
+        {"grupo": "Transporte", "planejado": 3100.0 * reajuste,
+            "realizado": 2740.0 * reajuste},
+        {"grupo": "Pessoais", "planejado": 2600.0 * reajuste,
+            "realizado": 3180.0 * reajuste},
+        {"grupo": "Lazer", "planejado": 1800.0 * reajuste,
+            "realizado": 1120.0 * reajuste},
+        {"grupo": "Financeiras", "planejado": 6400.0 * reajuste,
+            "realizado": 6650.0 * reajuste}
+    ]
+
+action soma_de(linhas, campo):
+    yield linhas >> morph l: l[campo] >> distill a, v: a + v 0
+
+action fechados_de(linhas):
+    yield linhas >> sift l: l["fechado"]
+
+// ── O painel ────────────────────────────────────────────────
+
+action barra_do_topo():
+    """Desenha o topo e devolve o ano escolhido.
+
+    O seletor e lido AQUI e devolvido para quem chamou: e assim que o
+    modelo do framework funciona — o programa roda de cima para baixo,
+    e a linha seguinte ja usa o valor. Nao ha retorno de chamada.
+    """
+    topo := V.barra_superior("Gestão financeira",
+        subtitulo := "Cliente",
+        itens := ["Dados", "Fluxo de caixa", "Carteira", "Balanceamento",
+            "Patrimônio", "Painel"],
+        ativo := "Painel")
+    topo.segmentado("", ["Ano", "Mês"], chave := "recorte")
+    yield topo.escolha("Período", ["2026", "2025", "2024"], chave := "ano")
+
+action coluna_de_indicadores(lado, ano, carteira, ate_agora):
+    """Os cinco cartoes da esquerda.
+
+    Cada um leva a faixa de cor, a nota embaixo e a serie miuda ao
+    fundo: e o bloco de que um painel e feito, e por isso ele e um
+    componente, e nao seis linhas de layout.
+    """
+    patrimonio := soma_de(carteira, "valor")
+    meses := len(ate_agora)
+
+    lado.indicador("Patrimônio líquido", patrimonio,
+        formato := "moeda", cor := "aviso",
+        nota := $"Total em ago/{ano[2:]} · aba Patrimônio",
+        variacao := 4.2)
+    lado.indicador("Renda média", soma_de(ate_agora, "receitas") / meses,
+        formato := "moeda", cor := "sucesso",
+        nota := $"Receitas / {meses} meses",
+        mini := ate_agora >> morph l: l["receitas"])
+    lado.indicador("Custo médio", soma_de(ate_agora, "despesas") / meses,
+        formato := "moeda", cor := "erro",
+        nota := "Fixo + variável / mês",
+        mini := ate_agora >> morph l: l["despesas"])
+    lado.indicador("Investimento médio",
+        soma_de(ate_agora, "investimentos") / meses,
+        formato := "moeda", cor := "info",
+        nota := "Aportes por mês",
+        alvo := 12000.0)
+    lado.indicador("Gasto médio no cartão", 5309.73,
+        formato := "moeda", cor := "primaria",
+        nota := "Cartão de crédito / mês")
+    yield patrimonio
+
+action faixa_da_carteira(corpo, ano, carteira, orcamento, patrimonio):
+    "A primeira faixa: composicao, alvo contra posicao, e o orcamento."
+    faixa := corpo.malha(3, minimo := 260)
+
+    balanceamento := faixa.painel("Balanceamento da carteira",
+        subtitulo := $"{len(carteira)} tipos", icone := "pizza")
+    rosca := V.grafico("rosca", carteira)
+    rosca.eixo_x("classe")
+    rosca.eixo_y("valor")
+    rosca.formato("moeda")
+    // O compacto, e nao o valor por extenso: o buraco de uma rosca cabe
+    // seis ou sete caracteres, e "R$ 1.126.601,00" sairia com metade do
+    // tamanho de "R$ 1,1 mi". O numero inteiro esta no indicador ao lado.
+    rosca.total_no_centro($"R$ {V.compacto(patrimonio)}",
+        $"Total investido · {ano}")
+    rosca.legenda_em("direita")
+    balanceamento.desenhar(rosca)
+
+    divisao := faixa.painel("Distribuição ideal × atual",
+        subtitulo := "Alvo contra a posição de hoje")
+    duas := divisao.colunas(2, espacamento := "pequeno")
+    duas[0].legenda("Divisão ideal")
+    duas[0].grafico_pizza(carteira, x := "classe", y := "ideal",
+        altura := 210)
+    duas[1].legenda("Divisão atual")
+    duas[1].grafico_pizza(carteira, x := "classe", y := "valor",
+        altura := 210)
+
+    planejado := faixa.painel("Planejado × realizado",
+        subtitulo := $"{len(orcamento)} grupos · até ago")
+    planejado.grafico_barras_h(orcamento, x := "grupo",
+        y := ["planejado", "realizado"], formato := "moeda", altura := 240)
+
+action faixa_da_evolucao(corpo, movimento):
+    "A segunda faixa: o acumulado contra o plano, e o fluxo do ano."
+    meio := corpo.malha(2, minimo := 340)
+
+    evolucao := meio.painel("Patrimônio — total × total planejado",
+        subtitulo := "Linha cheia: realizado · tracejada: plano")
+    acumulado := []
+    total := 1029000.0
+    plano := 1029000.0
+    cycle linha in movimento:
+        given linha["fechado"]:
+            total += linha["investimentos"]
+        plano += 7800.0
+        // O mes que ainda nao aconteceu entra como 'void', e nao como
+        // zero: a linha PARA ali. Um zero desenharia uma queda de um
+        // milhao onde so falta o dado.
+        acumulado.append({
+                "mes": linha["mes"],
+                "total": total given linha["fechado"] otherwise void,
+                "planejado": plano
+            })
+    linha_g := V.grafico("linha", acumulado)
+    linha_g.eixo_x("mes")
+    linha_g.eixo_y(["total", "planejado"])
+    linha_g.tracejar("planejado")
+    linha_g.formato("compacto")
+    linha_g.altura(250)
+    evolucao.desenhar(linha_g)
+
+    fluxo := meio.painel("Receitas × despesas × investimentos",
+        subtitulo := "12 meses do ano")
+    fluxo.grafico_barras(movimento, x := "mes",
+        y := ["receitas", "despesas", "investimentos"],
+        formato := "compacto", altura := 250)
+
+action faixa_das_despesas(corpo, ate_agora):
+    "A terceira faixa: a composicao mensal e o cartao."
+    base := corpo.malha(2, minimo := 340)
+
+    grupos := base.painel("Despesas por grupo",
+        subtitulo := "Evolução mensal — sem financeiras")
+    empilhado := []
+    cycle linha in ate_agora:
+        empilhado.append({
+                "mes": linha["mes"],
+                "habitacao": linha["despesas"] * 0.42,
+                "saude": linha["despesas"] * 0.22,
+                "transporte": linha["despesas"] * 0.16,
+                "pessoais": linha["despesas"] * 0.12,
+                "lazer": linha["despesas"] * 0.08
+            })
+    grupos.grafico_area_empilhada(empilhado, x := "mes",
+        y := ["habitacao", "saude", "transporte", "pessoais", "lazer"],
+        formato := "compacto", altura := 250)
+
+    cartao := base.painel("Cartão de crédito por mês",
+        subtitulo := "Total R$ 5.309,73")
+    cartao.indicador("Total no cartão (escopo)", 5309.73,
+        formato := "moeda", nota := "17,6% das despesas")
+    cartao.grafico_barras(ate_agora >> morph l: {
+            "mes": l["mes"], "cartao": l["despesas"] * 0.176
+        }, x := "mes", y := "cartao", formato := "compacto", altura := 190)
+
+action tabela_do_orcamento(corpo, orcamento):
+    "A grade: formato por coluna, barra na celula, selo e totais."
+    corpo.separador("Detalhamento", icone := "tabela")
+    detalhe := corpo.painel("Orçamento por grupo")
+    detalhe.grade(orcamento >> morph l: {
+            "grupo": l["grupo"],
+            "planejado": l["planejado"],
+            "realizado": l["realizado"],
+            "uso": l["realizado"] / l["planejado"] * 100,
+            "situacao": "acima" given l["realizado"] bigger l["planejado"]
+            otherwise "dentro"
+        },
+        colunas := [
+            V.coluna("grupo", "Grupo", largura := 190),
+            V.coluna("planejado", "Planejado", tipo := "moeda"),
+            V.coluna("realizado", "Realizado", tipo := "moeda"),
+            V.coluna("uso", "Uso da verba", tipo := "barra", maximo := 130),
+            V.coluna("situacao", "Situação", tipo := "selo")
+        ],
+        destacar := [V.regra("uso", "maior", 100, "erro")],
+        totais := {"planejado": "soma", "realizado": "soma"},
+        paginar := 0,
+        busca := no)
+
+    tipos := len(V.tipos_de_grafico)
+    corpo.legenda($"Gerado pela Vitrine · {tipos} tipos de gráfico, todos em SVG e sem CDN.")
+
+action painel():
+    ano := barra_do_topo()
+    movimento := movimento_do_ano(ano)
+    carteira := carteira_de(ano)
+    orcamento := orcamento_de(ano)
+    ate_agora := fechados_de(movimento)
+
+    colunas := V.colunas([1, 4], espacamento := "medio")
+    lado := colunas[0]
+    corpo := colunas[1]
+
+    patrimonio := coluna_de_indicadores(lado, ano, carteira, ate_agora)
+    faixa_da_carteira(corpo, ano, carteira, orcamento, patrimonio)
+    faixa_da_evolucao(corpo, movimento)
+    faixa_das_despesas(corpo, ate_agora)
+    tabela_do_orcamento(corpo, orcamento)
+
+V.pagina("/", painel, titulo := "Painel", icone := "📊")
+
+// ── Os testes deste arquivo ─────────────────────────────────
+//
+// Eles rodam quando o programa é chamado sem '--servir', e é o que
+// permite este exemplo entrar na suíte junto com os outros: um painel
+// que não abre é um bug, e um exemplo que ninguém executa envelhece.
+
+action conferir():
+    t := V.testar(painel)
+
+    assert not t.falhou()
+    assert t.quantos("indicador") is 6
+    assert t.quantos("painel") is 8
+    assert t.quantos("grafico") is 8
+    assert t.quantos("grade") is 1
+    assert t.existe("barra_superior")
+
+    // A rosca leva o total escrito no meio, e ele é o mesmo número do
+    // indicador de cima — se os dois divergirem, um deles está errado.
+    rosca := t.primeiro("grafico")
+    assert "1,1 mi" in rosca.props["centro"]["valor"]
+
+    // O planejado é tracejado; o realizado, não. É o que distingue as
+    // duas linhas sem gastar uma segunda cor.
+    desenho := t.html()
+    assert "stroke-dasharray" in desenho
+    assert "componente desconhecido" not in desenho
+
+    quantos := t.quantos("grafico")
+    out $"painel ok — {len(desenho)} bytes de HTML, {quantos} gráficos"
+
+// 'V.modo_servidor()' responde yes quando o 'dataforge vitrine dev'
+// anunciou a porta no ambiente, e quando '--servir' esta nos argumentos.
+// E o que faz ESTE arquivo servir com o comando do framework e continuar
+// testavel com 'dataforge run', que e como a suite o executa.
+given V.modo_servidor():
+    out "abrindo em http://127.0.0.1:8501"
+    V.rodar(painel, porta := 8501)
+otherwise:
+    conferir()

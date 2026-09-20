@@ -392,3 +392,96 @@ def _chave_de(nome, args, kwargs):
     """
     crua = f"{nome}|{args!r}|{sorted(kwargs.items())!r}"
     return hashlib.sha256(crua.encode()).hexdigest()[:24]
+
+
+class Recurso:
+    """`mark @V.recurso` sobre uma ação que devolve um **objeto**.
+
+        mark @V.recurso
+        action modelo():
+            yield Cortex.carregar("modelo.bin")
+
+    A diferença para `V.cache` não é de tamanho — é de natureza:
+
+    | | `V.cache` | `V.recurso` |
+    |---|---|---|
+    | guarda | o **resultado** de um cálculo | o **objeto** em si |
+    | vence | por validade, ou por teto | nunca, enquanto o processo viver |
+    | vai a disco | pode | não |
+    | serve para | consulta, API, agregação | conexão, modelo, cliente |
+
+    Um cache com teto solta o menos usado; se a conexão do banco caísse
+    fora por isso, a próxima página abriria outra, e o pool do banco
+    acabaria — é o bug que faz um painel morrer só depois de uma hora
+    no ar.
+    """
+
+    def __init__(self):
+        self._objetos = {}
+        self._por_alvo = {}
+        self._trava = threading.RLock()
+
+    def __call__(self, *args, **kwargs):
+        if len(args) == 1 and not kwargs and callable(args[0]):
+            return self._envolver(args[0], {})
+        opcoes = dict(kwargs)
+        if args and isinstance(args[0], dict):
+            opcoes.update(args[0])
+        return lambda alvo: self._envolver(alvo, opcoes)
+
+    def _envolver(self, alvo, opcoes):
+        nome = getattr(alvo, "name", None) or getattr(alvo, "__name__", "acao")
+        with self._trava:
+            # A ação é guardada junto, como no `Cache`: `id()` só é
+            # único entre objetos VIVOS, e um id reaproveitado devolveria
+            # a conexão de outra função.
+            achado = self._por_alvo.get(id(alvo))
+            if achado is not None and achado[0] is alvo:
+                marca = achado[1]
+            else:
+                marca = f"{nome}#{id(alvo):x}#{len(self._por_alvo)}"
+                self._por_alvo[id(alvo)] = (alvo, marca)
+
+        def embrulho(*a, **kw):
+            chave = f"{marca}|{_chave_de(nome, a, kw)}"
+            with self._trava:
+                if chave in self._objetos:
+                    return self._objetos[chave]
+            # A ação roda FORA da trava: carregar um modelo pode levar
+            # segundos, e segurar a trava ali pararia toda sessão que
+            # pedisse qualquer outro recurso nesse tempo.
+            valor = alvo(*a, **kw)
+            with self._trava:
+                return self._objetos.setdefault(chave, valor)
+
+        embrulho.__name__ = nome
+        embrulho.__doc__ = getattr(alvo, "__doc__", None)
+        embrulho.sem_cache = alvo
+        embrulho.limpar = lambda: self.soltar(marca)
+        embrulho.marca = marca
+        return embrulho
+
+    def soltar(self, marca=None):
+        """Esquece um recurso, ou todos. O objeto **não** é fechado aqui.
+
+        Fechar por conta própria seria adivinhar: nem todo recurso tem
+        `fechar`, e chamar o `fechar` de um objeto que ainda está sendo
+        usado por outra sessão derruba a página dela.
+        """
+        with self._trava:
+            if marca is None:
+                quantos = len(self._objetos)
+                self._objetos.clear()
+                return quantos
+            alvos = [c for c in self._objetos if c.startswith(f"{marca}|")]
+            for chave in alvos:
+                self._objetos.pop(chave, None)
+            return len(alvos)
+
+    def quantos(self):
+        with self._trava:
+            return len(self._objetos)
+
+    def nomes(self):
+        with self._trava:
+            return sorted({c.split("#", 1)[0] for c in self._objetos})

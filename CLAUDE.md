@@ -92,11 +92,11 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                71 módulos (1873 símbolos), incluindo:
+  stdlib/                71 módulos (1971 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
-    vitrine/             Vitrine — dashboards e data apps (115 símbolos)
+    vitrine/             Vitrine — dashboards e data apps (213 símbolos)
     arcane_reflexo.py    reflexão que respeita a visibilidade, diagrama Mermaid
     arcane_objetos.py    cópia, congelar, serialização que só aceita tipos listados
     arcane_injecao.py    contêiner: único, transitório, por escopo; ciclo e cativo
@@ -1573,20 +1573,27 @@ chamada de ação num módulo da biblioteca.
 
 | Arquivo | O quê |
 |---|---|
-| `nucleo.py` | `No` (componente), `Sessao`, `Contexto` (a pilha de montagem) |
-| `componentes.py` | os 40 componentes; cada um põe um nó **e devolve um valor** |
-| `layout.py` | `Area` — coluna, aba, cartão; os componentes são métodos dela |
-| `graficos.py` | sete tipos, montados como dado |
-| `render.py` | a árvore vira HTML; o SVG e os ~4 KB de cliente moram aqui |
-| `estado.py` | `V.estado` (sessão), `V.geral` (processo), `V.cache` (TTL + LRU) |
+| `nucleo.py` | `No` (componente), `Sessao`, `Contexto` (a pilha de montagem **e a de largura**) |
+| `componentes.py` | os 40 componentes base; cada um põe um nó **e devolve um valor** |
+| `conteudo.py` | `escrever`, selo, fórmula, 48 ícones em SVG, mídia, toast, status, conversa |
+| `entradas.py` | hora, período, faixa, pílulas, segmentado, nota, etiquetas, câmera, `mudou` |
+| `dados.py` | a **grade** (pagina e ordena no servidor), o editor, o indicador, os formatos pt-BR |
+| `layout.py` | `Area` — coluna, aba, cartão, **malha, painel, diálogo, popover, fragmento** |
+| `graficos.py` | a classe `Grafico` e os oito primeiros tipos |
+| `graficos_avancados.py` | os 19 que vieram com o painel: combo, cascata, funil, sankey, gantt… |
+| `render.py` | a árvore vira HTML; os SVG base e os ~6 KB de cliente moram aqui |
+| `render_graficos.py` | o desenho dos 19 tipos novos |
+| `render_extra.py` | o desenho dos componentes novos, mais o CSS e o cliente deles |
+| `estado.py` | `V.estado` (sessão), `V.geral` (processo), `V.cache` (TTL + LRU), `V.recurso` (objeto) |
+| `conexoes.py` | `V.conexao` (uma por processo, com consulta em cache) e `V.segredos` |
 | `sessoes.py` | onde a sessão mora: memória, SQLite, arquivos ou um blueprint |
-| `runtime.py` | `Aplicacao` — sessões, ciclo do pedido, servidor sobre o Kiln |
+| `runtime.py` | `Aplicacao` — sessões, ciclo do pedido, **resposta parcial por fragmento** |
 | `teste.py` | a `Sonda`: clica, digita e pergunta, sem navegador |
 | `extras.py` | validação de campo, tradução por sessão, componentes por nome |
-| `tema.py` | claro, escuro e o vault de variáveis CSS |
+| `tema.py` | seis temas prontos, três densidades e o vault de variáveis CSS |
 | `api.py` | o dicionário que o `adopt` entrega |
 
-Nove decisões que valem lembrar:
+Quatorze decisões que valem lembrar:
 
 1. **O programa inteiro roda de novo a cada interação**, e o estado da
    sessão sobrevive. É o que dispensa callback e diffing — e o que
@@ -1669,9 +1676,57 @@ gravado. Três armadilhas que custaram:
 `encerrar_sessao` marca `sessao.encerrada`: sem isso, a gravação do fim
 do pedido recriava a sessão que acabou de ser apagada.
 
+10. **O layout diz ao gráfico a largura em que ele vai aparecer.**
+    O desenho é feito num sistema de 800 unidades e o CSS o encolhe
+    para caber no container. Num painel de um terço da tela o fator é
+    0,45, e um rótulo de 11px chega ao olho com **5px** — ilegível,
+    sem nada que denuncie, porque de longe o gráfico continua bonito.
+    `Contexto.larguras` é uma pilha que cada `Area` empurra; o nó do
+    gráfico grava `largura_css` **na montagem** (no desenho o contexto
+    já acabou), e `_moldura` devolve a escala em `--v-fs`. O teto de
+    2,6× existe porque compensar por inteiro num container muito
+    estreito faria o rótulo ocupar metade do gráfico. Três desenhos
+    precisam dela em **geometria**, e não só em fonte: a margem do
+    rótulo deitado, quantas marcas de eixo não se sobrepõem, e o
+    tamanho que cabe dentro do buraco de uma rosca.
+
+11. **`void` numa série é um VÃO, não um zero.** O caminho antigo
+    convertia ausência para `0.0`, e a linha de um acumulado despencava
+    ao chegar no mês que ainda não aconteceu — um gráfico que mostra
+    uma queda de um milhão onde só falta o dado. `_tracado` parte o
+    caminho em trechos: ligar os dois lados de um vão desenharia uma
+    reta entre dois meses que não se tocam, que é a mesma mentira com
+    outra forma.
+
+12. **A barra é ancorada no zero; a linha, não.** Não é estética. Numa
+    barra o que significa é o COMPRIMENTO, e cortar o eixo faz uma
+    barra 3% maior parecer o dobro — o gráfico enganoso clássico. Numa
+    linha o que significa é a POSIÇÃO: forçar o zero num patrimônio
+    que vai de 1,02 a 1,13 milhão desenha uma reta horizontal, e a
+    variação que o gráfico existe para mostrar some. A **área** volta
+    a ser ancorada, porque o preenchimento afirma magnitude.
+
+13. **A grade ordena, filtra e pagina NO SERVIDOR; a `V.frame`, no
+    navegador.** A diferença não é de tamanho, é de onde a decisão
+    mora: a `frame` ordena o que já está na tela, e num conjunto de
+    cem mil linhas isso é mentira. A grade é o componente de uma
+    listagem de verdade, e por isso a paginação vem ligada — uma
+    listagem sem teto é a forma mais comum de um painel travar.
+
+14. **O fragmento redesenha um pedaço, e a dúvida cai sempre para a
+    página inteira.** `_fragmento_da_resposta` devolve vazio quando há
+    falha (o erro é desenhado fora do fragmento e ficaria invisível),
+    quando mais de um campo mudou (não há como saber de quem é a
+    mudança), e quando o fragmento sumiu da árvore. Responder a página
+    inteira sem precisar custa desempenho; responder um pedaço sem
+    poder custa correção.
+
 `site/app/docs/vitrine/referencia/page.tsx` é **gerado** por
 `tools/gerar_ref_vitrine.py`, que recusa rodar se um símbolo do módulo
-ficar de fora — a mesma trava da gramática do editor.
+ficar de fora — a mesma trava da gramática do editor. São **213
+símbolos em 15 grupos**, e `graficos.TIPOS` tem uma trava irmã em
+`tests/test_vitrine.py`: um tipo declarado sem desenho em `render._SVG`
+não dá erro — `_svg_linha` assume, e quem pediu um funil vê uma linha.
 
 ## Kiln — upload, SSE e WebSocket
 
@@ -2019,7 +2074,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1873 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 1971 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.

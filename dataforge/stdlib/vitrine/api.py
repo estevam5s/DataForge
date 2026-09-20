@@ -24,15 +24,43 @@ import threading
 import time
 
 from . import componentes as C
+from . import conteudo as CT
+from . import conexoes as CX
+from . import dados as D
+from . import entradas as E
 from . import graficos as G
+from . import graficos_avancados as GA
 from . import layout as L
 from . import render as R
 from . import extras as X
+from . import tema as TM
 from . import teste as T
-from .estado import Cache, Estado, Geral
+from .estado import Cache, Estado, Geral, Recurso
 from .nucleo import Contexto
 from .runtime import Aplicacao, _Navegar, _Parar, _Reexecutar
 from . import sessoes as _sessoes
+
+#: Os componentes dos módulos novos também viram métodos de área —
+#: sem esta chamada, `coluna.indicador(…)` não existiria e o painel
+#: pararia no primeiro nível de aninhamento.
+L.ligar_componentes(CT, [
+    "escrever", "legenda", "citacao", "selo", "selos", "formula", "ajuda",
+    "fluxo", "icone", "pdf", "iframe", "galeria", "toast", "esqueleto",
+    "comemorar", "excecao", "status", "chat", "chat_mensagem",
+    "chat_entrada"])
+L.ligar_componentes(E, [
+    "hora", "periodo", "faixa", "deslizante_opcoes", "pilulas", "segmentado",
+    "avaliacao", "tags", "autocompletar", "senha", "busca", "email",
+    "camera"])
+L.ligar_componentes(D, [
+    "grade", "editor", "indicador", "indicadores", "estatisticas"])
+L.ligar_componentes(GA, [
+    "grafico_combo", "grafico_barras_100", "grafico_area_empilhada",
+    "grafico_funil", "grafico_treemap", "grafico_cascata", "grafico_pareto",
+    "medidor", "grafico_bala", "mapa_de_calor", "grafico_calendario",
+    "grafico_radar", "grafico_caixa", "grafico_bolhas",
+    "grafico_dispersao_xy", "grafico_velas", "grafico_sankey",
+    "grafico_gantt", "grafico_mapa", "grafico_rede", "mini_grafico"])
 
 _TRAVA = threading.RLock()
 _ATUAL = {"app": None}
@@ -405,6 +433,168 @@ def markdown_para_html(texto):
     return R.markdown(str(texto))
 
 
+def tema(qual=None, densidade=None):
+    """Lê ou troca o tema da aplicação.
+
+        V.tema("meia-noite")
+        V.tema({"primaria": "#0F62FE", "raio": "4px"})
+
+    Sem argumento, devolve o que está valendo. A troca vale para a
+    aplicação inteira — um tema por sessão exigiria recarregar o CSS a
+    cada pedido, e o CSS é o que menos muda numa página.
+    """
+    aplicacao = _app()
+    if qual is None and densidade is None:
+        return {"tema": aplicacao.config.get("tema"),
+                "modo": aplicacao.config.get("modo_tema", "automatico"),
+                "densidade": aplicacao.config.get("densidade", "normal"),
+                "prontos": TM.nomes()}
+    if qual is not None:
+        # Um nome errado precisa falhar AQUI, e não na hora de desenhar:
+        # lá dentro o erro viraria uma página em branco sem dizer qual
+        # tema foi pedido.
+        TM.resolver(qual)
+        aplicacao.config["tema"] = qual
+    if densidade is not None:
+        if str(densidade) not in TM.DENSIDADES:
+            from ...errors import RuntimeError_
+            raise RuntimeError_(
+                f"densidade '{densidade}' nao existe.", 0, 0,
+                nota="as densidades: " + ", ".join(TM.DENSIDADES),
+                doc="vitrine/referencia")
+        aplicacao.config["densidade"] = str(densidade)
+    return aplicacao.config.get("tema")
+
+
+def temas():
+    """Os nomes dos temas prontos."""
+    return TM.nomes()
+
+
+def seletor_de_tema(rotulo="Tema"):
+    """Desenha a troca de tema e devolve o escolhido.
+
+    A troca reexecuta a página, pelo mesmo motivo do seletor de idioma:
+    o CSS é escrito no cabeçalho, e metade da tela ficaria com as cores
+    anteriores.
+    """
+    disponiveis = TM.nomes()
+    atual = _app().config.get("tema")
+    nome_atual = atual if isinstance(atual, str) else "claro"
+    indice = (disponiveis.index(nome_atual)
+              if nome_atual in disponiveis else 0)
+    escolhido = C.escolha(rotulo, disponiveis, indice, chave="__tema__")
+    if escolhido != nome_atual:
+        tema(escolhido)
+        raise _Reexecutar()
+    return escolhido
+
+
+def exportar_svg(grafico, nome="grafico.svg", rotulo="Baixar SVG"):
+    """O gráfico como arquivo SVG, com um botão para baixá-lo.
+
+    O SVG que sai daqui é **o mesmo** que a página desenha: ele vem do
+    mesmo renderizador. Uma segunda rota para gerar imagem divergiria
+    da primeira, e o arquivo baixado deixaria de ser o que se viu.
+    """
+    from .nucleo import No
+    if not isinstance(grafico, G.Grafico):
+        from ...errors import TypeError_
+        raise TypeError_(
+            "V.exportar_svg espera um grafico de V.grafico(...).", 0, 0,
+            doc="vitrine/referencia")
+    series, categorias = G._extrair(grafico.dados, grafico.props)
+    no = No("grafico", {**grafico.props, "grafico": grafico.tipo,
+                        "series": series, "categorias": categorias})
+    desenho = R._SVG.get(grafico.tipo, R._svg_linha)(no.props, series,
+                                                     categorias)
+    completo = desenho.replace(
+        "<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ', 1)
+    C.baixar(rotulo, completo, nome, "image/svg+xml")
+    return completo
+
+
+def exportar_excel(dados, nome="dados.xlsx", rotulo="Baixar Excel",
+                   aba="Dados"):
+    """Uma planilha .xlsx de verdade, sem dependência externa.
+
+    Ela sai do `Arcane.Excel`, que já escreve o formato à mão. Gerar um
+    CSV com a extensão trocada — o atalho comum — faz o Excel abrir com
+    aviso e estragar o separador decimal em pt-BR.
+    """
+    import os
+    import random
+    import tempfile
+
+    from ..arcane_excel import ArcaneExcel
+
+    linhas, colunas = C._normalizar_tabela(dados)
+    modulo = ArcaneExcel()
+    livro = modulo["new"]()
+    modulo["sheet"](livro, C._str(aba), [list(l) for l in linhas],
+                    list(colunas))
+
+    # O `Arcane.Excel` escreve num CAMINHO, e o botão precisa de bytes.
+    # A pasta é própria e sorteada: escrever direto no temporário do
+    # sistema deixa lixo com nome previsível, e dois pedidos ao mesmo
+    # tempo sobrescreveriam o arquivo um do outro.
+    pasta = os.path.join(tempfile.gettempdir(),
+                         f"vitrine-xlsx-{random.randint(100000, 999999)}")
+    os.makedirs(pasta, exist_ok=True)
+    caminho = os.path.join(pasta, "planilha.xlsx")
+    try:
+        modulo["save"](livro, caminho)
+        with open(caminho, "rb") as arquivo:
+            conteudo = arquivo.read()
+    finally:
+        for alvo in (caminho, pasta):
+            try:
+                os.remove(alvo) if os.path.isfile(alvo) else os.rmdir(alvo)
+            except OSError:
+                pass
+    C.baixar(rotulo, conteudo, nome,
+             "application/vnd.openxmlformats-officedocument."
+             "spreadsheetml.sheet")
+    return dados
+
+
+def modo_servidor():
+    """`yes` quando quem chamou quer o servidor **no ar**.
+
+    Um arquivo de painel tem dois destinos, e eles se contradizem:
+
+    - `dataforge vitrine run` e `dataforge vitrine dev` esperam que ele
+      termine chamando `V.subir`, e **fiquem servindo**;
+    - a suíte de testes roda o mesmo arquivo com `dataforge run`, e um
+      arquivo que sobe um servidor ali nunca termina.
+
+    Sem uma pergunta que separe os dois, o autor escolhe uma flag
+    própria (`-- --servir`) e o arquivo deixa de funcionar com o
+    comando que o framework oferece — que foi exatamente o que
+    aconteceu. `V.modo_servidor()` é essa pergunta:
+
+        given V.modo_servidor():
+            V.rodar(painel)
+        otherwise:
+            conferir()
+
+    Ela responde `yes` quando o `dataforge vitrine` anunciou a porta no
+    ambiente, e quando `--servir` está nos argumentos — a segunda forma
+    continua valendo para quem chama `dataforge run` direto.
+    """
+    import os
+    import sys
+
+    if os.environ.get("VITRINE_PORTA") or os.environ.get("VITRINE_RECARREGAR"):
+        return True
+    return any(arg in ("--servir", "--serve") for arg in sys.argv[1:])
+
+
+def fragmentos():
+    """As chaves dos fragmentos montados nesta execução."""
+    return sorted(_ctx().nos_de_fragmento)
+
+
 # ═══════════════════════════════════════════════════════════
 #  O módulo
 # ═══════════════════════════════════════════════════════════
@@ -424,11 +614,22 @@ class ArcaneVitrine:
             "paginas": paginas,
             "rodar": rodar,
             "subir": subir,
+            "modo_servidor": modo_servidor,
             "servir": servir,
             "parar_servidor": parar_servidor,
             "montar": montar,
 
             # ── Texto ──
+            "escrever": CT.escrever,
+            "legenda": CT.legenda,
+            "citacao": CT.citacao,
+            "selo": CT.selo,
+            "selos": CT.selos,
+            "formula": CT.formula,
+            "ajuda": CT.ajuda,
+            "fluxo": CT.fluxo,
+            "icone": CT.icone,
+            "icones": CT.icones,
             "texto": C.texto,
             "titulo": C.titulo,
             "subtitulo": C.subtitulo,
@@ -453,6 +654,21 @@ class ArcaneVitrine:
             "data": C.data,
             "cor": C.cor,
             "arquivo": C.arquivo,
+            "hora": E.hora,
+            "periodo": E.periodo,
+            "faixa": E.faixa,
+            "deslizante_opcoes": E.deslizante_opcoes,
+            "pilulas": E.pilulas,
+            "segmentado": E.segmentado,
+            "avaliacao": E.avaliacao,
+            "tags": E.tags,
+            "autocompletar": E.autocompletar,
+            "senha": E.senha,
+            "busca": E.busca,
+            "email": E.email,
+            "camera": E.camera,
+            "mudou": E.mudou,
+            "mudancas": E.mudancas,
 
             # ── Dados ──
             "tabela": C.tabela,
@@ -460,6 +676,19 @@ class ArcaneVitrine:
             "metrica": C.metrica,
             "json": C.json_,
             "vault": C.vault,
+            "grade": D.grade,
+            "editor": D.editor,
+            "coluna": D.coluna,
+            "regra": D.regra,
+            "indicador": D.indicador,
+            "indicadores": D.indicadores,
+            "estatisticas": D.estatisticas,
+            "formatar": D.formatar,
+            "moeda": D.moeda,
+            "numero_br": D.numero,
+            "percentual": D.percentual,
+            "compacto": D.compacto,
+            "data_br": D.data_br,
 
             # ── Retorno ──
             "sucesso": C.sucesso,
@@ -473,6 +702,20 @@ class ArcaneVitrine:
             "video": C.video,
             "link": C.link,
             "baixar": C.baixar,
+            "pdf": CT.pdf,
+            "iframe": CT.iframe,
+            "logo": CT.logo,
+            "galeria": CT.galeria,
+            "toast": CT.toast,
+            "esqueleto": CT.esqueleto,
+            "comemorar": CT.comemorar,
+            "excecao": CT.excecao,
+            "status": CT.status,
+            "chat": CT.chat,
+            "chat_mensagem": CT.chat_mensagem,
+            "chat_entrada": CT.chat_entrada,
+            "historico_de_chat": CT.historico_de_chat,
+            "guardar_no_chat": CT.guardar_no_chat,
 
             # ── Layout ──
             "colunas": L.colunas,
@@ -485,6 +728,16 @@ class ArcaneVitrine:
             "vazio": L.vazio,
             "lateral": L.lateral,
             "espacador": L.espacador,
+            "malha": L.malha,
+            "painel": L.painel,
+            "barra_superior": L.barra_superior,
+            "dialogo": L.dialogo,
+            "popover": L.popover,
+            "passos": L.passos,
+            "separador": L.separador,
+            "rolagem": L.rolagem,
+            "fragmento": L.fragmento,
+            "fragmentos": fragmentos,
 
             # ── Gráficos ──
             "grafico": G.grafico,
@@ -498,11 +751,41 @@ class ArcaneVitrine:
             "grafico_rosca": G.grafico_rosca,
             "histograma": G.histograma,
             "paleta": list(G.PALETA),
+            "tipos_de_grafico": list(G.TIPOS),
+            "grafico_combo": GA.grafico_combo,
+            "grafico_barras_100": GA.grafico_barras_100,
+            "grafico_area_empilhada": GA.grafico_area_empilhada,
+            "grafico_funil": GA.grafico_funil,
+            "grafico_treemap": GA.grafico_treemap,
+            "grafico_cascata": GA.grafico_cascata,
+            "grafico_pareto": GA.grafico_pareto,
+            "grafico_radar": GA.grafico_radar,
+            "grafico_caixa": GA.grafico_caixa,
+            "grafico_bolhas": GA.grafico_bolhas,
+            "grafico_dispersao_xy": GA.grafico_dispersao_xy,
+            "grafico_velas": GA.grafico_velas,
+            "grafico_sankey": GA.grafico_sankey,
+            "grafico_gantt": GA.grafico_gantt,
+            "grafico_mapa": GA.grafico_mapa,
+            "grafico_rede": GA.grafico_rede,
+            "grafico_calendario": GA.grafico_calendario,
+            "mapa_de_calor": GA.mapa_de_calor,
+            "medidor": GA.medidor,
+            "grafico_bala": GA.grafico_bala,
+            "mini_grafico": GA.mini_grafico,
 
             # ── Estado ──
             "estado": Estado(),
             "geral": _GERAL,
             "cache": _CACHE,
+            "recurso": _RECURSO,
+            "conexao": CX.conexao,
+            "conexao_de": CX.conexao_de,
+            "conexoes": CX.conexoes,
+            "fechar_conexoes": CX.fechar_conexoes,
+            "segredos": CX.segredos,
+            "segredo": CX.segredo,
+            "segredos_mascarados": CX.segredos_mascarados,
 
             # ── Navegação ──
             "navegar": navegar,
@@ -542,6 +825,11 @@ class ArcaneVitrine:
             # ── Exportar ──
             "exportar_csv": exportar_csv,
             "exportar_json": exportar_json,
+            "exportar_svg": exportar_svg,
+            "exportar_excel": exportar_excel,
+            "tema": tema,
+            "temas": temas,
+            "seletor_de_tema": seletor_de_tema,
             "html_da_pagina": html_da_pagina,
             "markdown_para_html": markdown_para_html,
 
@@ -571,6 +859,11 @@ class ArcaneVitrine:
 #: falhar exatamente no uso mais comum.
 _GERAL = Geral()
 _CACHE = Cache()
+
+#: O depósito de objetos vive no módulo pela mesma razão do cache: um
+#: `mark @V.recurso` no topo do arquivo roda antes de qualquer
+#: `V.app(...)`.
+_RECURSO = Recurso()
 
 #: A tradução também: as chaves são carregadas no topo do arquivo, antes
 #: de qualquer 'V.app(...)'.

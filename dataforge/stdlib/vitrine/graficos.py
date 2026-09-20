@@ -37,8 +37,19 @@ PALETA = ["#FED403", "#0F62FE", "#24A148", "#FA4D56", "#8A3FFC",
 
 #: Os tipos que o renderizador sabe desenhar. Pedir outro é erro na
 #: hora da chamada, e não uma página em branco.
+#:
+#: A lista cresceu, e a regra de entrada continua a mesma: um tipo só
+#: entra aqui quando há um desenho para ele em `_SVG`. Um nome nesta
+#: tupla sem desenho do outro lado seria um gráfico que some calado —
+#: `_svg_linha` assumiria, e a pessoa veria uma linha onde pediu um
+#: funil. `tests/test_vitrine.py` confere os dois lados.
 TIPOS = ("linha", "barras", "area", "dispersao", "pizza", "histograma",
-         "barras_horizontais", "rosca")
+         "barras_horizontais", "rosca",
+         # os que vieram com o painel profissional
+         "combo", "radar", "medidor", "funil", "mapa_de_calor", "treemap",
+         "cascata", "velas", "caixa", "bolhas", "pareto", "calendario",
+         "sankey", "gantt", "barras_100", "bala", "dispersao_xy", "mapa",
+         "rede")
 
 
 def _ctx():
@@ -63,7 +74,8 @@ class Grafico:
         self.dados = dados
         self.props = {"cores": list(PALETA), "legenda": True,
                       "grade": True, "altura": 280, "empilhado": False,
-                      "rotulos": False, "suave": False}
+                      "rotulos": False, "suave": False, "dica": True,
+                      "formato": "", "legenda_em": "baixo"}
 
     # Cada método devolve o próprio gráfico, então dá para encadear:
     #   V.grafico("linha").eixo_x("mes").eixo_y("total")
@@ -125,6 +137,102 @@ class Grafico:
         self.props["max_y"] = maximo
         return self
 
+    # ── O que um painel de verdade pede ──────────────────────
+
+    def formato(self, nome, casas=None):
+        """Como os números do eixo e das dicas são escritos.
+
+        `moeda`, `numero`, `percentual`, `compacto` — os mesmos nomes
+        que a grade usa. Um eixo em reais e uma tabela em reais não
+        podem discordar sobre o que é um real.
+        """
+        self.props["formato"] = str(nome)
+        if casas is not None:
+            self.props["casas"] = int(casas)
+        return self
+
+    def tracejar(self, *nomes):
+        """Deixa tracejadas as séries nomeadas — a linha do *planejado*.
+
+        Tracejado, e não outra cor: a comparação entre o realizado e o
+        previsto é entre a mesma grandeza, e trocar a cor faria parecer
+        que são duas coisas diferentes.
+        """
+        # Sem nome nenhum, todas: `"*"` diz isso sem precisar conhecer
+        # as séries, que só existem depois de o dado ser lido.
+        alvos = [str(n) for n in nomes] or ["*"]
+        self.props.setdefault("tracejadas", []).extend(alvos)
+        return self
+
+    def referencia(self, valor, rotulo="", cor=""):
+        """Uma linha horizontal fixa — a meta, o limite, a média."""
+        self.props.setdefault("referencias", []).append(
+            {"valor": float(valor), "rotulo": str(rotulo), "cor": str(cor)})
+        return self
+
+    def anotar(self, categoria, texto, cor=""):
+        """Um marcador sobre uma categoria do eixo x."""
+        self.props.setdefault("anotacoes", []).append(
+            {"categoria": str(categoria), "texto": str(texto), "cor": str(cor)})
+        return self
+
+    def faixa_de_meta(self, de, ate, cor=""):
+        """Uma faixa sombreada entre dois valores do eixo y."""
+        self.props.setdefault("faixas", []).append(
+            {"de": float(de), "ate": float(ate), "cor": str(cor)})
+        return self
+
+    def como(self, **tipos):
+        """O tipo de cada série, num gráfico combinado.
+
+            g.como(receita := "barra", margem := "linha")
+        """
+        self.props.setdefault("tipos_de_serie", {}).update(
+            {str(k): str(v) for k, v in tipos.items()})
+        return self
+
+    def eixo_direito(self, *nomes):
+        """As séries que usam a escala da direita.
+
+        Sem isso, uma margem de 0 a 100 desenhada ao lado de uma receita
+        de milhões vira uma linha colada no zero — o gráfico existe e
+        não mostra nada.
+        """
+        self.props.setdefault("direita", []).extend(str(n) for n in nomes)
+        return self
+
+    def empilhar_100(self, ligado=True):
+        """Cada categoria soma 100%: a composição, e não o tamanho."""
+        self.props["cem_por_cento"] = bool(ligado)
+        if ligado:
+            self.props["empilhado"] = True
+        return self
+
+    def legenda_em(self, onde="baixo"):
+        """`baixo`, `direita` ou `nenhuma`."""
+        self.props["legenda_em"] = str(onde)
+        self.props["legenda"] = str(onde) != "nenhuma"
+        return self
+
+    def total_no_centro(self, texto="", rotulo=""):
+        """O total no buraco da rosca — o que a imagem de referência faz."""
+        self.props["centro"] = {"valor": str(texto), "rotulo": str(rotulo)}
+        return self
+
+    def vertical(self, ligado=True):
+        """Gira as barras: categoria com nome longo se lê deitada."""
+        self.props["deitado"] = bool(ligado)
+        return self
+
+    def marcadores(self, ligados=True):
+        self.props["marcadores"] = bool(ligados)
+        return self
+
+    def dica(self, ligada=True):
+        """A caixinha que segue o cursor. Ligada por padrão."""
+        self.props["dica"] = bool(ligada)
+        return self
+
     def para_vault(self):
         return {"tipo": self.tipo, "props": dict(self.props)}
 
@@ -145,8 +253,13 @@ def desenhar(g):
             "V.desenhar espera um grafico de V.grafico(...).", 0, 0,
             doc="tecnicas/vitrine")
     series, categorias = _extrair(g.dados, g.props)
-    _ctx().por(No("grafico", {**g.props, "grafico": g.tipo,
-                              "series": series, "categorias": categorias}))
+    ctx = _ctx()
+    # A largura é gravada AQUI, e não na hora de desenhar: quando o
+    # renderizador roda, a montagem já acabou e a pilha de larguras do
+    # contexto não existe mais.
+    ctx.por(No("grafico", {**g.props, "grafico": g.tipo,
+                           "series": series, "categorias": categorias,
+                           "largura_css": ctx.largura}))
     return g
 
 
@@ -199,10 +312,12 @@ def histograma(dados, campo="", faixas=10, titulo="", altura=None):
     valores = _coluna_numerica(dados, campo)
     faixas = max(1, int(faixas))
     if not valores:
-        _ctx().por(No("grafico", {"grafico": "barras", "series": [],
-                                  "categorias": [], "titulo": titulo,
-                                  "cores": list(PALETA), "altura": altura or 280,
-                                  "grade": True, "legenda": False}))
+        ctx = _ctx()
+        ctx.por(No("grafico", {"grafico": "barras", "series": [],
+                               "categorias": [], "titulo": titulo,
+                               "cores": list(PALETA), "altura": altura or 280,
+                               "grade": True, "legenda": False,
+                               "largura_css": ctx.largura}))
         return dados
 
     menor, maior = min(valores), max(valores)
@@ -214,12 +329,14 @@ def histograma(dados, campo="", faixas=10, titulo="", altura=None):
         contagem[indice] += 1
 
     categorias = [_curto(menor + i * largura) for i in range(faixas)]
-    _ctx().por(No("grafico", {
+    ctx = _ctx()
+    ctx.por(No("grafico", {
         "grafico": "barras", "categorias": categorias,
         "series": [{"nome": str(campo or "frequência"), "valores": contagem}],
         "titulo": str(titulo), "cores": list(PALETA), "grade": True,
         "legenda": False, "altura": altura or 280, "rotulos": False,
-        "empilhado": False, "suave": False}))
+        "empilhado": False, "suave": False,
+        "largura_css": ctx.largura}))
     return dados
 
 
@@ -261,7 +378,7 @@ def _extrair(dados, props):
     categorias = ([_texto(r.get(campo_x, "")) for r in registros]
                   if campo_x else [str(i + 1) for i in range(len(registros))])
     series = [{"nome": str(c),
-               "valores": [_numero(r.get(c)) for r in registros]}
+               "valores": [_numero_ou_ausente(r.get(c)) for r in registros]}
               for c in campos_y]
     return series, categorias
 
@@ -305,6 +422,21 @@ def _coluna_numerica(dados, campo=""):
 
 def _e_numero(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _numero_ou_ausente(v):
+    """`void` continua `void`. É o que separa um vão de um zero.
+
+    O caminho antigo devolvia `0.0`, e a linha de um acumulado
+    despencava ao chegar no mês que ainda não aconteceu — um gráfico
+    que mostra uma queda de um milhão onde só falta o dado. Um vão diz
+    "não sei"; um zero afirma um número.
+    """
+    if v is None:
+        return None
+    if isinstance(v, str) and not v.strip():
+        return None
+    return _numero(v)
 
 
 def _numero(v):

@@ -55,7 +55,8 @@ _registrar(C, [
 ])
 _registrar(G, [
     "grafico_linha", "grafico_barras", "grafico_area", "grafico_dispersao",
-    "grafico_pizza", "histograma", "grafico", "desenhar",
+    "grafico_pizza", "grafico_rosca", "grafico_barras_h", "histograma",
+    "grafico", "desenhar",
 ])
 
 
@@ -68,16 +69,22 @@ class Area:
     layout ensina todos.
     """
 
-    __slots__ = ("_no",)
+    __slots__ = ("_no", "_largura")
 
-    def __init__(self, no):
+    def __init__(self, no, largura=None):
         self._no = no
+        #: Quanto desta área cabe na tela, em pixels. Ela é passada
+        #: adiante porque o gráfico precisa saber o quanto vai
+        #: encolher — ver `Contexto.larguras`.
+        self._largura = largura
 
     # ── O que faz um componente cair aqui dentro ─────────────
 
     def _dentro(self, funcao, args, kwargs):
         ctx = _ctx()
         ctx.pilha.append(self._no)
+        if self._largura:
+            ctx.estreitar(self._largura)
         try:
             return funcao(*args, **kwargs)
         finally:
@@ -86,6 +93,8 @@ class Area:
             # área e todo o resto da página entraria nela.
             if ctx.pilha and ctx.pilha[-1] is self._no:
                 ctx.pilha.pop()
+            if self._largura:
+                ctx.alargar()
 
     def __repr__(self):
         return f"<area {self._no.tipo}>"
@@ -125,10 +134,24 @@ def _metodo_de(funcao):
     return metodo
 
 
-for _nome, _funcao in COMPONENTES.items():
-    if not hasattr(Area, _nome):
-        setattr(Area, _nome, _metodo_de(_funcao))
-del _nome, _funcao
+def ligar_componentes(modulo=None, nomes=None):
+    """Põe em `Area` um método por componente registrado.
+
+    É chamada de novo quando um módulo acrescenta componentes — a
+    alternativa seria escrever cada método à mão em dois lugares, e o
+    segundo envelheceria calado: um componente que existe e não é
+    método de área não pode entrar numa coluna, e o sintoma é um
+    `AttributeError` no meio da página.
+    """
+    if modulo is not None:
+        _registrar(modulo, nomes or [])
+    for nome, funcao in COMPONENTES.items():
+        if not hasattr(Area, nome):
+            setattr(Area, nome, _metodo_de(funcao))
+    return sorted(COMPONENTES)
+
+
+ligar_componentes()
 
 
 class Formulario(Area):
@@ -141,8 +164,8 @@ class Formulario(Area):
 
     __slots__ = ("_nome", "_limpar")
 
-    def __init__(self, no, nome, limpar=False):
-        super().__init__(no)
+    def __init__(self, no, nome, limpar=False, largura=None):
+        super().__init__(no, largura)
         self._nome = nome
         self._limpar = limpar
 
@@ -184,29 +207,44 @@ def colunas(quantidade, larguras=None, espacamento="medio"):
     total = sum(pesos) or 1.0
     raiz = ctx.por(No("colunas", {"espacamento": espacamento}))
     areas = []
+    vao = {"nenhum": 0, "pequeno": 8, "medio": 16, "grande": 28}.get(
+        espacamento, 16)
+    livre = ctx.largura - vao * (len(pesos) - 1)
     for peso in pesos:
         filho = raiz.acrescentar(
             No("coluna", {"proporcao": round(peso / total * 100, 4)}))
-        areas.append(Area(filho))
+        areas.append(Area(filho, livre * peso / total))
     return areas
 
 
+#: O que um bloco com borda come de largura: dois lados de padding
+#: mais a borda. Chutar para menos faria o gráfico se achar mais largo
+#: do que é, e o texto voltaria a encolher.
+RECUO = 36
+
+
 def container(borda=False, altura=None):
-    no = _ctx().por(No("container", {"borda": bool(borda), "altura": altura}))
-    return Area(no)
+    ctx = _ctx()
+    no = ctx.por(No("container", {"borda": bool(borda), "altura": altura}))
+    return Area(no, ctx.largura - (RECUO if borda else 0))
 
 
 def linha(alinhar="inicio", espacamento="medio"):
     """Um container horizontal — os filhos ficam lado a lado."""
-    no = _ctx().por(No("linha", {"alinhar": alinhar,
-                                 "espacamento": espacamento}))
-    return Area(no)
+    ctx = _ctx()
+    no = ctx.por(No("linha", {"alinhar": alinhar,
+                              "espacamento": espacamento}))
+    # Os filhos dividem o espaço, e não se sabe quantos serão. Metade é
+    # o palpite honesto: errar para menos deixa o texto grande demais,
+    # e errar para mais o devolve ao ilegível.
+    return Area(no, ctx.largura / 2)
 
 
 def cartao(titulo="", subtitulo=""):
-    no = _ctx().por(No("cartao", {"titulo": C._str(titulo),
-                                  "subtitulo": C._str(subtitulo)}))
-    return Area(no)
+    ctx = _ctx()
+    no = ctx.por(No("cartao", {"titulo": C._str(titulo),
+                               "subtitulo": C._str(subtitulo)}))
+    return Area(no, ctx.largura - RECUO)
 
 
 def expandir(rotulo, aberto=False):
@@ -218,7 +256,7 @@ def expandir(rotulo, aberto=False):
     no = ctx.por(No("expandir", {"rotulo": C._str(rotulo),
                                  "aberto": bool(estado), "chave": chave},
                     chave=chave))
-    return Area(no)
+    return Area(no, ctx.largura - RECUO)
 
 
 def abas(rotulos):
@@ -238,15 +276,17 @@ def abas(rotulos):
     raiz = ctx.por(No("abas", {"rotulos": nomes, "ativa": ativa,
                                "chave": chave}, chave=chave))
     return [Area(raiz.acrescentar(No("aba", {"rotulo": nome,
-                                             "visivel": nome == ativa})))
+                                             "visivel": nome == ativa})),
+                 ctx.largura)
             for nome in nomes]
 
 
 def formulario(nome, limpar=False):
     """Agrupa campos que só valem quando o botão de envio é apertado."""
-    no = _ctx().por(No("formulario", {"nome": C._str(nome),
-                                      "chave": f"__form__{nome}"}))
-    return Formulario(no, C._str(nome), limpar)
+    ctx = _ctx()
+    no = ctx.por(No("formulario", {"nome": C._str(nome),
+                                   "chave": f"__form__{nome}"}))
+    return Formulario(no, C._str(nome), limpar, ctx.largura - RECUO)
 
 
 def vazio():
@@ -255,14 +295,254 @@ def vazio():
     Serve para escrever "Calculando…" e substituir pelo resultado sem
     que a página salte — o espaço já estava lá.
     """
-    return Area(_ctx().por(No("vazio")))
+    ctx = _ctx()
+    return Area(ctx.por(No("vazio")), ctx.largura)
 
 
 def lateral():
     """A barra lateral. Sempre a mesma, chamada de onde for."""
-    return Area(_ctx().barra_lateral)
+    #: 288px de largura menos o padding do CSS. O número está escrito
+    #: nos dois lugares, e é por isso que ele é uma constante aqui: um
+    #: gráfico na barra lateral achando que tem 1100px sai com o texto
+    #: quatro vezes menor que o do corpo.
+    return Area(_ctx().barra_lateral, 252)
 
 
 def espacador():
     """Empurra o que vem depois para a outra ponta de uma `linha`."""
     _ctx().por(No("espacador"))
+
+
+# ═══════════════════════════════════════════════════════════
+#  Os layouts de um painel
+# ═══════════════════════════════════════════════════════════
+#
+# O que vem abaixo existe por causa de uma constatação simples: um
+# painel não é uma página com componentes empilhados. Ele é uma
+# **grade de painéis**, cada um com título, e alguns deles com filtro
+# próprio. Montar isso com `V.colunas` aninhada funciona e custa
+# indentação que a linguagem não tem como esconder.
+
+
+def malha(colunas=3, espacamento="medio", minimo=240):
+    """Uma grade que se reorganiza sozinha. Devolve **uma** área.
+
+        m := V.malha(3)
+        m.painel("Receita").metrica("Total", "R$ 128 mil")
+        m.painel("Custos").metrica("Total", "R$ 61 mil")
+
+    A diferença para `V.colunas` é quem decide a quebra: aqui, a
+    largura. Com `minimo := 240`, três painéis numa tela larga viram
+    dois numa média e um no celular — sem `given largura_da_tela`, que
+    o servidor não tem como saber.
+    """
+    ctx = _ctx()
+    quantas = max(1, int(colunas))
+    vao = {"nenhum": 0, "pequeno": 8, "medio": 16, "grande": 26}.get(
+        espacamento, 16)
+    no = ctx.por(No("malha", {"colunas": quantas,
+                              "espacamento": espacamento,
+                              "minimo": max(80, int(minimo))}))
+    # A malha quebra pela LARGURA, então o número de colunas é um teto:
+    # a célula nunca fica mais estreita que o mínimo pedido, e nunca
+    # mais larga que a divisão igual.
+    cabem = max(1, min(quantas, int(ctx.largura // max(80, int(minimo)))))
+    return Area(no, (ctx.largura - vao * (cabem - 1)) / cabem)
+
+
+def painel(titulo="", subtitulo="", cor="", icone="", compacto=False,
+           altura=None):
+    """Um bloco de painel: faixa de cor, título pequeno, e o conteúdo.
+
+    É o cartão do dashboard — o título em caixa alta e discreto, porque
+    num painel com doze blocos o que precisa saltar é o **dado**, e não
+    doze títulos competindo com ele.
+    """
+    ctx = _ctx()
+    no = ctx.por(No("painel", {
+        "titulo": C._str(titulo), "subtitulo": C._str(subtitulo),
+        "cor": C._str(cor), "icone": C._str(icone),
+        "compacto": bool(compacto), "altura": altura}))
+    return Area(no, ctx.largura - (26 if compacto else RECUO))
+
+
+def barra_superior(titulo="", itens=None, ativo="", logo="", subtitulo=""):
+    """A faixa do topo: marca, navegação e um canto para os filtros.
+
+        topo := V.barra_superior("Gestão financeira",
+                                 itens := ["Dados", "Fluxo", "Painel"],
+                                 ativo := "Painel")
+        topo.escolha("Ano", ["2026", "2025"])
+
+    Cada item pode ser um texto (e vira um link para `/item-em-minúsculo`)
+    ou um vault `{"rotulo": …, "destino": …, "icone": …}`. Devolve a
+    área da **direita**, que é onde os filtros ficam.
+    """
+    lista = []
+    for item in (itens or []):
+        if isinstance(item, dict):
+            rotulo = C._str(item.get("rotulo", item.get("titulo", "")))
+            lista.append({
+                "rotulo": rotulo,
+                "destino": C._str(item.get("destino", item.get("caminho", ""))),
+                "icone": C._str(item.get("icone", ""))})
+        else:
+            rotulo = C._str(item)
+            lista.append({"rotulo": rotulo, "destino": "", "icone": ""})
+    ctx = _ctx()
+    no = ctx.por(No("barra_superior", {
+        "titulo": C._str(titulo), "subtitulo": C._str(subtitulo),
+        "logo": C._str(logo), "itens": lista, "ativo": C._str(ativo)}))
+    # O canto da direita é o que sobra depois da marca e da navegação.
+    return Area(no, max(240.0, ctx.largura * 0.3))
+
+
+def dialogo(titulo, aberto=None, largura=520, chave=None):
+    """Uma janela por cima da página. Devolve a área de dentro.
+
+        given V.botao("Novo cliente"):
+            V.estado.definir("abrir", yes)
+
+        given V.estado.obter("abrir", no):
+            janela := V.dialogo("Novo cliente")
+            janela.entrada("Nome")
+            given janela.fechou():
+                V.estado.definir("abrir", no)
+
+    O estado do diálogo é de quem escreve, e não do framework. Parece
+    mais trabalho e é o que evita o pior defeito de um modal: ele
+    reabrir sozinho porque o programa rodou de novo.
+    """
+    ctx = _ctx()
+    k = ctx.chave_para("dialogo", titulo, chave)
+    estado = bool(aberto) if aberto is not None else True
+    no = ctx.por(No("dialogo", {"titulo": C._str(titulo), "aberto": estado,
+                                "largura": max(240, int(largura)),
+                                "chave": k}, chave=k))
+    return _Dialogo(no, k, max(240, int(largura)) - RECUO)
+
+
+class _Dialogo(Area):
+    """A área de um diálogo, mais a pergunta que fecha o laço."""
+
+    __slots__ = ("_chave",)
+
+    def __init__(self, no, chave, largura=None):
+        super().__init__(no, largura)
+        self._chave = chave
+
+    def fechou(self):
+        """`yes` no ciclo em que alguém apertou o × ou o fundo."""
+        return _ctx().foi_acionado(f"{self._chave}:fechar")
+
+
+def popover(rotulo, icone="", largura=300):
+    """Um botão que abre um cartãozinho. Devolve a área de dentro.
+
+    Serve ao que não cabe na tela e não merece um diálogo: o ajuste
+    fino de um gráfico, a explicação de uma métrica, um formulário de
+    dois campos.
+    """
+    ctx = _ctx()
+    chave = ctx.chave_para("popover", rotulo)
+    no = ctx.por(No("popover", {"rotulo": C._str(rotulo),
+                                "icone": C._str(icone),
+                                "largura": max(160, int(largura)),
+                                "chave": chave}, chave=chave))
+    return Area(no, max(160, int(largura)) - 30)
+
+
+def passos(rotulos, atual=0, concluidos=None):
+    """A trilha de um processo, com o passo aceso.
+
+    `atual` é a posição (de zero em diante). `concluidos` marca os que
+    já passaram — sem ela, tudo antes do atual conta como concluído,
+    que é o caso comum.
+    """
+    nomes = [C._str(r) for r in (rotulos or [])]
+    posicao = max(0, min(len(nomes) - 1, int(atual))) if nomes else 0
+    feitos = ([C._str(c) for c in concluidos] if concluidos is not None
+              else nomes[:posicao])
+    _ctx().por(No("passos", {"rotulos": nomes, "atual": posicao,
+                             "concluidos": feitos}))
+    return posicao
+
+
+def separador(texto="", icone=""):
+    """Uma linha com um rótulo no meio — separa seções sem gastar um título."""
+    _ctx().por(No("separador", {"texto": C._str(texto),
+                                "icone": C._str(icone)}))
+
+
+def rolagem(altura=320, borda=True):
+    """Uma caixa com rolagem própria, de altura fixa."""
+    ctx = _ctx()
+    no = ctx.por(No("container", {"borda": bool(borda),
+                                  "altura": max(60, int(altura))}))
+    return Area(no, ctx.largura - (RECUO if borda else 0))
+
+
+def fragmento(chave, a_cada=0):
+    """Um pedaço da página que se redesenha **sozinho**.
+
+        f := V.fragmento("cotacoes", a_cada := 5)
+        f.metrica("Dólar", cotacao())
+
+    Um clique num componente montado aqui dentro faz o servidor rodar o
+    programa de novo — isso não muda —, mas a resposta carrega **só
+    este pedaço**, e só ele é trocado na tela. A diferença aparece onde
+    importa: o filtro da barra lateral não perde o foco, a rolagem da
+    tabela ao lado não volta ao topo, e um gráfico pesado em outro
+    canto não é redesenhado.
+
+    `a_cada` liga a atualização por tempo **deste** fragmento, o que é
+    o contrário de `V.atualizar_a_cada`: lá a página inteira volta ao
+    servidor; aqui, um bloco.
+    """
+    ctx = _ctx()
+    k = C._str(chave)
+    no = ctx.por(No("fragmento", {"chave": k, "a_cada": max(0, int(a_cada))},
+                    chave=k))
+    ctx.nos_de_fragmento[k] = no
+    return _Fragmento(no, k, ctx.largura)
+
+
+class _Fragmento(Area):
+    """A área de um fragmento — ela empilha a marca junto com o nó."""
+
+    __slots__ = ("_chave",)
+
+    def __init__(self, no, chave, largura=None):
+        super().__init__(no, largura)
+        self._chave = chave
+
+    def _dentro(self, funcao, args, kwargs):
+        ctx = _ctx()
+        # A marca sobe junto com o nó: é ela que faz `chave_para`
+        # anotar a que fragmento cada componente pertence, e é por essa
+        # anotação que o clique de volta sabe o que redesenhar.
+        ctx.fragmentos.append(self._chave)
+        try:
+            return super()._dentro(funcao, args, kwargs)
+        finally:
+            if ctx.fragmentos and ctx.fragmentos[-1] == self._chave:
+                ctx.fragmentos.pop()
+
+
+# ── Os layouts novos também são métodos de uma área ──────────
+#
+# Sem isto, `coluna.painel(…)` não existiria e o aninhamento pararia no
+# primeiro nível — que é exatamente onde um painel começa a precisar
+# dele.
+
+for _nome_extra in ("malha", "painel", "dialogo", "popover", "passos",
+                    "separador", "rolagem", "fragmento", "barra_superior"):
+    def _fazer(_alvo):
+        def metodo(self, *args, **kwargs):
+            return self._dentro(_alvo, args, kwargs)
+        metodo.__name__ = _alvo.__name__
+        metodo.__doc__ = _alvo.__doc__
+        return metodo
+
+    setattr(Area, _nome_extra, _fazer(globals()[_nome_extra]))
+del _nome_extra

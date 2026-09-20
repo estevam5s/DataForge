@@ -6,8 +6,11 @@
 //  é o que permite escrever sem callback e sem pensar em qual pedaço
 //  da tela atualizar.
 //
-//  Para ver no navegador (o '--' separa o que e do programa do que e
-//  do 'dataforge'):
+//  Para ver no navegador:
+//      dataforge vitrine dev examples/vitrine_dashboard.df
+//
+//  ou, sem o comando do framework (o '--' separa o que e do programa
+//  do que e do 'dataforge'):
 //      dataforge run examples/vitrine_dashboard.df -- --servir
 //
 //  Sem esse argumento, ele roda os proprios testes e termina, que e o
@@ -15,7 +18,6 @@
 // ════════════════════════════════════════════════════════════
 
 adopt Arcane.Vitrine as V
-adopt Arcane.OS as OS
 
 V.app("Business Intelligence",
     icone := "📊",
@@ -111,7 +113,7 @@ V.pagina("/", painel, titulo := "Painel")
 
 // ── Sobe, ou se confere ─────────────────────────────────────
 
-given "--servir" in OS.argv():
+given V.modo_servidor():
     V.rodar(porta := 8501)
 otherwise:
     t := V.testar(painel)

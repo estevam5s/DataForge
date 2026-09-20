@@ -580,15 +580,51 @@ class Aplicacao:
                     "body": {"redirecionar": ctx.redirecionar},
                     "cookies": [self._cookie_de_sessao(sessao)]}
         config = {**self.config, **ctx.config_local}
+        pedaco = self._fragmento_da_resposta(ctx, evento,
+                                             corpo.get("fragmento") or "")
+        if pedaco:
+            resposta = {"html": render.desenhar(ctx.nos_de_fragmento[pedaco]),
+                        "fragmento": pedaco, "ms": ctx.duracao_ms}
+        else:
+            resposta = {"html": render.corpo_html(ctx, config),
+                        "titulo": config.get("titulo", ""),
+                        "ms": ctx.duracao_ms}
         return {
             "__kiln__": True, "status": 200,
             "headers": {"X-Content-Type-Options": "nosniff"},
             "content_type": "application/json; charset=utf-8",
-            "body": {"html": render.corpo_html(ctx, config),
-                     "titulo": config.get("titulo", ""),
-                     "ms": ctx.duracao_ms},
+            "body": resposta,
             "cookies": [self._cookie_de_sessao(sessao)],
         }
+
+    def _fragmento_da_resposta(self, ctx, evento, pedido):
+        """Qual fragmento responde a esta interação — ou nada.
+
+        Três coisas fazem a resposta voltar a ser a página inteira, e
+        as três são deliberadas:
+
+        - **uma falha**, porque o erro é desenhado fora do fragmento e
+          ficaria invisível;
+        - **mais de um campo alterado**, porque aí não há como saber de
+          quem é a mudança e redesenhar um pedaço esconderia o resto;
+        - **um fragmento que sumiu da árvore**, que é o caso em que o
+          programa decidiu mostrar outra coisa.
+
+        O erro oposto — responder a página inteira quando um fragmento
+        bastava — custa desempenho. Este custa correção, e por isso a
+        dúvida sempre cai para o lado da página inteira.
+        """
+        if ctx.falhas or not ctx.nos_de_fragmento:
+            return ""
+        if pedido:
+            return pedido if pedido in ctx.nos_de_fragmento else ""
+        if evento:
+            dono = ctx.dono_do_fragmento.get(evento, "")
+        elif len(ctx.mudados) == 1:
+            dono = ctx.dono_do_fragmento.get(next(iter(ctx.mudados)), "")
+        else:
+            return ""
+        return dono if dono in ctx.nos_de_fragmento else ""
 
     def _guardar_arquivos(self, sessao, extra):
         """O que o navegador mandou em base64 vira bytes na sessão."""
