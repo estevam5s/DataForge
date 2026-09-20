@@ -1494,6 +1494,33 @@ Três decisões que valem lembrar:
 3. **A extração recusa `../` e links simbólicos.** Um pacote não pode
    escrever fora da sua pasta.
 
+### O lockfile era escrito e nunca lido
+
+`forge.lock` é versionado, carrega o sha256 de cada pacote — e **nenhum
+caminho de instalação o consultava**. `_sincronizar` sempre resolvia as
+faixas do zero e reescrevia o arquivo: duas pessoas clonando o mesmo
+projeto em dias diferentes recebiam árvores diferentes, e a
+"verificação de integridade" conferia um download contra ele mesmo.
+
+Um lockfile que ninguém lê não trava nada. Hoje:
+
+| Comando | O que faz |
+|---|---|
+| `install` | instala **o que o lock fixa**, enquanto couber na faixa do `forge.toml` |
+| `update` | resolve de novo dentro das faixas e **reescreve** o lock; com nomes, move só eles |
+| `add` | move só o que está sendo adicionado — o resto continua travado |
+| `outdated` | separa o que sobe com `update` do que exige mudar o `forge.toml` |
+
+Duas regras decidem os empates:
+
+1. **A faixa do `forge.toml` vence o lock.** O manifesto é a intenção; o
+   lock é a memória da última resolução. Quem sobe o requisito está
+   pedindo outra versão.
+2. **O sha256 do lock é comparado com o que chegou.** Um tarball trocado
+   numa versão já publicada para a instalação, com a mensagem dizendo o
+   que fazer — é o ataque que um lockfile existe para impedir, e ele
+   passava batido.
+
 ### Os pacotes deste repositório
 
 `packages/` tem quatro bibliotecas escritas em DataForge, publicadas no
@@ -2633,14 +2660,23 @@ O que **ainda não existe** (não invente que existe):
   medição da pausa dele (`Arcane.Perfil.gc_pausas`). "Controlar memória"
   e "controlar o coletor" são coisas diferentes, e o projeto prefere
   nomear a diferença.
-- **O vínculo genérico carregado pelo objeto** — `Caixa<Integer>` num
-  blueprint próprio **existe e é cobrado** desde a correção descrita em
-  "Genéricos de blueprint", abaixo: na fronteira (a atribuição anotada,
-  incluindo campo herdado), pelo `check` quando o literal prova
-  (`generic-argument`), e em execução quando há limite. O que **não**
-  existe é o objeto carregar o vínculo: `c.guardado := valor_de_fora`
-  não é conferido, porque fazê-lo custaria estado por instância.
-  **Variância declarada não se aplica** — ver abaixo, com a medida.
+- **O vínculo genérico é carregado pelo objeto, e cobrado nas duas
+  metades.** `c.guardado := "texto"` num `Caixa<Integer>` é recusado em
+  **execução** (a instância guarda o vínculo em `DFInstance._tipos`) e
+  acusado pelo **`check`** na linha que causa (`generic-field`), com a
+  mesma resposta nos dois — inclusive num campo herdado, onde cada
+  metade lê uma tabela diferente (`tipos_de_campo` no analisador,
+  `tipos_do_cabecalho`/`fields_decl` no interpretador) e a concordância
+  é coisa a provar, não a supor. O que continua fora: um campo que é
+  `Cluster<T>` em vez de `T` puro (descer na coleção seria impreciso), e
+  um objeto sem anotação — sem ela não há vínculo, e é assim que a
+  maioria do código cria instância. **Variância declarada não se
+  aplica** — ver abaixo, com a medida.
+- **Herdar com argumento de tipo** (`blueprint Filha<T> extends Caixa<T>`)
+  é erro de sintaxe: o `extends` aceita o nome, não a instanciação. O
+  campo genérico herdado funciona porque o parâmetro da filha resolve o
+  da mãe pelo **nome**; com nomes diferentes (`Caixa<U>`), o analisador
+  cala em vez de adivinhar.
 - **Exaustividade além do produto de enums** — o `match` avisa em cinco
   formas, inclusive no padrão **aninhado** (`[Cor.A, x]` sem o `Cor.B`).
   O que fica de fora: uma posição com literal faz a regra calar

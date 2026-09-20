@@ -387,7 +387,8 @@ class Lock:
 # Resolucao
 # ─────────────────────────────────────────────────────────────
 
-def resolver(dependencias, registro, ja_instalados=None, raiz="."):
+def resolver(dependencias, registro, ja_instalados=None, raiz=".",
+             travados=None):
     """Resolve a arvore completa, incluindo dependencias transitivas.
 
     Estrategia: largura primeiro, escolhendo sempre a maior versao que
@@ -395,6 +396,20 @@ def resolver(dependencias, registro, ja_instalados=None, raiz="."):
     intersecta os requisitos; se nao houver versao que sirva aos dois,
     falha dizendo quem pediu o que — um conflito silencioso e pior que
     um erro claro.
+
+    **'travados' e o que o forge.lock ja fixou**, e sem ele o lockfile
+    era escrito e nunca lido. Era o defeito mais caro do gerenciador, e
+    invisivel de dentro: o arquivo existe, e versionado, carrega o
+    sha256 de cada pacote — e NENHUM caminho de instalacao o consultava.
+    Duas pessoas clonando o mesmo projeto em dias diferentes recebiam
+    versoes diferentes, e a "verificacao de integridade" so conferia um
+    download contra ele mesmo.
+
+    Com ele, a versao travada VENCE quando ainda cabe na faixa
+    declarada. Quando nao cabe mais — porque alguem subiu o requisito no
+    forge.toml — a faixa manda, que e a leitura obvia: o que esta
+    escrito no manifesto e a intencao, e o lock e so a memoria da ultima
+    resolucao.
     """
     plano = {}                      # nome -> {versao, dep, exigido_por}
     exigencias = {}                 # nome -> [(quem, Requisito)]
@@ -420,6 +435,14 @@ def resolver(dependencias, registro, ja_instalados=None, raiz="."):
         faixa.clausulas = combinado
 
         escolhida = faixa.melhor(disponiveis)
+
+        # A travada vence, se ainda couber. 'melhor' escolhe sempre a
+        # maior: sem esta consulta, todo 'install' seria um 'update'.
+        fixada = (travados or {}).get(dep.nome)
+        if fixada and str(fixada) in disponiveis \
+                and faixa.aceita(Versao(str(fixada))):
+            escolhida = Versao(str(fixada))
+
         if escolhida is None:
             pedidos = "\n".join(f"    {q} pede {r}" for q, r in exigencias[dep.nome])
             raise ErroPacote(

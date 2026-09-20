@@ -236,6 +236,18 @@ gasto := Rede.esperar_porta("127.0.0.1", servidor.porta, prazo := 5.0)
 assert gasto smaller 1.0
 
 // ── 6. Erro de conexao diz o que significa ──
+//
+// E sao DUAS coisas diferentes, conforme quem esta do outro lado:
+//
+//   RECUSADA     alguem respondeu "nao ha ninguem nesta porta". E uma
+//                RESPOSTA, e das uteis: o host esta de pe.
+//   prazo acabou nao veio resposta nenhuma. Pode ser firewall, rede
+//                caida, ou uma maquina que nao existe.
+//
+// No Unix uma porta fechada responde RST, e o erro e a recusa. No
+// Windows o firewall DESCARTA o pacote em vez de recusa-lo, e o que se
+// tem e a espera — a segunda mensagem e a verdade ali, e exigir a
+// primeira seria exigir que a linguagem mentisse sobre o que aconteceu.
 monitor:
     _ := Rede.conectar("127.0.0.1", livre, prazo := 2.0)
     assert no
@@ -243,8 +255,10 @@ handle Error as e:
     // A PORTA nao entra na saida: ela e sorteada, e um exercicio cuja
     // saida muda a cada execucao nao pode ser comparado — e a suite
     // compara, para provar que a compilacao nao muda o resultado.
-    assert "RECUSADA" in e.message, "recusa e resposta: o host esta de pe"
-    out "conexao em porta vazia: RECUSADA"
+    respondeu := "RECUSADA" in e.message
+    calou := "prazo" in e.message
+    assert respondeu or calou, "a mensagem tem de separar recusa de espera"
+    out "conexao em porta vazia: RECUSADA, ou espera onde o firewall cala"
 
 out "236 ok"`, lang: 'df', title: `exercicios/34-binario-e-rede/236_rede.df` },
   {"h3": "O que faltava"},
@@ -282,10 +296,11 @@ out chegou["host"], chegou["dados"]`, lang: 'df' },
   Ha alguem escutando nessa porta? Recusa e resposta: o
   host esta de pe e nada atende ali.`, lang: 'text' },
   {"p": "Recusa e prazo esgotado são coisas **diferentes**: a primeira significa que o host respondeu; a segunda, que ninguém respondeu. Confundi-las manda a pessoa procurar no lugar errado."},
+  {"p": "**E qual das duas aparece depende do sistema.** No Unix, uma porta fechada responde `RST` e o erro é a recusa. No **Windows**, o firewall *descarta* o pacote em vez de recusá-lo, e o que se tem é a espera — ali a segunda mensagem é a verdade, e exigir a primeira seria exigir que a linguagem mentisse sobre o que aconteceu. Por isso o exercício aceita as duas: o que ele cobra é que a mensagem **separe** os dois casos."},
   {"h3": "Saída esperada"},
   { code: `FORJA
 de 127.0.0.1: pedidos=42
-conexao em porta vazia: RECUSADA
+conexao em porta vazia: RECUSADA, ou espera onde o firewall cala
 236 ok`, lang: 'text' },
   {"h3": "Para experimentar"},
   {"list": ["Troque `receber_exato` por `receber` e mande os 5 000 caracteres. Veja a"]},

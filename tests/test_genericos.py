@@ -607,3 +607,85 @@ def test_a_regra_nova_pode_ser_silenciada_pelo_nome():
     todos = check_program(parse(tokenize(sem, "t.df"), "t.df"), "t.df",
                           source=sem)
     assert [d for d in todos if d.code == "generic-argument"]
+
+
+# ═══════════════════════════════════════════════════════════
+#  O vínculo do objeto, cobrado ANTES de rodar
+# ═══════════════════════════════════════════════════════════
+
+def test_o_check_acusa_o_campo_generico_na_linha_que_causa():
+    """`c.guardado := "texto"` num `Caixa<Integer>`.
+
+    A execução já recusava isto desde que a instância passou a carregar
+    o vínculo. O que faltava era o `check` dizer o mesmo **antes** — a
+    diferença entre descobrir num teste e descobrir no dia em que
+    aquele ramo roda.
+    """
+    achados = diagnosticos('''blueprint Caixa<T>:
+    guardado: T
+
+c: Caixa<Integer> := spawn Caixa()
+c.guardado := "texto"
+''')
+    codigos = [d.code for d in achados]
+    assert "generic-field" in codigos, [str(d) for d in achados]
+
+    acusado = [d for d in achados if d.code == "generic-field"][0]
+    # A linha é a da ATRIBUIÇÃO, e não a da leitura seguinte: era
+    # exatamente isso que a mensagem de execução não conseguia dar.
+    assert acusado.line == 5, acusado.line
+    assert "Integer" in acusado.message and "String" in acusado.message
+
+
+def test_o_check_e_a_EXECUCAO_dao_a_mesma_resposta_no_campo_herdado():
+    """Duas respostas para a mesma pergunta é o pior resultado possível.
+
+    O campo genérico declarado na mãe vale na filha, e as duas metades
+    — o analisador e o interpretador — precisam concordar sobre isso.
+    Elas leem tabelas diferentes (`tipos_de_campo` de um lado,
+    `tipos_do_cabecalho`/`fields_decl` do outro), então a concordância
+    é uma coisa a provar, não a supor.
+    """
+    fonte = '''blueprint Caixa<T>:
+    guardado: T
+
+blueprint CaixaForte<T> extends Caixa:
+    action selar():
+        yield yes
+
+f: CaixaForte<Integer> := spawn CaixaForte()
+f.guardado := "texto"
+'''
+    acusados = diagnosticos(fonte, "generic-field")
+    assert acusados, "o check calou sobre o campo herdado"
+
+    with pytest.raises(DataForgeError) as execucao:
+        rodar(fonte)
+    assert "CaixaForte<Integer>" in str(execucao.value)
+    assert "Integer" in str(execucao.value) and "String" in str(execucao.value)
+
+
+@pytest.mark.parametrize("fonte,porque", [
+    ('''blueprint Caixa<T>:
+    guardado: T
+
+solta := spawn Caixa()
+solta.guardado := "texto"
+''', "sem anotação não há vínculo — é assim que a maioria do código cria instância"),
+    ('''blueprint Caixa<T>:
+    guardado: T
+
+c: Caixa<String> := spawn Caixa()
+c.guardado := "texto"
+''', "o código certo não pode ser acusado"),
+    ('''blueprint Saco<T>:
+    itens: Cluster<T>
+
+s: Saco<Integer> := spawn Saco()
+s.itens := ["a"]
+''', "o campo não é um parâmetro puro: descer na coleção seria impreciso"),
+])
+def test_o_check_do_campo_generico_CALA_quando_nao_prova(fonte, porque):
+    """Um falso alarme ensina a desligar a verificação inteira."""
+    acusados = diagnosticos(fonte, "generic-field")
+    assert not acusados, f"{porque}: {[str(d) for d in acusados]}"

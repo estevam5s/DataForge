@@ -99,7 +99,7 @@ A tabela completa está em
 | **Entrypoint** | `dataforge` |
 | **CMD padrão** | `repl` |
 | **Biblioteca** | 71 módulos, 1873 símbolos |
-| **Comandos** | 60, de `run` a `devops` |
+| **Comandos** | 61, de `run` a `devops` |
 
 ### Zero dependência, de verdade
 

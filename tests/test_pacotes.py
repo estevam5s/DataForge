@@ -2,6 +2,7 @@
 
 import json
 import os
+import subprocess
 import sys
 import tarfile
 
@@ -294,3 +295,199 @@ def test_pacote_local_sem_manifesto_nao_estoura(tmp_path):
     plano = resolver([Dependencia("sem-toml", {"path": str(lib)})],
                      RegistroFalso({}), raiz=str(tmp_path))
     assert list(plano) == ["sem-toml"]
+
+
+# ═══════════════════════════════════════════════════════════
+#  O lockfile passa a ser LIDO
+# ═══════════════════════════════════════════════════════════
+
+def _registro_com_duas_versoes(tmp_path):
+    """Um registro de mentira com 'tabela' em 1.0.0 e 1.1.0.
+
+    O conteúdo das duas é o mesmo tarball de propósito: o que está
+    sendo exercitado é a RESOLUÇÃO, e um conteúdo diferente só
+    acrescentaria ruído.
+    """
+    import hashlib
+    import json
+    import shutil
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    origem = os.path.join(raiz, "site", "public", "registry")
+    if not os.path.isfile(os.path.join(origem, "index.json")):
+        pytest.skip("o registro do site não está neste checkout")
+
+    destino = str(tmp_path / "reg")
+    shutil.copytree(origem, destino)
+
+    indice = os.path.join(destino, "index.json")
+    dados = json.load(open(indice, encoding="utf-8"))
+    pacote = dados["pacotes"]["tabela"]
+    antiga = pacote["versoes"]["1.0.0"]
+    tarball = os.path.join(destino, "pacotes", antiga["arquivo"])
+    novo = "tabela-1.1.0.tar.gz"
+    shutil.copy(tarball, os.path.join(destino, "pacotes", novo))
+    pacote["versoes"]["1.1.0"] = {
+        "arquivo": novo,
+        "sha256": hashlib.sha256(open(tarball, "rb").read()).hexdigest(),
+        "dependencias": {}, "dataforge": ">=4.0",
+    }
+    json.dump(dados, open(indice, "w", encoding="utf-8"), ensure_ascii=False)
+    return destino, antiga["sha256"]
+
+
+def _projeto_travado(tmp_path, faixa="^1.0.0"):
+    pasta = tmp_path / "proj"
+    pasta.mkdir()
+    (pasta / "forge.toml").write_text(
+        '[project]\nname = "teste-lock"\nversion = "0.1.0"\n\n'
+        f'[dependencies]\ntabela = "{faixa}"\n', encoding="utf-8")
+    return pasta
+
+
+def _rodar_no_projeto(pasta, registro, *argumentos):
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ambiente = {**os.environ,
+                "PYTHONPATH": raiz,
+                "DATAFORGE_REGISTRY": f"file://{registro}",
+                "NO_COLOR": "1"}
+    return subprocess.run([sys.executable, "-m", "dataforge", *argumentos],
+                          cwd=str(pasta), env=ambiente, capture_output=True,
+                          text=True, encoding="utf-8", errors="replace",
+                          timeout=180)
+
+
+def _travado(pasta):
+    import json
+    return json.load(open(pasta / "forge.lock", encoding="utf-8")
+                     )["pacotes"]["tabela"]["versao"]
+
+
+def test_o_install_HONRA_o_forge_lock(tmp_path):
+    """O lockfile era escrito e nunca lido.
+
+    Ele é versionado, carrega o sha256 de cada pacote — e nenhum
+    caminho de instalação o consultava: `_sincronizar` sempre resolvia
+    a faixa do zero e **reescrevia** o arquivo. Duas pessoas clonando o
+    mesmo projeto em dias diferentes recebiam versões diferentes, e a
+    "verificação de integridade" conferia um download contra ele
+    mesmo.
+
+    Um lockfile que ninguém lê não trava nada.
+    """
+    registro, sha_antigo = _registro_com_duas_versoes(tmp_path)
+    pasta = _projeto_travado(tmp_path)
+
+    # Sem lock, a faixa manda: a mais nova.
+    primeira = _rodar_no_projeto(pasta, registro, "install")
+    assert primeira.returncode == 0, primeira.stdout + primeira.stderr
+    assert _travado(pasta) == "1.1.0"
+
+    # Agora o lock fixa a 1.0.0, como se um colega tivesse instalado
+    # antes de a 1.1.0 existir.
+    import json
+    lock = json.load(open(pasta / "forge.lock", encoding="utf-8"))
+    lock["pacotes"]["tabela"] = {"versao": "1.0.0", "fonte": "registro",
+                                 "sha256": sha_antigo, "dependencias": {}}
+    json.dump(lock, open(pasta / "forge.lock", "w", encoding="utf-8"))
+
+    segunda = _rodar_no_projeto(pasta, registro, "install")
+    assert segunda.returncode == 0, segunda.stdout + segunda.stderr
+    assert _travado(pasta) == "1.0.0", (
+        "o install voltou a ignorar o lock — quem clona o projeto amanhã "
+        "recebe outra árvore")
+    assert "1.0.0" in segunda.stdout
+
+
+def test_o_update_MOVE_o_que_o_install_respeita(tmp_path):
+    """A outra metade: sem ela, a única forma de subir uma dependência
+    seria apagar o lockfile — e aí sobe tudo de uma vez, que é o
+    oposto de uma atualização controlada."""
+    registro, sha_antigo = _registro_com_duas_versoes(tmp_path)
+    pasta = _projeto_travado(tmp_path)
+    _rodar_no_projeto(pasta, registro, "install")
+
+    import json
+    lock = json.load(open(pasta / "forge.lock", encoding="utf-8"))
+    lock["pacotes"]["tabela"] = {"versao": "1.0.0", "fonte": "registro",
+                                 "sha256": sha_antigo, "dependencias": {}}
+    json.dump(lock, open(pasta / "forge.lock", "w", encoding="utf-8"))
+
+    r = _rodar_no_projeto(pasta, registro, "update")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert _travado(pasta) == "1.1.0", r.stdout
+    # O relatório diz de onde para onde: um update mudo não dá para
+    # revisar antes de commitar o lock.
+    assert "1.0.0" in r.stdout and "1.1.0" in r.stdout
+
+
+def test_o_install_PARA_quando_o_conteudo_de_uma_versao_muda(tmp_path):
+    """Um tarball trocado no registro é o ataque que o lock existe para
+    impedir — e até aqui ele passava batido, porque o sha era gravado e
+    nunca comparado."""
+    registro, _sha = _registro_com_duas_versoes(tmp_path)
+    pasta = _projeto_travado(tmp_path)
+    _rodar_no_projeto(pasta, registro, "install")
+
+    import json
+    lock = json.load(open(pasta / "forge.lock", encoding="utf-8"))
+    lock["pacotes"]["tabela"]["sha256"] = "0" * 64
+    json.dump(lock, open(pasta / "forge.lock", "w", encoding="utf-8"))
+
+    r = _rodar_no_projeto(pasta, registro, "install")
+    assert r.returncode == 1, r.stdout
+    assert "NAO e o mesmo pacote" in r.stdout or "não é o mesmo" in r.stdout
+    # A mensagem diz o que fazer, e não só que deu errado.
+    assert "dataforge update" in r.stdout
+
+
+def test_a_faixa_do_forge_toml_VENCE_o_lock(tmp_path):
+    """O manifesto é a intenção; o lock é a memória da última resolução.
+
+    Quem sobe o requisito no `forge.toml` está pedindo outra versão —
+    e o lock não pode segurar o projeto numa que a faixa nova já não
+    admite.
+    """
+    registro, sha_antigo = _registro_com_duas_versoes(tmp_path)
+    pasta = _projeto_travado(tmp_path, faixa="^1.0.0")
+    _rodar_no_projeto(pasta, registro, "install")
+
+    import json
+    lock = json.load(open(pasta / "forge.lock", encoding="utf-8"))
+    lock["pacotes"]["tabela"] = {"versao": "1.0.0", "fonte": "registro",
+                                 "sha256": sha_antigo, "dependencias": {}}
+    json.dump(lock, open(pasta / "forge.lock", "w", encoding="utf-8"))
+
+    (pasta / "forge.toml").write_text(
+        '[project]\nname = "teste-lock"\nversion = "0.1.0"\n\n'
+        '[dependencies]\ntabela = ">=1.1.0"\n', encoding="utf-8")
+
+    r = _rodar_no_projeto(pasta, registro, "install")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert _travado(pasta) == "1.1.0", (
+        "o lock segurou uma versão que a faixa declarada já não admite")
+
+
+def test_um_auxiliar_novo_nao_pode_SOMBREAR_um_que_ja_existe():
+    """Duas funções com o mesmo nome no mesmo módulo: a última vence.
+
+    Aconteceu escrevendo os testes acima: `_projeto` e `_rodar` já
+    existiam neste arquivo, com outra assinatura, e as definições novas
+    passaram a valer **para os testes antigos também** — seis
+    reprovaram de uma vez, com erros que falavam de argumento
+    inesperado em testes que ninguém tinha tocado.
+
+    O Python não avisa. Esta trava avisa.
+    """
+    import ast
+
+    caminho = os.path.abspath(__file__)
+    arvore = ast.parse(open(caminho, encoding="utf-8").read())
+    nomes = [no.name for no in arvore.body
+             if isinstance(no, (ast.FunctionDef, ast.AsyncFunctionDef))]
+
+    repetidos = sorted({n for n in nomes if nomes.count(n) > 1})
+    assert not repetidos, (
+        "função definida duas vezes no módulo — a segunda apaga a "
+        f"primeira, e os testes que chamavam a primeira mudam de "
+        f"comportamento em silêncio: {repetidos}")

@@ -231,11 +231,31 @@ GRUPOS = [
             "Desinstala e tira do forge.toml",
             apelidos=("rm", "uninstall"), veja=("add", "list")),
         Cmd("install", "dataforge install",
-            "Instala tudo o que o forge.toml declara",
-            "O comando que se roda depois de clonar um projeto.",
+            "Instala o que o forge.lock fixa",
+            "O comando que se roda depois de clonar um projeto.\n"
+            "\n"
+            "Ele HONRA o forge.lock: a versao travada vence enquanto\n"
+            "couber na faixa do forge.toml. Duas pessoas que clonam o\n"
+            "mesmo projeto em dias diferentes recebem o mesmo codigo,\n"
+            "e o sha256 do lock e conferido contra o que chegou.\n"
+            "\n"
+            "Para MOVER as versoes, 'dataforge update'.",
             opcoes=[("--dry-run", "mostra o plano sem baixar"),
                     ("--offline", "so com o cache local")],
-            apelidos=("i", "sync"), veja=("add", "list", "tree")),
+            apelidos=("i", "sync"), veja=("update", "add", "list", "tree")),
+        Cmd("update", "dataforge update [pacote …]",
+            "Move as versoes e reescreve o forge.lock",
+            "Resolve de novo dentro das faixas declaradas. Sem nome,\n"
+            "atualiza tudo; com nomes, so eles — o resto continua\n"
+            "travado, que e o que torna a atualizacao controlada.\n"
+            "\n"
+            "Sair da faixa exige mudar o forge.toml: 'dataforge\n"
+            "outdated' mostra os dois casos separados.",
+            opcoes=[("--dry-run", "mostra o plano sem baixar"),
+                    ("--offline", "so com o cache local")],
+            exemplos=[("dataforge update", "tudo, dentro das faixas"),
+                      ("dataforge update tabela", "so este pacote")],
+            apelidos=("up",), veja=("install", "outdated", "list")),
         Cmd("list", "dataforge list",
             "Mostra o que esta instalado",
             "Marca as transitivas e o que sumiu do disco.",
@@ -252,8 +272,9 @@ GRUPOS = [
         Cmd("outdated", "dataforge outdated",
             "Lista dependencias com versao mais nova disponivel",
             "Separa o que cabe na faixa declarada do que exigiria\n"
-            "mudar o forge.toml.",
-            veja=("add", "list")),
+            "mudar o forge.toml — os primeiros sobem com\n"
+            "'dataforge update'.",
+            veja=("update", "add", "list")),
         Cmd("search", "dataforge search <termo>",
             "Procura pacotes no registro",
             "Busca no nome, na descricao e nas tags.",
@@ -1560,8 +1581,14 @@ def _escrever_dependencias(manifesto, mapa):
     open(manifesto.caminho, "w", encoding="utf-8").write(texto)
 
 
-def _sincronizar(manifesto, alvos=None, offline=False, so_conferir=False):
-    """Resolve e instala. Devolve a lista de (nome, versao, fonte)."""
+def _sincronizar(manifesto, alvos=None, offline=False, so_conferir=False,
+                 mover=()):
+    """Resolve e instala. Devolve a lista de (nome, versao, fonte).
+
+    'mover' sao os pacotes que PODEM sair da versao travada: vazio num
+    'install' (que passa a ser reprodutivel), tudo num 'update', e
+    apenas os nomeados num 'update <pacote>'.
+    """
     from . import packages as pk
 
     registro = pk.Registro(offline=offline)
@@ -1573,12 +1600,18 @@ def _sincronizar(manifesto, alvos=None, offline=False, so_conferir=False):
         print("  Adicione uma com:  dataforge add <pacote>")
         return []
 
+    lock = pk.Lock(manifesto.raiz)
+    # O que o lock fixou, menos o que se pediu para mover. Sem isto, o
+    # arquivo era escrito e nunca lido — ver 'packages.resolver'.
+    travados = {nome: info["versao"]
+                for nome, info in lock.pacotes.items()
+                if nome not in mover and info.get("fonte") != "path"}
     try:
-        plano = pk.resolver(declaradas, registro, raiz=manifesto.raiz)
+        plano = pk.resolver(declaradas, registro, raiz=manifesto.raiz,
+                            travados=travados)
     except pk.ErroPacote as e:
         print(color(f"✗ {e}", "1;31"))
         sys.exit(1)
-    lock = pk.Lock(manifesto.raiz)
     instalados = []
 
     for nome in sorted(plano):
@@ -1594,6 +1627,25 @@ def _sincronizar(manifesto, alvos=None, offline=False, so_conferir=False):
         except pk.ErroPacote as e:
             print(color(f"  ✗ {nome}: {e}", "1;31"))
             sys.exit(1)
+        # INTEGRIDADE: o lock guarda o sha256 de cada pacote, e ate
+        # aqui ninguem o comparava com o que acabou de ser baixado. Um
+        # tarball trocado no registro passaria batido — que e o ataque
+        # que um lockfile existe para impedir.
+        antes = lock.pacotes.get(nome)
+        if antes and sha and antes.get("sha256") \
+                and antes["versao"] == str(versao) \
+                and antes["sha256"] != sha:
+            print(color(
+                f"\n✗ {nome}@{versao} NAO e o mesmo pacote que o "
+                f"forge.lock registra.", "1;31"))
+            print(f"  lock:  {antes['sha256'][:24]}…")
+            print(f"  agora: {sha[:24]}…")
+            print(color(
+                "  O conteudo de uma versao ja publicada mudou. Confira "
+                "com quem publica antes de seguir — e, se a mudanca for "
+                "legitima, 'dataforge update " + nome + "'.", "0;90"))
+            sys.exit(1)
+
         transitivas = {}
         if item["dep"].fonte == "registro":
             transitivas = registro.lancamento(nome, versao).get("dependencias", {})
@@ -1660,7 +1712,11 @@ def add_command(alvos, offline=False, salvar=True):
         _escrever_dependencias(manifesto, deps)
 
     print(color(f"Instalando em {pk.PASTA_MODULOS}/", "1;36"))
-    _sincronizar(manifesto, offline=offline)
+    # Só o que está sendo ADICIONADO pode sair da versão travada: quem
+    # acrescenta uma dependência não pediu para mexer nas outras, e um
+    # 'add' que move a árvore inteira é como se descobre, no dia
+    # seguinte, que outra coisa quebrou.
+    _sincronizar(manifesto, offline=offline, mover=tuple(novos))
     print(color(f"\n✓ {', '.join(novos)} adicionado(s) ao forge.toml", "1;32"))
 
 
@@ -1709,6 +1765,65 @@ def install_command(offline=False, conferir=False):
     instalados = _sincronizar(manifesto, offline=offline)
     if instalados:
         print(color(f"\n✓ {len(instalados)} pacote(s) prontos", "1;32"))
+
+
+def update_command(alvos=None, offline=False, conferir=False):
+    """dataforge update — move o que o lock fixou, de propósito.
+
+    A divisão é a de todo gerenciador maduro, e ela só existe desde que
+    o lock passou a ser LIDO:
+
+        install   o que o forge.lock fixa — igual para todo mundo
+        update    resolve de novo dentro da faixa e REESCREVE o lock
+
+    Sem a segunda, a única forma de subir uma dependência seria apagar
+    o lockfile — e aí sobe tudo de uma vez, que é o oposto de uma
+    atualização controlada.
+    """
+    from . import packages as pk
+
+    manifesto = _manifesto_ou_sair()
+    lock = pk.Lock(manifesto.raiz)
+    antes = {n: i["versao"] for n, i in lock.pacotes.items()}
+
+    if alvos:
+        declarados = set(manifesto.dependencies or {})
+        desconhecidos = [a for a in alvos if a not in declarados
+                         and a not in antes]
+        if desconhecidos:
+            print(color(f"✗ nao esta no projeto: {', '.join(desconhecidos)}",
+                        "1;31"))
+            print(color("  dataforge list  mostra o que esta instalado", "0;90"))
+            sys.exit(1)
+        mover = tuple(alvos)
+        print(color(f"Atualizando {', '.join(alvos)} dentro da faixa "
+                    f"declarada", "1;36"))
+    else:
+        mover = tuple(antes) or ("*",)
+        print(color("Atualizando todas as dependencias dentro das faixas "
+                    "declaradas", "1;36"))
+
+    if conferir:
+        _sincronizar(manifesto, offline=offline, so_conferir=True, mover=mover)
+        return
+
+    _sincronizar(manifesto, offline=offline, mover=mover)
+
+    depois = {n: i["versao"] for n, i in pk.Lock(manifesto.raiz).pacotes.items()}
+    mudaram = [(n, antes[n], depois[n]) for n in sorted(depois)
+               if n in antes and antes[n] != depois[n]]
+    novos = [n for n in sorted(depois) if n not in antes]
+
+    if not mudaram and not novos:
+        print(color("\n✓ ja estava tudo na maior versao da faixa", "1;32"))
+        return
+    print()
+    for nome, de, para in mudaram:
+        print(f"  {nome:<18} {color(de, '0;90')} → {color(para, '1;32')}")
+    for nome in novos:
+        print(f"  {nome:<18} {color('novo', '0;90')} → "
+              f"{color(depois[nome], '1;32')}")
+    print(color("\n  o forge.lock mudou — commite-o junto", "0;90"))
 
 
 def list_command():
@@ -5093,6 +5208,11 @@ def main():
     elif command in ('install', 'i', 'sync'):
         install_command(offline='--offline' in flags,
                         conferir='--dry-run' in flags or '--check' in flags)
+
+    elif command in ('update', 'up'):
+        update_command([a for a in args[1:] if not a.startswith('-')],
+                       offline='--offline' in flags,
+                       conferir='--dry-run' in flags or '--check' in flags)
 
     elif command in ('list', 'ls'):
         list_command()

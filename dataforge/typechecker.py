@@ -400,6 +400,7 @@ class TypeChecker:
         self.record_defaults = {}
         self.enums = {}          # nome -> [membros]
         self.blueprints = {}     # nome -> set(membros proprios)
+        self.tipos_de_campo = {}  # blueprint -> {campo: tipo declarado}
         self.maes = {}           # nome -> [blueprints e traits de quem herda]
         #: Campos que alguem acrescentou DE FORA, com 'obj.x := …'.
         #: Quem faz isso perde a conferencia naquele nome, e e a escolha
@@ -906,6 +907,19 @@ class TypeChecker:
                     self.somente_leitura[stmt.name] = {
                         n for n, mods in (getattr(stmt, "field_modifiers", None) or {}).items()
                         if "readonly" in mods}
+                    # campo -> tipo DECLARADO. 'self.blueprints' guarda só
+                    # os NOMES, e com eles não dá para saber que o
+                    # 'guardado' de um 'Caixa<T>' é o T — que é o que
+                    # permite acusar 'c.guardado := "texto"' antes de
+                    # rodar. O interpretador já lia os mesmos dois
+                    # lugares (ver '_tipos_de_campo_do_molde').
+                    campos_tipados = dict(
+                        getattr(stmt, "tipos_do_cabecalho", None) or {})
+                    for declarado in (stmt.fields_decl or ()):
+                        if isinstance(declarado, (list, tuple)) \
+                                and len(declarado) >= 2 and declarado[1]:
+                            campos_tipados[declarado[0]] = declarado[1]
+                    self.tipos_de_campo[stmt.name] = campos_tipados
                 self.known_types.add(stmt.name)
                 escopo.declare(stmt.name, "Blueprint", stmt.line, stmt.column)
         # Um trait que herda de outro leva os membros e as exigencias dele.
@@ -1347,6 +1361,10 @@ class TypeChecker:
                                         do_alvo, "the key")
                     self._conferir_item(argumentos[1], node.value, escopo,
                                         do_alvo, "the assigned value")
+
+        # 'c.guardado := "texto"' num 'Caixa<Integer>' conhecido
+        if isinstance(node.target, ast.MemberAccess):
+            self._conferir_campo_generico(node, escopo)
 
         if isinstance(node.target, ast.Identifier):
             nome = node.target.name
@@ -4320,6 +4338,83 @@ class TypeChecker:
                     f"{esperado}, but got {obtido}", arg,
                     f"Pass a {esperado}, or annotate as "
                     f"{base}<{obtido}>", "generic-argument")
+
+    def _tipo_declarado_do_campo(self, molde, campo, vistos=None):
+        """O tipo declarado de um campo, subindo a linhagem.
+
+        Um campo herdado é tão declarado quanto um próprio, e a mãe é
+        quem costuma declarar o genérico. A filha vence: é o que ela
+        escreve que vale, e a primeira versão do irmão deste método no
+        interpretador empilhava ao contrário — `campo: T` da filha
+        virava o `campo: String` da mãe, e a conferência falava do tipo
+        errado.
+        """
+        vistos = vistos or set()
+        if molde in vistos:
+            return None                  # herança circular: outro erro
+        vistos.add(molde)
+
+        proprio = self.tipos_de_campo.get(molde, {})
+        if campo in proprio:
+            return proprio[campo]
+        if molde in self.records:
+            do_record = self.records[molde].get(campo)
+            if do_record:
+                return do_record
+        for mae in self.maes.get(molde, []):
+            herdado = self._tipo_declarado_do_campo(mae, campo, vistos)
+            if herdado:
+                return herdado
+        return None
+
+    def _conferir_campo_generico(self, node, escopo):
+        """`c.guardado := "texto"` num `Caixa<Integer>`, antes de rodar.
+
+        A execução já recusa isto desde que a instância passou a
+        carregar o vínculo (`DFInstance._tipos`): a mensagem é
+        *"field 'guardado' of Caixa<Integer> declared as Integer but got
+        String"*. O que faltava era o `check` dizer o mesmo **antes**,
+        que é a diferença entre descobrir num teste e descobrir no dia
+        em que aquele ramo roda.
+
+        Ele **cala** em tudo que não consegue provar, e cada silêncio
+        tem motivo:
+
+        | Cala quando | Porque |
+        |---|---|
+        | o objeto não tem tipo anotado | sem anotação não há vínculo — `spawn Caixa()` solto aceita qualquer coisa, e é assim que a maioria do código cria instância |
+        | a aridade não fecha | casar listas de tamanhos diferentes parearia o argumento errado com o parâmetro errado, e o parser já acusa a aridade |
+        | o campo não é um parâmetro de tipo puro | `itens: Cluster<T>` precisaria descer na coleção, e um alarme impreciso aqui é pior que silêncio |
+        | o valor é de tipo desconhecido | o analisador é otimista de propósito |
+        """
+        alvo = node.target
+        if not isinstance(alvo.object, ast.Identifier):
+            return
+        do_objeto = escopo.lookup(alvo.object.name)
+        if not isinstance(do_objeto, str) or "<" not in do_objeto:
+            return
+
+        base, argumentos = partir_tipo(do_objeto)
+        parametros, _limites = self.genericos_de_tipo.get(base, ((), {}))
+        if not parametros or len(parametros) != len(argumentos):
+            return
+
+        declarado = self._tipo_declarado_do_campo(base, alvo.member)
+        esperado = dict(zip(parametros, argumentos)).get(declarado)
+        if not esperado:
+            return
+
+        obtido = self.infer(node.value, escopo)
+        if obtido in (UNKNOWN, ANY):
+            return
+        if not self._compativel(canonical(esperado), obtido):
+            self.error(
+                f"Field '{alvo.member}' is a {declarado}, and this is a "
+                f"{do_objeto} — so {declarado} is {esperado}, but got "
+                f"{obtido}", node.value or node,
+                f"Assign a {esperado}, or annotate "
+                f"'{alvo.object.name}' as {base}<{obtido}>",
+                "generic-field")
 
     def _conferir_chamada_de_modulo(self, node, escopo=None):
         """`P.criar(1, 2, 3)` quando `P` é um módulo local lido.

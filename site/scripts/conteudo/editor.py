@@ -8,7 +8,7 @@ onde quem instala vai procurar o que a coisa faz.
 
 TITULO = "A extensão do editor"
 DESCRICAO = ("Cores, erros enquanto se digita, autocompletar, depurador com "
-             "breakpoints, Big-O acima de cada ação, 60 comandos e o painel "
+             "breakpoints, Big-O acima de cada ação, 61 comandos e o painel "
              "de bancos. O que cada coisa faz, e por quê.")
 
 BLOCOS = [
@@ -114,7 +114,7 @@ action duplicados(itens):
 adopt Arcane.Math.{sqrt, floor}    // dois nomes""", "lang": "df"},
 
  {"h2": "A barra de status"},
- {"p": "Antes havia um botão de rodar, e mais nada. Os 60 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
+ {"p": "Antes havia um botão de rodar, e mais nada. Os 61 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
  {"table": {"head": ["Item", "Pergunta que ele responde"], "rows": [
    ["`🔥 DataForge 1.0.0`", "qual interpretador está sendo usado?"],
    ["`▷`", "rodar este arquivo"],
@@ -138,7 +138,7 @@ adopt Arcane.Math.{sqrt, floor}    // dois nomes""", "lang": "df"},
  ]},
  {"p": "Um arquivo sem nenhum `trial` não vira item — um painel com trinta arquivos vazios esconde os que importam."},
 
- {"h2": "Os 60 comandos"},
+ {"h2": "Os 61 comandos"},
  {"p": "**Aprender** — abrir a documentação do símbolo sob o cursor (`Shift+F1`), as 100 palavras da linguagem com o exemplo que roda, os dois temas de cor e o idioma das mensagens. O hover dizia o que uma palavra faz; o que faltava era o passo seguinte, que é **ir ler** — e quem precisa sair do editor para isso três vezes para de fazer."},
  {"p": "Tudo na paleta (`Ctrl+Shift+P`) sob **DataForge**, e na árvore **Ferramentas** da barra lateral."},
  {"h3": "Rodar e medir"},
@@ -266,7 +266,7 @@ dataforge dap     # Debug Adapter Protocol, no stdio""", "lang": "bash"},
 #:
 #: Manter as duas escritas à mão faria uma envelhecer — foi o que já
 #: aconteceu: a antiga dizia "coloração de sintaxe" quando a extensão já
-#: tinha LSP e 60 comandos. O site é estático (`output: 'export'`), então
+#: tinha LSP e 61 comandos. O site é estático (`output: 'export'`), então
 #: não há redirect de servidor a usar; servir a mesma página nos dois
 #: endereços é o que não quebra link nenhum e não pode divergir.
 PAGINAS = [
