@@ -2366,7 +2366,14 @@ def test_nenhum_subprocess_decide_a_codificacao_pelo_sistema():
     import glob
 
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    pastas = ("tests", "exercicios", "tools", "scripts", "dataforge")
+    # 'packaging' e 'site/scripts' faltavam nesta lista, e o buraco foi
+    # real: 'packaging/gerar_pacotes.py' chamava o 'pip' com 'text=True'
+    # e sem 'encoding', e no Windows a leitura da saida podia levantar
+    # UnicodeDecodeError — o gerador do .deb morria com traceback e tres
+    # testes reprovavam mostrando a primeira linha do stdout. Uma trava
+    # que nao varre uma pasta nao protege aquela pasta.
+    pastas = ("tests", "exercicios", "tools", "scripts", "dataforge",
+              "packaging", os.path.join("site", "scripts"))
     ruins = []
     frageis = []
     for pasta in pastas:

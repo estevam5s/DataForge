@@ -43,6 +43,7 @@ import concurrent.futures as futuros
 import concurrent.futures.process  # noqa: F401
 import os
 import queue
+import sys
 import threading
 import time
 
@@ -125,6 +126,34 @@ def _contexto():
 
 
 PADRAO_PROCESSOS = os.cpu_count() or 4
+
+
+def _exigir_main_importavel():
+    """O filho IMPORTA o programa principal. Ele precisa ser um arquivo.
+
+    Nem 'spawn' nem 'forkserver' copiam a memoria do pai: o filho
+    reconstroi o estado importando o modulo '__main__'. Quando o
+    programa foi alimentado pela ENTRADA PADRAO ('python3 - < prog.py',
+    ou um heredoc), esse modulo se chama '<stdin>' e nao existe em
+    disco — o trabalhador morre no import, e a mensagem que sobra e
+    'a worker process died', que nao diz nada sobre a causa.
+
+    'dataforge run arquivo.df', 'python -m dataforge' e 'python -c'
+    todos passam por aqui sem reclamar: os tres tem um '__main__' que o
+    filho consegue importar.
+    """
+    principal = sys.modules.get("__main__")
+    arquivo = getattr(principal, "__file__", None)
+    if arquivo is None or os.path.isfile(arquivo):
+        return
+    raise ConcurrencyError(
+        "processes need a main program that can be imported, and this one "
+        f"came from {arquivo!r}.",
+        nota="a child process rebuilds its state by importing '__main__' — "
+             "it does not inherit the parent's memory",
+        dica="save the program to a file and run it with "
+             "'dataforge run arquivo.df'",
+        doc="tecnicas/concorrencia")
 
 
 def _traduzir_erro_do_filho(e):
@@ -248,6 +277,7 @@ class PoolDeProcessos:
     __slots__ = ("_pool", "trabalhadores", "_fechado")
 
     def __init__(self, trabalhadores=None):
+        _exigir_main_importavel()
         self.trabalhadores = trabalhadores or PADRAO_PROCESSOS
         self._pool = futuros.ProcessPoolExecutor(
             max_workers=self.trabalhadores, mp_context=_contexto())
@@ -950,6 +980,7 @@ class ArcaneConcurrent(dict):
         # processo nao ficar com todo o resto: quatro lotes por
         # trabalhador e o meio termo usual.
         lote = max(1, len(lista) // (n * 4))
+        _exigir_main_importavel()
         try:
             with futuros.ProcessPoolExecutor(
                     max_workers=n, initializer=instalar,

@@ -38,6 +38,17 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #  O que o projeto é
 # ═══════════════════════════════════════════════════════════
 
+#: A mensagem de uma falha de CI vive numa LINHA. O resumo do pytest
+#: corta no primeiro '\n', e a anotação do job é montada do resumo — foi
+#: assim que três reprovações no Windows chegaram aqui dizendo apenas
+#: "packaging\arch\PKGBUILD", que é a primeira linha de um stdout de
+#: sucesso. O traceback estava no log do job, que exige autenticação.
+def _uma_linha(r, quanto=1500):
+    """O stdout e o stderr numa linha só, com a CAUDA preservada."""
+    junto = ((r.stdout or "") + "\n" + (r.stderr or "")).strip()
+    return " ⏎ ".join(junto.splitlines())[-quanto:]
+
+
 def _projeto(tmp_path, fonte="", manifesto=None):
     (tmp_path / "forge.toml").write_text(
         manifesto or '[project]\nname = "meu-app"\nversion = "2.1.0"\n'
@@ -761,7 +772,7 @@ def test_o_deb_gerado_traz_a_contagem_real(tmp_path):
                        capture_output=True, text=True, encoding="utf-8",
                        errors="replace", cwd=raiz,
                        env={**os.environ, "DF_PACOTES_SAIDA": str(tmp_path)})
-    assert r.returncode == 0, r.stdout + r.stderr
+    assert r.returncode == 0, _uma_linha(r)
 
     debs = glob.glob(os.path.join(str(tmp_path), "*.deb"))
     assert debs, "nenhum .deb foi gerado"

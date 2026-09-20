@@ -305,6 +305,18 @@ def test_processos_usam_mais_de_um_nucleo_e_threads_nao():
     no Linux (um servidor limpo que importa o interpretador UMA vez, e
     de onde cada trabalhador sai por fork) e o bloco dobrou, para que a
     conta meca o trabalho. Medido aqui com 300 mil: 3,16x.
+
+    **E a razao passou a sair do pool JA ABERTO**, que e a unica forma
+    honesta de medir paralelismo no Windows. La so existe 'spawn': cada
+    trabalhador cria um processo novo e importa o interpretador inteiro,
+    e esse custo nao encolhe com bloco maior — para dominar tres
+    segundos de partida seria preciso uma serie de meia dizena de
+    segundos POR EXECUCAO do teste, em nove jobs.
+
+    O pool reaproveitado existe exatamente para isso ('P.pool_processos',
+    medido: 180 ms na primeira chamada e 82 ms na segunda), e um servidor
+    que atende pedidos nao paga a partida por pedido. O 'map_processos'
+    continua sendo cobrado — no RESULTADO, que e o que nao pode mudar.
     """
     fonte = CABECA + """
 adopt Arcane.Time as Time
@@ -325,10 +337,21 @@ t := Time.monotonic()
 com_threads := P.map(cpu, blocos)
 ms_threads := Time.monotonic() - t
 
-t := Time.monotonic()
-com_processos := P.map_processos(cpu, blocos)
-ms_processos := Time.monotonic() - t
+// O 'map_processos' e cobrado no RESULTADO — a partida dele nao entra
+// na razao, porque no Windows ela e maior que o trabalho.
+avulso := P.map_processos(cpu, blocos)
 
+// A razao sai do pool ja aberto: a primeira chamada paga a partida, e a
+// segunda mede o paralelismo. E o que um servidor faz.
+pool := P.pool_processos()
+pool.map(cpu, [1, 1, 1, 1])           // aquece: os processos sobem aqui
+
+t := Time.monotonic()
+com_processos := pool.map(cpu, blocos)
+ms_processos := Time.monotonic() - t
+pool.fechar()
+
+assert avulso is serie
 assert com_processos is serie
 assert com_threads is serie
 out round(ms_serie / ms_processos, 2)
@@ -521,3 +544,39 @@ action usar_metodo(f):
 
 out P.map_processos(usar_metodo, [Faixa.Baixa, Faixa.Alta])
 """) == "20\n[2, 20]"
+
+
+def test_o_programa_vindo_da_ENTRADA_PADRAO_e_recusado_com_motivo():
+    """O filho importa o '__main__'; ele precisa existir em disco.
+
+    Nem `spawn` nem `forkserver` copiam a memória do pai — o
+    trabalhador reconstrói o estado importando o módulo principal.
+    Quando o programa chega pela entrada padrão esse módulo se chama
+    `<stdin>`, o import falha dentro do trabalhador, e o que sobra é
+    *"a worker process died"*: uma mensagem que não diz nada sobre a
+    causa e que manda procurar no lugar errado.
+
+    Enquanto o Linux usava `fork` isso funcionava por acidente (o filho
+    herdava a memória e não importava nada). Foi o meu próprio script de
+    medição que caiu nisso.
+    """
+    import sys as _sys
+
+    principal = _sys.modules["__main__"]
+    original = getattr(principal, "__file__", None)
+    principal.__file__ = "<stdin>"
+    try:
+        from dataforge.errors import ConcurrencyError
+        with pytest.raises(ConcurrencyError) as erro:
+            run(CABECA + """
+action cpu(n):
+    yield sum(range(0, n))
+out P.map_processos(cpu, [10, 10])
+""")
+        texto = str(erro.value)
+        assert "imported" in texto and "<stdin>" in texto, texto
+    finally:
+        if original is None:
+            del principal.__file__
+        else:
+            principal.__file__ = original

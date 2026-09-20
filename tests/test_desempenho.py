@@ -418,27 +418,43 @@ def test_a_compilacao_nao_muda_o_resultado_de_nenhum_exercicio():
         raiz, "exercicios", "*", "[0-9]*.df")))
     assert arquivos, "nenhum exercicio encontrado"
 
+    def rodar(arvore, caminho, compilar):
+        interp = Interpreter()
+        interp.compilar_corpos = compilar
+        buffer = _io.StringIO()
+        try:
+            with redirect_stdout(buffer):
+                interp.run(arvore, caminho)
+        except Exception as erro:                # noqa: BLE001
+            buffer.write(f"\n<erro> {type(erro).__name__}: {erro}")
+        return tempo.sub("<tempo>", buffer.getvalue())
+
     # Um de cada cinco: cobre os 26 módulos sem custar a suíte inteira.
+    comparados = 0
     for caminho in arquivos[::5]:
         fonte = open(caminho, encoding="utf-8").read()
         arvore = parse(tokenize(fonte, caminho), caminho)
 
-        saidas = []
-        for compilar in (True, False):
-            interp = Interpreter()
-            interp.compilar_corpos = compilar
-            buffer = _io.StringIO()
-            try:
-                with redirect_stdout(buffer):
-                    interp.run(arvore, caminho)
-            except Exception as erro:            # noqa: BLE001
-                buffer.write(f"\n<erro> {type(erro).__name__}: {erro}")
-            saidas.append(buffer.getvalue())
-
-        saidas = [tempo.sub("<tempo>", t) for t in saidas]
-        assert saidas[0] == saidas[1], (
+        desligado = rodar(arvore, caminho, False)
+        # A pergunta "este programa dá a mesma saída duas vezes?" vem
+        # ANTES de a compilação entrar na conta. Um exercício de
+        # CONCORRÊNCIA não dá: a ordem em que as threads imprimem é do
+        # escalonador, e `171_threads.df` reprovou no CI por isso —
+        # acusando a compilação de mudar um resultado que muda sozinho.
+        # O filtro é o mesmo de
+        # `test_a_otimizacao_e_equivalente_nos_exercicios_do_repositorio`.
+        if rodar(arvore, caminho, False) != desligado:
+            continue
+        assert rodar(arvore, caminho, True) == desligado, (
             f"{os.path.relpath(caminho, raiz)} muda de resultado com a "
             f"compilacao ligada")
+        comparados += 1
+
+    # Sem este piso, um filtro largo demais esvaziaria o teste em
+    # silêncio — que é o jeito mais rápido de uma trava virar decoração.
+    assert comparados >= len(arquivos[::5]) * 0.8, (
+        f"só {comparados} de {len(arquivos[::5])} exercícios deram saída "
+        f"reprodutível — o filtro de não-determinismo ficou largo")
 
 
 #: Construções onde um fechamento fácil de escrever erra fácil.

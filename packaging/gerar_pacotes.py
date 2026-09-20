@@ -239,7 +239,13 @@ def _arvore_instalada(pasta):
     r = subprocess.run(
         [sys.executable, "-m", "pip", "install", RAIZ, "--target", pasta,
          "--no-deps", "--no-compile", "--quiet"],
-        capture_output=True, text=True)
+        # O 'pip' e programa de terceiro: escreve na codificacao do
+        # console, e 'text=True' sozinho decodifica com a do SISTEMA. No
+        # Windows isso e cp1252, onde cinco bytes nao existem — e a
+        # leitura da saida levanta UnicodeDecodeError. O gerador morria
+        # com traceback e o .deb nao chegava a ser escrito.
+        capture_output=True, text=True,
+        encoding="utf-8", errors="replace")
     if r.returncode != 0:
         raise SystemExit(f"o 'pip install --target' falhou:\n{r.stderr[-800:]}")
     if not os.path.isdir(os.path.join(pasta, "dataforge")):
@@ -661,7 +667,8 @@ def main():
     # reprovavam mostrando a primeira linha do stdout.
     if shutil.which("dpkg-deb"):
         r = subprocess.run(["dpkg-deb", "--info", deb],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True,
+                           encoding="utf-8", errors="replace")
         print(f"  dpkg-deb: {'ok' if r.returncode == 0 else r.stderr[:80]}")
     else:
         print("  (dpkg-deb nao esta nesta maquina; o CI confere)")
