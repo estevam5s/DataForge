@@ -369,6 +369,7 @@ out 5 is (not 3)       // no — 'not 3' é 'no', e 5 não é 'no'
 |----------------|---------------|---------|
 | `Integer` | inteiro de precisão arbitrária | `42` |
 | `Float` | ponto flutuante 64 bits | `3.14` |
+| `Decimal` | decimal **exato**, em base dez | `19.99d` |
 | `String` | texto imutável | `"a"` |
 | `Boolean` | `yes` / `no` | `yes` |
 | `Void` | ausência de valor | `void` |
@@ -379,6 +380,21 @@ out 5 is (not 3)       // no — 'not 3' é 'no', e 5 não é 'no'
 | *nome do blueprint* | instância | `spawn P()` |
 
 `typeof(x)` devolve esses nomes como texto.
+
+O sufixo **`d`** faz o literal nascer `Decimal`, construído a partir do
+**texto** — nunca passando por um `float`. É a diferença entre
+`Decimal("0.1")` e `Decimal(0.1)`: o segundo já carrega o erro do float.
+
+```dataforge
+assert 0.1 + 0.2 is not 0.3          // Float: o classico
+assert 0.1d + 0.2d is 0.3d           // Decimal: exato
+```
+
+O `d` só conta quando **termina** o número: `19.99dias` é um número
+seguido de um nome, e um nome chamado `d` continua valendo. Misturar
+`Decimal` com `Float` numa conta é **recusado** de propósito — é por isso
+que `Decimal` não é um `Number`: um `Number` que o aceitasse faria a
+falha aparecer dentro da ação, longe de quem passou o valor.
 
 ### 3.2 Anotações de tipo
 

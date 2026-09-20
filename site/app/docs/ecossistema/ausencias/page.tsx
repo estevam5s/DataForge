@@ -8,7 +8,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "O que não existe, e o que está no lugar",
-  description: "Sete componentes do desenho não existem. Cada um com o que faz a diferença: o motivo, o que responde pela mesma pergunta, e o número medido do substituto.",
+  description: "Cinco componentes do desenho não existem. Cada um com o que faz a diferença: o motivo, o que responde pela mesma pergunta, e o número medido do substituto.",
 };
 
 const blocos: Bloco[] = [
@@ -21,14 +21,11 @@ const blocos: Bloco[] = [
   {"p": "O motivo não é falta de tempo. Amarrar o LLVM tiraria **a única propriedade inegociável do projeto**: zero dependência externa no runtime. E o teto desta técnica é conhecido."},
   {"callout": {"tipo": "atencao", "titulo": "O teto é ~6,5×, e ele não é do compilador de fechamentos", "texto": "É o teto de **qualquer** técnica que fique dentro do Python — inclusive uma VM de bytecode escrita em Python. O resto exigiria sair do CPython, que é outra linguagem de implementação, não outra fase do compilador. Dizer \"ainda não temos backend\" sugeriria que ele vem depois; a verdade é que ele é uma decisão de arquitetura, e ela está tomada."}},
   {"p": "A fase continua **no mapa**, marcada como ausente. Uma fase apagada do desenho não deixa a ausência aparecer — e é em `dataforge ir --fase=lir` que ela fica visível, porque o LIR mostra o que desceu para fechamento e o que **recuou** para a árvore."},
-  {"h2": "Gerenciador de versões"},
-  {"p": "O desenho tem `dfup`. Aqui não há nada equivalente, e **esta é uma ausência de verdade** — não um mecanismo diferente com o mesmo efeito."},
-  {"table": {"head": ["O que o rustup faz", "Aqui"], "rows": [["instalar várias versões lado a lado", "não há"], ["alternar a versão ativa", "não há: trocar de versão é reinstalar"], ["fixar a versão por projeto", "não há no `forge.toml`"], ["dizer qual está ativa", "`dataforge version`"]]}},
-  {"p": "Quem precisa disso hoje usa um `venv` por projeto e `pip install dataforge-lang==<versao>`. Os instaladores criam uma venv em `~/.dataforge`, que não toca no Python do sistema e não pede sudo."},
-  {"callout": {"tipo": "dica", "titulo": "E há uma armadilha real nisso", "texto": "Há **três** lugares onde o DataForge pode estar instalado — o `.venv` do repositório, `~/.dataforge` e o Python do sistema. Uma cópia antiga no PATH produz erros que não existem no código: foi assim que um `LexError: Unexpected character: '$'` apareceu num arquivo que usava interpolação normalmente. Sem gerenciador de versões, essa confusão é por conta de quem instala."}},
-  {"h2": "Workspace"},
-  {"p": "Um comando que resolva a árvore de vários pacotes de uma vez não existe. Cada pacote tem o seu `forge.toml`, e os quatro pacotes deste repositório são mantidos assim."},
-  {"p": "`dataforge new` cria projeto a partir de 9 modelos, e **todo projeto criado passa nos próprios testes** — o que resolve a partida, não a manutenção de um monorepo."},
+  {"h2": "Gerenciador de versões, e workspace — eram ausências, e não são mais"},
+  {"p": "Esta seção descrevia duas ausências. Elas foram fechadas, e o que ficou no lugar vale mais registrado que apagado — porque o **limite** de cada uma é o que decide se ela serve."},
+  {"table": {"head": ["O que era ausência", "O que existe agora", "O limite"], "rows": [["não havia como manter versões lado a lado", "uma venv por versão em `~/.dataforge/versoes/<versao>`, e `dataforge versions` lista", "instalar precisa de rede e de `pip`"], ["não havia como fixar a versão por projeto", "`dataforge use <versao>` escreve `dataforge = \"…\"` no `[project]` do `forge.toml` — **linha a linha**, sem apagar comentários", "o campo já existia e ninguém o cobrava: `dataforge info` o mostrava, e era tudo"], ["trocar de versão era reinstalar", "`dataforge upgrade` instala **ao lado**: a versão que já roda não é tocada", "um upgrade que falha no meio não deixa a máquina sem DataForge"], ["nada olhava a árvore de pacotes inteira", "`dataforge workspace` acha todo `forge.toml` e acusa faixa incompatível, saindo com 2", "ele **lê e relata**: não instala"]]}},
+  {"callout": {"tipo": "atencao", "titulo": "O pino é COBRADO — senão `use` seria um gesto", "texto": "`dataforge run` num projeto que exige outra versão **entrega a execução a ela** (`os.execve`), quando ela está instalada. Quando não está, **recusa** e diz o comando que a instala. Sem essa troca, `use` escreveria num arquivo e nada aconteceria — e um comando que finge é pior que um comando que falta. `DATAFORGE_SEM_TROCA=1` ignora o pino uma vez, e uma marca no ambiente impede a troca de acontecer duas vezes: um laço na partida é o defeito mais difícil de interromper."}},
+  {"p": "O limite que fica: **não há um *shim* no PATH**. O `dataforge` que você chama é o que está instalado, e é ele que redireciona — ver [versões](/docs/cli/versoes)."},
   {"h2": "Alocador"},
   {"p": "O alocador é o do CPython, e trocá-lo exigiria estar do lado de fora dele. O que se pode fazer daqui — e se faz — é **mandar no coletor** e medir a pausa dele."},
   {"table": {"head": ["O que existe", "Onde"], "rows": [["arena: alocar em bloco e soltar de uma vez", "`Arcane.Memoria.Arena`"], ["ligar, desligar e rodar sem coletor num trecho", "`gc_ligar`, `gc_desligar`, `sem_gc`"], ["mudar os limiares das três gerações", "`gc_limiares`, `gc_geracoes`"], ["congelar o que já existe, para não ser varrido de novo", "`gc_congelar`"], ["**medir a pausa** de cada coleta", "`Arcane.Perfil.gc_pausas`"], ["referência fraca e mapa fraco", "`Arcane.Memoria`"]]}},
@@ -57,13 +54,13 @@ out $"{len(faltam)} ausencias, {len(outra)} equivalencias"`, lang: 'df' },
   {"table": {"head": ["No desenho", "O que está no lugar", "Por que não é a mesma coisa"], "rows": [["`Borrow Checker`", "`Arcane.Posse` + três códigos do `check`", "não há tempo de vida declarado; o que se protege é o **protocolo** (soltar uma vez, não usar depois), e não a integridade da memória — essa nunca esteve em risco"], ["`Build System`", "`forge.toml` + `dataforge devops`", "não havendo compilação para binário, não há etapa de build a orquestrar: o artefato é o código mais o `forge.lock`"], ["`ABI` e símbolos", "`Arcane.Abi`", "não há layout binário a quebrar — e há **exatamente o mesmo problema**, com o mesmo sintoma cruel: não é erro de quem publicou, é de quem consome, depois"], ["`RISC-V`", "nada de arquitetura no projeto", "onde há CPython 3.10+, roda. **Não é testado**, e dizer \"suportado\" seria prometer o que ninguém verificou"], ["`WASM`", "Pyodide", "**compilar para** WASM não existe; **rodar em** WASM funciona, com o interpretador inteiro junto"], ["`Driver` (`dfc`)", "o próprio `dataforge`", "um segundo executável duplicaria a resolução de caminho e a leitura do `forge.toml`"]]}},
 ];
 
-const headings = [{ id: 'backend-llvm-e-gerador-de-codigo', text: "Backend LLVM, e gerador de código", level: 2 as const }, { id: 'gerenciador-de-versoes', text: "Gerenciador de versões", level: 2 as const }, { id: 'workspace', text: "Workspace", level: 2 as const }, { id: 'alocador', text: "Alocador", level: 2 as const }, { id: 'bare-metal-kernel-microcontrolador', text: "Bare-metal, kernel, microcontrolador", level: 2 as const }, { id: 'o-equivale-nao-e-um-consolo', text: "O `equivale` não é um consolo", level: 2 as const }];
+const headings = [{ id: 'backend-llvm-e-gerador-de-codigo', text: "Backend LLVM, e gerador de código", level: 2 as const }, { id: 'gerenciador-de-versoes-e-workspace-eram-ausencias-e-nao-sao-mais', text: "Gerenciador de versões, e workspace — eram ausências, e não são mais", level: 2 as const }, { id: 'alocador', text: "Alocador", level: 2 as const }, { id: 'bare-metal-kernel-microcontrolador', text: "Bare-metal, kernel, microcontrolador", level: 2 as const }, { id: 'o-equivale-nao-e-um-consolo', text: "O `equivale` não é um consolo", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"O que não existe, e o que está no lugar"}
-      description={"Sete componentes do desenho não existem. Cada um com o que faz a diferença: o motivo, o que responde pela mesma pergunta, e o número medido do substituto."}
+      description={"Cinco componentes do desenho não existem. Cada um com o que faz a diferença: o motivo, o que responde pela mesma pergunta, e o número medido do substituto."}
       href={"/docs/ecossistema/ausencias"}
       headings={headings}
     >

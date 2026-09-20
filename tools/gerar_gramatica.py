@@ -175,6 +175,12 @@ def construir():
                  "match": r"\b0[xX][0-9a-fA-F_]+\b"},
                 {"name": "constant.numeric.binary.dataforge",
                  "match": r"\b0[bB][01_]+\b"},
+                # O sufixo 'd' do decimal exato faz parte do numero:
+                # sem ele no padrao, '19.99d' colore o '19.99' e deixa o
+                # 'd' com a cor de identificador — a coloracao passaria a
+                # contradizer o lexer, que emite um token so.
+                {"name": "constant.numeric.decimal.dataforge",
+                 "match": r"\b\d[\d_]*(\.\d[\d_]*)?[dD]\b"},
                 {"name": "constant.numeric.float.dataforge",
                  "match": r"\b\d[\d_]*\.\d[\d_]*([eE][+-]?\d+)?\b"},
                 {"name": "constant.numeric.integer.dataforge",

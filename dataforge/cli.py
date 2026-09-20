@@ -9,6 +9,7 @@ import os
 import time
 
 from . import __version__
+from . import cache as _cache
 from .lexer import tokenize
 from .parser import parse
 from .interpreter import Interpreter
@@ -284,6 +285,58 @@ GRUPOS = [
             exemplos=[("dataforge publish --registry=../registro", "interno"),
                       ("dataforge publish --remoto", "a comunidade")],
             veja=("pack", "login")),
+        Cmd("versions", "dataforge versions",
+            "As versoes instaladas, a ativa e a que o projeto exige",
+            "Cada versao mora numa venv propria em\n"
+            "'~/.dataforge/versoes/<versao>'. A escolha global fica no\n"
+            "arquivo 'atual'; a do projeto, no campo 'dataforge' do\n"
+            "forge.toml — o mesmo que o manifesto ja lia.",
+            opcoes=[("--json", "o resultado como dado")],
+            apelidos=("versoes",),
+            veja=("use", "upgrade")),
+        Cmd("use", "dataforge use <versao> [--global]",
+            "Fixa a versao do DataForge deste projeto",
+            "Sem '--global', escreve 'dataforge = \"<versao>\"' na secao\n"
+            "[project] do forge.toml — e o arquivo e reescrito LINHA A\n"
+            "LINHA, para nao apagar comentarios nem reordenar campos.\n"
+            "\n"
+            "E o pino VALE: 'dataforge run' num projeto que exige outra\n"
+            "versao entrega a execucao a ela, quando ela esta instalada.\n"
+            "Quando nao esta, recusa e diz como instalar — rodar na\n"
+            "versao errada e o que o pino existe para impedir.\n"
+            "\n"
+            "'DATAFORGE_SEM_TROCA=1' desliga a troca.",
+            exemplos=[("dataforge use 1.0.0", "fixa no projeto"),
+                      ("dataforge use 1.0.0 --global", "fixa para a maquina")],
+            opcoes=[("--global", "escolhe para a maquina, e nao para o projeto")],
+            apelidos=("switch",),
+            veja=("versions", "upgrade")),
+        Cmd("upgrade", "dataforge upgrade [versao]",
+            "Instala uma versao AO LADO da atual",
+            "Sem versao, pergunta ao site qual e a mais nova. A instalacao\n"
+            "e uma venv propria: a versao que ja roda nao e tocada, e por\n"
+            "isso um upgrade que falha no meio nao deixa a maquina sem\n"
+            "DataForge.",
+            exemplos=[("dataforge upgrade", "a mais nova publicada"),
+                      ("dataforge upgrade 1.0.0 --check", "so diz o que faria")],
+            opcoes=[("--check", "mostra os passos sem executar nenhum"),
+                    ("--force", "reinstala mesmo que ja exista")],
+            veja=("versions", "use")),
+        Cmd("workspace", "dataforge workspace [pasta]",
+            "Todos os pacotes da arvore, e os conflitos de faixa",
+            "Cada pacote tem o seu forge.toml, e a unica forma de saber se\n"
+            "dois deles pedem faixas incompativeis do mesmo terceiro era\n"
+            "instalar os dois e esperar o erro — que aparece na maquina de\n"
+            "quem consome.\n"
+            "\n"
+            "Ele LE e relata: nao instala nada. Sai com 2 quando ha\n"
+            "conflito, porque instalar duas copias em versoes diferentes\n"
+            "gera bug irreproduzivel.",
+            exemplos=[("dataforge workspace", "a arvore daqui para baixo"),
+                      ("dataforge workspace --json", "para o CI ler")],
+            opcoes=[("--json", "o resultado como dado")],
+            apelidos=("ws",),
+            veja=("install", "tree")),
         Cmd("login", "dataforge login [token]",
             "Guarda o token de publicacao no registro da comunidade",
             "O token e criado no painel do site e aparece UMA vez. Ele\n"
@@ -392,10 +445,14 @@ GRUPOS = [
             "avaliada no quadro onde voce parou.\n"
             "\nSem '--parar', ele para na primeira instrucao.",
             opcoes=[("--parar=N,M", "paradas ja nas linhas N e M"),
-                    ("--vigiar=EXPR", "para quando o valor de EXPR mudar (repetivel)")],
+                    ("--vigiar=EXPR", "para quando o valor de EXPR mudar (repetivel)"),
+                    ("--vigiar-leitura=NOME", "para quando NOME for LIDO — "
+                                              "'quem esta consultando isto?'")],
             exemplos=[("dataforge debug conta.df", "para no comeco"),
                       ("dataforge debug conta.df --parar=42", "so na linha 42"),
-                      ("dataforge debug conta.df --vigiar=saldo", "para quando 'saldo' mudar")],
+                      ("dataforge debug conta.df --vigiar=saldo", "para quando 'saldo' mudar"),
+                      ("dataforge debug conta.df --vigiar-leitura=saldo",
+                       "para quando 'saldo' for lido")],
             veja=("run", "check")),
         Cmd("dap", "dataforge dap",
             "Adaptador de depuracao para o editor",
@@ -1421,7 +1478,10 @@ def check_command(alvos, strict=False, only_syntax=False, plugins=None):
             ilegiveis += 1
             continue
         try:
-            arvore = parse(tokenize(fonte, caminho), caminho)
+            # Do cache, quando o arquivo nao mudou. Medido em 269
+            # arquivos: lex+parse 258,7 ms contra 17,9 ms de leitura —
+            # 93% menos. Ver 'dataforge/cache.py'.
+            arvore = _cache.arvore(caminho, fonte, parse, tokenize)
         except DataForgeError as e:
             # A leva inteira, e nao so o primeiro: o parser recupera e
             # segue, e mostrar um de cada vez faz o usuario compilar uma
@@ -3068,7 +3128,8 @@ def crucible_command(alvos, opcoes):
             REGISTRO.snapshots = {}
             if medidor is not None:
                 medidor.medir(interpretador)
-            interpretador.run(parse(tokenize(fonte, caminho), caminho), caminho)
+            interpretador.run(
+                _cache.arvore(caminho, fonte, parse, tokenize), caminho)
         except SystemExit:
             raise
         except BaseException as e:          # noqa: BLE001
@@ -4284,6 +4345,186 @@ def _ciclos_de(grafo):
     return achados
 
 
+def _honrar_o_pino(onde):
+    """Entrega a execucao a versao que o projeto exige, quando ha uma.
+
+    Tres saidas, e a terceira e a que importa:
+
+      nao ha pino, ou ele e satisfeito  ->  segue nesta versao
+      ha pino e a versao esta instalada ->  troca (os.execve)
+      ha pino e ela NAO esta instalada  ->  RECUSA, com o comando
+
+    Recusar e o certo no terceiro caso: rodar na versao errada e
+    exatamente o que o pino existe para impedir, e um aviso seria
+    ignorado. 'DATAFORGE_SEM_TROCA=1' desliga tudo.
+    """
+    from . import versoes as v
+
+    try:
+        alvo, motivo = v.precisa_trocar(onde)
+    except Exception:                                  # noqa: BLE001
+        return                                         # nunca impedir de rodar
+    if not alvo:
+        return
+    if v.executavel_de(alvo) is not None:
+        print(color(f"  {motivo} — passando para a {alvo}", "0;90"),
+              file=sys.stderr)
+        v.trocar(alvo, sys.argv[1:])
+        return
+    print(color(f"Erro: {motivo}, e a {alvo} nao esta instalada.", "1;31"))
+    print(color(f"      dataforge upgrade {alvo}", "0;90"))
+    print(color(f"      dataforge versions          "
+                f"(o que existe aqui)", "0;90"))
+    print(color("      DATAFORGE_SEM_TROCA=1 dataforge run …   "
+                "(ignorar o pino, uma vez)", "0;90"))
+    sys.exit(1)
+
+
+def versions_command(flags=()):
+    """dataforge versions — o que esta instalado, o que o projeto exige."""
+    from . import versoes as v
+
+    r = v.relatorio()
+    if "--json" in flags:
+        import json as _json
+        print(_json.dumps(r, ensure_ascii=False, indent=2))
+        return 0
+
+    print(color("── versoes ──", "1;35"))
+    print(f"  rodando agora   {color(r['rodando'], '1;37')}")
+    print(f"  ativa           {r['ativa']}")
+    print(f"  raiz            {_curto(r['raiz'])}")
+    print()
+    if r["instaladas"]:
+        for versao in r["instaladas"]:
+            marca = color(" ← ativa", "1;32") if versao == r["ativa"] else ""
+            onde = v.executavel_de(versao)
+            estado = "" if onde else color("  (pasta sem executavel)", "1;33")
+            print(f"   {versao}{marca}{estado}")
+    else:
+        print(color("  nenhuma versao instalada lado a lado.", "0;90"))
+        print(color("  a que roda veio do PATH; para ter outra ao lado:",
+                    "0;90"))
+        print(color("      dataforge upgrade", "0;90"))
+    if r["projeto"]:
+        print()
+        print(f"  projeto         {_curto(r['projeto'])}")
+        if r["exigido"]:
+            selo = (color("satisfeito", "1;32") if r["satisfeito"]
+                    else color("NAO satisfeito", "1;31"))
+            print(f"  exige           {r['exigido']}  {selo}")
+        else:
+            print(color("  o projeto nao fixa versao "
+                        "('dataforge use <versao>' fixa)", "0;90"))
+    return 0
+
+
+def use_command(versao=None, flags=()):
+    """dataforge use <versao> — fixa a versao do projeto (ou global)."""
+    from . import versoes as v
+
+    if not versao:
+        print(color("uso: dataforge use <versao> [--global]", "1;31"))
+        print(color("      'dataforge versions' lista o que existe", "0;90"))
+        return 1
+    try:
+        r = v.usar(versao, global_="--global" in flags)
+    except DataForgeError as erro:
+        print(color(f"Erro: {erro.message}", "1;31"))
+        if getattr(erro, "dica", ""):
+            print(color(f"  dica: {erro.dica}", "0;90"))
+        return 1
+
+    onde = "globalmente" if r["onde"] == "global" else "neste projeto"
+    print(color(f"  DataForge {r['versao']} fixado {onde}", "1;32"))
+    print(color(f"  em {_curto(r['arquivo'])}", "0;90"))
+    if not r["instalada"]:
+        print()
+        print(color(f"  Atencao: a {r['versao']} NAO esta instalada.", "1;33"))
+        print(color(f"      dataforge upgrade {r['versao']}", "0;90"))
+        print(color("  Sem ela, 'dataforge run' aqui vai recusar em vez de "
+                    "trocar — e recusar e o certo: rodar na versao errada "
+                    "e o que o pino existe para impedir.", "0;90"))
+    return 0
+
+
+def upgrade_command(versao=None, flags=()):
+    """dataforge upgrade — instala uma versao ao lado da atual."""
+    from . import versoes as v
+
+    alvo = versao
+    if not alvo:
+        publicadas = v.disponiveis()
+        if not publicadas:
+            print(color("Nao consegui ler as versoes publicadas.", "1;31"))
+            print(color("  sem rede? diga a versao: dataforge upgrade 1.0.0",
+                        "0;90"))
+            return 1
+        alvo = publicadas[0]
+    if alvo == __version__ and "--force" not in flags:
+        print(color(f"  ja esta na {alvo}.", "1;32"))
+        return 0
+    if v.executavel_de(alvo) is not None and "--force" not in flags:
+        print(color(f"  a {alvo} ja esta instalada ao lado.", "1;32"))
+        print(color(f"      dataforge use {alvo}", "0;90"))
+        return 0
+
+    plano = v.instalar(alvo, executar="--check" not in flags)
+    if "--check" in flags:
+        print(color(f"── o que 'upgrade {alvo}' faria ──", "1;35"))
+        print(f"  pasta  {_curto(plano['pasta'])}")
+        for passo in plano["passos"]:
+            print(color("      " + " ".join(passo), "0;90"))
+        return 0
+    if not plano["feito"]:
+        print(color(f"Nao deu para instalar a {alvo}.", "1;31"))
+        if plano.get("erro"):
+            print(color(f"  {plano['erro']}", "0;90"))
+        return 1
+    print(color(f"  DataForge {alvo} instalado em "
+                f"{_curto(plano['pasta'])}", "1;32"))
+    print(color(f"      dataforge use {alvo}", "0;90"))
+    return 0
+
+
+def workspace_command(alvo=".", flags=()):
+    """dataforge workspace — a arvore inteira, e os conflitos dela."""
+    from . import versoes as v
+
+    r = v.relatorio_do_workspace(alvo)
+    if "--json" in flags:
+        import json as _json
+        print(_json.dumps(r, ensure_ascii=False, indent=2))
+        return 2 if r["conflitos"] else 0
+
+    print(color(f"── {len(r['pacotes'])} pacote(s) em "
+                f"{_curto(r['raiz'])} ──", "1;35"))
+    for pacote in r["pacotes"]:
+        deps = len(pacote["dependencias"])
+        print(f"  {pacote['nome']:<20} {pacote['versao']:<10} "
+              + color(f"{deps} dep(s)  {pacote['caminho']}", "0;90"))
+    if r["exigencias_de_dataforge"]:
+        print()
+        print("  versoes de DataForge exigidas: "
+              + ", ".join(r["exigencias_de_dataforge"]))
+    if r["conflitos"]:
+        print()
+        print(color("  CONFLITOS:", "1;31"))
+        for c in r["conflitos"]:
+            print(f"   {c['pacote']}")
+            for pedido in c["pedidos"]:
+                print(color(f"      {pedido['quem']} pede {pedido['faixa']}",
+                            "0;90"))
+        print()
+        print(color("  Instalar duas copias em versoes diferentes gera bug "
+                    "irreproduzivel — e por isso conflito e erro, e nao "
+                    "aviso.", "0;90"))
+        return 2
+    print()
+    print(color("  nenhum conflito de faixa entre os pacotes", "1;32"))
+    return 0
+
+
 def clean_command(tudo=False):
     """dataforge clean — remove artefatos gerados."""
     import shutil
@@ -4301,6 +4542,11 @@ def clean_command(tudo=False):
                       f"{pk.PASTA_MODULOS}/"))
         alvos.append((pk.CACHE, "cache global de pacotes"))
 
+    # O cache de arvores sempre sai: ele e derivado, e refaze-lo custa
+    # um parse. Deixa-lo para tras faria 'clean' mentir sobre o que
+    # limpou — e e justamente o lugar onde um artefato velho engana.
+    arquivos_de_arvore, bytes_de_arvore = _cache.limpar()
+
     liberado, removidos = 0, []
     for caminho, rotulo in alvos:
         if os.path.isdir(caminho):
@@ -4309,6 +4555,10 @@ def clean_command(tudo=False):
                 for pasta, _, arquivos in os.walk(caminho) for f in arquivos)
             shutil.rmtree(caminho)
             removidos.append(rotulo)
+
+    if arquivos_de_arvore:
+        liberado += bytes_de_arvore
+        removidos.append(f"cache de arvores ({arquivos_de_arvore} arquivo(s))")
 
     # __pycache__ espalhado
     n_cache = 0
@@ -4521,7 +4771,7 @@ def editor_command(args, flags=()):
     print()
     # A mensagem dizia apenas "cores, snippets, indentacao e dobra". Foi
     # escrita quando a extensao era so uma gramatica; hoje ela traz LSP,
-    # depurador e 56 comandos, e prometer menos do que se entrega faz a
+    # depurador e 60 comandos, e prometer menos do que se entrega faz a
     # pessoa nao procurar o que esta la.
     for titulo, detalhe in (
             ("cores e snippets", "as 81 palavras reservadas, e 4 espacos de indentacao"),
@@ -4529,7 +4779,7 @@ def editor_command(args, flags=()):
             ("autocompletar e ir-para-definicao", "servidor de linguagem proprio"),
             ("depurar com F5", "breakpoints na margem, pilha e variaveis no painel"),
             ("Big-O acima de cada acao", "e o custo ao lado de cada import"),
-            ("56 comandos", "rodar, testar, cobertura, pacotes, Vitrine, DevOps")):
+            ("60 comandos", "rodar, testar, cobertura, pacotes, Vitrine, DevOps")):
         print("  " + color("·", "1;33") + f" {titulo}")
         print(color(f"      {detalhe}", "0;90"))
     print()
@@ -4601,6 +4851,10 @@ def main():
             sys.exit(0)
 
     if command == 'run':
+        # O pino do projeto VALE aqui. Sem esta troca, 'dataforge use'
+        # escreveria no forge.toml e nada aconteceria — um comando que
+        # finge e pior que um comando que falta.
+        _honrar_o_pino(args[1] if len(args) > 1 else ".")
         if len(args) < 2:
             # Sem arquivo: usa a entrada declarada no forge.toml.
             from . import project
@@ -4645,10 +4899,15 @@ def main():
         from .depurador import depurar
         paradas = []
         vigias = []
+        acessos = []
         for f in flags:
             if f.startswith('--parar='):
                 paradas += [int(x) for x in f.split('=', 1)[1].split(',')
                             if x.strip().isdigit()]
+            elif f.startswith('--vigiar-leitura='):
+                # Antes do '--vigiar=': o prefixo de um e prefixo do outro,
+                # e conferir na ordem errada faria esta flag cair na outra.
+                acessos.append(f.split('=', 1)[1])
             elif f.startswith('--vigiar='):
                 # uma por flag: a expressao pode ter virgula dentro
                 vigias.append(f.split('=', 1)[1])
@@ -4656,7 +4915,8 @@ def main():
         if not resto:
             print("uso: dataforge debug <arquivo.df> [--parar=12,40] [--vigiar=expr]")
             sys.exit(1)
-        sys.exit(depurar(resto[0], paradas, resto[1:], vigias=vigias))
+        sys.exit(depurar(resto[0], paradas, resto[1:], vigias=vigias,
+                         acessos=acessos))
 
     elif command == 'lsp':
         # Nada de print aqui: stdout E o canal do protocolo, e um
@@ -4860,6 +5120,18 @@ def main():
                 if f.startswith('--registry='):
                     destino = f.split('=', 1)[1]
             publish_command(destino)
+
+    elif command in ('versions', 'versoes'):
+        sys.exit(versions_command(flags))
+
+    elif command in ('use', 'switch'):
+        sys.exit(use_command(args[1] if len(args) > 1 else None, flags))
+
+    elif command == 'upgrade':
+        sys.exit(upgrade_command(args[1] if len(args) > 1 else None, flags))
+
+    elif command in ('workspace', 'ws'):
+        sys.exit(workspace_command(args[1] if len(args) > 1 else ".", flags))
 
     elif command == 'login':
         login_command(args[1] if len(args) > 1 else None)

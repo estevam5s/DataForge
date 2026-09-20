@@ -504,12 +504,16 @@ export const nav: NavSection[] = [
       { title: 'Partida, pilha e capacidade', href: '/docs/exercicios/46-partida' },
       { title: 'Superfície e alvos', href: '/docs/exercicios/47-abi-e-alvos' },
       { title: 'Ecossistema e design', href: '/docs/exercicios/48-ecossistema' },
+      { title: 'Decimal exato e padrões', href: '/docs/exercicios/49-decimal-e-padroes' },
     ],
   },
   {
     title: 'Pacotes',
     items: [
       { title: 'Gerenciador de pacotes', href: '/docs/pacotes' },
+      { title: 'Versões lado a lado', href: '/docs/cli/versoes' },
+      { title: 'Workspace', href: '/docs/cli/workspace' },
+      { title: 'O cache de árvores', href: '/docs/cli/cache' },
       { title: 'Importar módulos', href: '/docs/pacotes/importar' },
       { title: 'Escrever uma biblioteca', href: '/docs/pacotes/escrever' },
       { title: 'Publicar um pacote', href: '/docs/pacotes/publicar' },

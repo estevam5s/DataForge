@@ -256,6 +256,10 @@ export function tokenize(fonte: string): Token[] {
           j++;
           while (j < n && /[0-9_]/.test(fonte[j])) j++;
         }
+        // '19.99d' e UM token no lexer, e o 'd' so conta quando termina
+        // o numero — '19.99dias' e numero mais nome. Sem esta guarda a
+        // coloracao contradiria o lexer.
+        if (/[dD]/.test(fonte[j] ?? '') && !ehIdent(fonte[j + 1] ?? '')) j++;
       }
       empurrar('number', fonte.slice(i, j));
       i = j;

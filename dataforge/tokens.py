@@ -10,6 +10,8 @@ class TokenType(Enum):
     # ── Literals ──────────────────────────────────────────
     INTEGER = auto()
     FLOAT = auto()
+    #: '19.99d' — o decimal EXATO, construido do TEXTO.
+    DECIMAL = auto()
     STRING = auto()
     INTERP_STRING = auto()   # $"texto {expr}" — valor e a lista de partes
     BOOLEAN = auto()         # yes / no

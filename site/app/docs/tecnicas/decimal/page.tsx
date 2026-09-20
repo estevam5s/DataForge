@@ -14,7 +14,23 @@ const blocos: Bloco[] = [
   {"p": "Isso não é defeito do DataForge — é assim em toda linguagem com ponto flutuante binário, e é o **certo** para física, estatística e gráficos, onde a precisão relativa importa mais que o dígito decimal exato."},
   {"callout": {"tipo": "atencao", "texto": "É errado para dinheiro, para imposto e para qualquer número que uma pessoa vai conferir na mão. Um centavo que some numa linha some de novo num milhão de linhas."}},
 
-  {"h2": "A resposta"},
+  {"h2": "A resposta: o sufixo `d`"},
+  { code: `assert 0.1 + 0.2 is not 0.3          // Float: o classico
+assert 0.1d + 0.2d is 0.3d           // Decimal: exato
+
+preco := 19.99d
+out typeof(preco)                    // Decimal
+out preco * 3                        // 59.97`, lang: 'df' },
+  {"p": "O sufixo **`d`** faz o literal nascer `Decimal`, construído a partir do **texto**. É a diferença que decide: `Decimal(\"0.1\")` é exato, e `Decimal(0.1)` já carrega o erro do float que veio antes dele."},
+  {"callout": {"tipo": "nota", "titulo": "O `d` só conta quando TERMINA o número", "texto": "`19.99dias` é um número seguido de um nome — engolir o `d` ali criaria um `ias` do nada. E um nome chamado `d` continua valendo (`d := 3`). É a mesma disciplina de adjacência do `~/` e do hífen num caminho relativo."}},
+  {"p": "Antes do sufixo, a exatidão exigia escrever `Dec.de(\"19.99\")` — e quem escrevia `19.99` não era avisado de nada. O literal e o módulo produzem o **mesmo valor**:"},
+  { code: `adopt Arcane.Decimal as Dec
+
+assert 19.99d is Dec.de("19.99")
+assert Dec.e_decimal(19.99d) is yes
+assert Dec.centavos(19.99d) is 1999
+out "o literal e Dec.de sao o mesmo valor"`, lang: 'df' },
+  {"h2": "O módulo, para o resto"},
   { code: `adopt Arcane.Decimal as Dec
 
 a := Dec.de("0.1")
@@ -72,7 +88,7 @@ out Dec.soma(partes)         # 10.00`, lang: 'df' },
   {"p": "Para dinheiro guardado em banco de dados, considere também o pacote [`moeda`](/docs/pacotes/moeda), que trabalha em centavos inteiros e traz a formatação em BRL."},
 ];
 
-const headings = [{ id: 'a-resposta', text: "A resposta", level: 2 as const }, { id: 'arredondar-e-meio-para-cima', text: "Arredondar é meio-para-cima", level: 2 as const }, { id: 'repartir-sem-perder-centavo', text: "Repartir sem perder centavo", level: 2 as const }, { id: 'misturar-exato-com-aproximado-e-recusado', text: "Misturar exato com aproximado é recusado", level: 2 as const }, { id: 'decde01-devolve-01', text: "`Dec.de(0.1)` devolve `0.1`", level: 2 as const }, { id: 'a-tabela-inteira', text: "A tabela inteira", level: 2 as const }, { id: 'quando-nao-usar', text: "Quando não usar", level: 2 as const }];
+const headings = [{ id: 'a-resposta-o-sufixo-d', text: "A resposta: o sufixo `d`", level: 2 as const }, { id: 'o-modulo-para-o-resto', text: "O módulo, para o resto", level: 2 as const }, { id: 'arredondar-e-meio-para-cima', text: "Arredondar é meio-para-cima", level: 2 as const }, { id: 'repartir-sem-perder-centavo', text: "Repartir sem perder centavo", level: 2 as const }, { id: 'misturar-exato-com-aproximado-e-recusado', text: "Misturar exato com aproximado é recusado", level: 2 as const }, { id: 'decde01-devolve-01', text: "`Dec.de(0.1)` devolve `0.1`", level: 2 as const }, { id: 'a-tabela-inteira', text: "A tabela inteira", level: 2 as const }, { id: 'quando-nao-usar', text: "Quando não usar", level: 2 as const }];
 
 export default function Pagina() {
   return (

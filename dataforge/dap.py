@@ -650,18 +650,37 @@ class DepuradorDAP(Depurador):
             return (lambda c=campos, n=nome: c[n]), f".{nome}"
         return None, None
 
-    def definir_dados(self, ids):
-        """Troca TODAS as vigias do editor: o protocolo manda a lista inteira."""
+    def definir_dados(self, pedidos):
+        """Troca TODAS as vigias do editor: o protocolo manda a lista inteira.
+
+        Cada pedido e (dataId, accessType). O editor manda 'read' quando a
+        pessoa escolhe "parar ao ler" no painel — e sao vigias de tipos
+        diferentes: a de escrita compara uma foto depois de cada
+        instrucao, a de leitura intercepta o caminho de leitura.
+        """
         with self._trava_das_vigias:
             self.vigias[:] = [v for v in self.vigias if v.origem != "dap"]
+        self.esquecer_acessos()
         saida = []
-        for dado in ids:
+        for pedido in pedidos:
+            dado, acesso = pedido if isinstance(pedido, tuple) else (pedido, "write")
             conhecido = getattr(self, "_dados", {}).get(dado)
             if conhecido is None:
                 saida.append({"verified": False,
                               "message": "esta variavel ja nao existe"})
                 continue
             descricao, ler, limite = conhecido
+            if acesso == "read":
+                # O nome basta: a vigia de acesso casa por NOME, e o
+                # 'descricao' do DAP e o nome da variavel do painel.
+                try:
+                    self.vigiar_acesso(descricao, limite)
+                except ValueError as erro:
+                    saida.append({"verified": False, "message": str(erro)})
+                    continue
+                saida.append({"verified": True,
+                              "description": f"{descricao} — ao ser LIDO"})
+                continue
             self.vigiar_leitura(descricao, ler, limite, origem="dap")
             saida.append({"verified": True, "description": descricao})
         return saida
@@ -1047,13 +1066,14 @@ class Sessao:
         dado, descricao = info
         self.canal.responder(pedido, {
             "dataId": dado,
-            "description": f"parar quando {descricao} mudar",
-            "accessTypes": ["write"],
+            "description": f"parar quando {descricao} mudar, ou for lido",
+            "accessTypes": ["write", "read"],
             "canPersist": False,
         })
 
     def req_setDataBreakpoints(self, pedido):
-        ids = [b.get("dataId") for b in
+        ids = [(b.get("dataId"), b.get("accessType") or "write")
+               for b in
                (pedido.get("arguments", {}).get("breakpoints") or [])]
         if self.depurador is None:
             corpo = [{"verified": False} for _ in ids]

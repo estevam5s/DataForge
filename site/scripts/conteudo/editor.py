@@ -8,7 +8,7 @@ onde quem instala vai procurar o que a coisa faz.
 
 TITULO = "A extensão do editor"
 DESCRICAO = ("Cores, erros enquanto se digita, autocompletar, depurador com "
-             "breakpoints, Big-O acima de cada ação, 56 comandos e o painel "
+             "breakpoints, Big-O acima de cada ação, 60 comandos e o painel "
              "de bancos. O que cada coisa faz, e por quê.")
 
 BLOCOS = [
@@ -80,6 +80,22 @@ desvigiar 1      tira a vigia 1""", "lang": "bash"},
  {"p": "A mutação no lugar conta — `xs.append(1)` muda a lista sem trocar a referência —, e o campo mudado dentro de um método também, com a parada na linha do método. Uma vigia criada dentro de uma ação olha **aquela** ação: o mesmo nome lá fora é outra variável."},
  {"p": "No editor, clique com o botão direito numa variável do painel e escolha **Break on Value Change**. É o *data breakpoint* do protocolo: o painel mostra o motivo `data breakpoint` e, na descrição, de quanto para quanto o valor foi."},
 
+ {"h3": "Parar quando um valor é LIDO"},
+ {"p": "A vigia de mudança responde *quem mudou isto?*. Há uma pergunta irmã, e ela aparece quando o valor está **certo** e chega a um lugar errado: *quem está consultando isto?* Um valor que nunca mudou não dispara nenhuma vigia de mudança."},
+ {"code": """dataforge debug conta.df --vigiar-leitura=saldo
+
+# ou, ja parado:
+r saldo          para quando 'saldo' for LIDO
+r self.saldo     para na leitura do campo, de dentro ou de fora
+acessos          lista, com quantas leituras cada uma teve""", "lang": "bash"},
+ {"table": {"head": ["", "`w` / `--vigiar`", "`r` / `--vigiar-leitura`"], "rows": [
+   ["a pergunta", "quem **mudou** isto?", "quem está **consultando** isto?"],
+   ["quando confere", "**depois** de cada instrução, comparando uma foto estrutural", "**no momento** da leitura"],
+   ["como", "`execute` sombreado", "`eval_Identifier` e `_ler_membro` sombreados"],
+   ["custo quando não há nenhuma", "nenhum — o `execute` sombreado devolve na hora", "nenhum — as sombras só existem enquanto há vigia"]]}},
+ {"callout": {"tipo": "nota", "titulo": "Por que dois mecanismos, e não um", "texto": "Uma leitura não muda nada, então não há foto a comparar: a vigia de mudança **nunca** a veria. E interceptar a leitura para detectar mudança seria pior — o valor só muda depois da instrução, não durante a leitura. São perguntas diferentes, e cada uma precisa do gancho que a responde."}},
+ {"p": "No editor é o mesmo *data breakpoint*, com **Break on Value Read**: `dataBreakpointInfo` passou a anunciar `accessTypes: [\"write\", \"read\"]`, e o painel escolhe qual."},
+
  {"h2": "Big-O acima de cada ação"},
  {"p": "Uma lente sobre a declaração, com a complexidade estimada — e um aviso quando ela passa do limite que você configurou."},
  {"code": """// O(n²) — dois laços aninhados sobre a mesma entrada
@@ -98,7 +114,7 @@ action duplicados(itens):
 adopt Arcane.Math.{sqrt, floor}    // dois nomes""", "lang": "df"},
 
  {"h2": "A barra de status"},
- {"p": "Antes havia um botão de rodar, e mais nada. Os 56 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
+ {"p": "Antes havia um botão de rodar, e mais nada. Os 60 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
  {"table": {"head": ["Item", "Pergunta que ele responde"], "rows": [
    ["`🔥 DataForge 1.0.0`", "qual interpretador está sendo usado?"],
    ["`▷`", "rodar este arquivo"],
@@ -122,7 +138,7 @@ adopt Arcane.Math.{sqrt, floor}    // dois nomes""", "lang": "df"},
  ]},
  {"p": "Um arquivo sem nenhum `trial` não vira item — um painel com trinta arquivos vazios esconde os que importam."},
 
- {"h2": "Os 56 comandos"},
+ {"h2": "Os 60 comandos"},
  {"p": "**Aprender** — abrir a documentação do símbolo sob o cursor (`Shift+F1`), as 100 palavras da linguagem com o exemplo que roda, os dois temas de cor e o idioma das mensagens. O hover dizia o que uma palavra faz; o que faltava era o passo seguinte, que é **ir ler** — e quem precisa sair do editor para isso três vezes para de fazer."},
  {"p": "Tudo na paleta (`Ctrl+Shift+P`) sob **DataForge**, e na árvore **Ferramentas** da barra lateral."},
  {"h3": "Rodar e medir"},
@@ -250,7 +266,7 @@ dataforge dap     # Debug Adapter Protocol, no stdio""", "lang": "bash"},
 #:
 #: Manter as duas escritas à mão faria uma envelhecer — foi o que já
 #: aconteceu: a antiga dizia "coloração de sintaxe" quando a extensão já
-#: tinha LSP e 56 comandos. O site é estático (`output: 'export'`), então
+#: tinha LSP e 60 comandos. O site é estático (`output: 'export'`), então
 #: não há redirect de servidor a usar; servir a mesma página nos dois
 #: endereços é o que não quebra link nenhum e não pode divergir.
 PAGINAS = [

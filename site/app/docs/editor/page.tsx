@@ -8,7 +8,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "A extensão do editor",
-  description: "Cores, erros enquanto se digita, autocompletar, depurador com breakpoints, Big-O acima de cada ação, 56 comandos e o painel de bancos. O que cada coisa faz, e por quê.",
+  description: "Cores, erros enquanto se digita, autocompletar, depurador com breakpoints, Big-O acima de cada ação, 60 comandos e o painel de bancos. O que cada coisa faz, e por quê.",
 };
 
 const blocos: Bloco[] = [
@@ -52,6 +52,17 @@ vigias           lista, com o valor e quantas mudanças
 desvigiar 1      tira a vigia 1`, lang: 'bash' },
   {"p": "A mutação no lugar conta — `xs.append(1)` muda a lista sem trocar a referência —, e o campo mudado dentro de um método também, com a parada na linha do método. Uma vigia criada dentro de uma ação olha **aquela** ação: o mesmo nome lá fora é outra variável."},
   {"p": "No editor, clique com o botão direito numa variável do painel e escolha **Break on Value Change**. É o *data breakpoint* do protocolo: o painel mostra o motivo `data breakpoint` e, na descrição, de quanto para quanto o valor foi."},
+  {"h3": "Parar quando um valor é LIDO"},
+  {"p": "A vigia de mudança responde *quem mudou isto?*. Há uma pergunta irmã, e ela aparece quando o valor está **certo** e chega a um lugar errado: *quem está consultando isto?* Um valor que nunca mudou não dispara nenhuma vigia de mudança."},
+  { code: `dataforge debug conta.df --vigiar-leitura=saldo
+
+# ou, ja parado:
+r saldo          para quando 'saldo' for LIDO
+r self.saldo     para na leitura do campo, de dentro ou de fora
+acessos          lista, com quantas leituras cada uma teve`, lang: 'bash' },
+  {"table": {"head": ["", "`w` / `--vigiar`", "`r` / `--vigiar-leitura`"], "rows": [["a pergunta", "quem **mudou** isto?", "quem está **consultando** isto?"], ["quando confere", "**depois** de cada instrução, comparando uma foto estrutural", "**no momento** da leitura"], ["como", "`execute` sombreado", "`eval_Identifier` e `_ler_membro` sombreados"], ["custo quando não há nenhuma", "nenhum — o `execute` sombreado devolve na hora", "nenhum — as sombras só existem enquanto há vigia"]]}},
+  {"callout": {"tipo": "nota", "titulo": "Por que dois mecanismos, e não um", "texto": "Uma leitura não muda nada, então não há foto a comparar: a vigia de mudança **nunca** a veria. E interceptar a leitura para detectar mudança seria pior — o valor só muda depois da instrução, não durante a leitura. São perguntas diferentes, e cada uma precisa do gancho que a responde."}},
+  {"p": "No editor é o mesmo *data breakpoint*, com **Break on Value Read**: `dataBreakpointInfo` passou a anunciar `accessTypes: [\"write\", \"read\"]`, e o painel escolhe qual."},
   {"h2": "Big-O acima de cada ação"},
   {"p": "Uma lente sobre a declaração, com a complexidade estimada — e um aviso quando ela passa do limite que você configurou."},
   { code: `// O(n²) — dois laços aninhados sobre a mesma entrada
@@ -68,7 +79,7 @@ action duplicados(itens):
   { code: `adopt Arcane.Math as Math          // o módulo inteiro
 adopt Arcane.Math.{sqrt, floor}    // dois nomes`, lang: 'df' },
   {"h2": "A barra de status"},
-  {"p": "Antes havia um botão de rodar, e mais nada. Os 56 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
+  {"p": "Antes havia um botão de rodar, e mais nada. Os 60 comandos viviam na paleta — e **a paleta só serve a quem já sabe que o comando existe**."},
   {"table": {"head": ["Item", "Pergunta que ele responde"], "rows": [["`🔥 DataForge 1.0.0`", "qual interpretador está sendo usado?"], ["`▷`", "rodar este arquivo"], ["`✓ sem erros` · `⊗ 2 ⚠ 5`", "este arquivo está limpo?"], ["`📈 O(n²)`", "a ação onde o cursor está custa quanto?"], ["`🧪 12/12`", "os testes passam?"]]}},
   {"p": "**O item principal abre um menu, e não um comando.** Ele é o índice do que a extensão faz — o lugar onde se *descobre*. São seis grupos: Rodar, Conferir, Testar, Entender, Projeto e Ajuda."},
   {"p": "**A complexidade é a da ação do cursor, e não do arquivo.** \"Este arquivo tem um O(n²) em algum lugar\" não ajuda ninguém; \"a ação onde você está é O(n²)\" muda o que se escreve na linha seguinte."},
@@ -78,7 +89,7 @@ adopt Arcane.Math.{sqrt, floor}    // dois nomes`, lang: 'df' },
   {"p": "O `dataforge test` já existia e já era bom. O que faltava era ele aparecer **onde se olha**: o painel de testes, com o triângulo ao lado de cada `trial` e o erro na linha que falhou."},
   {"list": ["**Um item por `trial`, e não por arquivo.** \"1 de 2 falhou\" sem dizer qual não serve para nada.", "**A descoberta é por leitura, e não por execução.** Um painel que precisa rodar a suíte para saber o que existe não serve: rodar é o que se quer decidir *depois* de ver a lista.", "**Um processo por arquivo.** O corredor já roda o arquivo inteiro, e subir um processo por teste custaria mais que os testes."]},
   {"p": "Um arquivo sem nenhum `trial` não vira item — um painel com trinta arquivos vazios esconde os que importam."},
-  {"h2": "Os 56 comandos"},
+  {"h2": "Os 60 comandos"},
   {"p": "**Aprender** — abrir a documentação do símbolo sob o cursor (`Shift+F1`), as 100 palavras da linguagem com o exemplo que roda, os dois temas de cor e o idioma das mensagens. O hover dizia o que uma palavra faz; o que faltava era o passo seguinte, que é **ir ler** — e quem precisa sair do editor para isso três vezes para de fazer."},
   {"p": "Tudo na paleta (`Ctrl+Shift+P`) sob **DataForge**, e na árvore **Ferramentas** da barra lateral."},
   {"h3": "Rodar e medir"},
@@ -126,13 +137,13 @@ dataforge dap     # Debug Adapter Protocol, no stdio`, lang: 'bash' },
   {"cards": [{"href": "/docs/cli", "title": "A CLI", "desc": "Os comandos que a extensão chama, com todas as opções."}, {"href": "/docs/tecnicas/lsp", "title": "O servidor de linguagem", "desc": "Como o autocompletar e o hover são servidos do typechecker."}, {"href": "/docs/big-o", "title": "Complexidade", "desc": "O que a lente estima, e o que ela não consegue provar."}, {"href": "/docs/tecnicas/analise-estatica", "title": "Análise estática", "desc": "O que o check acha antes de rodar — e o que o faz calar."}]},
 ];
 
-const headings = [{ id: 'instalar', text: "Instalar", level: 2 as const }, { id: 'erros-enquanto-voce-digita', text: "Erros enquanto você digita", level: 2 as const }, { id: 'autocompletar-hover-ir-para-definicao', text: "Autocompletar, hover, ir-para-definição", level: 2 as const }, { id: 'depurar-f5', text: "Depurar: F5", level: 2 as const }, { id: 'depurar-no-terminal', text: "Depurar no terminal", level: 3 as const }, { id: 'parar-quando-um-valor-muda', text: "Parar quando um valor muda", level: 3 as const }, { id: 'big-o-acima-de-cada-acao', text: "Big-O acima de cada ação", level: 2 as const }, { id: 'custo-de-cada-import', text: "Custo de cada import", level: 2 as const }, { id: 'a-barra-de-status', text: "A barra de status", level: 2 as const }, { id: 'os-testes-no-painel-do-editor', text: "Os testes no painel do editor", level: 2 as const }, { id: 'os-56-comandos', text: "Os 56 comandos", level: 2 as const }, { id: 'rodar-e-medir', text: "Rodar e medir", level: 3 as const }, { id: 'qualidade', text: "Qualidade", level: 3 as const }, { id: 'entender', text: "Entender", level: 3 as const }, { id: 'projeto-e-pacotes', text: "Projeto e pacotes", level: 3 as const }, { id: 'vitrine-e-devops', text: "Vitrine e DevOps", level: 3 as const }, { id: 'o-painel-de-bancos-de-dados', text: "O painel de bancos de dados", level: 2 as const }, { id: 'os-snippets', text: "Os snippets", level: 3 as const }, { id: 'cores-icones-e-indentacao', text: "Cores, ícones e indentação", level: 2 as const }, { id: 'configuracao', text: "Configuração", level: 2 as const }, { id: 'tarefas-e-o-matcher-de-problemas', text: "Tarefas e o matcher de problemas", level: 2 as const }, { id: 'outros-editores', text: "Outros editores", level: 2 as const }, { id: 'onde-continuar', text: "Onde continuar", level: 2 as const }];
+const headings = [{ id: 'instalar', text: "Instalar", level: 2 as const }, { id: 'erros-enquanto-voce-digita', text: "Erros enquanto você digita", level: 2 as const }, { id: 'autocompletar-hover-ir-para-definicao', text: "Autocompletar, hover, ir-para-definição", level: 2 as const }, { id: 'depurar-f5', text: "Depurar: F5", level: 2 as const }, { id: 'depurar-no-terminal', text: "Depurar no terminal", level: 3 as const }, { id: 'parar-quando-um-valor-muda', text: "Parar quando um valor muda", level: 3 as const }, { id: 'parar-quando-um-valor-e-lido', text: "Parar quando um valor é LIDO", level: 3 as const }, { id: 'big-o-acima-de-cada-acao', text: "Big-O acima de cada ação", level: 2 as const }, { id: 'custo-de-cada-import', text: "Custo de cada import", level: 2 as const }, { id: 'a-barra-de-status', text: "A barra de status", level: 2 as const }, { id: 'os-testes-no-painel-do-editor', text: "Os testes no painel do editor", level: 2 as const }, { id: 'os-60-comandos', text: "Os 60 comandos", level: 2 as const }, { id: 'rodar-e-medir', text: "Rodar e medir", level: 3 as const }, { id: 'qualidade', text: "Qualidade", level: 3 as const }, { id: 'entender', text: "Entender", level: 3 as const }, { id: 'projeto-e-pacotes', text: "Projeto e pacotes", level: 3 as const }, { id: 'vitrine-e-devops', text: "Vitrine e DevOps", level: 3 as const }, { id: 'o-painel-de-bancos-de-dados', text: "O painel de bancos de dados", level: 2 as const }, { id: 'os-snippets', text: "Os snippets", level: 3 as const }, { id: 'cores-icones-e-indentacao', text: "Cores, ícones e indentação", level: 2 as const }, { id: 'configuracao', text: "Configuração", level: 2 as const }, { id: 'tarefas-e-o-matcher-de-problemas', text: "Tarefas e o matcher de problemas", level: 2 as const }, { id: 'outros-editores', text: "Outros editores", level: 2 as const }, { id: 'onde-continuar', text: "Onde continuar", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"A extensão do editor"}
-      description={"Cores, erros enquanto se digita, autocompletar, depurador com breakpoints, Big-O acima de cada ação, 56 comandos e o painel de bancos. O que cada coisa faz, e por quê."}
+      description={"Cores, erros enquanto se digita, autocompletar, depurador com breakpoints, Big-O acima de cada ação, 60 comandos e o painel de bancos. O que cada coisa faz, e por quê."}
       href={"/docs/editor"}
       headings={headings}
     >

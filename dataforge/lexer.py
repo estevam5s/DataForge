@@ -4,6 +4,8 @@ Converts source code text into a stream of tokens.
 Handles indentation-based scoping with INDENT/DEDENT tokens.
 """
 
+from decimal import Decimal as _Decimal
+
 from .tokens import Token, TokenType, KEYWORDS
 from .errors import DataForgeError, LexError, SyncError
 
@@ -253,6 +255,26 @@ class Lexer:
                         result.append(c)
 
         text = ''.join(result)
+
+        # '19.99d' — o decimal EXATO.
+        #
+        # '19.99' e Float, com o arredondamento binario de sempre: quem
+        # escreve preco nao e avisado, e a conta sai errada em centavos.
+        # O sufixo constroi um Decimal a partir do TEXTO, sem passar por
+        # float nenhum — e e essa a diferenca: 'Decimal(0.1)' guarda o
+        # erro do float, 'Decimal("0.1")' nao.
+        #
+        # O 'd' so conta quando TERMINA o numero: '19.99dias' e um
+        # numero seguido de um nome, e engolir o 'd' ali criaria um
+        # 'ias' do nada. E a mesma disciplina de adjacencia do '~/' e do
+        # hifen num caminho relativo.
+        if self.pos < len(self.source) and self.peek() in ('d', 'D'):
+            seguinte = self.peek(1)
+            if not (seguinte.isalnum() or seguinte == '_'):
+                marca = self.advance()
+                return Token(TokenType.DECIMAL, _Decimal(text), line, col,
+                             text=text + marca)
+
         if has_dot or expoente:
             return Token(TokenType.FLOAT, float(text), line, col)
         return Token(TokenType.INTEGER, int(text), line, col)
@@ -477,6 +499,7 @@ class Lexer:
             return False
         expr_end = {
             TokenType.IDENTIFIER, TokenType.INTEGER, TokenType.FLOAT,
+            TokenType.DECIMAL,
             TokenType.STRING, TokenType.RPAREN, TokenType.RBRACKET,
             TokenType.RBRACE, TokenType.BOOLEAN, TokenType.VOID,
             TokenType.SELF,

@@ -698,7 +698,8 @@ class DFInstance:
     interpretador nao precisar saber qual dos dois esta em uso.
     """
 
-    __slots__ = ("blueprint", "_valores", "_indice", "_estado", "__weakref__")
+    __slots__ = ("blueprint", "_valores", "_indice", "_estado", "_tipos",
+                 "__weakref__")
 
     #: Marcador de slot ainda nao preenchido. Nao pode ser None:
     #: 'self.x := void' e uma atribuicao legitima, e confundir os dois
@@ -719,6 +720,14 @@ class DFInstance:
         #: None ate alguem congelar, travar ou construir com 'readonly' —
         #: ver objetos.EstadoDoObjeto
         self._estado = None
+        #: None ate este objeto passar por uma anotacao generica
+        #: ('c: Caixa<Integer> := …'), e ai guarda {'T': 'Integer'}.
+        #:
+        #: Ele NASCE com None, e nao ausente: 'getattr' num slot nunca
+        #: atribuido custa 7x mais, porque levanta e captura um
+        #: AttributeError por dentro — foi o que comeu o ganho de uma
+        #: otimizacao anterior neste mesmo arquivo.
+        self._tipos = None
 
     @property
     def fields(self):
@@ -2409,6 +2418,9 @@ class Interpreter:
         return node.value
 
     def eval_FloatLiteral(self, node: ast.FloatLiteral, env):
+        return node.value
+
+    def eval_DecimalLiteral(self, node: ast.DecimalLiteral, env):
         return node.value
 
     def eval_StringLiteral(self, node: ast.StringLiteral, env):
@@ -4902,8 +4914,13 @@ class Interpreter:
                 f"\"registro with {{'{membro}': valor}}\".",
                 node.line, node.column)
 
+        # '_tipos is None' e o que mantem o custo ZERO: um objeto que
+        # nunca passou por uma anotacao generica continua pelo caminho
+        # rapido, sem uma unica conferencia a mais. E a mesma disciplina
+        # dos tres sentinelas de OOP.
         if type(obj) is DFInstance and obj.blueprint.escrita_simples \
-                and obj._estado is None and membro not in obj.blueprint.nao_publicos:
+                and obj._estado is None and obj._tipos is None \
+                and membro not in obj.blueprint.nao_publicos:
             obj.set(membro, value)
             return _SEM_MAGICO
         if isinstance(obj, DFInstance):
@@ -4942,6 +4959,8 @@ class Interpreter:
                     return _SEM_MAGICO
             if obj._estado is not None or bp.somente_leitura:
                 objetos.conferir_escrita(obj, membro, alvo)
+            if obj._tipos is not None:
+                self._conferir_campo_generico(obj, membro, value, alvo)
             vigias = bp.vigias
             if vigias is not None and "on_write" in vigias.ganchos:
                 trocado = self._gancho_de_vigia(vigias, "on_write",
@@ -6754,6 +6773,17 @@ class Interpreter:
         base, argumentos = _partir_tipo(declared)
         self._check_type(value, base.rsplit(".", 1)[-1], what, node)
         troca = dict(zip(alvo.type_params, argumentos))
+        # O carimbo: o objeto passa a CARREGAR o vinculo, e dai em diante
+        # toda escrita de campo e conferida.
+        #
+        # O PRIMEIRO carimbo vence. 'larga: Caixa<Number> := inteira' e
+        # legitimo — a conferencia estrutural o aceita —, mas deixa-lo
+        # reescrever o vinculo AFROUXARIA o objeto: escrever um Float ali
+        # quebraria a vista 'inteira', que continua apontando para ele. E
+        # a inseguranca classica da covariancia com objeto mutavel, e a
+        # regra de primeiro-vence a fecha sem proibir o alargamento.
+        if isinstance(value, DFInstance) and value._tipos is None and troca:
+            value._tipos = troca
         if isinstance(alvo, DFRecord) and isinstance(value, DFRecordInstance):
             for campo, tipo_do_campo in alvo.field_types.items():
                 esperado = troca.get(tipo_do_campo)
@@ -6783,6 +6813,23 @@ class Interpreter:
                         valor_do_campo, esperado,
                         f"field '{campo}' of {declared} in {what}", node)
         return value
+
+    def _conferir_campo_generico(self, obj, membro, value, node):
+        """'c.guardado := "texto"' num objeto vinculado a Caixa<Integer>.
+
+        O vinculo vive no OBJETO, e nao na anotacao: sem isso, a
+        conferencia acontecia so na fronteira (a atribuicao anotada) e
+        toda escrita posterior passava calada — o parametro de tipo valia
+        uma vez e depois era decoracao.
+        """
+        declarados = Interpreter._tipos_de_campo_do_molde(obj.blueprint)
+        esperado = obj._tipos.get(declarados.get(membro))
+        if esperado:
+            self._check_type(
+                value, esperado,
+                f"field '{membro}' of "
+                f"{obj.blueprint.name}<{', '.join(obj._tipos.values())}>",
+                node)
 
     @staticmethod
     def _tipos_de_campo_do_molde(molde):

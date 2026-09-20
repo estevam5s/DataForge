@@ -77,7 +77,7 @@ out $"{n['modulos']} modulos, {n['simbolos']} simbolos, {n['comandos']} comandos
 {
 "href": "/docs/ecossistema/ausencias",
 "title": "O que não existe, e o que está no lugar",
-"description": "Sete componentes do desenho não existem. Cada um com o que faz a diferença: o motivo, o que responde pela mesma pergunta, e o número medido do substituto.",
+"description": "Cinco componentes do desenho não existem. Cada um com o que faz a diferença: o motivo, o que responde pela mesma pergunta, e o número medido do substituto.",
 "blocos": [
  {"p": "Esta é a página que uma referência técnica quase nunca tem, e é a mais útil de todas: **o que a linguagem não faz.**"},
  {"p": "Um mapa que marca tudo como pronto não é um mapa, é publicidade. Quem o lê descobre a ausência ao tentar — no pior momento, e depois de ter escolhido a linguagem por causa dele."},
@@ -93,19 +93,15 @@ out $"{n['modulos']} modulos, {n['simbolos']} simbolos, {n['comandos']} comandos
  {"callout": {"tipo": "atencao", "titulo": "O teto é ~6,5×, e ele não é do compilador de fechamentos", "texto": "É o teto de **qualquer** técnica que fique dentro do Python — inclusive uma VM de bytecode escrita em Python. O resto exigiria sair do CPython, que é outra linguagem de implementação, não outra fase do compilador. Dizer \"ainda não temos backend\" sugeriria que ele vem depois; a verdade é que ele é uma decisão de arquitetura, e ela está tomada."}},
  {"p": "A fase continua **no mapa**, marcada como ausente. Uma fase apagada do desenho não deixa a ausência aparecer — e é em `dataforge ir --fase=lir` que ela fica visível, porque o LIR mostra o que desceu para fechamento e o que **recuou** para a árvore."},
 
- {"h2": "Gerenciador de versões"},
- {"p": "O desenho tem `dfup`. Aqui não há nada equivalente, e **esta é uma ausência de verdade** — não um mecanismo diferente com o mesmo efeito."},
- {"table": {"head": ["O que o rustup faz", "Aqui"], "rows": [
-   ["instalar várias versões lado a lado", "não há"],
-   ["alternar a versão ativa", "não há: trocar de versão é reinstalar"],
-   ["fixar a versão por projeto", "não há no `forge.toml`"],
-   ["dizer qual está ativa", "`dataforge version`"]]}},
- {"p": "Quem precisa disso hoje usa um `venv` por projeto e `pip install dataforge-lang==<versao>`. Os instaladores criam uma venv em `~/.dataforge`, que não toca no Python do sistema e não pede sudo."},
- {"callout": {"tipo": "dica", "titulo": "E há uma armadilha real nisso", "texto": "Há **três** lugares onde o DataForge pode estar instalado — o `.venv` do repositório, `~/.dataforge` e o Python do sistema. Uma cópia antiga no PATH produz erros que não existem no código: foi assim que um `LexError: Unexpected character: '$'` apareceu num arquivo que usava interpolação normalmente. Sem gerenciador de versões, essa confusão é por conta de quem instala."}},
-
- {"h2": "Workspace"},
- {"p": "Um comando que resolva a árvore de vários pacotes de uma vez não existe. Cada pacote tem o seu `forge.toml`, e os quatro pacotes deste repositório são mantidos assim."},
- {"p": "`dataforge new` cria projeto a partir de 9 modelos, e **todo projeto criado passa nos próprios testes** — o que resolve a partida, não a manutenção de um monorepo."},
+ {"h2": "Gerenciador de versões, e workspace — eram ausências, e não são mais"},
+ {"p": "Esta seção descrevia duas ausências. Elas foram fechadas, e o que ficou no lugar vale mais registrado que apagado — porque o **limite** de cada uma é o que decide se ela serve."},
+ {"table": {"head": ["O que era ausência", "O que existe agora", "O limite"], "rows": [
+   ["não havia como manter versões lado a lado", "uma venv por versão em `~/.dataforge/versoes/<versao>`, e `dataforge versions` lista", "instalar precisa de rede e de `pip`"],
+   ["não havia como fixar a versão por projeto", "`dataforge use <versao>` escreve `dataforge = \"…\"` no `[project]` do `forge.toml` — **linha a linha**, sem apagar comentários", "o campo já existia e ninguém o cobrava: `dataforge info` o mostrava, e era tudo"],
+   ["trocar de versão era reinstalar", "`dataforge upgrade` instala **ao lado**: a versão que já roda não é tocada", "um upgrade que falha no meio não deixa a máquina sem DataForge"],
+   ["nada olhava a árvore de pacotes inteira", "`dataforge workspace` acha todo `forge.toml` e acusa faixa incompatível, saindo com 2", "ele **lê e relata**: não instala"]]}},
+ {"callout": {"tipo": "atencao", "titulo": "O pino é COBRADO — senão `use` seria um gesto", "texto": "`dataforge run` num projeto que exige outra versão **entrega a execução a ela** (`os.execve`), quando ela está instalada. Quando não está, **recusa** e diz o comando que a instala. Sem essa troca, `use` escreveria num arquivo e nada aconteceria — e um comando que finge é pior que um comando que falta. `DATAFORGE_SEM_TROCA=1` ignora o pino uma vez, e uma marca no ambiente impede a troca de acontecer duas vezes: um laço na partida é o defeito mais difícil de interromper."}},
+ {"p": "O limite que fica: **não há um *shim* no PATH**. O `dataforge` que você chama é o que está instalado, e é ele que redireciona — ver [versões](/docs/cli/versoes)."},
 
  {"h2": "Alocador"},
  {"p": "O alocador é o do CPython, e trocá-lo exigiria estar do lado de fora dele. O que se pode fazer daqui — e se faz — é **mandar no coletor** e medir a pausa dele."},
@@ -478,7 +474,7 @@ IO.remove_tree(pasta)""", "lang": "df"},
 
  {"h2": "Onde começar, por objetivo"},
  {"cards": [
-   {"href": "/docs/ecossistema/ausencias", "title": "O que não existe", "meta": "7 componentes", "desc": "A página mais útil para decidir se a linguagem serve ao seu caso."},
+   {"href": "/docs/ecossistema/ausencias", "title": "O que não existe", "meta": "5 componentes", "desc": "A página mais útil para decidir se a linguagem serve ao seu caso."},
    {"href": "/docs/ecossistema/tensoes", "title": "As tensões", "meta": "9 decisões", "desc": "Onde dois princípios se contradizem, e qual venceu — com o custo."},
    {"href": "/docs/ecossistema/percurso", "title": "Onde o tempo vai", "meta": "10 fases", "desc": "O percurso de um arquivo, medido fase por fase."},
    {"href": "/docs/ecossistema/mapa", "title": "Partes 20, 21 e 22", "meta": "o mapa", "desc": "Item por item: o que virou código, o que virou página, o que não existe."}]},
@@ -530,7 +526,7 @@ IO.remove_tree(pasta)""", "lang": "df"},
    ["performance observável", "`cumprido`", "8 de 8 comandos de medição presentes"],
    ["extensibilidade", "`cumprido`", "81 reservadas contra **52 contextuais**"],
    ["runtime modular", "`cumprido`", "**0** módulos carregados, **0** dependências externas"],
-   ["escalabilidade técnica", "`parcial`", "7 componentes ausentes, nomeados"]]}},
+   ["escalabilidade técnica", "`parcial`", "5 componentes ausentes, nomeados"]]}},
  {"p": "E as **nove tensões**, que são o conteúdo que uma lista de princípios nunca tem: [onde dois se contradizem](/docs/ecossistema/tensoes), qual venceu, o custo aceito e o arquivo onde a decisão mora."},
  {"p": "O módulo: [`Arcane.Principios`](/docs/ecossistema/principios) · o comando: `dataforge principios` · `--tensoes` para só as nove."},
 

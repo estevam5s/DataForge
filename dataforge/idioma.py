@@ -102,6 +102,8 @@ INTEIRAS = (
     (r"'(?P<op>.+)' between an? (?P<a>\w+) and an? (?P<b>\w+) "
      r"has no answer\.",
      "'{op}' entre {a} e {b} não tem resposta."),
+    (r"'(?P<op>.+)' between a Decimal and a Float is refused",
+     "'{op}' entre um Decimal e um Float é recusado"),
     (r"Cannot add (?P<a>\w+) and (?P<b>\w+)",
      "Não se soma {a} com {b}"),
     (r"Cannot multiply (?P<a>\w+) by (?P<b>\w+)",

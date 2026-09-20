@@ -522,6 +522,10 @@ class Formatter:
             return "void"
         if token.type is TokenType.FLOAT:
             return repr(token.value)
+        # O 'd' faz parte do literal: reconstruir do valor o perderia, e
+        # o 'fmt' transformaria um Decimal exato num Float em silencio.
+        if token.type is TokenType.DECIMAL:
+            return token.text or (str(token.value) + "d")
         if token.type is TokenType.INTEGER:
             return str(token.value)
         return str(token.text if token.text is not None else token.value)
@@ -614,6 +618,7 @@ class Formatter:
 #: operador, virgula, abre-parentese — o '-' e unario.
 _ANTES_DE_BINARIO = (
     TokenType.IDENTIFIER, TokenType.INTEGER, TokenType.FLOAT,
+    TokenType.DECIMAL,
     TokenType.STRING, TokenType.RPAREN, TokenType.RBRACKET,
     TokenType.RBRACE,
 )

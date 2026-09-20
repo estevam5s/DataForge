@@ -66,6 +66,7 @@ PAPEL_DO_ESCOPO = {
     # ── Número e constante ──
     "constant.numeric.integer.dataforge": "numero",
     "constant.numeric.float.dataforge": "numero",
+    "constant.numeric.decimal.dataforge": "numero",
     "constant.numeric.hex.dataforge": "numero",
     "constant.numeric.binary.dataforge": "numero",
     "constant.language.dataforge": "constante",

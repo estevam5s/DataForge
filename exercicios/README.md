@@ -648,9 +648,17 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 266 | [`266_ecossistema_e_principios.df`](48-ecossistema/266_ecossistema_e_principios.df) · [doc](48-ecossistema/266_ecossistema_e_principios.md) | o mapa que nao pode mentir, e o principio que se mede |
 
+## 49 — Decimal e padroes
+
+*1 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 267 | [`267_decimal_e_exaustividade.df`](49-decimal-e-padroes/267_decimal_e_exaustividade.df) · [doc](49-decimal-e-padroes/267_decimal_e_exaustividade.md) | o centavo que fecha, e o caso que aparece antes de rodar |
+
 ---
 
-**Total: 266 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 267 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

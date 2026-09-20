@@ -1910,7 +1910,8 @@ class Parser:
     #: 'expects.campo' continuam sendo um nome comum.
     _COMECA_CONDICAO = frozenset({
         TokenType.IDENTIFIER, TokenType.SELF, TokenType.NOT,
-        TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING,
+        TokenType.INTEGER, TokenType.FLOAT, TokenType.DECIMAL,
+        TokenType.STRING,
         TokenType.INTERP_STRING, TokenType.BOOLEAN, TokenType.VOID,
         TokenType.TYPEOF,
     })
@@ -2549,15 +2550,15 @@ class Parser:
         tok = self.current()
 
         # Literais
-        if tok.type in (TokenType.INTEGER, TokenType.FLOAT, TokenType.STRING,
-                        TokenType.BOOLEAN, TokenType.VOID):
+        if tok.type in (TokenType.INTEGER, TokenType.FLOAT, TokenType.DECIMAL,
+                        TokenType.STRING, TokenType.BOOLEAN, TokenType.VOID):
             self.advance()
             return ast.LiteralPattern(value=tok.value,
                                       line=tok.line, column=tok.column)
 
         # Número negativo
         if tok.type == TokenType.MINUS and self.peek().type in (
-                TokenType.INTEGER, TokenType.FLOAT):
+                TokenType.INTEGER, TokenType.FLOAT, TokenType.DECIMAL):
             self.advance()
             num = self.advance()
             return ast.LiteralPattern(value=-num.value,
@@ -3737,6 +3738,12 @@ class Parser:
         if tok.type == TokenType.FLOAT:
             self.advance()
             return ast.FloatLiteral(value=tok.value, line=tok.line, column=tok.column)
+
+        # Decimal exato: '19.99d'
+        if tok.type == TokenType.DECIMAL:
+            self.advance()
+            return ast.DecimalLiteral(value=tok.value,
+                                      line=tok.line, column=tok.column)
 
         # String
         if tok.type == TokenType.STRING:

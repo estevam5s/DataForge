@@ -12,7 +12,7 @@ PAGINAS = [
 {
 "href": "/api",
 "title": "Referência da API",
-"description": "Sete endpoints JSON com a linguagem inteira: sintaxe, 1873 símbolos, 56 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
+"description": "Sete endpoints JSON com a linguagem inteira: sintaxe, 1873 símbolos, 60 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
 "blocos": [
  {"p": "Tudo que esta documentação mostra está disponível como **JSON**, servido do próprio site, com `Access-Control-Allow-Origin: *`. Serve para gerar realce de sintaxe, autocompletar num editor que não fale LSP, uma folha de consulta, um bot, ou um site como este."},
  {"code": """curl -s https://dataforge-lang.vercel.app/api/index.json""", "lang": "bash"},
@@ -39,7 +39,7 @@ PAGINAS = [
    ["`/api/sintaxe.json`", "12 KB", "81 palavras reservadas, 32 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"],
    ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"],
    ["`/api/modulos.json`", "166 KB", "71 módulos e **1873 símbolos**, com assinatura e resumo de cada um"],
-   ["`/api/comandos.json`", "29 KB", "56 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"],
+   ["`/api/comandos.json`", "29 KB", "60 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"],
    ["`/api/erros.json`", "75 KB", "177 códigos de erro, com explicação, exemplo que provoca e como corrigir"],
    ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
 

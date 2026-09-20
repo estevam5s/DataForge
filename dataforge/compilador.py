@@ -770,6 +770,7 @@ def _pular(interp, no):
 _EXPRESSOES = {
     ast.IntegerLiteral: _constante,
     ast.FloatLiteral: _constante,
+    ast.DecimalLiteral: _constante,
     ast.StringLiteral: _constante,
     ast.BooleanLiteral: _constante,
     ast.VoidLiteral: _void,

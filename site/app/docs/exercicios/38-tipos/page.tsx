@@ -29,7 +29,7 @@ type Ids := Cluster<Id>
 x: Id := 7
 lista: Ids := [1, 2, 3]
 
-assert typeof(x) is "Integer"        // o alias nao cria tipo novo
+assert typeof(x) is "Integer"  // o alias nao cria tipo novo
 assert len(lista) is 3
 
 // o nome que a pessoa escreveu aparece na mensagem
@@ -98,7 +98,7 @@ action registrar(item: Auditavel) -> String:
 assert registrar(spawn Lancamento()) is "L10"
 
 monitor:
-    registrar(spawn Rascunho())          // so serializa: falta comparar
+    registrar(spawn Rascunho())  // so serializa: falta comparar
     assert no
 handle TypeError as e:
     assert "Ordenavel" in e.message
@@ -126,10 +126,10 @@ monitor:
     assert no
 handle TypeError as e:
     assert "Positivo" in e.message
-    assert "valor bigger 0" in e.message   // a regra aparece na mensagem
+    assert "valor bigger 0" in e.message  // a regra aparece na mensagem
 
 monitor:
-    desconto(100, 200)                     // devolveria -100
+    desconto(100, 200)  // devolveria -100
     assert no
 handle TypeError as e:
     assert "return value" in e.message
@@ -142,10 +142,10 @@ documento := Cpf("12345678901")
 distancia := Metros(2.5)
 
 assert typeof(documento) is "Cpf"
-assert documento.valor is "12345678901"    // o dado de dentro
-assert $"{documento}" is "12345678901"     // texto, pelo valor
+assert documento.valor is "12345678901"  // o dado de dentro
+assert $"{documento}" is "12345678901"  // texto, pelo valor
 assert distancia.valor * 2 is 5.0
-assert distancia bigger Metros(1.0)        // ordem, pelo valor
+assert distancia bigger Metros(1.0)  // ordem, pelo valor
 
 action cadastrar(quem: Cpf) -> String:
     yield quem.valor
@@ -172,7 +172,7 @@ adopt Arcane.Collections as C
 
 outro := Cpf("12345678901")
 assert documento is outro
-assert S.to_json({"cpf": documento}) is "{\\"cpf\\": \\"12345678901\\"}"
+assert S.to_json({"cpf": documento}) is '{"cpf": "12345678901"}'
 assert len(C.set([documento, outro])) is 1
 
 out "252 ok"`, lang: 'df', title: `exercicios/38-tipos/252_tipos_nomeados.df` },
@@ -243,7 +243,7 @@ monitor:
     assert no
 handle TypeError as e:
     assert "Caixa<Integer>" in e.message
-    assert "valor" in e.message           // o campo culpado aparece
+    assert "valor" in e.message  // o campo culpado aparece
 
 // com limite, o record cobra na construcao
 record Medida<T extends Number>:
@@ -313,8 +313,8 @@ handle TypeError as e:
 
 // ── trait: exigencia, padrao e heranca ──
 trait Legivel:
-    action ler()                          // exigencia: sem corpo
-    action descrever():                   // padrao: vem de graca
+    action ler()  // exigencia: sem corpo
+    action descrever():  // padrao: vem de graca
         yield $"leio: {self.ler()}"
 
 trait Editavel extends Legivel:
@@ -330,7 +330,7 @@ blueprint Nota extends Editavel:
 n := spawn Nota()
 n.escrever("oi")
 assert n.ler() is "oi"
-assert n.descrever() is "leio: oi"        // o padrao herdado do trait da mae
+assert n.descrever() is "leio: oi"  // o padrao herdado do trait da mae
 
 // quem implementa metade e recusado, e a mensagem diz de onde vem a exigencia
 monitor:
@@ -340,7 +340,7 @@ monitor:
     assert no
 handle TraitContractError as e:
     assert "ler" in e.message
-    assert "Legivel" in e.message         // quem exigiu, nao quem repassou
+    assert "Legivel" in e.message  // quem exigiu, nao quem repassou
 
 // ── trait generico, tipo e constante associados ──
 trait Coletor:
@@ -349,7 +349,7 @@ trait Coletor:
     action pegar() -> Item
 
 blueprint Fila extends Coletor:
-    type Item := Integer                  // preenchido por quem implementa
+    type Item := Integer  // preenchido por quem implementa
     itens := [10, 20]
     action pegar() -> Item:
         yield self.itens[0]
@@ -411,7 +411,7 @@ action registrar(x: Auditavel) -> String:
 assert registrar(spawn Lancamento()) is "L"
 
 monitor:
-    registrar(spawn Quadrado())           // tem area, nao tem serializar
+    registrar(spawn Quadrado())  // tem area, nao tem serializar
     assert no
 handle TypeError as e:
     assert "Serial" in e.message
@@ -520,10 +520,10 @@ assert typeof(t) is "Tuple"
 assert len(t) is 2
 assert t[0] is 1 and t[1] is "a" and t[-1] is "a"
 
-x := (2 + 3) * 2                  // agrupamento, nao tupla
+x := (2 + 3) * 2  // agrupamento, nao tupla
 assert x is 10 and typeof(x) is "Integer"
 
-um := (7,)                        // a virgula faz a tupla de um
+um := (7,)  // a virgula faz a tupla de um
 vazia := ()
 assert len(um) is 1 and len(vazia) is 0
 
@@ -531,9 +531,9 @@ assert len(um) is 1 and len(vazia) is 0
 assert typeof(t[0:1]) is "Tuple"
 
 // ── tres tipos parecidos, tres promessas diferentes ──
-assert typeof([1, 2]) is "Cluster"          // muda
-assert typeof(freeze([1, 2])) is "Frozen"   // cluster congelado
-assert typeof((1, 2)) is "Tuple"            // forma fixa
+assert typeof([1, 2]) is "Cluster"  // muda
+assert typeof(freeze([1, 2])) is "Frozen"  // cluster congelado
+assert typeof((1, 2)) is "Tuple"  // forma fixa
 
 // ── imutavel: escrever e recusado, com o motivo ──
 monitor:
@@ -549,7 +549,7 @@ grade := {}
 grade[a] := "achei"
 
 assert a is b
-assert a isnt (1, "y")
+assert a isnt(1, "y")
 assert grade[b] is "achei"
 assert len(C.set([a, b])) is 1
 
@@ -561,32 +561,32 @@ monitor:
     trocada: Tuple<Integer, String> := ("a", 1)
     assert no
 handle TypeError as e:
-    assert "place 0" in e.message              // a casa culpada
+    assert "place 0" in e.message  // a casa culpada
 
 monitor:
     grande: Tuple<Integer, String> := (1, "a", 2)
     assert no
 handle TypeError as e:
-    assert "place(s)" in e.message             // o tamanho faz parte do tipo
+    assert "place(s)" in e.message  // o tamanho faz parte do tipo
 
 // ── o retorno duplo, que antes exigia cluster ou vault ──
 action dividir(a: Integer, b: Integer) -> Tuple<Integer, Integer>:
-    yield (a ~/ b, a % b)
+    yield(a ~/ b, a % b)
 
 inteiro, resto := dividir(17, 5)
 assert inteiro is 3 and resto is 2
 
 monitor:
     action errada() -> Tuple<Integer, Integer>:
-        yield (1, "dois")
+        yield(1, "dois")
     errada()
     assert no
 handle TypeError as e:
     assert "return value" in e.message
 
 // ── com alias, aninhada, em record e em colecao ──
-type Coordenada := Tuple<Float, Float>
-type Segmento := Tuple<Coordenada, Coordenada>
+type Coordenada := Tuple < Float, Float >
+type Segmento := Tuple < Coordenada, Coordenada >
 
 record Trecho:
     de: Coordenada
@@ -601,7 +601,7 @@ assert trecho.para[1] is 4.0
 assert pares[1][1] is "dois"
 
 action distancia(de: Coordenada, para: Coordenada) -> Float:
-    yield ((para[0] - de[0]) ** 2 + (para[1] - de[1]) ** 2) ** 0.5
+    yield((para[0] - de[0]) ** 2 + (para[1] - de[1]) ** 2) ** 0.5
 
 assert distancia(s[0], s[1]) is 5.0
 
@@ -613,11 +613,11 @@ handle TypeError as e:
 
 // ── percorrer, pertencer, serializar ──
 soma := 0
-cycle item in (1, 2, 3):
+cycle item in(1, 2, 3):
     soma += item
 assert soma is 6
-assert 2 in (1, 2, 3)
-assert S.to_json((1, "a")) is "[1, \\"a\\"]"    // JSON nao tem tupla: vira array
+assert 2 in(1, 2, 3)
+assert S.to_json((1, "a")) is '[1, "a"]'  // JSON nao tem tupla: vira array
 
 out "254 ok"`, lang: 'df', title: `exercicios/38-tipos/254_tuplas.df` },
   {"p": "`Cluster` é uma **lista**: itens do mesmo tipo, quantidade livre, e ela muda. `Tuple` é uma **forma**: uma casa por tipo, quantidade fixa, e ela não muda."},
@@ -661,7 +661,7 @@ assert achado.valor()["nome"] is "Ana"
 assert perdido.falhou()
 assert perdido.erro() is "id negativo"
 assert perdido.detalhe() is 400
-assert perdido.ou("ninguem") is "ninguem"     // 'ou' nunca levanta
+assert perdido.ou("ninguem") is "ninguem"  // 'ou' nunca levanta
 
 // ler o valor de uma falha e uma AFIRMACAO, e ela levanta
 monitor:
@@ -705,8 +705,8 @@ config := {"tema": void}
 tem := R.chave(config, "tema")
 nao := R.chave(config, "idioma")
 
-assert tem.tem() and tem.valor() is void      // esta la, e vale void
-assert not nao.tem()                          // nao esta la
+assert tem.tem() and tem.valor() is void  // esta la, e vale void
+assert not nao.tem()  // nao esta la
 assert nao.ou("pt-BR") is "pt-BR"
 assert R.primeiro([1, 2, 3], lambda x => x bigger 2).valor() is 3
 assert not R.primeiro([1, 2], lambda x => x bigger 9).tem()
@@ -725,13 +725,13 @@ assert Tipos.de("NaoExiste") is void
 // conferir sem levantar
 assert Tipos.satisfaz(5, "Positivo")
 assert not Tipos.satisfaz(-5, "Positivo")
-assert not Tipos.satisfaz("texto", "Positivo")   // a base decide primeiro
+assert not Tipos.satisfaz("texto", "Positivo")  // a base decide primeiro
 assert not Tipos.satisfaz("12345678901", "Cpf")  // opaco e nominal
 
 // a forma ESTRUTURAL, que 'typeof' nao da
 assert typeof([1, 2]) is "Cluster"
 assert Tipos.forma([1, 2]) is "Cluster<Integer>"
-assert Tipos.forma([1, "a"]) is "Cluster<Any>"   // misturado: Any, nao o primeiro
+assert Tipos.forma([1, "a"]) is "Cluster<Any>"  // misturado: Any, nao o primeiro
 assert Tipos.forma((1, "a")) is "Tuple<Integer, String>"
 assert Tipos.forma({"a": 1}) is "Vault<String, Integer>"
 
@@ -807,11 +807,11 @@ d := P.dono("conexao", lambda x => fechados.append(x))
 assert d.usar(lambda x => len(x)) is 7
 assert d.vivo()
 
-d.soltar()                          // roda AGORA, e nao quando der
+d.soltar()  // roda AGORA, e nao quando der
 assert not d.vivo()
 assert fechados is ["conexao"]
 
-d.soltar()                          // idempotente
+d.soltar()  // idempotente
 d.soltar()
 assert len(fechados) is 1
 
@@ -829,17 +829,17 @@ assert valor is 1 and soltos is ["a"]
 
 monitor:
     P.com(P.dono("b", lambda x => soltos.append(x)),
-          lambda x => trigger "falhou no meio")
+        lambda x => trigger "falhou no meio")
 handle Error as e:
     assert e.message is "falhou no meio"
 
-assert soltos is ["a", "b"]         // o caminho de erro tambem solta
+assert soltos is ["a", "b"]  // o caminho de erro tambem solta
 
 // ── mover: quem move, perde ──
 a := P.dono([1, 2])
 b := a.mover()
 
-assert a.movido()                   // perguntar o estado e legitimo
+assert a.movido()  // perguntar o estado e legitimo
 assert b.usar(lambda x => len(x)) is 2
 
 monitor:
@@ -851,7 +851,7 @@ handle RuntimeError as e:
 // ── copia e clone sao coisas diferentes ──
 original := P.dono([1, 2])
 
-rasa := original.copiar()           // o MESMO valor
+rasa := original.copiar()  // o MESMO valor
 rasa.mudar(lambda x => x.append(3))
 
 funda := original.clonar(lambda x => [...x])
@@ -915,11 +915,11 @@ pai := P.compartilhado({"nome": "pai"}, lambda x => vazados.append("pai"))
 filho := P.compartilhado({"nome": "filho"}, lambda x => vazados.append("filho"))
 
 pai.usar(lambda v => v.set("filho", filho.clonar()))
-filho.usar(lambda v => v.set("pai", pai.clonar()))     // forte: o ciclo
+filho.usar(lambda v => v.set("pai", pai.clonar()))  // forte: o ciclo
 
 pai.soltar()
 filho.soltar()
-assert vazados is []                // ninguem chegou a zero
+assert vazados is []  // ninguem chegou a zero
 
 // agora com a volta fraca
 quebrados := []
@@ -927,11 +927,11 @@ p2 := P.compartilhado({"nome": "pai"}, lambda x => quebrados.append("pai"))
 f2 := P.compartilhado({"nome": "filho"}, lambda x => quebrados.append("filho"))
 
 p2.usar(lambda v => v.set("filho", f2.clonar()))
-f2.usar(lambda v => v.set("pai", P.fraco(p2)))         // FRACA: nao conta
+f2.usar(lambda v => v.set("pai", P.fraco(p2)))  // FRACA: nao conta
 
 f2.soltar()
 p2.soltar()
-assert quebrados is ["pai", "filho"]   // o de fora, e o que ele possuia
+assert quebrados is ["pai", "filho"]  // o de fora, e o que ele possuia
 
 // a fraca responde Talvez: ela nao promete que o valor existe
 forte := P.compartilhado({"id": 1})

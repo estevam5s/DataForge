@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 266 exercícios
+python3 exercicios/run_all.py                        # 267 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -64,6 +64,8 @@ dataforge/
   travessia.py     964   o que uma ação leva consigo para outro núcleo
   typechecker.py  1752   análise estática: nomes, aridade, tipos, alcance
   resolucao.py     190   onde mora o módulo de um 'adopt' — a única cópia
+  cache.py         200   a árvore guardada entre execuções — 93% do parse
+  versoes.py       340   versões lado a lado, o pino do projeto, o workspace
   hir.py           430   a arvore depois do acucar, e de onde vem cada nome
   mir.py           900   o grafo de fluxo, e as cinco analises sobre ele
   lir.py           170   o que o compilador de fechamentos compilou
@@ -129,7 +131,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        266 exercícios em 48 módulos + run_all.py
+exercicios/        267 exercícios em 48 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1975,7 +1977,7 @@ em `editor/vscode/` na raiz.
 
 O resultado era silencioso e total: zero arquivo da extensão no wheel, e
 `dataforge editor` instalado por pip respondia "os arquivos da extensao
-nao foram encontrados". Cores, snippets, LSP, depurador, os 56 comandos
+nao foram encontrados". Cores, snippets, LSP, depurador, os 60 comandos
 — nada chegava a quem instalasse pela forma recomendada.
 
 Dois testes *conferiam o texto do `pyproject.toml`* e **passavam**.
@@ -1990,7 +1992,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1873 símbolos, 56 comandos, 177 códigos de erro, o inventário
+sintaxe, 1873 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2106,6 +2108,136 @@ comandos do site estava errada. `test_veja_tambem_so_cita_comando_que_existe`
 confere a direção contrária (que o catálogo não **invente** comando);
 `test_todo_comando_DESPACHADO_esta_no_catalogo` confere que ele não
 **esqueça** nenhum, lendo os `elif command ==` do próprio `cli.py`.
+
+## Os seis últimos itens, e o que cada um ensinou
+
+### O literal decimal: `19.99d`
+
+`19.99` é `Float`, e quem escreve preço não era avisado do arredondamento
+binário. O sufixo constrói um `Decimal` a partir do **texto** — é a
+diferença entre `Decimal("0.1")` e `Decimal(0.1)`, e o segundo já carrega
+o erro do float.
+
+Ele atravessou os cinco lugares mais três: `tokens.py` (um
+`TokenType.DECIMAL`, porque um `FLOAT` com um `Decimal` dentro seria um
+token que mente), `lexer.py`, `ast_nodes.py`, `parser.py` (quatro sítios:
+`parse_primary`, o padrão literal, o número negativo num padrão e
+`_COMECA_CONDICAO`), `interpreter.py`, `typechecker.py`, **`compilador.py`**
+e **`formatter.py`**.
+
+Três detalhes que custariam:
+
+| O quê | Sem isso |
+|---|---|
+| o `d` só conta quando **termina** o número | `19.99dias` viraria um decimal mais um `ias` do nada |
+| o formatador tem ramo próprio | ele reconstruía do valor e **transformava um Decimal exato num Float**, em silêncio |
+| `Decimal` entrou em `ALIASES` | o literal tinha tipo e não podia ser **anotado**: `x: Decimal` dizia "Unknown type" |
+
+E `Decimal` **não é um `Number`**, de propósito: é a mesma decisão que
+recusa misturar Decimal com Float. Um `Number` que o aceitasse faria a
+falha aparecer dentro da ação, longe de quem passou o valor.
+
+A coloração também: a gramática do editor e `highlight.ts` precisaram do
+sufixo, senão a cor contradiz o lexer — que emite **um** token. E o
+`gerar_tema.py` recusou gerar até o escopo novo ter cor, que é a trava
+funcionando.
+
+### Exaustividade em padrão aninhado
+
+`point [Cor.A, x]` não avisava sobre o `Cor.B`, e o motivo é arquitetural:
+a conferência de enum olha o padrão **inteiro**, e um `SequencePattern`
+não é membro de enum — ela devolve `False`. A de sequência **reivindica**
+o match e se cala, porque `Cor.A` não é irrefutável e o ramo não conta
+como cobertura de tamanho. Silêncio total.
+
+`_exaustividade_aninhada` entra **antes** da de sequência e cobra o
+produto cartesiano dos eixos de enum, por posição. Ela devolve `False` —
+e deixa a outra seguir — quando não conclui: tamanhos diferentes ou
+`...resto` (ali a pergunta é de tamanho), uma posição com literal
+(`[Cor.A, 0]` não cobre `[Cor.A, *]`), dois enums no mesmo eixo, ou mais
+de 64 combinações (um aviso que lista duzentas é ruído).
+
+Uma posição **irrefutável** cobre todos os membros daquele eixo — é o que
+faz `point [Cor.A, x]` mais `point [c, x]` ser completo.
+
+### A vigia de LEITURA é outro mecanismo, não uma opção
+
+`w`/`--vigiar` responde *quem mudou isto?*: conferida **depois** de cada
+instrução, comparando uma foto estrutural. `r`/`--vigiar-leitura` responde
+*quem está consultando isto?* — e uma leitura não muda nada, então **não
+há foto a comparar**. Ela intercepta os dois caminhos que leem:
+`eval_Identifier` (um nome) e `_ler_membro` (`obj.campo`).
+
+Custo zero quando não há nenhuma: as sombras só existem enquanto
+`self.acessos` tem item, e saem com `del` — nunca por reatribuição, pelo
+mesmo motivo do `execute`.
+
+Cuidado ao mexer: `vigiar_leitura` **já existia** e é outra coisa — uma
+vigia de mudança que lê por função, para o DAP. A nova é `vigiar_acesso`.
+No protocolo, `accessTypes` passou a anunciar `["write", "read"]`.
+
+### O cache de árvores — e o nome importa
+
+**Não** é um cache de fechamentos: função Python não atravessa processo,
+não há o que guardar. O que se guarda é a **árvore**.
+
+Medido, e os dois números são o número:
+
+| Medida | Sem | Com |
+|---|---|---|
+| a fase de parse, 269 arquivos | 258,7 ms | **17,9 ms** (93% menos) |
+| `dataforge check exercicios` real | 0,918 s | **0,524 s** (43% menos) |
+| `dataforge run` num arquivo de 383 linhas | 131,8 ms | **4,4% menos** |
+
+A terceira linha é a desconfortável: 76 ms dos 132 ms daquele comando são
+o `import` do próprio Python. O cache vale onde há muitos arquivos.
+
+**A chave é o que impede o desastre.** Um cache que devolve a árvore
+errada é pior que nenhum: o programa roda, e roda outra coisa. Ela carrega
+caminho, `mtime_ns`, tamanho, versão, formato **e um resumo de
+`lexer.py`, `parser.py`, `ast_nodes.py`, `tokens.py` e
+`tipos_nomeados.py`** — sem o último, mexer no parser sem subir a versão
+deixaria árvores velhas no cache, e nada acusaria.
+
+Toda falha cai no caminho normal: uma otimização nunca pode ser motivo de
+erro. A gravação é `escreve ao lado` + `os.replace`, para um processo
+interrompido não deixar arquivo pela metade.
+
+### Versões lado a lado — e o pino tem de ser COBRADO
+
+`project.dataforge` já existia no `forge.toml`, e `Manifest.requires()` já
+sabia ler `>=`, `^` e `~`. **O único lugar que os usava era o
+`dataforge info`, para mostrar na tela.** Um pino que não é cobrado é um
+comentário com sintaxe.
+
+`dataforge run` agora honra o pino: troca por `os.execve` quando a versão
+está instalada, **recusa** quando não está. Sem a troca, `use` escreveria
+num arquivo e nada aconteceria — e um comando que finge é pior que um
+comando que falta.
+
+Três guardas: `DATAFORGE_SEM_TROCA=1` ignora o pino; `DATAFORGE_RAIZ`
+troca a raiz (é o que torna isto testável sem mexer na instalação de quem
+roda os testes); e uma marca no ambiente impede a troca de acontecer duas
+vezes — um laço na partida é o defeito mais difícil de interromper.
+
+`use` reescreve o `forge.toml` **linha a linha**: serializar o TOML de
+novo apagaria comentários e reordenaria campos, e um comando que mexe num
+arquivo de configuração não pode reformatá-lo por baixo. O campo entra
+depois da última linha **com conteúdo** da seção — inserir depois da linha
+em branco o punha visualmente na seção seguinte.
+
+`dataforge workspace` lê a árvore e **não instala**. A interseção de
+faixas sai da mesma classe `Requisito` que o `resolver` usa: uma segunda
+noção de "estas faixas se cruzam?" divergiria da instalação, e o
+relatório aprovaria o que o `add` recusa. Ela só acusa o que **prova** —
+um pino exato recusado pelo outro lado — e cala no resto, porque um falso
+conflito faria o comando ser ignorado.
+
+> E a trava de ontem pegou o trabalho de hoje: `cache.py` e `versoes.py`
+> nasceram fora do mapa do ecossistema, e
+> `test_todo_modulo_novo_do_nucleo_precisa_entrar_no_mapa` reprovou. Mais
+> que isso — **dois componentes marcados `nao-existe` passaram a existir**,
+> e o mapa teve de mudar de veredito. É para isso que ele é conferido.
 
 ## O mapa do ecossistema, os princípios e o percurso
 
@@ -2297,7 +2429,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_ssa_e_otimizacao.py` | `pytest` | dominancia, no phi, a propagacao condicional **comparada** com a do MIR, os tres passes provados pela saida, e o repositorio sem falso alarme |
 | `tests/test_compilador_interno.py` | `pytest` | HIR, MIR, LIR e as analises — inclusive a **equivalencia** do HIR rodando exercicios do repositorio nas duas formas e comparando a saida |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 266 exercícios em 48 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 267 exercícios em 48 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 
@@ -2322,14 +2454,13 @@ com valores, pattern matching estrutural completo, generators preguiçosos
 
 O que **ainda não existe** (não invente que existe):
 
-- **Gerenciador de versões, e workspace** — não há como manter duas
-  versões lado a lado, alternar entre elas, nem fixar a versão por
-  projeto: trocar de versão é reinstalar. E não há comando que resolva a
-  árvore de vários pacotes de uma vez; cada pacote tem o seu
-  `forge.toml`. As duas ausências são nomeadas em
-  `Arcane.Ecossistema.o_que_nao_existe()` — que é a lista a consultar
-  antes de afirmar que algo existe, porque ela é **conferida** contra o
-  disco.
+- **Um *shim* de versão no PATH** — versões lado a lado, pino por projeto
+  e `workspace` existem (ver "Os seis últimos itens"). O que não há é um
+  atalho no PATH que resolva a versão antes de o Python subir: o
+  `dataforge` que se chama é o que está instalado, e é ele que
+  redireciona. A lista a consultar antes de afirmar que algo existe é
+  `Arcane.Ecossistema.o_que_nao_existe()`, porque ela é **conferida**
+  contra o disco.
 - **Alocador próprio** — o alocador é o do CPython, e trocá-lo exigiria
   estar fora dele. O que existe é controle do **coletor**
   (`Arcane.Memoria`: ligar, desligar, limiares, congelar, arena) e
@@ -2344,14 +2475,17 @@ O que **ainda não existe** (não invente que existe):
   existe é o objeto carregar o vínculo: `c.guardado := valor_de_fora`
   não é conferido, porque fazê-lo custaria estado por instância.
   **Variância declarada não se aplica** — ver abaixo, com a medida.
-- **Exaustividade de padrão aninhado** — o `match` avisa o que fica de
-  fora em enum, booleano, sequência (`[x, ...resto]` sem `[]`) e na família
-  de um `abstract blueprint`; ele não desce em padrões aninhados
-  (`[Cor.A, x]`), e um ramo com **guarda** nunca conta como cobertura.
-- **Watchpoint de leitura** — a vigia para quando um valor MUDA (`w total`
-  no terminal, `--vigiar=expr`, data breakpoint no editor); parar quando
-  um valor é só LIDO não existe. No **terminal** as paradas de threads
-  diferentes se enfileiram: um terminal é uma conversa só.
+- **Exaustividade além do produto de enums** — o `match` avisa em cinco
+  formas, inclusive no padrão **aninhado** (`[Cor.A, x]` sem o `Cor.B`).
+  O que fica de fora: uma posição com literal faz a regra calar
+  (`[Cor.A, 0]` não cobre `[Cor.A, *]`), e um ramo com **guarda** nunca
+  conta como cobertura.
+- **Vigia de leitura por EXPRESSÃO** — parar quando um valor é lido
+  existe (`r saldo`, `--vigiar-leitura=saldo`, data breakpoint de leitura
+  no editor), e ela casa por **nome** ou por nome de campo. O que não há é
+  vigiar a leitura de uma expressão composta (`v["k"].campo`). No
+  **terminal** as paradas de threads diferentes se enfileiram: um terminal
+  é uma conversa só.
 - **Bytecode** — continua sendo interpretador de árvore. O que existe é
   **compilação para fechamentos** (`compilador.py`): a árvore é percorrida
   uma vez e vira funções Python, o que tira o despacho do caminho quente.
@@ -2375,11 +2509,11 @@ O que **ainda não existe** (não invente que existe):
   V.sessoes_em_banco(…)`), gravado por chave no fim do pedido: na mesma
   chave, vence a última gravação. A sessão do **Kiln** continua na
   memória do processo.
-- **Literal decimal exato** — não há sufixo nem sintaxe: `19.99` no código é
-  `Float`, com o arredondamento binário de sempre. Para exatidão use
-  `Arcane.Decimal`, e prefira a forma com aspas (`Dec.de("19.99")`), que não
-  passa por float nenhum. Misturar `Decimal` com `Float` numa conta é
-  **recusado** de propósito.
+- **Literal decimal: existe, e é `19.99d`.** O sufixo constrói o valor a
+  partir do **texto**, sem passar por float nenhum. `19.99` sem sufixo
+  continua sendo `Float` — mudar isso quebraria todo cálculo científico já
+  escrito. Misturar `Decimal` com `Float` numa conta é **recusado** de
+  propósito, e é por isso que `Decimal` não é um `Number`.
 - **Cálculo de fórmula em planilha** — o `Arcane.Excel` grava a fórmula e o
   Excel a resolve ao abrir. Também não lê o `.xls` binário antigo.
 - **`receive` sem prazo não espera** — devolve `void` na hora se a fila está

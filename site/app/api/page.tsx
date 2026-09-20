@@ -8,7 +8,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Referência da API",
-  description: "Sete endpoints JSON com a linguagem inteira: sintaxe, 1873 símbolos, 56 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
+  description: "Sete endpoints JSON com a linguagem inteira: sintaxe, 1873 símbolos, 60 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
 };
 
 const blocos: Bloco[] = [
@@ -30,7 +30,7 @@ const blocos: Bloco[] = [
 }`, lang: 'json' },
   {"callout": {"tipo": "nota", "titulo": "Nada aqui é escrito à mão", "texto": "Os sete arquivos saem de `scripts/gerar_api.py`, que lê `tokens.py`, `builtins.py`, a `stdlib/`, o `cli.py` e o catálogo de erros — o mesmo código que o interpretador executa. Um símbolo novo aparece na API na próxima geração; um removido desaparece. Não há uma segunda lista para divergir."}},
   {"h2": "Os sete endpoints"},
-  {"table": {"head": ["Endpoint", "Tamanho", "O que traz"], "rows": [["`/api/index.json`", "< 1 KB", "o índice — comece por aqui"], ["`/api/sintaxe.json`", "12 KB", "81 palavras reservadas, 32 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"], ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"], ["`/api/modulos.json`", "166 KB", "71 módulos e **1873 símbolos**, com assinatura e resumo de cada um"], ["`/api/comandos.json`", "29 KB", "56 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"], ["`/api/erros.json`", "75 KB", "177 códigos de erro, com explicação, exemplo que provoca e como corrigir"], ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
+  {"table": {"head": ["Endpoint", "Tamanho", "O que traz"], "rows": [["`/api/index.json`", "< 1 KB", "o índice — comece por aqui"], ["`/api/sintaxe.json`", "12 KB", "81 palavras reservadas, 32 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"], ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"], ["`/api/modulos.json`", "166 KB", "71 módulos e **1873 símbolos**, com assinatura e resumo de cada um"], ["`/api/comandos.json`", "29 KB", "60 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"], ["`/api/erros.json`", "75 KB", "177 códigos de erro, com explicação, exemplo que provoca e como corrigir"], ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
   {"h2": "`/api/sintaxe.json`"},
   {"p": "É o que um realce de sintaxe precisa, e cada palavra vem com o **equivalente** na linguagem de onde a pessoa vem:"},
   { code: `{
@@ -164,7 +164,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Referência da API"}
-      description={"Sete endpoints JSON com a linguagem inteira: sintaxe, 1873 símbolos, 56 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto."}
+      description={"Sete endpoints JSON com a linguagem inteira: sintaxe, 1873 símbolos, 60 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto."}
       href={"/api"}
       headings={headings}
     >

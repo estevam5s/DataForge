@@ -41,6 +41,16 @@ class FloatLiteral(ASTNode):
     value: float = 0.0
 
 @dataclass
+class DecimalLiteral(ASTNode):
+    """'19.99d' — o valor ja e um Decimal, construido do texto.
+
+    Ele tem no proprio porque um Float com um Decimal dentro seria um no
+    que mente, e porque o formatador, o 'tokens' e a coloracao do editor
+    leem o tipo do token para desenhar.
+    """
+    value: object = None
+
+@dataclass
 class StringLiteral(ASTNode):
     value: str = ""
 

@@ -180,6 +180,7 @@
       "name": "DataForge · numero",
       "scope": [
         "constant.numeric.binary.dataforge",
+        "constant.numeric.decimal.dataforge",
         "constant.numeric.float.dataforge",
         "constant.numeric.hex.dataforge",
         "constant.numeric.integer.dataforge"

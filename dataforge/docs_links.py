@@ -214,8 +214,9 @@ def pagina_de_comando(comando):
 
 #: Os comandos que têm `site/app/docs/cli/<x>/page.tsx`.
 COMANDOS_COM_PAGINA = frozenset({
-    "bench", "check", "doc", "editor", "explain", "fmt", "forge-toml",
-    "init", "lint", "pacotes", "repl", "run", "test", "watch",
+    "bench", "cache", "check", "doc", "editor", "explain", "fmt",
+    "forge-toml", "init", "lint", "pacotes", "repl", "run", "test",
+    "versoes", "watch", "workspace",
 })
 
 

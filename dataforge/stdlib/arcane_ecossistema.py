@@ -61,7 +61,8 @@ NAO_E_COMPONENTE = ("__init__.py", "__main__.py", "marca.py")
 ARVORE = (
     ("dfc — o compilador", (
         {"no": "Driver", "estado": "equivale",
-         "onde": ("dataforge/cli.py", "dataforge/caminhos.py"),
+         "onde": ("dataforge/cli.py", "dataforge/caminhos.py",
+                  "dataforge/cache.py"),
          "o_que_e": "o programa que recebe o arquivo e conduz as fases",
          "aqui": "nao ha um binario 'dfc' separado: o driver e o proprio "
                  "'dataforge', e cada fase tem um comando que a mostra "
@@ -153,17 +154,19 @@ ARVORE = (
                    "tenha lugar"},
     )),
     ("dfup — versoes", (
-        {"no": "Version Manager", "estado": "nao-existe",
-         "onde": ("scripts/instalar.sh", "scripts/instalar.ps1"),
-         "o_que_e": "instalar, alternar e fixar versoes lado a lado, como "
-                    "o rustup faz",
-         "aqui": "os instaladores criam uma venv em '~/.dataforge' e "
-                 "'dataforge version' diz qual esta ali. Trocar de versao "
-                 "e reinstalar",
-         "porque": "nao ha como manter duas versoes ao mesmo tempo nem "
-                   "fixar a versao por projeto — e esta e uma ausencia "
-                   "real, nao um equivalente: quem precisa disso hoje usa "
-                   "um venv por projeto e 'pip install dataforge-lang=='"},
+        {"no": "Version Manager", "estado": "existe",
+         "onde": ("dataforge/versoes.py", "scripts/instalar.sh",
+                  "scripts/instalar.ps1"),
+         "o_que_e": "instalar, alternar e fixar versoes lado a lado",
+         "aqui": "uma venv por versao em '~/.dataforge/versoes/<versao>'; "
+                 "'versions' lista, 'use' fixa (no forge.toml, ou global com "
+                 "'--global'), 'upgrade' instala ao lado. E o pino e "
+                 "COBRADO: 'run' num projeto que exige outra versao entrega "
+                 "a execucao a ela",
+         "porque": "o limite: nao ha um 'shim' no PATH. O 'dataforge' que "
+                   "se chama e o que esta instalado, e e ele que "
+                   "redireciona — com 'DATAFORGE_SEM_TROCA=1' para "
+                   "ignorar o pino uma vez"},
     )),
     ("dfpm — pacotes", (
         {"no": "Package Manager", "estado": "existe",
@@ -188,15 +191,17 @@ ARVORE = (
          "porque": "nao havendo compilacao para binario, nao ha etapa de "
                    "build a orquestrar: o artefato e o codigo mais o "
                    "'forge.lock'"},
-        {"no": "Workspace Manager", "estado": "nao-existe",
-         "onde": ("dataforge/modelos.py", "dataforge/scaffold.py"),
-         "o_que_e": "varios pacotes num repositorio, com trava e versoes "
-                    "compartilhadas",
-         "aqui": "'dataforge new' cria projeto a partir de 9 modelos, e "
-                 "cada pacote tem o seu 'forge.toml'",
-         "porque": "um comando que resolvesse a arvore de varios pacotes "
-                   "de uma vez ainda nao existe; o repositorio mantem os "
-                   "seus quatro pacotes com um 'forge.toml' cada"},
+        {"no": "Workspace Manager", "estado": "existe",
+         "onde": ("dataforge/versoes.py", "dataforge/modelos.py",
+                  "dataforge/scaffold.py"),
+         "o_que_e": "varios pacotes num repositorio, vistos de uma vez",
+         "aqui": "'dataforge workspace' acha todo 'forge.toml' da arvore, "
+                 "lista os pacotes e ACUSA faixa incompativel do mesmo "
+                 "terceiro — a interseccao sai da mesma classe que o "
+                 "'resolver' usa. Sai com 2 quando ha conflito",
+         "porque": "ele LE e relata: nao instala. Instalar a arvore inteira "
+                   "de um comando que a pessoa rodou para 'ver o que tem' "
+                   "seria mexer em disco sem ser pedido"},
     )),
     ("Runtime", (
         {"no": "Execution Engine", "estado": "existe",

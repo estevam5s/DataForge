@@ -206,6 +206,18 @@ class Depurador:
         #: As vigias: param quando o valor MUDA. Conferidas depois de cada
         #: instrucao, e so enquanto houver alguma.
         self.vigias = []
+        #: As vigias de ACESSO: param quando o valor e LIDO.
+        #:
+        #: Sao outra coisa, e por isso outra lista. A vigia de mudanca e
+        #: conferida DEPOIS de cada instrucao, comparando uma foto; a de
+        #: acesso nao tem foto a comparar — ela precisa interceptar a
+        #: LEITURA, e para isso sombreia os dois caminhos que leem:
+        #: 'eval_Identifier' (um nome) e '_ler_membro' ('obj.campo').
+        #:
+        #: A pergunta que ela responde e "quem esta consultando isto?", e
+        #: e a que aparece quando um valor certo chega a um lugar errado.
+        self.acessos = []
+        self._originais_de_acesso = {}
         #: Por que a última parada aconteceu: 'breakpoint', 'step' ou o
         #: texto de uma condição que não deu para avaliar.
         self.motivo = "step"
@@ -269,6 +281,7 @@ class Depurador:
         if self.original is not None:
             self.interp.__dict__.pop("execute", None)
             self.original = None
+        self._desligar_acesso()
         self.interp.compilar_corpos = True
 
     # ── decidir se para ─────────────────────────────────────
@@ -425,8 +438,114 @@ class Depurador:
             vigia.foto, vigia.texto = INDISPONIVEL, "(não existe)"
             return
         vigia.foto = impressao(valor)
-        texto = self.interp._to_str(valor)
-        vigia.texto = texto if len(texto) <= 60 else texto[:57] + "…"
+        vigia.texto = self._curto(valor)
+
+    def _curto(self, valor):
+        """O valor desenhado, cortado — o mesmo corte das duas vigias."""
+        try:
+            texto = self.interp._to_str(valor)
+        except Exception:                              # noqa: BLE001
+            texto = "(não dá para desenhar)"
+        return texto if len(texto) <= 60 else texto[:57] + "…"
+
+    # ── vigias de ACESSO: param quando o valor e LIDO ───────
+
+    def vigiar_acesso(self, alvo, escopo=None):
+        """Passa a parar quando o nome (ou o campo) for LIDO.
+
+        `r saldo` para na leitura de `saldo`; `r self.saldo` para na
+        leitura do campo `saldo` de qualquer objeto. A vigia de mudanca
+        (`w`) responde "quem mudou isto?"; esta responde "quem esta
+        consultando isto?" — e sao perguntas diferentes: um valor certo
+        que chega a um lugar errado nunca mudou.
+        """
+        texto = (alvo or "").strip()
+        if not texto:
+            raise ValueError("diga o que vigiar: 'r saldo' ou 'r self.saldo'")
+        membro = ""
+        nome = texto
+        if "." in texto:
+            nome, _, membro = texto.rpartition(".")
+            nome = nome.strip()
+        if not (membro or nome).replace("_", "a").isalnum():
+            raise ValueError(f"'{texto}' nao e um nome que se possa vigiar")
+        vigia = {"texto": texto, "nome": "" if membro else nome,
+                 "membro": membro, "escopo": escopo, "leituras": 0}
+        with self._trava_das_vigias:
+            self.acessos.append(vigia)
+            self._ligar_acesso()
+        return vigia
+
+    def esquecer_acessos(self):
+        with self._trava_das_vigias:
+            self.acessos.clear()
+            self._desligar_acesso()
+
+    def _ligar_acesso(self):
+        """Sombreia os dois caminhos de leitura — e so agora.
+
+        Custo zero quando nao ha vigia de acesso: sem sombra, `evaluate`
+        e `_ler_membro` sao os metodos da classe, sem uma indirecao a
+        mais. E a mesma escolha do depurador com `execute`.
+        """
+        if self._originais_de_acesso:
+            return
+        interp = self.interp
+        ler_nome = interp.eval_Identifier
+        ler_membro = interp._ler_membro
+        self._originais_de_acesso = {"eval_Identifier": ler_nome,
+                                     "_ler_membro": ler_membro}
+
+        def eval_Identifier(no, env):
+            valor = ler_nome(no, env)
+            if not getattr(self._local, "avaliando", False):
+                self._acesso_lido(getattr(no, "name", ""), "", no, env, valor)
+            return valor
+
+        def _ler_membro(obj, no, env, membro=None):
+            valor = ler_membro(obj, no, env, membro)
+            if not getattr(self._local, "avaliando", False):
+                nome = membro or getattr(no, "member", "")
+                self._acesso_lido("", nome, no, env, valor)
+            return valor
+
+        interp.eval_Identifier = eval_Identifier
+        interp._ler_membro = _ler_membro
+
+    def _desligar_acesso(self):
+        """Tira as sombras com 'del', como 'desligar' faz com 'execute'.
+
+        Reatribuir o metodo original criaria de novo um atributo de
+        instancia ligado, e o interpretador sairia da depuracao carregando
+        uma indirecao que nao tinha antes.
+        """
+        if not self._originais_de_acesso:
+            return
+        for nome in self._originais_de_acesso:
+            self.interp.__dict__.pop(nome, None)
+        self._originais_de_acesso = {}
+
+    def _acesso_lido(self, nome, membro, no, env, valor):
+        """Uma leitura aconteceu. Ela casa com alguma vigia de acesso?"""
+        with self._trava_das_vigias:
+            candidatas = list(self.acessos)
+        for numero, vigia in enumerate(candidatas, start=1):
+            if vigia["membro"]:
+                if membro != vigia["membro"]:
+                    continue
+            elif nome != vigia["nome"]:
+                continue
+            if vigia["escopo"] is not None and not _dentro_de(env, vigia["escopo"]):
+                continue
+            vigia["leituras"] += 1
+            linha = getattr(no, "line", 0) or (self.ultima_linha or 0)
+            self.ultima_linha = linha
+            self.quadro_atual = env
+            self._parar_por_vigia(
+                no, env, linha,
+                f"acesso {numero}: {vigia['texto']} foi LIDO "
+                f"(vale {self._curto(valor)})")
+            return
 
     def _conferir_vigias(self, no, env):
         """Alguma vigia mudou com a instrucao que acabou de rodar? Para."""
@@ -462,6 +581,17 @@ class Depurador:
     def _parar_por_vigia(self, no, env, linha, texto):
         self.motivo = texto
         self._parar(no, env, linha)
+
+    def _mostrar_acessos(self):
+        with self._trava_das_vigias:
+            acessos = list(self.acessos)
+        if not acessos:
+            print(_cor("  nenhuma vigia de acesso", "0;90"))
+            return
+        for numero, vigia in enumerate(acessos, start=1):
+            quantas = vigia["leituras"]
+            print(f"  {_cor('◎', '1;35')} acesso {numero}: {vigia['texto']} "
+                  + _cor(f"({quantas} leitura(s))", "0;90"))
 
     def _mostrar_vigias(self):
         with self._trava_das_vigias:
@@ -559,6 +689,24 @@ class Depurador:
                 else:
                     print(_cor(f"  ◉ vigia {len(self.vigias)}: {vigia.expressao} "
                                f"= {vigia.texto} — para quando mudar", "1;35"))
+        elif palavra in ("r", "vigiar-leitura", "rwatch"):
+            if not resto:
+                print(_cor("  r <nome>  ou  r self.campo — para quando for "
+                           "LIDO", "0;90"))
+            else:
+                try:
+                    vigia = self.vigiar_acesso(resto, env)
+                except ValueError as erro:
+                    print(_cor(f"  {erro}", "1;31"))
+                else:
+                    print(_cor(f"  ◎ acesso {len(self.acessos)}: "
+                               f"{vigia['texto']} — para quando for LIDO",
+                               "1;35"))
+        elif palavra in ("acessos",):
+            self._mostrar_acessos()
+        elif palavra in ("desvigiar-leitura", "unrwatch"):
+            self.esquecer_acessos()
+            print(_cor("  vigias de acesso removidas", "0;90"))
         elif palavra in ("vigias", "watches"):
             self._mostrar_vigias()
         elif palavra in ("desvigiar", "unwatch"):
@@ -766,7 +914,7 @@ class Depurador:
 """)
 
 
-def depurar(caminho, paradas=(), argv=(), vigias=()):
+def depurar(caminho, paradas=(), argv=(), vigias=(), acessos=()):
     """Roda o programa sob o depurador."""
     from .interpreter import Interpreter
     from .lexer import tokenize
@@ -792,6 +940,12 @@ def depurar(caminho, paradas=(), argv=(), vigias=()):
     for expressao in vigias:
         try:
             d.vigiar(expressao)
+        except ValueError as erro:
+            print(_cor(f"  {erro}", "1;31"), file=sys.stderr)
+            return 1
+    for nome in acessos or ():
+        try:
+            d.vigiar_acesso(nome)
         except ValueError as erro:
             print(_cor(f"  {erro}", "1;31"), file=sys.stderr)
             return 1

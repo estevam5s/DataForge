@@ -84,15 +84,36 @@ point Usuario(nome := n, idade := i) when i smaller 18:
   {"h2": "Por que when e não given"},
   {"p": "`given` já é o ternário (`a given c otherwise b`). Usar a mesma palavra numa guarda criaria ambiguidade real no parser: em `point n given x`, ele não saberia se `given` abre uma guarda ou um ternário. `when` resolve isso."},
   {"h2": "Três regras que evitam surpresa"},
-  {"list": ["Os `point` são testados **de cima para baixo**; o primeiro que casa vence.", "Ordene do **específico ao geral** — uma captura no topo torna tudo abaixo inalcançável.", "Mantenha um `default`: a exaustividade ainda não é verificada."]},
+  {"list": ["Os `point` são testados **de cima para baixo**; o primeiro que casa vence.", "Ordene do **específico ao geral** — uma captura no topo torna tudo abaixo inalcançável, e o `check` acusa isso (`point-inalcancavel`).", "A exaustividade **é** verificada em cinco formas — e um `default` continua sendo a saída quando você não quer tratar o resto."]},
   { code: `match n:
     point x:              # captura tudo
         yield "pegou tudo"
     point 5:              # INALCANÇÁVEL
         yield "nunca chega aqui"` },
+
+  {"h2": "O que fica de fora, dito antes de rodar"},
+  {"p": "Um caso esquecido devolve `void` em silêncio — e `void` costuma atravessar meia dúzia de chamadas antes de virar erro em outro lugar, longe da causa. O `check` avisa (`match-incompleto`) em cinco formas:"},
+  {"table": {"head": ["Forma", "O que acusa"], "rows": [
+    ["enum", "`point Cor.Verde` sem o `Cor.Azul`, nomeando quais faltam"],
+    ["booleano", "`point yes` sem `point no`"],
+    ["sequência", "`point [x, ...resto]` sem `point []` — a recursão que quebra na lista vazia"],
+    ["hierarquia", "dois filhos de um `abstract blueprint` que tem um terceiro"],
+    ["**aninhado**", "`point [Cor.A, x]` sem o `Cor.B` — o enum **dentro** da sequência"]]}},
+  { code: `enum Cor:
+    A
+    B
+
+action f(par):
+    match par:
+        point [Cor.A, x]:         // falta [Cor.B, _]
+            yield "a"
+
+out f([Cor.A, 1])`, lang: 'df', title: "aviso: 'match' não cobre 1 combinação(ões): [Cor.B, _]" },
+  {"p": "A cobertura do caso aninhado é por **posição**, e o que ela cobra é o produto cartesiano dos eixos de enum: com duas posições de `Cor`, quatro combinações. Uma posição **irrefutável** cobre todos os membros daquele eixo — é o que faz `point [Cor.A, x]` mais `point [c, x]` ser completo."},
+  {"callout": {"tipo": "nota", "titulo": "E ela desiste quando não consegue concluir", "texto": "Ramos de tamanhos diferentes ou com `...resto` são pergunta de **tamanho**, e quem responde é a conferência de sequência. Uma posição com literal (`[Cor.A, 0]`) faz a regra **calar**: `[Cor.A, 0]` não cobre `[Cor.A, *]`, e tratar como se cobrisse inverteria o sentido do aviso. Um `point` com **guarda** nunca conta como cobertura, aqui como nas outras quatro: `point [Cor.B, x] when x bigger 0` deixa passar o `x` negativo."}},
 ];
 
-const headings = [{ id: 'a-ideia', text: "A ideia", level: 2 as const }, { id: 'a-convencao-que-organiza-tudo', text: "A convenção que organiza tudo", level: 2 as const }, { id: 'padroes-de-tipo', text: "Padrões de tipo", level: 2 as const }, { id: 'padroes-de-sequencia', text: "Padrões de sequência", level: 2 as const }, { id: 'cabeca-e-cauda-o-padrao-recursivo', text: "Cabeça e cauda: o padrão recursivo", level: 3 as const }, { id: 'padroes-de-mapa-e-record', text: "Padrões de mapa e record", level: 2 as const }, { id: 'guardas-com-when', text: "Guardas com when", level: 2 as const }, { id: 'a-guarda-enxerga-o-que-o-padrao-ligou', text: "A guarda enxerga o que o padrão ligou", level: 3 as const }, { id: 'por-que-when-e-nao-given', text: "Por que when e não given", level: 2 as const }, { id: 'tres-regras-que-evitam-surpresa', text: "Três regras que evitam surpresa", level: 2 as const }];
+const headings = [{ id: 'a-ideia', text: "A ideia", level: 2 as const }, { id: 'a-convencao-que-organiza-tudo', text: "A convenção que organiza tudo", level: 2 as const }, { id: 'padroes-de-tipo', text: "Padrões de tipo", level: 2 as const }, { id: 'padroes-de-sequencia', text: "Padrões de sequência", level: 2 as const }, { id: 'cabeca-e-cauda-o-padrao-recursivo', text: "Cabeça e cauda: o padrão recursivo", level: 3 as const }, { id: 'padroes-de-mapa-e-record', text: "Padrões de mapa e record", level: 2 as const }, { id: 'guardas-com-when', text: "Guardas com when", level: 2 as const }, { id: 'a-guarda-enxerga-o-que-o-padrao-ligou', text: "A guarda enxerga o que o padrão ligou", level: 3 as const }, { id: 'por-que-when-e-nao-given', text: "Por que when e não given", level: 2 as const }, { id: 'tres-regras-que-evitam-surpresa', text: "Três regras que evitam surpresa", level: 2 as const }, { id: 'o-que-fica-de-fora-dito-antes-de-rodar', text: "O que fica de fora, dito antes de rodar", level: 2 as const }];
 
 export default function Pagina() {
   return (

@@ -42,6 +42,10 @@ ORDERABLE = NUMERIC | {"String"}
 ALIASES = {
     "integer": "Integer", "int": "Integer", "Integer": "Integer",
     "float": "Float", "Float": "Float",
+    #: O decimal EXATO — o tipo de '19.99d' e de 'Dec.de("19.99")'.
+    #: Sem ele aqui, o literal tinha tipo e nao tinha como ser
+    #: ANOTADO: 'x: Decimal := 19.99d' dizia "Unknown type".
+    "decimal": "Decimal", "Decimal": "Decimal",
     "number": "Number", "Number": "Number",
     "string": "String", "str": "String", "text": "String", "String": "String",
     "boolean": "Boolean", "bool": "Boolean", "Boolean": "Boolean",
@@ -1612,6 +1616,7 @@ class TypeChecker:
 
         for conferir in (self._exaustividade_de_enum,
                          self._exaustividade_booleana,
+                         self._exaustividade_aninhada,
                          self._exaustividade_de_sequencia,
                          self._exaustividade_de_hierarquia):
             if conferir(node, padroes, todos):
@@ -1665,6 +1670,118 @@ class TypeChecker:
     def _irrefutavel(padrao):
         """Casa com qualquer valor naquela posição?"""
         return isinstance(padrao, (ast.CapturePattern, ast.WildcardPattern))
+
+    #: Ate quantas combinacoes vale enumerar. Um aviso que lista
+    #: duzentas combinacoes e ruido, e ninguem o le duas vezes.
+    _TETO_DE_COMBINACOES = 64
+
+    def _exaustividade_aninhada(self, node, padroes, todos):
+        """'point [Cor.A, x]' sem o 'Cor.B' — o enum DENTRO da sequencia.
+
+        A conferencia de enum olha o padrao inteiro, e um
+        `SequencePattern` nao e membro de enum: ela devolve `False`. A de
+        sequencia REIVINDICA o match e se cala, porque `Cor.A` nao e
+        irrefutavel e o ramo nao conta como cobertura de tamanho. O
+        resultado era silencio total sobre um caso que ficou de fora.
+
+        Aqui a cobertura e por POSICAO, e o que ela cobra e o produto
+        cartesiano dos eixos de enum. Ela desiste — e deixa a conferencia
+        de sequencia seguir — quando nao consegue concluir:
+
+          * ramos de tamanhos diferentes, ou com `...resto`: ali a
+            pergunta e de tamanho, e e a outra conferencia que responde;
+          * uma posicao com literal, record ou vault: `[Cor.A, 0]` nao
+            cobre `[Cor.A, *]`, e tratar como se cobrisse inverteria o
+            sentido do aviso;
+          * duas posicoes do mesmo eixo com enums diferentes;
+          * mais de `_TETO_DE_COMBINACOES` combinacoes.
+
+        Uma posicao IRREFUTAVEL cobre todos os membros daquele eixo — e e
+        isso que faz `point [Cor.A, x]` mais `point [c, x]` ser completo.
+        """
+        if not todos or not all(isinstance(p, ast.SequencePattern)
+                                for p in todos):
+            return False
+        tamanhos = {len(p.elements) for p in todos}
+        if len(tamanhos) != 1 or any(p.rest_index >= 0 or p.rest_name
+                                     for p in todos):
+            return False
+        largura = tamanhos.pop()
+        if largura == 0:
+            return False
+
+        # Que eixo e cada posicao? Um enum, ou livre.
+        eixos = {}
+        for posicao in range(largura):
+            donos = set()
+            for padrao in todos:
+                elemento = padrao.elements[posicao]
+                if self._irrefutavel(elemento):
+                    continue
+                dono, _membro = self._membro_de_enum(elemento)
+                if dono is None:
+                    return False          # literal, record, vault: calar
+                donos.add(dono)
+            if len(donos) > 1:
+                return False
+            if donos:
+                nome = donos.pop()
+                membros = self.enums.get(nome)
+                if not membros:
+                    return False
+                eixos[posicao] = (nome, list(membros))
+        if not eixos:
+            return False
+
+        total = 1
+        for _nome, membros in eixos.values():
+            total *= len(membros)
+        if total > self._TETO_DE_COMBINACOES:
+            return True                   # reivindica, e nao enumera
+
+        # O que cada ramo SEM GUARDA cobre: o produto de {membro} nas
+        # posicoes de enum, e de TODOS os membros onde ele e irrefutavel.
+        import itertools
+
+        posicoes = sorted(eixos)
+        cobertas = set()
+        for padrao in padroes:
+            if len(padrao.elements) != largura:
+                continue
+            opcoes = []
+            for posicao in posicoes:
+                elemento = padrao.elements[posicao]
+                _nome, membros = eixos[posicao]
+                if self._irrefutavel(elemento):
+                    opcoes.append(list(membros))
+                else:
+                    opcoes.append([self._membro_de_enum(elemento)[1]])
+            cobertas.update(itertools.product(*opcoes))
+
+        todas = set(itertools.product(*[eixos[p][1] for p in posicoes]))
+        faltando = sorted(todas - cobertas)
+        if faltando:
+            def desenhar(combinacao):
+                partes = []
+                for posicao in range(largura):
+                    if posicao in eixos:
+                        nome = eixos[posicao][0]
+                        membro = combinacao[posicoes.index(posicao)]
+                        partes.append(f"{nome}.{membro}")
+                    else:
+                        partes.append("_")
+                return "[" + ", ".join(partes) + "]"
+
+            mostradas = [desenhar(c) for c in faltando[:4]]
+            resto = (f" e {len(faltando) - 4} outra(s)"
+                     if len(faltando) > 4 else "")
+            self._avisar_incompleto(
+                node,
+                f"'match' não cobre {len(faltando)} combinação(ões): "
+                f"{', '.join(mostradas)}{resto}",
+                "Trate cada uma, use uma captura na posição que sobra, ou "
+                "acrescente 'default:'")
+        return True
 
     def _exaustividade_de_sequencia(self, node, padroes, todos):
         if not todos or not all(isinstance(p, ast.SequencePattern) for p in todos):
@@ -3235,6 +3352,7 @@ class TypeChecker:
 
     def ex_IntegerLiteral(self, node, escopo): return "Integer"
     def ex_FloatLiteral(self, node, escopo): return "Float"
+    def ex_DecimalLiteral(self, node, escopo): return "Decimal"
     def ex_StringLiteral(self, node, escopo): return "String"
     def ex_BooleanLiteral(self, node, escopo): return "Boolean"
     def ex_VoidLiteral(self, node, escopo): return "Void"
@@ -3282,6 +3400,36 @@ class TypeChecker:
             return UNKNOWN
         return tipo
 
+    #: Os operadores em que 'Decimal' participa como numero.
+    _CONTAS_DE_DECIMAL = ("+", "-", "*", "/", "%", "**", "~/")
+
+    def _conta_com_decimal(self, esq, dir_, node, op):
+        """A conta com `Decimal` — e a mistura com `Float` recusada.
+
+        Ela é recusada na linguagem de propósito: um `Decimal` existe para
+        ser exato, e somá-lo a um `Float` devolveria um número com o erro
+        binário de volta dentro — o exato contaminado pelo aproximado, sem
+        nada denunciar.
+
+        Devolve `None` quando não é a sua conta, para o fluxo normal
+        seguir (`Decimal * String`, por exemplo, continua sendo o erro
+        que já era).
+        """
+        outro = dir_ if esq == "Decimal" else esq
+        if outro == "Decimal" or outro in ("Integer", "Number"):
+            # 'Number' passa porque ele pode ser um Integer; recusá-lo
+            # aqui acusaria uma ação que recebe 'n: Number' e a usa com
+            # um preço, e o analisador não sabe qual dos dois chegou.
+            return "Decimal"
+        if outro == "Float":
+            self.error(
+                f"'{op}' between a Decimal and a Float is refused", node,
+                'Use a Decimal on both sides (19.99d), or convert on '
+                'purpose with Dec.float(x) — and lose the exactness',
+                "decimal-com-float")
+            return "Decimal"
+        return None
+
     def ex_BinaryOp(self, node, escopo):
         # Um 'type' transparente CONTA como o tipo de baixo: 'Positivo' é
         # um Integer, e sem esta tradução 'x + y' virava "Cannot add
@@ -3296,6 +3444,17 @@ class TypeChecker:
         # Blueprints e records podem sobrecarregar add/sub/mul/div/mod/pow.
         if self._overloads(esq) or self._overloads(dir_):
             return esq if self._overloads(esq) else dir_
+
+        # 'Decimal' tem regra propria, e ela vem ANTES de NUMERIC.
+        #
+        # Pôr 'Decimal' dentro de NUMERIC faria 'Decimal + Float' passar
+        # no 'check' — e a execução o RECUSA. Seria trocar um erro pego
+        # por um silêncio, que é a pior das trocas: o programa quebraria
+        # na primeira conta, longe de quem escreveu o literal.
+        if "Decimal" in (esq, dir_) and op in self._CONTAS_DE_DECIMAL:
+            resultado = self._conta_com_decimal(esq, dir_, node, op)
+            if resultado is not None:
+                return resultado
 
         if op == '+':
             # 'void' em texto e erro, e aqui ele e PROVAVEL antes de rodar.
