@@ -113,7 +113,36 @@ def filtrar(info):
     return info
 
 
+#: Sem estes tres, a extensao instala e nao ativa. Eles sao compilados
+#: do TypeScript, e 'editor/vscode/out/' e gitignored: num checkout
+#: limpo nao existem.
+COMPILADOS = ["editor/vscode/out/extension.js",
+              "editor/vscode/out/servidor.js",
+              "editor/vscode/out/depuracao.js"]
+
+
+def _exigir_extensao_compilada():
+    """Recusa gerar o tarball do site sem o JavaScript da extensao.
+
+    O tarball e o que o 'curl | sh' e o 'irm | iex' baixam, e ele leva a
+    extensao inteira — menos o 'out/', se ninguem compilou. O sintoma nao
+    e erro: o 'dataforge editor' instala, o VS Code carrega o manifesto,
+    e nada acontece. Cores, comandos, LSP e depurador ficam de fora.
+
+    Avisar nao serve: um aviso impresso num gerador que roda antes de um
+    deploy nao para nada, e o arquivo vai ao ar igual.
+    """
+    faltando = [c for c in COMPILADOS if not (RAIZ / c).is_file()]
+    if faltando:
+        raise SystemExit(
+            "  a extensao do editor nao esta compilada, e o tarball do "
+            "site a leva:\n    " + "\n    ".join(faltando)
+            + "\n  compile antes de gerar:\n"
+              "    cd editor/vscode && npm install && npx tsc -p ./")
+
+
 def main():
+    _exigir_extensao_compilada()
     saida = RAIZ / "site" / "public" / "dist"
     saida.mkdir(parents=True, exist_ok=True)
     destino = saida / f"dataforge-{VERSAO}.tar.gz"

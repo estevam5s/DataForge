@@ -251,19 +251,40 @@ jobs:
       - run: npm run build
         working-directory: site
 
-  # ── A extensao do editor ──
+  # ── A extensao do editor, e o PACOTE que a leva ──
+  #
+  # Este job era so 'tsc --noEmit': ele conferia os tipos e NAO escrevia
+  # nada. Como 'editor/vscode/out/' e gitignored, nenhum job deste
+  # repositorio compilava a extensao de verdade — e o wheel construido
+  # em maquina limpa saia sem o JavaScript dela. 'dataforge editor'
+  # instalava uma extensao que nao ativa.
+  #
+  # Aqui a extensao e COMPILADA e o wheel e construido em cima dela, com
+  # 'tests/test_empacotamento.py' olhando dentro do .whl. Este e o unico
+  # lugar do CI onde node e Python se encontram; a matriz de testes pula
+  # esses casos, porque nao e papel dela ter node.
   extensao:
-    name: a extensao compila
+    name: a extensao compila, e entra no pacote
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
       - run: npm install
         working-directory: editor/vscode
       - run: npx tsc -p ./ --noEmit
         working-directory: editor/vscode
+
+      # E agora de verdade: '-p ./' sem '--noEmit' escreve o 'out/'.
+      - run: npx tsc -p ./
+        working-directory: editor/vscode
+      - run: pip install -e ".[dev]"
+      - name: o pacote leva a extensao compilada
+        run: python -m pytest tests/test_empacotamento.py -v -rfE --tb=short
 
   # ── O instalador roda de verdade, nos dois sistemas ──
   instalador:

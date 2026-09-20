@@ -97,6 +97,17 @@ def wheel(tmp_path_factory):
         pytest.skip("o módulo 'build' não está instalado — "
                     "'pip install -e \".[dev]\"'")
 
+    # A extensao e TypeScript, e 'editor/vscode/out/' e gitignored: num
+    # checkout limpo ela nao existe, e um wheel construido dali sairia
+    # sem o JavaScript dela — o que estes testes acusariam com razao, e
+    # sem que haja nada para corrigir NO CODIGO. Quem compila e o job
+    # 'extensao' do CI, que e onde node e Python se encontram.
+    compilado = os.path.join(RAIZ, "editor", "vscode", "out", "extension.js")
+    if not os.path.isfile(compilado):
+        pytest.skip("a extensão do editor não está compilada — "
+                    "'cd editor/vscode && npm install && npx tsc -p ./' "
+                    "(no CI, o job 'extensao' faz isso)")
+
     destino = tmp_path_factory.mktemp("wheel")
     r = subprocess.run([sys.executable, "-m", "build", "--wheel",
                         "-o", str(destino)],
@@ -296,3 +307,26 @@ def test_o_BUILD_esta_nas_dependencias_de_desenvolvimento():
         "o 'build' saiu das dependências de desenvolvimento — sem ele "
         "'tests/test_empacotamento.py' não roda, e foi exatamente esse "
         "o buraco que deixou 11 erros invisíveis no CI")
+
+
+def test_ALGUM_job_compila_a_extensao_antes_de_empacotar():
+    """`tsc --noEmit` confere os tipos e não escreve nada.
+
+    Era o único `tsc` do repositório, nos dois workflows — então nenhum
+    job compilava a extensão de verdade, e todo pacote produzido em
+    máquina limpa (wheel, sdist, `.deb`, binário) saía sem o
+    `out/*.js`. O `dataforge editor` instalava uma extensão que não
+    ativa: sem erro, só sem funcionar.
+
+    Aqui passava porque a minha cópia de trabalho tem o `out/`
+    compilado de meses atrás. A pasta é gitignored — ela existe na
+    máquina de quem já compilou, e em nenhuma outra.
+    """
+    for arquivo in (".github/workflows/ci.yml",
+                    ".github/workflows/release.yml"):
+        texto = open(os.path.join(RAIZ, arquivo), encoding="utf-8").read()
+        compila = [linha for linha in texto.splitlines()
+                   if "tsc -p" in linha and "--noEmit" not in linha]
+        assert compila, (
+            f"{arquivo} não compila a extensão em nenhum job: todo "
+            f"'tsc' ali tem '--noEmit', que não escreve o 'out/'")

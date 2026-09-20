@@ -395,6 +395,11 @@ action pagina():
 
 V.app("Contador", sessoes_em := V.sessoes_em_{forma}("{lugar}"))
 V.pagina("/", pagina)
+// A marca diz ATE ONDE o processo chegou. O armazem e aberto acima, e um
+// impasse ali deixava o processo vivo e calado: a falha no CI do macOS
+// dizia apenas "nao subiu", e o 'stdout' vazio nao separava "morreu ao
+// abrir o banco" de "morreu ao escutar a porta".
+out "montado"
 V.subir(porta := 8501, silencioso := yes)
 ''', encoding="utf-8")
 

@@ -329,10 +329,7 @@ class EmBanco(_PorChave):
             conexao = sqlite3.connect(self.caminho, timeout=30,
                                       isolation_level=None,
                                       check_same_thread=False)
-            # Trocar para WAL pede a trava exclusiva e NAO respeita o
-            # timeout: dois processos subindo juntos — que e o caso de
-            # uso — recebiam 'database is locked' na hora.
-            _insistir(lambda: conexao.execute("PRAGMA journal_mode=WAL"))
+            _ligar_wal(conexao)
             conexao.execute("PRAGMA synchronous=NORMAL")
             self._local.conexao = conexao
         return _Transacao(conexao)
@@ -386,6 +383,45 @@ class EmBanco(_PorChave):
         with self._conexao() as conexao:
             return conexao.execute(
                 "SELECT COUNT(*) FROM df_vitrine_sessoes").fetchone()[0]
+
+
+def _ligar_wal(conexao):
+    """Liga o WAL — e NAO insiste quando ele ja esta ligado.
+
+    Trocar o modo de diario pede a trava exclusiva e nao respeita o
+    'timeout' do driver: dois processos subindo juntos — que e o caso de
+    uso — recebiam 'database is locked' na hora, e por isso a troca
+    ficava dentro de '_insistir'.
+
+    Insistir sozinho nao basta, e o CI do macOS mostrou por que: o
+    processo ficava VIVO e calado por trinta segundos, sem abrir a porta,
+    ate o prazo do '_insistir' acabar. Os dois lados pediam a exclusiva,
+    cada um segurando o que o outro precisava, e a retentativa nao
+    desfaz isso — ela repete.
+
+    O que desfaz e a pergunta que faltava: **o modo ja e WAL?** Quem
+    trocou foi o primeiro processo, uma vez, e o arquivo guarda isso. Na
+    segunda vez a resposta ja esta lá, e ninguem pede trava nenhuma. A
+    pergunta e refeita DENTRO da retentativa, senao a corrida volta pela
+    janela entre a leitura e a troca.
+
+    O prazo e curto de proposito: se em cinco segundos ninguem
+    conseguiu, insistir mais nao vai resolver — e um erro com a
+    mensagem do SQLite e melhor que um processo mudo.
+    """
+    def ja_e_wal():
+        modo = conexao.execute("PRAGMA journal_mode").fetchone()
+        return bool(modo) and str(modo[0]).lower() == "wal"
+
+    if ja_e_wal():
+        return
+
+    def trocar():
+        if ja_e_wal():
+            return
+        conexao.execute("PRAGMA journal_mode=WAL")
+
+    _insistir(trocar, prazo=5.0)
 
 
 def _insistir(operacao, prazo=30.0):
