@@ -99,7 +99,7 @@ passo "as proprias ferramentas"
 $PY -m dataforge check exercicios/ examples/ packages/ projetos/ \
     > /tmp/df_check.txt 2>&1
 registrar $? "check"
-$PY -m dataforge fmt exercicios/ examples/ packages/ projetos/ --check > /tmp/df_fmt.txt 2>&1
+$PY -m dataforge fmt exercicios/ examples/ packages/ projetos/ trilha/ --check > /tmp/df_fmt.txt 2>&1
 registrar $? "fmt --check"
 tail -2 /tmp/df_fmt.txt | head -1
 $PY -m dataforge lint exercicios/ > /tmp/df_lint.txt 2>&1

@@ -61,11 +61,11 @@ assert exato["min"] is 1 and exato["max"] is 10
 // piso este exercicio seria uma aposta que perde uma vez em vinte. Com
 // 20%, ruido de maquina nao tem como virar "diferenca real".
 igual := P.comparar(consulta, consulta,
-                    {"amostras": 40, "efeito_minimo": 0.20})
+    {"amostras": 40, "efeito_minimo": 0.2})
 assert igual["mais_rapido"] is "empate"
 assert not igual["significativo"]
 // e o numero medido continua disponivel, significativo ou nao
-assert igual["efeito"] smaller 0.20
+assert igual["efeito"] smaller 0.2
 
 action lenta():
     yield sum(range(9000))

@@ -21,25 +21,25 @@ assert $"item {v["id"]}" is "item 7"
 
 // ── 7.2 Metodos ──
 s := "  DataForge  "
-assert s.strip()                 is "DataForge"
-assert "abc".upper()             is "ABC"
-assert "ABC".lower()             is "abc"
-assert "a,b,c".split(",")        is ["a", "b", "c"]
+assert s.strip() is "DataForge"
+assert "abc".upper() is "ABC"
+assert "ABC".lower() is "abc"
+assert "a,b,c".split(",") is ["a", "b", "c"]
 assert "banana".replace("a", "o") is "bonono"
 assert "DataForge".startswith("Data")
 assert "DataForge".endswith("Forge")
 assert "DataForge".includes("taFo")
-assert "-".join(["a", "b"])      is "a-b"
-assert "abc".index_of("b")       is 1
+assert "-".join(["a", "b"]) is "a-b"
+assert "abc".index_of("b") is 1
 // Como METODO o nome nao leva o sufixo: '.reverse()'. A funcao
 // global se chama 'reverse_str' para nao colidir com o 'reverse' de
 // cluster, mas no metodo o objeto ja diz de qual se trata.
-assert "abc".reverse()           is "cba"
-assert reverse_str("abc")        is "cba"
-assert "ana".repeat(2)           is "anaana"
-assert "7".pad_start(3, "0")     is "007"
-assert "olá mundo".title()       is "Olá Mundo"
-assert "a b  c".words()          is ["a", "b", "c"]
+assert "abc".reverse() is "cba"
+assert reverse_str("abc") is "cba"
+assert "ana".repeat(2) is "anaana"
+assert "7".pad_start(3, "0") is "007"
+assert "olá mundo".title() is "Olá Mundo"
+assert "a b  c".words() is ["a", "b", "c"]
 
 // String e IMUTAVEL: todo metodo devolve outra.
 original := "abc"
@@ -48,12 +48,12 @@ assert original is "abc"
 
 // ── 7.3 Fatiar ──
 t := "DataForge"
-assert t[0:4]   is "Data"
-assert t[:4]    is "Data"
-assert t[4:]    is "Forge"
-assert t[::-1]  is "egroFataD"
-assert t[-1]    is "e"
-assert len(t)   is 9
+assert t[0:4] is "Data"
+assert t[:4] is "Data"
+assert t[4:] is "Forge"
+assert t[::-1] is "egroFataD"
+assert t[-1] is "e"
+assert len(t) is 9
 
 // ── 7.4 Unicode ──
 //

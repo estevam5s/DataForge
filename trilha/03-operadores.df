@@ -3,13 +3,13 @@
 // ═══════════════════════════════════════════════════════════
 
 // ── 3.1 Aritmeticos ──
-assert 7 + 2   is 9
-assert 7 - 2   is 5
-assert 7 * 2   is 14
-assert 7 / 2   is 3.5
-assert 7 ~/ 2  is 3        // divisao INTEIRA — '~/', e nao '//'
-assert 7 % 2   is 1
-assert 7 ** 2  is 49
+assert 7 + 2 is 9
+assert 7 - 2 is 5
+assert 7 * 2 is 14
+assert 7 / 2 is 3.5
+assert 7 ~/ 2 is 3  // divisao INTEIRA — '~/', e nao '//'
+assert 7 % 2 is 1
+assert 7 ** 2 is 49
 
 // Por que '~/': '//' e comentario nesta linguagem. Ele so vira
 // divisao quando o que vem logo depois e digito, '(' ou uma
@@ -30,8 +30,8 @@ assert 7 ** 2  is 49
 // comentario de fim de linha comeca com um nome seguido de '(', ponha
 // alguma coisa antes — ou escreva o comentario na linha de cima.
 soma := lambda a, b => a + b
-assert (12 // soma(2, 4)) is 2        // aqui a divisao e de proposito
-assert 12 is 12                       // texto comum, sem chamada: comentario
+assert(12 ~/ soma(2, 4)) is 2  // aqui a divisao e de proposito
+assert 12 is 12  // texto comum, sem chamada: comentario
 
 // ── 3.2 Comparacao ──
 //
@@ -46,8 +46,8 @@ assert 4 bigger_eq 4
 assert 3 smaller_eq 3
 
 // ── 3.3 Logicos ──
-assert (yes and yes)
-assert (yes or no)
+assert(yes and yes)
+assert(yes or no)
 assert not no
 
 // Curto-circuito: o lado direito nao e avaliado se o esquerdo decide.
@@ -70,15 +70,15 @@ assert efeitos is 1
 a := [1, 2]
 b := [1, 2]
 c := a
-assert a is b                   // mesmo conteudo
-assert id(a) isnt id(b)       // objetos diferentes
-assert id(a) is id(c)           // o mesmo objeto
+assert a is b  // mesmo conteudo
+assert id(a) isnt id(b)  // objetos diferentes
+assert id(a) is id(c)  // o mesmo objeto
 
 // ── 3.5 Associacao ──
 assert 2 in [1, 2, 3]
 assert 9 not in [1, 2, 3]
 assert "no" in "nome"
-assert "x" in {"x": 1}          // num vault, procura a CHAVE
+assert "x" in {"x": 1}  // num vault, procura a CHAVE
 
 // ── 3.6 Ternario ──
 //

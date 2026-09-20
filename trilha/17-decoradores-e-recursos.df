@@ -89,7 +89,7 @@ anotadas := []
 
 action anotar(fn):
     anotadas.append(fn.name)
-    // sem 'yield': devolve void, e nao substitui
+// sem 'yield': devolve void, e nao substitui
 
 mark @anotar
 action soma(a: Integer, b: Integer) -> Integer:

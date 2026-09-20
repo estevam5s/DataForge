@@ -144,7 +144,7 @@ jobs:
           saida="$RUNNER_TEMP/ferramentas.txt"
           {
             python -m dataforge check exercicios/ examples/ packages/ &&
-            python -m dataforge fmt exercicios/ examples/ packages/ projetos/ --check &&
+            python -m dataforge fmt exercicios/ examples/ packages/ projetos/ trilha/ --check &&
             python -m dataforge lint exercicios/
           } > "$saida" 2>&1
           codigo=$?

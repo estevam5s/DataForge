@@ -112,12 +112,12 @@ action classificar(valor):
         default:
             yield "desconhecido"
 
-assert classificar("listar")        is "comando de listagem"
-assert classificar(500)             is "inteiro grande"
-assert classificar(7)               is "inteiro"
-assert classificar([1, 2])          is "par: 1 e 2"
+assert classificar("listar") is "comando de listagem"
+assert classificar(500) is "inteiro grande"
+assert classificar(7) is "inteiro"
+assert classificar([1, 2]) is "par: 1 e 2"
 assert classificar({"tipo": "cão"}) is "vault do tipo cão"
-assert classificar(3.5)             is "desconhecido"
+assert classificar(3.5) is "desconhecido"
 
 // A ORDEM importa, do especifico ao geral. Uma captura no topo torna
 // tudo abaixo inalcancavel — e o 'dataforge check' acusa isso

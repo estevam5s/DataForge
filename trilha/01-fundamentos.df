@@ -14,7 +14,7 @@ out "Ola, mundo!"
 // CUIDADO: '//' e comentario POR PADRAO. Ele so vira divisao
 // inteira quando o que vem depois e digito, '(' ou uma chamada.
 // Para dividir sem ambiguidade, use '~/'.
-out 7 ~/ 2                       // 3, e nao 3.5
+out 7 ~/ 2  // 3, e nao 3.5
 
 """
 Texto entre aspas triplas e uma string de verdade, e nao um

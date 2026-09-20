@@ -18,9 +18,9 @@ nums := [1, 2, 3, 4, 5, 6]
 // ── 18.1 O pipeline ──
 //
 // Tres operadores, e eles encadeiam.
-assert (nums >> morph n: n * 2) is [2, 4, 6, 8, 10, 12]
-assert (nums >> sift n: n % 2 is 0) is [2, 4, 6]
-assert (nums >> distill acc, v: acc + v 0) is 21
+assert(nums >> morph n: n * 2) is [2, 4, 6, 8, 10, 12]
+assert(nums >> sift n: n % 2 is 0) is [2, 4, 6]
+assert(nums >> distill acc, v: acc + v 0) is 21
 
 pares_dobrados := nums
     >> sift n: n % 2 is 0
@@ -31,7 +31,7 @@ assert pares_dobrados is 120
 // ARMADILHA: o valor inicial do 'distill' vem DEPOIS do corpo, e o
 // corpo come o que vier antes dele. Isto divide o ZERO:
 media_errada := nums >> distill a, v: a + v 0 / len(nums)
-assert media_errada is 21.0            // a soma, nao a media
+assert media_errada is 21.0  // a soma, nao a media
 
 // O parenteses e o que separa a dobra da conta seguinte:
 media := (nums >> distill a, v: a + v 0) / len(nums)
@@ -152,7 +152,7 @@ _ := original >> morph n: n * 2
 assert original is [1, 2, 3]
 
 action impura(xs):
-    xs.append(99)                      // muda o argumento de QUEM CHAMOU
+    xs.append(99)  // muda o argumento de QUEM CHAMOU
     yield xs
 
 lista := [1, 2]
@@ -160,7 +160,7 @@ _ := impura(lista)
 assert lista is [1, 2, 99]
 
 action pura(xs):
-    yield [...xs, 99]                  // espalha numa lista nova
+    yield [...xs, 99]  // espalha numa lista nova
 
 outra := [1, 2]
 assert pura(outra) is [1, 2, 99]

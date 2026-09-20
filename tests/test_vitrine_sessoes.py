@@ -406,7 +406,13 @@ V.subir(porta := 8501, silencioso := yes)
     portas = [_porta_livre(), _porta_livre()]
     processos = [subprocess.Popen(
         [sys.executable, "-m", "dataforge", "run", str(app)], cwd=RAIZ,
-        env={**os.environ, "VITRINE_PORTA": str(p), "NO_COLOR": "1"},
+        # 'PYTHONUNBUFFERED': o stdout de um filho ligado a um CANO é
+        # bufferizado em blocos de 8 KB, e o 'kill' do prazo não esvazia
+        # o buffer. A marca 'montado' — que existe para dizer até onde o
+        # processo chegou — morria ali: a falha no CI do macOS dizia
+        # "o processo saiu com -9 e disse:" e mais nada.
+        env={**os.environ, "VITRINE_PORTA": str(p), "NO_COLOR": "1",
+             "PYTHONUNBUFFERED": "1"},
         stdout=subprocess.PIPE, stderr=subprocess.PIPE) for p in portas]
     try:
         for processo, p in zip(processos, portas):

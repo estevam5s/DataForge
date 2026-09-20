@@ -75,11 +75,11 @@ dez := spawn Dinheiro(1000)
 vinte := spawn Dinheiro(2000)
 
 assert $"{dez}" is "R$ 10.0"
-assert dez is spawn Dinheiro(1000)         // usa __eq__
-assert dez smaller vinte                   // usa __lt__
-assert (dez + vinte).centavos is 3000      // usa __add__
-assert len(dez) is 1000                    // usa __len__
-assert dez(3).centavos is 3000             // usa __call__
+assert dez is spawn Dinheiro(1000)  // usa __eq__
+assert dez smaller vinte  // usa __lt__
+assert(dez + vinte).centavos is 3000  // usa __add__
+assert len(dez) is 1000  // usa __len__
+assert dez(3).centavos is 3000  // usa __call__
 
 // Indexar e iterar:
 blueprint Baralho:
@@ -130,7 +130,7 @@ blueprint Simples with Descritivel:
     action nada():
         yield void
 
-assert (spawn Simples()).descrever() is "<Simples>"
+assert(spawn Simples()).descrever() is "<Simples>"
 
 // ── 13.6 Abstrato: o que obriga ──
 //
@@ -159,7 +159,7 @@ blueprint RepoMemoria extends Repositorio:
         yield self.dados[id] ?? void
 
 repo := spawn RepoMemoria()
-assert repo.salvar_todos([{"id": 1}, {"id": 2}]) is 2
+assert repo.salvar_todos([{"id":1}, {"id":2}]) is 2
 assert repo.por_id(1) is {"id": 1}
 assert repo.por_id(99) is void
 
@@ -182,7 +182,7 @@ blueprint Auditoria:
 // 'slots' fecha a lista de campos: escrever num nome fora dela e
 // erro, em vez de criar um campo por engano de digitacao.
 blueprint Ponto3D:
-    slots ["x", "y", "z"]
+    slots["x", "y", "z"]
     self.x := 0
     self.y := 0
     self.z := 0
@@ -193,7 +193,7 @@ assert pt.x is 5
 
 fora := no
 monitor:
-    pt.w := 1            // 'w' nao esta em slots
+    pt.w := 1  // 'w' nao esta em slots
 handle Error as e:
     fora := yes
 assert fora
@@ -215,7 +215,7 @@ blueprint D extends B, C:
     action nada():
         yield void
 
-assert (spawn D()).quem() is "B"
+assert(spawn D()).quem() is "B"
 assert linhagem(spawn D()) is ["D", "B", "C", "A"]
 
 out "13. Recursos avancados de OOP — ok"

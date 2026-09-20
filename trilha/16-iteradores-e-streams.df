@@ -26,7 +26,7 @@ stream action com_efeito():
     emit 2
 
 fluxo := com_efeito()
-assert efeitos is []                  // criar nao executa
+assert efeitos is []  // criar nao executa
 assert fluxo.next() is 1
 assert efeitos is ["a"]
 
@@ -80,7 +80,7 @@ blueprint Paginas(total):
 
     action __next__():
         given self.atual bigger_eq self.total:
-            yield void              // fim: 'void', e nao erro
+            yield void  // fim: 'void', e nao erro
         self.atual += 1
         yield $"pagina {self.atual}"
 

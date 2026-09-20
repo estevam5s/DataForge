@@ -13,13 +13,13 @@
 // Nao ha 'complex' nem 'frozenset' embutidos. Para numero exato em
 // dinheiro, 'Arcane.Decimal' — ver o capitulo 3.
 
-assert typeof("texto")     is "String"
-assert typeof(10)          is "Integer"
-assert typeof(1.5)         is "Float"
-assert typeof(yes)         is "Boolean"
-assert typeof(void)        is "Void"
-assert typeof([1, 2])      is "Cluster"
-assert typeof({"a": 1})    is "Vault"
+assert typeof("texto") is "String"
+assert typeof(10) is "Integer"
+assert typeof(1.5) is "Float"
+assert typeof(yes) is "Boolean"
+assert typeof(void) is "Void"
+assert typeof([1, 2]) is "Cluster"
+assert typeof({"a": 1}) is "Vault"
 
 // ── 2.2 Conferir o tipo ──
 //
@@ -30,11 +30,11 @@ assert e_um(valor, "Integer")
 assert not e_um(valor, "String")
 
 // ── 2.3 Conversoes ──
-assert int("10")      is 10
-assert float("10.5")  is 10.5
-assert str(100)       is "100"
-assert bool(1)        is yes
-assert bool(0)        is no
+assert int("10") is 10
+assert float("10.5") is 10.5
+assert str(100) is "100"
+assert bool(1) is yes
+assert bool(0) is no
 // 'cluster' EMBRULHA, e nao reparte: cluster("abc") e ["abc"].
 assert cluster("abc") is ["abc"]
 // Um item por caractere sai de uma compreensao. E 'split("")' nao
@@ -56,11 +56,11 @@ assert not converteu
 // Mutaveis: Cluster, Vault, Set, e toda instancia de 'blueprint'.
 
 original := [1, 2, 3]
-apelido := original            // o MESMO cluster, e nao uma copia
+apelido := original  // o MESMO cluster, e nao uma copia
 apelido.append(4)
-assert len(original) is 4      // mudou nos dois
+assert len(original) is 4  // mudou nos dois
 
-copia := [...original]         // spread copia
+copia := [...original]  // spread copia
 copia.append(5)
 assert len(original) is 4
 assert len(copia) is 5

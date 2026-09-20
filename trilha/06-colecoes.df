@@ -7,7 +7,7 @@ nomes := ["Ana", "Joao", "Carlos"]
 nomes.append("Maria")
 assert len(nomes) is 4
 
-nomes.remove("Joao")              // remove PELO VALOR, e no lugar
+nomes.remove("Joao")  // remove PELO VALOR, e no lugar
 assert nomes is ["Ana", "Carlos", "Maria"]
 
 // 'sorted' devolve NOVO; 'sort' ordena no lugar.
@@ -23,20 +23,20 @@ assert ns is [1, 2, 3]
 //   'pop'    devolve o valor, e LEVANTA quando nao acha
 //   'omit'   devolve COPIA, e nao mexe no original
 xs := [1, 2, 3]
-remove(xs, 99)                    // nao acha, nao reclama
+remove(xs, 99)  // nao acha, nao reclama
 assert xs is [1, 2, 3]
 remove(xs, 2)
 assert xs is [1, 3]
 
 v := {"a": 1, "b": 2}
-remove(v, "z")                    // pela CHAVE, e tambem calado
+remove(v, "z")  // pela CHAVE, e tambem calado
 assert len(v) is 2
-assert pop(v, "a") is 1           // devolve o valor
+assert pop(v, "a") is 1  // devolve o valor
 assert v is {"b": 2}
 
 levantou := no
 monitor:
-    pop(v, "z")                   // a chave nao esta la
+    pop(v, "z")  // a chave nao esta la
 handle Error as e:
     levantou := yes
 assert levantou
@@ -74,7 +74,7 @@ record Coordenada:
     y: Integer
 c := Coordenada(10, 20)
 assert c.x is 10
-assert Coordenada(10, 20) is c     // igualdade por conteudo
+assert Coordenada(10, 20) is c  // igualdade por conteudo
 
 // ── 6.3 Set ──
 //
@@ -90,9 +90,9 @@ assert typeof(ids) is "Set"
 
 a := Col.set([1, 2, 3])
 b := Col.set([3, 4])
-assert sorted(cluster(Col.union(a, b)))                is [1, 2, 3, 4]
-assert sorted(cluster(Col.intersection(a, b)))         is [3]
-assert sorted(cluster(Col.difference(a, b)))           is [1, 2]
+assert sorted(cluster(Col.union(a, b))) is [1, 2, 3, 4]
+assert sorted(cluster(Col.intersection(a, b))) is [3]
+assert sorted(cluster(Col.difference(a, b))) is [1, 2]
 assert sorted(cluster(Col.symmetric_difference(a, b))) is [1, 2, 4]
 assert Col.is_subset(Col.set([1, 2]), a)
 
@@ -143,11 +143,11 @@ assert sorted(unicos) is [0, 1, 2]
 
 // ── 6.6 Fatiar ──
 letras := ["a", "b", "c", "d", "e"]
-assert letras[1:3]  is ["b", "c"]
-assert letras[:2]   is ["a", "b"]
-assert letras[3:]   is ["d", "e"]
+assert letras[1:3] is ["b", "c"]
+assert letras[:2] is ["a", "b"]
+assert letras[3:] is ["d", "e"]
 assert letras[::-1] is ["e", "d", "c", "b", "a"]
-assert letras[-1]   is "e"
+assert letras[-1] is "e"
 
 // ── 6.7 Spread e desestruturacao ──
 juntos := [...[1, 2], ...[3, 4]]
@@ -159,7 +159,7 @@ assert resto is [2, 3, 4]
 
 padrao := {"porta": 80, "host": "local"}
 com_extra := {...padrao, "porta": 8080}
-assert com_extra["porta"] is 8080          // a direita vence
+assert com_extra["porta"] is 8080  // a direita vence
 assert com_extra["host"] is "local"
 
 // ── 6.8 Pipeline: filtrar, transformar, reduzir ──

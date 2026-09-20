@@ -144,7 +144,7 @@ record CriarUsuario:
 
 action validar(entrada: Vault) -> Cluster:
     erros := []
-    given (entrada["nome"] ?? "").strip() is "":
+    given(entrada["nome"] ?? "").strip() is "":
         erros.append("nome e obrigatorio")
     given not regex_test("^[\\w.-]+@[\\w.-]+\\.\\w+$", entrada["email"] ?? ""):
         erros.append("e-mail invalido")

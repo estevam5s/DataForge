@@ -52,12 +52,12 @@ assert contadas is 4
 // maquina.
 p := IO.join("a", "b", "c.txt")
 assert IO.basename(p) is "c.txt"
-assert IO.ext(p)      is ".txt"
+assert IO.ext(p) is ".txt"
 assert "b" in IO.dirname(p)
 
 // ── 9.5 Diretorios ──
 pasta := IO.join(base, "data", "bruto")
-IO.mkdir(pasta)                       // cria a arvore inteira
+IO.mkdir(pasta)  // cria a arvore inteira
 assert IO.exists(pasta)
 
 IO.write(IO.join(pasta, "um.txt"), "1")
@@ -87,7 +87,7 @@ assert r["ok"] is no
 assert r["value"] is {}
 assert "double quotes" in r["error"]
 
-bom := Serde.from_json_safe("{\"a\": 1}", {})
+bom := Serde.from_json_safe('{"a": 1}', {})
 assert bom["ok"]
 assert bom["value"]["a"] is 1
 
@@ -114,7 +114,7 @@ assert len(registros) is 2
 // VALOR inteiro, e nao convertem texto.)
 assert encode("Hi") is [72, 105]
 assert decode([72, 105]) is "Hi"
-assert encode("é") is [195, 169]          // UTF-8: dois bytes
+assert encode("é") is [195, 169]  // UTF-8: dois bytes
 assert ord("A") is 65
 assert char(65) is "A"
 

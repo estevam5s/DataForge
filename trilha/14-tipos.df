@@ -55,8 +55,8 @@ action buscar(id: Integer):
 
 assert buscar(1) is "Ana"
 assert buscar(99) is void
-assert (buscar(99) ?? "nao achei") is "nao achei"
-assert buscar(99)?.upper() is void        // nao levanta
+assert(buscar(99) ?? "nao achei") is "nao achei"
+assert buscar(99)?.upper() is void  // nao levanta
 
 // ── 14.4 Uniao ──
 //
@@ -72,9 +72,9 @@ action converter(valor) -> String:
         default:
             yield $"outro ({typeof(valor)})"
 
-assert converter(7)    is "inteiro 7"
-assert converter("a")  is "texto a"
-assert converter(1.5)  is "outro (Float)"
+assert converter(7) is "inteiro 7"
+assert converter("a") is "texto a"
+assert converter(1.5) is "outro (Float)"
 
 // ── 14.5 Protocolo: 'trait' ──
 //
@@ -145,7 +145,7 @@ assert maior(3, 8) is 8
 assert maior(2.5, 1) is 2.5
 
 monitor:
-    _ := maior("a", "b")    // df: permitir generic-bound
+    _ := maior("a", "b")  // df: permitir generic-bound
     assert no, "nao chega aqui"
 handle Error as e:
     assert "extends Number" in e.message

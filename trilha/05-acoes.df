@@ -21,8 +21,8 @@ assert multiplicar(3, 4) is 12
 // ── 5.3 Valor padrao ──
 action saudar(nome := "Visitante") -> String:
     yield $"Ola, {nome}"
-assert saudar()       is "Ola, Visitante"
-assert saudar("Ana")  is "Ola, Ana"
+assert saudar() is "Ola, Visitante"
+assert saudar("Ana") is "Ola, Ana"
 
 // ── 5.4 Argumentos nomeados ──
 action criar_usuario(nome: String, idade: Integer) -> Vault:
@@ -131,6 +131,6 @@ action soma_ate(n: Integer, acumulado: Integer) -> Integer:
     given n is 0:
         yield acumulado
     yield soma_ate(n - 1, acumulado + n)
-assert soma_ate(5000, 0) is 12502500    // 5 mil quadros, sem estourar
+assert soma_ate(5000, 0) is 12502500  // 5 mil quadros, sem estourar
 
 out "5. Acoes — ok"
