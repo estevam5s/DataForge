@@ -1,0 +1,1191 @@
+{
+  "componentes": [
+    {
+      "aqui": "nao ha um binario 'dfc' separado: o driver e o proprio 'dataforge', e cada fase tem um comando que a mostra ('tokens', 'ast', 'ir', 'percurso')",
+      "estado": "equivale",
+      "grupo": "dfc — o compilador",
+      "no": "Driver",
+      "o_que_e": "o programa que recebe o arquivo e conduz as fases",
+      "onde": [
+        "dataforge/cli.py",
+        "dataforge/caminhos.py",
+        "dataforge/cache.py"
+      ],
+      "porque": "um segundo executavel duplicaria a resolucao de caminho e a leitura do forge.toml"
+    },
+    {
+      "aqui": "'tokenize()'; as 81 palavras reservadas vivem em KEYWORDS",
+      "estado": "existe",
+      "grupo": "dfc — o compilador",
+      "no": "Lexer",
+      "o_que_e": "texto -> tokens, com INDENT/DEDENT e interpolacao",
+      "onde": [
+        "dataforge/lexer.py",
+        "dataforge/tokens.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'parse()'; as palavras contextuais (Kiln, OOP, quadro) sao reconhecidas aqui e nao em KEYWORDS",
+      "estado": "existe",
+      "grupo": "dfc — o compilador",
+      "no": "Parser",
+      "o_que_e": "tokens -> arvore, recursivo descendente",
+      "onde": [
+        "dataforge/parser.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "dataclasses com padroes; o interpretador despacha pelo nome da classe",
+      "estado": "existe",
+      "grupo": "dfc — o compilador",
+      "no": "AST",
+      "o_que_e": "os nos da arvore",
+      "onde": [
+        "dataforge/ast_nodes.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'normalizar()' abre 5 acucares; 8 construcoes NAO sao acucar, e cada uma diz por que",
+      "estado": "existe",
+      "grupo": "dfc — o compilador",
+      "no": "HIR",
+      "o_que_e": "a arvore depois do acucar sintatico",
+      "onde": [
+        "dataforge/hir.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'check_program()'; atravessa arquivos pela superficie, e e otimista de proposito — cala quando nao consegue provar",
+      "estado": "existe",
+      "grupo": "dfc — o compilador",
+      "no": "Type Checker",
+      "o_que_e": "nomes, aridade, tipos, alcance",
+      "onde": [
+        "dataforge/typechecker.py",
+        "dataforge/diagnosticos.py",
+        "dataforge/tipos_nomeados.py",
+        "dataforge/colecoes_tipadas.py",
+        "dataforge/superficie.py",
+        "dataforge/resolucao.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'Arcane.Posse' da posse exclusiva, emprestimo com escopo e contagem deterministica, e o 'check' acusa 'posse-movida', 'recurso-vazado' e 'emprestimo-escapa'",
+      "estado": "equivale",
+      "grupo": "dfc — o compilador",
+      "no": "Borrow Checker",
+      "o_que_e": "provar, antes de rodar, que nenhuma referencia sobrevive ao dono",
+      "onde": [
+        "dataforge/stdlib/arcane_posse.py"
+      ],
+      "porque": "num mundo com coletor, a integridade da memoria nunca esteve em risco: o que se protege e o PROTOCOLO (soltar uma vez, nao usar depois). Nao ha tempo de vida declarado, e por isso nao e um borrow checker"
+    },
+    {
+      "aqui": "'construir()'; as arestas tem nome ('sim', 'nao', 'volta', 'halt', 'skip', 'erro', 'point', 'defer')",
+      "estado": "existe",
+      "grupo": "dfc — o compilador",
+      "no": "MIR",
+      "o_que_e": "o grafo de fluxo: bloco basico e aresta rotulada",
+      "onde": [
+        "dataforge/mir.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'alcancaveis', 'vivas', 'talvez_nao_definidas', 'constantes', 'escapam'; e SSA com nos phi e SCCP",
+      "estado": "existe",
+      "grupo": "dfc — o compilador",
+      "no": "Dataflow Analyzer",
+      "o_que_e": "alcance, vivacidade, constantes, escapatoria",
+      "onde": [
+        "dataforge/mir.py",
+        "dataforge/ssa.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'inventario()' diz o que o compilador de fechamentos compilou e o que RECUOU para a arvore — que e o mapa de onde o tempo vai",
+      "estado": "existe",
+      "grupo": "dfc — o compilador",
+      "no": "LIR",
+      "o_que_e": "a ultima representacao antes de gerar codigo",
+      "onde": [
+        "dataforge/lir.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "o backend e 'compilador.py': a arvore e percorrida uma vez e vira fechamentos Python, o que tira o despacho do caminho quente. Medido: 1,5x a 1,8x",
+      "estado": "nao-existe",
+      "grupo": "dfc — o compilador",
+      "no": "LLVM Backend",
+      "o_que_e": "emitir IR do LLVM e deixa-lo gerar codigo nativo",
+      "onde": [
+        "dataforge/compilador.py",
+        "dataforge/otimizar.py",
+        "dataforge/cauda.py"
+      ],
+      "porque": "amarrar o LLVM tiraria a unica propriedade inegociavel do projeto — zero dependencia externa no runtime. E o teto desta tecnica, como o de uma VM de bytecode escrita em Python, e ~6,5x: o resto exigiria sair do Python, que e outra linguagem, nao outra fase"
+    },
+    {
+      "aqui": "nao ha. O que sai do compilador e um fechamento, e quem o executa e 'interpreter.py'",
+      "estado": "nao-existe",
+      "grupo": "dfc — o compilador",
+      "no": "Code Generator",
+      "o_que_e": "emitir codigo de maquina",
+      "onde": [],
+      "porque": "sem backend nativo nao ha o que gerar. 'dataforge ir --fase=lir' e onde isso fica visivel, e e de proposito: a fase existe no mapa para que a ausencia tenha lugar"
+    },
+    {
+      "aqui": "uma venv por versao em '~/.dataforge/versoes/<versao>'; 'versions' lista, 'use' fixa (no forge.toml, ou global com '--global'), 'upgrade' instala ao lado. E o pino e COBRADO: 'run' num projeto que exige outra versao entrega a execucao a ela",
+      "estado": "existe",
+      "grupo": "dfup — versoes",
+      "no": "Version Manager",
+      "o_que_e": "instalar, alternar e fixar versoes lado a lado",
+      "onde": [
+        "dataforge/versoes.py",
+        "scripts/instalar.sh",
+        "scripts/instalar.ps1"
+      ],
+      "porque": "o limite: nao ha um 'shim' no PATH. O 'dataforge' que se chama e o que esta instalado, e e ele que redireciona — com 'DATAFORGE_SEM_TROCA=1' para ignorar o pino uma vez"
+    },
+    {
+      "aqui": "10 comandos; o registro e ESTATICO — uma pasta com 'index.json' servida por qualquer host, sem servidor a manter",
+      "estado": "existe",
+      "grupo": "dfpm — pacotes",
+      "no": "Package Manager",
+      "o_que_e": "resolver, baixar, instalar, empacotar, publicar",
+      "onde": [
+        "dataforge/packages.py",
+        "dataforge/registro_remoto.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'resolver()' com '^', '~' e '>='; conflito de versao e ERRO, nao aviso, e a mensagem diz quem pediu o que",
+      "estado": "existe",
+      "grupo": "dfpm — pacotes",
+      "no": "Dependency Resolver",
+      "o_que_e": "semver, faixas e trava",
+      "onde": [
+        "dataforge/packages.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'forge.toml' descreve o projeto e 'dataforge devops' gera Dockerfile, compose, CI, manifestos e SBOM",
+      "estado": "equivale",
+      "grupo": "dfpm — pacotes",
+      "no": "Build System",
+      "o_que_e": "compilar o projeto e suas dependencias num artefato",
+      "onde": [
+        "dataforge/project.py",
+        "dataforge/devops.py",
+        "dataforge/devops_cli.py"
+      ],
+      "porque": "nao havendo compilacao para binario, nao ha etapa de build a orquestrar: o artefato e o codigo mais o 'forge.lock'"
+    },
+    {
+      "aqui": "'dataforge workspace' acha todo 'forge.toml' da arvore, lista os pacotes e ACUSA faixa incompativel do mesmo terceiro — a interseccao sai da mesma classe que o 'resolver' usa. Sai com 2 quando ha conflito",
+      "estado": "existe",
+      "grupo": "dfpm — pacotes",
+      "no": "Workspace Manager",
+      "o_que_e": "varios pacotes num repositorio, vistos de uma vez",
+      "onde": [
+        "dataforge/versoes.py",
+        "dataforge/modelos.py",
+        "dataforge/scaffold.py"
+      ],
+      "porque": "ele LE e relata: nao instala. Instalar a arvore inteira de um comando que a pessoa rodou para 'ver o que tem' seria mexer em disco sem ser pedido"
+    },
+    {
+      "aqui": "interpretador de arvore, com despacho por classe e corpos compilados em fechamento",
+      "estado": "existe",
+      "grupo": "Runtime",
+      "no": "Execution Engine",
+      "o_que_e": "quem executa de fato",
+      "onde": [
+        "dataforge/interpreter.py",
+        "dataforge/environment.py",
+        "dataforge/builtins.py",
+        "dataforge/objetos.py",
+        "dataforge/magicos.py"
+      ],
+      "porque": "o desenho do documento nao tem esta peca porque supoe compilacao antecipada — aqui ela e o centro"
+    },
+    {
+      "aqui": "o alocador e o do CPython. 'Arcane.Memoria' da arena, referencia fraca, mapa fraco e controle do coletor (ligar, desligar, limiares, congelar)",
+      "estado": "nao-existe",
+      "grupo": "Runtime",
+      "no": "Allocator",
+      "o_que_e": "um alocador proprio, com arena, pool e estrategia escolhida por quem escreve",
+      "onde": [
+        "dataforge/stdlib/arcane_memoria.py"
+      ],
+      "porque": "trocar o alocador exigiria estar do lado de fora do CPython. O que se pode fazer daqui — e se faz — e mandar no COLETOR e medir a pausa dele"
+    },
+    {
+      "aqui": "fila de prontas, monte de temporizadores e selector; 'Fibra' para corrotina com ceder explicito",
+      "estado": "existe",
+      "grupo": "Runtime",
+      "no": "Scheduler",
+      "o_que_e": "decidir quem roda agora",
+      "onde": [
+        "dataforge/stdlib/arcane_laco.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "chamar acao 'async' comeca o trabalho numa thread e devolve tarefa; 'await' espera",
+      "estado": "existe",
+      "grupo": "Runtime",
+      "no": "Async Runtime",
+      "o_que_e": "'async'/'await' com sobreposicao de entrada e saida",
+      "onde": [
+        "dataforge/stdlib/arcane_laco.py",
+        "dataforge/stdlib/arcane_paralelo.py"
+      ],
+      "porque": "trabalho de CPU nao se sobrepoe: o GIL continua no caminho, e a resposta ali e 'P.map_processos'"
+    },
+    {
+      "aqui": "'Laco' com acordar por socketpair; medido ~1,1x o tempo da versao com threads na carga de entrada e saida",
+      "estado": "existe",
+      "grupo": "Runtime",
+      "no": "Event Loop",
+      "o_que_e": "um laco que espera em soquete e temporizador",
+      "onde": [
+        "dataforge/stdlib/arcane_laco.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'thread'/'parallel' para entrada e saida; para CPU, 'travessia.py' copia a DECLARACAO da acao para outro processo. Medido: 3,45x em 10 nucleos",
+      "estado": "existe",
+      "grupo": "Runtime",
+      "no": "Thread Runtime",
+      "o_que_e": "threads, e mais de um nucleo",
+      "onde": [
+        "dataforge/travessia.py",
+        "dataforge/stdlib/arcane_paralelo.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "177 codigos, o trecho desenhado com a seta, 'doc=' apontando a rota da documentacao, e o runtime falando portugues ('DF_IDIOMA=en' volta ao ingles)",
+      "estado": "existe",
+      "grupo": "Runtime",
+      "no": "Error Runtime",
+      "o_que_e": "levantar, propagar, desenhar",
+      "onde": [
+        "dataforge/errors.py",
+        "dataforge/catalogo_erros.py",
+        "dataforge/idioma.py",
+        "dataforge/docs_links.py",
+        "dataforge/cauda.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "nao ha, e nao ha caminho a partir daqui: o runtime e o CPython",
+      "estado": "nao-existe",
+      "grupo": "Runtime",
+      "no": "Bare-Metal Runtime",
+      "o_que_e": "rodar sem sistema operacional",
+      "onde": [],
+      "porque": "'Arcane.Alvo' nomeia 'embarcado' com o que falta em cada capacidade, justamente para que a ausencia apareca antes de alguem tentar"
+    },
+    {
+      "aqui": "'dataforge lsp'; a extensao do VS Code o instala",
+      "estado": "existe",
+      "grupo": "Tooling",
+      "no": "LSP",
+      "o_que_e": "hover, completar, ir-para, diagnostico no editor",
+      "onde": [
+        "dataforge/lsp.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'debug' no terminal (serve por ssh) e 'dap' no painel do editor, com vigia de valor",
+      "estado": "existe",
+      "grupo": "Tooling",
+      "no": "Debugger",
+      "o_que_e": "parar, olhar, andar",
+      "onde": [
+        "dataforge/depurador.py",
+        "dataforge/dap.py"
+      ],
+      "porque": "e a peca que o desenho do documento nao lista, e a que mais se usa"
+    },
+    {
+      "aqui": "'dataforge fmt'; idempotente, com teste cobrando isso",
+      "estado": "existe",
+      "grupo": "Tooling",
+      "no": "Formatter",
+      "o_que_e": "formatar",
+      "onde": [
+        "dataforge/formatter.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'dataforge lint', com '// df: permitir <regra>' para silenciar uma regra NOMEADA",
+      "estado": "existe",
+      "grupo": "Tooling",
+      "no": "Linter",
+      "o_que_e": "estilo e higiene",
+      "onde": [
+        "dataforge/linter.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'dataforge test --cobertura --minimo=80'; o denominador sai do parser e o numerador de 'execute' sombreado",
+      "estado": "existe",
+      "grupo": "Tooling",
+      "no": "Test Runner",
+      "o_que_e": "descobrir e rodar testes, com cobertura",
+      "onde": [
+        "dataforge/testrunner.py",
+        "dataforge/cobertura.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'dataforge bench' mede e 'dataforge big-o' LE a complexidade da arvore — as duas erram de formas opostas, e por isso existem as duas",
+      "estado": "existe",
+      "grupo": "Tooling",
+      "no": "Benchmark Runner",
+      "o_que_e": "medir, e classificar a curva",
+      "onde": [
+        "dataforge/stdlib/arcane_bench.py",
+        "dataforge/complexidade.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'dataforge profile' mostra tempo PROPRIO por acao; 'Arcane.Perfil' tem percentis, flame graph em SVG, pausas do coletor e Mann-Whitney para dizer se a diferenca e real",
+      "estado": "existe",
+      "grupo": "Tooling",
+      "no": "Profiler",
+      "o_que_e": "onde o tempo vai",
+      "onde": [
+        "dataforge/stdlib/arcane_perfil.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'dataforge doc'; e ao lado dele o REPL, as metricas CK do 'oop', os conversores e as CLIs da Vitrine e do Telegram",
+      "estado": "existe",
+      "grupo": "Tooling",
+      "no": "Documentation Generator",
+      "o_que_e": "Markdown a partir dos comentarios",
+      "onde": [
+        "dataforge/docgen.py",
+        "dataforge/exemplos_palavras.py",
+        "dataforge/oop_analise.py",
+        "dataforge/repl.py",
+        "dataforge/migrar.py",
+        "dataforge/migrar_js.py",
+        "dataforge/vitrine_cli.py",
+        "dataforge/telegram_cli.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "'Arcane.C': biblioteca, ponteiro cru, struct conferida contra a ABI, callback — o 'qsort' do C chamando uma acao DataForge",
+      "estado": "existe",
+      "grupo": "Interoperabilidade",
+      "no": "FFI / C",
+      "o_que_e": "chamar biblioteca nativa",
+      "onde": [
+        "dataforge/stdlib/arcane_c.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "a ponte NAO converte: um 'ndarray' continua um 'ndarray', e isso so funciona porque o interpretador trata objeto estranho por protocolo",
+      "estado": "existe",
+      "grupo": "Interoperabilidade",
+      "no": "Ponte para o Python",
+      "o_que_e": "'adopt Python.numpy as np'",
+      "onde": [
+        "dataforge/ponte.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "nao ha layout a quebrar; ha o mesmo PROBLEMA com outro nome — 'Arcane.Abi' compara duas versoes de um modulo e diz qual bump de semver a mudanca exige",
+      "estado": "equivale",
+      "grupo": "Interoperabilidade",
+      "no": "ABI e simbolos",
+      "o_que_e": "layout binario, ligador e mapa de simbolos",
+      "onde": [
+        "dataforge/stdlib/arcane_abi.py"
+      ],
+      "porque": "o sintoma e identico: nao e erro de quem publicou, e de quem consome, depois"
+    },
+    {
+      "aqui": "o release constroi nas quatro plataformas (Linux, macOS Intel, macOS ARM, Windows) e roda exemplos e exercicios PELO BINARIO",
+      "estado": "existe",
+      "grupo": "Alvos",
+      "no": "Linux, macOS, Windows",
+      "o_que_e": "os tres sistemas de mesa e servidor",
+      "onde": [
+        "scripts/instalar.sh",
+        "scripts/instalar.ps1",
+        "Dockerfile"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "o macOS ARM e construido e testado a cada tag; onde o CPython roda, o DataForge roda",
+      "estado": "existe",
+      "grupo": "Alvos",
+      "no": "ARM, ARM64",
+      "o_que_e": "as arquiteturas do Apple Silicon e dos servidores ARM",
+      "onde": [
+        ".github/workflows/release.yml"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "nao ha nada de arquitetura no projeto: se ha CPython 3.10+, roda. Nao e testado, e dizer 'suportado' seria prometer o que ninguem verificou",
+      "estado": "equivale",
+      "grupo": "Alvos",
+      "no": "RISC-V",
+      "o_que_e": "a arquitetura aberta",
+      "onde": [],
+      "porque": "a portabilidade aqui e herdada, nao construida — o que e uma vantagem e um limite ao mesmo tempo"
+    },
+    {
+      "aqui": "COMPILAR para WASM nao existe. RODAR em WASM funciona, pelo Pyodide — com o interpretador inteiro junto",
+      "estado": "equivale",
+      "grupo": "Alvos",
+      "no": "WASM",
+      "o_que_e": "compilar para WebAssembly",
+      "onde": [
+        "dataforge/stdlib/arcane_alvo.py"
+      ],
+      "porque": "sao duas frases diferentes, e confundi-las e a maneira mais rapida de prometer um alvo que nao se entrega"
+    },
+    {
+      "aqui": "nao ha",
+      "estado": "nao-existe",
+      "grupo": "Alvos",
+      "no": "Bare-Metal",
+      "o_que_e": "sem sistema operacional",
+      "onde": [],
+      "porque": "exigiria outro runtime inteiro; 'Arcane.Alvo' diz o que falta em cada capacidade do alvo 'embarcado'"
+    }
+  ],
+  "fases": [
+    {
+      "fase": "lexer",
+      "modulo": "dataforge/lexer.py",
+      "o_que_faz": "texto -> tokens, com INDENT/DEDENT e interpolacao"
+    },
+    {
+      "fase": "parser",
+      "modulo": "dataforge/parser.py",
+      "o_que_faz": "tokens -> arvore, recursivo descendente"
+    },
+    {
+      "fase": "hir",
+      "modulo": "dataforge/hir.py",
+      "o_que_faz": "abre o acucar sintatico e deixa o nucleo"
+    },
+    {
+      "fase": "tipos",
+      "modulo": "dataforge/typechecker.py",
+      "o_que_faz": "nomes, aridade, tipos, alcance — e atravessa arquivos"
+    },
+    {
+      "fase": "mir",
+      "modulo": "dataforge/mir.py",
+      "o_que_faz": "o grafo de fluxo: bloco basico e aresta rotulada"
+    },
+    {
+      "fase": "analises",
+      "modulo": "dataforge/mir.py",
+      "o_que_faz": "alcance, vivacidade, constantes, escapatoria"
+    },
+    {
+      "fase": "ssa",
+      "modulo": "dataforge/ssa.py",
+      "o_que_faz": "uma definicao por nome, com os nos phi das juncoes"
+    },
+    {
+      "fase": "otimizar",
+      "modulo": "dataforge/otimizar.py",
+      "o_que_faz": "dobra de constante, ramo morto, inalcancavel"
+    },
+    {
+      "fase": "lir",
+      "modulo": "dataforge/lir.py",
+      "o_que_faz": "o que desce para fechamento, e o que recua"
+    },
+    {
+      "fase": "execucao",
+      "modulo": "dataforge/interpreter.py",
+      "o_que_faz": "chamar os fechamentos — NAO percorrida, de proposito"
+    }
+  ],
+  "gruposDeComponente": [
+    {
+      "componentes": 12,
+      "existem": 8,
+      "grupo": "dfc — o compilador"
+    },
+    {
+      "componentes": 1,
+      "existem": 1,
+      "grupo": "dfup — versoes"
+    },
+    {
+      "componentes": 4,
+      "existem": 3,
+      "grupo": "dfpm — pacotes"
+    },
+    {
+      "componentes": 8,
+      "existem": 6,
+      "grupo": "Runtime"
+    },
+    {
+      "componentes": 8,
+      "existem": 8,
+      "grupo": "Tooling"
+    },
+    {
+      "componentes": 3,
+      "existem": 2,
+      "grupo": "Interoperabilidade"
+    },
+    {
+      "componentes": 5,
+      "existem": 2,
+      "grupo": "Alvos"
+    }
+  ],
+  "modulos": [
+    {
+      "modulos": [
+        {
+          "chave": "math",
+          "desc": "Matemática, álgebra linear e estatística básica",
+          "nome": "Arcane.Math",
+          "simbolos": 72
+        },
+        {
+          "chave": "text",
+          "desc": "Manipulação de texto, formatação, tabelas e conversão de caixa",
+          "nome": "Arcane.Text",
+          "simbolos": 59
+        },
+        {
+          "chave": "io",
+          "desc": "Arquivos, diretórios, JSON, CSV e shell",
+          "nome": "Arcane.IO",
+          "simbolos": 33
+        },
+        {
+          "chave": "regex",
+          "desc": "Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone)",
+          "nome": "Arcane.Regex",
+          "simbolos": 46
+        },
+        {
+          "chave": "collections",
+          "desc": "Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca",
+          "nome": "Arcane.Collections",
+          "simbolos": 63
+        },
+        {
+          "chave": "functional",
+          "desc": "Utilitários funcionais: composição, lentes, Maybe/Either, transdutores",
+          "nome": "Arcane.Functional",
+          "simbolos": 56
+        },
+        {
+          "chave": "iter",
+          "desc": "Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize",
+          "nome": "Arcane.Iter",
+          "simbolos": 44
+        },
+        {
+          "chave": "decimal",
+          "desc": "Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão",
+          "nome": "Arcane.Decimal",
+          "simbolos": 16
+        },
+        {
+          "chave": "bytes",
+          "desc": "Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que ol",
+          "nome": "Arcane.Bytes",
+          "simbolos": 25
+        }
+      ],
+      "rotulo": "Núcleo"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "kiln",
+          "desc": "Framework web: rotas, middleware, templates, sessão e arquivos estáticos",
+          "nome": "Kiln",
+          "simbolos": 73
+        },
+        {
+          "chave": "vitrine",
+          "desc": "O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráfi",
+          "nome": "Arcane.Vitrine",
+          "simbolos": 213
+        },
+        {
+          "chave": "telegram",
+          "desc": "Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando,",
+          "nome": "Arcane.Telegram",
+          "simbolos": 34
+        },
+        {
+          "chave": "lavra",
+          "desc": "A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles",
+          "nome": "Arcane.Lavra",
+          "simbolos": 42
+        },
+        {
+          "chave": "crucible",
+          "desc": "Framework de testes: suítes, matchers, fixtures, dublês e benchmark",
+          "nome": "Arcane.Crucible",
+          "simbolos": 60
+        },
+        {
+          "chave": "forge",
+          "desc": "Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface",
+          "nome": "Arcane.Forge",
+          "simbolos": 28
+        },
+        {
+          "chave": "api",
+          "desc": "A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas",
+          "nome": "Arcane.API",
+          "simbolos": 7
+        }
+      ],
+      "rotulo": "Frameworks"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "quadro",
+          "desc": "A tabela de dados: colunas nomeadas e linhas como vault",
+          "nome": "Arcane.Quadro",
+          "simbolos": 10
+        },
+        {
+          "chave": "data",
+          "desc": "DataFrames, séries e transformações tabulares",
+          "nome": "Arcane.Data",
+          "simbolos": 13
+        },
+        {
+          "chave": "analytics",
+          "desc": "Análise de dados: estatística, regressão, clustering e gráficos ASCII",
+          "nome": "Arcane.Analytics",
+          "simbolos": 65
+        },
+        {
+          "chave": "cortex",
+          "desc": "Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA",
+          "nome": "Arcane.Cortex",
+          "simbolos": 25
+        },
+        {
+          "chave": "lago",
+          "desc": "Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação",
+          "nome": "Arcane.Lago",
+          "simbolos": 18
+        },
+        {
+          "chave": "pipeline",
+          "desc": "Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório",
+          "nome": "Arcane.Pipeline",
+          "simbolos": 11
+        },
+        {
+          "chave": "qualidade",
+          "desc": "Qualidade de dados: as seis dimensões, perfil, validação e limpeza",
+          "nome": "Arcane.Qualidade",
+          "simbolos": 13
+        },
+        {
+          "chave": "stream",
+          "desc": "Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo",
+          "nome": "Arcane.Stream",
+          "simbolos": 17
+        }
+      ],
+      "rotulo": "Dados"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "serialization",
+          "desc": "JSON, CSV, INI, TOML, XML e conversões entre eles",
+          "nome": "Arcane.Serialization",
+          "simbolos": 26
+        },
+        {
+          "chave": "excel",
+          "desc": "Planilhas ",
+          "nome": "Arcane.Excel",
+          "simbolos": 29
+        },
+        {
+          "chave": "archive",
+          "desc": "Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb",
+          "nome": "Arcane.Archive",
+          "simbolos": 13
+        },
+        {
+          "chave": "database",
+          "desc": "Banco de dados SQLite: tabelas, consultas, migrações e importação",
+          "nome": "Arcane.Database",
+          "simbolos": 64
+        },
+        {
+          "chave": "html",
+          "desc": "Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar de",
+          "nome": "Arcane.Html",
+          "simbolos": 11
+        }
+      ],
+      "rotulo": "Formatos"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "os",
+          "desc": "Sistema operacional, ambiente, disco e processo atual",
+          "nome": "Arcane.OS",
+          "simbolos": 43
+        },
+        {
+          "chave": "process",
+          "desc": "Execução de processos externos, com stdout, stderr e código de saída",
+          "nome": "Arcane.Process",
+          "simbolos": 15
+        },
+        {
+          "chave": "time",
+          "desc": "Datas, horas, durações e cronometragem",
+          "nome": "Arcane.Time",
+          "simbolos": 54
+        },
+        {
+          "chave": "http",
+          "desc": "Servidor HTTP: rotas, middleware, JSON, arquivos estáticos",
+          "nome": "Arcane.Http",
+          "simbolos": 17
+        },
+        {
+          "chave": "web",
+          "desc": "Cliente HTTP, URL encoding e JSON",
+          "nome": "Arcane.Web",
+          "simbolos": 11
+        },
+        {
+          "chave": "async",
+          "desc": "Promessas, filas, agendamento e execução concorrente",
+          "nome": "Arcane.Async",
+          "simbolos": 52
+        },
+        {
+          "chave": "concurrent",
+          "desc": "Threads, processos, canal bloqueante, grupo de tarefas e prazo",
+          "nome": "Arcane.Concurrent",
+          "simbolos": 33
+        },
+        {
+          "chave": "ponte",
+          "desc": "A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve",
+          "nome": "Arcane.Ponte",
+          "simbolos": 12
+        },
+        {
+          "chave": "malha",
+          "desc": "Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação au",
+          "nome": "Arcane.Malha",
+          "simbolos": 23
+        },
+        {
+          "chave": "rede",
+          "desc": "TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta liv",
+          "nome": "Arcane.Rede",
+          "simbolos": 16
+        },
+        {
+          "chave": "email",
+          "desc": "Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de tes",
+          "nome": "Arcane.Email",
+          "simbolos": 6
+        },
+        {
+          "chave": "url",
+          "desc": "Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query st",
+          "nome": "Arcane.Url",
+          "simbolos": 14
+        }
+      ],
+      "rotulo": "Sistema e rede"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "test",
+          "desc": "Asserções e organização de suítes de teste",
+          "nome": "Arcane.Test",
+          "simbolos": 34
+        },
+        {
+          "chave": "bench",
+          "desc": "Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em taman",
+          "nome": "Arcane.Bench",
+          "simbolos": 7
+        },
+        {
+          "chave": "logging",
+          "desc": "Registro estruturado de eventos, com níveis e destinos",
+          "nome": "Arcane.Logging",
+          "simbolos": 14
+        },
+        {
+          "chave": "crypto",
+          "desc": "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305)",
+          "nome": "Arcane.Crypto",
+          "simbolos": 52
+        },
+        {
+          "chave": "seguranca",
+          "desc": "Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de s",
+          "nome": "Arcane.Seguranca",
+          "simbolos": 51
+        },
+        {
+          "chave": "observar",
+          "desc": "Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados",
+          "nome": "Arcane.Observar",
+          "simbolos": 19
+        },
+        {
+          "chave": "color",
+          "desc": "Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore",
+          "nome": "Arcane.Color",
+          "simbolos": 66
+        },
+        {
+          "chave": "meta",
+          "desc": "Metadados de decorador: ler @Nome em tempo de execução",
+          "nome": "Arcane.Meta",
+          "simbolos": 12
+        },
+        {
+          "chave": "cli",
+          "desc": "A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada ",
+          "nome": "Arcane.Cli",
+          "simbolos": 12
+        },
+        {
+          "chave": "eventos",
+          "desc": "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de",
+          "nome": "Arcane.Eventos",
+          "simbolos": 10
+        }
+      ],
+      "rotulo": "Qualidade"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "reflexo",
+          "desc": "Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilida",
+          "nome": "Arcane.Reflexo",
+          "simbolos": 38
+        },
+        {
+          "chave": "objetos",
+          "desc": "Cópia rasa e funda, congelamento, igualdade estrutural, hash coerente, ordenação por campos e serialização polimórfica que só reconstrói os tipos auto",
+          "nome": "Arcane.Objetos",
+          "simbolos": 13
+        },
+        {
+          "chave": "injecao",
+          "desc": "Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor",
+          "nome": "Arcane.Injecao",
+          "simbolos": 5
+        },
+        {
+          "chave": "padroes",
+          "desc": "Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, e",
+          "nome": "Arcane.Padroes",
+          "simbolos": 20
+        }
+      ],
+      "rotulo": "Objetos"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "dominio",
+          "desc": "As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade po",
+          "nome": "Arcane.Dominio",
+          "simbolos": 18
+        },
+        {
+          "chave": "reativo",
+          "desc": "Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS ",
+          "nome": "Arcane.Reativo",
+          "simbolos": 14
+        },
+        {
+          "chave": "estrutura",
+          "desc": "Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conf",
+          "nome": "Arcane.Estrutura",
+          "simbolos": 15
+        }
+      ],
+      "rotulo": "Domínio"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "tipos",
+          "desc": "Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de ",
+          "nome": "Arcane.Tipos",
+          "simbolos": 10
+        },
+        {
+          "chave": "resultado",
+          "desc": "A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'tod",
+          "nome": "Arcane.Resultado",
+          "simbolos": 13
+        }
+      ],
+      "rotulo": "Tipos"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "posse",
+          "desc": "Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (mu",
+          "nome": "Arcane.Posse",
+          "simbolos": 16
+        },
+        {
+          "chave": "memoria",
+          "desc": "O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, instâncias vivas por blueprint, tamanho e layout",
+          "nome": "Arcane.Memoria",
+          "simbolos": 24
+        }
+      ],
+      "rotulo": "Memória"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "laco",
+          "desc": "O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao",
+          "nome": "Arcane.Laco",
+          "simbolos": 25
+        },
+        {
+          "chave": "stm",
+          "desc": "Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem",
+          "nome": "Arcane.Stm",
+          "simbolos": 13
+        },
+        {
+          "chave": "perfil",
+          "desc": "Medir com rigor, onde o 'Bench' da a media: percentis (p50, p95, p99, p999) com aquecimento separado, comparacao com SIGNIFICANCIA estatistica (Mann-W",
+          "nome": "Arcane.Perfil",
+          "simbolos": 16
+        }
+      ],
+      "rotulo": "Concorrência"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "macro",
+          "desc": "A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo",
+          "nome": "Arcane.Macro",
+          "simbolos": 13
+        },
+        {
+          "chave": "dsl",
+          "desc": "Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_",
+          "nome": "Arcane.Dsl",
+          "simbolos": 18
+        }
+      ],
+      "rotulo": "Metaprogramação"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "c",
+          "desc": "Falar com biblioteca nativa: abrir ",
+          "nome": "Arcane.C",
+          "simbolos": 23
+        },
+        {
+          "chave": "compilador",
+          "desc": "O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloc",
+          "nome": "Arcane.Compilador",
+          "simbolos": 24
+        }
+      ],
+      "rotulo": "Baixo nível"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "inicio",
+          "desc": "O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que ",
+          "nome": "Arcane.Inicio",
+          "simbolos": 12
+        },
+        {
+          "chave": "capacidade",
+          "desc": "A fronteira de CAPACIDADE: roda uma acao com a lista de poderes que ela pode alcancar, e recusa o resto pelo NOME da capacidade que falta",
+          "nome": "Arcane.Capacidade",
+          "simbolos": 6
+        }
+      ],
+      "rotulo": "Partida"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "abi",
+          "desc": "A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem",
+          "nome": "Arcane.Abi",
+          "simbolos": 8
+        },
+        {
+          "chave": "alvo",
+          "desc": "'Isso roda no navegador?', respondido a partir dos 'adopt'",
+          "nome": "Arcane.Alvo",
+          "simbolos": 7
+        }
+      ],
+      "rotulo": "Distribuição"
+    },
+    {
+      "modulos": [
+        {
+          "chave": "ecossistema",
+          "desc": "O inventario da implementacao, CONFERIDO contra ela",
+          "nome": "Arcane.Ecossistema",
+          "simbolos": 9
+        },
+        {
+          "chave": "principios",
+          "desc": "Os dez principios de design, cada um com uma prova que RODA e o numero que ela deu — duas delas rodam o analisador e uma roda o interpretador, porque ",
+          "nome": "Arcane.Principios",
+          "simbolos": 6
+        },
+        {
+          "chave": "percurso",
+          "desc": "O caminho inteiro de um arquivo, fase por fase, MEDIDO: lexer, parser, HIR, tipos, MIR, analises, SSA, passes e LIR, com o que cada fase produziu e qu",
+          "nome": "Arcane.Percurso",
+          "simbolos": 5
+        }
+      ],
+      "rotulo": "A própria implementação"
+    }
+  ],
+  "naoExiste": [
+    {
+      "aqui": "o backend e 'compilador.py': a arvore e percorrida uma vez e vira fechamentos Python, o que tira o despacho do caminho quente. Medido: 1,5x a 1,8x",
+      "estado": "nao-existe",
+      "grupo": "dfc — o compilador",
+      "no": "LLVM Backend",
+      "no_disco": [
+        "dataforge/compilador.py",
+        "dataforge/otimizar.py",
+        "dataforge/cauda.py"
+      ],
+      "o_que_e": "emitir IR do LLVM e deixa-lo gerar codigo nativo",
+      "onde": [
+        "dataforge/compilador.py",
+        "dataforge/otimizar.py",
+        "dataforge/cauda.py"
+      ],
+      "porque": "amarrar o LLVM tiraria a unica propriedade inegociavel do projeto — zero dependencia externa no runtime. E o teto desta tecnica, como o de uma VM de bytecode escrita em Python, e ~6,5x: o resto exigiria sair do Python, que e outra linguagem, nao outra fase"
+    },
+    {
+      "aqui": "nao ha. O que sai do compilador e um fechamento, e quem o executa e 'interpreter.py'",
+      "estado": "nao-existe",
+      "grupo": "dfc — o compilador",
+      "no": "Code Generator",
+      "no_disco": [],
+      "o_que_e": "emitir codigo de maquina",
+      "onde": [],
+      "porque": "sem backend nativo nao ha o que gerar. 'dataforge ir --fase=lir' e onde isso fica visivel, e e de proposito: a fase existe no mapa para que a ausencia tenha lugar"
+    },
+    {
+      "aqui": "o alocador e o do CPython. 'Arcane.Memoria' da arena, referencia fraca, mapa fraco e controle do coletor (ligar, desligar, limiares, congelar)",
+      "estado": "nao-existe",
+      "grupo": "Runtime",
+      "no": "Allocator",
+      "no_disco": [
+        "dataforge/stdlib/arcane_memoria.py"
+      ],
+      "o_que_e": "um alocador proprio, com arena, pool e estrategia escolhida por quem escreve",
+      "onde": [
+        "dataforge/stdlib/arcane_memoria.py"
+      ],
+      "porque": "trocar o alocador exigiria estar do lado de fora do CPython. O que se pode fazer daqui — e se faz — e mandar no COLETOR e medir a pausa dele"
+    },
+    {
+      "aqui": "nao ha, e nao ha caminho a partir daqui: o runtime e o CPython",
+      "estado": "nao-existe",
+      "grupo": "Runtime",
+      "no": "Bare-Metal Runtime",
+      "no_disco": [],
+      "o_que_e": "rodar sem sistema operacional",
+      "onde": [],
+      "porque": "'Arcane.Alvo' nomeia 'embarcado' com o que falta em cada capacidade, justamente para que a ausencia apareca antes de alguem tentar"
+    },
+    {
+      "aqui": "nao ha",
+      "estado": "nao-existe",
+      "grupo": "Alvos",
+      "no": "Bare-Metal",
+      "no_disco": [],
+      "o_que_e": "sem sistema operacional",
+      "onde": [],
+      "porque": "exigiria outro runtime inteiro; 'Arcane.Alvo' diz o que falta em cada capacidade do alvo 'embarcado'"
+    }
+  ],
+  "numeros": {
+    "alvos": 6,
+    "comandos": 63,
+    "componentes": 41,
+    "equivalem": 6,
+    "existem": 30,
+    "grupos_de_comando": 7,
+    "modulos": 76,
+    "modulos_do_nucleo": 58,
+    "nao_existem": 5,
+    "simbolos": 2130
+  },
+  "semGrupo": []
+}

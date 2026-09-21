@@ -16,7 +16,7 @@ import { nav } from '@/lib/nav';
 const BASE = 'https://dataforge-lang.vercel.app';
 
 /** As rotas que não estão na navegação da documentação. */
-const AVULSAS = ['/', '/download', '/instalar', '/api'];
+const AVULSAS = ['/', '/roadmap', '/download', '/instalar', '/api'];
 
 export const dynamic = 'force-static';
 

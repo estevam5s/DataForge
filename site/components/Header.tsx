@@ -91,6 +91,9 @@ export function Header() {
             <Link href="/download" className="link-topo hidden lg:block">
               Download
             </Link>
+            <Link href="/roadmap" className="link-topo hidden lg:block">
+              Roadmap
+            </Link>
 
             <Link
               href="/painel"
@@ -138,6 +141,29 @@ export function Header() {
               <div className="mb-4 md:hidden">
                 <Search />
               </div>
+
+              {/* As rotas de TOPO, que no celular ficam escondidas
+                  (`hidden lg:block`). Sem esta fila, '/roadmap' e
+                  '/download' seriam inalcancaveis no telefone: o menu
+                  do celular mostra a barra lateral, e nenhuma das duas
+                  esta nela — a do roadmap de proposito. */}
+              <div className="mb-4 flex flex-wrap gap-1.5 border-b border-line pb-4 lg:hidden">
+                {[
+                  { href: '/roadmap', rotulo: 'Roadmap' },
+                  { href: '/download', rotulo: 'Download' },
+                  { href: '/painel', rotulo: 'Painel' },
+                ].map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setMenuAberto(false)}
+                    className="rounded-lg border border-line bg-raised/50 px-3 py-1.5 text-[13px] font-medium text-strong transition-colors hover:bg-raised"
+                  >
+                    {l.rotulo}
+                  </Link>
+                ))}
+              </div>
+
               <Sidebar onNavigate={() => setMenuAberto(false)} />
             </div>
           </div>
