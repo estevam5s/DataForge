@@ -42,6 +42,54 @@ class Estado:
     zero a cada clique, porque o programa roda do começo toda vez.
     """
 
+    # ── A forma de vault ─────────────────────────────────────
+    #
+    # 'V.estado["n"] := 1' e o que se escreve primeiro, e era erro:
+    # "A estado cannot be indexed". O objeto tinha 'obter' e 'definir'
+    # e nenhuma das duas formas naturais — indexar e perguntar com
+    # 'in'. E o 'ctx.estado' do Arcane.Telegram, que e a MESMA ideia,
+    # ja respondia as duas: a linguagem dava duas superficies para o
+    # mesmo conceito.
+    #
+    # Os metodos nomeados continuam: 'somar' nao tem forma de indice, e
+    # e ele que evita a corrida do ler-somar-escrever.
+
+    def __getitem__(self, chave):
+        sessao = _sessao()
+        nome = str(chave)
+        if not sessao.existe(nome):
+            raise KeyError(nome)
+        return sessao.obter(nome)
+
+    def __setitem__(self, chave, valor):
+        return _sessao().definir(str(chave), valor)
+
+    def __delitem__(self, chave):
+        _sessao().remover(str(chave))
+
+    def __contains__(self, chave):
+        return _sessao().existe(str(chave))
+
+    def __iter__(self):
+        return iter(self.tudo())
+
+    def __len__(self):
+        return len(self.tudo())
+
+    def get(self, chave, padrao=None):
+        return self.obter(chave, padrao)
+
+    def keys(self):
+        return list(self.tudo())
+
+    def values(self):
+        return list(self.tudo().values())
+
+    def items(self):
+        return list(self.tudo().items())
+
+    # ── Os nomes de sempre ───────────────────────────────────
+
     def obter(self, chave, padrao=None):
         return _sessao().obter(str(chave), padrao)
 
@@ -108,6 +156,43 @@ class Geral:
     def __init__(self):
         self._dados = {}
         self._trava = threading.RLock()
+
+    # A mesma forma de vault do 'Estado': duas superficies para o
+    # mesmo conceito e o que faz alguem escrever 'V.geral["x"]' e
+    # descobrir que so 'V.estado' aceita.
+
+    def __getitem__(self, chave):
+        nome = str(chave)
+        if not self.existe(nome):
+            raise KeyError(nome)
+        return self.obter(nome)
+
+    def __setitem__(self, chave, valor):
+        return self.definir(str(chave), valor)
+
+    def __delitem__(self, chave):
+        self.remover(str(chave))
+
+    def __contains__(self, chave):
+        return self.existe(str(chave))
+
+    def __iter__(self):
+        return iter(self.tudo())
+
+    def __len__(self):
+        return len(self.tudo())
+
+    def get(self, chave, padrao=None):
+        return self.obter(chave, padrao)
+
+    def keys(self):
+        return list(self.tudo())
+
+    def values(self):
+        return list(self.tudo().values())
+
+    def items(self):
+        return list(self.tudo().items())
 
     def obter(self, chave, padrao=None):
         with self._trava:

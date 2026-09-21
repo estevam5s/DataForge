@@ -266,8 +266,11 @@ def _criar(args, flags):
     if not args:
         print(color("  uso: dataforge vitrine new <nome>", "1;31"))
         return 1
-    from .cli import new_command
-    return new_command([args[0], "--modelo=painel"] + list(flags))
+    from .cli import new_project
+    # O modelo e o PRIMEIRO posicional de "new", e nao uma flag:
+    # "dataforge new painel <nome>". Passa-lo como "--modelo="
+    # fazia o comando reclamar que faltava dizer o modelo.
+    return new_project(["painel", args[0]], flags)
 
 
 def _explicar_ausencia(sub):

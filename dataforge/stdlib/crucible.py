@@ -1654,6 +1654,13 @@ class ArcaneCrucible(dict):
             # ── teste instavel ──
             "flaky": cls._flaky,
             "instavel": cls._flaky,
+
+            # ── cenario: o mundo em que o trial roda ──
+            #
+            # O import e AQUI DENTRO, e nao no topo: 'crucible_extra'
+            # importa este arquivo para acrescentar matchers a
+            # 'Expectativa', e um par no topo daria um ciclo.
+            **_extras(),
         }
 
     # ── montar ──────────────────────────────────────────────
@@ -2197,3 +2204,14 @@ class _RelogioCongelado:
     def liberar(self):
         time.time = self._original
         return True
+
+
+def _extras():
+    """O que `crucible_extra.py` acrescenta ao modulo.
+
+    Ele e importado sob demanda para nao criar ciclo: aquele arquivo
+    precisa da classe `Expectativa` daqui, e daqui se precisa das
+    ferramentas de cenario de la.
+    """
+    from .crucible_extra import EXTRAS
+    return dict(EXTRAS)

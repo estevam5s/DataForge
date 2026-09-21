@@ -432,6 +432,19 @@ GRUPOS = [
                       ("dataforge devops secrets", "o que nao pode ir ao repo")],
             apelidos=("ops",),
             veja=("vitrine", "new", "pack")),
+        Cmd("telegram", "dataforge telegram <new|run|doctor|webhook|off>",
+            "Cria, roda e publica um bot de Telegram.",
+            "O token vem de $TELEGRAM_TOKEN — nunca do código. "
+            "'doctor' pergunta ao próprio Telegram por que o bot está "
+            "calado: token, webhook brigando com o polling, privacidade "
+            "de grupo ligada.",
+            apelidos=("bot",),
+            exemplos=[("dataforge telegram new meubot", "cria o projeto"),
+                      ("dataforge telegram doctor", "por que ele não responde"),
+                      ("dataforge telegram run", "sobe em long polling"),
+                      ("dataforge telegram webhook https://x.dev",
+                       "registra o webhook")],
+            veja=("vitrine", "devops", "new")),
         Cmd("vitrine", "dataforge vitrine <run|dev|doctor|new>",
             "Sobe um painel feito com Arcane.Vitrine",
             "Um programa de cima para baixo vira uma pagina web. 'dev'\n"
@@ -5005,6 +5018,10 @@ def main():
     elif command == 'vitrine':
         from .vitrine_cli import executar
         sys.exit(executar(args[1:], flags))
+
+    elif command in ('telegram', 'bot'):
+        from .telegram_cli import executar as executar_telegram
+        sys.exit(executar_telegram(args[1:], flags))
 
     elif command in ('devops', 'ops'):
         from .devops_cli import executar as executar_devops

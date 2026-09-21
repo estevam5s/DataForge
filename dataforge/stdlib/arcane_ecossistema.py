@@ -319,10 +319,12 @@ ARVORE = (
          "onde": ("dataforge/docgen.py", "dataforge/exemplos_palavras.py",
                   "dataforge/oop_analise.py", "dataforge/repl.py",
                   "dataforge/migrar.py", "dataforge/migrar_js.py",
-                  "dataforge/vitrine_cli.py"),
+                  "dataforge/vitrine_cli.py",
+                  "dataforge/telegram_cli.py"),
          "o_que_e": "Markdown a partir dos comentarios",
          "aqui": "'dataforge doc'; e ao lado dele o REPL, as metricas CK "
-                 "do 'oop', os conversores e a CLI da Vitrine",
+                 "do 'oop', os conversores e as CLIs da Vitrine e do "
+                 "Telegram",
          "porque": ""},
     )),
     ("Interoperabilidade", (

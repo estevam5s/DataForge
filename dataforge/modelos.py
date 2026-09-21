@@ -1212,6 +1212,167 @@ action test_a_pagina_responde_por_http():
     },
 
     # ── 8. Suíte de testes ───────────────────────────────────
+
+    "bot": {
+        "name": "Bot de Telegram",
+        "description": "Comandos, botões, conversa com estado e testes sem rede",
+        "icon": "🤖",
+        "proximos": [
+            ("export TELEGRAM_TOKEN=\"123:AAH...\"", "o token vem do @BotFather"),
+            ("dataforge telegram doctor", "confere o que falta para o bot responder"),
+            ("dataforge telegram run", "sobe em long polling"),
+            ("dataforge test tests/", "roda os testes — sem token e sem rede"),
+        ],
+        "files": {
+            "forge.toml": _forge_toml("Bot de Telegram em DataForge"),
+            ".gitignore": GITIGNORE + ".telegram/\n",
+            "README.md": _readme(
+                "{name}",
+                "Um bot de Telegram: comandos, botões, uma conversa com "
+                "estado por chat, e testes que rodam sem token e sem rede.",
+                "export TELEGRAM_TOKEN=\"123:AAH...\"\n"
+                "dataforge telegram doctor\ndataforge telegram run",
+                "O token NUNCA vai no código: ele vem de $TELEGRAM_TOKEN. "
+                "Um token no Git é um bot sequestrado, e o @BotFather não "
+                "avisa quando acontece."),
+            "src/bot.df": '''// Um bot de Telegram completo: comandos, botoes,
+// conversa com estado, e o menu que aparece ao digitar '/'.
+//
+//   export TELEGRAM_TOKEN="123456:AAH..."
+//   dataforge telegram run
+
+adopt Arcane.Telegram as Tg
+
+app := Tg.app(Tg.segredo_do_ambiente())
+
+// ── Comandos ────────────────────────────────────────────────
+
+mark @app.comando("start", ajuda := "Comeca a conversa")
+action comecar(ctx):
+    ctx.responder($"Ola, {ctx.nome()}! Eu sou um bot em DataForge.",
+        teclado := Tg.botoes([
+                [Tg.botao("O que voce faz?", dados := "ajuda")],
+                [Tg.botao("Cadastrar", dados := "cadastro")]
+            ]))
+
+mark @app.comando("ajuda", ajuda := "Mostra o que eu faco")
+action ajudar(ctx):
+    linhas := [
+        Tg.negrito("O que eu faco"),
+        "",
+        Tg.escapar("/cadastro — faz seu cadastro"),
+        Tg.escapar("/eu — mostra o que eu sei de voce")
+    ]
+    ctx.responder(join(char(10), linhas), marcacao := "MarkdownV2")
+
+mark @app.comando("eu", ajuda := "Mostra o que eu sei de voce")
+action sobre_mim(ctx):
+    nome := ctx.lembrar("nome", "ainda nao sei")
+    ctx.responder($"Voce e {ctx.nome()} e seu cadastro diz: {nome}")
+
+// ── Uma conversa com estado ─────────────────────────────────
+//
+// O estado e POR CHAT: duas pessoas conversando ao mesmo tempo nao se
+// atrapalham, que e o defeito de guardar 'o passo atual' num lugar so.
+
+action e_email(texto):
+    yield "@" in texto and "." in texto
+
+cadastro := app.conversa("cadastro", [
+        {"pergunta": "Qual e o seu nome?", "guarda": "nome"},
+        {"pergunta": "E o seu e-mail?", "guarda": "email",
+            "valida": e_email, "erro": "Isso nao parece um e-mail. Tente de novo."}
+    ])
+
+mark @cadastro.ao_terminar()
+action terminou(ctx, respostas):
+    ctx.guardar("nome", respostas["nome"])
+    ctx.responder($"Pronto, {respostas['nome']}! Anotei {respostas['email']}.")
+
+mark @app.comando("cadastro", ajuda := "Faz seu cadastro")
+action abrir_cadastro(ctx):
+    cadastro.comecar(ctx)
+
+// ── Botoes ──────────────────────────────────────────────────
+//
+// 'ctx.avisar()' e obrigatorio: sem ele o Telegram deixa o botao com o
+// relogio girando por ate um minuto, e quem clicou acha que travou.
+
+mark @app.botao("^ajuda$")
+action botao_ajuda(ctx):
+    ctx.avisar()
+    ctx.editar("Mande /cadastro para se cadastrar.")
+
+mark @app.botao("^cadastro$")
+action botao_cadastro(ctx):
+    ctx.avisar("Vamos la!")
+    cadastro.comecar(ctx)
+
+// ── Midia ───────────────────────────────────────────────────
+
+mark @app.midia("foto")
+action recebeu_foto(ctx):
+    ctx.responder("Foto recebida! Ainda nao sei o que fazer com ela.")
+
+// ── O ultimo recurso ────────────────────────────────────────
+//
+// 'qualquer' casa com tudo, entao ela vai por ULTIMO. Registrar uma
+// rota depois dela e recusado: ela nunca seria alcancada.
+
+mark @app.qualquer()
+action nao_entendi(ctx):
+    ctx.responder("Nao entendi. Mande /ajuda para ver o que eu faco.")
+
+mark @app.ao_falhar()
+action deu_errado(ctx, erro):
+    // O erro completo fica no log do app; para quem esta conversando,
+    // um rastro de pilha nao ajuda e entrega o funcionamento por dentro.
+    out $"[bot] falhou: {erro}"
+    ctx.responder("Alguma coisa quebrou aqui. Ja anotei.")
+
+// ── Sobe ────────────────────────────────────────────────────
+
+app.publicar_comandos()
+app.rodar()
+''',
+            "tests/bot_test.df": '''// Os testes rodam SEM token e SEM rede: a sonda injeta updates e
+// devolve o que o bot teria enviado.
+//
+//   dataforge test tests/
+
+adopt Arcane.Telegram as Tg
+adopt Arcane.Test as T
+
+action bot_de_teste():
+    app := Tg.app("123456:AAHteste")
+
+    mark @app.comando("start")
+    action comecar(ctx):
+        ctx.responder($"Ola, {ctx.nome()}!")
+
+    mark @app.qualquer()
+    action resto(ctx):
+        ctx.responder("Nao entendi.")
+
+    yield app
+
+action test_o_start_cumprimenta_pelo_nome():
+    t := Tg.testar(bot_de_teste())
+    t.comando("start")
+    T.assert_true("Ana" in t.ultima())
+
+action test_o_que_nao_casa_cai_no_ultimo_recurso():
+    t := Tg.testar(bot_de_teste())
+    t.mandar("qualquer coisa")
+    T.assert_eq(t.ultima(), "Nao entendi.")
+
+action test_o_bot_nao_quebra_com_texto_estranho():
+    t := Tg.testar(bot_de_teste())
+    t.mandar("🙂 *_[](){}")
+    T.assert_false(t.falhou())
+''',
+        },
+    },
     "test": {
         "name": "Suíte de testes",
         "description": "Como testar em DataForge: asserts, erros e cobertura",
