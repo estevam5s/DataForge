@@ -4,7 +4,7 @@
         irm https://dataforge-lang.vercel.app/instalar.ps1 | iex
 
     Variáveis (opcionais, antes de rodar):
-        $env:DATAFORGE_VERSION = "1.0.0"
+        $env:DATAFORGE_VERSION = "1.1.0"
         $env:DATAFORGE_PREFIX  = "$HOME\.dataforge"
         $env:DATAFORGE_EXTRAS  = "--com-exemplos --abrir-docs"
 
@@ -37,7 +37,7 @@ try {
         [Net.ServicePointManager]::SecurityProtocol -bor 3072
 } catch { }
 
-$Versao  = if ($env:DATAFORGE_VERSION) { $env:DATAFORGE_VERSION } else { '1.0.0' }
+$Versao  = if ($env:DATAFORGE_VERSION) { $env:DATAFORGE_VERSION } else { '1.1.0' }
 $Prefixo = if ($env:DATAFORGE_PREFIX)  { $env:DATAFORGE_PREFIX }  else { "$HOME\.dataforge" }
 $Site    = if ($env:DATAFORGE_SITE)    { $env:DATAFORGE_SITE }    else { 'https://dataforge-lang.vercel.app' }
 

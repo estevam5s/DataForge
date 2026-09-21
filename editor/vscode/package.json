@@ -2,7 +2,7 @@
   "name": "dataforge-language",
   "displayName": "DataForge Language",
   "description": "Suporte completo à linguagem DataForge (.df): cores, snippets, erros sublinhados, Big-O acima de cada ação, custo de import, botão de rodar com cronômetro, criação de projetos e painel de bancos de dados.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "EstevamSouza",
   "license": "MIT",
   "engines": {

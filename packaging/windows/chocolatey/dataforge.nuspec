@@ -3,7 +3,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>dataforge</id>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <title>DataForge</title>
     <authors>Estevam Souza</authors>
     <projectUrl>https://dataforge-lang.vercel.app</projectUrl>
@@ -13,13 +13,13 @@
     <docsUrl>https://dataforge-lang.vercel.app/docs</docsUrl>
     <bugTrackerUrl>https://github.com/estevam5s/DataForge/issues</bugTrackerUrl>
     <tags>dataforge programming-language interpreter cli</tags>
-    <summary>Linguagem interpretada com 75 modulos de biblioteca padrao.</summary>
+    <summary>Linguagem interpretada com 76 modulos de biblioteca padrao.</summary>
     <description>
 Linguagem de proposito geral com lexer, parser, analisador estatico e
 interpretador proprios. O instalador embute o runtime: nao e preciso ter
 Python na maquina.
     </description>
-    <releaseNotes>https://github.com/estevam5s/DataForge/releases/tag/v1.0.0</releaseNotes>
+    <releaseNotes>https://github.com/estevam5s/DataForge/releases/tag/v1.1.0</releaseNotes>
   </metadata>
   <files>
     <file src="tools\**" target="tools" />

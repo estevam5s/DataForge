@@ -282,7 +282,7 @@
     },
     "modulos": {
       "name": "support.class.module.dataforge",
-      "match": "\\b(Arcane|Serialization|Transacional|Collections|Ecossistema|Capacidade|Compilador|Concurrent|Functional|Principios|Analytics|Estrutura|Qualidade|Resultado|Consulta|Corrente|Crucible|Database|Endereco|Observar|Paralelo|Percurso|Pipeline|Reactive|Telegram|Archive|Binario|Decimal|Dominio|Eventos|Injecao|Logging|Memoria|Network|Objetos|Observe|Padroes|Parquet|Process|Quality|Reativo|Reflexo|Vitrine|Bridge|Cortex|Crypto|Domain|Inicio|Nativo|Painel|Perfil|Quadro|Reator|Result|Server|Sinais|Stream|Struct|Async|Banco|Bench|Bytes|Color|Email|Exato|Excel|Fluxo|Forge|Lavra|Macro|Malha|Ponte|Posse|Regex|Serde|Tipos|Alvo|Data|Html|Http|Iter|Kiln|Laco|Lago|Lake|Math|Mesh|Meta|Rede|Test|Text|Time|Xlsx|API|Abi|Bot|Cli|Cor|DDD|Dsl|Est|Log|Net|Stm|Url|Web|Zip|DB|DI|IO|OS|C)\\b(?=\\s*\\.)"
+      "match": "\\b(Arcane|Serialization|Transacional|Collections|Ecossistema|Capacidade|Compilador|Concurrent|Functional|Principios|Analytics|Estrutura|Qualidade|Resultado|Seguranca|Consulta|Corrente|Crucible|Database|Endereco|Observar|Paralelo|Percurso|Pipeline|Reactive|Security|Telegram|Archive|Binario|Decimal|Dominio|Eventos|Injecao|Logging|Memoria|Network|Objetos|Observe|Padroes|Parquet|Process|Quality|Reativo|Reflexo|Vitrine|Bridge|Cortex|Crypto|Domain|Inicio|Nativo|Painel|Perfil|Quadro|Reator|Result|Server|Sinais|Stream|Struct|Async|Banco|Bench|Bytes|Color|Email|Exato|Excel|Fluxo|Forge|Lavra|Macro|Malha|Ponte|Posse|Regex|Serde|Tipos|Alvo|Data|Html|Http|Iter|Kiln|Laco|Lago|Lake|Math|Mesh|Meta|Rede|Test|Text|Time|Xlsx|API|Abi|Bot|Cli|Cor|DDD|Dsl|Est|Log|Net|Stm|Url|Web|Zip|DB|DI|IO|OS|C)\\b(?=\\s*\\.)"
     },
     "chamadas": {
       "name": "entity.name.function.call.dataforge",

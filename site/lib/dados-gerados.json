@@ -8418,6 +8418,268 @@
     }
    ]
   },
+  "seguranca": {
+   "nome": "Arcane.Seguranca",
+   "desc": "Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática.",
+   "curto": "Seguranca",
+   "funcoes": [
+    {
+     "nome": "analisar",
+     "sig": "(fonte, caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assinar",
+     "sig": "(valor, chave, proposito, quando)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assinar_url",
+     "sig": "(url, chave, prazo, quando)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "auditoria",
+     "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "caminho_seguro",
+     "sig": "(base, pedido)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "chave_de_assinatura",
+     "sig": "(bytes_)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "codigos_de_recuperacao",
+     "sig": "(quantos, grupos, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir_url",
+     "sig": "(url, chave, quando)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir_vazamento",
+     "sig": "(senha, respostas)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_alta_entropia",
+     "sig": "(texto, minimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_segredo",
+     "sig": "(v)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "entropia",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_atributo",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_cabecalho",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_csv",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_html",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_js",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_log",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_regex",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_shell",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_sql_like",
+     "sig": "(texto, escape)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_url",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exigir_politica",
+     "sig": "(senha, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exigir_sem_segredo",
+     "sig": "(texto, onde)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "forca_da_senha",
+     "sig": "(senha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "host_privado",
+     "sig": "(host)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "hotp",
+     "sig": "(segredo, contador, digitos, algoritmo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "json_seguro",
+     "sig": "(texto, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler_assinado",
+     "sig": "(token, chave, prazo, proposito)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limitador",
+     "sig": "(limite, periodo, rajada)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limpar_html",
+     "sig": "(texto, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mascarar",
+     "sig": "(valor, visivel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mascarar_pii",
+     "sig": "(texto, tipos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nome_de_arquivo_seguro",
+     "sig": "(nome, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "numero_seguro",
+     "sig": "(texto, minimo, maximo, inteiro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "padroes_de_segredo",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "politica",
+     "sig": "(senha, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "prefixo_vazamento",
+     "sig": "(senha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "procurar_segredos",
+     "sig": "(texto, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "redigir",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "redirecionamento_seguro",
+     "sig": "(destino, permitidos, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "regras_de_analise",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "segredo",
+     "sig": "(valor, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sem_controle",
+     "sig": "(texto, permitir_quebra)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tentativas",
+     "sig": "(limite, base, teto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "totp_agora",
+     "sig": "(segredo, janela, digitos, algoritmo, quando)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "totp_conferir",
+     "sig": "(segredo, codigo, janela, digitos, algoritmo, tolerancia, quando)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "totp_segredo",
+     "sig": "(bytes_)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "totp_uri",
+     "sig": "(segredo, conta, emissor, digitos, janela, algoritmo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "url_segura",
+     "sig": "(url, opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vazada",
+     "sig": "(senha, tempo_limite)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "serialization": {
    "nome": "Arcane.Serialization",
    "desc": "JSON, CSV, INI, TOML, XML e conversões entre eles.",
@@ -13935,7 +14197,7 @@
     "enunciado": "um bot que roda na sua maquina usa long polling; um que",
     "arquivo": "363_publicar.df",
     "temDoc": true,
-    "codigo": "// Exercicio 363 — long polling, webhook e o que o 'doctor' pergunta\n//\n// Enunciado: um bot que roda na sua maquina usa long polling; um que\n// roda num servidor usa webhook. A diferenca nao e so de desempenho —\n// os dois nao podem estar ligados ao mesmo tempo, e o segundo exige\n// HTTPS com certificado de verdade.\n\nadopt Arcane.Telegram as Tg\n\nout \"== 1. o token nunca vai no codigo ==\"\n\n// Ele vai para o Git, e do Git para qualquer um — e o @BotFather nao\n// avisa quando alguem o usa: o bot so comeca a mandar spam.\nfaltou := no\nmonitor:\n    Tg.segredo_do_ambiente(\"VARIAVEL_QUE_NAO_EXISTE_AQUI\")\nhandle Error as e:\n    faltou := yes\n    assert \"VARIAVEL_QUE_NAO_EXISTE_AQUI\" in e.message\n    out $\"   {e.message}\"\nassert faltou\n\nout \"\"\nout \"== 2. e ele nunca aparece numa mensagem de erro ==\"\n\n// O token esta na URL de TODA chamada, e a URL entra em todo\n// traceback. Um token num log de CI e um bot sequestrado.\nsteady TOKEN := \"123456789:AAHqwertyuiopASDFGHJKLzxcvbnm12345\"\napp := Tg.app(TOKEN)\n\nmark @app.comando(\"x\")\naction x(ctx):\n    ctx.responder(\"ok\")\n\nt := Tg.testar(app)\nt.comando(\"x\")\n\ncycle chamada in t.chamadas():\n    assert TOKEN not in str(chamada)\nout \"   nenhuma chamada registrada carrega o token\"\n\nout \"\"\nout \"== 3. o limite de taxa vem no CORPO, e nao no status ==\"\n\n// E o erro classico de quem escreve o cliente a mao: tratar 429 como\n// \"erro\" e desistir, em vez de ler quantos segundos esperar.\nlimitador := Tg.limitar(30)\nassert limitador is not void\nout \"   30 mensagens por segundo e o limite global\"\n\nout \"\"\nout \"== 4. long polling e webhook nao convivem ==\"\n\nout \"   'dataforge telegram run'     -> long polling (na sua maquina)\"\nout \"   'dataforge telegram webhook' -> webhook (no servidor, com HTTPS)\"\nout \"   'dataforge telegram off'     -> desliga o webhook\"\n\nout \"\"\nout \"== 5. o 'doctor' pergunta o que costuma faltar ==\"\n\nsteady PERGUNTAS := [\n    \"o token responde?\",\n    \"o bot entra em grupo?\",\n    \"ele le todas as mensagens do grupo, ou so os comandos?\",\n    \"ha um webhook ligado? (ele impede o long polling)\",\n    \"quantos updates estao pendentes?\"\n]\nassert len(PERGUNTAS) is 5\ncycle p in PERGUNTAS:\n    out $\"   - {p}\"\n\nout \"\"\nout \"== 6. e 'deploy' nao existe, de proposito ==\"\n\n// Um 'deploy' que falasse com o servidor por dentro esconderia o que\n// a maquina e — e no dia em que alguem precisa mudar uma linha, nao\n// haveria onde mexer.\nout \"   o modulo gera o que voce precisa, e sai da frente\"\n\nout \"exercicio 363 ok\"\n"
+    "codigo": "// Exercicio 363 — long polling, webhook e o que o 'doctor' pergunta\n//\n// Enunciado: um bot que roda na sua maquina usa long polling; um que\n// roda num servidor usa webhook. A diferenca nao e so de desempenho —\n// os dois nao podem estar ligados ao mesmo tempo, e o segundo exige\n// HTTPS com certificado de verdade.\n\nadopt Arcane.Telegram as Tg\n\nout \"== 1. o token nunca vai no codigo ==\"\n\n// Ele vai para o Git, e do Git para qualquer um — e o @BotFather nao\n// avisa quando alguem o usa: o bot so comeca a mandar spam.\nfaltou := no\nmonitor:\n    Tg.segredo_do_ambiente(\"VARIAVEL_QUE_NAO_EXISTE_AQUI\")\nhandle Error as e:\n    faltou := yes\n    assert \"VARIAVEL_QUE_NAO_EXISTE_AQUI\" in e.message\n    out $\"   {e.message}\"\nassert faltou\n\nout \"\"\nout \"== 2. e ele nunca aparece numa mensagem de erro ==\"\n\n// O token esta na URL de TODA chamada, e a URL entra em todo\n// traceback. Um token num log de CI e um bot sequestrado.\n//\n// Este e de brinquedo, e 'dataforge seguranca' acusa o formato dele\n// — corretamente. Silenciar pelo NOME da regra e o jeito de dizer\n// \"eu sei\": um 'permitir' solto esconderia o proximo achado tambem.\n// df: permitir segredo-no-codigo\nsteady TOKEN := \"123456789:AAHqwertyuiopASDFGHJKLzxcvbnm12345\"\napp := Tg.app(TOKEN)\n\nmark @app.comando(\"x\")\naction x(ctx):\n    ctx.responder(\"ok\")\n\nt := Tg.testar(app)\nt.comando(\"x\")\n\ncycle chamada in t.chamadas():\n    assert TOKEN not in str(chamada)\nout \"   nenhuma chamada registrada carrega o token\"\n\nout \"\"\nout \"== 3. o limite de taxa vem no CORPO, e nao no status ==\"\n\n// E o erro classico de quem escreve o cliente a mao: tratar 429 como\n// \"erro\" e desistir, em vez de ler quantos segundos esperar.\nlimitador := Tg.limitar(30)\nassert limitador is not void\nout \"   30 mensagens por segundo e o limite global\"\n\nout \"\"\nout \"== 4. long polling e webhook nao convivem ==\"\n\nout \"   'dataforge telegram run'     -> long polling (na sua maquina)\"\nout \"   'dataforge telegram webhook' -> webhook (no servidor, com HTTPS)\"\nout \"   'dataforge telegram off'     -> desliga o webhook\"\n\nout \"\"\nout \"== 5. o 'doctor' pergunta o que costuma faltar ==\"\n\nsteady PERGUNTAS := [\n    \"o token responde?\",\n    \"o bot entra em grupo?\",\n    \"ele le todas as mensagens do grupo, ou so os comandos?\",\n    \"ha um webhook ligado? (ele impede o long polling)\",\n    \"quantos updates estao pendentes?\"\n]\nassert len(PERGUNTAS) is 5\ncycle p in PERGUNTAS:\n    out $\"   - {p}\"\n\nout \"\"\nout \"== 6. e 'deploy' nao existe, de proposito ==\"\n\n// Um 'deploy' que falasse com o servidor por dentro esconderia o que\n// a maquina e — e no dia em que alguem precisa mudar uma linha, nao\n// haveria onde mexer.\nout \"   o modulo gera o que voce precisa, e sai da frente\"\n\nout \"exercicio 363 ok\"\n"
    },
    {
     "num": "364",
@@ -14477,7 +14739,7 @@
  },
  "totalBuiltins": 229,
  "contagem": {
-  "testes": 3301,
+  "testes": 3411,
   "exemplos": 50,
   "arquivosDf": 503
  },

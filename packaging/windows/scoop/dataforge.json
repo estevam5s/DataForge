@@ -1,12 +1,12 @@
 {
   "_comentario": "Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.",
-  "version": "1.0.0",
-  "description": "Linguagem interpretada com 75 modulos de biblioteca padrao.",
+  "version": "1.1.0",
+  "description": "Linguagem interpretada com 76 modulos de biblioteca padrao.",
   "homepage": "https://dataforge-lang.vercel.app",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/estevam5s/DataForge/releases/download/v1.0.0/dataforge-windows-x64.zip",
+      "url": "https://github.com/estevam5s/DataForge/releases/download/v1.1.0/dataforge-windows-x64.zip",
       "hash": "0000000000000000000000000000000000000000000000000000000000000000"
     }
   },

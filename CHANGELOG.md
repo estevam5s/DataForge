@@ -12,7 +12,126 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ---
 
-## Não lançado
+## 1.1.0
+
+Primeira versão publicada no **PyPI**: `pip install dataforge-lang`.
+
+### Adicionado — `Arcane.Seguranca`: o que se faz com a entrada de fora
+
+- 52 símbolos. `Arcane.Crypto` tem as **primitivas** — resumo, HMAC,
+  senha derivada, aleatório de verdade, ChaCha20-Poly1305, JWT — e este
+  módulo as **chama** em vez de reimplementá-las. Há teste proibindo um
+  nome repetido entre os dois: duas contas iguais escritas duas vezes
+  divergem, e no dia em que divergirem será a de segurança que estará
+  errada.
+- **Escapar é por destino, nunca "em geral".** Doze: HTML, atributo,
+  JavaScript, URL, shell, SQL `LIKE`, CSV, regex, cabeçalho, log, mais
+  `sem_controle` e `limpar_html`. O que protege uma página não protege
+  uma linha de shell, e o que protege shell estraga um CSV.
+  - `escapar_csv` existe porque o Excel e o Sheets **executam** a célula
+    que começa com `=`, `+`, `-` ou `@`. Um nome de usuário
+    `=HYPERLINK(...)` vira link ativo na planilha de quem exportou.
+  - `escapar_log` porque um `\n` num campo acrescenta uma **linha
+    inteira** ao log, e a investigação seguinte lê um evento que nunca
+    aconteceu.
+  - `limpar_html` usa lista de **permitidos**, nunca de proibidos: a
+    história do XSS é a lista dos que não pensaram em tudo.
+- **TOTP e HOTP pelos vetores dos RFCs** (4226 e 6238), com teste sobre
+  cada um dos dez. Uma implementação de OTP que não os reproduz está
+  errada mesmo que "funcione" — o autenticador do usuário vai discordar.
+  A comparação é em tempo constante, e a tolerância de janela existe
+  porque o relógio do telefone anda alguns segundos fora.
+- **Token e URL assinados com prazo e propósito.** Sem o propósito, o
+  token que confirma um e-mail **serve para trocar a senha** — os dois
+  são assinados com a mesma chave. E a assinatura é conferida **antes**
+  do prazo: a data de dentro do token é dado de quem o mandou até a
+  assinatura fechar. `ExpiredTokenError` é separado de `SignatureError`
+  porque a resposta ao usuário é outra.
+- **`Segredo`**, um valor opaco para texto, interpolação e serialização.
+  Um segredo vaza em log muito mais do que em commit, e pelo caminho
+  mais inocente: alguém imprime o vault inteiro para depurar. Ele não
+  protege da memória — transforma um vazamento acidental numa linha
+  explícita (`revelar()`) que aparece na revisão de código.
+- **Varredura de segredo por formato**, e o que a faz calar custou mais
+  que o que a faz falar:
+  - um valor que se **anuncia** como exemplo (`"123456:AAHexemplo"` num
+    exercício que *ensina* a não escrever token no arquivo);
+  - **JWT com papel `anon`** — a chave `anon` do Supabase vai no pacote
+    do navegador de propósito, e só o conteúdo a separa da
+    `service_role`, que é comprometimento total. O papel é lido de
+    dentro do próprio token;
+  - credencial de `localhost` e dos domínios reservados da RFC 2606.
+  - Sem esses três silêncios ela acusava **19 vezes** no repositório, e
+    as 19 eram falso alarme. Uma varredura que acusa o material didático
+    do próprio projeto é desligada no mesmo dia — e junto com ela vão os
+    achados de verdade.
+- **Entrada hostil:** `url_segura` (SSRF — resolve o nome antes de
+  responder, porque `localtest.me` resolve para `127.0.0.1` e quem ataca
+  controla o DNS dele), `caminho_seguro` (`realpath` antes de comparar),
+  `redirecionamento_seguro`, `json_seguro` (profundidade e tamanho),
+  `nome_de_arquivo_seguro` (inclusive os nomes reservados do Windows e
+  as marcas que invertem a leitura), `numero_seguro`.
+- **`limitador`** (balde de fichas, porque janela fixa deixa gastar o
+  limite duas vezes na virada) e **`tentativas`** (bloqueio que dobra).
+- **`auditoria`**: uma linha por evento, cada uma com o resumo da
+  anterior. Não impede editar o arquivo — nada num arquivo local impede
+  —, mas `conferir()` diz em **qual** registro a cadeia quebrou. Os
+  dados passam por `redigir` antes de serem gravados: uma trilha de
+  auditoria é exatamente o tipo de arquivo que acaba anexado a um
+  chamado.
+- Família de erro **DF19xx** (7 classes), com `SecurityError` na base.
+  O catálogo passou de 208 para **215**.
+
+### Adicionado — `dataforge seguranca`
+
+- Roda as duas varreduras sobre um projeto, e **não só sobre os `.df`**:
+  lê `.env`, `.json`, `.toml`, `.yml`, `.sh`, `.ts` e `.md` também,
+  porque um segredo vaza do arquivo de configuração muito mais do que do
+  código. `--strict` reprova a esteira de CI, `--json` vira entrada de
+  outra ferramenta, `--so=alto` esconde os médios.
+- O escape `// df: permitir segredo-no-codigo` vale em **qualquer**
+  arquivo, e não só num `.df`: um segredo de brinquedo mora tanto num
+  teste em Python quanto num exemplo em Markdown, e sem escape ali a
+  única saída é desligar a varredura inteira.
+
+### Adicionado — a página `/roadmap`
+
+- O mapa da linguagem em três dimensões (Three.js, carregado sob
+  demanda): as **10 fases** de um arquivo, os **41 componentes** do
+  ecossistema com o veredito de cada um, e os **76 módulos** agrupados.
+  Clicar num ponto abre o que ele é, o que existe aqui no lugar dele, e
+  por quê.
+- **Os dados são gerados** (`site/scripts/gerar_roadmap.py`), de
+  `Arcane.Percurso.fases()` e `Arcane.Ecossistema.componentes()` — que
+  `conferir()` cobra contra o disco nas duas direções. Um mapa de
+  arquitetura escrito à mão envelhece no primeiro módulo novo, e
+  envelhece calado.
+- Ela mostra **o que não existe** junto com o que existe, de
+  `o_que_nao_existe()`. Um roadmap que só lista conquistas é propaganda
+  — e escrita à mão, essa lista envelheceria exatamente no dia em que
+  alguém implementasse um dos itens.
+- Sete **trilhas** com 53 passos. Cada passo diz o que a pessoa sabe
+  fazer depois dele, e não o que ele contém. Os destinos são conferidos:
+  escrevendo-as, **8 de 36** rotas que eu "sabia" não existiam —
+  `/docs/controle` e `/docs/pipeline` soam certas, e as páginas se
+  chamam `/docs/condicionais` e `/docs/pipelines`.
+- A rota fica no **topo**, e não na barra lateral — e há teste sobre
+  isso, nas duas direções. No celular o topo some, então o menu ganhou
+  a fila das rotas de topo: sem ela, `/roadmap` e `/download` não teriam
+  como ser abertos num telefone.
+
+### Corrigido
+
+- O teste da versão chamava-se `test_versao_e_1_0_0` e afirmava o número
+  exato em três lugares. O nome de um teste não pode conter o número que
+  ele confere: subir de versão obrigava a **renomear a função**, e
+  renomear é o que se esquece — o teste passa a reprovar o release
+  correto, e a saída mais rápida é apagá-lo. Hoje ele deriva de
+  `__version__`, e a lista de arquivos é de **moldes**.
+- `packaging/windows/dataforge.iss` é escrito à mão, e a mensagem do
+  teste mandava rodar o gerador — que não o escreve.
+
+---
 
 ### Adicionado — `Arcane.Dominio`: DDD com as distinções cobradas
 

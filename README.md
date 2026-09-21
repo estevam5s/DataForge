@@ -16,7 +16,8 @@ com vocabulário próprio.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/estevam5s/DataForge)
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](https://github.com/estevam5s/DataForge)
+[![PyPI](https://img.shields.io/badge/pypi-dataforge--lang-blue.svg)](https://pypi.org/project/dataforge-lang/)
 [![Tests](https://img.shields.io/badge/testes-1012%20passando-brightgreen.svg)](tests/)
 [![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-216%2F216-brightgreen.svg)](exercicios/)
 [![Runtime deps](https://img.shields.io/badge/depend%C3%AAncias%20no%20runtime-nenhuma-brightgreen.svg)](pyproject.toml)
@@ -30,7 +31,7 @@ Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
 generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
 pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **75 módulos** de biblioteca padrão com **2079 símbolos**.
+(**Forge**) e **76 módulos** de biblioteca padrão com **2130 símbolos**.
 
 [Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [387 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
@@ -99,14 +100,24 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 75 módulos com 2079 símbolos + 228 funções globais |
+| **Bateria inclusa** | 76 módulos com 2130 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
 
 ## Instalação
 
-**macOS e Linux** — um comando:
+**Pelo pip** — a forma mais curta, em qualquer sistema:
+
+```bash
+pip install dataforge-lang
+```
+
+Ela traz o interpretador, os 76 módulos da biblioteca, os 63 comandos e a
+extensão do VS Code (`dataforge editor` a instala). Sem dependência externa
+nenhuma: `pip` baixa um pacote e mais nada.
+
+**macOS e Linux** — um comando, com ambiente próprio:
 
 ```bash
 curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | sh
@@ -473,7 +484,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-75 módulos, 2079 símbolos, mais 229 funções globais sem import.
+76 módulos, 2130 símbolos, mais 229 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -490,6 +501,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Time` | 54 | Datas, horas, durações e cronometragem. |
 | `Arcane.Async` | 52 | Promessas, filas, agendamento e execução concorrente. |
 | `Arcane.Crypto` | 52 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token. |
+| `Arcane.Seguranca` | 51 | Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática. |
 | `Arcane.Regex` | 46 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | `Arcane.OS` | 43 | Sistema operacional, ambiente, disco e processo atual. |
@@ -774,7 +786,7 @@ lê e escreve **no bloco**, e o ponteiro anda por **elemento** — `p + 1` num
 |---------|---------|
 | [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
 | [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 75 módulos |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 76 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
 | [**doc/ESTABILIDADE.md**](doc/ESTABILIDADE.md) | o que pode quebrar entre versões — e o teste que garante |
@@ -862,7 +874,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/docgen.py` | `dataforge doc` | 218 |
 | `dataforge/project.py` | `forge.toml` | 184 |
 | `dataforge/builtins.py` | 228 funções globais | 1224 |
-| `dataforge/stdlib/` | os 75 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
+| `dataforge/stdlib/` | os 76 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
 
 ---
 

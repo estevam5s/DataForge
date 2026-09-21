@@ -1,6 +1,6 @@
 # DataForge
 
-> Linguagem de programacao interpretada, de proposito geral, com vocabulario em portugues. Versao 1.0.0. Implementada em Python 3.10+ sem dependencia externa: lexer, parser, AST, analisador estatico e interpretador proprios. Arquivos `.df`. Licenca MIT.
+> Linguagem de programacao interpretada, de proposito geral, com vocabulario em portugues. Versao 1.1.0. Implementada em Python 3.10+ sem dependencia externa: lexer, parser, AST, analisador estatico e interpretador proprios. Arquivos `.df`. Licenca MIT.
 
 Site: https://dataforge-lang.vercel.app  ·  Documentacao: https://dataforge-lang.vercel.app/docs  ·  API em JSON: https://dataforge-lang.vercel.app/api
 
@@ -137,7 +137,7 @@ typeof      using       validate    void        wait        when
 with        yes         yield
 ```
 
-## A biblioteca: 75 modulos
+## A biblioteca: 76 modulos
 
 Todos por `adopt`. Nenhum precisa de instalacao.
 
@@ -206,6 +206,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Reflexo` | 38 | Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid. |
 | `Arcane.Regex` | 46 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | `Arcane.Resultado` | 13 | A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'. |
+| `Arcane.Seguranca` | 51 | Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática. |
 | `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | `Arcane.Stm` | 13 | Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. |
 | `Arcane.Stream` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |

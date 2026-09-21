@@ -11,7 +11,7 @@
 ; que baixa um .exe não quer aprender o que é pip.
 
 #define Nome "DataForge"
-#define Versao "1.0.0"
+#define Versao "1.1.0"
 #define Autor "Estevam Souza"
 #define Site "https://dataforge-lang.vercel.app"
 

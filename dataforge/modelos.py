@@ -27,7 +27,7 @@ name = "{{name}}"
 version = "0.1.0"
 description = "{descricao}"
 entry = "src/main.df"
-dataforge = ">=1.0"
+dataforge = ">=1.1"
 
 [dependencies]{deps}
 
@@ -683,7 +683,7 @@ name = "{name}"
 version = "0.1.0"
 description = "Uma biblioteca DataForge"
 license = "MIT"
-dataforge = ">=1.0"
+dataforge = ">=1.1"
 
 [scripts]
 test = "test tests/"

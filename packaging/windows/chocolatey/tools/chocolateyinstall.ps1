@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $pacote = @{
   packageName    = 'dataforge'
   fileType       = 'exe'
-  url64bit       = 'https://github.com/estevam5s/DataForge/releases/download/v1.0.0/DataForge-1.0.0-windows-x64-setup.exe'
+  url64bit       = 'https://github.com/estevam5s/DataForge/releases/download/v1.1.0/DataForge-1.1.0-windows-x64-setup.exe'
   checksum64     = '0000000000000000000000000000000000000000000000000000000000000000'
   checksumType64 = 'sha256'
   # Os silenciosos do Inno Setup. '/NORESTART' porque reiniciar a

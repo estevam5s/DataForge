@@ -39,7 +39,7 @@ JANELAS = os.path.join(RAIZ, "packaging", "windows")
 def _ler(relativo):
     caminho = os.path.join(JANELAS, relativo)
     assert os.path.isfile(caminho), (
-        f"{relativo} não existe — rode 'python3 packaging/gerar_pacotes.py'")
+        f"{relativo} não existe — rode 'python3 packaging/gerar_pacotes.py' (o '.iss' e escrito a mao: packaging/windows/dataforge.iss)")
     return open(caminho, encoding="utf-8").read()
 
 
@@ -68,7 +68,7 @@ def test_os_tres_manifestos_e_o_inno_falam_a_MESMA_versao():
     fora = {k: v for k, v in versoes.items() if v != __version__}
     assert not fora, (
         f"a linguagem está em {__version__} e estes discordam: {fora} — "
-        f"rode 'python3 packaging/gerar_pacotes.py'")
+        f"rode 'python3 packaging/gerar_pacotes.py' (o '.iss' e escrito a mao: packaging/windows/dataforge.iss)")
 
 
 def test_os_manifestos_apontam_para_um_arquivo_que_o_release_constroi():

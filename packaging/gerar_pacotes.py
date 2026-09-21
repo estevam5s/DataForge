@@ -326,12 +326,16 @@ def gerar_deb():
     `pip install dataforge-lang=={versao}`. Dois problemas, e o segundo
     e o que importa:
 
-    1. `dataforge-lang` **nao esta no PyPI** — 404. O `postinst` saia
-       com erro, e o `dpkg` deixava o pacote meio configurado.
-    2. Mesmo que estivesse: um pacote de 1,2 KB cujo corpo e um
-       download nao instala nada em maquina sem rede, e passa por cima
-       da politica de quem escolheu uma distro justamente para nao ter
-       `pip install` como raiz.
+    1. Na epoca, `dataforge-lang` **nao estava no PyPI** — 404. O
+       `postinst` saia com erro, e o `dpkg` deixava o pacote meio
+       configurado. Hoje ele esta (1.1.0), e por isso esta linha nao
+       basta mais como motivo — e o segundo continua de pe sozinho.
+    2. Mesmo estando: um pacote de 1,2 KB cujo corpo e um download nao
+       instala nada em maquina sem rede, e passa por cima da politica
+       de quem escolheu uma distro justamente para nao ter
+       `pip install` como raiz. E um `.deb` que baixa da internet na
+       hora da instalacao nao e reproduzivel: a mesma versao do pacote
+       instala coisas diferentes conforme o dia.
 
     O `dpkg-deb --info` do CI passava nas duas versoes: ele confere que
     o `ar` esta bem formado. O pacote estava bem formado e vazio —

@@ -98,8 +98,8 @@ A tabela completa está em
 | **Diretório** | `/app` |
 | **Entrypoint** | `dataforge` |
 | **CMD padrão** | `repl` |
-| **Biblioteca** | 75 módulos, 2079 símbolos |
-| **Comandos** | 62, de `run` a `devops` |
+| **Biblioteca** | 76 módulos, 2130 símbolos |
+| **Comandos** | 63, de `run` a `devops` |
 
 ### Zero dependência, de verdade
 
@@ -113,7 +113,7 @@ gráficos em SVG.
 `python:3.12-slim` sem uma única camada de `apt-get`.
 
 Dos 259 MB, cerca de 130 são o Python base. O resto é a linguagem
-inteira — interpretador, 75 módulos de biblioteca, as ferramentas, e a
+inteira — interpretador, 76 módulos de biblioteca, as ferramentas, e a
 extensão do editor, que viaja junto para `dataforge editor` funcionar
 sem internet.
 
@@ -213,7 +213,7 @@ O Kiln tem upload `multipart`, SSE e WebSocket — ver
 Para empacotar a **sua** aplicação:
 
 ```dockerfile
-FROM estevan5s/dataforge:1.0.0
+FROM estevan5s/dataforge:1.1.0
 
 # O manifesto ANTES do código: a camada de dependência só é refeita
 # quando ele muda. Sem isso, um commit numa linha reinstala tudo.
@@ -280,7 +280,7 @@ falha na primeira consulta — de forma intermitente, que é a pior.
 | Tag | O quê |
 |---|---|
 | `latest` | a última publicada |
-| `1.0.0` | fixa — use esta em produção |
+| `1.1.0` | fixa — use esta em produção |
 
 **Em produção, sempre uma tag fixa.** `latest` muda sob os seus pés, e
 um `docker pull` num redeploy pode trazer uma versão que você não

@@ -1110,7 +1110,7 @@ def test_tarball_publicado_traz_os_exemplos():
 
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     caminho = os.path.join(raiz, "site", "public", "dist",
-                           "dataforge-1.0.0.tar.gz")
+                           "dataforge-1.1.0.tar.gz")
     if not os.path.isfile(caminho):
         pytest.skip("tarball ainda não foi gerado")
 

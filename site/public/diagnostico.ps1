@@ -11,7 +11,7 @@
 # do diagnostico e justamente quem nao conseguiu rodar o instalador.
 
 $ErrorActionPreference = 'Continue'
-$VERSAO = '1.0.0'
+$VERSAO = '1.1.0'
 $SITE   = 'https://dataforge-lang.vercel.app'
 
 # A saida do PowerShell 5.1 e cp1252 por padrao, e um acento basta para

@@ -48,20 +48,39 @@ def carregar(nome):
 
 # ── A versão é uma só ────────────────────────────────────────
 
-def test_versao_e_1_0_0():
-    """A linguagem foi publicada como 1.0.0. Nada pode mostrar 4.x."""
-    assert __version__ == "1.0.0"
+def test_a_versao_e_a_da_serie_1():
+    """A linguagem foi publicada como 1.x. Nada pode mostrar 4.x.
+
+    Antes isto se chamava `test_versao_e_1_0_0` e afirmava o numero
+    exato. O nome de um teste nao pode conter o numero que ele confere:
+    subir para 1.1.0 obrigava a RENOMEAR a funcao, e renomear e
+    exatamente o que se esquece — o teste passa a reprovar o release
+    correto, e a saida mais rapida e apaga-lo.
+    """
+    assert __version__.startswith("1."), __version__
+    assert len(__version__.split(".")) == 3, __version__
 
 
-@pytest.mark.parametrize("arquivo,marcador", [
-    ("pyproject.toml", 'version = "1.0.0"'),
-    ("Dockerfile", 'image.version="1.0.0"'),
-    ("scripts/instalar.sh", "DATAFORGE_VERSION:-1.0.0"),
-    ("editor/vscode/package.json", '"version": "1.0.0"'),
-])
-def test_versao_bate_em_todo_lugar(arquivo, marcador):
+#: Onde a versao aparece, e com que moldura em cada arquivo.
+#:
+#: O marcador e um MOLDE com '{v}', e nao o texto pronto: assim a lista
+#: continua valendo depois de um bump, e o unico lugar que muda e
+#: 'dataforge/__init__.py'.
+MOLDES_DE_VERSAO = [
+    ("pyproject.toml", 'version = "{v}"'),
+    ("Dockerfile", 'image.version="{v}"'),
+    ("scripts/instalar.sh", "DATAFORGE_VERSION:-{v}"),
+    ("editor/vscode/package.json", '"version": "{v}"'),
+    ("packaging/windows/scoop/dataforge.json", '"version": "{v}"'),
+]
+
+
+@pytest.mark.parametrize("arquivo,molde", MOLDES_DE_VERSAO)
+def test_versao_bate_em_todo_lugar(arquivo, molde):
     conteudo = open(os.path.join(RAIZ, arquivo), encoding="utf-8").read()
-    assert marcador in conteudo, f"{arquivo} não diz 1.0.0"
+    marcador = molde.format(v=__version__)
+    assert marcador in conteudo, (
+        f"{arquivo} nao diz {__version__} (procurei por {marcador!r})")
 
 
 def test_nada_visivel_mostra_a_numeracao_antiga():
@@ -1303,9 +1322,15 @@ def test_o_deb_instala_a_linguagem_e_nao_um_pip_install(tmp_path):
     """O `.deb` publicado tinha **1.194 bytes**.
 
     O corpo dele era um `postinst` chamando
-    `pip install dataforge-lang==1.0.0`, e `dataforge-lang` não está no
-    PyPI: o `postinst` saía com erro e o `dpkg` deixava o pacote meio
-    configurado. O `data.tar.gz` tinha um arquivo — um README.
+    `pip install dataforge-lang==1.0.0`, e na época `dataforge-lang`
+    não estava no PyPI: o `postinst` saía com erro e o `dpkg` deixava o
+    pacote meio configurado. O `data.tar.gz` tinha um arquivo — um
+    README.
+
+    Hoje o pacote **está** no PyPI, e o defeito continua o mesmo: um
+    `.deb` cujo corpo é um download não instala em máquina sem rede, e
+    não é reproduzível — a mesma versão do pacote instala coisas
+    diferentes conforme o dia.
 
     O CI conferia com `dpkg-deb --info`, que passa em qualquer `ar` bem
     formado. Este teste olha o que o gerador coloca dentro.

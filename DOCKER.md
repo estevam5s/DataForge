@@ -108,7 +108,7 @@ adopt Kiln
 
 server api on 8080:
     route GET "/":
-        respond {"linguagem": "DataForge", "versao": "1.0.0"}
+        respond {"linguagem": "DataForge", "versao": "1.1.0"}
 
     route GET "/saude":
         respond {"ok": yes}
@@ -124,7 +124,7 @@ curl localhost:8080
 ## Como imagem base
 
 ```dockerfile
-FROM estevan5s/dataforge:1.0.0
+FROM estevan5s/dataforge:1.1.0
 
 WORKDIR /app
 COPY forge.toml .
@@ -146,7 +146,7 @@ CMD ["run", "src/main.df"]
 ```yaml
 services:
   api:
-    image: estevan5s/dataforge:1.0.0
+    image: estevan5s/dataforge:1.1.0
     command: run src/main.df
     ports: ["8080:8080"]
     volumes: [".:/app"]
@@ -154,7 +154,7 @@ services:
       DATAFORGE_ENV: producao
 
   testes:
-    image: estevan5s/dataforge:1.0.0
+    image: estevan5s/dataforge:1.1.0
     command: test tests/
     volumes: [".:/app"]
     profiles: ["ci"]
@@ -175,7 +175,7 @@ on: [push, pull_request]
 jobs:
   verificar:
     runs-on: ubuntu-latest
-    container: estevan5s/dataforge:1.0.0
+    container: estevan5s/dataforge:1.1.0
     steps:
       - uses: actions/checkout@v4
       - run: dataforge check src/ --strict
@@ -193,7 +193,7 @@ roda igual daqui a um ano.
 | Tag | O que é |
 |---|---|
 | `latest` | a última versão estável |
-| `1.0.0` | uma versão fixa — **use esta em produção** |
+| `1.1.0` | uma versão fixa — **use esta em produção** |
 | `1.0` | a última correção da 1.0 |
 
 `latest` muda sem avisar. Num Dockerfile ou num CI, fixe a versão: é a

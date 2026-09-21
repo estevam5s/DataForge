@@ -12,7 +12,7 @@ implementada em Python 3.10+ **sem dependências externas no runtime**. Não é 
 DSL nem um transpilador: tem lexer, parser recursivo descendente, AST tipada,
 analisador estático e interpretador de árvore próprios.
 
-- Versão atual: **1.0.0**
+- Versão atual: **1.1.0**
 - Extensão dos arquivos: `.df`
 - Entrypoints: `dataforge` e `df` (mesmo `main`)
 - Licença: MIT
@@ -92,7 +92,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                75 módulos (2079 símbolos), incluindo:
+  stdlib/                76 módulos (2130 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -133,6 +133,8 @@ dataforge/
                          agendamento, carta morta)
     arcane_excel.py      planilhas .xlsx, sem dependência externa (29)
     arcane_arquivo_seguro.py  cofre de arquivo + zip/tar seguro (56)
+    arcane_seguranca.py  escape por destino, TOTP, token com prazo,
+                         varredura de segredo, SSRF, auditoria encadeada
     cifra.py             ChaCha20-Poly1305 puro (RFC 8439)
 
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
@@ -2081,7 +2083,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 2079 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2130 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2600,7 +2602,7 @@ As páginas de `/docs/biblioteca/<modulo>` traziam a lista de símbolos
 anunciava *"Funções (28)"* onde havia 44 — e a contagem estava no
 **título** da seção, que é o que se lê antes da lista.
 
-E havia o outro lado: **32 dos 75 módulos não tinham página nenhuma**.
+E havia o outro lado: **32 dos 76 módulos não tinham página nenhuma**.
 `Arcane.Quadro`, `Arcane.Malha`, `Arcane.Posse` e `Arcane.Reflexo`
 existem, e a única forma de ver a assinatura de um deles era abrir o
 código.
@@ -2617,6 +2619,152 @@ Três decisões:
 | o prólogo mora **fora** do `.tsx` | deixá-lo dentro de um arquivo marcado `GERADO` é o convite para editá-lo ali — e a correção some na próxima geração |
 | ele **cede** aos treze que `gerar_conteudo.py` escreve | duas ferramentas escrevendo o mesmo arquivo fazem o resultado depender da **ordem** em que rodam, que é o defeito que as duas `slugify` já causaram aqui |
 | a barra lateral sai da **mesma** lista | era ela a razão de 32 páginas não serem alcançáveis: uma página que o menu não cita é uma página que ninguém encontra |
+
+## Segurança — e o que a varredura CALA
+
+`arcane_seguranca.py` (52 símbolos) é **o que se faz com a entrada de
+fora**. `Arcane.Crypto` tem as primitivas e este módulo as **chama**:
+há teste proibindo um nome repetido entre os dois, porque duas contas
+iguais escritas duas vezes divergem — e no dia em que divergirem será a
+de segurança que estará errada. O `Kiln` já responde CSRF, cabeçalhos e
+limite de corpo como **middleware**; aqui é o resto do programa.
+
+**Escapar é por destino, nunca "em geral".** O que protege uma página
+HTML não protege uma linha de shell, e o que protege shell estraga um
+CSV. Três que quase ninguém lembra:
+
+| Função | O que ela fecha |
+|---|---|
+| `escapar_csv` | o Excel **executa** a célula que começa com `=`, `+`, `-` ou `@`. Um nome `=HYPERLINK(...)` vira link ativo na planilha de quem exportou |
+| `escapar_log` | um `\n` num campo acrescenta uma **linha inteira** ao log, e a investigação seguinte lê um evento que nunca aconteceu |
+| `escapar_atributo` | `<a href=x onclick=mau()>` não tem aspas, e ali o espaço é o fim do valor — escapar só `<`, `>` e `&` deixa esse caso passar |
+
+**A lista do que a varredura de segredo NÃO acusa custou mais que a do
+que ela acusa.** Sem os três silêncios ela apontava **19 vezes** no
+repositório, e as 19 eram falso alarme — inclusive os exercícios que
+*ensinam* a não escrever token no arquivo. Uma varredura assim é
+desligada no mesmo dia, e junto com ela vão os achados de verdade.
+
+| Cala sobre | Porque |
+|---|---|
+| valor que se **anuncia** como exemplo | `"123456:AAHexemplo"`, `"sua-senha-aqui"`, `AKIA…EXAMPLE` |
+| **JWT com papel `anon`** | a chave `anon` do Supabase vai no pacote do navegador **de propósito** — quem protege a linha é o RLS. A `service_role` ignora o RLS e é comprometimento total. As duas têm o mesmo formato, e só o conteúdo as separa: `_papel_do_jwt` lê o `role` de dentro |
+| credencial de `localhost` | `postgres://forge:forge@localhost` num teste é um teste normal; os domínios da RFC 2606 entram pela mesma porta |
+| `// df: permitir segredo-no-codigo` | e ele vale em **qualquer** arquivo, não só num `.df` — um segredo de brinquedo mora tanto num teste em Python quanto num exemplo em Markdown |
+
+E a regra `caminho-de-fora` teve de ser **estreitada**: a versão ampla
+("`IO.algo` com interpolação") deu 16 das 19 acusações, e todas eram
+`$"{pasta}/nome-fixo"` com `pasta` criada duas linhas acima. O que torna
+um caminho perigoso não é a interpolação: é a **origem** do que se
+interpola.
+
+Quatro decisões que valem lembrar:
+
+1. **`opcoes.ler` valida e NÃO aplica padrão.** Quem chama faz o merge —
+   é o que a docstring dela pede, para o padrão não morar em dois
+   lugares. A primeira versão deste módulo indexou o resultado direto e
+   estourou `KeyError` em toda função com opções.
+2. **`vazada` fala com a rede, e isso está no nome.** Manda os cinco
+   primeiros caracteres do SHA-1 (k-anonimato do HIBP) e devolve **-1**
+   em vez de levantar quando a rede falha: uma política de senha que
+   para de funcionar porque um serviço de terceiro caiu impede cadastro
+   por um motivo que não é de segurança.
+3. **`url_segura` resolve o nome antes de responder.** Bloquear por
+   texto não funciona — `localtest.me` resolve para `127.0.0.1`, e quem
+   ataca controla o DNS do domínio dele. Ela devolve o `ip` resolvido
+   para quem precisar fechar a corrida entre a conferência e a busca.
+4. **O `Segredo` não protege da memória.** Ele transforma um vazamento
+   acidental (o vault inteiro impresso para depurar) numa linha
+   explícita — `revelar()` — que aparece na revisão de código. E
+   `__hash__` levanta: o resumo dele acabaria numa chave de cache.
+
+`dataforge seguranca` roda as duas varreduras sobre o projeto, e não só
+sobre os `.df`: um segredo vaza do arquivo de configuração muito mais do
+que do código.
+
+## A página /roadmap
+
+Três mapas em Three.js sobre dados **gerados**
+(`site/scripts/gerar_roadmap.py`, de `Arcane.Percurso.fases()` e
+`Arcane.Ecossistema.componentes()`). Cinco decisões:
+
+| Decisão | Sem ela |
+|---|---|
+| a posição de cada nó é **determinística** | uma constelação que muda de forma a cada recarregamento não é um mapa, é um protetor de tela |
+| o rótulo é **HTML projetado**, não `TextGeometry` | um carregador de fonte, um `.json` de ~300 KB, e texto sem hinting ilegível abaixo de 14px |
+| a página mostra **o que não existe** | um roadmap que só lista conquistas é propaganda; e escrita à mão, essa lista envelheceria no dia em que alguém implementasse um item |
+| sem WebGL, sai a **lista** | um mapa que vira retângulo vazio some com o conteúdo junto |
+| o desmonte percorre uma lista de `dispose()` | trocar de mapa três vezes deixaria três cenas vivas na GPU — o vazamento clássico de Three em React |
+
+A rota fica no **topo**, e não em `nav.ts` — `tests/test_roadmap.py`
+cobra as duas direções, porque quem a acrescentar à barra lateral "para
+facilitar" não vai lembrar que ela foi deixada de fora de propósito. No
+celular o topo some (`hidden lg:block`), então o menu ganhou a fila das
+rotas de topo: sem ela, `/roadmap` e `/download` seriam inalcançáveis
+num telefone. E ela entra no sitemap por `AVULSAS`, já que o sitemap sai
+do `nav.ts`.
+
+**As trilhas são escritas à mão, e os destinos conferidos.** A ordem em
+que vale a pena aprender é julgamento, não dado — mas escrevendo-as,
+**8 de 36** rotas que eu "sabia" não existiam: `/docs/controle` e
+`/docs/pipeline` soam certas, e as páginas se chamam
+`/docs/condicionais` e `/docs/pipelines`. Sem a trava, oito passos de
+sete trilhas levariam a 404.
+
+## O número da versão mora num lugar só
+
+O teste chamava-se `test_versao_e_1_0_0` e afirmava o número exato em
+três pontos. **O nome de um teste não pode conter o número que ele
+confere**: subir de versão obrigava a renomear a função, e renomear é o
+que se esquece — o teste passa a reprovar o release correto, e a saída
+mais rápida é apagá-lo.
+
+Hoje ele deriva de `__version__`, e `MOLDES_DE_VERSAO` é uma lista de
+**moldes** (`'version = "{v}"'`), não de textos prontos. Ao subir a
+versão, mude `dataforge/__init__.py` e `pyproject.toml` e rode a suíte:
+ela aponta cada arquivo que ficou para trás. Os que precisam de mão são
+`editor/vscode/package.json`, `Dockerfile`, os três instaladores,
+`packaging/windows/dataforge.iss` (**escrito à mão** — o gerador não o
+escreve), `packaging/windows/scoop/dataforge.json`, `docker/README.md`,
+`DOCKER.md` e o `dataforge = ">=X.Y"` dos modelos em `modelos.py`.
+Depois, `python3 scripts/gerar_tarball.py` e
+`python3 packaging/gerar_pacotes.py`.
+
+## Publicar no PyPI
+
+A linguagem está no PyPI como **`dataforge-lang`** — `pip install
+dataforge-lang`. O fluxo, e o que conferir antes:
+
+```bash
+cd editor/vscode && npx tsc -p .     # SEM isto o wheel sai sem JavaScript
+cd ../.. && python3 -m build
+python3 -m twine check dist/*.whl dist/*.tar.gz
+```
+
+Três armadilhas:
+
+1. **`dist/` também guarda o `.deb`** (`dist/pacotes/`), e
+   `twine upload dist/*` morre com "Unknown distribution format". Suba
+   os dois arquivos **nomeados**.
+2. **A extensão precisa estar compilada.** `editor/vscode/out/` é
+   gitignored; sem `tsc -p .` o wheel sai com o manifesto e zero
+   JavaScript, e `dataforge editor` instala uma extensão que não faz
+   nada. `tests/test_empacotamento.py` constrói o wheel e olha dentro.
+3. **Uma versão publicada não pode ser reusada.** `v1.0.0` já existia
+   como release no GitHub, então publicar um 1.0.0 diferente no PyPI
+   faria o mesmo número nomear dois artefatos — é o ataque que o
+   lockfile do `dataforge` existe para impedir. Daí a 1.1.0.
+
+O token vai **só por variável de ambiente**, nunca em arquivo:
+
+```bash
+TWINE_USERNAME=__token__ TWINE_PASSWORD='pypi-…' \
+  python3 -m twine upload --non-interactive \
+  dist/dataforge_lang-X.Y.Z-py3-none-any.whl dist/dataforge_lang-X.Y.Z.tar.gz
+```
+
+A prova de que funcionou não é a saída do `twine`: é instalar do PyPI
+num ambiente limpo e rodar um `.df`.
 
 ## O que é gerado — não edite à mão
 
