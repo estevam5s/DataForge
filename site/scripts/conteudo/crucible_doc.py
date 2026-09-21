@@ -96,11 +96,13 @@ dataforge crucible --matchers           # lista os 59""", "lang": "bash"},
 
  {"h2": "Por onde seguir"},
  {"cards": [
-   {"href": "/docs/crucible/matchers", "title": "Os 59 matchers", "desc": "igualdade, tipos, coleções, erros, desempenho"},
+   {"href": "/docs/crucible/matchers", "title": "Os 79 matchers", "desc": "igualdade, tipos, coleções, erros, desempenho"},
    {"href": "/docs/crucible/fixtures", "title": "Fixtures e ganchos", "desc": "preparo, limpeza e por que elas ficam juntas"},
    {"href": "/docs/crucible/dubles", "title": "Dublês", "desc": "mock, spy e stub — e a diferença entre eles"},
    {"href": "/docs/crucible/propriedades", "title": "Teste por propriedade", "desc": "a regra em vez dos casos, com contraexemplo encolhido"},
-   {"href": "/docs/crucible/relatorios", "title": "Relatórios e CI", "desc": "texto, JUnit, JSON, TAP — e benchmark com p95"}]},
+   {"href": "/docs/crucible/relatorios", "title": "Relatórios e CI", "desc": "texto, JUnit, JSON, TAP — e benchmark com p95"},
+   {"href": "/docs/crucible/cenarios", "title": "Cenários", "desc": "concorrência, relógio que anda, e um HTTP que você controla"},
+   {"href": "/docs/crucible/mutacao", "title": "Contratos e mutação", "desc": "o mesmo teste em duas implementações, e se o teste testa mesmo"}]},
 ]},
 
 {
@@ -278,6 +280,47 @@ crucible "Outros":
         given no:
             Crucible.fail("não deveria chegar aqui")
         expect yes""", "lang": "df"},
+ {"h2": "O que mudou — `to_change`"},
+ {"p": "É o matcher que mais falta num framework de teste, porque ele cobre o caso que um `assert` simples cobre mal: o **efeito colateral**. Sem ele se escreve `antes := saldo()`, a ação, `depois := saldo()` e um assert — quatro linhas em que a do meio pode falhar em silêncio."},
+ {"code": """expect(lambda => conta.depositar(10)).to_change(
+    lambda => conta.saldo()).por(10)
+
+expect(lambda => conta.sacar(500)).to_change(
+    lambda => conta.saldo()).de_para(100, -400)
+
+expect(lambda => olhar(conta)).to_not_change(lambda => conta.saldo())""", "lang": "df"},
+ {"p": "`to_not_change` é um matcher **próprio**, e não `nao().to_change(...)`: encadear `.por(...)` depois de \"não mudou\" não quer dizer nada."},
+
+ {"h2": "Quem foi chamado — os dublês"},
+ {"code": """banco := Crucible.spy(banco_real)
+servico.processar(pedido)
+
+expect(banco).to_have_been_called("salvar")
+expect(banco).to_have_been_called_once("cobrar")
+expect(banco).to_have_been_called_with(pedido.id)
+expect(banco).to_have_been_called_in_order("abrir", "salvar", "fechar")
+expect(banco).to_have_never_been_called("apagar")""", "lang": "df"},
+ {"callout": {"tipo": "dica", "titulo": "`once` não é `called`",
+              "texto": "\"Foi chamado\" passa com três chamadas — e três chamadas de `cobrar()` é uma cobrança duplicada, o tipo de bug que ninguém perdoa."}},
+ {"p": "A **ordem** admite outras chamadas no meio, de propósito: cobrar a sequência exata quebraria a cada chamada nova que o código passasse a fazer, e um teste que quebra sem o comportamento mudar é um teste que será apagado."},
+
+ {"h2": "Forma, e não valor"},
+ {"table": {"head": ["Matcher", "Para quê"], "rows": [
+   ["`to_match_vault(parcial)`", "as chaves dadas batem; as outras são ignoradas"],
+   ["`to_have_shape(forma)`", "cada chave tem o **tipo** dito, sem olhar o valor"],
+   ["`to_satisfy(regra, texto)`", "a saída de emergência: qualquer regra que você escreva"],
+   ["`to_be_one_of(lista)`", "o valor está entre estes"],
+   ["`to_contain_exactly(itens)`", "os mesmos itens, em qualquer ordem"],
+   ["`to_be_subset_of(maior)`", "tudo o que há aqui está lá"],
+   ["`to_be_ordered_by(campo)`", "ordenado por um campo de vault, record ou instância"],
+   ["`to_round_trip(ida, volta)`", "serializar e desserializar devolve o mesmo"],
+   ["`to_be_within_percent(v, p)`", "perto em **proporção**, e não em valor absoluto"],
+   ["`to_raise_matching(padrao)`", "o erro tem uma mensagem que casa"],
+   ["`to_emit(lista)` · `to_emit_first(lista)`", "um gerador finito, e um infinito"]]}},
+ {"p": "`to_match_vault` existe porque cobrar o vault inteiro obriga a escrever no teste campos que ele não testa — e no dia em que um campo novo aparece, dez testes quebram sem nenhum comportamento ter mudado."},
+ {"p": "`to_be_within_percent` existe porque uma tolerância absoluta serve mal a grandezas de escalas diferentes: `0,01` é muito para um percentual e nada para um saldo."},
+ {"p": "E `to_emit` é separado de `to_emit_first` porque fundir as duas faria `to_emit([0,1,2])` passar sobre uma série que **nunca acaba** — e a afirmação \"produz [0,1,2]\" seria falsa. Um `stream action` infinito é comum na linguagem."},
+
  {"p": "A lista completa: `dataforge crucible --matchers`."},
 ]},
 
@@ -653,5 +696,151 @@ out resumo["passou"], resumo["falhou"], resumo["verde"]
 
 cycle r in Crucible.results():
     out r["nome"], r["estado"], r["duracao"]""", "lang": "df"},
+]},
+
+# ══════════════════════════════════════════════════════════════
+{
+"href": "/docs/crucible/cenarios",
+"title": "Cenários: concorrência, tempo e rede",
+"description": "Provar que o mutex segura, que o cache vence amanhã, e o que o cliente faz com um 503.",
+"blocos": [
+ {"p": "Os matchers respondem *\"o valor é o esperado?\"*. Estas quatro ferramentas respondem uma pergunta anterior: **em que mundo o código está rodando?** Elas montam o cenário — e não comparam nada."},
+
+ {"h2": "Concorrência: a corrida que o `check` só avisa"},
+ {"p": "A linguagem **não sincroniza sozinha**, e isso está documentado: duas threads escrevendo no mesmo nome perdem atualizações, em silêncio. O `check` avisa sobre o padrão (`escrita-concorrente`) — mas avisar não é provar, e um teste que roda a ação uma vez por thread não detecta nada, porque a janela é estreita."},
+ {"code": """action test_o_contador_perde_sem_mutex():
+    contador := spawn Contador()
+    r := Crucible.corrida(lambda => contador.somar(),
+                          threads := 4, voltas := 5000,
+                          leitor := lambda => contador.valor())
+    expect(r.perdeu()).to_be_true()
+    out $"perdeu {r.perdidas()} de {r.esperado}"
+
+action test_com_mutex_nao_perde():
+    contador := spawn ContadorProtegido()
+    r := Crucible.corrida(lambda => contador.somar(),
+                          threads := 4, voltas := 5000,
+                          leitor := lambda => contador.valor())
+    expect(r.perdeu()).to_be_false()""", "lang": "df"},
+ {"callout": {"tipo": "dica", "titulo": "A barreira é o ponto",
+              "texto": "As threads largam **juntas**. Sem isso, a primeira costuma terminar antes de a última começar — e o teste passa justamente no código que tem a corrida."}},
+ {"table": {"head": ["", "O que diz"], "rows": [
+   ["`r.perdeu()`", "`yes` quando o total não bate"],
+   ["`r.perdidas()`", "quantas atualizações sumiram"],
+   ["`r.erros`", "o que estourou **dentro** da thread — sem isto, morreria calado"],
+   ["`r.para_vault()`", "tudo, para um relatório"]]}},
+
+ {"h2": "Determinismo: o mesmo dado dá o mesmo resultado?"},
+ {"code": """r := Crucible.determinismo(lambda => montar_relatorio(vendas), vezes := 5)
+expect(r["estavel"]).to_be_true()""", "lang": "df"},
+ {"p": "É a propriedade que um relatório precisa ter e que quase nada tem: um `id()` na chave de um cache, uma ordem de vault, um `random` sem semente — os três passam no teste que roda **uma** vez."},
+ {"p": "A comparação é por **foto estrutural**, e não por referência: duas listas iguais são objetos diferentes, e comparar referência diria \"instável\" para código perfeitamente determinístico."},
+
+ {"h2": "O relógio que anda"},
+ {"p": "`freeze_time` congela; o relógio **anda**. A diferença importa para testar o que depende de *intervalo* — um cache com validade, um recuo, um prazo — porque congelado eles nunca vencem, e com o relógio de verdade o teste precisa dormir."},
+ {"code": """action test_o_cache_vence_em_trinta_minutos():
+    Crucible.com_relogio(lambda r => conferir_validade(r),
+                         "2026-09-20 10:00:00")
+
+action conferir_validade(r):
+    cache.guardar("cotacao", 5.42)
+    r.avancar(minutos := 29)
+    expect(cache.obter("cotacao")).to_be(5.42)
+    r.avancar(minutos := 2)
+    expect(cache.obter("cotacao")).to_be_void()""", "lang": "df"},
+ {"callout": {"tipo": "atencao", "titulo": "Use `com_relogio`, e não `ligar` à mão",
+              "texto": "Ele desliga o relógio **mesmo quando o trial estoura**. Um relógio ligado que escapa faz todos os trials seguintes verem o tempo parado — e a suíte passa a falhar em lugares que não têm nada a ver."}},
+
+ {"h2": "Um HTTP que você controla"},
+ {"p": "Um dublê substitui o cliente e prova que o código chamou um método. O **servidor falso** sobe um socket de verdade e prova que o código fala HTTP direito — cabeçalho, corpo, status — e o que ele faz com um 503. São perguntas diferentes, e a segunda é a que quebra em produção."},
+ {"code": """action test_o_cliente_repete_duas_vezes_e_desiste():
+    s := Crucible.servidor_falso()
+    s.falhar("/precos", 503, vezes := 2)
+    s.responder("/precos", {"dolar": 5.42})
+
+    resposta := meu_cliente.buscar(s.url("/precos"))
+
+    expect(resposta["dolar"]).to_be(5.42)
+    expect(s.quantos("/precos")).to_be(3)
+    s.parar()""", "lang": "df"},
+ {"p": "O `vezes` é o que torna testável o *\"falha duas vezes e na terceira funciona\"* — o comportamento que um cliente com recuo promete e quase nunca tem teste."},
+ {"table": {"head": ["Programar", "Perguntar"], "rows": [
+   ["`s.responder(rota, corpo, status)`", "`s.pedidos(rota)` — tudo o que chegou"],
+   ["`s.falhar(rota, status, vezes)`", "`s.ultimo(rota)` — o último, com corpo e cabeçalhos"],
+   ["`s.demorar(segundos)`", "`s.quantos(rota)`"],
+   ["`s.url(caminho)`", "`s.limpar()` · `s.parar()`"]]}},
+ {"p": "Uma rota que ninguém programou responde **404**, e não um corpo vazio: um 200 sem conteúdo faria o teste falhar num ponto distante, dizendo que o dado veio errado."},
+]},
+
+# ══════════════════════════════════════════════════════════════
+{
+"href": "/docs/crucible/mutacao",
+"title": "Contratos e mutação",
+"description": "O mesmo teste valendo para duas implementações, e a pergunta que a cobertura não responde.",
+"blocos": [
+ {"h2": "Contrato: um trait, muitas implementações"},
+ {"p": "Duas implementações do mesmo trait costumam ter **dois** conjuntos de testes, escritos em épocas diferentes, cobrindo coisas diferentes. A segunda passa nos testes dela e quebra no uso — porque o que ela não cumpre é justamente o que só o teste da primeira cobria."},
+ {"code": """action guarda_e_le(a):
+    a.guardar("x", 1)
+    expect(a.ler("x")).to_be(1)
+
+action apaga(a):
+    a.guardar("x", 1)
+    a.apagar("x")
+    expect(a.ler("x")).to_be_void()
+
+provas := Crucible.contrato("Armazem", [
+    {"nome": "guarda e le", "prova": guarda_e_le},
+    {"nome": "apaga", "prova": apaga}
+])
+
+provas.para("em memoria", lambda => spawn EmMemoria())
+provas.para("em disco", lambda => spawn EmDisco("/tmp/x"))
+provas.cobrar()""", "lang": "df"},
+ {"p": "`cobrar()` levanta nomeando **qual implementação** falhou em **qual caso**. A alternativa — um resumo dizendo \"2 falhas\" — manda procurar em dois lugares."},
+
+ {"h2": "Mutação: o teste testa mesmo?"},
+ {"p": "Cobertura responde *\"esta linha rodou?\"*. Ela não responde *\"se esta linha estivesse errada, alguém reclamaria?\"* — e as duas divergem justamente onde importa: um teste que chama a função e **não confere o resultado** dá 100% de cobertura e zero de proteção."},
+ {"p": "A mutação responde a segunda pergunta: troca um operador no código, roda a suíte, e vê se ela falha. Se a suíte **passar**, aquele teste não testava aquilo. O mutante é chamado de *sobrevivente*, e cada sobrevivente é um buraco com endereço."},
+ {"code": """r := Crucible.mutar("src/calculo.df",
+                    lambda => Crucible.run()["falhas"] bigger 0)
+
+out Crucible.relatorio_de_mutacao(r)
+expect(r["sobreviventes"]).to_be_empty()""", "lang": "df"},
+ {"code": """  src/calculo.df
+  7/9 mutantes pegos (78%)
+
+  sobreviveram — ninguém reclamou destas trocas:
+    linha 12: bigger_eq → bigger  (afrouxa um limite: '>=' vira '>')
+      yield idade bigger_eq 18
+    linha 27: * → /  (troca a operação)
+      yield valor * desconto""", "lang": "text"},
+ {"p": "A primeira sobrevivente diz que nenhum teste passa exatamente 18 — o caso de borda. A segunda, que ninguém confere o valor com desconto."},
+ {"table": {"head": ["Decisão", "Por quê"], "rows": [
+   ["**uma** troca por mutante", "com duas, um teste que pega a primeira esconde a segunda"],
+   ["fronteira de palavra", "`bigger` é pedaço de `bigger_eq`; sem ela o relatório descreveria uma troca e faria outra"],
+   ["comentário e texto não mutam", "mudar um literal ali não muda comportamento, e o mutante sobreviveria sempre"],
+   ["suíte que **estoura** conta como pego", "o código quebrado não passou despercebido, que é a única pergunta"],
+   ["o arquivo volta num `finally`", "um código-fonte silenciosamente alterado é o pior desfecho de uma ferramenta de teste"]]}},
+ {"callout": {"tipo": "atencao", "titulo": "O custo, dito de frente",
+              "texto": "Cada mutante roda a suíte inteira. Com quarenta mutantes e uma suíte de dois segundos, são oitenta segundos — por isso o `limite` existe e por isso isto **não** roda no CI de cada commit. É uma ferramenta de auditoria, e não um portão."}},
+
+ {"h2": "As onze trocas"},
+ {"p": "Cada uma é uma mudança que um humano faria por engano, e que um teste de verdade pegaria. Trocas que quase sempre produzem erro de sintaxe ou laço infinito ficam de fora: elas gastam uma rodada da suíte para não dizer nada."},
+ {"table": {"head": ["Troca", "O que ela simula"], "rows": [
+   ["`bigger_eq` → `bigger`", "afrouxa um limite — o caso de borda"],
+   ["`smaller_eq` → `smaller`", "o mesmo, do outro lado"],
+   ["`bigger` ↔ `smaller`", "inverte a comparação"],
+   ["`is not` → `is`", "inverte a igualdade"],
+   ["`and` ↔ `or`", "troca o conectivo"],
+   ["`+` ↔ `-` · `*` → `/`", "troca a operação"],
+   ["`yes` → `no`", "inverte um literal lógico"]]}},
+
+ {"h2": "Onde continuar"},
+ {"cards": [
+   {"href": "/docs/crucible/cenarios", "title": "Cenários", "desc": "Concorrência, relógio e um HTTP que você controla."},
+   {"href": "/docs/crucible/matchers", "title": "Os matchers", "desc": "As 79 cobranças, por família."},
+   {"href": "/docs/tecnicas/cobertura", "title": "Cobertura", "desc": "O que a cobertura mede — e o que ela não mede."},
+   {"href": "/docs/crucible/relatorios", "title": "Relatórios e CI", "desc": "JUnit, JSON, TAP e benchmark."}]},
 ]},
 ]

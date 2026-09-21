@@ -1,3 +1,8 @@
+// GERADO por 'tools/gerar_paginas_biblioteca.py'. Nao edite aqui.
+// O que e escrito a mao mora em
+// 'site/scripts/conteudo_biblioteca/excel.py'; as tabelas saem do
+// proprio modulo, a cada geracao.
+
 import type { Metadata } from 'next';
 import type { Bloco } from '@/lib/content';
 import { DocPage } from '@/components/Doc';
@@ -5,7 +10,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Arcane.Excel",
-  description: "Ler e gravar planilhas .xlsx sem dependência externa.",
+  description: "Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame.",
 };
 
 const blocos: Bloco[] = [
@@ -89,15 +94,17 @@ Xls.col_letter(26)      // "AA"` },
   ]}},
   {"h2": "O que ele não faz"},
   {"p": "Não calcula fórmulas, não desenha gráficos, não lê `.xls` antigo (o formato binário anterior a 2007) e não faz tabela dinâmica. Cores e bordas se limitam ao negrito do cabeçalho. Para o que ele faz — levar dados para dentro e para fora de uma planilha — está completo."},
+  {"h2": "Funções (29)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`addr(linha, coluna)`"], ["`append(aba, linha_valores)`"], ["`autofit(aba)`"], ["`bold_row(aba, linha)`"], ["`cell(aba, linha, coluna, valor=None)`"], ["`col_letter(indice)`"], ["`column(livro, nome_aba, coluna)`"], ["`dims(livro, nome=None)`"], ["`drop_sheet(livro, nome)`"], ["`formula(aba, ref, expressao)`"], ["`formulas(aba)`"], ["`freeze(aba, ref='A2')`"], ["`from_csv(caminho, separador=',', nome='Planilha1')`"], ["`from_frame(frame, nome='Dados', livro=None)`"], ["`get(aba, ref)`"], ["`get_formula(aba, ref)`"], ["`new()`"], ["`parse_addr(ref)`"], ["`quick(caminho, dados, nome='Planilha1', cabecalho=None)`"], ["`read(caminho)`"], ["`records(livro, nome=None)`"], ["`rows(livro, nome=None)`"], ["`save(livro, caminho)`"], ["`set(aba, ref, valor)`"], ["`sheet(livro, nome, dados=None, cabecalho=None)`"], ["`sheets(livro)`"], ["`to_csv(livro, caminho, nome=None, separador=',')`"], ["`to_frame(livro, nome=None)`"], ["`width(aba, coluna, largura)`"]]}},
 ];
 
-const headings = [{ id: 'o-caminho-curto', text: "O caminho curto", level: 2 as const }, { id: 'ler', text: "Ler", level: 2 as const }, { id: 'os-tipos-sobrevivem', text: "Os tipos sobrevivem", level: 2 as const }, { id: 'montar-com-cuidado', text: "Montar com cuidado", level: 2 as const }, { id: 'formulas', text: "Fórmulas", level: 2 as const }, { id: 'converter', text: "Converter", level: 2 as const }, { id: 'planilha-esparsa', text: "Planilha esparsa", level: 2 as const }, { id: 'enderecos', text: "Endereços", level: 2 as const }, { id: 'as-29-funcoes', text: "As 29 funções", level: 2 as const }, { id: 'o-que-ele-nao-faz', text: "O que ele não faz", level: 2 as const }];
+const headings = [{ id: 'o-caminho-curto', text: "O caminho curto", level: 2 as const }, { id: 'ler', text: "Ler", level: 2 as const }, { id: 'os-tipos-sobrevivem', text: "Os tipos sobrevivem", level: 2 as const }, { id: 'montar-com-cuidado', text: "Montar com cuidado", level: 2 as const }, { id: 'formulas', text: "Fórmulas", level: 2 as const }, { id: 'converter', text: "Converter", level: 2 as const }, { id: 'planilha-esparsa', text: "Planilha esparsa", level: 2 as const }, { id: 'enderecos', text: "Endereços", level: 2 as const }, { id: 'as-29-funcoes', text: "As 29 funções", level: 2 as const }, { id: 'o-que-ele-nao-faz', text: "O que ele não faz", level: 2 as const }, { id: 'funcoes-29', text: "Funções (29)", level: 2 as const }];
 
-export default function Page() {
+export default function Pagina() {
   return (
     <DocPage
       title={"Arcane.Excel"}
-      description={"Ler e gravar planilhas .xlsx sem dependência externa."}
+      description={"Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame."}
       href={"/docs/biblioteca/excel"}
       headings={headings}
     >

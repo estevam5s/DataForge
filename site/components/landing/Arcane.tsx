@@ -20,12 +20,15 @@ const total = modulos.reduce((n, [, m]) => n + m.funcoes.length, 0);
  * desaparecer é pior. */
 const grupos: { rotulo: string; chaves: string[] }[] = [
   { rotulo: 'Núcleo', chaves: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal', 'bytes'] },
-  { rotulo: 'Frameworks', chaves: ['kiln', 'vitrine', 'lavra', 'crucible', 'forge', 'api'] },
+  { rotulo: 'Frameworks', chaves: ['kiln', 'vitrine', 'telegram', 'lavra', 'crucible', 'forge', 'api'] },
   { rotulo: 'Dados', chaves: ['quadro', 'data', 'analytics', 'cortex', 'lago', 'pipeline', 'qualidade', 'stream'] },
   { rotulo: 'Formatos', chaves: ['serialization', 'excel', 'archive', 'database', 'html'] },
   { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email', 'url'] },
   { rotulo: 'Qualidade', chaves: ['test', 'bench', 'logging', 'crypto', 'observar', 'color', 'meta', 'cli', 'eventos'] },
   { rotulo: 'Objetos', chaves: ['reflexo', 'objetos', 'injecao', 'padroes'] },
+  { rotulo: 'Domínio', chaves: ['dominio'] },
+  { rotulo: 'Estruturas', chaves: ['estrutura'] },
+  { rotulo: 'Reativo', chaves: ['reativo'] },
   { rotulo: 'Tipos', chaves: ['tipos', 'resultado'] },
   { rotulo: 'Memória', chaves: ['posse', 'memoria'] },
   { rotulo: 'Transacional', chaves: ['stm'] },

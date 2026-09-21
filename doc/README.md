@@ -14,10 +14,11 @@
 | [**VITRINE.md**](VITRINE.md) | O framework de dashboards: um programa de cima para baixo vira uma página web |
 | [**OOP.md**](OOP.md) | Orientação a objetos como sistema: modelo, modificadores, contratos, metaclasses, reflexão, DI, SOLID — e o mapa do que existe |
 | [**ESTABILIDADE.md**](ESTABILIDADE.md) | O que pode quebrar entre versões, e o que não — verificado por teste |
+| [**DataForge_Analise_ETL_Engenharia_de_Dados.md**](DataForge_Analise_ETL_Engenharia_de_Dados.md) | Ensaio: a linguagem vista por quem faz engenharia de dados — o que ela cobre de um pipeline de ponta a ponta, e onde ela para |
 
 Além destes:
 
-- [`../exercicios/`](../exercicios) — 267 exercícios; os dos módulos 11-23 com `.md` explicativo
+- [`../exercicios/`](../exercicios) — 387 exercícios; os dos módulos 11-23 com `.md` explicativo
 - [`../examples/`](../examples) — 44 programas maiores
 - [`../CLAUDE.md`](../CLAUDE.md) — contexto para trabalhar no interpretador
 

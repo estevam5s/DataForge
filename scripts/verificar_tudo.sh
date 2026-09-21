@@ -124,6 +124,7 @@ for gerador in \
     tools/gerar_ref_kiln.py \
     tools/gerar_ref_vitrine.py \
     tools/gerar_pagina_biblioteca.py \
+    tools/gerar_paginas_biblioteca.py \
     tools/gerar_indice_exercicios.py \
     scripts/gerar_api.py \
     site/scripts/gerar_dados.py \

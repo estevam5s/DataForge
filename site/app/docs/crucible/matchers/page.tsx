@@ -152,10 +152,36 @@ crucible "Outros":
         given no:
             Crucible.fail("não deveria chegar aqui")
         expect yes`, lang: 'df' },
+  {"h2": "O que mudou — `to_change`"},
+  {"p": "É o matcher que mais falta num framework de teste, porque ele cobre o caso que um `assert` simples cobre mal: o **efeito colateral**. Sem ele se escreve `antes := saldo()`, a ação, `depois := saldo()` e um assert — quatro linhas em que a do meio pode falhar em silêncio."},
+  { code: `expect(lambda => conta.depositar(10)).to_change(
+    lambda => conta.saldo()).por(10)
+
+expect(lambda => conta.sacar(500)).to_change(
+    lambda => conta.saldo()).de_para(100, -400)
+
+expect(lambda => olhar(conta)).to_not_change(lambda => conta.saldo())`, lang: 'df' },
+  {"p": "`to_not_change` é um matcher **próprio**, e não `nao().to_change(...)`: encadear `.por(...)` depois de \"não mudou\" não quer dizer nada."},
+  {"h2": "Quem foi chamado — os dublês"},
+  { code: `banco := Crucible.spy(banco_real)
+servico.processar(pedido)
+
+expect(banco).to_have_been_called("salvar")
+expect(banco).to_have_been_called_once("cobrar")
+expect(banco).to_have_been_called_with(pedido.id)
+expect(banco).to_have_been_called_in_order("abrir", "salvar", "fechar")
+expect(banco).to_have_never_been_called("apagar")`, lang: 'df' },
+  {"callout": {"tipo": "dica", "titulo": "`once` não é `called`", "texto": "\"Foi chamado\" passa com três chamadas — e três chamadas de `cobrar()` é uma cobrança duplicada, o tipo de bug que ninguém perdoa."}},
+  {"p": "A **ordem** admite outras chamadas no meio, de propósito: cobrar a sequência exata quebraria a cada chamada nova que o código passasse a fazer, e um teste que quebra sem o comportamento mudar é um teste que será apagado."},
+  {"h2": "Forma, e não valor"},
+  {"table": {"head": ["Matcher", "Para quê"], "rows": [["`to_match_vault(parcial)`", "as chaves dadas batem; as outras são ignoradas"], ["`to_have_shape(forma)`", "cada chave tem o **tipo** dito, sem olhar o valor"], ["`to_satisfy(regra, texto)`", "a saída de emergência: qualquer regra que você escreva"], ["`to_be_one_of(lista)`", "o valor está entre estes"], ["`to_contain_exactly(itens)`", "os mesmos itens, em qualquer ordem"], ["`to_be_subset_of(maior)`", "tudo o que há aqui está lá"], ["`to_be_ordered_by(campo)`", "ordenado por um campo de vault, record ou instância"], ["`to_round_trip(ida, volta)`", "serializar e desserializar devolve o mesmo"], ["`to_be_within_percent(v, p)`", "perto em **proporção**, e não em valor absoluto"], ["`to_raise_matching(padrao)`", "o erro tem uma mensagem que casa"], ["`to_emit(lista)` · `to_emit_first(lista)`", "um gerador finito, e um infinito"]]}},
+  {"p": "`to_match_vault` existe porque cobrar o vault inteiro obriga a escrever no teste campos que ele não testa — e no dia em que um campo novo aparece, dez testes quebram sem nenhum comportamento ter mudado."},
+  {"p": "`to_be_within_percent` existe porque uma tolerância absoluta serve mal a grandezas de escalas diferentes: `0,01` é muito para um percentual e nada para um saldo."},
+  {"p": "E `to_emit` é separado de `to_emit_first` porque fundir as duas faria `to_emit([0,1,2])` passar sobre uma série que **nunca acaba** — e a afirmação \"produz [0,1,2]\" seria falsa. Um `stream action` infinito é comum na linguagem."},
   {"p": "A lista completa: `dataforge crucible --matchers`."},
 ];
 
-const headings = [{ id: 'duas-formas', text: "Duas formas", level: 2 as const }, { id: 'igualdade', text: "Igualdade", level: 2 as const }, { id: 'verdade-e-vazio', text: "Verdade e vazio", level: 2 as const }, { id: 'tipos', text: "Tipos", level: 2 as const }, { id: 'numeros', text: "Números", level: 2 as const }, { id: 'texto', text: "Texto", level: 2 as const }, { id: 'colecoes', text: "Coleções", level: 2 as const }, { id: 'erros', text: "Erros", level: 2 as const }, { id: 'desempenho-e-saida', text: "Desempenho e saída", level: 2 as const }, { id: 'invertendo', text: "Invertendo", level: 2 as const }, { id: 'falhando-de-proposito', text: "Falhando de propósito", level: 2 as const }];
+const headings = [{ id: 'duas-formas', text: "Duas formas", level: 2 as const }, { id: 'igualdade', text: "Igualdade", level: 2 as const }, { id: 'verdade-e-vazio', text: "Verdade e vazio", level: 2 as const }, { id: 'tipos', text: "Tipos", level: 2 as const }, { id: 'numeros', text: "Números", level: 2 as const }, { id: 'texto', text: "Texto", level: 2 as const }, { id: 'colecoes', text: "Coleções", level: 2 as const }, { id: 'erros', text: "Erros", level: 2 as const }, { id: 'desempenho-e-saida', text: "Desempenho e saída", level: 2 as const }, { id: 'invertendo', text: "Invertendo", level: 2 as const }, { id: 'falhando-de-proposito', text: "Falhando de propósito", level: 2 as const }, { id: 'o-que-mudou-tochange', text: "O que mudou — `to_change`", level: 2 as const }, { id: 'quem-foi-chamado-os-dubles', text: "Quem foi chamado — os dublês", level: 2 as const }, { id: 'forma-e-nao-valor', text: "Forma, e não valor", level: 2 as const }];
 
 export default function Pagina() {
   return (

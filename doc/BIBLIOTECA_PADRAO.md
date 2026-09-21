@@ -23,8 +23,8 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Meta`](#arcanemeta) | `Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
 | [`Kiln`](#kiln) | `Kiln` | 73 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | [`Arcane.Test`](#arcanetest) | `Test` | 34 | Asserções e organização de suítes de teste. |
-| [`Arcane.Regex`](#arcaneregex) | `Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
-| [`Arcane.IO`](#arcaneio) | `IO` | 30 | Arquivos, diretórios, JSON, CSV e shell. |
+| [`Arcane.Regex`](#arcaneregex) | `Regex` | 46 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
+| [`Arcane.IO`](#arcaneio) | `IO` | 33 | Arquivos, diretórios, JSON, CSV e shell. |
 | [`Arcane.Http`](#arcanehttp) | `Http / Server` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
 | [`Arcane.Async`](#arcaneasync) | `Async` | 52 | Promessas, filas, agendamento e execução concorrente. |
 | [`Arcane.Data`](#arcanedata) | `Data` | 13 | DataFrames, séries e transformações tabulares. |
@@ -38,7 +38,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
-| [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 50 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
+| [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 60 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | [`Arcane.Iter`](#arcaneiter) | `Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
 | [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 33 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
@@ -48,6 +48,10 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Quadro`](#arcanequadro) | `Quadro` | 10 | A tabela de dados: colunas nomeadas e linhas como vault. Filtrar, agrupar, resumir, juntar, pivotar, limpar a ausência e a duplicata, converter tipos, normalizar, codificar e descrever — colunar por dentro, imutável por fora. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
+| [`Arcane.Telegram`](#arcanetelegram) | `Telegram` | 34 | Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede. |
+| [`Arcane.Reativo`](#arcanereativo) | `Reativo` | 14 | Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). A diferenca entre valor e fluxo e mantida de proposito: um clique e fluxo, um saldo e valor. |
+| [`Arcane.Dominio`](#arcanedominio) | `Dominio` | 18 | As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o "nao"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira). |
+| [`Arcane.Estrutura`](#arcaneestrutura) | `Estrutura` | 15 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. Fica entre o Arcane.Bytes, que empacota por formato posicional, e o Arcane.C, que exige FFI. |
 | [`Arcane.Malha`](#arcanemalha) | `Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
 | [`Arcane.Url`](#arcaneurl) | `Url` | 14 | Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor. |
 | [`Arcane.Bytes`](#arcanebytes) | `Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
@@ -736,14 +740,16 @@ adopt Arcane.Regex as Regex
 | `MULTILINE` | `re.MULTILINE` |
 | `patterns` | `{'email': '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-z…` |
 
-**Funções (28)**
+**Funções (42)**
 
 | Assinatura |
 |------------|
+| `between(pattern_start, pattern_end, string, flags=0)` |
 | `clean_whitespace(string)` |
 | `compile(pattern, flags=0)` |
 | `count(pattern, string, flags=0)` |
 | `escape(string)` |
+| `explain(pattern)` |
 | `extract(pattern, string, flags=0)` |
 | `extract_emails(string)` |
 | `extract_numbers(string)` |
@@ -751,20 +757,32 @@ adopt Arcane.Regex as Regex
 | `extract_words(string)` |
 | `findall(pattern, string, flags=0)` |
 | `finditer(pattern, string, flags=0)` |
+| `findnamed(pattern, string, flags=0)` |
+| `fullmatch(pattern, string, flags=0)` |
+| `group_names(pattern)` |
+| `highlight(pattern, string, before='[', after=']', flags=0)` |
 | `is_cnpj(string)` |
 | `is_cpf(string)` |
 | `is_date(string)` |
 | `is_email(string)` |
+| `is_exactly(pattern, string, flags=0)` |
 | `is_ipv4(string)` |
 | `is_phone(string)` |
 | `is_url(string)` |
 | `mask(string, pattern, mask_char='*')` |
 | `match(pattern, string, flags=0)` |
+| `named(pattern, string, flags=0)` |
+| `positions(pattern, string, flags=0)` |
 | `remove_html(string)` |
 | `replace_all(pattern, repl, string)` |
+| `replace_map(pattern, table, string, flags=0)` |
+| `risk(pattern)` |
+| `safe_search(pattern, string, ms=100, flags=0)` |
 | `search(pattern, string, flags=0)` |
 | `split(pattern, string, maxsplit=0, flags=0)` |
+| `split_keep(pattern, string, flags=0)` |
 | `sub(pattern, repl, string, count=0, flags=0)` |
+| `sub_with(pattern, action, string, count=0, flags=0)` |
 | `subn(pattern, repl, string, count=0, flags=0)` |
 | `test(pattern, string, flags=0)` |
 | `word_count(string)` |
@@ -780,12 +798,13 @@ Arquivos, diretórios, JSON, CSV e shell.
 adopt Arcane.IO as IO
 ```
 
-**Funções (30)**
+**Funções (33)**
 
 | Assinatura |
 |------------|
 | `abs(path)` |
 | `append(path, content)` |
+| `append_bytes(path, content)` |
 | `basename(path)` |
 | `copy(src, dst)` |
 | `copy_tree(origem, destino)` |
@@ -802,6 +821,7 @@ adopt Arcane.IO as IO
 | `open(path, mode='r')` |
 | `path(path)` |
 | `read(path)` |
+| `read_bytes(path)` |
 | `read_csv(path, cabecalho=False)` |
 | `read_file(path)` |
 | `read_json(path)` |
@@ -811,6 +831,7 @@ adopt Arcane.IO as IO
 | `shell(command)` |
 | `size(path)` |
 | `write(path, content)` |
+| `write_bytes(path, content)` |
 | `write_csv(path, data)` |
 | `write_file(path, content)` |
 | `write_json(path, data, indent=2)` |
@@ -1447,7 +1468,14 @@ Framework de testes: suítes, matchers, fixtures, dublês e benchmark.
 adopt Arcane.Crucible as Crucible
 ```
 
-**Funções (50)**
+**Constantes**
+
+| Nome | Valor |
+|------|-------|
+| `matchers_novos` | `['to_be_one_of', 'to_be_ordered_by', 'to_be_subset…` |
+| `mutacoes` | `[{'de': 'bigger_eq', 'para': 'bigger', 'descricao'…` |
+
+**Funções (58)**
 
 | Assinatura |
 |------------|
@@ -1462,8 +1490,12 @@ adopt Arcane.Crucible as Crucible
 | `capture(acao)` |
 | `check(condicao, mensagem='a condicao nao se cumpriu')` |
 | `clusters(item=None, tamanho_max=10)` |
+| `com_relogio(acao, inicio=None)` |
+| `contrato(nome, casos)` |
+| `corrida(acao, threads=4, voltas=5000, leitor=None, esperado=None)` |
 | `database(db)` |
 | `describe(nome, corpo=None)` |
+| `determinismo(acao, vezes=5)` |
 | `diff(esperado, obtido)` |
 | `expect(valor, rotulo='')` |
 | `fail(mensagem='falhou por decisao do teste')` |
@@ -1478,13 +1510,17 @@ adopt Arcane.Crucible as Crucible
 | `json()` |
 | `junit()` |
 | `mock(nome='mock', alvo=None)` |
+| `mutar(arquivo, rodar_testes, limite=40)` |
 | `one_of(valores)` |
 | `only(nome, corpo, tags=None)` |
 | `pending(nome, motivo='', corpo=None)` |
+| `relatorio_de_mutacao(resultado)` |
+| `relogio(inicio=None)` |
 | `report(colorir=True, verboso=False)` |
 | `reset()` |
 | `results()` |
 | `run(opcoes=None)` |
+| `servidor_falso(porta=0)` |
 | `snapshot(nome, valor, atualizar=None)` |
 | `snapshot_dir(arquivo)` |
 | `spy(alvo, nome='spy')` |
@@ -1876,6 +1912,156 @@ adopt Arcane.Lago as Lago
 | `tabelas(lago)` |
 | `tamanho(lago, tabela='')` |
 | `vacuo(lago)` |
+
+
+---
+
+## Arcane.Telegram
+
+Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede.
+
+```dataforge
+adopt Arcane.Telegram as Telegram
+```
+
+**Constantes**
+
+| Nome | Valor |
+|------|-------|
+| `ESPERA_LONGA` | `50` |
+| `RAIZ` | `'https://api.telegram.org'` |
+| `acoes` | `['typing', 'upload_photo', 'record_video', 'upload…` |
+
+**Funções (31)**
+
+| Assinatura |
+|------------|
+| `Aplicacao(token, estado=None, limitador=None, raiz=None)` |
+| `Bot(token, raiz=None, prazo=25.0)` |
+| `BotFalso(respostas=None)` |
+| `Contexto(app, update)` |
+| `Limitador(por_segundo=25.0, por_chat_por_minuto=18)` |
+| `Sonda(aplicacao, chat=1001, usuario=None)` |
+| `app(token, estado=None, limitador=None, raiz=None)` |
+| `bloco(texto, linguagem='')` |
+| `bot(token, raiz=None, prazo=25.0)` |
+| `botao(texto, dados=None, url=None, inline_atual=None, pedir_contato=False, pedir_local=False, jogo=False, pagar=False, app_web=None)` |
+| `botoes(linhas)` |
+| `chamar(token, metodo, params=None, arquivos=None, prazo=25.0, raiz=None, tentativas=None)` |
+| `codigo(texto)` |
+| `escapar(texto)` |
+| `escapar_html(texto)` |
+| `estado_em_arquivo(pasta='.telegram/estado')` |
+| `estado_em_memoria()` |
+| `forcar_resposta(dica='', seletivo=False)` |
+| `italico(texto)` |
+| `limitar(por_segundo=25.0, por_chat_por_minuto=18)` |
+| `link(texto, destino)` |
+| `mencao(texto, id_usuario)` |
+| `modo_servidor()` |
+| `negrito(texto)` |
+| `remover_teclado(seletivo=False)` |
+| `riscado(texto)` |
+| `segredo_do_ambiente(nome='TELEGRAM_TOKEN')` |
+| `spoiler(texto)` |
+| `sublinhado(texto)` |
+| `teclado(linhas, uma_vez=True, ajustar=True, dica='', persistente=False)` |
+| `testar(aplicacao, chat=1001, usuario=None)` |
+
+
+---
+
+## Arcane.Reativo
+
+Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). A diferenca entre valor e fluxo e mantida de proposito: um clique e fluxo, um saldo e valor.
+
+```dataforge
+adopt Arcane.Reativo as Reativo
+```
+
+**Funções (14)**
+
+| Assinatura |
+|------------|
+| `Derivado(formula, nome='derivado')` |
+| `Efeito(acao, nome='efeito', agora=True)` |
+| `Inscricao(cancelar)` |
+| `Observavel(nome='observavel')` |
+| `Sinal(inicial=None, nome='sinal', iguais=None)` |
+| `combinar(*fontes)` |
+| `de_cluster(itens, nome='de_cluster')` |
+| `derivado(formula, nome='derivado')` |
+| `efeito(acao, nome='efeito', agora=True)` |
+| `intervalo(segundos, quantos=0, nome='intervalo')` |
+| `juntar(*fontes)` |
+| `lote(acao)` |
+| `observavel(nome='observavel')` |
+| `sinal(inicial=None, nome='sinal', iguais=None)` |
+
+
+---
+
+## Arcane.Dominio
+
+As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o "nao"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira).
+
+```dataforge
+adopt Arcane.Dominio as Dominio
+```
+
+**Funções (18)**
+
+| Assinatura |
+|------------|
+| `Agregado(tipo, identidade=None, **estado)` |
+| `Contexto(nome)` |
+| `Entidade(tipo, identidade=None, **estado)` |
+| `Evento(nome, dados=None, origem='', tipo='')` |
+| `Regra(descricao, condicao)` |
+| `Repositorio(tipo, ler=None, gravar=None, apagar=None, listar=None)` |
+| `Unidade(publicar=None)` |
+| `Valor(nome, campos, valores, regra=None, motivo='')` |
+| `agregado(tipo, identidade=None, **estado)` |
+| `contexto(nome)` |
+| `entidade(tipo, identidade=None, **estado)` |
+| `evento(nome, dados=None, origem='', tipo='')` |
+| `novo_id()` |
+| `regra(descricao, condicao)` |
+| `repositorio(tipo)` |
+| `repositorio_de(tipo, ler, gravar, apagar=None, listar=None)` |
+| `unidade(publicar=None)` |
+| `valor(nome, campos, regra=None, motivo='')` |
+
+
+---
+
+## Arcane.Estrutura
+
+Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. Fica entre o Arcane.Bytes, que empacota por formato posicional, e o Arcane.C, que exige FFI.
+
+```dataforge
+adopt Arcane.Estrutura as Estrutura
+```
+
+**Funções (15)**
+
+| Assinatura |
+|------------|
+| `Bloco(tamanho_ou_dados=0)` |
+| `Janela(bloco_alvo, molde, deslocamento=0)` |
+| `Molde(nome, campos, ordem='rede', empacotado=False)` |
+| `Ponteiro(bloco_alvo, tipo='u8', deslocamento=0, ordem='rede')` |
+| `alinhamento_de(tipo_ou_molde)` |
+| `bloco(tamanho_ou_dados=0)` |
+| `de_bytes(dados)` |
+| `definir(nome, campos, ordem='rede', empacotado=False)` |
+| `janela(alvo, molde, deslocamento=0)` |
+| `janelas(alvo, molde, quantos=None, deslocamento=0)` |
+| `nulo()` |
+| `ponteiro(alvo, tipo='u8', deslocamento=0, ordem='rede')` |
+| `tamanho_de(tipo_ou_molde)` |
+| `tipos()` |
+| `uniao(nome, campos, ordem='rede')` |
 
 
 ---

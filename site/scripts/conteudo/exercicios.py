@@ -287,6 +287,14 @@ TITULOS = {
     "47-abi-e-alvos": "Superfície e alvos",
     "48-ecossistema": "Ecossistema e design",
     "49-decimal-e-padroes": "Decimal exato e padrões",
+    "50-dominio": "Domínio e DDD",
+    "51-reativo": "Programação reativa",
+    "52-estruturas": "Estruturas e ponteiros",
+    "53-regex-avancado": "Regex avançado",
+    "54-erros": "Erros e famílias",
+    "55-oop-magicos": "Métodos mágicos",
+    "56-telegram": "Bots de Telegram",
+    "57-vitrine-painel": "Vitrine — o painel",
 }
 
 
@@ -371,7 +379,7 @@ def _pagina_modulo(nome, itens, caminhos):
     # ── O corpo: cada exercício, por inteiro ──────────────────────
     #
     # Antes a página parava na tabela acima: título e enunciado, e nada
-    # do código. Quem chegava por busca via a PROMESSA de 267 exercícios
+    # do código. Quem chegava por busca via a PROMESSA de 387 exercícios
     # e nenhum deles — para ler um, era preciso clonar o repositório.
     # O código é a resposta e o teste ao mesmo tempo; escondê-lo
     # esvazia a seção inteira.

@@ -1,3 +1,8 @@
+// GERADO por 'tools/gerar_paginas_biblioteca.py'. Nao edite aqui.
+// O que e escrito a mao mora em
+// 'site/scripts/conteudo_biblioteca/process.py'; as tabelas saem do
+// proprio modulo, a cada geracao.
+
 import type { Metadata } from 'next';
 import type { Bloco } from '@/lib/content';
 import { DocPage } from '@/components/Doc';
@@ -5,7 +10,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Arcane.Process",
-  description: "Execução de processos externos.",
+  description: "Execução de processos externos, com stdout, stderr e código de saída.",
 };
 
 const blocos: Bloco[] = [
@@ -28,7 +33,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Arcane.Process"}
-      description={"Execução de processos externos."}
+      description={"Execução de processos externos, com stdout, stderr e código de saída."}
       href={"/docs/biblioteca/process"}
       headings={headings}
     >

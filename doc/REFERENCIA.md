@@ -2003,11 +2003,17 @@ bloco          = NEWLINE INDENT { instrução } DEDENT ;
 
 ## 13. Funções embutidas
 
-Disponíveis sem `adopt`. São 225 nomes, agrupados por tema:
+Disponíveis sem `adopt`. São 228 nomes, agrupados por tema:
 
-**Tipos e conversão** — `len` `type` `str` `int` `float` `bool` `cluster` `vault`
-`linhagem` `e_um`
+**Tipos e conversão** — `len` `type` `str` `repr` `int` `float` `bool` `cluster`
+`vault` `linhagem` `e_um`
 `range` `cast`
+
+`str` é o texto para quem **lê**; `repr` é o texto para quem **depura** —
+o que se cola de volta no código. `str("oi  ")` é `oi  `, e
+`repr("oi  ")` é `"oi  "`: num log, a segunda forma mostra o espaço que
+sobrou no fim. Num objeto, `repr` pede o mágico de depuração e recua para o de
+leitura quando não há — ver §7.
 
 **Texto** — `join` `split` `strip` `lstrip` `rstrip` `upper` `lower` `title`
 `capitalize` `swapcase` `center` `ljust` `rjust` `zfill` `replace` `startswith`

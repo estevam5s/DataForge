@@ -4,7 +4,7 @@ import { CodeBlock } from '@/components/CodeBlock';
 import { Callout, Card, CardGrid, DocPage, H2, H3, Table } from '@/components/Doc';
 
 const DESCRICAO =
-  'A documentação do DataForge: mais de 190 páginas, 267 exercícios que ' +
+  'A documentação do DataForge: mais de 190 páginas, 387 exercícios que ' +
   'verificam o próprio resultado com assert, e cada trecho de código ' +
   'compilado a cada mudança. Linguagem, biblioteca, frameworks e ferramentas.';
 
@@ -128,7 +128,7 @@ export default function Home() {
           [<>Versão</>, <><code>1.0.0</code></>],
           [<>Extensão</>, <><code>.df</code></>],
           [<>Runtime</>, <>Python 3.10+, zero dependências</>],
-          [<>Biblioteca padrão</>, <>71 módulos, 1971 símbolos</>],
+          [<>Biblioteca padrão</>, <>75 módulos, 2079 símbolos</>],
           [<>Funções globais</>, <>228, sem <code>adopt</code></>],
           [<>Licença</>, <>MIT</>],
         ]}
@@ -185,9 +185,9 @@ export default function Home() {
       <H3>Verificável</H3>
       <p>
         Cada afirmação desta documentação corresponde a código que roda. São{' '}
-        <strong>4036 testes</strong>, 267 exercícios que verificam o próprio
+        <strong>4518 testes</strong>, 387 exercícios que verificam o próprio
         resultado com <code>assert</code>, e 44 programas de exemplo. Os
-        trechos desta documentação são compilados a cada mudança — 1584 deles.
+        trechos desta documentação são compilados a cada mudança — 1788 deles.
       </p>
 
       <H2>De onde você vem</H2>
@@ -351,11 +351,11 @@ dataforge version`}
         <Card href="/docs/variaveis" title="Visão geral" meta="13 páginas">
           A linguagem do zero, na ordem em que é usada.
         </Card>
-        <Card href="/docs/exercicios" title="267 exercícios" meta="49 áreas">
+        <Card href="/docs/exercicios" title="387 exercícios" meta="57 áreas">
           Cada um se verifica com <code>assert</code>. Vinte e dois módulos têm
           um <code>.md</code> explicativo ao lado de cada exercício.
         </Card>
-        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="1971 símbolos">
+        <Card href="/docs/biblioteca" title="Biblioteca Arcane" meta="2079 símbolos">
           Estatística, bancos, HTTP, criptografia, Parquet, ML, streaming.
         </Card>
         <Card href="/docs/tipos/visao-geral" title="Sistema de tipos">

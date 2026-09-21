@@ -137,7 +137,7 @@ typeof      using       validate    void        wait        when
 with        yes         yield
 ```
 
-## A biblioteca: 71 modulos
+## A biblioteca: 75 modulos
 
 Todos por `adopt`. Nenhum precisa de instalacao.
 
@@ -159,21 +159,23 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Compilador` | 24 | O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. |
 | `Arcane.Concurrent` | 33 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | `Arcane.Cortex` | 25 | Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA. |
-| `Arcane.Crucible` | 50 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
+| `Arcane.Crucible` | 60 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | `Arcane.Crypto` | 52 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). |
 | `Arcane.Data` | 13 | DataFrames, séries e transformações tabulares. |
 | `Arcane.Database` | 64 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
 | `Arcane.Decimal` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
+| `Arcane.Dominio` | 18 | As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o "nao"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira). |
 | `Arcane.Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
 | `Arcane.Ecossistema` | 9 | O inventario da implementacao, CONFERIDO contra ela. |
 | `Arcane.Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
+| `Arcane.Estrutura` | 15 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. |
 | `Arcane.Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
 | `Arcane.Excel` | 29 | Planilhas . |
 | `Arcane.Forge` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | `Arcane.Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
 | `Arcane.Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
 | `Arcane.Http` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
-| `Arcane.IO` | 30 | Arquivos, diretórios, JSON, CSV e shell. |
+| `Arcane.IO` | 33 | Arquivos, diretórios, JSON, CSV e shell. |
 | `Arcane.Inicio` | 12 | O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que o programa demora a comecar?' sem cronometrar a mao. |
 | `Arcane.Injecao` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
@@ -199,13 +201,15 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | `Arcane.Quadro` | 10 | A tabela de dados: colunas nomeadas e linhas como vault. |
 | `Arcane.Qualidade` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
+| `Arcane.Reativo` | 14 | Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). |
 | `Arcane.Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
 | `Arcane.Reflexo` | 38 | Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid. |
-| `Arcane.Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
+| `Arcane.Regex` | 46 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | `Arcane.Resultado` | 13 | A falha como VALOR, e a ausencia com nome: 'ok'/'falha' para quem devolve o erro em vez de levanta-lo, com 'mapear', 'entao', 'recuperar', 'ou' e 'todos' (a primeira falha vence); e 'Talvez' ('algo'/'nada') para onde 'void' e ambiguo — distinguir 'a chave nao esta la' de 'a chave vale void'. |
 | `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | `Arcane.Stm` | 13 | Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. |
 | `Arcane.Stream` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
+| `Arcane.Telegram` | 34 | Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede. |
 | `Arcane.Test` | 34 | Asserções e organização de suítes de teste. |
 | `Arcane.Text` | 59 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
 | `Arcane.Time` | 54 | Datas, horas, durações e cronometragem. |
@@ -215,7 +219,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |
 | `Kiln` | 73 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 
-## As 228 funcoes embutidas
+## As 229 funcoes embutidas
 
 Disponiveis sem `adopt`.
 
@@ -264,19 +268,20 @@ randint             random              range               reduce
 regex_count         regex_extract       regex_findall       regex_match
 regex_search        regex_split         regex_sub           regex_test
 remove              removeprefix        removesuffix        repeat
-repeat_val          replace             reverse_str         reversed
-rfind               rjust               rotate              round
-rpartition          rstrip              sample              scan
-shuffle             sign                sin                 sleep
-slice               some                sorted              split
-splitlines          sqrt                startswith          stdev
-str                 strip               substring           sum
-swapcase            take                tan                 tap
-template            thaw                time                timestamp
-title               to_json             trim                type
-unique              unzip               upper               uuid
-validate            values              variance            vault
-words               zfill               zip                 zip_with
+repeat_val          replace             repr                reverse_str
+reversed            rfind               rjust               rotate
+round               rpartition          rstrip              sample
+scan                shuffle             sign                sin
+sleep               slice               some                sorted
+split               splitlines          sqrt                startswith
+stdev               str                 strip               substring
+sum                 swapcase            take                tan
+tap                 template            thaw                time
+timestamp           title               to_json             trim
+type                unique              unzip               upper
+uuid                validate            values              variance
+vault               words               zfill               zip
+zip_with
 ```
 
 ## As ferramentas

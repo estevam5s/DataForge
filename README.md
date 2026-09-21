@@ -30,9 +30,9 @@ Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
 generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
 pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **71 módulos** de biblioteca padrão com **1971 símbolos**.
+(**Forge**) e **75 módulos** de biblioteca padrão com **2079 símbolos**.
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [267 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [387 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
@@ -99,7 +99,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 71 módulos com 1971 símbolos + 228 funções globais |
+| **Bateria inclusa** | 75 módulos com 2079 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -473,7 +473,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-71 módulos, 1971 símbolos, mais 228 funções globais sem import.
+75 módulos, 2079 símbolos, mais 229 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -484,20 +484,21 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
 | `Arcane.Database` | 64 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
 | `Arcane.Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
+| `Arcane.Crucible` | 60 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | `Arcane.Text` | 59 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
 | `Arcane.Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
 | `Arcane.Time` | 54 | Datas, horas, durações e cronometragem. |
 | `Arcane.Async` | 52 | Promessas, filas, agendamento e execução concorrente. |
 | `Arcane.Crypto` | 52 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token. |
-| `Arcane.Crucible` | 50 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
+| `Arcane.Regex` | 46 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | `Arcane.OS` | 43 | Sistema operacional, ambiente, disco e processo atual. |
 | `Arcane.Lavra` | 42 | A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. O esquema nasce dos 'record' que já existem; traz resolvedores, contexto, trechos, variáveis, diretivas, contratos, uniões, introspecção, validação antes de executar, lote contra o N+1, paginação por cursor, limites de profundidade e custo, assinaturas por WebSocket e federação de vários serviços. |
 | `Arcane.Reflexo` | 38 | Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid. |
+| `Arcane.Telegram` | 34 | Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede. |
 | `Arcane.Test` | 34 | Asserções e organização de suítes de teste. |
 | `Arcane.Concurrent` | 33 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
-| `Arcane.Regex` | 32 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
-| `Arcane.IO` | 30 | Arquivos, diretórios, JSON, CSV e shell. |
+| `Arcane.IO` | 33 | Arquivos, diretórios, JSON, CSV e shell. |
 | `Arcane.Excel` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
 | `Arcane.Forge` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
@@ -510,6 +511,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
 | `Arcane.Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
 | `Arcane.Observar` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
+| `Arcane.Dominio` | 18 | As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o "nao"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira). |
 | `Arcane.Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
 | `Arcane.Lago` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | `Arcane.Http` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
@@ -518,8 +520,10 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Perfil` | 16 | Medir com rigor, onde o 'Bench' da a media: percentis (p50, p95, p99, p999) com aquecimento separado, comparacao com SIGNIFICANCIA estatistica (Mann-Whitney, que nao supoe normalidade — tempo de execucao nao e normal), linha de base guardada para acusar regressao no CI, flame graph das ACOES da linguagem em SVG sem nada de fora, pausas do coletor medidas na fonte e contencao de trava. |
 | `Arcane.Posse` | 16 | Quem e o dono, quem tomou emprestado, e quando solta: posse exclusiva com liberacao deterministica ('dono' e 'com', o RAII), emprestimo com escopo (muitos leem OU um escreve, cobrado quando roda), contagem de referencia deterministica ('compartilhado' e 'atomico') e referencia fraca que quebra o ciclo. |
 | `Arcane.Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
+| `Arcane.Estrutura` | 15 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. Fica entre o Arcane.Bytes, que empacota por formato posicional, e o Arcane.C, que exige FFI. |
 | `Arcane.Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | `Arcane.Logging` | 14 | Registro estruturado de eventos, com níveis e destinos. |
+| `Arcane.Reativo` | 14 | Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). A diferenca entre valor e fluxo e mantida de proposito: um clique e fluxo, um saldo e valor. |
 | `Arcane.Url` | 14 | Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor. |
 | `Arcane.Archive` | 13 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. Comprime e descomprime VALORES em memória, em deflate cru ou em gzip, com a taxa medida. |
 | `Arcane.Data` | 13 | DataFrames, séries e transformações tabulares. |
@@ -682,31 +686,114 @@ no LibreOffice e no Google Sheets, e é lido de volta por openpyxl e pandas.
 
 ---
 
+## Domínio: DDD com as distinções cobradas
+
+```dataforge
+adopt Arcane.Dominio as D
+
+steady Dinheiro := D.valor("Dinheiro", ["quantia", "moeda"],
+    regra := lambda v => v["quantia"] bigger_eq 0)
+
+pedido := D.agregado("Pedido", "PED-7", total := 0)
+pedido.invariante("o total nunca e negativo",
+    lambda p => p.ler("total", 0) bigger_eq 0)
+
+mark @pedido.comando("acrescentar")
+action acrescentar(p, preco):
+    p.mudar(total := p.ler("total", 0) + preco)
+    p.aconteceu("ItemAcrescentado", {"preco": preco})
+
+pedido.mudar(total := 999)      // recusado: só muda dentro de um comando
+```
+
+Um `blueprint` chamado `Pedido` com um comentário `// agregado` não impede
+ninguém de mexer nos itens por fora. Aqui a invariante é conferida na **saída**
+de cada comando, o comando recusado é **desfeito por inteiro** (estado, eventos
+e versão), e o evento só é publicado quando a unidade de trabalho confirma —
+publicar antes faz o mundo reagir a um fato que a transação ainda pode desfazer.
+
+---
+
+## Reativo: um valor que outros valores acompanham
+
+```dataforge
+adopt Arcane.Reativo as R
+
+preco := R.sinal(10.0)
+quantidade := R.sinal(3)
+total := R.derivado(lambda => preco.ler() * quantidade.ler())
+
+out total.ler()          // 30.0
+quantidade.escrever(5)
+out total.ler()          // 50.0 — ninguém recalculou à mão
+```
+
+O derivado é **preguiçoso e memorizado**, e as dependências são **descobertas**
+na execução — não há lista para escrever, e por isso ela não envelhece na
+primeira condição nova dentro da fórmula. A propagação tem duas fases: marcar o
+grafo inteiro e, só então, avisar. Sem isso, um losango entrega um valor que
+nunca existiu — um número errado na tela, que aparece e some sozinho.
+
+**Sinal é valor; observável é fluxo.** Um clique é fluxo; um saldo é valor.
+Frameworks que chamam os dois de "stream" fazem a pergunta *"qual é o valor
+agora?"* deixar de ter resposta.
+
+---
+
+## Estruturas: layout binário com nome
+
+```dataforge
+adopt Arcane.Estrutura as Est
+
+steady Cabecalho := Est.definir("Cabecalho", [
+    ["magia", "u32"], ["versao", "u16"], ["registros", "u16"]
+], ordem := "rede")
+
+c := Cabecalho.ler(dados)
+out c["versao"]
+
+// E as janelas percorrem um arquivo de registros sem copiar nada:
+cycle linha in Est.janelas(arquivo, Registro):
+    out linha.ler("id"), linha.ler("preco")
+```
+
+Ele fica entre dois módulos que já existiam. `Arcane.Bytes` empacota por
+**formato** e o resultado é posicional — `dados[3]` três meses depois não diz
+nada. `Arcane.C` tem estrutura e ponteiro de verdade, e exige **FFI**: ler o
+cabeçalho de um PNG não deveria precisar de `ctypes`.
+
+A ordem dos bytes é obrigatória, o alinhamento é declarado e conferido, a janela
+lê e escreve **no bloco**, e o ponteiro anda por **elemento** — `p + 1` num
+`u32*` anda quatro bytes, como no C.
+
+---
+
 ## Aprendendo
 
 | Recurso | O que é |
 |---------|---------|
 | [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
 | [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 71 módulos |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 75 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
 | [**doc/ESTABILIDADE.md**](doc/ESTABILIDADE.md) | o que pode quebrar entre versões — e o teste que garante |
 | [**CHANGELOG.md**](CHANGELOG.md) | o que mudou depois da 1.0.0 |
 | [**CONTRIBUTING.md**](CONTRIBUTING.md) | como mandar o primeiro patch |
-| [**exercicios/**](exercicios/) | 267 exercícios; os módulos 11-26 com `.md` explicativo |
-| [**examples/**](examples/) | 43 programas maiores |
+| [**exercicios/**](exercicios/) | 387 exercícios; do módulo 11 em diante, cada um com `.md` explicativo |
+| [**examples/**](examples/) | 50 programas maiores |
 
-### Os 267 exercícios
+### Os 387 exercícios
 
 ```bash
 python3 exercicios/run_all.py        # todos
 python3 exercicios/run_all.py 14     # só o módulo 14
 ```
 
-Cada exercício **verifica o próprio resultado com `assert`**. Os módulos 11–20
-trazem um `.md` ao lado de cada `.df`, com enunciado, conceitos, saída esperada e
-sugestões.
+Cada exercício **verifica o próprio resultado com `assert`**. Do módulo 11 em
+diante, cada `.df` traz um `.md` ao lado — com o enunciado, o defeito que a
+regra evita e o motivo de cada decisão. Há teste cobrando que nenhum fique
+sem ele.
 
 | Módulo | N | Tema |
 |--------|---|------|
@@ -730,6 +817,16 @@ sugestões.
 | **18** | 6 | **serialização, arquivos, SQLite, HTTP** |
 | **19** | 6 | **concorrência: async, threads, canais, retry** |
 | **20** | 6 | **projetos finais: CLI, análise de dados, interpretador** |
+| 21–34 | 84 | OOP avançado, Kiln, Vitrine, banco, testes, complexidade, binário |
+| 35–49 | 90 | paralelismo, quadro, tipos, metaprogramação, FFI, compilador, ABI |
+| **50** | 15 | **domínio e DDD: valor, agregado, evento, regra, unidade** |
+| **51** | 15 | **programação reativa: sinal, derivado, efeito, observável** |
+| **52** | 15 | **estruturas e ponteiros: layout binário, janela, bloco** |
+| **53** | 15 | **regex avançado: grupos nomeados, explicação, risco** |
+| **54** | 15 | **erros: as famílias, `defer`, `Resultado`, contratos** |
+| **55** | 15 | **métodos mágicos: texto, ordem, coleção, acesso, reflexão** |
+| **56** | 15 | **bots de Telegram: comandos, conversa, webhook, teste** |
+| **57** | 15 | **Vitrine: layout, gráficos, cache, sessão, fragmento** |
 
 ---
 
@@ -738,8 +835,8 @@ sugestões.
 ```bash
 pip install -e ".[dev]"
 
-python3 -m pytest tests/ -q       # mais de 1300 testes
-python3 exercicios/run_all.py     # 267 exercícios
+python3 -m pytest tests/ -q       # mais de 4500 testes
+python3 exercicios/run_all.py     # 387 exercícios
 ```
 
 Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).
@@ -765,7 +862,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/docgen.py` | `dataforge doc` | 218 |
 | `dataforge/project.py` | `forge.toml` | 184 |
 | `dataforge/builtins.py` | 228 funções globais | 1224 |
-| `dataforge/stdlib/` | os 71 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
+| `dataforge/stdlib/` | os 75 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
 
 ---
 

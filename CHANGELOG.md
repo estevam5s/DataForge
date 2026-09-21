@@ -14,6 +14,166 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.Dominio`: DDD com as distinções cobradas
+
+- DDD é um conjunto de **distinções**, e o valor delas está em serem
+  cobradas — não em serem nomeadas. Um `blueprint` chamado `Pedido` com
+  um comentário `// agregado` não impede ninguém de mexer nos itens por
+  fora.
+- Sete peças: `valor` (igualdade por conteúdo, imutável, com a regra
+  cobrada na **criação**), `entidade` (igualdade por identidade),
+  `agregado`, `evento`, `regra`, `repositorio`, `unidade` e `contexto`.
+- **A invariante é cobrada na saída de cada comando.** Cobrar na entrada
+  deixa o objeto quebrado quando o comando falha no meio.
+- **O comando recusado é desfeito por inteiro** — estado, eventos e
+  versão. Sem isso, metade da mudança fica aplicada, e a próxima leitura
+  vê um agregado que nunca deveria existir; inclusive um **evento** de
+  um comando que não aconteceu.
+- **O evento só é publicado quando a unidade confirma.** Publicar antes
+  faz o mundo reagir a um fato que a transação ainda pode desfazer: o
+  e-mail sai, e o pedido não existe.
+- **`por_que_nao` aponta a parte que falhou**, e não a frase inteira:
+  *"maior de idade E mora no Brasil"* não diz qual das duas a pessoa
+  precisa resolver — e essa frase é o que vai para a tela.
+
+### Adicionado — `Arcane.Reativo`, e o valor que nunca existiu
+
+- Sinal (valor com estado), derivado (preguiçoso e memorizado), efeito e
+  observável (fluxo). A distinção entre **valor** e **fluxo** é mantida
+  de propósito: frameworks que chamam os dois de "stream" fazem a
+  pergunta *"qual é o valor agora?"* deixar de ter resposta.
+- **A propagação tem duas fases.** Num losango — `c` lê `a` e `b`, e `b`
+  lê `a` — marcar e avisar numa fase só entregava `[3, 7, 15]` onde o
+  certo é `[3, 15]`: o **7** era `5 + o b antigo`, um valor que nunca foi
+  verdade. E a lista de dependentes é um conjunto, então qual caminho
+  vem primeiro não era escolhido por ninguém.
+- **O aviso pertence à propagação, e não ao recálculo.** Avisar de
+  dentro do `_calcular` fazia uma simples **leitura** disparar efeito de
+  terceiros.
+- **`lote` montava uma lista de adiados que ninguém lia** — o gancho era
+  escrito num `threading.local` e nenhum caminho de escrita o
+  consultava. Três escritas davam três notificações, exatamente como sem
+  ele.
+- **`observar` num derivado nunca lido** registrava a ação num objeto que
+  jamais seria avisado: as dependências nascem da **execução**, e um
+  derivado que ninguém leu não está ligado a fonte nenhuma.
+- **Um derivado não pode escrever** (`ReactiveWriteError`): a fórmula é
+  lida para descobrir de que ela depende, e escrever de dentro dela faz
+  a propagação correr no meio da própria descoberta. Um **efeito**
+  escrevendo continua legítimo.
+
+### Adicionado — `Arcane.Estrutura`: layout binário com nome
+
+- Fica entre `Arcane.Bytes` (empacota por **formato**, e o resultado é
+  posicional) e `Arcane.C` (estrutura e ponteiro de verdade, e exige
+  **FFI**). Ler o cabeçalho de um PNG não deveria precisar de `ctypes`.
+- **A ordem dos bytes é obrigatória** e o **alinhamento é conferido** —
+  inclusive o do registro inteiro, senão um cluster deles sai torto a
+  partir do segundo.
+- **A janela não copia**: copiar um registro de 4 KB para ler um campo de
+  2 bytes é o que faz um parser de arquivo grande levar minutos.
+- **A faixa vem do tipo declarado**: *"um u8 vai de 0 a 255"*, e não
+  `'B' format requires 0 <= number <= 255` — quem escreveu `u8` não tem
+  como ligar uma coisa à outra.
+- **O ponteiro segura o bloco.** A referência fraca fazia
+  `Est.ponteiro(Est.bloco(8), "u32")` nascer pendurado; num mundo com
+  coletor a memória nunca esteve em risco, e o que se protege é o
+  **protocolo** — que tem um ponto só: `liberar()`.
+
+### Adicionado — `IO.read_bytes`, `write_bytes` e `append_bytes`
+
+- A linguagem sabia **produzir** bytes — `Bytes`, `Estrutura`, `Crypto`
+  — e não sabia gravá-los. `IO.write` abre em modo texto com UTF-8:
+  passar bytes levanta, e passar o texto de um `para_texto` **corrompe**
+  o que não for texto válido.
+- `write_bytes` aceita bytes, um `Bloco`, um cluster de números ou um
+  texto — obrigar a lembrar de `.bytes()` é a forma mais rápida de
+  gravar a representação em texto de um objeto no lugar do conteúdo.
+
+### Adicionado — `repr`, e o `__repr__` que era inalcançável
+
+- `__repr__` estava na lista de mágicos, na referência e na doc de OOP,
+  e a linguagem não tinha como pedi-lo: não havia `repr`, e um cluster
+  de objetos imprime com `__str__`. Ele só era alcançado como
+  **reserva**, quando não havia `__str__` — exatamente quando não se
+  queria a distinção.
+- `str("oi  ")` é `oi  `; `repr("oi  ")` é `"oi  "`. Num log, a segunda
+  forma mostra o espaço que sobrou no fim.
+
+### Adicionado — `Arcane.Regex`: quatro recursos que eram inalcançáveis
+
+- **Grupos nomeados chegam ao resultado.** `(?P<ano>…)` compilava e o
+  valor vinha **por posição** — ninguém escreve isso para depois ler
+  `groups[2]`. `named`, `findnamed` e `group_names` completam o
+  conjunto, e `groups` continua onde estava.
+- **`fullmatch` e `is_exactly`**: `match` ancora só no começo, e validar
+  com ele aceita lixo no fim, calado.
+- **`sub_with` troca calculando**, com a ação recebendo o mesmo vault de
+  `search`; devolver `void` não troca.
+- **`explain` lê o padrão em português** e **`risk` acusa os quatro
+  desenhos clássicos** de retrocesso catastrófico — dizendo que é uma
+  leitura de **forma**, e não uma prova.
+- **O objeto de `compile` tinha cinco operações**, na forma que a doc
+  recomenda para um laço: quem compilava perdia `finditer`, os grupos
+  nomeados, `fullmatch`, `split` e a contagem.
+
+### Adicionado — três famílias de erro
+
+- `DF16xx` domínio, `DF17xx` reativo e `DF18xx` memória estruturada.
+  Cada base (`DomainError`, `ReactiveError`, `LayoutError`) pega a
+  família, e cada peça levanta a sua — levantar `RuntimeError` em tudo
+  faz a distinção morrer na fronteira do `handle`.
+
+### Corrigido — cinco defeitos do interpretador
+
+- **`obj.metodo()` chamava `obj()`** quando o receptor era chamável: o
+  ramo de despacho ignorava o nome do método. Não havia erro — o valor
+  errado seguia adiante, e a queixa saía uma linha abaixo, sobre outra
+  coisa.
+- **`handle <Nome>` não casava um record levantado.**
+  `_error_matches` consultava `tipo_usuario` e **nada** o escrevia: o
+  ramo existia, tinha docstring, e era inalcançável.
+- **Um objeto de fora não podia responder à escrita de membro.**
+  `valor.campo := x` dava `Cannot set a member on a Valor` — verdade, e
+  sem nenhuma saída. A leitura já era por protocolo.
+- **O `check` acusava `-obj` num blueprint com `__neg__`.** Um falso
+  alarme sobre um recurso que a própria referência documenta ensina a
+  ignorar o analisador.
+- **O `lint` acusava `TODO` em português.** Este repositório escreve
+  palavra em MAIÚSCULA para enfatizar, e *"TODO objeto que declara
+  tamanho"* virava pendência; e um `TODO:` **dentro de um texto** — o
+  exemplo de um exercício que demonstra um lint — também.
+
+### Corrigido — duas superfícies para o mesmo conceito
+
+- **`ctx.estado` do Telegram devolvia uma cópia.**
+  `ctx.estado["k"] := v` escrevia num dicionário descartável e a mudança
+  sumia — sem erro, sem aviso, e com a documentação prometendo
+  *"sobrevive entre mensagens"*. Hoje é uma **vista** que lê e grava
+  através do armazém.
+- **`V.estado["n"] := 1` era erro** na Vitrine: o objeto tinha `obter` e
+  `definir` e nenhuma das duas formas naturais. Os dois têm a forma de
+  vault agora, e os nomes de sempre continuam.
+- **O dublê do Telegram era mais estreito que o original.**
+  `BotFalso.responder_inline` aceitava `**kw` — por **nome**, e não por
+  **posição**. Uma chamada posicional funcionava em produção e estourava
+  no teste.
+- **`ctx.responder_consulta` não existia**: era a única resposta que
+  caía no bot cru, com o id da consulta à mão — que é exatamente o que
+  se esquece.
+
+### Adicionado — 120 exercícios, e as páginas da biblioteca
+
+- Oito módulos novos (50–57): domínio, reativo, estruturas, regex
+  avançado, erros, métodos mágicos, Telegram e Vitrine. São **387**
+  exercícios em 57 módulos, cada um com `assert` e com um `.md` ao lado.
+- **As páginas de `/docs/biblioteca/<modulo>` eram uma cópia à mão**: a
+  de `Arcane.Regex` anunciava *"Funções (28)"* onde havia 44 — e a
+  contagem estava no **título**. E 32 dos 75 módulos não tinham página
+  nenhuma. Agora a tabela sai do próprio módulo, e o que foi escrito à
+  mão mora fora do arquivo gerado.
+
+
 ### Adicionado — `Arcane.Abi`: a superfície é o contrato
 
 - **Quebrar a superfície de um módulo é o mesmo problema que quebrar uma

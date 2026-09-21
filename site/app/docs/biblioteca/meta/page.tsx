@@ -1,3 +1,8 @@
+// GERADO por 'tools/gerar_paginas_biblioteca.py'. Nao edite aqui.
+// O que e escrito a mao mora em
+// 'site/scripts/conteudo_biblioteca/meta.py'; as tabelas saem do
+// proprio modulo, a cada geracao.
+
 import type { Metadata } from 'next';
 import type { Bloco } from '@/lib/content';
 import { DocPage } from '@/components/Doc';
@@ -5,7 +10,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Arcane.Meta",
-  description: "Ler os decoradores em tempo de execução.",
+  description: "Metadados de decorador: ler @Nome em tempo de execução.",
 };
 
 const blocos: Bloco[] = [
@@ -47,15 +52,17 @@ Meta.tem(f, "Rota")     // yes — o embrulho herdou a anotação` },
   {"p": "Quando um decorador embrulha o alvo, o embrulho **herda** os metadados de quem embrulhou. Sem isso, `@logar @Rota(...)` perderia a anotação assim que o primeiro decorador devolvesse um embrulho — e a ordem dos decoradores viraria uma armadilha."},
   {"h2": "Onde ver funcionando"},
   {"table": {"head": ["Onde", "O quê"], "rows": [["[Decoradores](/docs/fundamentos/decoradores-avancados)", "um roteador e um contêiner de injeção completos"], ["[Playground](/painel/playground)", "o exemplo \"Decoradores\", rodando no navegador"], ["`tests/test_decoradores.py`", "20 testes"]]}},
+  {"h2": "Funções (12)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`arg(alvo, nome, indice=0, padrao=None)`"], ["`descrever(alvo)`"], ["`filtrar(valores, nome)`"], ["`ler(alvo, nome)`"], ["`limpar(alvo)`"], ["`marcar(alvo, nome, *args, **kwargs)`"], ["`metodos_com(alvo, nome)`"], ["`nomes(alvo)`"], ["`opcao(alvo, nome, chave, padrao=None)`"], ["`tem(alvo, nome)`"], ["`todos(alvo)`"], ["`todos_de(alvo, nome)`"]]}},
 ];
 
-const headings = [{ id: 'leitura', text: "Leitura", level: 2 as const }, { id: 'varredura', text: "Varredura", level: 2 as const }, { id: 'escrita', text: "Escrita", level: 2 as const }, { id: 'o-que-sobrevive-ao-embrulho', text: "O que sobrevive ao embrulho", level: 2 as const }, { id: 'onde-ver-funcionando', text: "Onde ver funcionando", level: 2 as const }];
+const headings = [{ id: 'leitura', text: "Leitura", level: 2 as const }, { id: 'varredura', text: "Varredura", level: 2 as const }, { id: 'escrita', text: "Escrita", level: 2 as const }, { id: 'o-que-sobrevive-ao-embrulho', text: "O que sobrevive ao embrulho", level: 2 as const }, { id: 'onde-ver-funcionando', text: "Onde ver funcionando", level: 2 as const }, { id: 'funcoes-12', text: "Funções (12)", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Arcane.Meta"}
-      description={"Ler os decoradores em tempo de execução."}
+      description={"Metadados de decorador: ler @Nome em tempo de execução."}
       href={"/docs/biblioteca/meta"}
       headings={headings}
     >

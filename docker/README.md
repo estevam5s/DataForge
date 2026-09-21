@@ -98,8 +98,8 @@ A tabela completa está em
 | **Diretório** | `/app` |
 | **Entrypoint** | `dataforge` |
 | **CMD padrão** | `repl` |
-| **Biblioteca** | 71 módulos, 1971 símbolos |
-| **Comandos** | 61, de `run` a `devops` |
+| **Biblioteca** | 75 módulos, 2079 símbolos |
+| **Comandos** | 62, de `run` a `devops` |
 
 ### Zero dependência, de verdade
 
@@ -113,7 +113,7 @@ gráficos em SVG.
 `python:3.12-slim` sem uma única camada de `apt-get`.
 
 Dos 259 MB, cerca de 130 são o Python base. O resto é a linguagem
-inteira — interpretador, 71 módulos de biblioteca, as ferramentas, e a
+inteira — interpretador, 75 módulos de biblioteca, as ferramentas, e a
 extensão do editor, que viaja junto para `dataforge editor` funcionar
 sem internet.
 

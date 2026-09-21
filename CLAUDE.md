@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 267 exercícios
+python3 exercicios/run_all.py                        # 387 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -92,11 +92,18 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                71 módulos (1971 símbolos), incluindo:
+  stdlib/                75 módulos (2079 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
     vitrine/             Vitrine — dashboards e data apps (213 símbolos)
+    arcane_dominio.py    DDD: valor, entidade, agregado, evento, regra,
+                         repositório, unidade de trabalho, contexto
+    arcane_reativo.py    sinal, derivado, efeito, observável — e a onda
+                         de duas fases que mata o glitch do losango
+    arcane_estrutura.py  layout binário com NOME, janela sem cópia, ponteiro
+    arcane_regex_extra.py  grupos nomeados, fullmatch, troca que calcula,
+                         explicação em pt-BR e a leitura de risco
     arcane_reflexo.py    reflexão que respeita a visibilidade, diagrama Mermaid
     arcane_objetos.py    cópia, congelar, serialização que só aceita tipos listados
     arcane_injecao.py    contêiner: único, transitório, por escopo; ciclo e cativo
@@ -131,7 +138,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        267 exercícios em 48 módulos + run_all.py
+exercicios/        387 exercícios em 57 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -2074,7 +2081,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 1971 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2079 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2321,6 +2328,210 @@ conflito faria o comando ser ignorado.
 > que isso — **dois componentes marcados `nao-existe` passaram a existir**,
 > e o mapa teve de mudar de veredito. É para isso que ele é conferido.
 
+## Três famílias de erro novas
+
+O catálogo é a **única** fonte de verdade sobre erros: dele saem as
+classes de `errors.py` e o texto de `dataforge explain`. Três famílias
+entraram, e cada uma existe porque a alternativa era `RuntimeError` em
+tudo — o que faz a distinção morrer na fronteira do `handle`:
+
+    16xx  dominio               DDD: valor, agregado, evento, regra
+    17xx  reativo               sinal, derivado, efeito, observavel
+    18xx  memoria estruturada   layout binario, ponteiro, janela
+
+Cada base (`DomainError`, `ReactiveError`, `LayoutError`) pega a
+família inteira, e cada peça levanta a sua — há teste cobrando as duas
+direções: que a base pegue todas, e que **não** pegue um erro de fora,
+senão `handle DomainError` viraria um `handle` sem tipo.
+
+E `NullPointerError` (DF1804) é diferente de `NullReferenceError`: a
+segunda fala de um `void` da linguagem; na primeira o endereço existe e
+vale zero.
+
+## Domínio — DDD com as distinções COBRADAS
+
+`arcane_dominio.py` traz valor, entidade, agregado, evento, regra,
+repositório, unidade de trabalho e contexto delimitado. DDD é um
+conjunto de **distinções**, e o valor delas está em serem cobradas —
+não em serem nomeadas. Um `blueprint` chamado `Pedido` com um
+comentário `// agregado` não impede ninguém de mexer nos itens por
+fora.
+
+Quatro decisões, e o defeito que cada uma evita:
+
+| Decisão | Sem ela |
+|---|---|
+| a invariante é cobrada na **saída** de cada comando | cobrar na entrada deixa o objeto quebrado quando o comando falha no meio |
+| o comando recusado é **desfeito por inteiro** | metade da mudança fica aplicada, e a próxima leitura vê um agregado que nunca deveria existir — inclusive um **evento** de um comando que não aconteceu |
+| o evento só é publicado quando a unidade **confirma** | o mundo reage a um fato que a transação ainda pode desfazer: o e-mail sai, e o pedido não existe |
+| a unidade confere **todas** as invariantes antes de gravar **qualquer** uma | a segunda gravação falha por invariante, e a primeira já está no banco |
+
+E o `por_que_nao` de uma regra composta aponta **a parte** que falhou,
+e não a frase inteira: *"maior de idade E mora no Brasil"* não diz qual
+das duas a pessoa precisa resolver — e essa frase é o que vai para a
+tela.
+
+**A classe do erro é o contrato.** Levantar `RuntimeError_` em tudo faz
+a distinção morrer na fronteira: para quem escreve o `handle`, violar
+uma invariante e dividir por zero viram a mesma coisa. Cada peça
+levanta a sua (família `DF16xx`), e `handle DomainError` continua
+pegando as nove.
+
+## Reativo — e o valor que nunca existiu
+
+`arcane_reativo.py` tem sinal (valor com estado), derivado (calculado,
+preguiçoso e memorizado), efeito e observável (fluxo). A distinção
+entre **valor** e **fluxo** é mantida de propósito: frameworks que
+chamam os dois de "stream" fazem a pergunta *"qual é o valor agora?"*
+deixar de ter resposta.
+
+**A propagação tem duas fases, e essa é a correção inteira.** Num
+losango — `c` lê `a` e `b`, e `b` lê `a` — marcar e avisar numa fase só
+entrega um número **errado**:
+
+```
+a.escrever(5)
+antes:  [3, 7, 15]     <- o 7 nunca foi verdade (5 + o 'b' velho)
+agora:  [3, 15]
+```
+
+Não é uma notificação a mais: é um valor que aparece e some sozinho na
+tela. E `_derivados` é um **conjunto**, então qual caminho vem primeiro
+não é escolhido por ninguém — o defeito ia e vinha conforme a ordem de
+hash. Daí saem quatro regras:
+
+| Regra | Sem ela |
+|---|---|
+| o aviso pertence à **propagação**, e não ao recálculo | uma simples **leitura** disparava efeito de terceiros |
+| o efeito alcançado por dois caminhos roda **uma** vez | a tela redesenhava duas vezes por mudança |
+| a dedup é pelo **objeto**, e não por `id()` | `id()` só é único entre objetos **vivos** — é o bug do cache da Vitrine |
+| uma escrita dentro de um efeito abre a **próxima** onda | a fila cresceria enquanto é percorrida |
+
+Três defeitos irmãos, todos calados: **`lote` montava uma lista de
+adiados que ninguém lia** (o gancho era escrito e nenhum caminho de
+escrita o consultava — três escritas davam três notificações, como sem
+ele); **`observar` num derivado nunca lido** registrava a ação num
+objeto que jamais seria avisado, porque as dependências nascem da
+execução; e **um derivado podia escrever**, o que faz a propagação
+correr no meio da própria descoberta (hoje é `ReactiveWriteError`; um
+**efeito** escrevendo continua legítimo).
+
+## Estruturas — o layout que tem NOME
+
+`arcane_estrutura.py` fica entre dois módulos que já existiam.
+`Arcane.Bytes` empacota por **formato** (`'>i32 u16'`) e o resultado é
+posicional — `dados[3]` três meses depois não diz nada. `Arcane.C` tem
+`estrutura` e `ponteiro` de verdade, e exige **FFI**: ler o cabeçalho
+de um PNG não deveria precisar de `ctypes`.
+
+Cinco decisões:
+
+| Decisão | Porque |
+|---|---|
+| a **ordem dos bytes** é obrigatória | sem ela o mesmo arquivo lido em duas máquinas dá dois valores, e nenhuma falha |
+| o **alinhamento** é declarado e conferido | adivinhar é o que faz o mesmo `.struct` ter 12 bytes de um lado e 16 do outro; o **registro inteiro** também é alinhado, senão um cluster deles sai torto a partir do segundo |
+| a **janela não copia** | copiar um registro de 4 KB para ler um campo de 2 bytes é o que faz um parser de arquivo grande levar minutos |
+| a faixa vem do **tipo declarado** | `um u8 vai de 0 a 255`, e não `'B' format requires 0 <= number <= 255` — quem escreveu `u8` não tem como ligar uma coisa à outra |
+| o ponteiro **segura** o bloco | a referência fraca fazia `Est.ponteiro(Est.bloco(8), "u32")` nascer pendurado. Num mundo com coletor a memória nunca esteve em risco; o que se protege é o **protocolo**, e ele tem um ponto só: `liberar()` |
+
+E `IO.write_bytes`/`read_bytes`/`append_bytes` existem agora: a
+linguagem sabia **produzir** bytes — `Bytes`, `Estrutura`, `Crypto` — e
+não sabia gravá-los. `IO.write` abre em modo texto com UTF-8; passar
+bytes levanta, e passar o texto de um `para_texto` **corrompe** o que
+não for texto válido.
+
+## Regex — quatro recursos que eram inalcançáveis
+
+O módulo tinha as operações, os validadores brasileiros e um catálogo
+de padrões. O que faltava tornava inalcançável um recurso que a
+expressão regular **já tem**:
+
+| Faltava | O efeito |
+|---|---|
+| grupo nomeado no resultado | `(?P<ano>…)` compilava e o valor vinha **por posição** — ninguém escreve isso para depois ler `groups[2]` |
+| `fullmatch` | `match` ancora só no começo: validar com ele aceita lixo no fim, calado |
+| `sub` com uma **ação** | mascarar um CPF ou dobrar um número exigia sair do módulo |
+| a leitura de **risco** | `(a+)+$` trava o processo em trinta caracteres, e nada dizia isso |
+
+`risk` é uma leitura de **forma**, e a honestidade é o recurso: ela
+reconhece os quatro desenhos clássicos e **cala no resto**. E
+`safe_search` recusa **antes** de rodar, porque não há como interromper
+uma busca já começada: o motor do Python não solta o GIL, então um
+prazo numa thread não para nada.
+
+**O objeto de `compile` tinha cinco operações**, na forma que a doc
+recomenda para um laço: quem compilava perdia `finditer`, os grupos
+nomeados, `fullmatch`, `split` e a contagem — e voltava a chamar a
+versão por texto, que é o contrário do motivo de compilar. A lista sai
+do módulo (`_COM_PADRAO_E_TEXTO`), e há teste comparando as duas.
+
+## Cinco defeitos do interpretador achados escrevendo exercício
+
+Nenhum deles levantava erro. Os cinco produziam o valor errado, ou
+tornavam inalcançável um recurso documentado.
+
+**1. Um receptor chamável virava a chamada.** O ramo
+`elif hasattr(obj, '__call__')` ignorava `node.method` e invocava o
+próprio objeto: `molde.mapa` devolvia a ação certa e `molde.mapa()`
+devolvia um `Bloco` — porque chamava o molde. O recuo continua (sem o
+membro, o objeto é chamado como antes), e o teste roda nos dois modos
+de compilação.
+
+**2. Um objeto de fora não podia responder à escrita de membro.**
+`valor.campo := x` dava `Cannot set a member on a Valor` — verdade, e
+sem nenhuma saída. A leitura já era por protocolo; a escrita era a
+metade que faltava. A porta é estreita: só delega quem **define**
+`__setattr__`.
+
+**3. `tipo_usuario` era lido e nunca escrito.** `_error_matches` tinha
+o ramo, com docstring explicando que servia a `trigger MinhaFalha(…)`,
+e era **inalcançável**: quem levantava um record de domínio — a forma
+que a trilha ensina — só podia capturá-lo com `handle Error` e um
+`match`, embora o cabeçalho do erro imprimisse o nome do record. Um
+**texto** levantado continua sem nome, senão `handle String` capturaria
+todo `trigger "…"`.
+
+**4. `__repr__` não tinha como ser pedido.** Ele estava na lista de
+mágicos, na referência e na doc de OOP, e a linguagem não tinha `repr`
+— um cluster de objetos imprime com `__str__`. Ele só era alcançado
+como **reserva**, quando não havia `__str__`: exatamente quando não se
+queria a distinção.
+
+**5. O `check` não conhecia o mágico unário.** `-obj` num blueprint com
+`__neg__` era acusado, e roda. Um falso alarme sobre um recurso que a
+própria referência documenta ensina a ignorar o analisador — e ele cala
+quando a linhagem tem ancestral não visto, que pode trazer o mágico.
+
+E duas imprecisões do **lint**: o marcador `TODO` passou a exigir o
+dois-pontos (este repositório escreve palavra em MAIÚSCULA para
+enfatizar, e *"TODO objeto que declara tamanho"* virava pendência) e
+deixou de olhar dentro de um literal de texto — o exercício que
+**demonstra** um lint de brinquedo era acusado pelo próprio lint.
+
+## Duas superfícies para o mesmo conceito
+
+`ctx.estado` do Telegram e `V.estado` da Vitrine são a mesma ideia, e
+respondiam de formas diferentes. As duas foram corrigidas na mesma
+direção:
+
+- **`ctx.estado` devolvia uma cópia.** `ctx.estado["k"] := v` escrevia
+  num dicionário descartável e a mudança sumia — sem erro, sem aviso, e
+  com a documentação prometendo *"sobrevive entre mensagens"*. O
+  sintoma era um carrinho que nunca enchia. A cópia não era descuido:
+  `EmArquivo` **lê do disco**, e ali não há dicionário vivo para
+  entregar. Por isso a **vista**, que lê e grava através do armazém.
+- **`V.estado["n"] := 1` era erro** (*"A estado cannot be indexed"*):
+  o objeto tinha `obter` e `definir` e nenhuma das duas formas naturais
+  — indexar e perguntar com `in`. Hoje os dois têm a forma de vault, e
+  os nomes de sempre continuam (`somar` não tem forma de índice, e é
+  ele que evita a corrida do ler-somar-escrever).
+
+E o **dublê do Telegram era mais estreito que o original**:
+`BotFalso.responder_inline` aceitava `**kw` — por **nome**, e não por
+**posição**. Uma chamada posicional funcionava em produção e estourava
+no teste. Um dublê que diverge aprova o que quebra, ou reprova o que
+funciona; há teste comparando as assinaturas uma a uma.
+
 ## O mapa do ecossistema, os princípios e o percurso
 
 As três últimas partes da referência Deep Tech são as de **síntese** — e
@@ -2382,6 +2593,31 @@ leitura quando vem `:=` ou `=` logo depois. Ele recebe o texto **com o
 recuo**: tirar o recuo ali fez uma linha indentada abrir um `server` novo
 e quebrou 27 blocos que funcionavam.
 
+## As páginas da biblioteca eram uma cópia à mão
+
+As páginas de `/docs/biblioteca/<modulo>` traziam a lista de símbolos
+**copiada à mão**, e nenhum gerador as mantinha. A de `Arcane.Regex`
+anunciava *"Funções (28)"* onde havia 44 — e a contagem estava no
+**título** da seção, que é o que se lê antes da lista.
+
+E havia o outro lado: **32 dos 75 módulos não tinham página nenhuma**.
+`Arcane.Quadro`, `Arcane.Malha`, `Arcane.Posse` e `Arcane.Reflexo`
+existem, e a única forma de ver a assinatura de um deles era abrir o
+código.
+
+`tools/gerar_paginas_biblioteca.py` resolve os dois: a tabela sai do
+**próprio módulo** (assinatura lida por `inspect`), e o que foi escrito
+à mão — exemplo, aviso, link para o guia — mora em
+`site/scripts/conteudo_biblioteca/<curto>.py`.
+
+Três decisões:
+
+| Decisão | Porque |
+|---|---|
+| o prólogo mora **fora** do `.tsx` | deixá-lo dentro de um arquivo marcado `GERADO` é o convite para editá-lo ali — e a correção some na próxima geração |
+| ele **cede** aos treze que `gerar_conteudo.py` escreve | duas ferramentas escrevendo o mesmo arquivo fazem o resultado depender da **ordem** em que rodam, que é o defeito que as duas `slugify` já causaram aqui |
+| a barra lateral sai da **mesma** lista | era ela a razão de 32 páginas não serem alcançáveis: uma página que o menu não cita é uma página que ninguém encontra |
+
 ## O que é gerado — não edite à mão
 
 | Arquivo | Gerador | Guardado por |
@@ -2390,6 +2626,7 @@ e quebrou 27 blocos que funcionavam.
 | `site/app/docs/kiln/referencia/page.tsx` | `tools/gerar_ref_kiln.py` | — |
 | `site/app/docs/vitrine/referencia/page.tsx` | `tools/gerar_ref_vitrine.py` | `tests/test_vitrine.py` |
 | `site/app/docs/biblioteca/page.tsx` | `tools/gerar_pagina_biblioteca.py` | `tests/test_regressoes.py` |
+| **60 páginas** de `site/app/docs/biblioteca/<mod>/` | `tools/gerar_paginas_biblioteca.py` | `tests/test_api_e_marca.py` |
 | `doc/BIBLIOTECA_PADRAO.md` | `tools/gerar_doc_stdlib.py` | — |
 | `site/lib/dados-gerados.json` | `site/scripts/gerar_dados.py` | — |
 | o `const headings` de cada `site/app/docs/**/page.tsx` | `site/scripts/gerar_indices.py` | `tests/test_api_e_marca.py` |
@@ -2676,8 +2913,12 @@ python3 scripts/gerar_tarball.py
 | `tests/test_laco.py` | `pytest` | o reator: que ele **dorme** em vez de girar, prazo em ordem, contrapressao, o erro que nao o derruba, fibras intercaladas — e **120 conexoes numa thread**, com a identidade da thread conferida dentro do retorno de chamada |
 | `tests/test_ssa_e_otimizacao.py` | `pytest` | dominancia, no phi, a propagacao condicional **comparada** com a do MIR, os tres passes provados pela saida, e o repositorio sem falso alarme |
 | `tests/test_compilador_interno.py` | `pytest` | HIR, MIR, LIR e as analises — inclusive a **equivalencia** do HIR rodando exercicios do repositorio nas duas formas e comparando a saida |
+| `tests/test_dominio.py` | `pytest` | as sete peças de DDD e o que cada uma **recusa** — e a classe do erro, que é o contrato |
+| `tests/test_reativo.py` | `pytest` | preguiça, memória, dependência descoberta — e o **losango**, que entregava um valor que nunca existiu |
+| `tests/test_estrutura.py` | `pytest` | o layout conferido contra o `struct` do Python, o alinhamento, a janela que escreve no bloco e as duas formas de um ponteiro não valer nada |
+| `tests/test_regex_extra.py` | `pytest` | grupos nomeados, ancoramento nas duas pontas, troca que calcula, a explicação e os quatro desenhos de risco |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 267 exercícios em 48 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 387 exercícios em 57 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

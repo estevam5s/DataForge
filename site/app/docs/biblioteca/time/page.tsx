@@ -1,3 +1,8 @@
+// GERADO por 'tools/gerar_paginas_biblioteca.py'. Nao edite aqui.
+// O que e escrito a mao mora em
+// 'site/scripts/conteudo_biblioteca/time.py'; as tabelas saem do
+// proprio modulo, a cada geracao.
+
 import type { Metadata } from 'next';
 import type { Bloco } from '@/lib/content';
 import { DocPage } from '@/components/Doc';
