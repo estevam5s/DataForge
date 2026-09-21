@@ -525,6 +525,11 @@ out "== 2. e ele nunca aparece numa mensagem de erro =="
 
 // O token esta na URL de TODA chamada, e a URL entra em todo
 // traceback. Um token num log de CI e um bot sequestrado.
+//
+// Este e de brinquedo, e 'dataforge seguranca' acusa o formato dele
+// — corretamente. Silenciar pelo NOME da regra e o jeito de dizer
+// "eu sei": um 'permitir' solto esconderia o proximo achado tambem.
+// df: permitir segredo-no-codigo
 steady TOKEN := "123456789:AAHqwertyuiopASDFGHJKLzxcvbnm12345"
 app := Tg.app(TOKEN)
 

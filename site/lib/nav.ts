@@ -503,6 +503,7 @@ export const nav: NavSection[] = [
       { title: 'Arcane.Reflexo', href: '/docs/biblioteca/reflexo' },
       { title: 'Arcane.Regex', href: '/docs/biblioteca/regex' },
       { title: 'Arcane.Resultado', href: '/docs/biblioteca/resultado' },
+      { title: 'Arcane.Seguranca', href: '/docs/biblioteca/seguranca' },
       { title: 'Arcane.Serialization', href: '/docs/biblioteca/serialization' },
       { title: 'Arcane.Stm', href: '/docs/biblioteca/stm' },
       { title: 'Arcane.Stream', href: '/docs/biblioteca/stream' },

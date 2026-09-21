@@ -33,6 +33,7 @@ from .arcane_iter import ArcaneIter
 from .arcane_cor import ArcaneColor
 from .arcane_paralelo import ArcaneConcurrent
 from .arcane_arquivo_seguro import ArcaneArchive, ArcaneCofre
+from .arcane_seguranca import ArcaneSeguranca
 from .arcane_pipeline import ArcanePipeline
 from .arcane_qualidade import ArcaneQualidade
 from .arcane_lago import ArcaneLago
@@ -123,6 +124,9 @@ _MODULES = {
     "Log": ArcaneLogging,
     "Arcane.Crypto": ArcaneCrypto,
     "Crypto": ArcaneCrypto,
+    "Arcane.Seguranca": ArcaneSeguranca,
+    "Seguranca": ArcaneSeguranca,
+    "Security": ArcaneSeguranca,
     "Arcane.Collections": ArcaneCollections,
     "Collections": ArcaneCollections,
     "Arcane.Serialization": ArcaneSerialization,

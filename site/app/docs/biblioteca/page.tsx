@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "75 módulos e 2079 símbolos, sem uma única dependência externa.",
+  description: "76 módulos e 2130 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os 75 módulos"
+    "h2": "Os 76 módulos"
   },
   {
-    "p": "São **2079 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **2130 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -99,6 +99,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Crypto`](/docs/biblioteca/crypto)",
           "52",
           "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token."
+        ],
+        [
+          "[`Arcane.Seguranca`](/docs/biblioteca/seguranca)",
+          "51",
+          "Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática."
         ],
         [
           "[`Arcane.Regex`](/docs/biblioteca/regex)",
@@ -467,13 +472,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-75-modulos', text: "Os 75 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-76-modulos', text: "Os 76 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"75 módulos e 2079 símbolos, sem uma única dependência externa."}
+      description={"76 módulos e 2130 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

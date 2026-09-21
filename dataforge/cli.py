@@ -3,6 +3,7 @@ DataForge CLI (Command Line Interface)
 Main entry point for the DataForge language.
 """
 
+import json
 import re
 import sys
 import os
@@ -207,6 +208,32 @@ GRUPOS = [
             "lida, ramo redundante, e outras.",
             opcoes=[("--strict", "trata avisos como erros")],
             veja=("fmt", "check")),
+        Cmd("seguranca", "dataforge seguranca [alvo]",
+            "Procura segredo escrito no codigo e padrao arriscado",
+            "Duas varreduras sobre cada arquivo. A primeira acha SEGREDO pelo\n"
+            "formato — chave da AWS, token do GitHub, 'sk_live' da Stripe,\n"
+            "bloco de chave privada, token do PyPI —, e por isso acha o que\n"
+            "voce esqueceu, que e o unico tipo que importa. A segunda aplica\n"
+            "dez regras sintaticas: SQL concatenado, shell com interpolacao,\n"
+            "MD5 para assinatura, senha sem derivacao, verificacao desligada.\n"
+            "\n"
+            "Ela le TEXTO, e nao a arvore, de proposito: um analisador de\n"
+            "seguranca que tenta provar fluxo de dado erra nos dois sentidos,\n"
+            "e o que se faz com o alarme errado e desligar tudo.\n"
+            "\n"
+            "Alem de '.df', ela le '.env', '.json', '.toml', '.yml', '.sh' e\n"
+            "'.ts' — um segredo vaza do arquivo de configuracao muito mais do\n"
+            "que do codigo.\n"
+            "\n"
+            "'// df: permitir <regra>' na linha, ou na de cima, silencia ali.",
+            opcoes=[("--strict", "sai com 1 se houver qualquer achado"),
+                    ("--json", "a saida como dado, para a esteira de CI"),
+                    ("--so=<gravidade>", "'alto' esconde os medios")],
+            exemplos=[("dataforge seguranca .", "o projeto inteiro"),
+                      ("dataforge seguranca src/ --strict", "reprova o CI"),
+                      ("dataforge seguranca . --json", "para outra ferramenta")],
+            apelidos=("sec", "audit"),
+            veja=("lint", "check")),
         Cmd("bench", "dataforge bench <arquivo.df>",
             "Mede o tempo de execucao, repetindo",
             "Roda varias vezes e mostra minimo, mediana e desvio.\n"
@@ -3180,6 +3207,133 @@ def lint_command(alvos, strict=False):
     print(color(f"✓ {len(arquivos)} arquivo(s) sem avisos", "1;32"))
 
 
+#: Alem do '.df': um segredo vaza do arquivo de configuracao muito
+#: mais do que do codigo, e um comando que so olha '.df' passa ao
+#: largo do '.env' que esta na pasta ao lado.
+_EXTENSOES_DE_SEGURANCA = (
+    ".df", ".env", ".json", ".toml", ".yml", ".yaml", ".ini", ".cfg",
+    ".sh", ".bash", ".zsh", ".ts", ".js", ".py", ".md", ".txt",
+)
+
+_IGNORAR_NA_VARREDURA = {
+    ".git", "node_modules", "forge_modules", "__pycache__", ".venv",
+    "venv", ".next", "out", "dist", "build", ".mypy_cache",
+    ".pytest_cache", ".dataforge", "site-packages",
+}
+
+
+def _arquivos_para_varrer(alvos):
+    """Os arquivos de texto do alvo, sem as pastas de terceiros.
+
+    Varrer 'node_modules' acha centenas de segredos de exemplo em
+    pacotes de terceiros, e o relatorio fica longo o bastante para
+    ninguem ler — que e como uma ferramenta de seguranca e desligada.
+    """
+    saida = []
+    for alvo in alvos:
+        if os.path.isfile(alvo):
+            saida.append(alvo)
+            continue
+        for raiz, pastas, arquivos in os.walk(alvo):
+            pastas[:] = [d for d in pastas
+                         if d not in _IGNORAR_NA_VARREDURA and not d.startswith(".git")]
+            for nome in sorted(arquivos):
+                if nome.endswith(_EXTENSOES_DE_SEGURANCA) or nome.startswith(".env"):
+                    saida.append(os.path.join(raiz, nome))
+    return sorted(set(saida))
+
+
+def seguranca_command(alvos, strict=False, como_json=False, so=""):
+    """dataforge seguranca — segredo escrito no codigo, e padrao arriscado."""
+    from .stdlib import get_module
+
+    S = get_module("Arcane.Seguranca")
+    procurar = S["procurar_segredos"]
+    analisar = S["analisar"]
+
+    arquivos = _arquivos_para_varrer(alvos or ["."])
+    usar_cor = "--no-color" not in sys.argv and not como_json
+    ordem = {"alto": 0, "medio": 1, "baixo": 2}
+    achados = []
+    ilegiveis = 0
+
+    for caminho in arquivos:
+        try:
+            with open(caminho, "r", encoding="utf-8") as f:
+                fonte = f.read()
+        except (OSError, UnicodeDecodeError):
+            ilegiveis += 1
+            continue
+        if len(fonte) > 2_000_000:
+            continue
+
+        if caminho.endswith(".df"):
+            # O analisador de '.df' ja faz as duas varreduras.
+            achados.extend(analisar(fonte, caminho))
+            continue
+        # O escape do analisador vale em qualquer arquivo, e nao so
+        # num '.df': um segredo de brinquedo mora tanto num teste em
+        # Python quanto num exemplo de Markdown, e sem escape ali a
+        # unica saida e desligar a varredura inteira.
+        linhas = fonte.split("\n")
+
+        def _silenciada(indice):
+            for i in (indice, indice - 1):
+                if 0 <= i < len(linhas):
+                    m = re.search(r"df:\s*permitir\s+([\w-]+)", linhas[i])
+                    if m and m.group(1) == "segredo-no-codigo":
+                        return True
+            return False
+
+        for a in procurar(fonte):
+            if _silenciada(a["linha"] - 1):
+                continue
+            achados.append({
+                "regra": "segredo-no-codigo", "gravidade": "alto",
+                "linha": a["linha"], "coluna": a["coluna"], "arquivo": caminho,
+                "mensagem": f"{a['tipo']} escrito no arquivo ({a['trecho']}).",
+                "dica": "Tire do arquivo, ponha num '.env' ignorado, e ROTACIONE.",
+            })
+
+    if so:
+        achados = [a for a in achados
+                   if ordem.get(a["gravidade"], 3) <= ordem.get(so, 3)]
+    achados.sort(key=lambda a: (ordem.get(a["gravidade"], 3), a["arquivo"], a["linha"]))
+
+    if como_json:
+        print(json.dumps({"arquivos": len(arquivos), "achados": achados},
+                         ensure_ascii=False, indent=2))
+        if achados and strict:
+            sys.exit(1)
+        return
+
+    altos = sum(1 for a in achados if a["gravidade"] == "alto")
+    for a in achados:
+        cor = "1;31" if a["gravidade"] == "alto" else "1;33"
+        rotulo = color(a["gravidade"].upper(), cor) if usar_cor else a["gravidade"].upper()
+        lugar = f"{a['arquivo']}:{a['linha']}:{a['coluna']}"
+        print(f"{rotulo}  {lugar}  [{a['regra']}]")
+        print(f"        {a['mensagem']}")
+        print(color(f"        dica: {a['dica']}", "0;90") if usar_cor
+              else f"        dica: {a['dica']}")
+
+    if not achados:
+        print(color(f"\u2713 {len(arquivos)} arquivo(s) varrido(s), nada encontrado",
+                    "1;32"))
+        return
+
+    print()
+    print(color(f"{len(achados)} achado(s) em {len(arquivos)} arquivo(s) "
+                f"— {altos} de gravidade alta", "1;33"))
+    if altos:
+        # O conselho vale mesmo quando o valor ja foi tirado do arquivo:
+        # se ele esteve gravado, pode ja ter sido lido.
+        print(color("Um segredo que esteve num arquivo pode ja ter sido lido. "
+                    "ROTACIONE a chave.", "1;31"))
+    if strict:
+        sys.exit(1)
+
+
 def test_command(alvos, verboso=False, filtro="", parar=False,
                  cobertura=False, minimo=0.0, detalhar=False):
     """dataforge test — executa a suíte de testes."""
@@ -5132,6 +5286,13 @@ def main():
 
     elif command == 'lint':
         lint_command(args[1:], strict='--strict' in flags)
+    elif command in ('seguranca', 'sec', 'audit'):
+        so = ''
+        for f in flags:
+            if f.startswith('--so='):
+                so = f.split('=', 1)[1]
+        seguranca_command(args[1:], strict='--strict' in flags,
+                          como_json='--json' in flags, so=so)
 
     elif command == 'test':
         filtro = ""

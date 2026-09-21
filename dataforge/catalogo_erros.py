@@ -2878,6 +2878,96 @@ b.liberar()
 p.ler()     // erro: o bloco de 'p' foi liberado
 """,
        "Use 'Arcane.Posse' quando o dono precisa ser um so."),
+    _e("DF1901", "SecurityError", "RuntimeError_",
+       "A base da familia de seguranca", "seguranca",
+       """
+Entrada hostil recusada, assinatura que nao confere, prazo vencido,
+segredo achado onde nao podia, politica que disse nao, cadeia de
+auditoria que nao fecha. Capture esta para tratar 'o pedido foi
+recusado por seguranca' sem distinguir o motivo.
+""",
+       """
+monitor:
+    Seg.url_segura(vinda_de_fora)
+handle SecurityError as e:
+    out e.message
+""",
+       "Capture o especifico quando a resposta ao usuario for diferente."),
+
+    _e("DF1902", "UnsafeInputError", "SecurityError",
+       "A entrada pede o que nao pode ser servido", "seguranca/entrada",
+       """
+Um caminho que sai da pasta base, uma URL que aponta para a rede
+interna, um redirecionamento para fora do site, um JSON fundo demais.
+O nome do erro diz que a recusa foi DELIBERADA: o valor chegou de
+fora e nao passou na conferencia.
+""",
+       """
+Seg.caminho_seguro("uploads/", "../../etc/passwd")   // erro
+""",
+       "Nao conserte a entrada: recuse o pedido e registre a tentativa."),
+
+    _e("DF1903", "SignatureError", "SecurityError",
+       "A assinatura nao confere com o conteudo", "seguranca/tokens",
+       """
+O valor foi alterado depois de assinado, ou foi assinado com outra
+chave. Sao a mesma resposta de proposito: dizer qual dos dois foi
+entrega informacao a quem esta tentando.
+""",
+       """
+Seg.ler_assinado(token_mexido, chave)    // erro
+""",
+       "Trate como pedido invalido. Nao leia o conteudo mesmo assim."),
+
+    _e("DF1904", "ExpiredTokenError", "SecurityError",
+       "A assinatura confere, e o prazo venceu", "seguranca/tokens",
+       """
+Separado de 'SignatureError' porque a resposta ao usuario e outra:
+aqui o link era legitimo e caducou, e a acao certa e oferecer outro.
+Num token adulterado, oferecer outro seria ajudar quem tenta.
+""",
+       """
+Seg.ler_assinado(link_de_ontem, chave, prazo := 3600)    // erro
+""",
+       "Ofereca gerar um novo link; nao estenda o prazo do antigo."),
+
+    _e("DF1905", "SecretLeakError", "SecurityError",
+       "Um segredo aparece onde ele nao pode estar", "seguranca/segredos",
+       """
+Chave de API, token, senha ou bloco de chave privada num texto que vai
+ser gravado, commitado, enviado ou mostrado. A varredura acha pelo
+FORMATO, entao ela acha o que voce esqueceu — e nao so o que voce
+lembra de procurar.
+""",
+       """
+Seg.exigir_sem_segredo(fonte)     // erro: chave da Stripe na linha 12
+""",
+       "Tire o valor do arquivo, ponha num '.env' ignorado, e ROTACIONE."),
+
+    _e("DF1906", "PolicyError", "SecurityError",
+       "A politica recusou", "seguranca/senha",
+       """
+Senha curta demais, sem variedade, igual a uma conhecida, ou entropia
+abaixo do minimo. A mensagem diz o que falta, e nao apenas que faltou:
+uma recusa sem o motivo faz a pessoa tentar de novo no escuro.
+""",
+       """
+Seg.exigir_politica("123456")     // erro: curta, e esta na lista
+""",
+       "Mostre 'e.nota', que traz a lista do que falta."),
+
+    _e("DF1907", "AuditChainError", "SecurityError",
+       "A cadeia de auditoria nao fecha", "seguranca/auditoria",
+       """
+Cada registro carrega o resumo do anterior. Se um deles foi alterado
+ou removido, o proximo deixa de bater — e o erro diz em qual linha a
+cadeia quebrou. Um registro de auditoria que pode ser editado sem
+deixar marca nao e registro de auditoria.
+""",
+       """
+livro.conferir()     // erro: a cadeia quebra no registro 41
+""",
+       "Guarde a trilha fora da maquina que a escreve."),
 ]
 
 
@@ -2896,6 +2986,6 @@ def familia(codigo):
         "08": "limites", "09": "objetos", "10": "concorrencia",
         "11": "sistema", "12": "dados", "13": "rede", "14": "testes",
         "15": "validacao", "16": "dominio", "17": "reativo",
-        "18": "memoria estruturada",
+        "18": "memoria estruturada", "19": "seguranca",
     }
     return FAMILIAS.get(codigo[2:4], "desconhecida")

@@ -89,6 +89,7 @@ def test_caminho_solto_e_sqlite():
 
 
 def test_url_com_senha_escapada():
+    # df: permitir segredo-no-codigo  (senha sintetica, de proposito)
     dados = analisar_url("postgres://u:se%40nha@h/b")
     assert dados["senha"] == "se@nha"
 

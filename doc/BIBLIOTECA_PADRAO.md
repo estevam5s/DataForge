@@ -35,6 +35,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Process`](#arcaneprocess) | `Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | [`Arcane.Logging`](#arcanelogging) | `Logging / Log` | 14 | Registro estruturado de eventos, com níveis e destinos. |
 | [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 52 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token. |
+| [`Arcane.Seguranca`](#arcaneseguranca) | `Seguranca` | 51 | Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática. |
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
@@ -1291,6 +1292,73 @@ adopt Arcane.Crypto as Crypto
 | `uuid_hex()` |
 | `verify_password(senha, guardada)` |
 | `xor_cipher(texto, chave)` |
+
+
+---
+
+## Arcane.Seguranca
+
+Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática.
+
+```dataforge
+adopt Arcane.Seguranca as Seguranca
+```
+
+**Funções (51)**
+
+| Assinatura |
+|------------|
+| `analisar(fonte, caminho='')` |
+| `assinar(valor, chave, proposito='', quando=None)` |
+| `assinar_url(url, chave, prazo=3600, quando=None)` |
+| `auditoria(caminho)` |
+| `caminho_seguro(base, pedido)` |
+| `chave_de_assinatura(bytes_=32)` |
+| `codigos_de_recuperacao(quantos=10, grupos=3, tamanho=4)` |
+| `conferir_url(url, chave, quando=None)` |
+| `conferir_vazamento(senha, respostas)` |
+| `e_alta_entropia(texto, minimo=3.5)` |
+| `e_segredo(v)` |
+| `entropia(texto)` |
+| `escapar_atributo(texto)` |
+| `escapar_cabecalho(texto)` |
+| `escapar_csv(valor)` |
+| `escapar_html(texto)` |
+| `escapar_js(texto)` |
+| `escapar_log(texto)` |
+| `escapar_regex(texto)` |
+| `escapar_shell(texto)` |
+| `escapar_sql_like(texto, escape='\\')` |
+| `escapar_url(texto)` |
+| `exigir_politica(senha, opcoes=None)` |
+| `exigir_sem_segredo(texto, onde='')` |
+| `forca_da_senha(senha)` |
+| `host_privado(host)` |
+| `hotp(segredo, contador, digitos=6, algoritmo='sha1')` |
+| `json_seguro(texto, opcoes=None)` |
+| `ler_assinado(token, chave, prazo=None, proposito='')` |
+| `limitador(limite, periodo=60.0, rajada=None)` |
+| `limpar_html(texto, opcoes=None)` |
+| `mascarar(valor, visivel=4)` |
+| `mascarar_pii(texto, tipos=None)` |
+| `nome_de_arquivo_seguro(nome, padrao='arquivo')` |
+| `numero_seguro(texto, minimo=None, maximo=None, inteiro=True)` |
+| `padroes_de_segredo()` |
+| `politica(senha, opcoes=None)` |
+| `prefixo_vazamento(senha)` |
+| `procurar_segredos(texto, opcoes=None)` |
+| `redigir(texto)` |
+| `redirecionamento_seguro(destino, permitidos=None, padrao='/')` |
+| `regras_de_analise()` |
+| `segredo(valor, rotulo='segredo')` |
+| `sem_controle(texto, permitir_quebra=False)` |
+| `tentativas(limite=5, base=30.0, teto=3600.0)` |
+| `totp_agora(segredo, janela=30, digitos=6, algoritmo='sha1', quando=None)` |
+| `totp_conferir(segredo, codigo, janela=30, digitos=6, algoritmo='sha1', tolerancia=1, quando=None)` |
+| `totp_segredo(bytes_=20)` |
+| `totp_uri(segredo, conta, emissor='', digitos=6, janela=30, algoritmo='sha1')` |
+| `url_segura(url, opcoes=None)` |
+| `vazada(senha, tempo_limite=5.0)` |
 
 
 ---

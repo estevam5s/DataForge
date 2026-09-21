@@ -208,7 +208,7 @@ MODULOS_COM_PAGINA = frozenset({
     "inicio", "injecao", "io", "iter", "laco", "lago", "lavra", "logging",
     "macro", "malha", "math", "memoria", "meta", "objetos", "observar",
     "os", "padroes", "percurso", "perfil", "pipeline", "ponte", "posse",
-    "principios", "process", "quadro", "qualidade", "reativo", "rede",
+    "principios", "process", "quadro", "qualidade", "reativo", "seguranca", "rede",
     "reflexo", "regex", "resultado", "serialization", "stm", "stream",
     "telegram", "test", "text", "time", "tipos", "url", "web",
 })
