@@ -36,6 +36,9 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Logging`](#arcanelogging) | `Logging / Log` | 14 | Registro estruturado de eventos, com níveis e destinos. |
 | [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 53 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token. |
 | [`Arcane.Seguranca`](#arcaneseguranca) | `Seguranca` | 54 | Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática. |
+| [`Arcane.Politica`](#arcanepolitica) | `Politica` | 6 | Motor de autorização: RBAC com herança, ABAC por atributo, ACL por objeto, grupos, isolamento por inquilino, negação explícita que vence o papel e delegação com prazo. O padrão é negar, e toda decisão diz qual regra a tomou — um motor que responde só sim/não é impossível de auditar. |
+| [`Arcane.Chaves`](#arcanechaves) | `Chaves` | 6 | Ciclo de vida de chave criptográfica: propósito cobrado, prazo, rotação que mantém as antigas decifrando o passado, identificador no dado cifrado, cifragem em envelope (DEK/KEK), recifragem, derivação por contexto (HKDF) e exportação do cofre cifrada pela senha mestra. |
+| [`Arcane.Deteccao`](#arcanedeteccao) | `Deteccao` | 7 | Regras de detecção sobre eventos, com correlação por chave em janela deslizante, supressão, gravidade e mapa para MITRE ATT&CK; indicadores de comprometimento com prazo e normalização; padrões sobre conteúdo e leitura de log de acesso. O alerta carrega os eventos que o causaram. |
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
@@ -1363,6 +1366,83 @@ adopt Arcane.Seguranca as Seguranca
 | `totp_uri(segredo, conta, emissor='', digitos=6, janela=30, algoritmo='sha1')` |
 | `url_segura(url, opcoes=None)` |
 | `vazada(senha, tempo_limite=5.0)` |
+
+
+---
+
+## Arcane.Politica
+
+Motor de autorização: RBAC com herança, ABAC por atributo, ACL por objeto, grupos, isolamento por inquilino, negação explícita que vence o papel e delegação com prazo. O padrão é negar, e toda decisão diz qual regra a tomou — um motor que responde só sim/não é impossível de auditar.
+
+```dataforge
+adopt Arcane.Politica as Politica
+```
+
+**Funções (6)**
+
+| Assinatura |
+|------------|
+| `camadas()` |
+| `casa(padrao, concreto)` |
+| `de_vault(nome, definicao)` |
+| `identidade(alvo)` |
+| `motor(nome, inquilino='')` |
+| `separacao_de_funcoes(politica, acao, solicitante, aprovador)` |
+
+
+---
+
+## Arcane.Chaves
+
+Ciclo de vida de chave criptográfica: propósito cobrado, prazo, rotação que mantém as antigas decifrando o passado, identificador no dado cifrado, cifragem em envelope (DEK/KEK), recifragem, derivação por contexto (HKDF) e exportação do cofre cifrada pela senha mestra.
+
+```dataforge
+adopt Arcane.Chaves as Chaves
+```
+
+**Constantes**
+
+| Nome | Valor |
+|------|-------|
+| `ESTADOS` | `['ativa', 'aposentada', 'revogada']` |
+| `PROPOSITOS` | `['assinar', 'cifrar', 'derivar', 'autenticar']` |
+
+**Funções (4)**
+
+| Assinatura |
+|------------|
+| `cofre(opcoes=None)` |
+| `derivar_de(chave, contexto, tamanho=32)` |
+| `e_chave(v)` |
+| `usar(chave, proposito)` |
+
+
+---
+
+## Arcane.Deteccao
+
+Regras de detecção sobre eventos, com correlação por chave em janela deslizante, supressão, gravidade e mapa para MITRE ATT&CK; indicadores de comprometimento com prazo e normalização; padrões sobre conteúdo e leitura de log de acesso. O alerta carrega os eventos que o causaram.
+
+```dataforge
+adopt Arcane.Deteccao as Deteccao
+```
+
+**Constantes**
+
+| Nome | Valor |
+|------|-------|
+| `GRAVIDADES` | `['informativo', 'baixo', 'medio', 'alto', 'critico…` |
+| `TIPOS_DE_INDICADOR` | `['ip', 'dominio', 'url', 'hash', 'email', 'usuario…` |
+
+**Funções (5)**
+
+| Assinatura |
+|------------|
+| `indicadores()` |
+| `ler_linha(linha, formato='combinado')` |
+| `motor()` |
+| `padrao(nome, textos, gravidade='medio', descricao='')` |
+| `varrer(conteudo, padroes, minimo=1)` |
 
 
 ---

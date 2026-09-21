@@ -13,7 +13,7 @@
     <docsUrl>https://dataforge-lang.vercel.app/docs</docsUrl>
     <bugTrackerUrl>https://github.com/estevam5s/DataForge/issues</bugTrackerUrl>
     <tags>dataforge programming-language interpreter cli</tags>
-    <summary>Linguagem interpretada com 76 modulos de biblioteca padrao.</summary>
+    <summary>Linguagem interpretada com 79 modulos de biblioteca padrao.</summary>
     <description>
 Linguagem de proposito geral com lexer, parser, analisador estatico e
 interpretador proprios. O instalador embute o runtime: nao e preciso ter

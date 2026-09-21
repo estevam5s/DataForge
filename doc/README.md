@@ -77,3 +77,18 @@ sintaxe da DataForge. Não use a sintaxe deles como referência:
 `dataforge_completo_avancado_dataforge.md` · `dataforge_do_basico_ao_avancado.md` ·
 `dataforge_arquitetura_avan_ada_e_big_o (1).md` · `dataforge-stream-framework.md` ·
 `dataforge-stream-devops.md`
+
+E estes quatro são material de estudo e de direcionamento, recebidos como
+fonte. `DataForge_Deep_Tech_Consolidada.md` e `DataForge_OOP_SOLID_Metaclasses.md`
+descrevem o que a linguagem tem por dentro; `instrucoes_arquiteto_dataforge.md`
+traz a direção de arquitetura; `streamlit.md` é a referência que originou a
+[Vitrine](/docs/vitrine) — e a Vitrine **não é** um Streamlit em DataForge, é
+outra coisa com o mesmo problema a resolver:
+
+`DataForge_Deep_Tech_Consolidada.md` · `DataForge_OOP_SOLID_Metaclasses.md` ·
+`instrucoes_arquiteto_dataforge.md` · `streamlit.md`
+
+E `DATAFORGE_CYBER_SECURITY.md`, na raiz do repositório, é a fonte da
+[seção de segurança da informação](/docs/seguranca/mapa) e dos módulos
+`Arcane.Politica`, `Arcane.Chaves` e `Arcane.Deteccao`. Ele lista 61 frentes;
+a documentação diz, para cada uma, o que existe aqui e o que **não** existe.

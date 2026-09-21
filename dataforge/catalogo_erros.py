@@ -2968,6 +2968,49 @@ deixar marca nao e registro de auditoria.
 livro.conferir()     // erro: a cadeia quebra no registro 41
 """,
        "Guarde a trilha fora da maquina que a escreve."),
+
+    _e("DF1908", "AuthorizationError", "SecurityError",
+       "A politica recusou o acesso", "seguranca/autorizacao",
+       """
+Diferente de 'PolicyError', que fala de uma politica de SENHA: aqui a
+pergunta era "este sujeito pode esta acao neste recurso?", e a
+resposta foi nao. O motivo vem em 'e.nota', e ele diz QUAL regra
+decidiu — uma recusa sem o motivo e impossivel de auditar e quase
+impossivel de depurar.
+""",
+       """
+monitor:
+    P.exigir(usuario, "pedido:apagar", pedido)
+handle AuthorizationError as e:
+    out e.nota      // "negacao explicita da regra 'somente-dono'"
+""",
+       "Responda 404 quando a existencia do recurso ja e informacao."),
+
+    _e("DF1909", "DelegationError", "SecurityError",
+       "A delegacao nao vale", "seguranca/autorizacao",
+       """
+Vencida, revogada, ou de quem nao tinha a permissao para delegar.
+Ninguem delega o que nao tem: sem essa conferencia, uma cadeia de
+delegacoes cria autoridade do nada.
+""",
+       """
+P.delegar(ana, bruno, ["pedido:aprovar"], prazo := 3600)
+// ... 2 horas depois
+P.pode(bruno, "pedido:aprovar", p)     // no: a delegacao venceu
+""",
+       "Delegacao sem prazo e concessao de permissao com passos a mais."),
+
+    _e("DF1910", "CryptoKeyError", "SecurityError",
+       "A chave criptografica nao pode ser usada", "seguranca/chaves",
+       """
+Vencida, revogada, ou de um proposito diferente do pedido. Uma chave
+que assina token nao decifra arquivo: separar os propositos e o que
+impede um comprometimento virar todos os comprometimentos.
+""",
+       """
+Ch.usar(chave, "assinar")    // erro: esta chave e de 'cifrar'
+""",
+       "Gere uma chave por proposito, e rotacione por prazo."),
 ]
 
 

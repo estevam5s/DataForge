@@ -1135,6 +1135,43 @@
     }
    ]
   },
+  "chaves": {
+   "nome": "Arcane.Chaves",
+   "desc": "Ciclo de vida de chave criptográfica: propósito cobrado, prazo, rotação que mantém as antigas decifrando o passado, identificador no dado cifrado, cifragem em envelope (DEK/KEK), recifragem, derivação por contexto (HKDF) e exportação do cofre cifrada pela senha mestra.",
+   "curto": "Chaves",
+   "funcoes": [
+    {
+     "nome": "ESTADOS",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "PROPOSITOS",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "cofre",
+     "sig": "(opcoes)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "derivar_de",
+     "sig": "(chave, contexto, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "e_chave",
+     "sig": "(v)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "usar",
+     "sig": "(chave, proposito)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "cli": {
    "nome": "Arcane.Cli",
    "desc": "A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo.",
@@ -3353,6 +3390,48 @@
     {
      "nome": "zero",
      "sig": "()",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "deteccao": {
+   "nome": "Arcane.Deteccao",
+   "desc": "Regras de detecção sobre eventos, com correlação por chave em janela deslizante, supressão, gravidade e mapa para MITRE ATT&CK; indicadores de comprometimento com prazo e normalização; padrões sobre conteúdo e leitura de log de acesso. O alerta carrega os eventos que o causaram.",
+   "curto": "Deteccao",
+   "funcoes": [
+    {
+     "nome": "GRAVIDADES",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "TIPOS_DE_INDICADOR",
+     "sig": "",
+     "tipo": "const"
+    },
+    {
+     "nome": "indicadores",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler_linha",
+     "sig": "(linha, formato)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "motor",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "padrao",
+     "sig": "(nome, textos, gravidade, descricao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "varrer",
+     "sig": "(conteudo, padroes, minimo)",
      "tipo": "funcao"
     }
    ]
@@ -7347,6 +7426,43 @@
     {
      "nome": "ultima_execucao",
      "sig": "(fluxo)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "politica": {
+   "nome": "Arcane.Politica",
+   "desc": "Motor de autorização: RBAC com herança, ABAC por atributo, ACL por objeto, grupos, isolamento por inquilino, negação explícita que vence o papel e delegação com prazo. O padrão é negar, e toda decisão diz qual regra a tomou — um motor que responde só sim/não é impossível de auditar.",
+   "curto": "Politica",
+   "funcoes": [
+    {
+     "nome": "camadas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "casa",
+     "sig": "(padrao, concreto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "de_vault",
+     "sig": "(nome, definicao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "identidade",
+     "sig": "(alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "motor",
+     "sig": "(nome, inquilino)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "separacao_de_funcoes",
+     "sig": "(politica, acao, solicitante, aprovador)",
      "tipo": "funcao"
     }
    ]
@@ -14759,7 +14875,7 @@
  },
  "totalBuiltins": 229,
  "contagem": {
-  "testes": 3412,
+  "testes": 3522,
   "exemplos": 50,
   "arquivosDf": 503
  },

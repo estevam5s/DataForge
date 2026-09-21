@@ -69,6 +69,7 @@ GRUPOS_DE_MODULO = [
     ("Sistema e rede", ["os", "process", "time", "http", "web", "async",
                         "concurrent", "ponte", "malha", "rede", "email", "url"]),
     ("Qualidade", ["test", "bench", "logging", "crypto", "seguranca",
+                   "politica", "chaves", "deteccao",
                    "observar", "color", "meta", "cli", "eventos"]),
     ("Objetos", ["reflexo", "objetos", "injecao", "padroes"]),
     ("Domínio", ["dominio", "reativo", "estrutura"]),

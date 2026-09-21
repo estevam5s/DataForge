@@ -34,6 +34,9 @@ from .arcane_cor import ArcaneColor
 from .arcane_paralelo import ArcaneConcurrent
 from .arcane_arquivo_seguro import ArcaneArchive, ArcaneCofre
 from .arcane_seguranca import ArcaneSeguranca
+from .arcane_politica import ArcanePolitica
+from .arcane_chaves import ArcaneChaves
+from .arcane_deteccao import ArcaneDeteccao
 from .arcane_pipeline import ArcanePipeline
 from .arcane_qualidade import ArcaneQualidade
 from .arcane_lago import ArcaneLago
@@ -125,6 +128,15 @@ _MODULES = {
     "Arcane.Crypto": ArcaneCrypto,
     "Crypto": ArcaneCrypto,
     "Arcane.Seguranca": ArcaneSeguranca,
+    "Arcane.Politica": ArcanePolitica,
+    "Politica": ArcanePolitica,
+    "Policy": ArcanePolitica,
+    "Arcane.Chaves": ArcaneChaves,
+    "Chaves": ArcaneChaves,
+    "Keys": ArcaneChaves,
+    "Arcane.Deteccao": ArcaneDeteccao,
+    "Deteccao": ArcaneDeteccao,
+    "Detection": ArcaneDeteccao,
     "Seguranca": ArcaneSeguranca,
     "Security": ArcaneSeguranca,
     "Arcane.Collections": ArcaneCollections,

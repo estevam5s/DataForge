@@ -878,6 +878,24 @@
           "simbolos": 54
         },
         {
+          "chave": "politica",
+          "desc": "Motor de autorização: RBAC com herança, ABAC por atributo, ACL por objeto, grupos, isolamento por inquilino, negação explícita que vence o papel e del",
+          "nome": "Arcane.Politica",
+          "simbolos": 6
+        },
+        {
+          "chave": "chaves",
+          "desc": "Ciclo de vida de chave criptográfica: propósito cobrado, prazo, rotação que mantém as antigas decifrando o passado, identificador no dado cifrado, cif",
+          "nome": "Arcane.Chaves",
+          "simbolos": 6
+        },
+        {
+          "chave": "deteccao",
+          "desc": "Regras de detecção sobre eventos, com correlação por chave em janela deslizante, supressão, gravidade e mapa para MITRE ATT&CK; indicadores de comprom",
+          "nome": "Arcane.Deteccao",
+          "simbolos": 7
+        },
+        {
           "chave": "observar",
           "desc": "Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados",
           "nome": "Arcane.Observar",
@@ -1182,10 +1200,10 @@
     "equivalem": 6,
     "existem": 30,
     "grupos_de_comando": 7,
-    "modulos": 76,
+    "modulos": 79,
     "modulos_do_nucleo": 58,
     "nao_existem": 5,
-    "simbolos": 2134
+    "simbolos": 2153
   },
   "semGrupo": []
 }

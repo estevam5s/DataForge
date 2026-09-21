@@ -33,7 +33,10 @@ PAGINAS = [
    ["**Identidade**", "senha, hashing, MFA, TOTP, WebAuthn, OAuth, OIDC, SAML, LDAP, JWT, tokens, sessão", "[Autenticação](/docs/seguranca/autenticacao)"],
    ["**Permissão**", "autorização, RBAC, capacidades, módulos, dependências, sandbox", "[Autorização e capacidades](/docs/seguranca/autorizacao)"],
    ["**Ataques**", "força bruta, *credential stuffing*, bloqueio de conta, atrasos progressivos, limite de taxa", "[Ataques a credenciais](/docs/seguranca/ataques)"],
-   ["**Ferramentas**", "detecção de segredos, linter de segurança, análise estática, verificações em execução, auditoria", "[As ferramentas](/docs/seguranca/ferramentas)"]]}},
+   ["**Ferramentas**", "detecção de segredos, linter de segurança, análise estática, verificações em execução, auditoria", "[As ferramentas](/docs/seguranca/ferramentas)"],
+   ["**Criptografia**", "simétrica, autenticada, assimétrica, resumo, assinatura e o ciclo de vida da chave", "[Criptografia e chaves](/docs/seguranca/criptografia)"],
+   ["**Detecção**", "regras sobre eventos, correlação, indicadores, alertas, resposta a incidente", "[Detecção e resposta](/docs/seguranca/deteccao)"],
+   ["**Operação**", "DevSecOps, cadeia de suprimentos, contêiner, nuvem, testes e LGPD", "[Operação e conformidade](/docs/seguranca/operacao)"]]}},
 
  {"callout": {"tipo": "dica", "titulo": "A página irmã", "texto": "[Segurança](/docs/seguranca) responde uma pergunta diferente e complementar: **o que a linguagem e as ferramentas já garantem por construção** — injeção de SQL, XSS nos templates, travessia em pacotes, integridade do registro, TLS — e como relatar uma vulnerabilidade. Esta seção aqui é o currículo; aquela é o inventário das garantias."}},
 
@@ -130,6 +133,9 @@ out limpo""", "lang": "df"},
    {"href": "/docs/seguranca/autorizacao", "title": "Autorização e capacidades", "desc": "RBAC, a fronteira de autoridade, dependências."},
    {"href": "/docs/seguranca/ataques", "title": "Ataques a credenciais", "desc": "Força bruta, credential stuffing, bloqueio progressivo."},
    {"href": "/docs/seguranca/ferramentas", "title": "As ferramentas", "desc": "Segredos, linter, análise estática, auditoria."},
+   {"href": "/docs/seguranca/criptografia", "title": "Criptografia e chaves", "desc": "O que existe, o que não existe, e o ciclo de vida da chave."},
+   {"href": "/docs/seguranca/deteccao", "title": "Detecção e resposta", "desc": "Regras, correlação, indicadores e alertas."},
+   {"href": "/docs/seguranca/operacao", "title": "Operação e conformidade", "desc": "DevSecOps, cadeia de suprimentos, contêiner e LGPD."},
    {"href": "/docs/seguranca", "title": "Garantias por construção", "desc": "Injeção, XSS, pacotes, TLS — e como relatar uma falha."}]},
 ]},
 
@@ -1288,5 +1294,252 @@ IO.delete(caminho)""", "lang": "df"},
 //   dataforge seguranca . --strict || exit 1""", "lang": "df"},
 
  {"callout": {"tipo": "dica", "titulo": "O gancho local não substitui a esteira", "texto": "Um gancho de pré-commit pode ser pulado com `--no-verify`, e é pulado. Ele existe para dar a resposta **rápida** a quem está escrevendo; quem **reprova** é o CI, que não tem como ser pulado. Os dois rodam o mesmo comando de propósito: se divergirem, o local passa a aprovar o que o remoto recusa, e a confiança no primeiro acaba."}},
+]},
+# ══════════════════════════════════════════════════════════════
+{
+"href": "/docs/seguranca/criptografia",
+"title": "Criptografia e chaves",
+"description": "Simétrica, autenticada, assimétrica, hashing, assinatura e o ciclo de vida da chave — com o que existe aqui e o que não existe.",
+"blocos": [
+ {"p": "Criptografia erra em silêncio: o programa roda, o arquivo fica cifrado, e a falha só aparece quando alguém tenta explorá-la. Esta página diz o que a linguagem oferece, e — com a mesma clareza — o que ela não oferece."},
+
+ {"h2": "O que existe"},
+
+ {"table": {"head": ["Categoria", "Aqui", "Observação"], "rows": [
+   ["**Cifra autenticada (AEAD)**", "ChaCha20-Poly1305, RFC 8439 — `Crypto.cifrar`", "a etiqueta vem junto: adulterar um byte é **recusa**, não texto ilegível"],
+   ["**Cifra simétrica pura**", "só via AEAD", "oferecer ChaCha20 ou AES sem autenticação seria oferecer a forma de errar"],
+   ["**AES**", "**não existe**", "o ChaCha20 é mais rápido em software sem AES-NI e mais difícil de implementar errado"],
+   ["**Resumo**", "SHA-2, SHA-3, BLAKE2 — `Crypto.algorithms()`", "MD5 e SHA-1 existem para *checksum*, e o linter acusa o uso em assinatura"],
+   ["**HMAC**", "`Crypto.hmac`, `hmac_verify`", "integridade e origem **entre duas partes**"],
+   ["**Senha derivada**", "scrypt (padrão) e PBKDF2", "ver [Autenticação](/docs/seguranca/autenticacao)"],
+   ["**Assimétrica** (RSA, ECC, Ed25519)", "**não existe**", "em Python puro é lenta e é onde um erro vira falha silenciosa"],
+   ["**Assinatura com não-repúdio**", "**não existe**", "consequência da linha acima — HMAC não serve"],
+   ["**TLS**", "o `ssl` do Python; no Kiln, um nginx na frente", "`Rede.certificado_de` inspeciona um certificado"],
+   ["**Aleatoriedade**", "`Crypto.random_bytes`, `random_token`", "`os.urandom`; `randint` **não** serve para segredo"]]}},
+
+ {"callout": {"tipo": "atencao", "titulo": "Por que não há AES", "texto": "Não é limitação de esforço. Sem instruções de hardware (AES-NI), uma implementação de AES em Python puro é lenta **e** é difícil de fazer em tempo constante — e uma cifra que vaza tempo vaza a chave. O ChaCha20-Poly1305 foi desenhado para ser rápido e seguro em software puro, e é a escolha certa para uma linguagem sem dependência externa."}},
+
+ {"h2": "A chave tem ciclo de vida"},
+
+ {"p": "`Crypto` gera bytes e cifra com eles. O que faltava era o resto: de onde a chave veio, até quando vale, para que serve, e o que fazer com o dado cifrado pela versão anterior. Sem isso, o que acontece é sempre o mesmo — uma chave nasce numa variável de ambiente, é usada para tudo, e nunca é trocada."},
+
+ {"code": """adopt Arcane.Chaves as Ch
+
+cofre := Ch.cofre()
+cofre.gerar("mestra", proposito := "cifrar")
+
+envelope := cofre.envelopar("um terabyte de dados", "mestra")
+
+// Rotacionar nao torna ilegivel o passado: o envelope carrega o
+// 'kid', e a chave aposentada continua abrindo o que ela fechou.
+nova := cofre.rotacionar("mestra", "cifrar")
+assert cofre.desenvelopar(envelope) isnt void
+
+// E recifrar troca a chave sem tocar nos DADOS — so na DEK.
+assert cofre.recifrar(envelope, "mestra")["kid"] is nova.kid
+
+out "rotacionado, e o passado continua legivel\"""", "lang": "df"},
+
+ {"table": {"head": ["Decisão", "Sem ela"], "rows": [
+   ["a chave tem **propósito**", "a que assina token também decifra arquivo, e um comprometimento vira todos"],
+   ["a rotação **mantém as antigas**", "trocar a chave torna ilegível o que já foi cifrado — então ninguém troca"],
+   ["o dado carrega o **`kid`**", "na hora de decifrar não se sabe qual das cinco chaves usar"],
+   ["o material **não aparece em texto**", "o vazamento mais comum é alguém imprimir o objeto para depurar"]]}},
+
+ {"callout": {"tipo": "dica", "titulo": "Envelope, e por que todo KMS faz assim", "texto": "Cifrar um terabyte com a chave mestra significa que rotacioná-la é **reescrever o terabyte**. Com envelope, cada objeto tem a sua chave de dados (DEK), e o que a mestra (KEK) cifra é só a DEK — 32 bytes. Rotacionar passa a ser recifrar as DEKs."}},
+
+ {"h2": "Gestão de segredo"},
+
+ {"table": {"head": ["Pergunta", "Resposta aqui"], "rows": [
+   ["onde o segredo mora", "no ambiente, e nunca no repositório — `dataforge seguranca` acusa"],
+   ["como ele não vaza em log", "`Seg.segredo` (opaco) e `Seg.redigir`"],
+   ["como se guarda o cofre", "`cofre.exportar(senha)` devolve cifrado; **gravar é de quem chama**"],
+   ["como se sabe que é hora de trocar", "`cofre.precisa_rotacionar()`"],
+   ["cofre externo (Vault, KMS, Secrets Manager)", "**não há integração** — é serviço, e cada um tem a sua API"]]}},
+
+ {"p": "Referência: [Arcane.Chaves](/docs/biblioteca/chaves) e [Arcane.Crypto](/docs/biblioteca/crypto)."},
+]},
+
+# ══════════════════════════════════════════════════════════════
+{
+"href": "/docs/seguranca/deteccao",
+"title": "Detecção e resposta",
+"description": "Regras sobre eventos, correlação em janela deslizante, indicadores de comprometimento, alertas e trilha — e por que um SIEM de verdade é infraestrutura.",
+"blocos": [
+ {"p": "Gravar log é fácil e quase inútil sozinho: ninguém lê dez milhões de linhas. O que transforma log em defesa é a **regra** — a afirmação de que uma sequência de eventos significa alguma coisa — e o **alerta**, que é a regra disparando com o contexto junto."},
+
+ {"h2": "As três perguntas de uma detecção"},
+
+ {"table": {"head": ["Pergunta", "A peça"], "rows": [
+   ["o que aconteceu?", "o evento, e a [trilha de auditoria](/docs/seguranca/ferramentas)"],
+   ["isso significa alguma coisa?", "a regra: quantas vezes, em que janela, correlacionado por quê"],
+   ["quem precisa saber?", "o alerta, e o canal — que é de quem chama"]]}},
+
+ {"code": """adopt Arcane.Deteccao as D
+
+m := D.motor()
+m.regra("forca-bruta", quando := "login.falhou", vezes := 5,
+    janela := 60.0, gravidade := "alto", attack := "T1110",
+    por := "ip")
+
+cycle i from 1 to 4:
+    assert len(m.evento("login.falhou", {"ip": "203.0.113.7"})) is 0
+
+a := m.evento("login.falhou", {"ip": "203.0.113.7"})[0]
+
+// O alerta traz os EVENTOS que o causaram: "forca bruta detectada"
+// sem o que aconteceu nao e investigavel.
+out $"{a['gravidade']} — {a['regra']} ({a['attack']}), {len(a['eventos'])} eventos\"""", "lang": "df"},
+
+ {"callout": {"tipo": "atencao", "titulo": "O alerta errado custa mais que o alerta que falta", "texto": "Cinco falhas de cinco pessoas diferentes **não** são força bruta. Por isso a correlação é por **chave** (`por := \"ip\"`) e não global: sem ela, a regra dispara no primeiro dia movimentado, alguém marca como falso positivo, e na terceira vez ela é desligada — junto com a detecção de verdade."}},
+
+ {"h2": "As armadilhas de contagem"},
+
+ {"table": {"head": ["Armadilha", "O que acontece", "A resposta"], "rows": [
+   ["janela **fixa**", "5 falhas às 23h59 e 5 às 00h01 não disparam nada", "janela deslizante"],
+   ["sem supressão", "a mesma regra grita mil vezes por minuto", "`suprimir := 300.0`"],
+   ["janela não zerada", "o sexto evento dispara de novo, e o sétimo também", "a janela é limpa no alerta"],
+   ["regra que levanta", "o motor para de detectar **tudo o resto**", "ela é contada em `erros()`, e as outras seguem"]]}},
+
+ {"h2": "Indicadores de comprometimento"},
+
+ {"p": "Um IOC — hash, IP, domínio, URL — responde *“isto já foi visto num incidente?”*. Ele é **datado e perecível**: um IP malicioso hoje é um IP de nuvem reciclado em três semanas, e um indicador sem prazo vira falso positivo permanente."},
+
+ {"code": """adopt Arcane.Deteccao as D
+
+m := D.motor()
+ind := m.indicadores()
+ind.acrescentar("ip", "198.51.100.66", fonte := "feed-x",
+    gravidade := "critico", prazo := 2592000.0)
+
+m.regra("ioc", quando := "indicador.visto", vezes := 1,
+    gravidade := "critico")
+
+// 'observar' produz um EVENTO, e nao um veredito: um IOC nao prova
+// nada sozinho — um dominio na lista pode ser um colega abrindo um
+// artigo sobre o incidente.
+m.observar("ip", "198.51.100.66", {"onde": "proxy"})
+assert len(m.alertas(gravidade_minima := "critico")) is 1
+
+out "o indicador virou sinal, e o sinal virou alerta\"""", "lang": "df"},
+
+ {"h2": "O que não existe, e o que usar"},
+
+ {"table": {"head": ["Não há", "Porque", "O caminho"], "rows": [
+   ["**SIEM**", "é infraestrutura — coleta, índice, retenção, busca em escala", "Elastic, Loki, Splunk; este módulo alimenta o alerta"],
+   ["**SOAR**", "orquestração entre dezenas de ferramentas externas", "`ao_alertar` é o gancho para a sua"],
+   ["**YARA**", "`varrer` cobre as *strings* e a condição; não há módulo PE nem *offset*", "o `yara-python`, pela [ponte](/docs/tecnicas/ponte)"],
+   ["**EDR / antivírus**", "exige agente no sistema operacional", "—"],
+   ["leitor de log genérico", "formato de log é o que menos se parece entre sistemas", "`ler_linha` cobre o combinado; o resto é [Arcane.Regex](/docs/biblioteca/regex)"]]}},
+
+ {"callout": {"tipo": "dica", "titulo": "Resposta a incidente começa antes do incidente", "texto": "As três coisas que decidem se uma investigação é possível são gravadas **antes**: a [trilha encadeada](/docs/biblioteca/seguranca) (com o resumo do registro anterior em cada registro), o `motivo` de cada decisão de [autorização](/docs/seguranca/autorizacao), e o `kid` em cada dado cifrado. Nenhuma das três se consegue depois do fato."}},
+
+ {"p": "Referência: [Arcane.Deteccao](/docs/biblioteca/deteccao)."},
+]},
+
+# ══════════════════════════════════════════════════════════════
+{
+"href": "/docs/seguranca/operacao",
+"title": "Operação e conformidade",
+"description": "DevSecOps, cadeia de suprimentos, contêiner, nuvem, testes de segurança, privacidade e LGPD — o que a linguagem gera, o que ela verifica e o que é infraestrutura.",
+"blocos": [
+ {"p": "As frentes desta página têm uma coisa em comum: **elas não são código da aplicação**. São o que roda em volta dele — a esteira, a imagem, o cluster, o processo. A linguagem participa de duas formas: gerando artefato e verificando o que dá para verificar."},
+
+ {"h2": "DevSecOps: as cinco que reprovam"},
+
+ {"code": """// A esteira, e o que cada linha cobra
+//
+//   dataforge check . --strict        nome, aridade, tipo — entre arquivos
+//   dataforge lint .                  estilo e higiene
+//   dataforge seguranca . --strict    segredo e dez regras (SAST)
+//   dataforge test tests/ --minimo=80 suite, com piso de cobertura
+//   dataforge devops doctor           o que falta para levar ao ar
+//
+// E o gancho local, que pega antes de o segredo sair da maquina:
+//
+//   # .git/hooks/pre-commit
+//   dataforge seguranca . --strict || exit 1""", "lang": "df"},
+
+ {"table": {"head": ["Sigla", "O que é", "Aqui"], "rows": [
+   ["**SAST**", "análise estática do seu código", "`dataforge seguranca` + `check` + `lint`"],
+   ["**SCA**", "análise das dependências", "`forge.lock` com sha256; `dataforge outdated`"],
+   ["**SBOM**", "inventário do que compõe o artefato", "`dataforge devops sbom`"],
+   ["**Secret scanning**", "segredo no repositório", "`dataforge seguranca`, em qualquer tipo de arquivo"],
+   ["**DAST**", "teste contra a aplicação rodando", "**não existe** — é uma ferramenta externa (ZAP, Burp)"],
+   ["**Fuzzing**", "entrada aleatória em massa", "**não existe** como ferramenta; `Crucible` tem teste por propriedade"]]}},
+
+ {"callout": {"tipo": "atencao", "titulo": "O gancho local não substitui a esteira", "texto": "Um `pre-commit` pode ser pulado com `--no-verify`, e é pulado. Ele existe para dar a resposta **rápida** a quem está escrevendo; quem **reprova** é o CI, que não tem como ser pulado. Os dois rodam o mesmo comando de propósito: se divergirem, o local passa a aprovar o que o remoto recusa, e a confiança no primeiro acaba."}},
+
+ {"h2": "Cadeia de suprimentos"},
+
+ {"p": "O código que você não escreveu roda com a mesma autoridade do que você escreveu. É hoje um dos vetores mais explorados, e a defesa é chata: saber exatamente o que entrou."},
+
+ {"table": {"head": ["Controle", "Como aqui"], "rows": [
+   ["**zero dependência no runtime**", "`dataforge/` usa só a stdlib do Python — a superfície de terceiros é **zero**"],
+   ["lockfile **lido**", "`install` instala o que o lock fixa; `update` é que reescreve"],
+   ["integridade conferida", "o sha256 do lock é comparado com o que chegou"],
+   ["tarball reprodutível", "`mtime=0`, uid/gid zerados — sem isso o sha256 mudaria a cada empacotamento e a verificação não significaria nada"],
+   ["extração recusa `../` e link simbólico", "um pacote não escreve fora da própria pasta"],
+   ["conflito de versão é **erro**", "duas cópias em versões diferentes geram bug irreproduzível"],
+   ["**assinatura do pacote**", "**não existe** — o que há é integridade por hash no lock"]]}},
+
+ {"h2": "Contêiner e nuvem"},
+
+ {"p": "`dataforge devops` **gera** e sai da frente. Um `deploy` que falasse com Docker e Kubernetes por dentro esconderia o que a imagem é, e no dia em que alguém precisa mudar uma camada não haveria onde mexer."},
+
+ {"table": {"head": ["No artefato gerado", "Sem ele"], "rows": [
+   ["`USER forge`", "um escape de contêiner vira root no host"],
+   ["`.env` no `.dockerignore`", "o segredo fica na camada, e `docker history` o mostra"],
+   ["o manifesto copiado antes do código", "um commit numa linha reinstala tudo"],
+   ["`resources` + as duas sondas no Deployment", "um pod come o nó; o Service manda tráfego antes da hora"],
+   ["`depends_on: service_healthy`", "a app falha na primeira consulta, de forma intermitente"]]}},
+
+ {"callout": {"tipo": "atencao", "titulo": "`--host=0.0.0.0` é obrigatório dentro de um contêiner", "texto": "O padrão é `127.0.0.1`, que de dentro significa **o próprio contêiner**. O sintoma engana: o log diz “no ar” e o `curl` de fora não recebe nada. Vale para a Vitrine e para o `ignite` do Kiln (`at \"0.0.0.0\"`)."}},
+
+ {"p": "Segurança de **nuvem** e de **Kubernetes** — IAM, políticas de rede, admission control, varredura de imagem — é configuração da plataforma, e não há nada a implementar numa linguagem. O que a linguagem faz é gerar manifestos que já nascem com o mínimo certo."},
+
+ {"h2": "Testes de segurança"},
+
+ {"code": """adopt Arcane.Seguranca as Seg
+
+// Um teste de seguranca e um teste que cobra a RECUSA. O caminho
+// feliz ja tem dono; o que ninguem escreve e o outro.
+action test_caminho_de_arquivo_nao_sai_da_pasta():
+    monitor:
+        Seg.caminho_seguro("/tmp/uploads", "../../etc/passwd")
+        assert no
+    handle UnsafeInputError as e:
+        assert yes
+
+action test_o_token_de_um_proposito_nao_serve_a_outro():
+    chave := Seg.chave_de_assinatura()
+    t := Seg.assinar({"id": 1}, chave, proposito := "confirmar-email")
+    monitor:
+        Seg.ler_assinado(t, chave, proposito := "trocar-senha")
+        assert no
+    handle SignatureError as e:
+        assert yes
+
+test_caminho_de_arquivo_nao_sai_da_pasta()
+test_o_token_de_um_proposito_nao_serve_a_outro()
+out "dois testes que cobram a recusa\"""", "lang": "df"},
+
+ {"h2": "Privacidade, LGPD e GDPR"},
+
+ {"p": "Segurança pergunta *quem pode acessar*. Privacidade pergunta *se esse dado deveria existir*. Um sistema pode ser impecável na primeira e ilegal na segunda."},
+
+ {"table": {"head": ["Obrigação", "O que ela exige", "A peça"], "rows": [
+   ["**minimização**", "não coletar o que não se usa", "nenhuma ferramenta substitui a decisão de desenho"],
+   ["**finalidade**", "usar só para o que foi declarado", "—"],
+   ["**mascaramento**", "log e relatório sem dado pessoal", "`Seg.mascarar_pii` — CPF, CNPJ, cartão com Luhn, e-mail, telefone"],
+   ["**retenção**", "apagar quando o prazo vence", "`Crypto.apagar_seguro`; a política é sua"],
+   ["**acesso e portabilidade**", "entregar o que se tem sobre a pessoa", "sua consulta"],
+   ["**eliminação**", "apagar a pedido", "e nas cópias de segurança também — é aí que quase todo mundo falha"],
+   ["**registro de tratamento**", "provar o que foi feito", "[`Seg.auditoria`](/docs/biblioteca/seguranca)"],
+   ["**notificação de incidente**", "comunicar em prazo", "processo, e não código"]]}},
+
+ {"callout": {"tipo": "dica", "titulo": "Criptografia ajuda a apagar", "texto": "Apagar de verdade um dado espalhado por réplicas e cópias de segurança é difícil. **Destruição de chave** é a saída prática: se cada titular tem a própria chave de dados, revogá-la torna os registros dele ilegíveis em toda cópia, de uma vez. `Chaves.cofre` com uma DEK por titular é o desenho, e `revogar` é o gesto."}},
+
+ {"p": "Continue em [As ferramentas](/docs/seguranca/ferramentas) e [Detecção](/docs/seguranca/deteccao)."},
 ]},
 ]

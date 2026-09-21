@@ -18,37 +18,37 @@ const total = modulos.reduce((n, [, m]) => n + m.funcoes.length, 0);
  * 'test_a_landing_nao_engole_nenhum_modulo_da_arcane' reprova a
  * suíte enquanto ele estiver lá: aparecer no lugar errado é ruim,
  * desaparecer é pior. */
-const grupos: { rotulo: string; chaves: string[] }[] = [
-  { rotulo: 'Núcleo', chaves: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal', 'bytes'] },
-  { rotulo: 'Frameworks', chaves: ['kiln', 'vitrine', 'telegram', 'lavra', 'crucible', 'forge', 'api'] },
-  { rotulo: 'Dados', chaves: ['quadro', 'data', 'analytics', 'cortex', 'lago', 'pipeline', 'qualidade', 'stream'] },
-  { rotulo: 'Formatos', chaves: ['serialization', 'excel', 'archive', 'database', 'html'] },
-  { rotulo: 'Sistema e rede', chaves: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email', 'url'] },
-  { rotulo: 'Qualidade', chaves: ['test', 'bench', 'logging', 'crypto', 'seguranca', 'observar', 'color', 'meta', 'cli', 'eventos'] },
-  { rotulo: 'Objetos', chaves: ['reflexo', 'objetos', 'injecao', 'padroes'] },
-  { rotulo: 'Domínio', chaves: ['dominio'] },
-  { rotulo: 'Estruturas', chaves: ['estrutura'] },
-  { rotulo: 'Reativo', chaves: ['reativo'] },
-  { rotulo: 'Tipos', chaves: ['tipos', 'resultado'] },
-  { rotulo: 'Memória', chaves: ['posse', 'memoria'] },
-  { rotulo: 'Transacional', chaves: ['stm'] },
-  { rotulo: 'Metaprogramação', chaves: ['macro', 'dsl'] },
-  { rotulo: 'Nativo', chaves: ['c'] },
-  { rotulo: 'Compilador', chaves: ['compilador'] },
-  { rotulo: 'Runtime', chaves: ['laco'] },
-  { rotulo: 'Perfil', chaves: ['perfil'] },
-  { rotulo: 'Partida', chaves: ['inicio', 'capacidade'] },
-  { rotulo: 'Distribuição', chaves: ['abi', 'alvo'] },
-  { rotulo: 'A própria implementação', chaves: ['ecossistema', 'principios', 'percurso'] },
+const grupos: { rotulo: string; modulos: string[] }[] = [
+  { rotulo: 'Núcleo', modulos: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal', 'bytes'] },
+  { rotulo: 'Frameworks', modulos: ['kiln', 'vitrine', 'telegram', 'lavra', 'crucible', 'forge', 'api'] },
+  { rotulo: 'Dados', modulos: ['quadro', 'data', 'analytics', 'cortex', 'lago', 'pipeline', 'qualidade', 'stream'] },
+  { rotulo: 'Formatos', modulos: ['serialization', 'excel', 'archive', 'database', 'html'] },
+  { rotulo: 'Sistema e rede', modulos: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email', 'url'] },
+  { rotulo: 'Qualidade', modulos: ['test', 'bench', 'logging', 'crypto', 'seguranca', 'politica', 'chaves', 'deteccao', 'observar', 'color', 'meta', 'cli', 'eventos'] },
+  { rotulo: 'Objetos', modulos: ['reflexo', 'objetos', 'injecao', 'padroes'] },
+  { rotulo: 'Domínio', modulos: ['dominio'] },
+  { rotulo: 'Estruturas', modulos: ['estrutura'] },
+  { rotulo: 'Reativo', modulos: ['reativo'] },
+  { rotulo: 'Tipos', modulos: ['tipos', 'resultado'] },
+  { rotulo: 'Memória', modulos: ['posse', 'memoria'] },
+  { rotulo: 'Transacional', modulos: ['stm'] },
+  { rotulo: 'Metaprogramação', modulos: ['macro', 'dsl'] },
+  { rotulo: 'Nativo', modulos: ['c'] },
+  { rotulo: 'Compilador', modulos: ['compilador'] },
+  { rotulo: 'Runtime', modulos: ['laco'] },
+  { rotulo: 'Perfil', modulos: ['perfil'] },
+  { rotulo: 'Partida', modulos: ['inicio', 'capacidade'] },
+  { rotulo: 'Distribuição', modulos: ['abi', 'alvo'] },
+  { rotulo: 'A própria implementação', modulos: ['ecossistema', 'principios', 'percurso'] },
 ];
 
 /** O que nenhum grupo reivindicou. Vazio é o estado esperado. */
 const sobrando = modulos
   .map(([k]) => k)
-  .filter((k) => !grupos.some((g) => g.chaves.includes(k)));
+  .filter((k) => !grupos.some((g) => g.modulos.includes(k)));
 
 const todosOsGrupos = sobrando.length
-  ? [...grupos, { rotulo: 'Outros', chaves: sobrando }]
+  ? [...grupos, { rotulo: 'Outros', modulos: sobrando }]
   : grupos;
 
 export function Arcane() {
@@ -74,7 +74,7 @@ export function Arcane() {
 
         <div className="mt-16 space-y-14">
           {todosOsGrupos.map((g) => {
-            const doGrupo = g.chaves
+            const doGrupo = g.modulos
               .map((c) => modulos.find(([k]) => k === c))
               .filter(Boolean) as [string, Modulo][];
 

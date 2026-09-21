@@ -84,15 +84,37 @@ def test_versao_bate_em_todo_lugar(arquivo, molde):
 
 
 def test_nada_visivel_mostra_a_numeracao_antiga():
-    """O usuário pediu 1.0.0 explicitamente; 4.x não pode aparecer."""
+    """O usuário pediu 1.0.0 explicitamente; 4.x não pode aparecer.
+
+    A busca é sobre o que fica **visível**, e por isso ignora
+    comentário: a primeira versão acusou um `v4.03` que era uma
+    coordenada dentro de um `path` de SVG e, depois, o comentário que
+    explicava essa própria armadilha.
+
+    É a terceira vez que uma trava deste repositório acusa a própria
+    explicação — as outras duas foram o marcador `TODO` no lint e o
+    `Math.random` no mapa 3D. A correção é sempre a mesma: olhar o
+    código, e não o arquivo inteiro.
+    """
     import glob
+    import re
+
+    def sem_comentario(texto, caminho):
+        if caminho.endswith((".tsx", ".ts")):
+            texto = re.sub(r"/\*.*?\*/", "", texto, flags=re.S)
+            return re.sub(r"^\s*//.*$", "", texto, flags=re.M)
+        if caminho.endswith((".sh", ".ps1")) or caminho.endswith("Dockerfile"):
+            return re.sub(r"^\s*#.*$", "", texto, flags=re.M)
+        return texto
+
     suspeitos = []
     alvos = (glob.glob(os.path.join(RAIZ, "site", "components", "*.tsx"))
              + [os.path.join(RAIZ, "scripts", "instalar.sh"),
                 os.path.join(RAIZ, "scripts", "instalar.ps1"),
                 os.path.join(RAIZ, "Dockerfile")])
     for caminho in alvos:
-        texto = open(caminho, encoding="utf-8", errors="replace").read()
+        bruto = open(caminho, encoding="utf-8", errors="replace").read()
+        texto = sem_comentario(bruto, caminho)
         for marca in ("v4.", "4.2.0", "4.1.0"):
             if marca in texto:
                 suspeitos.append(f"{os.path.basename(caminho)}: {marca}")
@@ -1561,7 +1583,12 @@ def test_a_landing_nao_engole_nenhum_modulo_da_arcane():
     fonte = open(os.path.join(raiz, "site", "components", "landing",
                               "Arcane.tsx"), encoding="utf-8").read()
     bloco = fonte[fonte.index("const grupos"):fonte.index("/** O que nenhum")]
-    citados = set(re.findall(r"'([a-z_]+)'", bloco)) - {"rotulo", "chaves"}
+    # A subtracao era {"rotulo", "chaves"} — e "chaves" tambem e o nome
+    # de um MODULO ('Arcane.Chaves'). Tirar a palavra fazia o modulo
+    # sumir da conta e o teste acusar um agrupamento que existe. A
+    # propriedade do componente passou a se chamar 'modulos', e aqui
+    # sobra so o rotulo.
+    citados = set(re.findall(r"'([a-z_]+)'", bloco)) - {"rotulo", "modulos"}
 
     fora = sorted(catalogo - citados)
     assert not fora, (
@@ -2206,10 +2233,28 @@ def test_o_captcha_falha_ABERTO_no_cliente():
 
     assert "captchaFalhou" in fonte, (
         "não há como o formulário saber que o widget falhou")
+
+    # A versão anterior deste teste exigia `!captchaFalhou` dentro do
+    # `disabled`: o botão habilitava QUANDO O WIDGET AVISAVA que
+    # falhou. Isso cobre menos do que parece — o `error-callback` não
+    # dispara quando o widget renderiza e simplesmente **não
+    # termina** (domínio não liberado, desafio que não resolve), e
+    # nesse caso o botão ficava morto para sempre.
+    #
+    # Hoje a garantia é mais forte e mais simples de verificar: o
+    # `disabled` **não menciona o captcha**. Quem recusa é o servidor.
     i = fonte.index("disabled={enviando")
     condicao = fonte[i: i + 120]
-    assert "!captchaFalhou" in condicao, (
-        f"o botão continua morto quando o widget falha: {condicao}")
+    assert "captcha" not in condicao.lower(), (
+        f"o botão voltou a depender do captcha: {condicao}\n"
+        "Falhar aberto aqui não enfraquece nada — sem token o Supabase "
+        "recusa, e a mensagem dele já é traduzida.")
+
+    # E há um prazo que desiste da espera, para o rótulo não ficar em
+    # "verificando…" indefinidamente.
+    assert "setTimeout" in fonte, (
+        "sem prazo, uma verificação que não termina deixa o rótulo "
+        "preso para sempre")
 
 
 def test_as_paginas_da_biblioteca_saem_dos_MODULOS():

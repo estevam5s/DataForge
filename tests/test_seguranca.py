@@ -920,7 +920,11 @@ def test_o_modulo_nao_reimplementa_o_que_o_crypto_ja_faz():
 def test_a_familia_de_erro_esta_no_catalogo():
     from dataforge import catalogo_erros as cat
     da_familia = [e for e in cat.ERROS if e["codigo"].startswith("DF19")]
-    assert len(da_familia) == 7
+    # Sete quando a familia nasceu; dez depois de autorizacao
+    # (DF1908/1909) e chaves (DF1910). O numero e cobrado de
+    # proposito: uma classe nova sem entrada no catalogo nao da erro
+    # — ela so nao aparece no 'dataforge explain'.
+    assert len(da_familia) == 10
     for e in da_familia:
         assert cat.familia(e["codigo"]) == "seguranca"
         assert e["explicacao"] and e["solucao"] and e["exemplo"]

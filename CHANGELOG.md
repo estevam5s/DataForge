@@ -14,6 +14,83 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Adicionado — `Arcane.Politica`, `Arcane.Chaves` e `Arcane.Deteccao`
+
+Os três buracos reais do `DATAFORGE_CYBER_SECURITY.md`. A maioria das
+61 frentes já tinha resposta; estas não tinham nenhuma.
+
+- **`Arcane.Politica`** — motor de autorização. Sete camadas numa
+  ordem que é **contrato** (`tenant`, `negacao`, `acl`, `regra`,
+  `papel`, `delegacao`, `padrao`), RBAC com herança, ABAC por
+  atributo, ACL por objeto, grupos, isolamento por inquilino,
+  delegação com prazo e separação de funções.
+  - **O padrão é negar**, a **negação explícita vence o papel**,
+    **ninguém delega o que não tem**, e **toda decisão diz qual regra
+    a tomou** — um motor que responde só sim/não é impossível de
+    auditar.
+  - Uma regra que **falha nega**: tratar a exceção como "não opino"
+    faria um bug virar autorização.
+  - A **aridade da condição é perguntada**, não adivinhada. A primeira
+    versão chamava com quatro argumentos e recuava no `TypeError` — e
+    uma `DFAction` levanta `TypeError_` da *linguagem*, que não é o do
+    Python. O erro virava "a regra falhou" e, com ele, uma negação:
+    uma regra correta recusada porque o motor errou a chamada.
+- **`Arcane.Chaves`** — ciclo de vida da chave. Propósito cobrado,
+  prazo, rotação que **mantém as antigas decifrando o passado**,
+  `kid` no dado cifrado, envelope (DEK/KEK), recifragem, derivação por
+  contexto (HKDF), exportação cifrada e `precisa_rotacionar`.
+  - **`cifra.abrir` devolve `None` quando a etiqueta não fecha.**
+    Defensável na primitiva; aqui vira **erro**. Um `desenvelopar` que
+    devolvesse `void` faria o programa acima gravar nada onde havia um
+    dado — a falha de integridade é o assunto todo do AEAD.
+- **`Arcane.Deteccao`** — regras sobre eventos, correlação **por
+  chave** em janela **deslizante**, supressão, gravidade, mapa para
+  MITRE ATT&CK, indicadores com prazo e normalização, padrões sobre
+  conteúdo e leitura de log combinado.
+  - Cinco falhas de cinco pessoas diferentes **não** são força bruta —
+    e o alerta que mais custa é o que está errado.
+  - Uma regra que falha é **contada**, e as outras seguem: um motor
+    que morre no primeiro erro deixa de detectar tudo o resto, e o
+    silêncio parece calmaria.
+- Três classes de erro novas: `AuthorizationError`, `DelegationError`
+  e `CryptoKeyError`. O catálogo vai de 215 para **218**.
+- Três páginas de documentação novas — [Criptografia e
+  chaves](/docs/seguranca/criptografia), [Detecção e
+  resposta](/docs/seguranca/deteccao) e [Operação e
+  conformidade](/docs/seguranca/operacao) — e as três de biblioteca.
+  A seção de segurança passou a **doze** páginas no sidebar.
+
+### Corrigido — três colisões de nome entre os módulos de segurança
+
+`test_nenhum_nome_se_repete_entre_os_modulos_de_seguranca` compara
+`Seguranca`, `Politica`, `Chaves`, `Deteccao` e `Crypto` dois a dois, e
+achou três:
+
+- **`politica`** — política de *senha* contra motor de autorização. O
+  novo passou a se chamar `motor`.
+- **`analisar`** — as dez regras sobre um `.df` contra padrões sobre
+  conteúdo qualquer. O novo passou a se chamar `varrer`.
+- **`motor`** — este **não** era a mesma pergunta duas vezes: ele
+  nomeia o objeto principal de dois módulos, e ninguém o chama sem o
+  prefixo. Está em `COLISOES_DELIBERADAS`, que é **nomeada** de
+  propósito — uma exceção genérica desligaria a trava.
+
+### Corrigido — a trava que acusava a própria explicação
+
+`test_nada_visivel_mostra_a_numeracao_antiga` procurava `v4.` no
+arquivo inteiro, e acusou uma coordenada `v4.03` dentro de um `path`
+de SVG — e depois o comentário que explicava essa armadilha. É a
+terceira vez que isso acontece neste repositório (as outras: o
+marcador `TODO` no lint e o `Math.random` no mapa 3D). Hoje ela ignora
+comentário.
+
+E a propriedade `chaves` do componente da landing virou `modulos`: ela
+colidia com o **módulo** `Arcane.Chaves`, e o teste subtraía a palavra
+— fazendo o módulo sumir da conta e acusar um agrupamento que existe.
+
+---
+
+
 ### Adicionado — a seção de segurança da informação
 
 - Onze páginas no sidebar (`/docs/seguranca/mapa` e as irmãs), cobrindo

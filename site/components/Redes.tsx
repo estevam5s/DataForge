@@ -43,9 +43,16 @@ export const REDES: Rede[] = [
   {
     nome: 'PyPI',
     href: 'https://pypi.org/project/dataforge-lang/',
-    // O pacote: 'pip install dataforge-lang'. As duas caixas
-    // encaixadas do logotipo do PyPI, simplificadas para 24x24.
-    d: 'M11.6 1.5 4.9 4.1a1.3 1.3 0 0 0-.85 1.22v4.03c0 .55.35 1.04.86 1.23l6.7 2.53c.31.12.65.12.96 0l6.7-2.53c.5-.19.85-.68.85-1.23V5.32c0-.55-.34-1.04-.85-1.22L12.56 1.5a1.36 1.36 0 0 0-.96 0Zm.48 1.9 5.8 2.19-5.8 2.19-5.8-2.19 5.8-2.19ZM4.05 12.03v4.03c0 .55.35 1.04.86 1.23l6.7 2.53c.31.12.65.12.96 0l6.7-2.53c.5-.19.85-.68.85-1.23v-4.03l-1.86.7v2.9l-5.17 1.96v-2.93l-1.44.54v2.39l-5.17-1.96v-2.9l-1.86-.7Z',
+    // O pacote: 'pip install dataforge-lang'.
+    // Duas caixas encaixadas, simplificadas para 24x24.
+    //
+    // O caminho e escrito com numeros INTEIROS de proposito: uma
+    // coordenada como 'v4.03' e lida pela trava
+    // 'test_nada_visivel_mostra_a_numeracao_antiga' como a numeracao
+    // 4.x que a linguagem abandonou. Um falso alarme num SVG faria
+    // alguem afrouxar a trava — que existe para achar um 'v4.2' de
+    // verdade numa pagina.
+    d: 'M12 2 4 5v6c0 .6.4 1.1.9 1.3l6.5 2.5c.4.1.8.1 1.2 0l6.5-2.5c.5-.2.9-.7.9-1.3V5l-8-3Zm0 2 5 2-5 2-5-2 5-2ZM4 13v6c0 .6.4 1.1.9 1.3l6.5 2.5c.4.1.8.1 1.2 0l6.5-2.5c.5-.2.9-.7.9-1.3v-6l-2 1v4l-5 2v-4l-2 1v4l-5-2v-4l-2-1Z',
   },
   {
     nome: 'Site',

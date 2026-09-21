@@ -92,7 +92,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                76 módulos (2134 símbolos), incluindo:
+  stdlib/                79 módulos (2153 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -2083,7 +2083,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 2134 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2153 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2602,7 +2602,7 @@ As páginas de `/docs/biblioteca/<modulo>` traziam a lista de símbolos
 anunciava *"Funções (28)"* onde havia 44 — e a contagem estava no
 **título** da seção, que é o que se lê antes da lista.
 
-E havia o outro lado: **32 dos 76 módulos não tinham página nenhuma**.
+E havia o outro lado: **32 dos 79 módulos não tinham página nenhuma**.
 `Arcane.Quadro`, `Arcane.Malha`, `Arcane.Posse` e `Arcane.Reflexo`
 existem, e a única forma de ver a assinatura de um deles era abrir o
 código.
@@ -2681,6 +2681,107 @@ Quatro decisões que valem lembrar:
 `dataforge seguranca` roda as duas varreduras sobre o projeto, e não só
 sobre os `.df`: um segredo vaza do arquivo de configuração muito mais do
 que do código.
+
+## Os três módulos de segurança que faltavam
+
+`DATAFORGE_CYBER_SECURITY.md` (na raiz) lista 61 frentes. A maioria já
+tinha resposta; três buracos eram reais e viraram módulo. Os três
+seguem a mesma regra: **o padrão é o seguro**, e o erro é barulhento.
+
+### `Arcane.Politica` — autorização
+
+Autorização escrita como `given usuario["papel"] is "admin":` espalha a
+decisão por cinquenta arquivos, e **o que fica para trás não dá erro:
+fica permitindo**.
+
+Sete camadas, nesta ordem, e **a ordem é contrato**: `tenant` →
+`negacao` → `acl` → `regra` → `papel` → `delegacao` → `padrao`. A ACL
+existe para dizer "neste objeto, não", e se o papel viesse antes ela
+nunca seria alcançada.
+
+| Garantia | Sem ela |
+|---|---|
+| o padrão é **negar** | uma ação nova nasce permitida para todo mundo |
+| **negar vence permitir** | a exceção "este usuário não" é apagada por um papel |
+| ninguém **delega o que não tem** | a cadeia de delegações cria autoridade do nada |
+| a decisão **diz quem decidiu** | o incidente pergunta *por que ele conseguiu* |
+
+Quatro detalhes que custaram:
+
+1. **A aridade da regra é PERGUNTADA, não adivinhada.** A primeira
+   versão chamava a condição com quatro argumentos e recuava no
+   `TypeError`. Uma `DFAction` levanta `TypeError_` **da linguagem**,
+   que não é o do Python: o erro caía no `except Exception` e virava
+   "a regra falhou" — ou seja, uma **negação**. Uma regra correta era
+   recusada porque o motor errou a chamada, e o sintoma era uma
+   permissão que nunca vinha.
+2. **Uma regra que falha NEGA.** Tratar a exceção como "não opino"
+   faria um bug virar autorização.
+3. **`void` da regra é "não opino".** Uma regra que só soubesse dizer
+   não bloquearia tudo que ela não entende.
+4. **O motivo nomeia o papel que REALMENTE tem a permissão.** Com
+   `admin → editor → leitor`, dizer "o papel 'admin' permite
+   'pedido:ler'" manda quem audita procurar num papel onde ela não está.
+
+O construtor chama-se **`motor`**, e não `politica`:
+`Arcane.Seguranca.politica` já existe e responde outra pergunta (se uma
+**senha** atende à política). Há teste proibindo a colisão entre os
+módulos de segurança — foi ele que achou esta e mais duas.
+
+### `Arcane.Chaves` — o ciclo de vida
+
+`Crypto` gera bytes e cifra com eles; o que faltava era o resto. Sem
+ciclo de vida, o que acontece é sempre o mesmo: uma chave nasce numa
+variável de ambiente, é usada para tudo, e **nunca é trocada** —
+porque trocá-la tornaria ilegível o que já foi cifrado.
+
+| Decisão | Sem ela |
+|---|---|
+| a chave tem **propósito** | a que assina token também decifra arquivo |
+| a rotação **mantém as antigas** | trocar a chave torna ilegível o passado |
+| o dado carrega o **`kid`** | não se sabe qual das cinco chaves usar |
+| o material **não aparece em texto** | alguém imprime o objeto para depurar |
+
+**Envelope** (DEK/KEK) porque cifrar um terabyte com a chave mestra faz
+rotacioná-la ser reescrever o terabyte. E **`precisa_rotacionar`**
+porque uma chave que vence sem ninguém saber derruba o sistema numa
+madrugada.
+
+> **`cifra.abrir` devolve `None` quando a etiqueta não fecha, e não
+> levanta.** Defensável na primitiva — ela é a primitiva, e quem chama
+> decide — mas deixar passar seria o pior defeito possível: um
+> `desenvelopar` que devolve `void` faz o programa acima gravar nada
+> onde havia um dado. `_abrir` converte isso em erro. A falha de
+> integridade é o assunto todo do AEAD, e ela tem de ser barulhenta.
+
+### `Arcane.Deteccao` — a regra e o alerta
+
+Gravar log é quase inútil sozinho: ninguém lê dez milhões de linhas.
+
+| Decisão | Sem ela |
+|---|---|
+| correlação por **chave** | cinco falhas de cinco pessoas viram "força bruta" |
+| janela **deslizante** | 5 falhas às 23h59 e 5 às 00h01 não disparam nada |
+| o alerta traz os **eventos** | "força bruta detectada" não é investigável |
+| **supressão** | mil alertas por minuto é ruído, e ruído faz desligar |
+| a regra que falha é **contada** | um motor que morre deixa de detectar o resto |
+
+A janela é **zerada no alerta**: sem isso o sexto evento dispara de
+novo, e o sétimo também.
+
+E o que ele **não** é: não é SIEM (isso é coleta, índice e retenção em
+escala), não é SOAR, e `varrer` **não é YARA** — ela cobre as *strings*
+e a condição, e não tem módulo PE nem operador de *offset*.
+
+### Ao acrescentar um módulo de segurança
+
+`test_nenhum_nome_se_repete_entre_os_modulos_de_seguranca` compara
+`Seguranca`, `Politica`, `Chaves`, `Deteccao` e `Crypto` dois a dois.
+Ele achou três colisões reais — `politica`, `analisar` e `motor` — e as
+duas primeiras eram a **mesma pergunta respondida duas vezes**. A
+terceira não era: `motor` nomeia o objeto principal de dois módulos, e
+ninguém o chama sem o prefixo. Ela está em `COLISOES_DELIBERADAS`, que
+é **nomeada** de propósito: uma exceção genérica desligaria a trava.
 
 ## A seção de segurança da informação
 

@@ -8,11 +8,11 @@ PackageName: DataForge
 PackageUrl: https://dataforge-lang.vercel.app
 License: MIT
 LicenseUrl: https://github.com/estevam5s/DataForge/blob/main/LICENSE
-ShortDescription: Linguagem de programacao interpretada, com 76 modulos de biblioteca padrao.
+ShortDescription: Linguagem de programacao interpretada, com 79 modulos de biblioteca padrao.
 Description: >-
   Linguagem de proposito geral com lexer, parser, analisador estatico e
-  interpretador proprios. Traz 76 modulos de biblioteca
-  (2134 simbolos), dois frameworks web, depurador, LSP e
+  interpretador proprios. Traz 79 modulos de biblioteca
+  (2153 simbolos), dois frameworks web, depurador, LSP e
   gerenciador de pacotes. O instalador embute o runtime: nao e preciso
   ter Python na maquina.
 Moniker: dataforge
