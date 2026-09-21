@@ -38,6 +38,48 @@ marca.preparar_saida()
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUBLICO = os.path.join(RAIZ, "site", "public")
+
+
+def _contar():
+    """Os numeros da imagem, lidos de onde eles ja sao contados.
+
+    Eles eram escritos a mao aqui — "40 modulos" quando ja eram 75, e
+    "234 exercicios" quando ja eram 387. Uma imagem de previa e o
+    cartao que aparece quando alguem compartilha o link, e um cartao
+    que contradiz a pagina que ele anuncia e pior que nenhum.
+
+    E ela nao aparece em revisao: ninguem abre um PNG para conferir um
+    numero. Por isso ele sai da MESMA fonte que a pagina usa.
+    """
+    import glob
+    import json
+
+    dados = os.path.join(RAIZ, "site", "lib", "dados-gerados.json")
+    try:
+        with open(dados, encoding="utf-8") as f:
+            d = json.load(f)
+        modulos = len(d.get("modulos") or {})
+        exercicios = sum(len(v) for v in (d.get("exercicios") or {}).values())
+    except (OSError, ValueError, AttributeError, TypeError):
+        modulos = exercicios = 0
+
+    if not modulos:
+        sys.path.insert(0, RAIZ)
+        from dataforge.stdlib import get_module, list_modules
+        modulos = len({get_module(n)["__name__"] for n in list_modules()})
+    if not exercicios:
+        exercicios = len(glob.glob(
+            os.path.join(RAIZ, "exercicios", "[0-9]*", "[0-9]*.df")))
+
+    paginas = len(glob.glob(
+        os.path.join(RAIZ, "site", "app", "docs", "**", "page.tsx"),
+        recursive=True))
+    # Arredondado para baixo na dezena: a frase diz "mais de", e um
+    # numero exato que muda a cada pagina nova seria ruido.
+    return modulos, exercicios, max(paginas - paginas % 10, 10)
+
+
+_MODULOS, _EXERCICIOS, _PAGINAS = _contar()
 BANNER = os.path.join(PUBLICO, "banner.png")
 
 #: 1200x630 e a medida que o Facebook e o LinkedIn pedem, e a que o
@@ -58,16 +100,16 @@ CARDS = [
     {
         "arquivo": "og.png",
         "titulo": "DataForge",
-        "descricao": "Uma linguagem de programação completa, em português, "
-                     "com 40 módulos de biblioteca, dois frameworks web e "
-                     "uma consulta tipada própria.",
+        "descricao": f"Uma linguagem de programação completa, em português, "
+                     f"com {_MODULOS} módulos de biblioteca, dois frameworks "
+                     f"web e uma consulta tipada própria.",
     },
     {
         "arquivo": "og-docs.png",
         "titulo": "Documentação do DataForge",
-        "descricao": "Mais de 190 páginas, 234 exercícios que verificam o "
-                     "próprio resultado, e cada trecho de código compilado "
-                     "a cada mudança.",
+        "descricao": f"Mais de {_PAGINAS} páginas, {_EXERCICIOS} exercícios "
+                     f"que verificam o próprio resultado, e cada trecho de "
+                     f"código compilado a cada mudança.",
     },
     {
         "arquivo": "og-lavra.png",

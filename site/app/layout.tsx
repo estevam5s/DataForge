@@ -169,7 +169,7 @@ const DADO_ESTRUTURADO = {
       '@id': 'https://dataforge-lang.vercel.app/docs#doc',
       headline: 'Documentação do DataForge',
       description:
-        'Mais de 190 páginas, 387 exercícios que verificam o próprio ' +
+        'Mais de 460 páginas, 387 exercícios que verificam o próprio ' +
         'resultado, e cada trecho de código compilado a cada mudança.',
       url: 'https://dataforge-lang.vercel.app/docs',
       image: 'https://dataforge-lang.vercel.app/og-docs.png',

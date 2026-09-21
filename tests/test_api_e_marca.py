@@ -2261,3 +2261,48 @@ def test_o_prologo_escrito_a_mao_nao_mora_no_arquivo_gerado():
     # um exemplo que sumiu da doc sem ninguém notar.
     for curto in ("regex", "math", "crypto", "io"):
         assert _prologo(curto), f"o prólogo de {curto} sumiu"
+
+
+def test_a_imagem_de_previa_nao_escreve_numero_a_mao():
+    """Ela dizia "40 módulos" quando já eram 75, e "234 exercícios"
+    quando já eram 387.
+
+    Uma imagem de prévia é o cartão que aparece quando alguém
+    compartilha o link, e um cartão que contradiz a página que ele
+    anuncia é pior que nenhum. E ela **não aparece em revisão**:
+    ninguém abre um PNG para conferir um número.
+    """
+    import re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonte = open(os.path.join(raiz, "tools", "gerar_og.py"),
+                 encoding="utf-8").read()
+
+    # As descrições ficam num bloco só; o que se proíbe ali é um número
+    # solto ao lado de "módulos", "exercícios" ou "páginas".
+    inicio = fonte.index("IMAGENS = [") if "IMAGENS = [" in fonte else 0
+    bloco = fonte[inicio:]
+    escritos = re.findall(
+        r'"[^"]*?\b(\d+)\s+(módulos|exercícios|páginas)', bloco)
+    assert not escritos, (
+        f"número escrito à mão na imagem de prévia: {escritos} — "
+        f"ele sai de '_contar()'")
+
+
+def test_a_imagem_de_previa_e_deterministica():
+    """Senão todo `--check` acusaria desatualização por ruído."""
+    import hashlib
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    alvo = os.path.join(raiz, "site", "public", "og.png")
+    if not os.path.isfile(alvo):
+        pytest.skip("a imagem não está neste checkout")
+
+    def resumo():
+        return hashlib.sha256(open(alvo, "rb").read()).hexdigest()
+
+    antes = resumo()
+    subprocess.run([sys.executable, os.path.join(raiz, "tools", "gerar_og.py")],
+                   capture_output=True, text=True, encoding="utf-8", cwd=raiz)
+    assert resumo() == antes, "gerar_og.py não é determinístico"
