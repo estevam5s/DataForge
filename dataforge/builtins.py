@@ -192,6 +192,15 @@ _STRINGIFY = [None]
 def set_stringifier(fn):
     _STRINGIFY[0] = fn
 
+
+#: O mesmo gancho, para '__repr__'. Ele devolve None quando o objeto
+#: nao declara um — e ai '_df_repr' decide sozinho.
+_REPR = [None]
+
+
+def set_repr(fn):
+    _REPR[0] = fn
+
 def _df_int(obj):
     """Converte para Integer. Texto que nao e numero levanta erro."""
     return int(obj)
@@ -231,6 +240,41 @@ def _df_join(separator, iterable):
 def _df_split(string, separator=" "):
     """Quebra o texto num separador. O padrao e o espaco."""
     return string.split(separator)
+
+def _df_repr(obj):
+    """O texto para quem DEPURA — o que se cola de volta no codigo.
+
+    `__repr__` estava na lista de magicos, na referencia e na doc de
+    OOP, e a linguagem nao tinha como pedi-lo: nao havia `repr`, e um
+    cluster de objetos imprime com `__str__`. Ele so era alcancado
+    como RESERVA, quando nao havia `__str__` — ou seja, exatamente
+    quando nao se queria a distincao.
+
+    A diferenca que ele existe para fazer: `str("oi")` e `oi`, e
+    `repr("oi")` e `"oi"`. Num log, a segunda forma mostra o espaco
+    que sobrou no fim do texto; a primeira o esconde.
+    """
+    magico = _REPR[0]
+    if magico is not None:
+        achado = magico(obj)
+        if achado is not None:
+            return achado
+    if obj is None:
+        return "void"
+    if isinstance(obj, bool):
+        return "yes" if obj else "no"
+    if isinstance(obj, str):
+        escapado = obj.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escapado}"'
+    if isinstance(obj, (list, tuple)):
+        dentro = ", ".join(_df_repr(x) for x in obj)
+        return f"({dentro})" if isinstance(obj, tuple) else f"[{dentro}]"
+    if isinstance(obj, dict):
+        dentro = ", ".join(f"{_df_repr(k)}: {_df_repr(v)}"
+                           for k, v in obj.items())
+        return "{" + dentro + "}"
+    return _df_str(obj)
+
 
 def _df_strip(string, chars=None):
     """Tira o branco (ou os caracteres dados) das duas pontas."""
@@ -1510,6 +1554,7 @@ def get_builtins() -> dict:
         "linhagem": BuiltinFunction("linhagem", _df_linhagem, 1),
         "e_um": BuiltinFunction("e_um", _df_e_um, 2),
         "str": BuiltinFunction("str", _df_str, 1),
+        "repr": BuiltinFunction("repr", _df_repr, 1),
         "int": BuiltinFunction("int", _df_int, 1),
         "float": BuiltinFunction("float", _df_float, 1),
         "bool": BuiltinFunction("bool", _df_bool, 1),

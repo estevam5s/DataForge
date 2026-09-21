@@ -67,6 +67,7 @@ class ArcaneRegex:
             "replace_all": cls._replace_all,
             "extract_numbers": cls._extract_numbers,
             "extract_words": cls._extract_words,
+            **_extras(),
             "extract_emails": cls._extract_emails,
             "extract_urls": cls._extract_urls,
             "remove_html": cls._remove_html,
@@ -88,11 +89,17 @@ class ArcaneRegex:
                 "matched": True,
                 "value": m.group(),
                 "groups": list(m.groups()),
+                # 'groups' continua vindo por POSICAO — havia codigo
+                # lendo dali. 'named' e o acrescimo: sem ele, escrever
+                # '(?P<ano>…)' era decoracao, porque o nome compilava e
+                # o resultado nao o carregava.
+                "named": dict(m.groupdict()),
                 "span": list(m.span()),
                 "start": m.start(),
                 "end": m.end(),
             }
-        return {"matched": False, "value": "", "groups": [], "span": []}
+        return {"matched": False, "value": "", "groups": [], "named": {},
+                "span": [], "start": -1, "end": -1}
 
     @staticmethod
     def _search(pattern, string, flags=0):
@@ -102,11 +109,17 @@ class ArcaneRegex:
                 "matched": True,
                 "value": m.group(),
                 "groups": list(m.groups()),
+                # 'groups' continua vindo por POSICAO — havia codigo
+                # lendo dali. 'named' e o acrescimo: sem ele, escrever
+                # '(?P<ano>…)' era decoracao, porque o nome compilava e
+                # o resultado nao o carregava.
+                "named": dict(m.groupdict()),
                 "span": list(m.span()),
                 "start": m.start(),
                 "end": m.end(),
             }
-        return {"matched": False, "value": "", "groups": [], "span": []}
+        return {"matched": False, "value": "", "groups": [], "named": {},
+                "span": [], "start": -1, "end": -1}
 
     @staticmethod
     def _findall(pattern, string, flags=0):
@@ -119,6 +132,7 @@ class ArcaneRegex:
             results.append({
                 "value": m.group(),
                 "groups": list(m.groups()),
+                "named": dict(m.groupdict()),
                 "span": list(m.span()),
                 "start": m.start(),
                 "end": m.end(),
@@ -127,16 +141,18 @@ class ArcaneRegex:
 
     @staticmethod
     def _sub(pattern, repl, string, count=0, flags=0):
-        return re.sub(pattern, repl, string, count, flags)
+        return re.sub(pattern, repl, string, count=count, flags=flags)
 
     @staticmethod
     def _subn(pattern, repl, string, count=0, flags=0):
-        result, n = re.subn(pattern, repl, string, count, flags)
+        result, n = re.subn(pattern, repl, string, count=count,
+                            flags=flags)
         return {"result": result, "count": n}
 
     @staticmethod
     def _split(pattern, string, maxsplit=0, flags=0):
-        return re.split(pattern, string, maxsplit, flags)
+        return re.split(pattern, string, maxsplit=maxsplit,
+                        flags=flags)
 
     @staticmethod
     def _test(pattern, string, flags=0):
@@ -155,16 +171,44 @@ class ArcaneRegex:
 
     @staticmethod
     def _compile(pattern, flags=0):
-        compiled = re.compile(pattern, flags)
-        return {
+        """O padrao preso a um objeto, com TODAS as operacoes.
+
+        Ele tinha cinco — `match`, `search`, `findall`, `sub`, `test` —
+        e era a superficie mais pobre do modulo, justamente na forma
+        que a doc recomenda para um padrao usado num laco. Quem
+        compilava perdia `finditer`, os grupos nomeados, `fullmatch`,
+        `split` e a contagem, e voltava a chamar a versao por texto —
+        que e o contrario do motivo de compilar.
+
+        A lista sai do modulo inteiro: uma segunda lista escrita a mao
+        divergiria dele no primeiro simbolo novo.
+        """
+        re.compile(pattern, flags)          # falha aqui, e nao no uso
+        inteiro = ArcaneRegex()
+        preso = {
             "__type__": "CompiledRegex",
             "pattern": pattern,
-            "match": lambda s: ArcaneRegex._match(pattern, s, flags),
-            "search": lambda s: ArcaneRegex._search(pattern, s, flags),
-            "findall": lambda s: re.findall(pattern, s, flags),
-            "sub": lambda repl, s: re.sub(pattern, repl, s, flags=flags),
-            "test": lambda s: bool(re.search(pattern, s, flags)),
+            "flags": flags,
         }
+        for nome in _COM_PADRAO_E_TEXTO:
+            operacao = inteiro.get(nome)
+            if operacao is None:
+                continue
+            preso[nome] = ArcaneRegex._prender(operacao, pattern, flags)
+        return preso
+
+    @staticmethod
+    def _prender(operacao, pattern, flags):
+        """Chama a operacao com o padrao na frente e a flag no fim."""
+        def presa(*args, **kwargs):
+            kwargs.setdefault("flags", flags)
+            try:
+                return operacao(pattern, *args, **kwargs)
+            except TypeError:
+                # Algumas nao aceitam 'flags' (replace_all, risk).
+                kwargs.pop("flags", None)
+                return operacao(pattern, *args, **kwargs)
+        return presa
 
     @staticmethod
     def _is_email(string):
@@ -235,3 +279,27 @@ class ArcaneRegex:
     @staticmethod
     def _word_count(string):
         return len(re.findall(r'\b\w+\b', string))
+
+
+#: As operacoes cujo PRIMEIRO argumento e o padrao. Sao essas que um
+#: objeto compilado pode oferecer — as que recebem so um texto
+#: (`is_email`, `clean_whitespace`) nao tem padrao a prender.
+_COM_PADRAO_E_TEXTO = (
+    "match", "search", "fullmatch", "findall", "finditer",
+    "named", "findnamed", "group_names",
+    "sub", "subn", "sub_with", "replace_map", "replace_all",
+    "split", "split_keep", "count", "test", "is_exactly", "extract",
+    "highlight", "positions", "explain", "risk", "safe_search",
+)
+
+
+def _extras():
+    """A segunda metade do modulo, em 'arcane_regex_extra.py'.
+
+    O import e aqui embaixo, e nao no topo: o arquivo de extras importa
+    'errors' para levantar com a classe certa, e 'errors' nasce do
+    catalogo — um import circular derrubaria a stdlib inteira na
+    partida.
+    """
+    from .arcane_regex_extra import EXTRAS
+    return EXTRAS

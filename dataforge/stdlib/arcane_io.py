@@ -17,6 +17,16 @@ class ArcaneIO:
             "read": cls._read,
             "write": cls._write,
             "append": cls._append,
+
+            # ── binario ──
+            # A linguagem sabia produzir bytes — 'Arcane.Bytes',
+            # 'Arcane.Estrutura', 'Arcane.Crypto' — e nao sabia
+            # GRAVA-LOS. 'write' abre em modo texto com UTF-8: passar
+            # bytes ali levanta, e passar o texto de um 'para_texto'
+            # corrompe o que nao for texto valido.
+            "read_bytes": cls._read_bytes,
+            "write_bytes": cls._write_bytes,
+            "append_bytes": cls._append_bytes,
             "exists": cls._exists,
             "delete": cls._delete,
             "mkdir": cls._mkdir,
@@ -64,6 +74,54 @@ class ArcaneIO:
     def _append(path, content):
         with open(path, "a", encoding="utf-8") as f:
             f.write(str(content))
+
+    @staticmethod
+    def _read_bytes(path):
+        """O arquivo inteiro, sem decodificar nada."""
+        with open(path, "rb") as f:
+            return f.read()
+
+    @staticmethod
+    def _write_bytes(path, content):
+        """Grava bytes. Aceita o que 'Arcane.Estrutura' e 'Bytes' dao.
+
+        Um `Bloco` nao e `bytes`, e obrigar quem chama a lembrar de
+        `.bytes()` e a forma mais rapida de gravar a representacao em
+        texto de um objeto no lugar do conteudo dele.
+        """
+        with open(path, "wb") as f:
+            return f.write(ArcaneIO._crus(content))
+
+    @staticmethod
+    def _append_bytes(path, content):
+        with open(path, "ab") as f:
+            return f.write(ArcaneIO._crus(content))
+
+    @staticmethod
+    def _crus(valor):
+        """Os bytes de um bloco, de uma janela, de um texto ou deles mesmos."""
+        if isinstance(valor, (bytes, bytearray, memoryview)):
+            return bytes(valor)
+        de_bloco = getattr(valor, "bytes", None)
+        if callable(de_bloco):
+            crus = de_bloco()
+            if isinstance(crus, (bytes, bytearray)):
+                return bytes(crus)
+        if isinstance(valor, str):
+            return valor.encode("utf-8")
+        if isinstance(valor, (list, tuple)):
+            # Um cluster de numeros e como um 'ponteiro.cluster()' volta.
+            try:
+                return bytes(int(b) & 0xFF for b in valor)
+            except (TypeError, ValueError):
+                pass
+        from ..errors import TypeError_
+        raise TypeError_(
+            "write_bytes precisa de bytes, de um Bloco ou de um texto.",
+            0, 0,
+            nota="veio um valor que nao tem como virar uma sequencia de "
+                 "bytes sem inventar uma codificacao",
+            doc="tecnicas/arquivos")
 
     @staticmethod
     def _exists(path):

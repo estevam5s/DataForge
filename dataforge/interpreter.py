@@ -19,7 +19,8 @@ from . import objetos
 from .colecoes_tipadas import (Tupla as _Tupla, partir as _partir_tipo,
                                tipar as _tipar_colecao)
 from .builtins import (BuiltinFunction, get_builtins,
-                       set_magic_dispatcher, set_stringifier)
+                       set_magic_dispatcher, set_stringifier,
+                       set_repr)
 from .caminhos import curto as _curto
 from .cauda import MARCA as _MARCA_CAUDA
 from . import tipos_nomeados as _TiposNomeados
@@ -2157,6 +2158,7 @@ class Interpreter:
 
         # str() and 'out' must format values identically.
         set_stringifier(self._to_str)
+        set_repr(self._repr_do_objeto)
         # Os embutidos precisam chamar metodo magico: 'len(obj)' honra
         # '__len__', 'int(obj)' honra '__int__'. Eles nao podem importar
         # o interpretador — seria ciclo — entao ele se registra aqui.
@@ -3650,6 +3652,22 @@ class Interpreter:
         elif isinstance(obj, (BuiltinFunction,)):
             return self._invocar(obj, args, kwargs, node, node.method)
         elif hasattr(obj, '__call__'):
+            # Um receptor que por acaso e chamavel NAO transforma
+            # 'obj.metodo()' em 'obj()'. Era o que acontecia: o ramo
+            # ignorava 'node.method' e invocava o proprio objeto.
+            #
+            # Aparece em qualquer objeto da biblioteca que defina
+            # '__call__' por conveniencia. Medido em 'Arcane.Estrutura':
+            # 'molde.mapa' devolvia a acao certa, e 'molde.mapa()'
+            # devolvia um Bloco — porque chamava o molde. Nao havia erro
+            # nenhum: o valor errado seguia adiante, e a queixa saia na
+            # linha de baixo, sobre outra coisa.
+            #
+            # O recuo continua: sem o membro, o objeto e chamado como
+            # antes, e nada que funcionava deixou de funcionar.
+            metodo = getattr(obj, node.method, None)
+            if callable(metodo):
+                return self._invocar(metodo, args, kwargs, node, node.method)
             return self._invocar(obj, args, kwargs, node, node.method)
 
         # Try getting a builtin method.
@@ -4755,6 +4773,16 @@ class Interpreter:
         # diferenca, e quase todo 'trigger' do repositorio levanta um
         # texto, onde os dois sao o mesmo.
         erro.valor = value
+        # E o NOME do tipo levantado vira o rotulo que 'handle' casa.
+        #
+        # '_error_matches' ja consultava 'tipo_usuario' — com a
+        # docstring explicando que serve a 'trigger MinhaFalha(...)' —
+        # e NADA no interpretador o escrevia. O ramo existia, estava
+        # documentado, e era inalcancavel: quem levantava um record de
+        # dominio (a forma que a trilha ensina) so podia captura-lo com
+        # 'handle Error' e um 'match' sobre 'e.value', embora o
+        # cabecalho do erro imprimisse o nome do record.
+        erro.tipo_usuario = self._nome_levantado(value)
         # O erro que estava sendo TRATADO vira a causa deste. Sem isso,
         # 'handle Error as e: trigger "nao deu para carregar"' apagava o
         # original — e embrulhar erro e a norma, nao a excecao.
@@ -4768,6 +4796,38 @@ class Interpreter:
                 em_tratamento.filename = self.filename
             erro.causa = em_tratamento
         raise erro
+
+    def _repr_do_objeto(self, valor):
+        """O '__repr__' declarado pelo objeto, ou None.
+
+        Devolver None e o que deixa o embutido decidir: sem isso, um
+        cluster de numeros passaria por aqui e voltaria como texto de
+        instancia.
+        """
+        if not isinstance(valor, DFInstance):
+            return None
+        acao = self._achar_magico(valor, "__repr__")
+        if not isinstance(acao, DFAction):
+            return None
+        return str(self._call_action(acao, [], {}, self._no_interno(), None,
+                                     instance=valor))
+
+    @staticmethod
+    def _nome_levantado(valor):
+        """O nome que 'handle' casa, quando o valor levantado tem um.
+
+        So record, instancia e membro de enum tem: um texto nao nomeia
+        nada, e devolver 'String' ali faria 'handle String' capturar
+        todo 'trigger "..."' do programa.
+        """
+        if isinstance(valor, DFRecordInstance):
+            return getattr(valor.record, "name", None)
+        if isinstance(valor, DFInstance):
+            return getattr(valor.blueprint, "name", None)
+        enum = getattr(valor, "enum", None)
+        if enum is not None:
+            return getattr(enum, "name", None)
+        return None
 
     def exec_DeleteStatement(self, node: ast.DeleteStatement, env):
         if isinstance(node.target, ast.Identifier):
@@ -4980,6 +5040,24 @@ class Interpreter:
             obj.statics[membro] = value
         elif isinstance(obj, dict):
             obj[membro] = value
+        elif type(obj).__setattr__ is not object.__setattr__:
+            # O objeto de fora DECLAROU o que fazer numa escrita, e e
+            # ele quem sabe dizer o porque. 'Cannot set a member on a
+            # Valor' e verdade e nao ajuda; o proprio objeto responde
+            # "e um objeto de valor: ele nao muda" e sugere o '.com()'.
+            #
+            # A porta e estreita de proposito: so passa quem define
+            # '__setattr__'. Um objeto que nao define continua no
+            # caminho de antes — a leitura ja era por protocolo, e esta
+            # e a metade que faltava.
+            try:
+                setattr(obj, membro, value)
+            except DataForgeError:
+                raise
+            except Exception as erro:                    # noqa: BLE001
+                raise RuntimeError_(
+                    self._traduzir_tipos(str(erro)),
+                    node.line, node.column, doc="oop")
         else:
             raise RuntimeError_(
                 f"Cannot set a member on {self._nome_do_tipo(obj)}.",

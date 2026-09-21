@@ -39,6 +39,9 @@ Familias:
     13xx  rede             HTTP, Kiln, socket
     14xx  testes           Crucible
     15xx  validacao        conversao, formato, contrato
+    16xx  dominio          DDD: valor, agregado, evento, regra
+    17xx  reativo          sinal, derivado, efeito, observavel
+    18xx  memoria estruturada  layout binario, ponteiro, janela
 
 ─── Como adicionar um erro ─────────────────────────────────
 
@@ -2626,6 +2629,255 @@ out decimal("0.1") + decimal("0.2")   // certo: exato
 out 0.1 + 0.2                          // 0.30000000000000004
 """,
        "Use 'decimal' para dinheiro, nao ponto flutuante."),
+    # ═══ 16xx — dominio ═══════════════════════════════════
+    #
+    # DDD e um conjunto de distincoes, e o valor delas esta em serem
+    # cobradas. Um agregado que levanta 'RuntimeError' e uma distincao
+    # que nao chega a quem escreve o 'handle': para o programa acima,
+    # violar uma invariante e dividir por zero viram a mesma coisa.
+
+    _e("DF1601", "DomainError", "RuntimeError_",
+       "Regra do dominio recusou a operacao", "dominio",
+       """
+A base da familia. 'handle DomainError' pega tudo que o modelo de
+dominio recusa — valor invalido, escrita fora de comando, unidade ja
+confirmada — sem listar os nove casos.
+""",
+       """
+monitor:
+    pedido.acrescentar("cafe", -1)
+handle DomainError as e:
+    out $"o dominio recusou: {e.message}"
+""",
+       "Capture o especifico quando precisar distinguir; a base quando nao."),
+
+    _e("DF1602", "ValueObjectError", "DomainError",
+       "Objeto de valor recusado ou alterado", "dominio/valores",
+       """
+Um objeto de valor e imutavel e nasce completo: dois valores iguais sao
+o MESMO valor, e mudar um deles mudaria o outro para quem os comparou.
+A regra dele e cobrada na criacao — o unico ponto em que ela pode
+impedir o valor errado de existir.
+""",
+       """
+dez := Dinheiro(10, "BRL")
+dez.quantia := 99        // erro: objeto de valor nao muda
+Dinheiro(-5, "BRL")      // erro: a regra recusou
+""",
+       "Crie outro com '.com(campo := valor)'; ou corrija o valor."),
+
+    _e("DF1603", "IdentityError", "DomainError",
+       "Falta identidade", "dominio/valores",
+       """
+Um repositorio guarda agregados e entidades, que tem id. Um objeto de
+VALOR nao tem — e nao tem porque dois iguais sao o mesmo.
+""",
+       """
+D.repositorio("Dinheiro").guardar(Dinheiro(10, "BRL"))   // erro
+""",
+       "Se voce precisa distinguir duas instancias iguais, e uma entidade."),
+
+    _e("DF1604", "AggregateError", "DomainError",
+       "Escrita fora de comando, ou invariante violada", "dominio/agregados",
+       """
+O agregado e a unica porta de escrita. Se qualquer um escreve, a
+invariante nao vale nada — nao ha onde cobra-la. E ela e conferida na
+SAIDA de cada comando: cobrar na entrada deixaria o objeto quebrado
+quando o comando falha no meio.
+
+Um comando recusado e desfeito por inteiro, e a versao nao avanca.
+""",
+       """
+pedido.mudar(total := -1)        // erro: so muda dentro de um comando
+pedido.descontar(999)            // erro: violou 'o total nunca e negativo'
+""",
+       "Declare o comando: mark @agregado.comando(\"nome\")."),
+
+    _e("DF1605", "EventError", "DomainError",
+       "Fato do passado alterado", "dominio/eventos",
+       """
+Um evento ja aconteceu. Muda-lo e reescrever a historia — quem ja
+reagiu a ele reagiu ao que estava escrito antes.
+""",
+       """
+e := D.evento("PedidoPago", {"valor": 120})
+e.valor := 0        // erro
+""",
+       "Publique um evento novo, que corrige o efeito do anterior."),
+
+    _e("DF1606", "SpecificationError", "DomainError",
+       "A regra de negocio estourou", "dominio/contextos",
+       """
+A condicao quebrou ao ser avaliada. Isso e um bug DELA, e nao um alvo
+que nao a satisfaz: devolver 'nao vale' recusaria o usuario por um
+defeito do codigo, calado.
+""",
+       """
+r := D.regra("maior", lambda p => p.idadee bigger_eq 18)   // typo
+r.vale(pessoa)      // erro: a regra 'maior' estourou
+""",
+       "Corrija a condicao; 'por_que_nao' so responde sobre regra sadia."),
+
+    _e("DF1607", "RepositoryError", "DomainError",
+       "O agregado pedido nao existe", "dominio/valores",
+       """
+'exigir' afirma que ele existe, e levanta quando nao acha. 'por_id'
+devolve void — as duas perguntas existem, e uma so obrigaria metade das
+chamadas a tratar um void que nunca acontece.
+""",
+       """
+pedidos.exigir("PED-404")     // erro
+pedidos.por_id("PED-404")     // void
+""",
+       "Use 'por_id' quando a ausencia for um desfecho normal."),
+
+    _e("DF1608", "UnitOfWorkError", "DomainError",
+       "A unidade de trabalho ja terminou", "dominio/eventos",
+       """
+Uma unidade confirmada ja publicou os eventos, e quem reagiu a eles nao
+tem como voltar atras. Uma desfeita descartou tudo.
+""",
+       """
+u.confirmar()
+u.desfazer()        // erro: nao da para desfazer o confirmado
+""",
+       "Abra outra com D.unidade(); para reverter, publique compensacao."),
+
+    _e("DF1609", "BoundedContextError", "DomainError",
+       "Falta a traducao para atravessar a fronteira", "dominio/contextos",
+       """
+O 'Cliente' de Vendas tem limite de credito; o de Suporte tem plano e
+chamados. Sem traducao, o modelo de fora entra inteiro — e o de dentro
+passa a ter campos que so existem porque o outro time os tem.
+""",
+       """
+suporte.receber("Vendas", "Cliente", cliente)   // erro
+""",
+       "suporte.traduzir_de(\"Vendas\", \"Cliente\", acao)"),
+
+    # ═══ 17xx — reativo ═══════════════════════════════════
+
+    _e("DF1701", "ReactiveError", "RuntimeError_",
+       "Falha num grafo reativo", "reativo",
+       """
+A base da familia: sinal, derivado, efeito e observavel.
+""",
+       """
+monitor:
+    total.ler()
+handle ReactiveError as e:
+    out e.message
+""",
+       "Capture o especifico quando precisar distinguir."),
+
+    _e("DF1702", "ReactiveCycleError", "ReactiveError",
+       "Um derivado depende de si mesmo", "reativo/sinais",
+       """
+A cadeia estouraria a pilha. A mensagem traz o caminho inteiro porque
+dizer so 'ha um ciclo' manda procurar em toda a formula — e o ciclo mais
+curto e o mais facil de quebrar.
+""",
+       """
+// erro: o derivado 'a' depende de si mesmo.
+//   nota: a cadeia: a -> b -> a
+""",
+       "Quebre o ciclo: um dos dois precisa ser um sinal."),
+
+    _e("DF1703", "ReactiveWriteError", "ReactiveError",
+       "Escrita durante o calculo de um derivado", "reativo/sinais",
+       """
+A formula de um derivado e lida para descobrir de QUE ela depende.
+Escrever de dentro dela faz a propagacao correr no meio da propria
+descoberta: o grafo muda enquanto esta sendo percorrido, e o resultado
+depende da ordem em que as dependencias foram visitadas.
+""",
+       """
+steady total := R.derivado(lambda => (contador.escrever(1) ?? 0))
+total.ler()    // erro
+""",
+       "Um derivado so LE. Para reagir a uma mudanca, use um efeito."),
+
+    _e("DF1704", "StreamClosedError", "ReactiveError",
+       "Emissao num fluxo ja encerrado", "reativo/observaveis",
+       """
+'encerrar' e definitivo: quem estava inscrito ja foi avisado do fim e
+cancelou a inscricao. Emitir depois disso entregaria um valor a ninguem,
+em silencio.
+""",
+       """
+cliques.encerrar()
+cliques.emitir(x)    // erro
+""",
+       "Abra outro observavel; um fluxo encerrado nao reabre."),
+
+    # ═══ 18xx — memoria estruturada ═══════════════════════
+
+    _e("DF1801", "LayoutError", "RuntimeError_",
+       "O layout binario nao fecha", "estruturas",
+       """
+A base da familia: estruturas de layout fixo, campos, ponteiros e
+janelas sobre bytes.
+""",
+       """
+monitor:
+    Cabecalho.ler(dados)
+handle LayoutError as e:
+    out e.message
+""",
+       "Capture o especifico quando precisar distinguir."),
+
+    _e("DF1802", "BufferOverflowError", "LayoutError",
+       "A leitura ou escrita passa do fim do bloco", "estruturas",
+       """
+Um registro de 16 bytes lido a partir do byte 10 de um bloco de 20
+leria 6 bytes que nao sao dele. Numa linguagem sem essa conferencia, o
+resultado e lixo com cara de dado — e o erro aparece tres camadas
+adiante, num campo que nao tem nada a ver.
+""",
+       """
+Registro.ler(bloco, offset := 10)   // erro: precisa de 16, ha 10
+""",
+       "Confira 'len(bloco) - offset' antes, ou leia menos campos."),
+
+    _e("DF1803", "AlignmentError", "LayoutError",
+       "Campo desalinhado para o tipo", "estruturas",
+       """
+Um inteiro de 4 bytes comeca num multiplo de 4; um de 8, num multiplo
+de 8. O desalinhamento nao e teoria: e o que faz o mesmo arquivo ser
+lido de um jeito aqui e de outro no C que o escreveu.
+""",
+       """
+E := Est.definir("Pacote", [["a", "u8"], ["b", "u32"]], empacotado := no)
+// 'b' comeca em 4, e nao em 1 — ha 3 bytes de enchimento
+""",
+       "Declare 'empacotado := yes' para o layout sem enchimento."),
+
+    _e("DF1804", "NullPointerError", "LayoutError",
+       "Ponteiro nulo desreferenciado", "estruturas",
+       """
+Diferente de 'NullReferenceError', que fala de um 'void' da linguagem:
+aqui o endereco existe e vale zero. Desreferencia-lo num ambiente sem
+protecao seria a falha de segmentacao classica.
+""",
+       """
+p := Est.nulo()
+p.ler()     // erro
+""",
+       "Confira 'p.e_nulo()' antes de ler."),
+
+    _e("DF1805", "DanglingPointerError", "LayoutError",
+       "Ponteiro para um bloco que ja foi liberado", "estruturas",
+       """
+O bloco morreu e o endereco continua na mao de alguem. E a classe de
+defeito que mais custa a achar, porque o programa segue rodando e le o
+que ocupou aquele espaco depois.
+""",
+       """
+b := Est.bloco(64)
+b.liberar()
+p.ler()     // erro: o bloco de 'p' foi liberado
+""",
+       "Use 'Arcane.Posse' quando o dono precisa ser um so."),
 ]
 
 
@@ -2643,6 +2895,7 @@ def familia(codigo):
         "05": "modulos", "06": "colecoes", "07": "do usuario",
         "08": "limites", "09": "objetos", "10": "concorrencia",
         "11": "sistema", "12": "dados", "13": "rede", "14": "testes",
-        "15": "validacao",
+        "15": "validacao", "16": "dominio", "17": "reativo",
+        "18": "memoria estruturada",
     }
     return FAMILIAS.get(codigo[2:4], "desconhecida")

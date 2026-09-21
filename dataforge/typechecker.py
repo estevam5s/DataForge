@@ -1452,6 +1452,34 @@ class TypeChecker:
             self.infer(node.value, escopo)
         return True
 
+    def _estreitar_por(self, condicao):
+        """O que a condicao prova sobre um nome, dentro do ramo dela.
+
+        Hoje ela prova uma coisa so, e e a que mais aparece:
+        `given x is not void:` garante que `x` nao e `Void` ali dentro.
+        Sem isso, o idioma mais comum de guarda contra nulo era acusado
+        na linha seguinte — `Cannot index a value of type Void` sobre um
+        codigo que roda —, e a saida de quem escreve seria desligar o
+        analisador ou parar de usar a guarda.
+
+        O tipo que entra e `UNKNOWN`, e nao o tipo real: o analisador
+        sabe que **nao e void**, e nao sabe o que e. Inventar um tipo
+        aqui seria acusar outra coisa mais adiante, com confianca.
+        """
+        import dataforge.ast_nodes as ast
+
+        if not isinstance(condicao, ast.ComparisonOp):
+            return {}
+        if condicao.op != "isnt":
+            return {}
+        # Aceita as duas ordens: `x is not void` e `void is not x`.
+        for um, outro in ((condicao.left, condicao.right),
+                          (condicao.right, condicao.left)):
+            if isinstance(um, ast.Identifier) and \
+                    isinstance(outro, ast.VoidLiteral):
+                return {um.name: UNKNOWN}
+        return {}
+
     def st_GivenBlock(self, node, escopo):
         """Os nomes de um ramo sobrevivem ao bloco; os TIPOS, nao.
 
@@ -1482,16 +1510,21 @@ class TypeChecker:
         """
         self.infer(node.condition, escopo)
         ramos = []
-        corpos = [node.body]
+        # Cada corpo leva junto o que a condicao dele PROVA sobre um
+        # nome — ver `_estreitar_por`.
+        corpos = [(node.body, self._estreitar_por(node.condition))]
         for cond, corpo in node.orif_blocks:
             self.infer(cond, escopo)
-            corpos.append(corpo)
+            corpos.append((corpo, self._estreitar_por(cond)))
         if node.otherwise_body:
-            corpos.append(node.otherwise_body)
+            corpos.append((node.otherwise_body, {}))
 
         novos = {}
-        for corpo in corpos:
+        for corpo, estreitados in corpos:
             filho = Scope(escopo)
+            for nome, tipo in estreitados.items():
+                if escopo.has(nome):
+                    filho.declare(nome, tipo, node.line, node.column)
             ramos.append(self.visit_block(corpo, filho))
             for nome, tipo in filho.names.items():
                 if nome in novos and novos[nome] != tipo:
@@ -3692,12 +3725,40 @@ class TypeChecker:
             return -dentro if no.op == '-' else dentro
         return None
 
+    #: O magico que responde por cada operador unario.
+    _MAGICO_UNARIO = {"-": "__neg__", "+": "__pos__", "~": "__invert__"}
+
     def ex_UnaryOp(self, node, escopo):
         tipo = self.infer(node.operand, escopo)
-        if tipo not in (UNKNOWN, ANY) and tipo not in NUMERIC:
-            self.error(f"Unary '{node.op}' does not apply to {tipo}", node,
-                       "Use it on a number", "operator-types")
+        if tipo in (UNKNOWN, ANY) or tipo in NUMERIC:
+            return tipo
+        # Um blueprint que declara '__neg__' aceita '-obj', e a
+        # execucao o honra. Acusar aqui e acusar codigo que roda — e um
+        # falso alarme sobre um recurso que a propria referencia
+        # documenta ensina a ignorar o analisador.
+        magico = self._MAGICO_UNARIO.get(node.op)
+        if magico and tipo in self.blueprints:
+            if magico in self._membros_com_heranca(tipo):
+                return tipo
+            # Um blueprint que herda de algo nao visto pode ganhar o
+            # magico por heranca: ali o analisador cala.
+            if self._linhagem_incompleta(tipo):
+                return tipo
+        self.error(f"Unary '{node.op}' does not apply to {tipo}", node,
+                   "Use it on a number", "operator-types")
         return tipo
+
+    def _linhagem_incompleta(self, nome, vistos=None):
+        """Ha um ancestral que este arquivo nao declara?"""
+        vistos = vistos or set()
+        if nome in vistos:
+            return False
+        vistos.add(nome)
+        for mae in self.maes.get(nome, ()):
+            if mae not in self.blueprints or self._linhagem_incompleta(
+                    mae, vistos):
+                return True
+        return False
 
     def ex_NotOp(self, node, escopo):
         self.infer(node.operand, escopo)

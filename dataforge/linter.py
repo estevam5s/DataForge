@@ -376,16 +376,26 @@ class Linter:
     def _checar_comentarios(self):
         """Marcadores TODO/FIXME. Nao confundir com a palavra 'todo'.
 
-        Em portugues, 'todo' e 'toda' abrem frases o tempo todo — "todo
-        cache e uma aposta". Um marcador de verdade e escrito em
-        MAIUSCULA, ou vem seguido de ':'. Exigir uma das duas coisas
-        elimina o falso positivo sem deixar passar marcador real.
+        Em portugues, 'todo' e 'toda' abrem frases o tempo todo — e
+        este repositorio escreve palavra em MAIUSCULA para enfatizar,
+        entao "um '__len__' mudaria a verdade de TODO objeto que
+        declara tamanho" virava uma pendencia. A maiuscula sozinha nao
+        basta: o marcador precisa do **dois-pontos**, que e como todo
+        mundo o escreve.
+
+        E ele nao pode estar DENTRO de um texto. O exercicio 317
+        demonstra um lint de brinquedo, e o codigo de exemplo dele —
+        uma string com `// TODO: arrumar isto` — era lido como
+        pendencia do proprio arquivo. Um lint que acusa o exemplo de
+        outro lint e um lint que se ignora.
         """
+        dentro_de_texto = self._linhas_de_texto()
         for numero, linha in enumerate(self.source.split("\n"), start=1):
+            if numero in dentro_de_texto:
+                continue
             achado = re.search(
-                r"(?://|#)\s*(TODO|FIXME|XXX|HACK)\b(:)?[ ]*(.*)", linha)
+                r"(?://|#)\s*(TODO|FIXME|XXX|HACK)\b(:)[ ]*(.*)", linha)
             if achado is None:
-                # tolera minuscula so quando ha ':' logo depois
                 achado = re.search(
                     r"(?://|#)\s*(todo|fixme|xxx|hack)(:)[ ]*(.*)",
                     linha, re.IGNORECASE)
@@ -395,6 +405,31 @@ class Linter:
                 node = type('_N', (), {'line': numero, 'column': achado.start() + 1})()
                 self.warn(f"{marca}: {resto}" if resto else f"{marca} comment", node,
                           "Track it in an issue, or resolve it", "todo-comment")
+
+    def _linhas_de_texto(self):
+        """As linhas cobertas por um literal de texto.
+
+        Sai do LEXER, e nao de uma contagem de aspas: um apostrofo
+        dentro de um comentario faria a contagem inverter e o resto do
+        arquivo sumir da conferencia. Um arquivo que nao tokeniza
+        devolve o conjunto vazio — este e um aviso, e nao pode ser o
+        motivo de o lint falhar.
+        """
+        try:
+            from .lexer import tokenize
+            from .tokens import TokenType
+            fichas = tokenize(self.source, self.filename)
+        except Exception:                                    # noqa: BLE001
+            return set()
+
+        cobertas = set()
+        for ficha in fichas:
+            if ficha.type not in (TokenType.STRING, TokenType.INTERP_STRING):
+                continue
+            quantas = str(getattr(ficha, "value", "") or "").count("\n")
+            for i in range(quantas + 1):
+                cobertas.add(ficha.line + i)
+        return cobertas
 
     # ── Utilidades ─────────────────────────────────────────
 
@@ -440,6 +475,14 @@ class Linter:
                              ast.DistillOperation)):
             if getattr(node, 'func_ref', None):
                 destino.add(node.func_ref)
+        if isinstance(node, ast.MarkDecorator):
+            # O nome de um decorador e TEXTO na arvore ('app.rota'), e
+            # nao um Identifier — entao ele nao era visto como leitura.
+            # O efeito era um falso alarme no padrao mais comum de quem
+            # registra rotas: 'action registra(app)' com um
+            # 'mark @app.rota(...)' dentro era acusado de nao usar
+            # 'app'. Um falso alarme ensina a ignorar o lint inteiro.
+            destino.add(str(node.name).split('.')[0])
         if isinstance(node, ast.MemberAccess) and isinstance(node.object, ast.Identifier):
             destino.add(node.object.name)
         # O alvo de uma atribuição simples não conta como leitura

@@ -70,6 +70,10 @@ from .arcane_rede import ArcaneRede
 from .lavra import ArcaneLavra
 from .vitrine import ArcaneVitrine
 from .arcane_malha import ArcaneMalha
+from .arcane_telegram import ArcaneTelegram
+from .arcane_reativo import ArcaneReativo
+from .arcane_dominio import ArcaneDominio
+from .arcane_estrutura import ArcaneEstrutura
 from .arcane_reflexo import ArcaneReflexo
 from .arcane_objetos import ArcaneObjetos
 from .arcane_injecao import ArcaneInjecao
@@ -241,6 +245,18 @@ _MODULES = {
     "Vitrine": ArcaneVitrine,
     "Painel": ArcaneVitrine,
 
+    # ── Telegram — bots ──
+    "Arcane.Telegram": ArcaneTelegram,
+
+    # ── Reativo — valores que avisam quando mudam ──
+    "Arcane.Reativo": ArcaneReativo,
+
+    # ── Dominio — as pecas de um modelo (DDD) ──
+    "Arcane.Dominio": ArcaneDominio,
+
+    # ── Estrutura — layout binario, janela e ponteiro ──
+    "Arcane.Estrutura": ArcaneEstrutura,
+
     # ── Malha — chamada entre servicos ──
     "Arcane.Malha": ArcaneMalha,
     "Arcane.Reflexo": ArcaneReflexo,
@@ -256,6 +272,17 @@ _MODULES = {
     "Memoria": ArcaneMemoria,
     "Malha": ArcaneMalha,
     "Mesh": ArcaneMalha,
+    "Telegram": ArcaneTelegram,
+    "Bot": ArcaneTelegram,
+    "Reativo": ArcaneReativo,
+    "Reactive": ArcaneReativo,
+    "Sinais": ArcaneReativo,
+    "Dominio": ArcaneDominio,
+    "Domain": ArcaneDominio,
+    "DDD": ArcaneDominio,
+    "Estrutura": ArcaneEstrutura,
+    "Struct": ArcaneEstrutura,
+    "Est": ArcaneEstrutura,
 
     "Arcane.Decimal": ArcaneDecimal,
     "Decimal": ArcaneDecimal,
