@@ -68,6 +68,9 @@ const CAMINHOS: Record<string, string> = {
   pessoa: 'M4 21v-2a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v2M12 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8z',
   sair: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   menu: 'M3 6h18M3 12h18M3 18h18',
+  voltar: 'M19 12H5M5 12l6-6M5 12l6 6',
+  escudo: 'M12 3l8 3v6c0 5-3.4 8.4-8 9.6C7.4 20.4 4 17 4 12V6z',
+  abrir: 'M15 3h6v6M21 3l-9 9M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
   balao: 'M21 12a8 8 0 0 1-8 8H8l-5 3 1.4-4.2A8 8 0 1 1 21 12z',
   chave: 'M15 7a4 4 0 1 1-3.9 5H8v3H5v3H2v-3l6.1-6.1A4 4 0 0 1 15 7z',
   enviar: 'M12 19V5M12 5l-6 6M12 5l6 6M4 21h16',
@@ -100,6 +103,11 @@ export function Casca({ children }: { children: React.ReactNode }) {
   const caminho = usePathname();
   const { usuario, perfil, admin, sair, demonstracao } = useAuth();
   const [menuAberto, setMenuAberto] = useState(false);
+
+  // Dentro da administração a barra troca inteira. O teste é por
+  // CAMINHO e não pelo papel: um admin no painel comum continua
+  // vendo o painel comum, que é o que ele pediu ao clicar.
+  const emAdmin = (caminho ?? '').startsWith('/painel/admin');
 
   // '/painel' casaria com tudo; a raiz precisa de igualdade exata.
   // '/painel/admin' idem, senão as subpáginas o deixariam sempre ativo.
@@ -161,26 +169,25 @@ export function Casca({ children }: { children: React.ReactNode }) {
               </div>
             )}
 
-            <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto">
-              {ROTAS_PAINEL.map((r) => (
-                <Link
-                  key={r.href}
-                  href={r.href}
-                  onClick={() => setMenuAberto(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2
-                              text-[14px] transition-colors ${
-                    atual(r.href)
-                      ? 'bg-accent/12 font-semibold text-accent'
-                      : 'text-body hover:bg-raised hover:text-strong'}`}
-                >
-                  <Icone nome={r.icone} />
-                  {r.titulo}
-                </Link>
-              ))}
+            {/* A ADMINISTRAÇÃO É UMA ÁREA PRÓPRIA, e não um apêndice.
 
-              {admin && (
+                Antes, as oito rotas de admin apareciam empilhadas
+                abaixo das quatorze do usuário, na mesma barra: vinte e
+                duas entradas, e a chance de clicar em "Usuários"
+                querendo "Trechos". Agora, dentro de `/painel/admin` a
+                barra troca INTEIRA — as rotas são as do admin, e há um
+                caminho explícito de volta.
+
+                Quem está no painel comum abre a administração numa
+                ABA NOVA (`target="_blank"`), com `rel="noopener"`: sem
+                ele a página aberta ganha `window.opener` e pode
+                redirecionar a aba de origem — o *tabnabbing* reverso,
+                que é exatamente a classe de falha que este projeto
+                documenta em /docs/seguranca. */}
+            <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto">
+              {emAdmin ? (
                 <>
-                  <p className="mt-5 px-3 pb-1 text-[10.5px] font-bold uppercase tracking-[1px] text-muted">
+                  <p className="mb-1 px-3 pb-1 text-[10.5px] font-bold uppercase tracking-[1px] text-accent">
                     Administração
                   </p>
                   {ROTAS_ADMIN.map((r) => (
@@ -198,6 +205,51 @@ export function Casca({ children }: { children: React.ReactNode }) {
                       {r.titulo}
                     </Link>
                   ))}
+
+                  <Link
+                    href="/painel"
+                    onClick={() => setMenuAberto(false)}
+                    className="mt-4 flex items-center gap-3 rounded-lg border
+                               border-line px-3 py-2 text-[14px] text-body
+                               transition-colors hover:bg-raised hover:text-strong"
+                  >
+                    <Icone nome="voltar" />
+                    Voltar ao painel
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {ROTAS_PAINEL.map((r) => (
+                    <Link
+                      key={r.href}
+                      href={r.href}
+                      onClick={() => setMenuAberto(false)}
+                      className={`flex items-center gap-3 rounded-lg px-3 py-2
+                                  text-[14px] transition-colors ${
+                        atual(r.href)
+                          ? 'bg-accent/12 font-semibold text-accent'
+                          : 'text-body hover:bg-raised hover:text-strong'}`}
+                    >
+                      <Icone nome={r.icone} />
+                      {r.titulo}
+                    </Link>
+                  ))}
+
+                  {admin && (
+                    <a
+                      href="/painel/admin"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-5 flex items-center gap-3 rounded-lg border
+                                 border-accent/30 bg-accent/8 px-3 py-2.5
+                                 text-[14px] font-semibold text-accent
+                                 transition-colors hover:bg-accent/15"
+                    >
+                      <Icone nome="escudo" />
+                      <span className="flex-1">Administração</span>
+                      <Icone nome="abrir" />
+                    </a>
+                  )}
                 </>
               )}
             </nav>
@@ -216,9 +268,34 @@ export function Casca({ children }: { children: React.ReactNode }) {
                   {usuario?.email}
                 </p>
               </div>
+              {/* Sair do painel não pode ser a única saída do painel.
+                  Sem estes dois, voltar ao site ou à documentação
+                  exigia editar a barra de endereço — ou clicar em
+                  "Sair", que encerra a sessão para navegar. */}
+              <Link
+                href="/"
+                onClick={() => setMenuAberto(false)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2
+                           text-[14px] text-muted transition-colors
+                           hover:bg-raised hover:text-strong"
+              >
+                <Icone nome="voltar" />
+                Voltar ao site
+              </Link>
+              <Link
+                href="/docs"
+                onClick={() => setMenuAberto(false)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2
+                           text-[14px] text-muted transition-colors
+                           hover:bg-raised hover:text-strong"
+              >
+                <Icone nome="livro" />
+                Documentação
+              </Link>
+
               <button
                 onClick={() => sair()}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2
+                className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2
                            text-[14px] text-muted transition-colors
                            hover:bg-raised hover:text-strong"
               >

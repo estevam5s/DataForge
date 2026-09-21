@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Logo } from '@/components/Logo';
 import { Turnstile, type ControleTurnstile } from '@/components/Turnstile';
 import { TURNSTILE_LIGADO } from '@/lib/turnstile';
@@ -17,7 +17,19 @@ const TITULOS: Record<Modo, { titulo: string; botao: string }> = {
 
 export function Entrar() {
   const { entrar, registrar, recuperar } = useAuth();
-  const [modo, setModo] = useState<Modo>('entrar');
+  // '/painel?criar=1' abre direto em "Criar conta". O cabeçalho
+  // oferece as duas portas, e levar as duas para o mesmo formulário
+  // em modo "entrar" faria a segunda mentir sobre o que faz.
+  //
+  // Lido de `window` e não de `useSearchParams`: o site é exportado
+  // estático, e `useSearchParams` obriga a envolver a página num
+  // `<Suspense>` — cerimônia para ler um parâmetro opcional.
+  const [modo, setModo] = useState<Modo>(() => {
+    if (typeof window === 'undefined') return 'entrar';
+    return new URLSearchParams(window.location.search).has('criar')
+      ? 'registrar'
+      : 'entrar';
+  });
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [nome, setNome] = useState('');
@@ -27,6 +39,23 @@ export function Entrar() {
   const [captcha, setCaptcha] = useState<string | null>(null);
   const [captchaFalhou, setCaptchaFalhou] = useState(false);
   const widget = useRef<ControleTurnstile>(null);
+
+  // O widget pode RENDERIZAR e nunca terminar: domínio ainda não
+  // liberado na chave, desafio interativo que não resolve, extensão
+  // de navegador atrapalhando. Nesses casos o `error-callback` não
+  // dispara — não há erro, há espera —, e sem um prazo o rótulo do
+  // botão fica em "Conclua a verificação" para sempre.
+  //
+  // Doze segundos: o desafio invisível resolve em menos de dois, e o
+  // interativo em poucos segundos depois do clique. Passar disso não
+  // é lentidão, é uma espera que não vai terminar.
+  useEffect(() => {
+    if (!TURNSTILE_LIGADO || captcha || captchaFalhou) return;
+    const prazo = setTimeout(() => {
+      setCaptchaFalhou(true);
+    }, 12000);
+    return () => clearTimeout(prazo);
+  }, [captcha, captchaFalhou, modo]);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +75,7 @@ export function Entrar() {
     // corrigir a senha.
     widget.current?.reiniciar();
     setCaptcha(null);
+    setCaptchaFalhou(false);
 
     setEnviando(false);
     if (resultado) {
@@ -128,9 +158,25 @@ export function Entrar() {
               }}
             />
 
+            {/* O BOTÃO NÃO MORRE POR CAUSA DO CAPTCHA — só por já
+                estar enviando.
+
+                A versão anterior o desabilitava enquanto não houvesse
+                token, e isso contradiz o que este mesmo arquivo diz
+                logo acima: quem recusa de verdade é o servidor do
+                Supabase. O efeito era uma porta trancada por acidente:
+                bastava o widget renderizar e não terminar — domínio
+                não liberado, rede corporativa, extensão — para o
+                formulário ficar em "Conclua a verificação" para
+                sempre, sem erro, sem explicação e sem saída.
+
+                Falhar ABERTO aqui não enfraquece nada: sem token, o
+                Supabase recusa e a mensagem é traduzida por
+                `traduzirFalhaDeCaptcha`. Um envio recusado com motivo
+                é sempre melhor que um botão que não responde. */}
             <button
               type="submit"
-              disabled={enviando || (TURNSTILE_LIGADO && !captcha && !captchaFalhou)}
+              disabled={enviando}
               className="w-full rounded-lg bg-accent px-4 py-2.5 text-[14.5px]
                          font-semibold text-white transition-opacity
                          hover:opacity-90 disabled:opacity-50"
@@ -138,7 +184,7 @@ export function Entrar() {
               {enviando
                 ? 'Aguarde…'
                 : TURNSTILE_LIGADO && !captcha && !captchaFalhou
-                  ? 'Conclua a verificação'
+                  ? `${botao} (verificando…)`
                   : botao}
             </button>
           </form>

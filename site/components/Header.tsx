@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useTemSessao } from '@/lib/supabase/sessao-leve';
 import { useEffect, useState } from 'react';
 import { Logo } from './Logo';
 import { Search } from './Search';
@@ -21,6 +23,19 @@ import { Redes } from './Redes';
  */
 export function Header() {
   const [menuAberto, setMenuAberto] = useState(false);
+  const temSessao = useTemSessao();
+
+  // Dentro da documentação, os atalhos de assunto SAEM do topo.
+  //
+  // "Começar", "Exercícios", "Kiln" e "Biblioteca" são quatro das 190
+  // rotas que a barra lateral já lista — e a barra lateral está ali,
+  // aberta, a dois centímetros. Repetir quatro delas no topo não
+  // ajuda a achar nada e gasta a largura que o campo de busca usa.
+  //
+  // Fora da documentação eles continuam: na home e na página de
+  // download não há barra lateral, e ali eles são a única porta.
+  const caminho = usePathname() ?? '';
+  const naDocumentacao = caminho.startsWith('/docs');
   const [rolou, setRolou] = useState(false);
 
   useEffect(() => {
@@ -76,18 +91,22 @@ export function Header() {
           </div>
 
           <nav className="ml-auto flex items-center gap-0.5">
-            <Link href="/docs/primeiros-passos" className="link-topo hidden lg:block">
-              Começar
-            </Link>
-            <Link href="/docs/exercicios" className="link-topo hidden lg:block">
-              Exercícios
-            </Link>
-            <Link href="/docs/kiln" className="link-topo hidden xl:block">
-              Kiln
-            </Link>
-            <Link href="/docs/biblioteca" className="link-topo hidden xl:block">
-              Biblioteca
-            </Link>
+            {!naDocumentacao && (
+              <>
+                <Link href="/docs/primeiros-passos" className="link-topo hidden lg:block">
+                  Começar
+                </Link>
+                <Link href="/docs/exercicios" className="link-topo hidden lg:block">
+                  Exercícios
+                </Link>
+                <Link href="/docs/kiln" className="link-topo hidden xl:block">
+                  Kiln
+                </Link>
+                <Link href="/docs/biblioteca" className="link-topo hidden xl:block">
+                  Biblioteca
+                </Link>
+              </>
+            )}
             <Link href="/download" className="link-topo hidden lg:block">
               Download
             </Link>
@@ -95,12 +114,36 @@ export function Header() {
               Roadmap
             </Link>
 
-            <Link
-              href="/painel"
-              className="ml-2 hidden rounded-xl bg-accent px-4 py-2 text-[13.5px] font-semibold text-white shadow-[0_4px_16px_-6px_rgb(var(--accent))] transition-all hover:bg-accent-soft hover:shadow-[0_6px_20px_-6px_rgb(var(--accent))] sm:block"
-            >
-              Painel
-            </Link>
+            {/* Quem já entrou vê o painel; quem não entrou vê as duas
+                portas. `temSessao` é `null` enquanto a resposta não
+                chega, e nesse intervalo NADA é desenhado: mostrar
+                "Entrar" e trocar por "Painel" um instante depois é o
+                pulo que faz a página parecer quebrada para quem já
+                está autenticado. */}
+            {temSessao === true && (
+              <Link
+                href="/painel"
+                className="ml-2 hidden rounded-xl bg-accent px-4 py-2 text-[13.5px] font-semibold text-white shadow-[0_4px_16px_-6px_rgb(var(--accent))] transition-all hover:bg-accent-soft hover:shadow-[0_6px_20px_-6px_rgb(var(--accent))] sm:block"
+              >
+                Painel
+              </Link>
+            )}
+            {temSessao === false && (
+              <span className="ml-2 hidden items-center gap-1.5 sm:flex">
+                <Link
+                  href="/painel"
+                  className="rounded-xl border border-line px-3 py-2 text-[13.5px] font-semibold text-strong transition-colors hover:bg-raised"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  href="/painel?criar=1"
+                  className="rounded-xl bg-accent px-3.5 py-2 text-[13.5px] font-semibold text-white shadow-[0_4px_16px_-6px_rgb(var(--accent))] transition-all hover:bg-accent-soft hover:shadow-[0_6px_20px_-6px_rgb(var(--accent))]"
+                >
+                  Criar conta
+                </Link>
+              </span>
+            )}
 
             <span className="mx-1.5 hidden h-5 w-px bg-line sm:block" aria-hidden="true" />
 
@@ -151,7 +194,14 @@ export function Header() {
                 {[
                   { href: '/roadmap', rotulo: 'Roadmap' },
                   { href: '/download', rotulo: 'Download' },
-                  { href: '/painel', rotulo: 'Painel' },
+                  ...(temSessao === false
+                    ? [
+                        { href: '/painel', rotulo: 'Entrar' },
+                        { href: '/painel?criar=1', rotulo: 'Criar conta' },
+                      ]
+                    : temSessao === true
+                      ? [{ href: '/painel', rotulo: 'Painel' }]
+                      : []),
                 ].map((l) => (
                   <Link
                     key={l.href}
