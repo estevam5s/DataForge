@@ -1,0 +1,116 @@
+// Exercicio 348 — interceptar a leitura e a escrita
+//
+// Enunciado: '__getattr__' responde pelo que NAO existe;
+// '__getattribute__' responde por TUDO — e e a diferenca entre um
+// objeto flexivel e uma recursao infinita.
+
+out "== 1. '__getattr__' so entra quando o campo nao existe =="
+
+blueprint Config:
+    action setup(dados):
+        self.dados := dados
+
+    action __getattr__(nome):
+        given nome in self.dados:
+            yield self.dados[nome]
+        yield $"<sem {nome}>"
+
+c := spawn Config({"host": "localhost", "porta": 8080})
+
+// 'dados' existe: nao passa pelo magico.
+assert len(keys(c.dados)) is 2
+// 'host' nao e campo: passa.
+assert c.host is "localhost"
+assert c.porta is 8080
+assert c.qualquer is "<sem qualquer>"
+out $"   {c.host}:{c.porta}"
+
+out ""
+out "== 2. e e isso que faz um vault virar objeto =="
+
+action de_vault(v):
+    yield spawn Config(v)
+
+api := de_vault({"url": "https://x", "chave": "abc"})
+assert api.url is "https://x"
+
+out ""
+out "== 3. '__setattr__' intercepta a escrita =="
+
+registro := []
+
+blueprint Auditada:
+    // O deposito e um campo DECLARADO, e nao criado no 'setup': um
+    // campo declarado com padrao mutavel ganha uma copia por
+    // instancia, e ja existe quando o magico roda. Cria-lo dentro do
+    // 'setup' faria a primeira escrita entrar no proprio
+    // '__setattr__' antes de haver onde guardar.
+    valores: Vault := {}
+
+    action __setattr__(nome, valor):
+        registro.append($"{nome} := {valor}")
+        // Escrita por INDICE nao passa pelo magico de membro: e o que
+        // permite guardar sem recursao.
+        self.valores[nome] := valor
+
+    action __getattr__(nome):
+        yield self.valores[nome] ?? void
+
+a := spawn Auditada()
+a.saldo := 100
+a.nome := "Ana"
+
+assert a.saldo is 100
+assert a.nome is "Ana"
+assert registro is ["saldo := 100", "nome := Ana"]
+out $"   {registro}"
+
+out ""
+out "== 4. a propriedade, para UM campo =="
+
+// Quando so um campo precisa de logica, uma propriedade e melhor que
+// interceptar tudo: ela diz na declaracao o que faz.
+blueprint Retangulo:
+    action setup(largura, altura):
+        self.largura := largura
+        self.altura := altura
+
+    get area():
+        yield self.largura * self.altura
+
+    get proporcao():
+        yield round(self.largura / self.altura, 2)
+
+r := spawn Retangulo(16, 9)
+assert r.area is 144
+assert r.proporcao is 1.78
+
+// Ela e SO leitura: escrever e recusado.
+recusou := no
+monitor:
+    r.area := 1
+handle Error as e:
+    recusou := yes
+    out $"   {e.message}"
+assert recusou
+
+out ""
+out "== 5. e a propriedade com escrita =="
+
+blueprint Celsius:
+    action setup(c):
+        self.c := c
+
+    get fahrenheit():
+        yield self.c * 9 / 5 + 32
+
+    set fahrenheit(f):
+        self.c := (f - 32) * 5 / 9
+
+t := spawn Celsius(100)
+assert t.fahrenheit is 212.0
+t.fahrenheit := 32
+assert t.c is 0.0
+out "   escrever em fahrenheit mudou o celsius"
+
+out "exercicio 348 ok"

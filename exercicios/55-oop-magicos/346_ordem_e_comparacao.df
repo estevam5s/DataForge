@@ -1,0 +1,97 @@
+// Exercicio 346 — ordenar objetos
+//
+// Enunciado: '__lt__' e o unico que 'sort' precisa. Os outros tres
+// existem para o codigo LER melhor — e declarar so '__lt__' faz
+// 'a bigger b' recusar, o que surpreende quem ja conseguiu ordenar.
+
+blueprint Versao:
+    action setup(maior, menor, correcao):
+        self.maior := maior
+        self.menor := menor
+        self.correcao := correcao
+
+    action __str__():
+        yield $"{self.maior}.{self.menor}.{self.correcao}"
+
+    action partes():
+        yield [self.maior, self.menor, self.correcao]
+
+    action __eq__(o):
+        yield self.partes() is o.partes()
+
+    action __lt__(o):
+        yield self.partes() smaller o.partes()
+
+    action __le__(o):
+        yield self.partes() smaller_eq o.partes()
+
+    action __gt__(o):
+        yield self.partes() bigger o.partes()
+
+    action __ge__(o):
+        yield self.partes() bigger_eq o.partes()
+
+    action __hash__():
+        yield hash(str(self))
+
+out "== 1. comparar =="
+
+steady UM := spawn Versao(1, 0, 0)
+steady DOIS := spawn Versao(1, 2, 0)
+steady TRES := spawn Versao(1, 2, 3)
+
+assert UM smaller DOIS
+assert DOIS smaller TRES
+assert TRES bigger UM
+assert UM smaller_eq UM
+assert UM is spawn Versao(1, 0, 0)
+
+out ""
+out "== 2. ordenar =="
+
+steady SOLTAS := [
+    spawn Versao(2, 0, 0),
+    spawn Versao(1, 10, 0),
+    spawn Versao(1, 2, 0),
+    spawn Versao(1, 2, 3)
+]
+
+em_ordem := sorted(SOLTAS)
+assert [str(v) cycle v in em_ordem] is ["1.2.0", "1.2.3", "1.10.0", "2.0.0"]
+out $"   {[str(v) cycle v in em_ordem]}"
+
+// E e ai que se ve por que a comparacao NAO pode ser por texto:
+// "1.10.0" vem antes de "1.2.0" em ordem alfabetica.
+por_texto := sorted([str(v) cycle v in SOLTAS])
+assert por_texto[0] is "1.10.0"
+out $"   por texto (errado): {por_texto}"
+
+out ""
+out "== 3. min, max e o maior de todos =="
+
+assert str(min(SOLTAS)) is "1.2.0"
+assert str(max(SOLTAS)) is "2.0.0"
+
+out ""
+out "== 4. e a ordem inversa =="
+
+assert [str(v) cycle v in sorted(SOLTAS, void, yes)][0] is "2.0.0"
+
+out ""
+out "== 5. um objeto sem '__lt__' nao ordena =="
+
+blueprint Sem:
+    action setup(n):
+        self.n := n
+
+recusou := no
+monitor:
+    sorted([spawn Sem(2), spawn Sem(1)])
+handle Error as e:
+    recusou := yes
+assert recusou
+
+// A saida sem declarar mágico nenhum: ordenar por uma CHAVE.
+assert [s.n cycle s in sorted([spawn Sem(2), spawn Sem(1)], lambda s => s.n)] is [1, 2]
+
+out "exercicio 346 ok"

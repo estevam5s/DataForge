@@ -656,9 +656,185 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 |---|-----------|---------|
 | 267 | [`267_decimal_e_exaustividade.df`](49-decimal-e-padroes/267_decimal_e_exaustividade.df) · [doc](49-decimal-e-padroes/267_decimal_e_exaustividade.md) | o centavo que fecha, e o caso que aparece antes de rodar |
 
+## 50 — Dominio
+
+*15 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 268 | [`268_valor_e_entidade.df`](50-dominio/268_valor_e_entidade.df) · [doc](50-dominio/268_valor_e_entidade.md) | o que separa um valor de uma entidade |
+| 269 | [`269_o_valor_recusa.df`](50-dominio/269_o_valor_recusa.df) · [doc](50-dominio/269_o_valor_recusa.md) | a regra cobrada na criacao |
+| 270 | [`270_agregado_porta_unica.df`](50-dominio/270_agregado_porta_unica.df) · [doc](50-dominio/270_agregado_porta_unica.md) | o agregado e a unica porta de escrita |
+| 271 | [`271_evento_e_unidade.df`](50-dominio/271_evento_e_unidade.df) · [doc](50-dominio/271_evento_e_unidade.md) | o fato espera a confirmacao |
+| 272 | [`272_regra_como_objeto.df`](50-dominio/272_regra_como_objeto.df) · [doc](50-dominio/272_regra_como_objeto.md) | a regra de negocio que se combina e se explica |
+| 273 | [`273_repositorio.df`](50-dominio/273_repositorio.df) · [doc](50-dominio/273_repositorio.md) | o repositorio guarda AGREGADOS INTEIROS |
+| 274 | [`274_contexto_delimitado.df`](50-dominio/274_contexto_delimitado.df) · [doc](50-dominio/274_contexto_delimitado.md) | a fronteira entre dois modelos |
+| 275 | [`275_invariante_que_estoura.df`](50-dominio/275_invariante_que_estoura.df) · [doc](50-dominio/275_invariante_que_estoura.md) | a invariante quebrada e um bug DELA |
+| 276 | [`276_comando_desfaz.df`](50-dominio/276_comando_desfaz.df) · [doc](50-dominio/276_comando_desfaz.md) | o comando que falha no meio nao deixa metade |
+| 277 | [`277_unidade_tudo_ou_nada.df`](50-dominio/277_unidade_tudo_ou_nada.df) · [doc](50-dominio/277_unidade_tudo_ou_nada.md) | a unidade confere TODOS antes de gravar QUALQUER |
+| 278 | [`278_agregado_e_id.df`](50-dominio/278_agregado_e_id.df) · [doc](50-dominio/278_agregado_e_id.md) | a identidade nasce com o objeto |
+| 279 | [`279_regra_composta.df`](50-dominio/279_regra_composta.df) · [doc](50-dominio/279_regra_composta.md) | regras que se combinam em arvore |
+| 280 | [`280_repositorio_de_fora.df`](50-dominio/280_repositorio_de_fora.df) · [doc](50-dominio/280_repositorio_de_fora.md) | o mesmo contrato sobre outro armazem |
+| 281 | [`281_ddd_ponta_a_ponta.df`](50-dominio/281_ddd_ponta_a_ponta.df) · [doc](50-dominio/281_ddd_ponta_a_ponta.md) | um caso de uso inteiro |
+| 282 | [`282_dominio_erros.df`](50-dominio/282_dominio_erros.df) · [doc](50-dominio/282_dominio_erros.md) | a familia de erros do dominio |
+
+## 51 — Reativo
+
+*15 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 283 | [`283_sinal_e_derivado.df`](51-reativo/283_sinal_e_derivado.df) · [doc](51-reativo/283_sinal_e_derivado.md) | um valor que outros valores acompanham |
+| 284 | [`284_dependencia_descoberta.df`](51-reativo/284_dependencia_descoberta.df) · [doc](51-reativo/284_dependencia_descoberta.md) | a dependencia e DESCOBERTA, nao declarada |
+| 285 | [`285_efeito_e_lote.df`](51-reativo/285_efeito_e_lote.df) · [doc](51-reativo/285_efeito_e_lote.md) | o efeito roda ao nascer, e o lote agrupa |
+| 286 | [`286_losango.df`](51-reativo/286_losango.df) · [doc](51-reativo/286_losango.md) | o valor que nunca existiu |
+| 287 | [`287_observavel.df`](51-reativo/287_observavel.df) · [doc](51-reativo/287_observavel.md) | sinal e valor; observavel e fluxo |
+| 288 | [`288_fonte_fria.df`](51-reativo/288_fonte_fria.df) · [doc](51-reativo/288_fonte_fria.md) | a fonte fria liga preguicoso |
+| 289 | [`289_esperar_e_limitar.df`](51-reativo/289_esperar_e_limitar.df) · [doc](51-reativo/289_esperar_e_limitar.md) | o tempo dentro do fluxo |
+| 290 | [`290_juntar_e_combinar.df`](51-reativo/290_juntar_e_combinar.df) · [doc](51-reativo/290_juntar_e_combinar.md) | dois fluxos num so, de duas formas |
+| 291 | [`291_erro_no_fluxo.df`](51-reativo/291_erro_no_fluxo.df) · [doc](51-reativo/291_erro_no_fluxo.md) | a falha ENCERRA o fluxo |
+| 292 | [`292_reativo_recusa.df`](51-reativo/292_reativo_recusa.df) · [doc](51-reativo/292_reativo_recusa.md) | o que o grafo reativo recusa |
+| 293 | [`293_reativo_carrinho.df`](51-reativo/293_reativo_carrinho.df) · [doc](51-reativo/293_reativo_carrinho.md) | um carrinho que se recalcula sozinho |
+| 294 | [`294_sinal_igualdade.df`](51-reativo/294_sinal_igualdade.df) · [doc](51-reativo/294_sinal_igualdade.md) | quando "mudou" nao e obvio |
+| 295 | [`295_reativo_e_quadro.df`](51-reativo/295_reativo_e_quadro.df) · [doc](51-reativo/295_reativo_e_quadro.md) | o reativo em cima de uma tabela |
+| 296 | [`296_intervalo.df`](51-reativo/296_intervalo.df) · [doc](51-reativo/296_intervalo.md) | o fluxo que bate sozinho |
+| 297 | [`297_reativo_vs_eventos.df`](51-reativo/297_reativo_vs_eventos.df) · [doc](51-reativo/297_reativo_vs_eventos.md) | quatro formas de lidar com mudanca |
+
+## 52 — Estruturas
+
+*15 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 298 | [`298_molde_e_ordem.df`](52-estruturas/298_molde_e_ordem.df) · [doc](52-estruturas/298_molde_e_ordem.md) | o layout que tem NOME |
+| 299 | [`299_alinhamento.df`](52-estruturas/299_alinhamento.df) · [doc](52-estruturas/299_alinhamento.md) | o enchimento que o C insere |
+| 300 | [`300_janela.df`](52-estruturas/300_janela.df) · [doc](52-estruturas/300_janela.md) | a janela nao COPIA |
+| 301 | [`301_ponteiro.df`](52-estruturas/301_ponteiro.df) · [doc](52-estruturas/301_ponteiro.md) | andar por ELEMENTO, e nao por byte |
+| 302 | [`302_bloco_e_pendurado.df`](52-estruturas/302_bloco_e_pendurado.df) · [doc](52-estruturas/302_bloco_e_pendurado.md) | o ponteiro que nao aponta para nada |
+| 303 | [`303_ler_um_formato.df`](52-estruturas/303_ler_um_formato.df) · [doc](52-estruturas/303_ler_um_formato.md) | ler um formato binario de verdade |
+| 304 | [`304_uniao_e_bits.df`](52-estruturas/304_uniao_e_bits.df) · [doc](52-estruturas/304_uniao_e_bits.md) | os mesmos bytes, dois nomes |
+| 305 | [`305_campos_multiplos.df`](52-estruturas/305_campos_multiplos.df) · [doc](52-estruturas/305_campos_multiplos.md) | um campo com varias posicoes |
+| 306 | [`306_estruturas_recusam.df`](52-estruturas/306_estruturas_recusam.df) · [doc](52-estruturas/306_estruturas_recusam.md) | as seis recusas do layout |
+| 307 | [`307_estrutura_e_rede.df`](52-estruturas/307_estrutura_e_rede.df) · [doc](52-estruturas/307_estrutura_e_rede.md) | um protocolo de linha, montado e lido |
+| 308 | [`308_bloco.df`](52-estruturas/308_bloco.df) · [doc](52-estruturas/308_bloco.md) | o bloco, e o que ele promete |
+| 309 | [`309_estrutura_e_arquivo.df`](52-estruturas/309_estrutura_e_arquivo.df) · [doc](52-estruturas/309_estrutura_e_arquivo.md) | gravar e reler do disco |
+| 310 | [`310_estrutura_vs_bytes.df`](52-estruturas/310_estrutura_vs_bytes.df) · [doc](52-estruturas/310_estrutura_vs_bytes.md) | quando usar cada um dos tres |
+| 311 | [`311_io_binario.df`](52-estruturas/311_io_binario.df) · [doc](52-estruturas/311_io_binario.md) | gravar bytes num arquivo |
+| 312 | [`312_estrutura_ponta_a_ponta.df`](52-estruturas/312_estrutura_ponta_a_ponta.df) · [doc](52-estruturas/312_estrutura_ponta_a_ponta.md) | um formato completo, do zero ao disco |
+
+## 53 — Regex avancado
+
+*15 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 313 | [`313_grupos_nomeados.df`](53-regex-avancado/313_grupos_nomeados.df) · [doc](53-regex-avancado/313_grupos_nomeados.md) | o grupo nomeado que nao chegava ao resultado |
+| 314 | [`314_ancorar.df`](53-regex-avancado/314_ancorar.df) · [doc](53-regex-avancado/314_ancorar.md) | 'match' ancora so no COMECO |
+| 315 | [`315_substituir_calculando.df`](53-regex-avancado/315_substituir_calculando.df) · [doc](53-regex-avancado/315_substituir_calculando.md) | a troca que CALCULA |
+| 316 | [`316_partir_e_recortar.df`](53-regex-avancado/316_partir_e_recortar.df) · [doc](53-regex-avancado/316_partir_e_recortar.md) | partir sem perder o separador |
+| 317 | [`317_ver_o_que_casou.df`](53-regex-avancado/317_ver_o_que_casou.df) · [doc](53-regex-avancado/317_ver_o_que_casou.md) | depurar um padrao |
+| 318 | [`318_explicar_um_padrao.df`](53-regex-avancado/318_explicar_um_padrao.df) · [doc](53-regex-avancado/318_explicar_um_padrao.md) | ler uma expressao regular |
+| 319 | [`319_o_padrao_que_trava.df`](53-regex-avancado/319_o_padrao_que_trava.df) · [doc](53-regex-avancado/319_o_padrao_que_trava.md) | o padrao que trava o processo |
+| 320 | [`320_validadores.df`](53-regex-avancado/320_validadores.df) · [doc](53-regex-avancado/320_validadores.md) | os validadores brasileiros, e o que eles NAO fazem |
+| 321 | [`321_regex_num_log.df`](53-regex-avancado/321_regex_num_log.df) · [doc](53-regex-avancado/321_regex_num_log.md) | um analisador de log completo |
+| 322 | [`322_flags.df`](53-regex-avancado/322_flags.df) · [doc](53-regex-avancado/322_flags.md) | as tres flags, e o que cada uma muda |
+| 323 | [`323_regex_e_desempenho.df`](53-regex-avancado/323_regex_e_desempenho.df) · [doc](53-regex-avancado/323_regex_e_desempenho.md) | compilar uma vez, usar muitas |
+| 324 | [`324_escapar.df`](53-regex-avancado/324_escapar.df) · [doc](53-regex-avancado/324_escapar.md) | o texto que vem de fora nao e um padrao |
+| 325 | [`325_regex_texto_estruturado.df`](53-regex-avancado/325_regex_texto_estruturado.df) · [doc](53-regex-avancado/325_regex_texto_estruturado.md) | ler um formato de texto sem escrever um parser |
+| 326 | [`326_regex_e_quadro.df`](53-regex-avancado/326_regex_e_quadro.df) · [doc](53-regex-avancado/326_regex_e_quadro.md) | extrair uma tabela de um texto |
+| 327 | [`327_regex_o_mapa.df`](53-regex-avancado/327_regex_o_mapa.df) · [doc](53-regex-avancado/327_regex_o_mapa.md) | o mapa do modulo, e o que ele nao faz |
+
+## 54 — Erros
+
+*15 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 328 | [`328_familias.df`](54-erros/328_familias.df) · [doc](54-erros/328_familias.md) | capturar por FAMILIA, e nao por nome |
+| 329 | [`329_o_erro_como_valor.df`](54-erros/329_o_erro_como_valor.df) · [doc](54-erros/329_o_erro_como_valor.md) | o que se lê de um erro capturado |
+| 330 | [`330_erro_do_usuario.df`](54-erros/330_erro_do_usuario.df) · [doc](54-erros/330_erro_do_usuario.md) | o erro que o programa inventa |
+| 331 | [`331_erros_de_colecao.df`](54-erros/331_erros_de_colecao.df) · [doc](54-erros/331_erros_de_colecao.md) | a familia das colecoes |
+| 332 | [`332_erros_de_conversao.df`](54-erros/332_erros_de_conversao.df) · [doc](54-erros/332_erros_de_conversao.md) | converter o que veio de fora |
+| 333 | [`333_defer_e_recurso.df`](54-erros/333_defer_e_recurso.df) · [doc](54-erros/333_defer_e_recurso.md) | fechar o que foi aberto |
+| 334 | [`334_retry_e_prazo.df`](54-erros/334_retry_e_prazo.df) · [doc](54-erros/334_retry_e_prazo.md) | insistir, e saber quando parar |
+| 335 | [`335_resultado_como_valor.df`](54-erros/335_resultado_como_valor.df) · [doc](54-erros/335_resultado_como_valor.md) | a falha como VALOR |
+| 336 | [`336_erros_de_tipo.df`](54-erros/336_erros_de_tipo.df) · [doc](54-erros/336_erros_de_tipo.md) | o valor que nao serve para a operacao |
+| 337 | [`337_erros_de_arquivo.df`](54-erros/337_erros_de_arquivo.df) · [doc](54-erros/337_erros_de_arquivo.md) | o sistema de arquivos falha de seis jeitos |
+| 338 | [`338_contrato_e_invariante.df`](54-erros/338_contrato_e_invariante.df) · [doc](54-erros/338_contrato_e_invariante.md) | o erro que aparece na FRONTEIRA |
+| 339 | [`339_erros_de_concorrencia.df`](54-erros/339_erros_de_concorrencia.df) · [doc](54-erros/339_erros_de_concorrencia.md) | o erro que acontece em OUTRA thread |
+| 340 | [`340_erro_que_atravessa.df`](54-erros/340_erro_que_atravessa.df) · [doc](54-erros/340_erro_que_atravessa.md) | o que 'monitor' NAO pega |
+| 341 | [`341_erros_no_teste.df`](54-erros/341_erros_no_teste.df) · [doc](54-erros/341_erros_no_teste.md) | afirmar que algo FALHA |
+| 342 | [`342_o_mapa_dos_erros.df`](54-erros/342_o_mapa_dos_erros.df) · [doc](54-erros/342_o_mapa_dos_erros.md) | as dezoito familias, e como escolher |
+
+## 55 — Oop magicos
+
+*15 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 343 | [`343_texto_e_igualdade.df`](55-oop-magicos/343_texto_e_igualdade.df) · [doc](55-oop-magicos/343_texto_e_igualdade.md) | como um objeto se mostra e se compara |
+| 344 | [`344_operadores.df`](55-oop-magicos/344_operadores.df) · [doc](55-oop-magicos/344_operadores.md) | o objeto que entra numa conta |
+| 345 | [`345_colecao_propria.df`](55-oop-magicos/345_colecao_propria.df) · [doc](55-oop-magicos/345_colecao_propria.md) | o objeto que se comporta como colecao |
+| 346 | [`346_ordem_e_comparacao.df`](55-oop-magicos/346_ordem_e_comparacao.df) · [doc](55-oop-magicos/346_ordem_e_comparacao.md) | ordenar objetos |
+| 347 | [`347_chamavel_e_contexto.df`](55-oop-magicos/347_chamavel_e_contexto.df) · [doc](55-oop-magicos/347_chamavel_e_contexto.md) | o objeto que se chama, e o que se abre |
+| 348 | [`348_acesso_interceptado.df`](55-oop-magicos/348_acesso_interceptado.df) · [doc](55-oop-magicos/348_acesso_interceptado.md) | interceptar a leitura e a escrita |
+| 349 | [`349_conversao_e_verdade.df`](55-oop-magicos/349_conversao_e_verdade.df) · [doc](55-oop-magicos/349_conversao_e_verdade.md) | quanto vale, e se e verdade |
+| 350 | [`350_iterador_proprio.df`](55-oop-magicos/350_iterador_proprio.df) · [doc](55-oop-magicos/350_iterador_proprio.md) | um iterador com estado |
+| 351 | [`351_copia_e_congelar.df`](55-oop-magicos/351_copia_e_congelar.df) · [doc](55-oop-magicos/351_copia_e_congelar.md) | copiar sem levar o que nao se quer |
+| 352 | [`352_record_vs_blueprint.df`](55-oop-magicos/352_record_vs_blueprint.df) · [doc](55-oop-magicos/352_record_vs_blueprint.md) | quando o record basta |
+| 353 | [`353_heranca_e_mro.df`](55-oop-magicos/353_heranca_e_mro.df) · [doc](55-oop-magicos/353_heranca_e_mro.md) | 'root' com tres niveis |
+| 354 | [`354_custo_zero.df`](55-oop-magicos/354_custo_zero.df) · [doc](55-oop-magicos/354_custo_zero.md) | o que nao se usa nao pode custar |
+| 355 | [`355_reflexao.df`](55-oop-magicos/355_reflexao.df) · [doc](55-oop-magicos/355_reflexao.md) | perguntar ao objeto o que ele tem |
+| 356 | [`356_sobrecarga_e_metaclasse.df`](55-oop-magicos/356_sobrecarga_e_metaclasse.df) · [doc](55-oop-magicos/356_sobrecarga_e_metaclasse.md) | despacho por forma, e a classe que nasce mudada |
+| 357 | [`357_o_mapa_dos_magicos.df`](55-oop-magicos/357_o_mapa_dos_magicos.df) · [doc](55-oop-magicos/357_o_mapa_dos_magicos.md) | o mapa, e os tres que NAO existem |
+
+## 56 — Telegram
+
+*15 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 358 | [`358_primeiro_bot.df`](56-telegram/358_primeiro_bot.df) · [doc](56-telegram/358_primeiro_bot.md) | um bot inteiro, testado sem token e sem rede |
+| 359 | [`359_teclados.df`](56-telegram/359_teclados.df) · [doc](56-telegram/359_teclados.md) | botoes, e o relogio que nao para |
+| 360 | [`360_conversa.df`](56-telegram/360_conversa.df) · [doc](56-telegram/360_conversa.md) | a conversa como maquina de estados |
+| 361 | [`361_escapar.df`](56-telegram/361_escapar.df) · [doc](56-telegram/361_escapar.md) | o caractere que derruba a mensagem inteira |
+| 362 | [`362_middleware_e_erro.df`](56-telegram/362_middleware_e_erro.df) · [doc](56-telegram/362_middleware_e_erro.md) | o que roda antes, o que roda depois, e quando cai |
+| 363 | [`363_publicar.df`](56-telegram/363_publicar.df) · [doc](56-telegram/363_publicar.md) | long polling, webhook e o que o 'doctor' pergunta |
+| 364 | [`364_bot_completo.df`](56-telegram/364_bot_completo.df) · [doc](56-telegram/364_bot_completo.md) | um bot de atendimento, ponta a ponta |
+| 365 | [`365_midia.df`](56-telegram/365_midia.df) · [doc](56-telegram/365_midia.md) | foto, documento e o que chega junto |
+| 366 | [`366_grupo_e_admin.df`](56-telegram/366_grupo_e_admin.df) · [doc](56-telegram/366_grupo_e_admin.md) | o mesmo bot, em conversa privada e em grupo |
+| 367 | [`367_inline.df`](56-telegram/367_inline.df) · [doc](56-telegram/367_inline.md) | o bot que responde sem estar no chat |
+| 368 | [`368_limite_de_taxa.df`](56-telegram/368_limite_de_taxa.df) · [doc](56-telegram/368_limite_de_taxa.md) | o 429 que vem no CORPO |
+| 369 | [`369_estado_persistente.df`](56-telegram/369_estado_persistente.df) · [doc](56-telegram/369_estado_persistente.md) | onde o estado do chat mora |
+| 370 | [`370_teste_do_bot.df`](56-telegram/370_teste_do_bot.df) · [doc](56-telegram/370_teste_do_bot.md) | o que a sonda prova, e o que ela NAO prova |
+| 371 | [`371_bot_com_banco.df`](56-telegram/371_bot_com_banco.df) · [doc](56-telegram/371_bot_com_banco.md) | o bot que guarda no banco |
+| 372 | [`372_o_mapa_do_bot.df`](56-telegram/372_o_mapa_do_bot.df) · [doc](56-telegram/372_o_mapa_do_bot.md) | o mapa, e as cinco decisoes |
+
+## 57 — Vitrine painel
+
+*15 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 373 | [`373_um_painel_em_dez_linhas.df`](57-vitrine-painel/373_um_painel_em_dez_linhas.df) · [doc](57-vitrine-painel/373_um_painel_em_dez_linhas.md) | o programa de cima para baixo que vira pagina |
+| 374 | [`374_layout.df`](57-vitrine-painel/374_layout.df) · [doc](57-vitrine-painel/374_layout.md) | a area de layout e um OBJETO |
+| 375 | [`375_graficos.df`](57-vitrine-painel/375_graficos.df) · [doc](57-vitrine-painel/375_graficos.md) | o grafico e SVG escrito no servidor |
+| 376 | [`376_grade_e_dados.df`](57-vitrine-painel/376_grade_e_dados.df) · [doc](57-vitrine-painel/376_grade_e_dados.md) | a grade ordena NO SERVIDOR |
+| 377 | [`377_cache.df`](57-vitrine-painel/377_cache.df) · [doc](57-vitrine-painel/377_cache.md) | o cache nao e opcional |
+| 378 | [`378_sessao_e_login.df`](57-vitrine-painel/378_sessao_e_login.df) · [doc](57-vitrine-painel/378_sessao_e_login.md) | quem esta vendo o painel |
+| 379 | [`379_paginas_e_navegacao.df`](57-vitrine-painel/379_paginas_e_navegacao.df) · [doc](57-vitrine-painel/379_paginas_e_navegacao.md) | mais de uma pagina |
+| 380 | [`380_formulario.df`](57-vitrine-painel/380_formulario.df) · [doc](57-vitrine-painel/380_formulario.md) | o formulario que so envia uma vez |
+| 381 | [`381_conteudo.df`](57-vitrine-painel/381_conteudo.df) · [doc](57-vitrine-painel/381_conteudo.md) | o que se escreve numa pagina |
+| 382 | [`382_entradas.df`](57-vitrine-painel/382_entradas.df) · [doc](57-vitrine-painel/382_entradas.md) | os campos, e o que 'mudou' responde |
+| 383 | [`383_tema_e_largura.df`](57-vitrine-painel/383_tema_e_largura.df) · [doc](57-vitrine-painel/383_tema_e_largura.md) | o layout diz ao grafico a largura em que ele vai aparecer |
+| 384 | [`384_fragmento.df`](57-vitrine-painel/384_fragmento.df) · [doc](57-vitrine-painel/384_fragmento.md) | redesenhar so um pedaco |
+| 385 | [`385_exportar.df`](57-vitrine-painel/385_exportar.df) · [doc](57-vitrine-painel/385_exportar.md) | tirar o dado de dentro do painel |
+| 386 | [`386_sessao_fora_do_processo.df`](57-vitrine-painel/386_sessao_fora_do_processo.df) · [doc](57-vitrine-painel/386_sessao_fora_do_processo.md) | onde a sessao mora |
+| 387 | [`387_o_mapa_da_vitrine.df`](57-vitrine-painel/387_o_mapa_da_vitrine.df) · [doc](57-vitrine-painel/387_o_mapa_da_vitrine.md) | o mapa, e as nove decisoes |
+
 ---
 
-**Total: 267 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 387 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

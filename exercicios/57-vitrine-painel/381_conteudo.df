@@ -1,0 +1,94 @@
+// Exercicio 381 — o que se escreve numa pagina
+//
+// Enunciado: 'V.escrever' e polimorfico — ele decide o componente
+// pelo TIPO do valor. E o que faz um painel exploratorio caber numa
+// linha por resultado, sem escolher o componente a cada passo.
+
+adopt Arcane.Vitrine as V
+
+action painel():
+    V.titulo("Conteudo", icone := "grafico")
+    V.subtitulo("tudo o que cabe numa pagina")
+
+    V.escrever("um texto simples")
+    V.escrever(42)
+    V.escrever([{"a":1, "b":2}, {"a":3, "b":4}])
+    V.escrever({"chave": "valor"})
+
+    V.markdown("**negrito** e `codigo`")
+    V.codigo("x := 1", "dataforge")
+    V.citacao("uma citacao", autor := "alguem")
+    V.formula("E = mc^2")
+
+    V.selo("novo", cor := "verde")
+    V.icone("conferir")
+    V.divisor()
+
+    V.informacao("uma informacao")
+    V.sucesso("deu certo")
+    V.aviso("cuidado")
+    V.erro("deu errado")
+
+out "== 1. 'escrever' escolhe o componente =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.quantos("texto") bigger_eq 2
+assert t.quantos("frame") is 1
+assert t.quantos("vault") is 1
+out "   texto, numero, cluster de vaults e vault — quatro componentes"
+
+out ""
+out "== 2. os quatro avisos sao UM componente, com nivel =="
+
+// 'informacao', 'sucesso', 'aviso' e 'erro' desenham o mesmo
+// 'alerta', mudando o nivel: quatro componentes separados dariam
+// quatro desenhos para manter em dia.
+assert t.quantos("alerta") is 4
+niveis := [a.props["nivel"] cycle a in t.arvore()["filhos"]
+    given a.tipo is "alerta"]
+assert niveis is ["info", "sucesso", "aviso", "erro"]
+out $"   {niveis}"
+
+out ""
+out "== 3. markdown e codigo =="
+
+assert t.quantos("markdown") is 1
+assert t.quantos("codigo") is 1
+assert "<strong>" in t.html() or "<b>" in t.html()
+
+out ""
+out "== 4. e o icone e SVG embutido =="
+
+// Sao dezenas de icones desenhados NO ARQUIVO: nenhuma fonte de
+// icone, nenhum arquivo a baixar, e funciona em rede fechada.
+assert t.quantos("icone") is 1
+assert "<svg" in t.html()
+assert len(V.icones()) bigger_eq 48
+out $"   {len(V.icones())} icones, zero requisicoes"
+
+// E um nome que nao existe e RECUSADO, com a lista: um icone que sai
+// vazio e um buraco na tela que ninguem percebe em revisao.
+action so_um_icone_errado():
+    V.icone("nao-existe")
+
+falhou := V.testar(so_um_icone_errado)
+assert falhou.falhou()
+assert "icone" in falhou.falhas()[0]
+out $"   {falhou.falhas()[0]}"
+
+out ""
+out "== 5. o que existe, em grupos =="
+
+steady GRUPOS := {
+    "texto": "titulo, subtitulo, texto, markdown, codigo, citacao, formula",
+    "aviso": "informacao, sucesso, aviso, erro, excecao, status",
+    "marca": "selo, icone, logo, divisor, espacador",
+    "midia": "imagem, video, audio, pdf, galeria, iframe",
+    "conversa": "chat, chat_mensagem, chat_entrada"
+}
+assert len(keys(GRUPOS)) is 5
+cycle g in keys(GRUPOS):
+    out $"   {g}: {GRUPOS[g]}"
+
+out "exercicio 381 ok"

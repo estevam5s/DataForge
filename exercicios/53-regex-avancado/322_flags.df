@@ -1,0 +1,70 @@
+// Exercicio 322 — as tres flags, e o que cada uma muda
+//
+// Enunciado: IGNORECASE, MULTILINE e DOTALL mudam o significado do
+// MESMO padrao. Escolher a errada nao da erro — da uma lista com
+// resultados a mais ou a menos, e ninguem confere.
+
+adopt Arcane.Regex as Regex
+
+steady TEXTO := """Primeira linha
+segunda LINHA
+terceira linha"""
+
+out "== 1. IGNORECASE =="
+
+assert len(Regex.findall("linha", TEXTO)) is 2
+assert len(Regex.findall("linha", TEXTO, Regex.IGNORECASE)) is 3
+
+out ""
+out "== 2. MULTILINE muda o que '^' e '$' querem dizer =="
+
+// Sem ela, '^' e o comeco do TEXTO; com ela, de cada LINHA.
+assert len(Regex.findall("^\\w+", TEXTO)) is 1
+assert len(Regex.findall("^\\w+", TEXTO, Regex.MULTILINE)) is 3
+
+primeiras := Regex.findall("^\\w+", TEXTO, Regex.MULTILINE)
+assert primeiras is ["Primeira", "segunda", "terceira"]
+
+out ""
+out "== 3. DOTALL faz o '.' atravessar a quebra =="
+
+assert Regex.search("Primeira.*terceira", TEXTO)["matched"] is no
+assert Regex.search("Primeira.*terceira", TEXTO, Regex.DOTALL)["matched"]
+
+out ""
+out "== 4. combinar duas =="
+
+steady AS_DUAS := Regex.MULTILINE + Regex.IGNORECASE
+
+// So com MULTILINE, a linha do meio fica de fora: ela diz "LINHA".
+assert len(Regex.findall("^\\w+ linha$", TEXTO, Regex.MULTILINE)) is 2
+// Com as duas, as tres entram.
+assert len(Regex.findall("^\\w+ linha$", TEXTO, AS_DUAS)) is 3
+out $"   so MULTILINE: 2 · com IGNORECASE: 3"
+
+out ""
+out "== 5. e o erro classico: '.*' com DOTALL num HTML =="
+
+steady HTML := """<div>
+  <p>um</p>
+  <p>dois</p>
+</div>"""
+
+// Guloso e com DOTALL: engole tudo.
+guloso := Regex.findall("<p>.*</p>", HTML, Regex.DOTALL)
+assert len(guloso) is 1
+
+// Preguicoso: dois.
+preguicoso := Regex.findall("<p>.*?</p>", HTML, Regex.DOTALL)
+assert len(preguicoso) is 2
+assert preguicoso[0] is "<p>um</p>"
+out "   o mesmo padrao, com e sem '?', da 1 ou 2"
+
+out ""
+out "== 6. a flag vale nas funcoes novas tambem =="
+
+assert Regex.is_exactly("[a-z]+", "ABC", Regex.IGNORECASE)
+assert Regex.named("(?P<p>^\\w+)", TEXTO, Regex.MULTILINE)["p"] is "Primeira"
+assert len(Regex.findnamed("(?P<p>^\\w+)", TEXTO, Regex.MULTILINE)) is 3
+
+out "exercicio 322 ok"

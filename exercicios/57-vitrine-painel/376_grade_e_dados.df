@@ -1,0 +1,77 @@
+// Exercicio 376 — a grade ordena NO SERVIDOR
+//
+// Enunciado: a diferenca entre 'V.grade' e 'V.frame' nao e de
+// tamanho: e de ONDE a decisao mora. A 'frame' ordena o que ja esta
+// na tela, e num conjunto de cem mil linhas isso e mentira.
+
+adopt Arcane.Vitrine as V
+
+steady VENDAS := [
+    {"vendedor": "Ana", "regiao": "sul", "valor": 1200.0},
+    {"vendedor": "Bia", "regiao": "sul", "valor": 800.0},
+    {"vendedor": "Caio", "regiao": "norte", "valor": 2400.0},
+    {"vendedor": "Dora", "regiao": "norte", "valor": 600.0},
+    {"vendedor": "Eva", "regiao": "sul", "valor": 3000.0},
+    {"vendedor": "Fabio", "regiao": "leste", "valor": 1500.0}
+]
+
+action painel():
+    V.titulo("Vendas")
+    V.grade(VENDAS, paginar := 3)
+    V.frame(VENDAS)
+    V.indicadores([
+            {"rotulo": "Total", "valor": "R$ 9.500"},
+            {"rotulo": "Media", "valor": "R$ 1.583"}
+        ])
+
+out "== 1. a grade e a frame convivem =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.quantos("grade") is 1
+assert t.quantos("frame") is 1
+
+out ""
+out "== 2. a paginacao vem LIGADA =="
+
+// Uma listagem sem teto e a forma mais comum de um painel travar.
+grade := t.primeiro("grade")
+assert grade.props["por_pagina"] is 3
+out $"   {grade.props['por_pagina']} linhas por pagina"
+
+out ""
+out "== 3. os indicadores =="
+
+assert t.quantos("indicadores") is 1
+
+out ""
+out "== 4. os formatos pt-BR =="
+
+assert V.moeda(1234.5) is "R$ 1.234,50"
+assert V.numero_br(1234567.89, 2) is "1.234.567,89"
+// O valor JA vem em porcentagem: 12.34 e "12,3%".
+assert V.percentual(12.34) is "12,3%"
+assert V.compacto(1234567) is "1,2 mi"
+out $"   {V.moeda(1234.5)} · {V.compacto(1234567)} · {V.percentual(12.34)}"
+
+out ""
+out "== 5. e a data =="
+
+assert V.data_br("2026-09-21") is "21/09/2026"
+
+out ""
+out "== 6. o que a grade sabe fazer =="
+
+steady NA_GRADE := [
+    "paginar (ligado por padrao)",
+    "ordenar por coluna",
+    "filtrar por texto",
+    "selecionar linhas",
+    "somar um total no rodape",
+    "pintar a celula por regra"
+]
+assert len(NA_GRADE) is 6
+cycle n in NA_GRADE:
+    out $"   - {n}"
+
+out "exercicio 376 ok"

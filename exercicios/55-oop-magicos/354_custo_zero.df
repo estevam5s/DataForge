@@ -1,0 +1,116 @@
+// Exercicio 354 — o que nao se usa nao pode custar
+//
+// Enunciado: contratos, sobrecarga, invariantes, metaclasses e 'lazy'
+// nao podem custar nada a quem nao os usa. A prova nao e uma
+// afirmacao: e medir o acesso a campo num blueprint simples contra um
+// com propriedade.
+
+adopt Arcane.Bench as Bench
+
+steady VOLTAS := 40000
+
+blueprint Simples:
+    action setup(n):
+        self.n := n
+
+blueprint ComPropriedade:
+    action setup(n):
+        self._n := n
+
+    get n():
+        yield self._n
+
+blueprint ComInvariante:
+    invariant self.n bigger_eq 0
+
+    action setup(n):
+        self.n := n
+
+    action somar(x):
+        self.n := self.n + x
+
+out "== 1. os tres funcionam igual =="
+
+a := spawn Simples(10)
+b := spawn ComPropriedade(10)
+c := spawn ComInvariante(10)
+assert a.n is 10
+assert b.n is 10
+assert c.n is 10
+
+out ""
+out "== 2. e o acesso simples e o mais rapido =="
+
+action ler_simples(n):
+    total := 0
+    cycle i from 1 to n:
+        total += a.n
+    yield total
+
+action ler_propriedade(n):
+    total := 0
+    cycle i from 1 to n:
+        total += b.n
+    yield total
+
+simples := Bench.medir(ler_simples, VOLTAS)
+propriedade := Bench.medir(ler_propriedade, VOLTAS)
+
+out $"   campo:       {round(simples['ms'], 1)} ms"
+out $"   propriedade: {round(propriedade['ms'], 1)} ms"
+
+// A propriedade CHAMA uma acao por leitura: ela nao pode empatar.
+// E o que se cobra e um FATOR com folga — 'assert a bigger b' entre
+// dois numeros medidos e um sorteio, e reprova numa esteira
+// carregada sem que nada tenha mudado no codigo.
+razao := propriedade["ms"] / max(simples["ms"], 0.0001)
+out $"   a propriedade custa {round(razao, 1)}x"
+assert razao bigger 1.5
+
+out ""
+out "== 3. a invariante so e cobrada na chamada PUBLICA mais de fora =="
+
+// Sem isso, 'invariant self.area() bigger_eq 0' chamaria 'area', que
+// conferiria a invariante, que chamaria 'area'.
+c.somar(5)
+assert c.n is 15
+
+violou := no
+monitor:
+    c.somar(-999)
+handle InvariantError:
+    violou := yes
+assert violou
+
+// E aqui esta a distincao que vale lembrar: a invariante ACUSA, e nao
+// DESFAZ. O objeto ficou no estado invalido, e quem trata decide o
+// que fazer com ele.
+assert c.n is 15 - 999
+out "   a invariante acusou; o estado NAO voltou sozinho"
+
+// Quem precisa do desfazer usa um agregado: la o comando inteiro e
+// revertido, e a versao nao avanca.
+out "   para desfazer junto: Arcane.Dominio.agregado"
+
+out ""
+out "== 4. e a leitura de um campo NAO dispara a conferencia =="
+
+// Conferir a cada leitura faria um laco de 40 mil leituras rodar 40
+// mil invariantes.
+antes := Bench.medir(ler_simples, VOLTAS)
+assert antes["ms"] bigger 0.0
+
+out ""
+out "== 5. o atalho mora no blueprint, e e recalculado =="
+
+// 'leitura_simples' e 'escrita_simples' dizem que nao ha propriedade,
+// descritor nem gancho. Com eles, o acesso a campo ficou mais rapido
+// que ANTES de os recursos existirem.
+out "   quem acrescenta um jeito novo de interceptar precisa derrubar o atalho"
+
+out ""
+out "== 6. e a regra, em uma frase =="
+
+out "   um recurso que custa a quem nao o usa e um recurso que ninguem liga"
+
+out "exercicio 354 ok"

@@ -1,0 +1,84 @@
+// Exercicio 291 — a falha ENCERRA o fluxo
+//
+// Enunciado: num fluxo, um erro nao pode derrubar o programa — quem
+// escuta esta num retorno de chamada, longe de qualquer 'monitor'.
+// 'falhar' avisa quem se inscreveu E encerra: um fluxo que continuasse
+// depois de falhar deixaria quem escuta sem saber se o proximo valor
+// veio de uma fonte que ainda funciona.
+
+adopt Arcane.Reativo as R
+
+out "== 1. quem se inscreve pode receber o erro =="
+
+leituras := R.observavel("leituras")
+valores := []
+falhas := []
+fins := []
+
+leituras.inscrever(lambda v => valores.append(v),
+    lambda e => falhas.append(str(e)),
+    lambda => fins.append(yes))
+
+leituras.emitir(10)
+leituras.falhar("o sensor nao respondeu")
+
+assert valores is [10]
+assert len(falhas) is 1
+assert "sensor" in falhas[0]
+
+out ""
+out "== 2. e a falha ENCERRA o fluxo =="
+
+// O aviso de fim sai junto: quem escuta sabe que nao vem mais nada.
+assert fins is [yes]
+
+acabou := no
+monitor:
+    leituras.emitir(20)
+handle StreamClosedError:
+    acabou := yes
+assert acabou
+out "   depois da falha, nao ha proximo valor"
+
+out ""
+out "== 3. ao_falhar transforma o erro em VALOR =="
+
+sensor := R.observavel("sensor")
+lidos := []
+sensor.ao_falhar(lambda _e => -1).inscrever(lambda v => lidos.append(v))
+
+sensor.emitir(21)
+sensor.falhar("cabo solto")
+assert lidos is [21, -1]
+out $"   {lidos}"
+
+// O fluxo continua encerrado: 'ao_falhar' traduz a falha, e nao a
+// desfaz.
+ainda := no
+monitor:
+    sensor.emitir(22)
+handle StreamClosedError:
+    ainda := yes
+assert ainda
+
+out ""
+out "== 4. o fim sem erro tambem e avisado =="
+
+fila := R.observavel("fila")
+fim := []
+fila.inscrever(lambda _v => void, void, lambda => fim.append(yes))
+
+assert fim is []
+assert fila.encerrar() is yes
+assert fim is [yes]
+assert fila.encerrar() is no  // encerrar de novo nao avisa de novo
+
+out ""
+out "== 5. um SINAL nao tem erro =="
+
+// Ele tem um valor agora; "o saldo falhou" nao e um estado de saldo.
+// Quem precisa disso guarda um Arcane.Resultado dentro do sinal.
+saldo := R.sinal(100)
+assert saldo.ler() is 100
+
+out "exercicio 291 ok"

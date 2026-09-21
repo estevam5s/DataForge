@@ -1,0 +1,71 @@
+// Exercicio 317 — depurar um padrao
+//
+// Enunciado: um padrao que devolve a lista errada quase sempre casa
+// num lugar que nao se esperava — e uma lista de resultados nao diz
+// ONDE. 'highlight' marca, 'positions' aponta linha e coluna.
+
+adopt Arcane.Regex as Regex
+
+out "== 1. marcar os casamentos =="
+
+assert Regex.highlight("\\d+", "a1 b22 c333") is "a[1] b[22] c[333]"
+assert Regex.highlight("\\d+", "a1", before := "<<", after := ">>") is "a<<1>>"
+
+out ""
+out "== 2. e e assim que se ve o padrao ganancioso =="
+
+steady HTML := "<b>um</b> e <b>dois</b>"
+
+// '.*' come tudo ate o ULTIMO fecho.
+guloso := Regex.highlight("<b>.*</b>", HTML)
+assert guloso is "[<b>um</b> e <b>dois</b>]"
+
+// '.*?' para no primeiro.
+preguicoso := Regex.highlight("<b>.*?</b>", HTML)
+assert preguicoso is "[<b>um</b>] e [<b>dois</b>]"
+
+out $"   guloso:     {guloso}"
+out $"   preguicoso: {preguicoso}"
+
+out ""
+out "== 3. linha e coluna, e nao deslocamento em bytes =="
+
+// Quem le um erro procura linha e coluna; um 'span' nao serve para
+// apontar num arquivo.
+steady FONTE := """action somar(a, b):
+    yield a + b
+
+action dobrar(x):
+    yield x * 2"""
+
+acoes := Regex.positions("action (\\w+)", FONTE)
+assert len(acoes) is 2
+assert acoes[0]["linha"] is 1
+assert acoes[0]["coluna"] is 1
+assert acoes[1]["linha"] is 4
+assert acoes[1]["value"] is "action dobrar"
+
+cycle a in acoes:
+    out $"   {a['linha']}:{a['coluna']}  {a['value']}"
+
+out ""
+out "== 4. a coluna comeca em UM =="
+
+achado := Regex.positions("x", "  x")
+assert achado[0]["coluna"] is 3
+assert achado[0]["start"] is 2
+
+out ""
+out "== 5. um lint de brinquedo =="
+
+steady CODIGO := """x := 1
+// TODO: arrumar isto
+y := 2
+// TODO: e isto tambem"""
+
+pendencias := Regex.positions("TODO:.*", CODIGO)
+assert len(pendencias) is 2
+cycle p in pendencias:
+    out $"   linha {p['linha']}: {p['value']}"
+
+out "exercicio 317 ok"

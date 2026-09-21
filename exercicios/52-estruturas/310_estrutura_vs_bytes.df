@@ -1,0 +1,68 @@
+// Exercicio 310 — quando usar cada um dos tres
+//
+// Enunciado: 'Arcane.Bytes' empacota por formato, 'Arcane.Estrutura'
+// por nome, e 'Arcane.C' fala com biblioteca nativa. Escolher o errado
+// nao da erro — da codigo que ninguem consegue ler depois.
+
+adopt Arcane.Estrutura as Est
+adopt Arcane.Bytes as By
+
+out "== 1. o mesmo dado, pelos dois caminhos =="
+
+steady FORMATO := ">u32 u16 u16"
+steady Molde := Est.definir("Cabecalho", [
+        ["magia", "u32"], ["versao", "u16"], ["registros", "u16"]
+    ], ordem := "rede")
+
+por_formato := By.empacotar(FORMATO, [1145128264, 2, 7])
+por_nome := Molde.empacotar({"magia": 1145128264, "versao": 2,
+        "registros": 7})
+
+assert por_formato is por_nome.bytes()
+out "   os mesmos oito bytes"
+
+out ""
+out "== 2. a diferenca esta na LEITURA =="
+
+lista := By.desempacotar(FORMATO, por_formato)
+assert lista[1] is 2  // 'lista[1]' nao diz o que e
+
+vault := Molde.ler(por_nome)
+assert vault["versao"] is 2  // este diz
+
+out ""
+out "== 3. o formato nao conhece alinhamento =="
+
+// 'u8 u32' empacotado tem 5 bytes nos dois. Mas o C escreve 8, e e o
+// molde alinhado que reproduz isso.
+assert len(By.empacotar(">u8 u32", [1, 2])) is 5
+assert Est.definir("P", [["a", "u8"], ["b", "u32"]],
+    empacotado := yes).tamanho is 5
+assert Est.definir("P", [["a", "u8"], ["b", "u32"]]).tamanho is 8
+
+out ""
+out "== 4. e o formato nao sabe o proprio tamanho por nome =="
+
+assert Molde.deslocamento("registros") is 6
+// Pelo formato, isso e uma conta a mao — e uma conta a mao envelhece
+// quando alguem acrescenta um campo no meio.
+
+out ""
+out "== 5. o cursor do Arcane.Bytes continua util =="
+
+// Ler campos em SEQUENCIA, sem posicao fixa, e o que o cursor faz
+// melhor.
+cursor := By.ler(por_formato, ">")
+assert cursor.ler("u32") is 1145128264
+assert cursor.ler("u16") is 2
+assert cursor.ler("u16") is 7
+assert cursor.acabou
+
+out ""
+out "== 6. a regra, em uma frase =="
+
+out "   formato: um punhado de campos, lidos em sequencia"
+out "   molde:   um registro com nome, que se repete num arquivo"
+out "   FFI:     quando o layout e de OUTRO programa, em C"
+
+out "exercicio 310 ok"

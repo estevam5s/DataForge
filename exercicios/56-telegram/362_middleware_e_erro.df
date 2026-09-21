@@ -1,0 +1,106 @@
+// Exercicio 362 — o que roda antes, o que roda depois, e quando cai
+//
+// Enunciado: um bot sem tratador de erro morre calado no primeiro
+// dado inesperado — e quem esta do outro lado ve a mensagem sumir no
+// vazio. O middleware e onde entram autenticacao, limite de taxa e
+// registro, sem repetir em cada tratador.
+
+adopt Arcane.Telegram as Tg
+
+registro := []
+
+action montar():
+    app := Tg.app("123456:AAHexemplo")
+
+    mark @app.antes_de_cada()
+    action anotar(ctx):
+        registro.append($"antes:{ctx.tipo}")
+
+    mark @app.depois_de_cada()
+    action fechar(_ctx):
+        registro.append("depois")
+
+    mark @app.ao_falhar()
+    action quando_cai(ctx, erro):
+        // O erro chega como OBJETO: 'message' e 'codigo' estao la, e
+        // e o codigo que diz a familia sem depender do texto.
+        registro.append($"caiu:{erro.codigo}")
+        ctx.responder("Deu errado aqui. Ja avisamos.")
+
+    mark @app.comando("ok")
+    action ok(ctx):
+        ctx.responder("tudo certo")
+
+    mark @app.comando("quebrar")
+    action quebrar(_ctx):
+        _x := 1 / 0  // df: permitir division-by-zero
+
+    yield app
+
+out "== 1. antes e depois de cada =="
+
+t := Tg.testar(montar())
+t.comando("ok")
+assert t.ultima() is "tudo certo"
+assert registro[0] is "antes:mensagem"
+assert registro[-1] is "depois"
+out $"   {registro}"
+
+out ""
+out "== 2. o erro NAO derruba o bot =="
+
+registro := []
+t.comando("quebrar")
+assert "Deu errado" in t.ultima()
+assert "caiu:DF0202" in registro
+out $"   {registro}"
+
+out ""
+out "== 3. e o bot continua atendendo =="
+
+t.comando("ok")
+assert t.ultima() is "tudo certo"
+
+out ""
+out "== 4. sem o tratador, a mensagem some no vazio =="
+
+sem := Tg.app("123456:AAHexemplo")
+
+mark @sem.comando("quebrar")
+action quebra_sem_rede(_ctx):
+    trigger "sem rede de seguranca"
+
+s := Tg.testar(sem)
+s.comando("quebrar")
+// A sonda registra a falha, e o usuario nao recebeu nada.
+assert len(s.falhas()) is 1
+assert s.quantas("sendMessage") is 0
+out "   o usuario ficou sem resposta nenhuma"
+
+out ""
+out "== 5. o middleware e onde mora o que e de TODOS =="
+
+bloqueados := ["999"]
+negados := []
+
+vigiado := Tg.app("123456:AAHexemplo")
+
+mark @vigiado.antes_de_cada()
+action portaria(ctx):
+    given str(ctx.chat) in bloqueados:
+        negados.append(ctx.chat)
+        ctx.responder("Acesso negado.")
+        // Devolver 'no' PARA o despacho.
+        yield no
+    yield yes
+
+mark @vigiado.comando("segredo")
+action segredo(ctx):
+    ctx.responder("o segredo")
+
+v := Tg.testar(vigiado)
+v.comando("segredo")
+assert v.ultima() is "o segredo"
+out "   sem bloqueio, passa"
+
+out "exercicio 362 ok"

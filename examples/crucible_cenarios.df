@@ -1,0 +1,253 @@
+// ════════════════════════════════════════════════════════════
+//  Crucible — as ferramentas de cenario
+//
+//  Os matchers respondem "o valor e o esperado?". Este arquivo
+//  demonstra as quatro ferramentas que respondem uma pergunta
+//  anterior: EM QUE MUNDO o codigo esta rodando?
+//
+//      corrida          duas threads na mesma variavel
+//      relogio          o tempo que anda quando voce manda
+//      servidor_falso   um HTTP que voce controla
+//      contrato         o mesmo teste valendo para duas implementacoes
+//      mutar            e o teste, testa mesmo?
+//
+//      dataforge run examples/crucible_cenarios.df
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Crucible as Crucible
+adopt Arcane.Time as Tempo
+adopt Arcane.Web as Web
+adopt Arcane.Concurrent as Conc
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+steady expect := Crucible.expect
+
+// As threads e as voltas da corrida. Nomeados porque o lint tem
+// razao: um 4 solto em cinco lugares e cinco decisoes que se
+// perdem de vista.
+steady THREADS := 4
+steady VOLTAS := 4000
+steady LIMITE_DE_MUTANTES := 4
+
+// ── 1. Concorrencia ─────────────────────────────────────────
+//
+// A linguagem NAO sincroniza sozinha, e isso esta documentado: duas
+// threads escrevendo no mesmo nome perdem atualizacoes, em silencio.
+// O 'check' avisa sobre o padrao — mas avisar nao e provar.
+
+blueprint Contador:
+    total := 0
+
+    action somar():
+        // Ler-modificar-escrever: e exatamente o padrao que perde.
+        atual := self.total
+        self.total := atual + 1
+
+blueprint ContadorProtegido:
+    total := 0
+
+    action setup():
+        self.trava := Conc.mutex()
+
+    action somar():
+        self.trava.acquire()
+        self.total := self.total + 1
+        self.trava.release()
+
+action provar_a_corrida():
+    solto := spawn Contador()
+    r := Crucible.corrida(lambda => solto.somar(),
+        threads := THREADS, voltas := VOLTAS,
+        leitor := lambda => solto.total)
+    out $"  sem mutex:  {r.obtido} de {r.esperado} — perdeu {r.perdidas()}"
+
+    protegido := spawn ContadorProtegido()
+    p := Crucible.corrida(lambda => protegido.somar(),
+        threads := THREADS, voltas := VOLTAS,
+        leitor := lambda => protegido.total)
+    out $"  com mutex:  {p.obtido} de {p.esperado} — perdeu {p.perdidas()}"
+    expect(p.perdeu()).to_be_false()
+
+// ── 2. O relogio que anda ───────────────────────────────────
+//
+// 'freeze_time' congela; este ANDA. A diferenca importa para testar o
+// que depende de INTERVALO: congelado, um cache nunca vence; com o
+// relogio de verdade, o teste precisa dormir.
+
+blueprint CacheComValidade:
+    action setup():
+        self.itens := {}
+        self.validade := 1800.0
+
+    action guardar(chave, valor):
+        self.itens[chave] := {"valor": valor, "em": Tempo.timestamp()}
+
+    action obter(chave):
+        // A forma invertida e de proposito: com 'given item is void:
+        // yield void' no topo, o analisador continua achando que
+        // 'item' pode ser void nas linhas de baixo, e acusa o indice.
+        // Ele esta certo em nao concluir — quem sabe e quem escreveu.
+        item := self.itens[chave] ?? void
+        given item is not void:
+            idade := Tempo.timestamp() - item["em"]
+            given idade smaller_eq self.validade:
+                yield item["valor"]
+        yield void
+
+action conferir_validade(r):
+    cache := spawn CacheComValidade()
+    cache.guardar("cotacao", 5.42)
+
+    r.avancar(minutos := 29)
+    expect(cache.obter("cotacao")).to_be(5.42)
+
+    r.avancar(minutos := 2)
+    expect(cache.obter("cotacao")).to_be_void()
+    out "  o cache venceu aos 31 minutos, sem o teste dormir"
+
+// ── 3. Um HTTP que voce controla ────────────────────────────
+//
+// Um duble prova que o codigo chamou um metodo. Isto sobe um socket
+// de verdade e prova que ele fala HTTP direito — e o que ele faz com
+// um 503. E a segunda pergunta que quebra em producao.
+
+action cliente_com_recuo(url, tentativas):
+    """Insiste enquanto o servidor devolver 5xx. E o padrao que o
+    'vezes' do servidor falso existe para testar."""
+    cycle i from 1 to tentativas:
+        monitor:
+            resposta := Web.get(url)
+            given resposta["status"] smaller 500:
+                yield resposta["body"]
+        handle Error:
+            skip
+    yield void
+
+action provar_o_recuo():
+    s := Crucible.servidor_falso()
+    s.falhar("/precos", 503, vezes := 2)
+    s.responder("/precos", {"dolar": 5.42})
+
+    corpo := cliente_com_recuo(s.url("/precos"), 5)
+
+    expect(corpo).to_contain_text("5.42")
+    expect(s.quantos("/precos")).to_be(3)
+    quantas := s.quantos("/precos")
+    out $"  o cliente insistiu {quantas} vezes e conseguiu"
+    s.parar()
+
+// ── 4. Contrato: um trait, duas implementacoes ──────────────
+//
+// Duas implementacoes do mesmo trait costumam ter DOIS conjuntos de
+// teste, e a segunda quebra no uso — porque o que ela nao cumpre e
+// justamente o que so o teste da primeira cobria.
+
+trait Armazem:
+    action guardar(chave, valor)
+    action ler(chave)
+    action apagar(chave)
+
+blueprint EmMemoria with Armazem:
+    action setup():
+        self.dados := {}
+
+    action guardar(chave, valor):
+        self.dados[chave] := valor
+
+    action ler(chave):
+        yield self.dados[chave] ?? void
+
+    action apagar(chave):
+        remove(self.dados, chave)
+
+blueprint EmMemoriaFurada with Armazem:
+    action setup():
+        self.dados := {}
+
+    action guardar(chave, valor):
+        self.dados[chave] := valor
+
+    action ler(chave):
+        yield self.dados[chave] ?? void
+
+    action apagar(_chave):
+        // Nao apaga nada. O teste dela, escrito depois, nunca conferiu.
+        yield void
+
+action prova_guarda_e_le(a):
+    a.guardar("x", 1)
+    expect(a.ler("x")).to_be(1)
+
+action prova_apaga(a):
+    a.guardar("x", 1)
+    a.apagar("x")
+    expect(a.ler("x")).to_be_void()
+
+action provar_o_contrato():
+    provas := Crucible.contrato("Armazem", [
+            {"nome": "guarda e le", "prova": prova_guarda_e_le},
+            {"nome": "apaga", "prova": prova_apaga}
+        ])
+    provas.para("em memoria", lambda => spawn EmMemoria())
+    provas.para("furada", lambda => spawn EmMemoriaFurada())
+
+    resumo := provas.resumo()
+    expect(resumo["casos"]).to_be(len(provas.provas) * 2)
+    expect(len(provas.falhas())).to_be(1)
+    falha := provas.falhas()[0]
+    quem := falha["implementacao"]
+    qual := falha["caso"]
+    out $"  o contrato pegou: {quem} nao cumpre o caso {qual}"
+
+// ── 5. Mutacao: o teste testa mesmo? ────────────────────────
+//
+// Cobertura responde "esta linha rodou?". Ela nao responde "se esta
+// linha estivesse errada, alguem reclamaria?" — e as duas divergem
+// justamente onde importa.
+
+action provar_a_mutacao():
+    pasta := $"{OS.temp_dir()}/df-mutacao-{randint(100000, 999999)}"
+    IO.mkdir(pasta)
+    alvo := $"{pasta}/regra.df"
+    corpo := "action maior_de_idade(idade):" + char(10)
+    corpo := corpo + "    yield idade bigger_eq 18" + char(10)
+    IO.write(alvo, corpo)
+
+    // Uma "suite" que nunca acusa nada: ela nao testa o limite.
+    fraca := Crucible.mutar(alvo, lambda => no, limite := LIMITE_DE_MUTANTES)
+
+    // Uma que confere o codigo de verdade.
+    boa := Crucible.mutar(alvo, lambda => "bigger_eq 18" not in IO.read(alvo),
+        limite := LIMITE_DE_MUTANTES)
+
+    sobreviventes := len(fraca["sobreviventes"])
+    out $"  suite fraca: {fraca['pegos']}/{fraca['mutantes']} — {sobreviventes} sobreviveram"
+    expect(fraca["placar"]).to_be(0.0)
+    expect(boa["placar"]).to_be(1.0)
+
+    // O arquivo volta ao original: um codigo-fonte silenciosamente
+    // alterado e o pior desfecho de uma ferramenta de teste.
+    expect(IO.read(alvo)).to_contain_text("bigger_eq 18")
+    IO.remove_tree(pasta)
+
+// ── Rodar ───────────────────────────────────────────────────
+
+out "Crucible — as ferramentas de cenario"
+out ""
+out "1. concorrencia"
+provar_a_corrida()
+out ""
+out "2. o relogio"
+Crucible.com_relogio(conferir_validade, "2026-09-20 10:00:00")
+out ""
+out "3. o servidor falso"
+provar_o_recuo()
+out ""
+out "4. contrato"
+provar_o_contrato()
+out ""
+out "5. mutacao"
+provar_a_mutacao()
+out ""
+out "cenarios ok"

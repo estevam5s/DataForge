@@ -1,0 +1,99 @@
+// Exercicio 325 — ler um formato de texto sem escrever um parser
+//
+// Enunciado: um arquivo de configuracao em secoes. Regex nao serve
+// para linguagem aninhada — nao ha como casar parenteses equilibrados
+// —, mas para um formato de LINHA ela e a ferramenta certa.
+
+adopt Arcane.Regex as Regex
+
+steady CONFIG := """# comentario no topo
+[servidor]
+host = 0.0.0.0
+porta = 8080
+
+[banco]
+url = sqlite:///dados.db
+# outro comentario
+timeout = 30
+pool = 5"""
+
+steady SECAO := "^\\[(?P<nome>[^\\]]+)\\]$"
+steady CHAVE := "^(?P<chave>\\w+)\\s*=\\s*(?P<valor>.+)$"
+
+action ler_ini(texto):
+    saida := {}
+    atual := "geral"
+    cycle linha in split(texto, "\n"):
+        limpa := trim(linha)
+        given limpa is "" or startswith(limpa, "#"):
+            skip
+        cabecalho := Regex.named(SECAO, limpa)
+        given len(keys(cabecalho)) bigger 0:
+            atual := cabecalho["nome"]
+            saida[atual] := {}
+            skip
+        par := Regex.named(CHAVE, limpa)
+        given len(keys(par)) bigger 0:
+            given atual not in saida:
+                saida[atual] := {}
+            saida[atual][par["chave"]] := trim(par["valor"])
+    yield saida
+
+out "== 1. ler =="
+
+config := ler_ini(CONFIG)
+assert keys(config) is ["servidor", "banco"]
+assert config["servidor"]["porta"] is "8080"
+assert config["banco"]["url"] is "sqlite:///dados.db"
+assert config["banco"]["timeout"] is "30"
+
+cycle secao in keys(config):
+    out $"   [{secao}] {len(keys(config[secao]))} chave(s)"
+
+out ""
+out "== 2. o comentario nao entra =="
+
+assert "#" not in join(",", keys(config["banco"]))
+
+out ""
+out "== 3. e o ancoramento e o que faz isso funcionar =="
+
+// Sem '^...$', a linha '# [falso]' casaria com a de secao.
+assert Regex.named(SECAO, "# [falso]") is {}
+assert Regex.named(SECAO, "[servidor]")["nome"] is "servidor"
+
+out ""
+out "== 4. converter os tipos, com o padrao decidindo =="
+
+action converter(texto):
+    given Regex.is_exactly("-?\\d+", texto):
+        yield int(texto)
+    given Regex.is_exactly("-?\\d+\\.\\d+", texto):
+        yield float(texto)
+    given lower(texto) in ["sim", "nao", "yes", "no", "true", "false"]:
+        yield lower(texto) in ["sim", "yes", "true"]
+    yield texto
+
+assert converter("8080") is 8080
+assert converter("1.5") is 1.5
+assert converter("sim") is yes
+assert converter("sqlite:///dados.db") is "sqlite:///dados.db"
+
+tipado := {}
+cycle secao in keys(config):
+    tipado[secao] := {}
+    cycle chave in keys(config[secao]):
+        tipado[secao][chave] := converter(config[secao][chave])
+
+assert tipado["servidor"]["porta"] is 8080
+assert tipado["banco"]["pool"] is 5
+assert typeof(tipado["banco"]["url"]) is "String"
+
+out ""
+out "== 5. o que regex NAO faz =="
+
+// Nao ha como casar parenteses equilibrados com expressao regular:
+// isso exige contar, e uma expressao regular nao conta.
+out "   formato de LINHA: regex; linguagem ANINHADA: parser"
+
+out "exercicio 325 ok"

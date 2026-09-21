@@ -1,0 +1,101 @@
+// Exercicio 349 — quanto vale, e se e verdade
+//
+// Enunciado: '__int__', '__float__' e '__bool__' decidem o que
+// acontece num 'int(x)', num 'float(x)' e num 'given x:'. E o
+// '__bool__' e o mais perigoso dos tres: ele muda a verdade de TODO
+// objeto daquele tipo.
+
+blueprint Temperatura:
+    action setup(celsius):
+        self.celsius := celsius
+
+    action __str__():
+        yield $"{self.celsius}C"
+
+    action __float__():
+        yield self.celsius * 1.0
+
+    action __int__():
+        yield int(round(self.celsius, 0))
+
+    action __bool__():
+        // "tem leitura" — e nao "e diferente de zero".
+        yield self.celsius is not void
+
+out "== 1. converter =="
+
+t := spawn Temperatura(21.6)
+assert float(t) is 21.6
+assert int(t) is 22
+out $"   {t} -> int {int(t)}, float {float(t)}"
+
+out ""
+out "== 2. a verdade =="
+
+assert spawn Temperatura(0.0)
+assert spawn Temperatura(-5.0)
+assert not spawn Temperatura(void)
+
+// E e por isso que '__bool__' e perigoso: sem ele, ZERO GRAUS seria
+// falso — e "nao ha leitura" e "esta zero" viram a mesma coisa.
+sem_leitura := spawn Temperatura(void)
+given sem_leitura:
+    assert no
+otherwise:
+    out "   sem leitura e falso; zero grau e verdadeiro"
+
+out ""
+out "== 3. o padrao, quando nao ha '__bool__' =="
+
+blueprint Simples:
+    action setup(n):
+        self.n := n
+
+// Toda instancia e verdadeira.
+assert spawn Simples(0)
+assert spawn Simples(void)
+
+out ""
+out "== 4. '__len__' NAO decide a verdade aqui =="
+
+// Em Python, um objeto com len() 0 e falso. Aqui nao: o
+// interpretador pergunta 'if obj:' sobre instancias, e um '__len__'
+// mudaria a verdade de todo objeto que declara tamanho.
+blueprint Lista:
+    action setup():
+        self.itens := []
+
+    action __len__():
+        yield len(self.itens)
+
+vazia := spawn Lista()
+assert len(vazia) is 0
+assert vazia
+out "   tamanho zero, e continua verdadeira"
+
+out ""
+out "== 5. e e por isso que se pergunta o TAMANHO =="
+
+// A forma que funciona nas duas linguagens, e que diz o que quer
+// dizer.
+given len(vazia) is 0:
+    out "   'len(x) is 0' e explicito; 'not x' depende do tipo"
+
+out ""
+out "== 6. o arredondamento tambem e do objeto =="
+
+blueprint Preco:
+    action setup(v):
+        self.v := v
+
+    action __float__():
+        yield self.v
+
+    action __round__(casas):
+        yield round(self.v, casas)
+
+p := spawn Preco(19.987)
+assert round(p, 2) is 19.99
+assert round(p, 0) is 20.0
+
+out "exercicio 349 ok"

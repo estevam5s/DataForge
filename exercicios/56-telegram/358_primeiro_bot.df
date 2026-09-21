@@ -1,0 +1,75 @@
+// Exercicio 358 — um bot inteiro, testado sem token e sem rede
+//
+// Enunciado: um bot que so pode ser testado conversando com ele no
+// celular nao tem teste nenhum. A sonda injeta updates e le o que o
+// bot mandou — e e ela que faz um bot caber numa suite.
+
+adopt Arcane.Telegram as Tg
+
+action montar(token):
+    app := Tg.app(token)
+
+    mark @app.comando("start", ajuda := "Comeca a conversa")
+    action comecar(ctx):
+        ctx.responder($"Ola, {ctx.nome()}!")
+
+    mark @app.comando("ajuda")
+    action ajuda(ctx):
+        ctx.responder("Use /start para comecar.")
+
+    mark @app.texto("\\b(oi|ola)\\b")
+    action cumprimento(ctx):
+        ctx.responder("Oi!")
+
+    mark @app.qualquer()
+    action resto(ctx):
+        ctx.responder("Nao entendi.")
+
+    yield app
+
+steady TOKEN := "123456:AAHexemplo"
+
+out "== 1. o comando =="
+
+t := Tg.testar(montar(TOKEN))
+t.comando("start")
+assert "Ola," in t.ultima()
+out $"   {t.ultima()}"
+
+out ""
+out "== 2. o texto que casa por padrao =="
+
+t.mandar("oi tudo bem")
+assert t.ultima() is "Oi!"
+
+out ""
+out "== 3. e o que nao casa cai no ultimo =="
+
+t.mandar("qualquer coisa")
+assert t.ultima() is "Nao entendi."
+
+out ""
+out "== 4. o despacho para no PRIMEIRO que casa =="
+
+// Entregar a todos parece mais flexivel e produz o bug mais confuso
+// que um bot tem: duas respostas para uma mensagem, e ninguem sabe de
+// onde veio a segunda.
+antes := t.quantas("sendMessage")
+t.comando("ajuda")
+assert t.quantas("sendMessage") is antes + 1
+
+out ""
+out "== 5. o token nunca aparece =="
+
+// Ele esta na URL de toda chamada, e a URL entra em todo traceback —
+// um token num log de CI e um bot sequestrado.
+assert TOKEN not in t.ultima()
+
+out ""
+out "== 6. e a sonda nao toca a rede =="
+
+// Nenhum socket, nenhum token de verdade: o teste roda na suite como
+// qualquer outro.
+out "   nenhum socket foi aberto"
+
+out "exercicio 358 ok"

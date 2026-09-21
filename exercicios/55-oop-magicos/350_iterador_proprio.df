@@ -1,0 +1,90 @@
+// Exercicio 350 — um iterador com estado
+//
+// Enunciado: '__iter__' devolvendo uma lista e o caminho simples.
+// '__next__' e o caminho que nao materializa nada — e a diferenca
+// aparece num milhao de itens, onde o primeiro aloca um milhao e o
+// segundo aloca um.
+
+blueprint Contagem:
+    action setup(de, ate, passo):
+        self.de := de
+        self.ate := ate
+        self.passo := passo
+        self.atual := de
+
+    action __iter__():
+        self.atual := self.de
+        yield self
+
+    action __next__():
+        // 'void' encerra. Nao ha 'StopIteration' aqui: sinalizar o fim
+        // com um erro obrigaria a linguagem a ter uma excecao que nao
+        // e erro nenhum — e a confundir com um 'handle Error' de
+        // verdade, que e o que acontece em Python.
+        given self.atual bigger self.ate:
+            yield void
+        valor := self.atual
+        self.atual := self.atual + self.passo
+        yield valor
+
+out "== 1. percorrer =="
+
+vistos := []
+cycle n in spawn Contagem(1, 10, 3):
+    vistos.append(n)
+assert vistos is [1, 4, 7, 10]
+out $"   {vistos}"
+
+out ""
+out "== 2. e ele reinicia a cada 'cycle' =="
+
+c := spawn Contagem(1, 3, 1)
+primeira := [n cycle n in c]
+segunda := [n cycle n in c]
+assert primeira is segunda
+assert primeira is [1, 2, 3]
+
+out ""
+out "== 3. o generator da linguagem faz o mesmo, sem blueprint =="
+
+stream action contar(de, ate, passo):
+    atual := de
+    persist atual smaller_eq ate:
+        emit atual
+        atual := atual + passo
+
+assert contar(1, 10, 3).to_cluster() is [1, 4, 7, 10]
+
+out ""
+out "== 4. e ele e preguicoso de verdade =="
+
+// Um generator INFINITO so termina porque quem consome para.
+stream action naturais():
+    n := 1
+    persist yes:
+        emit n
+        n += 1
+
+assert naturais().take(5) is [1, 2, 3, 4, 5]
+
+// 'take' ja devolve um cluster; 'to_cluster()' num generator
+// INFINITO trava, e e a armadilha de sempre.
+assert typeof(naturais().take(3)) is "Cluster"
+
+out ""
+out "== 5. compondo — e a ordem IMPORTA =="
+
+// O pipeline converte a fonte em lista: canalizar um generator
+// infinito direto TRAVA o programa. Recorta primeiro, canaliza
+// depois.
+pares := naturais().take(8) >> sift n: n % 2 is 0
+assert pares is [2, 4, 6, 8]
+out "   'take' antes do '>>': o infinito precisa de um teto"
+
+out ""
+out "== 6. quando usar cada um =="
+
+out "   blueprint com __next__: quando o iterador tem estado NOMEADO"
+out "   stream action:          quando e so uma sequencia"
+
+out "exercicio 350 ok"

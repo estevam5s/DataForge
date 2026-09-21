@@ -1,0 +1,69 @@
+// Exercicio 284 — a dependencia e DESCOBERTA, nao declarada
+//
+// Enunciado: nao ha lista para escrever. O derivado roda, e todo sinal
+// lido durante a execucao entra. Uma lista a mao envelhece na primeira
+// condicao nova dentro da formula — e o sintoma e um valor que para de
+// atualizar.
+
+adopt Arcane.Reativo as R
+
+steady subtotal := R.sinal(50.0)
+steady cupom := R.sinal(0.0)
+
+contas := {"n": 0}
+
+action calcular_frete():
+    contas["n"] := contas["n"] + 1
+    given subtotal.ler() bigger 100.0:
+        yield 0.0
+    yield 20.0 - cupom.ler()
+
+steady frete := R.derivado(calcular_frete)
+
+out "== 1. abaixo de 100, o frete LE o cupom =="
+
+assert frete.ler() is 20.0
+antes := contas["n"]
+
+cupom.escrever(5.0)
+assert frete.ler() is 15.0
+assert contas["n"] is antes + 1
+out "   mexer no cupom recalculou o frete"
+
+out ""
+out "== 2. acima de 100 a formula toma o outro ramo =="
+
+subtotal.escrever(300.0)
+assert frete.ler() is 0.0
+
+out ""
+out "== 3. e a partir dai o cupom nao mexe em nada =="
+
+// As fontes que sumiram param de notificar. Sem isso, a formula
+// acumularia dependencias dos DOIS ramos e recalcularia por mudancas
+// que ela nem le mais.
+antes := contas["n"]
+cupom.escrever(7.0)
+frete.ler()
+assert contas["n"] is antes
+out "   o cupom saiu das dependencias"
+
+out ""
+out "== 4. voltando abaixo de 100, ele volta =="
+
+subtotal.escrever(50.0)
+assert frete.ler() is 13.0
+antes := contas["n"]
+cupom.escrever(1.0)
+assert frete.ler() is 19.0
+assert contas["n"] is antes + 1
+
+out ""
+out "== 5. um derivado sobre derivados =="
+
+steady total := R.derivado(lambda => subtotal.ler() + frete.ler())
+assert total.ler() is 69.0
+subtotal.escrever(60.0)
+assert total.ler() is 79.0
+
+out "exercicio 284 ok"

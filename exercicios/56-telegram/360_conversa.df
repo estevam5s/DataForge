@@ -1,0 +1,102 @@
+// Exercicio 360 — a conversa como maquina de estados
+//
+// Enunciado: pedir tres dados em sequencia com 'given' aninhado vira
+// uma arvore que ninguem mantem. A conversa nomeia cada passo e
+// guarda onde o chat esta — e o estado fica NO CHAT, entao duas
+// pessoas conversando ao mesmo tempo nao se atrapalham.
+
+adopt Arcane.Telegram as Tg
+
+action nome_valido(texto):
+    yield len(trim(texto)) bigger_eq 2
+
+action idade_valida(texto):
+    monitor:
+        n := int(texto)
+        yield n bigger_eq 0 and n smaller_eq 130
+    handle Error:
+        yield no
+
+action montar():
+    app := Tg.app("123456:AAHexemplo")
+
+    cadastro := app.conversa("cadastro", [
+            {"pergunta": "Qual o seu nome?", "guarda": "nome",
+                "valida": nome_valido, "erro": "O nome precisa de duas letras."},
+            {"pergunta": "Qual a sua idade?", "guarda": "idade",
+                "valida": idade_valida, "erro": "Escreva a idade em numeros."},
+            {"pergunta": "De que cidade?", "guarda": "cidade"}
+        ])
+
+    cadastro.ao_terminar(salvar)
+
+    mark @app.comando("cadastrar")
+    action comecar(ctx):
+        ctx.comecar_conversa("cadastro")
+
+    yield app
+
+action salvar(ctx, r):
+    ctx.responder($"Cadastrado: {r['nome']}, {r['idade']}, {r['cidade']}")
+
+out "== 1. um passo por vez =="
+
+t := Tg.testar(montar())
+t.comando("cadastrar")
+assert "seu nome" in t.ultima()
+
+t.mandar("Ana")
+assert "idade" in t.ultima()
+
+t.mandar("30")
+assert "cidade" in t.ultima()
+
+t.mandar("Florianopolis")
+assert "Cadastrado: Ana, 30, Florianopolis" in t.ultima()
+out $"   {t.ultima()}"
+
+out ""
+out "== 2. a validacao repete o passo, e nao avanca =="
+
+t2 := Tg.testar(montar())
+t2.comando("cadastrar")
+t2.mandar("A")
+assert "duas letras" in t2.ultima()
+
+// Continua no MESMO passo.
+t2.mandar("Ana")
+assert "idade" in t2.ultima()
+
+t2.mandar("trinta")
+assert "numeros" in t2.ultima()
+t2.mandar("30")
+assert "cidade" in t2.ultima()
+
+out ""
+out "== 3. e o estado e POR CHAT =="
+
+a := Tg.testar(montar())
+a.comando("cadastrar")
+a.mandar("Ana")
+
+b := Tg.testar(montar())
+b.comando("cadastrar")
+b.mandar("Bia")
+
+// As duas estao no segundo passo, e nenhuma viu o nome da outra.
+assert "idade" in a.ultima()
+assert "idade" in b.ultima()
+a.mandar("30")
+b.mandar("40")
+a.mandar("Floripa")
+b.mandar("Curitiba")
+assert "Ana, 30, Floripa" in a.ultima()
+assert "Bia, 40, Curitiba" in b.ultima()
+out "   duas conversas ao mesmo tempo, sem se misturar"
+
+out ""
+out "== 4. sem a conversa, isto seria um 'given' aninhado =="
+
+out "   tres passos = tres niveis; cinco passos = ninguem mantem"
+
+out "exercicio 360 ok"

@@ -1,0 +1,71 @@
+// Exercicio 374 — a area de layout e um OBJETO
+//
+// Enunciado: a linguagem nao tem 'with', e inventar uma palavra
+// reservada para o layout de um modulo seria caro demais.
+// 'colunas[0].metrica(…)' le melhor, aninha sem indentacao e pode ser
+// passado adiante — que e o que um bloco de contexto nao permite.
+
+adopt Arcane.Vitrine as V
+
+action painel():
+    V.titulo("Painel")
+
+    c := V.colunas(3)
+    c[0].metrica("Receita", "R$ 1,2 mi", variacao := "+8%")
+    c[1].metrica("Custo", "R$ 700 mil", variacao := "-3%")
+    c[2].metrica("Margem", "42%")
+
+    abas := V.abas(["Resumo", "Detalhe"])
+    abas[0].texto("o resumo")
+    abas[1].texto("o detalhe")
+
+    cartao := V.cartao("Alertas")
+    cartao.aviso("o estoque esta baixo")
+
+    // E a area pode ser PASSADA ADIANTE.
+    desenhar_rodape(V.painel("Rodape"))
+
+action desenhar_rodape(area):
+    area.texto("atualizado ha 5 minutos")
+
+out "== 1. tres colunas, tres metricas =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.quantos("metrica") is 3
+assert t.quantos("colunas") is 1
+
+out ""
+out "== 2. as abas =="
+
+assert t.quantos("abas") is 1
+assert "o resumo" in t.texto()
+
+out ""
+out "== 3. o cartao, e o aviso dentro dele =="
+
+assert t.quantos("cartao") is 1
+assert "estoque esta baixo" in t.texto()
+
+out ""
+out "== 4. e a area passada adiante desenhou =="
+
+assert "atualizado ha 5 minutos" in t.texto()
+out "   uma acao que recebe uma area desenha nela"
+
+out ""
+out "== 5. por que nao um bloco de contexto =="
+
+out "   sem 'with', um bloco exigiria palavra reservada nova"
+out "   e um objeto aninha sem indentacao e atravessa a chamada"
+
+out ""
+out "== 6. a arvore inteira, para conferir =="
+
+// 'arvore()' devolve os nos DE TOPO: os filhos moram dentro deles,
+// e e por isso que a conta e 4 e nao 12.
+assert len(t.arvore()) is 4
+out $"   {len(t.arvore())} nos de topo, e os filhos dentro deles"
+assert t.quantos("metrica") is 3
+
+out "exercicio 374 ok"

@@ -1,0 +1,90 @@
+// Exercicio 309 — gravar e reler do disco
+//
+// Enunciado: um molde so vale se o arquivo que ele produz for lido de
+// volta igual. Este exercicio faz a ida e a volta pelo disco, e
+// confere byte a byte.
+
+adopt Arcane.Estrutura as Est
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+steady Ponto := Est.definir("Ponto", [
+        ["x", "f32"],
+        ["y", "f32"],
+        ["rotulo", "u8", 8]
+    ], ordem := "rede")
+
+steady pasta := $"{OS.temp_dir()}/df-309-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+steady caminho := $"{pasta}/pontos.bin"
+
+action rotulo_para_bytes(texto):
+    "Oito bytes, cortados ou preenchidos com zero."
+    crus := [ord(c) cycle c in texto]
+    cycle i from len(crus) to 7:
+        crus.append(0)
+    yield crus[0:8]
+
+action bytes_para_rotulo(crus):
+    yield join("", [char(b) cycle b in crus given b isnt 0])
+
+steady PONTOS := [
+    {"x": 1.5, "y": 2.5, "rotulo": "origem"},
+    {"x": -3.0, "y": 0.25, "rotulo": "canto"},
+    {"x": 100.0, "y": -100.0, "rotulo": "longe"}
+]
+
+out "== 1. gravar =="
+
+bloco := Est.bloco(Ponto.tamanho * len(PONTOS))
+cycle i from 0 to len(PONTOS) - 1:
+    p := PONTOS[i]
+    Ponto.escrever(bloco, {"x": p["x"], "y": p["y"],
+            "rotulo": rotulo_para_bytes(p["rotulo"])},
+        i * Ponto.tamanho)
+
+IO.write_bytes(caminho, bloco.bytes())
+assert IO.exists(caminho)
+assert IO.size(caminho) is Ponto.tamanho * len(PONTOS)
+out $"   {IO.size(caminho)} bytes em disco"
+
+out ""
+out "== 2. reler =="
+
+de_volta := Est.de_bytes(IO.read_bytes(caminho))
+assert len(de_volta) is len(bloco)
+
+lidos := []
+cycle janela in Est.janelas(de_volta, Ponto):
+    lidos.append({"x": janela.ler("x"), "y": janela.ler("y"),
+            "rotulo": bytes_para_rotulo(janela.ler("rotulo"))})
+
+assert len(lidos) is 3
+assert lidos[0]["rotulo"] is "origem"
+assert lidos[1]["x"] is -3.0
+assert lidos[2]["y"] is -100.0
+
+cycle l in lidos:
+    out $"   {l['rotulo']}: ({l['x']}, {l['y']})"
+
+out ""
+out "== 3. os bytes sao IDENTICOS =="
+
+assert IO.read_bytes(caminho) is bloco.bytes()
+
+out ""
+out "== 4. e o f32 tem precisao de f32 =="
+
+// 0.1 nao cabe exato em 32 bits: a ida e volta NAO devolve 0.1. Isso
+// nao e defeito do modulo — e o tipo que foi escolhido.
+teste := Ponto.empacotar({"x": 0.1, "y": 0.0,
+        "rotulo": rotulo_para_bytes("")})
+assert Ponto.ler(teste)["x"] isnt 0.1
+assert abs(Ponto.ler(teste)["x"] - 0.1) smaller 0.0001
+out "   f32 aproxima; f64 aproxima menos; Decimal nao aproxima"
+
+steady Exato := Est.definir("Exato", [["x", "f64"]])
+assert Exato.ler(Exato.empacotar({"x": 0.1}))["x"] is 0.1
+
+IO.remove_tree(pasta)
+out "exercicio 309 ok"

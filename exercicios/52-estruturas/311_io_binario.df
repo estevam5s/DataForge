@@ -1,0 +1,88 @@
+// Exercicio 311 — gravar bytes num arquivo
+//
+// Enunciado: a linguagem sabia PRODUZIR bytes — 'Arcane.Bytes',
+// 'Arcane.Estrutura', 'Arcane.Crypto' — e nao sabia grava-los.
+// 'IO.write' abre em modo texto com UTF-8: passar bytes ali levanta,
+// e passar o texto de um 'para_texto' corrompe o que nao for texto
+// valido.
+
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+adopt Arcane.Bytes as By
+adopt Arcane.Estrutura as Est
+adopt Arcane.Crypto as Cripto
+
+steady pasta := $"{OS.temp_dir()}/df-311-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+
+out "== 1. ida e volta =="
+
+steady caminho := $"{pasta}/dados.bin"
+steady CRUS := By.de_hex("deadbeef00ff")
+
+assert IO.write_bytes(caminho, CRUS) is 6
+assert IO.read_bytes(caminho) is CRUS
+assert IO.size(caminho) is 6
+out $"   {By.hex(IO.read_bytes(caminho))}"
+
+out ""
+out "== 2. ele aceita um Bloco direto =="
+
+// Obrigar a lembrar de '.bytes()' e a forma mais rapida de gravar a
+// representacao em TEXTO de um objeto no lugar do conteudo dele.
+bloco := Est.bloco(4).preencher(170)
+IO.write_bytes($"{pasta}/bloco.bin", bloco)
+assert By.hex(IO.read_bytes($"{pasta}/bloco.bin")) is "aaaaaaaa"
+
+out ""
+out "== 3. e um cluster de numeros =="
+
+// E como um 'ponteiro.cluster()' volta.
+IO.write_bytes($"{pasta}/lista.bin", [1, 2, 3, 255])
+assert By.hex(IO.read_bytes($"{pasta}/lista.bin")) is "010203ff"
+
+out ""
+out "== 4. acrescentar no fim =="
+
+IO.append_bytes(caminho, By.de_hex("0102"))
+assert len(IO.read_bytes(caminho)) is 8
+assert By.hex(IO.read_bytes(caminho)) is "deadbeef00ff0102"
+
+out ""
+out "== 5. o que NAO pode virar bytes e recusado =="
+
+recusou := no
+monitor:
+    IO.write_bytes($"{pasta}/x.bin", {"a": 1})
+handle TypeError as e:
+    recusou := yes
+    assert "bytes" in e.message
+assert recusou
+
+out ""
+out "== 6. um byte que nao e texto valido sobrevive =="
+
+// E o ponto inteiro: 0xFF sozinho nao e UTF-8, e 'IO.write' o
+// destruiria.
+steady QUEBRADO := By.de_hex("ff")
+IO.write_bytes($"{pasta}/nao-e-texto.bin", QUEBRADO)
+assert IO.read_bytes($"{pasta}/nao-e-texto.bin") is QUEBRADO
+
+out ""
+out "== 7. um caso de verdade: gravar o digest em binario =="
+
+// 'sha256' devolve o hexadecimal, que ocupa 64 caracteres. Os bytes
+// crus sao 32 — metade do arquivo, pelo mesmo dado.
+steady EM_HEX := Cripto.sha256("DataForge")
+steady CRU := By.de_hex(EM_HEX)
+
+IO.write($"{pasta}/hash.txt", EM_HEX)
+IO.write_bytes($"{pasta}/hash.bin", CRU)
+
+assert IO.size($"{pasta}/hash.txt") is 64
+assert IO.size($"{pasta}/hash.bin") is 32
+assert By.hex(IO.read_bytes($"{pasta}/hash.bin")) is EM_HEX
+out $"   {IO.size($'{pasta}/hash.txt')} bytes em texto, {IO.size($'{pasta}/hash.bin')} em binario"
+
+IO.remove_tree(pasta)
+out "exercicio 311 ok"

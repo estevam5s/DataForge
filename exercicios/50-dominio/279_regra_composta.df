@@ -1,0 +1,69 @@
+// Exercicio 279 — regras que se combinam em arvore
+//
+// Enunciado: 'e', 'ou' e 'nao' devolvem regras, e uma regra composta
+// se combina de novo. E o que permite montar a politica em pedacos
+// nomeados, em vez de um 'given' de cinco linhas.
+
+adopt Arcane.Dominio as D
+
+record Pedido:
+    total: Float
+    itens: Integer
+    pais: String
+    primeiro: Boolean
+
+steady grande := D.regra("passa de R$ 200", lambda p => p.total bigger 200.0)
+steady cheio := D.regra("tem 3 itens ou mais", lambda p => p.itens bigger_eq 3)
+steady nacional := D.regra("e do Brasil", lambda p => p.pais is "BR")
+steady estreante := D.regra("e a primeira compra", lambda p => p.primeiro)
+
+// Frete gratis: (grande E cheio) OU estreante — e sempre nacional.
+steady frete_gratis := grande.e(cheio).ou(estreante).e(nacional)
+
+out "== 1. a arvore inteira =="
+
+out $"   {frete_gratis.descricao}"
+assert "OU" in frete_gratis.descricao
+assert "E" in frete_gratis.descricao
+
+out ""
+out "== 2. os casos =="
+
+assert frete_gratis.vale(Pedido(300.0, 4, "BR", no))  // grande e cheio
+assert frete_gratis.vale(Pedido(10.0, 1, "BR", yes))  // estreante
+assert not frete_gratis.vale(Pedido(300.0, 4, "US", no))  // fora do pais
+assert not frete_gratis.vale(Pedido(300.0, 1, "BR", no))  // grande, so 1 item
+assert not frete_gratis.vale(Pedido(10.0, 1, "BR", no))  // nada
+
+out ""
+out "== 3. o motivo, pelo caminho que falhou =="
+
+// Num 'ou', nenhum dos dois basta: a explicacao diz isso.
+so_pais := frete_gratis.por_que_nao(Pedido(300.0, 4, "US", no))
+assert so_pais is "e do Brasil"
+
+nem_um_nem_outro := frete_gratis.por_que_nao(Pedido(10.0, 1, "BR", no))
+assert "nem" in nem_um_nem_outro
+out $"   {nem_um_nem_outro}"
+
+out ""
+out "== 4. a mesma arvore filtra uma lista =="
+
+steady CARRINHOS := [
+    Pedido(300.0, 4, "BR", no),
+    Pedido(10.0, 1, "BR", yes),
+    Pedido(300.0, 4, "US", no),
+    Pedido(50.0, 2, "BR", no)
+]
+
+com_frete := frete_gratis.filtrar(CARRINHOS)
+assert len(com_frete) is 2
+
+out ""
+out "== 5. negar uma composta =="
+
+steady paga_frete := frete_gratis.nao()
+assert len(paga_frete.filtrar(CARRINHOS)) is 2
+assert len(com_frete) + len(paga_frete.filtrar(CARRINHOS)) is len(CARRINHOS)
+
+out "exercicio 279 ok"

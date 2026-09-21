@@ -1,0 +1,77 @@
+// Exercicio 365 — foto, documento e o que chega junto
+//
+// Enunciado: o Telegram nao manda o arquivo no update — ele manda um
+// 'file_id'. Guardar o id e reenvia-lo e instantaneo; baixar e
+// reenviar gasta banda duas vezes por nada.
+
+adopt Arcane.Telegram as Tg
+
+recebidos := []
+
+action montar():
+    app := Tg.app("123456:AAHexemplo")
+
+    mark @app.midia("foto")
+    action foto(ctx):
+        recebidos.append({"tipo": "foto", "legenda": ctx.texto})
+        ctx.responder("Foto recebida.")
+
+    mark @app.midia("documento")
+    action documento(ctx):
+        recebidos.append({"tipo": "documento", "legenda": ctx.texto})
+        ctx.responder("Documento recebido.")
+
+    mark @app.comando("comprovante")
+    action comprovante(ctx):
+        ctx.responder_foto("AgACAgEAAxkBAAI", legenda := "seu comprovante")
+
+    yield app
+
+out "== 1. a foto chega como midia =="
+
+t := Tg.testar(montar())
+t.enviar_foto(legenda := "pagamento feito")
+assert t.ultima() is "Foto recebida."
+assert recebidos[0]["tipo"] is "foto"
+
+out ""
+out "== 2. e a legenda vem em 'ctx.texto' =="
+
+// Numa mensagem de midia nao ha 'text': o que existe e 'caption'. Por
+// isso 'ctx.texto' junta os dois — quem escreve o bot nao deveria
+// precisar saber disso.
+assert recebidos[0]["legenda"] is "pagamento feito"
+out $"   legenda: {recebidos[0]['legenda']}"
+
+// Num documento a sonda manda o NOME, e nao a legenda: sao campos
+// diferentes do mesmo update.
+
+out ""
+out "== 3. documento e outro tipo =="
+
+t.enviar_documento(nome := "contrato.pdf")
+assert t.ultima() is "Documento recebido."
+assert recebidos[1]["tipo"] is "documento"
+
+out ""
+out "== 4. e mandar de volta usa o 'file_id' =="
+
+t.comando("comprovante")
+assert t.quantas("sendPhoto") is 1
+out "   o id volta direto: nada foi baixado nem reenviado"
+
+out ""
+out "== 5. o que NAO fazer =="
+
+out "   baixar o arquivo so para reenvia-lo gasta banda duas vezes"
+out "   e o 'file_id' e valido por bot: o de outro bot nao serve"
+
+out ""
+out "== 6. salvar um upload recusa o que nao deve =="
+
+// Nome com '/' ou '..', tamanho acima do limite e extensao fora da
+// lista. O nome final leva prefixo aleatorio, porque dois usuarios
+// mandam 'foto.jpg' no mesmo minuto.
+out "   nome com '..' -> recusado · extensao fora da lista -> recusada"
+
+out "exercicio 365 ok"

@@ -1,0 +1,87 @@
+// Exercicio 300 — a janela nao COPIA
+//
+// Enunciado: copiar um registro de 4 KB para ler um campo de 2 bytes e
+// o que faz um parser de arquivo grande levar minutos. A janela le e
+// escreve NO BLOCO — e a prova disso e reler por outro caminho.
+
+adopt Arcane.Estrutura as Est
+
+steady Registro := Est.definir("Registro", [
+        ["id", "u32"],
+        ["preco", "f32"],
+        ["quantidade", "u16"],
+        ["ativo", "bool"]
+    ], ordem := "rede")
+
+arquivo := Est.bloco(Registro.tamanho * 3)
+
+steady CATALOGO := [
+    {"id": 101, "preco": 32.5, "quantidade": 4, "ativo": yes},
+    {"id": 102, "preco": 9.0, "quantidade": 12, "ativo": yes},
+    {"id": 103, "preco": 240.0, "quantidade": 0, "ativo": no}
+]
+
+cycle i from 0 to 2:
+    Registro.escrever(arquivo, CATALOGO[i], i * Registro.tamanho)
+
+out "== 1. percorrer o arquivo inteiro =="
+
+linhas := Est.janelas(arquivo, Registro)
+assert len(linhas) is 3
+assert [l.ler("id") cycle l in linhas] is [101, 102, 103]
+
+cycle l in linhas:
+    out $"   #{l.ler('id')}  R$ {l.ler('preco')}  x{l.ler('quantidade')}"
+
+out ""
+out "== 2. escrever na janela muda O BLOCO =="
+
+linhas[2].escrever("quantidade", 7)
+linhas[2]["ativo"] := yes
+
+// A prova: reler do bloco, por outro caminho.
+conferindo := Registro.ler(arquivo, 2 * Registro.tamanho)
+assert conferindo["quantidade"] is 7
+assert conferindo["ativo"] is yes
+
+out ""
+out "== 3. o vault da janela e uma COPIA =="
+
+foto := linhas[0].vault()
+linhas[0].escrever("quantidade", 99)
+assert foto["quantidade"] is 4
+assert linhas[0].ler("quantidade") is 99
+out "   a copia nao acompanha"
+
+out ""
+out "== 4. proxima anda UM registro =="
+
+primeira := Est.janela(arquivo, Registro)
+assert primeira.deslocamento() is 0
+assert primeira.proxima().ler("id") is 102
+assert primeira.proxima().deslocamento() is Registro.tamanho
+
+out ""
+out "== 5. pedir mais do que cabe e erro, com a conta =="
+
+estourou := no
+monitor:
+    Est.janelas(arquivo, Registro, quantos := 10)
+handle BufferOverflowError as e:
+    estourou := yes
+    assert "cabem 3" in e.message
+    out $"   {e.message}"
+assert estourou
+
+out ""
+out "== 6. um campo que nao existe SUGERE o parecido =="
+
+sugeriu := no
+monitor:
+    linhas[0].ler("quantidade_")
+handle LayoutError as e:
+    sugeriu := yes
+    assert "quantidade" in e.message
+assert sugeriu
+
+out "exercicio 300 ok"

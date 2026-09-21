@@ -1,0 +1,88 @@
+// Exercicio 271 — o fato espera a confirmacao
+//
+// Enunciado: publicar um evento na hora faz o mundo reagir a um fato
+// que a transacao ainda pode desfazer — o e-mail sai, e o pedido nao
+// existe. E um evento e imutavel: mudar um fato passado e reescrever a
+// historia para quem ja reagiu a ele.
+
+adopt Arcane.Dominio as D
+
+out "== 1. o evento nao muda =="
+
+fato := D.evento("PedidoPago", {"valor": 120})
+assert fato.nome is "PedidoPago"
+assert fato.dados["valor"] is 120
+
+imutavel := no
+monitor:
+    fato.dados := {}
+handle EventError as e:
+    imutavel := yes
+    assert "aconteceu" in e.message
+assert imutavel
+
+// E ele precisa de nome.
+sem_nome := no
+monitor:
+    D.evento("")
+handle EventError:
+    sem_nome := yes
+assert sem_nome
+
+out ""
+out "== 2. o evento fica guardado ate a confirmacao =="
+
+publicados := []
+
+action anotar(e):
+    publicados.append(e.nome)
+
+pedido := D.agregado("Pedido", "PED-1", total := 0)
+
+mark @pedido.comando("pagar")
+action pagar(p, valor):
+    p.mudar(total := valor)
+    p.aconteceu("PedidoPago", {"valor": valor})
+
+pedido.pagar(120)
+assert len(pedido.eventos()) is 1
+assert len(publicados) is 0
+
+u := D.unidade(publicar := anotar)
+u.registrar(pedido)
+assert len(publicados) is 0
+out "   registrado, e o mundo ainda nao sabe"
+
+saindo := u.confirmar()
+assert len(saindo) is 1
+assert publicados is ["PedidoPago"]
+out $"   confirmado -> {publicados}"
+
+out ""
+out "== 3. a unidade desfeita nao publica nada =="
+
+outro := D.agregado("Pedido", "PED-2", total := 0)
+outro.comando("marcar", lambda p => p.aconteceu("PedidoCriado"))
+outro.marcar()
+
+descartada := D.unidade(publicar := anotar)
+descartada.registrar(outro)
+descartada.desfazer()
+
+assert publicados is ["PedidoPago"]
+assert len(outro.eventos()) is 0
+out "   os eventos foram descartados junto"
+
+out ""
+out "== 4. nao da para desfazer o confirmado =="
+
+// Os eventos ja sairam, e quem reagiu nao tem como voltar atras.
+tarde := no
+monitor:
+    u.desfazer()
+handle UnitOfWorkError as e:
+    tarde := yes
+    assert "compensacao" in e.dica
+assert tarde
+
+out "exercicio 271 ok"

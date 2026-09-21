@@ -1,0 +1,105 @@
+// Exercicio 334 — insistir, e saber quando parar
+//
+// Enunciado: uma falha de rede e diferente de uma falha de logica. A
+// primeira costuma passar na segunda tentativa; a segunda passa a
+// vida inteira falhando. Insistir na errada esconde o bug.
+
+adopt Arcane.Time as Tempo
+
+out "== 1. um retry a mao =="
+
+tentativas := {"n": 0}
+
+action instavel(falhar_ate):
+    tentativas["n"] := tentativas["n"] + 1
+    given tentativas["n"] smaller_eq falhar_ate:
+        trigger $"falha transitoria {tentativas['n']}"
+    yield $"ok na tentativa {tentativas['n']}"
+
+action insistir(acao, vezes):
+    ultimo := ""
+    cycle i from 1 to vezes:
+        monitor:
+            yield acao()
+        handle Error as e:
+            ultimo := e.message
+    trigger $"desisti depois de {vezes}: {ultimo}"
+
+assert insistir(lambda => instavel(2), 5) is "ok na tentativa 3"
+assert tentativas["n"] is 3
+
+out ""
+out "== 2. e ele desiste, dizendo o ultimo motivo =="
+
+tentativas["n"] := 0
+desistiu := no
+monitor:
+    insistir(lambda => instavel(99), 3)
+handle Error as e:
+    desistiu := yes
+    assert "desisti depois de 3" in e.message
+    assert "falha transitoria 3" in e.message
+    out $"   {e.message}"
+assert desistiu
+
+out ""
+out "== 3. o recuo com TREMOR =="
+
+// Sem jitter, todos os clientes que falharam juntos voltam juntos — e
+// o servico cai de novo no mesmo instante.
+action recuo(tentativa, base):
+    espera := base * (2 ** (tentativa - 1))
+    yield espera + random() * base
+
+esperas := [recuo(i, 0.01) cycle i in range(1, 5)]
+assert esperas[0] smaller esperas[3]
+assert len(unique([round(recuo(1, 0.01), 6) cycle i in range(5)])) bigger 1
+out "   quatro tentativas, esperas crescentes e diferentes entre si"
+
+out ""
+out "== 4. o que NAO se repete =="
+
+// Um erro de logica repete identico. Repetir aqui e gastar tempo e
+// esconder o bug.
+action nao_vale_repetir():
+    x := [1, 2]
+    yield x[9]  // df: permitir indice-fora-do-alcance
+
+sempre := 0
+cycle i from 1 to 3:
+    monitor:
+        nao_vale_repetir()
+    handle IndexError:
+        sempre += 1
+assert sempre is 3
+out "   tres tentativas, tres vezes o MESMO erro"
+
+out ""
+out "== 5. distinguir as duas familias =="
+
+steady REPETIVEIS := ["ConnectionError", "TimeoutError", "NetworkError"]
+
+action vale_repetir(tipo):
+    yield tipo in REPETIVEIS
+
+assert vale_repetir("TimeoutError")
+assert not vale_repetir("IndexError")
+assert not vale_repetir("ConversionError")
+
+out ""
+out "== 6. e um prazo total, alem do numero de tentativas =="
+
+action insistir_ate(acao, prazo):
+    limite := Tempo.timestamp() + prazo
+    ultimo := ""
+    persist Tempo.timestamp() smaller limite:
+        monitor:
+            yield acao()
+        handle Error as e:
+            ultimo := e.message
+    trigger $"prazo esgotado: {ultimo}"
+
+tentativas["n"] := 0
+assert insistir_ate(lambda => instavel(1), 2.0) is "ok na tentativa 2"
+
+out "exercicio 334 ok"

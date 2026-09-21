@@ -1,0 +1,94 @@
+// Exercicio 337 — o sistema de arquivos falha de seis jeitos
+//
+// Enunciado: nao existe, existe e nao e o que se espera, sem
+// permissao, e uma pasta onde se queria um arquivo. Tratar os quatro
+// como "erro de IO" e o que faz um log dizer "falhou" e nada mais.
+
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+steady pasta := $"{OS.temp_dir()}/df-337-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+steady arquivo := $"{pasta}/dados.txt"
+IO.write(arquivo, "conteudo")
+
+out "== 1. nao existe =="
+
+monitor:
+    IO.read($"{pasta}/nao-existe.txt")
+handle FileNotFoundError as e:
+    out $"   {e.type}"
+
+out ""
+out "== 2. e uma pasta onde se queria arquivo =="
+
+monitor:
+    IO.read(pasta)
+handle Error as e:
+    out $"   {e.type}"
+
+out ""
+out "== 3. conferir ANTES e melhor do que tratar depois =="
+
+action ler_se_der(caminho):
+    given not IO.exists(caminho):
+        yield {"ok": no, "motivo": "o arquivo nao existe"}
+    given caminho in [pasta]:
+        yield {"ok": no, "motivo": "isto e uma pasta"}
+    monitor:
+        yield {"ok": yes, "texto": IO.read(caminho)}
+    handle Error as e:
+        yield {"ok": no, "motivo": e.message}
+
+assert ler_se_der(arquivo)["texto"] is "conteudo"
+assert ler_se_der($"{pasta}/x")["motivo"] is "o arquivo nao existe"
+assert ler_se_der(pasta)["motivo"] is "isto e uma pasta"
+
+// Mas conferir e depois usar tem uma janela entre os dois: o arquivo
+// pode sumir nesse intervalo. Por isso o 'monitor' continua ali.
+out "   conferir nao dispensa tratar: ha uma janela entre os dois"
+
+out ""
+out "== 4. escrever numa pasta que nao existe =="
+
+monitor:
+    IO.write($"{pasta}/sem/pasta/x.txt", "x")
+handle Error as e:
+    out $"   {e.type}"
+
+// A saida: criar a arvore antes.
+IO.mkdir($"{pasta}/sub")
+IO.write($"{pasta}/sub/x.txt", "x")
+assert IO.exists($"{pasta}/sub/x.txt")
+
+out ""
+out "== 5. o defer garante a limpeza =="
+
+action trabalhar_com_temporario():
+    temporario := $"{pasta}/temp-{randint(1000, 9999)}.txt"
+    defer:
+        given IO.exists(temporario):
+            IO.delete(temporario)
+    IO.write(temporario, "rascunho")
+    assert IO.exists(temporario)
+    trigger "falhou depois de criar"
+
+monitor:
+    trabalhar_com_temporario()
+handle Error:
+    out "   falhou, e o temporario foi apagado"
+
+sobraram := [f cycle f in IO.list_dir(pasta) given startswith(f, "temp-")]
+assert len(sobraram) is 0
+
+out ""
+out "== 6. e o que NAO se deve fazer =="
+
+// 'IO.remove_tree(OS.temp_dir())' destroi o temporario de TODO
+// processo da maquina. Sempre uma subpasta propria.
+assert startswith(pasta, OS.temp_dir())
+assert pasta isnt OS.temp_dir()
+
+IO.remove_tree(pasta)
+assert not IO.exists(pasta)
+out "exercicio 337 ok"

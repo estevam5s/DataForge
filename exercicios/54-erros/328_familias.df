@@ -1,0 +1,96 @@
+// Exercicio 328 — capturar por FAMILIA, e nao por nome
+//
+// Enunciado: sao 208 codigos de erro. Comparar nomes exatos obrigaria
+// a listar cada um; a heranca deixa 'handle RuntimeError' pegar os
+// vinte da familia, e quem precisa distinguir ainda nomeia o
+// especifico.
+
+adopt Arcane.IO as IO
+
+action classe_de(acao):
+    monitor:
+        acao()
+    handle Error as e:
+        yield e.type
+    yield "nenhum"
+
+out "== 1. cada erro tem a sua classe =="
+
+assert classe_de(lambda => 1 / 0) is "DivisionByZeroError"  // df: permitir division-by-zero
+assert classe_de(lambda => [1, 2][9]) is "IndexError"  // df: permitir indice-fora-do-alcance
+assert classe_de(lambda => {"a": 1} ["b"]) is "KeyError"  // df: permitir chave-ausente
+assert classe_de(lambda => int("nao e numero")) is "ConversionError"
+assert classe_de(lambda => IO.read("/nao/existe/mesmo")) is "FileNotFoundError"
+
+out ""
+out "== 2. a familia pega todos os filhos =="
+
+action pela_familia(acao, _rotulo):
+    monitor:
+        acao()
+    handle RuntimeError:
+        yield "runtime"
+    handle Error:
+        yield "outro"
+    yield "nenhum"
+
+assert pela_familia(lambda => 1 / 0, "divisao") is "runtime"  // df: permitir division-by-zero
+
+out ""
+out "== 3. a ORDEM dos handle importa =="
+
+// O primeiro que casa vence. Com 'Error' no topo, nada abaixo dele
+// seria alcancado.
+qual := ""
+monitor:
+    _x := 1 / 0  // df: permitir division-by-zero
+handle DivisionByZeroError:
+    qual := "especifico"
+handle RuntimeError:
+    qual := "familia"
+assert qual is "especifico"
+
+invertido := ""
+monitor:
+    _x := 1 / 0  // df: permitir division-by-zero
+handle RuntimeError:
+    invertido := "familia"
+handle DivisionByZeroError:
+    invertido := "especifico"
+assert invertido is "familia"
+out "   do especifico ao geral, sempre"
+
+out ""
+out "== 4. 'trigger' levanta TriggerError, e nao RuntimeError =="
+
+// E a armadilha mais cara: 'handle RuntimeError' nao pega um
+// 'trigger'.
+nao_pegou := yes
+monitor:
+    monitor:
+        trigger "minha falha"
+    handle RuntimeError:
+        nao_pegou := no
+handle TriggerError as e:
+    assert e.message is "minha falha"
+assert nao_pegou
+
+// Para pegar qualquer coisa: 'handle Error'.
+pegou := no
+monitor:
+    trigger "outra"
+handle Error:
+    pegou := yes
+assert pegou
+
+out ""
+out "== 5. e 'handle' sem tipo pega tudo =="
+
+sem_tipo := no
+monitor:
+    trigger "qualquer"
+handle:
+    sem_tipo := yes
+assert sem_tipo
+
+out "exercicio 328 ok"

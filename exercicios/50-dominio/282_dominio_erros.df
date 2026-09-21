@@ -1,0 +1,77 @@
+// Exercicio 282 — a familia de erros do dominio
+//
+// Enunciado: levantar 'RuntimeError' em tudo faria a distincao morrer
+// na fronteira — para quem escreve o 'handle', violar uma invariante e
+// dividir por zero viram a mesma coisa. Cada peca levanta a sua, e a
+// base pega todas.
+
+adopt Arcane.Dominio as D
+
+steady Dinheiro := D.valor("Dinheiro", ["q"], regra := lambda v => v["q"] bigger 0)
+
+action classe_do_erro(acao):
+    monitor:
+        acao()
+    handle Error as e:
+        yield e.type
+    yield "nenhum"
+
+out "== 1. cada peca levanta a SUA =="
+
+assert classe_do_erro(lambda => Dinheiro(-1)) is "ValueObjectError"
+assert classe_do_erro(lambda => D.repositorio("X").exigir("nao-existe")) is "RepositoryError"
+assert classe_do_erro(lambda => D.evento("")) is "EventError"
+assert classe_do_erro(lambda => D.contexto("A").receber("B", "C", {})) is "BoundedContextError"
+assert classe_do_erro(lambda => D.repositorio("X").guardar(Dinheiro(1))) is "IdentityError"
+
+p := D.agregado("Pedido", "P", total := 0)
+assert classe_do_erro(lambda => p.mudar(total := 1)) is "AggregateError"
+
+u := D.unidade()
+u.confirmar()
+assert classe_do_erro(lambda => u.confirmar()) is "UnitOfWorkError"
+
+out "   sete pecas, sete classes"
+
+out ""
+out "== 2. a base pega todas =="
+
+action pela_base(acao):
+    monitor:
+        acao()
+    handle DomainError:
+        yield yes
+    yield no
+
+assert pela_base(lambda => Dinheiro(-1))
+assert pela_base(lambda => D.evento(""))
+assert pela_base(lambda => p.mudar(total := 1))
+assert pela_base(lambda => u.confirmar())
+
+out ""
+out "== 3. e ela NAO pega um erro de fora =="
+
+// Senao 'handle DomainError' viraria um 'handle' sem tipo.
+nao_pegou := no
+monitor:
+    monitor:
+        _x := 1 / 0  // df: permitir division-by-zero
+    handle DomainError:
+        assert no
+handle DivisionByZeroError:
+    nao_pegou := yes
+assert nao_pegou
+
+out ""
+out "== 4. o especifico continua distinguivel =="
+
+so_valor := no
+monitor:
+    Dinheiro(-1)
+handle RepositoryError:
+    assert no
+handle ValueObjectError:
+    so_valor := yes
+assert so_valor
+
+out "exercicio 282 ok"

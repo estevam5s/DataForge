@@ -1,0 +1,66 @@
+// Exercicio 283 — um valor que outros valores acompanham
+//
+// Enunciado: a diferenca entre "me avise quando algo acontecer" e
+// "este total e sempre a soma daqueles tres". O derivado e preguicoso
+// e memorizado — e contar as vezes que a formula roda e o unico jeito
+// de PROVAR as duas coisas.
+
+adopt Arcane.Reativo as R
+
+steady preco := R.sinal(10.0)
+steady quantidade := R.sinal(3)
+
+contas := {"n": 0}
+
+action calcular():
+    contas["n"] := contas["n"] + 1
+    yield preco.ler() * quantidade.ler()
+
+steady total := R.derivado(calcular)
+
+out "== 1. ele so calcula quando alguem LE =="
+
+assert contas["n"] is 0
+assert total.ler() is 30.0
+assert contas["n"] is 1
+
+out ""
+out "== 2. e o valor fica memorizado =="
+
+total.ler()
+total.ler()
+assert contas["n"] is 1
+out "   tres leituras, uma conta so"
+
+out ""
+out "== 3. mudar uma fonte invalida =="
+
+quantidade.escrever(5)
+assert total.ler() is 50.0
+assert contas["n"] is 2
+
+out ""
+out "== 4. escrever o MESMO valor nao invalida =="
+
+// Senao a cadeia recalcularia por nada, e um efeito de rede dispararia
+// duas vezes pelo mesmo estado.
+quantidade.escrever(5)
+assert total.ler() is 50.0
+assert contas["n"] is 2
+
+out ""
+out "== 5. atualizar le e escreve numa chamada =="
+
+quantidade.atualizar(lambda q => q + 1)
+assert quantidade.ler() is 6
+assert total.ler() is 60.0
+
+out ""
+out "== 6. ler SEM depender =="
+
+// '.valor()' nao registra a dependencia: e a saida para um contador de
+// depuracao que nao deve fazer o derivado recalcular.
+assert preco.valor() is 10.0
+assert quantidade.valor() is 6
+
+out "exercicio 283 ok"

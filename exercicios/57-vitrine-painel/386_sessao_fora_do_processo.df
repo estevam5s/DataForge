@@ -1,0 +1,87 @@
+// Exercicio 386 — onde a sessao mora
+//
+// Enunciado: a sessao na memoria do processo some quando ele
+// reinicia, e nao atravessa dois processos. O armazem comum resolve
+// os dois — e cobra tres coisas que so aparecem com processos de
+// verdade.
+
+adopt Arcane.Vitrine as V
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+steady pasta := $"{OS.temp_dir()}/df-386-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+
+action painel():
+    V.titulo("Contador")
+    n := V.estado["n"] ?? 0
+    given V.botao("Somar"):
+        n := n + 1
+        V.estado["n"] := n
+    V.metrica("Total", str(n))
+
+out "== 1. na memoria do processo =="
+
+t := V.testar(painel)
+t.clicar("Somar")
+t.clicar("Somar")
+assert t.estado("n") is 2
+
+out ""
+out "== 2. os quatro lugares onde a sessao pode morar =="
+
+steady ARMAZENS := {
+    "memoria": "o padrao — some quando o processo reinicia",
+    "arquivos": "um arquivo por sessao, numa pasta",
+    "banco": "SQLite, e atravessa processos",
+    "proprio": "um blueprint seu, com ler e gravar"
+}
+assert len(keys(ARMAZENS)) is 4
+cycle a in keys(ARMAZENS):
+    out $"   {a}: {ARMAZENS[a]}"
+
+out ""
+out "== 3. so o que MUDOU e gravado =="
+
+// Cada valor e codificado e comparado com a foto tirada ao abrir.
+// Gravar no 'definir' perderia 'itens.append(x)', que nao passa por
+// ele.
+out "   a gravacao e no fim do pedido, comparando com a foto de abertura"
+
+out ""
+out "== 4. as tres armadilhas que custaram =="
+
+steady ARMADILHAS := {
+    "WAL": "trocar para WAL ignora o timeout: dois processos subindo juntos davam 'database is locked' na hora",
+    "fixacao": "um id desconhecido vira sessao NOVA — senao o id plantado no cookie viraria sessao, e agora sobreviveria ao processo",
+    "caminho": "so id de 32 hexadecimais chega ao armazem: em arquivos o id e NOME DE ARQUIVO, e '../x' escreveria fora da pasta"
+}
+assert len(keys(ARMADILHAS)) is 3
+cycle a in keys(ARMADILHAS):
+    out $"   {a}: {ARMADILHAS[a]}"
+
+out ""
+out "== 5. e encerrar marca, para a gravacao nao ressuscitar =="
+
+// Sem a marca, a gravacao do fim do pedido recriava a sessao que
+// acabou de ser apagada.
+action com_logout():
+    V.titulo("x")
+    given V.botao("Sair"):
+        V.encerrar_sessao()
+
+t2 := V.testar(com_logout)
+t2.clicar("Sair")
+assert not t2.falhou()
+out "   'encerrar_sessao' marca a sessao como encerrada"
+
+out ""
+out "== 6. e o que continua na memoria =="
+
+// 'V.estado.somar' NAO e atomico entre processos: na mesma chave,
+// vence a ultima gravacao. E a sessao do KILN continua na memoria do
+// processo, sempre.
+out "   'somar' entre processos: vence a ultima gravacao"
+
+IO.remove_tree(pasta)
+out "exercicio 386 ok"

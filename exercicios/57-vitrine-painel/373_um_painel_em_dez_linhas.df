@@ -1,0 +1,65 @@
+// Exercicio 373 — o programa de cima para baixo que vira pagina
+//
+// Enunciado: o modelo da Vitrine e o que dispensa callback e diffing —
+// o programa INTEIRO roda de novo a cada interacao, e o estado da
+// sessao sobrevive. E e isso que torna 'V.cache' obrigatorio, e nao
+// opcional.
+
+adopt Arcane.Vitrine as V
+
+action painel():
+    V.titulo("Vendas")
+    V.metrica("Total", "R$ 1.250", variacao := "+12%")
+
+    nome := V.entrada("Seu nome", "Ana")
+    V.texto($"Ola, {nome}")
+
+    given V.botao("Somar"):
+        V.estado["n"] := (V.estado["n"] ?? 0) + 1
+
+    V.texto($"clicou {V.estado['n'] ?? 0} vez(es)")
+
+out "== 1. a arvore, sem navegador =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.existe("titulo")
+assert t.existe("metrica")
+assert t.quantos("texto") is 2
+out $"   {len(t.arvore())} no(s) na pagina"
+
+out ""
+out "== 2. o texto que saiu =="
+
+assert "Ola, Ana" in t.texto()
+assert "clicou 0" in t.texto()
+
+out ""
+out "== 3. digitar reexecuta o programa =="
+
+t.digitar("Seu nome", "Bia")
+assert "Ola, Bia" in t.texto()
+out "   nenhum callback: o programa rodou de novo"
+
+out ""
+out "== 4. e o estado da sessao sobrevive =="
+
+t.clicar("Somar")
+assert "clicou 1" in t.texto()
+t.clicar("Somar")
+assert "clicou 2" in t.texto()
+assert t.estado("n") is 2
+
+// E o nome continua o que foi digitado.
+assert "Ola, Bia" in t.texto()
+
+out ""
+out "== 5. o botao e verdadeiro UMA vez =="
+
+// Ele nao e um callback: e um valor que vale 'yes' na execucao em que
+// foi clicado, e 'no' em todas as outras.
+t.digitar("Seu nome", "Caio")
+assert "clicou 2" in t.texto()
+out "   a reexecucao por outro motivo nao repetiu o clique"
+
+out "exercicio 373 ok"

@@ -1,0 +1,78 @@
+// Exercicio 368 — o 429 que vem no CORPO
+//
+// Enunciado: o Telegram responde 429 com 'retry_after' NO CORPO da
+// resposta, e nao num cabecalho. Quem escreve o cliente a mao trata
+// 429 como "erro" e desiste — e o bot para de responder num horario
+// de pico, sem nada no log dizendo por que.
+
+adopt Arcane.Telegram as Tg
+adopt Arcane.Time as Tempo
+
+out "== 1. o limitador existe, e tem um teto =="
+
+limitador := Tg.limitar(30)
+assert limitador is not void
+
+out ""
+out "== 2. ele segura, e nao descarta =="
+
+// Um limitador que joga fora a mensagem excedente e pior que nenhum:
+// o usuario nao recebe, e o bot acha que mandou.
+marcas := []
+apertado := Tg.limitar(50)
+
+comeco := Tempo.timestamp()
+cycle i from 1 to 6:
+    apertado.esperar()
+    marcas.append(Tempo.timestamp() - comeco)
+
+assert len(marcas) is 6
+assert marcas[-1] bigger_eq marcas[0]
+out $"   seis passagens, a ultima em {round(marcas[-1], 3)}s"
+
+out ""
+out "== 3. e o limite e POR CHAT alem do global =="
+
+out "   30 por segundo no total; ~1 por segundo no mesmo grupo"
+
+out ""
+out "== 4. o recuo, quando o 429 chega mesmo assim =="
+
+// 'retry_after' diz quantos segundos esperar. Ignora-lo e insistir
+// e o que transforma um limite momentaneo num bloqueio.
+action recuo(tentativa, base):
+    yield base * (2 ** (tentativa - 1)) + random() * base
+
+esperas := [recuo(i, 0.01) cycle i in range(1, 5)]
+assert esperas[0] smaller esperas[3]
+
+// E o TREMOR importa: sem ele, todos os clientes que tomaram 429
+// juntos voltam juntos.
+duas := [round(recuo(1, 0.01), 8) cycle i in range(2)]
+assert duas[0] isnt duas[1]
+out "   esperas crescentes, e diferentes entre si"
+
+out ""
+out "== 5. o que o modulo NAO pode fazer =="
+
+// Ele nao pode inventar idempotencia: se a mensagem ja saiu e o 429
+// veio depois, reenviar manda duas. Por isso a retentativa vale para
+// LEITURA, e nao para escrita cega.
+out "   repetir um envio manda duas mensagens; quem decide e quem chama"
+
+out ""
+out "== 6. e o teste disso nao precisa de rede =="
+
+app := Tg.app("123456:AAHexemplo")
+
+mark @app.comando("spam")
+action spam(ctx):
+    cycle i from 1 to 5:
+        ctx.responder($"mensagem {i}")
+
+t := Tg.testar(app)
+t.comando("spam")
+assert t.quantas("sendMessage") is 5
+out "   cinco envios contados, zero sockets"
+
+out "exercicio 368 ok"

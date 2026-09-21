@@ -1,0 +1,82 @@
+// Exercicio 297 — quatro formas de lidar com mudanca
+//
+// Enunciado: a linguagem tem 'Arcane.Eventos' (um emissor),
+// 'Arcane.Stream' (topicos com offset), 'stream action' (um gerador
+// preguicoso) e agora o reativo. Elas nao resolvem o mesmo problema, e
+// escolher a errada e de onde vem metade da complicacao.
+
+adopt Arcane.Reativo as R
+adopt Arcane.Eventos as Ev
+
+out "== 1. o emissor: quem escuta recebe o que foi emitido =="
+
+emissor := Ev.emissor()
+avisados := []
+emissor.ao("pedido.pago", lambda dados => avisados.append(dados["id"]))
+emissor.emitir("pedido.pago", {"id": "P-1"})
+assert avisados is ["P-1"]
+
+// Pergunta que ele NAO responde: "qual foi o ultimo pedido pago?"
+// Ele nao guarda estado.
+
+out ""
+out "== 2. o sinal: ele TEM um valor agora =="
+
+ultimo := R.sinal("nenhum")
+ultimo.escrever("P-1")
+assert ultimo.ler() is "P-1"
+out "   a pergunta 'qual e o valor agora?' tem resposta"
+
+out ""
+out "== 3. o gerador preguicoso produz sob demanda =="
+
+stream action naturais():
+    n := 1
+    persist yes:
+        emit n
+        n += 1
+
+assert naturais().take(4) is [1, 2, 3, 4]
+// Quem manda e quem CONSOME. Ninguem e avisado de nada.
+
+out ""
+out "== 4. o observavel: um fluxo no tempo, empurrado =="
+
+cliques := R.observavel("cliques")
+contados := []
+cliques.inscrever(lambda c => contados.append(c))
+cliques.emitir("a")
+cliques.emitir("b")
+assert contados is ["a", "b"]
+// Quem manda e quem PRODUZ — e nao ha "valor atual".
+
+out ""
+out "== 5. e o derivado e o que nenhum dos outros da =="
+
+// "Este total e sempre a soma daqueles tres" — sem callback, sem
+// assinatura, sem recalcular a mao.
+a := R.sinal(1)
+b := R.sinal(2)
+c := R.sinal(3)
+steady soma := R.derivado(lambda => a.ler() + b.ler() + c.ler())
+
+assert soma.ler() is 6
+b.escrever(20)
+assert soma.ler() is 24
+out "   ninguem recalculou nada"
+
+out ""
+out "== 6. e a ponte entre os dois mundos =="
+
+// Um fluxo vira valor com 'para_sinal'; um valor vira fluxo com
+// 'observar'.
+fluxo_para_valor := cliques.para_sinal("nenhum")
+cliques.emitir("c")
+assert fluxo_para_valor.ler() is "c"
+
+do_valor := []
+a.observar(lambda v => do_valor.append(v))
+a.escrever(9)
+assert do_valor is [9]
+
+out "exercicio 297 ok"

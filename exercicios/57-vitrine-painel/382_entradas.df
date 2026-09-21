@@ -1,0 +1,79 @@
+// Exercicio 382 — os campos, e o que 'mudou' responde
+//
+// Enunciado: toda entrada devolve o valor de agora. O que faltava era
+// saber se ele MUDOU nesta execucao — sem isso, uma consulta cara
+// roda a cada redesenho, mesmo quando nada relevante mexeu.
+
+adopt Arcane.Vitrine as V
+
+consultas := []
+
+action painel():
+    V.titulo("Filtros")
+
+    // 'mudou' pergunta pela CHAVE, e nao pelo rotulo: o rotulo e o
+    // que a pessoa le, e pode mudar com a traducao.
+    regiao := V.escolha("Regiao", ["sul", "norte", "leste"],
+        chave := "regiao")
+    faixa := V.deslizante("Valor minimo", 0, 5000, 1000)
+    ativos := V.interruptor("So ativos", yes)
+    _tags := V.pilulas("Categorias", ["cafe", "bolo", "suco"])
+
+    given V.mudou("regiao"):
+        consultas.append(regiao)
+
+    V.texto($"regiao {regiao}, minimo {faixa}, ativos {ativos}")
+    V.texto($"mudaram: {V.mudancas()}")
+
+out "== 1. os valores padrao =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert "regiao sul" in t.texto()
+assert "minimo 1000" in t.texto()
+
+out ""
+out "== 2. trocar a escolha =="
+
+t.selecionar("Regiao", "norte")
+assert "regiao norte" in t.texto()
+
+out ""
+out "== 3. e 'mudou' respondeu so na execucao em que mudou =="
+
+assert consultas is ["norte"]
+
+t.marcar("So ativos", no)
+assert consultas is ["norte"]
+out "   outro campo mexeu, e a consulta nao rodou de novo"
+
+out ""
+out "== 4. os tipos de entrada =="
+
+steady ENTRADAS := {
+    "texto": "entrada, area_de_texto, senha, busca, email",
+    "numero": "numero, deslizante, deslizante_opcoes, faixa",
+    "escolha": "escolha, escolhas, opcao, pilulas, segmentado, tags",
+    "sim/nao": "interruptor, caixa",
+    "tempo": "data, hora, periodo",
+    "outros": "arquivo, camera, cor, avaliacao, autocompletar"
+}
+assert len(keys(ENTRADAS)) is 6
+cycle e in keys(ENTRADAS):
+    out $"   {e}: {ENTRADAS[e]}"
+
+out ""
+out "== 5. e a chave, quando o rotulo repete =="
+
+// Duas entradas com o mesmo rotulo dividiriam o mesmo estado — e uma
+// sobrescreveria a outra, calada.
+action dois_iguais():
+    a := V.entrada("Nome", "", chave := "nome_do_cliente")
+    b := V.entrada("Nome", "", chave := "nome_do_vendedor")
+    V.texto($"{a}|{b}")
+
+t2 := V.testar(dois_iguais)
+assert not t2.falhou()
+out "   a 'chave' separa dois campos com o mesmo rotulo"
+
+out "exercicio 382 ok"

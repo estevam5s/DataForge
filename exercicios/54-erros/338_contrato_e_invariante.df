@@ -1,0 +1,104 @@
+// Exercicio 338 — o erro que aparece na FRONTEIRA
+//
+// Enunciado: 'requires', 'promises' e 'invariant' movem a falha para
+// onde ela e compreensivel. Sem eles, um argumento errado vira uma
+// conta errada tres chamadas adiante, e a queixa fala de outra coisa.
+
+blueprint Conta:
+    saldo := 0.0
+
+    invariant self.saldo bigger_eq 0.0
+
+    action setup(inicial):
+        self.saldo := inicial
+
+    action sacar(quanto):
+        expects quanto bigger 0.0
+        promises outcome smaller_eq before(self.saldo)
+        self.saldo := self.saldo - quanto
+        yield self.saldo
+
+    action depositar(quanto):
+        expects quanto bigger 0.0
+        self.saldo := self.saldo + quanto
+        yield self.saldo
+
+out "== 1. o caminho feliz =="
+
+c := spawn Conta(100.0)
+assert c.sacar(30.0) is 70.0
+assert c.depositar(10.0) is 80.0
+
+out ""
+out "== 2. a pre-condicao acusa QUEM CHAMOU =="
+
+// Sem ela, 'sacar(-50)' AUMENTA o saldo, e o erro aparece no extrato.
+pre := no
+monitor:
+    c.sacar(-50.0)
+handle PreconditionError as e:
+    pre := yes
+    out $"   {e.message}"
+assert pre
+assert c.saldo is 80.0
+
+out ""
+out "== 3. a invariante acusa o OBJETO =="
+
+inv := no
+monitor:
+    c.sacar(999.0)
+handle InvariantError as e:
+    inv := yes
+    out $"   {e.message}"
+assert inv
+
+out ""
+out "== 4. as duas dizem coisas diferentes =="
+
+// 'PreconditionError' = o argumento esta errado.
+// 'InvariantError'    = o objeto chegou a um estado que nao pode existir.
+out "   precondicao: o erro e de quem chamou"
+out "   invariante:  o erro e do objeto"
+
+out ""
+out "== 5. e a pos-condicao confere o RESULTADO =="
+
+blueprint Quebrada:
+    valor := 0
+
+    action dobrar(x):
+        promises outcome bigger x
+        yield x - 1  // mente sobre o que promete
+
+q := spawn Quebrada()
+pos := no
+monitor:
+    q.dobrar(10)
+handle PostconditionError as e:
+    pos := yes
+    out $"   {e.message}"
+assert pos
+
+out ""
+out "== 6. a familia dos contratos =="
+
+action classe_de(acao):
+    monitor:
+        acao()
+    handle Error as e:
+        yield e.type
+    yield "nenhum"
+
+assert classe_de(lambda => c.sacar(-1.0)) is "PreconditionError"
+assert classe_de(lambda => q.dobrar(1)) is "PostconditionError"
+
+// E 'handle ContractError' pega os tres.
+pela_base := no
+monitor:
+    c.sacar(-1.0)
+handle ContractError:
+    pela_base := yes
+assert pela_base
+
+out "exercicio 338 ok"

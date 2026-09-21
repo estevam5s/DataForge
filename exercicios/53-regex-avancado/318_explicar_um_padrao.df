@@ -1,0 +1,64 @@
+// Exercicio 318 — ler uma expressao regular
+//
+// Enunciado: ler uma expressao regular e o custo dela. O padrao que
+// valida um e-mail cabe numa linha e leva dez minutos para ser
+// entendido por quem nao a escreveu.
+
+adopt Arcane.Regex as Regex
+
+out "== 1. pedaco a pedaco =="
+
+partes := Regex.explain("^\\d{3}-\\w+$")
+assert [p["trecho"] cycle p in partes] is ["^", "\\d", "{3}", "-", "\\w", "+", "$"]
+
+cycle p in partes:
+    out $"   {p['trecho']}  ->  {p['quer_dizer']}"
+
+out ""
+out "== 2. ele nomeia o grupo =="
+
+assert "'ano'" in Regex.explain("(?P<ano>\\d{4})")[0]["quer_dizer"]
+assert "NAO captura" in Regex.explain("(?:ab)")[0]["quer_dizer"]
+
+out ""
+out "== 3. e distingue o preguicoso do guloso =="
+
+assert "MENOS" in Regex.explain("a+?")[1]["quer_dizer"]
+assert "MENOS" not in Regex.explain("a+")[1]["quer_dizer"]
+
+out ""
+out "== 4. a classe negada =="
+
+assert "FORA" in Regex.explain("[^abc]")[0]["quer_dizer"]
+assert "FORA" not in Regex.explain("[abc]")[0]["quer_dizer"]
+
+out ""
+out "== 5. literais seguidos viram um pedaco so =="
+
+literal := Regex.explain("abc")
+assert len(literal) is 1
+assert literal[0]["trecho"] is "abc"
+
+out ""
+out "== 6. um padrao quebrado NAO e explicado =="
+
+// E a mensagem mostra ONDE: a do Python diz 'at position 7' e nao
+// desenha o padrao.
+quebrou := no
+monitor:
+    Regex.explain("(sem fecho")
+handle RegexError as e:
+    quebrou := yes
+    assert "^" in e.message
+    out $"   recusou o padrao quebrado"
+assert quebrou
+
+out ""
+out "== 7. um padrao de verdade, lido em voz alta =="
+
+steady TELEFONE := "\\(\\d{2}\\) \\d{4,5}-\\d{4}"
+frases := [p["quer_dizer"] cycle p in Regex.explain(TELEFONE)]
+assert "de 4 a 5 vezes" in frases
+assert Regex.is_exactly(TELEFONE, "(48) 99999-1234")
+
+out "exercicio 318 ok"

@@ -1,0 +1,90 @@
+// Exercicio 355 — perguntar ao objeto o que ele tem
+//
+// Enunciado: reflexao e o que faz uma biblioteca funcionar com um tipo
+// que ela nunca viu. E ela precisa respeitar a VISIBILIDADE: uma
+// reflexao que le campo privado transforma 'private' em comentario.
+
+adopt Arcane.Reflexo as Ref
+
+blueprint Produto:
+    action setup(nome, preco):
+        self.nome := nome
+        self.preco := preco
+        self._custo := preco * 0.6
+
+    action margem():
+        yield round(self.preco - self._custo, 2)
+
+    private action calcular_imposto():
+        yield self.preco * 0.1
+
+out "== 1. os campos e os metodos =="
+
+p := spawn Produto("cafe", 32.5)
+
+// 'campos' devolve a DESCRICAO de cada um: nome, tipo, visibilidade,
+// somente-leitura e anotacoes. Um cluster de nomes bastaria para
+// imprimir, e nao para decidir o que serializar.
+campos := [c["nome"] cycle c in Ref.campos(p)]
+assert "nome" in campos
+assert "preco" in campos
+out $"   campos: {campos}"
+
+metodos := [m["nome"] cycle m in Ref.metodos(Produto)]
+assert "margem" in metodos
+
+out ""
+out "== 2. chamar por NOME =="
+
+assert Ref.invocar(p, "margem") is 13.0
+
+out ""
+out "== 3. e a visibilidade e respeitada =="
+
+recusou := no
+monitor:
+    Ref.invocar(p, "calcular_imposto")
+handle Error as e:
+    recusou := yes
+    out $"   {e.message}"
+assert recusou
+
+out ""
+out "== 4. a linhagem =="
+
+blueprint Digital extends Produto:
+    action setup(nome, preco, tamanho):
+        root.setup(nome, preco)
+        self.tamanho := tamanho
+
+// 'mro' e 'herdeiros' devolvem os BLUEPRINTS, e nao os nomes: com o
+// objeto na mao da para continuar perguntando.
+assert [Ref.nome(b) cycle b in Ref.mro(Digital)] is ["Digital", "Produto"]
+assert [Ref.nome(b) cycle b in Ref.herdeiros(Produto)] is ["Digital"]
+assert Ref.descende(Digital, Produto)
+
+out ""
+out "== 5. e e isso que faz um serializador generico funcionar =="
+
+action para_vault(objeto):
+    "Sem saber que tipo e — so perguntando."
+    saida := {}
+    cycle campo in Ref.campos(objeto):
+        nome := campo["nome"]
+        given campo["visibilidade"] is "public" and not startswith(nome, "_"):
+            saida[nome] := Ref.ler(objeto, nome)
+    yield saida
+
+assert para_vault(p) is {"nome": "cafe", "preco": 32.5}
+assert para_vault(spawn Digital("livro", 40.0, 12))["tamanho"] is 12
+out $"   {para_vault(p)}"
+
+out ""
+out "== 6. o diagrama, para quem precisa VER =="
+
+diagrama := Ref.diagrama([Produto, Digital])
+assert "Produto" in diagrama
+assert "Digital" in diagrama
+out "   e o Mermaid sai pronto para colar num README"
+
+out "exercicio 355 ok"

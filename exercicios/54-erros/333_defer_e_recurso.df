@@ -1,0 +1,134 @@
+// Exercicio 333 — fechar o que foi aberto
+//
+// Enunciado: 'defer' roda na saida da ACAO, onde quer que esteja
+// escrito — dentro de um cycle, de um persist, ou no topo. E ele NAO
+// engole: um erro dentro dele viaja, e se a acao ja estava falhando,
+// viaja o ORIGINAL com o do defer em 'e.outros'.
+
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+steady pasta := $"{OS.temp_dir()}/df-333-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+
+ordem := []
+
+out "== 1. ele roda na saida da acao =="
+
+action com_defer():
+    defer:
+        ordem.append("fechou")
+    ordem.append("trabalhou")
+    yield "pronto"
+
+assert com_defer() is "pronto"
+assert ordem is ["trabalhou", "fechou"]
+
+out ""
+out "== 2. e roda tambem quando a acao FALHA =="
+
+ordem := []
+
+action falha_com_defer():
+    defer:
+        ordem.append("fechou mesmo assim")
+    trigger "quebrou no meio"
+
+monitor:
+    falha_com_defer()
+handle Error:
+    ordem.append("tratado")
+assert ordem is ["fechou mesmo assim", "tratado"]
+
+out ""
+out "== 3. num laco, ele acumula e roda TUDO no fim =="
+
+// Ele se registrava no escopo em que aparece, e so o da acao era
+// consultado: um 'defer' num laco NUNCA rodava, calado — e fechar
+// arquivo por volta e o uso mais obvio que existe. Hoje ele roda, e
+// roda na SAIDA DA ACAO, na ordem inversa do registro.
+ordem := []
+
+action num_laco():
+    cycle i from 1 to 3:
+        defer:
+            ordem.append($"fecha {i}")
+        ordem.append($"abre {i}")
+
+num_laco()
+assert ordem is ["abre 1", "abre 2", "abre 3", "fecha 3", "fecha 2", "fecha 1"]
+out $"   {ordem}"
+
+// A consequencia pratica: num laco de dez mil voltas, dez mil
+// arquivos ficam abertos ate a acao terminar. Quem precisa fechar por
+// VOLTA extrai o corpo para uma acao propria — e ai a saida dela e o
+// fim do 'defer'.
+por_volta := []
+
+action uma_volta(i):
+    defer:
+        por_volta.append($"fecha {i}")
+    por_volta.append($"abre {i}")
+
+cycle i from 1 to 3:
+    uma_volta(i)
+
+assert por_volta is ["abre 1", "fecha 1", "abre 2", "fecha 2",
+    "abre 3", "fecha 3"]
+out $"   por acao: {por_volta}"
+
+out ""
+out "== 4. um arquivo por volta, fechado por volta =="
+
+action gravar_tres():
+    cycle i from 1 to 3:
+        caminho := $"{pasta}/parte-{i}.txt"
+        defer:
+            ordem.append($"salvou {i}")
+        IO.write(caminho, $"conteudo {i}")
+
+ordem := []
+gravar_tres()
+assert len(ordem) is 3
+cycle i from 1 to 3:
+    assert IO.exists($"{pasta}/parte-{i}.txt")
+
+out ""
+out "== 5. o defer NAO engole o erro dele =="
+
+action defer_que_quebra():
+    defer:
+        quebrar()
+    yield "voltei"
+
+action quebrar():
+    trigger "o fechamento falhou"
+
+viajou := no
+monitor:
+    defer_que_quebra()
+handle Error as e:
+    viajou := yes
+    assert "fechamento falhou" in e.message
+assert viajou
+out "   um arquivo nao fechado nao termina o programa com codigo 0"
+
+out ""
+out "== 6. e quando os DOIS falham, viaja o original =="
+
+action os_dois():
+    defer:
+        quebrar()
+    trigger "o erro de verdade"
+
+monitor:
+    os_dois()
+handle Error as e:
+    // E o modelo do try-with-resources: o original manda, e o do
+    // fechamento vai junto.
+    assert "o erro de verdade" in e.message
+    assert len(e.outros) bigger_eq 1
+    out $"   original: {e.message} · junto: {len(e.outros)}"
+
+IO.remove_tree(pasta)
+out "exercicio 333 ok"

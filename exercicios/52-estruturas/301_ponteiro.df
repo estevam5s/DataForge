@@ -1,0 +1,78 @@
+// Exercicio 301 — andar por ELEMENTO, e nao por byte
+//
+// Enunciado: 'p + 1' num u32* do C anda QUATRO bytes. Andar um byte e
+// um indice, nao um ponteiro — e e a conta que quem escreve C faz o
+// tempo todo.
+
+adopt Arcane.Estrutura as Est
+
+numeros := Est.bloco(16)
+steady p := Est.ponteiro(numeros, "u32")
+
+out "== 1. escrever por ponteiro =="
+
+cycle i from 0 to 3:
+    p.mais(i).escrever((i + 1) * 100)
+
+assert p.cluster(4) is [100, 200, 300, 400]
+
+out ""
+out "== 2. o passo e o TAMANHO DO TIPO =="
+
+assert p.passo() is 4
+assert p.mais(1).endereco() is 4
+assert p.mais(3).endereco() is 12
+assert p.tipo() is "u32"
+
+steady q := Est.ponteiro(numeros, "u8")
+assert q.passo() is 1
+assert q.mais(1).endereco() is 1
+
+out ""
+out "== 3. distancia, tambem em elementos =="
+
+assert p.mais(3).distancia(p) is 3
+assert p.distancia(p.mais(2)) is -2
+
+// Entre tipos diferentes nao ha conta possivel.
+recusou := no
+monitor:
+    p.distancia(q)
+handle LayoutError as e:
+    recusou := yes
+    assert "distancia" in e.message
+assert recusou
+
+out ""
+out "== 4. o cast reinterpreta o MESMO endereco =="
+
+// 100 em big-endian e 00 00 00 64.
+assert p.como("u8").cluster(4) is [0, 0, 0, 100]
+assert p.como("u16").mais(1).ler() is 100
+out "   os mesmos quatro bytes, tres leituras"
+
+out ""
+out "== 5. sair do bloco e erro =="
+
+fora := no
+monitor:
+    p.mais(4).ler()
+handle BufferOverflowError as e:
+    fora := yes
+    assert "byte 16" in e.message
+assert fora
+
+out ""
+out "== 6. e um valor fora da faixa do tipo tambem =="
+
+// A faixa sai do TIPO DECLARADO, e nao do formato interno do Python.
+faixa := no
+monitor:
+    Est.ponteiro(numeros, "u8").escrever(300)
+handle BufferOverflowError as e:
+    faixa := yes
+    assert "0 a 255" in e.message
+    out $"   {e.message}"
+assert faixa
+
+out "exercicio 301 ok"

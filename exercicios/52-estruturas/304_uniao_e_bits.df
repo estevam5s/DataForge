@@ -1,0 +1,74 @@
+// Exercicio 304 — os mesmos bytes, dois nomes
+//
+// Enunciado: numa uniao todos os campos moram no deslocamento zero, e
+// o tamanho e o do maior. Escrever um e ler outro devolve a
+// reinterpretacao dos bytes — que e o ponto dela, e tambem o que a
+// torna perigosa quando o tipo escrito nao e registrado em lugar
+// nenhum.
+
+adopt Arcane.Estrutura as Est
+adopt Arcane.Bytes as By
+
+steady Valor := Est.uniao("Valor", [
+        ["inteiro", "u32"],
+        ["flutuante", "f32"]
+    ], ordem := "rede")
+
+out "== 1. todos no mesmo lugar =="
+
+assert Valor.deslocamento("inteiro") is 0
+assert Valor.deslocamento("flutuante") is 0
+assert Valor.tamanho is 4
+
+out ""
+out "== 2. escrever um, ler o outro =="
+
+caixa := Est.bloco(4)
+Valor.escrever(caixa, {"flutuante": 1.0})
+
+// 1.0 em IEEE 754 de 32 bits e 0x3F800000.
+assert Valor.ler(caixa)["inteiro"] is 1065353216
+assert By.hex(caixa.bytes()) is "3f800000"
+out $"   1.0 como u32: {Valor.ler(caixa)['inteiro']}"
+
+out ""
+out "== 3. e o caminho de volta =="
+
+Valor.escrever(caixa, {"inteiro": 1065353216})
+assert Valor.ler(caixa)["flutuante"] is 1.0
+
+out ""
+out "== 4. o tamanho e o do MAIOR =="
+
+steady Grande := Est.uniao("Grande", [
+        ["curto", "u8"],
+        ["longo", "f64"]
+    ])
+assert Grande.tamanho is 8
+
+out ""
+out "== 5. ler bits de um campo =="
+
+// Um campo de flags: oito booleanos num byte.
+steady Flags := Est.definir("Flags", [["bits", "u8"]])
+f := Flags.empacotar({"bits": 165})
+
+action ligado(valor, posicao):
+    yield(valor ~/ (2 ** posicao)) % 2 is 1
+
+b := Flags.ler(f)["bits"]
+assert ligado(b, 0)
+assert not ligado(b, 1)
+assert ligado(b, 2)
+assert ligado(b, 5)
+assert ligado(b, 7)
+out $"   {By.bits(f.bytes())}"
+
+out ""
+out "== 6. e o Arcane.Bytes le o mesmo bloco =="
+
+// Os dois modulos falam dos mesmos bytes: um por nome, o outro por
+// formato.
+assert By.desempacotar(">u32", caixa.bytes())[0] is 1065353216
+
+out "exercicio 304 ok"

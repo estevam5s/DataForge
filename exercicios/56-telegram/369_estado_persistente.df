@@ -1,0 +1,85 @@
+// Exercicio 369 — onde o estado do chat mora
+//
+// Enunciado: o armazem padrao e a memoria, e isso esta DITO: some
+// quando o processo reinicia. Um bot que promete lembrar precisa do
+// armazem em arquivo — e a troca e uma linha.
+
+adopt Arcane.Telegram as Tg
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+steady pasta := $"{OS.temp_dir()}/df-369-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+
+action montar(armazem):
+    app := Tg.app("123456:AAHexemplo", estado := armazem)
+
+    mark @app.comando("somar")
+    action somar(ctx):
+        n := ctx.estado["n"] ?? 0
+        ctx.estado["n"] := n + 1
+        ctx.responder($"agora {ctx.estado['n']}")
+
+    yield app
+
+out "== 1. na memoria =="
+
+t := Tg.testar(montar(Tg.estado_em_memoria()))
+t.comando("somar")
+t.comando("somar")
+assert t.estado("n") is 2
+assert "agora 2" in t.ultima()
+
+out ""
+out "== 2. e o proximo processo comeca do zero =="
+
+// Um app novo, com um armazem novo.
+outro := Tg.testar(montar(Tg.estado_em_memoria()))
+outro.comando("somar")
+assert outro.estado("n") is 1
+out "   o contador reiniciou — e isso esta dito na doc"
+
+out ""
+out "== 3. em arquivo, sobrevive =="
+
+steady EM_ARQUIVO := Tg.estado_em_arquivo(pasta)
+
+um := Tg.testar(montar(EM_ARQUIVO))
+um.comando("somar")
+um.comando("somar")
+um.comando("somar")
+assert um.estado("n") is 3
+
+// Outro "processo", lendo do mesmo lugar.
+dois := Tg.testar(montar(Tg.estado_em_arquivo(pasta)))
+dois.comando("somar")
+assert dois.estado("n") is 4
+out $"   o contador continuou: {dois.estado('n')}"
+
+out ""
+out "== 4. e 'ctx.estado' e uma VISTA, e nao uma copia =="
+
+// Escrever nele persiste. A primeira versao devolvia 'dict(...)':
+// 'ctx.estado["k"] := v' escrevia num dicionario descartavel, a
+// mudanca sumia, e a documentacao prometia o contrario.
+assert dois.estado("n") is 4
+
+out ""
+out "== 5. e a foto, para quem quer a copia =="
+
+app := montar(Tg.estado_em_memoria())
+
+mark @app.comando("foto")
+action foto(ctx):
+    ctx.estado["x"] := 1
+    copia := ctx.estado.para_vault()
+    ctx.estado["x"] := 2
+    ctx.responder($"foto {copia['x']}, vista {ctx.estado['x']}")
+
+t3 := Tg.testar(app)
+t3.comando("foto")
+assert "foto 1, vista 2" in t3.ultima()
+out $"   {t3.ultima()}"
+
+IO.remove_tree(pasta)
+out "exercicio 369 ok"

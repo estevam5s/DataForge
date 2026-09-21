@@ -1,0 +1,81 @@
+// Exercicio 323 — compilar uma vez, usar muitas
+//
+// Enunciado: um padrao usado num laco e recompilado a cada volta.
+// 'compile' devolve um objeto com as operacoes ja presas ao padrao —
+// e a medida mostra que a diferenca e real, sem inventar numero.
+
+adopt Arcane.Regex as Regex
+adopt Arcane.Bench as Bench
+
+steady PADRAO := "(?P<chave>\\w+)=(?P<valor>[^;]+)"
+steady LINHA := "nome=Ana;cidade=Florianopolis;plano=pro;ativo=sim"
+steady VOLTAS := 2000
+
+out "== 1. o compilado tem TODAS as operacoes =="
+
+// Ele tinha cinco, e quem compilava perdia 'finditer', os grupos
+// nomeados e 'fullmatch' — e voltava a chamar a versao por texto,
+// que e o contrario do motivo de compilar.
+compilado := Regex.compile(PADRAO)
+assert compilado.test(LINHA)
+assert len(compilado.findall(LINHA)) is 4
+assert compilado.group_names() is ["chave", "valor"]
+assert compilado.named(LINHA)["chave"] is "nome"
+assert compilado.pattern is PADRAO
+
+out ""
+out "== 2. os dois caminhos dao o MESMO resultado =="
+
+action pelo_texto(n):
+    total := 0
+    cycle i from 1 to n:
+        total += len(Regex.findall(PADRAO, LINHA))
+    yield total
+
+action pelo_compilado(n):
+    total := 0
+    cycle i from 1 to n:
+        total += len(compilado.findall(LINHA))
+    yield total
+
+assert pelo_texto(10) is pelo_compilado(10)
+
+out ""
+out "== 3. e a medida compara um FATOR, e nao dois tempos crus =="
+
+// 'assert a bigger b' entre dois numeros de microssegundos e um
+// sorteio. O que se cobra e a razao, com folga.
+com_texto := Bench.medir(pelo_texto, VOLTAS)
+com_objeto := Bench.medir(pelo_compilado, VOLTAS)
+
+razao := com_texto["ms"] / max(com_objeto["ms"], 0.0001)
+out $"   texto {round(com_texto['ms'], 1)} ms, compilado {round(com_objeto['ms'], 1)} ms"
+
+// O Python guarda um cache interno de padroes, entao a diferenca e
+// pequena — e afirmar "e muito mais rapido" seria inventar. O que se
+// afirma e o que se mede: o compilado nao e MAIS LENTO.
+assert razao bigger 0.5
+
+out ""
+out "== 4. o que muda de verdade e a LEITURA =="
+
+// O padrao fica com um nome, num lugar so.
+steady CAMPOS := Regex.compile("(?P<chave>\\w+)=(?P<valor>[^;]+)")
+
+action ler_config(linha):
+    saida := {}
+    cycle achado in CAMPOS.findnamed(linha):
+        saida[achado["chave"]] := achado["valor"]
+    yield saida
+
+config := ler_config(LINHA)
+assert config["cidade"] is "Florianopolis"
+assert config["ativo"] is "sim"
+assert len(keys(config)) is 4
+
+out ""
+out "== 5. e a substituicao tambem vem presa ao padrao =="
+
+assert compilado.sub("X", LINHA) is "X;X;X;X"
+
+out "exercicio 323 ok"

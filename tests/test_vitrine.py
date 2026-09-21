@@ -2780,3 +2780,101 @@ def test_o_vitrine_dev_de_fato_serve(tmp_path):
             processo.wait(timeout=10)
         except subprocess.TimeoutExpired:
             processo.kill()
+
+
+# ═══════════════════════════════════════════════════════════
+#  'V.estado' e 'V.geral' agora têm a forma de vault
+# ═══════════════════════════════════════════════════════════
+
+def test_o_estado_aceita_indice_e_in():
+    """`V.estado["n"] := 1` era erro: *"A estado cannot be indexed"*.
+
+    O objeto tinha `obter` e `definir` e nenhuma das duas formas
+    naturais. E o `ctx.estado` do `Arcane.Telegram`, que é a **mesma
+    ideia**, já respondia às duas: a linguagem dava duas superfícies
+    para o mesmo conceito.
+    """
+    V = get_module("Arcane.Vitrine")
+
+    def pagina():
+        V["estado"]["n"] = V["estado"].obter("n", 0) + 1
+        V["texto"](f"n={V['estado']['n']}")
+        V["texto"](f"tem={'n' in V['estado']}")
+        V["texto"](f"nao={'z' in V['estado']}")
+
+    sonda = V["testar"](pagina)
+    assert not sonda.falhou(), sonda.falhas()
+    assert "n=1" in sonda.texto()
+    assert "tem=True" in sonda.texto() or "tem=yes" in sonda.texto()
+    assert "nao=False" in sonda.texto() or "nao=no" in sonda.texto()
+
+
+def test_o_estado_se_comporta_como_vault():
+    V = get_module("Arcane.Vitrine")
+    visto = {}
+
+    def pagina():
+        estado = V["estado"]
+        estado["a"] = 1
+        estado["b"] = 2
+        visto["len"] = len(estado)
+        visto["chaves"] = sorted(estado.keys())
+        visto["get"] = estado.get("z", "padrao")
+        del estado["a"]
+        visto["depois"] = sorted(estado.keys())
+
+    V["testar"](pagina)
+    assert visto["len"] == 2
+    assert visto["chaves"] == ["a", "b"]
+    assert visto["get"] == "padrao"
+    assert visto["depois"] == ["b"]
+
+
+def test_a_chave_ausente_levanta_e_o_padrao_nao():
+    """Devolver `void` calado esconde a diferença entre 'a chave valia
+    void' e 'a chave não estava lá' — a mesma regra do `pop`."""
+    V = get_module("Arcane.Vitrine")
+    visto = {}
+
+    def pagina():
+        try:
+            V["estado"]["nao_existe"]
+        except KeyError:
+            visto["levantou"] = True
+        visto["com_padrao"] = V["estado"].obter("nao_existe", 0)
+
+    V["testar"](pagina)
+    assert visto["levantou"] is True
+    assert visto["com_padrao"] == 0
+
+
+def test_o_geral_tem_a_mesma_forma():
+    """Duas superfícies para o mesmo conceito é o que faz alguém
+    escrever `V.geral["x"]` e descobrir que só `V.estado` aceita."""
+    V = get_module("Arcane.Vitrine")
+    visto = {}
+
+    def pagina():
+        V["geral"]["compartilhado"] = 42
+        visto["leu"] = V["geral"]["compartilhado"]
+        visto["tem"] = "compartilhado" in V["geral"]
+
+    V["testar"](pagina)
+    assert visto == {"leu": 42, "tem": True}
+
+
+def test_os_nomes_de_sempre_continuam():
+    """`somar` não tem forma de índice, e é ele que evita a corrida do
+    ler-somar-escrever."""
+    V = get_module("Arcane.Vitrine")
+    visto = {}
+
+    def pagina():
+        V["estado"].padrao("n", 10)
+        V["estado"].somar("n", 5)
+        visto["n"] = V["estado"]["n"]
+        visto["tudo"] = V["estado"].tudo()
+
+    V["testar"](pagina)
+    assert visto["n"] == 15
+    assert visto["tudo"] == {"n": 15}

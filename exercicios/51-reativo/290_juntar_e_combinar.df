@@ -1,0 +1,68 @@
+// Exercicio 290 — dois fluxos num so, de duas formas
+//
+// Enunciado: 'juntar' intercala — o que vier, de qualquer um.
+// 'combinar' emite o ULTIMO de cada, e so depois que todos ja
+// emitiram pelo menos uma vez: antes disso nao ha "ultimo" para um
+// deles, e inventar um seria mentir sobre um valor que nunca existiu.
+
+adopt Arcane.Reativo as R
+
+out "== 1. juntar intercala =="
+
+a := R.observavel("a")
+b := R.observavel("b")
+tudo := []
+R.juntar(a, b).inscrever(lambda v => tudo.append(v))
+
+a.emitir(1)
+b.emitir("x")
+a.emitir(2)
+b.emitir("y")
+
+assert tudo is [1, "x", 2, "y"]
+
+out ""
+out "== 2. combinar espera todos falarem uma vez =="
+
+c := R.observavel("c")
+d := R.observavel("d")
+pares := []
+R.combinar(c, d).inscrever(lambda p => pares.append(p))
+
+c.emitir(1)
+assert pares is []  // 'd' ainda nao falou
+c.emitir(2)
+assert pares is []
+
+d.emitir("x")
+assert pares is [[2, "x"]]
+out $"   {pares}"
+
+out ""
+out "== 3. e dai em diante, qualquer um dispara =="
+
+c.emitir(3)
+assert pares is [[2, "x"], [3, "x"]]
+d.emitir("y")
+assert pares is [[2, "x"], [3, "x"], [3, "y"]]
+
+out ""
+out "== 4. um formulario com dois campos =="
+
+nome := R.observavel("nome")
+email := R.observavel("email")
+validos := []
+
+action conferir(par):
+    ok := len(par[0]) bigger 0 and "@" in par[1]
+    validos.append(ok)
+
+R.combinar(nome, email).inscrever(conferir)
+
+nome.emitir("Ana")
+email.emitir("ana")
+assert validos is [no]
+email.emitir("ana@exemplo.com")
+assert validos is [no, yes]
+
+out "exercicio 290 ok"

@@ -2185,3 +2185,79 @@ def test_o_captcha_falha_ABERTO_no_cliente():
     condicao = fonte[i: i + 120]
     assert "!captchaFalhou" in condicao, (
         f"o botão continua morto quando o widget falha: {condicao}")
+
+
+def test_as_paginas_da_biblioteca_saem_dos_MODULOS():
+    """Elas traziam a lista de símbolos copiada à mão, e envelheceram.
+
+    A de `Arcane.Regex` anunciava *"Funções (28)"* onde havia 44, e a
+    contagem estava no **título** da seção — quem abre a página lê o
+    número antes de ler a lista. E havia o outro lado: 32 dos 75
+    módulos não tinham página nenhuma, e a única forma de ver a
+    assinatura de um deles era abrir o código.
+    """
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    gerador = os.path.join(raiz, "tools", "gerar_paginas_biblioteca.py")
+    if not os.path.isfile(gerador):
+        pytest.skip("o gerador não está neste checkout")
+
+    saida = subprocess.run([sys.executable, gerador, "--check"],
+                           capture_output=True, text=True, encoding="utf-8",
+                           cwd=raiz)
+    assert saida.returncode == 0, saida.stdout + saida.stderr
+
+
+def test_todo_modulo_da_arcane_tem_pagina_e_ela_esta_no_menu():
+    """Uma página que o menu não cita é uma página que ninguém encontra.
+
+    Era o estado de 32 módulos: a página não existia, e o item do menu
+    também não. As duas listas eram escritas à mão, e a segunda é a
+    que decide se alguém chega lá.
+    """
+    import re as _re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(raiz, "tools"))
+    from gerar_paginas_biblioteca import modulos, SEM_PAGINA
+
+    nav = open(os.path.join(raiz, "site", "lib", "nav.ts"),
+               encoding="utf-8").read()
+    no_menu = set(_re.findall(r"'(/docs/biblioteca/[^']+)'", nav))
+
+    sem_pagina, sem_menu = [], []
+    for curto, oficial, _desc, _mod in modulos():
+        caminho = os.path.join(raiz, "site", "app", "docs", "biblioteca",
+                               curto, "page.tsx")
+        if not os.path.isfile(caminho):
+            sem_pagina.append(oficial)
+        if f"/docs/biblioteca/{curto}" not in no_menu:
+            sem_menu.append(oficial)
+
+    assert not sem_pagina, f"módulo sem página: {sem_pagina}"
+    assert not sem_menu, f"página fora do menu: {sem_menu}"
+    # E o contrário: o menu não pode citar um módulo que não existe.
+    curtos = {c for c, _o, _d, _m in modulos()}
+    inventados = sorted(
+        h for h in no_menu
+        if h != "/docs/biblioteca" and h.rsplit("/", 1)[-1] not in curtos)
+    assert not inventados, f"o menu cita o que não existe: {inventados}"
+
+
+def test_o_prologo_escrito_a_mao_nao_mora_no_arquivo_gerado():
+    """Deixá-lo dentro de um `.tsx` marcado GERADO é o convite para
+    editá-lo ali — e a correção some na próxima geração, sem nada
+    explicando. Já foi assim que uma contagem voltou a ficar errada
+    depois de corrigida."""
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pasta = os.path.join(raiz, "site", "scripts", "conteudo_biblioteca")
+    assert os.path.isdir(pasta), "os prólogos precisam morar fora do .tsx"
+
+    sys.path.insert(0, os.path.join(raiz, "tools"))
+    from gerar_paginas_biblioteca import _prologo
+
+    # Ao menos os que já existiam continuam lá: um prólogo perdido é
+    # um exemplo que sumiu da doc sem ninguém notar.
+    for curto in ("regex", "math", "crypto", "io"):
+        assert _prologo(curto), f"o prólogo de {curto} sumiu"

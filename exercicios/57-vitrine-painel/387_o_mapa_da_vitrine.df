@@ -1,0 +1,88 @@
+// Exercicio 387 — o mapa, e as nove decisoes
+//
+// Enunciado: fechar a trilha com o que a Vitrine resolve, o que ela
+// NAO resolve, e por que cada escolha foi feita. A ultima parte e a
+// que evita usa-la onde o Kiln e a resposta.
+
+adopt Arcane.Vitrine as V
+
+out "== 1. os quinze grupos de componentes =="
+
+steady GRUPOS := {
+    "texto": "titulo, subtitulo, markdown, codigo, citacao, formula",
+    "aviso": "informacao, sucesso, aviso, erro, excecao, status",
+    "entrada": "entrada, numero, escolha, data, arquivo, camera…",
+    "dados": "grade, frame, editor, indicador, estatisticas",
+    "grafico": "27 tipos, todos em SVG do servidor",
+    "layout": "colunas, abas, cartao, malha, painel, dialogo, popover",
+    "midia": "imagem, video, audio, pdf, galeria, iframe",
+    "estado": "estado, geral, cache, recurso",
+    "sessao": "autenticacao, exigir_login, pode, encerrar_sessao",
+    "pagina": "pagina, paginas, navegar, parametro, menu",
+    "conexao": "conexao, conexao_de, segredos",
+    "tema": "tema, temas, seletor_de_tema, paleta",
+    "fluxo": "fragmento, atualizar_a_cada, agendar, tarefa",
+    "saida": "exportar_csv, exportar_json, exportar_excel, exportar_svg",
+    "teste": "testar — clica, digita e pergunta, sem navegador"
+}
+assert len(keys(GRUPOS)) is 15
+out $"   {len(keys(GRUPOS))} grupos, {len(V.componentes())} componentes"
+
+out ""
+out "== 2. o modelo, em uma frase =="
+
+out "   o programa INTEIRO roda de novo a cada interacao,"
+out "   e o estado da sessao sobrevive."
+
+out ""
+out "== 3. e as consequencias diretas =="
+
+steady CONSEQUENCIAS := [
+    "nao ha callback nem diffing — e nao precisa haver",
+    "'V.cache' e obrigatorio, e nao opcional",
+    "a ordem importa: trate a interacao ANTES de desenhar",
+    "o botao e um VALOR verdadeiro uma vez, e nao um evento"
+]
+assert len(CONSEQUENCIAS) is 4
+cycle c in CONSEQUENCIAS:
+    out $"   - {c}"
+
+out ""
+out "== 4. o que ela NAO tem =="
+
+steady NAO_TEM := {
+    "WebSocket/SSE": "o Kiln tem; a Vitrine atualiza por PERGUNTA (V.atualizar_a_cada)",
+    "build": "nao ha bundle a construir — o cliente sao ~6 KB sem build",
+    "deploy": "esconderia o que a maquina e, e nao haveria onde mexer",
+    "CDN": "nada e buscado de fora — painel de dados roda em rede fechada"
+}
+assert len(keys(NAO_TEM)) is 4
+cycle n in keys(NAO_TEM):
+    out $"   {n}: {NAO_TEM[n]}"
+
+out ""
+out "== 5. quando usar o Kiln =="
+
+out "   Vitrine: painel, ferramenta interna, app de dados"
+out "   Kiln:    API, site publico, rota com contrato, WebSocket"
+
+out ""
+out "== 6. e a prova de que tudo isso e testavel =="
+
+action painel():
+    V.titulo("Final")
+    c := V.colunas(2)
+    c[0].metrica("A", "1")
+    c[1].metrica("B", "2")
+    V.grafico_linha(["x", "y"], {"s": [1.0, 2.0]})
+    V.grade([{"n":1}, {"n":2}])
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.quantos("metrica") is 2
+assert t.quantos("grafico") is 1
+assert t.quantos("grade") is 1
+assert "<svg" in t.html()
+out $"   {len(t.arvore()['filhos'])} nos de topo, zero navegadores"
+
+out "exercicio 387 ok"

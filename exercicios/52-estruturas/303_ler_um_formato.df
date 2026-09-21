@@ -1,0 +1,110 @@
+// Exercicio 303 — ler um formato binario de verdade
+//
+// Enunciado: montar e reler um arquivo com cabecalho, tabela de
+// indices e registros — o desenho de quase todo formato que existe.
+// O ponto e que nada aqui precisa de FFI.
+
+adopt Arcane.Estrutura as Est
+adopt Arcane.Bytes as By
+
+steady MAGIA := 1145128264
+steady VERSAO := 1
+
+steady Cabecalho := Est.definir("Cabecalho", [
+        ["magia", "u32"],
+        ["versao", "u16"],
+        ["quantos", "u16"]
+    ], ordem := "rede")
+
+steady Indice := Est.definir("Indice", [
+        ["id", "u32"],
+        ["deslocamento", "u32"]
+    ], ordem := "rede")
+
+steady Item := Est.definir("Item", [
+        ["id", "u32"],
+        ["preco_centavos", "u32"],
+        ["estoque", "u16"]
+    ], ordem := "rede")
+
+steady ITENS := [
+    {"id": 101, "preco_centavos": 3250, "estoque": 4},
+    {"id": 102, "preco_centavos": 900, "estoque": 12},
+    {"id": 103, "preco_centavos": 24000, "estoque": 0}
+]
+
+out "== 1. montar o arquivo =="
+
+steady QUANTOS := len(ITENS)
+steady INICIO_INDICE := Cabecalho.tamanho
+steady INICIO_ITENS := INICIO_INDICE + Indice.tamanho * QUANTOS
+
+arquivo := Est.bloco(INICIO_ITENS + Item.tamanho * QUANTOS)
+
+Cabecalho.escrever(arquivo, {"magia": MAGIA, "versao": VERSAO,
+        "quantos": QUANTOS})
+
+cycle i from 0 to QUANTOS - 1:
+    onde := INICIO_ITENS + i * Item.tamanho
+    Item.escrever(arquivo, ITENS[i], onde)
+    Indice.escrever(arquivo, {"id": ITENS[i]["id"], "deslocamento": onde},
+        INICIO_INDICE + i * Indice.tamanho)
+
+out $"   {len(arquivo)} bytes, comecando com {By.hex(arquivo.bytes()[0:4])}"
+
+out ""
+out "== 2. reler, como quem recebeu o arquivo =="
+
+cabeca := Cabecalho.ler(arquivo)
+assert cabeca["magia"] is MAGIA
+assert cabeca["versao"] is VERSAO
+assert cabeca["quantos"] is QUANTOS
+
+out ""
+out "== 3. procurar pelo indice, sem varrer os itens =="
+
+action achar(dados, id_procurado):
+    quantos := Cabecalho.ler(dados)["quantos"]
+    entradas := Est.janelas(dados, Indice, quantos := quantos,
+        deslocamento := INICIO_INDICE)
+    cycle entrada in entradas:
+        given entrada.ler("id") is id_procurado:
+            yield Item.ler(dados, entrada.ler("deslocamento"))
+    yield void
+
+achado := achar(arquivo, 102)
+assert achado["preco_centavos"] is 900
+assert achar(arquivo, 999) is void
+out $"   102 -> {achado}"
+
+out ""
+out "== 4. mudar o estoque NO LUGAR =="
+
+entradas := Est.janelas(arquivo, Indice, quantos := QUANTOS,
+    deslocamento := INICIO_INDICE)
+alvo := Est.janela(arquivo, Item, entradas[2].ler("deslocamento"))
+alvo["estoque"] := 25
+
+assert achar(arquivo, 103)["estoque"] is 25
+
+out ""
+out "== 5. um arquivo curto demais e recusado =="
+
+curto := Est.bloco(4)
+recusou := no
+monitor:
+    Cabecalho.ler(curto)
+handle BufferOverflowError as e:
+    recusou := yes
+    assert "8 byte" in e.message
+assert recusou
+
+out ""
+out "== 6. e a magia errada e problema de quem le =="
+
+// O modulo nao inventa validacao de formato: quem conhece o formato e
+// quem escreve o leitor.
+falso := Cabecalho.empacotar({"magia": 0, "versao": 1, "quantos": 0})
+assert Cabecalho.ler(falso)["magia"] isnt MAGIA
+
+out "exercicio 303 ok"

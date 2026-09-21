@@ -1,0 +1,80 @@
+// Exercicio 320 — os validadores brasileiros, e o que eles NAO fazem
+//
+// Enunciado: 'is_cpf' confere o FORMATO, e nao o digito verificador.
+// Um validador que confere so a forma aceita 111.111.111-11, que nao
+// e um CPF — e o cadastro descobre isso na primeira nota fiscal.
+
+adopt Arcane.Regex as Regex
+
+out "== 1. o que eles conferem =="
+
+assert Regex.is_cpf("529.982.247-25")
+assert Regex.is_cnpj("11.222.333/0001-81")
+assert Regex.is_email("ana@exemplo.com")
+assert Regex.is_ipv4("192.168.0.1")
+assert Regex.is_date("2026-09-20")
+
+out ""
+out "== 2. e o que eles NAO conferem =="
+
+// O formato esta certo, e o documento nao existe.
+assert Regex.is_cpf("111.111.111-11")
+out "   '111.111.111-11' passa no formato, e nao e um CPF"
+
+action digito_verificador(numeros, peso_inicial):
+    soma := 0
+    peso := peso_inicial
+    cycle n in numeros:
+        soma += n * peso
+        peso -= 1
+    resto := (soma * 10) % 11
+    yield 0 given resto bigger_eq 10 otherwise resto
+
+action cpf_valido(texto):
+    digitos := [int(c) cycle c in texto given c in "0123456789"]
+    given len(digitos) isnt 11:
+        yield no
+    // Todos iguais e o caso que o formato deixa passar.
+    given len(unique(digitos)) is 1:
+        yield no
+    primeiro := digito_verificador(digitos[0:9], 10)
+    given primeiro isnt digitos[9]:
+        yield no
+    segundo := digito_verificador(digitos[0:10], 11)
+    yield segundo is digitos[10]
+
+assert cpf_valido("529.982.247-25")
+assert not cpf_valido("111.111.111-11")
+assert not cpf_valido("529.982.247-24")
+
+out ""
+out "== 3. os dois juntos =="
+
+action conferir_cpf(texto):
+    given not Regex.is_cpf(texto):
+        yield "o formato nao e de CPF"
+    given not cpf_valido(texto):
+        yield "o digito verificador nao fecha"
+    yield ""
+
+assert conferir_cpf("529.982.247-25") is ""
+assert conferir_cpf("123") is "o formato nao e de CPF"
+assert conferir_cpf("111.111.111-11") is "o digito verificador nao fecha"
+out $"   {conferir_cpf('111.111.111-11')}"
+
+out ""
+out "== 4. os padroes prontos, direto =="
+
+assert Regex.test(Regex.patterns["email"], "ana@exemplo.com")
+assert Regex.test(Regex.patterns["hex_color"], "#B28600")
+assert Regex.test(Regex.patterns["slug"], "meu-artigo-novo")
+assert not Regex.test(Regex.patterns["slug"], "Meu Artigo")
+
+out ""
+out "== 5. extrair de um texto corrido =="
+
+steady TEXTO := "fale com ana@x.com ou bia@y.org, ou ligue (48) 99999-1234"
+assert len(Regex.extract_emails(TEXTO)) is 2
+assert "bia@y.org" in Regex.extract_emails(TEXTO)
+
+out "exercicio 320 ok"

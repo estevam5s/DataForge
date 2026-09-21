@@ -1,0 +1,65 @@
+// Exercicio 298 — o layout que tem NOME
+//
+// Enunciado: 'Arcane.Bytes' empacota por FORMATO, e o resultado e
+// posicional — 'dados[3]' tres meses depois nao diz nada. Um molde tem
+// campos nomeados, e cobra a ordem dos bytes: sem ela, o mesmo arquivo
+// lido em duas maquinas da dois valores, e nenhuma das duas falha.
+
+adopt Arcane.Estrutura as Est
+adopt Arcane.Bytes as By
+
+steady Cabecalho := Est.definir("Cabecalho", [
+        ["magia", "u32"],
+        ["versao", "u16"],
+        ["registros", "u16"]
+    ], ordem := "rede")
+
+out "== 1. o molde sabe o proprio layout =="
+
+assert Cabecalho.tamanho is 8
+assert Cabecalho.deslocamento("magia") is 0
+assert Cabecalho.deslocamento("versao") is 4
+assert Cabecalho.deslocamento("registros") is 6
+
+cycle campo in Cabecalho.mapa():
+    out $"   +{campo['deslocamento']}  {campo['campo']} ({campo['tipo']}, {campo['bytes']} bytes)"
+
+out ""
+out "== 2. empacotar e ler de volta =="
+
+bloco := Cabecalho.empacotar({"magia": 1145128264, "versao": 2, "registros": 7})
+assert len(bloco) is 8
+lido := Cabecalho.ler(bloco)
+assert lido["versao"] is 2
+assert lido["registros"] is 7
+
+out ""
+out "== 3. a ordem dos bytes muda o ARQUIVO =="
+
+steady UmNumero := [["n", "u32"]]
+rede := Est.definir("A", UmNumero, ordem := "rede").empacotar({"n": 1})
+intel := Est.definir("A", UmNumero, ordem := "intel").empacotar({"n": 1})
+
+assert By.hex(rede.bytes()) is "00000001"
+assert By.hex(intel.bytes()) is "01000000"
+out $"   rede {By.hex(rede.bytes())}  intel {By.hex(intel.bytes())}"
+
+out ""
+out "== 4. uma ordem que nao existe e recusada =="
+
+recusou := no
+monitor:
+    Est.definir("A", UmNumero, ordem := "qualquer")
+handle LayoutError as e:
+    recusou := yes
+    assert "ordem" in e.message
+assert recusou
+
+out ""
+out "== 5. o que falta vai ZERADO =="
+
+so_versao := Cabecalho.empacotar({"versao": 9})
+assert Cabecalho.ler(so_versao)["magia"] is 0
+assert Cabecalho.ler(so_versao)["versao"] is 9
+
+out "exercicio 298 ok"

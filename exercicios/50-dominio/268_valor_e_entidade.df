@@ -1,0 +1,54 @@
+// Exercicio 268 — o que separa um valor de uma entidade
+//
+// Enunciado: a distincao que decide metade da modelagem. Duas pessoas
+// com o mesmo nome sao DUAS pessoas; a mesma pessoa com outro nome
+// continua sendo ela. O que separa as duas nao e a mutabilidade — e a
+// continuidade.
+
+adopt Arcane.Dominio as D
+
+out "== 1. o valor e igual por CONTEUDO =="
+
+steady Dinheiro := D.valor("Dinheiro", ["quantia", "moeda"])
+
+dez := Dinheiro(10, "BRL")
+outro := Dinheiro(10, "BRL")
+
+assert dez is outro
+assert dez isnt Dinheiro(10, "USD")
+assert dez isnt Dinheiro(11, "BRL")
+out $"   {dez} e {outro} sao o mesmo valor"
+
+// Ele serve de chave, porque tem hash coerente com a igualdade.
+cotacoes := {}
+cotacoes[dez] := "dez reais"
+assert cotacoes[Dinheiro(10, "BRL")] is "dez reais"
+
+out ""
+out "== 2. a entidade e igual por IDENTIDADE =="
+
+ana := D.entidade("Pessoa", "1", nome := "Ana")
+ana_maria := D.entidade("Pessoa", "1", nome := "Ana Maria")
+homonima := D.entidade("Pessoa", "2", nome := "Ana")
+
+assert ana is ana_maria
+assert ana isnt homonima
+out "   mesma id, outro nome -> a mesma pessoa"
+
+// O tipo faz parte da identidade: um Pedido '1' nao e uma Pessoa '1'.
+assert D.entidade("Pedido", "1") isnt D.entidade("Pessoa", "1")
+
+// E ela MUDA, sem deixar de ser ela.
+ana.mudar(nome := "Ana Souza")
+assert ana.ler("nome") is "Ana Souza"
+assert ana is ana_maria
+
+out ""
+out "== 3. trocar um campo de um valor e criar OUTRO valor =="
+
+vinte := dez.com(quantia := 20)
+assert vinte.quantia is 20
+assert dez.quantia is 10  // o original nao mudou
+assert dez isnt vinte
+
+out "exercicio 268 ok"

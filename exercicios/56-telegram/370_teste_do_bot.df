@@ -1,0 +1,94 @@
+// Exercicio 370 — o que a sonda prova, e o que ela NAO prova
+//
+// Enunciado: um bot testado so com a sonda tem teste de LOGICA. O que
+// ela nao cobre e o que fala com o Telegram de verdade — token,
+// HTTPS, limite de taxa e formato de mensagem recusado. Nomear essa
+// fronteira e o que impede confiar demais no verde.
+
+adopt Arcane.Telegram as Tg
+
+action montar():
+    app := Tg.app("123456:AAHexemplo")
+
+    mark @app.comando("oi")
+    action oi(ctx):
+        ctx.responder($"Ola, {ctx.nome()}!")
+
+    mark @app.botao("x:")
+    action clicou(ctx):
+        ctx.avisar("ok")
+        ctx.responder($"clicou em {ctx.dados}")
+
+    yield app
+
+out "== 1. o que ela injeta =="
+
+t := Tg.testar(montar())
+t.comando("oi")
+t.mandar("texto solto")
+t.clicar("x:1")
+t.enviar_foto()
+t.consultar("busca")
+t.entrar()
+out "   comando, texto, botao, midia, consulta e entrada"
+
+out ""
+out "== 2. o que ela le =="
+
+assert t.ultima() is "clicou em x:1" or len(t.ultima()) bigger 0
+assert t.quantas("sendMessage") bigger_eq 2
+assert len(t.chamadas()) bigger_eq 3
+assert t.disse("Ola,")
+out $"   {len(t.chamadas())} chamadas registradas"
+
+out ""
+out "== 3. o estado, sem abrir o armazem =="
+
+app := montar()
+
+mark @app.comando("guardar")
+action guardar(ctx):
+    ctx.estado["visto"] := yes
+
+t2 := Tg.testar(app)
+t2.comando("guardar")
+assert t2.estado("visto") is yes
+
+out ""
+out "== 4. e as falhas, quando nao ha tratador =="
+
+quebrado := Tg.app("123456:AAHexemplo")
+
+mark @quebrado.comando("q")
+action q(_ctx):
+    trigger "caiu"
+
+s := Tg.testar(quebrado)
+s.comando("q")
+assert len(s.falhas()) is 1
+assert s.falhou()
+// 'falhas()' devolve as MENSAGENS: o detalhe com o traceback fica
+// no app, para quem precisa investigar.
+assert "caiu" in s.falhas()[0]
+out $"   {s.falhas()[0]}"
+
+out ""
+out "== 5. o que a sonda NAO prova =="
+
+steady FORA_DO_ALCANCE := [
+    "o token e valido",
+    "o webhook esta ligado e o HTTPS e aceito",
+    "a mensagem passa no MarkdownV2 do Telegram",
+    "o limite de taxa do horario de pico",
+    "o bot consegue entrar naquele grupo"
+]
+assert len(FORA_DO_ALCANCE) is 5
+cycle f in FORA_DO_ALCANCE:
+    out $"   - {f}"
+
+out ""
+out "== 6. e e para isso que existe o 'doctor' =="
+
+out "   sonda: a logica, na suite · doctor: o ambiente, antes de subir"
+
+out "exercicio 370 ok"

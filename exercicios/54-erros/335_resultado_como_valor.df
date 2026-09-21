@@ -1,0 +1,112 @@
+// Exercicio 335 — a falha como VALOR
+//
+// Enunciado: um erro interrompe; um resultado nao. Quando a falha e
+// ESPERADA — um CEP que nao existe, um arquivo que pode faltar —
+// levantar obriga quem chama a montar um 'monitor' em volta de cada
+// chamada, e o codigo some dentro do tratamento.
+
+adopt Arcane.Resultado as Res
+
+out "== 1. ok e falha =="
+
+action dividir(a, b):
+    given b is 0:
+        yield Res.falha("divisao por zero")
+    yield Res.ok(a / b)
+
+bom := dividir(10, 2)
+assert bom.deu_certo()
+assert bom.valor() is 5.0
+
+ruim := dividir(10, 0)
+assert ruim.falhou()
+assert ruim.erro() is "divisao por zero"
+out $"   {ruim.erro()}"
+
+out ""
+out "== 2. encadear sem 'monitor' em cada passo =="
+
+action metade(x):
+    yield dividir(x, 2)
+
+action mais_um(x):
+    yield Res.ok(x + 1)
+
+passo := dividir(20, 2).entao(metade).entao(mais_um)
+assert passo.valor() is 6.0
+
+// E a falha ATRAVESSA sem que ninguem confira no meio.
+quebrado := dividir(20, 0).entao(metade).entao(mais_um)
+assert quebrado.falhou()
+assert quebrado.erro() is "divisao por zero"
+out "   a falha atravessou tres passos sem um 'given' sequer"
+
+out ""
+out "== 3. mapear muda o VALOR, e nao o desfecho =="
+
+assert dividir(10, 2).mapear(lambda v => v * 10).valor() is 50.0
+assert dividir(10, 0).mapear(lambda v => v * 10).falhou()
+
+out ""
+out "== 4. o padrao de saida =="
+
+assert dividir(10, 0).ou(-1.0) is -1.0
+assert dividir(10, 2).ou(-1.0) is 5.0
+
+// E a recuperacao, que transforma a falha em outro resultado.
+recuperado := dividir(10, 0).recuperar(lambda _e => Res.ok(0.0))
+assert recuperado.valor() is 0.0
+
+out ""
+out "== 5. a hora de voltar para o mundo dos erros =="
+
+// Na fronteira do programa, um resultado vira erro — porque ai nao ha
+// mais quem trate.
+levantou := no
+monitor:
+    dividir(1, 0).exigir()
+handle Error as e:
+    levantou := yes
+    assert "divisao por zero" in e.message
+assert levantou
+
+out ""
+out "== 6. 'tentar' embrulha uma acao que LEVANTA =="
+
+// E a ponte no outro sentido: transformar um erro em resultado.
+assert Res.tentar(lambda => 1 / 0).falhou()  // df: permitir division-by-zero
+assert Res.tentar(lambda => 10 / 2).valor() is 5.0
+
+out ""
+out "== 7. 'Talvez', para onde 'void' e ambiguo =="
+
+// 'void' nao distingue "nao achei" de "achei, e o valor e void".
+steady CACHE := {"a": 1, "b": void}
+
+action buscar(chave):
+    given chave not in CACHE:
+        yield Res.nada()
+    yield Res.algo(CACHE[chave])
+
+assert buscar("a").tem()
+assert buscar("b").tem()  // achei, e o valor e void
+assert buscar("z").vazio()  // nao achei
+out "   'b' existe e vale void; 'z' nao existe"
+
+out ""
+out "== 8. e todos/primeiro, para uma lista de resultados =="
+
+steady VARIOS := [dividir(10, 2), dividir(10, 0), dividir(20, 4)]
+assert len(Res.erros(VARIOS)) is 1
+assert Res.todos(VARIOS).falhou()
+
+steady SO_BONS := [dividir(10, 2), dividir(20, 4)]
+assert Res.todos(SO_BONS).valor() is [5.0, 5.0]
+
+out ""
+out "== 9. quando usar cada um =="
+
+out "   falha ESPERADA (CEP invalido, arquivo opcional): Resultado"
+out "   falha EXCEPCIONAL (disco cheio, bug):            trigger"
+
+out "exercicio 335 ok"

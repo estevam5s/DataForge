@@ -1,0 +1,67 @@
+// Exercicio 273 — o repositorio guarda AGREGADOS INTEIROS
+//
+// Enunciado: um repositorio que devolve meio agregado devolve um
+// objeto cujas invariantes ninguem pode garantir. E o que vai para
+// dentro dele precisa de IDENTIDADE — um objeto de valor nao tem, e
+// nao tem porque dois iguais sao o mesmo.
+
+adopt Arcane.Dominio as D
+
+steady pedidos := D.repositorio("Pedido")
+
+action um_pedido(id, total, itens):
+    yield D.agregado("Pedido", id, total := total, itens := itens)
+
+pedidos.guardar(um_pedido("PED-1", 40, 1))
+pedidos.guardar(um_pedido("PED-2", 250, 4))
+pedidos.guardar(um_pedido("PED-3", 900, 5))
+
+out "== 1. guardar e recuperar =="
+
+assert pedidos.quantos() is 3
+achado := pedidos.por_id("PED-2")
+assert achado.ler("total") is 250
+
+out ""
+out "== 2. as duas perguntas existem =="
+
+// 'por_id' devolve void; 'exigir' levanta. Uma so obrigaria metade das
+// chamadas a tratar um void que nunca acontece.
+assert pedidos.por_id("PED-404") is void
+
+levantou := no
+monitor:
+    pedidos.exigir("PED-404")
+handle RepositoryError as e:
+    levantou := yes
+    assert "PED-404" in e.message
+assert levantou
+
+out ""
+out "== 3. consultar com a MESMA regra da decisao =="
+
+steady grande := D.regra("passa de 200", lambda p => p.ler("total", 0) bigger 200)
+grandes := pedidos.que(grande)
+assert len(grandes) is 2
+
+out ""
+out "== 4. apagar e idempotente na resposta =="
+
+assert pedidos.apagar("PED-1") is yes
+assert pedidos.apagar("PED-1") is no
+assert pedidos.quantos() is 2
+
+out ""
+out "== 5. um objeto de VALOR nao entra =="
+
+steady Dinheiro := D.valor("Dinheiro", ["quantia"])
+sem_id := no
+monitor:
+    D.repositorio("Dinheiro").guardar(Dinheiro(10))
+handle IdentityError as e:
+    sem_id := yes
+    assert "identidade" in e.message
+assert sem_id
+out "   se voce precisa distinguir duas instancias iguais, e uma entidade"
+
+out "exercicio 273 ok"

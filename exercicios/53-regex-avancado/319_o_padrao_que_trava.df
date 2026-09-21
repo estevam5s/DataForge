@@ -1,0 +1,86 @@
+// Exercicio 319 — o padrao que trava o processo
+//
+// Enunciado: '(a+)+$' contra trinta caracteres que nao casam leva
+// ANOS: o motor tenta todas as formas de dividir a entrada entre os
+// dois quantificadores, e sao 2^n. Nada no modulo dizia isso.
+
+adopt Arcane.Regex as Regex
+
+out "== 1. os quatro desenhos classicos =="
+
+steady PERIGOSOS := ["(a+)+$", "([a-z]+)+$", "(a{2,})+$", "(x|x)+$"]
+
+cycle padrao in PERIGOSOS:
+    analise := Regex.risk(padrao)
+    assert analise["perigoso"]
+    out $"   {padrao}  ->  {analise['motivo']}"
+
+out ""
+out "== 2. e o padrao comum NAO e acusado =="
+
+// Um falso alarme aqui ensinaria a desligar a conferencia inteira.
+steady COMUNS := [
+    "\\d{3}-\\d{4}",
+    "^[a-z]+@[a-z]+\\.[a-z]{2,}$",
+    "(?P<ano>\\d{4})-(?P<mes>\\d{2})",
+    "\\w+"
+]
+
+cycle padrao in COMUNS:
+    assert not Regex.risk(padrao)["perigoso"]
+
+out ""
+out "== 3. a analise DIZ que e forma, e nao prova =="
+
+// Prometer mais do que ela entrega e o defeito de uma ferramenta
+// assim: ela reconhece quatro desenhos e cala no resto.
+nota := Regex.risk("\\d+")["nota"]
+assert "forma" in nota
+assert "e nao uma prova" in nota
+
+out ""
+out "== 4. 'safe_search' recusa ANTES de rodar =="
+
+// Nao ha como interromper uma busca ja comecada: o motor do Python
+// nao solta o GIL, entao um prazo numa thread nao para nada.
+recusou := no
+monitor:
+    Regex.safe_search("(a+)+$", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaab")
+handle RegexError as e:
+    recusou := yes
+    assert "travar" in e.message
+    out $"   {e.message}"
+assert recusou
+
+out ""
+out "== 5. e deixa passar o que e seguro =="
+
+achado := Regex.safe_search("(?P<n>\\d+)", "abc 42")
+assert achado["named"]["n"] is "42"
+assert not achado["demorou"]
+assert achado["ms"] bigger_eq 0
+
+out ""
+out "== 6. o prazo e MEDIDO, e nao interrompe =="
+
+// A honestidade aqui e o recurso: 'demorou' diz que passou do prazo,
+// e nao que a busca foi cancelada.
+com_prazo_zero := Regex.safe_search("\\d+", "xxxxxxxxxx", ms := 0)
+assert com_prazo_zero["demorou"]
+assert not com_prazo_zero["matched"]
+
+out ""
+out "== 7. o que fazer com um padrao que vem de fora =="
+
+action buscar_com_cuidado(padrao, texto):
+    """Um padrao vindo de um campo ou de um arquivo de configuracao
+    nunca deveria ser compilado sem passar por aqui."""
+    analise := Regex.risk(padrao)
+    given analise["perigoso"]:
+        yield {"ok": no, "motivo": analise["motivo"]}
+    yield {"ok": yes, "achado": Regex.search(padrao, texto)["value"]}
+
+assert buscar_com_cuidado("\\d+", "a 42")["achado"] is "42"
+assert not buscar_com_cuidado("(a+)+$", "aaa")["ok"]
+
+out "exercicio 319 ok"

@@ -1,0 +1,80 @@
+// Exercicio 366 — o mesmo bot, em conversa privada e em grupo
+//
+// Enunciado: num grupo o bot ve so os comandos, a menos que o modo de
+// privacidade esteja desligado — e isso se configura no @BotFather, e
+// nao no codigo. O sintoma de esquecer: o bot "nao responde" a nada
+// que nao comece com barra.
+
+adopt Arcane.Telegram as Tg
+
+visto := []
+
+action montar():
+    app := Tg.app("123456:AAHexemplo")
+
+    mark @app.comando("onde")
+    action onde(ctx):
+        lugar := "privado" given ctx.e_privado() otherwise "grupo"
+        visto.append(lugar)
+        ctx.responder($"estamos no {lugar}")
+
+    mark @app.entrou()
+    action boas_vindas(ctx):
+        ctx.responder("Bem-vindo!")
+
+    mark @app.saiu()
+    action ate_logo(_ctx):
+        visto.append("saiu")
+
+    yield app
+
+out "== 1. em conversa privada =="
+
+t := Tg.testar(montar())
+t.comando("onde")
+assert "privado" in t.ultima()
+
+out ""
+out "== 2. quem entrou e quem saiu =="
+
+t.entrar()
+assert "Bem-vindo" in t.ultima()
+
+out ""
+out "== 3. o que o @BotFather decide, e o codigo nao =="
+
+steady NO_BOTFATHER := [
+    "o bot pode entrar em grupos?",
+    "ele le TODAS as mensagens, ou so os comandos?",
+    "qual e a lista de comandos que aparece no menu?"
+]
+assert len(NO_BOTFATHER) is 3
+cycle p in NO_BOTFATHER:
+    out $"   - {p}"
+
+out ""
+out "== 4. e o 'doctor' pergunta os tres =="
+
+out "   'dataforge telegram doctor' confere antes de voce descobrir em producao"
+
+out ""
+out "== 5. a lista de comandos e publicada pelo bot =="
+
+// 'publicar_comandos' manda para o Telegram o que aparece no menu de
+// barra. Sem isso, os comandos existem e ninguem os descobre.
+app := montar()
+saude := app.saude()
+assert saude is not void
+out $"   o bot sabe se reportar: {typeof(saude)}"
+
+out ""
+out "== 6. e um comando com @ e para o bot certo =="
+
+// Num grupo com dois bots, '/start' e ambiguo: o Telegram entrega
+// '/start@meubot'. O modulo tira o sufixo antes de casar.
+t2 := Tg.testar(montar())
+t2.mandar("/onde@meubot")
+assert "grupo" in t2.ultima() or "privado" in t2.ultima()
+out "   '/onde@meubot' casou com '/onde'"
+
+out "exercicio 366 ok"

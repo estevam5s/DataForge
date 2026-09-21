@@ -1,0 +1,132 @@
+// Exercicio 364 — um bot de atendimento, ponta a ponta
+//
+// Enunciado: juntar comando, botao, conversa, estado, middleware e
+// tratador de erro num fluxo que existe de verdade — pedir, conferir
+// e fechar — e testar o fluxo INTEIRO sem token e sem rede.
+
+adopt Arcane.Telegram as Tg
+
+steady CARDAPIO := {
+    "cafe": 6.5,
+    "bolo": 8.0,
+    "suco": 7.0
+}
+
+steady PEDIDOS := []
+
+action endereco_valido(texto):
+    yield len(trim(texto)) bigger_eq 10
+
+action montar():
+    app := Tg.app("123456:AAHexemplo")
+
+    mark @app.comando("start", ajuda := "Mostra o cardapio")
+    action comecar(ctx):
+        linhas := [[Tg.botao($"{n} — R$ {CARDAPIO[n]}", dados := $"add:{n}")]
+            cycle n in keys(CARDAPIO)]
+        ctx.responder($"Ola, {ctx.nome()}! Escolha:",
+            teclado := Tg.botoes(linhas))
+
+    mark @app.botao("add:")
+    action adicionar(ctx):
+        item := ctx.dados[4:len(ctx.dados)]
+        carrinho := ctx.estado["itens"] ?? []
+        carrinho.append(item)
+        ctx.estado["itens"] := carrinho
+        ctx.avisar($"{item} no carrinho")
+
+    mark @app.comando("carrinho")
+    action ver(ctx):
+        itens := ctx.estado["itens"] ?? []
+        given len(itens) is 0:
+            ctx.responder("O carrinho esta vazio.")
+            yield void
+        total := sum([CARDAPIO[i] cycle i in itens])
+        ctx.responder($"{len(itens)} item(ns) — total R$ {total}")
+
+    mark @app.comando("fechar")
+    action fechar(ctx):
+        given len(ctx.estado["itens"] ?? []) is 0:
+            ctx.responder("Escolha algo antes de fechar.")
+            yield void
+        ctx.comecar_conversa("entrega")
+
+    entrega := app.conversa("entrega", [
+            {"pergunta": "Qual o endereco completo?", "guarda": "endereco",
+                "valida": endereco_valido,
+                "erro": "Preciso do endereco completo, com numero."}
+        ])
+    entrega.ao_terminar(confirmar)
+
+    mark @app.ao_falhar()
+    action caiu(ctx, _erro):
+        ctx.responder("Deu errado aqui. Ja avisamos.")
+
+    yield app
+
+action confirmar(ctx, r):
+    itens := ctx.estado["itens"] ?? []
+    total := sum([CARDAPIO[i] cycle i in itens])
+    PEDIDOS.append({"itens": itens, "endereco": r["endereco"],
+            "total": total})
+    ctx.estado["itens"] := []
+    ctx.responder($"Pedido confirmado: R$ {total} para {r['endereco']}")
+
+out "== 1. o cardapio =="
+
+t := Tg.testar(montar())
+t.comando("start")
+assert "Ola," in t.ultima()
+assert len(t.ultimo_teclado()["inline_keyboard"]) is 3
+
+out ""
+out "== 2. fechar o carrinho vazio e recusado =="
+
+t.comando("carrinho")
+assert "vazio" in t.ultima()
+t.comando("fechar")
+assert "Escolha algo" in t.ultima()
+
+out ""
+out "== 3. escolher =="
+
+t.clicar("add:cafe")
+t.clicar("add:bolo")
+t.comando("carrinho")
+assert "2 item(ns)" in t.ultima()
+assert "14.5" in t.ultima()
+out $"   {t.ultima()}"
+
+out ""
+out "== 4. o endereco e validado =="
+
+t.comando("fechar")
+assert "endereco completo" in t.ultima()
+
+t.mandar("rua x")
+assert "com numero" in t.ultima()
+
+t.mandar("Rua das Flores, 123 - Centro")
+assert "Pedido confirmado" in t.ultima()
+out $"   {t.ultima()}"
+
+out ""
+out "== 5. e o pedido chegou ao sistema =="
+
+assert len(PEDIDOS) is 1
+assert PEDIDOS[0]["total"] is 14.5
+assert PEDIDOS[0]["itens"] is ["cafe", "bolo"]
+
+out ""
+out "== 6. o carrinho ficou limpo =="
+
+t.comando("carrinho")
+assert "vazio" in t.ultima()
+
+out ""
+out "== 7. e o bot inteiro foi testado sem token e sem rede =="
+
+assert t.quantas("sendMessage") bigger 5
+out $"   {t.quantas('sendMessage')} mensagens, zero sockets"
+
+out "exercicio 364 ok"

@@ -1,0 +1,119 @@
+// Exercicio 380 — o formulario que so envia uma vez
+//
+// Enunciado: sem formulario, CADA campo reexecuta o programa. Num
+// cadastro de oito campos isso sao oito execucoes — e se um deles
+// consulta o banco, sao oito consultas para preencher um cadastro.
+
+adopt Arcane.Vitrine as V
+
+execucoes := {"n": 0}
+salvos := []
+
+action painel():
+    execucoes["n"] := execucoes["n"] + 1
+    V.titulo("Cadastro")
+
+    f := V.formulario("cadastro")
+    nome := f.entrada("Nome")
+    email := f.email("E-mail")
+    idade := f.numero("Idade", 0)
+
+    given f.enviar("Salvar"):
+        salvos.append({"nome": nome, "email": email, "idade": idade})
+        V.sucesso("Salvo!")
+
+out "== 1. os campos ficam agrupados =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.quantos("formulario") is 1
+
+t.digitar("Nome", "Ana")
+t.digitar("E-mail", "ana@x.com")
+t.digitar("Idade", "30")
+
+// Nada foi salvo ainda: o formulario segura ate o envio.
+assert len(salvos) is 0
+out "   tres campos digitados, zero salvamentos"
+
+out ""
+out "== 2. e o envio manda tudo de uma vez =="
+
+t.clicar("Salvar")
+assert len(salvos) is 1
+assert salvos[0]["nome"] is "Ana"
+assert salvos[0]["idade"] is 30
+out $"   {salvos[0]}"
+
+out ""
+out "== 3. sem formulario, cada campo reexecuta o programa =="
+
+sem := {"n": 0}
+
+action painel_sem():
+    sem["n"] := sem["n"] + 1
+    V.entrada("Nome")
+    V.entrada("E-mail")
+
+t2 := V.testar(painel_sem)
+base := sem["n"]
+t2.digitar("Nome", "Ana")
+t2.digitar("E-mail", "ana@x.com")
+assert sem["n"] is base + 2
+out $"   dois campos, {sem['n'] - base} reexecucoes do programa"
+
+// Num cadastro de oito campos isso sao oito execucoes — e se um deles
+// consulta o banco, sao oito consultas para preencher um cadastro.
+//
+// A ECONOMIA do formulario acontece no NAVEGADOR: ele segura os
+// valores e manda tudo no envio. A sonda nao ve isso — ela simula um
+// pedido por acao, e e uma das fronteiras dela.
+out "   a economia e no navegador, e a sonda nao a enxerga"
+
+out ""
+out "== 4. a validacao de campo fica JUNTO do campo =="
+
+action maior_de_idade(texto):
+    monitor:
+        yield int(texto) bigger_eq 18
+    handle Error:
+        yield no
+
+action com_validacao():
+    // Ele devolve o par (valor, esta_bom).
+    idade, bom := V.campo_validado("Idade", maior_de_idade,
+        "Precisa ter 18 anos ou mais.")
+    given bom:
+        V.sucesso($"idade {idade}")
+
+t3 := V.testar(com_validacao)
+assert not t3.falhou()
+
+// Um campo VAZIO e nunca tocado nao e acusado: reclamar antes de a
+// pessoa digitar qualquer coisa e ruido, e nao ajuda.
+assert "Precisa ter 18" not in t3.texto()
+
+t3.digitar("Idade", "10")
+assert "Precisa ter 18" in t3.texto()
+
+t3.digitar("Idade", "30")
+assert "idade 30" in t3.texto()
+// O erro aparece ligado ao campo, com 'role="alert"' e
+// 'aria-describedby' — e nao numa caixa solta no topo da pagina.
+assert "alert" in t3.html()
+out "   o erro fica no campo, e nao numa caixa no topo"
+
+out ""
+out "== 5. o que a acessibilidade exige, e que ja esta la =="
+
+steady ACESSIBILIDADE := [
+    "<fieldset>/<legend> nos grupos",
+    "role=alert no erro, com aria-describedby ligando ao campo",
+    "setas nas abas, e so a ativa no Tab",
+    "a variacao da metrica com a PALAVRA ao lado da seta"
+]
+assert len(ACESSIBILIDADE) is 4
+cycle a in ACESSIBILIDADE:
+    out $"   - {a}"
+
+out "exercicio 380 ok"

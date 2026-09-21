@@ -1,0 +1,84 @@
+// Exercicio 280 — o mesmo contrato sobre outro armazem
+//
+// Enunciado: 'D.repositorio' guarda em memoria; 'D.repositorio_de'
+// recebe as acoes de ler e gravar. O contrato e o mesmo, e e ele que
+// importa — quem chama nao sabe onde o dado mora.
+
+adopt Arcane.Dominio as D
+
+// O "banco": um vault, e as quatro acoes em cima dele.
+banco := {}
+gravacoes := {"n": 0}
+
+action ler_do_banco(id):
+    yield banco[id] ?? void
+
+action gravar_no_banco(id, valor):
+    gravacoes["n"] := gravacoes["n"] + 1
+    banco[id] := valor
+
+action apagar_do_banco(id):
+    given id in banco:
+        remove(banco, id)
+        yield yes
+    yield no
+
+action listar_do_banco():
+    yield [banco[k] cycle k in keys(banco)]
+
+steady repo := D.repositorio_de("Pedido",
+    ler := ler_do_banco,
+    gravar := gravar_no_banco,
+    apagar := apagar_do_banco,
+    listar := listar_do_banco)
+
+out "== 1. o mesmo contrato =="
+
+repo.guardar(D.agregado("Pedido", "P-1", total := 10))
+repo.guardar(D.agregado("Pedido", "P-2", total := 300))
+
+assert repo.quantos() is 2
+assert "P-1" in banco
+assert gravacoes["n"] is 2
+assert repo.exigir("P-2").ler("total") is 300
+
+out ""
+out "== 2. a ausencia responde igual =="
+
+assert repo.por_id("P-404") is void
+
+levantou := no
+monitor:
+    repo.exigir("P-404")
+handle RepositoryError:
+    levantou := yes
+assert levantou
+
+out ""
+out "== 3. a consulta por regra tambem =="
+
+steady grande := D.regra("grande", lambda p => p.ler("total", 0) bigger 100)
+assert len(repo.que(grande)) is 1
+
+out ""
+out "== 4. apagar =="
+
+assert repo.apagar("P-1") is yes
+assert repo.apagar("P-1") is no
+assert repo.quantos() is 1
+assert len(keys(banco)) is 1
+
+out ""
+out "== 5. quem chama nao sabe onde o dado mora =="
+
+action quantos_grandes(qualquer_repo, regra):
+    yield len(qualquer_repo.que(regra))
+
+steady memoria := D.repositorio("Pedido")
+memoria.guardar(D.agregado("Pedido", "M-1", total := 500))
+
+// A mesma acao, sobre os dois.
+assert quantos_grandes(repo, grande) is 1
+assert quantos_grandes(memoria, grande) is 1
+
+out "exercicio 280 ok"

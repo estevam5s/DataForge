@@ -1,0 +1,104 @@
+// Exercicio 384 — redesenhar so um pedaco
+//
+// Enunciado: o fragmento existe porque redesenhar a pagina inteira a
+// cada tecla e caro. E a duvida cai SEMPRE para a pagina inteira:
+// responder a pagina inteira sem precisar custa desempenho; responder
+// um pedaco sem poder custa CORRECAO.
+
+adopt Arcane.Vitrine as V
+
+execucoes := {"n": 0}
+
+// ERRADO: o botao e tratado DEPOIS de a metrica ser desenhada, e a
+// tela fica um passo atras. O programa roda de cima para baixo, e o
+// que ja foi desenhado nao volta.
+action atrasado():
+    f := V.fragmento("contador")
+    f.metrica("Cliques", str(V.estado["atrasado"] ?? 0))
+    given V.botao("Somar"):
+        V.estado["atrasado"] := (V.estado["atrasado"] ?? 0) + 1
+
+// CERTO: trate a interacao PRIMEIRO, desenhe depois.
+action painel():
+    execucoes["n"] := execucoes["n"] + 1
+    V.titulo("Painel")
+
+    given V.botao("Somar"):
+        V.estado["n"] := (V.estado["n"] ?? 0) + 1
+
+    f := V.fragmento("contador")
+    f.metrica("Cliques", str(V.estado["n"] ?? 0))
+
+out "== 1. o fragmento e um no com nome =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.quantos("fragmento") is 1
+
+out ""
+out "== 2. e ele contem o que foi desenhado dentro =="
+
+assert t.quantos("metrica") is 1
+assert t.metrica("Cliques") is "0"
+
+t.clicar("Somar")
+assert t.metrica("Cliques") is "1"
+t.clicar("Somar")
+assert t.metrica("Cliques") is "2"
+
+out ""
+out "== 2b. e a ordem IMPORTA =="
+
+// O mesmo contador, com o botao tratado depois do desenho: a tela
+// fica um passo atras, e o estado esta certo. E o defeito mais
+// confuso deste modelo, porque o numero "quase" bate.
+a := V.testar(atrasado)
+a.clicar("Somar")
+assert a.estado("atrasado") is 1
+assert a.metrica("Cliques") is "0"
+out "   estado 1, tela 0 — trate a interacao ANTES de desenhar"
+
+out ""
+out "== 3. as tres duvidas que caem para a pagina INTEIRA =="
+
+steady DUVIDAS := [
+    "houve falha — o erro e desenhado FORA do fragmento, e ficaria invisivel",
+    "mais de um campo mudou — nao ha como saber de quem e a mudanca",
+    "o fragmento sumiu da arvore — nao ha onde encaixar a resposta"
+]
+assert len(DUVIDAS) is 3
+cycle d in DUVIDAS:
+    out $"   - {d}"
+
+out ""
+out "== 4. o programa roda INTEIRO mesmo assim =="
+
+// O fragmento economiza o que vai pela REDE, e nao a execucao: o
+// modelo continua sendo 'roda tudo de novo'. Quem economiza execucao
+// e o cache.
+antes := execucoes["n"]
+t.clicar("Somar")
+assert execucoes["n"] is antes + 1
+out "   uma interacao, uma execucao inteira"
+
+out ""
+out "== 5. e o fragmento sem nome nao existe =="
+
+// Sem o nome, nao ha como a resposta parcial dizer ONDE encaixar.
+assert t.primeiro("fragmento").props["chave"] is "contador"
+
+out ""
+out "== 6. a atualizacao periodica e por PERGUNTA =="
+
+// 'V.atualizar_a_cada(n)' e o "tempo real" da Vitrine: o navegador
+// pergunta de novo. Nao ha WebSocket nem SSE aqui — o Kiln tem, e a
+// Vitrine nao os usa.
+action com_atualizacao():
+    V.atualizar_a_cada(5)
+    V.texto("atualiza a cada cinco segundos")
+
+t2 := V.testar(com_atualizacao)
+assert not t2.falhou()
+out "   por pergunta, e nao por empurrao"
+
+out "exercicio 384 ok"

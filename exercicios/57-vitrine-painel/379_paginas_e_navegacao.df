@@ -1,0 +1,78 @@
+// Exercicio 379 — mais de uma pagina
+//
+// Enunciado: o que nao casa com pagina nenhuma cai no tratador de 404
+// do Kiln, e NAO numa rota curinga. Uma curinga e casada na ORDEM do
+// registro, entao ela engoliria toda rota acrescentada depois do
+// 'V.montar()' — que e exatamente o que se faz para servir uma API ao
+// lado do painel.
+
+adopt Arcane.Vitrine as V
+
+action inicio():
+    V.titulo("Inicio")
+    V.texto("a pagina inicial")
+
+action relatorio():
+    V.titulo("Relatorio")
+    V.texto("os numeros do mes")
+
+action ajuda():
+    V.titulo("Ajuda")
+    V.texto("como usar")
+
+out "== 1. registrar as paginas =="
+
+// Uma chamada por pagina: caminho, acao e o titulo que aparece no
+// menu.
+V.pagina("/", inicio, "Inicio")
+V.pagina("/relatorio", relatorio, "Relatorio")
+V.pagina("/ajuda", ajuda, "Ajuda")
+
+assert len(V.paginas()) is 3
+out $"   {len(V.paginas())} paginas registradas"
+
+t := V.testar(inicio)
+assert not t.falhou()
+assert "a pagina inicial" in t.texto()
+
+out ""
+out "== 2. cada pagina desenha a sua =="
+
+t2 := V.testar(relatorio)
+assert "os numeros do mes" in t2.texto()
+assert "a pagina inicial" not in t2.texto()
+
+out ""
+out "== 3. o menu sai da lista, e nao de uma copia =="
+
+// Duas listas — a das rotas e a do menu — divergiriam, e o item
+// apontaria para uma pagina que nao existe mais.
+titulos := [p["titulo"] cycle p in V.paginas()]
+assert titulos is ["Inicio", "Relatorio", "Ajuda"]
+out $"   {titulos}"
+
+out ""
+out "== 4. e o 404 responde 404 =="
+
+// A pagina de "nao achei" responde 404, e nao 200 com "404" no
+// corpo: um monitor que so olha o status veria o site saudavel.
+out "   404 no status, e nao so no texto"
+
+out ""
+out "== 5. o parametro da URL =="
+
+action com_parametro():
+    id := V.parametro("id", "0")
+    V.titulo($"Pedido {id}")
+
+t3 := V.testar(com_parametro)
+assert "Pedido 0" in t3.texto()
+out "   sem o parametro, o padrao"
+
+out ""
+out "== 6. e navegar troca a pagina SEM recarregar tudo =="
+
+out "   'V.navegar(rota)' levanta um sinal, como 'exigir_login'"
+out "   e ele deriva de BaseException, para nao virar mensagem de erro"
+
+out "exercicio 379 ok"

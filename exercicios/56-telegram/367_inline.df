@@ -1,0 +1,74 @@
+// Exercicio 367 — o bot que responde sem estar no chat
+//
+// Enunciado: a consulta inline e o que faz '@meubot pizza' funcionar
+// em QUALQUER conversa, sem o bot ser membro dela. O resultado e uma
+// lista, e cada item precisa de um id unico — ids repetidos fazem o
+// Telegram descartar a lista inteira, calado.
+
+adopt Arcane.Telegram as Tg
+
+steady CATALOGO := [
+    {"id": "1", "nome": "Cafe especial", "preco": 32.5},
+    {"id": "2", "nome": "Cafe comum", "preco": 12.0},
+    {"id": "3", "nome": "Bolo de fuba", "preco": 8.0}
+]
+
+consultas := []
+
+action montar():
+    app := Tg.app("123456:AAHexemplo")
+
+    mark @app.inline()
+    action buscar(ctx):
+        termo := lower(trim(ctx.texto))
+        consultas.append(termo)
+        achados := CATALOGO
+        given termo isnt "":
+            achados := [p cycle p in CATALOGO given termo in lower(p["nome"])]
+        ctx.responder_consulta([
+                {"id": p["id"], "titulo": p["nome"],
+                    "texto": $"{p['nome']} — R$ {p['preco']}"}
+                cycle p in achados])
+
+    yield app
+
+out "== 1. a busca vazia devolve tudo =="
+
+t := Tg.testar(montar())
+t.consultar("")
+assert consultas[0] is ""
+assert t.quantas("answerInlineQuery") is 1
+
+out ""
+out "== 2. e o termo filtra =="
+
+t.consultar("cafe")
+assert consultas[1] is "cafe"
+
+t.consultar("bolo")
+assert consultas[2] is "bolo"
+out $"   consultas: {consultas}"
+
+out ""
+out "== 3. cada item precisa de um id UNICO =="
+
+// Ids repetidos fazem o Telegram descartar a lista inteira, sem
+// mensagem de erro — o usuario ve "sem resultados".
+ids := [p["id"] cycle p in CATALOGO]
+assert len(unique(ids)) is len(ids)
+out "   tres itens, tres ids"
+
+out ""
+out "== 4. o bot NAO precisa estar no chat =="
+
+out "   '@meubot cafe' funciona em qualquer conversa"
+out "   e e por isso que a consulta inline nao tem 'ctx.chat'"
+
+out ""
+out "== 5. o que isso substitui =="
+
+// Sem inline, o usuario teria de sair da conversa, abrir o bot,
+// buscar, copiar e voltar.
+out "   sair da conversa, buscar, copiar e voltar"
+
+out "exercicio 367 ok"

@@ -1,0 +1,82 @@
+// Exercicio 344 — o objeto que entra numa conta
+//
+// Enunciado: sobrecarregar operador e o que faz um tipo de dominio
+// parecer um numero. O limite: so faca isso quando a operacao TIVER o
+// significado que o simbolo sugere — um '+' que envia e-mail e o pior
+// codigo que existe.
+
+blueprint Vetor:
+    action setup(x, y):
+        self.x := x
+        self.y := y
+
+    action __str__():
+        yield $"({self.x}, {self.y})"
+
+    action __eq__(o):
+        yield self.x is o.x and self.y is o.y
+
+    operator + (o):
+        yield spawn Vetor(self.x + o.x, self.y + o.y)
+
+    operator - (o):
+        yield spawn Vetor(self.x - o.x, self.y - o.y)
+
+    operator * (k):
+        yield spawn Vetor(self.x * k, self.y * k)
+
+    action __abs__():
+        yield sqrt(self.x ** 2 + self.y ** 2)
+
+    action __neg__():
+        yield spawn Vetor(-self.x, -self.y)
+
+out "== 1. somar e subtrair =="
+
+a := spawn Vetor(1, 2)
+b := spawn Vetor(3, 4)
+
+assert(a + b) is spawn Vetor(4, 6)
+assert(b - a) is spawn Vetor(2, 2)
+out $"   {a} + {b} = {a + b}"
+
+out ""
+out "== 2. multiplicar por escalar =="
+
+assert(a * 3) is spawn Vetor(3, 6)
+
+out ""
+out "== 3. o modulo, e o negativo =="
+
+assert abs(spawn Vetor(3, 4)) is 5.0
+assert(-a) is spawn Vetor(-1, -2)
+
+out ""
+out "== 4. eles compoem =="
+
+resultado := (a + b) * 2 - a
+assert resultado is spawn Vetor(7, 10)
+out $"   (a + b) * 2 - a = {resultado}"
+
+out ""
+out "== 5. e um tipo SEM o operador recusa =="
+
+blueprint Sem:
+    action setup(n):
+        self.n := n
+
+recusou := no
+monitor:
+    x := spawn Sem(1) + spawn Sem(2)
+handle Error as e:
+    recusou := yes
+    out $"   {e.message}"
+assert recusou
+
+out ""
+out "== 6. a regra de quando NAO sobrecarregar =="
+
+out "   so quando a operacao TEM o significado do simbolo"
+out "   um '+' que envia e-mail e pior que um metodo com nome ruim"
+
+out "exercicio 344 ok"

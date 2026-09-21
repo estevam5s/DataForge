@@ -1,0 +1,87 @@
+// Exercicio 329 — o que se lê de um erro capturado
+//
+// Enunciado: um erro nao e so uma mensagem. Ele carrega o tipo, a
+// linha, a nota, a dica e a doc — e e isso que faz a diferenca entre
+// um log que ajuda e um que so diz que algo deu errado.
+
+adopt Arcane.IO as IO
+
+out "== 1. os campos =="
+
+monitor:
+    _x := 1 / 0  // df: permitir division-by-zero
+handle Error as e:
+    assert e.type is "DivisionByZeroError"
+    assert "zero" in lower(e.message)
+    assert e.line bigger 0
+    out $"   {e.type} na linha {e.line}: {e.message}"
+
+out ""
+out "== 2. a nota e a dica, quando existem =="
+
+monitor:
+    IO.read("/nao/existe/mesmo/nem/um/pouco")
+handle FileNotFoundError as e:
+    assert len(e.message) bigger 0
+    out $"   {e.message}"
+
+out ""
+out "== 3. relancar preservando o original =="
+
+action camada_de_baixo():
+    trigger "o banco nao respondeu"
+
+action camada_de_cima():
+    monitor:
+        camada_de_baixo()
+    handle Error as e:
+        // Embrulhar e a norma; sem a causa, a mensagem de fora diz o
+        // QUE falhou e perde o PORQUE.
+        trigger $"nao consegui salvar o pedido: {e.message}"
+
+monitor:
+    camada_de_cima()
+handle Error as e:
+    assert "salvar o pedido" in e.message
+    assert "banco nao respondeu" in e.message
+    out $"   {e.message}"
+
+out ""
+out "== 4. 'ensure' roda sempre =="
+
+passos := []
+
+action com_limpeza(vai_falhar):
+    monitor:
+        passos.append("comecou")
+        given vai_falhar:
+            trigger "falhou"
+        passos.append("terminou")
+    handle Error:
+        passos.append("tratou")
+    ensure:
+        passos.append("limpou")
+
+com_limpeza(no)
+assert passos is ["comecou", "terminou", "limpou"]
+
+passos := []
+com_limpeza(yes)
+assert passos is ["comecou", "tratou", "limpou"]
+
+out ""
+out "== 5. e 'monitor' SEM 'handle' nao engole =="
+
+escapou := no
+monitor:
+    monitor:
+        trigger "passa direto"
+    ensure:
+        passos.append("mas o ensure rodou")
+handle Error as e:
+    escapou := yes
+    assert e.message is "passa direto"
+assert escapou
+assert passos[-1] is "mas o ensure rodou"
+
+out "exercicio 329 ok"

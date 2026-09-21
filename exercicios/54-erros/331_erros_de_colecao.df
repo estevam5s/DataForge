@@ -1,0 +1,85 @@
+// Exercicio 331 — a familia das colecoes
+//
+// Enunciado: indice, chave e fatia falham de jeitos diferentes, e
+// cada um tem uma saida diferente. Tratar os tres com o mesmo
+// 'handle Error' e o que faz um bug de chave virar "algo deu errado".
+
+out "== 1. indice fora do alcance =="
+
+xs := [10, 20, 30]
+
+monitor:
+    _x := xs[9]
+handle IndexError as e:
+    assert "9" in e.message or "range" in lower(e.message)
+    out $"   {e.message}"
+
+// A saida: conferir o tamanho, ou usar o indice negativo.
+assert xs[-1] is 30
+assert(xs[9] given len(xs) bigger 9 otherwise void) is void
+
+out ""
+out "== 2. chave ausente =="
+
+v := {"nome": "Ana", "cidade": "Florianopolis"}
+
+monitor:
+    _x := v["idade"]  // df: permitir chave-ausente
+handle KeyError as e:
+    out $"   {e.message}"
+
+// A saida: '??' — e e ela que o proprio erro sugere.
+assert(v["idade"] ?? 0) is 0
+assert v["nome"] ?? "sem nome" is "Ana"
+
+out ""
+out "== 3. e a diferenca entre 'pop' e 'remove' =="
+
+// 'remove' apaga no lugar e e silencioso quando nao acha.
+copia := {"a": 1, "b": 2}
+remove(copia, "z")
+assert keys(copia) is ["a", "b"]
+
+// 'pop' devolve o valor e por isso LEVANTA: devolver void calado
+// esconderia a diferenca entre "a chave valia void" e "a chave nao
+// estava la".
+levantou := no
+monitor:
+    pop(copia, "z")
+handle Error:
+    levantou := yes
+assert levantou
+assert pop(copia, "a") is 1
+
+out ""
+out "== 4. num cluster, o segundo argumento e o VALOR =="
+
+lista := [1, 2, 3]
+remove(lista, 2)
+assert lista is [1, 3]
+
+vault := {"x": 1, "y": 2}
+remove(vault, "x")
+assert keys(vault) is ["y"]
+
+out ""
+out "== 5. 'omit' devolve copia, e nao mexe no original =="
+
+steady ORIGINAL := {"a": 1, "b": 2, "c": 3}
+sem_b := omit(ORIGINAL, "b")
+assert keys(sem_b) is ["a", "c"]
+assert keys(ORIGINAL) is ["a", "b", "c"]
+
+out ""
+out "== 6. e uma colecao congelada recusa a escrita =="
+
+congelada := freeze([1, 2, 3])
+recusou := no
+monitor:
+    congelada.append(4)
+handle Error as e:
+    recusou := yes
+assert recusou
+assert len(congelada) is 3
+
+out "exercicio 331 ok"

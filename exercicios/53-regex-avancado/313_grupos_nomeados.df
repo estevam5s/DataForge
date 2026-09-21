@@ -1,0 +1,67 @@
+// Exercicio 313 — o grupo nomeado que nao chegava ao resultado
+//
+// Enunciado: '(?P<ano>\d{4})' sempre compilou, e o nome NAO vinha no
+// resultado — ele chegava por posicao. E ninguem escreve
+// '(?P<ano>…)' para depois ler 'groups[2]'.
+
+adopt Arcane.Regex as Regex
+
+steady DATA := "(?P<ano>\\d{4})-(?P<mes>\\d{2})-(?P<dia>\\d{2})"
+
+out "== 1. o nome chega junto =="
+
+achado := Regex.search(DATA, "vence em 2026-09-20, avise antes")
+assert achado["matched"]
+assert achado["named"]["ano"] is "2026"
+assert achado["named"]["mes"] is "09"
+assert achado["named"]["dia"] is "20"
+out $"   {achado['named']}"
+
+out ""
+out "== 2. a posicao continua existindo =="
+
+// Havia codigo lendo dali; tira-la seria quebrar o que funciona.
+assert achado["groups"] is ["2026", "09", "20"]
+assert achado["value"] is "2026-09-20"
+
+out ""
+out "== 3. 'named' devolve so o vault =="
+
+assert Regex.named(DATA, "2026-09-20")["mes"] is "09"
+assert Regex.named(DATA, "sem data") is {}
+
+out ""
+out "== 4. e 'findnamed' le um log linha a linha =="
+
+// Uma string simples nao cruza linhas: para texto multilinha, tres
+// aspas.
+steady LOG := """2026-09-20 ERRO falha ao gravar
+2026-09-20 AVISO disco quase cheio
+2026-09-21 ERRO conexao perdida"""
+
+steady LINHA := "(?P<data>[\\d-]+) (?P<nivel>\\w+) (?P<texto>.+)"
+linhas := Regex.findnamed(LINHA, LOG)
+
+assert len(linhas) is 3
+assert linhas[0]["nivel"] is "ERRO"
+assert linhas[1]["texto"] is "disco quase cheio"
+
+erros := [l cycle l in linhas given l["nivel"] is "ERRO"]
+assert len(erros) is 2
+cycle e in erros:
+    out $"   {e['data']}: {e['texto']}"
+
+out ""
+out "== 5. os nomes declarados, na ordem =="
+
+assert Regex.group_names(DATA) is ["ano", "mes", "dia"]
+assert Regex.group_names("(\\d)(\\w)") is []
+
+out ""
+out "== 6. sem grupo nomeado, 'named' vem vazio =="
+
+// Ler ["named"] nao pode depender de o padrao ter nomes.
+assert Regex.search("\\d+", "abc 12")["named"] is {}
+assert Regex.search("\\d+", "sem numero")["named"] is {}
+
+out "exercicio 313 ok"

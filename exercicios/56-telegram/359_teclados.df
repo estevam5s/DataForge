@@ -1,0 +1,91 @@
+// Exercicio 359 — botoes, e o relogio que nao para
+//
+// Enunciado: um botao inline manda um 'dados' de volta, e o Telegram
+// mostra um relogio girando ate alguem responder a consulta. Esquecer
+// de responder deixa o relogio girando para sempre — o usuario acha
+// que travou.
+
+adopt Arcane.Telegram as Tg
+
+steady CARDAPIO := [
+    {"nome": "cafe", "preco": 6.5},
+    {"nome": "bolo", "preco": 8.0}
+]
+
+action montar():
+    app := Tg.app("123456:AAHexemplo")
+
+    mark @app.comando("menu")
+    action menu(ctx):
+        linhas := [[Tg.botao(i["nome"], dados := $"add:{i['nome']}")]
+            cycle i in CARDAPIO]
+        ctx.responder("Escolha:", teclado := Tg.botoes(linhas))
+
+    mark @app.botao("add:")
+    action adicionar(ctx):
+        nome := ctx.dados[4:len(ctx.dados)]
+        carrinho := ctx.estado["carrinho"] ?? []
+        carrinho.append(nome)
+        ctx.estado["carrinho"] := carrinho
+        // Responder a consulta e o que PARA o relogio.
+        ctx.avisar($"{nome} adicionado")
+
+    mark @app.comando("carrinho")
+    action ver(ctx):
+        itens := ctx.estado["carrinho"] ?? []
+        ctx.responder($"{len(itens)} item(ns): {join(', ', itens)}")
+
+    yield app
+
+out "== 1. o teclado vai junto da mensagem =="
+
+t := Tg.testar(montar())
+t.comando("menu")
+teclado := t.ultimo_teclado()
+assert len(teclado["inline_keyboard"]) is 2
+assert teclado["inline_keyboard"][0][0]["text"] is "cafe"
+out $"   {len(teclado['inline_keyboard'])} botoes"
+
+out ""
+out "== 2. clicar manda o 'dados' de volta =="
+
+t.clicar("add:cafe")
+t.clicar("add:bolo")
+assert t.estado("carrinho") is ["cafe", "bolo"]
+
+out ""
+out "== 3. e cada clique fechou o relogio =="
+
+assert t.quantas("answerCallbackQuery") is 2
+out "   dois cliques, duas respostas de consulta"
+
+out ""
+out "== 4. o estado sobrevive entre mensagens =="
+
+t.comando("carrinho")
+assert "2 item(ns)" in t.ultima()
+assert "cafe, bolo" in t.ultima()
+
+out ""
+out "== 5. o 'dados' de um botao tem limite de 64 bytes =="
+
+// E por isso que se manda um ID, e nao o objeto inteiro.
+steady CURTO := "add:cafe"
+assert len(CURTO) smaller_eq 64
+out "   mande o id; o objeto fica no estado"
+
+out ""
+out "== 6. e o teclado do celular e outro =="
+
+// 'teclado' e inline (aparece NA mensagem); o do celular substitui o
+// teclado de digitar, e volta como TEXTO — entao ele e casado por
+// '@app.texto', e nao por '@app.botao'.
+out "   inline -> @app.botao · teclado do celular -> @app.texto"
+
+// 'Tg.botoes' monta o inline; 'Tg.teclado' monta o do celular.
+do_celular := Tg.teclado([["Sim", "Nao"]])
+assert "keyboard" in keys(do_celular)
+assert "inline_keyboard" not in keys(do_celular)
+assert "inline_keyboard" in keys(Tg.botoes([[Tg.botao("Sim", dados := "s")]]))
+
+out "exercicio 359 ok"

@@ -1,0 +1,80 @@
+// Exercicio 295 — o reativo em cima de uma tabela
+//
+// Enunciado: um painel que filtra e resume. O filtro e um sinal, a
+// tabela filtrada e um derivado, e o resumo e outro — mexer no filtro
+// recalcula os dois, e so eles.
+
+adopt Arcane.Reativo as R
+adopt Arcane.Quadro as Q
+
+steady VENDAS := [
+    {"vendedor": "Ana", "regiao": "sul", "valor": 1200.0},
+    {"vendedor": "Bia", "regiao": "sul", "valor": 800.0},
+    {"vendedor": "Caio", "regiao": "norte", "valor": 2400.0},
+    {"vendedor": "Dora", "regiao": "norte", "valor": 600.0},
+    {"vendedor": "Eva", "regiao": "sul", "valor": 3000.0}
+]
+
+steady regiao := R.sinal("sul")
+steady minimo := R.sinal(0.0)
+
+contas := {"filtrar": 0, "resumir": 0}
+
+action filtrar():
+    contas["filtrar"] := contas["filtrar"] + 1
+    r := regiao.ler()
+    m := minimo.ler()
+    yield [v cycle v in VENDAS given v["regiao"] is r and v["valor"] bigger_eq m]
+
+steady filtradas := R.derivado(filtrar)
+
+action resumir():
+    contas["resumir"] := contas["resumir"] + 1
+    linhas := filtradas.ler()
+    given len(linhas) is 0:
+        yield {"quantas": 0, "total": 0.0, "media": 0.0}
+    total := sum([l["valor"] cycle l in linhas])
+    yield {"quantas": len(linhas), "total": total,
+        "media": round(total / len(linhas), 2)}
+
+steady resumo := R.derivado(resumir)
+
+out "== 1. o sul =="
+
+assert resumo.ler()["quantas"] is 3
+assert resumo.ler()["total"] is 5000.0
+out $"   {resumo.ler()}"
+
+out ""
+out "== 2. trocar a regiao recalcula os dois =="
+
+regiao.escrever("norte")
+assert resumo.ler()["quantas"] is 2
+assert resumo.ler()["total"] is 3000.0
+
+out ""
+out "== 3. o minimo tambem e uma dependencia =="
+
+minimo.escrever(1000.0)
+assert resumo.ler()["quantas"] is 1
+assert filtradas.ler()[0]["vendedor"] is "Caio"
+
+out ""
+out "== 4. e o quadro le a mesma lista =="
+
+quadro := Q.de_vaults(filtradas.ler())
+assert len(quadro) is 1
+assert quadro.colunas() is ["vendedor", "regiao", "valor"]
+
+out ""
+out "== 5. nada recalcula sem leitura =="
+
+antes := contas["filtrar"]
+regiao.escrever("sul")
+minimo.escrever(0.0)
+assert contas["filtrar"] is antes
+assert resumo.ler()["quantas"] is 3
+assert contas["filtrar"] is antes + 1
+out "   duas escritas, uma conta"
+
+out "exercicio 295 ok"

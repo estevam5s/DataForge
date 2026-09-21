@@ -1,0 +1,122 @@
+// Exercicio 339 — o erro que acontece em OUTRA thread
+//
+// Enunciado: 'parallel' espera todas as tarefas e levanta na linha do
+// bloco, com as demais falhas em '.outros' — entao um 'monitor' o
+// pega. 'thread' nao espera: o erro e desenhado na hora, e o programa
+// termina com codigo diferente de zero.
+
+adopt Arcane.Concurrent as Conc
+
+out "== 1. 'parallel' espera todas =="
+
+resultados := []
+
+action trabalhar(n):
+    resultados.append(n)
+
+parallel:
+    trabalhar(1)
+    trabalhar(2)
+    trabalhar(3)
+
+assert len(resultados) is 3
+out $"   tres tarefas, {len(resultados)} resultados"
+
+out ""
+out "== 2. e o erro de uma delas CHEGA ao monitor =="
+
+// Ate a correcao, os dois faziam 'except Exception' e imprimiam uma
+// linha: o programa seguia, saia com 0, e nenhum 'handle' via o erro.
+action quebrar(qual):
+    trigger $"tarefa {qual} falhou"
+
+pegou := no
+monitor:
+    parallel:
+        trabalhar(9)
+        quebrar("A")
+handle Error as e:
+    pegou := yes
+    assert "falhou" in e.message
+    out $"   {e.message}"
+assert pegou
+
+out ""
+out "== 3. varias falhas: a primeira manda, as outras vao junto =="
+
+monitor:
+    parallel:
+        quebrar("A")
+        quebrar("B")
+        quebrar("C")
+handle Error as e:
+    out $"   uma na mensagem, {len(e.outros)} em '.outros'"
+    assert len(e.outros) bigger_eq 1
+
+out ""
+out "== 4. a linguagem NAO sincroniza sozinha =="
+
+// Duas threads escrevendo no mesmo nome perdem atualizacoes, em
+// silencio. E o 'check' avisa sobre o padrao — mas avisar nao e
+// sincronizar.
+solto := {"n": 0}
+
+action somar_sem_trava(voltas):
+    cycle i from 1 to voltas:
+        atual := solto["n"]
+        solto["n"] := atual + 1
+
+steady THREADS := 4
+steady VOLTAS := 3000
+
+parallel:
+    somar_sem_trava(VOLTAS)
+    somar_sem_trava(VOLTAS)
+    somar_sem_trava(VOLTAS)
+    somar_sem_trava(VOLTAS)
+
+esperado := THREADS * VOLTAS
+out $"   sem mutex: {solto['n']} de {esperado}"
+assert solto["n"] smaller_eq esperado
+
+out ""
+out "== 5. com mutex, fecha =="
+
+protegido := {"n": 0}
+steady trava := Conc.mutex()
+
+action somar_com_trava(voltas):
+    cycle i from 1 to voltas:
+        trava.acquire()
+        protegido["n"] := protegido["n"] + 1
+        trava.release()
+
+parallel:
+    somar_com_trava(VOLTAS)
+    somar_com_trava(VOLTAS)
+    somar_com_trava(VOLTAS)
+    somar_com_trava(VOLTAS)
+
+assert protegido["n"] is esperado
+out $"   com mutex: {protegido['n']} de {esperado}"
+
+out ""
+out "== 6. e o que o GIL protege sozinho =="
+
+// 'append' de varias threads entrega tudo: o GIL protege a operacao
+// inteira, e avisar sobre ele seria falso alarme em codigo que
+// funciona. O que perde e ler-modificar-escrever.
+juntos := []
+
+action acrescentar(voltas):
+    cycle i from 1 to voltas:
+        juntos.append(i)
+
+parallel:
+    acrescentar(1000)
+    acrescentar(1000)
+
+assert len(juntos) is 2000
+out "   'append' de duas threads: 2000 de 2000"
+
+out "exercicio 339 ok"

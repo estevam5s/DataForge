@@ -1,0 +1,91 @@
+// Exercicio 336 — o valor que nao serve para a operacao
+//
+// Enunciado: a familia dos tipos. O que importa aqui e que nenhuma
+// mensagem cita tipo do Python: 'int', 'str', 'list' e 'dict' nao
+// existem nesta linguagem, e uma mensagem nesses termos manda a pessoa
+// procurar na documentacao errada.
+
+out "== 1. somar o que nao soma =="
+
+monitor:
+    x := 1 + "dois"
+handle TypeError as e:
+    assert "int" not in e.message
+    assert "str" not in e.message
+    out $"   {e.message}"
+
+out ""
+out "== 2. os nomes sao os DESTA linguagem =="
+
+assert typeof(1) is "Integer"
+assert typeof(1.5) is "Float"
+assert typeof("x") is "String"
+assert typeof([1]) is "Cluster"
+assert typeof({"a": 1}) is "Vault"
+assert typeof(yes) is "Boolean"
+assert typeof(void) is "Void"
+assert typeof((1, "a")) is "Tuple"
+
+out ""
+out "== 3. chamar o que nao e acao =="
+
+monitor:
+    x := 42
+    x()
+handle Error as e:
+    out $"   {e.type}"
+
+out ""
+out "== 4. indexar o que nao e indexavel =="
+
+monitor:
+    y := 42
+    _z := y[0]  // df: permitir index-type
+handle Error as e:
+    assert "Integer" in e.message or "index" in lower(e.message)
+    out $"   {e.message}"
+
+out ""
+out "== 5. o void que atravessa =="
+
+// 'void' nao levanta na hora: ele viaja, e a queixa sai longe da
+// causa. E por isso que '?.' e '??' existem.
+action pode_nao_achar(chave):
+    given chave is "a":
+        yield {"nome": "Ana"}
+    yield void
+
+achado := pode_nao_achar("z")
+assert achado is void
+
+monitor:
+    _nome := achado["nome"]
+handle Error as e:
+    out $"   {e.message}"
+
+// As duas saidas:
+assert(achado?.nome) is void
+assert(pode_nao_achar("z") ?? {"nome": "desconhecido"})["nome"] is "desconhecido"
+
+out ""
+out "== 6. e a aridade errada e recusada na chamada =="
+
+action somar(a, b):
+    yield a + b
+
+// 'somar(1)' e acusado pelo 'check' ANTES de rodar — e por isso nao
+// da para escreve-lo aqui sem o arquivo inteiro ser recusado. A forma
+// que so falha em execucao e a chamada indireta.
+chamar := somar
+monitor:
+    chamar(1)
+handle TypeError as e:
+    assert "b" in e.message
+    out $"   {e.message}"
+
+monitor:
+    chamar(1, 2, 3)
+handle TypeError as e:
+    out $"   {e.message}"
+
+out "exercicio 336 ok"

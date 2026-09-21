@@ -1,0 +1,119 @@
+// Exercicio 330 — o erro que o programa inventa
+//
+// Enunciado: nao ha hierarquia de excecao do usuario, e o que
+// substitui e melhor para quem trata — um RECORD com os campos do
+// problema. Uma classe vazia so carrega o nome; o record leva o saldo,
+// o valor pedido e a diferenca. E 'handle <Nome>' o captura pelo nome.
+
+record SaldoInsuficiente:
+    saldo: Float
+    pedido: Float
+
+    action falta() -> Float:
+        yield self.pedido - self.saldo
+
+record ContaBloqueada:
+    conta: String
+    motivo: String
+
+record ValorInvalido:
+    valor: Float
+
+out "== 1. levantar um record =="
+
+action sacar(saldo, quanto):
+    given quanto bigger saldo:
+        trigger SaldoInsuficiente(saldo, quanto)
+    yield saldo - quanto
+
+assert sacar(100.0, 30.0) is 70.0
+
+out ""
+out "== 2. e captura-lo PELO NOME =="
+
+pegou := no
+monitor:
+    sacar(100.0, 250.0)
+handle SaldoInsuficiente as e:
+    pegou := yes
+    // O valor original viaja em 'e.value': os campos, e nao o texto.
+    assert e.value.falta() is 150.0
+    out $"   faltam {e.value.falta()}"
+assert pegou
+
+out ""
+out "== 3. cada nome captura so o seu =="
+
+action transferir(de, quanto, bloqueadas):
+    given de in bloqueadas:
+        trigger ContaBloqueada(de, "em analise")
+    given quanto smaller_eq 0.0:
+        trigger ValorInvalido(quanto)
+    given quanto bigger 1000.0:
+        trigger SaldoInsuficiente(1000.0, quanto)
+    yield quanto
+
+action tentar(de, quanto):
+    monitor:
+        transferir(de, quanto, ["X"])
+        yield "ok"
+    handle ContaBloqueada as e:
+        yield $"bloqueio: {e.value.conta} ({e.value.motivo})"
+    handle ValorInvalido as e:
+        yield $"valor invalido: {e.value.valor}"
+    handle SaldoInsuficiente as e:
+        yield $"faltam {e.value.falta()}"
+
+assert tentar("A", 100.0) is "ok"
+assert startswith(tentar("X", 100.0), "bloqueio:")
+assert startswith(tentar("A", -5.0), "valor invalido:")
+assert startswith(tentar("A", 5000.0), "faltam")
+
+cycle caso in [["A", 100.0], ["X", 100.0], ["A", -5.0], ["A", 5000.0]]:
+    out $"   {caso[0]} {caso[1]}  ->  {tentar(caso[0], caso[1])}"
+
+out ""
+out "== 4. e 'handle Error' continua pegando todos =="
+
+qualquer := ""
+monitor:
+    sacar(10.0, 20.0)
+handle Error as e:
+    // O tipo do ERRO continua sendo TriggerError; o nome do record e
+    // o que 'handle' casa.
+    qualquer := e.type
+assert qualquer is "TriggerError"
+
+out ""
+out "== 5. 'match' sobre o valor, quando se quer decidir por forma =="
+
+action classificar(falha):
+    match falha:
+        point SaldoInsuficiente(saldo, pedido):
+            yield $"faltam {pedido - saldo}"
+        point ContaBloqueada(conta, motivo):
+            yield $"{conta}: {motivo}"
+        point String as texto:
+            yield $"texto: {texto}"
+        default:
+            yield "desconhecido"
+
+assert classificar(SaldoInsuficiente(10.0, 30.0)) is "faltam 20.0"
+assert classificar(ContaBloqueada("X", "em analise")) is "X: em analise"
+assert classificar("algo") is "texto: algo"
+
+out ""
+out "== 6. um texto levantado NAO ganha nome =="
+
+// Senao 'handle String' capturaria todo 'trigger "..."' do programa.
+so_texto := no
+monitor:
+    monitor:
+        trigger "so uma mensagem"
+    handle String:
+        assert no
+handle Error as e:
+    so_texto := e.type is "TriggerError"
+assert so_texto
+
+out "exercicio 330 ok"

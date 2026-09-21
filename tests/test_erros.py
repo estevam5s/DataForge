@@ -242,3 +242,98 @@ def test_erro_por_nome_aceita_as_duas_formas():
     assert E.erro_por_nome("TypeError") is E.TypeError_
     assert E.erro_por_nome("TypeError_") is E.TypeError_
     assert E.erro_por_nome("NaoExiste") is None
+
+
+# ═══════════════════════════════════════════════════════════
+#  O erro nomeado pelo programa
+# ═══════════════════════════════════════════════════════════
+
+def _rodar(fonte):
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.interpreter import Interpreter
+    import io as _io
+    import contextlib
+
+    interp = Interpreter()
+    saida = _io.StringIO()
+    with contextlib.redirect_stdout(saida):
+        interp.run(parse(tokenize(fonte, "<t>"), "<t>"))
+    return saida.getvalue()
+
+
+def test_handle_casa_o_record_levantado_pelo_NOME():
+    """`_error_matches` consultava `tipo_usuario` e nada o escrevia.
+
+    O ramo existia, tinha docstring explicando que servia a
+    `trigger MinhaFalha(...)`, e era **inalcançável**. Quem levantava
+    um record de domínio — a forma que a trilha ensina — só podia
+    capturá-lo com `handle Error` e um `match` sobre `e.value`, embora
+    o cabeçalho do erro imprimisse o nome do record.
+    """
+    saida = _rodar(
+        'record SaldoInsuficiente:\n'
+        '    falta: Float\n'
+        'monitor:\n'
+        '    trigger SaldoInsuficiente(150.0)\n'
+        'handle SaldoInsuficiente as e:\n'
+        '    out e.value.falta\n')
+    assert saida.strip() == "150.0"
+
+
+def test_handle_casa_blueprint_e_membro_de_enum():
+    saida = _rodar(
+        'blueprint Interrompido:\n'
+        '    action setup(m):\n'
+        '        self.m := m\n'
+        'enum Estado:\n'
+        '    Ruim\n'
+        'monitor:\n'
+        '    trigger spawn Interrompido("x")\n'
+        'handle Interrompido:\n'
+        '    out "blueprint"\n'
+        'monitor:\n'
+        '    trigger Estado.Ruim\n'
+        'handle Estado:\n'
+        '    out "enum"\n')
+    assert saida.split() == ["blueprint", "enum"]
+
+
+def test_um_texto_levantado_nao_ganha_nome():
+    """`handle String` capturaria todo `trigger "..."` do programa."""
+    saida = _rodar(
+        'monitor:\n'
+        '    monitor:\n'
+        '        trigger "so texto"\n'
+        '    handle String:\n'
+        '        out "NAO DEVIA"\n'
+        'handle Error as e:\n'
+        '    out e.type\n')
+    assert saida.strip() == "TriggerError"
+
+
+def test_o_nome_errado_nao_captura():
+    saida = _rodar(
+        'record Falha:\n'
+        '    motivo: String\n'
+        'monitor:\n'
+        '    monitor:\n'
+        '        trigger Falha("z")\n'
+        '    handle Outra:\n'
+        '        out "NAO DEVIA"\n'
+        'handle Falha:\n'
+        '    out "certo"\n')
+    assert saida.strip() == "certo"
+
+
+def test_handle_Error_continua_pegando_o_nomeado():
+    """Quem já escrevia `handle Error` não pode perder nada."""
+    saida = _rodar(
+        'record Falha:\n'
+        '    motivo: String\n'
+        'monitor:\n'
+        '    trigger Falha("z")\n'
+        'handle Error as e:\n'
+        '    out e.type\n'
+        '    out e.value.motivo\n')
+    assert saida.split() == ["TriggerError", "z"]

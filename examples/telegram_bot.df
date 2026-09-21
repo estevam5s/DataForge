@@ -1,0 +1,231 @@
+// ════════════════════════════════════════════════════════════
+//  Arcane.Telegram — um bot completo, testado sem token e sem rede
+//
+//  Este arquivo responde a uma pergunta concreta: da para escrever um
+//  bot de Telegram de verdade em DataForge — comandos, botoes,
+//  conversa com estado, midia, middleware e tratamento de erro — e
+//  ainda ter teste automatizado dele?
+//
+//  Da, e o teste e a parte mais importante: um bot que so pode ser
+//  testado conversando com ele no celular nao tem teste nenhum.
+//
+//  Para conversar com ele de verdade:
+//      export TELEGRAM_TOKEN="123456:AAH..."   # do @BotFather
+//      dataforge telegram run examples/telegram_bot.df
+//
+//  Sem o token ele roda os proprios testes e termina — que e o que faz
+//  este arquivo entrar na suite junto com os outros.
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Telegram as Tg
+
+// ── O "banco" deste exemplo ─────────────────────────────────
+
+steady CARDAPIO := [
+    {"nome": "Café", "preco": 6.5},
+    {"nome": "Pão de queijo", "preco": 5.0},
+    {"nome": "Bolo de fubá", "preco": 8.0}
+]
+
+action preco_de(nome):
+    achados := CARDAPIO >> sift i: i["nome"] is nome
+    yield achados[0]["preco"] given len(achados) bigger 0 otherwise void
+
+action total_do_carrinho(carrinho):
+    yield carrinho >> morph i: i["preco"] >> distill a, v: a + v 0.0
+
+// ── O bot ───────────────────────────────────────────────────
+
+action registrar_comandos(app):
+    "Os cinco comandos do bot."
+
+    mark @app.comando("start", ajuda := "Comeca a conversa")
+    action comecar(ctx):
+        linhas := CARDAPIO >> morph i: [Tg.botao(i["nome"],
+                dados := $"add:{i['nome']}")]
+        linhas.append([Tg.botao("Ver o carrinho", dados := "carrinho")])
+        ctx.responder($"Ola, {ctx.nome()}! O que voce quer pedir?",
+            teclado := Tg.botoes(linhas))
+
+    mark @app.comando("cardapio", ajuda := "Mostra o cardapio")
+    action cardapio(ctx):
+        // Tudo o que vai para MarkdownV2 passa por 'escapar': o ponto e
+        // o hifen estao entre os dezoito reservados, e um preco sem
+        // escape derruba a mensagem INTEIRA com 400.
+        linhas := CARDAPIO >> morph i: Tg.escapar($"{i['nome']} — R$ {i['preco']}")
+        ctx.responder(Tg.negrito("Cardapio") + char(10) + join(char(10), linhas),
+            marcacao := "MarkdownV2")
+
+    mark @app.comando("carrinho", ajuda := "Mostra o seu carrinho")
+    action ver_carrinho(ctx):
+        carrinho := ctx.lembrar("carrinho", [])
+        given len(carrinho) is 0:
+            ctx.responder("Seu carrinho esta vazio. Mande /start.")
+            yield void
+        nomes := carrinho >> morph i: i["nome"]
+        ctx.responder($"No carrinho: {join(", ", nomes)}" +char(10) +
+            $"Total: R$ {total_do_carrinho(carrinho)}")
+
+    mark @app.comando("limpar", ajuda := "Esvazia o carrinho")
+    action limpar(ctx):
+        ctx.esquecer("carrinho")
+        ctx.responder("Carrinho esvaziado.")
+
+action registrar_botoes(app):
+    """Os botoes embutidos.
+
+    'ctx.avisar()' e obrigatorio: sem ele o Telegram deixa o botao com
+    o relogio girando por ate um minuto, e quem clicou acha que o bot
+    travou.
+    """
+
+    mark @app.botao("^add:")
+    action adicionar(ctx):
+        nome := ctx.dados[4:]
+        preco := preco_de(nome)
+        given preco is void:
+            ctx.avisar("Nao achei esse item.", alerta := yes)
+            yield void
+        carrinho := ctx.lembrar("carrinho", [])
+        carrinho.append({"nome": nome, "preco": preco})
+        ctx.guardar("carrinho", carrinho)
+        ctx.avisar($"{nome} adicionado!")
+
+    mark @app.botao("^carrinho$")
+    action botao_carrinho(ctx):
+        ctx.avisar()
+        carrinho := ctx.lembrar("carrinho", [])
+        ctx.editar($"Voce tem {len(carrinho)} item(ns). " +
+            $"Total: R$ {total_do_carrinho(carrinho)}")
+
+action registrar_entrega(app):
+    """A conversa que fecha o pedido.
+
+    O estado e POR CHAT: duas pessoas pedindo ao mesmo tempo nao se
+    atrapalham, que e o defeito de guardar 'o passo atual' num lugar
+    so. E um comando SEMPRE escapa da conversa — sem isso, quem se
+    perde no meio nao consegue nem mandar /limpar.
+    """
+
+    action tem_numero(texto):
+        yield len(texto >> sift c: c in "0123456789") bigger 0
+
+    entrega := app.conversa("entrega", [
+            {"pergunta": "Qual o endereco de entrega?", "guarda": "endereco",
+                "valida": tem_numero, "erro": "Preciso do numero tambem."},
+            {"pergunta": "Algum ponto de referencia?", "guarda": "referencia"}
+        ])
+
+    mark @entrega.ao_terminar()
+    action fechou(ctx, respostas):
+        carrinho := ctx.lembrar("carrinho", [])
+        ctx.responder($"Pedido confirmado! {len(carrinho)} item(ns), " +
+            $"R$ {total_do_carrinho(carrinho)}, para " +
+            $"{respostas['endereco']}.")
+        ctx.esquecer("carrinho")
+
+    mark @app.comando("fechar", ajuda := "Fecha o pedido")
+    action fechar(ctx):
+        given len(ctx.lembrar("carrinho", [])) is 0:
+            ctx.responder("Seu carrinho esta vazio.")
+            yield void
+        entrega.comecar(ctx)
+
+action montar_bot(token):
+    "Monta o bot inteiro, na ordem que o despacho respeita."
+    app := Tg.app(token)
+    registrar_comandos(app)
+    registrar_botoes(app)
+    registrar_entrega(app)
+
+    // ── Midia ───────────────────────────────────────────────
+
+    mark @app.midia("foto")
+    action recebeu_foto(ctx):
+        ctx.responder("Recebi a foto, mas ainda nao sei ler cardapio. 🙂")
+
+    // ── Middleware ──────────────────────────────────────────
+
+    mark @app.antes_de_cada()
+    action contar(ctx):
+        ctx.guardar("mensagens", ctx.lembrar("mensagens", 0) + 1)
+
+    // ── O ultimo recurso ────────────────────────────────────
+    //
+    // 'qualquer' casa com tudo, entao vai por ULTIMO. Registrar uma
+    // rota depois dela e recusado na partida: ela nunca seria
+    // alcancada, e o bot responderia "nao entendi" a um comando que
+    // existe.
+
+    mark @app.qualquer()
+    action nao_entendi(ctx):
+        ctx.responder("Nao entendi. Mande /cardapio ou /start.")
+
+    mark @app.ao_falhar()
+    action deu_errado(ctx, erro):
+        out $"[bot] falhou: {erro}"
+        ctx.responder("Alguma coisa quebrou aqui. Ja anotei.")
+
+    yield app
+
+// ── Os testes deste arquivo ─────────────────────────────────
+
+action conferir():
+    t := Tg.testar(montar_bot("123456:AAHexemplo"))
+
+    // O /start oferece o cardapio em botoes
+    t.comando("start")
+    assert "Ola, Ana" in t.ultima()
+    teclado := t.ultimo_teclado()
+    assert len(teclado["inline_keyboard"]) is 4
+
+    // Clicar adiciona ao carrinho, e o aviso fecha o relogio do botao
+    t.clicar("add:Café")
+    t.clicar("add:Bolo de fubá")
+    assert t.quantas("answerCallbackQuery") is 2
+    assert len(t.estado("carrinho")) is 2
+
+    t.comando("carrinho")
+    assert "14.5" in t.ultima()
+
+    // O cardapio vai em MarkdownV2, e o preco passou por 'escapar'
+    t.comando("cardapio")
+    // O '$' NAO esta entre os dezoito reservados do MarkdownV2;
+    // o ponto esta, e e ele que derrubaria a mensagem.
+    assert "R$ 6\\.5" in t.ultima()
+
+    // A conversa valida o endereco antes de aceitar
+    t.comando("fechar")
+    assert "endereco" in t.ultima()
+    t.mandar("Rua sem numero")
+    assert "numero" in t.ultima()
+    t.mandar("Rua das Flores, 42")
+    assert "referencia" in t.ultima()
+    t.mandar("perto da praca")
+    assert "Pedido confirmado" in t.ultima()
+    assert t.estado("__conversa__") is void
+    // 'esquecer' TIRA a chave: ela volta como void, e nao como
+    // cluster vazio. A diferenca importa — um cluster vazio diria
+    // "ja perguntei e nao ha nada", e void diz "nunca houve".
+    assert t.estado("carrinho") is void
+
+    // Um comando escapa da conversa aberta
+    t.comando("fechar")
+    t.comando("limpar")
+    assert t.ultima() is "Carrinho esvaziado."
+
+    // O que nao casa cai no ultimo recurso, e nada quebrou
+    t.mandar("bom dia")
+    assert "Nao entendi" in t.ultima()
+    t.enviar_foto()
+    assert "foto" in t.ultima()
+    assert not t.falhou()
+
+    out $"bot ok — {t.quantas()} chamadas, {len(t.respostas())} respostas"
+
+given Tg.modo_servidor():
+    app := montar_bot(Tg.segredo_do_ambiente())
+    app.publicar_comandos()
+    app.rodar()
+otherwise:
+    conferir()

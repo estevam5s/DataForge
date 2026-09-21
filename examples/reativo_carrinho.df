@@ -1,0 +1,202 @@
+// ════════════════════════════════════════════════════════════
+//  Arcane.Reativo — valores que avisam quando mudam
+//
+//  Um carrinho de compras: mexer no cupom recalcula o total, e o
+//  total sozinho reescreve a linha do frete. Nenhuma dessas
+//  ligacoes esta escrita em lugar nenhum — elas sao DESCOBERTAS
+//  na execucao, olhando quem cada formula leu.
+//
+//      dataforge run examples/reativo_carrinho.df
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Reativo as R
+
+out "Arcane.Reativo — o carrinho que se recalcula"
+out ""
+
+// ── 1. Sinal: um valor com estado ───────────────────────────
+
+steady itens := R.sinal([], nome := "itens")
+steady cupom := R.sinal(0.0, nome := "cupom")
+
+// Contar as vezes que cada formula roda e o unico jeito de PROVAR
+// a preguica: um derivado que recalculasse na escrita faria uma
+// cadeia de dez rodar dez vezes por mudanca, e a maioria nunca e lida.
+contas := {"subtotal": 0, "frete": 0, "total": 0}
+
+action calcular_subtotal():
+    contas["subtotal"] := contas["subtotal"] + 1
+    yield sum([i["preco"] * i["qtd"] cycle i in itens.ler()])
+
+steady subtotal := R.derivado(calcular_subtotal)
+
+out "1. sinal e derivado"
+out $"   carrinho vazio -> subtotal {subtotal.ler()}"
+assert subtotal.ler() is 0
+assert contas["subtotal"] is 1
+
+// Ler de novo NAO recalcula: o valor esta memorizado.
+subtotal.ler()
+subtotal.ler()
+assert contas["subtotal"] is 1
+out "   tres leituras, uma conta so"
+
+itens.escrever([
+        {"nome": "cafe", "preco": 32.0, "qtd": 2},
+        {"nome": "filtro", "preco": 9.0, "qtd": 1}
+    ])
+out $"   dois produtos   -> subtotal {subtotal.ler()}"
+assert subtotal.ler() is 73.0
+assert contas["subtotal"] is 2
+
+// Escrever o MESMO valor nao notifica: senao a cadeia recalcula por
+// nada, e um efeito de rede dispara duas vezes pelo mesmo estado.
+itens.escrever(itens.ler())
+subtotal.ler()
+assert contas["subtotal"] is 2
+out "   escrever o mesmo valor nao recalculou nada"
+
+out ""
+
+// ── 2. A dependencia e DESCOBERTA, nao declarada ────────────
+//
+// 'frete' so le 'cupom' quando o subtotal nao passa de 100. Uma
+// lista de dependencias escrita a mao envelheceria na primeira
+// condicao nova — e o sintoma seria um valor que para de atualizar.
+
+action calcular_frete():
+    contas["frete"] := contas["frete"] + 1
+    given subtotal.ler() bigger 100.0:
+        yield 0.0
+    yield 20.0 - cupom.ler()
+
+steady frete := R.derivado(calcular_frete)
+
+action calcular_total():
+    contas["total"] := contas["total"] + 1
+    yield subtotal.ler() + frete.ler()
+
+steady total := R.derivado(calcular_total)
+
+out "2. dependencia descoberta na execucao"
+out $"   subtotal {subtotal.ler()} -> frete {frete.ler()}, total {total.ler()}"
+assert frete.ler() is 20.0
+assert total.ler() is 93.0
+
+// Aqui o frete LEU o cupom, entao mexer no cupom o invalida.
+antes := contas["frete"]
+cupom.escrever(5.0)
+assert frete.ler() is 15.0
+assert contas["frete"] is antes + 1
+out $"   cupom de 5 -> frete {frete.ler()} (o frete tinha lido o cupom)"
+
+// Passando de 100, a formula toma o outro ramo e NAO le mais o
+// cupom. A partir daqui, mexer no cupom nao mexe em nada.
+itens.escrever([{"nome":"moedor", "preco":240.0, "qtd":1}])
+assert frete.ler() is 0.0
+
+antes := contas["frete"]
+cupom.escrever(7.0)
+frete.ler()
+assert contas["frete"] is antes
+out "   acima de 100 o frete deixa de ler o cupom — e para de reagir a ele"
+
+out ""
+
+// ── 3. Efeito: o que acontece quando muda ───────────────────
+//
+// Ele roda UMA VEZ na criacao: sem isso, a tela nasce sem o estado
+// inicial desenhado, e quem escreve tem de chama-lo a mao — o que
+// se esquece exatamente uma vez.
+
+linhas := []
+
+action mostrar_total():
+    linhas.append($"total R$ {total.ler()}")
+
+steady vigia_do_total := R.efeito(mostrar_total)
+
+out "3. efeito"
+out $"   na criacao:      {linhas[-1]}"
+assert len(linhas) is 1
+
+itens.escrever([{"nome":"moedor", "preco":240.0, "qtd":2}])
+out $"   depois de mudar: {linhas[-1]}"
+assert len(linhas) is 2
+
+vigia_do_total.parar()
+itens.escrever([{"nome":"prensa", "preco":80.0, "qtd":1}])
+assert len(linhas) is 2
+out "   depois de parar, o efeito nao roda mais"
+
+out ""
+
+// ── 4. Lote: uma notificacao para varias escritas ───────────
+
+do_lote := []
+
+action anotar_subtotal():
+    do_lote.append(subtotal.ler())
+
+action tres_escritas():
+    itens.escrever([{"nome":"a", "preco":1.0, "qtd":1}])
+    cupom.escrever(0.0)
+    itens.escrever([{"nome":"b", "preco":2.0, "qtd":1}])
+
+steady vigia_do_lote := R.efeito(anotar_subtotal)
+assert len(do_lote) is 1
+
+R.lote(tres_escritas)
+
+out "4. lote"
+out $"   tres escritas, {len(do_lote) - 1} notificacao(oes)"
+assert len(do_lote) is 2
+vigia_do_lote.parar()
+
+out ""
+
+// ── 5. Observavel: um fluxo no tempo ────────────────────────
+//
+// Sinal e valor, observavel e fluxo. Um clique e fluxo — perguntar
+// "qual o valor do clique agora?" nao tem resposta. Um saldo e
+// valor. Chamar os dois de "stream" apaga a diferenca.
+
+cliques := R.observavel("cliques")
+recebidos := []
+
+compras := cliques.sift(lambda v => v["botao"] is "comprar")
+produtos := compras.morph(lambda v => v["produto"])
+inscricao := produtos.distintos().inscrever(lambda p => recebidos.append(p))
+
+cliques.emitir({"botao": "ver", "produto": "cafe"})
+cliques.emitir({"botao": "comprar", "produto": "cafe"})
+cliques.emitir({"botao": "comprar", "produto": "cafe"})
+cliques.emitir({"botao": "comprar", "produto": "moedor"})
+
+out "5. observavel"
+out $"   quatro cliques -> {recebidos}"
+assert recebidos is ["cafe", "moedor"]
+
+inscricao.cancelar()
+cliques.emitir({"botao": "comprar", "produto": "prensa"})
+assert len(recebidos) is 2
+out "   cancelada a inscricao, o fluxo para de chegar"
+
+// Uma fonte FRIA so comeca quando alguem escuta. O operador liga
+// preguicoso por isso: ligando na construcao, os valores sairiam
+// antes de o assinante final existir — e o resultado seria uma
+// lista vazia, sem erro nenhum.
+dobrados := []
+pares := R.de_cluster([1, 2, 3, 4]).sift(lambda n => n % 2 is 0)
+pares.morph(lambda n => n * 10).inscrever(lambda n => dobrados.append(n))
+out $"   fonte fria: {dobrados}"
+assert dobrados is [20, 40]
+
+// E um fluxo vira valor quando a pergunta muda.
+ultimo := cliques.para_sinal({"produto": "nenhum"})
+cliques.emitir({"botao": "comprar", "produto": "coador"})
+assert ultimo.ler()["produto"] is "coador"
+out $"   o fluxo virou valor: {ultimo.ler()['produto']}"
+
+out ""
+out "reativo ok"

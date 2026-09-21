@@ -1,0 +1,108 @@
+// Exercicio 326 — extrair uma tabela de um texto
+//
+// Enunciado: o caso mais comum de regex num trabalho de dados —
+// transformar texto semiestruturado em linhas com colunas, e daí em
+// diante deixar o quadro trabalhar.
+
+adopt Arcane.Regex as Regex
+adopt Arcane.Quadro as Q
+
+steady EXTRATO := """20/09/2026  PIX RECEBIDO ANA SOUZA        +1.250,00
+20/09/2026  COMPRA CARTAO MERCADO           -87,45
+21/09/2026  PIX ENVIADO BIA LIMA            -300,00
+22/09/2026  SALARIO EMPRESA LTDA          +5.400,00
+22/09/2026  COMPRA CARTAO FARMACIA          -52,30
+rodape que nao e lancamento"""
+
+steady LANCAMENTO := "^(?P<data>\\d{2}/\\d{2}/\\d{4})\\s+(?P<descricao>.+?)\\s+(?P<sinal>[+-])(?P<valor>[\\d.,]+)$"
+
+action para_numero(texto):
+    "'1.250,00' vira 1250.0 — o ponto e milhar, a virgula e decimal."
+    limpo := replace(replace(texto, ".", ""), ",", ".")
+    yield float(limpo)
+
+out "== 1. so as linhas que casam inteiras =="
+
+linhas := []
+cycle bruta in split(EXTRATO, "\n"):
+    campos := Regex.named(LANCAMENTO, bruta)
+    given len(keys(campos)) is 0:
+        skip
+    valor := para_numero(campos["valor"])
+    linhas.append({
+            "data": campos["data"],
+            "descricao": trim(campos["descricao"]),
+            "valor": valor given campos["sinal"] is "+" otherwise -valor
+        })
+
+assert len(linhas) is 5
+out $"   {len(linhas)} lancamentos, o rodape ficou de fora"
+
+out ""
+out "== 2. os numeros em pt-BR viraram numeros =="
+
+assert linhas[0]["valor"] is 1250.0
+assert linhas[1]["valor"] is -87.45
+assert linhas[3]["valor"] is 5400.0
+
+out ""
+out "== 3. e dai em diante e um quadro =="
+
+extrato := Q.de_vaults(linhas)
+assert len(extrato) is 5
+assert extrato.colunas() is ["data", "descricao", "valor"]
+
+entradas := extrato >> onde valor bigger 0
+saidas := extrato >> onde valor smaller 0
+assert len(entradas) is 2
+assert len(saidas) is 3
+
+out ""
+out "== 4. o saldo =="
+
+saldo := sum([l["valor"] cycle l in linhas])
+assert round(saldo, 2) is 6210.25
+out $"   saldo: {round(saldo, 2)}"
+
+out ""
+out "== 5. classificar pela descricao =="
+
+steady REGRAS := [
+    ["PIX (RECEBIDO|ENVIADO)", "pix"],
+    ["COMPRA CARTAO", "cartao"],
+    ["SALARIO", "salario"]
+]
+
+action classificar(descricao):
+    cycle regra in REGRAS:
+        given Regex.test(regra[0], descricao):
+            yield regra[1]
+    yield "outros"
+
+categorias := [classificar(l["descricao"]) cycle l in linhas]
+assert categorias is ["pix", "cartao", "pix", "salario", "cartao"]
+
+por_categoria := {}
+cycle i from 0 to len(linhas) - 1:
+    c := categorias[i]
+    por_categoria[c] := round((por_categoria[c] ?? 0.0) + linhas[i]["valor"], 2)
+
+assert por_categoria["pix"] is 950.0
+assert por_categoria["cartao"] is -139.75
+cycle c in keys(por_categoria):
+    out $"   {c}: {por_categoria[c]}"
+
+out ""
+out "== 6. e a linha que nao casou continua visivel =="
+
+// Um parser que descarta em silencio esconde o dia em que o formato
+// do banco mudou.
+ignoradas := []
+cycle bruta in split(EXTRATO, "\n"):
+    given len(keys(Regex.named(LANCAMENTO, bruta))) is 0 and trim(bruta) isnt "":
+        ignoradas.append(bruta)
+
+assert len(ignoradas) is 1
+out $"   ignorada: {ignoradas[0]}"
+
+out "exercicio 326 ok"

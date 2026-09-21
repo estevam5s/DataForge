@@ -1,0 +1,78 @@
+// Exercicio 269 — a regra cobrada na criacao
+//
+// Enunciado: um 'record' da a imutabilidade e a igualdade estrutural.
+// O que ele nao da e a REGRA: 'Dinheiro(-5, "BRL")' e um record
+// perfeitamente valido, e o negocio descobre isso tres camadas
+// adiante, num extrato negativo.
+
+adopt Arcane.Dominio as D
+
+steady Dinheiro := D.valor("Dinheiro", ["quantia", "moeda"],
+    regra := lambda v => v["quantia"] bigger_eq 0,
+    motivo := "dinheiro nao e negativo")
+
+out "== 1. a criacao e o unico ponto que impede =="
+
+assert Dinheiro(0, "BRL").quantia is 0
+
+recusou := no
+monitor:
+    Dinheiro(-5, "BRL")
+handle ValueObjectError as e:
+    recusou := yes
+    assert "negativo" in e.message
+    out $"   {e.message}"
+assert recusou
+
+out ""
+out "== 2. a regra vale em TODA fronteira, inclusive no 'com' =="
+
+// Um refinamento que so valesse na criacao seria uma sugestao, e nao
+// um tipo.
+no_com := no
+monitor:
+    Dinheiro(10, "BRL").com(quantia := -1)
+handle ValueObjectError:
+    no_com := yes
+assert no_com
+
+out ""
+out "== 3. um valor nao muda =="
+
+dez := Dinheiro(10, "BRL")
+nao_muda := no
+monitor:
+    dez.quantia := 99
+handle ValueObjectError as e:
+    nao_muda := yes
+    assert "valor" in e.message
+assert nao_muda
+assert dez.quantia is 10
+
+out ""
+out "== 4. e ele nasce COMPLETO =="
+
+// Um campo vazio faria dois valores 'iguais' diferirem no que ninguem
+// preencheu.
+incompleto := no
+monitor:
+    Dinheiro(10)
+handle ValueObjectError as e:
+    incompleto := yes
+    assert "moeda" in e.message
+assert incompleto
+
+out ""
+out "== 5. a regra que ESTOURA e um bug dela =="
+
+// Dizer 'valor invalido' aqui esconderia o defeito real.
+steady Ruim := D.valor("Ruim", ["n"], regra := lambda v => v["naoexiste"])
+bug := no
+monitor:
+    Ruim(1)
+handle ValueObjectError as e:
+    bug := yes
+    assert "estourou" in e.message
+assert bug
+
+out "exercicio 269 ok"

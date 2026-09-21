@@ -1,0 +1,74 @@
+// Exercicio 383 — o layout diz ao grafico a largura em que ele vai aparecer
+//
+// Enunciado: o desenho e feito num sistema de 800 unidades e o CSS o
+// encolhe para caber. Num painel de um terco da tela o fator e 0,45,
+// e um rotulo de 11px chega ao olho com CINCO — ilegivel, sem nada
+// que denuncie, porque de longe o grafico continua bonito.
+
+adopt Arcane.Vitrine as V
+
+steady MESES := ["jan", "fev", "mar"]
+steady SERIE := [120.0, 135.0, 128.0]
+
+action painel():
+    V.titulo("Largura")
+
+    // Largura inteira.
+    V.grafico_linha(MESES, {"receita": SERIE})
+
+    // Um terco da tela: o mesmo grafico, num container estreito.
+    c := V.colunas(3)
+    c[0].grafico_linha(MESES, {"receita": SERIE})
+    c[1].grafico_barras(MESES, {"receita": SERIE})
+    c[2].metrica("Total", "R$ 383")
+
+out "== 1. os graficos desenham nos dois lugares =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.quantos("grafico") is 3
+
+out ""
+out "== 2. e o de dentro da coluna sabe a largura =="
+
+// 'Contexto.larguras' e uma pilha que cada area empurra; o no grava
+// a largura NA MONTAGEM, porque no desenho o contexto ja acabou.
+html := t.html()
+assert "--v-fs" in html
+out "   a escala do texto vai no proprio SVG"
+
+out ""
+out "== 3. o teto de 2,6x existe por um motivo =="
+
+// Compensar por inteiro num container muito estreito faria o rotulo
+// ocupar metade do grafico.
+out "   compensar demais e tao ruim quanto nao compensar"
+
+out ""
+out "== 4. o tema =="
+
+assert len(V.temas()) bigger_eq 4
+assert "claro" in V.temas()
+assert "escuro" in V.temas()
+out $"   {len(V.temas())} temas: {V.temas()}"
+
+out ""
+out "== 5. e a primaria do tema claro NAO e o amarelo da marca =="
+
+// Amarelo sobre branco da contraste 1,3:1 onde a WCAG pede 4,5:1.
+// A cor da marca continua na identidade; o que muda e o que vai
+// sobre fundo branco.
+out "   #B28600 no claro — acessibilidade nao e camada por cima"
+
+out ""
+out "== 6. o seletor de tema, para quem prefere o outro =="
+
+action com_seletor():
+    V.seletor_de_tema()
+    V.texto("conteudo")
+
+t2 := V.testar(com_seletor)
+assert not t2.falhou()
+assert "conteudo" in t2.texto()
+
+out "exercicio 383 ok"

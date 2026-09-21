@@ -1,0 +1,76 @@
+// Exercicio 285 — o efeito roda ao nascer, e o lote agrupa
+//
+// Enunciado: um efeito que nao rodasse na criacao deixaria a tela sem
+// o estado inicial — e quem escreve teria de chama-lo a mao, o que se
+// esquece exatamente uma vez. E tres escritas em sequencia mostram dois
+// estados intermediarios que nunca deveriam aparecer.
+
+adopt Arcane.Reativo as R
+
+steady a := R.sinal(1)
+steady b := R.sinal(10)
+steady soma := R.derivado(lambda => a.ler() + b.ler())
+
+vistos := []
+
+action anotar():
+    vistos.append(soma.ler())
+
+steady vigia := R.efeito(anotar)
+
+out "== 1. ele ja rodou =="
+
+assert vistos is [11]
+
+out ""
+out "== 2. e roda de novo a cada mudanca =="
+
+a.escrever(2)
+assert vistos is [11, 12]
+b.escrever(20)
+assert vistos is [11, 12, 22]
+
+out ""
+out "== 3. o lote agrupa varias escritas numa notificacao =="
+
+action tres_escritas():
+    a.escrever(3)
+    b.escrever(30)
+    a.escrever(4)
+
+R.lote(tres_escritas)
+assert vistos is [11, 12, 22, 34]
+out "   tres escritas, uma notificacao"
+
+out ""
+out "== 4. o lote devolve o que a acao devolveu =="
+
+assert R.lote(lambda => 42) is 42
+
+out ""
+out "== 5. parar e definitivo =="
+
+vigia.parar()
+a.escrever(100)
+assert vistos is [11, 12, 22, 34]
+assert soma.ler() is 130
+out "   o derivado continua certo; o efeito e que parou"
+
+out ""
+out "== 6. um efeito que nao le sinal nenhum roda uma vez so =="
+
+// Sem dependencia descoberta, nada tem como acorda-lo de novo.
+quantas := {"n": 0}
+
+action so_conta():
+    quantas["n"] := quantas["n"] + 1
+
+steady solto := R.efeito(so_conta)
+assert quantas["n"] is 1
+
+a.escrever(200)
+b.escrever(300)
+assert quantas["n"] is 1
+out "   sem dependencia, nada o acorda"
+
+out "exercicio 285 ok"

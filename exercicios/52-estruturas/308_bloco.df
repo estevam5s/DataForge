@@ -1,0 +1,83 @@
+// Exercicio 308 — o bloco, e o que ele promete
+//
+// Enunciado: 'liberar()' nao devolve memoria ao sistema — quem faz
+// isso e o CPython. O que ele faz e MARCAR. Num mundo com coletor, a
+// memoria nunca esteve em risco; o que se protege e o PROTOCOLO.
+
+adopt Arcane.Estrutura as Est
+adopt Arcane.Bytes as By
+
+out "== 1. criar, ler e escrever =="
+
+b := Est.bloco(8)
+assert len(b) is 8
+assert b.bytes() is By.de_hex("0000000000000000")
+
+b[0] := 255
+b[7] := 1
+assert b[0] is 255
+assert By.hex(b.bytes()) is "ff000000000000" + "01"
+
+out ""
+out "== 2. a partir de bytes que ja existem =="
+
+c := Est.de_bytes(By.de_texto("DataForge"))
+assert len(c) is 9
+assert By.para_texto(c.bytes()) is "DataForge"
+
+out ""
+out "== 3. preencher e fatiar =="
+
+d := Est.bloco(4).preencher(170)
+assert By.hex(d.bytes()) is "aaaaaaaa"
+
+pedaco := c.fatiar(0, 4)
+assert By.para_texto(pedaco.bytes()) is "Data"
+// A fatia e um bloco NOVO: mexer nela nao mexe no original.
+pedaco[0] := 88
+assert By.para_texto(c.bytes()) is "DataForge"
+
+out ""
+out "== 4. o bloco liberado responde =="
+
+assert b.vivo()
+b.liberar()
+assert not b.vivo()
+assert len(b) is 0
+
+morreu := no
+monitor:
+    b[0]
+handle DanglingPointerError as e:
+    morreu := yes
+    assert "liberado" in e.message
+assert morreu
+
+out ""
+out "== 5. e a janela sobre ele tambem =="
+
+viva := Est.bloco(8)
+molde := Est.definir("P", [["n", "u32"]])
+j := Est.janela(viva, molde)
+j.escrever("n", 7)
+assert j.ler("n") is 7
+
+viva.liberar()
+janela_morta := no
+monitor:
+    j.ler("n")
+handle DanglingPointerError:
+    janela_morta := yes
+assert janela_morta
+
+out ""
+out "== 6. o bloco e o bytes do Arcane.Bytes conversam =="
+
+// Os dois modulos falam do mesmo dado, e um aceita o outro.
+molde2 := Est.definir("Par", [["a", "u16"], ["b", "u16"]], ordem := "rede")
+crus := By.empacotar(">u16 u16", [7, 9])
+lido := molde2.ler(Est.de_bytes(crus))
+assert lido["a"] is 7
+assert lido["b"] is 9
+
+out "exercicio 308 ok"

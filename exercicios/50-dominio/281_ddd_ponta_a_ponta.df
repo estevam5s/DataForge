@@ -1,0 +1,112 @@
+// Exercicio 281 — um caso de uso inteiro
+//
+// Enunciado: juntar as sete pecas num fluxo so — reservar estoque e
+// cobrar, com as duas pontas numa unidade de trabalho, e o faturamento
+// reagindo ao evento depois da confirmacao.
+
+adopt Arcane.Dominio as D
+
+steady Dinheiro := D.valor("Dinheiro", ["centavos", "moeda"],
+    regra := lambda v => v["centavos"] bigger_eq 0,
+    motivo := "dinheiro nao e negativo")
+
+steady estoques := D.repositorio("Estoque")
+steady pedidos := D.repositorio("Pedido")
+steady vendas := D.contexto("Vendas")
+
+// ── o estoque ──
+action novo_estoque(sku, quantos):
+    e := D.agregado("Estoque", sku, disponivel := quantos, reservado := 0)
+    e.invariante("o disponivel nao fica negativo",
+        lambda a => a.ler("disponivel", 0) bigger_eq 0)
+    e.comando("reservar", lambda a, n => a.mudar(
+            disponivel := a.ler("disponivel", 0) - n,
+            reservado := a.ler("reservado", 0) + n))
+    yield e
+
+// ── o pedido ──
+action novo_pedido(id):
+    p := D.agregado("Pedido", id, centavos := 0, itens := 0, pago := no)
+    p.invariante("o total nunca e negativo",
+        lambda a => a.ler("centavos", 0) bigger_eq 0)
+    p.comando("acrescentar", lambda a, preco => a.mudar(
+            centavos := a.ler("centavos", 0) + preco.centavos,
+            itens := a.ler("itens", 0) + 1))
+    p.comando("pagar", pagar_pedido)
+    yield p
+
+action pagar_pedido(p):
+    given p.ler("pago", no):
+        trigger "este pedido ja foi pago"
+    p.mudar(pago := yes)
+    p.aconteceu("PedidoPago", {"pedido": p.id(),
+            "centavos": p.ler("centavos", 0)})
+
+// ── quem reage ──
+faturas := []
+
+mark @vendas.ao_acontecer("PedidoPago")
+action faturar(fato):
+    faturas.append({"pedido": fato.dados["pedido"],
+            "centavos": fato.dados["centavos"]})
+
+out "== 1. montar o pedido =="
+
+estoque := novo_estoque("CAFE-500", 10)
+pedido := novo_pedido("PED-1")
+
+pedido.acrescentar(Dinheiro(3250, "BRL"))
+pedido.acrescentar(Dinheiro(900, "BRL"))
+estoque.reservar(2)
+
+assert pedido.ler("centavos") is 4150
+assert pedido.ler("itens") is 2
+assert estoque.ler("disponivel") is 8
+
+out ""
+out "== 2. pagar, e confirmar as duas pontas juntas =="
+
+pedido.pagar()
+assert len(faturas) is 0  // o evento ainda esta guardado
+
+u := D.unidade(publicar := vendas.publicar)
+u.registrar(pedido, pedidos)
+u.registrar(estoque, estoques)
+u.confirmar()
+
+assert len(faturas) is 1
+assert faturas[0]["centavos"] is 4150
+assert pedidos.quantos() is 1
+assert estoques.quantos() is 1
+out $"   faturado: {faturas[0]}"
+
+out ""
+out "== 3. pagar duas vezes e recusado =="
+
+de_novo := no
+monitor:
+    pedido.pagar()
+handle Error as e:
+    de_novo := yes
+    assert "ja foi pago" in e.message
+assert de_novo
+assert len(faturas) is 1
+
+out ""
+out "== 4. o estoque nao fica negativo =="
+
+sem := no
+monitor:
+    estoque.reservar(999)
+handle AggregateError:
+    sem := yes
+assert sem
+assert estoque.ler("disponivel") is 8
+
+out ""
+out "== 5. a consulta usa a regra da decisao =="
+
+steady pagos := D.regra("esta pago", lambda p => p.ler("pago", no))
+assert len(pedidos.que(pagos)) is 1
+
+out "exercicio 281 ok"

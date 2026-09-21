@@ -1,0 +1,209 @@
+// ════════════════════════════════════════════════════════════
+//  Arcane.Estrutura — layout binario com nome, e o ponteiro
+//
+//  Ler um cabecalho de arquivo em DataForge ja era possivel com
+//  'Arcane.Bytes': ele empacota por FORMATO. O que faltava era o
+//  NOME — 'dados[3]' tres meses depois nao diz nada — e o
+//  alinhamento, que e o que faz o mesmo registro ter 12 bytes de
+//  um lado e 16 do outro.
+//
+//      dataforge run examples/estrutura_binaria.df
+// ════════════════════════════════════════════════════════════
+
+adopt Arcane.Estrutura as Est
+adopt Arcane.Bytes as By
+
+out "Arcane.Estrutura — o layout que tem nome"
+out ""
+
+// ── 1. Um molde, e o que ele sabe dizer ─────────────────────
+//
+// A ordem dos bytes e OBRIGATORIA: sem ela, o mesmo arquivo lido em
+// duas maquinas da dois valores, e nenhuma das duas falha.
+
+steady Cabecalho := Est.definir("Cabecalho", [
+        ["magia", "u32"],
+        ["versao", "u16"],
+        ["registros", "u16"]
+    ], ordem := "rede")
+
+out "1. o molde"
+out $"   {Cabecalho.nome}: {Cabecalho.tamanho} bytes"
+cycle campo in Cabecalho.mapa():
+    nome := campo["campo"]
+    tipo := campo["tipo"]
+    onde := campo["deslocamento"]
+    out $"     +{onde}  {nome} ({tipo})"
+
+assert Cabecalho.tamanho is 8
+assert Cabecalho.deslocamento("registros") is 6
+
+out ""
+
+// ── 2. O alinhamento e declarado, e conferido ───────────────
+//
+// Um u32 comeca num multiplo de 4. Ignorar isso e o que faz o mesmo
+// .struct sair com tamanhos diferentes de cada lado.
+
+steady Alinhado := Est.definir("Pacote", [["a", "u8"], ["b", "u32"]])
+steady Junto := Est.definir("Pacote", [["a", "u8"], ["b", "u32"]],
+    empacotado := yes)
+
+out "2. alinhamento"
+out $"   alinhado:    b em +{Alinhado.deslocamento('b')}, {Alinhado.tamanho} bytes ({Alinhado.enchimento()} de enchimento)"
+out $"   empacotado:  b em +{Junto.deslocamento('b')}, {Junto.tamanho} bytes ({Junto.enchimento()} de enchimento)"
+
+assert Alinhado.deslocamento("b") is 4
+assert Junto.deslocamento("b") is 1
+assert Alinhado.tamanho is 8
+assert Junto.tamanho is 5
+
+out ""
+
+// ── 3. Escrever e ler um arquivo de registros ───────────────
+
+steady Registro := Est.definir("Registro", [
+        ["id", "u32"],
+        ["preco", "f32"],
+        ["quantidade", "u16"],
+        ["ativo", "bool"]
+    ], ordem := "rede")
+
+steady QUANTOS := 3
+
+// O bloco inteiro: cabecalho + os registros.
+arquivo := Est.bloco(Cabecalho.tamanho + Registro.tamanho * QUANTOS)
+
+Cabecalho.escrever(arquivo, {
+        "magia": 1146241364,
+        "versao": 2,
+        "registros": QUANTOS
+    })
+
+steady CATALOGO := [
+    {"id": 101, "preco": 32.5, "quantidade": 4, "ativo": yes},
+    {"id": 102, "preco": 9.0, "quantidade": 12, "ativo": yes},
+    {"id": 103, "preco": 240.0, "quantidade": 0, "ativo": no}
+]
+
+cycle i from 0 to QUANTOS - 1:
+    Registro.escrever(arquivo, CATALOGO[i],
+        Cabecalho.tamanho + i * Registro.tamanho)
+
+out "3. o arquivo montado"
+out $"   {len(arquivo)} bytes: {By.hex(arquivo.bytes()[0:8])}…"
+
+// Reler do zero, como quem recebeu o arquivo.
+lido := Cabecalho.ler(arquivo)
+out $"   cabecalho: versao {lido['versao']}, {lido['registros']} registro(s)"
+assert lido["registros"] is QUANTOS
+
+out ""
+
+// ── 4. A janela nao copia ───────────────────────────────────
+//
+// Copiar um registro de 4 KB para ler um campo de 2 bytes e o que faz
+// um parser de arquivo grande levar minutos.
+
+linhas := Est.janelas(arquivo, Registro, deslocamento := Cabecalho.tamanho)
+
+out "4. janelas"
+cycle linha in linhas:
+    id := linha.ler("id")
+    preco := linha.ler("preco")
+    qtd := linha.ler("quantidade")
+    out $"   #{id}  R$ {preco}  x{qtd}"
+
+assert len(linhas) is QUANTOS
+
+// Escrever na janela muda O BLOCO — e e isso que se quer.
+linhas[2].escrever("quantidade", 7)
+linhas[2].escrever("ativo", yes)
+
+// A prova: reler do bloco, por outro caminho.
+conferindo := Registro.ler(arquivo,
+    Cabecalho.tamanho + 2 * Registro.tamanho)
+assert conferindo["quantidade"] is 7
+assert conferindo["ativo"] is yes
+out "   a escrita na janela chegou ao bloco"
+
+out ""
+
+// ── 5. O ponteiro anda por ELEMENTO ─────────────────────────
+//
+// 'p + 1' num u32* anda QUATRO bytes. Andar um byte e um indice, e
+// nao um ponteiro — e e a conta que quem escreve C faz o tempo todo.
+
+numeros := Est.bloco(16)
+p := Est.ponteiro(numeros, "u32")
+
+cycle i from 0 to 3:
+    p.mais(i).escrever((i + 1) * 100)
+
+out "5. ponteiro"
+out $"   por elemento: {p.cluster(4)}"
+out $"   p.mais(2) esta no byte {p.mais(2).endereco()}"
+assert p.cluster(4) is [100, 200, 300, 400]
+assert p.mais(2).endereco() is 8
+assert p.mais(3).distancia(p) is 3
+
+// Reinterpretar o mesmo endereco — o cast.
+bytes_de := p.como("u8")
+out $"   os mesmos bytes como u8: {bytes_de.cluster(4)}"
+assert bytes_de.cluster(4) is [0, 0, 0, 100]
+
+out ""
+
+// ── 6. O que o modulo RECUSA ────────────────────────────────
+//
+// Cada recusa existe porque a alternativa e um numero plausivel, e um
+// defeito que aparece tres camadas adiante.
+
+out "6. as recusas"
+
+action recusou(acao):
+    monitor:
+        acao()
+    handle LayoutError as e:
+        out $"   {e.message}"
+        yield yes
+    yield no
+
+// Ler alem do fim.
+assert recusou(lambda => Cabecalho.ler(Est.bloco(4)))
+
+// Um valor que nao cabe no tipo.
+assert recusou(lambda => Est.definir("P", [["n", "u8"]]).empacotar({"n": 300}))
+
+// Um campo que nao existe — com sugestao.
+assert recusou(lambda => Est.janela(arquivo, Cabecalho).ler("verso"))
+
+// Um bloco liberado: o endereco continua na mao de alguem.
+morto := Est.bloco(8)
+ponteiro_orfao := Est.ponteiro(morto, "u32")
+morto.liberar()
+assert ponteiro_orfao.e_nulo()
+assert recusou(lambda => ponteiro_orfao.ler())
+
+// O ponteiro nulo — que nao e o 'void' da linguagem.
+assert recusou(lambda => Est.nulo().ler())
+
+out ""
+
+// ── 7. Uniao: os mesmos bytes, dois nomes ───────────────────
+
+steady Valor := Est.uniao("Valor", [
+        ["inteiro", "u32"],
+        ["flutuante", "f32"]
+    ], ordem := "rede")
+
+caixa := Est.bloco(4)
+Valor.escrever(caixa, {"flutuante": 1.0})
+
+out "7. uniao"
+como_int := Valor.ler(caixa)["inteiro"]
+out $"   1.0 em f32, lido como u32: {como_int} (0x{By.hex(caixa.bytes())})"
+assert como_int is 1065353216  // o IEEE 754 de 1.0
+
+out ""
+out "estrutura ok"

@@ -1,0 +1,94 @@
+// Exercicio 378 — quem esta vendo o painel
+//
+// Enunciado: 'exigir_login' PARA a pagina. Ela levanta um sinal que
+// deriva de BaseException, como 'halt' e 'skip' — sem isso, o
+// interpretador embrulharia numa mensagem de erro no meio da tela, e
+// a pagina continuaria desenhando o que o visitante nao pode ver.
+
+adopt Arcane.Vitrine as V
+
+steady USUARIOS := {
+    "ana": {"senha": "1234", "papel": "admin"},
+    "bia": {"senha": "5678", "papel": "leitor"}
+}
+
+action conferir(usuario, senha):
+    // A forma afirmativa e de proposito: com 'given dados is void or
+    // dados["senha"] …', o analisador continua achando que 'dados'
+    // pode ser void no segundo termo — ele nao acompanha o
+    // curto-circuito do 'or', e esta certo em nao concluir.
+    dados := USUARIOS[usuario] ?? void
+    given dados is not void:
+        given dados["senha"] is senha:
+            yield {"nome": usuario, "papel": dados["papel"]}
+    yield void
+
+action painel():
+    V.autenticacao(conferir, {"admin": ["tudo"], "leitor": []})
+    V.exigir_login()
+
+    V.titulo($"Ola, {V.usuario()['nome']}")
+    V.texto("conteudo de quem entrou")
+
+    given V.pode("tudo"):
+        V.texto("area do administrador")
+
+out "== 1. sem login, a pagina PARA =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert "conteudo de quem entrou" not in t.texto()
+out "   nada do conteudo protegido apareceu"
+
+out ""
+out "== 2. entrar reexecuta a pagina do COMECO =="
+
+// Continuar de onde parou deixaria a tela vazia para quem escreveu
+// 'given V.autenticado(): …' — o teste ja passou com a resposta
+// antiga.
+action entrar(sonda, usuario, senha):
+    "A sonda entra pelo formulario, como uma pessoa entraria."
+    sonda.digitar("Usuário", usuario)
+    sonda.digitar("Senha", senha)
+    sonda.clicar("Entrar")
+
+entrar(t, "ana", "1234")
+assert "Ola, ana" in t.texto()
+assert "conteudo de quem entrou" in t.texto()
+
+out ""
+out "== 3. o papel decide o que aparece =="
+
+assert "area do administrador" in t.texto()
+
+t2 := V.testar(painel)
+entrar(t2, "bia", "5678")
+assert "conteudo de quem entrou" in t2.texto()
+assert "area do administrador" not in t2.texto()
+out "   a leitora nao ve a area do administrador"
+
+out ""
+out "== 4. a senha errada nao entra =="
+
+t3 := V.testar(painel)
+entrar(t3, "ana", "errada")
+assert "conteudo de quem entrou" not in t3.texto()
+
+out ""
+out "== 5. o erro de login e mostrado, e nao engolido =="
+
+// Um login que falha em silencio e o pior desfecho: a pessoa clica de
+// novo achando que nao clicou.
+assert "inválidos" in t3.texto() or "invalidos" in t3.texto()
+out "   a senha errada avisou"
+
+out ""
+out "== 6. e o cookie de sessao e uma STRING =="
+
+// O Kiln guarda cookie como a linha 'Set-Cookie' pronta, e nao como
+// vault. Passar um dicionario faz o navegador DESCARTAR o cookie, e
+// cada pedido abre sessao nova — o sintoma e um contador que nunca
+// passa de 1 e um login que nunca 'pega', sem nenhum erro.
+out "   e 'V.testar' nao devolve cookies: esse bug so aparece com socket"
+
+out "exercicio 378 ok"

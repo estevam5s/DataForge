@@ -1,0 +1,103 @@
+// Exercicio 347 — o objeto que se chama, e o que se abre
+//
+// Enunciado: '__call__' faz um objeto virar acao — util quando ele
+// tem ESTADO entre chamadas. '__enter__'/'__exit__' garantem a
+// limpeza, e sao o que 'defer' faz do outro lado.
+
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+out "== 1. um objeto que se chama =="
+
+blueprint Contador:
+    action setup(passo):
+        self.passo := passo
+        self.total := 0
+
+    action __call__(quanto):
+        self.total := self.total + quanto * self.passo
+        yield self.total
+
+dobro := spawn Contador(2)
+assert dobro(5) is 10
+assert dobro(3) is 16
+assert dobro.total is 16
+out $"   depois de duas chamadas: {dobro.total}"
+
+out ""
+out "== 2. e por que isso nao e so uma closure =="
+
+// O estado fica VISIVEL e nomeado: 'dobro.total' e 'dobro.passo'
+// podem ser lidos, testados e serializados. Uma closure esconde os
+// dois.
+assert dobro.passo is 2
+
+out ""
+out "== 3. ele passa onde uma acao passa =="
+
+assert [dobro(1) cycle i in range(3)][-1] is 22
+
+action aplicar_tres(f):
+    yield [f(1), f(1), f(1)]
+
+steady outro := spawn Contador(10)
+assert aplicar_tres(outro) is [10, 20, 30]
+
+out ""
+out "== 4. o bloco com entrada e saida =="
+
+steady pasta := $"{OS.temp_dir()}/df-347-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+
+eventos := []
+
+blueprint Sessao:
+    action setup(nome):
+        self.nome := nome
+        self.aberta := no
+
+    action __enter__():
+        self.aberta := yes
+        eventos.append($"abriu {self.nome}")
+        yield self
+
+    action __exit__(_tipo, _valor, _pilha):
+        self.aberta := no
+        eventos.append($"fechou {self.nome}")
+        yield no
+
+s := spawn Sessao("A")
+s.__enter__()
+assert s.aberta
+eventos.append("trabalhou")
+s.__exit__(void, void, void)
+assert not s.aberta
+assert eventos is ["abriu A", "trabalhou", "fechou A"]
+out $"   {eventos}"
+
+out ""
+out "== 5. e a forma que a linguagem usa para isso e o 'defer' =="
+
+// Nao ha 'with' em DataForge: quem garante a saida e o 'defer', e ele
+// roda em TODOS os caminhos.
+eventos := []
+
+action trabalhar_com(nome, vai_falhar):
+    sessao := spawn Sessao(nome)
+    sessao.__enter__()
+    defer:
+        sessao.__exit__(void, void, void)
+    given vai_falhar:
+        trigger "falhou no meio"
+    eventos.append("terminou")
+
+monitor:
+    trabalhar_com("B", yes)
+handle Error:
+    void
+
+assert eventos is ["abriu B", "fechou B"]
+out "   falhou no meio, e fechou mesmo assim"
+
+IO.remove_tree(pasta)
+out "exercicio 347 ok"

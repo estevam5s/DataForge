@@ -1,0 +1,108 @@
+// Exercicio 356 — despacho por forma, e a classe que nasce mudada
+//
+// Enunciado: 'overload' escolhe o metodo pelo TIPO dos argumentos, e
+// uma metaclasse roda quando o blueprint e criado — os dois existem
+// para tirar um 'match' de dentro do codigo de negocio.
+
+adopt Arcane.Reflexo as Ref
+
+out "== 1. o mesmo nome, formas diferentes =="
+
+blueprint Area:
+    overload action de(lado: Integer):
+        yield lado * lado
+
+    overload action de(largura: Integer, altura: Integer):
+        yield largura * altura
+
+    overload action de(medidas: Cluster):
+        yield sum(medidas)
+
+a := spawn Area()
+assert a.de(4) is 16
+assert a.de(3, 5) is 15
+assert a.de([1, 2, 3]) is 6
+out "   um nome, tres formas"
+
+out ""
+out "== 2. e a forma que nao existe e RECUSADA =="
+
+recusou := no
+monitor:
+    a.de("texto")
+handle Error as e:
+    recusou := yes
+    out $"   {e.message}"
+assert recusou
+
+out ""
+out "== 3. sem sobrecarga, isso seria um 'match' no comeco =="
+
+blueprint AreaSemSobrecarga:
+    action de(x, y := void):
+        match x:
+            point Cluster as c:
+                yield sum(c)
+            point Integer as n:
+                yield n * n given y is void otherwise n * y
+            default:
+                trigger "nao sei calcular"
+
+b := spawn AreaSemSobrecarga()
+assert b.de(4) is 16
+assert b.de(3, 5) is 15
+out "   funciona, e o 'match' cresce a cada forma nova"
+
+out ""
+out "== 4. a metaclasse roda na CRIACAO do blueprint =="
+
+meta blueprint Registro:
+    nomes := []
+
+    action on_forge(molde):
+        self.nomes.append(Ref.nome(molde))
+
+blueprint Comando using Registro:
+    action rodar():
+        yield "base"
+
+blueprint Salvar extends Comando:
+    action rodar():
+        yield "salvou"
+
+registro := Ref.meta_instancia(Comando)
+assert "Comando" in registro.nomes
+assert "Salvar" in registro.nomes
+out $"   registradas sozinhas: {registro.nomes}"
+
+out ""
+out "== 5. e e isso que substitui um registro a mao =="
+
+// Sem ela, cada comando novo exige lembrar de uma linha de registro
+// em outro arquivo — e a linha que se esquece e a do comando que
+// ninguem testa.
+
+out ""
+out "== 6. 'augment' muda um blueprint DEPOIS de pronto =="
+
+augment Comando:
+    action descrever():
+        yield $"comando: {self.rodar()}"
+
+assert spawn Salvar().descrever() is "comando: salvou"
+out "   e os herdeiros tambem ganham"
+
+out ""
+out "== 7. e o cache e esquecido junto =="
+
+// 'augment' e 'Reflexo.definir_metodo' chamam 'esquecer_caches()',
+// que recalcula o atalho de acesso e os magicos DAS FILHAS tambem.
+// O metodo definido em execucao NAO recebe 'self' como parametro
+// declarado: ele e ligado ao blueprint, e 'self' esta no escopo.
+action dizer_novo():
+    yield "novo"
+
+Ref.definir_metodo(Comando, "outro", dizer_novo)
+assert spawn Salvar().outro() is "novo"
+
+out "exercicio 356 ok"

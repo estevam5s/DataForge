@@ -1,0 +1,65 @@
+// Exercicio 316 — partir sem perder o separador
+//
+// Enunciado: 'split' descarta os separadores. Reconstruir o texto
+// depois de transformar os pedacos exige saber o que havia entre eles
+// — e adivinhar ali e como um join(" ") transforma tabulacao em
+// espaco sem ninguem ver.
+
+adopt Arcane.Regex as Regex
+
+out "== 1. a diferenca =="
+
+assert Regex.split("\\s+", "a  b\tc") is ["a", "b", "c"]
+assert Regex.split_keep("\\s+", "a  b\tc") is ["a", "  ", "b", "\t", "c"]
+
+out ""
+out "== 2. e e por isso que ele reconstroi =="
+
+steady TEXTO := "campo1 = valor;  campo2 =outro"
+pedacos := Regex.split_keep("[=;]", TEXTO)
+assert join("", pedacos) is TEXTO
+out $"   {len(pedacos)} pedacos, e o texto volta inteiro"
+
+out ""
+out "== 3. transformar so o que nao e separador =="
+
+action maiusculo_fora_do_separador(partes):
+    saida := []
+    cycle p in partes:
+        given Regex.is_exactly("[=;]", p):
+            saida.append(p)
+        otherwise:
+            saida.append(upper(p))
+    yield join("", saida)
+
+assert maiusculo_fora_do_separador(pedacos) is "CAMPO1 = VALOR;  CAMPO2 =OUTRO"
+
+out ""
+out "== 4. separador nas pontas =="
+
+assert Regex.split_keep(",", ",a,") is [",", "a", ","]
+assert Regex.split_keep(",", "sem virgula") is ["sem virgula"]
+
+out ""
+out "== 5. recortar ENTRE marcas =="
+
+steady HTML := "<b>um</b> e <b>dois</b>, e <i>tres</i>"
+assert Regex.between("<b>", "</b>", HTML) is ["um", "dois"]
+assert Regex.between("<i>", "</i>", HTML) is ["tres"]
+
+// Uma abertura sem fecho nao entrega meio pedaco.
+assert Regex.between("\\[", "\\]", "[a] e [sem fim") is ["a"]
+
+out ""
+out "== 6. um caso de verdade: os campos de uma consulta =="
+
+steady URL := "?nome=Ana&cidade=Florianopolis&pagina=2"
+pares := {}
+cycle pedaco in Regex.split("&", URL[1:len(URL)]):
+    partes := Regex.split("=", pedaco)
+    pares[partes[0]] := partes[1]
+
+assert pares["nome"] is "Ana"
+assert pares["pagina"] is "2"
+
+out "exercicio 316 ok"

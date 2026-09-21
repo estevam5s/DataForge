@@ -1,0 +1,94 @@
+// Exercicio 307 — um protocolo de linha, montado e lido
+//
+// Enunciado: quase todo protocolo binario tem a mesma forma —
+// cabecalho de tamanho fixo dizendo o tipo e o comprimento, e um corpo
+// de tamanho variavel logo depois. Aqui isso vira duas linhas de
+// declaracao.
+
+adopt Arcane.Estrutura as Est
+adopt Arcane.Bytes as By
+
+steady Quadro := Est.definir("Quadro", [
+        ["tipo", "u8"],
+        ["comprimento", "u16"]
+    ], ordem := "rede", empacotado := yes)
+
+steady PING := 1
+steady TEXTO := 2
+steady FIM := 3
+
+action montar(tipo, corpo):
+    "Um quadro: o cabecalho empacotado, e o corpo logo depois."
+    dados := By.de_texto(corpo)
+    bloco := Est.bloco(Quadro.tamanho + len(dados))
+    Quadro.escrever(bloco, {"tipo": tipo, "comprimento": len(dados)})
+    cycle i from 0 to len(dados) - 1:
+        bloco[Quadro.tamanho + i] := dados[i]
+    yield bloco
+
+action ler_quadros(fluxo):
+    "Le quadros em sequencia ate acabar o bloco."
+    saida := []
+    posicao := 0
+    crus := fluxo.bytes()
+    persist posicao + Quadro.tamanho smaller_eq len(crus):
+        cabeca := Quadro.ler(fluxo, posicao)
+        inicio := posicao + Quadro.tamanho
+        fim := inicio + cabeca["comprimento"]
+        given fim bigger len(crus):
+            halt
+        saida.append({"tipo": cabeca["tipo"],
+                "corpo": By.para_texto(crus[inicio:fim])})
+        posicao := fim
+    yield saida
+
+out "== 1. o cabecalho e empacotado: 3 bytes =="
+
+assert Quadro.tamanho is 3
+assert Quadro.deslocamento("comprimento") is 1
+assert Quadro.enchimento() is 0
+
+out ""
+out "== 2. montar um quadro =="
+
+um := montar(TEXTO, "ola")
+assert len(um) is 6
+assert Quadro.ler(um)["tipo"] is TEXTO
+assert Quadro.ler(um)["comprimento"] is 3
+
+out ""
+out "== 3. juntar tres num fluxo =="
+
+partes := [montar(PING, ""), montar(TEXTO, "bom dia"), montar(FIM, "tchau")]
+total := sum([len(p) cycle p in partes])
+fluxo := Est.bloco(total)
+
+posicao := 0
+cycle parte in partes:
+    crus := parte.bytes()
+    cycle i from 0 to len(crus) - 1:
+        fluxo[posicao + i] := crus[i]
+    posicao := posicao + len(crus)
+
+out ""
+out "== 4. e ler de volta =="
+
+quadros := ler_quadros(fluxo)
+assert len(quadros) is 3
+assert quadros[0]["tipo"] is PING
+assert quadros[1]["corpo"] is "bom dia"
+assert quadros[2]["tipo"] is FIM
+
+cycle q in quadros:
+    out $"   tipo {q['tipo']}: {q['corpo']}"
+
+out ""
+out "== 5. um quadro cortado no meio nao e entregue =="
+
+// E o defeito classico de quem trata um 'recv' curto como a mensagem
+// inteira: o proximo quadro sai corrompido.
+cortado := Est.de_bytes(fluxo.bytes()[0:len(fluxo) - 2])
+assert len(ler_quadros(cortado)) is 2
+out "   dois quadros inteiros, e o terceiro ficou para a proxima leitura"
+
+out "exercicio 307 ok"

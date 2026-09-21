@@ -1,0 +1,66 @@
+// Exercicio 288 — a fonte fria liga preguicoso
+//
+// Enunciado: 'de_cluster' so comeca quando alguem escuta. Se o
+// operador se ligasse a fonte na CONSTRUCAO, os valores sairiam antes
+// de o assinante final existir — e o resultado seria uma lista vazia,
+// sem erro nenhum.
+
+adopt Arcane.Reativo as R
+
+// Nomeado porque o lint tem razao: um 4 solto em cinco lugares e
+// cinco decisoes que se perdem de vista.
+steady ATE_SEIS := [1, 2, 3, 4, 5, 6]
+steady ATE_CINCO := [1, 2, 3, 4, 5]
+steady ATE_QUATRO := [1, 2, 3, 4]
+
+out "== 1. a cadeia inteira chega =="
+
+dobrados := []
+pares := R.de_cluster(ATE_SEIS).sift(lambda n => n % 2 is 0)
+pares.morph(lambda n => n * 10).inscrever(lambda n => dobrados.append(n))
+assert dobrados is [20, 40, 60]
+
+out ""
+out "== 2. sem ninguem escutando, nada corre =="
+
+correu := []
+frio := R.de_cluster([1, 2, 3]).morph(lambda n => rastrear(n, correu))
+
+action rastrear(n, caixa):
+    caixa.append(n)
+    yield n
+
+assert correu is []
+out "   a fonte fria esperou"
+
+frio.inscrever(lambda _n => void)
+assert correu is [1, 2, 3]
+
+out ""
+out "== 3. primeiros e pular recortam =="
+
+tres := []
+R.de_cluster(ATE_CINCO).primeiros(3).inscrever(lambda n => tres.append(n))
+assert tres is [1, 2, 3]
+
+resto := []
+R.de_cluster(ATE_CINCO).pular(3).inscrever(lambda n => resto.append(n))
+assert resto is [4, 5]
+
+out ""
+out "== 4. blocos junta em grupos =="
+
+grupos := []
+R.de_cluster(ATE_CINCO).blocos(2).inscrever(lambda g => grupos.append(g))
+assert grupos is [[1, 2], [3, 4]]
+out "   o resto incompleto nao e emitido"
+
+out ""
+out "== 5. distill acumula ao longo do fluxo =="
+
+somas := []
+R.de_cluster(ATE_QUATRO).distill(lambda a, v => a + v, 0)
+    .inscrever(lambda s => somas.append(s))
+assert somas is [1, 3, 6, 10]
+
+out "exercicio 288 ok"

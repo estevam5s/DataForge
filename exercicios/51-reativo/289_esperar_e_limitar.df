@@ -1,0 +1,71 @@
+// Exercicio 289 — o tempo dentro do fluxo
+//
+// Enunciado: 'esperar' e o debounce — so emite quando o fluxo fica
+// quieto; 'limitar' e o throttle — deixa passar no maximo um por
+// intervalo. Os dois existem porque um campo de busca que consulta a
+// cada tecla manda vinte consultas para escrever "cafeteira".
+
+adopt Arcane.Reativo as R
+adopt Arcane.Time as Tempo
+
+steady QUIETO := 0.12
+steady PRAZO := 5.0
+
+action esperar_ate(condicao):
+    """Espera a condicao, e nao o relogio: um 'sleep' fixo mede a
+    maquina, e o mesmo exercicio reprova numa esteira carregada."""
+    limite := Tempo.timestamp() + PRAZO
+    persist Tempo.timestamp() smaller limite:
+        given condicao():
+            yield yes
+        Tempo.sleep(0.01)
+    yield no
+
+out "== 1. esperar so emite depois do silencio =="
+
+teclas := R.observavel("teclas")
+buscas := []
+teclas.esperar(QUIETO).inscrever(lambda t => buscas.append(t))
+
+cycle letra in ["c", "ca", "caf", "cafe"]:
+    teclas.emitir(letra)
+
+// Nada saiu ainda: o fluxo nao ficou quieto.
+assert buscas is []
+assert esperar_ate(lambda => len(buscas) is 1)
+assert buscas is ["cafe"]
+out $"   quatro teclas, uma busca: {buscas}"
+
+out ""
+out "== 2. um segundo silencio emite de novo =="
+
+teclas.emitir("cha")
+assert esperar_ate(lambda => len(buscas) is 2)
+assert buscas is ["cafe", "cha"]
+
+out ""
+out "== 3. limitar deixa passar o PRIMEIRO de cada intervalo =="
+
+rolagem := R.observavel("rolagem")
+marcos := []
+rolagem.limitar(QUIETO).inscrever(lambda n => marcos.append(n))
+
+cycle i from 1 to 5:
+    rolagem.emitir(i)
+
+assert marcos is [1]
+out "   cinco eventos de rolagem, um marco"
+
+Tempo.sleep(QUIETO * 2)
+rolagem.emitir(99)
+assert esperar_ate(lambda => len(marcos) is 2)
+assert marcos is [1, 99]
+
+out ""
+out "== 4. a diferenca, em uma frase =="
+
+// 'esperar' responde no FIM da rajada; 'limitar' responde no COMECO.
+assert buscas[0] is "cafe"  // a ultima tecla
+assert marcos[0] is 1  // o primeiro evento
+
+out "exercicio 289 ok"

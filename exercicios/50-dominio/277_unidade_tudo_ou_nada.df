@@ -1,0 +1,86 @@
+// Exercicio 277 — a unidade confere TODOS antes de gravar QUALQUER
+//
+// Enunciado: se a segunda gravacao falhasse por invariante, a primeira
+// ja estaria no banco — e a transacao de dominio teria vazado pela
+// metade. A ordem das duas fases e o recurso.
+
+adopt Arcane.Dominio as D
+
+steady repo := D.repositorio("Conta")
+
+action conta(id, saldo, minimo):
+    c := D.agregado("Conta", id, saldo := saldo)
+    c.invariante($"o saldo nao cai abaixo de {minimo}",
+        lambda a => a.ler("saldo", 0) bigger_eq minimo)
+    c.comando("mover", lambda a, v => a.mudar(saldo := a.ler("saldo", 0) + v))
+    yield c
+
+out "== 1. as duas pontas de uma transferencia =="
+
+origem := conta("A", 100, 0)
+destino := conta("B", 50, 0)
+
+origem.mover(-30)
+destino.mover(30)
+
+u := D.unidade()
+u.registrar(origem, repo)
+u.registrar(destino, repo)
+assert repo.quantos() is 0
+u.confirmar()
+assert repo.quantos() is 2
+assert repo.exigir("A").ler("saldo") is 70
+assert repo.exigir("B").ler("saldo") is 50 + 30
+
+out ""
+out "== 2. se um viola, NENHUM e gravado =="
+
+steady repo2 := D.repositorio("Conta")
+boa := conta("C", 100, 0)
+ruim := conta("D", 10, 100)  // ja nasce violando o minimo
+
+u2 := D.unidade()
+u2.registrar(boa, repo2)
+u2.registrar(ruim, repo2)
+
+falhou := no
+monitor:
+    u2.confirmar()
+handle AggregateError as e:
+    falhou := yes
+    assert "100" in e.message
+assert falhou
+assert repo2.quantos() is 0
+out "   a primeira NAO foi gravada"
+
+out ""
+out "== 3. a unidade que terminou nao recebe mais =="
+
+fechada := no
+monitor:
+    u.registrar(conta("E", 1, 0))
+handle UnitOfWorkError as e:
+    fechada := yes
+    assert "D.unidade()" in e.dica
+assert fechada
+
+duas_vezes := no
+monitor:
+    u.confirmar()
+handle UnitOfWorkError:
+    duas_vezes := yes
+assert duas_vezes
+
+out ""
+out "== 4. eventos_pendentes mostra sem publicar =="
+
+pend := conta("F", 100, 0)
+pend.comando("marcar", lambda a => a.aconteceu("Marcado"))
+pend.marcar()
+
+u3 := D.unidade()
+u3.registrar(pend)
+assert [e.nome cycle e in u3.eventos_pendentes()] is ["Marcado"]
+assert len(pend.eventos()) is 1  // continuam com o agregado
+
+out "exercicio 277 ok"

@@ -1,0 +1,69 @@
+// Exercicio 314 — 'match' ancora so no COMECO
+//
+// Enunciado: validar com 'match' aceita lixo no fim, calado. E um
+// validador que aceita "88010-000 e mais" grava um CEP que nao existe.
+
+adopt Arcane.Regex as Regex
+
+steady CEP := "\\d{5}-?\\d{3}"
+
+out "== 1. a diferenca =="
+
+assert Regex.match(CEP, "88010-000 e mais lixo")["matched"]
+assert not Regex.fullmatch(CEP, "88010-000 e mais lixo")["matched"]
+assert Regex.fullmatch(CEP, "88010-000")["matched"]
+
+out ""
+out "== 2. 'is_exactly' e a pergunta de um validador =="
+
+assert Regex.is_exactly(CEP, "88010000")
+assert Regex.is_exactly(CEP, "88010-000")
+assert not Regex.is_exactly(CEP, "8801-000")
+assert not Regex.is_exactly(CEP, " 88010-000")
+
+out ""
+out "== 3. um formulario inteiro =="
+
+steady CAMPOS := {
+    "cep": CEP,
+    "telefone": "\\(\\d{2}\\) \\d{4,5}-\\d{4}",
+    "usuario": "[a-z0-9_]{3,20}"
+}
+
+action validar(dados):
+    erros := {}
+    cycle campo in keys(CAMPOS):
+        valor := dados[campo] ?? ""
+        given not Regex.is_exactly(CAMPOS[campo], valor):
+            erros[campo] := $"'{valor}' nao e um {campo} valido"
+    yield erros
+
+bons := validar({"cep": "88010-000", "telefone": "(48) 99999-1234",
+        "usuario": "ana_souza"})
+assert bons is {}
+
+ruins := validar({"cep": "88010-000 ", "telefone": "48999991234",
+        "usuario": "Ana"})
+assert len(keys(ruins)) is 3
+cycle campo in keys(ruins):
+    out $"   {ruins[campo]}"
+
+out ""
+out "== 4. o resultado vazio tem as MESMAS chaves =="
+
+// Senao ler ["start"] de um nao-casamento levantaria.
+vazio := Regex.fullmatch("\\d+", "abc")
+cheio := Regex.fullmatch("\\d+", "12")
+assert keys(vazio) is keys(cheio)
+assert vazio["start"] is -1
+assert vazio["named"] is {}
+
+out ""
+out "== 5. o ancoramento tambem da para escrever a mao =="
+
+// '^...$' faz o mesmo, e e o que se ve em padrao copiado da internet.
+assert Regex.test("^" + CEP + "$", "88010-000")
+assert not Regex.test("^" + CEP + "$", "88010-000 x")
+out "   'fullmatch' e o mesmo, sem depender de lembrar das ancoras"
+
+out "exercicio 314 ok"

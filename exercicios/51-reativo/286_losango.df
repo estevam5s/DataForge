@@ -1,0 +1,60 @@
+// Exercicio 286 — o valor que nunca existiu
+//
+// Enunciado: num losango — 'c' le 'a' e 'b', e 'b' le 'a' — marcar e
+// avisar numa fase so entrega um numero errado na tela, que aparece e
+// some sozinho. A propagacao tem DUAS fases: marcar o grafo inteiro e,
+// so entao, avisar.
+
+adopt Arcane.Reativo as R
+
+steady a := R.sinal(1)
+steady b := R.derivado(lambda => a.ler() * 2)
+steady c := R.derivado(lambda => a.ler() + b.ler())
+
+vistos := []
+steady vigia := R.efeito(lambda => vistos.append(c.ler()))
+
+out "== 1. o estado inicial =="
+
+assert vistos is [3]  // ou seja, um mais dois
+
+out ""
+out "== 2. uma escrita, UM aviso, e ele consistente =="
+
+a.escrever(5)
+// O certo e 15 (5 + 10). Antes da correcao o efeito via 7 primeiro —
+// o 'a' novo somado ao 'b' velho —, e esse 7 nunca foi verdade.
+assert vistos is [3, 15]
+out $"   {vistos}"
+
+out ""
+out "== 3. o efeito alcancado por dois caminhos roda UMA vez =="
+
+a.escrever(10)
+assert len(vistos) is 3
+assert vistos[-1] is 30
+
+out ""
+out "== 4. uma cadeia longa tambem avisa uma vez =="
+
+steady d1 := R.derivado(lambda => a.ler() + 1)
+steady d2 := R.derivado(lambda => d1.ler() + 1)
+steady d3 := R.derivado(lambda => d2.ler() + 1)
+steady d4 := R.derivado(lambda => d3.ler() + 1)
+
+quantas := []
+steady fim := R.efeito(lambda => quantas.append(d4.ler()))
+assert quantas is [14]
+
+a.escrever(100)
+assert quantas is [14, 104]
+
+out ""
+out "== 5. o ouvinte de um derivado espera a marcacao =="
+
+lidos := []
+c.observar(lambda v => lidos.append(v))
+a.escrever(7)
+assert lidos is [21]
+
+out "exercicio 286 ok"

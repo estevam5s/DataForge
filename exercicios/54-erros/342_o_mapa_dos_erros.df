@@ -1,0 +1,113 @@
+// Exercicio 342 — as dezoito familias, e como escolher
+//
+// Enunciado: fechar o modulo com o mapa. O codigo de um erro diz a
+// familia, e a familia diz de quem e a culpa — que e a unica pergunta
+// que importa quando um log chega as tres da manha.
+
+out "== 1. o codigo carrega a familia =="
+
+action codigo_de(acao):
+    monitor:
+        acao()
+    handle Error as e:
+        yield e.codigo
+    yield ""
+
+// DF02xx = execucao, DF06xx = colecoes, DF15xx = validacao.
+assert startswith(codigo_de(lambda => 1 / 0), "DF02")  // df: permitir division-by-zero
+assert startswith(codigo_de(lambda => [1][9]), "DF06")  // df: permitir indice-fora-do-alcance
+out $"   1/0 -> {codigo_de(lambda => 1 / 0)}"  // df: permitir division-by-zero
+
+out ""
+out "== 2. as dezoito familias =="
+
+steady FAMILIAS := {
+    "01": "sintaxe — o texto nao vira programa",
+    "02": "execucao — o programa roda e falha",
+    "03": "tipos — o valor nao serve para a operacao",
+    "04": "nomes — o nome nao existe, ou nao ali",
+    "05": "modulos — adopt e relay",
+    "06": "colecoes — indice, chave, fatia",
+    "07": "do usuario — trigger e assert",
+    "08": "limites — recursao, memoria, tempo",
+    "09": "objetos — blueprint, record, trait, enum",
+    "10": "concorrencia — thread, canal, async",
+    "11": "sistema — arquivo, processo, ambiente",
+    "12": "dados — banco, ORM, serializacao",
+    "13": "rede — HTTP, Kiln, socket",
+    "14": "testes — Crucible",
+    "15": "validacao — conversao, formato, contrato",
+    "16": "dominio — DDD: valor, agregado, evento, regra",
+    "17": "reativo — sinal, derivado, efeito, observavel",
+    "18": "memoria estruturada — layout, ponteiro, janela"
+}
+
+assert len(keys(FAMILIAS)) is 18
+cycle chave in ["02", "16", "17", "18"]:
+    out $"   DF{chave}xx  {FAMILIAS[chave]}"
+
+out ""
+out "== 3. de quem e a culpa =="
+
+steady CULPA := {
+    "PreconditionError": "quem chamou",
+    "PostconditionError": "a acao",
+    "InvariantError": "o objeto",
+    "ConversionError": "o dado que entrou",
+    "FileNotFoundError": "o ambiente",
+    "TimeoutError": "o outro lado",
+    "AggregateError": "a regra de negocio"
+}
+
+assert CULPA["PreconditionError"] is "quem chamou"
+assert CULPA["InvariantError"] is "o objeto"
+out "   um log que nao responde isso nao serve a ninguem"
+
+out ""
+out "== 4. a escada de tratamento =="
+
+// Do mais especifico ao mais geral, e cada degrau com uma acao
+// diferente.
+action tratar(acao):
+    monitor:
+        acao()
+        yield "ok"
+    handle ConversionError:
+        yield "pedir de novo ao usuario"
+    handle FileNotFoundError:
+        yield "criar o arquivo e tentar"
+    handle RuntimeError:
+        yield "registrar e seguir"
+    handle Error:
+        yield "registrar e PARAR"
+
+assert tratar(lambda => int("x")) is "pedir de novo ao usuario"
+assert tratar(lambda => 1 / 0) is "registrar e seguir"  // df: permitir division-by-zero
+assert tratar(lambda => trigger "x") is "registrar e PARAR"
+assert tratar(lambda => 1 + 1) is "ok"
+
+out ""
+out "== 5. as tres decisoes que este modulo ensinou =="
+
+out "   1. capture pela FAMILIA, e nomeie o especifico quando precisar"
+out "   2. falha esperada e VALOR (Resultado); falha excepcional e 'trigger'"
+out "   3. o que fecha recurso vai em 'defer' — e ele nao engole nada"
+
+out ""
+out "== 6. e a que mais custa caro =="
+
+// 'trigger' levanta TriggerError, e nao RuntimeError. 'handle
+// RuntimeError' nao pega um 'trigger' — e esse e o erro que aparece
+// como "o tratamento nao funcionou" sem nenhuma pista.
+nao_pegou := yes
+monitor:
+    monitor:
+        trigger "minha falha"
+    handle RuntimeError:
+        nao_pegou := no
+handle TriggerError:
+    void
+assert nao_pegou
+out "   'handle RuntimeError' NAO pega um 'trigger'"
+
+out "exercicio 342 ok"

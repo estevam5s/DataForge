@@ -1,0 +1,80 @@
+// Exercicio 363 — long polling, webhook e o que o 'doctor' pergunta
+//
+// Enunciado: um bot que roda na sua maquina usa long polling; um que
+// roda num servidor usa webhook. A diferenca nao e so de desempenho —
+// os dois nao podem estar ligados ao mesmo tempo, e o segundo exige
+// HTTPS com certificado de verdade.
+
+adopt Arcane.Telegram as Tg
+
+out "== 1. o token nunca vai no codigo =="
+
+// Ele vai para o Git, e do Git para qualquer um — e o @BotFather nao
+// avisa quando alguem o usa: o bot so comeca a mandar spam.
+faltou := no
+monitor:
+    Tg.segredo_do_ambiente("VARIAVEL_QUE_NAO_EXISTE_AQUI")
+handle Error as e:
+    faltou := yes
+    assert "VARIAVEL_QUE_NAO_EXISTE_AQUI" in e.message
+    out $"   {e.message}"
+assert faltou
+
+out ""
+out "== 2. e ele nunca aparece numa mensagem de erro =="
+
+// O token esta na URL de TODA chamada, e a URL entra em todo
+// traceback. Um token num log de CI e um bot sequestrado.
+steady TOKEN := "123456789:AAHqwertyuiopASDFGHJKLzxcvbnm12345"
+app := Tg.app(TOKEN)
+
+mark @app.comando("x")
+action x(ctx):
+    ctx.responder("ok")
+
+t := Tg.testar(app)
+t.comando("x")
+
+cycle chamada in t.chamadas():
+    assert TOKEN not in str(chamada)
+out "   nenhuma chamada registrada carrega o token"
+
+out ""
+out "== 3. o limite de taxa vem no CORPO, e nao no status =="
+
+// E o erro classico de quem escreve o cliente a mao: tratar 429 como
+// "erro" e desistir, em vez de ler quantos segundos esperar.
+limitador := Tg.limitar(30)
+assert limitador is not void
+out "   30 mensagens por segundo e o limite global"
+
+out ""
+out "== 4. long polling e webhook nao convivem =="
+
+out "   'dataforge telegram run'     -> long polling (na sua maquina)"
+out "   'dataforge telegram webhook' -> webhook (no servidor, com HTTPS)"
+out "   'dataforge telegram off'     -> desliga o webhook"
+
+out ""
+out "== 5. o 'doctor' pergunta o que costuma faltar =="
+
+steady PERGUNTAS := [
+    "o token responde?",
+    "o bot entra em grupo?",
+    "ele le todas as mensagens do grupo, ou so os comandos?",
+    "ha um webhook ligado? (ele impede o long polling)",
+    "quantos updates estao pendentes?"
+]
+assert len(PERGUNTAS) is 5
+cycle p in PERGUNTAS:
+    out $"   - {p}"
+
+out ""
+out "== 6. e 'deploy' nao existe, de proposito =="
+
+// Um 'deploy' que falasse com o servidor por dentro esconderia o que
+// a maquina e — e no dia em que alguem precisa mudar uma linha, nao
+// haveria onde mexer.
+out "   o modulo gera o que voce precisa, e sai da frente"
+
+out "exercicio 363 ok"

@@ -1,0 +1,74 @@
+// Exercicio 272 — a regra de negocio que se combina e se explica
+//
+// Enunciado: um 'given' dentro do servico nao pode ser combinado, nem
+// reaproveitado na consulta que lista "quem pode", nem explicado ao
+// usuario. Os tres usos sao a MESMA regra, e escreve-la tres vezes e
+// como as tres divergem.
+
+adopt Arcane.Dominio as D
+
+record Cliente:
+    nome: String
+    idade: Integer
+    pais: String
+
+steady maior := D.regra("maior de idade", lambda c => c.idade bigger_eq 18)
+steady brasil := D.regra("mora no Brasil", lambda c => c.pais is "BR")
+steady pode := maior.e(brasil)
+
+steady TODOS := [
+    Cliente("Ana", 30, "BR"),
+    Cliente("Bia", 15, "BR"),
+    Cliente("Caio", 40, "US"),
+    Cliente("Dora", 22, "BR")
+]
+
+out "== 1. a decisao =="
+
+assert pode.vale(TODOS[0])
+assert not pode.vale(TODOS[1])
+assert not pode.vale(TODOS[2])
+
+out ""
+out "== 2. a explicacao aponta a PARTE que falhou =="
+
+// A frase inteira nao diz o que a pessoa precisa resolver.
+assert pode.por_que_nao(TODOS[1]) is "maior de idade"
+assert pode.por_que_nao(TODOS[2]) is "mora no Brasil"
+assert pode.por_que_nao(TODOS[0]) is ""
+out $"   Bia: {pode.por_que_nao(TODOS[1])}"
+out $"   Caio: {pode.por_que_nao(TODOS[2])}"
+
+out ""
+out "== 3. a MESMA regra, como consulta =="
+
+habilitados := pode.filtrar(TODOS)
+assert len(habilitados) is 2
+assert [c.nome cycle c in habilitados] is ["Ana", "Dora"]
+
+out ""
+out "== 4. ou, e nao =="
+
+steady qualquer := maior.ou(brasil)
+assert qualquer.vale(TODOS[1])  // brasileira, menor
+assert qualquer.vale(TODOS[2])  // maior, americano
+
+steady menor := maior.nao()
+assert menor.vale(TODOS[1])
+assert not menor.vale(TODOS[0])
+assert "NAO" in menor.descricao
+
+out ""
+out "== 5. uma regra quebrada LEVANTA =="
+
+// Devolver 'nao vale' recusaria o usuario por um bug, calado.
+steady ruim := D.regra("ruim", lambda c => c.idadee)
+bug := no
+monitor:
+    ruim.vale(TODOS[0])
+handle SpecificationError as e:
+    bug := yes
+    assert "estourou" in e.message
+assert bug
+
+out "exercicio 272 ok"

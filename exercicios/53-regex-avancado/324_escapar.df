@@ -1,0 +1,75 @@
+// Exercicio 324 — o texto que vem de fora nao e um padrao
+//
+// Enunciado: montar um padrao concatenando texto de usuario e como um
+// ponto vira "qualquer caractere" e um parenteses vira erro de
+// sintaxe. 'escape' e o equivalente do parametro de uma consulta SQL.
+
+adopt Arcane.Regex as Regex
+
+out "== 1. um ponto nao e um ponto =="
+
+// 'ana.souza' como padrao casa 'anaXsouza'.
+assert Regex.test("ana.souza", "anaXsouza")
+assert not Regex.test(Regex.escape("ana.souza"), "anaXsouza")
+assert Regex.test(Regex.escape("ana.souza"), "ana.souza")
+
+out ""
+out "== 2. e o parenteses e PIOR que quebrar =="
+
+// '(48) 99999-1234' compila: o parenteses vira um GRUPO, e os
+// parenteses somem do que se procura. O padrao passa a casar um
+// telefone SEM parenteses — e nao ha erro nenhum.
+assert Regex.test("(48) 99999-1234", "ligue 48 99999-1234")
+assert not Regex.test(Regex.escape("(48) 99999-1234"), "ligue 48 99999-1234")
+assert Regex.test(Regex.escape("(48) 99999-1234"), "ligue (48) 99999-1234")
+out "   sem escapar, ele casou o telefone errado — calado"
+
+// Um que de fato quebra: o fecho sem abertura.
+quebrou := no
+monitor:
+    Regex.explain("sem abertura)")
+handle RegexError:
+    quebrou := yes
+assert quebrou
+
+out ""
+out "== 3. uma busca literal dentro de um texto =="
+
+action contem(texto, procurado):
+    yield Regex.test(Regex.escape(procurado), texto)
+
+steady CATALOGO := "cafe 3.50; leite 4.20; pao 1.00"
+assert contem(CATALOGO, "3.50")
+assert not contem(CATALOGO, "3x50")
+
+out ""
+out "== 4. e uma troca literal =="
+
+// Sem escapar, '$' seria o fim da linha.
+assert Regex.sub(Regex.escape("R$"), "BRL", "R$ 10 e R$ 20") is "BRL 10 e BRL 20"
+
+out ""
+out "== 5. montar um padrao COM a parte escapada =="
+
+action comeca_com(prefixo):
+    yield "^" + Regex.escape(prefixo) + "\\d+$"
+
+assert Regex.test(comeca_com("NF-"), "NF-12345")
+assert not Regex.test(comeca_com("NF-"), "NFX12345")
+assert Regex.test(comeca_com("a.b"), "a.b99")
+assert not Regex.test(comeca_com("a.b"), "aXb99")
+
+out ""
+out "== 6. e a conferencia de risco, antes de usar o que veio de fora =="
+
+action padrao_do_usuario(texto, procurar_em):
+    analise := Regex.risk(texto)
+    given analise["perigoso"]:
+        yield {"ok": no, "motivo": analise["motivo"]}
+    yield {"ok": yes, "quantos": Regex.count(texto, procurar_em)}
+
+assert padrao_do_usuario("\\d+", "a1 b2")["quantos"] is 2
+assert not padrao_do_usuario("(a+)+$", "aaa")["ok"]
+out "   um padrao de fora passa por 'risk' antes de rodar"
+
+out "exercicio 324 ok"

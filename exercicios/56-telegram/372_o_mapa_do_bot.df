@@ -1,0 +1,94 @@
+// Exercicio 372 — o mapa, e as cinco decisoes
+//
+// Enunciado: fechar o modulo com as sete formas de casar um update, a
+// ordem que importa, e as decisoes que o modulo toma por voce — com o
+// motivo de cada uma.
+
+adopt Arcane.Telegram as Tg
+
+out "== 1. as sete formas de casar =="
+
+steady FORMAS := {
+    "comando": "/start, /ajuda — com o sufixo '@bot' ja removido",
+    "texto": "uma expressao regular sobre o texto",
+    "botao": "o prefixo do 'dados' de um botao inline",
+    "midia": "foto, video, audio, documento, local, contato…",
+    "inline": "a consulta '@bot termo', fora de qualquer chat",
+    "entrou/saiu": "alguem entrou ou saiu do grupo",
+    "qualquer": "o resto — e ela vai por ULTIMO"
+}
+assert len(keys(FORMAS)) is 7
+cycle f in keys(FORMAS):
+    out $"   {f}: {FORMAS[f]}"
+
+out ""
+out "== 2. o despacho para no PRIMEIRO que casa =="
+
+vistos := []
+app := Tg.app("123456:AAHexemplo")
+
+mark @app.texto("\\bcafe\\b")
+action cafe(ctx):
+    vistos.append("texto")
+    ctx.responder("cafe!")
+
+mark @app.qualquer()
+action resto(ctx):
+    vistos.append("qualquer")
+    ctx.responder("nao entendi")
+
+t := Tg.testar(app)
+t.mandar("quero cafe")
+assert vistos is ["texto"]
+out "   uma mensagem, UMA resposta"
+
+// Entregar a todos produziria o bug mais confuso que um bot tem:
+// duas respostas, e ninguem sabe de onde veio a segunda.
+
+out ""
+out "== 3. e 'qualquer' registrada antes seria um buraco =="
+
+// Ela casa com tudo: o que vier depois nunca seria alcancado, e o
+// sintoma e o bot responder "nao entendi" a um comando que existe.
+// Registrar nessa ordem e RECUSADO, na partida.
+recusou := no
+monitor:
+    errado := Tg.app("123456:AAHexemplo")
+    errado.qualquer()(resto)
+    errado.comando("tarde")(cafe)
+handle Error as e:
+    recusou := yes
+    out $"   {e.message}"
+assert recusou
+
+out ""
+out "== 4. as cinco decisoes do modulo =="
+
+steady DECISOES := [
+    "o token vem do ambiente, e nunca aparece num erro",
+    "o limite de taxa e lido do CORPO, e nao do status",
+    "'qualquer' vai por ultimo, e isso e cobrado",
+    "a conversa guarda o passo NO CHAT, e nao num vault solto",
+    "'deploy' nao existe: o modulo gera e sai da frente"
+]
+assert len(DECISOES) is 5
+cycle d in DECISOES:
+    out $"   - {d}"
+
+out ""
+out "== 5. e o que testar onde =="
+
+out "   logica do bot   -> a sonda, na suite"
+out "   ambiente        -> 'dataforge telegram doctor'"
+out "   formato da msg  -> so o Telegram de verdade responde"
+
+out ""
+out "== 6. o caminho inteiro, em cinco linhas =="
+
+out "   dataforge telegram new meubot"
+out "   export TELEGRAM_TOKEN=...      (do @BotFather)"
+out "   dataforge telegram doctor"
+out "   dataforge telegram run         (long polling)"
+out "   dataforge telegram webhook     (no servidor, com HTTPS)"
+
+out "exercicio 372 ok"

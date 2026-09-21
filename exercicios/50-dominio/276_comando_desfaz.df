@@ -1,0 +1,73 @@
+// Exercicio 276 — o comando que falha no meio nao deixa metade
+//
+// Enunciado: um comando que muda tres campos e falha no terceiro
+// deixaria os dois primeiros aplicados. A proxima leitura veria um
+// agregado que nunca deveria existir — e nada denunciaria.
+
+adopt Arcane.Dominio as D
+
+estoque := D.agregado("Estoque", "E-1",
+    disponivel := 10, reservado := 0, vendido := 0)
+
+estoque.invariante("nada fica negativo",
+    lambda e => e.ler("disponivel", 0) bigger_eq 0)
+
+mark @estoque.comando("reservar")
+action reservar(e, quantos):
+    e.mudar(disponivel := e.ler("disponivel", 0) - quantos)
+    e.mudar(reservado := e.ler("reservado", 0) + quantos)
+    e.aconteceu("Reservado", {"quantos": quantos})
+
+mark @estoque.comando("quebrar_no_meio")
+action quebrar_no_meio(e):
+    e.mudar(disponivel := 0)
+    e.mudar(reservado := 999)
+    e.aconteceu("NuncaAconteceu")
+    trigger "falhei depois de mexer em tudo"
+
+out "== 1. o caminho feliz =="
+
+estoque.reservar(3)
+assert estoque.ler("disponivel") is 7
+assert estoque.ler("reservado") is 3
+assert len(estoque.eventos()) is 1
+assert estoque.versao() is 1
+
+out ""
+out "== 2. o comando que estoura no fim desfaz TUDO =="
+
+quebrou := no
+monitor:
+    estoque.quebrar_no_meio()
+handle Error as e:
+    quebrou := yes
+    assert "falhei" in e.message
+assert quebrou
+
+assert estoque.ler("disponivel") is 7
+assert estoque.ler("reservado") is 3
+assert estoque.versao() is 1
+out "   estado, versao e eventos voltaram ao que eram"
+
+out ""
+out "== 3. o EVENTO do comando desfeito tambem some =="
+
+// Um fato de um comando que nao aconteceu e a pior classe de evento:
+// alguem reage a ele, e nao ha nada para reagir.
+assert len(estoque.eventos()) is 1
+assert estoque.eventos()[0].nome is "Reservado"
+
+out ""
+out "== 4. e a invariante violada tem o mesmo efeito =="
+
+violou := no
+monitor:
+    estoque.reservar(999)
+handle AggregateError:
+    violou := yes
+assert violou
+assert estoque.ler("disponivel") is 7
+assert estoque.ler("reservado") is 3
+assert len(estoque.eventos()) is 1
+
+out "exercicio 276 ok"

@@ -1,0 +1,104 @@
+// Exercicio 377 — o cache nao e opcional
+//
+// Enunciado: o programa INTEIRO roda de novo a cada interacao. Sem
+// cache, a consulta que carrega os dados roda a cada tecla digitada —
+// e o painel fica inutilizavel com qualquer fonte que nao seja
+// instantanea.
+
+adopt Arcane.Vitrine as V
+
+contas := {"n": 0}
+
+action carregar(regiao):
+    contas["n"] := contas["n"] + 1
+    yield [{"regiao":regiao, "valor":100.0 * contas["n"]}]
+
+// 'V.cache' e um decorador: com a acao, envolve; com opcoes,
+// devolve o decorador. Aqui usamos a forma direta.
+steady carregar_com_cache := V.cache(carregar)
+
+action painel():
+    V.titulo("Cache")
+    regiao := V.escolha("Regiao", ["sul", "norte"])
+    dados := carregar_com_cache(regiao)
+    V.frame(dados)
+    V.texto($"consultas: {contas['n']}")
+
+out "== 1. a primeira execucao consulta =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert contas["n"] is 1
+
+out ""
+out "== 2. reexecutar com o MESMO argumento nao consulta =="
+
+t.selecionar("Regiao", "sul")
+assert contas["n"] is 1
+out "   o painel redesenhou, e a fonte nao foi tocada"
+
+out ""
+out "== 3. trocar o argumento consulta de novo =="
+
+t.selecionar("Regiao", "norte")
+assert contas["n"] is 2
+
+// E voltar ao anterior VOLTA ao cache.
+t.selecionar("Regiao", "sul")
+assert contas["n"] is 2
+out "   dois argumentos, duas consultas — e nada mais"
+
+out ""
+out "== 4. sem o cache, cada redesenho consultaria =="
+
+sem := {"n": 0}
+
+action carregar_sem(_regiao):
+    sem["n"] := sem["n"] + 1
+    yield [{"x":1}]
+
+action painel_sem():
+    regiao := V.escolha("Regiao", ["sul", "norte"])
+    V.frame(carregar_sem(regiao))
+
+t2 := V.testar(painel_sem)
+t2.selecionar("Regiao", "norte")
+t2.selecionar("Regiao", "sul")
+assert sem["n"] is 3
+out $"   tres redesenhos, {sem['n']} consultas"
+
+out ""
+out "== 5. o deposito e por IDENTIDADE da acao =="
+
+// Duas acoes 'carregar' em arquivos diferentes dividiriam o mesmo
+// cache, e o teto da primeira venceria calado sobre o da segunda.
+// Mas 'id()' nao e identidade ao longo do TEMPO: o CPython
+// reaproveita o endereco de um objeto coletado, e uma acao nova caia
+// na chave de uma acao morta — herdando o VALOR dela.
+out "   por isso o deposito guarda a acao junto: enquanto ele existir,"
+out "   aquele id nao pode ser de mais ninguem"
+
+out ""
+out "== 6. e o recurso, para o que NAO e dado =="
+
+// 'V.cache' guarda VALOR; 'V.recurso' guarda um OBJETO que se abre
+// uma vez — uma conexao, um modelo carregado.
+abertas := {"n": 0}
+
+action abrir():
+    abertas["n"] := abertas["n"] + 1
+    yield {"conexao": abertas["n"]}
+
+steady conexao := V.recurso(abrir)
+
+action painel_recurso():
+    c := conexao()
+    V.texto($"conexao {c['conexao']}")
+
+t3 := V.testar(painel_recurso)
+t3.rodar()
+t3.rodar()
+assert abertas["n"] is 1
+out "   tres execucoes, uma conexao"
+
+out "exercicio 377 ok"

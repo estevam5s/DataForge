@@ -1,0 +1,70 @@
+// Exercicio 306 — as seis recusas do layout
+//
+// Enunciado: cada recusa existe porque a alternativa e um numero
+// plausivel — e um defeito que aparece tres camadas adiante, num campo
+// que nao tem nada a ver com a causa.
+
+adopt Arcane.Estrutura as Est
+
+steady Cabecalho := Est.definir("Cabecalho", [
+        ["magia", "u32"], ["versao", "u16"], ["registros", "u16"]
+    ])
+
+action recusou(acao):
+    monitor:
+        acao()
+    handle LayoutError as e:
+        out $"   {e.message}"
+        yield yes
+    yield no
+
+out "== 1. ler alem do fim =="
+assert recusou(lambda => Cabecalho.ler(Est.bloco(4)))
+
+out ""
+out "== 2. um deslocamento que nao cabe =="
+assert recusou(lambda => Cabecalho.ler(Est.bloco(12), 8))
+
+out ""
+out "== 3. um valor fora da faixa do tipo =="
+// Sem esta conferencia ele seria truncado em silencio, e o arquivo
+// sairia com outro numero.
+assert recusou(lambda => Est.definir("P", [["n", "u8"]]).empacotar({"n": 300}))
+
+out ""
+out "== 4. um campo que nao existe — com sugestao =="
+assert recusou(lambda => Cabecalho.escrever(Est.bloco(8), {"versaoo": 1}))
+
+out ""
+out "== 5. um bloco somente leitura =="
+// 'bytes' nao muda; 'bytearray' e um Bloco mudam.
+assert recusou(lambda => Cabecalho.escrever(Est.bloco(8).bytes(), {"versao": 1}))
+
+out ""
+out "== 6. um campo declarado duas vezes =="
+// O segundo seria inalcancavel: a leitura devolve um vault.
+assert recusou(lambda => Est.definir("P", [["x", "u8"], ["x", "u32"]]))
+
+out ""
+out "== 7. um tipo que nao existe — tambem com sugestao =="
+assert recusou(lambda => Est.definir("P", [["x", "u33"]]))
+
+out ""
+out "== 8. e um molde sem campo nenhum =="
+assert recusou(lambda => Est.definir("P", []))
+
+out ""
+out "== 9. o deslocamento negativo =="
+assert recusou(lambda => Cabecalho.ler(Est.bloco(16), -1))
+
+out ""
+out "== 10. um bloco de tamanho negativo =="
+
+negativo := no
+monitor:
+    Est.bloco(-1)
+handle NegativeSizeError:
+    negativo := yes
+assert negativo
+
+out "exercicio 306 ok"

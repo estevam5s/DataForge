@@ -1,0 +1,86 @@
+// Exercicio 385 — tirar o dado de dentro do painel
+//
+// Enunciado: todo painel acaba com alguem pedindo "manda isso em
+// Excel". Exportar e a diferenca entre um painel usado e um painel
+// que vira captura de tela colada num e-mail.
+
+adopt Arcane.Vitrine as V
+
+steady VENDAS := [
+    {"vendedor": "Ana", "regiao": "sul", "valor": 1200.0},
+    {"vendedor": "Bia", "regiao": "norte", "valor": 800.0},
+    {"vendedor": "Caio", "regiao": "sul", "valor": 2400.0}
+]
+
+action painel():
+    V.titulo("Vendas")
+    V.grade(VENDAS)
+    V.exportar_csv(VENDAS, "vendas.csv")
+    V.exportar_json(VENDAS, "vendas.json")
+    V.exportar_excel(VENDAS, "vendas.xlsx")
+
+out "== 1. os tres formatos =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.quantos("baixar") is 3
+out "   csv, json e xlsx"
+
+out ""
+out "== 2. o conteudo do CSV =="
+
+// A Vitrine monta o arquivo NO SERVIDOR: nao ha biblioteca de
+// planilha no navegador, e o .xlsx sai do 'Arcane.Excel', que grava
+// sem dependencia externa.
+baixaveis := [b cycle b in t.arvore()["filhos"] given b.tipo is "baixar"]
+assert len(baixaveis) is 3
+nomes := [b.props["nome"] cycle b in baixaveis]
+assert nomes is ["vendas.csv", "vendas.json", "vendas.xlsx"]
+out $"   {nomes}"
+
+out ""
+out "== 3. o conteudo fica no ESTADO, e nao no no =="
+
+// O no leva so o rotulo, o nome do arquivo e a chave; os bytes ficam
+// guardados, e o navegador os pede quando o botao e clicado. Mandar
+// um .xlsx inteiro dentro do HTML de toda pagina seria absurdo.
+assert keys(baixaveis[2].props) is ["rotulo", "nome", "chave"]
+out "   o HTML leva o botao; os bytes ficam para quem clicar"
+
+out ""
+out "== 4. e o binario e preservado =="
+
+// 'baixar' guarda BYTES: converter para texto e de volta corromperia
+// o .xlsx, que e um ZIP. O teste disso vive em 'tests/test_vitrine.py',
+// onde da para abrir o armazem.
+out "   o .xlsx e um ZIP, e um 'para_texto' o destruiria"
+
+out ""
+out "== 5. e o SVG de um grafico tambem sai =="
+
+action com_grafico():
+    // Ele recebe o GRAFICO montado por 'V.grafico', e nao o atalho
+    // 'V.grafico_linha' — que ja desenha e devolve os dados. O SVG
+    // sai do desenho daquele grafico, e nao de uma captura da tela.
+    // 'V.grafico' monta a partir de LINHAS, e nomeia as colunas: e a
+    // forma para quem ja tem os dados tabulares, e a que o
+    // 'exportar_svg' recebe.
+    g := V.grafico("linha", [{"mes":"a", "valor":1.0},
+            {"mes": "b", "valor": 2.0}])
+    g.eixo_x("mes")
+    g.serie("valor")
+    V.desenhar(g)
+    V.exportar_svg(g, "grafico.svg")
+
+t2 := V.testar(com_grafico)
+assert not t2.falhou()
+
+out ""
+out "== 6. o que 'build' e 'deploy' NAO fazem =="
+
+// A Vitrine nao tem os dois, e os dois explicam por que: nao ha o que
+// "construir" (nao ha bundle), e um deploy que falasse com o servidor
+// por dentro esconderia o que a maquina e.
+out "   'dataforge vitrine run' e 'dev' existem; 'build' e 'deploy' nao"
+
+out "exercicio 385 ok"

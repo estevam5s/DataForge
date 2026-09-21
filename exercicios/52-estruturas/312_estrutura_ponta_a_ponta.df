@@ -1,0 +1,147 @@
+// Exercicio 312 — um formato completo, do zero ao disco
+//
+// Enunciado: juntar tudo — molde, alinhamento, janela, ponteiro,
+// arquivo e conferencia de integridade. E o desenho de um indice de
+// banco de dados simples.
+
+adopt Arcane.Estrutura as Est
+adopt Arcane.Bytes as By
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+adopt Arcane.Crypto as Cripto
+
+steady MAGIA := 1145979218
+steady VERSAO := 3
+
+steady Cabecalho := Est.definir("Cabecalho", [
+        ["magia", "u32"],
+        ["versao", "u16"],
+        ["quantos", "u16"],
+        ["soma", "u32"]
+    ], ordem := "rede")
+
+steady Entrada := Est.definir("Entrada", [
+        ["chave", "u32"],
+        ["valor", "u32"]
+    ], ordem := "rede")
+
+steady PARES := [[10, 100], [20, 400], [30, 900], [40, 1600]]
+
+action soma_simples(crus):
+    "Um checksum de brinquedo: a soma dos bytes, em 32 bits."
+    total := 0
+    cycle b in crus:
+        total := (total + b) % 4294967296
+    yield total
+
+out "== 1. montar o indice =="
+
+steady INICIO := Cabecalho.tamanho
+arquivo := Est.bloco(INICIO + Entrada.tamanho * len(PARES))
+
+cycle i from 0 to len(PARES) - 1:
+    Entrada.escrever(arquivo, {"chave": PARES[i][0], "valor": PARES[i][1]},
+        INICIO + i * Entrada.tamanho)
+
+corpo := arquivo.bytes()[INICIO:len(arquivo)]
+Cabecalho.escrever(arquivo, {"magia": MAGIA, "versao": VERSAO,
+        "quantos": len(PARES),
+        "soma": soma_simples(corpo)})
+
+assert len(arquivo) is INICIO + Entrada.tamanho * 4
+out $"   {len(arquivo)} bytes"
+
+out ""
+out "== 2. gravar e reler =="
+
+steady pasta := $"{OS.temp_dir()}/df-312-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+steady caminho := $"{pasta}/indice.bin"
+
+IO.write_bytes(caminho, arquivo)
+lido := Est.de_bytes(IO.read_bytes(caminho))
+assert lido.bytes() is arquivo.bytes()
+
+out ""
+out "== 3. conferir a integridade ANTES de confiar =="
+
+action abrir(dados):
+    "Devolve as entradas, ou levanta dizendo o que esta errado."
+    given len(dados) smaller Cabecalho.tamanho:
+        trigger "o arquivo e curto demais para ter cabecalho"
+    cabeca := Cabecalho.ler(dados)
+    given cabeca["magia"] isnt MAGIA:
+        trigger "este arquivo nao e um indice"
+    given cabeca["versao"] bigger VERSAO:
+        trigger $"versao {cabeca['versao']} e mais nova que a que eu leio"
+    corpo := dados.bytes()[Cabecalho.tamanho:len(dados)]
+    given soma_simples(corpo) isnt cabeca["soma"]:
+        trigger "o conteudo nao bate com a soma do cabecalho"
+    yield Est.janelas(dados, Entrada, quantos := cabeca["quantos"],
+        deslocamento := Cabecalho.tamanho)
+
+entradas := abrir(lido)
+assert len(entradas) is 4
+assert [e.ler("chave") cycle e in entradas] is [10, 20, 30, 40]
+
+out ""
+out "== 4. busca binaria pelo ponteiro =="
+
+// As chaves estao em ordem: da para bisseccionar sem materializar
+// nada.
+action procurar(dados, quantos, chave):
+    baixo := 0
+    alto := quantos - 1
+    persist baixo smaller_eq alto:
+        meio := (baixo + alto) ~/ 2
+        janela := Est.janela(dados, Entrada,
+            Cabecalho.tamanho + meio * Entrada.tamanho)
+        atual := janela.ler("chave")
+        given atual is chave:
+            yield janela.ler("valor")
+        orif atual smaller chave:
+            baixo := meio + 1
+        otherwise:
+            alto := meio - 1
+    yield void
+
+assert procurar(lido, 4, 30) is 900
+assert procurar(lido, 4, 10) is 100
+assert procurar(lido, 4, 25) is void
+out "   busca binaria direto no bloco"
+
+out ""
+out "== 5. um arquivo corrompido e RECUSADO =="
+
+corrompido := Est.de_bytes(IO.read_bytes(caminho))
+corrompido[Cabecalho.tamanho] := 99  // mexe na primeira chave
+
+pegou := no
+monitor:
+    abrir(corrompido)
+handle Error as e:
+    pegou := yes
+    assert "soma" in e.message
+    out $"   {e.message}"
+assert pegou
+
+out ""
+out "== 6. e um arquivo de outro formato tambem =="
+
+outro := Cabecalho.empacotar({"magia": 0, "versao": 1, "quantos": 0,
+        "soma": 0})
+nao_e := no
+monitor:
+    abrir(outro)
+handle Error as e:
+    nao_e := yes
+    assert "nao e um indice" in e.message
+assert nao_e
+
+out ""
+out "== 7. o hash do arquivo, para guardar ao lado =="
+
+assert len(Cripto.sha256(By.hex(arquivo.bytes()))) is 64
+
+IO.remove_tree(pasta)
+out "exercicio 312 ok"

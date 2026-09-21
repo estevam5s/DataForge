@@ -1,0 +1,76 @@
+// Exercicio 375 — o grafico e SVG escrito no servidor
+//
+// Enunciado: zero dependencia tambem no navegador. Uma biblioteca de
+// CDN quebra qualquer app em rede fechada — que e onde painel de
+// dados costuma rodar.
+
+adopt Arcane.Vitrine as V
+
+steady MESES := ["jan", "fev", "mar", "abr", "mai", "jun"]
+steady RECEITA := [120.0, 135.0, 128.0, 160.0, 175.0, 190.0]
+steady CUSTO := [80.0, 82.0, 85.0, 90.0, 95.0, 98.0]
+
+action painel():
+    V.titulo("Grafico")
+    V.grafico_linha(MESES, {"receita": RECEITA, "custo": CUSTO})
+    V.grafico_barras(MESES, {"receita": RECEITA})
+    V.grafico_pizza(["A", "B", "C"], [30.0, 45.0, 25.0])
+    V.grafico_area(MESES, {"receita": RECEITA})
+
+out "== 1. quatro graficos =="
+
+t := V.testar(painel)
+assert not t.falhou()
+assert t.quantos("grafico") is 4
+
+out ""
+out "== 2. e o SVG sai do servidor =="
+
+html := t.html()
+assert "<svg" in html
+assert "polyline" in html or "path" in html
+
+out ""
+out "== 3. nenhuma CDN =="
+
+// Ha teste no repositorio proibindo 'http://', 'https://' e 'cdn' no
+// CSS e no JS da Vitrine, e e por isso que ela roda em rede fechada.
+assert "cdn." not in lower(html)
+out "   nada e buscado de fora"
+
+out ""
+out "== 4. os tipos disponiveis =="
+
+tipos := V.tipos_de_grafico
+assert len(tipos) bigger_eq 20
+assert "linha" in tipos
+assert "sankey" in tipos
+assert "gantt" in tipos
+assert "cascata" in tipos
+out $"   {len(tipos)} tipos"
+
+out ""
+out "== 5. a barra e ancorada no zero; a linha, nao =="
+
+// Nao e estetica. Numa barra o que significa e o COMPRIMENTO, e
+// cortar o eixo faz uma barra 3% maior parecer o dobro. Numa linha o
+// que significa e a POSICAO: forcar o zero num patrimonio que vai de
+// 1,02 a 1,13 milhao desenha uma reta, e a variacao some.
+out "   barra: comprimento · linha: posicao"
+
+out ""
+out "== 6. e 'void' numa serie e um VAO, e nao um zero =="
+
+steady COM_BURACO := [120.0, 135.0, void, 160.0, void, 190.0]
+
+action com_vao():
+    V.grafico_linha(MESES, {"receita": COM_BURACO})
+
+t2 := V.testar(com_vao)
+assert not t2.falhou()
+// O caminho antigo convertia ausencia para 0.0, e a linha despencava
+// ao chegar no mes que ainda nao aconteceu.
+assert "<svg" in t2.html()
+out "   o caminho e partido em trechos, e os vaos ficam vazios"
+
+out "exercicio 375 ok"

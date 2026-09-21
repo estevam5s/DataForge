@@ -1,0 +1,87 @@
+// Exercicio 321 — um analisador de log completo
+//
+// Enunciado: juntar grupos nomeados, ancoramento, posicao e
+// substituicao calculada num caso que existe em todo sistema: ler o
+// log, resumir e mascarar o que nao pode sair dali.
+
+adopt Arcane.Regex as Regex
+
+steady LOG := """2026-09-20T08:12:03 INFO  usuario=ana@exemplo.com acao=login ms=42
+2026-09-20T08:12:44 ERRO  usuario=bia@exemplo.com acao=pagar ms=1203
+2026-09-20T08:13:01 INFO  usuario=ana@exemplo.com acao=listar ms=17
+2026-09-20T08:14:20 ERRO  usuario=caio@exemplo.com acao=pagar ms=2401
+linha que nao e do formato
+2026-09-20T08:15:00 AVISO usuario=ana@exemplo.com acao=sair ms=8"""
+
+steady LINHA := "^(?P<quando>[\\dT:-]+) +(?P<nivel>\\w+) +usuario=(?P<quem>\\S+) +acao=(?P<acao>\\w+) +ms=(?P<ms>\\d+)$"
+
+out "== 1. so as linhas que casam INTEIRAS =="
+
+// Sem o ancoramento, uma linha malformada casaria pela metade e
+// entraria no relatorio com campos errados.
+linhas := []
+cycle bruta in split(LOG, "\n"):
+    campos := Regex.named(LINHA, bruta)
+    given len(keys(campos)) bigger 0:
+        linhas.append(campos)
+
+assert len(linhas) is 5
+out $"   {len(linhas)} linhas lidas, uma descartada"
+
+out ""
+out "== 2. resumir por nivel =="
+
+por_nivel := {}
+cycle l in linhas:
+    n := l["nivel"]
+    por_nivel[n] := (por_nivel[n] ?? 0) + 1
+
+assert por_nivel["INFO"] is 2
+assert por_nivel["ERRO"] is 2
+assert por_nivel["AVISO"] is 1
+
+out ""
+out "== 3. o pior tempo =="
+
+tempos := [int(l["ms"]) cycle l in linhas]
+assert max(tempos) is 2401
+assert min(tempos) is 8
+
+lentas := [l cycle l in linhas given int(l["ms"]) bigger 1000]
+assert len(lentas) is 2
+assert [l["acao"] cycle l in lentas] is ["pagar", "pagar"]
+out "   as duas lentas sao a mesma acao"
+
+out ""
+out "== 4. quem mais aparece =="
+
+por_pessoa := {}
+cycle l in linhas:
+    q := l["quem"]
+    por_pessoa[q] := (por_pessoa[q] ?? 0) + 1
+
+assert por_pessoa["ana@exemplo.com"] is 3
+
+out ""
+out "== 5. mascarar o e-mail antes de sair daqui =="
+
+action mascarar(m):
+    inteiro := m["value"]
+    partes := split(inteiro, "@")
+    yield partes[0][0] + "***@" + partes[1]
+
+publico := Regex.sub_with(Regex.patterns["email"], mascarar, LOG)
+assert "ana@exemplo.com" not in publico
+assert "a***@exemplo.com" in publico
+assert "acao=login" in publico
+out "   o resto do log continua legivel"
+
+out ""
+out "== 6. e onde estavam os erros =="
+
+posicoes := Regex.positions("^\\S+ +ERRO", LOG, flags := Regex.MULTILINE)
+assert len(posicoes) is 2
+assert posicoes[0]["linha"] is 2
+assert posicoes[1]["linha"] is 4
+
+out "exercicio 321 ok"

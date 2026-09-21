@@ -1,0 +1,94 @@
+// Exercicio 340 — o que 'monitor' NAO pega
+//
+// Enunciado: 'halt', 'skip' e 'yield' atravessam um 'monitor'. Eles
+// derivam de um sinal de controle, e nao de erro — capturar um 'yield'
+// com 'handle' faria uma acao devolver o tratamento em vez do valor.
+
+out "== 1. 'yield' atravessa =="
+
+action com_monitor():
+    monitor:
+        yield "voltei de dentro do monitor"
+    handle Error:
+        yield "NAO DEVIA"
+
+assert com_monitor() is "voltei de dentro do monitor"
+
+out ""
+out "== 2. e o 'ensure' AINDA roda =="
+
+passos := []
+
+action sai_de_dentro():
+    monitor:
+        passos.append("entrou")
+        yield "saiu"
+    ensure:
+        passos.append("limpou")
+
+assert sai_de_dentro() is "saiu"
+assert passos is ["entrou", "limpou"]
+
+out ""
+out "== 3. 'halt' atravessa =="
+
+encontrados := []
+
+action procurar(xs, alvo):
+    cycle x in xs:
+        monitor:
+            given x is alvo:
+                halt
+            encontrados.append(x)
+        handle Error:
+            encontrados.append("erro")
+    yield encontrados
+
+assert procurar([1, 2, 3, 4], 3) is [1, 2]
+
+out ""
+out "== 4. 'skip' tambem =="
+
+pares := []
+cycle i from 1 to 6:
+    monitor:
+        given i % 2 is 1:
+            skip
+        pares.append(i)
+    handle Error:
+        pares.append(-1)
+assert pares is [2, 4, 6]
+
+out ""
+out "== 5. e por isso um 'handle' generico nao os engole =="
+
+// Num interpretador que capturasse tudo, o 'halt' viraria uma
+// mensagem de erro e o laco continuaria — o defeito mais confuso que
+// existe, porque o codigo LE certo.
+contou := 0
+cycle i from 1 to 10:
+    monitor:
+        given i bigger 3:
+            halt
+        contou += 1
+    handle:
+        contou := -100
+assert contou is 3
+
+out ""
+out "== 6. o que 'monitor' PEGA =="
+
+// Tudo que deriva de Error. E um 'monitor' sem 'handle' nao engole
+// nada: ele so garante o 'ensure'.
+escapou := no
+monitor:
+    monitor:
+        trigger "passa direto"
+    ensure:
+        passos.append("mesmo assim")
+handle Error:
+    escapou := yes
+assert escapou
+assert passos[-1] is "mesmo assim"
+
+out "exercicio 340 ok"

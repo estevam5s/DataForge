@@ -1,0 +1,78 @@
+// Exercicio 305 — um campo com varias posicoes
+//
+// Enunciado: 'rgba' e quatro bytes, e nao quatro campos. Declarar a
+// quantidade no campo e o que faz o molde saber o tamanho do registro
+// sem contar a mao — e o que faz a escrita com a quantidade errada ser
+// recusada.
+
+adopt Arcane.Estrutura as Est
+
+// O maior valor de um u8, nomeado: onze aparicoes do mesmo 255 sao
+// onze lugares para errar quando o tipo mudar.
+steady CHEIO := 255
+
+steady Pixel := Est.definir("Pixel", [
+        ["rgba", "u8", 4]
+    ])
+
+steady Vetor := Est.definir("Vetor", [
+        ["nome", "u8", 4],
+        ["xyz", "f32", 3]
+    ], ordem := "rede")
+
+out "== 1. o tamanho vem da quantidade =="
+
+assert Pixel.tamanho is 4
+assert Vetor.tamanho is 16
+assert Vetor.deslocamento("xyz") is 4
+
+out ""
+out "== 2. ler devolve um cluster =="
+
+p := Pixel.empacotar({"rgba": [CHEIO, 128, 0, CHEIO]})
+assert Pixel.ler(p)["rgba"] is [CHEIO, 128, 0, CHEIO]
+
+out ""
+out "== 3. e a quantidade errada e recusada =="
+
+recusou := no
+monitor:
+    Pixel.empacotar({"rgba": [1, 2]})
+handle LayoutError as e:
+    recusou := yes
+    assert "4 posicao" in e.message
+assert recusou
+
+out ""
+out "== 4. uma imagem de tres pixels =="
+
+imagem := Est.bloco(Pixel.tamanho * 3)
+steady CORES := [[CHEIO, 0, 0, CHEIO], [0, CHEIO, 0, CHEIO], [0, 0, CHEIO, CHEIO]]
+
+cycle i from 0 to 2:
+    Pixel.escrever(imagem, {"rgba": CORES[i]}, i * Pixel.tamanho)
+
+lidos := [j.ler("rgba") cycle j in Est.janelas(imagem, Pixel)]
+assert lidos is CORES
+
+out ""
+out "== 5. inverter a imagem, no lugar =="
+
+janelas := Est.janelas(imagem, Pixel)
+cycle j in janelas:
+    atual := j.ler("rgba")
+    j.escrever("rgba", [CHEIO - atual[0], CHEIO - atual[1], CHEIO - atual[2],
+            atual[3]])
+
+assert Pixel.ler(imagem)["rgba"] is [0, CHEIO, CHEIO, CHEIO]
+out "   a inversao chegou ao bloco"
+
+out ""
+out "== 6. campos de tipos diferentes convivem =="
+
+v := Vetor.empacotar({"nome": [80, 79, 78, 84], "xyz": [1.0, 2.0, 3.0]})
+lido := Vetor.ler(v)
+assert lido["xyz"] is [1.0, 2.0, 3.0]
+assert lido["nome"] is [80, 79, 78, 84]
+
+out "exercicio 305 ok"

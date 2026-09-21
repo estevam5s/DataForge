@@ -1,0 +1,103 @@
+// Exercicio 302 — o ponteiro que nao aponta para nada
+//
+// Enunciado: ha duas formas de um ponteiro nao valer nada, e elas sao
+// diferentes. O NULO tem endereco zero — le-lo seria a falha de
+// segmentacao classica. O PENDURADO aponta para um bloco que declarou
+// o fim, e o espaco pode ja ser de outra pessoa.
+
+adopt Arcane.Estrutura as Est
+
+out "== 1. o nulo =="
+
+nulo := Est.nulo()
+assert nulo.e_nulo()
+
+leu := no
+monitor:
+    nulo.ler()
+handle NullPointerError as e:
+    leu := yes
+    assert "nulo" in e.message
+assert leu
+
+escreveu := no
+monitor:
+    nulo.escrever(1)
+handle NullPointerError:
+    escreveu := yes
+assert escreveu
+
+out ""
+out "== 2. e ele NAO e o 'void' da linguagem =="
+
+// 'NullReferenceError' fala de um void; aqui o endereco existe.
+assert nulo is not void
+assert typeof(nulo) is not "Void"
+
+out ""
+out "== 3. o pendurado =="
+
+morto := Est.bloco(8)
+orfao := Est.ponteiro(morto, "u32")
+orfao.escrever(7)
+assert orfao.ler() is 7
+assert not orfao.e_nulo()
+
+assert morto.liberar() is yes
+assert orfao.e_nulo()
+
+pendurado := no
+monitor:
+    orfao.ler()
+handle DanglingPointerError as e:
+    pendurado := yes
+    assert "liberado" in e.message
+assert pendurado
+
+out ""
+out "== 4. liberar e IDEMPOTENTE =="
+
+// Um 'liberar' no 'defer' e no caminho de erro nao pode virar erro: a
+// disciplina atrapalharia em vez de ajudar.
+assert morto.liberar() is no
+assert len(morto) is 0
+
+out ""
+out "== 5. o ponteiro SEGURA o bloco =="
+
+// Com referencia fraca, 'Est.ponteiro(Est.bloco(8), "u32")' nasceria
+// pendurado — o bloco temporario morreria assim que a chamada
+// voltasse. Um ponteiro cuja validade depende de a expressao ter sido
+// guardada numa variavel e uma armadilha.
+temporario := Est.ponteiro(Est.bloco(8), "u32")
+assert not temporario.e_nulo()
+temporario.escrever(42)
+assert temporario.ler() is 42
+out "   o bloco sem nome continua vivo"
+
+out ""
+out "== 6. a familia inteira =="
+
+action classe(acao):
+    monitor:
+        acao()
+    handle Error as e:
+        yield e.type
+    yield "nenhum"
+
+assert classe(lambda => nulo.ler()) is "NullPointerError"
+assert classe(lambda => orfao.ler()) is "DanglingPointerError"
+assert classe(lambda => Est.ponteiro(Est.bloco(2), "u32").ler()) is "BufferOverflowError"
+
+// E 'handle LayoutError' pega as tres.
+action pela_base(acao):
+    monitor:
+        acao()
+    handle LayoutError:
+        yield yes
+    yield no
+
+assert pela_base(lambda => nulo.ler())
+assert pela_base(lambda => orfao.ler())
+
+out "exercicio 302 ok"

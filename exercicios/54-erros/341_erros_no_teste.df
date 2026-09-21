@@ -1,0 +1,105 @@
+// Exercicio 341 — afirmar que algo FALHA
+//
+// Enunciado: um teste que so confere o caminho feliz nao prova nada
+// sobre o tratamento. Afirmar a falha e tao importante quanto afirmar
+// o sucesso — e afirmar a falha ERRADA e pior que nao afirmar.
+
+adopt Arcane.Crucible as Crucible
+
+steady expect := Crucible.expect
+
+action sacar(saldo, quanto):
+    given quanto smaller_eq 0.0:
+        trigger ValorInvalido(quanto)
+    given quanto bigger saldo:
+        trigger SaldoInsuficiente(saldo, quanto)
+    yield saldo - quanto
+
+record ValorInvalido:
+    valor: Float
+
+record SaldoInsuficiente:
+    saldo: Float
+    pedido: Float
+
+out "== 1. afirmar que levanta =="
+
+expect(lambda => sacar(100.0, 250.0)).to_raise()
+expect(lambda => sacar(100.0, 30.0)).to_not_raise()
+
+out ""
+out "== 2. e afirmar QUAL levanta =="
+
+// Sem isto, um teste passa quando a acao falha pelo motivo errado —
+// e o motivo errado costuma ser um erro de digitacao no proprio
+// teste.
+qual := ""
+monitor:
+    sacar(100.0, -5.0)
+handle ValorInvalido:
+    qual := "valor"
+handle SaldoInsuficiente:
+    qual := "saldo"
+assert qual is "valor"
+
+out ""
+out "== 3. o teste que passa pelo motivo errado =="
+
+// O nome errado vem de um vault, e nao de uma variavel solta: assim
+// ele e o mesmo defeito — um erro de digitacao que so aparece em
+// execucao — sem o 'check' recusar o arquivo inteiro, que e o que ele
+// faz quando o nome nao existe em lugar nenhum.
+steady LIMITES := {"saldo": 100.0}
+
+action com_erro_de_digitacao(saldo, quanto):
+    given quanto bigger LIMITES["sald"]:  // 'sald' nao existe
+        trigger SaldoInsuficiente(saldo, quanto)
+    yield saldo - quanto
+
+// 'to_raise' sozinho passaria: a acao levanta mesmo — de NameError.
+expect(lambda => com_erro_de_digitacao(100.0, 250.0)).to_raise()
+
+// Conferindo o tipo, o teste reprova como deveria.
+tipo := ""
+monitor:
+    com_erro_de_digitacao(100.0, 250.0)
+handle Error as e:
+    tipo := e.type
+assert tipo is "KeyError"
+assert tipo isnt "TriggerError"
+out "   'to_raise' sozinho aprova um teste que deveria falhar"
+
+out ""
+out "== 4. conferir a mensagem =="
+
+monitor:
+    sacar(10.0, 999.0)
+handle SaldoInsuficiente as e:
+    assert e.value.pedido is 999.0
+    assert e.value.saldo is 10.0
+
+out ""
+out "== 5. um caso de borda por vez =="
+
+steady CASOS := [
+    [100.0, 100.0, "ok"],
+    [100.0, 100.01, "falta"],
+    [100.0, 0.0, "invalido"],
+    [0.0, 1.0, "falta"]
+]
+
+action classificar(saldo, quanto):
+    monitor:
+        sacar(saldo, quanto)
+        yield "ok"
+    handle ValorInvalido:
+        yield "invalido"
+    handle SaldoInsuficiente:
+        yield "falta"
+
+cycle caso in CASOS:
+    obtido := classificar(caso[0], caso[1])
+    assert obtido is caso[2], $"{caso[0]}/{caso[1]}: esperava {caso[2]}, veio {obtido}"
+    out $"   {caso[0]} - {caso[1]}  ->  {obtido}"
+
+out "exercicio 341 ok"

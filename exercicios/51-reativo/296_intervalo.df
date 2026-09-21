@@ -1,0 +1,76 @@
+// Exercicio 296 — o fluxo que bate sozinho
+//
+// Enunciado: 'intervalo' e uma fonte fria com relogio. Ela e a forma
+// de um painel se atualizar, e por isso precisa de duas coisas: um
+// teto opcional de batidas, e um cancelamento que PARA de verdade.
+//
+// Os testes esperam por CONDICAO, e nao por relogio: um 'sleep' fixo
+// mede a maquina, e o mesmo exercicio reprova numa esteira carregada
+// sem que nada tenha mudado no codigo.
+
+adopt Arcane.Reativo as R
+adopt Arcane.Time as Tempo
+
+steady PASSO := 0.05
+steady PRAZO := 5.0
+
+action esperar_ate(condicao):
+    "Espera a condicao virar verdadeira, ou desiste no prazo."
+    limite := Tempo.timestamp() + PRAZO
+    persist Tempo.timestamp() smaller limite:
+        given condicao():
+            yield yes
+        Tempo.sleep(PASSO / 5)
+    yield no
+
+out "== 1. ele nao comeca sem ninguem escutando =="
+
+silencioso := R.intervalo(PASSO, quantos := 3)
+Tempo.sleep(PASSO * 4)
+assert silencioso.inscritos() is 0
+out "   passou o tempo de tres batidas, e nada correu"
+
+out ""
+out "== 2. com teto, ele termina sozinho =="
+
+batidas := []
+fim := []
+contado := R.intervalo(PASSO, quantos := 3)
+contado.inscrever(lambda n => batidas.append(n), void,
+    lambda => fim.append(yes))
+
+assert esperar_ate(lambda => len(fim) is 1)
+
+// A contagem comeca em ZERO, como o 'interval' de todo framework
+// reativo: o numero e "quantas ja passaram", e nao "a quantidade".
+assert batidas is [0, 1, 2]
+out $"   {batidas}"
+
+out ""
+out "== 3. sem teto, quem para e o cancelamento =="
+
+livres := []
+sempre := R.intervalo(PASSO)
+inscricao := sempre.inscrever(lambda n => livres.append(n))
+
+assert esperar_ate(lambda => len(livres) bigger_eq 2)
+inscricao.cancelar()
+quantas := len(livres)
+
+// Depois de cancelar, o numero nao anda mais — e para PROVAR isso a
+// espera precisa ser maior que varias batidas.
+Tempo.sleep(PASSO * 5)
+assert len(livres) is quantas
+out "   cancelada, ela parou de bater"
+
+out ""
+out "== 4. o operador vale aqui tambem =="
+
+pares := []
+so_pares := R.intervalo(PASSO, quantos := 6).sift(lambda n => n % 2 is 0)
+so_pares.inscrever(lambda n => pares.append(n))
+
+assert esperar_ate(lambda => len(pares) is 3)
+assert pares is [0, 2, 4]
+
+out "exercicio 296 ok"

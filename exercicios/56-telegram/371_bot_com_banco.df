@@ -1,0 +1,110 @@
+// Exercicio 371 — o bot que guarda no banco
+//
+// Enunciado: o estado do chat serve para o que e DA conversa — o
+// passo atual, o carrinho. O que e do NEGOCIO vai para o banco: um
+// pedido precisa existir depois que a conversa acaba, e precisa ser
+// consultavel por quem nao e o chat.
+
+adopt Arcane.Telegram as Tg
+adopt Arcane.Database as DB
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+
+steady pasta := $"{OS.temp_dir()}/df-371-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+steady banco := DB.connect($"{pasta}/loja.db")
+
+DB.execute(banco, """CREATE TABLE pedidos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat TEXT NOT NULL,
+    item TEXT NOT NULL,
+    centavos INTEGER NOT NULL
+)""")
+
+steady PRECOS := {"cafe": 650, "bolo": 800}
+
+action montar():
+    app := Tg.app("123456:AAHexemplo")
+
+    mark @app.comando("pedir")
+    action pedir(ctx):
+        item := trim(join(" ", ctx.args))
+        given item not in PRECOS:
+            ctx.responder($"Nao temos '{item}'.")
+            yield void
+        DB.insert(banco, "pedidos", {"chat": str(ctx.chat), "item": item,
+                "centavos": PRECOS[item]})
+        ctx.responder($"{item} anotado.")
+
+    mark @app.comando("meus")
+    action meus(ctx):
+        linhas := DB.query(banco,
+            "SELECT item, centavos FROM pedidos WHERE chat = ? ORDER BY id",
+            [str(ctx.chat)])
+        given len(linhas) is 0:
+            ctx.responder("Voce ainda nao pediu nada.")
+            yield void
+        total := sum([l["centavos"] cycle l in linhas])
+        nomes := join(", ", [l["item"] cycle l in linhas])
+        ctx.responder($"{nomes} — total {total} centavos")
+
+    yield app
+
+out "== 1. pedir grava =="
+
+t := Tg.testar(montar())
+t.comando("pedir cafe")
+assert "cafe anotado" in t.ultima()
+t.comando("pedir bolo")
+
+assert DB.count(banco, "pedidos") is 2
+
+out ""
+out "== 2. o que nao existe e recusado ANTES do banco =="
+
+t.comando("pedir tapioca")
+assert "Nao temos" in t.ultima()
+assert DB.count(banco, "pedidos") is 2
+out "   a validacao veio antes da escrita"
+
+out ""
+out "== 3. consultar =="
+
+t.comando("meus")
+assert "cafe, bolo" in t.ultima()
+assert "1450" in t.ultima()
+out $"   {t.ultima()}"
+
+out ""
+out "== 4. e o pedido existe FORA da conversa =="
+
+// E essa e a diferenca: 'ctx.estado' morre com o chat; a linha no
+// banco e do negocio.
+todos := DB.query(banco, "SELECT * FROM pedidos", [])
+assert len(todos) is 2
+
+out ""
+out "== 5. o argumento do comando ja vem separado =="
+
+app := montar()
+
+mark @app.comando("eco")
+action eco(ctx):
+    ctx.responder($"{len(ctx.args)}: {join('|', ctx.args)}")
+
+t2 := Tg.testar(app)
+t2.comando("eco um dois tres")
+assert "3: um|dois|tres" in t2.ultima()
+out $"   {t2.ultima()}"
+
+out ""
+out "== 6. e a rota do bot roda numa thread =="
+
+// Como no Kiln: cada update e atendido separadamente. Estado em
+// memoria compartilhado entre tratadores NAO e protegido — o banco,
+// sim.
+out "   o banco serializa o acesso; um vault solto nao"
+
+DB.close(banco)
+IO.remove_tree(pasta)
+out "exercicio 371 ok"

@@ -1,0 +1,99 @@
+// Exercicio 293 — um carrinho que se recalcula sozinho
+//
+// Enunciado: juntar sinal, derivado, efeito e lote num caso de uso —
+// e medir quantas vezes cada formula rodou, que e o unico jeito de
+// provar que a preguica e real.
+
+adopt Arcane.Reativo as R
+
+steady itens := R.sinal([])
+steady cupom := R.sinal(0)
+steady FRETE_BASE := 2000
+steady ISENCAO := 15000
+
+contas := {"subtotal": 0, "frete": 0, "total": 0}
+
+action calcular_subtotal():
+    contas["subtotal"] := contas["subtotal"] + 1
+    yield sum([i["centavos"] * i["qtd"] cycle i in itens.ler()])
+
+steady subtotal := R.derivado(calcular_subtotal)
+
+action calcular_frete():
+    contas["frete"] := contas["frete"] + 1
+    given subtotal.ler() bigger_eq ISENCAO:
+        yield 0
+    yield FRETE_BASE - cupom.ler()
+
+steady frete := R.derivado(calcular_frete)
+
+action calcular_total():
+    contas["total"] := contas["total"] + 1
+    yield subtotal.ler() + frete.ler()
+
+steady total := R.derivado(calcular_total)
+
+recibos := []
+steady recibo := R.efeito(lambda => recibos.append(total.ler()))
+
+out "== 1. o carrinho vazio =="
+
+assert subtotal.ler() is 0
+assert frete.ler() is FRETE_BASE
+assert recibos is [2000]
+
+out ""
+out "== 2. dois produtos =="
+
+itens.escrever([
+        {"nome": "cafe", "centavos": 3250, "qtd": 2},
+        {"nome": "filtro", "centavos": 900, "qtd": 1}
+    ])
+assert subtotal.ler() is 7400
+assert total.ler() is 9400
+assert recibos[-1] is 9400
+
+out ""
+out "== 3. o cupom so vale abaixo da isencao =="
+
+cupom.escrever(500)
+assert frete.ler() is 1500
+assert total.ler() is 8900
+
+out ""
+out "== 4. passando da isencao, o frete zera e para de ler o cupom =="
+
+itens.escrever([{"nome":"moedor", "centavos":24000, "qtd":1}])
+assert frete.ler() is 0
+assert total.ler() is 24000
+
+antes := contas["frete"]
+cupom.escrever(900)
+frete.ler()
+assert contas["frete"] is antes
+out "   o cupom saiu das dependencias do frete"
+
+out ""
+out "== 5. o lote agrupa a montagem inteira =="
+
+quantos_recibos := len(recibos)
+
+action montar_de_novo():
+    itens.escrever([{"nome":"prensa", "centavos":8000, "qtd":1}])
+    cupom.escrever(0)
+    itens.escrever([{"nome":"prensa", "centavos":8000, "qtd":2}])
+
+R.lote(montar_de_novo)
+assert len(recibos) is quantos_recibos + 1
+assert total.ler() is 16000  // passou da isencao: frete zero
+out $"   tres escritas, um recibo: {recibos[-1]}"
+
+out ""
+out "== 6. e as contas provam a preguica =="
+
+// Cada formula rodou muito menos vezes do que houve escritas.
+out $"   subtotal {contas['subtotal']}, frete {contas['frete']}, total {contas['total']}"
+assert contas["subtotal"] smaller 10
+assert contas["total"] smaller 12
+
+out "exercicio 293 ok"

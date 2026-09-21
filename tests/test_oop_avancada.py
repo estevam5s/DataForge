@@ -1479,3 +1479,139 @@ q := spawn Q(2.0)
 q.dobrar()
 out q.area()
 ''') == "16.0"
+
+
+# ═══════════════════════════════════════════════════════════
+#  '__repr__' era inalcançável
+# ═══════════════════════════════════════════════════════════
+
+def _rodar_df(fonte):
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.interpreter import Interpreter
+    import contextlib
+    import io as _io
+
+    interp = Interpreter()
+    saida = _io.StringIO()
+    with contextlib.redirect_stdout(saida):
+        interp.run(parse(tokenize(fonte, "<t>"), "<t>"))
+    return saida.getvalue()
+
+
+def test_repr_pede_o_magico_de_depuracao():
+    """`__repr__` estava na lista de mágicos, na referência e na doc,
+    e a linguagem não tinha como pedi-lo.
+
+    Não havia `repr`, e um cluster de objetos imprime com `__str__`.
+    Ele só era alcançado como **reserva**, quando não havia `__str__`
+    — ou seja, exatamente quando não se queria a distinção.
+    """
+    saida = _rodar_df(
+        'blueprint D:\n'
+        '    action setup(n):\n'
+        '        self.n := n\n'
+        '    action __str__():\n'
+        '        yield $"str:{self.n}"\n'
+        '    action __repr__():\n'
+        '        yield $"D({self.n})"\n'
+        'd := spawn D(7)\n'
+        'out str(d)\n'
+        'out repr(d)\n')
+    assert saida.split() == ["str:7", "D(7)"]
+
+
+def test_repr_de_um_texto_mostra_as_aspas():
+    """Num log, ela mostra o espaço que sobrou no fim; `str` o esconde."""
+    saida = _rodar_df('out repr("oi  ")\nout str("oi  ")\n')
+    linhas = saida.split("\n")
+    assert linhas[0] == '"oi  "'
+    assert linhas[1] == "oi  "
+
+
+def test_repr_desce_nas_colecoes():
+    saida = _rodar_df('out repr([1, "a", void])\nout repr({"k": "v"})\n')
+    linhas = saida.strip().split("\n")
+    assert linhas[0] == '[1, "a", void]'
+    assert linhas[1] == '{"k": "v"}'
+
+
+def test_repr_recua_para_str_quando_nao_ha_magico():
+    saida = _rodar_df(
+        'blueprint S:\n'
+        '    action setup(n):\n'
+        '        self.n := n\n'
+        '    action __str__():\n'
+        '        yield $"so str {self.n}"\n'
+        'out repr(spawn S(1))\n')
+    assert saida.strip() == "so str 1"
+
+
+def test_repr_nao_muda_o_que_out_mostra():
+    """`out` continua com `__str__`: quem já escrevia não pode mudar."""
+    saida = _rodar_df(
+        'blueprint D:\n'
+        '    action setup(n):\n'
+        '        self.n := n\n'
+        '    action __str__():\n'
+        '        yield "para ler"\n'
+        '    action __repr__():\n'
+        '        yield "para depurar"\n'
+        'd := spawn D(1)\n'
+        'out d\n'
+        'out [d]\n')
+    assert saida.strip().split("\n") == ["para ler", "[para ler]"]
+
+
+def test_o_check_conhece_o_magico_unario():
+    """`-obj` num blueprint com `__neg__` era acusado, e roda.
+
+    Um falso alarme sobre um recurso que a própria referência documenta
+    ensina a ignorar o analisador — que é o pior resultado possível
+    para ele.
+    """
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.typechecker import check_program
+
+    def erros(fonte):
+        arvore = parse(tokenize(fonte, "<t>"), "<t>")
+        return [d for d in check_program(arvore, "<t>") if d.severity == "error"]
+
+    com_magico = (
+        'blueprint V:\n'
+        '    action setup(n):\n'
+        '        self.n := n\n'
+        '    action __neg__():\n'
+        '        yield spawn V(-self.n)\n'
+        'x := spawn V(1)\n'
+        'out -x\n')
+    assert erros(com_magico) == []
+
+    sem_magico = (
+        'blueprint S:\n'
+        '    action setup(n):\n'
+        '        self.n := n\n'
+        'x := spawn S(1)\n'
+        'out -x\n')
+    achados = erros(sem_magico)
+    assert len(achados) == 1
+    assert "Unary" in achados[0].message
+
+
+def test_o_check_cala_quando_a_linhagem_tem_ancestral_nao_visto():
+    """Ele pode ganhar o mágico por herança, e o analisador não sabe."""
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.typechecker import check_program
+
+    fonte = (
+        'adopt ./base as B\n'
+        'blueprint Filha extends B.Mae:\n'
+        '    action setup():\n'
+        '        self.n := 1\n'
+        'out -spawn Filha()\n')
+    arvore = parse(tokenize(fonte, "<t>"), "<t>")
+    achados = [d for d in check_program(arvore, "<t>")
+               if d.severity == "error" and "Unary" in d.message]
+    assert achados == []

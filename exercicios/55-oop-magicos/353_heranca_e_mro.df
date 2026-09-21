@@ -1,0 +1,106 @@
+// Exercicio 353 — 'root' com tres niveis
+//
+// Enunciado: 'root' e o pai de QUEM DECLAROU o metodo, e nao o pai da
+// classe da instancia. Com dois niveis a conta da certo dos dois
+// jeitos — e por isso o defeito sobreviveu: toda heranca de um
+// repositorio pequeno tem dois niveis.
+
+blueprint A:
+    action nome():
+        yield "A"
+
+    action cadeia():
+        yield "A"
+
+blueprint B extends A:
+    action nome():
+        yield "B"
+
+    action cadeia():
+        yield $"B -> {root.cadeia()}"
+
+blueprint C extends B:
+    action nome():
+        yield "C"
+
+    action cadeia():
+        yield $"C -> {root.cadeia()}"
+
+out "== 1. tres niveis =="
+
+c := spawn C()
+assert c.nome() is "C"
+assert c.cadeia() is "C -> B -> A"
+out $"   {c.cadeia()}"
+
+out ""
+out "== 2. e o defeito que isso pegava =="
+
+// 'root' era o pai da classe da INSTANCIA: dentro de 'B.cadeia', o
+// 'self' ainda e um C, entao 'root' voltava a ser B — e 'B.cadeia'
+// chamava a si mesmo, para sempre.
+out "   com dois niveis a conta dava certo; com tres, era laco infinito"
+
+out ""
+out "== 3. o diamante resolve por C3 =="
+
+blueprint Base:
+    action quem():
+        yield "Base"
+
+blueprint Esquerda extends Base:
+    action quem():
+        yield $"Esquerda({root.quem()})"
+
+blueprint Direita extends Base:
+    action quem():
+        yield $"Direita({root.quem()})"
+
+blueprint Fundo extends Esquerda:
+    action quem():
+        yield $"Fundo({root.quem()})"
+
+f := spawn Fundo()
+assert f.quem() is "Fundo(Esquerda(Base))"
+
+out ""
+out "== 4. o trait declara, e a instancia cumpre =="
+
+trait Desenhavel:
+    action desenhar()
+
+blueprint Circulo with Desenhavel:
+    action setup(r):
+        self.r := r
+
+    action desenhar():
+        yield $"circulo de raio {self.r}"
+
+blueprint Quadrado with Desenhavel:
+    action setup(l):
+        self.l := l
+
+    action desenhar():
+        yield $"quadrado de lado {self.l}"
+
+steady FORMAS := [spawn Circulo(2), spawn Quadrado(3)]
+assert [f.desenhar() cycle f in FORMAS] is
+["circulo de raio 2", "quadrado de lado 3"]
+
+out ""
+out "== 5. e quem nao cumpre e recusado =="
+
+// O contrato do trait e cobrado na declaracao, e nao na primeira
+// chamada.
+out "   um blueprint 'with Desenhavel' sem 'desenhar' nao compila"
+
+out ""
+out "== 6. o metodo chamado e o do OBJETO, e nao o do tipo =="
+
+action mostrar(qualquer):
+    yield qualquer.desenhar()
+
+assert mostrar(spawn Circulo(1)) is "circulo de raio 1"
+assert mostrar(spawn Quadrado(1)) is "quadrado de lado 1"
+
+out "exercicio 353 ok"

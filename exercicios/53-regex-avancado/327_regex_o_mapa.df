@@ -1,0 +1,75 @@
+// Exercicio 327 — o mapa do modulo, e o que ele nao faz
+//
+// Enunciado: fechar o modulo dizendo onde cada peca serve, e sendo
+// explicito sobre os limites. Uma ferramenta que nao nomeia o que nao
+// faz e usada onde nao deve.
+
+adopt Arcane.Regex as Regex
+
+out "== 1. as quatro perguntas, e a funcao de cada uma =="
+
+steady TEXTO := "pedido 101 de ana@x.com em 2026-09-20"
+
+// "casa?"
+assert Regex.test("\\d+", TEXTO)
+// "casa INTEIRO?"
+assert not Regex.is_exactly("\\d+", TEXTO)
+// "o que casou?"
+assert Regex.search("\\d+", TEXTO)["value"] is "101"
+// "todos os que casaram?"
+assert Regex.findall("\\d+", TEXTO) is ["101", "2026", "09", "20"]
+
+out ""
+out "== 2. e as tres formas de trocar =="
+
+assert Regex.sub("\\d+", "N", TEXTO) is "pedido N de ana@x.com em N-N-N"
+assert Regex.sub_with("\\d+", lambda m => str(len(m["value"])), TEXTO) is "pedido 3 de ana@x.com em 4-2-2"
+assert Regex.replace_map("\\d+", {"101": "CEM E UM"}, TEXTO) is "pedido CEM E UM de ana@x.com em 2026-09-20"
+
+out ""
+out "== 3. os tres jeitos de VER =="
+
+assert "[101]" in Regex.highlight("\\d+", TEXTO)
+assert Regex.positions("\\d+", TEXTO)[0]["coluna"] is 8
+assert len(Regex.explain("\\d{3}")) is 2
+
+out ""
+out "== 4. o que o modulo NAO faz =="
+
+// (a) Nao valida documento: 'is_cpf' e formato.
+assert Regex.is_cpf("111.111.111-11")
+
+// (b) Nao interrompe uma busca em andamento. O motor do Python nao
+// solta o GIL: um prazo numa thread nao para nada. A defesa e a
+// recusa ANTES.
+recusou := no
+monitor:
+    Regex.safe_search("(a+)+$", "aaaa")
+handle RegexError:
+    recusou := yes
+assert recusou
+
+// (c) 'risk' e forma, e nao prova.
+assert "e nao uma prova" in Regex.risk("\\d+")["nota"]
+
+// (d) Nao casa estrutura aninhada: isso exige contar, e uma
+// expressao regular nao conta.
+out "   parenteses equilibrados: use um parser"
+
+out ""
+out "== 5. o compilado, para o laco =="
+
+steady CAMPO := Regex.compile("(?P<k>\\w+)=(?P<v>[^;]+)")
+assert CAMPO.group_names() is ["k", "v"]
+assert len(CAMPO.findnamed("a=1;b=2;c=3")) is 3
+
+out ""
+out "== 6. e a regra de quando NAO usar regex =="
+
+// Procurar um texto literal nao precisa de expressao regular — e com
+// ela o ponto do 'ana.souza' vira 'qualquer caractere'.
+assert "ana" in TEXTO
+assert Regex.test(Regex.escape("ana@x.com"), TEXTO)
+out "   'in' para literal; regex para FORMA"
+
+out "exercicio 327 ok"

@@ -1,0 +1,83 @@
+// Exercicio 292 — o que o grafo reativo recusa
+//
+// Enunciado: tres recusas, e cada uma evita um defeito que nao
+// levantaria erro nenhum — ele so entregaria o valor errado.
+
+adopt Arcane.Reativo as R
+
+out "== 1. um derivado que depende de si mesmo =="
+
+caixa := {}
+steady a := R.derivado(lambda => caixa["b"].ler() + 1)
+steady b := R.derivado(lambda => a.ler() + 1)
+caixa["b"] := b
+
+ciclo := no
+monitor:
+    a.ler()
+handle ReactiveCycleError as e:
+    ciclo := yes
+    // A cadeia INTEIRA: dizer so "ha um ciclo" manda procurar em toda
+    // a formula.
+    assert "→" in e.nota
+    out $"   {e.nota}"
+assert ciclo
+
+out ""
+out "== 2. um derivado nao pode ESCREVER =="
+
+// A formula e lida para descobrir de que ela depende. Escrever de
+// dentro dela faz a propagacao correr no meio da propria descoberta.
+contador := R.sinal(0)
+steady mau := R.derivado(lambda => contador.escrever(1))
+
+escreveu := no
+monitor:
+    mau.ler()
+handle ReactiveWriteError as e:
+    escreveu := yes
+    assert "efeito" in e.dica
+assert escreveu
+assert contador.ler() is 0
+
+out ""
+out "== 3. mas um EFEITO pode =="
+
+// Ele nao tem valor a produzir, e a escrita dele abre a proxima onda.
+origem := R.sinal(1)
+eco := R.sinal(0)
+steady espelho := R.efeito(lambda => eco.escrever(origem.ler() * 10))
+
+assert eco.ler() is 10
+origem.escrever(3)
+assert eco.ler() is 30
+espelho.parar()
+
+out ""
+out "== 4. emitir num fluxo encerrado =="
+
+fluxo := R.observavel("f")
+fluxo.encerrar()
+
+tarde := no
+monitor:
+    fluxo.emitir(1)
+handle StreamClosedError:
+    tarde := yes
+assert tarde
+
+out ""
+out "== 5. a base pega as tres =="
+
+action pela_base(acao):
+    monitor:
+        acao()
+    handle ReactiveError:
+        yield yes
+    yield no
+
+assert pela_base(lambda => a.ler())
+assert pela_base(lambda => mau.ler())
+assert pela_base(lambda => fluxo.emitir(1))
+
+out "exercicio 292 ok"

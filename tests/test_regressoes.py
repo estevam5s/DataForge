@@ -7955,3 +7955,165 @@ def test_nenhum_script_procura_um_programa_com_o_comando_which():
     assert not ruins, (
         "'which' é um comando do Unix — use shutil.which:\n  "
         + "\n  ".join(ruins))
+
+
+def test_um_receptor_chamavel_nao_transforma_metodo_em_chamada_do_objeto(capsys):
+    """`obj.metodo()` chamava `obj()` quando `obj` tinha `__call__`.
+
+    O ramo de despacho ignorava o nome do método e invocava o próprio
+    receptor. Não havia erro: o valor errado seguia adiante, e a queixa
+    saía uma linha abaixo, sobre outra coisa.
+
+    Medido em `Arcane.Estrutura`: `molde.mapa` devolvia a ação certa e
+    `molde.mapa()` devolvia um Bloco — porque chamava o molde, cujo
+    `__call__` empacota. O teste roda nos **dois** modos de compilação,
+    porque o compilador de fechamentos liga no mesmo auxiliar.
+    """
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.interpreter import Interpreter
+
+    fonte = (
+        'adopt Arcane.Estrutura as Est\n'
+        'C := Est.definir("C", [["a", "u32"], ["b", "u16"]])\n'
+        'out typeof(C.mapa())\n'
+        'out len(C.mapa())\n'
+        'out C.deslocamento("b")\n'
+        'out len(C.empacotar({"a": 7}))\n'
+    )
+    for compilar in (True, False):
+        interp = Interpreter()
+        interp.compilar_corpos = compilar
+        interp.run(parse(tokenize(fonte, "<teste>"), "<teste>"))
+        saida = capsys.readouterr().out.split()
+        assert saida == ["Cluster", "2", "4", "8"], (compilar, saida)
+
+
+def test_o_recuo_do_receptor_chamavel_continua_valendo(capsys):
+    """Sem o membro pedido, o objeto chamável é chamado como antes.
+
+    É o que garante que a correção não tirou nada: um Python callable
+    que não tem aquele atributo cai no caminho de sempre.
+    """
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.interpreter import Interpreter
+
+    interp = Interpreter()
+    # 'dobro' é uma função Python sem atributo 'qualquer': o receptor é
+    # chamável, o membro não existe, e o recuo o invoca.
+    interp.global_env.set_local("dobro", lambda n: n * 2)
+    interp.run(parse(tokenize('out dobro.qualquer(21)\n', "<t>"), "<t>"))
+    assert capsys.readouterr().out.strip() == "42"
+
+
+def test_um_objeto_de_fora_pode_responder_a_escrita_de_membro(capsys):
+    """A leitura já era por protocolo; a escrita era a metade que faltava.
+
+    `valor.campo := x` num objeto da biblioteca respondia
+    `Cannot set a member on a Valor.` — verdade, e sem nenhuma saída.
+    O próprio objeto sabe dizer "é um objeto de valor: ele não muda" e
+    sugerir o `.com()`, e é ele que tem esse texto.
+
+    A porta é estreita: só delega quem **define** `__setattr__`. Um
+    objeto que não define continua no caminho de antes.
+    """
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.interpreter import Interpreter
+
+    fonte = (
+        'adopt Arcane.Dominio as D\n'
+        'Dinheiro := D.valor("Dinheiro", ["quantia"])\n'
+        'dez := Dinheiro(10)\n'
+        'monitor:\n'
+        '    dez.quantia := 99\n'
+        'handle ValueObjectError as e:\n'
+        '    out e.message\n'
+        '    out e.dica\n'
+        'out dez.quantia\n'
+    )
+    interp = Interpreter()
+    interp.run(parse(tokenize(fonte, "<t>"), "<t>"))
+    saida = capsys.readouterr().out
+    assert "objeto de valor" in saida
+    assert "dinheiro.com(" in saida        # a saída, e não só a recusa
+    assert saida.strip().endswith("10")    # e o valor não mudou
+
+
+def test_o_objeto_que_nao_define_setattr_segue_no_caminho_de_antes(capsys):
+    """Senão a correção teria aberto a escrita em tudo que vem de fora."""
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    from dataforge.interpreter import Interpreter
+
+    class Simples:
+        __slots__ = ("x",)
+
+        def __init__(self):
+            self.x = 1
+
+    interp = Interpreter()
+    interp.global_env.set_local("obj", Simples())
+    fonte = (
+        'monitor:\n'
+        '    obj.x := 2\n'
+        'handle Error as e:\n'
+        '    out e.message\n'
+    )
+    interp.run(parse(tokenize(fonte, "<t>"), "<t>"))
+    assert "Cannot set a member on" in capsys.readouterr().out
+
+
+def test_a_linguagem_sabe_gravar_bytes_num_arquivo(tmp_path):
+    """Ela sabia PRODUZIR bytes, e não sabia gravá-los.
+
+    `Arcane.Bytes`, `Arcane.Estrutura` e `Arcane.Crypto` devolvem
+    bytes; `IO.write` abre em modo texto com UTF-8. Passar bytes ali
+    levanta, e passar o texto de um `para_texto` **corrompe** o que não
+    for texto válido — que é o caso de quase todo arquivo binário.
+    """
+    from dataforge.stdlib import get_module
+
+    io = get_module("Arcane.IO")
+    alvo = str(tmp_path / "dados.bin")
+
+    # 0xFF sozinho não é UTF-8: é o byte que prova o ponto.
+    crus = bytes([0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0xFF])
+    assert io["write_bytes"](alvo, crus) == 6
+    assert io["read_bytes"](alvo) == crus
+
+    io["append_bytes"](alvo, b"\x01\x02")
+    assert io["read_bytes"](alvo) == crus + b"\x01\x02"
+
+
+def test_write_bytes_aceita_o_que_os_modulos_de_bytes_devolvem(tmp_path):
+    """Obrigar a lembrar de `.bytes()` é a forma mais rápida de gravar a
+    representação em texto de um objeto no lugar do conteúdo dele."""
+    from dataforge.stdlib import get_module
+
+    io = get_module("Arcane.IO")
+    est = get_module("Arcane.Estrutura")
+
+    bloco = est["bloco"](4)
+    bloco.preencher(0xAA)
+    alvo = str(tmp_path / "b.bin")
+    io["write_bytes"](alvo, bloco)
+    assert io["read_bytes"](alvo) == b"\xaa" * 4
+
+    io["write_bytes"](alvo, [1, 2, 3, 255])
+    assert io["read_bytes"](alvo) == b"\x01\x02\x03\xff"
+
+    io["write_bytes"](alvo, "texto")
+    assert io["read_bytes"](alvo) == b"texto"
+
+
+def test_write_bytes_recusa_o_que_nao_vira_bytes(tmp_path):
+    """Inventar uma codificação aqui grava outra coisa, em silêncio."""
+    import pytest as _pytest
+    from dataforge.stdlib import get_module
+    from dataforge.errors import TypeError_
+
+    io = get_module("Arcane.IO")
+    with _pytest.raises(TypeError_):
+        io["write_bytes"](str(tmp_path / "x.bin"), {"a": 1})

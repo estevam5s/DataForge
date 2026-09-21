@@ -1,0 +1,67 @@
+// Exercicio 287 — sinal e valor; observavel e fluxo
+//
+// Enunciado: um clique e fluxo — perguntar "qual o valor do clique
+// agora?" nao tem resposta. Um saldo e valor. Frameworks que chamam os
+// dois de "stream" fazem a pergunta "qual e o valor atual?" deixar de
+// ter resposta.
+
+adopt Arcane.Reativo as R
+
+steady cliques := R.observavel("cliques")
+recebidos := []
+
+out "== 1. quem se inscreve recebe o que vier DAQUI PARA A FRENTE =="
+
+cliques.emitir({"botao": "ver", "produto": "cafe"})  // ninguem ouvia
+
+inscricao := cliques.inscrever(lambda c => recebidos.append(c["produto"]))
+cliques.emitir({"botao": "comprar", "produto": "moedor"})
+assert recebidos is ["moedor"]
+
+out ""
+out "== 2. os operadores sao os mesmos nomes do pipeline =="
+
+compras := []
+so_compras := cliques.sift(lambda c => c["botao"] is "comprar")
+nomes := so_compras.morph(lambda c => c["produto"])
+outra := nomes.distintos().inscrever(lambda p => compras.append(p))
+
+cliques.emitir({"botao": "ver", "produto": "prensa"})
+cliques.emitir({"botao": "comprar", "produto": "cafe"})
+cliques.emitir({"botao": "comprar", "produto": "cafe"})
+cliques.emitir({"botao": "comprar", "produto": "filtro"})
+
+assert compras is ["cafe", "filtro"]
+out $"   {compras}"
+
+out ""
+out "== 3. cancelar para de chegar =="
+
+outra.cancelar()
+cliques.emitir({"botao": "comprar", "produto": "coador"})
+assert compras is ["cafe", "filtro"]
+assert len(recebidos) bigger 1
+
+out ""
+out "== 4. o fluxo vira valor quando a pergunta muda =="
+
+ultimo := cliques.para_sinal({"produto": "nenhum"})
+assert ultimo.ler()["produto"] is "nenhum"
+cliques.emitir({"botao": "comprar", "produto": "bule"})
+assert ultimo.ler()["produto"] is "bule"
+
+out ""
+out "== 5. encerrar e definitivo =="
+
+inscricao.cancelar()
+cliques.encerrar()
+
+fechado := no
+monitor:
+    cliques.emitir({"botao": "comprar", "produto": "tarde"})
+handle StreamClosedError as e:
+    fechado := yes
+    assert "encerrado" in e.message
+assert fechado
+
+out "exercicio 287 ok"

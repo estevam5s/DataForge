@@ -1,0 +1,77 @@
+// Exercicio 294 — quando "mudou" nao e obvio
+//
+// Enunciado: escrever o mesmo valor nao notifica. Mas o que e "o
+// mesmo" depende do valor: dois clusters com o mesmo conteudo sao
+// iguais, e dois objetos sem igualdade declarada nao. O sinal aceita a
+// comparacao de quem escreveu.
+
+adopt Arcane.Reativo as R
+
+out "== 1. o padrao compara por igualdade =="
+
+n := R.sinal(10)
+vezes := []
+n.observar(lambda v => vezes.append(v))
+
+n.escrever(10)
+assert vezes is []
+n.escrever(11)
+assert vezes is [11]
+
+out ""
+out "== 2. dois clusters de mesmo conteudo sao o mesmo valor =="
+
+xs := R.sinal([1, 2, 3])
+mudou := []
+xs.observar(lambda v => mudou.append(len(v)))
+
+xs.escrever([1, 2, 3])
+assert mudou is []
+xs.escrever([1, 2, 3, 4])
+assert mudou is [4]
+
+out ""
+out "== 3. mudar a lista NO LUGAR nao avisa ninguem =="
+
+// O sinal guarda uma referencia, e a referencia nao mudou. E a mesma
+// razao por que a vigia do depurador compara uma FOTO estrutural.
+atual := xs.ler()
+atual.append(5)
+assert len(xs.ler()) is 5
+assert mudou is [4]
+out "   append nao e escrita: o sinal nao soube"
+
+// A forma que avisa e escrever uma lista nova.
+xs.escrever([...atual, 6])
+assert mudou is [4, 6]
+
+out ""
+out "== 4. uma comparacao propria =="
+
+// Duas leituras de sensor que diferem por menos de 0,5 grau sao "a
+// mesma temperatura" — e sem isso a tela pisca a cada ruido.
+action quase_igual(a, b):
+    yield abs(a - b) smaller 0.5
+
+temperatura := R.sinal(20.0, iguais := quase_igual)
+avisos := []
+temperatura.observar(lambda t => avisos.append(t))
+
+temperatura.escrever(20.2)
+temperatura.escrever(20.4)
+assert avisos is []
+temperatura.escrever(21.0)
+assert avisos is [21.0]
+out $"   tres leituras, um aviso: {avisos}"
+
+out ""
+out "== 5. cancelar o observador =="
+
+parar := temperatura.observar(lambda t => avisos.append(t))
+temperatura.escrever(30.0)
+assert len(avisos) is 3
+parar()
+temperatura.escrever(40.0)
+assert len(avisos) is 4
+
+out "exercicio 294 ok"

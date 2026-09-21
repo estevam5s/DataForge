@@ -1,0 +1,72 @@
+// Exercicio 275 — a invariante quebrada e um bug DELA
+//
+// Enunciado: uma invariante que estoura ao ser avaliada nao quer dizer
+// que o estado e invalido. Dizer "violou" ali mandaria a pessoa
+// procurar no agregado, e o defeito esta na condicao. As duas coisas
+// exigem correcoes em lugares diferentes.
+
+adopt Arcane.Dominio as D
+
+out "== 1. a invariante com erro de digitacao =="
+
+conta := D.agregado("Conta", "C-1", saldo := 100)
+conta.invariante("o saldo nao fica negativo",
+    lambda c => c.lerr("saldo", 0) bigger_eq 0)  // 'lerr' nao existe
+
+conta.comando("sacar", lambda c, v => c.mudar(saldo := c.ler("saldo", 0) - v))
+
+bug := no
+monitor:
+    conta.sacar(10)
+handle AggregateError as e:
+    bug := yes
+    assert "estourou" in e.message
+    assert "o saldo nao fica negativo" in e.message
+    out $"   {e.message}"
+assert bug
+
+// E o estado voltou: o comando foi desfeito.
+assert conta.ler("saldo") is 100
+
+out ""
+out "== 2. com a invariante certa, a mesma conta funciona =="
+
+boa := D.agregado("Conta", "C-2", saldo := 100)
+boa.invariante("o saldo nao fica negativo",
+    lambda c => c.ler("saldo", 0) bigger_eq 0)
+boa.comando("sacar", lambda c, v => c.mudar(saldo := c.ler("saldo", 0) - v))
+
+boa.sacar(30)
+assert boa.ler("saldo") is 70
+
+estourou := no
+monitor:
+    boa.sacar(999)
+handle AggregateError as e:
+    estourou := yes
+    assert "violou" in e.message
+    assert "estourou" not in e.message
+assert estourou
+assert boa.ler("saldo") is 70
+
+out ""
+out "== 3. a diferenca esta na MENSAGEM, e e ela que orienta =="
+
+// 'estourou' manda olhar a condicao; 'violou' manda olhar o comando.
+out "   estourou -> o bug esta na condicao"
+out "   violou   -> o bug esta no comando"
+
+out ""
+out "== 4. conferir() cobra na hora =="
+
+assert boa.conferir()
+
+// Uma invariante sem condicao e recusada na declaracao.
+sem := no
+monitor:
+    boa.invariante("sem condicao", void)
+handle AggregateError:
+    sem := yes
+assert sem
+
+out "exercicio 275 ok"

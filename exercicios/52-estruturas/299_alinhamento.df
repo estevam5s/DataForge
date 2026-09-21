@@ -1,0 +1,69 @@
+// Exercicio 299 — o enchimento que o C insere
+//
+// Enunciado: um u32 comeca num multiplo de 4; um u64, num multiplo de
+// 8. Ignorar isso e o que faz o mesmo '.struct' sair com 12 bytes de
+// um lado e 16 do outro — e o arquivo ser lido errado do byte 1 em
+// diante, sem nenhum erro.
+
+adopt Arcane.Estrutura as Est
+
+steady CAMPOS := [["a", "u8"], ["b", "u32"]]
+
+steady Alinhado := Est.definir("Pacote", CAMPOS)
+steady Junto := Est.definir("Pacote", CAMPOS, empacotado := yes)
+
+out "== 1. alinhado: tres bytes de enchimento =="
+
+assert Alinhado.deslocamento("a") is 0
+assert Alinhado.deslocamento("b") is 4
+assert Alinhado.tamanho is 8
+assert Alinhado.enchimento() is 3
+
+out ""
+out "== 2. empacotado: nenhum =="
+
+assert Junto.deslocamento("b") is 1
+assert Junto.tamanho is 5
+assert Junto.enchimento() is 0
+
+out ""
+out "== 3. o REGISTRO INTEIRO tambem e alinhado =="
+
+// Sem isso, um cluster deles sai torto a partir do segundo.
+steady Torto := Est.definir("T", [["a", "u32"], ["b", "u8"]])
+assert Torto.tamanho is 8
+assert Torto.enchimento() is 3
+out "   4 + 1 = 5, e o tamanho e 8"
+
+out ""
+out "== 4. e e isso que faz um cluster fechar =="
+
+steady Par := Est.definir("Par", [["a", "u16"], ["b", "u16"]])
+bloco := Est.bloco(Par.tamanho * 3)
+cycle i from 0 to 2:
+    Par.escrever(bloco, {"a": i, "b": i * 10}, i * Par.tamanho)
+
+cycle i from 0 to 2:
+    lido := Par.ler(bloco, i * Par.tamanho)
+    assert lido["a"] is i
+    assert lido["b"] is i * 10
+
+out ""
+out "== 5. o alinhamento e o do MAIOR campo =="
+
+assert Est.alinhamento_de(Alinhado) is 4
+assert Est.alinhamento_de(Est.definir("G", [["x", "f64"], ["y", "u8"]])) is 8
+assert Est.tamanho_de("u32") is 4
+assert Est.tamanho_de("f64") is 8
+assert Est.tamanho_de(Alinhado) is 8
+
+out ""
+out "== 6. a lista de tipos e a mesma do Arcane.Bytes =="
+
+// Duas listas divergiriam, e o mesmo 'u32' teria dois tamanhos.
+assert "u32" in Est.tipos()
+assert "f64" in Est.tipos()
+assert "bool" in Est.tipos()
+assert len(Est.tipos()) is 11
+
+out "exercicio 299 ok"

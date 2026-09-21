@@ -1,0 +1,61 @@
+// Exercicio 278 — a identidade nasce com o objeto
+//
+// Enunciado: um id que o banco gera obriga a salvar antes de ter
+// identidade, e no intervalo entre criar e confirmar o objeto existe
+// sem ser ele mesmo. Aqui ele nasce com um.
+
+adopt Arcane.Dominio as D
+
+out "== 1. um id novo nao repete =="
+
+vistos := {}
+cycle i from 1 to 500:
+    vistos[D.novo_id()] := yes
+assert len(vistos) is 500
+
+out ""
+out "== 2. o agregado nasce com identidade, mesmo sem dizer qual =="
+
+anonimo := D.agregado("Pedido")
+assert len(anonimo.id()) bigger 30  // um UUID em texto
+assert anonimo.tipo() is "Pedido"
+
+nomeado := D.agregado("Pedido", "PED-1")
+assert nomeado.id() is "PED-1"
+
+out ""
+out "== 3. dois agregados do mesmo tipo e id sao o mesmo =="
+
+assert D.agregado("Pedido", "X") is D.agregado("Pedido", "X")
+assert D.agregado("Pedido", "X") isnt D.agregado("Pedido", "Y")
+assert D.agregado("Pedido", "X") isnt D.agregado("Conta", "X")
+
+out ""
+out "== 4. a versao conta os comandos, e serve a trava otimista =="
+
+conta := D.agregado("Conta", "C-1", saldo := 0)
+conta.comando("somar", lambda c, v => c.mudar(saldo := c.ler("saldo", 0) + v))
+
+assert conta.versao() is 0
+cycle i from 1 to 5:
+    conta.somar(10)
+assert conta.versao() is 5
+assert conta.ler("saldo") is 50
+
+// Dois usuarios editando o mesmo agregado: quem gravar com a versao
+// que leu descobre que o outro passou na frente.
+lida := conta.versao()
+conta.somar(1)
+assert conta.versao() isnt lida
+out $"   li a versao {lida}, e agora ela e {conta.versao()}"
+
+out ""
+out "== 5. o estado e uma COPIA =="
+
+foto := conta.estado()
+conta.somar(100)
+assert foto["saldo"] is 51
+assert conta.ler("saldo") is 151
+out "   a foto nao acompanha o agregado"
+
+out "exercicio 278 ok"

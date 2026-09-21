@@ -1,0 +1,91 @@
+// Exercicio 332 — converter o que veio de fora
+//
+// Enunciado: todo dado que entra num programa e texto — do formulario,
+// do CSV, da variavel de ambiente. Converter e onde ele falha, e
+// converter em silencio e onde ele mente.
+
+adopt Arcane.Serialization as Serde
+
+out "== 1. a conversao que falha =="
+
+monitor:
+    int("quarenta e dois")
+handle ConversionError as e:
+    out $"   {e.message}"
+
+assert int("42") is 42
+assert float("3.5") is 3.5
+
+out ""
+out "== 2. converter com um padrao, sem esconder o erro =="
+
+action para_inteiro(texto, padrao):
+    monitor:
+        yield int(texto)
+    handle ConversionError:
+        yield padrao
+
+assert para_inteiro("42", 0) is 42
+assert para_inteiro("x", 0) is 0
+
+out ""
+out "== 3. a diferenca entre nao informado e invalido =="
+
+// Um padrao silencioso junta os dois casos, e o relatorio sai com
+// zeros que ninguem sabe de onde vieram.
+action ler_idade(texto):
+    given texto is void or trim(texto) is "":
+        yield {"ok": yes, "valor": void, "motivo": "nao informado"}
+    monitor:
+        yield {"ok": yes, "valor": int(texto), "motivo": ""}
+    handle ConversionError:
+        yield {"ok": no, "valor": void, "motivo": $"'{texto}' nao e um numero"}
+
+assert ler_idade("30")["valor"] is 30
+assert ler_idade("")["ok"] and ler_idade("")["valor"] is void
+assert not ler_idade("trinta")["ok"]
+out $"   {ler_idade('trinta')['motivo']}"
+
+out ""
+out "== 4. um formulario inteiro, com os erros juntos =="
+
+steady CAMPOS := [["idade", "30"], ["altura", "1,75"], ["peso", "70.5"]]
+
+erros := []
+valores := {}
+cycle campo in CAMPOS:
+    monitor:
+        valores[campo[0]] := float(campo[1])
+    handle ConversionError:
+        erros.append($"{campo[0]}: '{campo[1]}' nao e um numero")
+
+assert len(erros) is 1
+assert "altura" in erros[0]
+assert valores["peso"] is 70.5
+out $"   {erros[0]}"
+
+// Juntar os erros e devolver todos de uma vez e melhor que parar no
+// primeiro: quem preenche corrige tudo numa passada.
+
+out ""
+out "== 5. JSON invalido =="
+
+assert Serde.from_json('{"a": 1}')["a"] is 1
+
+quebrou := no
+monitor:
+    Serde.from_json("{isto nao e json}")
+handle Error as e:
+    quebrou := yes
+    out $"   {e.type}"
+assert quebrou
+
+out ""
+out "== 6. e a conversao que NAO e recusada e a mais perigosa =="
+
+// Float aceita notacao cientifica e infinito.
+assert float("1e400") bigger 1000000.0
+assert int("0") is 0
+out "   'int' e 'float' aceitam mais do que um formulario deveria"
+
+out "exercicio 332 ok"

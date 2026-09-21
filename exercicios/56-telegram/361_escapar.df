@@ -1,0 +1,79 @@
+// Exercicio 361 — o caractere que derruba a mensagem inteira
+//
+// Enunciado: MarkdownV2 tem DEZOITO caracteres reservados. Um ponto
+// solto num preco faz o Telegram RECUSAR a mensagem inteira — nao e
+// que o negrito sai errado: a mensagem nao chega.
+
+adopt Arcane.Telegram as Tg
+
+out "== 1. os dezoito =="
+
+steady RESERVADOS := ["_", "*", "[", "]", "(", ")", "~", "`", ">",
+    "#", "+", "-", "=", "|", "{", "}", ".", "!"]
+assert len(RESERVADOS) is 18
+
+cycle c in RESERVADOS:
+    assert "\\" + c in Tg.escapar(c), $"'{c}' nao foi escapado"
+out "   todos escapados"
+
+out ""
+out "== 2. o que engana e o ponto =="
+
+// Quase todo texto de sistema tem um: preco, versao, hora, fim de
+// frase.
+assert Tg.escapar("R$ 6.50") is "R$ 6\\.50"
+assert Tg.escapar("versao 1.0.0") is "versao 1\\.0\\.0"
+out $"   {Tg.escapar('R$ 6.50')}"
+
+out ""
+out "== 3. e o '$' NAO esta entre eles =="
+
+// Ele parece perigoso e nao e — escapar demais tambem estraga o
+// texto, com barras aparecendo na tela.
+assert "$" not in RESERVADOS
+assert Tg.escapar("R$") is "R$"
+
+out ""
+out "== 4. a formatacao, montada sem escrever marcacao a mao =="
+
+assert Tg.negrito("Ana") is "*Ana*"
+assert Tg.italico("obs") is "_obs_"
+assert Tg.codigo("x := 1") is "`x := 1`"
+assert Tg.riscado("antigo") is "~antigo~"
+assert Tg.spoiler("fim") is "||fim||"
+
+out ""
+out "== 5. o cuidado ao juntar os dois =="
+
+// O texto do usuario e escapado; a MARCACAO, nao. Escapar tudo
+// transformaria o asterisco do negrito em asterisco literal.
+action linha_de_produto(nome, preco):
+    yield Tg.negrito(Tg.escapar(nome)) + " — R$ " + Tg.escapar(str(preco))
+
+linha := linha_de_produto("Cafe especial", 32.5)
+assert "*Cafe especial*" in linha
+assert "32\\.5" in linha
+out $"   {linha}"
+
+out ""
+out "== 6. e o bot usa isso de verdade =="
+
+app := Tg.app("123456:AAHexemplo")
+
+mark @app.comando("preco")
+action preco(ctx):
+    ctx.responder(linha_de_produto("Bolo de fuba", 8.0),
+        formato := "MarkdownV2")
+
+t := Tg.testar(app)
+t.comando("preco")
+assert "8\\.0" in t.ultima()
+out "   o ponto foi escapado antes de sair"
+
+out ""
+out "== 7. o bloco de codigo, para saida de terminal =="
+
+assert startswith(Tg.bloco("erro: x", "text"), "```")
+out "   dentro de um bloco, nada precisa ser escapado"
+
+out "exercicio 361 ok"

@@ -1,0 +1,79 @@
+// Exercicio 274 — a fronteira entre dois modelos
+//
+// Enunciado: o "Cliente" de Vendas tem limite de credito; o de Suporte
+// tem plano e chamados abertos. Sao o mesmo NOME e nao sao o mesmo
+// conceito. Passar o objeto inteiro de um lado ao outro e o que faz
+// dois modelos virarem um so — e o unico nao serve a ninguem.
+
+adopt Arcane.Dominio as D
+
+steady vendas := D.contexto("Vendas")
+steady suporte := D.contexto("Suporte")
+
+out "== 1. sem traducao, nao atravessa =="
+
+steady DE_VENDAS := {"nome": "Ana", "credito": 5000, "ultima_compra": "2026-09"}
+
+recusou := no
+monitor:
+    suporte.receber("Vendas", "Cliente", DE_VENDAS)
+handle BoundedContextError as e:
+    recusou := yes
+    assert "traduzir" in e.message
+assert recusou
+
+out ""
+out "== 2. a traducao deixa so o que ESTE lado usa =="
+
+suporte.traduzir_de("Vendas", "Cliente",
+    lambda c => {"nome": c["nome"], "plano": "basico", "chamados": 0})
+
+aqui := suporte.receber("Vendas", "Cliente", DE_VENDAS)
+assert aqui["nome"] is "Ana"
+assert aqui["plano"] is "basico"
+assert "credito" not in aqui
+assert "ultima_compra" not in aqui
+out $"   {aqui}"
+
+out ""
+out "== 3. quem escuta REAGE, e nao decide =="
+
+atendidos := []
+
+mark @suporte.ao_acontecer("PedidoPago")
+action abrir_acompanhamento(e):
+    atendidos.append(e.dados["pedido"])
+
+suporte.publicar(D.evento("PedidoPago", {"pedido": "PED-7"}))
+assert atendidos is ["PED-7"]
+
+// Um evento que ninguem escuta nao e erro.
+falhas := suporte.publicar(D.evento("PedidoCancelado", {"pedido": "PED-8"}))
+assert len(falhas) is 0
+assert atendidos is ["PED-7"]
+
+out ""
+out "== 4. um ouvinte que estoura nao impede os outros =="
+
+vistos := []
+
+mark @vendas.ao_acontecer("PedidoPago")
+action quebrado(_e):
+    trigger "este ouvinte esta com defeito"
+
+mark @vendas.ao_acontecer("PedidoPago")
+action tambem(e):
+    vistos.append(e.dados["pedido"])
+
+falhas := vendas.publicar(D.evento("PedidoPago", {"pedido": "PED-9"}))
+assert len(falhas) is 1
+assert vistos is ["PED-9"]
+out $"   um falhou, o outro rodou: {vistos}"
+
+out ""
+out "== 5. o repositorio do contexto e o mesmo entre chamadas =="
+
+assert vendas.repositorio("Pedido") is vendas.repositorio("Pedido")
+assert vendas.repositorios() is ["Pedido"]
+
+out "exercicio 274 ok"

@@ -1,0 +1,73 @@
+// Exercicio 315 — a troca que CALCULA
+//
+// Enunciado: 'sub' so troca por texto. Mascarar um CPF, dobrar um
+// numero ou virar a caixa de uma palavra exigia sair do modulo — e
+// quem sai escreve um laco que se esquece de um caso.
+
+adopt Arcane.Regex as Regex
+
+out "== 1. dobrar os numeros =="
+
+assert Regex.sub_with("\\d+", lambda m => str(int(m["value"]) * 2),
+    "a1 b20 c300") is "a2 b40 c600"
+
+out ""
+out "== 2. a acao recebe os grupos NOMEADOS =="
+
+action inverter_data(m):
+    n := m["named"]
+    yield $"{n['dia']}/{n['mes']}/{n['ano']}"
+
+steady ISO := "(?P<ano>\\d{4})-(?P<mes>\\d{2})-(?P<dia>\\d{2})"
+assert Regex.sub_with(ISO, inverter_data,
+    "de 2026-09-20 a 2026-10-01") is "de 20/09/2026 a 01/10/2026"
+
+out ""
+out "== 3. devolver void NAO troca =="
+
+// E o que deixa a acao escolher o que nao mexer, sem reconstruir.
+action so_os_grandes(m):
+    given int(m["value"]) bigger 10:
+        yield "N"
+    yield void
+
+assert Regex.sub_with("\\d+", so_os_grandes, "1 20 3 400") is "1 N 3 N"
+
+out ""
+out "== 4. mascarar um documento, deixando o fim =="
+
+action mascarar_cpf(m):
+    inteiro := m["value"]
+    yield "***.***." + inteiro[8:len(inteiro)]
+
+steady CPF := "\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}"
+mascarado := Regex.sub_with(CPF, mascarar_cpf,
+    "cliente 529.982.247-25 confirmado")
+assert mascarado is "cliente ***.***.247-25 confirmado"
+out $"   {mascarado}"
+
+out ""
+out "== 5. o limite de trocas =="
+
+assert Regex.sub_with("\\d", lambda m => "x", "12345", count := 2) is "xx345"
+
+out ""
+out "== 6. 'replace_map' deixa o que nao esta na tabela =="
+
+// Uma tabela sem padrao transformaria o desconhecido em vazio — e o
+// texto sairia com buracos.
+steady TABELA := {"sim": "yes", "nao": "no"}
+assert Regex.replace_map("\\w+", TABELA, "sim talvez nao") is "yes talvez no"
+
+out ""
+out "== 7. e uma acao que nao e acao e recusada =="
+
+recusou := no
+monitor:
+    Regex.sub_with("\\d", "x", "1")
+handle RegexError as e:
+    recusou := yes
+    assert "acao" in e.message
+assert recusou
+
+out "exercicio 315 ok"

@@ -1,0 +1,98 @@
+// Exercicio 345 — o objeto que se comporta como colecao
+//
+// Enunciado: '__len__', '__getitem__', '__setitem__', '__contains__' e
+// '__iter__' sao o que fazem 'len(x)', 'x[0]', 'k in x' e 'cycle i in
+// x' funcionarem SEM que nenhum deles saiba o que e o seu tipo. E o
+// mesmo protocolo da ponte para o Python.
+
+blueprint Carrinho:
+    action setup():
+        self.itens := []
+
+    action __len__():
+        yield len(self.itens)
+
+    action __getitem__(i):
+        yield self.itens[i]
+
+    action __setitem__(i, valor):
+        self.itens[i] := valor
+
+    action __contains__(nome):
+        cycle item in self.itens:
+            given item["nome"] is nome:
+                yield yes
+        yield no
+
+    action __iter__():
+        yield self.itens
+
+    action acrescentar(nome, preco):
+        self.itens.append({"nome": nome, "preco": preco})
+        yield self
+
+out "== 1. len =="
+
+c := spawn Carrinho()
+assert len(c) is 0
+c.acrescentar("cafe", 32.5)
+c.acrescentar("filtro", 9.0)
+c.acrescentar("moedor", 240.0)
+assert len(c) is 3
+
+out ""
+out "== 2. indexar, e escrever por indice =="
+
+assert c[0]["nome"] is "cafe"
+assert c[-1]["nome"] is "moedor"
+
+c[1] := {"nome": "coador", "preco": 12.0}
+assert c[1]["nome"] is "coador"
+
+out ""
+out "== 3. 'in' pergunta ao objeto =="
+
+assert "cafe" in c
+assert "coador" in c
+assert "filtro" not in c
+
+out ""
+out "== 4. e o 'cycle' o percorre =="
+
+nomes := []
+cycle item in c:
+    nomes.append(item["nome"])
+assert nomes is ["cafe", "coador", "moedor"]
+out $"   {nomes}"
+
+out ""
+out "== 5. a compreensao tambem =="
+
+precos := [i["preco"] cycle i in c]
+assert sum(precos) is 284.5
+
+caros := [i["nome"] cycle i in c given i["preco"] bigger 100.0]
+assert caros is ["moedor"]
+
+out ""
+out "== 6. e o pipeline =="
+
+total := c >> morph i: i["preco"] >> distill a, v: a + v 0
+assert total is 284.5
+out $"   total: {total}"
+
+out ""
+out "== 7. nada disso sabe o que e um Carrinho =="
+
+// Trocar protocolo por 'isinstance' em qualquer um desses quebraria
+// tambem o quadro, a tupla e a ponte para o Python — todos entram
+// pela mesma porta.
+action resumir(qualquer_colecao):
+    yield $"{len(qualquer_colecao)} item(ns)"
+
+assert resumir(c) is "3 item(ns)"
+assert resumir([1, 2, 3]) is "3 item(ns)"
+assert resumir("abc") is "3 item(ns)"
+assert resumir({"a": 1, "b": 2, "c": 3}) is "3 item(ns)"
+
+out "exercicio 345 ok"

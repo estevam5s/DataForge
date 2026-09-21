@@ -1,0 +1,79 @@
+// Exercicio 343 — como um objeto se mostra e se compara
+//
+// Enunciado: os tres mais usados. '__str__' e para quem LE, '__repr__'
+// e para quem DEPURA, e '__eq__' sem '__hash__' faz o objeto sumir de
+// um vault — e o Python nao avisa.
+
+blueprint Dinheiro:
+    action setup(centavos, moeda):
+        self.centavos := centavos
+        self.moeda := moeda
+
+    action __str__():
+        reais := self.centavos ~/ 100
+        resto := self.centavos % 100
+        centavos := $"{resto}" given resto bigger_eq 10 otherwise $"0{resto}"
+        yield $"{self.moeda} {reais},{centavos}"
+
+    action __repr__():
+        yield $"Dinheiro({self.centavos}, \"{self.moeda}\")"
+
+    action __eq__(outro):
+        yield self.centavos is outro.centavos and self.moeda is outro.moeda
+
+    action __hash__():
+        yield hash($"{self.centavos}:{self.moeda}")
+
+out "== 1. str e para quem le =="
+
+dez := spawn Dinheiro(1050, "BRL")
+assert str(dez) is "BRL 10,50"
+out $"   {dez}"
+
+out ""
+out "== 2. repr e para quem depura =="
+
+// Ele deve poder ser colado de volta no codigo.
+assert repr(dez) is 'Dinheiro(1050, "BRL")'
+
+out ""
+out "== 3. igualdade por CONTEUDO =="
+
+assert dez is spawn Dinheiro(1050, "BRL")
+assert dez isnt spawn Dinheiro(1050, "USD")
+assert dez isnt spawn Dinheiro(999, "BRL")
+
+out ""
+out "== 4. e o hash que acompanha =="
+
+// Sem '__hash__', dois objetos iguais teriam hashes diferentes — e o
+// segundo nao acharia o primeiro num vault.
+caixa := {}
+caixa[dez] := "o primeiro"
+assert caixa[spawn Dinheiro(1050, "BRL")] is "o primeiro"
+assert len(keys(caixa)) is 1
+
+caixa[spawn Dinheiro(1050, "BRL")] := "o mesmo"
+assert len(keys(caixa)) is 1
+out "   dois objetos iguais, uma chave"
+
+out ""
+out "== 5. sem os dois, o objeto so e igual a si mesmo =="
+
+blueprint Solto:
+    action setup(n):
+        self.n := n
+
+a := spawn Solto(1)
+b := spawn Solto(1)
+assert a isnt b
+assert a is a
+
+out ""
+out "== 6. e o padrao de 'str' quando nao ha '__str__' =="
+
+texto := str(a)
+assert "Solto" in texto
+out $"   {texto}"
+
+out "exercicio 343 ok"

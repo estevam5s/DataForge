@@ -1,0 +1,105 @@
+// Exercicio 351 — copiar sem levar o que nao se quer
+//
+// Enunciado: a copia RASA compartilha o que esta dentro. Mudar a lista
+// da copia muda a do original — e o defeito aparece longe, numa outra
+// instancia que ninguem tocou.
+
+adopt Arcane.Objetos as Obj
+
+blueprint Pedido:
+    action setup(cliente):
+        self.cliente := cliente
+        self.itens := []
+
+    action __copy__():
+        novo := spawn Pedido(self.cliente)
+        yield novo
+
+    action __deepcopy__(_memo := void):
+        novo := spawn Pedido(self.cliente)
+        novo.itens := [vault(i) cycle i in self.itens]
+        yield novo
+
+    action acrescentar(nome, preco):
+        self.itens.append({"nome": nome, "preco": preco})
+        yield self
+
+out "== 1. a copia rasa compartilha =="
+
+original := spawn Pedido("Ana")
+original.acrescentar("cafe", 32.5)
+
+// Aqui o '__copy__' foi escrito para NAO levar os itens.
+raso := Obj.clonar(original)
+assert raso.cliente is "Ana"
+assert len(raso.itens) is 0
+
+out ""
+out "== 2. a copia funda leva tudo, e SEPARADO =="
+
+fundo := Obj.clonar_fundo(original)
+assert len(fundo.itens) is 1
+fundo.itens[0]["preco"] := 99.0
+assert original.itens[0]["preco"] is 32.5
+out "   mexer na copia funda nao mexeu no original"
+
+out ""
+out "== 3. o padrao, quando nao se escreve nenhum dos dois =="
+
+blueprint Simples:
+    action setup():
+        self.dados := [1, 2, 3]
+
+s := spawn Simples()
+r := Obj.clonar(s)
+r.dados.append(4)
+// A copia rasa compartilha a lista.
+assert len(s.dados) is 4
+out "   sem '__copy__', a lista e a MESMA lista"
+
+f := Obj.clonar_fundo(s)
+f.dados.append(5)
+assert len(s.dados) is 4
+out "   com copia funda, nao"
+
+out ""
+out "== 4. congelar =="
+
+congelado := Obj.congelar(spawn Simples())
+recusou := no
+monitor:
+    congelado.dados := []
+handle Error as e:
+    recusou := yes
+    out $"   {e.message}"
+assert recusou
+
+out ""
+out "== 5. igualdade estrutural, sem escrever '__eq__' =="
+
+a := spawn Simples()
+b := spawn Simples()
+assert a isnt b
+assert Obj.igual(a, b)
+out "   'iguais' compara os campos; 'is' compara a identidade"
+
+out ""
+out "== 6. e a serializacao so reconstroi o que foi AUTORIZADO =="
+
+// Um desserializador que aceita qualquer tipo e uma porta de entrada:
+// o dado escolhe a classe a instanciar.
+dados := Obj.para_vault(original)
+assert dados["cliente"] is "Ana"
+
+de_volta := Obj.de_vault(dados, [Pedido])
+assert de_volta.cliente is "Ana"
+
+nao_listado := no
+monitor:
+    Obj.de_vault(dados, [Simples])
+handle Error:
+    nao_listado := yes
+assert nao_listado
+out "   o dado nunca escolhe o blueprint"
+
+out "exercicio 351 ok"

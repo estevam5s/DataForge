@@ -1,0 +1,80 @@
+// Exercicio 270 — o agregado e a unica porta de escrita
+//
+// Enunciado: se qualquer um escreve, a invariante nao vale nada —
+// nao ha onde cobra-la. E ela e conferida na SAIDA de cada comando:
+// cobrar na entrada deixaria o objeto quebrado quando o comando falha
+// no meio.
+
+adopt Arcane.Dominio as D
+
+pedido := D.agregado("Pedido", "PED-1", total := 0, itens := 0)
+
+pedido.invariante("o total nunca e negativo",
+    lambda p => p.ler("total", 0) bigger_eq 0)
+pedido.invariante("no maximo 3 itens",
+    lambda p => p.ler("itens", 0) smaller_eq 3)
+
+mark @pedido.comando("acrescentar")
+action acrescentar(p, preco):
+    p.mudar(total := p.ler("total", 0) + preco,
+        itens := p.ler("itens", 0) + 1)
+
+mark @pedido.comando("descontar")
+action descontar(p, quanto):
+    p.mudar(total := p.ler("total", 0) - quanto)
+
+out "== 1. escrever por fora e recusado =="
+
+por_fora := no
+monitor:
+    pedido.mudar(total := 999999)
+handle AggregateError as e:
+    por_fora := yes
+    assert "comando" in e.message
+assert por_fora
+assert pedido.ler("total") is 0
+
+out ""
+out "== 2. o comando muda, e a versao avanca =="
+
+assert pedido.versao() is 0
+pedido.acrescentar(30)
+pedido.acrescentar(20)
+assert pedido.ler("total") is 50
+assert pedido.versao() is 2
+out $"   dois comandos -> total {pedido.ler('total')}, versao {pedido.versao()}"
+
+out ""
+out "== 3. a invariante e cobrada na SAIDA =="
+
+violou := no
+monitor:
+    pedido.descontar(999)
+handle AggregateError as e:
+    violou := yes
+    assert "negativo" in e.message
+assert violou
+
+out ""
+out "== 4. e o comando recusado e DESFEITO por inteiro =="
+
+// Sem isso, metade da mudanca fica aplicada, e a proxima leitura ve um
+// agregado que nunca deveria existir.
+assert pedido.ler("total") is 50
+assert pedido.versao() is 2
+out "   o estado voltou, e a versao nao avancou"
+
+out ""
+out "== 5. a outra invariante tambem vale =="
+
+pedido.acrescentar(1)
+estourou := no
+monitor:
+    pedido.acrescentar(1)  // seria o quarto item
+handle AggregateError as e:
+    estourou := yes
+    assert "3 itens" in e.message
+assert estourou
+assert pedido.ler("itens") is 3
+
+out "exercicio 270 ok"
