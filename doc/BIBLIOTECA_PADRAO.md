@@ -34,8 +34,8 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.OS`](#arcaneos) | `OS` | 43 | Sistema operacional, ambiente, disco e processo atual. |
 | [`Arcane.Process`](#arcaneprocess) | `Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | [`Arcane.Logging`](#arcanelogging) | `Logging / Log` | 14 | Registro estruturado de eventos, com níveis e destinos. |
-| [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 52 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token. |
-| [`Arcane.Seguranca`](#arcaneseguranca) | `Seguranca` | 51 | Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática. |
+| [`Arcane.Crypto`](#arcanecrypto) | `Crypto` | 53 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token. |
+| [`Arcane.Seguranca`](#arcaneseguranca) | `Seguranca` | 54 | Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática. |
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
@@ -1236,7 +1236,7 @@ Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo
 adopt Arcane.Crypto as Crypto
 ```
 
-**Funções (52)**
+**Funções (53)**
 
 | Assinatura |
 |------------|
@@ -1261,7 +1261,7 @@ adopt Arcane.Crypto as Crypto
 | `e_cifrado(caminho)` |
 | `hash(valor, algoritmo='sha256')` |
 | `hash_file(caminho, algoritmo='sha256')` |
-| `hash_password(senha, iteracoes=200000)` |
+| `hash_password(senha, iteracoes=None, algoritmo='scrypt')` |
 | `hex_decode(v)` |
 | `hex_encode(v)` |
 | `hmac(chave, mensagem, algoritmo='sha256')` |
@@ -1274,6 +1274,7 @@ adopt Arcane.Crypto as Crypto
 | `mask(texto, visiveis=4, caractere='*')` |
 | `md5(v)` |
 | `pbkdf2(senha, sal, iteracoes=200000, algoritmo='sha256')` |
+| `precisa_rehash(guardada)` |
 | `random_bytes(n=32)` |
 | `random_choice(itens)` |
 | `random_hex(n=32)` |
@@ -1304,7 +1305,7 @@ Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, l
 adopt Arcane.Seguranca as Seguranca
 ```
 
-**Funções (51)**
+**Funções (54)**
 
 | Assinatura |
 |------------|
@@ -1315,6 +1316,7 @@ adopt Arcane.Seguranca as Seguranca
 | `caminho_seguro(base, pedido)` |
 | `chave_de_assinatura(bytes_=32)` |
 | `codigos_de_recuperacao(quantos=10, grupos=3, tamanho=4)` |
+| `conferir_pkce(verificador, desafio)` |
 | `conferir_url(url, chave, quando=None)` |
 | `conferir_vazamento(senha, respostas)` |
 | `e_alta_entropia(texto, minimo=3.5)` |
@@ -1330,6 +1332,7 @@ adopt Arcane.Seguranca as Seguranca
 | `escapar_shell(texto)` |
 | `escapar_sql_like(texto, escape='\\')` |
 | `escapar_url(texto)` |
+| `estado_de_oauth(bytes_=32)` |
 | `exigir_politica(senha, opcoes=None)` |
 | `exigir_sem_segredo(texto, onde='')` |
 | `forca_da_senha(senha)` |
@@ -1344,6 +1347,7 @@ adopt Arcane.Seguranca as Seguranca
 | `nome_de_arquivo_seguro(nome, padrao='arquivo')` |
 | `numero_seguro(texto, minimo=None, maximo=None, inteiro=True)` |
 | `padroes_de_segredo()` |
+| `pkce(tamanho=64)` |
 | `politica(senha, opcoes=None)` |
 | `prefixo_vazamento(senha)` |
 | `procurar_segredos(texto, opcoes=None)` |

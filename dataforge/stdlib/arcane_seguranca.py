@@ -853,6 +853,59 @@ def _conferir_url(url, chave, quando=None):
     return {"ok": True, "vence_em": int(vence[0]) - agora}
 
 
+def _pkce(tamanho=64):
+    """PKCE (RFC 7636) — o par que o OAuth 2.0 exige hoje.
+
+    O problema que ele resolve: no fluxo de codigo de autorizacao, o
+    `code` volta pela URL do navegador. Num aplicativo de celular ou
+    numa SPA **nao existe segredo do cliente** para provar quem e — e
+    quem interceptar o `code` (outro app registrado no mesmo esquema
+    de URL, um log de proxy, o historico) o troca por um token.
+
+    PKCE fecha isso sem segredo guardado: o cliente sorteia um
+    `verificador`, manda o `desafio` (o SHA-256 dele) ao pedir o
+    codigo, e manda o `verificador` ao trocar. So quem sorteou tem o
+    original.
+
+    **`S256`, nunca `plain`.** O metodo `plain` manda o verificador
+    como desafio — o que nao protege de nada, porque quem intercepta a
+    primeira ida ja tem os dois. Ele existe no RFC por compatibilidade
+    e nao e oferecido aqui.
+    """
+    n = max(43, min(128, int(tamanho)))
+    bruto = base64.urlsafe_b64encode(os.urandom(96)).decode("ascii")
+    verificador = bruto.rstrip("=")[:n]
+    resumo = hashlib.sha256(verificador.encode("ascii")).digest()
+    return {
+        "verificador": verificador,
+        "desafio": base64.urlsafe_b64encode(resumo).decode("ascii").rstrip("="),
+        "metodo": "S256",
+    }
+
+
+def _conferir_pkce(verificador, desafio):
+    """Do lado do servidor de autorizacao: o par fecha?
+
+    Em tempo constante — comparar com `is` vazaria, pelo tempo, quantos
+    caracteres iniciais estavam certos.
+    """
+    v = _texto(verificador, "conferir_pkce")
+    resumo = hashlib.sha256(v.encode("utf-8")).digest()
+    esperado = base64.urlsafe_b64encode(resumo).decode("ascii").rstrip("=")
+    return hmac.compare_digest(esperado, _texto(desafio, "conferir_pkce"))
+
+
+def _estado_de_oauth(bytes_=32):
+    """O `state` do OAuth, que e a defesa de CSRF do fluxo.
+
+    Sem ele, um atacante inicia o proprio fluxo e faz a vitima
+    completa-lo: a conta da vitima acaba ligada a conta do atacante no
+    provedor. Ele e sorteado, guardado na sessao, e **conferido na
+    volta** — guardar e nao conferir e o defeito mais comum.
+    """
+    return base64.urlsafe_b64encode(os.urandom(int(bytes_))).decode("ascii").rstrip("=")
+
+
 # ═══════════════════════════════════════════════════════════
 #  5. Segredo: o que se recusa a aparecer, e o que se procura
 # ═══════════════════════════════════════════════════════════
@@ -1862,8 +1915,11 @@ class ArcaneSeguranca(dict):
             "hotp": _hotp,
             "codigos_de_recuperacao": _codigos_de_recuperacao,
 
-            # 4. token assinado
+            # 4. token assinado, e o fluxo do OAuth
             "chave_de_assinatura": _chave_de_assinatura,
+            "pkce": _pkce,
+            "conferir_pkce": _conferir_pkce,
+            "estado_de_oauth": _estado_de_oauth,
             "assinar": _assinar,
             "ler_assinado": _ler_assinado,
             "assinar_url": _assinar_url,

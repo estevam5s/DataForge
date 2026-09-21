@@ -12,6 +12,64 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ---
 
+## Não lançado
+
+### Adicionado — a seção de segurança da informação
+
+- Onze páginas no sidebar (`/docs/seguranca/mapa` e as irmãs), cobrindo
+  o currículo inteiro: tríade CIA, autenticação, autorização,
+  responsabilização, não-repúdio, privilégio mínimo, defesa em
+  profundidade, zero trust, seguro por desenho e por padrão, modelagem
+  de ameaças (STRIDE), superfície de ataque, fronteiras de confiança e
+  de segurança, gestão de risco, políticas, segurança de tipos e de
+  memória, limites, ausência segura, dados imutáveis, validação,
+  codificação de saída, serialização segura, senha e hashing, MFA,
+  TOTP, WebAuthn, OAuth 2.0, OIDC, SAML, LDAP, JWT, tokens, sessão,
+  força bruta, *credential stuffing*, bloqueio, atrasos progressivos,
+  limite de taxa, detecção de segredos, linter, análise estática,
+  auditoria e privacidade/LGPD.
+- **Cada conceito traz o veredito.** Não existe aqui WebAuthn, passkeys,
+  SAML, LDAP, Argon2id, bcrypt nem assinatura assimétrica — e cada um
+  diz **por quê** e **o que usar no lugar**. Uma página que promete
+  WebAuthn e não tem manda alguém construir autenticação em cima de
+  algo que não está lá.
+- **Os 30 blocos `.df` rodam**, e não só compilam. Cinco falharam na
+  primeira passada, e os cinco eram erro meu: `cifrar` devolve Bytes,
+  `jwt_verificar` devolve `{valido, carga, motivo}` em vez de levantar,
+  dois `adopt` no fim do bloco, um `skip` dentro de `handle`, e
+  `IO.remove` onde o nome é `IO.delete`.
+- A rota `/docs/seguranca` **já tinha dono** e ficou onde estava; o mapa
+  da seção é `/docs/seguranca/mapa`, seguindo a convenção de
+  `/docs/partida/mapa`. Duas ferramentas escrevendo o mesmo arquivo
+  fazem o resultado depender da ordem em que rodam.
+
+### Alterado — `Crypto.hash_password` usa scrypt
+
+- PBKDF2 só encadeia hash e é barato de acelerar em GPU. O scrypt é
+  *memory-hard*: exige ~32 MB por tentativa, e memória é o que uma GPU
+  não tem em abundância por núcleo.
+- **`verify_password` continua aceitando o formato antigo.** Se não
+  aceitasse, o dia da atualização seria o dia em que ninguém entra, e a
+  saída de emergência seria mandar todo mundo redefinir a senha. O
+  formato é auto-descritivo, o que torna a próxima troca barata.
+- **`Crypto.precisa_rehash`** é novo: o login bem-sucedido é o **único**
+  momento em que a senha em claro está disponível para regravar. Sem
+  ele, um banco fica para sempre no algoritmo com que nasceu.
+- `algoritmo := "pbkdf2"` volta ao anterior, para quem precisa conferir
+  a senha em outro sistema.
+
+### Adicionado — as peças locais do OAuth 2.0
+
+- **`Seg.pkce`** (RFC 7636), **`conferir_pkce`** e **`estado_de_oauth`**.
+  O fluxo inteiro é integração, não primitiva; o que cabe numa
+  biblioteca é a parte criptográfica, que é onde as implementações
+  erram.
+- Só **`S256`**. O método `plain` manda o verificador *como* desafio, o
+  que não protege de nada — quem intercepta a primeira ida já tem os
+  dois. Ele existe no RFC por compatibilidade e não é oferecido aqui.
+
+---
+
 ## 1.1.0
 
 Primeira versão publicada no **PyPI**: `pip install dataforge-lang`.

@@ -22,6 +22,7 @@ import time
 import uuid
 
 from ..builtins import _df_type as _nome_do_tipo
+from ..errors import ValueError_
 
 
 def _b64url(dados):
@@ -86,6 +87,7 @@ class ArcaneCrypto:
             "pbkdf2": cls._pbkdf2,
             "hash_password": cls._hash_password,
             "verify_password": cls._verify_password,
+            "precisa_rehash": cls._precisa_rehash,
 
             # ── Codificações ──
             "base64_encode": lambda v: base64.b64encode(_bytes(v)).decode("ascii"),
@@ -265,21 +267,107 @@ class ArcaneCrypto:
         derivada = hashlib.pbkdf2_hmac(algoritmo, _bytes(senha), _bytes(sal), iteracoes)
         return binascii.hexlify(derivada).decode("ascii")
 
+    #: Os parametros de scrypt. N=2^15, r=8, p=1 sao os que o RFC 7914
+    #: recomenda para login interativo, e custam ~32 MB por conferencia.
+    #:
+    #: O 'r' e o 'p' entram na string guardada junto do 'N': subir o
+    #: custo no futuro nao pode invalidar o que ja esta no banco, e sem
+    #: os tres numeros ali a conferencia teria de adivinhar com quais a
+    #: senha foi derivada.
+    SCRYPT_N = 1 << 15
+    SCRYPT_R = 8
+    SCRYPT_P = 1
+
     @staticmethod
-    def _hash_password(senha, iteracoes=200000):
-        """Deriva a senha com sal aleatório. Guarde a string inteira."""
+    def _scrypt(senha, sal, n, r, p):
+        derivada = hashlib.scrypt(_bytes(senha), salt=_bytes(sal),
+                                  n=int(n), r=int(r), p=int(p), dklen=32,
+                                  maxmem=(132 * int(n) * int(r)) + (1 << 22))
+        return binascii.hexlify(derivada).decode("ascii")
+
+    @staticmethod
+    def _hash_password(senha, iteracoes=None, algoritmo="scrypt"):
+        """Deriva a senha com sal aleatório. Guarde a string inteira.
+
+        O padrão é **scrypt**, e a troca importa: PBKDF2 é barato de
+        acelerar em GPU porque só faz hash em cadeia. O scrypt é
+        *memory-hard* — ele exige ~32 MB por tentativa, e memória é o
+        que uma GPU não tem em abundância por núcleo. Com os mesmos
+        reais gastos, quem ataca consegue ordens de grandeza menos
+        tentativas por segundo.
+
+        `algoritmo := "pbkdf2"` volta ao anterior, para quem precisa
+        conferir a senha em outro sistema que só tem PBKDF2.
+
+        **Argon2id seria melhor ainda, e não está aqui**: em Python
+        puro ele rodaria lento o bastante para ter de usar parâmetros
+        fracos — o que o torna *pior* que o scrypt do `hashlib`, e não
+        melhor. Esta é a escolha certa para uma linguagem sem
+        dependência externa, e não a melhor do mundo.
+        """
         sal = secrets.token_hex(16)
-        derivada = ArcaneCrypto._pbkdf2(senha, sal, iteracoes)
-        return f"pbkdf2_sha256${iteracoes}${sal}${derivada}"
+        alg = str(algoritmo).lower()
+        if alg == "pbkdf2":
+            voltas = int(iteracoes) if iteracoes else 200000
+            derivada = ArcaneCrypto._pbkdf2(senha, sal, voltas)
+            return f"pbkdf2_sha256${voltas}${sal}${derivada}"
+        if alg != "scrypt":
+            raise ValueError_(
+                f"'{algoritmo}' nao e um algoritmo de senha.",
+                0, 0, nota="Ha: 'scrypt' (padrao) e 'pbkdf2'.",
+                dica="Para um resumo simples, use 'Crypto.sha256' — "
+                     "mas nunca para senha.")
+        n = int(iteracoes) if iteracoes else ArcaneCrypto.SCRYPT_N
+        r, p = ArcaneCrypto.SCRYPT_R, ArcaneCrypto.SCRYPT_P
+        derivada = ArcaneCrypto._scrypt(senha, sal, n, r, p)
+        return f"scrypt${n}${r}${p}${sal}${derivada}"
 
     @staticmethod
     def _verify_password(senha, guardada):
+        """Confere, e **continua aceitando o formato antigo**.
+
+        Um banco tem senhas guardadas de antes da troca de algoritmo.
+        Se `verify_password` só entendesse o formato novo, o dia da
+        atualização seria o dia em que ninguém consegue entrar — e a
+        saída de emergência seria mandar todo mundo redefinir a senha.
+
+        O formato é auto-descritivo: o primeiro campo diz qual é, e os
+        parâmetros vêm junto. É o que torna a próxima troca barata.
+        """
+        partes = str(guardada).split("$")
         try:
-            _, iteracoes, sal, esperada = str(guardada).split("$")
-        except ValueError:
+            if partes[0] == "scrypt":
+                _, n, r, p, sal, esperada = partes
+                derivada = ArcaneCrypto._scrypt(senha, sal, n, r, p)
+            elif partes[0].startswith("pbkdf2"):
+                _, iteracoes, sal, esperada = partes
+                derivada = ArcaneCrypto._pbkdf2(senha, sal, int(iteracoes))
+            else:
+                return False
+        except (ValueError, TypeError):
             return False
-        derivada = ArcaneCrypto._pbkdf2(senha, sal, int(iteracoes))
         return hmac.compare_digest(derivada, esperada)
+
+    @staticmethod
+    def _precisa_rehash(guardada):
+        """Diz se a senha guardada usa parametro mais fraco que o de hoje.
+
+        Sem isto, um banco fica para sempre no algoritmo com que nasceu:
+        ninguem sabe quais linhas estao velhas, e nao ha momento em que
+        a senha em claro esteja disponivel para regravar... exceto UM —
+        o login bem-sucedido. E dai o uso:
+
+            given Crypto.verify_password(senha, guardada):
+                given Crypto.precisa_rehash(guardada):
+                    gravar(Crypto.hash_password(senha))
+        """
+        partes = str(guardada).split("$")
+        if partes[0] != "scrypt":
+            return True
+        try:
+            return int(partes[1]) < ArcaneCrypto.SCRYPT_N
+        except (ValueError, IndexError):
+            return True
 
     @staticmethod
     def _base64_decode(texto):

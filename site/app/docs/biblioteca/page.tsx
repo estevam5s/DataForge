@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "76 módulos e 2130 símbolos, sem uma única dependência externa.",
+  description: "76 módulos e 2134 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os 76 módulos"
   },
   {
-    "p": "São **2130 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **2134 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -86,24 +86,24 @@ const blocos: Bloco[] = [
           "Utilitários funcionais: composição, lentes, Maybe/Either, transdutores."
         ],
         [
+          "[`Arcane.Seguranca`](/docs/biblioteca/seguranca)",
+          "54",
+          "Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática."
+        ],
+        [
           "[`Arcane.Time`](/docs/biblioteca/time)",
           "54",
           "Datas, horas, durações e cronometragem."
         ],
         [
-          "[`Arcane.Async`](/docs/biblioteca/async)",
-          "52",
-          "Promessas, filas, agendamento e execução concorrente."
-        ],
-        [
           "[`Arcane.Crypto`](/docs/biblioteca/crypto)",
-          "52",
+          "53",
           "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). Assina e verifica JWT (HS256/384/512), com o algoritmo decidido por quem verifica e não pelo token."
         ],
         [
-          "[`Arcane.Seguranca`](/docs/biblioteca/seguranca)",
-          "51",
-          "Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de senha com vazamento por k-anonimato, TOTP/HOTP e códigos de recuperação, token e URL assinados com prazo e propósito, varredura de segredos por formato, redação de PII, defesa de SSRF e de travessia de caminho, limitador de taxa, bloqueio progressivo, trilha de auditoria encadeada e dez regras de análise estática."
+          "[`Arcane.Async`](/docs/biblioteca/async)",
+          "52",
+          "Promessas, filas, agendamento e execução concorrente."
         ],
         [
           "[`Arcane.Regex`](/docs/biblioteca/regex)",
@@ -478,7 +478,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"76 módulos e 2130 símbolos, sem uma única dependência externa."}
+      description={"76 módulos e 2134 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

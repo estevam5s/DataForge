@@ -92,7 +92,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                76 módulos (2130 símbolos), incluindo:
+  stdlib/                76 módulos (2134 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -2083,7 +2083,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 2130 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2134 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2681,6 +2681,63 @@ Quatro decisões que valem lembrar:
 `dataforge seguranca` roda as duas varreduras sobre o projeto, e não só
 sobre os `.df`: um segredo vaza do arquivo de configuração muito mais do
 que do código.
+
+## A seção de segurança da informação
+
+Onze páginas em `site/scripts/conteudo/seguranca_informacao.py`, e a
+regra que as governa é a do repositório inteiro: **não se inventa que
+existe**. Cada conceito do currículo aparece explicado como um
+profissional o usa, e logo abaixo vem o veredito — com código que roda,
+ou com "não existe aqui" e o motivo.
+
+Uma página de segurança que promete WebAuthn e não tem é pior que uma
+que diz que não tem: a primeira manda alguém construir autenticação em
+cima de algo que não está lá, e a descoberta vem no incidente.
+
+**A rota `/docs/seguranca` já tinha dono** (`conteudo/versoes.py`, com
+injeção de SQL, XSS nos templates, cadeia de pacotes e TLS). Duas
+ferramentas escrevendo o mesmo arquivo fazem o resultado depender da
+**ordem** em que rodam — o defeito que as duas `slugify` já causaram
+aqui. Por isso o mapa desta seção é `/docs/seguranca/mapa`, seguindo a
+convenção de `/docs/partida/mapa` e `/docs/hardware/mapa`, e as duas
+páginas se citam.
+
+**Os 30 blocos `.df` da seção rodam**, e não só compilam. Cinco
+falharam na primeira passada, e os cinco eram erro meu e não da
+documentação:
+
+| O que eu escrevi | O que é |
+|---|---|
+| `Crypto.cifrar(...)` comparado com texto | ele devolve **Bytes**; a comparação é com `Bytes.para_texto`, e a busca no `hex_encode` |
+| `Crypto.jwt_verificar(...)["sub"]` | ele devolve `{valido, carga, motivo}` e **não levanta** com chave errada |
+| `adopt` no **fim** do bloco | em dois blocos; o `adopt` precisa vir antes do uso |
+| `skip` dentro de um `handle` | `skip` é de laço; num `handle`, deixe o bloco vazio |
+| `IO.remove` | o nome é `IO.delete` |
+
+A trava é o `tools/verificar_docs.py` (compila) mais a extração e
+execução dos blocos. Compilar não basta: um `assert` errado compila.
+
+**Duas primitivas nasceram desta seção**, porque documentar exige que a
+página não seja oca:
+
+1. **`Crypto.hash_password` passou a usar scrypt** por padrão. PBKDF2 só
+   encadeia hash e é barato de acelerar em GPU; o scrypt é
+   *memory-hard* e exige ~32 MB por tentativa. `verify_password`
+   **continua aceitando o formato antigo** — se não aceitasse, o dia da
+   atualização seria o dia em que ninguém entra. E `precisa_rehash`
+   existe porque o login bem-sucedido é o **único** momento em que a
+   senha em claro está disponível para regravar.
+2. **`Seg.pkce`, `conferir_pkce` e `estado_de_oauth`** — as peças
+   **locais** do OAuth 2.0. O fluxo inteiro é integração, não primitiva;
+   o que cabe numa biblioteca é a parte criptográfica, que é justamente
+   onde as implementações erram. Só `S256`: o `plain` manda o
+   verificador como desafio e não protege de nada.
+
+O que a seção declara como **ausente**, com o motivo: WebAuthn/passkeys
+(protocolo com CBOR, COSE e atestação), SAML e LDAP (protocolos
+externos), Argon2id e bcrypt (em Python puro seriam piores que o scrypt
+do `hashlib`), assinatura assimétrica (e por isso **HMAC não é
+não-repúdio** — quem confere também consegue forjar), e TLS no Kiln.
 
 ## A página /roadmap
 

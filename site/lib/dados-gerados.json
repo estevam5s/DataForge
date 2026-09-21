@@ -2711,7 +2711,7 @@
     },
     {
      "nome": "hash_password",
-     "sig": "(senha, iteracoes)",
+     "sig": "(senha, iteracoes, algoritmo)",
      "tipo": "funcao"
     },
     {
@@ -2772,6 +2772,11 @@
     {
      "nome": "pbkdf2",
      "sig": "(senha, sal, iteracoes, algoritmo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "precisa_rehash",
+     "sig": "(guardada)",
      "tipo": "funcao"
     },
     {
@@ -8459,6 +8464,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "conferir_pkce",
+     "sig": "(verificador, desafio)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "conferir_url",
      "sig": "(url, chave, quando)",
      "tipo": "funcao"
@@ -8534,6 +8544,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "estado_de_oauth",
+     "sig": "(bytes_)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "exigir_politica",
      "sig": "(senha, opcoes)",
      "tipo": "funcao"
@@ -8601,6 +8616,11 @@
     {
      "nome": "padroes_de_segredo",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pkce",
+     "sig": "(tamanho)",
      "tipo": "funcao"
     },
     {
@@ -14739,7 +14759,7 @@
  },
  "totalBuiltins": 229,
  "contagem": {
-  "testes": 3411,
+  "testes": 3412,
   "exemplos": 50,
   "arquivosDf": 503
  },

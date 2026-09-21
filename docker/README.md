@@ -98,7 +98,7 @@ A tabela completa está em
 | **Diretório** | `/app` |
 | **Entrypoint** | `dataforge` |
 | **CMD padrão** | `repl` |
-| **Biblioteca** | 76 módulos, 2130 símbolos |
+| **Biblioteca** | 76 módulos, 2134 símbolos |
 | **Comandos** | 63, de `run` a `devops` |
 
 ### Zero dependência, de verdade

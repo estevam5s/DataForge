@@ -60,6 +60,7 @@ MODULOS = [
     "runtime_laco",
     "observabilidade",
     "partida_e_seguranca",
+    "seguranca_informacao",
     "abi_e_alvos",
     "ecossistema",
     "fechamento",

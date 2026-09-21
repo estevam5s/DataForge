@@ -869,13 +869,13 @@
           "chave": "crypto",
           "desc": "Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305)",
           "nome": "Arcane.Crypto",
-          "simbolos": 52
+          "simbolos": 53
         },
         {
           "chave": "seguranca",
           "desc": "Escape por destino (HTML, atributo, JS, URL, shell, SQL LIKE, CSV, cabeçalho, log), sanitização de HTML por lista de permitidos, política e força de s",
           "nome": "Arcane.Seguranca",
-          "simbolos": 51
+          "simbolos": 54
         },
         {
           "chave": "observar",
@@ -1185,7 +1185,7 @@
     "modulos": 76,
     "modulos_do_nucleo": 58,
     "nao_existem": 5,
-    "simbolos": 2130
+    "simbolos": 2134
   },
   "semGrupo": []
 }
