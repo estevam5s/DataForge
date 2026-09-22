@@ -219,7 +219,14 @@ export function DocPage({
         rotulo="Largura do índice desta página"
         className="hidden xl:block"
       >
-        <div className="sticky top-[100px] max-h-[calc(100vh-130px)] overflow-y-auto py-10">
+        {/* `data-toc-rolagem`: é este contêiner que o índice rola
+            para acompanhar o título ativo, e só ele. Sem a marca, o
+            `Toc` teria de adivinhar qual ancestral rola — e erraria
+            para a janela, puxando a página junto. */}
+        <div
+          data-toc-rolagem
+          className="sticky top-[100px] max-h-[calc(100vh-130px)] overflow-y-auto py-10"
+        >
           <Toc headings={headings} />
         </div>
       </Redimensionavel>

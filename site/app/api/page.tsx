@@ -8,7 +8,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Referência da API",
-  description: "Sete endpoints JSON com a linguagem inteira: sintaxe, 2153 símbolos, 63 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
+  description: "Sete endpoints JSON com a linguagem inteira: sintaxe, 2153 símbolos, 63 comandos, 218 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
 };
 
 const blocos: Bloco[] = [
@@ -16,7 +16,7 @@ const blocos: Bloco[] = [
   { code: `curl -s https://dataforge-lang.vercel.app/api/index.json`, lang: 'bash' },
   { code: `{
   "nome": "DataForge",
-  "versao": "1.0.0",
+  "versao": "1.1.0",
   "descricao": "API pública da linguagem: sintaxe, biblioteca, comandos e conteúdos.",
   "documentacao": "https://dataforge-lang.vercel.app/docs",
   "rotas": {
@@ -30,11 +30,11 @@ const blocos: Bloco[] = [
 }`, lang: 'json' },
   {"callout": {"tipo": "nota", "titulo": "Nada aqui é escrito à mão", "texto": "Os sete arquivos saem de `scripts/gerar_api.py`, que lê `tokens.py`, `builtins.py`, a `stdlib/`, o `cli.py` e o catálogo de erros — o mesmo código que o interpretador executa. Um símbolo novo aparece na API na próxima geração; um removido desaparece. Não há uma segunda lista para divergir."}},
   {"h2": "Os sete endpoints"},
-  {"table": {"head": ["Endpoint", "Tamanho", "O que traz"], "rows": [["`/api/index.json`", "< 1 KB", "o índice — comece por aqui"], ["`/api/sintaxe.json`", "12 KB", "81 palavras reservadas, 32 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"], ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"], ["`/api/modulos.json`", "166 KB", "75 módulos e **2153 símbolos**, com assinatura e resumo de cada um"], ["`/api/comandos.json`", "29 KB", "63 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"], ["`/api/erros.json`", "75 KB", "177 códigos de erro, com explicação, exemplo que provoca e como corrigir"], ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
+  {"table": {"head": ["Endpoint", "Tamanho", "O que traz"], "rows": [["`/api/index.json`", "< 1 KB", "o índice — comece por aqui"], ["`/api/sintaxe.json`", "12 KB", "81 palavras reservadas, 32 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"], ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"], ["`/api/modulos.json`", "166 KB", "79 módulos e **2153 símbolos**, com assinatura e resumo de cada um"], ["`/api/comandos.json`", "29 KB", "63 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"], ["`/api/erros.json`", "75 KB", "218 códigos de erro, com explicação, exemplo que provoca e como corrigir"], ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
   {"h2": "`/api/sintaxe.json`"},
   {"p": "É o que um realce de sintaxe precisa, e cada palavra vem com o **equivalente** na linguagem de onde a pessoa vem:"},
   { code: `{
-  "versao": "1.0.0",
+  "versao": "1.1.0",
   "extensao": ".df",
   "reservadas": [
     { "palavra": "action", "descricao": "declara uma função",
@@ -55,7 +55,7 @@ const blocos: Bloco[] = [
   {"h2": "`/api/modulos.json`"},
   {"p": "O maior dos sete, e o que responde \"o que a biblioteca tem\":"},
   { code: `{
-  "versao": "1.0.0",
+  "versao": "1.1.0",
   "total_modulos": 39,
   "total_simbolos": 1490,
   "modulos": [
@@ -72,7 +72,7 @@ const blocos: Bloco[] = [
 }`, lang: 'json' },
   {"p": "`apelidos` é o mesmo módulo por outro nome: `adopt Banco` e `adopt Arcane.Forge` carregam o **mesmo** objeto. Contá-los como módulos diferentes já fez o site anunciar 33 onde havia 29 — por isso a API traz o nome oficial e a lista de apelidos separada."},
   {"h2": "`/api/erros.json`"},
-  {"p": "Cada um dos 177 códigos com o que provoca e o que resolve:"},
+  {"p": "Cada um dos 218 códigos com o que provoca e o que resolve:"},
   { code: `{
   "codigo": "DF0101",
   "titulo": "Indentacao inconsistente",
@@ -155,7 +155,7 @@ const colorido = codigo.replace(palavras, '<b>$1</b>');`, lang: 'javascript' },
 doc := API.openapi(minha_api, {"titulo": "Loja", "versao": "2.0"})`, lang: 'df' },
   {"p": "Em [OpenAPI, Insomnia e Postman](/docs/tecnicas/api)."},
   {"h2": "Onde continuar"},
-  {"cards": [{"href": "/docs/tecnicas/api", "title": "OpenAPI", "desc": "O contrato da SUA API, gerado das rotas do Kiln."}, {"href": "/docs/biblioteca", "title": "Biblioteca Arcane", "meta": "2153 símbolos", "desc": "O mesmo que /api/modulos.json, para ler."}, {"href": "/docs/erros", "title": "Códigos de erro", "meta": "177", "desc": "O mesmo que /api/erros.json."}, {"href": "/docs/pacotes/registro", "title": "O registro", "desc": "Como publicar um pacote, e por que ele é estático."}]},
+  {"cards": [{"href": "/docs/tecnicas/api", "title": "OpenAPI", "desc": "O contrato da SUA API, gerado das rotas do Kiln."}, {"href": "/docs/biblioteca", "title": "Biblioteca Arcane", "meta": "2153 símbolos", "desc": "O mesmo que /api/modulos.json, para ler."}, {"href": "/docs/erros", "title": "Códigos de erro", "meta": "218", "desc": "O mesmo que /api/erros.json."}, {"href": "/docs/pacotes/registro", "title": "O registro", "desc": "Como publicar um pacote, e por que ele é estático."}]},
 ];
 
 const headings = [{ id: 'os-sete-endpoints', text: "Os sete endpoints", level: 2 as const }, { id: 'apisintaxejson', text: "`/api/sintaxe.json`", level: 2 as const }, { id: 'apimodulosjson', text: "`/api/modulos.json`", level: 2 as const }, { id: 'apierrosjson', text: "`/api/erros.json`", level: 2 as const }, { id: 'apicomandosjson', text: "`/api/comandos.json`", level: 2 as const }, { id: 'usar-tres-exemplos-que-rodam', text: "Usar: três exemplos que rodam", level: 2 as const }, { id: 'em-dataforge', text: "Em DataForge", level: 3 as const }, { id: 'no-terminal-com-jq', text: "No terminal, com jq", level: 3 as const }, { id: 'em-javascript-do-navegador', text: "Em JavaScript, do navegador", level: 3 as const }, { id: 'contrato', text: "Contrato", level: 2 as const }, { id: 'o-registro-de-pacotes-e-outro-endereco', text: "O registro de pacotes é outro endereço", level: 2 as const }, { id: 'e-o-openapi-que-e-outra-coisa', text: "E o OpenAPI, que é outra coisa", level: 2 as const }, { id: 'onde-continuar', text: "Onde continuar", level: 2 as const }];
@@ -164,7 +164,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Referência da API"}
-      description={"Sete endpoints JSON com a linguagem inteira: sintaxe, 2153 símbolos, 63 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto."}
+      description={"Sete endpoints JSON com a linguagem inteira: sintaxe, 2153 símbolos, 63 comandos, 218 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto."}
       href={"/api"}
       headings={headings}
     >

@@ -142,8 +142,17 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               onClick={() => alternar(secao.title)}
               aria-expanded={aberta}
               aria-controls={idPainel}
+              /* A seção que contém a página atual fica ACENTUADA.
+                 Antes ela ficava `text-strong` — branco contra o cinza
+                 das outras —, e a diferença era pequena demais para
+                 dizer onde se está: numa barra com 40 seções, "um
+                 pouco mais claro" não localiza ninguém. O vermelho é a
+                 mesma cor do item ativo logo abaixo, e os dois juntos
+                 formam um caminho: a seção e a rota. */
               className={`nav-label flex w-full items-center justify-between rounded-lg px-2.5 py-[4.5px] transition-colors ${
-                contemAtual ? 'text-strong' : 'text-body hover:text-strong'
+                contemAtual
+                  ? 'text-accent'
+                  : 'text-body hover:text-strong'
               }`}
             >
               <span className="flex items-center gap-2 text-left">

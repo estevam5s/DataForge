@@ -1,24 +1,49 @@
 # -*- coding: utf-8 -*-
-"""A API pública do site — a referência que faltava.
+"""A pagina /api — e os numeros que ela NAO escreve a mao.
 
-Sete JSONs estavam no ar, com CORS, servidos de `/api/*.json`, e não
-havia uma linha documentando que existem. Uma API sem referência é uma
-API que ninguém usa: quem chega não sabe o que pedir nem o que vem de
-volta.
+Ela anunciava "2153 simbolos, 177 codigos de erro" e um JSON de
+exemplo com `"versao": "1.0.0"`. Os tres envelheceram: sao 2153
+simbolos, 218 erros, e a versao e 1.1.0.
+
+A trava de numeros globais nao pegou nenhum deles — ela confere um
+punhado de arquivos conhecidos, e o exemplo de JSON aqui dentro nao e
+um "numero solto", e uma resposta de API inteira.
+
+Agora eles vem de `dataforge` na hora de gerar, como todo o resto.
 """
+
+import os
+import sys
+
+_RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, _RAIZ)
+
+from dataforge import __version__ as VERSAO           # noqa: E402
+from dataforge.cli import COMANDOS                     # noqa: E402
+from dataforge.stdlib import get_module, list_modules  # noqa: E402
+import dataforge.catalogo_erros as _cat                # noqa: E402
+
+_OFICIAIS = {get_module(m)["__name__"] for m in set(list_modules())}
+
+#: Os numeros que a pagina cita, lidos do codigo.
+MODULOS = len(_OFICIAIS)
+SIMBOLOS = sum(len([k for k in get_module(n) if not k.startswith("__")])
+               for n in _OFICIAIS)
+COMANDOS_N = len({c.nome for c in COMANDOS.values()})
+ERROS = len(_cat.ERROS)
 
 PAGINAS = [
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/api",
 "title": "Referência da API",
-"description": "Sete endpoints JSON com a linguagem inteira: sintaxe, 2153 símbolos, 63 comandos, 177 códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
+"description": f"Sete endpoints JSON com a linguagem inteira: sintaxe, {SIMBOLOS} símbolos, {COMANDOS_N} comandos, {ERROS} códigos de erro e o inventário. Gerados do código-fonte, com CORS aberto.",
 "blocos": [
  {"p": "Tudo que esta documentação mostra está disponível como **JSON**, servido do próprio site, com `Access-Control-Allow-Origin: *`. Serve para gerar realce de sintaxe, autocompletar num editor que não fale LSP, uma folha de consulta, um bot, ou um site como este."},
  {"code": """curl -s https://dataforge-lang.vercel.app/api/index.json""", "lang": "bash"},
  {"code": """{
   "nome": "DataForge",
-  "versao": "1.0.0",
+  "versao": "1.1.0",
   "descricao": "API pública da linguagem: sintaxe, biblioteca, comandos e conteúdos.",
   "documentacao": "https://dataforge-lang.vercel.app/docs",
   "rotas": {
@@ -38,15 +63,15 @@ PAGINAS = [
    ["`/api/index.json`", "< 1 KB", "o índice — comece por aqui"],
    ["`/api/sintaxe.json`", "12 KB", "81 palavras reservadas, 32 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"],
    ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"],
-   ["`/api/modulos.json`", "166 KB", "75 módulos e **2153 símbolos**, com assinatura e resumo de cada um"],
+   ["`/api/modulos.json`", "166 KB", f"{MODULOS} módulos e **{SIMBOLOS} símbolos**, com assinatura e resumo de cada um"],
    ["`/api/comandos.json`", "29 KB", "63 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"],
-   ["`/api/erros.json`", "75 KB", "177 códigos de erro, com explicação, exemplo que provoca e como corrigir"],
+   ["`/api/erros.json`", "75 KB", f"{ERROS} códigos de erro, com explicação, exemplo que provoca e como corrigir"],
    ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
 
  {"h2": "`/api/sintaxe.json`"},
  {"p": "É o que um realce de sintaxe precisa, e cada palavra vem com o **equivalente** na linguagem de onde a pessoa vem:"},
  {"code": """{
-  "versao": "1.0.0",
+  "versao": "1.1.0",
   "extensao": ".df",
   "reservadas": [
     { "palavra": "action", "descricao": "declara uma função",
@@ -68,7 +93,7 @@ PAGINAS = [
  {"h2": "`/api/modulos.json`"},
  {"p": "O maior dos sete, e o que responde \"o que a biblioteca tem\":"},
  {"code": """{
-  "versao": "1.0.0",
+  "versao": "1.1.0",
   "total_modulos": 39,
   "total_simbolos": 1490,
   "modulos": [
@@ -86,7 +111,7 @@ PAGINAS = [
  {"p": "`apelidos` é o mesmo módulo por outro nome: `adopt Banco` e `adopt Arcane.Forge` carregam o **mesmo** objeto. Contá-los como módulos diferentes já fez o site anunciar 33 onde havia 29 — por isso a API traz o nome oficial e a lista de apelidos separada."},
 
  {"h2": "`/api/erros.json`"},
- {"p": "Cada um dos 177 códigos com o que provoca e o que resolve:"},
+ {"p": f"Cada um dos {ERROS} códigos com o que provoca e o que resolve:"},
  {"code": """{
   "codigo": "DF0101",
   "titulo": "Indentacao inconsistente",
@@ -186,8 +211,8 @@ doc := API.openapi(minha_api, {"titulo": "Loja", "versao": "2.0"})""", "lang": "
  {"h2": "Onde continuar"},
  {"cards": [
    {"href": "/docs/tecnicas/api", "title": "OpenAPI", "desc": "O contrato da SUA API, gerado das rotas do Kiln."},
-   {"href": "/docs/biblioteca", "title": "Biblioteca Arcane", "meta": "2153 símbolos", "desc": "O mesmo que /api/modulos.json, para ler."},
-   {"href": "/docs/erros", "title": "Códigos de erro", "meta": "177", "desc": "O mesmo que /api/erros.json."},
+   {"href": "/docs/biblioteca", "title": "Biblioteca Arcane", "meta": f"{SIMBOLOS} símbolos", "desc": "O mesmo que /api/modulos.json, para ler."},
+   {"href": "/docs/erros", "title": "Códigos de erro", "meta": f"{ERROS}", "desc": "O mesmo que /api/erros.json."},
    {"href": "/docs/pacotes/registro", "title": "O registro", "desc": "Como publicar um pacote, e por que ele é estático."}]},
 ]},
 ]

@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
 import { REPO, Redes } from './Redes';
+import dados from '@/lib/dados-gerados.json';
+
+/** A versão da LINGUAGEM, do código — nunca escrita aqui. */
+const VERSAO = dados.versaoDaLinguagem;
 
 const colunas = [
   {
@@ -76,7 +80,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>DataForge 1.0.0 · licença MIT · documentação em português</p>
+          <p>DataForge {VERSAO} · licença MIT · documentação em português</p>
           <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <a href={REPO} target="_blank" rel="noreferrer noopener" className="link-quiet">
               github.com/estevam5s/DataForge

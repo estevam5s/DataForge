@@ -96,7 +96,7 @@
      Daí o 'whitespace-nowrap': o rótulo de seção é um nome, e nome
      não se parte no meio. */
   .nav-label {
-    @apply whitespace-nowrap text-[11px] font-bold uppercase leading-[15px] tracking-[0.07em];
+    @apply whitespace-nowrap text-[12px] font-bold uppercase leading-[16px] tracking-[0.06em];
   }
 
   /* ── Conteúdo em prosa ─────────────────────────────────────────── */

@@ -202,3 +202,98 @@ def test_os_icones_usados_existem(icone):
     codigo = ler(CASCA)
     assert re.search(rf"^\s+{icone}: '", codigo, re.M), (
         f"'{icone}' e usado e nao esta em CAMINHOS")
+
+
+# ═══════════════════════════════════════════════════════════
+#  4. O que o PyPI mostra, e o que o site escreve a mao
+# ═══════════════════════════════════════════════════════════
+
+def test_o_readme_nao_usa_caminho_relativo_em_imagem():
+    """O PyPI serve o README SOZINHO, longe do repositorio.
+
+    `<img src="site/public/marca-favicon.svg">` funciona no GitHub,
+    que resolve o caminho contra a arvore, e vira um icone quebrado na
+    pagina do pacote — que e a primeira coisa que alguem ve ao decidir
+    se instala.
+
+    A trava e por CAMINHO e nao por extensao: qualquer 'src' que nao
+    comece com 'http' tem o mesmo destino.
+    """
+    fonte = ler(os.path.join(RAIZ, "README.md"))
+    relativas = re.findall(r'<img[^>]+src="(?!https?://)([^"]+)"', fonte)
+    assert not relativas, (
+        f"imagem com caminho relativo no README: {relativas}\n"
+        "O PyPI nao resolve caminho relativo — use a URL do site.")
+
+    markdown = re.findall(r"!\[[^\]]*\]\((?!https?://)([^)]+)\)", fonte)
+    assert not markdown, (
+        f"imagem Markdown com caminho relativo no README: {markdown}")
+
+
+def test_a_versao_do_site_sai_dos_dados_gerados():
+    """Ela aparecia escrita a mao em dois lugares MUITO visiveis — o
+    rodape de toda pagina e o botao da barra lateral — e os dois
+    ficaram dizendo 1.0.0 depois de a linguagem virar 1.1.0.
+
+    O numero agora vem de 'dados-gerados.json', que sai de
+    'dataforge.__version__'. E ele e diferente de 'mundo.versao', que
+    e a tag do ULTIMO RELEASE: entre um release e o proximo as duas
+    divergem, e o rodape fala da linguagem.
+    """
+    import json
+
+    dados = json.loads(ler(os.path.join(SITE, "lib", "dados-gerados.json")))
+    from dataforge import __version__
+    assert dados["versaoDaLinguagem"] == __version__
+
+    # A barra lateral mora em `CascaDocs.tsx` desde que `/api` passou a
+    # usar a mesma moldura — o layout de `/docs` so a instancia.
+    for arquivo in (os.path.join(SITE, "components", "Footer.tsx"),
+                    os.path.join(SITE, "components", "CascaDocs.tsx")):
+        codigo = sem_comentario(ler(arquivo))
+        assert "versaoDaLinguagem" in codigo, (
+            f"{os.path.basename(arquivo)} precisa ler a versao dos dados")
+        assert not re.search(r"\b\d+\.\d+\.\d+\b", codigo), (
+            f"{os.path.basename(arquivo)} voltou a escrever versao a mao")
+
+
+def test_a_pagina_api_tem_a_casca_da_documentacao():
+    """Ela renderizava um `DocPage` solto: sem cabecalho, sem barra
+    lateral, sem largura maxima — o titulo encostava na borda da
+    janela, e nao havia como sair da pagina."""
+    assert os.path.isfile(os.path.join(SITE, "app", "api", "layout.tsx"))
+    casca = os.path.join(SITE, "components", "CascaDocs.tsx")
+    assert os.path.isfile(casca), (
+        "a casca precisa ser um componente: duas copias da moldura "
+        "divergiriam no primeiro ajuste")
+    for rota in ("docs", "api"):
+        layout = ler(os.path.join(SITE, "app", rota, "layout.tsx"))
+        assert "CascaDaDocumentacao" in layout
+
+
+def test_o_indice_rola_sozinho_e_so_o_proprio_contentor():
+    """`scrollIntoView` rola TODOS os ancestrais rolaveis, e o de cima
+    e a janela: o indice puxaria a pagina junto, e a pessoa veria o
+    texto pular sozinho enquanto rola — pior que o problema."""
+    toc = sem_comentario(ler(os.path.join(SITE, "components", "Toc.tsx")))
+    assert "scrollIntoView" not in toc, (
+        "ele rolaria a janela junto; a conta tem de ser feita a mao")
+    assert "data-toc-rolagem" in toc
+    assert "scrollTo" in toc
+
+    doc = ler(os.path.join(SITE, "components", "Doc.tsx"))
+    assert "data-toc-rolagem" in doc, (
+        "sem a marca, o indice nao acha o contentor que ele deve rolar")
+
+
+def test_o_captcha_nao_tem_chave_embutida():
+    """Uma chave de reserva produzia o pior dos dois mundos: zero
+    protecao (o token so vale se o Supabase estiver com a Attack
+    Protection ligada) e cem por cento de quebra (o widget trava em
+    "Verificando…" quando o dominio nao esta na lista, ou quando o
+    navegador bloqueia scripts de terceiro).
+    """
+    codigo = sem_comentario(ler(os.path.join(SITE, "lib", "turnstile.ts")))
+    assert "0x4AAAAA" not in codigo, "voltou a chave embutida"
+    assert "NEXT_PUBLIC_TURNSTILE_SITE_KEY" in codigo
+    assert "?? ''" in codigo, "sem chave no ambiente, nao ha widget"

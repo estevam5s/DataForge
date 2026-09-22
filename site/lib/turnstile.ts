@@ -37,11 +37,42 @@
  * em `/docs/painel/seguranca` diz isso com todas as letras.
  */
 
-/** A chave de SITE. Pública, e substituível por ambiente. */
-export const CHAVE_DE_SITE =
-  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAAAAE90dNHbqVbe4OI8';
+/** A chave de SITE. Pública, e **só** vinda do ambiente. */
+export const CHAVE_DE_SITE = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
 
-/** Há widget a mostrar? Sem chave, o formulário segue sem ele. */
+/**
+ * Há widget a mostrar? Sem chave no ambiente, **não**.
+ *
+ * ─── Por que o padrão deixou de ser ligado ──────────────────────
+ *
+ * Havia uma chave embutida aqui como reserva, e ela produziu o pior
+ * dos dois mundos: **zero proteção e cem por cento de quebra**.
+ *
+ * Zero proteção porque o token só vale se o Supabase estiver com a
+ * Attack Protection ligada — quem confere é ele, não nós (o site é
+ * estático, e não há servidor nosso no caminho do login). Com a
+ * proteção desligada lá, o token é ignorado e o widget é decoração.
+ *
+ * E cem por cento de quebra porque o widget **trava em
+ * "Verificando…"** quando o domínio não está na lista da chave, ou
+ * quando o navegador bloqueia scripts de terceiro — o Brave com
+ * Shields, uma extensão de privacidade, uma rede corporativa. Nesses
+ * casos o `error-callback` **não dispara**: não há erro, há espera. A
+ * pessoa fica olhando um widget girando na frente do único caminho
+ * de entrada.
+ *
+ * Ligar isto é uma decisão de duas partes, e as duas são fora daqui:
+ *
+ *   1. registrar o domínio na chave, no painel da Cloudflare, e pôr
+ *      `NEXT_PUBLIC_TURNSTILE_SITE_KEY` no ambiente da Vercel;
+ *   2. ligar a Attack Protection no Supabase, com a chave SECRETA.
+ *
+ * Fazer só a primeira é o estado antigo: um obstáculo sem defesa
+ * atrás. Fazer só a segunda recusa todo login. É por isso que o
+ * padrão é não mostrar nada — e a proteção de verdade continua sendo
+ * a do servidor: `hash_password` com scrypt, limite de taxa por
+ * origem e atraso progressivo por conta.
+ */
 export const TURNSTILE_LIGADO = Boolean(CHAVE_DE_SITE);
 
 /** O endereço do script, com renderização explícita. */

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="site/public/marca-favicon.svg" alt="DataForge" width="120" height="120">
+<img src="https://dataforge-lang.vercel.app/marca-256.png" alt="DataForge" width="120" height="120">
 
 # DataForge
 
@@ -18,8 +18,8 @@ com vocabulário próprio.**
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](https://github.com/estevam5s/DataForge)
 [![PyPI](https://img.shields.io/badge/pypi-dataforge--lang-blue.svg)](https://pypi.org/project/dataforge-lang/)
-[![Tests](https://img.shields.io/badge/testes-1012%20passando-brightgreen.svg)](tests/)
-[![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-216%2F216-brightgreen.svg)](exercicios/)
+[![Tests](https://img.shields.io/badge/testes-4785%20passando-brightgreen.svg)](tests/)
+[![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-387%2F387-brightgreen.svg)](exercicios/)
 [![Runtime deps](https://img.shields.io/badge/depend%C3%AAncias%20no%20runtime-nenhuma-brightgreen.svg)](pyproject.toml)
 
 DataForge não é um DSL nem um transpilador. Tem **lexer, parser recursivo

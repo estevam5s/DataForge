@@ -21,6 +21,7 @@ REPO = os.path.dirname(SITE)
 sys.path.insert(0, REPO)
 
 from dataforge.stdlib import get_module, list_modules          # noqa: E402
+from dataforge import __version__
 from dataforge.tokens import KEYWORDS                          # noqa: E402
 
 
@@ -305,6 +306,15 @@ def main():
         "totalBuiltins": sum(len(v) for v in builtins.values()),
         "contagem": contar_o_repositorio(),
         "mundo": numeros_do_mundo(),
+        # A versao da LINGUAGEM, que nao e a mesma coisa que a tag do
+        # ultimo release ('mundo.versao'): a tag so muda quando alguem
+        # cria a tag, e entre um release e o proximo as duas divergem.
+        #
+        # O rodape e a barra lateral escreviam "1.0.0" a mao, e ficaram
+        # dizendo 1.0.0 depois de a linguagem virar 1.1.0. O numero
+        # aparece em toda pagina do site — e uma das coisas mais
+        # visiveis que havia para envelhecer calado.
+        "versaoDaLinguagem": __version__,
     }
 
     destino = os.path.join(SITE, "lib", "dados-gerados.json")
