@@ -576,7 +576,7 @@ dataforge palavras cycle                             # so o que fala de laco`, l
   {"h3": "erros"},
   {"p": "Lista o catalogo de erros da linguagem. Ver [a página](/docs/referencia/erros)."},
   { code: `dataforge erros [termo]`, lang: 'bash' },
-  { code: `Sao 218 codigos em 19 familias. Sem termo, lista tudo
+  { code: `Sao 219 codigos em 19 familias. Sem termo, lista tudo
 agrupado; com termo, procura no titulo e na explicacao.`, lang: 'text' },
   { code: `dataforge erros                                      # o catalogo inteiro
 dataforge erros banco                                # so o que fala de banco`, lang: 'bash' },

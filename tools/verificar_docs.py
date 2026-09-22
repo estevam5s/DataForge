@@ -236,13 +236,24 @@ def classificar(bloco):
     # Um bloco pode misturar código solto com uma rota: envolvê-lo
     # inteiro num 'server' quebraria o que vem antes, então o
     # tratamento é por trecho (veja preparar()).
+    # Antes do 'misto': um 'respond' RECUADO, sem 'route' nem 'server' no bloco: o trecho e
+    # o corpo de uma rota, mostrado sem a rota em volta.
+    if (any(l.lstrip().startswith(PALAVRAS_DE_ROTA) for l in linhas)
+            and not any(l.lstrip().startswith(("route ", "server "))
+                        for l in linhas)):
+        return "fragmento-rota"
     if _e_palavra_kiln(primeira):
         return "fragmento-kiln"
     if any(_e_palavra_kiln(l.lstrip())
            and re.match(rf"^\s*{p.strip()}\s", l)
            for l in linhas
-           for p in ("route", "respond", "render", "redirect")):
+           for p in ("route", "respond", "render", "redirect",
+                     "middleware")):
         return "misto-kiln"
+    # 'expect' so e palavra dentro de um 'trial': um trecho que o mostra
+    # solto e o corpo de um teste, e nao um programa.
+    if any(re.match(r"^expect[ (]", l) for l in linhas):
+        return "fragmento-trial"
     if any(primeira.startswith(p) for p in FRAGMENTOS_BLUEPRINT):
         return "fragmento-blueprint"
     if any(primeira.startswith(p) for p in FRAGMENTOS_CRUCIBLE):
@@ -307,30 +318,55 @@ def _e_palavra_kiln(texto):
     return False
 
 
+#: 'respond', 'render' e 'redirect' so existem dentro de uma ROTA — e
+#: nao so de um 'server'. Embrulhados so num 'server', eles compilavam
+#: por acidente: o parser aceitava 'respond json {…}' como DUAS
+#: instrucoes coladas na mesma linha, e o bloco passava sem ser o que
+#: parecia. Com a linha exigindo fim, isso virou erro, e o contexto
+#: certo passou a ser necessario.
+PALAVRAS_DE_ROTA = ("respond ", "render ", "redirect ")
+
+
+def _abre_contexto_kiln(linha):
+    """As linhas que abrem o contexto de uma palavra do Kiln."""
+    if linha.lstrip().startswith(PALAVRAS_DE_ROTA):
+        return ["server s on 0:", '    route GET "/":'], "        "
+    return ["server s on 0:"], "    "
+
+
 def preparar(codigo, tipo):
     """Envolve o fragmento no contexto em que ele será usado."""
+    if tipo == "fragmento-rota":
+        recuado = "\n".join("        " + l for l in codigo.split("\n"))
+        return 'server s on 0:\n    route GET "/":\n' + recuado
+    if tipo == "fragmento-trial":
+        recuado = "\n".join("        " + l for l in codigo.split("\n"))
+        return 'crucible "s":\n    trial "t":\n' + recuado
     if tipo == "misto-kiln":
         # Cada trecho que começa com uma palavra do Kiln ganha o seu
         # 'server'; o resto fica como está. É como o leitor usará.
-        saida, dentro = [], False
+        saida, dentro, recuo = [], False, "    "
         for linha in codigo.split("\n"):
             abre = _e_palavra_kiln(linha)
             if abre and not dentro:
-                saida.append("server s on 0:")
+                cabeca, recuo = _abre_contexto_kiln(linha)
+                saida.extend(cabeca)
                 dentro = True
             if dentro and linha.strip() and not linha.startswith((" ", "\t")):
                 if not abre:
                     dentro = False
                     saida.append(linha)
                     continue
-            saida.append("    " + linha if dentro and linha.strip() else linha)
+            saida.append(recuo + linha if dentro and linha.strip() else linha)
         return "\n".join(saida)
     if tipo == "fragmento-match":
         recuado = "\n".join("    " + l for l in codigo.split("\n"))
         return "match valor:\n" + recuado
     if tipo == "fragmento-kiln":
-        recuado = "\n".join("    " + l for l in codigo.split("\n"))
-        return 'server s on 0:\n' + recuado
+        primeira = next((l for l in codigo.split("\n") if l.strip()), "")
+        cabeca, recuo = _abre_contexto_kiln(primeira)
+        recuado = "\n".join(recuo + l for l in codigo.split("\n"))
+        return "\n".join(cabeca) + "\n" + recuado
     if tipo == "fragmento-blueprint":
         recuado = "\n".join("    " + l for l in codigo.split("\n"))
         return "blueprint B:\n" + recuado
@@ -381,6 +417,7 @@ def main():
     blocos = blocos_das_paginas()
     contagem = {"dataforge": 0, "fragmento-kiln": 0, "lavra": 0,
                 "fragmento-crucible": 0, "fragmento-monitor": 0,
+                "fragmento-trial": 0, "fragmento-rota": 0,
                 "fragmento-blueprint": 0, "fragmento-match": 0,
                 "misto-kiln": 0, "outro": 0}
     falhas = []
@@ -430,6 +467,8 @@ def main():
                       + contagem["fragmento-blueprint"]
                       + contagem["fragmento-match"]
                       + contagem["fragmento-crucible"]
+                      + contagem["fragmento-trial"]
+                      + contagem["fragmento-rota"]
                       + contagem["fragmento-monitor"]
                       + contagem["lavra"]
                       + contagem["misto-kiln"])

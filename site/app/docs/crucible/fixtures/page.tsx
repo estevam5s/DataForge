@@ -40,7 +40,7 @@ const blocos: Bloco[] = [
         Forge.fechar(db)
 
     trial "usa o banco":
-        expect banco() exists`, lang: 'df' },
+        expect banco() is not void`, lang: 'df' },
   {"callout": {"tipo": "dica", "titulo": "Por que juntos", "texto": "Escrever preparo e limpeza no mesmo lugar é o que impede a limpeza de ser esquecida — que é o modo mais comum de uma suíte passar a depender de ordem. Um recurso aberto e não fechado derruba o próximo teste por um motivo que não é dele."}},
   {"h2": "Suítes aninhadas"},
   {"p": "Uma suíte dentro de outra herda os ganchos e as fixtures da de fora:"},

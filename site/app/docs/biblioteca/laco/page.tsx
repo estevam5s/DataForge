@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Funções (25)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`a_cada(laco, ms, acao, rotulo='')`"], ["`agendar(laco, acao, rotulo='')`"], ["`apos(laco, ms, acao, rotulo='')`"], ["`cancelada(alvo)`"], ["`cancelar(alvo)`"], ["`ceder()`"], ["`depois_de(ms, caixa, chave, valor='pronto')`"], ["`dormir(ms)`"], ["`escrever(soquete)`"], ["`esperar(outra)`"], ["`esquecer(laco, soquete)`"], ["`estatisticas(laco)`"], ["`executar(laco, trabalho, depois=None)`"], ["`falhas(laco)`"], ["`fechar(laco)`"], ["`fibra(laco, acao, argumentos=None, nome='')`"], ["`fibras(laco)`"], ["`ler(soquete, caixa, chave, quanto=65536)`"], ["`mecanismo(laco)`"], ["`novo(teto=None)`"], ["`parar(laco)`"], ["`pedidos()`"], ["`quando_escrever(laco, soquete, acao)`"], ["`quando_ler(laco, soquete, acao)`"], ["`rodar(laco, voltas=None)`"]]}},
+  {"h2": "Funções (29)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`Canal(capacidade=0, nome='canal')`"], ["`a_cada(laco, ms, acao, rotulo='')`"], ["`agendar(laco, acao, rotulo='')`"], ["`apos(laco, ms, acao, rotulo='')`"], ["`canal(capacidade=0, nome='canal')`"], ["`cancelada(alvo)`"], ["`cancelar(alvo)`"], ["`ceder()`"], ["`depois_de(ms, caixa, chave, valor='pronto')`"], ["`dormir(ms)`"], ["`enviar(canal_alvo, valor)`"], ["`escrever(soquete)`"], ["`esperar(outra)`"], ["`esquecer(laco, soquete)`"], ["`estatisticas(laco)`"], ["`executar(laco, trabalho, depois=None)`"], ["`falhas(laco)`"], ["`fechar(laco)`"], ["`fibra(laco, acao, argumentos=None, nome='')`"], ["`fibras(laco)`"], ["`ler(soquete, caixa, chave, quanto=65536)`"], ["`mecanismo(laco)`"], ["`novo(teto=None)`"], ["`parar(laco)`"], ["`pedidos()`"], ["`quando_escrever(laco, soquete, acao)`"], ["`quando_ler(laco, soquete, acao)`"], ["`receber(canal_alvo, caixa, chave='valor')`"], ["`rodar(laco, voltas=None)`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-25', text: "Funções (25)", level: 2 as const }];
+const headings = [{ id: 'funcoes-29', text: "Funções (29)", level: 2 as const }];
 
 export default function Pagina() {
   return (

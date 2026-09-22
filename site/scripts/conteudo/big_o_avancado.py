@@ -256,7 +256,9 @@ out $"fator ao dobrar: {r['fator']}"
 c := B.classe(lambda xs: sorted(xs), [4000, 8000, 16000],
     lambda n: range(n, 0, -1))
 out $"classe medida: {c['classe']} ({c['certeza']}, candidatas {c['classes']})"
-assert c["classe"] in ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n^2)", "O(n^3)", "O(2^n)"]""", "lang": "df"},
+// Numa máquina carregada a resposta pode ser "entre O(n) e O(n^2)": a
+// medição não separa as duas, e dizer isso é mais honesto que escolher.
+assert len(c["classes"]) bigger_eq 1 and len(c["classe"]) bigger 0""", "lang": "df"},
  {"callout": {"tipo": "atencao", "titulo": "A medida pode não separar duas classes — e diz isso", "texto": "O(n) e O(n log n) dão fatores parecidos ao dobrar o n (2,0 contra ~2,1). Quando a amostra cabe nas duas, `classe` devolve as duas em `classes` e `certeza` *“entre duas”*: dizer `O(n)` sobre uma medida que também cabe em `O(n log n)` seria inventar precisão."}},
  {"table": {"head": ["Regra da medida", "Porque"], "rows": [
    ["compare **fatores**, nunca milissegundos", "o número absoluto mede a máquina"],

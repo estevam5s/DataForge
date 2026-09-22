@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "85 módulos e 2223 símbolos, sem uma única dependência externa.",
+  description: "85 módulos e 2280 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os 85 módulos"
   },
   {
-    "p": "São **2223 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **2280 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -42,7 +42,7 @@ const blocos: Bloco[] = [
         ],
         [
           "[`Kiln`](/docs/kiln)",
-          "73",
+          "80",
           "Framework web: rotas, middleware, templates, sessão e arquivos estáticos."
         ],
         [
@@ -132,8 +132,13 @@ const blocos: Bloco[] = [
         ],
         [
           "[`Arcane.Telegram`](/docs/biblioteca/telegram)",
-          "34",
+          "37",
           "Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede."
+        ],
+        [
+          "[`Arcane.Concurrent`](/docs/biblioteca/concurrent)",
+          "35",
+          "Threads, processos, canal bloqueante, grupo de tarefas e prazo."
         ],
         [
           "[`Arcane.Test`](/docs/biblioteca/test)",
@@ -141,9 +146,9 @@ const blocos: Bloco[] = [
           "Asserções e organização de suítes de teste."
         ],
         [
-          "[`Arcane.Concurrent`](/docs/biblioteca/concurrent)",
+          "[`Arcane.Estrutura`](/docs/biblioteca/estrutura)",
           "33",
-          "Threads, processos, canal bloqueante, grupo de tarefas e prazo."
+          "Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. Fica entre o Arcane.Bytes, que empacota por formato posicional, e o Arcane.C, que exige FFI."
         ],
         [
           "[`Arcane.IO`](/docs/biblioteca/io)",
@@ -161,6 +166,16 @@ const blocos: Bloco[] = [
           "Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame."
         ],
         [
+          "[`Arcane.Laco`](/docs/biblioteca/laco)",
+          "29",
+          "O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'."
+        ],
+        [
+          "[`Arcane.Compilador`](/docs/biblioteca/compilador)",
+          "26",
+          "O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore."
+        ],
+        [
           "[`Arcane.Serialization`](/docs/biblioteca/serialization)",
           "26",
           "JSON, CSV, INI, TOML, XML e conversões entre eles."
@@ -171,19 +186,14 @@ const blocos: Bloco[] = [
           "Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo."
         ],
         [
+          "[`Arcane.C`](/docs/biblioteca/c)",
+          "25",
+          "Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia."
+        ],
+        [
           "[`Arcane.Cortex`](/docs/biblioteca/cortex)",
           "25",
           "Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA."
-        ],
-        [
-          "[`Arcane.Laco`](/docs/biblioteca/laco)",
-          "25",
-          "O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'."
-        ],
-        [
-          "[`Arcane.Compilador`](/docs/biblioteca/compilador)",
-          "24",
-          "O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore."
         ],
         [
           "[`Arcane.Memoria`](/docs/biblioteca/memoria)",
@@ -191,14 +201,19 @@ const blocos: Bloco[] = [
           "O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, instâncias vivas por blueprint, tamanho e layout. E o COLETOR sob controle: ligar, desligar, 'sem_gc' num trecho sensível a latência (que religa mesmo se o corpo falhar), limiares por geração, 'congelar' o que já vive para tirá-lo das varreduras, e a conta por geração. Mais a arena: um lote preparado de uma vez e reaproveitado, com 'limpar' soltando tudo numa chamada."
         ],
         [
-          "[`Arcane.C`](/docs/biblioteca/c)",
+          "[`Arcane.Dominio`](/docs/biblioteca/dominio)",
           "23",
-          "Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia."
+          "As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o \"nao\"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira)."
         ],
         [
           "[`Arcane.Malha`](/docs/biblioteca/malha)",
           "23",
           "Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido."
+        ],
+        [
+          "[`Arcane.Observar`](/docs/biblioteca/observar)",
+          "22",
+          "Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados."
         ],
         [
           "[`Arcane.Padroes`](/docs/biblioteca/padroes)",
@@ -211,16 +226,6 @@ const blocos: Bloco[] = [
           "O que um programa precisa para viver no GitHub: no Actions, saídas, variáveis e resumo com delimitador seguro, anotações escapadas que aparecem na linha do PR, máscara linha a linha e grupos; webhooks com assinatura HMAC conferida em tempo constante sobre os bytes originais; e a API REST com paginação por Link e o limite de taxa que sobrou."
         ],
         [
-          "[`Arcane.Observar`](/docs/biblioteca/observar)",
-          "19",
-          "Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados."
-        ],
-        [
-          "[`Arcane.Dominio`](/docs/biblioteca/dominio)",
-          "18",
-          "As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o \"nao\"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira)."
-        ],
-        [
           "[`Arcane.Dsl`](/docs/biblioteca/dsl)",
           "18",
           "Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado."
@@ -229,6 +234,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Lago`](/docs/biblioteca/lago)",
           "18",
           "Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação."
+        ],
+        [
+          "[`Arcane.Reativo`](/docs/biblioteca/reativo)",
+          "18",
+          "Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). A diferenca entre valor e fluxo e mantida de proposito: um clique e fluxo, um saldo e valor."
         ],
         [
           "[`Arcane.Http`](/docs/biblioteca/http)",
@@ -266,9 +276,9 @@ const blocos: Bloco[] = [
           "TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host."
         ],
         [
-          "[`Arcane.Estrutura`](/docs/biblioteca/estrutura)",
+          "[`Arcane.Inicio`](/docs/biblioteca/inicio)",
           "15",
-          "Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. Fica entre o Arcane.Bytes, que empacota por formato posicional, e o Arcane.C, que exige FFI."
+          "O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que o programa demora a comecar?' sem cronometrar a mao. Mais armazenamento por THREAD com inicializacao e finalizador (o 'threading.local' da o armazem e nao da o resto), e a pilha que se pergunta: profundidade, teto, quanto falta e os quadros abertos."
         ],
         [
           "[`Arcane.Process`](/docs/biblioteca/process)",
@@ -279,11 +289,6 @@ const blocos: Bloco[] = [
           "[`Arcane.Logging`](/docs/biblioteca/logging)",
           "14",
           "Registro estruturado de eventos, com níveis e destinos."
-        ],
-        [
-          "[`Arcane.Reativo`](/docs/biblioteca/reativo)",
-          "14",
-          "Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). A diferenca entre valor e fluxo e mantida de proposito: um clique e fluxo, um saldo e valor."
         ],
         [
           "[`Arcane.Url`](/docs/biblioteca/url)",
@@ -331,11 +336,6 @@ const blocos: Bloco[] = [
           "A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo."
         ],
         [
-          "[`Arcane.Inicio`](/docs/biblioteca/inicio)",
-          "12",
-          "O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que o programa demora a comecar?' sem cronometrar a mao. Mais armazenamento por THREAD com inicializacao e finalizador (o 'threading.local' da o armazem e nao da o resto), e a pilha que se pergunta: profundidade, teto, quanto falta e os quadros abertos."
-        ],
-        [
           "[`Arcane.Meta`](/docs/biblioteca/meta)",
           "12",
           "Metadados de decorador: ler @Nome em tempo de execução."
@@ -344,6 +344,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Ponte`](/docs/biblioteca/ponte)",
           "12",
           "A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve."
+        ],
+        [
+          "[`Arcane.Ecossistema`](/docs/biblioteca/ecossistema)",
+          "11",
+          "O inventario da implementacao, CONFERIDO contra ela. Cada componente do desenho do ecossistema aponta arquivos de verdade e carrega um de tres estados: 'existe', 'equivale' (ha outra peca que responde a mesma pergunta, nomeada) ou 'nao-existe' (com o porque escrito). 'conferir()' cobra as duas direcoes — todo caminho citado existe no disco, e todo modulo do nucleo aparece em algum componente —, e e isso que impede o mapa de mentir quando uma peca muda de nome. 'o_que_nao_existe()' e a resposta honesta a 'o DataForge tem backend LLVM?'."
         ],
         [
           "[`Arcane.Html`](/docs/biblioteca/html)",
@@ -359,6 +364,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Web`](/docs/biblioteca/web)",
           "11",
           "Cliente HTTP, URL encoding e JSON."
+        ],
+        [
+          "[`Arcane.Abi`](/docs/biblioteca/abi)",
+          "10",
+          "A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. Compara duas versoes e diz o que quebrou (simbolo removido, aridade incompativel, parametro renomeado, tipo trocado, campo novo obrigatorio) e qual bump de semver a mudanca EXIGE. Mais o mapa de simbolos: de onde vem cada nome, o analogo do mapa que um ligador escreve."
         ],
         [
           "[`Arcane.Eventos`](/docs/biblioteca/eventos)",
@@ -384,16 +394,6 @@ const blocos: Bloco[] = [
           "[`Arcane.Tipos`](/docs/biblioteca/tipos)",
           "10",
           "Reflexao sobre tipos: os metadados de um 'type' declarado (especie, base, regra, opaco), 'satisfaz' para conferir sem levantar, a forma ESTRUTURAL de um valor ('Cluster<Integer>', 'Tuple<Integer, String>') e os campos de um record ou instancia com o tipo de cada um."
-        ],
-        [
-          "[`Arcane.Ecossistema`](/docs/biblioteca/ecossistema)",
-          "9",
-          "O inventario da implementacao, CONFERIDO contra ela. Cada componente do desenho do ecossistema aponta arquivos de verdade e carrega um de tres estados: 'existe', 'equivale' (ha outra peca que responde a mesma pergunta, nomeada) ou 'nao-existe' (com o porque escrito). 'conferir()' cobra as duas direcoes — todo caminho citado existe no disco, e todo modulo do nucleo aparece em algum componente —, e e isso que impede o mapa de mentir quando uma peca muda de nome. 'o_que_nao_existe()' e a resposta honesta a 'o DataForge tem backend LLVM?'."
-        ],
-        [
-          "[`Arcane.Abi`](/docs/biblioteca/abi)",
-          "8",
-          "A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. Compara duas versoes e diz o que quebrou (simbolo removido, aridade incompativel, parametro renomeado, tipo trocado, campo novo obrigatorio) e qual bump de semver a mudanca EXIGE. Mais o mapa de simbolos: de onde vem cada nome, o analogo do mapa que um ligador escreve."
         ],
         [
           "[`Arcane.API`](/docs/biblioteca/api)",
@@ -523,7 +523,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"85 módulos e 2223 símbolos, sem uma única dependência externa."}
+      description={"85 módulos e 2280 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

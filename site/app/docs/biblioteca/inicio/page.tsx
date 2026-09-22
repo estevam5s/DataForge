@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Funções (12)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`adocoes()`"], ["`definir(a, v)`"], ["`fases()`"], ["`limite_da_pilha(novo=None)`"], ["`limpar(a)`"], ["`local(inicial, ao_terminar=None, nome='')`"], ["`meu(a)`"], ["`pilha()`"], ["`quadros()`"], ["`relatorio()`"], ["`texto_do_relatorio()`"], ["`threads_com_valor(a)`"]]}},
+  {"h2": "Funções (15)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`adocoes()`"], ["`ao_encerrar(acao)`"], ["`definir(a, v)`"], ["`encerrando()`"], ["`esquecer_encerramento(chave)`"], ["`fases()`"], ["`limite_da_pilha(novo=None)`"], ["`limpar(a)`"], ["`local(inicial, ao_terminar=None, nome='')`"], ["`meu(a)`"], ["`pilha()`"], ["`quadros()`"], ["`relatorio()`"], ["`texto_do_relatorio()`"], ["`threads_com_valor(a)`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-12', text: "Funções (12)", level: 2 as const }];
+const headings = [{ id: 'funcoes-15', text: "Funções (15)", level: 2 as const }];
 
 export default function Pagina() {
   return (

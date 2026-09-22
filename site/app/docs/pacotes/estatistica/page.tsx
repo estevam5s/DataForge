@@ -16,9 +16,9 @@ const blocos: Bloco[] = [
   {"h2": "Uso"},
   { code: `adopt estatistica as E
 
-out E.media([1, 2, 3, 4])        // 2.5
+out E.media([1, 2, 3, 4])        // dá 2.5
 out E.resumo(vendas)             // média, mediana, desvio, quartis
-out E.correlacao(x, y)           // -1.0 a 1.0`, lang: 'df' },
+out E.correlacao(x, y)           // entre -1.0 e 1.0`, lang: 'df' },
   {"h2": "API"},
   {"p": "O que `relay` exporta — 20 símbolos:"},
   { code: `soma(v)

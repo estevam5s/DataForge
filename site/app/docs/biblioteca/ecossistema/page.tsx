@@ -16,11 +16,11 @@ export const metadata: Metadata = {
 const blocos: Bloco[] = [
   {"h2": "Constantes"},
   {"table": {"head": ["Nome", "Valor"], "rows": [["`ESTADOS`", "`[\"existe\", \"equivale\", \"nao-existe\"]`"]]}},
-  {"h2": "Funções (8)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`arvore()`"], ["`componentes()`"], ["`conferir()`"], ["`equivalencias()`"], ["`grupos()`"], ["`numeros()`"], ["`o_que_nao_existe()`"], ["`relatorio()`"]]}},
+  {"h2": "Funções (10)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`arvore()`"], ["`componentes()`"], ["`conferir()`"], ["`definir(termo)`"], ["`equivalencias()`"], ["`glossario()`"], ["`grupos()`"], ["`numeros()`"], ["`o_que_nao_existe()`"], ["`relatorio()`"]]}},
 ];
 
-const headings = [{ id: 'constantes', text: "Constantes", level: 2 as const }, { id: 'funcoes-8', text: "Funções (8)", level: 2 as const }];
+const headings = [{ id: 'constantes', text: "Constantes", level: 2 as const }, { id: 'funcoes-10', text: "Funções (10)", level: 2 as const }];
 
 export default function Pagina() {
   return (

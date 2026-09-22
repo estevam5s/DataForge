@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Funções (23)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`Biblioteca(lib, nome, caminho)`"], ["`Bloco(quantos)`"], ["`Ponteiro(endereco=0, tipo='u8')`"], ["`RetornoDeChamada(acao, argumentos, retorno)`"], ["`alinhamento_de(tipo)`"], ["`alocar(bytes_quantos)`"], ["`carregar(alvo, procurar=True)`"], ["`copiar(destino, origem, quantos)`"], ["`de_bytes(dados)`"], ["`do_processo()`"], ["`endianness()`"], ["`enumeracao(pares)`"], ["`estrutura(campos)`"], ["`liberar(bloco)`"], ["`matematica()`"], ["`nulo(tipo='u8')`"], ["`padrao()`"], ["`para_bytes(alvo, quantos)`"], ["`ponteiro(alvo, tipo='u8')`"], ["`retorno_de_chamada(acao, argumentos=None, retorno='void')`"], ["`tamanho_de(tipo)`"], ["`tipos()`"], ["`uniao(campos)`"]]}},
+  {"h2": "Funções (25)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`Biblioteca(lib, nome, caminho)`"], ["`Bloco(quantos)`"], ["`Ponteiro(endereco=0, tipo='u8')`"], ["`RetornoDeChamada(acao, argumentos, retorno)`"], ["`alinhamento_de(tipo)`"], ["`alocar(bytes_quantos)`"], ["`carregar(alvo, procurar=True)`"], ["`copiar(destino, origem, quantos)`"], ["`de_bytes(dados)`"], ["`do_processo()`"], ["`endianness()`"], ["`enumeracao(pares)`"], ["`errno()`"], ["`estrutura(campos)`"], ["`liberar(bloco)`"], ["`matematica()`"], ["`nulo(tipo='u8')`"], ["`padrao()`"], ["`para_bytes(alvo, quantos)`"], ["`ponteiro(alvo, tipo='u8')`"], ["`retorno_de_chamada(acao, argumentos=None, retorno='void')`"], ["`tamanho_de(tipo)`"], ["`tipos()`"], ["`uniao(campos)`"], ["`zerar_errno()`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-23', text: "Funções (23)", level: 2 as const }];
+const headings = [{ id: 'funcoes-25', text: "Funções (25)", level: 2 as const }];
 
 export default function Pagina() {
   return (

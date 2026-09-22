@@ -69,7 +69,8 @@ route GET "/mudou-de-vez":
     respond file "/tmp/r.xlsx"
 
 // forçando o download com um nome
-respond Kiln.file("/tmp/r.xlsx", void, "relatorio-marco.xlsx")` },
+route GET "/download":
+    respond Kiln.file("/tmp/r.xlsx", void, "relatorio-marco.xlsx")` },
   {"h2": "Páginas de erro"},
   { code: `Kiln.on_error(app, 404, lambda req => Kiln.html(
     "<h1>404</h1><p>Não achei essa página.</p>", 404))

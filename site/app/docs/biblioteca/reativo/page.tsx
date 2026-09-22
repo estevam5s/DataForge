@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Funções (14)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`Derivado(formula, nome='derivado')`"], ["`Efeito(acao, nome='efeito', agora=True)`"], ["`Inscricao(cancelar)`"], ["`Observavel(nome='observavel')`"], ["`Sinal(inicial=None, nome='sinal', iguais=None)`"], ["`combinar(*fontes)`"], ["`de_cluster(itens, nome='de_cluster')`"], ["`derivado(formula, nome='derivado')`"], ["`efeito(acao, nome='efeito', agora=True)`"], ["`intervalo(segundos, quantos=0, nome='intervalo')`"], ["`juntar(*fontes)`"], ["`lote(acao)`"], ["`observavel(nome='observavel')`"], ["`sinal(inicial=None, nome='sinal', iguais=None)`"]]}},
+  {"h2": "Funções (18)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`Derivado(formula, nome='derivado')`"], ["`Efeito(acao, nome='efeito', agora=True)`"], ["`Historico(alvo, limite=100)`"], ["`Inscricao(cancelar)`"], ["`Observavel(nome='observavel')`"], ["`Recurso(buscar, fonte=None)`"], ["`Sinal(inicial=None, nome='sinal', iguais=None)`"], ["`combinar(*fontes)`"], ["`de_cluster(itens, nome='de_cluster')`"], ["`derivado(formula, nome='derivado')`"], ["`efeito(acao, nome='efeito', agora=True)`"], ["`historico(alvo, limite=100)`"], ["`intervalo(segundos, quantos=0, nome='intervalo')`"], ["`juntar(*fontes)`"], ["`lote(acao)`"], ["`observavel(nome='observavel')`"], ["`recurso(buscar, fonte=None)`"], ["`sinal(inicial=None, nome='sinal', iguais=None)`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-14', text: "Funções (14)", level: 2 as const }];
+const headings = [{ id: 'funcoes-18', text: "Funções (18)", level: 2 as const }];
 
 export default function Pagina() {
   return (

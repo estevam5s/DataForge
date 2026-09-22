@@ -48,6 +48,11 @@
    "curto": "Abi",
    "funcoes": [
     {
+     "nome": "changelog",
+     "sig": "(antes, depois, versao)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "comparar",
      "sig": "(antes, depois)",
      "tipo": "funcao"
@@ -60,6 +65,11 @@
     {
      "nome": "mapa",
      "sig": "(caminho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "proxima_versao",
+     "sig": "(atual, antes, depois)",
      "tipo": "funcao"
     },
     {
@@ -1129,6 +1139,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "errno",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
      "nome": "estrutura",
      "sig": "(campos)",
      "tipo": "funcao"
@@ -1181,6 +1196,11 @@
     {
      "nome": "uniao",
      "sig": "(campos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "zerar_errno",
+     "sig": "()",
      "tipo": "funcao"
     }
    ]
@@ -2026,6 +2046,16 @@
      "tipo": "funcao"
     },
     {
+     "nome": "dominancia",
+     "sig": "(fonte, nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dot",
+     "sig": "(fonte, nome)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "escapam",
      "sig": "(fonte, nome)",
      "tipo": "funcao"
@@ -2118,6 +2148,11 @@
    "curto": "Concurrent / Paralelo",
    "funcoes": [
     {
+     "nome": "Ator",
+     "sig": "(comportamento, estado, nome, ao_falhar)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "anel",
      "sig": "(capacidade)",
      "tipo": "funcao"
@@ -2125,6 +2160,11 @@
     {
      "nome": "atomico",
      "sig": "(inicial)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ator",
+     "sig": "(comportamento, estado, nome, ao_falhar)",
      "tipo": "funcao"
     },
     {
@@ -3539,6 +3579,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "Armazem",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
      "nome": "Contexto",
      "sig": "(nome)",
      "tipo": "funcao"
@@ -3551,6 +3596,11 @@
     {
      "nome": "Evento",
      "sig": "(nome, dados, origem, tipo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Projecao",
+     "sig": "(aplicadores, inicial)",
      "tipo": "funcao"
     },
     {
@@ -3579,6 +3629,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "armazem",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
      "nome": "contexto",
      "sig": "(nome)",
      "tipo": "funcao"
@@ -3596,6 +3651,16 @@
     {
      "nome": "novo_id",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "projecao",
+     "sig": "(aplicadores, inicial)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "reconstituir",
+     "sig": "(eventos, aplicadores, inicial)",
      "tipo": "funcao"
     },
     {
@@ -3748,7 +3813,17 @@
      "tipo": "funcao"
     },
     {
+     "nome": "definir",
+     "sig": "(termo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "equivalencias",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "glossario",
      "sig": "()",
      "tipo": "funcao"
     },
@@ -3832,6 +3907,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "MoldeDeBits",
+     "sig": "(nome, campos, largura)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "Ponteiro",
      "sig": "(bloco_alvo, tipo, deslocamento, ordem)",
      "tipo": "funcao"
@@ -3842,8 +3922,48 @@
      "tipo": "funcao"
     },
     {
+     "nome": "bit_ligado",
+     "sig": "(a, posicao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bits_e",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bits_nao",
+     "sig": "(a, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bits_ou",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "bits_xou",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "bloco",
      "sig": "(tamanho_ou_dados)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "campos_de_bits",
+     "sig": "(nome, campos, largura)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contar_uns",
+     "sig": "(a)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "crc32",
+     "sig": "(dados, inicial)",
      "tipo": "funcao"
     },
     {
@@ -3857,6 +3977,21 @@
      "tipo": "funcao"
     },
     {
+     "nome": "desfazer_zigzag",
+     "sig": "(numero)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "desligar_bit",
+     "sig": "(a, posicao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "deslocar",
+     "sig": "(a, casas)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "janela",
      "sig": "(alvo, molde, deslocamento)",
      "tipo": "funcao"
@@ -3864,6 +3999,21 @@
     {
      "nome": "janelas",
      "sig": "(alvo, molde, quantos, deslocamento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ler_varint",
+     "sig": "(dados, deslocamento)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ligar_bit",
+     "sig": "(a, posicao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mapear",
+     "sig": "(caminho, escrita)",
      "tipo": "funcao"
     },
     {
@@ -3887,8 +4037,23 @@
      "tipo": "funcao"
     },
     {
+     "nome": "trocar_ordem",
+     "sig": "(valor, tipo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "uniao",
      "sig": "(nome, campos, ordem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "varint",
+     "sig": "(numero)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "zigzag",
+     "sig": "(numero)",
      "tipo": "funcao"
     }
    ]
@@ -5079,8 +5244,23 @@
      "tipo": "funcao"
     },
     {
+     "nome": "ao_encerrar",
+     "sig": "(acao)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "definir",
      "sig": "(a, v)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "encerrando",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esquecer_encerramento",
+     "sig": "(chave)",
      "tipo": "funcao"
     },
     {
@@ -5527,6 +5707,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "cursor",
+     "sig": "(dados, segredo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "delete",
      "sig": "(app, padrao, handler)",
      "tipo": "funcao"
@@ -5534,6 +5719,11 @@
     {
      "nome": "escape",
      "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "etiqueta",
+     "sig": "(valor)",
      "tipo": "funcao"
     },
     {
@@ -5592,8 +5782,18 @@
      "tipo": "funcao"
     },
     {
+     "nome": "ler_cursor",
+     "sig": "(texto, segredo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "limite_de_corpo",
      "sig": "(bytes_maximos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "links",
+     "sig": "(caminho, pagina, paginas, parametro)",
      "tipo": "funcao"
     },
     {
@@ -5609,6 +5809,11 @@
     {
      "nome": "mount",
      "sig": "(app, prefixo, outro)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "negociar",
+     "sig": "(req, oferecidos)",
      "tipo": "funcao"
     },
     {
@@ -5639,6 +5844,16 @@
     {
      "nome": "post",
      "sig": "(app, padrao, handler)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "precondicao",
+     "sig": "(req, etiqueta_atual, exigir)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "problema",
+     "sig": "(status, titulo, detalhe, tipo, extras, instancia)",
      "tipo": "funcao"
     },
     {
@@ -5809,6 +6024,11 @@
    "curto": "Laco / Reator",
    "funcoes": [
     {
+     "nome": "Canal",
+     "sig": "(capacidade, nome)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "a_cada",
      "sig": "(laco, ms, acao, rotulo)",
      "tipo": "funcao"
@@ -5821,6 +6041,11 @@
     {
      "nome": "apos",
      "sig": "(laco, ms, acao, rotulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "canal",
+     "sig": "(capacidade, nome)",
      "tipo": "funcao"
     },
     {
@@ -5846,6 +6071,11 @@
     {
      "nome": "dormir",
      "sig": "(ms)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "enviar",
+     "sig": "(canal_alvo, valor)",
      "tipo": "funcao"
     },
     {
@@ -5926,6 +6156,11 @@
     {
      "nome": "quando_ler",
      "sig": "(laco, soquete, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "receber",
+     "sig": "(canal_alvo, caixa, chave)",
      "tipo": "funcao"
     },
     {
@@ -7386,6 +7621,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "alerta_slo",
+     "sig": "(objetivo, longa, curta, limiar)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "alertar",
      "sig": "(painel, regras)",
      "tipo": "funcao"
@@ -7436,6 +7676,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "orcamento",
+     "sig": "(objetivo, total, falhas)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "origem",
      "sig": "(painel, nome, profundidade)",
      "tipo": "funcao"
@@ -7448,6 +7693,11 @@
     {
      "nome": "prometheus",
      "sig": "(painel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "queima",
+     "sig": "(objetivo, total, falhas)",
      "tipo": "funcao"
     },
     {
@@ -8277,6 +8527,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "Historico",
+     "sig": "(alvo, limite)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "Inscricao",
      "sig": "(cancelar)",
      "tipo": "funcao"
@@ -8284,6 +8539,11 @@
     {
      "nome": "Observavel",
      "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Recurso",
+     "sig": "(buscar, fonte)",
      "tipo": "funcao"
     },
     {
@@ -8312,6 +8572,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "historico",
+     "sig": "(alvo, limite)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "intervalo",
      "sig": "(segundos, quantos, nome)",
      "tipo": "funcao"
@@ -8329,6 +8594,11 @@
     {
      "nome": "observavel",
      "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "recurso",
+     "sig": "(buscar, fonte)",
      "tipo": "funcao"
     },
     {
@@ -9595,6 +9865,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "dividir",
+     "sig": "(texto, limite)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "escapar",
      "sig": "(texto)",
      "tipo": "funcao"
@@ -9625,6 +9900,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "ler_pagina",
+     "sig": "(dados, prefixo)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "limitar",
      "sig": "(por_segundo, por_chat_por_minuto)",
      "tipo": "funcao"
@@ -9647,6 +9927,11 @@
     {
      "nome": "negrito",
      "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "paginado",
+     "sig": "(itens, pagina, por_pagina, prefixo)",
      "tipo": "funcao"
     },
     {
@@ -15269,7 +15554,7 @@
  },
  "totalBuiltins": 231,
  "contagem": {
-  "testes": 3702,
+  "testes": 3808,
   "exemplos": 50,
   "arquivosDf": 503
  },

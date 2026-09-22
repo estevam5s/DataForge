@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Funções (15)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`Bloco(tamanho_ou_dados=0)`"], ["`Janela(bloco_alvo, molde, deslocamento=0)`"], ["`Molde(nome, campos, ordem='rede', empacotado=False)`"], ["`Ponteiro(bloco_alvo, tipo='u8', deslocamento=0, ordem='rede')`"], ["`alinhamento_de(tipo_ou_molde)`"], ["`bloco(tamanho_ou_dados=0)`"], ["`de_bytes(dados)`"], ["`definir(nome, campos, ordem='rede', empacotado=False)`"], ["`janela(alvo, molde, deslocamento=0)`"], ["`janelas(alvo, molde, quantos=None, deslocamento=0)`"], ["`nulo()`"], ["`ponteiro(alvo, tipo='u8', deslocamento=0, ordem='rede')`"], ["`tamanho_de(tipo_ou_molde)`"], ["`tipos()`"], ["`uniao(nome, campos, ordem='rede')`"]]}},
+  {"h2": "Funções (33)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`Bloco(tamanho_ou_dados=0)`"], ["`Janela(bloco_alvo, molde, deslocamento=0)`"], ["`Molde(nome, campos, ordem='rede', empacotado=False)`"], ["`MoldeDeBits(nome, campos, largura=8)`"], ["`Ponteiro(bloco_alvo, tipo='u8', deslocamento=0, ordem='rede')`"], ["`alinhamento_de(tipo_ou_molde)`"], ["`bit_ligado(a, posicao)`"], ["`bits_e(a, b)`"], ["`bits_nao(a, largura)`"], ["`bits_ou(a, b)`"], ["`bits_xou(a, b)`"], ["`bloco(tamanho_ou_dados=0)`"], ["`campos_de_bits(nome, campos, largura=8)`"], ["`contar_uns(a)`"], ["`crc32(dados, inicial=0)`"], ["`de_bytes(dados)`"], ["`definir(nome, campos, ordem='rede', empacotado=False)`"], ["`desfazer_zigzag(numero)`"], ["`desligar_bit(a, posicao)`"], ["`deslocar(a, casas)`"], ["`janela(alvo, molde, deslocamento=0)`"], ["`janelas(alvo, molde, quantos=None, deslocamento=0)`"], ["`ler_varint(dados, deslocamento=0)`"], ["`ligar_bit(a, posicao)`"], ["`mapear(caminho, escrita=False)`"], ["`nulo()`"], ["`ponteiro(alvo, tipo='u8', deslocamento=0, ordem='rede')`"], ["`tamanho_de(tipo_ou_molde)`"], ["`tipos()`"], ["`trocar_ordem(valor, tipo='u32')`"], ["`uniao(nome, campos, ordem='rede')`"], ["`varint(numero)`"], ["`zigzag(numero)`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-15', text: "Funções (15)", level: 2 as const }];
+const headings = [{ id: 'funcoes-33', text: "Funções (33)", level: 2 as const }];
 
 export default function Pagina() {
   return (

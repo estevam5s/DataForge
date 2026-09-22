@@ -23,7 +23,20 @@ MODULOS = ["modulos_avancado", "bibliotecas_avancado", "testes_avancado",
            "devops_avancado", "gramatica_doc", "seguranca_avancado",
            "primeiros_passos_avancado", "fundamentos_avancado",
            "big_o_avancado", "modulos_mais", "bibliotecas_mais",
-           "dados_mais"]
+           "dados_mais",
+           "api_rest_mais",
+           "telegram_mais",
+           "dominio_mais",
+           "estruturas_mais",
+           "reativo_mais",
+           "ffi_mais",
+           "compilador_mais",
+           "runtime_mais",
+           "observabilidade_mais",
+           "partida_mais",
+           "abi_mais",
+           "ecossistema_mais",
+           "concorrencia_mais"]
 
 
 def _blocos():

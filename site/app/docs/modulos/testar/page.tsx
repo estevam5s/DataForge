@@ -36,13 +36,13 @@ out "teste pelo caminho que o usuario usa"`, lang: 'df' },
 
 crucible "normalizacao":
     trial "tira espaco e caixa":
-        expect(normalizar("  Café  ")) to_be("café")
+        expect normalizar("  Café  ") is "café"
 
     trial "texto vazio nao quebra":
-        expect(normalizar("")) to_be("")
+        expect normalizar("") is ""
 
     trial "ainda nao decidido" pending:
-        expect(normalizar(void)) to_be("")
+        expect normalizar(void) is ""
 
 action normalizar(t):
     yield (t ?? "").strip().lower()

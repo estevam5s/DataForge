@@ -417,7 +417,10 @@ OS.hostname()
 OS.cpu_count()
 OS.user()`, lang: 'df' },
   {"p": "Para ramificar por plataforma, prefira os predicados:"},
-  { code: `OS.is_windows()   OS.is_mac()   OS.is_linux()   OS.is_posix()`, lang: 'df' },
+  { code: `OS.is_windows()
+OS.is_mac()
+OS.is_linux()
+OS.is_posix()`, lang: 'df' },
   {"p": "Eles são mais legíveis e mais robustos que comparar `OS.name()` com texto — `\"Darwin\"` para macOS não é óbvio para quem lê."},
   {"h3": "Ternário encadeado"},
   { code: `plataforma := "Windows" given OS.is_windows()
@@ -437,7 +440,7 @@ OS.set_env("MINHA_VAR", "valor")`, lang: 'df' },
   {"p": "**Cuidado com segredos:** variáveis de ambiente costumam guardar senhas e chaves. `OS.env()` traz tudo — nunca despeje isso em log."},
   {"h3": "Disco"},
   { code: `uso := OS.disk_usage(".")
-uso.total_gb    uso.free_gb    uso.percent_used`, lang: 'df' },
+out uso.total_gb, uso.free_gb, uso.percent_used`, lang: 'df' },
   {"p": "Os campos em GB vêm arredondados, prontos para exibir; os campos em bytes (`total`, `free`) servem para conta."},
   {"h3": "`which`"},
   { code: `OS.which("python3")     // caminho, ou void`, lang: 'df' },

@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Funções (24)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`acucares(fonte)`"], ["`acucares_conhecidos()`"], ["`alcance(fonte)`"], ["`arvore(fonte)`"], ["`blocos(fonte, nome=None)`"], ["`constantes(fonte, nome=None)`"], ["`corpos(fonte)`"], ["`escapam(fonte, nome=None)`"], ["`fases()`"], ["`hir(fonte)`"], ["`lir(fonte)`"], ["`mir(fonte)`"], ["`nao_e_acucar()`"], ["`onde_talvez_nao_definidas(fonte)`"], ["`otimizar(fonte, quais=None)`"], ["`passes()`"], ["`provadas(fonte, nome=None)`"], ["`ramos_mortos(fonte)`"], ["`resolucao(fonte)`"], ["`ssa(fonte, nome=None)`"], ["`talvez_nao_definidas(fonte, nome=None)`"], ["`texto(fonte, fase='mir')`"], ["`tokens(fonte)`"], ["`vivas(fonte, nome=None)`"]]}},
+  {"h2": "Funções (26)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`acucares(fonte)`"], ["`acucares_conhecidos()`"], ["`alcance(fonte)`"], ["`arvore(fonte)`"], ["`blocos(fonte, nome=None)`"], ["`constantes(fonte, nome=None)`"], ["`corpos(fonte)`"], ["`dominancia(fonte, nome=None)`"], ["`dot(fonte, nome=None)`"], ["`escapam(fonte, nome=None)`"], ["`fases()`"], ["`hir(fonte)`"], ["`lir(fonte)`"], ["`mir(fonte)`"], ["`nao_e_acucar()`"], ["`onde_talvez_nao_definidas(fonte)`"], ["`otimizar(fonte, quais=None)`"], ["`passes()`"], ["`provadas(fonte, nome=None)`"], ["`ramos_mortos(fonte)`"], ["`resolucao(fonte)`"], ["`ssa(fonte, nome=None)`"], ["`talvez_nao_definidas(fonte, nome=None)`"], ["`texto(fonte, fase='mir')`"], ["`tokens(fonte)`"], ["`vivas(fonte, nome=None)`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-24', text: "Funções (24)", level: 2 as const }];
+const headings = [{ id: 'funcoes-26', text: "Funções (26)", level: 2 as const }];
 
 export default function Pagina() {
   return (

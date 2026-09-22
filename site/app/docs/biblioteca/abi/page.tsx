@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Funções (8)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`comparar(antes, depois)`"], ["`compativel(antes, depois)`"], ["`mapa(caminho)`"], ["`quebras(antes, depois)`"], ["`regras()`"], ["`relatorio(resultado)`"], ["`superficie(caminho)`"], ["`veredito(antes, depois)`"]]}},
+  {"h2": "Funções (10)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`changelog(antes, depois, versao='')`"], ["`comparar(antes, depois)`"], ["`compativel(antes, depois)`"], ["`mapa(caminho)`"], ["`proxima_versao(atual, antes, depois)`"], ["`quebras(antes, depois)`"], ["`regras()`"], ["`relatorio(resultado)`"], ["`superficie(caminho)`"], ["`veredito(antes, depois)`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-8', text: "Funções (8)", level: 2 as const }];
+const headings = [{ id: 'funcoes-10', text: "Funções (10)", level: 2 as const }];
 
 export default function Pagina() {
   return (

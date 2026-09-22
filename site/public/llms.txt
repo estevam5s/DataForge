@@ -144,7 +144,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | Modulo | Simbolos | Para que serve |
 |---|---|---|
 | `Arcane.API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
-| `Arcane.Abi` | 8 | A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. |
+| `Arcane.Abi` | 10 | A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. |
 | `Arcane.Algoritmos` | 16 | Os algoritmos clássicos com a complexidade como dado: busca binária, merge sort estável, counting sort, BFS, DFS, ordem topológica que mostra o ciclo, Dijkstra que recusa peso negativo, LCS, Levenshtein, mochila 0/1, KMP e o crivo — cada um conferido contra uma implementação ingênua. |
 | `Arcane.Alvo` | 7 | 'Isso roda no navegador?', respondido a partir dos 'adopt'. |
 | `Arcane.Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
@@ -152,14 +152,14 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Async` | 52 | Promessas, filas, agendamento e execução concorrente. |
 | `Arcane.Bench` | 7 | Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em tamanhos crescentes dizendo qual O() descreve o que aconteceu. |
 | `Arcane.Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
-| `Arcane.C` | 23 | Falar com biblioteca nativa: abrir . |
+| `Arcane.C` | 25 | Falar com biblioteca nativa: abrir . |
 | `Arcane.Capacidade` | 6 | A fronteira de CAPACIDADE: roda uma acao com a lista de poderes que ela pode alcancar, e recusa o resto pelo NOME da capacidade que falta. |
 | `Arcane.Chaves` | 6 | Ciclo de vida de chave criptográfica: propósito cobrado, prazo, rotação que mantém as antigas decifrando o passado, identificador no dado cifrado, cifragem em envelope (DEK/KEK), recifragem, derivação por contexto (HKDF) e exportação do cofre cifrada pela senha mestra. |
 | `Arcane.Cli` | 12 | A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo. |
 | `Arcane.Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | `Arcane.Color` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
-| `Arcane.Compilador` | 24 | O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. |
-| `Arcane.Concurrent` | 33 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| `Arcane.Compilador` | 26 | O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. |
+| `Arcane.Concurrent` | 35 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | `Arcane.Cortex` | 25 | Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA. |
 | `Arcane.Crucible` | 61 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | `Arcane.Crypto` | 53 | Hashes, HMAC, senhas, codificações, aleatoriedade segura e cifragem de arquivo (ChaCha20-Poly1305). |
@@ -167,11 +167,11 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Database` | 64 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
 | `Arcane.Decimal` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
 | `Arcane.Deteccao` | 7 | Regras de detecção sobre eventos, com correlação por chave em janela deslizante, supressão, gravidade e mapa para MITRE ATT&CK; indicadores de comprometimento com prazo e normalização; padrões sobre conteúdo e leitura de log de acesso. |
-| `Arcane.Dominio` | 18 | As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o "nao"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira). |
+| `Arcane.Dominio` | 23 | As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o "nao"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira). |
 | `Arcane.Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
-| `Arcane.Ecossistema` | 9 | O inventario da implementacao, CONFERIDO contra ela. |
+| `Arcane.Ecossistema` | 11 | O inventario da implementacao, CONFERIDO contra ela. |
 | `Arcane.Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
-| `Arcane.Estrutura` | 15 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. |
+| `Arcane.Estrutura` | 33 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. |
 | `Arcane.Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
 | `Arcane.Evolucao` | 5 | Como uma API muda sem pegar ninguém de surpresa: marcar uma ação como obsoleta (desde quando, por quê, o que usar) ou experimental, e manter um nome antigo que avisa. |
 | `Arcane.Excel` | 29 | Planilhas . |
@@ -182,11 +182,11 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
 | `Arcane.Http` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
 | `Arcane.IO` | 33 | Arquivos, diretórios, JSON, CSV e shell. |
-| `Arcane.Inicio` | 12 | O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que o programa demora a comecar?' sem cronometrar a mao. |
+| `Arcane.Inicio` | 15 | O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que o programa demora a comecar?' sem cronometrar a mao. |
 | `Arcane.Injecao` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | `Arcane.Integridade` | 6 | Provar que o que está aqui é o que foi posto aqui: o valor SRI de um script de CDN, o manifesto SHA-256 de uma pasta com o que foi acrescentado, removido e alterado, e o manifesto assinado com uma chave que mora fora dali. |
 | `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
-| `Arcane.Laco` | 25 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. |
+| `Arcane.Laco` | 29 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. |
 | `Arcane.Lago` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
 | `Arcane.Lavra` | 42 | A consulta tipada: o cliente diz exatamente quais campos quer, numa consulta indentada, e recebe exatamente aqueles. |
 | `Arcane.Logging` | 14 | Registro estruturado de eventos, com níveis e destinos. |
@@ -197,7 +197,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
 | `Arcane.OS` | 43 | Sistema operacional, ambiente, disco e processo atual. |
 | `Arcane.Objetos` | 13 | Cópia rasa e funda, congelamento, igualdade estrutural, hash coerente, ordenação por campos e serialização polimórfica que só reconstrói os tipos autorizados e resolve ciclos. |
-| `Arcane.Observar` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
+| `Arcane.Observar` | 22 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | `Arcane.Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
 | `Arcane.Percurso` | 5 | O caminho inteiro de um arquivo, fase por fase, MEDIDO: lexer, parser, HIR, tipos, MIR, analises, SSA, passes e LIR, com o que cada fase produziu e quanto tempo levou. |
 | `Arcane.Perfil` | 16 | Medir com rigor, onde o 'Bench' da a media: percentis (p50, p95, p99, p999) com aquecimento separado, comparacao com SIGNIFICANCIA estatistica (Mann-Whitney, que nao supoe normalidade — tempo de execucao nao e normal), linha de base guardada para acusar regressao no CI, flame graph das ACOES da linguagem em SVG sem nada de fora, pausas do coletor medidas na fonte e contencao de trava. |
@@ -210,7 +210,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Process` | 15 | Execução de processos externos, com stdout, stderr e código de saída. |
 | `Arcane.Quadro` | 10 | A tabela de dados: colunas nomeadas e linhas como vault. |
 | `Arcane.Qualidade` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
-| `Arcane.Reativo` | 14 | Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). |
+| `Arcane.Reativo` | 18 | Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). |
 | `Arcane.Rede` | 16 | TCP, UDP, DNS e TLS: conexão com prazo, leitura que insiste até completar, servidor de uma thread por conexão, datagrama, resolução de nome, porta livre, espera de porta abrir e a validade do certificado de um host. |
 | `Arcane.Reflexo` | 38 | Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid. |
 | `Arcane.Regex` | 46 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
@@ -219,7 +219,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | `Arcane.Stm` | 13 | Memoria transacional: escritas que acontecem JUNTAS ou nao acontecem. |
 | `Arcane.Stream` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
-| `Arcane.Telegram` | 34 | Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede. |
+| `Arcane.Telegram` | 37 | Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede. |
 | `Arcane.Test` | 34 | Asserções e organização de suítes de teste. |
 | `Arcane.Text` | 59 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
 | `Arcane.Time` | 54 | Datas, horas, durações e cronometragem. |
@@ -227,7 +227,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Url` | 14 | Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor. |
 | `Arcane.Vitrine` | 213 | O framework de dashboards e aplicações de dados: você escreve um programa de cima para baixo e ele vira uma página web, com componentes, layout, gráficos em SVG, estado por sessão e cache — servido pelo Kiln. |
 | `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |
-| `Kiln` | 73 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
+| `Kiln` | 80 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 
 ## As 231 funcoes embutidas
 

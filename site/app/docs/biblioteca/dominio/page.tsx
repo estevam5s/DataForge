@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Funções (18)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`Agregado(tipo, identidade=None, **estado)`"], ["`Contexto(nome)`"], ["`Entidade(tipo, identidade=None, **estado)`"], ["`Evento(nome, dados=None, origem='', tipo='')`"], ["`Regra(descricao, condicao)`"], ["`Repositorio(tipo, ler=None, gravar=None, apagar=None, listar=None)`"], ["`Unidade(publicar=None)`"], ["`Valor(nome, campos, valores, regra=None, motivo='')`"], ["`agregado(tipo, identidade=None, **estado)`"], ["`contexto(nome)`"], ["`entidade(tipo, identidade=None, **estado)`"], ["`evento(nome, dados=None, origem='', tipo='')`"], ["`novo_id()`"], ["`regra(descricao, condicao)`"], ["`repositorio(tipo)`"], ["`repositorio_de(tipo, ler, gravar, apagar=None, listar=None)`"], ["`unidade(publicar=None)`"], ["`valor(nome, campos, regra=None, motivo='')`"]]}},
+  {"h2": "Funções (23)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`Agregado(tipo, identidade=None, **estado)`"], ["`Armazem()`"], ["`Contexto(nome)`"], ["`Entidade(tipo, identidade=None, **estado)`"], ["`Evento(nome, dados=None, origem='', tipo='')`"], ["`Projecao(aplicadores, inicial=None)`"], ["`Regra(descricao, condicao)`"], ["`Repositorio(tipo, ler=None, gravar=None, apagar=None, listar=None)`"], ["`Unidade(publicar=None)`"], ["`Valor(nome, campos, valores, regra=None, motivo='')`"], ["`agregado(tipo, identidade=None, **estado)`"], ["`armazem()`"], ["`contexto(nome)`"], ["`entidade(tipo, identidade=None, **estado)`"], ["`evento(nome, dados=None, origem='', tipo='')`"], ["`novo_id()`"], ["`projecao(aplicadores, inicial=None)`"], ["`reconstituir(eventos, aplicadores, inicial=None)`"], ["`regra(descricao, condicao)`"], ["`repositorio(tipo)`"], ["`repositorio_de(tipo, ler, gravar, apagar=None, listar=None)`"], ["`unidade(publicar=None)`"], ["`valor(nome, campos, regra=None, motivo='')`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-18', text: "Funções (18)", level: 2 as const }];
+const headings = [{ id: 'funcoes-23', text: "Funções (23)", level: 2 as const }];
 
 export default function Pagina() {
   return (

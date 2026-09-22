@@ -96,7 +96,7 @@ adopt Arcane.Bytes as Bytes
 
 // versão (1), tipo (1), tamanho (4) — escrito assim, e não com contas
 cabecalho := Bytes.empacotar(">u8 u8 u32", 1, 7, 1024)
-out Bytes.hex(cabecalho, " ")          // 01 07 00 00 04 00
+out Bytes.hex(cabecalho, " ")          // mostra 01 07 00 00 04 00
 
 partes := Bytes.desempacotar(">u8 u8 u32", cabecalho)
 assert partes is [1, 7, 1024]

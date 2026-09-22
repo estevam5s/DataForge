@@ -25,7 +25,10 @@ OS.user()
 Para ramificar por plataforma, prefira os predicados:
 
 ```dataforge
-OS.is_windows()   OS.is_mac()   OS.is_linux()   OS.is_posix()
+OS.is_windows()
+OS.is_mac()
+OS.is_linux()
+OS.is_posix()
 ```
 
 Eles são mais legíveis e mais robustos que comparar `OS.name()` com texto —
@@ -69,7 +72,7 @@ chaves. `OS.env()` traz tudo — nunca despeje isso em log.
 
 ```dataforge
 uso := OS.disk_usage(".")
-uso.total_gb    uso.free_gb    uso.percent_used
+out uso.total_gb, uso.free_gb, uso.percent_used
 ```
 
 Os campos em GB vêm arredondados, prontos para exibir; os campos em bytes

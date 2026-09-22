@@ -647,7 +647,7 @@
           "chave": "kiln",
           "desc": "Framework web: rotas, middleware, templates, sessão e arquivos estáticos",
           "nome": "Kiln",
-          "simbolos": 73
+          "simbolos": 80
         },
         {
           "chave": "vitrine",
@@ -659,7 +659,7 @@
           "chave": "telegram",
           "desc": "Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando,",
           "nome": "Arcane.Telegram",
-          "simbolos": 34
+          "simbolos": 37
         },
         {
           "chave": "lavra",
@@ -818,7 +818,7 @@
           "chave": "concurrent",
           "desc": "Threads, processos, canal bloqueante, grupo de tarefas e prazo",
           "nome": "Arcane.Concurrent",
-          "simbolos": 33
+          "simbolos": 35
         },
         {
           "chave": "ponte",
@@ -925,7 +925,7 @@
           "chave": "observar",
           "desc": "Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados",
           "nome": "Arcane.Observar",
-          "simbolos": 19
+          "simbolos": 22
         },
         {
           "chave": "color",
@@ -989,19 +989,19 @@
           "chave": "dominio",
           "desc": "As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade po",
           "nome": "Arcane.Dominio",
-          "simbolos": 18
+          "simbolos": 23
         },
         {
           "chave": "reativo",
           "desc": "Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS ",
           "nome": "Arcane.Reativo",
-          "simbolos": 14
+          "simbolos": 18
         },
         {
           "chave": "estrutura",
           "desc": "Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conf",
           "nome": "Arcane.Estrutura",
-          "simbolos": 15
+          "simbolos": 33
         }
       ],
       "rotulo": "Domínio"
@@ -1046,7 +1046,7 @@
           "chave": "laco",
           "desc": "O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao",
           "nome": "Arcane.Laco",
-          "simbolos": 25
+          "simbolos": 29
         },
         {
           "chave": "stm",
@@ -1086,13 +1086,13 @@
           "chave": "c",
           "desc": "Falar com biblioteca nativa: abrir ",
           "nome": "Arcane.C",
-          "simbolos": 23
+          "simbolos": 25
         },
         {
           "chave": "compilador",
           "desc": "O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloc",
           "nome": "Arcane.Compilador",
-          "simbolos": 24
+          "simbolos": 26
         }
       ],
       "rotulo": "Baixo nível"
@@ -1103,7 +1103,7 @@
           "chave": "inicio",
           "desc": "O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que ",
           "nome": "Arcane.Inicio",
-          "simbolos": 12
+          "simbolos": 15
         },
         {
           "chave": "capacidade",
@@ -1120,7 +1120,7 @@
           "chave": "abi",
           "desc": "A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem",
           "nome": "Arcane.Abi",
-          "simbolos": 8
+          "simbolos": 10
         },
         {
           "chave": "alvo",
@@ -1143,7 +1143,7 @@
           "chave": "ecossistema",
           "desc": "O inventario da implementacao, CONFERIDO contra ela",
           "nome": "Arcane.Ecossistema",
-          "simbolos": 9
+          "simbolos": 11
         },
         {
           "chave": "principios",
@@ -1241,7 +1241,7 @@
     "modulos": 85,
     "modulos_do_nucleo": 60,
     "nao_existem": 5,
-    "simbolos": 2223
+    "simbolos": 2280
   },
   "semGrupo": []
 }
