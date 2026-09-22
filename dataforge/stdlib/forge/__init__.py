@@ -34,6 +34,9 @@ expoe o resto pelo que ele e. Um ORM que finge que Redis e uma tabela
 produz codigo que parece portavel e nao e.
 """
 
+import os
+import time
+
 from .protocolo import analisar_url, MOTORES, PORTAS
 from .consulta import Consulta, DIALETOS
 from .orm import (Campo, Migracoes, Modelo, REGISTRO, RegistroDeModelos,
@@ -238,6 +241,220 @@ def transacao(conexao, corpo):
 # ═════════════════════════════════════════════════════════════
 #  A fachada que o DataForge ve
 # ═════════════════════════════════════════════════════════════
+#  O banco em contêiner — três peças que faltavam
+# ═════════════════════════════════════════════════════════════
+
+def esperar(url, prazo=30.0, intervalo=0.5, **opcoes):
+    """Espera o banco ACEITAR conexão, e devolve a conexão aberta.
+
+    É a peça que falta em toda subida com contêiner, e o sintoma é
+    sempre o mesmo: o `docker compose up` volta, o contêiner aparece
+    como *Up*, e a aplicação morre no primeiro `conectar` com
+    "connection refused".
+
+    **"Up" não quer dizer "pronto".** O contêiner do Postgres sobe, cria
+    o cluster, reinicia o servidor uma vez durante a inicialização e só
+    então passa a escutar — são segundos. O do MySQL demora mais. Quem
+    não espera, falha; e quem espera com um `sleep 5` fixo falha na
+    máquina lenta e desperdiça quatro segundos na rápida.
+
+    Aqui a espera é por **resposta**, não por relógio: tenta, apanha, e
+    tenta de novo até o prazo. O erro que sai no fim é o ÚLTIMO erro de
+    verdade — e não um "tempo esgotado" genérico, que mandaria procurar
+    no lugar errado quando a causa era senha inválida.
+    """
+    limite = time.monotonic() + float(prazo)
+    ultimo = None
+    tentativas = 0
+
+    while True:
+        tentativas += 1
+        try:
+            db = conectar(url, **opcoes)
+            db.ping()
+            return db
+        except Exception as erro:                          # noqa: BLE001
+            ultimo = erro
+            # Credencial errada não melhora com o tempo: insistir trinta
+            # segundos numa senha inválida é esconder a causa atrás de
+            # um prazo. Só a recusa de conexão e o fim de arquivo são
+            # sintomas de "ainda subindo".
+            texto = str(erro).lower()
+            transitorio = any(m in texto for m in (
+                "refused", "recusada", "reset", "timed out", "timeout",
+                "não foi possível conectar", "nao foi possivel conectar",
+                "connection closed", "broken pipe", "starting up",
+                "not yet accepting", "is starting"))
+            if not transitorio:
+                raise
+
+        if time.monotonic() >= limite:
+            raise DatabaseError(
+                f"o banco nao respondeu em {prazo:.0f}s ({tentativas} tentativas).",
+                nota=f"ultimo erro: {ultimo}",
+                dica="Num compose, prefira 'depends_on: condition: "
+                     "service_healthy' — a espera aqui e a rede de "
+                     "seguranca, nao o plano.",
+                doc="banco-de-dados")
+        time.sleep(float(intervalo))
+
+
+#: A variável que praticamente todo contêiner usa.
+#:
+#: A ordem importa: `DATABASE_URL` é a convenção de fato (Heroku,
+#: Railway, Fly, Render, e o `docker-compose` que `dataforge devops`
+#: gera). As outras são as que aparecem quando alguém nomeou por conta.
+VARIAVEIS_DE_URL = ("DATABASE_URL", "DB_URL", "FORGE_DATABASE_URL")
+
+
+def de_ambiente(padrao="", variavel="", **opcoes):
+    """Conecta usando a URL do ambiente — o jeito do contêiner.
+
+    Uma URL de banco no código é um segredo no repositório: ela carrega
+    usuário e senha. Num contêiner ela nunca está no código — está no
+    ambiente, e é isso que permite a mesma imagem rodar em
+    desenvolvimento, em teste e em produção.
+
+    Sem `padrao`, a ausência é **erro**, e a mensagem diz o nome da
+    variável. Cair num SQLite silencioso quando falta a variável é o
+    defeito que faz alguém rodar uma semana contra o banco errado.
+    """
+    nomes = (variavel,) if variavel else VARIAVEIS_DE_URL
+    for nome in nomes:
+        valor = os.environ.get(nome)
+        if valor:
+            return conectar(valor, **opcoes)
+
+    if padrao:
+        return conectar(padrao, **opcoes)
+
+    raise DatabaseError(
+        "nao ha URL de banco no ambiente.",
+        nota="procurei em: " + ", ".join(nomes),
+        dica='Defina DATABASE_URL, ou passe um padrao: '
+             'Forge.de_ambiente(padrao := "dados.db")',
+        doc="banco-de-dados")
+
+
+#: O que cada motor precisa num `docker-compose`, e a porta dele.
+_COMPOSE = {
+    "postgres": {
+        "imagem": "postgres:16-alpine", "porta": 5432,
+        "ambiente": lambda d: {
+            "POSTGRES_USER": d["usuario"] or "forge",
+            "POSTGRES_PASSWORD": d["senha"] or "segredo",
+            "POSTGRES_DB": d["banco"] or "forge"},
+        "sonda": lambda d: ["CMD-SHELL",
+                            f"pg_isready -U {d['usuario'] or 'forge'}"],
+        "volume": "/var/lib/postgresql/data",
+    },
+    "mysql": {
+        "imagem": "mysql:8", "porta": 3306,
+        "ambiente": lambda d: {
+            "MYSQL_ROOT_PASSWORD": d["senha"] or "segredo",
+            "MYSQL_DATABASE": d["banco"] or "forge",
+            "MYSQL_USER": d["usuario"] or "forge",
+            "MYSQL_PASSWORD": d["senha"] or "segredo"},
+        "sonda": lambda d: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"],
+        "volume": "/var/lib/mysql",
+    },
+    "mariadb": {
+        "imagem": "mariadb:11", "porta": 3306,
+        "ambiente": lambda d: {
+            "MARIADB_ROOT_PASSWORD": d["senha"] or "segredo",
+            "MARIADB_DATABASE": d["banco"] or "forge",
+            "MARIADB_USER": d["usuario"] or "forge",
+            "MARIADB_PASSWORD": d["senha"] or "segredo"},
+        "sonda": lambda d: ["CMD", "healthcheck.sh", "--connect"],
+        "volume": "/var/lib/mysql",
+    },
+    "redis": {
+        "imagem": "redis:7-alpine", "porta": 6379,
+        "ambiente": lambda d: {},
+        "sonda": lambda d: ["CMD", "redis-cli", "ping"],
+        "volume": "/data",
+    },
+    "mongo": {
+        "imagem": "mongo:7", "porta": 27017,
+        "ambiente": lambda d: {
+            "MONGO_INITDB_ROOT_USERNAME": d["usuario"] or "forge",
+            "MONGO_INITDB_ROOT_PASSWORD": d["senha"] or "segredo",
+            "MONGO_INITDB_DATABASE": d["banco"] or "forge"},
+        "sonda": lambda d: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"],
+        "volume": "/data/db",
+    },
+}
+
+
+def compose(url, servico="banco", volume=True):
+    """O serviço de `docker-compose` que serve esta URL.
+
+    Ele sai da **mesma URL** que a aplicação usa para conectar: a porta
+    publicada, o usuário, a senha e o banco vêm dali. Escrever os dois
+    à mão é como eles divergem — o compose sobe `POSTGRES_DB=loja` e a
+    aplicação procura `loja_dev`, e o erro só aparece na primeira
+    consulta.
+
+    Ele traz **sonda de saúde**, e isso não é enfeite: sem ela, o
+    `depends_on` espera só o contêiner *começar*, não ficar pronto — e
+    a aplicação falha na primeira consulta, de forma intermitente. É o
+    mesmo motivo do `esperar()`, atacado do outro lado.
+    """
+    d = analisar_url(str(url))
+    motor = d["motor"]
+    if motor == "sqlite":
+        raise DatabaseError(
+            "SQLite nao precisa de contêiner.",
+            nota="Ele e um arquivo; o que atravessa e um volume.",
+            dica="Monte a pasta do arquivo como volume no seu servico.",
+            doc="banco-de-dados")
+    receita = _COMPOSE.get(motor)
+    if receita is None:
+        raise DatabaseError(
+            f"nao tenho receita de contêiner para '{motor}'.",
+            nota="Ha: " + ", ".join(sorted(_COMPOSE)),
+            doc="banco-de-dados")
+
+    porta = d["porta"] or receita["porta"]
+    servico_dict = {
+        "image": receita["imagem"],
+        "restart": "unless-stopped",
+        "ports": [f"{porta}:{receita['porta']}"],
+        "healthcheck": {
+            "test": receita["sonda"](d),
+            "interval": "5s", "timeout": "3s", "retries": 10,
+            # O periodo de partida evita que as primeiras falhas —
+            # normais enquanto o banco inicializa — contem como
+            # "nao saudavel" e derrubem o servico.
+            "start_period": "20s",
+        },
+    }
+    ambiente = receita["ambiente"](d)
+    if ambiente:
+        servico_dict["environment"] = ambiente
+    if volume:
+        servico_dict["volumes"] = [f"{servico}-dados:{receita['volume']}"]
+
+    return {
+        "servico": servico,
+        "definicao": {servico: servico_dict},
+        "volumes": {f"{servico}-dados": None} if volume else {},
+        # A URL que a APLICACAO usa por dentro da rede do compose: o
+        # host deixa de ser 'localhost' e passa a ser o nome do
+        # servico, e a porta e a interna. Trocar so o host e o erro
+        # classico de quem publica numa porta diferente.
+        "url_interna": _url_interna(d, servico, receita["porta"]),
+    }
+
+
+def _url_interna(d, servico, porta):
+    usuario = d["usuario"] or "forge"
+    senha = d["senha"] or "segredo"
+    banco = d["banco"] or "forge"
+    return f"{d['motor']}://{usuario}:{senha}@{servico}:{porta}/{banco}"
+
+
+# ═════════════════════════════════════════════════════════════
 
 class ArcaneForge(dict):
     """Forge — bancos de dados, construtor de consultas e ORM."""
@@ -251,6 +468,11 @@ class ArcaneForge(dict):
             "motores": lambda: sorted(set(MOTORES.values())),
             "pool": lambda url, tamanho=5, **o: Pool(url, tamanho, **o),
             "conexao": lambda pool: _ConexaoEmprestada(pool),
+
+            # ── o banco em contêiner ──
+            "esperar": esperar,
+            "de_ambiente": de_ambiente,
+            "compose": compose,
 
             # ── consultas ──
             "de": cls._de,

@@ -669,7 +669,7 @@
           "chave": "forge",
           "desc": "Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface",
           "nome": "Arcane.Forge",
-          "simbolos": 28
+          "simbolos": 31
         },
         {
           "chave": "api",
@@ -1203,7 +1203,7 @@
     "modulos": 79,
     "modulos_do_nucleo": 58,
     "nao_existem": 5,
-    "simbolos": 2153
+    "simbolos": 2156
   },
   "semGrupo": []
 }

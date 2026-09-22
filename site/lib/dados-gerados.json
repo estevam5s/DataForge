@@ -4026,6 +4026,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "compose",
+     "sig": "(url, servico, volume)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "conectar",
      "sig": "(url, opcoes)",
      "tipo": "funcao"
@@ -4046,6 +4051,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "de_ambiente",
+     "sig": "(padrao, variavel, opcoes)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "de_csv",
      "sig": "(caminho_ou_texto)",
      "tipo": "funcao"
@@ -4053,6 +4063,11 @@
     {
      "nome": "dialetos",
      "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esperar",
+     "sig": "(url, prazo, intervalo, opcoes)",
      "tipo": "funcao"
     },
     {
@@ -14875,7 +14890,7 @@
  },
  "totalBuiltins": 229,
  "contagem": {
-  "testes": 3522,
+  "testes": 3550,
   "exemplos": 50,
   "arquivosDf": 503
  },

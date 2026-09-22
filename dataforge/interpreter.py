@@ -8575,6 +8575,60 @@ class Interpreter:
         # simbolo que nao existe para quem escreve.
         nome = (chamado or "").lstrip("_") or "this function"
 
+        # Uma OPCAO desconhecida nao e um problema de aridade, e a
+        # mensagem antiga dizia que era: 'campo("email", "Texto",
+        # formato := "email")' respondia "was called with the wrong
+        # number of arguments / it takes 1 to 2", e o numero de
+        # argumentos estava certo. Quem lia ia contar virgulas.
+        #
+        # O que a pessoa precisa e o NOME da opcao que nao existe, e a
+        # lista das que existem — a mesma resposta que 'opcoes.ler' da
+        # para um vault de opcoes.
+        inesperada = re.search(
+            r"unexpected keyword argument '([^']+)'", str(erro))
+        if inesperada is not None:
+            import difflib
+
+            opcao = inesperada.group(1)
+
+            # A funcao que recebe '**opcoes' quase sempre REPASSA a
+            # outra, e quem recusou foi a de dentro: 'campo(...)'
+            # entrega a 'Campo.__init__'. A lista util e a de QUEM
+            # RECUSOU — listar os parametros de 'campo' diria "aceita:
+            # nome, tipo", que e verdade e nao ajuda em nada.
+            #
+            # O nome de quem recusou vem na mensagem do Python
+            # ('Campo.__init__() got an unexpected keyword...'), e ele
+            # e resolvido no modulo de onde a funcao veio.
+            dono = re.match(r"([\w.]+)\(\)", str(erro))
+            de_quem = ""
+            recusou = None
+            if dono is not None:
+                simples = dono.group(1).split(".")[0]
+                de_quem = f" de '{simples}'"
+                modulo = sys.modules.get(getattr(alvo, "__module__", ""))
+                recusou = getattr(modulo, simples, None) if modulo else None
+
+            aceitas = []
+            for candidato in (recusou, alvo):
+                if candidato is None:
+                    continue
+                try:
+                    for par in inspect.signature(candidato).parameters.values():
+                        if par.kind in (par.KEYWORD_ONLY,
+                                        par.POSITIONAL_OR_KEYWORD) \
+                                and par.name != "self":
+                            aceitas.append(par.name)
+                except (TypeError, ValueError):
+                    continue
+                if aceitas:
+                    break
+            perto = difflib.get_close_matches(opcao, aceitas, n=2, cutoff=0.6)
+            nota = ("aceita: " + ", ".join(sorted(aceitas))) if aceitas else ""
+            dica = (f"voce quis dizer '{perto[0]}'?" if perto
+                    else "confira o nome da opcao na referencia do modulo")
+            return (f"'{opcao}' nao e uma opcao{de_quem}.", nota, dica)
+
         faltando = re.search(r"missing (\d+) required positional argument",
                              str(erro))
         nomes = re.findall(r"'([^']+)'", str(erro).split(":", 1)[-1]) \

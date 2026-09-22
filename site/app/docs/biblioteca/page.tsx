@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "79 módulos e 2153 símbolos, sem uma única dependência externa.",
+  description: "79 módulos e 2156 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os 79 módulos"
   },
   {
-    "p": "São **2153 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **2156 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -151,14 +151,14 @@ const blocos: Bloco[] = [
           "Arquivos, diretórios, JSON, CSV e shell."
         ],
         [
+          "[`Arcane.Forge`](/docs/biblioteca/forge)",
+          "31",
+          "Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface."
+        ],
+        [
           "[`Arcane.Excel`](/docs/biblioteca/excel)",
           "29",
           "Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame."
-        ],
-        [
-          "[`Arcane.Forge`](/docs/biblioteca/forge)",
-          "28",
-          "Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface."
         ],
         [
           "[`Arcane.Serialization`](/docs/biblioteca/serialization)",
@@ -493,7 +493,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"79 módulos e 2153 símbolos, sem uma única dependência externa."}
+      description={"79 módulos e 2156 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

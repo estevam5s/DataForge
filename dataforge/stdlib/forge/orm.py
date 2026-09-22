@@ -302,16 +302,20 @@ class Relacao:
     """Uma ligacao entre dois modelos."""
 
     __slots__ = ("tipo", "nome", "modelo", "chave_local", "chave_externa",
-                 "tabela_ponte")
+                 "tabela_ponte", "atraves", "chave_do_meio")
 
     def __init__(self, tipo, nome, modelo, chave_local="", chave_externa="",
-                 tabela_ponte=""):
+                 tabela_ponte="", atraves="", chave_do_meio=""):
         self.tipo = tipo               # "tem_um" | "tem_muitos" | "pertence_a" | "muitos_para_muitos"
         self.nome = nome
         self.modelo = modelo
         self.chave_local = chave_local
         self.chave_externa = chave_externa
         self.tabela_ponte = tabela_ponte
+        # Só em 'tem_muitos_atraves': o modelo do meio, e a chave com
+        # que ELE aponta para o destino.
+        self.atraves = atraves
+        self.chave_do_meio = chave_do_meio
 
 
 # ═════════════════════════════════════════════════════════════
@@ -327,6 +331,7 @@ class Modelo:
         self.conexao = conexao
         self.campos = {}
         self.relacoes = {}
+        self.escopos = {}
         self.ganchos = {"antes_de_salvar": [], "depois_de_salvar": [],
                         "antes_de_remover": [], "depois_de_remover": []}
         self.chave = "id"
@@ -381,6 +386,90 @@ class Modelo:
             chave_local=chave_local or f"{nome.lower()}_id",
             chave_externa="id")
         return self
+
+    def tem_muitos_atraves(self, nome, modelo, atraves,
+                           chave_local="", chave_do_meio=""):
+        """`Autor tem_muitos_atraves("comentarios", "Comentario", "Post")`.
+
+        A relação que não tem nome no dia a dia e aparece em todo
+        sistema: o autor não tem comentários, ele tem **posts**, e os
+        posts têm comentários. Sem ela, a única saída é carregar os
+        posts, tirar os ids, e fazer a segunda consulta à mão — e
+        quem escreve isso tende a fazer uma consulta por post, que é o
+        N+1 de novo.
+
+        São **três** consultas para qualquer quantidade: os autores, os
+        posts deles, e os comentários dos posts.
+        """
+        self.relacoes[nome] = Relacao(
+            "tem_muitos_atraves", nome, modelo,
+            chave_local=self.chave,
+            chave_externa=chave_do_meio or f"{atraves.lower()}_id",
+            atraves=atraves,
+            chave_do_meio=chave_local or f"{self.nome.lower()}_id")
+        return self
+
+    def escopo(self, nome, funcao):
+        """Um pedaço de consulta com NOME, reaproveitável.
+
+        `ativos`, `do_mes`, `sem_pagamento` — o filtro que aparece em
+        dez lugares e, escrito dez vezes, diverge em um deles. Quando a
+        regra muda ("ativo agora exclui suspenso"), há um lugar só para
+        mudar; e o nome documenta a intenção, que um `onde` solto não
+        faz.
+
+        A função recebe a consulta e devolve a consulta:
+
+            Pedido.escopo("abertos", lambda q => q.onde("status", "aberto"))
+            Pedido.abertos().buscar()
+        """
+        self.escopos[nome] = funcao
+        return self
+
+    def usar(self, nome, consulta=None):
+        """Aplica um escopo — a uma consulta nova, ou a uma em andamento.
+
+        Poder encadear é o ponto: `usar("abertos", Pedido.usar("do_mes"))`
+        aplica os dois, e é o que separa um escopo de um atalho.
+        """
+        funcao = self.escopos.get(nome)
+        if funcao is None:
+            conhecidos = ", ".join(sorted(self.escopos)) or "none"
+            raise SchemaError(
+                f"'{nome}' is not a scope of {self.nome}.",
+                nota=f"it has: {conhecidos}",
+                dica="declare it with 'modelo.escopo(nome, funcao)'",
+                doc="orm")
+        return funcao(consulta if consulta is not None else self.consulta())
+
+    def paginar(self, pagina=1, tamanho=20, consulta=None):
+        """Uma página, e o que a tela precisa para desenhar a paginação.
+
+        Devolve `total` e `paginas` junto das linhas. Sem eles a tela
+        não sabe quantos botões desenhar — e a saída comum é buscar
+        tudo para contar, que é exatamente o que a paginação existe
+        para evitar.
+
+        A página fora da faixa devolve lista **vazia**, e não erro:
+        `?pagina=999` é uma URL colada, não um ataque, e uma listagem
+        que quebra com isso quebra com um link antigo.
+        """
+        self._exigir_conexao()
+        pagina = max(1, int(pagina))
+        tamanho = max(1, min(int(tamanho), 500))
+
+        base = consulta if consulta is not None else self.consulta()
+        total = base.contar()
+
+        linhas = [self._converter(l) for l in
+                  base.limite(tamanho).pular((pagina - 1) * tamanho).buscar()]
+        paginas = (total + tamanho - 1) // tamanho if total else 0
+        return {
+            "linhas": linhas, "pagina": pagina, "tamanho": tamanho,
+            "total": total, "paginas": paginas,
+            "tem_anterior": pagina > 1,
+            "tem_proxima": pagina < paginas,
+        }
 
     def muitos_para_muitos(self, nome, modelo, ponte="", local="", externa=""):
         self.relacoes[nome] = Relacao(
@@ -628,6 +717,55 @@ class Modelo:
             self._carregar(linhas, relacao)
         return linhas
 
+    def _carregar_atraves(self, linhas, relacao, alvo):
+        """Três consultas, para qualquer quantidade.
+
+        Uma para o modelo do meio (os posts do autor), outra para o
+        destino (os comentários desses posts), e a junção é feita em
+        memória. Sem isto, o caminho natural é carregar os posts e
+        pedir os comentários de cada um — o N+1 com um passo a mais.
+        """
+        meio = REGISTRO.modelo(relacao.atraves)
+        if meio is None:
+            raise SchemaError(
+                f"model '{relacao.atraves}' is not registered.",
+                nota=f"it is the middle of '{relacao.nome}'",
+                dica="declare it before the model that goes through it",
+                doc="orm")
+
+        minhas = [l.get(relacao.chave_local) for l in linhas]
+        minhas = [c for c in minhas if c is not None]
+        if not minhas:
+            for l in linhas:
+                l[relacao.nome] = []
+            return
+
+        # 1. o meio: quais posts são de quais autores
+        do_meio = Consulta(self.conexao, meio.tabela) \
+            .onde_em(relacao.chave_do_meio, sorted(set(minhas))).buscar()
+        if not do_meio:
+            for l in linhas:
+                l[relacao.nome] = []
+            return
+
+        # id do post -> id do autor
+        dono_do_meio = {m.get(meio.chave): m.get(relacao.chave_do_meio)
+                        for m in do_meio}
+
+        # 2. o destino: os comentários desses posts
+        filhos = Consulta(self.conexao, alvo.tabela) \
+            .onde_em(relacao.chave_externa,
+                     sorted(k for k in dono_do_meio if k is not None)).buscar()
+
+        por_dono = {}
+        for filho in filhos:
+            dono = dono_do_meio.get(filho.get(relacao.chave_externa))
+            if dono is not None:
+                por_dono.setdefault(dono, []).append(alvo._converter(filho))
+
+        for l in linhas:
+            l[relacao.nome] = por_dono.get(l.get(relacao.chave_local), [])
+
     def _carregar(self, linhas, relacao):
         alvo = REGISTRO.modelo(relacao.modelo)
         if alvo is None:
@@ -635,6 +773,10 @@ class Modelo:
                 f"model '{relacao.modelo}' is not registered.",
                 dica="declare it before the model that points to it",
                 doc="orm")
+
+        if relacao.tipo == "tem_muitos_atraves":
+            self._carregar_atraves(linhas, relacao, alvo)
+            return
 
         if relacao.tipo in ("tem_muitos", "tem_um"):
             chaves = [l.get(relacao.chave_local) for l in linhas]

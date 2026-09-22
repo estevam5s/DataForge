@@ -41,7 +41,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Deteccao`](#arcanedeteccao) | `Deteccao` | 7 | Regras de detecção sobre eventos, com correlação por chave em janela deslizante, supressão, gravidade e mapa para MITRE ATT&CK; indicadores de comprometimento com prazo e normalização; padrões sobre conteúdo e leitura de log de acesso. O alerta carrega os eventos que o causaram. |
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
-| [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
+| [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 31 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 60 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | [`Arcane.Iter`](#arcaneiter) | `Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
@@ -1576,18 +1576,21 @@ Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface.
 adopt Arcane.Forge as Forge
 ```
 
-**Funções (28)**
+**Funções (31)**
 
 | Assinatura |
 |------------|
 | `buscar_modelo(nome)` |
 | `colunas(db, t)` |
+| `compose(url, servico='banco', volume=True)` |
 | `conectar(url, **opcoes)` |
 | `conexao(pool)` |
 | `consultar(conexao, sql, parametros=None)` |
 | `de(conexao, tabela)` |
+| `de_ambiente(padrao='', variavel='', **opcoes)` |
 | `de_csv(caminho_ou_texto)` |
 | `dialetos()` |
+| `esperar(url, prazo=30.0, intervalo=0.5, **opcoes)` |
 | `executar(conexao, sql, parametros=None)` |
 | `fechar(db)` |
 | `ligar(modelo, conexao)` |

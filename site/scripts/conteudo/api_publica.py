@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """A pagina /api — e os numeros que ela NAO escreve a mao.
 
-Ela anunciava "2153 simbolos, 177 codigos de erro" e um JSON de
-exemplo com `"versao": "1.0.0"`. Os tres envelheceram: sao 2153
+Ela anunciava "2156 simbolos, 177 codigos de erro" e um JSON de
+exemplo com `"versao": "1.0.0"`. Os tres envelheceram: sao 2156
 simbolos, 218 erros, e a versao e 1.1.0.
 
 A trava de numeros globais nao pegou nenhum deles — ela confere um

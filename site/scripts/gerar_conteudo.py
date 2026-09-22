@@ -19,7 +19,9 @@ from gerar_paginas import escrever  # noqa: E402
 MODULOS = [
     "big_o",
     "modulos",
+    "modulos_avancado",
     "bibliotecas",
+    "bibliotecas_avancado",
     "plataforma_runtime",
     "dados_etl",
     "dados_quadro",
@@ -36,6 +38,7 @@ MODULOS = [
     "fluxo",
     "banco",
     "banco_sqlite",
+    "banco_avancado",
     "telegram",
     "dominio_ddd",
     "reativo",

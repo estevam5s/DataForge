@@ -12,7 +12,7 @@ ShortDescription: Linguagem de programacao interpretada, com 79 modulos de bibli
 Description: >-
   Linguagem de proposito geral com lexer, parser, analisador estatico e
   interpretador proprios. Traz 79 modulos de biblioteca
-  (2153 simbolos), dois frameworks web, depurador, LSP e
+  (2156 simbolos), dois frameworks web, depurador, LSP e
   gerenciador de pacotes. O instalador embute o runtime: nao e preciso
   ter Python na maquina.
 Moniker: dataforge

@@ -173,7 +173,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Estrutura` | 15 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. |
 | `Arcane.Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
 | `Arcane.Excel` | 29 | Planilhas . |
-| `Arcane.Forge` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
+| `Arcane.Forge` | 31 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | `Arcane.Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
 | `Arcane.Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
 | `Arcane.Http` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |

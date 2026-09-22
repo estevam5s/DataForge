@@ -31,7 +31,7 @@ Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
 generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
 pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **79 módulos** de biblioteca padrão com **2153 símbolos**.
+(**Forge**) e **79 módulos** de biblioteca padrão com **2156 símbolos**.
 
 [Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [387 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
@@ -100,7 +100,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 79 módulos com 2153 símbolos + 228 funções globais |
+| **Bateria inclusa** | 79 módulos com 2156 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -484,7 +484,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-79 módulos, 2153 símbolos, mais 229 funções globais sem import.
+79 módulos, 2156 símbolos, mais 229 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -511,8 +511,8 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Test` | 34 | Asserções e organização de suítes de teste. |
 | `Arcane.Concurrent` | 33 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | `Arcane.IO` | 33 | Arquivos, diretórios, JSON, CSV e shell. |
+| `Arcane.Forge` | 31 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | `Arcane.Excel` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
-| `Arcane.Forge` | 28 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | `Arcane.Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
 | `Arcane.Cortex` | 25 | Aprendizado de máquina: regressão, árvore, floresta, k-NN, Naive Bayes, k-médias e PCA. |
