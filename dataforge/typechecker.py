@@ -3948,6 +3948,20 @@ class TypeChecker:
             self.infer(node.left, escopo)
         finally:
             self._sob_coalesce -= 1
+        # '??' tem a precedencia mais baixa: 'x ?? void is void' e
+        # 'x ?? (void is void)' — o padrao vira 'yes', e a pergunta
+        # "x e void?" nunca e feita. Aconteceu duas vezes escrevendo a
+        # documentacao, e o programa rodava sem erro.
+        if (getattr(node, "direita_nua", False)
+                and isinstance(node.right, (ast.ComparisonOp, ast.LogicalOp))):
+            self.warn(
+                "'??' binds looser than comparison: this reads as "
+                "'a ?? (b ... c)', and the comparison only runs when "
+                "'a' is void",
+                node,
+                hint="to compare the result, wrap the '??': "
+                     "(v[\"k\"] ?? void) is void",
+                code="coalescencia-engole-comparacao")
         return self.infer(node.right, escopo)
 
     def ex_TypeofExpression(self, node, escopo):

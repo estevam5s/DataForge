@@ -381,7 +381,7 @@ crucible "Fixtures":
         provide itens
 
     trial "usa a fixture":
-        expect caixa() exists
+        expect caixa() is [1, 2, 3]
 ''')
     assert list(estados(ex).values()) == [PASSOU]
 

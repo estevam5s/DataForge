@@ -132,6 +132,19 @@ class Valor:
 
     # ── ler ──────────────────────────────────────────────────
 
+    def __getattribute__(self, nome):
+        # O CAMPO vence o metodo, como num blueprint. Um valor com o campo
+        # 'nome' — o mais comum que existe em portugues — devolvia o
+        # metodo 'nome()' da classe, e 'cliente.nome' virava um metodo
+        # ligado onde se esperava "Ana". Os metodos continuam alcancaveis
+        # enquanto nenhum campo tomar o nome deles; o campo, sempre por
+        # 'v["nome"]'.
+        if not nome.startswith("_"):
+            campos = object.__getattribute__(self, "_campos")
+            if nome in campos:
+                return object.__getattribute__(self, "_valores")[nome]
+        return object.__getattribute__(self, nome)
+
     def __getattr__(self, nome):
         valores = object.__getattribute__(self, "_valores")
         if nome in valores:
@@ -930,6 +943,208 @@ def contexto(nome):
 #  O módulo
 # ═══════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════
+#  Fonte de eventos (event sourcing)
+# ═══════════════════════════════════════════════════════════
+
+def _nome_e_dados(item):
+    if isinstance(item, Evento):
+        return item.nome, dict(item.dados)
+    if isinstance(item, dict) and "nome" in item:
+        return str(item["nome"]), dict(item.get("dados") or {})
+    raise _erro(
+        "isto nao e um evento.",
+        nota="o armazem guarda Evento ou vault com 'nome' e 'dados'",
+        dica='D.evento("PedidoPago", {"valor": 50}) ou '
+             '{"nome": "PedidoPago", "dados": {"valor": 50}}',
+        classe="EventError")
+
+
+class Armazem:
+    """Os eventos como a fonte da verdade, em fluxos por agregado.
+
+    O estado nao e guardado: e **derivado** dos eventos, e por isso
+    qualquer pergunta sobre o passado ("qual era o saldo em marco?")
+    tem resposta. O preco e reconstituir; o `versao_esperada` e o que
+    impede duas decisoes tomadas sobre o mesmo estado de se gravarem
+    as duas.
+
+    Em memoria. Um armazem duravel e um banco com uma tabela
+    `(fluxo, versao)` e uma chave unica nas duas colunas — a mesma
+    regra, e e o banco que a cobra.
+    """
+
+    def __init__(self):
+        self._fluxos = {}
+        self._todos = []
+        self._assinantes = {}
+        self._trava = threading.RLock()
+
+    def versao(self, fluxo):
+        """Quantos eventos o fluxo tem. Zero se ele nao existe."""
+        with self._trava:
+            return len(self._fluxos.get(str(fluxo), []))
+
+    def anexar(self, fluxo, eventos, versao_esperada=None):
+        """Grava no fim do fluxo. Devolve a versao nova.
+
+        Com `versao_esperada`, recusa (`AggregateVersionError`) se o fluxo
+        mudou desde a leitura. Tudo ou nada: um lote nunca entra pela
+        metade.
+        """
+        fluxo = str(fluxo)
+        lote = [_nome_e_dados(e) for e in (eventos or [])]
+        with self._trava:
+            atual = len(self._fluxos.get(fluxo, []))
+            if versao_esperada is not None and int(versao_esperada) != atual:
+                raise _erro(
+                    f"o fluxo '{fluxo}' esta na versao {atual}, e o comando "
+                    f"foi decidido sobre a versao {int(versao_esperada)}.",
+                    nota="outro escreveu entre a sua leitura e a sua "
+                         "escrita; gravar agora aplicaria o comando sobre "
+                         "um estado que ja nao existe",
+                    dica="leia de novo, reconstitua e reaplique o comando",
+                    classe="AggregateVersionError")
+            gravados = []
+            lista = self._fluxos.setdefault(fluxo, [])
+            for nome, dados in lote:
+                registro = {"id": novo_id(), "fluxo": fluxo,
+                            "versao": len(lista) + 1,
+                            "posicao": len(self._todos) + 1,
+                            "nome": nome, "dados": dados, "em": time.time()}
+                lista.append(registro)
+                self._todos.append(registro)
+                gravados.append(registro)
+            assinantes = list(self._assinantes.values())
+            nova = len(lista)
+        # Fora da trava: um assinante que le o armazem nao pode travar.
+        for acao in assinantes:
+            for registro in gravados:
+                acao(dict(registro))
+        return nova
+
+    def ler(self, fluxo, desde=0):
+        """Os eventos do fluxo com versao maior que `desde`."""
+        with self._trava:
+            return [dict(r) for r in self._fluxos.get(str(fluxo), [])
+                    if r["versao"] > int(desde)]
+
+    def todos(self, desde=0):
+        """Todos os eventos, na ordem global, depois da `posicao` dada."""
+        with self._trava:
+            return [dict(r) for r in self._todos if r["posicao"] > int(desde)]
+
+    def fluxos(self):
+        with self._trava:
+            return sorted(self._fluxos)
+
+    def assinar(self, acao):
+        """Chama `acao(registro)` a cada evento gravado. Devolve a chave."""
+        chave = novo_id()
+        with self._trava:
+            self._assinantes[chave] = acao
+        return chave
+
+    def cancelar(self, chave):
+        with self._trava:
+            return self._assinantes.pop(chave, None) is not None
+
+    def __repr__(self):
+        return (f"<armazem {len(self._fluxos)} fluxo(s), "
+                f"{len(self._todos)} evento(s)>")
+
+
+def armazem():
+    return Armazem()
+
+
+def _aplicar(aplicadores, estado, nome, dados):
+    resultado = aplicadores[nome](estado, dados)
+    # 'void' quer dizer "mudei o vault que recebi": e a forma natural de
+    # escrever o aplicador, e exigir o 'yield estado' faria esquecê-lo
+    # virar um estado vazio.
+    return estado if resultado is None else resultado
+
+
+def reconstituir(eventos, aplicadores, inicial=None):
+    """O estado depois de aplicar os eventos, em ordem.
+
+    **Estrito**: um evento sem aplicador e erro. Um agregado que ignora
+    um fato da propria historia chega a um estado que nunca existiu —
+    diferente da projecao, que so se importa com alguns.
+    """
+    tabela = dict(aplicadores or {})
+    estado = dict(inicial or {})
+    for item in (eventos or []):
+        nome, dados = _nome_e_dados(item)
+        if nome not in tabela:
+            raise _erro(
+                f"nao ha aplicador para '{nome}'.",
+                nota="reconstituir ignorando um evento chega a um estado "
+                     "que o agregado nunca teve",
+                dica=f"acrescente \"{nome}\": lambda estado, dados: ... "
+                     f"aos aplicadores",
+                classe="EventError")
+        estado = _aplicar(tabela, estado, nome, dados)
+    return estado
+
+
+class Projecao:
+    """Um modelo de leitura, montado a partir dos eventos.
+
+    Ignora o que nao lhe interessa — uma projecao de "total vendido"
+    nao precisa saber de troca de endereco. E e **idempotente**: guarda
+    a ultima `posicao` aplicada, e um registro repetido (reentrega, ou
+    o `todos()` lido de novo) nao conta duas vezes.
+    """
+
+    def __init__(self, aplicadores, inicial=None):
+        self._aplicadores = dict(aplicadores or {})
+        self._inicial = dict(inicial or {})
+        self._estado = dict(self._inicial)
+        self._posicao = 0
+        self._trava = threading.RLock()
+
+    def aplicar(self, registro):
+        """Aplica um registro do armazem. Devolve `yes` se ele contou."""
+        with self._trava:
+            posicao = int(registro.get("posicao", 0) or 0) \
+                if isinstance(registro, dict) else 0
+            if posicao and posicao <= self._posicao:
+                return False
+            nome, dados = _nome_e_dados(registro)
+            if posicao:
+                self._posicao = posicao
+            if nome not in self._aplicadores:
+                return False
+            self._estado = _aplicar(self._aplicadores, self._estado,
+                                    nome, dados)
+            return True
+
+    def reconstruir(self, registros):
+        """Zera e aplica tudo de novo — o conserto de um bug na projecao."""
+        with self._trava:
+            self._estado = dict(self._inicial)
+            self._posicao = 0
+        for r in (registros or []):
+            self.aplicar(r)
+        return self.estado()
+
+    def estado(self):
+        with self._trava:
+            return self._estado
+
+    def posicao(self):
+        return self._posicao
+
+    def __repr__(self):
+        return f"<projecao ate a posicao {self._posicao}>"
+
+
+def projecao(aplicadores, inicial=None):
+    return Projecao(aplicadores, inicial)
+
+
 class ArcaneDominio:
     """Arcane.Dominio — as pecas de um modelo que se sustenta."""
 
@@ -955,6 +1170,13 @@ class ArcaneDominio:
             "Unidade": Unidade,
             "contexto": contexto,
             "Contexto": Contexto,
+
+            # ── fonte de eventos ──
+            "armazem": armazem,
+            "Armazem": Armazem,
+            "reconstituir": reconstituir,
+            "projecao": projecao,
+            "Projecao": Projecao,
 
             # ── utilidades ──
             "novo_id": novo_id,

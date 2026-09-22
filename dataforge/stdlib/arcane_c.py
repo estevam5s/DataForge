@@ -198,6 +198,38 @@ class _Funcao:
         return f"<funcao C {self._nome}>"
 
 
+def _abrir(caminho):
+    """CDLL com `use_errno`: o errno da chamada fica guardado.
+
+    Sem isso, o errno que a funcao C deixou e sobrescrito pela proxima
+    coisa que o proprio Python fizer — e `C.errno()` leria o erro de
+    outra chamada. O ctypes guarda uma copia privada, por thread, logo
+    depois de cada chamada.
+    """
+    return ctypes.CDLL(caminho, use_errno=True)
+
+
+def errno():
+    """O erro da ultima chamada C nesta thread: `{codigo, nome, mensagem}`.
+
+    So tem sentido depois de uma funcao que DIZ que falhou (devolveu -1,
+    NULL…): numa chamada que deu certo, o errno pode ter qualquer valor
+    — a norma do C nao manda zera-lo.
+    """
+    import errno as _errno
+    import os as _os
+    codigo = ctypes.get_errno()
+    return {"codigo": codigo,
+            "nome": _errno.errorcode.get(codigo, "") if codigo else "",
+            "mensagem": _os.strerror(codigo) if codigo else ""}
+
+
+def zerar_errno():
+    """Zera o errno desta thread — para distinguir 'falhou' de 'ja estava'."""
+    ctypes.set_errno(0)
+    return True
+
+
 def carregar(alvo, procurar=True):
     """Abre a biblioteca: por nome ('m', 'z') ou por caminho."""
     nome = str(alvo)
@@ -209,7 +241,7 @@ def carregar(alvo, procurar=True):
             tentativas.insert(0, achado)
     for caminho in tentativas:
         try:
-            return Biblioteca(ctypes.CDLL(caminho), nome, caminho)
+            return Biblioteca(_abrir(caminho), nome, caminho)
         except OSError:
             continue
     raise RuntimeError_(
@@ -233,7 +265,7 @@ def _dica_do_sistema(nome):
 def padrao():
     """A biblioteca C do sistema — `libc`, ou o equivalente."""
     if sys.platform.startswith("win"):
-        return Biblioteca(ctypes.CDLL("msvcrt"), "msvcrt", "msvcrt")
+        return Biblioteca(_abrir("msvcrt"), "msvcrt", "msvcrt")
     return carregar("c")
 
 
@@ -242,13 +274,13 @@ def matematica():
     if sys.platform == "darwin":
         return carregar("System")
     if sys.platform.startswith("win"):
-        return Biblioteca(ctypes.CDLL("msvcrt"), "msvcrt", "msvcrt")
+        return Biblioteca(_abrir("msvcrt"), "msvcrt", "msvcrt")
     return carregar("m")
 
 
 def do_processo():
     """Os símbolos do próprio processo — o `dlopen(NULL)`."""
-    return Biblioteca(ctypes.CDLL(None), "<processo>", "")
+    return Biblioteca(_abrir(None), "<processo>", "")
 
 
 # ═════════════════════════════════════════════════════════════
@@ -647,6 +679,8 @@ class ArcaneC:
             "padrao": padrao,
             "matematica": matematica,
             "do_processo": do_processo,
+            "errno": errno,
+            "zerar_errno": zerar_errno,
             "Biblioteca": Biblioteca,
 
             # ── layout ──

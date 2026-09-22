@@ -558,6 +558,116 @@ def relatorio():
     return "\n".join(linhas)
 
 
+# ═══════════════════════════════════════════════════════════
+#  Glossario
+# ═══════════════════════════════════════════════════════════
+
+#: (termo, definicao, pagina). A pagina e CONFERIDA contra o site por
+#: um teste: um glossario que manda para 404 ensina a nao clicar — e o
+#: roadmap ja teve oito passos assim.
+GLOSSARIO = (
+    ("ABI", "a superficie binaria e de chamada de um modulo; aqui, a "
+     "superficie do que o 'relay' exporta, comparada entre versoes",
+     "/docs/abi"),
+    ("agregado", "a unica porta de escrita de um grupo de objetos do "
+     "dominio, onde as invariantes sao cobradas", "/docs/dominio/agregados"),
+    ("alinhamento", "o multiplo de endereco em que um campo binario "
+     "comeca; o que sobra entre campos e o enchimento",
+     "/docs/estruturas/alinhamento"),
+    ("analisador", "o 'dataforge check': acha erro antes de rodar, e cala "
+     "quando nao consegue provar", "/docs/compilador/analisador"),
+    ("ator", "um estado com dono, alcancado so por mensagem, tratado uma "
+     "de cada vez numa thread propria", "/docs/concorrencia/atores"),
+    ("bloco basico", "instrucoes que rodam sempre juntas, sem desvio no "
+     "meio; os nos do grafo de fluxo", "/docs/compilador/mir"),
+    ("canal", "o cano entre fibras (ou threads) que suspende quem envia "
+     "quando cheio: contrapressao de graca", "/docs/runtime/canais"),
+    ("chamada de cauda", "'yield f(...)' como retorno inteiro: vira salto, "
+     "e a recursao perde o teto", "/docs/compilador/cauda"),
+    ("contrapressao", "o consumidor mais lento freando o produtor, em vez "
+     "de a fila crescer sem fim", "/docs/runtime/contrapressao"),
+    ("CQRS", "separar o modelo que decide do modelo que responde "
+     "consultas", "/docs/dominio/cqrs"),
+    ("CRC-32", "a conferencia de 32 bits do PNG, do ZIP e do gzip: pega "
+     "erro de transmissao, nao adulteracao", "/docs/estruturas/conferencia"),
+    ("cursor", "a posicao opaca de 'onde parou' numa listagem, que nao "
+     "pula nem repete quando a lista muda", "/docs/api/paginacao"),
+    ("derivado", "um valor calculado de sinais, recalculado so quando uma "
+     "fonte lida muda", "/docs/reativo/sinais"),
+    ("dominancia", "A domina B quando todo caminho ate B passa por A; "
+     "decide onde vao os phi", "/docs/compilador/dominancia"),
+    ("efeito", "a acao reativa que roda quando o que ela leu muda",
+     "/docs/reativo/efeitos"),
+    ("ETag", "a etiqueta de uma versao de recurso HTTP; forte, ela sustenta "
+     "o If-Match", "/docs/api/precondicoes"),
+    ("fibra", "um 'stream action' conduzido pelo laco de eventos: cede o "
+     "controle em cada 'emit'", "/docs/runtime/fibras"),
+    ("fonte de eventos", "guardar os fatos, e nao o estado; o estado e "
+     "derivado deles", "/docs/dominio/fonte-de-eventos"),
+    ("idempotencia", "repetir o pedido nao repete o efeito; a chave que "
+     "impede a cobranca dupla", "/docs/api/idempotencia"),
+    ("invariante", "o que precisa ser verdade sempre, cobrado na saida de "
+     "cada comando", "/docs/dominio/agregados"),
+    ("janela", "a leitura e escrita no lugar de um registro binario, sem "
+     "copiar", "/docs/estruturas/janelas"),
+    ("laco de eventos", "uma thread dormindo no seletor ate haver E/S, prazo "
+     "ou tarefa: milhares de conexoes numa thread", "/docs/runtime/laco"),
+    ("lexer", "a fase que transforma texto em tokens com linha e coluna",
+     "/docs/compilador/lexer"),
+    ("MIR", "o grafo de fluxo: blocos basicos e arestas rotuladas",
+     "/docs/compilador/mir"),
+    ("molde", "a descricao de um registro binario: campos, ordem dos bytes "
+     "e alinhamento", "/docs/estruturas"),
+    ("orcamento de erro", "as falhas que o objetivo do SLO permite; o que "
+     "decide se da para arriscar", "/docs/observabilidade/slo"),
+    ("ordem dos bytes", "big-endian (rede) ou little-endian (Intel): o "
+     "mesmo numero em duas ordens", "/docs/estruturas/ordem-dos-bytes"),
+    ("problema (RFC 9457)", "o erro HTTP que um programa le: type, title, "
+     "status, detail", "/docs/api/problemas"),
+    ("projecao", "um modelo de leitura montado dos eventos, idempotente pela "
+     "posicao", "/docs/dominio/projecoes"),
+    ("recurso", "um valor buscado fora, com o estado carregando, pronto ou "
+     "erro, e a resposta velha descartada", "/docs/reativo/recursos"),
+    ("sinal", "um valor que sabe quem depende dele", "/docs/reativo/sinais"),
+    ("SLO", "o objetivo de nivel de servico: quanto do tempo o servico "
+     "precisa estar certo", "/docs/observabilidade/slo"),
+    ("SSA", "a forma em que cada nome recebe valor uma vez so, com phi nas "
+     "juncoes", "/docs/compilador/ssa"),
+    ("STM", "memoria transacional: escritas que acontecem juntas, ou nao "
+     "acontecem", "/docs/concorrencia/stm"),
+    ("superficie", "o que um modulo exporta com 'relay': o contrato com "
+     "quem o adota", "/docs/abi/superficie"),
+    ("taxa de queima", "quantas vezes mais rapido que o sustentavel o "
+     "orcamento de erro esta sendo gasto", "/docs/observabilidade/slo"),
+    ("varint", "o inteiro de tamanho variavel do protobuf: 7 bits por byte",
+     "/docs/estruturas/varint"),
+    ("versao esperada", "a versao lida quando o comando foi decidido; "
+     "gravar sobre outra e recusado", "/docs/dominio/concorrencia-otimista"),
+)
+
+
+def glossario():
+    """Os termos, com a definicao e a pagina que os explica."""
+    return [{"termo": t, "definicao": d, "pagina": p} for t, d, p in GLOSSARIO]
+
+
+def definir(termo):
+    """A definicao de um termo — com sugestao quando o nome nao casa."""
+    import difflib
+    chave = str(termo).strip().lower()
+    for t, d, p in GLOSSARIO:
+        if t.lower() == chave:
+            return {"termo": t, "definicao": d, "pagina": p}
+    nomes = [t for t, _d, _p in GLOSSARIO]
+    parecido = difflib.get_close_matches(str(termo), nomes, 1, 0.6)
+    from ..errors import RuntimeError_
+    raise RuntimeError_(
+        f"'{termo}' nao esta no glossario.", 0, 0,
+        dica=(f"voce quis dizer '{parecido[0]}'?" if parecido else
+              "Ecossistema.glossario() lista todos"),
+        doc="ecossistema/glossario")
+
+
 class ArcaneEcossistema:
     """O dicionario que `adopt Arcane.Ecossistema` entrega."""
 
@@ -573,4 +683,6 @@ class ArcaneEcossistema:
             "arvore": arvore,
             "relatorio": relatorio,
             "ESTADOS": list(ESTADOS),
+            "glossario": glossario,
+            "definir": definir,
         }

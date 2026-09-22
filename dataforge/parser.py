@@ -168,6 +168,7 @@ class Parser:
             marca = self.pos
             try:
                 stmt = self.parse_statement()
+                self._exigir_fim_da_instrucao(stmt)
             except ParseError as erro:
                 self._registrar(erro)
                 self._ressincronizar()
@@ -188,6 +189,41 @@ class Parser:
             raise primeiro
         return program
 
+    def _exigir_fim_da_instrucao(self, inicio):
+        """Depois de uma instrucao, a linha tem de acabar.
+
+        Aceitava-se outra instrucao colada na mesma linha, sem separador:
+        `x := 1 vazios` virava `x := 1` e depois `vazios`. O caso que
+        custou caro e o comentario que comeca com numero — `// 1 + 3
+        vazios` e DIVISAO (`//` seguido de digito e o operador), e o
+        resto da linha virava uma segunda instrucao que nunca rodava.
+        """
+        atual = self.current()
+        if atual.type in (TokenType.NEWLINE, TokenType.EOF, TokenType.DEDENT,
+                          TokenType.INDENT):
+            return
+        # O ultimo token DE VERDADE: o DEDENT que fecha um bloco carrega a
+        # linha da instrucao seguinte, e compara-lo daria falso alarme em
+        # todo bloco do repositorio.
+        anterior = None
+        for i in range(self.pos - 1, -1, -1):
+            if self.tokens[i].type not in (TokenType.NEWLINE, TokenType.INDENT,
+                                           TokenType.DEDENT):
+                anterior = self.tokens[i]
+                break
+        if anterior is None or anterior.line != atual.line:
+            return
+        linha = [t for t in self.tokens if t.line == atual.line]
+        tem_divisao = any(t.type == TokenType.FLOOR_DIV for t in linha)
+        dica = ("'//' followed by a number is integer division, not a "
+                "comment: start the comment with a word, or use '#'"
+                if tem_divisao else
+                "put each statement on its own line")
+        raise ParseError(
+            f"Unexpected {atual.type.name} ({atual.value!r}) after a complete "
+            f"statement on the same line. {dica[0].upper() + dica[1:]}.",
+            atual.line, atual.column)
+
     # ── Block parsing ──────────────────────────────────────
 
     def parse_block(self) -> list:
@@ -199,6 +235,7 @@ class Parser:
             marca = self.pos
             try:
                 stmt = self.parse_statement()
+                self._exigir_fim_da_instrucao(stmt)
             except ParseError as erro:
                 self._registrar(erro)
                 self._ressincronizar()
@@ -976,6 +1013,7 @@ class Parser:
                                       line=tok.line, column=tok.column)
 
         if self.current().type is TokenType.LPAREN:
+            decorador.chamado = True
             self.advance()
             self.skip_newlines()
             args, kwargs = [], {}
@@ -3015,7 +3053,13 @@ class Parser:
         """O corpo: uma expressao, ou uma das instrucoes que cabem aqui."""
         producao = self._STATEMENTS_EM_LAMBDA.get(self.current().type)
         if producao is None:
-            return self.parse_or()
+            # O corpo absorve o ternario e o '??' — e so o pipeline fica
+            # de fora. Com 'parse_or', 'lambda x: v[x] ?? 0' era
+            # '(lambda x: v[x]) ?? 0', e o padrao nunca servia: um lambda
+            # nunca e void. E 'lambda s: "" given ok(s) otherwise "erro"'
+            # virava um ternario SOBRE o lambda, avaliando 's' fora dele.
+            # Ninguem escreve nenhuma das duas querendo a leitura antiga.
+            return self.parse_ternary()
         if producao == "parse_out":
             return self.parse_out(uma_so=True)
         return getattr(self, producao)()
@@ -3483,9 +3527,14 @@ class Parser:
         left = self.parse_or()
         while self.current().type == TokenType.COALESCE:
             self.advance()
+            entre_parenteses = self.current().type == TokenType.LPAREN
             right = self.parse_or()
             left = ast.CoalesceOp(left=left, right=right,
                                   line=left.line, column=left.column)
+            # A arvore perde os parenteses, e o analisador precisa saber
+            # se 'a ?? b is c' foi escrito assim de proposito. Ninguem
+            # escreve 'x ?? (void is void)' querendo isso.
+            left.direita_nua = not entre_parenteses
         return left
 
     def parse_or(self):

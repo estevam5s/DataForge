@@ -202,7 +202,15 @@ def test_snippets_usam_a_sintaxe_da_linguagem():
         if primeira.startswith(("route ", "respond ", "render ",
                                 "middleware ", "mount ", "assets ",
                                 "views ")):
-            moldura = "server s on 0:"
+            # 'respond', 'render' e 'redirect' so existem dentro de uma
+            # ROTA, e nao de um 'server'. Envolvidos so no 'server', eles
+            # compilavam por acidente: o parser aceitava duas instrucoes
+            # coladas na mesma linha, e 'render "x" with {…}' passava como
+            # duas expressoes soltas.
+            if primeira.startswith(("respond ", "render ", "redirect ")):
+                moldura = 'server s on 0:\n    route GET "/":'
+            else:
+                moldura = "server s on 0:"
         elif primeira.startswith(("get ", "set ", "private ", "protected ",
                                   "static ", "operator ", "final ",
                                   "abstract action")):
@@ -211,7 +219,8 @@ def test_snippets_usam_a_sintaxe_da_linguagem():
                                   "fixture ", "bench ", "expect ")):
             moldura = 'crucible "s":'
         if moldura:
-            recuado = "\n".join("    " + l for l in fonte.split("\n"))
+            recuo = "    " * (moldura.count("\n") + 1)
+            recuado = "\n".join(recuo + l for l in fonte.split("\n"))
             fonte = moldura + "\n" + recuado
 
         try:

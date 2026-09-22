@@ -1117,6 +1117,199 @@ def intervalo(segundos, quantos=0, nome="intervalo"):
 #  O módulo
 # ═══════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════
+#  Historico — desfazer e refazer
+# ═══════════════════════════════════════════════════════════
+
+class Historico:
+    """Desfazer e refazer sobre um sinal, sem que quem escreve saiba.
+
+    Cada NOTIFICACAO vira um passo — e por isso um `lote` inteiro vira
+    UM passo so, que e o que se espera de "desfazer a colagem". Escrever
+    algo novo depois de desfazer apaga o que dava para refazer: a
+    historia que foi abandonada nao volta, como em todo editor.
+    """
+
+    def __init__(self, alvo, limite=100):
+        if not isinstance(alvo, Sinal):
+            raise _erro("o historico e de um sinal.",
+                        nota="um derivado nao se escreve: desfazer nele "
+                             "seria desfazer nas fontes",
+                        dica="R.historico(R.sinal(inicial))")
+        self._alvo = alvo
+        self._limite = max(1, int(limite))
+        self._antes = []
+        self._depois = []
+        self._ultimo = alvo.valor()
+        self._movendo = False
+        self._trava = threading.RLock()
+        self._cancelar = alvo.observar(self._anotar)
+
+    def _anotar(self, novo):
+        with self._trava:
+            if self._movendo:
+                self._ultimo = novo
+                return
+            self._antes.append(self._ultimo)
+            if len(self._antes) > self._limite:
+                del self._antes[0]
+            self._depois.clear()
+            self._ultimo = novo
+
+    def _mover(self, de, para):
+        with self._trava:
+            if not de:
+                return False
+            valor = de.pop()
+            para.append(self._ultimo)
+            self._movendo = True
+        try:
+            self._alvo.escrever(valor)
+        finally:
+            with self._trava:
+                self._movendo = False
+                self._ultimo = valor
+        return True
+
+    def desfazer(self):
+        """Volta um passo. `no` se nao ha o que desfazer."""
+        return self._mover(self._antes, self._depois)
+
+    def refazer(self):
+        return self._mover(self._depois, self._antes)
+
+    def pode_desfazer(self):
+        return bool(self._antes)
+
+    def pode_refazer(self):
+        return bool(self._depois)
+
+    def passos(self):
+        return {"desfazer": len(self._antes), "refazer": len(self._depois)}
+
+    def limpar(self):
+        with self._trava:
+            self._antes.clear()
+            self._depois.clear()
+        return True
+
+    def parar(self):
+        """Deixa de acompanhar o sinal."""
+        return self._cancelar()
+
+    def __repr__(self):
+        return (f"<historico de {self._alvo.nome}: {len(self._antes)} "
+                f"para tras, {len(self._depois)} para frente>")
+
+
+def historico(alvo, limite=100):
+    return Historico(alvo, limite)
+
+
+# ═══════════════════════════════════════════════════════════
+#  Recurso — o dado que chega depois
+# ═══════════════════════════════════════════════════════════
+
+class Recurso:
+    """Um valor buscado fora (rede, banco), com o estado da busca.
+
+    `estado()` e um SINAL com `{estado, valor, erro}`, e `estado` e
+    `"carregando"`, `"pronto"` ou `"erro"` — o que a tela precisa para
+    decidir entre o spinner, o dado e a mensagem.
+
+    O defeito que ele existe para evitar: a fonte muda duas vezes, a
+    PRIMEIRA busca demora mais e chega por ultimo — e a tela mostra o
+    resultado da pergunta velha. Cada busca leva um numero de geracao,
+    e a resposta de uma geracao passada e descartada.
+    """
+
+    def __init__(self, buscar, fonte=None):
+        self._buscar = buscar
+        self._fonte = fonte
+        self._geracao = 0
+        self._trava = threading.RLock()
+        self._pronto = threading.Condition(self._trava)
+        self._estado = Sinal({"estado": "carregando", "valor": None,
+                              "erro": None}, nome="recurso")
+        self._descartadas = 0
+        self._cancelar = None
+        if fonte is not None:
+            if not isinstance(fonte, (Sinal, Derivado)):
+                raise _erro("a fonte de um recurso e um sinal ou derivado.")
+            self._cancelar = fonte.observar(lambda v: self._disparar(v))
+            self._disparar(fonte.valor())
+        else:
+            self._disparar(None)
+
+    def _disparar(self, valor):
+        with self._trava:
+            self._geracao += 1
+            minha = self._geracao
+            anterior = self._estado.valor()
+        self._estado.escrever({"estado": "carregando",
+                               "valor": anterior.get("valor"), "erro": None})
+
+        def trabalhar():
+            try:
+                resultado = (self._buscar() if self._fonte is None
+                             else self._buscar(valor))
+                final = {"estado": "pronto", "valor": resultado, "erro": None}
+            except BaseException as falha:              # noqa: BLE001
+                final = {"estado": "erro", "valor": None,
+                         "erro": getattr(falha, "message", None) or str(falha)}
+            with self._trava:
+                if minha != self._geracao:
+                    self._descartadas += 1
+                    return
+            self._estado.escrever(final)
+            with self._trava:
+                self._pronto.notify_all()
+
+        threading.Thread(target=trabalhar, daemon=True,
+                         name="recurso").start()
+
+    def estado(self):
+        """O sinal `{estado, valor, erro}` — para um derivado ou efeito."""
+        return self._estado
+
+    def ler(self):
+        return self._estado.ler()
+
+    def recarregar(self):
+        """Busca de novo com o valor atual da fonte."""
+        self._disparar(None if self._fonte is None else self._fonte.valor())
+        return True
+
+    def aguardar(self, segundos=5):
+        """Espera sair de "carregando". Devolve o vault final.
+
+        Existe para teste e para script: numa tela, quem espera e o
+        efeito que observa `estado()`.
+        """
+        limite = float(segundos)
+        with self._trava:
+            self._pronto.wait_for(
+                lambda: self._estado.valor()["estado"] != "carregando",
+                timeout=limite)
+            return self._estado.valor()
+
+    def descartadas(self):
+        """Quantas respostas chegaram atrasadas e foram jogadas fora."""
+        return self._descartadas
+
+    def parar(self):
+        if self._cancelar:
+            self._cancelar()
+        return True
+
+    def __repr__(self):
+        return f"<recurso {self._estado.valor()['estado']}>"
+
+
+def recurso(buscar, fonte=None):
+    return Recurso(buscar, fonte)
+
+
 class ArcaneReativo:
     """Arcane.Reativo — valores que avisam quando mudam."""
 
@@ -1132,6 +1325,10 @@ class ArcaneReativo:
             "efeito": efeito,
             "Efeito": Efeito,
             "lote": lote,
+            "historico": historico,
+            "Historico": Historico,
+            "recurso": recurso,
+            "Recurso": Recurso,
 
             # ── fluxo ──
             "observavel": observavel,

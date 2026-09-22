@@ -78,7 +78,10 @@ def fases():
 
 def tokens(fonte):
     """A primeira fase: um vault por token."""
-    return [{"tipo": t.type.name, "valor": str(t.value),
+    # O valor como o lexer o leu: 7 e numero, "7" seria outro token. O
+    # 'str' antigo punha o texto "None" no fim do arquivo — um nome do
+    # Python vazando para quem so conhece 'void'.
+    return [{"tipo": t.type.name, "valor": t.value,
              "linha": t.line, "coluna": t.column}
             for t in tokenize(fonte, "<compilador>")]
 
@@ -229,6 +232,73 @@ def _por_corpo(fonte, nome, calcular):
                 doc="compilador/mir")
         return calcular(escolhidos[0])
     return {c.nome: calcular(c) for c in lista}
+
+
+def dominancia(fonte, nome=None):
+    """Dominadores, dominador imediato e fronteira — de cada corpo.
+
+    `{dominadores: {id: [ids]}, imediato: {id: id}, fronteira: {id: [ids]}}`.
+    As tres saem do MESMO ponto fixo que o SSA usa para decidir onde vao
+    os phi; expor outra conta aqui faria esta resposta e a do SSA
+    poderem discordar.
+    """
+    def calcular(corpo):
+        _vivos, dom, idom, _antes = _ssa._dominancia(corpo)
+        fronteira = _ssa.fronteira_de_dominancia(corpo)
+        return {
+            "dominadores": {str(i): sorted(v) for i, v in sorted(dom.items())},
+            "imediato": {str(i): idom[i] for i in sorted(idom)},
+            "fronteira": {str(i): sorted(v) for i, v in sorted(fronteira.items())},
+        }
+    return _por_corpo(fonte, nome, calcular)
+
+
+def _aspas_dot(texto):
+    # So a aspa e escapada: o '\\l' dos rotulos e sintaxe do DOT
+    # (alinha a linha a esquerda), e escapar a barra o desligaria.
+    return '"' + str(texto).replace('"', '\\"') + '"'
+
+
+def dot(fonte, nome=None):
+    """O grafo de fluxo em DOT, para o Graphviz desenhar.
+
+        IO.write("fluxo.dot", Compilador.dot(fonte))
+        // dot -Tsvg fluxo.dot -o fluxo.svg
+
+    Um `subgraph cluster` por corpo. Bloco inalcancavel sai **tracejado
+    e cinza** — o grafo tambem responde "que codigo nunca roda?". A
+    aresta leva o rotulo (`sim`, `nao`, `volta`, `erro`), que e o que
+    diferencia um `given` de um laco no desenho.
+    """
+    lista = _corpos(fonte)
+    if nome is not None:
+        lista = [c for c in lista if c.nome == nome]
+        if not lista:
+            raise RuntimeError_(
+                f"there is no body named '{nome}' in this source. "
+                f"Use Compilador.corpos(fonte) to see the names.",
+                doc="compilador/mir")
+    linhas = ["digraph fluxo {",
+              '  node [shape=box, fontname="monospace", fontsize=10];',
+              '  edge [fontname="monospace", fontsize=9];']
+    for n, corpo in enumerate(lista):
+        vivos = _mir.alcancaveis(corpo)
+        linhas.append(f"  subgraph cluster_{n} {{")
+        linhas.append(f"    label={_aspas_dot(corpo.nome)};")
+        for b in corpo.blocos:
+            instrucoes = [i.__class__.__name__ for i in b.instrucoes]
+            corpo_texto = "\\l".join([f"B{b.id} {b.rotulo}"
+                                     + (f" (linha {b.linha})" if b.linha else "")]
+                                    + instrucoes) + "\\l"
+            estilo = "" if b.id in vivos else ', style=dashed, color=gray, fontcolor=gray'
+            linhas.append(f"    c{n}_b{b.id} [label={_aspas_dot(corpo_texto)}{estilo}];")
+        for b in corpo.blocos:
+            for destino, rotulo in b.saidas:
+                marca = f" [label={_aspas_dot(rotulo)}]" if rotulo else ""
+                linhas.append(f"    c{n}_b{b.id} -> c{n}_b{destino}{marca};")
+        linhas.append("  }")
+    linhas.append("}")
+    return "\n".join(linhas) + "\n"
 
 
 def ssa(fonte, nome=None):
@@ -387,6 +457,8 @@ class ArcaneCompilador:
 
             # ── SSA ──
             "ssa": ssa,
+            "dominancia": dominancia,
+            "dot": dot,
             "provadas": provadas,
             "ramos_mortos": ramos_mortos,
 

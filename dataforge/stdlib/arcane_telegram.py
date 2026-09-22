@@ -465,6 +465,103 @@ def teclado(linhas, uma_vez=True, ajustar=True, dica="", persistente=False):
     return marca
 
 
+def _unidades(texto):
+    """O tamanho como o Telegram conta: em unidades UTF-16.
+
+    Um emoji fora do plano basico (quase todos) vale DOIS. Contar
+    caracteres do Python deixa passar uma mensagem de 4090 caracteres
+    com emojis que o Telegram recusa com 'message is too long'.
+    """
+    return len(str(texto).encode("utf-16-le")) // 2
+
+
+def dividir(texto, limite=4096):
+    """O texto em pedaços que o Telegram aceita, cortando no lugar certo.
+
+    A ordem de preferência para o corte é: parágrafo, linha, espaço — e
+    só então no meio de uma palavra. Um escape do MarkdownV2 (`\\.`)
+    nunca é separado da sua barra: um pedaço terminando em `\\` e o
+    seguinte começando em `.` são DUAS mensagens recusadas.
+    """
+    limite = int(limite)
+    if limite < 2:
+        raise _erro("o limite precisa ser de ao menos 2 unidades.",
+                    dica="o do Telegram e 4096; o de uma legenda, 1024")
+    resto = str(texto)
+    pedacos = []
+    while _unidades(resto) > limite:
+        # O maior prefixo que cabe, medido em UTF-16.
+        corte, usados = 0, 0
+        for i, c in enumerate(resto):
+            usados += 2 if ord(c) > 0xFFFF else 1
+            if usados > limite:
+                break
+            corte = i + 1
+        janela = resto[:corte]
+        posicao = -1
+        for separador in ("\n\n", "\n", " "):
+            achado = janela.rfind(separador)
+            if achado > 0:
+                posicao = achado + len(separador)
+                break
+        if posicao <= 0:
+            posicao = corte
+        # Barras no fim do pedaco: numero impar quer dizer um escape
+        # partido ao meio. Recua uma posicao.
+        barras = len(janela[:posicao]) - len(janela[:posicao].rstrip("\\"))
+        if barras % 2 == 1:
+            posicao -= 1
+        pedaco = resto[:posicao].rstrip("\n ") or resto[:posicao]
+        pedacos.append(pedaco)
+        resto = resto[posicao:].lstrip("\n ") if posicao < len(resto) else ""
+    if resto or not pedacos:
+        pedacos.append(resto)
+    return pedacos
+
+
+def paginado(itens, pagina=1, por_pagina=5, prefixo="pg"):
+    """Uma pagina de itens, com o teclado de navegacao pronto.
+
+    Devolve `{itens, pagina, paginas, total, teclado}`. Os botoes mandam
+    `prefixo:N` como `dados`; `Tg.ler_pagina(ctx.dados, prefixo)` devolve
+    o N. A pagina e **limitada** ao intervalo: um callback velho (a
+    lista encolheu desde que o teclado foi enviado) mostra a ultima
+    pagina que existe, em vez de uma pagina vazia.
+    """
+    lista = list(itens or [])
+    tamanho = max(1, int(por_pagina))
+    paginas = max(1, -(-len(lista) // tamanho))
+    atual = min(max(1, int(pagina)), paginas)
+    inicio = (atual - 1) * tamanho
+    linha = []
+    if atual > 1:
+        linha.append(botao("◀", dados=f"{prefixo}:{atual - 1}"))
+    if paginas > 1:
+        linha.append(botao(f"{atual}/{paginas}", dados=f"{prefixo}:{atual}"))
+    if atual < paginas:
+        linha.append(botao("▶", dados=f"{prefixo}:{atual + 1}"))
+    return {
+        "itens": lista[inicio:inicio + tamanho],
+        "pagina": atual,
+        "paginas": paginas,
+        "total": len(lista),
+        "teclado": botoes([linha]) if linha else None,
+    }
+
+
+def ler_pagina(dados, prefixo="pg"):
+    """O numero da pagina de um callback `prefixo:N`, ou `void`.
+
+    `void` para o que nao e deste teclado: o mesmo bot tem varios, e
+    confundir `pg:2` com `menu:2` e o defeito que isto evita.
+    """
+    texto = str(dados or "")
+    cabeca, _, numero = texto.partition(":")
+    if cabeca != str(prefixo) or not numero.isdigit():
+        return None
+    return int(numero)
+
+
 def remover_teclado(seletivo=False):
     return {"remove_keyboard": True, "selective": bool(seletivo)}
 
@@ -963,6 +1060,9 @@ class ArcaneTelegram:
             "teclado": teclado,
             "remover_teclado": remover_teclado,
             "forcar_resposta": forcar_resposta,
+            "paginado": paginado,
+            "ler_pagina": ler_pagina,
+            "dividir": dividir,
 
             # ── Formatação ──
             "escapar": escapar,

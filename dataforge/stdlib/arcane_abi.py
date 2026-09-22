@@ -328,6 +328,95 @@ def regras():
     return dict(REGRAS)
 
 
+def _versao(texto):
+    import re
+    casou = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)", str(texto).strip())
+    if not casou:
+        raise RuntimeError_(
+            f"'{texto}' nao e uma versao X.Y.Z.",
+            nota="pre-lancamento (1.0.0-rc.1) e metadado (+build) ficam de "
+                 "fora: a proxima versao de um rc e decisao de quem lanca",
+            dica='Abi.proxima_versao("1.4.2", antes, depois)',
+            doc="abi/versao")
+    return tuple(int(g) for g in casou.groups())
+
+
+def proxima_versao(atual, antes, depois):
+    """A versao que o release deve ter, calculada — e nao escolhida a olho.
+
+    `{atual, proxima, veredito, porque}`. Antes do 1.0 vale a convencao
+    do Cargo e do npm: **quebra sobe o MENOR** (0.4 → 0.5) e acrescimo
+    sobe a correcao, porque o 0.x anuncia que a API ainda nao assentou —
+    e pular para 1.0 por causa de uma quebra seria prometer estabilidade
+    sem querer.
+    """
+    maior, menor, correcao = _versao(atual)
+    resultado = comparar(antes, depois)
+    veredito_ = resultado["veredito"]
+    if veredito_ == "desconhecido":
+        return {"atual": str(atual), "proxima": None, "veredito": veredito_,
+                "porque": resultado["motivo"]}
+    if maior == 0:
+        if veredito_ == "maior":
+            nova = (0, menor + 1, 0)
+        else:
+            nova = (0, menor, correcao + 1)
+    elif veredito_ == "maior":
+        nova = (maior + 1, 0, 0)
+    elif veredito_ == "menor":
+        nova = (maior, menor + 1, 0)
+    else:
+        nova = (maior, menor, correcao + 1)
+    quantos = {"maior": len(resultado["quebras"]),
+               "menor": len(resultado["compativeis"]),
+               "correcao": 0}[veredito_]
+    porque = {
+        "maior": f"{quantos} quebra(s) de contrato",
+        "menor": f"{quantos} acrescimo(s) compativel(is)",
+        "correcao": "a superficie nao mudou",
+    }[veredito_]
+    return {"atual": str(atual), "proxima": ".".join(map(str, nova)),
+            "veredito": veredito_, "porque": porque}
+
+
+def changelog(antes, depois, versao=""):
+    """A secao do CHANGELOG que a superficie consegue escrever.
+
+    So o que e **visivel de fora**: simbolo novo, removido, parametro
+    trocado. O porque de cada mudanca continua sendo trabalho de quem
+    escreveu — o texto aqui e o esqueleto, e nao a nota inteira.
+    """
+    r = comparar(antes, depois)
+    titulo = f"## {versao}" if versao else "## Nao lancado"
+    if r["veredito"] == "desconhecido":
+        return f"{titulo}\n\nNao foi possivel comparar: {r['motivo']}\n"
+    partes = [titulo, ""]
+
+    def item(a):
+        extra = ""
+        if a.get("campos"):
+            extra = " (" + ", ".join(a["campos"]) + ")"
+        elif a.get("antes") is not None and a.get("depois") is not None:
+            extra = f" ({a['antes']} → {a['depois']})"
+        return f"- `{a['nome']}`: {a['explica'] or a['tipo']}{extra}"
+
+    if r["quebras"]:
+        partes += ["### Quebra compatibilidade", ""]
+        partes += [item(a) + f" — {a['dica']}" for a in r["quebras"]]
+        partes.append("")
+    if r["compativeis"]:
+        partes += ["### Adicionado", ""]
+        partes += [item(a) for a in r["compativeis"]]
+        partes.append("")
+    if r["atencao"]:
+        partes += ["### Confira", ""]
+        partes += [item(a) for a in r["atencao"]]
+        partes.append("")
+    if len(partes) == 2:
+        partes += ["Nenhuma mudanca na superficie publica.", ""]
+    return "\n".join(partes)
+
+
 def relatorio(resultado):
     """O veredito escrito, com cada quebra e o que fazer."""
     if resultado["veredito"] == "desconhecido":
@@ -451,4 +540,6 @@ class ArcaneAbi:
             "regras": regras,
             "relatorio": relatorio,
             "mapa": mapa,
+            "proxima_versao": proxima_versao,
+            "changelog": changelog,
         }

@@ -53,8 +53,11 @@ Cinco decisoes que valem lembrar
 """
 
 import difflib
+import mmap
+import os
 import struct
 import threading
+import zlib
 
 _DOC = "estruturas"
 
@@ -67,6 +70,17 @@ TIPOS = {
     "f32": ("f", 4), "f64": ("d", 8),
     "bool": ("?", 1),
 }
+
+#: Os tipos cujo `quantos` e o TAMANHO, e nao uma repeticao: `["nome",
+#: "char", 16]` e um texto de ate 16 bytes (o `char nome[16]` do C), e
+#: `["magica", "bytes", 8]` sao oito bytes crus. Ficam fora de TIPOS de
+#: proposito: um ponteiro para "char" nao teria o que ler.
+TEXTUAIS = ("char", "bytes")
+
+
+def _largura(tipo):
+    return 1 if tipo in TEXTUAIS else TIPOS[tipo][1]
+
 
 #: Como a ordem dos bytes e escrita. 'rede' e big-endian, que e o que
 #: todo formato de arquivo e todo protocolo usam.
@@ -175,13 +189,14 @@ class Molde:
                 nota="o segundo campo seria inalcancavel: a leitura "
                      "devolve um vault, e a chave repetida some")
 
-        desconhecidos = [t for _, t, _ in lista if t not in TIPOS]
+        conhecidos = list(TIPOS) + list(TEXTUAIS)
+        desconhecidos = [t for _, t, _ in lista if t not in conhecidos]
         if desconhecidos:
             alvo = desconhecidos[0]
             raise _erro(
                 f"tipo desconhecido: '{alvo}'."
-                f"{_parecido(alvo, TIPOS)}",
-                nota=f"os tipos sao: {', '.join(sorted(TIPOS))}")
+                f"{_parecido(alvo, conhecidos)}",
+                nota=f"os tipos sao: {', '.join(sorted(conhecidos))}")
 
         self.campos = lista
         self._desloc = {}
@@ -189,6 +204,13 @@ class Molde:
         posicao = 0
         maior = 1
         for nome_campo, tipo, quantos in lista:
+            if tipo in TEXTUAIS:
+                # Um texto de N bytes nao tem alinhamento: e um cluster
+                # de bytes, e o C o poe em qualquer posicao.
+                self._desloc[nome_campo] = posicao
+                self._formato[nome_campo] = (f"{quantos}s", quantos, 1)
+                posicao += quantos
+                continue
             letra, largura = TIPOS[tipo]
             maior = max(maior, largura)
             if not self.empacotado and posicao % largura:
@@ -245,6 +267,10 @@ class Molde:
                 nota=f"os campos sao: {', '.join(self._desloc)}",
                 dica="um campo a mais aqui seria um erro de digitacao "
                      "gravando em lugar nenhum")
+        if isinstance(crus, mmap.mmap) and _so_leitura(crus):
+            raise _erro(
+                "este arquivo foi mapeado so para leitura.",
+                dica="Est.mapear(caminho, escrita := yes)")
         for nome_campo, valor in (valores or {}).items():
             self._escrever_campo(crus, base, nome_campo, valor)
         return alvo
@@ -269,15 +295,46 @@ class Molde:
                      "aparecendo tres camadas adiante",
                 classe="BufferOverflowError")
 
+    def _tipo(self, campo):
+        for nome_campo, tipo, _q in self.campos:
+            if nome_campo == campo:
+                return tipo
+        return None
+
     def _ler_campo(self, crus, base, campo):
         formato, largura, quantos = self._formato[campo]
         inicio = base + self._desloc[campo]
         valores = struct.unpack_from(formato, crus, inicio)
+        tipo = self._tipo(campo)
+        if tipo == "char":
+            # Ate o primeiro zero, como o C le um char[N].
+            return valores[0].split(b"\x00", 1)[0].decode("utf-8", "replace")
+        if tipo == "bytes":
+            return bytes(valores[0])
         return list(valores) if quantos > 1 else valores[0]
 
     def _escrever_campo(self, crus, base, campo, valor):
         formato, largura, quantos = self._formato[campo]
         inicio = base + self._desloc[campo]
+        tipo = self._tipo(campo)
+        if tipo in TEXTUAIS:
+            if tipo == "char":
+                bruto = str(valor).encode("utf-8")
+                unidade = "byte(s) em UTF-8"
+            else:
+                bruto = bytes(valor)
+                unidade = "byte(s)"
+            if len(bruto) > largura:
+                raise _erro(
+                    f"'{campo}' guarda ate {largura} byte(s), e o valor tem "
+                    f"{len(bruto)} {unidade}.",
+                    nota="cortar em silencio gravaria outro texto — e, no "
+                         "meio de um caractere acentuado, um texto invalido",
+                    dica=f"aumente o campo, ou corte antes de gravar",
+                    classe="BufferOverflowError")
+            # O 's' do struct completa com zeros: o terminador do C.
+            struct.pack_into(formato, crus, inicio, bruto)
+            return
         if quantos > 1:
             itens = list(valor)
             if len(itens) != quantos:
@@ -305,6 +362,8 @@ class Molde:
         saida = []
         for nome_campo, tipo, quantos in self.campos:
             _f, largura, _q = self._formato[nome_campo]
+            if tipo in TEXTUAIS:
+                quantos = largura
             saida.append({"campo": nome_campo, "tipo": tipo,
                           "quantos": quantos,
                           "deslocamento": self._desloc[nome_campo],
@@ -316,8 +375,16 @@ class Molde:
         util = sum(l for _f, l, _q in self._formato.values())
         return self.tamanho - util
 
-    def __call__(self, **valores):
-        return self.empacotar(valores)
+    def __call__(self, valores=None, **nomeados):
+        """`Molde({"x": 1})` ou `Molde(x := 1)` — um bloco novo.
+
+        O vault e a forma natural na linguagem, e o molde so aceitava os
+        argumentos nomeados: `P({"x": 1})` dava um erro de aridade que
+        nem dizia o nome da funcao.
+        """
+        juntos = dict(valores or {})
+        juntos.update(nomeados)
+        return self.empacotar(juntos)
 
     def __len__(self):
         return self.tamanho
@@ -378,11 +445,23 @@ class Bloco:
             if not self._vivo:
                 return False
             self._vivo = False
+            if isinstance(self._dados, mmap.mmap):
+                self._dados.close()
             self._dados = bytearray()
         return True
 
     def bytes(self):
         return bytes(self.dados())
+
+    def sincronizar(self):
+        """Num bloco mapeado, garante que o escrito chegou ao arquivo."""
+        dados = self.dados()
+        if isinstance(dados, mmap.mmap):
+            dados.flush()
+        return self
+
+    def mapeado(self):
+        return self._vivo and isinstance(self._dados, mmap.mmap)
 
     def fatiar(self, inicio, fim=None):
         crus = self.dados()
@@ -724,12 +803,315 @@ def tamanho_de(tipo_ou_molde):
 
 def alinhamento_de(tipo_ou_molde):
     if isinstance(tipo_ou_molde, Molde):
-        return max(TIPOS[t][1] for _n, t, _q in tipo_ou_molde.campos)
+        return max(_largura(t) for _n, t, _q in tipo_ou_molde.campos)
     return tamanho_de(tipo_ou_molde)
 
 
 def tipos():
+    """Os tipos ESCALARES — os que um ponteiro, `tamanho_de` e o
+    `Arcane.Bytes` aceitam. `char` e `bytes` so existem como campo de
+    molde (o tamanho e o `quantos`), e ficam fora daqui de proposito."""
     return sorted(TIPOS)
+
+
+# ═══════════════════════════════════════════════════════════
+#  Operacoes de bits
+# ═══════════════════════════════════════════════════════════
+#
+# Por que funcoes, e nao operadores: os tres simbolos de toda linguagem
+# ja tem dono aqui. `>>` e o PIPELINE, `|` e a uniao de tipos e `&` a
+# intersecao. Um `a >> 2` que deslocasse bits mudaria o sentido de todo
+# pipeline escrito; e `a & b` seria lido como tipo onde uma anotacao e
+# possivel. Os nomes abaixo nao disputam nada.
+
+def _inteiro(valor, nome):
+    if isinstance(valor, bool) or not isinstance(valor, int):
+        raise _erro(f"{nome} opera sobre inteiros, e veio {valor!r}.",
+                    dica="int(x) antes, se for texto")
+    return valor
+
+
+def bits_e(a, b):
+    """E bit a bit: fica 1 so onde os dois tem 1 — a MASCARA."""
+    return _inteiro(a, "bits_e") & _inteiro(b, "bits_e")
+
+
+def bits_ou(a, b):
+    """OU bit a bit: liga o que estiver ligado em qualquer um."""
+    return _inteiro(a, "bits_ou") | _inteiro(b, "bits_ou")
+
+
+def bits_xou(a, b):
+    """OU exclusivo: 1 onde os dois diferem. Aplicado duas vezes, desfaz."""
+    return _inteiro(a, "bits_xou") ^ _inteiro(b, "bits_xou")
+
+
+def bits_nao(a, largura):
+    """Inverte os bits DENTRO da largura.
+
+    A largura e obrigatoria: o inteiro da linguagem nao tem tamanho, e o
+    NAO de um numero sem tamanho e negativo — `~5` no Python da -6, que
+    nao e o que quem inverte um byte quer.
+    """
+    n, bits = _inteiro(a, "bits_nao"), int(largura)
+    if bits < 1:
+        raise _erro("a largura precisa ser de ao menos 1 bit.")
+    if n < 0 or n >= (1 << bits):
+        raise _erro(f"{n} nao cabe em {bits} bits.",
+                    classe="BufferOverflowError")
+    return ((1 << bits) - 1) ^ n
+
+
+def deslocar(a, casas):
+    """Desloca para a ESQUERDA com casas positivas, direita com negativas.
+
+    Um sentido so, com sinal, em vez de dois nomes: `deslocar(x, -4)` le
+    como "quatro casas para a direita", e evita a duvida de qual dos
+    dois e o `>>`.
+    """
+    n, k = _inteiro(a, "deslocar"), int(casas)
+    return n << k if k >= 0 else n >> (-k)
+
+
+def contar_uns(a):
+    """Quantos bits estao ligados (o popcount)."""
+    n = _inteiro(a, "contar_uns")
+    if n < 0:
+        raise _erro("contar_uns e para inteiros nao negativos.")
+    return bin(n).count("1")
+
+
+def bit_ligado(a, posicao):
+    """O bit na posicao (0 e o de BAIXO) esta ligado?"""
+    return bool((_inteiro(a, "bit_ligado") >> int(posicao)) & 1)
+
+
+def ligar_bit(a, posicao):
+    return _inteiro(a, "ligar_bit") | (1 << int(posicao))
+
+
+def desligar_bit(a, posicao):
+    return _inteiro(a, "desligar_bit") & ~(1 << int(posicao))
+
+
+# ═══════════════════════════════════════════════════════════
+#  Campos de bits
+# ═══════════════════════════════════════════════════════════
+
+class MoldeDeBits:
+    """Campos menores que um byte, dentro de um inteiro.
+
+    O primeiro campo e o de CIMA (os bits mais significativos), que e
+    como toda RFC desenha um cabecalho: em IPv4, `versao` (4 bits) vem
+    antes de `ihl` (4 bits) no mesmo byte. O C deixa essa ordem para o
+    compilador — e e por isso que protocolo nao se escreve com bitfield
+    do C, e sim com mascara e deslocamento, que e o que isto faz.
+    """
+
+    __slots__ = ("nome", "campos", "largura", "_posicoes")
+
+    def __init__(self, nome, campos, largura=8):
+        self.nome = str(nome)
+        self.largura = int(largura)
+        lista = [(str(c[0]), int(c[1])) for c in (campos or [])]
+        if not lista:
+            raise _erro(f"'{self.nome}' precisa de ao menos um campo.",
+                        dica='Est.campos_de_bits("B", [["versao", 4], '
+                             '["ihl", 4]])')
+        nomes = [n for n, _ in lista]
+        repetidos = sorted({n for n in nomes if nomes.count(n) > 1})
+        if repetidos:
+            raise _erro(f"'{self.nome}' declara '{repetidos[0]}' duas vezes.")
+        ruins = [n for n, b in lista if b < 1]
+        if ruins:
+            raise _erro(f"o campo '{ruins[0]}' precisa de ao menos 1 bit.")
+        total = sum(b for _, b in lista)
+        if total > self.largura:
+            raise _erro(
+                f"os campos de '{self.nome}' somam {total} bits, e a "
+                f"largura e {self.largura}.",
+                nota="o que passasse da largura seria cortado ao gravar, "
+                     "e lido como zero",
+                dica=f"use largura := {-(-total // 8) * 8}")
+        self.campos = lista
+        self._posicoes = {}
+        topo = self.largura
+        for nome_campo, bits in lista:
+            topo -= bits
+            self._posicoes[nome_campo] = (topo, bits)
+
+    def ler(self, valor):
+        """O inteiro aberto em campos, como vault."""
+        numero = int(valor)
+        if numero < 0 or numero >= (1 << self.largura):
+            raise _erro(f"{numero} nao cabe em {self.largura} bits.")
+        return {n: (numero >> pos) & ((1 << bits) - 1)
+                for n, (pos, bits) in self._posicoes.items()}
+
+    def juntar(self, valores):
+        """Os campos de volta num inteiro. O que faltar vale zero."""
+        desconhecidos = set(valores or {}) - set(self._posicoes)
+        if desconhecidos:
+            alvo = sorted(desconhecidos)[0]
+            raise _erro(f"'{self.nome}' nao tem o campo '{alvo}'."
+                        f"{_parecido(alvo, self._posicoes)}")
+        numero = 0
+        for nome_campo, valor in (valores or {}).items():
+            pos, bits = self._posicoes[nome_campo]
+            v = int(valor)
+            if v < 0 or v >= (1 << bits):
+                raise _erro(
+                    f"{v} nao cabe em '{nome_campo}': sao {bits} bit(s), "
+                    f"de 0 a {(1 << bits) - 1}.",
+                    nota="sem esta conferencia o valor invadiria o campo "
+                         "vizinho — o defeito aparece no OUTRO campo",
+                    classe="BufferOverflowError")
+            numero |= v << pos
+        return numero
+
+    def mapa(self):
+        return [{"campo": n, "bits": b, "deslocamento": self._posicoes[n][0],
+                 "mascara": ((1 << b) - 1) << self._posicoes[n][0]}
+                for n, b in self.campos]
+
+    def __repr__(self):
+        return f"<bits {self.nome}, {len(self.campos)} campo(s) em {self.largura}>"
+
+
+def campos_de_bits(nome, campos, largura=8):
+    return MoldeDeBits(nome, campos, largura)
+
+
+# ═══════════════════════════════════════════════════════════
+#  Varint (LEB128) e zigzag
+# ═══════════════════════════════════════════════════════════
+
+def varint(numero):
+    """O inteiro em LEB128 sem sinal: 7 bits por byte, o alto diz "tem mais".
+
+    E o formato do Protocol Buffers, do WebAssembly e do DWARF: numero
+    pequeno ocupa um byte, e nao ha teto. Negativo e recusado — em
+    LEB128 sem sinal, -1 viraria dez bytes. Para negativos, `zigzag`.
+    """
+    n = int(numero)
+    if n < 0:
+        raise _erro(
+            f"varint nao guarda negativo ({n}).",
+            nota="sem sinal, -1 viraria o maior numero de 64 bits: dez bytes",
+            dica="Est.varint(Est.zigzag(n)) — e o que o protobuf faz com sint64")
+    saida = bytearray()
+    while True:
+        parte = n & 0x7F
+        n >>= 7
+        if n:
+            saida.append(parte | 0x80)
+        else:
+            saida.append(parte)
+            return bytes(saida)
+
+
+def ler_varint(dados, deslocamento=0):
+    """`{valor, tamanho}` — o numero e quantos bytes ele ocupou."""
+    crus = _bytes_de(dados)
+    pos = int(deslocamento)
+    valor, desloc, lidos = 0, 0, 0
+    while True:
+        if pos + lidos >= len(crus):
+            raise _erro(
+                f"o varint que comeca no byte {pos} nao termina: os dados "
+                f"acabaram depois de {lidos} byte(s).",
+                nota="todo byte lido tinha o bit alto ligado, que quer dizer "
+                     "'ainda tem mais'",
+                classe="BufferOverflowError")
+        byte = crus[pos + lidos]
+        valor |= (byte & 0x7F) << desloc
+        lidos += 1
+        desloc += 7
+        if not byte & 0x80:
+            return {"valor": valor, "tamanho": lidos}
+        if lidos >= 10:
+            raise _erro(f"varint com mais de 10 bytes no byte {pos}.",
+                        nota="nenhum inteiro de 64 bits precisa de tanto; "
+                             "isto e dado corrompido, ou nao e um varint",
+                        classe="BufferOverflowError")
+
+
+def zigzag(numero):
+    """Intercala negativos e positivos: 0, -1, 1, -2 viram 0, 1, 2, 3.
+
+    Assim um -1 cabe em um byte de varint, em vez de dez.
+    """
+    n = int(numero)
+    return (n << 1) if n >= 0 else ((-n << 1) - 1)
+
+
+def desfazer_zigzag(numero):
+    n = int(numero)
+    return (n >> 1) if not n & 1 else -((n + 1) >> 1)
+
+
+# ═══════════════════════════════════════════════════════════
+#  Conferencia e ordem
+# ═══════════════════════════════════════════════════════════
+
+def crc32(dados, inicial=0):
+    """O CRC-32 do PNG, do ZIP e do gzip — o mesmo polinomio dos tres.
+
+    `inicial` continua uma conta: o CRC de um chunk PNG e o do TIPO mais
+    os DADOS, e da para calcular em duas partes.
+    """
+    return zlib.crc32(bytes(_bytes_de(dados)), int(inicial)) & 0xFFFFFFFF
+
+
+def trocar_ordem(valor, tipo="u32"):
+    """O mesmo numero com os bytes invertidos (o `bswap`)."""
+    tipo = str(tipo)
+    if tipo not in TIPOS or tipo in ("f32", "f64", "bool"):
+        raise _erro(f"trocar_ordem e para inteiros, e '{tipo}' nao e.",
+                    dica="use u16, u32, u64 ou os com sinal")
+    letra, _ = TIPOS[tipo]
+    return struct.unpack("<" + letra, struct.pack(">" + letra, int(valor)))[0]
+
+
+# ═══════════════════════════════════════════════════════════
+#  Arquivo mapeado
+# ═══════════════════════════════════════════════════════════
+
+def _so_leitura(mapa):
+    """Um mmap de leitura recusa ate a escrita de zero bytes."""
+    try:
+        antes = mapa.tell()
+        mapa.write(b"")
+        mapa.seek(antes)
+        return False
+    except TypeError:
+        return True
+
+
+def mapear(caminho, escrita=False):
+    """O arquivo como um Bloco, sem le-lo inteiro.
+
+    O sistema operacional traz para a memoria so as paginas tocadas: um
+    arquivo de 4 GB com um cabecalho de 64 bytes custa 4 KB de leitura.
+    Com `escrita := yes`, escrever numa janela escreve **no arquivo**; e
+    `sincronizar()` garante que chegou ao disco.
+
+    O arquivo nao pode ser vazio — o mmap de zero bytes nao existe.
+    """
+    caminho = str(caminho)
+    if not os.path.exists(caminho):
+        raise _erro(f"o arquivo '{caminho}' nao existe.",
+                    dica="crie-o com o tamanho certo antes: IO.write_bytes")
+    if os.path.getsize(caminho) == 0:
+        raise _erro(f"'{caminho}' esta vazio, e nao ha o que mapear.",
+                    dica="escreva o tamanho que o formato exige antes")
+    modo = "r+b" if escrita else "rb"
+    with open(caminho, modo) as arquivo:
+        acesso = mmap.ACCESS_WRITE if escrita else mmap.ACCESS_READ
+        mapa = mmap.mmap(arquivo.fileno(), 0, access=acesso)
+    alvo = Bloco(0)
+    alvo._dados = mapa
+    return alvo
 
 
 # ═══════════════════════════════════════════════════════════
@@ -767,4 +1149,28 @@ class ArcaneEstrutura:
             "tipos": tipos,
             "tamanho_de": tamanho_de,
             "alinhamento_de": alinhamento_de,
+            "trocar_ordem": trocar_ordem,
+
+            # ── operacoes de bits ──
+            "bits_e": bits_e,
+            "bits_ou": bits_ou,
+            "bits_xou": bits_xou,
+            "bits_nao": bits_nao,
+            "deslocar": deslocar,
+            "contar_uns": contar_uns,
+            "bit_ligado": bit_ligado,
+            "ligar_bit": ligar_bit,
+            "desligar_bit": desligar_bit,
+
+            # ── bits, varint e conferencia ──
+            "campos_de_bits": campos_de_bits,
+            "MoldeDeBits": MoldeDeBits,
+            "varint": varint,
+            "ler_varint": ler_varint,
+            "zigzag": zigzag,
+            "desfazer_zigzag": desfazer_zigzag,
+            "crc32": crc32,
+
+            # ── arquivo mapeado ──
+            "mapear": mapear,
         }

@@ -1805,6 +1805,42 @@ def _reservar_pilha():
     sys.setrecursionlimit(min(sys.getrecursionlimit(), 3000))
 
 
+#: O que a thread do programa pediu para a principal fazer.
+_PEDIDOS_DA_PRINCIPAL = []
+
+
+def _atender_pedidos_da_principal():
+    while _PEDIDOS_DA_PRINCIPAL:
+        funcao, pronto, caixa = _PEDIDOS_DA_PRINCIPAL.pop(0)
+        try:
+            caixa["valor"] = funcao()
+        except BaseException as erro:          # noqa: BLE001
+            caixa["erro"] = erro
+        pronto.set()
+
+
+def na_thread_principal(funcao, prazo=5.0):
+    """Roda 'funcao' na thread principal e devolve o resultado.
+
+    O programa roda numa thread propria (a da pilha maior), e ha coisas
+    que o Python so aceita na principal — `signal.signal` e a que
+    importa. Devolve None, sem rodar, quando nao ha principal atendendo:
+    o chamador decide o que isso quer dizer.
+    """
+    if threading.current_thread() is threading.main_thread():
+        return funcao()
+    if not getattr(_PROVISIONADA, "sim", False):
+        return None
+    pronto = threading.Event()
+    caixa = {}
+    _PEDIDOS_DA_PRINCIPAL.append((funcao, pronto, caixa))
+    if not pronto.wait(prazo):
+        return None
+    if "erro" in caixa:
+        raise caixa["erro"]
+    return caixa.get("valor", True)
+
+
 def _com_pilha_propria(funcao):
     """Roda 'funcao' numa thread com pilha suficiente, e devolve o que ela deu.
 
@@ -1831,7 +1867,13 @@ def _com_pilha_propria(funcao):
 
     t = threading.Thread(target=dentro, name="df-programa", daemon=True)
     t.start()
-    t.join()
+    # 'join' em fatias, e nao de uma vez: entre uma e outra a principal
+    # atende o que so ELA pode fazer — instalar tratador de sinal e o
+    # caso. 'join(timeout)' volta assim que a thread termina, entao o fim
+    # do programa nao espera a fatia acabar.
+    while t.is_alive():
+        t.join(0.1)
+        _atender_pedidos_da_principal()
     if "erro" in caixa:
         raise caixa["erro"]
     return caixa.get("valor")
@@ -5559,9 +5601,12 @@ class Interpreter:
             kwargs = {k: self.evaluate(v, env)
                       for k, v in (deco.kwargs or {}).items()}
 
-            if args or kwargs:
-                # Com argumentos, o decorador e uma FABRICA: primeiro
-                # recebe a configuracao, depois o alvo.
+            if args or kwargs or getattr(deco, "chamado", False):
+                # Com parenteses, o decorador e uma FABRICA: primeiro
+                # recebe a configuracao, depois o alvo. Vale tambem com
+                # os parenteses VAZIOS: '@app.texto()' chamava
+                # 'app.texto(acao)', e a acao caia no parametro do padrao
+                # — uma regex que nunca casa, e um bot calado.
                 fabrica = self._call(funcao, args, kwargs, node, env)
                 novo = self._call(fabrica, [valor], {}, node, env)
             else:

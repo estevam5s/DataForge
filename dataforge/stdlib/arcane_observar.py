@@ -90,6 +90,99 @@ def _percentil(ordenados, p):
     return ordenados[baixo] * (alto - k) + ordenados[alto] * (k - baixo)
 
 
+# ═══════════════════════════════════════════════════════════
+#  SLO — o orcamento de erro e a taxa de queima
+# ═══════════════════════════════════════════════════════════
+
+def _objetivo(objetivo):
+    alvo = float(objetivo)
+    if not 0.0 < alvo < 1.0:
+        raise ValueError_(
+            f"o objetivo de um SLO e uma fracao entre 0 e 1, e veio {objetivo}.",
+            doc="observabilidade/slo")
+    return alvo
+
+
+def _contagem(total, falhas):
+    total, falhas = int(total), int(falhas)
+    if total < 0 or falhas < 0 or falhas > total:
+        raise ValueError_(
+            f"contagem impossivel: {falhas} falha(s) em {total} pedido(s).",
+            doc="observabilidade/slo")
+    return total, falhas
+
+
+def _orcamento(objetivo, total, falhas):
+    """Quanto do erro PERMITIDO ja foi gasto.
+
+    Com 99,9% de objetivo, um milhao de pedidos admitem mil falhas: esse
+    e o orcamento. `consumido` 0,5 quer dizer metade dele; acima de 1, o
+    SLO foi violado. O ponto do orcamento e virar a pergunta "podemos
+    arriscar este deploy?" em conta, e nao em opiniao.
+    """
+    alvo = _objetivo(objetivo)
+    total, falhas = _contagem(total, falhas)
+    # Arredondar a 10 casas tira o ruido do ponto flutuante (0,999 nao
+    # e exato em binario) sem mudar numero que alguem leia.
+    permitidas = round(total * (1.0 - alvo), 10)
+    consumido = (falhas / permitidas) if permitidas else (0.0 if not falhas else math.inf)
+    return {
+        "objetivo": alvo,
+        "disponibilidade": 1.0 if not total else (total - falhas) / total,
+        "permitidas": permitidas,
+        "falhas": falhas,
+        "consumido": round(consumido, 10) if consumido != math.inf else consumido,
+        "restante": round(max(0.0, 1.0 - consumido), 10),
+        "esgotado": consumido >= 1.0,
+    }
+
+
+def _queima(objetivo, total, falhas):
+    """A taxa de queima: quantas vezes mais rapido que o sustentavel.
+
+    1,0 e gastar o orcamento exatamente no fim da janela do SLO. 14,4
+    numa hora e gastar 2% de um orcamento de 30 dias em uma hora — o
+    limiar classico de chamar alguem de madrugada.
+    """
+    alvo = _objetivo(objetivo)
+    total, falhas = _contagem(total, falhas)
+    if not total:
+        return 0.0
+    return round((falhas / total) / (1.0 - alvo), 10)
+
+
+def _alerta_slo(objetivo, longa, curta, limiar=14.4):
+    """O alerta de janela dupla: dispara so quando AS DUAS queimam.
+
+    A janela longa (1 h) evita acordar alguem por um pico de trinta
+    segundos; a curta (5 min) faz o alerta PARAR quando o problema
+    passou — sem ela, um incidente resolvido continua disparando por uma
+    hora, e alerta que nao para ensina a ignorar alerta.
+    """
+    def ler(janela):
+        if not isinstance(janela, dict) or "total" not in janela:
+            raise ValueError_(
+                "cada janela e um vault {total, falhas}.",
+                doc="observabilidade/slo")
+        return _queima(objetivo, janela["total"], janela.get("falhas", 0))
+    q_longa, q_curta = ler(longa), ler(curta)
+    limite = float(limiar)
+    disparar = q_longa >= limite and q_curta >= limite
+    if disparar:
+        motivo = (f"as duas janelas queimam acima de {limite:g}x "
+                  f"(longa {q_longa:.1f}x, curta {q_curta:.1f}x)")
+    elif q_longa >= limite:
+        motivo = (f"a longa ainda queima {q_longa:.1f}x, mas a curta caiu "
+                  f"para {q_curta:.1f}x: o problema ja passou")
+    elif q_curta >= limite:
+        motivo = (f"pico na janela curta ({q_curta:.1f}x) sem sustentar na "
+                  f"longa ({q_longa:.1f}x)")
+    else:
+        motivo = "dentro do ritmo"
+    return {"disparar": disparar, "queima_longa": q_longa,
+            "queima_curta": q_curta, "limiar": limite, "motivo": motivo}
+
+
 class ArcaneObservar(dict):
     """Métricas, tracing e linhagem."""
 
@@ -122,6 +215,11 @@ class ArcaneObservar(dict):
             "prometheus": cls._prometheus,
             "salvar": cls._salvar,
             "alertar": cls._alertar,
+
+            # SLO
+            "orcamento": _orcamento,
+            "queima": _queima,
+            "alerta_slo": _alerta_slo,
         }
 
     @staticmethod
@@ -444,7 +542,26 @@ class ArcaneObservar(dict):
         despercebida junto.
         """
         disparados = []
-        for nome, regra in (regras or {}).items():
+        # As duas formas: {metrica: regra} e [{"metrica": …, "acima": …}].
+        # A lista e como se escreve uma regra de cada vez; so o vault era
+        # aceito, e a lista estourava com "'list' has no attribute
+        # 'items'" — um nome do Python, sem dizer o que fazer.
+        if isinstance(regras, (list, tuple)):
+            pares = []
+            for regra in regras:
+                if not isinstance(regra, dict) or "metrica" not in regra:
+                    raise ValueError_(
+                        "cada regra da lista precisa de 'metrica': "
+                        '{"metrica": "fila", "acima": 100}',
+                        doc="observabilidade/alertas")
+                pares.append((regra["metrica"], regra))
+        elif isinstance(regras, dict) or regras is None:
+            pares = list((regras or {}).items())
+        else:
+            raise ValueError_(
+                "as regras sao um vault {metrica: regra} ou uma lista de "
+                "regras com 'metrica'.", doc="observabilidade/alertas")
+        for nome, regra in pares:
             atual = ArcaneObservar._valor(painel, nome)
             if isinstance(atual, dict):
                 atual = atual.get(regra.get("estatistica", "p95"))

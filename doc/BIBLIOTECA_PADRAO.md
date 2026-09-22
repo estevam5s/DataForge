@@ -21,7 +21,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Database`](#arcanedatabase) | `Database / DB` | 64 | Banco de dados SQLite: tabelas, consultas, migrações e importação. |
 | [`Arcane.Excel`](#arcaneexcel) | `Excel / Xlsx` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
 | [`Arcane.Meta`](#arcanemeta) | `Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
-| [`Kiln`](#kiln) | `Kiln` | 73 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
+| [`Kiln`](#kiln) | `Kiln` | 80 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | [`Arcane.Test`](#arcanetest) | `Test` | 34 | Asserções e organização de suítes de teste. |
 | [`Arcane.Regex`](#arcaneregex) | `Regex` | 46 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
 | [`Arcane.IO`](#arcaneio) | `IO` | 33 | Arquivos, diretórios, JSON, CSV e shell. |
@@ -51,17 +51,17 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 61 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | [`Arcane.Iter`](#arcaneiter) | `Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
-| [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 33 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 35 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
 | [`Arcane.Archive`](#arcanearchive) | `Archive / Zip` | 13 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. Comprime e descomprime VALORES em memória, em deflate cru ou em gzip, com a taxa medida. |
 | [`Arcane.Pipeline`](#arcanepipeline) | `Pipeline / Fluxo` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
 | [`Arcane.Stream`](#arcanestream) | `Stream / Corrente` | 17 | Streaming: tópicos, partições, offsets, grupos de consumo e janelas de tempo. |
-| [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 19 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
+| [`Arcane.Observar`](#arcaneobservar) | `Observar / Observe` | 22 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | [`Arcane.Quadro`](#arcanequadro) | `Quadro` | 10 | A tabela de dados: colunas nomeadas e linhas como vault. Filtrar, agrupar, resumir, juntar, pivotar, limpar a ausência e a duplicata, converter tipos, normalizar, codificar e descrever — colunar por dentro, imutável por fora. |
 | [`Arcane.Lago`](#arcanelago) | `Lago / Parquet` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
-| [`Arcane.Telegram`](#arcanetelegram) | `Telegram` | 34 | Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede. |
-| [`Arcane.Reativo`](#arcanereativo) | `Reativo` | 14 | Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). A diferenca entre valor e fluxo e mantida de proposito: um clique e fluxo, um saldo e valor. |
-| [`Arcane.Dominio`](#arcanedominio) | `Dominio` | 18 | As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o "nao"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira). |
-| [`Arcane.Estrutura`](#arcaneestrutura) | `Estrutura` | 15 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. Fica entre o Arcane.Bytes, que empacota por formato posicional, e o Arcane.C, que exige FFI. |
+| [`Arcane.Telegram`](#arcanetelegram) | `Telegram` | 37 | Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede. |
+| [`Arcane.Reativo`](#arcanereativo) | `Reativo` | 18 | Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculado de outros, preguicoso e memorizado, com as dependencias DESCOBERTAS na execucao), efeito (o que acontece quando muda, com limpeza entre ciclos) e observavel (um fluxo no tempo, com morph, sift, distill, distintos, esperar, limitar, combinar e juntar). A diferenca entre valor e fluxo e mantida de proposito: um clique e fluxo, um saldo e valor. |
+| [`Arcane.Dominio`](#arcanedominio) | `Dominio` | 23 | As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por conteudo, imutavel, com regra cobrada na criacao), entidade (igualdade por identidade), agregado (a unica porta de escrita, com invariantes conferidas na SAIDA de cada comando e desfazer quando o comando falha no meio), evento (um fato no passado, imutavel), regra (condicao de negocio que se combina com e/ou/nao e explica o "nao"), repositorio (guarda agregados INTEIROS), unidade de trabalho (confirma tudo ou nada, e so entao publica) e contexto delimitado (com a traducao que atravessa a fronteira). |
+| [`Arcane.Estrutura`](#arcaneestrutura) | `Estrutura` | 33 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. Fica entre o Arcane.Bytes, que empacota por formato posicional, e o Arcane.C, que exige FFI. |
 | [`Arcane.Malha`](#arcanemalha) | `Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
 | [`Arcane.Url`](#arcaneurl) | `Url` | 14 | Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query string em vault (ou em cluster, quando a chave repete) e escape para caminho e para valor. |
 | [`Arcane.Bytes`](#arcanebytes) | `Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
@@ -72,16 +72,16 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Injecao`](#arcaneinjecao) | `Injecao / DI` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | [`Arcane.Padroes`](#arcanepadroes) | `Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
 | [`Arcane.Memoria`](#arcanememoria) | `Memoria` | 24 | O ciclo de vida visto de dentro: referência fraca, mapa fraco, ação ao descartar, instâncias vivas por blueprint, tamanho e layout. E o COLETOR sob controle: ligar, desligar, 'sem_gc' num trecho sensível a latência (que religa mesmo se o corpo falhar), limiares por geração, 'congelar' o que já vive para tirá-lo das varreduras, e a conta por geração. Mais a arena: um lote preparado de uma vez e reaproveitado, com 'limpar' soltando tudo numa chamada. |
-| [`Arcane.C`](#arcanec) | `C / Nativo` | 23 | Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia. |
+| [`Arcane.C`](#arcanec) | `C / Nativo` | 25 | Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura declarada, struct e uniao com o layout de verdade (tamanho, alinhamento e deslocamento), ponteiro cru com aritmetica, memoria alocada a mao e callback — uma acao da linguagem chamada de dentro do C. Sobre ctypes, da biblioteca padrao: zero dependencia. |
 | [`Arcane.Macro`](#arcanemacro) | `Macro` | 13 | A arvore como dado: ler o corpo de uma acao, percorrer, transformar e gerar codigo. 'citar' transforma texto em arvore, 'reescrever' devolve uma acao com o corpo trocado, 'nome_fresco' e 'renomear' dao higiene, e 'derivar' e a macro de atributo que gera __str__, __eq__, __lt__ e para_vault a partir dos campos. |
-| [`Arcane.Compilador`](#arcanecompilador) | `Compilador` | 24 | O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore. |
-| [`Arcane.Laco`](#arcanelaco) | `Laco / Reator` | 25 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'. |
+| [`Arcane.Compilador`](#arcanecompilador) | `Compilador` | 26 | O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore. |
+| [`Arcane.Laco`](#arcanelaco) | `Laco / Reator` | 29 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'. |
 | [`Arcane.Perfil`](#arcaneperfil) | `Perfil` | 16 | Medir com rigor, onde o 'Bench' da a media: percentis (p50, p95, p99, p999) com aquecimento separado, comparacao com SIGNIFICANCIA estatistica (Mann-Whitney, que nao supoe normalidade — tempo de execucao nao e normal), linha de base guardada para acusar regressao no CI, flame graph das ACOES da linguagem em SVG sem nada de fora, pausas do coletor medidas na fonte e contencao de trava. |
-| [`Arcane.Inicio`](#arcaneinicio) | `Inicio` | 12 | O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que o programa demora a comecar?' sem cronometrar a mao. Mais armazenamento por THREAD com inicializacao e finalizador (o 'threading.local' da o armazem e nao da o resto), e a pilha que se pergunta: profundidade, teto, quanto falta e os quadros abertos. |
+| [`Arcane.Inicio`](#arcaneinicio) | `Inicio` | 15 | O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que o programa demora a comecar?' sem cronometrar a mao. Mais armazenamento por THREAD com inicializacao e finalizador (o 'threading.local' da o armazem e nao da o resto), e a pilha que se pergunta: profundidade, teto, quanto falta e os quadros abertos. |
 | [`Arcane.Capacidade`](#arcanecapacidade) | `Capacidade` | 6 | A fronteira de CAPACIDADE: roda uma acao com a lista de poderes que ela pode alcancar, e recusa o resto pelo NOME da capacidade que falta. A ponte para o Python e capacidade propria, e nunca vem junto. NAO e caixa contra programa hostil, e o modulo diz isso em 'limites()': ele bloqueia a autoridade ambiente (o 'adopt'), e nao tira o que foi ENTREGUE — o que e o modelo de capacidade, nao um defeito. |
-| [`Arcane.Abi`](#arcaneabi) | `Abi` | 8 | A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. Compara duas versoes e diz o que quebrou (simbolo removido, aridade incompativel, parametro renomeado, tipo trocado, campo novo obrigatorio) e qual bump de semver a mudanca EXIGE. Mais o mapa de simbolos: de onde vem cada nome, o analogo do mapa que um ligador escreve. |
+| [`Arcane.Abi`](#arcaneabi) | `Abi` | 10 | A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. Compara duas versoes e diz o que quebrou (simbolo removido, aridade incompativel, parametro renomeado, tipo trocado, campo novo obrigatorio) e qual bump de semver a mudanca EXIGE. Mais o mapa de simbolos: de onde vem cada nome, o analogo do mapa que um ligador escreve. |
 | [`Arcane.Alvo`](#arcanealvo) | `Alvo` | 7 | 'Isso roda no navegador?', respondido a partir dos 'adopt'. Seis alvos descritos (servidor, cli, navegador, wasi, funcao serverless, embarcado) com o que cada um suporta e POR QUE nao suporta o resto, no mesmo vocabulario de capacidade do 'Arcane.Capacidade'. A leitura e ESTATICA e o modulo diz isso em 'limites()': um 'roda' quer dizer 'nao achei impedimento por esta via', e nao 'vai funcionar'. |
-| [`Arcane.Ecossistema`](#arcaneecossistema) | `Ecossistema` | 9 | O inventario da implementacao, CONFERIDO contra ela. Cada componente do desenho do ecossistema aponta arquivos de verdade e carrega um de tres estados: 'existe', 'equivale' (ha outra peca que responde a mesma pergunta, nomeada) ou 'nao-existe' (com o porque escrito). 'conferir()' cobra as duas direcoes — todo caminho citado existe no disco, e todo modulo do nucleo aparece em algum componente —, e e isso que impede o mapa de mentir quando uma peca muda de nome. 'o_que_nao_existe()' e a resposta honesta a 'o DataForge tem backend LLVM?'. |
+| [`Arcane.Ecossistema`](#arcaneecossistema) | `Ecossistema` | 11 | O inventario da implementacao, CONFERIDO contra ela. Cada componente do desenho do ecossistema aponta arquivos de verdade e carrega um de tres estados: 'existe', 'equivale' (ha outra peca que responde a mesma pergunta, nomeada) ou 'nao-existe' (com o porque escrito). 'conferir()' cobra as duas direcoes — todo caminho citado existe no disco, e todo modulo do nucleo aparece em algum componente —, e e isso que impede o mapa de mentir quando uma peca muda de nome. 'o_que_nao_existe()' e a resposta honesta a 'o DataForge tem backend LLVM?'. |
 | [`Arcane.Principios`](#arcaneprincipios) | `Principios` | 6 | Os dez principios de design, cada um com uma prova que RODA e o numero que ela deu — duas delas rodam o analisador e uma roda o interpretador, porque 'verificacao antes de rodar' e 'custo zero quando desligado' sao coisas que se demonstram. O veredito nao e dez de dez de proposito: 5 cumpridos, 4 parciais e 1 que nao se aplica. E as nove TENSOES: onde dois principios se contradizem, qual venceu, o custo aceito e o arquivo onde a decisao mora. |
 | [`Arcane.Percurso`](#arcanepercurso) | `Percurso` | 5 | O caminho inteiro de um arquivo, fase por fase, MEDIDO: lexer, parser, HIR, tipos, MIR, analises, SSA, passes e LIR, com o que cada fase produziu e quanto tempo levou. Responde 'onde o tempo vai' quando um arquivo demora a abrir no editor. Ele NAO executa o programa — executar e o que o programa faz, e um comando que mostra fases nao pode abrir soquete. Traz tambem as divergencias entre o caminho real e o desenho da referencia. |
 | [`Arcane.Dsl`](#arcanedsl) | `Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
@@ -602,7 +602,7 @@ Framework web: rotas, middleware, templates, sessão e arquivos estáticos.
 adopt Kiln as Kiln
 ```
 
-**Funções (73)**
+**Funções (80)**
 
 | Assinatura |
 |------------|
@@ -624,8 +624,10 @@ adopt Kiln as Kiln
 | `cors(origens='*', metodos=None, cabecalhos=None)` |
 | `csrf(segredo, campo='_csrf', cabecalho='X-CSRF-Token')` |
 | `csrf_token(req, segredo=None)` |
+| `cursor(dados, segredo=None)` |
 | `delete(app, padrao, handler)` |
 | `escape(texto)` |
+| `etiqueta(valor)` |
 | `evento(dados, tipo='', identificador='', reconectar=0)` |
 | `file(caminho, tipo=None, baixar=None)` |
 | `forge(nome='kiln', **config)` |
@@ -637,16 +639,21 @@ adopt Kiln as Kiln
 | `html(texto, status=200, cabecalhos=None)` |
 | `idempotente(janela=86400)` |
 | `json(dados, status=200, cabecalhos=None)` |
+| `ler_cursor(texto, segredo=None)` |
 | `limite_de_corpo(bytes_maximos=1048576)` |
+| `links(caminho, pagina, paginas, parametro='pagina')` |
 | `listen(app, porta=8080, host='127.0.0.1', silencioso=False)` |
 | `logger(formato='dev')` |
 | `mount(app, prefixo, outro)` |
+| `negociar(req, oferecidos)` |
 | `on_error(app, status, handler)` |
 | `options(app, padrao, handler)` |
 | `ordenar(itens, req=None, campos=None, padrao='')` |
 | `paginar(itens, req=None, por_pagina=20, teto=100)` |
 | `patch(app, padrao, handler)` |
 | `post(app, padrao, handler)` |
+| `precondicao(req, etiqueta_atual, exigir=False)` |
+| `problema(status, titulo, detalhe=None, tipo='about:blank', extras=None, instancia=None)` |
 | `put(app, padrao, handler)` |
 | `rate_limit(maximo=60, janela=60)` |
 | `redirect(destino, status=302)` |
@@ -2015,12 +2022,14 @@ Threads, processos, canal bloqueante, grupo de tarefas e prazo.
 adopt Arcane.Concurrent as Concurrent
 ```
 
-**Funções (33)**
+**Funções (35)**
 
 | Assinatura |
 |------------|
+| `Ator(comportamento, estado=None, nome='ator', ao_falhar=None)` |
 | `anel(capacidade=16)` |
 | `atomico(inicial=None)` |
+| `ator(comportamento, estado=None, nome='ator', ao_falhar=None)` |
 | `barreira(quantas)` |
 | `canal(capacidade=0)` |
 | `com_prazo(acao, segundos)` |
@@ -2153,11 +2162,12 @@ Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados.
 adopt Arcane.Observar as Observar
 ```
 
-**Funções (19)**
+**Funções (22)**
 
 | Assinatura |
 |------------|
 | `abrir(painel, nome, dentro_de=None)` |
+| `alerta_slo(objetivo, longa, curta, limiar=14.4)` |
 | `alertar(painel, regras)` |
 | `arvore(painel)` |
 | `contar(painel, nome, quanto=1)` |
@@ -2168,9 +2178,11 @@ adopt Arcane.Observar as Observar
 | `impacto(painel, nome)` |
 | `marcar(painel, nome, valor)` |
 | `medir(painel, nome, valor)` |
+| `orcamento(objetivo, total, falhas)` |
 | `origem(painel, nome, profundidade=20)` |
 | `painel(nome, versao='', arquivo='')` |
 | `prometheus(painel)` |
+| `queima(objetivo, total, falhas)` |
 | `relatorio(painel)` |
 | `resumo(painel)` |
 | `salvar(painel, caminho='')` |
@@ -2256,7 +2268,7 @@ adopt Arcane.Telegram as Telegram
 | `RAIZ` | `'https://api.telegram.org'` |
 | `acoes` | `['typing', 'upload_photo', 'record_video', 'upload…` |
 
-**Funções (31)**
+**Funções (34)**
 
 | Assinatura |
 |------------|
@@ -2273,17 +2285,20 @@ adopt Arcane.Telegram as Telegram
 | `botoes(linhas)` |
 | `chamar(token, metodo, params=None, arquivos=None, prazo=25.0, raiz=None, tentativas=None)` |
 | `codigo(texto)` |
+| `dividir(texto, limite=4096)` |
 | `escapar(texto)` |
 | `escapar_html(texto)` |
 | `estado_em_arquivo(pasta='.telegram/estado')` |
 | `estado_em_memoria()` |
 | `forcar_resposta(dica='', seletivo=False)` |
 | `italico(texto)` |
+| `ler_pagina(dados, prefixo='pg')` |
 | `limitar(por_segundo=25.0, por_chat_por_minuto=18)` |
 | `link(texto, destino)` |
 | `mencao(texto, id_usuario)` |
 | `modo_servidor()` |
 | `negrito(texto)` |
+| `paginado(itens, pagina=1, por_pagina=5, prefixo='pg')` |
 | `remover_teclado(seletivo=False)` |
 | `riscado(texto)` |
 | `segredo_do_ambiente(nome='TELEGRAM_TOKEN')` |
@@ -2303,23 +2318,27 @@ Valores que avisam quando mudam: sinal (um valor com estado), derivado (calculad
 adopt Arcane.Reativo as Reativo
 ```
 
-**Funções (14)**
+**Funções (18)**
 
 | Assinatura |
 |------------|
 | `Derivado(formula, nome='derivado')` |
 | `Efeito(acao, nome='efeito', agora=True)` |
+| `Historico(alvo, limite=100)` |
 | `Inscricao(cancelar)` |
 | `Observavel(nome='observavel')` |
+| `Recurso(buscar, fonte=None)` |
 | `Sinal(inicial=None, nome='sinal', iguais=None)` |
 | `combinar(*fontes)` |
 | `de_cluster(itens, nome='de_cluster')` |
 | `derivado(formula, nome='derivado')` |
 | `efeito(acao, nome='efeito', agora=True)` |
+| `historico(alvo, limite=100)` |
 | `intervalo(segundos, quantos=0, nome='intervalo')` |
 | `juntar(*fontes)` |
 | `lote(acao)` |
 | `observavel(nome='observavel')` |
+| `recurso(buscar, fonte=None)` |
 | `sinal(inicial=None, nome='sinal', iguais=None)` |
 
 
@@ -2333,23 +2352,28 @@ As pecas de um modelo de dominio que se sustenta (DDD): valor (igualdade por con
 adopt Arcane.Dominio as Dominio
 ```
 
-**Funções (18)**
+**Funções (23)**
 
 | Assinatura |
 |------------|
 | `Agregado(tipo, identidade=None, **estado)` |
+| `Armazem()` |
 | `Contexto(nome)` |
 | `Entidade(tipo, identidade=None, **estado)` |
 | `Evento(nome, dados=None, origem='', tipo='')` |
+| `Projecao(aplicadores, inicial=None)` |
 | `Regra(descricao, condicao)` |
 | `Repositorio(tipo, ler=None, gravar=None, apagar=None, listar=None)` |
 | `Unidade(publicar=None)` |
 | `Valor(nome, campos, valores, regra=None, motivo='')` |
 | `agregado(tipo, identidade=None, **estado)` |
+| `armazem()` |
 | `contexto(nome)` |
 | `entidade(tipo, identidade=None, **estado)` |
 | `evento(nome, dados=None, origem='', tipo='')` |
 | `novo_id()` |
+| `projecao(aplicadores, inicial=None)` |
+| `reconstituir(eventos, aplicadores, inicial=None)` |
 | `regra(descricao, condicao)` |
 | `repositorio(tipo)` |
 | `repositorio_de(tipo, ler, gravar, apagar=None, listar=None)` |
@@ -2367,25 +2391,43 @@ Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos no
 adopt Arcane.Estrutura as Estrutura
 ```
 
-**Funções (15)**
+**Funções (33)**
 
 | Assinatura |
 |------------|
 | `Bloco(tamanho_ou_dados=0)` |
 | `Janela(bloco_alvo, molde, deslocamento=0)` |
 | `Molde(nome, campos, ordem='rede', empacotado=False)` |
+| `MoldeDeBits(nome, campos, largura=8)` |
 | `Ponteiro(bloco_alvo, tipo='u8', deslocamento=0, ordem='rede')` |
 | `alinhamento_de(tipo_ou_molde)` |
+| `bit_ligado(a, posicao)` |
+| `bits_e(a, b)` |
+| `bits_nao(a, largura)` |
+| `bits_ou(a, b)` |
+| `bits_xou(a, b)` |
 | `bloco(tamanho_ou_dados=0)` |
+| `campos_de_bits(nome, campos, largura=8)` |
+| `contar_uns(a)` |
+| `crc32(dados, inicial=0)` |
 | `de_bytes(dados)` |
 | `definir(nome, campos, ordem='rede', empacotado=False)` |
+| `desfazer_zigzag(numero)` |
+| `desligar_bit(a, posicao)` |
+| `deslocar(a, casas)` |
 | `janela(alvo, molde, deslocamento=0)` |
 | `janelas(alvo, molde, quantos=None, deslocamento=0)` |
+| `ler_varint(dados, deslocamento=0)` |
+| `ligar_bit(a, posicao)` |
+| `mapear(caminho, escrita=False)` |
 | `nulo()` |
 | `ponteiro(alvo, tipo='u8', deslocamento=0, ordem='rede')` |
 | `tamanho_de(tipo_ou_molde)` |
 | `tipos()` |
+| `trocar_ordem(valor, tipo='u32')` |
 | `uniao(nome, campos, ordem='rede')` |
+| `varint(numero)` |
+| `zigzag(numero)` |
 
 
 ---
@@ -2758,7 +2800,7 @@ Falar com biblioteca nativa: abrir .so/.dylib/.dll, chamar funcao com assinatura
 adopt Arcane.C as C
 ```
 
-**Funções (23)**
+**Funções (25)**
 
 | Assinatura |
 |------------|
@@ -2774,6 +2816,7 @@ adopt Arcane.C as C
 | `do_processo()` |
 | `endianness()` |
 | `enumeracao(pares)` |
+| `errno()` |
 | `estrutura(campos)` |
 | `liberar(bloco)` |
 | `matematica()` |
@@ -2785,6 +2828,7 @@ adopt Arcane.C as C
 | `tamanho_de(tipo)` |
 | `tipos()` |
 | `uniao(campos)` |
+| `zerar_errno()` |
 
 
 ---
@@ -2826,7 +2870,7 @@ O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois d
 adopt Arcane.Compilador as Compilador
 ```
 
-**Funções (24)**
+**Funções (26)**
 
 | Assinatura |
 |------------|
@@ -2837,6 +2881,8 @@ adopt Arcane.Compilador as Compilador
 | `blocos(fonte, nome=None)` |
 | `constantes(fonte, nome=None)` |
 | `corpos(fonte)` |
+| `dominancia(fonte, nome=None)` |
+| `dot(fonte, nome=None)` |
 | `escapam(fonte, nome=None)` |
 | `fases()` |
 | `hir(fonte)` |
@@ -2866,18 +2912,21 @@ O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do 
 adopt Arcane.Laco as Laco
 ```
 
-**Funções (25)**
+**Funções (29)**
 
 | Assinatura |
 |------------|
+| `Canal(capacidade=0, nome='canal')` |
 | `a_cada(laco, ms, acao, rotulo='')` |
 | `agendar(laco, acao, rotulo='')` |
 | `apos(laco, ms, acao, rotulo='')` |
+| `canal(capacidade=0, nome='canal')` |
 | `cancelada(alvo)` |
 | `cancelar(alvo)` |
 | `ceder()` |
 | `depois_de(ms, caixa, chave, valor='pronto')` |
 | `dormir(ms)` |
+| `enviar(canal_alvo, valor)` |
 | `escrever(soquete)` |
 | `esperar(outra)` |
 | `esquecer(laco, soquete)` |
@@ -2894,6 +2943,7 @@ adopt Arcane.Laco as Laco
 | `pedidos()` |
 | `quando_escrever(laco, soquete, acao)` |
 | `quando_ler(laco, soquete, acao)` |
+| `receber(canal_alvo, caixa, chave='valor')` |
 | `rodar(laco, voltas=None)` |
 
 
@@ -2939,12 +2989,15 @@ O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e q
 adopt Arcane.Inicio as Inicio
 ```
 
-**Funções (12)**
+**Funções (15)**
 
 | Assinatura |
 |------------|
 | `adocoes()` |
+| `ao_encerrar(acao)` |
 | `definir(a, v)` |
+| `encerrando()` |
+| `esquecer_encerramento(chave)` |
 | `fases()` |
 | `limite_da_pilha(novo=None)` |
 | `limpar(a)` |
@@ -2989,13 +3042,15 @@ A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que 
 adopt Arcane.Abi as Abi
 ```
 
-**Funções (8)**
+**Funções (10)**
 
 | Assinatura |
 |------------|
+| `changelog(antes, depois, versao='')` |
 | `comparar(antes, depois)` |
 | `compativel(antes, depois)` |
 | `mapa(caminho)` |
+| `proxima_versao(atual, antes, depois)` |
 | `quebras(antes, depois)` |
 | `regras()` |
 | `relatorio(resultado)` |
@@ -3042,14 +3097,16 @@ adopt Arcane.Ecossistema as Ecossistema
 |------|-------|
 | `ESTADOS` | `['existe', 'equivale', 'nao-existe']` |
 
-**Funções (8)**
+**Funções (10)**
 
 | Assinatura |
 |------------|
 | `arvore()` |
 | `componentes()` |
 | `conferir()` |
+| `definir(termo)` |
 | `equivalencias()` |
+| `glossario()` |
 | `grupos()` |
 | `numeros()` |
 | `o_que_nao_existe()` |

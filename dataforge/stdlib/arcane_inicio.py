@@ -277,6 +277,107 @@ def limite_da_pilha(novo=None):
     return novo
 
 
+# ═══════════════════════════════════════════════════════════
+#  O fim — desligamento gracioso
+# ═══════════════════════════════════════════════════════════
+
+#: Os finalizadores, na ordem de registro. Rodam ao contrario: quem
+#: abriu por ultimo fecha primeiro, como uma pilha de `defer`.
+_FINAIS = []
+_ESTADO_DO_FIM = {"instalado": False, "encerrando": False, "rodou": False,
+                  "sinal": None}
+_TRAVA_DO_FIM = threading.RLock()
+
+
+def _rodar_finais():
+    with _TRAVA_DO_FIM:
+        if _ESTADO_DO_FIM["rodou"]:
+            return
+        _ESTADO_DO_FIM["rodou"] = True
+        lista = list(reversed(_FINAIS))
+    for _chave, acao in lista:
+        try:
+            acao()
+        except BaseException as falha:                    # noqa: BLE001
+            # Um finalizador que falha nao impede os outros: fechar o
+            # banco nao pode depender de o log ter fechado antes.
+            mensagem = getattr(falha, "message", None) or str(falha)
+            sys.stderr.write(f"aviso: um finalizador falhou: {mensagem}\n")
+
+
+def _ao_sinal(numero, _quadro):
+    import os
+    if _ESTADO_DO_FIM["encerrando"]:
+        # Segundo sinal: quem apertou Ctrl+C duas vezes nao quer esperar.
+        os._exit(128 + numero)
+    _ESTADO_DO_FIM["encerrando"] = True
+    _ESTADO_DO_FIM["sinal"] = numero
+    _rodar_finais()
+    sys.exit(128 + numero)
+
+
+def _instalar():
+    import atexit
+    import signal
+    if _ESTADO_DO_FIM["instalado"]:
+        return
+
+    def instalar_na_principal():
+        for nome in ("SIGTERM", "SIGINT", "SIGHUP"):
+            numero = getattr(signal, nome, None)
+            if numero is not None:
+                signal.signal(numero, _ao_sinal)
+        return True
+
+    from ..interpreter import na_thread_principal
+    if na_thread_principal(instalar_na_principal) is None:
+        raise RuntimeError_(
+            "ao_encerrar so pode ser registrado na thread principal.",
+            0, 0,
+            nota="o Python so entrega sinal do sistema para a thread "
+                 "principal; registrado em outra, o SIGTERM nunca chegaria",
+            dica="registre no topo do programa, antes de abrir threads",
+            doc="partida/encerrar")
+    atexit.register(_rodar_finais)
+    _ESTADO_DO_FIM["instalado"] = True
+
+
+def ao_encerrar(acao):
+    """Roda `acao` quando o programa termina — por fim normal ou por sinal.
+
+    SIGTERM (o `docker stop`, o `kill`, o Kubernetes), SIGINT (Ctrl+C) e
+    SIGHUP (o terminal fechou) passam a encerrar em ordem: os
+    finalizadores rodam ao contrario do registro, e o processo sai com
+    `128 + sinal` (143 para SIGTERM) — o codigo que o orquestrador
+    espera. Um segundo sinal no meio sai na hora.
+
+    Devolve a chave, para `esquecer_encerramento`.
+    """
+    _instalar()
+    with _TRAVA_DO_FIM:
+        chave = len(_FINAIS) + 1
+        _FINAIS.append((chave, acao))
+    return chave
+
+
+def esquecer_encerramento(chave):
+    with _TRAVA_DO_FIM:
+        for i, (c, _a) in enumerate(_FINAIS):
+            if c == chave:
+                del _FINAIS[i]
+                return True
+    return False
+
+
+def encerrando():
+    """`yes` depois do primeiro sinal — para um laco parar por conta propria.
+
+        persist not Inicio.encerrando():
+            atender_um()
+    """
+    return bool(_ESTADO_DO_FIM["encerrando"])
+
+
 class ArcaneInicio:
     """O dicionário que `adopt Arcane.Inicio` entrega."""
 
@@ -289,6 +390,11 @@ class ArcaneInicio:
             "adocoes": adocoes,
             "relatorio": relatorio,
             "texto_do_relatorio": texto_do_relatorio,
+
+            # ── o fim ──
+            "ao_encerrar": ao_encerrar,
+            "esquecer_encerramento": esquecer_encerramento,
+            "encerrando": encerrando,
 
             # ── por thread ──
             "local": local,

@@ -1107,6 +1107,21 @@ class BotFalso:
         return qualquer
 
 
+def _tipo_do_chat(chat):
+    """A convencao do proprio Telegram: grupo tem id NEGATIVO.
+
+    A sonda marcava todo chat como privado, e ali `e_admin()` e sempre
+    `yes` — entao nao havia como testar um comando que so administrador
+    de grupo pode usar. `-100…` e supergrupo; outro negativo, grupo.
+    """
+    texto = str(chat)
+    if texto.startswith("-100"):
+        return "supergroup"
+    if texto.startswith("-"):
+        return "group"
+    return "private"
+
+
 class Sonda:
     """Um bot rodando em memoria. Injeta updates e le o que ele mandou."""
 
@@ -1137,7 +1152,7 @@ class Sonda:
             "id": str(self._proximo), "from": self.usuario,
             "data": str(dados),
             "message": {"message_id": id_mensagem,
-                        "chat": {"id": self.chat, "type": "private"}}}})
+                        "chat": {"id": self.chat, "type": _tipo_do_chat(self.chat)}}}})
 
     def enviar_foto(self, file_id="foto123", legenda=""):
         mensagem = self._mensagem(legenda)
@@ -1163,7 +1178,7 @@ class Sonda:
 
     def _mensagem(self, texto):
         return {"message_id": self._proximo, "from": self.usuario,
-                "chat": {"id": self.chat, "type": "private"},
+                "chat": {"id": self.chat, "type": _tipo_do_chat(self.chat)},
                 "date": int(time.time()), "text": str(texto)}
 
     def _update(self, corpo):

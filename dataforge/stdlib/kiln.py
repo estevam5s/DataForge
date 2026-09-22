@@ -227,10 +227,19 @@ class App:
 
     def usar(self, funcao):
         self.middleware.append(funcao)
+        # Um middleware de DUAS metades (o idempotente: olha a chave na
+        # entrada, guarda a resposta na saida) traz a segunda em
+        # '.depois'. Registrar so a primeira era o uso obvio —
+        # 'Kiln.use(app, Kiln.idempotente())' — e ele nao guardava nada:
+        # a cobranca repetia, calada.
+        depois = getattr(funcao, "depois", None)
+        if callable(depois) and depois not in self.depois:
+            self.depois.append(depois)
         return self
 
     def apos(self, funcao):
-        self.depois.append(funcao)
+        if funcao not in self.depois:
+            self.depois.append(funcao)
         return self
 
     def montar(self, prefixo, outro):
@@ -951,6 +960,11 @@ def _classe_sala():
     """A classe 'Sala', para quem preferir 'spawn Kiln.Sala("chat")'."""
     from .kiln_tempo_real import Sala
     return Sala
+
+
+def _simbolos_de_api():
+    from .kiln_api import SIMBOLOS
+    return dict(SIMBOLOS)
 
 
 class ArcaneKiln:
@@ -1907,4 +1921,7 @@ class ArcaneKiln:
             "stop": cls._stop,
             "stats": cls._stats,
             "test": cls._test,
+
+            # ── API: problema, negociacao, pre-condicao, cursor ──
+            **_simbolos_de_api(),
         }

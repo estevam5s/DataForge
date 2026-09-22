@@ -92,7 +92,7 @@ dataforge/
   builtins.py     1224   231 funções globais, sem import (inclusive input e set)
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                85 módulos (2223 símbolos), incluindo:
+  stdlib/                85 módulos (2280 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -139,6 +139,7 @@ dataforge/
     arcane_algoritmos.py 14 clássicos (busca binária, Dijkstra, topológica,
                          LCS, mochila, KMP…) com a complexidade que prometem
     arcane_evolucao.py   obsoleta/experimental/renomeada; DF_OBSOLETOS=erro
+    kiln_api.py          problema (RFC 9457), negociar, precondicao, cursor, links
 
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
@@ -440,6 +441,29 @@ Estas são as que mais custam tempo:
     A forma certa é `lambda => (xs >> morph x: x * 2)`. A mensagem
     antiga (`'DFAction' object is not iterable`) falava de uma classe
     do Python; hoje ela mostra a linha com os parênteses.
+    **O ternário e o `??` já entram no corpo** (`_corpo_de_lambda` usa
+    `parse_ternary`): `lambda x: v[x] ?? 0` usa o padrão, e
+    `lambda s: "" given ok(s) otherwise "x"` é um ternário DENTRO do
+    lambda. Com `parse_or`, os dois eram lidos ao contrário, calados.
+
+32. **Uma instrução por linha, e o comentário que começa com número.**
+    `// 3 parcelas` depois de uma expressão é **divisão** por 3 (armadilha
+    2), e o resto da linha virava uma SEGUNDA instrução — aceita calada.
+    `_exigir_fim_da_instrucao` recusa isso agora, com a dica do `//`.
+    Dezessete blocos do site só compilavam pela brecha. Comece o
+    comentário com palavra, ou use `#`. O último token comparado é o
+    último **de verdade**: o `DEDENT` que fecha um bloco carrega a linha
+    da instrução seguinte, e compará-lo deu 460 falsos alarmes.
+
+33. **`@f()` é fábrica; `@f` é aplicação.** `MarkDecorator.chamado`
+    guarda os parênteses. Antes, `@app.texto()` virava `app.texto(acao)`
+    — a ação no parâmetro do padrão, e o bot calado.
+
+34. **`x ?? void is void` é `x ?? (void is void)`.** O `??` tem a
+    precedência mais baixa de todas. O `check` avisa
+    (`coalescencia-engole-comparacao`) quando o lado direito é uma
+    comparação sem parênteses — `CoalesceOp.direita_nua` vem do parser,
+    porque a árvore perde os parênteses.
 
 23. **O teto de quadros é mil, e recursão legítima o atinge.** Uma
     travessia de árvore de cinco mil nós não tem nada de infinita. As
@@ -2086,7 +2110,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 2223 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2280 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.

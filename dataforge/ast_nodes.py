@@ -722,6 +722,9 @@ class MarkDecorator(ASTNode):
     name: str = ""
     args: list = field(default_factory=list)
     kwargs: dict = field(default_factory=dict)
+    #: '@f()' e '@f' nao sao a mesma coisa: com parenteses, 'f' e uma
+    #: FABRICA — 'f()(alvo)' —, mesmo sem argumento nenhum.
+    chamado: bool = False
 
 
 # ═══════════════════════════════════════════════════════════
@@ -789,6 +792,7 @@ class CoalesceOp(ASTNode):
     """a ?? b — devolve b quando a for void"""
     left: Any = None
     right: Any = None
+    direita_nua: bool = False
 
 
 @dataclass

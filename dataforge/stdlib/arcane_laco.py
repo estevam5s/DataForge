@@ -164,7 +164,58 @@ class Fibra:
 #: O que um `emit` pode pedir. Fechada de propósito: um vault qualquer
 #: emitido por engano vira erro com a lista, e não uma fibra parada para
 #: sempre esperando algo que ninguém registrou.
-_PEDIDOS = ("ceder", "dormir", "depois_de", "ler", "escrever", "esperar")
+_PEDIDOS = ("ceder", "dormir", "depois_de", "ler", "escrever", "esperar",
+            "enviar", "receber")
+
+
+class Canal:
+    """Um cano entre fibras — o `chan` do Go, dentro de um laco.
+
+    Com `capacidade` 0 ele e um **encontro**: quem envia so segue quando
+    alguem recebeu. Com capacidade N, envia sem esperar ate a fila ter N.
+    E e isso que da **contrapressao** de graca: um produtor mais rapido
+    que o consumidor para no `enviar`, em vez de encher a memoria.
+
+    Fechar acorda quem espera para receber — com `void`, que quer dizer
+    "acabou". Enviar num canal fechado e erro: ninguem vai ler.
+    """
+
+    __slots__ = ("capacidade", "_fila", "_receptores", "_emissores",
+                 "_fechado", "nome")
+
+    def __init__(self, capacidade=0, nome="canal"):
+        from collections import deque
+        self.capacidade = max(0, int(capacidade))
+        self._fila = deque()
+        self._receptores = deque()      # (acordar, caixa, chave)
+        self._emissores = deque()       # (acordar, valor)
+        self._fechado = False
+        self.nome = str(nome)
+
+    def fechar(self):
+        """Nao entra mais nada. Quem espera recebe `void`."""
+        self._fechado = True
+        while self._receptores:
+            acordar, caixa, chave = self._receptores.popleft()
+            if isinstance(caixa, dict):
+                caixa[chave] = None
+            acordar()
+        return True
+
+    def fechado(self):
+        return self._fechado
+
+    def tamanho(self):
+        """Quantos valores estao na fila, esperando quem os leia."""
+        return len(self._fila)
+
+    def esperando(self):
+        return {"para_receber": len(self._receptores),
+                "para_enviar": len(self._emissores)}
+
+    def __repr__(self):
+        return (f"<canal {self.nome} {len(self._fila)}/{self.capacidade}"
+                f"{' fechado' if self._fechado else ''}>")
 
 
 class Laco:
@@ -365,6 +416,11 @@ class Laco:
                 retomar()
 
             self.registrar(soquete, evento, pronto)
+        elif qual == "enviar":
+            self._enviar(fibra, pedido["canal"], pedido["valor"], retomar)
+        elif qual == "receber":
+            self._receber(pedido["canal"], pedido["caixa"], pedido["chave"],
+                          retomar)
         elif qual == "esperar":
             alvo = pedido["fibra"]
 
@@ -380,6 +436,53 @@ class Laco:
                               f"for. Use one of: {', '.join(_PEDIDOS)}.",
                               doc="runtime/fibras"),
                 f"fibra {fibra.nome}")
+
+    def _despertador(self, retomar):
+        return lambda: self.agendar(retomar, "fibra")
+
+    def _enviar(self, fibra, canal, valor, retomar):
+        if canal._fechado:
+            fibra._viva = False
+            self._fibras.discard(fibra)
+            self._anotar_falha(
+                RuntimeError_(f"the fiber '{fibra.nome}' sent to the closed "
+                              f"channel '{canal.nome}'. Nobody will read it.",
+                              doc="runtime/canais"),
+                f"fibra {fibra.nome}")
+            return
+        if canal._receptores:
+            acordar, caixa, chave = canal._receptores.popleft()
+            if isinstance(caixa, dict):
+                caixa[chave] = valor
+            acordar()
+            self.agendar(retomar, "fibra")
+        elif len(canal._fila) < canal.capacidade:
+            canal._fila.append(valor)
+            self.agendar(retomar, "fibra")
+        else:
+            canal._emissores.append((self._despertador(retomar), valor))
+
+    def _receber(self, canal, caixa, chave, retomar):
+        def entregar(valor):
+            if isinstance(caixa, dict):
+                caixa[chave] = valor
+            self.agendar(retomar, "fibra")
+
+        if canal._fila:
+            entregar(canal._fila.popleft())
+            # Abriu uma vaga: o primeiro emissor parado entra na fila.
+            if canal._emissores:
+                acordar, valor = canal._emissores.popleft()
+                canal._fila.append(valor)
+                acordar()
+        elif canal._emissores:
+            acordar, valor = canal._emissores.popleft()
+            entregar(valor)
+            acordar()
+        elif canal._fechado:
+            entregar(None)
+        else:
+            canal._receptores.append((self._despertador(retomar), caixa, chave))
 
     # ── o laço ────────────────────────────────────────────────
 
@@ -703,6 +806,30 @@ def esperar(outra):
     return {"__pedido__": "esperar", "fibra": outra}
 
 
+def canal(capacidade=0, nome="canal"):
+    return Canal(capacidade, nome)
+
+
+def enviar(canal_alvo, valor):
+    """`emit L.enviar(c, v)` — espera se o canal esta cheio."""
+    if not isinstance(canal_alvo, Canal):
+        raise RuntimeError_("enviar precisa de um canal: L.canal(n)",
+                            doc="runtime/canais")
+    return {"__pedido__": "enviar", "canal": canal_alvo, "valor": valor}
+
+
+def receber(canal_alvo, caixa, chave="valor"):
+    """`emit L.receber(c, caixa, "v")` — o valor chega pela caixa.
+
+    `void` na caixa quer dizer que o canal foi fechado e esvaziou.
+    """
+    if not isinstance(canal_alvo, Canal):
+        raise RuntimeError_("receber precisa de um canal: L.canal(n)",
+                            doc="runtime/canais")
+    return {"__pedido__": "receber", "canal": canal_alvo, "caixa": caixa,
+            "chave": chave}
+
+
 def pedidos():
     """O que uma fibra pode esperar."""
     return list(_PEDIDOS)
@@ -746,5 +873,9 @@ class ArcaneLaco:
             "ler": ler,
             "escrever": escrever,
             "esperar": esperar,
+            "canal": canal,
+            "Canal": Canal,
+            "enviar": enviar,
+            "receber": receber,
             "pedidos": pedidos,
         }

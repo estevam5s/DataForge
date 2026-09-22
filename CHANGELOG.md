@@ -14,6 +14,55 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ## Não lançado
 
+### Corrigido — defeitos da linguagem achados escrevendo a documentação
+
+Cada um apareceu porque um bloco da documentação que devia rodar não
+rodava — e a causa era da linguagem, e não do bloco.
+
+| Defeito | Efeito |
+|---|---|
+| **duas instruções na mesma linha** eram aceitas | `x := 12   // 3 parcelas` virava uma divisão seguida de uma instrução solta; **17 blocos do site** só "compilavam" por isso. Agora é erro de sintaxe, com a dica do `//` |
+| **`@f()` era tratado como `@f`** | `mark @app.texto()` chamava `app.texto(acao)`, e a ação caía no parâmetro do padrão: o bot ficava calado |
+| **o corpo de `lambda` não absorvia `??` nem o ternário** | `lambda x: v[x] ?? 0` nunca usava o padrão; `lambda s: "" given ok(s) otherwise "x"` avaliava `s` fora do lambda |
+| **o campo de um `D.valor` era sombreado por método** | `cliente.nome` devolvia o método `nome()`, e não "Ana" |
+| **`Kiln.use(app, Kiln.idempotente())`** registrava só metade | a resposta não era guardada, e o reenvio cobrava de novo |
+| **a sonda do Telegram marcava todo chat como privado** | não havia como testar um comando de grupo (`e_admin()` era sempre `yes`) |
+| **`Molde({...})`** não aceitava vault | só argumentos nomeados, com erro de aridade sem nome |
+| **`O.alertar` com lista** estourava com um nome do Python | aceita a lista de regras, e o vault de antes |
+| **`Comp.tokens`** devolvia `str(valor)` | `7` chegava como `"7"`, e o fim de arquivo como o texto `"None"` |
+
+E o `check` ganhou o aviso `coalescencia-engole-comparacao`:
+`v[k] ?? void is void` é `v[k] ?? (void is void)`, e a pergunta "é void?"
+nunca é feita.
+
+### Adicionado — à linguagem, para as seções de API a concorrência
+
+| Onde | O quê |
+|---|---|
+| `Kiln` | `problema` (RFC 9457), `negociar` (Accept, q, curinga), `precondicao` (If-Match → 412/428, If-None-Match), `etiqueta` (ETag forte), `cursor`/`ler_cursor` (opaco e assinado), `links` (RFC 8288) |
+| `Arcane.Telegram` | `dividir` — o limite de 4096 é em **UTF-16**, e o escape do MarkdownV2 nunca é partido; `paginado` e `ler_pagina` |
+| `Arcane.Dominio` | fonte de eventos: `armazem` com `versao_esperada` e o novo `AggregateVersionError` (DF1610), `reconstituir` estrito, `projecao` idempotente pela posição |
+| `Arcane.Estrutura` | campos `char[N]` e `bytes[N]`; `campos_de_bits`; operações de bits (`bits_e`, `bits_ou`, `bits_xou`, `bits_nao`, `deslocar`, `contar_uns`…) — funções, porque `>>`, `\|` e `&` já têm dono; `varint`/`ler_varint` (LEB128), `zigzag`; `crc32`; `trocar_ordem`; `mapear` (arquivo em memória) |
+| `Arcane.Reativo` | `historico` (desfazer/refazer; um `lote` é um passo) e `recurso` (carregando/pronto/erro, com a resposta velha descartada) |
+| `Arcane.C` | `errno` e `zerar_errno` — toda biblioteca abre com `use_errno` |
+| `Arcane.Compilador` | `dominancia` e `dot` (o grafo de fluxo para o Graphviz) |
+| `Arcane.Laco` | canal entre fibras: `canal`, `enviar`, `receber` |
+| `Arcane.Observar` | `orcamento`, `queima` e `alerta_slo` (janela dupla) |
+| `Arcane.Inicio` | `ao_encerrar`, `esquecer_encerramento`, `encerrando` — SIGTERM sai com 143, finalizadores ao contrário |
+| `Arcane.Abi` | `proxima_versao` (com a regra do 0.x) e `changelog` |
+| `Arcane.Ecossistema` | `glossario` e `definir` — cada termo aponta para uma página que existe |
+| `Arcane.Concurrent` | `ator`: estado com dono, mensagem em fila |
+
+### Documentação — mais 109 rotas
+
+API (10), Telegram (8), Domínio (9), Estruturas (15), Reativo (8), FFI (7),
+Compilador (9), Runtime (7), Observabilidade (7), Partida (6), ABI (7),
+Ecossistema (6) e Concorrência (8). **Onze são a página-raiz de uma seção
+que respondia 404**: `/docs/ffi`, `/docs/compilador`, `/docs/runtime`,
+`/docs/observabilidade`, `/docs/memoria`, `/docs/partida`,
+`/docs/hardware`, `/docs/abi`, `/docs/alvos`, `/docs/ecossistema` e
+`/docs/concorrencia`.
+
 ### Adicionado — à linguagem
 
 | O quê | Antes |

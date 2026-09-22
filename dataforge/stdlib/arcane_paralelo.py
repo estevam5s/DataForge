@@ -814,6 +814,132 @@ class Contador:
             return anterior
 
 
+# ═══════════════════════════════════════════════════════════
+#  Ator — estado que so uma thread toca
+# ═══════════════════════════════════════════════════════════
+
+_PARAR = object()
+
+
+class Ator:
+    """Um estado com dono, alcancado so por mensagem.
+
+    Nenhuma trava a esquecer: o estado mora numa thread, e as outras
+    so conseguem ENVIAR. As mensagens entram numa fila e sao tratadas
+    uma de cada vez, na ordem de chegada — o ler-modificar-escrever que
+    perde atualizacao entre threads nao tem como acontecer aqui.
+
+    O comportamento e `acao(estado, mensagem)` e devolve o estado novo
+    (`void` quer dizer "mudei o que recebi"). Um erro nele e ANOTADO e o
+    ator segue com o estado de antes — a estrategia "retomar" dos
+    supervisores do Erlang e do Akka. Um ator que morre na primeira
+    mensagem ruim derruba quem depende dele por causa de UMA mensagem.
+    """
+
+    def __init__(self, comportamento, estado=None, nome="ator",
+                 ao_falhar=None):
+        self._comportamento = comportamento
+        self._estado = estado
+        self.nome = str(nome)
+        self._ao_falhar = ao_falhar
+        self._caixa = queue.Queue()
+        self._falhas = []
+        self._processadas = 0
+        self._parado = False
+        self._thread = threading.Thread(target=self._viver, daemon=True,
+                                        name=f"ator-{self.nome}")
+        self._thread.start()
+
+    def _viver(self):
+        while True:
+            item = self._caixa.get()
+            if item is _PARAR:
+                return
+            tipo = item[0]
+            if tipo == "consulta":
+                _, acao, pronto, caixa = item
+                try:
+                    caixa["valor"] = acao(self._estado)
+                except BaseException as erro:              # noqa: BLE001
+                    caixa["erro"] = erro
+                pronto.set()
+                continue
+            mensagem = item[1]
+            try:
+                novo = self._comportamento(self._estado, mensagem)
+                if novo is not None:
+                    self._estado = novo
+            except BaseException as erro:                  # noqa: BLE001
+                texto = getattr(erro, "message", None) or str(erro)
+                self._falhas.append({"mensagem": mensagem, "erro": texto})
+                if self._ao_falhar is not None:
+                    try:
+                        self._ao_falhar(texto, mensagem)
+                    except BaseException:                  # noqa: BLE001
+                        pass
+            self._processadas += 1
+
+    def enviar(self, mensagem):
+        """Poe a mensagem na caixa e volta na hora. Nao espera o tratamento."""
+        if self._parado:
+            raise ConcurrencyError(
+                f"o ator '{self.nome}' ja parou: a mensagem nao seria lida.",
+                0, 0,
+                dica="crie outro ator, ou confira 'vivo()' antes de enviar",
+                doc="concorrencia/atores")
+        self._caixa.put(("mensagem", mensagem))
+        return True
+
+    def consultar(self, acao, prazo=5):
+        """Roda `acao(estado)` DENTRO do ator e devolve o resultado.
+
+        A consulta entra na mesma fila das mensagens: ela ve o estado
+        depois de tudo que foi enviado antes dela — e nunca no meio de
+        uma mensagem.
+        """
+        if self._parado:
+            raise ConcurrencyError(
+                f"o ator '{self.nome}' ja parou.", 0, 0,
+                doc="concorrencia/atores")
+        pronto = threading.Event()
+        caixa = {}
+        self._caixa.put(("consulta", acao, pronto, caixa))
+        if not pronto.wait(float(prazo)):
+            raise ConcurrencyError(
+                f"o ator '{self.nome}' nao respondeu em {prazo} s.",
+                0, 0,
+                nota=f"ha {self._caixa.qsize()} item(ns) na fila antes da "
+                     f"consulta, ou uma mensagem esta demorando",
+                doc="concorrencia/atores")
+        if "erro" in caixa:
+            raise caixa["erro"]
+        return caixa.get("valor")
+
+    def parar(self, prazo=5):
+        """Trata o que ja esta na caixa, e para. Devolve o estado final."""
+        if not self._parado:
+            self._parado = True
+            self._caixa.put(_PARAR)
+        self._thread.join(float(prazo))
+        return self._estado
+
+    def vivo(self):
+        return self._thread.is_alive() and not self._parado
+
+    def pendentes(self):
+        return self._caixa.qsize()
+
+    def processadas(self):
+        return self._processadas
+
+    def falhas(self):
+        return list(self._falhas)
+
+    def __repr__(self):
+        return (f"<ator {self.nome}: {self._processadas} tratada(s), "
+                f"{self._caixa.qsize()} na fila>")
+
+
 class ArcaneConcurrent(dict):
     """Threads, processos, travas e canais."""
 
@@ -852,6 +978,11 @@ class ArcaneConcurrent(dict):
 
             # ── canal ──
             "canal": cls._canal,
+
+            # ── ator ──
+            "ator": lambda comportamento, estado=None, nome="ator", ao_falhar=None:
+                Ator(comportamento, estado, nome, ao_falhar),
+            "Ator": Ator,
 
             # ── informacao ──
             "nucleos": lambda: os.cpu_count() or 1,

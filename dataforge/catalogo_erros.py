@@ -2755,6 +2755,21 @@ suporte.receber("Vendas", "Cliente", cliente)   // erro
 """,
        "suporte.traduzir_de(\"Vendas\", \"Cliente\", acao)"),
 
+    _e("DF1610", "AggregateVersionError", "DomainError",
+       "Outro escreveu no fluxo antes de voce", "dominio/fonte-de-eventos",
+       """
+O fluxo de eventos estava na versao que voce leu quando a decisao foi
+tomada, e nao esta mais. Gravar assim mesmo aplicaria um comando sobre
+um estado que ja nao existe — o controle de concorrencia OTIMISTA recusa
+em vez de sobrescrever.
+""",
+       """
+lido := armazem.versao("pedido-1")            // 3
+armazem.anexar("pedido-1", [e1])              // outro processo: 4
+armazem.anexar("pedido-1", [e2], lido)        // erro: esperava 3, esta 4
+""",
+       "Leia de novo, reconstitua o agregado e reaplique o comando."),
+
     # ═══ 17xx — reativo ═══════════════════════════════════
 
     _e("DF1701", "ReactiveError", "RuntimeError_",

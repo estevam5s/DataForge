@@ -35,7 +35,7 @@ Tudo o que aparece em `doc/superficie.json`:
 - os **85 módulos** `Arcane.*`, seus **apelidos** (`Zip`, `Cor`, `Banco`)
   e cada símbolo público deles
 - os **93 comandos** da CLI e suas opções
-- os **218 códigos de erro** (`DF0101` e companhia) — o código, não o texto
+- os **219 códigos de erro** (`DF0101` e companhia) — o código, não o texto
 - o formato do `forge.toml` e do `forge.lock`
 
 ## O que **não** está coberto
