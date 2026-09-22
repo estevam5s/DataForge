@@ -1184,9 +1184,120 @@ for _nome, _funcao in _NOVOS.items():
 del _nome, _funcao
 
 
+# ═══════════════════════════════════════════════════════════
+#  Cenário — dado, quando, então
+# ═══════════════════════════════════════════════════════════
+
+_ORDEM_DOS_PASSOS = {"dado": 0, "quando": 1, "entao": 2}
+
+
+class Cenario:
+    """Um teste escrito como comportamento: dado, quando, então.
+
+    O valor não é a sintaxe — é o que a falha diz. Um `assert` que cai
+    na linha 40 de um teste de 60 linhas diz *onde*; um cenário diz
+    **em qual frase**: *"quebrou no passo 3 (então o saldo fica em
+    70)"*, que é a frase que o analista de negócio escreveu.
+
+    Três regras, e cada uma é cobrada:
+
+    1. **A ordem é dado → quando → então.** Um `dado` depois de um
+       `quando` mistura preparo com ação, e o teste passa a testar duas
+       coisas — quando ele falha, não se sabe qual.
+    2. **Sem `entao` não há cenário.** Um cenário que só prepara e age
+       não confere nada, e passaria sempre.
+    3. **Os passos dividem um `mundo`** (um vault), que é o único estado
+       entre eles. Variável solta entre passos esconderia de onde veio
+       o valor que o `entao` confere.
+    """
+
+    def __init__(self, nome):
+        self.nome = str(nome)
+        self.passos = []
+        self.mundo = {}
+
+    def _acrescentar(self, tipo, texto, acao):
+        if not callable(acao):
+            raise _erro(
+                f"cenario '{self.nome}': o passo '{tipo} {texto}' precisa "
+                "de uma acao que receba o mundo.",
+                dica="cenario.dado(\"um carrinho vazio\", lambda m: m.set(...))")
+        if self.passos:
+            anterior = self.passos[-1][0]
+            if _ORDEM_DOS_PASSOS[tipo] < _ORDEM_DOS_PASSOS[anterior]:
+                raise _erro(
+                    f"cenario '{self.nome}': '{tipo} {texto}' vem depois de "
+                    f"um '{anterior}'. A ordem e dado → quando → entao.",
+                    nota="um preparo depois da acao faz o cenario testar "
+                         "duas coisas, e a falha nao diz qual.",
+                    dica="parta em dois cenarios.")
+        self.passos.append((tipo, str(texto), acao))
+        return self
+
+    def dado(self, texto, acao):
+        return self._acrescentar("dado", texto, acao)
+
+    def quando(self, texto, acao):
+        return self._acrescentar("quando", texto, acao)
+
+    def entao(self, texto, acao):
+        return self._acrescentar("entao", texto, acao)
+
+    def e(self, texto, acao):
+        """Continua o tipo do passo anterior — o `And` do Gherkin."""
+        if not self.passos:
+            raise _erro(f"cenario '{self.nome}': 'e' precisa de um passo antes.")
+        return self._acrescentar(self.passos[-1][0], texto, acao)
+
+    def texto(self):
+        """O cenário como ele se lê — é o que vai para o relatório."""
+        linhas = [f"Cenario: {self.nome}"]
+        anterior = None
+        for tipo, frase, _ in self.passos:
+            palavra = "E" if tipo == anterior else {
+                "dado": "Dado", "quando": "Quando", "entao": "Entao"}[tipo]
+            linhas.append(f"  {palavra} {frase}")
+            anterior = tipo
+        return "\n".join(linhas)
+
+    def rodar(self):
+        """Roda os passos em ordem. Devolve o relatório, ou levanta
+        dizendo em qual passo quebrou."""
+        if not any(t == "entao" for t, _, _ in self.passos):
+            raise _erro(
+                f"cenario '{self.nome}' nao tem nenhum 'entao'.",
+                nota="sem 'entao' o cenario so prepara e age — nao confere "
+                     "nada, e passaria sempre.")
+        self.mundo = {}
+        feitos = []
+        for i, (tipo, frase, acao) in enumerate(self.passos, start=1):
+            try:
+                resultado = acao(self.mundo)
+            except BaseException as erro:   # noqa: BLE001
+                if not isinstance(erro, Exception):
+                    raise
+                motivo = getattr(erro, "message", None) or str(erro)
+                raise C.FalhaDeExpectativa(
+                    f"cenario '{self.nome}' quebrou no passo {i} "
+                    f"({tipo} {frase}): {motivo}")
+            if tipo == "entao" and resultado is False:
+                raise C.FalhaDeExpectativa(
+                    f"cenario '{self.nome}' quebrou no passo {i} "
+                    f"({tipo} {frase}): a conferencia deu 'no'")
+            feitos.append({"passo": i, "tipo": tipo, "frase": frase})
+        return {"cenario": self.nome, "passos": feitos, "ok": True,
+                "mundo": dict(self.mundo)}
+
+
+def cenario(nome):
+    """Um cenário dado/quando/então. Ver `Cenario`."""
+    return Cenario(nome)
+
+
 #: O que este arquivo acrescenta ao dicionário do módulo.
 EXTRAS = {
     "corrida": corrida,
+    "cenario": cenario,
     "determinismo": determinismo,
     "relogio": relogio,
     "com_relogio": com_relogio,

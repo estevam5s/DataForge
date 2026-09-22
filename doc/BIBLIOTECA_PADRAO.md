@@ -39,10 +39,14 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Politica`](#arcanepolitica) | `Politica` | 6 | Motor de autorização: RBAC com herança, ABAC por atributo, ACL por objeto, grupos, isolamento por inquilino, negação explícita que vence o papel e delegação com prazo. O padrão é negar, e toda decisão diz qual regra a tomou — um motor que responde só sim/não é impossível de auditar. |
 | [`Arcane.Chaves`](#arcanechaves) | `Chaves` | 6 | Ciclo de vida de chave criptográfica: propósito cobrado, prazo, rotação que mantém as antigas decifrando o passado, identificador no dado cifrado, cifragem em envelope (DEK/KEK), recifragem, derivação por contexto (HKDF) e exportação do cofre cifrada pela senha mestra. |
 | [`Arcane.Deteccao`](#arcanedeteccao) | `Deteccao` | 7 | Regras de detecção sobre eventos, com correlação por chave em janela deslizante, supressão, gravidade e mapa para MITRE ATT&CK; indicadores de comprometimento com prazo e normalização; padrões sobre conteúdo e leitura de log de acesso. O alerta carrega os eventos que o causaram. |
+| [`Arcane.GitHub`](#arcanegithub) | `GitHub` | 19 | O que um programa precisa para viver no GitHub: no Actions, saídas, variáveis e resumo com delimitador seguro, anotações escapadas que aparecem na linha do PR, máscara linha a linha e grupos; webhooks com assinatura HMAC conferida em tempo constante sobre os bytes originais; e a API REST com paginação por Link e o limite de taxa que sobrou. |
+| [`Arcane.Gramatica`](#arcanegramatica) | `Gramatica` | 10 | A gramática da linguagem como dado: as produções em EBNF, cada uma com um exemplo conferido contra o parser, a tabela de precedência provada pela árvore, os tokens de um texto, as instruções que o parser entendeu e a validação de sintaxe sem executar nada. |
+| [`Arcane.Privacidade`](#arcaneprivacidade) | `Privacidade` | 10 | O que a LGPD pede, como operações sobre dado: pseudonimização com chave (e não hash sem chave, que se desfaz), generalização de quase-identificadores, a medida do k-anonimato, minimização por lista de permitidos, retenção, consentimento por titular e por finalidade com histórico, os direitos de acesso e eliminação percorrendo todo lugar onde o dado mora, e contagem com privacidade diferencial. |
+| [`Arcane.Integridade`](#arcaneintegridade) | `Integridade` | 6 | Provar que o que está aqui é o que foi posto aqui: o valor SRI de um script de CDN, o manifesto SHA-256 de uma pasta com o que foi acrescentado, removido e alterado, e o manifesto assinado com uma chave que mora fora dali. |
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 31 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
-| [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 60 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
+| [`Arcane.Crucible`](#arcanecrucible) | `Crucible` | 61 | Framework de testes: suítes, matchers, fixtures, dublês e benchmark. |
 | [`Arcane.Iter`](#arcaneiter) | `Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | [`Arcane.Color`](#arcanecolor) | `Color / Cor` | 66 | Cor de 24 bits no terminal, tabela, moldura, barra de progresso e árvore. |
 | [`Arcane.Concurrent`](#arcaneconcurrent) | `Concurrent / Paralelo` | 33 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
@@ -1447,6 +1451,115 @@ adopt Arcane.Deteccao as Deteccao
 
 ---
 
+## Arcane.GitHub
+
+O que um programa precisa para viver no GitHub: no Actions, saídas, variáveis e resumo com delimitador seguro, anotações escapadas que aparecem na linha do PR, máscara linha a linha e grupos; webhooks com assinatura HMAC conferida em tempo constante sobre os bytes originais; e a API REST com paginação por Link e o limite de taxa que sobrou.
+
+```dataforge
+adopt Arcane.GitHub as GitHub
+```
+
+**Funções (19)**
+
+| Assinatura |
+|------------|
+| `ClienteGitHub(token='', base='https://api.github.com', prazo=30.0)` |
+| `anotacao(nivel, mensagem, arquivo='', linha=0, coluna=0, titulo='', fim_linha=0)` |
+| `anotar(nivel, mensagem, arquivo='', linha=0, coluna=0, titulo='')` |
+| `assinatura(segredo, corpo)` |
+| `cliente(token='', base='https://api.github.com', prazo=30.0)` |
+| `conferir_webhook(segredo, corpo, cabecalho)` |
+| `contexto()` |
+| `em_actions()` |
+| `escapar_dado(texto)` |
+| `escapar_propriedade(texto)` |
+| `evento()` |
+| `evento_de_webhook(cabecalhos, corpo, segredo)` |
+| `exportar(nome, valor)` |
+| `grupo(nome, acao)` |
+| `mascarar_no_log(valor)` |
+| `no_path(pasta)` |
+| `resumo(markdown)` |
+| `saida(nome, valor)` |
+| `tabela_markdown(linhas, colunas=None)` |
+
+
+---
+
+## Arcane.Gramatica
+
+A gramática da linguagem como dado: as produções em EBNF, cada uma com um exemplo conferido contra o parser, a tabela de precedência provada pela árvore, os tokens de um texto, as instruções que o parser entendeu e a validação de sintaxe sem executar nada.
+
+```dataforge
+adopt Arcane.Gramatica as Gramatica
+```
+
+**Funções (10)**
+
+| Assinatura |
+|------------|
+| `ebnf(grupo='')` |
+| `grupos()` |
+| `instrucoes(texto)` |
+| `palavras()` |
+| `precedencia()` |
+| `producao(nome)` |
+| `producoes(grupo='')` |
+| `raiz(expressao)` |
+| `tokens(texto)` |
+| `validar(texto)` |
+
+
+---
+
+## Arcane.Privacidade
+
+O que a LGPD pede, como operações sobre dado: pseudonimização com chave (e não hash sem chave, que se desfaz), generalização de quase-identificadores, a medida do k-anonimato, minimização por lista de permitidos, retenção, consentimento por titular e por finalidade com histórico, os direitos de acesso e eliminação percorrendo todo lugar onde o dado mora, e contagem com privacidade diferencial.
+
+```dataforge
+adopt Arcane.Privacidade as Privacidade
+```
+
+**Funções (10)**
+
+| Assinatura |
+|------------|
+| `Consentimentos()` |
+| `Titulares()` |
+| `consentimentos()` |
+| `contagem_privada(n, epsilon=1.0, semente=None)` |
+| `generalizar(valor, tipo, nivel=1)` |
+| `k_anonimato(linhas, quase_identificadores)` |
+| `minimizar(linha, permitidos)` |
+| `pseudonimizar(valor, chave, finalidade='', tamanho=16)` |
+| `titulares()` |
+| `vencidos(linhas, campo_data, dias, agora=None)` |
+
+
+---
+
+## Arcane.Integridade
+
+Provar que o que está aqui é o que foi posto aqui: o valor SRI de um script de CDN, o manifesto SHA-256 de uma pasta com o que foi acrescentado, removido e alterado, e o manifesto assinado com uma chave que mora fora dali.
+
+```dataforge
+adopt Arcane.Integridade as Integridade
+```
+
+**Funções (6)**
+
+| Assinatura |
+|------------|
+| `assinar_manifesto(m, chave)` |
+| `conferir_manifesto(pasta, esperado, ignorar=None)` |
+| `conferir_sri(conteudo, integridade)` |
+| `manifesto(pasta, ignorar=None)` |
+| `sri(conteudo, algoritmo='sha384')` |
+| `verificar_manifesto(assinado, chave)` |
+
+
+---
+
 ## Arcane.Collections
 
 Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca.
@@ -1630,7 +1743,7 @@ adopt Arcane.Crucible as Crucible
 | `matchers_novos` | `['to_be_one_of', 'to_be_ordered_by', 'to_be_subset…` |
 | `mutacoes` | `[{'de': 'bigger_eq', 'para': 'bigger', 'descricao'…` |
 
-**Funções (58)**
+**Funções (59)**
 
 | Assinatura |
 |------------|
@@ -1643,6 +1756,7 @@ adopt Arcane.Crucible as Crucible
 | `benchmark(nome, acao, vezes=1000, aquecimento=10)` |
 | `booleans()` |
 | `capture(acao)` |
+| `cenario(nome)` |
 | `check(condicao, mensagem='a condicao nao se cumpriu')` |
 | `clusters(item=None, tamanho_max=10)` |
 | `com_relogio(acao, inicio=None)` |

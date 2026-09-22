@@ -19,8 +19,8 @@ import shutil
 from . import devops as g
 
 #: Os grupos, e o que cada um escreve. A ordem e a do relatorio.
-GRUPOS = ("docker", "ci", "k8s", "helm", "terraform", "nginx", "observar",
-          "sbom", "secrets")
+GRUPOS = ("docker", "ci", "github", "k8s", "helm", "terraform", "nginx",
+          "observar", "sbom", "secrets", "devcontainer", "pre-commit", "systemd")
 
 
 def executar(args, flags):
@@ -41,6 +41,20 @@ def executar(args, flags):
                                forcar, seco, "docker")
     if sub in ("ci", "pipeline"):
         return _escrever_grupo(projeto, _ci(projeto, resto), forcar, seco, "ci")
+    if sub == "github":
+        return _escrever_grupo(projeto, _github(projeto, flags), forcar, seco,
+                               "github")
+    if sub in ("devcontainer", "codespaces"):
+        return _escrever_grupo(projeto, {os.path.join(".devcontainer", "devcontainer.json"):
+                                         g.devcontainer(projeto)}, forcar, seco,
+                               "devcontainer")
+    if sub in ("pre-commit", "precommit", "ganchos"):
+        return _escrever_grupo(projeto, {".pre-commit-config.yaml": g.pre_commit(projeto)},
+                               forcar, seco, "pre-commit")
+    if sub == "systemd":
+        return _escrever_grupo(projeto, {f"{projeto.slug}.service":
+                                         g.systemd(projeto, _flag(flags, "--usuario", "dataforge"))},
+                               forcar, seco, "systemd")
     if sub in ("k8s", "kubernetes"):
         return _escrever_grupo(projeto, _k8s(projeto, flags), forcar, seco,
                                "kubernetes")
@@ -75,7 +89,12 @@ def _uso():
         "  uso: dataforge devops <o que>\n\n"
         "    init            tudo o que faz sentido para este projeto\n"
         "    docker          Dockerfile, .dockerignore, docker-compose.yml\n"
-        "    ci github       .github/workflows/ci.yml\n"
+        "    ci github       .github/workflows/ci.yml (o check anota o PR)\n"
+        "    ci gitlab       .gitlab-ci.yml, com relatorio JUnit no MR\n"
+        "    github          release por tag, dependabot, CODEOWNERS, modelos\n"
+        "    devcontainer    o ambiente para Codespaces e VS Code\n"
+        "    pre-commit      os mesmos ganchos do CI, antes do commit\n"
+        "    systemd         a unidade endurecida, para uma VM\n"
         "    k8s             deployment, service, ingress, configmap, hpa\n"
         "    helm            um chart\n"
         "    terraform       o esqueleto\n"
@@ -88,6 +107,8 @@ def _uso():
         "    --seco          mostra o que faria, sem escrever\n"
         "    --registro=X    o registro das imagens\n"
         "    --dominio=X     o dominio, no ingress e no nginx\n"
+        "    --dono=@x       o dono no CODEOWNERS\n"
+        "    --usuario=X     o usuario da unidade systemd\n"
         "    --em=<pasta>    o projeto (padrao: a pasta atual)\n")
 
 
@@ -111,9 +132,11 @@ def _docker(p, resto, flags):
 
 def _ci(p, resto):
     onde = (resto[0] if resto else "github").lower()
+    if onde in ("gitlab", "gl"):
+        return {".gitlab-ci.yml": g.gitlab_ci(p)}
     if onde not in ("github", "gh"):
         from .cli import color
-        print(color(f"  so sei gerar para o GitHub Actions, nao para "
+        print(color(f"  sei gerar para o GitHub Actions e o GitLab, nao para "
                     f"'{onde}'.", "1;33"))
         print("  Os comandos sao os mesmos em qualquer CI:")
         print("    dataforge fmt . --check")
@@ -121,6 +144,18 @@ def _ci(p, resto):
         print("    dataforge test --minimo=70")
         return {}
     return {os.path.join(".github", "workflows", "ci.yml"): g.ci_github(p)}
+
+
+def _github(p, flags):
+    dono = _flag(flags, "--dono", "@time-responsavel")
+    gh = ".github"
+    return {
+        os.path.join(gh, "workflows", "release.yml"): g.github_release(p),
+        os.path.join(gh, "dependabot.yml"): g.dependabot(p),
+        os.path.join(gh, "CODEOWNERS"): g.codeowners(p, dono),
+        os.path.join(gh, "pull_request_template.md"): g.pr_template(p),
+        os.path.join(gh, "ISSUE_TEMPLATE", "bug.yml"): g.issue_bug(p),
+    }
 
 
 def _k8s(p, flags):

@@ -573,6 +573,9 @@ def test_nenhum_nome_se_repete_entre_os_modulos_de_seguranca():
         "Chaves": Ch,
         "Deteccao": D,
         "Crypto": get_module("Arcane.Crypto"),
+        "Privacidade": get_module("Arcane.Privacidade"),
+        "Integridade": get_module("Arcane.Integridade"),
+        "GitHub": get_module("Arcane.GitHub"),
     }
     nomes = {k: set(v) - {"__name__"} for k, v in modulos.items()}
     for a, b in itertools.combinations(nomes, 2):

@@ -400,7 +400,9 @@ def ci_github(p):
     passos = [
         ("instalar", "pip install dataforge-lang"),
         ("formato", "dataforge fmt . --check"),
-        ("analise estatica", "dataforge check . --strict"),
+        # --formato=github: o erro aparece NA LINHA do PR, e nao so
+        # no log do job, que ninguem abre com o resto verde.
+        ("analise estatica", "dataforge check . --strict --formato=github"),
         ("lint", "dataforge lint ."),
     ]
     passos.append(("testes", "dataforge test --minimo=70"))
@@ -481,6 +483,297 @@ def ci_github(p):
             "",
         ]
     return "\n".join(linhas).rstrip() + "\n"
+
+
+# ═══════════════════════════════════════════════════════════
+#  GitHub — além do CI
+# ═══════════════════════════════════════════════════════════
+
+def github_release(p):
+    """O release disparado por tag: testa, empacota e publica.
+
+    `permissions: contents: write` é declarado, e só ele: o token padrão
+    de um workflow novo é somente-leitura, e o passo de publicar falharia
+    com 403 no primeiro release — que é quando ninguém está olhando.
+    """
+    artefato = (f"dataforge pack\n          ls *.tar.gz"
+                if p.e_biblioteca else
+                f"tar czf {p.slug}-${{{{ github.ref_name }}}}.tar.gz "
+                "--exclude=.git --exclude=forge_modules .")
+    return "\n".join([
+        f"# Release de {p.nome} — gerado por 'dataforge devops github'.",
+        "#",
+        "# Uma tag v* dispara: testa de novo (a tag pode apontar para um",
+        "# commit que nunca passou pelo CI), empacota e publica.",
+        "",
+        "name: Release",
+        "",
+        "on:",
+        "  push:",
+        "    tags: ['v*']",
+        "",
+        "permissions:",
+        "  contents: write",
+        "",
+        "jobs:",
+        "  publicar:",
+        "    runs-on: ubuntu-latest",
+        "    steps:",
+        "      - uses: actions/checkout@v4",
+        "      - uses: actions/setup-python@v5",
+        "        with:",
+        "          python-version: '3.13'",
+        "",
+        "      - name: instalar",
+        "        run: pip install dataforge-lang",
+        "",
+        "      - name: a tag e a versao do manifesto concordam",
+        "        run: |",
+        "          versao=$(grep -m1 '^version' forge.toml | cut -d'\"' -f2)",
+        '          test "v$versao" = "${{ github.ref_name }}" || {',
+        '            echo "::error::a tag ${{ github.ref_name }} nao e a versao v$versao do forge.toml"',
+        "            exit 1; }",
+        "",
+        "      - name: testes",
+        "        run: |",
+        "          dataforge check . --strict --formato=github",
+        "          dataforge test",
+        "",
+        "      - name: empacotar",
+        "        run: |",
+        f"          {artefato}",
+        "",
+        "      - name: publicar",
+        "        env:",
+        "          GH_TOKEN: ${{ github.token }}",
+        "        run: gh release create \"${{ github.ref_name }}\" *.tar.gz --generate-notes",
+    ]) + "\n"
+
+
+def dependabot(p):
+    """Atualização automática do que o Dependabot sabe ler.
+
+    Ele não conhece o `forge.toml` — e dizer isso aqui evita que alguém
+    espere um PR que nunca vai chegar. O que ele cobre é o que quase
+    todo projeto esquece: as versões das *actions* e a imagem base do
+    Dockerfile, as duas coisas que envelhecem sem ninguém ver.
+    """
+    linhas = [
+        f"# Dependabot de {p.nome} — gerado por 'dataforge devops github'.",
+        "#",
+        "# O Dependabot NAO le o forge.toml. Para as dependencias",
+        "# DataForge, rode 'dataforge outdated' no CI.",
+        "",
+        "version: 2",
+        "updates:",
+        "  - package-ecosystem: github-actions",
+        "    directory: /",
+        "    schedule:",
+        "      interval: weekly",
+        "    groups:",
+        "      actions:",
+        "        patterns: ['*']",
+    ]
+    if os.path.isfile(os.path.join(p.raiz, "Dockerfile")) or p.e_servidor:
+        linhas += [
+            "",
+            "  - package-ecosystem: docker",
+            "    directory: /",
+            "    schedule:",
+            "      interval: weekly",
+        ]
+    return "\n".join(linhas) + "\n"
+
+
+def codeowners(p, dono="@time-responsavel"):
+    """Quem revisa o quê. Mudança no workflow exige revisão de alguém."""
+    return "\n".join([
+        f"# CODEOWNERS de {p.nome} — gerado por 'dataforge devops github'.",
+        "# Troque os donos pelos seus. O ultimo padrao que casa vence.",
+        "",
+        f"*                    {dono}",
+        "",
+        "# Mudar o pipeline muda o que chega a producao: revisao obrigatoria.",
+        f"/.github/            {dono}",
+        f"forge.toml           {dono}",
+        f"forge.lock           {dono}",
+    ]) + "\n"
+
+
+def pr_template(p):
+    return "\n".join([
+        "## O que muda",
+        "",
+        "<!-- uma frase: o comportamento, e nao o arquivo -->",
+        "",
+        "## Como foi conferido",
+        "",
+        "- [ ] `dataforge check . --strict` sem erros",
+        "- [ ] `dataforge test` verde",
+        "- [ ] teste novo para o comportamento novo (ou o bug corrigido)",
+        "",
+        "## O que pode quebrar",
+        "",
+        "<!-- quem usa isto, e o que essa pessoa precisa saber -->",
+    ]) + "\n"
+
+
+def issue_bug(p):
+    """Formulário de bug: pede o que é preciso para reproduzir, e só."""
+    return "\n".join([
+        "name: Bug",
+        f"description: Algo em {p.nome} nao faz o que devia",
+        "labels: [bug]",
+        "body:",
+        "  - type: textarea",
+        "    id: esperado",
+        "    attributes:",
+        "      label: O que voce esperava",
+        "    validations:",
+        "      required: true",
+        "  - type: textarea",
+        "    id: aconteceu",
+        "    attributes:",
+        "      label: O que aconteceu",
+        "      description: a mensagem de erro inteira, se houver",
+        "      render: text",
+        "    validations:",
+        "      required: true",
+        "  - type: textarea",
+        "    id: reproduzir",
+        "    attributes:",
+        "      label: O menor programa que reproduz",
+        "      render: text",
+        "  - type: input",
+        "    id: versao",
+        "    attributes:",
+        "      label: Versao",
+        "      description: a saida de 'dataforge --version'",
+        "    validations:",
+        "      required: true",
+    ]) + "\n"
+
+
+def gitlab_ci(p):
+    """O mesmo pipeline no GitLab — a ordem e os comandos são os mesmos.
+
+    `junit` em `reports` é o que faz o GitLab mostrar os testes que
+    falharam na página do merge request.
+    """
+    linhas = [
+        f"# CI de {p.nome} — gerado por 'dataforge devops ci gitlab'.",
+        "",
+        "image: python:3.13-slim",
+        "",
+        "stages: [verificar]",
+        "",
+        "cache:",
+        "  key: ${CI_COMMIT_REF_SLUG}",
+        "  paths: [.cache/pip, forge_modules/]",
+        "",
+        "variables:",
+        '  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"',
+        "",
+        "verificar:",
+        "  stage: verificar",
+        "  script:",
+        "    - pip install dataforge-lang",
+        "    - dataforge fmt . --check",
+        "    - dataforge check . --strict",
+        "    - dataforge lint .",
+        "    - dataforge test --minimo=70",
+        "    - dataforge crucible --formato=junit --saida=relatorio.xml || true",
+        "  artifacts:",
+        "    when: always",
+        "    reports:",
+        "      junit: relatorio.xml",
+    ]
+    return "\n".join(linhas) + "\n"
+
+
+def devcontainer(p):
+    """O ambiente de desenvolvimento num contêiner — Codespaces e VS Code.
+
+    A extensão da linguagem é instalada pelo próprio `dataforge editor`,
+    e não por id do marketplace: ela vem no pacote, na mesma versão.
+    """
+    config = {
+        "name": p.nome,
+        "image": "mcr.microsoft.com/devcontainers/python:3.13",
+        "postCreateCommand": "pip install dataforge-lang && dataforge editor && dataforge install",
+        "forwardPorts": [p.porta] if p.e_servidor else [],
+        "customizations": {"vscode": {"settings": {"files.associations": {"*.df": "dataforge"}}}},
+    }
+    return json.dumps(config, indent=2, ensure_ascii=False) + "\n"
+
+
+def pre_commit(p):
+    """Os ganchos do pre-commit — rodam o mesmo que o CI, antes do commit.
+
+    `language: system` usa o `dataforge` instalado: o pre-commit não sabe
+    instalar a linguagem, e fingir que sabe faria o gancho falhar numa
+    máquina limpa com uma mensagem sobre outra coisa.
+    """
+    return "\n".join([
+        f"# Ganchos de {p.nome} — gerado por 'dataforge devops pre-commit'.",
+        "# pip install pre-commit && pre-commit install",
+        "",
+        "repos:",
+        "  - repo: local",
+        "    hooks:",
+        "      - id: dataforge-fmt",
+        "        name: dataforge fmt",
+        "        entry: dataforge fmt",
+        "        language: system",
+        "        files: \\.df$",
+        "      - id: dataforge-check",
+        "        name: dataforge check",
+        "        entry: dataforge check --strict",
+        "        language: system",
+        "        files: \\.df$",
+        "      - id: dataforge-seguranca",
+        "        name: segredos no codigo",
+        "        entry: dataforge seguranca",
+        "        language: system",
+        "        pass_filenames: false",
+    ]) + "\n"
+
+
+def systemd(p, usuario="dataforge"):
+    """A unidade do systemd — para uma VM sem contêiner.
+
+    As diretivas de endurecimento não são enfeite: `ProtectSystem=strict`
+    e `NoNewPrivileges` transformam uma falha de segurança na aplicação
+    numa falha que não sai da pasta dela.
+    """
+    return "\n".join([
+        f"# {p.slug}.service — gerado por 'dataforge devops systemd'.",
+        f"# sudo cp {p.slug}.service /etc/systemd/system/",
+        f"# sudo systemctl enable --now {p.slug}",
+        "",
+        "[Unit]",
+        f"Description={p.nome}",
+        "After=network-online.target",
+        "Wants=network-online.target",
+        "",
+        "[Service]",
+        f"User={usuario}",
+        f"WorkingDirectory=/srv/{p.slug}",
+        f"EnvironmentFile=-/etc/{p.slug}.env",
+        f"ExecStart=/usr/local/bin/{' '.join(p.comando)}",
+        "Restart=on-failure",
+        "RestartSec=3",
+        "",
+        "# Endurecimento",
+        "NoNewPrivileges=true",
+        "ProtectSystem=strict",
+        "ProtectHome=true",
+        "PrivateTmp=true",
+        f"ReadWritePaths=/srv/{p.slug}/dados",
+        "",
+        "[Install]",
+        "WantedBy=multi-user.target",
+    ]) + "\n"
 
 
 # ═══════════════════════════════════════════════════════════

@@ -37,6 +37,10 @@ from .arcane_seguranca import ArcaneSeguranca
 from .arcane_politica import ArcanePolitica
 from .arcane_chaves import ArcaneChaves
 from .arcane_deteccao import ArcaneDeteccao
+from .arcane_github import ArcaneGitHub
+from .arcane_gramatica import ArcaneGramatica
+from .arcane_privacidade import ArcanePrivacidade
+from .arcane_integridade import ArcaneIntegridade
 from .arcane_pipeline import ArcanePipeline
 from .arcane_qualidade import ArcaneQualidade
 from .arcane_lago import ArcaneLago
@@ -137,6 +141,17 @@ _MODULES = {
     "Arcane.Deteccao": ArcaneDeteccao,
     "Deteccao": ArcaneDeteccao,
     "Detection": ArcaneDeteccao,
+    "Arcane.GitHub": ArcaneGitHub,
+    "GitHub": ArcaneGitHub,
+    "Arcane.Gramatica": ArcaneGramatica,
+    "Gramatica": ArcaneGramatica,
+    "Grammar": ArcaneGramatica,
+    "Arcane.Privacidade": ArcanePrivacidade,
+    "Privacidade": ArcanePrivacidade,
+    "Privacy": ArcanePrivacidade,
+    "Arcane.Integridade": ArcaneIntegridade,
+    "Integridade": ArcaneIntegridade,
+    "Integrity": ArcaneIntegridade,
     "Seguranca": ArcaneSeguranca,
     "Security": ArcaneSeguranca,
     "Arcane.Collections": ArcaneCollections,

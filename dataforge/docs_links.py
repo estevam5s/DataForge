@@ -209,21 +209,42 @@ MODULOS_COM_PAGINA = frozenset({
     "macro", "malha", "math", "memoria", "meta", "objetos", "observar",
     "os", "padroes", "percurso", "perfil", "pipeline", "politica", "ponte", "posse",
     "principios", "process", "quadro", "qualidade", "reativo", "seguranca", "rede",
+    "github", "gramatica", "integridade", "privacidade",
     "reflexo", "regex", "resultado", "serialization", "stm", "stream",
     "telegram", "test", "text", "time", "tipos", "url", "web",
 })
 
 
 def pagina_de_comando(comando):
-    """A página de um comando da CLI (`check`, `fmt`, `test`…)."""
+    """A página de um comando da CLI (`check`, `fmt`, `test`…).
+
+    Vários comandos dividem uma página (`dap` e `lsp` moram em `debug`;
+    `stats`, `oop` e `big-o` em `analise`). Sem o mapa, o hover do editor
+    sobre `dataforge dap` mandava para o índice da CLI.
+    """
+    comando = _COMANDO_NA_PAGINA.get(comando, comando)
     return f"cli/{comando}" if comando in COMANDOS_COM_PAGINA else "cli"
+
+
+#: Comando -> a página onde ele é explicado, quando não é a dele.
+_COMANDO_NA_PAGINA = {
+    "dap": "debug", "lsp": "debug", "info": "new",
+    "stats": "analise", "oop": "analise", "big-o": "analise",
+    "custo": "analise", "deps": "analise", "fix": "profile",
+    "tokens": "internos", "ast": "internos", "ir": "internos",
+    "percurso": "internos", "alvo": "abi", "eval": "scripts",
+    "version": "scripts", "converter": "scripts",
+    "versions": "versoes", "use": "versoes", "upgrade": "versoes",
+    "clean": "cache",
+}
 
 
 #: Os comandos que têm `site/app/docs/cli/<x>/page.tsx`.
 COMANDOS_COM_PAGINA = frozenset({
-    "bench", "cache", "check", "doc", "editor", "explain", "fmt",
-    "forge-toml", "init", "lint", "pacotes", "repl", "run", "test",
-    "versoes", "watch", "workspace",
+    "abi", "analise", "bench", "cache", "check", "completar", "crucible",
+    "debug", "doc", "editor", "explain", "fmt", "forge-toml", "init",
+    "internos", "lint", "new", "pacotes", "profile", "referencia", "repl",
+    "run", "scripts", "seguranca", "test", "versoes", "watch", "workspace",
 })
 
 

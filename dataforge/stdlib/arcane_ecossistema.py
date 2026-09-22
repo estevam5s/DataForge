@@ -62,7 +62,7 @@ ARVORE = (
     ("dfc — o compilador", (
         {"no": "Driver", "estado": "equivale",
          "onde": ("dataforge/cli.py", "dataforge/caminhos.py",
-                  "dataforge/cache.py"),
+                  "dataforge/cache.py", "dataforge/completar.py"),
          "o_que_e": "o programa que recebe o arquivo e conduz as fases",
          "aqui": "nao ha um binario 'dfc' separado: o driver e o proprio "
                  "'dataforge', e cada fase tem um comando que a mostra "
@@ -75,7 +75,7 @@ ARVORE = (
          "aqui": "'tokenize()'; as 81 palavras reservadas vivem em KEYWORDS",
          "porque": ""},
         {"no": "Parser", "estado": "existe",
-         "onde": ("dataforge/parser.py",),
+         "onde": ("dataforge/parser.py", "dataforge/gramatica.py"),
          "o_que_e": "tokens -> arvore, recursivo descendente",
          "aqui": "'parse()'; as palavras contextuais (Kiln, OOP, quadro) "
                  "sao reconhecidas aqui e nao em KEYWORDS",

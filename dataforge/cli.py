@@ -52,6 +52,47 @@ class Cmd:
         self.veja = veja              # comandos relacionados
 
 
+
+# Os números destas três descrições saíam escritos à mão, e envelheceram
+# calados: "Oito modelos" com dez, e "177 codigos em 15 familias" com
+# 218. Hoje saem dos próprios dados.
+
+def _texto_dos_modelos():
+    try:
+        from .modelos import MODELOS
+        linhas = [f"  {nome:<8} {m.get('description', '')}"
+                  for nome, m in MODELOS.items()]
+    except Exception:       # noqa: BLE001 — a ajuda nunca pode derrubar a CLI
+        linhas = []
+    return (f"{len(linhas)} modelos, e todos produzem um projeto que RODA e\n"
+            "passa nos proprios testes — nao um esqueleto com TODOs:\n\n"
+            + "\n".join(linhas) + "\n\nSem argumento, pergunta na tela.")
+
+
+def _texto_das_palavras():
+    try:
+        from .exemplos_palavras import PALAVRAS
+        from .tokens import KEYWORDS
+        n, r = len(PALAVRAS), len(KEYWORDS)
+    except Exception:       # noqa: BLE001
+        return "As palavras da linguagem, cada uma com um exemplo que RODA."
+    return (f"Sao {n}: as {r} reservadas mais as contextuais. Cada uma traz\n"
+            "o que faz e um exemplo que RODA — eles saem de\n"
+            "'exemplos_palavras.py', e ha teste executando todos.\n"
+            "\nCom termo, procura no nome e na descricao.")
+
+
+def _texto_dos_erros():
+    try:
+        from .catalogo_erros import ERROS
+        n = len(ERROS)
+        familias = len({e["codigo"][:4] for e in ERROS})
+    except Exception:       # noqa: BLE001
+        return "O catalogo de erros da linguagem."
+    return (f"Sao {n} codigos em {familias} familias. Sem termo, lista tudo\n"
+            "agrupado; com termo, procura no titulo e na explicacao.")
+
+
 GRUPOS = [
     ("Projeto", [
         Cmd("init", "dataforge init [pasta]",
@@ -108,19 +149,7 @@ GRUPOS = [
             veja=("check", "fmt")),
         Cmd("new", "dataforge new [modelo] [nome]",
             "Cria um projeto a partir de um modelo",
-            "Oito modelos, e todos produzem um projeto que RODA e passa\n"
-            "nos proprios testes — nao um esqueleto com TODOs:\n"
-            "\n"
-            "  cli      ferramenta de linha de comando, com --help\n"
-            "  api      API REST com o Kiln, testes sem abrir socket\n"
-            "  web      site com paginas HTML e arquivos estaticos\n"
-            "  data     banco, estatistica e exportacao para Excel\n"
-            "  lib      biblioteca com relay, pronta para publicar\n"
-            "  oop      blueprints, traits, propriedades, operadores\n"
-            "  script   automacao: arquivos, JSON, datas\n"
-            "  test     como se testa em DataForge\n"
-            "\n"
-            "Sem argumento, pergunta na tela.",
+            _texto_dos_modelos(),
             opcoes=[("--list", "so lista os modelos, sem perguntar nada")],
             exemplos=[("dataforge new", "escolhe na tela"),
                       ("dataforge new api", "usa o modelo, pergunta o nome"),
@@ -174,9 +203,11 @@ GRUPOS = [
             "Aceita arquivo, pasta ou padrao. Sem alvo, analisa a pasta atual.\n"
             "Sai com codigo 1 se houver erro — serve na esteira de CI.",
             opcoes=[("--strict", "trata avisos como erros"),
-                    ("--syntax-only", "so a sintaxe, sem analise semantica")],
+                    ("--syntax-only", "so a sintaxe, sem analise semantica"),
+                    ("--formato=github", "anotacoes do Actions: o erro aparece na linha do PR")],
             exemplos=[("dataforge check .", "o projeto inteiro"),
-                      ("dataforge check src/ --strict", "avisos viram erros")],
+                      ("dataforge check src/ --strict", "avisos viram erros"),
+                      ("dataforge check . --formato=github", "no CI do GitHub")],
             veja=("lint", "explain")),
         Cmd("test", "dataforge test [alvo]",
             "Executa a suite de testes",
@@ -612,21 +643,31 @@ GRUPOS = [
             exemplos=[("dataforge custo src/", "")],
             veja=("big-o",),
             apelidos=("cost",)),
+        Cmd("gramatica", "dataforge gramatica [grupo|producao]",
+            "A gramatica da linguagem, com exemplos conferidos",
+            "Cada producao traz o EBNF, um exemplo e a nota do que mais\n"
+            "engana. Os exemplos passam pelo lexer e pelo parser de verdade\n"
+            "a cada execucao da suite — a gramatica nao tem como descrever\n"
+            "uma sintaxe que o parser ja nao aceita.",
+            opcoes=[("--ebnf", "so o EBNF (de um grupo, ou da gramatica inteira)"),
+                    ("--precedencia", "a tabela, da mais fraca para a mais forte"),
+                    ("--json", "a mesma coisa como dado")],
+            exemplos=[("dataforge gramatica", "os grupos"),
+                      ("dataforge gramatica pipeline", "uma producao"),
+                      ("dataforge gramatica expressoes --ebnf", "o EBNF de um grupo"),
+                      ("dataforge gramatica --precedencia", "quem liga mais forte")],
+            apelidos=("grammar",),
+            veja=("palavras", "tokens", "ast")),
         Cmd("palavras", "dataforge palavras [termo]",
             "Lista as palavras da linguagem, com um exemplo de cada",
-            "Sao 113: as 81 reservadas mais as contextuais. Cada uma traz\n"
-            "o que faz e um exemplo que RODA — eles saem de\n"
-            "'exemplos_palavras.py', e ha teste executando todos.\n"
-            "\n"
-            "Com termo, procura no nome e na descricao.",
+            _texto_das_palavras(),
             exemplos=[("dataforge palavras", "todas"),
                       ("dataforge palavras cycle", "so o que fala de laco")],
             apelidos=("keywords",),
             veja=("erros", "explain")),
         Cmd("erros", "dataforge erros [termo]",
             "Lista o catalogo de erros da linguagem",
-            "Sao 177 codigos em 15 familias. Sem termo, lista tudo\n"
-            "agrupado; com termo, procura no titulo e na explicacao.",
+            _texto_dos_erros(),
             exemplos=[("dataforge erros", "o catalogo inteiro"),
                       ("dataforge erros banco", "so o que fala de banco")],
             veja=("explain",),
@@ -763,6 +804,19 @@ GRUPOS = [
                       ("dataforge ir app.df --fase=mir", "so o grafo de fluxo"),
                       ("dataforge ir app.df --fase=lir", "o que compilou")],
             veja=("ast", "tokens", "check")),
+        Cmd("completar", "dataforge completar <bash|zsh|fish>",
+            "Gera o autocompletar do terminal",
+            "O script sai do proprio catalogo de comandos: um comando novo\n"
+            "aparece no Tab no dia em que entra aqui. As opcoes sao por\n"
+            "comando, e depois de 'run', 'check' ou 'fmt' o Tab completa\n"
+            "arquivo. O script nao chama o dataforge a cada tecla.",
+            exemplos=[("dataforge completar bash > ~/.local/share/bash-completion/completions/dataforge",
+                       "bash"),
+                      ("dataforge completar zsh > \"${fpath[1]}/_dataforge\"", "zsh"),
+                      ("dataforge completar fish > ~/.config/fish/completions/dataforge.fish",
+                       "fish")],
+            apelidos=("completion",),
+            veja=("help", "editor")),
         Cmd("clean", "dataforge clean",
             "Limpa caches e artefatos de build",
             "Remove dist/, __pycache__ e o cache de pacotes baixados.",
@@ -874,9 +928,20 @@ def comando_parecido(nome):
 USAGE = None      # montado sob demanda, para as cores respeitarem --no-color
 
 
+def _com_cor() -> bool:
+    """Cor, a menos que peçam o contrário — por flag OU por NO_COLOR.
+
+    `NO_COLOR` é o padrão de fato (no-color.org), e o depurador e a marca
+    já o respeitavam; a CLI e os diagnósticos do `check`, não. Um log de
+    CI com NO_COLOR=1 saía cheio de `^[[1;31m`, e um script que procurava
+    "erro:" na saída não achava.
+    """
+    return "--no-color" not in sys.argv and not os.environ.get("NO_COLOR")
+
+
 def color(text: str, code: str) -> str:
     """Apply ANSI color if supported."""
-    if '--no-color' in sys.argv:
+    if not _com_cor():
         return text
     return f"\033[{code}m{text}\033[0m"
 
@@ -928,7 +993,7 @@ def run_file(filepath: str, debug: bool = False, show_time: bool = False):
 
     except DataForgeError as e:
         print()
-        print(e.render(color='--no-color' not in sys.argv,
+        print(e.render(color=_com_cor(),
                        source_lines=source.splitlines(), debug=debug))
         if debug:
             import traceback
@@ -1453,6 +1518,41 @@ def _avisos_de_plugin_quebrado(problemas):
             for caminho, motivo in problemas]
 
 
+def _formato_do_check():
+    """`--formato=github` troca o desenho por anotações do Actions.
+
+    Com elas o erro aparece **na linha do PR**, e não só no log do job,
+    que ninguém abre enquanto o PR está verde em tudo o mais.
+    """
+    for a in sys.argv:
+        if a.startswith("--formato=") or a.startswith("--format="):
+            return a.split("=", 1)[1].strip().lower()
+    return "texto"
+
+
+def _linha_do_diagnostico(d, caminho, usar_cor):
+    if _formato_do_check() == "github":
+        from .stdlib.arcane_github import anotacao
+        from .idioma import traduzir
+        mensagem = traduzir(d.message)
+        if d.hint:
+            mensagem += f"\nsugestão: {traduzir(d.hint)}"
+        return anotacao("error" if d.severity == "error" else "warning",
+                        mensagem, caminho, d.line, d.column,
+                        titulo=d.code or "dataforge check")
+    return d.format(caminho, color=usar_cor)
+
+
+def _linha_do_erro_de_sintaxe(e, caminho):
+    if _formato_do_check() == "github":
+        import re
+        from .stdlib.arcane_github import anotacao
+        texto = re.sub(r"\x1b\[[0-9;]*m", "", e.format(traduzido=True))
+        return anotacao("error", texto, caminho, getattr(e, "line", 0) or 0,
+                        getattr(e, "column", 0) or 0, titulo="sintaxe")
+    return color(f"\u2717 {caminho}: {e.format(traduzido=True)}", "1;31")
+
+
 def check_file(filepath: str, strict: bool = False, only_syntax: bool = False,
                plugins=None):
     """Analisa sintaxe e semântica sem executar o programa."""
@@ -1473,7 +1573,7 @@ def check_file(filepath: str, strict: bool = False, only_syntax: bool = False,
         # erro — era o ciclo que este relatorio existe para encurtar.
         leva = [e] + list(getattr(e, "outros", ()))
         for um in leva:
-            print(color(f"✗ {filepath}: {um.format(traduzido=True)}", "1;31"))
+            print(_linha_do_erro_de_sintaxe(um, filepath))
         if len(leva) > 1:
             print(color(f"\n✗ {len(leva)} erros de sintaxe", "1;31"))
         sys.exit(1)
@@ -1491,10 +1591,10 @@ def check_file(filepath: str, strict: bool = False, only_syntax: bool = False,
     diagnosticos.sort(key=lambda d: (d.line, d.column))
     erros = [d for d in diagnosticos if d.severity == 'error']
     avisos = [d for d in diagnosticos if d.severity == 'warning']
-    usar_cor = '--no-color' not in sys.argv
+    usar_cor = _com_cor()
 
     for d in sorted(diagnosticos, key=lambda x: (x.line, x.column)):
-        print(d.format(filepath, color=usar_cor))
+        print(_linha_do_diagnostico(d, filepath, usar_cor))
 
     if erros:
         print(color(f"\n✗ {len(erros)} erro(s), {len(avisos)} aviso(s)", "1;31"))
@@ -1529,7 +1629,7 @@ def check_command(alvos, strict=False, only_syntax=False, plugins=None):
     carregados, problemas = _carregar_plugins(
         list(plugins or []) or _plugins_do_projeto())
 
-    usar_cor = '--no-color' not in sys.argv
+    usar_cor = _com_cor()
     total_erros = total_avisos = ilegiveis = 0
 
     for caminho in arquivos:
@@ -1548,7 +1648,7 @@ def check_command(alvos, strict=False, only_syntax=False, plugins=None):
             # segue, e mostrar um de cada vez faz o usuario compilar uma
             # vez por erro de sintaxe.
             for um in [e] + list(getattr(e, "outros", ())):
-                print(color(f"\u2717 {caminho}: {um.format(traduzido=True)}", "1;31"))
+                print(_linha_do_erro_de_sintaxe(um, caminho))
                 total_erros += 1
             continue
 
@@ -1561,7 +1661,7 @@ def check_command(alvos, strict=False, only_syntax=False, plugins=None):
             + _diagnosticos_dos_plugins(carregados, arvore, caminho), caminho)
         problemas = []          # o plugin quebrado é relatado uma vez só
         for d in sorted(do_arquivo, key=lambda x: (x.line, x.column)):
-            print(d.format(caminho, color=usar_cor))
+            print(_linha_do_diagnostico(d, caminho, usar_cor))
             if d.severity == 'error':
                 total_erros += 1
             else:
@@ -3181,7 +3281,7 @@ def lint_command(alvos, strict=False):
         strict = True
 
     arquivos = _expandir(alvos or ["."])
-    usar_cor = '--no-color' not in sys.argv
+    usar_cor = _com_cor()
     total = 0
     for caminho in arquivos:
         fonte, motivo = _ler(caminho)
@@ -3252,7 +3352,7 @@ def seguranca_command(alvos, strict=False, como_json=False, so=""):
     analisar = S["analisar"]
 
     arquivos = _arquivos_para_varrer(alvos or ["."])
-    usar_cor = "--no-color" not in sys.argv and not como_json
+    usar_cor = _com_cor() and not como_json
     ordem = {"alto": 0, "medio": 1, "baixo": 2}
     achados = []
     ilegiveis = 0
@@ -3341,7 +3441,7 @@ def test_command(alvos, verboso=False, filtro="", parar=False,
 
     alvo = alvos[0] if alvos else "."
     _, ok = executar(alvo, verboso=verboso, filtro=filtro,
-                     cor='--no-color' not in sys.argv, parar_no_primeiro=parar,
+                     cor=_com_cor(), parar_no_primeiro=parar,
                      cobertura=cobertura, minimo=minimo, detalhar=detalhar)
     if not ok:
         sys.exit(1)
@@ -3378,7 +3478,7 @@ def crucible_command(alvos, opcoes):
         sys.exit(1)
 
     REGISTRO.reiniciar()
-    cor = "--no-color" not in sys.argv
+    cor = _com_cor()
 
     medidor = None
     if opcoes.get("cobertura") or opcoes.get("minimo"):
@@ -3716,7 +3816,7 @@ def eval_command(codigo, debug=False):
         Interpreter().run(arvore, "<eval>")
     except DataForgeError as e:
         e.filename = "<eval>"
-        print(e.render(color='--no-color' not in sys.argv,
+        print(e.render(color=_com_cor(),
                        source_lines=fonte.split("\n")))
         sys.exit(1)
 
@@ -5492,6 +5592,14 @@ def main():
     elif command == 'deps':
         sys.exit(deps_command(args[1:]) or 0)
 
+    elif command in ('gramatica', 'grammar'):
+        from .gramatica import executar as _gramatica
+        sys.exit(_gramatica(args[1:], flags))
+
+    elif command in ('completar', 'completion'):
+        from .completar import executar as _completar
+        sys.exit(_completar(args[1:]))
+
     elif command == 'clean':
         clean_command(tudo='--all' in flags)
 
@@ -5818,7 +5926,7 @@ def profile_command(args, flags=()):
         interpretador.run(parse(tokenize(fonte, caminho), caminho), caminho)
     except DataForgeError as erro:
         print()
-        print(erro.render(fonte, color='--no-color' not in sys.argv))
+        print(erro.render(fonte, color=_com_cor()))
         return 1
     total = _time.perf_counter() - comeco
 
