@@ -4,7 +4,7 @@
 #   curl -fsSL https://dataforge-lang.vercel.app/instalar.sh | sh
 #
 # Variáveis:
-#   DATAFORGE_VERSION=1.1.0     versão a instalar (padrão: a mais recente)
+#   DATAFORGE_VERSION=1.1.1     versão a instalar (padrão: a mais recente)
 #   DATAFORGE_PREFIX=~/.local   onde instalar (padrão: ~/.dataforge)
 #   DATAFORGE_REPO=...          repositório de origem
 #
@@ -21,7 +21,7 @@
 
 set -eu
 
-VERSAO="${DATAFORGE_VERSION:-1.1.0}"
+VERSAO="${DATAFORGE_VERSION:-1.1.1}"
 PREFIXO="${DATAFORGE_PREFIX:-$HOME/.dataforge}"
 SITE="${DATAFORGE_SITE:-https://dataforge-lang.vercel.app}"
 

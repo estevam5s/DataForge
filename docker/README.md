@@ -213,7 +213,7 @@ O Kiln tem upload `multipart`, SSE e WebSocket — ver
 Para empacotar a **sua** aplicação:
 
 ```dockerfile
-FROM estevan5s/dataforge:1.1.0
+FROM estevan5s/dataforge:1.1.1
 
 # O manifesto ANTES do código: a camada de dependência só é refeita
 # quando ele muda. Sem isso, um commit numa linha reinstala tudo.
@@ -280,7 +280,7 @@ falha na primeira consulta — de forma intermitente, que é a pior.
 | Tag | O quê |
 |---|---|
 | `latest` | a última publicada |
-| `1.1.0` | fixa — use esta em produção |
+| `1.1.1` | fixa — use esta em produção |
 
 **Em produção, sempre uma tag fixa.** `latest` muda sob os seus pés, e
 um `docker pull` num redeploy pode trazer uma versão que você não

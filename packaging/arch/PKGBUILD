@@ -11,7 +11,7 @@
 #     git add PKGBUILD .SRCINFO && git commit && git push
 
 pkgname=dataforge
-pkgver=1.1.0
+pkgver=1.1.1
 pkgrel=1
 pkgdesc="Linguagem de programação interpretada, com vocabulário próprio e zero dependências"
 arch=('any')

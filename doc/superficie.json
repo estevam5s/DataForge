@@ -1565,12 +1565,15 @@
     "Arcane.Forge": [
       "buscar_modelo",
       "colunas",
+      "compose",
       "conectar",
       "conexao",
       "consultar",
       "de",
+      "de_ambiente",
       "de_csv",
       "dialetos",
+      "esperar",
       "executar",
       "fechar",
       "ligar",
@@ -3137,5 +3140,5 @@
     "yes",
     "yield"
   ],
-  "versao": "1.1.0"
+  "versao": "1.1.1"
 }

@@ -12,6 +12,64 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ---
 
+## 1.1.1
+
+Correção de publicação, mais as vinte e sete rotas de documentação e o
+banco em contêiner que estavam em "Não lançado".
+
+### Corrigido — o logo do pacote no PyPI
+
+A 1.1.0 subiu com o README apontando para `site/public/marca-favicon.svg`,
+um caminho **relativo ao repositório**. O PyPI serve a descrição fora
+dele, então a página do pacote mostrava o ícone de imagem quebrada. O
+endereço agora é absoluto (`https://dataforge-lang.vercel.app/marca-256.png`),
+e há teste sobre isso.
+
+Uma descrição já publicada não pode ser trocada: o PyPI recusa o
+reenvio de uma versão que existe. A correção **exige** uma versão nova,
+e é por isso que esta é a 1.1.1.
+
+### Adicionado — o banco em contêiner
+
+| Símbolo | O quê |
+|---|---|
+| `Forge.esperar(url)` | espera o banco **aceitar** conexão, e devolve a conexão aberta |
+| `Forge.de_ambiente()` | `DATABASE_URL`, `DB_URL` ou `FORGE_DATABASE_URL` |
+| `Forge.compose(url)` | o serviço, o volume e a URL de dentro da rede |
+
+`esperar` só repete **erro passageiro** — conexão recusada, reset,
+`the database system is starting up`. Credencial errada levanta na
+hora: repetir uma senha errada por quarenta segundos troca um erro
+claro por um travamento, e o programa que espera não fica mais certo
+por isso. Medido: 0,51 s contra um contêiner recém-subido, e 4 ms para
+recusar uma senha errada.
+
+### Adicionado — o ORM que faltava
+
+`tem_muitos_atraves` (três consultas, e não N+1), `escopo`/`usar` e
+`paginar`. Um `tem_muitos` através de uma tabela de junção era a
+relação que mais aparece num modelo real e a única que não existia.
+
+### Adicionado — vinte e sete rotas de documentação
+
+Nove em **banco de dados** (contêiner, PostgreSQL, MySQL, Redis e
+MongoDB, produção, receitas, e três de ORM), nove em **módulos** (as
+formas de `adopt`, `relay`, pacotes, lockfile, registro, workspace,
+organizar, diagnóstico, testar) e nove em **bibliotecas** (API,
+opções, erros, documentar, desempenho, segurança, CI, a ponte, e
+quatro bibliotecas de verdade).
+
+Os 38 blocos DataForge delas foram extraídos e executados antes de a
+página existir.
+
+### Corrigido — a opção que não existe num `Campo`
+
+Ela chegava como a mensagem de aridade do Python, que fala de outra
+coisa. Agora o erro diz **qual** opção não existe, e lista as que o
+`Campo` aceita.
+
+---
+
 ## Não lançado
 
 ### Adicionado — `Arcane.Politica`, `Arcane.Chaves` e `Arcane.Deteccao`

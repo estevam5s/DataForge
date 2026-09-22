@@ -3,7 +3,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>dataforge</id>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <title>DataForge</title>
     <authors>Estevam Souza</authors>
     <projectUrl>https://dataforge-lang.vercel.app</projectUrl>
@@ -19,7 +19,7 @@ Linguagem de proposito geral com lexer, parser, analisador estatico e
 interpretador proprios. O instalador embute o runtime: nao e preciso ter
 Python na maquina.
     </description>
-    <releaseNotes>https://github.com/estevam5s/DataForge/releases/tag/v1.1.0</releaseNotes>
+    <releaseNotes>https://github.com/estevam5s/DataForge/releases/tag/v1.1.1</releaseNotes>
   </metadata>
   <files>
     <file src="tools\**" target="tools" />

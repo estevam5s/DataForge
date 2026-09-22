@@ -1,6 +1,6 @@
 # DataForge
 
-> Linguagem de programacao interpretada, de proposito geral, com vocabulario em portugues. Versao 1.1.0. Implementada em Python 3.10+ sem dependencia externa: lexer, parser, AST, analisador estatico e interpretador proprios. Arquivos `.df`. Licenca MIT.
+> Linguagem de programacao interpretada, de proposito geral, com vocabulario em portugues. Versao 1.1.1. Implementada em Python 3.10+ sem dependencia externa: lexer, parser, AST, analisador estatico e interpretador proprios. Arquivos `.df`. Licenca MIT.
 
 Site: https://dataforge-lang.vercel.app  ·  Documentacao: https://dataforge-lang.vercel.app/docs  ·  API em JSON: https://dataforge-lang.vercel.app/api
 

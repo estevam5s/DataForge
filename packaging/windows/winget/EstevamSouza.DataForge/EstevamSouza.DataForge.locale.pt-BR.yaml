@@ -1,6 +1,6 @@
 # Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.
 PackageIdentifier: EstevamSouza.DataForge
-PackageVersion: 1.1.0
+PackageVersion: 1.1.1
 PackageLocale: pt-BR
 Publisher: Estevam Souza
 PublisherUrl: https://dataforge-lang.vercel.app

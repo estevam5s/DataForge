@@ -12,7 +12,7 @@ implementada em Python 3.10+ **sem dependências externas no runtime**. Não é 
 DSL nem um transpilador: tem lexer, parser recursivo descendente, AST tipada,
 analisador estático e interpretador de árvore próprios.
 
-- Versão atual: **1.1.0**
+- Versão atual: **1.1.1**
 - Extensão dos arquivos: `.df`
 - Entrypoints: `dataforge` e `df` (mesmo `main`)
 - Licença: MIT
@@ -92,7 +92,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                79 módulos (2153 símbolos), incluindo:
+  stdlib/                79 módulos (2156 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -2083,7 +2083,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 2153 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2156 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2266,6 +2266,28 @@ mesmo motivo do `execute`.
 Cuidado ao mexer: `vigiar_leitura` **já existia** e é outra coisa — uma
 vigia de mudança que lê por função, para o DAP. A nova é `vigiar_acesso`.
 No protocolo, `accessTypes` passou a anunciar `["write", "read"]`.
+
+### O banco em contêiner, e o que `esperar` NÃO repete
+
+`Forge.esperar(url)` espera o banco **aceitar** conexão e devolve a
+conexão aberta — é a peça que faltava para um `docker compose up` de
+verdade, onde a aplicação sobe antes do banco estar pronto.
+
+O recurso dela é a lista do que ela **não** repete. Só erro passageiro
+(conexão recusada, reset, `the database system is starting up`) entra na
+retentativa; **credencial errada levanta na hora**. Repetir uma senha
+errada por quarenta segundos troca um erro claro por um travamento, e o
+programa não fica mais certo por esperar. Medido: 0,51 s contra um
+contêiner recém-subido, 4 ms para recusar uma senha errada.
+
+`Forge.de_ambiente()` lê `DATABASE_URL`, `DB_URL` ou `FORGE_DATABASE_URL`,
+nessa ordem; `Forge.compose(url)` devolve o serviço, o volume e a **URL
+de dentro da rede** — o host muda de `localhost` para o nome do serviço,
+e é esse o erro que mais custa tempo num compose.
+
+`tests/test_forge_docker.py` sobe Postgres 16 e MySQL 8 de verdade e
+**pula sozinho** onde não há Docker, com o nome e a porta derivados do
+PID para dois jobs não colidirem.
 
 ### O cache de árvores — e o nome importa
 
