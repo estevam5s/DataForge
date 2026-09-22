@@ -28,7 +28,7 @@ class Environment:
     # __slots__ eles precisam ser declarados aqui, senao o Python recusa
     # a atribuicao — e o erro aparece longe da causa.
     __slots__ = ("parent", "name", "variables", "constants", "embutidas",
-                 "_deferred", "_exports")
+                 "_deferred", "_exports", "_export_de")
 
     def __init__(self, parent=None, name: str = "<global>"):
         self.parent = parent

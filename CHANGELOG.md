@@ -12,6 +12,50 @@ cada número significa, e o que pode quebrar entre versões, está em
 
 ---
 
+## Não lançado
+
+### Adicionado — à linguagem
+
+| O quê | Antes |
+|---|---|
+| `{1, 2, 3}`, `{x * 2 cycle x in xs}` e `set(fonte)` — o **conjunto** tem literal, compreensão e anotação (`s: Set`) | só havia `set()` embutido de fora, e `Set` não era um tipo que se pudesse escrever |
+| `input(pergunta)` — lê uma linha; `void` no fim da entrada | a linguagem não tinha como perguntar nada a quem roda o programa |
+| `relay novo as antigo` — exportar com outro nome | renomear uma ação pública quebrava quem a importava, e o `dataforge abi` dizia MAIOR |
+| `Quadro.janela`, `acumulado`, `defasar`, `variacao`, `ranquear` | média móvel e total acumulado exigiam um laço à mão |
+| `Arcane.Evolucao` — `obsoleta`, `experimental`, `renomeada`; `DF_OBSOLETOS=erro` no CI | marcar uma ação como obsoleta era um comentário |
+| `Arcane.Algoritmos` — 14 clássicos (busca binária, Dijkstra, ordem topológica, LCS, Levenshtein, mochila, KMP, crivo…), cada um com a complexidade que promete | escrevia-se à mão, e errado |
+
+Um conjunto só guarda valor que não muda: `{[1, 2]}` é recusado **na
+leitura** (`set-item-mutavel`) com a saída na mensagem — `freeze(x)` ou
+uma tupla.
+
+### Adicionado — ao analisador
+
+- `assert-sempre-verdadeiro`: `assert xs >> morph x: x is 1` testa o
+  **pipeline**, que é sempre verdadeiro — o `is` fica dentro do corpo do
+  `morph`. O aviso pede os parênteses. Achado escrevendo a documentação:
+  um bloco passava sem conferir nada.
+- Uma palavra reservada como **parâmetro** (`action f(no)`) diz qual é
+  a palavra e o que fazer, em vez de um erro de sintaxe genérico.
+
+### Documentação — 57 rotas novas
+
+Mais as páginas de referência de `Arcane.Algoritmos` e `Arcane.Evolucao`.
+
+| Seção | Rotas |
+|---|---|
+| `/docs/primeiros-passos/…` | 10 — do olá-mundo ao primeiro programa, erros comuns e próximos passos |
+| `/docs/fundamentos` (o índice, que respondia **404**) e `/docs/fundamentos/…` | 1 + 9 — conjuntos, números, ausência, conversões, igualdade, imutabilidade, textos, ordem superior, recursão |
+| `/docs/big-o/…` | 9 — algoritmos, busca, ordenação, grafos, programação dinâmica, texto, escolher, medir, exercícios |
+| `/docs/modulos/…` | 9 — renomear, fachada, ciclos, visibilidade, estado, entrada, a ponte, dividir |
+| `/docs/bibliotecas/…` | 9 — obsolescência, experimental, changelog, licença, dependências, mensagens, estabilidade, migração, checklist |
+| `/docs/dados/…` | 10 — janelas, séries temporais, juntar, pivotar, limpeza, estatística, amostragem, exportar, volume, visualizar |
+
+Todas na barra lateral, nos índices das seções, e todo bloco de código
+**roda** — `tests/test_paginas_novas_rodam.py` executa cada um.
+
+---
+
 ## 1.1.1
 
 Correção de publicação, mais as vinte e sete rotas de documentação e o

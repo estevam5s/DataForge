@@ -2045,7 +2045,7 @@ leitura quando não há — ver §7.
 `none_of` `find_first` `find_last` `flat_map` `scan` `zip_with` `chain`
 `product` `permutations` `combinations` `repeat_val` `accumulate`
 
-**Sistema** — `time` `sleep` `timestamp` `exists` `freeze` `thaw` `hash` `id`
+**Sistema** — `input` `set` `time` `sleep` `timestamp` `exists` `freeze` `thaw` `hash` `id`
 `uuid` `to_json` `from_json` `hash_md5` `hash_sha256` `base64_encode`
 `base64_decode` `env_var`
 

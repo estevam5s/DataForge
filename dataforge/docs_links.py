@@ -200,11 +200,11 @@ def pagina_de_modulo(oficial):
 #: Escrita à mão de propósito: o LSP roda a partir do wheel instalado, e
 #: ali não há pasta `site/`. O teste é que garante que ela não envelhece.
 MODULOS_COM_PAGINA = frozenset({
-    "abi", "alvo", "analytics", "api", "archive", "async", "bench",
+    "abi", "algoritmos", "alvo", "analytics", "api", "archive", "async", "bench",
     "bytes", "c", "capacidade", "chaves", "cli", "collections", "color",
     "compilador", "concurrent", "cortex", "crucible", "crypto", "data",
     "database", "deteccao", "decimal", "dominio", "dsl", "ecossistema", "email",
-    "estrutura", "eventos", "excel", "forge", "functional", "html", "http",
+    "estrutura", "eventos", "evolucao", "excel", "forge", "functional", "html", "http",
     "inicio", "injecao", "io", "iter", "laco", "lago", "lavra", "logging",
     "macro", "malha", "math", "memoria", "meta", "objetos", "observar",
     "os", "padroes", "percurso", "perfil", "pipeline", "politica", "ponte", "posse",

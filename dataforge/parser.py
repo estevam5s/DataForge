@@ -1274,11 +1274,37 @@ class Parser:
             return ast.RelayStatement(names=[], origem=origem,
                                       line=tok.line, column=tok.column)
 
-        names = [self.expect(TokenType.IDENTIFIER).value]
+        names, apelidos, saidas, diretos = [], {}, [], set()
+
+        def um():
+            nome = self.expect(TokenType.IDENTIFIER).value
+            exportado = nome
+            if self.match(TokenType.AS):
+                exportado = self.expect(TokenType.IDENTIFIER,
+                                        "Expected the exported name after 'as'").value
+                apelidos.setdefault(nome, [])
+                apelidos[nome].append(exportado)
+            else:
+                diretos.add(nome)
+            if exportado in saidas:
+                self.error(f"'{exportado}' is exported twice by this relay; "
+                           "each exported name must be unique")
+            saidas.append(exportado)
+            if nome not in names:
+                names.append(nome)
+
+        um()
         while self.match(TokenType.COMMA):
-            names.append(self.expect(TokenType.IDENTIFIER).value)
+            um()
+        # 'relay x, x as y' exporta os DOIS nomes: com apelido, a lista
+        # guarda cada nome de saida, inclusive o proprio quando ele tambem
+        # foi listado sem 'as'.
+        for nome in apelidos:
+            if nome in diretos:
+                apelidos[nome].insert(0, nome)
         self.match(TokenType.NEWLINE)
-        return ast.RelayStatement(names=names, line=tok.line, column=tok.column)
+        return ast.RelayStatement(names=names, apelidos=apelidos,
+                                  line=tok.line, column=tok.column)
 
     def parse_steady(self):
         """steady NAME := value"""
@@ -4108,6 +4134,17 @@ class Parser:
                               None))
             else:
                 chave = self.parse_expression()
+                # '{1, 2}' e '{x cycle x in xs}': o primeiro item sem ':'
+                # decide que é um conjunto. Só vale no PRIMEIRO item —
+                # depois de um par 'k: v', faltar o ':' continua sendo erro.
+                # '{...xs, 9}' também: se tudo antes foi '...', o primeiro
+                # item sem ':' decide. '{...base}' sozinho continua vault.
+                so_espalhou = all(v is None for _k, v in pairs)
+                if so_espalhou and self.current().type in (
+                        TokenType.COMMA, TokenType.RBRACE, TokenType.NEWLINE) or (
+                        not pairs and self.current().type == TokenType.CYCLE):
+                    antes = [k for k, _v in pairs]
+                    return self._resto_do_conjunto(tok, chave, antes)
                 self.expect(TokenType.COLON, "Expected ':' between key and value")
                 valor = self.parse_expression()
 
@@ -4125,6 +4162,29 @@ class Parser:
             self.skip_newlines()
         self.expect(TokenType.RBRACE)
         return ast.DictLiteral(pairs=pairs, line=tok.line, column=tok.column)
+
+    def _resto_do_conjunto(self, tok, primeiro, antes=()):
+        """O resto de '{a, b, ...c}' ou de '{x cycle x in xs}'."""
+        if self.current().type == TokenType.CYCLE:
+            clauses = self._parse_comprehension_clauses(TokenType.RBRACE)
+            self.expect(TokenType.RBRACE)
+            return ast.SetComprehension(expression=primeiro, clauses=clauses,
+                                        line=tok.line, column=tok.column)
+        elementos = list(antes) + [primeiro]
+        self.skip_newlines()
+        while self.match(TokenType.COMMA):
+            self.skip_newlines()
+            if self.current().type == TokenType.RBRACE:
+                break
+            if self.current().type == TokenType.SPREAD:
+                stok = self.advance()
+                elementos.append(ast.SpreadElement(value=self.parse_expression(),
+                                                   line=stok.line, column=stok.column))
+            else:
+                elementos.append(self.parse_expression())
+            self.skip_newlines()
+        self.expect(TokenType.RBRACE, "Expected '}' to close the set")
+        return ast.SetLiteral(elements=elementos, line=tok.line, column=tok.column)
 
     # ── Helper: parse parameters ───────────────────────────
 
@@ -4282,6 +4342,17 @@ class Parser:
         defaults = {}
         types = {}
         while self.current().type != TokenType.RPAREN:
+            atual = self.current()
+            # 'action f(no)' dizia "Expected IDENTIFIER, got BOOLEAN
+            # (False)" — que fala do token, e nao da causa. Em portugues,
+            # 'no', 'in', 'is', 'to', 'from' sao nomes naturais de
+            # parametro, e a mensagem precisa dizer que a palavra e
+            # reservada, como a da atribuicao ja dizia.
+            if atual.type != TokenType.IDENTIFIER and getattr(atual, "text", "") \
+                    and atual.text.isidentifier():
+                self.error(f"'{atual.text}' is a reserved keyword and cannot be "
+                           f"a parameter name (try '{atual.text}_' or a longer "
+                           f"word). Pick another name.")
             name = self.expect(TokenType.IDENTIFIER).value
             self._recusar_parametro_repetido(params, name)
             params.append(name)

@@ -43,6 +43,8 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.Gramatica`](#arcanegramatica) | `Gramatica` | 10 | A gramática da linguagem como dado: as produções em EBNF, cada uma com um exemplo conferido contra o parser, a tabela de precedência provada pela árvore, os tokens de um texto, as instruções que o parser entendeu e a validação de sintaxe sem executar nada. |
 | [`Arcane.Privacidade`](#arcaneprivacidade) | `Privacidade` | 10 | O que a LGPD pede, como operações sobre dado: pseudonimização com chave (e não hash sem chave, que se desfaz), generalização de quase-identificadores, a medida do k-anonimato, minimização por lista de permitidos, retenção, consentimento por titular e por finalidade com histórico, os direitos de acesso e eliminação percorrendo todo lugar onde o dado mora, e contagem com privacidade diferencial. |
 | [`Arcane.Integridade`](#arcaneintegridade) | `Integridade` | 6 | Provar que o que está aqui é o que foi posto aqui: o valor SRI de um script de CDN, o manifesto SHA-256 de uma pasta com o que foi acrescentado, removido e alterado, e o manifesto assinado com uma chave que mora fora dali. |
+| [`Arcane.Evolucao`](#arcaneevolucao) | `Evolucao` | 5 | Como uma API muda sem pegar ninguém de surpresa: marcar uma ação como obsoleta (desde quando, por quê, o que usar) ou experimental, e manter um nome antigo que avisa. O aviso sai uma vez por ação, na saída de erro, e DF_OBSOLETOS=erro o transforma em erro no CI. |
+| [`Arcane.Algoritmos`](#arcanealgoritmos) | `Algoritmos` | 16 | Os algoritmos clássicos com a complexidade como dado: busca binária, merge sort estável, counting sort, BFS, DFS, ordem topológica que mostra o ciclo, Dijkstra que recusa peso negativo, LCS, Levenshtein, mochila 0/1, KMP e o crivo — cada um conferido contra uma implementação ingênua. |
 | [`Arcane.Collections`](#arcanecollections) | `Collections` | 63 | Estruturas de dados e algoritmos: pilha, fila, grafo, união-busca. |
 | [`Arcane.Serialization`](#arcaneserialization) | `Serialization / Serde` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | [`Arcane.Forge`](#arcaneforge) | `Forge / Banco` | 31 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
@@ -1556,6 +1558,59 @@ adopt Arcane.Integridade as Integridade
 | `manifesto(pasta, ignorar=None)` |
 | `sri(conteudo, algoritmo='sha384')` |
 | `verificar_manifesto(assinado, chave)` |
+
+
+---
+
+## Arcane.Evolucao
+
+Como uma API muda sem pegar ninguém de surpresa: marcar uma ação como obsoleta (desde quando, por quê, o que usar) ou experimental, e manter um nome antigo que avisa. O aviso sai uma vez por ação, na saída de erro, e DF_OBSOLETOS=erro o transforma em erro no CI.
+
+```dataforge
+adopt Arcane.Evolucao as Evolucao
+```
+
+**Funções (5)**
+
+| Assinatura |
+|------------|
+| `avisos()` |
+| `esquecer()` |
+| `experimental(motivo='')` |
+| `obsoleta(motivo='', desde='', use='')` |
+| `renomeada(acao, nome_antigo, desde='')` |
+
+
+---
+
+## Arcane.Algoritmos
+
+Os algoritmos clássicos com a complexidade como dado: busca binária, merge sort estável, counting sort, BFS, DFS, ordem topológica que mostra o ciclo, Dijkstra que recusa peso negativo, LCS, Levenshtein, mochila 0/1, KMP e o crivo — cada um conferido contra uma implementação ingênua.
+
+```dataforge
+adopt Arcane.Algoritmos as Algoritmos
+```
+
+**Funções (16)**
+
+| Assinatura |
+|------------|
+| `bfs(grafo, origem)` |
+| `busca_binaria(xs, alvo)` |
+| `caminho(resultado, destino)` |
+| `catalogo()` |
+| `complexidade(nome)` |
+| `crivo(n)` |
+| `dfs(grafo, origem)` |
+| `dijkstra(grafo, origem)` |
+| `kmp(texto, padrao)` |
+| `lcs(a, b)` |
+| `levenshtein(a, b)` |
+| `limite_inferior(xs, alvo)` |
+| `mochila(itens, capacidade)` |
+| `ordem_topologica(grafo)` |
+| `ordenar_contando(xs)` |
+| `ordenar_mesclando(xs, chave=None)` |
 
 
 ---

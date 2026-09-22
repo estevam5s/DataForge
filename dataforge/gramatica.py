@@ -119,6 +119,14 @@ PRODUCOES = [
        'item          = [ "..." ] expressao ;',
        'xs := [1, 2]\nys := [...xs, 3]\nv := {"a": 1}\nt := (1, "a")',
        ["ListLiteral", "SpreadElement", "DictLiteral", "TupleLiteral"]),
+    _p("conjunto", "expressoes",
+       'conjunto      = "{" item { "," item } [ "," ] "}"\n'
+       '              | "{" expressao "cycle" nome "in" expressao [ "given" expressao ] "}" ;\n'
+       'vazio         = "set" "(" [ expressao ] ")" ;',
+       'cores := {"azul", "verde", "azul"}\npares := {n * n cycle n in [1, 2, 3]}\nnenhum := set()',
+       ["SetLiteral", "SetComprehension"],
+       "O primeiro item decide: seguido de `:` é vault, seguido de `,` ou `}` é "
+       "conjunto. O vazio se escreve `set()`, porque `{}` já era o vault vazio."),
     _p("acesso", "expressoes",
        'posfixo       = primario { "." nome | "?." nome | "(" argumentos ")"\n'
        '                         | "[" indice "]" } ;\n'
@@ -239,9 +247,12 @@ PRODUCOES = [
        "adopt {sqrt as raiz} from Arcane.Math",
        ["AdoptStatement"]),
     _p("relay", "modulos",
-       'exportacao    = "relay" nome { "," nome } ;',
-       "action a():\n    yield 1\nrelay a", ["RelayStatement"],
-       "Com `relay`, só o que está listado sai do módulo."),
+       'exportacao    = "relay" saida { "," saida } | "relay" "from" caminho ;\n'
+       'saida         = nome [ "as" nome ] ;',
+       "action novo():\n    yield 1\nrelay novo, novo as antigo", ["RelayStatement"],
+       "Com `relay`, só o que está listado sai do módulo. `novo as antigo` "
+       "exporta o mesmo objeto com outro nome — é como se renomeia sem "
+       "quebrar quem usa o nome velho, e o `dataforge abi` concorda."),
     _p("mark", "modulos",
        'decorador     = "mark" "@" expressao NEWLINE ( acao | blueprint ) ;',
        "action dec(f):\n    yield f\nmark @dec\naction h():\n    yield 1",

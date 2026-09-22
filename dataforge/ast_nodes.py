@@ -81,6 +81,18 @@ class DictLiteral(ASTNode):
     pairs: list = field(default_factory=list)  # list of (key, value) tuples
 
 
+@dataclass
+class SetLiteral(ASTNode):
+    """{1, 2, 3} — um conjunto. '{}' continua sendo o vault vazio.
+
+    A distinção é a do primeiro item: seguido de ':' é vault, seguido de
+    ',' ou '}' é conjunto. O conjunto vazio se escreve 'set()', porque
+    '{}' já tinha dono — e mudar o sentido dele quebraria todo programa
+    que começa um vault assim.
+    """
+    elements: list = field(default_factory=list)
+
+
 # ═══════════════════════════════════════════════════════════
 #  EXPRESSIONS
 # ═══════════════════════════════════════════════════════════
@@ -664,9 +676,14 @@ class RelayStatement(ASTNode):
     Com 'origem' preenchida, e re-exportacao: tudo o que aquele modulo
     exporta passa a sair tambem por este. E o que permite montar uma
     fachada — um index.df que reune varios modulos internos numa API so.
+
+    'relay novo as antigo' exporta o nome local 'novo' com o nome
+    'antigo': e como uma biblioteca renomeia uma acao sem quebrar quem
+    ainda chama o nome velho. 'apelidos' vai do nome local ao exportado.
     """
     names: list = field(default_factory=list)
     origem: str = ""
+    apelidos: dict = field(default_factory=dict)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -808,6 +825,13 @@ class ComprehensionClause(ASTNode):
 @dataclass
 class ListComprehension(ASTNode):
     """[expr cycle x in fonte given cond]"""
+    expression: Any = None
+    clauses: list = field(default_factory=list)
+
+
+@dataclass
+class SetComprehension(ASTNode):
+    """{expr cycle x in fonte given cond} — o conjunto do que a expressão produz"""
     expression: Any = None
     clauses: list = field(default_factory=list)
 

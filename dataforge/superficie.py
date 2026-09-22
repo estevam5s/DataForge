@@ -327,8 +327,13 @@ def _ler(caminho, profundidade, vistos):
                 # 'relay a, b from ./outro' — reexporta de terceiro.
                 # Seguir ate la seria possivel; por ora, abrir.
                 reexporta_calculado = True
+            apelidos = getattr(stmt, "apelidos", None) or {}
             for nome in getattr(stmt, "names", []) or []:
-                exportados.append(nome)
+                if nome in apelidos:
+                    for exportado in apelidos[nome]:
+                        exportados.append((nome, exportado))
+                else:
+                    exportados.append(nome)
         elif tipo == "AdoptStatement":
             alvo = _modulo_local(getattr(stmt, "module", ""), caminho)
             if alvo:
@@ -349,6 +354,9 @@ def _ler(caminho, profundidade, vistos):
     if exportados:
         membros = {}
         for nome in exportados:
+            exportado = nome
+            if isinstance(nome, tuple):      # 'relay local as exportado'
+                nome, exportado = nome
             achado = definidos.get(nome)
             if achado is None:
                 # 'relay' de algo que este leitor nao viu — um nome que
@@ -356,7 +364,11 @@ def _ler(caminho, profundidade, vistos):
                 # 'monitor'. Existe em execucao e nao aqui.
                 reexporta_calculado = True
                 continue
-            membros[nome] = achado
+            if exportado != nome:
+                achado = Membro(exportado, achado.especie, achado.minimo,
+                                achado.maximo, achado.campos, achado.linha,
+                                achado.retorno, achado.parametros, achado.tipos)
+            membros[exportado] = achado
         if reexporta_calculado:
             return Superficie(membros, aberta=True,
                               motivo="relay de nome calculado",

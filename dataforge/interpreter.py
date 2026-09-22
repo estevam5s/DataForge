@@ -2450,6 +2450,29 @@ class Interpreter:
             return _Tupla(self._expand_elements(node.elements, env))
         return _Tupla(self.evaluate(elem, env) for elem in node.elements)
 
+    def eval_SetLiteral(self, node, env):
+        """'{1, 2, 3}' — o conjunto. O item que muda é recusado com a linha."""
+        from .builtins import _em_conjunto
+        if any(isinstance(e, ast.SpreadElement) for e in node.elements):
+            itens = self._expand_elements(node.elements, env)
+        else:
+            itens = [self.evaluate(e, env) for e in node.elements]
+        try:
+            return _em_conjunto(itens)
+        except TypeError as erro:
+            raise TypeError_(str(erro), node.line, node.column) from None
+
+    def eval_SetComprehension(self, node, env):
+        from .builtins import _em_conjunto
+        itens = []
+        self._run_clauses(node.clauses, 0, env,
+                          lambda escopo: itens.append(
+                              self.evaluate(node.expression, escopo)))
+        try:
+            return _em_conjunto(itens)
+        except TypeError as erro:
+            raise TypeError_(str(erro), node.line, node.column) from None
+
     def eval_DictLiteral(self, node: ast.DictLiteral, env):
         result = {}
         for key_node, val_node in node.pairs:
@@ -7736,6 +7759,18 @@ class Interpreter:
                     dica=(f"did you mean '{perto[0]}'?" if perto else
                           "define it before the 'relay', or remove it from the list"),
                     doc="pacotes")
+            apelidos = (getattr(node, 'apelidos', None) or {}).get(nome)
+            if apelidos:
+                # 'relay novo as antigo': sai com o nome de fora, e o
+                # objeto e o mesmo — nao uma copia que divergiria.
+                origem_de = getattr(env, '_export_de', None)
+                if origem_de is None:
+                    origem_de = env._export_de = {}
+                for exportado in apelidos:
+                    origem_de[exportado] = nome
+                    if exportado not in exportados:
+                        exportados.append(exportado)
+                continue
             exportados.append(nome)
 
     # ── Concurrency ────────────────────────────────────────
@@ -10003,6 +10038,18 @@ class Interpreter:
                 return f"<{value['__type__']}>"
             pairs = ', '.join(f"{self._to_str(k)}: {self._to_str(v)}" for k, v in value.items())
             return '{' + pairs + '}'
+        if isinstance(value, (set, frozenset)):
+            # Vazio sai como se escreve: '{}' seria lido como o vault vazio.
+            if not value:
+                return "set()"
+            # Em ORDEM: a de um conjunto de textos muda a cada execucao
+            # (o hash do Python e aleatorio por processo), e uma saida
+            # que muda sozinha quebra todo teste que a compara.
+            try:
+                itens = sorted(value)
+            except TypeError:
+                itens = sorted(value, key=lambda v: (type(v).__name__, repr(v)))
+            return '{' + ', '.join(self._to_str(i) for i in itens) + '}'
         return str(value)
 
     def _load_module_file(self, path, module_name):
@@ -10036,8 +10083,10 @@ class Interpreter:
 
         exportados = getattr(mod_env, '_exports', None)
         if exportados:
-            objeto = {nome: mod_env.get(nome) for nome in exportados
-                      if mod_env.has(nome)}
+            origem_de = getattr(mod_env, '_export_de', None) or {}
+            objeto = {nome: mod_env.get(origem_de.get(nome, nome))
+                      for nome in exportados
+                      if mod_env.has(origem_de.get(nome, nome))}
         else:
             objeto = dict(mod_env.variables)
         objeto["__name__"] = module_name

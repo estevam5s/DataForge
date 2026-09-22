@@ -201,6 +201,32 @@ _REPR = [None]
 def set_repr(fn):
     _REPR[0] = fn
 
+def _df_input(pergunta=""):
+    """input(pergunta) — uma linha do teclado, sem a quebra do fim.
+
+    Devolve 'void' quando a entrada ACABA (Ctrl+D, ou um arquivo
+    redirecionado que terminou), e não levanta: é isso que deixa um laço
+    de leitura terminar sozinho —
+
+        linha := input("> ")
+        persist linha isnt void:
+            ...
+            linha := input("> ")
+
+    A pergunta vai para a saída sem quebrar a linha, e é descarregada
+    antes de esperar: sem isso, num terminal com buffer, a pessoa veria o
+    cursor piscando sem saber o que o programa pede.
+    """
+    import sys as _sys
+    if pergunta:
+        _sys.stdout.write(str(pergunta))
+        _sys.stdout.flush()
+    linha = _sys.stdin.readline()
+    if linha == "":
+        return None
+    return linha.rstrip("\r\n")
+
+
 def _df_int(obj):
     """Converte para Integer. Texto que nao e numero levanta erro."""
     return int(obj)
@@ -1239,6 +1265,40 @@ def _df_exists(obj):
     """O contrario de 'is_void': ha algo aqui?"""
     return obj is not None
 
+def _em_conjunto(itens):
+    """Os itens num conjunto — e a mensagem certa para o item que não cabe.
+
+    Um conjunto guarda só o que não muda: um Cluster dentro dele poderia
+    mudar depois de entrar e ficar no lugar errado. O Python diz
+    "unhashable type: 'list'", que fala de uma palavra que esta linguagem
+    não tem.
+    """
+    saida = set()
+    for item in itens:
+        try:
+            saida.add(item)
+        except TypeError:
+            nome = {list: "Cluster", dict: "Vault", set: "Set"}.get(
+                type(item), "valor mutavel")
+            raise TypeError(
+                f"um Set só guarda valor que não muda, e chegou um "
+                f"{nome}. Congele antes: freeze(x) — ou use uma tupla.") from None
+    return saida
+
+
+def _df_set(fonte=None):
+    """set() / set(xs) — o conjunto vazio, ou o conjunto dos itens de xs.
+
+    '{1, 2}' é o literal; 'set()' existe porque '{}' é o vault vazio.
+    De um vault, o conjunto é o das CHAVES — como no 'cycle k in v'.
+    """
+    if fonte is None:
+        return set()
+    if isinstance(fonte, (str, bytes)):
+        return _em_conjunto([fonte])
+    return _em_conjunto(fonte)
+
+
 def _df_freeze(obj):
     """Congela: Cluster vira tupla, Vault vira tupla de pares ordenados.
 
@@ -1250,6 +1310,8 @@ def _df_freeze(obj):
         return tuple(obj)
     if isinstance(obj, dict):
         return tuple(sorted(obj.items()))
+    if isinstance(obj, set):
+        return frozenset(obj)
     return obj
 
 def _df_thaw(obj):
@@ -1751,6 +1813,8 @@ def get_builtins() -> dict:
         # ── Utility ──
         "exists": BuiltinFunction("exists", _df_exists, 1),
         "freeze": BuiltinFunction("freeze", _df_freeze, 1),
+        "set": BuiltinFunction("set", _df_set, -1),
+        "input": BuiltinFunction("input", _df_input, -1),
         "thaw": BuiltinFunction("thaw", _df_thaw, 1),
         "hash": BuiltinFunction("hash", _df_hash_fn, 1),
         "id": BuiltinFunction("id", _df_id_fn, 1),

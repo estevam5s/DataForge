@@ -89,10 +89,10 @@ dataforge/
   project.py       184   forge.toml
   environment.py    91   cadeia de escopos
   errors.py        167   hierarquia de erros, sinais de controle, stack traces
-  builtins.py     1224   225 funções globais, sem import
+  builtins.py     1224   231 funções globais, sem import (inclusive input e set)
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                83 módulos (2202 símbolos), incluindo:
+  stdlib/                85 módulos (2223 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -136,6 +136,9 @@ dataforge/
     arcane_seguranca.py  escape por destino, TOTP, token com prazo,
                          varredura de segredo, SSRF, auditoria encadeada
     cifra.py             ChaCha20-Poly1305 puro (RFC 8439)
+    arcane_algoritmos.py 14 clássicos (busca binária, Dijkstra, topológica,
+                         LCS, mochila, KMP…) com a complexidade que prometem
+    arcane_evolucao.py   obsoleta/experimental/renomeada; DF_OBSOLETOS=erro
 
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
@@ -2083,7 +2086,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 2202 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2223 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2988,6 +2991,28 @@ blocos das páginas novas: compilar não pega `Bench.medir(acao, 5)` nem
 O índice da CLI e `/docs/cli/referencia` saem de `cli.GRUPOS`; as
 descrições de `new`, `palavras` e `erros` no catálogo também saem dos
 dados — diziam "Oito modelos" com dez e "177 códigos" com 218.
+
+## Conjunto, `input` e `relay … as`
+
+Três lacunas que a documentação de `/docs/fundamentos` e `/docs/modulos`
+expôs, e que viraram linguagem:
+
+- **`{1, 2}` é um `Set`** quando o primeiro item não tem `:`. `{}` continua
+  sendo vault vazio — o conjunto vazio é `set()`, e é assim que ele
+  imprime. `{...xs, 9}` também é conjunto: só spreads antes e um item sem
+  `:` depois. Item mutável é recusado na leitura (`set-item-mutavel`).
+  O conjunto imprime **ordenado**, senão a saída mudaria com a semente do hash.
+- **`input()` devolve `void` no fim da entrada**, e não levanta: um
+  programa canalizado (`echo 3 | dataforge run`) termina a entrada, e isso
+  não é erro. `int(input() ?? "0")` é a forma nos exemplos.
+- **`relay novo as antigo`** exporta sob outro nome, e `relay x, x as y`
+  exporta os dois. A superfície (`superficie.py`) leva o nome exportado,
+  então `dataforge abi` vê a renomeação com apelido como **menor**.
+  `Environment._export_de` é slot não inicializado, como `_exports`.
+
+`assert xs >> morph x: x is 1` é **sempre verdadeiro** (o `is` fica no
+corpo do `morph`), e o `check` avisa (`assert-sempre-verdadeiro`). Achado
+porque um bloco da doc passava sem conferir nada.
 
 ## O que é gerado — não edite à mão
 

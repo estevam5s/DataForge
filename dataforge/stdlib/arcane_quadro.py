@@ -637,6 +637,112 @@ class Quadro:
 
     # ── escala e feições ─────────────────────────────────────
 
+    # ── janelas: a série no tempo ────────────────────────────
+    #
+    # As cinco perguntas de uma série — a média dos últimos 7 dias, o
+    # total até agora, o valor de ontem, quanto variou, e a posição de
+    # cada um. Todas seguem a ORDEM das linhas: ordene antes
+    # (`ordenar("data")`), porque uma janela sobre linhas fora de ordem
+    # calcula uma média de dias que não são vizinhos, e nada denuncia.
+
+    def _agregacao(self, nome):
+        if nome not in AGREGACOES:
+            raise _erro(f"'{nome}' nao e uma agregacao. Use uma de: "
+                        + ", ".join(sorted(AGREGACOES)))
+        return AGREGACOES[nome]
+
+    def janela(self, coluna, tamanho, agregacao="media", nome=None, minimo=None):
+        """A agregação dos últimos `tamanho` valores, linha a linha.
+
+        As primeiras linhas, sem `tamanho` valores válidos atrás, saem
+        `void` — e não a média de um valor só fingindo ser a média de
+        sete. `minimo` baixa essa exigência de propósito.
+        """
+        self._exigir(coluna)
+        tamanho = int(tamanho)
+        if tamanho < 1:
+            raise _erro("o tamanho da janela precisa ser pelo menos 1")
+        f = self._agregacao(agregacao)
+        exigido = tamanho if minimo is None else max(1, int(minimo))
+        vs = self._dados[coluna]
+        saida = []
+        for i in range(len(vs)):
+            trecho = [v for v in vs[max(0, i - tamanho + 1):i + 1] if not _ausente(v)]
+            saida.append(f(trecho) if len(trecho) >= exigido else None)
+        return self.com(nome or f"{coluna}_{agregacao}_{tamanho}", saida)
+
+    def acumulado(self, coluna, agregacao="soma", nome=None):
+        """A agregação de tudo até a linha — o total corrido, o máximo até agora.
+
+        Uma ausência não zera nem interrompe: ela é pulada, e a linha dela
+        recebe o acumulado até ali.
+        """
+        self._exigir(coluna)
+        f = self._agregacao(agregacao)
+        vistos, saida = [], []
+        for v in self._dados[coluna]:
+            if not _ausente(v):
+                vistos.append(v)
+            saida.append(f(vistos) if vistos else None)
+        return self.com(nome or f"{coluna}_{agregacao}_acumulado", saida)
+
+    def defasar(self, coluna, n=1, nome=None):
+        """O valor de `n` linhas atrás (`n` negativo: à frente).
+
+        É o "valor de ontem" de uma série. O que cai fora do quadro é
+        `void`, e nunca o valor da ponta repetido.
+        """
+        self._exigir(coluna)
+        n = int(n)
+        vs = self._dados[coluna]
+        saida = [vs[i - n] if 0 <= i - n < len(vs) else None for i in range(len(vs))]
+        rotulo = f"{coluna}_antes_{n}" if n >= 0 else f"{coluna}_depois_{-n}"
+        return self.com(nome or rotulo, saida)
+
+    def variacao(self, coluna, nome=None, percentual=True):
+        """Quanto mudou em relação à linha anterior.
+
+        Com `percentual`, a razão (0.1 é 10%). Anterior zero ou ausente
+        dá `void`: uma variação infinita não é um número que se publique,
+        e um zero que virou `void` num CSV não é crescimento de 100%.
+        """
+        self._exigir(coluna)
+        vs = self._dados[coluna]
+        saida = [None]
+        for anterior, atual in zip(vs, vs[1:]):
+            if not (_numerico(anterior) and _numerico(atual)) or \
+                    _ausente(anterior) or _ausente(atual):
+                saida.append(None)
+            elif percentual:
+                saida.append(None if anterior == 0 else (atual - anterior) / abs(anterior))
+            else:
+                saida.append(atual - anterior)
+        if not vs:
+            saida = []
+        return self.com(nome or f"{coluna}_variacao", saida)
+
+    def ranquear(self, coluna, nome=None, decrescente=True, empates="minimo"):
+        """A posição de cada linha — 1 é o maior (ou o menor, com decrescente := no).
+
+        `empates` decide o que dois iguais recebem: `minimo` dá 1, 2, 2, 4
+        (o ranking de competição); `denso` dá 1, 2, 2, 3. A ausência não
+        entra na conta e sai `void` — um vendedor sem venda não é o último.
+        """
+        self._exigir(coluna)
+        if empates not in ("minimo", "denso"):
+            raise _erro(f"'{empates}' nao e um modo de empate. Use 'minimo' ou 'denso'.")
+        vs = self._dados[coluna]
+        validos = sorted({v for v in vs if not _ausente(v)}, reverse=bool(decrescente))
+        if empates == "denso":
+            posicao = {v: i + 1 for i, v in enumerate(validos)}
+        else:
+            ordenados = sorted([v for v in vs if not _ausente(v)], reverse=bool(decrescente))
+            posicao = {}
+            for i, v in enumerate(ordenados):
+                posicao.setdefault(v, i + 1)
+        saida = [None if _ausente(v) else posicao[v] for v in vs]
+        return self.com(nome or f"{coluna}_posicao", saida)
+
     def normalizar(self, colunas=None):
         """Para a faixa 0..1. Coluna constante vira 0."""
         return self._escalar(colunas, _normalizar)

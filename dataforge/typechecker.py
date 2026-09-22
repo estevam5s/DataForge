@@ -55,6 +55,10 @@ ALIASES = {
     "action": "Action", "function": "Action", "Action": "Action",
     "stream": "Stream", "Stream": "Stream",
     "tuple": "Tuple", "Tuple": "Tuple",
+    #: O conjunto: '{1, 2}', 'set(xs)'. O 'typeof' já respondia "Set", e
+    #: a anotação 'x: Set' dizia "Unknown type" — o tipo existia em
+    #: execução e não tinha nome para quem escreve.
+    "set": "Set", "Set": "Set",
     "any": ANY, "Any": ANY,
 }
 
@@ -2210,6 +2214,23 @@ class TypeChecker:
 
     def st_AssertStatement(self, node, escopo):
         self.infer(node.condition, escopo)
+        # 'assert xs >> morph v: v is 3' le o 'is' DENTRO do corpo do
+        # morph: o assert confere uma lista de booleanos, que e verdadeira
+        # sempre que nao estiver vazia. O teste passa sem conferir nada —
+        # achado assim numa pagina desta documentacao.
+        cond = node.condition
+        if isinstance(cond, (ast.PipelineExpression, ast.ListLiteral,
+                             ast.ListComprehension, ast.DictLiteral,
+                             ast.SetLiteral, ast.SetComprehension)):
+            forma = ("a pipeline" if isinstance(cond, ast.PipelineExpression)
+                     else "a collection")
+            self.warn(
+                f"this assert checks {forma}, which is true whenever it is "
+                "not empty — it proves nothing",
+                node,
+                hint="wrap the pipeline in parentheses before comparing: "
+                     "assert (xs >> morph v: v * 2) is [2, 4]",
+                code="assert-sempre-verdadeiro")
         if node.message is not None:
             self.infer(node.message, escopo)
         return False
@@ -3424,6 +3445,23 @@ class TypeChecker:
         for e in node.elements:
             self.infer(e.value if isinstance(e, ast.SpreadElement) else e, escopo)
         return "Cluster"
+
+    def ex_SetLiteral(self, node, escopo):
+        tipos = set()
+        for e in node.elements:
+            tipos.add(self.infer(e.value if isinstance(e, ast.SpreadElement) else e, escopo))
+            if isinstance(e, (ast.ListLiteral, ast.DictLiteral, ast.SetLiteral)):
+                self.error(
+                    "a Set holds only values that do not change; a literal "
+                    f"{'Cluster' if isinstance(e, ast.ListLiteral) else 'Vault' if isinstance(e, ast.DictLiteral) else 'Set'} "
+                    "can change after it goes in",
+                    e, hint="freeze(x), or a tuple (1, 2)", code="set-item-mutavel")
+        return "Set"
+
+    def ex_SetComprehension(self, node, escopo):
+        interno = self._scope_for_clauses(node.clauses, escopo)
+        self.infer(node.expression, interno)
+        return "Set"
 
     def ex_DictLiteral(self, node, escopo):
         self._avisar_chave_repetida(node)
