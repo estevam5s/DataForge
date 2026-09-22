@@ -20,7 +20,10 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RAIZ, "site", "scripts"))
 
 MODULOS = ["modulos_avancado", "bibliotecas_avancado", "testes_avancado",
-           "devops_avancado", "gramatica_doc", "seguranca_avancado"]
+           "devops_avancado", "gramatica_doc", "seguranca_avancado",
+           "primeiros_passos_avancado", "fundamentos_avancado",
+           "big_o_avancado", "modulos_mais", "bibliotecas_mais",
+           "dados_mais"]
 
 
 def _blocos():
@@ -31,7 +34,10 @@ def _blocos():
                 if b.get("lang") != "df" or "code" not in b:
                     continue
                 codigo = b["code"]
-                if "adopt ./" in codigo or "adopt ../" in codigo:
+                # So uma linha de 'adopt' relativo de verdade — um comentario
+                # que CITA um 'adopt ./' nao impede o bloco de rodar.
+                if any(l.strip().startswith(("adopt ./", "adopt ../"))
+                       for l in codigo.splitlines()):
                     continue
                 if (b.get("title") or "").startswith("tests/"):
                     continue
@@ -45,7 +51,7 @@ def test_o_bloco_roda(codigo, tmp_path):
     ambiente = dict(os.environ, PYTHONPATH=RAIZ, NO_COLOR="1",
                     PATH=os.path.dirname(sys.executable) + os.pathsep + os.environ.get("PATH", ""))
     r = subprocess.run([sys.executable, "-m", "dataforge", "run", str(arq)],
-                       cwd=tmp_path, capture_output=True, text=True,
+                       cwd=tmp_path, capture_output=True, text=True, input="",
                        encoding="utf-8", errors="replace", timeout=300, env=ambiente)
     assert r.returncode == 0, (r.stdout + r.stderr)[-2500:]
 

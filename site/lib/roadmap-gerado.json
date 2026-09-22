@@ -631,6 +631,12 @@
           "desc": "Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que ol",
           "nome": "Arcane.Bytes",
           "simbolos": 25
+        },
+        {
+          "chave": "algoritmos",
+          "desc": "Os algoritmos clássicos com a complexidade como dado: busca binária, merge sort estável, counting sort, BFS, DFS, ordem topológica que mostra o ciclo,",
+          "nome": "Arcane.Algoritmos",
+          "simbolos": 16
         }
       ],
       "rotulo": "Núcleo"
@@ -1121,6 +1127,12 @@
           "desc": "'Isso roda no navegador?', respondido a partir dos 'adopt'",
           "nome": "Arcane.Alvo",
           "simbolos": 7
+        },
+        {
+          "chave": "evolucao",
+          "desc": "Como uma API muda sem pegar ninguém de surpresa: marcar uma ação como obsoleta (desde quando, por quê, o que usar) ou experimental, e manter um nome a",
+          "nome": "Arcane.Evolucao",
+          "simbolos": 5
         }
       ],
       "rotulo": "Distribuição"
@@ -1226,10 +1238,10 @@
     "equivalem": 6,
     "existem": 30,
     "grupos_de_comando": 7,
-    "modulos": 83,
+    "modulos": 85,
     "modulos_do_nucleo": 60,
     "nao_existem": 5,
-    "simbolos": 2202
+    "simbolos": 2223
   },
   "semGrupo": []
 }

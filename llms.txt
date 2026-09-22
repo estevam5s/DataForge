@@ -137,7 +137,7 @@ typeof      using       validate    void        wait        when
 with        yes         yield
 ```
 
-## A biblioteca: 83 modulos
+## A biblioteca: 85 modulos
 
 Todos por `adopt`. Nenhum precisa de instalacao.
 
@@ -145,6 +145,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 |---|---|---|
 | `Arcane.API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
 | `Arcane.Abi` | 8 | A superficie de um modulo e o CONTRATO dele, e quebra-la e o mesmo problema que quebrar uma ABI — com outro nome e o mesmo sintoma: nao e erro de quem publicou, e erro de quem consome, depois. |
+| `Arcane.Algoritmos` | 16 | Os algoritmos clássicos com a complexidade como dado: busca binária, merge sort estável, counting sort, BFS, DFS, ordem topológica que mostra o ciclo, Dijkstra que recusa peso negativo, LCS, Levenshtein, mochila 0/1, KMP e o crivo — cada um conferido contra uma implementação ingênua. |
 | `Arcane.Alvo` | 7 | 'Isso roda no navegador?', respondido a partir dos 'adopt'. |
 | `Arcane.Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
 | `Arcane.Archive` | 13 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
@@ -172,6 +173,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Email` | 6 | Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato. |
 | `Arcane.Estrutura` | 15 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. |
 | `Arcane.Eventos` | 10 | Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta. |
+| `Arcane.Evolucao` | 5 | Como uma API muda sem pegar ninguém de surpresa: marcar uma ação como obsoleta (desde quando, por quê, o que usar) ou experimental, e manter um nome antigo que avisa. |
 | `Arcane.Excel` | 29 | Planilhas . |
 | `Arcane.Forge` | 31 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | `Arcane.Functional` | 56 | Utilitários funcionais: composição, lentes, Maybe/Either, transdutores. |
@@ -227,7 +229,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Web` | 11 | Cliente HTTP, URL encoding e JSON. |
 | `Kiln` | 73 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 
-## As 229 funcoes embutidas
+## As 231 funcoes embutidas
 
 Disponiveis sem `adopt`.
 
@@ -255,41 +257,41 @@ gcd                 get_fields          get_methods         get_mro
 get_parent          has_field           has_method          hash
 hash_md5            hash_sha256         hypot               id
 identity            includes            index               index_of
-insert              instanceof          int                 interleave
-invert_dict         is_boolean          is_callable         is_dict
-is_empty            is_finite           is_float            is_inf
-is_integer          is_list             is_nan              is_number
-is_string           is_void             isalnum             isalpha
-isascii             isdigit             islower             isnumeric
-isspace             istitle             isupper             items
-join                keys                last                last_index_of
-lcm                 len                 lerp                lines
-linhagem            ljust               log                 log10
-log2                lower               lstrip              map
-max                 mean                median              memoize
-merge_dicts         min                 mode                none_of
-omit                once                ord                 pad_end
-pad_start           partial             partition           percentile
-perm                permutations        pick                pipe_fn
-pop                 pow                 product             radians
-randint             random              range               reduce
-regex_count         regex_extract       regex_findall       regex_match
-regex_search        regex_split         regex_sub           regex_test
-remove              removeprefix        removesuffix        repeat
-repeat_val          replace             repr                reverse_str
-reversed            rfind               rjust               rotate
-round               rpartition          rstrip              sample
-scan                shuffle             sign                sin
-sleep               slice               some                sorted
-split               splitlines          sqrt                startswith
-stdev               str                 strip               substring
-sum                 swapcase            take                tan
-tap                 template            thaw                time
-timestamp           title               to_json             trim
-type                unique              unzip               upper
-uuid                validate            values              variance
-vault               words               zfill               zip
-zip_with
+input               insert              instanceof          int
+interleave          invert_dict         is_boolean          is_callable
+is_dict             is_empty            is_finite           is_float
+is_inf              is_integer          is_list             is_nan
+is_number           is_string           is_void             isalnum
+isalpha             isascii             isdigit             islower
+isnumeric           isspace             istitle             isupper
+items               join                keys                last
+last_index_of       lcm                 len                 lerp
+lines               linhagem            ljust               log
+log10               log2                lower               lstrip
+map                 max                 mean                median
+memoize             merge_dicts         min                 mode
+none_of             omit                once                ord
+pad_end             pad_start           partial             partition
+percentile          perm                permutations        pick
+pipe_fn             pop                 pow                 product
+radians             randint             random              range
+reduce              regex_count         regex_extract       regex_findall
+regex_match         regex_search        regex_split         regex_sub
+regex_test          remove              removeprefix        removesuffix
+repeat              repeat_val          replace             repr
+reverse_str         reversed            rfind               rjust
+rotate              round               rpartition          rstrip
+sample              scan                set                 shuffle
+sign                sin                 sleep               slice
+some                sorted              split               splitlines
+sqrt                startswith          stdev               str
+strip               substring           sum                 swapcase
+take                tan                 tap                 template
+thaw                time                timestamp           title
+to_json             trim                type                unique
+unzip               upper               uuid                validate
+values              variance            vault               words
+zfill               zip                 zip_with
 ```
 
 ## As ferramentas

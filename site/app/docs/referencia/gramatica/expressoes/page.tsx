@@ -8,12 +8,12 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Gramática — Expressões",
-  description: "13 produções: operadores, chamadas, coleções, pipeline. Cada exemplo é aceito pelo parser.",
+  description: "14 produções: operadores, chamadas, coleções, pipeline. Cada exemplo é aceito pelo parser.",
 };
 
 const blocos: Bloco[] = [
   {"p": "Uma expressão produz um valor. A ordem em que os operadores ligam está na [tabela de precedência](/docs/referencia/gramatica/precedencia), e cada nível ali é conferido pela forma da árvore."},
-  {"table": {"head": ["Produção", "Nós que ela produz"], "rows": [["`ternario`", "`TernaryExpression`"], ["`coalesce`", "`CoalesceOp`"], ["`comparacao`", "`ComparisonOp`"], ["`aritmetica`", "`BinaryOp`, `UnaryOp`"], ["`lambda`", "`LambdaExpression`"], ["`pipeline`", "`PipelineExpression`, `SiftOperation`, `MorphOperation`, `DistillOperation`"], ["`compreensao`", "`ListComprehension`"], ["`colecoes`", "`ListLiteral`, `SpreadElement`, `DictLiteral`, `TupleLiteral`"], ["`acesso`", "`SliceAccess`, `SafeMemberAccess`"], ["`with`", "`WithExpression`"], ["`spawn`", "`SpawnExpression`"], ["`logico`", "`LogicalOp`, `NotOp`, `BooleanLiteral`"], ["`tipos_em_execucao`", "`CastExpression`, `TypeofExpression`"]]}},
+  {"table": {"head": ["Produção", "Nós que ela produz"], "rows": [["`ternario`", "`TernaryExpression`"], ["`coalesce`", "`CoalesceOp`"], ["`comparacao`", "`ComparisonOp`"], ["`aritmetica`", "`BinaryOp`, `UnaryOp`"], ["`lambda`", "`LambdaExpression`"], ["`pipeline`", "`PipelineExpression`, `SiftOperation`, `MorphOperation`, `DistillOperation`"], ["`compreensao`", "`ListComprehension`"], ["`colecoes`", "`ListLiteral`, `SpreadElement`, `DictLiteral`, `TupleLiteral`"], ["`conjunto`", "`SetLiteral`, `SetComprehension`"], ["`acesso`", "`SliceAccess`, `SafeMemberAccess`"], ["`with`", "`WithExpression`"], ["`spawn`", "`SpawnExpression`"], ["`logico`", "`LogicalOp`, `NotOp`, `BooleanLiteral`"], ["`tipos_em_execucao`", "`CastExpression`, `TypeofExpression`"]]}},
   {"h2": "ternario"},
   { code: `ternario      = coalesce [ "given" expressao "otherwise" expressao ] ;`, lang: 'text' },
   { code: `r := "par" given 4 % 2 is 0 otherwise "impar"`, lang: 'df' },
@@ -57,6 +57,14 @@ item          = [ "..." ] expressao ;`, lang: 'text' },
 ys := [...xs, 3]
 v := {"a": 1}
 t := (1, "a")`, lang: 'df' },
+  {"h2": "conjunto"},
+  { code: `conjunto      = "{" item { "," item } [ "," ] "}"
+              | "{" expressao "cycle" nome "in" expressao [ "given" expressao ] "}" ;
+vazio         = "set" "(" [ expressao ] ")" ;`, lang: 'text' },
+  { code: `cores := {"azul", "verde", "azul"}
+pares := {n * n cycle n in [1, 2, 3]}
+nenhum := set()`, lang: 'df' },
+  {"callout": {"tipo": "nota", "titulo": "O que engana", "texto": "O primeiro item decide: seguido de `:` é vault, seguido de `,` ou `}` é conjunto. O vazio se escreve `set()`, porque `{}` já era o vault vazio."}},
   {"h2": "acesso"},
   { code: `posfixo       = primario { "." nome | "?." nome | "(" argumentos ")"
                          | "[" indice "]" } ;
@@ -94,13 +102,13 @@ tipo_de       = "typeof" "(" expressao ")" ;`, lang: 'text' },
   {"p": "Estas produções saem de `dataforge/gramatica.py`. No terminal: `dataforge gramatica expressoes`. Volte para [a gramática](/docs/referencia/gramatica)."},
 ];
 
-const headings = [{ id: 'ternario', text: "ternario", level: 2 as const }, { id: 'coalesce', text: "coalesce", level: 2 as const }, { id: 'comparacao', text: "comparacao", level: 2 as const }, { id: 'aritmetica', text: "aritmetica", level: 2 as const }, { id: 'lambda', text: "lambda", level: 2 as const }, { id: 'pipeline', text: "pipeline", level: 2 as const }, { id: 'compreensao', text: "compreensao", level: 2 as const }, { id: 'colecoes', text: "colecoes", level: 2 as const }, { id: 'acesso', text: "acesso", level: 2 as const }, { id: 'with', text: "with", level: 2 as const }, { id: 'spawn', text: "spawn", level: 2 as const }, { id: 'logico', text: "logico", level: 2 as const }, { id: 'tiposemexecucao', text: "tipos_em_execucao", level: 2 as const }];
+const headings = [{ id: 'ternario', text: "ternario", level: 2 as const }, { id: 'coalesce', text: "coalesce", level: 2 as const }, { id: 'comparacao', text: "comparacao", level: 2 as const }, { id: 'aritmetica', text: "aritmetica", level: 2 as const }, { id: 'lambda', text: "lambda", level: 2 as const }, { id: 'pipeline', text: "pipeline", level: 2 as const }, { id: 'compreensao', text: "compreensao", level: 2 as const }, { id: 'colecoes', text: "colecoes", level: 2 as const }, { id: 'conjunto', text: "conjunto", level: 2 as const }, { id: 'acesso', text: "acesso", level: 2 as const }, { id: 'with', text: "with", level: 2 as const }, { id: 'spawn', text: "spawn", level: 2 as const }, { id: 'logico', text: "logico", level: 2 as const }, { id: 'tiposemexecucao', text: "tipos_em_execucao", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Gramática — Expressões"}
-      description={"13 produções: operadores, chamadas, coleções, pipeline. Cada exemplo é aceito pelo parser."}
+      description={"14 produções: operadores, chamadas, coleções, pipeline. Cada exemplo é aceito pelo parser."}
       href={"/docs/referencia/gramatica/expressoes"}
       headings={headings}
     >

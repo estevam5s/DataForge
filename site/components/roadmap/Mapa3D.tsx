@@ -258,7 +258,7 @@ function Detalhe({ no, modo }: { no: No | null; modo: Modo }) {
           ? 'As dez fases por que passa um arquivo `.df`. A décima é medida em zero e marcada como não percorrida — executar é o que o programa faz, e um arquivo de verdade abre soquete e escreve em disco.'
           : modo === 'ecossistema'
             ? 'Os 41 componentes que um ecossistema de linguagem costuma ter, com o veredito de cada um conferido contra o disco. Clique num ponto para ver o que ele é, o que existe aqui no lugar dele, e por quê.'
-            : 'Os 83 módulos da biblioteca, agrupados. Clique num ponto para abrir a referência dele.'}
+            : 'Os 85 módulos da biblioteca, agrupados. Clique num ponto para abrir a referência dele.'}
       </p>
     );
   }

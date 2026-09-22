@@ -23,11 +23,12 @@ caminho       = nome { "." nome } | ( "./" | "../" ) segmento { "/" segmento } ;
 adopt Arcane.Math.{sqrt, floor}
 adopt {sqrt as raiz} from Arcane.Math`, lang: 'df' },
   {"h2": "relay"},
-  { code: `exportacao    = "relay" nome { "," nome } ;`, lang: 'text' },
-  { code: `action a():
+  { code: `exportacao    = "relay" saida { "," saida } | "relay" "from" caminho ;
+saida         = nome [ "as" nome ] ;`, lang: 'text' },
+  { code: `action novo():
     yield 1
-relay a`, lang: 'df' },
-  {"callout": {"tipo": "nota", "titulo": "O que engana", "texto": "Com `relay`, só o que está listado sai do módulo."}},
+relay novo, novo as antigo`, lang: 'df' },
+  {"callout": {"tipo": "nota", "titulo": "O que engana", "texto": "Com `relay`, só o que está listado sai do módulo. `novo as antigo` exporta o mesmo objeto com outro nome — é como se renomeia sem quebrar quem usa o nome velho, e o `dataforge abi` concorda."}},
   {"h2": "mark"},
   { code: `decorador     = "mark" "@" expressao NEWLINE ( acao | blueprint ) ;`, lang: 'text' },
   { code: `action dec(f):

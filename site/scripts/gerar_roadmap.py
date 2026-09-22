@@ -60,7 +60,7 @@ from dataforge.stdlib import get_module  # noqa: E402
 #: ninguem colocou em lugar nenhum.
 GRUPOS_DE_MODULO = [
     ("Núcleo", ["math", "text", "io", "regex", "collections", "functional",
-                "iter", "decimal", "bytes"]),
+                "iter", "decimal", "bytes", "algoritmos"]),
     ("Frameworks", ["kiln", "vitrine", "telegram", "lavra", "crucible",
                     "forge", "api"]),
     ("Dados", ["quadro", "data", "analytics", "cortex", "lago", "pipeline",
@@ -80,7 +80,7 @@ GRUPOS_DE_MODULO = [
     ("Metaprogramação", ["macro", "dsl"]),
     ("Baixo nível", ["c", "compilador"]),
     ("Partida", ["inicio", "capacidade"]),
-    ("Distribuição", ["abi", "alvo"]),
+    ("Distribuição", ["abi", "alvo", "evolucao"]),
     ("A própria implementação", ["ecossistema", "principios", "percurso",
                                  "gramatica"]),
 ]

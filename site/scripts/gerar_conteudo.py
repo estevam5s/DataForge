@@ -17,6 +17,12 @@ from gerar_paginas import escrever  # noqa: E402
 
 #: Os módulos de conteúdo, na ordem em que aparecem na navegação.
 MODULOS = [
+    "primeiros_passos_avancado",
+    "fundamentos_avancado",
+    "big_o_avancado",
+    "modulos_mais",
+    "bibliotecas_mais",
+    "dados_mais",
     "big_o",
     "modulos",
     "modulos_avancado",

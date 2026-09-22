@@ -19,7 +19,7 @@ const total = modulos.reduce((n, [, m]) => n + m.funcoes.length, 0);
  * suíte enquanto ele estiver lá: aparecer no lugar errado é ruim,
  * desaparecer é pior. */
 const grupos: { rotulo: string; modulos: string[] }[] = [
-  { rotulo: 'Núcleo', modulos: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal', 'bytes'] },
+  { rotulo: 'Núcleo', modulos: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal', 'bytes', 'algoritmos'] },
   { rotulo: 'Frameworks', modulos: ['kiln', 'vitrine', 'telegram', 'lavra', 'crucible', 'forge', 'api'] },
   { rotulo: 'Dados', modulos: ['quadro', 'data', 'analytics', 'cortex', 'lago', 'pipeline', 'qualidade', 'stream'] },
   { rotulo: 'Formatos', modulos: ['serialization', 'excel', 'archive', 'database', 'html'] },
@@ -38,7 +38,7 @@ const grupos: { rotulo: string; modulos: string[] }[] = [
   { rotulo: 'Runtime', modulos: ['laco'] },
   { rotulo: 'Perfil', modulos: ['perfil'] },
   { rotulo: 'Partida', modulos: ['inicio', 'capacidade'] },
-  { rotulo: 'Distribuição', modulos: ['abi', 'alvo'] },
+  { rotulo: 'Distribuição', modulos: ['abi', 'alvo', 'evolucao'] },
   { rotulo: 'A própria implementação', modulos: ['ecossistema', 'principios', 'percurso', 'gramatica'] },
 ];
 

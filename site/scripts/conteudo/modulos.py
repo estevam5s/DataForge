@@ -102,6 +102,10 @@ out C.somar()      // 3
    {"href": "/docs/modulos/superficie", "title": "A superfície", "desc": "como o analisador atravessa a fronteira e confere a chamada"},
    {"href": "/docs/modulos/templates", "title": "Templates", "desc": "a camada de visão, e por que ela não é a linguagem"},
    {"href": "/docs/bibliotecas", "title": "Escrever uma biblioteca", "desc": "do primeiro arquivo ao pacote publicado"}]},
+
+ {"h2": "Mais sobre módulos"},
+ {"p": "Renomear sem quebrar quem importa, esconder o interno, quebrar um ciclo, e dividir um arquivo que cresceu demais."},
+ {"cards": [{"href": "/docs/modulos/renomear", "title": "Renomear sem quebrar", "desc": "relay novo as antigo — o nome novo e o velho, o mesmo objeto, e o abi dizendo que é compatível."}, {"href": "/docs/modulos/fachada", "title": "A fachada: um index.df", "desc": "relay from ./x — reunir vários módulos internos numa API só, e esconder o resto."}, {"href": "/docs/modulos/ciclos", "title": "Ciclos de import", "desc": "Por que A → B → A não sobe, como o check mostra a cadeia, e as três formas de quebrá-la."}, {"href": "/docs/modulos/visibilidade", "title": "O que é público", "desc": "Sem relay, tudo do topo sai — inclusive o que começa com _. Só o relay esconde."}, {"href": "/docs/modulos/biblioteca-padrao", "title": "Achar na biblioteca padrão", "desc": "Os módulos Arcane, os apelidos, e como descobrir o que existe sem sair do terminal."}, {"href": "/docs/modulos/estado", "title": "O estado de um módulo", "desc": "Um módulo carrega uma vez, e o que ele guarda é compartilhado por todos que o adotam."}, {"href": "/docs/modulos/entrada", "title": "O ponto de entrada", "desc": "app.df monta, main.df sobe — e por que importar um módulo não pode ter efeito."}, {"href": "/docs/modulos/python", "title": "Adotar do Python", "desc": "adopt Python.x — o que atravessa, o que não converte, e o custo para quem instala."}, {"href": "/docs/modulos/dividir", "title": "Dividir um arquivo grande", "desc": "Quando partir, por onde partir, e como fazer isso sem quebrar quem já adota o arquivo."}]},
 ]},
 
 {

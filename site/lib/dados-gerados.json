@@ -89,6 +89,93 @@
     }
    ]
   },
+  "algoritmos": {
+   "nome": "Arcane.Algoritmos",
+   "desc": "Os algoritmos clássicos com a complexidade como dado: busca binária, merge sort estável, counting sort, BFS, DFS, ordem topológica que mostra o ciclo, Dijkstra que recusa peso negativo, LCS, Levenshtein, mochila 0/1, KMP e o crivo — cada um conferido contra uma implementação ingênua.",
+   "curto": "Algoritmos",
+   "funcoes": [
+    {
+     "nome": "bfs",
+     "sig": "(grafo, origem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "busca_binaria",
+     "sig": "(xs, alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "caminho",
+     "sig": "(resultado, destino)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "catalogo",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "complexidade",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "crivo",
+     "sig": "(n)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dfs",
+     "sig": "(grafo, origem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "dijkstra",
+     "sig": "(grafo, origem)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "kmp",
+     "sig": "(texto, padrao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "lcs",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "levenshtein",
+     "sig": "(a, b)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "limite_inferior",
+     "sig": "(xs, alvo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mochila",
+     "sig": "(itens, capacidade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ordem_topologica",
+     "sig": "(grafo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ordenar_contando",
+     "sig": "(xs)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ordenar_mesclando",
+     "sig": "(xs, chave)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "alvo": {
    "nome": "Arcane.Alvo",
    "desc": "'Isso roda no navegador?', respondido a partir dos 'adopt'. Seis alvos descritos (servidor, cli, navegador, wasi, funcao serverless, embarcado) com o que cada um suporta e POR QUE nao suporta o resto, no mesmo vocabulario de capacidade do 'Arcane.Capacidade'. A leitura e ESTATICA e o modulo diz isso em 'limites()': um 'roda' quer dizer 'nao achei impedimento por esta via', e nao 'vai funcionar'.",
@@ -3859,6 +3946,38 @@
     {
      "nome": "por",
      "sig": "(chave, padrao)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "evolucao": {
+   "nome": "Arcane.Evolucao",
+   "desc": "Como uma API muda sem pegar ninguém de surpresa: marcar uma ação como obsoleta (desde quando, por quê, o que usar) ou experimental, e manter um nome antigo que avisa. O aviso sai uma vez por ação, na saída de erro, e DF_OBSOLETOS=erro o transforma em erro no CI.",
+   "curto": "Evolucao",
+   "funcoes": [
+    {
+     "nome": "avisos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esquecer",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "experimental",
+     "sig": "(motivo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "obsoleta",
+     "sig": "(motivo, desde, use)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "renomeada",
+     "sig": "(acao, nome_antigo, desde)",
      "tipo": "funcao"
     }
    ]
@@ -15102,6 +15221,8 @@
    "hash_md5",
    "hash_sha256",
    "id",
+   "input",
+   "set",
    "thaw",
    "to_json",
    "uuid"
@@ -15146,9 +15267,9 @@
    "TAU"
   ]
  },
- "totalBuiltins": 229,
+ "totalBuiltins": 231,
  "contagem": {
-  "testes": 3650,
+  "testes": 3702,
   "exemplos": 50,
   "arquivosDf": 503
  },

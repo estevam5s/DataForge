@@ -22,7 +22,7 @@ import './globals.css';
  */
 const DESCRICAO_CURTA =
   'Uma linguagem de programação completa, em português: interpretador, ' +
-  'analisador estático, 83 módulos de biblioteca, dois frameworks web e ' +
+  'analisador estático, 85 módulos de biblioteca, dois frameworks web e ' +
   'uma consulta tipada própria.';
 
 const DESCRICAO_LONGA =
@@ -32,7 +32,7 @@ const DESCRICAO_LONGA =
   'Ela é interpretada, tipada opcionalmente e implementada em Python 3.10+ ' +
   'sem dependência externa: lexer, parser, AST, analisador estático e ' +
   'interpretador próprios. ' +
-  'Traz 83 módulos de biblioteca padrão (Arcane), o framework web Kiln, ' +
+  'Traz 85 módulos de biblioteca padrão (Arcane), o framework web Kiln, ' +
   'a Vitrine para dashboards, o Crucible para testes, o Lavra — uma ' +
   'consulta tipada no espírito do GraphQL — e a Malha para microsserviços. ' +
   'Vem com CLI, gerenciador de pacotes, formatador, linter, depurador, ' +
@@ -144,7 +144,7 @@ const DADO_ESTRUTURADO = {
         'Pipelines nativos (sift, morph, distill)',
         'Records imutáveis, enums com valor e traits',
         'Generators preguiçosos, inclusive infinitos',
-        '83 módulos de biblioteca padrão (Arcane)',
+        '85 módulos de biblioteca padrão (Arcane)',
         'Kiln — framework web com WebSocket e SSE',
         'Vitrine — dashboards e aplicações de dados',
         'Lavra — consulta tipada, no espírito do GraphQL',

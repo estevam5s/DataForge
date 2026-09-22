@@ -39,7 +39,7 @@ dataforge gramatica expressoes --ebnf    # o EBNF de um grupo
 dataforge gramatica --ebnf               # a gramatica inteira
 dataforge gramatica --precedencia        # quem liga mais forte
 dataforge gramatica --json               # como dado`, lang: 'bash' },
-  {"callout": {"tipo": "dica", "titulo": "A garantia", "texto": "São 55 produções, e cobrem as 81 palavras reservadas — há teste exigindo que toda palavra reservada apareça em alguma. Uma palavra fora da gramática seria uma parte da linguagem que a documentação não descreve."}},
+  {"callout": {"tipo": "dica", "titulo": "A garantia", "texto": "São 56 produções, e cobrem as 81 palavras reservadas — há teste exigindo que toda palavra reservada apareça em alguma. Uma palavra fora da gramática seria uma parte da linguagem que a documentação não descreve."}},
 ];
 
 const headings = [{ id: 'no-terminal', text: "No terminal", level: 2 as const }];
