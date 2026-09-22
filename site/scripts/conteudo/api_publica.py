@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """A pagina /api — e os numeros que ela NAO escreve a mao.
 
-Ela anunciava "2156 simbolos, 177 codigos de erro" e um JSON de
+Ela anunciava "2202 simbolos, 177 codigos de erro" e um JSON de
 exemplo com `"versao": "1.0.0"`. Os tres envelheceram: sao 2156
 simbolos, 218 erros, e a versao e 1.1.0.
 
@@ -64,7 +64,7 @@ PAGINAS = [
    ["`/api/sintaxe.json`", "12 KB", "81 palavras reservadas, 32 contextuais, 19 operadores, os verbos HTTP e as regras que mais pegam"],
    ["`/api/embutidas.json`", "2 KB", "as 228 funções globais, sem `adopt`"],
    ["`/api/modulos.json`", "166 KB", f"{MODULOS} módulos e **{SIMBOLOS} símbolos**, com assinatura e resumo de cada um"],
-   ["`/api/comandos.json`", "29 KB", "63 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"],
+   ["`/api/comandos.json`", "29 KB", "65 comandos da CLI, em 7 grupos, com opções, exemplos e apelidos"],
    ["`/api/erros.json`", "75 KB", f"{ERROS} códigos de erro, com explicação, exemplo que provoca e como corrigir"],
    ["`/api/conteudos.json`", "< 1 KB", "o inventário: exercícios por módulo, exemplos, pacotes, projetos"]]}},
 

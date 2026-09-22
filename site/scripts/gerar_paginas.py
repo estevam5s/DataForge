@@ -52,6 +52,10 @@ def escrever(pagina):
     # vazio seria pior: no Next, o 'openGraph' do filho SUBSTITUI o do
     # pai, entao uma pagina com openGraph sem imagem ficaria sem imagem
     # nenhuma.
+    # A forma vazia precisa do tipo — é a que 'gerar_indices.py' escreve, e
+    # os dois geradores tem de concordar byte a byte.
+    linha_de_headings = (f"const headings = [{headings}];" if headings
+                         else "const headings: never[] = [];")
     og = ""
     if pagina.get('og'):
         titulo = json.dumps(pagina['title'], ensure_ascii=False)
@@ -97,7 +101,7 @@ const blocos: Bloco[] = [
   {blocos},
 ];
 
-const headings = [{headings}];
+{linha_de_headings}
 
 export default function Pagina() {{
   return (

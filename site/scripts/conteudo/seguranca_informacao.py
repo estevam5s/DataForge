@@ -21,6 +21,20 @@ PAGINAS = [
 "blocos": [
  {"p": "Segurança da informação não é uma biblioteca que se adota: é um conjunto de **decisões** que atravessam a linguagem, o código, o processo e a operação. Esta seção percorre o currículo inteiro e, para cada conceito, responde três coisas: **o que é**, **como o DataForge o atende**, e **o que ele não atende** — com o motivo."},
 
+ {"h2": "Na prática"},
+ {"cards": [
+    {"href": "/docs/seguranca/owasp", "title": "OWASP Top 10", "desc": "As dez categorias de 2021, e o que a linguagem, a biblioteca e as ferramentas fazem com cada uma."},
+    {"href": "/docs/seguranca/api", "title": "Segurança de API", "desc": "O OWASP API Top 10, e o BOLA — a falha mais comum de uma API — escrita e corrigida."},
+    {"href": "/docs/seguranca/web", "title": "Segurança na web", "desc": "Cabeçalhos, CSP, CORS, CSRF, cookie, limite de taxa e de corpo — o que o Kiln liga e o que é decisão sua."},
+    {"href": "/docs/seguranca/segredos", "title": "Gestão de segredos", "desc": "Onde o segredo mora, como ele não aparece em log, como é achado no código — e o que fazer quando vaza."},
+    {"href": "/docs/seguranca/logs", "title": "Log seguro e auditoria", "desc": "O log que não pode ser forjado, que não guarda dado pessoal, e a trilha de auditoria que denuncia a linha apagada."},
+    {"href": "/docs/seguranca/privacidade", "title": "LGPD na prática", "desc": "Finalidade, necessidade, consentimento, retenção e os direitos do titular — como operações sobre dado, com Arcane.Privacidade."},
+    {"href": "/docs/seguranca/anonimizacao", "title": "Anonimização", "desc": "Por que um hash de CPF não protege, o que é k-anonimato, e a contagem com privacidade diferencial."},
+    {"href": "/docs/seguranca/integridade", "title": "Integridade", "desc": "SRI para o script de CDN, o manifesto de uma pasta, e o manifesto assinado que denuncia a troca conjunta."},
+    {"href": "/docs/seguranca/cadeia", "title": "Cadeia de suprimentos", "desc": "Do pacote que se instala à imagem que se publica — o que é conferido, e em que ponto."},
+    {"href": "/docs/seguranca/incidentes", "title": "Resposta a incidentes", "desc": "As fases do NIST, o que preservar antes de consertar, e a comunicação que a LGPD exige."}]},
+
+
  {"callout": {"tipo": "atencao", "titulo": "Por que o veredito negativo está aqui", "texto": "Uma documentação de segurança que lista o que a ferramenta **não** faz é mais útil que uma que só lista o que faz. A segunda leva alguém a construir autenticação em cima de algo que não existe, e a descobrir no dia do incidente. Cada página aqui traz a linha *o que não existe*, e ela vem de `Arcane.Ecossistema.o_que_nao_existe()` ou está escrita com o motivo ao lado."}},
 
  {"h2": "O mapa"},

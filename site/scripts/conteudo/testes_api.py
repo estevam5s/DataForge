@@ -42,6 +42,20 @@ Tudo verde.
    {"href": "/docs/tecnicas/instantaneos", "title": "Instantâneos", "desc": "saída grande, e banco isolado por teste"},
    {"href": "/docs/bibliotecas/testes", "title": "Testar uma biblioteca", "desc": "importar pelo nome público, e não pelo caminho"}]},
 
+ {"h2": "A prática"},
+ {"p": "A ferramenta está acima; abaixo, como se usa. Cada página tem exemplos que rodam, e é conferida a cada build."},
+ {"cards": [
+    {"href": "/docs/testes/tdd", "title": "TDD", "desc": "vermelho, verde, refatorar — passo a passo"},
+    {"href": "/docs/testes/unitarios", "title": "Testes unitários", "desc": "preparar, agir, conferir; uma razão para falhar"},
+    {"href": "/docs/testes/parametrizados", "title": "Parametrizados", "desc": "uma tabela de casos, um corpo só"},
+    {"href": "/docs/testes/bdd", "title": "Cenários (BDD)", "desc": "dado, quando, então — e o passo que quebrou"},
+    {"href": "/docs/testes/integracao", "title": "Integração", "desc": "o banco de verdade e a rota inteira"},
+    {"href": "/docs/testes/ponta-a-ponta", "title": "Ponta a ponta", "desc": "subprocesso, código de saída, socket"},
+    {"href": "/docs/testes/erros", "title": "Testar erros", "desc": "o tipo, o valor e o que não ficou pela metade"},
+    {"href": "/docs/testes/regressao", "title": "Regressão", "desc": "todo bug vira teste; o instantâneo"},
+    {"href": "/docs/testes/piramide", "title": "A pirâmide", "desc": "quantos de cada, e o que não testar"},
+    {"href": "/docs/testes/instaveis", "title": "Testes instáveis", "desc": "as cinco causas, e por que repetir não corrige"}]},
+
  {"h2": "Onde os testes moram"},
  {"table": {"head": ["Padrão", "Encontrado por"], "rows": [
    ["`tests/`", "`dataforge test`"],

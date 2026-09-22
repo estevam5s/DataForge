@@ -14,6 +14,22 @@ PAGINAS = [
 "description": "Dockerfile, compose, CI, Kubernetes, Helm, Terraform, nginx, Prometheus e SBOM — gerados do que o projeto realmente usa, e não de um modelo.",
 "blocos": [
  {"p": "`dataforge devops` gera os arquivos que põem um projeto no ar — e **sai da frente**. Não há `deploy` que fale com Docker e Kubernetes por dentro: no dia em que alguém precisa mudar uma camada, tem de haver onde mexer."},
+
+ {"h2": "O ecossistema, página por página"},
+ {"cards": [
+    {"href": "/docs/devops/docker", "title": "Docker e Compose", "desc": "A imagem multiestágio, o compose com banco — e as cinco decisões que cada artefato carrega."},
+    {"href": "/docs/devops/kubernetes", "title": "Kubernetes", "desc": "Deployment, Service, Ingress, ConfigMap e HPA — com sondas e limites, que é o que falta em quase todo manifesto."},
+    {"href": "/docs/devops/helm-terraform", "title": "Helm e Terraform", "desc": "O chart para variar por ambiente, e o esqueleto de infraestrutura como código."},
+    {"href": "/docs/devops/github-actions", "title": "GitHub Actions", "desc": "O pipeline na ordem que economiza tempo — e o erro de análise anotado na linha do PR."},
+    {"href": "/docs/devops/actions-na-linguagem", "title": "Um passo em DataForge", "desc": "Saídas, variáveis, resumo, anotações, máscara e grupos — com Arcane.GitHub, e sem injeção."},
+    {"href": "/docs/devops/webhooks", "title": "Webhooks do GitHub", "desc": "A assinatura HMAC sobre os bytes originais, a entrega que chega duas vezes, e o 401 que não processa nada."},
+    {"href": "/docs/devops/api-github", "title": "A API do GitHub", "desc": "Issue, comentário no PR, status do commit, release e workflow_dispatch — com paginação e o limite de taxa."},
+    {"href": "/docs/devops/release", "title": "Release por tag", "desc": "Uma tag v* testa de novo, confere a versão do manifesto, empacota e publica."},
+    {"href": "/docs/devops/repositorio", "title": "O repositório", "desc": "Dependabot, CODEOWNERS, modelos de PR e de issue, e a proteção do ramo principal."},
+    {"href": "/docs/devops/gitlab", "title": "GitLab CI", "desc": "O mesmo pipeline no GitLab, com o relatório JUnit na página do merge request."},
+    {"href": "/docs/devops/ambiente-de-dev", "title": "Devcontainer e pre-commit", "desc": "Devcontainer para Codespaces e VS Code, e os ganchos do pre-commit que rodam o CI antes do commit."},
+    {"href": "/docs/devops/vm", "title": "Numa VM (systemd)", "desc": "A unidade systemd endurecida, o nginx na frente com TLS — e o que o Kiln não faz sozinho."}]},
+
  {"code": """dataforge devops              # tudo o que faz sentido para este projeto
 dataforge devops doctor       # o que falta para subir
 dataforge devops --seco       # mostra o que faria, sem escrever""", "lang": "bash"},

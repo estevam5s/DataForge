@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "79 módulos e 2156 símbolos, sem uma única dependência externa.",
+  description: "83 módulos e 2202 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os 79 módulos"
+    "h2": "Os 83 módulos"
   },
   {
-    "p": "São **2156 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **2202 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -72,7 +72,7 @@ const blocos: Bloco[] = [
         ],
         [
           "[`Arcane.Crucible`](/docs/biblioteca/crucible)",
-          "60",
+          "61",
           "Framework de testes: suítes, matchers, fixtures, dublês e benchmark."
         ],
         [
@@ -204,6 +204,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Padroes`](/docs/biblioteca/padroes)",
           "20",
           "Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento."
+        ],
+        [
+          "[`Arcane.GitHub`](/docs/biblioteca/github)",
+          "19",
+          "O que um programa precisa para viver no GitHub: no Actions, saídas, variáveis e resumo com delimitador seguro, anotações escapadas que aparecem na linha do PR, máscara linha a linha e grupos; webhooks com assinatura HMAC conferida em tempo constante sobre os bytes originais; e a API REST com paginação por Link e o limite de taxa que sobrou."
         ],
         [
           "[`Arcane.Observar`](/docs/biblioteca/observar)",
@@ -356,6 +361,16 @@ const blocos: Bloco[] = [
           "Publicar e assinar sem as duas partes se conhecerem: emissor com curinga, ouvinte de uma vez só, contexto por thread que atravessa as camadas, fila de trabalho em segundo plano, e fila persistente em SQLite que sobrevive ao processo, com recuo exponencial, atraso e hora marcada, prioridade, chave contra repetição e carta morta."
         ],
         [
+          "[`Arcane.Gramatica`](/docs/biblioteca/gramatica)",
+          "10",
+          "A gramática da linguagem como dado: as produções em EBNF, cada uma com um exemplo conferido contra o parser, a tabela de precedência provada pela árvore, os tokens de um texto, as instruções que o parser entendeu e a validação de sintaxe sem executar nada."
+        ],
+        [
+          "[`Arcane.Privacidade`](/docs/biblioteca/privacidade)",
+          "10",
+          "O que a LGPD pede, como operações sobre dado: pseudonimização com chave (e não hash sem chave, que se desfaz), generalização de quase-identificadores, a medida do k-anonimato, minimização por lista de permitidos, retenção, consentimento por titular e por finalidade com histórico, os direitos de acesso e eliminação percorrendo todo lugar onde o dado mora, e contagem com privacidade diferencial."
+        ],
+        [
           "[`Arcane.Quadro`](/docs/biblioteca/quadro)",
           "10",
           "A tabela de dados: colunas nomeadas e linhas como vault. Filtrar, agrupar, resumir, juntar, pivotar, limpar a ausência e a duplicata, converter tipos, normalizar, codificar e descrever — colunar por dentro, imutável por fora."
@@ -409,6 +424,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Email`](/docs/biblioteca/email)",
           "6",
           "Montar e enviar e-mail: texto e HTML juntos, anexos, cópia oculta que não vaza no cabeçalho, SMTP com TLS por padrão, prévia sem enviar e caixa de teste com o mesmo contrato."
+        ],
+        [
+          "[`Arcane.Integridade`](/docs/biblioteca/integridade)",
+          "6",
+          "Provar que o que está aqui é o que foi posto aqui: o valor SRI de um script de CDN, o manifesto SHA-256 de uma pasta com o que foi acrescentado, removido e alterado, e o manifesto assinado com uma chave que mora fora dali."
         ],
         [
           "[`Arcane.Politica`](/docs/biblioteca/politica)",
@@ -487,13 +507,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-79-modulos', text: "Os 79 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-83-modulos', text: "Os 83 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"79 módulos e 2156 símbolos, sem uma única dependência externa."}
+      description={"83 módulos e 2202 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

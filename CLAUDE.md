@@ -92,7 +92,7 @@ dataforge/
   builtins.py     1224   225 funções globais, sem import
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                79 módulos (2156 símbolos), incluindo:
+  stdlib/                83 módulos (2202 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -2083,7 +2083,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 2156 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2202 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -2945,6 +2945,49 @@ TWINE_USERNAME=__token__ TWINE_PASSWORD='pypi-…' \
 
 A prova de que funcionou não é a saída do `twine`: é instalar do PyPI
 num ambiente limpo e rodar um `.df`.
+
+## A gramática como dado, e quatro módulos novos
+
+**`dataforge/gramatica.py`** — a EBNF vivia como texto em dois lugares
+(a §12 da referência e a página), sem conferência. Hoje cada uma das 55
+produções traz um exemplo que o **parser de verdade** precisa aceitar,
+produzindo os nós prometidos; a precedência e a associatividade são
+afirmações conferidas pela **forma da árvore**; e há teste exigindo que
+as 81 palavras reservadas apareçam em alguma produção. Daqui saem
+`Arcane.Gramatica`, `dataforge gramatica` e as páginas de
+`/docs/referencia/gramatica/*`. Dois fatos que só apareceram conferindo:
+a comparação **encadeia** (`1 smaller 5 smaller 3` é `no`), e o corpo de
+um `morph` **não absorve** um ternário sem parênteses — `given` abre uma
+instrução.
+
+| Peça | O que ela resolve |
+|---|---|
+| `Arcane.GitHub` | Actions (saída multilinha com delimitador aleatório, anotação escapada, `mascarar_no_log` linha a linha), webhook conferido sobre os **bytes** originais em tempo constante (testado contra o vetor da doc do GitHub), e a API REST com paginação por `Link` |
+| `dataforge check --formato=github` | o erro aparece **na linha do PR**; o `ci.yml` gerado já usa |
+| `Arcane.Privacidade` | pseudonimizar com HMAC (hash sem chave de CPF se desfaz), generalizar, k-anonimato, minimizar por lista de permitidos, retenção, consentimento por finalidade com histórico, direitos do titular que relatam falhas, contagem com ruído de Laplace |
+| `Arcane.Integridade` | SRI (testado contra o exemplo da MDN), manifesto de pasta com acrescentado/removido/alterado, manifesto assinado |
+| `Crucible.cenario` | dado/quando/então; a falha diz o **passo**; `dado` depois de `quando` é recusado; sem `entao` não há cenário |
+| `dataforge completar` | bash/zsh/fish gerados do catálogo; testado com Tab simulado no bash |
+| `dataforge devops github` · `ci gitlab` · `devcontainer` · `pre-commit` · `systemd` | release por tag (confere a tag contra o `forge.toml`), dependabot honesto, CODEOWNERS, modelos |
+
+Três travas pegaram erro meu no caminho: `Seguranca.mascarar` e
+`GitHub.mascarar` respondiam perguntas diferentes com o mesmo nome (a
+lista de colisões de segurança agora inclui os módulos novos); rodar
+`dataforge devops` **sem argumento** escreve sete arquivos na pasta atual
+(é o `init` — não rode na raiz do repositório); e `NO_COLOR` era ignorado
+pela CLI e pelo `check`, só o depurador o respeitava (hoje `_com_cor()`).
+
+**Os 22 tipos de projeto** (`site/scripts/conteudo/projetos_tipos.py`)
+são conferidos como **projeto**: `tests/test_projetos_tipos.py` escreve o
+`forge.toml`, o núcleo e o teste numa pasta e roda `dataforge test`. Foi
+assim que apareceu que eu escrevia `expect(x) to_be(y)` — a forma é
+`expect x is y`. E `tests/test_paginas_novas_rodam.py` **executa** os
+blocos das páginas novas: compilar não pega `Bench.medir(acao, 5)` nem
+`vault.pop(k)` (é a embutida `pop(vault, k)`).
+
+O índice da CLI e `/docs/cli/referencia` saem de `cli.GRUPOS`; as
+descrições de `new`, `palavras` e `erros` no catálogo também saem dos
+dados — diziam "Oito modelos" com dez e "177 códigos" com 218.
 
 ## O que é gerado — não edite à mão
 

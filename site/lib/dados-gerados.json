@@ -2380,6 +2380,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "cenario",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "check",
      "sig": "(condicao, mensagem)",
      "tipo": "funcao"
@@ -4459,6 +4464,165 @@
     }
    ]
   },
+  "github": {
+   "nome": "Arcane.GitHub",
+   "desc": "O que um programa precisa para viver no GitHub: no Actions, saídas, variáveis e resumo com delimitador seguro, anotações escapadas que aparecem na linha do PR, máscara linha a linha e grupos; webhooks com assinatura HMAC conferida em tempo constante sobre os bytes originais; e a API REST com paginação por Link e o limite de taxa que sobrou.",
+   "curto": "GitHub",
+   "funcoes": [
+    {
+     "nome": "ClienteGitHub",
+     "sig": "(token, base, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "anotacao",
+     "sig": "(nivel, mensagem, arquivo, linha, coluna, titulo, fim_linha)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "anotar",
+     "sig": "(nivel, mensagem, arquivo, linha, coluna, titulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "assinatura",
+     "sig": "(segredo, corpo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "cliente",
+     "sig": "(token, base, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir_webhook",
+     "sig": "(segredo, corpo, cabecalho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contexto",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "em_actions",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_dado",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escapar_propriedade",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "evento",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "evento_de_webhook",
+     "sig": "(cabecalhos, corpo, segredo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exportar",
+     "sig": "(nome, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grupo",
+     "sig": "(nome, acao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mascarar_no_log",
+     "sig": "(valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "no_path",
+     "sig": "(pasta)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "resumo",
+     "sig": "(markdown)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "saida",
+     "sig": "(nome, valor)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tabela_markdown",
+     "sig": "(linhas, colunas)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "gramatica": {
+   "nome": "Arcane.Gramatica",
+   "desc": "A gramática da linguagem como dado: as produções em EBNF, cada uma com um exemplo conferido contra o parser, a tabela de precedência provada pela árvore, os tokens de um texto, as instruções que o parser entendeu e a validação de sintaxe sem executar nada.",
+   "curto": "Gramatica",
+   "funcoes": [
+    {
+     "nome": "ebnf",
+     "sig": "(grupo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "grupos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "instrucoes",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "palavras",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "precedencia",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "producao",
+     "sig": "(nome)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "producoes",
+     "sig": "(grupo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "raiz",
+     "sig": "(expressao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tokens",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "validar",
+     "sig": "(texto)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "html": {
    "nome": "Arcane.Html",
    "desc": "Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas.",
@@ -4880,6 +5044,43 @@
     {
      "nome": "conteiner",
      "sig": "(nome)",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "integridade": {
+   "nome": "Arcane.Integridade",
+   "desc": "Provar que o que está aqui é o que foi posto aqui: o valor SRI de um script de CDN, o manifesto SHA-256 de uma pasta com o que foi acrescentado, removido e alterado, e o manifesto assinado com uma chave que mora fora dali.",
+   "curto": "Integridade",
+   "funcoes": [
+    {
+     "nome": "assinar_manifesto",
+     "sig": "(m, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir_manifesto",
+     "sig": "(pasta, esperado, ignorar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conferir_sri",
+     "sig": "(conteudo, integridade)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "manifesto",
+     "sig": "(pasta, ignorar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sri",
+     "sig": "(conteudo, algoritmo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "verificar_manifesto",
+     "sig": "(assinado, chave)",
      "tipo": "funcao"
     }
    ]
@@ -7669,6 +7870,63 @@
     {
      "nome": "veredito",
      "sig": "()",
+     "tipo": "funcao"
+    }
+   ]
+  },
+  "privacidade": {
+   "nome": "Arcane.Privacidade",
+   "desc": "O que a LGPD pede, como operações sobre dado: pseudonimização com chave (e não hash sem chave, que se desfaz), generalização de quase-identificadores, a medida do k-anonimato, minimização por lista de permitidos, retenção, consentimento por titular e por finalidade com histórico, os direitos de acesso e eliminação percorrendo todo lugar onde o dado mora, e contagem com privacidade diferencial.",
+   "curto": "Privacidade",
+   "funcoes": [
+    {
+     "nome": "Consentimentos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Titulares",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "consentimentos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "contagem_privada",
+     "sig": "(n, epsilon, semente)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "generalizar",
+     "sig": "(valor, tipo, nivel)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "k_anonimato",
+     "sig": "(linhas, quase_identificadores)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "minimizar",
+     "sig": "(linha, permitidos)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "pseudonimizar",
+     "sig": "(valor, chave, finalidade, tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "titulares",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "vencidos",
+     "sig": "(linhas, campo_data, dias, agora)",
      "tipo": "funcao"
     }
    ]
@@ -14890,7 +15148,7 @@
  },
  "totalBuiltins": 229,
  "contagem": {
-  "testes": 3550,
+  "testes": 3650,
   "exemplos": 50,
   "arquivosDf": 503
  },

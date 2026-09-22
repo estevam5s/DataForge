@@ -23,8 +23,8 @@ const grupos: { rotulo: string; modulos: string[] }[] = [
   { rotulo: 'Frameworks', modulos: ['kiln', 'vitrine', 'telegram', 'lavra', 'crucible', 'forge', 'api'] },
   { rotulo: 'Dados', modulos: ['quadro', 'data', 'analytics', 'cortex', 'lago', 'pipeline', 'qualidade', 'stream'] },
   { rotulo: 'Formatos', modulos: ['serialization', 'excel', 'archive', 'database', 'html'] },
-  { rotulo: 'Sistema e rede', modulos: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email', 'url'] },
-  { rotulo: 'Qualidade', modulos: ['test', 'bench', 'logging', 'crypto', 'seguranca', 'politica', 'chaves', 'deteccao', 'observar', 'color', 'meta', 'cli', 'eventos'] },
+  { rotulo: 'Sistema e rede', modulos: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email', 'url', 'github'] },
+  { rotulo: 'Qualidade', modulos: ['test', 'bench', 'logging', 'crypto', 'seguranca', 'politica', 'chaves', 'deteccao', 'privacidade', 'integridade', 'observar', 'color', 'meta', 'cli', 'eventos'] },
   { rotulo: 'Objetos', modulos: ['reflexo', 'objetos', 'injecao', 'padroes'] },
   { rotulo: 'Domínio', modulos: ['dominio'] },
   { rotulo: 'Estruturas', modulos: ['estrutura'] },
@@ -39,7 +39,7 @@ const grupos: { rotulo: string; modulos: string[] }[] = [
   { rotulo: 'Perfil', modulos: ['perfil'] },
   { rotulo: 'Partida', modulos: ['inicio', 'capacidade'] },
   { rotulo: 'Distribuição', modulos: ['abi', 'alvo'] },
-  { rotulo: 'A própria implementação', modulos: ['ecossistema', 'principios', 'percurso'] },
+  { rotulo: 'A própria implementação', modulos: ['ecossistema', 'principios', 'percurso', 'gramatica'] },
 ];
 
 /** O que nenhum grupo reivindicou. Vazio é o estado esperado. */

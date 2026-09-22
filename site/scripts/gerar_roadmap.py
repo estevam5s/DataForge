@@ -67,9 +67,10 @@ GRUPOS_DE_MODULO = [
                "qualidade", "stream"]),
     ("Formatos", ["serialization", "excel", "archive", "database", "html"]),
     ("Sistema e rede", ["os", "process", "time", "http", "web", "async",
-                        "concurrent", "ponte", "malha", "rede", "email", "url"]),
+                        "concurrent", "ponte", "malha", "rede", "email", "url",
+                        "github"]),
     ("Qualidade", ["test", "bench", "logging", "crypto", "seguranca",
-                   "politica", "chaves", "deteccao",
+                   "politica", "chaves", "deteccao", "privacidade", "integridade",
                    "observar", "color", "meta", "cli", "eventos"]),
     ("Objetos", ["reflexo", "objetos", "injecao", "padroes"]),
     ("Domínio", ["dominio", "reativo", "estrutura"]),
@@ -80,7 +81,8 @@ GRUPOS_DE_MODULO = [
     ("Baixo nível", ["c", "compilador"]),
     ("Partida", ["inicio", "capacidade"]),
     ("Distribuição", ["abi", "alvo"]),
-    ("A própria implementação", ["ecossistema", "principios", "percurso"]),
+    ("A própria implementação", ["ecossistema", "principios", "percurso",
+                                 "gramatica"]),
 ]
 
 

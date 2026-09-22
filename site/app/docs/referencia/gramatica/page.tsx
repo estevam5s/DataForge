@@ -10,6 +10,9 @@ export const metadata: Metadata = {
 
 const blocos: Bloco[] = [
   {"p": "Esta é a gramática que o [parser](/docs/referencia/arquitetura) implementa, extraída da referência oficial do repositório."},
+  {"callout": {"tipo": "dica", "titulo": "A gramática conferida", "texto": "As páginas abaixo saem de `dataforge/gramatica.py`: cada produção traz um exemplo que o parser de verdade precisa aceitar, cada nível de precedência é provado pela forma da árvore, e as 81 palavras reservadas estão cobertas. A EBNF desta página é o resumo; os detalhes, e os exemplos que rodam, estão nelas."}},
+  {"h2": "Por grupo"},
+  {"cards": [{"href": "/docs/referencia/gramatica/lexico", "title": "Léxico", "desc": "6 produções: tokens, literais, comentários e indentação. Cada exemplo é aceito pelo parser."}, {"href": "/docs/referencia/gramatica/expressoes", "title": "Expressões", "desc": "13 produções: operadores, chamadas, coleções, pipeline. Cada exemplo é aceito pelo parser."}, {"href": "/docs/referencia/gramatica/instrucoes", "title": "Instruções", "desc": "11 produções: atribuição, saída, controle de fluxo e laços. Cada exemplo é aceito pelo parser."}, {"href": "/docs/referencia/gramatica/declaracoes", "title": "Declarações", "desc": "9 produções: ação, record, enum, blueprint, trait, type. Cada exemplo é aceito pelo parser."}, {"href": "/docs/referencia/gramatica/padroes", "title": "Padrões", "desc": "1 produções: o match e o que cada point casa. Cada exemplo é aceito pelo parser."}, {"href": "/docs/referencia/gramatica/modulos", "title": "Módulos", "desc": "3 produções: adopt, relay e mark. Cada exemplo é aceito pelo parser."}, {"href": "/docs/referencia/gramatica/erros", "title": "Erros e recursos", "desc": "5 produções: monitor, trigger, defer, assert. Cada exemplo é aceito pelo parser."}, {"href": "/docs/referencia/gramatica/concorrencia", "title": "Concorrência", "desc": "4 produções: thread, parallel, async. Cada exemplo é aceito pelo parser."}, {"href": "/docs/referencia/gramatica/dominios", "title": "Blocos de domínio", "desc": "3 produções: crucible, server e as palavras contextuais. Cada exemplo é aceito pelo parser."}, {"href": "/docs/referencia/gramatica/precedencia", "title": "Precedência, provada", "desc": "Da mais fraca para a mais forte — e cada nível conferido pela forma da árvore."}, {"href": "/docs/referencia/gramatica/ambiguidades", "title": "Onde a leitura engana", "desc": "As seis construções que o parser lê de um jeito e quem escreve lê de outro."}, {"href": "/docs/referencia/gramatica/na-linguagem", "title": "A gramática, de dentro de um programa", "desc": "Arcane.Gramatica e dataforge gramatica — perguntar à linguagem como ela é."}]},
   {"h2": "Notação"},
   {"table": {"head": ["Símbolo", "Significa"], "rows": [["`{ x }`", "zero ou mais repetições de `x`"], ["`[ x ]`", "`x` é opcional"], ["`x | y`", "`x` ou `y`"], ["`\"literal\"`", "texto exato"], ["`INDENT` / `DEDENT`", "tokens que o lexer emite ao mudar o nível de indentação"]]}},
   {"h2": "A gramática"},
@@ -167,7 +170,7 @@ bloco          = NEWLINE INDENT { instrução } DEDENT ;`, lang: 'text', title: 
   {"callout": {"tipo": "atencao", "texto": "Tabs são erro (`SyncError`). A convenção são 4 espaços por nível."}},
 ];
 
-const headings = [{ id: 'notacao', text: "Notação", level: 2 as const }, { id: 'a-gramatica', text: "A gramática", level: 2 as const }, { id: 'indentacao', text: "Indentação", level: 2 as const }];
+const headings = [{ id: 'por-grupo', text: "Por grupo", level: 2 as const }, { id: 'notacao', text: "Notação", level: 2 as const }, { id: 'a-gramatica', text: "A gramática", level: 2 as const }, { id: 'indentacao', text: "Indentação", level: 2 as const }];
 
 export default function Pagina() {
   return (

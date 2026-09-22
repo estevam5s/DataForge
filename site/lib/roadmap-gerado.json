@@ -9,7 +9,8 @@
       "onde": [
         "dataforge/cli.py",
         "dataforge/caminhos.py",
-        "dataforge/cache.py"
+        "dataforge/cache.py",
+        "dataforge/completar.py"
       ],
       "porque": "um segundo executavel duplicaria a resolucao de caminho e a leitura do forge.toml"
     },
@@ -32,7 +33,8 @@
       "no": "Parser",
       "o_que_e": "tokens -> arvore, recursivo descendente",
       "onde": [
-        "dataforge/parser.py"
+        "dataforge/parser.py",
+        "dataforge/gramatica.py"
       ],
       "porque": ""
     },
@@ -663,7 +665,7 @@
           "chave": "crucible",
           "desc": "Framework de testes: suítes, matchers, fixtures, dublês e benchmark",
           "nome": "Arcane.Crucible",
-          "simbolos": 60
+          "simbolos": 61
         },
         {
           "chave": "forge",
@@ -841,6 +843,12 @@
           "desc": "Endereços: ler um URL em partes, montar a partir delas, resolver caminho relativo como um navegador, trocar parâmetros preservando os outros, query st",
           "nome": "Arcane.Url",
           "simbolos": 14
+        },
+        {
+          "chave": "github",
+          "desc": "O que um programa precisa para viver no GitHub: no Actions, saídas, variáveis e resumo com delimitador seguro, anotações escapadas que aparecem na lin",
+          "nome": "Arcane.GitHub",
+          "simbolos": 19
         }
       ],
       "rotulo": "Sistema e rede"
@@ -894,6 +902,18 @@
           "desc": "Regras de detecção sobre eventos, com correlação por chave em janela deslizante, supressão, gravidade e mapa para MITRE ATT&CK; indicadores de comprom",
           "nome": "Arcane.Deteccao",
           "simbolos": 7
+        },
+        {
+          "chave": "privacidade",
+          "desc": "O que a LGPD pede, como operações sobre dado: pseudonimização com chave (e não hash sem chave, que se desfaz), generalização de quase-identificadores,",
+          "nome": "Arcane.Privacidade",
+          "simbolos": 10
+        },
+        {
+          "chave": "integridade",
+          "desc": "Provar que o que está aqui é o que foi posto aqui: o valor SRI de um script de CDN, o manifesto SHA-256 de uma pasta com o que foi acrescentado, remov",
+          "nome": "Arcane.Integridade",
+          "simbolos": 6
         },
         {
           "chave": "observar",
@@ -1124,6 +1144,12 @@
           "desc": "O caminho inteiro de um arquivo, fase por fase, MEDIDO: lexer, parser, HIR, tipos, MIR, analises, SSA, passes e LIR, com o que cada fase produziu e qu",
           "nome": "Arcane.Percurso",
           "simbolos": 5
+        },
+        {
+          "chave": "gramatica",
+          "desc": "A gramática da linguagem como dado: as produções em EBNF, cada uma com um exemplo conferido contra o parser, a tabela de precedência provada pela árvo",
+          "nome": "Arcane.Gramatica",
+          "simbolos": 10
         }
       ],
       "rotulo": "A própria implementação"
@@ -1195,15 +1221,15 @@
   ],
   "numeros": {
     "alvos": 6,
-    "comandos": 63,
+    "comandos": 65,
     "componentes": 41,
     "equivalem": 6,
     "existem": 30,
     "grupos_de_comando": 7,
-    "modulos": 79,
-    "modulos_do_nucleo": 58,
+    "modulos": 83,
+    "modulos_do_nucleo": 60,
     "nao_existem": 5,
-    "simbolos": 2156
+    "simbolos": 2202
   },
   "semGrupo": []
 }

@@ -72,6 +72,40 @@ coisa. Agora o erro diz **qual** opção não existe, e lista as que o
 
 ## Não lançado
 
+### Adicionado — sete frentes de documentação, e o que elas pediram da linguagem
+
+**Projetos:** 22 tipos de projeto em `/docs/projetos` (CLI, API REST, ETL,
+motor de regras, jogo, cálculo financeiro, autenticação, fila, interpretador,
+máquina de estados, estoque, bot, painel, classificador, detector de intrusão,
+cofre, planilha reativa, rotas, biblioteca, saga, agendador cron, site
+estático) — cada um montado e testado como projeto a cada execução da suíte.
+
+**Testes:** 10 rotas (TDD, unitários, parametrizados, cenários, integração,
+ponta a ponta, erros, regressão, pirâmide, instáveis) e `Crucible.cenario`.
+
+**DevOps:** 12 rotas, `Arcane.GitHub`, `dataforge check --formato=github`, e
+os geradores `devops github`, `ci gitlab`, `devcontainer`, `pre-commit` e
+`systemd`.
+
+**CLI:** o índice e a referência completa saem do catálogo (65 comandos),
+11 rotas por tema, e `dataforge completar <bash|zsh|fish>`.
+
+**Gramática:** `dataforge/gramatica.py` — 55 produções conferidas contra o
+parser, precedência e associatividade provadas pela árvore, as 81 palavras
+reservadas cobertas; `Arcane.Gramatica`, `dataforge gramatica` e 12 páginas.
+
+**Segurança:** 10 rotas (OWASP, API, web, segredos, logs, LGPD,
+anonimização, integridade, cadeia, incidentes), `Arcane.Privacidade` e
+`Arcane.Integridade`.
+
+### Corrigido
+
+- `NO_COLOR` não era respeitado pela CLI nem pelo `check`.
+- As descrições de `new`, `palavras` e `erros` no `help` traziam números
+  que envelheceram (oito modelos, 177 códigos); hoje saem dos dados.
+- Os dois geradores de índice discordavam numa página sem `h2`.
+
+
 ### Adicionado — `Arcane.Politica`, `Arcane.Chaves` e `Arcane.Deteccao`
 
 Os três buracos reais do `DATAFORGE_CYBER_SECURITY.md`. A maioria das
