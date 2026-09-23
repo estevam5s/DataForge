@@ -115,8 +115,143 @@ class ArcaneQualidade(dict):
             "so_validas": cls._so_validas,
             "preencher": cls._preencher,
 
+            # esquema
+            "esquema_de": cls._esquema_de,
+            "deriva": cls._deriva,
+            "exigir_esquema": cls._exigir_esquema,
+
             "formatos": lambda: sorted(_FORMATOS),
         }
+
+    # ── deriva de esquema ───────────────────────────────────
+
+    @staticmethod
+    def _esquema_de(linhas, amostra=0):
+        """O esquema OBSERVADO: o tipo de cada campo, e se ele falta.
+
+        Ele é lido do dado, e não declarado — é o que permite
+        comparar o que chegou hoje com o que chegava ontem sem que
+        alguém tenha escrito o contrato antes.
+
+        `nulavel` é o que mais importa na comparação: um campo que
+        sempre veio preenchido e hoje vem vazio em metade das linhas
+        não mudou de tipo, e mesmo assim quebra quem o consome.
+        """
+        linhas = list(linhas)
+        if amostra and amostra > 0:
+            linhas = linhas[:int(amostra)]
+        campos = {}
+        for linha in linhas:
+            for nome in (linha.keys() if isinstance(linha, dict)
+                         else getattr(linha, "_campos", lambda: [])()):
+                valor = _campo(linha, nome)
+                ficha = campos.setdefault(
+                    nome, {"tipos": set(), "vazios": 0, "vistas": 0})
+                ficha["vistas"] += 1
+                if _vazio(valor):
+                    ficha["vazios"] += 1
+                else:
+                    ficha["tipos"].add(_nome_do_tipo(valor))
+        return {
+            nome: {
+                # Um campo com dois tipos e um campo com PROBLEMA, e
+                # esconder isso num "misto" faria a deriva calar
+                # justamente onde ela mais serve.
+                "tipo": ("vazio" if not f["tipos"] else
+                         sorted(f["tipos"])[0] if len(f["tipos"]) == 1 else
+                         "|".join(sorted(f["tipos"]))),
+                "nulavel": f["vazios"] > 0,
+                # Duas contas diferentes, e confundi-las foi o primeiro
+                # defeito desta peca: 'presenca' e quantas linhas TEM a
+                # chave, 'vazios' e quantas a tem VAZIA. Um campo que
+                # vem sempre, com metade em branco, tem presenca 1.0 e
+                # vazios 0.5 — e e o segundo numero que quebra quem le.
+                "presenca": round(f["vistas"] / max(1, len(linhas)), 4),
+                "vazios": round(f["vazios"] / max(1, f["vistas"]), 4),
+            }
+            for nome, f in campos.items()
+        }
+
+    @staticmethod
+    def _deriva(esperado, recebido):
+        """O que mudou entre dois esquemas — e se isso QUEBRA.
+
+        É a falha que mais derruba pipeline em produção, e ela não
+        chega como erro: alguém a montante acrescenta uma coluna,
+        renomeia outra, ou passa a mandar o id como texto. O programa
+        continua rodando e o número sai errado.
+
+        Os três baldes são os do `Arcane.Abi`, pela mesma razão:
+
+        | balde | o que é |
+        |---|---|
+        | `quebra` | campo que sumiu, tipo que mudou, campo que passou a vir vazio |
+        | `compativel` | campo novo — quem não o lê não vê diferença |
+        | `desconhecido` | o campo existe dos dois lados e um dos lados nunca viu valor |
+
+        O terceiro balde existe pelo mesmo motivo do `campo-novo-em-record`
+        do ABI: sem valor nenhum de um dos lados, **não dá para saber**,
+        e tanto acusar quanto calar estaria inventando uma resposta.
+        """
+        esperado = dict(esperado or {})
+        recebido = dict(recebido or {})
+        quebra, compativel, desconhecido = [], [], []
+
+        for nome, antes in esperado.items():
+            agora = recebido.get(nome)
+            if agora is None:
+                quebra.append({"campo": nome, "o_que": "sumiu",
+                               "antes": antes.get("tipo"), "agora": None})
+                continue
+            if "vazio" in (antes.get("tipo"), agora.get("tipo")):
+                desconhecido.append({
+                    "campo": nome, "o_que": "um dos lados nunca viu valor",
+                    "antes": antes.get("tipo"), "agora": agora.get("tipo")})
+                continue
+            if antes.get("tipo") != agora.get("tipo"):
+                quebra.append({"campo": nome, "o_que": "mudou de tipo",
+                               "antes": antes.get("tipo"),
+                               "agora": agora.get("tipo")})
+            elif agora.get("nulavel") and not antes.get("nulavel"):
+                quebra.append({"campo": nome, "o_que": "passou a vir vazio",
+                               "antes": "sempre preenchido",
+                               "agora": f"{round(agora.get('vazios', 0) * 100)}% vazio"})
+
+        for nome, agora in recebido.items():
+            if nome not in esperado:
+                compativel.append({"campo": nome, "o_que": "campo novo",
+                                   "antes": None, "agora": agora.get("tipo")})
+
+        return {"quebra": quebra, "compativel": compativel,
+                "desconhecido": desconhecido,
+                "ok": not quebra,
+                "resumo": (f"{len(quebra)} quebra(s), "
+                           f"{len(compativel)} acrescimo(s), "
+                           f"{len(desconhecido)} sem resposta")}
+
+    @staticmethod
+    def _exigir_esquema(linhas, esperado, amostra=0):
+        """Confere o lote contra o esquema e LEVANTA se ele quebrar.
+
+        É a versão que se põe na entrada de um pipeline: falhar aqui
+        custa uma execução; deixar passar custa um relatório errado que
+        ninguém desconfia.
+        """
+        visto = ArcaneQualidade._esquema_de(linhas, amostra)
+        relato = ArcaneQualidade._deriva(esperado, visto)
+        if relato["quebra"]:
+            partes = [f"{q['campo']}: {q['o_que']}"
+                      + (f" ({q['antes']} → {q['agora']})"
+                         if q["agora"] is not None else "")
+                      for q in relato["quebra"]]
+            raise ValueError_(
+                "o esquema do lote nao bate com o esperado: "
+                + "; ".join(partes),
+                nota=relato["resumo"],
+                dica="Qualidade.deriva(esperado, Qualidade.esquema_de(linhas)) "
+                     "mostra tudo, inclusive os acrescimos",
+                doc="dados/engenharia")
+        return relato
 
     # ── conferir ────────────────────────────────────────────
 

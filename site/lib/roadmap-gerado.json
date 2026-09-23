@@ -748,7 +748,7 @@
           "chave": "qualidade",
           "desc": "Qualidade de dados: as seis dimensões, perfil, validação e limpeza",
           "nome": "Arcane.Qualidade",
-          "simbolos": 13
+          "simbolos": 16
         },
         {
           "chave": "stream",
@@ -1274,7 +1274,7 @@
     "modulos": 86,
     "modulos_do_nucleo": 61,
     "nao_existem": 5,
-    "simbolos": 2308
+    "simbolos": 2311
   },
   "semGrupo": []
 }

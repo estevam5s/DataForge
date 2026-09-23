@@ -578,11 +578,77 @@ class Quadro:
 
     # ── juntar ───────────────────────────────────────────────
 
-    def juntar(self, outro, em, tipo="dentro"):
+    CARDINALIDADES = ("um_para_um", "muitos_para_um", "um_para_muitos",
+                      "muitos_para_muitos")
+
+    def _chave_repetida(self, chaves):
+        """A primeira chave que aparece duas vezes, e quantas. None se nenhuma."""
+        vistos = {}
+        for i in range(self.altura()):
+            marca = tuple(_chave(self._dados[c][i]) for c in chaves)
+            vistos[marca] = vistos.get(marca, 0) + 1
+            if vistos[marca] > 1:
+                return marca, vistos[marca]
+        return None
+
+    def _conferir_cardinalidade(self, outro, chaves, cardinalidade):
+        """Recusa a junção que nao cumpre o que foi declarado."""
+        if cardinalidade not in self.CARDINALIDADES:
+            raise _erro(f"'{cardinalidade}' nao e uma cardinalidade",
+                        nota="as cardinalidades sao: "
+                             + ", ".join(self.CARDINALIDADES),
+                        dica='q.juntar(outro, em := "id", '
+                             'cardinalidade := "muitos_para_um")')
+        unico_aqui = cardinalidade in ("um_para_um", "um_para_muitos")
+        unico_la = cardinalidade in ("um_para_um", "muitos_para_um")
+        nome = ", ".join(chaves)
+        if unico_la:
+            achado = outro._chave_repetida(chaves)
+            if achado:
+                marca, quantas = achado
+                raise _erro(
+                    f"a junção prometeu '{cardinalidade}', e a chave "
+                    f"{list(marca)} aparece {quantas} vezes do outro lado",
+                    nota="cada linha daqui casaria com várias de lá, e o "
+                         "total do que for somado depois sobe sem nada acusar",
+                    dica=f"tire as repetições com "
+                         f"outro.sem_duplicadas([\"{nome}\"]), ou declare "
+                         f"'muitos_para_muitos' se elas forem esperadas")
+        if unico_aqui:
+            achado = self._chave_repetida(chaves)
+            if achado:
+                marca, quantas = achado
+                raise _erro(
+                    f"a junção prometeu '{cardinalidade}', e a chave "
+                    f"{list(marca)} aparece {quantas} vezes deste lado",
+                    dica=f"tire as repetições com "
+                         f"q.sem_duplicadas([\"{nome}\"])")
+
+    def juntar(self, outro, em, tipo="dentro", cardinalidade=None):
         """Junta dois quadros por uma chave.
 
         `tipo`: "dentro" (só o que casa), "esquerda", "direita" ou
         "fora". São os quatro `JOIN` do SQL, com os nomes da linguagem.
+
+        `cardinalidade` declara **quantas linhas de cada lado** podem
+        casar, e a junção recusa quando a declaração não vale. Ela
+        existe por causa do desastre mais caro da engenharia de dados:
+        uma tabela de apoio com a chave DUPLICADA multiplica as linhas
+        do fato, e o total sobe sem nada acusar. Medido no caso
+        pequeno desta documentação: duas vendas somando 30 viraram
+        três linhas somando **40**.
+
+        | valor | promete |
+        |---|---|
+        | `"muitos_para_um"` | a chave é única **do outro lado** — é a busca numa tabela de apoio, e o caso mais comum |
+        | `"um_para_muitos"` | única **deste lado** |
+        | `"um_para_um"` | única nos dois |
+        | `"muitos_para_muitos"` | nada — é a de hoje, e ela **é** o padrão |
+
+        O padrão continua sendo não conferir: mudá-lo reprovaria
+        código que já existe e que pode estar certo. O que muda é ser
+        possível declarar — e um `muitos_para_um` numa junção de apoio
+        custa uma palavra e fecha a porta desse defeito.
         """
         if not isinstance(outro, Quadro):
             raise _erro("'juntar' precisa de outro quadro",
@@ -595,6 +661,8 @@ class Quadro:
             raise _erro(f"tipo de junção desconhecido: '{tipo}'",
                         nota="os tipos são: dentro, esquerda, direita, fora",
                         dica='q.juntar(outro, em := "id", tipo := "esquerda")')
+        if cardinalidade is not None:
+            self._conferir_cardinalidade(outro, chaves, cardinalidade)
 
         indice = {}
         for i in range(outro.altura()):
@@ -651,7 +719,48 @@ class Quadro:
                         + ", ".join(sorted(AGREGACOES)))
         return AGREGACOES[nome]
 
-    def janela(self, coluna, tamanho, agregacao="media", nome=None, minimo=None):
+    def _particoes(self, por):
+        """As posicoes de cada linha, agrupadas por `por`.
+
+        Toda funcao de janela sem particao responde a pergunta errada
+        no caso mais comum que existe: "media movel de sete dias POR
+        LOJA" atravessava a fronteira das lojas, e a linha da primeira
+        venda da loja B entrava com as tres ultimas da loja A. O
+        resultado e um numero plausivel, sem erro nenhum — que e a
+        forma mais cara de estar errado.
+
+        A ordem das linhas e preservada: a coluna nova volta na
+        posicao original, e nao agrupada. Um quadro reordenado pela
+        janela quebraria o `com`, que casa por posicao.
+        """
+        if por is None:
+            return [list(range(self.altura()))]
+        colunas = [por] if isinstance(por, str) else list(por)
+        for c in colunas:
+            self._exigir(c)
+        grupos, ordem = {}, []
+        for i in range(self.altura()):
+            chave = tuple(_chave(self._dados[c][i]) for c in colunas)
+            if chave not in grupos:
+                grupos[chave] = []
+                ordem.append(chave)
+            grupos[chave].append(i)
+        return [grupos[k] for k in ordem]
+
+    def _por_particao(self, por, calcular):
+        """Roda `calcular` em cada particao e devolve a coluna inteira.
+
+        `calcular` recebe as posicoes daquela particao e devolve um
+        valor por posicao, na mesma ordem.
+        """
+        saida = [None] * self.altura()
+        for posicoes in self._particoes(por):
+            for posicao, valor in zip(posicoes, calcular(posicoes)):
+                saida[posicao] = valor
+        return saida
+
+    def janela(self, coluna, tamanho, agregacao="media", nome=None, minimo=None,
+               por=None):
         """A agregação dos últimos `tamanho` valores, linha a linha.
 
         As primeiras linhas, sem `tamanho` valores válidos atrás, saem
@@ -665,13 +774,20 @@ class Quadro:
         f = self._agregacao(agregacao)
         exigido = tamanho if minimo is None else max(1, int(minimo))
         vs = self._dados[coluna]
-        saida = []
-        for i in range(len(vs)):
-            trecho = [v for v in vs[max(0, i - tamanho + 1):i + 1] if not _ausente(v)]
-            saida.append(f(trecho) if len(trecho) >= exigido else None)
-        return self.com(nome or f"{coluna}_{agregacao}_{tamanho}", saida)
 
-    def acumulado(self, coluna, agregacao="soma", nome=None):
+        def calcular(posicoes):
+            valores = [vs[i] for i in posicoes]
+            fora = []
+            for i in range(len(valores)):
+                trecho = [v for v in valores[max(0, i - tamanho + 1):i + 1]
+                          if not _ausente(v)]
+                fora.append(f(trecho) if len(trecho) >= exigido else None)
+            return fora
+
+        return self.com(nome or f"{coluna}_{agregacao}_{tamanho}",
+                        self._por_particao(por, calcular))
+
+    def acumulado(self, coluna, agregacao="soma", nome=None, por=None):
         """A agregação de tudo até a linha — o total corrido, o máximo até agora.
 
         Uma ausência não zera nem interrompe: ela é pulada, e a linha dela
@@ -679,14 +795,20 @@ class Quadro:
         """
         self._exigir(coluna)
         f = self._agregacao(agregacao)
-        vistos, saida = [], []
-        for v in self._dados[coluna]:
-            if not _ausente(v):
-                vistos.append(v)
-            saida.append(f(vistos) if vistos else None)
-        return self.com(nome or f"{coluna}_{agregacao}_acumulado", saida)
+        vs = self._dados[coluna]
 
-    def defasar(self, coluna, n=1, nome=None):
+        def calcular(posicoes):
+            vistos, fora = [], []
+            for i in posicoes:
+                if not _ausente(vs[i]):
+                    vistos.append(vs[i])
+                fora.append(f(vistos) if vistos else None)
+            return fora
+
+        return self.com(nome or f"{coluna}_{agregacao}_acumulado",
+                        self._por_particao(por, calcular))
+
+    def defasar(self, coluna, n=1, nome=None, por=None):
         """O valor de `n` linhas atrás (`n` negativo: à frente).
 
         É o "valor de ontem" de uma série. O que cai fora do quadro é
@@ -695,11 +817,16 @@ class Quadro:
         self._exigir(coluna)
         n = int(n)
         vs = self._dados[coluna]
-        saida = [vs[i - n] if 0 <= i - n < len(vs) else None for i in range(len(vs))]
-        rotulo = f"{coluna}_antes_{n}" if n >= 0 else f"{coluna}_depois_{-n}"
-        return self.com(nome or rotulo, saida)
 
-    def variacao(self, coluna, nome=None, percentual=True):
+        def calcular(posicoes):
+            valores = [vs[i] for i in posicoes]
+            return [valores[i - n] if 0 <= i - n < len(valores) else None
+                    for i in range(len(valores))]
+
+        rotulo = f"{coluna}_antes_{n}" if n >= 0 else f"{coluna}_depois_{-n}"
+        return self.com(nome or rotulo, self._por_particao(por, calcular))
+
+    def variacao(self, coluna, nome=None, percentual=True, por=None):
         """Quanto mudou em relação à linha anterior.
 
         Com `percentual`, a razão (0.1 é 10%). Anterior zero ou ausente
@@ -708,20 +835,28 @@ class Quadro:
         """
         self._exigir(coluna)
         vs = self._dados[coluna]
-        saida = [None]
-        for anterior, atual in zip(vs, vs[1:]):
-            if not (_numerico(anterior) and _numerico(atual)) or \
-                    _ausente(anterior) or _ausente(atual):
-                saida.append(None)
-            elif percentual:
-                saida.append(None if anterior == 0 else (atual - anterior) / abs(anterior))
-            else:
-                saida.append(atual - anterior)
-        if not vs:
-            saida = []
-        return self.com(nome or f"{coluna}_variacao", saida)
 
-    def ranquear(self, coluna, nome=None, decrescente=True, empates="minimo"):
+        def calcular(posicoes):
+            valores = [vs[i] for i in posicoes]
+            if not valores:
+                return []
+            fora = [None]
+            for anterior, atual in zip(valores, valores[1:]):
+                if not (_numerico(anterior) and _numerico(atual)) or \
+                        _ausente(anterior) or _ausente(atual):
+                    fora.append(None)
+                elif percentual:
+                    fora.append(None if anterior == 0
+                                else (atual - anterior) / abs(anterior))
+                else:
+                    fora.append(atual - anterior)
+            return fora
+
+        return self.com(nome or f"{coluna}_variacao",
+                        self._por_particao(por, calcular))
+
+    def ranquear(self, coluna, nome=None, decrescente=True, empates="minimo",
+                 por=None):
         """A posição de cada linha — 1 é o maior (ou o menor, com decrescente := no).
 
         `empates` decide o que dois iguais recebem: `minimo` dá 1, 2, 2, 4
@@ -732,16 +867,21 @@ class Quadro:
         if empates not in ("minimo", "denso"):
             raise _erro(f"'{empates}' nao e um modo de empate. Use 'minimo' ou 'denso'.")
         vs = self._dados[coluna]
-        validos = sorted({v for v in vs if not _ausente(v)}, reverse=bool(decrescente))
-        if empates == "denso":
-            posicao = {v: i + 1 for i, v in enumerate(validos)}
-        else:
-            ordenados = sorted([v for v in vs if not _ausente(v)], reverse=bool(decrescente))
-            posicao = {}
-            for i, v in enumerate(ordenados):
-                posicao.setdefault(v, i + 1)
-        saida = [None if _ausente(v) else posicao[v] for v in vs]
-        return self.com(nome or f"{coluna}_posicao", saida)
+
+        def calcular(posicoes):
+            valores = [vs[i] for i in posicoes]
+            vivos = [v for v in valores if not _ausente(v)]
+            if empates == "denso":
+                distintos = sorted(set(vivos), reverse=bool(decrescente))
+                onde = {v: i + 1 for i, v in enumerate(distintos)}
+            else:
+                onde = {}
+                for i, v in enumerate(sorted(vivos, reverse=bool(decrescente))):
+                    onde.setdefault(v, i + 1)
+            return [None if _ausente(v) else onde[v] for v in valores]
+
+        return self.com(nome or f"{coluna}_posicao",
+                        self._por_particao(por, calcular))
 
     def normalizar(self, colunas=None):
         """Para a faixa 0..1. Coluna constante vira 0."""

@@ -321,3 +321,94 @@ class TestLimpeza:
 
     def test_unicidade_de_uma_chave_e_um(self):
         assert Q["unicidade"](LINHAS[:2], "id") == 1.0
+
+
+# ═══════════════════════════════════════════════════════════
+#  Deriva de esquema
+# ═══════════════════════════════════════════════════════════
+#
+# É a falha que mais derruba pipeline em produção, e ela não chega como
+# erro: alguém a montante acrescenta uma coluna, renomeia outra, ou
+# passa a mandar o id como texto. O programa continua rodando, e o
+# número sai errado.
+
+ONTEM = [{"id": 1, "nome": "Ana", "valor": 10.5},
+         {"id": 2, "nome": "Bia", "valor": 20.0}]
+
+
+def test_o_esquema_e_LIDO_do_dado():
+    """Ele não é declarado: é o que permite comparar o lote de hoje com
+    o de ontem sem que alguém tenha escrito o contrato antes."""
+    e = Q["esquema_de"](ONTEM)
+    assert e["id"]["tipo"] == "inteiro"
+    assert e["valor"]["tipo"] == "numero"
+    assert e["nome"]["nulavel"] is False
+
+
+def test_presenca_e_vazios_sao_contas_DIFERENTES():
+    """Um campo que vem sempre, com metade em branco, tem presença 1.0
+    e vazios 0.5 — e é o segundo número que quebra quem lê."""
+    e = Q["esquema_de"]([{"a": "x"}, {"a": None}])
+    assert e["a"]["presenca"] == 1.0
+    assert e["a"]["vazios"] == 0.5
+    assert e["a"]["nulavel"] is True
+
+
+def test_mudar_de_tipo_e_QUEBRA():
+    hoje = [{"id": "3", "nome": "Cau", "valor": 30.0}]
+    d = Q["deriva"](Q["esquema_de"](ONTEM), Q["esquema_de"](hoje))
+    assert d["ok"] is False
+    assert any(q["campo"] == "id" and q["o_que"] == "mudou de tipo"
+               for q in d["quebra"])
+
+
+def test_campo_novo_e_COMPATIVEL():
+    """Quem não o lê não vê diferença — é o mesmo balde do `Arcane.Abi`."""
+    hoje = [{"id": 3, "nome": "Cau", "valor": 30.0, "canal": "web"}]
+    d = Q["deriva"](Q["esquema_de"](ONTEM), Q["esquema_de"](hoje))
+    assert d["ok"] is True
+    assert [c["campo"] for c in d["compativel"]] == ["canal"]
+
+
+def test_campo_que_SUMIU_e_quebra():
+    hoje = [{"id": 3, "nome": "Cau"}]
+    d = Q["deriva"](Q["esquema_de"](ONTEM), Q["esquema_de"](hoje))
+    assert any(q["campo"] == "valor" and q["o_que"] == "sumiu"
+               for q in d["quebra"])
+
+
+def test_passar_a_vir_vazio_e_quebra_mesmo_sem_mudar_de_tipo():
+    """Ele não mudou de tipo, e mesmo assim quebra quem o consome."""
+    hoje = [{"id": 3, "nome": None, "valor": 1.0},
+            {"id": 4, "nome": "Dan", "valor": 2.0}]
+    d = Q["deriva"](Q["esquema_de"](ONTEM), Q["esquema_de"](hoje))
+    quebra = [q for q in d["quebra"] if q["campo"] == "nome"]
+    assert quebra and "50% vazio" in quebra[0]["agora"]
+
+
+def test_o_terceiro_balde_e_para_quando_NAO_DA_para_saber():
+    """Sem valor nenhum de um dos lados, acusar reprovaria o correto e
+    calar deixaria passar o que quebra — a mesma decisão do
+    `campo-novo-em-record` do ABI."""
+    antes = Q["esquema_de"]([{"a": 1, "b": None}])
+    depois = Q["esquema_de"]([{"a": 2, "b": "texto"}])
+    d = Q["deriva"](antes, depois)
+    assert d["quebra"] == []
+    assert [x["campo"] for x in d["desconhecido"]] == ["b"]
+
+
+def test_exigir_esquema_levanta_e_diz_o_que_mudou():
+    """Falhar aqui custa uma execução; deixar passar custa um relatório
+    errado que ninguém desconfia."""
+    hoje = [{"id": "3", "nome": "Cau", "valor": 30.0}]
+    with pytest.raises(Exception) as info:
+        Q["exigir_esquema"](hoje, Q["esquema_de"](ONTEM))
+    assert "mudou de tipo" in str(info.value)
+    assert "inteiro" in str(info.value) and "texto" in str(info.value)
+
+
+def test_exigir_esquema_deixa_passar_o_acrescimo():
+    hoje = [{"id": 3, "nome": "Cau", "valor": 30.0, "canal": "web"}]
+    relato = Q["exigir_esquema"](hoje, Q["esquema_de"](ONTEM))
+    assert relato["ok"] is True
+    assert len(relato["compativel"]) == 1

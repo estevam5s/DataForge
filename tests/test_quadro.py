@@ -578,3 +578,4 @@ def test_onde_so_engole_a_comparacao_com_o_desconhecido():
     with pytest.raises(DataForgeError) as e:
         rodar('out (v >> onde qtd / 0 bigger 1).altura()')
     assert "zero" in e.value.message.lower()
+

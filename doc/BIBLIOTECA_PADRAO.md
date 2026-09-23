@@ -99,7 +99,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Arcane.API`](#arcaneapi) | `API` | 7 | A API do Kiln vista de fora: OpenAPI, coleção do Insomnia e do Postman, curl e a tabela em Markdown — tudo derivado das rotas registradas. |
 | [`Arcane.Decimal`](#arcanedecimal) | `Decimal / Exato` | 16 | Número decimal exato, para quando 0,1 + 0,2 precisa dar 0,3 — dinheiro, imposto, e todo número que alguém confere na mão. |
 | [`Arcane.Ponte`](#arcaneponte) | `Ponte / Bridge` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
-| [`Arcane.Qualidade`](#arcanequalidade) | `Qualidade / Quality` | 13 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
+| [`Arcane.Qualidade`](#arcanequalidade) | `Qualidade / Quality` | 16 | Qualidade de dados: as seis dimensões, perfil, validação e limpeza. |
 
 > Os nomes curtos e os aliases (`DB`, `Server`, `Network`) apontam para o mesmo
 > módulo — use o que ficar mais legível.
@@ -3844,15 +3844,18 @@ Qualidade de dados: as seis dimensões, perfil, validação e limpeza.
 adopt Arcane.Qualidade as Qualidade
 ```
 
-**Funções (13)**
+**Funções (16)**
 
 | Assinatura |
 |------------|
 | `atualidade(linhas, campo, dias=1)` |
 | `completude(linhas, campos=None)` |
 | `conferir(linhas, regras, parar_em=0)` |
+| `deriva(esperado, recebido)` |
 | `duplicadas(linhas, campos)` |
 | `esperar(linhas, regras, minimo=1.0)` |
+| `esquema_de(linhas, amostra=0)` |
+| `exigir_esquema(linhas, esperado, amostra=0)` |
 | `fora_da_faixa(linhas, campo, minimo=None, maximo=None)` |
 | `formatos()` |
 | `perfil(linhas, amostra=0)` |

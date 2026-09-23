@@ -8607,6 +8607,11 @@
      "tipo": "funcao"
     },
     {
+     "nome": "deriva",
+     "sig": "(esperado, recebido)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "duplicadas",
      "sig": "(linhas, campos)",
      "tipo": "funcao"
@@ -8614,6 +8619,16 @@
     {
      "nome": "esperar",
      "sig": "(linhas, regras, minimo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "esquema_de",
+     "sig": "(linhas, amostra)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "exigir_esquema",
+     "sig": "(linhas, esperado, amostra)",
      "tipo": "funcao"
     },
     {
@@ -15783,7 +15798,7 @@
  },
  "totalBuiltins": 231,
  "contagem": {
-  "testes": 3850,
+  "testes": 3876,
   "exemplos": 50,
   "arquivosDf": 513
  },

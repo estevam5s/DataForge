@@ -22,6 +22,7 @@ MODULOS = [
     "lavra_mais",
     "posse_mais",
     "concorrencia_extra",
+    "dados_engenharia",
     "api_rest_mais",
     "telegram_mais",
     "dominio_mais",

@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"h2": "Funções (13)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`atualidade(linhas, campo, dias=1)`"], ["`completude(linhas, campos=None)`"], ["`conferir(linhas, regras, parar_em=0)`"], ["`duplicadas(linhas, campos)`"], ["`esperar(linhas, regras, minimo=1.0)`"], ["`fora_da_faixa(linhas, campo, minimo=None, maximo=None)`"], ["`formatos()`"], ["`perfil(linhas, amostra=0)`"], ["`preencher(linhas, padroes)`"], ["`relatorio(resultado, largura=72)`"], ["`sem_duplicadas(linhas, campos=None)`"], ["`so_validas(linhas, regras)`"], ["`unicidade(linhas, campo)`"]]}},
+  {"h2": "Funções (16)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`atualidade(linhas, campo, dias=1)`"], ["`completude(linhas, campos=None)`"], ["`conferir(linhas, regras, parar_em=0)`"], ["`deriva(esperado, recebido)`"], ["`duplicadas(linhas, campos)`"], ["`esperar(linhas, regras, minimo=1.0)`"], ["`esquema_de(linhas, amostra=0)`"], ["`exigir_esquema(linhas, esperado, amostra=0)`"], ["`fora_da_faixa(linhas, campo, minimo=None, maximo=None)`"], ["`formatos()`"], ["`perfil(linhas, amostra=0)`"], ["`preencher(linhas, padroes)`"], ["`relatorio(resultado, largura=72)`"], ["`sem_duplicadas(linhas, campos=None)`"], ["`so_validas(linhas, regras)`"], ["`unicidade(linhas, campo)`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-13', text: "Funções (13)", level: 2 as const }];
+const headings = [{ id: 'funcoes-16', text: "Funções (16)", level: 2 as const }];
 
 export default function Pagina() {
   return (
