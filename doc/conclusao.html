@@ -1,0 +1,1368 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataForge 1.1.1 — conclusão do estado da linguagem</title>
+<meta name="description" content="O que a linguagem tem, o que foi corrigido, o que ainda falta e se ela aguenta projeto grande — com todo número saindo de um comando.">
+<style>
+/* ──────────────────────────────────────────────────────────────
+   GERADO por tools/gerar_conclusao.py — não edite este arquivo.
+   Sem CDN, sem fonte remota, sem biblioteca. A linguagem promete
+   zero dependência; este relatório sobre ela não ia desmentir.
+   ────────────────────────────────────────────────────────────── */
+:root{
+  --fundo:#0d1017; --painel:#141922; --painel2:#1a2030; --borda:#242c3d;
+  --texto:#e6e9ef; --fraco:#8b95a9; --apagado:#5d6779;
+  --marca:#f4c95d; --verde:#4ec9a0; --vermelho:#ef6b73;
+  --azul:#6aa9f4; --roxo:#b48ce8; --laranja:#f0913e;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--fundo);color:var(--texto);
+  font:15px/1.65 var(--sans);-webkit-font-smoothing:antialiased;
+}
+.env{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* ── cabeçalho ── */
+header{
+  border-bottom:1px solid var(--borda);
+  background:
+    radial-gradient(900px 340px at 12% -20%, rgba(244,201,93,.10), transparent 70%),
+    radial-gradient(700px 300px at 88% -10%, rgba(106,169,244,.08), transparent 70%);
+  padding:52px 0 36px;
+}
+.selo{
+  display:inline-flex;align-items:center;gap:8px;
+  font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--marca);background:rgba(244,201,93,.10);
+  border:1px solid rgba(244,201,93,.28);border-radius:999px;padding:7px 13px;
+}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.1;margin:18px 0 10px;letter-spacing:-.02em}
+h1 small{display:block;font-size:.42em;font-weight:500;color:var(--fraco);letter-spacing:0;margin-top:10px}
+.resumo{max-width:70ch;color:var(--fraco);font-size:16px}
+.resumo strong{color:var(--texto)}
+
+/* ── painel de números ── */
+.numeros{
+  display:grid;gap:12px;margin-top:32px;
+  grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+}
+.num{
+  background:var(--painel);border:1px solid var(--borda);border-radius:11px;
+  padding:16px 15px;position:relative;overflow:hidden;
+}
+.num::after{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--cor,var(--marca))}
+.num b{display:block;font:700 27px/1 var(--mono);color:var(--cor,var(--marca));letter-spacing:-.02em}
+.num span{display:block;font-size:12px;color:var(--fraco);margin-top:6px;line-height:1.35}
+
+/* ── navegação ── */
+nav{position:sticky;top:0;z-index:20;background:rgba(13,16,23,.93);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--borda)}
+nav .env{display:flex;gap:4px;overflow-x:auto;padding-top:4px;padding-bottom:4px}
+nav button{
+  appearance:none;background:none;border:0;color:var(--fraco);cursor:pointer;
+  font:600 13px/1 var(--sans);padding:13px 15px;border-bottom:2px solid transparent;
+  white-space:nowrap;
+}
+nav button:hover{color:var(--texto)}
+nav button[aria-selected="true"]{color:var(--marca);border-bottom-color:var(--marca)}
+
+/* ── seções ── */
+main{padding:36px 0 60px}
+section h2{font-size:24px;margin:0 0 6px;letter-spacing:-.01em}
+section .sub{color:var(--fraco);max-width:76ch;margin:0 0 26px}
+h3{font-size:13px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;
+   color:var(--cor,var(--marca));margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+h3::after{content:"";flex:1;height:1px;background:var(--borda)}
+
+/* ── cartões ── */
+.cartoes{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.cartao{background:var(--painel);border:1px solid var(--borda);border-radius:11px;padding:16px 17px}
+.cartao h4{margin:0 0 7px;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cartao p{margin:0;color:var(--fraco);font-size:13.5px}
+.cartao ul{margin:10px 0 0;padding-left:17px;color:var(--apagado);font-size:12.5px}
+.cartao li{margin:3px 0}
+.cartao code{font:12.5px var(--mono);color:var(--marca);background:rgba(244,201,93,.08);
+             padding:1px 5px;border-radius:4px}
+
+/* ── pílulas ── */
+.pill{font:600 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;
+      padding:4px 8px;border-radius:999px;white-space:nowrap}
+.p-ok{color:var(--verde);background:rgba(78,201,160,.12);border:1px solid rgba(78,201,160,.3)}
+.p-falta{color:var(--laranja);background:rgba(240,145,62,.12);border:1px solid rgba(240,145,62,.3)}
+.p-bug{color:var(--vermelho);background:rgba(239,107,115,.12);border:1px solid rgba(239,107,115,.3)}
+.p-neutro{color:var(--fraco);background:rgba(139,149,169,.12);border:1px solid rgba(139,149,169,.28)}
+
+/* ── ferramentas de filtro ── */
+.ferramentas{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
+.ferramentas input[type=search]{
+  flex:1;min-width:220px;background:var(--painel);border:1px solid var(--borda);
+  border-radius:9px;color:var(--texto);font:13.5px var(--sans);padding:9px 12px;
+}
+.ferramentas input:focus{outline:2px solid rgba(244,201,93,.4);outline-offset:1px}
+.filtro{
+  appearance:none;cursor:pointer;background:var(--painel);border:1px solid var(--borda);
+  color:var(--fraco);border-radius:999px;font:600 12px/1 var(--sans);padding:8px 13px;
+}
+.filtro[aria-pressed="true"]{color:var(--fundo);background:var(--marca);border-color:var(--marca)}
+.conta{font:12px var(--mono);color:var(--apagado);margin-left:auto}
+
+/* ── bugs ── */
+.bug{background:var(--painel);border:1px solid var(--borda);border-radius:11px;margin:9px 0;overflow:hidden}
+.bug summary{cursor:pointer;list-style:none;padding:14px 16px;display:flex;gap:11px;align-items:center}
+.bug summary::-webkit-details-marker{display:none}
+.bug .seta{color:var(--apagado);font-size:10px;transition:transform .18s}
+.bug[open] .seta{transform:rotate(90deg)}
+.bug .titulo{flex:1;font-size:14px}
+.bug .titulo code{font:12.5px var(--mono);color:var(--marca)}
+.bug .corpo{padding:0 16px 16px;border-top:1px solid var(--borda);margin-top:2px;padding-top:14px}
+.antes-depois{display:grid;gap:10px;grid-template-columns:1fr 1fr;margin-bottom:12px}
+@media(max-width:720px){.antes-depois{grid-template-columns:1fr}}
+.quadro{border:1px solid var(--borda);border-radius:9px;overflow:hidden;background:var(--painel2)}
+.quadro .rotulo{font:600 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em;
+                padding:8px 11px;border-bottom:1px solid var(--borda)}
+.quadro.antes .rotulo{color:var(--vermelho)}
+.quadro.depois .rotulo{color:var(--verde)}
+.quadro pre{margin:0;padding:12px;font:12.5px/1.6 var(--mono);color:var(--fraco);
+            white-space:pre-wrap;word-break:break-word}
+.bug .corpo>p{margin:0;color:var(--fraco);font-size:13.5px}
+
+/* ── medidas ── */
+.medidas{display:grid;gap:10px}
+.medida{background:var(--painel);border:1px solid var(--borda);border-radius:11px;padding:14px 16px}
+.medida .topo{display:flex;justify-content:space-between;gap:14px;align-items:baseline}
+.medida .nome{font-size:13.5px}
+.medida .nome small{display:block;color:var(--apagado);font-size:12px;margin-top:3px}
+.medida .nome code{font:12px var(--mono);color:var(--marca)}
+.medida .valor{font:700 17px/1 var(--mono);color:var(--cor,var(--verde));white-space:nowrap}
+.barra{height:5px;border-radius:99px;background:var(--painel2);margin-top:11px;overflow:hidden}
+.barra i{display:block;height:100%;border-radius:99px;background:var(--cor,var(--verde));
+         width:0;transition:width 1s cubic-bezier(.2,.7,.3,1)}
+
+/* ── tabela ── */
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0 4px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--borda);vertical-align:top}
+th{font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--apagado)}
+td code{font:12.5px var(--mono);color:var(--marca)}
+td small{color:var(--apagado);font:11px var(--mono)}
+tbody tr:hover{background:var(--painel)}
+.rolagem{overflow-x:auto;border:1px solid var(--borda);border-radius:10px;background:var(--painel)}
+
+/* ── nota ── */
+.nota{
+  border-left:3px solid var(--cor,var(--azul));background:var(--painel);
+  border-radius:0 9px 9px 0;padding:14px 16px;margin:18px 0;font-size:13.5px;color:var(--fraco);
+}
+.nota b{color:var(--texto)}
+.rodape{border-top:1px solid var(--borda);margin-top:50px;padding:24px 0 0;
+        color:var(--apagado);font-size:12.5px}
+.rodape code{font:12px var(--mono);color:var(--fraco)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="env">
+    <span class="selo">● DataForge v1.1.1 — conclusão</span>
+    <h1>O estado da linguagem
+      <small>O que existe, o que foi corrigido, o que ainda falta — e se ela aguenta projeto grande.</small>
+    </h1>
+    <p class="resumo">
+      Tudo nesta página foi <strong>medido</strong> no repositório, e não lembrado:
+      a página é <strong>gerada</strong> por <code>tools/gerar_conclusao.py</code>, e
+      há teste reprovando quando ela diverge do código. A versão anterior era escrita
+      à mão e envelheceu exatamente como este projeto documenta que acontece —
+      anunciava 48 módulos onde há 86, e listava como "falta" quatro
+      coisas que passaram a existir. O que está ausente <strong>por decisão</strong>
+      continua separado do que falta, porque as duas coisas pedem respostas diferentes.
+    </p>
+    <div class="numeros" id="numeros"></div>
+  </div>
+</header>
+
+<nav>
+  <div class="env" role="tablist" id="abas"></div>
+</nav>
+
+<main class="env">
+
+  <!-- ══════════════ O QUE JÁ TEM ══════════════ -->
+  <section id="tem" role="tabpanel">
+    <h2>O que a linguagem já tem</h2>
+    <p class="sub">
+      Não é um DSL nem um transpilador: lexer, parser recursivo descendente, AST
+      tipada, analisador estático, seis representações intermediárias e interpretador
+      de árvore próprios, em 139,092 linhas de Python
+      <strong>sem uma única dependência externa</strong> no runtime.
+    </p>
+
+    <h3 style="--cor:var(--verde)">A linguagem — 81 palavras reservadas, 231 funções embutidas, 219 códigos de erro</h3>
+    <div class="cartoes" id="c-linguagem"></div>
+
+    <h3 style="--cor:var(--azul)">A biblioteca padrão — 86 módulos, 2308 símbolos</h3>
+    <div class="rolagem"><table id="t-modulos">
+      <thead><tr><th>Área</th><th>Módulos</th><th>Símbolos</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <h3 style="--cor:var(--roxo)">As ferramentas — 66 comandos</h3>
+    <div class="cartoes" id="c-ferramentas"></div>
+
+    <h3 style="--cor:var(--laranja)">Os frameworks</h3>
+    <div class="cartoes" id="c-frameworks"></div>
+  </section>
+
+  <!-- ══════════════ BUGS CORRIGIDOS ══════════════ -->
+  <section id="corrigidos" role="tabpanel" hidden>
+    <h2>Bugs corrigidos</h2>
+    <p class="sub">
+      Achados por <strong>sondagem sistemática</strong> e por escrever documentação que
+      roda. Todos com teste que <strong>falha sem a correção</strong>. Clique para ver
+      o antes e o depois.
+    </p>
+
+    <div class="ferramentas">
+      <input id="busca" type="search" placeholder="Procurar — 'silêncio', 'defer', 'async', 'firmata'…" aria-label="Procurar nos bugs">
+      <button class="filtro" data-familia="*" aria-pressed="true">Todos</button>
+      <button class="filtro" data-familia="silencio" aria-pressed="false">O erro sumia</button>
+      <button class="filtro" data-familia="nome" aria-pressed="false">Nome ligado 2×</button>
+      <button class="filtro" data-familia="mensagem" aria-pressed="false">A mensagem mentia</button>
+      <button class="filtro" data-familia="classe" aria-pressed="false">Classe errada</button>
+      <button class="filtro" data-familia="dado" aria-pressed="false">Dado corrompido</button>
+      <span class="conta" id="conta-bugs"></span>
+    </div>
+    <div id="lista-bugs"></div>
+
+    <div class="nota" style="--cor:var(--marca)">
+      <b>O padrão que emergiu.</b> Correções de baterias diferentes eram
+      <b>a mesma coisa</b>: um nome ligado duas vezes, em silêncio, com o segundo
+      vencendo — argumento nomeado, parâmetro, chave de vault e captura de padrão.
+      Achar a família foi o que transformou correções pontuais numa regra.
+    </div>
+    <div class="nota" style="--cor:var(--azul)">
+      <b>E a segunda família.</b> Quase todos os outros compartilham uma forma:
+      <b>o erro existia e ninguém era avisado</b> — o <code>defer</code> que não
+      rodava, o <code>async</code> órfão, o <code>parallel</code> que engolia, o
+      corredor de testes que dizia "tudo verde", o endereço I²C que respondia zero.
+      Um programa que falha e sai com código 0 é pior que um que trava.
+    </div>
+  </section>
+
+  <!-- ══════════════ O QUE FALTA ══════════════ -->
+  <section id="falta" role="tabpanel" hidden>
+    <h2>O que ainda falta</h2>
+    <p class="sub">
+      Separado em dois: o que <strong>falta e cabe</strong>, e o que
+      <strong>não existe por decisão</strong> — com o motivo escrito, para não virar
+      promessa. A segunda lista é <strong>lida do código</strong>
+      (<code>Arcane.Ecossistema</code>), e não desta página: ela é conferida contra o
+      disco a cada execução da suíte.
+    </p>
+
+    <h3 style="--cor:var(--laranja)">Falta, e cabe</h3>
+    <div class="cartoes" id="c-cabe"></div>
+
+    <h3 style="--cor:var(--apagado)">Não existe, por decisão — 5 de 42 componentes</h3>
+    <div class="rolagem"><table id="t-decisao">
+      <thead><tr><th>O que não tem</th><th>O que há no lugar, e por quê</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <div class="nota" style="--cor:var(--laranja)">
+      <b>Sobre "sem bugs".</b> Toda área nova sondada ainda devolve algo. A taxa cai,
+      não chega a zero, e eu não diria que vai. O que mudou é que cada área sondada
+      ficou com teste guardando, e o <code>check</code> não ganhou um único falso
+      alarme em 568 arquivos em nenhuma das rodadas.
+    </div>
+    <div class="nota" style="--cor:var(--verde)">
+      <b>Quatro ausências desta página deixaram de existir.</b> A versão anterior
+      listava como "falta" o watchpoint no depurador, a sessão da Vitrine fora do
+      processo, a fila com persistência e o literal decimal. Os quatro existem hoje —
+      e é exatamente por isso que esta página passou a ser gerada.
+    </div>
+  </section>
+
+  <!-- ══════════════ VOLUME ══════════════ -->
+  <section id="volume" role="tabpanel" hidden>
+    <h2>Aguenta projeto grande?</h2>
+    <p class="sub">
+      A pergunta tem três metades, e elas têm respostas diferentes:
+      <strong>o código cresce bem?</strong>, <strong>o dado cresce bem?</strong> e
+      <strong>a máquina dá conta?</strong> Cada número abaixo saiu de um comando.
+    </p>
+
+    <h3 style="--cor:var(--verde)">Escala de código — o que segura um projeto de 200 arquivos</h3>
+    <div class="cartoes" id="c-escala"></div>
+
+    <h3 style="--cor:var(--azul)">Escala de dado — medido nesta máquina</h3>
+    <div class="medidas" id="m-dados"></div>
+
+    <h3 style="--cor:var(--roxo)">Escala de máquina</h3>
+    <div class="medidas" id="m-maquina"></div>
+
+    <div class="nota" style="--cor:var(--vermelho)">
+      <b>O teto honesto.</b> É um interpretador de árvore com compilação para
+      fechamentos: 1,5× a 1,8× sobre a árvore pura. Uma VM de bytecode
+      <b>escrita em Python</b> tem teto de ~6,5×, porque continua sendo Python
+      rodando o laço de despacho. Para trabalho de CPU pesado, a resposta é
+      <code>P.map_processos</code> — 4,71× medido em 10 núcleos — ou a ponte para o
+      Python, onde o <code>numpy</code> faz a conta sem cópia na fronteira.
+    </div>
+    <div class="nota" style="--cor:var(--laranja)">
+      <b>E a otimização que não rendeu.</b> O inventário do LIR apontou dez nós que
+      recuavam dentro de laço, e todos ganharam construtor. Na carga feita
+      <i>daqueles nós</i>, 1,33×; nos 397 exercícios reais, <b>1,01× —
+      nada</b>. O que recua é dominado por nós que rodam uma vez. Os três passes
+      ficam desligados por padrão, e valem pela informação, não pela velocidade.
+    </div>
+  </section>
+
+  <!-- ══════════════ PRINCÍPIOS ══════════════ -->
+  <section id="principios" role="tabpanel" hidden>
+    <h2>Os dez princípios, com o veredito</h2>
+    <p class="sub">
+      Lidos de <code>Arcane.Principios</code>, onde cada um tem uma <strong>prova que
+      roda</strong>. O veredito não é dez de dez — um relatório que aprovasse os dez
+      seria a prova de que ninguém o leu, e há teste cobrando que exista pelo menos
+      um parcial.
+    </p>
+    <div class="rolagem"><table id="t-principios">
+      <thead><tr><th>Princípio</th><th>Como ele vale aqui</th><th>Veredito</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <h3 style="--cor:var(--laranja)">As tensões — onde dois princípios se puxam</h3>
+    <div class="rolagem"><table id="t-tensoes">
+      <thead><tr><th>Entre</th><th>A tensão</th><th>A escolha</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <!-- ══════════════ COMO SE SABE ══════════════ -->
+  <section id="prova" role="tabpanel" hidden>
+    <h2>Como se sabe que está verde</h2>
+    <p class="sub">
+      Nenhuma afirmação desta página depende de leitura de código. Estes são os
+      portões, e todos rodam a cada mudança — o portão completo é
+      <code>bash scripts/verificar_tudo.sh</code>, que ainda regera tudo e confere o
+      diff, compila o site e a extensão, e pede cada arquivo do release para ver se
+      ele baixa de verdade.
+    </p>
+    <div class="rolagem"><table id="t-portoes">
+      <thead><tr><th>Portão</th><th>O que cobre</th><th>Estado</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <h3 style="--cor:var(--marca)">As travas que impedem a documentação de envelhecer</h3>
+    <div class="cartoes" id="c-travas"></div>
+
+    <div class="nota" style="--cor:var(--verde)">
+      <b>A regra que gerou quase tudo isto.</b> Ao corrigir um bug, escreva
+      <b>primeiro</b> o teste que falha. É o que transformou impressões em correções
+      — e é por isso que cada linha da aba "corrigidos" tem um teste que reprova sem
+      ela.
+    </div>
+    <div class="nota" style="--cor:var(--azul)">
+      <b>E a lição que mais se repetiu.</b> Comparar contra uma fonte de verdade, e
+      não reler o código. Os defeitos mais caros daqui — 649 falsos alarmes num
+      projeto gerado, 795 avisos falsos de módulo não encontrado, a extensão ausente
+      do wheel — todos passavam na suíte, e todos apareceram ao rodar a ferramenta
+      contra algo maior do que ela tinha visto.
+    </div>
+  </section>
+</main>
+
+<footer class="env rodape">
+  <p>
+    <b>Gerado</b> em 22/09/2026 por <code>tools/gerar_conclusao.py</code>, a partir do
+    repositório na <code>commit a959a21</code>. Não edite este arquivo à mão: rode o
+    gerador. Sem CDN, sem fonte remota, sem biblioteca — a linguagem promete zero
+    dependência, e este relatório sobre ela não ia desmentir.
+  </p>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   OS DADOS — medidos no repositório, não lembrados.
+   ═══════════════════════════════════════════════════════════════ */
+const N = {
+"versao": "1.1.1",
+"modulos": 86,
+"simbolos": 2308,
+"comandos": 66,
+"erros": 219,
+"palavras": 81,
+"embutidas": 231,
+"testes": 3850,
+"exercicios": 397,
+"modulos_de_exercicio": 58,
+"exemplos": 50,
+"arquivos_df": 513,
+"paginas": 807,
+"blocos": 2357,
+"blocos_totais": 3753,
+"linhas": 139092,
+"capitulos": 18,
+"pacotes": 20
+};
+const NUMEROS = [
+{
+"v": "3.850",
+"r": "testes passando",
+"c": "var(--verde)"
+},
+{
+"v": "2.308",
+"r": "símbolos em 86 módulos",
+"c": "var(--azul)"
+},
+{
+"v": "397",
+"r": "exercícios com assert",
+"c": "var(--roxo)"
+},
+{
+"v": "807",
+"r": "páginas de documentação",
+"c": "var(--marca)"
+},
+{
+"v": "2.357",
+"r": "blocos da doc que compilam",
+"c": "var(--laranja)"
+},
+{
+"v": "513",
+"r": "arquivos .df no repositório",
+"c": "var(--verde)"
+},
+{
+"v": "0",
+"r": "erros do check em 568 arquivos",
+"c": "var(--azul)"
+},
+{
+"v": "0",
+"r": "dependências externas",
+"c": "var(--marca)"
+}
+];
+const ABAS = [
+[
+"tem",
+"O que já tem"
+],
+[
+"corrigidos",
+"Bugs corrigidos"
+],
+[
+"falta",
+"O que falta"
+],
+[
+"volume",
+"Aguenta volume?"
+],
+[
+"principios",
+"Os dez princípios"
+],
+[
+"prova",
+"Como se sabe"
+]
+];
+const LINGUAGEM = [
+{
+"t": "Núcleo",
+"s": "ok",
+"p": "<code>:=</code>, <code>given/orif/otherwise</code>, <code>cycle/persist</code>, <code>action/yield</code>, pipelines <code>&gt;&gt; sift/morph/distill</code> — e os seis verbos de quadro (<code>onde</code>, <code>pegar</code>, <code>sem</code>, <code>ordenar</code>, <code>agrupar</code>, <code>resumir</code>), que são contextuais e não tomam o nome de ninguém."
+},
+{
+"t": "Tipos",
+"s": "ok",
+"p": "Anotação opcional, cobrada nas duas pontas. Generics com limite (<code>&lt;T extends X&gt;</code>) conferidos na chamada e em execução, inclusive através de um <code>adopt</code>. <code>type</code> com alias, união, interseção, refinamento e tipo opaco. Tuplas com um tipo por casa."
+},
+{
+"t": "Padrões",
+"s": "ok",
+"p": "<code>match</code> estrutural completo: sequência, vault, record, enum, tipo, guarda e <code>or</code>. A exaustividade é conferida inclusive no padrão <b>aninhado</b> — <code>[Cor.A, x]</code> sem o <code>Cor.B</code> agora avisa."
+},
+{
+"t": "Erros",
+"s": "ok",
+"p": "Hierarquia própria com <code>.causa</code>, <code>monitor/handle/ensure</code>, <code>defer</code>, <code>retry</code>, <code>guard</code> — e três famílias novas (domínio, reativo, memória estruturada), porque <code>RuntimeError</code> em tudo mata a distinção na fronteira do <code>handle</code>."
+},
+{
+"t": "Concorrência",
+"s": "ok",
+"p": "<code>thread</code>, <code>parallel</code>, <code>async/await</code>, canais bloqueantes, mutex, semáforo, barreira, STM, atores — e <code>map_processos</code>, que usa núcleos de verdade. O laço de eventos atende 2 mil conexões numa thread só."
+},
+{
+"t": "Módulos",
+"s": "ok",
+"p": "<code>adopt</code>/<code>relay</code> (com renomeação), resolução numa implementação só, carga única, ciclo é erro <b>no check</b>, e o analisador atravessa a fronteira conferindo aridade, tipo de parâmetro e tipo de retorno."
+},
+{
+"t": "OOP",
+"s": "ok",
+"p": "Blueprints, traits, records, enums com método, contratos (<code>requires</code>/<code>promises</code>/<code>invariant</code>), sobrecarga, metaclasses, reflexão que respeita visibilidade, injeção de dependência — e custo zero para quem não usa: três <code>None</code> e dois atalhos por blueprint mantêm o acesso a campo mais rápido do que era antes dos recursos."
+},
+{
+"t": "Hardware",
+"s": "ok",
+"p": "<code>Arcane.IoT</code>: porta serial escrita aqui (sem <code>pyserial</code>), Firmata 2.x, MQTT 3.1.1, seis sketches em C++ que o <code>arduino-cli</code> compila — e um simulador de placa que fala os mesmos bytes, para o programa de hardware ter teste."
+}
+];
+const AREAS_STDLIB = [
+[
+"Núcleo",
+"Math (72), Text (59), IO (33), Regex (46), Collections (63), Functional (56), Iter (44), Decimal (16), Bytes (25), Algoritmos (16)",
+"430"
+],
+[
+"Frameworks",
+"Kiln (80), Vitrine (213), Telegram (37), Lavra (42), Crucible (61), Forge (31), API (7)",
+"471"
+],
+[
+"Dados",
+"Quadro (10), Data (13), Analytics (65), Cortex (25), Lago (18), Pipeline (11), Qualidade (13), Stream (17)",
+"172"
+],
+[
+"Formatos",
+"Serialization (26), Excel (29), Archive (13), Database (64), Html (11)",
+"143"
+],
+[
+"Sistema e rede",
+"OS (43), Process (15), Time (54), Http (17), Web (11), Async (52), Concurrent (35), Ponte (12), Malha (23), Rede (16), Email (6), Url (14), GitHub (19)",
+"317"
+],
+[
+"Qualidade",
+"Test (34), Bench (7), Logging (14), Crypto (53), Seguranca (54), Politica (6), Chaves (6), Deteccao (7), Privacidade (10), Integridade (6), Observar (22), Color (66), Meta (12), Cli (12), Eventos (10)",
+"319"
+],
+[
+"Objetos",
+"Reflexo (38), Objetos (13), Injecao (5), Padroes (20)",
+"76"
+],
+[
+"Domínio",
+"Dominio (23), Reativo (18), Estrutura (33)",
+"74"
+],
+[
+"Tipos",
+"Tipos (10), Resultado (13)",
+"23"
+],
+[
+"Memória",
+"Posse (16), Memoria (24)",
+"40"
+],
+[
+"Concorrência",
+"Laco (29), Stm (13), Perfil (16)",
+"58"
+],
+[
+"Metaprogramação",
+"Macro (13), Dsl (18)",
+"31"
+],
+[
+"Baixo nível",
+"C (25), Compilador (26)",
+"51"
+],
+[
+"IoT",
+"IoT (28)",
+"28"
+],
+[
+"Partida",
+"Inicio (15), Capacidade (6)",
+"21"
+],
+[
+"Distribuição",
+"Abi (10), Alvo (7), Evolucao (5)",
+"22"
+],
+[
+"A própria implementação",
+"Ecossistema (11), Principios (6), Percurso (5), Gramatica (10)",
+"32"
+]
+];
+const FERRAMENTAS = [
+{
+"t": "dataforge check",
+"p": "Análise estática que atravessa arquivos: nomes, aridade, tipos, alcance, exaustividade, escrita concorrente, posse, genéricos e índice fora da faixa. Ele é <b>otimista de propósito</b>: quando não consegue provar, cala — um falso alarme ensina a ignorar mensagens."
+},
+{
+"t": "dataforge test",
+"p": "Corredor próprio com cobertura de linha, instantâneos, banco isolado por teste e mínimo que reprova no CI. Ele já disse \"tudo verde\" com um <code>trial</code> reprovado — a pior falha possível num corredor de testes, e hoje há teste guardando."
+},
+{
+"t": "dataforge big-o",
+"p": "Lê a árvore e diz a classe de cada ação — <b>e o motivo</b>. Errar a classe é pior que não ter a ferramenta, porque o relatório é curto o bastante para ser lido como verdade."
+},
+{
+"t": "dataforge debug / dap",
+"p": "Depurador no terminal e no painel do editor: parada condicional, contagem, logpoint, cada thread parando sozinha — e <b>vigia</b>, de escrita e de leitura, que são mecanismos diferentes e não uma opção do mesmo."
+},
+{
+"t": "dataforge ir / oop / profile",
+"p": "As seis fases do compilador como dado, as métricas CK com os cheiros de SOLID, e o tempo <b>próprio</b> por ação (o acumulado somaria mais de 100%)."
+},
+{
+"t": "dataforge iot",
+"p": "<code>portas</code>, <code>doctor</code>, <code>monitorar</code>, <code>sketch</code>, <code>carregar</code>, <code>piscar</code>. O <code>doctor</code> é o mais útil: uma placa que não responde também não dá erro, e as causas são poucas e sempre as mesmas."
+}
+];
+const FRAMEWORKS = [
+{
+"t": "Kiln — web",
+"p": "Rotas, middleware, sessão, templates, upload multipart, SSE e WebSocket com o RFC 6455 falado à mão. Onze palavras contextuais, nenhuma reservada."
+},
+{
+"t": "Vitrine — painéis",
+"p": "O programa de cima a baixo vira página. Componentes, gráficos em SVG escrito no servidor e ~6 KB de cliente sem build nem CDN — uma biblioteca de CDN quebra qualquer app em rede fechada, que é onde painel de dados costuma rodar."
+},
+{
+"t": "Lavra — consulta tipada",
+"p": "O equivalente de GraphQL: esquema a partir dos records, resolvedores, diretivas, assinaturas, lote contra N+1, limites de profundidade e federação."
+},
+{
+"t": "Crucible — testes",
+"p": "<code>crucible</code>/<code>trial</code>/<code>expect</code> como palavras da linguagem. Matchers, dublês, propriedades, instantâneos, cenários dado/quando/então e relatório JUnit."
+},
+{
+"t": "Malha — serviços",
+"p": "Chamada entre serviços com retry, disjuntor nos três estados, propagação de rastro e saga com compensação inversa. Ela devolve <b>vault</b> em vez de levantar: <code>status 0</code> é o caso honesto de \"não se sabe\", e colapsá-lo em \"falhou\" faz o programa acima repetir uma cobrança."
+},
+{
+"t": "Forge — ORM",
+"p": "Modelos, relações e migrações sobre o <code>Arcane.Database</code>, com transação, upsert, índice, busca textual FTS5 — e <code>Forge.esperar(url)</code>, que espera o banco do contêiner aceitar conexão sem repetir uma senha errada por quarenta segundos."
+}
+];
+const BUGS = [
+{
+"fam": "silencio",
+"t": "Um <code>defer</code> dentro de um laço nunca rodava",
+"antes": "cycle a in arquivos:\n    f := abrir(a)\n    defer:\n        f.fechar()    // nunca",
+"depois": "O defer roda na saída da AÇÃO,\nonde quer que esteja escrito —\ninclusive no topo do programa.",
+"p": "Ele se registrava no escopo em que aparece, e só o da ação era consultado. Fechar arquivo por volta é o uso mais óbvio que existe."
+},
+{
+"fam": "silencio",
+"t": "Nem o <code>defer</code> engolia — e engolia",
+"antes": "defer:\n    f.fechar()   // falhou?\n// o erro era DESCARTADO,\n// e o programa saía com 0",
+"depois": "o erro do defer viaja; se a ação\njá falhava, viaja o original e\no do defer vai em .outros",
+"p": "Era o modelo do <i>try-with-resources</i> ao contrário. Um arquivo não fechado terminava o programa com código zero, e isso estava escrito na trilha como se fosse decisão."
+},
+{
+"fam": "silencio",
+"t": "Tarefa <code>async</code> órfã saía com código 0",
+"antes": "async action falhar():\n    trigger \"ninguem vai ver\"\n\nesquecida := falhar()\nout \"segui\"      // codigo 0",
+"depois": "O erro é desenhado e o programa\nreprova a saída — como thread\ne parallel já faziam.",
+"p": "É o mesmo defeito que fez o Node derrubar o processo numa promessa rejeitada sem tratamento: o trabalho quebra e o CI fica verde."
+},
+{
+"fam": "silencio",
+"t": "<code>dataforge test</code> dizia \"tudo verde\" com um <code>trial</code> reprovado",
+"antes": "✓ tests/a_test.df (1/1)\n1 passaram em 1 arquivo(s)\nTudo verde.        → código 0",
+"depois": "um Resultado por TRIAL, com o\nestado vindo de crucible.Resultado\n— e o código de saída certo",
+"p": "Um teste que falha reportando \"tudo verde\" é a pior falha possível num corredor de testes: a suíte fica vermelha e o CI passa. Achado gerando um projeto de 281 arquivos, onde 30 arquivos com 2 <code>trial</code> cada relatavam \"30 passaram\"."
+},
+{
+"fam": "silencio",
+"t": "Um endereço I²C sem dispositivo respondia <b>zero</b>",
+"antes": "dados := placa.i2c_ler(0x77, 0xD0, 1)\n// [0] — um sensor \"presente\"\n// medindo nada",
+"depois": "void — fio solto, endereço errado\ne sensor sem energia dão o mesmo\nresultado no fio: silêncio",
+"p": "Era o simulador ensinando o contrário do que acontece com um fio solto. Devolver zeros ali fazia o programa tratar ausência como leitura."
+},
+{
+"fam": "nome",
+"t": "Argumento nomeado repetido descartava o primeiro",
+"antes": "f(a := 1, a := 2)   // a valia 2\nP(x := 1, x := 2)   // record com 2",
+"depois": "'a' was given twice in the same\ncall. Remove one of them.",
+"p": "Num vault a última chave vencer é regra escrita; numa chamada é engano, e adivinhar qual dos dois valores sobra não dá. Quatro correções de baterias diferentes eram <b>a mesma coisa</b>: um nome ligado duas vezes, em silêncio, com o segundo vencendo."
+},
+{
+"fam": "nome",
+"t": "Duas instruções na mesma linha passavam",
+"antes": "x := 1 out x       // aceito\n// e o // com dígito virava\n// divisão sem ninguém ver",
+"depois": "Unexpected IDENTIFIER after a\ncomplete statement on the same line.\nPut each statement on its own line.",
+"p": "A primeira versão comparava com o token anterior errado e deu <b>460</b> falsos alarmes; pular NEWLINE, INDENT e DEDENT resolveu — e a trava então encontrou 17 blocos inválidos na própria documentação."
+},
+{
+"fam": "classe",
+"t": "Busca binária recursiva classificada como O(2ⁿ)",
+"antes": "dataforge big-o busca.df\n→ O(2^n)",
+"depois": "→ O(log n)",
+"p": "As duas chamadas estão em ramos <b>mutuamente exclusivos</b> e eram somadas; e a bisseção mora em <code>meio := (baixo+alto) ~/ 2</code>. Acusar a busca binária de exponencial é o pior erro possível nesse analisador."
+},
+{
+"fam": "classe",
+"t": "Fibonacci <b>memoizado</b> ainda dado como O(2ⁿ)",
+"antes": "mark @memo\naction fib(n): …\n→ O(2^n)  \"considere memoizar\"",
+"depois": "→ O(n)",
+"p": "O aviso do O(2ⁿ) manda memoizar, e quem seguia o conselho recebia o mesmo aviso de volta."
+},
+{
+"fam": "mensagem",
+"t": "O texto do Firmata perdia o acento",
+"antes": "Firmata.sendString(\"olá\")\n→ \"olC!\"",
+"depois": "→ \"olá\"",
+"p": "Todo byte de dado viaja partido em dois de sete bits, e ler só o primeiro de cada par devolve a metade baixa. Em ASCII ninguém nota, porque ali o bit 7 é zero: o defeito fica escondido até a primeira mensagem em português."
+},
+{
+"fam": "mensagem",
+"t": "As flags do <code>dataforge iot</code> nunca chegavam",
+"antes": "dataforge iot sketch pisca --em=/tmp\n// o código ia para a TELA,\n// e nada era escrito",
+"depois": "escrito: /tmp/pisca/pisca.ino",
+"p": "O despachante da CLI separa <code>--x=y</code> dos argumentos e entrega duas listas; o subcomando lia só uma. Uma flag que some sem erro é indistinguível de uma flag que não existe."
+},
+{
+"fam": "nome",
+"t": "<code>given</code> não publicava o nome, e <code>monitor</code> publicava",
+"antes": "given n % 2 is 0:\n    rotulo := \"par\"\notherwise:\n    rotulo := \"impar\"\nout rotulo   // não definido",
+"depois": "o nome sai do ramo; o TIPO não —\nos ramos são exclusivos, e herdar\no tipo acusaria código certo",
+"p": "O padrão mais comum que existe não funcionava. A correção precisou de três arquivos (interpretador, analisador e compilador de fechamentos): esquecer o terceiro faria a linguagem responder duas coisas conforme a compilação estivesse ligada."
+},
+{
+"fam": "silencio",
+"t": "<code>root</code> entrava em laço com três níveis de herança",
+"antes": "A ← B ← C\nC.v() → B.v() → B.v() → …",
+"depois": "uma fatia da MRO cortada depois\nde __dono__ — o diamante resolve\npor C3, como o super() do Python",
+"p": "Com dois níveis a conta dava certo, e <b>toda</b> herança do repositório tinha dois níveis. Só um projeto grande mostra isso."
+},
+{
+"fam": "dado",
+"t": "O empacotamento mentia sem dar erro",
+"antes": "pip install dataforge-lang\ndataforge editor\n→ \"os arquivos da extensao\n   nao foram encontrados\"",
+"depois": "o teste CONSTRÓI o wheel\ne olha dentro",
+"p": "Os globs de <code>package-data</code> eram relativos à pasta do pacote, e a extensão mora na raiz: zero arquivo dela no wheel. Dois testes conferiam o <b>texto</b> do <code>pyproject.toml</code> e passavam — conferir o texto de um arquivo de build não diz o que o build produz."
+}
+];
+const CABE = [
+{
+"t": "<code>Cluster&lt;T&gt;</code> e <code>Vault&lt;K,V&gt;</code>",
+"s": "falta",
+"p": "<code>&lt;T&gt;</code> e <code>&lt;T extends X&gt;</code> existem e são cobrados nas duas metades. O tipo do <b>conteúdo</b> de uma coleção, não.",
+"li": [
+"Um campo que é <code>Cluster&lt;T&gt;</code> em vez de <code>T</code> puro fica de fora — descer na coleção seria impreciso",
+"Hoje a linguagem ao menos <b>diz isso</b>"
+]
+},
+{
+"t": "Herdar com argumento de tipo",
+"s": "falta",
+"p": "<code>blueprint Filha&lt;T&gt; extends Caixa&lt;T&gt;</code> é erro de sintaxe: o <code>extends</code> aceita o nome, não a instanciação.",
+"li": [
+"O campo genérico herdado funciona porque o parâmetro da filha resolve o da mãe pelo <b>nome</b>",
+"Com nomes diferentes, o analisador cala em vez de adivinhar"
+]
+},
+{
+"t": "Vigia de leitura por <b>expressão</b>",
+"s": "falta",
+"p": "Parar quando <code>saldo</code> é lido existe, e casa por nome ou por nome de campo. <code>v[\"k\"].campo</code>, não.",
+"li": [
+"No terminal, as paradas de threads diferentes se enfileiram — um terminal é uma conversa só"
+]
+},
+{
+"t": "Exaustividade além do produto de enums",
+"s": "falta",
+"p": "O <code>match</code> avisa em cinco formas, inclusive no padrão aninhado. Uma posição com <b>literal</b> faz a regra calar.",
+"li": [
+"<code>[Cor.A, 0]</code> não cobre <code>[Cor.A, *]</code>",
+"Um ramo com guarda nunca conta como cobertura"
+]
+},
+{
+"t": "Um <i>shim</i> de versão no PATH",
+"s": "falta",
+"p": "Versões lado a lado, pino por projeto e <code>workspace</code> existem, e o pino é <b>cobrado</b> — <code>dataforge run</code> troca por <code>os.execve</code>.",
+"li": [
+"O que não há é um atalho no PATH que resolva a versão antes de o Python subir",
+"O <code>dataforge</code> que se chama é o instalado, e é ele que redireciona"
+]
+}
+];
+const DECISAO = [
+[
+"LLVM Backend <small>(dfc — o compilador)</small>",
+"O backend e 'compilador.py': a arvore e percorrida uma vez e vira fechamentos python, o que tira o despacho do caminho quente. medido: 1,5x a 1,8x. <b>Por quê:</b> amarrar o LLVM tiraria a unica propriedade inegociavel do projeto — zero dependencia externa no runtime. E o teto desta tecnica, como o de uma VM de bytecode escrita em Python, e ~6,5x: o resto exigiria sair do Python, que e outra linguagem, nao outra fase."
+],
+[
+"Code Generator <small>(dfc — o compilador)</small>",
+"Nao ha. o que sai do compilador e um fechamento, e quem o executa e 'interpreter.py'. <b>Por quê:</b> sem backend nativo nao ha o que gerar. 'dataforge ir --fase=lir' e onde isso fica visivel, e e de proposito: a fase existe no mapa para que a ausencia tenha lugar."
+],
+[
+"Allocator <small>(Runtime)</small>",
+"O alocador e o do cpython. 'arcane.memoria' da arena, referencia fraca, mapa fraco e controle do coletor (ligar, desligar, limiares, congelar). <b>Por quê:</b> trocar o alocador exigiria estar do lado de fora do CPython. O que se pode fazer daqui — e se faz — e mandar no COLETOR e medir a pausa dele."
+],
+[
+"Bare-Metal Runtime <small>(Runtime)</small>",
+"Nao ha, e nao ha caminho a partir daqui: o runtime e o cpython. <b>Por quê:</b> 'Arcane.Alvo' nomeia 'embarcado' com o que falta em cada capacidade, justamente para que a ausencia apareca antes de alguem tentar."
+],
+[
+"Bare-Metal <small>(Alvos)</small>",
+"O interpretador nao roda na placa, e nao ha caminho para isso. o que ha e outra coisa, e ela e real: 'arcane.iot' controla a placa pelo cabo (firmata) e gera o c++ que roda nela — o codigo do metal existe, so nao e dataforge. <b>Por quê:</b> exigiria outro runtime inteiro; 'Arcane.Alvo' diz o que falta em cada capacidade do alvo 'embarcado'."
+]
+];
+const ESCALA_CODIGO = [
+{
+"t": "O analisador atravessa arquivos",
+"s": "ok",
+"p": "<code>P.naoExiste()</code> e <code>P.criar(1,2,3)</code> são acusados antes de rodar, mesmo vindo de outro <code>.df</code>. Aridade, tipo de parâmetro e tipo de retorno cruzam a fronteira.",
+"li": [
+"Num sistema de 200 arquivos, a maioria das chamadas cruza módulo",
+"Cache por (caminho, mtime): sem ele o <code>check</code> iria de 0,7 s a mais de um minuto"
+]
+},
+{
+"t": "A inferência usa o escopo de quem chama",
+"s": "ok",
+"p": "<code>D.valor_de(n)</code> dentro de uma ação virava <b>649 falsos alarmes</b> num projeto gerado de 252 arquivos — um por uso de parâmetro numa chamada entre módulos.",
+"li": [
+"E a suíte passava: os primeiros testes chamavam no nível de topo",
+"Quem pegou foi rodar o <code>check</code> no projeto grande"
+]
+},
+{
+"t": "Ciclo de import é erro",
+"s": "ok",
+"p": "E a cadeia inteira aparece — um ciclo de quatro arquivos é impossível de quebrar sem saber por onde ele passa. Busca em largura, para achar o mais curto.",
+"li": [
+"CommonJS devolve o módulo pela metade; ESM deixa numa zona morta",
+"Aqui é erro, no <code>check</code> e em execução"
+]
+},
+{
+"t": "O analisador vê dentro dos objetos",
+"s": "ok",
+"p": "<code>p.clientte</code> é acusado antes de rodar, com sugestão — e o tipo de retorno atravessa o <code>adopt</code>, senão o campo errado com o nome quase certo passava.",
+"li": [
+"Ele cala quando o membro vem da mãe, de um trait ou de <code>self.x := …</code>",
+"A primeira versão deu 32 falsos alarmes num exemplo que funciona há meses"
+]
+},
+{
+"t": "Gerenciador de pacotes",
+"s": "ok",
+"p": "semver com <code>^</code> <code>~</code> <code>&gt;=</code>, lockfile com sha256 que agora é <b>lido</b>, registro estático sem servidor, extração que recusa <code>../</code> e link simbólico.",
+"li": [
+"Um lockfile que ninguém lê não trava nada — e nenhum caminho de instalação o consultava",
+"Conflito de versão é erro, não aviso"
+]
+},
+{
+"t": "Recursão sem teto de mil quadros",
+"s": "ok",
+"p": "<code>yield f(…)</code> como retorno inteiro vira salto e reusa o quadro. Testado com 200 mil níveis.",
+"li": [
+"Quatro casos são recusados por análise, antes de rodar",
+"Uma travessia de árvore de 5 mil nós não tem nada de infinita"
+]
+}
+];
+const MEDIDAS_DADOS = [
+{
+"n": "Buscar num vault em vez de num cluster",
+"d": "100 mil itens — a razão cresce com n: 2,7× com 3 mil, 43× com 100 mil",
+"v": "43×",
+"pct": 100,
+"c": "var(--verde)"
+},
+{
+"n": "Índice em vez de varrer a tabela",
+"d": "20 mil linhas, 200 consultas — 73,6 ms → 4,4 ms",
+"v": "16,6×",
+"pct": 38,
+"c": "var(--azul)"
+},
+{
+"n": "Heap em vez de ordenar tudo, para os 10 maiores",
+"d": "300 mil itens — 25,7 ms → 1,7 ms",
+"v": "15×",
+"pct": 35,
+"c": "var(--azul)"
+},
+{
+"n": "Uma consulta agrupada em vez de N+1",
+"d": "500 clientes, 5 mil pedidos, banco em memória",
+"v": "6,4×",
+"pct": 22,
+"c": "var(--roxo)"
+},
+{
+"n": "A árvore guardada entre execuções",
+"d": "269 arquivos — a fase de parse cai de 258,7 ms para 17,9 ms",
+"v": "14×",
+"pct": 33,
+"c": "var(--azul)"
+},
+{
+"n": "<code>append</code> é O(1) amortizado",
+"d": "Dobrar n dobrou o tempo: 2,02× três vezes seguidas",
+"v": "2,02×",
+"pct": 14,
+"c": "var(--marca)"
+}
+];
+const MEDIDAS_MAQUINA = [
+{
+"n": "Processos de verdade, em CPU",
+"d": "8 blocos de CPU em 10 núcleos — 4.069 ms → 864 ms",
+"v": "4,71×",
+"pct": 100,
+"c": "var(--verde)"
+},
+{
+"n": "Travessia de processo (outra carga)",
+"d": "Série 1.607 ms · threads 1.654 ms · processos 466 ms",
+"v": "3,45×",
+"pct": 73,
+"c": "var(--verde)"
+},
+{
+"n": "Acesso a método de coleção",
+"d": "200 mil <code>append</code> — 0,77 s → 0,27 s (eram 146 lambdas por acesso)",
+"v": "2,9×",
+"pct": 61,
+"c": "var(--azul)"
+},
+{
+"n": "Compilação para fechamentos",
+"d": "A árvore vira funções Python, uma vez",
+"v": "1,5–1,8×",
+"pct": 36,
+"c": "var(--azul)"
+},
+{
+"n": "O laço de eventos contra thread por conexão",
+"d": "2.000 conexões: 151 ms numa thread e +0 MB, contra 161 ms, 2.000 threads e +36 MB — o tempo empata, a <b>forma da conta</b> não",
+"v": "1 thread",
+"pct": 30,
+"c": "var(--roxo)"
+},
+{
+"n": "Os três passes de otimização sobre o HIR",
+"d": "1,33× na carga feita dos nós que o inventário aponta; <b>1,01× nos exercícios reais</b> — e por isso ficam desligados",
+"v": "1,01×",
+"pct": 6,
+"c": "var(--vermelho)"
+},
+{
+"n": "Threads para trabalho de CPU",
+"d": "O GIL serializa: thread não é paralelismo aqui",
+"v": "0,97×",
+"pct": 5,
+"c": "var(--vermelho)"
+}
+];
+const PORTOES = [
+[
+"<code>pytest tests/</code>",
+"3850 funções de teste — regressões, Kiln, Vitrine, DAP, empacotamento, travessia, malha, complexidade, IoT",
+"verde"
+],
+[
+"<code>exercicios/run_all.py</code>",
+"397 exercícios em 58 módulos, cada um com <code>assert</code> verificando o próprio resultado",
+"verde"
+],
+[
+"<code>trilha/run_all.py</code>",
+"18 capítulos em ordem, com assert",
+"verde"
+],
+[
+"<code>tools/verificar_docs.py</code>",
+"2357 blocos de DataForge publicados no site, compilados a cada mudança",
+"verde"
+],
+[
+"<code>tests/test_paginas_novas_rodam.py</code>",
+"os blocos das páginas novas <b>rodam</b> — compilar não pega um <code>assert</code> errado",
+"verde"
+],
+[
+"<code>dataforge check</code> × 5 pastas",
+"568 arquivos: 0 erros",
+"verde"
+],
+[
+"<code>examples/*.df</code>",
+"50 programas maiores executados",
+"verde"
+],
+[
+"<code>npm run build</code>",
+"807 páginas de doc geradas e compiladas",
+"verde"
+],
+[
+"<code>dataforge ecossistema</code>",
+"42 componentes conferidos contra o disco — 31 existem, 6 equivalem, 5 não",
+"verde"
+]
+];
+const TRAVAS = [
+{
+"t": "O texto não pode divergir do código",
+"p": "Testes comparam a contagem de módulos, símbolos, testes, exercícios e blocos escritos à mão com a realidade. <b>Esta página era a maior exceção</b>, e passou a ser gerada."
+},
+{
+"t": "O gerado não pode divergir do gerador",
+"p": "A gramática do editor, as páginas da doc, os JSONs da API, o <code>llms.txt</code>, o roadmap e o índice dos exercícios são comparados com o que o gerador produz."
+},
+{
+"t": "Nenhuma mensagem cita tipo do Python",
+"p": "Há teste sobre o <b>código</b> do interpretador proibindo <code>type(x).__name__</code> dentro de f-string de mensagem — a trava achou três que ninguém tinha visto."
+},
+{
+"t": "Nenhum link interno aponta para rota inexistente",
+"p": "E nenhuma página de doc fica fora da navegação: quem procura, acha. Escrevendo as trilhas do roadmap, <b>8 de 36</b> rotas que eu \"sabia\" não existiam."
+},
+{
+"t": "Teste de desempenho cobra fator, nunca milissegundo",
+"p": "Um limite absoluto mede a máquina, não o algoritmo. E quando nem o fator basta, há o <b>ponto de calibração</b>: um algoritmo conhecidamente linear medido no mesmo instante — se ele não dá ~2, a máquina não está medindo, e o teste diz isso e pula."
+},
+{
+"t": "Todo módulo novo entra no mapa do ecossistema",
+"p": "<code>conferir()</code> cobra as duas direções: caminho citado que sumiu do disco, e módulo de <code>dataforge/</code> que não aparece em componente nenhum. Sem a segunda, um módulo novo nasce fora do mapa em silêncio."
+},
+{
+"t": "Todo bug corrigido tem teste que falha sem a correção",
+"p": "É a regra que gerou quase tudo o que está na aba \"corrigidos\" — e a única forma de o bug não voltar."
+}
+];
+const PRINCIPIOS = [
+{
+"n": 1,
+"t": "seguranca-por-padrao",
+"doc": "APIs seguras devem ser preferidas as operacoes inseguras.",
+"aqui": "a fronteira de capacidade nega por omissao dentro de 'Capacidade.executar', o zip e o tar recusam caminho para fora, a extracao de pacote recusa '../' e link simbolico, e nome de coluna nao vai cru para o SQL. Mas o analisador e OTIMISTA: a escrita concorrente e aviso, nao erro",
+"v": "parcial"
+},
+{
+"n": 2,
+"t": "custo-zero",
+"doc": "abstracoes de alto nivel devem compilar para codigo equivalente a implementacoes manuais.",
+"aqui": "nao ha compilacao para codigo nativo, e por isso a frase do documento nao tem como valer. O que vale — e e cobrado — e OUTRA leitura: uma abstracao custa zero para quem NAO a usa. Contrato, invariante, sobrecarga, metaclasse, 'exclusive' e 'lazy' vivem atras de tres sentinelas 'None', e o acesso a campo ficou mais rapido DEPOIS de os recursos existirem",
+"v": "nao-se-aplica"
+},
+{
+"n": 3,
+"t": "controle-explicito-de-recursos",
+"doc": "o desenvolvedor deve conseguir controlar memoria, threads, I/O e recursos do sistema.",
+"aqui": "'defer' roda na saida da acao onde quer que esteja escrito; 'Arcane.Posse' da posse exclusiva, emprestimo com escopo e contagem deterministica; 'Arcane.Memoria' liga e desliga o coletor, muda os limiares e congela; 'Arcane.Laco' entrega o escalonador",
+"v": "cumprido"
+},
+{
+"n": 4,
+"t": "compile-time-first",
+"doc": "verificacoes e computacoes que possam ocorrer durante a compilacao devem ser deslocadas para essa etapa.",
+"aqui": "o 'check' atravessa arquivos pela superficie, ve dentro dos objetos, prova o que um literal permite e recusa uma declaracao que se contradiz; 'comptime' calcula na leitura. O limite e deliberado: quando nao consegue PROVAR, ele cala",
+"v": "parcial"
+},
+{
+"n": 5,
+"t": "interoperabilidade",
+"doc": "integracao com C, C++, sistemas operacionais, bibliotecas nativas e hardware.",
+"aqui": "'Arcane.C' carrega biblioteca nativa, monta struct conferida contra a ABI e passa callback — o 'qsort' do C chama uma acao DataForge. E 'adopt Python.numpy' traz o ecossistema inteiro do Python SEM converter nada",
+"v": "cumprido"
+},
+{
+"n": 6,
+"t": "portabilidade",
+"doc": "suporte a multiplos sistemas operacionais, arquiteturas e targets.",
+"aqui": "a portabilidade e HERDADA do CPython: onde ele roda, o DataForge roda, e o release constroi e testa nas quatro plataformas. 'Arcane.Alvo' descreve seis ambientes e diz por que cada um nao tem o que nao tem",
+"v": "parcial"
+},
+{
+"n": 7,
+"t": "performance-observavel",
+"doc": "ferramentas de profiling, benchmarking e diagnostico devem fazer parte do ecossistema.",
+"aqui": "'profile' da o tempo PROPRIO por acao; 'bench' mede e classifica a curva; 'big-o' LE a complexidade da arvore; 'custo' estima; 'ir' e 'percurso' mostram as fases; 'Arcane.Perfil' tem percentis, flame graph e Mann-Whitney para dizer se a diferenca e real",
+"v": "cumprido"
+},
+{
+"n": 8,
+"t": "extensibilidade",
+"doc": "macros, plugins, DSLs e APIs internas devem permitir evolucao da linguagem.",
+"aqui": "'Arcane.Macro' trata a arvore como dado (citar, transformar, gerar, derivar); 'Arcane.Dsl' da combinadores para uma linguagem externa; o 'check' aceita plugin. E as palavras novas entram como CONTEXTUAIS, nao reservadas",
+"v": "cumprido"
+},
+{
+"n": 9,
+"t": "runtime-modular",
+"doc": "aplicacoes simples devem poder utilizar apenas os componentes de runtime necessarios.",
+"aqui": "um programa que nao adota nada carrega ZERO modulos da biblioteca: o dicionario de cada um e construido no 'adopt'. E nao ha dependencia externa no runtime — a biblioteca padrao usa apenas a do Python",
+"v": "cumprido"
+},
+{
+"n": 10,
+"t": "escalabilidade-tecnica",
+"doc": "desde aplicacoes convencionais ate sistemas de baixo nivel, kernels, embarcados e computacao de alto desempenho.",
+"aqui": "aplicacao, servidor e linha de comando: sim, e e onde a linguagem vive. Kernel, bare-metal e microcontrolador: nao, e nao ha caminho a partir daqui — o runtime e o CPython. Mais de um nucleo existe, por processo, e foi medido em 3,45x",
+"v": "parcial"
+}
+];
+const TENSOES = [
+{
+"entre": [
+"seguranca-por-padrao",
+"compile-time-first"
+],
+"escolha": "aviso, e nao erro, para a escrita concorrente",
+"porque": "um acumulador protegido por mutex passa pelo mesmo caminho de um sem protecao, e recusa-lo proibiria o uso correto. O aviso nomeia o que foi MEDIDO: seis pedidos simultaneos numa rota que le, espera e escreve entregaram 1 de 6",
+"custo": "um programa com bug de concorrencia passa pelo 'check'",
+"onde": "dataforge/typechecker.py — _CODIGO_CORRIDA"
+},
+{
+"entre": [
+"compile-time-first",
+"nao-dar-falso-alarme"
+],
+"escolha": "o analisador cala quando nao consegue provar",
+"porque": "a calibragem e 0 erros em 222 arquivos bons. A superficie devolve 'aberta' — e o analisador volta a calar — quando o outro arquivo nao compila, quando ha ciclo, quando a profundidade acaba e quando o 'relay' nomeia algo que so existe em execucao",
+"custo": "silencios reais e listados. Foram 649 falsos alarmes num projeto de 252 arquivos quando a inferencia usou o escopo errado, e a suite passava",
+"onde": "dataforge/superficie.py — aberta"
+},
+{
+"entre": [
+"custo-zero",
+"depurabilidade"
+],
+"escolha": "o depurador desliga a compilacao de fechamentos",
+"porque": "ele para em cada linha sombreando 'execute', e o corpo compilado passa por fora. Um depurador que enxerga metade das instrucoes e pior que um interpretador mais lento",
+"custo": "depurar e mais lento que rodar, e as duas execucoes nao sao o mesmo caminho — ha teste rodando os dois modos",
+"onde": "dataforge/depurador.py — compilar_corpos = False"
+},
+{
+"entre": [
+"custo-zero",
+"correcao"
+],
+"escolha": "o escopo do laco NAO e reaproveitado quando o corpo captura",
+"porque": "sem isso, as tres closures de um laco de tres voltas veriam todas o ultimo valor — o classico que o Python tem e que aqui nao acontece. '_corpo_captura_escopo' varre a arvore inteira, e nao so as instrucoes: um 'lambda' vive dentro de uma expressao",
+"custo": "a otimizacao mais perigosa do interpretador: erra-la nao da erro, da resposta errada",
+"onde": "dataforge/interpreter.py — _corpo_captura_escopo"
+},
+{
+"entre": [
+"extensibilidade",
+"nomes-bons-para-quem-escreve"
+],
+"escolha": "palavra nova entra como contextual",
+"porque": "'route', 'render', 'server', 'agrupar' e 'ordenar' sao nomes bons demais para tirar de quem escreve. Cada uma vale so onde o que vem depois confirma, e sete palavras reservadas ja foram removidas por serem caras sem entregar nada",
+"custo": "o parser fica mais complicado, e a gramatica do editor precisa de duas travas para nao envelhecer",
+"onde": "dataforge/tokens.py — CONTEXTUAIS_*"
+},
+{
+"entre": [
+"runtime-modular",
+"zero-dependencia-externa"
+],
+"escolha": "zero dependencia, e o codigo escrito a mao",
+"porque": "ChaCha20-Poly1305 pelo RFC 8439, o '.xlsx', o WebSocket pelo RFC 6455 e os graficos em SVG. Uma biblioteca de CDN quebra qualquer app em rede fechada — que e onde painel de dados costuma rodar",
+"custo": "criptografia e formato de arquivo escritos aqui, com o risco que isso tem. Ha teste proibindo 'http://', 'https://' e 'cdn' no CSS e no JS da Vitrine",
+"onde": "dataforge/stdlib/cifra.py — RFC 8439"
+},
+{
+"entre": [
+"portabilidade",
+"performance"
+],
+"escolha": "herdar a portabilidade do CPython",
+"porque": "e o que da Linux, macOS, Windows, ARM e ARM64 sem uma linha de codigo de arquitetura, e o que faz 'adopt Python.numpy' existir",
+"custo": "o teto. A compilacao de fechamentos da 1,5x a 1,8x medidos, e o teto dessa tecnica — e o de uma VM de bytecode escrita em Python — e ~6,5x: o resto exigiria sair do Python",
+"onde": "dataforge/compilador.py"
+},
+{
+"entre": [
+"controle-explicito-de-recursos",
+"seguranca-por-padrao"
+],
+"escolha": "o ponteiro cru existe, e e onde a protecao para",
+"porque": "FFI sem ponteiro nao e FFI. 'Arcane.C' recusa o nulo e confere o layout da struct contra a ABI, mas aritmetica de ponteiro e aritmetica de ponteiro",
+"custo": "um segmentation fault nao e um erro da linguagem: e o processo morrendo. A fronteira esta documentada em vez de fingida",
+"onde": "dataforge/stdlib/arcane_c.py"
+},
+{
+"entre": [
+"mensagem-util",
+"identidade-do-erro"
+],
+"escolha": "traduzir no DESENHO, nunca em 'error.message'",
+"porque": "'e.message' e o que um 'handle' compara e o que milhares de testes comparam. Traduzir ali mudaria o comportamento de programa ja escrito — e o que interessa a um programa e a identidade do erro, nao o idioma dele",
+"custo": "a camada de idioma precisa de um piso de cobertura, porque o que falta sai em ingles legivel: o fallback certo e tambem o que esconde o buraco",
+"onde": "dataforge/idioma.py"
+}
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   A MONTAGEM
+   ═══════════════════════════════════════════════════════════════ */
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/&(?!\w+;|#)/g, "&amp;");
+
+/* números do topo, com contagem animada */
+$("#numeros").innerHTML = NUMEROS.map((n, i) => `
+  <div class="num" style="--cor:${n.c}">
+    <b data-alvo="${n.v}" data-i="${i}">0</b><span>${n.r}</span>
+  </div>`).join("");
+
+function animarNumeros() {
+  const parado = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.querySelectorAll(".num b").forEach((el) => {
+    const alvo = el.dataset.alvo;
+    const fim = parseFloat(alvo.replace(/\./g, "").replace(",", ".")) || 0;
+    if (fim === 0 || parado) { el.textContent = alvo; return; }
+    const inicio = performance.now(), dur = 800 + Number(el.dataset.i) * 70;
+    (function passo(t) {
+      const p = Math.min(1, (t - inicio) / dur);
+      const suave = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(fim * suave).toLocaleString("pt-BR");
+      if (p < 1) requestAnimationFrame(passo); else el.textContent = alvo;
+    })(inicio);
+  });
+}
+
+/* abas */
+$("#abas").innerHTML = ABAS.map(([id, rot], i) => `
+  <button role="tab" data-alvo="${id}" aria-selected="${i === 0}">${rot}</button>`).join("");
+
+$("#abas").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-alvo]");
+  if (!b) return;
+  document.querySelectorAll("#abas button").forEach(x =>
+    x.setAttribute("aria-selected", String(x === b)));
+  ABAS.forEach(([id]) => { $("#" + id).hidden = id !== b.dataset.alvo; });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (b.dataset.alvo === "volume") requestAnimationFrame(desenharBarras);
+});
+
+/* cartões genéricos */
+const cartao = (c) => `
+  <div class="cartao">
+    <h4>${c.t}${c.s ? ` <span class="pill p-${c.s === "ok" ? "ok" : c.s === "bug" ? "bug" : "falta"}">${
+      c.s === "ok" ? "existe" : c.s === "bug" ? "quebrado" : "falta"}</span>` : ""}</h4>
+    <p>${c.p}</p>
+    ${c.li ? `<ul>${c.li.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
+  </div>`;
+
+$("#c-linguagem").innerHTML = LINGUAGEM.map(cartao).join("");
+$("#c-ferramentas").innerHTML = FERRAMENTAS.map(cartao).join("");
+$("#c-frameworks").innerHTML = FRAMEWORKS.map(cartao).join("");
+$("#c-cabe").innerHTML = CABE.map(cartao).join("");
+$("#c-escala").innerHTML = ESCALA_CODIGO.map(cartao).join("");
+$("#c-travas").innerHTML = TRAVAS.map(cartao).join("");
+
+$("#t-modulos tbody").innerHTML = AREAS_STDLIB.map(([a, m, s]) =>
+  `<tr><td><b>${a}</b></td><td>${m}</td><td><code>${s}</code></td></tr>`).join("")
+  + `<tr><td><b>Total</b></td><td style="color:var(--apagado)">${N.modulos} módulos</td>
+       <td><code style="color:var(--verde)">${N.simbolos}</code></td></tr>`;
+
+$("#t-decisao tbody").innerHTML = DECISAO.map(([o, p]) =>
+  `<tr><td><b>${o}</b></td><td>${p}</td></tr>`).join("");
+
+$("#t-portoes tbody").innerHTML = PORTOES.map(([p, c, e]) =>
+  `<tr><td>${p}</td><td>${c}</td><td><span class="pill p-${
+    e === "verde" ? "ok" : "falta"}">${e === "verde" ? "verde" : "atenção"}</span></td></tr>`).join("");
+
+$("#t-principios tbody").innerHTML = PRINCIPIOS.map(p => {
+  const cor = p.v === "cumprido" ? "p-ok" : p.v === "parcial" ? "p-falta" : "p-neutro";
+  return `<tr>
+    <td><b>${p.n}. ${p.t}</b><br><small>${esc(p.doc)}</small></td>
+    <td>${esc(p.aqui)}</td>
+    <td><span class="pill ${cor}">${p.v.replace(/-/g, " ")}</span></td>
+  </tr>`;
+}).join("");
+
+$("#t-tensoes tbody").innerHTML = TENSOES.map(t =>
+  `<tr><td><b>${esc(t.entre.join(" × "))}</b></td><td>${esc(t.tensao)}</td>
+       <td>${esc(t.escolha)}</td></tr>`).join("");
+
+/* bugs, com busca e filtro */
+const ROTULO_FAM = {
+  silencio: "o erro sumia", nome: "nome ligado 2×",
+  mensagem: "a mensagem mentia", classe: "classe errada", dado: "dado corrompido",
+};
+function pintarBugs() {
+  const termo = $("#busca").value.trim().toLowerCase();
+  const fam = $('.filtro[aria-pressed="true"]').dataset.familia;
+  const vistos = BUGS.filter(b => {
+    if (fam !== "*" && b.fam !== fam) return false;
+    if (!termo) return true;
+    return (b.t + b.p + b.antes + b.depois + ROTULO_FAM[b.fam])
+      .toLowerCase().includes(termo);
+  });
+  $("#lista-bugs").innerHTML = vistos.map(b => `
+    <details class="bug">
+      <summary>
+        <span class="seta">▶</span>
+        <span class="titulo"><b>${b.t}</b></span>
+        <span class="pill p-ok">${ROTULO_FAM[b.fam]}</span>
+      </summary>
+      <div class="corpo">
+        <div class="antes-depois">
+          <div class="quadro antes"><div class="rotulo">antes</div><pre>${esc(b.antes)}</pre></div>
+          <div class="quadro depois"><div class="rotulo">depois</div><pre>${esc(b.depois)}</pre></div>
+        </div>
+        <p>${b.p}</p>
+      </div>
+    </details>`).join("") ||
+    `<p style="color:var(--apagado)">Nada casou com essa busca.</p>`;
+  $("#conta-bugs").textContent = `${vistos.length} de ${BUGS.length}`;
+}
+$("#busca").addEventListener("input", pintarBugs);
+document.querySelectorAll(".filtro").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".filtro").forEach(x =>
+    x.setAttribute("aria-pressed", String(x === b)));
+  pintarBugs();
+}));
+pintarBugs();
+
+/* medições */
+const medida = (m) => `
+  <div class="medida" style="--cor:${m.c}">
+    <div class="topo">
+      <div class="nome">${m.n}<small>${m.d}</small></div>
+      <div class="valor">${m.v}</div>
+    </div>
+    <div class="barra"><i data-pct="${m.pct}"></i></div>
+  </div>`;
+$("#m-dados").innerHTML = MEDIDAS_DADOS.map(medida).join("");
+$("#m-maquina").innerHTML = MEDIDAS_MAQUINA.map(medida).join("");
+
+function desenharBarras() {
+  document.querySelectorAll(".barra i").forEach((el, i) => {
+    setTimeout(() => { el.style.width = el.dataset.pct + "%"; }, 60 * i);
+  });
+}
+
+animarNumeros();
+
+</script>
+</body>
+</html>

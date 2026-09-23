@@ -15,7 +15,7 @@ PAGINAS = [
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/ola-mundo",
-"title": "1. Olá, mundo — de verdade",
+"title": "Olá, mundo — de verdade",
 "description": "O que acontece quando você roda um arquivo: a linha, a ordem, e o que 'out' faz.",
 "blocos": [
  {"p": "Um programa é uma lista de instruções que o computador executa **de cima para baixo**, uma de cada vez. O primeiro programa de toda linguagem mostra um texto na tela — e aqui isso se escreve com `out`."},
@@ -33,13 +33,13 @@ out "o dobro de", 21, "e", 21 * 2""", "lang": "df", "title": "ola.df"},
  {"code": """// Tudo depois de // e comentario: o computador ignora.
 // Serve para quem LE o codigo — inclusive voce, daqui a um mes.
 out "so esta linha roda"   // e aqui tambem pode""", "lang": "df"},
- {"p": "Próximo: [2. Variáveis e contas](/docs/primeiros-passos/variaveis-e-contas)."},
+ {"p": "Próximo: [Variáveis e contas](/docs/primeiros-passos/variaveis-e-contas)."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/variaveis-e-contas",
-"title": "2. Variáveis e contas",
+"title": "Variáveis e contas",
 "description": "Dar nome a um valor com :=, e as contas que a linguagem sabe fazer.",
 "blocos": [
  {"p": "Uma **variável** é um nome para um valor. Você guarda o valor uma vez e usa o nome quantas vezes quiser. Em DataForge, guardar se escreve `:=` — lê-se *“recebe”*."},
@@ -73,13 +73,13 @@ out "todas as contas conferem\"""", "lang": "df"},
 raio := 2
 out "area:", PI * raio ** 2
 // PI := 3 daria erro: 'steady' e um valor que nao muda.""", "lang": "df"},
- {"p": "Próximo: [3. Perguntar ao usuário](/docs/primeiros-passos/entrada)."},
+ {"p": "Próximo: [Perguntar ao usuário](/docs/primeiros-passos/entrada)."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/entrada",
-"title": "3. Perguntar ao usuário",
+"title": "Perguntar ao usuário",
 "description": "input(): ler o que a pessoa digita, converter em número, e o fim da entrada.",
 "blocos": [
  {"p": "Um programa fica interessante quando responde a quem o usa. `input(pergunta)` mostra a pergunta, espera a pessoa digitar e apertar Enter, e devolve **o texto** digitado."},
@@ -112,13 +112,13 @@ persist linha isnt void:
 out $"soma: {total}\"""", "lang": "df", "title": "soma.df"},
  {"code": """$ printf '10\\n20\\n12\\n' | dataforge run soma.df
 soma: 42""", "lang": "text"},
- {"p": "Próximo: [4. Decidir](/docs/primeiros-passos/decisoes)."},
+ {"p": "Próximo: [Decidir](/docs/primeiros-passos/decisoes)."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/decisoes",
-"title": "4. Decidir",
+"title": "Decidir",
 "description": "given, orif e otherwise — e as comparações que decidem.",
 "blocos": [
  {"p": "Decidir é fazer uma coisa **ou** outra dependendo de uma condição. Em DataForge: `given` (*se*), `orif` (*senão, se*) e `otherwise` (*senão*). O que está recuado embaixo de cada um só roda quando ele é escolhido."},
@@ -148,13 +148,13 @@ assert conceito is "B\"""", "lang": "df"},
  {"code": """idade := 20
 situacao := "maior" given idade bigger_eq 18 otherwise "menor"
 assert situacao is "maior\"""", "lang": "df"},
- {"p": "Próximo: [5. Repetir](/docs/primeiros-passos/repeticao)."},
+ {"p": "Próximo: [Repetir](/docs/primeiros-passos/repeticao)."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/repeticao",
-"title": "5. Repetir",
+"title": "Repetir",
 "description": "cycle para contar e percorrer, persist para repetir enquanto for verdade.",
 "blocos": [
  {"p": "Repetir é a razão de existir do computador: ele faz a mesma coisa mil vezes sem cansar e sem errar. Há duas formas, e a escolha é a pergunta que você está fazendo."},
@@ -190,13 +190,13 @@ cycle n in [7, 3, 8, 5, 10]:
     halt
 assert primeiro_par is 8""", "lang": "df"},
  {"callout": {"tipo": "atencao", "titulo": "O laço que nunca termina", "texto": "Um `persist` cuja condição nunca fica falsa roda para sempre — o programa parece travado. Confira que alguma coisa **dentro** do laço muda a condição. Ctrl+C interrompe."}},
- {"p": "Próximo: [6. Listas e vaults](/docs/primeiros-passos/colecoes)."},
+ {"p": "Próximo: [Listas e vaults](/docs/primeiros-passos/colecoes)."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/colecoes",
-"title": "6. Listas, vaults e conjuntos",
+"title": "Listas, vaults e conjuntos",
 "description": "Guardar muitos valores: a lista em ordem, o vault por nome, o conjunto sem repetição.",
 "blocos": [
  {"p": "Uma variável guarda um valor. Para guardar muitos, há três coleções, e cada uma responde uma pergunta diferente."},
@@ -225,13 +225,13 @@ cycle nome in produtos:
     out $"{nome}: R$ {produtos[nome]}"
     total += produtos[nome]
 assert total is 30.7""", "lang": "df"},
- {"p": "Próximo: [7. Ações](/docs/primeiros-passos/acoes)."},
+ {"p": "Próximo: [Ações](/docs/primeiros-passos/acoes)."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/acoes",
-"title": "7. Ações — dar nome a um pedaço de código",
+"title": "Ações — dar nome a um pedaço de código",
 "description": "action, parâmetros e yield: escrever uma vez, usar em qualquer lugar.",
 "blocos": [
  {"p": "Quando o mesmo pedaço de código aparece duas vezes, ele merece um nome. Uma **ação** (a *função* de outras linguagens) recebe valores, faz algo com eles, e devolve um resultado com `yield`."},
@@ -256,13 +256,13 @@ assert classificar(imc(70, 1.75)) is "normal\"""", "lang": "df"},
 assert saudar("Ana") is "Ola, Ana!"
 assert saudar("Bia", "Bom dia") is "Bom dia, Bia!"
 // saudar(42) e acusado pelo 'dataforge check' antes de rodar""", "lang": "df"},
- {"p": "Próximo: [8. O primeiro programa completo](/docs/primeiros-passos/primeiro-programa)."},
+ {"p": "Próximo: [O primeiro programa completo](/docs/primeiros-passos/primeiro-programa)."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/primeiro-programa",
-"title": "8. O primeiro programa completo",
+"title": "O primeiro programa completo",
 "description": "Um jogo de adivinhar o número — com a lógica separada da conversa, e testada.",
 "blocos": [
  {"p": "Tudo junto: o computador sorteia um número de 1 a 100, a pessoa chuta, e ele diz *“maior”* ou *“menor”* até ela acertar. O segredo de um programa que dá para testar é separar a **regra** (comparar o chute) da **conversa** (perguntar e mostrar)."},
@@ -312,13 +312,13 @@ persist resposta isnt "acertou":
     otherwise:
         out $"O numero e {resposta}.\"""", "lang": "text", "title": "jogo.df (junto de regras.df)"},
  {"callout": {"tipo": "dica", "titulo": "Por que separar", "texto": "A regra se testa em milissegundos, sem ninguém digitar nada, e os três `assert` provam que ela está certa. A conversa é fina o bastante para errar pouco. É a mesma separação que um sistema grande faz entre regra de negócio e tela — ver [os tipos de projeto](/docs/projetos)."}},
- {"p": "Próximo: [9. Ler um erro](/docs/primeiros-passos/erros-comuns)."},
+ {"p": "Próximo: [Ler um erro](/docs/primeiros-passos/erros-comuns)."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/erros-comuns",
-"title": "9. Ler uma mensagem de erro",
+"title": "Ler uma mensagem de erro",
 "description": "Onde olhar numa mensagem de erro, e os seis erros que quem começa mais encontra.",
 "blocos": [
  {"p": "Errar é o normal; o que muda com a prática é quanto tempo se leva para achar o erro. Uma mensagem de erro do DataForge tem sempre quatro partes, e lê-las em ordem resolve a maioria dos casos."},
@@ -350,13 +350,13 @@ handle Error as e:
     out "o erro:", e.message
 assert int("10") + 1 is 11""", "lang": "df"},
  {"callout": {"tipo": "dica", "titulo": "`dataforge check` antes de `run`", "texto": "Ele lê o arquivo sem executar e acusa nome errado, número errado de argumentos e tipo errado — em menos de um segundo, e com a mesma cara de mensagem. É o hábito que mais poupa tempo no começo."}},
- {"p": "Próximo: [10. Para onde ir](/docs/primeiros-passos/proximos-passos)."},
+ {"p": "Próximo: [Para onde ir](/docs/primeiros-passos/proximos-passos)."},
 ]},
 
 # ══════════════════════════════════════════════════════════════
 {
 "href": "/docs/primeiros-passos/proximos-passos",
-"title": "10. Para onde ir agora",
+"title": "Para onde ir agora",
 "description": "Os caminhos depois do básico — conforme o que você quer construir.",
 "blocos": [
  {"p": "Com o que está nestas dez páginas já dá para escrever programas úteis: ler dados, decidir, repetir, organizar em ações. O próximo passo depende do que você quer construir."},

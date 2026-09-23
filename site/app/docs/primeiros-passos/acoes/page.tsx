@@ -7,7 +7,7 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "7. Ações — dar nome a um pedaço de código",
+  title: "Ações — dar nome a um pedaço de código",
   description: "action, parâmetros e yield: escrever uma vez, usar em qualquer lugar.",
 };
 
@@ -34,7 +34,7 @@ assert classificar(imc(70, 1.75)) is "normal"`, lang: 'df' },
 assert saudar("Ana") is "Ola, Ana!"
 assert saudar("Bia", "Bom dia") is "Bom dia, Bia!"
 // saudar(42) e acusado pelo 'dataforge check' antes de rodar`, lang: 'df' },
-  {"p": "Próximo: [8. O primeiro programa completo](/docs/primeiros-passos/primeiro-programa)."},
+  {"p": "Próximo: [O primeiro programa completo](/docs/primeiros-passos/primeiro-programa)."},
 ];
 
 const headings = [{ id: 'valor-padrao-e-tipos', text: "Valor padrão e tipos", level: 2 as const }];
@@ -42,7 +42,7 @@ const headings = [{ id: 'valor-padrao-e-tipos', text: "Valor padrão e tipos", l
 export default function Pagina() {
   return (
     <DocPage
-      title={"7. Ações — dar nome a um pedaço de código"}
+      title={"Ações — dar nome a um pedaço de código"}
       description={"action, parâmetros e yield: escrever uma vez, usar em qualquer lugar."}
       href={"/docs/primeiros-passos/acoes"}
       headings={headings}

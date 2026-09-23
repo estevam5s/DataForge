@@ -484,6 +484,31 @@ class Canal:
         except queue.Empty:
             return None
 
+    def tentar_enviar(self, valor):
+        """Sem esperar: devolve `no` quando o canal esta CHEIO.
+
+        Ele e o lado simetrico de `tentar_receber`, e sem ele nao ha
+        como escrever a terceira politica de contrapressao. As tres
+        sao: a fila cresce sem teto (morte por memoria, horas depois),
+        o produtor ESPERA (`enviar`), e o produtor DESCARTA — e a
+        terceira e a certa para telemetria, onde a leitura de trinta
+        segundos atras nao tem valor.
+
+        Sem `tentar_enviar`, descartar so era possivel com um prazo
+        minusculo no `enviar`, que custa uma espera de verdade e ainda
+        levanta: e caro e barulhento para uma decisao que e normal.
+        """
+        if self._fechado.is_set():
+            raise ConcurrencyError(
+                "this channel is closed.",
+                dica="check with 'aberto()' before sending",
+                doc="tecnicas/concorrencia")
+        try:
+            self._fila.put_nowait(valor)
+            return True
+        except queue.Full:
+            return False
+
     def fechar(self):
         """Fecha. Quem espera recebe void e sai do laco."""
         self._fechado.set()
@@ -497,6 +522,25 @@ class Canal:
 
     def vazio(self):
         return self._fila.empty()
+
+    def cheio(self):
+        """Ele esta cheio AGORA.
+
+        A resposta envelhece no instante seguinte — outra thread pode
+        consumir entre a pergunta e o envio. Por isso quem decide
+        descartar usa `tentar_enviar`, que pergunta e age junto; esta
+        aqui serve para medir e para relatar, que e onde uma foto
+        basta.
+        """
+        return self._fila.full()
+
+    def capacidade(self):
+        """O teto declarado. Zero quer dizer SEM teto.
+
+        E a unica forma de um painel dizer "a fila esta em 900 de
+        1000" — sem isso, `tamanho()` e um numero sem escala.
+        """
+        return self._fila.maxsize
 
     def __iter__(self):
         """'cycle item in canal' consome ate o canal fechar."""

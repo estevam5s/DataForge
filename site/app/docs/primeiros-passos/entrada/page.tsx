@@ -7,7 +7,7 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "3. Perguntar ao usuário",
+  title: "Perguntar ao usuário",
   description: "input(): ler o que a pessoa digita, converter em número, e o fim da entrada.",
 };
 
@@ -42,7 +42,7 @@ persist linha isnt void:
 out $"soma: {total}"`, lang: 'df', title: `soma.df` },
   { code: `$ printf '10\\n20\\n12\\n' | dataforge run soma.df
 soma: 42`, lang: 'text' },
-  {"p": "Próximo: [4. Decidir](/docs/primeiros-passos/decisoes)."},
+  {"p": "Próximo: [Decidir](/docs/primeiros-passos/decisoes)."},
 ];
 
 const headings = [{ id: 'quando-a-pessoa-digita-algo-que-nao-e-numero', text: "Quando a pessoa digita algo que não é número", level: 2 as const }, { id: 'ler-ate-acabar', text: "Ler até acabar", level: 2 as const }];
@@ -50,7 +50,7 @@ const headings = [{ id: 'quando-a-pessoa-digita-algo-que-nao-e-numero', text: "Q
 export default function Pagina() {
   return (
     <DocPage
-      title={"3. Perguntar ao usuário"}
+      title={"Perguntar ao usuário"}
       description={"input(): ler o que a pessoa digita, converter em número, e o fim da entrada."}
       href={"/docs/primeiros-passos/entrada"}
       headings={headings}

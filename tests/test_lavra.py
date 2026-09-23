@@ -687,3 +687,62 @@ def test_o_cliente_local_tem_o_mesmo_contrato_do_remoto():
     c = L["local"](esq)
     assert c.dados("busca:\n    cliente(id: 1):\n        nome") == \
         {"cliente": {"nome": "Ana"}}
+
+
+
+# ═══════════════════════════════════════════════════════════
+#  Obsoleto é AVISO, e não recusa
+# ═══════════════════════════════════════════════════════════
+
+def _esquema_com_obsoleto():
+    esq = L["esquema"]("loja")
+    L["escalar"](esq, "Texto", lambda v: str(v), lambda t: t)
+    L["busca"](esq, "produto", "Texto",
+               resolve=lambda r, a, c: "café")
+    L["campo"](esq, "Busca", "antigo", "Texto",
+               resolve=lambda r, a, c: "café",
+               obsoleto="use 'produto'; 'antigo' sai na 3.0")
+    L["conferir"](esq)
+    return esq
+
+
+def test_o_campo_obsoleto_continua_respondendo():
+    """Ele era **recusado**, e isso tornava `obsoleto` inútil.
+
+    Uma depreciação que quebra no dia do aviso é uma quebra com aviso
+    prévio de zero — e o efeito prático era ninguém marcar campo
+    nenhum, porque marcar derrubava o cliente. Aí o campo some um dia
+    sem que ninguém tenha sido avisado, que é exatamente o que a marca
+    existe para evitar.
+    """
+    r = L["executar"](_esquema_com_obsoleto(), "busca:\n    antigo")
+
+    # responde…
+    assert r["dados"]["antigo"] == "café"
+    assert r["erros"] == []
+
+    # …e avisa, em 'extensoes.avisos', que é onde o cliente procura o
+    # que vai quebrar depois.
+    avisos = r["extensoes"]["avisos"]
+    assert len(avisos) == 1
+    assert "obsoleto" in avisos[0]["mensagem"]
+    assert avisos[0]["aviso"] is True
+
+
+def test_o_aviso_nao_esconde_um_erro_de_verdade():
+    """Um campo que **não existe** continua sendo recusado — e o aviso
+    do obsoleto viaja junto, para não sumir com a resposta."""
+    r = L["executar"](_esquema_com_obsoleto(), "busca:\n    antigo\n    naoExiste")
+
+    assert r["dados"] is None
+    assert len(r["erros"]) == 1
+    assert "naoExiste" in r["erros"][0]["mensagem"]
+    assert len(r["extensoes"]["avisos"]) == 1
+
+
+def test_validar_relata_o_obsoleto_sem_reprovar():
+    """`validar` continua listando o aviso — é o que permite a um teste
+    do cliente saber o que vai sair, sem que a consulta falhe hoje."""
+    problemas = L["validar"](_esquema_com_obsoleto(), "busca:\n    antigo")
+    assert len(problemas) == 1
+    assert problemas[0]["aviso"] is True

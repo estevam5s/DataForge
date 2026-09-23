@@ -7,7 +7,7 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "9. Ler uma mensagem de erro",
+  title: "Ler uma mensagem de erro",
   description: "Onde olhar numa mensagem de erro, e os seis erros que quem começa mais encontra.",
 };
 
@@ -31,7 +31,7 @@ handle Error as e:
     out "o erro:", e.message
 assert int("10") + 1 is 11`, lang: 'df' },
   {"callout": {"tipo": "dica", "titulo": "`dataforge check` antes de `run`", "texto": "Ele lê o arquivo sem executar e acusa nome errado, número errado de argumentos e tipo errado — em menos de um segundo, e com a mesma cara de mensagem. É o hábito que mais poupa tempo no começo."}},
-  {"p": "Próximo: [10. Para onde ir](/docs/primeiros-passos/proximos-passos)."},
+  {"p": "Próximo: [Para onde ir](/docs/primeiros-passos/proximos-passos)."},
 ];
 
 const headings = [{ id: 'os-seis-mais-comuns', text: "Os seis mais comuns", level: 2 as const }];
@@ -39,7 +39,7 @@ const headings = [{ id: 'os-seis-mais-comuns', text: "Os seis mais comuns", leve
 export default function Pagina() {
   return (
     <DocPage
-      title={"9. Ler uma mensagem de erro"}
+      title={"Ler uma mensagem de erro"}
       description={"Onde olhar numa mensagem de erro, e os seis erros que quem começa mais encontra."}
       href={"/docs/primeiros-passos/erros-comuns"}
       headings={headings}

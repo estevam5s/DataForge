@@ -7,7 +7,7 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "6. Listas, vaults e conjuntos",
+  title: "Listas, vaults e conjuntos",
   description: "Guardar muitos valores: a lista em ordem, o vault por nome, o conjunto sem repetição.",
 };
 
@@ -35,7 +35,7 @@ cycle nome in produtos:
     out $"{nome}: R$ {produtos[nome]}"
     total += produtos[nome]
 assert total is 30.7`, lang: 'df' },
-  {"p": "Próximo: [7. Ações](/docs/primeiros-passos/acoes)."},
+  {"p": "Próximo: [Ações](/docs/primeiros-passos/acoes)."},
 ];
 
 const headings = [{ id: 'percorrer', text: "Percorrer", level: 2 as const }];
@@ -43,7 +43,7 @@ const headings = [{ id: 'percorrer', text: "Percorrer", level: 2 as const }];
 export default function Pagina() {
   return (
     <DocPage
-      title={"6. Listas, vaults e conjuntos"}
+      title={"Listas, vaults e conjuntos"}
       description={"Guardar muitos valores: a lista em ordem, o vault por nome, o conjunto sem repetição."}
       href={"/docs/primeiros-passos/colecoes"}
       headings={headings}

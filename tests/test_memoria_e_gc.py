@@ -275,3 +275,4 @@ def test_o_repositorio_continua_limpo():
                            encoding="utf-8", errors="replace",
                            env={**os.environ, "NO_COLOR": "1"})
         assert r.returncode == 0, f"{pasta}: {r.stdout[-600:]}"
+

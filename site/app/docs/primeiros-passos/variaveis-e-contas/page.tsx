@@ -7,7 +7,7 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "2. Variáveis e contas",
+  title: "Variáveis e contas",
   description: "Dar nome a um valor com :=, e as contas que a linguagem sabe fazer.",
 };
 
@@ -38,7 +38,7 @@ out "todas as contas conferem"`, lang: 'df' },
 raio := 2
 out "area:", PI * raio ** 2
 // PI := 3 daria erro: 'steady' e um valor que nao muda.`, lang: 'df' },
-  {"p": "Próximo: [3. Perguntar ao usuário](/docs/primeiros-passos/entrada)."},
+  {"p": "Próximo: [Perguntar ao usuário](/docs/primeiros-passos/entrada)."},
 ];
 
 const headings = [{ id: 'as-contas', text: "As contas", level: 2 as const }, { id: 'constantes', text: "Constantes", level: 2 as const }];
@@ -46,7 +46,7 @@ const headings = [{ id: 'as-contas', text: "As contas", level: 2 as const }, { i
 export default function Pagina() {
   return (
     <DocPage
-      title={"2. Variáveis e contas"}
+      title={"Variáveis e contas"}
       description={"Dar nome a um valor com :=, e as contas que a linguagem sabe fazer."}
       href={"/docs/primeiros-passos/variaveis-e-contas"}
       headings={headings}

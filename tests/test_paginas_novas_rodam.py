@@ -43,7 +43,11 @@ MODULOS = ["modulos_avancado", "bibliotecas_avancado", "testes_avancado",
            "abi_mais",
            "ecossistema_mais",
            "concorrencia_mais",
-           "iot"]
+           "iot",
+           "receitas_cli",
+           "lavra_mais",
+           "posse_mais",
+           "concorrencia_extra"]
 
 
 def _blocos():
@@ -62,11 +66,20 @@ def _blocos():
                 titulo = b.get("title") or ""
                 if titulo.startswith("tests/") or titulo.startswith("precisa de"):
                     continue
-                yield pytest.param(codigo, id=f"{p['href'].replace('/docs/', '')}#{i}")
+                # Um bloco que ENCERRA de proposito — 'Cli.erro' escreve
+                # no stderr e sai com 1, e e assim que se mostra o que
+                # ele faz. O titulo diz o codigo, e o teste COBRA esse
+                # codigo: pular seria deixar de conferir justamente o
+                # bloco que fala sobre codigo de saida.
+                esperado = 0
+                if titulo.startswith("encerra com "):
+                    esperado = int(titulo.split()[-1])
+                yield pytest.param(codigo, esperado,
+                                   id=f"{p['href'].replace('/docs/', '')}#{i}")
 
 
-@pytest.mark.parametrize("codigo", list(_blocos()))
-def test_o_bloco_roda(codigo, tmp_path):
+@pytest.mark.parametrize("codigo,esperado", list(_blocos()))
+def test_o_bloco_roda(codigo, esperado, tmp_path):
     arq = tmp_path / "bloco.df"
     arq.write_text(codigo + "\n", encoding="utf-8")
     ambiente = dict(os.environ, PYTHONPATH=RAIZ, NO_COLOR="1",
@@ -74,7 +87,7 @@ def test_o_bloco_roda(codigo, tmp_path):
     r = subprocess.run([sys.executable, "-m", "dataforge", "run", str(arq)],
                        cwd=tmp_path, capture_output=True, text=True, input="",
                        encoding="utf-8", errors="replace", timeout=300, env=ambiente)
-    assert r.returncode == 0, (r.stdout + r.stderr)[-2500:]
+    assert r.returncode == esperado, (r.stdout + r.stderr)[-2500:]
 
 
 def test_ha_blocos_suficientes_para_valer():

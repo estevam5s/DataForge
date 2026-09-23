@@ -98,6 +98,27 @@ def _mediana(valores):
     return statistics.median(valores) if valores else 0.0
 
 
+def _chamador(acao, argumento):
+    """Como chamar a acao: com o argumento, ou sem nenhum.
+
+    `Bench.medir(minha_acao)` — a forma mais obvia da chamada —
+    falhava para TODA acao sem parametro, porque a medida chamava
+    `acao(None)` sempre. E o erro culpava quem escreveu:
+
+        a acao 'trabalho' recebe 0 argumento(s), e foram passados 1
+
+    A aridade e PERGUNTADA, e nao adivinhada: uma acao da linguagem
+    chega aqui como `DFAction`, cujo `__call__` e `(*args, **kwargs)`
+    — `inspect.signature` responde dois para todas elas. E a mesma
+    razao de `aridade_de` existir para o `curry`.
+    """
+    if argumento is not None:
+        return lambda: acao(argumento)
+    from ..builtins import aridade_de
+    return (lambda: acao()) if aridade_de(acao, padrao=1) == 0 else (
+        lambda: acao(argumento))
+
+
 def _medir_uma(acao, argumento, repeticoes, aquecer):
     """O MENOR tempo de N repeticoes, em segundos.
 
@@ -105,8 +126,9 @@ def _medir_uma(acao, argumento, repeticoes, aquecer):
     coletor, o escalonador — so faz o tempo subir. A media mede a
     maquina, o minimo mede o codigo.
     """
+    chamar = _chamador(acao, argumento)
     for _ in range(aquecer):
-        acao(argumento)
+        chamar()
 
     # O coletor desligado durante a medida. Uma coleta que caia no meio
     # de uma amostra e no meio de outra nao vira ruido: vira inclinacao.
@@ -116,7 +138,7 @@ def _medir_uma(acao, argumento, repeticoes, aquecer):
         melhor = None
         for _ in range(max(1, repeticoes)):
             inicio = time.perf_counter()
-            acao(argumento)
+            chamar()
             gasto = time.perf_counter() - inicio
             if melhor is None or gasto < melhor:
                 melhor = gasto

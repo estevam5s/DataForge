@@ -18,6 +18,10 @@ from gerar_paginas import escrever  # noqa: E402
 #: Os módulos de conteúdo, na ordem em que aparecem na navegação.
 MODULOS = [
     "iot",
+    "receitas_cli",
+    "lavra_mais",
+    "posse_mais",
+    "concorrencia_extra",
     "api_rest_mais",
     "telegram_mais",
     "dominio_mais",

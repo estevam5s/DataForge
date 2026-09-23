@@ -395,3 +395,86 @@ def test_nucleos_e_thread_atual():
     atual = P["thread_atual"]()
     assert atual["principal"] is True
     assert P["sou_principal"]() is True
+
+
+# ═══ Contrapressao: o lado simetrico do canal ══════════════
+
+def test_tentar_enviar_recusa_em_vez_de_esperar():
+    """Sem ele não havia como escrever a terceira política de
+    contrapressão.
+
+    As três são: a fila cresce sem teto (morte por memória, horas
+    depois), o produtor **espera** (`enviar`), e o produtor
+    **descarta**. A terceira é a certa para telemetria, onde a leitura
+    de trinta segundos atrás não tem valor — e ela era impossível de
+    escrever, porque `tentar_receber` existia e `tentar_enviar` não.
+    """
+    canal = P["canal"](2)
+    assert canal.tentar_enviar("a") is True
+    assert canal.tentar_enviar("b") is True
+    assert canal.cheio() is True
+
+    # Cheio: ele RECUSA, e não espera.
+    assert canal.tentar_enviar("c") is False
+    assert canal.tamanho() == 2
+
+    # E volta a aceitar quando abre espaço.
+    assert canal.receber() == "a"
+    assert canal.tentar_enviar("c") is True
+
+
+def test_a_capacidade_e_o_que_da_escala_ao_tamanho():
+    """`tamanho()` sozinho é um número sem escala: um painel não tem
+    como dizer "900 de 1000" sem saber o teto."""
+    assert P["canal"](10).capacidade() == 10
+    assert P["canal"]().capacidade() == 0      # zero = sem teto
+
+
+def test_tentar_enviar_num_canal_fechado_e_erro():
+    """Recusar por estar cheio e recusar por estar fechado são coisas
+    diferentes: a primeira é normal, a segunda é bug de quem chama."""
+    canal = P["canal"](2)
+    canal.fechar()
+    with pytest.raises(ConcurrencyError):
+        canal.tentar_enviar("a")
+
+
+def test_descartar_contando_e_uma_politica_escrita():
+    """O que separa 'escolha' de 'defeito' é o número: sem contar o
+    descarte, ninguém sabe que está perdendo dado."""
+    canal = P["canal"](2)
+    descartados = 0
+    for i in range(5):
+        if not canal.tentar_enviar(i):
+            descartados += 1
+    assert descartados == 3
+    assert canal.tamanho() == 2
+
+
+# ═══ A medida da acao sem parametro ════════════════════════
+
+def test_medir_uma_acao_SEM_PARAMETRO():
+    """`Bench.medir(minha_acao)` — a forma mais óbvia da chamada —
+    falhava para toda ação sem parâmetro.
+
+    A medida chamava `acao(None)` sempre, e o erro culpava quem
+    escreveu: *"a ação 'trabalho' recebe 0 argumento(s), e foram
+    passados 1"*. A aridade é **perguntada**, e não adivinhada: uma
+    ação da linguagem chega como `DFAction`, cujo `__call__` é
+    `(*args, **kwargs)` — `inspect.signature` responde dois para todas.
+    """
+    from dataforge.stdlib import get_module as _mod
+    B = _mod("Arcane.Bench")
+
+    r = B["medir"](lambda: sum(range(100)))
+    assert r["ms"] >= 0 and r["por_segundo"] > 0
+
+
+def test_medir_uma_acao_COM_argumento_continua_valendo():
+    from dataforge.stdlib import get_module as _mod
+    B = _mod("Arcane.Bench")
+
+    vistos = []
+    r = B["medir"](lambda x: vistos.append(x), 7, 2, 0)
+    assert r["repeticoes"] == 2
+    assert vistos == [7, 7]

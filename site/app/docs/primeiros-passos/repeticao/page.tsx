@@ -7,7 +7,7 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "5. Repetir",
+  title: "Repetir",
   description: "cycle para contar e percorrer, persist para repetir enquanto for verdade.",
 };
 
@@ -42,7 +42,7 @@ cycle n in [7, 3, 8, 5, 10]:
     halt
 assert primeiro_par is 8`, lang: 'df' },
   {"callout": {"tipo": "atencao", "titulo": "O laço que nunca termina", "texto": "Um `persist` cuja condição nunca fica falsa roda para sempre — o programa parece travado. Confira que alguma coisa **dentro** do laço muda a condição. Ctrl+C interrompe."}},
-  {"p": "Próximo: [6. Listas e vaults](/docs/primeiros-passos/colecoes)."},
+  {"p": "Próximo: [Listas e vaults](/docs/primeiros-passos/colecoes)."},
 ];
 
 const headings = [{ id: 'parar-antes-ou-pular', text: "Parar antes, ou pular", level: 2 as const }];
@@ -50,7 +50,7 @@ const headings = [{ id: 'parar-antes-ou-pular', text: "Parar antes, ou pular", l
 export default function Pagina() {
   return (
     <DocPage
-      title={"5. Repetir"}
+      title={"Repetir"}
       description={"cycle para contar e percorrer, persist para repetir enquanto for verdade."}
       href={"/docs/primeiros-passos/repeticao"}
       headings={headings}

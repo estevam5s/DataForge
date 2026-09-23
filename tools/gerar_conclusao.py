@@ -1,0 +1,1236 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Gera `doc/conclusao.html` — o estado da linguagem, medido e não lembrado.
+
+    python3 tools/gerar_conclusao.py            # escreve
+    python3 tools/gerar_conclusao.py --check    # só confere
+
+Por que isto é gerado
+---------------------
+A página anterior era escrita à mão, e envelheceu exatamente como este
+repositório documenta que acontece: ela anunciava **48 módulos**,
+**1.529 símbolos**, **240 exercícios** e a versão **1.0.0** — e listava
+como "falta" quatro coisas que passaram a existir (watchpoint no
+depurador, sessão da Vitrine fora do processo, fila persistente e
+literal decimal). Um relatório sobre o estado do projeto que descreve um
+estado que já não é o do projeto é pior que nenhum relatório: ele é lido
+como verdade, e cada número errado dele vira uma decisão errada.
+
+Agora todo número sai de uma fonte:
+
+| Número | De onde |
+|---|---|
+| módulos, símbolos | `dataforge.stdlib`, carregando cada módulo |
+| comandos | `dataforge.cli.COMANDOS` |
+| códigos de erro | `dataforge.catalogo_erros.ERROS` |
+| palavras, embutidas | `site/lib/dados-gerados.json`, que sai do código |
+| exercícios | as pastas de `exercicios/` |
+| páginas e blocos | `tools/verificar_docs.py`, o mesmo que os compila |
+| o que **não existe** | `Arcane.Ecossistema`, que é conferido contra o disco |
+| os dez princípios | `Arcane.Principios`, com a prova que roda |
+
+O que continua escrito à mão é a **prosa**: o que cada bug era, por que
+uma ausência é decisão e não falta, e o que cada medida significa. Essa
+parte não tem como ser gerada — mas ela também não é o que envelhece
+calado.
+
+Sem CDN, sem fonte remota, sem biblioteca: a linguagem promete zero
+dependência, e um relatório sobre ela não ia desmentir.
+"""
+
+import datetime
+import glob
+import json
+import os
+import subprocess
+import sys
+
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SAIDA = os.path.join(RAIZ, "doc", "conclusao.html")
+sys.path.insert(0, RAIZ)
+sys.path.insert(0, os.path.join(RAIZ, "tools"))
+sys.path.insert(0, os.path.join(RAIZ, "site", "scripts"))
+
+from dataforge import marca  # noqa: E402
+
+# A saida deste script tem acento e traco de tabela, e um terminal do
+# Windows que nao fala UTF-8 morre com UnicodeEncodeError ANTES de
+# dizer o que gerou.
+marca.preparar_saida()
+
+
+# ═══════════════════════════════════════════════════════════
+#  Os números — todos de uma fonte
+# ═══════════════════════════════════════════════════════════
+
+def _dados_gerados():
+    with open(os.path.join(RAIZ, "site", "lib", "dados-gerados.json"),
+              encoding="utf-8") as f:
+        return json.load(f)
+
+
+def medir():
+    """Tudo o que a página afirma em número."""
+    from dataforge import __version__
+    from dataforge.catalogo_erros import ERROS
+    from dataforge.cli import COMANDOS
+    from dataforge.stdlib import get_module, list_modules
+
+    import verificar_docs as vd
+
+    dados = _dados_gerados()
+    oficiais = {get_module(m)["__name__"] for m in list_modules()}
+    simbolos = sum(len([k for k in get_module(n) if not k.startswith("__")])
+                   for n in oficiais)
+
+    blocos = vd.blocos_das_paginas()
+    de_dataforge = sum(1 for b in blocos if vd.classificar(b) != "outro")
+
+    exercicios = sum(len(v) for v in dados["exercicios"].values())
+
+    linhas = sum(sum(1 for _ in open(f, encoding="utf-8", errors="replace"))
+                 for f in glob.glob(os.path.join(RAIZ, "dataforge", "**", "*.py"),
+                                    recursive=True))
+
+    return {
+        "versao": __version__,
+        "modulos": len(oficiais),
+        "simbolos": simbolos,
+        "comandos": len({c.nome for c in COMANDOS.values()}),
+        "erros": len(ERROS),
+        "palavras": len(dados["palavras"]),
+        "embutidas": dados["totalBuiltins"],
+        "testes": dados["contagem"]["testes"],
+        "exercicios": exercicios,
+        "modulos_de_exercicio": len(dados["exercicios"]),
+        "exemplos": len(glob.glob(os.path.join(RAIZ, "examples", "*.df"))),
+        "arquivos_df": dados["contagem"]["arquivosDf"],
+        "paginas": len(glob.glob(os.path.join(RAIZ, "site", "app", "docs",
+                                              "**", "page.tsx"), recursive=True)),
+        "blocos": de_dataforge,
+        "blocos_totais": len(blocos),
+        "linhas": linhas,
+        "capitulos": len(glob.glob(os.path.join(RAIZ, "trilha", "*.df"))),
+        "pacotes": len([d for d in glob.glob(os.path.join(RAIZ, "packages", "*"))
+                        if os.path.isdir(d)]),
+    }
+
+
+def conferido():
+    """Quantos arquivos o `check` cobre, e o que ele diz sobre eles."""
+    pastas = ["examples", "exercicios", "projetos", "packages", "trilha"]
+    total = sum(len(glob.glob(os.path.join(RAIZ, p, "**", "*.df"), recursive=True))
+                for p in pastas)
+    return {"pastas": pastas, "arquivos": total}
+
+
+def areas_da_stdlib(n):
+    """As áreas da biblioteca, com os símbolos de cada uma.
+
+    Os grupos são os **mesmos** da landing e do mapa 3D
+    (`site/scripts/gerar_roadmap.GRUPOS_DE_MODULO`). Uma terceira
+    divisão do mesmo conjunto divergiria no primeiro módulo novo, e
+    aí três telas passariam a discordar sobre onde mora um módulo.
+    """
+    from gerar_roadmap import GRUPOS_DE_MODULO
+
+    dados = _dados_gerados()["modulos"]
+    linhas, vistos = [], set()
+    for rotulo, curtos in GRUPOS_DE_MODULO:
+        nomes, total = [], 0
+        for curto in curtos:
+            info = dados.get(curto)
+            if not info:
+                continue
+            vistos.add(curto)
+            quantos = len(info["funcoes"])
+            total += quantos
+            nomes.append(f"{info['nome'].replace('Arcane.', '')} ({quantos})")
+        if nomes:
+            linhas.append([rotulo, ", ".join(nomes), str(total)])
+    sobrando = sorted(set(dados) - vistos)
+    if sobrando:                                        # pragma: no cover
+        total = sum(len(dados[c]["funcoes"]) for c in sobrando)
+        linhas.append(["Outros",
+                       ", ".join(dados[c]["nome"].replace("Arcane.", "")
+                                 for c in sobrando), str(total)])
+    return linhas
+
+
+def ausencias():
+    """O que não existe — lido do mapa que é conferido contra o disco."""
+    from dataforge.stdlib import get_module
+
+    eco = get_module("Arcane.Ecossistema")
+    fora = []
+    for no in eco["o_que_nao_existe"]():
+        fora.append([f"{no['no']} <small>({no['grupo']})</small>",
+                     f"{no['aqui'].capitalize()}. <b>Por quê:</b> {no['porque']}."])
+    return fora, eco["numeros"]()
+
+
+def dez_principios():
+    """Os dez princípios, com o veredito que a prova devolve."""
+    from dataforge.stdlib import get_module
+
+    pr = get_module("Arcane.Principios")
+    saida = []
+    for p in pr["principios"]():
+        saida.append({
+            "n": p["numero"], "t": p["principio"],
+            "doc": p["no_documento"], "aqui": p["aqui"],
+            "v": p["veredito"],
+        })
+    return saida, pr["tensoes"]()
+
+
+# ═══════════════════════════════════════════════════════════
+#  A prosa — o que não tem como sair de um comando
+# ═══════════════════════════════════════════════════════════
+
+LINGUAGEM = [
+    {"t": "Núcleo", "s": "ok",
+     "p": "<code>:=</code>, <code>given/orif/otherwise</code>, "
+          "<code>cycle/persist</code>, <code>action/yield</code>, pipelines "
+          "<code>&gt;&gt; sift/morph/distill</code> — e os seis verbos de quadro "
+          "(<code>onde</code>, <code>pegar</code>, <code>sem</code>, "
+          "<code>ordenar</code>, <code>agrupar</code>, <code>resumir</code>), que "
+          "são contextuais e não tomam o nome de ninguém."},
+    {"t": "Tipos", "s": "ok",
+     "p": "Anotação opcional, cobrada nas duas pontas. Generics com limite "
+          "(<code>&lt;T extends X&gt;</code>) conferidos na chamada e em execução, "
+          "inclusive através de um <code>adopt</code>. <code>type</code> com alias, "
+          "união, interseção, refinamento e tipo opaco. Tuplas com um tipo por casa."},
+    {"t": "Padrões", "s": "ok",
+     "p": "<code>match</code> estrutural completo: sequência, vault, record, enum, "
+          "tipo, guarda e <code>or</code>. A exaustividade é conferida inclusive no "
+          "padrão <b>aninhado</b> — <code>[Cor.A, x]</code> sem o <code>Cor.B</code> "
+          "agora avisa."},
+    {"t": "Erros", "s": "ok",
+     "p": "Hierarquia própria com <code>.causa</code>, <code>monitor/handle/ensure</code>, "
+          "<code>defer</code>, <code>retry</code>, <code>guard</code> — e três famílias "
+          "novas (domínio, reativo, memória estruturada), porque "
+          "<code>RuntimeError</code> em tudo mata a distinção na fronteira do "
+          "<code>handle</code>."},
+    {"t": "Concorrência", "s": "ok",
+     "p": "<code>thread</code>, <code>parallel</code>, <code>async/await</code>, canais "
+          "bloqueantes, mutex, semáforo, barreira, STM, atores — e "
+          "<code>map_processos</code>, que usa núcleos de verdade. O laço de eventos "
+          "atende 2 mil conexões numa thread só."},
+    {"t": "Módulos", "s": "ok",
+     "p": "<code>adopt</code>/<code>relay</code> (com renomeação), resolução numa "
+          "implementação só, carga única, ciclo é erro <b>no check</b>, e o analisador "
+          "atravessa a fronteira conferindo aridade, tipo de parâmetro e tipo de "
+          "retorno."},
+    {"t": "OOP", "s": "ok",
+     "p": "Blueprints, traits, records, enums com método, contratos "
+          "(<code>requires</code>/<code>promises</code>/<code>invariant</code>), "
+          "sobrecarga, metaclasses, reflexão que respeita visibilidade, injeção de "
+          "dependência — e custo zero para quem não usa: três <code>None</code> e dois "
+          "atalhos por blueprint mantêm o acesso a campo mais rápido do que era antes "
+          "dos recursos."},
+    {"t": "Hardware", "s": "ok",
+     "p": "<code>Arcane.IoT</code>: porta serial escrita aqui (sem <code>pyserial</code>), "
+          "Firmata 2.x, MQTT 3.1.1, seis sketches em C++ que o <code>arduino-cli</code> "
+          "compila — e um simulador de placa que fala os mesmos bytes, para o programa "
+          "de hardware ter teste."},
+]
+
+FERRAMENTAS = [
+    {"t": "dataforge check",
+     "p": "Análise estática que atravessa arquivos: nomes, aridade, tipos, alcance, "
+          "exaustividade, escrita concorrente, posse, genéricos e índice fora da "
+          "faixa. Ele é <b>otimista de propósito</b>: quando não consegue provar, "
+          "cala — um falso alarme ensina a ignorar mensagens."},
+    {"t": "dataforge test",
+     "p": "Corredor próprio com cobertura de linha, instantâneos, banco isolado por "
+          "teste e mínimo que reprova no CI. Ele já disse \"tudo verde\" com um "
+          "<code>trial</code> reprovado — a pior falha possível num corredor de "
+          "testes, e hoje há teste guardando."},
+    {"t": "dataforge big-o",
+     "p": "Lê a árvore e diz a classe de cada ação — <b>e o motivo</b>. Errar a classe "
+          "é pior que não ter a ferramenta, porque o relatório é curto o bastante para "
+          "ser lido como verdade."},
+    {"t": "dataforge debug / dap",
+     "p": "Depurador no terminal e no painel do editor: parada condicional, contagem, "
+          "logpoint, cada thread parando sozinha — e <b>vigia</b>, de escrita e de "
+          "leitura, que são mecanismos diferentes e não uma opção do mesmo."},
+    {"t": "dataforge ir / oop / profile",
+     "p": "As seis fases do compilador como dado, as métricas CK com os cheiros de "
+          "SOLID, e o tempo <b>próprio</b> por ação (o acumulado somaria mais de "
+          "100%)."},
+    {"t": "dataforge iot",
+     "p": "<code>portas</code>, <code>doctor</code>, <code>monitorar</code>, "
+          "<code>sketch</code>, <code>carregar</code>, <code>piscar</code>. O "
+          "<code>doctor</code> é o mais útil: uma placa que não responde também não dá "
+          "erro, e as causas são poucas e sempre as mesmas."},
+]
+
+FRAMEWORKS = [
+    {"t": "Kiln — web",
+     "p": "Rotas, middleware, sessão, templates, upload multipart, SSE e WebSocket com "
+          "o RFC 6455 falado à mão. Onze palavras contextuais, nenhuma reservada."},
+    {"t": "Vitrine — painéis",
+     "p": "O programa de cima a baixo vira página. Componentes, gráficos em SVG escrito "
+          "no servidor e ~6 KB de cliente sem build nem CDN — uma biblioteca de CDN "
+          "quebra qualquer app em rede fechada, que é onde painel de dados costuma "
+          "rodar."},
+    {"t": "Lavra — consulta tipada",
+     "p": "O equivalente de GraphQL: esquema a partir dos records, resolvedores, "
+          "diretivas, assinaturas, lote contra N+1, limites de profundidade e "
+          "federação."},
+    {"t": "Crucible — testes",
+     "p": "<code>crucible</code>/<code>trial</code>/<code>expect</code> como palavras da "
+          "linguagem. Matchers, dublês, propriedades, instantâneos, cenários "
+          "dado/quando/então e relatório JUnit."},
+    {"t": "Malha — serviços",
+     "p": "Chamada entre serviços com retry, disjuntor nos três estados, propagação de "
+          "rastro e saga com compensação inversa. Ela devolve <b>vault</b> em vez de "
+          "levantar: <code>status 0</code> é o caso honesto de \"não se sabe\", e "
+          "colapsá-lo em \"falhou\" faz o programa acima repetir uma cobrança."},
+    {"t": "Forge — ORM",
+     "p": "Modelos, relações e migrações sobre o <code>Arcane.Database</code>, com "
+          "transação, upsert, índice, busca textual FTS5 — e "
+          "<code>Forge.esperar(url)</code>, que espera o banco do contêiner aceitar "
+          "conexão sem repetir uma senha errada por quarenta segundos."},
+]
+
+#: Cada item tem teste que reprova sem a correção. A família é o que
+#: transformou correções pontuais em regra.
+BUGS = [
+    {"fam": "silencio", "t": "Um <code>defer</code> dentro de um laço nunca rodava",
+     "antes": "cycle a in arquivos:\n    f := abrir(a)\n    defer:\n        f.fechar()    // nunca",
+     "depois": "O defer roda na saída da AÇÃO,\nonde quer que esteja escrito —\ninclusive no topo do programa.",
+     "p": "Ele se registrava no escopo em que aparece, e só o da ação era consultado. "
+          "Fechar arquivo por volta é o uso mais óbvio que existe."},
+    {"fam": "silencio", "t": "Nem o <code>defer</code> engolia — e engolia",
+     "antes": "defer:\n    f.fechar()   // falhou?\n// o erro era DESCARTADO,\n// e o programa saía com 0",
+     "depois": "o erro do defer viaja; se a ação\njá falhava, viaja o original e\no do defer vai em .outros",
+     "p": "Era o modelo do <i>try-with-resources</i> ao contrário. Um arquivo não "
+          "fechado terminava o programa com código zero, e isso estava escrito na "
+          "trilha como se fosse decisão."},
+    {"fam": "silencio", "t": "Tarefa <code>async</code> órfã saía com código 0",
+     "antes": "async action falhar():\n    trigger \"ninguem vai ver\"\n\nesquecida := falhar()\nout \"segui\"      // codigo 0",
+     "depois": "O erro é desenhado e o programa\nreprova a saída — como thread\ne parallel já faziam.",
+     "p": "É o mesmo defeito que fez o Node derrubar o processo numa promessa "
+          "rejeitada sem tratamento: o trabalho quebra e o CI fica verde."},
+    {"fam": "silencio", "t": "<code>dataforge test</code> dizia \"tudo verde\" com um <code>trial</code> reprovado",
+     "antes": "✓ tests/a_test.df (1/1)\n1 passaram em 1 arquivo(s)\nTudo verde.        → código 0",
+     "depois": "um Resultado por TRIAL, com o\nestado vindo de crucible.Resultado\n— e o código de saída certo",
+     "p": "Um teste que falha reportando \"tudo verde\" é a pior falha possível num "
+          "corredor de testes: a suíte fica vermelha e o CI passa. Achado gerando um "
+          "projeto de 281 arquivos, onde 30 arquivos com 2 <code>trial</code> cada "
+          "relatavam \"30 passaram\"."},
+    {"fam": "silencio", "t": "Um endereço I²C sem dispositivo respondia <b>zero</b>",
+     "antes": "dados := placa.i2c_ler(0x77, 0xD0, 1)\n// [0] — um sensor \"presente\"\n// medindo nada",
+     "depois": "void — fio solto, endereço errado\ne sensor sem energia dão o mesmo\nresultado no fio: silêncio",
+     "p": "Era o simulador ensinando o contrário do que acontece com um fio solto. "
+          "Devolver zeros ali fazia o programa tratar ausência como leitura."},
+    {"fam": "nome", "t": "Argumento nomeado repetido descartava o primeiro",
+     "antes": "f(a := 1, a := 2)   // a valia 2\nP(x := 1, x := 2)   // record com 2",
+     "depois": "'a' was given twice in the same\ncall. Remove one of them.",
+     "p": "Num vault a última chave vencer é regra escrita; numa chamada é engano, e "
+          "adivinhar qual dos dois valores sobra não dá. Quatro correções de baterias "
+          "diferentes eram <b>a mesma coisa</b>: um nome ligado duas vezes, em "
+          "silêncio, com o segundo vencendo."},
+    {"fam": "nome", "t": "Duas instruções na mesma linha passavam",
+     "antes": "x := 1 out x       // aceito\n// e o // com dígito virava\n// divisão sem ninguém ver",
+     "depois": "Unexpected IDENTIFIER after a\ncomplete statement on the same line.\nPut each statement on its own line.",
+     "p": "A primeira versão comparava com o token anterior errado e deu <b>460</b> "
+          "falsos alarmes; pular NEWLINE, INDENT e DEDENT resolveu — e a trava então "
+          "encontrou 17 blocos inválidos na própria documentação."},
+    {"fam": "classe", "t": "Busca binária recursiva classificada como O(2ⁿ)",
+     "antes": "dataforge big-o busca.df\n→ O(2^n)",
+     "depois": "→ O(log n)",
+     "p": "As duas chamadas estão em ramos <b>mutuamente exclusivos</b> e eram somadas; "
+          "e a bisseção mora em <code>meio := (baixo+alto) ~/ 2</code>. Acusar a busca "
+          "binária de exponencial é o pior erro possível nesse analisador."},
+    {"fam": "classe", "t": "Fibonacci <b>memoizado</b> ainda dado como O(2ⁿ)",
+     "antes": "mark @memo\naction fib(n): …\n→ O(2^n)  \"considere memoizar\"",
+     "depois": "→ O(n)",
+     "p": "O aviso do O(2ⁿ) manda memoizar, e quem seguia o conselho recebia o mesmo "
+          "aviso de volta."},
+    {"fam": "mensagem", "t": "O texto do Firmata perdia o acento",
+     "antes": "Firmata.sendString(\"olá\")\n→ \"olC!\"",
+     "depois": "→ \"olá\"",
+     "p": "Todo byte de dado viaja partido em dois de sete bits, e ler só o primeiro de "
+          "cada par devolve a metade baixa. Em ASCII ninguém nota, porque ali o bit 7 é "
+          "zero: o defeito fica escondido até a primeira mensagem em português."},
+    {"fam": "mensagem", "t": "As flags do <code>dataforge iot</code> nunca chegavam",
+     "antes": "dataforge iot sketch pisca --em=/tmp\n// o código ia para a TELA,\n// e nada era escrito",
+     "depois": "escrito: /tmp/pisca/pisca.ino",
+     "p": "O despachante da CLI separa <code>--x=y</code> dos argumentos e entrega duas "
+          "listas; o subcomando lia só uma. Uma flag que some sem erro é indistinguível "
+          "de uma flag que não existe."},
+    {"fam": "nome", "t": "<code>given</code> não publicava o nome, e <code>monitor</code> publicava",
+     "antes": "given n % 2 is 0:\n    rotulo := \"par\"\notherwise:\n    rotulo := \"impar\"\nout rotulo   // não definido",
+     "depois": "o nome sai do ramo; o TIPO não —\nos ramos são exclusivos, e herdar\no tipo acusaria código certo",
+     "p": "O padrão mais comum que existe não funcionava. A correção precisou de três "
+          "arquivos (interpretador, analisador e compilador de fechamentos): esquecer o "
+          "terceiro faria a linguagem responder duas coisas conforme a compilação "
+          "estivesse ligada."},
+    {"fam": "silencio", "t": "<code>root</code> entrava em laço com três níveis de herança",
+     "antes": "A ← B ← C\nC.v() → B.v() → B.v() → …",
+     "depois": "uma fatia da MRO cortada depois\nde __dono__ — o diamante resolve\npor C3, como o super() do Python",
+     "p": "Com dois níveis a conta dava certo, e <b>toda</b> herança do repositório "
+          "tinha dois níveis. Só um projeto grande mostra isso."},
+    {"fam": "dado", "t": "O empacotamento mentia sem dar erro",
+     "antes": "pip install dataforge-lang\ndataforge editor\n→ \"os arquivos da extensao\n   nao foram encontrados\"",
+     "depois": "o teste CONSTRÓI o wheel\ne olha dentro",
+     "p": "Os globs de <code>package-data</code> eram relativos à pasta do pacote, e a "
+          "extensão mora na raiz: zero arquivo dela no wheel. Dois testes conferiam o "
+          "<b>texto</b> do <code>pyproject.toml</code> e passavam — conferir o texto de "
+          "um arquivo de build não diz o que o build produz."},
+]
+
+#: O que falta e cabe. Cada item foi CONFERIDO agora: os quatro da
+#: versão anterior desta página (watchpoint, sessão da Vitrine fora do
+#: processo, fila persistente e literal decimal) passaram a existir, e
+#: por isso saíram daqui.
+CABE = [
+    {"t": "<code>Cluster&lt;T&gt;</code> e <code>Vault&lt;K,V&gt;</code>", "s": "falta",
+     "p": "<code>&lt;T&gt;</code> e <code>&lt;T extends X&gt;</code> existem e são "
+          "cobrados nas duas metades. O tipo do <b>conteúdo</b> de uma coleção, não.",
+     "li": ["Um campo que é <code>Cluster&lt;T&gt;</code> em vez de <code>T</code> puro "
+            "fica de fora — descer na coleção seria impreciso",
+            "Hoje a linguagem ao menos <b>diz isso</b>"]},
+    {"t": "Herdar com argumento de tipo", "s": "falta",
+     "p": "<code>blueprint Filha&lt;T&gt; extends Caixa&lt;T&gt;</code> é erro de "
+          "sintaxe: o <code>extends</code> aceita o nome, não a instanciação.",
+     "li": ["O campo genérico herdado funciona porque o parâmetro da filha resolve o da "
+            "mãe pelo <b>nome</b>",
+            "Com nomes diferentes, o analisador cala em vez de adivinhar"]},
+    {"t": "Vigia de leitura por <b>expressão</b>", "s": "falta",
+     "p": "Parar quando <code>saldo</code> é lido existe, e casa por nome ou por nome de "
+          "campo. <code>v[\"k\"].campo</code>, não.",
+     "li": ["No terminal, as paradas de threads diferentes se enfileiram — um terminal "
+            "é uma conversa só"]},
+    {"t": "Exaustividade além do produto de enums", "s": "falta",
+     "p": "O <code>match</code> avisa em cinco formas, inclusive no padrão aninhado. Uma "
+          "posição com <b>literal</b> faz a regra calar.",
+     "li": ["<code>[Cor.A, 0]</code> não cobre <code>[Cor.A, *]</code>",
+            "Um ramo com guarda nunca conta como cobertura"]},
+    {"t": "Um <i>shim</i> de versão no PATH", "s": "falta",
+     "p": "Versões lado a lado, pino por projeto e <code>workspace</code> existem, e o "
+          "pino é <b>cobrado</b> — <code>dataforge run</code> troca por "
+          "<code>os.execve</code>.",
+     "li": ["O que não há é um atalho no PATH que resolva a versão antes de o Python "
+            "subir",
+            "O <code>dataforge</code> que se chama é o instalado, e é ele que "
+            "redireciona"]},
+]
+
+MEDIDAS_DADOS = [
+    {"n": "Buscar num vault em vez de num cluster",
+     "d": "100 mil itens — a razão cresce com n: 2,7× com 3 mil, 43× com 100 mil",
+     "v": "43×", "pct": 100, "c": "var(--verde)"},
+    {"n": "Índice em vez de varrer a tabela",
+     "d": "20 mil linhas, 200 consultas — 73,6 ms → 4,4 ms",
+     "v": "16,6×", "pct": 38, "c": "var(--azul)"},
+    {"n": "Heap em vez de ordenar tudo, para os 10 maiores",
+     "d": "300 mil itens — 25,7 ms → 1,7 ms", "v": "15×", "pct": 35, "c": "var(--azul)"},
+    {"n": "Uma consulta agrupada em vez de N+1",
+     "d": "500 clientes, 5 mil pedidos, banco em memória",
+     "v": "6,4×", "pct": 22, "c": "var(--roxo)"},
+    {"n": "A árvore guardada entre execuções",
+     "d": "269 arquivos — a fase de parse cai de 258,7 ms para 17,9 ms",
+     "v": "14×", "pct": 33, "c": "var(--azul)"},
+    {"n": "<code>append</code> é O(1) amortizado",
+     "d": "Dobrar n dobrou o tempo: 2,02× três vezes seguidas",
+     "v": "2,02×", "pct": 14, "c": "var(--marca)"},
+]
+
+MEDIDAS_MAQUINA = [
+    {"n": "Processos de verdade, em CPU",
+     "d": "8 blocos de CPU em 10 núcleos — 4.069 ms → 864 ms",
+     "v": "4,71×", "pct": 100, "c": "var(--verde)"},
+    {"n": "Travessia de processo (outra carga)",
+     "d": "Série 1.607 ms · threads 1.654 ms · processos 466 ms",
+     "v": "3,45×", "pct": 73, "c": "var(--verde)"},
+    {"n": "Acesso a método de coleção",
+     "d": "200 mil <code>append</code> — 0,77 s → 0,27 s (eram 146 lambdas por acesso)",
+     "v": "2,9×", "pct": 61, "c": "var(--azul)"},
+    {"n": "Compilação para fechamentos",
+     "d": "A árvore vira funções Python, uma vez", "v": "1,5–1,8×", "pct": 36,
+     "c": "var(--azul)"},
+    {"n": "O laço de eventos contra thread por conexão",
+     "d": "2.000 conexões: 151 ms numa thread e +0 MB, contra 161 ms, 2.000 threads e "
+          "+36 MB — o tempo empata, a <b>forma da conta</b> não",
+     "v": "1 thread", "pct": 30, "c": "var(--roxo)"},
+    {"n": "Os três passes de otimização sobre o HIR",
+     "d": "1,33× na carga feita dos nós que o inventário aponta; <b>1,01× nos "
+          "exercícios reais</b> — e por isso ficam desligados",
+     "v": "1,01×", "pct": 6, "c": "var(--vermelho)"},
+    {"n": "Threads para trabalho de CPU",
+     "d": "O GIL serializa: thread não é paralelismo aqui",
+     "v": "0,97×", "pct": 5, "c": "var(--vermelho)"},
+]
+
+ESCALA_CODIGO = [
+    {"t": "O analisador atravessa arquivos", "s": "ok",
+     "p": "<code>P.naoExiste()</code> e <code>P.criar(1,2,3)</code> são acusados antes "
+          "de rodar, mesmo vindo de outro <code>.df</code>. Aridade, tipo de parâmetro "
+          "e tipo de retorno cruzam a fronteira.",
+     "li": ["Num sistema de 200 arquivos, a maioria das chamadas cruza módulo",
+            "Cache por (caminho, mtime): sem ele o <code>check</code> iria de 0,7 s a "
+            "mais de um minuto"]},
+    {"t": "A inferência usa o escopo de quem chama", "s": "ok",
+     "p": "<code>D.valor_de(n)</code> dentro de uma ação virava <b>649 falsos alarmes</b> "
+          "num projeto gerado de 252 arquivos — um por uso de parâmetro numa chamada "
+          "entre módulos.",
+     "li": ["E a suíte passava: os primeiros testes chamavam no nível de topo",
+            "Quem pegou foi rodar o <code>check</code> no projeto grande"]},
+    {"t": "Ciclo de import é erro", "s": "ok",
+     "p": "E a cadeia inteira aparece — um ciclo de quatro arquivos é impossível de "
+          "quebrar sem saber por onde ele passa. Busca em largura, para achar o mais "
+          "curto.",
+     "li": ["CommonJS devolve o módulo pela metade; ESM deixa numa zona morta",
+            "Aqui é erro, no <code>check</code> e em execução"]},
+    {"t": "O analisador vê dentro dos objetos", "s": "ok",
+     "p": "<code>p.clientte</code> é acusado antes de rodar, com sugestão — e o tipo de "
+          "retorno atravessa o <code>adopt</code>, senão o campo errado com o nome quase "
+          "certo passava.",
+     "li": ["Ele cala quando o membro vem da mãe, de um trait ou de "
+            "<code>self.x := …</code>",
+            "A primeira versão deu 32 falsos alarmes num exemplo que funciona há meses"]},
+    {"t": "Gerenciador de pacotes", "s": "ok",
+     "p": "semver com <code>^</code> <code>~</code> <code>&gt;=</code>, lockfile com "
+          "sha256 que agora é <b>lido</b>, registro estático sem servidor, extração que "
+          "recusa <code>../</code> e link simbólico.",
+     "li": ["Um lockfile que ninguém lê não trava nada — e nenhum caminho de instalação "
+            "o consultava",
+            "Conflito de versão é erro, não aviso"]},
+    {"t": "Recursão sem teto de mil quadros", "s": "ok",
+     "p": "<code>yield f(…)</code> como retorno inteiro vira salto e reusa o quadro. "
+          "Testado com 200 mil níveis.",
+     "li": ["Quatro casos são recusados por análise, antes de rodar",
+            "Uma travessia de árvore de 5 mil nós não tem nada de infinita"]},
+]
+
+TRAVAS = [
+    {"t": "O texto não pode divergir do código",
+     "p": "Testes comparam a contagem de módulos, símbolos, testes, exercícios e blocos "
+          "escritos à mão com a realidade. <b>Esta página era a maior exceção</b>, e "
+          "passou a ser gerada."},
+    {"t": "O gerado não pode divergir do gerador",
+     "p": "A gramática do editor, as páginas da doc, os JSONs da API, o "
+          "<code>llms.txt</code>, o roadmap e o índice dos exercícios são comparados com "
+          "o que o gerador produz."},
+    {"t": "Nenhuma mensagem cita tipo do Python",
+     "p": "Há teste sobre o <b>código</b> do interpretador proibindo "
+          "<code>type(x).__name__</code> dentro de f-string de mensagem — a trava achou "
+          "três que ninguém tinha visto."},
+    {"t": "Nenhum link interno aponta para rota inexistente",
+     "p": "E nenhuma página de doc fica fora da navegação: quem procura, acha. Escrevendo "
+          "as trilhas do roadmap, <b>8 de 36</b> rotas que eu \"sabia\" não existiam."},
+    {"t": "Teste de desempenho cobra fator, nunca milissegundo",
+     "p": "Um limite absoluto mede a máquina, não o algoritmo. E quando nem o fator "
+          "basta, há o <b>ponto de calibração</b>: um algoritmo conhecidamente linear "
+          "medido no mesmo instante — se ele não dá ~2, a máquina não está medindo, e o "
+          "teste diz isso e pula."},
+    {"t": "Todo módulo novo entra no mapa do ecossistema",
+     "p": "<code>conferir()</code> cobra as duas direções: caminho citado que sumiu do "
+          "disco, e módulo de <code>dataforge/</code> que não aparece em componente "
+          "nenhum. Sem a segunda, um módulo novo nasce fora do mapa em silêncio."},
+    {"t": "Todo bug corrigido tem teste que falha sem a correção",
+     "p": "É a regra que gerou quase tudo o que está na aba \"corrigidos\" — e a única "
+          "forma de o bug não voltar."},
+]
+
+
+# ═══════════════════════════════════════════════════════════
+#  O CSS — sem CDN, sem fonte remota, sem biblioteca
+# ═══════════════════════════════════════════════════════════
+
+CSS = """
+/* ──────────────────────────────────────────────────────────────
+   GERADO por tools/gerar_conclusao.py — não edite este arquivo.
+   Sem CDN, sem fonte remota, sem biblioteca. A linguagem promete
+   zero dependência; este relatório sobre ela não ia desmentir.
+   ────────────────────────────────────────────────────────────── */
+:root{
+  --fundo:#0d1017; --painel:#141922; --painel2:#1a2030; --borda:#242c3d;
+  --texto:#e6e9ef; --fraco:#8b95a9; --apagado:#5d6779;
+  --marca:#f4c95d; --verde:#4ec9a0; --vermelho:#ef6b73;
+  --azul:#6aa9f4; --roxo:#b48ce8; --laranja:#f0913e;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--fundo);color:var(--texto);
+  font:15px/1.65 var(--sans);-webkit-font-smoothing:antialiased;
+}
+.env{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* ── cabeçalho ── */
+header{
+  border-bottom:1px solid var(--borda);
+  background:
+    radial-gradient(900px 340px at 12% -20%, rgba(244,201,93,.10), transparent 70%),
+    radial-gradient(700px 300px at 88% -10%, rgba(106,169,244,.08), transparent 70%);
+  padding:52px 0 36px;
+}
+.selo{
+  display:inline-flex;align-items:center;gap:8px;
+  font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--marca);background:rgba(244,201,93,.10);
+  border:1px solid rgba(244,201,93,.28);border-radius:999px;padding:7px 13px;
+}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.1;margin:18px 0 10px;letter-spacing:-.02em}
+h1 small{display:block;font-size:.42em;font-weight:500;color:var(--fraco);letter-spacing:0;margin-top:10px}
+.resumo{max-width:70ch;color:var(--fraco);font-size:16px}
+.resumo strong{color:var(--texto)}
+
+/* ── painel de números ── */
+.numeros{
+  display:grid;gap:12px;margin-top:32px;
+  grid-template-columns:repeat(auto-fit,minmax(148px,1fr));
+}
+.num{
+  background:var(--painel);border:1px solid var(--borda);border-radius:11px;
+  padding:16px 15px;position:relative;overflow:hidden;
+}
+.num::after{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--cor,var(--marca))}
+.num b{display:block;font:700 27px/1 var(--mono);color:var(--cor,var(--marca));letter-spacing:-.02em}
+.num span{display:block;font-size:12px;color:var(--fraco);margin-top:6px;line-height:1.35}
+
+/* ── navegação ── */
+nav{position:sticky;top:0;z-index:20;background:rgba(13,16,23,.93);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--borda)}
+nav .env{display:flex;gap:4px;overflow-x:auto;padding-top:4px;padding-bottom:4px}
+nav button{
+  appearance:none;background:none;border:0;color:var(--fraco);cursor:pointer;
+  font:600 13px/1 var(--sans);padding:13px 15px;border-bottom:2px solid transparent;
+  white-space:nowrap;
+}
+nav button:hover{color:var(--texto)}
+nav button[aria-selected="true"]{color:var(--marca);border-bottom-color:var(--marca)}
+
+/* ── seções ── */
+main{padding:36px 0 60px}
+section h2{font-size:24px;margin:0 0 6px;letter-spacing:-.01em}
+section .sub{color:var(--fraco);max-width:76ch;margin:0 0 26px}
+h3{font-size:13px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;
+   color:var(--cor,var(--marca));margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+h3::after{content:"";flex:1;height:1px;background:var(--borda)}
+
+/* ── cartões ── */
+.cartoes{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.cartao{background:var(--painel);border:1px solid var(--borda);border-radius:11px;padding:16px 17px}
+.cartao h4{margin:0 0 7px;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cartao p{margin:0;color:var(--fraco);font-size:13.5px}
+.cartao ul{margin:10px 0 0;padding-left:17px;color:var(--apagado);font-size:12.5px}
+.cartao li{margin:3px 0}
+.cartao code{font:12.5px var(--mono);color:var(--marca);background:rgba(244,201,93,.08);
+             padding:1px 5px;border-radius:4px}
+
+/* ── pílulas ── */
+.pill{font:600 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;
+      padding:4px 8px;border-radius:999px;white-space:nowrap}
+.p-ok{color:var(--verde);background:rgba(78,201,160,.12);border:1px solid rgba(78,201,160,.3)}
+.p-falta{color:var(--laranja);background:rgba(240,145,62,.12);border:1px solid rgba(240,145,62,.3)}
+.p-bug{color:var(--vermelho);background:rgba(239,107,115,.12);border:1px solid rgba(239,107,115,.3)}
+.p-neutro{color:var(--fraco);background:rgba(139,149,169,.12);border:1px solid rgba(139,149,169,.28)}
+
+/* ── ferramentas de filtro ── */
+.ferramentas{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
+.ferramentas input[type=search]{
+  flex:1;min-width:220px;background:var(--painel);border:1px solid var(--borda);
+  border-radius:9px;color:var(--texto);font:13.5px var(--sans);padding:9px 12px;
+}
+.ferramentas input:focus{outline:2px solid rgba(244,201,93,.4);outline-offset:1px}
+.filtro{
+  appearance:none;cursor:pointer;background:var(--painel);border:1px solid var(--borda);
+  color:var(--fraco);border-radius:999px;font:600 12px/1 var(--sans);padding:8px 13px;
+}
+.filtro[aria-pressed="true"]{color:var(--fundo);background:var(--marca);border-color:var(--marca)}
+.conta{font:12px var(--mono);color:var(--apagado);margin-left:auto}
+
+/* ── bugs ── */
+.bug{background:var(--painel);border:1px solid var(--borda);border-radius:11px;margin:9px 0;overflow:hidden}
+.bug summary{cursor:pointer;list-style:none;padding:14px 16px;display:flex;gap:11px;align-items:center}
+.bug summary::-webkit-details-marker{display:none}
+.bug .seta{color:var(--apagado);font-size:10px;transition:transform .18s}
+.bug[open] .seta{transform:rotate(90deg)}
+.bug .titulo{flex:1;font-size:14px}
+.bug .titulo code{font:12.5px var(--mono);color:var(--marca)}
+.bug .corpo{padding:0 16px 16px;border-top:1px solid var(--borda);margin-top:2px;padding-top:14px}
+.antes-depois{display:grid;gap:10px;grid-template-columns:1fr 1fr;margin-bottom:12px}
+@media(max-width:720px){.antes-depois{grid-template-columns:1fr}}
+.quadro{border:1px solid var(--borda);border-radius:9px;overflow:hidden;background:var(--painel2)}
+.quadro .rotulo{font:600 10px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em;
+                padding:8px 11px;border-bottom:1px solid var(--borda)}
+.quadro.antes .rotulo{color:var(--vermelho)}
+.quadro.depois .rotulo{color:var(--verde)}
+.quadro pre{margin:0;padding:12px;font:12.5px/1.6 var(--mono);color:var(--fraco);
+            white-space:pre-wrap;word-break:break-word}
+.bug .corpo>p{margin:0;color:var(--fraco);font-size:13.5px}
+
+/* ── medidas ── */
+.medidas{display:grid;gap:10px}
+.medida{background:var(--painel);border:1px solid var(--borda);border-radius:11px;padding:14px 16px}
+.medida .topo{display:flex;justify-content:space-between;gap:14px;align-items:baseline}
+.medida .nome{font-size:13.5px}
+.medida .nome small{display:block;color:var(--apagado);font-size:12px;margin-top:3px}
+.medida .nome code{font:12px var(--mono);color:var(--marca)}
+.medida .valor{font:700 17px/1 var(--mono);color:var(--cor,var(--verde));white-space:nowrap}
+.barra{height:5px;border-radius:99px;background:var(--painel2);margin-top:11px;overflow:hidden}
+.barra i{display:block;height:100%;border-radius:99px;background:var(--cor,var(--verde));
+         width:0;transition:width 1s cubic-bezier(.2,.7,.3,1)}
+
+/* ── tabela ── */
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0 4px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--borda);vertical-align:top}
+th{font:600 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--apagado)}
+td code{font:12.5px var(--mono);color:var(--marca)}
+td small{color:var(--apagado);font:11px var(--mono)}
+tbody tr:hover{background:var(--painel)}
+.rolagem{overflow-x:auto;border:1px solid var(--borda);border-radius:10px;background:var(--painel)}
+
+/* ── nota ── */
+.nota{
+  border-left:3px solid var(--cor,var(--azul));background:var(--painel);
+  border-radius:0 9px 9px 0;padding:14px 16px;margin:18px 0;font-size:13.5px;color:var(--fraco);
+}
+.nota b{color:var(--texto)}
+.rodape{border-top:1px solid var(--borda);margin-top:50px;padding:24px 0 0;
+        color:var(--apagado);font-size:12.5px}
+.rodape code{font:12px var(--mono);color:var(--fraco)}
+"""
+
+
+# ═══════════════════════════════════════════════════════════
+#  A montagem
+# ═══════════════════════════════════════════════════════════
+
+MONTAGEM = """
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/&(?!\\w+;|#)/g, "&amp;");
+
+/* números do topo, com contagem animada */
+$("#numeros").innerHTML = NUMEROS.map((n, i) => `
+  <div class="num" style="--cor:${n.c}">
+    <b data-alvo="${n.v}" data-i="${i}">0</b><span>${n.r}</span>
+  </div>`).join("");
+
+function animarNumeros() {
+  const parado = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.querySelectorAll(".num b").forEach((el) => {
+    const alvo = el.dataset.alvo;
+    const fim = parseFloat(alvo.replace(/\\./g, "").replace(",", ".")) || 0;
+    if (fim === 0 || parado) { el.textContent = alvo; return; }
+    const inicio = performance.now(), dur = 800 + Number(el.dataset.i) * 70;
+    (function passo(t) {
+      const p = Math.min(1, (t - inicio) / dur);
+      const suave = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(fim * suave).toLocaleString("pt-BR");
+      if (p < 1) requestAnimationFrame(passo); else el.textContent = alvo;
+    })(inicio);
+  });
+}
+
+/* abas */
+$("#abas").innerHTML = ABAS.map(([id, rot], i) => `
+  <button role="tab" data-alvo="${id}" aria-selected="${i === 0}">${rot}</button>`).join("");
+
+$("#abas").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-alvo]");
+  if (!b) return;
+  document.querySelectorAll("#abas button").forEach(x =>
+    x.setAttribute("aria-selected", String(x === b)));
+  ABAS.forEach(([id]) => { $("#" + id).hidden = id !== b.dataset.alvo; });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (b.dataset.alvo === "volume") requestAnimationFrame(desenharBarras);
+});
+
+/* cartões genéricos */
+const cartao = (c) => `
+  <div class="cartao">
+    <h4>${c.t}${c.s ? ` <span class="pill p-${c.s === "ok" ? "ok" : c.s === "bug" ? "bug" : "falta"}">${
+      c.s === "ok" ? "existe" : c.s === "bug" ? "quebrado" : "falta"}</span>` : ""}</h4>
+    <p>${c.p}</p>
+    ${c.li ? `<ul>${c.li.map(x => `<li>${x}</li>`).join("")}</ul>` : ""}
+  </div>`;
+
+$("#c-linguagem").innerHTML = LINGUAGEM.map(cartao).join("");
+$("#c-ferramentas").innerHTML = FERRAMENTAS.map(cartao).join("");
+$("#c-frameworks").innerHTML = FRAMEWORKS.map(cartao).join("");
+$("#c-cabe").innerHTML = CABE.map(cartao).join("");
+$("#c-escala").innerHTML = ESCALA_CODIGO.map(cartao).join("");
+$("#c-travas").innerHTML = TRAVAS.map(cartao).join("");
+
+$("#t-modulos tbody").innerHTML = AREAS_STDLIB.map(([a, m, s]) =>
+  `<tr><td><b>${a}</b></td><td>${m}</td><td><code>${s}</code></td></tr>`).join("")
+  + `<tr><td><b>Total</b></td><td style="color:var(--apagado)">${N.modulos} módulos</td>
+       <td><code style="color:var(--verde)">${N.simbolos}</code></td></tr>`;
+
+$("#t-decisao tbody").innerHTML = DECISAO.map(([o, p]) =>
+  `<tr><td><b>${o}</b></td><td>${p}</td></tr>`).join("");
+
+$("#t-portoes tbody").innerHTML = PORTOES.map(([p, c, e]) =>
+  `<tr><td>${p}</td><td>${c}</td><td><span class="pill p-${
+    e === "verde" ? "ok" : "falta"}">${e === "verde" ? "verde" : "atenção"}</span></td></tr>`).join("");
+
+$("#t-principios tbody").innerHTML = PRINCIPIOS.map(p => {
+  const cor = p.v === "cumprido" ? "p-ok" : p.v === "parcial" ? "p-falta" : "p-neutro";
+  return `<tr>
+    <td><b>${p.n}. ${p.t}</b><br><small>${esc(p.doc)}</small></td>
+    <td>${esc(p.aqui)}</td>
+    <td><span class="pill ${cor}">${p.v.replace(/-/g, " ")}</span></td>
+  </tr>`;
+}).join("");
+
+$("#t-tensoes tbody").innerHTML = TENSOES.map(t =>
+  `<tr><td><b>${esc(t.entre.join(" × "))}</b></td><td>${esc(t.tensao)}</td>
+       <td>${esc(t.escolha)}</td></tr>`).join("");
+
+/* bugs, com busca e filtro */
+const ROTULO_FAM = {
+  silencio: "o erro sumia", nome: "nome ligado 2×",
+  mensagem: "a mensagem mentia", classe: "classe errada", dado: "dado corrompido",
+};
+function pintarBugs() {
+  const termo = $("#busca").value.trim().toLowerCase();
+  const fam = $('.filtro[aria-pressed="true"]').dataset.familia;
+  const vistos = BUGS.filter(b => {
+    if (fam !== "*" && b.fam !== fam) return false;
+    if (!termo) return true;
+    return (b.t + b.p + b.antes + b.depois + ROTULO_FAM[b.fam])
+      .toLowerCase().includes(termo);
+  });
+  $("#lista-bugs").innerHTML = vistos.map(b => `
+    <details class="bug">
+      <summary>
+        <span class="seta">▶</span>
+        <span class="titulo"><b>${b.t}</b></span>
+        <span class="pill p-ok">${ROTULO_FAM[b.fam]}</span>
+      </summary>
+      <div class="corpo">
+        <div class="antes-depois">
+          <div class="quadro antes"><div class="rotulo">antes</div><pre>${esc(b.antes)}</pre></div>
+          <div class="quadro depois"><div class="rotulo">depois</div><pre>${esc(b.depois)}</pre></div>
+        </div>
+        <p>${b.p}</p>
+      </div>
+    </details>`).join("") ||
+    `<p style="color:var(--apagado)">Nada casou com essa busca.</p>`;
+  $("#conta-bugs").textContent = `${vistos.length} de ${BUGS.length}`;
+}
+$("#busca").addEventListener("input", pintarBugs);
+document.querySelectorAll(".filtro").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".filtro").forEach(x =>
+    x.setAttribute("aria-pressed", String(x === b)));
+  pintarBugs();
+}));
+pintarBugs();
+
+/* medições */
+const medida = (m) => `
+  <div class="medida" style="--cor:${m.c}">
+    <div class="topo">
+      <div class="nome">${m.n}<small>${m.d}</small></div>
+      <div class="valor">${m.v}</div>
+    </div>
+    <div class="barra"><i data-pct="${m.pct}"></i></div>
+  </div>`;
+$("#m-dados").innerHTML = MEDIDAS_DADOS.map(medida).join("");
+$("#m-maquina").innerHTML = MEDIDAS_MAQUINA.map(medida).join("");
+
+function desenharBarras() {
+  document.querySelectorAll(".barra i").forEach((el, i) => {
+    setTimeout(() => { el.style.width = el.dataset.pct + "%"; }, 60 * i);
+  });
+}
+
+animarNumeros();
+"""
+
+
+def _js(nome, valor):
+    return f"const {nome} = {json.dumps(valor, ensure_ascii=False, indent=0)};\n"
+
+
+def gerar():
+    n = medir()
+    areas = areas_da_stdlib(n)
+    decisao, eco = ausencias()
+    principios, tensoes = dez_principios()
+    cobertura = conferido()
+
+    numeros = [
+        {"v": f"{n['testes']:,}".replace(",", "."), "r": "testes passando",
+         "c": "var(--verde)"},
+        {"v": f"{n['simbolos']:,}".replace(",", "."),
+         "r": f"símbolos em {n['modulos']} módulos", "c": "var(--azul)"},
+        {"v": str(n["exercicios"]), "r": "exercícios com assert", "c": "var(--roxo)"},
+        {"v": str(n["paginas"]), "r": "páginas de documentação", "c": "var(--marca)"},
+        {"v": f"{n['blocos']:,}".replace(",", "."),
+         "r": "blocos da doc que compilam", "c": "var(--laranja)"},
+        {"v": str(n["arquivos_df"]), "r": "arquivos .df no repositório",
+         "c": "var(--verde)"},
+        {"v": "0", "r": f"erros do check em {cobertura['arquivos']} arquivos",
+         "c": "var(--azul)"},
+        {"v": "0", "r": "dependências externas", "c": "var(--marca)"},
+    ]
+
+    portoes = [
+        ["<code>pytest tests/</code>",
+         f"{n['testes']} funções de teste — regressões, Kiln, Vitrine, DAP, "
+         f"empacotamento, travessia, malha, complexidade, IoT", "verde"],
+        ["<code>exercicios/run_all.py</code>",
+         f"{n['exercicios']} exercícios em {n['modulos_de_exercicio']} módulos, cada um "
+         f"com <code>assert</code> verificando o próprio resultado", "verde"],
+        ["<code>trilha/run_all.py</code>",
+         f"{n['capitulos']} capítulos em ordem, com assert", "verde"],
+        ["<code>tools/verificar_docs.py</code>",
+         f"{n['blocos']} blocos de DataForge publicados no site, compilados a cada "
+         f"mudança", "verde"],
+        ["<code>tests/test_paginas_novas_rodam.py</code>",
+         "os blocos das páginas novas <b>rodam</b> — compilar não pega um "
+         "<code>assert</code> errado", "verde"],
+        ["<code>dataforge check</code> × 5 pastas",
+         f"{cobertura['arquivos']} arquivos: 0 erros", "verde"],
+        ["<code>examples/*.df</code>",
+         f"{n['exemplos']} programas maiores executados", "verde"],
+        ["<code>npm run build</code>",
+         f"{n['paginas']} páginas de doc geradas e compiladas", "verde"],
+        ["<code>dataforge ecossistema</code>",
+         f"{eco['componentes']} componentes conferidos contra o disco — "
+         f"{eco['existem']} existem, {eco['equivalem']} equivalem, "
+         f"{eco['nao_existem']} não", "verde"],
+    ]
+
+    abas = [
+        ["tem", "O que já tem"],
+        ["corrigidos", "Bugs corrigidos"],
+        ["falta", "O que falta"],
+        ["volume", "Aguenta volume?"],
+        ["principios", "Os dez princípios"],
+        ["prova", "Como se sabe"],
+    ]
+
+    hoje = datetime.date.today().strftime("%d/%m/%Y")
+    commit = _commit()
+
+    dados_js = "".join([
+        _js("N", n),
+        _js("NUMEROS", numeros),
+        _js("ABAS", abas),
+        _js("LINGUAGEM", LINGUAGEM),
+        _js("AREAS_STDLIB", areas),
+        _js("FERRAMENTAS", FERRAMENTAS),
+        _js("FRAMEWORKS", FRAMEWORKS),
+        _js("BUGS", BUGS),
+        _js("CABE", CABE),
+        _js("DECISAO", decisao),
+        _js("ESCALA_CODIGO", ESCALA_CODIGO),
+        _js("MEDIDAS_DADOS", MEDIDAS_DADOS),
+        _js("MEDIDAS_MAQUINA", MEDIDAS_MAQUINA),
+        _js("PORTOES", portoes),
+        _js("TRAVAS", TRAVAS),
+        _js("PRINCIPIOS", principios),
+        _js("TENSOES", tensoes),
+    ])
+
+    return f"""<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataForge {n['versao']} — conclusão do estado da linguagem</title>
+<meta name="description" content="O que a linguagem tem, o que foi corrigido, o que ainda falta e se ela aguenta projeto grande — com todo número saindo de um comando.">
+<style>{CSS}</style>
+</head>
+<body>
+
+<header>
+  <div class="env">
+    <span class="selo">● DataForge v{n['versao']} — conclusão</span>
+    <h1>O estado da linguagem
+      <small>O que existe, o que foi corrigido, o que ainda falta — e se ela aguenta projeto grande.</small>
+    </h1>
+    <p class="resumo">
+      Tudo nesta página foi <strong>medido</strong> no repositório, e não lembrado:
+      a página é <strong>gerada</strong> por <code>tools/gerar_conclusao.py</code>, e
+      há teste reprovando quando ela diverge do código. A versão anterior era escrita
+      à mão e envelheceu exatamente como este projeto documenta que acontece —
+      anunciava 48 módulos onde há {n['modulos']}, e listava como "falta" quatro
+      coisas que passaram a existir. O que está ausente <strong>por decisão</strong>
+      continua separado do que falta, porque as duas coisas pedem respostas diferentes.
+    </p>
+    <div class="numeros" id="numeros"></div>
+  </div>
+</header>
+
+<nav>
+  <div class="env" role="tablist" id="abas"></div>
+</nav>
+
+<main class="env">
+
+  <!-- ══════════════ O QUE JÁ TEM ══════════════ -->
+  <section id="tem" role="tabpanel">
+    <h2>O que a linguagem já tem</h2>
+    <p class="sub">
+      Não é um DSL nem um transpilador: lexer, parser recursivo descendente, AST
+      tipada, analisador estático, seis representações intermediárias e interpretador
+      de árvore próprios, em {n['linhas']:,} linhas de Python
+      <strong>sem uma única dependência externa</strong> no runtime.
+    </p>
+
+    <h3 style="--cor:var(--verde)">A linguagem — {n['palavras']} palavras reservadas, {n['embutidas']} funções embutidas, {n['erros']} códigos de erro</h3>
+    <div class="cartoes" id="c-linguagem"></div>
+
+    <h3 style="--cor:var(--azul)">A biblioteca padrão — {n['modulos']} módulos, {n['simbolos']} símbolos</h3>
+    <div class="rolagem"><table id="t-modulos">
+      <thead><tr><th>Área</th><th>Módulos</th><th>Símbolos</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <h3 style="--cor:var(--roxo)">As ferramentas — {n['comandos']} comandos</h3>
+    <div class="cartoes" id="c-ferramentas"></div>
+
+    <h3 style="--cor:var(--laranja)">Os frameworks</h3>
+    <div class="cartoes" id="c-frameworks"></div>
+  </section>
+
+  <!-- ══════════════ BUGS CORRIGIDOS ══════════════ -->
+  <section id="corrigidos" role="tabpanel" hidden>
+    <h2>Bugs corrigidos</h2>
+    <p class="sub">
+      Achados por <strong>sondagem sistemática</strong> e por escrever documentação que
+      roda. Todos com teste que <strong>falha sem a correção</strong>. Clique para ver
+      o antes e o depois.
+    </p>
+
+    <div class="ferramentas">
+      <input id="busca" type="search" placeholder="Procurar — 'silêncio', 'defer', 'async', 'firmata'…" aria-label="Procurar nos bugs">
+      <button class="filtro" data-familia="*" aria-pressed="true">Todos</button>
+      <button class="filtro" data-familia="silencio" aria-pressed="false">O erro sumia</button>
+      <button class="filtro" data-familia="nome" aria-pressed="false">Nome ligado 2×</button>
+      <button class="filtro" data-familia="mensagem" aria-pressed="false">A mensagem mentia</button>
+      <button class="filtro" data-familia="classe" aria-pressed="false">Classe errada</button>
+      <button class="filtro" data-familia="dado" aria-pressed="false">Dado corrompido</button>
+      <span class="conta" id="conta-bugs"></span>
+    </div>
+    <div id="lista-bugs"></div>
+
+    <div class="nota" style="--cor:var(--marca)">
+      <b>O padrão que emergiu.</b> Correções de baterias diferentes eram
+      <b>a mesma coisa</b>: um nome ligado duas vezes, em silêncio, com o segundo
+      vencendo — argumento nomeado, parâmetro, chave de vault e captura de padrão.
+      Achar a família foi o que transformou correções pontuais numa regra.
+    </div>
+    <div class="nota" style="--cor:var(--azul)">
+      <b>E a segunda família.</b> Quase todos os outros compartilham uma forma:
+      <b>o erro existia e ninguém era avisado</b> — o <code>defer</code> que não
+      rodava, o <code>async</code> órfão, o <code>parallel</code> que engolia, o
+      corredor de testes que dizia "tudo verde", o endereço I²C que respondia zero.
+      Um programa que falha e sai com código 0 é pior que um que trava.
+    </div>
+  </section>
+
+  <!-- ══════════════ O QUE FALTA ══════════════ -->
+  <section id="falta" role="tabpanel" hidden>
+    <h2>O que ainda falta</h2>
+    <p class="sub">
+      Separado em dois: o que <strong>falta e cabe</strong>, e o que
+      <strong>não existe por decisão</strong> — com o motivo escrito, para não virar
+      promessa. A segunda lista é <strong>lida do código</strong>
+      (<code>Arcane.Ecossistema</code>), e não desta página: ela é conferida contra o
+      disco a cada execução da suíte.
+    </p>
+
+    <h3 style="--cor:var(--laranja)">Falta, e cabe</h3>
+    <div class="cartoes" id="c-cabe"></div>
+
+    <h3 style="--cor:var(--apagado)">Não existe, por decisão — {eco['nao_existem']} de {eco['componentes']} componentes</h3>
+    <div class="rolagem"><table id="t-decisao">
+      <thead><tr><th>O que não tem</th><th>O que há no lugar, e por quê</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <div class="nota" style="--cor:var(--laranja)">
+      <b>Sobre "sem bugs".</b> Toda área nova sondada ainda devolve algo. A taxa cai,
+      não chega a zero, e eu não diria que vai. O que mudou é que cada área sondada
+      ficou com teste guardando, e o <code>check</code> não ganhou um único falso
+      alarme em {cobertura['arquivos']} arquivos em nenhuma das rodadas.
+    </div>
+    <div class="nota" style="--cor:var(--verde)">
+      <b>Quatro ausências desta página deixaram de existir.</b> A versão anterior
+      listava como "falta" o watchpoint no depurador, a sessão da Vitrine fora do
+      processo, a fila com persistência e o literal decimal. Os quatro existem hoje —
+      e é exatamente por isso que esta página passou a ser gerada.
+    </div>
+  </section>
+
+  <!-- ══════════════ VOLUME ══════════════ -->
+  <section id="volume" role="tabpanel" hidden>
+    <h2>Aguenta projeto grande?</h2>
+    <p class="sub">
+      A pergunta tem três metades, e elas têm respostas diferentes:
+      <strong>o código cresce bem?</strong>, <strong>o dado cresce bem?</strong> e
+      <strong>a máquina dá conta?</strong> Cada número abaixo saiu de um comando.
+    </p>
+
+    <h3 style="--cor:var(--verde)">Escala de código — o que segura um projeto de 200 arquivos</h3>
+    <div class="cartoes" id="c-escala"></div>
+
+    <h3 style="--cor:var(--azul)">Escala de dado — medido nesta máquina</h3>
+    <div class="medidas" id="m-dados"></div>
+
+    <h3 style="--cor:var(--roxo)">Escala de máquina</h3>
+    <div class="medidas" id="m-maquina"></div>
+
+    <div class="nota" style="--cor:var(--vermelho)">
+      <b>O teto honesto.</b> É um interpretador de árvore com compilação para
+      fechamentos: 1,5× a 1,8× sobre a árvore pura. Uma VM de bytecode
+      <b>escrita em Python</b> tem teto de ~6,5×, porque continua sendo Python
+      rodando o laço de despacho. Para trabalho de CPU pesado, a resposta é
+      <code>P.map_processos</code> — 4,71× medido em 10 núcleos — ou a ponte para o
+      Python, onde o <code>numpy</code> faz a conta sem cópia na fronteira.
+    </div>
+    <div class="nota" style="--cor:var(--laranja)">
+      <b>E a otimização que não rendeu.</b> O inventário do LIR apontou dez nós que
+      recuavam dentro de laço, e todos ganharam construtor. Na carga feita
+      <i>daqueles nós</i>, 1,33×; nos {n['exercicios']} exercícios reais, <b>1,01× —
+      nada</b>. O que recua é dominado por nós que rodam uma vez. Os três passes
+      ficam desligados por padrão, e valem pela informação, não pela velocidade.
+    </div>
+  </section>
+
+  <!-- ══════════════ PRINCÍPIOS ══════════════ -->
+  <section id="principios" role="tabpanel" hidden>
+    <h2>Os dez princípios, com o veredito</h2>
+    <p class="sub">
+      Lidos de <code>Arcane.Principios</code>, onde cada um tem uma <strong>prova que
+      roda</strong>. O veredito não é dez de dez — um relatório que aprovasse os dez
+      seria a prova de que ninguém o leu, e há teste cobrando que exista pelo menos
+      um parcial.
+    </p>
+    <div class="rolagem"><table id="t-principios">
+      <thead><tr><th>Princípio</th><th>Como ele vale aqui</th><th>Veredito</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <h3 style="--cor:var(--laranja)">As tensões — onde dois princípios se puxam</h3>
+    <div class="rolagem"><table id="t-tensoes">
+      <thead><tr><th>Entre</th><th>A tensão</th><th>A escolha</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <!-- ══════════════ COMO SE SABE ══════════════ -->
+  <section id="prova" role="tabpanel" hidden>
+    <h2>Como se sabe que está verde</h2>
+    <p class="sub">
+      Nenhuma afirmação desta página depende de leitura de código. Estes são os
+      portões, e todos rodam a cada mudança — o portão completo é
+      <code>bash scripts/verificar_tudo.sh</code>, que ainda regera tudo e confere o
+      diff, compila o site e a extensão, e pede cada arquivo do release para ver se
+      ele baixa de verdade.
+    </p>
+    <div class="rolagem"><table id="t-portoes">
+      <thead><tr><th>Portão</th><th>O que cobre</th><th>Estado</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <h3 style="--cor:var(--marca)">As travas que impedem a documentação de envelhecer</h3>
+    <div class="cartoes" id="c-travas"></div>
+
+    <div class="nota" style="--cor:var(--verde)">
+      <b>A regra que gerou quase tudo isto.</b> Ao corrigir um bug, escreva
+      <b>primeiro</b> o teste que falha. É o que transformou impressões em correções
+      — e é por isso que cada linha da aba "corrigidos" tem um teste que reprova sem
+      ela.
+    </div>
+    <div class="nota" style="--cor:var(--azul)">
+      <b>E a lição que mais se repetiu.</b> Comparar contra uma fonte de verdade, e
+      não reler o código. Os defeitos mais caros daqui — 649 falsos alarmes num
+      projeto gerado, 795 avisos falsos de módulo não encontrado, a extensão ausente
+      do wheel — todos passavam na suíte, e todos apareceram ao rodar a ferramenta
+      contra algo maior do que ela tinha visto.
+    </div>
+  </section>
+</main>
+
+<footer class="env rodape">
+  <p>
+    <b>Gerado</b> em {hoje} por <code>tools/gerar_conclusao.py</code>, a partir do
+    repositório na <code>{commit}</code>. Não edite este arquivo à mão: rode o
+    gerador. Sem CDN, sem fonte remota, sem biblioteca — a linguagem promete zero
+    dependência, e este relatório sobre ela não ia desmentir.
+  </p>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   OS DADOS — medidos no repositório, não lembrados.
+   ═══════════════════════════════════════════════════════════════ */
+{dados_js}
+/* ═══════════════════════════════════════════════════════════════
+   A MONTAGEM
+   ═══════════════════════════════════════════════════════════════ */
+{MONTAGEM}
+</script>
+</body>
+</html>
+"""
+
+
+def _commit():
+    """O commit, quando há git; 'branch main' quando não há.
+
+    Sem o `try`, gerar a partir de um tarball baixado — onde não há
+    `.git` — falharia no meio, e o relatório não sairia por causa de
+    uma linha de rodapé.
+    """
+    try:
+        saida = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                               cwd=RAIZ, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace")
+        if saida.returncode == 0 and saida.stdout.strip():
+            return f"commit {saida.stdout.strip()}"
+    except OSError:                                      # pragma: no cover
+        pass
+    return "branch main"
+
+
+#: A data muda todo dia, e o commit a cada commit: comparar o arquivo
+#: inteiro faria o `--check` reprovar por isso, e não por conteúdo.
+def _sem_carimbo(texto):
+    import re
+    texto = re.sub(r"<b>Gerado</b> em [^<]*<code>tools/gerar_conclusao\.py</code>,"
+                   r" a partir do\s+repositório na <code>[^<]*</code>",
+                   "<b>Gerado</b>", texto)
+    return texto
+
+
+def main():
+    novo = gerar()
+    if "--check" in sys.argv:
+        if not os.path.exists(SAIDA):
+            print("doc/conclusao.html não existe — rode sem --check",
+                  file=sys.stderr)
+            sys.exit(1)
+        with open(SAIDA, encoding="utf-8") as f:
+            atual = f.read()
+        if _sem_carimbo(atual) != _sem_carimbo(novo):
+            print("doc/conclusao.html está desatualizado — rode sem --check",
+                  file=sys.stderr)
+            sys.exit(1)
+        print("  a conclusão está em dia")
+        return
+
+    with open(SAIDA, "w", encoding="utf-8") as f:
+        f.write(novo)
+    n = medir()
+    print(f"  gerado: {os.path.relpath(SAIDA, RAIZ)}")
+    print(f"  {n['modulos']} módulos, {n['simbolos']} símbolos, "
+          f"{n['exercicios']} exercícios, {n['testes']} testes")
+
+
+if __name__ == "__main__":
+    main()

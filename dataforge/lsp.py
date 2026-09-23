@@ -655,25 +655,274 @@ _ESQUEMA = {
 }
 
 
+
+# ═════════════════════════════════════════════════════════════
+#  O que vem depois do ponto
+# ═════════════════════════════════════════════════════════════
+#
+# Completar depois de um ponto devolvia **zero item** para tudo que
+# nao fosse modulo: 'p.', 'xs.', 'texto.' e 'self.' abriam a lista
+# vazia no editor. Zero e pior que o catalogo inteiro — o catalogo e
+# ruido, e zero parece que o servidor morreu.
+#
+# A regra e a do resto do projeto: so responde quando PROVA o tipo, e
+# cala quando nao prova. O que ele prova e o que da para ler da arvore
+# sem executar nada: a anotacao declarada, o literal, o 'spawn', a
+# chamada de um record/blueprint deste arquivo, e o 'self' dentro de
+# um metodo.
+
+#: As tabelas de metodo do INTERPRETADOR, e nao uma copia. Uma segunda
+#: lista divergiria no primeiro metodo novo, e o editor passaria a
+#: oferecer o que nao existe — ou a esconder o que existe.
+def _metodos_embutidos(tipo):
+    from .interpreter import (_METODOS_DE_CLUSTER, _METODOS_DE_TEXTO,
+                              _METODOS_DE_VAULT)
+    tabela = {"Cluster": _METODOS_DE_CLUSTER, "String": _METODOS_DE_TEXTO,
+              "Vault": _METODOS_DE_VAULT}.get(tipo)
+    if not tabela:
+        return []
+    return [{"label": nome, "kind": K_METODO,
+             "detail": f"{tipo}.{nome}()", "sortText": f"0{nome}"}
+            for nome in sorted(tabela)]
+
+
+def _nome_cru(valor):
+    """O nome, venha ele como texto ou como no da arvore.
+
+    'spawn Quadrado(2)' guarda um Identifier em 'class_name', e um
+    'str()' nele devolveria a repr inteira do dataclass — que nunca
+    casa com declaracao nenhuma, e o efeito e o editor nao oferecer
+    nada justamente onde o tipo e obvio.
+    """
+    if valor is None:
+        return ""
+    nome = getattr(valor, "name", None)
+    return str(nome if nome is not None else valor)
+
+
+def _tipo_do_literal(no):
+    """O tipo de um valor que se le SEM executar. '' quando nao da."""
+    nome = type(no).__name__
+    if nome in ("ListLiteral", "ListComprehension", "RangeExpression"):
+        return "Cluster"
+    if nome in ("StringLiteral", "InterpolatedString", "FString"):
+        return "String"
+    if nome == "DictLiteral":
+        # '{1, 2}' e conjunto e '{"a": 1}' e vault: quem separa os dois
+        # e o ':', e sem ele o membro oferecido seria o do tipo errado.
+        pares = getattr(no, "pairs", None)
+        if pares and all(p[0] is not None for p in pares):
+            return "Vault"
+        return "Set" if pares else "Vault"
+    if nome == "SetLiteral":
+        return "Set"
+    return ""
+
+
+def _declaracao_de_tipo(analise, nome):
+    """A declaracao de record/blueprint/enum com este nome, da arvore."""
+    if not analise.programa:
+        return None
+    alvo = str(nome)
+    for no in getattr(analise.programa, "body", []) or []:
+        especie = type(no).__name__
+        if especie in ("BlueprintDeclaration", "RecordDeclaration",
+                       "EnumDeclaration") and getattr(no, "name", "") == alvo:
+            return no
+    return None
+
+
+def _membros_da_declaracao(analise, decl, vistos=None):
+    """Campos e metodos de um record/blueprint, subindo a linhagem.
+
+    Herdado e tao legitimo quanto declarado — e uma completacao que
+    esconde o que a mae deu manda a pessoa procurar o nome no lugar
+    errado. O 'vistos' existe porque 'blueprint A extends A' compila
+    ate o analisador reclamar, e um ciclo aqui travaria o editor.
+    """
+    vistos = vistos or set()
+    if decl is None or id(decl) in vistos:
+        return []
+    vistos.add(id(decl))
+    saida, nomes = [], set()
+
+    def por(nome, tipo, detalhe=""):
+        if not nome or nome in nomes or str(nome).startswith("__"):
+            return
+        nomes.add(nome)
+        saida.append({"label": str(nome), "kind": tipo,
+                      "detail": detalhe, "sortText": f"0{nome}"})
+
+    especie = type(decl).__name__
+    if especie == "RecordDeclaration":
+        for campo in getattr(decl, "fields", []) or []:
+            por(campo[0] if isinstance(campo, (list, tuple)) else campo,
+                K_CAMPO, "campo")
+        # Os metodos de um record moram num DICIONARIO, separados dos
+        # campos de proposito: no mesmo lugar, 'Ponto(norma := 1)'
+        # passaria, porque e a lista de campos que governa a aridade do
+        # construtor e as chaves do 'with'.
+        for nome in getattr(decl, "methods", {}) or {}:
+            por(nome, K_METODO, "método")
+    elif especie == "EnumDeclaration":
+        for membro in getattr(decl, "members", []) or []:
+            por(membro[0] if isinstance(membro, (list, tuple)) else membro,
+                K_MEMBRO_ENUM, "membro")
+        metodos = getattr(decl, "methods", None) or []
+        for metodo in (metodos if not isinstance(metodos, dict) else metodos):
+            por(metodo if isinstance(metodo, str) else getattr(metodo, "name", ""),
+                K_METODO, "método")
+        for embutido in ("name", "value", "index"):
+            por(embutido, K_PROPRIEDADE, "de todo membro de enum")
+    else:                                            # blueprint
+        for campo in getattr(decl, "constructor_params", []) or []:
+            por(campo, K_CAMPO, "campo do cabeçalho")
+        for campo in getattr(decl, "fields_decl", []) or []:
+            por(campo[0] if isinstance(campo, (list, tuple)) else campo,
+                K_CAMPO, "campo")
+        for no in getattr(decl, "body", []) or []:
+            if type(no).__name__ == "ActionDeclaration":
+                por(getattr(no, "name", ""), K_METODO, "método")
+        # 'self.x := …' e como a maioria do codigo cria estado, e ele
+        # vive DENTRO de um metodo (o 'setup', quase sempre) — nao
+        # solto no corpo. Olhar so o corpo deixava de fora justamente
+        # o campo que a pessoa acabou de escrever.
+        for no, _ in _percorrer(decl):
+            if type(no).__name__ != "Assignment":
+                continue
+            alvo = getattr(no, "target", None)
+            if (type(alvo).__name__ == "MemberAccess"
+                    and _nome_cru(getattr(alvo, "object", None)) == "self"):
+                por(_nome_cru(getattr(alvo, "member", "")), K_CAMPO, "campo")
+        for mae in getattr(decl, "parents", []) or []:
+            saida += _membros_da_declaracao(
+                analise, _declaracao_de_tipo(analise, mae), vistos)
+        for trait in getattr(decl, "traits", []) or []:
+            saida += _membros_da_declaracao(
+                analise, _declaracao_de_tipo(analise, trait), vistos)
+    return saida
+
+
+def _percorrer(no, dentro=None):
+    """Todos os nos da arvore, com a declaracao que os contem."""
+    filhos = []
+    for campo in getattr(no, "__dataclass_fields__", {}):
+        valor = getattr(no, campo, None)
+        if isinstance(valor, list):
+            filhos += [v for v in valor if hasattr(v, "__dataclass_fields__")]
+        elif hasattr(valor, "__dataclass_fields__"):
+            filhos.append(valor)
+    especie = type(no).__name__
+    novo = no if especie in ("BlueprintDeclaration", "RecordDeclaration") else dentro
+    yield no, dentro
+    for f in filhos:
+        yield from _percorrer(f, novo)
+
+
+def _declaracao_que_envolve(analise, linha):
+    """O blueprint ou record em que a linha esta — para o 'self.'."""
+    if not analise.programa:
+        return None
+    melhor = None
+    for no in getattr(analise.programa, "body", []) or []:
+        if type(no).__name__ not in ("BlueprintDeclaration", "RecordDeclaration"):
+            continue
+        inicio = getattr(no, "line", 0)
+        fim = max((getattr(f, "line", inicio)
+                   for f, _ in _percorrer(no)), default=inicio)
+        if inicio <= linha <= fim + 1:
+            melhor = no
+    return melhor
+
+
+def _tipo_do_nome(analise, nome, linha):
+    """O tipo de uma variavel, lido da arvore. '' quando nao da.
+
+    Ele olha a ULTIMA atribuicao antes da linha do cursor: um nome que
+    troca de tipo no meio do arquivo e legitimo, e responder com o
+    primeiro valor ofereceria o membro errado.
+    """
+    if not analise.programa:
+        return ""
+    achado = ""
+    for no, _ in _percorrer(analise.programa):
+        if type(no).__name__ != "Assignment":
+            continue
+        if getattr(no, "line", 0) > linha:
+            continue
+        alvo = getattr(no, "target", None)
+        if getattr(alvo, "name", None) != nome and alvo != nome:
+            continue
+        declarado = getattr(no, "declared_type", None)
+        if declarado:
+            achado = _nome_cru(declarado).split("<")[0]
+            continue
+        valor = getattr(no, "value", None)
+        especie = type(valor).__name__
+        if especie == "SpawnExpression":
+            achado = _nome_cru(getattr(valor, "class_name", ""))
+        elif especie == "FunctionCall":
+            chamado = _nome_cru(getattr(valor, "callee", None))
+            achado = chamado if _declaracao_de_tipo(analise, chamado) else ""
+        else:
+            achado = _tipo_do_literal(valor)
+    return achado
+
+
+def _membros_de(analise, dono, linha):
+    """O que oferecer depois de '<dono>.'. Lista vazia quando nao prova."""
+    # 1. o que ESTE arquivo declara vence tudo. 'Cor' e um apelido de
+    #    'Arcane.Color' na stdlib, e sem esta ordem um 'enum Cor' do
+    #    proprio arquivo era engolido pelo modulo — o editor oferecia
+    #    'bold' e 'bg_rgb' onde a pessoa esperava os membros dela.
+    propria = _declaracao_de_tipo(analise, dono)
+    if propria is not None:
+        return _membros_da_declaracao(analise, propria)
+
+    # 2. modulo adotado, ou modulo da stdlib pelo nome
+    oficial = analise.modulos.get(dono)
+    if oficial:
+        return _simbolos_do_modulo(oficial)
+    if get_module(dono) is not None:
+        return _simbolos_do_modulo(get_module(dono)["__name__"])
+
+    # 3. 'self' dentro de um metodo
+    if dono == "self":
+        envolve = _declaracao_que_envolve(analise, linha)
+        if envolve is not None:
+            return _membros_da_declaracao(analise, envolve)
+        return []
+
+    # 4. uma variavel cujo tipo se le da arvore
+    tipo = _tipo_do_nome(analise, dono, linha)
+    if tipo:
+        decl = _declaracao_de_tipo(analise, tipo)
+        if decl is not None:
+            return _membros_da_declaracao(analise, decl)
+        embutidos = _metodos_embutidos(tipo)
+        if embutidos:
+            return embutidos
+
+    # 5. o esquema do arquivo, para o que foi colhido como filho
+    alvo = analise.simbolo_em(dono)
+    if alvo and alvo.filhos:
+        return [{"label": f.nome, "kind": _ICONE.get(f.especie, K_CAMPO),
+                 "detail": f.detalhe, "documentation": f.doc}
+                for f in alvo.filhos]
+
+    # Nao provou. Devolver o catalogo inteiro aqui e o que faz o
+    # autocompletar virar ruido — e ruido e o que ensina a desliga-lo.
+    return []
+
+
 def completar(analise, linha, coluna):
     """Os itens para o cursor nesta posicao."""
     texto = analise.linha_de(linha)
     dono, _ = _prefixo_com_ponto(texto, coluna)
 
-    # Depois de um ponto: so o que existe DENTRO daquilo. Devolver o
-    # catalogo inteiro ali e o que faz o autocompletar virar ruido.
+    # Depois de um ponto: so o que existe DENTRO daquilo.
     if dono:
-        oficial = analise.modulos.get(dono)
-        if oficial:
-            return _simbolos_do_modulo(oficial)
-        if get_module(dono) is not None:
-            return _simbolos_do_modulo(get_module(dono)["__name__"])
-        alvo = analise.simbolo_em(dono)
-        if alvo and alvo.filhos:
-            return [{"label": f.nome, "kind": _ICONE.get(f.especie, K_CAMPO),
-                     "detail": f.detalhe, "documentation": f.doc}
-                    for f in alvo.filhos]
-        return []
+        return _membros_de(analise, dono, linha)
 
     palavras, embutidas, modulos = _catalogo()
     locais = [{"label": s.nome, "kind": _ICONE.get(s.especie, K_VARIAVEL),

@@ -7,7 +7,7 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "10. Para onde ir agora",
+  title: "Para onde ir agora",
   description: "Os caminhos depois do básico — conforme o que você quer construir.",
 };
 
@@ -32,7 +32,7 @@ const headings = [{ id: 'praticar', text: "Praticar", level: 2 as const }];
 export default function Pagina() {
   return (
     <DocPage
-      title={"10. Para onde ir agora"}
+      title={"Para onde ir agora"}
       description={"Os caminhos depois do básico — conforme o que você quer construir."}
       href={"/docs/primeiros-passos/proximos-passos"}
       headings={headings}

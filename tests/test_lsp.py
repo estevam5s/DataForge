@@ -355,3 +355,119 @@ def test_o_esquema_sobrevive_ao_arquivo_pela_metade():
     # …mas o erro ainda é publicado.
     ultima = _notificacoes(r, "textDocument/publishDiagnostics")[-1]
     assert ultima["params"]["diagnostics"], "o erro de sintaxe não foi publicado"
+
+
+# ═══════════════════════════════════════════════════════════
+#  Completar depois do ponto — o contexto
+# ═══════════════════════════════════════════════════════════
+#
+# Ele devolvia **zero item** para tudo que nao fosse modulo: 'p.',
+# 'xs.', 'texto.' e 'self.' abriam a lista vazia no editor. Zero e pior
+# que o catalogo inteiro — catalogo e ruido, zero parece que o servidor
+# morreu.
+#
+# Os testes falam pelo PROTOCOLO e com o arquivo **invalido**, porque e
+# assim que acontece: enquanto se digita, `p.` e erro de sintaxe. O
+# servidor guarda a ultima arvore boa e troca o texto; testar com um
+# arquivo valido provaria um caminho que ninguem percorre.
+
+def _completar(valido, digitando, linha, coluna):
+    """As sugestoes para o cursor, com o arquivo sendo digitado."""
+    respostas = _conversar([
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+        {"jsonrpc": "2.0", "method": "textDocument/didOpen",
+         "params": {"textDocument": {"uri": URI, "languageId": "dataforge",
+                                     "version": 1, "text": valido}}},
+        {"jsonrpc": "2.0", "method": "textDocument/didChange",
+         "params": {"textDocument": {"uri": URI, "version": 2},
+                    "contentChanges": [{"text": digitando}]}},
+        {"jsonrpc": "2.0", "id": 2, "method": "textDocument/completion",
+         "params": {"textDocument": {"uri": URI},
+                    "position": {"line": linha - 1, "character": coluna}}},
+    ])
+    resultado = _resposta(respostas, 2)
+    return [i["label"] for i in resultado["items"]]
+
+
+RECORD = ('record Ponto:\n    x: Integer\n    y: Integer\n\n'
+          '    action norma():\n        yield 1\n\np := Ponto(1, 2)\n')
+
+
+def test_depois_do_ponto_num_record_vem_campo_e_metodo():
+    itens = _completar(RECORD + "out 1", RECORD + "out p.", 9, 6)
+    assert set(itens) == {"x", "y", "norma"}
+
+
+def test_o_membro_HERDADO_tambem_aparece():
+    """Herdado é tão legítimo quanto declarado — e esconder o que a mãe
+    deu manda a pessoa procurar o nome no lugar errado."""
+    fonte = ('blueprint Forma:\n    action area():\n        yield 0\n\n'
+             'blueprint Quadrado(lado) extends Forma:\n'
+             '    action nome():\n        yield 1\n\nc := spawn Quadrado(2)\n')
+    itens = _completar(fonte + "out 1", fonte + "c.", 10, 2)
+    assert set(itens) == {"lado", "nome", "area"}
+
+
+def test_self_dentro_do_metodo_oferece_o_campo_criado_com_self():
+    """`self.saldo := s` vive DENTRO de um método, e não solto no corpo:
+    olhar só o corpo deixava de fora o campo mais comum que existe."""
+    fonte = ('blueprint Conta:\n    action setup(s):\n        self.saldo := s\n\n'
+             '    action ver():\n')
+    itens = _completar(fonte + "        yield 1",
+                       fonte + "        yield self.", 6, 20)
+    assert set(itens) == {"setup", "ver", "saldo"}
+
+
+@pytest.mark.parametrize("fonte,linha,alguns", [
+    ('xs := [1, 2, 3]\n', 'xs.', ["append", "sort", "reverse"]),
+    ('t := "abc"\n', 't.', ["upper", "split", "replace"]),
+    ('v := {"a": 1}\n', 'v.', ["keys", "values", "has"]),
+])
+def test_o_metodo_embutido_vem_da_tabela_do_INTERPRETADOR(fonte, linha, alguns):
+    """Uma segunda lista divergiria no primeiro método novo, e o editor
+    passaria a oferecer o que não existe — ou a esconder o que existe."""
+    itens = _completar(fonte + "out 1", fonte + linha, 2, len(linha))
+    for nome in alguns:
+        assert nome in itens
+
+
+def test_o_enum_DO_ARQUIVO_vence_o_modulo_de_mesmo_nome():
+    """`Cor` é apelido de `Arcane.Color` na stdlib. Sem a precedência, um
+    `enum Cor` do próprio arquivo era engolido, e o editor oferecia
+    `bold` e `bg_rgb` onde a pessoa esperava os membros dela."""
+    fonte = "enum Cor:\n    Vermelho\n    Verde\n\n"
+    itens = _completar(fonte + "out 1", fonte + "out Cor.", 5, 8)
+    assert "Vermelho" in itens and "Verde" in itens
+    assert "bold" not in itens
+    # E os tres que todo membro de enum tem.
+    assert {"name", "value", "index"} <= set(itens)
+
+
+def test_o_modulo_continua_completando():
+    itens = _completar("adopt Arcane.Math as Math\nout 1",
+                       "adopt Arcane.Math as Math\nout Math.", 2, 9)
+    assert "sqrt" in itens and "PI" in itens
+    assert "action" not in itens, "palavra reservada não é membro de módulo"
+
+
+def test_quando_NAO_PROVA_o_tipo_ele_cala():
+    """A regra do resto do projeto. Devolver o catálogo inteiro aqui é o
+    que faz o autocompletar virar ruído — e ruído é o que ensina a
+    desligá-lo."""
+    itens = _completar("q := desconhecida()\nout 1", "q := desconhecida()\nq.", 2, 2)
+    assert itens == []
+
+
+def test_o_tipo_e_o_da_ULTIMA_atribuicao_antes_do_cursor():
+    """Um nome que troca de tipo no meio do arquivo é legítimo, e
+    responder com o primeiro valor ofereceria o membro errado."""
+    fonte = 'x := [1, 2]\nx := "texto"\n'
+    itens = _completar(fonte + "out 1", fonte + "x.", 3, 2)
+    assert "upper" in itens and "append" not in itens
+
+
+def test_sem_ponto_ele_continua_oferecendo_o_catalogo():
+    """O que muda é só o caminho do ponto: completar um nome solto
+    continua trazendo locais, palavras e embutidas."""
+    itens = _completar("total := 10\nout 1", "total := 10\nout tot", 2, 7)
+    assert "total" in itens and "action" in itens

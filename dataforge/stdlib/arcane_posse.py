@@ -165,7 +165,12 @@ class Dono:
                 self._lendo -= 1
 
     def mudar(self, acao):
-        """Empresta para ESCREVER. Um de cada vez, e ninguém lendo."""
+        """Empresta para ESCREVER. Um de cada vez, e ninguém lendo.
+
+        Como em `Celula.escrever`, o que a ação devolver passa a ser o
+        valor — senão `mudar` não muda nada num número ou num texto,
+        onde não há como mexer no lugar.
+        """
         self._exigir_vivo()
         if self._escrevendo:
             raise _conflito("escrever", "escrevendo")
@@ -173,7 +178,10 @@ class Dono:
             raise _conflito("escrever", "lendo")
         self._escrevendo = True
         try:
-            return acao(self._valor)
+            novo = acao(self._valor)
+            if novo is not None:
+                self._valor = novo
+            return self._valor
         finally:
             self._escrevendo = False
 
@@ -279,13 +287,30 @@ class Celula:
                 self._lendo -= 1
 
     def escrever(self, acao):
+        """Escreve com exclusividade — e GUARDA o que a acao devolver.
+
+        Ela so entregava o valor para a acao mexer no lugar, e
+        descartava o retorno. Num cluster ou num vault isso funciona
+        por acidente (mexer no lugar muda o mesmo objeto); num
+        **numero ou num texto** nao ha como mexer no lugar, e
+        `escrever(lambda v => v + 1)` nao escrevia nada — o programa
+        seguia com o valor velho, calado. Uma escrita que nao escreve
+        e o pior desfecho possivel numa peca chamada `escrever`.
+
+        Devolver `void` continua sendo mexer no lugar: quem escreve
+        `cel.escrever(lambda v => out v)` nao esta pedindo para
+        guardar `void`.
+        """
         if self._escrevendo:
             raise _conflito("escrever", "escrevendo")
         if self._lendo:
             raise _conflito("escrever", "lendo")
         self._escrevendo = True
         try:
-            return acao(self._valor)
+            novo = acao(self._valor)
+            if novo is not None:
+                self._valor = novo
+            return self._valor
         finally:
             self._escrevendo = False
 

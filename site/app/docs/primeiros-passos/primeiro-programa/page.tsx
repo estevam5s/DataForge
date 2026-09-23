@@ -7,7 +7,7 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "8. O primeiro programa completo",
+  title: "O primeiro programa completo",
   description: "Um jogo de adivinhar o número — com a lógica separada da conversa, e testada.",
 };
 
@@ -59,7 +59,7 @@ persist resposta isnt "acertou":
     otherwise:
         out $"O numero e {resposta}."`, lang: 'text', title: `jogo.df (junto de regras.df)` },
   {"callout": {"tipo": "dica", "titulo": "Por que separar", "texto": "A regra se testa em milissegundos, sem ninguém digitar nada, e os três `assert` provam que ela está certa. A conversa é fina o bastante para errar pouco. É a mesma separação que um sistema grande faz entre regra de negócio e tela — ver [os tipos de projeto](/docs/projetos)."}},
-  {"p": "Próximo: [9. Ler um erro](/docs/primeiros-passos/erros-comuns)."},
+  {"p": "Próximo: [Ler um erro](/docs/primeiros-passos/erros-comuns)."},
 ];
 
 const headings: never[] = [];
@@ -67,7 +67,7 @@ const headings: never[] = [];
 export default function Pagina() {
   return (
     <DocPage
-      title={"8. O primeiro programa completo"}
+      title={"O primeiro programa completo"}
       description={"Um jogo de adivinhar o número — com a lógica separada da conversa, e testada."}
       href={"/docs/primeiros-passos/primeiro-programa"}
       headings={headings}

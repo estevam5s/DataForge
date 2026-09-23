@@ -97,15 +97,23 @@ PAGINAS = [
  {"p": "Cada um tem teste de regressão. A suíte só cresce."},
 
  {"h2": "O que ainda não existe"},
- {"p": "Declarado, para não haver surpresa:"},
+ {"p": "Declarado, para não haver surpresa. Esta lista é conferida **rodando** a cada revisão: cinco itens que estavam aqui saíram porque passaram a existir, e deixá-los seria a documentação mentindo sobre a linguagem — o defeito mais caro que uma página destas pode ter."},
  {"list": [
-   "**LSP e depurador** — a extensão do VS Code analisa e roda, mas não há autocompletar sensível a contexto nem ponto de parada.",
-   "**Bytecode** — é interpretador de árvore. Rápido o suficiente para o que a linguagem faz, e não para computação numérica pesada.",
-   "**Sincronização entre threads** — sem mutex; a coordenação é por `channel`.",
-   "**Exaustividade no `match`** — ele não avisa se um membro de enum ficou de fora.",
-   "**`<T extends Comparable>`** — generics documentam, não restringem.",
-   "**WebSocket e HTTP/2 no Kiln** — ele roda sobre o `http.server` do Python."]},
- {"p": "O plano completo está no [roadmap](/docs/roadmap)."},
+   "**Bytecode** — é interpretador de árvore com **compilação para fechamentos** (1,5× a 1,8×, medido). Uma VM de bytecode escrita em Python tem teto de ~6,5%, porque continua sendo Python rodando o laço de despacho; o resto exigiria sair do Python. Para CPU pesada a resposta é `P.map_processos` (4,71× em 10 núcleos) ou a ponte para o `numpy`.",
+   "**HTTP/2 e TLS no Kiln** — ele roda sobre o `http.server` do Python, e implementá-los é reescrever um servidor de produção. Em produção pública: nginx ou Caddy na frente. **WebSocket existe** (`Kiln.ws`, `Kiln.sala`), com o RFC 6455 falado à mão, e SSE também.",
+   "**`Cluster<T>` e `Vault<K,V>`** — o limite de um parâmetro de tipo é cobrado; o tipo do **conteúdo** de uma coleção, não.",
+   "**Sincronização automática** — `mutex`, `semaforo`, `barreira`, `contador` e canal bloqueante existem, mas nada é aplicado sozinho: o `check` **avisa** sobre escrita concorrente, e recusar proibiria o uso correto com mutex.",
+   "**Um *shim* de versão no PATH** — versões lado a lado e pino por projeto existem e são cobrados; o que não há é um atalho que resolva a versão antes de o Python subir."]},
+ {"h2": "O que esta lista dizia, e não era mais verdade"},
+ {"p": "Cinco linhas desta página descreviam a linguagem de um ano atrás. Cada uma foi conferida com um comando, e o comando está aqui:"},
+ {"table": {"head": ["Dizia", "O que é hoje", "Como conferir"], "rows": [
+   ["não há autocompletar sensível a contexto", "`p.` oferece os campos e métodos do record; `c.` inclui o que veio da mãe; `self.` traz o campo criado com `self.x := …`; `xs.`, `t.` e `v.` vêm das tabelas do **interpretador**; e quando não prova o tipo, ele **cala**", "`pytest tests/test_lsp.py -k ponto`"],
+   ["não há ponto de parada", "o DAP tem `setBreakpoints`, parada condicional, contagem de passagens, logpoint, parada por thread e **vigia** — de escrita e de leitura", "`pytest tests/test_dap.py`"],
+   ["sem mutex; a coordenação é por `channel`", "`C.mutex()`, `C.com_trava`, semáforo, barreira, contador atômico, canal bloqueante, STM e atores", "o exercício 257, e `Arcane.Concurrent`"],
+   ["o `match` não avisa se um membro de enum ficou de fora", "avisa em cinco formas, inclusive no padrão **aninhado** — `[Cor.A, x]` sem o `Cor.B`", "`dataforge check` num `match` incompleto"],
+   ["generics documentam, não restringem", "`<T extends X>` é cobrado nas **duas** metades: o `check` na chamada e a execução no valor — inclusive através de um `adopt`", "`dataforge check` em `maior<T extends Number>(\"x\", \"y\")`"]]}},
+ {"callout": {"tipo": "atencao", "titulo": "Por que isto vale uma seção", "texto": "Uma lista de ausências que envelhece é pior que nenhuma: ela é lida como verdade, e manda alguém construir por fora o que a linguagem já entrega. Foi o que aconteceu aqui por cinco itens ao mesmo tempo — e é por isso que `Arcane.Ecossistema.o_que_nao_existe()` passou a ser **conferido contra o disco**, e que `doc/conclusao.html` passou a ser gerado."}},
+ {"p": "O plano completo está no [roadmap](/roadmap), e a lista viva em [`Arcane.Ecossistema`](/docs/biblioteca/ecossistema)."},
 ]},
 
 {

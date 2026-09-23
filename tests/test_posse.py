@@ -463,3 +463,52 @@ def test_o_repositorio_continua_limpo():
                            encoding="utf-8", errors="replace",
                            env={**os.environ, "NO_COLOR": "1"})
         assert r.returncode == 0, f"{pasta}: {r.stdout[-600:]}"
+
+
+# ═══════════════════════════════════════════════════════════
+#  Uma escrita que não escreve
+# ═══════════════════════════════════════════════════════════
+
+def _posse():
+    from dataforge.stdlib import get_module
+    return get_module("Arcane.Posse")
+
+
+def test_escrever_num_valor_IMUTAVEL_realmente_escreve():
+    """`Celula.escrever` entregava o valor para a ação mexer no lugar e
+    **descartava** o retorno.
+
+    Num cluster ou num vault isso funciona por acidente — mexer no
+    lugar muda o mesmo objeto. Num número ou num texto não há como
+    mexer no lugar, e `escrever(lambda v => v + 1)` não escrevia nada:
+    o programa seguia com o valor velho, calado. Uma escrita que não
+    escreve é o pior desfecho possível numa peça chamada `escrever`.
+    """
+    P = _posse()
+
+    cel = P["celula"](10)
+    cel.escrever(lambda v: v + 1)
+    assert cel.ler(lambda v: v) == 11
+
+    texto = P["celula"]("a")
+    texto.escrever(lambda v: v + "b")
+    assert texto.ler(lambda v: v) == "ab"
+
+
+def test_mudar_num_dono_tambem_escreve():
+    P = _posse()
+
+    d = P["dono"](5)
+    d.mudar(lambda v: v * 2)
+    assert d.usar(lambda v: v) == 10
+
+
+def test_devolver_void_continua_sendo_mexer_no_lugar():
+    """Quem escreve `cel.escrever(lambda v => out v)` não está pedindo
+    para guardar `void` — e um cluster mexido no lugar continua sendo o
+    mesmo objeto."""
+    P = _posse()
+
+    cel = P["celula"]([1, 2])
+    cel.escrever(lambda v: v.append(3))       # append devolve None aqui
+    assert cel.ler(lambda v: list(v)) == [1, 2, 3]

@@ -7,7 +7,7 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "4. Decidir",
+  title: "Decidir",
   description: "given, orif e otherwise — e as comparações que decidem.",
 };
 
@@ -33,7 +33,7 @@ assert conceito is "B"`, lang: 'df' },
   { code: `idade := 20
 situacao := "maior" given idade bigger_eq 18 otherwise "menor"
 assert situacao is "maior"`, lang: 'df' },
-  {"p": "Próximo: [5. Repetir](/docs/primeiros-passos/repeticao)."},
+  {"p": "Próximo: [Repetir](/docs/primeiros-passos/repeticao)."},
 ];
 
 const headings = [{ id: 'as-comparacoes', text: "As comparações", level: 2 as const }, { id: 'numa-linha-so', text: "Numa linha só", level: 2 as const }];
@@ -41,7 +41,7 @@ const headings = [{ id: 'as-comparacoes', text: "As comparações", level: 2 as 
 export default function Pagina() {
   return (
     <DocPage
-      title={"4. Decidir"}
+      title={"Decidir"}
       description={"given, orif e otherwise — e as comparações que decidem."}
       href={"/docs/primeiros-passos/decisoes"}
       headings={headings}

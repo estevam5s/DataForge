@@ -272,19 +272,29 @@ def executar(esq, texto, variaveis=None, contexto=None, raiz=None,
                                      "dica": erro.dica}}],
                 "extensoes": {"ms": _ms(inicio)}}
 
+    avisos = []
     if validar_antes:
         problemas = V.validar(esq, documento, operacao)
-        if problemas:
+        # Um AVISO nao impede a consulta: ele viaja em 'extensoes.avisos',
+        # que e onde um cliente procura o que vai quebrar depois.
+        avisos = [p for p in problemas if p.aviso]
+        graves = [p for p in problemas if not p.aviso]
+        if graves:
             return {"dados": None,
                     "erros": [{"mensagem": p.mensagem, "caminho": p.caminho,
                                "codigo": "validacao",
                                "extra": {"linha": p.linha, "dica": p.dica}}
-                              for p in problemas],
-                    "extensoes": {"ms": _ms(inicio)}}
+                              for p in graves],
+                    "extensoes": {"ms": _ms(inicio),
+                                  "avisos": [p.como_vault() for p in avisos]}}
 
     try:
         execucao = Execucao(esq, documento, variaveis, contexto, raiz, operacao)
-        return execucao.rodar()
+        resposta = execucao.rodar()
+        if avisos:
+            resposta.setdefault("extensoes", {})["avisos"] = [
+                p.como_vault() for p in avisos]
+        return resposta
     except ErroDeExecucao as erro:
         return {"dados": None, "erros": [erro.como_vault()],
                 "extensoes": {"ms": _ms(inicio)}}

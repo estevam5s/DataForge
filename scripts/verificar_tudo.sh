@@ -126,6 +126,7 @@ for gerador in \
     tools/gerar_pagina_biblioteca.py \
     tools/gerar_paginas_biblioteca.py \
     tools/gerar_indice_exercicios.py \
+    tools/gerar_conclusao.py \
     scripts/gerar_api.py \
     site/scripts/gerar_dados.py \
     site/scripts/gerar_roadmap.py \

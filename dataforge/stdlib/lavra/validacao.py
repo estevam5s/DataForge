@@ -17,17 +17,29 @@ from .esquema import ler_tipo, padrao_do_argumento, SEM_PADRAO, _tipo_do_argumen
 
 
 class Problema:
-    __slots__ = ("mensagem", "linha", "caminho", "dica")
+    """O que a validacao achou — e se isso impede a consulta de rodar.
 
-    def __init__(self, mensagem, linha=0, caminho=None, dica=""):
+    `aviso` existe por causa de **obsoleto**. Um campo marcado como
+    obsoleto era RECUSADO, e uma depreciacao que quebra no dia do
+    aviso nao e aviso: e uma quebra com aviso previo de zero. O efeito
+    pratico era `obsoleto` nao ter uso nenhum — ninguem marca um campo
+    se marcar derruba o cliente, e o campo fica sem marca ate o dia em
+    que some sem ninguem ter sido avisado.
+    """
+
+    __slots__ = ("mensagem", "linha", "caminho", "dica", "aviso")
+
+    def __init__(self, mensagem, linha=0, caminho=None, dica="", aviso=False):
         self.mensagem = mensagem
         self.linha = linha
         self.caminho = list(caminho or [])
         self.dica = dica
+        self.aviso = bool(aviso)
 
     def como_vault(self):
         return {"mensagem": self.mensagem, "linha": self.linha,
-                "caminho": self.caminho, "dica": self.dica}
+                "caminho": self.caminho, "dica": self.dica,
+                "aviso": self.aviso}
 
     def __repr__(self):
         return f"<problema linha {self.linha}: {self.mensagem}>"
@@ -145,9 +157,14 @@ def _validar_selecoes(esquema, documento, selecoes, tipo, caminho, problemas,
             continue
 
         if campo.obsoleto:
+            # AVISO, e nao erro: o campo continua respondendo. Quem
+            # marca um campo como obsoleto esta dando prazo, e tirar o
+            # prazo transforma a marca numa remocao.
             problemas.append(Problema(
                 f"{tipo.nome}.{campo.nome} está obsoleto: {campo.obsoleto}",
-                selecao.linha, caminho + [selecao.apelido]))
+                selecao.linha, caminho + [selecao.apelido],
+                dica="ele continua respondendo — troque antes que ele saia",
+                aviso=True))
 
         _validar_argumentos(esquema, tipo, campo, selecao, caminho, problemas,
                             operacao, usadas)
