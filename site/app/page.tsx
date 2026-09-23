@@ -17,7 +17,7 @@ import { RodapeSite } from '@/components/landing/RodapeSite';
 export const metadata: Metadata = {
   title: 'DataForge — uma linguagem de programação com vocabulário próprio',
   description:
-    'Linguagem interpretada de propósito geral: lexer, parser, analisador estático e interpretador próprios, em Python, sem dependências no runtime. 86 módulos de biblioteca padrão e 397 exercícios verificados.',
+    'Linguagem interpretada de propósito geral: lexer, parser, analisador estático e interpretador próprios, em Python, sem dependências no runtime. 87 módulos de biblioteca padrão e 399 exercícios verificados.',
   alternates: { canonical: '/' },
 };
 

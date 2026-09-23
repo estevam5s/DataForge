@@ -39,7 +39,7 @@ E cinco frameworks dentro dela: **Kiln** (web, com WebSocket e SSE),
 Mais **Janela** para aplicação de mesa nativa, e **IoT** para falar com um
 Arduino — as duas com zero dependência.
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [397 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [399 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
@@ -937,10 +937,10 @@ gravado, velocidade errada.
 | [**doc/ESTABILIDADE.md**](doc/ESTABILIDADE.md) | o que pode quebrar entre versões — e o teste que garante |
 | [**CHANGELOG.md**](CHANGELOG.md) | o que mudou depois da 1.0.0 |
 | [**CONTRIBUTING.md**](CONTRIBUTING.md) | como mandar o primeiro patch |
-| [**exercicios/**](exercicios/) | 397 exercícios; do módulo 11 em diante, cada um com `.md` explicativo |
+| [**exercicios/**](exercicios/) | 399 exercícios; do módulo 11 em diante, cada um com `.md` explicativo |
 | [**examples/**](examples/) | 50 programas maiores |
 
-### Os 397 exercícios
+### Os 399 exercícios
 
 ```bash
 python3 exercicios/run_all.py        # todos
@@ -993,7 +993,7 @@ sem ele.
 pip install -e ".[dev]"
 
 python3 -m pytest tests/ -q       # 5868 testes
-python3 exercicios/run_all.py     # 397 exercícios, em 58 áreas
+python3 exercicios/run_all.py     # 399 exercícios, em 59 áreas
 python3 trilha/run_all.py         # 18 capítulos, em ordem
 python3 tools/verificar_docs.py   # os 2393 blocos do site compilam
 bash scripts/verificar_tudo.sh    # o portão completo: regera tudo e confere o diff
@@ -1036,14 +1036,14 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 <!-- estado:inicio -->
 | Verificação | Resultado |
 |-------------|-----------|
-| `pytest tests/` | 3907 funções de teste |
-| `exercicios/run_all.py` | 397/397 |
+| `pytest tests/` | 3908 funções de teste |
+| `exercicios/run_all.py` | 399/399 |
 | `trilha/run_all.py` | 18 capítulos |
 | `examples/*.df` | 50 programas |
 | Módulos da stdlib | 87 carregam, 2323 símbolos |
 | Comandos da CLI | 68 |
 | Códigos de erro | 219 |
-| `dataforge check` × 5 pastas | 0 erros em 568 arquivos |
+| `dataforge check` × 5 pastas | 0 erros em 570 arquivos |
 | Componentes do ecossistema | 44 conferidos contra o disco: 32 existem, 6 equivalem, 6 não |
 | Instalação via pip, curl e Docker | funciona |
 

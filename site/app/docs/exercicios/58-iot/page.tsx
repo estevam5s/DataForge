@@ -27,7 +27,7 @@ out "== 1. conectar =="
 
 placa := IoT.conectar_simulada("uno")
 info := placa.info()
-assert info["firmware"]["nome"] is "StandardFirmata.ino"
+assert info["firmware"]["nome"] is "DataForge"
 assert info["protocolo"] is "2.5"
 assert info["pinos"] is 20
 assert info["analogicos"] is 6
@@ -691,9 +691,17 @@ IO.remove_tree(pasta)
 out ""
 out "== 6. o firmata gerado fala a velocidade certa =="
 
-// 57600 e a do StandardFirmata; 9600 nao conversa com ele.
-assert "Firmata.begin(57600)" in IoT.sketch("firmata")
+// 57600 e a do firmware; 9600 nao conversa com ele.
+assert "Serial.begin(57600)" in IoT.sketch("firmata")
 out "   57600, que e a que IoT.conectar usa"
+
+// E ele NAO usa a biblioteca Firmata. O 'Boards.h' dela traz a tabela
+// de pinos de cada placa escrita a mao, e para nas placas de ate 2018:
+// num UNO R4 e num ESP32 ela responde '#error "Please edit Boards.h"'.
+// Aqui o mapa e perguntado ao core, e as duas placas funcionam.
+assert "#include <Firmata.h>" not in IoT.sketch("firmata")
+assert "NUM_DIGITAL_PINS" in IoT.sketch("firmata")
+out "   sem a biblioteca: o mapa de pinos vem do core"
 
 out ""
 out "== 7. compilar e gravar chamam o arduino-cli =="
@@ -712,7 +720,7 @@ out "exercicio 396 ok"`, lang: 'df', title: `exercicios/58-iot/396_sketch_gerado
   {"h3": "Uma opção que não existe é recusada"},
   {"p": "`opcoes.ler` de novo: um `--lde=7` que passasse calado gravaria o sketch com o LED errado, e a pessoa iria procurar o defeito no fio."},
   {"h3": "57600, e não 9600"},
-  {"p": "É a velocidade do `StandardFirmata`. Um sketch de Firmata com `Serial.begin(9600)` compila, grava, e **não conversa** com ninguém."},
+  {"p": "É a velocidade do firmware. Um sketch de Firmata com `Serial.begin(9600)` compila, grava, e **não conversa** com ninguém."},
   {"h3": "O que a linguagem não faz"},
   {"p": "`IoT.compilar` e `IoT.carregar` chamam o `arduino-cli`. Compilar C++ para AVR, resolver bibliotecas e falar com o bootloader é o que ele faz, e bem; reimplementar isso seria refazer o GCC e o avrdude. O projeto prefere dizer que depende dele a fingir que não."},
   {"h2": "397 · le, decide, age"},

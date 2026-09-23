@@ -850,9 +850,18 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 396 | [`396_sketch_gerado.df`](58-iot/396_sketch_gerado.df) · [doc](58-iot/396_sketch_gerado.md) | quando o programa precisa rodar NA placa |
 | 397 | [`397_a_estufa.df`](58-iot/397_a_estufa.df) · [doc](58-iot/397_a_estufa.md) | le, decide, age |
 
+## 59 — Tipos literais
+
+*2 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 398 | [`398_tipo_literal.df`](59-tipos-literais/398_tipo_literal.df) · [doc](59-tipos-literais/398_tipo_literal.md) | Tipos literais: o valor que vira tipo |
+| 399 | [`399_metodo_embutido.df`](59-tipos-literais/399_metodo_embutido.df) · [doc](59-tipos-literais/399_metodo_embutido.md) | O metodo que nao existe, acusado antes de rodar |
+
 ---
 
-**Total: 397 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 399 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

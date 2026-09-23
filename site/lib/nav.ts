@@ -99,6 +99,8 @@ export const nav: NavSection[] = [
       { title: 'Reflexão de tipos', href: '/docs/tipos/reflexao' },
       { title: 'Fundamentos e tipos: o mapa', href: '/docs/tipos/mapa' },
       { title: 'Generics: o sistema de tipos', href: '/docs/tipos/genericos' },
+      { title: 'Tipos literais', href: '/docs/tipos/literais' },
+      { title: 'Métodos embutidos', href: '/docs/tipos/metodos-embutidos' },
       { title: 'Sistema de traits', href: '/docs/tipos/traits' },
     ],
   },
@@ -892,6 +894,7 @@ export const nav: NavSection[] = [
       { title: 'Bots de Telegram', href: '/docs/exercicios/56-telegram' },
       { title: 'Vitrine — o painel', href: '/docs/exercicios/57-vitrine-painel' },
       { title: 'IoT e Arduino', href: '/docs/exercicios/58-iot' },
+      { title: 'Tipos literais', href: '/docs/exercicios/59-tipos-literais' },
     ],
   },
   {

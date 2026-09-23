@@ -426,7 +426,7 @@ dataforge telegram webhook https://x.dev             # registra o webhook`, lang
   {"h3": "iot"},
   {"p": "Arduino e ESP32: a placa, do terminal."},
   { code: `dataforge iot <portas|doctor|monitorar|sketch|carregar|piscar>`, lang: 'bash' },
-  { code: `Uma placa que nao responde tambem nao da erro: a porta abre e nada chega. 'doctor' confere as causas na ordem em que elas acontecem — cabo so de energia, driver ausente, StandardFirmata nao gravado, velocidade errada. 'carregar' chama o arduino-cli: compilar C++ para AVR e gravar pelo bootloader e o que ele faz, e bem.`, lang: 'text' },
+  { code: `Uma placa que nao responde tambem nao da erro: a porta abre e nada chega. 'doctor' confere as causas na ordem em que elas acontecem — cabo so de energia, driver ausente, firmware nao gravado, velocidade errada. 'carregar' chama o arduino-cli: compilar C++ para AVR e gravar pelo bootloader e o que ele faz, e bem.`, lang: 'text' },
   { code: `dataforge iot portas                                 # as portas que existem agora
 dataforge iot doctor                                 # por que a placa nao responde
 dataforge iot piscar                                 # o LED 13, por Firmata

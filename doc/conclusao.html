@@ -196,7 +196,7 @@ tbody tr:hover{background:var(--painel)}
     <p class="sub">
       Não é um DSL nem um transpilador: lexer, parser recursivo descendente, AST
       tipada, analisador estático, seis representações intermediárias e interpretador
-      de árvore próprios, em 141,399 linhas de Python
+      de árvore próprios, em 141,704 linhas de Python
       <strong>sem uma única dependência externa</strong> no runtime.
     </p>
 
@@ -276,7 +276,7 @@ tbody tr:hover{background:var(--painel)}
       <b>Sobre "sem bugs".</b> Toda área nova sondada ainda devolve algo. A taxa cai,
       não chega a zero, e eu não diria que vai. O que mudou é que cada área sondada
       ficou com teste guardando, e o <code>check</code> não ganhou um único falso
-      alarme em 568 arquivos em nenhuma das rodadas.
+      alarme em 570 arquivos em nenhuma das rodadas.
     </div>
     <div class="nota" style="--cor:var(--verde)">
       <b>Quatro ausências desta página deixaram de existir.</b> A versão anterior
@@ -315,7 +315,7 @@ tbody tr:hover{background:var(--painel)}
     <div class="nota" style="--cor:var(--laranja)">
       <b>E a otimização que não rendeu.</b> O inventário do LIR apontou dez nós que
       recuavam dentro de laço, e todos ganharam construtor. Na carga feita
-      <i>daqueles nós</i>, 1,33×; nos 397 exercícios reais, <b>1,01× —
+      <i>daqueles nós</i>, 1,33×; nos 399 exercícios reais, <b>1,01× —
       nada</b>. O que recua é dominado por nós que rodam uma vez. Os três passes
       ficam desligados por padrão, e valem pela informação, não pela velocidade.
     </div>
@@ -379,7 +379,7 @@ tbody tr:hover{background:var(--painel)}
 <footer class="env rodape">
   <p>
     <b>Gerado</b> em 23/09/2026 por <code>tools/gerar_conclusao.py</code>, a partir do
-    repositório na <code>commit da4969a</code>. Não edite este arquivo à mão: rode o
+    repositório na <code>commit 466f124</code>. Não edite este arquivo à mão: rode o
     gerador. Sem CDN, sem fonte remota, sem biblioteca — a linguagem promete zero
     dependência, e este relatório sobre ela não ia desmentir.
   </p>
@@ -397,21 +397,21 @@ const N = {
 "erros": 219,
 "palavras": 81,
 "embutidas": 231,
-"testes": 3907,
-"exercicios": 397,
-"modulos_de_exercicio": 58,
+"testes": 3908,
+"exercicios": 399,
+"modulos_de_exercicio": 59,
 "exemplos": 50,
-"arquivos_df": 513,
-"paginas": 832,
-"blocos": 2405,
-"blocos_totais": 3819,
-"linhas": 141399,
+"arquivos_df": 515,
+"paginas": 835,
+"blocos": 2413,
+"blocos_totais": 3829,
+"linhas": 141704,
 "capitulos": 18,
 "pacotes": 20
 };
 const NUMEROS = [
 {
-"v": "3.907",
+"v": "3.908",
 "r": "testes passando",
 "c": "var(--verde)"
 },
@@ -421,28 +421,28 @@ const NUMEROS = [
 "c": "var(--azul)"
 },
 {
-"v": "397",
+"v": "399",
 "r": "exercícios com assert",
 "c": "var(--roxo)"
 },
 {
-"v": "832",
+"v": "835",
 "r": "páginas de documentação",
 "c": "var(--marca)"
 },
 {
-"v": "2.405",
+"v": "2.413",
 "r": "blocos da doc que compilam",
 "c": "var(--laranja)"
 },
 {
-"v": "513",
+"v": "515",
 "r": "arquivos .df no repositório",
 "c": "var(--verde)"
 },
 {
 "v": "0",
-"r": "erros do check em 568 arquivos",
+"r": "erros do check em 570 arquivos",
 "c": "var(--azul)"
 },
 {
@@ -989,12 +989,12 @@ const MEDIDAS_MAQUINA = [
 const PORTOES = [
 [
 "<code>pytest tests/</code>",
-"3907 funções de teste — regressões, Kiln, Vitrine, DAP, empacotamento, travessia, malha, complexidade, IoT",
+"3908 funções de teste — regressões, Kiln, Vitrine, DAP, empacotamento, travessia, malha, complexidade, IoT",
 "verde"
 ],
 [
 "<code>exercicios/run_all.py</code>",
-"397 exercícios em 58 módulos, cada um com <code>assert</code> verificando o próprio resultado",
+"399 exercícios em 59 módulos, cada um com <code>assert</code> verificando o próprio resultado",
 "verde"
 ],
 [
@@ -1004,7 +1004,7 @@ const PORTOES = [
 ],
 [
 "<code>tools/verificar_docs.py</code>",
-"2405 blocos de DataForge publicados no site, compilados a cada mudança",
+"2413 blocos de DataForge publicados no site, compilados a cada mudança",
 "verde"
 ],
 [
@@ -1014,7 +1014,7 @@ const PORTOES = [
 ],
 [
 "<code>dataforge check</code> × 5 pastas",
-"568 arquivos: 0 erros",
+"570 arquivos: 0 erros",
 "verde"
 ],
 [
@@ -1024,7 +1024,7 @@ const PORTOES = [
 ],
 [
 "<code>npm run build</code>",
-"832 páginas de doc geradas e compiladas",
+"835 páginas de doc geradas e compiladas",
 "verde"
 ],
 [

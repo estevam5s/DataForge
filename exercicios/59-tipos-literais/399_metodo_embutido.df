@@ -1,0 +1,93 @@
+// Exercicio 399 — O metodo que nao existe, acusado antes de rodar
+//
+// Enunciado: rode o proprio 'check' sobre arquivos que voce escreve e
+// veja o que ele acusa num texto e num cluster — e onde ele CALA, que
+// e a metade que custa mais.
+
+adopt Arcane.IO as IO
+adopt Arcane.OS as OS
+adopt Arcane.Process as Proc
+
+pasta := $"{OS.temp_dir()}/df-399-{randint(100000, 999999)}"
+IO.mkdir(pasta)
+defer:
+    IO.remove_tree(pasta)
+
+action conferir(codigo):
+    caminho := $"{pasta}/prova.df"
+    IO.write(caminho, codigo)
+    r := Proc.run(["dataforge", "check", caminho])
+    yield r["stdout"] + r["stderr"]
+
+out "== 1. o que existe continua funcionando =="
+
+nome := "ana"
+assert nome.upper() is "ANA"
+assert nome.length() is 3
+
+xs := [1, 2, 3]
+xs.append(4)
+assert len(xs) is 4
+out "   upper, length e append: normais"
+
+out ""
+out "== 2. o erro de digitacao vira erro do analisador =="
+
+saida := conferir("""nome := "ana"
+out nome.uppper()
+""")
+assert "uppper" in saida
+assert "upper" in saida
+out "   'uppper' acusado, com 'upper' na sugestao"
+
+saida := conferir("""xs := [1, 2, 3]
+out xs.apend(4)
+""")
+assert "apend" in saida
+assert "append" in saida
+out "   'apend' acusado, com 'append' na sugestao"
+
+out ""
+out "== 3. e a forma SEM chamar tambem =="
+
+// Ler o metodo sem chamar e legitimo ('f := xs.append'), entao o erro
+// aqui e o mesmo: o nome nao existe naquele tipo.
+saida := conferir("""nome := "ana"
+f := nome.uppper
+out f
+""")
+assert "uppper" in saida
+out "   'f := nome.uppper' tambem"
+
+out ""
+out "== 4. onde ele CALA, e por que =="
+
+// Um Vault fica de FORA: 'v.cidade' cai na CHAVE quando ela existe, e
+// acusar exigiria saber as chaves — que um vault montado em execucao
+// nao tem.
+saida := conferir("""v := {"cidade": "Floripa"}
+v["uf"] := "SC"
+out v.uf
+""")
+assert "sem erros" in saida
+out "   vault: o membro pode ser uma chave, entao ele cala"
+
+// E 'length' nao mora na tabela — ele e tratado a parte no
+// interpretador. Sem essa linha, a forma que a propria doc ensina
+// viraria um falso alarme.
+saida := conferir("""nome := "ana"
+out nome.length()
+""")
+assert "sem erros" in saida
+out "   'length' continua valendo"
+
+// Um nome comecando com '_' e combinado entre quem escreveu, nao um
+// engano.
+saida := conferir("""nome := "ana"
+out nome._interno
+""")
+assert "sem erros" in saida
+out "   nome com '_' na frente: combinado, nao engano"
+
+out ""
+out "ok — 399"

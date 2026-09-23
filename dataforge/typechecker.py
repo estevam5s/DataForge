@@ -246,6 +246,8 @@ def compatible(esperado: str, obtido: str) -> bool:
 
 
 from .colecoes_tipadas import partir as partir_tipo, juntar as juntar_tipo  # noqa: E402
+from .tipos_nomeados import (base_de_tipo_literal, e_tipo_literal,
+                             valor_do_tipo_literal)
 from .tipos_nomeados import separar_uniao  # noqa: E402
 
 
@@ -1188,11 +1190,63 @@ class TypeChecker:
 
     def _provar_nomeado(self, declarado, valor, escopo, o_que):
         """A regra de um refinamento, sobre um literal — antes de rodar."""
+        self._provar_literal(declarado, valor, o_que)
         declaracao = self._declaracao_de_tipo(declarado)
         if declaracao is None or declaracao.regra is None:
             return
         self._provar_regra(declaracao, valor, escopo, o_que,
                            self._ligacoes_do_tipo(declaracao, declarado))
+
+    def _valores_do_tipo_literal(self, declarado):
+        """Os valores que um tipo literal — ou uma uniao deles — aceita.
+
+        Devolve `None` quando NAO e so de literais: uma uniao mista como
+        `"auto" | Integer` nao tem lista fechada, e inventar uma faria o
+        analisador recusar todo numero.
+        """
+        partes = self._partes_do_tipo(declarado)
+        if partes is None:
+            nomes = [declarado]
+        else:
+            especie, nomes, opaco = partes
+            if opaco or especie == "intersecao":
+                return None
+        if not nomes or not all(e_tipo_literal(n) for n in nomes):
+            return None
+        return [valor_do_tipo_literal(n) for n in nomes]
+
+    def _provar_literal(self, declarado, valor, o_que):
+        """'e: Estado := "zzz"' — provado do literal, antes de rodar.
+
+        Ele so fala com o LITERAL na mao. Um `String` vindo de uma
+        variavel ou de `input()` nao prova nada aqui, e acusa-lo
+        recusaria justamente o codigo para o qual o tipo existe: ler a
+        entrada e passa-la adiante, deixando a fronteira conferir.
+        """
+        valores = self._valores_do_tipo_literal(declarado)
+        if valores is None:
+            return
+        constante = valor_constante(valor)
+        if constante is _SEM_VALOR:
+            return
+        # 'yes' e '1' sao iguais em Python. O tipo tem de bater tambem,
+        # senao 'type Ligado := yes' aceitaria o numero 1.
+        if any(type(constante) is type(v) and constante == v for v in valores):
+            return
+        escrita = " | ".join(
+            self._escrever_literal(v) for v in valores)
+        self.error(
+            f"{o_que} declared as {declarado} ({escrita}) but the value is "
+            f"{_como_texto(constante)}", valor,
+            f"Use one of: {escrita}", "tipo-literal")
+
+    @staticmethod
+    def _escrever_literal(valor):
+        if isinstance(valor, str):
+            return f'"{valor}"'
+        if isinstance(valor, bool):
+            return "yes" if valor else "no"
+        return str(valor)
 
     def _ligacoes_do_tipo(self, declaracao, usado):
         """'Vetor<3>' — o que cada parâmetro vale aqui.
@@ -3613,6 +3667,21 @@ class TypeChecker:
         não viu: a mãe de outro módulo pode herdar de 'esperado', e acusar
         ali seria o falso alarme de sempre.
         """
+        # Um tipo literal vale pela BASE dele aqui.
+        #
+        # '"ativo"' so aceita um valor, e disso o analisador nao sabe
+        # nada quando o que chega e um 'String' qualquer — acusar seria
+        # recusar todo codigo que le a entrada e a passa adiante, que e
+        # exatamente para o que o tipo existe. Quem prova e
+        # '_conferir_literal_declarado', com o LITERAL na mao; quem
+        # cobra o resto e a execucao, na fronteira.
+        if e_tipo_literal(esperado):
+            if e_tipo_literal(obtido):
+                return esperado == obtido
+            return self._compativel(base_de_tipo_literal(esperado), obtido)
+        if e_tipo_literal(obtido):
+            return self._compativel(esperado, base_de_tipo_literal(obtido))
+
         if self.tipos_nomeados:
             decidido = self._compativel_nomeado(esperado, obtido)
             if decidido is not None:
@@ -3671,26 +3740,61 @@ class TypeChecker:
         dentro de um genérico. Um tipo opaco NÃO se abre: ele é nominal."""
         if not isinstance(tipo, str) or not self.tipos_nomeados:
             return tipo
+        # 'type Ligado := yes' e um ALIAS de um literal, e ele abre para
+        # a base: sem isto, 'action ligar(v: Ligado) -> Boolean' era
+        # acusada de devolver 'yes' onde declarou 'Boolean' — codigo
+        # certo, e a unica forma de escrever um literal solto.
+        if e_tipo_literal(tipo):
+            return base_de_tipo_literal(tipo)
         if "<" in tipo:
             base, argumentos = partir_tipo(tipo)
             return juntar_tipo(self._expandir_aliases(base, vistos),
                                [self._expandir_aliases(a, vistos)
                                 for a in argumentos])
         declaracao = self._declaracao_de_tipo(tipo)
-        if declaracao is None or declaracao.opaco or tipo in vistos \
-                or declaracao.especie != "alias":
+        if declaracao is None or declaracao.opaco or tipo in vistos:
             return tipo
+        if declaracao.especie != "alias":
+            # Uma uniao SO de literais do mesmo tipo de baixo abre para
+            # ele: 'type Estado := "ativo" | "inativo"' E um String.
+            # Sem isto, 'action f(e: Estado) -> String: yield e' era
+            # acusado de devolver o que nao declarou — codigo certo, e a
+            # forma mais natural de usar o recurso.
+            return self._base_da_uniao_literal(declaracao) or tipo
         return self._expandir_aliases(
             canonical(declaracao.partes[0]), vistos + (tipo,))
+
+    @staticmethod
+    def _base_da_uniao_literal(declaracao):
+        """'"a" | "b"' -> 'String'. `None` quando nao e so de literais.
+
+        Uma uniao mista ('"auto" | Integer') nao tem base unica, e
+        escolher uma faria o analisador aprovar o que a execucao recusa.
+        """
+        if declaracao.especie != "uniao" or not declaracao.partes:
+            return None
+        if not all(e_tipo_literal(p) for p in declaracao.partes):
+            return None
+        bases = {base_de_tipo_literal(p) for p in declaracao.partes}
+        return bases.pop() if len(bases) == 1 else None
 
     def _para_a_base(self, tipo, vistos=()):
         """'Positivo' -> 'Integer'. Um tipo opaco NÃO se desfaz: ele é
         nominal, e tratá-lo como o de baixo desligaria a proteção."""
+        # '"ativo"' -> 'String'. Sem esta linha, '"a" + "b"' com os dois
+        # lados de um tipo literal virava "Cannot add".
+        if e_tipo_literal(tipo):
+            return base_de_tipo_literal(tipo)
         declaracao = self._declaracao_de_tipo(tipo)
         if declaracao is None or declaracao.opaco or tipo in vistos:
             return tipo
         if declaracao.especie != "alias":
-            return UNKNOWN          # união e interseção: o que se sabe é pouco
+            # Uma uniao SO de literais do mesmo tipo tem base conhecida:
+            # 'type Estado := "ativo" | "inativo"' e um String, e sem
+            # isto 'action f(e: Estado) -> String: yield e' era acusado
+            # de devolver o que nao declarou — codigo certo.
+            return (self._base_da_uniao_literal(declaracao)
+                    or UNKNOWN)     # união e interseção: o que se sabe é pouco
         return self._para_a_base(
             canonical(self._trocar_parametros(declaracao,
                                               declaracao.partes[0], tipo)),
@@ -4260,6 +4364,11 @@ class TypeChecker:
                     return UNKNOWN
                 return nome if node.member in membros else UNKNOWN
 
+        # 'nome.naoExiste' num texto — a mesma conferencia da chamada.
+        # Ler o metodo sem chamar e legitimo ('f := xs.append'), entao o
+        # erro aqui e o mesmo: o nome nao existe naquele tipo.
+        self._conferir_metodo_embutido(alvo, node)
+
         # ── Membro de instância ──
         #
         # O caso que faltava, e o que mais custa em projeto grande:
@@ -4404,7 +4513,69 @@ class TypeChecker:
                     node,
                     self._hint_nome(node.method, nomes) or
                     f"It has: {', '.join(sorted(nomes))}", "unknown-field")
+        else:
+            self._conferir_metodo_embutido(alvo, node)
         return UNKNOWN
+
+    #: Os tipos cujo conjunto de metodos e FECHADO — nao ha recuo para
+    #: chave nem para atributo do Python, entao um nome de fora e erro.
+    #:
+    #: 'Vault' fica de propriedade FORA: 'v.cidade' cai na chave quando
+    #: ela existe, e acusar exigiria saber as chaves. Um objeto vindo da
+    #: ponte ('adopt Python.numpy') tambem nao entra: ali o membro e
+    #: resolvido pelo Python, e a analise nao tem como saber quais sao.
+    _EMBUTIDOS_FECHADOS = ("String", "Cluster")
+
+    def _metodos_embutidos(self, tipo):
+        """Os metodos que o INTERPRETADOR conhece para aquele tipo.
+
+        Lidos de la, e nao copiados: uma segunda lista divergiria no
+        primeiro metodo novo, e a divergencia nao daria erro — ela faria
+        o analisador acusar um metodo que funciona, que e o falso alarme
+        que ensina a desligar a verificacao.
+        """
+        from .interpreter import (_METODOS_DE_CLUSTER, _METODOS_DE_TEXTO,
+                                  _METODOS_DE_VAULT)
+        tabela = {"String": _METODOS_DE_TEXTO,
+                  "Cluster": _METODOS_DE_CLUSTER,
+                  "Vault": _METODOS_DE_VAULT}.get(tipo)
+        if tabela is None:
+            return None
+        # 'length' nao mora na tabela: ele e tratado a parte no
+        # '_ler_membro_cru', e sem esta linha 'nome.length' viraria um
+        # falso alarme sobre a forma que a propria doc ensina.
+        return set(tabela) | {"length"}
+
+    def _conferir_metodo_embutido(self, tipo, node):
+        """'nome.naoExiste()' num texto — acusado antes de rodar.
+
+        O acesso a campo de um `record` e conferido desde sempre, e o de
+        um texto, de um cluster ou de um vault **nao era**: a forma mais
+        comum de erro de digitacao na linguagem inteira passava limpa no
+        `check` e estourava em execucao. Medido numa bateria de quinze
+        erros que falham em execucao, o `check` pegava oito; quatro dos
+        sete silencios eram este mesmo caso, em tipos diferentes.
+
+        Ele so fala quando o tipo e EXATO e fechado — ver
+        `_EMBUTIDOS_FECHADOS`.
+        """
+        nome = getattr(node, "method", None) or getattr(node, "member", None)
+        if not nome or not isinstance(tipo, str):
+            return
+        if tipo not in self._EMBUTIDOS_FECHADOS:
+            return
+        # Um nome magico e chamado pelo runtime, e um que comeca com '_'
+        # e combinado entre quem escreveu — nenhum dos dois e engano.
+        if nome.startswith("_"):
+            return
+        conhecidos = self._metodos_embutidos(tipo)
+        if conhecidos is None or nome in conhecidos:
+            return
+        self.error(
+            f"'{tipo}' has no method '{nome}'", node,
+            self._hint_nome(nome, conhecidos)
+            or f"It has {len(conhecidos)} methods — see /docs/biblioteca",
+            "metodo-embutido")
 
     def _conferir_argumento_generico(self, tipo, node, escopo):
         """'c.guardar("texto")' num `Caixa<Integer>` — acusado na causa.
@@ -5079,6 +5250,12 @@ class TypeChecker:
             _, partes = separar_uniao(tipo)
             return all(self._tipo_conhecido(p, genericos) for p in partes)
         if "<" not in tipo:
+            # '"ativo"', '42', 'yes' — o tipo LITERAL. Ele nao e um nome,
+            # entao procura-lo em 'known_types' acharia nada e a queixa
+            # sairia como "Unknown type" sobre um tipo que a linguagem
+            # entende.
+            if e_tipo_literal(tipo):
+                return True
             alvo = canonical(tipo)
             return (alvo in self.known_types or alvo == UNKNOWN
                     or tipo in genericos or "." in tipo)

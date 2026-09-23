@@ -246,7 +246,7 @@ export function Entrar() {
             clientes. Aqui são as quatro coisas que a conta faz, porque
             inventar depoimento seria mentira. */}
         <ul className="mx-auto mt-8 grid max-w-[340px] grid-cols-2 gap-2 text-center text-[12px] text-muted">
-          {['Progresso nos 397 exercícios', 'Trechos salvos', 'Projetos do laboratório', 'Tokens da API'].map((t) => (
+          {['Progresso nos 399 exercícios', 'Trechos salvos', 'Projetos do laboratório', 'Tokens da API'].map((t) => (
             <li key={t} className="rounded-xl border border-line/70 bg-surface/50 px-3 py-2">{t}</li>
           ))}
         </ul>

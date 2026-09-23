@@ -1,0 +1,95 @@
+// Exercicio 398 — Tipos literais: o valor que vira tipo
+//
+// Enunciado: declare um 'type' cujos valores sao literais e veja onde
+// ele e cobrado — o 'check' prova com o literal na mao, a fronteira
+// cobra o resto, e 'yes' nao se confunde com 1.
+
+type Estado := "ativo" | "inativo" | "suspenso"
+type Nivel  := 1 | 2 | 3
+type Ligado := yes
+
+out "== 1. a fronteira confere =="
+
+action mudar(e: Estado) -> String:
+    yield e
+
+assert mudar("ativo") is "ativo"
+assert mudar("suspenso") is "suspenso"
+out "   'ativo' e 'suspenso' passam"
+
+out ""
+out "== 2. o que nao esta na lista e recusado =="
+
+recusados := 0
+monitor:
+    mudar("excluido")
+handle Error as e:
+    recusados := recusados + 1
+
+monitor:
+    mudar("")
+handle Error as e:
+    recusados := recusados + 1
+
+assert recusados is 2
+out $"   {recusados} valores de fora da lista recusados"
+
+out ""
+out "== 3. numero e booleano tambem sao literais =="
+
+action nivel(n: Nivel) -> Integer:
+    yield n * 10
+
+assert nivel(1) is 10
+assert nivel(3) is 30
+
+l: Ligado := yes
+assert l is yes
+out "   Nivel 1|2|3 e Ligado yes"
+
+out ""
+out "== 4. 'yes' e '1' NAO se confundem =="
+
+// Em Python 'True == 1'. Sem conferir o TIPO, um 'type Ligado := yes'
+// aceitaria o numero 1 calado — um valor que ninguem escreveu passando
+// por um tipo que existe justamente para nao deixar.
+action ligar(v: Ligado) -> Boolean:
+    yield v
+
+pegou := no
+monitor:
+    ligar(1)
+handle Error as e:
+    pegou := yes
+assert pegou
+out "   o numero 1 nao passa por um tipo 'yes'"
+
+out ""
+out "== 5. a base de uma uniao de literais e conhecida =="
+
+// 'e' e um String para o analisador — e e isso que permite concatenar
+// e declarar '-> String'. Sem essa leitura, a forma mais natural de
+// usar o recurso seria acusada de devolver o que nao declarou.
+action rotulo(e: Estado) -> String:
+    yield e + "!"
+
+assert rotulo("ativo") is "ativo!"
+out "   String + String, dentro de um tipo literal"
+
+out ""
+out "== 6. uma uniao MISTA nao tem base unica =="
+
+// '"auto" | Integer' aceita os dois, e o analisador cala em vez de
+// escolher uma base: escolher faria ele aprovar o que a execucao
+// recusa.
+type Modo := "auto" | Integer
+
+action usar(m: Modo) -> String:
+    yield str(m)
+
+assert usar("auto") is "auto"
+assert usar(3) is "3"
+out "   'auto' e 3, os dois legitimos"
+
+out ""
+out "ok — 398"

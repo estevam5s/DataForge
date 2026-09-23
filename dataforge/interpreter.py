@@ -25,7 +25,10 @@ from .builtins import (BuiltinFunction, get_builtins,
 from .caminhos import curto as _curto
 from .cauda import MARCA as _MARCA_CAUDA
 from . import tipos_nomeados as _TiposNomeados
-from .tipos_nomeados import ALIAS, INTERSECAO, UNIAO, Opaco
+from .tipos_nomeados import (ALIAS, INTERSECAO, UNIAO, Opaco,
+                             base_de_tipo_literal as _base_literal,
+                             e_tipo_literal as _e_tipo_literal,
+                             valor_do_tipo_literal as _valor_do_tipo_literal)
 from .errors import (
     ChamadaDeCauda,
     ControlSignal,
@@ -2175,6 +2178,7 @@ def _carimbar_dono(blueprint):
 
 
 # ── Interpreter ────────────────────────────────────────────
+
 
 class Interpreter:
     """Tree-walking interpreter for DataForge AST."""
@@ -9963,6 +9967,25 @@ class Interpreter:
             return "Action"
         return type(value).__name__
 
+    def _checar_literal(self, value, declared, what, node):
+        """'"ativo"' como tipo: o valor tem de SER aquele valor.
+
+        A comparacao e por igualdade E por tipo. Sem o tipo, 'yes' e '1'
+        passariam um pelo outro — em Python 'True == 1' —, e um
+        'type Ligado := yes' aceitaria o numero 1 calado.
+        """
+        esperado = _valor_do_tipo_literal(declared)
+        if type(value) is type(esperado) and value == esperado:
+            return value
+        raise TypeError_(
+            f"{what} declared as {declared} but got "
+            f"{self._nome_do_tipo(value)}",
+            getattr(node, "line", 0), getattr(node, "column", 0),
+            nota=f"um tipo literal aceita um valor so: {declared}",
+            dica=f"passe {declared}, ou declare uma uniao com os valores "
+                 f"que valem",
+            doc="tipos/literais")
+
     def _check_type(self, value, declared: str, what: str, node,
                     parametros_de_tipo=(), limites=None):
         """Enforce a declared type annotation. Unknown names name a blueprint.
@@ -9973,6 +9996,12 @@ class Interpreter:
         ser verificado em tempo de execucao. E o mesmo que o TypeScript
         faz ao compilar — os tipos somem.
         """
+        # Um tipo LITERAL: '"ativo"', '42', 'yes'. Ele vem antes de tudo
+        # porque nao e um NOME — procura-lo no registro de 'type' ou nos
+        # blueprints acharia nada e cairia no ramo errado.
+        if _e_tipo_literal(declared):
+            return self._checar_literal(value, declared, what, node)
+
         # Um 'type' declarado vem ANTES de tudo: ele pode dar nome a uma
         # colecao ('type Ids := Cluster<Id>'), e aí quem manda é ele.
         if self.tipos_nomeados and declared not in self.TYPE_ALIASES:

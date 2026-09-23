@@ -18,7 +18,7 @@
 
 Além destes:
 
-- [`../exercicios/`](../exercicios) — 397 exercícios; os dos módulos 11-23 com `.md` explicativo
+- [`../exercicios/`](../exercicios) — 399 exercícios; os dos módulos 11-23 com `.md` explicativo
 - [`../examples/`](../examples) — 44 programas maiores
 - [`../CLAUDE.md`](../CLAUDE.md) — contexto para trabalhar no interpretador
 

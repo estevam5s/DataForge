@@ -4318,6 +4318,19 @@ class Parser:
         colado a ele: 'M . Pedido' com espaco nao e um tipo, e sim o
         comeco de outra coisa.
         """
+        # 'type Estado := "ativo" | "inativo"' — o tipo LITERAL.
+        #
+        # Ele e o que faz uma uniao de textos dizer o que a linguagem ja
+        # cobrava a mao: 'given e is "ativo" or e is "inativo"' espalhado
+        # por toda fronteira, e esquecido numa delas. O valor vira o
+        # proprio tipo, e a conferencia passa a acontecer onde o dado
+        # entra.
+        literal = self._tipo_literal()
+        if literal is not None:
+            if self.current().type in (TokenType.VBAR, TokenType.AMP):
+                return self._juntar_tipos(literal)
+            return literal
+
         nome = self.expect(TokenType.IDENTIFIER, mensagem).value
         while (self.current().type == TokenType.DOT
                and self.peek().type == TokenType.IDENTIFIER):
@@ -4332,6 +4345,46 @@ class Parser:
         if self.current().type in (TokenType.VBAR, TokenType.AMP):
             return self._juntar_tipos(nome)
         return nome
+
+    #: Os tokens que podem ser um tipo literal, e como escreve-los.
+    #:
+    #: 'void' fica de fora: 'Void' ja e o tipo dele, e 'type T := void'
+    #: seria uma segunda forma de dizer a mesma coisa. Decimal tambem:
+    #: '19.99d' num tipo confundiria com a anotacao 'Decimal'.
+    _LITERAIS_DE_TIPO = (TokenType.STRING, TokenType.INTEGER,
+                         TokenType.FLOAT, TokenType.BOOLEAN)
+
+    def _tipo_literal(self):
+        """Um literal na posicao de um tipo — ou None, e ninguem avanca.
+
+        Devolver None sem consumir e o que deixa este ramo conviver com
+        o nome de tipo normal: quem chama tenta o literal, e se nao for,
+        segue pelo caminho de sempre.
+        """
+        atual = self.current()
+        if atual.type is TokenType.MINUS \
+                and self.peek().type in (TokenType.INTEGER, TokenType.FLOAT):
+            self.advance()
+            return "-" + self._texto_do_literal(self.advance())
+        if atual.type not in self._LITERAIS_DE_TIPO:
+            return None
+        self.advance()
+        return self._texto_do_literal(atual)
+
+    @staticmethod
+    def _texto_do_literal(token):
+        """Como o literal aparece NO TIPO.
+
+        O texto leva aspas, e isso nao e enfeite: sem elas, 'type T :=
+        "Integer"' e 'type T := Integer' virariam a mesma string, e o
+        primeiro — um tipo literal que so aceita a palavra "Integer" —
+        passaria a aceitar qualquer numero.
+        """
+        if token.type is TokenType.STRING:
+            return '"' + str(token.value).replace('"', '\\"') + '"'
+        if token.type is TokenType.BOOLEAN:
+            return "yes" if token.value else "no"
+        return str(token.value)
 
     def _parse_argumentos_de_colecao(self, base):
         from .colecoes_tipadas import COLECOES, FORMA

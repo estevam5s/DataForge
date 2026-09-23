@@ -289,6 +289,52 @@ def _trocar(tipo, troca):
     return "".join(saida)[:-1]
 
 
+#: Os tipos de baixo de cada forma de literal.
+_BASE_DO_LITERAL = {'"': "String", "y": "Boolean", "n": "Boolean"}
+
+
+def e_tipo_literal(tipo):
+    """O texto de um tipo e um LITERAL? — '"ativo"', '42', '-1.5', 'yes'.
+
+    Reconhecer pelo TEXTO e o que faz a uniao funcionar de graca: ela ja
+    delega cada parte, e uma parte literal chega como qualquer outra.
+
+    Esta e a unica copia. O interpretador confere o valor com ela e o
+    analisador decide compatibilidade com ela; duas leituras do mesmo
+    texto divergiriam, e a divergencia apareceria como um 'check' que
+    aprova o que a execucao recusa.
+    """
+    if not isinstance(tipo, str) or not tipo:
+        return False
+    if tipo[0] == '"':
+        return True
+    if tipo in ("yes", "no"):
+        return True
+    corpo = tipo[1:] if tipo[0] == "-" else tipo
+    return bool(corpo) and (corpo.isdigit()
+                            or (corpo.count(".") == 1
+                                and corpo.replace(".", "").isdigit()))
+
+
+def base_de_tipo_literal(tipo):
+    """O tipo de baixo de um literal: '"ativo"' -> 'String'."""
+    base = _BASE_DO_LITERAL.get(tipo[0])
+    if base:
+        return base
+    return "Float" if "." in tipo else "Integer"
+
+
+def valor_do_tipo_literal(tipo):
+    """O valor que aquele tipo literal aceita."""
+    if tipo[0] == '"':
+        return tipo[1:-1].replace('\\"', '"')
+    if tipo == "yes":
+        return True
+    if tipo == "no":
+        return False
+    return float(tipo) if "." in tipo else int(tipo)
+
+
 def separar_uniao(tipo):
     """'A | B' -> ['A', 'B']; '&' idem. Respeita os '<>' aninhados.
 

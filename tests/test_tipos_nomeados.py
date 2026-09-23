@@ -404,3 +404,188 @@ def test_o_repositorio_continua_limpo():
                            encoding="utf-8", errors="replace",
                            env={**os.environ, "NO_COLOR": "1"})
         assert r.returncode == 0, f"{pasta}: {r.stdout[-600:]}"
+
+
+# ═══════════════════════════════════════════════════════════
+#  Tipos literais
+# ═══════════════════════════════════════════════════════════
+
+class TestTipoLiteral:
+    """'type Estado := "ativo" | "inativo"' — o valor vira o tipo.
+
+    Ele era **erro de sintaxe**: o parser esperava um nome onde um
+    literal aparecia, e a mensagem falava de "a type", sem dizer que a
+    forma não existia. O que se escrevia no lugar era a comparação à mão
+    em toda fronteira — e esquecida numa delas.
+    """
+
+    def test_a_declaracao_compila(self):
+        rodar('type Estado := "ativo" | "inativo"\nout 1\n')
+
+    def test_o_valor_certo_passa_na_fronteira(self):
+        saida = rodar('''type Estado := "ativo" | "inativo"
+
+action mudar(e: Estado) -> String:
+    yield e
+
+out mudar("ativo")
+''')
+        assert "ativo" in saida
+
+    def test_o_valor_de_fora_e_recusado_em_EXECUCAO(self):
+        with pytest.raises(DataForgeError) as info:
+            rodar('''type Estado := "ativo" | "inativo"
+
+action mudar(e: Estado) -> String:
+    yield e
+
+out mudar("zzz")
+''')
+        assert "Estado" in str(info.value)
+
+    def test_o_check_prova_com_o_literal_na_mao(self):
+        ruins = [d for d in diagnosticos(
+            'type Estado := "ativo" | "inativo"\ne: Estado := "zzz"\nout e\n')
+            if d.severity == "error"]
+        assert ruins, "o literal errado tinha de ser provado antes de rodar"
+        assert ruins[0].code == "tipo-literal"
+        assert '"ativo"' in ruins[0].hint
+
+    def test_e_CALA_quando_o_valor_nao_e_literal(self):
+        """Sem esta linha ele recusaria o código para o qual o tipo existe.
+
+        Ler a entrada e passá-la adiante é o caso normal, e ali o
+        analisador não tem nada para provar — quem cobra é a fronteira.
+        """
+        ruins = [d for d in diagnosticos('''type Estado := "ativo" | "inativo"
+
+action mudar(e: Estado) -> String:
+    yield e
+
+vindo_de_fora := input() ?? "ativo"
+out mudar(vindo_de_fora)
+''') if d.severity == "error"]
+        assert not ruins, [d.message for d in ruins]
+
+    def test_numero_e_booleano_tambem(self):
+        saida = rodar('''type Nivel := 1 | 2 | 3
+type Ligado := yes
+
+action nivel(n: Nivel) -> Integer:
+    yield n * 10
+
+l: Ligado := yes
+out nivel(2), l
+''')
+        assert "20" in saida
+
+    def test_yes_e_1_nao_se_confundem(self):
+        """Em Python `True == 1`. Sem conferir o TIPO, um
+        `type Ligado := yes` aceitaria o número 1 calado — um valor que
+        ninguém escreveu passando por um tipo que existe para não
+        deixar."""
+        with pytest.raises(DataForgeError):
+            rodar('''type Ligado := yes
+
+action ligar(v: Ligado) -> Boolean:
+    yield v
+
+out ligar(1)
+''')
+
+    def test_a_base_de_uma_uniao_de_literais_e_conhecida(self):
+        """'-> String' devolvendo um Estado é código certo.
+
+        Sem esta leitura, a forma mais natural de usar o recurso era
+        acusada de devolver o que não declarou."""
+        ruins = [d for d in diagnosticos('''type Estado := "ativo" | "inativo"
+
+action rotulo(e: Estado) -> String:
+    yield e + "!"
+
+out rotulo("ativo")
+''') if d.severity == "error"]
+        assert not ruins, [d.message for d in ruins]
+
+    def test_uniao_MISTA_nao_tem_base_e_o_analisador_cala(self):
+        """'"auto" | Integer' não tem base única, e escolher uma faria o
+        analisador aprovar o que a execução recusa."""
+        ruins = [d for d in diagnosticos('''type Modo := "auto" | Integer
+
+action usar(m: Modo) -> String:
+    yield str(m)
+
+out usar("auto"), usar(3)
+''') if d.severity == "error"]
+        assert not ruins, [d.message for d in ruins]
+
+    def test_as_aspas_fazem_parte_do_tipo(self):
+        """Sem elas, 'type T := "Integer"' e 'type T := Integer' viram a
+        mesma string — e o primeiro, que só aceita a palavra "Integer",
+        passaria a aceitar qualquer número."""
+        from dataforge.tipos_nomeados import (base_de_tipo_literal,
+                                              e_tipo_literal,
+                                              valor_do_tipo_literal)
+        assert e_tipo_literal('"Integer"')
+        assert not e_tipo_literal("Integer")
+        assert base_de_tipo_literal('"Integer"') == "String"
+        assert valor_do_tipo_literal('"Integer"') == "Integer"
+
+
+# ═══════════════════════════════════════════════════════════
+#  Método que não existe num tipo embutido
+# ═══════════════════════════════════════════════════════════
+
+class TestMetodoEmbutido:
+    """`p.clientte` num record era acusado; `"ana".naoExiste()` não.
+
+    Medido numa bateria de quinze erros que **falham em execução**: o
+    `check` pegava oito, e quatro dos sete silêncios eram este mesmo
+    caso em tipos diferentes.
+    """
+
+    @pytest.mark.parametrize("codigo,tipo", [
+        ('nome := "ana"\nout nome.naoExiste()\n', "String"),
+        ('xs := [1, 2]\nout xs.naoExiste()\n', "Cluster"),
+        ('nome := "ana"\nf := nome.naoExiste\nout f\n', "String"),
+    ])
+    def test_acusa_antes_de_rodar(self, codigo, tipo):
+        ruins = [d for d in diagnosticos(codigo) if d.severity == "error"]
+        assert ruins, "passou limpo, e falha em execução"
+        assert ruins[0].code == "metodo-embutido"
+        assert tipo in ruins[0].message
+
+    def test_sugere_o_nome_parecido(self):
+        ruins = [d for d in diagnosticos('nome := "ana"\nout nome.uppper()\n')
+                 if d.severity == "error"]
+        assert "upper" in ruins[0].hint
+
+    def test_length_continua_valendo(self):
+        """Ele não mora na tabela — é tratado à parte no interpretador —,
+        e sem essa linha a forma que a própria doc ensina viraria um
+        falso alarme."""
+        ruins = [d for d in diagnosticos('nome := "ana"\nout nome.length\n')
+                 if d.severity == "error"]
+        assert not ruins, [d.message for d in ruins]
+
+    def test_o_vault_fica_de_FORA(self):
+        """`v.cidade` cai na chave quando ela existe. Acusar exigiria
+        saber as chaves, e um vault montado em execução não tem lista."""
+        ruins = [d for d in diagnosticos(
+            'v := {"a": 1}\nv["b"] := 2\nout v.b\n') if d.severity == "error"]
+        assert not ruins, [d.message for d in ruins]
+
+    def test_a_lista_vem_do_INTERPRETADOR_e_nao_de_uma_copia(self):
+        """Uma segunda lista divergiria no primeiro método novo — e a
+        divergência faria o analisador acusar um método que funciona,
+        que é o falso alarme que ensina a desligar a verificação."""
+        import inspect
+
+        from dataforge import typechecker as tc
+        fonte = inspect.getsource(tc.TypeChecker._metodos_embutidos)
+        assert "from .interpreter import" in fonte
+
+        from dataforge.interpreter import _METODOS_DE_TEXTO
+        conhecidos = tc.TypeChecker()._metodos_embutidos("String")
+        assert set(_METODOS_DE_TEXTO) <= conhecidos
+        assert "length" in conhecidos

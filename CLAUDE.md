@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 397 exercícios
+python3 exercicios/run_all.py                        # 399 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -150,7 +150,7 @@ dataforge/
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        397 exercícios em 58 módulos + run_all.py
+exercicios/        399 exercícios em 59 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1509,6 +1509,50 @@ E sobre WebAssembly, a distinção que a página faz e que vale repetir:
 Pyodide, e é rodar o CPython em WebAssembly — com o interpretador
 inteiro junto. Emitir um `.wasm` parcial só para marcar a caixa não
 rodaria programa nenhum do repositório.
+
+### Tipos literais, e o método que não existia
+
+**`type Estado := "ativo" | "inativo"` era erro de sintaxe.** O parser
+esperava um nome onde o literal aparecia, e o que se escrevia no lugar
+era a comparação à mão em toda fronteira — e esquecida numa delas.
+
+Ele atravessou os cinco lugares mais o `tipos_nomeados.py`, e o texto
+do tipo **leva as aspas**: sem elas, `type T := "Integer"` e
+`type T := Integer` virariam a mesma string, e o primeiro — que só
+aceita a palavra `"Integer"` — passaria a aceitar qualquer número.
+
+Quatro decisões:
+
+| Decisão | Sem ela |
+|---|---|
+| `e_tipo_literal` mora em `tipos_nomeados.py`, **uma cópia** | o interpretador e o analisador leriam o mesmo texto de dois jeitos, e o `check` aprovaria o que a execução recusa |
+| a comparação é por igualdade **E por tipo** | em Python `True == 1`, e um `type Ligado := yes` aceitaria o número 1 calado |
+| uma união **só** de literais do mesmo tipo abre para a base | `action f(e: Estado) -> String: yield e` era acusada de devolver o que não declarou — código certo, e a forma mais natural de usar o recurso |
+| o `check` só fala com o **literal na mão** | um `String` de `input()` não prova nada, e acusá-lo recusaria justamente o código para o qual o tipo existe |
+
+Uma união **mista** (`"auto" | Integer`) não tem base única, e ali ele
+volta a calar: escolher uma faria o analisador aprovar o que a execução
+recusa.
+
+**E `"ana".naoExiste()` passava limpo no `check`.** Medido numa bateria
+de quinze erros que **falham em execução**: o `check` pegava oito, e
+quatro dos sete silêncios eram este mesmo caso — um método que não
+existe num tipo embutido — em tipos diferentes. O mesmo erro num
+`record` era acusado com sugestão desde sempre.
+
+`_conferir_metodo_embutido` **lê a tabela do interpretador**
+(`_METODOS_DE_TEXTO`, `_METODOS_DE_CLUSTER`): uma segunda lista
+divergiria no primeiro método novo, e a divergência faria o analisador
+acusar um método que funciona — o falso alarme que ensina a desligar a
+verificação. Ele cala sobre um **Vault** (`v.cidade` cai na chave
+quando ela existe), sobre objeto vindo da ponte, e sobre nome que
+começa com `_`. Calibragem: **zero falso alarme** nas cinco pastas,
+532 arquivos.
+
+E `length` não mora na tabela — ele é tratado à parte no
+`_ler_membro_cru` —, então ele entra na lista à mão; sem isso,
+`nome.length` viraria um falso alarme sobre a forma que a própria doc
+ensina. (E `nome.length` devolve a **ação**: a forma é `nome.length()`.)
 
 ### O analisador estático é otimista de propósito
 
@@ -3481,7 +3525,7 @@ python3 scripts/gerar_tarball.py
 | `tests/test_regex_extra.py` | `pytest` | grupos nomeados, ancoramento nas duas pontas, troca que calcula, a explicação e os quatro desenhos de risco |
 | `tests/test_iot.py` | `pytest` | a placa: a serial contra um **PTY de verdade**, o Firmata contra o simulador, o MQTT contra um broker falado no proprio teste, os sketches contra o **arduino-cli** — e um teste de hardware que so roda com `DATAFORGE_ARDUINO` apontando uma placa |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 397 exercícios em 58 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 399 exercícios em 59 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 
