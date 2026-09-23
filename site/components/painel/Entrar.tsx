@@ -7,6 +7,13 @@ import { Turnstile, type ControleTurnstile } from '@/components/Turnstile';
 import { TURNSTILE_LIGADO } from '@/lib/turnstile';
 import { useAuth } from '@/lib/supabase/auth';
 
+/* O Google só aparece quando o provedor está LIGADO no Supabase.
+ *
+ * Um botão "continuar com Google" que responde 'provider is not
+ * enabled' é pior que não ter botão: quem clica conclui que o site
+ * está quebrado, e não que falta configuração do outro lado. */
+const GOOGLE_LIGADO = process.env.NEXT_PUBLIC_OAUTH_GOOGLE === '1';
+
 type Modo = 'entrar' | 'registrar' | 'recuperar';
 
 const TITULOS: Record<Modo, { titulo: string; botao: string }> = {
@@ -16,7 +23,7 @@ const TITULOS: Record<Modo, { titulo: string; botao: string }> = {
 };
 
 export function Entrar() {
-  const { entrar, registrar, recuperar } = useAuth();
+  const { entrar, registrar, recuperar, entrarComGoogle } = useAuth();
   // '/painel?criar=1' abre direto em "Criar conta". O cabeçalho
   // oferece as duas portas, e levar as duas para o mesmo formulário
   // em modo "entrar" faria a segunda mentir sobre o que faz.
@@ -92,125 +99,157 @@ export function Entrar() {
   const { titulo, botao } = TITULOS[modo];
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-5 py-12">
-      <div className="w-full max-w-[380px]">
-        <Link href="/" className="mb-8 flex items-center justify-center gap-2.5">
-          <Logo size={30} />
-          <span className="text-[19px] font-extrabold tracking-tight">
-            DataForge
-          </span>
-        </Link>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-14">
+      {/* O brilho de fundo, do mesmo vermelho da marca. Ele fica atrás
+          de tudo e não intercepta clique — 'pointer-events: none'. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/2 top-[-18%] h-[420px] w-[620px] -translate-x-1/2 rounded-full bg-accent/20 blur-[130px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] h-[360px] w-[460px] rounded-full bg-accent/10 blur-[120px]" />
+      </div>
 
-        <div className="surface-card rounded-xl p-6">
-          <h1 className="text-[21px] font-bold text-strong">{titulo}</h1>
-          <p className="mt-1 text-[13.5px] text-muted">
-            {modo === 'recuperar'
-              ? 'Enviamos um link para você definir uma senha nova.'
-              : 'Guarde projetos, trechos e seu progresso nos exercícios.'}
-          </p>
+      <div className="w-full max-w-[400px]">
+        <div className="rounded-[28px] border border-line/70 bg-gradient-to-b from-white/[0.07] to-transparent p-[1px] shadow-2xl">
+          <div className="rounded-[27px] bg-surface/80 px-7 py-9 backdrop-blur-xl">
+            <Link href="/" className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 shadow-lg">
+              <Logo size={26} />
+            </Link>
 
-          <form onSubmit={enviar} className="mt-6 space-y-3.5">
-            {modo === 'registrar' && (
-              <Campo rotulo="Nome" valor={nome} aoMudar={setNome}
-                     tipo="text" auto="name" placeholder="Como te chamamos" />
-            )}
-            <Campo rotulo="E-mail" valor={email} aoMudar={setEmail}
-                   tipo="email" auto="email" placeholder="voce@exemplo.com" />
-            {modo !== 'recuperar' && (
-              <Campo rotulo="Senha" valor={senha} aoMudar={setSenha}
-                     tipo="password"
-                     auto={modo === 'registrar' ? 'new-password' : 'current-password'}
-                     placeholder="ao menos 6 caracteres" />
-            )}
+            <h1 className="text-center text-[22px] font-semibold text-strong">{titulo}</h1>
+            <p className="mx-auto mt-2 max-w-[30ch] text-center text-[13px] leading-[20px] text-muted">
+              {modo === 'recuperar'
+                ? 'Enviamos um link para você definir uma senha nova.'
+                : 'Guarde projetos, trechos e seu progresso nos exercícios.'}
+            </p>
 
-            {erro && (
-              <p role="alert"
-                 className="rounded-lg border border-accent/30 bg-accent/10
-                            px-3 py-2 text-[13px] text-accent">
-                {erro}
-              </p>
-            )}
-            {aviso && (
-              <p role="status"
-                 className="rounded-lg border border-line bg-raised px-3 py-2
-                            text-[13px] text-body">
-                {aviso}
-              </p>
-            )}
+            <form onSubmit={enviar} className="mt-7 space-y-3">
+              {modo === 'registrar' && (
+                <Campo rotulo="Nome" valor={nome} aoMudar={setNome}
+                       tipo="text" auto="name" placeholder="Como te chamamos" />
+              )}
+              <Campo rotulo="E-mail" valor={email} aoMudar={setEmail}
+                     tipo="email" auto="email" placeholder="voce@exemplo.com" />
+              {modo !== 'recuperar' && (
+                <Campo rotulo="Senha" valor={senha} aoMudar={setSenha}
+                       tipo="password"
+                       auto={modo === 'registrar' ? 'new-password' : 'current-password'}
+                       placeholder="ao menos 6 caracteres" />
+              )}
 
-            {/* A verificação fica ACIMA do botão: descobri-la depois de
-                clicar em "Entrar" e ver o botão desabilitado é a forma
-                mais rápida de alguém achar que o site quebrou. */}
-            <Turnstile
-              acao={modo}
-              controle={widget}
-              aoMudarToken={setCaptcha}
-              aoFalhar={(motivo) => {
-                // FALHA ABERTA, aqui. Se o script não carrega — rede
-                // corporativa que bloqueia a Cloudflare, domínio ainda
-                // não liberado na chave, extensão de navegador — o
-                // botão NÃO pode morrer: quem recusa de verdade é o
-                // servidor do Supabase, e um painel que não abre por
-                // causa disso é uma porta trancada por acidente, sem
-                // ninguém do outro lado para explicar.
-                setCaptchaFalhou(true);
-                setAviso(`${motivo}. Você pode tentar entrar mesmo assim.`);
-              }}
-            />
+              {erro && (
+                <p role="alert"
+                   className="rounded-2xl border border-accent/30 bg-accent/10
+                              px-4 py-2.5 text-[13px] text-accent">
+                  {erro}
+                </p>
+              )}
+              {aviso && (
+                <p role="status"
+                   className="rounded-2xl border border-line bg-raised px-4 py-2.5
+                              text-[13px] text-body">
+                  {aviso}
+                </p>
+              )}
 
-            {/* O BOTÃO NÃO MORRE POR CAUSA DO CAPTCHA — só por já
-                estar enviando.
+              {/* A verificação fica ACIMA do botão: descobri-la depois de
+                  clicar em "Entrar" e ver o botão desabilitado é a forma
+                  mais rápida de alguém achar que o site quebrou. */}
+              <Turnstile
+                acao={modo}
+                controle={widget}
+                aoMudarToken={setCaptcha}
+                aoFalhar={(motivo) => {
+                  // FALHA ABERTA, aqui. Se o script não carrega — rede
+                  // corporativa que bloqueia a Cloudflare, domínio ainda
+                  // não liberado na chave, extensão de navegador — o
+                  // botão NÃO pode morrer: quem recusa de verdade é o
+                  // servidor do Supabase, e um painel que não abre por
+                  // causa disso é uma porta trancada por acidente, sem
+                  // ninguém do outro lado para explicar.
+                  setCaptchaFalhou(true);
+                  setAviso(`${motivo}. Você pode tentar entrar mesmo assim.`);
+                }}
+              />
 
-                A versão anterior o desabilitava enquanto não houvesse
-                token, e isso contradiz o que este mesmo arquivo diz
-                logo acima: quem recusa de verdade é o servidor do
-                Supabase. O efeito era uma porta trancada por acidente:
-                bastava o widget renderizar e não terminar — domínio
-                não liberado, rede corporativa, extensão — para o
-                formulário ficar em "Conclua a verificação" para
-                sempre, sem erro, sem explicação e sem saída.
+              {/* O BOTÃO NÃO MORRE POR CAUSA DO CAPTCHA — só por já
+                  estar enviando. Quem recusa de verdade é o servidor do
+                  Supabase, e um envio recusado com motivo é sempre
+                  melhor que um botão que não responde. */}
+              <button
+                type="submit"
+                disabled={enviando}
+                className="w-full rounded-full bg-accent px-5 py-3 text-[14.5px]
+                           font-semibold text-white shadow-[0_10px_30px_-12px_rgb(var(--accent))]
+                           transition-all hover:bg-accent-soft disabled:opacity-50"
+              >
+                {enviando
+                  ? 'Aguarde…'
+                  : TURNSTILE_LIGADO && !captcha && !captchaFalhou
+                    ? `${botao} (verificando…)`
+                    : botao}
+              </button>
+            </form>
 
-                Falhar ABERTO aqui não enfraquece nada: sem token, o
-                Supabase recusa e a mensagem é traduzida por
-                `traduzirFalhaDeCaptcha`. Um envio recusado com motivo
-                é sempre melhor que um botão que não responde. */}
-            <button
-              type="submit"
-              disabled={enviando}
-              className="w-full rounded-lg bg-accent px-4 py-2.5 text-[14.5px]
-                         font-semibold text-white transition-opacity
-                         hover:opacity-90 disabled:opacity-50"
-            >
-              {enviando
-                ? 'Aguarde…'
-                : TURNSTILE_LIGADO && !captcha && !captchaFalhou
-                  ? `${botao} (verificando…)`
-                  : botao}
-            </button>
-          </form>
-
-          <div className="mt-5 space-y-1.5 text-center text-[13px]">
-            {modo === 'entrar' && (
+            {GOOGLE_LIGADO && modo !== 'recuperar' && (
               <>
-                <p className="text-muted">
-                  Não tem conta?{' '}
-                  <button onClick={() => setModo('registrar')}
-                          className="link-quiet underline">criar uma</button>
-                </p>
-                <p className="text-muted">
-                  <button onClick={() => setModo('recuperar')}
-                          className="link-quiet underline">esqueci a senha</button>
-                </p>
+                <div className="my-5 flex items-center gap-3">
+                  <span className="h-px flex-1 bg-line" />
+                  <span className="text-[11px] uppercase tracking-wider text-muted">ou</span>
+                  <span className="h-px flex-1 bg-line" />
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setErro(null);
+                    const falha = await entrarComGoogle();
+                    if (falha) setErro(falha);
+                  }}
+                  className="flex w-full items-center justify-center gap-2.5 rounded-full
+                             border border-line bg-raised px-5 py-3 text-[14px] font-medium
+                             text-strong transition-colors hover:border-line hover:bg-surface"
+                >
+                  <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px]">
+                    <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z" />
+                    <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.1-4 1.1-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z" />
+                    <path fill="#FBBC05" d="M5.4 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.4a12 12 0 0 0 0 10.8l4-3.1z" />
+                    <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.4 6.6l4 3.1C6.3 6.9 8.9 4.8 12 4.8z" />
+                  </svg>
+                  Continuar com Google
+                </button>
               </>
             )}
-            {modo !== 'entrar' && (
-              <p className="text-muted">
-                <button onClick={() => setModo('entrar')}
-                        className="link-quiet underline">voltar para entrar</button>
-              </p>
-            )}
+
+            <div className="mt-6 space-y-1.5 text-center text-[13px]">
+              {modo === 'entrar' && (
+                <>
+                  <p className="text-muted">
+                    Não tem conta?{' '}
+                    <button onClick={() => setModo('registrar')}
+                            className="link-quiet underline">criar uma, é de graça</button>
+                  </p>
+                  <p className="text-muted">
+                    <button onClick={() => setModo('recuperar')}
+                            className="link-quiet underline">esqueci a senha</button>
+                  </p>
+                </>
+              )}
+              {modo !== 'entrar' && (
+                <p className="text-muted">
+                  <button onClick={() => setModo('entrar')}
+                          className="link-quiet underline">voltar para entrar</button>
+                </p>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* O que o painel guarda — o lugar onde um produto põe rostos de
+            clientes. Aqui são as quatro coisas que a conta faz, porque
+            inventar depoimento seria mentira. */}
+        <ul className="mx-auto mt-8 grid max-w-[340px] grid-cols-2 gap-2 text-center text-[12px] text-muted">
+          {['Progresso nos 397 exercícios', 'Trechos salvos', 'Projetos do laboratório', 'Tokens da API'].map((t) => (
+            <li key={t} className="rounded-xl border border-line/70 bg-surface/50 px-3 py-2">{t}</li>
+          ))}
+        </ul>
 
         <p className="mt-6 text-center text-[12.5px] text-muted">
           <Link href="/docs" className="link-quiet">← voltar à documentação</Link>
@@ -227,7 +266,7 @@ function Campo({ rotulo, valor, aoMudar, tipo, auto, placeholder }: {
   const id = `campo-${rotulo.toLowerCase()}`;
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-[13px] font-medium text-body">
+      <label htmlFor={id} className="mb-1.5 block text-[12.5px] font-medium text-muted">
         {rotulo}
       </label>
       <input
@@ -238,9 +277,10 @@ function Campo({ rotulo, valor, aoMudar, tipo, auto, placeholder }: {
         value={valor}
         onChange={(e) => aoMudar(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-line bg-raised px-3 py-2.5
+        className="w-full rounded-2xl border border-line bg-raised/70 px-4 py-3
                    text-[14px] text-strong outline-none transition-colors
-                   placeholder:text-muted/60 focus:border-accent/50"
+                   placeholder:text-muted/60 focus:border-accent/50
+                   focus:ring-2 focus:ring-accent/25"
       />
     </div>
   );

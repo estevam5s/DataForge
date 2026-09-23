@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { NavSite } from '@/components/landing/NavSite';
 import { Heroi } from '@/components/landing/Heroi';
+import { Tecnologias } from '@/components/landing/Tecnologias';
 import { Pilares } from '@/components/landing/Pilares';
 import { Manifesto } from '@/components/landing/Manifesto';
 import { Ferramentas } from '@/components/landing/Ferramentas';
@@ -16,7 +17,7 @@ import { RodapeSite } from '@/components/landing/RodapeSite';
 export const metadata: Metadata = {
   title: 'DataForge — uma linguagem de programação com vocabulário próprio',
   description:
-    'Linguagem interpretada de propósito geral: lexer, parser, analisador estático e interpretador próprios, em Python, sem dependências no runtime. 85 módulos de biblioteca padrão e 387 exercícios verificados.',
+    'Linguagem interpretada de propósito geral: lexer, parser, analisador estático e interpretador próprios, em Python, sem dependências no runtime. 86 módulos de biblioteca padrão e 397 exercícios verificados.',
   alternates: { canonical: '/' },
 };
 
@@ -28,6 +29,7 @@ export default function Landing() {
           hero. Aqui o pai e a pagina inteira. */}
       <NavSite />
       <Heroi />
+      <Tecnologias />
       <Pilares />
       <Manifesto />
       <Ferramentas />

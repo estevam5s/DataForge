@@ -75,13 +75,11 @@ export function CascaDaDocumentacao({ children }: { children: React.ReactNode })
           </div>
         </Redimensionavel>
 
-        {/* Sem <Footer /> aqui: ele é renderizado por `DocPage`, DENTRO
-            da linha que contém o índice "Nesta página".
-            `position: sticky` só gruda enquanto está no container dele,
-            e com o rodapé fora dessa linha o índice desgrudava na
-            última tela. As 273 páginas de /docs passam por `DocPage`,
-            então nenhuma fica sem rodapé — e duas cópias apareceriam se
-            ele ficasse nos dois lugares. */}
+        {/* A documentação NÃO tem rodapé. Ele repetia, em toda página,
+            os mesmos links que a barra lateral já oferece — e empurrava
+            para baixo o "Próximo", que é o que alguém que terminou de
+            ler realmente quer. O rodapé continua na landing e no
+            /download, onde é a única navegação disponível. */}
         <div className="min-w-0 flex-1">
           <main id="conteudo">{children}</main>
         </div>

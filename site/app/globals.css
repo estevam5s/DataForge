@@ -357,6 +357,25 @@
 }
 .lp-btn-ghost:hover { color: var(--lp-warm); }
 
+/* A faixa que passa: a lista é duplicada no DOM e o trilho anda
+   -50%, que é o ponto em que a segunda cópia está exatamente onde a
+   primeira começou — o laço fecha sem salto. */
+@keyframes lp-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.lp-marquee { animation: lp-marquee 38s linear infinite; }
+.lp-marquee:hover { animation-play-state: paused; }
+.lp-marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-marquee { animation: none; }
+  /* Sem animação, a segunda cópia seria uma lista repetida na tela. */
+  .lp-marquee > li:nth-child(n + 13) { display: none; }
+}
+
 /* Cursor piscante dos rótulos { TEXTO _ } */
 @keyframes lp-blink { 0%, 45% { opacity: 1; } 55%, 100% { opacity: 0.15; } }
 .lp-caret { animation: lp-blink 1.15s steps(1, end) infinite; }

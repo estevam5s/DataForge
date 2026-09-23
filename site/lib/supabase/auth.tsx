@@ -33,6 +33,7 @@ type Estado = {
   registrar: (email: string, senha: string, nome: string, captcha?: string | null) => Promise<string | null>;
   sair: () => Promise<void>;
   recuperar: (email: string, captcha?: string | null) => Promise<string | null>;
+  entrarComGoogle: () => Promise<string | null>;
 };
 
 const Contexto = createContext<Estado | null>(null);
@@ -143,6 +144,28 @@ export function ProvedorAuth({ children }: { children: React.ReactNode }) {
       return error ? traduzirErro(error.message) : null;
     }, []);
 
+  /** Entrar por um provedor OAuth (hoje, Google).
+   *
+   * O botão só aparece quando `NEXT_PUBLIC_OAUTH_GOOGLE` está ligado,
+   * porque o provedor precisa estar habilitado no painel do Supabase e
+   * com o domínio na lista de redirecionamento. Um botão de "entrar com
+   * Google" que devolve `provider is not enabled` é pior que não ter
+   * botão nenhum: quem clica conclui que o site está quebrado.
+   */
+  const entrarComGoogle = useCallback(async () => {
+    const cliente = obterCliente();
+    if (!cliente) return null;
+    const { error } = await cliente.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: typeof window !== 'undefined'
+          ? `${window.location.origin}/painel`
+          : undefined,
+      },
+    });
+    return error ? traduzirErro(error.message) : null;
+  }, []);
+
   const sair = useCallback(async () => {
     const cliente = obterCliente();
     if (cliente) await cliente.auth.signOut();
@@ -171,10 +194,10 @@ export function ProvedorAuth({ children }: { children: React.ReactNode }) {
       admin: perfil?.papel === 'admin' || perfil?.papel === 'moderador',
       recarregarPerfil,
       demonstracao: !configurado,
-      entrar, registrar, sair, recuperar,
+      entrar, registrar, sair, recuperar, entrarComGoogle,
     }),
     [usuario, sessao, perfil, carregando, recarregarPerfil,
-     entrar, registrar, sair, recuperar],
+     entrar, registrar, sair, recuperar, entrarComGoogle],
   );
 
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;

@@ -4,7 +4,6 @@ import { neighbours, sectionOf } from '@/lib/nav';
 import { Toc, type Heading } from './Toc';
 import { Redimensionavel } from './Redimensionavel';
 import { Inline } from './Inline';
-import { Footer } from './Footer';
 
 /** Transforma um texto de título no id usado pela âncora. */
 export function slugify(texto: string) {
@@ -204,7 +203,6 @@ export function DocPage({
           </nav>
         </div>
       </article>
-        <Footer />
       </div>
 
       {/* O índice também é redimensionável, e pelo lado de dentro: um
