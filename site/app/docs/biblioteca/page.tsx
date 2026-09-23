@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "87 módulos e 2321 símbolos, sem uma única dependência externa.",
+  description: "87 módulos e 2323 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -25,7 +25,7 @@ const blocos: Bloco[] = [
     "h2": "Os 87 módulos"
   },
   {
-    "p": "São **2321 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **2323 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -141,6 +141,11 @@ const blocos: Bloco[] = [
           "Threads, processos, canal bloqueante, grupo de tarefas e prazo."
         ],
         [
+          "[`Arcane.IO`](/docs/biblioteca/io)",
+          "35",
+          "Arquivos, diretórios, JSON, CSV e shell."
+        ],
+        [
           "[`Arcane.Test`](/docs/biblioteca/test)",
           "34",
           "Asserções e organização de suítes de teste."
@@ -149,11 +154,6 @@ const blocos: Bloco[] = [
           "[`Arcane.Estrutura`](/docs/biblioteca/estrutura)",
           "33",
           "Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. Fica entre o Arcane.Bytes, que empacota por formato posicional, e o Arcane.C, que exige FFI."
-        ],
-        [
-          "[`Arcane.IO`](/docs/biblioteca/io)",
-          "33",
-          "Arquivos, diretórios, JSON, CSV e shell."
         ],
         [
           "[`Arcane.Forge`](/docs/biblioteca/forge)",
@@ -533,7 +533,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"87 módulos e 2321 símbolos, sem uma única dependência externa."}
+      description={"87 módulos e 2323 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

@@ -31,7 +31,7 @@ Traz tipos verificados com limite (`<T extends Number>`), pattern matching
 estrutural com exaustividade, pipelines na gramática, generators preguiçosos,
 records imutáveis, 95 métodos mágicos, gerenciador de pacotes com semver e
 lockfile, depurador com ponto de parada e vigia (no terminal e no editor), e
-**87 módulos** de biblioteca padrão com **2321 símbolos**.
+**87 módulos** de biblioteca padrão com **2323 símbolos**.
 
 E cinco frameworks dentro dela: **Kiln** (web, com WebSocket e SSE),
 **Vitrine** (painéis de dados no navegador), **Crucible** (testes),
@@ -108,7 +108,7 @@ repor: [Teclado, Monitor]
 | **Ferramentas oficiais** | 68 comandos: `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `debug`, `profile`, `big-o`, `devops`, `vitrine`, `desktop`, `iot`… |
 | **Depurador de verdade** | ponto de parada, condição, contagem, logpoint, **vigia de escrita e de leitura** — no terminal e no painel do editor (DAP) |
 | **Editor** | LSP com hover, ir-para, renomear, e autocompletar **sensível ao contexto**: depois de `p.` ele oferece os campos daquele record |
-| **Bateria inclusa** | 87 módulos com 2321 símbolos + 231 funções globais |
+| **Bateria inclusa** | 87 módulos com 2323 símbolos + 231 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais — inclusive a janela nativa, a planilha `.xlsx`, o WebSocket, o MQTT e a porta serial |
 
 ---
@@ -512,7 +512,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-87 módulos, 2321 símbolos, mais 231 funções globais sem import.
+87 módulos, 2323 símbolos, mais 231 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -537,9 +537,9 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Reflexo` | 38 | Reflexão sobre blueprints, contratos e objetos: campos, métodos, modificadores, MRO, herdeiros, anotações, invocação por nome respeitando a visibilidade, criação de tipos em execução e diagrama de classes em Mermaid. |
 | `Arcane.Telegram` | 37 | Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando, texto, botao, midia e consulta inline, conversa como maquina de estados por chat, teclados, o escape de MarkdownV2 que salva a mensagem inteira, e uma sonda que testa o bot sem token e sem rede. |
 | `Arcane.Concurrent` | 35 | Threads, processos, canal bloqueante, grupo de tarefas e prazo. |
+| `Arcane.IO` | 35 | Arquivos, diretórios, JSON, CSV e shell. |
 | `Arcane.Test` | 34 | Asserções e organização de suítes de teste. |
 | `Arcane.Estrutura` | 33 | Layout binario com NOME, e o ponteiro que o percorre: uma estrutura de campos nomeados com a ordem dos bytes cobrada e o alinhamento declarado (e conferido), uma janela que le e escreve no bloco original sem copiar, um bloco que sabe dizer quando foi liberado, e um ponteiro com aritmetica por ELEMENTO, cast, distancia e dono fraco. Fica entre o Arcane.Bytes, que empacota por formato posicional, e o Arcane.C, que exige FFI. |
-| `Arcane.IO` | 33 | Arquivos, diretórios, JSON, CSV e shell. |
 | `Arcane.Forge` | 31 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | `Arcane.Excel` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
 | `Arcane.Laco` | 29 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'. |
@@ -1036,11 +1036,11 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 <!-- estado:inicio -->
 | Verificação | Resultado |
 |-------------|-----------|
-| `pytest tests/` | 3902 funções de teste |
+| `pytest tests/` | 3905 funções de teste |
 | `exercicios/run_all.py` | 397/397 |
 | `trilha/run_all.py` | 18 capítulos |
 | `examples/*.df` | 50 programas |
-| Módulos da stdlib | 87 carregam, 2321 símbolos |
+| Módulos da stdlib | 87 carregam, 2323 símbolos |
 | Comandos da CLI | 68 |
 | Códigos de erro | 219 |
 | `dataforge check` × 5 pastas | 0 erros em 568 arquivos |

@@ -65,27 +65,56 @@ SEM_PAGINA = {
 
 
 def _de_outro_gerador():
-    """Os '/docs/biblioteca/<x>' que 'gerar_conteudo.py' ja escreve.
+    """Os '/docs/biblioteca/<x>' que 'gerar_conteudo.py' de fato ESCREVE.
 
-    Sete modulos (`Url`, `Bytes`, `Rede`, `Eventos`, `Cli`, `Email`,
-    `Html`) tem guia inteiro escrito em 'site/scripts/conteudo/', e nao
-    a forma fina de exemplo-mais-tabela. Este gerador cede a eles.
-
-    A lista e LIDA, e nao escrita: duas ferramentas escrevendo o mesmo
+    Alguns modulos (`Url`, `Bytes`, `Rede`, `Eventos`, `Cli`, `Email`,
+    `Html`, `Cortex`) tem guia inteiro escrito em
+    'site/scripts/conteudo/', e nao a forma fina de exemplo-mais-tabela.
+    Este gerador cede a eles: duas ferramentas escrevendo o mesmo
     arquivo fazem o resultado depender da ordem em que rodam — e foi
     exatamente assim que as duas 'slugify' deste repositorio se
     sobrescreveram por um tempo.
+
+    A pergunta e "quem escreve esta pagina?", e a primeira versao
+    respondia "quem a MENCIONA": ela procurava qualquer
+    '"href": "/docs/biblioteca/x"' no texto dos arquivos de conteudo, e
+    um cartao de "Por onde seguir" apontando para a referencia bastava
+    para ceder. O resultado foi o oposto do que a guarda existe para
+    evitar: cinco paginas — `io`, `os`, `analytics`, `collections` e
+    `database` — ficaram sem gerador NENHUM, congeladas na contagem do
+    dia em que nasceram. A de `Arcane.IO` anunciava 30 funcoes onde ha
+    35, e a contagem esta no TITULO da secao, que e o que se le antes
+    da lista.
+
+    Hoje a rota vale como cedida so quando ela e o `href` de uma pagina
+    da lista `PAGINAS` — a mesma estrutura que 'gerar_conteudo.py'
+    percorre para escrever. Um link continua sendo um link.
     """
     import glob
-    import re as _re
+    import importlib
+    import sys
 
-    pasta = os.path.join(RAIZ, "site", "scripts", "conteudo")
+    pasta = os.path.join(RAIZ, "site", "scripts")
+    if pasta not in sys.path:
+        sys.path.insert(0, pasta)
+
     donos = {}
-    for caminho in sorted(glob.glob(os.path.join(pasta, "*.py"))):
-        texto = open(caminho, encoding="utf-8").read()
-        for href in _re.findall(r'"href":\s*"(/docs/biblioteca/[^"]+)"',
-                                texto):
-            donos[href.rsplit("/", 1)[-1]] = os.path.basename(caminho)
+    for caminho in sorted(glob.glob(os.path.join(pasta, "conteudo", "*.py"))):
+        base = os.path.basename(caminho)
+        if base.startswith("_"):
+            continue
+        try:
+            modulo = importlib.import_module("conteudo." + base[:-3])
+        except Exception:
+            # Um arquivo de conteudo que nao importa e problema do outro
+            # gerador, e ele reclama la. Aqui, calar e recuar: na duvida
+            # esta ferramenta ESCREVE a pagina, que e o estado em que ela
+            # fica em dia.
+            continue
+        for pagina in getattr(modulo, "PAGINAS", []):
+            href = pagina.get("href", "") if isinstance(pagina, dict) else ""
+            if href.startswith("/docs/biblioteca/"):
+                donos[href.rsplit("/", 1)[-1]] = base
     return donos
 
 

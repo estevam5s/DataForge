@@ -18,22 +18,99 @@ __pycache__/
 .DS_Store
 .env
 *.db
+dist/
+.dataforge-cache/
+"""
+
+#: O recuo de um `.df` e OBRIGATORIO em espacos: tab levanta
+#: `SyncError`. Sem este arquivo, um editor configurado para tab
+#: produz um projeto que nao compila na primeira linha aninhada — e a
+#: mensagem fala de indentacao, nao do editor.
+EDITORCONFIG = """root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.df]
+indent_style = space
+indent_size = 4
+
+[*.{toml,md,yml,yaml,json}]
+indent_style = space
+indent_size = 2
+"""
+
+#: A integracao continua que um projeto DataForge precisa, e nada mais.
+#:
+#: A ordem importa: `fmt --check` e `check` falham em segundos e dizem
+#: onde; `test` leva o tempo do projeto. Reprovar cedo e barato.
+CI = """name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install dataforge-lang
+      - run: dataforge fmt . --check
+      - run: dataforge check .
+      - run: dataforge lint .
+      - run: dataforge test tests/
 """
 
 
 def _forge_toml(descricao: str, deps: str = "", scripts: str = "") -> str:
+    """O manifesto de um projeto novo — o mesmo que o `init` escreve.
+
+    Ele saia mais POBRE que o do `dataforge init`: sem autor, sem
+    licenca, sem `[build]`, sem `[lint]` e com dois scripts contra
+    quatro. Duas formas de comecar um projeto, e a mais recomendada
+    (`new`, que escreve o codigo tambem) entregava o manifesto menor —
+    quem comecava por ela descobria as secoes que faltavam so ao ler a
+    referencia.
+    """
     return f'''[project]
 name = "{{name}}"
 version = "0.1.0"
 description = "{descricao}"
+authors = []
+license = "MIT"
 entry = "src/main.df"
+# A faixa de versao da linguagem. Ela e COBRADA: 'dataforge run' troca
+# para a versao pedida quando ela esta instalada, e recusa quando nao
+# esta — um pino que nao e cobrado e um comentario com sintaxe.
 dataforge = ">=1.1"
 
 [dependencies]{deps}
 
 [scripts]
 start = "run src/main.df"
-test = "test tests/"{scripts}
+test = "test tests/"
+check = "check ."
+fmt = "fmt . --check"
+lint = "lint ."
+cobertura = "test tests/ --cobertura --minimo=70"{scripts}
+
+[build]
+out = "dist"
+include = ["src"]
+
+[lint]
+strict = false
+# Cada regra silenciada aqui vale para o projeto inteiro. Para uma
+# linha so, o comentario '// df: permitir <regra>' e mais preciso.
+ignore = []
 '''
 
 
@@ -77,6 +154,8 @@ MODELOS = {
             "forge.toml": _forge_toml(
                 "Ferramenta de linha de comando em DataForge"),
             ".gitignore": GITIGNORE,
+            ".editorconfig": EDITORCONFIG,
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "Uma ferramenta de linha de comando: lê argumentos, formata a "
@@ -92,6 +171,7 @@ MODELOS = {
 
 adopt Arcane.OS as OS
 adopt Arcane.Text as Text
+adopt Arcane.Color as Cor
 adopt comandos as C
 
 steady NOME := "{name}"
@@ -99,14 +179,14 @@ steady VERSAO := "0.1.0"
 
 action ajuda():
     out ""
-    out Text.bold(NOME) + " v" + VERSAO
+    out Cor.bold(NOME) + " v" + VERSAO
     out ""
     out "USO"
     out "    dataforge run src/main.df -- <comando> [argumentos]"
     out ""
     out "COMANDOS"
     cycle c in C.catalogo():
-        out "    " + Text.pad_end(c["nome"], 12) + c["resumo"]
+        out "    " + Text.pad(c["nome"], 12) + c["resumo"]
     out ""
 
 action principal():
@@ -129,7 +209,7 @@ action principal():
 
     resultado := C.executar(comando, resto)
     given resultado is void:
-        out Text.bold("erro: ") + $"comando desconhecido: {comando}"
+        out Cor.bold("erro: ") + $"comando desconhecido: {comando}"
         out ""
         out "    Rode com 'ajuda' para ver o que existe."
         yield 1
@@ -215,6 +295,8 @@ action test_catalogo_lista_os_comandos():
         "files": {
             "forge.toml": _forge_toml("API REST em DataForge com Kiln"),
             ".gitignore": GITIGNORE,
+            ".editorconfig": EDITORCONFIG,
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "Uma API REST com o **Kiln**, o framework web do DataForge. "
@@ -383,6 +465,8 @@ action test_verbo_errado_da_405_e_nao_404():
         "files": {
             "forge.toml": _forge_toml("Site em DataForge com Kiln"),
             ".gitignore": GITIGNORE,
+            ".editorconfig": EDITORCONFIG,
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "Um site com páginas HTML renderizadas pelo **Kiln**: "
@@ -511,6 +595,10 @@ action test_nao_da_para_sair_da_pasta_publica():
         "files": {
             "forge.toml": _forge_toml("Análise de dados em DataForge"),
             ".gitignore": GITIGNORE + "*.xlsx\n*.csv\n",
+
+            ".editorconfig": EDITORCONFIG,
+
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "O caminho completo de um trabalho de dados: os dados moram "
@@ -689,6 +777,8 @@ dataforge = ">=1.1"
 test = "test tests/"
 ''',
             ".gitignore": GITIGNORE,
+            ".editorconfig": EDITORCONFIG,
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "Uma biblioteca DataForge, pronta para publicar no registro.",
@@ -785,6 +875,8 @@ action test_dividir_por_zero_diz_o_que_fazer():
         "files": {
             "forge.toml": _forge_toml("Exemplo de OOP em DataForge"),
             ".gitignore": GITIGNORE,
+            ".editorconfig": EDITORCONFIG,
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "Um domínio modelado com o OOP do DataForge: trait como "
@@ -934,6 +1026,10 @@ action test_distancia_entre_pontos():
         "files": {
             "forge.toml": _forge_toml("Script de automação em DataForge"),
             ".gitignore": GITIGNORE + "saida/\n",
+
+            ".editorconfig": EDITORCONFIG,
+
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "Um script de automação: varre arquivos, resume o que achou "
@@ -988,7 +1084,7 @@ entradas := []
 cycle nome in nomes:
     caminho := pasta + "/" + nome
     given IO.is_file(caminho):
-        entradas.append({"nome": nome, "bytes": IO.file_size(caminho)})
+        entradas.append({"nome": nome, "bytes": IO.size(caminho)})
 
 out $"  {len(entradas)} arquivo(s)"
 out ""
@@ -1059,6 +1155,8 @@ action test_maiores_ordena_por_tamanho():
         "files": {
             "forge.toml": _forge_toml("Painel de dados em DataForge"),
             ".gitignore": GITIGNORE,
+            ".editorconfig": EDITORCONFIG,
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "Um painel com a **Vitrine**. O programa roda de cima para "
@@ -1226,6 +1324,10 @@ action test_a_pagina_responde_por_http():
         "files": {
             "forge.toml": _forge_toml("Bot de Telegram em DataForge"),
             ".gitignore": GITIGNORE + ".telegram/\n",
+
+            ".editorconfig": EDITORCONFIG,
+
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "Um bot de Telegram: comandos, botões, uma conversa com "
@@ -1384,6 +1486,8 @@ action test_o_bot_nao_quebra_com_texto_estranho():
         "files": {
             "forge.toml": _forge_toml("Exemplo de testes em DataForge"),
             ".gitignore": GITIGNORE,
+            ".editorconfig": EDITORCONFIG,
+            ".github/workflows/ci.yml": CI,
             "README.md": _readme(
                 "{name}",
                 "Como se testa em DataForge: uma ação por caso, nome que "

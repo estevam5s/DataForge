@@ -163,6 +163,23 @@ IO.remove_tree("saida")              // a pasta inteira
 """, "lang": "df"},
  {"callout": {"tipo": "perigo", "titulo": "`remove_tree` não pergunta", "texto": "`IO.remove_tree(OS.temp_dir())` destrói o temporário de **todo processo da máquina**. Um exercício deste repositório fez exatamente isso na primeira versão. Sempre uma subpasta própria."}},
 
+ {"h2": "Arquivo ou pasta?"},
+ {"p": "`IO.exists` responde *\u201cha algo aqui?\u201d*, e ha um caso em que isso nao basta: `list_dir` devolve **nomes**, e um deles pode ser uma subpasta. Todo `cycle` sobre uma pasta tinha de adivinhar."},
+ {"code": """adopt Arcane.IO as IO
+
+arquivos := []
+pastas := []
+cycle nome in IO.list_dir("."):
+    caminho := IO.join(".", nome)
+    given IO.is_file(caminho):
+        arquivos.append({"nome": nome, "bytes": IO.size(caminho)})
+    orif IO.is_dir(caminho):
+        pastas.append(nome)
+
+out $"{len(arquivos)} arquivo(s), {len(pastas)} pasta(s)"
+""", "lang": "df"},
+ {"callout": {"tipo": "atencao", "titulo": "`size` de uma pasta nao e o que voce quer", "texto": "`IO.size` devolve o tamanho da **entrada** de diretorio, nao a soma do conteudo. Contar subpasta como arquivo nao levanta erro nenhum: o relatorio so sai com um numero a mais. O modelo `script` do `dataforge new` fazia isso, e foi so por ele que a falta de `is_file` apareceu."}},
+
  {"h2": "Temporário: sempre uma subpasta sua"},
  {"code": """adopt Arcane.IO as IO
 adopt Arcane.OS as OS

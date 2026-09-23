@@ -635,7 +635,7 @@
           "chave": "io",
           "desc": "Arquivos, diretórios, JSON, CSV e shell",
           "nome": "Arcane.IO",
-          "simbolos": 33
+          "simbolos": 35
         },
         {
           "chave": "regex",
@@ -1322,7 +1322,7 @@
     "modulos": 87,
     "modulos_do_nucleo": 62,
     "nao_existem": 6,
-    "simbolos": 2321
+    "simbolos": 2323
   },
   "semGrupo": []
 }

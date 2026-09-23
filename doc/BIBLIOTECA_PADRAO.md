@@ -26,7 +26,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | [`Kiln`](#kiln) | `Kiln` | 80 | Framework web: rotas, middleware, templates, sessão e arquivos estáticos. |
 | [`Arcane.Test`](#arcanetest) | `Test` | 34 | Asserções e organização de suítes de teste. |
 | [`Arcane.Regex`](#arcaneregex) | `Regex` | 46 | Expressões regulares e validadores brasileiros (CPF, CNPJ, telefone). |
-| [`Arcane.IO`](#arcaneio) | `IO` | 33 | Arquivos, diretórios, JSON, CSV e shell. |
+| [`Arcane.IO`](#arcaneio) | `IO` | 35 | Arquivos, diretórios, JSON, CSV e shell. |
 | [`Arcane.Http`](#arcanehttp) | `Http / Server` | 17 | Servidor HTTP: rotas, middleware, JSON, arquivos estáticos. |
 | [`Arcane.Async`](#arcaneasync) | `Async` | 52 | Promessas, filas, agendamento e execução concorrente. |
 | [`Arcane.Data`](#arcanedata) | `Data` | 13 | DataFrames, séries e transformações tabulares. |
@@ -887,7 +887,7 @@ Arquivos, diretórios, JSON, CSV e shell.
 adopt Arcane.IO as IO
 ```
 
-**Funções (33)**
+**Funções (35)**
 
 | Assinatura |
 |------------|
@@ -903,6 +903,8 @@ adopt Arcane.IO as IO
 | `exists(path)` |
 | `ext(path)` |
 | `file_exists(path)` |
+| `is_dir(path)` |
+| `is_file(path)` |
 | `join(*parts)` |
 | `list_dir(path='.')` |
 | `listdir(path='.')` |

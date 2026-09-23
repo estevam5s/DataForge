@@ -108,6 +108,40 @@ def test_o_projeto_criado_passa_nos_proprios_testes(chave):
             + testar.stdout + testar.stderr)
 
 
+@pytest.mark.slow
+@pytest.mark.parametrize("chave", sorted(MODELOS))
+def test_o_projeto_criado_passa_no_proprio_check(chave):
+    """Compilar nao e o mesmo que passar no analisador.
+
+    `test_todo_arquivo_df_do_modelo_compila` roda o parser, e o parser
+    nao sabe que `Text.bold` nao existe: o modelo `cli` chamava
+    `Text.bold` e `Text.pad_end` — dois nomes que nunca existiram — e
+    passava por ali. Os proprios testes do modelo tambem passavam,
+    porque eles exercitam `comandos.df` e o erro estava no `main.df`.
+
+    O `forge.toml` gerado declara um script `check` e o `ci.yml` gerado
+    o roda: um projeto criado hoje nasceria com a CI vermelha, e a
+    primeira coisa que a pessoa faria seria desligar a verificacao.
+    """
+    with tempfile.TemporaryDirectory() as pasta:
+        criar = subprocess.run(
+            [sys.executable, "-m", "dataforge", "new", chave, "prova"],
+            cwd=pasta, capture_output=True, text=True, encoding="utf-8",
+            env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
+            timeout=120)
+        assert criar.returncode == 0, criar.stdout + criar.stderr
+
+        projeto = os.path.join(pasta, "prova")
+        conferir = subprocess.run(
+            [sys.executable, "-m", "dataforge", "check", "."],
+            cwd=projeto, capture_output=True, text=True, encoding="utf-8",
+            env={**os.environ, "PYTHONPATH": RAIZ, "NO_COLOR": "1"},
+            timeout=120)
+        assert conferir.returncode == 0, (
+            f"o modelo '{chave}' nao passa no proprio check:\n"
+            + conferir.stdout + conferir.stderr)
+
+
 # ── Campo declarado com padrão mutável ───────────────────────
 
 def test_cada_instancia_tem_a_propria_lista():

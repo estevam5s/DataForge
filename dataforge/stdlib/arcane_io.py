@@ -28,6 +28,13 @@ class ArcaneIO:
             "write_bytes": cls._write_bytes,
             "append_bytes": cls._append_bytes,
             "exists": cls._exists,
+            # 'exists' responde "ha algo aqui?", e ha um caso em que
+            # isso nao basta: 'list_dir' devolve nomes, e nada sabia
+            # dizer quais deles sao arquivo. Todo 'cycle' sobre uma
+            # pasta tinha de adivinhar — e o modelo 'script' do
+            # 'dataforge new' contava subpasta como arquivo por isso.
+            "is_file": cls._is_file,
+            "is_dir": cls._is_dir,
             "delete": cls._delete,
             "mkdir": cls._mkdir,
             "rmdir": cls._rmdir,
@@ -126,6 +133,14 @@ class ArcaneIO:
     @staticmethod
     def _exists(path):
         return os.path.exists(path)
+
+    @staticmethod
+    def _is_file(path):
+        return os.path.isfile(path)
+
+    @staticmethod
+    def _is_dir(path):
+        return os.path.isdir(path)
 
     @staticmethod
     def _delete(path):

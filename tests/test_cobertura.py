@@ -200,7 +200,7 @@ def _rodar(pasta, *args):
 
 
 def _com_barra(texto):
-    """A saída com '\' virado em '/', para comparar em qualquer sistema.
+    r"""A saída com '\' virado em '/', para comparar em qualquer sistema.
 
     O relatório mostra o caminho como o sistema o escreve, e no Windows
     isso é `src\lib.df`. Um teste que procura `src/lib.df` passa em

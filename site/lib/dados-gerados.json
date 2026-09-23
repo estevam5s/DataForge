@@ -5127,6 +5127,16 @@
      "tipo": "funcao"
     },
     {
+     "nome": "is_dir",
+     "sig": "(path)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "is_file",
+     "sig": "(path)",
+     "tipo": "funcao"
+    },
+    {
      "nome": "join",
      "sig": "(parts)",
      "tipo": "funcao"
@@ -15855,7 +15865,7 @@
  },
  "totalBuiltins": 231,
  "contagem": {
-  "testes": 3902,
+  "testes": 3905,
   "exemplos": 50,
   "arquivosDf": 513
  },

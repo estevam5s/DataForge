@@ -8177,3 +8177,37 @@ def test_o_gerador_do_README_e_idempotente():
                    errors="replace")
     depois = open(caminho, encoding="utf-8").read()
     assert antes == depois, "o gerador do README nao e idempotente"
+
+
+# ── A pasta que nao sabia dizer o que e arquivo ──────────────
+
+def test_a_linguagem_distingue_arquivo_de_pasta():
+    """`list_dir` devolvia nomes, e nada sabia classifica-los.
+
+    `IO.exists` e `os.path.exists`: ele responde `yes` para uma
+    subpasta tambem. Entao todo `cycle` sobre uma pasta tinha de
+    adivinhar, e adivinhar errado nao levanta erro — `IO.size` de um
+    diretorio devolve o tamanho da ENTRADA e o relatorio sai com um
+    arquivo a mais. Era o que o modelo `script` do `dataforge new`
+    fazia, e foi por ele que a falta apareceu.
+    """
+    import tempfile
+
+    from dataforge.stdlib import get_module
+
+    IO = get_module("Arcane.IO")
+    with tempfile.TemporaryDirectory() as base:
+        arquivo = os.path.join(base, "a.txt")
+        pasta = os.path.join(base, "sub")
+        open(arquivo, "w", encoding="utf-8").write("x")
+        os.mkdir(pasta)
+
+        assert IO["is_file"](arquivo) and not IO["is_dir"](arquivo)
+        assert IO["is_dir"](pasta) and not IO["is_file"](pasta)
+
+        # O que nao existe nao e nenhum dos dois — e nao levanta.
+        ausente = os.path.join(base, "nao-existe")
+        assert not IO["is_file"](ausente) and not IO["is_dir"](ausente)
+
+        # E a distincao que `exists` nao faz:
+        assert IO["exists"](pasta) and IO["exists"](arquivo)

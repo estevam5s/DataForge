@@ -2322,6 +2322,60 @@ def test_todo_modulo_da_arcane_tem_pagina_e_ela_esta_no_menu():
     assert not inventados, f"o menu cita o que não existe: {inventados}"
 
 
+def test_nenhuma_pagina_da_biblioteca_fica_sem_gerador():
+    """A guarda contra dois geradores criou paginas com NENHUM.
+
+    `_de_outro_gerador` decide de quem e cada `/docs/biblioteca/<x>`.
+    Ela respondia "quem MENCIONA a rota", procurando qualquer
+    `"href": "/docs/biblioteca/x"` no texto dos arquivos de conteudo —
+    e um cartao de "Por onde seguir" apontando para a referencia
+    bastava para ceder. Cinco paginas (`io`, `os`, `analytics`,
+    `collections`, `database`) ficaram orfas, congeladas na contagem do
+    dia em que nasceram: a de `Arcane.IO` anunciava 30 funcoes onde ha
+    35, e a contagem esta no TITULO da secao.
+
+    Ceder de menos faz duas ferramentas brigarem pelo arquivo — o
+    defeito das duas `slugify`. Ceder de mais faz a pagina apodrecer
+    calada, que e pior: ninguem percebe.
+    """
+    import glob
+    import importlib
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(raiz, "tools"))
+    sys.path.insert(0, os.path.join(raiz, "site", "scripts"))
+    from gerar_paginas_biblioteca import _de_outro_gerador, modulos, SEM_PAGINA
+
+    cedidas = set(_de_outro_gerador())
+
+    escritas = set()
+    for caminho in sorted(glob.glob(os.path.join(
+            raiz, "site", "scripts", "conteudo", "*.py"))):
+        base = os.path.basename(caminho)
+        if base.startswith("_"):
+            continue
+        try:
+            modulo = importlib.import_module("conteudo." + base[:-3])
+        except Exception:
+            continue
+        for pagina in getattr(modulo, "PAGINAS", []):
+            href = pagina.get("href", "") if isinstance(pagina, dict) else ""
+            if href.startswith("/docs/biblioteca/"):
+                escritas.add(href.rsplit("/", 1)[-1])
+
+    orfas = sorted(cedidas - escritas)
+    assert not orfas, (
+        "cedidas a um gerador que nao as escreve: " + ", ".join(orfas))
+
+    # E o outro lado: o que 'gerar_conteudo.py' escreve precisa estar
+    # cedido, senao os dois brigam pelo mesmo arquivo.
+    disputadas = sorted(
+        escritas - cedidas
+        & {c for c, _o, _d, _m in modulos()})
+    assert not disputadas, (
+        "dois geradores escrevem: " + ", ".join(disputadas))
+
+
 def test_o_prologo_escrito_a_mao_nao_mora_no_arquivo_gerado():
     """Deixá-lo dentro de um `.tsx` marcado GERADO é o convite para
     editá-lo ali — e a correção some na próxima geração, sem nada

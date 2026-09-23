@@ -66,6 +66,22 @@ IO.delete("saida/b.txt")             // um arquivo
 IO.remove_tree("saida")              // a pasta inteira
 `, lang: 'df' },
   {"callout": {"tipo": "perigo", "titulo": "`remove_tree` não pergunta", "texto": "`IO.remove_tree(OS.temp_dir())` destrói o temporário de **todo processo da máquina**. Um exercício deste repositório fez exatamente isso na primeira versão. Sempre uma subpasta própria."}},
+  {"h2": "Arquivo ou pasta?"},
+  {"p": "`IO.exists` responde *“ha algo aqui?”*, e ha um caso em que isso nao basta: `list_dir` devolve **nomes**, e um deles pode ser uma subpasta. Todo `cycle` sobre uma pasta tinha de adivinhar."},
+  { code: `adopt Arcane.IO as IO
+
+arquivos := []
+pastas := []
+cycle nome in IO.list_dir("."):
+    caminho := IO.join(".", nome)
+    given IO.is_file(caminho):
+        arquivos.append({"nome": nome, "bytes": IO.size(caminho)})
+    orif IO.is_dir(caminho):
+        pastas.append(nome)
+
+out $"{len(arquivos)} arquivo(s), {len(pastas)} pasta(s)"
+`, lang: 'df' },
+  {"callout": {"tipo": "atencao", "titulo": "`size` de uma pasta nao e o que voce quer", "texto": "`IO.size` devolve o tamanho da **entrada** de diretorio, nao a soma do conteudo. Contar subpasta como arquivo nao levanta erro nenhum: o relatorio so sai com um numero a mais. O modelo `script` do `dataforge new` fazia isso, e foi so por ele que a falta de `is_file` apareceu."}},
   {"h2": "Temporário: sempre uma subpasta sua"},
   { code: `adopt Arcane.IO as IO
 adopt Arcane.OS as OS
@@ -106,7 +122,7 @@ handle Error as e:
   {"cards": [{"href": "/docs/biblioteca/io", "title": "Arcane.IO", "desc": "a referência completa"}, {"href": "/docs/biblioteca/os", "title": "Arcane.OS", "desc": "o ambiente, o processo e a máquina"}, {"href": "/docs/tecnicas/arquivos", "title": "Receitas com arquivos", "desc": "padrões prontos"}, {"href": "/docs/big-o/dados", "title": "Custo de I/O", "desc": "por que o bloco é a unidade"}]},
 ];
 
-const headings = [{ id: 'ler-e-escrever', text: "Ler e escrever", level: 2 as const }, { id: 'caminhos-monte-nao-concatene', text: "Caminhos: monte, não concatene", level: 2 as const }, { id: 'json-e-csv-sem-cerimonia', text: "JSON e CSV, sem cerimônia", level: 2 as const }, { id: 'pastas', text: "Pastas", level: 2 as const }, { id: 'temporario-sempre-uma-subpasta-sua', text: "Temporário: sempre uma subpasta sua", level: 2 as const }, { id: 'o-ambiente-com-arcaneos', text: "O ambiente, com `Arcane.OS`", level: 2 as const }, { id: 'arquivo-grande-nao-carregue-inteiro', text: "Arquivo grande: não carregue inteiro", level: 2 as const }, { id: 'erros-o-que-pode-falhar-e-como', text: "Erros: o que pode falhar, e como", level: 2 as const }, { id: 'por-onde-seguir', text: "Por onde seguir", level: 2 as const }];
+const headings = [{ id: 'ler-e-escrever', text: "Ler e escrever", level: 2 as const }, { id: 'caminhos-monte-nao-concatene', text: "Caminhos: monte, não concatene", level: 2 as const }, { id: 'json-e-csv-sem-cerimonia', text: "JSON e CSV, sem cerimônia", level: 2 as const }, { id: 'pastas', text: "Pastas", level: 2 as const }, { id: 'arquivo-ou-pasta', text: "Arquivo ou pasta?", level: 2 as const }, { id: 'temporario-sempre-uma-subpasta-sua', text: "Temporário: sempre uma subpasta sua", level: 2 as const }, { id: 'o-ambiente-com-arcaneos', text: "O ambiente, com `Arcane.OS`", level: 2 as const }, { id: 'arquivo-grande-nao-carregue-inteiro', text: "Arquivo grande: não carregue inteiro", level: 2 as const }, { id: 'erros-o-que-pode-falhar-e-como', text: "Erros: o que pode falhar, e como", level: 2 as const }, { id: 'por-onde-seguir', text: "Por onde seguir", level: 2 as const }];
 
 export default function Pagina() {
   return (

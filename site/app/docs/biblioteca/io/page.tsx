@@ -21,11 +21,11 @@ out IO.read("_temp.txt").lines().length()
 out IO.size("_temp.txt"), IO.ext("_temp.txt")
 IO.delete("_temp.txt")`, title: `exemplo` },
   {"p": "Guia com contexto e boas práticas: [IO](/docs/tecnicas/arquivos)."},
-  {"h2": "Funções (30)"},
-  {"table": {"head": ["Assinatura"], "rows": [["`abs(path)`"], ["`append(path, content)`"], ["`basename(path)`"], ["`copy(src, dst)`"], ["`copy_tree(origem, destino)`"], ["`cwd()`"], ["`delete(path)`"], ["`dirname(path)`"], ["`exists(path)`"], ["`ext(path)`"], ["`file_exists(path)`"], ["`join(*parts)`"], ["`list_dir(path='.')`"], ["`listdir(path='.')`"], ["`mkdir(path)`"], ["`open(path, mode='r')`"], ["`path(path)`"], ["`read(path)`"], ["`read_csv(path, cabecalho=False)`"], ["`read_file(path)`"], ["`read_json(path)`"], ["`remove_tree(path)`"], ["`rename(old, new)`"], ["`rmdir(path)`"], ["`shell(command)`"], ["`size(path)`"], ["`write(path, content)`"], ["`write_csv(path, data)`"], ["`write_file(path, content)`"], ["`write_json(path, data, indent=2)`"]]}},
+  {"h2": "Funções (35)"},
+  {"table": {"head": ["Assinatura"], "rows": [["`abs(path)`"], ["`append(path, content)`"], ["`append_bytes(path, content)`"], ["`basename(path)`"], ["`copy(src, dst)`"], ["`copy_tree(origem, destino)`"], ["`cwd()`"], ["`delete(path)`"], ["`dirname(path)`"], ["`exists(path)`"], ["`ext(path)`"], ["`file_exists(path)`"], ["`is_dir(path)`"], ["`is_file(path)`"], ["`join(*parts)`"], ["`list_dir(path='.')`"], ["`listdir(path='.')`"], ["`mkdir(path)`"], ["`open(path, mode='r')`"], ["`path(path)`"], ["`read(path)`"], ["`read_bytes(path)`"], ["`read_csv(path, cabecalho=False)`"], ["`read_file(path)`"], ["`read_json(path)`"], ["`remove_tree(path)`"], ["`rename(old, new)`"], ["`rmdir(path)`"], ["`shell(command)`"], ["`size(path)`"], ["`write(path, content)`"], ["`write_bytes(path, content)`"], ["`write_csv(path, data)`"], ["`write_file(path, content)`"], ["`write_json(path, data, indent=2)`"]]}},
 ];
 
-const headings = [{ id: 'funcoes-30', text: "Funções (30)", level: 2 as const }];
+const headings = [{ id: 'funcoes-35', text: "Funções (35)", level: 2 as const }];
 
 export default function Pagina() {
   return (
