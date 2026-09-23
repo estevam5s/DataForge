@@ -14,7 +14,8 @@ const blocos: Bloco[] = [
   {"h2": "O que DataForge tem e Python não"},
   {"list": ["**Pipelines como sintaxe** — `>>` faz parte da gramática", "**`?.` e `??`** — acesso seguro e coalescência nativos", "**Análise estática embutida** — sem instalar mypy", "**`guard`** — pré-condição que sai da ação", "**`retry`** — repetição com handler, sem biblioteca", "**Padrões de record por nome** — `point P(campo := valor)`"]},
   {"h2": "O que Python tem e DataForge não"},
-  {"list": ["**Generics** — `list[int]`, `TypeVar`", "**Gerenciador de contexto** — `with`", "**Ecossistema** — numpy, pandas, requests, e os outros 500 mil pacotes", "**LSP e debugger** maduros", "**Desempenho** — mesmo o CPython é mais rápido", "**`async` real** — em DataForge o `await` é síncrono por enquanto"]},
+  {"list": ["**Tipos algébricos do `typing`** — `TypedDict`, `Protocol` estrutural, `Literal`, `Annotated`", "**Gerenciador de contexto** — `with` (aqui a resposta é `defer`)", "**Ecossistema** — numpy, pandas, requests, e os outros 500 mil pacotes", "**Maturidade de LSP e depurador** — os dois existem aqui (`dataforge editor`, `dataforge dap`), e têm anos a menos de estrada", "**Desempenho** — mesmo o CPython é mais rápido"]},
+  {"callout": {"tipo": "atencao", "titulo": "Três itens saíram desta lista, e eles estavam errados", "texto": "Ela dizia que faltavam **generics** (existem, com `<T extends X>` cobrado nas duas metades), que faltavam **LSP e depurador** (existem, com data breakpoint de leitura e tudo) e que o **`await` era síncrono** (é concorrente de verdade para entrada e saída). Uma FAQ que descreve a linguagem como ela era há duas versões é a própria documentação mentindo — e é o tipo de erro que só aparece quando alguém confere."}},
   {"h2": "Traduzindo um script"},
   { code: `# Python
 def media(notas):

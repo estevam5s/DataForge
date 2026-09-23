@@ -2437,3 +2437,108 @@ def test_a_imagem_de_previa_e_deterministica():
     subprocess.run([sys.executable, os.path.join(raiz, "tools", "gerar_og.py")],
                    capture_output=True, text=True, encoding="utf-8", cwd=raiz)
     assert resumo() == antes, "gerar_og.py não é determinístico"
+
+
+def test_nenhuma_pagina_nega_um_recurso_que_a_linguagem_TEM():
+    """A FAQ descrevia a linguagem como ela era duas versões atrás.
+
+    Três afirmações, todas em páginas que alguém lê para decidir se usa
+    a linguagem:
+
+    | Dizia | É |
+    |---|---|
+    | "Generics — `list[int]`, `TypeVar`" na lista do que falta | existem, com `<T extends X>` cobrado nas duas metades |
+    | "**LSP e debugger** maduros" na lista do que falta | existem: `dataforge editor`, `dataforge dap` |
+    | "o `await` é síncrono por enquanto" | é concorrente de verdade para entrada e saída |
+    | "DataForge 4.0 não tem mutex" | `Arcane.Concurrent.mutex` existe |
+
+    A trava é uma lista de **frases exatas**, e não uma regra sobre
+    negação perto do nome do recurso: "a Vitrine não usa WebSocket" é
+    verdadeiro e correto, e uma regra ampla o acusaria. Um falso alarme
+    numa trava de documentação ensina a desligá-la.
+
+    Cada frase é acompanhada da prova de que o recurso existe — se um
+    dia ele deixar de existir, é a prova que reprova, e aí a frase pode
+    voltar.
+    """
+    import glob
+    import re as _re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, raiz)
+    from dataforge.stdlib import get_module
+
+    # A prova primeiro: o recurso existe mesmo?
+    assert get_module("Arcane.Concurrent")["mutex"] is not None
+    assert os.path.isfile(os.path.join(raiz, "dataforge", "lsp.py"))
+    assert os.path.isfile(os.path.join(raiz, "dataforge", "dap.py"))
+
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+    parse(tokenize("action eco<T extends Number>(x: T) -> T:\n    yield x\n"))
+
+    proibidas = [
+        "não tem mutex",
+        "await` é síncrono",
+        "await é síncrono",
+        "síncrono por enquanto",
+        "**Generics** — `list[int]`",
+        "**LSP e debugger** maduros",
+    ]
+
+    achados = []
+    alvos = (glob.glob(os.path.join(raiz, "site", "app", "docs", "**",
+                                    "page.tsx"), recursive=True)
+             + glob.glob(os.path.join(raiz, "site", "scripts", "conteudo",
+                                      "*.py")))
+    for caminho in alvos:
+        texto = open(caminho, encoding="utf-8").read()
+        for frase in proibidas:
+            if frase in texto:
+                # A própria trava e a página que explica a correção citam
+                # as frases para dizer que elas estavam erradas.
+                janela = texto[max(0, texto.index(frase) - 260):
+                               texto.index(frase) + 60]
+                if _re.search(r"estavam errad|já disse|e ela tem|deixou de ser",
+                              janela):
+                    continue
+                achados.append(f"{os.path.relpath(caminho, raiz)}: {frase!r}")
+    assert not achados, (
+        "página nega um recurso que existe:\n  " + "\n  ".join(achados))
+
+
+def test_todo_callout_usa_um_tipo_QUE_EXISTE():
+    """Um tipo inventado só aparece no `next build`, e tarde demais.
+
+    O `Renderer` aceita quatro: `dica`, `nota`, `atencao` e `perigo`.
+    Escrever `"tipo": "info"` num arquivo de conteúdo passa pelo
+    gerador sem reclamação — o gerador copia o vault — e quebra a
+    compilação do site inteiro, no deploy, com um erro de TypeScript
+    que fala de uma união de literais e não do arquivo que a pessoa
+    editou.
+
+    A lista sai do **próprio** `content.ts`: escrevê-la aqui faria
+    acrescentar um tipo lá reprovar um uso legítimo.
+    """
+    import glob
+    import re as _re
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    contrato = open(os.path.join(raiz, "site", "lib", "content.ts"),
+                    encoding="utf-8").read()
+    linha = [l for l in contrato.splitlines() if "callout:" in l]
+    assert linha, "o tipo do callout mudou de forma em content.ts"
+    validos = set(_re.findall(r"'([a-z]+)'", linha[0]))
+    assert {"dica", "nota", "atencao", "perigo"} <= validos, validos
+
+    achados = []
+    for caminho in sorted(glob.glob(os.path.join(
+            raiz, "site", "scripts", "conteudo", "*.py"))):
+        texto = open(caminho, encoding="utf-8").read()
+        for tipo in _re.findall(r'"callout":\s*\{\s*"tipo":\s*"([a-z_]+)"',
+                                texto):
+            if tipo not in validos:
+                achados.append(f"{os.path.basename(caminho)}: {tipo!r}")
+    assert not achados, (
+        "callout com tipo que o Renderer não conhece: " + ", ".join(
+            sorted(set(achados))) + f" — os válidos são {sorted(validos)}")

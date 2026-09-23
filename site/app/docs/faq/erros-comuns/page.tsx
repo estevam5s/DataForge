@@ -58,7 +58,7 @@ WHERE preco > ?"""` },
   { code: `naturais().to_cluster()     # TRAVA — sequência infinita
 naturais().take(10)         # certo` },
   {"h2": "Duas threads escrevendo na mesma variável"},
-  {"p": "Perde atualizações silenciosamente. DataForge 4.0 não tem mutex — use [`channel`](/docs/tecnicas/concorrencia), onde cada thread reporta o próprio resultado."},
+  {"p": "Perde atualizações silenciosamente. Medido: **40.425 de 80.000**. `Arcane.Concurrent` tem `mutex`, `semaforo`, `contador` atômico e canal bloqueante — mas nada é aplicado sozinho, e o `check` avisa com `escrita-concorrente`. Esta linha já disse que a linguagem *não tinha* mutex, e ela tem."},
   {"h2": "`cast` antes de validar"},
   { code: `# errado: dispara se não for número
 idade := cast entrada as Integer

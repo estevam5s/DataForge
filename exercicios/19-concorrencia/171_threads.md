@@ -114,7 +114,7 @@ nesta execução, sem imprimir o número.
 
 ## Como evitar
 
-**DataForge 4.0 não tem mutex nem lock.** A ferramenta segura é `channel`:
+Há duas respostas, e a primeira é a melhor: **não compartilhe**.
 
 ```dataforge
 channel resultados
@@ -123,7 +123,14 @@ thread:
 ```
 
 Cada thread envia o que produziu; a thread principal recebe e agrega. Ninguém
-escreve na mesma variável.
+escreve na mesma variável, então não há o que proteger.
+
+Quando o compartilhamento é inevitável, `Arcane.Concurrent` tem `mutex`,
+`semaforo`, `barreira`, `contador` atômico e `trava_leitura_escrita` — esta
+linha já disse que a linguagem não tinha nenhum deles, e ela tem. O que ela
+**não** faz é aplicar qualquer um sozinho: a escolha é de quem escreve, e o
+`dataforge check` avisa (`escrita-concorrente`) quando um `thread`, um
+`parallel` ou uma `route` escreve num nome que vem de fora.
 
 O próximo exercício mostra esse padrão.
 
