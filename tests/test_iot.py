@@ -105,7 +105,7 @@ def test_portas_devolve_vault_com_porta_e_descricao():
 class TestFirmata:
     def test_apresentar_traz_firmware_capacidades_e_mapa(self, placa):
         info = placa.info()
-        assert info["firmware"]["nome"] == "StandardFirmata.ino"
+        assert info["firmware"]["nome"] == "DataForge"
         assert info["protocolo"] == "2.5"
         assert info["pinos"] == 20 and info["analogicos"] == 6
 
@@ -363,8 +363,85 @@ class TestSketch:
             assert "{" + "led" + "}" not in codigo     # nada por substituir
 
     def test_o_firmata_gerado_fala_a_velocidade_certa(self):
-        """57600 é a do StandardFirmata; 9600 não conversa com ele."""
-        assert "Firmata.begin(57600)" in IoT["sketch"]("firmata")
+        """57600 é a que o cliente abre por padrão; 9600 não conversa."""
+        assert "Serial.begin(57600)" in IoT["sketch"]("firmata")
+
+    def test_o_firmata_NAO_depende_da_biblioteca_Firmata(self):
+        """A biblioteca para nas placas de até 2018, e isso não é detalhe.
+
+        `Firmata.h` traz um `Boards.h` com a tabela de pinos de cada
+        placa, escrita à mão. Num **Arduino UNO R4 WiFi** ela responde
+        `#error "Please edit Boards.h with a hardware abstraction for
+        this board"`, e num **ESP32** também — as duas placas mais
+        vendidas de hoje, e as duas que estavam na mesa quando isto foi
+        escrito. Como `IoT.conectar` só fala Firmata, o módulo inteiro
+        era inalcançável nelas: o sketch não compilava, e a mensagem
+        falava de um arquivo de uma biblioteca de terceiro.
+
+        Medido depois da correção: compila para `arduino:avr:uno`,
+        `arduino:avr:mega`, `arduino:renesas_uno:unor4wifi` e
+        `esp32:esp32:esp32`, e as duas placas de verdade responderam.
+        """
+        codigo = IoT["sketch"]("firmata")
+        assert "#include <Firmata.h>" not in codigo, (
+            "voltou a depender da biblioteca que não conhece R4 nem ESP32")
+        assert "Firmata." not in codigo
+
+    def test_o_firmata_gerado_responde_TUDO_que_o_cliente_pergunta(self):
+        """O handshake tem quatro perguntas, e falhar uma trava a conexão.
+
+        `Placa.apresentar` pede versão, firmware, capacidades e o mapa
+        analógico, **e espera por cada uma**. O sketch antigo só tratava
+        `ANALOG_MESSAGE`: ele compilava, gravava, a placa acendia — e
+        `IoT.conectar` morria em "a placa nao respondeu quem e".
+
+        A lista vem dos nomes do próprio cliente, e não de uma cópia:
+        acrescentar uma pergunta lá sem responder aqui reprova este
+        teste em vez de virar um travamento na bancada.
+        """
+        from dataforge.stdlib import iot_firmata as proto
+
+        codigo = IoT["sketch"]("firmata")
+        exigidas = {
+            "REPORT_VERSION": proto.PROTOCOL_VERSION,
+            "REPORT_FIRMWARE": proto.REPORT_FIRMWARE,
+            "CAPABILITY_QUERY": proto.CAPABILITY_QUERY,
+            "ANALOG_MAPPING_QUERY": proto.ANALOG_MAPPING_QUERY,
+            "PIN_STATE_QUERY": proto.PIN_STATE_QUERY,
+            "SET_PIN_MODE": proto.SET_PIN_MODE,
+            "DIGITAL_MESSAGE": proto.DIGITAL_MESSAGE,
+            "ANALOG_MESSAGE": proto.ANALOG_MESSAGE,
+            "REPORT_ANALOG": proto.REPORT_ANALOG,
+            "REPORT_DIGITAL": proto.REPORT_DIGITAL,
+            "SAMPLING_INTERVAL": proto.SAMPLING_INTERVAL,
+        }
+        # O 'x' do '0x' e minusculo nos dois lados: um 'codigo.upper()'
+        # aqui transformaria '0xF9' em '0XF9' e daria TUDO por faltando —
+        # foi o primeiro jeito que escrevi, e ele reprovava um firmware
+        # correto, que e a pior direcao para uma trava errar.
+        faltando = [nome for nome, valor in exigidas.items()
+                    if f"0x{valor:02X}" not in codigo
+                    and f"0x{valor:02x}" not in codigo]
+        assert not faltando, (
+            "o firmware não conhece o que o cliente manda: "
+            + ", ".join(faltando))
+
+    def test_o_firmata_nao_escreve_tabela_de_pino_nenhuma(self):
+        """O mapa sai do core, como o do cliente sai da placa.
+
+        Uma tabela escrita aqui envelheceria na primeira placa nova — é
+        a mesma decisão que faz `modo(13, "pwm")` ser recusado **pela
+        placa** e não por uma lista. `NUM_DIGITAL_PINS`,
+        `digitalPinHasPWM` e `analogInputToDigitalPin` são macros que
+        todo core define, e cada uma tem recuo para quem não a define:
+        o UNO R4 não traz `analogInputToDigitalPin`, e sem o recuo por
+        `PIN_A0` ele relatava **zero** entradas analógicas tendo seis.
+        """
+        codigo = IoT["sketch"]("firmata")
+        for macro in ("NUM_DIGITAL_PINS", "NUM_ANALOG_INPUTS",
+                      "digitalPinHasPWM", "analogInputToDigitalPin",
+                      "PIN_A0"):
+            assert macro in codigo, f"o firmware deixou de perguntar {macro}"
 
 
 @pytest.mark.skipif(not IoT["tem_arduino_cli"](),
@@ -382,6 +459,35 @@ def test_o_sketch_gerado_compila_de_verdade(tmp_path):
     pasta = os.path.dirname(IoT["gravar_sketch"](str(tmp_path), "pisca"))
     resultado = IoT["compilar"](pasta, fqbn)
     assert resultado["ok"], resultado["erro"]
+
+
+@pytest.mark.skipif(os.environ.get("DATAFORGE_ARDUINO_COMPILAR") != "1",
+                    reason="compilar leva ~40 s: DATAFORGE_ARDUINO_COMPILAR=1 liga")
+def test_o_firmata_compila_em_TODO_core_instalado(tmp_path):
+    """Um firmware que só compila numa arquitetura não é portátil.
+
+    O alvo não é uma lista escrita aqui: são os cores que a máquina
+    **tem**. Numa máquina com `avr`, `renesas_uno` e `esp32` ele cobre
+    as três famílias que importam hoje; numa com um core só, cobre uma
+    — e nunca reprova por um core que ninguém instalou.
+    """
+    familias = {"arduino:avr": "arduino:avr:uno",
+                "arduino:renesas_uno": "arduino:renesas_uno:unor4wifi",
+                "esp32:esp32": "esp32:esp32:esp32",
+                "esp8266:esp8266": "esp8266:esp8266:nodemcuv2",
+                "arduino:samd": "arduino:samd:nano_33_iot"}
+    instalados = {c["id"] for c in IoT["nucleos"]()}
+    alvos = [f for core, f in familias.items() if core in instalados]
+    if not alvos:
+        pytest.skip("nenhum core conhecido instalado")
+
+    pasta = os.path.dirname(IoT["gravar_sketch"](str(tmp_path), "firmata"))
+    falhas = []
+    for fqbn in alvos:
+        resultado = IoT["compilar"](pasta, fqbn)
+        if not resultado["ok"]:
+            falhas.append(f"{fqbn}: {resultado['erro'].strip().splitlines()[0][:120]}")
+    assert not falhas, "o firmware não compila em:\n  " + "\n  ".join(falhas)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -587,7 +693,7 @@ out "ok"
 
 @pytest.mark.skipif(not os.environ.get("DATAFORGE_ARDUINO"),
                     reason="DATAFORGE_ARDUINO=/dev/cu.usbmodem… liga o teste "
-                           "com placa de verdade (StandardFirmata gravado)")
+                           "com placa de verdade (o firmware gravado)")
 def test_com_placa_de_verdade():
     """O que o simulador não prova: o cabo, o bootloader, o sketch.
 

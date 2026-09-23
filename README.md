@@ -920,7 +920,7 @@ placa.simulador.definir_analogico(0, 733)
 ```
 
 `dataforge iot doctor` diz por que a placa não responde, na ordem em que as
-causas acontecem — cabo só de energia, driver ausente, StandardFirmata não
+causas acontecem — cabo só de energia, driver ausente, firmware não
 gravado, velocidade errada.
 
 ---

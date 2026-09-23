@@ -508,7 +508,7 @@ GRUPOS = [
             "Uma placa que nao responde tambem nao da erro: a porta abre "
             "e nada chega. 'doctor' confere as causas na ordem em que "
             "elas acontecem — cabo so de energia, driver ausente, "
-            "StandardFirmata nao gravado, velocidade errada. "
+            "firmware nao gravado, velocidade errada. "
             "'carregar' chama o arduino-cli: compilar C++ para AVR e "
             "gravar pelo bootloader e o que ele faz, e bem.",
             apelidos=("arduino",),

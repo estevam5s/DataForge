@@ -24,7 +24,7 @@ PAGINAS = [
      ["Sketch", "na placa", "tempo real, autonomia, bateria", "compilar e gravar a cada mudança"],
      ["MQTT", "os dois, ligados por rede", "vários sensores, telemetria, automação", "depende de um broker de pé"]]}},
  {"h2": "O menor programa que fala com hardware"},
- {"p": "Com a placa ligada e o `StandardFirmata` gravado nela, isto acende o LED da placa:"},
+ {"p": "Com a placa ligada e o firmware gravado nela, isto acende o LED da placa:"},
  {"code": '''adopt Arcane.IoT as IoT
 
 placa := IoT.conectar()          // acha a porta sozinha, se houver uma só
@@ -71,7 +71,7 @@ out "o LED acendeu — num Arduino de mentira"''', "lang": "df"},
 {
 "href": "/docs/iot/primeiros-passos",
 "title": "Primeiros passos com a placa",
-"description": "Do cabo ao LED piscando: achar a porta, gravar o StandardFirmata, e o doctor que diz por que nada responde.",
+"description": "Do cabo ao LED piscando: achar a porta, gravar o firmware, e o doctor que diz por que nada responde.",
 "blocos": [
  {"p": "Uma placa que não responde **também não dá erro**: a porta abre, e nada chega. As causas são poucas e sempre as mesmas, e o `doctor` confere cada uma na ordem em que elas acontecem."},
  {"h2": "1. Ver se o computador enxerga a placa"},
@@ -84,7 +84,7 @@ out "o LED acendeu — num Arduino de mentira"''', "lang": "df"},
    "**O cabo é só de energia.** Muitos cabos de celular não têm os fios de dados. É a causa nº 1.",
    "**Falta o driver.** Clones de UNO usam o CH340; ESP32 costuma usar CP2102 ou CH9102.",
    "**Num contêiner**, a porta precisa ser passada: `docker run --device=/dev/ttyACM0`."]},
- {"h2": "2. Gravar o StandardFirmata"},
+ {"h2": "2. Gravar o firmware"},
  {"p": "O Firmata é um sketch como outro qualquer: ele fica na placa esperando ordens. Sem ele, a porta abre e o silêncio é total. A linguagem escreve o sketch e chama o `arduino-cli` para gravar:"},
  {"code": '''$ dataforge iot sketch firmata --em=/tmp/fw
 escrito: /tmp/fw/firmata/firmata.ino
@@ -93,6 +93,15 @@ escrito: /tmp/fw/firmata/firmata.ino
 $ dataforge iot carregar /tmp/fw/firmata --fqbn=arduino:avr:uno
 gravado.''', "lang": "bash"},
  {"callout": {"tipo": "atencao", "titulo": "O arquivo tem o nome da pasta", "texto": "Um `.ino` solto não compila, e o erro do `arduino-cli` não diz por quê. `IoT.gravar_sketch(\"/tmp/fw\", \"firmata\")` cria `/tmp/fw/firmata/firmata.ino` — a pasta e o arquivo com o mesmo nome, que é o que o Arduino exige."}},
+ {"callout": {"tipo": "info", "titulo": "Este firmware NÃO usa a biblioteca Firmata", "texto": "E a razão é concreta. O `Firmata.h` traz um `Boards.h` com a tabela de pinos de cada placa, escrita à mão, e ela para nas placas de até 2018: num **Arduino UNO R4 WiFi** o compilador responde `#error \"Please edit Boards.h with a hardware abstraction for this board\"`, e num **ESP32** também — as duas placas mais vendidas de hoje. Como `IoT.conectar` só fala Firmata, o módulo inteiro era inalcançável nelas."}},
+ {"p": "O firmware que a linguagem escreve fala o protocolo direto, e **pergunta o mapa de pinos ao core** em vez de trazer tabela: `NUM_DIGITAL_PINS`, `NUM_ANALOG_INPUTS`, `digitalPinHasPWM` e `analogInputToDigitalPin` são macros que todo core do Arduino define. É a mesma regra do outro lado do cabo — quem decide se um pino faz PWM é a placa, não uma lista."},
+ {"table": {"head": ["Placa", "Compila", "Pinos", "Analógicos"], "rows": [
+   ["`arduino:avr:uno`", "sim", "20", "6"],
+   ["`arduino:avr:mega`", "sim", "70", "16"],
+   ["`arduino:renesas_uno:unor4wifi`", "sim — a biblioteca **não**", "20", "6"],
+   ["`esp32:esp32:esp32`", "sim — a biblioteca **não**", "40", "14"]]}},
+ {"p": "As duas últimas linhas foram medidas com a placa na mesa, e não deduzidas: o LED piscou pelos dois caminhos, e `analogico(0)` devolveu ruído de um pino solto."},
+ {"callout": {"tipo": "atencao", "titulo": "O R4 não define `analogInputToDigitalPin`", "texto": "Ele define só `PIN_A0`. A primeira versão deste firmware respondeu **`analogicos: 0`** numa placa com seis entradas analógicas — um zero honesto, e inútil. O recuo por `PIN_A0` resolve, e o mapa inverso é derivado do direto de propósito: escritas separadas divergiriam, e um mapa que não bate com a capacidade faz `analogico(0)` ler outro pino, calado."}},
  {"h2": "3. Piscar"},
  {"code": '''$ dataforge iot piscar --pino=13 --vezes=5
   1/5 ●
@@ -111,7 +120,7 @@ se o LED piscou, o caminho inteiro funciona.''', "lang": "bash"},
 O que costuma ser:
   1. o cabo é só de energia — troque por um de dados
   2. falta o driver USB-serial (CH340, CP2102) do clone
-  3. o StandardFirmata não está gravado:
+  3. o firmware não está gravado:
        dataforge iot sketch firmata --em=/tmp/fw
        dataforge iot carregar /tmp/fw/firmata --fqbn=arduino:avr:uno
   4. o monitor serial da IDE está com a porta aberta''', "lang": "bash"},
@@ -119,7 +128,7 @@ O que costuma ser:
  {"h2": "A velocidade tem de ser a do sketch"},
  {"code": '''adopt Arcane.IoT as IoT
 
-// o StandardFirmata fala 57600 — e é o padrão de IoT.conectar
+// o firmware fala 57600 — e é o padrão de IoT.conectar
 assert "pwm" in IoT.modos()
 out "os modos:", len(IoT.modos())''', "lang": "df"},
  {"p": "Para um sketch seu, que escreve com `Serial.println`, a velocidade é a do `Serial.begin()` dele — e o monitor do terminal pergunta:"},
@@ -192,7 +201,7 @@ placa.fechar()''', "lang": "df"},
 "title": "Firmata: a placa como periférico",
 "description": "O protocolo, os doze modos de pino, o relatório periódico — e o erro nº 1 de quem começa.",
 "blocos": [
- {"p": "Com o `StandardFirmata` gravado, a placa deixa de ter um programa e passa a ter um **protocolo**: ela obedece. Quem decide é o computador, e isso muda o ciclo de trabalho por inteiro."},
+ {"p": "Com o firmware gravado, a placa deixa de ter um programa e passa a ter um **protocolo**: ela obedece. Quem decide é o computador, e isso muda o ciclo de trabalho por inteiro."},
  {"table": {
    "head": ["Sem Firmata", "Com Firmata"],
    "rows": [
@@ -548,7 +557,7 @@ assert len(IoT.sketches()) >= 6''', "lang": "df"},
  {"table": {
    "head": ["Modelo", "Para quê"],
    "rows": [
-     ["`firmata`", "o StandardFirmata — é o que torna a placa controlável daqui"],
+     ["`firmata`", "o firmware do Firmata — é o que torna a placa controlável daqui"],
      ["`pisca`", "o \"olá mundo\": prova que gravar funcionou"],
      ["`sensor`", "lê um analógico e escreve na serial, pronto para `iot monitorar`"],
      ["`ultrassom`", "HC-SR04 — distância em centímetros"],
@@ -658,7 +667,7 @@ handle Error as e:
  {"code": '''adopt Arcane.IoT as IoT
 
 placa := IoT.conectar_simulada("uno")
-assert placa.info()["firmware"]["nome"] is "StandardFirmata.ino"
+assert placa.info()["firmware"]["nome"] is "DataForge"
 assert placa.info()["protocolo"] is "2.5"
 placa.fechar()''', "lang": "df"},
  {"p": "A diferença importa: o simulador recebe os **bytes** do Firmata e responde com os bytes que a placa responderia. O parser, a máquina de estados, a partição em sete bits, o sysex — tudo isso é exercitado. Um dublê que só implementasse `escrever(pino, valor)` não provaria nada sobre o protocolo, que é justamente onde estão os erros."},
@@ -1189,7 +1198,7 @@ out "o encerramento está registrado"''', "lang": "df"},
  {"table": {
    "head": ["Sintoma", "Quase sempre é"],
    "rows": [
-     ["`conectar` dá prazo esgotado", "o StandardFirmata não está gravado"],
+     ["`conectar` dá prazo esgotado", "o firmware não está gravado"],
      ["texto ilegível no monitor", "a velocidade não é a do `Serial.begin()` do sketch"],
      ["\"permissão negada\" ou \"porta ocupada\"", "o monitor serial da IDE está aberto — duas coisas não abrem a mesma porta"],
      ["no Linux, permissão negada sempre", "o usuário não está no grupo `dialout`: `sudo usermod -aG dialout $USER`"],

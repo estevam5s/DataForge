@@ -18,7 +18,7 @@ const blocos: Bloco[] = [
 cycle nome in keys(IoT.sketches()):
     out $"{nome}: {IoT.sketches()[nome]["descricao"]}"
 assert len(IoT.sketches()) >= 6`, lang: 'df' },
-  {"table": {"head": ["Modelo", "Para quê"], "rows": [["`firmata`", "o StandardFirmata — é o que torna a placa controlável daqui"], ["`pisca`", "o \"olá mundo\": prova que gravar funcionou"], ["`sensor`", "lê um analógico e escreve na serial, pronto para `iot monitorar`"], ["`ultrassom`", "HC-SR04 — distância em centímetros"], ["`dht`", "DHT11/DHT22 — temperatura e umidade"], ["`wifi-mqtt`", "ESP32 que publica leituras num broker MQTT"]]}},
+  {"table": {"head": ["Modelo", "Para quê"], "rows": [["`firmata`", "o firmware do Firmata — é o que torna a placa controlável daqui"], ["`pisca`", "o \"olá mundo\": prova que gravar funcionou"], ["`sensor`", "lê um analógico e escreve na serial, pronto para `iot monitorar`"], ["`ultrassom`", "HC-SR04 — distância em centímetros"], ["`dht`", "DHT11/DHT22 — temperatura e umidade"], ["`wifi-mqtt`", "ESP32 que publica leituras num broker MQTT"]]}},
   {"h2": "As opções entram no código"},
   { code: `adopt Arcane.IoT as IoT
 

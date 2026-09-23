@@ -10,7 +10,7 @@ out "== 1. conectar =="
 
 placa := IoT.conectar_simulada("uno")
 info := placa.info()
-assert info["firmware"]["nome"] is "StandardFirmata.ino"
+assert info["firmware"]["nome"] is "DataForge"
 assert info["protocolo"] is "2.5"
 assert info["pinos"] is 20
 assert info["analogicos"] is 6

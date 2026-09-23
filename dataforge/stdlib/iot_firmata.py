@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Firmata 2.x — falar com uma placa que já está ligada.
 
-O Firmata é o protocolo do sketch `StandardFirmata`, que vem com a IDE
+O Firmata é o protocolo que o sketch `firmata` do `Arcane.IoT` fala, e que a IDE
 do Arduino: a placa vira um periférico, e quem decide é o computador.
 Isso muda o ciclo de trabalho por inteiro.
 
@@ -246,10 +246,10 @@ class Placa:
             time.sleep(0.002)
         raise _erro(
             f"a placa nao respondeu {o_que} em {self.prazo:g} s.",
-            nota="ela responde quando o sketch StandardFirmata esta gravado; "
+            nota="ela responde quando o firmware do Firmata esta gravado; "
                  "sem ele, a porta abre e nada chega",
-            dica="dataforge iot doctor — ele confere a porta, o sketch e a "
-                 "velocidade")
+            dica="dataforge iot carregar firmata --porta=... grava o firmware; "
+                 "'dataforge iot doctor' confere porta, sketch e velocidade")
 
     def apresentar(self):
         """Pergunta versão, firmware, capacidades e o mapa analógico.

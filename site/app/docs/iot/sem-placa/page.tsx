@@ -16,7 +16,7 @@ const blocos: Bloco[] = [
   { code: `adopt Arcane.IoT as IoT
 
 placa := IoT.conectar_simulada("uno")
-assert placa.info()["firmware"]["nome"] is "StandardFirmata.ino"
+assert placa.info()["firmware"]["nome"] is "DataForge"
 assert placa.info()["protocolo"] is "2.5"
 placa.fechar()`, lang: 'df' },
   {"p": "A diferença importa: o simulador recebe os **bytes** do Firmata e responde com os bytes que a placa responderia. O parser, a máquina de estados, a partição em sete bits, o sysex — tudo isso é exercitado. Um dublê que só implementasse `escrever(pino, valor)` não provaria nada sobre o protocolo, que é justamente onde estão os erros."},

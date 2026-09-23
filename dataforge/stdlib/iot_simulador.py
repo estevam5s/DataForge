@@ -3,7 +3,7 @@
 
 Ela **não** é um dublê que responde `yes` para tudo: é um transporte que
 recebe os mesmos bytes que o cabo levaria, os interpreta com as mesmas
-regras do `StandardFirmata`, guarda o estado dos pinos e devolve as
+regras do Firmata 2.x, guarda o estado dos pinos e devolve as
 mesmas respostas — versão, firmware, capacidades, mapa analógico,
 relatório periódico dos analógicos.
 
@@ -40,28 +40,34 @@ from .iot_firmata import (ANALOG_MAPPING_QUERY, ANALOG_MAPPING_RESPONSE,
 #: dos três: ligar um sensor de 5 V num ESP32 costuma matar o pino, e a
 #: leitura dele vai a 4095 e não a 1023 — dois erros que aparecem como
 #: número errado, e não como falha.
+# O nome do firmware e o MESMO que o sketch `firmata` responde de
+# verdade. Ele dizia "StandardFirmata.ino", e o dublê ficava divergindo
+# do original no campo mais visível que existe: um exemplo da
+# documentação que confere `info()["firmware"]["nome"]` passava contra o
+# simulador e falhava contra a placa. Um dublê que diverge aprova o que
+# quebra — é a mesma lição do dublê do Telegram.
 MODELOS = {
     "uno": {"digitais": 14, "analogicos": 6, "pwm": (3, 5, 6, 9, 10, 11),
             "tensao": 5.0, "bits": 10, "fqbn": "arduino:avr:uno",
-            "firmware": "StandardFirmata.ino", "descricao": "Arduino UNO (ATmega328P)"},
+            "firmware": "DataForge", "descricao": "Arduino UNO (ATmega328P)"},
     "nano": {"digitais": 14, "analogicos": 8, "pwm": (3, 5, 6, 9, 10, 11),
              "tensao": 5.0, "bits": 10, "fqbn": "arduino:avr:nano",
-             "firmware": "StandardFirmata.ino", "descricao": "Arduino Nano"},
+             "firmware": "DataForge", "descricao": "Arduino Nano"},
     "mega": {"digitais": 54, "analogicos": 16,
              "pwm": tuple(range(2, 14)) + (44, 45, 46),
              "tensao": 5.0, "bits": 10, "fqbn": "arduino:avr:mega",
-             "firmware": "StandardFirmata.ino", "descricao": "Arduino Mega 2560"},
+             "firmware": "DataForge", "descricao": "Arduino Mega 2560"},
     "leonardo": {"digitais": 20, "analogicos": 12, "pwm": (3, 5, 6, 9, 10, 11, 13),
                  "tensao": 5.0, "bits": 10, "fqbn": "arduino:avr:leonardo",
-                 "firmware": "StandardFirmata.ino", "descricao": "Arduino Leonardo"},
+                 "firmware": "DataForge", "descricao": "Arduino Leonardo"},
     "uno-r4": {"digitais": 14, "analogicos": 6, "pwm": (3, 5, 6, 9, 10, 11),
                "tensao": 5.0, "bits": 10,
                "fqbn": "arduino:renesas_uno:unor4wifi",
-               "firmware": "StandardFirmata.ino", "descricao": "Arduino UNO R4 (Renesas)"},
+               "firmware": "DataForge", "descricao": "Arduino UNO R4 (Renesas)"},
     "esp32": {"digitais": 40, "analogicos": 16,
               "pwm": tuple(range(0, 34)),
               "tensao": 3.3, "bits": 12, "fqbn": "esp32:esp32:esp32",
-              "firmware": "StandardFirmata.ino",
+              "firmware": "DataForge",
               "descricao": "ESP32 (o Firmata roda pela USB-serial)"},
 }
 

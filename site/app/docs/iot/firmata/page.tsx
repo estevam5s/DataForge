@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
-  {"p": "Com o `StandardFirmata` gravado, a placa deixa de ter um programa e passa a ter um **protocolo**: ela obedece. Quem decide é o computador, e isso muda o ciclo de trabalho por inteiro."},
+  {"p": "Com o firmware gravado, a placa deixa de ter um programa e passa a ter um **protocolo**: ela obedece. Quem decide é o computador, e isso muda o ciclo de trabalho por inteiro."},
   {"table": {"head": ["Sem Firmata", "Com Firmata"], "rows": [["escrever C++, compilar, gravar, testar", "chamar `placa.escrever(13, yes)` e ver o LED"], ["~20 s a cada tentativa", "milissegundos"], ["depurar por `Serial.println`", "depurar com `dataforge debug`"]]}},
   {"h2": "Todo pino tem um modo, e ele é declarado"},
   { code: `adopt Arcane.IoT as IoT

@@ -18,7 +18,7 @@ com o LED errado, e a pessoa iria procurar o defeito no fio.
 
 ## 57600, e não 9600
 
-É a velocidade do `StandardFirmata`. Um sketch de Firmata com
+É a velocidade do firmware. Um sketch de Firmata com
 `Serial.begin(9600)` compila, grava, e **não conversa** com ninguém.
 
 ## O que a linguagem não faz

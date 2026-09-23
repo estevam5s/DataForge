@@ -54,7 +54,7 @@ def _erro(mensagem, nota="", dica=""):
 #  Conectar
 # ═══════════════════════════════════════════════════════════
 
-#: A velocidade do StandardFirmata. Ele fixa 57600 no `setup()`, e o
+#: A velocidade do firmware. Ele fixa 57600 no `setup()`, e o
 #: número mais comum em exemplo de Arduino — 9600 — não conversa com
 #: ele: a porta abre, e nada do que chega faz sentido.
 VELOCIDADE_FIRMATA = 57600
@@ -252,25 +252,430 @@ _CABECALHO = """// Gerado por DataForge — {descricao}
 
 MODELOS_DE_SKETCH = {
     "firmata": {
-        "descricao": "StandardFirmata: a placa vira periferico do computador",
-        "corpo": """#include <Firmata.h>
+        "descricao": "o firmware que faz a placa virar periferico do computador",
+        "corpo": """#include <Wire.h>
+#if __has_include(<Servo.h>)
+  #include <Servo.h>
+  #define DF_TEM_SERVO 1
+#endif
 
-void analogWriteCallback(byte pin, int value) {
-  if (IS_PIN_PWM(pin)) {
-    pinMode(PIN_TO_DIGITAL(pin), OUTPUT);
-    analogWrite(PIN_TO_PWM(pin), value);
+// ── o protocolo ────────────────────────────────────────────
+#define DF_DIGITAL_MESSAGE 0x90
+#define DF_ANALOG_MESSAGE  0xE0
+#define DF_REPORT_ANALOG   0xC0
+#define DF_REPORT_DIGITAL  0xD0
+#define DF_SET_PIN_MODE    0xF4
+#define DF_SET_DIGITAL_PIN 0xF5
+#define DF_REPORT_VERSION  0xF9
+#define DF_SYSTEM_RESET    0xFF
+#define DF_START_SYSEX     0xF0
+#define DF_END_SYSEX       0xF7
+
+#define DF_REPORT_FIRMWARE      0x79
+#define DF_CAPABILITY_QUERY     0x6B
+#define DF_CAPABILITY_RESPONSE  0x6C
+#define DF_ANALOG_MAPPING_QUERY 0x69
+#define DF_ANALOG_MAPPING_REPLY 0x6A
+#define DF_PIN_STATE_QUERY      0x6D
+#define DF_PIN_STATE_RESPONSE   0x6E
+#define DF_SERVO_CONFIG         0x70
+#define DF_I2C_REQUEST          0x76
+#define DF_I2C_REPLY            0x77
+#define DF_I2C_CONFIG           0x78
+#define DF_SAMPLING_INTERVAL    0x7A
+
+// Os modos, com os numeros que o 'Arcane.IoT' usa.
+#define DF_ENTRADA   0x00
+#define DF_SAIDA     0x01
+#define DF_ANALOGICO 0x02
+#define DF_PWM       0x03
+#define DF_SERVO     0x04
+#define DF_I2C_MODO  0x06
+#define DF_PULLUP    0x0B
+
+#ifndef NUM_DIGITAL_PINS
+  #define NUM_DIGITAL_PINS 20
+#endif
+#ifndef NUM_ANALOG_INPUTS
+  #define NUM_ANALOG_INPUTS 6
+#endif
+
+// Um ESP32 declara mais de 40 pinos, e a resposta de capacidade cresce
+// com eles. O teto e para ela caber na serial sem partir.
+#if NUM_DIGITAL_PINS > 64
+  #define DF_PINOS 64
+#else
+  #define DF_PINOS NUM_DIGITAL_PINS
+#endif
+#define DF_PORTAS ((DF_PINOS + 7) / 8)
+#define DF_SYSEX_MAX 64
+
+byte modoDoPino[DF_PINOS];
+byte relatarPorta[DF_PORTAS];
+byte fotoDaPorta[DF_PORTAS];
+unsigned int relatarAnalogico = 0;
+unsigned long intervalo = 19;
+unsigned long ultimaAmostra = 0;
+
+byte sysex[DF_SYSEX_MAX];
+byte nSysex = 0;
+bool emSysex = false;
+byte comando = 0;
+byte args[2];
+byte nArgs = 0;
+byte precisaArgs = 0;
+
+#ifdef DF_TEM_SERVO
+Servo servos[DF_PINOS];
+#endif
+
+// ── o que o core diz sobre cada pino ───────────────────────
+
+bool pinoExiste(byte pino) {
+#if defined(digitalPinIsValid)
+  return digitalPinIsValid(pino);
+#else
+  return pino < DF_PINOS;
+#endif
+}
+
+// Qual pino digital atende o canal analogico 'c'.
+//
+// Tres respostas, e a ordem importa: vence a primeira que o core sabe
+// dar. O AVR e o ESP32 definem 'analogInputToDigitalPin'; o UNO R4
+// **nao define nenhum dos dois** — so 'PIN_A0' —, e foi por isso que a
+// primeira versao deste firmware respondeu 'analogicos: 0' numa placa
+// com seis entradas analogicas. Zero honesto continua sendo zero.
+int pinoDoCanal(byte canal) {
+  if (canal >= NUM_ANALOG_INPUTS) return -1;
+#if defined(analogInputToDigitalPin)
+  return analogInputToDigitalPin(canal);
+#elif defined(PIN_A0)
+  return (int)PIN_A0 + (int)canal;
+#else
+  return -1;
+#endif
+}
+
+// E o inverso sai do direto, de proposito: se as duas respostas fossem
+// escritas separadas, elas divergiriam — e um mapa analogico que nao
+// bate com a capacidade faz 'analogico(0)' ler outro pino, calado.
+int canalDoPino(byte pino) {
+  for (byte c = 0; c < NUM_ANALOG_INPUTS && c < 16; c++) {
+    int d = pinoDoCanal(c);
+    if (d >= 0 && (byte)d == pino) return c;
+  }
+  return -1;
+}
+
+bool temPwm(byte pino) {
+#if defined(digitalPinHasPWM)
+  return digitalPinHasPWM(pino);
+#else
+  return false;
+#endif
+}
+
+bool ehI2c(byte pino) {
+#if defined(SDA) && defined(SCL)
+  return pino == (byte)SDA || pino == (byte)SCL;
+#else
+  return false;
+#endif
+}
+
+// ── mandar ─────────────────────────────────────────────────
+
+void mandarVersao() {
+  Serial.write(DF_REPORT_VERSION);
+  Serial.write((byte)2);
+  Serial.write((byte)5);
+}
+
+void mandarTexto(const char *texto) {
+  Serial.write(DF_START_SYSEX);
+  Serial.write((byte)0x71);
+  for (const char *p = texto; *p; p++) {
+    Serial.write((byte)(*p & 0x7F));
+    Serial.write((byte)((*p >> 7) & 0x7F));
+  }
+  Serial.write(DF_END_SYSEX);
+}
+
+void responderFirmware() {
+  const char *nome = "DataForge";
+  Serial.write(DF_START_SYSEX);
+  Serial.write(DF_REPORT_FIRMWARE);
+  Serial.write((byte)2);
+  Serial.write((byte)5);
+  for (const char *p = nome; *p; p++) {
+    Serial.write((byte)(*p & 0x7F));
+    Serial.write((byte)((*p >> 7) & 0x7F));
+  }
+  Serial.write(DF_END_SYSEX);
+}
+
+void responderCapacidades() {
+  Serial.write(DF_START_SYSEX);
+  Serial.write(DF_CAPABILITY_RESPONSE);
+  for (byte p = 0; p < DF_PINOS; p++) {
+    if (pinoExiste(p)) {
+      Serial.write((byte)DF_ENTRADA); Serial.write((byte)1);
+      Serial.write((byte)DF_SAIDA);   Serial.write((byte)1);
+      Serial.write((byte)DF_PULLUP);  Serial.write((byte)1);
+      if (canalDoPino(p) >= 0) { Serial.write((byte)DF_ANALOGICO); Serial.write((byte)10); }
+      if (temPwm(p))           { Serial.write((byte)DF_PWM);       Serial.write((byte)8); }
+#ifdef DF_TEM_SERVO
+      if (temPwm(p))           { Serial.write((byte)DF_SERVO);     Serial.write((byte)14); }
+#endif
+      if (ehI2c(p))            { Serial.write((byte)DF_I2C_MODO);  Serial.write((byte)1); }
+    }
+    Serial.write((byte)0x7F);
+  }
+  Serial.write(DF_END_SYSEX);
+}
+
+void responderMapaAnalogico() {
+  Serial.write(DF_START_SYSEX);
+  Serial.write(DF_ANALOG_MAPPING_REPLY);
+  for (byte p = 0; p < DF_PINOS; p++) {
+    int c = canalDoPino(p);
+    Serial.write((byte)(c >= 0 ? c : 0x7F));
+  }
+  Serial.write(DF_END_SYSEX);
+}
+
+void responderEstado(byte pino) {
+  if (pino >= DF_PINOS) return;
+  int valor = 0;
+  if (modoDoPino[pino] == DF_ANALOGICO) {
+    int c = canalDoPino(pino);
+    valor = (c >= 0) ? analogRead(pino) : 0;
+  } else {
+    valor = digitalRead(pino);
+  }
+  Serial.write(DF_START_SYSEX);
+  Serial.write(DF_PIN_STATE_RESPONSE);
+  Serial.write(pino);
+  Serial.write(modoDoPino[pino]);
+  Serial.write((byte)(valor & 0x7F));
+  if (valor > 0x7F) Serial.write((byte)((valor >> 7) & 0x7F));
+  Serial.write(DF_END_SYSEX);
+}
+
+// ── receber ────────────────────────────────────────────────
+
+void definirModo(byte pino, byte modo) {
+  if (pino >= DF_PINOS || !pinoExiste(pino)) return;
+#ifdef DF_TEM_SERVO
+  if (modoDoPino[pino] == DF_SERVO && modo != DF_SERVO) servos[pino].detach();
+#endif
+  switch (modo) {
+    case DF_ENTRADA:   pinMode(pino, INPUT);        break;
+    case DF_PULLUP:    pinMode(pino, INPUT_PULLUP); break;
+    case DF_SAIDA:     pinMode(pino, OUTPUT);       break;
+    case DF_PWM:       pinMode(pino, OUTPUT);       break;
+    case DF_ANALOGICO: break;
+#ifdef DF_TEM_SERVO
+    case DF_SERVO:     servos[pino].attach(pino);   break;
+#endif
+    case DF_I2C_MODO:  Wire.begin();                break;
+    default: return;
+  }
+  modoDoPino[pino] = modo;
+}
+
+void escreverPorta(byte porta, unsigned int valor) {
+  for (byte i = 0; i < 8; i++) {
+    byte pino = porta * 8 + i;
+    if (pino >= DF_PINOS) return;
+    if (modoDoPino[pino] == DF_SAIDA)
+      digitalWrite(pino, (valor & (1 << i)) ? HIGH : LOW);
+  }
+}
+
+void escreverAnalogico(byte pino, unsigned int valor) {
+  if (pino >= DF_PINOS) return;
+#ifdef DF_TEM_SERVO
+  if (modoDoPino[pino] == DF_SERVO) { servos[pino].write(valor); return; }
+#endif
+  if (modoDoPino[pino] == DF_PWM) analogWrite(pino, valor);
+}
+
+void tratarSysex() {
+  if (nSysex == 0) return;
+  switch (sysex[0]) {
+    case DF_REPORT_FIRMWARE:      responderFirmware();      break;
+    case DF_CAPABILITY_QUERY:     responderCapacidades();   break;
+    case DF_ANALOG_MAPPING_QUERY: responderMapaAnalogico(); break;
+    case DF_PIN_STATE_QUERY:
+      if (nSysex >= 2) responderEstado(sysex[1]);
+      break;
+    case DF_SAMPLING_INTERVAL:
+      if (nSysex >= 3) {
+        intervalo = sysex[1] | (sysex[2] << 7);
+        if (intervalo < 10) intervalo = 10;
+      }
+      break;
+    case DF_I2C_CONFIG: Wire.begin(); break;
+#ifdef DF_TEM_SERVO
+    case DF_SERVO_CONFIG:
+      if (nSysex >= 6) {
+        byte pino = sysex[1];
+        if (pino < DF_PINOS) {
+          servos[pino].attach(pino, sysex[2] | (sysex[3] << 7),
+                                    sysex[4] | (sysex[5] << 7));
+          modoDoPino[pino] = DF_SERVO;
+        }
+      }
+      break;
+#endif
+    case DF_I2C_REQUEST:
+      if (nSysex >= 4) {
+        byte endereco = sysex[1];
+        byte modo = (sysex[2] >> 3) & 0x03;
+        if (modo == 0) {                       // escrever
+          Wire.beginTransmission(endereco);
+          for (byte i = 3; i + 1 < nSysex; i += 2)
+            Wire.write((byte)(sysex[i] | (sysex[i + 1] << 7)));
+          Wire.endTransmission();
+        } else {                               // ler uma vez
+          byte registro = (nSysex >= 6) ? (sysex[3] | (sysex[4] << 7)) : 0;
+          byte quantos  = (nSysex >= 6) ? (sysex[5] | (sysex[6] << 7)) : 1;
+          if (nSysex >= 6) {
+            Wire.beginTransmission(endereco);
+            Wire.write(registro);
+            Wire.endTransmission();
+          }
+          Wire.requestFrom((int)endereco, (int)quantos);
+          Serial.write(DF_START_SYSEX);
+          Serial.write(DF_I2C_REPLY);
+          Serial.write((byte)(endereco & 0x7F));
+          Serial.write((byte)((endereco >> 7) & 0x7F));
+          Serial.write((byte)(registro & 0x7F));
+          Serial.write((byte)((registro >> 7) & 0x7F));
+          while (Wire.available()) {
+            byte b = Wire.read();
+            Serial.write((byte)(b & 0x7F));
+            Serial.write((byte)((b >> 7) & 0x7F));
+          }
+          Serial.write(DF_END_SYSEX);
+        }
+      }
+      break;
+    default: break;
+  }
+}
+
+void tratarComando() {
+  byte tipo = comando & 0xF0;
+  byte canal = comando & 0x0F;
+  if (tipo == DF_DIGITAL_MESSAGE) {
+    escreverPorta(canal, args[0] | (args[1] << 7));
+  } else if (tipo == DF_ANALOG_MESSAGE) {
+    escreverAnalogico(canal, args[0] | (args[1] << 7));
+  } else if (tipo == DF_REPORT_ANALOG) {
+    if (args[0]) relatarAnalogico |= (1 << canal);
+    else         relatarAnalogico &= ~(1 << canal);
+  } else if (tipo == DF_REPORT_DIGITAL) {
+    if (canal < DF_PORTAS) relatarPorta[canal] = args[0] ? 1 : 0;
+  } else if (comando == DF_SET_PIN_MODE) {
+    definirModo(args[0], args[1]);
+  } else if (comando == DF_SET_DIGITAL_PIN) {
+    byte pino = args[0];
+    if (pino < DF_PINOS && modoDoPino[pino] == DF_SAIDA)
+      digitalWrite(pino, args[1] ? HIGH : LOW);
+  }
+}
+
+void consumir(byte b) {
+  if (emSysex) {
+    if (b == DF_END_SYSEX) { emSysex = false; tratarSysex(); nSysex = 0; }
+    else if (nSysex < DF_SYSEX_MAX) sysex[nSysex++] = b;
+    return;
+  }
+  if (b & 0x80) {                              // e um comando
+    if (b == DF_START_SYSEX) { emSysex = true; nSysex = 0; return; }
+    if (b == DF_REPORT_VERSION) { mandarVersao(); return; }
+    if (b == DF_SYSTEM_RESET)   { reiniciarEstado(); return; }
+    byte tipo = b & 0xF0;
+    if (tipo == DF_DIGITAL_MESSAGE || tipo == DF_ANALOG_MESSAGE) precisaArgs = 2;
+    else if (tipo == DF_REPORT_ANALOG || tipo == DF_REPORT_DIGITAL) precisaArgs = 1;
+    else if (b == DF_SET_PIN_MODE || b == DF_SET_DIGITAL_PIN) precisaArgs = 2;
+    else { precisaArgs = 0; return; }
+    comando = b;
+    nArgs = 0;
+    return;
+  }
+  if (precisaArgs == 0) return;                // dado sem comando: ignora
+  args[nArgs++] = b;
+  if (nArgs >= precisaArgs) { tratarComando(); nArgs = 0; }
+}
+
+void reiniciarEstado() {
+  for (byte p = 0; p < DF_PINOS; p++) {
+#ifdef DF_TEM_SERVO
+    if (modoDoPino[p] == DF_SERVO) servos[p].detach();
+#endif
+    modoDoPino[p] = DF_ENTRADA;
+  }
+  for (byte porta = 0; porta < DF_PORTAS; porta++) {
+    relatarPorta[porta] = 0;
+    fotoDaPorta[porta] = 0;
+  }
+  relatarAnalogico = 0;
+  intervalo = 19;
+}
+
+// ── relatar ────────────────────────────────────────────────
+
+void relatarEntradas() {
+  for (byte porta = 0; porta < DF_PORTAS; porta++) {
+    if (!relatarPorta[porta]) continue;
+    byte valor = 0;
+    for (byte i = 0; i < 8; i++) {
+      byte pino = porta * 8 + i;
+      if (pino >= DF_PINOS) break;
+      if (modoDoPino[pino] == DF_ENTRADA || modoDoPino[pino] == DF_PULLUP)
+        if (digitalRead(pino)) valor |= (1 << i);
+    }
+    if (valor != fotoDaPorta[porta]) {
+      fotoDaPorta[porta] = valor;
+      Serial.write((byte)(DF_DIGITAL_MESSAGE | porta));
+      Serial.write((byte)(valor & 0x7F));
+      Serial.write((byte)((valor >> 7) & 0x7F));
+    }
+  }
+  for (byte c = 0; c < NUM_ANALOG_INPUTS && c < 16; c++) {
+    if (!(relatarAnalogico & (1 << c))) continue;
+    int pino = pinoDoCanal(c);
+    if (pino < 0) continue;
+    int valor = analogRead(pino);
+    Serial.write((byte)(DF_ANALOG_MESSAGE | c));
+    Serial.write((byte)(valor & 0x7F));
+    Serial.write((byte)((valor >> 7) & 0x7F));
   }
 }
 
 void setup() {
-  Firmata.setFirmwareVersion(FIRMATA_FIRMWARE_MAJOR_VERSION,
-                             FIRMATA_FIRMWARE_MINOR_VERSION);
-  Firmata.attach(ANALOG_MESSAGE, analogWriteCallback);
-  Firmata.begin(57600);
+  Serial.begin(57600);
+  // Toda placa relata 10 bits. O R4 le com 14 e o ESP32 com 12, e sem
+  // esta linha o MESMO sensor daria 1023 numa placa e 4095 na outra —
+  // quem escreve 'analogico(0)' teria de saber em que placa esta.
+#if defined(ARDUINO_ARCH_RENESAS) || defined(ESP32) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_MBED)
+  analogReadResolution(10);
+#endif
+  reiniciarEstado();
+  mandarVersao();
 }
 
 void loop() {
-  while (Firmata.available()) Firmata.processInput();
+  while (Serial.available()) consumir((byte)Serial.read());
+  unsigned long agora = millis();
+  if (agora - ultimaAmostra >= intervalo) {
+    ultimaAmostra = agora;
+    relatarEntradas();
+  }
 }
 """,
     },
@@ -609,7 +1014,7 @@ def doctor(porta=None):
             achados.append({
                 "o_que": "Firmata",
                 "ok": False,
-                "detalhe": f"{erro} — grave o StandardFirmata: "
+                "detalhe": f"{erro} — grave o firmware: "
                            f"dataforge iot sketch firmata"})
     return achados
 

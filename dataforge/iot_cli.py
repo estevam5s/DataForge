@@ -13,7 +13,7 @@ Por que 'doctor' e o comando mais util daqui
 ---------------------------------------------
 Uma placa que nao responde tambem nao da erro: a porta abre e nada
 chega. As causas sao poucas e sempre as mesmas — cabo so de energia,
-driver do CH340 ausente, o sketch StandardFirmata nao gravado, a
+driver do CH340 ausente, o firmware do Firmata nao gravado, a
 velocidade errada, o monitor serial da IDE segurando a porta. O
 `doctor` confere cada uma, na ordem em que elas acontecem.
 
@@ -108,7 +108,7 @@ def doctor(argumentos, flags):
         print(color("O que costuma ser:", "1;33"))
         print("  1. o cabo é só de energia — troque por um de dados")
         print("  2. falta o driver USB-serial (CH340, CP2102) do clone")
-        print("  3. o StandardFirmata não está gravado:")
+        print("  3. o firmware não está gravado:")
         print("       dataforge iot sketch firmata --em=/tmp/fw")
         print("       dataforge iot carregar /tmp/fw/firmata --fqbn=arduino:avr:uno")
         print("  4. o monitor serial da IDE está com a porta aberta")

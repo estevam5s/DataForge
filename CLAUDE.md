@@ -2005,12 +2005,77 @@ serial de verdade **ou** o `Simulador`.
 | `iot_firmata.py` | o `Simulador`, que interpreta os mesmos bytes | idem |
 | os sketches | o **`arduino-cli`**, compilando para placa real | `DATAFORGE_ARDUINO_COMPILAR=1` |
 | `iot_mqtt.py` | um broker mínimo escrito no próprio teste | idem |
-| a placa física | **nada aqui** — não há placa nesta máquina | `DATAFORGE_ARDUINO=/dev/…` |
+| a placa física | **um UNO R4 WiFi e um ESP32-D0WD-V3**, na mesa | `DATAFORGE_ARDUINO=/dev/…` |
 
-A última linha é o ponto: um teste que finge hardware e se anuncia como
-prova de hardware dá confiança sem dar garantia. Os sketches `pisca`,
-`sensor` e `ultrassom` foram compilados para `arduino:renesas_uno:unor4wifi`
-e o `wifi-mqtt` para `esp32:esp32:esp32`; o resto é para quem tem a placa.
+A última linha era `nada aqui` por muito tempo, e um teste que finge
+hardware e se anuncia como prova de hardware dá confiança sem dar
+garantia. Rodada com placa de verdade, ela achou o defeito que nenhuma
+das outras quatro linhas podia achar.
+
+### O sketch `firmata` não era StandardFirmata, e a biblioteca não serve
+
+Duas coisas, e a segunda é a que importa.
+
+**O sketch tinha 23 linhas e só tratava `ANALOG_MESSAGE`.** Ele
+compilava, gravava e a placa acendia — e `IoT.conectar` morria em *"a
+placa nao respondeu quem e"*, porque o handshake pede quatro coisas
+(versão, firmware, capacidades, mapa analógico) e ele não respondia
+nenhuma. Sem `SET_PIN_MODE` e sem `DIGITAL_MESSAGE`, `modo` e `escrever`
+também não faziam nada. O cabeçalho dizia "StandardFirmata".
+
+**E trocá-lo pelo StandardFirmata de verdade não resolvia.** O
+`Firmata.h` traz um `Boards.h` com a tabela de pinos de cada placa,
+escrita à mão, e ela para em 2018:
+
+```
+Boards.h:1106:2: error: #error "Please edit Boards.h with a hardware
+                         abstraction for this board"
+```
+
+— num **UNO R4 WiFi**, e num **ESP32** também. As duas placas mais
+vendidas de hoje, e as duas que estavam na mesa. Como `IoT.conectar` só
+fala Firmata, o módulo inteiro era inalcançável nelas.
+
+Hoje o firmware é **autocontido** (`MODELOS_DE_SKETCH["firmata"]`, 428
+linhas, sem `#include <Firmata.h>`) e o mapa de pinos é **perguntado ao
+core**: `NUM_DIGITAL_PINS`, `NUM_ANALOG_INPUTS`, `digitalPinHasPWM`,
+`digitalPinIsValid` e `analogInputToDigitalPin` são macros que todo core
+do Arduino define. É a mesma regra do outro lado do cabo — quem decide
+se um pino faz PWM é a placa, não uma lista escrita aqui.
+
+Medido, com as placas ligadas:
+
+| Alvo | Compila | Pinos | Analógicos | Provado |
+|---|---|---|---|---|
+| `arduino:avr:uno` | sim | 20 | 6 | compilação |
+| `arduino:avr:mega` | sim | 70 | 16 | compilação |
+| `arduino:renesas_uno:unor4wifi` | sim — a biblioteca **não** | 20 | 6 | **LED, PWM, A0** |
+| `esp32:esp32:esp32` | sim — a biblioteca **não** | 40 | 14 | **LED** |
+
+Três armadilhas que só a placa mostrou:
+
+1. **O UNO R4 não define `analogInputToDigitalPin`** — só `PIN_A0`. A
+   primeira versão do firmware respondeu `analogicos: 0` numa placa com
+   seis entradas analógicas. O recuo por `PIN_A0` resolve, e o mapa
+   inverso (`canalDoPino`) é **derivado** do direto (`pinoDoCanal`): duas
+   escritas separadas divergiriam, e um mapa que não bate com a
+   capacidade faz `analogico(0)` ler outro pino, calado.
+2. **`arduino-cli upload` sem `--input-dir` ignora o `--fqbn`** e regrava
+   a última build que houver na pasta do sketch — foi assim que o binário
+   do ESP32 (290 KB) foi parar num UNO R4 que só aceita 61 KB, sem erro
+   nenhum. `IoT.carregar` não tem esse problema porque usa
+   `compile --upload` numa tacada.
+3. **O ESP32 desta mesa não sobe a 921600 baud** (*Invalid head of
+   packet*). A velocidade vai no próprio FQBN:
+   `esp32:esp32:esp32:UploadSpeed=115200`.
+
+E o **simulador passou a dizer o mesmo nome de firmware** que a placa
+diz (`DataForge`). Ele respondia `StandardFirmata.ino`, então um exemplo
+da documentação que confere `info()["firmware"]["nome"]` passava contra
+o dublê e falhava contra o hardware — a mesma lição do dublê do Telegram.
+
+Os sketches `pisca`, `sensor` e `ultrassom` foram compilados para
+`arduino:renesas_uno:unor4wifi` e o `wifi-mqtt` para `esp32:esp32:esp32`.
 
 Cinco decisões que valem lembrar:
 

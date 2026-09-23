@@ -15,7 +15,7 @@ const blocos: Bloco[] = [
   {"p": "`Arcane.IoT` liga a linguagem a uma placa física. São três caminhos, e a escolha entre eles é a primeira decisão de qualquer projeto: **Firmata** (o computador manda, a placa obedece), **sketch** (o programa roda na placa, e a linguagem só o escreve e grava) e **MQTT** (a placa e o painel conversam por uma rede)."},
   {"table": {"head": ["Caminho", "Onde o programa roda", "Serve para", "O preço"], "rows": [["Firmata", "no computador", "prototipar, sensor de mesa, painel", "cada ordem atravessa o cabo — milissegundos"], ["Sketch", "na placa", "tempo real, autonomia, bateria", "compilar e gravar a cada mudança"], ["MQTT", "os dois, ligados por rede", "vários sensores, telemetria, automação", "depende de um broker de pé"]]}},
   {"h2": "O menor programa que fala com hardware"},
-  {"p": "Com a placa ligada e o `StandardFirmata` gravado nela, isto acende o LED da placa:"},
+  {"p": "Com a placa ligada e o firmware gravado nela, isto acende o LED da placa:"},
   { code: `adopt Arcane.IoT as IoT
 
 placa := IoT.conectar()          // acha a porta sozinha, se houver uma só
