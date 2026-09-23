@@ -503,6 +503,21 @@ GRUPOS = [
                       ("dataforge telegram webhook https://x.dev",
                        "registra o webhook")],
             veja=("vitrine", "devops", "new")),
+        Cmd("iot", "dataforge iot <portas|doctor|monitorar|sketch|carregar|piscar>",
+            "Arduino e ESP32: a placa, do terminal.",
+            "Uma placa que nao responde tambem nao da erro: a porta abre "
+            "e nada chega. 'doctor' confere as causas na ordem em que "
+            "elas acontecem — cabo so de energia, driver ausente, "
+            "StandardFirmata nao gravado, velocidade errada. "
+            "'carregar' chama o arduino-cli: compilar C++ para AVR e "
+            "gravar pelo bootloader e o que ele faz, e bem.",
+            apelidos=("arduino",),
+            exemplos=[("dataforge iot portas", "as portas que existem agora"),
+                      ("dataforge iot doctor", "por que a placa nao responde"),
+                      ("dataforge iot piscar", "o LED 13, por Firmata"),
+                      ("dataforge iot sketch pisca --em=/tmp/p", "escreve o .ino"),
+                      ("dataforge iot monitorar --velocidade=9600", "o monitor serial")],
+            veja=("telegram", "vitrine", "devops")),
         Cmd("vitrine", "dataforge vitrine <run|dev|doctor|new>",
             "Sobe um painel feito com Arcane.Vitrine",
             "Um programa de cima para baixo vira uma pagina web. 'dev'\n"
@@ -5276,6 +5291,10 @@ def main():
     elif command in ('telegram', 'bot'):
         from .telegram_cli import executar as executar_telegram
         sys.exit(executar_telegram(args[1:], flags))
+
+    elif command in ('iot', 'arduino'):
+        from .iot_cli import executar as executar_iot
+        sys.exit(executar_iot(args[1:], flags))
 
     elif command in ('devops', 'ops'):
         from .devops_cli import executar as executar_devops

@@ -1,16 +1,17 @@
 # Exercícios DataForge
 
-**216 exercícios em 26 módulos**, do `out "Ola"` a um interpretador de expressões
-com lexer, parser e avaliador próprios.
+**397 exercícios em 58 módulos**, do `out "Ola"` a um interpretador de expressões
+com lexer, parser e avaliador próprios — passando por OOP, banco, web, testes,
+concorrência, FFI, domínio, reativo e uma placa Arduino.
 
 Cada exercício **verifica o próprio resultado com `assert`** — se ele roda sem
-erro, está correto. Os módulos **11 a 20** trazem um arquivo `.md` ao lado de cada
-`.df`, com enunciado, conceitos, saída esperada e sugestões para experimentar.
+erro, está correto. Do módulo **11 em diante**, cada `.df` tem um `.md` ao lado,
+com enunciado, conceitos, saída esperada e sugestões para experimentar.
 
 ## Como rodar
 
 ```bash
-python3 exercicios/run_all.py          # todos os 180
+python3 exercicios/run_all.py          # todos os 397
 python3 exercicios/run_all.py 14       # só o módulo 14
 python3 exercicios/run_all.py 03 07    # módulos 03 e 07
 
@@ -832,9 +833,26 @@ Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
 | 386 | [`386_sessao_fora_do_processo.df`](57-vitrine-painel/386_sessao_fora_do_processo.df) · [doc](57-vitrine-painel/386_sessao_fora_do_processo.md) | onde a sessao mora |
 | 387 | [`387_o_mapa_da_vitrine.df`](57-vitrine-painel/387_o_mapa_da_vitrine.df) · [doc](57-vitrine-painel/387_o_mapa_da_vitrine.md) | o mapa, e as nove decisoes |
 
+## 58 — Iot
+
+*10 exercícios · com documentação `.md`*
+
+| # | Exercício | Assunto |
+|---|-----------|---------|
+| 388 | [`388_a_primeira_placa.df`](58-iot/388_a_primeira_placa.df) · [doc](58-iot/388_a_primeira_placa.md) | a primeira placa |
+| 389 | [`389_o_relatorio_analogico.df`](58-iot/389_o_relatorio_analogico.df) · [doc](58-iot/389_o_relatorio_analogico.md) | o erro numero 1 do Firmata |
+| 390 | [`390_escala_e_tensao.df`](58-iot/390_escala_e_tensao.df) · [doc](58-iot/390_escala_e_tensao.md) | do numero cru ao valor |
+| 391 | [`391_media_e_histerese.df`](58-iot/391_media_e_histerese.df) · [doc](58-iot/391_media_e_histerese.md) | o rele que nao bate |
+| 392 | [`392_pwm_e_servo.df`](58-iot/392_pwm_e_servo.df) · [doc](58-iot/392_pwm_e_servo.md) | o meio-termo que nao existe |
+| 393 | [`393_as_capacidades.df`](58-iot/393_as_capacidades.df) · [doc](58-iot/393_as_capacidades.md) | quem conhece a placa e a placa |
+| 394 | [`394_i2c.df`](58-iot/394_i2c.df) · [doc](58-iot/394_i2c.md) | dois fios, muitos sensores |
+| 395 | [`395_texto_e_sete_bits.df`](58-iot/395_texto_e_sete_bits.df) · [doc](58-iot/395_texto_e_sete_bits.md) | o acento que quebra o protocolo |
+| 396 | [`396_sketch_gerado.df`](58-iot/396_sketch_gerado.df) · [doc](58-iot/396_sketch_gerado.md) | quando o programa precisa rodar NA placa |
+| 397 | [`397_a_estufa.df`](58-iot/397_a_estufa.df) · [doc](58-iot/397_a_estufa.md) | le, decide, age |
+
 ---
 
-**Total: 387 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
+**Total: 397 exercícios.** Todos passam — o estado esperado do repositório é verde. Se algum falhar, é regressão no interpretador: veja
 [`../CLAUDE.md`](../CLAUDE.md).
 
 <!-- indice:fim -->

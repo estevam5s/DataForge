@@ -14,6 +14,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 
 | Módulo | Nome curto | Símbolos | Para quê |
 |--------|-----------|----------|----------|
+| [`Arcane.IoT`](#arcaneiot) | `IoT / Arduino` | 28 | Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, sensores, MQTT — e um simulador de placa para testar sem hardware. |
 | [`Arcane.Math`](#arcanemath) | `Math` | 72 | Matemática, álgebra linear e estatística básica. |
 | [`Arcane.Text`](#arcanetext) | `Text` | 59 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
 | [`Arcane.Analytics`](#arcaneanalytics) | `Analytics` | 65 | Análise de dados: estatística, regressão, clustering e gráficos ASCII. |
@@ -116,6 +117,50 @@ out Text.slug("Ola Mundo")              // ola-mundo
 out Text.box("Relatorio")               // caixa desenhada
 out An.correlation([1,2,3], [2,4,6])    // 1.0
 ```
+
+
+---
+
+## Arcane.IoT
+
+Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, sensores, MQTT — e um simulador de placa para testar sem hardware.
+
+```dataforge
+adopt Arcane.IoT as IoT
+```
+
+**Funções (28)**
+
+| Assinatura |
+|------------|
+| `Mqtt(host='localhost', porta=1883, cliente='', usuario='', senha='', keepalive=60, testamento=None, prazo=10.0)` |
+| `Placa(transporte, nome='placa', prazo=5.0)` |
+| `Simulador(modelo='uno', versao=(2, 5))` |
+| `abrir_serial(porta, velocidade=115200, prazo=1.0)` |
+| `carregar(caminho, porta=None, fqbn='arduino:avr:uno')` |
+| `compilar(caminho, fqbn='arduino:avr:uno')` |
+| `conectar(porta=None, velocidade=57600, prazo=5.0, reiniciar=True)` |
+| `conectar_simulada(modelo='uno', prazo=2.0)` |
+| `divisor(leitura, resistor=10000.0, bits=10)` |
+| `doctor(porta=None)` |
+| `escala(valor, de_min, de_max, para_min, para_max, limitar=True)` |
+| `gravar_sketch(pasta, modelo='pisca', opcoes=None, fqbn='arduino:avr:uno')` |
+| `histerese(ligar, desligar)` |
+| `media_movel(tamanho=8)` |
+| `modelos()` |
+| `modos()` |
+| `monitorar(porta=None, velocidade=115200, linhas=10, prazo=10.0)` |
+| `mqtt(host='localhost', porta=1883, cliente='', usuario='', senha='', keepalive=60, testamento=None, prazo=10.0)` |
+| `ntc(leitura, resistor=10000.0, beta=3950.0, nominal=10000.0, temperatura_nominal=25.0, bits=10)` |
+| `nucleos()` |
+| `placas()` |
+| `portas()` |
+| `simulador(modelo='uno')` |
+| `sketch(modelo='pisca', opcoes=None, fqbn='arduino:avr:uno')` |
+| `sketches()` |
+| `tem_arduino_cli()` |
+| `tensao(leitura, referencia=5.0, bits=10)` |
+| `tmp36(leitura, referencia=5.0, bits=10)` |
 
 
 ---

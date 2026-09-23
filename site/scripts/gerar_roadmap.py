@@ -79,6 +79,7 @@ GRUPOS_DE_MODULO = [
     ("Concorrência", ["laco", "stm", "perfil"]),
     ("Metaprogramação", ["macro", "dsl"]),
     ("Baixo nível", ["c", "compilador"]),
+    ("IoT", ["iot"]),
     ("Partida", ["inicio", "capacidade"]),
     ("Distribuição", ["abi", "alvo", "evolucao"]),
     ("A própria implementação", ["ecossistema", "principios", "percurso",

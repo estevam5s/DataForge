@@ -88,7 +88,7 @@ sh instalar.sh`}
             />
             <Card
               href="/docs/exercicios"
-              titulo="387 exercícios"
+              titulo="397 exercícios"
               desc="cada um roda e verifica o próprio resultado"
             />
             <Card

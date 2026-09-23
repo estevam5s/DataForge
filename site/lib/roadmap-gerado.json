@@ -422,6 +422,22 @@
       "porque": ""
     },
     {
+      "aqui": "porta serial escrita aqui (termios e a API do Windows, sem pyserial), Firmata 2.x completo, MQTT 3.1.1 falado a mao, e um simulador de placa que fala os MESMOS bytes — e o que torna testavel um programa de hardware",
+      "estado": "existe",
+      "grupo": "Interoperabilidade",
+      "no": "Hardware e IoT",
+      "o_que_e": "falar com uma placa fisica",
+      "onde": [
+        "dataforge/stdlib/arcane_iot.py",
+        "dataforge/stdlib/iot_serial.py",
+        "dataforge/stdlib/iot_firmata.py",
+        "dataforge/stdlib/iot_simulador.py",
+        "dataforge/stdlib/iot_mqtt.py",
+        "dataforge/iot_cli.py"
+      ],
+      "porque": ""
+    },
+    {
       "aqui": "nao ha layout a quebrar; ha o mesmo PROBLEMA com outro nome — 'Arcane.Abi' compara duas versoes de um modulo e diz qual bump de semver a mudanca exige",
       "estado": "equivale",
       "grupo": "Interoperabilidade",
@@ -477,12 +493,14 @@
       "porque": "sao duas frases diferentes, e confundi-las e a maneira mais rapida de prometer um alvo que nao se entrega"
     },
     {
-      "aqui": "nao ha",
+      "aqui": "o interpretador nao roda na placa, e nao ha caminho para isso. O que ha e outra coisa, e ela e real: 'Arcane.IoT' CONTROLA a placa pelo cabo (Firmata) e GERA o C++ que roda nela — o codigo do metal existe, so nao e DataForge",
       "estado": "nao-existe",
       "grupo": "Alvos",
       "no": "Bare-Metal",
       "o_que_e": "sem sistema operacional",
-      "onde": [],
+      "onde": [
+        "dataforge/stdlib/arcane_iot.py"
+      ],
       "porque": "exigiria outro runtime inteiro; 'Arcane.Alvo' diz o que falta em cada capacidade do alvo 'embarcado'"
     }
   ],
@@ -565,8 +583,8 @@
       "grupo": "Tooling"
     },
     {
-      "componentes": 3,
-      "existem": 2,
+      "componentes": 4,
+      "existem": 3,
       "grupo": "Interoperabilidade"
     },
     {
@@ -1100,6 +1118,17 @@
     {
       "modulos": [
         {
+          "chave": "iot",
+          "desc": "Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, sensores, MQTT — e um simulador de placa para testar sem hardware",
+          "nome": "Arcane.IoT",
+          "simbolos": 28
+        }
+      ],
+      "rotulo": "IoT"
+    },
+    {
+      "modulos": [
+        {
           "chave": "inicio",
           "desc": "O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que ",
           "nome": "Arcane.Inicio",
@@ -1221,27 +1250,31 @@
       "porque": "'Arcane.Alvo' nomeia 'embarcado' com o que falta em cada capacidade, justamente para que a ausencia apareca antes de alguem tentar"
     },
     {
-      "aqui": "nao ha",
+      "aqui": "o interpretador nao roda na placa, e nao ha caminho para isso. O que ha e outra coisa, e ela e real: 'Arcane.IoT' CONTROLA a placa pelo cabo (Firmata) e GERA o C++ que roda nela — o codigo do metal existe, so nao e DataForge",
       "estado": "nao-existe",
       "grupo": "Alvos",
       "no": "Bare-Metal",
-      "no_disco": [],
+      "no_disco": [
+        "dataforge/stdlib/arcane_iot.py"
+      ],
       "o_que_e": "sem sistema operacional",
-      "onde": [],
+      "onde": [
+        "dataforge/stdlib/arcane_iot.py"
+      ],
       "porque": "exigiria outro runtime inteiro; 'Arcane.Alvo' diz o que falta em cada capacidade do alvo 'embarcado'"
     }
   ],
   "numeros": {
     "alvos": 6,
-    "comandos": 65,
-    "componentes": 41,
+    "comandos": 66,
+    "componentes": 42,
     "equivalem": 6,
-    "existem": 30,
+    "existem": 31,
     "grupos_de_comando": 7,
-    "modulos": 85,
-    "modulos_do_nucleo": 60,
+    "modulos": 86,
+    "modulos_do_nucleo": 61,
     "nao_existem": 5,
-    "simbolos": 2280
+    "simbolos": 2308
   },
   "semGrupo": []
 }

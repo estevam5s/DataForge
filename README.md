@@ -31,9 +31,9 @@ Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
 generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
 pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
 testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **85 módulos** de biblioteca padrão com **2280 símbolos**.
+(**Forge**) e **86 módulos** de biblioteca padrão com **2308 símbolos**.
 
-[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [387 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
+[Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [397 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
 </div>
 
@@ -100,7 +100,7 @@ repor: [Teclado, Monitor]
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
 | **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 85 módulos com 2280 símbolos + 228 funções globais |
+| **Bateria inclusa** | 86 módulos com 2308 símbolos + 228 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais |
 
 ---
@@ -113,7 +113,7 @@ repor: [Teclado, Monitor]
 pip install dataforge-lang
 ```
 
-Ela traz o interpretador, os 85 módulos da biblioteca, os 65 comandos e a
+Ela traz o interpretador, os 86 módulos da biblioteca, os 65 comandos e a
 extensão do VS Code (`dataforge editor` a instala). Sem dependência externa
 nenhuma: `pip` baixa um pacote e mais nada.
 
@@ -484,7 +484,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-85 módulos, 2280 símbolos, mais 231 funções globais sem import.
+86 módulos, 2308 símbolos, mais 231 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -515,6 +515,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Forge` | 31 | Banco de dados: SQLite, Postgres, MySQL, Redis e MongoDB pela mesma interface. |
 | `Arcane.Excel` | 29 | Planilhas .xlsx: ler, gravar, fórmulas e conversão para CSV e frame. |
 | `Arcane.Laco` | 29 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. Fila de prazos com 'apos' e 'a_cada', fila de prontas com teto opcional (contrapressao), executor para o trabalho que bloqueia, cancelamento, e fibras de verdade — um 'stream action' suspenso em cada 'emit'. |
+| `Arcane.IoT` | 28 | Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, sensores, MQTT — e um simulador de placa para testar sem hardware. |
 | `Arcane.Compilador` | 26 | O caminho de compilacao como dado: os tokens, a arvore, o HIR (a arvore depois do acucar, com a lista do que e acucar e do que so parece), o MIR (bloco basico, aresta, laco e tratador) e as analises que so o grafo responde — alcance, vivacidade, constante em todo caminho, escapatoria e o nome que so um ramo define. O LIR diz o que o compilador de fechamentos compilou e o que recuou para a arvore. |
 | `Arcane.Serialization` | 26 | JSON, CSV, INI, TOML, XML e conversões entre eles. |
 | `Arcane.Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
@@ -795,16 +796,16 @@ lê e escreve **no bloco**, e o ponteiro anda por **elemento** — `p + 1` num
 |---------|---------|
 | [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
 | [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 85 módulos |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 86 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
 | [**doc/ESTABILIDADE.md**](doc/ESTABILIDADE.md) | o que pode quebrar entre versões — e o teste que garante |
 | [**CHANGELOG.md**](CHANGELOG.md) | o que mudou depois da 1.0.0 |
 | [**CONTRIBUTING.md**](CONTRIBUTING.md) | como mandar o primeiro patch |
-| [**exercicios/**](exercicios/) | 387 exercícios; do módulo 11 em diante, cada um com `.md` explicativo |
+| [**exercicios/**](exercicios/) | 397 exercícios; do módulo 11 em diante, cada um com `.md` explicativo |
 | [**examples/**](examples/) | 50 programas maiores |
 
-### Os 387 exercícios
+### Os 397 exercícios
 
 ```bash
 python3 exercicios/run_all.py        # todos
@@ -857,7 +858,7 @@ sem ele.
 pip install -e ".[dev]"
 
 python3 -m pytest tests/ -q       # mais de 4500 testes
-python3 exercicios/run_all.py     # 387 exercícios
+python3 exercicios/run_all.py     # 397 exercícios
 ```
 
 Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).
@@ -883,7 +884,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/docgen.py` | `dataforge doc` | 218 |
 | `dataforge/project.py` | `forge.toml` | 184 |
 | `dataforge/builtins.py` | 228 funções globais | 1224 |
-| `dataforge/stdlib/` | os 85 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
+| `dataforge/stdlib/` | os 86 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
 
 ---
 

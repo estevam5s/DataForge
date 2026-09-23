@@ -1,0 +1,126 @@
+// Exercicio 397 — le, decide, age
+//
+// Enunciado: uma estufa e o projeto de IoT completo mais simples
+// que existe. Ela LE (temperatura e umidade de solo), DECIDE (com
+// histerese) e AGE (aquecedor e bomba). Todo problema da area
+// aparece nela.
+
+adopt Arcane.IoT as IoT
+
+steady TEMPERATURA := 0        // A0 — TMP36
+steady SOLO := 1               // A1 — sensor resistivo
+steady AQUECEDOR := 7          // rele
+steady BOMBA := 8              // rele
+
+record Estado:
+    graus: Float
+    umidade: Float
+    aquecendo: Boolean
+    regando: Boolean
+
+action abrir(modelo):
+    p := IoT.conectar_simulada(modelo)
+    p.modo(AQUECEDOR, "saida")
+    p.modo(BOMBA, "saida")
+    p.modo(14 + TEMPERATURA, "analogico")
+    p.modo(14 + SOLO, "analogico")
+    p.relatar_analogico(TEMPERATURA)
+    p.relatar_analogico(SOLO)
+    p.amostragem(50)
+    yield p
+
+// A decisao mora FORA do laco da placa: sem isso nao da para testar
+// um controle sem hardware.
+action ciclo(placa, suavizar, aquecedor, bomba):
+    graus := IoT.tmp36(suavizar(placa.analogico(TEMPERATURA)))
+    umidade := IoT.escala(placa.analogico(SOLO), 0, 1023, 0, 100)
+    aquecendo := aquecedor(graus)
+    regando := bomba(umidade)
+    placa.escrever(AQUECEDOR, aquecendo)
+    placa.escrever(BOMBA, regando)
+    yield Estado(round(graus, 1), round(umidade, 1), aquecendo, regando)
+
+out "== 1. frio e seco: os dois ligam =="
+
+placa := abrir("uno")
+defer:
+    placa.fechar()              // os dois reles desligam ao sair
+
+suavizar := IoT.media_movel(5)
+aquecedor := IoT.histerese(18, 21)      // liga abaixo de 18
+bomba := IoT.histerese(30, 45)          // liga abaixo de 30% de umidade
+
+placa.simulador.definir_analogico(TEMPERATURA, 123)   // ~10 graus
+placa.simulador.definir_analogico(SOLO, 200)          // ~20%
+sleep(150)
+
+estado := ciclo(placa, suavizar, aquecedor, bomba)
+assert estado.aquecendo is yes and estado.regando is yes
+assert placa.simulador.pino(AQUECEDOR) is 1
+out $"   {estado.graus} graus, solo {estado.umidade}% — aquecedor e bomba ligados"
+
+out ""
+out "== 2. aqueceu e molhou: os dois desligam =="
+
+placa.simulador.definir_analogico(TEMPERATURA, 400)   // ~72 graus
+placa.simulador.definir_analogico(SOLO, 700)          // ~68%
+sleep(150)
+cycle i from 1 to 5:                                   // a janela da media
+    estado := ciclo(placa, suavizar, aquecedor, bomba)
+    sleep(20)
+assert estado.aquecendo is no and estado.regando is no
+assert placa.simulador.pino(BOMBA) is 0
+out $"   {estado.graus} graus, solo {estado.umidade}% — os dois desligados"
+
+out ""
+out "== 3. no MEIO da faixa, a histerese segura =="
+
+placa.simulador.definir_analogico(SOLO, 400)          // ~39%: entre 30 e 45
+sleep(120)
+cycle i from 1 to 3:
+    estado := ciclo(placa, suavizar, aquecedor, bomba)
+assert estado.regando is no                            // estava desligada
+out "   entre as duas soleiras, ela mantem o estado"
+
+out ""
+out "== 4. o record evita a chave com erro de digitacao =="
+
+// Num vault solto, estado["aquecndo"] seria void — e void e falso.
+monitor:
+    out estado.aquecndo
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+out ""
+out "== 5. o teto duro que a histerese NAO da =="
+
+// Histerese nao protege de um sensor que soltou do vaso: a leitura
+// fica em "seco" para sempre, e a bomba nao desliga nunca.
+action limitador(maximo_ms):
+    gasto := [0]
+    action pode(ligar, decorrido):
+        given not ligar:
+            yield no
+        given gasto[0] + decorrido bigger maximo_ms:
+            yield no
+        gasto[0] := gasto[0] + decorrido
+        yield yes
+    yield pode
+
+pode := limitador(30000)
+assert pode(yes, 10000) is yes
+assert pode(yes, 10000) is yes
+assert pode(yes, 20000) is no           // passou do teto da hora
+out "   30 s por hora, e nem o sensor quebrado alaga a casa"
+
+out ""
+out "== 6. e o defer desliga tudo, inclusive no erro =="
+
+monitor:
+    placa.escrever(AQUECEDOR, yes)
+    trigger "um erro no meio do ciclo"
+handle Error:
+    out "   falhou no meio — e o programa ainda fecha a placa"
+
+out "exercicio 397 ok"

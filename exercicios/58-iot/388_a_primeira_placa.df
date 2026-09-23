@@ -1,0 +1,62 @@
+// Exercicio 388 — a primeira placa
+//
+// Enunciado: acenda um LED. Sem placa nenhuma: 'conectar_simulada'
+// poe do outro lado do cabo um simulador que fala o MESMO Firmata,
+// com o mapa de pinos de uma placa de verdade.
+
+adopt Arcane.IoT as IoT
+
+out "== 1. conectar =="
+
+placa := IoT.conectar_simulada("uno")
+info := placa.info()
+assert info["firmware"]["nome"] is "StandardFirmata.ino"
+assert info["protocolo"] is "2.5"
+assert info["pinos"] is 20
+assert info["analogicos"] is 6
+out $"   {info['pinos']} pinos, {info['analogicos']} canais analogicos"
+
+out ""
+out "== 2. todo pino tem um modo, e ele e declarado =="
+
+// Sem o modo, a placa nao sabe se o pino le ou escreve.
+placa.modo(13, "saida")
+placa.escrever(13, yes)
+assert placa.simulador.pino(13) is 1
+placa.escrever(13, no)
+assert placa.simulador.pino(13) is 0
+out "   o LED acendeu e apagou"
+
+out ""
+out "== 3. piscar =="
+
+cycle i from 1 to 3:
+    placa.escrever(13, yes)
+    sleep(20)
+    placa.escrever(13, no)
+    sleep(20)
+out "   tres piscadas"
+
+out ""
+out "== 4. fechar DESLIGA as saidas =="
+
+placa.escrever(13, yes)
+assert placa.simulador.pino(13) is 1
+placa.fechar()
+assert placa.simulador.pino(13) is 0
+
+// Terminar deixando um rele ligado e o defeito mais caro desta area:
+// o resto do sistema continua, sem ninguem olhando.
+out "   e fechar de novo nao e erro:"
+assert placa.fechar() is no
+
+out ""
+out "== 5. depois de fechada, ela recusa =="
+
+monitor:
+    placa.escrever(13, yes)
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+out "exercicio 388 ok"

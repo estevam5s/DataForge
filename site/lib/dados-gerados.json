@@ -5384,6 +5384,153 @@
     }
    ]
   },
+  "iot": {
+   "nome": "Arcane.IoT",
+   "desc": "Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, sensores, MQTT — e um simulador de placa para testar sem hardware.",
+   "curto": "IoT / Arduino",
+   "funcoes": [
+    {
+     "nome": "Mqtt",
+     "sig": "(host, porta, cliente, usuario, senha, keepalive, testamento, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Placa",
+     "sig": "(transporte, nome, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Simulador",
+     "sig": "(modelo, versao)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "abrir_serial",
+     "sig": "(porta, velocidade, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "carregar",
+     "sig": "(caminho, porta, fqbn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "compilar",
+     "sig": "(caminho, fqbn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conectar",
+     "sig": "(porta, velocidade, prazo, reiniciar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "conectar_simulada",
+     "sig": "(modelo, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "divisor",
+     "sig": "(leitura, resistor, bits)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "doctor",
+     "sig": "(porta)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "escala",
+     "sig": "(valor, de_min, de_max, para_min, para_max, limitar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "gravar_sketch",
+     "sig": "(pasta, modelo, opcoes, fqbn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "histerese",
+     "sig": "(ligar, desligar)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "media_movel",
+     "sig": "(tamanho)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modelos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "modos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "monitorar",
+     "sig": "(porta, velocidade, linhas, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "mqtt",
+     "sig": "(host, porta, cliente, usuario, senha, keepalive, testamento, prazo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "ntc",
+     "sig": "(leitura, resistor, beta, nominal, temperatura_nominal, bits)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "nucleos",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "placas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "portas",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "simulador",
+     "sig": "(modelo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sketch",
+     "sig": "(modelo, opcoes, fqbn)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "sketches",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tem_arduino_cli",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tensao",
+     "sig": "(leitura, referencia, bits)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tmp36",
+     "sig": "(leitura, referencia, bits)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "iter": {
    "nome": "Arcane.Iter",
    "desc": "Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize.",
@@ -15206,6 +15353,88 @@
     "temDoc": true,
     "codigo": "// Exercicio 387 — o mapa, e as nove decisoes\n//\n// Enunciado: fechar a trilha com o que a Vitrine resolve, o que ela\n// NAO resolve, e por que cada escolha foi feita. A ultima parte e a\n// que evita usa-la onde o Kiln e a resposta.\n\nadopt Arcane.Vitrine as V\n\nout \"== 1. os quinze grupos de componentes ==\"\n\nsteady GRUPOS := {\n    \"texto\": \"titulo, subtitulo, markdown, codigo, citacao, formula\",\n    \"aviso\": \"informacao, sucesso, aviso, erro, excecao, status\",\n    \"entrada\": \"entrada, numero, escolha, data, arquivo, camera…\",\n    \"dados\": \"grade, frame, editor, indicador, estatisticas\",\n    \"grafico\": \"27 tipos, todos em SVG do servidor\",\n    \"layout\": \"colunas, abas, cartao, malha, painel, dialogo, popover\",\n    \"midia\": \"imagem, video, audio, pdf, galeria, iframe\",\n    \"estado\": \"estado, geral, cache, recurso\",\n    \"sessao\": \"autenticacao, exigir_login, pode, encerrar_sessao\",\n    \"pagina\": \"pagina, paginas, navegar, parametro, menu\",\n    \"conexao\": \"conexao, conexao_de, segredos\",\n    \"tema\": \"tema, temas, seletor_de_tema, paleta\",\n    \"fluxo\": \"fragmento, atualizar_a_cada, agendar, tarefa\",\n    \"saida\": \"exportar_csv, exportar_json, exportar_excel, exportar_svg\",\n    \"teste\": \"testar — clica, digita e pergunta, sem navegador\"\n}\nassert len(keys(GRUPOS)) is 15\nout $\"   {len(keys(GRUPOS))} grupos, {len(V.componentes())} componentes\"\n\nout \"\"\nout \"== 2. o modelo, em uma frase ==\"\n\nout \"   o programa INTEIRO roda de novo a cada interacao,\"\nout \"   e o estado da sessao sobrevive.\"\n\nout \"\"\nout \"== 3. e as consequencias diretas ==\"\n\nsteady CONSEQUENCIAS := [\n    \"nao ha callback nem diffing — e nao precisa haver\",\n    \"'V.cache' e obrigatorio, e nao opcional\",\n    \"a ordem importa: trate a interacao ANTES de desenhar\",\n    \"o botao e um VALOR verdadeiro uma vez, e nao um evento\"\n]\nassert len(CONSEQUENCIAS) is 4\ncycle c in CONSEQUENCIAS:\n    out $\"   - {c}\"\n\nout \"\"\nout \"== 4. o que ela NAO tem ==\"\n\nsteady NAO_TEM := {\n    \"WebSocket/SSE\": \"o Kiln tem; a Vitrine atualiza por PERGUNTA (V.atualizar_a_cada)\",\n    \"build\": \"nao ha bundle a construir — o cliente sao ~6 KB sem build\",\n    \"deploy\": \"esconderia o que a maquina e, e nao haveria onde mexer\",\n    \"CDN\": \"nada e buscado de fora — painel de dados roda em rede fechada\"\n}\nassert len(keys(NAO_TEM)) is 4\ncycle n in keys(NAO_TEM):\n    out $\"   {n}: {NAO_TEM[n]}\"\n\nout \"\"\nout \"== 5. quando usar o Kiln ==\"\n\nout \"   Vitrine: painel, ferramenta interna, app de dados\"\nout \"   Kiln:    API, site publico, rota com contrato, WebSocket\"\n\nout \"\"\nout \"== 6. e a prova de que tudo isso e testavel ==\"\n\naction painel():\n    V.titulo(\"Final\")\n    c := V.colunas(2)\n    c[0].metrica(\"A\", \"1\")\n    c[1].metrica(\"B\", \"2\")\n    V.grafico_linha([\"x\", \"y\"], {\"s\": [1.0, 2.0]})\n    V.grade([{\"n\":1}, {\"n\":2}])\n\nt := V.testar(painel)\nassert not t.falhou()\nassert t.quantos(\"metrica\") is 2\nassert t.quantos(\"grafico\") is 1\nassert t.quantos(\"grade\") is 1\nassert \"<svg\" in t.html()\nout $\"   {len(t.arvore()['filhos'])} nos de topo, zero navegadores\"\n\nout \"exercicio 387 ok\"\n"
    }
+  ],
+  "58-iot": [
+   {
+    "num": "388",
+    "titulo": "a primeira placa",
+    "enunciado": "acenda um LED. Sem placa nenhuma: 'conectar_simulada'",
+    "arquivo": "388_a_primeira_placa.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 388 — a primeira placa\n//\n// Enunciado: acenda um LED. Sem placa nenhuma: 'conectar_simulada'\n// poe do outro lado do cabo um simulador que fala o MESMO Firmata,\n// com o mapa de pinos de uma placa de verdade.\n\nadopt Arcane.IoT as IoT\n\nout \"== 1. conectar ==\"\n\nplaca := IoT.conectar_simulada(\"uno\")\ninfo := placa.info()\nassert info[\"firmware\"][\"nome\"] is \"StandardFirmata.ino\"\nassert info[\"protocolo\"] is \"2.5\"\nassert info[\"pinos\"] is 20\nassert info[\"analogicos\"] is 6\nout $\"   {info['pinos']} pinos, {info['analogicos']} canais analogicos\"\n\nout \"\"\nout \"== 2. todo pino tem um modo, e ele e declarado ==\"\n\n// Sem o modo, a placa nao sabe se o pino le ou escreve.\nplaca.modo(13, \"saida\")\nplaca.escrever(13, yes)\nassert placa.simulador.pino(13) is 1\nplaca.escrever(13, no)\nassert placa.simulador.pino(13) is 0\nout \"   o LED acendeu e apagou\"\n\nout \"\"\nout \"== 3. piscar ==\"\n\ncycle i from 1 to 3:\n    placa.escrever(13, yes)\n    sleep(20)\n    placa.escrever(13, no)\n    sleep(20)\nout \"   tres piscadas\"\n\nout \"\"\nout \"== 4. fechar DESLIGA as saidas ==\"\n\nplaca.escrever(13, yes)\nassert placa.simulador.pino(13) is 1\nplaca.fechar()\nassert placa.simulador.pino(13) is 0\n\n// Terminar deixando um rele ligado e o defeito mais caro desta area:\n// o resto do sistema continua, sem ninguem olhando.\nout \"   e fechar de novo nao e erro:\"\nassert placa.fechar() is no\n\nout \"\"\nout \"== 5. depois de fechada, ela recusa ==\"\n\nmonitor:\n    placa.escrever(13, yes)\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nout \"exercicio 388 ok\"\n"
+   },
+   {
+    "num": "389",
+    "titulo": "o erro numero 1 do Firmata",
+    "enunciado": "leia um sensor. A placa NAO responde perguntas sobre o",
+    "arquivo": "389_o_relatorio_analogico.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 389 — o erro numero 1 do Firmata\n//\n// Enunciado: leia um sensor. A placa NAO responde perguntas sobre o\n// analogico — ela envia sozinha, de tempos em tempos, os canais que\n// voce mandou relatar. Sem isso, o pino esta certo, o sensor esta\n// certo, e a leitura e zero. Sem nenhum erro.\n\nadopt Arcane.IoT as IoT\n\nplaca := IoT.conectar_simulada(\"uno\")\n\nout \"== 1. o modo nao basta ==\"\n\nplaca.modo(14, \"analogico\")                 // o A0 e o pino 14\nplaca.simulador.definir_analogico(0, 900)   // o sensor \"vale\" 900\nsleep(120)\nassert placa.analogico(0) is 0\nout \"   modo declarado, sensor em 900, leitura 0 — e nada acusa\"\n\nout \"\"\nout \"== 2. e esta a linha que falta ==\"\n\nplaca.relatar_analogico(0)\nsleep(150)\nassert placa.analogico(0) is 900\nout $\"   agora chega: {placa.analogico(0)}\"\n\nout \"\"\nout \"== 3. a amostragem e uma troca ==\"\n\n// Baixa demais enche a serial e ATRASA as ordens que voce manda;\n// alta demais faz o grafico perder detalhe.\nassert placa.amostragem(20) is 20\nplaca.simulador.definir_analogico(0, 512)\nsleep(120)\nassert placa.analogico(0) is 512\n\nmonitor:\n    placa.amostragem(1)\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nout \"\"\nout \"== 4. varios canais ao mesmo tempo ==\"\n\ncycle canal from 1 to 3:\n    placa.modo(14 + canal, \"analogico\")\n    placa.relatar_analogico(canal)\n    placa.simulador.definir_analogico(canal, 100 * canal)\n\nsleep(200)\nleituras := [placa.analogico(c) cycle c in range(1, 4)]\nassert leituras is [100, 200, 300]\nout $\"   {leituras}\"\n\nout \"\"\nout \"== 5. o digital e por MUDANCA ==\"\n\n// Ele nao vem periodicamente: a placa avisa quando o pino muda.\nvistos := []\nplaca.observar(lambda e: vistos.append(e[\"tipo\"]))\nplaca.modo(2, \"entrada_pullup\")\nplaca.simulador.definir_digital(2, 1)\nsleep(120)\nassert placa.ler(2) is yes\nplaca.simulador.definir_digital(2, 0)\nsleep(120)\nassert \"digital\" in vistos\nout \"   o observador viu a mudanca\"\n\nplaca.fechar()\nout \"exercicio 389 ok\"\n"
+   },
+   {
+    "num": "390",
+    "titulo": "do numero cru ao valor",
+    "enunciado": "um pino analogico devolve 0 a 1023. Ele nao e",
+    "arquivo": "390_escala_e_tensao.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 390 — do numero cru ao valor\n//\n// Enunciado: um pino analogico devolve 0 a 1023. Ele nao e\n// temperatura, nem luz: e o quanto da tensao de referencia chegou\n// ali. Transformar isso em grandeza e a parte que todo projeto\n// refaz — e onde os mesmos erros acontecem.\n\nadopt Arcane.IoT as IoT\n\nout \"== 1. escala LIMITA por padrao ==\"\n\nmeio := IoT.escala(512, 0, 1023, 0, 100)\nassert meio > 50.0 and meio < 50.1\n\n// O 'map()' do Arduino NAO limita, e ruido faz um ADC de 10 bits\n// devolver 1024 de vez em quando: no painel isso vira 101%.\nassert IoT.escala(2000, 0, 1023, 0, 100) is 100\nassert IoT.escala(0 - 5, 0, 1023, 0, 100) is 0\nout \"   fora da faixa, ela para nas pontas\"\n\n// E quem QUER extrapolar pede.\nassert IoT.escala(2000, 0, 1023, 0, 100, no) > 100\nout \"   com limitar := no, ela extrapola\"\n\nout \"\"\nout \"== 2. uma faixa de largura zero e recusada ==\"\n\nmonitor:\n    IoT.escala(1, 5, 5, 0, 10)\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nout \"\"\nout \"== 3. a tensao depende da PLACA ==\"\n\nassert IoT.tensao(1023) is 5.0                      // UNO: 10 bits, 5 V\nassert round(IoT.tensao(4095, 3.3, 12), 2) is 3.3   // ESP32: 12 bits\nassert round(IoT.tensao(2048, 3.3, 12), 2) is 1.65\nout \"   a mesma leitura em duas placas e duas tensoes\"\n\nout \"\"\nout \"== 4. TMP36: uma reta, com um deslocamento ==\"\n\n// A folha de dados: 750 mV a 25 graus, 10 mV por grau. O\n// deslocamento de 500 mV e o que quase todo mundo esquece.\nleitura := 0.75 / 5.0 * 1023\nt := IoT.tmp36(leitura)\nassert t > 24.5 and t < 25.5\nout $\"   {round(t, 1)} graus\"\n\nout \"\"\nout \"== 5. NTC: e a ponta da escala nao e temperatura ==\"\n\n// Com o termistor na resistencia nominal, o divisor le a metade.\nassert IoT.ntc(1023 / 2) > 24.7 and IoT.ntc(1023 / 2) < 25.3\n\n// Em 0 ou 1023 a equacao divide por zero ou tira log de zero, e o\n// que sai e um numero absurdo com cara de temperatura. Um\n// termostato que ve -273 liga o aquecedor e nao desliga mais.\ncycle ponta in [0, 1023]:\n    monitor:\n        IoT.ntc(ponta)\n        assert no\n    handle Error as e:\n        out $\"   {ponta}: {e.message}\"\n\nout \"\"\nout \"== 6. divisor: quando o sensor e uma resistencia ==\"\n\n// LDR, umidade de solo, potenciometro: tudo vira resistencia.\nr := IoT.divisor(1023 / 2)\nassert r > 9900 and r < 10100\nout $\"   {round(r)} ohms\"\n\nout \"exercicio 390 ok\"\n"
+   },
+   {
+    "num": "391",
+    "titulo": "o rele que nao bate",
+    "enunciado": "uma leitura pura treme (512, 509, 514, 511). Num",
+    "arquivo": "391_media_e_histerese.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 391 — o rele que nao bate\n//\n// Enunciado: uma leitura pura treme (512, 509, 514, 511). Num\n// grafico isso e grama; num controle, e o rele chaveando dezenas de\n// vezes por minuto — e e assim que um contato se queima.\n\nadopt Arcane.IoT as IoT\n\nout \"== 1. a media movel ESQUECE ==\"\n\nmedia := IoT.media_movel(3)\nassert media(10) is 10\nassert media(20) is 15\nassert media(30) is 20\nassert media(40) is 30              // o 10 saiu da janela\nout \"   janela de 3: a quarta leitura empurra a primeira para fora\"\n\nout \"\"\nout \"== 2. uma soleira so faz o rele bater ==\"\n\n// Ligar acima de 30 e desligar abaixo de 30: com a temperatura EM\n// 30, cada tremor de leitura e um chaveamento.\nsimples := lambda v: v bigger 30\nbatidas := 0\nanterior := no\ncycle v in [29.9, 30.1, 29.8, 30.2, 29.9, 30.1]:\n    atual := simples(v)\n    given atual is not anterior:\n        batidas += 1\n    anterior := atual\nassert batidas is 5\nout $\"   seis leituras em volta de 30, {batidas} chaveamentos\"\n\nout \"\"\nout \"== 3. com DUAS soleiras, nenhum ==\"\n\nventoinha := IoT.histerese(30, 28)\nbatidas := 0\nanterior := no\ncycle v in [29.9, 30.1, 29.8, 30.2, 29.9, 30.1]:\n    atual := ventoinha(v)\n    given atual is not anterior:\n        batidas += 1\n    anterior := atual\nassert batidas is 1\nout $\"   as mesmas leituras, {batidas} chaveamento\"\n\nout \"\"\nout \"== 4. ela SEGURA o estado no meio ==\"\n\ntermostato := IoT.histerese(30, 28)\nassert termostato(29) is no         // subindo, ainda nao\nassert termostato(31) is yes\nassert termostato(29) is yes        // no meio, segura\nassert termostato(27) is no\nout \"   liga em 30, so desliga em 28\"\n\nout \"\"\nout \"== 5. invertendo, ela liga ABAIXO ==\"\n\n// E o umidificador, o aquecedor, a bomba.\numidificador := IoT.histerese(40, 50)\nassert umidificador(45) is no\nassert umidificador(35) is yes\nassert umidificador(45) is yes\nassert umidificador(55) is no\nout \"   liga abaixo de 40, so desliga em 50\"\n\nout \"\"\nout \"== 6. duas soleiras iguais sao UMA ==\"\n\nmonitor:\n    IoT.histerese(30, 30)\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nout \"exercicio 391 ok\"\n"
+   },
+   {
+    "num": "392",
+    "titulo": "o meio-termo que nao existe",
+    "enunciado": "um pino digital so tem dois valores. \"Meio brilho\" e o",
+    "arquivo": "392_pwm_e_servo.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 392 — o meio-termo que nao existe\n//\n// Enunciado: um pino digital so tem dois valores. \"Meio brilho\" e o\n// pino ligando e desligando rapido o bastante para o olho — ou o\n// motor — nao notar. E o PWM.\n\nadopt Arcane.IoT as IoT\n\nplaca := IoT.conectar_simulada(\"uno\")\n\nout \"== 1. o modo e DECLARADO, nunca adivinhado ==\"\n\n// Declarar por conta propria seria conveniente e errado: um pino em\n// 'saida' recebendo PWM acende no talo, e quem le o programa nao\n// veria onde o modo mudou.\nmonitor:\n    placa.pwm(9, 128)\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nplaca.modo(9, \"pwm\")\nassert placa.pwm(9, 128) is 128\nout \"   com o modo declarado, passa\"\n\nout \"\"\nout \"== 2. a faixa e 0 a 255 ==\"\n\ncycle brilho in [0, 64, 128, 192, 255]:\n    placa.pwm(9, brilho)\nassert placa.simulador.pino(9) is 255\n\nmonitor:\n    placa.pwm(9, 300)\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nout \"\"\nout \"== 3. e so alguns pinos fazem PWM ==\"\n\n// Num UNO: 3, 5, 6, 9, 10 e 11. E quem diz isso e a PLACA.\nassert \"pwm\" in placa.capacidades(9)\nassert not (\"pwm\" in placa.capacidades(13))\n\nmonitor:\n    placa.modo(13, \"pwm\")\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n    out $\"   {e.nota}\"\n\nout \"\"\nout \"== 4. servo: posicao, nao velocidade ==\"\n\nplaca.modo(3, \"servo\")\ncycle graus in [0, 90, 180, 90]:\n    placa.servo(3, graus)\nassert placa.simulador.servo(3) is 90\n\nmonitor:\n    placa.servo(3, 200)\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nout \"\"\nout \"== 5. cada servo tem o seu fim de curso ==\"\n\n// Quando o braco treme numa ponta, e isto.\nassert placa.configurar_servo(3, 600, 2300) is \"servo\"\nplaca.servo(3, 0)\nassert placa.simulador.servo(3) is 0\nout \"   os microssegundos das duas pontas, ajustados\"\n\nplaca.fechar()\nout \"exercicio 392 ok\"\n"
+   },
+   {
+    "num": "393",
+    "titulo": "quem conhece a placa e a placa",
+    "enunciado": "cada placa tem um mapa diferente — quantos pinos",
+    "arquivo": "393_as_capacidades.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 393 — quem conhece a placa e a placa\n//\n// Enunciado: cada placa tem um mapa diferente — quantos pinos\n// digitais, quais fazem PWM, quantos canais analogicos. Escrever\n// esse mapa na linguagem seria errar na primeira placa nova.\n\nadopt Arcane.IoT as IoT\n\nout \"== 1. os modelos que o simulador conhece ==\"\n\nm := IoT.modelos()\nassert m[\"uno\"][\"digitais\"] is 14 and m[\"uno\"][\"analogicos\"] is 6\nassert m[\"mega\"][\"digitais\"] is 54\nassert m[\"esp32\"][\"tensao\"] is 3.3\nout $\"   {len(m)} modelos: {sorted(keys(m))}\"\n\nout \"\"\nout \"== 2. o PWM nao esta em todo pino ==\"\n\nassert 11 in m[\"uno\"][\"pwm\"]\nassert not (4 in m[\"uno\"][\"pwm\"])\nout $\"   numa UNO: {m['uno']['pwm']}\"\n\nout \"\"\nout \"== 3. e a PLACA confirma, pelo protocolo ==\"\n\nuno := IoT.conectar_simulada(\"uno\")\nassert \"pwm\" in uno.capacidades(9)\nassert \"servo\" in uno.capacidades(9)\nassert not (\"pwm\" in uno.capacidades(13))\nassert \"saida\" in uno.capacidades(13)\n\n// Um pino que nao existe e outro erro, com outra mensagem.\nmonitor:\n    uno.modo(99, \"saida\")\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n    out $\"   {e.nota}\"\n\nout \"\"\nout \"== 4. uma Mega tem mais, e o Firmata os ve ==\"\n\nmega := IoT.conectar_simulada(\"mega\")\nassert mega.info()[\"pinos\"] is 70\nmega.modo(53, \"saida\")                  // um pino que a UNO nao tem\nmega.escrever(53, yes)\nassert mega.simulador.pino(53) is 1\nout \"   o pino 53 respondeu\"\n\nmonitor:\n    uno.modo(53, \"saida\")               // e na UNO, nao\n    assert no\nhandle Error as e:\n    out $\"   na UNO: {e.message}\"\n\nout \"\"\nout \"== 5. um modelo que nao existe e recusado com a lista ==\"\n\nmonitor:\n    IoT.simulador(\"commodore-64\")\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nuno.fechar()\nmega.fechar()\nout \"exercicio 393 ok\"\n"
+   },
+   {
+    "num": "394",
+    "titulo": "dois fios, muitos sensores",
+    "enunciado": "I2C liga varios dispositivos em dois fios (SDA e SCL),",
+    "arquivo": "394_i2c.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 394 — dois fios, muitos sensores\n//\n// Enunciado: I2C liga varios dispositivos em dois fios (SDA e SCL),\n// cada um com um endereco. E como quase todo sensor moderno\n// conversa: acelerometro, barometro, RTC, display.\n\nadopt Arcane.IoT as IoT\n\nplaca := IoT.conectar_simulada(\"uno\")\nplaca.i2c_configurar()\n\nout \"== 1. ler um registro ==\"\n\n// O MPU6050 em 0x68, registro 0x3B: seis bytes de aceleracao.\nplaca.simulador.definir_i2c(0x68, 0x3B, [0, 100, 255, 200, 1, 44])\ndados := placa.i2c_ler(0x68, 0x3B, 6, 2)\nassert len(dados) is 6\nassert dados is [0, 100, 255, 200, 1, 44]\n\n// Os valores vem em dois bytes: alto primeiro.\nx := dados[0] * 256 + dados[1]\nassert x is 100\nout $\"   aceleracao X (cru): {x}\"\n\nout \"\"\nout \"== 2. silencio devolve void, e NAO levanta ==\"\n\n// Endereco errado, fio solto ou sensor sem alimentacao dao o mesmo\n// resultado: nada. Levantar aqui obrigaria um 'monitor' em volta de\n// cada leitura de um laco que roda mil vezes.\nresposta := placa.i2c_ler(0x77, 0xD0, 1, 0.3)\nassert resposta is void\nout \"   ninguem em 0x77 — e o programa decide o que fazer\"\n\ngiven resposta is void:\n    out \"   confira SDA, SCL, o 3,3 V e os resistores de pull-up\"\n\nout \"\"\nout \"== 3. escrever num registro ==\"\n\n// Quase todo sensor nasce em modo de repouso: acordar e a primeira\n// escrita de qualquer driver.\nassert placa.i2c_escrever(0x68, [0x6B, 0x00]) is 2\nout \"   dois bytes: o registro e o valor\"\n\nout \"\"\nout \"== 4. dois dispositivos no MESMO par de fios ==\"\n\nplaca.simulador.definir_i2c(0x76, 0xF7, [80, 0, 0])     // BMP280\nplaca.simulador.definir_i2c(0x68, 0x75, [104])          // WHO_AM_I\n\nassert placa.i2c_ler(0x76, 0xF7, 3, 2) is [80, 0, 0]\nassert placa.i2c_ler(0x68, 0x75, 1, 2) is [104]\nout \"   o endereco e o que os separa\"\n\nout \"\"\nout \"== 5. o endereco da folha de dados as vezes vem DESLOCADO ==\"\n\n// 0xD0 e 0x68 escrito com o bit de leitura/escrita junto. Se o\n// sensor nao responde em nenhum endereco, tente a metade.\nassert 0xD0 ~/ 2 is 0x68\nout \"   0xD0 / 2 = 0x68\"\n\nplaca.fechar()\nout \"exercicio 394 ok\"\n"
+   },
+   {
+    "num": "395",
+    "titulo": "o acento que quebra o protocolo",
+    "enunciado": "no Firmata todo byte de dado viaja PARTIDO em dois de",
+    "arquivo": "395_texto_e_sete_bits.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 395 — o acento que quebra o protocolo\n//\n// Enunciado: no Firmata todo byte de dado viaja PARTIDO em dois de\n// sete bits — o oitavo marca comando. Ler so o primeiro de cada par\n// devolve a metade baixa: em ASCII ninguem nota, porque ali o bit 7\n// e zero. Num acento, \"ola\" vira \"olC!\".\n\nadopt Arcane.IoT as IoT\n\nplaca := IoT.conectar_simulada(\"uno\")\n\nout \"== 1. o sketch fala com Firmata.sendString ==\"\n\nplaca.simulador.mandar_texto(\"calibracao concluida\")\nsleep(120)\nassert placa.textos()[0] is \"calibracao concluida\"\nout $\"   {placa.textos()[0]}\"\n\nout \"\"\nout \"== 2. e com acento tambem ==\"\n\nplaca.simulador.mandar_texto(\"temperatura: 21,5 graus — leitura ok\")\nsleep(120)\nassert \"—\" in placa.textos()[1]\nassert \"graus\" in placa.textos()[1]\nout $\"   {placa.textos()[1]}\"\n\ntexto := \"ola, ceu de acucar: ção, ã, ê, ü\"\nplaca.simulador.mandar_texto(texto)\nsleep(120)\nassert placa.textos()[2] is texto\nout $\"   {placa.textos()[2]}\"\n\nout \"\"\nout \"== 3. por que isso quebra ==\"\n\n// 'ç' em UTF-8 sao dois bytes, e cada um deles tem o bit 7 LIGADO.\n// Partir em sete bits e obrigatorio; esquecer de juntar de volta\n// devolve a metade baixa, e o defeito fica escondido ate a primeira\n// mensagem em portugues.\nbytes_de_c := len(\"ç\")\nassert bytes_de_c is 1               // um caractere...\nout \"   um caractere, dois bytes no fio, quatro no Firmata\"\n\nout \"\"\nout \"== 4. o observador tambem ve o texto ==\"\n\nvistos := []\nplaca.observar(lambda e: vistos.append(e))\nplaca.simulador.mandar_texto(\"pronto\")\nsleep(120)\ntipos := [e[\"tipo\"] cycle e in vistos]\nassert \"texto\" in tipos\nout \"   chega como evento, e nao so na lista\"\n\nout \"\"\nout \"== 5. e por que isso e o 'println' de quem usa Firmata ==\"\n\n// Depurar um sketch e escrever na serial. Com o Firmata ocupando a\n// porta, 'Serial.println' estragaria o protocolo — a mensagem tem\n// de vir DENTRO dele.\nassert len(placa.textos()) is 4\nout $\"   {len(placa.textos())} mensagens, e o protocolo intacto\"\n\nplaca.fechar()\nout \"exercicio 395 ok\"\n"
+   },
+   {
+    "num": "396",
+    "titulo": "quando o programa precisa rodar NA placa",
+    "enunciado": "Firmata cobre o prototipo. O que precisa rodar sem",
+    "arquivo": "396_sketch_gerado.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 396 — quando o programa precisa rodar NA placa\n//\n// Enunciado: Firmata cobre o prototipo. O que precisa rodar sem\n// computador — um sensor a bateria, um controle com resposta em\n// microssegundos — e sketch: C++ na placa. A linguagem escreve o\n// sketch, e o arduino-cli compila e grava.\n\nadopt Arcane.IoT as IoT\nadopt Arcane.OS as OS\nadopt Arcane.IO as IO\n\nout \"== 1. os modelos que existem ==\"\n\nmodelos := IoT.sketches()\nassert len(modelos) >= 6\ncycle nome in sorted(keys(modelos)):\n    out $\"   {nome}: {modelos[nome]['descricao']}\"\n\nout \"\"\nout \"== 2. todo modelo gera C++ valido ==\"\n\ncycle nome in keys(modelos):\n    codigo := IoT.sketch(nome)\n    assert \"void setup()\" in codigo\n    assert \"void loop()\" in codigo\n    assert not (\"{led}\" in codigo)      // nada por substituir\nout \"   setup, loop, e nenhum marcador esquecido\"\n\nout \"\"\nout \"== 3. as opcoes entram no codigo ==\"\n\ncodigo := IoT.sketch(\"pisca\", {\"led\": 7, \"intervalo\": 120})\nassert \"const int LED = 7;\" in codigo\nassert \"INTERVALO = 120\" in codigo\nout \"   o LED e o intervalo foram para dentro do .ino\"\n\nout \"\"\nout \"== 4. uma opcao que nao existe e RECUSADA ==\"\n\n// Um '--lde=7' que passa calado grava o sketch com o LED errado, e\n// a pessoa vai procurar o defeito no fio.\nmonitor:\n    IoT.sketch(\"pisca\", {\"lde\": 7})\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nout \"\"\nout \"== 5. o arquivo tem o NOME DA PASTA ==\"\n\n// Um .ino solto nao compila, e o erro do arduino-cli nao diz por que.\npasta := $\"{OS.temp_dir()}/df-396-{randint(100000, 999999)}\"\ncaminho := IoT.gravar_sketch(pasta, \"sensor\", {\"canal\": 0, \"velocidade\": 9600})\nassert \"sensor/sensor.ino\" in caminho\nassert \"Serial.begin(9600)\" in IO.read(caminho)\nout \"   pasta 'sensor', arquivo 'sensor.ino'\"\nIO.remove_tree(pasta)\n\nout \"\"\nout \"== 6. o firmata gerado fala a velocidade certa ==\"\n\n// 57600 e a do StandardFirmata; 9600 nao conversa com ele.\nassert \"Firmata.begin(57600)\" in IoT.sketch(\"firmata\")\nout \"   57600, que e a que IoT.conectar usa\"\n\nout \"\"\nout \"== 7. compilar e gravar chamam o arduino-cli ==\"\n\n// Reimplementar isso seria refazer o GCC e o avrdude. O projeto\n// prefere dizer que depende dele a fingir que nao.\ngiven IoT.tem_arduino_cli():\n    out \"   ele esta instalado: da para compilar e gravar daqui\"\notherwise:\n    out \"   nao esta instalado — 'brew install arduino-cli'\"\n\nout \"exercicio 396 ok\"\n"
+   },
+   {
+    "num": "397",
+    "titulo": "le, decide, age",
+    "enunciado": "uma estufa e o projeto de IoT completo mais simples",
+    "arquivo": "397_a_estufa.df",
+    "temDoc": true,
+    "codigo": "// Exercicio 397 — le, decide, age\n//\n// Enunciado: uma estufa e o projeto de IoT completo mais simples\n// que existe. Ela LE (temperatura e umidade de solo), DECIDE (com\n// histerese) e AGE (aquecedor e bomba). Todo problema da area\n// aparece nela.\n\nadopt Arcane.IoT as IoT\n\nsteady TEMPERATURA := 0        // A0 — TMP36\nsteady SOLO := 1               // A1 — sensor resistivo\nsteady AQUECEDOR := 7          // rele\nsteady BOMBA := 8              // rele\n\nrecord Estado:\n    graus: Float\n    umidade: Float\n    aquecendo: Boolean\n    regando: Boolean\n\naction abrir(modelo):\n    p := IoT.conectar_simulada(modelo)\n    p.modo(AQUECEDOR, \"saida\")\n    p.modo(BOMBA, \"saida\")\n    p.modo(14 + TEMPERATURA, \"analogico\")\n    p.modo(14 + SOLO, \"analogico\")\n    p.relatar_analogico(TEMPERATURA)\n    p.relatar_analogico(SOLO)\n    p.amostragem(50)\n    yield p\n\n// A decisao mora FORA do laco da placa: sem isso nao da para testar\n// um controle sem hardware.\naction ciclo(placa, suavizar, aquecedor, bomba):\n    graus := IoT.tmp36(suavizar(placa.analogico(TEMPERATURA)))\n    umidade := IoT.escala(placa.analogico(SOLO), 0, 1023, 0, 100)\n    aquecendo := aquecedor(graus)\n    regando := bomba(umidade)\n    placa.escrever(AQUECEDOR, aquecendo)\n    placa.escrever(BOMBA, regando)\n    yield Estado(round(graus, 1), round(umidade, 1), aquecendo, regando)\n\nout \"== 1. frio e seco: os dois ligam ==\"\n\nplaca := abrir(\"uno\")\ndefer:\n    placa.fechar()              // os dois reles desligam ao sair\n\nsuavizar := IoT.media_movel(5)\naquecedor := IoT.histerese(18, 21)      // liga abaixo de 18\nbomba := IoT.histerese(30, 45)          // liga abaixo de 30% de umidade\n\nplaca.simulador.definir_analogico(TEMPERATURA, 123)   // ~10 graus\nplaca.simulador.definir_analogico(SOLO, 200)          // ~20%\nsleep(150)\n\nestado := ciclo(placa, suavizar, aquecedor, bomba)\nassert estado.aquecendo is yes and estado.regando is yes\nassert placa.simulador.pino(AQUECEDOR) is 1\nout $\"   {estado.graus} graus, solo {estado.umidade}% — aquecedor e bomba ligados\"\n\nout \"\"\nout \"== 2. aqueceu e molhou: os dois desligam ==\"\n\nplaca.simulador.definir_analogico(TEMPERATURA, 400)   // ~72 graus\nplaca.simulador.definir_analogico(SOLO, 700)          // ~68%\nsleep(150)\ncycle i from 1 to 5:                                   // a janela da media\n    estado := ciclo(placa, suavizar, aquecedor, bomba)\n    sleep(20)\nassert estado.aquecendo is no and estado.regando is no\nassert placa.simulador.pino(BOMBA) is 0\nout $\"   {estado.graus} graus, solo {estado.umidade}% — os dois desligados\"\n\nout \"\"\nout \"== 3. no MEIO da faixa, a histerese segura ==\"\n\nplaca.simulador.definir_analogico(SOLO, 400)          // ~39%: entre 30 e 45\nsleep(120)\ncycle i from 1 to 3:\n    estado := ciclo(placa, suavizar, aquecedor, bomba)\nassert estado.regando is no                            // estava desligada\nout \"   entre as duas soleiras, ela mantem o estado\"\n\nout \"\"\nout \"== 4. o record evita a chave com erro de digitacao ==\"\n\n// Num vault solto, estado[\"aquecndo\"] seria void — e void e falso.\nmonitor:\n    out estado.aquecndo\n    assert no\nhandle Error as e:\n    out $\"   {e.message}\"\n\nout \"\"\nout \"== 5. o teto duro que a histerese NAO da ==\"\n\n// Histerese nao protege de um sensor que soltou do vaso: a leitura\n// fica em \"seco\" para sempre, e a bomba nao desliga nunca.\naction limitador(maximo_ms):\n    gasto := [0]\n    action pode(ligar, decorrido):\n        given not ligar:\n            yield no\n        given gasto[0] + decorrido bigger maximo_ms:\n            yield no\n        gasto[0] := gasto[0] + decorrido\n        yield yes\n    yield pode\n\npode := limitador(30000)\nassert pode(yes, 10000) is yes\nassert pode(yes, 10000) is yes\nassert pode(yes, 20000) is no           // passou do teto da hora\nout \"   30 s por hora, e nem o sensor quebrado alaga a casa\"\n\nout \"\"\nout \"== 6. e o defer desliga tudo, inclusive no erro ==\"\n\nmonitor:\n    placa.escrever(AQUECEDOR, yes)\n    trigger \"um erro no meio do ciclo\"\nhandle Error:\n    out \"   falhou no meio — e o programa ainda fecha a placa\"\n\nout \"exercicio 397 ok\"\n"
+   }
   ]
  },
  "palavras": [
@@ -15554,9 +15783,9 @@
  },
  "totalBuiltins": 231,
  "contagem": {
-  "testes": 3808,
+  "testes": 3817,
   "exemplos": 50,
-  "arquivosDf": 503
+  "arquivosDf": 513
  },
  "mundo": {
   "estrelas": 0,

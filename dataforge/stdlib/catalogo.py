@@ -19,6 +19,9 @@ assunto.
 
 #: nome oficial -> (para que serve, nome curto que 'adopt' tambem aceita)
 DESCRICOES = {
+    "Arcane.IoT": ("Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, "
+                   "sensores, MQTT — e um simulador de placa para testar sem hardware.",
+                   "IoT / Arduino"),
     "Arcane.Math": ("Matemática, álgebra linear e estatística básica.", "Math"),
     "Arcane.Text": ("Manipulação de texto, formatação, tabelas e conversão de caixa.", "Text"),
     "Arcane.Analytics": ("Análise de dados: estatística, regressão, clustering e gráficos ASCII.", "Analytics"),

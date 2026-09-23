@@ -130,7 +130,7 @@ assert Res.ok(3).deu_certo()''', "lang": "df"},
    ["execução", "`interpreter.py`", "a semântica"],
    ["compilação", "`compilador.py`", "a árvore vira fechamentos, uma vez"],
    ["representações do meio", "`hir.py`, `mir.py`, `ssa.py`, `lir.py`", "o que o compilador vê"],
-   ["biblioteca", "`stdlib/`", "85 módulos"],
+   ["biblioteca", "`stdlib/`", "86 módulos"],
    ["ferramentas", "`formatter.py`, `linter.py`, `testrunner.py`, `lsp.py`, `dap.py`", "fmt, lint, test, editor, depurador"]]}},
  {"code": '''adopt Arcane.Ecossistema as E
 

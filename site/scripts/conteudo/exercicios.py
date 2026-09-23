@@ -295,6 +295,7 @@ TITULOS = {
     "55-oop-magicos": "Métodos mágicos",
     "56-telegram": "Bots de Telegram",
     "57-vitrine-painel": "Vitrine — o painel",
+    "58-iot": "IoT e Arduino",
 }
 
 
@@ -379,7 +380,7 @@ def _pagina_modulo(nome, itens, caminhos):
     # ── O corpo: cada exercício, por inteiro ──────────────────────
     #
     # Antes a página parava na tabela acima: título e enunciado, e nada
-    # do código. Quem chegava por busca via a PROMESSA de 387 exercícios
+    # do código. Quem chegava por busca via a PROMESSA de 397 exercícios
     # e nenhum deles — para ler um, era preciso clonar o repositório.
     # O código é a resposta e o teste ao mesmo tempo; escondê-lo
     # esvazia a seção inteira.

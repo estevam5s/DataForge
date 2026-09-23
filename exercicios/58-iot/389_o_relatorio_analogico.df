@@ -1,0 +1,73 @@
+// Exercicio 389 — o erro numero 1 do Firmata
+//
+// Enunciado: leia um sensor. A placa NAO responde perguntas sobre o
+// analogico — ela envia sozinha, de tempos em tempos, os canais que
+// voce mandou relatar. Sem isso, o pino esta certo, o sensor esta
+// certo, e a leitura e zero. Sem nenhum erro.
+
+adopt Arcane.IoT as IoT
+
+placa := IoT.conectar_simulada("uno")
+
+out "== 1. o modo nao basta =="
+
+placa.modo(14, "analogico")                 // o A0 e o pino 14
+placa.simulador.definir_analogico(0, 900)   // o sensor "vale" 900
+sleep(120)
+assert placa.analogico(0) is 0
+out "   modo declarado, sensor em 900, leitura 0 — e nada acusa"
+
+out ""
+out "== 2. e esta a linha que falta =="
+
+placa.relatar_analogico(0)
+sleep(150)
+assert placa.analogico(0) is 900
+out $"   agora chega: {placa.analogico(0)}"
+
+out ""
+out "== 3. a amostragem e uma troca =="
+
+// Baixa demais enche a serial e ATRASA as ordens que voce manda;
+// alta demais faz o grafico perder detalhe.
+assert placa.amostragem(20) is 20
+placa.simulador.definir_analogico(0, 512)
+sleep(120)
+assert placa.analogico(0) is 512
+
+monitor:
+    placa.amostragem(1)
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+out ""
+out "== 4. varios canais ao mesmo tempo =="
+
+cycle canal from 1 to 3:
+    placa.modo(14 + canal, "analogico")
+    placa.relatar_analogico(canal)
+    placa.simulador.definir_analogico(canal, 100 * canal)
+
+sleep(200)
+leituras := [placa.analogico(c) cycle c in range(1, 4)]
+assert leituras is [100, 200, 300]
+out $"   {leituras}"
+
+out ""
+out "== 5. o digital e por MUDANCA =="
+
+// Ele nao vem periodicamente: a placa avisa quando o pino muda.
+vistos := []
+placa.observar(lambda e: vistos.append(e["tipo"]))
+placa.modo(2, "entrada_pullup")
+placa.simulador.definir_digital(2, 1)
+sleep(120)
+assert placa.ler(2) is yes
+placa.simulador.definir_digital(2, 0)
+sleep(120)
+assert "digital" in vistos
+out "   o observador viu a mudanca"
+
+placa.fechar()
+out "exercicio 389 ok"

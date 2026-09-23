@@ -1,7 +1,7 @@
 {
   "_comentario": "Gerado por 'packaging/gerar_pacotes.py'. Nao edite aqui.",
   "version": "1.1.1",
-  "description": "Linguagem interpretada com 85 modulos de biblioteca padrao.",
+  "description": "Linguagem interpretada com 86 modulos de biblioteca padrao.",
   "homepage": "https://dataforge-lang.vercel.app",
   "license": "MIT",
   "architecture": {

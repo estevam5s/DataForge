@@ -1,0 +1,76 @@
+// Exercicio 390 — do numero cru ao valor
+//
+// Enunciado: um pino analogico devolve 0 a 1023. Ele nao e
+// temperatura, nem luz: e o quanto da tensao de referencia chegou
+// ali. Transformar isso em grandeza e a parte que todo projeto
+// refaz — e onde os mesmos erros acontecem.
+
+adopt Arcane.IoT as IoT
+
+out "== 1. escala LIMITA por padrao =="
+
+meio := IoT.escala(512, 0, 1023, 0, 100)
+assert meio > 50.0 and meio < 50.1
+
+// O 'map()' do Arduino NAO limita, e ruido faz um ADC de 10 bits
+// devolver 1024 de vez em quando: no painel isso vira 101%.
+assert IoT.escala(2000, 0, 1023, 0, 100) is 100
+assert IoT.escala(0 - 5, 0, 1023, 0, 100) is 0
+out "   fora da faixa, ela para nas pontas"
+
+// E quem QUER extrapolar pede.
+assert IoT.escala(2000, 0, 1023, 0, 100, no) > 100
+out "   com limitar := no, ela extrapola"
+
+out ""
+out "== 2. uma faixa de largura zero e recusada =="
+
+monitor:
+    IoT.escala(1, 5, 5, 0, 10)
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+out ""
+out "== 3. a tensao depende da PLACA =="
+
+assert IoT.tensao(1023) is 5.0                      // UNO: 10 bits, 5 V
+assert round(IoT.tensao(4095, 3.3, 12), 2) is 3.3   // ESP32: 12 bits
+assert round(IoT.tensao(2048, 3.3, 12), 2) is 1.65
+out "   a mesma leitura em duas placas e duas tensoes"
+
+out ""
+out "== 4. TMP36: uma reta, com um deslocamento =="
+
+// A folha de dados: 750 mV a 25 graus, 10 mV por grau. O
+// deslocamento de 500 mV e o que quase todo mundo esquece.
+leitura := 0.75 / 5.0 * 1023
+t := IoT.tmp36(leitura)
+assert t > 24.5 and t < 25.5
+out $"   {round(t, 1)} graus"
+
+out ""
+out "== 5. NTC: e a ponta da escala nao e temperatura =="
+
+// Com o termistor na resistencia nominal, o divisor le a metade.
+assert IoT.ntc(1023 / 2) > 24.7 and IoT.ntc(1023 / 2) < 25.3
+
+// Em 0 ou 1023 a equacao divide por zero ou tira log de zero, e o
+// que sai e um numero absurdo com cara de temperatura. Um
+// termostato que ve -273 liga o aquecedor e nao desliga mais.
+cycle ponta in [0, 1023]:
+    monitor:
+        IoT.ntc(ponta)
+        assert no
+    handle Error as e:
+        out $"   {ponta}: {e.message}"
+
+out ""
+out "== 6. divisor: quando o sensor e uma resistencia =="
+
+// LDR, umidade de solo, potenciometro: tudo vira resistencia.
+r := IoT.divisor(1023 / 2)
+assert r > 9900 and r < 10100
+out $"   {round(r)} ohms"
+
+out "exercicio 390 ok"

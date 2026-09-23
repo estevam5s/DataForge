@@ -6,6 +6,7 @@ tipos, aridade, o operador '//' ambiguo e a integridade da stdlib.
 
 import io
 import os
+import subprocess
 import sys
 from contextlib import redirect_stdout
 
@@ -2746,10 +2747,25 @@ def test_cada_documento_de_doc_esta_classificado():
     atuais = indice.split("## Documentos históricos")[0]
     resto = indice.split("## Documentos históricos")[1]
 
+    # Um arquivo que o git IGNORA nao pode estar num indice versionado:
+    # ele so existe nesta copia de trabalho, e a entrada apontaria para
+    # nada em qualquer outro clone. Sem esta linha, um rascunho local em
+    # 'doc/' reprova a suite de quem o tem — e de mais ninguem.
+    ignorados = set()
+    try:
+        saida = subprocess.run(["git", "check-ignore", "--stdin"],
+                               cwd=raiz, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace",
+                               input="\n".join(sorted(
+                                   glob.glob(os.path.join(raiz, "doc", "*.md")))))
+        ignorados = {os.path.basename(l) for l in saida.stdout.splitlines() if l}
+    except OSError:                                    # pragma: no cover
+        pass
+
     ruins = []
     for caminho in sorted(glob.glob(os.path.join(raiz, "doc", "*.md"))):
         nome = os.path.basename(caminho)
-        if nome == "README.md":
+        if nome == "README.md" or nome in ignorados:
             continue
 
         if nome in atuais:

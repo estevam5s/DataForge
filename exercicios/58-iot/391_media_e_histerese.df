@@ -1,0 +1,78 @@
+// Exercicio 391 — o rele que nao bate
+//
+// Enunciado: uma leitura pura treme (512, 509, 514, 511). Num
+// grafico isso e grama; num controle, e o rele chaveando dezenas de
+// vezes por minuto — e e assim que um contato se queima.
+
+adopt Arcane.IoT as IoT
+
+out "== 1. a media movel ESQUECE =="
+
+media := IoT.media_movel(3)
+assert media(10) is 10
+assert media(20) is 15
+assert media(30) is 20
+assert media(40) is 30              // o 10 saiu da janela
+out "   janela de 3: a quarta leitura empurra a primeira para fora"
+
+out ""
+out "== 2. uma soleira so faz o rele bater =="
+
+// Ligar acima de 30 e desligar abaixo de 30: com a temperatura EM
+// 30, cada tremor de leitura e um chaveamento.
+simples := lambda v: v bigger 30
+batidas := 0
+anterior := no
+cycle v in [29.9, 30.1, 29.8, 30.2, 29.9, 30.1]:
+    atual := simples(v)
+    given atual is not anterior:
+        batidas += 1
+    anterior := atual
+assert batidas is 5
+out $"   seis leituras em volta de 30, {batidas} chaveamentos"
+
+out ""
+out "== 3. com DUAS soleiras, nenhum =="
+
+ventoinha := IoT.histerese(30, 28)
+batidas := 0
+anterior := no
+cycle v in [29.9, 30.1, 29.8, 30.2, 29.9, 30.1]:
+    atual := ventoinha(v)
+    given atual is not anterior:
+        batidas += 1
+    anterior := atual
+assert batidas is 1
+out $"   as mesmas leituras, {batidas} chaveamento"
+
+out ""
+out "== 4. ela SEGURA o estado no meio =="
+
+termostato := IoT.histerese(30, 28)
+assert termostato(29) is no         // subindo, ainda nao
+assert termostato(31) is yes
+assert termostato(29) is yes        // no meio, segura
+assert termostato(27) is no
+out "   liga em 30, so desliga em 28"
+
+out ""
+out "== 5. invertendo, ela liga ABAIXO =="
+
+// E o umidificador, o aquecedor, a bomba.
+umidificador := IoT.histerese(40, 50)
+assert umidificador(45) is no
+assert umidificador(35) is yes
+assert umidificador(45) is yes
+assert umidificador(55) is no
+out "   liga abaixo de 40, so desliga em 50"
+
+out ""
+out "== 6. duas soleiras iguais sao UMA =="
+
+monitor:
+    IoT.histerese(30, 30)
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+out "exercicio 391 ok"

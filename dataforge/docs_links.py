@@ -205,7 +205,7 @@ MODULOS_COM_PAGINA = frozenset({
     "compilador", "concurrent", "cortex", "crucible", "crypto", "data",
     "database", "deteccao", "decimal", "dominio", "dsl", "ecossistema", "email",
     "estrutura", "eventos", "evolucao", "excel", "forge", "functional", "html", "http",
-    "inicio", "injecao", "io", "iter", "laco", "lago", "lavra", "logging",
+    "inicio", "injecao", "io", "iot", "iter", "laco", "lago", "lavra", "logging",
     "macro", "malha", "math", "memoria", "meta", "objetos", "observar",
     "os", "padroes", "percurso", "perfil", "pipeline", "politica", "ponte", "posse",
     "principios", "process", "quadro", "qualidade", "reativo", "seguranca", "rede",

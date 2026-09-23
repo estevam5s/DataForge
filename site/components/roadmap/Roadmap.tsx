@@ -32,7 +32,7 @@ import dados from '@/lib/roadmap-gerado.json';
 const MODOS: { id: Modo; rotulo: string; sub: string }[] = [
   { id: 'percurso', rotulo: 'O percurso', sub: 'as 10 fases de um arquivo' },
   { id: 'ecossistema', rotulo: 'O ecossistema', sub: '41 componentes, conferidos' },
-  { id: 'biblioteca', rotulo: 'A biblioteca', sub: '85 módulos Arcane' },
+  { id: 'biblioteca', rotulo: 'A biblioteca', sub: '86 módulos Arcane' },
 ];
 
 const COR_DO_NIVEL: Record<Trilha['nivel'], string> = {

@@ -1,0 +1,76 @@
+// Exercicio 396 — quando o programa precisa rodar NA placa
+//
+// Enunciado: Firmata cobre o prototipo. O que precisa rodar sem
+// computador — um sensor a bateria, um controle com resposta em
+// microssegundos — e sketch: C++ na placa. A linguagem escreve o
+// sketch, e o arduino-cli compila e grava.
+
+adopt Arcane.IoT as IoT
+adopt Arcane.OS as OS
+adopt Arcane.IO as IO
+
+out "== 1. os modelos que existem =="
+
+modelos := IoT.sketches()
+assert len(modelos) >= 6
+cycle nome in sorted(keys(modelos)):
+    out $"   {nome}: {modelos[nome]['descricao']}"
+
+out ""
+out "== 2. todo modelo gera C++ valido =="
+
+cycle nome in keys(modelos):
+    codigo := IoT.sketch(nome)
+    assert "void setup()" in codigo
+    assert "void loop()" in codigo
+    assert not ("{led}" in codigo)      // nada por substituir
+out "   setup, loop, e nenhum marcador esquecido"
+
+out ""
+out "== 3. as opcoes entram no codigo =="
+
+codigo := IoT.sketch("pisca", {"led": 7, "intervalo": 120})
+assert "const int LED = 7;" in codigo
+assert "INTERVALO = 120" in codigo
+out "   o LED e o intervalo foram para dentro do .ino"
+
+out ""
+out "== 4. uma opcao que nao existe e RECUSADA =="
+
+// Um '--lde=7' que passa calado grava o sketch com o LED errado, e
+// a pessoa vai procurar o defeito no fio.
+monitor:
+    IoT.sketch("pisca", {"lde": 7})
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+out ""
+out "== 5. o arquivo tem o NOME DA PASTA =="
+
+// Um .ino solto nao compila, e o erro do arduino-cli nao diz por que.
+pasta := $"{OS.temp_dir()}/df-396-{randint(100000, 999999)}"
+caminho := IoT.gravar_sketch(pasta, "sensor", {"canal": 0, "velocidade": 9600})
+assert "sensor/sensor.ino" in caminho
+assert "Serial.begin(9600)" in IO.read(caminho)
+out "   pasta 'sensor', arquivo 'sensor.ino'"
+IO.remove_tree(pasta)
+
+out ""
+out "== 6. o firmata gerado fala a velocidade certa =="
+
+// 57600 e a do StandardFirmata; 9600 nao conversa com ele.
+assert "Firmata.begin(57600)" in IoT.sketch("firmata")
+out "   57600, que e a que IoT.conectar usa"
+
+out ""
+out "== 7. compilar e gravar chamam o arduino-cli =="
+
+// Reimplementar isso seria refazer o GCC e o avrdude. O projeto
+// prefere dizer que depende dele a fingir que nao.
+given IoT.tem_arduino_cli():
+    out "   ele esta instalado: da para compilar e gravar daqui"
+otherwise:
+    out "   nao esta instalado — 'brew install arduino-cli'"
+
+out "exercicio 396 ok"

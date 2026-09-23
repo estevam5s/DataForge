@@ -1,0 +1,68 @@
+// Exercicio 393 — quem conhece a placa e a placa
+//
+// Enunciado: cada placa tem um mapa diferente — quantos pinos
+// digitais, quais fazem PWM, quantos canais analogicos. Escrever
+// esse mapa na linguagem seria errar na primeira placa nova.
+
+adopt Arcane.IoT as IoT
+
+out "== 1. os modelos que o simulador conhece =="
+
+m := IoT.modelos()
+assert m["uno"]["digitais"] is 14 and m["uno"]["analogicos"] is 6
+assert m["mega"]["digitais"] is 54
+assert m["esp32"]["tensao"] is 3.3
+out $"   {len(m)} modelos: {sorted(keys(m))}"
+
+out ""
+out "== 2. o PWM nao esta em todo pino =="
+
+assert 11 in m["uno"]["pwm"]
+assert not (4 in m["uno"]["pwm"])
+out $"   numa UNO: {m['uno']['pwm']}"
+
+out ""
+out "== 3. e a PLACA confirma, pelo protocolo =="
+
+uno := IoT.conectar_simulada("uno")
+assert "pwm" in uno.capacidades(9)
+assert "servo" in uno.capacidades(9)
+assert not ("pwm" in uno.capacidades(13))
+assert "saida" in uno.capacidades(13)
+
+// Um pino que nao existe e outro erro, com outra mensagem.
+monitor:
+    uno.modo(99, "saida")
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+    out $"   {e.nota}"
+
+out ""
+out "== 4. uma Mega tem mais, e o Firmata os ve =="
+
+mega := IoT.conectar_simulada("mega")
+assert mega.info()["pinos"] is 70
+mega.modo(53, "saida")                  // um pino que a UNO nao tem
+mega.escrever(53, yes)
+assert mega.simulador.pino(53) is 1
+out "   o pino 53 respondeu"
+
+monitor:
+    uno.modo(53, "saida")               // e na UNO, nao
+    assert no
+handle Error as e:
+    out $"   na UNO: {e.message}"
+
+out ""
+out "== 5. um modelo que nao existe e recusado com a lista =="
+
+monitor:
+    IoT.simulador("commodore-64")
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+uno.fechar()
+mega.fechar()
+out "exercicio 393 ok"

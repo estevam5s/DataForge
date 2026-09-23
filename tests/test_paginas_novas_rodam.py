@@ -9,6 +9,12 @@ e cada um só apareceu executando.
 Ficam de fora os blocos que dependem de outro arquivo (`adopt ./…`,
 `adopt ../…`) e os que são o `tests/` de um projeto: esses são
 montados e testados como projeto em `test_projetos_tipos.py`.
+
+E os que pedem hardware ou um serviço de fora — uma placa Arduino, um
+broker MQTT. Eles levam `title` começando por "precisa de", e são
+**conferidos** por `tools/verificar_docs.py`, que os compila. A
+alternativa seria escondê-los da documentação, e aí a página sobre
+falar com uma placa não mostraria como se fala com uma placa.
 """
 import os
 import subprocess
@@ -36,7 +42,8 @@ MODULOS = ["modulos_avancado", "bibliotecas_avancado", "testes_avancado",
            "partida_mais",
            "abi_mais",
            "ecossistema_mais",
-           "concorrencia_mais"]
+           "concorrencia_mais",
+           "iot"]
 
 
 def _blocos():
@@ -52,7 +59,8 @@ def _blocos():
                 if any(l.strip().startswith(("adopt ./", "adopt ../"))
                        for l in codigo.splitlines()):
                     continue
-                if (b.get("title") or "").startswith("tests/"):
+                titulo = b.get("title") or ""
+                if titulo.startswith("tests/") or titulo.startswith("precisa de"):
                     continue
                 yield pytest.param(codigo, id=f"{p['href'].replace('/docs/', '')}#{i}")
 

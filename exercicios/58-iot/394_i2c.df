@@ -1,0 +1,65 @@
+// Exercicio 394 — dois fios, muitos sensores
+//
+// Enunciado: I2C liga varios dispositivos em dois fios (SDA e SCL),
+// cada um com um endereco. E como quase todo sensor moderno
+// conversa: acelerometro, barometro, RTC, display.
+
+adopt Arcane.IoT as IoT
+
+placa := IoT.conectar_simulada("uno")
+placa.i2c_configurar()
+
+out "== 1. ler um registro =="
+
+// O MPU6050 em 0x68, registro 0x3B: seis bytes de aceleracao.
+placa.simulador.definir_i2c(0x68, 0x3B, [0, 100, 255, 200, 1, 44])
+dados := placa.i2c_ler(0x68, 0x3B, 6, 2)
+assert len(dados) is 6
+assert dados is [0, 100, 255, 200, 1, 44]
+
+// Os valores vem em dois bytes: alto primeiro.
+x := dados[0] * 256 + dados[1]
+assert x is 100
+out $"   aceleracao X (cru): {x}"
+
+out ""
+out "== 2. silencio devolve void, e NAO levanta =="
+
+// Endereco errado, fio solto ou sensor sem alimentacao dao o mesmo
+// resultado: nada. Levantar aqui obrigaria um 'monitor' em volta de
+// cada leitura de um laco que roda mil vezes.
+resposta := placa.i2c_ler(0x77, 0xD0, 1, 0.3)
+assert resposta is void
+out "   ninguem em 0x77 — e o programa decide o que fazer"
+
+given resposta is void:
+    out "   confira SDA, SCL, o 3,3 V e os resistores de pull-up"
+
+out ""
+out "== 3. escrever num registro =="
+
+// Quase todo sensor nasce em modo de repouso: acordar e a primeira
+// escrita de qualquer driver.
+assert placa.i2c_escrever(0x68, [0x6B, 0x00]) is 2
+out "   dois bytes: o registro e o valor"
+
+out ""
+out "== 4. dois dispositivos no MESMO par de fios =="
+
+placa.simulador.definir_i2c(0x76, 0xF7, [80, 0, 0])     // BMP280
+placa.simulador.definir_i2c(0x68, 0x75, [104])          // WHO_AM_I
+
+assert placa.i2c_ler(0x76, 0xF7, 3, 2) is [80, 0, 0]
+assert placa.i2c_ler(0x68, 0x75, 1, 2) is [104]
+out "   o endereco e o que os separa"
+
+out ""
+out "== 5. o endereco da folha de dados as vezes vem DESLOCADO =="
+
+// 0xD0 e 0x68 escrito com o bit de leitura/escrita junto. Se o
+// sensor nao responde em nenhum endereco, tente a metade.
+assert 0xD0 ~/ 2 is 0x68
+out "   0xD0 / 2 = 0x68"
+
+placa.fechar()
+out "exercicio 394 ok"

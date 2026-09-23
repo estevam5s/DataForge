@@ -1,0 +1,66 @@
+// Exercicio 395 — o acento que quebra o protocolo
+//
+// Enunciado: no Firmata todo byte de dado viaja PARTIDO em dois de
+// sete bits — o oitavo marca comando. Ler so o primeiro de cada par
+// devolve a metade baixa: em ASCII ninguem nota, porque ali o bit 7
+// e zero. Num acento, "ola" vira "olC!".
+
+adopt Arcane.IoT as IoT
+
+placa := IoT.conectar_simulada("uno")
+
+out "== 1. o sketch fala com Firmata.sendString =="
+
+placa.simulador.mandar_texto("calibracao concluida")
+sleep(120)
+assert placa.textos()[0] is "calibracao concluida"
+out $"   {placa.textos()[0]}"
+
+out ""
+out "== 2. e com acento tambem =="
+
+placa.simulador.mandar_texto("temperatura: 21,5 graus — leitura ok")
+sleep(120)
+assert "—" in placa.textos()[1]
+assert "graus" in placa.textos()[1]
+out $"   {placa.textos()[1]}"
+
+texto := "ola, ceu de acucar: ção, ã, ê, ü"
+placa.simulador.mandar_texto(texto)
+sleep(120)
+assert placa.textos()[2] is texto
+out $"   {placa.textos()[2]}"
+
+out ""
+out "== 3. por que isso quebra =="
+
+// 'ç' em UTF-8 sao dois bytes, e cada um deles tem o bit 7 LIGADO.
+// Partir em sete bits e obrigatorio; esquecer de juntar de volta
+// devolve a metade baixa, e o defeito fica escondido ate a primeira
+// mensagem em portugues.
+bytes_de_c := len("ç")
+assert bytes_de_c is 1               // um caractere...
+out "   um caractere, dois bytes no fio, quatro no Firmata"
+
+out ""
+out "== 4. o observador tambem ve o texto =="
+
+vistos := []
+placa.observar(lambda e: vistos.append(e))
+placa.simulador.mandar_texto("pronto")
+sleep(120)
+tipos := [e["tipo"] cycle e in vistos]
+assert "texto" in tipos
+out "   chega como evento, e nao so na lista"
+
+out ""
+out "== 5. e por que isso e o 'println' de quem usa Firmata =="
+
+// Depurar um sketch e escrever na serial. Com o Firmata ocupando a
+// porta, 'Serial.println' estragaria o protocolo — a mensagem tem
+// de vir DENTRO dele.
+assert len(placa.textos()) is 4
+out $"   {len(placa.textos())} mensagens, e o protocolo intacto"
+
+placa.fechar()
+out "exercicio 395 ok"

@@ -1,0 +1,77 @@
+// Exercicio 392 — o meio-termo que nao existe
+//
+// Enunciado: um pino digital so tem dois valores. "Meio brilho" e o
+// pino ligando e desligando rapido o bastante para o olho — ou o
+// motor — nao notar. E o PWM.
+
+adopt Arcane.IoT as IoT
+
+placa := IoT.conectar_simulada("uno")
+
+out "== 1. o modo e DECLARADO, nunca adivinhado =="
+
+// Declarar por conta propria seria conveniente e errado: um pino em
+// 'saida' recebendo PWM acende no talo, e quem le o programa nao
+// veria onde o modo mudou.
+monitor:
+    placa.pwm(9, 128)
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+placa.modo(9, "pwm")
+assert placa.pwm(9, 128) is 128
+out "   com o modo declarado, passa"
+
+out ""
+out "== 2. a faixa e 0 a 255 =="
+
+cycle brilho in [0, 64, 128, 192, 255]:
+    placa.pwm(9, brilho)
+assert placa.simulador.pino(9) is 255
+
+monitor:
+    placa.pwm(9, 300)
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+out ""
+out "== 3. e so alguns pinos fazem PWM =="
+
+// Num UNO: 3, 5, 6, 9, 10 e 11. E quem diz isso e a PLACA.
+assert "pwm" in placa.capacidades(9)
+assert not ("pwm" in placa.capacidades(13))
+
+monitor:
+    placa.modo(13, "pwm")
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+    out $"   {e.nota}"
+
+out ""
+out "== 4. servo: posicao, nao velocidade =="
+
+placa.modo(3, "servo")
+cycle graus in [0, 90, 180, 90]:
+    placa.servo(3, graus)
+assert placa.simulador.servo(3) is 90
+
+monitor:
+    placa.servo(3, 200)
+    assert no
+handle Error as e:
+    out $"   {e.message}"
+
+out ""
+out "== 5. cada servo tem o seu fim de curso =="
+
+// Quando o braco treme numa ponta, e isto.
+assert placa.configurar_servo(3, 600, 2300) is "servo"
+placa.servo(3, 0)
+assert placa.simulador.servo(3) is 0
+out "   os microssegundos das duas pontas, ajustados"
+
+placa.fechar()
+out "exercicio 392 ok"

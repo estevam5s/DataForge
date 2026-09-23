@@ -21,7 +21,7 @@ analisador estático e interpretador de árvore próprios.
 
 ```bash
 python3 -m pytest tests/ -q                          # mais de 2700 testes
-python3 exercicios/run_all.py                        # 387 exercícios
+python3 exercicios/run_all.py                        # 397 exercícios
 python3 trilha/run_all.py                            # 18 capítulos da trilha
 python3 tools/verificar_docs.py                      # os códigos do site compilam
 for f in examples/*.df; do python3 -m dataforge run "$f" >/dev/null || echo "FALHOU $f"; done
@@ -92,7 +92,7 @@ dataforge/
   builtins.py     1224   231 funções globais, sem import (inclusive input e set)
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                85 módulos (2280 símbolos), incluindo:
+  stdlib/                86 módulos (2308 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -139,12 +139,18 @@ dataforge/
     arcane_algoritmos.py 14 clássicos (busca binária, Dijkstra, topológica,
                          LCS, mochila, KMP…) com a complexidade que prometem
     arcane_evolucao.py   obsoleta/experimental/renomeada; DF_OBSOLETOS=erro
+    arcane_iot.py        Arduino: conectar, sensores, sketch, arduino-cli
+    iot_serial.py        a porta serial escrita aqui — termios e ctypes,
+                         sem pyserial
+    iot_firmata.py       o protocolo do StandardFirmata, 2.x completo
+    iot_simulador.py     uma placa de mentira que fala os MESMOS bytes
+    iot_mqtt.py          MQTT 3.1.1 sobre TCP, QoS 0 e 1, testamento
     kiln_api.py          problema (RFC 9457), negociar, precondicao, cursor, links
 
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
 examples/          44 programas de demonstração
-exercicios/        387 exercícios em 57 módulos + run_all.py
+exercicios/        397 exercícios em 58 módulos + run_all.py
                    (os módulos 11-23 têm um .md explicativo por exercício)
 projetos/          4 programas completos com forge.toml e testes
 tools/             gerar_doc_stdlib, gerar_gramatica, gerar_ref_kiln
@@ -1961,6 +1967,52 @@ os nomes dela são colunas, e ele não sabe quais colunas um quadro tem.
 Inferir ali acusaria `onde valor bigger 50` com "'valor' is not defined"
 — um falso alarme no caminho mais comum do verbo.
 
+## IoT — a placa, e o que cada camada prova
+
+`Arcane.IoT` (28 símbolos) liga a linguagem a uma placa física. São
+cinco arquivos, e a fronteira entre eles é o que torna isto testável:
+`Placa` (Firmata) fala com um **transporte**, e o transporte é a porta
+serial de verdade **ou** o `Simulador`.
+
+| Camada | Testada contra | Onde |
+|---|---|---|
+| `iot_serial.py` | um **PTY de verdade** — um tty do sistema | `tests/test_iot.py` |
+| `iot_firmata.py` | o `Simulador`, que interpreta os mesmos bytes | idem |
+| os sketches | o **`arduino-cli`**, compilando para placa real | `DATAFORGE_ARDUINO_COMPILAR=1` |
+| `iot_mqtt.py` | um broker mínimo escrito no próprio teste | idem |
+| a placa física | **nada aqui** — não há placa nesta máquina | `DATAFORGE_ARDUINO=/dev/…` |
+
+A última linha é o ponto: um teste que finge hardware e se anuncia como
+prova de hardware dá confiança sem dar garantia. Os sketches `pisca`,
+`sensor` e `ultrassom` foram compilados para `arduino:renesas_uno:unor4wifi`
+e o `wifi-mqtt` para `esp32:esp32:esp32`; o resto é para quem tem a placa.
+
+Cinco decisões que valem lembrar:
+
+1. **O `Simulador` não é um dublê da API**, é um dispositivo do outro
+   lado do cabo: ele recebe os bytes do Firmata e responde com os que a
+   placa responderia. Um dublê de `escrever(pino, valor)` não exercitaria
+   o parser, a partição em sete bits nem o sysex — que é onde estão os
+   erros.
+2. **Nada de tabela de pinos no código.** `modo(13, "pwm")` é recusado
+   porque a **placa** disse que aquele pino não faz PWM (resposta de
+   capacidade). Uma tabela escrita aqui envelheceria na primeira placa
+   nova, e UNO, Mega e ESP32 têm mapas diferentes.
+3. **`fechar` desliga as saídas**, e é idempotente. Terminar deixando
+   um relé ligado é o defeito mais caro desta área.
+4. **O texto do Firmata viaja em pares de sete bits**, e ler só o
+   primeiro de cada par devolve a metade baixa: em ASCII ninguém nota,
+   e `"olá"` vira `"olC!"`. `_de_sete_bits` existe por isso.
+5. **`IoT.compilar`/`carregar` chamam o `arduino-cli`**, e o projeto
+   prefere dizer que depende dele a fingir que não — reimplementar isso
+   seria refazer o GCC e o avrdude.
+
+E duas armadilhas de uso que a documentação repete porque são as que
+mais custam tempo: **sem `relatar_analogico(canal)` a leitura é zero,
+calada** (a placa envia sozinha, não responde perguntas), e `escala`
+**limita por padrão** — o `map()` do C não limita, e um ADC que devolve
+1024 por ruído vira 101% num painel.
+
 ## O analisador de complexidade
 
 `complexidade.py` responde `dataforge big-o`: ele lê a árvore e conta
@@ -2110,7 +2162,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 2280 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2308 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.
@@ -3337,8 +3389,9 @@ python3 scripts/gerar_tarball.py
 | `tests/test_reativo.py` | `pytest` | preguiça, memória, dependência descoberta — e o **losango**, que entregava um valor que nunca existiu |
 | `tests/test_estrutura.py` | `pytest` | o layout conferido contra o `struct` do Python, o alinhamento, a janela que escreve no bloco e as duas formas de um ponteiro não valer nada |
 | `tests/test_regex_extra.py` | `pytest` | grupos nomeados, ancoramento nas duas pontas, troca que calcula, a explicação e os quatro desenhos de risco |
+| `tests/test_iot.py` | `pytest` | a placa: a serial contra um **PTY de verdade**, o Firmata contra o simulador, o MQTT contra um broker falado no proprio teste, os sketches contra o **arduino-cli** — e um teste de hardware que so roda com `DATAFORGE_ARDUINO` apontando uma placa |
 | `tests/test_ffi_c.py` | `pytest` | `Arcane.C`: a libm e a libc de verdade, o layout de uma struct conferido contra a ABI, aritmética de ponteiro, o nulo recusado, e o **`qsort` do C chamando uma ação DataForge** |
-| `exercicios/run_all.py` | script | 387 exercícios em 57 módulos, cada um com `assert` |
+| `exercicios/run_all.py` | script | 397 exercícios em 58 módulos, cada um com `assert` |
 | `projetos/*/tests/` | `dataforge test` | 61 testes nos 4 projetos completos |
 | `examples/*.df` | manual | 44 programas maiores |
 

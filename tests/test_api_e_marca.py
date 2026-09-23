@@ -1857,19 +1857,16 @@ def test_o_llms_txt_e_servido_pelo_site():
             open(publico, encoding="utf-8").read()
 
 
-def test_o_indice_lateral_gruda_ate_o_fim_da_pagina():
-    """`position: sticky` só gruda enquanto está dentro do container dele.
+def test_a_documentacao_nao_tem_rodape():
+    """`/docs` não tem rodapé — e ele não pode voltar por acidente.
 
-    O "Nesta página" vive num `<aside>` que é irmão do `<article>`. Com
-    o rodapé **fora** dessa linha, o container terminava onde o artigo
-    terminava — e o índice desgrudava na última tela, que é justamente
-    onde quem leu tudo ainda quer pular para outra seção.
+    Ele repetia, em toda página, os mesmos links que a barra lateral já
+    oferece, e empurrava para baixo o "Próximo" — que é o que alguém
+    que terminou de ler quer. O rodapé continua na landing e no
+    `/download`, onde é a única navegação disponível.
 
-    A barra ESQUERDA já tinha recebido essa correção (o comentário está
-    em `app/docs/layout.tsx`); a da direita ficou de fora.
-
-    O teste confere o HTML **exportado**, e não o JSX: é a estrutura que
-    chega ao navegador que decide se o sticky gruda.
+    O teste confere o HTML **exportado**, e não o JSX: é o que chega ao
+    navegador que decide o que a pessoa vê.
     """
     raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     saida = os.path.join(raiz, "site", "out")
@@ -1887,24 +1884,27 @@ def test_o_indice_lateral_gruda_ate_o_fim_da_pagina():
         html = open(caminho, encoding="utf-8").read()
         conferidas += 1
 
-        assert html.count("<footer") == 1, (
+        assert html.count("<footer") == 0, (
             f"{os.path.relpath(caminho, raiz)}: {html.count('<footer')} "
-            f"rodapés — ele foi movido para dentro de DocPage, e uma cópia "
-            f"no layout faria os dois aparecerem")
+            f"rodapé(s) numa página de /docs — a navegação ali é a barra "
+            f"lateral e o 'Próximo'")
 
         # A marca é o 'data-redimensionavel', e não mais a classe de
         # largura: desde que o índice virou redimensionável a largura
         # vai no `style`, e procurar 'w-[220px]' não acharia nada — o
         # `continue` abaixo esvaziaria a trava em silêncio, que é o
         # jeito mais rápido de uma trava virar decoração.
+        # O índice lateral continua na MESMA linha do artigo: é o que
+        # dá ao sticky um container tão alto quanto o texto. Fora dela,
+        # ele desgrudaria na última tela — que é onde quem leu tudo mais
+        # precisa dele para pular de assunto.
         i_aside = html.find('data-redimensionavel="docs-indice"')
-        i_footer = html.find("<footer")
         if i_aside < 0:
             continue        # página sem índice lateral
-        assert 0 < i_footer < i_aside, (
-            f"{os.path.relpath(caminho, raiz)}: o rodapé está DEPOIS do "
-            f"índice lateral, ou fora da linha dele — e aí o sticky "
-            f"desgruda antes do fim da página")
+        i_artigo = html.find("<article")
+        assert 0 <= i_artigo < i_aside, (
+            f"{os.path.relpath(caminho, raiz)}: o índice lateral não está "
+            f"depois do artigo, na mesma linha — e aí o sticky desgruda")
 
     if conferidas == 0:
         pytest.skip("as páginas esperadas não estão no export")

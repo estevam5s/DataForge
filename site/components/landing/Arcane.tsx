@@ -34,6 +34,7 @@ const grupos: { rotulo: string; modulos: string[] }[] = [
   { rotulo: 'Transacional', modulos: ['stm'] },
   { rotulo: 'Metaprogramação', modulos: ['macro', 'dsl'] },
   { rotulo: 'Nativo', modulos: ['c'] },
+  { rotulo: 'IoT', modulos: ['iot'] },
   { rotulo: 'Compilador', modulos: ['compilador'] },
   { rotulo: 'Runtime', modulos: ['laco'] },
   { rotulo: 'Perfil', modulos: ['perfil'] },

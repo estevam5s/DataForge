@@ -137,7 +137,7 @@ typeof      using       validate    void        wait        when
 with        yes         yield
 ```
 
-## A biblioteca: 85 modulos
+## A biblioteca: 86 modulos
 
 Todos por `adopt`. Nenhum precisa de instalacao.
 
@@ -185,6 +185,7 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Inicio` | 15 | O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que o programa demora a comecar?' sem cronometrar a mao. |
 | `Arcane.Injecao` | 5 | Contêiner de injeção de dependência: único, transitório e por escopo, fábrica, valor pronto, dependência preguiçosa e opcional, injeção por construtor, campo e método, e detecção de ciclo com a cadeia inteira. |
 | `Arcane.Integridade` | 6 | Provar que o que está aqui é o que foi posto aqui: o valor SRI de um script de CDN, o manifesto SHA-256 de uma pasta com o que foi acrescentado, removido e alterado, e o manifesto assinado com uma chave que mora fora dali. |
+| `Arcane.IoT` | 28 | Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, sensores, MQTT — e um simulador de placa para testar sem hardware. |
 | `Arcane.Iter` | 44 | Iteradores preguiçosos e composição de ações: janelas, combinatória, memoize. |
 | `Arcane.Laco` | 29 | O laco de eventos, o escalonador e as fibras: UMA thread dormindo no seletor do sistema (epoll, kqueue ou select) em vez de uma thread por conexao. |
 | `Arcane.Lago` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |

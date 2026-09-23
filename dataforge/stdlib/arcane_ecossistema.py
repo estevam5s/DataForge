@@ -342,6 +342,19 @@ ARVORE = (
                  "'ndarray', e isso so funciona porque o interpretador "
                  "trata objeto estranho por protocolo",
          "porque": ""},
+        {"no": "Hardware e IoT", "estado": "existe",
+         "onde": ("dataforge/stdlib/arcane_iot.py",
+                  "dataforge/stdlib/iot_serial.py",
+                  "dataforge/stdlib/iot_firmata.py",
+                  "dataforge/stdlib/iot_simulador.py",
+                  "dataforge/stdlib/iot_mqtt.py",
+                  "dataforge/iot_cli.py"),
+         "o_que_e": "falar com uma placa fisica",
+         "aqui": "porta serial escrita aqui (termios e a API do Windows, "
+                 "sem pyserial), Firmata 2.x completo, MQTT 3.1.1 falado a "
+                 "mao, e um simulador de placa que fala os MESMOS bytes — "
+                 "e o que torna testavel um programa de hardware",
+         "porque": ""},
         {"no": "ABI e simbolos", "estado": "equivale",
          "onde": ("dataforge/stdlib/arcane_abi.py",),
          "o_que_e": "layout binario, ligador e mapa de simbolos",
@@ -382,9 +395,13 @@ ARVORE = (
          "porque": "sao duas frases diferentes, e confundi-las e a maneira "
                    "mais rapida de prometer um alvo que nao se entrega"},
         {"no": "Bare-Metal", "estado": "nao-existe",
-         "onde": (),
+         "onde": ("dataforge/stdlib/arcane_iot.py",),
          "o_que_e": "sem sistema operacional",
-         "aqui": "nao ha",
+         "aqui": "o interpretador nao roda na placa, e nao ha caminho "
+                 "para isso. O que ha e outra coisa, e ela e real: "
+                 "'Arcane.IoT' CONTROLA a placa pelo cabo (Firmata) e "
+                 "GERA o C++ que roda nela — o codigo do metal existe, "
+                 "so nao e DataForge",
          "porque": "exigiria outro runtime inteiro; 'Arcane.Alvo' diz o "
                    "que falta em cada capacidade do alvo 'embarcado'"},
     )),
