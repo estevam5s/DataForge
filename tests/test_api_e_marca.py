@@ -972,6 +972,13 @@ def _links_de(texto):
     import re
 
     texto = re.sub(r"code:\s*`(?:[^`\\]|\\.)*`", "", texto, flags=re.S)
+    # E a forma que TODO modulo de conteudo usa: {"code": '''…'''}.
+    # Sem ela a trava lia so METADE dos blocos, e a primeira pagina a
+    # mostrar um <link href="/manifest.json"> num exemplo de HTML foi
+    # acusada de ter um link quebrado — exatamente o falso alarme que a
+    # docstring acima diz que ela existe para evitar.
+    texto = re.sub(r'"code":\s*\'\'\'.*?\'\'\'', "", texto, flags=re.S)
+    texto = re.sub(r'"code":\s*"""".*?""""', "", texto, flags=re.S)
     achados = set(re.findall(r"\]\((/[a-z0-9/_.-]+)\)", texto))
     achados |= set(re.findall(r'"href":\s*"(/[a-z0-9/_.-]+)"', texto))
     achados |= set(re.findall(r"href=\{?[\"'](/[a-z0-9/_.-]+)[\"']", texto))

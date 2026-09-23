@@ -518,6 +518,35 @@ GRUPOS = [
                       ("dataforge iot sketch pisca --em=/tmp/p", "escreve o .ino"),
                       ("dataforge iot monitorar --velocidade=9600", "o monitor serial")],
             veja=("telegram", "vitrine", "devops")),
+        Cmd("desktop", "dataforge desktop <novo|rodar|empacotar|doctor>",
+            "Aplicacao de mesa nativa, com zero dependencia.",
+            "O Tk vem na biblioteca padrao do Python, e e a unica forma\n"
+            "de desenhar uma janela nativa nos tres sistemas sem trazer\n"
+            "nada de fora. A arvore e separada do desenho, como na\n"
+            "Vitrine: por isso uma tela se testa SEM display nenhum.\n"
+            "\n'empacotar' chama o PyInstaller — empacotar um\n"
+            "interpretador Python e um problema resolvido.",
+            apelidos=("janela",),
+            exemplos=[("dataforge desktop novo caixa", "um esqueleto que ja roda"),
+                      ("dataforge desktop rodar src/main.df", "abre a janela"),
+                      ("dataforge desktop empacotar src/main.df --nome=Caixa",
+                       ".app, .exe ou binario"),
+                      ("dataforge desktop doctor", "o que falta para empacotar")],
+            veja=("mobile", "vitrine", "devops")),
+        Cmd("mobile", "dataforge mobile <pwa|doctor>",
+            "Android: o que funciona, e o que nao existe.",
+            "Nao ha APK — empacotar o interpretador num aplicativo\n"
+            "Android exigiria python-for-android ou Chaquopy, e as duas\n"
+            "trazem uma cadeia de dependencias que a linguagem nao tem.\n"
+            "\nO que funciona e o PWA: uma aplicacao Vitrine servida por\n"
+            "HTTPS que o Android instala na tela inicial, abre em tela\n"
+            "cheia e roda sem navegador visivel.",
+            apelidos=("android",),
+            exemplos=[("dataforge mobile pwa --nome='Meu App'",
+                       "manifesto, icone e service worker"),
+                      ("dataforge mobile doctor",
+                       "o que existe e o que NAO existe")],
+            veja=("desktop", "vitrine")),
         Cmd("vitrine", "dataforge vitrine <run|dev|doctor|new>",
             "Sobe um painel feito com Arcane.Vitrine",
             "Um programa de cima para baixo vira uma pagina web. 'dev'\n"
@@ -5295,6 +5324,14 @@ def main():
     elif command in ('iot', 'arduino'):
         from .iot_cli import executar as executar_iot
         sys.exit(executar_iot(args[1:], flags))
+
+    elif command in ('desktop', 'janela'):
+        from .desktop_cli import executar as executar_desktop
+        sys.exit(executar_desktop(args[1:], flags))
+
+    elif command in ('mobile', 'android'):
+        from .desktop_cli import executar_mobile
+        sys.exit(executar_mobile(args[1:], flags))
 
     elif command in ('devops', 'ops'):
         from .devops_cli import executar as executar_devops

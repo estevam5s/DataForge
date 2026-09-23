@@ -48,7 +48,8 @@ MODULOS = ["modulos_avancado", "bibliotecas_avancado", "testes_avancado",
            "lavra_mais",
            "posse_mais",
            "concorrencia_extra",
-           "dados_engenharia"]
+           "dados_engenharia",
+           "desktop"]
 
 
 def _blocos():

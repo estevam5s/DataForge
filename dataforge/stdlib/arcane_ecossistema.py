@@ -342,6 +342,26 @@ ARVORE = (
                  "'ndarray', e isso so funciona porque o interpretador "
                  "trata objeto estranho por protocolo",
          "porque": ""},
+        {"no": "Interface de mesa", "estado": "existe",
+         "onde": ("dataforge/stdlib/arcane_janela.py",
+                  "dataforge/desktop_cli.py"),
+         "o_que_e": "uma janela nativa nos tres sistemas",
+         "aqui": "'Arcane.Janela' desenha com o Tk, que vem na biblioteca "
+                 "padrao — zero dependencia. A arvore e separada do desenho, "
+                 "como na Vitrine, e por isso uma tela se testa SEM display; "
+                 "'dataforge desktop empacotar' chama o PyInstaller",
+         "porque": ""},
+        {"no": "Aplicativo Android", "estado": "nao-existe",
+         "onde": ("dataforge/desktop_cli.py",),
+         "o_que_e": "um APK que roda a linguagem no celular",
+         "aqui": "o que existe e o PWA: 'dataforge mobile pwa' gera o "
+                 "manifesto, o icone e o service worker de uma aplicacao "
+                 "Vitrine, e o Android a instala na tela inicial. Termux "
+                 "roda o interpretador de verdade, para quem o tem",
+         "porque": "empacotar o CPython num APK exigiria python-for-android "
+                   "ou Chaquopy, e as duas trazem uma cadeia de dependencias "
+                   "que a linguagem nao tem — o preco seria a unica promessa "
+                   "inegociavel do projeto"},
         {"no": "Hardware e IoT", "estado": "existe",
          "onde": ("dataforge/stdlib/arcane_iot.py",
                   "dataforge/stdlib/iot_serial.py",

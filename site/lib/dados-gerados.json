@@ -5758,6 +5758,63 @@
     }
    ]
   },
+  "janela": {
+   "nome": "Arcane.Janela",
+   "desc": "Aplicação de mesa nativa com zero dependência: o Tk vem na biblioteca padrão. A árvore é separada do desenho, como na Vitrine — e por isso uma tela se testa sem display nenhum.",
+   "curto": "Janela / desktop",
+   "funcoes": [
+    {
+     "nome": "App",
+     "sig": "(titulo, largura, altura, tema)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "No",
+     "sig": "(especie, rotulo, valor, opcoes, chave)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Sonda",
+     "sig": "(tela_acao, estado, titulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "Tela",
+     "sig": "(estado, eventos, titulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "abrir",
+     "sig": "(aplicacao, tela_acao, quando_fechar, fechar_em)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "app",
+     "sig": "(titulo, largura, altura, tema)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "componentes",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "montar",
+     "sig": "(tela_acao, estado, eventos, titulo)",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "tem_display",
+     "sig": "()",
+     "tipo": "funcao"
+    },
+    {
+     "nome": "testar",
+     "sig": "(tela_acao, estado, titulo)",
+     "tipo": "funcao"
+    }
+   ]
+  },
   "kiln": {
    "nome": "Kiln",
    "desc": "Framework web: rotas, middleware, templates, sessão e arquivos estáticos.",
@@ -15798,7 +15855,7 @@
  },
  "totalBuiltins": 231,
  "contagem": {
-  "testes": 3876,
+  "testes": 3897,
   "exemplos": 50,
   "arquivosDf": 513
  },

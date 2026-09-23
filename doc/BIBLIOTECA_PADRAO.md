@@ -14,6 +14,7 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 
 | Módulo | Nome curto | Símbolos | Para quê |
 |--------|-----------|----------|----------|
+| [`Arcane.Janela`](#arcanejanela) | `Janela / desktop` | 10 | Aplicação de mesa nativa com zero dependência: o Tk vem na biblioteca padrão. A árvore é separada do desenho, como na Vitrine — e por isso uma tela se testa sem display nenhum. |
 | [`Arcane.IoT`](#arcaneiot) | `IoT / Arduino` | 28 | Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, sensores, MQTT — e um simulador de placa para testar sem hardware. |
 | [`Arcane.Math`](#arcanemath) | `Math` | 72 | Matemática, álgebra linear e estatística básica. |
 | [`Arcane.Text`](#arcanetext) | `Text` | 59 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
@@ -117,6 +118,32 @@ out Text.slug("Ola Mundo")              // ola-mundo
 out Text.box("Relatorio")               // caixa desenhada
 out An.correlation([1,2,3], [2,4,6])    // 1.0
 ```
+
+
+---
+
+## Arcane.Janela
+
+Aplicação de mesa nativa com zero dependência: o Tk vem na biblioteca padrão. A árvore é separada do desenho, como na Vitrine — e por isso uma tela se testa sem display nenhum.
+
+```dataforge
+adopt Arcane.Janela as Janela
+```
+
+**Funções (10)**
+
+| Assinatura |
+|------------|
+| `App(titulo='DataForge', largura=720, altura=520, tema='claro')` |
+| `No(especie, rotulo='', valor=None, opcoes=None, chave='')` |
+| `Sonda(tela_acao, estado=None, titulo='')` |
+| `Tela(estado, eventos=None, titulo='')` |
+| `abrir(aplicacao, tela_acao, quando_fechar=None, fechar_em=0)` |
+| `app(titulo='DataForge', largura=720, altura=520, tema='claro')` |
+| `componentes()` |
+| `montar(tela_acao, estado=None, eventos=None, titulo='')` |
+| `tem_display()` |
+| `testar(tela_acao, estado=None, titulo='')` |
 
 
 ---

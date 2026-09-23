@@ -80,6 +80,7 @@ GRUPOS_DE_MODULO = [
     ("Metaprogramação", ["macro", "dsl"]),
     ("Baixo nível", ["c", "compilador"]),
     ("IoT", ["iot"]),
+    ("Interface", ["janela"]),
     ("Partida", ["inicio", "capacidade"]),
     ("Distribuição", ["abi", "alvo", "evolucao"]),
     ("A própria implementação", ["ecossistema", "principios", "percurso",

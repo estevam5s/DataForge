@@ -23,6 +23,7 @@ MODULOS = [
     "posse_mais",
     "concorrencia_extra",
     "dados_engenharia",
+    "desktop",
     "api_rest_mais",
     "telegram_mais",
     "dominio_mais",

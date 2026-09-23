@@ -395,6 +395,18 @@ export const nav: NavSection[] = [
     ],
   },
   {
+    title: 'Desktop e mobile',
+    items: [
+      { title: 'Aplicações de mesa', href: '/docs/desktop' },
+      { title: 'Os componentes', href: '/docs/desktop/componentes' },
+      { title: 'Testar sem display', href: '/docs/desktop/testar' },
+      { title: 'Empacotar', href: '/docs/desktop/empacotar' },
+      { title: 'Uma aplicação inteira', href: '/docs/desktop/completo' },
+      { title: 'Android', href: '/docs/mobile' },
+      { title: 'Um PWA passo a passo', href: '/docs/mobile/pwa' },
+    ],
+  },
+  {
     title: 'IoT e Arduino',
     items: [
       { title: 'Visão geral', href: '/docs/iot' },
@@ -744,6 +756,7 @@ export const nav: NavSection[] = [
       { title: 'Arcane.Inicio', href: '/docs/biblioteca/inicio' },
       { title: 'Arcane.Injecao', href: '/docs/biblioteca/injecao' },
       { title: 'Arcane.IoT', href: '/docs/biblioteca/iot' },
+      { title: 'Arcane.Janela', href: '/docs/biblioteca/janela' },
       { title: 'Arcane.Iter', href: '/docs/biblioteca/iter' },
       { title: 'Arcane.Laco', href: '/docs/biblioteca/laco' },
       { title: 'Arcane.Lago', href: '/docs/biblioteca/lago' },

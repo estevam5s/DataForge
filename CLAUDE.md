@@ -92,7 +92,7 @@ dataforge/
   builtins.py     1224   231 funções globais, sem import (inclusive input e set)
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                86 módulos (2311 símbolos), incluindo:
+  stdlib/                87 módulos (2321 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -2162,7 +2162,7 @@ envelhecer, e há teste comparando-a com o disco.
 ## A API pública do site, e o sitemap
 
 `site/public/api/*.json` são sete endpoints com a linguagem inteira —
-sintaxe, 2311 símbolos, 60 comandos, 177 códigos de erro, o inventário
+sintaxe, 2321 símbolos, 60 comandos, 177 códigos de erro, o inventário
 — servidos com `Access-Control-Allow-Origin: *`. Saem de
 `scripts/gerar_api.py`, que lê o mesmo código que o interpretador
 executa.

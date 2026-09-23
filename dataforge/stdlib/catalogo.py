@@ -19,6 +19,11 @@ assunto.
 
 #: nome oficial -> (para que serve, nome curto que 'adopt' tambem aceita)
 DESCRICOES = {
+    "Arcane.Janela": ("Aplicação de mesa nativa com zero dependência: o Tk vem "
+                      "na biblioteca padrão. A árvore é separada do desenho, "
+                      "como na Vitrine — e por isso uma tela se testa sem "
+                      "display nenhum.",
+                      "Janela / desktop"),
     "Arcane.IoT": ("Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, "
                    "sensores, MQTT — e um simulador de placa para testar sem hardware.",
                    "IoT / Arduino"),

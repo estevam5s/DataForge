@@ -422,6 +422,29 @@
       "porque": ""
     },
     {
+      "aqui": "'Arcane.Janela' desenha com o Tk, que vem na biblioteca padrao — zero dependencia. A arvore e separada do desenho, como na Vitrine, e por isso uma tela se testa SEM display; 'dataforge desktop empacotar' chama o PyInstaller",
+      "estado": "existe",
+      "grupo": "Interoperabilidade",
+      "no": "Interface de mesa",
+      "o_que_e": "uma janela nativa nos tres sistemas",
+      "onde": [
+        "dataforge/stdlib/arcane_janela.py",
+        "dataforge/desktop_cli.py"
+      ],
+      "porque": ""
+    },
+    {
+      "aqui": "o que existe e o PWA: 'dataforge mobile pwa' gera o manifesto, o icone e o service worker de uma aplicacao Vitrine, e o Android a instala na tela inicial. Termux roda o interpretador de verdade, para quem o tem",
+      "estado": "nao-existe",
+      "grupo": "Interoperabilidade",
+      "no": "Aplicativo Android",
+      "o_que_e": "um APK que roda a linguagem no celular",
+      "onde": [
+        "dataforge/desktop_cli.py"
+      ],
+      "porque": "empacotar o CPython num APK exigiria python-for-android ou Chaquopy, e as duas trazem uma cadeia de dependencias que a linguagem nao tem — o preco seria a unica promessa inegociavel do projeto"
+    },
+    {
       "aqui": "porta serial escrita aqui (termios e a API do Windows, sem pyserial), Firmata 2.x completo, MQTT 3.1.1 falado a mao, e um simulador de placa que fala os MESMOS bytes — e o que torna testavel um programa de hardware",
       "estado": "existe",
       "grupo": "Interoperabilidade",
@@ -583,8 +606,8 @@
       "grupo": "Tooling"
     },
     {
-      "componentes": 4,
-      "existem": 3,
+      "componentes": 6,
+      "existem": 4,
       "grupo": "Interoperabilidade"
     },
     {
@@ -1129,6 +1152,17 @@
     {
       "modulos": [
         {
+          "chave": "janela",
+          "desc": "Aplicação de mesa nativa com zero dependência: o Tk vem na biblioteca padrão",
+          "nome": "Arcane.Janela",
+          "simbolos": 10
+        }
+      ],
+      "rotulo": "Interface"
+    },
+    {
+      "modulos": [
+        {
           "chave": "inicio",
           "desc": "O que roda ANTES da primeira linha: as fases da partida nomeadas e em ordem, e quanto cada 'adopt' custou — que e a unica forma de responder 'por que ",
           "nome": "Arcane.Inicio",
@@ -1250,6 +1284,20 @@
       "porque": "'Arcane.Alvo' nomeia 'embarcado' com o que falta em cada capacidade, justamente para que a ausencia apareca antes de alguem tentar"
     },
     {
+      "aqui": "o que existe e o PWA: 'dataforge mobile pwa' gera o manifesto, o icone e o service worker de uma aplicacao Vitrine, e o Android a instala na tela inicial. Termux roda o interpretador de verdade, para quem o tem",
+      "estado": "nao-existe",
+      "grupo": "Interoperabilidade",
+      "no": "Aplicativo Android",
+      "no_disco": [
+        "dataforge/desktop_cli.py"
+      ],
+      "o_que_e": "um APK que roda a linguagem no celular",
+      "onde": [
+        "dataforge/desktop_cli.py"
+      ],
+      "porque": "empacotar o CPython num APK exigiria python-for-android ou Chaquopy, e as duas trazem uma cadeia de dependencias que a linguagem nao tem — o preco seria a unica promessa inegociavel do projeto"
+    },
+    {
       "aqui": "o interpretador nao roda na placa, e nao ha caminho para isso. O que ha e outra coisa, e ela e real: 'Arcane.IoT' CONTROLA a placa pelo cabo (Firmata) e GERA o C++ que roda nela — o codigo do metal existe, so nao e DataForge",
       "estado": "nao-existe",
       "grupo": "Alvos",
@@ -1266,15 +1314,15 @@
   ],
   "numeros": {
     "alvos": 6,
-    "comandos": 66,
-    "componentes": 42,
+    "comandos": 68,
+    "componentes": 44,
     "equivalem": 6,
-    "existem": 31,
+    "existem": 32,
     "grupos_de_comando": 7,
-    "modulos": 86,
-    "modulos_do_nucleo": 61,
-    "nao_existem": 5,
-    "simbolos": 2311
+    "modulos": 87,
+    "modulos_do_nucleo": 62,
+    "nao_existem": 6,
+    "simbolos": 2321
   },
   "semGrupo": []
 }
