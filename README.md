@@ -105,7 +105,7 @@ repor: [Teclado, Monitor]
 | **Pattern matching estrutural** | por tipo, sequência, record, vault, enum — com guardas |
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
-| **Ferramentas oficiais** | 68 comandos: `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `debug`, `profile`, `big-o`, `devops`, `vitrine`, `desktop`, `iot`… |
+| **Ferramentas oficiais** | 69 comandos: `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `debug`, `profile`, `big-o`, `devops`, `vitrine`, `desktop`, `iot`… |
 | **Depurador de verdade** | ponto de parada, condição, contagem, logpoint, **vigia de escrita e de leitura** — no terminal e no painel do editor (DAP) |
 | **Editor** | LSP com hover, ir-para, renomear, e autocompletar **sensível ao contexto**: depois de `p.` ele oferece os campos daquele record |
 | **Bateria inclusa** | 87 módulos com 2323 símbolos + 231 funções globais |
@@ -1036,12 +1036,12 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 <!-- estado:inicio -->
 | Verificação | Resultado |
 |-------------|-----------|
-| `pytest tests/` | 3908 funções de teste |
+| `pytest tests/` | 3910 funções de teste |
 | `exercicios/run_all.py` | 399/399 |
 | `trilha/run_all.py` | 18 capítulos |
 | `examples/*.df` | 50 programas |
 | Módulos da stdlib | 87 carregam, 2323 símbolos |
-| Comandos da CLI | 68 |
+| Comandos da CLI | 69 |
 | Códigos de erro | 219 |
 | `dataforge check` × 5 pastas | 0 erros em 570 arquivos |
 | Componentes do ecossistema | 44 conferidos contra o disco: 32 existem, 6 equivalem, 6 não |

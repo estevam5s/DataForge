@@ -1073,6 +1073,55 @@ não pegou: `non-int`, em `can't multiply sequence by non-int`. O CPython
 cola o nome do tipo num prefixo, o hífen é fronteira de palavra, e a
 moldura de `, not X` não chega ali.
 
+### N idiomas, e a moldura que ficava de fora
+
+A camada nasceu **binária** — `pt` ou `en` — e binária ela não tinha
+como receber uma tradução de fora: quem quisesse espanhol teria de
+editar o núcleo, e uma tradução que exige um pull request na linguagem
+não acontece.
+
+Hoje é **um catálogo por arquivo** em `dataforge/idiomas/`, e
+`DF_IDIOMA_CAMINHO` aponta uma pasta com catálogos de fora, que entram
+no registro pelo mesmo caminho. Vêm de fábrica `pt` e `es`; o inglês
+**não é um catálogo** — ele é o texto como nasce, e ter um `en.py`
+seria manter uma cópia identidade de 115 entradas que divergiria na
+primeira mensagem nova.
+
+| Decisão | Sem ela |
+|---|---|
+| `es.py` é **gerado** dos padrões de `pt.py` (`scripts/gerar_idioma_es.py`) | um regex copiado à mão casaria *quase*, e 'quase' é uma mensagem que sai em inglês sem ninguém entender por quê |
+| um catálogo quebrado é **ignorado**, e nomeado em `dataforge idioma` | um erro de sintaxe num arquivo de tradução impediria o programa de rodar — a tradução é conforto, e o inglês é o piso |
+| a pasta de fora **vence** a de dentro | não daria para corrigir uma tradução sem reinstalar |
+| um idioma sem moldura cai no **inglês**, não no português | um catálogo novo produziria um meio-português |
+
+**E as quatro palavras que mais aparecem ficavam de fora.** `erro`,
+`aviso`, `nota` e `dica` eram literais em português dentro do
+desenhador, então `DF_IDIOMA=en` produzia:
+
+```
+erro[DF0602]: Key "b" is not in this vault.
+```
+
+— um rótulo em português em cima de uma mensagem em inglês, na primeira
+linha. A camada traduzia 530 mensagens e esquecia as quatro que
+aparecem em todas. `idioma.palavra()` resolve, e a moldura mora **fora**
+dos catálogos porque não é mensagem: é a forma do relatório.
+
+Isso mudou a saída em inglês (`error[`, `note:`, `hint:`,
+`1 error(s), 0 warning(s)`), e a suíte roda em inglês — dois testes
+afirmavam a moldura sem querer. O que um script deve procurar é o
+**lugar** (`arquivo:linha:coluna`), que não muda de idioma.
+
+A cobertura de `dataforge idioma` compara **padrões**, e não traduz
+texto: medir traduzindo o molde português dá 0% para todo idioma que
+não é o português, porque os padrões casam o texto em inglês. Foi o
+primeiro jeito, e o relatório anunciou um catálogo completo como vazio.
+
+E `dataforge.idiomas` precisou entrar em `[tool.setuptools] packages` —
+a trava que constrói o wheel e olha dentro pegou: sem ela, o pacote
+instalado sairia **sem os catálogos**, e a linguagem voltaria ao inglês
+em toda máquina que instalasse por `pip`.
+
 ### Silenciar uma regra, de propósito
 
 `// df: permitir <regra>` na linha, ou na de cima, silencia aquela

@@ -209,7 +209,8 @@ class DataForgeError(Exception):
         local = self._curto(self.filename)
 
         # ── Cabecalho ──
-        titulo = tinta(f"erro[{self.codigo}]", VERMELHO)
+        from .idioma import palavra
+        titulo = tinta(f"{palavra('erro')}[{self.codigo}]", VERMELHO)
         # O DESENHO fala o idioma em vigor. 'self.message' fica como
         # nasceu: e o que um 'handle' compara.
         primeira, *resto_msg = self._tr(self.message).split("\n")
@@ -267,11 +268,13 @@ class DataForgeError(Exception):
         # ── Nota, dica e doc ──
         if self.nota:
             for i, parte in enumerate(self._tr(self.nota).split("\n")):
-                marcador = tinta("nota:", CIANO) if i == 0 else "     "
+                marcador = tinta(f"{palavra('nota')}:", CIANO) \
+                    if i == 0 else " " * (len(palavra('nota')) + 1)
                 linhas.append(f"{margem} {tinta('=', AZUL)} {marcador} {parte}")
         if self.dica:
             for i, parte in enumerate(self._tr(self.dica).split("\n")):
-                marcador = tinta("dica:", AMARELO) if i == 0 else "     "
+                marcador = tinta(f"{palavra('dica')}:", AMARELO) \
+                    if i == 0 else " " * (len(palavra('dica')) + 1)
                 linhas.append(f"{margem} {tinta('=', AZUL)} {marcador} {parte}")
         if self.doc:
             url = self.doc if self.doc.startswith("http") else (

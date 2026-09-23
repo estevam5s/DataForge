@@ -233,3 +233,141 @@ def test_o_catalogo_nao_tem_molde_quebrado():
             if campos - grupos:
                 quebrados.append(f"{padrao!r}: falta {campos - grupos}")
     assert not quebrados, quebrados
+
+
+# ═══════════════════════════════════════════════════════════
+#  N idiomas, e não dois
+# ═══════════════════════════════════════════════════════════
+
+class TestRegistroDeIdiomas:
+    """A camada nasceu binária — 'pt' ou 'en' — e binária ela não tinha
+    como receber uma tradução de fora: quem quisesse espanhol teria de
+    editar o núcleo, e uma tradução que exige um pull request na
+    linguagem não acontece.
+    """
+
+    def test_ha_mais_de_dois_idiomas(self):
+        from dataforge import idiomas
+        codigos = idiomas.codigos()
+        assert "pt" in codigos and "es" in codigos and "en" in codigos
+
+    def test_o_ingles_NAO_e_um_catalogo(self):
+        """Ter um 'en.py' seria manter uma cópia identidade de 115
+        entradas, que divergiria na primeira mensagem nova."""
+        from dataforge import idiomas
+        assert "en" not in idiomas.registro()
+        assert mod_idioma.traduzir("Division by zero.", para="en") == \
+            "Division by zero."
+
+    def test_o_espanhol_traduz_de_verdade(self):
+        assert mod_idioma.traduzir("Division by zero.", para="es") == \
+            "División por cero."
+        assert mod_idioma.traduzir("'x' is not defined.", para="es") == \
+            "'x' no está definido."
+
+    def test_um_catalogo_DE_FORA_entra_no_registro(self, tmp_path, monkeypatch):
+        """É o que torna uma tradução contribuível sem tocar no núcleo."""
+        from dataforge import idiomas
+
+        (tmp_path / "xx.py").write_text(
+            'INTEIRAS = ((r"Division by zero\\.", "Divisão por zero, em xx."),)\n'
+            'PEDACOS = ()\n', encoding="utf-8")
+        monkeypatch.setenv(idiomas.VARIAVEL_DE_CAMINHO, str(tmp_path))
+        mod_idioma.esquecer_catalogos()
+        try:
+            assert "xx" in idiomas.codigos()
+            assert mod_idioma.traduzir("Division by zero.", para="xx") == \
+                "Divisão por zero, em xx."
+            # E o que ele NÃO traduz sai em inglês, como sempre.
+            assert mod_idioma.traduzir("'x' is not defined.", para="xx") == \
+                "'x' is not defined."
+        finally:
+            monkeypatch.delenv(idiomas.VARIAVEL_DE_CAMINHO, raising=False)
+            mod_idioma.esquecer_catalogos()
+
+    def test_um_catalogo_QUEBRADO_nao_derruba_nada(self, tmp_path, monkeypatch):
+        """Um erro de sintaxe num arquivo de tradução não pode impedir um
+        programa de rodar: a tradução é conforto, e o inglês é o piso."""
+        from dataforge import idiomas
+
+        (tmp_path / "ruim.py").write_text("isto nao fecha (\n", encoding="utf-8")
+        monkeypatch.setenv(idiomas.VARIAVEL_DE_CAMINHO, str(tmp_path))
+        mod_idioma.esquecer_catalogos()
+        try:
+            assert "ruim" not in idiomas.codigos()
+            assert "ruim" in idiomas.problemas()
+            # E o resto continua funcionando.
+            assert mod_idioma.traduzir("Division by zero.", para="pt") == \
+                "Divisão por zero."
+        finally:
+            monkeypatch.delenv(idiomas.VARIAVEL_DE_CAMINHO, raising=False)
+            mod_idioma.esquecer_catalogos()
+
+    @pytest.mark.parametrize("valor,esperado", [
+        ("es", "es"), ("ES", "es"), ("es_AR", "es"), ("es-419", "es"),
+        ("pt_BR", "pt"), ("en_US", "en"), ("klingon", "pt"),
+    ])
+    def test_o_locale_do_sistema_e_lido(self, monkeypatch, valor, esperado):
+        """'es_AR.UTF-8' é o que o sistema entrega, e o código é o que vem
+        antes do separador. Um valor que não é idioma nenhum cai no
+        padrão — um programa que se recusa a rodar porque a variável de
+        locale tem um valor estranho seria pior."""
+        monkeypatch.setenv("DF_IDIOMA", valor)
+        assert mod_idioma.atual() == esperado
+
+
+class TestMolduraDoRelatorio:
+    """As quatro palavras que mais aparecem ficavam de fora.
+
+    `DF_IDIOMA=en` produzia `erro[DF0602]: Key "b" is not in this
+    vault.` — um rótulo em português em cima de uma mensagem em inglês,
+    na primeira linha do relatório. O catálogo traduzia as 530 mensagens
+    e esquecia a moldura.
+    """
+
+    @pytest.mark.parametrize("codigo,esperado", [
+        ("pt", "erro"), ("en", "error"), ("es", "error"),
+    ])
+    def test_o_rotulo_fala_o_idioma(self, codigo, esperado):
+        assert mod_idioma.palavra("erro", para=codigo) == esperado
+
+    def test_o_relatorio_inteiro_e_coerente(self, monkeypatch):
+        monkeypatch.setenv("DF_IDIOMA", "es")
+        fonte = 'v := {"a": 1}\nout v["b"]\n'
+        with pytest.raises(DataForgeError) as capturado:
+            interp = Interpreter()
+            with redirect_stdout(io.StringIO()):
+                interp.run(parse(tokenize(fonte, "t.df"), "t.df"))
+        desenho = capturado.value.render(color=False)
+        assert "error[DF0602]" in desenho
+        assert "La clave" in desenho
+        assert "nota:" in desenho and "pista:" in desenho
+        # E nada de português sobrando na moldura.
+        assert "dica:" not in desenho
+
+    def test_um_idioma_sem_moldura_cai_no_INGLES(self):
+        """E não no português: quem contribui um catálogo novo sem
+        traduzir a moldura produz um relatório coerente em inglês, e não
+        um meio-português."""
+        assert mod_idioma.palavra("erro", para="zz") == "error"
+        assert mod_idioma.palavra("dica", para="zz") == "hint"
+
+
+def test_o_catalogo_em_espanhol_esta_em_dia_com_o_portugues():
+    """Os PADRÕES não podem divergir entre dois catálogos.
+
+    Um regex copiado à mão casaria 'quase', e 'quase' aqui quer dizer
+    uma mensagem que sai em inglês sem ninguém entender por quê. Por
+    isso `es.py` é gerado dos padrões de `pt.py`, e este teste roda o
+    gerador com `--check`.
+    """
+    import subprocess
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    gerador = os.path.join(raiz, "scripts", "gerar_idioma_es.py")
+    if not os.path.isfile(gerador):
+        pytest.skip("o gerador não está neste checkout")
+    r = subprocess.run([sys.executable, gerador, "--check"], cwd=raiz,
+                       capture_output=True, text=True, encoding="utf-8",
+                       errors="replace")
+    assert r.returncode == 0, r.stdout + r.stderr

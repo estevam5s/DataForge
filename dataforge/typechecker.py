@@ -266,7 +266,9 @@ class Diagnostic:
 
     def format(self, filename="<stdin>", color=True):
         cores = {'error': '1;31', 'warning': '1;33'} if color else {}
-        rotulo = 'erro' if self.severity == 'error' else 'aviso'
+        from .idioma import palavra
+        rotulo = palavra('erro') if self.severity == 'error' \
+            else palavra('aviso')
         if color:
             rotulo = f"\033[{cores[self.severity]}m{rotulo}\033[0m"
         # O desenho fala o idioma em vigor; 'self.message' fica como
@@ -275,7 +277,8 @@ class Diagnostic:
         cabecalho = (f"{filename}:{self.line}:{self.column}: {rotulo}: "
                      f"{traduzir(self.message)}")
         if self.hint:
-            cabecalho += f"\n    sugestão: {traduzir(self.hint)}"
+            cabecalho += (f"\n    {palavra('sugestao')}: "
+                          f"{traduzir(self.hint)}")
         return cabecalho
 
     def __repr__(self):

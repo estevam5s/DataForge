@@ -709,6 +709,23 @@ GRUPOS = [
                       ("dataforge palavras cycle", "so o que fala de laco")],
             apelidos=("keywords",),
             veja=("erros", "explain")),
+        Cmd("idioma", "dataforge idioma [codigo]",
+            "Os idiomas em que a linguagem fala, e quanto de cada um existe",
+            "A camada de idioma traduz as mensagens NA HORA DE DESENHAR: o "
+            "texto nasce em ingles, e 'e.message' — o que um 'handle' compara "
+            "— fica como nasceu.\n\n"
+            "Um catalogo por arquivo, em 'dataforge/idiomas/'. "
+            "DF_IDIOMA_CAMINHO aponta uma pasta com catalogos de fora, e eles "
+            "entram no registro como os de dentro — e um catalogo quebrado nao "
+            "derruba nada: ele e ignorado, e aparece aqui com o motivo.\n\n"
+            "O que nao tem traducao sai em INGLES. Ninguem traduz 530 "
+            "mensagens numa tacada, e um erro e mais util legivel em ingles "
+            "que ilegivel na lingua certa.",
+            exemplos=[("dataforge idioma", "os idiomas, com a cobertura"),
+                      ("dataforge idioma es", "so o espanhol, em detalhe"),
+                      ("DF_IDIOMA=es dataforge run x.df", "rodar em espanhol")],
+            apelidos=("lang", "idiomas"),
+            veja=("erros", "explain")),
         Cmd("erros", "dataforge erros [termo]",
             "Lista o catalogo de erros da linguagem",
             _texto_dos_erros(),
@@ -1641,7 +1658,9 @@ def check_file(filepath: str, strict: bool = False, only_syntax: bool = False,
         print(_linha_do_diagnostico(d, filepath, usar_cor))
 
     if erros:
-        print(color(f"\n✗ {len(erros)} erro(s), {len(avisos)} aviso(s)", "1;31"))
+        from .idioma import palavra
+        print(color(f"\n✗ {len(erros)} {palavra('erro')}(s), "
+                    f"{len(avisos)} {palavra('aviso')}(s)", "1;31"))
         sys.exit(1)
     if avisos:
         print(color(f"\n✓ sem erros, {len(avisos)} aviso(s)", "1;33"))
@@ -1713,7 +1732,9 @@ def check_command(alvos, strict=False, only_syntax=False, plugins=None):
 
     n = len(arquivos)
     if total_erros or ilegiveis:
-        resumo = f"{total_erros} erro(s), {total_avisos} aviso(s)"
+        from .idioma import palavra
+        resumo = (f"{total_erros} {palavra('erro')}(s), "
+                  f"{total_avisos} {palavra('aviso')}(s)")
         if ilegiveis:
             resumo += f", {ilegiveis} arquivo(s) ilegivel(is)"
         print(color(f"\n\u2717 {resumo} em {n} arquivo(s)", "1;31"))
@@ -4286,6 +4307,76 @@ def _peso_do_modulo(nome):
     return 0
 
 
+def idioma_command(codigo=""):
+    """Os idiomas que existem, e quanto de cada um esta traduzido.
+
+    A cobertura e medida contra as mensagens que o proprio catalogo em
+    portugues conhece — nao contra um numero escrito a mao. Um catalogo
+    novo comeca em 0% e sobe, e o que falta sai em ingles.
+    """
+    from . import idioma as mod
+    from .idiomas import ORIGINAL, VARIAVEL_DE_CAMINHO, problemas, registro
+
+    tabela = registro(recarregar=True)
+    mod.esquecer_catalogos()
+    em_vigor = mod.atual()
+
+    # A regua: os PADROES que o portugues conhece.
+    #
+    # Medir traduzindo o molde portugues daria 0% para todo idioma que
+    # nao e o portugues — os padroes casam o texto em INGLES, e o molde
+    # em portugues nao casa nada. Foi o primeiro jeito que escrevi, e o
+    # relatorio anunciou um catalogo completo como vazio.
+    referencia = {padrao for padrao, _molde in mod.INTEIRAS}
+    referencia |= {padrao for padrao, _molde in mod.PEDACOS}
+
+    print(color("Os idiomas da linguagem", "1;36"))
+    print()
+    print(f"  em vigor: {color(em_vigor, '1;33')}"
+          f"   (DF_IDIOMA={os.environ.get('DF_IDIOMA') or '—'})")
+    print()
+
+    if codigo and codigo not in tabela and codigo != ORIGINAL:
+        print(color(f"  nao ha catalogo para '{codigo}'", "1;31"))
+        print(color(f"  ha: {', '.join(sorted(tabela) + [ORIGINAL])}", "0;90"))
+        return 1
+
+    alvos = [codigo] if codigo else sorted(tabela) + [ORIGINAL]
+    for cod in alvos:
+        if cod == ORIGINAL:
+            print(f"  {color(cod, '1;37')}  ingles — o texto como ele nasce, "
+                  f"{color('sem catalogo', '0;90')}")
+            continue
+        catalogo = tabela[cod]
+        inteiras = len(catalogo["inteiras"])
+        pedacos = len(catalogo["pedacos"])
+        # Quantos dos padroes conhecidos este catalogo cobre.
+        tem = {p for p, _ in catalogo["inteiras"]} \
+            | {p for p, _ in catalogo["pedacos"]}
+        cobertos = len(referencia & tem)
+        parte = cobertos / len(referencia) if referencia else 0
+        cor = "1;32" if parte >= 0.9 else ("1;33" if parte >= 0.5 else "1;31")
+        print(f"  {color(cod, '1;37')}  {inteiras} inteiras, {pedacos} pedacos"
+              f"   {color(f'{parte:.0%}', cor)}")
+        print(f"      {color(catalogo['arquivo'], '0;90')}")
+
+    ruins = problemas()
+    if ruins:
+        print()
+        print(color("  catalogos que nao carregaram:", "1;31"))
+        for nome, motivo in sorted(ruins.items()):
+            print(f"    {nome}: {motivo}")
+        print(color("  um catalogo quebrado e ignorado — a traducao e "
+                    "conforto, e o ingles e o piso", "0;90"))
+
+    print()
+    print(color(f"  {VARIAVEL_DE_CAMINHO} aponta uma pasta com catalogos "
+                f"de fora", "0;90"))
+    print(color("  cada arquivo expoe INTEIRAS e PEDACOS; o nome dele e o "
+                "codigo do idioma", "0;90"))
+    return 0
+
+
 def palavras_command(args, flags=()):
     """dataforge palavras [termo] [--json] — as 100 palavras da linguagem.
 
@@ -5635,6 +5726,9 @@ def main():
         erros_command(args[1] if len(args) > 1 else "")
     elif command in ('palavras', 'keywords'):
         palavras_command(args[1:], flags)
+
+    elif command in ('idioma', 'idiomas', 'lang'):
+        idioma_command(args[1] if len(args) > 1 else "")
 
     elif command == 'tree':
         tree_command()

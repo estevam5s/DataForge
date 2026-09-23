@@ -439,7 +439,10 @@ def render_de(fonte, arquivo=None):
 
 def test_erro_tem_codigo_local_e_trecho():
     r = render_de('nums := [1, 2, 3]\nout nums[10]\n')
-    assert "erro[DF0601]" in r          # codigo estavel
+    # O codigo e o estavel; a palavra em volta dele e a MOLDURA, e ela
+    # fala o idioma em vigor — 'erro' em pt, 'error' em en, e a suite
+    # roda em ingles. Afirmar a moldura era afirmar o idioma sem querer.
+    assert "[DF0601]" in r
     assert ":2:" in r                    # linha e coluna
     assert "out nums[10]" in r           # a linha que falhou
     assert "^" in r                      # o marcador

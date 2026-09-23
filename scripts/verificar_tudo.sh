@@ -128,6 +128,7 @@ for gerador in \
     tools/gerar_indice_exercicios.py \
     tools/gerar_conclusao.py \
     scripts/gerar_api.py \
+    scripts/gerar_idioma_es.py \
     site/scripts/gerar_dados.py \
     site/scripts/gerar_roadmap.py \
     site/scripts/gerar_conteudo.py \

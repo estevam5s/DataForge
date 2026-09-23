@@ -1017,6 +1017,7 @@ export const nav: NavSection[] = [
     items: [
       { title: 'Perguntas frequentes', href: '/docs/faq' },
       { title: 'Erros comuns', href: '/docs/faq/erros-comuns' },
+      { title: 'Idiomas', href: '/docs/idiomas' },
       { title: 'Quando NÃO usar', href: '/docs/faq/quando-nao-usar' },
       { title: 'Dá para pôr em produção?', href: '/docs/faq/producao' },
       { title: 'Desempenho', href: '/docs/faq/desempenho' },
