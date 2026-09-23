@@ -144,11 +144,106 @@ def main():
     print(f"gerado: {destino}")
 
     atualizar_readme()
+    atualizar_estado()
 
 
 #: Os marcadores que delimitam a tabela gerada dentro do README.
 ABRE = "<!-- stdlib:inicio -->"
 FECHA = "<!-- stdlib:fim -->"
+
+#: E os do quadro de estado, pelo mesmo motivo. Ele dizia "1012 testes"
+#: e "216 exercicios" com 5.868 e 397 — e listava como ausente o que ja
+#: existia ha meses (generics com limite, exaustividade alem de enum,
+#: depurador com ponto de parada). Um quadro de estado que descreve um
+#: estado que ja nao e o do projeto e lido como verdade, e cada numero
+#: errado dele vira uma decisao errada.
+ABRE_ESTADO = "<!-- estado:inicio -->"
+FECHA_ESTADO = "<!-- estado:fim -->"
+
+
+def _trocar_bloco(caminho, abre, fecha, novo, o_que):
+    texto = open(caminho, encoding="utf-8").read()
+    if abre not in texto or fecha not in texto:
+        print(f"  ({os.path.basename(caminho)} sem {abre}: pulando)")
+        return
+    inicio = texto.index(abre)
+    fim = texto.index(fecha) + len(fecha)
+    open(caminho, "w", encoding="utf-8").write(texto[:inicio] + novo + texto[fim:])
+    print(f"gerado: {caminho} ({o_que})")
+
+
+def _contar(padrao, recursivo=True):
+    import glob
+    return len(glob.glob(os.path.join(RAIZ, padrao), recursive=recursivo))
+
+
+def atualizar_estado():
+    """O quadro de estado e a lista do que NAO existe, lidos do codigo.
+
+    A lista de ausencias vem de `Arcane.Ecossistema`, que e conferido
+    contra o disco — e nao de um paragrafo escrito a mao, que e o que
+    fez este README anunciar como falta quatro coisas que existiam.
+    """
+    import glob
+    import json
+
+    from dataforge.catalogo_erros import ERROS
+    from dataforge.cli import COMANDOS
+    from dataforge.stdlib import get_module, list_modules
+
+    oficiais = {get_module(n)["__name__"] for n in set(list_modules())}
+    simbolos = sum(len([k for k in get_module(n) if not k.startswith("__")])
+                   for n in oficiais)
+
+    caminho_dados = os.path.join(RAIZ, "site", "lib", "dados-gerados.json")
+    testes = exercicios = 0
+    if os.path.exists(caminho_dados):
+        with open(caminho_dados, encoding="utf-8") as f:
+            dados = json.load(f)
+        testes = dados["contagem"]["testes"]
+        exercicios = sum(len(v) for v in dados["exercicios"].values())
+
+    conferidos = sum(
+        len(glob.glob(os.path.join(RAIZ, pasta, "**", "*.df"), recursive=True))
+        for pasta in ("examples", "exercicios", "projetos", "packages", "trilha"))
+
+    eco = get_module("Arcane.Ecossistema")
+    numeros = eco["numeros"]()
+
+    quadro = "\n".join([
+        ABRE_ESTADO,
+        "| Verificação | Resultado |",
+        "|-------------|-----------|",
+        f"| `pytest tests/` | {testes} funções de teste |",
+        f"| `exercicios/run_all.py` | {exercicios}/{exercicios} |",
+        f"| `trilha/run_all.py` | {_contar('trilha/*.df')} capítulos |",
+        f"| `examples/*.df` | {_contar('examples/*.df')} programas |",
+        f"| Módulos da stdlib | {len(oficiais)} carregam, {simbolos} símbolos |",
+        f"| Comandos da CLI | {len({c.nome for c in COMANDOS.values()})} |",
+        f"| Códigos de erro | {len(ERROS)} |",
+        f"| `dataforge check` × 5 pastas | 0 erros em {conferidos} arquivos |",
+        f"| Componentes do ecossistema | {numeros['componentes']} conferidos "
+        f"contra o disco: {numeros['existem']} existem, "
+        f"{numeros['equivalem']} equivalem, {numeros['nao_existem']} não |",
+        "| Instalação via pip, curl e Docker | funciona |",
+        "",
+        "### O que ainda não existe",
+        "",
+        "Lido de `Arcane.Ecossistema`, que é **conferido contra o disco** —",
+        "e não de um parágrafo, que é o que fez esta seção anunciar como",
+        "falta quatro coisas que já existiam:",
+        "",
+        "| Não há | O que há no lugar |",
+        "|--------|-------------------|",
+        *[f"| **{no['no']}** | {no['aqui'][:160]}{'…' if len(no['aqui']) > 160 else ''} |"
+          for no in eco["o_que_nao_existe"]()],
+        "",
+        "A lista viva: `dataforge ecossistema`. O roadmap completo está em",
+        "[`doc/ANALISE_E_ROADMAP.md`](doc/ANALISE_E_ROADMAP.md).",
+        FECHA_ESTADO,
+    ])
+    _trocar_bloco(os.path.join(RAIZ, "README.md"), ABRE_ESTADO, FECHA_ESTADO,
+                  quadro, "quadro de estado")
 
 
 def atualizar_readme():

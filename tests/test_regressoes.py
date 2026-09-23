@@ -8133,3 +8133,47 @@ def test_write_bytes_recusa_o_que_nao_vira_bytes(tmp_path):
     io = get_module("Arcane.IO")
     with _pytest.raises(TypeError_):
         io["write_bytes"](str(tmp_path / "x.bin"), {"a": 1})
+
+
+def test_o_quadro_de_estado_do_README_e_gerado():
+    """Ele dizia **1012 testes** e **216 exercícios** com 5.868 e 397 — e
+    listava como ausente o que já existia havia meses: generics com
+    limite, exaustividade além de enum, e depurador com ponto de parada.
+
+    Um quadro de estado que descreve um estado que já não é o do projeto
+    é lido como verdade, e cada número errado dele vira uma decisão
+    errada. Hoje ele sai de `tools/gerar_doc_stdlib.py`, e a lista de
+    ausências vem de `Arcane.Ecossistema` — que é conferido contra o
+    disco.
+    """
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    readme = open(os.path.join(raiz, "README.md"), encoding="utf-8").read()
+
+    assert "<!-- estado:inicio -->" in readme
+    assert "<!-- estado:fim -->" in readme
+
+    bloco = readme.split("<!-- estado:inicio -->")[1].split("<!-- estado:fim -->")[0]
+
+    # Os quatro que a versao escrita a mao errava.
+    for morto in ("1012 passando", "216/216", "42/42", "29/29"):
+        assert morto not in bloco, f"o numero velho '{morto}' voltou"
+
+    # E a lista de ausencias vem do mapa, e nao de um paragrafo.
+    from dataforge.stdlib import get_module
+
+    for no in get_module("Arcane.Ecossistema")["o_que_nao_existe"]():
+        assert no["no"] in bloco, f"{no['no']} sumiu do README"
+
+
+def test_o_gerador_do_README_e_idempotente():
+    """Rodar duas vezes tem de dar o mesmo arquivo — senão o teste que o
+    compara com o versionado reprova sozinho, e a reação é apagá-lo."""
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    caminho = os.path.join(raiz, "README.md")
+
+    antes = open(caminho, encoding="utf-8").read()
+    subprocess.run([sys.executable, "tools/gerar_doc_stdlib.py"], cwd=raiz,
+                   capture_output=True, text=True, encoding="utf-8",
+                   errors="replace")
+    depois = open(caminho, encoding="utf-8").read()
+    assert antes == depois, "o gerador do README nao e idempotente"

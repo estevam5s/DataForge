@@ -18,7 +18,7 @@ com vocabulário próprio.**
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Version](https://img.shields.io/badge/version-1.1.1-green.svg)](https://github.com/estevam5s/DataForge)
 [![PyPI](https://img.shields.io/badge/pypi-dataforge--lang-blue.svg)](https://pypi.org/project/dataforge-lang/)
-[![Tests](https://img.shields.io/badge/testes-4785%20passando-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/testes-5868%20passando-brightgreen.svg)](tests/)
 [![Exercises](https://img.shields.io/badge/exerc%C3%ADcios-387%2F387-brightgreen.svg)](exercicios/)
 [![Runtime deps](https://img.shields.io/badge/depend%C3%AAncias%20no%20runtime-nenhuma-brightgreen.svg)](pyproject.toml)
 
@@ -27,11 +27,17 @@ descendente, AST tipada, analisador estático e interpretador de árvore
 próprios**, escritos em Python puro — um programa `.df` roda em qualquer
 máquina com Python 3.10+, sem `pip install` de mais nada.
 
-Traz tipos verificados, pattern matching estrutural, pipelines na gramática,
-generators preguiçosos, records imutáveis, 95 métodos mágicos, gerenciador de
-pacotes com semver e lockfile, um framework web (**Kiln**), um framework de
-testes (**Crucible**), um acesso a bancos de dados por protocolo próprio
-(**Forge**) e **87 módulos** de biblioteca padrão com **2321 símbolos**.
+Traz tipos verificados com limite (`<T extends Number>`), pattern matching
+estrutural com exaustividade, pipelines na gramática, generators preguiçosos,
+records imutáveis, 95 métodos mágicos, gerenciador de pacotes com semver e
+lockfile, depurador com ponto de parada e vigia (no terminal e no editor), e
+**87 módulos** de biblioteca padrão com **2321 símbolos**.
+
+E cinco frameworks dentro dela: **Kiln** (web, com WebSocket e SSE),
+**Vitrine** (painéis de dados no navegador), **Crucible** (testes),
+**Lavra** (consulta tipada, o equivalente de GraphQL) e **Forge** (ORM).
+Mais **Janela** para aplicação de mesa nativa, e **IoT** para falar com um
+Arduino — as duas com zero dependência.
 
 [Instalação](#instalação) • [Tutorial](doc/TUTORIAL.md) • [Referência](doc/REFERENCIA.md) • [397 exercícios](exercicios/) • [Biblioteca](doc/BIBLIOTECA_PADRAO.md) • [Site](https://dataforge-lang.vercel.app) • [Roadmap](doc/ANALISE_E_ROADMAP.md)
 
@@ -99,9 +105,11 @@ repor: [Teclado, Monitor]
 | **Pattern matching estrutural** | por tipo, sequência, record, vault, enum — com guardas |
 | **Pipelines são sintaxe** | `>> sift`, `>> morph`, `>> distill` fazem parte da gramática |
 | **Generators preguiçosos** | `stream action` + `emit`, inclusive sequências infinitas |
-| **Ferramentas oficiais** | `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `init` |
-| **Bateria inclusa** | 87 módulos com 2321 símbolos + 228 funções globais |
-| **Zero dependências** | Python 3.10+ e nada mais |
+| **Ferramentas oficiais** | 68 comandos: `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `debug`, `profile`, `big-o`, `devops`, `vitrine`, `desktop`, `iot`… |
+| **Depurador de verdade** | ponto de parada, condição, contagem, logpoint, **vigia de escrita e de leitura** — no terminal e no painel do editor (DAP) |
+| **Editor** | LSP com hover, ir-para, renomear, e autocompletar **sensível ao contexto**: depois de `p.` ele oferece os campos daquele record |
+| **Bateria inclusa** | 87 módulos com 2321 símbolos + 231 funções globais |
+| **Zero dependências** | Python 3.10+ e nada mais — inclusive a janela nativa, a planilha `.xlsx`, o WebSocket, o MQTT e a porta serial |
 
 ---
 
@@ -432,14 +440,34 @@ relay somar                            # controla o que este módulo exporta
 
 ```bash
 dataforge init [pasta]        # cria forge.toml e o esqueleto
+dataforge new <modelo> <nome> # 9 modelos; todo projeto criado passa nos próprios testes
 dataforge run [arquivo.df]    # executa (sem argumento usa a entrada do manifesto)
-dataforge check <alvo>        # análise estática: nomes, aridade, tipos
-dataforge test [alvo] -v      # descobre e roda *_test.df e tests/
-dataforge fmt <alvo> --check  # formata
+dataforge check <alvo>        # análise estática: nomes, aridade, tipos, exaustividade
+dataforge test [alvo] -v      # descobre e roda *_test.df e tests/; --cobertura e --minimo
+dataforge fmt <alvo> --check  # formata (idempotente, e há teste provando)
 dataforge lint <alvo>         # estilo e higiene
 dataforge doc <alvo> --out=…  # documentação Markdown
-dataforge repl                # console interativo
+dataforge repl                # console interativo, com :type, :ast e :load
 dataforge info                # mostra o manifesto
+```
+
+E as que não existem em quase nenhuma linguagem pequena:
+
+```bash
+dataforge debug <alvo>        # para, mostra o que vale e anda — serve por ssh
+dataforge dap                 # o mesmo no painel do editor (F5)
+dataforge profile <alvo>      # tempo PRÓPRIO por ação (o acumulado passaria de 100%)
+dataforge big-o <alvo>        # lê a árvore e diz a classe de cada ação — e o motivo
+dataforge oop <alvo>          # métricas CK e cheiros, cada um com o princípio SOLID
+dataforge ir <alvo>           # as seis fases do compilador, como dado
+dataforge abi <a> <b>         # que bump de semver esta mudança exige
+dataforge seguranca           # varre segredo e caminho de fora no projeto inteiro
+dataforge devops <artefato>   # Dockerfile, compose, CI, k8s, Helm, nginx, SBOM
+dataforge vitrine run         # sobe um painel de dados
+dataforge desktop novo|empacotar   # aplicação de mesa nativa, e o .app/.exe
+dataforge mobile pwa          # o app que o Android instala na tela inicial
+dataforge iot doctor|piscar   # a placa Arduino, do terminal
+dataforge ecossistema         # o inventário da implementação, conferido contra o disco
 ```
 
 ### `dataforge check` — o que ele encontra
@@ -791,6 +819,112 @@ lê e escreve **no bloco**, e o ponteiro anda por **elemento** — `p + 1` num
 
 ---
 
+## Engenharia de dados: as três formas de errar em silêncio
+
+Uma análise erra e alguém percebe. Um **pipeline** erra e ninguém percebe: o
+número é plausível, o processo termina com código zero, e a conclusão errada
+vira decisão.
+
+```dataforge
+adopt Arcane.Quadro as Q
+adopt Arcane.Qualidade as Qual
+
+// 1. a JANELA que não atravessa o grupo
+vendas.acumulado("valor", "soma", void, "loja")     // por loja, e não geral
+
+// 2. a JUNÇÃO que não infla
+vendas.juntar(clientes, "cli", "dentro", "muitos_para_um")
+
+// 3. a DERIVA de esquema, antes de processar
+Qual.exigir_esquema(lote, contrato)
+```
+
+Sem a partição, "média móvel de sete dias por loja" atravessa a fronteira das
+lojas. Sem a cardinalidade, uma tabela de apoio com a chave duplicada
+multiplica o fato — medido: duas vendas somando 30 viraram três linhas somando
+**40**. Sem a conferência de esquema, o `id` chega como texto e o `join` para
+de casar, sem erro nenhum.
+
+Os seis verbos do pipeline são **sintaxe**:
+
+```dataforge
+relatorio := vendas
+    >> onde valor bigger 50
+    >> agrupar "loja"
+    >> resumir {"valor": "soma", "qtd": "media"}
+    >> ordenar "valor_soma"
+```
+
+---
+
+## Desktop: uma janela nativa, com zero dependência
+
+O Tk vem na biblioteca padrão do Python — é a única forma de desenhar uma
+janela nativa nos três sistemas sem trazer nada de fora.
+
+```dataforge
+adopt Arcane.Janela as J
+
+action tela(t):
+    t.titulo("Estoque")
+    nome := t.entrada("Produto", "")
+    qtd := t.numero("Quantidade", 1)
+    given t.botao("Adicionar", yes):
+        t.aviso($"{nome}: {qtd} em estoque")
+    t.tabela(["nome", "qtd"], itens)
+
+J.abrir(J.app("Estoque", 700, 560), tela)
+```
+
+O programa **inteiro roda de novo a cada interação**, como na Vitrine: é o que
+dispensa callback — e o que torna a tela testável **sem display nenhum**, que é
+como o CI roda:
+
+```dataforge
+s := J.testar(tela)
+s.digitar("Produto", "café")
+s.clicar("Adicionar")
+assert s.tem("café: 1 em estoque")
+```
+
+`dataforge desktop empacotar src/main.df --nome=Estoque` chama o PyInstaller e
+devolve um `.app`, um `.exe` ou um binário. Para Android **não há APK** — há
+PWA: `dataforge mobile pwa` gera o manifesto, o ícone e o service worker de uma
+aplicação Vitrine, e o Android a instala na tela inicial.
+
+---
+
+## IoT: um Arduino de verdade
+
+```dataforge
+adopt Arcane.IoT as IoT
+
+placa := IoT.conectar()             // acha a porta sozinha, se houver uma só
+placa.modo(13, "saida")
+placa.escrever(13, yes)
+
+placa.modo(14, "analogico")
+placa.relatar_analogico(0)          // sem isto, a leitura é zero e ninguém avisa
+temperatura := IoT.tmp36(placa.analogico(0))
+placa.fechar()                      // desliga as saídas ao sair
+```
+
+Porta serial escrita aqui (`termios` e a API do Windows, **sem `pyserial`**),
+Firmata 2.x completo, MQTT 3.1.1, seis sketches em C++ que o `arduino-cli`
+compila — e um **simulador de placa** que fala os mesmos bytes, para o programa
+de hardware ter teste:
+
+```dataforge
+placa := IoT.conectar_simulada("uno")
+placa.simulador.definir_analogico(0, 733)
+```
+
+`dataforge iot doctor` diz por que a placa não responde, na ordem em que as
+causas acontecem — cabo só de energia, driver ausente, StandardFirmata não
+gravado, velocidade errada.
+
+---
+
 ## Aprendendo
 
 | Recurso | O que é |
@@ -858,8 +992,11 @@ sem ele.
 ```bash
 pip install -e ".[dev]"
 
-python3 -m pytest tests/ -q       # mais de 4500 testes
-python3 exercicios/run_all.py     # 397 exercícios
+python3 -m pytest tests/ -q       # 5868 testes
+python3 exercicios/run_all.py     # 397 exercícios, em 58 áreas
+python3 trilha/run_all.py         # 18 capítulos, em ordem
+python3 tools/verificar_docs.py   # os 2393 blocos do site compilam
+bash scripts/verificar_tudo.sh    # o portão completo: regera tudo e confere o diff
 ```
 
 Contexto para trabalhar no interpretador: [`CLAUDE.md`](CLAUDE.md).
@@ -878,35 +1015,56 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/parser.py` | recursivo descendente: tokens → AST | 1941 |
 | `dataforge/ast_nodes.py` | nós da AST como dataclasses | 706 |
 | `dataforge/interpreter.py` | interpretador de árvore: a semântica | 2703 |
-| `dataforge/typechecker.py` | análise estática | 1193 |
+| `dataforge/typechecker.py` | análise estática | 1752 |
 | `dataforge/formatter.py` | `dataforge fmt` | 280 |
 | `dataforge/linter.py` | `dataforge lint` | 394 |
 | `dataforge/testrunner.py` | `dataforge test` | 194 |
 | `dataforge/docgen.py` | `dataforge doc` | 218 |
 | `dataforge/project.py` | `forge.toml` | 184 |
 | `dataforge/builtins.py` | 228 funções globais | 1224 |
-| `dataforge/stdlib/` | os 87 módulos, incluindo o Kiln, o Crucible e o Forge | 8200 |
+| `dataforge/compilador.py` | a árvore vira fechamentos, uma vez (1,5× a 1,8×) | 330 |
+| `dataforge/hir.py`, `mir.py`, `lir.py`, `ssa.py` | as representações do meio, e as análises sobre elas | 2020 |
+| `dataforge/lsp.py` | o servidor de linguagem: hover, completar, ir-para | 1100 |
+| `dataforge/dap.py` | o depurador falando o protocolo do editor | 700 |
+| `dataforge/travessia.py` | o que uma ação leva consigo para outro núcleo | 964 |
+| `dataforge/stdlib/` | os 87 módulos, incluindo Kiln, Vitrine, Crucible, Lavra, Forge, Janela e IoT | 8200 |
 
 ---
 
 ## Estado do projeto
 
+<!-- estado:inicio -->
 | Verificação | Resultado |
 |-------------|-----------|
-| Testes unitários | 1012 passando |
-| Exercícios | 216/216 |
-| Exemplos | 42/42 |
-| Módulos da stdlib | 29/29 carregam |
-| Pacotes do registro | 20 no registro, 4 escritos em DataForge com 46 testes |
-| Análise estática sobre o repositório | 0 erros em 233 arquivos |
+| `pytest tests/` | 3897 funções de teste |
+| `exercicios/run_all.py` | 397/397 |
+| `trilha/run_all.py` | 18 capítulos |
+| `examples/*.df` | 50 programas |
+| Módulos da stdlib | 87 carregam, 2321 símbolos |
+| Comandos da CLI | 68 |
+| Códigos de erro | 219 |
+| `dataforge check` × 5 pastas | 0 erros em 568 arquivos |
+| Componentes do ecossistema | 44 conferidos contra o disco: 32 existem, 6 equivalem, 6 não |
 | Instalação via pip, curl e Docker | funciona |
 
 ### O que ainda não existe
 
-Generics com restrição, exaustividade além de enum (o `match` já cobre
-enum), depurador com breakpoint e VM de bytecode — hoje é interpretador
-de árvore, e num laço quente isso se sente.
-Detalhado em [`doc/ANALISE_E_ROADMAP.md`](doc/ANALISE_E_ROADMAP.md).
+Lido de `Arcane.Ecossistema`, que é **conferido contra o disco** —
+e não de um parágrafo, que é o que fez esta seção anunciar como
+falta quatro coisas que já existiam:
+
+| Não há | O que há no lugar |
+|--------|-------------------|
+| **LLVM Backend** | o backend e 'compilador.py': a arvore e percorrida uma vez e vira fechamentos Python, o que tira o despacho do caminho quente. Medido: 1,5x a 1,8x |
+| **Code Generator** | nao ha. O que sai do compilador e um fechamento, e quem o executa e 'interpreter.py' |
+| **Allocator** | o alocador e o do CPython. 'Arcane.Memoria' da arena, referencia fraca, mapa fraco e controle do coletor (ligar, desligar, limiares, congelar) |
+| **Bare-Metal Runtime** | nao ha, e nao ha caminho a partir daqui: o runtime e o CPython |
+| **Aplicativo Android** | o que existe e o PWA: 'dataforge mobile pwa' gera o manifesto, o icone e o service worker de uma aplicacao Vitrine, e o Android a instala na tela inicial. Termu… |
+| **Bare-Metal** | o interpretador nao roda na placa, e nao ha caminho para isso. O que ha e outra coisa, e ela e real: 'Arcane.IoT' CONTROLA a placa pelo cabo (Firmata) e GERA o … |
+
+A lista viva: `dataforge ecossistema`. O roadmap completo está em
+[`doc/ANALISE_E_ROADMAP.md`](doc/ANALISE_E_ROADMAP.md).
+<!-- estado:fim -->
 
 ---
 
