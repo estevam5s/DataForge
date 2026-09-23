@@ -1036,7 +1036,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 <!-- estado:inicio -->
 | Verificação | Resultado |
 |-------------|-----------|
-| `pytest tests/` | 3897 funções de teste |
+| `pytest tests/` | 3902 funções de teste |
 | `exercicios/run_all.py` | 397/397 |
 | `trilha/run_all.py` | 18 capítulos |
 | `examples/*.df` | 50 programas |

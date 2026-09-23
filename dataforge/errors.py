@@ -44,8 +44,20 @@ class DataForgeError(Exception):
         self.message = message
         self.line = line
         self.column = column
-        self.nota = nota
-        self.dica = dica
+        #: `nota` e `dica` aceitam uma ACAO, e nao so um texto.
+        #:
+        #: Sugerir o nome parecido custa caro: `difflib` compara o que
+        #: se pediu com TODOS os nomes visiveis. E ha caminhos em que o
+        #: erro nasce e morre sem ninguem le-lo — `v["k"] ?? padrao` e
+        #: o mais comum de todos, e ele acontece uma vez por chave
+        #: ausente, num laco.
+        #:
+        #: Medido: um programa que conta 997 chaves distintas num vault
+        #: gastava SETE SEGUNDOS dentro do `difflib`, chamado do
+        #: caminho de SUCESSO. Adiar o texto para a hora de desenhar
+        #: tira esse custo inteiro de quem nunca ve a mensagem.
+        self._nota = nota
+        self._dica = dica
         self.codigo = codigo or self.CODIGO
         self.doc = doc
         self.span = span
@@ -73,6 +85,28 @@ class DataForgeError(Exception):
         #: E o 'raise … from e' do Python e o 'Caused by' do Java.
         self.causa = None      # DataForgeError | None
         super().__init__(self.format())
+
+    @property
+    def nota(self):
+        """O contexto. Se veio como acao, ela roda AGORA — e uma vez."""
+        if callable(self._nota):
+            self._nota = self._nota() or ""
+        return self._nota
+
+    @nota.setter
+    def nota(self, valor):
+        self._nota = valor
+
+    @property
+    def dica(self):
+        """O que fazer. Mesma regra da nota."""
+        if callable(self._dica):
+            self._dica = self._dica() or ""
+        return self._dica
+
+    @dica.setter
+    def dica(self, valor):
+        self._dica = valor
 
     def cadeia(self):
         """Este erro e a fila de causas abaixo dele, do topo para baixo."""

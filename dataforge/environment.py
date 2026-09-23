@@ -16,6 +16,13 @@ from .errors import NameError_, RuntimeError_
 #: alto em vez de escrever no conjunto de todos.
 _VAZIO = frozenset()
 
+#: O que `get` devolve quando o nome nao esta NAQUELE escopo.
+#:
+#: Um sentinela, e nao `None`: `void` e um valor legitimo da linguagem,
+#: e `variaveis.get(nome)` devolvendo `None` nao distingue "nao existe"
+#: de "existe e vale void" — a diferenca que um `??` inteiro depende.
+_FALTA = object()
+
 
 class Environment:
     """A scope environment for variable/function lookups."""
@@ -59,11 +66,27 @@ class Environment:
         self._deferred = None
 
     def get(self, name: str):
-        """Look up a variable, walking up the scope chain."""
-        if name in self.variables:
-            return self.variables[name]
-        if self.parent:
-            return self.parent.get(name)
+        """Procura o nome, subindo a cadeia de escopos.
+
+        Em LACO, e nao em recursao, e com UMA consulta por escopo.
+
+        A versao recursiva custava uma chamada de funcao do Python por
+        nivel da cadeia — e a cadeia de um metodo dentro de um laco
+        dentro de uma acao tem quatro. Medido com cProfile numa carga
+        de referencia: 2,47 milhoes de chamadas a `get`, das quais
+        700 mil eram so o salto para o escopo de cima.
+
+        A busca continua sendo `in` seguido de `[]`, e NAO um
+        `variaveis.get(nome, sentinela)`: medido, a versao com `get` e
+        mais LENTA. Sao duas operacoes rapidas de dicionario contra uma
+        chamada de metodo, e a chamada custa mais que a segunda busca.
+        """
+        escopo = self
+        while escopo is not None:
+            variaveis = escopo.variables
+            if name in variaveis:
+                return variaveis[name]
+            escopo = escopo.parent
         raise self._erro_de_nome(name)
 
     # ── Diagnostico ──────────────────────────────────────────
@@ -79,25 +102,33 @@ class Environment:
         return vistos
 
     def _erro_de_nome(self, name):
-        """'x nao existe' e pouco. Sugerir o parecido resolve a maioria."""
-        import difflib
+        """'x nao existe' e pouco. Sugerir o parecido resolve a maioria.
 
-        visiveis = self.nomes_visiveis()
-        perto = difflib.get_close_matches(name, visiveis, n=3, cutoff=0.7)
+        A sugestao e ADIADA: `difflib` compara o nome pedido com TODOS
+        os nomes visiveis — e no escopo global sao mais de 230, so de
+        embutidas. Ha caminhos em que este erro nasce e morre sem
+        ninguem le-lo (`x ?? padrao`, um `monitor` que espera a falta),
+        e ali o texto nunca chega a ser preciso.
+        """
+        def _perto():
+            import difflib
+            return difflib.get_close_matches(name, self.nomes_visiveis(),
+                                             n=3, cutoff=0.7)
 
-        nota = dica = ""
-        if perto:
-            if len(perto) == 1:
-                dica = f"did you mean '{perto[0]}'?"
-            else:
-                opcoes = ", ".join(f"'{p}'" for p in perto)
-                dica = f"did you mean one of: {opcoes}?"
-        else:
+        def nota():
             # Escrito depois de usado? Ou so nao existe mesmo?
-            nota = "this name was never assigned in any enclosing scope"
-            dica = ("assign it before using:  "
-                    f"{name} := …\n"
-                    "remember DataForge assigns with ':=', not '='")
+            return ("" if _perto()
+                    else "this name was never assigned in any enclosing scope")
+
+        def dica():
+            perto = _perto()
+            if not perto:
+                return (f"assign it before using:  {name} := …\n"
+                        "remember DataForge assigns with ':=', not '='")
+            if len(perto) == 1:
+                return f"did you mean '{perto[0]}'?"
+            return ("did you mean one of: "
+                    + ", ".join(f"'{p}'" for p in perto) + "?")
 
         return NameError_(f"'{name}' is not defined.",
                           nota=nota, dica=dica, doc="variaveis",

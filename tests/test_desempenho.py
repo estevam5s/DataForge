@@ -557,3 +557,92 @@ def test_o_fechamento_concorda_com_o_interpretador(nome):
 
     assert saidas[0] == saidas[1], (
         f"compilado deu {saidas[0]!r}, interpretado deu {saidas[1]!r}")
+
+
+# ═══════════════════════════════════════════════════════════
+#  O erro que rodava no caminho de SUCESSO
+# ═══════════════════════════════════════════════════════════
+#
+# `v["k"] ?? padrao` num laço pagava, a cada chave ausente, uma
+# comparação do `difflib` contra TODAS as chaves do vault — para montar
+# a sugestão "você quis dizer?" de um erro que o `??` engole em
+# seguida. Medido: um programa que conta 997 chaves distintas gastava
+# **sete segundos** dentro do `difflib`, mais que o resto do programa
+# inteiro.
+#
+# A correção é a nota e a dica serem ADIADAS: elas aceitam uma ação, e
+# ela só roda quando alguém desenha a mensagem.
+
+def _tempo(fonte, repeticoes=3):
+    """O MENOR tempo de N execuções, em milissegundos."""
+    import time
+
+    arvore = parse(tokenize(fonte, "t.df"), "t.df")
+    melhor = None
+    for _ in range(repeticoes):
+        buf = io.StringIO()
+        inicio = time.perf_counter()
+        with redirect_stdout(buf):
+            Interpreter().run(arvore)
+        gasto = time.perf_counter() - inicio
+        melhor = gasto if melhor is None else min(melhor, gasto)
+    return melhor * 1000
+
+
+def test_a_chave_ausente_sob_coalescencia_nao_paga_a_sugestao():
+    """A prova é um FATOR, e não um prazo: um limite em milissegundos
+    mediria a máquina.
+
+    Com 600 chaves distintas contra 60, o trabalho cresce 10×. Com a
+    sugestão no caminho, o `difflib` fazia o custo crescer com o
+    QUADRADO — e a razão passava de 50. Sem ela, a razão fica perto do
+    trabalho de verdade.
+    """
+    def programa(distintas):
+        return f'''
+action trabalho():
+    v := {{}}
+    cycle i in range(0, {distintas * 8}):
+        chave := $"k{{i % {distintas}}}"
+        v[chave] := (v[chave] ?? 0) + 1
+    yield len(v)
+
+out trabalho()
+'''
+
+    pequeno = _tempo(programa(60))
+    grande = _tempo(programa(600))
+    razao = grande / max(pequeno, 0.001)
+
+    # O trabalho cresce 10x. Com a sugestao no caminho, a razao passava
+    # de 50 — e o teto de 25 deixa folga de sobra para uma maquina
+    # carregada sem deixar o defeito voltar.
+    assert razao < 25, (
+        f"a chave ausente voltou a pagar a sugestao: {razao:.1f}x para "
+        f"10x de trabalho ({pequeno:.1f} ms → {grande:.1f} ms)")
+
+
+def test_a_nota_adiada_continua_dizendo_a_mesma_coisa():
+    """Adiar não pode mudar a mensagem: ela é o que a pessoa lê."""
+    from dataforge.errors import DataForgeError
+
+    erro = DataForgeError("x", nota=lambda: "a nota", dica=lambda: "a dica")
+    assert erro.nota == "a nota"
+    assert erro.dica == "a dica"
+
+    # E ela roda UMA vez: a segunda leitura devolve o texto guardado.
+    contagem = []
+    outro = DataForgeError("y", nota=lambda: (contagem.append(1), "n")[1])
+    assert outro.nota == "n" and outro.nota == "n"
+    assert len(contagem) == 1
+
+
+def test_a_nota_continua_aceitando_TEXTO():
+    """A forma antiga é a esmagadora maioria das chamadas, e ela não
+    podia passar a exigir uma ação."""
+    from dataforge.errors import DataForgeError
+
+    erro = DataForgeError("x", nota="direto", dica="tambem")
+    assert erro.nota == "direto" and erro.dica == "tambem"
+    erro.nota = "trocada"
+    assert erro.nota == "trocada"

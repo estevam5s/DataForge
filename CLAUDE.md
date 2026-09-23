@@ -634,6 +634,31 @@ quatro na máquina de chamada e no acesso a membro:
 | `_check_arity` rodava três compreensões em toda chamada, inclusive na posicional exata | `fib(24)`: 0,48 s → 0,42 s |
 | `Environment` alocava **dois sets vazios** por escopo, e `f"<action {nome}>"` era montado por chamada | idem |
 
+**E a maior de todas: o erro que rodava no caminho de SUCESSO.**
+`v["k"] ?? padrao` num laço pagava, a cada chave ausente, uma comparação
+do `difflib` contra **todas** as chaves do vault — para montar a
+sugestão "você quis dizer?" de um erro que o `??` engole em seguida.
+
+| Carga | Antes | Depois |
+|---|---|---|
+| 997 chaves distintas contadas num vault | 2.129 ms | **67 ms** (31×) |
+| 500 chaves, com `M.floor` no laço | 179 ms | **52 ms** (3,4×) |
+| laço + chamada + campo + comparação | 967 ms | **736 ms** (1,31×) |
+
+A correção é `nota` e `dica` aceitarem uma **ação**, e ela só rodar
+quando alguém desenha a mensagem (`errors.py`, propriedades `nota`/`dica`).
+Vale para `_erro_chave`, `_erro_de_nome` e `_membro_ausente` — os três
+caminhos em que um erro nasce e morre sem ninguém lê-lo. O teste cobra
+um **fator**: com 10× de trabalho a razão passava de 50, e hoje fica
+abaixo de 25.
+
+E as quatro do caminho quente, na mesma passada: o caminho rápido de
+`_operar` e `_comparar` quando os dois lados são números do mesmo tipo
+embutido (cada `1 + 2` pagava cinco `isinstance`, a construção de um
+dicionário literal e uma cadeia de comparações de texto); `Environment.get`
+em **laço** e não em recursão; e o estado por thread lido **uma** vez por
+chamada de ação (eram seis chamadas de descritor por chamada).
+
 E uma armadilha achada medindo: `getattr(obj, "x", None)` num **slot
 nunca atribuído** custa 7× mais que num atributo presente, porque levanta
 e captura um `AttributeError` por dentro. Foi o que a primeira versão do

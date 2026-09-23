@@ -5,6 +5,7 @@ Tree-walking interpreter that executes AST nodes.
 
 import collections as _collections
 from functools import partial as _functools_partial
+import operator
 import numbers as _numeros
 import re as _re
 import sys
@@ -148,6 +149,46 @@ def _dict_delete(d, key):
 #: Agora cada lambda recebe o objeto como primeiro argumento, e o acesso
 #: liga so o escolhido ('_ligar_ao_objeto'). O comportamento e o mesmo,
 #: inclusive a mensagem de aridade: o nome continua '<lambda>'.
+#: A conta de dois numeros, sem passar pelo caminho geral.
+#:
+#: Medido com cProfile: numa carga de 785 mil operacoes, `_operar` era
+#: a funcao mais cara do interpretador (0,43 s de tempo proprio), e
+#: `isinstance` aparecia 9,2 MILHOES de vezes — a maioria vinda dali.
+#: Cada `1 + 2` pagava cinco `isinstance`, a construcao de um
+#: dicionario literal e uma cadeia de comparacoes de texto.
+#:
+#: `//` NAO entra: nesta linguagem a divisao inteira e `~/`, e o `//`
+#: chega aqui so pela forma antiga.
+_ARITMETICA_RAPIDA = {
+    '+': operator.add,
+    '-': operator.sub,
+    '*': operator.mul,
+    '/': operator.truediv,
+    '%': operator.mod,
+    '**': operator.pow,
+}
+
+#: A forma antiga de sobrecarregar operador, por metodo. Ela era um
+#: literal DENTRO de `_operar`: um dicionario alocado a cada conta.
+#: A comparacao de dois valores do MESMO tipo embutido.
+#:
+#: Os nomes sao os da linguagem, e nao os do Python: `is` compara
+#: VALOR (e `==`, e nao `is`), porque numa linguagem sem referencia
+#: exposta a identidade nao e uma pergunta que alguem faz.
+_COMPARACAO_RAPIDA = {
+    'is': operator.eq,
+    'isnt': operator.ne,
+    'bigger': operator.gt,
+    'smaller': operator.lt,
+    'bigger_eq': operator.ge,
+    'smaller_eq': operator.le,
+}
+
+_METODOS_DE_OPERADOR = {
+    '+': 'add', '-': 'sub', '*': 'mul', '/': 'div',
+    '%': 'mod', '**': 'pow', '//': 'floordiv',
+}
+
 _METODOS_DE_VAULT = {
     'keys': lambda obj: list(obj.keys()),
     'values': lambda obj: list(obj.values()),
@@ -2724,6 +2765,33 @@ class Interpreter:
         volta so para reusar a avaliacao — 220 mil alocacoes num laco de
         200 mil voltas, jogadas fora em seguida.
         """
+        # ── O caminho de dois numeros ──────────────────────
+        #
+        # Ele vem PRIMEIRO porque e o caso esmagadoramente mais comum, e
+        # porque o caminho geral e caro: medido com cProfile numa carga
+        # de 785 mil operacoes, cada `1 + 2` pagava CINCO `isinstance`,
+        # a construcao de um dicionario literal (`op_methods`) e uma
+        # cadeia de comparacoes de texto — tudo antes de somar.
+        #
+        # A guarda e por CLASSE EXATA, e nao `isinstance`: uma subclasse
+        # de `int` pode redefinir `__add__`, e um Decimal, um Fraction
+        # ou um `np.int64` da ponte precisam do caminho completo. Um
+        # `bool` passa aqui de proposito — em Python ele E um int, e
+        # `yes + 1` ja valia 2.
+        if op in _ARITMETICA_RAPIDA:
+            classe_esquerda = left.__class__
+            if (classe_esquerda is int or classe_esquerda is float
+                    or classe_esquerda is bool):
+                classe_direita = right.__class__
+                if (classe_direita is int or classe_direita is float
+                        or classe_direita is bool):
+                    try:
+                        return _ARITMETICA_RAPIDA[op](left, right)
+                    except ZeroDivisionError:
+                        # A mensagem boa mora no caminho completo, e ela
+                        # e o que essa linha existe para nao perder.
+                        pass
+
         # ── Sobrecarga de operador ─────────────────────────
         # 'operator + (outro):' declarado no blueprint tem prioridade.
         for lado, outro, invertido in ((left, right, False), (right, left, True)):
@@ -2749,10 +2817,8 @@ class Interpreter:
                 return resultado
 
         # Forma antiga, mantida: metodos 'add', 'sub'…
-        op_methods = {'+': 'add', '-': 'sub', '*': 'mul', '/': 'div',
-                      '%': 'mod', '**': 'pow', '//': 'floordiv'}
-        if isinstance(left, DFInstance) and op in op_methods:
-            method_name = op_methods[op]
+        if isinstance(left, DFInstance) and op in _METODOS_DE_OPERADOR:
+            method_name = _METODOS_DE_OPERADOR[op]
             if left.has_method(method_name):
                 method = left.get(method_name)
                 return self._call_action(method, [right], {}, node, env, instance=left)
@@ -2983,6 +3049,24 @@ class Interpreter:
         que ja montou, e so entao pergunta o resultado. Chamar
         'eval_ComparisonOp' o faria reavaliar a arvore.
         """
+        # ── Dois numeros, ou dois textos ───────────────────
+        #
+        # Pela mesma razao do caminho rapido de `_operar`: `i % 3 is 0`
+        # num laco pagava o dicionario de simbolos, duas voltas de laco
+        # com `isinstance`, mais dois `isinstance` do caminho magico —
+        # tudo antes de comparar dois inteiros.
+        #
+        # A guarda e por classe EXATA: uma instancia pode sobrecarregar
+        # `==` e `<`, e um Decimal ou um `np.int64` precisam do caminho
+        # completo.
+        classe_esquerda = left.__class__
+        if ((classe_esquerda is int or classe_esquerda is float
+             or classe_esquerda is bool or classe_esquerda is str)
+                and right.__class__ is classe_esquerda):
+            rapida = _COMPARACAO_RAPIDA.get(op)
+            if rapida is not None:
+                return rapida(left, right)
+
         # ── Sobrecarga de comparacao ───────────────────────
         simbolo = self._SIMBOLO_COMPARACAO.get(op)
         if simbolo is not None:
@@ -3242,6 +3326,22 @@ class Interpreter:
                     return obj.get(membro)
                 except NameError_:
                     return self._membro_ausente(obj, membro, node, env)
+        # E o mesmo para um RECORD, que e o tipo de dado idiomatico da
+        # linguagem: 'p.x' pagava dois `isinstance`, duas comparacoes de
+        # texto e uma chamada a `get` antes de ler um dicionario.
+        # Medido: 600 mil leituras de campo numa carga de referencia.
+        #
+        # A classe e EXATA, e o valor so volta por aqui quando nao e uma
+        # acao: um campo que guarda uma acao precisa do embrulho
+        # `BoundRecordMethod` que o caminho completo faz, e duplicar
+        # essa decisao aqui seria a segunda copia de uma regra sutil.
+        elif type(obj) is DFRecordInstance:
+            valores = obj.values
+            if membro in valores:
+                valor = valores[membro]
+                if type(valor) is not DFAction:
+                    return valor
+
         # Handle root (super) proxy
         if isinstance(obj, _RootProxy):
             return obj.get(membro)
@@ -3474,55 +3574,79 @@ class Interpreter:
         para a coisa. Uma variavel errada ja ganhava "did you mean";
         um simbolo da stdlib, nao — e sao 1016 deles.
         """
-        import difflib
-
         nomes = [k for k in alvo if not str(k).startswith("__")]
         modulo = alvo.get("__name__") if isinstance(alvo, dict) else None
         onde = f"module '{modulo}'" if modulo else "this vault"
 
-        perto = difflib.get_close_matches(str(membro), [str(k) for k in nomes],
-                                          n=3, cutoff=0.6)
-        if perto:
-            alvos = " or ".join(f"'{p}'" for p in perto)
-            dica = f"did you mean {alvos}?"
-        elif modulo:
-            dica = ("in the repl, ':modules' lists the modules and ':doc <nome>' "
-                    "lists the symbols of one; doc/BIBLIOTECA_PADRAO.md has "
-                    "every signature")
-        else:
+        # Adiada, como em `_erro_chave` e `_erro_de_nome`: um modulo da
+        # stdlib tem centenas de simbolos, e `x?.campo` faz este erro
+        # nascer e morrer sem ninguem le-lo.
+        def _perto():
+            import difflib
+            return difflib.get_close_matches(
+                str(membro), [str(k) for k in nomes], n=3, cutoff=0.6)
+
+        def nota():
+            return (f"the module has {len(nomes)} symbols"
+                    if modulo and not _perto() else "")
+
+        def dica():
+            perto = _perto()
+            if perto:
+                return "did you mean " + " or ".join(f"'{p}'" for p in perto) + "?"
+            if modulo:
+                return ("in the repl, ':modules' lists the modules and "
+                        "':doc <nome>' lists the symbols of one; "
+                        "doc/BIBLIOTECA_PADRAO.md has every signature")
             amostra = ", ".join(f"'{k}'" for k in nomes[:6])
             resto = f" (+{len(nomes) - 6} more)" if len(nomes) > 6 else ""
-            dica = (f"it has: {amostra}{resto}" if nomes
+            return (f"it has: {amostra}{resto}" if nomes
                     else "it is empty — fill it before reading")
 
         return NameError_(
             f"{onde} has no '{membro}'.",
             getattr(node, "line", 0), getattr(node, "column", 0),
-            nota=(f"the module has {len(nomes)} symbols" if modulo and not perto
-                  else ""),
-            dica=dica,
+            nota=nota, dica=dica,
             doc="biblioteca" if modulo else "colecoes")
 
     def _erro_chave(self, vault, chave, node):
-        """Chave ausente num vault: mostra o que existe e o que fazer."""
-        import difflib
+        """Chave ausente num vault: mostra o que existe e o que fazer.
+
+        A sugestao e ADIADA. `difflib` compara a chave pedida com
+        TODAS as chaves do vault, e este erro nasce e morre sem ninguem
+        le-lo no caminho mais comum que existe: `v["k"] ?? padrao`.
+
+        Medido: um programa que conta 997 chaves distintas gastava
+        SETE SEGUNDOS dentro do `difflib`, chamado do caminho de
+        SUCESSO — mais que o resto do programa inteiro. O texto agora
+        so e montado quando alguem desenha a mensagem.
+        """
         chaves = [k for k in vault] if isinstance(vault, dict) else []
         texto_chave = self._to_str(chave)
 
-        perto = difflib.get_close_matches(
-            str(chave), [str(k) for k in chaves], n=1, cutoff=0.6)
-        if perto:
-            nota = f"there is a similar key: \"{perto[0]}\""
-            dica = f"did you mean vault[\"{perto[0]}\"]?"
-        elif not chaves:
-            nota = "this vault is empty"
-            dica = "fill it before reading, or use ?? for a fallback value"
-        else:
+        def _perto():
+            import difflib
+            return difflib.get_close_matches(
+                str(chave), [str(k) for k in chaves], n=1, cutoff=0.6)
+
+        def nota():
+            achado = _perto()
+            if achado:
+                return f"there is a similar key: \"{achado[0]}\""
+            if not chaves:
+                return "this vault is empty"
             amostra = ", ".join(f'"{k}"' for k in list(chaves)[:6])
             resto = f" (+{len(chaves) - 6} more)" if len(chaves) > 6 else ""
-            nota = (f"the vault has {len(chaves)} "
+            return (f"the vault has {len(chaves)} "
                     f"{'key' if len(chaves) == 1 else 'keys'}: {amostra}{resto}")
-            dica = ("use  valor ?? padrao  for a fallback, or check first "
+
+        def dica():
+            achado = _perto()
+            if achado:
+                return f"did you mean vault[\"{achado[0]}\"]?"
+            if not chaves:
+                return "fill it before reading, or use ?? for a fallback value"
+            return ("use  valor ?? padrao  for a fallback, or check first "
                     "with  vault.has(chave)")
 
         return KeyError_(
@@ -9155,14 +9279,30 @@ class Interpreter:
             if action.dono is not None:
                 variaveis["__dono__"] = action.dono
 
-        # Execute body, guarding against runaway recursion
-        self._depth += 1
-        if self._depth > self.MAX_CALL_DEPTH:
-            self._depth -= 1
+        # Execute body, guarding against runaway recursion.
+        #
+        # O estado por thread e lido UMA vez. `_depth` e `_call_stack`
+        # sao propriedades sobre um `threading.local`, e a versao
+        # anterior as tocava SEIS vezes por chamada de acao (duas para
+        # somar, uma para empilhar, duas para subtrair, uma para
+        # desempilhar) — seis chamadas de descritor do Python por
+        # chamada de acao, e `_corpo_da_acao` e a funcao mais cara do
+        # interpretador numa carga de referencia.
+        por_thread = self._por_thread
+        profundidade = por_thread.depth + 1
+        por_thread.depth = profundidade
+        if profundidade > self.MAX_CALL_DEPTH:
+            por_thread.depth = profundidade - 1
             raise self._erro_de_pilha(action, node)
-        self._call_stack.append(Frame(
-            action.name, getattr(node, 'line', 0), getattr(node, 'column', 0),
-            self.filename))
+        # `node.line` direto, e nao `getattr(node, 'line', 0)`: um no da
+        # arvore sempre tem linha, e o `getattr` com padrao num atributo
+        # AUSENTE levanta e captura um AttributeError por dentro — e o
+        # caminho de quem chama com `node` nulo e o raro.
+        try:
+            linha, coluna = node.line, node.column
+        except AttributeError:
+            linha = coluna = 0
+        por_thread.pilha.append(Frame(action.name, linha, coluna, self.filename))
         # Enquanto o corpo roda, o arquivo corrente e o da acao. E o que
         # faz um erro apontar o arquivo onde o codigo esta, e nao o de
         # quem chamou.
@@ -9190,8 +9330,8 @@ class Interpreter:
             self._attach_stack(erro)
             raise
         finally:
-            self._depth -= 1
-            self._call_stack.pop()
+            por_thread.depth = profundidade - 1
+            por_thread.pilha.pop()
             self.filename = arquivo_de_quem_chamou
             # Deferred blocks run on every exit path, including an error —
             # that is the whole point of 'defer'. A leitura direta do slot
