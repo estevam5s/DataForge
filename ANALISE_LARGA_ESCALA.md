@@ -713,3 +713,52 @@ O `tsc --noEmit` do site passa.
 | blocos da documentação | 2.414 compilam |
 | idiomas | pt e es em 100%, com as mensagens novas e o sufixo `declared as … but got …` traduzido |
 
+
+---
+
+## 9. IoT com placa de verdade, a busca, e dois frameworks novos
+
+### IoT (provado com um UNO R4 WiFi e um ESP32 na mesa)
+
+| Achado | Correção |
+|---|---|
+| no ESP32, o firmware oferecia os GPIO 6 a 11 (a flash SPI do módulo: configurar um derruba a placa) e oferecia saída, pull-up e PWM nos GPIO 34 a 39, que só leem | `pinoReservado` e `podeSair` (`GPIO_IS_VALID_OUTPUT_GPIO`); o simulador espelha as duas coisas |
+| `IoT.carregar` usava `arduino:avr:uno` quando não recebia o FQBN, e mandava o binário do UNO para um R4 | a placa é descoberta pela porta; uma ponte CH340/CP210x que não se identifica é **recusada** em vez de receber um chute |
+| com duas placas, a dica mostrava um caminho inventado (`/dev/cu.usbmodem1101`) | a dica lista as portas reais, com o que se sabe de cada uma; e `IoT.conectar("uno r4")` acha a placa pelo nome |
+| o `doctor` listava o Bluetooth como "placa desconhecida" e só conferia a primeira placa | só portas USB, e o Firmata de cada uma |
+| a dica de modo dizia "num Arduino UNO, PWM só nos pinos 3, 5, 6, 9, 10 e 11" para qualquer placa | ela sai da placa: `nesta placa, 'pwm' funciona nos pinos: 3, 5-6, 9-11` |
+| o teste de hardware supunha o mapa do UNO e reprovava no ESP32 | `placa.pino_do_canal(0)` e `placa.ler_analogico(0)`, que liga o canal e espera a primeira amostra (a armadilha nº 1 do Firmata) |
+| a placa não dizia o próprio nome | `info()["placa"]`, por uma consulta própria no handshake, sem espera extra |
+
+As duas placas foram regravadas com o firmware novo. Os testes de hardware passam nas duas.
+
+### A busca
+
+Passou do meio do cabeçalho para o lado de Download e Roadmap, com largura
+menor em tela média, para "Criar conta" não quebrar em duas linhas.
+
+### Bigorna (aplicações de mesa) e Brasa (aplicativos móveis)
+
+| | Bigorna | Brasa |
+|---|---|---|
+| sobre | `Arcane.Janela` (Tk) | `Arcane.Vitrine` |
+| acrescenta | telas, menus, atalhos (Ctrl→Cmd), diálogos, status, notificação, seleção, preferências, tema | abas, topo com voltar, lista tocável, botão flutuante, compartilhar, ligar, mapa, localização, PWA completo com ícones PNG |
+| testar | `B.testar(app)`: menu, atalho, diálogo **roteirizado** | `Br.testar(app)`: tocar, voltar; `Br.conferir_pwa(app)` confere servindo |
+| testes | 34 (inclui a janela real do Tk, acionada por `menu.invoke`) | 29 (inclui XSS e link perigoso) |
+| comando | `dataforge desktop novo` | `dataforge mobile novo` / `mobile rodar` |
+
+Os dois esqueletos gerados passam nos próprios testes no primeiro
+`dataforge test`. A Brasa **não gera APK**: entrega um PWA, e instalar
+exige HTTPS. Isso está escrito na docstring, no `mobile doctor` e em
+`/docs/mobile/limites`.
+
+Achado no caminho: a Sonda da Vitrine não repassava a query da URL, e
+`V.parametro` devolvia o padrão no teste. Corrigido. A Vitrine também
+ganhou `viewport` e `cabeca` configuráveis, que a Brasa usa.
+
+### A documentação
+
+A seção "Desktop e mobile" virou duas: **Aplicações de mesa** (8 páginas)
+e **Aplicativos móveis** (7 páginas), mais `/docs/multiplataforma`, com a
+mesma regra de negócio usada pela mesa e pelo celular. Os 27 blocos `.df`
+dessas páginas rodam no teste. A build de produção do site passa.
