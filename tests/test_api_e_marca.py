@@ -2542,3 +2542,32 @@ def test_todo_callout_usa_um_tipo_QUE_EXISTE():
     assert not achados, (
         "callout com tipo que o Renderer não conhece: " + ", ".join(
             sorted(set(achados))) + f" — os válidos são {sorted(validos)}")
+
+
+def test_todo_modulo_de_exercicio_tem_assunto_e_nivel():
+    """A coluna "Assunto" do índice ficava VAZIA do módulo 35 em diante, e
+    a descrição de cada uma dessas páginas saía "3 exercícios: ." — o texto
+    do resultado de busca e do cartão de compartilhamento. O nível sai de
+    'exercicios/trilhas.json', o mesmo arquivo do README da pasta."""
+    import collections
+
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(raiz, "site", "scripts"))
+    import conteudo.exercicios as ex             # noqa: E402
+
+    sem_assunto = [n for n, _, _ in ex.MODULOS if not ex.ASSUNTOS.get(n)]
+    assert sem_assunto == [], f"sem assunto em ASSUNTOS: {sem_assunto}"
+
+    dados = ex._trilhas()
+    numeros = {n[:2] for n, _, _ in ex.MODULOS}
+    contagem = collections.Counter(
+        m for nivel in dados["niveis"] for m in nivel["modulos"])
+    assert sorted(numeros - set(contagem)) == [], "módulo sem nível"
+    assert [m for m, c in contagem.items() if c > 1] == [], "módulo em dois níveis"
+    assert sorted(set(contagem) - numeros) == [], "nível cita módulo que não existe"
+    citados = {m for t in dados["trilhas"] for m in t["modulos"]}
+    assert sorted(citados - numeros) == [], "trilha cita módulo que não existe"
+
+    for pagina in ex.PAGINAS:
+        assert not pagina["description"].endswith(": ."), pagina["href"]
+        assert "1 exercícios" not in pagina["description"], pagina["href"]

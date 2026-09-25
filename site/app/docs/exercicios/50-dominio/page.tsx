@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "50 · Domínio e DDD",
-  description: "15 exercícios: .",
+  description: "15 exercícios: valor, entidade, agregado, evento, regra e unidade de trabalho.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · valor, entidade, agregado, evento, regra e unidade de trabalho · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 50`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[268](#268-o-que-separa-um-valor-de-uma-entidade)", "**o que separa um valor de uma entidade**", "a distincao que decide metade da modelagem. Duas pessoas"], ["[269](#269-a-regra-cobrada-na-criacao)", "**a regra cobrada na criacao**", "um 'record' da a imutabilidade e a igualdade estrutural."], ["[270](#270-o-agregado-e-a-unica-porta-de-escrita)", "**o agregado e a unica porta de escrita**", "se qualquer um escreve, a invariante nao vale nada —"], ["[271](#271-o-fato-espera-a-confirmacao)", "**o fato espera a confirmacao**", "publicar um evento na hora faz o mundo reagir a um fato"], ["[272](#272-a-regra-de-negocio-que-se-combina-e-se-explica)", "**a regra de negocio que se combina e se explica**", "um 'given' dentro do servico nao pode ser combinado, nem"], ["[273](#273-o-repositorio-guarda-agregados-inteiros)", "**o repositorio guarda AGREGADOS INTEIROS**", "um repositorio que devolve meio agregado devolve um"], ["[274](#274-a-fronteira-entre-dois-modelos)", "**a fronteira entre dois modelos**", "o \"Cliente\" de Vendas tem limite de credito; o de Suporte"], ["[275](#275-a-invariante-quebrada-e-um-bug-dela)", "**a invariante quebrada e um bug DELA**", "uma invariante que estoura ao ser avaliada nao quer dizer"], ["[276](#276-o-comando-que-falha-no-meio-nao-deixa-metade)", "**o comando que falha no meio nao deixa metade**", "um comando que muda tres campos e falha no terceiro"], ["[277](#277-a-unidade-confere-todos-antes-de-gravar-qualquer)", "**a unidade confere TODOS antes de gravar QUALQUER**", "se a segunda gravacao falhasse por invariante, a primeira"], ["[278](#278-a-identidade-nasce-com-o-objeto)", "**a identidade nasce com o objeto**", "um id que o banco gera obriga a salvar antes de ter"], ["[279](#279-regras-que-se-combinam-em-arvore)", "**regras que se combinam em arvore**", "'e', 'ou' e 'nao' devolvem regras, e uma regra composta"], ["[280](#280-o-mesmo-contrato-sobre-outro-armazem)", "**o mesmo contrato sobre outro armazem**", "'D.repositorio' guarda em memoria; 'D.repositorio_de'"], ["[281](#281-um-caso-de-uso-inteiro)", "**um caso de uso inteiro**", "juntar as sete pecas num fluxo so — reservar estoque e"], ["[282](#282-a-familia-de-erros-do-dominio)", "**a familia de erros do dominio**", "levantar 'RuntimeError' em tudo faria a distincao morrer"]]}},
@@ -1284,7 +1285,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"50 · Domínio e DDD"}
-      description={"15 exercícios: ."}
+      description={"15 exercícios: valor, entidade, agregado, evento, regra e unidade de trabalho."}
       href={"/docs/exercicios/50-dominio"}
       headings={headings}
     >

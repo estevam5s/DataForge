@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "57 · Vitrine — o painel",
-  description: "15 exercícios: .",
+  description: "15 exercícios: painéis com layout, gráficos, grade, cache e sessão.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · painéis com layout, gráficos, grade, cache e sessão · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 57`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[373](#373-o-programa-de-cima-para-baixo-que-vira-pagina)", "**o programa de cima para baixo que vira pagina**", "o modelo da Vitrine e o que dispensa callback e diffing —"], ["[374](#374-a-area-de-layout-e-um-objeto)", "**a area de layout e um OBJETO**", "a linguagem nao tem 'with', e inventar uma palavra"], ["[375](#375-o-grafico-e-svg-escrito-no-servidor)", "**o grafico e SVG escrito no servidor**", "zero dependencia tambem no navegador. Uma biblioteca de"], ["[376](#376-a-grade-ordena-no-servidor)", "**a grade ordena NO SERVIDOR**", "a diferenca entre 'V.grade' e 'V.frame' nao e de"], ["[377](#377-o-cache-nao-e-opcional)", "**o cache nao e opcional**", "o programa INTEIRO roda de novo a cada interacao. Sem"], ["[378](#378-quem-esta-vendo-o-painel)", "**quem esta vendo o painel**", "'exigir_login' PARA a pagina. Ela levanta um sinal que"], ["[379](#379-mais-de-uma-pagina)", "**mais de uma pagina**", "o que nao casa com pagina nenhuma cai no tratador de 404"], ["[380](#380-o-formulario-que-so-envia-uma-vez)", "**o formulario que so envia uma vez**", "sem formulario, CADA campo reexecuta o programa. Num"], ["[381](#381-o-que-se-escreve-numa-pagina)", "**o que se escreve numa pagina**", "'V.escrever' e polimorfico — ele decide o componente"], ["[382](#382-os-campos-e-o-que-mudou-responde)", "**os campos, e o que 'mudou' responde**", "toda entrada devolve o valor de agora. O que faltava era"], ["[383](#383-o-layout-diz-ao-grafico-a-largura-em-que-ele-vai-aparecer)", "**o layout diz ao grafico a largura em que ele vai aparecer**", "o desenho e feito num sistema de 800 unidades e o CSS o"], ["[384](#384-redesenhar-so-um-pedaco)", "**redesenhar so um pedaco**", "o fragmento existe porque redesenhar a pagina inteira a"], ["[385](#385-tirar-o-dado-de-dentro-do-painel)", "**tirar o dado de dentro do painel**", "todo painel acaba com alguem pedindo \"manda isso em"], ["[386](#386-onde-a-sessao-mora)", "**onde a sessao mora**", "a sessao na memoria do processo some quando ele"], ["[387](#387-o-mapa-e-as-nove-decisoes)", "**o mapa, e as nove decisoes**", "fechar a trilha com o que a Vitrine resolve, o que ela"]]}},
@@ -1414,7 +1415,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"57 · Vitrine — o painel"}
-      description={"15 exercícios: ."}
+      description={"15 exercícios: painéis com layout, gráficos, grade, cache e sessão."}
       href={"/docs/exercicios/57-vitrine-painel"}
       headings={headings}
     >

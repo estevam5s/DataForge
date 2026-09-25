@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "37 · OOP como sistema",
-  description: "10 exercícios: .",
+  description: "10 exercícios: contratos, modificadores, sobrecarga, metaclasse, DI e padrões.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · contratos, modificadores, sobrecarga, metaclasse, DI e padrões · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 37`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[242](#242-contratos-pequenos-e-quem-depende-de-qual)", "**Contratos pequenos, e quem depende de qual**", "modele um armazenamento de documentos em que quem so LE"], ["[243](#243-o-que-cada-modificador-promete)", "**O que cada modificador promete**", "modele uma conta com identidade imutavel, limite de classe,"], ["[244](#244-de-quem-e-o-erro)", "**De quem e o erro?**", "um estoque com pre-condicao, pos-condicao e invariante, e"], ["[245](#245-sobrecarga-que-diz-o-que-aceita)", "**Sobrecarga que diz o que aceita**", "uma formatacao de valores com variantes por tipo e aridade,"], ["[246](#246-uma-metaclasse-que-registra-valida-e-audita)", "**Uma metaclasse que registra, valida e audita**", "todo modelo de dominio precisa de 'id', ganha nome de tabela"], ["[247](#247-um-validador-generico-escrito-com-reflexao)", "**Um validador generico escrito com reflexao**", "valide qualquer objeto pelas anotacoes dos campos, sem que o"], ["[248](#248-copia-imutabilidade-e-serializacao-que-nao-confia-no-dado)", "**Copia, imutabilidade e serializacao que nao confia no dado**", "persista um pedido com cliente e itens (e um ciclo), recarregue"], ["[249](#249-portas-adaptadores-e-o-conteiner)", "**Portas, adaptadores e o conteiner**", "um caso de uso de cadastro que nao conhece banco nem e-mail,"], ["[250](#250-padroes-com-mecanismo-comando-estado-e-especificacao)", "**Padroes com mecanismo: comando, estado e especificacao**", "um editor de pedido com desfazer, um fluxo de aprovacao que"], ["[251](#251-nascer-viver-sob-threads-e-morrer-limpo)", "**Nascer, viver sob threads, e morrer limpo**", "um contador de acessos seguro sob concorrencia, um cache que"]]}},
@@ -816,7 +817,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"37 · OOP como sistema"}
-      description={"10 exercícios: ."}
+      description={"10 exercícios: contratos, modificadores, sobrecarga, metaclasse, DI e padrões."}
       href={"/docs/exercicios/37-oop-sistema"}
       headings={headings}
     >

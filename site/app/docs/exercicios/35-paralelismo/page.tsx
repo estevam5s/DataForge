@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "35 · Paralelismo",
-  description: "3 exercícios: .",
+  description: "3 exercícios: vários núcleos de verdade, o que atravessa para outro processo.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · vários núcleos de verdade, o que atravessa para outro processo · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 35`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[238](#238-varios-nucleos-de-verdade)", "**Varios nucleos, de verdade**", "meca a diferenca entre thread e processo em trabalho de CPU."], ["[239](#239-o-que-atravessa-para-o-outro-processo)", "**O que atravessa para o outro processo**", "descubra o que viaja junto com a acao, e o que fica."], ["[240](#240-um-pipeline-que-usa-a-maquina-inteira)", "**Um pipeline que usa a maquina inteira**", "divida, calcule em paralelo, junte — e prove que bate."]]}},
@@ -271,13 +272,13 @@ action dividir(quantos, em):
 
 // O bloco vira um RESUMO, e nao uma lista: e o resumo que volta.
 action resumir(bloco):
-    soma := 0
-    primos := 0
+    soma_do_bloco := 0
+    primos_do_bloco := 0
     cycle n from bloco["de"] to bloco["ate"]:
-        soma += n
+        soma_do_bloco += n
         given e_primo(n):
-            primos += 1
-    yield {"soma": soma, "primos": primos}
+            primos_do_bloco += 1
+    yield {"soma": soma_do_bloco, "primos": primos_do_bloco}
 
 action e_primo(n):
     given n < 2:
@@ -357,7 +358,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"35 · Paralelismo"}
-      description={"3 exercícios: ."}
+      description={"3 exercícios: vários núcleos de verdade, o que atravessa para outro processo."}
       href={"/docs/exercicios/35-paralelismo"}
       headings={headings}
     >

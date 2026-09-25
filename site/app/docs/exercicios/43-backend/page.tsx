@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "43 · Backend e otimização",
-  description: "1 exercícios: .",
+  description: "1 exercício: SSA, o nó phi e a otimização que foi medida.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · SSA, o nó phi e a otimização que foi medida · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 43`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[261](#261-ssa-o-no-phi-e-a-otimizacao-que-foi-medida)", "**SSA, o no phi, e a otimizacao que foi MEDIDA**", ""]]}},
@@ -183,7 +184,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"43 · Backend e otimização"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: SSA, o nó phi e a otimização que foi medida."}
       href={"/docs/exercicios/43-backend"}
       headings={headings}
     >

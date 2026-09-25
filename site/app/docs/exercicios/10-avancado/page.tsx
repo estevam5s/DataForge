@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Primeiros passos** · decoradores, generators, threads e canais · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 10`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[111](#111-async-await)", "**async / await**", "declare acoes assincronas e aguarde o resultado."], ["[112](#112-thread)", "**thread**", "dispare trabalho em segundo plano e espere terminar."], ["[113](#113-channel)", "**channel**", "passe valores entre partes do programa por um canal."], ["[114](#114-parallel)", "**parallel**", "rode varias tarefas ao mesmo tempo."], ["[115](#115-defer-com-recursos-reais)", "**defer com recursos reais**", "garanta que o arquivo seja apagado mesmo apos erro."], ["[116](#116-lista-ligada-com-blueprints)", "**Lista ligada com blueprints**", "implemente uma lista ligada simples."], ["[117](#117-arvore-binaria-de-busca)", "**Arvore binaria de busca**", "insira valores e percorra em ordem."], ["[118](#118-maquina-de-estados)", "**Maquina de estados**", "modele o ciclo de vida de um pedido."], ["[119](#119-sistema-de-inventario)", "**Sistema de inventario**", "junte blueprints, pipelines, erros e relatorio."], ["[120](#120-avaliador-de-expressoes-em-notacao-polonesa-reversa)", "**Avaliador de expressoes em notacao polonesa reversa**", "escreva um mini interpretador dentro do DataForge."]]}},

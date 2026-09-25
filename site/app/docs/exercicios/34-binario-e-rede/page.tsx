@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · dados binários, TCP/UDP/DNS, eventos, CLI, e-mail e HTML · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 34`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[235](#235-dados-binarios-com-arcanebytes)", "**Dados binarios com Arcane.Bytes**", "monte e leia um cabecalho de protocolo, byte a byte."], ["[236](#236-tcp-udp-e-dns-com-arcanerede)", "**TCP, UDP e DNS com Arcane.Rede**", "fale um protocolo proprio, abaixo do HTTP."], ["[237](#237-eventos-linha-de-comando-e-mail-e-html)", "**Eventos, linha de comando, e-mail e HTML**", "junte as pecas que faltavam para um programa completo."]]}},

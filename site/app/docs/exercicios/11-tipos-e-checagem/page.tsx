@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · anotações, o analisador estático e generics · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 11`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[121](#121-anotacoes-de-tipo)", "**Anotacoes de tipo**", "declare variaveis com tipo e comprove que o valor errado e recusado."], ["[122](#122-acoes-com-tipos)", "**Acoes com tipos**", "anote parametros e retorno, e veja o erro apontar o parametro exato."], ["[123](#123-typeof-e-conversao)", "**typeof e conversao**", "descubra o tipo de qualquer valor e converta entre tipos com seguranca."], ["[124](#124-analise-estatica)", "**Analise estatica**", "escreva erros de proposito e confirme que o dataforge check os encontra."], ["[125](#125-tipos-dentro-de-colecoes)", "**Tipos dentro de colecoes**", "combine anotacoes com listas e dicionarios, e valide o conteudo."], ["[126](#126-tipagem-gradual-com-any)", "**Tipagem gradual com Any**", "use Any quando o tipo depende do uso, e estreite depois com typeof."]]}},
@@ -40,7 +41,20 @@ handle e:
     recusou := yes
     out "recusado:", e.message
 
+// A anotacao vale DEPOIS da declaracao, e nao so nela: o nome
+// continua sendo um Integer em toda atribuicao que vier.
+contador: Integer := 0
+contador := contador + 1
+recusou_depois := no
+monitor:
+    contador := "um"
+handle e:
+    recusou_depois := yes
+    out "recusado depois:", e.message
+
 assert recusou is yes, "Float nao entra onde se espera Integer"
+assert recusou_depois is yes, "a anotacao continua valendo na reatribuicao"
+assert contador is 1, "o valor recusado nao chegou a ser gravado"
 assert media is 8, "Integer entra onde se espera Float"
 assert typeof(idade) is "Integer", "tipo de idade"
 assert typeof(config) is "Vault", "tipo de config"`, lang: 'df', title: `exercicios/11-tipos-e-checagem/121_anotacoes_basicas.df` },
@@ -52,12 +66,19 @@ assert typeof(config) is "Vault", "tipo de config"`, lang: 'df', title: `exercic
   { code: `media: Float := 8        // ok: todo inteiro é um decimal válido
 quantidade: Integer := 3.5   // erro: 3.5 não é inteiro`, lang: 'df' },
   {"p": "Um `Integer` entra onde se espera `Float`. O contrário perderia informação, e por isso é recusado."},
+  {"h3": "A anotação vale para sempre"},
+  {"p": "A anotação não é conferida só na linha em que foi escrita: ela fica com o nome. Toda atribuição seguinte, inclusive `+=` e a que vem de dentro de uma ação, é conferida contra o mesmo tipo:"},
+  { code: `contador: Integer := 0
+contador := contador + 1     // ok
+contador := "um"             // erro: o nome é um Integer`, lang: 'df' },
+  {"p": "O mesmo vale para um parâmetro tipado dentro do corpo da ação e para um campo tipado de blueprint (`self.n := \"x\"` num `n: Integer`). Para trocar de tipo de propósito, escreva uma anotação nova: `contador: String := \"um\"`."},
   {"h3": "Passo a passo"},
-  {"p": "1. Cada declaração associa um tipo ao nome. 2. `media: Float := 8` passa pela regra de alargamento acima. 3. O bloco `monitor` captura a violação para que o programa siga. 4. Os `assert` confirmam o comportamento nos dois sentidos."},
+  {"p": "1. Cada declaração associa um tipo ao nome. 2. `media: Float := 8` passa pela regra de alargamento acima. 3. O bloco `monitor` captura a violação para que o programa siga. 4. `contador := \"um\"` é recusado porque `contador` foi declarado `Integer` três linhas antes — e o valor antigo (`1`) continua lá. 5. Os `assert` confirmam o comportamento nos dois sentidos."},
   {"h3": "Saída esperada"},
   { code: `30 Ana 1.72 yes
 [8, 9, 10] {tema: escuro}
-recusado: variable 'quantidade' declared as Integer but got Float`, lang: 'text' },
+recusado: variable 'quantidade' declared as Integer but got Float
+recusado depois: variable 'contador' declared as Integer but got String`, lang: 'text' },
   {"h3": "Experimente"},
   {"list": ["Troque `notas: Cluster := [8, 9, 10]` por `notas: Vault := [8, 9, 10]`.", "Rode `dataforge check` neste arquivo: o erro aparece **antes** de executar.", "Anote com `Any` e veja a checagem desaparecer."]},
   {"h2": "122 · Acoes com tipos"},
@@ -383,7 +404,7 @@ nada`, lang: 'text' },
   {"p": "Rode um isolado com `dataforge run exercicios/11-tipos-e-checagem/121_anotacoes_basicas.df`."},
 ];
 
-const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '121-anotacoes-de-tipo', text: "121 · Anotacoes de tipo", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'a-regra-de-conversao', text: "A regra de conversão", level: 3 as const }, { id: 'passo-a-passo', text: "Passo a passo", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '122-acoes-com-tipos', text: "122 · Acoes com tipos", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'por-que-a-mensagem-importa', text: "Por que a mensagem importa", level: 3 as const }, { id: 'o-tipo-any', text: "O tipo `Any`", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '123-typeof-e-conversao', text: "123 · typeof e conversao", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'passo-a-passo', text: "Passo a passo", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '124-analise-estatica', text: "124 · Analise estatica", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-ele-encontra', text: "O que ele encontra", level: 3 as const }, { id: 'o-que-ele-nao-encontra', text: "O que ele NÃO encontra", level: 3 as const }, { id: 'erros-dentro-de-monitor', text: "Erros dentro de `monitor`", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '125-tipos-dentro-de-colecoes', text: "125 · Tipos dentro de colecoes", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'duas-estrategias', text: "Duas estratégias", level: 3 as const }, { id: 'o-detalhe-do-orif', text: "O detalhe do `orif`", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '126-tipagem-gradual-com-any', text: "126 · Tipagem gradual com Any", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'estreitando-o-tipo', text: "Estreitando o tipo", level: 3 as const }, { id: 'a-ordem-dos-point-importa', text: "A ordem dos `point` importa", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
+const headings = [{ id: 'os-exercicios', text: "Os exercícios", level: 2 as const }, { id: '121-anotacoes-de-tipo', text: "121 · Anotacoes de tipo", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'a-regra-de-conversao', text: "A regra de conversão", level: 3 as const }, { id: 'a-anotacao-vale-para-sempre', text: "A anotação vale para sempre", level: 3 as const }, { id: 'passo-a-passo', text: "Passo a passo", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '122-acoes-com-tipos', text: "122 · Acoes com tipos", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'por-que-a-mensagem-importa', text: "Por que a mensagem importa", level: 3 as const }, { id: 'o-tipo-any', text: "O tipo `Any`", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '123-typeof-e-conversao', text: "123 · typeof e conversao", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'passo-a-passo', text: "Passo a passo", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '124-analise-estatica', text: "124 · Analise estatica", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'o-que-ele-encontra', text: "O que ele encontra", level: 3 as const }, { id: 'o-que-ele-nao-encontra', text: "O que ele NÃO encontra", level: 3 as const }, { id: 'erros-dentro-de-monitor', text: "Erros dentro de `monitor`", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '125-tipos-dentro-de-colecoes', text: "125 · Tipos dentro de colecoes", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'duas-estrategias', text: "Duas estratégias", level: 3 as const }, { id: 'o-detalhe-do-orif', text: "O detalhe do `orif`", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }, { id: '126-tipagem-gradual-com-any', text: "126 · Tipagem gradual com Any", level: 2 as const }, { id: 'conceitos', text: "Conceitos", level: 3 as const }, { id: 'estreitando-o-tipo', text: "Estreitando o tipo", level: 3 as const }, { id: 'a-ordem-dos-point-importa', text: "A ordem dos `point` importa", level: 3 as const }, { id: 'saida-esperada', text: "Saída esperada", level: 3 as const }, { id: 'experimente', text: "Experimente", level: 3 as const }];
 
 export default function Pagina() {
   return (

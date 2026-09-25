@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · esquema, consulta, lote contra o N+1, servidor e federação · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 33`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[232](#232-lavra-o-esquema-e-a-consulta)", "**Lavra: o esquema e a consulta**", "declare um esquema a partir de records e peca exatamente os campos que quer."], ["[233](#233-lavra-o-n1-os-limites-e-a-paginacao)", "**Lavra: o N+1, os limites e a paginacao**", "conte as idas ao banco e prove que o lote as junta numa so."], ["[234](#234-lavra-contratos-mudancas-servidor-e-federacao)", "**Lavra: contratos, mudancas, servidor e federacao**", "sirva o esquema por HTTP e componha dois servicos num so."]]}},

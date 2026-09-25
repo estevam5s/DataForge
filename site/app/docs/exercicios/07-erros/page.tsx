@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Primeiros passos** · monitor/handle/ensure, trigger, retry e defer · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 07`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[077](#077-monitor-handle)", "**monitor / handle**", "capture uma divisao por zero sem derrubar o programa."], ["[078](#078-ensure-finally)", "**ensure (finally)**", "garanta que a limpeza rode com ou sem erro."], ["[079](#079-trigger-lancar-erro)", "**trigger (lancar erro)**", "valide a entrada de uma acao lancando erros descritivos."], ["[080](#080-handle-tipado)", "**handle tipado**", "capture apenas um tipo de erro e deixe os outros passarem."], ["[081](#081-monitor-sem-handle-propaga)", "**monitor sem handle propaga**", "comprove que um monitor com apenas ensure nao engole o erro."], ["[082](#082-guard-e-validate)", "**guard e validate**", "compare as duas formas de pre-condicao."], ["[083](#083-retry)", "**retry**", "repita uma operacao instavel ate ter sucesso."], ["[084](#084-propagate)", "**propagate**", "registre o erro e repasse para o chamador."], ["[085](#085-assert)", "**assert**", "use assert como verificacao interna e capture a falha."], ["[086](#086-pilha-de-erros-e-recuperacao)", "**Pilha de erros e recuperacao**", "converta valores com fallback em varias camadas."]]}},

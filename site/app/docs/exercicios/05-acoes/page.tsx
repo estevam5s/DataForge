@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Primeiros passos** · parâmetros, padrões, retorno, closures e recursão · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 05`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[049](#049-acao-basica)", "**Acao basica**", "escreva uma acao que soma e outra sem retorno."], ["[050](#050-parametros-com-valor-padrao)", "**Parametros com valor padrao**", "permita chamar a acao com menos argumentos."], ["[051](#051-argumentos-nomeados)", "**Argumentos nomeados**", "passe argumentos fora de ordem usando o nome."], ["[052](#052-verificacao-de-aridade)", "**Verificacao de aridade**", "comprove que argumentos faltando ou sobrando disparam erro."], ["[053](#053-acoes-tipadas)", "**Acoes tipadas**", "anote parametros e retorno e comprove a checagem."], ["[054](#054-recursao)", "**Recursao**", "fatorial, fibonacci e soma de digitos."], ["[055](#055-limite-de-recursao)", "**Limite de recursao**", "comprove que recursao infinita vira erro controlado."], ["[056](#056-acoes-de-alta-ordem)", "**Acoes de alta ordem**", "passe acoes como argumento e devolva acoes."], ["[057](#057-closures)", "**Closures**", "crie um contador que preserva estado entre chamadas."], ["[058](#058-lambdas)", "**Lambdas**", "use acoes anonimas em variaveis e como argumento."], ["[059](#059-decoradores-com-mark)", "**Decoradores com mark**", "envolva uma acao com log sem alterar seu corpo."], ["[060](#060-defer)", "**defer**", "agende limpeza que roda ao sair da acao."], ["[061](#061-escopo-e-shadow)", "**Escopo e shadow**", "entenda quando uma acao le e quando cria uma variavel."], ["[062](#062-memoizacao-manual)", "**Memoizacao manual**", "acelere fibonacci guardando resultados ja calculados."]]}},
@@ -234,7 +235,41 @@ out le_global(), sombreia(), global_x
 
 assert le_global() is 10, "le do escopo externo"
 assert sombreia() is 99, "shadow cria uma copia local"
-assert global_x is 10, "o valor externo nao mudou"`, lang: 'df', title: `exercicios/05-acoes/061_escopo.df` },
+assert global_x is 10, "o valor externo nao mudou"
+
+// ':=' dentro de uma acao ESCREVE o nome de fora quando ele existe.
+// E o que faz um contador global funcionar: a acao LE antes de escrever.
+cliques := 0
+action clicar():
+    cliques := cliques + 1
+
+clicar()
+clicar()
+assert cliques is 2, "a acao atualizou a global de proposito"
+
+// E o que faz um acumulador escrito como "local" apagar a global de
+// mesmo nome. 'dataforge check' avisa (atribuicao-escreve-global); aqui
+// o aviso e silenciado porque o exercicio DEMONSTRA o efeito.
+soma := 100
+action somar(xs):
+    soma := 0     // df: permitir atribuicao-escreve-global
+    cycle x in xs:
+        soma += x
+    yield soma
+
+out somar([1, 2, 3]), soma
+assert soma is 6, "a global foi SOBRESCRITA pela acao"
+
+// A forma segura: 'shadow' cria o nome local, e a global fica intacta.
+total := 100
+action somar_seguro(xs):
+    shadow total := 0
+    cycle x in xs:
+        total += x
+    yield total
+
+assert somar_seguro([1, 2, 3]) is 6, "o local somou"
+assert total is 100, "shadow protegeu a global"`, lang: 'df', title: `exercicios/05-acoes/061_escopo.df` },
   {"h2": "062 · Memoizacao manual"},
   {"p": "**Enunciado.** acelere fibonacci guardando resultados ja calculados."},
   { code: `cache := {}

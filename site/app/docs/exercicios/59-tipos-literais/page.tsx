@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "59 · Tipos literais",
-  description: "2 exercícios: .",
+  description: "2 exercícios: tipos literais e o método que não existe, acusado antes.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · tipos literais e o método que não existe, acusado antes · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 59`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[398](#398-tipos-literais-o-valor-que-vira-tipo)", "**Tipos literais: o valor que vira tipo**", "declare um 'type' cujos valores sao literais e veja onde"], ["[399](#399-o-metodo-que-nao-existe-acusado-antes-de-rodar)", "**O metodo que nao existe, acusado antes de rodar**", "rode o proprio 'check' sobre arquivos que voce escreve e"]]}},
@@ -243,7 +244,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"59 · Tipos literais"}
-      description={"2 exercícios: ."}
+      description={"2 exercícios: tipos literais e o método que não existe, acusado antes."}
       href={"/docs/exercicios/59-tipos-literais"}
       headings={headings}
     >

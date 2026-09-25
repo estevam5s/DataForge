@@ -13,11 +13,49 @@ import sys
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXERCICIOS = os.path.join(RAIZ, "exercicios")
+sys.path.insert(0, RAIZ)
+
+from dataforge import marca                                 # noqa: E402
+
+# A tabela de trilhas escreve "→", e o console do Windows morre ao
+# imprimir o que não cabe na página de código dele.
+marca.preparar_saida()
 README = os.path.join(EXERCICIOS, "README.md")
 
-#: Onde o índice começa e termina. O que está fora é escrito à mão.
+#: Onde o índice começa e termina. O que está fora é escrito à mão —
+#: menos os NÚMEROS e a tabela de trilhas, que '_cabeca_em_dia' mantém.
 INICIO = "<!-- indice:inicio -->"
 FIM = "<!-- indice:fim -->"
+
+#: As trilhas e os níveis: o mesmo arquivo que a página /docs/exercicios lê.
+TRILHAS = os.path.join(EXERCICIOS, "trilhas.json")
+
+
+def _cabeca_em_dia(cabeca):
+    """O texto escrito à mão, com os números e as trilhas do disco.
+
+    O cabeçalho dizia "397 exercícios em 58 módulos" quando eram 399 em
+    59, e o '--check' passava: ele só olhava a parte gerada. Um número
+    escrito à mão envelhece calado, e o README é a primeira coisa que se
+    lê na pasta. A tabela de trilhas parava no módulo 20 pelo mesmo motivo.
+    """
+    import json
+
+    lista = list(modulos())
+    total = sum(len(a) for _, _, a in lista)
+    cabeca = re.sub(r"\*\*\d+ exercícios em \d+ módulos\*\*",
+                    f"**{total} exercícios em {len(lista)} módulos**", cabeca)
+    cabeca = re.sub(r"# todos os \d+", f"# todos os {total}", cabeca)
+
+    nomes = {nome[:2]: nome for nome, _, _ in lista}
+    dados = json.load(open(TRILHAS, encoding="utf-8"))
+    linhas = ["| Se você quer… | Comece por |", "|---------------|------------|"]
+    for trilha in dados["trilhas"]:
+        passos = " → ".join(f"[{m}]({nomes[m]}/)" for m in trilha["modulos"])
+        linhas.append(f"| {trilha['quero']} | {passos} |")
+    tabela = "\n".join(linhas) + "\n"
+    return re.sub(r"(## Trilhas\n\n)\|.*?\n(?=\n)",
+                  lambda m: m.group(1) + tabela, cabeca, count=1, flags=re.S)
 
 
 def titulo_de(caminho):
@@ -103,7 +141,7 @@ def main():
     else:
         cabeca = atual[:atual.index(INICIO) + len(INICIO)]
         depois = atual[atual.index(FIM):]
-        novo = f"{cabeca}\n{gerar()}\n{depois}"
+        novo = f"{_cabeca_em_dia(cabeca)}\n{gerar()}\n{depois}"
 
     if "--check" in sys.argv:
         if novo != atual:

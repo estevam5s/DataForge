@@ -56,7 +56,49 @@ ASSUNTOS = {
     "32-microservicos": "Arcane.Malha: retry, disjuntor, rastro e saga",
     "33-lavra": "esquema, consulta, lote contra o N+1, servidor e federação",
     "34-binario-e-rede": "dados binários, TCP/UDP/DNS, eventos, CLI, e-mail e HTML",
+    # Do 35 em diante a coluna ficava VAZIA no índice, e a descrição de
+    # cada página saía "3 exercícios: ." — é o texto do resultado de busca
+    # e do cartão de compartilhamento. Há teste cobrando um por módulo.
+    "35-paralelismo": "vários núcleos de verdade, o que atravessa para outro processo",
+    "36-quadro-e-dados": "o quadro de dados e os seis verbos do pipeline",
+    "37-oop-sistema": "contratos, modificadores, sobrecarga, metaclasse, DI e padrões",
+    "38-tipos": "alias, união, refinamento, opaco, generics, tuplas e posse",
+    "39-concorrencia-avancada": "memória transacional, CAS e estruturas sem trava",
+    "40-metaprogramacao": "comptime, macros, DSL e plugin do check",
+    "41-ffi-nativo": "chamar C: bibliotecas, ponteiros e callbacks",
+    "42-compilador": "HIR, MIR e o que a análise de fluxo prova",
+    "43-backend": "SSA, o nó phi e a otimização que foi medida",
+    "44-runtime": "laço de eventos, escalonador e fibras",
+    "45-observabilidade": "percentis, significância e o coletor sob controle",
+    "46-partida": "as fases da partida, a pilha e a fronteira de capacidade",
+    "47-abi-e-alvos": "a superfície como contrato e o alvo como restrição",
+    "48-ecossistema": "o mapa conferido e os princípios que se medem",
+    "49-decimal-e-padroes": "dinheiro exato com Decimal e o padrão acusado antes de rodar",
+    "50-dominio": "valor, entidade, agregado, evento, regra e unidade de trabalho",
+    "51-reativo": "sinal, derivado, efeito, observável e o losango",
+    "52-estruturas": "layout binário com nome, janela sem cópia e ponteiro",
+    "53-regex-avancado": "grupos nomeados, âncoras, troca que calcula e risco",
+    "54-erros": "as famílias de erro, a falha como valor e o que o monitor não pega",
+    "55-oop-magicos": "métodos mágicos: texto, conta, coleção, ordem e iteração",
+    "56-telegram": "bots testados sem rede: comandos, botões, estado e webhook",
+    "57-vitrine-painel": "painéis com layout, gráficos, grade, cache e sessão",
+    "58-iot": "Arduino pelo Firmata: sensores, relé, escala e sketch",
+    "59-tipos-literais": "tipos literais e o método que não existe, acusado antes",
 }
+
+
+def _n_exercicios(n):
+    """'1 exercício', '12 exercícios' — a página dizia '1 exercícios'."""
+    return f"{n} exercício" if n == 1 else f"{n} exercícios"
+
+
+#: Os níveis e as trilhas. O MESMO arquivo que o README dos exercícios lê
+#: ('tools/gerar_indice_exercicios.py'): duas listas divergiriam no
+#: primeiro módulo novo.
+def _trilhas():
+    import json
+    with open(os.path.join(EXERCICIOS, "trilhas.json"), encoding="utf-8") as f:
+        return json.load(f)
 
 
 def _cabecalho(caminho):
@@ -222,14 +264,6 @@ def _modulos():
     return saida
 
 
-#: O nome que a pessoa lê — COPIADO de 'site/lib/nav.ts', e há um
-#: teste comparando os dois: dois rótulos para a mesma página fazem a
-#: barra lateral e o título da aba discordarem.
-#:
-#: O da PASTA não serve: ele não tem acento e
-#: perde as maiúsculas dos nomes próprios — saíam "03 · Colecoes",
-#: "05 · Acoes", "10 · Avancado" e "22 · Web kiln" em toda a navegação,
-#: no título da aba e no resultado de busca.
 #: O nome que a pessoa lê — COPIADO de 'site/lib/nav.ts', e há um teste
 #: comparando os dois: dois rótulos para a mesma página fazem a barra
 #: lateral e o título da aba discordarem.
@@ -315,12 +349,23 @@ COM_EXPLICACAO = sorted(
     if all(os.path.isfile(a[:-3] + ".md") for a in arquivos))
 
 
+def _nivel_de(nome):
+    """O nível do módulo, pelo número ('35-paralelismo' -> 'Aplicações')."""
+    for nivel in _trilhas()["niveis"]:
+        if nome[:2] in nivel["modulos"]:
+            return nivel["titulo"]
+    return ""
+
+
+def _link_do_modulo(numero):
+    """'35' -> '[35](/docs/exercicios/35-paralelismo)'."""
+    nome = next(n for n, _, _ in MODULOS if n[:2] == numero)
+    return f"[{numero}](/docs/exercicios/{nome})"
+
+
 def _pagina_indice():
-    linhas = [[
-        f"[**{_rotulo(nome)}**](/docs/exercicios/{nome})",
-        str(len(itens)),
-        ASSUNTOS.get(nome, ""),
-    ] for nome, itens, _ in MODULOS]
+    por_numero = {nome[:2]: (nome, itens) for nome, itens, _ in MODULOS}
+    dados = _trilhas()
 
     faixa = ""
     if COM_EXPLICACAO:
@@ -328,6 +373,29 @@ def _pagina_indice():
         faixa = (f"Os módulos **{nums[0]} a {nums[-1]}** trazem um arquivo `.md` "
                  "ao lado de cada `.df`, com enunciado, conceitos, saída esperada "
                  "e sugestões para experimentar.")
+
+    # As trilhas: por objetivo, e não por número. Cinquenta e nove módulos
+    # numa lista só não dizem por onde começar.
+    trilhas = [[t["quero"][:1].upper() + t["quero"][1:],
+                " → ".join(_link_do_modulo(m) for m in t["modulos"])]
+               for t in dados["trilhas"]]
+
+    # Os módulos, agrupados por nível. Era uma tabela de 59 linhas, e a
+    # coluna de assunto ficava vazia do 35 em diante.
+    por_nivel = []
+    for nivel in dados["niveis"]:
+        numeros = [m for m in nivel["modulos"] if m in por_numero]
+        exercicios = sum(len(por_numero[m][1]) for m in numeros)
+        por_nivel.append({"h3": f"{nivel['titulo']} · {len(numeros)} módulos, "
+                                f"{_n_exercicios(exercicios)}"})
+        por_nivel.append({"p": nivel["texto"]})
+        por_nivel.append({"table": {
+            "head": ["Módulo", "Exercícios", "Assunto"],
+            "rows": [[f"[**{_rotulo(por_numero[m][0])}**]"
+                      f"(/docs/exercicios/{por_numero[m][0]})",
+                      str(len(por_numero[m][1])),
+                      ASSUNTOS.get(por_numero[m][0], "")]
+                     for m in numeros]}})
 
     return {
         "href": "/docs/exercicios",
@@ -345,8 +413,20 @@ dataforge run exercicios/01-fundamentos/001_ola_mundo.df""", "lang": "bash"},
             *([{"p": faixa}] if faixa else []),
             {"callout": {"tipo": "nota", "titulo": "Eles rodam a cada mudança",
                          "texto": f"Os {TOTAL} são executados na suíte do repositório. Um exercício que quebrasse com uma mudança na linguagem apareceria no mesmo instante — é por isso que os exemplos desta documentação podem ser citados sem medo."}},
-            {"h2": f"Os {len(MODULOS)} módulos"},
-            {"table": {"head": ["Módulo", "Exercícios", "Assunto"], "rows": linhas}},
+            {"h2": "Como praticar"},
+            {"list": [
+                "**Leia o enunciado e tente antes.** As duas primeiras linhas de cada `.df` dizem o que fazer. Escreva a sua versão num arquivo à parte e só depois compare com a resposta.",
+                "**Rode o original.** `dataforge run exercicios/<módulo>/<arquivo>.df` termina sem erro quando está certo — não há saída \"passou\" para procurar.",
+                "**Quebre de propósito.** Troque o valor esperado num `assert` e rode de novo: o erro aponta a linha e mostra os dois valores. É o jeito mais rápido de ler o que cada linha garante.",
+                "**Passe o `check`.** `dataforge check` no arquivo mostra o que o analisador acusa antes de rodar. Vários exercícios provocam um erro dentro de `monitor` de propósito, e ali ele aparece como aviso.",
+                "**Faça o \"Experimente\".** Do módulo 11 em diante, a explicação de cada exercício termina com sugestões de mudança — é onde está a parte que não se aprende só lendo.",
+            ], "ordered": True},
+            {"h2": "Por onde começar"},
+            {"p": "Uma trilha por objetivo. Os números levam ao módulo; dentro dele, os exercícios estão em ordem de dificuldade."},
+            {"table": {"head": ["Se você quer…", "Módulos, nesta ordem"],
+                       "rows": trilhas}},
+            {"h2": f"Os {len(MODULOS)} módulos, por nível"},
+            *por_nivel,
         ],
     }
 
@@ -368,7 +448,10 @@ def _pagina_modulo(nome, itens, caminhos):
         for n, t, e in itens if n
     ]
 
+    nivel = _nivel_de(nome)
     blocos = [
+        *([{"p": f"Nível: **{nivel}** · {ASSUNTOS.get(nome, '')} · "
+                 f"[todos os módulos](/docs/exercicios)"}] if nivel else []),
         {"code": f"python3 exercicios/run_all.py {nome[:2]}", "lang": "bash"},
         {"h2": "Os exercícios"},
         {"table": {"head": ["#", "Título", "Enunciado"], "rows": linhas}},
@@ -402,7 +485,7 @@ def _pagina_modulo(nome, itens, caminhos):
     return {
         "href": f"/docs/exercicios/{nome}",
         "title": _rotulo(nome),
-        "description": f"{len(linhas)} exercícios: {ASSUNTOS.get(nome, '')}.",
+        "description": f"{_n_exercicios(len(linhas))}: {ASSUNTOS.get(nome, '')}.",
         "blocos": blocos,
     }
 

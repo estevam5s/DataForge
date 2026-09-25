@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "41 · FFI e nativo",
-  description: "1 exercícios: .",
+  description: "1 exercício: chamar C: bibliotecas, ponteiros e callbacks.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · chamar C: bibliotecas, ponteiros e callbacks · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 41`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[259](#259-chamar-c-bibliotecas-ponteiros-e-callbacks)", "**chamar C: bibliotecas, ponteiros e callbacks**", ""]]}},
@@ -207,7 +208,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"41 · FFI e nativo"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: chamar C: bibliotecas, ponteiros e callbacks."}
       href={"/docs/exercicios/41-ffi-nativo"}
       headings={headings}
     >

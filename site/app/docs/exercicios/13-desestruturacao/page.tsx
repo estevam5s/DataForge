@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · cluster, vault, rest e troca de variáveis · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 13`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[133](#133-desestruturacao-de-listas)", "**Desestruturacao de listas**", "extraia varios valores de uma lista numa unica linha."], ["[134](#134-resto-e-spread)", "**Resto e spread**", "colete o que sobra com ...resto e expanda colecoes com ..."], ["[135](#135-desestruturar-records-e-vaults)", "**Desestruturar records e vaults**", "extraia campos nomeados de um record ou de um dicionario."], ["[136](#136-compreensao-de-listas)", "**Compreensao de listas**", "construa listas transformando e filtrando numa unica expressao."], ["[137](#137-compreensao-de-vaults)", "**Compreensao de vaults**", "construa dicionarios com a mesma sintaxe, produzindo chave e valor."], ["[138](#138-interpolacao-de-strings)", "**Interpolacao de strings**", "monte textos com valores embutidos, sem concatenacao manual."]]}},

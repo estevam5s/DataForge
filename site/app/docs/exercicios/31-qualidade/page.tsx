@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · check, lint, cobertura e o que o CI cobra · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 31`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[227](#227-cobertura-o-que-os-testes-nao-exercitaram)", "**Cobertura: o que os testes NAO exercitaram**", ""], ["[228](#228-instantaneo-banco-isolado-e-teste-instavel)", "**Instantaneo, banco isolado e teste instavel**", ""], ["[229](#229-depurar-sem-out)", "**Depurar sem 'out'**", ""]]}},

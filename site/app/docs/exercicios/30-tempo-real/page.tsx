@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · upload, SSE e WebSocket no Kiln · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 30`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[225](#225-receber-arquivo)", "**Receber arquivo**", ""], ["[226](#226-o-servidor-empurra-sse-e-websocket)", "**O servidor empurra: SSE e WebSocket**", ""]]}},
@@ -64,10 +65,10 @@ action multipart(fronteira, partes):
     pedacos := []
     cycle p in partes:
         cabeca := $"Content-Disposition: form-data; name=\\"{p["nome"]}\\""
-        given p["arquivo"] ?? "" is not "":
+        given (p["arquivo"] ?? "") is not "":
             cabeca += $"; filename=\\"{p["arquivo"]}\\""
         tipo := ""
-        given p["tipo"] ?? "" is not "":
+        given (p["tipo"] ?? "") is not "":
             tipo := $"\\r\\nContent-Type: {p["tipo"]}"
         pedacos.append($"--{fronteira}\\r\\n{cabeca}{tipo}\\r\\n\\r\\n{p["valor"]}\\r\\n")
     pedacos.append($"--{fronteira}--\\r\\n")

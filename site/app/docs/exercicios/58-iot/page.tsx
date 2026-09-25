@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "58 · IoT e Arduino",
-  description: "10 exercícios: .",
+  description: "10 exercícios: Arduino pelo Firmata: sensores, relé, escala e sketch.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · Arduino pelo Firmata: sensores, relé, escala e sketch · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 58`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[388](#388-a-primeira-placa)", "**a primeira placa**", "acenda um LED. Sem placa nenhuma: 'conectar_simulada'"], ["[389](#389-o-erro-numero-1-do-firmata)", "**o erro numero 1 do Firmata**", "leia um sensor. A placa NAO responde perguntas sobre o"], ["[390](#390-do-numero-cru-ao-valor)", "**do numero cru ao valor**", "um pino analogico devolve 0 a 1023. Ele nao e"], ["[391](#391-o-rele-que-nao-bate)", "**o rele que nao bate**", "uma leitura pura treme (512, 509, 514, 511). Num"], ["[392](#392-o-meio-termo-que-nao-existe)", "**o meio-termo que nao existe**", "um pino digital so tem dois valores. \"Meio brilho\" e o"], ["[393](#393-quem-conhece-a-placa-e-a-placa)", "**quem conhece a placa e a placa**", "cada placa tem um mapa diferente — quantos pinos"], ["[394](#394-dois-fios-muitos-sensores)", "**dois fios, muitos sensores**", "I2C liga varios dispositivos em dois fios (SDA e SCL),"], ["[395](#395-o-acento-que-quebra-o-protocolo)", "**o acento que quebra o protocolo**", "no Firmata todo byte de dado viaja PARTIDO em dois de"], ["[396](#396-quando-o-programa-precisa-rodar-na-placa)", "**quando o programa precisa rodar NA placa**", "Firmata cobre o prototipo. O que precisa rodar sem"], ["[397](#397-le-decide-age)", "**le, decide, age**", "uma estufa e o projeto de IoT completo mais simples"]]}},
@@ -865,7 +866,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"58 · IoT e Arduino"}
-      description={"10 exercícios: ."}
+      description={"10 exercícios: Arduino pelo Firmata: sensores, relé, escala e sketch."}
       href={"/docs/exercicios/58-iot"}
       headings={headings}
     >

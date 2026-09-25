@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "28 · Vitrine",
-  description: "1 exercícios: painéis e aplicações de dados sem escrever HTML.",
+  description: "1 exercício: painéis e aplicações de dados sem escrever HTML.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · painéis e aplicações de dados sem escrever HTML · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 28`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[220](#220-uma-aplicacao-de-dados-com-a-vitrine)", "**Uma aplicacao de dados com a Vitrine**", ""]]}},
@@ -249,7 +250,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"28 · Vitrine"}
-      description={"1 exercícios: painéis e aplicações de dados sem escrever HTML."}
+      description={"1 exercício: painéis e aplicações de dados sem escrever HTML."}
       href={"/docs/exercicios/28-vitrine"}
       headings={headings}
     >

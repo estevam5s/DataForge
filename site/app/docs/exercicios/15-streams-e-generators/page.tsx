@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · stream action, emit, take e sequências infinitas · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 15`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[145](#145-generators-com-stream-action)", "**Generators com stream action**", "produza valores um a um com emit, em vez de montar a lista inteira."], ["[146](#146-sequencias-infinitas)", "**Sequencias infinitas**", "escreva um generator sem fim e consuma so o que precisa."], ["[147](#147-streams-com-pipelines)", "**Streams com pipelines**", "combine generators com sift, morph e distill."], ["[148](#148-processamento-incremental)", "**Processamento incremental**", "use streams para tratar dados grandes sem carregar tudo na memoria."], ["[149](#149-observe-e-eventos)", "**observe e eventos**", "reaja a valores conforme eles chegam."], ["[150](#150-projeto-etl-com-streams)", "**Projeto: ETL com streams**", "monte um pipeline de extracao, transformacao e carga usando generators."]]}},

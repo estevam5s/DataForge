@@ -1,6 +1,6 @@
 # Exercícios DataForge
 
-**397 exercícios em 58 módulos**, do `out "Ola"` a um interpretador de expressões
+**399 exercícios em 59 módulos**, do `out "Ola"` a um interpretador de expressões
 com lexer, parser e avaliador próprios — passando por OOP, banco, web, testes,
 concorrência, FFI, domínio, reativo e uma placa Arduino.
 
@@ -11,7 +11,7 @@ com enunciado, conceitos, saída esperada e sugestões para experimentar.
 ## Como rodar
 
 ```bash
-python3 exercicios/run_all.py          # todos os 397
+python3 exercicios/run_all.py          # todos os 399
 python3 exercicios/run_all.py 14       # só o módulo 14
 python3 exercicios/run_all.py 03 07    # módulos 03 e 07
 
@@ -30,18 +30,22 @@ Cada arquivo começa com o número, o título e o enunciado:
 Leia o enunciado, tente resolver por conta, depois compare. Os `assert` no fim
 documentam exatamente o comportamento esperado — inclusive os casos de borda.
 
-Nos módulos 11–20, abra o `.md` de mesmo nome para a explicação completa.
+Do módulo 11 em diante, abra o `.md` de mesmo nome para a explicação completa.
 
 ## Trilhas
 
 | Se você quer… | Comece por |
 |---------------|------------|
-| aprender a linguagem do zero | 01 → 10, na ordem |
-| conhecer os recursos do 4.0 | 11 → 16 |
-| escrever programas de verdade | 16 → 20 |
-| dominar pattern matching | 12, 14 |
-| trabalhar com dados | 03, 08, 15, 18, 20 |
-| construir uma aplicação | 16, 17, 18, 19, 20 |
+| aprender a linguagem do zero | [01](01-fundamentos/) → [02](02-controle-fluxo/) → [03](03-colecoes/) → [04](04-strings/) → [05](05-acoes/) → [06](06-blueprints/) → [07](07-erros/) → [08](08-pipelines/) → [09](09-modulos/) → [10](10-avancado/) |
+| escrever código que o `check` protege | [11](11-tipos-e-checagem/) → [38](38-tipos/) → [59](59-tipos-literais/) → [31](31-qualidade/) |
+| dominar pattern matching | [12](12-records-e-enums/) → [14](14-pattern-matching/) |
+| trabalhar com dados | [03](03-colecoes/) → [08](08-pipelines/) → [15](15-streams-e-generators/) → [18](18-dados-e-persistencia/) → [23](23-dados-e-planilhas/) → [36](36-quadro-e-dados/) → [57](57-vitrine-painel/) |
+| construir uma API ou um site | [16](16-modulos-e-projetos/) → [22](22-web-kiln/) → [24](24-banco-de-dados/) → [29](29-banco-e-crud/) → [30](30-tempo-real/) → [32](32-microservicos/) |
+| organizar um sistema grande | [16](16-modulos-e-projetos/) → [21](21-oop-avancado/) → [37](37-oop-sistema/) → [50](50-dominio/) → [54](54-erros/) |
+| usar mais de um núcleo | [19](19-concorrencia/) → [35](35-paralelismo/) → [39](39-concorrencia-avancada/) → [44](44-runtime/) |
+| escrever um bot de Telegram | [56](56-telegram/) |
+| ligar uma placa Arduino | [58](58-iot/) |
+| entender como a linguagem funciona | [40](40-metaprogramacao/) → [42](42-compilador/) → [43](43-backend/) → [44](44-runtime/) → [48](48-ecossistema/) |
 
 ---
 

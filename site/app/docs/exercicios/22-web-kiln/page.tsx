@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · rotas, respostas, templates e estáticos · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 22`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[192](#192-o-primeiro-servidor)", "**O primeiro servidor**", "declare um servidor com duas rotas e responda texto e HTML."], ["[193](#193-parametros-de-caminho-e-query-string)", "**Parametros de caminho e query string**", "leia :id do caminho e ?campo= da query."], ["[194](#194-uma-api-restful-completa)", "**Uma API RESTful completa**", "os cinco verbos sobre um mesmo recurso, com os status certos."], ["[195](#195-paginas-html-com-template)", "**Paginas HTML com template**", "renderize uma pagina a partir de um template com laco."], ["[196](#196-middleware-autenticacao-e-limite-de-taxa)", "**Middleware, autenticacao e limite de taxa**", "proteja rotas e limite pedidos por IP."], ["[197](#197-paginas-de-erro-redirecionamento-e-arquivos-estaticos)", "**Paginas de erro, redirecionamento e arquivos estaticos**", "personalize o 404, redirecione uma rota antiga e sirva CSS."], ["[198](#198-subir-o-servidor-de-verdade)", "**Subir o servidor de verdade**", "acenda o forno, faca um pedido pela rede e apague."], ["[199](#199-a-api-vista-de-fora-openapi-insomnia-e-curl)", "**A API vista de fora: OpenAPI, Insomnia e curl**", "exporte as rotas de um servidor Kiln para as ferramentas"]]}},

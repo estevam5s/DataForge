@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Primeiros passos** · interpolação, métodos de texto, formatação e regex · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 04`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[039](#039-strings-basicas)", "**Strings basicas**", "monte, meca e indexe textos."], ["[040](#040-caixa-e-limpeza)", "**Caixa e limpeza**", "normalize um texto sujo vindo de um formulario."], ["[041](#041-busca-dentro-de-texto)", "**Busca dentro de texto**", "descubra se e onde um trecho aparece."], ["[042](#042-split-e-join)", "**split e join**", "converta um CSV de uma linha em cluster e volte para texto."], ["[043](#043-substituicao-e-preenchimento)", "**Substituicao e preenchimento**", "mascare um documento e alinhe uma coluna."], ["[044](#044-palindromo)", "**Palindromo**", "verifique se uma frase e palindromo ignorando espacos e caixa."], ["[045](#045-contagem-de-palavras)", "**Contagem de palavras**", "conte palavras e ache a mais frequente."], ["[046](#046-templates-de-texto)", "**Templates de texto**", "preencha um modelo com dados de um vault."], ["[047](#047-expressoes-regulares)", "**Expressoes regulares**", "valide e extraia dados com Arcane.Regex."], ["[048](#048-cifra-de-cesar)", "**Cifra de Cesar**", "cifre e decifre um texto deslocando as letras."]]}},

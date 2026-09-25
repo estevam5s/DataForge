@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · suítes, matchers, fixtures e dublês · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 25`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[211](#211-a-primeira-suite)", "**A primeira suite**", "escreva testes que dizem o que quebrou, e nao so que quebrou."], ["[212](#212-isolamento-entre-trials)", "**Isolamento entre trials**", "prove que um teste nao contamina o proximo."], ["[213](#213-os-matchers)", "**Os matchers**", "cobre valores de todas as formas, e leia o que a falha diz."], ["[214](#214-dubles-e-fixtures)", "**Dubles e fixtures**", "teste uma regra de negocio sem tocar no banco."]]}},

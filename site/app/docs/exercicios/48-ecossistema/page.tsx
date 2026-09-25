@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "48 · Ecossistema e design",
-  description: "1 exercícios: .",
+  description: "1 exercício: o mapa conferido e os princípios que se medem.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · o mapa conferido e os princípios que se medem · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 48`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[266](#266-o-mapa-que-nao-pode-mentir-e-o-principio-que-se-mede)", "**o mapa que nao pode mentir, e o principio que se mede**", ""]]}},
@@ -206,7 +207,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"48 · Ecossistema e design"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: o mapa conferido e os princípios que se medem."}
       href={"/docs/exercicios/48-ecossistema"}
       headings={headings}
     >

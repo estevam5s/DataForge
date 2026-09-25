@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "39 · Concorrência avançada",
-  description: "1 exercícios: .",
+  description: "1 exercício: memória transacional, CAS e estruturas sem trava.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · memória transacional, CAS e estruturas sem trava · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 39`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[257](#257-memoria-transacional-cas-e-estruturas-sem-trava)", "**Memoria transacional, CAS e estruturas sem trava**", ""]]}},
@@ -214,7 +215,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"39 · Concorrência avançada"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: memória transacional, CAS e estruturas sem trava."}
       href={"/docs/exercicios/39-concorrencia-avancada"}
       headings={headings}
     >

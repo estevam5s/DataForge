@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "54 · Erros e famílias",
-  description: "15 exercícios: .",
+  description: "15 exercícios: as famílias de erro, a falha como valor e o que o monitor não pega.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · as famílias de erro, a falha como valor e o que o monitor não pega · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 54`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[328](#328-capturar-por-familia-e-nao-por-nome)", "**capturar por FAMILIA, e nao por nome**", "sao 208 codigos de erro. Comparar nomes exatos obrigaria"], ["[329](#329-o-que-se-le-de-um-erro-capturado)", "**o que se lê de um erro capturado**", "um erro nao e so uma mensagem. Ele carrega o tipo, a"], ["[330](#330-o-erro-que-o-programa-inventa)", "**o erro que o programa inventa**", "nao ha hierarquia de excecao do usuario, e o que"], ["[331](#331-a-familia-das-colecoes)", "**a familia das colecoes**", "indice, chave e fatia falham de jeitos diferentes, e"], ["[332](#332-converter-o-que-veio-de-fora)", "**converter o que veio de fora**", "todo dado que entra num programa e texto — do formulario,"], ["[333](#333-fechar-o-que-foi-aberto)", "**fechar o que foi aberto**", "'defer' roda na saida da ACAO, onde quer que esteja"], ["[334](#334-insistir-e-saber-quando-parar)", "**insistir, e saber quando parar**", "uma falha de rede e diferente de uma falha de logica. A"], ["[335](#335-a-falha-como-valor)", "**a falha como VALOR**", "um erro interrompe; um resultado nao. Quando a falha e"], ["[336](#336-o-valor-que-nao-serve-para-a-operacao)", "**o valor que nao serve para a operacao**", "a familia dos tipos. O que importa aqui e que nenhuma"], ["[337](#337-o-sistema-de-arquivos-falha-de-seis-jeitos)", "**o sistema de arquivos falha de seis jeitos**", "nao existe, existe e nao e o que se espera, sem"], ["[338](#338-o-erro-que-aparece-na-fronteira)", "**o erro que aparece na FRONTEIRA**", "'requires', 'promises' e 'invariant' movem a falha para"], ["[339](#339-o-erro-que-acontece-em-outra-thread)", "**o erro que acontece em OUTRA thread**", "'parallel' espera todas as tarefas e levanta na linha do"], ["[340](#340-o-que-monitor-nao-pega)", "**o que 'monitor' NAO pega**", "'halt', 'skip' e 'yield' atravessam um 'monitor'. Eles"], ["[341](#341-afirmar-que-algo-falha)", "**afirmar que algo FALHA**", "um teste que so confere o caminho feliz nao prova nada"], ["[342](#342-as-dezoito-familias-e-como-escolher)", "**as dezoito familias, e como escolher**", "fechar o modulo com o mapa. O codigo de um erro diz a"]]}},
@@ -366,8 +367,8 @@ handle KeyError as e:
     out $"   {e.message}"
 
 // A saida: '??' — e e ela que o proprio erro sugere.
-assert(v["idade"] ?? 0) is 0
-assert v["nome"] ?? "sem nome" is "Ana"
+assert (v["idade"] ?? 0) is 0
+assert (v["nome"] ?? "sem nome") is "Ana"
 
 out ""
 out "== 3. e a diferenca entre 'pop' e 'remove' =="
@@ -1672,7 +1673,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"54 · Erros e famílias"}
-      description={"15 exercícios: ."}
+      description={"15 exercícios: as famílias de erro, a falha como valor e o que o monitor não pega."}
       href={"/docs/exercicios/54-erros"}
       headings={headings}
     >

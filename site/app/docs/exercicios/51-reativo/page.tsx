@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "51 · Programação reativa",
-  description: "15 exercícios: .",
+  description: "15 exercícios: sinal, derivado, efeito, observável e o losango.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · sinal, derivado, efeito, observável e o losango · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 51`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[283](#283-um-valor-que-outros-valores-acompanham)", "**um valor que outros valores acompanham**", "a diferenca entre \"me avise quando algo acontecer\" e"], ["[284](#284-a-dependencia-e-descoberta-nao-declarada)", "**a dependencia e DESCOBERTA, nao declarada**", "nao ha lista para escrever. O derivado roda, e todo sinal"], ["[285](#285-o-efeito-roda-ao-nascer-e-o-lote-agrupa)", "**o efeito roda ao nascer, e o lote agrupa**", "um efeito que nao rodasse na criacao deixaria a tela sem"], ["[286](#286-o-valor-que-nunca-existiu)", "**o valor que nunca existiu**", "num losango — 'c' le 'a' e 'b', e 'b' le 'a' — marcar e"], ["[287](#287-sinal-e-valor-observavel-e-fluxo)", "**sinal e valor; observavel e fluxo**", "um clique e fluxo — perguntar \"qual o valor do clique"], ["[288](#288-a-fonte-fria-liga-preguicoso)", "**a fonte fria liga preguicoso**", "'de_cluster' so comeca quando alguem escuta. Se o"], ["[289](#289-o-tempo-dentro-do-fluxo)", "**o tempo dentro do fluxo**", "'esperar' e o debounce — so emite quando o fluxo fica"], ["[290](#290-dois-fluxos-num-so-de-duas-formas)", "**dois fluxos num so, de duas formas**", "'juntar' intercala — o que vier, de qualquer um."], ["[291](#291-a-falha-encerra-o-fluxo)", "**a falha ENCERRA o fluxo**", "num fluxo, um erro nao pode derrubar o programa — quem"], ["[292](#292-o-que-o-grafo-reativo-recusa)", "**o que o grafo reativo recusa**", "tres recusas, e cada uma evita um defeito que nao"], ["[293](#293-um-carrinho-que-se-recalcula-sozinho)", "**um carrinho que se recalcula sozinho**", "juntar sinal, derivado, efeito e lote num caso de uso —"], ["[294](#294-quando-mudou-nao-e-obvio)", "**quando \"mudou\" nao e obvio**", "escrever o mesmo valor nao notifica. Mas o que e \"o"], ["[295](#295-o-reativo-em-cima-de-uma-tabela)", "**o reativo em cima de uma tabela**", "um painel que filtra e resume. O filtro e um sinal, a"], ["[296](#296-o-fluxo-que-bate-sozinho)", "**o fluxo que bate sozinho**", "'intervalo' e uma fonte fria com relogio. Ela e a forma"], ["[297](#297-quatro-formas-de-lidar-com-mudanca)", "**quatro formas de lidar com mudanca**", "a linguagem tem 'Arcane.Eventos' (um emissor),"]]}},
@@ -1250,7 +1251,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"51 · Programação reativa"}
-      description={"15 exercícios: ."}
+      description={"15 exercícios: sinal, derivado, efeito, observável e o losango."}
       href={"/docs/exercicios/51-reativo"}
       headings={headings}
     >

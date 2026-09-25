@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · imutabilidade, 'with' e enums com valor · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 12`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[127](#127-records)", "**Records**", "declare um record, construa instancias e comprove a igualdade estrutural."], ["[128](#128-imutabilidade-e-with)", "**Imutabilidade e with**", "comprove que um record nao muda, e crie copias alteradas com with."], ["[129](#129-records-com-metodos)", "**Records com metodos**", "adicione comportamento a um record sem abrir mao da imutabilidade."], ["[130](#130-enums)", "**Enums**", "declare um conjunto fechado de valores e use seus membros com seguranca."], ["[131](#131-enums-com-valores)", "**Enums com valores**", "associe dados a cada membro e converta de ida e volta."], ["[132](#132-enums-com-match)", "**Enums com match**", "use pattern matching para tratar cada membro e garantir cobertura."]]}},

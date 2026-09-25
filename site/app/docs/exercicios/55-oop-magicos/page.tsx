@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "55 · Métodos mágicos",
-  description: "15 exercícios: .",
+  description: "15 exercícios: métodos mágicos: texto, conta, coleção, ordem e iteração.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · métodos mágicos: texto, conta, coleção, ordem e iteração · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 55`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[343](#343-como-um-objeto-se-mostra-e-se-compara)", "**como um objeto se mostra e se compara**", "os tres mais usados. '__str__' e para quem LE, '__repr__'"], ["[344](#344-o-objeto-que-entra-numa-conta)", "**o objeto que entra numa conta**", "sobrecarregar operador e o que faz um tipo de dominio"], ["[345](#345-o-objeto-que-se-comporta-como-colecao)", "**o objeto que se comporta como colecao**", "'__len__', '__getitem__', '__setitem__', '__contains__' e"], ["[346](#346-ordenar-objetos)", "**ordenar objetos**", "'__lt__' e o unico que 'sort' precisa. Os outros tres"], ["[347](#347-o-objeto-que-se-chama-e-o-que-se-abre)", "**o objeto que se chama, e o que se abre**", "'__call__' faz um objeto virar acao — util quando ele"], ["[348](#348-interceptar-a-leitura-e-a-escrita)", "**interceptar a leitura e a escrita**", "'__getattr__' responde pelo que NAO existe;"], ["[349](#349-quanto-vale-e-se-e-verdade)", "**quanto vale, e se e verdade**", "'__int__', '__float__' e '__bool__' decidem o que"], ["[350](#350-um-iterador-com-estado)", "**um iterador com estado**", "'__iter__' devolvendo uma lista e o caminho simples."], ["[351](#351-copiar-sem-levar-o-que-nao-se-quer)", "**copiar sem levar o que nao se quer**", "a copia RASA compartilha o que esta dentro. Mudar a lista"], ["[352](#352-quando-o-record-basta)", "**quando o record basta**", "um 'record' ja traz '__eq__', '__hash__' e a"], ["[353](#353-root-com-tres-niveis)", "**'root' com tres niveis**", "'root' e o pai de QUEM DECLAROU o metodo, e nao o pai da"], ["[354](#354-o-que-nao-se-usa-nao-pode-custar)", "**o que nao se usa nao pode custar**", "contratos, sobrecarga, invariantes, metaclasses e 'lazy'"], ["[355](#355-perguntar-ao-objeto-o-que-ele-tem)", "**perguntar ao objeto o que ele tem**", "reflexao e o que faz uma biblioteca funcionar com um tipo"], ["[356](#356-despacho-por-forma-e-a-classe-que-nasce-mudada)", "**despacho por forma, e a classe que nasce mudada**", "'overload' escolhe o metodo pelo TIPO dos argumentos, e"], ["[357](#357-o-mapa-e-os-tres-que-nao-existem)", "**o mapa, e os tres que NAO existem**", "fechar o modulo com a lista do que cada magico responde,"]]}},
@@ -1621,7 +1622,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"55 · Métodos mágicos"}
-      description={"15 exercícios: ."}
+      description={"15 exercícios: métodos mágicos: texto, conta, coleção, ordem e iteração."}
       href={"/docs/exercicios/55-oop-magicos"}
       headings={headings}
     >

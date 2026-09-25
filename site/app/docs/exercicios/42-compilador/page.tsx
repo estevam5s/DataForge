@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "42 · Dentro do compilador",
-  description: "1 exercícios: .",
+  description: "1 exercício: HIR, MIR e o que a análise de fluxo prova.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · HIR, MIR e o que a análise de fluxo prova · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 42`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[260](#260-dentro-do-compilador-hir-mir-e-o-que-o-fluxo-prova)", "**dentro do compilador: HIR, MIR e o que o fluxo prova**", ""]]}},
@@ -204,7 +205,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"42 · Dentro do compilador"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: HIR, MIR e o que a análise de fluxo prova."}
       href={"/docs/exercicios/42-compilador"}
       headings={headings}
     >

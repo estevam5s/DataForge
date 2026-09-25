@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "46 · Partida, pilha e capacidade",
-  description: "1 exercícios: .",
+  description: "1 exercício: as fases da partida, a pilha e a fronteira de capacidade.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · as fases da partida, a pilha e a fronteira de capacidade · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 46`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[264](#264-a-partida-a-pilha-e-a-fronteira-de-capacidade)", "**a partida, a pilha e a fronteira de capacidade**", ""]]}},
@@ -245,7 +246,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"46 · Partida, pilha e capacidade"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: as fases da partida, a pilha e a fronteira de capacidade."}
       href={"/docs/exercicios/46-partida"}
       headings={headings}
     >

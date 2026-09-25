@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "45 · Observabilidade e memória",
-  description: "1 exercícios: .",
+  description: "1 exercício: percentis, significância e o coletor sob controle.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · percentis, significância e o coletor sob controle · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 45`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[263](#263-medir-com-rigor-e-o-coletor-sob-controle)", "**medir com rigor, e o coletor sob controle**", ""]]}},
@@ -237,7 +238,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"45 · Observabilidade e memória"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: percentis, significância e o coletor sob controle."}
       href={"/docs/exercicios/45-observabilidade"}
       headings={headings}
     >

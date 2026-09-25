@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · programas completos, de ponta a ponta · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 20`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[176](#176-projeto-ferramenta-de-linha-de-comando)", "**Projeto: ferramenta de linha de comando**", "escreva um utilitario que analisa arquivos e imprime um relatorio."], ["[177](#177-projeto-analise-de-dados)", "**Projeto: analise de dados**", "carregue, limpe, agregue e visualize um conjunto de dados."], ["[178](#178-projeto-mini-linguagem)", "**Projeto: mini linguagem**", "escreva um interpretador de expressoes dentro do DataForge."], ["[179](#179-projeto-sistema-de-biblioteca)", "**Projeto: sistema de biblioteca**", "integre records, enums, banco, validacao e relatorios."], ["[180](#180-revisao-todos-os-conceitos)", "**Revisao: todos os conceitos**", "um programa que exercita cada recurso da linguagem."], ["[181](#181-encerramento-e-proximos-passos)", "**Encerramento e proximos passos**", "o que voce aprendeu, o que a linguagem ainda nao faz e para onde ir."]]}},
@@ -473,9 +474,9 @@ action parsear(tokens: Cluster) -> Vault:
             no_ := {"tipo": "bin", "op": op, "esq": no_, "dir": termo()}
         yield no_
 
-    arvore := expressao()
+    raiz := expressao()
     guard atual() is void, $"sobrou entrada apos a expressao"
-    yield arvore
+    yield raiz
 
 // ═══ AVALIADOR ═══
 

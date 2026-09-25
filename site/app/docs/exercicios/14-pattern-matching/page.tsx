@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · point, when, tipos, sequências e vaults · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 14`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[139](#139-padroes-basicos)", "**Padroes basicos**", "case por literal, capture com um nome e use o curinga."], ["[140](#140-padroes-de-tipo)", "**Padroes de tipo**", "case pelo tipo do valor e ligue o resultado ja tipado."], ["[141](#141-padroes-de-sequencia)", "**Padroes de sequencia**", "desmonte listas por posicao, com cabeca, cauda e tamanho fixo."], ["[142](#142-padroes-de-record-e-vault)", "**Padroes de record e vault**", "extraia campos direto no padrao, por posicao ou por nome."], ["[143](#143-guardas-e-ligacao-com-as)", "**Guardas e ligacao com as**", "combine condicoes e apelidos para casos precisos."], ["[144](#144-projeto-validador-de-dados)", "**Projeto: validador de dados**", "junte padroes de tipo, sequencia e vault num validador de esquema."]]}},

@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "53 · Regex avançado",
-  description: "15 exercícios: .",
+  description: "15 exercícios: grupos nomeados, âncoras, troca que calcula e risco.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · grupos nomeados, âncoras, troca que calcula e risco · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 53`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[313](#313-o-grupo-nomeado-que-nao-chegava-ao-resultado)", "**o grupo nomeado que nao chegava ao resultado**", "'(?P<ano>\\d{4})' sempre compilou, e o nome NAO vinha no"], ["[314](#314-match-ancora-so-no-comeco)", "**'match' ancora so no COMECO**", "validar com 'match' aceita lixo no fim, calado. E um"], ["[315](#315-a-troca-que-calcula)", "**a troca que CALCULA**", "'sub' so troca por texto. Mascarar um CPF, dobrar um"], ["[316](#316-partir-sem-perder-o-separador)", "**partir sem perder o separador**", "'split' descarta os separadores. Reconstruir o texto"], ["[317](#317-depurar-um-padrao)", "**depurar um padrao**", "um padrao que devolve a lista errada quase sempre casa"], ["[318](#318-ler-uma-expressao-regular)", "**ler uma expressao regular**", "ler uma expressao regular e o custo dela. O padrao que"], ["[319](#319-o-padrao-que-trava-o-processo)", "**o padrao que trava o processo**", "'(a+)+$' contra trinta caracteres que nao casam leva"], ["[320](#320-os-validadores-brasileiros-e-o-que-eles-nao-fazem)", "**os validadores brasileiros, e o que eles NAO fazem**", "'is_cpf' confere o FORMATO, e nao o digito verificador."], ["[321](#321-um-analisador-de-log-completo)", "**um analisador de log completo**", "juntar grupos nomeados, ancoramento, posicao e"], ["[322](#322-as-tres-flags-e-o-que-cada-uma-muda)", "**as tres flags, e o que cada uma muda**", "IGNORECASE, MULTILINE e DOTALL mudam o significado do"], ["[323](#323-compilar-uma-vez-usar-muitas)", "**compilar uma vez, usar muitas**", "um padrao usado num laco e recompilado a cada volta."], ["[324](#324-o-texto-que-vem-de-fora-nao-e-um-padrao)", "**o texto que vem de fora nao e um padrao**", "montar um padrao concatenando texto de usuario e como um"], ["[325](#325-ler-um-formato-de-texto-sem-escrever-um-parser)", "**ler um formato de texto sem escrever um parser**", "um arquivo de configuracao em secoes. Regex nao serve"], ["[326](#326-extrair-uma-tabela-de-um-texto)", "**extrair uma tabela de um texto**", "o caso mais comum de regex num trabalho de dados —"], ["[327](#327-o-mapa-do-modulo-e-o-que-ele-nao-faz)", "**o mapa do modulo, e o que ele nao faz**", "fechar o modulo dizendo onde cada peca serve, e sendo"]]}},
@@ -1280,7 +1281,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"53 · Regex avançado"}
-      description={"15 exercícios: ."}
+      description={"15 exercícios: grupos nomeados, âncoras, troca que calcula e risco."}
       href={"/docs/exercicios/53-regex-avancado"}
       headings={headings}
     >

@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "38 · Sistema de tipos",
-  description: "5 exercícios: .",
+  description: "5 exercícios: alias, união, refinamento, opaco, generics, tuplas e posse.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · alias, união, refinamento, opaco, generics, tuplas e posse · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 38`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[252](#252-tipos-nomeados-alias-uniao-intersecao-refinamento-e-opaco)", "**Tipos nomeados: alias, uniao, intersecao, refinamento e opaco**", ""], ["[253](#253-generics-tipos-indexados-e-o-sistema-de-traits)", "**Generics, tipos indexados e o sistema de traits**", ""], ["[254](#254-tuplas-a-forma-de-tamanho-fixo)", "**Tuplas: a forma de tamanho fixo**", ""], ["[255](#255-a-falha-como-valor-e-a-reflexao-de-tipos)", "**A falha como valor, e a reflexao de tipos**", ""], ["[256](#256-posse-emprestimo-e-liberacao-deterministica)", "**Posse, emprestimo e liberacao deterministica**", ""]]}},
@@ -989,7 +990,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"38 · Sistema de tipos"}
-      description={"5 exercícios: ."}
+      description={"5 exercícios: alias, união, refinamento, opaco, generics, tuplas e posse."}
       href={"/docs/exercicios/38-tipos"}
       headings={headings}
     >

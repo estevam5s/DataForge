@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · Arcane.Malha: retry, disjuntor, rastro e saga · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 32`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[230](#230-chamada-entre-servicos-que-nao-mente)", "**Chamada entre servicos que nao mente**", ""], ["[231](#231-saga-nao-existe-transacao-que-atravesse-a-rede)", "**Saga: nao existe transacao que atravesse a rede**", ""]]}},

@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "27 · Ponte para o Python",
-  description: "1 exercícios: adopt Python.*: numpy, pandas e o que vem junto.",
+  description: "1 exercício: adopt Python.*: numpy, pandas e o que vem junto.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · adopt Python.*: numpy, pandas e o que vem junto · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 27`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[219](#219-a-ponte-para-o-python)", "**A ponte para o Python**", "use uma biblioteca Python de dentro do DataForge, e faca"]]}},
@@ -211,7 +212,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"27 · Ponte para o Python"}
-      description={"1 exercícios: adopt Python.*: numpy, pandas e o que vem junto."}
+      description={"1 exercício: adopt Python.*: numpy, pandas e o que vem junto."}
       href={"/docs/exercicios/27-ponte-python"}
       headings={headings}
     >

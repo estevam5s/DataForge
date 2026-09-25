@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "40 · Metaprogramação",
-  description: "1 exercícios: .",
+  description: "1 exercício: comptime, macros, DSL e plugin do check.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · comptime, macros, DSL e plugin do check · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 40`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[258](#258-comptime-macros-dsl-e-plugin-do-check)", "**comptime, macros, DSL e plugin do check**", ""]]}},
@@ -177,7 +178,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"40 · Metaprogramação"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: comptime, macros, DSL e plugin do check."}
       href={"/docs/exercicios/40-metaprogramacao"}
       headings={headings}
     >

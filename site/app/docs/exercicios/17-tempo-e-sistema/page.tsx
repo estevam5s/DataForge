@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · datas, durações, ambiente e processos · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 17`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[158](#158-datas-e-horas)", "**Datas e horas**", "crie, formate e compare datas com Arcane.Time."], ["[159](#159-aritmetica-com-datas)", "**Aritmetica com datas**", "some e subtraia periodos, e calcule diferencas."], ["[160](#160-cronometragem-e-desempenho)", "**Cronometragem e desempenho**", "meca quanto tempo o codigo leva."], ["[161](#161-sistema-e-ambiente)", "**Sistema e ambiente**", "consulte o sistema operacional e as variaveis de ambiente."], ["[162](#162-executando-processos)", "**Executando processos**", "rode comandos externos e trate a saida."], ["[163](#163-registro-de-eventos)", "**Registro de eventos**", "registre o que acontece com niveis, campos e destino em arquivo."]]}},

@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "49 · Decimal exato e padrões",
-  description: "1 exercícios: .",
+  description: "1 exercício: dinheiro exato com Decimal e o padrão acusado antes de rodar.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · dinheiro exato com Decimal e o padrão acusado antes de rodar · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 49`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[267](#267-o-centavo-que-fecha-e-o-caso-que-aparece-antes-de-rodar)", "**o centavo que fecha, e o caso que aparece antes de rodar**", "dois itens de CORRECAO. 'Float' e IEEE 754 binario e nao"]]}},
@@ -141,7 +142,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"49 · Decimal exato e padrões"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: dinheiro exato com Decimal e o padrão acusado antes de rodar."}
       href={"/docs/exercicios/49-decimal-e-padroes"}
       headings={headings}
     >

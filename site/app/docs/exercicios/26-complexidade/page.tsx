@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · Big-O, memoização e custo de estrutura · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 26`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[215](#215-medir-o-crescimento-nao-o-relogio)", "**Medir o crescimento, nao o relogio**", "escreva duas versoes do mesmo problema e compare as ordens."], ["[216](#216-trocar-tempo-exponencial-por-memoria-linear)", "**Trocar tempo exponencial por memoria linear**", "faca fib(35) responder, sem esperar."], ["[217](#217-a-estrutura-certa)", "**A estrutura certa**", "escolha entre cluster e vault pela operacao que voce faz."], ["[218](#218-complexidade-de-espaco)", "**Complexidade de espaco**", "processe mais dados do que cabem na memoria."]]}},

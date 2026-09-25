@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · threads, canais, tarefas e paralelismo · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 19`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[170](#170-acoes-assincronas)", "**Acoes assincronas**", "declare acoes async e aguarde o resultado com await."], ["[171](#171-threads-e-paralelismo)", "**Threads e paralelismo**", "execute trabalho em segundo plano."], ["[172](#172-canais-entre-threads)", "**Canais entre threads**", "passe valores entre threads com seguranca."], ["[173](#173-liberacao-garantida)", "**Liberacao garantida**", "garanta limpeza mesmo quando algo falha."], ["[174](#174-erros-e-retentativas)", "**Erros e retentativas**", "trate falhas temporarias com retry e propagacao controlada."], ["[175](#175-projeto-fila-de-trabalho)", "**Projeto: fila de trabalho**", "monte um sistema de tarefas com fila, trabalhadores e relatorio."]]}},
@@ -395,10 +396,10 @@ assert fila.receive() is void, "canal vazio devolve void"
 channel resultados
 
 action trabalho_pesado(n):
-    total := 0
+    acumulado := 0
     cycle i from 1 to n:
-        total += i
-    yield total
+        acumulado += i
+    yield acumulado
 
 thread:
     resultados.send({"tarefa": "A", "valor": trabalho_pesado(10000)})

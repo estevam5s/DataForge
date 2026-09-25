@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · propriedades, estáticos, operadores, SOLID · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 21`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[182](#182-campos-declarados)", "**Campos declarados**", "declare campos com tipo e padrao no corpo do blueprint."], ["[183](#183-metodos-estaticos)", "**Metodos estaticos**", "crie metodos que pertencem ao blueprint, nao a instancia."], ["[184](#184-propriedades-com-get-e-set)", "**Propriedades com get e set**", "exponha um valor calculado, e valide na atribuicao."], ["[185](#185-visibilidade-private-e-protected)", "**Visibilidade: private e protected**", "proteja o estado interno de um objeto."], ["[186](#186-sobrecarga-de-operadores)", "**Sobrecarga de operadores**", "faca '+' e '==' funcionarem no seu proprio tipo."], ["[187](#187-blueprints-abstratos-e-contratos-de-trait)", "**Blueprints abstratos e contratos de trait**", "declare o que um tipo precisa ter, e deixe o compilador cobrar."], ["[188](#188-heranca-e-root)", "**Heranca e 'root'**", "estenda um comportamento sem reescrever o do pai."], ["[189](#189-composicao-no-lugar-de-heranca)", "**Composicao no lugar de heranca**", "monte comportamento juntando objetos, nao estendendo."], ["[190](#190-quando-usar-record-e-quando-usar-blueprint)", "**Quando usar record e quando usar blueprint**", "compare os dois, e escolha pelo que o dado precisa."], ["[191](#191-polimorfismo)", "**Polimorfismo**", "trate tipos diferentes pela interface comum."]]}},
@@ -80,9 +81,9 @@ blueprint Temperatura:
     celsius: Float := 0.0
 
     static action de_fahrenheit(f):
-        t := spawn Temperatura()
-        t.celsius := (f - 32) * 5 / 9
-        yield t
+        nova := spawn Temperatura()
+        nova.celsius := (f - 32) * 5 / 9
+        yield nova
 
     static action congelamento():
         yield 0.0

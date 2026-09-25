@@ -1,0 +1,42 @@
+{
+  "_sobre": "Lido por tools/gerar_indice_exercicios.py (exercicios/README.md) e por site/scripts/conteudo/exercicios.py (/docs/exercicios). Uma lista só: escritas em dois lugares, as trilhas divergiriam no primeiro módulo novo. tests/test_api_e_marca.py confere que todo módulo está em exatamente um nível e que toda trilha cita módulo que existe.",
+  "niveis": [
+    {
+      "titulo": "Primeiros passos",
+      "texto": "A linguagem do zero: valores, decisões, coleções, texto, ações, objetos, erros, pipelines e módulos. Faça na ordem.",
+      "modulos": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]
+    },
+    {
+      "titulo": "A linguagem a fundo",
+      "texto": "O que separa um script de um programa: tipos verificados, records, padrões, streams, projetos com forge.toml, tempo, persistência, concorrência e OOP.",
+      "modulos": ["11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21"]
+    },
+    {
+      "titulo": "Aplicações",
+      "texto": "Web, banco, testes, dados, tempo real, serviços, bots e hardware: cada módulo é uma peça que se usa num sistema de verdade.",
+      "modulos": ["22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "56", "57", "58"]
+    },
+    {
+      "titulo": "Sistemas e arquitetura",
+      "texto": "Para código que vai crescer: contratos e OOP como sistema, o sistema de tipos, dinheiro exato, domínio, reativo, estruturas binárias, regex, a família dos erros e os métodos mágicos.",
+      "modulos": ["37", "38", "49", "50", "51", "52", "53", "54", "55", "59"]
+    },
+    {
+      "titulo": "Por dentro da linguagem",
+      "texto": "Como a linguagem funciona por baixo: memória transacional, metaprogramação, FFI, as representações do compilador, o runtime, a medição e o contrato de uma versão.",
+      "modulos": ["39", "40", "41", "42", "43", "44", "45", "46", "47", "48"]
+    }
+  ],
+  "trilhas": [
+    {"quero": "aprender a linguagem do zero", "modulos": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"]},
+    {"quero": "escrever código que o `check` protege", "modulos": ["11", "38", "59", "31"]},
+    {"quero": "dominar pattern matching", "modulos": ["12", "14"]},
+    {"quero": "trabalhar com dados", "modulos": ["03", "08", "15", "18", "23", "36", "57"]},
+    {"quero": "construir uma API ou um site", "modulos": ["16", "22", "24", "29", "30", "32"]},
+    {"quero": "organizar um sistema grande", "modulos": ["16", "21", "37", "50", "54"]},
+    {"quero": "usar mais de um núcleo", "modulos": ["19", "35", "39", "44"]},
+    {"quero": "escrever um bot de Telegram", "modulos": ["56"]},
+    {"quero": "ligar uma placa Arduino", "modulos": ["58"]},
+    {"quero": "entender como a linguagem funciona", "modulos": ["40", "42", "43", "44", "48"]}
+  ]
+}

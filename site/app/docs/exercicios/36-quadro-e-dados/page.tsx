@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "36 · Quadro e dados",
-  description: "1 exercícios: .",
+  description: "1 exercício: o quadro de dados e os seis verbos do pipeline.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · o quadro de dados e os seis verbos do pipeline · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 36`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[241](#241-o-quadro-e-os-seis-verbos-do-pipeline)", "**O quadro, e os seis verbos do pipeline**", "carregue um conjunto com ausencia, limpe-o, agrupe e"]]}},
@@ -143,7 +144,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"36 · Quadro e dados"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: o quadro de dados e os seis verbos do pipeline."}
       href={"/docs/exercicios/36-quadro-e-dados"}
       headings={headings}
     >

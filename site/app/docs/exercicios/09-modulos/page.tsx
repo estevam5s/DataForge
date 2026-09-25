@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Primeiros passos** · adopt, relay, seleção e apelidos · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 09`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[099](#099-adopt-de-um-modulo-local)", "**adopt de um modulo local**", "importe um arquivo .df vizinho e use suas acoes."], ["[100](#100-import-inexistente)", "**Import inexistente**", "comprove que importar um modulo que nao existe dispara erro."], ["[101](#101-arcanemath)", "**Arcane.Math**", "use funcoes matematicas da biblioteca padrao."], ["[102](#102-estatistica-descritiva)", "**Estatistica descritiva**", "calcule medidas de posicao e dispersao."], ["[103](#103-arcaneanalytics)", "**Arcane.Analytics**", "explore correlacao, percentis e outliers."], ["[104](#104-regressao-linear)", "**Regressao linear**", "ajuste uma reta e faca previsoes."], ["[105](#105-dados-tabulares)", "**Dados tabulares**", "agrupe e resuma registros com Arcane.Analytics."], ["[106](#106-arcaneio)", "**Arcane.IO**", "escreva, leia e apague um arquivo temporario."], ["[107](#107-json)", "**JSON**", "serialize e desserialize estruturas."], ["[108](#108-arcanedatabase)", "**Arcane.Database**", "crie uma tabela em memoria, insira e consulte."], ["[109](#109-arcanetext)", "**Arcane.Text**", "formate um relatorio em caixa e tabela."], ["[110](#110-arcanetest)", "**Arcane.Test**", "escreva asserts de biblioteca para uma funcao."]]}},

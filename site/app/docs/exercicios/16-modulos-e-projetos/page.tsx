@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · forge.toml, pacotes e organização · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 16`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[151](#151-modulos-com-adopt-e-relay)", "**Modulos com adopt e relay**", "importe um modulo local e comprove que relay controla o que sai."], ["[152](#152-imports-seletivos-e-apelidos)", "**Imports seletivos e apelidos**", "traga so os simbolos que voce usa, com o nome que preferir."], ["[153](#153-organizando-um-projeto)", "**Organizando um projeto**", "estruture codigo em modulos com responsabilidades separadas."], ["[154](#154-manifesto-e-ferramentas)", "**Manifesto e ferramentas**", "conheca o forge.toml e os comandos de projeto."], ["[155](#155-testes-automatizados)", "**Testes automatizados**", "escreva testes que o dataforge test descobre e executa."], ["[156](#156-projeto-biblioteca-completa)", "**Projeto: biblioteca completa**", "escreva um modulo publicavel com interface, testes e documentacao."], ["[157](#157-o-que-o-check-pega-atraves-do-adopt)", "**O que o 'check' pega ATRAVES do adopt**", ""]]}},

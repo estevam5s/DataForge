@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · transações, upsert, busca textual e paginação · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 29`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[221](#221-um-crud-completo-com-o-banco-fazendo-o-trabalho)", "**Um CRUD completo, com o banco fazendo o trabalho**", ""], ["[222](#222-um-pdv-a-venda-inteira-ou-nenhuma)", "**Um PDV: a venda inteira, ou nenhuma**", ""], ["[223](#223-relatorio-busca-e-o-indice-que-falta)", "**Relatorio, busca e o indice que falta**", ""], ["[224](#224-migracoes-mudar-o-schema-sem-perder-dado)", "**Migracoes: mudar o schema sem perder dado**", ""]]}},

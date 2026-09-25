@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **A linguagem a fundo** · JSON, CSV, SQLite e serialização · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 18`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[164](#164-serializacao-de-dados)", "**Serializacao de dados**", "converta estruturas para JSON, CSV, TOML e de volta."], ["[165](#165-arquivos-e-diretorios)", "**Arquivos e diretorios**", "leia, escreva e organize arquivos com Arcane.IO."], ["[166](#166-banco-de-dados)", "**Banco de dados**", "crie tabelas, insira e consulte com Arcane.Database."], ["[167](#167-servidor-http)", "**Servidor HTTP**", "monte uma API REST com rotas e JSON."], ["[168](#168-cliente-http-e-urls)", "**Cliente HTTP e URLs**", "monte URLs, trate respostas e prepare requisicoes."], ["[169](#169-projeto-crud-com-persistencia)", "**Projeto: CRUD com persistencia**", "junte banco, validacao e relatorio num sistema completo."]]}},

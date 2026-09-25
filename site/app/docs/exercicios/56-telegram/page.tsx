@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "56 · Bots de Telegram",
-  description: "15 exercícios: .",
+  description: "15 exercícios: bots testados sem rede: comandos, botões, estado e webhook.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · bots testados sem rede: comandos, botões, estado e webhook · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 56`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[358](#358-um-bot-inteiro-testado-sem-token-e-sem-rede)", "**um bot inteiro, testado sem token e sem rede**", "um bot que so pode ser testado conversando com ele no"], ["[359](#359-botoes-e-o-relogio-que-nao-para)", "**botoes, e o relogio que nao para**", "um botao inline manda um 'dados' de volta, e o Telegram"], ["[360](#360-a-conversa-como-maquina-de-estados)", "**a conversa como maquina de estados**", "pedir tres dados em sequencia com 'given' aninhado vira"], ["[361](#361-o-caractere-que-derruba-a-mensagem-inteira)", "**o caractere que derruba a mensagem inteira**", "MarkdownV2 tem DEZOITO caracteres reservados. Um ponto"], ["[362](#362-o-que-roda-antes-o-que-roda-depois-e-quando-cai)", "**o que roda antes, o que roda depois, e quando cai**", "um bot sem tratador de erro morre calado no primeiro"], ["[363](#363-long-polling-webhook-e-o-que-o-doctor-pergunta)", "**long polling, webhook e o que o 'doctor' pergunta**", "um bot que roda na sua maquina usa long polling; um que"], ["[364](#364-um-bot-de-atendimento-ponta-a-ponta)", "**um bot de atendimento, ponta a ponta**", "juntar comando, botao, conversa, estado, middleware e"], ["[365](#365-foto-documento-e-o-que-chega-junto)", "**foto, documento e o que chega junto**", "o Telegram nao manda o arquivo no update — ele manda um"], ["[366](#366-o-mesmo-bot-em-conversa-privada-e-em-grupo)", "**o mesmo bot, em conversa privada e em grupo**", "num grupo o bot ve so os comandos, a menos que o modo de"], ["[367](#367-o-bot-que-responde-sem-estar-no-chat)", "**o bot que responde sem estar no chat**", "a consulta inline e o que faz '@meubot pizza' funcionar"], ["[368](#368-o-429-que-vem-no-corpo)", "**o 429 que vem no CORPO**", "o Telegram responde 429 com 'retry_after' NO CORPO da"], ["[369](#369-onde-o-estado-do-chat-mora)", "**onde o estado do chat mora**", "o armazem padrao e a memoria, e isso esta DITO: some"], ["[370](#370-o-que-a-sonda-prova-e-o-que-ela-nao-prova)", "**o que a sonda prova, e o que ela NAO prova**", "um bot testado so com a sonda tem teste de LOGICA. O que"], ["[371](#371-o-bot-que-guarda-no-banco)", "**o bot que guarda no banco**", "o estado do chat serve para o que e DA conversa — o"], ["[372](#372-o-mapa-e-as-cinco-decisoes)", "**o mapa, e as cinco decisoes**", "fechar o modulo com as sete formas de casar um update, a"]]}},
@@ -822,23 +823,23 @@ adopt Arcane.Telegram as Tg
 visto := []
 
 action montar():
-    app := Tg.app("123456:AAHexemplo")
+    bot := Tg.app("123456:AAHexemplo")
 
-    mark @app.comando("onde")
+    mark @bot.comando("onde")
     action onde(ctx):
         lugar := "privado" given ctx.e_privado() otherwise "grupo"
         visto.append(lugar)
         ctx.responder($"estamos no {lugar}")
 
-    mark @app.entrou()
+    mark @bot.entrou()
     action boas_vindas(ctx):
         ctx.responder("Bem-vindo!")
 
-    mark @app.saiu()
+    mark @bot.saiu()
     action ate_logo(_ctx):
         visto.append("saiu")
 
-    yield app
+    yield bot
 
 out "== 1. em conversa privada =="
 
@@ -1074,15 +1075,15 @@ steady pasta := $"{OS.temp_dir()}/df-369-{randint(100000, 999999)}"
 IO.mkdir(pasta)
 
 action montar(armazem):
-    app := Tg.app("123456:AAHexemplo", estado := armazem)
+    bot := Tg.app("123456:AAHexemplo", estado := armazem)
 
-    mark @app.comando("somar")
+    mark @bot.comando("somar")
     action somar(ctx):
         n := ctx.estado["n"] ?? 0
         ctx.estado["n"] := n + 1
         ctx.responder($"agora {ctx.estado['n']}")
 
-    yield app
+    yield bot
 
 out "== 1. na memoria =="
 
@@ -1161,18 +1162,18 @@ out "exercicio 369 ok"`, lang: 'df', title: `exercicios/56-telegram/369_estado_p
 adopt Arcane.Telegram as Tg
 
 action montar():
-    app := Tg.app("123456:AAHexemplo")
+    bot := Tg.app("123456:AAHexemplo")
 
-    mark @app.comando("oi")
+    mark @bot.comando("oi")
     action oi(ctx):
         ctx.responder($"Ola, {ctx.nome()}!")
 
-    mark @app.botao("x:")
+    mark @bot.botao("x:")
     action clicou(ctx):
         ctx.avisar("ok")
         ctx.responder($"clicou em {ctx.dados}")
 
-    yield app
+    yield bot
 
 out "== 1. o que ela injeta =="
 
@@ -1277,9 +1278,9 @@ DB.execute(banco, """CREATE TABLE pedidos (
 steady PRECOS := {"cafe": 650, "bolo": 800}
 
 action montar():
-    app := Tg.app("123456:AAHexemplo")
+    bot := Tg.app("123456:AAHexemplo")
 
-    mark @app.comando("pedir")
+    mark @bot.comando("pedir")
     action pedir(ctx):
         item := trim(join(" ", ctx.args))
         given item not in PRECOS:
@@ -1289,7 +1290,7 @@ action montar():
                 "centavos": PRECOS[item]})
         ctx.responder($"{item} anotado.")
 
-    mark @app.comando("meus")
+    mark @bot.comando("meus")
     action meus(ctx):
         linhas := DB.query(banco,
             "SELECT item, centavos FROM pedidos WHERE chat = ? ORDER BY id",
@@ -1301,7 +1302,7 @@ action montar():
         nomes := join(", ", [l["item"] cycle l in linhas])
         ctx.responder($"{nomes} — total {total} centavos")
 
-    yield app
+    yield bot
 
 out "== 1. pedir grava =="
 
@@ -1478,7 +1479,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"56 · Bots de Telegram"}
-      description={"15 exercícios: ."}
+      description={"15 exercícios: bots testados sem rede: comandos, botões, estado e webhook."}
       href={"/docs/exercicios/56-telegram"}
       headings={headings}
     >

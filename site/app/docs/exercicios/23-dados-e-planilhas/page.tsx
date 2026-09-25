@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · frames, agregação e .xlsx · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 23`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[200](#200-gravar-e-ler-uma-planilha)", "**Gravar e ler uma planilha**", "transforme uma lista de vaults num .xlsx e leia de volta."], ["[201](#201-relatorio-com-varias-abas-e-formulas)", "**Relatorio com varias abas e formulas**", "monte um relatorio com formulas que o Excel calcula ao abrir."], ["[202](#202-do-banco-para-a-planilha-passando-pela-analise)", "**Do banco para a planilha, passando pela analise**", "consulte o banco, analise os numeros e exporte a planilha."]]}},

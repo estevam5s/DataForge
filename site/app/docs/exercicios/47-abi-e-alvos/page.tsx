@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "47 · Superfície e alvos",
-  description: "1 exercícios: .",
+  description: "1 exercício: a superfície como contrato e o alvo como restrição.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · a superfície como contrato e o alvo como restrição · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 47`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[265](#265-a-superficie-como-contrato-e-o-alvo-como-restricao)", "**a superficie como contrato, e o alvo como restricao**", ""]]}},
@@ -237,7 +238,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"47 · Superfície e alvos"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: a superfície como contrato e o alvo como restrição."}
       href={"/docs/exercicios/47-abi-e-alvos"}
       headings={headings}
     >

@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "52 · Estruturas e ponteiros",
-  description: "15 exercícios: .",
+  description: "15 exercícios: layout binário com nome, janela sem cópia e ponteiro.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Sistemas e arquitetura** · layout binário com nome, janela sem cópia e ponteiro · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 52`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[298](#298-o-layout-que-tem-nome)", "**o layout que tem NOME**", "'Arcane.Bytes' empacota por FORMATO, e o resultado e"], ["[299](#299-o-enchimento-que-o-c-insere)", "**o enchimento que o C insere**", "um u32 comeca num multiplo de 4; um u64, num multiplo de"], ["[300](#300-a-janela-nao-copia)", "**a janela nao COPIA**", "copiar um registro de 4 KB para ler um campo de 2 bytes e"], ["[301](#301-andar-por-elemento-e-nao-por-byte)", "**andar por ELEMENTO, e nao por byte**", "'p + 1' num u32* do C anda QUATRO bytes. Andar um byte e"], ["[302](#302-o-ponteiro-que-nao-aponta-para-nada)", "**o ponteiro que nao aponta para nada**", "ha duas formas de um ponteiro nao valer nada, e elas sao"], ["[303](#303-ler-um-formato-binario-de-verdade)", "**ler um formato binario de verdade**", "montar e reler um arquivo com cabecalho, tabela de"], ["[304](#304-os-mesmos-bytes-dois-nomes)", "**os mesmos bytes, dois nomes**", "numa uniao todos os campos moram no deslocamento zero, e"], ["[305](#305-um-campo-com-varias-posicoes)", "**um campo com varias posicoes**", "'rgba' e quatro bytes, e nao quatro campos. Declarar a"], ["[306](#306-as-seis-recusas-do-layout)", "**as seis recusas do layout**", "cada recusa existe porque a alternativa e um numero"], ["[307](#307-um-protocolo-de-linha-montado-e-lido)", "**um protocolo de linha, montado e lido**", "quase todo protocolo binario tem a mesma forma —"], ["[308](#308-o-bloco-e-o-que-ele-promete)", "**o bloco, e o que ele promete**", "'liberar()' nao devolve memoria ao sistema — quem faz"], ["[309](#309-gravar-e-reler-do-disco)", "**gravar e reler do disco**", "um molde so vale se o arquivo que ele produz for lido de"], ["[310](#310-quando-usar-cada-um-dos-tres)", "**quando usar cada um dos tres**", "'Arcane.Bytes' empacota por formato, 'Arcane.Estrutura'"], ["[311](#311-gravar-bytes-num-arquivo)", "**gravar bytes num arquivo**", "a linguagem sabia PRODUZIR bytes — 'Arcane.Bytes',"], ["[312](#312-um-formato-completo-do-zero-ao-disco)", "**um formato completo, do zero ao disco**", "juntar tudo — molde, alinhamento, janela, ponteiro,"]]}},
@@ -518,9 +519,9 @@ out "== 3. procurar pelo indice, sem varrer os itens =="
 
 action achar(dados, id_procurado):
     quantos := Cabecalho.ler(dados)["quantos"]
-    entradas := Est.janelas(dados, Indice, quantos := quantos,
+    candidatas := Est.janelas(dados, Indice, quantos := quantos,
         deslocamento := INICIO_INDICE)
-    cycle entrada in entradas:
+    cycle entrada in candidatas:
         given entrada.ler("id") is id_procurado:
             yield Item.ler(dados, entrada.ler("deslocamento"))
     yield void
@@ -840,17 +841,17 @@ action montar(tipo, corpo):
 action ler_quadros(fluxo):
     "Le quadros em sequencia ate acabar o bloco."
     saida := []
-    posicao := 0
+    cursor := 0
     crus := fluxo.bytes()
-    persist posicao + Quadro.tamanho smaller_eq len(crus):
-        cabeca := Quadro.ler(fluxo, posicao)
-        inicio := posicao + Quadro.tamanho
+    persist cursor + Quadro.tamanho smaller_eq len(crus):
+        cabeca := Quadro.ler(fluxo, cursor)
+        inicio := cursor + Quadro.tamanho
         fim := inicio + cabeca["comprimento"]
         given fim bigger len(crus):
             halt
         saida.append({"tipo": cabeca["tipo"],
                 "corpo": By.para_texto(crus[inicio:fim])})
-        posicao := fim
+        cursor := fim
     yield saida
 
 out "== 1. o cabecalho e empacotado: 3 bytes =="
@@ -1336,8 +1337,8 @@ action abrir(dados):
         trigger "este arquivo nao e um indice"
     given cabeca["versao"] bigger VERSAO:
         trigger $"versao {cabeca['versao']} e mais nova que a que eu leio"
-    corpo := dados.bytes()[Cabecalho.tamanho:len(dados)]
-    given soma_simples(corpo) isnt cabeca["soma"]:
+    bytes_do_corpo := dados.bytes()[Cabecalho.tamanho:len(dados)]
+    given soma_simples(bytes_do_corpo) isnt cabeca["soma"]:
         trigger "o conteudo nao bate com a soma do cabecalho"
     yield Est.janelas(dados, Entrada, quantos := cabeca["quantos"],
         deslocamento := Cabecalho.tamanho)
@@ -1424,7 +1425,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"52 · Estruturas e ponteiros"}
-      description={"15 exercícios: ."}
+      description={"15 exercícios: layout binário com nome, janela sem cópia e ponteiro."}
       href={"/docs/exercicios/52-estruturas"}
       headings={headings}
     >

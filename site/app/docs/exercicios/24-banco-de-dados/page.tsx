@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Aplicações** · Forge: conexão, consultas, transações e ORM · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 24`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[203](#203-conectar-e-consultar)", "**Conectar e consultar**", "abra um banco, crie uma tabela e leia de volta."], ["[204](#204-construtor-de-consultas)", "**Construtor de consultas**", "monte consultas encadeando chamadas, sem escrever SQL."], ["[205](#205-injecao-de-sql-e-por-que-ela-nao-acontece-aqui)", "**Injecao de SQL, e por que ela nao acontece aqui**", "tente derrubar uma tabela por um campo de busca."], ["[206](#206-transacoes)", "**Transacoes**", "transfira saldo entre contas, e garanta que nao suma dinheiro."], ["[207](#207-modelos-e-validacao)", "**Modelos e validacao**", "declare um modelo, e deixe que ele recuse dado invalido."], ["[208](#208-relacoes-e-o-problema-do-n1)", "**Relacoes, e o problema do N+1**", "carregue os pedidos de cem usuarios em duas consultas."], ["[209](#209-migracoes)", "**Migracoes**", "evolua o esquema sem perder o que ja esta gravado."], ["[210](#210-pool-de-conexoes)", "**Pool de conexoes**", "reaproveite conexoes, e garanta que elas voltem."]]}},

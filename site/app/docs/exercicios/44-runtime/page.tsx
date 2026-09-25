@@ -8,10 +8,11 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "44 · Runtime e laço de eventos",
-  description: "1 exercícios: .",
+  description: "1 exercício: laço de eventos, escalonador e fibras.",
 };
 
 const blocos: Bloco[] = [
+  {"p": "Nível: **Por dentro da linguagem** · laço de eventos, escalonador e fibras · [todos os módulos](/docs/exercicios)"},
   { code: `python3 exercicios/run_all.py 44`, lang: 'bash' },
   {"h2": "Os exercícios"},
   {"table": {"head": ["#", "Título", "Enunciado"], "rows": [["[262](#262-o-laco-de-eventos-o-escalonador-e-as-fibras)", "**o laco de eventos, o escalonador e as fibras**", ""]]}},
@@ -260,7 +261,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"44 · Runtime e laço de eventos"}
-      description={"1 exercícios: ."}
+      description={"1 exercício: laço de eventos, escalonador e fibras."}
       href={"/docs/exercicios/44-runtime"}
       headings={headings}
     >
