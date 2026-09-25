@@ -27,8 +27,9 @@ from .iot_firmata import (ANALOG_MAPPING_QUERY, ANALOG_MAPPING_RESPONSE,
                           I2C_CONFIG, I2C_REPLY, I2C_REQUEST, MODOS,
                           NOME_DO_MODO, PROTOCOL_VERSION, REPORT_ANALOG,
                           REPORT_DIGITAL, REPORT_FIRMWARE, SAMPLING_INTERVAL,
-                          SERVO_CONFIG, SET_DIGITAL_PIN, SET_PIN_MODE,
-                          START_SYSEX, STRING_DATA, SYSTEM_RESET)
+                          PLACA_QUERY, SERVO_CONFIG, SET_DIGITAL_PIN,
+                          SET_PIN_MODE, START_SYSEX, STRING_DATA,
+                          SYSTEM_RESET)
 
 #: Os modelos que o simulador conhece, com o mapa de pinos de cada um.
 #:
@@ -49,25 +50,36 @@ from .iot_firmata import (ANALOG_MAPPING_QUERY, ANALOG_MAPPING_RESPONSE,
 MODELOS = {
     "uno": {"digitais": 14, "analogicos": 6, "pwm": (3, 5, 6, 9, 10, 11),
             "tensao": 5.0, "bits": 10, "fqbn": "arduino:avr:uno",
-            "firmware": "DataForge", "descricao": "Arduino UNO (ATmega328P)"},
+            "firmware": "DataForge", "placa": "Arduino UNO",
+            "descricao": "Arduino UNO (ATmega328P)"},
     "nano": {"digitais": 14, "analogicos": 8, "pwm": (3, 5, 6, 9, 10, 11),
              "tensao": 5.0, "bits": 10, "fqbn": "arduino:avr:nano",
-             "firmware": "DataForge", "descricao": "Arduino Nano"},
+             "firmware": "DataForge", "placa": "Arduino Nano",
+             "descricao": "Arduino Nano"},
     "mega": {"digitais": 54, "analogicos": 16,
              "pwm": tuple(range(2, 14)) + (44, 45, 46),
              "tensao": 5.0, "bits": 10, "fqbn": "arduino:avr:mega",
-             "firmware": "DataForge", "descricao": "Arduino Mega 2560"},
+             "firmware": "DataForge", "placa": "Arduino Mega 2560",
+             "descricao": "Arduino Mega 2560"},
     "leonardo": {"digitais": 20, "analogicos": 12, "pwm": (3, 5, 6, 9, 10, 11, 13),
                  "tensao": 5.0, "bits": 10, "fqbn": "arduino:avr:leonardo",
-                 "firmware": "DataForge", "descricao": "Arduino Leonardo"},
+                 "firmware": "DataForge", "placa": "Arduino Leonardo",
+                 "descricao": "Arduino Leonardo"},
     "uno-r4": {"digitais": 14, "analogicos": 6, "pwm": (3, 5, 6, 9, 10, 11),
                "tensao": 5.0, "bits": 10,
                "fqbn": "arduino:renesas_uno:unor4wifi",
-               "firmware": "DataForge", "descricao": "Arduino UNO R4 (Renesas)"},
+               "firmware": "DataForge", "placa": "Arduino UNO R4 WiFi",
+               "descricao": "Arduino UNO R4 (Renesas)"},
     "esp32": {"digitais": 40, "analogicos": 16,
-              "pwm": tuple(range(0, 34)),
+              "pwm": tuple(p for p in range(0, 34) if not 6 <= p <= 11),
               "tensao": 3.3, "bits": 12, "fqbn": "esp32:esp32:esp32",
               "firmware": "DataForge",
+              # O mesmo que o firmware anuncia: 6 a 11 são a flash SPI do
+              # módulo (sem modo nenhum), 34 a 39 só leem. Um dublê que
+              # oferecesse os seis aprovaria o programa que derruba a placa.
+              "reservados": tuple(range(6, 12)),
+              "so_entrada": tuple(range(34, 40)),
+              "placa": "ESP32",
               "descricao": "ESP32 (o Firmata roda pela USB-serial)"},
 }
 
@@ -194,7 +206,15 @@ class Simulador:
             return
         self.recebidos += 1
         tipo = corpo[0]
-        if tipo == REPORT_FIRMWARE:
+        if tipo == PLACA_QUERY:
+            # O nome que o firmware de verdade responde (ver 'nomeDaPlaca').
+            nome = self.mapa.get("placa") or self.mapa["descricao"]
+            partes = bytearray([START_SYSEX, PLACA_QUERY])
+            for c in nome.encode("ascii", "replace"):
+                partes += bytes([c & 0x7F, (c >> 7) & 0x7F])
+            partes.append(END_SYSEX)
+            self._responder(partes)
+        elif tipo == REPORT_FIRMWARE:
             nome = self.mapa["firmware"]
             partes = bytearray([START_SYSEX, REPORT_FIRMWARE,
                                 self.versao[0], self.versao[1]])
@@ -249,7 +269,15 @@ class Simulador:
 
     def _capacidades(self):
         partes = bytearray([START_SYSEX, CAPABILITY_RESPONSE])
+        reservados = self.mapa.get("reservados", ())
+        so_entrada = self.mapa.get("so_entrada", ())
         for pino in range(self.mapa["digitais"]):
+            if pino in reservados:
+                partes.append(0x7F)
+                continue
+            if pino in so_entrada:
+                partes += bytes([MODOS["entrada"], 1, 0x7F])
+                continue
             partes += bytes([MODOS["entrada"], 1, MODOS["saida"], 1,
                              MODOS["entrada_pullup"], 1])
             if pino in self.mapa["pwm"]:

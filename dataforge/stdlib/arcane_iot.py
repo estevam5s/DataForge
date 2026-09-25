@@ -68,7 +68,7 @@ def conectar(porta=None, velocidade=VELOCIDADE_FIRMATA, prazo=5.0,
     há duas: adivinhar qual placa receber um comando é o tipo de
     conveniência que liga o relé errado.
     """
-    alvo = str(porta) if porta else _unica_porta()
+    alvo = _resolver_porta(porta)
     serial = iot_serial.abrir(alvo, velocidade, prazo=0.4)
     if reiniciar:
         # O autorreset acontece na abertura em quase toda placa, e o
@@ -86,6 +86,53 @@ def conectar(porta=None, velocidade=VELOCIDADE_FIRMATA, prazo=5.0,
     return placa
 
 
+def _parece_caminho(texto):
+    """'/dev/cu.usbmodem1101', 'COM3' — e não 'esp32' ou 'uno r4'."""
+    return ("/" in texto or "\\" in texto
+            or texto.upper().startswith("COM") and texto[3:].isdigit())
+
+
+def _resolver_porta(porta):
+    """A porta a abrir: o caminho dado, a placa pelo NOME, ou a única."""
+    if not porta:
+        return _unica_porta()
+    texto = str(porta)
+    if _parece_caminho(texto):
+        return texto
+    return _porta_pela_placa(texto)
+
+
+def _identificadas():
+    """As portas USB com o que se sabe delas, SEM abrir nenhuma.
+
+    Abrir uma porta reinicia a placa (o DTR). O que se sabe sem abrir vem
+    do `arduino-cli` — o nome, quando é uma placa que ele conhece, e o
+    VID:PID do USB. Sem ele, só o nome do arquivo da porta.
+    """
+    vistas = []
+    if tem_arduino_cli():
+        try:
+            vistas = [p for p in placas() if p.get("usb")]
+        except Exception:                                 # noqa: BLE001
+            vistas = []
+    if vistas:
+        return vistas
+    return [{"porta": p["porta"], "placa": "desconhecida", "fqbn": "",
+             "usb": p["descricao"], "vid": "", "pid": ""} for p in portas()]
+
+
+def _rotulo(item):
+    """'Arduino UNO R4 WiFi' ou 'ponte CH340 (1A86:7523) — …'."""
+    if item.get("placa") and item["placa"] != "desconhecida":
+        return item["placa"]
+    return item.get("usb") or "desconhecida"
+
+
+def _como_conectar(achadas):
+    return "\n".join(f'IoT.conectar("{p["porta"]}")   // {_rotulo(p)}'
+                     for p in achadas)
+
+
 def _unica_porta():
     achadas = portas()
     if not achadas:
@@ -96,12 +143,52 @@ def _unica_porta():
                  "'dataforge iot portas'")
     if len(achadas) > 1:
         nomes = ", ".join(p["porta"] for p in achadas)
+        # A dica mostra as portas QUE EXISTEM, com o que se sabe de cada
+        # uma. Ela mostrava um exemplo inventado ('/dev/cu.usbmodem1101'),
+        # e quem tinha duas placas precisava rodar outro comando para
+        # descobrir qual caminho era qual.
         raise _erro(
             f"ha {len(achadas)} placas conectadas: {nomes}.",
             nota="adivinhar qual delas recebe o comando e o tipo de "
                  "conveniencia que liga o rele errado",
-            dica='IoT.conectar("/dev/cu.usbmodem1101")')
+            dica="diga qual — pelo caminho, ou pelo nome da placa "
+                 '(IoT.conectar("uno r4")):\n'
+                 + _como_conectar(_identificadas()))
     return achadas[0]["porta"]
+
+
+def _normalizar(texto):
+    return "".join(c for c in str(texto).lower() if c.isalnum())
+
+
+def _porta_pela_placa(nome):
+    """`IoT.conectar("uno r4")`: a porta cuja placa se chama assim.
+
+    O nome é conferido contra o que o `arduino-cli` diz de cada porta —
+    sem abrir nenhuma. Uma ponte USB-serial genérica (CH340, CP210x) não
+    diz que chip está atrás dela: um ESP32 e um clone de UNO usam a mesma.
+    Nesse caso a busca não acha, e a mensagem diz isso em vez de chutar.
+    """
+    procurado = _normalizar(nome)
+    achadas = _identificadas()
+    casam = [p for p in achadas
+             if procurado and (procurado in _normalizar(p.get("placa", ""))
+                               or procurado in _normalizar(p.get("fqbn", "")))]
+    if len(casam) == 1:
+        return casam[0]["porta"]
+    if len(casam) > 1:
+        raise _erro(
+            f"ha {len(casam)} placas que casam com '{nome}'.",
+            nota=", ".join(f"{p['porta']} ({_rotulo(p)})" for p in casam),
+            dica=_como_conectar(casam))
+    raise _erro(
+        f"nenhuma porta se identifica como '{nome}'.",
+        nota=("o nome vem do arduino-cli, e uma ponte USB-serial generica "
+              "(CH340, CP210x) nao diz que placa esta atras dela"
+              if tem_arduino_cli() else
+              "sem o arduino-cli, a placa so e reconhecida pelo caminho"),
+        dica=("use o caminho:\n" + _como_conectar(achadas)) if achadas
+        else "nao ha placa conectada; rode 'dataforge iot portas'")
 
 
 def portas():
@@ -283,6 +370,10 @@ MODELOS_DE_SKETCH = {
 #define DF_I2C_REPLY            0x77
 #define DF_I2C_CONFIG           0x78
 #define DF_SAMPLING_INTERVAL    0x7A
+// Proprio do DataForge, na faixa que o Firmata reserva para uso livre
+// (0x01-0x0F): "que placa e voce?". Um firmware antigo nao responde, e o
+// lado de la trata o silencio como "nao sei" — nunca como erro.
+#define DF_PLACA_QUERY          0x0E
 
 // Os modos, com os numeros que o 'Arcane.IoT' usa.
 #define DF_ENTRADA   0x00
@@ -331,11 +422,69 @@ Servo servos[DF_PINOS];
 
 // ── o que o core diz sobre cada pino ───────────────────────
 
+// O nome da placa, para 'info()["placa"]'. O core define ARDUINO_BOARD
+// no ESP32 ("ESP32_DEV"); o Renesas e o AVR definem uma macro por placa.
+const char *nomeDaPlaca() {
+#if defined(ARDUINO_UNOR4_WIFI)
+  return "Arduino UNO R4 WiFi";
+#elif defined(ARDUINO_UNOR4_MINIMA)
+  return "Arduino UNO R4 Minima";
+#elif defined(ARDUINO_AVR_UNO)
+  return "Arduino UNO";
+#elif defined(ARDUINO_AVR_NANO)
+  return "Arduino Nano";
+#elif defined(ARDUINO_AVR_MEGA2560)
+  return "Arduino Mega 2560";
+#elif defined(ARDUINO_AVR_LEONARDO)
+  return "Arduino Leonardo";
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+  return "ESP32-S3";
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+  return "ESP32-C3";
+#elif defined(CONFIG_IDF_TARGET_ESP32)
+  return "ESP32";
+#elif defined(ARDUINO_BOARD)
+  return ARDUINO_BOARD;
+#else
+  return "desconhecida";
+#endif
+}
+
+// Os pinos que EXISTEM e nao podem ser tocados.
+//
+// E a unica excecao a regra de perguntar ao core: no ESP32 classico os
+// GPIO 6 a 11 sao a flash SPI do modulo, e 'digitalPinIsValid' diz que
+// eles existem — porque existem. Configurar um deles derruba a placa no
+// meio do programa, e o firmware anunciava os seis como entrada, saida
+// e PWM.
+bool pinoReservado(byte pino) {
+#if defined(CONFIG_IDF_TARGET_ESP32)
+  return pino >= 6 && pino <= 11;
+#else
+  (void)pino;
+  return false;
+#endif
+}
+
 bool pinoExiste(byte pino) {
+  if (pinoReservado(pino)) return false;
 #if defined(digitalPinIsValid)
   return digitalPinIsValid(pino);
 #else
   return pino < DF_PINOS;
+#endif
+}
+
+// Saida, pull-up e PWM exigem um pino que possa ser saida. No ESP32, os
+// GPIO 34 a 39 so leem — e nao tem pull-up. O core do ESP-IDF sabe
+// disso ('GPIO_IS_VALID_OUTPUT_GPIO'); as outras placas nao tem pino so
+// de entrada.
+bool podeSair(byte pino) {
+#if defined(GPIO_IS_VALID_OUTPUT_GPIO)
+  return GPIO_IS_VALID_OUTPUT_GPIO(pino);
+#else
+  (void)pino;
+  return true;
 #endif
 }
 
@@ -415,18 +564,29 @@ void responderFirmware() {
   Serial.write(DF_END_SYSEX);
 }
 
+void responderPlaca() {
+  Serial.write(DF_START_SYSEX);
+  Serial.write((byte)DF_PLACA_QUERY);
+  for (const char *p = nomeDaPlaca(); *p; p++) {
+    Serial.write((byte)(*p & 0x7F));
+    Serial.write((byte)((*p >> 7) & 0x7F));
+  }
+  Serial.write(DF_END_SYSEX);
+}
+
 void responderCapacidades() {
   Serial.write(DF_START_SYSEX);
   Serial.write(DF_CAPABILITY_RESPONSE);
   for (byte p = 0; p < DF_PINOS; p++) {
     if (pinoExiste(p)) {
+      bool sai = podeSair(p);
       Serial.write((byte)DF_ENTRADA); Serial.write((byte)1);
-      Serial.write((byte)DF_SAIDA);   Serial.write((byte)1);
-      Serial.write((byte)DF_PULLUP);  Serial.write((byte)1);
+      if (sai) { Serial.write((byte)DF_SAIDA);  Serial.write((byte)1); }
+      if (sai) { Serial.write((byte)DF_PULLUP); Serial.write((byte)1); }
       if (canalDoPino(p) >= 0) { Serial.write((byte)DF_ANALOGICO); Serial.write((byte)10); }
-      if (temPwm(p))           { Serial.write((byte)DF_PWM);       Serial.write((byte)8); }
+      if (sai && temPwm(p))    { Serial.write((byte)DF_PWM);       Serial.write((byte)8); }
 #ifdef DF_TEM_SERVO
-      if (temPwm(p))           { Serial.write((byte)DF_SERVO);     Serial.write((byte)14); }
+      if (sai && temPwm(p))    { Serial.write((byte)DF_SERVO);     Serial.write((byte)14); }
 #endif
       if (ehI2c(p))            { Serial.write((byte)DF_I2C_MODO);  Serial.write((byte)1); }
     }
@@ -467,6 +627,10 @@ void responderEstado(byte pino) {
 
 void definirModo(byte pino, byte modo) {
   if (pino >= DF_PINOS || !pinoExiste(pino)) return;
+  // Um pino so de entrada recusa os modos que escrevem, aqui tambem: o
+  // lado de la ja confere pela capacidade, mas quem fala Firmata cru
+  // (outro cliente, um script) nao pode derrubar o pino.
+  if (!podeSair(pino) && modo != DF_ENTRADA && modo != DF_ANALOGICO) return;
 #ifdef DF_TEM_SERVO
   if (modoDoPino[pino] == DF_SERVO && modo != DF_SERVO) servos[pino].detach();
 #endif
@@ -506,6 +670,7 @@ void tratarSysex() {
   if (nSysex == 0) return;
   switch (sysex[0]) {
     case DF_REPORT_FIRMWARE:      responderFirmware();      break;
+    case DF_PLACA_QUERY:          responderPlaca();         break;
     case DF_CAPABILITY_QUERY:     responderCapacidades();   break;
     case DF_ANALOG_MAPPING_QUERY: responderMapaAnalogico(); break;
     case DF_PIN_STATE_QUERY:
@@ -897,15 +1062,47 @@ def placas():
     for item in lista or []:
         porta = (item.get("port") or {})
         correspondencias = item.get("matching_boards") or []
+        propriedades = porta.get("properties") or {}
+        vid = _hex4(propriedades.get("vid", ""))
+        pid = _hex4(propriedades.get("pid", ""))
         achadas.append({
             "porta": porta.get("address", ""),
             "protocolo": porta.get("protocol", ""),
             "placa": (correspondencias[0].get("name") if correspondencias
-                      else porta.get("properties", {}).get("pid", "") and "desconhecida"
-                      or "desconhecida"),
+                      else "desconhecida"),
             "fqbn": correspondencias[0].get("fqbn", "") if correspondencias else "",
+            "vid": vid,
+            "pid": pid,
+            # Vazio para o que não é USB (Bluetooth, console de depuração):
+            # é o que separa uma placa de uma porta do sistema.
+            "usb": _chip_usb(vid, pid) if vid else "",
         })
     return achadas
+
+
+#: O que o VID do USB diz sobre o que está do outro lado do cabo. É sobre
+#: o CHIP USB, e não sobre a placa: uma ponte CH340 está num clone de UNO
+#: e num ESP32 igualmente, e dizer mais que isso seria chutar.
+_CHIPS_USB = {
+    "2341": "Arduino, USB oficial",
+    "2A03": "Arduino, USB oficial",
+    "1A86": "ponte CH340 — clone de UNO/Nano, ESP32 ou ESP8266",
+    "10C4": "ponte CP210x — comum em ESP32 DevKit e NodeMCU",
+    "0403": "ponte FTDI",
+    "303A": "Espressif com USB nativo (ESP32-S2, S3 ou C3)",
+    "239A": "Adafruit",
+    "2E8A": "Raspberry Pi (RP2040)",
+}
+
+
+def _hex4(valor):
+    texto = str(valor or "").lower().replace("0x", "")
+    return texto.upper().zfill(4) if texto else ""
+
+
+def _chip_usb(vid, pid):
+    base = _CHIPS_USB.get(vid, "USB-serial")
+    return f"{base} ({vid}:{pid})"
 
 
 def compilar(caminho, fqbn="arduino:avr:uno"):
@@ -918,11 +1115,44 @@ def compilar(caminho, fqbn="arduino:avr:uno"):
     return _rodar(["compile", "--fqbn", str(fqbn), str(caminho)])
 
 
-def carregar(caminho, porta=None, fqbn="arduino:avr:uno"):
-    """Compila e grava na placa. Devolve `{ok, saida, erro}`."""
-    alvo = str(porta) if porta else _unica_porta()
+def carregar(caminho, porta=None, fqbn=None):
+    """Compila e grava na placa. Devolve `{ok, saida, erro}`.
+
+    `caminho` é a pasta de um sketch, ou o NOME de um modelo
+    (`"firmata"`, `"pisca"`…): aí o sketch é gerado numa pasta temporária
+    para aquela placa e gravado.
+
+    Sem `fqbn`, a placa é descoberta pela porta. O padrão era
+    `arduino:avr:uno`: gravar num UNO R4 sem dizer o FQBN compilava para
+    o UNO clássico e mandava o binário para a placa errada. Uma porta que
+    não se identifica (uma ponte CH340 serve a um clone de UNO e a um
+    ESP32) é RECUSADA, em vez de receber um chute.
+    """
+    alvo = _resolver_porta(porta)
+    if not fqbn:
+        fqbn = _fqbn_da_porta(alvo)
+    fonte = str(caminho)
+    if not os.path.exists(fonte) and fonte in MODELOS_DE_SKETCH:
+        import tempfile
+        pasta = tempfile.mkdtemp(prefix="dataforge-sketch-")
+        fonte = os.path.dirname(gravar_sketch(pasta, fonte, None, fqbn))
     return _rodar(["compile", "--fqbn", str(fqbn), "--upload",
-                   "-p", alvo, str(caminho)])
+                   "-p", alvo, fonte])
+
+
+def _fqbn_da_porta(porta):
+    """O FQBN da placa nesta porta, pelo arduino-cli — ou uma recusa."""
+    conhecidas = [p for p in _identificadas() if p["porta"] == porta]
+    if conhecidas and conhecidas[0].get("fqbn"):
+        return conhecidas[0]["fqbn"]
+    quem = _rotulo(conhecidas[0]) if conhecidas else "desconhecida"
+    raise _erro(
+        f"nao sei que placa esta em {porta} ({quem}).",
+        nota="compilar para a placa errada grava um binario que ela nao "
+             "roda — e o erro, quando aparece, fala do bootloader",
+        dica="diga o FQBN: --fqbn=esp32:esp32:esp32, "
+             "--fqbn=arduino:avr:uno, --fqbn=arduino:renesas_uno:unor4wifi "
+             "('arduino-cli board listall' mostra todos)")
 
 
 def nucleos():
@@ -988,34 +1218,43 @@ def doctor(porta=None):
                    else "ausente — compilar e gravar exigem ele"})
     if tem_arduino_cli():
         try:
-            vistas = placas()
+            # Só o que é USB. O Bluetooth e o console de depuração do macOS
+            # também são portas seriais, e apareciam aqui como "placas
+            # desconhecidas" — ruído na linha que devia responder "a placa
+            # aparece?".
+            vistas = [p for p in placas() if p.get("usb")]
             achados.append({
                 "o_que": "placas reconhecidas",
-                "ok": any(p["fqbn"] for p in vistas),
-                "detalhe": ", ".join(f"{p['placa']} ({p['fqbn'] or 'sem FQBN'}) "
-                                     f"em {p['porta']}" for p in vistas)
-                           or "nenhuma"})
+                "ok": bool(vistas),
+                "detalhe": ", ".join(
+                    f"{_rotulo(p)}{' (' + p['fqbn'] + ')' if p['fqbn'] else ''}"
+                    f" em {p['porta']}" for p in vistas) or "nenhuma"})
         except Exception as erro:                         # noqa: BLE001
             achados.append({"o_que": "placas reconhecidas", "ok": False,
                             "detalhe": str(erro)})
-    alvo = str(porta) if porta else (lista[0]["porta"] if lista else None)
-    if alvo:
+    # O Firmata de CADA placa, e não só da primeira: com duas na mesa, a
+    # segunda nunca era conferida. Abrir reinicia a placa — é um
+    # diagnóstico, e é o único jeito de perguntar o que está gravado.
+    alvos = [str(porta)] if porta else [p["porta"] for p in lista]
+    for alvo in alvos:
+        onde = "" if porta or len(alvos) == 1 else f"{alvo}: "
         try:
             placa = conectar(alvo, prazo=4.0)
             info = placa.info()
             placa.fechar()
+            quem = f"{info['placa']}, " if info.get("placa") else ""
             achados.append({
                 "o_que": "Firmata",
                 "ok": True,
-                "detalhe": f"{info['firmware'].get('nome', '?')} "
+                "detalhe": f"{onde}{quem}{info['firmware'].get('nome', '?')} "
                            f"v{info['firmware'].get('versao', '?')}, "
                            f"{info['pinos']} pinos"})
         except Exception as erro:                         # noqa: BLE001
             achados.append({
                 "o_que": "Firmata",
                 "ok": False,
-                "detalhe": f"{erro} — grave o firmware: "
-                           f"dataforge iot sketch firmata"})
+                "detalhe": f"{onde}{erro} — grave o firmware: "
+                           f"dataforge iot carregar firmata --porta={alvo}"})
     return achados
 
 

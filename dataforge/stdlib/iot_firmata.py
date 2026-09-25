@@ -55,6 +55,11 @@ I2C_REQUEST = 0x76
 I2C_REPLY = 0x77
 I2C_CONFIG = 0x78
 SAMPLING_INTERVAL = 0x7A
+#: Próprio do DataForge (a faixa 0x01-0x0F é de uso livre no Firmata):
+#: "que placa é você?". O firmware gerado por `IoT.sketch("firmata")`
+#: responde com o nome ("Arduino UNO R4 WiFi", "ESP32"); um firmware
+#: antigo, ou o StandardFirmata, não responde — e isso é "não sei".
+PLACA_QUERY = 0x0E
 
 #: Os modos de pino, com o nome em português. O número é do protocolo.
 MODOS = {
@@ -76,6 +81,22 @@ NOME_DO_MODO = {v: k for k, v in MODOS.items()}
 
 def _erro(mensagem, nota="", dica="", classe=None):
     return RuntimeError_(str(mensagem), 0, 0, nota=nota, dica=dica, doc=_DOC)
+
+
+def _resumir_pinos(pinos):
+    """[2, 3, 4, 5, 9] -> '2-5, 9'. Quarenta pinos numa linha não se leem."""
+    faixas, inicio, anterior = [], None, None
+    for p in pinos:
+        if inicio is None:
+            inicio = anterior = p
+        elif p == anterior + 1:
+            anterior = p
+        else:
+            faixas.append((inicio, anterior))
+            inicio = anterior = p
+    if inicio is not None:
+        faixas.append((inicio, anterior))
+    return ", ".join(f"{a}" if a == b else f"{a}-{b}" for a, b in faixas)
 
 
 def _de_sete_bits(corpo):
@@ -115,9 +136,11 @@ class Placa:
         self._trava = threading.RLock()
         self._digital = {}          # pino -> 0/1 lido
         self._analogico = {}        # canal -> 0..1023
+        self._amostras = {}         # canal -> quantas leituras chegaram
         self._modos = {}            # pino -> nome do modo
         self._versao = None         # (maior, menor) do protocolo
         self._firmware = None       # {"nome", "versao"}
+        self._placa = None          # o nome que a placa diz ter
         self._capacidades = None    # pino -> [modos]
         self._mapa_analogico = None
         self._i2c = {}              # (endereco, registro) -> [bytes]
@@ -170,6 +193,7 @@ class Placa:
             valor = self._parcial[1] | (self._parcial[2] << 7)
             with self._trava:
                 self._analogico[canal] = valor
+                self._amostras[canal] = self._amostras.get(canal, 0) + 1
             self._avisar("analogico", canal, valor)
             self._parcial = bytearray()
         elif comando == DIGITAL_MESSAGE and len(self._parcial) == 3:
@@ -195,6 +219,9 @@ class Placa:
             nome = _de_sete_bits(corpo[3:]).decode("ascii", "replace").rstrip("\x00")
             self._firmware = {"nome": nome, "versao": f"{corpo[1]}.{corpo[2]}"}
             self._versao = self._versao or (corpo[1], corpo[2])
+        elif tipo == PLACA_QUERY:
+            self._placa = _de_sete_bits(corpo[1:]).decode(
+                "ascii", "replace").rstrip("\x00") or None
         elif tipo == CAPABILITY_RESPONSE:
             capacidades, atual, pino = {}, [], 0
             for byte in corpo[1:]:
@@ -239,13 +266,14 @@ class Placa:
         self.transporte.escrever(bytes(dados))
 
     def _esperar(self, condicao, o_que, prazo=None):
-        limite = time.monotonic() + (self.prazo if prazo is None else float(prazo))
+        segundos = self.prazo if prazo is None else float(prazo)
+        limite = time.monotonic() + segundos
         while time.monotonic() < limite:
             if condicao():
                 return True
             time.sleep(0.002)
         raise _erro(
-            f"a placa nao respondeu {o_que} em {self.prazo:g} s.",
+            f"a placa nao respondeu {o_que} em {segundos:g} s.",
             nota="ela responde quando o firmware do Firmata esta gravado; "
                  "sem ele, a porta abre e nada chega",
             dica="dataforge iot carregar firmata --porta=... grava o firmware; "
@@ -261,6 +289,11 @@ class Placa:
         self._mandar([PROTOCOL_VERSION])
         self._mandar([START_SYSEX, REPORT_FIRMWARE, END_SYSEX])
         self._esperar(lambda: self._firmware is not None, "quem e")
+        # Sem espera própria: o firmware responde EM ORDEM, então quando
+        # as capacidades chegam o nome da placa já chegou antes delas — se
+        # o firmware souber responder. Um que não sabe pula a pergunta, e
+        # ninguém fica esperando por ela.
+        self._mandar([START_SYSEX, PLACA_QUERY, END_SYSEX])
         self._mandar([START_SYSEX, CAPABILITY_QUERY, END_SYSEX])
         self._esperar(lambda: self._capacidades is not None, "as capacidades")
         self._mandar([START_SYSEX, ANALOG_MAPPING_QUERY, END_SYSEX])
@@ -276,6 +309,7 @@ class Placa:
                           if self._versao else ""),
             "pinos": len(self._capacidades or {}),
             "analogicos": len(self._mapa_analogico or {}),
+            "placa": self._placa,
         }
 
     def capacidades(self, pino=None):
@@ -300,10 +334,25 @@ class Placa:
                 nota=f"ela tem de 0 a {max(self._capacidades) if self._capacidades else 0}",
                 dica="placa.capacidades() mostra o que cada pino aceita")
         if modo not in aceita:
+            # A dica sai da PLACA, e não de uma tabela: ela dizia "num
+            # Arduino UNO, PWM só nos pinos 3, 5, 6, 9, 10 e 11" para
+            # qualquer placa — inclusive um ESP32, onde está errada.
+            quem_faz = [p for p, modos in sorted(self._capacidades.items())
+                        if modo in modos]
+            if not aceita:
+                # O pino existe e a placa não o oferece para nada — o caso
+                # dos GPIO 6 a 11 de um ESP32, que são a flash do módulo.
+                dica = ("a placa nao oferece este pino; num ESP32, os GPIO 6 "
+                        "a 11 sao a memoria flash e nao podem ser usados")
+            elif quem_faz:
+                dica = (f"nesta placa, '{modo}' funciona nos pinos: "
+                        f"{_resumir_pinos(quem_faz)}")
+            else:
+                dica = f"esta placa nao faz '{modo}' em pino nenhum"
             raise _erro(
                 f"o pino {pino} nao faz '{modo}'.",
                 nota=f"ele aceita: {', '.join(aceita) or 'nada'}",
-                dica="num Arduino UNO, PWM so nos pinos 3, 5, 6, 9, 10 e 11")
+                dica=dica)
 
     def modo(self, pino, modo):
         """Declara o que o pino faz: entrada, saida, pwm, servo, analogico…"""
@@ -340,6 +389,39 @@ class Placa:
         """O valor de 0 a 1023 do canal analógico (o A0 é o canal 0)."""
         with self._trava:
             return self._analogico.get(int(canal), 0)
+
+    def pino_do_canal(self, canal):
+        """O pino que atende o canal analógico — lido da PLACA.
+
+        O A0 é o pino 14 num UNO e o GPIO 36 num ESP32. Um programa que
+        escreve `modo(14, "analogico")` funciona numa e falha na outra;
+        perguntar à placa funciona nas duas.
+        """
+        for pino, c in sorted((self._mapa_analogico or {}).items()):
+            if c == int(canal):
+                return pino
+        raise _erro(f"esta placa nao tem o canal analogico {canal}.",
+                    nota=f"ela tem {len(self._mapa_analogico or {})} canal(is)",
+                    dica="placa.info()['analogicos'] diz quantos")
+
+    def ler_analogico(self, canal, prazo=2.0):
+        """Liga o canal e devolve a PRIMEIRA leitura que chegar depois disso.
+
+        É a armadilha número 1 do Firmata: sem `relatar_analogico`, a
+        placa não envia nada e `analogico(canal)` devolve zero, calado — um
+        zero que parece uma leitura. Aqui o modo é declarado, o envio é
+        ligado, e a resposta só volta quando uma amostra de verdade chegou.
+        """
+        canal = int(canal)
+        pino = self.pino_do_canal(canal)
+        if self._modos.get(pino) != "analogico":
+            self.modo(pino, "analogico")
+        with self._trava:
+            antes = self._amostras.get(canal, 0)
+        self.relatar_analogico(canal)
+        self._esperar(lambda: self._amostras.get(canal, 0) > antes,
+                      f"a leitura do canal analogico {canal}", prazo)
+        return self.analogico(canal)
 
     def relatar_analogico(self, canal, ligado=True):
         """Liga o envio periódico daquele canal. Sem isto, nada chega."""

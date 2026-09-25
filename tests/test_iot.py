@@ -707,15 +707,247 @@ def test_com_placa_de_verdade():
         info = placa.info()
         assert info["firmware"]["nome"], "a placa não disse quem é"
         assert info["pinos"] > 0
-        placa.modo(13, "saida")
+        # O firmware gravado por 'IoT.carregar("firmata")' diz o nome.
+        if info["firmware"]["nome"] == "DataForge":
+            assert info["placa"], "o firmware atual responde o nome da placa"
+        # O pino e o canal saem da PLACA: o teste supunha o mapa do UNO
+        # (A0 = pino 14) e reprovava num ESP32, onde o A0 é o GPIO 36.
+        led = 13 if "saida" in placa.capacidades(13) else next(
+            int(p) for p, modos in placa.capacidades().items() if "saida" in modos)
+        placa.modo(led, "saida")
         for _ in range(3):
-            placa.escrever(13, True)
+            placa.escrever(led, True)
             time.sleep(0.25)
-            placa.escrever(13, False)
+            placa.escrever(led, False)
             time.sleep(0.25)
-        placa.modo(14, "analogico")
-        placa.relatar_analogico(0)
-        time.sleep(0.3)
-        assert 0 <= placa.analogico(0) <= 1023
+        assert 0 <= placa.ler_analogico(0) <= 1023
     finally:
         placa.fechar()
+
+
+# ═══════════════════════════════════════════════════════════
+#  A placa diz o próprio nome, e os pinos que não pode usar
+# ═══════════════════════════════════════════════════════════
+
+import dataforge.stdlib.arcane_iot as _iot_mod  # noqa: E402
+from dataforge.stdlib import iot_firmata as _firmata  # noqa: E402
+
+#: O que `arduino-cli board list --format json` respondeu NESTA mesa, com
+#: um UNO R4 e um ESP32 atrás de uma ponte CH340. O teste usa a resposta
+#: de verdade, e não um formato imaginado.
+_BOARD_LIST_REAL = {"detected_ports": [
+    {"port": {"address": "/dev/cu.Bluetooth-Incoming-Port",
+              "protocol": "serial", "properties": {}}},
+    {"port": {"address": "/dev/cu.usbserial-1110", "protocol": "serial",
+              "properties": {"pid": "0x7523", "serialNumber": "", "vid": "0x1A86"}}},
+    {"port": {"address": "/dev/cu.usbmodemC04E301234D42", "protocol": "serial",
+              "properties": {"manufacturer": "Arduino", "pid": "0x1002",
+                             "product": "UNO WiFi R4 CMSIS-DAP", "vid": "0x2341"}},
+     "matching_boards": [{"name": "Arduino UNO R4 WiFi",
+                          "fqbn": "arduino:renesas_uno:unor4wifi"}]},
+    {"port": {"address": "/dev/cu.debug-console", "protocol": "serial",
+              "properties": {}}},
+]}
+
+
+@pytest.fixture()
+def duas_placas(monkeypatch):
+    """Duas placas na mesa, sem placa nenhuma: o arduino-cli respondendo o
+    que respondeu de verdade, e as portas que o sistema lista."""
+    import json as _json
+    chamadas = []
+
+    def rodar_falso(argumentos, prazo=None):
+        chamadas.append(list(argumentos))
+        if argumentos[:2] == ["board", "list"]:
+            return {"ok": True, "saida": _json.dumps(_BOARD_LIST_REAL), "erro": ""}
+        return {"ok": True, "saida": "gravado", "erro": ""}
+
+    monkeypatch.setattr(_iot_mod, "_rodar", rodar_falso)
+    monkeypatch.setattr(_iot_mod, "tem_arduino_cli", lambda: True)
+    monkeypatch.setattr(_iot_mod, "portas", lambda: [
+        {"porta": "/dev/cu.usbmodemC04E301234D42", "descricao": "USB nativo"},
+        {"porta": "/dev/cu.usbserial-1110", "descricao": "conversor USB-serial"}])
+    return chamadas
+
+
+@pytest.mark.parametrize("modelo,nome", [
+    ("uno", "Arduino UNO"), ("mega", "Arduino Mega 2560"),
+    ("uno-r4", "Arduino UNO R4 WiFi"), ("esp32", "ESP32")])
+def test_a_placa_diz_o_proprio_nome(modelo, nome):
+    """O mesmo nome que o firmware de verdade responde ('nomeDaPlaca')."""
+    p = IoT["conectar_simulada"](modelo)
+    try:
+        assert p.info()["placa"] == nome
+    finally:
+        p.fechar()
+
+
+def test_um_firmware_que_nao_sabe_o_nome_nao_trava_nem_quebra():
+    """O StandardFirmata e um DataForge antigo não respondem à pergunta. O
+    silêncio é "não sei" — e o handshake não espera por ele."""
+    class Antigo(Simulador):
+        def _tratar_sysex(self, corpo):
+            if corpo and corpo[0] == _firmata.PLACA_QUERY:
+                return
+            super()._tratar_sysex(corpo)
+
+    sim = Antigo("uno")
+    p = Placa(sim, nome="antiga", prazo=2.0)
+    inicio = time.monotonic()
+    p.apresentar()
+    assert time.monotonic() - inicio < 1.0
+    assert p.info()["placa"] is None
+    p.fechar()
+
+
+def test_o_esp32_nao_oferece_os_pinos_da_flash():
+    """GPIO 6 a 11 são a flash SPI do módulo: configurar um derruba a placa."""
+    p = IoT["conectar_simulada"]("esp32")
+    try:
+        for pino in range(6, 12):
+            assert p.capacidades(pino) == []
+        with pytest.raises(Exception) as erro:
+            p.modo(9, "pwm")
+        assert "flash" in erro.value.dica
+    finally:
+        p.fechar()
+
+
+def test_os_pinos_so_de_entrada_do_esp32_recusam_saida():
+    p = IoT["conectar_simulada"]("esp32")
+    try:
+        for pino in range(34, 40):
+            assert p.capacidades(pino) == ["entrada"]
+        with pytest.raises(Exception, match="nao faz 'saida'"):
+            p.modo(35, "saida")
+        p.modo(35, "entrada")                 # ler continua podendo
+    finally:
+        p.fechar()
+
+
+def test_a_dica_de_modo_sai_da_placa_e_nao_de_uma_tabela():
+    """Ela dizia "num Arduino UNO, PWM só nos pinos 3, 5, 6, 9, 10 e 11"
+    para qualquer placa — inclusive um ESP32."""
+    p = IoT["conectar_simulada"]("uno")
+    try:
+        with pytest.raises(Exception) as erro:
+            p.modo(4, "pwm")
+        assert erro.value.dica == "nesta placa, 'pwm' funciona nos pinos: 3, 5-6, 9-11"
+    finally:
+        p.fechar()
+
+
+def test_o_firmware_protege_o_esp32_e_responde_o_nome():
+    codigo = IoT["sketch"]("firmata")
+    assert "bool pinoReservado" in codigo and "pino >= 6 && pino <= 11" in codigo
+    assert "GPIO_IS_VALID_OUTPUT_GPIO" in codigo
+    assert f"0x{_firmata.PLACA_QUERY:02X}" in codigo
+    assert "responderPlaca" in codigo
+
+
+def test_placas_separa_usb_do_resto(duas_placas):
+    vistas = {p["porta"]: p for p in IoT["placas"]()}
+    assert vistas["/dev/cu.Bluetooth-Incoming-Port"]["usb"] == ""
+    assert vistas["/dev/cu.debug-console"]["usb"] == ""
+    assert "CH340" in vistas["/dev/cu.usbserial-1110"]["usb"]
+    assert "1A86:7523" in vistas["/dev/cu.usbserial-1110"]["usb"]
+    assert vistas["/dev/cu.usbmodemC04E301234D42"]["placa"] == "Arduino UNO R4 WiFi"
+
+
+def test_a_porta_e_achada_pelo_nome_da_placa(duas_placas):
+    assert _iot_mod._resolver_porta("uno r4") == "/dev/cu.usbmodemC04E301234D42"
+    assert _iot_mod._resolver_porta("UNO-R4") == "/dev/cu.usbmodemC04E301234D42"
+    # um caminho passa direto, sem consultar nada
+    assert _iot_mod._resolver_porta("/dev/cu.x") == "/dev/cu.x"
+    assert _iot_mod._resolver_porta("COM3") == "COM3"
+
+
+def test_o_nome_que_a_ponte_nao_revela_e_recusado_sem_chute(duas_placas):
+    """Uma ponte CH340 serve a um clone de UNO e a um ESP32: o USB não diz
+    que chip está atrás dela, e a busca não finge que sabe."""
+    with pytest.raises(Exception) as erro:
+        _iot_mod._resolver_porta("esp32")
+    assert "nenhuma porta se identifica" in erro.value.message
+    assert 'IoT.conectar("/dev/cu.usbserial-1110")' in erro.value.dica
+
+
+def test_duas_placas_a_dica_mostra_as_portas_que_existem(duas_placas):
+    """A dica mostrava um caminho inventado ('/dev/cu.usbmodem1101')."""
+    with pytest.raises(Exception) as erro:
+        _iot_mod._unica_porta()
+    dica = erro.value.dica
+    assert 'IoT.conectar("/dev/cu.usbmodemC04E301234D42")   // Arduino UNO R4 WiFi' in dica
+    assert "/dev/cu.usbserial-1110" in dica
+    assert "usbmodem1101" not in dica
+    assert "Bluetooth" not in dica
+
+
+def test_carregar_descobre_o_fqbn_pela_porta(duas_placas):
+    IoT["carregar"]("/tmp/sketch", "/dev/cu.usbmodemC04E301234D42")
+    gravacao = [c for c in duas_placas if c[:1] == ["compile"]][-1]
+    assert gravacao[gravacao.index("--fqbn") + 1] == "arduino:renesas_uno:unor4wifi"
+
+
+def test_carregar_recusa_a_porta_que_nao_se_identifica(duas_placas):
+    """O padrão era arduino:avr:uno: gravar num UNO R4 sem --fqbn mandava o
+    binário do UNO clássico para a placa errada."""
+    with pytest.raises(Exception) as erro:
+        IoT["carregar"]("/tmp/sketch", "/dev/cu.usbserial-1110")
+    assert "nao sei que placa" in erro.value.message
+    assert "--fqbn=esp32:esp32:esp32" in erro.value.dica
+    assert not [c for c in duas_placas if c[:1] == ["compile"]]
+
+
+def test_carregar_aceita_o_nome_de_um_modelo(duas_placas, tmp_path, monkeypatch):
+    monkeypatch.setattr("tempfile.mkdtemp", lambda prefix="": str(tmp_path))
+    IoT["carregar"]("firmata", "uno r4")
+    gravacao = [c for c in duas_placas if c[:1] == ["compile"]][-1]
+    assert gravacao[-1].endswith("firmata")
+    assert (tmp_path / "firmata" / "firmata.ino").is_file()
+
+
+def test_o_doctor_nao_lista_bluetooth_como_placa(duas_placas, monkeypatch):
+    monkeypatch.setattr(_iot_mod, "conectar", lambda alvo, prazo=4.0: (_ for _ in ()).throw(
+        RuntimeError("sem firmware")))
+    linhas = {a["o_que"]: a for a in IoT["doctor"]() if a["o_que"] != "Firmata"}
+    detalhe = linhas["placas reconhecidas"]["detalhe"]
+    assert "Bluetooth" not in detalhe and "debug-console" not in detalhe
+    assert "Arduino UNO R4 WiFi" in detalhe and "CH340" in detalhe
+    firmatas = [a for a in IoT["doctor"]() if a["o_que"] == "Firmata"]
+    assert len(firmatas) == 2, "cada placa é conferida, e não só a primeira"
+
+
+def test_pino_do_canal_vem_do_mapa_da_placa():
+    uno = IoT["conectar_simulada"]("uno")
+    try:
+        assert uno.pino_do_canal(0) == 14
+        with pytest.raises(Exception, match="canal analogico 9"):
+            uno.pino_do_canal(9)
+    finally:
+        uno.fechar()
+
+
+def test_ler_analogico_espera_a_primeira_amostra_de_verdade():
+    """Sem 'relatar_analogico', 'analogico(0)' devolve zero, calado — a
+    armadilha número 1 do Firmata. 'ler_analogico' liga tudo e só volta
+    quando uma amostra chegou."""
+    p = IoT["conectar_simulada"]("uno")
+    try:
+        p.simulador.definir_analogico(0, 512)
+        assert p.analogico(0) == 0           # a armadilha: nada foi pedido
+        assert p.ler_analogico(0) == 512
+    finally:
+        p.fechar()
+
+
+def test_ler_analogico_sem_resposta_diz_quanto_esperou():
+    p = IoT["conectar_simulada"]("uno")
+    try:
+        p.simulador.relatar = lambda *a, **k: None
+        original = p._mandar
+        p._mandar = lambda dados: None if dados and dados[0] & 0xF0 == 0xC0 else original(dados)
+        with pytest.raises(Exception, match="em 0.2 s"):
+            p.ler_analogico(0, prazo=0.2)
+    finally:
+        p.fechar()

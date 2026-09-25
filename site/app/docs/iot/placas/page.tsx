@@ -25,6 +25,31 @@ monitor:
 handle Error as e:
     out e.message                           // o pino 13 nao faz 'pwm'.
 placa.fechar()`, lang: 'df' },
+  {"h2": "A placa diz o próprio nome"},
+  {"p": "O firmware gravado por `dataforge iot carregar firmata` responde **que placa ele é**, numa pergunta própria do DataForge que o handshake faz sem custo extra. Um firmware antigo, ou o StandardFirmata, não responde — e o campo fica `void`, sem erro."},
+  { code: `adopt Arcane.IoT as IoT
+
+placa := IoT.conectar_simulada("uno-r4")
+info := placa.info()
+assert info["placa"] is "Arduino UNO R4 WiFi"
+assert info["firmware"]["nome"] is "DataForge"
+out $"{info['placa']}: {info['pinos']} pinos, {info['analogicos']} analogicos"
+placa.fechar()`, lang: 'df' },
+  {"h2": "O ESP32 tem pinos que existem e não podem ser usados"},
+  {"p": "É a única exceção à regra de perguntar ao core. No ESP32 clássico, os **GPIO 6 a 11** são a memória flash do módulo: o core diz que eles existem, porque existem, e configurar um deles derruba a placa no meio do programa. E os **GPIO 34 a 39** só leem — não fazem saída, PWM nem pull-up."},
+  {"table": {"head": ["Pinos (ESP32)", "O que o firmware oferece", "Por quê"], "rows": [["6 a 11", "nada", "são a flash SPI do módulo"], ["34 a 39", "só entrada", "o chip não tem saída nem pull-up neles"], ["os demais", "entrada, saída, pull-up, PWM", "o que o core diz"]]}},
+  { code: `adopt Arcane.IoT as IoT
+
+esp := IoT.conectar_simulada("esp32")
+assert esp.capacidades(9) is []                 // a flash: nada
+assert esp.capacidades(35) is ["entrada"]       // só lê
+
+monitor:
+    esp.modo(9, "pwm")
+handle Error as e:
+    out e.dica          // a placa nao oferece este pino; num ESP32, os GPIO 6 a 11 sao a memoria flash…
+esp.fechar()`, lang: 'df' },
+  {"p": "Quando um modo é recusado, a dica sai da **placa**: `nesta placa, 'pwm' funciona nos pinos: 3, 5-6, 9-11`. Ela dizia \"num Arduino UNO, PWM só nos pinos 3, 5, 6, 9, 10 e 11\" para qualquer placa — inclusive um ESP32, onde está errada."},
   {"h2": "Os modelos que o simulador conhece"},
   { code: `adopt Arcane.IoT as IoT
 
@@ -51,11 +76,12 @@ placa.fechar()`, lang: 'df' },
   {"h2": "Qual é o FQBN da minha placa?"},
   {"p": "O `arduino-cli` responde, com a placa ligada:"},
   { code: `$ dataforge iot placas
-  /dev/cu.usbmodem1101           Arduino UNO R4 WiFi        arduino:renesas_uno:unor4wifi`, lang: 'bash' },
+  /dev/cu.usbmodemC04E301234D42  Arduino UNO R4 WiFi        arduino:renesas_uno:unor4wifi`, lang: 'bash' },
+  {"p": "`IoT.placas()` devolve o mesmo, com o VID:PID do USB em cada porta (`usb`), vazio para o que não é placa. É o que diz que `/dev/cu.usbserial-1110` é uma ponte CH340 — e só isso: o chip atrás dela quem diz é o firmware, em `info()[\"placa\"]`."},
   {"p": "Um FQBN em branco quer dizer que a placa foi reconhecida mas o *core* dela não está instalado — `arduino-cli core install arduino:renesas_uno` resolve."},
 ];
 
-const headings = [{ id: 'os-modelos-que-o-simulador-conhece', text: "Os modelos que o simulador conhece", level: 2 as const }, { id: 'uma-mega-tem-mais-pinos-e-o-firmata-os-ve', text: "Uma Mega tem mais pinos, e o Firmata os vê", level: 2 as const }, { id: 'qual-e-o-fqbn-da-minha-placa', text: "Qual é o FQBN da minha placa?", level: 2 as const }];
+const headings = [{ id: 'a-placa-diz-o-proprio-nome', text: "A placa diz o próprio nome", level: 2 as const }, { id: 'o-esp32-tem-pinos-que-existem-e-nao-podem-ser-usados', text: "O ESP32 tem pinos que existem e não podem ser usados", level: 2 as const }, { id: 'os-modelos-que-o-simulador-conhece', text: "Os modelos que o simulador conhece", level: 2 as const }, { id: 'uma-mega-tem-mais-pinos-e-o-firmata-os-ve', text: "Uma Mega tem mais pinos, e o Firmata os vê", level: 2 as const }, { id: 'qual-e-o-fqbn-da-minha-placa', text: "Qual é o FQBN da minha placa?", level: 2 as const }];
 
 export default function Pagina() {
   return (

@@ -48,6 +48,21 @@ def _tudo(argumentos, flags):
     return list(argumentos or []) + list(flags or [])
 
 
+def _mostrar_erro(erro):
+    """A mensagem da linguagem, e não 'RuntimeError_: …'.
+
+    `str(erro)` de um erro do DataForge começa pelo nome da classe em
+    Python, e deixava de fora a nota e a dica — que é onde está o que
+    fazer (na recusa do 'carregar', a lista de FQBNs).
+    """
+    mensagem = getattr(erro, "message", None) or str(erro)
+    print(color(f"erro: {mensagem}", "1;31"))
+    for rotulo, campo in (("nota", "nota"), ("dica", "dica")):
+        texto = getattr(erro, campo, None)
+        if texto:
+            print(color(f"  {rotulo}: ", "1;36") + str(texto).replace("\n", "\n        "))
+
+
 def _porta_de(flags, argumentos):
     for a in _tudo(argumentos, flags):
         if a.startswith("--porta="):
@@ -124,7 +139,7 @@ def monitorar(argumentos, flags):
         lidas = iot["monitorar"](_porta_de(flags, argumentos), velocidade,
                                  linhas, prazo)
     except Exception as erro:                            # noqa: BLE001
-        print(color(f"erro: {erro}", "1;31"))
+        _mostrar_erro(erro)
         return 1
     for linha in lidas:
         print(f"  {linha}")
@@ -161,7 +176,7 @@ def sketch(argumentos, flags):
     try:
         codigo = iot["sketch"](modelo, opcoes, fqbn)
     except Exception as erro:                            # noqa: BLE001
-        print(color(f"erro: {erro}", "1;31"))
+        _mostrar_erro(erro)
         return 1
     pasta = _valor(argumentos, "em", None, flags)
     if pasta:
@@ -178,13 +193,15 @@ def carregar(argumentos, flags):
     iot = _iot()
     if not argumentos:
         print(color("falta o caminho do sketch.", "1;31"))
+        print("  dataforge iot carregar firmata --porta=/dev/cu.usbmodem1101")
         print("  dataforge iot carregar /tmp/fw/firmata --fqbn=arduino:avr:uno")
         return 2
-    fqbn = _valor(argumentos, "fqbn", "arduino:avr:uno", flags)
+    # Sem --fqbn, a placa é descoberta pela porta (ver IoT.carregar).
+    fqbn = _valor(argumentos, "fqbn", None, flags)
     try:
         r = iot["carregar"](argumentos[0], _porta_de(flags, argumentos), fqbn)
     except Exception as erro:                            # noqa: BLE001
-        print(color(f"erro: {erro}", "1;31"))
+        _mostrar_erro(erro)
         return 1
     print(r["saida"].strip() or "")
     if not r["ok"]:
@@ -218,7 +235,7 @@ def piscar(argumentos, flags):
     try:
         placa = iot["conectar"](_porta_de(flags, argumentos))
     except Exception as erro:                            # noqa: BLE001
-        print(color(f"erro: {erro}", "1;31"))
+        _mostrar_erro(erro)
         print("  dataforge iot doctor")
         return 1
     try:
