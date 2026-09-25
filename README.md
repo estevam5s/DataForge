@@ -1045,7 +1045,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | Módulos da stdlib | 89 carregam, 2353 símbolos |
 | Comandos da CLI | 69 |
 | Códigos de erro | 219 |
-| `dataforge check` × 5 pastas | 0 erros em 570 arquivos |
+| `dataforge check` × 5 pastas | 0 erros em 534 arquivos |
 | Componentes do ecossistema | 44 conferidos contra o disco: 32 existem, 6 equivalem, 6 não |
 | Instalação via pip, curl e Docker | funciona |
 

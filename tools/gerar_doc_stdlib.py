@@ -203,9 +203,13 @@ def atualizar_estado():
         testes = dados["contagem"]["testes"]
         exercicios = sum(len(v) for v in dados["exercicios"].values())
 
+    # Sem 'forge_modules/': o 'check' não entra nos pacotes instalados, e
+    # contá-los fazia o número depender de quem rodou 'dataforge install'
+    # — 570 numa máquina, 534 no CI, e a conferência do README reprovava.
     conferidos = sum(
-        len(glob.glob(os.path.join(RAIZ, pasta, "**", "*.df"), recursive=True))
-        for pasta in ("examples", "exercicios", "projetos", "packages", "trilha"))
+        1 for pasta in ("examples", "exercicios", "projetos", "packages", "trilha")
+        for f in glob.glob(os.path.join(RAIZ, pasta, "**", "*.df"), recursive=True)
+        if "forge_modules" not in f.split(os.sep))
 
     eco = get_module("Arcane.Ecossistema")
     numeros = eco["numeros"]()

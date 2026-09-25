@@ -119,8 +119,12 @@ def medir():
 def conferido():
     """Quantos arquivos o `check` cobre, e o que ele diz sobre eles."""
     pastas = ["examples", "exercicios", "projetos", "packages", "trilha"]
-    total = sum(len(glob.glob(os.path.join(RAIZ, p, "**", "*.df"), recursive=True))
-                for p in pastas)
+    # Sem 'forge_modules/', pelo mesmo motivo de 'gerar_doc_stdlib': o
+    # 'check' não entra nos pacotes instalados, e o número mudaria conforme
+    # a máquina de quem gerou.
+    total = sum(1 for p in pastas
+                for f in glob.glob(os.path.join(RAIZ, p, "**", "*.df"), recursive=True)
+                if "forge_modules" not in f.split(os.sep))
     return {"pastas": pastas, "arquivos": total}
 
 
