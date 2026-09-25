@@ -23,13 +23,13 @@ action dividir(quantos, em):
 
 // O bloco vira um RESUMO, e nao uma lista: e o resumo que volta.
 action resumir(bloco):
-    soma := 0
-    primos := 0
+    soma_do_bloco := 0
+    primos_do_bloco := 0
     cycle n from bloco["de"] to bloco["ate"]:
-        soma += n
+        soma_do_bloco += n
         given e_primo(n):
-            primos += 1
-    yield {"soma": soma, "primos": primos}
+            primos_do_bloco += 1
+    yield {"soma": soma_do_bloco, "primos": primos_do_bloco}
 
 action e_primo(n):
     given n < 2:

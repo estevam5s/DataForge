@@ -15,3 +15,37 @@ out le_global(), sombreia(), global_x
 assert le_global() is 10, "le do escopo externo"
 assert sombreia() is 99, "shadow cria uma copia local"
 assert global_x is 10, "o valor externo nao mudou"
+
+// ':=' dentro de uma acao ESCREVE o nome de fora quando ele existe.
+// E o que faz um contador global funcionar: a acao LE antes de escrever.
+cliques := 0
+action clicar():
+    cliques := cliques + 1
+
+clicar()
+clicar()
+assert cliques is 2, "a acao atualizou a global de proposito"
+
+// E o que faz um acumulador escrito como "local" apagar a global de
+// mesmo nome. 'dataforge check' avisa (atribuicao-escreve-global); aqui
+// o aviso e silenciado porque o exercicio DEMONSTRA o efeito.
+soma := 100
+action somar(xs):
+    soma := 0     // df: permitir atribuicao-escreve-global
+    cycle x in xs:
+        soma += x
+    yield soma
+
+out somar([1, 2, 3]), soma
+assert soma is 6, "a global foi SOBRESCRITA pela acao"
+
+// A forma segura: 'shadow' cria o nome local, e a global fica intacta.
+total := 100
+action somar_seguro(xs):
+    shadow total := 0
+    cycle x in xs:
+        total += x
+    yield total
+
+assert somar_seguro([1, 2, 3]) is 6, "o local somou"
+assert total is 100, "shadow protegeu a global"

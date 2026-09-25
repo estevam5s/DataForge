@@ -35,7 +35,7 @@ class Environment:
     # __slots__ eles precisam ser declarados aqui, senao o Python recusa
     # a atribuicao — e o erro aparece longe da causa.
     __slots__ = ("parent", "name", "variables", "constants", "embutidas",
-                 "_deferred", "_exports", "_export_de")
+                 "_deferred", "_exports", "_export_de", "tipos")
 
     def __init__(self, parent=None, name: str = "<global>"):
         self.parent = parent
@@ -60,6 +60,20 @@ class Environment:
         #: A falha aparece longe: a acao funciona, e o programa quebra
         #: na proxima vez que alguem chamar a embutida.
         self.embutidas = _VAZIO
+        #: nome -> conferidor, para os nomes com tipo declarado NESTE
+        #: escopo ('x: Integer := 1', 'action f(n: Integer)').
+        #:
+        #: A anotacao era conferida so no instante da declaracao: depois
+        #: dela, 'x := "a"' passava calado, e o tipo escrito na primeira
+        #: linha deixava de valer na segunda. Ela mora aqui, e nao no no
+        #: da arvore, porque e no escopo que o nome mora — e 'set' ja sobe
+        #: a cadeia ate ele, como faz com 'constants'. Com isso todo
+        #: caminho de escrita (interpretado, compilado, composto,
+        #: desestruturacao) passa pela conferencia sem repeti-la.
+        #:
+        #: Nasce 'None', e nao um dicionario: escopo nasce em toda chamada
+        #: e em todo laco, e quem nao anota nada nao paga nada.
+        self.tipos = None
         #: Os 'defer' deste escopo, criada no primeiro. Inicializado aqui
         #: porque ler um slot NUNCA atribuido levanta por dentro — e a
         #: chamada de acao pergunta isto em toda saida.
@@ -134,8 +148,13 @@ class Environment:
                           nota=nota, dica=dica, doc="variaveis",
                           rotulo="used here")
 
-    def set(self, name: str, value):
-        """Set a variable in the current scope."""
+    def set(self, name: str, value, novo=False):
+        """Set a variable in the current scope.
+
+        'novo' diz que o valor acabou de ser criado pela expressao (um
+        literal, uma compreensao): so assim uma colecao tipada pode ser
+        embrulhada sem copiar uma lista que outra variavel ja segura.
+        """
         if name in self.constants:
             raise RuntimeError_(
                 f"'{name}' is steady and cannot be reassigned.",
@@ -182,6 +201,11 @@ class Environment:
                         dica=(f"pick another name, or declare '{name}' with "
                               f"':=' if it needs to change"),
                         doc="variaveis")
+                tipos = env.tipos
+                if tipos is not None:
+                    conferir = tipos.get(name)
+                    if conferir is not None:
+                        value = conferir(value, novo)
                 env.variables[name] = value
                 return
             env = env.parent
@@ -193,7 +217,49 @@ class Environment:
         """Define/set a variable strictly in the current scope."""
         if name in self.constants:
             raise RuntimeError_(f"Cannot reassign steady (constant) '{name}'")
+        tipos = self.tipos
+        if tipos is not None:
+            conferir = tipos.get(name)
+            if conferir is not None:
+                value = conferir(value, False)
         self.variables[name] = value
+
+    def _dono(self, name: str):
+        """O escopo onde 'name' mora como variavel — a mesma subida de
+        'set', parando numa embutida (que nao e variavel de ninguem)."""
+        env = self
+        while env is not None:
+            if name in env.embutidas:
+                return None
+            if name in env.variables:
+                return env
+            env = env.parent
+        return None
+
+    def declarar_tipo(self, name: str, conferir):
+        """Daqui em diante, toda escrita em 'name' passa por 'conferir'.
+
+        Chamado DEPOIS de gravar o valor, para achar o escopo onde ele
+        ficou: 'x: Integer := 1' dentro de uma acao pode estar atualizando
+        o 'x' de fora, e e la que o tipo precisa morar.
+        """
+        dono = self._dono(name)
+        if dono is None:
+            return
+        if dono.tipos is None:
+            dono.tipos = {}
+        dono.tipos[name] = conferir
+
+    def esquecer_tipo(self, name: str):
+        """Uma declaracao nova troca o tipo, em vez de brigar com o velho.
+
+        'x: Integer := 1' seguido de 'x: String := "a"' e uma redeclaracao
+        escrita de proposito: sem esquecer antes, o conferidor antigo
+        recusaria o valor novo que a anotacao nova acabou de aprovar.
+        """
+        dono = self._dono(name)
+        if dono is not None and dono.tipos is not None:
+            dono.tipos.pop(name, None)
 
     def define_steady(self, name: str, value):
         """Define an immutable constant."""

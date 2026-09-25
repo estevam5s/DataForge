@@ -65,9 +65,9 @@ out "== 3. procurar pelo indice, sem varrer os itens =="
 
 action achar(dados, id_procurado):
     quantos := Cabecalho.ler(dados)["quantos"]
-    entradas := Est.janelas(dados, Indice, quantos := quantos,
+    candidatas := Est.janelas(dados, Indice, quantos := quantos,
         deslocamento := INICIO_INDICE)
-    cycle entrada in entradas:
+    cycle entrada in candidatas:
         given entrada.ler("id") is id_procurado:
             yield Item.ler(dados, entrada.ler("deslocamento"))
     yield void

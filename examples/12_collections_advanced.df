@@ -38,8 +38,8 @@ out "Enumerate:", enumerado
 out ""
 out "--- Stack (Pilha) ---"
 action criar_pilha():
-    pilha := []
-    yield pilha
+    nova := []
+    yield nova
 
 action push(pilha, valor):
     append(pilha, valor)
@@ -111,13 +111,13 @@ out "Frequência:", frequencia(dados)
 out ""
 out "--- Matriz como Lista de Listas ---"
 action criar_matriz(linhas, colunas, valor):
-    m := []
+    matriz := []
     cycle i from 1 to linhas:
         row := []
         cycle j from 1 to colunas:
             append(row, valor)
-        append(m, row)
-    yield m
+        append(matriz, row)
+    yield matriz
 
 action exibir_matriz(m):
     cycle row in m:

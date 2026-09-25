@@ -9,13 +9,13 @@ out ""
 out "--- 1. Game of Life (5 gerações) ---"
 
 action criar_grid(linhas, colunas):
-    grid := []
+    grade := []
     cycle i from 1 to linhas:
         row := []
         cycle j from 1 to colunas:
             append(row, 0)
-        append(grid, row)
-    yield grid
+        append(grade, row)
+    yield grade
 
 action vizinhos_vivos(grid, r, c, linhas, colunas):
     contagem := 0

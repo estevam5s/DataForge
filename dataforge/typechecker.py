@@ -295,12 +295,28 @@ class Scope:
         self.constants = set()
         self.used = set()
         self.declared_at = {}  # nome -> (linha, coluna)
+        #: nome -> o tipo ESCRITO numa anotação ('x: Integer', parâmetro
+        #: tipado). Fica separado de 'names', que guarda o tipo inferido e
+        #: é sobrescrito a cada atribuição: era isso que fazia 'x := "a"'
+        #: depois de 'x: Integer := 1' passar calado — a segunda linha
+        #: apagava o que a primeira declarou. '' marca um nome que perdeu
+        #: o tipo de propósito ('shadow'), e para a subida.
+        self.declarados = {}
 
     def declare(self, nome, tipo=UNKNOWN, linha=0, coluna=0, constante=False):
         self.names[nome] = tipo
         self.declared_at[nome] = (linha, coluna)
         if constante:
             self.constants.add(nome)
+
+    def tipo_declarado(self, nome):
+        """O tipo anotado para 'nome', no escopo mais próximo que o tenha."""
+        escopo = self
+        while escopo is not None:
+            if nome in escopo.declarados:
+                return escopo.declarados[nome]
+            escopo = escopo.parent
+        return None
 
     def lookup(self, nome):
         escopo = self
@@ -567,8 +583,117 @@ class TypeChecker:
         self._recolher_campos_externos(program, escopo)
         self._recolher_literais_fixos(program)
         self._avisar_declaracao_repetida(program.body)
+        self._avisar_escrita_em_global(program.body)
         self.visit_block(program.body, escopo)
         return self._sem_os_silenciados(program)
+
+    _CODIGO_GLOBAL = "atribuicao-escreve-global"
+
+    #: Onde a busca por atribuições PARA: outro corpo, com escopo próprio,
+    #: que é analisado quando for a vez dele (ou não escreve no topo).
+    _OUTRO_CORPO = ("ActionDeclaration", "LambdaExpression",
+                    "BlueprintDeclaration", "RecordDeclaration",
+                    "ServerBlock", "RouteBlock")
+
+    def _avisar_escrita_em_global(self, corpo):
+        """`total := 0` numa ação, quando existe um `total` no topo.
+
+        Dentro de uma ação, `:=` escreve o nome de FORA quando ele existe
+        — é o que permite `contador := contador + 1` atualizar a global.
+        O preço é o caso contrário: quem escreve `total := 0` querendo um
+        acumulador local zera a global de mesmo nome, sem erro, e só na
+        ordem de execução em que as duas se encontram.
+
+        O que separa uma intenção da outra é a LEITURA: quem atualiza a
+        global lê antes de escrever (`contador := contador + 1`,
+        `total += x`); quem quer um local começa escrevendo. A ordem vem
+        de `travessia.nomes_livres`, a mesma varredura que decide o que
+        uma ação leva para outro processo — uma segunda noção de "lê
+        antes de ligar" divergiria da primeira.
+
+        É AVISO: pode ser de propósito (reiniciar um estado global), e aí
+        `// df: permitir atribuicao-escreve-global` diz isso no código.
+        Só olha ações e métodos do topo do arquivo, contra nomes
+        atribuídos no topo — a análise é de um arquivo, e desde que os
+        módulos são isolados a colisão só acontece dentro dele.
+        """
+        from .travessia import nomes_livres
+
+        globais = set()
+        for no in corpo or []:
+            if isinstance(no, ast.Assignment) and \
+                    isinstance(no.target, ast.Identifier):
+                globais.add(no.target.name)
+            elif isinstance(no, ast.DestructuringAssignment):
+                for alvo in no.targets:
+                    nome = alvo[0] if isinstance(alvo, tuple) else alvo
+                    if isinstance(nome, str):
+                        globais.add(nome)
+        if not globais:
+            return
+
+        acoes = []
+        for no in corpo or []:
+            if isinstance(no, ast.ActionDeclaration):
+                acoes.append(no)
+            elif isinstance(no, ast.BlueprintDeclaration):
+                acoes.extend(m for m in (no.body or [])
+                             if isinstance(m, ast.ActionDeclaration))
+
+        for acao in acoes:
+            parametros = set(acao.params or ())
+            try:
+                lidos_antes = set(nomes_livres(acao.body, set(parametros)))
+            except Exception:
+                continue            # uma varredura que falha não acusa nada
+            avisados = set()
+            for atribuicao in self._atribuicoes_no_corpo(acao.body):
+                nome = atribuicao.target.name
+                # '_' é o nome de descarte: sobrescrevê-lo não perde nada.
+                if nome == "_" or nome not in globais or nome in parametros \
+                        or nome in lidos_antes or nome in avisados:
+                    continue
+                avisados.add(nome)
+                self.warn(
+                    f"'{nome}' existe no topo deste arquivo, e este ':=' "
+                    f"dentro de '{acao.name}' o SOBRESCREVE: numa ação, "
+                    f"':=' escreve o nome de fora quando ele existe",
+                    atribuicao,
+                    f"para uma variável local, use outro nome ou "
+                    f"'shadow {nome} := …'; se a intenção é mudar a global, "
+                    f"escreva '// df: permitir {self._CODIGO_GLOBAL}'",
+                    self._CODIGO_GLOBAL)
+
+    def _atribuicoes_no_corpo(self, corpo):
+        """As atribuições simples a um nome, na ordem, sem entrar em outro
+        corpo. Um 'shadow' tira o nome da conta: ali ele é local."""
+        achadas = []
+        sombreados = set()
+
+        def anda(no):
+            if isinstance(no, (list, tuple)):
+                for x in no:
+                    anda(x)
+                return
+            if not isinstance(no, ast.ASTNode):
+                return
+            if type(no).__name__ in self._OUTRO_CORPO:
+                return
+            if isinstance(no, ast.ShadowDeclaration):
+                sombreados.add(no.name)
+            elif isinstance(no, ast.Assignment) and \
+                    isinstance(no.target, ast.Identifier) and \
+                    not getattr(no, "compound_op", "") and \
+                    no.target.name not in sombreados:
+                achadas.append(no)
+            for campo, valor in vars(no).items():
+                if campo in ("line", "column"):
+                    continue
+                if isinstance(valor, (ast.ASTNode, list, tuple)):
+                    anda(valor)
+
+        anda(corpo)
+        return achadas
 
     #: Os nós que declaram um nome no topo do arquivo.
     _DECLARAM_NOME = ("ActionDeclaration", "RecordDeclaration",
@@ -922,8 +1047,15 @@ class TypeChecker:
                     # permite acusar 'c.guardado := "texto"' antes de
                     # rodar. O interpretador já lia os mesmos dois
                     # lugares (ver '_tipos_de_campo_do_molde').
+                    # O nó guarda os tipos do cabeçalho em
+                    # 'constructor_types'. Esta linha lia
+                    # 'tipos_do_cabecalho' — o nome do atributo no
+                    # DFBlueprint, não no nó —, o 'getattr' com padrão
+                    # devolvia {}, e os campos do cabeçalho ('B(n:
+                    # Integer)') nunca chegaram ao analisador. A falta
+                    # não dava erro: só silêncio.
                     campos_tipados = dict(
-                        getattr(stmt, "tipos_do_cabecalho", None) or {})
+                        getattr(stmt, "constructor_types", None) or {})
                     for declarado in (stmt.fields_decl or ()):
                         if isinstance(declarado, (list, tuple)) \
                                 and len(declarado) >= 2 and declarado[1]:
@@ -1426,6 +1558,7 @@ class TypeChecker:
         # 'c.guardado := "texto"' num 'Caixa<Integer>' conhecido
         if isinstance(node.target, ast.MemberAccess):
             self._conferir_campo_generico(node, escopo)
+            self._conferir_campo_tipado(node, escopo)
 
         if isinstance(node.target, ast.Identifier):
             nome = node.target.name
@@ -1435,10 +1568,84 @@ class TypeChecker:
                     "Use another name, or drop 'steady' from the declaration",
                     "steady-reassign")
                 return False
+            if declarado:
+                escopo.declarados[nome] = declarado
+            else:
+                anterior = escopo.tipo_declarado(nome)
+                if anterior:
+                    self._conferir_reatribuicao(node, anterior, tipo, escopo)
+                    # O nome continua sendo do tipo declarado: é o que a
+                    # execução garante daqui em diante.
+                    escopo.declare(nome, anterior, node.line, node.column)
+                    return False
             escopo.declare(nome, declarado or tipo, node.line, node.column)
         else:
             self.infer(node.target, escopo)
         return False
+
+    def _conferir_reatribuicao(self, node, declarado, tipo, escopo):
+        """'x := "a"' depois de 'x: Integer := 1', antes de rodar.
+
+        Numa atribuição composta ('x += 1.5') o tipo que importa é o do
+        RESULTADO, e não o do lado direito: 's += 1' num 's: String' é
+        concatenação e continua String. Por isso a conta é montada e
+        inferida pelo mesmo caminho de qualquer 'a + b' — uma regra
+        própria aqui divergiria da do operador na primeira mudança.
+        """
+        op = getattr(node, "compound_op", "")
+        if op:
+            conta = ast.BinaryOp(left=node.target, op=op, right=node.value,
+                                 line=node.line, column=node.column)
+            tipo = self.infer(conta, escopo)
+        if tipo in (UNKNOWN, ANY) or not self._e_concreto(declarado):
+            return
+        if tipo == "Void":
+            # Um 'void' calculado (uma ação sem 'yield') já é acusado por
+            # quem o produz; aqui só o literal fala.
+            if not isinstance(node.value, ast.VoidLiteral):
+                return
+        if not self._compativel(declarado, tipo):
+            nome = node.target.name
+            self.error(
+                f"'{nome}' was declared as {declarado}, and this assigns "
+                f"{tipo}", node.value or node,
+                f"Assign a {declarado}, or declare a new name — an "
+                f"annotation holds for every assignment after it, not just "
+                f"the first", "tipo-na-reatribuicao")
+
+    def _conferir_campo_tipado(self, node, escopo):
+        """'b.n := "texto"' num campo 'n: Integer', antes de rodar.
+
+        Cala quando não sabe de que blueprint é o objeto, quando o campo
+        é de parâmetro de tipo (a conferência genérica cuida dele), quando
+        o valor é 'void' (é o campo "sem valor", e a execução também o
+        deixa passar) e quando o tipo do valor é desconhecido.
+        """
+        alvo = node.target
+        if not isinstance(alvo.object, ast.Identifier):
+            return
+        molde = escopo.lookup(alvo.object.name)
+        if not isinstance(molde, str) or "<" in molde \
+                or molde not in self.tipos_de_campo:
+            return
+        declarado = self._tipo_declarado_do_campo(molde, alvo.member)
+        if not declarado:
+            return
+        declarado = canonical(declarado)
+        parametros, _ = self.genericos_de_tipo.get(molde, ((), {}))
+        if set(parametros) & set(re.findall(r"[A-Za-z_]\w*", declarado)):
+            return
+        if not self._e_concreto(declarado):
+            return
+        obtido = self.infer(node.value, escopo)
+        if obtido in (UNKNOWN, ANY, "Void"):
+            return
+        if not self._compativel(declarado, obtido):
+            self.error(
+                f"Field '{alvo.member}' of '{molde}' is declared as "
+                f"{declarado}, and this assigns {obtido}",
+                node.value or node,
+                f"Assign a {declarado}", "tipo-do-campo")
 
     def st_DestructuringAssignment(self, node, escopo):
         self.infer(node.value, escopo)
@@ -1456,6 +1663,7 @@ class TypeChecker:
 
     def st_ShadowDeclaration(self, node, escopo):
         escopo.declare(node.name, self.infer(node.value, escopo), node.line, node.column)
+        escopo.declarados[node.name] = ""      # nome novo, sem o tipo de fora
         return False
 
     def st_StaticDeclaration(self, node, escopo):
@@ -2655,6 +2863,11 @@ class TypeChecker:
                 # que permite 'a bigger b', que era acusado de "Cannot
                 # order T against T". Sem limite, nao se sabe nada.
                 tipo = canonical(limites.get(tipo) or UNKNOWN)
+            elif tipo != UNKNOWN:
+                # O parâmetro tipado continua tipado no corpo. Um genérico
+                # fica de fora: a execução o confere contra o limite, e o
+                # analisador não sabe o que 'T' vale nesta chamada.
+                interno.declarados[param] = tipo
             interno.declare(param, tipo, node.line, node.column)
 
         for nome_t, limite in (getattr(node, "type_bounds", None) or {}).items():

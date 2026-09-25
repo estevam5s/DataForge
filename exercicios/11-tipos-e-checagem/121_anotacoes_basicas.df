@@ -23,7 +23,20 @@ handle e:
     recusou := yes
     out "recusado:", e.message
 
+// A anotacao vale DEPOIS da declaracao, e nao so nela: o nome
+// continua sendo um Integer em toda atribuicao que vier.
+contador: Integer := 0
+contador := contador + 1
+recusou_depois := no
+monitor:
+    contador := "um"
+handle e:
+    recusou_depois := yes
+    out "recusado depois:", e.message
+
 assert recusou is yes, "Float nao entra onde se espera Integer"
+assert recusou_depois is yes, "a anotacao continua valendo na reatribuicao"
+assert contador is 1, "o valor recusado nao chegou a ser gravado"
 assert media is 8, "Integer entra onde se espera Float"
 assert typeof(idade) is "Integer", "tipo de idade"
 assert typeof(config) is "Vault", "tipo de config"

@@ -29,8 +29,8 @@ handle KeyError as e:
     out $"   {e.message}"
 
 // A saida: '??' — e e ela que o proprio erro sugere.
-assert(v["idade"] ?? 0) is 0
-assert v["nome"] ?? "sem nome" is "Ana"
+assert (v["idade"] ?? 0) is 0
+assert (v["nome"] ?? "sem nome") is "Ana"
 
 out ""
 out "== 3. e a diferenca entre 'pop' e 'remove' =="

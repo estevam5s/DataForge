@@ -55,14 +55,14 @@ isso ao usuário em vez de assumir que foi você.
 dataforge/
   tokens.py        305   TokenType (enum) + KEYWORDS (81 palavras reservadas)
   lexer.py         556   texto → tokens. INDENT/DEDENT, interpolação, '//' vs '~/'
-  parser.py       1941   recursivo descendente: tokens → AST
+  parser.py       4511   recursivo descendente: tokens → AST
   ast_nodes.py     706   dataclasses dos nós
-  interpreter.py  2703   interpretador de árvore — quase toda a semântica
+  interpreter.py 10487   interpretador de árvore — quase toda a semântica
   compilador.py    330   a árvore vira fechamentos, uma vez (1,5× a 1,8×)
   ponte.py         290   'adopt Python.numpy' — a ponte para o Python
   cauda.py         170   'yield f(…)' vira salto, e a recursão deixa de ter teto
   travessia.py     964   o que uma ação leva consigo para outro núcleo
-  typechecker.py  1752   análise estática: nomes, aridade, tipos, alcance
+  typechecker.py  5587   análise estática: nomes, aridade, tipos, alcance
   resolucao.py     190   onde mora o módulo de um 'adopt' — a única cópia
   cache.py         200   a árvore guardada entre execuções — 93% do parse
   versoes.py       340   versões lado a lado, o pino do projeto, o workspace
@@ -470,6 +470,40 @@ Estas são as que mais custam tempo:
     (`coalescencia-engole-comparacao`) quando o lado direito é uma
     comparação sem parênteses — `CoalesceOp.direita_nua` vem do parser,
     porque a árvore perde os parênteses.
+    **Três exercícios tinham isso**, e um deles (`331`) tinha um `assert`
+    que passava com qualquer valor. Com `??` numa condição, use parênteses.
+
+35. **A anotação vale depois da declaração.** `x: Integer := 1` e depois
+    `x := "a"` é recusado — na execução e no `check`
+    (`tipo-na-reatribuicao`). O tipo mora no `Environment.tipos`, no
+    escopo onde o nome mora, e `set`/`set_local` o conferem: é o que faz
+    todo caminho de escrita (interpretado, compilado, `+=`,
+    desestruturação) passar pela conferência sem repeti-la. Vale para o
+    parâmetro tipado dentro do corpo e para o campo tipado de blueprint
+    (`DFBlueprint.campos_tipados`, `tipo-do-campo`) — onde `void` passa,
+    como na conferência genérica. Uma anotação nova troca o tipo
+    (`esquecer_tipo`). Três cuidados ao mexer:
+    - `_ACEITOS_POR_TIPO` é o atalho que devolveu o custo ao que era
+      (laço tipado 0,51 s → 0,14 s; sem ele, 4×). Ele só pode listar
+      tipos que o `_check_type` **aceita**; há teste comparando os dois.
+      Compara o tipo EXATO: `True` é `int` em Python, e `yes` num
+      `Integer` continua recusado.
+    - Cada chamada recebe uma **cópia** dos conferidores dos parâmetros:
+      uma redeclaração no corpo não pode apagar o tipo das próximas.
+    - Um campo tipado derruba `escrita_simples`; só os blueprints com
+      campo tipado pagam a conferência.
+
+36. **Um módulo não enxerga as globais de quem o adota.** O escopo do
+    módulo nascia **filho** do global do programa principal: uma
+    biblioteca lia e — pior — **sobrescrevia** as globais de quem a
+    adotou (`total := 0` numa ação da biblioteca zerava o `total` do
+    main). Hoje ele nasce de `_escopo_de_modulo`, só com as embutidas
+    **originais** (`_embutidas_originais`, e não as do escopo global,
+    onde o main pode ter tomado `count` para si). Dentro de UM arquivo a
+    armadilha continua, e o `check` avisa (`atribuicao-escreve-global`):
+    uma ação que faz `:=` num nome do topo **sem tê-lo lido antes**. A
+    ordem vem de `travessia.nomes_livres`, a mesma varredura do
+    `map_processos`. O repositório tem zero desses avisos, e há trava.
 
 23. **O teto de quadros é mil, e recursão legítima o atinge.** Uma
     travessia de árvore de cinco mil nós não tem nada de infinita. As

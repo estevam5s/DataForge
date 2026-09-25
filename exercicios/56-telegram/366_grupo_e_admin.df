@@ -10,23 +10,23 @@ adopt Arcane.Telegram as Tg
 visto := []
 
 action montar():
-    app := Tg.app("123456:AAHexemplo")
+    bot := Tg.app("123456:AAHexemplo")
 
-    mark @app.comando("onde")
+    mark @bot.comando("onde")
     action onde(ctx):
         lugar := "privado" given ctx.e_privado() otherwise "grupo"
         visto.append(lugar)
         ctx.responder($"estamos no {lugar}")
 
-    mark @app.entrou()
+    mark @bot.entrou()
     action boas_vindas(ctx):
         ctx.responder("Bem-vindo!")
 
-    mark @app.saiu()
+    mark @bot.saiu()
     action ate_logo(_ctx):
         visto.append("saiu")
 
-    yield app
+    yield bot
 
 out "== 1. em conversa privada =="
 

@@ -57,12 +57,12 @@ blueprint Carrinho:
         out "  ┌───────────────────────────────────┐"
         out "  │        CARRINHO DE COMPRAS          │"
         out "  ├───────────────────────────────────┤"
-        idx := 0
+        posicao := 0
         cycle item in self.items:
             p := item["produto"]
             total_item := p.preco * item["qtd"]
-            out "  │ " + str(idx + 1) + ". " + p.nome + " x" + str(item["qtd"]) + " = R$" + str(total_item)
-            idx := idx + 1
+            out "  │ " + str(posicao + 1) + ". " + p.nome + " x" + str(item["qtd"]) + " = R$" + str(total_item)
+            posicao := posicao + 1
         out "  ├───────────────────────────────────┤"
         out "  │ SUBTOTAL: R$" + str(self.subtotal())
         out "  └───────────────────────────────────┘"

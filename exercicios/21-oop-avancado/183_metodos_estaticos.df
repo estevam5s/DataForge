@@ -8,9 +8,9 @@ blueprint Temperatura:
     celsius: Float := 0.0
 
     static action de_fahrenheit(f):
-        t := spawn Temperatura()
-        t.celsius := (f - 32) * 5 / 9
-        yield t
+        nova := spawn Temperatura()
+        nova.celsius := (f - 32) * 5 / 9
+        yield nova
 
     static action congelamento():
         yield 0.0

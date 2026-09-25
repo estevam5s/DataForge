@@ -648,6 +648,19 @@ def test_no_de_interpolacao_fica_na_linha_certa():
     assert all(l == 5 for l in linhas if l), linhas
 
 
+def test_erro_do_lexer_dentro_da_interpolacao_aponta_a_linha_certa():
+    """O trecho de '{…}' e lido isolado. O ramo do ParseError reposicionava
+    o erro, e o do LEXER nao: um '?' na linha 4 saia como 't.df:1:3', com a
+    linha 1 desenhada embaixo da seta."""
+    from dataforge.errors import LexError
+
+    fonte = "a := 1\nb := 2\nc := 3\nout $\"valor {a ? b}\"\n"
+    with pytest.raises(LexError) as erro:
+        parse(tokenize(fonte, "t.df"), "t.df")
+    assert erro.value.line == 4, erro.value.line
+    assert "a ? b" in erro.value.message
+
+
 def test_acao_curta_nao_e_reportada_como_longa():
     """Uma acao de duas linhas com interpolacao nao pode virar 'has 197 lines'."""
     from dataforge.lexer import tokenize

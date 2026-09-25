@@ -29,17 +29,17 @@ action montar(tipo, corpo):
 action ler_quadros(fluxo):
     "Le quadros em sequencia ate acabar o bloco."
     saida := []
-    posicao := 0
+    cursor := 0
     crus := fluxo.bytes()
-    persist posicao + Quadro.tamanho smaller_eq len(crus):
-        cabeca := Quadro.ler(fluxo, posicao)
-        inicio := posicao + Quadro.tamanho
+    persist cursor + Quadro.tamanho smaller_eq len(crus):
+        cabeca := Quadro.ler(fluxo, cursor)
+        inicio := cursor + Quadro.tamanho
         fim := inicio + cabeca["comprimento"]
         given fim bigger len(crus):
             halt
         saida.append({"tipo": cabeca["tipo"],
                 "corpo": By.para_texto(crus[inicio:fim])})
-        posicao := fim
+        cursor := fim
     yield saida
 
 out "== 1. o cabecalho e empacotado: 3 bytes =="

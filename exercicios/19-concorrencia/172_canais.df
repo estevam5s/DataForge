@@ -17,10 +17,10 @@ assert fila.receive() is void, "canal vazio devolve void"
 channel resultados
 
 action trabalho_pesado(n):
-    total := 0
+    acumulado := 0
     cycle i from 1 to n:
-        total += i
-    yield total
+        acumulado += i
+    yield acumulado
 
 thread:
     resultados.send({"tarefa": "A", "valor": trabalho_pesado(10000)})

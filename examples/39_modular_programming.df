@@ -33,12 +33,12 @@ action truncate_str(s, max_len):
     yield s
 
 action repeat_str(s, n):
-    result := ""
+    saida := ""
     i := 0
     persist i smaller n:
-        result := result + s
+        saida := saida + s
         i := i + 1
-    yield result
+    yield saida
 
 emit("Is 'racecar' palindrome: " + str(is_palindrome("racecar")))
 emit("Is 'hello' palindrome: " + str(is_palindrome("hello")))

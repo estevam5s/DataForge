@@ -24,9 +24,9 @@ DB.execute(banco, """CREATE TABLE pedidos (
 steady PRECOS := {"cafe": 650, "bolo": 800}
 
 action montar():
-    app := Tg.app("123456:AAHexemplo")
+    bot := Tg.app("123456:AAHexemplo")
 
-    mark @app.comando("pedir")
+    mark @bot.comando("pedir")
     action pedir(ctx):
         item := trim(join(" ", ctx.args))
         given item not in PRECOS:
@@ -36,7 +36,7 @@ action montar():
                 "centavos": PRECOS[item]})
         ctx.responder($"{item} anotado.")
 
-    mark @app.comando("meus")
+    mark @bot.comando("meus")
     action meus(ctx):
         linhas := DB.query(banco,
             "SELECT item, centavos FROM pedidos WHERE chat = ? ORDER BY id",
@@ -48,7 +48,7 @@ action montar():
         nomes := join(", ", [l["item"] cycle l in linhas])
         ctx.responder($"{nomes} — total {total} centavos")
 
-    yield app
+    yield bot
 
 out "== 1. pedir grava =="
 

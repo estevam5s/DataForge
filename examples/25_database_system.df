@@ -37,7 +37,7 @@ blueprint Database:
         given condicao is void:
             yield tab["registros"]
 
-        resultados := []
+        achados := []
         cycle reg in tab["registros"]:
             // Verificar todas as condições
             match_all := yes
@@ -48,8 +48,8 @@ blueprint Database:
                 otherwise:
                     match_all := no
             given match_all:
-                append(resultados, reg)
-        yield resultados
+                append(achados, reg)
+        yield achados
 
     action atualizar(tabela, condicao, novos_dados):
         given not contains(self.tabelas, tabela):

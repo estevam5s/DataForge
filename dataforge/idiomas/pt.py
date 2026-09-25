@@ -155,6 +155,13 @@ INTEIRAS = (
      "Código inalcançável: o bloco já terminou acima"),
     (r"Variable '(?P<n>.+)' is assigned but never read",
      "A variável '{n}' recebe valor e nunca é lida"),
+    # A anotação vale depois da declaração (tests/test_tipo_declarado.py).
+    (r"'(?P<n>.+)' was declared as (?P<d>.+), and this assigns (?P<o>.+)",
+     "'{n}' foi declarado como {d}, e esta atribuição é {o}"),
+    (r"Field '(?P<c>.+)' of '(?P<b>.+)' is declared as (?P<d>.+), and this "
+     r"assigns (?P<o>.+)",
+     "O campo '{c}' de '{b}' foi declarado como {d}, e esta atribuição é {o}"),
+    (r"Assign a (?P<d>[\w.<>, |]+)", "Atribua um {d}"),
 
     # ── Concorrencia ──
     (r"'(?P<p>\w+)' cannot leave a '(?P<b>parallel|thread)' block\.",
@@ -195,6 +202,19 @@ PEDACOS = (
      "o parâmetro '{p}' da ação '{f}'"),
     (r"^return value of action '(?P<f>[^']+)'", "o valor devolvido pela ação '{f}'"),
     (r"^field '(?P<c>[^']+)' of '(?P<b>[^']+)'", "o campo '{c}' de '{b}'"),
+    # O resto da frase de "<quem> declared as X but got Y". O começo tem
+    # pedaço próprio (variável, parâmetro, campo, valor devolvido), e sem
+    # este o relatório saía "a variável 'x' declared as Integer but got
+    # String" — meio em cada idioma. Neutro de gênero ("tem o tipo"), porque
+    # o sujeito pode ser a variável, o parâmetro ou o campo.
+    (r" declared as (?P<d>[\w.|<>, ]+?) but got (?P<o>\w+)$",
+     " tem o tipo {d}, e recebeu {o}"),
+    # Pedaço, e não mensagem inteira: dentro de um 'monitor' a dica ganha
+    # o sufixo "(dentro de um 'monitor' …)", e o molde inteiro não casaria.
+    (r"^Assign a (?P<d>[\w.<>, |]+), or declare a new name — an annotation "
+     r"holds for every assignment after it, not just the first",
+     "Atribua um {d}, ou use um nome novo — a anotação vale para toda "
+     "atribuição depois dela, e não só para a primeira"),
     (r"the value at key (?P<k>\S+)", "o valor na chave {k}"),
     (r"the value of the key (?P<k>\S+)", "o valor da chave {k}"),
     (r"the key (?P<k>\S+)", "a chave {k}"),

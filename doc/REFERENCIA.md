@@ -426,6 +426,32 @@ cadeia de herança.
 
 Regra de conveniência: **um `Integer` é aceito onde se espera `Float`**.
 
+#### A anotação vale depois da declaração
+
+O tipo fica com o nome. Toda atribuição seguinte é conferida contra ele,
+inclusive `+=` (pelo tipo do **resultado**: `s += 1` num `String` é
+concatenação e continua `String`) e a escrita que vem de dentro de uma ação:
+
+```dataforge
+contador: Integer := 0
+contador := contador + 1
+recusou := no
+monitor:
+    contador := "um"
+handle TypeError:
+    recusou := yes
+assert recusou and contador is 1
+```
+
+Vale igual para um **parâmetro tipado** dentro do corpo da ação e para um
+**campo tipado** de blueprint, no cabeçalho (`blueprint B(n: Integer)`) ou no
+corpo (`n: Integer := 0`), inclusive o herdado. Num campo, `void` passa: é o
+campo "sem valor", e `self.conexao := void` ao fechar é o uso comum. O padrão
+de um campo do corpo também é conferido na declaração.
+
+Uma anotação nova troca o tipo de propósito: `contador: String := "um"`. O
+`check` acusa antes de rodar (`tipo-na-reatribuicao` e `tipo-do-campo`).
+
 #### O tipo do conteúdo: `Cluster<T>`, `Vault<K, V>`, `Set<T>`
 
 ```dataforge
@@ -580,6 +606,15 @@ shadow nome := valor
 ```
 
 Cria uma variável **estritamente local**, mesmo que o nome exista fora.
+
+Sem `shadow`, `:=` dentro de uma ação **escreve o nome de fora** quando ele
+existe. É o que faz `cliques := cliques + 1` atualizar a global — e o que faz
+um acumulador escrito como local (`total := 0`) sobrescrever a global de
+mesmo nome. O `check` avisa esse segundo caso (`atribuicao-escreve-global`):
+uma ação que atribui a um nome do topo do arquivo **sem tê-lo lido antes**.
+Quem lê antes (`x := x + 1`, `x += 1`) está atualizando de propósito, e não é
+avisado. Um módulo adotado não enxerga as globais de quem o adotou, então a
+colisão só acontece dentro de um arquivo.
 
 ### 4.4 Estático
 

@@ -5,7 +5,7 @@ Implements recursive descent parsing with indentation-based scoping.
 """
 
 from .tokens import KEYWORDS, Token, TokenType
-from .errors import DataForgeError, ParseError
+from .errors import DataForgeError, LexError, ParseError
 from . import ast_nodes as ast
 
 
@@ -4066,6 +4066,14 @@ class Parser:
             raise ParseError(
                 f"Invalid expression inside the interpolated string "
                 f"({{{fonte}}}): {e.message}", tok.line, tok.column)
+        except LexError as e:
+            # O trecho e lido isolado, entao o erro do LEXER nascia na
+            # linha 1 do trecho: um '?' na linha 40 era apontado como
+            # 'arquivo:1:3', com a linha 1 desenhada embaixo da seta. A
+            # classe fica (e o codigo DF0102 com ela); so a posicao muda.
+            raise type(e)(
+                f"{e.message} (inside the interpolated string {{{fonte}}})",
+                tok.line, tok.column)
         # O trecho e compilado isolado, entao os nos nascem na linha 1.
         # Reposicionar so a raiz nao basta: qualquer ferramenta que desca
         # na arvore — o linter, um futuro LSP — encontraria linha 1 nos

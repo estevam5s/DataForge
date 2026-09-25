@@ -70,6 +70,39 @@ class _SemMagico:
 
 _SEM_MAGICO = _SemMagico()
 
+
+class _SemPosicao:
+    """O no de um erro que nasce longe da arvore — no 'Environment.set'.
+
+    Linha 0 e o sinal que 'execute' usa para dar ao erro a posicao da
+    instrucao que o causou: um tipo recusado numa reatribuicao aparece na
+    linha da atribuicao, com o trecho desenhado, sem que o escopo
+    precise conhecer a arvore.
+    """
+    line = 0
+    column = 0
+
+
+_SEM_POSICAO = _SemPosicao()
+
+#: O atalho da conferencia de tipo declarado: o tipo EXATO do Python que
+#: '_check_type' certamente aceita para cada tipo embutido. E condicao
+#: suficiente, nunca necessaria — o que nao esta aqui cai no caminho
+#: completo, entao o atalho nao muda resposta nenhuma. Medido antes dele:
+#: 's += i' num 's: Integer' custava 4x o mesmo laco sem anotacao, porque
+#: cada volta pagava o '_check_type' inteiro. A tabela foi tirada do
+#: proprio '_check_type', e ha teste comparando as duas.
+_ACEITOS_POR_TIPO = {
+    "Integer": frozenset((int,)),
+    "Float": frozenset((int, float)),
+    "Number": frozenset((int, float)),
+    "String": frozenset((str,)),
+    "Boolean": frozenset((bool,)),
+}
+
+#: Os nomes dentro de um tipo: 'Vault<String, T>' -> Vault, String, T.
+_NOMES_NO_TIPO = _re.compile(r"[A-Za-z_][A-Za-z_0-9]*")
+
 #: O fim de um percurso do Python, para quem nao pode confundi-lo com
 #: 'void': um stream pode legitimamente produzir 'void' como item.
 _FIM = object()
@@ -389,6 +422,11 @@ class DFAction:
         self.type_bounds = dict(type_bounds or {})
         #: "<action nome>", montado na primeira chamada e nao em todas.
         self.nome_do_escopo = None
+        #: parametro -> conferidor, montado na primeira chamada que precisa
+        #: dele. Guardado AQUI, e nao num dicionario por 'id(acao)': o id
+        #: de uma acao coletada e reaproveitado, e a acao nova herdaria os
+        #: tipos da velha (o bug do cache da Vitrine).
+        self.conferidores = None
 
         # O corpo compilado para fechamentos, montado na primeira
         # chamada. Fica aqui e nao no no da arvore porque o
@@ -551,6 +589,10 @@ class DFBlueprint:
         self.escrita_simples = False
         #: 'setup', 'initiate' ou '__init__', achado uma vez
         self.construtor = None
+        #: campo -> (tipo, atalho) CONCRETO declarado na linhagem ('n: Integer' no
+        #: cabecalho ou no corpo). Os campos de parametro de tipo ('T')
+        #: ficam de fora: o vinculo deles mora no objeto ('_tipos').
+        self.campos_tipados = None
 
     def recalcular_acesso(self):
         """Recalcula os atalhos depois que o blueprint muda."""
@@ -558,11 +600,37 @@ class DFBlueprint:
         especial = (self.leitura_magica or self.vigias is not None or props
                     or bool(self.descritores))
         self.leitura_simples = not especial
+        self.campos_tipados = self._campos_tipados()
+        # Um campo tipado derruba o atalho da escrita: sem isso a
+        # conferencia nao rodaria justamente nos blueprints "simples".
         self.escrita_simples = not (especial or self.escrita_magica
-                                    or bool(self.somente_leitura))
+                                    or bool(self.somente_leitura)
+                                    or self.campos_tipados is not None)
         self.construtor = next(
             (self.methods[n] for n in ("setup", "initiate", "__init__")
              if isinstance(self.methods.get(n), DFAction)), None)
+
+    def _campos_tipados(self):
+        """Os campos com tipo concreto, da linhagem inteira, ou None.
+
+        'b.n := "texto"' num 'blueprint B(n: Integer)' era aceito calado:
+        o tipo do cabecalho valia no 'spawn' e em nenhuma escrita depois.
+        Um tipo que menciona um parametro de tipo ('T', 'Cluster<T>') fica
+        com a conferencia generica, que sabe o que 'T' vale naquele objeto.
+        """
+        tipos = Interpreter._tipos_de_campo_do_molde(self)
+        if not tipos:
+            return None
+        parametros = set()
+        for bp in self.linhagem():
+            parametros.update(getattr(bp, "type_params", None) or ())
+        concretos = {
+            campo: (tipo, _ACEITOS_POR_TIPO.get(
+                Interpreter.TYPE_ALIASES.get(tipo), ()))
+            for campo, tipo in tipos.items()
+            if not parametros.intersection(_NOMES_NO_TIPO.findall(tipo))
+            and Interpreter.TYPE_ALIASES.get(tipo) != "Any"}
+        return concretos or None
 
     def slots_efetivos(self):
         """Os slots deste blueprint e dos ancestrais, juntos.
@@ -2257,9 +2325,37 @@ class Interpreter:
         # pode subir ate aqui e apagar 'len' para o programa inteiro.
         # Ver 'Environment.embutidas'.
         self.global_env.embutidas = set()
-        for name, value in get_builtins().items():
+        #: As embutidas como nasceram, antes de o programa tocar em
+        #: qualquer uma. E daqui — e NAO do escopo global — que cada
+        #: modulo recebe as suas: ver '_escopo_de_modulo'.
+        self._embutidas_originais = dict(get_builtins())
+        for name, value in self._embutidas_originais.items():
             self.global_env.set_local(name, value)
             self.global_env.embutidas.add(name)
+
+    def _escopo_de_modulo(self, module_name):
+        """O escopo em que um arquivo adotado roda: so as embutidas.
+
+        Ele era FILHO do escopo global do programa principal, e isso fazia
+        de todo modulo um leitor e um escritor das globais de quem o
+        adotou. 'yield segredo' numa biblioteca lia o 'segredo' do main;
+        'total := 0' numa acao da biblioteca — um nome local, na intencao
+        de quem escreveu — zerava o 'total' do main, porque ':=' dentro de
+        uma acao escreve o nome de fora quando ele existe. Nenhum erro, e
+        so quando os dois arquivos coincidiam num nome que ninguem le
+        junto. O 'check' ja acusava 'Undefined name' ali; a execucao e que
+        discordava.
+
+        As embutidas vem de '_embutidas_originais', e nao do escopo
+        global: o main pode ter tomado 'count' para si no topo, e o
+        modulo continua merecendo o 'count' da linguagem. A marca vai
+        junto, pelo mesmo motivo que existe no global (ver
+        'Environment.embutidas').
+        """
+        env = Environment(name=f"<module {module_name}>")
+        env.variables.update(self._embutidas_originais)
+        env.embutidas = set(self._embutidas_originais)
+        return env
 
     #: Como explicar um sinal de controle que escapou ate o topo.
     _SINAIS_SOLTOS = {
@@ -3871,6 +3967,13 @@ class Interpreter:
         # DUAS vezes, e todo efeito colateral do objeto se repetia sem
         # que nada denunciasse.
         member = self._ler_membro(obj, node, env, membro=node.method)
+        # Uma acao da linguagem — a de um modulo adotado, 'L.f()' — vai
+        # direto, com o no DESTA chamada. Por '_invocar' ela entrava pelo
+        # 'DFAction.__call__', que inventa um no de linha 0: a pilha de
+        # chamadas saia 'main.df:0' justamente no caso que mais aparece
+        # num projeto modular. E a mesma chamada que o '__call__' faz.
+        if type(member) is DFAction:
+            return self._call_action(member, list(args), kwargs, node, None)
         if callable(member):
             return self._invocar(member, args, kwargs, node, node.method)
 
@@ -5212,6 +5315,15 @@ class Interpreter:
                     return _SEM_MAGICO
             if obj._estado is not None or bp.somente_leitura:
                 objetos.conferir_escrita(obj, membro, alvo)
+            tipados = bp.campos_tipados
+            if tipados is not None and value is not None:
+                # 'void' passa: e o campo "sem valor", e 'self.conexao :=
+                # void' ao fechar e o padrao comum. Recusa-lo seria o falso
+                # alarme — o mesmo preco que a conferencia generica paga.
+                esperado = tipados.get(membro)
+                if esperado is not None and type(value) not in esperado[1]:
+                    self._check_type(value, esperado[0],
+                                     f"field '{membro}' of '{bp.name}'", alvo)
             if obj._tipos is not None:
                 self._conferir_campo_generico(obj, membro, value, alvo)
             vigias = bp.vigias
@@ -5278,7 +5390,15 @@ class Interpreter:
                 value = _tipar_colecao(value, declared)
 
         if isinstance(node.target, ast.Identifier):
-            env.set(node.target.name, value)
+            nome = node.target.name
+            if declared:
+                # A anotacao vale DAQUI EM DIANTE, e nao so nesta linha.
+                env.esquecer_tipo(nome)
+                env.set(nome, value)
+                env.declarar_tipo(nome, self._conferidor(
+                    declared, f"variable '{nome}'"))
+            else:
+                env.set(nome, value, isinstance(node.value, _NASCE_AQUI))
         elif isinstance(node.target, ast.MemberAccess):
             obj = self.evaluate(node.target.object, env)
             devolvido = self._escrever_membro(
@@ -6074,12 +6194,23 @@ class Interpreter:
         for nome, tipo, padrao, visib in (list(getattr(node, 'fields_decl', []))
                                           + campos_sem_tipo):
             valor = self.evaluate(padrao, bp_env) if padrao is not None else None
-            if tipo and "<" in tipo and valor is not None:
+            # O padrao e conferido contra o tipo do campo. Antes so a
+            # colecao generica era: 'n: Integer := "a"' passava, e todo
+            # objeto nascia com um campo que contradizia a propria
+            # declaracao. Um DESCRITOR fica de fora — ele substitui o
+            # campo de proposito, e o tipo dele nao e o do campo.
+            descritor = isinstance(valor, DFInstance) and (
+                self._achar_magico(valor, "__get__") is not None
+                or self._achar_magico(valor, "__set__") is not None)
+            if tipo and valor is not None and not descritor:
                 parametros_do_molde = tuple(getattr(node, "type_params", ()) or ())
+                # A posicao e a do PADRAO, na linha do campo — e nao a do
+                # 'blueprint', que pode estar cem linhas acima.
                 self._check_type(valor, tipo, f"field '{nome}' of '{node.name}'",
-                                 node, parametros_do_molde,
+                                 padrao if getattr(padrao, "line", 0) else node,
+                                 parametros_do_molde,
                                  getattr(node, "type_bounds", None))
-                if _nasce_aqui(padrao, bp_env):
+                if "<" in tipo and _nasce_aqui(padrao, bp_env):
                     valor = _tipar_colecao(valor, tipo, parametros_do_molde)
             campos.append((nome, tipo, valor, visib))
             visibility[nome] = visib
@@ -9223,6 +9354,10 @@ class Interpreter:
                     getattr(action, "type_params", ()),
                 getattr(action, "type_bounds", None))
             call_env.set_local(param, value)
+        if action.param_types:
+            # Copia: uma redeclaracao dentro do corpo ('n: String := …')
+            # esquece o tipo NESTE escopo, e nao em toda chamada futura.
+            call_env.tipos = dict(self._conferidores_de(action))
 
         if instance is not None:
             call_env.set_local("self", instance)
@@ -9274,6 +9409,10 @@ class Interpreter:
                         getattr(action, "type_params", ()),
                         getattr(action, "type_bounds", None))
                 variaveis[param] = value
+            if action.param_types:
+                # O parametro tipado continua tipado no corpo: 'n := "x"'
+                # dentro de 'action f(n: Integer)' era aceito calado.
+                call_env.tipos = dict(self._conferidores_de(action))
 
         # Bind 'self' and 'this' for instance methods — direto no dicionario,
         # pela mesma razao dos parametros: o escopo acabou de nascer.
@@ -9986,6 +10125,45 @@ class Interpreter:
                  f"que valem",
             doc="tipos/literais")
 
+    def _conferidor(self, declared, what, parametros_de_tipo=(), limites=None):
+        """A conferencia de um tipo declarado, pronta para o escopo guardar.
+
+        Devolve uma funcao '(valor, novo) -> valor' que 'Environment.set'
+        chama em toda escrita no nome. 'novo' diz que o valor acabou de
+        nascer de um literal: so entao uma colecao tipada e embrulhada —
+        a mesma regra de '_nasce_aqui' na declaracao, para que
+        'xs := [2]' continue recusando 'xs.append("x")' depois.
+        """
+        check = self._check_type
+        tipar = "<" in declared
+        base = self.TYPE_ALIASES.get(declared)
+        if base == "Any":
+            return lambda valor, novo=False: valor
+        rapidos = _ACEITOS_POR_TIPO.get(base, ())
+
+        def conferir(valor, novo=False):
+            if type(valor) in rapidos:
+                return valor
+            check(valor, declared, what, _SEM_POSICAO,
+                  parametros_de_tipo, limites)
+            if tipar and novo:
+                valor = _tipar_colecao(valor, declared)
+            return valor
+        return conferir
+
+    def _conferidores_de(self, action):
+        """Um conferidor por parametro tipado, montado uma vez por acao."""
+        prontos = action.conferidores
+        if prontos is None:
+            prontos = {
+                param: self._conferidor(
+                    tipo, f"parameter '{param}' of action '{action.name}'",
+                    getattr(action, "type_params", ()),
+                    getattr(action, "type_bounds", None))
+                for param, tipo in action.param_types.items() if tipo}
+            action.conferidores = prontos
+        return prontos
+
     def _check_type(self, value, declared: str, what: str, node,
                     parametros_de_tipo=(), limites=None):
         """Enforce a declared type annotation. Unknown names name a blueprint.
@@ -10285,7 +10463,7 @@ class Interpreter:
         tokens = tokenize(fonte, path)
         arvore = parse(tokens, path)
 
-        mod_env = self.global_env.child(f"<module {module_name}>")
+        mod_env = self._escopo_de_modulo(module_name)
         arquivo_anterior = self.filename
         self._loading.append(real)
         self.filename = path

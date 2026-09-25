@@ -97,9 +97,9 @@ action parsear(tokens: Cluster) -> Vault:
             no_ := {"tipo": "bin", "op": op, "esq": no_, "dir": termo()}
         yield no_
 
-    arvore := expressao()
+    raiz := expressao()
     guard atual() is void, $"sobrou entrada apos a expressao"
-    yield arvore
+    yield raiz
 
 // ═══ AVALIADOR ═══
 

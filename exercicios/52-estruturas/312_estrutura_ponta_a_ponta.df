@@ -74,8 +74,8 @@ action abrir(dados):
         trigger "este arquivo nao e um indice"
     given cabeca["versao"] bigger VERSAO:
         trigger $"versao {cabeca['versao']} e mais nova que a que eu leio"
-    corpo := dados.bytes()[Cabecalho.tamanho:len(dados)]
-    given soma_simples(corpo) isnt cabeca["soma"]:
+    bytes_do_corpo := dados.bytes()[Cabecalho.tamanho:len(dados)]
+    given soma_simples(bytes_do_corpo) isnt cabeca["soma"]:
         trigger "o conteudo nao bate com a soma do cabecalho"
     yield Est.janelas(dados, Entrada, quantos := cabeca["quantos"],
         deslocamento := Cabecalho.tamanho)

@@ -321,6 +321,16 @@ def _atribuicao(interp, no):
     nome = no.target.name
     valor = compilar_expressao(interp, no.value)
 
+    # O mesmo sinal que 'exec_Assignment' passa: um literal e um valor
+    # NOVO, e so ele pode virar colecao tipada numa reatribuicao
+    # ('xs := [2]' num 'xs: Cluster<Integer>'). Decidido aqui, uma vez,
+    # pela forma da expressao — o caminho quente nao paga nada.
+    from .interpreter import _NASCE_AQUI
+    if isinstance(no.value, _NASCE_AQUI):
+        def executar(env):
+            env.set(nome, valor(env), True)
+        return executar
+
     def executar(env):
         env.set(nome, valor(env))
     return executar

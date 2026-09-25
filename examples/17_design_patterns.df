@@ -66,14 +66,14 @@ blueprint QueryBuilder:
         yield self
 
     action build():
-        sql := "SELECT " + self.colunas + " FROM " + self.tabela
+        consulta := "SELECT " + self.colunas + " FROM " + self.tabela
         given len(self.condicao) bigger 0:
-            sql := sql + " WHERE " + self.condicao
+            consulta := consulta + " WHERE " + self.condicao
         given len(self.ordem) bigger 0:
-            sql := sql + " ORDER BY " + self.ordem
+            consulta := consulta + " ORDER BY " + self.ordem
         given self.limite bigger 0:
-            sql := sql + " LIMIT " + str(self.limite)
-        yield sql
+            consulta := consulta + " LIMIT " + str(self.limite)
+        yield consulta
 
 query := spawn QueryBuilder()
 sql := query.from_table("usuarios").select("nome, email").where("idade > 18").order_by("nome").limit(10).build()

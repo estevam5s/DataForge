@@ -1055,3 +1055,103 @@ def test_o_formatador_nao_reescreve_o_caminho_de_um_adopt():
         saida = format_source(entrada + "\n")
         assert saida == esperado + "\n", (entrada, saida)
         assert format_source(saida) == saida, entrada
+
+
+# ═══════════════════════════════════════════════════════════
+#  Um módulo não enxerga as globais de quem o adota
+# ═══════════════════════════════════════════════════════════
+#
+# O escopo do módulo era FILHO do escopo global do programa principal.
+# Uma biblioteca lia as globais de quem a adotou, e — pior — uma ação da
+# biblioteca que fazia `total := 0` como variável local ZERAVA o `total`
+# do main, porque `:=` numa ação escreve o nome de fora quando ele existe.
+# Sem erro, e só quando os dois arquivos coincidiam num nome.
+
+def _rodar_modulos(tmp_path, arquivos, principal, compilar=True):
+    import io
+    from contextlib import redirect_stdout
+    from dataforge.interpreter import Interpreter
+    from dataforge.lexer import tokenize
+    from dataforge.parser import parse
+
+    for nome, fonte in arquivos.items():
+        (tmp_path / nome).write_text(fonte, encoding="utf-8")
+    caminho = str(tmp_path / principal)
+    fonte = (tmp_path / principal).read_text(encoding="utf-8")
+    interp = Interpreter()
+    interp.compilar_corpos = compilar
+    saida = io.StringIO()
+    with redirect_stdout(saida):
+        interp.run(parse(tokenize(fonte, caminho), caminho), caminho)
+    return saida.getvalue()
+
+
+@pytest.mark.parametrize("compilar", [True, False])
+def test_uma_acao_do_modulo_nao_escreve_a_global_de_quem_adota(tmp_path, compilar):
+    saida = _rodar_modulos(tmp_path, {
+        "lib.df": ("action soma(xs):\n"
+                   "    total := 0\n"
+                   "    cycle x in xs:\n"
+                   "        total += x\n"
+                   "    yield total\n"
+                   "relay soma\n"),
+        "main.df": ("total := 7\n"
+                    "adopt ./lib as L\n"
+                    "out L.soma([1, 2])\n"
+                    "out total\n"),
+    }, "main.df", compilar)
+    assert saida.split() == ["3", "7"], saida
+
+
+@pytest.mark.parametrize("compilar", [True, False])
+def test_um_modulo_nao_le_a_global_de_quem_adota(tmp_path, compilar):
+    from dataforge.errors import DataForgeError
+    with pytest.raises(DataForgeError) as erro:
+        _rodar_modulos(tmp_path, {
+            "lib.df": "action le():\n    yield segredo\nrelay le\n",
+            "main.df": ('segredo := "do main"\n'
+                        "adopt ./lib as L\n"
+                        "out L.le()\n"),
+        }, "main.df", compilar)
+    assert "segredo" in str(erro.value)
+
+
+def test_o_modulo_recebe_a_embutida_mesmo_que_o_main_tome_o_nome(tmp_path):
+    """As embutidas do módulo vêm das originais, não do escopo global:
+    o main pode ter feito `count := 5` no topo."""
+    saida = _rodar_modulos(tmp_path, {
+        "lib.df": "action f():\n    yield count([1, 1, 2], 1)\nrelay f\n",
+        "main.df": "count := 5\nadopt ./lib as L\nout L.f(), count\n",
+    }, "main.df")
+    assert saida.split() == ["2", "5"], saida
+
+
+def test_uma_acao_do_modulo_nao_apaga_a_embutida_do_modulo(tmp_path):
+    """A marca de embutida vai junto: `len := 1` dentro de uma ação vira
+    local, e o `len` do módulo continua sendo o da linguagem."""
+    saida = _rodar_modulos(tmp_path, {
+        "lib.df": ("action estraga():\n"
+                   "    len := 1\n"
+                   "    yield len\n"
+                   "action mede(xs):\n"
+                   "    yield len(xs)\n"
+                   "relay estraga, mede\n"),
+        "main.df": "adopt ./lib as L\nout L.estraga(), L.mede([1, 2, 3])\n",
+    }, "main.df")
+    assert saida.split() == ["1", "3"], saida
+
+
+@pytest.mark.parametrize("compilar", [True, False])
+def test_a_pilha_de_uma_chamada_entre_modulos_tem_a_linha_da_chamada(
+        tmp_path, compilar):
+    """`L.falha()` entrava pelo `DFAction.__call__`, que inventa um nó de
+    linha 0: a pilha saía `main.df:0` — no caso que mais aparece num
+    projeto modular."""
+    from dataforge.errors import DataForgeError
+    with pytest.raises(DataForgeError) as erro:
+        _rodar_modulos(tmp_path, {
+            "lib.df": "action falha():\n    yield 1 / 0\nrelay falha\n",
+            "main.df": "adopt ./lib as L\n\nx := 1\nout L.falha()\n",
+        }, "main.df", compilar)
+    quadros = [(q.name, q.line) for q in erro.value.stack]
+    assert ("falha", 4) in quadros, quadros
