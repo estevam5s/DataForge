@@ -86,11 +86,14 @@ export function Header() {
             <Logo size={44} className="transition-opacity group-hover:opacity-90" />
           </Link>
 
-          <div className="ml-2 hidden flex-1 justify-center px-4 md:flex">
-            <Search />
-          </div>
-
+          {/* A busca mora AO LADO dos links do topo, e não no meio do
+              cabeçalho: centralizada, ela ficava isolada entre a marca e
+              a navegação, longe de onde o olho já está quando procura
+              "Download" ou "Roadmap". */}
           <nav className="ml-auto flex items-center gap-0.5">
+            <div className="mr-2 hidden md:block md:w-[190px] lg:w-[240px] xl:w-[280px]">
+              <Search />
+            </div>
             {!naDocumentacao && (
               <>
                 <Link href="/docs/primeiros-passos" className="link-topo hidden lg:block">
@@ -132,13 +135,13 @@ export function Header() {
               <span className="ml-2 hidden items-center gap-1.5 sm:flex">
                 <Link
                   href="/painel"
-                  className="rounded-xl border border-line px-3 py-2 text-[13.5px] font-semibold text-strong transition-colors hover:bg-raised"
+                  className="whitespace-nowrap rounded-xl border border-line px-3 py-2 text-[13.5px] font-semibold text-strong transition-colors hover:bg-raised"
                 >
                   Entrar
                 </Link>
                 <Link
                   href="/painel?criar=1"
-                  className="rounded-xl bg-accent px-3.5 py-2 text-[13.5px] font-semibold text-white shadow-[0_4px_16px_-6px_rgb(var(--accent))] transition-all hover:bg-accent-soft hover:shadow-[0_6px_20px_-6px_rgb(var(--accent))]"
+                  className="whitespace-nowrap rounded-xl bg-accent px-3.5 py-2 text-[13.5px] font-semibold text-white shadow-[0_4px_16px_-6px_rgb(var(--accent))] transition-all hover:bg-accent-soft hover:shadow-[0_6px_20px_-6px_rgb(var(--accent))]"
                 >
                   Criar conta
                 </Link>
