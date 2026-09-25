@@ -7,7 +7,7 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Biblioteca Arcane",
-  description: "87 módulos e 2323 símbolos, sem uma única dependência externa.",
+  description: "89 módulos e 2353 símbolos, sem uma única dependência externa.",
 };
 
 const blocos: Bloco[] = [
@@ -22,10 +22,10 @@ const blocos: Bloco[] = [
     "p": "Cada módulo tem um **nome curto** equivalente: `adopt Math as M` funciona igual a `adopt Arcane.Math as M`."
   },
   {
-    "h2": "Os 87 módulos"
+    "h2": "Os 89 módulos"
   },
   {
-    "p": "São **2323 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
+    "p": "São **2353 símbolos** ao todo. Esta tabela é gerada do próprio código: a contagem sai dos módulos e a descrição, do catálogo."
   },
   {
     "table": {
@@ -226,6 +226,11 @@ const blocos: Bloco[] = [
           "Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento."
         ],
         [
+          "[`Arcane.Brasa`](/docs/biblioteca/brasa)",
+          "19",
+          "O framework de aplicativos para o celular: o programa vira um PWA que o Android e o iPhone instalam na tela inicial — barra de abas, topo com voltar, lista tocável, botão flutuante, compartilhar, ligar, mapa e localização, com manifesto, service worker e ícones gerados. Sobre a Vitrine, e testável sem navegador. Não gera APK."
+        ],
+        [
           "[`Arcane.GitHub`](/docs/biblioteca/github)",
           "19",
           "O que um programa precisa para viver no GitHub: no Actions, saídas, variáveis e resumo com delimitador seguro, anotações escapadas que aparecem na linha do PR, máscara linha a linha e grupos; webhooks com assinatura HMAC conferida em tempo constante sobre os bytes originais; e a API REST com paginação por Link e o limite de taxa que sobrou."
@@ -349,6 +354,11 @@ const blocos: Bloco[] = [
           "[`Arcane.Ponte`](/docs/biblioteca/ponte)",
           "12",
           "A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve."
+        ],
+        [
+          "[`Arcane.Bigorna`](/docs/biblioteca/bigorna)",
+          "11",
+          "O framework de aplicações de mesa: várias telas com navegação, barra de menus com atalhos (Ctrl vira Cmd no macOS), diálogos nativos, barra de status, notificação, tabela com seleção, preferências na pasta certa de cada sistema e tema claro/escuro — sobre o Tk, sem dependência, e testável sem display."
         ],
         [
           "[`Arcane.Ecossistema`](/docs/biblioteca/ecossistema)",
@@ -527,13 +537,13 @@ const blocos: Bloco[] = [
   }
 ];
 
-const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-87-modulos', text: "Os 87 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
+const headings = [{ id: 'importar', text: "Importar", level: 2 as const }, { id: 'os-89-modulos', text: "Os 89 módulos", level: 2 as const }, { id: 'sem-dependencias', text: "Sem dependências", level: 2 as const }, { id: 'os-dois-frameworks-web', text: "Os dois frameworks web", level: 2 as const }, { id: 'alem-dos-modulos', text: "Além dos módulos", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
       title={"Biblioteca Arcane"}
-      description={"87 módulos e 2323 símbolos, sem uma única dependência externa."}
+      description={"89 módulos e 2353 símbolos, sem uma única dependência externa."}
       href={"/docs/biblioteca"}
       headings={headings}
     >

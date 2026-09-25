@@ -24,6 +24,20 @@ DESCRICOES = {
                       "como na Vitrine — e por isso uma tela se testa sem "
                       "display nenhum.",
                       "Janela / desktop"),
+    "Arcane.Bigorna": ("O framework de aplicações de mesa: várias telas com "
+                       "navegação, barra de menus com atalhos (Ctrl vira Cmd no "
+                       "macOS), diálogos nativos, barra de status, notificação, "
+                       "tabela com seleção, preferências na pasta certa de cada "
+                       "sistema e tema claro/escuro — sobre o Tk, sem dependência, "
+                       "e testável sem display.",
+                       "Bigorna / desktop"),
+    "Arcane.Brasa": ("O framework de aplicativos para o celular: o programa "
+                     "vira um PWA que o Android e o iPhone instalam na tela "
+                     "inicial — barra de abas, topo com voltar, lista tocável, "
+                     "botão flutuante, compartilhar, ligar, mapa e localização, "
+                     "com manifesto, service worker e ícones gerados. Sobre a "
+                     "Vitrine, e testável sem navegador. Não gera APK.",
+                     "Brasa / mobile"),
     "Arcane.IoT": ("Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, "
                    "sensores, MQTT — e um simulador de placa para testar sem hardware.",
                    "IoT / Arduino"),

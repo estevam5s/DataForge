@@ -201,7 +201,7 @@ def pagina_de_modulo(oficial):
 #: ali não há pasta `site/`. O teste é que garante que ela não envelhece.
 MODULOS_COM_PAGINA = frozenset({
     "abi", "algoritmos", "alvo", "analytics", "api", "archive", "async", "bench",
-    "bytes", "c", "capacidade", "chaves", "cli", "collections", "color",
+    "bigorna", "brasa", "bytes", "c", "capacidade", "chaves", "cli", "collections", "color",
     "compilador", "concurrent", "cortex", "crucible", "crypto", "data",
     "database", "deteccao", "decimal", "dominio", "dsl", "ecossistema", "email",
     "estrutura", "eventos", "evolucao", "excel", "forge", "functional", "html", "http",

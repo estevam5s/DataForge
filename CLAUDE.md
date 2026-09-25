@@ -92,7 +92,7 @@ dataforge/
   builtins.py     1224   231 funções globais, sem import (inclusive input e set)
   repl.py          409   console interativo
   cli.py          1055   CLI + templates de projeto
-  stdlib/                87 módulos (2323 símbolos), incluindo:
+  stdlib/                89 módulos (2353 símbolos), incluindo:
     catalogo.py          o nome, o apelido e o "para quê" de cada módulo
     kiln.py              Kiln — o framework web (73 símbolos)
     kiln_tempo_real.py   upload multipart, SSE e WebSocket (RFC 6455)
@@ -146,6 +146,10 @@ dataforge/
     iot_simulador.py     uma placa de mentira que fala os MESMOS bytes
     iot_mqtt.py          MQTT 3.1.1 sobre TCP, QoS 0 e 1, testamento
     kiln_api.py          problema (RFC 9457), negociar, precondicao, cursor, links
+    arcane_bigorna.py    Bigorna — aplicações de mesa: telas, menus, atalhos,
+                         diálogos, status, preferências (sobre a Janela/Tk)
+    arcane_brasa.py      Brasa — aplicativos para o celular: abas, lista
+                         tocável, aparelho e o PWA inteiro (sobre a Vitrine)
 
 doc/               INSTALACAO, TUTORIAL, REFERENCIA, BIBLIOTECA_PADRAO,
                    KILN, ANALISE_E_ROADMAP (todos em pt-BR)
@@ -1922,6 +1926,59 @@ símbolos em 15 grupos**, e `graficos.TIPOS` tem uma trava irmã em
 `tests/test_vitrine.py`: um tipo declarado sem desenho em `render._SVG`
 não dá erro — `_svg_linha` assume, e quem pediu um funil vê uma linha.
 
+## Bigorna e Brasa — a mesa e o celular
+
+Três frameworks de interface com a **mesma forma** (a tela roda de novo a
+cada interação, e o estado sobrevive): Vitrine (navegador), Bigorna (mesa)
+e Brasa (celular). A regra de negócio mora num módulo sem interface, e as
+três a adotam — é a página `/docs/multiplataforma`.
+
+**A Bigorna é construída SOBRE a Janela, e não ao lado.** `TelaBigorna`
+herda a `Tela` (os 22 componentes, a árvore, as chaves) e o desenho de
+tudo que não é dela cai no `_desenhar` da Janela. Duplicar os componentes
+seria o defeito D10 da análise (dois módulos para a mesma coisa).
+
+| Decisão | Sem ela |
+|---|---|
+| `t.ir`/`t.voltar`/`t.atualizar` levantam `_Ir(BaseException)` | o interpretador embrulharia a navegação num erro, como no `V.navegar` |
+| a navegação acontece em `_executar`, e não no desenho | a Sonda e o Tk seguiriam caminhos diferentes, e o teste provaria outra coisa |
+| diálogo sem `s.responder` é **falha** na Sonda | um "sim" inventado esconde exatamente o que quebra em produção |
+| `Ctrl` é escrito uma vez e vira Cmd no macOS (`_atalho_tk`) | o programa ramificaria por sistema |
+| atalho repetido em dois itens é erro | só um rodaria, e qual depende da ordem |
+| preferências em `pasta_de_config` (por SO), gravação atômica | ao lado do executável, num `.app` assinado, some sem erro |
+| `_construir` separado do `mainloop` | o teste da janela real não teria como acionar o menu pelo Tk (`menu.invoke`) |
+
+`t.atualizar()` existe porque um clique vale para UMA execução: o que a
+tela mostrou antes da mudança (a contagem, o status) já foi calculado.
+
+**A Brasa é a Vitrine com casca.** `Br.app` cria uma aplicação Vitrine
+com `css`, `javascript`, `viewport` e `cabeca` (as duas últimas chaves de
+config foram acrescentadas à Vitrine para isto); `Br.tela` embrulha a ação
+para desenhar a barra de abas depois dela; `_montar` acrescenta ao app
+Kiln (que a Vitrine guarda em cache) `/sw.js` **na raiz**, o manifesto e
+os ícones. Quatro coisas que custaram:
+
+| O quê | Sem isso |
+|---|---|
+| os componentes **anotam** o que desenharam em `ctx.brasa` | a Sonda teria de analisar HTML com regex |
+| todo texto é escapado, e o destino passa por `_destino_seguro` | um `javascript:` vindo de um dado viraria XSS |
+| ícone por NOME desconhecido é erro no `Br.tela` | a barra desenhava a palavra "caixa" no lugar do ícone |
+| `conferir_pwa` SERVE e pede cada arquivo | um manifesto certo com o tipo errado não instala, e só pedindo se vê |
+
+O ícone PNG é escrito à mão (`icone_png`: IHDR, IDAT com zlib, CRC, fonte
+5x7) — o Pillow quebraria a promessa de zero dependência. **Não há APK**,
+e instalar exige HTTPS: pela rede local o app abre e não instala. Isso
+está na docstring, no `mobile doctor` e em `/docs/mobile/limites`.
+
+E a Sonda da Vitrine passou a repassar a query (`/p?id=3`) em `params`,
+como o servidor faz — antes `V.parametro` devolvia o padrão no teste.
+
+**Uma captura de tela da tela inteira pega o que o usuário estiver
+vendo.** Para provar o desenho do Tk, inspecione os widgets
+(`_construir` + `winfo_children`); para a Brasa, o Chrome headless
+fotografa só a página (a largura mínima dele é 500 px — abaixo disso a
+captura corta a direita, e parece defeito de layout).
+
 ## Kiln — upload, SSE e WebSocket
 
 `kiln_tempo_real.py` traz as três coisas que o framework não tinha.
@@ -2200,6 +2257,24 @@ E o **simulador passou a dizer o mesmo nome de firmware** que a placa
 diz (`DataForge`). Ele respondia `StandardFirmata.ino`, então um exemplo
 da documentação que confere `info()["firmware"]["nome"]` passava contra
 o dublê e falhava contra o hardware — a mesma lição do dublê do Telegram.
+
+**A placa diz o nome, e o ESP32 protege a flash.** O firmware responde a
+`PLACA_QUERY` (0x0E, sysex livre do Firmata) com `nomeDaPlaca()` —
+`ARDUINO_BOARD` no ESP32, uma macro por placa no Renesas e no AVR —, e o
+handshake a pergunta **sem espera própria**: o firmware responde em ordem,
+então quando as capacidades chegam o nome já chegou (ou nunca virá, num
+firmware antigo, e `info()["placa"]` é `void`). No ESP32 clássico os
+GPIO 6 a 11 são a flash SPI: `digitalPinIsValid` diz que existem, e
+configurar um derruba a placa — é a única exceção à regra de perguntar ao
+core (`pinoReservado`). E 34 a 39 só leem (`GPIO_IS_VALID_OUTPUT_GPIO`).
+O simulador espelha as duas coisas; um dublê que oferecesse os seis
+aprovaria o programa que derruba a placa.
+
+`IoT.carregar` descobre o FQBN pela porta (VID:PID do `arduino-cli`) e
+**recusa** a porta que não se identifica — o padrão era `arduino:avr:uno`,
+e gravava o binário do UNO num R4. Uma ponte CH340/CP210x não diz que chip
+está atrás dela; a identificação USB (`placas()["usb"]`) diz só isso.
+`IoT.conectar("uno r4")` acha a placa pelo nome, sem abrir porta nenhuma.
 
 Os sketches `pisca`, `sensor` e `ultrassom` foram compilados para
 `arduino:renesas_uno:unor4wifi` e o `wifi-mqtt` para `esp32:esp32:esp32`.

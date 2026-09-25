@@ -31,7 +31,7 @@ Traz tipos verificados com limite (`<T extends Number>`), pattern matching
 estrutural com exaustividade, pipelines na gramática, generators preguiçosos,
 records imutáveis, 95 métodos mágicos, gerenciador de pacotes com semver e
 lockfile, depurador com ponto de parada e vigia (no terminal e no editor), e
-**87 módulos** de biblioteca padrão com **2323 símbolos**.
+**89 módulos** de biblioteca padrão com **2353 símbolos**.
 
 E cinco frameworks dentro dela: **Kiln** (web, com WebSocket e SSE),
 **Vitrine** (painéis de dados no navegador), **Crucible** (testes),
@@ -108,7 +108,7 @@ repor: [Teclado, Monitor]
 | **Ferramentas oficiais** | 69 comandos: `check`, `test`, `fmt`, `lint`, `doc`, `repl`, `debug`, `profile`, `big-o`, `devops`, `vitrine`, `desktop`, `iot`… |
 | **Depurador de verdade** | ponto de parada, condição, contagem, logpoint, **vigia de escrita e de leitura** — no terminal e no painel do editor (DAP) |
 | **Editor** | LSP com hover, ir-para, renomear, e autocompletar **sensível ao contexto**: depois de `p.` ele oferece os campos daquele record |
-| **Bateria inclusa** | 87 módulos com 2323 símbolos + 231 funções globais |
+| **Bateria inclusa** | 89 módulos com 2353 símbolos + 231 funções globais |
 | **Zero dependências** | Python 3.10+ e nada mais — inclusive a janela nativa, a planilha `.xlsx`, o WebSocket, o MQTT e a porta serial |
 
 ---
@@ -121,7 +121,7 @@ repor: [Teclado, Monitor]
 pip install dataforge-lang
 ```
 
-Ela traz o interpretador, os 87 módulos da biblioteca, os 65 comandos e a
+Ela traz o interpretador, os 89 módulos da biblioteca, os 65 comandos e a
 extensão do VS Code (`dataforge editor` a instala). Sem dependência externa
 nenhuma: `pip` baixa um pacote e mais nada.
 
@@ -512,7 +512,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 ## Biblioteca padrão
 
 <!-- stdlib:inicio -->
-87 módulos, 2323 símbolos, mais 231 funções globais sem import.
+89 módulos, 2353 símbolos, mais 231 funções globais sem import.
 
 | Módulo | Símbolos | Para quê |
 |--------|----------|----------|
@@ -554,6 +554,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Malha` | 23 | Chamada entre serviços que não mente: cliente HTTP com prazo, retry com recuo e tremor, disjuntor de três estados, descoberta por nome e propagação automática do rastro do pedido. |
 | `Arcane.Observar` | 22 | Observabilidade: métricas com percentil, tracing aninhado e linhagem de dados. |
 | `Arcane.Padroes` | 20 | Os padrões de projeto que pedem mecanismo: único, pool, construtor, protótipo, flyweight, proxy, adaptador, composto, comandos com desfazer, cadeia, especificação, máquina de estados, memento, visitante, observável, mediador, repositório e barramento. |
+| `Arcane.Brasa` | 19 | O framework de aplicativos para o celular: o programa vira um PWA que o Android e o iPhone instalam na tela inicial — barra de abas, topo com voltar, lista tocável, botão flutuante, compartilhar, ligar, mapa e localização, com manifesto, service worker e ícones gerados. Sobre a Vitrine, e testável sem navegador. Não gera APK. |
 | `Arcane.GitHub` | 19 | O que um programa precisa para viver no GitHub: no Actions, saídas, variáveis e resumo com delimitador seguro, anotações escapadas que aparecem na linha do PR, máscara linha a linha e grupos; webhooks com assinatura HMAC conferida em tempo constante sobre os bytes originais; e a API REST com paginação por Link e o limite de taxa que sobrou. |
 | `Arcane.Dsl` | 18 | Combinadores para escrever uma linguagem pequena, propria: texto, numero, nome, aspas, espaco, sequencia, alternativa, repeticao, opcional e separado_por, com 'analisar' devolvendo Resultado e a falha dizendo a posicao e o que era esperado. |
 | `Arcane.Lago` | 18 | Data Lake: Parquet nativo, partições Hive, camadas bronze/prata/ouro e compactação. |
@@ -579,6 +580,7 @@ dataforge fmt . --check && dataforge check . && dataforge test
 | `Arcane.Cli` | 12 | A linha de comando de um programa escrito em DataForge: opções tipadas com valor padrão e escolhas, argumentos posicionais, subcomandos, ajuda gerada da declaração, perguntas no terminal e console interativo. |
 | `Arcane.Meta` | 12 | Metadados de decorador: ler @Nome em tempo de execução. |
 | `Arcane.Ponte` | 12 | A ponte para o Python: perguntar se um pacote existe, explorar o que ele oferece e converter o que ele devolve. |
+| `Arcane.Bigorna` | 11 | O framework de aplicações de mesa: várias telas com navegação, barra de menus com atalhos (Ctrl vira Cmd no macOS), diálogos nativos, barra de status, notificação, tabela com seleção, preferências na pasta certa de cada sistema e tema claro/escuro — sobre o Tk, sem dependência, e testável sem display. |
 | `Arcane.Ecossistema` | 11 | O inventario da implementacao, CONFERIDO contra ela. Cada componente do desenho do ecossistema aponta arquivos de verdade e carrega um de tres estados: 'existe', 'equivale' (ha outra peca que responde a mesma pergunta, nomeada) ou 'nao-existe' (com o porque escrito). 'conferir()' cobra as duas direcoes — todo caminho citado existe no disco, e todo modulo do nucleo aparece em algum componente —, e e isso que impede o mapa de mentir quando uma peca muda de nome. 'o_que_nao_existe()' e a resposta honesta a 'o DataForge tem backend LLVM?'. |
 | `Arcane.Html` | 11 | Ler HTML de verdade: seletor CSS, texto que junta com espaço, links absolutos, tabela como dado, escapar contra XSS, limpar toda a marcação e podar deixando só as tags permitidas. |
 | `Arcane.Pipeline` | 11 | Orquestração de ETL/ELT: DAG, dependências, retry, incremental e relatório. |
@@ -931,7 +933,7 @@ gravado, velocidade errada.
 |---------|---------|
 | [**doc/TUTORIAL.md**](doc/TUTORIAL.md) | a linguagem do zero, com exemplos que rodam |
 | [**doc/REFERENCIA.md**](doc/REFERENCIA.md) | gramática EBNF, palavras-chave, precedência, semântica |
-| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 87 módulos |
+| [**doc/BIBLIOTECA_PADRAO.md**](doc/BIBLIOTECA_PADRAO.md) | assinaturas dos 89 módulos |
 | [**doc/INSTALACAO.md**](doc/INSTALACAO.md) | instalação passo a passo |
 | [**doc/ANALISE_E_ROADMAP.md**](doc/ANALISE_E_ROADMAP.md) | estado técnico e o que falta |
 | [**doc/ESTABILIDADE.md**](doc/ESTABILIDADE.md) | o que pode quebrar entre versões — e o teste que garante |
@@ -1027,7 +1029,7 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 | `dataforge/lsp.py` | o servidor de linguagem: hover, completar, ir-para | 1100 |
 | `dataforge/dap.py` | o depurador falando o protocolo do editor | 700 |
 | `dataforge/travessia.py` | o que uma ação leva consigo para outro núcleo | 964 |
-| `dataforge/stdlib/` | os 87 módulos, incluindo Kiln, Vitrine, Crucible, Lavra, Forge, Janela e IoT | 8200 |
+| `dataforge/stdlib/` | os 89 módulos, incluindo Kiln, Vitrine, Crucible, Lavra, Forge, Janela e IoT | 8200 |
 
 ---
 
@@ -1036,11 +1038,11 @@ arquivo.df → tokenize() → parse() → check_program() → Interpreter().run(
 <!-- estado:inicio -->
 | Verificação | Resultado |
 |-------------|-----------|
-| `pytest tests/` | 3910 funções de teste |
+| `pytest tests/` | 4016 funções de teste |
 | `exercicios/run_all.py` | 399/399 |
 | `trilha/run_all.py` | 18 capítulos |
 | `examples/*.df` | 50 programas |
-| Módulos da stdlib | 87 carregam, 2323 símbolos |
+| Módulos da stdlib | 89 carregam, 2353 símbolos |
 | Comandos da CLI | 69 |
 | Códigos de erro | 219 |
 | `dataforge check` × 5 pastas | 0 erros em 570 arquivos |

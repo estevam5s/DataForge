@@ -35,7 +35,7 @@ PAGINAS = [
  {"p": "E ele atende **um pedido por thread**, sem sincronizar nada por você. Uma rota que lê, decide e escreve num estado em memória perde atualizações — medido: seis pedidos simultâneos entregaram **1 de 6**. O `check` avisa (`escrita-concorrente`), e a resposta é `Arcane.Concurrent`."},
 
  {"h2": "Não use onde o ecossistema é o produto"},
- {"p": "A biblioteca padrão tem 87 módulos e 2323 símbolos, sem uma única dependência externa. Isso cobre muito — e não cobre o PyTorch, o Kubernetes client, o driver do seu ERP. A ponte para o Python existe (`adopt Python.pandas as pd`) e é real, mas se **a maior parte** do seu sistema vai ser Python chamado de dentro, escreva em Python."},
+ {"p": "A biblioteca padrão tem 89 módulos e 2353 símbolos, sem uma única dependência externa. Isso cobre muito — e não cobre o PyTorch, o Kubernetes client, o driver do seu ERP. A ponte para o Python existe (`adopt Python.pandas as pd`) e é real, mas se **a maior parte** do seu sistema vai ser Python chamado de dentro, escreva em Python."},
 
  {"h2": "Não use se você precisa de um destes"},
  {"list": [
@@ -404,7 +404,7 @@ $ python3 -c "import dataforge; print(dataforge.__file__)\"""", "lang": "bash"},
    ["completar", "**olha o contexto**: depois de `p.`, os membros de `p`"],
    ["diagnósticos", "os mesmos do `dataforge check`, enquanto você digita"],
    ["`// df: permitir <regra>`", "silencia ali, lido do **texto do editor**"]]}},
- {"p": "Os nomes do **próprio arquivo** vêm antes dos 2323 símbolos da biblioteca — é o que se procura em nove de cada dez vezes. E o comentário que silencia uma regra é lido do buffer, não do disco: num arquivo não salvo, ler do disco silenciaria a regra errada — ou nenhuma."},
+ {"p": "Os nomes do **próprio arquivo** vêm antes dos 2353 símbolos da biblioteca — é o que se procura em nove de cada dez vezes. E o comentário que silencia uma regra é lido do buffer, não do disco: num arquivo não salvo, ler do disco silenciaria a regra errada — ou nenhuma."},
 
  {"h2": "Depurar"},
  {"code": """$ dataforge debug programa.df      # no terminal, e serve por ssh

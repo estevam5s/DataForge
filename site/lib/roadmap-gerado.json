@@ -697,6 +697,18 @@
           "simbolos": 213
         },
         {
+          "chave": "bigorna",
+          "desc": "O framework de aplicações de mesa: várias telas com navegação, barra de menus com atalhos (Ctrl vira Cmd no macOS), diálogos nativos, barra de status,",
+          "nome": "Arcane.Bigorna",
+          "simbolos": 11
+        },
+        {
+          "chave": "brasa",
+          "desc": "O framework de aplicativos para o celular: o programa vira um PWA que o Android e o iPhone instalam na tela inicial — barra de abas, topo com voltar, ",
+          "nome": "Arcane.Brasa",
+          "simbolos": 19
+        },
+        {
           "chave": "telegram",
           "desc": "Bots de Telegram, do primeiro '/start' ao webhook em producao: cliente da Bot API com o limite de taxa lido de onde ele chega, tratadores por comando,",
           "nome": "Arcane.Telegram",
@@ -1319,10 +1331,10 @@
     "equivalem": 6,
     "existem": 32,
     "grupos_de_comando": 7,
-    "modulos": 87,
+    "modulos": 89,
     "modulos_do_nucleo": 62,
     "nao_existem": 6,
-    "simbolos": 2323
+    "simbolos": 2353
   },
   "semGrupo": []
 }

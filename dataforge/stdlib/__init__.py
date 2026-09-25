@@ -78,6 +78,8 @@ from .arcane_tipos import ArcaneTipos
 from .arcane_html import ArcaneHtml
 from .arcane_iot import ArcaneIoT
 from .arcane_janela import ArcaneJanela
+from .arcane_bigorna import ArcaneBigorna
+from .arcane_brasa import ArcaneBrasa
 from .arcane_rede import ArcaneRede
 from .lavra import ArcaneLavra
 from .vitrine import ArcaneVitrine
@@ -281,6 +283,10 @@ _MODULES = {
     "Arcane.Janela": ArcaneJanela,
     "Janela": ArcaneJanela,
     "Desktop": ArcaneJanela,
+    "Arcane.Bigorna": ArcaneBigorna,
+    "Bigorna": ArcaneBigorna,
+    "Arcane.Brasa": ArcaneBrasa,
+    "Brasa": ArcaneBrasa,
 
     # ── Lavra — a consulta tipada ──
     "Arcane.Lavra": ArcaneLavra,

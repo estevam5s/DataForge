@@ -19,7 +19,7 @@ const blocos: Bloco[] = [
   {"callout": {"tipo": "atencao", "titulo": "Instalado por `pip`, a extensão precisa estar compilada", "texto": "`editor/vscode/out/` é gerado por `tsc` e não é versionado. Um wheel construído sem ele sai com o manifesto e **zero JavaScript**: o VS Code carrega a extensão e nada acontece. Há teste que constrói o wheel e olha dentro — conferir o texto do `pyproject.toml` não diz o que o build produz."}},
   {"h2": "O que o LSP responde"},
   {"table": {"head": ["Recurso", "O que faz"], "rows": [["hover", "o tipo e a doc do que está sob o cursor"], ["ir-para-definição", "inclusive atravessando `adopt`"], ["completar", "**olha o contexto**: depois de `p.`, os membros de `p`"], ["diagnósticos", "os mesmos do `dataforge check`, enquanto você digita"], ["`// df: permitir <regra>`", "silencia ali, lido do **texto do editor**"]]}},
-  {"p": "Os nomes do **próprio arquivo** vêm antes dos 2323 símbolos da biblioteca — é o que se procura em nove de cada dez vezes. E o comentário que silencia uma regra é lido do buffer, não do disco: num arquivo não salvo, ler do disco silenciaria a regra errada — ou nenhuma."},
+  {"p": "Os nomes do **próprio arquivo** vêm antes dos 2353 símbolos da biblioteca — é o que se procura em nove de cada dez vezes. E o comentário que silencia uma regra é lido do buffer, não do disco: num arquivo não salvo, ler do disco silenciaria a regra errada — ou nenhuma."},
   {"h2": "Depurar"},
   { code: `$ dataforge debug programa.df      # no terminal, e serve por ssh
 $ dataforge dap                    # o mesmo no painel do editor (F5)`, lang: 'bash' },

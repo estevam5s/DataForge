@@ -61,7 +61,7 @@ from dataforge.stdlib import get_module  # noqa: E402
 GRUPOS_DE_MODULO = [
     ("Núcleo", ["math", "text", "io", "regex", "collections", "functional",
                 "iter", "decimal", "bytes", "algoritmos"]),
-    ("Frameworks", ["kiln", "vitrine", "telegram", "lavra", "crucible",
+    ("Frameworks", ["kiln", "vitrine", "bigorna", "brasa", "telegram", "lavra", "crucible",
                     "forge", "api"]),
     ("Dados", ["quadro", "data", "analytics", "cortex", "lago", "pipeline",
                "qualidade", "stream"]),

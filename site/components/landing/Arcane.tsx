@@ -20,7 +20,7 @@ const total = modulos.reduce((n, [, m]) => n + m.funcoes.length, 0);
  * desaparecer é pior. */
 const grupos: { rotulo: string; modulos: string[] }[] = [
   { rotulo: 'Núcleo', modulos: ['math', 'text', 'io', 'regex', 'collections', 'functional', 'iter', 'decimal', 'bytes', 'algoritmos'] },
-  { rotulo: 'Frameworks', modulos: ['kiln', 'vitrine', 'telegram', 'lavra', 'crucible', 'forge', 'api'] },
+  { rotulo: 'Frameworks', modulos: ['kiln', 'vitrine', 'bigorna', 'brasa', 'telegram', 'lavra', 'crucible', 'forge', 'api'] },
   { rotulo: 'Dados', modulos: ['quadro', 'data', 'analytics', 'cortex', 'lago', 'pipeline', 'qualidade', 'stream'] },
   { rotulo: 'Formatos', modulos: ['serialization', 'excel', 'archive', 'database', 'html'] },
   { rotulo: 'Sistema e rede', modulos: ['os', 'process', 'time', 'http', 'web', 'async', 'concurrent', 'ponte', 'malha', 'rede', 'email', 'url', 'github'] },

@@ -8,12 +8,12 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Uma aplicação inteira",
-  description: "Um controle de estoque com arquivo, tabela, validação e teste — em 70 linhas.",
+  description: "Um controle de estoque com arquivo, menus, atalhos, confirmação, exportação e teste.",
 };
 
 const blocos: Bloco[] = [
-  {"p": "Juntando tudo: lê e grava um arquivo, valida a entrada, mostra uma tabela e tem teste que roda sem display."},
-  { code: `adopt Arcane.Janela as J
+  {"p": "Juntando tudo: lê e grava um arquivo, tem menu com atalhos, lista e cadastro em telas separadas, confirma antes de apagar, exporta CSV por um diálogo, lembra a última pasta — e é testada sem display."},
+  { code: `adopt Arcane.Bigorna as B
 adopt Arcane.Serialization as Ser
 adopt Arcane.IO as IO
 adopt Arcane.OS as OS
@@ -30,20 +30,43 @@ action carregar():
         yield []
     yield Ser.from_json(IO.read(ARQUIVO))
 
-action gravar(itens):
-    IO.write(ARQUIVO, Ser.to_json(itens))
-    yield len(itens)
+action gravar(lista):
+    IO.write(ARQUIVO, Ser.to_json(lista))
 
 itens := carregar()
 
-// ── a tela ─────────────────────────────────────────────────
-action tela(t):
-    t.titulo("Estoque")
+// ── a aplicação ────────────────────────────────────────────
+app := B.app("Estoque", pasta_de_config := $"{pasta}/config")
+app.menu("Arquivo", [
+    B.item("Novo produto", "novo", atalho := "Ctrl+N"),
+    B.separador(),
+    B.item("Exportar CSV…", "exportar", atalho := "Ctrl+E"),
+])
 
-    t.grupo("Entrada")
-    nome := t.entrada("Produto", "")
+action lista(t):
+    t.titulo("Estoque")
+    escolhido := t.tabela(["nome", "qtd"], itens, selecionar := yes)
+    t.status($"{len(itens)} produto(s)")
+    given t.comando("novo") or t.botao("Novo produto", yes):
+        t.ir("novo")
+    given escolhido isnt void and t.botao("Excluir") and t.confirmar($"Excluir {escolhido["nome"]}?"):
+        itens.remove(escolhido)
+        gravar(itens)
+        t.notificar("excluído")
+        t.atualizar()
+    given t.comando("exportar"):
+        destino := t.salvar_arquivo("estoque.csv", ["csv"])
+        given destino isnt void:
+            linhas := ["nome,qtd"] + [$"{i["nome"]},{i["qtd"]}" cycle i in itens]
+            IO.write(destino, join("\\n", linhas))
+            t.guardar_pref("ultimo_export", destino)
+            t.notificar($"exportado: {destino}")
+
+action novo(t):
+    t.titulo("Novo produto")
+    nome := t.entrada("Produto")
     qtd := t.numero("Quantidade", 1, 1, 9999)
-    given t.botao("Adicionar", yes):
+    given t.botao("Salvar", yes):
         given nome is "":
             t.erro("o produto é obrigatório")
         orif nome in [i["nome"] cycle i in itens]:
@@ -51,37 +74,42 @@ action tela(t):
         otherwise:
             itens.append({"nome": nome, "qtd": qtd})
             gravar(itens)
-            t.aviso($"{nome}: {qtd} em estoque")
-    t.fim()
+            t.voltar()
+    given t.botao("Cancelar"):
+        t.voltar()
 
-    t.separador()
-    t.texto($"{len(itens)} produto(s)")
-    t.tabela(["nome", "qtd"], itens)
+app.tela("lista", lista)
+app.tela("novo", novo)
 
-    given len(itens) > 0 and t.botao("Esvaziar"):
-        itens.clear()
-        gravar(itens)
-
-// ── rodar ou testar ────────────────────────────────────────
-s := J.testar(tela)
+// ── testar (com display: B.rodar(app)) ─────────────────────
+s := B.testar(app)
+s.atalho("Ctrl+N")
 s.digitar("Produto", "café")
 s.digitar("Quantidade", 12)
-s.clicar("Adicionar")
-assert s.tem("café: 12 em estoque")
+s.clicar("Salvar")
+assert s.tela_atual() is "lista"
 
-// o duplicado é recusado
-s.clicar("Adicionar")
-assert s.tem("já está no estoque")
-assert len(itens) is 1
+s.atalho("Ctrl+N")
+s.digitar("Produto", "café")
+s.clicar("Salvar")
+assert s.tem("já está no estoque")        // o duplicado é recusado
+s.clicar("Cancelar")
 
-// e o arquivo foi gravado
-assert IO.exists(ARQUIVO)
-assert len(Ser.from_json(IO.read(ARQUIVO))) is 1
-out s.texto()`, lang: 'df' },
+s.responder($"{pasta}/saida.csv")
+s.menu("Arquivo", "Exportar CSV…")
+assert IO.read($"{pasta}/saida.csv") is "nome,qtd\\ncafé,12"
+assert app.preferencias.ler("ultimo_export") is $"{pasta}/saida.csv"
+
+s.selecionar(0)
+s.responder(yes)
+s.clicar("Excluir")
+assert s.status() is "0 produto(s)"
+assert len(Ser.from_json(IO.read(ARQUIVO))) is 0
+out "estoque: ok"`, lang: 'df' },
   {"h2": "As decisões que ela carrega"},
-  {"table": {"head": ["Decisão", "O que ela evita"], "rows": [["o estado mora **fora** da ação de tela", "ele seria recriado a cada reexecução, e a lista ficaria sempre vazia"], ["gravar a cada mudança", "fechar a janela perder o trabalho — não há `Ctrl-S` aqui"], ["o duplicado é recusado **antes** de gravar", "um arquivo com dois \"café\" e nenhuma forma de saber qual vale"], ["a validação devolve `t.erro`, e não levanta", "um erro que fecha a janela no meio do cadastro"], ["`defer` na pasta temporária", "lixo em disco a cada execução do exemplo"]]}},
+  {"table": {"head": ["Decisão", "O que ela evita"], "rows": [["o estado mora **fora** das telas", "ele seria recriado a cada reexecução, e a lista ficaria sempre vazia"], ["gravar a cada mudança", "fechar a janela e perder o trabalho"], ["confirmar **antes** de excluir, com `and`", "o diálogo abrir em toda reexecução, e não só no clique"], ["`t.atualizar()` depois de excluir", "a barra de status mostrar a contagem de antes"], ["a validação devolve `t.erro`, e não levanta", "um erro que fecha a janela no meio do cadastro"], ["`defer` na pasta temporária", "lixo em disco a cada execução do exemplo"]]}},
   {"h2": "O que falta para virar produção"},
-  {"list": ["**Editar e remover** — a tabela é só leitura, e `t.tabela` não tem seleção.", "**Desfazer**, que aqui seria uma pilha do estado anterior.", "**Gravação atômica**: escrever ao lado e renomear, senão um fechamento no meio da gravação deixa o arquivo pela metade.", "**Um banco** em vez de JSON, quando passar de alguns milhares de linhas — `Arcane.Database` está a um `adopt` de distância."]},
+  {"list": ["**Desfazer**, que aqui seria uma pilha do estado anterior.", "**Um banco** em vez de JSON, quando passar de alguns milhares de linhas — `Arcane.Database` está a um `adopt` de distância.", "**Assinar** o executável — ver [Empacotar](/docs/desktop/empacotar)."]},
 ];
 
 const headings = [{ id: 'as-decisoes-que-ela-carrega', text: "As decisões que ela carrega", level: 2 as const }, { id: 'o-que-falta-para-virar-producao', text: "O que falta para virar produção", level: 2 as const }];
@@ -90,7 +118,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Uma aplicação inteira"}
-      description={"Um controle de estoque com arquivo, tabela, validação e teste — em 70 linhas."}
+      description={"Um controle de estoque com arquivo, menus, atalhos, confirmação, exportação e teste."}
       href={"/docs/desktop/completo"}
       headings={headings}
     >

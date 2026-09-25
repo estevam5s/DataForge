@@ -8,11 +8,12 @@ import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
   title: "Os componentes",
-  description: "Vinte e dois, e o que cada um devolve para o programa.",
+  description: "Vinte e dois componentes, os mesmos na Janela e numa tela da Bigorna — e o que cada um devolve.",
 };
 
 const blocos: Bloco[] = [
   {"p": "Cada chamada **põe** um componente e **devolve** o valor dele. É o que faz a tela ser um programa comum, de cima para baixo."},
+  {"callout": {"tipo": "nota", "titulo": "Os mesmos na Bigorna", "texto": "Uma tela da [Bigorna](/docs/desktop) recebe o mesmo `t`: tudo desta página vale lá, e ela acrescenta `t.comando`, `t.ir`, os diálogos, `t.status` e a tabela com seleção. Os exemplos abaixo usam a `Arcane.Janela`, a camada de baixo, porque ela basta para uma tela só."}},
   {"h2": "Entradas"},
   { code: `adopt Arcane.Janela as J
 
@@ -102,7 +103,7 @@ export default function Pagina() {
   return (
     <DocPage
       title={"Os componentes"}
-      description={"Vinte e dois, e o que cada um devolve para o programa."}
+      description={"Vinte e dois componentes, os mesmos na Janela e numa tela da Bigorna — e o que cada um devolve."}
       href={"/docs/desktop/componentes"}
       headings={headings}
     >

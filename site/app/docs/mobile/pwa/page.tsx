@@ -1,5 +1,5 @@
 // GERADO por 'site/scripts/gerar_conteudo.py'. Nao edite aqui.
-// A fonte e 'site/scripts/conteudo/desktop.py' — mude la e rode o gerador.
+// A fonte e 'site/scripts/conteudo/mobile.py' — mude la e rode o gerador.
 
 import type { Metadata } from 'next';
 import type { Bloco } from '@/lib/content';
@@ -7,52 +7,39 @@ import { DocPage } from '@/components/Doc';
 import { Renderer } from '@/components/Renderer';
 
 export const metadata: Metadata = {
-  title: "Um PWA passo a passo",
-  description: "Do painel da Vitrine ao ícone na tela inicial do Android.",
+  title: "PWA e publicação",
+  description: "Do programa ao ícone na tela inicial: o que a Brasa gera, por que instalar exige HTTPS, e as formas de publicar.",
 };
 
 const blocos: Bloco[] = [
-  {"p": "O caminho inteiro tem quatro passos, e três deles são do Android — não da linguagem."},
-  {"h2": "1. O painel"},
-  { code: `adopt Arcane.Vitrine as V
+  {"h2": "O que a Brasa gera sozinha"},
+  {"table": {"head": ["Arquivo", "O que é"], "rows": [["`/manifest.webmanifest`", "nome, cor, ícones e `display: standalone`"], ["`/sw.js`", "o service worker, na raiz — **rede primeiro, cache de reserva**"], ["`/__brasa__/icone-192.png` e `-512.png`", "o ícone: a cor da marca e as iniciais do nome, em PNG"], ["`/__brasa__/icone-maskable-512.png`", "o mesmo, de borda a borda, para o recorte do Android"]]}},
+  { code: `adopt Arcane.Brasa as Br
 
-action pagina():
-    V.titulo("Chão de fábrica")
-    colunas := V.colunas(2)
-    colunas[0].metrica("Em produção", 12)
-    colunas[1].metrica("Parados", 3)
-    V.frame([
-        {"maquina": "prensa 1", "estado": "ok"},
-        {"maquina": "prensa 2", "estado": "parada"},
-    ])
-    V.atualizar_a_cada(5)
-
-s := V.testar(pagina)
-s.rodar()
-assert "Chão de fábrica" in s.texto()
-out "o painel responde — e é o mesmo no celular"`, lang: 'df' },
-  {"h2": "2. Os arquivos do PWA"},
-  { code: `$ dataforge mobile pwa --nome="Chão de fábrica" --em=publico`, lang: 'bash' },
-  {"h2": "3. O HTML"},
-  { code: `<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0d1017">
-<script>navigator.serviceWorker?.register('/sw.js')</script>`, lang: 'text' },
-  {"h2": "4. O HTTPS"},
-  {"p": "Sem ele o Android **não oferece instalar**, e não há aviso: o botão simplesmente não aparece. As três formas que funcionam:"},
-  {"table": {"head": ["Forma", "Quando"], "rows": [["um proxy com certificado (nginx, Caddy)", "o painel roda na sua rede, e você controla o servidor"], ["um túnel (Cloudflare, ngrok)", "para mostrar a alguém hoje"], ["hospedagem estática + API", "quando a página é estática e o dado vem por HTTP"]]}},
-  {"p": "O Kiln **não tem TLS** — ele roda sobre o `http.server` do Python. Em produção pública, o nginx ou o Caddy vai na frente, e isso está escrito na página dele também."},
-  {"h2": "Conferir que ficou instalável"},
-  {"list": ["Abra no Chrome do Android e veja se aparece \"Adicionar à tela inicial\" **com ícone próprio** (sem manifesto, ele oferece um atalho comum).", "Nas Ferramentas do Desenvolvedor: **Application → Manifest** e **Service Workers**.", "Desligue a rede e recarregue: com o service worker, a página abre; sem ele, dá erro de conexão.", "Instale, abra pelo ícone, e confira que **não há barra de endereço** — é o `display: standalone` funcionando."]},
-  {"callout": {"tipo": "nota", "titulo": "Atualizar um PWA instalado", "texto": "O service worker gerado troca o cache pelo nome (`nome-vN`) e chama `skipWaiting`. Sem mudar a versão, o Android continua servindo o cache antigo — e o sintoma é \"publiquei e não mudou nada\", que faz perder uma tarde."}},
+app := Br.app("Estoque da Loja", cor := "#E8453C", versao := "3")
+m := Br.manifesto(app)
+assert m["display"] is "standalone"
+assert m["short_name"] is "Estoque da L"
+out [i["sizes"] cycle i in m["icons"]]`, lang: 'df' },
+  {"p": "Os ícones são PNG escritos em Python puro — cabeçalho, pixels comprimidos com `zlib`, CRC —, porque a biblioteca padrão não desenha imagem e trazer o Pillow quebraria a promessa de zero dependência por um quadrado com duas letras."},
+  {"h2": "Rede primeiro, cache de reserva"},
+  {"p": "O service worker busca da rede e **só** cai no cache quando ela falha. Cache primeiro seria mais rápido — e faria o aplicativo mostrar dado velho sem avisar. Só `GET` entra no cache: uma ação repetida do cache seria um pedido duplicado. Uma tela nunca aberta com internet mostra \"Sem conexão\" em vez de uma página em branco."},
+  {"callout": {"tipo": "nota", "titulo": "Suba a `versao` a cada publicação", "texto": "Ela entra no nome do cache (`brasa-3`). Sem mudar a versão, o aparelho continua servindo o cache antigo — e o sintoma é \"publiquei e não mudou nada\", que faz perder uma tarde."}},
+  {"h2": "Instalar exige HTTPS"},
+  {"p": "Pela rede local, em `http://192.168…`, o aplicativo **abre e funciona**, mas o celular não oferece \"instalar\" e o service worker não roda — e não há aviso: o botão simplesmente não aparece. É regra do navegador, não da linguagem. `localhost` é a exceção, para desenvolver no computador."},
+  {"table": {"head": ["Forma", "Quando"], "rows": [["um proxy com certificado (Caddy, nginx) na frente do `Br.rodar`", "o aplicativo roda num servidor seu"], ["um túnel (Cloudflare Tunnel, ngrok)", "para mostrar a alguém hoje, do seu computador"], ["um contêiner numa plataforma com HTTPS", "`dataforge devops` gera o Dockerfile; lembre de `--host=0.0.0.0`"]]}},
+  {"p": "O Kiln, que serve a Vitrine e a Brasa, **não tem TLS** — ele roda sobre o `http.server` do Python. Em produção, o proxy vai na frente."},
+  {"h2": "Conferir no aparelho"},
+  {"list": ["No Chrome do Android: o menu mostra **Instalar aplicativo** (sem manifesto, ele oferece só um atalho comum).", "No iPhone: Safari → Compartilhar → **Adicionar à Tela de Início**.", "Abra pelo ícone: **não há barra de endereço** — é o `standalone`.", "Desligue a rede e reabra uma tela já visitada: ela abre, do cache."]},
 ];
 
-const headings = [{ id: '1-o-painel', text: "1. O painel", level: 2 as const }, { id: '2-os-arquivos-do-pwa', text: "2. Os arquivos do PWA", level: 2 as const }, { id: '3-o-html', text: "3. O HTML", level: 2 as const }, { id: '4-o-https', text: "4. O HTTPS", level: 2 as const }, { id: 'conferir-que-ficou-instalavel', text: "Conferir que ficou instalável", level: 2 as const }];
+const headings = [{ id: 'o-que-a-brasa-gera-sozinha', text: "O que a Brasa gera sozinha", level: 2 as const }, { id: 'rede-primeiro-cache-de-reserva', text: "Rede primeiro, cache de reserva", level: 2 as const }, { id: 'instalar-exige-https', text: "Instalar exige HTTPS", level: 2 as const }, { id: 'conferir-no-aparelho', text: "Conferir no aparelho", level: 2 as const }];
 
 export default function Pagina() {
   return (
     <DocPage
-      title={"Um PWA passo a passo"}
-      description={"Do painel da Vitrine ao ícone na tela inicial do Android."}
+      title={"PWA e publicação"}
+      description={"Do programa ao ícone na tela inicial: o que a Brasa gera, por que instalar exige HTTPS, e as formas de publicar."}
       href={"/docs/mobile/pwa"}
       headings={headings}
     >

@@ -15,6 +15,8 @@ Cada módulo tem um **nome curto** equivalente (`adopt Math as M` funciona igual
 | Módulo | Nome curto | Símbolos | Para quê |
 |--------|-----------|----------|----------|
 | [`Arcane.Janela`](#arcanejanela) | `Janela / desktop` | 10 | Aplicação de mesa nativa com zero dependência: o Tk vem na biblioteca padrão. A árvore é separada do desenho, como na Vitrine — e por isso uma tela se testa sem display nenhum. |
+| [`Arcane.Bigorna`](#arcanebigorna) | `Bigorna / desktop` | 11 | O framework de aplicações de mesa: várias telas com navegação, barra de menus com atalhos (Ctrl vira Cmd no macOS), diálogos nativos, barra de status, notificação, tabela com seleção, preferências na pasta certa de cada sistema e tema claro/escuro — sobre o Tk, sem dependência, e testável sem display. |
+| [`Arcane.Brasa`](#arcanebrasa) | `Brasa / mobile` | 19 | O framework de aplicativos para o celular: o programa vira um PWA que o Android e o iPhone instalam na tela inicial — barra de abas, topo com voltar, lista tocável, botão flutuante, compartilhar, ligar, mapa e localização, com manifesto, service worker e ícones gerados. Sobre a Vitrine, e testável sem navegador. Não gera APK. |
 | [`Arcane.IoT`](#arcaneiot) | `IoT / Arduino` | 28 | Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, sensores, MQTT — e um simulador de placa para testar sem hardware. |
 | [`Arcane.Math`](#arcanemath) | `Math` | 72 | Matemática, álgebra linear e estatística básica. |
 | [`Arcane.Text`](#arcanetext) | `Text` | 59 | Manipulação de texto, formatação, tabelas e conversão de caixa. |
@@ -148,6 +150,68 @@ adopt Arcane.Janela as Janela
 
 ---
 
+## Arcane.Bigorna
+
+O framework de aplicações de mesa: várias telas com navegação, barra de menus com atalhos (Ctrl vira Cmd no macOS), diálogos nativos, barra de status, notificação, tabela com seleção, preferências na pasta certa de cada sistema e tema claro/escuro — sobre o Tk, sem dependência, e testável sem display.
+
+```dataforge
+adopt Arcane.Bigorna as Bigorna
+```
+
+**Funções (11)**
+
+| Assinatura |
+|------------|
+| `App(nome='DataForge', largura=900, altura=600, tema='sistema', pasta_de_config=None)` |
+| `Sonda(aplicacao)` |
+| `Tela(aplicacao, nome, eventos, dialogos)` |
+| `app(nome='DataForge', largura=900, altura=600, tema='sistema', pasta_de_config=None)` |
+| `item(rotulo, comando, atalho='')` |
+| `pasta_de_config(nome)` |
+| `rodar(aplicacao, fechar_em=0)` |
+| `separador()` |
+| `tem_display()` |
+| `temas()` |
+| `testar(aplicacao)` |
+
+
+---
+
+## Arcane.Brasa
+
+O framework de aplicativos para o celular: o programa vira um PWA que o Android e o iPhone instalam na tela inicial — barra de abas, topo com voltar, lista tocável, botão flutuante, compartilhar, ligar, mapa e localização, com manifesto, service worker e ícones gerados. Sobre a Vitrine, e testável sem navegador. Não gera APK.
+
+```dataforge
+adopt Arcane.Brasa as Brasa
+```
+
+**Funções (19)**
+
+| Assinatura |
+|------------|
+| `Sonda(aplicacao, caminho='/')` |
+| `app(nome='DataForge', cor='#E8453C', icone='', descricao='', versao='1', fundo='#FFFFFF')` |
+| `botao_flutuante(rotulo, destino, icone='mais')` |
+| `compartilhar(texto, rotulo='Compartilhar', url='')` |
+| `conferir_pwa(aplicacao)` |
+| `enderecos_na_rede(porta)` |
+| `icone_png(nome, cor='#E8453C', tamanho=192, maskable=False)` |
+| `ligar(numero, rotulo='')` |
+| `lista(itens, titulo='nome', detalhe='', destino='', icone='')` |
+| `localizacao(rotulo='Usar minha localização')` |
+| `manifesto(aplicacao)` |
+| `mapa(latitude, longitude, rotulo='Abrir no mapa')` |
+| `rodar(aplicacao, porta=8600, rede=True)` |
+| `secao(titulo)` |
+| `servir(aplicacao, porta=0)` |
+| `tela(caminho, acao, titulo='', icone='', aba=False, aplicacao=None)` |
+| `testar(aplicacao, caminho='/')` |
+| `topo(titulo, voltar=False, destino_voltar='/')` |
+| `vazio(mensagem, dica='')` |
+
+
+---
+
 ## Arcane.IoT
 
 Arduino e ESP32: Firmata pelo cabo, sketch gerado e gravado, sensores, MQTT — e um simulador de placa para testar sem hardware.
@@ -164,7 +228,7 @@ adopt Arcane.IoT as IoT
 | `Placa(transporte, nome='placa', prazo=5.0)` |
 | `Simulador(modelo='uno', versao=(2, 5))` |
 | `abrir_serial(porta, velocidade=115200, prazo=1.0)` |
-| `carregar(caminho, porta=None, fqbn='arduino:avr:uno')` |
+| `carregar(caminho, porta=None, fqbn=None)` |
 | `compilar(caminho, fqbn='arduino:avr:uno')` |
 | `conectar(porta=None, velocidade=57600, prazo=5.0, reiniciar=True)` |
 | `conectar_simulada(modelo='uno', prazo=2.0)` |

@@ -65,9 +65,14 @@ def pagina(ctx, config):
     cabeca = [
         '<!DOCTYPE html><html lang="%s"><head>' % _a(config.get("idioma", "pt-BR")),
         '<meta charset="utf-8">',
-        '<meta name="viewport" content="width=device-width,initial-scale=1">',
+        '<meta name="viewport" content="%s">' % _a(
+            config.get("viewport") or "width=device-width,initial-scale=1"),
         f'<title>{titulo}</title>',
     ]
+    # Linhas de <head> que uma casca por cima da Vitrine precisa — a Brasa
+    # põe aqui o manifesto, a cor da barra do sistema e o ícone do iOS. São
+    # escritas pelo programa (nunca vêm do usuário), e por isso vão cruas.
+    cabeca.extend(str(linha) for linha in (config.get("cabeca") or []))
     if config.get("descricao"):
         cabeca.append(f'<meta name="description" content="{_a(config["descricao"])}">')
     if icone:

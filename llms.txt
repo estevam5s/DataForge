@@ -137,7 +137,7 @@ typeof      using       validate    void        wait        when
 with        yes         yield
 ```
 
-## A biblioteca: 87 modulos
+## A biblioteca: 89 modulos
 
 Todos por `adopt`. Nenhum precisa de instalacao.
 
@@ -151,6 +151,8 @@ Todos por `adopt`. Nenhum precisa de instalacao.
 | `Arcane.Archive` | 13 | Zip e tar: compactar, listar, conferir e extrair recusando Zip Slip e zip bomb. |
 | `Arcane.Async` | 52 | Promessas, filas, agendamento e execução concorrente. |
 | `Arcane.Bench` | 7 | Medir, comparar e descobrir a classe de custo: tempo de uma ação, implementações lado a lado sem a ordem decidir quem ganha, e a curva medida em tamanhos crescentes dizendo qual O() descreve o que aconteceu. |
+| `Arcane.Bigorna` | 11 | O framework de aplicações de mesa: várias telas com navegação, barra de menus com atalhos (Ctrl vira Cmd no macOS), diálogos nativos, barra de status, notificação, tabela com seleção, preferências na pasta certa de cada sistema e tema claro/escuro — sobre o Tk, sem dependência, e testável sem display. |
+| `Arcane.Brasa` | 19 | O framework de aplicativos para o celular: o programa vira um PWA que o Android e o iPhone instalam na tela inicial — barra de abas, topo com voltar, lista tocável, botão flutuante, compartilhar, ligar, mapa e localização, com manifesto, service worker e ícones gerados. |
 | `Arcane.Bytes` | 25 | Dados binários: empacotar e desempacotar campos com a ordem dos bytes declarada, um cursor que anda pelo bloco sem acertar índice à mão, janela que olha sem copiar, hexadecimal, base64, bits, despejo estilo hexdump e comparação em tempo fixo. |
 | `Arcane.C` | 25 | Falar com biblioteca nativa: abrir . |
 | `Arcane.Capacidade` | 6 | A fronteira de CAPACIDADE: roda uma acao com a lista de poderes que ela pode alcancar, e recusa o resto pelo NOME da capacidade que falta. |

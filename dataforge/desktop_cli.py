@@ -6,6 +6,8 @@
     dataforge desktop empacotar app.df    .app, .exe ou binario
     dataforge desktop doctor      o que falta para empacotar aqui
 
+    dataforge mobile novo         um esqueleto de aplicativo (Brasa)
+    dataforge mobile rodar src/main.df   sobe na rede local
     dataforge mobile pwa app.df   gera o app instalavel no Android
     dataforge mobile doctor       o que existe e o que NAO existe
 
@@ -54,96 +56,230 @@ def _tem(argumentos, flags, nome):
 #  Modelos
 # ═══════════════════════════════════════════════════════════
 
-MODELO_TELA = '''// A tela de {nome}.
+MODELO_TELA = '''// {nome} — a aplicação, montada. Este arquivo NÃO abre a janela.
 //
-// A forma é a da Vitrine: o programa INTEIRO roda de novo a cada
-// interação, e o estado sobrevive. É o que dispensa callback — e o
-// que deixa a tela ser testada sem abrir janela nenhuma.
+// Quem abre é o 'main.df'. É a separação do Kiln ('server' monta,
+// 'ignite' sobe), e pela mesma razão: um teste que importasse este
+// módulo abriria a janela e nunca terminaria.
 //
-// Este arquivo NÃO abre a janela: quem abre é o 'main.df'. É a mesma
-// separação do Kiln ('server' monta, 'ignite' sobe), e pela mesma
-// razão — um teste que importasse este módulo abriria a janela e
-// nunca terminaria.
+// A forma é a da Vitrine: cada tela roda de novo a cada interação, e o
+// estado sobrevive. Um clique, um item de menu e um atalho são EVENTOS
+// — valem para uma execução só.
 
-adopt Arcane.Janela as J
+adopt Arcane.Bigorna as B
 
-// O estado que sobrevive entre as execuções mora fora da ação de tela.
 itens := []
 
-action tela(t):
-    t.titulo("{nome}")
+app := B.app("{nome}", largura := 900, altura := 600)
 
-    t.grupo("Novo item")
-    nome := t.entrada("Nome", "")
-    quantidade := t.numero("Quantidade", 1)
-    urgente := t.caixa("Urgente", no)
-    given t.botao("Adicionar", yes):
+app.menu("Arquivo", [
+    B.item("Novo item", "novo", atalho := "Ctrl+N"),
+    B.separador(),
+    B.item("Exportar CSV…", "exportar", atalho := "Ctrl+E"),
+])
+
+action lista(t):
+    t.titulo("{nome}")
+    escolhido := t.tabela(["nome", "qtd"], itens, selecionar := yes)
+    t.status($"{{len(itens)}} item(ns)")
+
+    given t.comando("novo") or t.botao("Novo item", yes):
+        t.ir("novo")
+
+    given escolhido isnt void:
+        t.texto($"selecionado: {{escolhido["nome"]}}")
+        given t.botao("Excluir") and t.confirmar($"Excluir {{escolhido["nome"]}}?"):
+            itens.remove(escolhido)
+            t.notificar("excluído")
+            t.atualizar()
+
+    given t.comando("exportar"):
+        caminho := t.salvar_arquivo("itens.csv", ["csv"])
+        given caminho isnt void:
+            t.guardar_pref("ultimo_export", caminho)
+            t.notificar($"exportado: {{caminho}}")
+
+action novo(t):
+    t.titulo("Novo item")
+    nome := t.entrada("Nome")
+    qtd := t.numero("Quantidade", 1)
+    given t.botao("Salvar", yes):
         given nome is "":
             t.erro("o nome é obrigatório")
         otherwise:
-            itens.append({{"nome": nome, "qtd": quantidade,
-                          "urgente": "sim" given urgente otherwise "não"}})
-            t.aviso($"adicionado: {{nome}}")
-    t.fim()
+            itens.append({{"nome": nome, "qtd": qtd}})
+            t.voltar()
+    given t.botao("Cancelar"):
+        t.voltar()
 
-    t.separador()
-    t.texto($"{{len(itens)}} item(ns)")
-    t.tabela(["nome", "qtd", "urgente"], itens)
-
-    given len(itens) > 0 and t.botao("Limpar"):
-        itens.clear()
+app.tela("lista", lista)
+app.tela("novo", novo)
 
 action limpar_tudo():
     itens.clear()
 
-relay tela, limpar_tudo
+relay app, limpar_tudo
 '''
 
 MODELO_APP = '''// {nome} — o programa que abre a janela.
 
-adopt Arcane.Janela as J
+adopt Arcane.Bigorna as B
 adopt ./tela as Tela
 
 // Sem display (num servidor, num contêiner, no CI), abrir levantaria.
 // Perguntar antes é o que faz o mesmo arquivo rodar nos dois lugares.
-given J.tem_display():
-    J.abrir(J.app("{nome}", 700, 560), Tela.tela)
+given B.tem_display():
+    B.rodar(Tela.app)
 otherwise:
-    out "sem display — rode 'dataforge test' para exercitar a tela"
+    out "sem display — rode 'dataforge test' para exercitar a aplicação"
 '''
 
-MODELO_TESTE = '''// A tela, testada sem abrir janela nenhuma.
+MODELO_TESTE = '''// A aplicação inteira, testada sem abrir janela nenhuma.
 //
-// É o que a separação entre a árvore e o desenho compra: o runner do
-// CI não tem display, e mesmo assim a tela é exercitada de verdade.
+// A Sonda clica, digita, abre menu, aperta atalho e responde diálogo —
+// mas só o que o teste ROTEIRIZOU: uma tela que pede confirmação sem
+// resposta combinada falha, em vez de receber um "sim" inventado.
 
-adopt Arcane.Janela as J
+adopt Arcane.Bigorna as B
 adopt Arcane.Crucible as Crucible
 adopt ../src/tela as Tela
 
-crucible "a tela":
+crucible "a aplicacao":
+
+    trial "o atalho abre o formulario":
+        Tela.limpar_tudo()
+        s := B.testar(Tela.app)
+        s.atalho("Ctrl+N")
+        expect s.tela_atual() is "novo"
+
+    trial "salvar volta para a lista":
+        Tela.limpar_tudo()
+        s := B.testar(Tela.app)
+        s.menu("Arquivo", "Novo item")
+        s.digitar("Nome", "café")
+        s.clicar("Salvar")
+        expect s.tela_atual() is "lista"
+        expect s.status() is "1 item(ns)"
 
     trial "o nome vazio e recusado":
         Tela.limpar_tudo()
-        s := J.testar(Tela.tela)
-        s.clicar("Adicionar")
+        s := B.testar(Tela.app)
+        s.atalho("Ctrl+N")
+        s.clicar("Salvar")
         expect s.tem("o nome é obrigatório") is yes
 
-    trial "adicionar poe na tabela":
+    trial "excluir pede confirmacao":
         Tela.limpar_tudo()
-        s := J.testar(Tela.tela)
+        s := B.testar(Tela.app)
+        s.atalho("Ctrl+N")
         s.digitar("Nome", "café")
-        s.clicar("Adicionar")
-        expect s.tem("adicionado: café") is yes
-        expect s.tem("1 item(ns)") is yes
+        s.clicar("Salvar")
+        s.selecionar(0)
+        s.responder(yes)
+        s.clicar("Excluir")
+        expect s.status() is "0 item(ns)"
 
-    trial "o clique vale para UMA execucao":
-        Tela.limpar_tudo()
-        s := J.testar(Tela.tela)
-        s.digitar("Nome", "café")
-        s.clicar("Adicionar")
-        s.digitar("Nome", "outro")
-        expect s.tem("1 item(ns)") is yes
+Crucible.run()
+'''
+
+MODELO_MOBILE_APP = '''// {nome} — o aplicativo, montado. Este arquivo NÃO sobe o servidor.
+//
+// Por baixo é a Vitrine: cada tela roda de novo a cada toque, e o
+// estado sobrevive por sessão. A Brasa acrescenta a barra de abas, o
+// topo com voltar, a lista tocável e o PWA que o celular instala.
+
+adopt Arcane.Brasa as Br
+adopt Arcane.Vitrine as V
+
+tarefas := [{{"id": 1, "titulo": "Primeira tarefa", "feita": no}}]
+
+app := Br.app("{nome}", cor := "#E8453C", descricao := "{nome}, no celular")
+
+action inicio():
+    Br.topo("{nome}")
+    pendentes := [t cycle t in tarefas given not t["feita"]]
+    given len(pendentes) is 0:
+        Br.vazio("Nada pendente", "toque em + para criar uma tarefa")
+    otherwise:
+        Br.lista(pendentes, titulo := "titulo", destino := "/tarefa?id={{id}}")
+    Br.botao_flutuante("Nova tarefa", "/nova")
+
+action tarefa():
+    id := int(V.parametro("id", "0"))
+    achadas := [t cycle t in tarefas given t["id"] is id]
+    Br.topo("Tarefa", voltar := yes)
+    given len(achadas) is 0:
+        Br.vazio("Tarefa não encontrada")
+        V.parar()
+    t := achadas[0]
+    V.subtitulo(t["titulo"])
+    given V.botao("Concluir"):
+        t["feita"] := yes
+        V.navegar("/")
+    Br.compartilhar($"Tarefa: {{t["titulo"]}}")
+
+action nova():
+    Br.topo("Nova tarefa", voltar := yes)
+    titulo := V.entrada("Título")
+    given V.botao("Salvar"):
+        given titulo is "":
+            V.erro("o título é obrigatório")
+        otherwise:
+            tarefas.append({{"id": len(tarefas) + 1, "titulo": titulo, "feita": no}})
+            V.navegar("/")
+
+action feitas():
+    Br.topo("Feitas")
+    Br.lista([t cycle t in tarefas given t["feita"]], titulo := "titulo")
+
+Br.tela("/", inicio, titulo := "Tarefas", icone := "conferir", aba := yes)
+Br.tela("/feitas", feitas, titulo := "Feitas", icone := "estrela", aba := yes)
+Br.tela("/tarefa", tarefa, titulo := "Tarefa")
+Br.tela("/nova", nova, titulo := "Nova")
+
+action recomecar():
+    tarefas.clear()
+    tarefas.append({{"id": 1, "titulo": "Primeira tarefa", "feita": no}})
+
+relay app, recomecar
+'''
+
+MODELO_MOBILE_MAIN = '''// {nome} — sobe o aplicativo, e o celular na mesma rede o abre.
+
+adopt Arcane.Brasa as Br
+adopt ./app as App
+
+Br.rodar(App.app, porta := 8600)
+'''
+
+MODELO_MOBILE_TESTE = '''// O aplicativo, testado sem navegador — e o PWA, conferido servindo.
+
+adopt Arcane.Brasa as Br
+adopt Arcane.Crucible as Crucible
+adopt ../src/app as App
+
+crucible "o aplicativo":
+
+    trial "concluir tira da lista":
+        App.recomecar()
+        s := Br.testar(App.app)
+        s.tocar("Primeira tarefa")
+        s.clicar("Concluir")
+        s.ir("/")
+        expect s.tem("Nada pendente") is yes
+
+    trial "criar uma tarefa":
+        App.recomecar()
+        s := Br.testar(App.app)
+        s.tocar("Nova tarefa")
+        s.digitar("Título", "comprar café")
+        s.clicar("Salvar")
+        s.ir("/")
+        expect s.tem("comprar café") is yes
+
+    trial "o PWA tem tudo que o Android exige":
+        falhas := [c cycle c in Br.conferir_pwa(App.app) given not c["ok"]]
+        expect len(falhas) is 0
 
 Crucible.run()
 '''
@@ -191,7 +327,7 @@ def novo(argumentos, flags):
         f.write(_icone_svg(titulo))
 
     print(color(f"criado: {pasta}/", "1;32"))
-    print(f"  {pasta}/src/tela.df          a tela — não abre janela")
+    print(f"  {pasta}/src/tela.df          a aplicação (Bigorna) — não abre janela")
     print(f"  {pasta}/src/main.df          abre a janela")
     print(f"  {pasta}/tests/tela_test.df   o teste, sem display")
     print(f"  {pasta}/icone.svg            o ícone")
@@ -209,10 +345,10 @@ def rodar(argumentos, flags):
         print("  dataforge desktop rodar src/main.df")
         return 2
     from .stdlib import get_module
-    if not get_module("Arcane.Janela")["tem_display"]():
+    if not get_module("Arcane.Bigorna")["tem_display"]():
         print(color("não há display nesta máquina.", "1;33"))
         print("  num servidor, num contêiner ou por ssh sem X isso é normal.")
-        print("  · para testar a tela sem display: Janela.testar(tela)")
+        print("  · para testar sem display: B.testar(app)")
         print("  · para servir uma interface por rede: dataforge vitrine run")
         return 1
     alvo = argumentos[0]
@@ -464,9 +600,60 @@ def pwa(argumentos, flags):
     return 0
 
 
+def mobile_novo(argumentos, flags):
+    """Um esqueleto de aplicativo Brasa que já roda e já tem teste."""
+    nome = (argumentos[0] if argumentos and not argumentos[0].startswith("-")
+            else _valor(argumentos, flags, "nome", "meu-app"))
+    pasta = _valor(argumentos, flags, "em", nome)
+    if os.path.exists(pasta) and os.listdir(pasta):
+        print(color(f"a pasta '{pasta}' já existe e não está vazia.", "1;31"))
+        print("  escolha outro nome, ou passe --em=outra-pasta")
+        return 1
+    os.makedirs(os.path.join(pasta, "src"), exist_ok=True)
+    os.makedirs(os.path.join(pasta, "tests"), exist_ok=True)
+    titulo = nome.replace("-", " ").replace("_", " ").title()
+    arquivos = {
+        os.path.join("src", "app.df"): MODELO_MOBILE_APP.format(nome=titulo),
+        os.path.join("src", "main.df"): MODELO_MOBILE_MAIN.format(nome=titulo),
+        os.path.join("tests", "app_test.df"): MODELO_MOBILE_TESTE,
+        "forge.toml": (f'[project]\nname = "{nome}"\nversion = "0.1.0"\n'
+                       f'description = "Aplicativo para celular"\nmain = "src/main.df"\n'),
+    }
+    for relativo, conteudo in arquivos.items():
+        with open(os.path.join(pasta, relativo), "w", encoding="utf-8") as f:
+            f.write(conteudo)
+    print(color(f"criado: {pasta}/", "1;32"))
+    print(f"  {pasta}/src/app.df          o aplicativo (Brasa) — não sobe servidor")
+    print(f"  {pasta}/src/main.df         sobe, e mostra o endereço do celular")
+    print(f"  {pasta}/tests/app_test.df   o teste, sem navegador — e o PWA conferido")
+    print()
+    print("  cd " + pasta)
+    print("  dataforge test")
+    print("  dataforge mobile rodar src/main.df")
+    return 0
+
+
+def mobile_rodar(argumentos, flags):
+    """Sobe o aplicativo na rede local."""
+    if not argumentos:
+        print(color("falta o arquivo.", "1;31"))
+        print("  dataforge mobile rodar src/main.df")
+        return 2
+    ambiente = dict(os.environ)
+    porta = _valor(argumentos, flags, "porta")
+    if porta:
+        ambiente["BRASA_PORTA"] = str(porta)
+    return subprocess.run([sys.executable, "-m", "dataforge", "run", argumentos[0]],
+                          check=False, env=ambiente).returncode
+
+
 def mobile_doctor(_argumentos, _flags):
     """O que existe e o que não existe para Android."""
     print(color("O que funciona hoje", "1;32"))
+    print("  ✓ Arcane.Brasa: o framework de aplicativos — abas, topo com")
+    print("    voltar, lista tocável, compartilhar, mapa e localização, e o")
+    print("    PWA completo (manifesto, service worker, ícones PNG)")
+    print("    dataforge mobile novo meu-app")
     print("  ✓ PWA a partir de uma aplicação Vitrine ou Kiln")
     print("    instala na tela inicial, abre em tela cheia, roda sem")
     print("    navegador visível e funciona offline com o service worker")
@@ -503,6 +690,8 @@ SUBCOMANDOS_DESKTOP = {
 }
 
 SUBCOMANDOS_MOBILE = {
+    "novo": mobile_novo, "new": mobile_novo,
+    "rodar": mobile_rodar, "run": mobile_rodar,
     "pwa": pwa,
     "doctor": mobile_doctor,
 }

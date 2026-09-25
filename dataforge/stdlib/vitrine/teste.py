@@ -43,8 +43,15 @@ class Sonda:
     # ── Rodar ────────────────────────────────────────────────
 
     def rodar(self, entrada=None, eventos=None):
-        self.ctx = self.app.executar(self.sessao, self.caminho,
-                                     entrada=entrada, eventos=eventos)
+        # A query vai em 'params', como o servidor faz com req["query"]. A
+        # Sonda passava '/produto?id=3' inteiro como caminho, e
+        # 'V.parametro("id")' devolvia o padrão: uma página de detalhe não
+        # tinha como ser testada pelo caminho que o usuário usa.
+        from urllib.parse import parse_qsl
+        caminho, _, consulta = self.caminho.partition("?")
+        self.ctx = self.app.executar(self.sessao, caminho or "/",
+                                     entrada=entrada, eventos=eventos,
+                                     params=dict(parse_qsl(consulta)))
         return self
 
     def ir_para(self, caminho):

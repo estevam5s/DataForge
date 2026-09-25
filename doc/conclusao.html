@@ -176,7 +176,7 @@ tbody tr:hover{background:var(--painel)}
       a página é <strong>gerada</strong> por <code>tools/gerar_conclusao.py</code>, e
       há teste reprovando quando ela diverge do código. A versão anterior era escrita
       à mão e envelheceu exatamente como este projeto documenta que acontece —
-      anunciava 48 módulos onde há 87, e listava como "falta" quatro
+      anunciava 48 módulos onde há 89, e listava como "falta" quatro
       coisas que passaram a existir. O que está ausente <strong>por decisão</strong>
       continua separado do que falta, porque as duas coisas pedem respostas diferentes.
     </p>
@@ -196,14 +196,14 @@ tbody tr:hover{background:var(--painel)}
     <p class="sub">
       Não é um DSL nem um transpilador: lexer, parser recursivo descendente, AST
       tipada, analisador estático, seis representações intermediárias e interpretador
-      de árvore próprios, em 142,773 linhas de Python
+      de árvore próprios, em 145,113 linhas de Python
       <strong>sem uma única dependência externa</strong> no runtime.
     </p>
 
     <h3 style="--cor:var(--verde)">A linguagem — 81 palavras reservadas, 231 funções embutidas, 219 códigos de erro</h3>
     <div class="cartoes" id="c-linguagem"></div>
 
-    <h3 style="--cor:var(--azul)">A biblioteca padrão — 87 módulos, 2323 símbolos</h3>
+    <h3 style="--cor:var(--azul)">A biblioteca padrão — 89 módulos, 2353 símbolos</h3>
     <div class="rolagem"><table id="t-modulos">
       <thead><tr><th>Área</th><th>Módulos</th><th>Símbolos</th></tr></thead>
       <tbody></tbody>
@@ -379,7 +379,7 @@ tbody tr:hover{background:var(--painel)}
 <footer class="env rodape">
   <p>
     <b>Gerado</b> em 25/09/2026 por <code>tools/gerar_conclusao.py</code>, a partir do
-    repositório na <code>commit b650ae8</code>. Não edite este arquivo à mão: rode o
+    repositório na <code>commit e8e8c68</code>. Não edite este arquivo à mão: rode o
     gerador. Sem CDN, sem fonte remota, sem biblioteca — a linguagem promete zero
     dependência, e este relatório sobre ela não ia desmentir.
   </p>
@@ -391,33 +391,33 @@ tbody tr:hover{background:var(--painel)}
    ═══════════════════════════════════════════════════════════════ */
 const N = {
 "versao": "1.1.1",
-"modulos": 87,
-"simbolos": 2323,
+"modulos": 89,
+"simbolos": 2353,
 "comandos": 69,
 "erros": 219,
 "palavras": 81,
 "embutidas": 231,
-"testes": 3910,
+"testes": 4016,
 "exercicios": 399,
 "modulos_de_exercicio": 59,
 "exemplos": 50,
 "arquivos_df": 515,
-"paginas": 836,
-"blocos": 2414,
-"blocos_totais": 3839,
-"linhas": 142773,
+"paginas": 847,
+"blocos": 2430,
+"blocos_totais": 3858,
+"linhas": 145113,
 "capitulos": 18,
 "pacotes": 20
 };
 const NUMEROS = [
 {
-"v": "3.910",
+"v": "4.016",
 "r": "testes passando",
 "c": "var(--verde)"
 },
 {
-"v": "2.323",
-"r": "símbolos em 87 módulos",
+"v": "2.353",
+"r": "símbolos em 89 módulos",
 "c": "var(--azul)"
 },
 {
@@ -426,12 +426,12 @@ const NUMEROS = [
 "c": "var(--roxo)"
 },
 {
-"v": "836",
+"v": "847",
 "r": "páginas de documentação",
 "c": "var(--marca)"
 },
 {
-"v": "2.414",
+"v": "2.430",
 "r": "blocos da doc que compilam",
 "c": "var(--laranja)"
 },
@@ -527,8 +527,8 @@ const AREAS_STDLIB = [
 ],
 [
 "Frameworks",
-"Kiln (80), Vitrine (213), Telegram (37), Lavra (42), Crucible (61), Forge (31), API (7)",
-"471"
+"Kiln (80), Vitrine (213), Bigorna (11), Brasa (19), Telegram (37), Lavra (42), Crucible (61), Forge (31), API (7)",
+"501"
 ],
 [
 "Dados",
@@ -989,7 +989,7 @@ const MEDIDAS_MAQUINA = [
 const PORTOES = [
 [
 "<code>pytest tests/</code>",
-"3910 funções de teste — regressões, Kiln, Vitrine, DAP, empacotamento, travessia, malha, complexidade, IoT",
+"4016 funções de teste — regressões, Kiln, Vitrine, DAP, empacotamento, travessia, malha, complexidade, IoT",
 "verde"
 ],
 [
@@ -1004,7 +1004,7 @@ const PORTOES = [
 ],
 [
 "<code>tools/verificar_docs.py</code>",
-"2414 blocos de DataForge publicados no site, compilados a cada mudança",
+"2430 blocos de DataForge publicados no site, compilados a cada mudança",
 "verde"
 ],
 [
@@ -1024,7 +1024,7 @@ const PORTOES = [
 ],
 [
 "<code>npm run build</code>",
-"836 páginas de doc geradas e compiladas",
+"847 páginas de doc geradas e compiladas",
 "verde"
 ],
 [

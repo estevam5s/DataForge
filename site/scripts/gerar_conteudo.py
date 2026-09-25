@@ -27,6 +27,7 @@ MODULOS = [
     "concorrencia_extra",
     "dados_engenharia",
     "desktop",
+    "mobile",
     "api_rest_mais",
     "telegram_mais",
     "dominio_mais",
